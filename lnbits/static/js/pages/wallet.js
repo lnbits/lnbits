@@ -6,7 +6,6 @@ window.PageWallet = {
       origin: window.location.origin,
       baseUrl: `${window.location.protocol}//${window.location.host}/`,
       websocketUrl: `${'http:' ? 'ws://' : 'wss://'}${window.location.host}/api/v1/ws`,
-      stored_paylinks: [],
       parse: {
         show: false,
         invoice: null,
@@ -102,10 +101,6 @@ window.PageWallet = {
           'fitness_center',
           'lunch_dining'
         ]
-      },
-      update: {
-        name: null,
-        currency: null
       },
       walletBalanceChart: null,
       inkeyHidden: true,
@@ -210,7 +205,7 @@ window.PageWallet = {
       return moment.utc(date).local().fromNow()
     },
     formatFiatAmount(amount, currency) {
-      this.update.currency = currency
+      // this.update.currency = currency
       this.formattedFiatAmount = LNbits.utils.formatCurrency(
         amount.toFixed(2),
         currency
@@ -925,13 +920,12 @@ window.PageWallet = {
       if (!this.g.fiatTracking) {
         this.$q.localStorage.setItem('lnbits.isFiatPriority', false)
         this.isFiatPriority = false
-        this.update.currency = ''
         this.g.wallet.currency = ''
         this.updateWallet({currency: ''})
       } else {
-        this.g.wallet.currency = this.update.currency
-        this.updateWallet({currency: this.update.currency})
-        this.updateFiatBalance(this.update.currency)
+        // this.g.wallet.currency = this.update.currency
+        // this.updateWallet({currency: this.update.currency})
+        // this.updateFiatBalance(this.update.currency)
       }
     },
     handleFilterChange(value = {}) {
@@ -1177,55 +1171,17 @@ window.PageWallet = {
       this.$q.localStorage.set('lnbits.wallets.chartConfig', this.chartConfig)
       this.refreshCharts()
     },
-    updatePaylinks() {
-      LNbits.api
-        .request(
-          'PUT',
-          `/api/v1/wallet/stored_paylinks/${this.g.wallet.id}`,
-          this.g.wallet.adminkey,
-          {
-            links: this.stored_paylinks
-          }
-        )
-        .then(() => {
-          Quasar.Notify.create({
-            message: 'Paylinks updated.',
-            type: 'positive',
-            timeout: 3500
-          })
-        })
-        .catch(err => {
-          LNbits.utils.notifyApiError(err)
-        })
-    },
     sendToPaylink(lnurl) {
       this.parse.data.request = lnurl
       this.parse.show = true
       this.lnurlScan()
     },
-    editPaylink() {
-      this.$nextTick(() => {
-        this.updatePaylinks()
-      })
-    },
-    deletePaylink(lnurl) {
-      const links = []
-      this.stored_paylinks.forEach(link => {
-        if (link.lnurl !== lnurl) {
-          links.push(link)
-        }
-      })
-      this.stored_paylinks = links
-      this.updatePaylinks()
-    },
     changeWallet() {
-      this.stored_paylinks = this.g.wallet.stored_paylinks.links
-      this.update.name = this.g.wallet.name
       if (this.g.wallet.currency != '' && LNBITS_DENOMINATION == 'sats') {
         this.g.fiatTracking = true
         this.updateFiatBalance(this.g.wallet.currency)
       } else {
-        this.update.currency = ''
+        // this.update.currency = ''
         this.g.fiatTracking = false
       }
     }

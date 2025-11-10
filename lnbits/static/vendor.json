@@ -75,6 +75,7 @@
     "js/components/lnbits-footer.js",
     "js/components/lnbits-header.js",
     "js/components/lnbits-drawer.js",
+    "js/components/lnbits-page.js",
     "js/components/lnbits-wallet-api-docs.js",
     "js/components/lnbits-wallet-share.js",
     "js/components/lnbits-wallet-disclaimer.js",

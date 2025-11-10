@@ -19,7 +19,7 @@
           style="position: relative; left: -15px; bottom: -10px"
         ></q-btn>
         <div class="text-subtitle1 q-mt-none q-mb-none">
-          <span v-text="SITE_TITLE + ' Wallet:"></span>
+          <span v-text="walletTitle"></span>
           <strong><em v-text="g.wallet.name"></em></strong>
         </div>
         <q-space></q-space>
@@ -43,7 +43,7 @@
       <q-separator></q-separator>
       <q-list>
         <q-expansion-item
-          v-if="wallet.lnurlwithdraw_full"
+          v-if="g.wallet.lnurlwithdraw_full"
           group="extras"
           icon="crop_free"
           :label="$t('drain_funds')"
@@ -51,8 +51,8 @@
           <q-card>
             <q-card-section>
               <lnbits-qrcode
-                :value="'lightning:' + wallet.lnurlwithdraw_full"
-                :href="'lightning:' + wallet.lnurlwithdraw_full"
+                :value="'lightning:' + g.wallet.lnurlwithdraw_full"
+                :href="'lightning:' + g.wallet.lnurlwithdraw_full"
               ></lnbits-qrcode>
               <p class="text-center" v-text="$t('drain_funds_desc')"></p>
             </q-card-section>

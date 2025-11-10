@@ -1,6 +1,6 @@
 <template id="page-wallet">
   <div class="row q-col-gutter-md" style="margin-bottom: 6rem">
-    <div class="col-12 col-md-8 q-gutter-y-md">
+    <div class="col-12 col-md-7 q-gutter-y-md">
       <lnbits-wallet-header></lnbits-wallet-header>
 
       <q-card
@@ -28,11 +28,9 @@
 
     <div
       v-if="!mobileSimple"
-      class="wallet-sidebar"
-      class="col-12 col-md-5 q-gutter-y-md"
+      class="wallet-sidebar col-12 col-md-5 q-gutter-y-md"
     >
       <lnbits-wallet-details />
-
       <q-card v-if="adsEnabled">
         <q-card-section>
           <h6
