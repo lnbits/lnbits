@@ -17,7 +17,6 @@ from lnbits.core.crud import (
     update_payment,
 )
 from lnbits.core.crud.settings import set_settings_field
-from lnbits.core.crud.users import get_user
 from lnbits.core.models import Account, CreateInvoice, PaymentState, User
 from lnbits.core.models.users import UpdateSuperuserPassword
 from lnbits.core.services import create_user_account, update_wallet_balance
@@ -114,15 +113,13 @@ async def user_alan():
 @pytest.fixture(scope="session")
 async def admin_user(settings: Settings):
     account = await get_account_by_username("admin")
-    if not account:
-        user = await new_user("admin")
-        settings.lnbits_admin_users = [user.id]
-        await set_settings_field("lnbits_admin_users", [user.id])
-    else:
-        user_ = await get_user(account.id)
-        assert user_ is not None
-        user = user_
-    yield user
+    if account:
+        await delete_account(account.id)
+
+    admin = await new_user("admin")
+    settings.lnbits_admin_users = [admin.id]
+    await set_settings_field("lnbits_admin_users", [admin.id])
+    yield admin
 
 
 @pytest.fixture(scope="session")
