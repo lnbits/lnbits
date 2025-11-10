@@ -33,3 +33,13 @@ async def get_user_assets(
         filters=filters,
         model=AssetInfo,
     )
+
+
+async def get_user_assets_count(user_id: str) -> int:
+    result = await db.execute(
+        query="SELECT COUNT(*) as count FROM assets WHERE user_id = :user_id",
+        values={"user_id": user_id},
+    )
+    row = result.mappings().first()
+    print(f"### get_user_assets_count row: {row}")
+    return row.get("count", 0)
