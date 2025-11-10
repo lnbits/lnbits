@@ -69,6 +69,7 @@
     "js/components/lnbits-new-user-wallet.js",
     "js/components/lnbits-qrcode.js",
     "js/components/lnbits-qrcode-lnurl.js",
+    "js/components/lnbits-footer.js",
     "js/components/extension-settings.js",
     "js/components/data-fields.js",
     "js/components/payment-list.js",
