@@ -13,6 +13,7 @@ include('components/admin/server.vue') %} {%
 include('components/new_user_wallet.vue') %} {%
 include('components/lnbits-footer.vue') %} {%
 include('components/lnbits-header.vue') %} {%
+include('components/lnbits-page.vue') %} {%
 include('components/lnbits-drawer.vue') %} {%
 include('components/lnbits-home-logos.vue') %} {%
 include('components/lnbits-wallet-api-docs.vue') %} {%
@@ -21,6 +22,7 @@ include('components/lnbits-wallet-share.vue') %} {%
 include('components/lnbits-wallet-disclaimer.vue') %} {%
 include('components/lnbits-wallet-header.vue') %} {%
 include('components/lnbits-wallet-parse.vue') %} {%
+include('components/lnbits-wallet-details.vue') %} {%
 include('components/lnbits-wallet-receive.vue') %} {%
 include('components/lnbits-wallet-not-receive.vue') %}
 
