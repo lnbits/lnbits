@@ -241,6 +241,10 @@ async def dispatch_webhook(payment: Payment):
     async with httpx.AsyncClient(headers=headers) as client:
         try:
             check_callback_url(payment.webhook)
+        except ValueError as exc:
+            await mark_webhook_sent(payment.payment_hash, "-1")
+            logger.warning(f"Invalid webhook URL {payment.webhook}: {exc!s}")
+        try:
             r = await client.post(payment.webhook, json=payment.json(), timeout=40)
             r.raise_for_status()
             await mark_webhook_sent(payment.payment_hash, str(r.status_code))
