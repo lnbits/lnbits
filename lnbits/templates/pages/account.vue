@@ -62,6 +62,16 @@
                   ><span v-text="$t('access_control_list')"></span
                 ></q-tooltip>
               </q-tab>
+              <q-tab
+                name="assets"
+                icon="perm_media"
+                :label="$q.screen.gt.sm ? $t('assets') : ''"
+                @update="val => (tab = val.name)"
+              >
+                <q-tooltip v-if="!$q.screen.gt.sm"
+                  ><span v-text="$t('assets')"></span
+                ></q-tooltip>
+              </q-tab>
             </q-tabs>
           </template>
           <template v-slot:after>
@@ -949,6 +959,59 @@
                         </q-btn>
                       </div>
                     </div>
+                  </q-card-section>
+                </q-tab-panel>
+                <q-tab-panel name="assets">
+                  <q-card-section>
+                    <q-table
+                      grid
+                      grid-header
+                      flat
+                      bordered
+                      :rows="assets"
+                      :columns="assetsTable.columns"
+                      v-model:pagination="assetsTable.pagination"
+                      :loading="assetsTable.loading"
+                      @request="getUserAssets"
+                      row-key="id"
+                      :filter="filter"
+                      hide-header
+                    >
+                      <template v-slot:item="props">
+                        <div class="q-pa-xs col-xs-12 col-sm-6 col-md-4">
+                          <q-card class="q-ma-sm wallet-list-card text-center">
+                            <q-card-section>
+                              <q-img
+                                v-if="props.row.thumbnail_base64"
+                                :src="
+                                  'data:image/png;base64,' +
+                                  props.row.thumbnail_base64
+                                "
+                                :alt="props.row.name"
+                                loading="lazy"
+                                style="width: 128px"
+                                class="text-center"
+                              >
+                              </q-img>
+                              <!-- style="max-width: 100%; height: auto" -->
+                              <!-- <q-img
+                                  v-else
+                                  :src="props.row.url"
+                                  :alt="props.row.name"
+                                  style="max-width: 100%; height: auto"
+                                ></q-img> -->
+                            </q-card-section>
+                            <q-separator></q-separator>
+
+                            <q-card-section>
+                              <div class="text-center">
+                                <span v-text="props.row.name"></span>
+                              </div>
+                            </q-card-section>
+                          </q-card>
+                        </div>
+                      </template>
+                    </q-table>
                   </q-card-section>
                 </q-tab-panel>
               </q-tab-panels>

@@ -14,10 +14,23 @@ from lnbits.decorators import (
 )
 
 asset_router = APIRouter(
-    prefix="/asset/api/v1", dependencies=[Depends(check_admin)], tags=["Asset"]
+    prefix="/api/v1/assets", dependencies=[Depends(check_admin)], tags=["Assets"]
 )
 
 upload_file_param = File(...)
+
+
+@asset_router.get(
+    "/paginated",
+    name="Get user assets",
+    summary="Get paginated list user assets",
+)
+async def api_get_user_assets(
+    user: User = Depends(check_user_exists),
+    filters: Filters = Depends(parse_filters(AssetFilters)),
+) -> Page[AssetInfo]:
+    print("### api_get_user_assets filters:", filters)
+    return await get_user_assets(user.id, filters=filters)
 
 
 @asset_router.get(
@@ -33,18 +46,6 @@ async def api_get_asset(
     if not asset_info:
         raise HTTPException(HTTPStatus.NOT_FOUND, "Asset not found.")
     return asset_info
-
-
-@asset_router.get(
-    "",
-    name="Get user assets",
-    summary="Get paginated list user assets",
-)
-async def api_get_user_assets(
-    user: User = Depends(check_user_exists),
-    filters: Filters = Depends(parse_filters(AssetFilters)),
-) -> Page[AssetInfo]:
-    return await get_user_assets(user.id, filters=filters)
 
 
 @asset_router.post(

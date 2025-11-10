@@ -82,6 +82,30 @@ window.PageAccount = {
         allRead: false,
         allWrite: false
       },
+      assets: [],
+      assetsTable: {
+        loading: false,
+        columns: [
+          {
+            name: 'name',
+            align: 'left',
+            label: this.$t('Name'),
+            field: 'name',
+            sortable: true
+          },
+          {
+            name: 'created_at',
+            align: 'left',
+            label: this.$t('created_at'),
+            field: 'created_at',
+            sortable: true
+          }
+        ],
+        pagination: {
+          rowsPerPage: 12,
+          page: 1
+        }
+      },
       notifications: {
         nostr: {
           identifier: ''
@@ -400,6 +424,23 @@ window.PageAccount = {
       } finally {
         this.apiAcl.password = ''
       }
+    },
+    async getUserAssets(props) {
+      try {
+        this.assetsTable.loading = true
+        const params = LNbits.utils.prepareFilterQuery(this.assetsTable, props)
+        const {data} = await LNbits.api.request(
+          'GET',
+          `/api/v1/assets/paginated?${params}`,
+          null
+        )
+        this.assets = data.data
+        this.assetsTable.pagination.rowsNumber = data.total
+      } catch (e) {
+        LNbits.utils.notifyApiError(e)
+      } finally {
+        this.assetsTable.loading = false
+      }
     }
   },
 
@@ -417,5 +458,6 @@ window.PageAccount = {
       this.tab = hash
     }
     await this.getApiACLs()
+    await this.getUserAssets()
   }
 }
