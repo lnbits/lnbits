@@ -239,7 +239,7 @@ class LndRestWallet(Wallet):
             r.raise_for_status()
             data = r.json()
         except Exception as e:
-            logger.error(f"Error getting invoice status: {e}")
+            logger.warning(f"Error getting invoice status: {e}")
             return PaymentPendingStatus()
 
         if r.is_error or data.get("settled") is None:
@@ -273,15 +273,17 @@ class LndRestWallet(Wallet):
                     line = json.loads(json_line)
                     error = line.get("error")
                     if error:
-                        logger.error(error["message"] if "message" in error else error)
+                        logger.warning(
+                            error["message"] if "message" in error else error
+                        )
                         return PaymentPendingStatus()
                 except Exception as exc:
-                    logger.error("Invalid JSON line in payment status stream:", exc)
+                    logger.warning("Invalid JSON line in payment status stream:", exc)
                     return PaymentPendingStatus()
 
                 payment = line.get("result")
                 if not payment:
-                    logger.error(f"No payment info found for: {checking_id}")
+                    logger.warning(f"No payment info found for: {checking_id}")
                     continue
 
                 status = payment.get("status")
@@ -318,7 +320,7 @@ class LndRestWallet(Wallet):
                         payment_hash = base64.b64decode(inv["r_hash"]).hex()
                         yield payment_hash
             except Exception as exc:
-                logger.error(
+                logger.warning(
                     f"lost connection to lnd invoices stream: '{exc}', retrying in 5"
                     " seconds"
                 )
@@ -357,7 +359,7 @@ class LndRestWallet(Wallet):
             logger.warning(exc)
             return InvoiceResponse(ok=False, error_message=exc.response.text)
         except Exception as exc:
-            logger.error(exc)
+            logger.warning(exc)
             return InvoiceResponse(ok=False, error_message=str(exc))
 
         payment_request = data["payment_request"]
@@ -379,7 +381,7 @@ class LndRestWallet(Wallet):
             logger.warning(exc)
             return InvoiceResponse(ok=False, error_message=exc.response.text)
         except Exception as exc:
-            logger.error(exc)
+            logger.warning(exc)
             return InvoiceResponse(ok=False, error_message=str(exc))
 
     async def cancel_hold_invoice(self, payment_hash: str) -> InvoiceResponse:
@@ -395,5 +397,5 @@ class LndRestWallet(Wallet):
         except httpx.HTTPStatusError as exc:
             return InvoiceResponse(ok=False, error_message=exc.response.text)
         except Exception as exc:
-            logger.error(exc)
+            logger.warning(exc)
             return InvoiceResponse(ok=False, error_message=str(exc))
