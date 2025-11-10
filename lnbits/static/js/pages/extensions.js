@@ -3,7 +3,7 @@ window.PageExtensions = {
   mixins: [windowMixin],
   data() {
     return {
-      extbuilder_enabled: false,
+      extbuilderEnabled: false,
       slide: 0,
       fullscreen: false,
       autoplay: true,
@@ -645,7 +645,7 @@ window.PageExtensions = {
   },
   async created() {
     this.extensions = await this.fetchAllExtensions()
-    this.extbuilder_enabled = user.admin || this.LNBITS_EXT_BUILDER
+    this.extbuilderEnabled = user.admin || this.LNBITS_EXT_BUILDER
     this.filteredExtensions = this.extensions.concat([])
     const hash = window.location.hash.replace('#', '')
     const ext = this.filteredExtensions.find(ext => ext.id === hash)

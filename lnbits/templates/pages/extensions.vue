@@ -51,7 +51,7 @@
                 ></span>
               </q-badge>
               <q-btn
-                v-if="extbuilder_enabled"
+                v-if="extbuilderEnabled"
                 flat
                 no-caps
                 icon="architecture"
