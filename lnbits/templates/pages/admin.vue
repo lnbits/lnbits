@@ -73,25 +73,32 @@
   <div class="row q-col-gutter-md justify-center">
     <div class="col q-gutter-y-md">
       <q-card>
-        <q-tabs
-          v-if="$q.screen.lt.md"
-          v-model="tab"
-          dense
-          active-color="primary"
-          inline-label
-          class="text-primary"
-        >
-          <q-tab name="funding" icon="account_balance_wallet" label="Fund" />
-          <q-tab name="security" icon="security" label="Sec" />
-          <q-tab name="server" icon="settings" label="Srv" />
-          <q-tab name="exchange_providers" icon="swap_horiz" label="Exch" />
-          <q-tab name="fiat_providers" icon="account_balance" label="Fiat" />
-          <q-tab name="extensions" icon="extension" label="Ext" />
-          <q-tab name="notifications" icon="notifications" label="Not" />
-          <q-tab name="audit" icon="receipt_long" label="Aud" />
-          <q-tab name="site_customisation" icon="language" label="Site" />
-          <q-tab name="library" icon="image" label="Lib" />
-        </q-tabs>
+        <!-- Mobile: Dropdown menu at top -->
+        <div v-if="$q.screen.lt.md" class="q-px-md q-pt-md">
+          <q-select
+            v-model="tab"
+            :options="[
+              {value: 'funding', label: $t('funding')},
+              {value: 'security', label: $t('security')},
+              {value: 'server', label: $t('payments')},
+              {value: 'exchange_providers', label: $t('exchanges')},
+              {value: 'fiat_providers', label: $t('fiat_providers')},
+              {value: 'users', label: $t('users')},
+              {value: 'extensions', label: $t('extensions')},
+              {value: 'notifications', label: $t('notifications')},
+              {value: 'audit', label: $t('audit')},
+              {value: 'library', label: $t('Library')},
+              {value: 'site_customisation', label: $t('site_customisation')}
+            ]"
+            option-value="value"
+            option-label="label"
+            emit-value
+            map-options
+            filled
+            dense
+          >
+          </q-select>
+        </div>
 
         <q-splitter>
           <template v-slot:before>
