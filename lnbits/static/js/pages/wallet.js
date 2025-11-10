@@ -140,6 +140,12 @@ window.PageWallet = {
     }
   },
   computed: {
+    adsEnabled() {
+      return this.AD_SPACE_ENABLED && this.AD_SPACE.length > 0
+    },
+    ads() {
+      return this.AD_SPACE.split(';')
+    },
     formattedBalance() {
       if (LNBITS_DENOMINATION != 'sats') {
         return LNbits.utils.formatCurrency(

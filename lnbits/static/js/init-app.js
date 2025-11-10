@@ -121,24 +121,6 @@ const DynamicComponent = {
 
 const routes = [
   {
-    path: '/extensions',
-    name: 'Extensions',
-    component: DynamicComponent,
-    props: {
-      fetchUrl: '/extensions',
-      scripts: ['/static/js/extensions.js']
-    }
-  },
-  {
-    path: '/extensions/builder',
-    name: 'ExtensionsBuilder',
-    component: DynamicComponent,
-    props: {
-      fetchUrl: '/extensions/builder',
-      scripts: ['/static/js/extensions_builder.js']
-    }
-  },
-  {
     path: '/node',
     name: 'Node',
     component: PageNode
