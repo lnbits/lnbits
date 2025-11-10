@@ -274,8 +274,8 @@ class StrikeWallet(Wallet):
             )
             q.raise_for_status()
         except httpx.HTTPStatusError as quote_exc:
-            logger.error(f"Strike: Failed to create payment quote: {quote_exc}")
-            logger.error(
+            logger.warning(f"Strike: Failed to create payment quote: {quote_exc}")
+            logger.warning(
                 f"Response: {quote_exc.response.status_code} - "
                 f"{quote_exc.response.text}"
             )
@@ -288,7 +288,7 @@ class StrikeWallet(Wallet):
         quote_data = q.json()
         quote_id = quote_data.get("paymentQuoteId")
         if not quote_id:
-            logger.error(
+            logger.warning(
                 f"Strike: missing paymentQuoteId in quote response: {quote_data}"
             )
             return None, "Strike: missing payment quote Id"
@@ -303,10 +303,10 @@ class StrikeWallet(Wallet):
             e = await self._patch(f"/payment-quotes/{quote_id}/execute")
             e.raise_for_status()
         except httpx.HTTPStatusError as exec_exc:
-            logger.error(
+            logger.warning(
                 f"Strike: Failed to execute payment quote {quote_id}: {exec_exc}"
             )
-            logger.error(
+            logger.warning(
                 f"Response: {exec_exc.response.status_code} - "
                 f"{exec_exc.response.text}"
             )
@@ -319,7 +319,7 @@ class StrikeWallet(Wallet):
         data = e.json() if e.content else {}
         payment_id = data.get("paymentId")
         if not payment_id:
-            logger.error(f"Strike: missing paymentId in response: {data}")
+            logger.warning(f"Strike: missing paymentId in response: {data}")
             return None, "Strike: missing paymentId in response"
 
         return data, None
@@ -356,7 +356,7 @@ class StrikeWallet(Wallet):
             invoice = bolt11_decode(bolt11)
             payment_hash = invoice.payment_hash
         except Exception as decode_exc:
-            logger.error(f"Strike: Failed to decode invoice: {decode_exc}")
+            logger.warning(f"Strike: Failed to decode invoice: {decode_exc}")
             return PaymentResponse(
                 ok=False, error_message=f"Invalid invoice: {decode_exc!s}"
             )
@@ -407,8 +407,8 @@ class StrikeWallet(Wallet):
             return PaymentResponse(ok=None, checking_id=payment_hash)
 
         except httpx.HTTPStatusError as http_exc:
-            logger.error(f"Strike HTTP error during payment: {http_exc}")
-            logger.error(
+            logger.warning(f"Strike HTTP error during payment: {http_exc}")
+            logger.warning(
                 f"Response status: {http_exc.response.status_code}, "
                 f"body: {http_exc.response.text}"
             )
@@ -417,7 +417,7 @@ class StrikeWallet(Wallet):
                 error_message=f"Strike API error: {http_exc.response.status_code}",
             )
         except Exception as e:
-            logger.error(f"Strike payment exception: {e}", exc_info=True)
+            logger.warning(f"Strike payment exception: {e}", exc_info=True)
             return PaymentResponse(ok=None, error_message=f"Error: {e!s}")
 
     async def get_invoice_status(self, checking_id: str) -> PaymentStatus:
@@ -691,7 +691,7 @@ class StrikeWallet(Wallet):
                             )
                             if not is_invalid:
                                 continue
-                            logger.error(
+                            logger.warning(
                                 f"Payment '{checking_id}' not a valid Strike payment. "
                                 f"Marked as failed. Response: {r_payment.text}"
                             )
