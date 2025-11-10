@@ -149,15 +149,6 @@ const routes = [
     }
   },
   {
-    path: '/extensions/builder',
-    name: 'ExtensionsBuilder',
-    component: DynamicComponent,
-    props: {
-      fetchUrl: '/extensions/builder',
-      scripts: ['/static/js/extensions_builder.js']
-    }
-  },
-  {
     path: '/node',
     name: 'Node',
     component: PageNode
@@ -196,6 +187,11 @@ const routes = [
     path: '/account',
     name: 'Account',
     component: PageAccount
+  },
+  {
+    path: '/extensions/builder',
+    name: 'ExtensionsBuilder',
+    component: PageExtensionBuilder
   }
 ]
 
