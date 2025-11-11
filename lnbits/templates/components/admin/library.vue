@@ -1,67 +1,114 @@
 <template id="lnbits-admin-library">
   <q-card-section class="q-pa-none">
-    <h6 class="q-my-none q-mb-sm">
-      <span v-text="$t('image_library')"></span>
-    </h6>
-    <q-btn
-      color="primary"
-      label="Add Image"
-      @click="$refs.imageInput.click()"
-      class="q-mb-md"
-    />
-    <input
-      type="file"
-      ref="imageInput"
-      accept="image/png, image/jpeg, image/gif"
-      style="display: none"
-      @change="onImageInput"
-    />
-  </q-card-section>
-  <div class="row q-col-gutter-sm q-pa-sm">
-    <div
-      v-for="image in library_images"
-      :key="image.filename"
-      class="col-6 col-sm-4 col-md-3 col-lg-2"
-      style="max-width: 200px"
-    >
-      <q-card class="q-mb-sm">
-        <q-img :src="image.url" style="height: 150px" />
+    <h6 class="q-my-none q-mb-sm">Assets</h6>
+    <div class="row q-col-gutter-md">
+      <div class="col-12 col-md-3">
+        <p>
+          <span v-text="$t('max_asset_size_kb')"></span>
+        </p>
+        <q-input
+          filled
+          type="number"
+          v-model.number="formData.lnbits_max_asset_size_kb"
+          :label="$t('max_asset_size_kb')"
+          step="1"
+          min="0"
+          :hint="$t('max_asset_size_kb_desc')"
+        ></q-input>
+      </div>
 
-        <q-card-section
-          class="q-pt-md q-pb-md row items-center justify-between"
-        >
-          <small
-            ><div
-              class="text-caption ellipsis"
-              style="max-width: 100px"
-              :title="image.filename"
-              v-text="image.filename"
-            ></div
-          ></small>
-          <q-btn
-            dense
-            flat
-            size="sm"
-            icon="content_copy"
-            @click="copyText(image.url)"
-            :title="$t('copy')"
-            ><q-tooltip>Copy image link</q-tooltip></q-btn
-          >
-          <q-btn
-            dense
-            flat
-            size="sm"
-            icon="delete"
-            color="negative"
-            @click="deleteImage(image.filename)"
-            :title="$t('delete')"
-            ><q-tooltip>Delete image</q-tooltip></q-btn
-          >
-        </q-card-section>
-      </q-card>
+      <div class="col-12 col-md-3">
+        <p>
+          <span v-text="$t('assets_allowed_mime_types')"></span>
+        </p>
+        <q-input
+          filled
+          type="number"
+          v-model.number="formData.lnbits_assets_allowed_mime_types"
+          :label="$t('assets_allowed_mime_types')"
+          step="1"
+          min="0"
+          :hint="$t('assets_allowed_mime_types_desc')"
+        ></q-input>
+      </div>
     </div>
-  </div>
-  <div v-if="library_images.length === 0" class="q-pa-xl">
-    <div class="text-subtitle2 text-grey">No images uploaded yet.</div>
-  </div>
+    <q-separator class="q-mb-lg q-mt-sm"></q-separator>
+    <h6 class="q-my-none q-mb-sm">Thumbnails</h6>
+    <div class="row q-col-gutter-md">
+      <div class="col-12 col-md-3">
+        <p>
+          <span v-text="$t('thumbnail_width')"></span>
+        </p>
+        <q-input
+          filled
+          type="number"
+          v-model.number="formData.lnbits_asset_thumbnail_width"
+          :label="$t('thumbnail_width')"
+          step="1"
+          min="0"
+          :hint="$t('thumbnail_width_desc')"
+        ></q-input>
+      </div>
+      <div class="col-12 col-md-3">
+        <p>
+          <span v-text="$t('thumbnail_height')"></span>
+        </p>
+        <q-input
+          filled
+          type="number"
+          v-model.number="formData.lnbits_asset_thumbnail_height"
+          :label="$t('thumbnail_height')"
+          step="1"
+          min="0"
+          :hint="$t('thumbnail_height_desc')"
+        ></q-input>
+      </div>
+      <div class="col-12 col-md-3">
+        <p>
+          <span v-text="$t('thumbnail_format')"></span>
+        </p>
+        <q-input
+          filled
+          type="number"
+          v-model.number="formData.lnbits_asset_thumbnail_format"
+          :label="$t('thumbnail_format')"
+          step="1"
+          min="0"
+          :hint="$t('thumbnail_format_desc')"
+        ></q-input>
+      </div>
+    </div>
+    <q-separator class="q-mb-lg q-mt-sm"></q-separator>
+    <h6 class="q-my-none q-mb-sm">Users</h6>
+    <div class="row q-col-gutter-md">
+      <div class="col-12 col-md-3">
+        <p>
+          <span v-text="$t('max_assets_per_user')"></span>
+        </p>
+        <q-input
+          filled
+          type="number"
+          v-model.number="formData.lnbits_max_assets_per_user"
+          :label="$t('max_assets_per_user')"
+          step="1"
+          min="0"
+          :hint="$t('max_assets_per_user_desc')"
+        ></q-input>
+      </div>
+      <div class="col-12 col-md-6">
+        <p>
+          <span v-text="$t('assets_no_limit_users')"></span>
+        </p>
+        <q-input
+          filled
+          type="number"
+          v-model.number="formData.lnbits_assets_no_limit_users"
+          :label="$t('assets_no_limit_users')"
+          step="1"
+          min="0"
+          :hint="$t('assets_no_limit_users_desc')"
+        ></q-input>
+      </div>
+    </div>
+  </q-card-section>
 </template>
