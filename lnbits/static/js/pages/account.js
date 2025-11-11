@@ -106,10 +106,22 @@ window.PageAccount = {
           page: 1
         }
       },
+      assetsUploadToPublic: false,
       notifications: {
         nostr: {
           identifier: ''
         }
+      }
+    }
+  },
+  watch: {
+    'assetsTable.search': {
+      handler() {
+        const props = {}
+        if (this.assetsTable.search) {
+          props['search'] = this.assetsTable.search
+        }
+        this.getUserAssets()
       }
     }
   },
@@ -452,9 +464,15 @@ window.PageAccount = {
       const formData = new FormData()
       formData.append('file', file)
       try {
-        await LNbits.api.request('POST', '/api/v1/assets', null, formData, {
-          headers: {'Content-Type': 'multipart/form-data'}
-        })
+        await LNbits.api.request(
+          'POST',
+          `/api/v1/assets?public_asset=${this.assetsUploadToPublic}`,
+          null,
+          formData,
+          {
+            headers: {'Content-Type': 'multipart/form-data'}
+          }
+        )
         this.$q.notify({
           type: 'positive',
           message: 'Upload successful!',

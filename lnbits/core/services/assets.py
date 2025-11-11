@@ -6,12 +6,11 @@ from fastapi import UploadFile
 from PIL import Image
 
 from lnbits.core.crud.assets import create_asset, get_user_assets_count
-from lnbits.core.models.assets import Asset, AssetExtra
+from lnbits.core.models.assets import Asset
 
 
-async def create_user_asset(user_id: str, file: UploadFile) -> Asset:
+async def create_user_asset(user_id: str, file: UploadFile, is_public: bool) -> Asset:
     user_assets_count = await get_user_assets_count(user_id)
-    print(f"### User {user_id} has {user_assets_count} assets.")
     # todo: settings for max assets per user
     if user_assets_count >= 200:
         raise ValueError("Reached maximum number of allowed asset uploads.")
@@ -39,10 +38,10 @@ async def create_user_asset(user_id: str, file: UploadFile) -> Asset:
     asset = Asset(
         id=uuid4().hex,
         user_id=user_id,
-        asset_type="image",
+        mime_type=file.content_type,
+        is_public=is_public,
         name=file.filename or "unnamed",
-        size=len(contents),
-        extra=AssetExtra(description="Uploaded image", mime_type=file.content_type),
+        size_bytes=len(contents),
         thumbnail_base64=base64.b64encode(thumb_buffer.getvalue()).decode("utf-8"),
         data=contents,
     )

@@ -7,17 +7,12 @@ from pydantic import BaseModel, Field
 from lnbits.db import FilterModel
 
 
-class AssetExtra(BaseModel):
-    description: str | None = None
-    mime_type: str | None = None
-
-
 class AssetInfo(BaseModel):
     id: str
-    asset_type: str
+    mime_type: str
     name: str
-    size: int  # TODO: size in ??
-    extra: AssetExtra
+    is_public: bool = False
+    size_bytes: int
     thumbnail_base64: str | None = None
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 

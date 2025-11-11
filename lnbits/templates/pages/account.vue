@@ -963,19 +963,51 @@
                 </q-tab-panel>
                 <q-tab-panel name="assets">
                   <q-card-section>
-                    <q-btn
-                      color="primary"
-                      :label="$t('upload')"
-                      @click="$refs.imageInput.click()"
-                      class="q-mb-md"
-                    />
-                    <input
-                      type="file"
-                      ref="imageInput"
-                      style="display: none"
-                      @change="onImageInput"
-                    />
+                    <div class="row">
+                      <div class="col-md-2 col-sm-12">
+                        <q-btn
+                          color="primary"
+                          :label="$t('upload')"
+                          @click="$refs.imageInput.click()"
+                          class="full-width"
+                        ></q-btn>
+                        <input
+                          type="file"
+                          ref="imageInput"
+                          style="display: none"
+                          @change="onImageInput"
+                        />
+                      </div>
+                      <div class="col-md-4 col-sm-12">
+                        <q-toggle
+                          v-model="assetsUploadToPublic"
+                          label="Visible for everyone (public)"
+                        ></q-toggle>
+                      </div>
+                      <div class="col-md-6 col-sm-12">
+                        <q-input
+                          :label="$t('search')"
+                          dense
+                          class="full-width q-pb-xl"
+                          v-model="assetsTable.search"
+                        >
+                          <template v-slot:before>
+                            <q-icon name="search"> </q-icon>
+                          </template>
+                          <template v-slot:append>
+                            <q-icon
+                              v-if="assetsTable.search !== ''"
+                              name="close"
+                              @click="assetsTable.search = ''"
+                              class="cursor-pointer"
+                            >
+                            </q-icon>
+                          </template>
+                        </q-input>
+                      </div>
+                    </div>
                   </q-card-section>
+                  <q-separator></q-separator>
                   <q-card-section>
                     <q-table
                       grid

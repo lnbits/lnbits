@@ -767,10 +767,10 @@ async def m037_create_assets_table(db: Connection):
         CREATE TABLE IF NOT EXISTS assets (
             id TEXT PRIMARY KEY,
             user_id TEXT NOT NULL,
-            asset_type TEXT NOT NULL,
+            mime_type TEXT NOT NULL,
+            is_public BOOLEAN NOT NULL DEFAULT false,
             name TEXT NOT NULL,
-            size INT NOT NULL,
-            extra TEXT,
+            size_bytes INT NOT NULL,
             thumbnail_base64 TEXT,
             thumbnail {db.blob},
             data {db.blob} NOT NULL,

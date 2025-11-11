@@ -68,7 +68,7 @@ async def api_get_asset_binary(
 
     return Response(
         content=asset.data,
-        media_type=asset.extra.mime_type,
+        media_type=asset.mime_type,
         headers={"Content-Disposition": f'inline; filename="{asset.name}"'},
     )
 
@@ -81,9 +81,9 @@ async def api_get_asset_binary(
 async def api_upload_asset(
     user: User = Depends(check_user_exists),
     file: UploadFile = upload_file_param,
+    public_asset: bool = False,
 ) -> AssetInfo:
-
-    asset = await create_user_asset(user.id, file)
+    asset = await create_user_asset(user.id, file, public_asset)
 
     asset_info = await get_asset_info(user.id, asset.id)
     if not asset_info:

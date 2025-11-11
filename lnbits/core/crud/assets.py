@@ -48,11 +48,11 @@ async def get_user_assets(
     filters: Filters[AssetFilters] | None = None,
     conn: Connection | None = None,
 ) -> Page[AssetInfo]:
+    filters = filters or Filters()
+    filters.sortby = filters.sortby or "created_at"
     return await (conn or db).fetch_page(
-        query="""
-            SELECT * from assets WHERE user_id = :user_id
-            ORDER BY created_at DESC
-            """,
+        query="SELECT * from assets",
+        where=["user_id = :user_id"],
         values={"user_id": user_id},
         filters=filters,
         model=AssetInfo,
