@@ -10,7 +10,7 @@ async def create_asset(
     await (conn or db).insert("assets", entry)
 
 
-async def get_asset_info(
+async def get_user_asset_info(
     user_id: str,
     asset_id: str,
     conn: Connection | None = None,
@@ -22,7 +22,7 @@ async def get_asset_info(
     )
 
 
-async def get_asset_info_by_id(
+async def get_asset_info(
     asset_id: str, conn: Connection | None = None
 ) -> AssetInfo | None:
     return await (conn or db).fetchone(
@@ -52,6 +52,17 @@ async def get_public_asset(
         query="SELECT * from assets WHERE id = :asset_id AND is_public = true",
         values={"asset_id": asset_id},
         model=Asset,
+    )
+
+
+async def get_public_asset_info(
+    asset_id: str,
+    conn: Connection | None = None,
+) -> AssetInfo | None:
+    return await (conn or db).fetchone(
+        query="SELECT * from assets WHERE id = :asset_id AND is_public = true",
+        values={"asset_id": asset_id},
+        model=AssetInfo,
     )
 
 

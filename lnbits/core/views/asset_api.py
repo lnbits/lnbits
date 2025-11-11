@@ -1,3 +1,4 @@
+import base64
 from http import HTTPStatus
 
 from fastapi import APIRouter, Depends, File, HTTPException, Response, UploadFile
@@ -5,9 +6,10 @@ from fastapi import APIRouter, Depends, File, HTTPException, Response, UploadFil
 from lnbits.core.crud.assets import (
     delete_user_asset,
     get_asset_info,
-    get_asset_info_by_id,
     get_public_asset,
+    get_public_asset_info,
     get_user_asset,
+    get_user_asset_info,
     get_user_assets,
     update_user_asset_info,
 )
@@ -48,7 +50,7 @@ async def api_get_asset(
     asset_id: str,
     user: User = Depends(check_user_exists),
 ) -> AssetInfo:
-    asset_info = await get_asset_info(user.id, asset_id)
+    asset_info = await get_user_asset_info(user.id, asset_id)
     if not asset_info:
         raise HTTPException(HTTPStatus.NOT_FOUND, "Asset not found.")
     return asset_info
@@ -80,6 +82,36 @@ async def api_get_asset_binary(
     )
 
 
+@asset_router.get(
+    "/{asset_id}/thumbnail",
+    name="Get user asset thumbnail",
+    summary="Get user asset thumbnail data by ID",
+)
+async def api_get_asset_thumbnail(
+    asset_id: str,
+    user_id: str | None = Depends(optional_user_id),
+) -> Response:
+    asset_info = None
+    if user_id:
+        asset_info = await get_user_asset_info(user_id, asset_id)
+
+    if not asset_info:
+        asset_info = await get_public_asset_info(asset_id)
+
+    if not asset_info:
+        raise HTTPException(HTTPStatus.NOT_FOUND, "Asset not found.")
+
+    return Response(
+        content=(
+            base64.b64decode(asset_info.thumbnail_base64)
+            if asset_info.thumbnail_base64
+            else b""
+        ),
+        media_type=asset_info.mime_type,
+        headers={"Content-Disposition": f'inline; filename="{asset_info.name}"'},
+    )
+
+
 @asset_router.put(
     "/{asset_id}",
     name="Update user asset",
@@ -91,9 +123,9 @@ async def api_update_asset(
     user: User = Depends(check_user_exists),
 ) -> AssetInfo:
     if user.admin:
-        asset_info = await get_asset_info_by_id(asset_id)
+        asset_info = await get_asset_info(asset_id)
     else:
-        asset_info = await get_asset_info(user.id, asset_id)
+        asset_info = await get_user_asset_info(user.id, asset_id)
 
     if not asset_info:
         raise HTTPException(HTTPStatus.NOT_FOUND, "Asset not found.")
@@ -118,7 +150,7 @@ async def api_upload_asset(
 ) -> AssetInfo:
     asset = await create_user_asset(user.id, file, public_asset)
 
-    asset_info = await get_asset_info(user.id, asset.id)
+    asset_info = await get_user_asset_info(user.id, asset.id)
     if not asset_info:
         raise ValueError("Failed to retrieve asset info after upload.")
 
