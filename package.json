@@ -95,6 +95,7 @@
       "js/lnurl.js"
     ],
     "components": [
+      "js/app.js",
       "js/pages/home.js",
       "js/pages/extensions_builder.js",
       "js/pages/extensions.js",

@@ -128,44 +128,5 @@ window.windowMixin = {
         this.$router.replace({path})
       })
     }
-  },
-  async created() {
-    addEventListener('offline', event => {
-      console.log('offline', event)
-      this.g.offline = true
-    })
-
-    addEventListener('online', event => {
-      console.log('back online', event)
-      this.g.offline = false
-    })
-
-    if (window.user) {
-      this.g.user = Vue.reactive(window.LNbits.map.user(window.user))
-    }
-
-    if (this.g.user?.extra?.wallet_invite_requests?.length) {
-      this.walletTypes.push({
-        label: `Lightning Wallet (Share Invite: ${this.g.user.extra.wallet_invite_requests.length})`,
-        value: 'lightning-shared'
-      })
-    }
-    if (window.wallet) {
-      this.g.wallet = Vue.reactive(window.LNbits.map.wallet(window.wallet))
-    }
-    if (window.extensions) {
-      this.g.extensions = Vue.reactive(window.extensions)
-    }
-    if (
-      this.$q.screen.gt.sm ||
-      this.$q.localStorage.getItem('lnbits.mobileSimple') == false
-    ) {
-      this.mobileSimple = false
-    }
-  },
-  mounted() {
-    if (this.g.user) {
-      this.paymentEvents()
-    }
   }
 }
