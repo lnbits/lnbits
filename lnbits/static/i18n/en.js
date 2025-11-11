@@ -435,6 +435,24 @@ window.localisation.en = {
   gradient_background: 'Gradient Background',
   language: 'Language',
   assets: 'Assets',
+  max_asset_size_kb: 'Max Asset Size (KB)',
+  max_asset_size_kb_desc:
+    'The maximum allowed size for asset uploads in kilobytes.',
+  assets_allowed_mime_types: 'Allowed MIME Types',
+  assets_allowed_mime_types_desc:
+    'The MIME types that are allowed for asset uploads. No value means upload not is not allowed.',
+  thumbnail_width: 'Thumbnail Width',
+  thumbnail_width_desc: 'Width of the generated thumbnail in pixels.',
+  thumbnail_height: 'Thumbnail Height',
+  thumbnail_height_desc: 'Height of the generated thumbnail in pixels.',
+  thumbnail_format: 'Thumbnail Format',
+  thumbnail_format_desc:
+    'Image format of the generated thumbnail (PNG, JPEG, etc.).',
+  max_assets_per_user: 'Max Assets Per User',
+  max_assets_per_user_desc: 'The maximum number of assets a user can upload.',
+  assets_no_limit_users: 'Users Without Asset Limits',
+  assets_no_limit_users_desc:
+    'These users can upload an unlimited number of assets (user id based).',
   color_scheme: 'Color Scheme',
   visible_wallet_count: 'Visible Wallet Count',
   admin_settings: 'Admin Settings',

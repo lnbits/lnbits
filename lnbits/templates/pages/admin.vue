@@ -87,7 +87,7 @@
               {value: 'extensions', label: $t('extensions')},
               {value: 'notifications', label: $t('notifications')},
               {value: 'audit', label: $t('audit')},
-              {value: 'library', label: $t('Library')},
+              {value: 'assets-config', label: $t('assets')},
               {value: 'site_customisation', label: $t('site_customisation')}
             ]"
             option-value="value"
@@ -176,12 +176,12 @@
                   ><span v-text="$t('audit')"></span></q-tooltip
               ></q-tab>
               <q-tab
-                name="library"
-                icon="image"
-                :label="$q.screen.gt.sm ? $t('library') : null"
+                name="assets-config"
+                icon="perm_media"
+                :label="$q.screen.gt.sm ? $t('assets') : null"
                 @update="val => (tab = val.name)"
                 ><q-tooltip v-if="!$q.screen.gt.sm"
-                  ><span v-text="$t('library')"></span></q-tooltip
+                  ><span v-text="$t('assets')"></span></q-tooltip
               ></q-tab>
               <q-tab
                 style="word-break: break-all"
@@ -240,8 +240,8 @@
                   <q-tab-panel name="audit">
                     <lnbits-admin-audit :form-data="formData" />
                   </q-tab-panel>
-                  <q-tab-panel name="library">
-                    <lnbits-admin-library :form-data="formData" />
+                  <q-tab-panel name="assets-config">
+                    <lnbits-admin-assets-config :form-data="formData" />
                   </q-tab-panel>
                 </q-tab-panels>
               </q-scroll-area>

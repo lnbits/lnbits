@@ -1,4 +1,4 @@
-<template id="lnbits-admin-library">
+<template id="lnbits-admin-assets-config">
   <q-card-section class="q-pa-none">
     <h6 class="q-my-none q-mb-sm">Assets</h6>
     <div class="row q-col-gutter-md">

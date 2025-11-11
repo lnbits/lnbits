@@ -65,7 +65,7 @@
     "js/components/admin/lnbits-admin-extensions.js",
     "js/components/admin/lnbits-admin-notifications.js",
     "js/components/admin/lnbits-admin-site-customisation.js",
-    "js/components/admin/lnbits-admin-library.js",
+    "js/components/admin/lnbits-admin-assets-config.js",
     "js/components/admin/lnbits-admin-audit.js",
     "js/components/lnbits-home-logos.js",
     "js/components/lnbits-new-user-wallet.js",

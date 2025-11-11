@@ -1,6 +1,6 @@
-window.app.component('lnbits-admin-library', {
+window.app.component('lnbits-admin-assets-config', {
   props: ['form-data'],
-  template: '#lnbits-admin-library',
+  template: '#lnbits-admin-assets-config',
   mixins: [window.windowMixin],
   data() {
     return {}
