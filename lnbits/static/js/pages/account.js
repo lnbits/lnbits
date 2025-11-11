@@ -102,7 +102,7 @@ window.PageAccount = {
           }
         ],
         pagination: {
-          rowsPerPage: 12,
+          rowsPerPage: 6,
           page: 1
         }
       },

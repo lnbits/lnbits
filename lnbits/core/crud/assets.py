@@ -22,6 +22,18 @@ async def get_asset_info(
     )
 
 
+async def get_user_asset(
+    user_id: str,
+    asset_id: str,
+    conn: Connection | None = None,
+) -> Asset | None:
+    return await (conn or db).fetchone(
+        query="SELECT * from assets WHERE id = :asset_id AND user_id = :user_id",
+        values={"asset_id": asset_id, "user_id": user_id},
+        model=Asset,
+    )
+
+
 async def get_user_assets(
     user_id: str,
     filters: Filters[AssetFilters] | None = None,

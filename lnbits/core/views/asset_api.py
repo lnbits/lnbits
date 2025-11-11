@@ -1,8 +1,8 @@
 from http import HTTPStatus
 
-from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
+from fastapi import APIRouter, Depends, File, HTTPException, Response, UploadFile
 
-from lnbits.core.crud.assets import get_asset_info, get_user_assets
+from lnbits.core.crud.assets import get_asset_info, get_user_asset, get_user_assets
 from lnbits.core.models.assets import AssetFilters, AssetInfo
 from lnbits.core.models.users import User
 from lnbits.core.services.assets import create_user_asset
@@ -46,6 +46,26 @@ async def api_get_asset(
     if not asset_info:
         raise HTTPException(HTTPStatus.NOT_FOUND, "Asset not found.")
     return asset_info
+
+
+@asset_router.get(
+    "/{asset_id}/binary",
+    name="Get user asset binary",
+    summary="Get user asset binary data by ID",
+)
+async def api_get_asset_binary(
+    asset_id: str,
+    user: User = Depends(check_user_exists),
+) -> Response:
+    asset = await get_user_asset(user.id, asset_id)
+    if not asset:
+        raise HTTPException(HTTPStatus.NOT_FOUND, "Asset not found.")
+
+    return Response(
+        content=asset.data,
+        media_type=asset.extra.mime_type,
+        headers={"Content-Disposition": f'inline; filename="{asset.name}"'},
+    )
 
 
 @asset_router.post(
