@@ -441,6 +441,29 @@ window.PageAccount = {
       } finally {
         this.assetsTable.loading = false
       }
+    },
+    onImageInput(e) {
+      const file = e.target.files[0]
+      if (file) {
+        this.uploadImage(file)
+      }
+    },
+    async uploadImage(file) {
+      const formData = new FormData()
+      formData.append('file', file)
+      try {
+        await LNbits.api.request('POST', '/api/v1/assets', null, formData, {
+          headers: {'Content-Type': 'multipart/form-data'}
+        })
+        this.$q.notify({
+          type: 'positive',
+          message: 'Upload successful!',
+          icon: null
+        })
+        await this.getUserAssets()
+      } catch (e) {
+        LNbits.utils.notifyApiError(e)
+      }
     }
   },
 

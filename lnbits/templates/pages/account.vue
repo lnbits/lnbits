@@ -963,6 +963,20 @@
                 </q-tab-panel>
                 <q-tab-panel name="assets">
                   <q-card-section>
+                    <q-btn
+                      color="primary"
+                      :label="$t('upload')"
+                      @click="$refs.imageInput.click()"
+                      class="q-mb-md"
+                    />
+                    <input
+                      type="file"
+                      ref="imageInput"
+                      style="display: none"
+                      @change="onImageInput"
+                    />
+                  </q-card-section>
+                  <q-card-section>
                     <q-table
                       grid
                       grid-header

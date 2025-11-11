@@ -161,6 +161,7 @@ window.localisation.en = {
   repository: 'Repository',
   confirm_continue: 'Are you sure you want to continue?',
   manage_extension_details: 'Install/uninstall extension',
+  upload: 'Upload',
   install: 'Install',
   uninstall: 'Uninstall',
   drop_db: 'Remove Data',
