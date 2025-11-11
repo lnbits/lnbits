@@ -5,6 +5,7 @@ from fastapi import APIRouter, Depends, File, HTTPException, Response, UploadFil
 from lnbits.core.crud.assets import (
     delete_user_asset,
     get_asset_info,
+    get_public_asset,
     get_user_asset,
     get_user_assets,
 )
@@ -14,14 +15,12 @@ from lnbits.core.models.users import User
 from lnbits.core.services.assets import create_user_asset
 from lnbits.db import Filters, Page
 from lnbits.decorators import (
-    check_admin,
     check_user_exists,
+    optional_user_id,
     parse_filters,
 )
 
-asset_router = APIRouter(
-    prefix="/api/v1/assets", dependencies=[Depends(check_admin)], tags=["Assets"]
-)
+asset_router = APIRouter(prefix="/api/v1/assets", tags=["Assets"])
 
 upload_file_param = File(...)
 
@@ -60,9 +59,15 @@ async def api_get_asset(
 )
 async def api_get_asset_binary(
     asset_id: str,
-    user: User = Depends(check_user_exists),
+    user_id: str | None = Depends(optional_user_id),
 ) -> Response:
-    asset = await get_user_asset(user.id, asset_id)
+    asset = None
+    if user_id:
+        asset = await get_user_asset(user_id, asset_id)
+
+    if not asset:
+        asset = await get_public_asset(asset_id)
+
     if not asset:
         raise HTTPException(HTTPStatus.NOT_FOUND, "Asset not found.")
 

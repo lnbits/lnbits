@@ -34,6 +34,17 @@ async def get_user_asset(
     )
 
 
+async def get_public_asset(
+    asset_id: str,
+    conn: Connection | None = None,
+) -> Asset | None:
+    return await (conn or db).fetchone(
+        query="SELECT * from assets WHERE id = :asset_id AND is_public = true",
+        values={"asset_id": asset_id},
+        model=Asset,
+    )
+
+
 async def delete_user_asset(
     user_id: str, asset_id: str, conn: Connection | None = None
 ) -> None:
