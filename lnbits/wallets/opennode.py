@@ -108,7 +108,8 @@ class OpenNodeWallet(Wallet):
 
         if r.is_error:
             error_message = r.json()["message"]
-            return PaymentResponse(ok=False, error_message=error_message)
+            logger.warning(error_message)
+            return PaymentResponse(ok=None, error_message=error_message)
 
         data = r.json()["data"]
         checking_id = data["id"]
