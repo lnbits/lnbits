@@ -445,10 +445,10 @@ window.PageAccount = {
     onImageInput(e) {
       const file = e.target.files[0]
       if (file) {
-        this.uploadImage(file)
+        this.uploadAsset(file)
       }
     },
-    async uploadImage(file) {
+    async uploadAsset(file) {
       const formData = new FormData()
       formData.append('file', file)
       try {
@@ -462,8 +462,34 @@ window.PageAccount = {
         })
         await this.getUserAssets()
       } catch (e) {
+        console.warn(e)
         LNbits.utils.notifyApiError(e)
       }
+    },
+    async deleteAsset(asset) {
+      LNbits.utils
+        .confirmDialog('Are you sure you want to delete this asset?')
+        .onOk(async () => {
+          try {
+            await LNbits.api.request(
+              'DELETE',
+              `/api/v1/assets/${asset.id}`,
+              null
+            )
+            this.$q.notify({
+              type: 'positive',
+              message: 'Asset deleted.'
+            })
+            await this.getUserAssets()
+          } catch (e) {
+            console.warn(e)
+            LNbits.utils.notifyApiError(e)
+          }
+        })
+    },
+    copyAssetLinkToClipboard(asset) {
+      const assetUrl = `${window.location.origin}/api/v1/assets/${asset.id}/binary`
+      this.copyText(assetUrl)
     }
   },
 

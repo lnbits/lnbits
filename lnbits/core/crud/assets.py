@@ -34,6 +34,15 @@ async def get_user_asset(
     )
 
 
+async def delete_user_asset(
+    user_id: str, asset_id: str, conn: Connection | None = None
+) -> None:
+    await (conn or db).execute(
+        query="DELETE FROM assets WHERE id = :asset_id AND user_id = :user_id",
+        values={"asset_id": asset_id, "user_id": user_id},
+    )
+
+
 async def get_user_assets(
     user_id: str,
     filters: Filters[AssetFilters] | None = None,
@@ -56,5 +65,4 @@ async def get_user_assets_count(user_id: str) -> int:
         values={"user_id": user_id},
     )
     row = result.mappings().first()
-    print(f"### get_user_assets_count row: {row}")
     return row.get("count", 0)

@@ -2,8 +2,14 @@ from http import HTTPStatus
 
 from fastapi import APIRouter, Depends, File, HTTPException, Response, UploadFile
 
-from lnbits.core.crud.assets import get_asset_info, get_user_asset, get_user_assets
+from lnbits.core.crud.assets import (
+    delete_user_asset,
+    get_asset_info,
+    get_user_asset,
+    get_user_assets,
+)
 from lnbits.core.models.assets import AssetFilters, AssetInfo
+from lnbits.core.models.misc import SimpleStatus
 from lnbits.core.models.users import User
 from lnbits.core.services.assets import create_user_asset
 from lnbits.db import Filters, Page
@@ -29,7 +35,6 @@ async def api_get_user_assets(
     user: User = Depends(check_user_exists),
     filters: Filters = Depends(parse_filters(AssetFilters)),
 ) -> Page[AssetInfo]:
-    print("### api_get_user_assets filters:", filters)
     return await get_user_assets(user.id, filters=filters)
 
 
@@ -85,3 +90,20 @@ async def api_upload_asset(
         raise ValueError("Failed to retrieve asset info after upload.")
 
     return asset_info
+
+
+@asset_router.delete(
+    "/{asset_id}",
+    name="Delete user asset",
+    summary="Delete user asset by ID",
+)
+async def api_delete_asset(
+    asset_id: str,
+    user: User = Depends(check_user_exists),
+) -> SimpleStatus:
+    asset = await get_user_asset(user.id, asset_id)
+    if not asset:
+        raise HTTPException(HTTPStatus.NOT_FOUND, "Asset not found.")
+
+    await delete_user_asset(user.id, asset_id)
+    return SimpleStatus(success=True, message="Asset deleted successfully.")

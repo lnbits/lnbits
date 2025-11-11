@@ -183,7 +183,7 @@
       <div class="row q-mt-lg">
         <q-btn
           @click="copyText(auditDetailsDialog.data)"
-          icon="copy_content"
+          icon="content_copy"
           color="grey"
           flat
           v-text="$t('copy')"

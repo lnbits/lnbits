@@ -995,32 +995,94 @@
                         <div class="q-pa-xs col-xs-12 col-sm-6 col-md-4">
                           <q-card class="q-ma-sm wallet-list-card text-center">
                             <q-card-section>
-                              <q-img
+                              <a
                                 v-if="props.row.thumbnail_base64"
-                                :src="
-                                  'data:image/png;base64,' +
-                                  props.row.thumbnail_base64
-                                "
-                                :alt="props.row.name"
-                                loading="lazy"
-                                style="width: 128px"
-                                class="text-center"
+                                target="_blank"
+                                style="color: inherit"
+                                :href="`/api/v1/assets/${props.row.id}/binary`"
                               >
-                              </q-img>
-                              <!-- style="max-width: 100%; height: auto" -->
-                              <!-- <q-img
-                                  v-else
-                                  :src="props.row.url"
+                                <q-img
+                                  :src="
+                                    'data:image/png;base64,' +
+                                    props.row.thumbnail_base64
+                                  "
                                   :alt="props.row.name"
-                                  style="max-width: 100%; height: auto"
-                                ></q-img> -->
+                                  loading="lazy"
+                                  style="height: 128px"
+                                  class="text-center cursor-pointer"
+                                >
+                                </q-img>
+                              </a>
+                              <q-icon v-else name="web_asset"></q-icon>
                             </q-card-section>
                             <q-separator></q-separator>
 
                             <q-card-section>
-                              <div class="text-center">
-                                <span v-text="props.row.name"></span>
-                              </div>
+                              <q-btn-dropdown
+                                color="grey"
+                                icon="elipsis"
+                                dense
+                                outline
+                                no-caps
+                                :label="props.row.name"
+                              >
+                                <q-list>
+                                  <q-item
+                                    clickable
+                                    v-close-popup
+                                    @click="copyAssetLinkToClipboard(props.row)"
+                                  >
+                                    <q-item-section avatar>
+                                      <q-avatar
+                                        icon="content_copy"
+                                        text-color="white"
+                                      />
+                                    </q-item-section>
+                                    <q-item-section>
+                                      <q-item-label>Copy Link</q-item-label>
+                                      <q-item-label caption
+                                        >Copy asset link to
+                                        clipboard</q-item-label
+                                      >
+                                    </q-item-section>
+                                  </q-item>
+
+                                  <q-item clickable v-close-popup @click="true">
+                                    <q-item-section avatar>
+                                      <q-avatar
+                                        icon="public"
+                                        text-color="primary"
+                                      />
+                                    </q-item-section>
+                                    <q-item-section>
+                                      <q-item-label>Public</q-item-label>
+                                      <q-item-label caption
+                                        >Make this asset public</q-item-label
+                                      >
+                                    </q-item-section>
+                                  </q-item>
+
+                                  <q-item
+                                    clickable
+                                    v-close-popup
+                                    @click="deleteAsset(props.row)"
+                                  >
+                                    <q-item-section avatar>
+                                      <q-avatar
+                                        icon="delete"
+                                        text-color="negative"
+                                      />
+                                    </q-item-section>
+                                    <q-item-section>
+                                      <q-item-label>Delete</q-item-label>
+                                      <q-item-label caption
+                                        >Permanently delete this
+                                        asset</q-item-label
+                                      >
+                                    </q-item-section>
+                                  </q-item>
+                                </q-list>
+                              </q-btn-dropdown>
                             </q-card-section>
                           </q-card>
                         </div>
