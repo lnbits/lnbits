@@ -5,11 +5,13 @@ from fastapi import APIRouter, Depends, File, HTTPException, Response, UploadFil
 from lnbits.core.crud.assets import (
     delete_user_asset,
     get_asset_info,
+    get_asset_info_by_id,
     get_public_asset,
     get_user_asset,
     get_user_assets,
+    update_user_asset_info,
 )
-from lnbits.core.models.assets import AssetFilters, AssetInfo
+from lnbits.core.models.assets import AssetFilters, AssetInfo, AssetUpdate
 from lnbits.core.models.misc import SimpleStatus
 from lnbits.core.models.users import User
 from lnbits.core.services.assets import create_user_asset
@@ -76,6 +78,32 @@ async def api_get_asset_binary(
         media_type=asset.mime_type,
         headers={"Content-Disposition": f'inline; filename="{asset.name}"'},
     )
+
+
+@asset_router.put(
+    "/{asset_id}",
+    name="Update user asset",
+    summary="Update user asset by ID",
+)
+async def api_update_asset(
+    asset_id: str,
+    data: AssetUpdate,
+    user: User = Depends(check_user_exists),
+) -> AssetInfo:
+    if user.admin:
+        asset_info = await get_asset_info_by_id(asset_id)
+    else:
+        asset_info = await get_asset_info(user.id, asset_id)
+
+    if not asset_info:
+        raise HTTPException(HTTPStatus.NOT_FOUND, "Asset not found.")
+
+    asset_info.name = data.name or asset_info.name
+    asset_info.is_public = (
+        asset_info.is_public if data.is_public is None else data.is_public
+    )
+    await update_user_asset_info(asset_info)
+    return asset_info
 
 
 @asset_router.post(

@@ -22,6 +22,16 @@ async def get_asset_info(
     )
 
 
+async def get_asset_info_by_id(
+    asset_id: str, conn: Connection | None = None
+) -> AssetInfo | None:
+    return await (conn or db).fetchone(
+        query="SELECT * from assets WHERE id = :asset_id",
+        values={"asset_id": asset_id},
+        model=AssetInfo,
+    )
+
+
 async def get_user_asset(
     user_id: str,
     asset_id: str,
@@ -43,6 +53,13 @@ async def get_public_asset(
         values={"asset_id": asset_id},
         model=Asset,
     )
+
+
+async def update_user_asset_info(
+    asset: AssetInfo,
+) -> AssetInfo:
+    await db.update("assets", asset)
+    return asset
 
 
 async def delete_user_asset(

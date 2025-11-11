@@ -1052,11 +1052,11 @@
                             <q-card-section>
                               <q-btn-dropdown
                                 color="grey"
-                                icon="elipsis"
                                 dense
                                 outline
                                 no-caps
                                 :label="props.row.name"
+                                :icon="props.row.is_public ? 'public' : ''"
                               >
                                 <q-list>
                                   <q-item
@@ -1065,10 +1065,7 @@
                                     @click="copyAssetLinkToClipboard(props.row)"
                                   >
                                     <q-item-section avatar>
-                                      <q-avatar
-                                        icon="content_copy"
-                                        text-color="white"
-                                      />
+                                      <q-avatar icon="content_copy" />
                                     </q-item-section>
                                     <q-item-section>
                                       <q-item-label>Copy Link</q-item-label>
@@ -1079,15 +1076,29 @@
                                     </q-item-section>
                                   </q-item>
 
-                                  <q-item clickable v-close-popup @click="true">
+                                  <q-item
+                                    clickable
+                                    v-close-popup
+                                    @click="toggleAssetPublicAccess(props.row)"
+                                  >
                                     <q-item-section avatar>
                                       <q-avatar
-                                        icon="public"
+                                        :icon="
+                                          props.row.is_public
+                                            ? 'public_off'
+                                            : 'public'
+                                        "
                                         text-color="primary"
                                       />
                                     </q-item-section>
-                                    <q-item-section>
-                                      <q-item-label>Public</q-item-label>
+                                    <q-item-section v-if="props.row.is_public">
+                                      <q-item-label>Unpublish</q-item-label>
+                                      <q-item-label caption
+                                        >Make this asset private</q-item-label
+                                      >
+                                    </q-item-section>
+                                    <q-item-section v-else>
+                                      <q-item-label>Publish</q-item-label>
                                       <q-item-label caption
                                         >Make this asset public</q-item-label
                                       >

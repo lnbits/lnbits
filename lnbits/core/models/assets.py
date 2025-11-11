@@ -22,6 +22,11 @@ class Asset(AssetInfo):
     data: bytes
 
 
+class AssetUpdate(BaseModel):
+    name: str | None = None
+    is_public: bool | None = None
+
+
 class AssetFilters(FilterModel):
     __search_fields__ = ["name"]
     __sort_fields__ = [

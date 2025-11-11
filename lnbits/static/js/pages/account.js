@@ -505,6 +505,22 @@ window.PageAccount = {
           }
         })
     },
+    async toggleAssetPublicAccess(asset) {
+      try {
+        await LNbits.api.request('PUT', `/api/v1/assets/${asset.id}`, null, {
+          is_public: !asset.is_public
+        })
+        this.$q.notify({
+          type: 'positive',
+          message: 'Update successful!',
+          icon: null
+        })
+        await this.getUserAssets()
+      } catch (e) {
+        console.warn(e)
+        LNbits.utils.notifyApiError(e)
+      }
+    },
     copyAssetLinkToClipboard(asset) {
       const assetUrl = `${window.location.origin}/api/v1/assets/${asset.id}/binary`
       this.copyText(assetUrl)
