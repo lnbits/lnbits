@@ -130,9 +130,9 @@
       "js/components/lnbits-theme.js",
       "js/components/lnbits-manage-extension-list.js",
       "js/components/lnbits-language-dropdown.js",
+      "js/components/lnbits-payment-list.js",
       "js/components/extension-settings.js",
       "js/components/data-fields.js",
-      "js/components/payment-list.js",
       "js/components.js",
       "js/init-app.js"
     ],

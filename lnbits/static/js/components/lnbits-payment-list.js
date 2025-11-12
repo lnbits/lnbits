@@ -1,6 +1,5 @@
-window.app.component('payment-list', {
-  name: 'payment-list',
-  template: '#payment-list',
+window.app.component('lnbits-payment-list', {
+  template: '#lnbits-payment-list',
   props: ['update', 'lazy', 'wallet'],
   mixins: [window.windowMixin],
   data() {

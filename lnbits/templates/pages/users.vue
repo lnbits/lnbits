@@ -13,7 +13,7 @@
         </div>
         <q-card class="q-pa-md">
           <q-card-section>
-            <payment-list :wallet="paymentsWallet" />
+            <lnbits-payment-list :wallet="paymentsWallet" />
           </q-card-section>
         </q-card>
       </div>
