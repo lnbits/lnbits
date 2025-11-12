@@ -9,17 +9,18 @@ window.g = Vue.reactive({
   isUserAuthorized: !!Quasar.Cookies.get('is_lnbits_user_authorized'),
   offline: !navigator.onLine,
   visibleDrawer: false,
-  extensions: [],
-  user: null,
-  wallet: {},
   fiatBalance: 0,
   exchangeRate: 0,
   fiatTracking: false,
-  wallets: [],
   payments: [],
   walletEventListeners: [],
   updatePayments: false,
   updatePaymentsHash: '',
+  // window variables from jinja
+  user: window.user ? LNbits.map.user(window.user) : null,
+  wallet: window.wallet ? LNbits.map.wallet(window.wallet) : null,
+  extensions: window.extensions ?? [],
+  // local storage
   walletFlip: localStore('lnbits.walletFlip', false),
   locale: localStore('lnbits.lang', navigator.languages[1] ?? 'en'),
   darkChoice: localStore('lnbits.darkMode', true),
@@ -49,3 +50,13 @@ const websocketPrefix =
 const websocketUrl = `${websocketPrefix}${window.location.host}/api/v1/ws`
 
 const _access_cookies_for_safari_refresh_do_not_delete = document.cookie
+
+addEventListener('offline', event => {
+  console.log('offline', event)
+  this.g.offline = true
+})
+
+addEventListener('online', event => {
+  console.log('back online', event)
+  this.g.offline = false
+})
