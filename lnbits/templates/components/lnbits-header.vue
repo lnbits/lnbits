@@ -70,6 +70,8 @@
         <span>OFFLINE</span>
       </q-badge>
 
+      <lnbits-language-dropdown></lnbits-language-dropdown>
+
       <q-btn-dropdown
         v-if="g.user || isUserAuthorized"
         flat

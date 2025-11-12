@@ -283,14 +283,6 @@ window.windowMixin = {
     }
     this.applyBackgroundImage()
 
-    let locale = this.$q.localStorage.getItem('lnbits.lang')
-    if (locale) {
-      window.LOCALE = locale
-      window.i18n.global.locale = locale
-    }
-
-    this.g.langs = window.langs ?? []
-
     addEventListener('offline', event => {
       console.log('offline', event)
       this.g.offline = true

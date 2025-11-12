@@ -66,7 +66,7 @@ window.LNbits = {
       }
       newWallet.msat = data.balance_msat
       newWallet.sat = Math.floor(data.balance_msat / 1000)
-      newWallet.fsat = new Intl.NumberFormat(window.LOCALE).format(
+      newWallet.fsat = new Intl.NumberFormat(window.i18n.global.locale).format(
         newWallet.sat
       )
       if (newWallet.walletType === 'lightning-shared') {
@@ -105,7 +105,9 @@ window.LNbits = {
       obj.msat = obj.amount
       obj.sat = obj.msat / 1000
       obj.tag = obj.extra?.tag
-      obj.fsat = new Intl.NumberFormat(window.LOCALE).format(obj.sat)
+      obj.fsat = new Intl.NumberFormat(window.i18n.global.locale).format(
+        obj.sat
+      )
       obj.isIn = obj.amount > 0
       obj.isOut = obj.amount < 0
       obj.isPending = obj.status === 'pending'

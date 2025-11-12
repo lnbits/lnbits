@@ -41,13 +41,13 @@ window._lnbitsUtils = {
     return Quasar.date.formatDate(new Date(isoDateString), window.dateFormat)
   },
   formatCurrency(value, currency) {
-    return new Intl.NumberFormat(window.LOCALE, {
+    return new Intl.NumberFormat(window.i18n.global.locale, {
       style: 'currency',
       currency: currency || 'sat'
     }).format(value)
   },
   formatSat(value) {
-    return new Intl.NumberFormat(window.LOCALE).format(value)
+    return new Intl.NumberFormat(window.i18n.global.locale).format(value)
   },
   formatMsat(value) {
     return this.formatSat(value / 1000)

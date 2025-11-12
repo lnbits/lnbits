@@ -168,7 +168,7 @@ window.PagePayments = {
           p.timeFrom = moment.utc(p.created_at).local().fromNow()
           p.outgoing = p.amount < 0
           p.amount =
-            new Intl.NumberFormat(window.LOCALE).format(p.amount / 1000) +
+            new Intl.NumberFormat(this.g.locale).format(p.amount / 1000) +
             ' sats'
           if (p.extra?.wallet_fiat_amount) {
             p.amountFiat = this.formatCurrency(
@@ -180,7 +180,7 @@ window.PagePayments = {
             p.internal_memo = p.extra.internal_memo
           }
           p.fee_sats =
-            new Intl.NumberFormat(window.LOCALE).format(p.fee / 1000) + ' sats'
+            new Intl.NumberFormat(this.g.locale).format(p.fee / 1000) + ' sats'
 
           return p
         })
