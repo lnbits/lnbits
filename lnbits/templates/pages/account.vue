@@ -332,6 +332,7 @@
                       <q-input
                         v-model="user.extra.picture"
                         :label="$t('picture')"
+                        :hint="$t('user_picture_desc')"
                         filled
                         dense
                         class="q-mb-md"

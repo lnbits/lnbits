@@ -410,6 +410,8 @@ window.localisation.en = {
   first_name: 'First Name',
   last_name: 'Last Name',
   picture: 'Picture',
+  user_picture_desc:
+    'URL to an image to use as profile picture. You can upload it as an asset.',
   verify_email: 'Verify email with',
   account: 'Account',
   update_account: 'Update Account',

@@ -32,8 +32,6 @@ class AssetFilters(FilterModel):
     __sort_fields__ = [
         "created_at",
         "name",
-        "size",
     ]
 
     name: str | None = None
-    size: int | None = None
