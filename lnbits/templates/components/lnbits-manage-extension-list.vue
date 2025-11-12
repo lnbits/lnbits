@@ -1,4 +1,4 @@
-<template id="lnbits-extension-list">
+<template id="lnbits-manage-extension-list">
   <q-list
     v-if="g.user && extensions && extensions.length > 0"
     dense
