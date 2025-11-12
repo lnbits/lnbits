@@ -115,7 +115,7 @@
             </q-item-section>
           </q-item>
           <q-separator></q-separator>
-          <q-item clickable v-close-popup @click="logout"
+          <q-item clickable v-close-popup @click="utils.logout"
             ><q-item-section>
               <q-icon name="logout" />
             </q-item-section>

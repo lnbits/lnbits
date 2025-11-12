@@ -12,6 +12,21 @@ window._lnbitsUtils = {
       }
     })
   },
+  async logout() {
+    LNbits.utils
+      .confirmDialog(
+        'Do you really want to logout?' +
+          ' Please visit "My Account" page to check your credentials!'
+      )
+      .onOk(async () => {
+        try {
+          await LNbits.api.logout()
+          window.location = '/'
+        } catch (e) {
+          LNbits.utils.notifyApiError(e)
+        }
+      })
+  },
   async digestMessage(message) {
     const msgUint8 = new TextEncoder().encode(message)
     const hashBuffer = await crypto.subtle.digest('SHA-256', msgUint8)

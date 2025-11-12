@@ -2,6 +2,8 @@ window.windowMixin = {
   i18n: window.i18n,
   data() {
     return {
+      api: window._lnbitsApi,
+      utils: window._lnbitsUtils,
       g: window.g,
       toggleSubs: true,
       mobileSimple: true,
@@ -212,21 +214,6 @@ window.windowMixin = {
           'is_lnbits_user_authorized'
         )
       }
-    },
-    async logout() {
-      LNbits.utils
-        .confirmDialog(
-          'Do you really want to logout?' +
-            ' Please visit "My Account" page to check your credentials!'
-        )
-        .onOk(async () => {
-          try {
-            await LNbits.api.logout()
-            window.location = '/'
-          } catch (e) {
-            LNbits.utils.notifyApiError(e)
-          }
-        })
     },
     themeParams() {
       const url = new URL(window.location.href)
