@@ -205,10 +205,7 @@ window.PageExtensions = {
           this.g.user.wallets[0].adminkey
         )
         .then(response => {
-          // create new array to trigger reactivity
-          this.g.user.extensions = this.g.user.extensions
-            .concat([])
-            .push(extension.id)
+          this.g.user.extensions = this.g.user.extensions.concat([extension.id])
           Quasar.Notify.create({
             type: 'positive',
             message: 'Extension enabled!'
