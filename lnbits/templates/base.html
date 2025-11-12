@@ -51,18 +51,30 @@
         {% endblock %}
       </q-layout>
     </div>
+    <!-- block components.vue start -->
+    {% include('components.vue') %} {% include('pages.vue') %}
+    <!-- block components.vue end -->
+    <!-- block vue_templates start -->
+    {% block vue_templates %}{% endblock %}
+    <!-- block vue_templates end -->
     <script type="text/javascript">
       const WINDOW_SETTINGS = {{ WINDOW_SETTINGS | tojson }}
       Object.keys(WINDOW_SETTINGS).forEach(key => {
         window[key] = WINDOW_SETTINGS[key]
       })
     </script>
-    {% include('components.vue') %} {% include('pages.vue') %} {% block
-    vue_templates %}{% endblock %} {% for url in INCLUDED_JS %}
-    <script src="{{ static_url_for('static', url) }}"></script>
-    {% endfor %} {% block scripts %}{% endblock %} {% for url in
-    INCLUDED_COMPONENTS %}
+    <!-- block scripts start -->
+    {% block scripts %} {% endblock %}
+    <!-- block scripts end -->
+    <!-- included js start -->
+    {% for url in INCLUDED_JS %}
     <script src="{{ static_url_for('static', url) }}"></script>
     {% endfor %}
+    <!-- included js end -->
+    <!-- included js components start -->
+    {% for url in INCLUDED_COMPONENTS %}
+    <script src="{{ static_url_for('static', url) }}"></script>
+    {% endfor %}
+    <!-- included js components end -->
   </body>
 </html>

@@ -66,7 +66,6 @@
         window.location.href = `/extensions#${this.extension}`
       },
       async logOut() {
-
         try {
           await LNbits.api.logout()
           window.location = '/'
@@ -74,7 +73,6 @@
           LNbits.utils.notifyApiError(e)
         }
 
-    },
     },
     computed: {
       isExtension() {

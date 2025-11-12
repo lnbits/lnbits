@@ -5,16 +5,17 @@ const localStore = (key, defaultValue) => {
     : defaultValue
 }
 
+console.log(window.user, 'uuuuuuuuuuuu')
+
 window.g = Vue.reactive({
   isUserAuthorized: !!Quasar.Cookies.get('is_lnbits_user_authorized'),
   offline: !navigator.onLine,
   visibleDrawer: false,
-  extensions: [],
-  user: null,
-  wallet: {},
+  user: window.user,
   fiatBalance: 0,
   exchangeRate: 0,
   fiatTracking: false,
+  wallet: window.wallet,
   wallets: [],
   payments: [],
   walletEventListeners: [],

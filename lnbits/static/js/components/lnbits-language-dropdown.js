@@ -6,7 +6,6 @@ window.app.component('lnbits-language-dropdown', {
       return window.i18n.global.locale === lang
     },
     changeLanguage(newValue) {
-      this.g.locale = newValue
       window.i18n.global.locale = newValue
       this.$q.localStorage.set('lnbits.lang', newValue)
     }
