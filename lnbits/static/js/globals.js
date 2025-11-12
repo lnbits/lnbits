@@ -43,5 +43,5 @@ window.g = Vue.reactive({
   walletEventListeners: [],
   updatePayments: false,
   updatePaymentsHash: '',
-  walletFlip: false
+  walletFlip: Quasar.LocalStorage.getItem('lnbits.walletFlip') ?? false
 })

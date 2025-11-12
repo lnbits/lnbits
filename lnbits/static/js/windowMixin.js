@@ -36,7 +36,7 @@ window.windowMixin = {
   methods: {
     flipWallets(smallScreen) {
       this.g.walletFlip = !this.g.walletFlip
-      if (this.walletFlip && smallScreen) {
+      if (this.g.walletFlip && smallScreen) {
         this.g.visibleDrawer = false
       }
       this.$q.localStorage.set('lnbits.walletFlip', this.g.walletFlip)
@@ -331,8 +331,6 @@ window.windowMixin = {
     }
     await this.checkUsrInUrl()
     this.themeParams()
-    this.g.walletFlip =
-      this.$q.localStorage.getItem('lnbits.walletFlip') ?? false
     if (
       this.$q.screen.gt.sm ||
       this.$q.localStorage.getItem('lnbits.mobileSimple') == false
