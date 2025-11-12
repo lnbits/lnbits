@@ -38,7 +38,9 @@
         @wallet-action="handleWalletAction"
       ></lnbits-wallet-list>
       <lnbits-manage></lnbits-manage>
-      <lnbits-extension-list class="q-pb-xl"></lnbits-extension-list>
+      <lnbits-manage-extension-list
+        class="q-pb-xl"
+      ></lnbits-manage-extension-list>
     </q-scroll-area>
   </q-drawer>
 </template>

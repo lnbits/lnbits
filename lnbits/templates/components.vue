@@ -15,7 +15,7 @@ include('components/lnbits-footer.vue') %} {%
 include('components/lnbits-header.vue') %} {%
 include('components/lnbits-drawer.vue') %} {%
 include('components/lnbits-home-logos.vue') %} {%
-include('components/lnbits-extension-list.vue') %}
+include('components/lnbits-manage-extension-list.vue') %}
 
 <template id="lnbits-wallet-list">
   <q-list
