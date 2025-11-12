@@ -205,13 +205,14 @@ window.PageExtensions = {
           this.g.user.wallets[0].adminkey
         )
         .then(response => {
+          // create new array to trigger reactivity
+          this.g.user.extensions = this.g.user.extensions
+            .concat([])
+            .push(extension.id)
           Quasar.Notify.create({
             type: 'positive',
             message: 'Extension enabled!'
           })
-          setTimeout(() => {
-            this.refreshRoute()
-          }, 300)
         })
         .catch(err => {
           console.warn(err)
@@ -226,13 +227,13 @@ window.PageExtensions = {
           this.g.user.wallets[0].adminkey
         )
         .then(response => {
+          this.g.user.extensions = this.g.user.extensions.filter(
+            ext => ext !== extension.id
+          )
           Quasar.Notify.create({
             type: 'positive',
             message: 'Extension disabled!'
           })
-          setTimeout(() => {
-            this.refreshRoute()
-          }, 300)
         })
         .catch(err => {
           console.warn(error)

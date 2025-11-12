@@ -15,11 +15,6 @@ window.LNbits = {
     }
   },
   map: {
-    extension(data) {
-      const obj = {...data}
-      obj.url = ['/', obj.code, '/'].join('')
-      return obj
-    },
     user(data) {
       const obj = {
         id: data.id,
