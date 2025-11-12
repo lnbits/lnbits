@@ -13,6 +13,7 @@ include('components/admin/server.vue') %} {%
 include('components/new_user_wallet.vue') %} {%
 include('components/lnbits-footer.vue') %} {%
 include('components/lnbits-header.vue') %} {%
+include('components/lnbits-header-wallets.vue') %} {%
 include('components/lnbits-drawer.vue') %} {%
 include('components/lnbits-home-logos.vue') %} {%
 include('components/lnbits-manage-extension-list.vue') %} {%
