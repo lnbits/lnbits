@@ -6,6 +6,40 @@ window.PageAccount = {
       user: null,
       hasUsername: false,
       showUserId: false,
+      themeOptions: [
+        {
+          name: 'bitcoin',
+          color: 'deep-orange'
+        },
+        {
+          name: 'mint',
+          color: 'green'
+        },
+        {
+          name: 'autumn',
+          color: 'brown'
+        },
+        {
+          name: 'monochrome',
+          color: 'grey'
+        },
+        {
+          name: 'salvador',
+          color: 'blue-10'
+        },
+        {
+          name: 'freedom',
+          color: 'pink-13'
+        },
+        {
+          name: 'cyber',
+          color: 'light-green-9'
+        },
+        {
+          name: 'flamingo',
+          color: 'pink-3'
+        }
+      ],
       reactionOptions: [
         'None',
         'confettiBothSides',
@@ -542,5 +576,10 @@ window.PageAccount = {
     }
     await this.getApiACLs()
     await this.getUserAssets()
+
+    // filter out themes that are not allowed
+    this.themeOptions = this.themeOptions.filter(theme =>
+      this.allowedThemes.includes(theme.name)
+    )
   }
 }

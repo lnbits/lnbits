@@ -136,21 +136,14 @@ window.PageHome = {
     }
   },
   created() {
-    this.isUserAuthorized = !!this.$q.cookies.get('is_lnbits_user_authorized')
-
-    const _access_cookies_for_safari_refresh_do_not_delete = document.cookie
-
     if (this.isUserAuthorized) {
       window.location.href = '/wallet'
     }
-
     const urlParams = new URLSearchParams(window.location.search)
-
     this.reset_key = urlParams.get('reset_key')
     if (this.reset_key) {
       this.authAction = 'reset'
     }
-
     // check if lightning parameters are present in the URL
     if (urlParams.has('lightning')) {
       this.lnurl = urlParams.get('lightning')

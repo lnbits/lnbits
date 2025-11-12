@@ -391,93 +391,17 @@
                     </div>
                     <div class="col-8">
                       <q-btn
-                        v-if="allowedThemes.includes('classic')"
+                        v-for="theme in themeOptions"
+                        :key="theme.name"
+                        @click="g.themeChoice = theme.name"
+                        :color="theme.color"
                         dense
                         flat
-                        @click="changeTheme('classic')"
                         icon="circle"
-                        color="deep-purple"
                         size="md"
-                        ><q-tooltip>classic</q-tooltip>
-                      </q-btn>
-                      <q-btn
-                        v-if="allowedThemes.includes('bitcoin')"
-                        dense
-                        flat
-                        @click="changeTheme('bitcoin')"
-                        icon="circle"
-                        color="deep-orange"
-                        size="md"
-                        ><q-tooltip>bitcoin</q-tooltip>
-                      </q-btn>
-                      <q-btn
-                        v-if="allowedThemes.includes('mint')"
-                        dense
-                        flat
-                        @click="changeTheme('mint')"
-                        icon="circle"
-                        color="green"
-                        size="md"
-                        ><q-tooltip>mint</q-tooltip> </q-btn
-                      ><q-btn
-                        v-if="allowedThemes.includes('autumn')"
-                        dense
-                        flat
-                        @click="changeTheme('autumn')"
-                        icon="circle"
-                        color="brown"
-                        size="md"
-                        ><q-tooltip>autumn</q-tooltip>
-                      </q-btn>
-                      <q-btn
-                        v-if="allowedThemes.includes('monochrome')"
-                        dense
-                        flat
-                        @click="changeTheme('monochrome')"
-                        icon="circle"
-                        color="grey"
-                        size="md"
-                        ><q-tooltip>monochrome</q-tooltip>
-                      </q-btn>
-                      <q-btn
-                        v-if="allowedThemes.includes('salvador')"
-                        dense
-                        flat
-                        @click="changeTheme('salvador')"
-                        icon="circle"
-                        color="blue-10"
-                        size="md"
-                        ><q-tooltip>elSalvador</q-tooltip>
-                      </q-btn>
-                      <q-btn
-                        v-if="allowedThemes.includes('freedom')"
-                        dense
-                        flat
-                        @click="changeTheme('freedom')"
-                        icon="circle"
-                        color="pink-13"
-                        size="md"
-                        ><q-tooltip>freedom</q-tooltip>
-                      </q-btn>
-                      <q-btn
-                        v-if="allowedThemes.includes('cyber')"
-                        dense
-                        flat
-                        @click="changeTheme('cyber')"
-                        icon="circle"
-                        color="light-green-9"
-                        size="md"
-                        ><q-tooltip>cyber</q-tooltip>
-                      </q-btn>
-                      <q-btn
-                        v-if="allowedThemes.includes('flamingo')"
-                        dense
-                        flat
-                        @click="changeTheme('flamingo')"
-                        icon="circle"
-                        color="pink-3"
-                        size="md"
-                        ><q-tooltip>flamingo</q-tooltip>
+                        ><q-tooltip
+                          ><span v-text="theme.name"></span
+                        ></q-tooltip>
                       </q-btn>
                     </div>
                   </div>
@@ -487,9 +411,8 @@
                     </div>
                     <div class="col-8">
                       <q-input
-                        v-model="bgimageChoice"
+                        v-model="g.bgimageChoice"
                         :label="$t('background_image')"
-                        @update:model-value="applyBackgroundImage"
                       >
                         <q-tooltip
                           ><span v-text="$t('background_image')"></span
@@ -507,8 +430,7 @@
                         flat
                         round
                         icon="gradient"
-                        v-model="gradientChoice"
-                        @update:model-value="applyGradient"
+                        v-model="g.gradientChoice"
                       >
                         <q-tooltip
                           ><span v-text="$t('toggle_gradient')"></span
@@ -526,8 +448,7 @@
                         dense
                         flat
                         round
-                        v-model="darkChoice"
-                        @click="toggleDarkMode"
+                        v-model="g.darkChoice"
                         :icon="$q.dark.isActive ? 'brightness_3' : 'wb_sunny'"
                         size="sm"
                       >
@@ -543,10 +464,9 @@
                     </div>
                     <div class="col-8">
                       <q-select
-                        v-model="borderChoice"
+                        v-model="g.borderChoice"
                         :options="borderOptions"
                         label="Borders"
-                        @update:model-value="applyBorder"
                       >
                         <q-tooltip
                           ><span v-text="$t('border_choices')"></span
@@ -571,10 +491,9 @@
                     </div>
                     <div class="col-8">
                       <q-select
-                        v-model="reactionChoice"
+                        v-model="g.reactionChoice"
                         :options="reactionOptions"
                         label="Reactions"
-                        @update:model-value="reactionChoiceFunc"
                       >
                         <q-tooltip
                           ><span v-text="$t('payment_reactions')"></span

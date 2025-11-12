@@ -9,28 +9,9 @@ window.windowMixin = {
       mobileSimple: true,
       addWalletDialog: {show: false, walletType: 'lightning'},
       walletTypes: [{label: 'Lightning Wallet', value: 'lightning'}],
-      isUserAuthorized: false,
       isSatsDenomination: WINDOW_SETTINGS['LNBITS_DENOMINATION'] == 'sats',
       allowedThemes: WINDOW_SETTINGS['LNBITS_THEME_OPTIONS'],
       walletEventListeners: [],
-      darkChoice: this.$q.localStorage.has('lnbits.darkMode')
-        ? this.$q.localStorage.getItem('lnbits.darkMode')
-        : true,
-      borderChoice: this.$q.localStorage.has('lnbits.border')
-        ? this.$q.localStorage.getItem('lnbits.border')
-        : USE_DEFAULT_BORDER,
-      gradientChoice: this.$q.localStorage.has('lnbits.gradientBg')
-        ? this.$q.localStorage.getItem('lnbits.gradientBg')
-        : USE_DEFAULT_GRADIENT,
-      themeChoice: this.$q.localStorage.has('lnbits.theme')
-        ? this.$q.localStorage.getItem('lnbits.theme')
-        : USE_DEFAULT_THEME,
-      reactionChoice: this.$q.localStorage.has('lnbits.reactions')
-        ? this.$q.localStorage.getItem('lnbits.reactions')
-        : USE_DEFAULT_REACTION,
-      bgimageChoice: this.$q.localStorage.has('lnbits.backgroundImage')
-        ? this.$q.localStorage.getItem('lnbits.backgroundImage')
-        : USE_DEFAULT_BGIMAGE,
       ...WINDOW_SETTINGS
     }
   },
@@ -131,56 +112,6 @@ window.windowMixin = {
         return LNbits.utils.formatSat(amount) + ' sats'
       }
     },
-    changeTheme(newValue) {
-      document.body.setAttribute('data-theme', newValue)
-      this.$q.localStorage.set('lnbits.theme', newValue)
-      this.themeChoice = newValue
-    },
-    applyGradient() {
-      if (this.gradientChoice) {
-        document.body.classList.add('gradient-bg')
-        this.$q.localStorage.set('lnbits.gradientBg', true)
-        // Ensure dark mode is enabled when gradient background is applied
-        if (!this.$q.dark.isActive) {
-          this.toggleDarkMode()
-        }
-      } else {
-        document.body.classList.remove('gradient-bg')
-        this.$q.localStorage.set('lnbits.gradientBg', false)
-      }
-    },
-    applyBackgroundImage() {
-      if (this.bgimageChoice == 'null') this.bgimageChoice = ''
-      if (this.bgimageChoice == '') {
-        document.body.classList.remove('bg-image')
-      } else {
-        document.body.classList.add('bg-image')
-        document.body.style.setProperty(
-          '--background',
-          `url(${this.bgimageChoice})`
-        )
-      }
-      this.$q.localStorage.set('lnbits.backgroundImage', this.bgimageChoice)
-    },
-    applyBorder() {
-      // Remove any existing border classes
-      document.body.classList.forEach(cls => {
-        if (cls.endsWith('-border')) {
-          document.body.classList.remove(cls)
-        }
-      })
-      this.$q.localStorage.setItem('lnbits.border', this.borderChoice)
-      document.body.classList.add(this.borderChoice)
-    },
-    toggleDarkMode() {
-      this.$q.dark.toggle()
-      this.darkChoice = this.$q.dark.isActive
-      this.$q.localStorage.set('lnbits.darkMode', this.$q.dark.isActive)
-      if (!this.$q.dark.isActive) {
-        this.gradientChoice = false
-        this.applyGradient()
-      }
-    },
     copyText(text, message, position) {
       Quasar.copyToClipboard(text).then(() => {
         Quasar.Notify.create({
@@ -188,77 +119,6 @@ window.windowMixin = {
           position: position || 'bottom'
         })
       })
-    },
-    async checkUsrInUrl() {
-      try {
-        const params = new URLSearchParams(window.location.search)
-        const usr = params.get('usr')
-        if (!usr) {
-          return
-        }
-
-        if (!this.isUserAuthorized) {
-          await LNbits.api.loginUsr(usr)
-        }
-
-        params.delete('usr')
-        const cleanQueryPrams = params.size ? `?${params.toString()}` : ''
-
-        window.history.replaceState(
-          {},
-          document.title,
-          window.location.pathname + cleanQueryPrams
-        )
-      } finally {
-        this.isUserAuthorized = !!this.$q.cookies.get(
-          'is_lnbits_user_authorized'
-        )
-      }
-    },
-    themeParams() {
-      const url = new URL(window.location.href)
-      const params = new URLSearchParams(window.location.search)
-      const fields = ['theme', 'dark', 'gradient']
-      const toBoolean = value =>
-        value.trim().toLowerCase() === 'true' || value === '1'
-
-      // Check if any of the relevant parameters ('theme', 'dark', 'gradient') are present in the URL.
-      if (fields.some(param => params.has(param))) {
-        const theme = params.get('theme')
-        const darkMode = params.get('dark')
-        const gradient = params.get('gradient')
-        const border = params.get('border')
-
-        if (theme && this.allowedThemes.includes(theme.trim().toLowerCase())) {
-          const normalizedTheme = theme.trim().toLowerCase()
-          document.body.setAttribute('data-theme', normalizedTheme)
-          this.$q.localStorage.set('lnbits.theme', normalizedTheme)
-        }
-
-        if (darkMode) {
-          const isDark = toBoolean(darkMode)
-          this.$q.localStorage.set('lnbits.darkMode', isDark)
-          if (!isDark) {
-            this.$q.localStorage.set('lnbits.gradientBg', false)
-          }
-        }
-
-        if (gradient) {
-          const isGradient = toBoolean(gradient)
-          this.$q.localStorage.set('lnbits.gradientBg', isGradient)
-          if (isGradient) {
-            this.$q.localStorage.set('lnbits.darkMode', true)
-          }
-        }
-        if (border) {
-          this.$q.localStorage.set('lnbits.border', border)
-        }
-
-        // Remove processed parameters
-        fields.forEach(param => params.delete(param))
-
-        window.history.replaceState(null, null, url.pathname)
-      }
     },
     refreshRoute() {
       const path = window.location.pathname
@@ -270,19 +130,6 @@ window.windowMixin = {
     }
   },
   async created() {
-    this.$q.dark.set(
-      this.$q.localStorage.has('lnbits.darkMode')
-        ? this.$q.localStorage.getItem('lnbits.darkMode')
-        : true
-    )
-    Chart.defaults.color = this.$q.dark.isActive ? '#fff' : '#000'
-    this.changeTheme(this.themeChoice)
-    this.applyBorder()
-    if (this.$q.dark.isActive) {
-      this.applyGradient()
-    }
-    this.applyBackgroundImage()
-
     addEventListener('offline', event => {
       console.log('offline', event)
       this.g.offline = true
@@ -296,6 +143,7 @@ window.windowMixin = {
     if (window.user) {
       this.g.user = Vue.reactive(window.LNbits.map.user(window.user))
     }
+
     if (this.g.user?.extra?.wallet_invite_requests?.length) {
       this.walletTypes.push({
         label: `Lightning Wallet (Share Invite: ${this.g.user.extra.wallet_invite_requests.length})`,
@@ -308,8 +156,6 @@ window.windowMixin = {
     if (window.extensions) {
       this.g.extensions = Vue.reactive(window.extensions)
     }
-    await this.checkUsrInUrl()
-    this.themeParams()
     if (
       this.$q.screen.gt.sm ||
       this.$q.localStorage.getItem('lnbits.mobileSimple') == false

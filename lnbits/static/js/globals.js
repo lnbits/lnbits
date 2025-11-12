@@ -1,4 +1,12 @@
+const localStore = (key, defaultValue) => {
+  const value = Quasar.LocalStorage.getItem(key)
+  return value !== null && value !== undefined && value !== 'undefined'
+    ? value
+    : defaultValue
+}
+
 window.g = Vue.reactive({
+  isUserAuthorized: !!Quasar.Cookies.get('is_lnbits_user_authorized'),
   offline: !navigator.onLine,
   visibleDrawer: false,
   extensions: [],
@@ -12,9 +20,26 @@ window.g = Vue.reactive({
   walletEventListeners: [],
   updatePayments: false,
   updatePaymentsHash: '',
-  walletFlip: Quasar.LocalStorage.getItem('lnbits.walletFlip') ?? false,
-  locale:
-    Quasar.LocalStorage.getItem('lnbits.lang') ?? navigator.languages[1] ?? 'en'
+  walletFlip: localStore('lnbits.walletFlip', false),
+  locale: localStore('lnbits.lang', navigator.languages[1] ?? 'en'),
+  darkChoice: localStore('lnbits.darkMode', true),
+  themeChoice: localStore('lnbits.theme', WINDOW_SETTINGS.LNBITS_DEFAULT_THEME),
+  borderChoice: localStore(
+    'lnbits.border',
+    WINDOW_SETTINGS.LNBITS_DEFAULT_REACTION
+  ),
+  gradientChoice: localStore(
+    'lnbits.gradientBg',
+    WINDOW_SETTINGS.LNBITS_DEFAULT_GRADIENT
+  ),
+  reactionChoice: localStore(
+    'lnbits.reactions',
+    WINDOW_SETTINGS.LNBITS_DEFAULT_REACTION
+  ),
+  bgimageChoice: localStore(
+    'lnbits.backgroundImage',
+    WINDOW_SETTINGS.LNBITS_DEFAULT_BGIMAGE
+  )
 })
 
 window.dateFormat = 'YYYY-MM-DD HH:mm'
@@ -22,3 +47,5 @@ window.dateFormat = 'YYYY-MM-DD HH:mm'
 const websocketPrefix =
   window.location.protocol === 'http:' ? 'ws://' : 'wss://'
 const websocketUrl = `${websocketPrefix}${window.location.host}/api/v1/ws`
+
+const _access_cookies_for_safari_refresh_do_not_delete = document.cookie
