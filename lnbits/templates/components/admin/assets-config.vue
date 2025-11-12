@@ -4,32 +4,54 @@
     <div class="row q-col-gutter-md">
       <div class="col-12 col-md-3">
         <p>
-          <span v-text="$t('max_asset_size_kb')"></span>
+          <span v-text="$t('max_asset_size_mb')"></span>
         </p>
         <q-input
           filled
           type="number"
-          v-model.number="formData.lnbits_max_asset_size_kb"
-          :label="$t('max_asset_size_kb')"
-          step="1"
+          v-model.number="formData.lnbits_max_asset_size_mb"
+          :label="$t('max_asset_size_mb')"
+          step="0.1"
           min="0"
-          :hint="$t('max_asset_size_kb_desc')"
+          :hint="$t('max_asset_size_mb_desc')"
         ></q-input>
       </div>
 
-      <div class="col-12 col-md-3">
+      <div class="col-12 col-md-9">
         <p>
           <span v-text="$t('assets_allowed_mime_types')"></span>
         </p>
         <q-input
           filled
-          type="number"
-          v-model.number="formData.lnbits_assets_allowed_mime_types"
+          v-model.number="newAllowedAssetMimeType"
+          @keydown.enter="addAllowedAssetMimeType()"
           :label="$t('assets_allowed_mime_types')"
-          step="1"
-          min="0"
           :hint="$t('assets_allowed_mime_types_desc')"
-        ></q-input>
+        >
+          <q-btn
+            @click="addAllowedAssetMimeType()"
+            dense
+            flat
+            icon="add"
+          ></q-btn>
+        </q-input>
+        <div>
+          <q-chip
+            v-for="type in formData.lnbits_assets_allowed_mime_types"
+            :key="type"
+            removable
+            @remove="removeAllowedAssetMimeType(type)"
+            color="primary"
+            text-color="white"
+            class="ellipsis"
+            :label="type"
+            ><q-tooltip
+              v-if="identifier"
+              anchor="top middle"
+              self="bottom middle"
+              ><span v-text="identifier"></span></q-tooltip
+          ></q-chip>
+        </div>
       </div>
     </div>
     <q-separator class="q-mb-lg q-mt-sm"></q-separator>
@@ -69,11 +91,8 @@
         </p>
         <q-input
           filled
-          type="number"
           v-model.number="formData.lnbits_asset_thumbnail_format"
           :label="$t('thumbnail_format')"
-          step="1"
-          min="0"
           :hint="$t('thumbnail_format_desc')"
         ></q-input>
       </div>
@@ -95,20 +114,41 @@
           :hint="$t('max_assets_per_user_desc')"
         ></q-input>
       </div>
-      <div class="col-12 col-md-6">
+      <div class="col-12 col-md-9">
         <p>
           <span v-text="$t('assets_no_limit_users')"></span>
         </p>
         <q-input
           filled
-          type="number"
-          v-model.number="formData.lnbits_assets_no_limit_users"
+          v-model.number="newNoLimitUser"
+          @keydown.enter="addNewNoLimitUser()"
           :label="$t('assets_no_limit_users')"
-          step="1"
-          min="0"
           :hint="$t('assets_no_limit_users_desc')"
-        ></q-input>
+        >
+          <q-btn @click="addNewNoLimitUser()" dense flat icon="add"></q-btn>
+        </q-input>
+        <div>
+          <q-chip
+            v-for="type in formData.lnbits_assets_no_limit_users"
+            :key="type"
+            removable
+            @remove="removeNoLimitUser(type)"
+            color="primary"
+            text-color="white"
+            class="ellipsis"
+            :label="type"
+            ><q-tooltip
+              v-if="identifier"
+              anchor="top middle"
+              self="bottom middle"
+              ><span v-text="identifier"></span></q-tooltip
+          ></q-chip>
+        </div>
       </div>
     </div>
+  </q-card-section>
+  <q-card-section>
+    <!-- for spacing -->
+    <br />
   </q-card-section>
 </template>

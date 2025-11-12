@@ -280,8 +280,11 @@ class ThemesSettings(LNbitsSettings):
 class OpsSettings(LNbitsSettings):
     lnbits_baseurl: str = Field(default="http://127.0.0.1:5000/")
     lnbits_hide_api: bool = Field(default=False)
-    lnbits_upload_size_bytes: int = Field(default=512_000, ge=0)  # 500kb
-    lnbits_upload_allowed_types: list[str] = Field(
+
+
+class AssetSettings(LNbitsSettings):
+    lnbits_max_asset_size_mb: float = Field(default=2.5, ge=0.0)
+    lnbits_assets_allowed_mime_types: list[str] = Field(
         default=[
             "image/png",
             "image/jpeg",
@@ -297,6 +300,12 @@ class OpsSettings(LNbitsSettings):
             "heics",
         ]
     )
+    lnbits_asset_thumbnail_width: int = Field(default=128, ge=0)
+    lnbits_asset_thumbnail_height: int = Field(default=128, ge=0)
+    lnbits_asset_thumbnail_format: str = Field(default="png")
+
+    lnbits_max_assets_per_user: int = Field(default=1, ge=0)
+    lnbits_assets_no_limit_users: list[str] = Field(default=[])
 
 
 class FeeSettings(LNbitsSettings):
@@ -867,6 +876,7 @@ class EditableSettings(
     ExtensionsSettings,
     ThemesSettings,
     OpsSettings,
+    AssetSettings,
     FeeSettings,
     ExchangeProvidersSettings,
     SecuritySettings,
