@@ -5,7 +5,6 @@ window.windowMixin = {
       g: window.g,
       toggleSubs: true,
       mobileSimple: true,
-      walletFlip: true,
       addWalletDialog: {show: false, walletType: 'lightning'},
       walletTypes: [{label: 'Lightning Wallet', value: 'lightning'}],
       isUserAuthorized: false,
@@ -36,11 +35,11 @@ window.windowMixin = {
 
   methods: {
     flipWallets(smallScreen) {
-      this.walletFlip = !this.walletFlip
+      this.g.walletFlip = !this.g.walletFlip
       if (this.walletFlip && smallScreen) {
         this.g.visibleDrawer = false
       }
-      this.$q.localStorage.set('lnbits.walletFlip', this.walletFlip)
+      this.$q.localStorage.set('lnbits.walletFlip', this.g.walletFlip)
     },
     goToWallets() {
       this.$router.push({
@@ -332,7 +331,8 @@ window.windowMixin = {
     }
     await this.checkUsrInUrl()
     this.themeParams()
-    this.walletFlip = this.$q.localStorage.getItem('lnbits.walletFlip')
+    this.g.walletFlip =
+      this.$q.localStorage.getItem('lnbits.walletFlip') ?? false
     if (
       this.$q.screen.gt.sm ||
       this.$q.localStorage.getItem('lnbits.mobileSimple') == false

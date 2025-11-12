@@ -42,5 +42,6 @@ window.g = Vue.reactive({
   langs: [],
   walletEventListeners: [],
   updatePayments: false,
-  updatePaymentsHash: ''
+  updatePaymentsHash: '',
+  walletFlip: false
 })

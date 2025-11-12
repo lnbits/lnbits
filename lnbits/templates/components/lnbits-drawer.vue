@@ -19,21 +19,21 @@
         <q-item-section side>
           <q-btn
             flat
-            :icon="walletFlip ? 'view_list' : 'view_column'"
+            :icon="g.walletFlip ? 'view_list' : 'view_column'"
             color="grey"
             class=""
             @click="flipWallets($q.screen.lt.md)"
           >
             <q-tooltip
               ><span
-                v-text="walletFlip ? $t('view_list') : $t('view_column')"
+                v-text="g.walletFlip ? $t('view_list') : $t('view_column')"
               ></span
             ></q-tooltip>
           </q-btn>
         </q-item-section>
       </q-item>
       <lnbits-wallet-list
-        v-if="!walletFlip"
+        v-if="!g.walletFlip"
         :balance="balance"
         @wallet-action="handleWalletAction"
       ></lnbits-wallet-list>
