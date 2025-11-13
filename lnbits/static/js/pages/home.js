@@ -4,7 +4,6 @@ window.PageHome = {
   data() {
     return {
       lnurl: '',
-      isUserAuthorized: false,
       authAction: 'login',
       authMethod: 'username-password',
       usr: '',

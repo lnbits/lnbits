@@ -73,7 +73,7 @@
       <lnbits-language-dropdown></lnbits-language-dropdown>
 
       <q-btn-dropdown
-        v-if="g.user || isUserAuthorized"
+        v-if="g.user || g.isUserAuthorized"
         flat
         rounded
         size="sm"
