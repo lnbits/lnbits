@@ -75,6 +75,7 @@
     "js/components/lnbits-header.js",
     "js/components/lnbits-header-wallets.js",
     "js/components/lnbits-drawer.js",
+    "js/components/lnbits-theme.js",
     "js/components/lnbits-manage-extension-list.js",
     "js/components/lnbits-language-dropdown.js",
     "js/components/extension-settings.js",
