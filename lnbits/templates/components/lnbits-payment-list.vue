@@ -171,7 +171,7 @@
     :row-key="paymentTableRowKey"
     :columns="paymentsTable.columns"
     :no-data-label="$t('no_transactions')"
-    :filter="paymentsTable.filter"
+    :filter="paymentFilter"
     :loading="paymentsTable.loading"
     :hide-header="g.mobileSimple"
     :hide-bottom="g.mobileSimple"

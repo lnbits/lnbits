@@ -109,23 +109,17 @@ window.WalletPageLogic = {
         name: null,
         currency: null
       },
-      walletBalanceChart: null,
-      inkeyHidden: true,
-      adminkeyHidden: true,
-      walletIdHidden: true,
       hasNfc: false,
       nfcReaderAbortController: null,
       isFiatPriority: false,
       formattedFiatAmount: 0,
       formattedExchange: null,
-      chartData: [],
-      chartDataPointCount: 0,
-      chartConfig: {
-        showBalance: true,
-        showBalanceInOut: true,
-        showPaymentCountInOut: true
+      paymentFilter: {
+        'status[ne]': 'failed'
       },
-      paymentsFilter: {}
+      showPaymentInOutChart: false,
+      showBalanceChart: false,
+      showBalanceInOutChart: false
     }
   },
   computed: {
@@ -164,19 +158,17 @@ window.WalletPageLogic = {
     },
     formattedSatAmount() {
       return LNbits.utils.formatMsat(this.receive.amountMsat) + ' sat'
-    },
-    wallet() {
-      return this.g.wallet
-    },
-    hasChartActive() {
-      return (
-        this.chartConfig.showBalance ||
-        this.chartConfig.showBalanceInOut ||
-        this.chartConfig.showPaymentCountInOut
-      )
     }
   },
   methods: {
+    setWalletChartConfig(chartName) {
+      const cfg = this.g.walletChartConfig
+      if (cfg.includes(chartName)) {
+        this.g.walletChartConfig = cfg.filter(c => c !== chartName)
+      } else {
+        this.g.walletChartConfig = cfg.concat([chartName])
+      }
+    },
     dateFromNow(unix) {
       const date = new Date(unix * 1000)
       return moment.utc(date).local().fromNow()
@@ -820,256 +812,6 @@ window.WalletPageLogic = {
         this.g.fiatTracking = false
       }
     },
-    walletFormatBalance(amount) {
-      if (LNBITS_DENOMINATION != 'sats') {
-        return LNbits.utils.formatCurrency(amount / 100, LNBITS_DENOMINATION)
-      } else {
-        return LNbits.utils.formatSat(amount) + ' sats'
-      }
-    },
-    handleFilterChange(value = {}) {
-      if (
-        this.paymentsFilter['time[ge]'] !== value['time[ge]'] ||
-        this.paymentsFilter['time[le]'] !== value['time[le]'] ||
-        this.paymentsFilter['amount[ge]'] !== value['amount[ge]'] ||
-        this.paymentsFilter['amount[le]'] !== value['amount[le]']
-      ) {
-        this.refreshCharts()
-      }
-      this.paymentsFilter = value
-    },
-    async fetchChartData() {
-      if (this.g.mobileSimple) {
-        this.chartConfig = {}
-        return
-      }
-      if (!this.hasChartActive) {
-        return
-      }
-
-      try {
-        const {data} = await LNbits.api.request(
-          'GET',
-          `/api/v1/payments/stats/daily?wallet_id=${this.g.wallet.id}`
-        )
-        this.chartData = data
-        this.refreshCharts()
-      } catch (error) {
-        console.warn(error)
-        LNbits.utils.notifyApiError(error)
-      }
-    },
-    filterChartData(data) {
-      const timeFrom = this.paymentsFilter['time[ge]'] + 'T00:00:00'
-      const timeTo = this.paymentsFilter['time[le]'] + 'T23:59:59'
-
-      let totalBalance = 0
-      data = data.map(p => {
-        if (this.paymentsFilter['amount[ge]'] !== undefined) {
-          totalBalance += p.balance_in
-          return {...p, balance: totalBalance, balance_out: 0, count_out: 0}
-        }
-        if (this.paymentsFilter['amount[le]'] !== undefined) {
-          totalBalance -= p.balance_out
-          return {...p, balance: totalBalance, balance_in: 0, count_in: 0}
-        }
-        return {...p}
-      })
-      data = data.filter(p => {
-        if (
-          this.paymentsFilter['time[ge]'] &&
-          this.paymentsFilter['time[le]']
-        ) {
-          return p.date >= timeFrom && p.date <= timeTo
-        }
-        if (this.paymentsFilter['time[ge]']) {
-          return p.date >= timeFrom
-        }
-        if (this.paymentsFilter['time[le]']) {
-          return p.date <= timeTo
-        }
-        return true
-      })
-
-      const labels = data.map(s =>
-        new Date(s.date).toLocaleString('default', {
-          month: 'short',
-          day: 'numeric'
-        })
-      )
-      this.chartDataPointCount = data.length
-      return {data, labels}
-    },
-    refreshCharts() {
-      const originalChartConfig = this.chartConfig || {}
-      this.chartConfig = {}
-      setTimeout(() => {
-        const chartConfig =
-          this.$q.localStorage.getItem('lnbits.wallets.chartConfig') ||
-          originalChartConfig
-        this.chartConfig = {...originalChartConfig, ...chartConfig}
-      }, 10)
-      setTimeout(() => {
-        this.drawCharts(this.chartData)
-      }, 100)
-    },
-    drawCharts(allData) {
-      try {
-        const {data, labels} = this.filterChartData(allData)
-        if (this.chartConfig.showBalance) {
-          if (this.walletBalanceChart) {
-            this.walletBalanceChart.destroy()
-          }
-
-          this.walletBalanceChart = new Chart(
-            this.$refs.walletBalanceChart.getContext('2d'),
-            {
-              type: 'line',
-              options: {
-                responsive: true,
-                maintainAspectRatio: false
-              },
-              data: {
-                labels,
-                datasets: [
-                  {
-                    label: 'Balance',
-                    data: data.map(s => s.balance),
-                    pointStyle: false,
-                    backgroundColor: Quasar.colors.changeAlpha(
-                      Quasar.colors.getPaletteColor('primary'),
-                      0.3
-                    ),
-                    borderColor: Quasar.colors.getPaletteColor('primary'),
-                    borderWidth: 2,
-                    fill: true,
-                    tension: 0.7,
-                    fill: 1
-                  },
-                  {
-                    label: 'Fees',
-                    data: data.map(s => s.fee),
-                    pointStyle: false,
-                    backgroundColor: Quasar.colors.changeAlpha(
-                      Quasar.colors.getPaletteColor('secondary'),
-                      0.3
-                    ),
-                    borderColor: Quasar.colors.getPaletteColor('secondary'),
-                    borderWidth: 1,
-                    fill: true,
-                    tension: 0.7,
-                    fill: 1
-                  }
-                ]
-              }
-            }
-          )
-        }
-
-        if (this.chartConfig.showBalanceInOut) {
-          if (this.walletBalanceInOut) {
-            this.walletBalanceInOut.destroy()
-          }
-
-          this.walletBalanceInOut = new Chart(
-            this.$refs.walletBalanceInOut.getContext('2d'),
-            {
-              type: 'bar',
-
-              options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                scales: {
-                  x: {
-                    stacked: true
-                  },
-                  y: {
-                    stacked: true
-                  }
-                }
-              },
-              data: {
-                labels,
-                datasets: [
-                  {
-                    label: 'Balance In',
-                    borderRadius: 5,
-                    data: data.map(s => s.balance_in),
-                    backgroundColor: Quasar.colors.changeAlpha(
-                      Quasar.colors.getPaletteColor('primary'),
-                      0.3
-                    )
-                  },
-                  {
-                    label: 'Balance Out',
-                    borderRadius: 5,
-                    data: data.map(s => s.balance_out),
-                    backgroundColor: Quasar.colors.changeAlpha(
-                      Quasar.colors.getPaletteColor('secondary'),
-                      0.3
-                    )
-                  }
-                ]
-              }
-            }
-          )
-        }
-
-        if (this.chartConfig.showPaymentCountInOut) {
-          if (this.walletPaymentsInOut) {
-            this.walletPaymentsInOut.destroy()
-          }
-
-          this.walletPaymentsInOut = new Chart(
-            this.$refs.walletPaymentsInOut.getContext('2d'),
-            {
-              type: 'bar',
-
-              options: {
-                responsive: true,
-                maintainAspectRatio: false,
-
-                scales: {
-                  x: {
-                    stacked: true
-                  },
-                  y: {
-                    stacked: true
-                  }
-                }
-              },
-              data: {
-                labels,
-                datasets: [
-                  {
-                    label: 'Payments In',
-                    data: data.map(s => s.count_in),
-                    backgroundColor: Quasar.colors.changeAlpha(
-                      Quasar.colors.getPaletteColor('primary'),
-                      0.3
-                    )
-                  },
-                  {
-                    label: 'Payments Out',
-                    data: data.map(s => -s.count_out),
-                    backgroundColor: Quasar.colors.changeAlpha(
-                      Quasar.colors.getPaletteColor('secondary'),
-                      0.3
-                    )
-                  }
-                ]
-              }
-            }
-          )
-        }
-      } catch (error) {
-        console.warn(error)
-      }
-    },
-    saveChartsPreferences() {
-      this.$q.localStorage.set('lnbits.wallets.chartConfig', this.chartConfig)
-      this.refreshCharts()
-    },
     updatePaylinks() {
       LNbits.api
         .request(
@@ -1113,6 +855,17 @@ window.WalletPageLogic = {
     }
   },
   created() {
+    if (this.g.walletChartConfig.length > 0) {
+      if (this.g.walletChartConfig.includes('balance')) {
+        this.showBalanceChart = true
+      }
+      if (this.g.walletChartConfig.includes('balance-in-out')) {
+        this.showBalanceInOutChart = true
+      }
+      if (this.g.walletChartConfig.includes('payment-in-out')) {
+        this.showPaymentInOutChart = true
+      }
+    }
     this.stored_paylinks = wallet.stored_paylinks.links
     const urlParams = new URLSearchParams(window.location.search)
     if (urlParams.has('lightning') || urlParams.has('lnurl')) {
@@ -1122,11 +875,6 @@ window.WalletPageLogic = {
       this.parse.show = true
     }
     this.createdTasks()
-    try {
-      this.fetchChartData()
-    } catch (error) {
-      console.warn(`Chart creation failed: ${error}`)
-    }
   },
   watch: {
     'g.updatePayments'(newVal, oldVal) {

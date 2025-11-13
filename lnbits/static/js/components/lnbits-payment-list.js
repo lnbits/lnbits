@@ -1,6 +1,6 @@
 window.app.component('lnbits-payment-list', {
   template: '#lnbits-payment-list',
-  props: ['update', 'lazy', 'wallet'],
+  props: ['update', 'lazy', 'wallet', 'paymentFilter'],
   mixins: [window.windowMixin],
   data() {
     return {
@@ -31,9 +31,6 @@ window.app.component('lnbits-payment-list', {
           rowsNumber: 10
         },
         search: '',
-        filter: {
-          'status[ne]': 'failed'
-        },
         loading: false
       },
       searchDate: {from: null, to: null},
@@ -156,24 +153,27 @@ window.app.component('lnbits-payment-list', {
         }
       }
       if (this.searchDate.from) {
-        this.paymentsTable.filter['time[ge]'] =
-          this.searchDate.from + 'T00:00:00'
+        this.paymentFilter['time[ge]'] = this.searchDate.from + 'T00:00:00'
       }
       if (this.searchDate.to) {
-        this.paymentsTable.filter['time[le]'] = this.searchDate.to + 'T23:59:59'
+        this.paymentFilter['time[le]'] = this.searchDate.to + 'T23:59:59'
       }
 
       this.fetchPayments()
     },
     clearDateSeach() {
       this.searchDate = {from: null, to: null}
-      delete this.paymentsTable.filter['time[ge]']
-      delete this.paymentsTable.filter['time[le]']
+      delete this.paymentFilter['time[ge]']
+      delete this.paymentFilter['time[le]']
       this.fetchPayments()
     },
     fetchPayments(props) {
-      this.$emit('filter-changed', {...this.paymentsTable.filter})
-      const params = LNbits.utils.prepareFilterQuery(this.paymentsTable, props)
+      const params = LNbits.utils.prepareFilterQuery(
+        this.paymentsTable,
+        props,
+        this.paymentFilter
+      )
+      this.paymentsTable.loading = true
       return LNbits.api
         .getPayments(this.currentWallet, params)
         .then(response => {
@@ -326,34 +326,34 @@ window.app.component('lnbits-payment-list', {
     },
     handleFilterChanged() {
       const {success, pending, failed, incoming, outgoing} = this.searchStatus
-
-      delete this.paymentsTable.filter['status[ne]']
-      delete this.paymentsTable.filter['status[eq]']
+      let paymentFilter = this.paymentFilter || {}
+      delete paymentFilter['status[ne]']
+      delete paymentFilter['status[eq]']
       if (success && pending && failed) {
         // No status filter
       } else if (success && pending) {
-        this.paymentsTable.filter['status[ne]'] = 'failed'
+        paymentFilter['status[ne]'] = 'failed'
       } else if (success && failed) {
-        this.paymentsTable.filter['status[ne]'] = 'pending'
+        paymentFilter['status[ne]'] = 'pending'
       } else if (failed && pending) {
-        this.paymentsTable.filter['status[ne]'] = 'success'
-      } else if (success) {
-        this.paymentsTable.filter['status[eq]'] = 'success'
-      } else if (pending) {
-        this.paymentsTable.filter['status[eq]'] = 'pending'
-      } else if (failed) {
-        this.paymentsTable.filter['status[eq]'] = 'failed'
+        paymentFilter['status[ne]'] = 'success'
+      } else if (success && !pending && !failed) {
+        paymentFilter['status[eq]'] = 'success'
+      } else if (pending && !success && !failed) {
+        paymentFilter['status[eq]'] = 'pending'
+      } else if (failed && !success && !pending) {
+        paymentFilter['status[eq]'] = 'failed'
       }
-
-      delete this.paymentsTable.filter['amount[ge]']
-      delete this.paymentsTable.filter['amount[le]']
-      if (incoming && outgoing) {
+      delete paymentFilter['amount[ge]']
+      delete paymentFilter['amount[le]']
+      if ((incoming && outgoing) || (!incoming && !outgoing)) {
         // do nothing
-      } else if (incoming) {
-        this.paymentsTable.filter['amount[ge]'] = 0
-      } else if (outgoing) {
-        this.paymentsTable.filter['amount[le]'] = 0
+      } else if (incoming && !outgoing) {
+        paymentFilter['amount[ge]'] = 0
+      } else if (outgoing && !incoming) {
+        paymentFilter['amount[le]'] = 0
       }
+      this.paymentFilter = paymentFilter
     }
   },
   watch: {

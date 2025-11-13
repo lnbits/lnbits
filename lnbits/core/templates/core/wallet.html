@@ -46,7 +46,7 @@
                       <div class="col-auto">
                         <div class="text-h3 q-my-none full-width">
                           <strong
-                            v-text="walletFormatBalance(this.g.wallet.sat)"
+                            v-text="formatBalance(this.g.wallet.sat)"
                             class="text-no-wrap"
                             :style="{fontSize: 'clamp(0.75rem, 10vw, 3rem)', display: 'inline-block', maxWidth: '100%'}"
                           ></strong>
@@ -179,10 +179,9 @@
         <q-card class="wallet-card">
           <q-card-section>
             <lnbits-payment-list
-              @filter-changed="handleFilterChange"
               :update="updatePayments"
-              :mobile-simple="g.mobileSimple"
               :expand-details="expandDetails"
+              :paymentFilter="paymentFilter"
             ></lnbits-payment-list>
           </q-card-section>
         </q-card>
@@ -501,8 +500,8 @@
                         <div class="col-md-4 col-sm-12">
                           <q-checkbox
                             dense
-                            @click="saveChartsPreferences"
-                            v-model="chartConfig.showBalance"
+                            @update:model-value="setWalletChartConfig('balance')"
+                            v-model="showBalanceChart"
                             :label="$t('payments_balance_chart')"
                           >
                           </q-checkbox>
@@ -511,8 +510,8 @@
                         <div class="col-md-4 col-sm-12">
                           <q-checkbox
                             dense
-                            @click="saveChartsPreferences"
-                            v-model="chartConfig.showBalanceInOut"
+                            @update:model-value="setWalletChartConfig('balance-in-out')"
+                            v-model="showBalanceInOutChart"
                             :label="$t('payments_balance_in_out_chart')"
                           >
                           </q-checkbox>
@@ -520,8 +519,8 @@
                         <div class="col-md-4 col-sm-12">
                           <q-checkbox
                             dense
-                            @click="saveChartsPreferences"
-                            v-model="chartConfig.showPaymentCountInOut"
+                            @update:model-value="setWalletChartConfig('payment-in-out')"
+                            v-model="showPaymentInOutChart"
                             :label="$t('payments_count_in_out_chart')"
                           >
                           </q-checkbox>
@@ -550,37 +549,9 @@
               </a>
             </q-card-section>
           </q-card>
-          <div
-            v-show="chartDataPointCount"
-            class="col-12 col-md-5 q-gutter-y-md"
-          >
-            <q-card v-if="chartConfig.showBalance">
-              <q-card-section class="q-pa-none">
-                <div style="height: 200px" class="q-pa-sm">
-                  <canvas ref="walletBalanceChart"></canvas>
-                </div>
-              </q-card-section>
-            </q-card>
-            <q-card v-if="chartConfig.showBalanceInOut">
-              <q-card-section class="q-pa-none">
-                <div style="height: 200px" class="q-pa-sm">
-                  <canvas ref="walletBalanceInOut"></canvas>
-                </div>
-              </q-card-section>
-            </q-card>
-            <q-card v-if="chartConfig.showPaymentCountInOut">
-              <q-card-section class="q-pa-none">
-                <div style="height: 200px" class="q-pa-sm">
-                  <canvas ref="walletPaymentsInOut"></canvas>
-                </div>
-              </q-card-section>
-            </q-card>
-          </div>
-          <div v-if="hasChartActive && !chartDataPointCount">
-            <q-card>
-              <q-card-section> No chart data available</q-card-section>
-            </q-card>
-          </div>
+          <lnbits-wallet-chart
+            :paymentFilter="paymentFilter"
+          ></lnbits-wallet-chart>
         </div>
       </div>
 
@@ -864,7 +835,7 @@
             <div class="column content-center text-center q-mb-md">
               <div v-if="!isFiatPriority">
                 <h4 class="q-my-none text-bold">
-                  <span v-text="walletFormatBalance(parse.invoice.sat)"></span>
+                  <span v-text="formatBalance(parse.invoice.sat)"></span>
                 </h4>
               </div>
               <div v-else>
@@ -886,9 +857,7 @@
               <div v-if="g.fiatTracking">
                 <div v-if="isFiatPriority">
                   <h5 class="q-my-none text-bold">
-                    <span
-                      v-text="walletFormatBalance(parse.invoice.sat)"
-                    ></span>
+                    <span v-text="formatBalance(parse.invoice.sat)"></span>
                   </h5>
                 </div>
                 <div v-else style="opacity: 0.75">

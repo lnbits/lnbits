@@ -87,8 +87,8 @@ window._lnbitsUtils = {
       return data
     }
   },
-  prepareFilterQuery(tableConfig, props) {
-    tableConfig.filter = tableConfig.filter || {}
+  prepareFilterQuery(tableConfig, props, filter) {
+    tableConfig.filter = filter || tableConfig.filter || {}
     if (props) {
       tableConfig.pagination = props.pagination
       Object.assign(tableConfig.filter, props.filter)

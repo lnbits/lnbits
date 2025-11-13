@@ -46,7 +46,12 @@ window.g = Vue.reactive({
     'lnbits.backgroundImage',
     WINDOW_SETTINGS.LNBITS_DEFAULT_BGIMAGE || ''
   ),
-  ads: WINDOW_SETTINGS.AD_SPACE.split(',').map(ad => ad.split(';'))
+  ads: WINDOW_SETTINGS.AD_SPACE.split(',').map(ad => ad.split(';')),
+  walletChartConfig: localStore('lnbits.wallets.chartConfig', [
+    'balance',
+    'balance-in-out',
+    'payment-in-out'
+  ])
 })
 
 window.dateFormat = 'YYYY-MM-DD HH:mm'
