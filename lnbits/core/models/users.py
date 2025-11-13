@@ -55,6 +55,8 @@ class UserExtra(BaseModel):
 
     wallet_invite_requests: list[WalletInviteRequest] = []
 
+    labels: list[UserLabel] = []
+
     def add_wallet_invite_request(
         self,
         request_id: str,
@@ -147,6 +149,12 @@ class UserAcls(BaseModel):
             if acl.get_token_by_id(token_id):
                 return acl
         return None
+
+
+class UserLabel(BaseModel):
+    name: str
+    description: str | None = None
+    color: str | None = None
 
 
 class Account(BaseModel):

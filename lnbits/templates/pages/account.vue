@@ -20,6 +20,7 @@
       <q-card>
         <q-splitter>
           <template v-slot:before>
+            <!-- todo: small screen as in settings -->
             <q-tabs v-model="tab" vertical active-color="primary">
               <q-tab
                 name="user"
@@ -70,6 +71,16 @@
               >
                 <q-tooltip v-if="!$q.screen.gt.sm"
                   ><span v-text="$t('assets')"></span
+                ></q-tooltip>
+              </q-tab>
+              <q-tab
+                name="labels"
+                icon="local_offer"
+                :label="$q.screen.gt.sm ? $t('labels') : ''"
+                @update="val => (tab = val.name)"
+              >
+                <q-tooltip v-if="!$q.screen.gt.sm"
+                  ><span v-text="$t('labels')"></span
                 ></q-tooltip>
               </q-tab>
             </q-tabs>
@@ -1023,6 +1034,64 @@
                             </q-card-section>
                           </q-card>
                         </div>
+                      </template>
+                    </q-table>
+                  </q-card-section>
+                </q-tab-panel>
+                <q-tab-panel name="labels">
+                  <q-card-section>
+                    <div class="row">
+                      <div class="col-md-2 col-sm-12">
+                        <q-btn
+                          color="primary"
+                          :label="$t('add_label')"
+                          class="full-width"
+                        ></q-btn>
+                      </div>
+                      <div class="col-md-1 col-sm-12"></div>
+                      <div class="col-md-9 col-sm-12">
+                        <q-input
+                          :label="$t('search')"
+                          dense
+                          class="full-width q-pb-xl"
+                          v-model="labelsTable.search"
+                        >
+                          <template v-slot:before>
+                            <q-icon name="search"> </q-icon>
+                          </template>
+                          <template v-slot:append>
+                            <q-icon
+                              v-if="labelsTable.search !== ''"
+                              name="close"
+                              @click="labelsTable.search = ''"
+                              class="cursor-pointer"
+                            >
+                            </q-icon>
+                          </template>
+                        </q-input>
+                      </div>
+                    </div>
+                  </q-card-section>
+                  <q-separator></q-separator>
+                  <q-card-section>
+                    <!-- @request="getUserLabels" -->
+                    <q-table
+                      :rows="labels"
+                      :columns="labelsTable.columns"
+                      v-model:pagination="labelsTable.pagination"
+                      :loading="labelsTable.loading"
+                      row-key="id"
+                      :filter="labelsTable.search"
+                    >
+                      <template v-slot:body="props">
+                        <q-tr :props="props">
+                          <q-td key="name" :props="props">
+                            <span v-text="props.row.name"></span>
+                          </q-td>
+                          <q-td key="description" :props="props">
+                            <span v-text="props.row.description"></span>
+                          </q-td>
+                        </q-tr>
                       </template>
                     </q-table>
                   </q-card-section>

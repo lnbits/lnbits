@@ -709,5 +709,12 @@ window.localisation.en = {
   paid: 'Paid',
   funding_source_retries: 'Max Retries',
   funding_source_retries_desc:
-    'Maximum number of retries for funding sources, before it falls back to VoidWallet.'
+    'Maximum number of retries for funding sources, before it falls back to VoidWallet.',
+  add_label: 'Add Label',
+  label: 'Label',
+  labels: 'Labels',
+  edit_label: 'Edit Label',
+  delete_label: 'Delete Label',
+  label_name: 'Label Name',
+  label_color: 'Label Color'
 }

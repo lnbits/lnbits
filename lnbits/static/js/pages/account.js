@@ -145,6 +145,35 @@ window.PageAccount = {
         nostr: {
           identifier: ''
         }
+      },
+      labels: [],
+      labelsDialog: {
+        show: false,
+        name: '',
+        description: '',
+        color: '#000000'
+      },
+      labelsTable: {
+        loading: false,
+        columns: [
+          {
+            name: 'name',
+            align: 'left',
+            label: this.$t('Name'),
+            field: 'name',
+            sortable: true
+          },
+          {
+            name: 'description',
+            align: 'left',
+            label: this.$t('description'),
+            field: 'description'
+          }
+        ],
+        pagination: {
+          rowsPerPage: 6,
+          page: 1
+        }
       }
     }
   },
