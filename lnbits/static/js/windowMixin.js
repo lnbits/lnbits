@@ -7,7 +7,6 @@ window.windowMixin = {
       g: window.g,
       toggleSubs: true,
       addWalletDialog: {show: false, walletType: 'lightning'},
-      walletTypes: [{label: 'Lightning Wallet', value: 'lightning'}],
       isSatsDenomination: WINDOW_SETTINGS['LNBITS_DENOMINATION'] == 'sats',
       allowedThemes: WINDOW_SETTINGS['LNBITS_THEME_OPTIONS'],
       walletEventListeners: [],
@@ -125,25 +124,8 @@ window.windowMixin = {
     }
   },
   async created() {
-    addEventListener('offline', event => {
-      console.log('offline', event)
-      this.g.offline = true
-    })
-
-    addEventListener('online', event => {
-      console.log('back online', event)
-      this.g.offline = false
-    })
-
     if (window.user) {
       this.g.user = Vue.reactive(window.LNbits.map.user(window.user))
-    }
-
-    if (this.g.user?.extra?.wallet_invite_requests?.length) {
-      this.walletTypes.push({
-        label: `Lightning Wallet (Share Invite: ${this.g.user.extra.wallet_invite_requests.length})`,
-        value: 'lightning-shared'
-      })
     }
     if (window.wallet) {
       this.g.wallet = Vue.reactive(window.LNbits.map.wallet(window.wallet))

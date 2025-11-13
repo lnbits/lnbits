@@ -50,3 +50,13 @@ const websocketPrefix =
 const websocketUrl = `${websocketPrefix}${window.location.host}/api/v1/ws`
 
 const _access_cookies_for_safari_refresh_do_not_delete = document.cookie
+
+addEventListener('offline', event => {
+  console.log('offline', event)
+  this.g.offline = true
+})
+
+addEventListener('online', event => {
+  console.log('back online', event)
+  this.g.offline = false
+})

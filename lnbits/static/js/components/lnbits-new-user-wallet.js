@@ -4,6 +4,7 @@ window.app.component('lnbits-new-user-wallet', {
   mixins: [window.windowMixin],
   data() {
     return {
+      walletTypes: [{label: 'Lightning Wallet', value: 'lightning'}],
       newWallet: {walletType: 'lightning', name: '', sharedWalletId: ''}
     }
   },
@@ -69,6 +70,14 @@ window.app.component('lnbits-new-user-wallet', {
         console.warn(e)
         LNbits.utils.notifyApiError(e)
       }
+    }
+  },
+  created() {
+    if (this.g.user?.extra?.wallet_invite_requests?.length) {
+      this.walletTypes.push({
+        label: `Lightning Wallet (Share Invite: ${this.g.user.extra.wallet_invite_requests.length})`,
+        value: 'lightning-shared'
+      })
     }
   }
 })
