@@ -206,7 +206,7 @@ window.PageNode = {
     formatMsat(msat) {
       return LNbits.utils.formatMsat(msat)
     },
-    api(method, url, options) {
+    nodeApi(method, url, options) {
       const params = new URLSearchParams(options?.query)
       return LNbits.api
         .request(method, `/node/api/v1${url}?${params}`, {}, options?.data)
@@ -215,18 +215,18 @@ window.PageNode = {
         })
     },
     getChannel(channel_id) {
-      return this.api('GET', `/channels/${channel_id}`).then(response => {
+      return this.nodeApi('GET', `/channels/${channel_id}`).then(response => {
         this.setFeeDialog.data.fee_ppm = response.data.fee_ppm
         this.setFeeDialog.data.fee_base_msat = response.data.fee_base_msat
       })
     },
     getChannels() {
-      return this.api('GET', '/channels').then(response => {
+      return this.nodeApi('GET', '/channels').then(response => {
         this.channels.data = response.data
       })
     },
     getInfo() {
-      return this.api('GET', '/info')
+      return this.nodeApi('GET', '/info')
         .then(response => {
           this.info = response.data
           this.channel_stats = response.data.channel_stats
@@ -237,7 +237,7 @@ window.PageNode = {
         })
     },
     get1MLStats() {
-      return this.api('GET', '/rank')
+      return this.nodeApi('GET', '/rank')
         .then(response => {
           this.ranks = response.data
         })
@@ -254,7 +254,7 @@ window.PageNode = {
         limit: pagination.rowsPerPage,
         offset: (pagination.page - 1) * pagination.rowsPerPage ?? 0
       }
-      return this.api('GET', '/payments', {query}).then(response => {
+      return this.nodeApi('GET', '/payments', {query}).then(response => {
         this.paymentsTable.data = response.data.data
         this.paymentsTable.pagination.rowsNumber = response.data.total
       })
@@ -268,18 +268,18 @@ window.PageNode = {
         limit: pagination.rowsPerPage,
         offset: (pagination.page - 1) * pagination.rowsPerPage ?? 0
       }
-      return this.api('GET', '/invoices', {query}).then(response => {
+      return this.nodeApi('GET', '/invoices', {query}).then(response => {
         this.invoiceTable.data = response.data.data
         this.invoiceTable.pagination.rowsNumber = response.data.total
       })
     },
     getPeers() {
-      return this.api('GET', '/peers').then(response => {
+      return this.nodeApi('GET', '/peers').then(response => {
         this.peers.data = response.data
       })
     },
     connectPeer() {
-      this.api('POST', '/peers', {data: this.connectPeerDialog.data}).then(
+      this.nodeApi('POST', '/peers', {data: this.connectPeerDialog.data}).then(
         () => {
           this.connectPeerDialog.show = false
           this.getPeers()
@@ -290,7 +290,7 @@ window.PageNode = {
       LNbits.utils
         .confirmDialog('Do you really wanna disconnect this peer?')
         .onOk(() => {
-          this.api('DELETE', `/peers/${id}`).then(response => {
+          this.nodeApi('DELETE', `/peers/${id}`).then(response => {
             Quasar.Notify.create({
               message: 'Disconnected',
               icon: null
@@ -301,7 +301,7 @@ window.PageNode = {
         })
     },
     setChannelFee(channel_id) {
-      this.api('PUT', `/channels/${channel_id}`, {
+      this.nodeApi('PUT', `/channels/${channel_id}`, {
         data: this.setFeeDialog.data
       })
         .then(response => {
@@ -311,7 +311,7 @@ window.PageNode = {
         .catch(LNbits.utils.notifyApiError)
     },
     openChannel() {
-      this.api('POST', '/channels', {data: this.openChannelDialog.data})
+      this.nodeApi('POST', '/channels', {data: this.openChannelDialog.data})
         .then(response => {
           this.openChannelDialog.show = false
           this.getChannels()
@@ -329,7 +329,7 @@ window.PageNode = {
       }
     },
     closeChannel() {
-      this.api('DELETE', '/channels', {
+      this.nodeApi('DELETE', '/channels', {
         query: this.closeChannelDialog.data
       }).then(response => {
         this.closeChannelDialog.show = false
