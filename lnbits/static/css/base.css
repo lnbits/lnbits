@@ -438,3 +438,20 @@ video {
 .wallet-list-card:first-child {
   margin-left: 1px;
 }
+
+@media (max-width: 1024px) {
+  .wallet-card {
+    background: none !important;
+    box-shadow: none !important;
+    border: none !important;
+  }
+  .mobile-simple .wallet-wrapper {
+    position: fixed !important;
+    top: 50% !important;
+    left: 50% !important;
+    transform: translate(-50%, -50%) !important;
+  }
+  .mobile-simple .wallet-card {
+    width: 90% !important;
+  }
+}
