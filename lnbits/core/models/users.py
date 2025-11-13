@@ -37,7 +37,7 @@ class WalletInviteRequest(BaseModel):
 
 
 class UserLabel(BaseModel):
-    name: str
+    name: str | None = None
     description: str | None = None
     color: str | None = None
 
@@ -209,6 +209,12 @@ class Account(BaseModel):
         user_uuid4 = UUID(hex=self.id, version=4)
         if user_uuid4.hex != self.id:
             raise ValueError("User ID is not valid UUID4 hex string.")
+
+        seen_labels = set()
+        for label in self.extra.labels:
+            if label.name in seen_labels:
+                raise ValueError(f"Duplicate label name: {label.name}")
+            seen_labels.add(label.name)
 
 
 class AccountOverview(Account):

@@ -25,6 +25,7 @@ from lnbits.core.models.users import (
     UpdateAccessControlList,
 )
 from lnbits.core.services import create_user_account
+from lnbits.core.services.users import update_user_account
 from lnbits.decorators import access_token_payload, check_user_exists
 from lnbits.helpers import (
     create_access_token,
@@ -422,15 +423,6 @@ async def update(
 ) -> User | None:
     if data.user_id != user.id:
         raise HTTPException(HTTPStatus.BAD_REQUEST, "Invalid user ID.")
-    if data.username and not is_valid_username(data.username):
-        raise HTTPException(HTTPStatus.BAD_REQUEST, "Invalid username.")
-
-    if (
-        data.username
-        and user.username != data.username
-        and await get_account_by_username(data.username)
-    ):
-        raise HTTPException(HTTPStatus.BAD_REQUEST, "Username already exists.")
 
     account = await get_account(user.id)
     if not account:
@@ -441,7 +433,7 @@ async def update(
     if data.extra:
         account.extra = data.extra
 
-    await update_account(account)
+    await update_user_account(account)
     return await get_user_from_account(account)
 
 

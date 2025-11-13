@@ -1085,7 +1085,21 @@
                     >
                       <template v-slot:body="props">
                         <q-tr :props="props">
-                          <q-td :props="props"> edit </q-td>
+                          <q-td key="actions" :props="props">
+                            <q-btn
+                              dense
+                              flat
+                              icon="edit"
+                              color="primary"
+                            ></q-btn>
+                            <q-btn
+                              dense
+                              flat
+                              icon="delete"
+                              color="negative"
+                              class="q-ml-md"
+                            ></q-btn>
+                          </q-td>
                           <q-td key="name" :props="props">
                             <span v-text="props.row.name"></span>
                           </q-td>
@@ -1094,6 +1108,7 @@
                           </q-td>
                           <q-td key="color" :props="props">
                             <q-badge
+                              class="q-pa-sm"
                               :style="{
                                 backgroundColor: props.row.color,
                                 color: 'white'

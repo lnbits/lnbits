@@ -159,6 +159,10 @@ window.PageAccount = {
         loading: false,
         columns: [
           {
+            name: 'actions',
+            align: 'left'
+          },
+          {
             name: 'name',
             align: 'left',
             label: this.$t('Name'),
@@ -176,10 +180,6 @@ window.PageAccount = {
             align: 'left',
             label: this.$t('color'),
             field: 'color'
-          },
-          {
-            name: 'actions',
-            align: 'left'
           }
         ],
         pagination: {
@@ -601,7 +601,31 @@ window.PageAccount = {
       this.copyText(assetUrl)
     },
     addUserLabel() {
+      if (!this.labelsDialog.data.name) {
+        this.$q.notify({
+          type: 'warning',
+          message: 'Name is required.'
+        })
+        return
+      }
+      if (!this.labelsDialog.data.color) {
+        this.$q.notify({
+          type: 'warning',
+          message: 'Color is required.'
+        })
+        return
+      }
       this.user.extra.labels = this.user.extra.labels || []
+      const duplicate = this.user.extra.labels.find(
+        label => label.name === this.labelsDialog.data.name
+      )
+      if (duplicate) {
+        this.$q.notify({
+          type: 'warning',
+          message: 'A label with this name already exists.'
+        })
+        return
+      }
       this.user.extra.labels.push({...this.labelsDialog.data})
       this.labelsDialog.show = false
     },
