@@ -124,14 +124,14 @@ window.windowMixin = {
     }
   },
   async created() {
-    if (window.user) {
-      this.g.user = Vue.reactive(window.LNbits.map.user(window.user))
+    if (window.user && this.g.user === null) {
+      this.g.user = window.LNbits.map.user(window.user)
     }
-    if (window.wallet) {
-      this.g.wallet = Vue.reactive(window.LNbits.map.wallet(window.wallet))
+    if (window.wallet && this.g.wallet === null) {
+      this.g.wallet = window.LNbits.map.wallet(window.wallet)
     }
-    if (window.extensions) {
-      this.g.extensions = Vue.reactive(window.extensions)
+    if (window.extensions && this.g.extensions === null) {
+      this.g.extensions = window.extensions
     }
   },
   mounted() {
