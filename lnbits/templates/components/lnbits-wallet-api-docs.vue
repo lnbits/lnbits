@@ -169,8 +169,8 @@
             >curl -X POST <span v-text="baseUrl"></span>api/v1/payments -d
             '{"out": false, "amount": &lt;int&gt;, "memo": &lt;string&gt;}' -H
             "X-Api-Key:
-            <i v-text="inkeyHidden ? '****************' : g.wallet.inkey"></i>"
-            -H "Content-type: application/json"</code
+            <i v-text="inkeyHidden ? '****************' : g.wallet.inkey"></i>" -H
+            "Content-type: application/json"</code
           >
         </q-card-section>
       </q-card>
@@ -220,6 +220,7 @@
         </q-card-section>
       </q-card>
     </q-expansion-item>
+
     <q-expansion-item
       group="api"
       dense
@@ -277,8 +278,8 @@
             >curl -X GET
             <span v-text="baseUrl"></span>api/v1/payments/&lt;payment_hash&gt;
             -H "X-Api-Key:
-            <i v-text="inkeyHidden ? '****************' : g.wallet.inkey"></i>"
-            -H "Content-type: application/json"</code
+            <i v-text="inkeyHidden ? '****************' : g.wallet.inkey"></i>" -H
+            "Content-type: application/json"</code
           >
         </q-card-section>
       </q-card>
