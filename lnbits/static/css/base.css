@@ -185,6 +185,11 @@ body[data-theme=salvador] [data-theme=salvador] .q-stepper--dark {
 }
 
 body.gradient-bg {
+  background-image: linear-gradient(to bottom right, #fff, var(--q-primary));
+  background-attachment: fixed;
+}
+
+body.gradient-bg.body--dark {
   background-image: linear-gradient(to bottom right, var(--q-dark-page), #0a0a0a);
   background-attachment: fixed;
 }
