@@ -136,7 +136,7 @@ window.PageHome = {
     }
   },
   created() {
-    if (this.isUserAuthorized) {
+    if (this.g.isUserAuthorized) {
       window.location.href = '/wallet'
     }
     const urlParams = new URLSearchParams(window.location.search)
