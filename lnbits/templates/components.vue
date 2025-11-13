@@ -20,7 +20,8 @@ include('components/lnbits-manage-extension-list.vue') %} {%
 include('components/lnbits-language-dropdown.vue') %} {%
 include('components/lnbits-payment-list.vue') %} {%
 include('components/lnbits-wallet-api-docs.vue') %} {%
-include('components/lnbits-wallet-list.vue') %}
+include('components/lnbits-wallet-list.vue') %} {%
+include('components/lnbits-wallet-share.vue') %}
 
 <template id="lnbits-manage">
   <q-list v-if="g.user" dense class="lnbits-drawer__q-list">
