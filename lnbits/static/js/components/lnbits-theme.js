@@ -11,6 +11,7 @@ window.app.component('lnbits-theme', {
     'g.darkChoice'(val) {
       this.$q.dark.set(val)
       this.$q.localStorage.set('lnbits.darkMode', val)
+      Chart.defaults.color = this.$q.dark.isActive ? '#fff' : '#000'
     },
     'g.borderChoice'(val) {
       document.body.classList.forEach(cls => {
@@ -93,12 +94,10 @@ window.app.component('lnbits-theme', {
     }
   },
   created() {
-    // TODO: fix Chart global import each chart has to take care of its own config
-    // else there is no reactivity on theme change
-    Chart.defaults.color = this.$q.dark.isActive ? '#fff' : '#000'
-
     this.$q.dark.set(this.g.darkChoice)
     document.body.setAttribute('data-theme', this.g.themeChoice)
+    Chart.defaults.color = this.$q.dark.isActive ? '#fff' : '#000'
+
     document.body.classList.add(this.g.borderChoice)
     if (this.g.gradientChoice === true) {
       document.body.classList.add('gradient-bg')
