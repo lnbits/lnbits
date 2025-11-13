@@ -75,6 +75,7 @@ window.LNbits = {
         newWallet.canSendPayments = perms.includes('send-payments')
       }
       newWallet.url = `/wallet?&wal=${data.id}`
+      newWallet.storedPaylinks = data.stored_paylinks.links
       return newWallet
     },
     payment(data) {

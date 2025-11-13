@@ -5,7 +5,6 @@ window.WalletPageLogic = {
       origin: window.location.origin,
       baseUrl: `${window.location.protocol}//${window.location.host}/`,
       websocketUrl: `${'http:' ? 'ws://' : 'wss://'}${window.location.host}/api/v1/ws`,
-      stored_paylinks: [],
       parse: {
         show: false,
         invoice: null,
@@ -150,9 +149,10 @@ window.WalletPageLogic = {
     }
   },
   methods: {
-    dateFromNow(unix) {
-      const date = new Date(unix * 1000)
-      return moment.utc(date).local().fromNow()
+    handleSendLnurl(lnurl) {
+      this.parse.data.request = lnurl
+      this.parse.show = true
+      this.lnurlScan()
     },
     formatFiatAmount(amount, currency) {
       this.update.currency = currency
@@ -790,51 +790,9 @@ window.WalletPageLogic = {
         this.update.currency = ''
         this.g.fiatTracking = false
       }
-    },
-    updatePaylinks() {
-      LNbits.api
-        .request(
-          'PUT',
-          `/api/v1/wallet/stored_paylinks/${this.g.wallet.id}`,
-          this.g.wallet.adminkey,
-          {
-            links: this.stored_paylinks
-          }
-        )
-        .then(() => {
-          Quasar.Notify.create({
-            message: 'Paylinks updated.',
-            type: 'positive',
-            timeout: 3500
-          })
-        })
-        .catch(err => {
-          LNbits.utils.notifyApiError(err)
-        })
-    },
-    sendToPaylink(lnurl) {
-      this.parse.data.request = lnurl
-      this.parse.show = true
-      this.lnurlScan()
-    },
-    editPaylink() {
-      this.$nextTick(() => {
-        this.updatePaylinks()
-      })
-    },
-    deletePaylink(lnurl) {
-      const links = []
-      this.stored_paylinks.forEach(link => {
-        if (link.lnurl !== lnurl) {
-          links.push(link)
-        }
-      })
-      this.stored_paylinks = links
-      this.updatePaylinks()
     }
   },
   created() {
-    this.stored_paylinks = wallet.stored_paylinks.links
     const urlParams = new URLSearchParams(window.location.search)
     if (urlParams.has('lightning') || urlParams.has('lnurl')) {
       this.parse.data.request =
