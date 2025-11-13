@@ -10,24 +10,9 @@
     {% elif HIDE_API %}
     <div class="col-12 q-gutter-y-md">
       {% else %}
-      <div
-        class="col-12 col-md-7 q-gutter-y-md"
-        :style="$q.screen.lt.md ? {
-        position: mobileSimple ? 'fixed !important': ''
-      , top: mobileSimple ? '50% !important': ''
-      , left: mobileSimple ? '50% !important': ''
-      , transform: mobileSimple ? 'translate(-50%, -50%) !important': ''
-    } : ''"
-      >
+      <div class="col-12 col-md-7 q-gutter-y-md wallet-wrapper">
         {% endif %}
-        <q-card
-          :style="$q.screen.lt.md ? {
-            background: $q.screen.lt.md ? 'none !important': ''
-            , boxShadow: $q.screen.lt.md ? 'none !important': ''
-            , border: $q.screen.lt.md ? 'none !important': ''
-            , width: $q.screen.lt.md && mobileSimple ? '90% !important': ''
-          } : ''"
-        >
+        <q-card class="wallet-card">
           <q-card-section style="height: 130px">
             <div class="row q-gutter-md">
               <div
@@ -139,15 +124,15 @@
                 </div>
                 <q-btn
                   v-if="$q.screen.lt.md"
-                  @click="simpleMobile()"
+                  @click="g.mobileSimple = !g.mobileSimple"
                   color="primary"
                   class="q-ml-xl absolute-right"
                   dense
                   size="sm"
                   style="height: 20px; margin-top: 75px"
                   flat
-                  :icon="mobileSimple ? 'unfold_more' : 'unfold_less'"
-                  :label="mobileSimple ? $t('more') : $t('less')"
+                  :icon="g.mobileSimple ? 'unfold_more' : 'unfold_less'"
+                  :label="g.mobileSimple ? $t('more') : $t('less')"
                 ></q-btn>
               </div>
             </div>
@@ -191,23 +176,12 @@
           </div>
         </q-card>
 
-        <q-card
-          :style="
-          $q.screen.lt.md
-            ? {
-                background: $q.screen.lt.md ? 'none !important' : '',
-                boxShadow: $q.screen.lt.md ? 'none !important' : '',
-                border: $q.screen.lt.md ? 'none !important': '',
-                marginTop: $q.screen.lt.md ? '0px !important' : ''
-              }
-            : ''
-        "
-        >
+        <q-card class="wallet-card">
           <q-card-section>
             <lnbits-payment-list
               @filter-changed="handleFilterChange"
               :update="updatePayments"
-              :mobile-simple="mobileSimple"
+              :mobile-simple="g.mobileSimple"
               :expand-details="expandDetails"
             ></lnbits-payment-list>
           </q-card-section>
@@ -216,7 +190,10 @@
       {% if HIDE_API %}
       <div class="col-12 col-md-4 q-gutter-y-md">
         {% else %}
-        <div v-if="!mobileSimple" class="col-12 col-md-5 q-gutter-y-md">
+        <div
+          v-if="!g.mobileSimple || !$q.screen.lt.md"
+          class="col-12 col-md-5 q-gutter-y-md"
+        >
           <q-card>
             <q-card-section class="q-pb-xs">
               <div class="row items-center">

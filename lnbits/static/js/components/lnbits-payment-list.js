@@ -138,7 +138,7 @@ window.app.component('lnbits-payment-list', {
       return LNbits.utils.search(this.payments, q)
     },
     paymentsOmitter() {
-      if (this.$q.screen.lt.md && this.mobileSimple) {
+      if (this.$q.screen.lt.md && this.g.mobileSimple) {
         return this.payments.length > 0 ? [this.payments[0]] : []
       }
       return this.payments

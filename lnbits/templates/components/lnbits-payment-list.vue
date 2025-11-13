@@ -1,6 +1,6 @@
 <template id="lnbits-payment-list">
   <div class="row items-center no-wrap">
-    <div class="col" v-if="!mobileSimple || $q.screen.gt.sm">
+    <div class="col" v-if="!g.mobileSimple || $q.screen.gt.sm">
       <q-input
         :label="$t('search_by_tag_memo_amount')"
         dense
@@ -173,8 +173,8 @@
     :no-data-label="$t('no_transactions')"
     :filter="paymentsTable.filter"
     :loading="paymentsTable.loading"
-    :hide-header="mobileSimple"
-    :hide-bottom="mobileSimple"
+    :hide-header="g.mobileSimple"
+    :hide-bottom="g.mobileSimple"
     v-model:pagination="paymentsTable.pagination"
     @request="fetchPayments"
   >

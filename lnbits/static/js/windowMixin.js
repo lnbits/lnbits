@@ -6,7 +6,6 @@ window.windowMixin = {
       utils: window._lnbitsUtils,
       g: window.g,
       toggleSubs: true,
-      mobileSimple: true,
       addWalletDialog: {show: false, walletType: 'lightning'},
       walletTypes: [{label: 'Lightning Wallet', value: 'lightning'}],
       isSatsDenomination: WINDOW_SETTINGS['LNBITS_DENOMINATION'] == 'sats',
@@ -36,10 +35,6 @@ window.windowMixin = {
     },
     showAddNewWalletDialog() {
       this.addWalletDialog = {show: true, walletType: 'lightning'}
-    },
-    simpleMobile() {
-      this.$q.localStorage.set('lnbits.mobileSimple', !this.mobileSimple)
-      this.refreshRoute()
     },
     paymentEvents() {
       this.g.walletEventListeners = this.g.walletEventListeners || []
@@ -155,12 +150,6 @@ window.windowMixin = {
     }
     if (window.extensions) {
       this.g.extensions = Vue.reactive(window.extensions)
-    }
-    if (
-      this.$q.screen.gt.sm ||
-      this.$q.localStorage.getItem('lnbits.mobileSimple') == false
-    ) {
-      this.mobileSimple = false
     }
   },
   mounted() {

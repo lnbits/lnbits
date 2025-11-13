@@ -20,6 +20,7 @@ window.g = Vue.reactive({
   walletEventListeners: [],
   updatePayments: false,
   updatePaymentsHash: '',
+  mobileSimple: localStore('lnbits.mobileSimple', true),
   walletFlip: localStore('lnbits.walletFlip', false),
   locale: localStore('lnbits.lang', navigator.languages[1] ?? 'en'),
   darkChoice: localStore('lnbits.darkMode', true),

@@ -49,7 +49,6 @@ window.WalletPageLogic = {
         show: false,
         location: window.location
       },
-      mobileSimple: this.$q.screen.lt.md,
       icon: {
         show: false,
         data: {},
@@ -961,7 +960,7 @@ window.WalletPageLogic = {
       this.paymentsFilter = value
     },
     async fetchChartData() {
-      if (this.mobileSimple) {
+      if (this.g.mobileSimple) {
         this.chartConfig = {}
         return
       }
@@ -1269,11 +1268,6 @@ window.WalletPageLogic = {
         this.g.fiatBalance =
           (this.g.exchangeRate / 100000000) * this.g.wallet.sat
         this.formatFiatAmount(this.g.fiatBalance, this.g.wallet.currency)
-      }
-    },
-    '$q.screen.gt.sm'(value) {
-      if (value == true) {
-        this.mobileSimple = false
       }
     },
     'g.wallet': {

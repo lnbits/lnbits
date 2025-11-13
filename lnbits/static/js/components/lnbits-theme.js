@@ -29,6 +29,14 @@ window.app.component('lnbits-theme', {
         document.body.classList.remove('gradient-bg')
       }
     },
+    'g.mobileSimple'(val) {
+      this.$q.localStorage.set('lnbits.mobileSimple', val)
+      if (val === true) {
+        document.body.classList.add('mobile-simple')
+      } else {
+        document.body.classList.remove('mobile-simple')
+      }
+    },
     'g.bgimageChoice'(val) {
       this.$q.localStorage.set('lnbits.backgroundImage', val)
       if (val === '') {
@@ -101,6 +109,9 @@ window.app.component('lnbits-theme', {
         '--background',
         `url(${this.g.bgimageChoice})`
       )
+    }
+    if (this.g.mobileSimple === true) {
+      document.body.classList.add('mobile-simple')
     }
     this.checkUrlParams()
   }
