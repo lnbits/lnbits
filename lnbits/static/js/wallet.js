@@ -641,40 +641,6 @@ window.WalletPageLogic = {
           }
         })
     },
-    resetKeys() {
-      LNbits.utils
-        .confirmDialog('Are you sure you want to reset your API keys?')
-        .onOk(() => {
-          LNbits.api
-            .resetWalletKeys(this.g.wallet)
-            .then(response => {
-              const {id, adminkey, inkey} = response
-              this.g.wallet = {
-                ...this.g.wallet,
-                inkey,
-                adminkey
-              }
-              const walletIndex = this.g.user.wallets.findIndex(
-                wallet => wallet.id === id
-              )
-              if (walletIndex !== -1) {
-                this.g.user.wallets[walletIndex] = {
-                  ...this.g.user.wallets[walletIndex],
-                  inkey,
-                  adminkey
-                }
-              }
-              Quasar.Notify.create({
-                timeout: 3500,
-                type: 'positive',
-                message: 'API keys reset!'
-              })
-            })
-            .catch(err => {
-              LNbits.utils.notifyApiError(err)
-            })
-        })
-    },
     updateWallet(data) {
       LNbits.api
         .request('PATCH', '/api/v1/wallet', this.g.wallet.adminkey, data)
