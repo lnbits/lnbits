@@ -1043,8 +1043,9 @@
                     <div class="row">
                       <div class="col-md-2 col-sm-12">
                         <q-btn
-                          color="primary"
+                          @click="openAddLabelDialog()"
                           :label="$t('add_label')"
+                          color="primary"
                           class="full-width"
                         ></q-btn>
                       </div>
@@ -1074,22 +1075,32 @@
                   </q-card-section>
                   <q-separator></q-separator>
                   <q-card-section>
-                    <!-- @request="getUserLabels" -->
                     <q-table
-                      :rows="labels"
+                      :rows="user.extra.labels"
                       :columns="labelsTable.columns"
                       v-model:pagination="labelsTable.pagination"
                       :loading="labelsTable.loading"
-                      row-key="id"
+                      row-key="name"
                       :filter="labelsTable.search"
                     >
                       <template v-slot:body="props">
                         <q-tr :props="props">
+                          <q-td :props="props"> edit </q-td>
                           <q-td key="name" :props="props">
                             <span v-text="props.row.name"></span>
                           </q-td>
                           <q-td key="description" :props="props">
                             <span v-text="props.row.description"></span>
+                          </q-td>
+                          <q-td key="color" :props="props">
+                            <q-badge
+                              :style="{
+                                backgroundColor: props.row.color,
+                                color: 'white'
+                              }"
+                            >
+                              <span v-text="props.row.color"></span>
+                            </q-badge>
                           </q-td>
                         </q-tr>
                       </template>
@@ -1122,16 +1133,16 @@
       </div>
       <div class="row q-mt-lg">
         <q-btn
-          @click="runPasswordGuardedFunction()"
-          :label="$t('ok')"
-          color="primary"
-        ></q-btn>
-        <q-btn
           v-close-popup
           flat
           color="grey"
           class="q-ml-auto"
           v-text="$t('cancel')"
+        ></q-btn>
+        <q-btn
+          @click="runPasswordGuardedFunction()"
+          :label="$t('ok')"
+          color="primary"
         ></q-btn>
       </div>
     </q-card>
@@ -1232,6 +1243,67 @@
           color="grey"
           class="q-ml-auto"
           v-text="$t('close')"
+        ></q-btn>
+      </div>
+    </q-card>
+  </q-dialog>
+  <q-dialog v-model="labelsDialog.show" position="top">
+    <q-card class="q-pa-md q-pt-md lnbits__dialog-card">
+      <strong v-text="$t('label')"></strong>
+      <div class="row q-mt-md q-col-gutter-md">
+        <div class="col-12">
+          <q-input
+            v-model="labelsDialog.data.name"
+            dense
+            filled
+            :label="$t('name')"
+          >
+          </q-input>
+        </div>
+        <div class="col-12">
+          <q-input
+            v-model="labelsDialog.data.description"
+            dense
+            filled
+            type="textarea"
+            rows="3"
+            :label="$t('description')"
+          >
+          </q-input>
+        </div>
+        <div class="col-12">
+          <q-input
+            v-model="labelsDialog.data.color"
+            filled
+            dense
+            class="my-input"
+          >
+            <template v-slot:append>
+              <q-icon name="colorize" class="cursor-pointer">
+                <q-popup-proxy
+                  cover
+                  transition-show="scale"
+                  transition-hide="scale"
+                >
+                  <q-color v-model="labelsDialog.data.color" />
+                </q-popup-proxy>
+              </q-icon>
+            </template>
+          </q-input>
+        </div>
+      </div>
+      <div class="row q-mt-lg">
+        <q-btn
+          v-close-popup
+          flat
+          color="grey"
+          class="q-ml-auto"
+          v-text="$t('cancel')"
+        ></q-btn>
+        <q-btn
+          @click="addUserLabel()"
+          :label="$t('add_label')"
+          color="primary"
         ></q-btn>
       </div>
     </q-card>

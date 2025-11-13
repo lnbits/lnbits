@@ -149,9 +149,11 @@ window.PageAccount = {
       labels: [],
       labelsDialog: {
         show: false,
-        name: '',
-        description: '',
-        color: '#000000'
+        data: {
+          name: '',
+          description: '',
+          color: '#000000'
+        }
       },
       labelsTable: {
         loading: false,
@@ -168,6 +170,16 @@ window.PageAccount = {
             align: 'left',
             label: this.$t('description'),
             field: 'description'
+          },
+          {
+            name: 'color',
+            align: 'left',
+            label: this.$t('color'),
+            field: 'color'
+          },
+          {
+            name: 'actions',
+            align: 'left'
           }
         ],
         pagination: {
@@ -587,6 +599,19 @@ window.PageAccount = {
     copyAssetLinkToClipboard(asset) {
       const assetUrl = `${window.location.origin}/api/v1/assets/${asset.id}/binary`
       this.copyText(assetUrl)
+    },
+    addUserLabel() {
+      this.user.extra.labels = this.user.extra.labels || []
+      this.user.extra.labels.push({...this.labelsDialog.data})
+      this.labelsDialog.show = false
+    },
+    openAddLabelDialog() {
+      this.labelsDialog.data = {
+        name: '',
+        description: '',
+        color: '#000000'
+      }
+      this.labelsDialog.show = true
     }
   },
 

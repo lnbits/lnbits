@@ -36,6 +36,12 @@ class WalletInviteRequest(BaseModel):
     to_wallet_name: str
 
 
+class UserLabel(BaseModel):
+    name: str
+    description: str | None = None
+    color: str | None = None
+
+
 class UserExtra(BaseModel):
     email_verified: bool | None = False
     first_name: str | None = None
@@ -149,12 +155,6 @@ class UserAcls(BaseModel):
             if acl.get_token_by_id(token_id):
                 return acl
         return None
-
-
-class UserLabel(BaseModel):
-    name: str
-    description: str | None = None
-    color: str | None = None
 
 
 class Account(BaseModel):

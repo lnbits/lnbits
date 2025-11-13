@@ -715,6 +715,5 @@ window.localisation.en = {
   labels: 'Labels',
   edit_label: 'Edit Label',
   delete_label: 'Delete Label',
-  label_name: 'Label Name',
-  label_color: 'Label Color'
+  color: 'Color'
 }
