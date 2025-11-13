@@ -1,6 +1,6 @@
 <template id="lnbits-wallet-share">
   <q-expansion-item
-    v-if="wallet.walletType == 'lightning'"
+    v-if="g.wallet.walletType == 'lightning'"
     group="extras"
     icon="share"
     :label="$t('share_wallet')"
@@ -169,7 +169,7 @@
     </q-card>
   </q-expansion-item>
   <q-expansion-item
-    v-else-if="wallet.walletType == 'lightning-shared'"
+    v-else-if="g.wallet.walletType == 'lightning-shared'"
     group="extras"
     icon="supervisor_account"
     :label="$t('shared_wallet')"
@@ -187,7 +187,7 @@
               <strong>Shared Wallet ID: </strong
               ><em
                 v-text="
-                  walletIdHidden ? '****************' : wallet.sharedWalletId
+                  walletIdHidden ? '****************' : g.wallet.sharedWalletId
                 "
               ></em>
             </q-item-label>
@@ -202,13 +202,13 @@
               <q-icon
                 name="content_copy"
                 class="cursor-pointer q-ml-sm"
-                @click="copyText(wallet.sharedWalletId)"
+                @click="copyText(g.wallet.sharedWalletId)"
               ></q-icon>
               <q-icon name="qr_code" class="cursor-pointer q-ml-sm">
                 <q-popup-proxy>
                   <div class="q-pa-md">
                     <lnbits-qrcode
-                      :value="wallet.sharedWalletId"
+                      :value="g.wallet.sharedWalletId"
                       :show-buttons="false"
                     ></lnbits-qrcode>
                   </div>
@@ -225,7 +225,7 @@
           </div>
           <div class="col-9">
             <q-select
-              v-model="wallet.sharePermissions"
+              v-model="g.wallet.sharePermissions"
               :options="permissionOptions"
               emit-value
               map-options
@@ -248,7 +248,7 @@
     <q-card>
       <q-card-section>
         Unknown wallet type:
-        <strong v-text="wallet.walletType" class="q-ml-md"></strong>
+        <strong v-text="g.wallet.walletType" class="q-ml-md"></strong>
       </q-card-section>
     </q-card>
   </q-expansion-item>
