@@ -21,28 +21,6 @@ window.app.component('lnbits-fsat', {
   }
 })
 
-window.app.component('lnbits-wallet-list', {
-  mixins: [window.windowMixin],
-  template: '#lnbits-wallet-list',
-  props: ['balance'],
-  data() {
-    return {
-      activeWallet: null,
-      balance: 0,
-      walletName: '',
-      LNBITS_DENOMINATION: LNBITS_DENOMINATION
-    }
-  },
-  methods: {
-    createWallet() {
-      this.$emit('wallet-action', {action: 'create-wallet'})
-    }
-  },
-  created() {
-    document.addEventListener('updateWalletBalance', this.updateWalletBalance)
-  }
-})
-
 window.app.component('lnbits-manage', {
   mixins: [window.windowMixin],
   template: '#lnbits-manage',
