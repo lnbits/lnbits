@@ -28,6 +28,7 @@
           </div>
           <div>
             <q-badge
+              v-if="g.user.walletInvitesCount"
               @click="openNewWalletDialog('lightning-shared')"
               dense
               outline

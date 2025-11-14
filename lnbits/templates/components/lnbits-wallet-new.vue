@@ -49,12 +49,7 @@
           emit-value
           map-options
           dense
-          :options="
-            g.user.extra.wallet_invite_requests.map(i => ({
-              label: i.to_wallet_name + ' (' + i.from_user_name + ')',
-              value: i.to_wallet_id
-            }))
-          "
+          :options="inviteWalletOptions"
           class="q-mt-md"
         ></q-select>
         <div v-if="g.newWalletType == 'lightning-shared'" class="q-mt-md">

@@ -7,6 +7,14 @@ window.app.component('lnbits-wallet-new', {
       newWallet: {name: '', sharedWalletId: ''}
     }
   },
+  computed: {
+    inviteWalletOptions() {
+      return (this.g.user?.extra?.wallet_invite_requests || []).map(i => ({
+        label: `${i.to_wallet_name} (from ${i.from_user_name})`,
+        value: i.to_wallet_id
+      }))
+    }
+  },
   methods: {
     async submitRejectWalletInvitation() {
       try {
