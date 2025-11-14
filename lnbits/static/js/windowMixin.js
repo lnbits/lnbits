@@ -14,6 +14,10 @@ window.windowMixin = {
   },
 
   methods: {
+    openNewWalletDialog(walletType = 'lightning') {
+      this.g.newWalletType = walletType
+      this.g.showNewWalletDialog = true
+    },
     flipWallets(smallScreen) {
       this.g.walletFlip = !this.g.walletFlip
       if (this.g.walletFlip && smallScreen) {

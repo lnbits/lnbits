@@ -5,11 +5,5 @@ window.app.component('lnbits-manage-wallet-list', {
     return {
       walletName: ''
     }
-  },
-  methods: {
-    openNewWalletDialog() {
-      this.g.newWalletType = 'lightning'
-      this.g.showNewWalletDialog = true
-    }
   }
 })

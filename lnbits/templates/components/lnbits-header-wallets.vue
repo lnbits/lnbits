@@ -28,7 +28,7 @@
           </div>
           <div>
             <q-badge
-              @click="openNewWalletInvite()"
+              @click="openNewWalletDialog('lightning-shared')"
               dense
               outline
               class="q-mt-sm"
