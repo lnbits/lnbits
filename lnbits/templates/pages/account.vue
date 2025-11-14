@@ -1087,12 +1087,14 @@
                         <q-tr :props="props">
                           <q-td key="actions" :props="props">
                             <q-btn
+                              @click="openEditLabelDialog(props.row)"
                               dense
                               flat
                               icon="edit"
                               color="primary"
                             ></q-btn>
                             <q-btn
+                              @click="deleteUserLabel(props.row)"
                               dense
                               flat
                               icon="delete"
@@ -1300,7 +1302,10 @@
                   transition-show="scale"
                   transition-hide="scale"
                 >
-                  <q-color v-model="labelsDialog.data.color" />
+                  <q-color
+                    v-model="labelsDialog.data.color"
+                    default-view="palette"
+                  />
                 </q-popup-proxy>
               </q-icon>
             </template>
@@ -1316,7 +1321,20 @@
           v-text="$t('cancel')"
         ></q-btn>
         <q-btn
+          v-if="
+            user.extra.labels.some(
+              label => label.name === labelsDialog.data.name
+            )
+          "
+          @click="updateUserLabel()"
+          :disable="!labelsDialog.data.name || !labelsDialog.data.color"
+          :label="$t('update_label')"
+          color="primary"
+        ></q-btn>
+        <q-btn
+          v-else
           @click="addUserLabel()"
+          :disable="!labelsDialog.data.name || !labelsDialog.data.color"
           :label="$t('add_label')"
           color="primary"
         ></q-btn>

@@ -628,6 +628,7 @@ window.PageAccount = {
       }
       this.user.extra.labels.push({...this.labelsDialog.data})
       this.labelsDialog.show = false
+      return true
     },
     openAddLabelDialog() {
       this.labelsDialog.data = {
@@ -636,6 +637,35 @@ window.PageAccount = {
         color: '#000000'
       }
       this.labelsDialog.show = true
+    },
+    openEditLabelDialog(label) {
+      this.labelsDialog.data = {
+        name: label.name,
+        description: label.description,
+        color: label.color
+      }
+      this.labelsDialog.show = true
+    },
+    updateUserLabel() {
+      const label = this.labelsDialog.data
+      const existingLabels = JSON.parse(JSON.stringify(this.user.extra.labels))
+      this.user.extra.labels = this.user.extra.labels.filter(
+        l => l.name !== label.name
+      )
+      const labelUpdated = this.addUserLabel()
+      if (!labelUpdated) {
+        this.user.extra.labels = existingLabels
+      }
+      this.labelsDialog.show = false
+    },
+    deleteUserLabel(label) {
+      LNbits.utils
+        .confirmDialog('Are you sure you want to delete this label?')
+        .onOk(() => {
+          this.user.extra.labels = this.user.extra.labels.filter(
+            l => l.name !== label.name
+          )
+        })
     }
   },
 
