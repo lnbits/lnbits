@@ -778,3 +778,11 @@ async def m037_create_assets_table(db: Connection):
         );
         """
     )
+
+
+async def m038_add_labels_for_payments(db: Connection):
+    await db.execute(
+        """
+        ALTER TABLE apipayments ADD COLUMN labels TEXT
+        """
+    )

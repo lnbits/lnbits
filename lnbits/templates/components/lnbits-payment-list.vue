@@ -264,6 +264,7 @@
             <q-tooltip><span v-text="props.row.date"></span></q-tooltip>
           </i>
           <q-icon
+            @click="selectedPaymentLabels = [...props.row.labels]"
             name="local_offer"
             color="grey"
             class="q-ml-sm cursor-pointer"
@@ -301,9 +302,14 @@
                     v-ripple
                   >
                     <q-item-section avatar top>
-                      <!-- @click="saveChartsPreferences"
-                            v-model="chartConfig.showBalance" -->
-                      <q-checkbox dense> </q-checkbox>
+                      <q-checkbox
+                        :model-value="
+                          selectedPaymentLabels.includes(label.name)
+                        "
+                        @click="updatePaymentLabel(props.row, label)"
+                        dense
+                      >
+                      </q-checkbox>
                     </q-item-section>
 
                     <q-item-section>
@@ -338,6 +344,7 @@
                   color="primary"
                   class="q-ml-auto"
                   :label="$t('save')"
+                  @click="savePaymentLabels(props.row)"
                 ></q-btn>
                 <q-btn
                   v-close-popup
@@ -351,9 +358,24 @@
             </q-popup-edit>
           </q-icon>
 
-          <q-badge class="q-ml-sm" size="xs" rounded>xxx</q-badge>
-          <q-badge class="q-ml-sm">yyy</q-badge>
-          <q-badge class="q-ml-sm">zzz</q-badge>
+          <template v-for="label in g.user.extra.labels" :key="label.name">
+            <q-badge
+              v-if="props.row.labels.includes(label.name)"
+              :style="{
+                backgroundColor: label.color,
+                color: isLightColor(label.color) ? 'black' : 'white'
+              }"
+              class="q-ml-sm cursor-pointer"
+              size="xs"
+              dense
+              rounded
+            >
+              <span v-text="label.name"></span>
+              <q-tooltip>
+                <span v-text="label.description || label.name"></span>
+              </q-tooltip>
+            </q-badge>
+          </template>
         </q-td>
         <q-td
           auto-width

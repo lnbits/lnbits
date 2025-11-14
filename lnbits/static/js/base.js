@@ -94,7 +94,8 @@ window.LNbits = {
         webhook: data.webhook,
         webhook_status: data.webhook_status,
         fiat_amount: data.fiat_amount,
-        fiat_currency: data.fiat_currency
+        fiat_currency: data.fiat_currency,
+        labels: data.labels
       }
 
       obj.date = moment.utc(data.created_at).local().format(window.dateFormat)

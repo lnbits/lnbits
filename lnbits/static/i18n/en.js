@@ -718,5 +718,6 @@ window.localisation.en = {
   update_label: 'Update Label',
   delete_label: 'Delete Label',
   add_remove_labels: 'Add or Remove Labels',
+  payment_labels_updated: 'Payment labels updated',
   color: 'Color'
 }

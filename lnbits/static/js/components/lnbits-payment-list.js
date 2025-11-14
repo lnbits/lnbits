@@ -122,7 +122,8 @@ window.app.component('lnbits-payment-list', {
         payment: null,
         preimage: null
       },
-      labelFilter: ''
+      labelFilter: '',
+      selectedPaymentLabels: []
     }
   },
   computed: {
@@ -355,6 +356,46 @@ window.app.component('lnbits-payment-list', {
         paymentFilter['amount[le]'] = 0
       }
       this.paymentFilter = paymentFilter
+    },
+    updatePaymentLabel(payment, label) {
+      const hasLabel = payment.labels.includes(label.name)
+
+      if (hasLabel) {
+        this.selectedPaymentLabels = [
+          ...this.selectedPaymentLabels.filter(l => l !== label.name)
+        ]
+      } else {
+        this.selectedPaymentLabels = [...this.selectedPaymentLabels].concat([
+          label.name
+        ])
+      }
+    },
+    async savePaymentLabels(payment) {
+      try {
+        await LNbits.api.request(
+          'PUT',
+          `/api/v1/payments/${payment.payment_hash}/labels`,
+          this.g.wallet.adminkey,
+          {
+            labels: this.selectedPaymentLabels
+          }
+        )
+        payment.labels = [...this.selectedPaymentLabels]
+        Quasar.Notify.create({
+          type: 'positive',
+          message: this.$t('payment_labels_updated')
+        })
+      } catch (error) {
+        LNbits.utils.notifyApiError(error)
+      }
+    },
+    isLightColor(color) {
+      try {
+        return Quasar.colors.luminosity(color) > 0.5
+      } catch (e) {
+        console.warning(e)
+        return false
+      }
     }
   },
   watch: {

@@ -626,7 +626,7 @@ window.PageAccount = {
         })
         return
       }
-      this.user.extra.labels.push({...this.labelsDialog.data})
+      this.user.extra.labels.unshift({...this.labelsDialog.data})
       this.labelsDialog.show = false
       return true
     },

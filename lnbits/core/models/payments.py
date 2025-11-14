@@ -81,6 +81,7 @@ class Payment(BaseModel):
     time: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    labels: list[str] = []
     extra: dict = {}
 
     def __init__(self, **data):
@@ -272,6 +273,7 @@ class CreateInvoice(BaseModel):
     bolt11: str | None = None
     lnurl_withdraw: LnurlWithdrawResponse | None = None
     fiat_provider: str | None = None
+    labels: list[str] = []
 
     @validator("payment_hash")
     def check_hex(cls, v):
@@ -320,3 +322,7 @@ class CancelInvoice(BaseModel):
     def check_hex(cls, v):
         _ = bytes.fromhex(v)
         return v
+
+
+class UpdatePaymentLabels(BaseModel):
+    labels: list[str] = []

@@ -15,7 +15,9 @@ from lnbits import bolt11
 from lnbits.core.crud.payments import (
     get_payment_count_stats,
     get_wallets_stats,
+    update_payment,
 )
+from lnbits.core.crud.users import get_account
 from lnbits.core.models import (
     CancelInvoice,
     CreateInvoice,
@@ -32,6 +34,7 @@ from lnbits.core.models import (
     SettleInvoice,
     SimpleStatus,
 )
+from lnbits.core.models.payments import UpdatePaymentLabels
 from lnbits.core.models.users import User
 from lnbits.db import Filters, Page
 from lnbits.decorators import (
@@ -258,6 +261,27 @@ async def api_payments_create(
 
     # If the payment is not outgoing, we can create a new invoice.
     return await create_payment_request(wallet_id, invoice_data)
+
+
+@payment_router.put("/{payment_hash}/labels")
+async def api_update_payment_labels(
+    payment_hash: str,
+    data: UpdatePaymentLabels,
+    key_type: WalletTypeInfo = Depends(require_admin_key),
+) -> SimpleStatus:
+
+    payment = await get_standalone_payment(payment_hash, wallet_id=key_type.wallet.id)
+    if payment is None:
+        raise HTTPException(HTTPStatus.NOT_FOUND, "Payment does not exist.")
+    account = await get_account(key_type.wallet.user)
+    if not account:
+        raise HTTPException(HTTPStatus.NOT_FOUND, "Account does not exist.")
+
+    # only keep labels that belong to the user
+    user_label_names = [label.name for label in account.extra.labels]
+    payment.labels = [label for label in data.labels if label in user_label_names]
+    await update_payment(payment)
+    return SimpleStatus(success=True, message="Payment labels updated.")
 
 
 @payment_router.get("/fee-reserve")
