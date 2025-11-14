@@ -264,11 +264,23 @@
             <span class="text-grey-5" v-text="props.row.dateFrom"></span>
             <q-tooltip><span v-text="props.row.date"></span></q-tooltip>
           </i>
-          <lnbits-label-selector
-            :labels="props.row.labels"
-            @update:labels="savePaymentLabels"
-            @click="selectedPayment = props.row"
-          ></lnbits-label-selector>
+          <q-icon
+            name="local_offer"
+            color="grey"
+            class="q-ml-sm cursor-pointer"
+            size="xs"
+          >
+            <q-tooltip>
+              <span v-text="$t('add_remove_labels')"></span>
+            </q-tooltip>
+            <q-popup-edit class="text-white q-pa-none">
+              <lnbits-label-selector
+                :labels="props.row.labels"
+                @update:labels="savePaymentLabels"
+                @click="selectedPayment = props.row"
+              ></lnbits-label-selector>
+            </q-popup-edit>
+          </q-icon>
           <template v-for="label in g.user.extra.labels" :key="label.name">
             <q-badge
               v-if="props.row.labels.includes(label.name)"

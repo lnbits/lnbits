@@ -358,8 +358,6 @@ window.app.component('lnbits-payment-list', {
     },
 
     async savePaymentLabels(labels) {
-      console.log("### selectedPayment", this.selectedPayment)
-      console.log("### savePaymentLabels", labels)
       try {
         await LNbits.api.request(
           'PUT',
