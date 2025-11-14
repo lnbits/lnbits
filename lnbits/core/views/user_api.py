@@ -104,6 +104,7 @@ async def api_create_user(data: CreateUser) -> CreateUser:
         email=data.email,
         pubkey=data.pubkey,
         external_id=data.external_id,
+        external_data=data.external_data,
         extra=data.extra,
     )
     account.validate_fields()

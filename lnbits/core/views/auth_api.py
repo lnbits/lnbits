@@ -440,6 +440,8 @@ async def update(
         account.username = data.username
     if data.extra:
         account.extra = data.extra
+    if data.external_data:
+        account.external_data = data.external_data
 
     await update_account(account)
     return await get_user_from_account(account)

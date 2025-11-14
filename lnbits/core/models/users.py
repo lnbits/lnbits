@@ -152,6 +152,7 @@ class UserAcls(BaseModel):
 class Account(BaseModel):
     id: str
     external_id: str | None = None  # for external account linking
+    external_data: str | None = None
     username: str | None = None
     password_hash: str | None = None
     pubkey: str | None = None
@@ -286,6 +287,14 @@ class CreateUser(BaseModel):
     password_repeat: str | None = Query(default=None, min_length=8, max_length=50)
     pubkey: str = Query(default=None, max_length=64)
     external_id: str = Query(default=None, max_length=256)
+    external_data: str = Query(
+        default=None,
+        max_length=4096,
+        description=(
+            "If you are missing a field in `UserExtra` consider "
+            "putting in a PR instead of using this field."
+        ),
+    )
     extensions: list[str] | None = None
     extra: UserExtra | None = None
 
@@ -294,6 +303,14 @@ class UpdateUser(BaseModel):
     user_id: str
     username: str | None = Query(default=..., min_length=2, max_length=20)
     extra: UserExtra | None = None
+    external_data: str = Query(
+        default=None,
+        max_length=4096,
+        description=(
+            "If you are missing a field in `UserExtra` consider "
+            "putting in a PR instead of using this field."
+        ),
+    )
 
 
 class UpdateUserPassword(BaseModel):
