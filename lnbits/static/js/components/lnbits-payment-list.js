@@ -122,8 +122,7 @@ window.app.component('lnbits-payment-list', {
         payment: null,
         preimage: null
       },
-      labelFilter: '',
-      selectedPaymentLabels: []
+      selectedPayment: null
     }
   },
   computed: {
@@ -357,30 +356,20 @@ window.app.component('lnbits-payment-list', {
       }
       this.paymentFilter = paymentFilter
     },
-    updatePaymentLabel(payment, label) {
-      const hasLabel = payment.labels.includes(label.name)
 
-      if (hasLabel) {
-        this.selectedPaymentLabels = [
-          ...this.selectedPaymentLabels.filter(l => l !== label.name)
-        ]
-      } else {
-        this.selectedPaymentLabels = [...this.selectedPaymentLabels].concat([
-          label.name
-        ])
-      }
-    },
-    async savePaymentLabels(payment) {
+    async savePaymentLabels(labels) {
+      console.log("### selectedPayment", this.selectedPayment)
+      console.log("### savePaymentLabels", labels)
       try {
         await LNbits.api.request(
           'PUT',
-          `/api/v1/payments/${payment.payment_hash}/labels`,
+          `/api/v1/payments/${this.selectedPayment.payment_hash}/labels`,
           this.g.wallet.adminkey,
           {
-            labels: this.selectedPaymentLabels
+            labels: labels
           }
         )
-        payment.labels = [...this.selectedPaymentLabels]
+        payment.labels = [...labels]
         Quasar.Notify.create({
           type: 'positive',
           message: this.$t('payment_labels_updated')
