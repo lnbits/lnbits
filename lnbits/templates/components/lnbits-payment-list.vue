@@ -22,7 +22,7 @@
       </q-input>
     </div>
     <div class="gt-sm col-auto">
-      <q-btn icon="event" flat color="grey">
+      <q-btn icon="event" flat color="grey" class="q-pa-sm">
         <q-popup-proxy cover transition-show="scale" transition-hide="scale">
           <q-date v-model="searchDate" mask="YYYY-MM-DD" range />
           <div class="row">
@@ -60,7 +60,8 @@
           <span v-text="$t('filter_date')"></span>
         </q-tooltip>
       </q-btn>
-      <q-btn color="grey" icon="filter_alt" flat>
+      <q-btn icon="local_offer" class="q-pa-sm" flat color="grey"></q-btn>
+      <q-btn color="grey" icon="filter_alt" class="q-pa-sm" flat>
         <q-menu>
           <q-item dense>
             <q-checkbox
@@ -109,7 +110,7 @@
         persistent
         icon="archive"
         split
-        class="q-mr-sm"
+        class="q-mr-sm q-pa-sm"
         color="grey"
         @click="exportCSV(false)"
       >
