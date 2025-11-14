@@ -358,6 +358,13 @@ window.app.component('lnbits-payment-list', {
     },
 
     async savePaymentLabels(labels) {
+      if (!this.selectedPayment) {
+        Quasar.Notify.create({
+          type: 'warning',
+          message: 'No payment selected'
+        })
+        return
+      }
       try {
         await LNbits.api.request(
           'PUT',
@@ -367,7 +374,13 @@ window.app.component('lnbits-payment-list', {
             labels: labels
           }
         )
-        payment.labels = [...labels]
+
+        this.selectedPayment.labels = [...labels]
+        const userLabels = [...this.g.user.extra.labels]
+        this.g.user.extra.labels = []
+        setTimeout(() => {
+          this.g.user.extra.labels = [...userLabels]
+        }, 100)
         Quasar.Notify.create({
           type: 'positive',
           message: this.$t('payment_labels_updated')

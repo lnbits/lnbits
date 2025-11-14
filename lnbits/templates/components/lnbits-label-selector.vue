@@ -23,7 +23,7 @@
       >
         <q-item-section avatar top>
           <q-checkbox
-            :model-value="labels.includes(label.name)"
+            :model-value="localLabels.includes(label.name)"
             @click="toggleLabel(label)"
             dense
           >

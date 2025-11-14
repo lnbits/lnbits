@@ -265,6 +265,7 @@
             <q-tooltip><span v-text="props.row.date"></span></q-tooltip>
           </i>
           <q-icon
+            @click="selectedPayment = props.row"
             name="local_offer"
             color="grey"
             class="q-ml-sm cursor-pointer"

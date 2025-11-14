@@ -4,25 +4,29 @@ window.app.component('lnbits-label-selector', {
   mixins: [window.windowMixin],
   data() {
     return {
-      labelFilter: ''
+      labelFilter: '',
+      localLabels: []
     }
   },
 
   methods: {
     toggleLabel(label) {
-      const hasLabel = this.labels.includes(label.name)
+      const hasLabel = this.localLabels.includes(label.name)
 
       if (hasLabel) {
-        const index = this.labels.indexOf(label.name)
+        const index = this.localLabels.indexOf(label.name)
         if (index !== -1) {
-          this.labels.splice(index, 1)
+          this.localLabels.splice(index, 1)
         }
       } else {
-        this.labels.push(label.name)
+        this.localLabels.push(label.name)
       }
     },
     saveLabels() {
-      this.$emit('update:labels', this.labels)
+      this.$emit('update:labels', this.localLabels)
     }
+  },
+  created() {
+    this.localLabels = [...this.labels]
   }
 })
