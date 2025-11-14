@@ -50,36 +50,28 @@
         clickable
         @click="selectWallet(wallet)"
         class="wallet-list-card"
-        style="text-decoration: none"
+        :class="{
+          'active-wallet-card': g.wallet && g.wallet.id === wallet.id
+        }"
+        style="width: 250px; cursor: pointer"
         :style="
           g.wallet && g.wallet.id === wallet.id
-            ? `width: 250px; text-decoration: none; cursor: pointer; background-color: ${
+            ? `background-color: ${
                 $q.dark.isActive
                   ? 'rgba(255, 255, 255, 0.08)'
                   : 'rgba(0, 0, 0, 0.08)'
               } !important;`
-            : 'width: 250px; text-decoration: none; border: 0px; cursor: pointer;'
+            : ''
         "
-        :class="{
-          'active-wallet-card': g.wallet && g.wallet.id === wallet.id
-        }"
       >
         <q-card-section>
           <div class="row items-center">
             <q-avatar
               size="lg"
               :text-color="$q.dark.isActive ? 'black' : 'grey-3'"
-              :class="g.wallet && g.wallet.id === wallet.id ? '' : 'disabled'"
-              :color="
-                g.wallet && g.wallet.id === wallet.id
-                  ? wallet.extra.color
-                  : wallet.extra.color
-              "
-              :icon="
-                g.wallet && g.wallet.id === wallet.id
-                  ? wallet.extra.icon
-                  : wallet.extra.icon
-              "
+              :class="g.wallet && g.wallet.id === wallet.id ? 'disabled' : ''"
+              :color="wallet.extra.color"
+              :icon="wallet.extra.icon"
             >
             </q-avatar>
             <div
