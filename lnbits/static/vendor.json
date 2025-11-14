@@ -68,7 +68,7 @@
     "js/components/admin/lnbits-admin-assets-config.js",
     "js/components/admin/lnbits-admin-audit.js",
     "js/components/lnbits-wallet-api-docs.js",
-    "js/components/lnbits-wallet-new-user.js",
+    "js/components/lnbits-wallet-new.js",
     "js/components/lnbits-wallet-share.js",
     "js/components/lnbits-home-logos.js",
     "js/components/lnbits-qrcode.js",
