@@ -26,7 +26,10 @@
           </div>
           <div>
             <q-badge
-              @click="addWalletDialog.walletType = 'lightning-shared'"
+              @click="
+                g.addWalletType = 'lightning-shared'
+                g.showAddNewWalletDialog = true
+              "
               dense
               outline
               class="q-mt-sm"
