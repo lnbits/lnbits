@@ -1,11 +1,10 @@
-window.app.component('lnbits-wallet-new-user', {
-  template: '#lnbits-wallet-new-user',
-  props: ['form-data'],
+window.app.component('lnbits-wallet-new', {
+  template: '#lnbits-wallet-new',
   mixins: [window.windowMixin],
   data() {
     return {
       walletTypes: [{label: 'Lightning Wallet', value: 'lightning'}],
-      newWallet: {walletType: 'lightning', name: '', sharedWalletId: ''}
+      newWallet: {name: '', sharedWalletId: ''}
     }
   },
   methods: {
@@ -40,9 +39,8 @@ window.app.component('lnbits-wallet-new-user', {
       }
     },
     async submitAddWallet() {
-      console.log('### submitAddWallet', this.newWallet)
       const data = this.newWallet
-      if (data.walletType === 'lightning' && !data.name) {
+      if (this.g.newWalletType === 'lightning' && !data.name) {
         this.$q.notify({
           message: 'Please enter a name for the wallet',
           color: 'warning'
@@ -50,7 +48,7 @@ window.app.component('lnbits-wallet-new-user', {
         return
       }
 
-      if (data.walletType === 'lightning-shared' && !data.sharedWalletId) {
+      if (this.g.newWalletType === 'lightning-shared' && !data.sharedWalletId) {
         this.$q.notify({
           message: 'Missing a shared wallet ID',
           color: 'warning'
@@ -61,7 +59,7 @@ window.app.component('lnbits-wallet-new-user', {
         await LNbits.api.createWallet(
           this.g.user.wallets[0],
           data.name,
-          data.walletType,
+          this.g.newWalletType,
           {
             shared_wallet_id: data.sharedWalletId
           }

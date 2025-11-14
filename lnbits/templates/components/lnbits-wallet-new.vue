@@ -1,5 +1,5 @@
-<template id="lnbits-wallet-new-user">
-  <q-dialog v-model="g.showAddWalletDialog" position="top">
+<template id="lnbits-wallet-new">
+  <q-dialog v-model="g.showNewWalletDialog" position="top">
     <q-card class="q-pa-lg q-pt-md lnbits__dialog-card">
       <q-card-section>
         <div class="text-h6">
@@ -8,7 +8,7 @@
       </q-card-section>
       <q-card-section v-if="g.user.walletInvitesCount">
         <q-badge
-          @click="newWallet.walletType = 'lightning-shared'"
+          @click="g.newWalletType = 'lightning-shared'"
           class="cursor-pointer"
         >
           <span
@@ -29,11 +29,11 @@
           emit-value
           map-options
           :label="$t('wallet_type')"
-          v-model="newWallet.walletType"
+          v-model="g.newWalletType"
           dense
         ></q-select>
         <q-input
-          v-if="newWallet.walletType == 'lightning'"
+          v-if="g.newWalletType == 'lightning'"
           dense
           v-model="newWallet.name"
           :label="$t('wallet_name')"
@@ -43,7 +43,7 @@
         ></q-input>
 
         <q-select
-          v-if="newWallet.walletType == 'lightning-shared'"
+          v-if="g.newWalletType == 'lightning-shared'"
           v-model="newWallet.sharedWalletId"
           :label="$t('shared_wallet_id')"
           emit-value
@@ -57,7 +57,7 @@
           "
           class="q-mt-md"
         ></q-select>
-        <div v-if="newWallet.walletType == 'lightning-shared'" class="q-mt-md">
+        <div v-if="g.newWalletType == 'lightning-shared'" class="q-mt-md">
           <span v-text="$t('shared_wallet_desc')" class="q-mt-lg"></span>
         </div>
       </q-card-section>
@@ -74,7 +74,7 @@
           </div>
           <div class="col-md-4">
             <q-btn
-              v-if="newWallet.walletType == 'lightning-shared'"
+              v-if="g.newWalletType == 'lightning-shared'"
               :disabled="!newWallet.sharedWalletId"
               flat
               :label="$t('reject_wallet')"

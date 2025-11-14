@@ -74,8 +74,8 @@ window.PageWallets = {
       }
     },
     showNewWalletDialog() {
-      this.addWalletDialog = {show: true, walletType: 'lightning'}
-      this.showAddNewWalletDialog() // from base.js
+      this.g.newWalletType = 'lightning'
+      this.g.showNewWalletDialog = true
     },
 
     goToWallet(walletId) {

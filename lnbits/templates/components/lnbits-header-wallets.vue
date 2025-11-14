@@ -14,22 +14,21 @@
     "
   >
     <div class="row no-wrap q-pr-md">
-      <q-card
-        @click="showAddNewWalletDialog()"
-        class="wallet-list-card cursor-pointer"
-      >
+      <q-card class="wallet-list-card cursor-pointer">
         <q-card-section class="flex flex-center column full-height text-center">
           <div>
-            <q-btn round color="primary" icon="add">
+            <q-btn
+              @click="openNewWalletDialog()"
+              round
+              color="primary"
+              icon="add"
+            >
               <q-tooltip><span v-text="$t('add_new_wallet')"></span></q-tooltip>
             </q-btn>
           </div>
           <div>
             <q-badge
-              @click="
-                g.addWalletType = 'lightning-shared'
-                g.showAddNewWalletDialog = true
-              "
+              @click="openNewWalletInvite()"
               dense
               outline
               class="q-mt-sm"
@@ -118,5 +117,4 @@
       </q-card>
     </div>
   </q-scroll-area>
-  <lnbits-wallet-new-user :form-data="formData"></lnbits-wallet-new-user>
 </template>

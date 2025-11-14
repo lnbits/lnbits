@@ -26,14 +26,6 @@ window.windowMixin = {
         path: '/wallets'
       })
     },
-    handleWalletAction(payload) {
-      if (payload.action === 'create-wallet') {
-        this.showAddNewWalletDialog()
-      }
-    },
-    showAddNewWalletDialog() {
-      this.addWalletDialog = {show: true, walletType: 'lightning'}
-    },
     paymentEvents() {
       this.g.walletEventListeners = this.g.walletEventListeners || []
       this.g.user.wallets.forEach(wallet => {
