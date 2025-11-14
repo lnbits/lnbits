@@ -1,6 +1,9 @@
 const localStore = (key, defaultValue) => {
   const value = Quasar.LocalStorage.getItem(key)
-  return value !== null && value !== undefined && value !== 'undefined'
+  return value !== null &&
+    value !== 'null' &&
+    value !== undefined &&
+    value !== 'undefined'
     ? value
     : defaultValue
 }
