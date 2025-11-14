@@ -1,6 +1,6 @@
-window.app.component('lnbits-new-user-wallet', {
+window.app.component('lnbits-wallet-new-user', {
+  template: '#lnbits-wallet-user',
   props: ['form-data'],
-  template: '#lnbits-new-user-wallet',
   mixins: [window.windowMixin],
   data() {
     return {

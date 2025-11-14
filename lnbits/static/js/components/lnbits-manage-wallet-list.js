@@ -1,5 +1,5 @@
-window.app.component('lnbits-wallet-list', {
-  template: '#lnbits-wallet-list',
+window.app.component('lnbits-manage-wallet-list', {
+  template: '#lnbits-manage-wallet-list',
   mixins: [window.windowMixin],
   props: ['balance'],
   data() {
@@ -8,6 +8,11 @@ window.app.component('lnbits-wallet-list', {
       balance: 0,
       walletName: '',
       LNBITS_DENOMINATION: LNBITS_DENOMINATION
+    }
+  },
+  watch: {
+    'g.user'(val) {
+      console.log('updated user')
     }
   },
   methods: {

@@ -10,17 +10,17 @@ include('components/admin/extensions.vue') %} {%
 include('components/admin/assets-config.vue') %} {%
 include('components/admin/notifications.vue') %} {%
 include('components/admin/server.vue') %} {%
-include('components/new_user_wallet.vue') %} {%
 include('components/lnbits-footer.vue') %} {%
 include('components/lnbits-header.vue') %} {%
 include('components/lnbits-header-wallets.vue') %} {%
 include('components/lnbits-drawer.vue') %} {%
 include('components/lnbits-home-logos.vue') %} {%
 include('components/lnbits-manage-extension-list.vue') %} {%
+include('components/lnbits-manage-wallet-list.vue') %} {%
 include('components/lnbits-language-dropdown.vue') %} {%
 include('components/lnbits-payment-list.vue') %} {%
+include('components/lnbits-wallet-new-user.vue') %} {%
 include('components/lnbits-wallet-api-docs.vue') %} {%
-include('components/lnbits-wallet-list.vue') %} {%
 include('components/lnbits-wallet-share.vue') %}
 
 <template id="lnbits-manage">

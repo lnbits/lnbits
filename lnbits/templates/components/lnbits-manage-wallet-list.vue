@@ -1,6 +1,6 @@
-<template id="lnbits-wallet-list">
+<template id="lnbits-manage-wallet-list">
   <q-list
-    v-if="g.user && g.user.wallets.length"
+    v-if="g.user && g.user.wallets.length && !g.walletFlip"
     dense
     class="lnbits-drawer__q-list"
   >

@@ -26,7 +26,7 @@
           </div>
           <div>
             <q-badge
-              @click="addWalletDialog.walletType = 'lightning-shared  '"
+              @click="addWalletDialog.walletType = 'lightning-shared'"
               dense
               outline
               class="q-mt-sm"
@@ -115,11 +115,5 @@
       </q-card>
     </div>
   </q-scroll-area>
-  <q-dialog
-    v-model="addWalletDialog.show"
-    position="top"
-    @hide="addWalletDialog = {show: false}"
-  >
-    <lnbits-new-user-wallet :form-data="formData"></lnbits-new-user-wallet>
-  </q-dialog>
+  <lnbits-wallet-new-user :form-data="formData"></lnbits-wallet-new-user>
 </template>

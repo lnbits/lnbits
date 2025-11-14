@@ -32,11 +32,7 @@
           </q-btn>
         </q-item-section>
       </q-item>
-      <lnbits-wallet-list
-        v-if="!g.walletFlip"
-        :balance="balance"
-        @wallet-action="handleWalletAction"
-      ></lnbits-wallet-list>
+      <lnbits-manage-wallet-list></lnbits-manage-wallet-list>
       <lnbits-manage></lnbits-manage>
       <lnbits-manage-extension-list
         class="q-pb-xl"
