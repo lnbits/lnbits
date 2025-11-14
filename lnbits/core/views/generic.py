@@ -183,7 +183,7 @@ async def manifest(request: Request, usr: str):
                 "src": (
                     settings.lnbits_custom_logo
                     if settings.lnbits_custom_logo
-                    else "https://cdn.jsdelivr.net/gh/lnbits/lnbits@main/docs/logos/lnbits.png"
+                    else "images/logos/lnbits.png"
                 ),
                 "sizes": "512x512",
                 "type": "image/png",
