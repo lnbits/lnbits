@@ -694,6 +694,7 @@ window.localisation.en = {
   view_list: 'View wallets as list',
   view_column: 'View wallets as rows',
   filter_payments: 'Filter payments',
+  filter_labels: 'Filter labels',
   filter_date: 'Filter by date',
   websocket_example: 'Websocket example',
   secret_key: 'Secret Key',
@@ -713,8 +714,9 @@ window.localisation.en = {
   add_label: 'Add Label',
   label: 'Label',
   labels: 'Labels',
-  edit_label: 'Edit Label',
+  manage_labels: 'Manage Labels',
   update_label: 'Update Label',
   delete_label: 'Delete Label',
+  add_remove_labels: 'Add or Remove Labels',
   color: 'Color'
 }

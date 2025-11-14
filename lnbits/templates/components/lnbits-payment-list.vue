@@ -263,6 +263,97 @@
             <span class="text-grey-5" v-text="props.row.dateFrom"></span>
             <q-tooltip><span v-text="props.row.date"></span></q-tooltip>
           </i>
+          <q-icon
+            name="local_offer"
+            color="grey"
+            class="q-ml-sm cursor-pointer"
+            size="xs"
+          >
+            <q-tooltip>
+              <span v-text="$t('add_remove_labels')"></span>
+            </q-tooltip>
+            <q-popup-edit
+              class="text-white q-pa-none"
+              v-model="props.row.labels"
+            >
+              <q-item header>
+                <q-input
+                  v-model="labelFilter"
+                  :label="$t('filter_labels')"
+                  class="full-width"
+                  filled
+                  dense
+                  autofocus
+                >
+                </q-input>
+              </q-item>
+              <q-separator></q-separator>
+              <q-scroll-area style="height: 230px; max-width: 300px">
+                <div v-for="label in g.user.extra.labels" :key="label.name">
+                  <q-item
+                    v-if="
+                      !labelFilter ||
+                      label.name
+                        .toLowerCase()
+                        .includes(labelFilter.toLowerCase())
+                    "
+                    clickable
+                    v-ripple
+                  >
+                    <q-item-section avatar top>
+                      <!-- @click="saveChartsPreferences"
+                            v-model="chartConfig.showBalance" -->
+                      <q-checkbox dense> </q-checkbox>
+                    </q-item-section>
+
+                    <q-item-section>
+                      <q-item-label lines="1"
+                        ><span v-text="label.name"></span
+                      ></q-item-label>
+                      <q-item-label caption
+                        ><span v-text="label.description"></span
+                      ></q-item-label>
+                    </q-item-section>
+
+                    <q-item-section side>
+                      <q-badge
+                        class="q-pa-sm"
+                        size="xs"
+                        rounded
+                        :style="{
+                          backgroundColor: label.color,
+                          color: 'white'
+                        }"
+                      >
+                        <span v-text="label.color"></span>
+                      </q-badge>
+                    </q-item-section>
+                  </q-item>
+                </div>
+              </q-scroll-area>
+              <q-item footer>
+                <q-btn
+                  v-close-popup
+                  flat
+                  color="primary"
+                  class="q-ml-auto"
+                  :label="$t('save')"
+                ></q-btn>
+                <q-btn
+                  v-close-popup
+                  flat
+                  href="/account#labels"
+                  color="grey"
+                  class="q-ml-auto"
+                  :label="$t('manage_labels')"
+                ></q-btn>
+              </q-item>
+            </q-popup-edit>
+          </q-icon>
+
+          <q-badge class="q-ml-sm" size="xs" rounded>xxx</q-badge>
+          <q-badge class="q-ml-sm">yyy</q-badge>
+          <q-badge class="q-ml-sm">zzz</q-badge>
         </q-td>
         <q-td
           auto-width

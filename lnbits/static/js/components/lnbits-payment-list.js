@@ -121,7 +121,8 @@ window.app.component('lnbits-payment-list', {
         show: false,
         payment: null,
         preimage: null
-      }
+      },
+      labelFilter: ''
     }
   },
   computed: {
