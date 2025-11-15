@@ -120,7 +120,7 @@
         </p>
         <q-input
           filled
-          v-model.number="newNoLimitUser"
+          v-model="newNoLimitUser"
           @keydown.enter="addNewNoLimitUser()"
           :label="$t('assets_no_limit_users')"
           :hint="$t('assets_no_limit_users_desc')"
