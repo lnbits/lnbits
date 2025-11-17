@@ -483,6 +483,8 @@ class Filter(BaseModel, Generic[TFilterModel]):
     def parse_query(
         cls, key: str, raw_values: list[Any], model: type[TFilterModel], i: int = 0
     ):
+        if i > 1000 or len(raw_values) > 1000:
+            raise ValueError("Too many filter values")
         # Key format:
         # key[operator]
         # e.g. name[eq]
