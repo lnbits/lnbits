@@ -38,7 +38,7 @@
                         'q-pt-sm': g.fiatTracking,
                         'q-pt-lg': !g.fiatTracking
                       }"
-                  v-if="!isFiatPriority || !g.fiatTracking"
+                  v-if="!g.isFiatPriority || !g.fiatTracking"
                   style="height: 100px"
                 >
                   <div class="col-7">
@@ -75,7 +75,7 @@
 
                 <div
                   class="column"
-                  v-if="isFiatPriority  && g.fiatTracking"
+                  v-if="g.isFiatPriority  && g.fiatTracking"
                   :class="{
                         'q-pt-sm': g.fiatTracking,
                         'q-pt-lg': !g.fiatTracking
@@ -831,7 +831,7 @@
         <q-card class="q-pa-lg q-pt-xl lnbits__dialog-card">
           <div v-if="parse.invoice">
             <div class="column content-center text-center q-mb-md">
-              <div v-if="!isFiatPriority">
+              <div v-if="!g.isFiatPriority">
                 <h4 class="q-my-none text-bold">
                   <span v-text="formatBalance(parse.invoice.sat)"></span>
                 </h4>
@@ -853,7 +853,7 @@
                 ></q-btn>
               </div>
               <div v-if="g.fiatTracking">
-                <div v-if="isFiatPriority">
+                <div v-if="g.isFiatPriority">
                   <h5 class="q-my-none text-bold">
                     <span v-text="formatBalance(parse.invoice.sat)"></span>
                   </h5>
@@ -1278,31 +1278,6 @@
         >
         </q-btn>
       </div>
-      <q-dialog v-model="disclaimerDialog.show" position="top">
-        <q-card class="q-pa-lg">
-          <h6
-            class="q-my-md text-primary"
-            v-text="$t('disclaimer_dialog_title')"
-          ></h6>
-          <p class="whitespace-pre-line" v-text="$t('disclaimer_dialog')"></p>
-          <div class="row q-mt-lg">
-            <q-btn
-              outline
-              color="grey"
-              type="a"
-              href="/account"
-              :label="$t('my_account')"
-            ></q-btn>
-            <q-btn
-              v-close-popup
-              flat
-              color="grey"
-              class="q-ml-auto"
-              :label="$t('i_understand')"
-            ></q-btn>
-          </div>
-        </q-card>
-      </q-dialog>
       {% endblock %}
     </div>
   </div>

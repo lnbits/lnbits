@@ -1,6 +1,12 @@
 window.app.component('lnbits-theme', {
   mixins: [window.windowMixin],
   watch: {
+    'g.disclaimerShown'(val) {
+      this.$q.localStorage.setItem('lnbits.disclaimerShown', val)
+    },
+    'g.isFiatPriority'(val) {
+      this.$q.localStorage.setItem('lnbits.isFiatPriority', val)
+    },
     'g.reactionChoice'(val) {
       this.$q.localStorage.set('lnbits.reactions', val)
     },

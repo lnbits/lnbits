@@ -25,9 +25,11 @@ window.g = Vue.reactive({
   newWalletType: 'lightning',
   updatePayments: false,
   updatePaymentsHash: '',
+  locale: localStore('lnbits.lang', navigator.languages[1] ?? 'en'),
+  disclaimerShown: localStore('lnbits.disclaimerShown', false),
+  isFiatPriority: localStore('lnbits.isFiatPriority', false),
   mobileSimple: localStore('lnbits.mobileSimple', true),
   walletFlip: localStore('lnbits.walletFlip', false),
-  locale: localStore('lnbits.lang', navigator.languages[1] ?? 'en'),
   darkChoice: localStore('lnbits.darkMode', true),
   themeChoice: localStore('lnbits.theme', WINDOW_SETTINGS.LNBITS_DEFAULT_THEME),
   borderChoice: localStore(
@@ -66,3 +68,9 @@ addEventListener('online', event => {
   console.log('back online', event)
   this.g.offline = false
 })
+
+if (navigator.serviceWorker != null) {
+  navigator.serviceWorker.register('/service-worker.js').then(registration => {
+    console.log('Registered events at scope: ', registration.scope)
+  })
+}

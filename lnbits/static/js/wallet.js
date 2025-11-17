@@ -45,10 +45,6 @@ window.WalletPageLogic = {
           payment_hash: null
         }
       },
-      disclaimerDialog: {
-        show: false,
-        location: window.location
-      },
       icon: {
         show: false,
         data: {},
@@ -111,7 +107,6 @@ window.WalletPageLogic = {
       },
       hasNfc: false,
       nfcReaderAbortController: null,
-      isFiatPriority: false,
       formattedFiatAmount: 0,
       formattedExchange: null,
       paymentFilter: {
@@ -201,7 +196,7 @@ window.WalletPageLogic = {
       this.receive.data.memo = null
       this.receive.data.internalMemo = null
       this.receive.data.payment_hash = null
-      this.receive.unit = this.isFiatPriority
+      this.receive.unit = this.g.isFiatPriority
         ? this.g.wallet.currency || 'sat'
         : 'sat'
       this.receive.minMax = [0, 2100000000000000]
@@ -777,17 +772,15 @@ window.WalletPageLogic = {
         })
     },
     swapBalancePriority() {
-      this.isFiatPriority = !this.isFiatPriority
-      this.receive.unit = this.isFiatPriority
+      this.g.isFiatPriority = !this.g.isFiatPriority
+      this.receive.unit = this.g.isFiatPriority
         ? this.g.wallet.currency || 'sat'
         : 'sat'
-      this.$q.localStorage.setItem('lnbits.isFiatPriority', this.isFiatPriority)
     },
     handleFiatTracking() {
       this.g.fiatTracking = !this.g.fiatTracking
       if (!this.g.fiatTracking) {
-        this.$q.localStorage.setItem('lnbits.isFiatPriority', false)
-        this.isFiatPriority = false
+        this.g.isFiatPriority = false
         this.update.currency = ''
         this.g.wallet.currency = ''
         this.updateWallet({currency: ''})
@@ -892,24 +885,5 @@ window.WalletPageLogic = {
       },
       deep: true
     }
-  },
-  async mounted() {
-    if (!Quasar.LocalStorage.getItem('lnbits.disclaimerShown')) {
-      this.disclaimerDialog.show = true
-      Quasar.LocalStorage.setItem('lnbits.disclaimerShown', true)
-      Quasar.LocalStorage.setItem('lnbits.reactions', 'confettiTop')
-    }
-    if (Quasar.LocalStorage.getItem('lnbits.isFiatPriority')) {
-      this.isFiatPriority = Quasar.LocalStorage.getItem('lnbits.isFiatPriority')
-    } else {
-      this.isFiatPriority = false
-      Quasar.LocalStorage.setItem('lnbits.isFiatPriority', false)
-    }
   }
-}
-
-if (navigator.serviceWorker != null) {
-  navigator.serviceWorker.register('/service-worker.js').then(registration => {
-    console.log('Registered events at scope: ', registration.scope)
-  })
 }

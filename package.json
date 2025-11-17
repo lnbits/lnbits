@@ -126,6 +126,7 @@
       "js/components/lnbits-home-logos.js",
       "js/components/lnbits-qrcode.js",
       "js/components/lnbits-qrcode-lnurl.js",
+      "js/components/lnbits-disclaimer.js",
       "js/components/lnbits-footer.js",
       "js/components/lnbits-header.js",
       "js/components/lnbits-header-wallets.js",
