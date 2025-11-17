@@ -201,6 +201,11 @@ def is_valid_username(username: str) -> bool:
     return re.fullmatch(username_regex, username) is not None
 
 
+def is_valid_label(label: str) -> bool:
+    label_regex = r"([A-Za-z0-9 ._-]{1,100}$)"
+    return re.fullmatch(label_regex, label) is not None
+
+
 def is_valid_external_id(external_id: str) -> bool:
     if len(external_id) > 256:
         return False

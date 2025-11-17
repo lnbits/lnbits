@@ -12,6 +12,7 @@ from lnbits.db import FilterModel
 from lnbits.helpers import (
     is_valid_email_address,
     is_valid_external_id,
+    is_valid_label,
     is_valid_pubkey,
     is_valid_username,
 )
@@ -92,7 +93,7 @@ class UserExtra(BaseModel):
             if not label.name:
                 raise ValueError("Label name cannot be empty.")
             # apply the same rule for labels as for usernames
-            if not is_valid_username(label.name):
+            if not is_valid_label(label.name):
                 raise ValueError(f"Invalid label name: {label.name}")
             if label.name in seen_labels:
                 raise ValueError(f"Duplicate label name: {label.name}")

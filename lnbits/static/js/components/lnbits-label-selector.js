@@ -24,6 +24,10 @@ window.app.component('lnbits-label-selector', {
     },
     saveLabels() {
       this.$emit('update:labels', this.localLabels)
+    },
+    clearLabels() {
+      this.localLabels = []
+      this.saveLabels()
     }
   },
   created() {
