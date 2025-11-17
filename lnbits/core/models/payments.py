@@ -185,7 +185,15 @@ class Payment(BaseModel):
 
 
 class PaymentFilters(FilterModel):
-    __search_fields__ = ["memo", "amount", "wallet_id", "tag", "status", "time"]
+    __search_fields__ = [
+        "memo",
+        "amount",
+        "wallet_id",
+        "tag",
+        "status",
+        "time",
+        "labels",
+    ]
 
     __sort_fields__ = ["created_at", "amount", "fee", "memo", "time", "tag"]
 
@@ -199,6 +207,7 @@ class PaymentFilters(FilterModel):
     preimage: str | None
     payment_hash: str | None
     wallet_id: str | None
+    labels: str | None
 
 
 class PaymentDataPoint(BaseModel):
