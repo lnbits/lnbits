@@ -454,7 +454,6 @@ class Operator(Enum):
             return "<="
         elif self in {Operator.LIKE, Operator.EVERY, Operator.ANY}:
             return "LIKE"
-
         else:
             raise ValueError("Unknown SQL Operator")
 
@@ -503,9 +502,7 @@ class Filter(BaseModel, Generic[TFilterModel]):
             compare_field = model.__fields__[field]
             values: dict = {}
             if op in {Operator.EVERY, Operator.ANY}:
-                raw_values = [
-                    v for raw_value in raw_values for v in raw_value.split(",")
-                ]
+                raw_values = [v for rv in raw_values for v in rv.split(",")]
 
             for index, raw_value in enumerate(raw_values):
                 validated, errors = compare_field.validate(raw_value, {}, loc="none")
