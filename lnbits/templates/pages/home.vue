@@ -1,10 +1,7 @@
 <template id="page-home">
-  <div
-    class="home row justify-center items-center"
-    style="min-height: calc(100vh / 1.618)"
-  >
+  <div class="home row justify-center items-center">
     <div
-      class="full-width"
+      class="full-width q-mt-xl"
       :style="`max-width: ${hasCustomImage ? '850' : '600'}px`"
     >
       <div class="row q-mb-md">
