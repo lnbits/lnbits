@@ -86,6 +86,18 @@ class UserExtra(BaseModel):
                 return invite
         return None
 
+    def validate_labels(self):
+        seen_labels = set()
+        for label in self.labels:
+            if not label.name:
+                raise ValueError("Label name cannot be empty.")
+            # apply the same rule for labels as for usernames
+            if not is_valid_username(label.name):
+                raise ValueError(f"Invalid label name: {label.name}")
+            if label.name in seen_labels:
+                raise ValueError(f"Duplicate label name: {label.name}")
+            seen_labels.add(label.name)
+
     def remove_wallet_invite_request(
         self,
         request_id: str,
@@ -210,11 +222,7 @@ class Account(BaseModel):
         if user_uuid4.hex != self.id:
             raise ValueError("User ID is not valid UUID4 hex string.")
 
-        seen_labels = set()
-        for label in self.extra.labels:
-            if label.name in seen_labels:
-                raise ValueError(f"Duplicate label name: {label.name}")
-            seen_labels.add(label.name)
+        self.extra.validate_labels()
 
 
 class AccountOverview(Account):
