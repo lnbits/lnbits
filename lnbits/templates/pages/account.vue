@@ -6,8 +6,17 @@
           <div class="row items-center justify-between q-gutter-xs">
             <div class="col">
               <q-btn @click="updateAccount" unelevated color="primary">
+                <q-badge
+                  v-if="isUserTouched"
+                  color="negative"
+                  size="xs"
+                  floating
+                ></q-badge>
                 <span v-text="$t('update_account')"></span>
               </q-btn>
+              <q-badge v-if="isUserTouched" class="q-ml-sm" color="primary">
+                <span v-text="$t('must_save')"></span>
+              </q-badge>
             </div>
           </div>
         </div>

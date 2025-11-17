@@ -32,6 +32,7 @@ window.localisation.en = {
   image_library: 'Image Library',
   save: 'Save',
   save_tooltip: 'Save your changes',
+  must_save: 'You have unsaved changes',
   credit_debit: 'Credit / Debit',
   credit_hint: 'Press Enter to credit/debit wallet (negative values allowed)',
   credit_label: '{denomination} to credit/debit',

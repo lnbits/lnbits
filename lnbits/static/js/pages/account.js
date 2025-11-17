@@ -4,6 +4,7 @@ window.PageAccount = {
   data() {
     return {
       user: null,
+      untouchedUser: null,
       hasUsername: false,
       showUserId: false,
       themeOptions: [
@@ -200,6 +201,11 @@ window.PageAccount = {
       }
     }
   },
+  computed: {
+    isUserTouched() {
+      return JSON.stringify(this.user) !== JSON.stringify(this.untouchedUser)
+    }
+  },
   methods: {
     activeLanguage(lang) {
       return window.i18n.global.locale === lang
@@ -222,6 +228,7 @@ window.PageAccount = {
           }
         )
         this.user = data
+        this.untouchedUser = JSON.parse(JSON.stringify(data))
         this.hasUsername = !!data.username
         Quasar.Notify.create({
           type: 'positive',
@@ -261,6 +268,7 @@ window.PageAccount = {
           }
         )
         this.user = data
+        this.untouchedUser = JSON.parse(JSON.stringify(data))
         this.hasUsername = !!data.username
         this.credentialsData.show = false
         Quasar.Notify.create({
@@ -283,6 +291,7 @@ window.PageAccount = {
           }
         )
         this.user = data
+        this.untouchedUser = JSON.parse(JSON.stringify(data))
         this.hasUsername = !!data.username
         this.credentialsData.show = false
         this.$q.notify({
@@ -673,6 +682,7 @@ window.PageAccount = {
     try {
       const {data} = await LNbits.api.getAuthenticatedUser()
       this.user = data
+      this.untouchedUser = JSON.parse(JSON.stringify(data))
       this.hasUsername = !!data.username
       if (!this.user.extra) this.user.extra = {}
     } catch (e) {
