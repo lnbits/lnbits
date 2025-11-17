@@ -432,6 +432,7 @@ class Operator(Enum):
     EXCLUDE = "ex"
     LIKE = "like"
     EVERY = "every"
+    ANY = "any"
 
     @property
     def as_sql(self):
@@ -451,7 +452,7 @@ class Operator(Enum):
             return ">="
         elif self == Operator.LE:
             return "<="
-        elif self == Operator.LIKE or self == Operator.EVERY:
+        elif self in {Operator.LIKE, Operator.EVERY, Operator.ANY}:
             return "LIKE"
 
         else:
@@ -501,7 +502,7 @@ class Filter(BaseModel, Generic[TFilterModel]):
         if field in model.__fields__:
             compare_field = model.__fields__[field]
             values: dict = {}
-            if op == Operator.EVERY:
+            if op in {Operator.EVERY, Operator.ANY}:
                 raw_values = [
                     v for raw_value in raw_values for v in raw_value.split(",")
                 ]
@@ -608,7 +609,7 @@ class Filters(BaseModel, Generic[TFilterModel]):
                     for key, value in page_filter.values.items():
                         if page_filter.op == Operator.LIKE:
                             values[key] = f"%{value}%"
-                        elif page_filter.op == Operator.EVERY:
+                        elif page_filter.op in {Operator.EVERY, Operator.ANY}:
                             values[key] = f"""%"{value}"%"""
                         else:
                             values[key] = value
