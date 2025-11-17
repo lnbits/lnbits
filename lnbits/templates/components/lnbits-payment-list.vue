@@ -23,6 +23,11 @@
     </div>
     <div class="gt-sm col-auto">
       <q-btn icon="event" flat color="grey" class="q-pa-sm">
+        <q-badge
+          v-if="searchDate?.to || searchDate?.from"
+          color="primary"
+          floating
+        ></q-badge>
         <q-popup-proxy cover transition-show="scale" transition-hide="scale">
           <q-date v-model="searchDate" mask="YYYY-MM-DD" range />
           <div class="row">
@@ -48,19 +53,29 @@
             </div>
           </div>
         </q-popup-proxy>
-        <q-badge
-          v-if="searchDate?.to || searchDate?.from"
-          class="q-mt-lg q-mr-md"
-          color="primary"
-          rounded
-          floating
-          style="border-radius: 6px"
-        ></q-badge>
+
         <q-tooltip>
           <span v-text="$t('filter_date')"></span>
         </q-tooltip>
       </q-btn>
-      <q-btn icon="local_offer" class="q-pa-sm" flat color="grey"></q-btn>
+      <q-btn icon="local_offer" class="q-pa-sm" flat color="grey">
+        <q-badge
+          v-if="filterLabels.length"
+          color="primary"
+          size="xs"
+          floating
+          v-text="filterLabels.length"
+        ></q-badge>
+        <q-tooltip>
+          <span v-text="$t('label_filter')"></span>
+        </q-tooltip>
+        <q-popup-edit class="text-white q-pa-none">
+          <lnbits-label-selector
+            :labels="filterLabels"
+            @update:labels="searchByLabels"
+          ></lnbits-label-selector>
+        </q-popup-edit>
+      </q-btn>
       <q-btn color="grey" icon="filter_alt" class="q-pa-sm" flat>
         <q-menu>
           <q-item dense>
@@ -278,13 +293,13 @@
               <lnbits-label-selector
                 :labels="props.row.labels"
                 @update:labels="savePaymentLabels"
-                @click="selectedPayment = props.row"
               ></lnbits-label-selector>
             </q-popup-edit>
           </q-icon>
           <template v-for="label in g.user.extra.labels" :key="label.name">
             <q-badge
               v-if="props.row.labels.includes(label.name)"
+              @click="searchByLabels([label.name])"
               :style="{
                 backgroundColor: label.color,
                 color: isLightColor(label.color) ? 'black' : 'white'

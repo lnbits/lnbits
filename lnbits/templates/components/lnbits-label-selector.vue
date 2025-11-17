@@ -59,18 +59,25 @@
     <q-btn
       v-close-popup
       flat
-      color="primary"
-      class="q-ml-auto"
-      :label="$t('save')"
-      @click="saveLabels"
+      color="grey"
+      class="q-ml-none"
+      icon="highlight_off"
     ></q-btn>
     <q-btn
       v-close-popup
       flat
       href="/account#labels"
       color="grey"
-      class="q-ml-auto"
-      :label="$t('manage_labels')"
+      icon="settings"
+      class="q-ml-auto float-right"
+    ></q-btn>
+    <q-btn
+      v-close-popup
+      flat
+      color="primary"
+      class="q-ml-none"
+      :label="$t('ok')"
+      @click="saveLabels"
     ></q-btn>
   </q-item>
 </template>

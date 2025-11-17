@@ -122,7 +122,8 @@ window.app.component('lnbits-payment-list', {
         payment: null,
         preimage: null
       },
-      selectedPayment: null
+      selectedPayment: null,
+      filterLabels: []
     }
   },
   computed: {
@@ -162,10 +163,24 @@ window.app.component('lnbits-payment-list', {
 
       this.fetchPayments()
     },
+    searchByLabels(labels) {
+      if (!labels || labels.length === 0) {
+        this.clearLabelSeach()
+        return
+      }
+      this.filterLabels = labels
+      this.paymentsTable.filter['labels[every]'] = labels
+      this.fetchPayments()
+    },
     clearDateSeach() {
       this.searchDate = {from: null, to: null}
       delete this.paymentFilter['time[ge]']
       delete this.paymentFilter['time[le]']
+      this.fetchPayments()
+    },
+    clearLabelSeach() {
+      this.filterLabels = []
+      delete this.paymentsTable.filter['labels[every]']
       this.fetchPayments()
     },
     fetchPayments(props) {
@@ -356,7 +371,6 @@ window.app.component('lnbits-payment-list', {
       }
       this.paymentFilter = paymentFilter
     },
-
     async savePaymentLabels(labels) {
       if (!this.selectedPayment) {
         Quasar.Notify.create({
@@ -375,12 +389,13 @@ window.app.component('lnbits-payment-list', {
           }
         )
 
-        this.selectedPayment.labels = [...labels]
-        const userLabels = [...this.g.user.extra.labels]
-        this.g.user.extra.labels = []
-        setTimeout(() => {
-          this.g.user.extra.labels = [...userLabels]
-        }, 100)
+        const payment = this.payments.find(
+          p => p.checking_id === this.selectedPayment.checking_id
+        )
+        if (payment) {
+          payment.labels = [...labels]
+        }
+
         Quasar.Notify.create({
           type: 'positive',
           message: this.$t('payment_labels_updated')
