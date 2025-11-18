@@ -24,7 +24,9 @@ from lnbits.core.models.users import (
     EndpointAccess,
     LoginUsr,
     UpdateAccessControlList,
+    UpdateUser,
     UserAcls,
+    UserLabel,
 )
 from lnbits.core.services.users import create_user_account
 from lnbits.core.views.user_api import api_users_reset_password
@@ -1999,3 +2001,36 @@ async def test_api_delete_user_api_token_missing_token_id(
         json=delete_token_request.dict(),
     )
     assert response.status_code == 200, "Does noting if token not found."
+
+
+################################ Labels ################################
+@pytest.mark.anyio
+async def test_api_update_user_labels(http_client: AsyncClient):
+    tiny_id = shortuuid.uuid()[:8]
+    user = await create_user_account()
+    assert user.extra.labels == []
+
+    user.extra.labels = [
+        UserLabel(name="label 01", color="#FF0000"),
+        UserLabel(name="label 02", color="#00FF00"),
+    ]
+    data = UpdateUser(user_id=user.id, username=f"u{tiny_id}", extra=user.extra)
+    assert data.extra
+    response = await http_client.put(
+        "/api/v1/auth/update?usr=" + user.id, json=data.dict()
+    )
+    assert response.status_code == 200
+    user_data = response.json()
+    assert len(user_data["extra"]["labels"]) == 2
+    assert user_data["extra"]["labels"][0]["name"] == "label 01"
+    assert user_data["extra"]["labels"][0]["color"] == "#FF0000"
+    assert user_data["extra"]["labels"][1]["name"] == "label 02"
+    assert user_data["extra"]["labels"][1]["color"] == "#00FF00"
+
+    data.extra.labels = []
+    response = await http_client.put(
+        "/api/v1/auth/update?usr=" + user.id, json=data.dict()
+    )
+    assert response.status_code == 200
+    user_data = response.json()
+    assert len(user_data["extra"]["labels"]) == 0
