@@ -61,6 +61,7 @@ async def pay_invoice(
     extra: dict | None = None,
     description: str = "",
     tag: str = "",
+    labels: list[str] | None = None,
     conn: Connection | None = None,
 ) -> Payment:
     if settings.lnbits_only_allow_incoming_payments:
@@ -91,6 +92,7 @@ async def pay_invoice(
             expiry=invoice.expiry_date,
             memo=description or invoice.description or "",
             extra=extra,
+            labels=labels,
         )
 
     payment = await _pay_invoice(wallet.source_wallet_id, create_payment_model, conn)
@@ -207,6 +209,7 @@ async def create_wallet_invoice(wallet_id: str, data: CreateInvoice) -> Payment:
         webhook=data.webhook,
         internal=data.internal,
         payment_hash=data.payment_hash,
+        labels=data.labels,
     )
 
     if data.lnurl_withdraw:
@@ -246,6 +249,7 @@ async def create_invoice(
     webhook: str | None = None,
     internal: bool | None = False,
     payment_hash: str | None = None,
+    labels: list[str] | None = None,
     conn: Connection | None = None,
 ) -> Payment:
     if not amount > 0:
@@ -329,6 +333,7 @@ async def create_invoice(
         extra=extra,
         webhook=webhook,
         fee=invoice_response.fee_msat or 0,
+        labels=labels,
     )
 
     payment = await create_payment(

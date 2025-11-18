@@ -59,6 +59,7 @@ class CreatePayment(BaseModel):
     expiry: datetime | None = None
     webhook: str | None = None
     fee: int = 0
+    labels: list[str] | None = None
 
 
 class Payment(BaseModel):

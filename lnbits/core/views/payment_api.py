@@ -250,6 +250,7 @@ async def api_payments_create(
             wallet_id=wallet_id,
             payment_request=invoice_data.bolt11,
             extra=invoice_data.extra,
+            labels=invoice_data.labels,
         )
         return payment
 
