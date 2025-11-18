@@ -537,7 +537,19 @@
             </q-card-section>
           </q-card>
           {% endif %}
-          <lnbits-wallet-ads></lnbits-wallet-ads>
+          <q-card class="lnbits-wallet-ads" v-if="AD_SPACE_ENABLED">
+            <q-card-section class="text-subtitle1">
+              <span v-text="AD_SPACE_TITLE"></span>
+              <a :href="ad[0]" class="lnbits-ad" v-for="ad in g.ads">
+                <q-img
+                  class="q-mb-xs"
+                  v-if="$q.dark.isActive"
+                  :src="ad[1]"
+                ></q-img>
+                <q-img class="q-mb-xs" v-else :src="ad[2]"></q-img>
+              </a>
+            </q-card-section>
+          </q-card>
           <div
             v-show="chartDataPointCount"
             class="col-12 col-md-5 q-gutter-y-md"

@@ -45,7 +45,8 @@ window.g = Vue.reactive({
   bgimageChoice: localStore(
     'lnbits.backgroundImage',
     WINDOW_SETTINGS.LNBITS_DEFAULT_BGIMAGE
-  )
+  ),
+  ads: WINDOW_SETTINGS.AD_SPACE.split(',').map(ad => ad.split(';'))
 })
 
 window.dateFormat = 'YYYY-MM-DD HH:mm'

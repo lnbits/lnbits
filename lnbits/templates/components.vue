@@ -19,7 +19,6 @@ include('components/lnbits-manage-extension-list.vue') %} {%
 include('components/lnbits-manage-wallet-list.vue') %} {%
 include('components/lnbits-language-dropdown.vue') %} {%
 include('components/lnbits-payment-list.vue') %} {%
-include('components/lnbits-wallet-ads.vue') %} {%
 include('components/lnbits-wallet-new.vue') %} {%
 include('components/lnbits-wallet-api-docs.vue') %} {%
 include('components/lnbits-wallet-share.vue') %}

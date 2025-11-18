@@ -69,7 +69,7 @@ def template_renderer(additional_folders: list | None = None) -> Jinja2Templates
     t.env.globals["static_url_for"] = static_url_for
 
     window_settings = {
-        "AD_SPACE": settings.lnbits_ad_space.split(","),
+        "AD_SPACE": settings.lnbits_ad_space,
         "AD_SPACE_ENABLED": settings.lnbits_ad_space_enabled,
         "AD_SPACE_TITLE": settings.lnbits_ad_space_title,
         "EXTENSIONS": list(settings.lnbits_installed_extensions_ids),

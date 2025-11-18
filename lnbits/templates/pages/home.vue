@@ -1,8 +1,8 @@
 <template id="page-home">
   <div class="home row justify-center items-center">
     <div
-      class="full-width q-mt-xl"
-      :style="`max-width: ${hasCustomImage ? '850' : '600'}px`"
+      class="full-width content-center"
+      :style="`max-width: ${hasCustomImage ? '850' : '600'}px; min-height: 55vh;`"
     >
       <div class="row q-mb-md">
         <div class="col-12">
@@ -145,30 +145,14 @@
         ></q-btn>
       </div>
     </div>
-    <div v-if="adsEnabled" class="q-pt-md full-width">
-      <div class="row justify-center q-mb-xl">
-        <div class="full-width text-center">
-          <span v-text="adsTitle" class="text-uppercase text-grey"></span>
-        </div>
-        <div class="flex flex-center columm">
-          <div v-for="ad in ads" class="flex flex-center column q-pr-sm">
-            <a :href="ad[0]">
-              <img
-                v-if="$q.dark.isActive"
-                :src="ad[1]"
-                style="max-width: 420px"
-                class="full-width"
-              />
-              <img
-                v-else
-                :src="ad[2]"
-                style="max-width: 420px"
-                class="full-width"
-              />
-            </a>
-          </div>
-        </div>
-      </div>
+    <div
+      :class="$q.screen.lt.md ? 'column col-10' : 'col-10'"
+      class="flex justify-center q-col-gutter-sm q-mb-lg"
+    >
+      <a :href="ad[0]" class="col lnbits-ad" v-for="ad in g.ads">
+        <img class="full-width" v-if="$q.dark.isActive" :src="ad[1]" />
+        <img class="full-width" v-else :src="ad[2]" />
+      </a>
     </div>
     <lnbits-home-logos />
   </div>
