@@ -2034,3 +2034,12 @@ async def test_api_update_user_labels(http_client: AsyncClient):
     assert response.status_code == 200
     user_data = response.json()
     assert len(user_data["extra"]["labels"]) == 0
+
+    data.extra.labels = [UserLabel(name="label + 01", color="#FF0000")]
+    response = await http_client.put(
+        "/api/v1/auth/update?usr=" + user.id, json=data.dict()
+    )
+
+    assert response.status_code == 400
+    data = response.json()
+    assert data["detail"] == "Invalid label name: label + 01'"
