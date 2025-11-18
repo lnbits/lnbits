@@ -819,28 +819,7 @@ async def test_api_search_payment_labels(client):
     }
 
     payment_count = 10
-    for index in range(1, payment_count + 1):
-        labels = []
-        if index % 2 == 0:
-            labels.append("label A")
-        if index % 3 == 0:
-            labels.append("label B")
-        if index % 5 == 0:
-            # User does not have this label, but will be added to the payment.
-            labels.append("label C")
-        response = await client.post(
-            "/api/v1/payments",
-            headers=payments_headers,
-            json={
-                "out": False,
-                "amount": 1000 + index,
-                "memo": f"payment {index}",
-                "labels": labels,
-            },
-        )
-        assert response.is_success
-        data = response.json()
-        assert data["labels"] == labels
+    await _create_some_payments(payment_count, client, payments_headers)
 
     # search payments by label A
     response = await client.get(
@@ -960,3 +939,30 @@ async def test_api_search_payment_labels(client):
     assert response.is_success
     data = response.json()
     assert data["total"] == 0
+
+
+async def _create_some_payments(payment_count: int, client, payments_headers):
+    payment_count = 10
+    for index in range(1, payment_count + 1):
+        labels = []
+        if index % 2 == 0:
+            labels.append("label A")
+        if index % 3 == 0:
+            labels.append("label B")
+        if index % 5 == 0:
+            # User does not have this label, but will be added to the payment.
+            labels.append("label C")
+        response = await client.post(
+            "/api/v1/payments",
+            headers=payments_headers,
+            json={
+                "out": False,
+                "amount": 1000 + index,
+                "memo": f"payment {index}",
+                "labels": labels,
+            },
+        )
+        assert response.is_success
+        data = response.json()
+        assert data["labels"] == labels
+    return payment_count
