@@ -1,12 +1,16 @@
 import hashlib
 from json import JSONDecodeError
 from unittest.mock import AsyncMock, Mock
+from uuid import uuid4
 
 import pytest
+import shortuuid
 from pytest_mock.plugin import MockerFixture
 
 from lnbits import bolt11
 from lnbits.core.models import CreateInvoice, Payment
+from lnbits.core.models.users import Account, UserExtra, UserLabel
+from lnbits.core.services.users import create_user_account
 from lnbits.core.views.payment_api import api_payment
 from lnbits.fiat.base import FiatInvoiceResponse
 from lnbits.settings import Settings
@@ -789,3 +793,99 @@ async def test_api_payments_pay_lnurl(client, adminkey_headers_from):
     )
     assert response.status_code == 400
     assert "value_error.url.scheme" in response.json()["detail"]
+
+
+################################ Labels ################################
+@pytest.mark.anyio
+async def test_api_search_payment_labels(client):
+    tiny_id = shortuuid.uuid()[:8]
+    user = await create_user_account(
+        Account(
+            id=uuid4().hex,
+            username=f"u{tiny_id}",
+            extra=UserExtra(
+                labels=[
+                    UserLabel(name="label A", color="#FF0000"),
+                    UserLabel(name="label B", color="#00FF00"),
+                ]
+            ),
+        )
+    )
+    assert len(user.extra.labels) == 2
+    adminkey = user.wallets[0].adminkey
+    payments_headers = {
+        "X-Api-Key": adminkey,
+        "Content-type": "application/json",
+    }
+    print("### adminkey", adminkey)
+
+    payments = []
+    payment_count = 10
+    for index in range(1, payment_count + 1):
+        labels = []
+        if index % 2 == 0:
+            labels.append("label A")
+        if index % 3 == 0:
+            labels.append("label B")
+        if index % 5 == 0:
+            # User does not have this label, but will be added to the payment.
+            labels.append("label C")
+        response = await client.post(
+            "/api/v1/payments",
+            headers=payments_headers,
+            json={
+                "out": False,
+                "amount": 1000 + index,
+                "memo": f"payment {index}",
+                "labels": labels,
+            },
+        )
+        assert response.is_success
+        data = response.json()
+        assert data["labels"] == labels
+
+    response = await client.get(
+        "/api/v1/payments/paginated",
+        params={"labels[every]": ["label A"]},
+        headers=payments_headers,
+    )
+    assert response.is_success
+    data = response.json()
+    assert data["total"] == payment_count // 2
+    for payment in data["data"]:
+        assert "label A" in payment["labels"]
+
+    response = await client.get(
+        "/api/v1/payments/paginated",
+        params={"labels[every]": ["label B"]},
+        headers=payments_headers,
+    )
+    assert response.is_success
+    data = response.json()
+    assert data["total"] == payment_count // 3
+    for payment in data["data"]:
+        assert "label B" in payment["labels"]
+
+    response = await client.get(
+        "/api/v1/payments/paginated",
+        params={"labels[every]": ["label C"]},
+        headers=payments_headers,
+    )
+    assert response.is_success
+    data = response.json()
+    assert data["total"] == payment_count // 5
+    for payment in data["data"]:
+        assert "label C" in payment["labels"]
+
+    response = await client.get(
+        "/api/v1/payments/paginated",
+        params={"labels[every]": ["label A", "label B"]},
+        headers=payments_headers,
+    )
+    assert response.is_success
+    data = response.json()
+
+    assert data["total"] == payment_count // 6
+    for payment in data["data"]:
+        assert "label A" in payment["labels"]
+        assert "label B" in payment["labels"]
