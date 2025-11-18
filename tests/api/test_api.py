@@ -817,9 +817,7 @@ async def test_api_search_payment_labels(client):
         "X-Api-Key": adminkey,
         "Content-type": "application/json",
     }
-    print("### adminkey", adminkey)
 
-    payments = []
     payment_count = 10
     for index in range(1, payment_count + 1):
         labels = []
