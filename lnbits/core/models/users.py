@@ -38,7 +38,7 @@ class WalletInviteRequest(BaseModel):
 
 
 class UserLabel(BaseModel):
-    name: str | None = None
+    name: str
     description: str | None = None
     color: str | None = None
 
