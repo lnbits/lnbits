@@ -842,6 +842,7 @@ async def test_api_search_payment_labels(client):
         data = response.json()
         assert data["labels"] == labels
 
+    # search payments by label A
     response = await client.get(
         "/api/v1/payments/paginated",
         params={"labels[every]": ["label A"]},
@@ -853,6 +854,7 @@ async def test_api_search_payment_labels(client):
     for payment in data["data"]:
         assert "label A" in payment["labels"]
 
+    # search payments by label B
     response = await client.get(
         "/api/v1/payments/paginated",
         params={"labels[every]": ["label B"]},
@@ -864,6 +866,7 @@ async def test_api_search_payment_labels(client):
     for payment in data["data"]:
         assert "label B" in payment["labels"]
 
+    # search payments by label C
     response = await client.get(
         "/api/v1/payments/paginated",
         params={"labels[every]": ["label C"]},
@@ -875,6 +878,7 @@ async def test_api_search_payment_labels(client):
     for payment in data["data"]:
         assert "label C" in payment["labels"]
 
+    # search payments by label A and B
     response = await client.get(
         "/api/v1/payments/paginated",
         params={"labels[every]": ["label A", "label B"]},
@@ -887,3 +891,72 @@ async def test_api_search_payment_labels(client):
     for payment in data["data"]:
         assert "label A" in payment["labels"]
         assert "label B" in payment["labels"]
+
+    # search payments for random label D (no payments)
+    response = await client.get(
+        "/api/v1/payments/paginated",
+        params={"labels[every]": ["label D"]},
+        headers=payments_headers,
+    )
+    assert response.is_success
+    data = response.json()
+
+    assert data["total"] == 0
+
+    # search payments with no label filter (all payments)
+    response = await client.get(
+        "/api/v1/payments/paginated",
+        params={"labels[every]": []},
+        headers=payments_headers,
+    )
+    assert response.is_success
+    all_payments = response.json()
+
+    assert all_payments["total"] == payment_count
+
+    no_label_a_payment = next(
+        (
+            payment
+            for payment in all_payments["data"]
+            if "label A" not in payment["labels"]
+        ),
+        None,
+    )
+    assert no_label_a_payment is not None
+    payment_hash = no_label_a_payment["payment_hash"]
+    response = await client.put(
+        f"/api/v1/payments/{payment_hash}/labels",
+        headers=payments_headers,
+        json={"labels": ["label A"]},
+    )
+
+    # search payments by label A after update
+    response = await client.get(
+        "/api/v1/payments/paginated",
+        params={"labels[every]": ["label A"]},
+        headers=payments_headers,
+    )
+    assert response.is_success
+    data = response.json()
+    assert data["total"] == payment_count // 2 + 1  # one more after update
+    for payment in data["data"]:
+        assert "label A" in payment["labels"]
+
+    # remove label A from all payments
+    for payment in all_payments["data"]:
+        payment_hash = payment["payment_hash"]
+        response = await client.put(
+            f"/api/v1/payments/{payment_hash}/labels",
+            headers=payments_headers,
+            json={"labels": []},
+        )
+
+    # search payments by label A (none should have it now)
+    response = await client.get(
+        "/api/v1/payments/paginated",
+        params={"labels[every]": ["label A"]},
+        headers=payments_headers,
+    )
+    assert response.is_success
+    data = response.json()
+    assert data["total"] == 0
