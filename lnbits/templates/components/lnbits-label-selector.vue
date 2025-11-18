@@ -76,7 +76,11 @@
         color="grey"
         icon="settings"
         class="q-ml-auto float-right"
-      ></q-btn>
+      >
+        <q-tooltip>
+          <span v-text="$t('manage_labels')"></span>
+        </q-tooltip>
+      </q-btn>
       <q-btn
         v-close-popup
         flat
@@ -84,7 +88,11 @@
         class="q-ml-none"
         :label="$t('ok')"
         @click="saveLabels"
-      ></q-btn>
+      >
+        <q-tooltip>
+          <span v-text="$t('manage_labels')"></span>
+        </q-tooltip>
+      </q-btn>
     </q-item>
   </div>
   <div v-else class="q-pa-md">
