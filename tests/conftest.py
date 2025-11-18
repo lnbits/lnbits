@@ -16,6 +16,7 @@ from lnbits.core.crud import (
     get_payment,
     update_payment,
 )
+from lnbits.core.crud.users import get_user_from_account
 from lnbits.core.models import Account, CreateInvoice, PaymentState, User
 from lnbits.core.models.users import UpdateSuperuserPassword
 from lnbits.core.services import create_user_account, update_wallet_balance
@@ -114,6 +115,10 @@ async def user_alan():
 @pytest.fixture(scope="session")
 async def admin_user():
     username = "admin"
+    account = await get_account_by_username(username)
+    if account:
+        return await get_user_from_account(account)
+
     account = Account(
         id=ADMIN_USER_ID,
         email=f"{username}@lnbits.com",
