@@ -114,6 +114,12 @@
         <div class="col-12 col-md-3">
           <p>
             <span v-text="$t('payment_wait_time')"></span>
+            <sup>
+              <q-icon name="info" size="16px" class="q-ml-xs"></q-icon>
+              <q-tooltip max-width="150px">
+                <span v-text="$t('payment_wait_time_tooltip')"></span>
+              </q-tooltip>
+            </sup>
           </p>
           <q-input
             type="number"

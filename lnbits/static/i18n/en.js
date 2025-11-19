@@ -563,7 +563,9 @@ window.localisation.en = {
   reserve_fee_in_percent: 'Reserve fee in percent',
   payment_wait_time: 'Payment Wait Time (sec)',
   payment_wait_time_desc:
-    'How long to wait when making a payment before marking it as pending. Set higher values for HODL invoices, Boltz, etc.',
+    'Wait time before marking an outgoing payment as pending. Default: 5s; raise for slow-settling invoices.',
+  payment_wait_time_tooltip:
+    'Controls how long LNbits waits for an outgoing payment attempt to confirm before marking it as pending. Higher values help when paying slow-settling invoices (e.g., HODL invoices, Boltz). The payment will be rechecked later and updated automatically or manually.',
   server_management: 'Server Management',
   base_url: 'Base URL',
   base_url_label: 'Static/Base url for the server',
