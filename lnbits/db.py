@@ -235,6 +235,9 @@ class Connection(Compat):
             table_name: if provided some optimisations can be applied.
         """
 
+        if table_name and not _valid_sql_name(table_name):
+            raise ValueError(f"Invalid table name: '{table_name}'.")
+
         if not filters:
             filters = Filters()
         clause = filters.where(where)
@@ -262,8 +265,6 @@ class Connection(Compat):
             # no need for extra query if no pagination is specified
             if filters.offset or filters.limit:
                 if table_name:
-                    if not _valid_sql_name(table_name):
-                        raise ValueError(f"Invalid table name: '{table_name}'")
                     count_query = (
                         f"SELECT COUNT(*) as count FROM {table_name} "  # noqa: S608
                     )
