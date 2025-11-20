@@ -16,11 +16,12 @@ async def get_audit_entries(
     conn: Connection | None = None,
 ) -> Page[AuditEntry]:
     return await (conn or db).fetch_page(
-        "SELECT * from audit",
+        "SELECT * FROM audit",
         [],
         {},
         filters=filters,
         model=AuditEntry,
+        table_name="audit",
     )
 
 

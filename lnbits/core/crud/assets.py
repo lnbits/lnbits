@@ -90,11 +90,12 @@ async def get_user_assets(
     filters = filters or Filters()
     filters.sortby = filters.sortby or "created_at"
     return await (conn or db).fetch_page(
-        query="SELECT * from assets",
+        query="SELECT * FROM assets",
         where=["user_id = :user_id"],
         values={"user_id": user_id},
         filters=filters,
         model=AssetInfo,
+        table_name="assets",
     )
 
 

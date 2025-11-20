@@ -187,6 +187,7 @@ async def get_wallets_paginated(
         values={"user": user_id, "deleted": deleted},
         filters=filters,
         model=Wallet,
+        table_name="wallets",
     )
 
     wallets.data = await get_source_wallets(wallets.data, conn)

@@ -181,6 +181,7 @@ async def get_payments_paginated(  # noqa: C901
         values,
         filters=filters,
         model=Payment,
+        table_name="apipayments",
     )
 
 

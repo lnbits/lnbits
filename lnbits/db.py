@@ -222,6 +222,7 @@ class Connection(Compat):
         filters: Filters | None = None,
         model: type[TModel] | None = None,
         group_by: list[str] | None = None,
+        table_name: str | None = None,
     ) -> Page[TModel]:
         if not filters:
             filters = Filters()
@@ -251,10 +252,15 @@ class Connection(Compat):
         if rows:
             # no need for extra query if no pagination is specified
             if filters.offset or filters.limit:
+                count_query = (
+                    f"SELECT COUNT(*) as count FROM {table_name} "  # noqa: S608
+                    if table_name
+                    else query
+                )
                 result = await self.execute(
                     f"""
                     SELECT COUNT(*) as count FROM (
-                        {query}
+                        {count_query}
                         {clause}
                         {group_by_string}
                     ) as count
@@ -393,9 +399,12 @@ class Database(Compat):
         filters: Filters | None = None,
         model: type[TModel] | None = None,
         group_by: list[str] | None = None,
+        table_name: str | None = None,
     ) -> Page[TModel]:
         async with self.connect() as conn:
-            return await conn.fetch_page(query, where, values, filters, model, group_by)
+            return await conn.fetch_page(
+                query, where, values, filters, model, group_by, table_name
+            )
 
     async def execute(self, query: str, values: dict | None = None):
         async with self.connect() as conn:

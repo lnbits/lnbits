@@ -89,6 +89,7 @@ async def get_accounts(
         filters=filters,
         model=AccountOverview,
         group_by=["accounts.id"],
+        table_name="accounts",
     )
 
 
