@@ -1,5 +1,5 @@
 <template id="lnbits-disclaimer">
-  <q-dialog v-model="!g.disclaimerShown" position="top">
+  <q-dialog v-model="showDisclaimer" position="top">
     <q-card class="q-pa-lg">
       <h6
         class="q-my-md text-primary"
@@ -20,6 +20,7 @@
           color="grey"
           class="q-ml-auto"
           :label="$t('i_understand')"
+          @click="g.disclaimerShown = !g.disclaimerShown"
         ></q-btn>
       </div>
     </q-card>
