@@ -224,6 +224,17 @@ class Connection(Compat):
         group_by: list[str] | None = None,
         table_name: str | None = None,
     ) -> Page[TModel]:
+        """
+        Parameters:
+            query: The main SQL query string to execute for data retrieval.
+            where: list of additional WHERE clause conditions to filter results.
+            values: dictionary of parameter values to be used in the SQL query.
+            filters: object for advanced filtering, sorting, and pagination logic.
+            model: pydantic model type to map query results into model instances.
+            group_by: list of column names to group results by in the SQL query.
+            table_name: if provided some optimisations can be applied.
+        """
+
         if not filters:
             filters = Filters()
         clause = filters.where(where)
