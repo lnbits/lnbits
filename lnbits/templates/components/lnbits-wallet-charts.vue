@@ -1,4 +1,4 @@
-<template id="lnbits-wallet-chart">
+<template id="lnbits-wallet-charts">
   <div
     :style="!chartDataPointCount ? 'display:none;' : ''"
     class="col-12 col-md-5 q-gutter-y-md"
@@ -17,9 +17,7 @@
         </div>
       </q-card-section>
     </q-card>
-    <q-card
-      :style="chartConfig.showWalletPaymentInOutChart ? '' : 'display: none;'"
-    >
+    <q-card :style="chartConfig.showPaymentInOutChart ? '' : 'display: none;'">
       <q-card-section class="q-pa-none">
         <div style="height: 200px" class="q-pa-sm">
           <canvas ref="walletPaymentInOut"></canvas>

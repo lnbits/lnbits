@@ -500,7 +500,7 @@
                         <div class="col-md-4 col-sm-12">
                           <q-checkbox
                             dense
-                            v-model="showBalanceChart"
+                            v-model="chartConfig.showBalanceChart"
                             :label="$t('payments_balance_chart')"
                           >
                           </q-checkbox>
@@ -509,7 +509,7 @@
                         <div class="col-md-4 col-sm-12">
                           <q-checkbox
                             dense
-                            v-model="showBalanceInOutChart"
+                            v-model="chartConfig.showBalanceInOutChart"
                             :label="$t('payments_balance_in_out_chart')"
                           >
                           </q-checkbox>
@@ -517,7 +517,7 @@
                         <div class="col-md-4 col-sm-12">
                           <q-checkbox
                             dense
-                            v-model="showPaymentInOutChart"
+                            v-model="chartConfig.showPaymentInOutChart"
                             :label="$t('payments_count_in_out_chart')"
                           >
                           </q-checkbox>
@@ -546,10 +546,10 @@
               </a>
             </q-card-section>
           </q-card>
-          <lnbits-wallet-chart
+          <lnbits-wallet-charts
             :payment-filter="paymentFilter"
             :chart-config="chartConfig"
-          ></lnbits-wallet-chart>
+          ></lnbits-wallet-charts>
         </div>
       </div>
 

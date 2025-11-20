@@ -117,7 +117,9 @@ window.WalletPageLogic = {
       paymentFilter: {
         'status[ne]': 'failed'
       },
-      chartConfig: Quasar.LocalStorage.get('lnbits.wallets.chartConfig') || {
+      chartConfig: Quasar.LocalStorage.getItem(
+        'lnbits.wallets.chartConfig'
+      ) || {
         showPaymentInOutChart: true,
         showBalanceChart: true,
         showBalanceInOutChart: true

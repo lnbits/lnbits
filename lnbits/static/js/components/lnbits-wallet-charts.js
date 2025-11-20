@@ -1,7 +1,7 @@
-window.app.component('lnbits-wallet-chart', {
-  template: '#lnbits-wallet-chart',
+window.app.component('lnbits-wallet-charts', {
+  template: '#lnbits-wallet-charts',
   mixins: [window.windowMixin],
-  props: ['paymentFilter', 'walletChart'],
+  props: ['paymentFilter', 'chartConfig'],
   data() {
     return {
       debounceTimeoutValue: 1337,
@@ -196,13 +196,13 @@ window.app.component('lnbits-wallet-chart', {
     },
     drawCharts() {
       const {data, labels} = this.filterChartData()
-      if (this.g.walletChartConfig.includes('balance')) {
+      if (this.chartConfig.showBalanceChart) {
         this.drawBalanceChart(data, labels)
       }
-      if (this.g.walletChartConfig.includes('balance-in-out')) {
+      if (this.chartConfig.showBalanceInOutChart) {
         this.drawBalanceInOutChart(data, labels)
       }
-      if (this.g.walletChartConfig.includes('payment-in-out')) {
+      if (this.chartConfig.showPaymentInOutChart) {
         this.drawPaymentInOut(data, labels)
       }
     },
@@ -220,9 +220,7 @@ window.app.component('lnbits-wallet-chart', {
     }
   },
   async created() {
-    if (this.g.walletChartConfig.length > 0) {
-      await this.fetchChartData()
-      this.drawCharts()
-    }
+    await this.fetchChartData()
+    this.drawCharts()
   }
 })
