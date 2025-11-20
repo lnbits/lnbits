@@ -232,9 +232,7 @@ class Connection(Compat):
         group_by_string = ""
         if group_by:
             for field in group_by:
-                if not re.fullmatch(
-                    r"[a-zA-Z_][a-zA-Z0-9_]*(\.[a-zA-Z_][a-zA-Z0-9_]*)?", field
-                ):
+                if not _valid_sql_name(field):
                     raise ValueError("Value for GROUP BY is invalid")
             group_by_string = f"GROUP BY {', '.join(group_by)}"
 
@@ -252,11 +250,15 @@ class Connection(Compat):
         if rows:
             # no need for extra query if no pagination is specified
             if filters.offset or filters.limit:
-                count_query = (
-                    f"SELECT COUNT(*) as count FROM {table_name} "  # noqa: S608
-                    if table_name
-                    else query
-                )
+                if table_name:
+                    if not _valid_sql_name(table_name):
+                        raise ValueError(f"Invalid table name: '{table_name}'")
+                    count_query = (
+                        f"SELECT COUNT(*) as count FROM {table_name} "  # noqa: S608
+                    )
+                else:
+                    count_query = query
+
                 result = await self.execute(
                     f"""
                     SELECT COUNT(*) as count FROM (
@@ -759,3 +761,11 @@ def _safe_load_json(value: str) -> dict:
         # DB is corrupted if it gets here
         logger.error(f"Failed to decode JSON: '{value}'")
         return {}
+
+
+def _valid_sql_name(name: str) -> bool:
+    """Check if a SQL name is valid (alphanumeric and underscores only)"""
+    return (
+        re.fullmatch(r"[a-zA-Z_][a-zA-Z0-9_]*(\.[a-zA-Z_][a-zA-Z0-9_]*)?", name)
+        is not None
+    )
