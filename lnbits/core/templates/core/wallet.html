@@ -181,7 +181,7 @@
             <lnbits-payment-list
               :update="updatePayments"
               :expand-details="expandDetails"
-              :paymentFilter="paymentFilter"
+              :payment-filter="paymentFilter"
             ></lnbits-payment-list>
           </q-card-section>
         </q-card>
@@ -500,7 +500,6 @@
                         <div class="col-md-4 col-sm-12">
                           <q-checkbox
                             dense
-                            @update:model-value="setWalletChartConfig('balance')"
                             v-model="showBalanceChart"
                             :label="$t('payments_balance_chart')"
                           >
@@ -510,7 +509,6 @@
                         <div class="col-md-4 col-sm-12">
                           <q-checkbox
                             dense
-                            @update:model-value="setWalletChartConfig('balance-in-out')"
                             v-model="showBalanceInOutChart"
                             :label="$t('payments_balance_in_out_chart')"
                           >
@@ -519,7 +517,6 @@
                         <div class="col-md-4 col-sm-12">
                           <q-checkbox
                             dense
-                            @update:model-value="setWalletChartConfig('payment-in-out')"
                             v-model="showPaymentInOutChart"
                             :label="$t('payments_count_in_out_chart')"
                           >
@@ -550,7 +547,8 @@
             </q-card-section>
           </q-card>
           <lnbits-wallet-chart
-            :paymentFilter="paymentFilter"
+            :payment-filter="paymentFilter"
+            :chart-config="chartConfig"
           ></lnbits-wallet-chart>
         </div>
       </div>

@@ -8,16 +8,6 @@ const localStore = (key, defaultValue) => {
     : defaultValue
 }
 
-// migrate from object to array
-const walletChartConfig = localStore('lnbits.wallets.chartConfig', null)
-if (walletChartConfig !== null && !Array.isArray(walletChartConfig)) {
-  const newConfig = []
-  if (walletChartConfig.showBalance) newConfig.push('balance')
-  if (walletChartConfig.showBalanceInOut) newConfig.push('balance-in-out')
-  if (walletChartConfig.showPaymentCountInOut) newConfig.push('payment-in-out')
-  Quasar.LocalStorage.set('lnbits.wallets.chartConfig', newConfig)
-}
-
 window.g = Vue.reactive({
   isUserAuthorized: !!Quasar.Cookies.get('is_lnbits_user_authorized'),
   offline: !navigator.onLine,
@@ -35,7 +25,6 @@ window.g = Vue.reactive({
   newWalletType: 'lightning',
   updatePayments: false,
   updatePaymentsHash: '',
-  walletChartConfig: walletChartConfig || ['payment-in-out'],
   mobileSimple: localStore('lnbits.mobileSimple', true),
   walletFlip: localStore('lnbits.walletFlip', false),
   locale: localStore('lnbits.lang', navigator.languages[1] ?? 'en'),
@@ -57,12 +46,7 @@ window.g = Vue.reactive({
     'lnbits.backgroundImage',
     WINDOW_SETTINGS.LNBITS_DEFAULT_BGIMAGE || ''
   ),
-  ads: WINDOW_SETTINGS.AD_SPACE.split(',').map(ad => ad.split(';')),
-  walletChartConfig: localStore('lnbits.wallets.chartConfig', [
-    'balance',
-    'balance-in-out',
-    'payment-in-out'
-  ])
+  ads: WINDOW_SETTINGS.AD_SPACE.split(',').map(ad => ad.split(';'))
 })
 
 window.dateFormat = 'YYYY-MM-DD HH:mm'

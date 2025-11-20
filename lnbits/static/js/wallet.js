@@ -117,9 +117,11 @@ window.WalletPageLogic = {
       paymentFilter: {
         'status[ne]': 'failed'
       },
-      showPaymentInOutChart: false,
-      showBalanceChart: false,
-      showBalanceInOutChart: false
+      chartConfig: Quasar.LocalStorage.get('lnbits.wallets.chartConfig') || {
+        showPaymentInOutChart: true,
+        showBalanceChart: true,
+        showBalanceInOutChart: true
+      }
     }
   },
   computed: {
@@ -161,14 +163,6 @@ window.WalletPageLogic = {
     }
   },
   methods: {
-    setWalletChartConfig(chartName) {
-      const cfg = this.g.walletChartConfig
-      if (cfg.includes(chartName)) {
-        this.g.walletChartConfig = cfg.filter(c => c !== chartName)
-      } else {
-        this.g.walletChartConfig = cfg.concat([chartName])
-      }
-    },
     dateFromNow(unix) {
       const date = new Date(unix * 1000)
       return moment.utc(date).local().fromNow()
@@ -855,17 +849,6 @@ window.WalletPageLogic = {
     }
   },
   created() {
-    if (this.g.walletChartConfig.length > 0) {
-      if (this.g.walletChartConfig.includes('balance')) {
-        this.showBalanceChart = true
-      }
-      if (this.g.walletChartConfig.includes('balance-in-out')) {
-        this.showBalanceInOutChart = true
-      }
-      if (this.g.walletChartConfig.includes('payment-in-out')) {
-        this.showPaymentInOutChart = true
-      }
-    }
     this.stored_paylinks = wallet.stored_paylinks.links
     const urlParams = new URLSearchParams(window.location.search)
     if (urlParams.has('lightning') || urlParams.has('lnurl')) {

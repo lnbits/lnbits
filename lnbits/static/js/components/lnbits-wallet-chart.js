@@ -1,7 +1,7 @@
 window.app.component('lnbits-wallet-chart', {
   template: '#lnbits-wallet-chart',
   mixins: [window.windowMixin],
-  props: ['paymentFilter'],
+  props: ['paymentFilter', 'walletChart'],
   data() {
     return {
       debounceTimeoutValue: 1337,
@@ -40,9 +40,13 @@ window.app.component('lnbits-wallet-chart', {
         this.changeCharts()
       }
     },
-    async 'g.walletChartConfig'(val) {
-      this.$q.localStorage.setItem('lnbits.wallets.chartConfig', val)
-      this.changeCharts()
+    chartConfig: {
+      deep: true,
+      handler() {
+        this.changeCharts()
+        this.$q.localStorage.setItem('lnbits.wallets.chartConfig', val)
+        this.changeCharts()
+      }
     }
   },
   methods: {
