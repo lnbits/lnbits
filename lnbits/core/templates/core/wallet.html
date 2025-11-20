@@ -239,27 +239,6 @@
               <q-separator></q-separator>
 
               <q-list>
-                {% if wallet.lnurlwithdraw_full %}
-                <q-expansion-item
-                  group="extras"
-                  icon="crop_free"
-                  :label="$t('drain_funds')"
-                >
-                  <q-card>
-                    <q-card-section>
-                      <lnbits-qrcode
-                        value="lightning:{{wallet.lnurlwithdraw_full}}"
-                        href="lightning:{{wallet.lnurlwithdraw_full}}"
-                      ></lnbits-qrcode>
-                      <p
-                        class="text-center"
-                        v-text="$t('drain_funds_desc')"
-                      ></p>
-                    </q-card-section>
-                  </q-card>
-                </q-expansion-item>
-                <q-separator></q-separator>
-                {% endif %}
                 <q-expansion-item
                   group="extras"
                   icon="qr_code"

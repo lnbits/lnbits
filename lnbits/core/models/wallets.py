@@ -4,12 +4,10 @@ from dataclasses import dataclass
 from datetime import datetime, timezone
 from enum import Enum
 
-from lnurl import encode as lnurl_encode
 from pydantic import BaseModel, Field
 
 from lnbits.core.models.lnurl import StoredPayLinks
 from lnbits.db import FilterModel
-from lnbits.helpers import url_for
 from lnbits.settings import settings
 
 
@@ -195,14 +193,6 @@ class Wallet(BaseModel):
     @property
     def withdrawable_balance(self) -> int:
         return self.balance_msat - settings.fee_reserve(self.balance_msat)
-
-    @property
-    def lnurlwithdraw_full(self) -> str:
-        url = url_for("/withdraw", external=True, usr=self.user, wal=self.id)
-        try:
-            return lnurl_encode(url)
-        except Exception:
-            return ""
 
     @property
     def is_lightning_wallet(self) -> bool:
