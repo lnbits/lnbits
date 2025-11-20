@@ -10,7 +10,7 @@ window.PageExtensions = {
       searchTerm: '',
       tab: 'all',
       manageExtensionTab: 'releases',
-      filteredExtensions: null,
+      filteredExtensions: [],
       updatableExtensions: [],
       showUninstallDialog: false,
       showManageExtensionDialog: false,
@@ -33,12 +33,12 @@ window.PageExtensions = {
   watch: {
     searchTerm(term) {
       this.filterExtensions(term, this.tab)
+    },
+    tab(val) {
+      this.filterExtensions(this.searchTerm, val)
     }
   },
   methods: {
-    handleTabChanged(tab) {
-      this.filterExtensions(this.searchTerm, tab)
-    },
     filterExtensions(term, tab) {
       // Filter the extensions list
       function extensionNameContains(searchTerm) {
@@ -65,7 +65,6 @@ window.PageExtensions = {
           details_link:
             e.installedRelease?.details_link || e.latestRelease?.details_link
         }))
-      this.tab = tab
     },
 
     async installExtension(release) {
@@ -74,29 +73,31 @@ window.PageExtensions = {
       this.unsubscribeFromPaylinkWs()
 
       const extension = this.selectedExtension
-      extension.inProgress = true
+      this.selectedExtension.inProgress = true
       this.showManageExtensionDialog = false
       release.payment_hash =
         release.payment_hash || this.getPaylinkHash(release.pay_link)
 
       LNbits.api
         .request('POST', `/api/v1/extension`, this.g.user.wallets[0].adminkey, {
-          ext_id: extension.id,
+          ext_id: this.selectedExtension.id,
           archive: release.archive,
           source_repo: release.source_repo,
           payment_hash: release.payment_hash,
           version: release.version
         })
         .then(response => {
+          const extension = this.extensions.find(
+            ext => ext.id === this.selectedExtension.id
+          )
           extension.isAvailable = true
           extension.isInstalled = true
           extension.installedRelease = release
           this.toggleExtension(extension)
           extension.inProgress = false
-          this.filteredExtensions = this.extensions.concat([])
-          this.handleTabChanged('installed')
+          this.selectedExtension = extension
+          this.extensions = this.extensions.concat([])
           this.tab = 'installed'
-          this.refreshRoute()
         })
         .catch(err => {
           console.warn(err)
@@ -105,23 +106,23 @@ window.PageExtensions = {
         })
     },
     async uninstallExtension() {
-      const extension = this.selectedExtension
       this.showManageExtensionDialog = false
       this.showUninstallDialog = false
-      extension.inProgress = true
+      this.selectedExtension.inProgress = true
       LNbits.api
         .request(
           'DELETE',
-          `/api/v1/extension/${extension.id}`,
+          `/api/v1/extension/${this.selectedExtension.id}`,
           this.g.user.wallets[0].adminkey
         )
         .then(response => {
+          const extension = this.extensions.find(
+            ext => ext.id === this.selectedExtension.id
+          )
           extension.isAvailable = false
           extension.isInstalled = false
           extension.inProgress = false
           extension.installedRelease = null
-          this.filteredExtensions = this.extensions.concat([])
-          this.handleTabChanged('installed')
           this.tab = 'installed'
           Quasar.Notify.create({
             type: 'positive',
@@ -129,10 +130,6 @@ window.PageExtensions = {
           })
           if (this.uninstallAndDropDb) {
             this.showDropDb()
-          } else {
-            setTimeout(() => {
-              this.refreshRoute()
-            }, 300)
           }
         })
         .catch(err => {
@@ -160,9 +157,6 @@ window.PageExtensions = {
             type: 'positive',
             message: 'Extension DB deleted!'
           })
-          setTimeout(() => {
-            this.refreshRoute()
-          }, 300)
         })
         .catch(err => {
           LNbits.utils.notifyApiError(err)
@@ -626,9 +620,6 @@ window.PageExtensions = {
         message: `${count ? count : 'No'} extensions updated!`
       })
       this.showUpdateAllDialog = false
-      setTimeout(() => {
-        this.refreshRoute()
-      }, 2000)
     },
     async fetchAllExtensions() {
       try {
@@ -644,20 +635,18 @@ window.PageExtensions = {
   async created() {
     this.extensions = await this.fetchAllExtensions()
     this.extbuilderEnabled = user.admin || this.LNBITS_EXT_BUILDER
-    this.filteredExtensions = this.extensions.concat([])
-    const hash = window.location.hash.replace('#', '')
-    const ext = this.filteredExtensions.find(ext => ext.id === hash)
+
+    const extId = window.location.hash.replace('#', '')
+    const ext = this.extensions.find(ext => ext.id === extId)
+
     if (ext) {
       this.searchTerm = ext.id
-      this.handleTabChanged(ext.isInstalled ? 'installed' : 'all')
-      this.tab = ext.isInstalled ? 'installed' : 'all'
-    } else {
-      const hasInstalled = this.filteredExtensions.some(ext => ext.isInstalled)
-      this.handleTabChanged(hasInstalled ? 'installed' : 'all')
-      this.tab = hasInstalled ? 'installed' : 'all'
+      if (ext.isInstalled) this.tab = 'installed'
     }
     this.updatableExtensions = this.extensions.filter(ext =>
       this.hasNewVersion(ext)
     )
+
+    this.filterExtensions(this.searchTerm, this.tab)
   }
 }

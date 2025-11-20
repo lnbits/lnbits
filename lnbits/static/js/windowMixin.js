@@ -59,14 +59,6 @@ window.windowMixin = {
           }
         }
       })
-    },
-    refreshRoute() {
-      const path = window.location.pathname
-      console.log(path)
-
-      this.$router.push('/temp').then(() => {
-        this.$router.replace({path})
-      })
     }
   },
   created() {

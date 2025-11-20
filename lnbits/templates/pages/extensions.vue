@@ -4,12 +4,7 @@
       <q-card>
         <div>
           <div class="q-gutter-y-md">
-            <q-tabs
-              :model-value="tab"
-              @update:model-value="handleTabChanged"
-              active-color="primary"
-              align="left"
-            >
+            <q-tabs v-model="tab" active-color="primary" align="left">
               <q-tab name="installed" :label="$t('installed')"></q-tab>
               <q-tab name="all" :label="$t('all')"></q-tab>
               <q-tab name="featured" :label="$t('featured')"></q-tab>
