@@ -265,22 +265,16 @@ class Connection(Compat):
             # no need for extra query if no pagination is specified
             if filters.offset or filters.limit:
                 if table_name:
-                    count_query = (
-                        f"SELECT COUNT(*) as count FROM {table_name} "  # noqa: S608
-                    )
+                    count_query = f"SELECT COUNT(*) as count FROM {table_name} {clause}"  # noqa: S608
                 else:
-                    count_query = query
-
-                result = await self.execute(
-                    f"""
-                    SELECT COUNT(*) as count FROM (
-                        {count_query}
+                    count_query = f"""SELECT COUNT(*) as count
+                    FROM (
+                        {query}
                         {clause}
                         {group_by_string}
-                    ) as count
-                    """,  # noqa: S608
-                    parsed_values,
-                )
+                    ) as count"""  # noqa: S608
+
+                result = await self.execute(count_query, parsed_values)
                 row = result.mappings().first()
                 result.close()
                 count = int(row.get("count", 0))
