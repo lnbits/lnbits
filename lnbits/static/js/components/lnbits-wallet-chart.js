@@ -42,8 +42,7 @@ window.app.component('lnbits-wallet-chart', {
     },
     chartConfig: {
       deep: true,
-      handler() {
-        this.changeCharts()
+      handler(val) {
         this.$q.localStorage.setItem('lnbits.wallets.chartConfig', val)
         this.changeCharts()
       }
