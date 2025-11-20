@@ -32,19 +32,19 @@ window.g = Vue.reactive({
   themeChoice: localStore('lnbits.theme', WINDOW_SETTINGS.LNBITS_DEFAULT_THEME),
   borderChoice: localStore(
     'lnbits.border',
-    WINDOW_SETTINGS.LNBITS_DEFAULT_REACTION
+    WINDOW_SETTINGS.LNBITS_DEFAULT_BORDER || 'hard-border'
   ),
   gradientChoice: localStore(
     'lnbits.gradientBg',
-    WINDOW_SETTINGS.LNBITS_DEFAULT_GRADIENT
+    WINDOW_SETTINGS.LNBITS_DEFAULT_GRADIENT || false
   ),
   reactionChoice: localStore(
     'lnbits.reactions',
-    WINDOW_SETTINGS.LNBITS_DEFAULT_REACTION
+    WINDOW_SETTINGS.LNBITS_DEFAULT_REACTION || 'confettiBothSides'
   ),
   bgimageChoice: localStore(
     'lnbits.backgroundImage',
-    WINDOW_SETTINGS.LNBITS_DEFAULT_BGIMAGE
+    WINDOW_SETTINGS.LNBITS_DEFAULT_BGIMAGE || ''
   ),
   ads: WINDOW_SETTINGS.AD_SPACE.split(',').map(ad => ad.split(';'))
 })
