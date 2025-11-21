@@ -190,6 +190,7 @@
     :filter="paymentFilter"
     :loading="paymentsTable.loading"
     v-model:pagination="paymentsTable.pagination"
+    :hide-bottom="g.mobileSimple && $q.screen.lt.md"
     @request="fetchPayments"
   >
     <template v-slot:header="props">
