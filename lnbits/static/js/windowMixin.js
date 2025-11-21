@@ -5,14 +5,9 @@ window.windowMixin = {
       api: window._lnbitsApi,
       utils: window._lnbitsUtils,
       g: window.g,
-      toggleSubs: true,
-      isSatsDenomination: WINDOW_SETTINGS['LNBITS_DENOMINATION'] == 'sats',
-      allowedThemes: WINDOW_SETTINGS['LNBITS_THEME_OPTIONS'],
-      walletEventListeners: [],
       ...WINDOW_SETTINGS
     }
   },
-
   methods: {
     openNewWalletDialog(walletType = 'lightning') {
       this.g.newWalletType = walletType

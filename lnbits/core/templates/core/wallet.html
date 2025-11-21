@@ -16,7 +16,7 @@
           <q-card-section style="height: 130px">
             <div class="row q-gutter-md">
               <div
-                v-if="isSatsDenomination"
+                v-if="g.isSatsDenomination"
                 class="col-1"
                 style="max-width: 30px"
               >
@@ -46,7 +46,7 @@
                       <div class="col-auto">
                         <div class="text-h3 q-my-none full-width">
                           <strong
-                            v-text="formatBalance(this.g.wallet.sat)"
+                            v-text="formatBalance(g.wallet.sat)"
                             class="text-no-wrap"
                             :style="{fontSize: 'clamp(0.75rem, 10vw, 3rem)', display: 'inline-block', maxWidth: '100%'}"
                           ></strong>
@@ -55,7 +55,7 @@
                       <div class="col-auto">
                         <lnbits-update-balance
                           v-if="$q.screen.lt.lg"
-                          :wallet_id="this.g.wallet.id"
+                          :wallet_id="g.wallet.id"
                           :callback="updateBalanceCallback"
                           :small_btn="true"
                         ></lnbits-update-balance>
@@ -95,7 +95,7 @@
                       <div class="col-auto">
                         <lnbits-update-balance
                           v-if="$q.screen.lt.lg"
-                          :wallet_id="this.g.wallet.id"
+                          :wallet_id="g.wallet.id"
                           :callback="updateBalanceCallback"
                           :small_btn="true"
                         ></lnbits-update-balance>
@@ -106,7 +106,7 @@
                     <span
                       class="text-h5 text-italic"
                       style="opacity: 0.75"
-                      v-text="formattedBalance + ' {{LNBITS_DENOMINATION}}'"
+                      v-text="formatBalance(g.wallet.sat)"
                     >
                     </span>
                   </div>
@@ -114,7 +114,7 @@
 
                 <div
                   class="absolute-right q-pa-md"
-                  v-if="$q.screen.gt.md && g.fiatTracking &&  '{{ LNBITS_DENOMINATION }}' == 'sats'"
+                  v-if="$q.screen.gt.md && g.fiatTracking && g.isSatsDenomination"
                 >
                   <div class="text-bold text-italic">BTC Price</div>
                   <span
@@ -213,7 +213,7 @@
                   style="position: relative; left: -15px; bottom: -10px"
                 ></q-btn>
                 <div class="text-subtitle1 q-mt-none q-mb-none">
-                  {{ SITE_TITLE }} Wallet:
+                  <span v-text="$t('wallet')"></span>
                   <strong><em v-text="g.wallet.name"></em></strong>
                 </div>
                 <q-space></q-space>
@@ -408,9 +408,7 @@
                         <div class="col-2"></div>
                       </div>
                     </q-card-section>
-                    <q-card-section
-                      v-if="'{{ LNBITS_DENOMINATION }}' == 'sats'"
-                    >
+                    <q-card-section v-if="g.isSatsDenomination">
                       <div class="row">
                         <div class="col-6">
                           <q-select
@@ -594,7 +592,7 @@
               filled
               dense
               v-model="receive.data.amount"
-              :label="$t('amount')+' ({{LNBITS_DENOMINATION}}) *'"
+              :label="$t('amount') + '(' + denomination + ') *'"
               mask="#.##"
               fill-mask="0"
               reverse-fill-mask
@@ -698,9 +696,7 @@
                 >
                   <q-item-section avatar>
                     <q-avatar square>
-                      <img
-                        :src="'{{ static_url_for('static', 'images/logos/lnbits.png') }}'"
-                      />
+                      <img src="/static/images/logos/lnbits.png" />
                     </q-avatar>
                   </q-item-section>
                   <q-item-section>
@@ -719,9 +715,7 @@
                 >
                   <q-item-section avatar>
                     <q-avatar>
-                      <img
-                        :src="'{{ static_url_for('static', 'images/stripe_logo.ico') }}'"
-                      />
+                      <img src="/static/images/stripe_logo.ico" />
                     </q-avatar>
                   </q-item-section>
                   <q-item-section>
@@ -1022,7 +1016,7 @@
                 <span
                   v-text="msatoshiFormat(parse.lnurlpay.maxSendable)"
                 ></span>
-                <span v-text="'{{LNBITS_DENOMINATION}}'"></span>
+                <span v-text="denomination"></span>
                 <span v-if="parse.lnurlpay.commentAllowed > 0">
                   <br />
                   and a
@@ -1038,7 +1032,7 @@
                 between
                 <b v-text="msatoshiFormat(parse.lnurlpay.minSendable)"></b> and
                 <b v-text="msatoshiFormat(parse.lnurlpay.maxSendable)"></b>
-                <span v-text="'{{LNBITS_DENOMINATION}}'"></span>
+                <span v-text="denomination"></span>
                 <span v-if="parse.lnurlpay.commentAllowed > 0">
                   <br />
                   and a

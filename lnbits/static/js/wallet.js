@@ -122,16 +122,6 @@ window.WalletPageLogic = {
     }
   },
   computed: {
-    formattedBalance() {
-      if (LNBITS_DENOMINATION != 'sats') {
-        return LNbits.utils.formatCurrency(
-          this.g.wallet.sat / 100,
-          LNBITS_DENOMINATION
-        )
-      } else {
-        return LNbits.utils.formatSat(this.g.wallet.sat)
-      }
-    },
     canPay() {
       if (!this.parse.invoice) return false
       if (this.parse.invoice.expired) {

@@ -579,7 +579,7 @@ window.PageAccount = {
 
     // filter out themes that are not allowed
     this.themeOptions = this.themeOptions.filter(theme =>
-      this.allowedThemes.includes(theme.name)
+      this.LNBITS_THEME_OPTIONS.includes(theme.name)
     )
   }
 }
