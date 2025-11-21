@@ -72,7 +72,7 @@
       <q-btn
         v-close-popup
         flat
-        href="/account#labels"
+        @click="$router.push('/account#labels')"
         color="grey"
         icon="settings"
         class="q-ml-auto float-right"
