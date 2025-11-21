@@ -203,7 +203,9 @@
                   :color="g.wallet.extra.color"
                 >
                 </q-avatar>
-                <lnbits-wallet-icon></lnbits-wallet-icon>
+                <lnbits-wallet-icon
+                  @update-wallet="updateWallet"
+                ></lnbits-wallet-icon>
                 <div class="text-subtitle1 q-mt-none q-mb-none">
                   <span v-text="$t('wallet')"></span>
                   <strong><em v-text="g.wallet.name"></em></strong>

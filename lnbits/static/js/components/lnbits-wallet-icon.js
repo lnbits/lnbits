@@ -69,7 +69,7 @@ window.app.component('lnbits-wallet-icon', {
       this.icon.data.color = selectedColor
     },
     setIcon() {
-      this.updateWallet(this.icon.data)
+      this.$emit('update-wallet', this.icon.data)
       this.icon.show = false
     }
   }
