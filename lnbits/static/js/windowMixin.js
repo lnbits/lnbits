@@ -5,6 +5,7 @@ window.windowMixin = {
       api: window._lnbitsApi,
       utils: window._lnbitsUtils,
       g: window.g,
+      currencies: window.currencies,
       ...WINDOW_SETTINGS
     }
   },

@@ -26,7 +26,8 @@ include('components/lnbits-label-selector.vue') %} {%
 include('components/lnbits-wallet-api-docs.vue') %} {%
 include('components/lnbits-wallet-share.vue') %} {%
 include('components/lnbits-wallet-charts.vue') %} {%
-include('components/lnbits-wallet-paylinks.vue') %}
+include('components/lnbits-wallet-paylinks.vue') %} {%
+include('components/lnbits-wallet-extra.vue') %}
 
 <template id="lnbits-manage">
   <q-list v-if="g.user" dense class="lnbits-drawer__q-list">

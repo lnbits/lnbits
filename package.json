@@ -125,6 +125,7 @@
       "js/components/lnbits-wallet-new.js",
       "js/components/lnbits-wallet-share.js",
       "js/components/lnbits-wallet-paylinks.js",
+      "js/components/lnbits-wallet-extra.js",
       "js/components/lnbits-home-logos.js",
       "js/components/lnbits-qrcode.js",
       "js/components/lnbits-qrcode-lnurl.js",
