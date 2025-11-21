@@ -189,8 +189,6 @@
     :no-data-label="$t('no_transactions')"
     :filter="paymentFilter"
     :loading="paymentsTable.loading"
-    :hide-header="g.mobileSimple"
-    :hide-bottom="g.mobileSimple"
     v-model:pagination="paymentsTable.pagination"
     @request="fetchPayments"
   >
