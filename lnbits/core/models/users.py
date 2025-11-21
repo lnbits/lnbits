@@ -38,9 +38,9 @@ class WalletInviteRequest(BaseModel):
 
 
 class UserLabel(BaseModel):
-    name: str
-    description: str | None = None
-    color: str | None = None
+    name: str = Field(regex=r"([A-Za-z0-9 ._-]{1,100}$)")
+    description: str | None = Field(default=None, max_length=250)
+    color: str | None = Field(default=None, max_length=7)  # e.g., "#RRGGBB"
 
 
 class UserExtra(BaseModel):
