@@ -2035,11 +2035,14 @@ async def test_api_update_user_labels(http_client: AsyncClient):
     user_data = response.json()
     assert len(user_data["extra"]["labels"]) == 0
 
-    data.extra.labels = [UserLabel(name="label + 01", color="#FF0000")]
+    json_data = data.dict()
+    json_data["extra"] = {"labels": [{"name": "label + 01", "color": "#FF0000"}]}
     response = await http_client.put(
-        "/api/v1/auth/update?usr=" + user.id, json=data.dict()
+        "/api/v1/auth/update?usr=" + user.id, json=json_data
     )
 
     assert response.status_code == 400
     data = response.json()
-    assert data["detail"] == "Invalid label name: label + 01"
+    assert (
+        """string does not match regex "([A-Za-z0-9 ._-]{1,100}$)""" in data["detail"]
+    )
