@@ -214,7 +214,7 @@
           <b v-text="receive.lnurl.domain"></b> is requesting an invoice:
         </p>
         <q-input
-          v-if="g.isSatsDenomination"
+          v-if="!g.isSatsDenomination"
           filled
           dense
           v-model="receive.data.amount"
@@ -251,6 +251,7 @@
             </div>
           </div>
           <q-input
+            class="q-mt-md"
             ref="setAmount"
             filled
             :pattern="receive.unit === 'sat' ? '\\d*' : '\\d*\\.?\\d*'"
