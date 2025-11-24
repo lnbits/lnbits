@@ -30,7 +30,6 @@ from .settings import (
 from .users import (
     check_admin_settings,
     create_user_account,
-    create_user_account_no_ckeck,
     update_user_account,
     update_user_extensions,
 )
@@ -47,7 +46,6 @@ __all__ = [
     "create_invoice",
     "create_payment_request",
     "create_user_account",
-    "create_user_account_no_ckeck",
     "create_wallet_invoice",
     "enqueue_admin_notification",
     "fee_reserve",

@@ -29,6 +29,7 @@ from lnbits.core.services.users import update_user_account
 from lnbits.decorators import (
     access_token_payload,
     check_account_exists,
+    check_new_accounts_allowed,
     check_user_exists,
 )
 from lnbits.helpers import (
@@ -282,7 +283,7 @@ async def logout() -> JSONResponse:
     return response
 
 
-@auth_router.post("/register")
+@auth_router.post("/register", dependencies=[Depends(check_new_accounts_allowed)])
 async def register(data: RegisterUser) -> JSONResponse:
     if not settings.is_auth_method_allowed(AuthMethods.username_and_password):
         raise HTTPException(

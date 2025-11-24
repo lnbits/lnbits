@@ -552,3 +552,11 @@ async def check_first_install():
             status_code=HTTPStatus.BAD_REQUEST,
             detail="Super user account has already been configured.",
         )
+
+
+async def check_new_accounts_allowed():
+    if not settings.new_accounts_allowed:
+        raise HTTPException(
+            status_code=HTTPStatus.FORBIDDEN,
+            detail="New account creation is disabled.",
+        )

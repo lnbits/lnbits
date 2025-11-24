@@ -34,7 +34,7 @@ from lnbits.core.models.extensions import (
     ExtensionRelease,
     InstallableExtension,
 )
-from lnbits.core.services import check_admin_settings, create_user_account_no_ckeck
+from lnbits.core.services import check_admin_settings, create_user_account
 from lnbits.core.views.extension_api import (
     api_install_extension,
     api_uninstall_extension,
@@ -295,7 +295,7 @@ async def create_user(username: str, password: str):
         username=username,
     )
     account.hash_password(password)
-    user = await create_user_account_no_ckeck(account)
+    user = await create_user_account(account)
     click.echo(f"User '{user.username}' created. Id: '{user.id}'")
 
 

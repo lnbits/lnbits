@@ -38,15 +38,6 @@ from .settings import update_cached_settings
 
 
 async def create_user_account(
-    account: Account | None = None, wallet_name: str | None = None
-) -> User:
-    if not settings.new_accounts_allowed:
-        raise ValueError("Account creation is disabled.")
-
-    return await create_user_account_no_ckeck(account, wallet_name)
-
-
-async def create_user_account_no_ckeck(
     account: Account | None = None,
     wallet_name: str | None = None,
     default_exts: list[str] | None = None,

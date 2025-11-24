@@ -33,7 +33,7 @@ from lnbits.core.models import (
 from lnbits.core.models.notifications import NotificationType
 from lnbits.core.models.users import Account
 from lnbits.core.services import (
-    create_user_account_no_ckeck,
+    create_user_account,
     enqueue_admin_notification,
     update_user_account,
     update_user_extensions,
@@ -108,7 +108,7 @@ async def api_create_user(data: CreateUser) -> CreateUser:
     )
     account.validate_fields()
     account.hash_password(data.password)
-    user = await create_user_account_no_ckeck(account, default_exts=data.extensions)
+    user = await create_user_account(account, default_exts=data.extensions)
     data.id = user.id
     return data
 
