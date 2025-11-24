@@ -68,6 +68,7 @@ window.windowMixin = {
     },
     selectWallet(wallet) {
       this.g.wallet = wallet
+      this.g.lastActiveWallet = wallet.id
       this.g.updatePayments = !this.g.updatePayments
       this.balance = parseInt(wallet.balance_msat / 1000)
       const currentPath = this.$route.path

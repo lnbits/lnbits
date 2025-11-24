@@ -30,6 +30,7 @@ window.g = Vue.reactive({
   isFiatPriority: localStore('lnbits.isFiatPriority', false),
   mobileSimple: localStore('lnbits.mobileSimple', true),
   walletFlip: localStore('lnbits.walletFlip', false),
+  lastActiveWallet: localStore('lnbits.lastActiveWallet', null),
   darkChoice: localStore('lnbits.darkMode', true),
   themeChoice: localStore('lnbits.theme', WINDOW_SETTINGS.LNBITS_DEFAULT_THEME),
   borderChoice: localStore(

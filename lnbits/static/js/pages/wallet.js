@@ -646,8 +646,24 @@ window.PageWallet = {
       this.decodeRequest()
       this.parse.show = true
     }
+    if (urlParams.has('wal')) {
+      const wallet = g.user.wallets.find(w => w.id === urlParams.get('wal'))
+      if (wallet) {
+        this.selectWallet(wallet)
+      }
+    } else {
+      const wallet = g.user.wallets.find(w => w.id === this.g.lastActiveWallet)
+      if (wallet) {
+        this.selectWallet(wallet)
+      } else if (g.user.wallets.length > 0) {
+        this.selectWallet(g.user.wallets[0])
+      }
+    }
   },
   watch: {
+    'g.lastActiveWallet'(val) {
+      this.$q.localStorage.setItem('lnbits.lastActiveWallet', val)
+    },
     'g.updatePayments'() {
       this.parse.show = false
       if (this.receive.paymentHash === this.g.updatePaymentsHash) {
