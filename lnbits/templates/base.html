@@ -34,6 +34,7 @@
     <div id="vue">
       <q-layout view="hHh lpR lfr" v-cloak>
         <lnbits-disclaimer></lnbits-disclaimer>
+        <lnbits-qrcode-scanner @detect="handleScan"></lnbits-qrcode-scanner>
         <lnbits-theme></lnbits-theme>
         <lnbits-header></lnbits-header>
         {% block drawer %}

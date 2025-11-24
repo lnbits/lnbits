@@ -11,6 +11,7 @@ const localStore = (key, defaultValue) => {
 window.g = Vue.reactive({
   isUserAuthorized: !!Quasar.Cookies.get('is_lnbits_user_authorized'),
   offline: !navigator.onLine,
+  hasCamera: false,
   visibleDrawer: false,
   extensions: WINDOW_SETTINGS.EXTENSIONS,
   user: null,
@@ -18,6 +19,7 @@ window.g = Vue.reactive({
   fiatBalance: 0,
   exchangeRate: 0,
   fiatTracking: false,
+  showScanner: false,
   payments: [],
   walletEventListeners: [],
   showNewWalletDialog: false,
@@ -76,5 +78,11 @@ addEventListener('online', event => {
 if (navigator.serviceWorker != null) {
   navigator.serviceWorker.register('/service-worker.js').then(registration => {
     console.log('Registered events at scope: ', registration.scope)
+  })
+}
+
+if (navigator.mediaDevices && navigator.mediaDevices.enumerateDevices) {
+  navigator.mediaDevices.enumerateDevices().then(devices => {
+    window.g.hasCamera = devices.some(device => device.kind === 'videoinput')
   })
 }

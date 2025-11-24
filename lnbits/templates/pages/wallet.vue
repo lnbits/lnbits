@@ -156,14 +156,15 @@
                 icon="file_upload"
               ></q-btn>
               <q-btn
+                v-if="g.hasCamera"
                 unelevated
-                color="secondary"
                 icon="qr_code_scanner"
+                color="secondary"
+                @click="openScanDialog(detectQR)"
                 :disable="
                   !this.g.wallet.canReceivePayments &&
                   !this.g.wallet.canSendPayments
                 "
-                @click="showCamera"
               >
                 <q-tooltip
                   ><span v-text="$t('camera_tooltip')"></span
@@ -842,27 +843,6 @@
     </q-card>
   </q-dialog>
 
-  <q-dialog v-model="parse.camera.show" position="top">
-    <q-card class="q-pa-lg q-pt-xl">
-      <div class="text-center q-mb-lg">
-        <qrcode-stream
-          @detect="decodeQR"
-          @camera-on="onInitQR"
-          class="rounded-borders"
-        ></qrcode-stream>
-      </div>
-      <div class="row q-mt-lg">
-        <q-btn
-          @click="closeCamera"
-          flat
-          color="grey"
-          class="q-ml-auto"
-          :label="$t('cancel')"
-        ></q-btn>
-      </div>
-    </q-card>
-  </q-dialog>
-
   <div
     class="lt-md fixed-bottom left-0 right-0 bg-primary text-white shadow-2 z-top"
   >
@@ -877,12 +857,13 @@
       <q-tab @click="showParseDialog" icon="file_upload" :label="$t('send')">
       </q-tab>
     </q-tabs>
+
     <q-btn
+      @click="openScanDialog(detectQR)"
       round
-      size="35px"
       unelevated
+      size="35px"
       icon="qr_code_scanner"
-      @click="showCamera"
       class="text-white bg-primary z-top vertical-bottom absolute-center absolute"
     >
     </q-btn>

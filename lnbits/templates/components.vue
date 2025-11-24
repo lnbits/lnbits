@@ -10,6 +10,7 @@ include('components/admin/extensions.vue') %} {%
 include('components/admin/assets-config.vue') %} {%
 include('components/admin/notifications.vue') %} {%
 include('components/admin/server.vue') %} {%
+include('components/lnbits-qrcode-scanner.vue') %} {%
 include('components/lnbits-disclaimer.vue') %} {%
 include('components/lnbits-footer.vue') %} {%
 include('components/lnbits-header.vue') %} {%

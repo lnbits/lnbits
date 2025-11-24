@@ -97,12 +97,6 @@ window.PageWallet = {
     msatoshiFormat(value) {
       return LNbits.utils.formatSat(value / 1000)
     },
-    closeCamera() {
-      this.parse.camera.show = false
-    },
-    showCamera() {
-      this.parse.camera.show = true
-    },
     showReceiveDialog() {
       this.receive.show = true
       this.receive.status = 'pending'
@@ -205,35 +199,6 @@ window.PageWallet = {
           this.receive.status = 'pending'
         })
     },
-    async onInitQR(promise) {
-      try {
-        await promise
-      } catch (error) {
-        const mapping = {
-          NotAllowedError: 'ERROR: you need to grant camera access permission',
-          NotFoundError: 'ERROR: no camera on this device',
-          NotSupportedError:
-            'ERROR: secure context required (HTTPS, localhost)',
-          NotReadableError: 'ERROR: is the camera already in use?',
-          OverconstrainedError: 'ERROR: installed cameras are not suitable',
-          StreamApiNotSupportedError:
-            'ERROR: Stream API is not supported in this browser',
-          InsecureContextError:
-            'ERROR: Camera access is only permitted in secure context. Use HTTPS or localhost rather than HTTP.'
-        }
-        const valid_error = Object.keys(mapping).filter(key => {
-          return error.name === key
-        })
-        const camera_error = valid_error
-          ? mapping[valid_error]
-          : `ERROR: Camera error (${error.name})`
-        this.parse.camera.show = false
-        Quasar.Notify.create({
-          message: camera_error,
-          type: 'negative'
-        })
-      }
-    },
     lnurlScan() {
       LNbits.api
         .request('POST', '/api/v1/lnurlscan', this.g.wallet.adminkey, {
@@ -281,8 +246,8 @@ window.PageWallet = {
           LNbits.utils.notifyApiError(err)
         })
     },
-    decodeQR(res) {
-      this.parse.data.request = res[0].rawValue
+    decodeQR(val) {
+      this.parse.data.request = val
       this.decodeRequest()
       this.parse.camera.show = false
     },
