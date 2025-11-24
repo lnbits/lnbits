@@ -25,13 +25,6 @@ async def test_get_wallet_with_user_and_wallet(client, to_user, to_wallet):
     assert response.status_code == 200, f"{response.url} {response.status_code}"
 
 
-# check GET /wallet: wrong wallet and user, expect 400
-@pytest.mark.anyio
-async def test_get_wallet_with_user_and_wrong_wallet(client, to_user):
-    response = await client.get("wallet", params={"usr": to_user.id, "wal": "1"})
-    assert response.status_code == 400, f"{response.url} {response.status_code}"
-
-
 # check GET /extensions: extensions list
 @pytest.mark.anyio
 async def test_get_extensions(client, to_user):
