@@ -245,6 +245,7 @@ class AccountFilters(FilterModel):
         "wallet_id",
     ]
     __sort_fields__ = [
+        "id",
         "email",
         "username",
         "pubkey",

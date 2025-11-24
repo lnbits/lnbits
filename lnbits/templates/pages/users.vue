@@ -515,7 +515,62 @@
           >
             <template v-slot:header="props">
               <q-tr :props="props">
-                <q-th auto-width></q-th>
+                <q-th auto-width>
+                  <q-btn flat dense icon="sort">
+                    <q-tooltip>
+                      <span v-text="$t('sort')"></span>
+                    </q-tooltip>
+                    <q-popup-edit class="q-pa-none" anchor-origin="top center" self-origin="bottom center">
+                      <q-item class="full-width" header>
+                        <strong v-text="$t('sort_by')"></strong>
+                      </q-item>
+                      <q-separator></q-separator>
+                      <q-scroll-area
+                        style="
+                          height: 230px;
+                          min-width: 200px;
+                          max-width: 400px;
+                        "
+                        class="full-width"
+                      >
+                        <template
+                          class="full-width"
+                          v-for="column in usersTable.sortFields"
+                          :key="column.name"
+                        >
+                          <q-item
+                            @click="sortByColumn(column.name)"
+                            clickable
+                            v-ripple
+                            v-close-popup
+                            dense
+                          >
+                            <q-item-section
+                              v-if="
+                                usersTable.pagination.sortBy === column.name
+                              "
+                              avatar
+                            >
+                              <q-icon
+
+                                v-if="usersTable.pagination.descending"
+                                name="arrow_downward"
+                              ></q-icon>
+                              <q-icon v-else name="arrow_upward"></q-icon>
+                            </q-item-section>
+                            <q-item-section v-else avatar></q-item-section>
+
+                            <q-item-section>
+                              <q-item-label lines="1" class="full-width"
+                                ><span v-text="column.label"></span
+                              ></q-item-label>
+                            </q-item-section>
+                          </q-item>
+                        </template>
+                      </q-scroll-area>
+                    </q-popup-edit>
+                  </q-btn>
+                </q-th>
                 <q-th v-for="col in props.cols" :key="col.name" :props="props">
                   <q-input
                     v-if="

@@ -716,11 +716,14 @@ window.localisation.en = {
   add_label: 'Add Label',
   label: 'Label',
   labels: 'Labels',
+  label_filter: 'Label Filter',
   no_labels_defined: 'No labels defined yet',
   manage_labels: 'Manage Labels',
   update_label: 'Update Label',
   delete_label: 'Delete Label',
   add_remove_labels: 'Add or Remove Labels',
   payment_labels_updated: 'Payment labels updated',
-  color: 'Color'
+  color: 'Color',
+  sort: 'Sort',
+  sort_by: 'Sort by'
 }

@@ -85,10 +85,10 @@ window.PageUsers = {
             sortable: false
           },
           {
-            name: 'user',
+            name: 'id',
             align: 'left',
             label: 'User Id',
-            field: 'user',
+            field: 'id',
             sortable: false
           },
 
@@ -139,12 +139,20 @@ window.PageUsers = {
           }
         ],
         pagination: {
-          sortBy: 'username',
+          sortBy: 'created_at',
           rowsPerPage: 10,
           page: 1,
-          descending: false,
+          descending: true,
           rowsNumber: 10
         },
+        sortFields: [
+          {name: 'id', label: 'User ID'},
+          {name: 'username', label: 'Username'},
+          {name: 'email', label: 'Email'},
+          {name: 'pubkey', label: 'Public Key'},
+          {name: 'created_at', label: 'Creation Date'},
+          {name: 'updated_at', label: 'Last Updated'}
+        ],
         search: null,
         hideEmpty: true,
         loading: false
@@ -197,6 +205,16 @@ window.PageUsers = {
             })
         })
         .catch(LNbits.utils.notifyApiError)
+    },
+    sortByColumn(columnName) {
+      if (this.usersTable.pagination.sortBy === columnName) {
+        this.usersTable.pagination.descending =
+          !this.usersTable.pagination.descending
+      } else {
+        this.usersTable.pagination.sortBy = columnName
+        this.usersTable.pagination.descending = false
+      }
+      this.fetchUsers()
     },
     createUser() {
       LNbits.api
