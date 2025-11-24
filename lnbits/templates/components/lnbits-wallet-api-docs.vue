@@ -99,6 +99,7 @@
       </q-list>
     </q-card-section>
     <q-expansion-item
+      v-if="!HIDE_API"
       group="api"
       dense
       expand-separator
@@ -132,6 +133,7 @@
     </q-expansion-item>
 
     <q-expansion-item
+      v-if="!HIDE_API"
       group="api"
       dense
       expand-separator
@@ -176,6 +178,7 @@
       </q-card>
     </q-expansion-item>
     <q-expansion-item
+      v-if="!HIDE_API"
       group="api"
       dense
       expand-separator
@@ -222,6 +225,7 @@
     </q-expansion-item>
 
     <q-expansion-item
+      v-if="!HIDE_API"
       group="api"
       dense
       expand-separator
@@ -250,6 +254,7 @@
       </q-card>
     </q-expansion-item>
     <q-expansion-item
+      v-if="!HIDE_API"
       group="api"
       dense
       expand-separator
