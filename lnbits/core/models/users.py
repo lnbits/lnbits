@@ -237,7 +237,7 @@ class AccountOverview(Account):
 
 class AccountFilters(FilterModel):
     __search_fields__ = [
-        "user",
+        "id",
         "email",
         "username",
         "pubkey",
@@ -253,7 +253,7 @@ class AccountFilters(FilterModel):
         "updated_at",
     ]
 
-    user: str | None = None
+    id: str | None = None
     username: str | None = None
     email: str | None = None
     pubkey: str | None = None
