@@ -9,6 +9,7 @@ from lnbits.core.crud.wallets import (
     get_wallets,
     update_wallet,
 )
+from lnbits.core.models.payments import PaymentFilters
 from lnbits.core.models.users import User
 from lnbits.core.models.wallets import (
     Wallet,
@@ -564,7 +565,7 @@ async def test_shared_wallet_view_permissions(from_wallet: Wallet):
         await pay_invoice(wallet_id=from_wallet.id, payment_request=payment.bolt11)
         wallet_balance += payment.sat
 
-    filters = Filters(limit=100)
+    filters = Filters(limit=100, model=PaymentFilters)
     shared_wallet_payments = await get_payments(
         wallet_id=mirror_wallet.id, filters=filters
     )

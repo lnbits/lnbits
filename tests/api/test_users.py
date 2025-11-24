@@ -488,7 +488,7 @@ async def test_search_users(http_client: AsyncClient, superuser_token):
         users.append(user)
 
     create_resp = await http_client.get(
-        "/users/api/v1/user?sortby=username&direction=desc",
+        "/users/api/v1/user?sortby=id&direction=desc",
         headers={"Authorization": f"Bearer {superuser_token}"},
     )
     assert create_resp.status_code == 200
