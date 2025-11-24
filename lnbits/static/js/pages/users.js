@@ -119,7 +119,7 @@ window.PageUsers = {
             align: 'left',
             label: 'Balance',
             field: 'balance_msat',
-            sortable: true
+            sortable: false
           },
 
           {
@@ -127,7 +127,7 @@ window.PageUsers = {
             align: 'left',
             label: 'Payments',
             field: 'transaction_count',
-            sortable: true
+            sortable: false
           },
 
           {
@@ -135,14 +135,14 @@ window.PageUsers = {
             align: 'left',
             label: 'Last Payment',
             field: 'last_payment',
-            sortable: true
+            sortable: false
           }
         ],
         pagination: {
-          sortBy: 'balance_msat',
+          sortBy: 'username',
           rowsPerPage: 10,
           page: 1,
-          descending: true,
+          descending: false,
           rowsNumber: 10
         },
         search: null,
