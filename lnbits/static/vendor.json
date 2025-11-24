@@ -51,6 +51,7 @@
     "js/pages/node.js",
     "js/pages/node-public.js",
     "js/pages/audit.js",
+    "js/pages/wallet.js",
     "js/pages/wallets.js",
     "js/pages/users.js",
     "js/pages/account.js",
