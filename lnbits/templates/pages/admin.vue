@@ -100,8 +100,8 @@
           </q-select>
         </div>
 
-        <q-splitter>
-          <template v-slot:before>
+        <q-splitter :separator-style="$q.screen.lt.md && 'display: none'">
+          <template v-slot:before v-if="$q.screen.gt.sm">
             <q-tabs v-model="tab" vertical active-color="primary">
               <q-tab
                 name="funding"
