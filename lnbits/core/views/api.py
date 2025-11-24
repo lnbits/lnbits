@@ -17,6 +17,7 @@ from lnbits.core.models.users import AccountId
 from lnbits.decorators import (
     check_account_exists,
     check_account_id_exists,
+    check_new_accounts_allowed,
     check_user_exists,
 )
 from lnbits.settings import settings
@@ -75,7 +76,7 @@ async def api_wallets(user: User = Depends(check_user_exists)) -> list[Wallet]:
     return user.wallets
 
 
-@api_router.post("/api/v1/account")
+@api_router.post("/api/v1/account", dependencies=[Depends(check_new_accounts_allowed)])
 async def api_create_account(data: CreateWallet) -> Wallet:
     user = await create_user_account(wallet_name=data.name)
     return user.wallets[0]

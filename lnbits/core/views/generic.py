@@ -248,7 +248,7 @@ async def lnurlwallet(request: Request, lightning: str = ""):
 
     if not lightning:
         return {"status": "ERROR", "reason": "lightning parameter not provided."}
-    if not settings.lnbits_allow_new_accounts:
+    if not settings.new_accounts_allowed:
         return {"status": "ERROR", "reason": "New accounts are not allowed."}
 
     lnurl = url_decode(lightning)
