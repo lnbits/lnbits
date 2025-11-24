@@ -679,9 +679,13 @@ window.PageWallet = {
       }
     },
     'g.wallet'() {
-      if (this.g.wallet.currency && this.g.fiatTracking) {
+      if (this.g.wallet.currency) {
+        this.g.fiatTracking = true
         this.g.fiatBalance =
           (this.g.exchangeRate / 100000000) * this.g.wallet.sat
+      } else {
+        this.g.fiatBalance = 0
+        this.g.fiatTracking = false
       }
     },
     'g.isFiatPriority'() {
