@@ -573,6 +573,8 @@ class Filters(BaseModel, Generic[TFilterModel]):
 
     model: type[TFilterModel] | None = None
 
+    table_name: str | None = None
+
     @root_validator(pre=True)
     def validate_sortby(cls, values):
         sortby = values.get("sortby")
@@ -614,7 +616,8 @@ class Filters(BaseModel, Generic[TFilterModel]):
 
     def order_by(self) -> str:
         if self.sortby:
-            return f"ORDER BY {self.sortby} {self.direction or 'asc'}"
+            prefix = f"{self.table_name}." if self.table_name else ""
+            return f"ORDER BY {prefix}{self.sortby} {self.direction or 'asc'}"
         return ""
 
     def values(self, values: dict | None = None) -> dict:
@@ -635,6 +638,7 @@ class Filters(BaseModel, Generic[TFilterModel]):
         return values
 
     def set_table_name(self, table_name: str) -> None:
+        self.table_name = table_name
         for page_filter in self.filters:
             page_filter.table_name = table_name
 
