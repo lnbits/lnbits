@@ -92,10 +92,7 @@ async def get_user_wallet(
 
 @generic_router.get("/robots.txt", response_class=HTMLResponse)
 async def robots():
-    data = """
-    User-agent: *
-    Disallow: /
-    """
+    data = "User-agent: *\nDisallow: /"
     return HTMLResponse(content=data, media_type="text/plain")
 
 
