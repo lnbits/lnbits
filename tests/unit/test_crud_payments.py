@@ -36,37 +36,42 @@ async def test_crud_get_payments(app):
         await update_wallet_balance(wallet, -10)
         wallet.balance_msat += -10 * 1000
 
-    payments = await get_payments(wallet_id=wallet.id)
+    filters = Filters(limit=100)
+    payments = await get_payments(wallet_id=wallet.id, filters=filters)
     assert len(payments) == 22, "should return 22 successful payments"
 
-    payments = await get_payments(wallet_id=wallet.id, incoming=True)
+    payments = await get_payments(wallet_id=wallet.id, incoming=True, filters=filters)
     assert len(payments) == 11, "should return 11 successful incoming payments"
     await update_payments(payments)
 
-    payments = await get_payments(wallet_id=wallet.id, outgoing=True)
+    payments = await get_payments(wallet_id=wallet.id, outgoing=True, filters=filters)
     assert len(payments) == 11, "should return 11 successful outgoing payments"
     await update_payments(payments)
 
-    payments = await get_payments(wallet_id=wallet.id, pending=True)
+    payments = await get_payments(wallet_id=wallet.id, pending=True, filters=filters)
     assert len(payments) == 4, "should return 4 pending payments"
 
     # function signature should have Optional[bool] for complete and pending to make
     # this distinction possible
-    payments = await get_payments(wallet_id=wallet.id, pending=False)
+    payments = await get_payments(wallet_id=wallet.id, pending=False, filters=filters)
     assert len(payments) == 22, "should return all payments"
 
-    payments = await get_payments(wallet_id=wallet.id, complete=True, pending=True)
+    payments = await get_payments(
+        wallet_id=wallet.id, complete=True, pending=True, filters=filters
+    )
     assert len(payments) == 20, "should return 4 pending and 16 complete payments"
 
-    payments = await get_payments(wallet_id=wallet.id, complete=True, outgoing=True)
+    payments = await get_payments(
+        wallet_id=wallet.id, complete=True, outgoing=True, filters=filters
+    )
     assert (
         len(payments) == 10
     ), "should return 8 complete outgoing payments and 2 pending outgoing payments"
 
-    payments = await get_payments(wallet_id=wallet.id)
+    payments = await get_payments(wallet_id=wallet.id, filters=filters)
     assert len(payments) == 22, "should return all payments"
 
-    payments = await get_payments(wallet_id=wallet.id, complete=True)
+    payments = await get_payments(wallet_id=wallet.id, complete=True, filters=filters)
     assert (
         len(payments) == 18
     ), "should return 14 successful payment and 4 pending payments"

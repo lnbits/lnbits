@@ -29,6 +29,7 @@ from lnbits.core.services.wallets import (
     reject_wallet_invitation,
     update_wallet_share_permissions,
 )
+from lnbits.db import Filters
 from lnbits.exceptions import InvoiceError, PaymentError
 from tests.conftest import new_user
 
@@ -563,7 +564,10 @@ async def test_shared_wallet_view_permissions(from_wallet: Wallet):
         await pay_invoice(wallet_id=from_wallet.id, payment_request=payment.bolt11)
         wallet_balance += payment.sat
 
-    shared_wallet_payments = await get_payments(wallet_id=mirror_wallet.id)
+    filters = Filters(limit=100)
+    shared_wallet_payments = await get_payments(
+        wallet_id=mirror_wallet.id, filters=filters
+    )
     assert len(shared_wallet_payments) == payment_count
     mirror_wallet = await get_wallet(mirror_wallet.id)
     assert mirror_wallet is not None
