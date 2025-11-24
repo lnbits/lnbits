@@ -74,7 +74,7 @@ window.PageWallets = {
       }
     },
     goToWallet(walletId) {
-      window.location = `/wallet?wal=${walletId}`
+      this.$router.push({path: '/wallet', query: {wal: walletId}})
     },
     formattedFiatAmount(amount, currency) {
       return LNbits.utils.formatCurrency(Number(amount).toFixed(2), currency)

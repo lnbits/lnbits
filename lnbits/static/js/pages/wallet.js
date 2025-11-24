@@ -105,9 +105,6 @@ window.PageWallet = {
     showCamera() {
       this.parse.camera.show = true
     },
-    focusInput(el) {
-      this.$nextTick(() => this.$refs[el].focus())
-    },
     showReceiveDialog() {
       this.receive.show = true
       this.receive.status = 'pending'
@@ -122,7 +119,6 @@ window.PageWallet = {
         : 'sat'
       this.receive.minMax = [0, 2100000000000000]
       this.receive.lnurl = null
-      this.focusInput('setAmount')
     },
     onReceiveDialogHide() {
       if (this.hasNfc) {
@@ -141,7 +137,6 @@ window.PageWallet = {
       this.parse.data.internalMemo = null
       this.parse.data.paymentChecker = null
       this.parse.camera.show = false
-      this.focusInput('textArea')
     },
     closeParseDialog() {
       setTimeout(() => {
