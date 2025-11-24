@@ -25,6 +25,8 @@ window.g = Vue.reactive({
   newWalletType: 'lightning',
   updatePayments: false,
   updatePaymentsHash: '',
+  currencies: WINDOW_SETTINGS.LNBITS_CURRENCIES ?? [],
+  allowedCurrencies: WINDOW_SETTINGS.LNBITS_ALLOWED_CURRENCIES ?? [],
   locale: localStore('lnbits.lang', navigator.languages[1] ?? 'en'),
   disclaimerShown: localStore('lnbits.disclaimerShown', false),
   isFiatPriority: localStore('lnbits.isFiatPriority', false),

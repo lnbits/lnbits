@@ -128,7 +128,7 @@
                     @change="updateWallet({currency: g.wallet.currency})"
                     type="text"
                     :disable="g.fiatTracking"
-                    :options="currencies"
+                    :options="g.allowedCurrencies"
                     :label="$t('currency_settings')"
                   ></q-select>
                 </div>

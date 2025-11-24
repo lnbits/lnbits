@@ -15,7 +15,7 @@
             multiple
             :hint="$t('allowed_currencies_hint')"
             :label="$t('allowed_currencies')"
-            :options="currencies"
+            :options="g.currencies"
           ></q-select>
         </div>
         <div class="col-12 col-md-6">
@@ -31,7 +31,7 @@
             :options="
               formData.lnbits_allowed_currencies?.length
                 ? formData.lnbits_allowed_currencies
-                : currencies
+                : g.allowedCurrencies
             "
           ></q-select>
         </div>
