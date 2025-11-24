@@ -567,8 +567,7 @@ class Filters(BaseModel, Generic[TFilterModel]):
     search: str | None = None
 
     offset: int | None = None
-    limit: int | None = None
-
+    limit: int | None = 10
     sortby: str | None = None
     direction: Literal["asc", "desc"] | None = None
 
@@ -588,8 +587,8 @@ class Filters(BaseModel, Generic[TFilterModel]):
 
     def pagination(self) -> str:
         stmt = ""
-        if self.limit:
-            stmt += f"LIMIT {self.limit} "
+        self.limit = self.limit or 10
+        stmt += f"LIMIT {min(1000, self.limit)} "
         if self.offset:
             stmt += f"OFFSET {self.offset}"
         return stmt

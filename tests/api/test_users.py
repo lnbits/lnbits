@@ -1,10 +1,12 @@
 from typing import Any
+from uuid import uuid4
 
 import pytest
 import shortuuid
 from httpx import AsyncClient
 
-from lnbits.core.models.users import User
+from lnbits.core.models.users import Account, User
+from lnbits.core.services.users import create_user_account
 from lnbits.settings import Settings
 from lnbits.utils.nostr import generate_keypair, hex_to_npub
 
@@ -465,3 +467,47 @@ async def test_create_user_invalid_npub(
         headers={"Authorization": f"Bearer {superuser_token}"},
     )
     assert create_resp.status_code == 400
+
+
+@pytest.mark.anyio
+async def test_search_users(http_client: AsyncClient, superuser_token):
+    namespace_id = shortuuid.uuid()[:8]
+    users = []
+    user_count = 15
+    for index in range(user_count):
+        username = f"u_{namespace_id}_{index:03d}"
+        user = await create_user_account(
+            Account(
+                id=uuid4().hex,
+                username=username,
+                email=f"{username}@lnbits.com",
+                pubkey="",
+                external_id=None,
+            )
+        )
+        users.append(user)
+
+    create_resp = await http_client.get(
+        "/users/api/v1/user?sortby=username&direction=desc",
+        headers={"Authorization": f"Bearer {superuser_token}"},
+    )
+    assert create_resp.status_code == 200
+    create_resp = await http_client.get(
+        "/users/api/v1/user"
+        f"?sortby=username&direction=desc&username[like]=u_{namespace_id}",
+        headers={"Authorization": f"Bearer {superuser_token}"},
+    )
+    assert create_resp.status_code == 200
+    data = create_resp.json()
+    print("### data:", data)
+    assert data["total"] == user_count
+    assert data["data"][0]["username"] == users[user_count - 1].username
+
+    create_resp = await http_client.get(
+        "/users/api/v1/user" f"?sortby=username&direction=desc&id={users[0].id}",
+        headers={"Authorization": f"Bearer {superuser_token}"},
+    )
+    assert create_resp.status_code == 200
+    data = create_resp.json()
+    assert data["total"] == 1
+    assert data["data"][0]["username"] == users[0].username
