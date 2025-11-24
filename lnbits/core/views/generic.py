@@ -1,16 +1,14 @@
 from hashlib import sha256
 from http import HTTPStatus
 from pathlib import Path
-from typing import Annotated
 from urllib.parse import urlencode, urlparse
 
 import httpx
-from fastapi import Cookie, Depends, Query, Request
+from fastapi import Depends, Request
 from fastapi.exceptions import HTTPException
 from fastapi.responses import FileResponse, HTMLResponse, RedirectResponse
 from fastapi.routing import APIRouter
 from lnurl import url_decode
-from pydantic.types import UUID4
 
 from lnbits.core.helpers import to_valid_user_id
 from lnbits.core.models import User
@@ -25,12 +23,7 @@ from lnbits.decorators import (
 from lnbits.helpers import check_callback_url, template_renderer
 from lnbits.settings import settings
 
-from ...utils.exchange_rates import allowed_currencies
-from ..crud import (
-    create_wallet,
-    get_user,
-    get_wallet,
-)
+from ..crud import get_user
 
 generic_router = APIRouter(
     tags=["Core NON-API Website Routes"], include_in_schema=False
@@ -40,54 +33,6 @@ generic_router = APIRouter(
 @generic_router.get("/favicon.ico", response_class=FileResponse)
 async def favicon():
     return RedirectResponse(settings.lnbits_qr_logo)
-
-
-@generic_router.get(
-    "/wallet",
-    response_class=HTMLResponse,
-    description="show wallet page",
-)
-async def get_user_wallet(
-    request: Request,
-    lnbits_last_active_wallet: Annotated[str | None, Cookie()] = None,
-    user: User = Depends(check_user_exists),
-    wal: UUID4 | None = Query(None),
-):
-    if wal:
-        wallet = await get_wallet(wal.hex)
-    elif len(user.wallets) == 0:
-        wallet = await create_wallet(user_id=user.id)
-        user.wallets.append(wallet)
-    elif lnbits_last_active_wallet and user.get_wallet(lnbits_last_active_wallet):
-        wallet = await get_wallet(lnbits_last_active_wallet)
-    else:
-        wallet = user.wallets[0]
-
-    if not wallet or wallet.deleted:
-        raise HTTPException(
-            status_code=HTTPStatus.NOT_FOUND,
-            detail="Wallet not found",
-        )
-    if wallet.user != user.id:
-        raise HTTPException(
-            status_code=HTTPStatus.FORBIDDEN,
-            detail="Not your wallet.",
-        )
-    context = {
-        "user": user.json(),
-        "wallet": wallet.json(),
-        "wallet_name": wallet.name,
-        "currencies": allowed_currencies(),
-        "service_fee": settings.lnbits_service_fee,
-        "service_fee_max": settings.lnbits_service_fee_max,
-        "web_manifest": f"/manifest/{user.id}.webmanifest",
-    }
-
-    return template_renderer().TemplateResponse(
-        request,
-        "core/wallet.html",
-        {**context, "ajax": _is_ajax_request(request)},
-    )
 
 
 @generic_router.get("/robots.txt", response_class=HTMLResponse)
@@ -251,6 +196,7 @@ admin_ui_checks = [Depends(check_admin), Depends(check_admin_ui)]
 
 
 @generic_router.get("/payments")
+@generic_router.get("/wallet")
 @generic_router.get("/wallets")
 @generic_router.get("/account")
 @generic_router.get("/extensions")
