@@ -9,10 +9,7 @@ window.app.component('lnbits-footer', {
       return `${this.SITE_TITLE}, ${this.SITE_TAGLINE}`
     },
     showFooter() {
-      return (
-        this.SITE_TITLE == 'LNbits' &&
-        this.LNBITS_SHOW_HOME_PAGE_ELEMENTS == true
-      )
+      return this.LNBITS_SHOW_HOME_PAGE_ELEMENTS == true
     }
   }
 })
