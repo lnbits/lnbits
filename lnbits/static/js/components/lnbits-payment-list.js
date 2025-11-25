@@ -198,7 +198,7 @@ window.app.component('lnbits-payment-list', {
           this.payments = response.data.data.map(obj => {
             return LNbits.map.payment(obj)
           })
-          this.checkPendingPayments()
+          this.recheckPendingPayments()
         })
         .catch(err => {
           this.paymentsTable.loading = false
@@ -245,7 +245,7 @@ window.app.component('lnbits-payment-list', {
         })
         .catch(LNbits.utils.notifyApiError)
     },
-    checkPendingPayments() {
+    recheckPendingPayments() {
       const pendingPayments = this.payments.filter(p => p.status === 'pending')
       if (pendingPayments.length === 0) return
 
@@ -253,14 +253,24 @@ window.app.component('lnbits-payment-list', {
         'recheck_pending=true',
         'checking_id[in]=' + pendingPayments.map(p => p.checking_id).join(',')
       ].join('&')
-      console.log('### checkPendingPayments params:', params)
+
       LNbits.api
         .getPayments(this.currentWallet, params)
         .then(response => {
-          const refreshedPayments = response.data.data.map(obj => {
-            return LNbits.map.payment(obj)
+          response.data.data.forEach(updatedPayment => {
+            if (updatedPayment.status !== 'pending') {
+              const index = this.payments.findIndex(
+                p => p.checking_id === updatedPayment.checking_id
+              )
+              if (index !== -1) {
+                this.payments.splice(
+                  index,
+                  1,
+                  LNbits.map.payment(updatedPayment)
+                )
+              }
+            }
           })
-          console.log('### Refreshed pending payments:', refreshedPayments)
         })
         .catch(err => {
           console.warn(err)
