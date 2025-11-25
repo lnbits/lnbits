@@ -11,43 +11,47 @@ window.windowMixin = {
       this.g.newWalletType = walletType
       this.g.showNewWalletDialog = true
     },
+    onWebsocketMessage(ev) {
+      const data = JSON.parse(ev.data)
+      if (!data.payment) {
+        console.error('ws message no payment', data)
+        return
+      }
+      console.log('ws message', data.payment.wallet_id, data)
+
+      // update sidebar wallet balances
+      this.g.user.wallets.forEach(w => {
+        if (w.id === data.payment.wallet_id) {
+          w.sat = data.wallet_balance
+        }
+      })
+
+      // if current wallet, update balance and payments
+      if (this.g.wallet.id === data.payment.wallet_id) {
+        this.g.wallet.sat = data.wallet_balance
+        this.g.updatePayments = !this.g.updatePayments
+      }
+
+      // NOTE: react only on incoming payments for now
+      if (data.payment.amount > 0) {
+        eventReaction(data.wallet_balance * 1000)
+      }
+    },
     paymentEvents() {
-      this.g.walletEventListeners = this.g.walletEventListeners || []
       this.g.user.wallets.forEach(wallet => {
         if (!this.g.walletEventListeners.includes(wallet.id)) {
           this.g.walletEventListeners.push(wallet.id)
-          LNbits.events.onInvoicePaid(wallet, data => {
-            const walletIndex = this.g.user.wallets.findIndex(
-              w => w.id === wallet.id
+          const ws = new WebSocket(`${websocketUrl}/${wallet.inkey}`)
+          ws.onmessage = this.onWebsocketMessage
+          ws.onclose = ev => {
+            if (!ev.wasClean) console.log('ws uncleanly closed', ev)
+          }
+          ws.onerror = ev => {
+            console.error('ws error', ev)
+            this.g.walletEventListeners = this.g.walletEventListeners.filter(
+              id => id !== wallet.id
             )
-            if (walletIndex !== -1) {
-              //needed for balance being deducted
-              let satBalance = data.wallet_balance
-              if (data.payment.amount < 0) {
-                satBalance = data.wallet_balance += data.payment.amount / 1000
-              }
-              //update the wallet
-              Object.assign(this.g.user.wallets[walletIndex], {
-                sat: satBalance,
-                msat: data.wallet_balance * 1000,
-                fsat: data.wallet_balance.toLocaleString()
-              })
-              //update the current wallet
-              if (this.g.wallet.id === data.payment.wallet_id) {
-                Object.assign(this.g.wallet, this.g.user.wallets[walletIndex])
-
-                //if on the wallet page and payment is incoming trigger the eventReaction
-                if (
-                  data.payment.amount > 0 &&
-                  window.location.pathname === '/wallet'
-                ) {
-                  eventReaction(data.wallet_balance * 1000)
-                }
-              }
-            }
-            this.g.updatePaymentsHash = data.payment.payment_hash
-            this.g.updatePayments = !this.g.updatePayments
-          })
+          }
         }
       })
     },
@@ -102,17 +106,13 @@ window.windowMixin = {
   async created() {
     if (window.user) {
       this.g.user = Vue.reactive(window.LNbits.map.user(window.user))
+      this.paymentEvents()
     }
     if (window.wallet) {
       this.g.wallet = Vue.reactive(window.LNbits.map.wallet(window.wallet))
     }
     if (window.extensions) {
       this.g.extensions = Vue.reactive(window.extensions)
-    }
-  },
-  mounted() {
-    if (this.g.user) {
-      this.paymentEvents()
     }
   }
 }
