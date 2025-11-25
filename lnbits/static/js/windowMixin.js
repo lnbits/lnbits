@@ -1,12 +1,4 @@
 window.windowMixin = {
-  i18n: window.i18n,
-  data() {
-    return {
-      g: window.g,
-      utils: window._lnbitsUtils,
-      ...WINDOW_SETTINGS
-    }
-  },
   methods: {
     openNewWalletDialog(walletType = 'lightning') {
       this.g.newWalletType = walletType
@@ -113,18 +105,6 @@ window.windowMixin = {
       this.$router.push('/temp').then(() => {
         this.$router.replace({path})
       })
-    }
-  },
-  async created() {
-    if (window.user) {
-      this.g.user = Vue.reactive(window.LNbits.map.user(window.user))
-      this.paymentEvents()
-    }
-    if (window.wallet) {
-      this.g.wallet = Vue.reactive(window.LNbits.map.wallet(window.wallet))
-    }
-    if (window.extensions) {
-      this.g.extensions = Vue.reactive(window.extensions)
     }
   }
 }

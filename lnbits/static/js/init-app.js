@@ -86,12 +86,30 @@ window.i18n = new VueI18n.createI18n({
 })
 
 window.app.mixin({
+  data() {
+    return {
+      g: window.g,
+      ...WINDOW_SETTINGS
+    }
+  },
   computed: {
     isVueRoute() {
       const currentPath = window.location.pathname
       const matchedRoute = window.router.resolve(currentPath)
       const isVueRoute = matchedRoute?.matched?.length > 0
       return isVueRoute
+    }
+  },
+  // load jinja variables once on pageload
+  created() {
+    if (window.user) {
+      this.g.user = window.LNbits.map.user(window.user)
+    }
+    if (window.wallet) {
+      this.g.wallet = window.LNbits.map.wallet(window.wallet)
+    }
+    if (window.extensions) {
+      this.g.extensions = window.extensions
     }
   }
 })
