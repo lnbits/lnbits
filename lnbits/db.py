@@ -522,7 +522,7 @@ class Filter(BaseModel, Generic[TFilterModel]):
         if field in model.__fields__:
             compare_field = model.__fields__[field]
             values: dict = {}
-            if op in {Operator.EVERY, Operator.ANY}:
+            if op in {Operator.EVERY, Operator.ANY, Operator.INCLUDE, Operator.EXCLUDE}:
                 raw_values = [v for rv in raw_values for v in rv.split(",")]
 
             for index, raw_value in enumerate(raw_values):
@@ -540,14 +540,17 @@ class Filter(BaseModel, Generic[TFilterModel]):
         prefix = f"{self.table_name}." if self.table_name else ""
         stmt = []
         for key in self.values.keys() if self.values else []:
-            clean_key = key.split("__")[0]
-            if self.model and self.model.__fields__[clean_key].type_ == datetime:
+            if self.model and self.model.__fields__[self.field].type_ == datetime:
                 placeholder = compat_timestamp_placeholder(key)
-                stmt.append(f"{prefix}{clean_key} {self.op.as_sql} {placeholder}")
+                stmt.append(f"{prefix}{self.field} {self.op.as_sql} {placeholder}")
+            if self.op in {Operator.INCLUDE, Operator.EXCLUDE}:
+                stmt.append(f":{key}")
             else:
-                stmt.append(f"{prefix}{clean_key} {self.op.as_sql} :{key}")
+                stmt.append(f"{prefix}{self.field} {self.op.as_sql} :{key}")
 
-        if self.op == Operator.EVERY:
+        if self.op in {Operator.INCLUDE, Operator.EXCLUDE}:
+            statement = f"{prefix}{self.field} {self.op.as_sql} ({', '.join(stmt)})"
+        elif self.op == Operator.EVERY:
             statement = " AND ".join(stmt)
         else:
             statement = " OR ".join(stmt)
