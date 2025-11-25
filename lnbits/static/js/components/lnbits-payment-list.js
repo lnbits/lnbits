@@ -257,6 +257,7 @@ window.app.component('lnbits-payment-list', {
       LNbits.api
         .getPayments(this.currentWallet, params)
         .then(response => {
+          let updatedPayments = 0
           response.data.data.forEach(updatedPayment => {
             if (updatedPayment.status !== 'pending') {
               const index = this.payments.findIndex(
@@ -268,9 +269,16 @@ window.app.component('lnbits-payment-list', {
                   1,
                   LNbits.map.payment(updatedPayment)
                 )
+                updatedPayments += 1
               }
             }
           })
+          if (updatedPayments > 0) {
+            Quasar.Notify.create({
+              type: 'positive',
+              message: this.$t('payment_successful')
+            })
+          }
         })
         .catch(err => {
           console.warn(err)
@@ -470,8 +478,5 @@ window.app.component('lnbits-payment-list', {
       },
       deep: true
     }
-  },
-  created() {
-    if (this.lazy === undefined) this.fetchPayments()
   }
 })
