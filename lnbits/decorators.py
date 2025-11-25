@@ -557,6 +557,6 @@ async def check_first_install():
 async def check_new_accounts_allowed():
     if not settings.new_accounts_allowed:
         raise HTTPException(
-            status_code=HTTPStatus.FORBIDDEN,
+            status_code=HTTPStatus.BAD_REQUEST,
             detail="New account creation is disabled.",
         )
