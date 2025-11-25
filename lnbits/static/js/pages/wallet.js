@@ -402,7 +402,7 @@ window.PageWallet = {
         )
         .then(response => {
           dismissPaymentMsg()
-          this.updatePayments = !this.updatePayments
+          this.g.updatePayments = !this.g.updatePayments
           this.parse.show = false
           if (response.data.status == 'success') {
             Quasar.Notify.create({

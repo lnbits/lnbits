@@ -1,6 +1,6 @@
 window.app.component('lnbits-payment-list', {
   template: '#lnbits-payment-list',
-  props: ['update', 'lazy', 'wallet', 'paymentFilter'],
+  props: ['wallet', 'paymentFilter'],
   mixins: [window.windowMixin],
   data() {
     return {
@@ -463,20 +463,11 @@ window.app.component('lnbits-payment-list', {
         this.fetchPayments()
       }
     },
-    lazy(newVal) {
-      if (newVal === true) this.fetchPayments()
-    },
-    update() {
-      this.fetchPayments()
-    },
     'g.updatePayments'() {
       this.fetchPayments()
-    },
-    'g.wallet': {
-      handler(newWallet) {
-        this.fetchPayments()
-      },
-      deep: true
     }
+  },
+  created() {
+    this.fetchPayments()
   }
 })

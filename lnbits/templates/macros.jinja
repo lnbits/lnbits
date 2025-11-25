@@ -18,12 +18,7 @@
   //Needed for Vue to create the app on first load (although called on every page, its only loaded once)
   window.app = Vue.createApp({
     el: '#vue',
-    mixins: [window.windowMixin],
-    data() {
-      return {
-        updatePayments: false
-      }
-    }
+    mixins: [window.windowMixin]
   })
 </script>
 {%- endmacro %}
