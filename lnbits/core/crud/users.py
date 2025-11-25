@@ -4,7 +4,7 @@ from typing import Any
 from uuid import uuid4
 
 from lnbits.core.crud.extensions import get_user_active_extensions_ids
-from lnbits.core.crud.wallets import get_wallets
+from lnbits.core.crud.wallets import create_wallet, get_wallets
 from lnbits.core.db import db
 from lnbits.core.models import UserAcls
 from lnbits.db import Connection, Filters, Page
@@ -180,8 +180,13 @@ async def get_user(user_id: str, conn: Connection | None = None) -> User | None:
 async def get_user_from_account(
     account: Account, conn: Connection | None = None
 ) -> User | None:
-    extensions = await get_user_active_extensions_ids(account.id, conn)
-    wallets = await get_wallets(account.id, False, conn=conn)
+    extensions = await get_user_active_extensions_ids(account.id, conn=conn)
+    wallets = await get_wallets(account.id, deleted=False, conn=conn)
+
+    if len(wallets) == 0:
+        wallet = await create_wallet(user_id=account.id, conn=conn)
+        wallets.append(wallet)
+
     return User(
         id=account.id,
         email=account.email,
