@@ -49,7 +49,7 @@ wallet_router = APIRouter(prefix="/api/v1/wallet", tags=["Wallet"])
 async def api_wallet(key_info: WalletTypeInfo = Depends(require_invoice_key)):
     res = {
         "name": key_info.wallet.name,
-        "balance": key_info.wallet.balance_msat,
+        "balance": key_info.wallet.balance_msat,  # todo balnce
     }
     if key_info.key_type == KeyType.admin:
         res["id"] = key_info.wallet.id
@@ -109,7 +109,7 @@ async def api_delete_wallet_share_permissions(
 async def api_update_wallet_name(
     new_name: str, key_info: WalletTypeInfo = Depends(require_admin_key)
 ):
-    wallet = await get_wallet(key_info.wallet.id)
+    wallet = await get_wallet(key_info.wallet.id, compute_balance=True)
     if not wallet:
         raise HTTPException(status_code=HTTPStatus.NOT_FOUND, detail="Wallet not found")
     wallet.name = new_name

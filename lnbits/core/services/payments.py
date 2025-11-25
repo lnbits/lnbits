@@ -255,7 +255,7 @@ async def create_invoice(
     if not amount > 0:
         raise InvoiceError("Amountless invoices not supported.", status="failed")
 
-    user_wallet = await get_wallet(wallet_id, conn=conn)
+    user_wallet = await get_wallet(wallet_id, compute_balance=True, conn=conn)
     if not user_wallet:
         raise InvoiceError(f"Could not fetch wallet '{wallet_id}'.", status="failed")
 
@@ -672,7 +672,7 @@ async def _pay_invoice(
 
     async with wallets_payments_lock[wallet_id]:
         # get the wallet again to make sure we have the latest balance
-        wallet = await get_wallet(wallet_id, conn=conn)
+        wallet = await get_wallet(wallet_id, compute_balance=True, conn=conn)
         if not wallet:
             raise PaymentError(
                 f"Could not fetch wallet '{wallet_id}'.", status="failed"

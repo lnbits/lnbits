@@ -361,7 +361,7 @@ async def get_payments_history(
         filters.values(values),
     )
     if wallet_id:
-        wallet = await get_wallet(wallet_id)
+        wallet = await get_wallet(wallet_id, compute_balance=True)
         if not wallet or not wallet.can_view_payments:
             return []
         balance = wallet.balance_msat

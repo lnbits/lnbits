@@ -109,14 +109,15 @@ async def delete_unused_wallets(
 
 
 async def get_standalone_wallet(
-    wallet_id: str, deleted: bool | None = False, conn: Connection | None = None
+    wallet_id: str,
+    deleted: bool | None = False,
+    compute_balance: bool | None = False,
+    conn: Connection | None = None,
 ) -> Wallet | None:
-    query = """
-            SELECT *, COALESCE((
-                SELECT balance FROM balances WHERE wallet_id = wallets.id
-            ), 0) AS balance_msat FROM wallets
-            WHERE id = :wallet
-            """
+    query = f"""
+        SELECT *, {_balance_msat(compute_balance)}
+        FROM wallets WHERE id = :wallet
+        """  # noqa: S608
     if deleted is not None:
         query += " AND deleted = :deleted "
     return await (conn or db).fetchone(
@@ -127,13 +128,16 @@ async def get_standalone_wallet(
 
 
 async def get_wallet(
-    wallet_id: str, deleted: bool | None = False, conn: Connection | None = None
+    wallet_id: str,
+    deleted: bool | None = False,
+    compute_balance: bool | None = False,
+    conn: Connection | None = None,
 ) -> Wallet | None:
-    wallet = await get_standalone_wallet(wallet_id, deleted, conn)
+    wallet = await get_standalone_wallet(wallet_id, deleted, compute_balance, conn=conn)
     if not wallet:
         return None
     if wallet.is_lightning_shared_wallet:
-        return await get_source_wallet(wallet, conn)
+        return await get_source_wallet(wallet, compute_balance, conn=conn)
 
     return wallet
 
@@ -142,14 +146,14 @@ async def get_wallets(
     user_id: str,
     deleted: bool | None = False,
     wallet_type: WalletType | None = None,
+    compute_balance: bool | None = False,
     conn: Connection | None = None,
 ) -> list[Wallet]:
-    query = """
-            SELECT *, COALESCE((
-                SELECT balance FROM balances WHERE wallet_id = wallets.id
-            ), 0) AS balance_msat FROM wallets
+
+    query = f"""
+            SELECT *, {_balance_msat(compute_balance)} FROM wallets
             WHERE "user" = :user
-            """
+            """  # noqa: S608
     if deleted is not None:
         query += " AND deleted = :deleted "
     if wallet_type is not None:
@@ -164,12 +168,13 @@ async def get_wallets(
         Wallet,
     )
 
-    return await get_source_wallets(wallets, conn)
+    return await get_source_wallets(wallets, compute_balance, conn=conn)
 
 
 async def get_wallets_paginated(
     user_id: str,
     deleted: bool | None = None,
+    compute_balance: bool | None = True,
     filters: Filters[WalletsFilters] | None = None,
     conn: Connection | None = None,
 ) -> Page[Wallet]:
@@ -177,12 +182,9 @@ async def get_wallets_paginated(
         deleted = False
 
     where: list[str] = [""" "user" = :user AND deleted = :deleted """]
+
     wallets = await (conn or db).fetch_page(
-        """
-            SELECT *, COALESCE((
-                SELECT balance FROM balances WHERE wallet_id = wallets.id
-            ), 0) AS balance_msat FROM wallets
-        """,
+        f"SELECT *, {_balance_msat(compute_balance)} FROM wallets",  # noqa: S608
         where=where,
         values={"user": user_id, "deleted": deleted},
         filters=filters,
@@ -190,7 +192,7 @@ async def get_wallets_paginated(
         table_name="wallets",
     )
 
-    wallets.data = await get_source_wallets(wallets.data, conn)
+    wallets.data = await get_source_wallets(wallets.data, compute_balance, conn=conn)
     return wallets
 
 
@@ -206,7 +208,7 @@ async def get_wallets_ids(
         Wallet,
     )
 
-    wallets = await get_source_wallets(wallets, conn)
+    wallets = await get_source_wallets(wallets, conn=conn)
     return [w.source_wallet_id for w in wallets if w.can_view_payments]
 
 
@@ -218,16 +220,15 @@ async def get_wallets_count():
 
 async def get_wallet_for_key(
     key: str,
+    compute_balance: bool | None = False,
     conn: Connection | None = None,
 ) -> Wallet | None:
     wallet = await (conn or db).fetchone(
-        """
-        SELECT *, COALESCE((
-            SELECT balance FROM balances WHERE wallet_id = wallets.id
-        ), 0)
-        AS balance_msat FROM wallets
+        f"""
+        SELECT *, {_balance_msat(compute_balance)}
+        FROM wallets
         WHERE (adminkey = :key OR inkey = :key) AND deleted = false
-        """,
+        """,  # noqa: S608
         {"key": key},
         Wallet,
     )
@@ -235,20 +236,22 @@ async def get_wallet_for_key(
         return None
 
     if wallet.is_lightning_shared_wallet:
-        mw = await get_source_wallet(wallet, conn)
+        mw = await get_source_wallet(wallet, compute_balance, conn=conn)
         return mw
     return wallet
 
 
 async def get_source_wallet(
-    wallet: Wallet, conn: Connection | None = None
+    wallet: Wallet, compute_balance: bool | None = None, conn: Connection | None = None
 ) -> Wallet | None:
     if not wallet.is_lightning_shared_wallet:
         return wallet
     if not wallet.shared_wallet_id:
         return None
 
-    shared_wallet = await get_standalone_wallet(wallet.shared_wallet_id, False, conn)
+    shared_wallet = await get_standalone_wallet(
+        wallet.shared_wallet_id, False, compute_balance, conn=conn
+    )
     if not shared_wallet:
         return None
     wallet.mirror_shared_wallet(shared_wallet)
@@ -256,11 +259,13 @@ async def get_source_wallet(
 
 
 async def get_source_wallets(
-    wallet: list[Wallet], conn: Connection | None = None
+    wallet: list[Wallet],
+    compute_balance: bool | None = None,
+    conn: Connection | None = None,
 ) -> list[Wallet]:
     source_wallets = []
     for w in wallet:
-        source_wallet = await get_source_wallet(w, conn)
+        source_wallet = await get_source_wallet(w, compute_balance, conn=conn)
         if source_wallet:
             source_wallets.append(source_wallet)
     return source_wallets
@@ -270,3 +275,15 @@ async def get_total_balance(conn: Connection | None = None):
     result = await (conn or db).execute("SELECT SUM(balance) as balance FROM balances")
     row = result.mappings().first()
     return row.get("balance", 0) or 0
+
+
+def _balance_msat(compute_balance: bool | None = None) -> str:
+    if compute_balance:
+        return """
+            COALESCE((
+                SELECT balance
+                FROM balances
+                WHERE wallet_id = wallets.id
+            ), 0) AS balance_msat
+            """
+    return "0 AS balance_msat"
