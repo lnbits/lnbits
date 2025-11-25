@@ -181,6 +181,15 @@ async def api_delete_wallet(
     if not wallet or wallet.user != user.id:
         raise HTTPException(status_code=HTTPStatus.NOT_FOUND, detail="Wallet not found")
 
+    if len(user.wallets) == 1:
+        raise HTTPException(
+            HTTPStatus.BAD_REQUEST,
+            (
+                "Cannot delete the only wallet of a user. "
+                "Delete the user account instead if you want to remove everything."
+            ),
+        )
+
     await delete_wallet(
         user_id=wallet.user,
         wallet_id=wallet.id,
