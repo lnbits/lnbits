@@ -198,6 +198,7 @@ window.app.component('lnbits-payment-list', {
           this.payments = response.data.data.map(obj => {
             return LNbits.map.payment(obj)
           })
+          this.checkPendingPayments()
         })
         .catch(err => {
           this.paymentsTable.loading = false
@@ -243,6 +244,27 @@ window.app.component('lnbits-payment-list', {
           }
         })
         .catch(LNbits.utils.notifyApiError)
+    },
+    checkPendingPayments() {
+      const pendingPayments = this.payments.filter(p => p.status === 'pending')
+      if (pendingPayments.length === 0) return
+
+      const params = [
+        'recheck_pending=true',
+        'checking_id[in]=' + pendingPayments.map(p => p.checking_id).join(',')
+      ].join('&')
+      console.log('### checkPendingPayments params:', params)
+      LNbits.api
+        .getPayments(this.currentWallet, params)
+        .then(response => {
+          const refreshedPayments = response.data.data.map(obj => {
+            return LNbits.map.payment(obj)
+          })
+          console.log('### Refreshed pending payments:', refreshedPayments)
+        })
+        .catch(err => {
+          console.warn(err)
+        })
     },
     showHoldInvoiceDialog(payment) {
       this.hodlInvoice.show = true
