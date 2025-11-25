@@ -2,18 +2,6 @@ window.LNbits = {
   g: window.g,
   utils: window._lnbitsUtils,
   api: window._lnbitsApi,
-  events: {
-    onInvoicePaid(wallet, cb) {
-      ws = new WebSocket(`${websocketUrl}/${wallet.inkey}`)
-      ws.onmessage = ev => {
-        const data = JSON.parse(ev.data)
-        if (data.payment) {
-          cb(data)
-        }
-      }
-      return ws.onclose
-    }
-  },
   map: {
     user(data) {
       const obj = {

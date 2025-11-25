@@ -661,10 +661,6 @@ window.PageWallet = {
     },
     'g.updatePayments'() {
       this.parse.show = false
-      if (this.receive.paymentHash === this.g.updatePaymentsHash) {
-        this.receive.show = false
-        this.receive.paymentHash = null
-      }
       if (
         this.g.wallet.currency &&
         this.$q.localStorage.getItem(
