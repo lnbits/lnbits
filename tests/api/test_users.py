@@ -499,7 +499,6 @@ async def test_search_users(http_client: AsyncClient, superuser_token):
     )
     assert create_resp.status_code == 200
     data = create_resp.json()
-    print("### data:", data)
     assert data["total"] == user_count
     assert data["data"][0]["username"] == users[user_count - 1].username
 
