@@ -1,4 +1,12 @@
 window._lnbitsUtils = {
+  copyText(text, message, position) {
+    Quasar.copyToClipboard(text).then(() => {
+      Quasar.Notify.create({
+        message: message || 'Copied to clipboard!',
+        position: position || 'bottom'
+      })
+    })
+  },
   confirmDialog(msg) {
     return Quasar.Dialog.create({
       message: msg,
@@ -33,6 +41,18 @@ window._lnbitsUtils = {
     const hashArray = Array.from(new Uint8Array(hashBuffer))
     const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('')
     return hashHex
+  },
+  formatBalance(amount, currency) {
+    if (currency != 'sats') {
+      return LNbits.utils.formatCurrency(amount / 100, currency)
+    }
+    return LNbits.utils.formatSat(amount) + ' sats'
+  },
+  formatDate(date) {
+    return moment
+      .utc(date * 1000)
+      .local()
+      .fromNow()
   },
   formatDate(timestamp) {
     return Quasar.date.formatDate(new Date(timestamp * 1000), window.dateFormat)

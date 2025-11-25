@@ -86,7 +86,15 @@ window.i18n = new VueI18n.createI18n({
 })
 
 window.app.mixin({
+  // backwards compatibility
+  methods: window._lnbitsUtils,
   computed: {
+    api() {
+      return window._lnbitsApi
+    },
+    utils() {
+      return window._lnbitsUtils
+    },
     isVueRoute() {
       const currentPath = window.location.pathname
       const matchedRoute = window.router.resolve(currentPath)

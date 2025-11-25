@@ -2,9 +2,6 @@ window.app.component('lnbits-header', {
   template: '#lnbits-header',
   mixins: [window.windowMixin],
   computed: {
-    denomination() {
-      return this.LNBITS_DENOMINATION || 'sat'
-    },
     hasServiceFeeMax() {
       return (
         this.g.user &&

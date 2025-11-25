@@ -319,7 +319,7 @@
         <q-td
           auto-width
           key="amount"
-          v-if="denomination != 'sats'"
+          v-if="!g.isSatsDenomination"
           :props="props"
           class="col1"
           v-text="parseFloat(String(props.row.fsat).replaceAll(',', '')) / 100"

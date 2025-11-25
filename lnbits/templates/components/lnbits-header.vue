@@ -55,7 +55,7 @@
             $t('service_fee_max_badge', {
               amount: serviceFee,
               max: serviceFeeMax,
-              denom: denomination
+              denom: g.denomination
             })
           "
         ></span>

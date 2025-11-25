@@ -1,5 +1,4 @@
 window.windowMixin = {
-  i18n: window.i18n,
   data() {
     return {
       g: window.g,
@@ -72,27 +71,6 @@ window.windowMixin = {
           query: {wal: this.g.wallet.id}
         })
       }
-    },
-    formatDate(date) {
-      return moment
-        .utc(date * 1000)
-        .local()
-        .fromNow()
-    },
-    formatBalance(amount) {
-      if (LNBITS_DENOMINATION != 'sats') {
-        return LNbits.utils.formatCurrency(amount / 100, LNBITS_DENOMINATION)
-      } else {
-        return LNbits.utils.formatSat(amount) + ' sats'
-      }
-    },
-    copyText(text, message, position) {
-      Quasar.copyToClipboard(text).then(() => {
-        Quasar.Notify.create({
-          message: message || 'Copied to clipboard!',
-          position: position || 'bottom'
-        })
-      })
     },
     refreshRoute() {
       const path = window.location.pathname

@@ -91,14 +91,14 @@ window.PageNode = {
           {
             name: 'sat',
             align: 'right',
-            label: this.$t('amount') + ' (' + LNBITS_DENOMINATION + ')',
+            label: this.$t('amount') + ' (' + this.g.denomination + ')',
             field: row => this.formatMsat(row.amount),
             sortable: true
           },
           {
             name: 'fee',
             align: 'right',
-            label: this.$t('fee') + ' (m' + LNBITS_DENOMINATION + ')',
+            label: this.$t('fee') + ' (m' + this.g.denomination + ')',
             field: 'fee'
           },
           {
@@ -144,7 +144,7 @@ window.PageNode = {
           },
           {
             name: 'amount',
-            label: this.$t('amount') + ' (' + LNBITS_DENOMINATION + ')',
+            label: this.$t('amount') + ' (' + this.g.denomination + ')',
             field: row => this.formatMsat(row.amount),
             sortable: true
           },

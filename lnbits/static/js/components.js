@@ -58,11 +58,6 @@ window.app.component('lnbits-payment-details', {
   template: '#lnbits-payment-details',
   props: ['payment'],
   mixins: [window.windowMixin],
-  data() {
-    return {
-      LNBITS_DENOMINATION: LNBITS_DENOMINATION
-    }
-  },
   computed: {
     hasPreimage() {
       return (
@@ -364,9 +359,6 @@ window.app.component('lnbits-update-balance', {
   mixins: [window.windowMixin],
   props: ['wallet_id', 'small_btn'],
   computed: {
-    denomination() {
-      return LNBITS_DENOMINATION
-    },
     admin() {
       return user.super_user
     }
