@@ -147,6 +147,49 @@ window.app.component('lnbits-payment-list', {
     }
   },
   methods: {
+    mapPayment(data) {
+      const obj = {
+        checking_id: data.checking_id,
+        status: data.status,
+        amount: data.amount,
+        fee: data.fee,
+        memo: data.memo,
+        time: data.time,
+        bolt11: data.bolt11,
+        preimage: data.preimage,
+        payment_hash: data.payment_hash,
+        expiry: data.expiry,
+        extra: data.extra ?? {},
+        wallet_id: data.wallet_id,
+        webhook: data.webhook,
+        webhook_status: data.webhook_status,
+        fiat_amount: data.fiat_amount,
+        fiat_currency: data.fiat_currency,
+        labels: data.labels
+      }
+      obj.date = moment.utc(data.created_at).local().format(window.dateFormat)
+      obj.dateFrom = moment.utc(data.created_at).local().fromNow()
+      obj.expirydate = moment.utc(obj.expiry).local().format(window.dateFormat)
+      obj.expirydateFrom = moment.utc(obj.expiry).local().fromNow()
+      obj.msat = obj.amount
+      obj.sat = obj.msat / 1000
+      obj.tag = obj.extra?.tag
+      obj.fsat = new Intl.NumberFormat(window.i18n.global.locale).format(
+        obj.sat
+      )
+      obj.isIn = obj.amount > 0
+      obj.isOut = obj.amount < 0
+      obj.isPending = obj.status === 'pending'
+      obj.isPaid = obj.status === 'success'
+      obj.isFailed = obj.status === 'failed'
+      obj._q = [obj.memo, obj.sat].join(' ').toLowerCase()
+      try {
+        obj.details = JSON.parse(data.extra?.details || '{}')
+      } catch {
+        obj.details = {extraDetails: data.extra?.details}
+      }
+      return obj
+    },
     searchByDate() {
       if (typeof this.searchDate === 'string') {
         this.searchDate = {
@@ -195,9 +238,7 @@ window.app.component('lnbits-payment-list', {
         .then(response => {
           this.paymentsTable.loading = false
           this.paymentsTable.pagination.rowsNumber = response.data.total
-          this.payments = response.data.data.map(obj => {
-            return LNbits.map.payment(obj)
-          })
+          this.payments = response.data.data.map(this.mapPayment)
           this.recheckPendingPayments()
         })
         .catch(err => {
@@ -216,9 +257,7 @@ window.app.component('lnbits-payment-list', {
         .then(response => {
           this.paymentsTable.loading = false
           this.paymentsTable.pagination.rowsNumber = response.data.total
-          this.payments = response.data.data.map(obj => {
-            return LNbits.map.payment(obj)
-          })
+          this.payments = response.data.data.map(this.mapPayment)
         })
         .catch(err => {
           this.paymentsTable.loading = false
@@ -264,11 +303,7 @@ window.app.component('lnbits-payment-list', {
                 p => p.checking_id === updatedPayment.checking_id
               )
               if (index !== -1) {
-                this.payments.splice(
-                  index,
-                  1,
-                  LNbits.map.payment(updatedPayment)
-                )
+                this.payments.splice(index, 1, this.mapPayment(updatedPayment))
                 updatedPayments += 1
               }
             }
@@ -327,7 +362,7 @@ window.app.component('lnbits-payment-list', {
       }
       const params = new URLSearchParams(query)
       LNbits.api.getPayments(this.g.wallet, params).then(response => {
-        let payments = response.data.data.map(LNbits.map.payment)
+        let payments = response.data.data.map(this.mapPayment)
         let columns = this.paymentsCSV.columns
 
         if (detailed) {
