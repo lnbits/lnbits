@@ -202,7 +202,7 @@
               <q-icon
                 name="content_copy"
                 class="cursor-pointer q-ml-sm"
-                @click="copyText(g.wallet.sharedWalletId)"
+                @click="utils.copyText(g.wallet.sharedWalletId)"
               ></q-icon>
               <q-icon name="qr_code" class="cursor-pointer q-ml-sm">
                 <q-popup-proxy>

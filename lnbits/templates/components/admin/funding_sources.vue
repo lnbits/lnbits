@@ -50,7 +50,7 @@
             >
               <q-btn
                 v-if="prop.copy"
-                @click="copyText(formData[key])"
+                @click="utils.copyText(formData[key])"
                 icon="content_copy"
                 class="cursor-pointer"
                 color="grey"

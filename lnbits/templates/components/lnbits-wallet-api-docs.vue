@@ -24,7 +24,7 @@
             <q-icon
               name="content_copy"
               class="cursor-pointer"
-              @click="copyText(g.wallet.id)"
+              @click="utils.copyText(g.wallet.id)"
             ></q-icon>
           </q-item-section>
         </q-item>
@@ -47,7 +47,7 @@
               <q-icon
                 name="content_copy"
                 class="cursor-pointer q-ml-sm"
-                @click="copyText(g.wallet.adminkey)"
+                @click="utils.copyText(g.wallet.adminkey)"
               ></q-icon>
               <q-icon name="qr_code" class="cursor-pointer q-ml-sm">
                 <q-popup-proxy>
@@ -81,7 +81,7 @@
               <q-icon
                 name="content_copy"
                 class="cursor-pointer q-ml-sm"
-                @click="copyText(g.wallet.inkey)"
+                @click="utils.copyText(g.wallet.inkey)"
               ></q-icon>
               <q-icon name="qr_code" class="cursor-pointer q-ml-sm">
                 <q-popup-proxy>

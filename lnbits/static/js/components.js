@@ -700,7 +700,7 @@ window.app.component('lnbits-node-qrcode', {
           dense
           unelevated
           size="md"
-          @click="copyText(info.id)"
+          @click="utils.copyText(info.id)"
         >Public Key<q-tooltip> Click to copy </q-tooltip>
         </q-btn>
       </q-card-actions>
@@ -781,7 +781,7 @@ window.app.component('lnbits-node-info', {
         flat
         dense
         icon='content_paste'
-        @click='copyText(info.id)'
+        @click='utils.copyText(info.id)'
       ></q-btn>
       <q-btn
         size='xs'

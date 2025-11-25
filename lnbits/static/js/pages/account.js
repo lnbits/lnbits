@@ -607,7 +607,7 @@ window.PageAccount = {
     },
     copyAssetLinkToClipboard(asset) {
       const assetUrl = `${window.location.origin}/api/v1/assets/${asset.id}/binary`
-      this.copyText(assetUrl)
+      this.utils.copyText(assetUrl)
     },
     addUserLabel() {
       if (!this.labelsDialog.data.name) {

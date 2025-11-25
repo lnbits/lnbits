@@ -198,7 +198,7 @@ window.PageUsers = {
             )
             .onOk(() => {
               const url = window.location.origin + '?reset_key=' + res.data
-              this.copyText(url)
+              this.utils.copyText(url)
             })
         })
         .catch(LNbits.utils.notifyApiError)
@@ -347,7 +347,7 @@ window.PageUsers = {
     },
     copyWalletLink(walletId) {
       const url = `${window.location.origin}/wallet?usr=${this.activeWallet.userId}&wal=${walletId}`
-      this.copyText(url)
+      this.utils.copyText(url)
     },
     fetchUsers(props) {
       this.relaxFilterForFields(['username', 'email'])

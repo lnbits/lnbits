@@ -774,7 +774,9 @@
                                         ></q-btn>
 
                                         <q-btn
-                                          @click="copyText(apiAcl.apiToken)"
+                                          @click="
+                                            utils.copyText(apiAcl.apiToken)
+                                          "
                                           icon="content_copy"
                                           color="black"
                                           flat

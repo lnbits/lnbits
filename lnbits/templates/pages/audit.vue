@@ -147,7 +147,7 @@
                     size="sm"
                     flat
                     class="cursor-pointer q-mr-xs"
-                    @click="copyText(props.row[col.name])"
+                    @click="utils.copyText(props.row[col.name])"
                   >
                     <q-tooltip>Copy</q-tooltip>
                   </q-btn>
@@ -183,7 +183,7 @@
 
       <div class="row q-mt-lg">
         <q-btn
-          @click="copyText(auditDetailsDialog.data)"
+          @click="utils.copyText(auditDetailsDialog.data)"
           icon="content_copy"
           color="grey"
           flat

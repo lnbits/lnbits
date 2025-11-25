@@ -354,7 +354,7 @@
                       size="sm"
                       flat
                       class="cursor-pointer q-mr-xs"
-                      @click="copyText(props.row[col.name])"
+                      @click="utils.copyText(props.row[col.name])"
                     >
                       <q-tooltip anchor="top middle">Copy</q-tooltip>
                     </q-btn>
@@ -430,7 +430,7 @@
                 icon="content_copy"
                 flat
                 class="cursor-pointer q-ml-sm"
-                @click="copyText(value)"
+                @click="utils.copyText(value)"
               >
                 <q-tooltip>Copy</q-tooltip>
               </q-btn>

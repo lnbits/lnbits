@@ -26,7 +26,7 @@
             color="secondary"
             icon="content_copy"
             size="xs"
-            @click="copyText(paylink.lnurl)"
+            @click="utils.copyText(paylink.lnurl)"
           >
             <q-tooltip>
               <span v-text="`copy: ${paylink.lnurl}`"></span>

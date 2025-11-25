@@ -337,7 +337,7 @@
                                       flat
                                       dense
                                       icon="content_paste"
-                                      @click="copyText(props.row.peer_id)"
+                                      @click="utils.copyText(props.row.peer_id)"
                                     ></q-btn>
                                   </div>
                                   <div class="text-caption col-grow">
@@ -365,7 +365,7 @@
                                       flat
                                       dense
                                       icon="content_paste"
-                                      @click="copyText(props.row.id)"
+                                      @click="utils.copyText(props.row.id)"
                                     ></q-btn>
                                   </div>
                                   <div
@@ -378,7 +378,9 @@
                                       flat
                                       dense
                                       icon="content_paste"
-                                      @click="copyText(props.row.short_id)"
+                                      @click="
+                                        utils.copyText(props.row.short_id)
+                                      "
                                     ></q-btn>
                                   </div>
                                   <q-badge
@@ -475,7 +477,7 @@
                                       flat
                                       dense
                                       icon="content_paste"
-                                      @click="copyText(props.row.id)"
+                                      @click="utils.copyText(props.row.id)"
                                     ></q-btn>
                                     <q-btn
                                       size="xs"
@@ -546,7 +548,7 @@
                             <q-icon
                               name="content_copy"
                               @click="
-                                copyText(
+                                utils.copyText(
                                   transactionDetailsDialog.data.payment_hash
                                 )
                               "
@@ -572,7 +574,7 @@
                               <q-icon
                                 name="content_copy"
                                 @click="
-                                  copyText(
+                                  utils.copyText(
                                     transactionDetailsDialog.data.preimage
                                   )
                                 "
@@ -608,7 +610,9 @@
                             outline
                             color="grey"
                             @click="
-                              copyText(transactionDetailsDialog.data.bolt11)
+                              utils.copyText(
+                                transactionDetailsDialog.data.bolt11
+                              )
                             "
                             :label="$t('copy_invoice')"
                             class="q-mt-sm"
@@ -718,7 +722,9 @@
                                         <q-btn
                                           outline
                                           color="grey"
-                                          @click="copyText(props.row.bolt11)"
+                                          @click="
+                                            utils.copyText(props.row.bolt11)
+                                          "
                                           :label="$t('copy_invoice')"
                                         ></q-btn>
                                         <q-btn
@@ -813,7 +819,7 @@
                                     flat
                                     dense
                                     icon="content_paste"
-                                    @click="copyText(info.id)"
+                                    @click="utils.copyText(info.id)"
                                   ></q-btn>
                                   <q-btn
                                     size="xs"

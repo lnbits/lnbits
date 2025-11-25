@@ -163,7 +163,7 @@ include('components/lnbits-wallet-extra.vue') %}
         <q-item-label>
           <q-icon
             name="content_copy"
-            @click="copyText(payment.payment_hash)"
+            @click="utils.copyText(payment.payment_hash)"
             size="1em"
             color="grey"
             class="cursor-pointer"
@@ -188,7 +188,7 @@ include('components/lnbits-wallet-extra.vue') %}
         <q-item-label>
           <q-icon
             name="content_copy"
-            @click="copyText(payment.bolt11)"
+            @click="utils.copyText(payment.bolt11)"
             size="1em"
             color="grey"
             class="cursor-pointer"
@@ -234,7 +234,7 @@ include('components/lnbits-wallet-extra.vue') %}
         <q-item-label>
           <q-icon
             name="content_copy"
-            @click="copyText(payment.preimage)"
+            @click="utils.copyText(payment.preimage)"
             size="1em"
             color="grey"
             class="cursor-pointer"
@@ -553,7 +553,7 @@ include('components/lnbits-wallet-extra.vue') %}
         flat
         dense
         class="text-grey"
-        @click="copyText(value)"
+        @click="utils.copyText(value)"
         icon="content_copy"
       >
         <q-tooltip>Copy</q-tooltip>

@@ -43,7 +43,7 @@ window.app.component('lnbits-qrcode', {
   methods: {
     clickQrCode(event) {
       if (this.href === '') {
-        this.copyText(this.value)
+        this.utils.copyText(this.value)
         event.preventDefault()
         event.stopPropagation()
         return false

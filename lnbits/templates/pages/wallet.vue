@@ -549,7 +549,7 @@
                   <q-item-label>
                     <q-icon
                       name="content_copy"
-                      @click="copyText(parse.invoice.hash)"
+                      @click="utils.copyText(parse.invoice.hash)"
                       size="1em"
                       color="grey"
                       class="cursor-pointer"
@@ -574,7 +574,7 @@
                   <q-item-label>
                     <q-icon
                       name="content_copy"
-                      @click="copyText(parse.invoice.bolt11)"
+                      @click="utils.copyText(parse.invoice.bolt11)"
                       size="1em"
                       color="grey"
                       class="cursor-pointer"

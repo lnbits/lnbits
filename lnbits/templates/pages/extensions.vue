@@ -415,7 +415,7 @@
             v-if="selectedRelease.paymentRequest"
             outline
             color="grey"
-            @click="copyText(selectedRelease.paymentRequest)"
+            @click="utils.copyText(selectedRelease.paymentRequest)"
             :label="$t('copy_invoice')"
           ></q-btn>
         </div>
@@ -816,7 +816,9 @@
               v-if="selectedExtension.payToEnable.paymentRequest"
               outline
               color="grey"
-              @click="copyText(selectedExtension.payToEnable.paymentRequest)"
+              @click="
+                utils.copyText(selectedExtension.payToEnable.paymentRequest)
+              "
               :label="$t('copy_invoice')"
             ></q-btn>
           </div>

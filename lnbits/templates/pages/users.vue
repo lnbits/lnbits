@@ -93,7 +93,7 @@
                     size="sm"
                     color="primary"
                     class="q-ml-xs"
-                    @click="copyText(props.row.adminkey)"
+                    @click="utils.copyText(props.row.adminkey)"
                   >
                     <q-tooltip>Copy Admin Key</q-tooltip>
                   </q-btn>
@@ -104,7 +104,7 @@
                     size="sm"
                     color="secondary"
                     class="q-ml-xs"
-                    @click="copyText(props.row.inkey)"
+                    @click="utils.copyText(props.row.inkey)"
                   >
                     <q-tooltip>Copy Invoice Key</q-tooltip>
                   </q-btn>
@@ -181,7 +181,7 @@
                     size="sm"
                     flat
                     class="cursor-pointer q-mr-xs"
-                    @click="copyText(props.row.id)"
+                    @click="utils.copyText(props.row.id)"
                   >
                     <q-tooltip>Copy Wallet ID</q-tooltip>
                   </q-btn>
@@ -650,7 +650,7 @@
                     size="sm"
                     flat
                     class="cursor-pointer q-mr-xs"
-                    @click="copyText(props.row.id)"
+                    @click="utils.copyText(props.row.id)"
                   >
                     <q-tooltip>Copy User ID</q-tooltip>
                   </q-btn>
@@ -667,7 +667,7 @@
                     size="sm"
                     flat
                     class="cursor-pointer q-mr-xs"
-                    @click="copyText(props.row.pubkey)"
+                    @click="utils.copyText(props.row.pubkey)"
                   >
                     <q-tooltip>Copy Public Key</q-tooltip>
                   </q-btn>
