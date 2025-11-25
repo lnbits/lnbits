@@ -54,7 +54,7 @@
     <q-item
       v-if="g.user.hiddenWalletsCount > 0"
       clickable
-      @click="goToWallets()"
+      @click="$router.push('/wallets')"
     >
       <q-item-section side>
         <q-icon name="more_horiz" color="grey-5" size="md"></q-icon>

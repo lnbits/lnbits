@@ -2,10 +2,7 @@ window.windowMixin = {
   i18n: window.i18n,
   data() {
     return {
-      api: window._lnbitsApi,
-      utils: window._lnbitsUtils,
       g: window.g,
-      currencies: window.currencies,
       ...WINDOW_SETTINGS
     }
   },
@@ -13,18 +10,6 @@ window.windowMixin = {
     openNewWalletDialog(walletType = 'lightning') {
       this.g.newWalletType = walletType
       this.g.showNewWalletDialog = true
-    },
-    flipWallets(smallScreen) {
-      this.g.walletFlip = !this.g.walletFlip
-      if (this.g.walletFlip && smallScreen) {
-        this.g.visibleDrawer = false
-      }
-      this.$q.localStorage.set('lnbits.walletFlip', this.g.walletFlip)
-    },
-    goToWallets() {
-      this.$router.push({
-        path: '/wallets'
-      })
     },
     paymentEvents() {
       this.g.walletEventListeners = this.g.walletEventListeners || []

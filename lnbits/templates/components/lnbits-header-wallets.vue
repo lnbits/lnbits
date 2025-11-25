@@ -97,7 +97,7 @@
               round
               color="primary"
               icon="more_horiz"
-              @click="goToWallets()"
+              @click="$router.push('/wallets')"
             >
               <q-tooltip
                 ><span

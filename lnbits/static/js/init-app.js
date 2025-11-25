@@ -1,3 +1,11 @@
+const quasarConfig = {
+  config: {
+    loading: {
+      spinner: Quasar.QSpinnerBars
+    }
+  }
+}
+
 const routes = [
   {
     path: '/node',
@@ -71,6 +79,12 @@ window.router = VueRouter.createRouter({
   routes
 })
 
+window.i18n = new VueI18n.createI18n({
+  locale: window.g.locale,
+  fallbackLocale: 'en',
+  messages: window.localisation
+})
+
 window.app.mixin({
   computed: {
     isVueRoute() {
@@ -83,22 +97,8 @@ window.app.mixin({
 })
 
 window.app.use(VueQrcodeReader)
-window.app.use(Quasar, {
-  config: {
-    loading: {
-      spinner: Quasar.QSpinnerBars
-    }
-  }
-})
-
-window.i18n = new VueI18n.createI18n({
-  locale: window.g.locale,
-  fallbackLocale: 'en',
-  messages: window.localisation
-})
+window.app.use(Quasar, quasarConfig)
 
 window.app.use(window.i18n)
-
-window.app.provide('g', g)
 window.app.use(window.router)
 window.app.mount('#vue')

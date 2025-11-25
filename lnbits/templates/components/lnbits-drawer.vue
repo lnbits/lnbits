@@ -8,7 +8,10 @@
   >
     <q-scroll-area style="height: 100%">
       <q-item>
-        <q-item-section class="cursor-pointer" @click="goToWallets()">
+        <q-item-section
+          class="cursor-pointer"
+          @click="$router.push('/wallets')"
+        >
           <q-item-label
             :style="$q.dark.isActive ? 'color:rgba(255, 255, 255, 0.64)' : ''"
             class="q-item__label q-item__label--header q-pa-none"
@@ -22,7 +25,7 @@
             :icon="g.walletFlip ? 'view_list' : 'view_column'"
             color="grey"
             class=""
-            @click="flipWallets($q.screen.lt.md)"
+            @click="g.walletFlip = !g.walletFlip"
           >
             <q-tooltip
               ><span

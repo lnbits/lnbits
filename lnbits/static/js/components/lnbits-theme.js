@@ -1,6 +1,12 @@
 window.app.component('lnbits-theme', {
   mixins: [window.windowMixin],
   watch: {
+    'g.walletFlip'(val) {
+      this.$q.localStorage.setItem('lnbits.walletFlip', val)
+      if (val === true && this.$q.screen.lt.md) {
+        this.g.visibleDrawer = false
+      }
+    },
     'g.disclaimerShown'(val) {
       this.$q.localStorage.setItem('lnbits.disclaimerShown', val)
     },
