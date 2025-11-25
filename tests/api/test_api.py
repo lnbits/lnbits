@@ -418,8 +418,21 @@ async def test_get_payments_paginated(client, inkey_fresh_headers_to, fake_payme
     )
     assert response.status_code == 200
     paginated = response.json()
-    assert len(paginated["data"]) == 2
+    data = paginated["data"]
+    assert len(data) == 2
     assert paginated["total"] == len(fake_data)
+
+    checking_id_list = [payment["checking_id"] for payment in data]
+    params = {"checking_id[in]": ",".join(checking_id_list)}
+    response = await client.get(
+        "/api/v1/payments/paginated",
+        params=params,
+        headers=inkey_fresh_headers_to,
+    )
+    data = response.json()["data"]
+    assert len(data) == 2
+    for payment in data:
+        assert payment["checking_id"] in checking_id_list
 
 
 @pytest.mark.anyio
