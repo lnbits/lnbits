@@ -179,12 +179,18 @@ async def api_payments_daily_stats(
 )
 async def api_payments_paginated(
     key_info: WalletTypeInfo = Depends(require_invoice_key),
+    recheck_pending: bool = Query(
+        False, description="Force check and update of pending payments."
+    ),
     filters: Filters = Depends(parse_filters(PaymentFilters)),
 ):
     page = await get_payments_paginated(
         wallet_id=key_info.wallet.id,
         filters=filters,
     )
+    if not recheck_pending:
+        return page
+
     for payment in page.data:
         if payment.pending:
             await update_pending_payment(payment)
