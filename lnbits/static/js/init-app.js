@@ -89,6 +89,7 @@ window.app.mixin({
   data() {
     return {
       g: window.g,
+      utils: window._lnbitsUtils,
       ...WINDOW_SETTINGS
     }
   },

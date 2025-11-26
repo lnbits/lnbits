@@ -15,10 +15,6 @@ window.app.component('lnbits-wallet-paylinks', {
     this.storedPaylinks = this.g.wallet.storedPaylinks
   },
   methods: {
-    dateFromNow(unix) {
-      const date = new Date(unix * 1000)
-      return moment.utc(date).local().fromNow()
-    },
     updatePaylinks() {
       LNbits.api
         .request(

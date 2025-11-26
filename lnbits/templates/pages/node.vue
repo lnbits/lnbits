@@ -785,7 +785,16 @@
                           </template>
                           <template v-slot:body-cell-date="props">
                             <q-td auto-width key="date" :props="props">
-                              <lnbits-date :ts="props.row.time"></lnbits-date>
+                              <q-tooltip
+                                ><span
+                                  v-text="utils.formatTimestamp(props.row.time)"
+                                ></span
+                              ></q-tooltip>
+                              <span
+                                v-text="
+                                  utils.formatTimestampFrom(props.row.time)
+                                "
+                              ></span>
                             </q-td>
                           </template>
                           <template v-slot:body-cell-destination="props">
@@ -874,19 +883,39 @@
 
                           <template v-slot:body-cell-paid_at="props">
                             <q-td auto-width :props="props">
-                              <lnbits-date
-                                v-if="props.row.paid_at"
-                                :ts="props.row.paid_at"
-                              ></lnbits-date>
+                              <div v-if="props.row.paid_at">
+                                <q-tooltip
+                                  ><span
+                                    v-text="
+                                      utils.formatTimestamp(props.row.paid_at)
+                                    "
+                                  ></span
+                                ></q-tooltip>
+                                <span
+                                  v-text="
+                                    utils.formatTimestampFrom(props.row.paid_at)
+                                  "
+                                ></span>
+                              </div>
                             </q-td>
                           </template>
 
                           <template v-slot:body-cell-expiry="props">
                             <q-td auto-width :props="props">
-                              <lnbits-date
-                                v-if="props.row.expiry"
-                                :ts="props.row.expiry"
-                              ></lnbits-date>
+                              <div v-if="props.row.expiry">
+                                <q-tooltip
+                                  ><span
+                                    v-text="
+                                      utils.formatTimestamp(props.row.expiry)
+                                    "
+                                  ></span
+                                ></q-tooltip>
+                                <span
+                                  v-text="
+                                    utils.formatTimestampFrom(props.row.expiry)
+                                  "
+                                ></span>
+                              </div>
                             </q-td>
                           </template>
                         </q-table>

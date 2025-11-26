@@ -106,9 +106,6 @@ window.PageAudit = {
   },
 
   methods: {
-    formatDate(dateString) {
-      return LNbits.utils.formatDateString(dateString)
-    },
     async fetchAudit(props) {
       try {
         const params = LNbits.utils.prepareFilterQuery(this.auditTable, props)

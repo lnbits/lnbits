@@ -77,12 +77,6 @@ window.windowMixin = {
         })
       }
     },
-    formatDate(date) {
-      return moment
-        .utc(date * 1000)
-        .local()
-        .fromNow()
-    },
     formatBalance(amount) {
       if (LNBITS_DENOMINATION != 'sats') {
         return LNbits.utils.formatCurrency(amount / 100, LNBITS_DENOMINATION)

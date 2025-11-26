@@ -176,9 +176,6 @@ window.PageUsers = {
   },
 
   methods: {
-    formatDate(date) {
-      return LNbits.utils.formatDateString(date)
-    },
     formatSat(value) {
       return LNbits.utils.formatSat(Math.floor(value / 1000))
     },

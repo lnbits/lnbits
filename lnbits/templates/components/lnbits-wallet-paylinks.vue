@@ -70,7 +70,7 @@
               <span v-text="$t('delete')"></span>
             </q-tooltip>
           </q-btn>
-          <span v-text="dateFromNow(paylink.last_used)"></span>
+          <span v-text="utils.formatTimestampFrom(paylink.last_used)"></span>
         </div>
       </q-card-section>
     </q-card>

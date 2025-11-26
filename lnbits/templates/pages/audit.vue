@@ -128,11 +128,12 @@
                     ></q-tooltip>
                   </q-btn>
 
-                  <span v-text="formatDate(props.row.created_at)"></span>
+                  <span v-text="utils.formatDate(props.row.created_at)"></span>
                   <q-tooltip v-if="props.row.delete_at">
                     <span
                       v-text="
-                        'Will be deleted at: ' + formatDate(props.row.delete_at)
+                        'Will be deleted at: ' +
+                        utils.formatDate(props.row.delete_at)
                       "
                     ></span>
                   </q-tooltip>

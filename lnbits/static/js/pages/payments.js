@@ -256,9 +256,6 @@ window.PagePayments = {
       this.paymentDetails = payment
       return (this.showDetails = !this.showDetails)
     },
-    formatDate(dateString) {
-      return LNbits.utils.formatDateString(dateString)
-    },
     formatCurrency(amount, currency) {
       try {
         return LNbits.utils.formatCurrency(amount, currency)

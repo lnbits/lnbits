@@ -749,24 +749,6 @@ window.app.component('lnbits-channel-balance', {
   `
 })
 
-window.app.component('lnbits-date', {
-  props: ['ts'],
-  computed: {
-    date() {
-      return LNbits.utils.formatDate(this.ts)
-    },
-    dateFrom() {
-      return moment.utc(this.date).local().fromNow()
-    }
-  },
-  template: `
-    <div>
-      <q-tooltip>{{ this.date }}</q-tooltip>
-      {{ this.dateFrom }}
-    </div>
-  `
-})
-
 window.app.component('lnbits-node-info', {
   props: ['info'],
   data() {

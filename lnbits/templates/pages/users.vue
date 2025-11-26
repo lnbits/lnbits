@@ -677,7 +677,7 @@
 
                 <q-td v-text="props.row.transaction_count"></q-td>
 
-                <q-td v-text="formatDate(props.row.last_payment)"></q-td>
+                <q-td v-text="utils.formatDate(props.row.last_payment)"></q-td>
               </q-tr>
             </template>
           </q-table>

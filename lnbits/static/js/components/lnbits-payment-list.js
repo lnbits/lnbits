@@ -166,16 +166,14 @@ window.app.component('lnbits-payment-list', {
         fiat_currency: data.fiat_currency,
         labels: data.labels
       }
-      obj.date = moment.utc(data.created_at).local().format(window.dateFormat)
-      obj.dateFrom = moment.utc(data.created_at).local().fromNow()
-      obj.expirydate = moment.utc(obj.expiry).local().format(window.dateFormat)
-      obj.expirydateFrom = moment.utc(obj.expiry).local().fromNow()
+      obj.date = this.utils.formatDate(data.created_at)
+      obj.dateFrom = this.utils.formatDateFrom(data.created_at)
+      obj.expirydate = this.utils.formatDate(data.expiry)
+      obj.expirydateFrom = this.utils.formatDateFrom(data.expiry)
       obj.msat = obj.amount
       obj.sat = obj.msat / 1000
       obj.tag = obj.extra?.tag
-      obj.fsat = new Intl.NumberFormat(window.i18n.global.locale).format(
-        obj.sat
-      )
+      obj.fsat = this.utils.formatSat(obj.sat)
       obj.isIn = obj.amount > 0
       obj.isOut = obj.amount < 0
       obj.isPending = obj.status === 'pending'

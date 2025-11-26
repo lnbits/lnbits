@@ -34,11 +34,23 @@ window._lnbitsUtils = {
     const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('')
     return hashHex
   },
-  formatDate(timestamp) {
-    return Quasar.date.formatDate(new Date(timestamp * 1000), window.dateFormat)
+  formatTimestamp(timestamp, format = null) {
+    format = format || window.dateFormat
+    return Quasar.date.formatDate(new Date(timestamp * 1000), format)
   },
-  formatDateString(isoDateString) {
-    return Quasar.date.formatDate(new Date(isoDateString), window.dateFormat)
+  formatDate(isoDateString, format = null) {
+    format = format || window.dateFormat
+    return Quasar.date.formatDate(new Date(isoDateString), format)
+  },
+  formatTimestampFrom(timestamp) {
+    return moment
+      .utc(timestamp * 1000)
+      .local()
+      .fromNow()
+  },
+  formatDateFrom(isoDateString) {
+    const timestampMs = new Date(isoDateString).getTime()
+    return moment.utc(timestampMs).local().fromNow()
   },
   formatCurrency(value, currency) {
     return new Intl.NumberFormat(window.i18n.global.locale, {

@@ -336,7 +336,9 @@
                   <div v-else-if="col.name == 'created_at'">
                     <div>
                       <q-tooltip anchor="top middle">
-                        <span v-text="formatDate(props.row.created_at)"></span>
+                        <span
+                          v-text="utils.formatDate(props.row.created_at)"
+                        ></span>
                       </q-tooltip>
                       <span v-text="props.row.timeFrom"> </span>
                     </div>

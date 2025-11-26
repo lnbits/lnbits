@@ -124,7 +124,7 @@ window.app.component('lnbits-admin-exchange-providers', {
     },
     initExchangeChart(data) {
       const xValues = data.map(d =>
-        Quasar.date.formatDate(new Date(d.timestamp * 1000), 'HH:mm')
+        this.utils.formatTimestamp(d.timestamp, 'HH:mm')
       )
       const exchanges = [
         ...this.formData.lnbits_exchange_rate_providers,
