@@ -657,6 +657,9 @@ window.PageWallet = {
     'g.lastActiveWallet'(val) {
       this.$q.localStorage.setItem('lnbits.lastActiveWallet', val)
     },
+    'g.updatePaymentsHash'() {
+      this.receive.show = false
+    },
     'g.updatePayments'() {
       this.parse.show = false
       if (

@@ -23,6 +23,7 @@ window.windowMixin = {
         this.g.wallet.sat = data.wallet_balance
         // lnbits-payment-list is watching
         this.g.updatePayments = !this.g.updatePayments
+        this.g.updatePaymentsHash = !this.g.updatePaymentsHash
       }
 
       // NOTE: react only on incoming payments for now
