@@ -317,7 +317,7 @@
           </template>
         </q-td>
         <q-td
-          v-if="g.isSatsDenomination"
+          v-if="!g.isSatsDenomination"
           auto-width
           key="amount"
           :props="props"
