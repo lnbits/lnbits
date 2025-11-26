@@ -125,7 +125,7 @@
             </div>
           </div>
           <div
-            v-if="!g.mobileSimple || !$q.screen.lt.md"
+            v-if="!$q.screen.lt.md"
             class="lnbits-wallet-buttons row q-gutter-md"
           >
             <div class="col">
