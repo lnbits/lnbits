@@ -46,10 +46,10 @@ window.app.component('lnbits-payment-list', {
       paymentsCSV: {
         columns: [
           {
-            name: 'pending',
-            align: 'left',
-            label: 'Pending',
-            field: 'pending'
+            name: 'status',
+            align: 'right',
+            label: this.$t('status'),
+            field: 'status'
           },
           {
             name: 'memo',
@@ -100,12 +100,6 @@ window.app.component('lnbits-payment-list', {
             align: 'right',
             label: this.$t('webhook'),
             field: 'webhook'
-          },
-          {
-            name: 'status',
-            align: 'right',
-            label: this.$t('status'),
-            field: 'status'
           },
           {
             name: 'fiat_currency',
