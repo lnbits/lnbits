@@ -102,6 +102,12 @@ window.app.component('lnbits-payment-list', {
             field: 'webhook'
           },
           {
+            name: 'status',
+            align: 'right',
+            label: this.$t('status'),
+            field: 'status'
+          },
+          {
             name: 'fiat_currency',
             align: 'right',
             label: 'Fiat Currency',
