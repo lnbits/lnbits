@@ -134,8 +134,8 @@
                 color="primary"
                 class="q-mr-md"
                 @click="showReceiveDialog"
-                :label="$t('receive')"
                 :disable="!this.g.wallet.canReceivePayments"
+                :label="$t('receive')"
                 icon="file_download"
               ></q-btn>
               <q-btn
