@@ -133,17 +133,17 @@
                 unelevated
                 color="primary"
                 class="q-mr-md"
-                @click="showParseDialog"
-                :disable="!this.g.wallet.canSendPayments"
+                @click="showReceiveDialog"
                 :label="$t('receive')"
+                :disable="!this.g.wallet.canReceivePayments"
                 icon="file_download"
               ></q-btn>
               <q-btn
                 unelevated
                 color="primary"
                 class="q-mr-md"
-                @click="showReceiveDialog"
-                :disable="!this.g.wallet.canReceivePayments"
+                @click="showParseDialog"
+                :disable="!this.g.wallet.canSendPayments"
                 :label="$t('send')"
                 icon="file_upload"
               ></q-btn>
