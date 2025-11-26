@@ -317,9 +317,9 @@
           </template>
         </q-td>
         <q-td
+          v-if="g.isSatsDenomination"
           auto-width
           key="amount"
-          v-if="denomination != 'sats'"
           :props="props"
           class="col1"
           v-text="parseFloat(String(props.row.fsat).replaceAll(',', '')) / 100"

@@ -136,7 +136,7 @@ include('components/lnbits-wallet-extra.vue') %}
         <q-item-label v-text="$t('amount')"></q-item-label>
         <q-item-label caption>
           <span v-text="(payment.amount / 1000).toFixed(3)"></span>
-          <span v-text="LNBITS_DENOMINATION"></span>
+          <span v-text="g.denomination"></span>
         </q-item-label>
       </q-item-section>
     </q-item>
@@ -145,7 +145,7 @@ include('components/lnbits-wallet-extra.vue') %}
         <q-item-label v-text="$t('fee')"></q-item-label>
         <q-item-label caption>
           <span v-text="(payment.fee / 1000).toFixed(3)"></span>
-          <span v-text="LNBITS_DENOMINATION"></span>
+          <span v-text="g.denomination"></span>
         </q-item-label>
       </q-item-section>
     </q-item>
@@ -460,7 +460,7 @@ include('components/lnbits-wallet-extra.vue') %}
     <q-popup-edit class="text-white" v-slot="scope" v-model="credit">
       <q-input
         filled
-        :label="$t('credit_label', {denomination: denomination})"
+        :label="$t('credit_label', {denomination: g.denomination})"
         v-model="scope.value"
         dense
         autofocus
@@ -484,7 +484,7 @@ include('components/lnbits-wallet-extra.vue') %}
     <q-popup-edit class="text-white" v-slot="scope" v-model="credit">
       <q-input
         filled
-        :label="$t('credit_label', {denomination: denomination})"
+        :label="$t('credit_label', {denomination: g.denomination})"
         v-model="scope.value"
         type="number"
         dense

@@ -75,12 +75,10 @@ window.PageWallet = {
       return this.parse.invoice.sat <= this.g.wallet.sat
     },
     formattedAmount() {
-      if (this.receive.unit != 'sat' || LNBITS_DENOMINATION != 'sats') {
+      if (this.receive.unit != 'sat' || !this.g.isSatsDenomination) {
         return LNbits.utils.formatCurrency(
           Number(this.receive.data.amount).toFixed(2),
-          LNBITS_DENOMINATION != 'sats'
-            ? LNBITS_DENOMINATION
-            : this.receive.unit
+          !this.g.isSatsDenomination ? this.g.denomination : this.receive.unit
         )
       } else {
         return LNbits.utils.formatMsat(this.receive.amountMsat) + ' sat'
@@ -148,7 +146,7 @@ window.PageWallet = {
     },
     createInvoice() {
       this.receive.status = 'loading'
-      if (LNBITS_DENOMINATION != 'sats') {
+      if (!this.g.isSatsDenomination) {
         this.receive.data.amount = this.receive.data.amount * 100
       }
 

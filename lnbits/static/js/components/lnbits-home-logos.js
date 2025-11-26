@@ -95,7 +95,7 @@ window.app.component('lnbits-home-logos', {
   computed: {
     showLogos() {
       return (
-        this.LNBITS_DENOMINATION == 'sats' &&
+        this.g.isSatsDenomination &&
         this.SITE_TITLE == 'LNbits' &&
         this.LNBITS_SHOW_HOME_PAGE_ELEMENTS == true
       )

@@ -4,7 +4,6 @@ window.app.component('lnbits-payment-list', {
   mixins: [window.windowMixin],
   data() {
     return {
-      denomination: LNBITS_DENOMINATION,
       payments: [],
       paymentsTable: {
         columns: [
@@ -18,7 +17,7 @@ window.app.component('lnbits-payment-list', {
           {
             name: 'amount',
             align: 'right',
-            label: this.$t('amount') + ' (' + LNBITS_DENOMINATION + ')',
+            label: this.$t('amount'),
             field: 'sat',
             sortable: true
           }
@@ -67,14 +66,14 @@ window.app.component('lnbits-payment-list', {
           {
             name: 'amount',
             align: 'right',
-            label: this.$t('amount') + ' (' + LNBITS_DENOMINATION + ')',
+            label: this.$t('amount'),
             field: 'sat',
             sortable: true
           },
           {
             name: 'fee',
             align: 'right',
-            label: this.$t('fee') + ' (m' + LNBITS_DENOMINATION + ')',
+            label: this.$t('fee'),
             field: 'fee'
           },
           {

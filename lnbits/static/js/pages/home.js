@@ -57,7 +57,7 @@ window.PageHome = {
     },
     lnbitsBannerEnabled() {
       return (
-        this.LNBITS_DENOMINATION == 'sats' &&
+        this.isSatsDenomination &&
         this.SITE_TITLE == 'LNbits' &&
         this.LNBITS_SHOW_HOME_PAGE_ELEMENTS == true
       )
