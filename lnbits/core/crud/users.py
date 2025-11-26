@@ -181,7 +181,7 @@ async def get_user_from_account(
     account: Account, conn: Connection | None = None
 ) -> User | None:
     extensions = await get_user_active_extensions_ids(account.id, conn)
-    wallets = await get_wallets(account.id, False, conn=conn)
+    wallets = await get_wallets(account.id, False, compute_balance=True, conn=conn)
     return User(
         id=account.id,
         email=account.email,
