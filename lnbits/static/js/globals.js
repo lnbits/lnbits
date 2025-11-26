@@ -12,7 +12,7 @@ window.g = Vue.reactive({
   isUserAuthorized: !!Quasar.Cookies.get('is_lnbits_user_authorized'),
   offline: !navigator.onLine,
   visibleDrawer: false,
-  extensions: [],
+  extensions: WINDOW_SETTINGS.EXTENSIONS,
   user: null,
   wallet: {},
   fiatBalance: 0,
