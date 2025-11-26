@@ -88,6 +88,8 @@ window.i18n = new VueI18n.createI18n({
 window.app.mixin({
   data() {
     return {
+      api: window._lnbitsApi,
+      utils: window._lnbitsUtils,
       g: window.g,
       ...WINDOW_SETTINGS
     }
@@ -99,7 +101,9 @@ window.app.mixin({
       const isVueRoute = matchedRoute?.matched?.length > 0
       return isVueRoute
     }
-  }
+  },
+  // backwards compatibility (copyText, formatBalance)
+  methods: window._lnbitsUtils
 })
 
 window.app.use(VueQrcodeReader)
