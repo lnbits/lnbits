@@ -18,7 +18,6 @@ window.windowMixin = {
         console.error('ws message no payment', data)
         return
       }
-      console.log('ws message', data.payment.wallet_id, data)
 
       // update sidebar wallet balances
       this.g.user.wallets.forEach(w => {
@@ -45,13 +44,14 @@ window.windowMixin = {
           const ws = new WebSocket(`${websocketUrl}/${wallet.inkey}`)
           ws.onmessage = this.onWebsocketMessage
           ws.onclose = ev => {
-            if (!ev.wasClean) console.log('ws uncleanly closed', ev)
+            if (!ev.wasClean) console.warn('ws uncleanly closed', ev)
           }
           ws.onerror = ev => {
-            console.error('ws error', ev)
             this.g.walletEventListeners = this.g.walletEventListeners.filter(
               id => id !== wallet.id
             )
+            console.warn('ws error, reconnecting in 3 seconds...', ev)
+            setTimeout(this.paymentEvents, 3000)
           }
         }
       })
