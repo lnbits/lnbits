@@ -656,7 +656,7 @@ async def test_shared_wallet_receive_permission(from_wallet: Wallet):
     shared_wallet_payments = await get_payments(wallet_id=mirror_wallet.id)
     # cannot view payments
     assert len(shared_wallet_payments) == 0
-    mirror_wallet = await get_wallet(mirror_wallet.id)
+    mirror_wallet = await get_wallet(mirror_wallet.id, compute_balance=True)
     assert mirror_wallet is not None
     assert mirror_wallet.balance == 0
     # ok to create invoice
