@@ -39,20 +39,30 @@ window.windowMixin = {
       }
     },
     paymentEvents() {
+      let timeout
       this.g.user.wallets.forEach(wallet => {
         if (!this.g.walletEventListeners.includes(wallet.id)) {
           this.g.walletEventListeners.push(wallet.id)
           const ws = new WebSocket(`${websocketUrl}/${wallet.inkey}`)
           ws.onmessage = this.onWebsocketMessage
-          ws.onclose = ev => {
-            if (!ev.wasClean) console.warn('ws uncleanly closed', ev)
-          }
-          ws.onerror = ev => {
+          ws.onopen = () => console.log('ws connected for wallet', wallet.id)
+          // onclose and onerror can both happen on their own or together,
+          // so we add a clearTimeout to avoid multiple reconnections
+          ws.onclose = () => {
+            console.log('ws closed, reconnecting...', wallet.id)
             this.g.walletEventListeners = this.g.walletEventListeners.filter(
               id => id !== wallet.id
             )
-            console.warn('ws error, reconnecting in 3 seconds...', ev)
-            setTimeout(this.paymentEvents, 3000)
+            clearTimeout(timeout)
+            timeout = setTimeout(this.paymentEvents, 5000)
+          }
+          ws.onerror = () => {
+            console.warn('ws error, reconnecting...', wallet.id)
+            this.g.walletEventListeners = this.g.walletEventListeners.filter(
+              id => id !== wallet.id
+            )
+            clearTimeout(timeout)
+            timeout = setTimeout(this.paymentEvents, 5000)
           }
         }
       })
