@@ -135,7 +135,8 @@
                 class="q-mr-md"
                 @click="showParseDialog"
                 :disable="!this.g.wallet.canSendPayments"
-                :label="$t('paste_request')"
+                :label="$t('receive')"
+                icon="file_download"
               ></q-btn>
               <q-btn
                 unelevated
@@ -143,7 +144,8 @@
                 class="q-mr-md"
                 @click="showReceiveDialog"
                 :disable="!this.g.wallet.canReceivePayments"
-                :label="$t('create_invoice')"
+                :label="$t('send')"
+                icon="file_upload"
               ></q-btn>
               <q-btn
                 unelevated
