@@ -30,7 +30,7 @@ window.app.component('lnbits-payment-list', {
           rowsNumber: 10
         },
         search: '',
-        loading: false
+        loading: true
       },
       searchDate: {from: null, to: null},
       searchStatus: {
@@ -126,9 +126,6 @@ window.app.component('lnbits-payment-list', {
     }
   },
   computed: {
-    currentWallet() {
-      return this.wallet || this.g.wallet
-    },
     filteredPayments() {
       const q = this.paymentsTable.search
       if (!q || q === '') return this.payments
@@ -200,7 +197,6 @@ window.app.component('lnbits-payment-list', {
       if (this.searchDate.to) {
         this.paymentFilter['time[le]'] = this.searchDate.to + 'T23:59:59'
       }
-
       this.fetchPayments()
     },
     searchByLabels(labels) {
@@ -224,24 +220,24 @@ window.app.component('lnbits-payment-list', {
       this.fetchPayments()
     },
     fetchPayments(props) {
+      this.paymentsTable.loading = true
       const params = LNbits.utils.prepareFilterQuery(
         this.paymentsTable,
         props,
         this.paymentFilter
       )
-      this.paymentsTable.loading = true
       return LNbits.api
-        .getPayments(this.currentWallet, params)
+        .getPayments(this.wallet, params)
         .then(response => {
-          this.paymentsTable.loading = false
           this.paymentsTable.pagination.rowsNumber = response.data.total
           this.payments = response.data.data.map(this.mapPayment)
+          this.paymentsTable.loading = false
           this.recheckPendingPayments()
         })
         .catch(err => {
           this.paymentsTable.loading = false
           if (g.user.admin) {
-            this.fetchPaymentsAsAdmin(this.currentWallet.id, params)
+            this.fetchPaymentsAsAdmin(this.wallet.id, params)
           } else {
             LNbits.utils.notifyApiError(err)
           }
@@ -291,7 +287,7 @@ window.app.component('lnbits-payment-list', {
       ].join('&')
 
       LNbits.api
-        .getPayments(this.currentWallet, params)
+        .getPayments(this.wallet, params)
         .then(response => {
           let updatedPayments = 0
           response.data.data.forEach(updatedPayment => {
@@ -497,6 +493,10 @@ window.app.component('lnbits-payment-list', {
     },
     'g.updatePayments'() {
       this.fetchPayments()
+    },
+    'g.wallet'() {
+      // reset payments when switching wallets
+      this.payments = []
     }
   },
   created() {

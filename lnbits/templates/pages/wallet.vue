@@ -174,7 +174,7 @@
       <q-card class="wallet-card">
         <q-card-section>
           <lnbits-payment-list
-            :expand-details="expandDetails"
+            :wallet="g.wallet"
             :payment-filter="paymentFilter"
           ></lnbits-payment-list>
         </q-card-section>

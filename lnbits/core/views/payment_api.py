@@ -183,7 +183,7 @@ async def api_payments_paginated(
         False, description="Force check and update of pending payments."
     ),
     filters: Filters = Depends(parse_filters(PaymentFilters)),
-):
+) -> Page[Payment]:
     page = await get_payments_paginated(
         wallet_id=key_info.wallet.id,
         filters=filters,
