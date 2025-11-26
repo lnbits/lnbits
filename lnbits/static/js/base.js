@@ -15,16 +15,12 @@ window.LNbits = {
         extra: data.extra ?? {}
       }
       const mapWallet = this.wallet
-      obj.wallets = obj.wallets
-        .map(obj => {
-          return mapWallet(obj)
-        })
-        .sort((a, b) => {
-          if (a.extra.pinned !== b.extra.pinned) {
-            return a.extra.pinned ? -1 : 1
-          }
-          return a.name.localeCompare(b.name)
-        })
+      obj.wallets = obj.wallets.map(mapWallet).sort((a, b) => {
+        if (a.extra.pinned !== b.extra.pinned) {
+          return a.extra.pinned ? -1 : 1
+        }
+        return a.name.localeCompare(b.name)
+      })
       obj.walletOptions = obj.wallets.map(obj => {
         return {
           label: [obj.name, ' - ', obj.id.substring(0, 5), '...'].join(''),

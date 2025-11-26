@@ -100,16 +100,10 @@ window.app.mixin({
       return isVueRoute
     }
   },
-  // load jinja variables once on pageload
   created() {
-    if (window.user) {
+    // map jinja variable once on pageload
+    if (window.user && !this.g.user) {
       this.g.user = window.LNbits.map.user(window.user)
-    }
-    if (window.wallet) {
-      this.g.wallet = window.LNbits.map.wallet(window.wallet)
-    }
-    if (window.extensions) {
-      this.g.extensions = window.extensions
     }
   }
 })
