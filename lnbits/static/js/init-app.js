@@ -99,12 +99,6 @@ window.app.mixin({
       const isVueRoute = matchedRoute?.matched?.length > 0
       return isVueRoute
     }
-  },
-  created() {
-    // map jinja variable once on pageload
-    if (window.user && !this.g.user) {
-      this.g.user = window.LNbits.map.user(window.user)
-    }
   }
 })
 

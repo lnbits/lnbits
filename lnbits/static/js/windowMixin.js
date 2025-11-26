@@ -106,5 +106,12 @@ window.windowMixin = {
         this.$router.replace({path})
       })
     }
+  },
+  created() {
+    // map jinja variable once on pageload
+    if (window.user && !this.g.user) {
+      this.g.user = window.LNbits.map.user(window.user)
+      this.paymentEvents()
+    }
   }
 }
