@@ -1,6 +1,7 @@
 import asyncio
 import json
 import smtplib
+from asyncio.tasks import create_task
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from http import HTTPStatus
@@ -284,6 +285,13 @@ async def send_payment_notification(wallet: Wallet, payment: Payment):
             await dispatch_webhook(payment)
     except Exception as e:
         logger.error(f"Error dispatching webhook: {e!s}")
+
+
+def send_payment_notification_in_background(wallet: Wallet, payment: Payment):
+    try:
+        create_task(send_payment_notification(wallet, payment))
+    except Exception as e:
+        logger.warning(f"Error sending payment notification: {e}")
 
 
 async def send_ws_payment_notification(wallet: Wallet, payment: Payment):

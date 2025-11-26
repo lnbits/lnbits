@@ -47,7 +47,7 @@ from ..models import (
     PaymentState,
     Wallet,
 )
-from .notifications import send_payment_notification
+from .notifications import send_payment_notification_in_background
 
 payment_lock = asyncio.Lock()
 wallets_payments_lock: dict[str, asyncio.Lock] = {}
@@ -741,7 +741,7 @@ async def _pay_internal_invoice(
     await update_payment(internal_payment, conn=conn)
     logger.success(f"internal payment successful {internal_payment.checking_id}")
 
-    await send_payment_notification(wallet, payment)
+    send_payment_notification_in_background(wallet, payment)
 
     # notify receiver asynchronously
     from lnbits.tasks import internal_invoice_queue
@@ -814,7 +814,7 @@ async def _pay_external_invoice(
         payment = await update_payment_success_status(
             payment, payment_response, conn=conn
         )
-        await send_payment_notification(wallet, payment)
+        send_payment_notification_in_background(wallet, payment)
         logger.success(f"payment successful {payment_response.checking_id}")
 
     payment.checking_id = payment_response.checking_id
