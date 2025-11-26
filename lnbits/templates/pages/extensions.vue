@@ -1075,7 +1075,6 @@
           color="grey"
           v-text="$t('update')"
         ></q-btn>
-
         <q-btn
           v-close-popup
           flat

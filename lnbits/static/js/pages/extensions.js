@@ -123,7 +123,9 @@ window.PageExtensions = {
           extension.isInstalled = false
           extension.inProgress = false
           extension.installedRelease = null
-          this.tab = 'installed'
+          this.filteredExtensions = this.filteredExtensions.filter(
+            ext => ext.id !== extension.id
+          )
           Quasar.Notify.create({
             type: 'positive',
             message: 'Extension uninstalled!'
