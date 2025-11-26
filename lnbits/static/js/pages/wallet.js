@@ -456,7 +456,7 @@ window.PageWallet = {
                 })
                 break
               case 'aes':
-                decryptLnurlPayAES(action, response.data.preimage)
+                this.utils.decryptLnurlPayAES(action, response.data.preimage)
                 Quasar.Notify.create({
                   message: value,
                   caption: extra.success_action.description,

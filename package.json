@@ -91,8 +91,7 @@
       "js/base.js",
       "js/windowMixin.js",
       "js/event-reactions.js",
-      "js/bolt11-decoder.js",
-      "js/lnurl.js"
+      "js/bolt11-decoder.js"
     ],
     "components": [
       "js/pages/home.js",

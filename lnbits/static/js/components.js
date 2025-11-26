@@ -111,11 +111,11 @@ window.app.component('lnbits-lnurlpay-success-action', {
   },
   mounted() {
     if (this.success_action.tag !== 'aes') return null
-    decryptLnurlPayAES(this.success_action, this.payment.preimage).then(
-      value => {
+    this.utils
+      .decryptLnurlPayAES(this.success_action, this.payment.preimage)
+      .then(value => {
         this.decryptedValue = value
-      }
-    )
+      })
   }
 })
 
