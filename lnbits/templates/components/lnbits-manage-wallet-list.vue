@@ -40,7 +40,9 @@
           ><span v-text="walletRec.name"></span
         ></q-item-label>
         <q-item-label class="q-my-none ellipsis full-width" caption>
-          <strong v-text="formatBalance(walletRec.sat)"></strong>
+          <strong
+            v-text="utils.formatBalance(walletRec.sat, g.denomination)"
+          ></strong>
         </q-item-label>
       </q-item-section>
       <q-item-section

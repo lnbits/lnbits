@@ -85,7 +85,9 @@
           </div>
           <div class="row items-center q-pt-sm">
             <h6 class="q-my-none ellipsis full-width">
-              <strong v-text="formatBalance(wallet.sat)"></strong>
+              <strong
+                v-text="utils.formatBalance(wallet.sat, g.denomination)"
+              ></strong>
             </h6>
           </div>
         </q-card-section>

@@ -30,7 +30,9 @@
                     <div class="col-auto">
                       <div class="text-h3 q-my-none full-width">
                         <strong
-                          v-text="formatBalance(g.wallet.sat)"
+                          v-text="
+                            utils.formatBalance(g.wallet.sat, g.denomination)
+                          "
                           class="text-no-wrap"
                           :style="{
                             fontSize: 'clamp(0.75rem, 10vw, 3rem)',
@@ -94,7 +96,13 @@
                   <span
                     class="text-h5 text-italic"
                     style="opacity: 0.75"
-                    v-text="formatBalance(g.wallet.sat)"
+                    v-text="
+                      utils.formatBalance(
+                        g.wallet.sat,
+                        g.denomination,
+                        g.denomination
+                      )
+                    "
                   >
                   </span>
                 </div>
@@ -432,7 +440,9 @@
         <div class="column content-center text-center q-mb-md">
           <div v-if="!g.isFiatPriority">
             <h4 class="q-my-none text-bold">
-              <span v-text="formatBalance(parse.invoice.sat)"></span>
+              <span
+                v-text="utils.formatBalance(parse.invoice.sat, g.denomination)"
+              ></span>
             </h4>
           </div>
           <div v-else>
@@ -454,7 +464,11 @@
           <div v-if="g.fiatTracking">
             <div v-if="g.isFiatPriority">
               <h5 class="q-my-none text-bold">
-                <span v-text="formatBalance(parse.invoice.sat)"></span>
+                <span
+                  v-text="
+                    utils.formatBalance(parse.invoice.sat, g.denomination)
+                  "
+                ></span>
               </h5>
             </div>
             <div v-else style="opacity: 0.75">

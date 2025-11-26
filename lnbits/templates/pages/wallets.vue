@@ -93,7 +93,12 @@
                   <div class="row items-center q-pt-sm">
                     <h6 class="q-my-none ellipsis full-width">
                       <strong
-                        v-text="formatBalance(props.row.balance_msat / 1000)"
+                        v-text="
+                          utils.formatBalance(
+                            props.row.balance_msat / 1000,
+                            g.denomination
+                          )
+                        "
                       ></strong>
                     </h6>
                   </div>

@@ -60,21 +60,6 @@ window.windowMixin = {
         }
       })
     },
-    formatBalance(amount) {
-      if (LNBITS_DENOMINATION != 'sats') {
-        return LNbits.utils.formatCurrency(amount / 100, LNBITS_DENOMINATION)
-      } else {
-        return LNbits.utils.formatSat(amount) + ' sats'
-      }
-    },
-    copyText(text, message, position) {
-      Quasar.copyToClipboard(text).then(() => {
-        Quasar.Notify.create({
-          message: message || 'Copied to clipboard!',
-          position: position || 'bottom'
-        })
-      })
-    },
     refreshRoute() {
       const path = window.location.pathname
       console.log(path)

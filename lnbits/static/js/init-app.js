@@ -95,6 +95,8 @@ window.i18n = new VueI18n.createI18n({
 window.app.mixin({
   data() {
     return {
+      api: window._lnbitsApi,
+      utils: window._lnbitsUtils,
       g: window.g,
       utils: window._lnbitsUtils,
       ...WINDOW_SETTINGS
@@ -107,6 +109,11 @@ window.app.mixin({
       const isVueRoute = matchedRoute?.matched?.length > 0
       return isVueRoute
     }
+  },
+  // backwards compatibility for extensions, should not be used in the future
+  methods: {
+    copyText: window._lnbitsUtils.copyText,
+    formatBalance: window._lnbitsUtils.formatBalance
   }
 })
 
