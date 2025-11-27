@@ -1,6 +1,11 @@
 <!doctype html>
 <html lang="en">
   <head>
+    <link
+      href="https://fonts.googleapis.com/css?family=Roboto:100,300,400,500,700,900|Material+Icons"
+      rel="stylesheet"
+      type="text/css"
+    />
     {% for url in INCLUDED_CSS %}
     <link
       rel="stylesheet"
@@ -8,15 +13,6 @@
       href="{{ static_url_for('static', url ) }}"
     />
     {% endfor %} {% block styles %}{% endblock %}
-    <style>
-      @font-face {
-        font-family: 'Material Icons';
-        font-style: normal;
-        font-weight: 400;
-        src: url("{{ static_url_for('static', 'fonts/material-icons-v50.woff2') }}")
-          format('woff2');
-      }
-    </style>
     <title>{% block title %}{{ SITE_TITLE }}{% endblock %}</title>
     <meta charset="utf-8" />
     <meta
