@@ -46,6 +46,10 @@ window._lnbitsUtils = {
     format = format || window.dateFormat
     return Quasar.date.formatDate(new Date(timestamp * 1000), format)
   },
+  // backwards compatibility for extensions
+  formatDateString(isoDateString) {
+    this.formatDate(isoDateString)
+  },
   formatDate(isoDateString, format = null) {
     format = format || window.dateFormat
     return Quasar.date.formatDate(new Date(isoDateString), format)
