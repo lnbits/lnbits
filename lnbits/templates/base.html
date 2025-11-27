@@ -43,7 +43,7 @@
           <q-page class="q-px-md q-py-lg" :class="{'q-px-lg': $q.screen.gt.xs}">
             <lnbits-wallet-new></lnbits-wallet-new>
             <lnbits-header-wallets></lnbits-header-wallets>
-            <router-view v-if="isVueRoute"></router-view>
+            <router-view v-if="isVueRoute" :key="$route.path"></router-view>
             <!-- FastAPI Content -->
             <div v-else>{% block page %}{% endblock %}</div>
           </q-page>

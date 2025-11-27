@@ -48,7 +48,7 @@
         )"
         :key="wallet.id"
         clickable
-        @click="selectWallet(wallet)"
+        @click="$router.push('/wallet/' + wallet.id)"
         class="wallet-list-card"
         :class="{
           'active-wallet-card': g.wallet && g.wallet.id === wallet.id

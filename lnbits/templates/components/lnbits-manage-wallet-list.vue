@@ -12,7 +12,7 @@
       :key="walletRec.id"
       clickable
       :active="g.wallet && g.wallet.id === walletRec.id"
-      @click="selectWallet(walletRec)"
+      @click="$router.push('/wallet/' + walletRec.id)"
     >
       <q-item-section side>
         <q-avatar

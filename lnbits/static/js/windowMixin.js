@@ -60,24 +60,6 @@ window.windowMixin = {
         }
       })
     },
-    selectWallet(wallet) {
-      this.g.wallet = wallet
-      this.g.lastActiveWallet = wallet.id
-      this.g.updatePayments = !this.g.updatePayments
-      this.balance = parseInt(wallet.balance_msat / 1000)
-      const currentPath = this.$route.path
-      if (currentPath !== '/wallet') {
-        this.$router.push({
-          path: '/wallet',
-          query: {wal: this.g.wallet.id}
-        })
-      } else {
-        this.$router.replace({
-          path: '/wallet',
-          query: {wal: this.g.wallet.id}
-        })
-      }
-    },
     formatBalance(amount) {
       if (LNBITS_DENOMINATION != 'sats') {
         return LNbits.utils.formatCurrency(amount / 100, LNBITS_DENOMINATION)

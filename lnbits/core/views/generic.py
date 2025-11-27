@@ -197,6 +197,7 @@ admin_ui_checks = [Depends(check_admin), Depends(check_admin_ui)]
 
 @generic_router.get("/payments")
 @generic_router.get("/wallet")
+@generic_router.get("/wallet/{walletId}")
 @generic_router.get("/wallets")
 @generic_router.get("/account")
 @generic_router.get("/extensions")

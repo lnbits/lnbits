@@ -639,19 +639,30 @@ window.PageWallet = {
       this.decodeRequest()
       this.parse.show = true
     }
+    let lastActiveWallet = g.user.wallets.find(
+      w => w.id === this.g.lastActiveWallet
+    )
+    if (!lastActiveWallet) {
+      lastActiveWallet = g.user.wallets[0]
+    }
     if (urlParams.has('wal')) {
-      const wallet = g.user.wallets.find(w => w.id === urlParams.get('wal'))
-      if (wallet) {
-        this.selectWallet(wallet)
-      }
-    } else {
-      const wallet = g.user.wallets.find(w => w.id === this.g.lastActiveWallet)
-      if (wallet) {
-        this.selectWallet(wallet)
-      } else if (g.user.wallets.length > 0) {
-        this.selectWallet(g.user.wallets[0])
+      const wal = g.user.wallets.find(w => w.id === urlParams.get('wal'))
+      if (wal) {
+        lastActiveWallet = wal
       }
     }
+    let param = this.$route.params.id
+    // '0' is a fallback from the /wallet route
+    if (!param || param === 'last') {
+      param = lastActiveWallet.id
+    }
+    const wallet = g.user.wallets.find(w => w.id === param)
+    if (wallet) {
+      lastActiveWallet = wallet
+    }
+    this.g.wallet = lastActiveWallet
+    this.g.lastActiveWallet = lastActiveWallet.id
+    this.$router.replace(`/wallet/${lastActiveWallet.id}`)
   },
   watch: {
     'g.lastActiveWallet'(val) {
