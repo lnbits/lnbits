@@ -170,7 +170,7 @@ class StripeWallet(FiatProvider):
             ("line_items[0][price]", subscription_id),
             ("line_items[0][quantity]", f"{quantity}"),
         ]
-        subscription_data = {**payment_options.dict(), "lnbits_action": "subscription"}
+        subscription_data = {**payment_options.dict(), "alan_action": "subscription"}
         subscription_data["extra"] = json.dumps(subscription_data.get("extra") or {})
 
         form_data += self._encode_metadata(
@@ -315,7 +315,7 @@ class StripeWallet(FiatProvider):
             ("mode", "payment"),
             ("success_url", success_url),
             ("metadata[payment_hash]", payment_hash),
-            ("metadata[lnbits_action]", "invoice"),
+            ("metadata[alan_action]", "invoice"),
             ("line_items[0][price_data][currency]", currency.lower()),
             ("line_items[0][price_data][product_data][name]", line_item_name),
             ("line_items[0][price_data][unit_amount]", str(amount_cents)),

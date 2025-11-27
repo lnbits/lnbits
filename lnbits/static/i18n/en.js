@@ -428,6 +428,8 @@ window.localisation.en = {
   look_and_feel: 'Look and Feel',
   endpoint: 'Endpoint',
   api: 'API',
+  api_stripe:
+    'API (warning: Stripe are twitchy about anything bitcoin, so avoid using word "bitcoin" in your memos!)',
   api_token: 'API Token',
   api_tokens: 'API Tokens',
   access_control_list: 'Access Control List',

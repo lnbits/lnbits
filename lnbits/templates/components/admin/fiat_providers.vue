@@ -35,7 +35,7 @@
           </template>
 
           <q-card class="q-pb-xl">
-            <q-expansion-item :label="$t('api')" default-opened>
+            <q-expansion-item :label="$t('api_stripe')" default-opened>
               <q-card-section class="q-pa-md">
                 <q-input
                   filled
@@ -106,6 +106,8 @@
                   - the user completed the checkout process
                   <li><code>invoice.paid</code></li>
                   - the invoice was successfully paid (for subscriptions)
+                  <li><code>intent (all)</code></li>
+                  - the intent was successfully paid (for tap-to-pay in TPoS)
                 </ul>
               </q-card-section>
             </q-expansion-item>

@@ -57,6 +57,7 @@ async def handle_stripe_event(event: dict):
             f"Unhandled Stripe event type: '{event_type}'." f" Event ID: '{event_id}'."
         )
 
+
 async def _handle_stripe_intent_session_completed(event: dict):
     event_id = event.get("id")
     event_object = event.get("data", {}).get("object", {})
@@ -75,6 +76,7 @@ async def _handle_stripe_intent_session_completed(event: dict):
         logger.warning(f"No payment found for hash: '{payment_hash}'.")
         return
     await payment.check_fiat_status()
+
 
 async def _handle_stripe_checkout_session_completed(event: dict):
     event_id = event.get("id")
