@@ -144,11 +144,18 @@ async def check_access_token(
     return header_access_token or cookie_access_token or bearer_access_token
 
 
-async def check_user_exists(
+async def check_account_exists(
     r: Request,
     access_token: Annotated[str | None, Depends(check_access_token)],
     usr: UUID4 | None = None,
-) -> User:
+) -> Account:
+    """
+    Check that the account exists based on access token or user id.
+    More performant version of `check_user_exists`.
+    Unlike `check_user_exists`, this function:
+      - does not check extension access
+      - does not fetch the user wallets
+    """
     if access_token:
         account = await _get_account_from_token(access_token, r["path"], r["method"])
     elif usr and settings.is_auth_method_allowed(AuthMethods.user_id_only):
@@ -166,7 +173,15 @@ async def check_user_exists(
     r.scope["user_id"] = account.id
     if not settings.is_user_allowed(account.id):
         raise HTTPException(HTTPStatus.FORBIDDEN, "User not allowed.")
+    return account
 
+
+async def check_user_exists(
+    r: Request,
+    access_token: Annotated[str | None, Depends(check_access_token)],
+    usr: UUID4 | None = None,
+) -> User:
+    account = await check_account_exists(r, access_token, usr)
     user = await get_user_from_account(account)
     if not user:
         raise HTTPException(HTTPStatus.UNAUTHORIZED, "User not found.")

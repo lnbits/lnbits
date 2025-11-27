@@ -26,7 +26,11 @@ from lnbits.core.models.users import (
 )
 from lnbits.core.services import create_user_account
 from lnbits.core.services.users import update_user_account
-from lnbits.decorators import access_token_payload, check_user_exists
+from lnbits.decorators import (
+    access_token_payload,
+    check_account_exists,
+    check_user_exists,
+)
 from lnbits.helpers import (
     create_access_token,
     decrypt_internal_message,
@@ -119,11 +123,11 @@ async def login_usr(data: LoginUsr) -> JSONResponse:
 @auth_router.get("/acl")
 async def api_get_user_acls(
     request: Request,
-    user: User = Depends(check_user_exists),
+    account: Account = Depends(check_account_exists),
 ) -> UserAcls:
     api_routes = get_api_routes(request.app.router.routes)
 
-    acls = await get_user_access_control_lists(user.id)
+    acls = await get_user_access_control_lists(account.id)
 
     # Add missing/new endpoints to the ACLs
     for acl in acls.access_control_list:
@@ -136,7 +140,7 @@ async def api_get_user_acls(
             acl.endpoints.append(EndpointAccess(path=path, name=name))
         acl.endpoints.sort(key=lambda e: e.name.lower())
 
-    return UserAcls(id=user.id, access_control_list=acls.access_control_list)
+    return UserAcls(id=account.id, access_control_list=acls.access_control_list)
 
 
 @auth_router.put("/acl")
@@ -144,13 +148,13 @@ async def api_get_user_acls(
 async def api_update_user_acl(
     request: Request,
     data: UpdateAccessControlList,
-    user: User = Depends(check_user_exists),
+    account: Account = Depends(check_account_exists),
 ) -> UserAcls:
-    account = await get_account(user.id)
+
     if not account or not account.verify_password(data.password):
         raise HTTPException(HTTPStatus.UNAUTHORIZED, "Invalid credentials.")
 
-    user_acls = await get_user_access_control_lists(user.id)
+    user_acls = await get_user_access_control_lists(account.id)
     acl = user_acls.get_acl_by_id(data.id)
     if acl:
         user_acls.access_control_list.remove(acl)
@@ -175,33 +179,30 @@ async def api_update_user_acl(
 
 @auth_router.delete("/acl")
 async def api_delete_user_acl(
-    data: DeleteAccessControlList,
-    user: User = Depends(check_user_exists),
+    data: DeleteAccessControlList, account: Account = Depends(check_account_exists)
 ):
-    account = await get_account(user.id)
     if not account or not account.verify_password(data.password):
         raise HTTPException(HTTPStatus.UNAUTHORIZED, "Invalid credentials.")
 
-    user_acls = await get_user_access_control_lists(user.id)
+    user_acls = await get_user_access_control_lists(account.id)
     user_acls.delete_acl_by_id(data.id)
     await update_user_access_control_list(user_acls)
 
 
 @auth_router.post("/acl/token")
 async def api_create_user_api_token(
-    data: ApiTokenRequest,
-    user: User = Depends(check_user_exists),
+    data: ApiTokenRequest, account: Account = Depends(check_account_exists)
 ) -> ApiTokenResponse:
     if not data.expiration_time_minutes > 0:
         raise ValueError("Expiration time must be in the future.")
-    account = await get_account(user.id)
+
     if not account or not account.verify_password(data.password):
         raise HTTPException(HTTPStatus.UNAUTHORIZED, "Invalid credentials.")
 
     if not account.username:
         raise ValueError("Username must be configured.")
 
-    acls = await get_user_access_control_lists(user.id)
+    acls = await get_user_access_control_lists(account.id)
     acl = acls.get_acl_by_id(data.acl_id)
     if not acl:
         raise HTTPException(HTTPStatus.UNAUTHORIZED, "Invalid ACL id.")
@@ -218,18 +219,16 @@ async def api_create_user_api_token(
 
 @auth_router.delete("/acl/token")
 async def api_delete_user_api_token(
-    data: DeleteTokenRequest,
-    user: User = Depends(check_user_exists),
+    data: DeleteTokenRequest, account: Account = Depends(check_account_exists)
 ):
 
-    account = await get_account(user.id)
     if not account or not account.verify_password(data.password):
         raise HTTPException(HTTPStatus.UNAUTHORIZED, "Invalid credentials.")
 
     if not account.username:
         raise ValueError("Username must be configured.")
 
-    acls = await get_user_access_control_lists(user.id)
+    acls = await get_user_access_control_lists(account.id)
     acl = acls.get_acl_by_id(data.acl_id)
     if not acl:
         raise HTTPException(HTTPStatus.UNAUTHORIZED, "Invalid ACL id.")
@@ -318,23 +317,19 @@ async def register(data: RegisterUser) -> JSONResponse:
 @auth_router.put("/pubkey")
 async def update_pubkey(
     data: UpdateUserPubkey,
-    user: User = Depends(check_user_exists),
+    account: Account = Depends(check_account_exists),
     payload: AccessTokenPayload = Depends(access_token_payload),
 ) -> User | None:
-    if data.user_id != user.id:
+    if data.user_id != account.id:
         raise ValueError("Invalid user ID.")
 
     _validate_auth_timeout(payload.auth_time)
     if (
         data.pubkey
-        and data.pubkey != user.pubkey
+        and data.pubkey != account.pubkey
         and await get_account_by_pubkey(data.pubkey)
     ):
         raise ValueError("Public key already in use.")
-
-    account = await get_account(user.id)
-    if not account:
-        raise HTTPException(HTTPStatus.NOT_FOUND, "Account not found.")
 
     account.pubkey = normalize_public_key(data.pubkey)
     await update_account(account)
@@ -344,22 +339,18 @@ async def update_pubkey(
 @auth_router.put("/password")
 async def update_password(
     data: UpdateUserPassword,
-    user: User = Depends(check_user_exists),
+    account: Account = Depends(check_account_exists),
     payload: AccessTokenPayload = Depends(access_token_payload),
 ) -> User | None:
     _validate_auth_timeout(payload.auth_time)
-    if data.user_id != user.id:
+    if data.user_id != account.id:
         raise ValueError("Invalid user ID.")
     if (
         data.username
-        and user.username != data.username
+        and account.username != data.username
         and await get_account_by_username(data.username)
     ):
         raise HTTPException(HTTPStatus.BAD_REQUEST, "Username already exists.")
-
-    account = await get_account(user.id)
-    if not account:
-        raise ValueError("Account not found.")
 
     # old accounts do not have a password
     if account.password_hash:
@@ -419,14 +410,10 @@ async def reset_password(data: ResetUserPassword) -> JSONResponse:
 
 @auth_router.put("/update")
 async def update(
-    data: UpdateUser, user: User = Depends(check_user_exists)
+    data: UpdateUser, account: Account = Depends(check_account_exists)
 ) -> User | None:
-    if data.user_id != user.id:
+    if data.user_id != account.id:
         raise HTTPException(HTTPStatus.BAD_REQUEST, "Invalid user ID.")
-
-    account = await get_account(user.id)
-    if not account:
-        raise HTTPException(HTTPStatus.NOT_FOUND, "Account not found.")
 
     if data.username:
         account.username = data.username

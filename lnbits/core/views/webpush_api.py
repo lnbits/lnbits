@@ -15,9 +15,9 @@ from lnbits.core.models import (
     CreateWebPushSubscription,
     WebPushSubscription,
 )
-from lnbits.core.models.users import User
+from lnbits.core.models.users import Account
 from lnbits.decorators import (
-    check_user_exists,
+    check_account_exists,
 )
 
 from ..crud import (
@@ -33,20 +33,20 @@ webpush_router = APIRouter(prefix="/api/v1/webpush", tags=["Webpush"])
 async def api_create_webpush_subscription(
     request: Request,
     data: CreateWebPushSubscription,
-    user: User = Depends(check_user_exists),
+    account: Account = Depends(check_account_exists),
 ) -> WebPushSubscription:
     try:
         subscription = json.loads(data.subscription)
         endpoint = subscription["endpoint"]
         host = urlparse(str(request.url)).netloc
 
-        subscription = await get_webpush_subscription(endpoint, user.id)
+        subscription = await get_webpush_subscription(endpoint, account.id)
         if subscription:
             return subscription
         else:
             return await create_webpush_subscription(
                 endpoint,
-                user.id,
+                account.id,
                 data.subscription,
                 host,
             )
@@ -61,13 +61,13 @@ async def api_create_webpush_subscription(
 @webpush_router.delete("", status_code=HTTPStatus.OK)
 async def api_delete_webpush_subscription(
     request: Request,
-    user: User = Depends(check_user_exists),
+    account: Account = Depends(check_account_exists),
 ):
     try:
         endpoint = unquote(
             base64.b64decode(str(request.query_params.get("endpoint"))).decode("utf-8")
         )
-        count = await delete_webpush_subscription(endpoint, user.id)
+        count = await delete_webpush_subscription(endpoint, account.id)
         return {"count": count}
     except Exception as exc:
         logger.debug(exc)

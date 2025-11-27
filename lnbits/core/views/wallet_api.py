@@ -12,9 +12,10 @@ from lnbits.core.crud.wallets import (
     create_wallet,
     get_wallets_paginated,
 )
-from lnbits.core.models import CreateWallet, KeyType, User, Wallet, WalletTypeInfo
+from lnbits.core.models import CreateWallet, KeyType, Wallet, WalletTypeInfo
 from lnbits.core.models.lnurl import StoredPayLink, StoredPayLinks
 from lnbits.core.models.misc import SimpleStatus
+from lnbits.core.models.users import Account
 from lnbits.core.models.wallets import (
     WalletsFilters,
     WalletSharePermission,
@@ -29,7 +30,7 @@ from lnbits.core.services.wallets import (
 )
 from lnbits.db import Filters, Page
 from lnbits.decorators import (
-    check_user_exists,
+    check_account_exists,
     parse_filters,
     require_admin_key,
     require_invoice_key,
@@ -65,11 +66,11 @@ async def api_wallet(key_info: WalletTypeInfo = Depends(require_invoice_key)):
     openapi_extra=generate_filter_params_openapi(WalletsFilters),
 )
 async def api_wallets_paginated(
-    user: User = Depends(check_user_exists),
+    account: Account = Depends(check_account_exists),
     filters: Filters = Depends(parse_filters(WalletsFilters)),
 ):
     page = await get_wallets_paginated(
-        user_id=user.id,
+        user_id=account.id,
         filters=filters,
     )
 
@@ -85,7 +86,7 @@ async def api_invite_wallet_share(
 
 @wallet_router.delete("/share/invite/{share_request_id}")
 async def api_reject_wallet_invitation(
-    share_request_id: str, invited_user: User = Depends(check_user_exists)
+    share_request_id: str, invited_user: Account = Depends(check_account_exists)
 ) -> SimpleStatus:
     await reject_wallet_invitation(invited_user.id, share_request_id)
     return SimpleStatus(success=True, message="Invitation rejected.")
@@ -124,10 +125,11 @@ async def api_update_wallet_name(
 
 @wallet_router.put("/reset/{wallet_id}")
 async def api_reset_wallet_keys(
-    wallet_id: str, user: User = Depends(check_user_exists)
+    wallet_id: str,
+    account: Account = Depends(check_account_exists),
 ) -> Wallet:
     wallet = await get_wallet(wallet_id)
-    if not wallet or wallet.user != user.id:
+    if not wallet or wallet.user != account.id:
         raise HTTPException(status_code=HTTPStatus.NOT_FOUND, detail="Wallet not found")
 
     wallet.adminkey = uuid4().hex
@@ -175,10 +177,10 @@ async def api_update_wallet(
 
 @wallet_router.delete("/{wallet_id}")
 async def api_delete_wallet(
-    wallet_id: str, user: User = Depends(check_user_exists)
+    wallet_id: str, account: Account = Depends(check_account_exists)
 ) -> None:
     wallet = await get_wallet(wallet_id)
-    if not wallet or wallet.user != user.id:
+    if not wallet or wallet.user != account.id:
         raise HTTPException(status_code=HTTPStatus.NOT_FOUND, detail="Wallet not found")
 
     await delete_wallet(

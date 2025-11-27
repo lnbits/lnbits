@@ -14,7 +14,8 @@ from lnbits.core.models import (
     User,
     Wallet,
 )
-from lnbits.decorators import check_user_exists
+from lnbits.core.models.users import Account
+from lnbits.decorators import check_account_exists, check_user_exists
 from lnbits.settings import settings
 from lnbits.utils.exchange_rates import (
     allowed_currencies,
@@ -39,7 +40,7 @@ async def health() -> dict:
 
 
 @api_router.get("/api/v1/status", status_code=HTTPStatus.OK)
-async def health_check(user: User = Depends(check_user_exists)) -> dict:
+async def health_check(account: Account = Depends(check_account_exists)) -> dict:
     stat: dict[str, Any] = {
         "server_time": int(time()),
         "up_time": settings.lnbits_server_up_time,
@@ -47,7 +48,7 @@ async def health_check(user: User = Depends(check_user_exists)) -> dict:
     }
 
     stat["version"] = settings.version
-    if not user.admin:
+    if not account.is_admin:
         return stat
 
     funding_source = get_funding_source()
@@ -78,7 +79,7 @@ async def api_create_account(data: CreateWallet) -> Wallet:
 
 @api_router.get(
     "/api/v1/rate/history",
-    dependencies=[Depends(check_user_exists)],
+    dependencies=[Depends(check_account_exists)],
 )
 async def api_exchange_rate_history() -> list[dict]:
     return settings.lnbits_exchange_rate_history

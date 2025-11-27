@@ -15,11 +15,11 @@ from lnbits.core.crud.assets import (
 )
 from lnbits.core.models.assets import AssetFilters, AssetInfo, AssetUpdate
 from lnbits.core.models.misc import SimpleStatus
-from lnbits.core.models.users import User
+from lnbits.core.models.users import Account
 from lnbits.core.services.assets import create_user_asset
 from lnbits.db import Filters, Page
 from lnbits.decorators import (
-    check_user_exists,
+    check_account_exists,
     optional_user_id,
     parse_filters,
 )
@@ -35,10 +35,10 @@ upload_file_param = File(...)
     summary="Get paginated list user assets",
 )
 async def api_get_user_assets(
-    user: User = Depends(check_user_exists),
+    account: Account = Depends(check_account_exists),
     filters: Filters = Depends(parse_filters(AssetFilters)),
 ) -> Page[AssetInfo]:
-    return await get_user_assets(user.id, filters=filters)
+    return await get_user_assets(account.id, filters=filters)
 
 
 @asset_router.get(
@@ -48,9 +48,9 @@ async def api_get_user_assets(
 )
 async def api_get_asset(
     asset_id: str,
-    user: User = Depends(check_user_exists),
+    account: Account = Depends(check_account_exists),
 ) -> AssetInfo:
-    asset_info = await get_user_asset_info(user.id, asset_id)
+    asset_info = await get_user_asset_info(account.id, asset_id)
     if not asset_info:
         raise HTTPException(HTTPStatus.NOT_FOUND, "Asset not found.")
     return asset_info
@@ -120,12 +120,12 @@ async def api_get_asset_thumbnail(
 async def api_update_asset(
     asset_id: str,
     data: AssetUpdate,
-    user: User = Depends(check_user_exists),
+    account: Account = Depends(check_account_exists),
 ) -> AssetInfo:
-    if user.admin:
+    if account.is_admin:
         asset_info = await get_asset_info(asset_id)
     else:
-        asset_info = await get_user_asset_info(user.id, asset_id)
+        asset_info = await get_user_asset_info(account.id, asset_id)
 
     if not asset_info:
         raise HTTPException(HTTPStatus.NOT_FOUND, "Asset not found.")
@@ -144,13 +144,13 @@ async def api_update_asset(
     summary="Upload user assets",
 )
 async def api_upload_asset(
-    user: User = Depends(check_user_exists),
+    account: Account = Depends(check_account_exists),
     file: UploadFile = upload_file_param,
     public_asset: bool = False,
 ) -> AssetInfo:
-    asset = await create_user_asset(user.id, file, public_asset)
+    asset = await create_user_asset(account.id, file, public_asset)
 
-    asset_info = await get_user_asset_info(user.id, asset.id)
+    asset_info = await get_user_asset_info(account.id, asset.id)
     if not asset_info:
         raise ValueError("Failed to retrieve asset info after upload.")
 
@@ -164,11 +164,11 @@ async def api_upload_asset(
 )
 async def api_delete_asset(
     asset_id: str,
-    user: User = Depends(check_user_exists),
+    account: Account = Depends(check_account_exists),
 ) -> SimpleStatus:
-    asset = await get_user_asset(user.id, asset_id)
+    asset = await get_user_asset(account.id, asset_id)
     if not asset:
         raise HTTPException(HTTPStatus.NOT_FOUND, "Asset not found.")
 
-    await delete_user_asset(user.id, asset_id)
+    await delete_user_asset(account.id, asset_id)
     return SimpleStatus(success=True, message="Asset deleted successfully.")
