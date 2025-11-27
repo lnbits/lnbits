@@ -26,7 +26,7 @@ window.app.component('lnbits-wallet-share', {
         {label: 'Send', value: 'send-payments'}
       ],
       walletShareInvite: {
-        unsername: '',
+        username: '',
         permissions: []
       }
     }
