@@ -4,6 +4,7 @@ from typing import Any
 from lnbits.core.crud.wallets import get_total_balance, get_wallet, get_wallets_ids
 from lnbits.core.db import db
 from lnbits.core.models import PaymentState
+from lnbits.core.models.wallets import Wallet
 from lnbits.db import Connection, DateTrunc, Filters, Page
 
 from ..models import (
@@ -109,6 +110,7 @@ async def get_latest_payments_by_extension(
 async def get_payments_paginated(  # noqa: C901
     *,
     wallet_id: str | None = None,
+    wallet: Wallet | None = None,  # perf optimization to avoid double db calls
     user_id: str | None = None,
     complete: bool = False,
     pending: bool = False,
@@ -133,8 +135,9 @@ async def get_payments_paginated(  # noqa: C901
     if since is not None:
         clause.append(f"time > {db.timestamp_placeholder('time')}")
 
-    if wallet_id:
-        wallet = await get_wallet(wallet_id)
+    if wallet_id or wallet:
+        if not wallet and wallet_id:
+            wallet = await get_wallet(wallet_id)
         if not wallet or not wallet.can_view_payments:
             return Page(data=[], total=0)
 

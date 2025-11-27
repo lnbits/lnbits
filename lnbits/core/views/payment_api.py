@@ -187,7 +187,7 @@ async def api_payments_paginated(
     filters: Filters = Depends(parse_filters(PaymentFilters)),
 ) -> Page[Payment]:
     page = await get_payments_paginated(
-        wallet_id=key_info.wallet.id,
+        wallet=key_info.wallet,
         filters=filters,
     )
     if not recheck_pending:
