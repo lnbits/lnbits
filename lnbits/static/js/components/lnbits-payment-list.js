@@ -479,6 +479,11 @@ window.app.component('lnbits-payment-list', {
         console.warning(e)
         return false
       }
+    },
+    reset() {
+      this.payments = []
+      this.paymentsTable.search = ''
+      this.paymentFilter = {}
     }
   },
   watch: {
@@ -496,7 +501,7 @@ window.app.component('lnbits-payment-list', {
     },
     'g.wallet'() {
       // reset payments when switching wallets
-      this.payments = []
+      this.reset()
     }
   },
   created() {
