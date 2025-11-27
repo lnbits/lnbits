@@ -81,13 +81,13 @@ async def _handle_stripe_checkout_session_completed(event: dict):
     event_object = event.get("data", {}).get("object", {})
     object_type = event_object.get("object")
     payment_hash = event_object.get("metadata", {}).get("payment_hash")
-    lnbits_action = event_object.get("metadata", {}).get("lnbits_action")
+    alan_action = event_object.get("metadata", {}).get("alan_action")
     logger.debug(
         f"Handling Stripe event: '{event_id}'. Type: '{object_type}'."
         f" Payment hash: '{payment_hash}'."
     )
-    if lnbits_action != "invoice":
-        logger.warning(f"Stripe event is not an invoice: '{lnbits_action}'.")
+    if alan_action != "invoice":
+        logger.warning(f"Stripe event is not an invoice: '{alan_action}'.")
         return
 
     if not payment_hash:
@@ -152,7 +152,7 @@ async def _get_stripe_subscription_payment_options(
 
     metadata = parent.get("subscription_details", {}).get("metadata", {})
 
-    if metadata.get("lnbits_action") != "subscription":
+    if metadata.get("alan_action") != "subscription":
         raise ValueError("Stripe invoice.paid metadata action is not 'subscription'.")
 
     if "extra" in metadata:
