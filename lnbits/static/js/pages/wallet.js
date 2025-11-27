@@ -639,10 +639,11 @@ window.PageWallet = {
       this.decodeRequest()
       this.parse.show = true
     }
-    const wallet = g.user.wallets.find(w => w.id === this.$route.params.id)
+    let wallet = g.user.wallets.find(w => w.id === this.$route.params.id)
     if (!wallet) {
-      console.error('Wallet not found:', this.$route.params.id)
-      return
+      const walletId = g.lastActiveWallet || g.user.wallets[0].id
+      wallet = g.user.wallets.find(w => w.id === walletId)
+      // TODO: should show PageError(404) if wallet not found
     }
     this.g.wallet = wallet
     this.g.lastActiveWallet = wallet.id
