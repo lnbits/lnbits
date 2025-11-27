@@ -102,63 +102,62 @@ window.app.component('lnbits-wallet-charts', {
       if (this.walletBalanceInOut) {
         this.walletBalanceInOut.destroy()
       }
-      this.walletBalanceInOut = new Chart(
-        this.$refs.walletBalanceInOut.getContext('2d'),
-        {
-          type: 'bar',
-          options: this.barOptions,
-          data: {
-            labels,
-            datasets: [
-              {
-                label: 'Balance In',
-                borderRadius: 5,
-                data: data.map(s => s.balance_in),
-                backgroundColor: this.colorPrimary
-              },
-              {
-                label: 'Balance Out',
-                borderRadius: 5,
-                data: data.map(s => s.balance_out),
-                backgroundColor: this.colorSecondary
-              }
-            ]
-          }
+      const ref = this.$refs.walletBalanceInOut
+      if (!ref) return
+      this.walletBalanceInOut = new Chart(ref.getContext('2d'), {
+        type: 'bar',
+        options: this.barOptions,
+        data: {
+          labels,
+          datasets: [
+            {
+              label: 'Balance In',
+              borderRadius: 5,
+              data: data.map(s => s.balance_in),
+              backgroundColor: this.colorPrimary
+            },
+            {
+              label: 'Balance Out',
+              borderRadius: 5,
+              data: data.map(s => s.balance_out),
+              backgroundColor: this.colorSecondary
+            }
+          ]
         }
-      )
+      })
     },
     drawPaymentInOut(data, labels) {
       if (this.walletPaymentInOut) {
         this.walletPaymentInOut.destroy()
       }
-      this.walletPaymentInOut = new Chart(
-        this.$refs.walletPaymentInOut.getContext('2d'),
-        {
-          type: 'bar',
-          options: this.barOptions,
-          data: {
-            labels,
-            datasets: [
-              {
-                label: 'Payments In',
-                data: data.map(s => s.count_in),
-                backgroundColor: this.colorPrimary
-              },
-              {
-                label: 'Payments Out',
-                data: data.map(s => -s.count_out),
-                backgroundColor: this.colorSecondary
-              }
-            ]
-          }
+      const ref = this.$refs.walletPaymentInOut
+      if (!ref) return
+      this.walletPaymentInOut = new Chart(ref.getContext('2d'), {
+        type: 'bar',
+        options: this.barOptions,
+        data: {
+          labels,
+          datasets: [
+            {
+              label: 'Payments In',
+              data: data.map(s => s.count_in),
+              backgroundColor: this.colorPrimary
+            },
+            {
+              label: 'Payments Out',
+              data: data.map(s => -s.count_out),
+              backgroundColor: this.colorSecondary
+            }
+          ]
         }
-      )
+      })
     },
     drawBalanceChart(data, labels) {
-      const ref = this.$refs.walletBalanceChart
       if (this.walletBalanceChart) {
         this.walletBalanceChart.destroy()
       }
+      const ref = this.$refs.walletBalanceChart
+      if (!ref) return
       this.walletBalanceChart = new Chart(ref.getContext('2d'), {
         type: 'line',
         options: {
