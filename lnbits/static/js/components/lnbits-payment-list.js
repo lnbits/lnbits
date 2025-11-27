@@ -30,7 +30,7 @@ window.app.component('lnbits-payment-list', {
           rowsNumber: 10
         },
         search: '',
-        loading: true
+        loading: false
       },
       searchDate: {from: null, to: null},
       searchStatus: {
