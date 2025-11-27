@@ -48,6 +48,8 @@ async def handle_stripe_event(event: dict):
     event_type = event.get("type")
     if event_type == "checkout.session.completed":
         await _handle_stripe_checkout_session_completed(event)
+    elif event_type == "payment_intent.succeeded":
+        await _handle_stripe_intent_session_completed(event)
     elif event_type == "invoice.paid":
         await _handle_stripe_subscription_invoice_paid(event)
     else:
@@ -55,6 +57,24 @@ async def handle_stripe_event(event: dict):
             f"Unhandled Stripe event type: '{event_type}'." f" Event ID: '{event_id}'."
         )
 
+async def _handle_stripe_intent_session_completed(event: dict):
+    event_id = event.get("id")
+    event_object = event.get("data", {}).get("object", {})
+    object_type = event_object.get("object")
+    payment_hash = event_object.get("metadata", {}).get("payment_hash")
+    logger.debug(
+        f"Handling Stripe event: '{event_id}'. Type: '{object_type}'."
+        f" Payment hash: '{payment_hash}'."
+    )
+    if not payment_hash:
+        logger.warning("Stripe event does not contain a payment hash.")
+        return
+
+    payment = await get_standalone_payment(payment_hash)
+    if not payment:
+        logger.warning(f"No payment found for hash: '{payment_hash}'.")
+        return
+    await payment.check_fiat_status()
 
 async def _handle_stripe_checkout_session_completed(event: dict):
     event_id = event.get("id")
