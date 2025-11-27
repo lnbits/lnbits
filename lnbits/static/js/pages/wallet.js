@@ -652,7 +652,7 @@ window.PageWallet = {
       }
     }
     let param = this.$route.params.id
-    // '0' is a fallback from the /wallet route
+    // 'last' is a fallback from the /wallet route
     if (!param || param === 'last') {
       param = lastActiveWallet.id
     }
