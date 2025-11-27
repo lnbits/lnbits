@@ -639,35 +639,17 @@ window.PageWallet = {
       this.decodeRequest()
       this.parse.show = true
     }
-    let lastActiveWallet = g.user.wallets.find(
-      w => w.id === this.g.lastActiveWallet
-    )
-    if (!lastActiveWallet) {
-      lastActiveWallet = g.user.wallets[0]
+    const wallet = g.user.wallets.find(w => w.id === this.$route.params.id)
+    if (!wallet) {
+      console.error('Wallet not found:', this.$route.params.id)
+      return
     }
-    if (urlParams.has('wal')) {
-      const wal = g.user.wallets.find(w => w.id === urlParams.get('wal'))
-      if (wal) {
-        lastActiveWallet = wal
-      }
-    }
-    let param = this.$route.params.id
-    // 'last' is a fallback from the /wallet route
-    if (!param || param === 'last') {
-      param = lastActiveWallet.id
-    }
-    const wallet = g.user.wallets.find(w => w.id === param)
-    if (wallet) {
-      lastActiveWallet = wallet
-    }
-    this.g.wallet = lastActiveWallet
-    this.g.lastActiveWallet = lastActiveWallet.id
-    this.$router.replace(`/wallet/${lastActiveWallet.id}`)
+    this.g.wallet = wallet
+    this.g.lastActiveWallet = wallet.id
+    this.$q.localStorage.setItem('lnbits.lastActiveWallet', wallet.id)
+    this.$router.replace(`/wallet/${wallet.id}`)
   },
   watch: {
-    'g.lastActiveWallet'(val) {
-      this.$q.localStorage.setItem('lnbits.lastActiveWallet', val)
-    },
     'g.updatePaymentsHash'() {
       this.receive.show = false
     },
