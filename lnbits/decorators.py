@@ -27,9 +27,11 @@ from lnbits.core.models import (
     User,
     WalletTypeInfo,
 )
+from lnbits.core.models.users import AccountId
 from lnbits.db import Connection, Filter, Filters, TFilterModel
-from lnbits.helpers import normalize_path, path_segments
+from lnbits.helpers import normalize_path, path_segments, sha256s
 from lnbits.settings import AuthMethods, settings
+from lnbits.utils.cache import cache
 
 oauth2_scheme = OAuth2PasswordBearer(
     tokenUrl="api/v1/auth",
@@ -142,6 +144,35 @@ async def check_access_token(
     bearer_access_token: Annotated[str | None, Depends(http_bearer)] = None,
 ) -> str | None:
     return header_access_token or cookie_access_token or bearer_access_token
+
+
+async def check_account_id_exists(
+    r: Request,
+    access_token: Annotated[str | None, Depends(check_access_token)],
+    usr: UUID4 | None = None,
+) -> AccountId:
+    cache_key: str | None = None
+    if access_token:
+        cache_key = f"access_token:{sha256s(access_token)}"
+    elif usr:
+        cache_key = f"user_id:{usr.hex}"
+
+    if cache_key and settings.auth_authentication_cache_minutes > 0:
+        account_id = cache.get(cache_key)
+        if account_id:
+            return account_id
+
+    account = await check_account_exists(r, access_token, usr)
+    account_id = AccountId(id=account.id)
+
+    if cache_key and settings.auth_authentication_cache_minutes > 0:
+        cache.set(
+            cache_key,
+            account_id,
+            expiry=settings.auth_authentication_cache_minutes * 60,
+        )
+
+    return account_id
 
 
 async def check_account_exists(

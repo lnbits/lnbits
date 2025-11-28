@@ -756,6 +756,7 @@ class AuthSettings(LNbitsSettings):
     # How many seconds after login the user is allowed to update its credentials.
     # A fresh login is required afterwards.
     auth_credetials_update_threshold: int = Field(default=120, gt=0)
+    auth_authentication_cache_minutes: int = Field(default=10, ge=0)
 
     def is_auth_method_allowed(self, method: AuthMethods):
         return method.value in self.auth_allowed_methods

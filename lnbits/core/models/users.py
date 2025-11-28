@@ -172,8 +172,15 @@ class UserAcls(BaseModel):
         return None
 
 
-class Account(BaseModel):
+class AccountId(BaseModel):
     id: str
+
+    @property
+    def is_admin_account(self) -> bool:
+        return settings.is_admin_user(self.id)
+
+
+class Account(AccountId):
     external_id: str | None = None  # for external account linking
     username: str | None = None
     password_hash: str | None = None
