@@ -96,17 +96,12 @@ class BaseKeyChecker(SecurityBase):
 
         return key_value
 
-    async def _extractkey_type(
-        self, request: Request, key_value: str, wallet: BaseWallet
-    ) -> KeyType:
-        request.scope["user_id"] = wallet.user
+    async def _extract_key_type(self, key_value: str, wallet: BaseWallet) -> KeyType:
         if self.expected_key_type is KeyType.admin and wallet.adminkey != key_value:
             raise HTTPException(
                 status_code=HTTPStatus.FORBIDDEN,
                 detail="Invalid adminkey.",
             )
-
-        await _check_user_access(request, wallet.user)
 
         key_type = KeyType.admin if wallet.adminkey == key_value else KeyType.invoice
         return key_type
@@ -132,7 +127,10 @@ class KeyChecker(BaseKeyChecker):
                 detail="Wallet not found.",
             )
 
-        key_type = await self._extractkey_type(request, key_value, wallet)
+        request.scope["user_id"] = wallet.user
+        await _check_user_access(request, wallet.user)
+
+        key_type = await self._extract_key_type(key_value, wallet)
         return WalletTypeInfo(key_type, wallet)
 
 
@@ -150,22 +148,28 @@ class LightKeyChecker(BaseKeyChecker):
         cache_key = f"auth:x-api-key:{key_value}"
         cache_time = settings.auth_authentication_cache_minutes * 60
 
-        wallet = None
         if cache_time > 0:
-            wallet = cache.get(cache_key)
-        if not wallet:
-            wallet = await get_base_wallet_for_key(key_value)
+            key_info: BaseWalletTypeInfo | None = cache.get(cache_key)
+            if key_info:
+                request.scope["user_id"] = key_info.wallet.user
+                await _check_user_access(request, key_info.wallet.user)
+                return key_info
+
+        wallet = await get_base_wallet_for_key(key_value)
 
         if not wallet:
             raise HTTPException(
                 status_code=HTTPStatus.NOT_FOUND,
                 detail="Wallet not found.",
             )
+        request.scope["user_id"] = wallet.user
+        await _check_user_access(request, wallet.user)
 
-        key_type = await self._extractkey_type(request, key_value, wallet)
+        key_type = await self._extract_key_type(key_value, wallet)
         key_info = BaseWalletTypeInfo(key_type, wallet)
+
         if cache_time > 0:
-            cache.set(cache_key, wallet, expiry=cache_time)
+            cache.set(cache_key, key_info, expiry=cache_time)
             cache.set(f"auth:wallet:{wallet.id}", wallet, expiry=cache_time)
         return key_info
 
