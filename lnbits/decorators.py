@@ -108,7 +108,7 @@ class KeyChecker(SecurityBase):
                 detail="Invalid adminkey.",
             )
 
-        await _check_user_extension_access(wallet.user, request["path"])
+        await _check_user_access(request, wallet.user)
 
         key_type = KeyType.admin if wallet.adminkey == key_value else KeyType.invoice
         return WalletTypeInfo(key_type, wallet)
@@ -160,6 +160,8 @@ async def check_account_id_exists(
     if cache_key and settings.auth_authentication_cache_minutes > 0:
         account_id = cache.get(cache_key)
         if account_id:
+            r.scope["user_id"] = account_id.id
+            await _check_user_access(r, account_id)
             return account_id
 
     account = await check_account_exists(r, access_token, usr)
@@ -202,9 +204,8 @@ async def check_account_exists(
         raise HTTPException(HTTPStatus.UNAUTHORIZED, "User not found.")
 
     r.scope["user_id"] = account.id
-    if not settings.is_user_allowed(account.id):
-        raise HTTPException(HTTPStatus.FORBIDDEN, "User not allowed.")
-    await _check_user_extension_access(account.id, r["path"])
+    await _check_user_access(r, account.id)
+
     return account
 
 
@@ -325,6 +326,12 @@ async def check_user_extension_access(
             )
 
     return SimpleStatus(success=True, message="OK")
+
+
+async def _check_user_access(r: Request, user_id: str):
+    if not settings.is_user_allowed(user_id):
+        raise HTTPException(HTTPStatus.FORBIDDEN, "User not allowed.")
+    await _check_user_extension_access(user_id, r["path"])
 
 
 async def _check_user_extension_access(user_id: str, path: str):
