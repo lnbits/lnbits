@@ -54,7 +54,8 @@ window.g = Vue.reactive({
   ),
   ads: WINDOW_SETTINGS.AD_SPACE.split(',').map(ad => ad.split(';')),
   denomination: WINDOW_SETTINGS.LNBITS_DENOMINATION,
-  isSatsDenomination: WINDOW_SETTINGS.LNBITS_DENOMINATION == 'sats'
+  isSatsDenomination: WINDOW_SETTINGS.LNBITS_DENOMINATION == 'sats',
+  scanDetectCallback: null
 })
 
 window.dateFormat = 'YYYY-MM-DD HH:mm'
