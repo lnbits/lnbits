@@ -11,14 +11,14 @@
       )"
       :key="walletRec.id"
       clickable
-      :active="g.lastActiveWallet === walletRec.id"
+      :active="walletRec.id === activeWalletId"
       @click="$router.push('/wallet/' + walletRec.id)"
     >
       <q-item-section side>
         <q-avatar
           size="lg"
           :text-color="$q.dark.isActive ? 'black' : 'grey-3'"
-          :disabled="g.lastActiveWallet === walletRec.id"
+          :disabled="walletRec.id === activeWalletId"
           :color="walletRec.extra.color"
           :icon="walletRec.extra.icon"
         >
