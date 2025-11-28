@@ -184,8 +184,8 @@ async def check_account_exists(
     Check that the account exists based on access token or user id.
     More performant version of `check_user_exists`.
     Unlike `check_user_exists`, this function:
-      - does not check extension access
       - does not fetch the user wallets
+      - caches the account info based on settings cache time
     """
     if access_token:
         account = await _get_account_from_token(access_token, r["path"], r["method"])
@@ -204,6 +204,7 @@ async def check_account_exists(
     r.scope["user_id"] = account.id
     if not settings.is_user_allowed(account.id):
         raise HTTPException(HTTPStatus.FORBIDDEN, "User not allowed.")
+    await _check_user_extension_access(account.id, r["path"])
     return account
 
 
@@ -216,7 +217,7 @@ async def check_user_exists(
     user = await get_user_from_account(account)
     if not user:
         raise HTTPException(HTTPStatus.UNAUTHORIZED, "User not found.")
-    await _check_user_extension_access(user.id, r["path"])
+
     return user
 
 
