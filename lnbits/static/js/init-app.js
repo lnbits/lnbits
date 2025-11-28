@@ -9,6 +9,46 @@ const quasarConfig = {
   }
 }
 
+const DynamicComponent = {
+  async created() {
+    const name = this.$route.path.split('/')[1]
+    const path = `/${name}/`
+    const routesPath = `/${name}/static/routes.json`
+    const hasPath = this.$router.getRoutes().some(r => r.path === path)
+    if (hasPath) {
+      console.log('Dynamic route already exists for extension:', name)
+      return
+    }
+    fetch(routesPath)
+      .then(async res => {
+        if (!res.ok) {
+          throw new Error('No dynamic routes found')
+        }
+        const routes = await res.json()
+        routes.forEach(r => {
+          console.log('Adding dynamic route:', r.path)
+          window.router.addRoute({
+            path: r.path,
+            name: r.name,
+            component: async () => {
+              await LNbits.utils.loadTemplate(r.template)
+              await LNbits.utils.loadScript(r.component)
+              return window[r.name]
+            }
+          })
+          window.router.push(this.$route.fullPath)
+        })
+      })
+      .catch(() => {
+        if (RENDERED_ROUTE !== path) {
+          console.log('Redirecting to non-vue route:', path)
+          window.location = path
+          return
+        }
+      })
+  }
+}
+
 const routes = [
   {
     path: '/node',
@@ -87,6 +127,11 @@ const routes = [
     path: '/error',
     name: 'PageError',
     component: PageError
+  },
+  {
+    path: '/:pathMatch(.*)*',
+    name: 'DynamicComponent',
+    component: DynamicComponent
   }
 ]
 
@@ -107,16 +152,7 @@ window.app.mixin({
       api: window._lnbitsApi,
       utils: window._lnbitsUtils,
       g: window.g,
-      utils: window._lnbitsUtils,
       ...WINDOW_SETTINGS
-    }
-  },
-  computed: {
-    isVueRoute() {
-      const currentPath = window.location.pathname
-      const matchedRoute = window.router.resolve(currentPath)
-      const isVueRoute = matchedRoute?.matched?.length > 0
-      return isVueRoute
     }
   },
   // backwards compatibility for extensions, should not be used in the future

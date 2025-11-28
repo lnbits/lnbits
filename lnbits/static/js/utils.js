@@ -1,4 +1,31 @@
 window._lnbitsUtils = {
+  loadScript(src) {
+    return new Promise((resolve, reject) => {
+      const script = document.createElement('script')
+      script.src = src
+      script.onload = () => {
+        resolve()
+      }
+      script.onerror = () => {
+        reject(new Error(`Failed to load script ${src}`))
+      }
+      document.body.appendChild(script)
+    })
+  },
+  async loadTemplate(url) {
+    return fetch(url)
+      .then(response => {
+        if (!response.ok) {
+          throw new Error(`Failed to load template from ${url}`)
+        }
+        return response.text()
+      })
+      .then(html => {
+        const template = document.createElement('div')
+        template.innerHTML = html.trim()
+        document.body.appendChild(template)
+      })
+  },
   copyText(text, message, position) {
     Quasar.copyToClipboard(text).then(() => {
       Quasar.Notify.create({

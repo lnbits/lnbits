@@ -17,11 +17,10 @@
     </q-item>
     <q-item
       v-for="extension in userExtensions"
-      :key="extension.code"
       clickable
-      :active="$route.path.startsWith(extension.url)"
+      :active="$route.path.startsWith('/' + extension.code)"
       tag="a"
-      :href="extension.url"
+      :to="'/' + extension.code + '/'"
     >
       <q-item-section side>
         <q-avatar size="md">
@@ -33,7 +32,10 @@
           ><span v-text="extension.name"></span>
         </q-item-label>
       </q-item-section>
-      <q-item-section side v-show="$route.path.startsWith(extension.url)">
+      <q-item-section
+        side
+        v-show="$route.path.startsWith('/' + extension.code)"
+      >
         <q-icon name="chevron_right" color="grey-5" size="md"></q-icon>
       </q-item-section>
     </q-item>

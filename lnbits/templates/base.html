@@ -51,9 +51,12 @@
             <lnbits-header-wallets
               v-if="g.user && !g.isPublicPage"
             ></lnbits-header-wallets>
-            <router-view v-if="isVueRoute" :key="$route.path"></router-view>
-            <!-- FastAPI Content from extensions -->
-            <div v-else>{% block page %}{% endblock %}</div>
+            <!-- block page content from static extensions -->
+            <div v-if="$route.path === '{{ request.path }}'">
+              {% block page %}{% endblock %}
+            </div>
+            <!-- vue router-view -->
+            <router-view :key="$route.path"></router-view>
           </q-page>
         </q-page-container>
         {% endblock %}
@@ -64,6 +67,7 @@
       </q-layout>
     </div>
     <script type="text/javascript">
+      const RENDERED_ROUTE = '{{ request.path }}'
       const WINDOW_SETTINGS = {{ WINDOW_SETTINGS | tojson }}
       Object.keys(WINDOW_SETTINGS).forEach(key => {
         window[key] = WINDOW_SETTINGS[key]
