@@ -18,7 +18,7 @@
         <q-avatar
           size="lg"
           :text-color="$q.dark.isActive ? 'black' : 'grey-3'"
-          :class="g.lastActiveWallet === walletRec.id ? '' : 'disabled'"
+          :disabled="g.lastActiveWallet === walletRec.id"
           :color="walletRec.extra.color"
           :icon="walletRec.extra.icon"
         >
