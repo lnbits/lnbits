@@ -33,23 +33,26 @@
   <body data-theme="bitcoin">
     <div id="vue">
       <q-layout view="hHh lpR lfr" v-cloak>
-        <lnbits-disclaimer></lnbits-disclaimer>
+        <lnbits-disclaimer v-if="g.user && !g.public"></lnbits-disclaimer>
         <lnbits-qrcode-scanner @detect="handleScan"></lnbits-qrcode-scanner>
         <lnbits-theme></lnbits-theme>
         <lnbits-header></lnbits-header>
-        {% block drawer %}
-        <lnbits-drawer></lnbits-drawer>
-        {% endblock %} {% block page_container %}
+        <lnbits-drawer v-if="g.user && !g.public"></lnbits-drawer>
+        {% block page_container %}
         <q-page-container>
           <q-page class="q-px-md q-py-lg" :class="{'q-px-lg': $q.screen.gt.xs}">
-            <lnbits-wallet-new></lnbits-wallet-new>
-            <lnbits-header-wallets></lnbits-header-wallets>
+            <lnbits-wallet-new v-if="g.user && !g.public"></lnbits-wallet-new>
+            <lnbits-header-wallets
+              v-if="g.user && !g.public"
+            ></lnbits-header-wallets>
             <router-view v-if="isVueRoute" :key="$route.path"></router-view>
             <!-- FastAPI Content from extensions -->
             <div v-else>{% block page %}{% endblock %}</div>
           </q-page>
         </q-page-container>
-        {% endblock %} {% block footer %}
+        {% endblock %}
+        <!-- Footer -->
+        {% block footer %}
         <lnbits-footer />
         {% endblock %}
       </q-layout>
@@ -72,6 +75,12 @@
     {% if user %}
     <script>
       window.g.user = LNbits.map.user(JSON.parse({{ user | tojson | safe }}));
+    </script>
+    {% endif %}
+    <!-- public init -->
+    {% if not public %}
+    <script>
+      window.g.public = false
     </script>
     {% endif %}
     <!-- scripts from extensions -->

@@ -89,6 +89,12 @@ window._lnbitsApi = {
       }
     })
   },
+  auth() {
+    return axios({
+      method: 'GET',
+      url: '/api/v1/auth'
+    })
+  },
   login(username, password) {
     return axios({
       method: 'POST',

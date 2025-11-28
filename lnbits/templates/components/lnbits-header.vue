@@ -14,6 +14,7 @@
     </q-banner>
     <q-toolbar>
       <q-btn
+        v-if="!g.public"
         dense
         flat
         round

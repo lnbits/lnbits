@@ -39,6 +39,7 @@ window.windowMixin = {
       }
     },
     paymentEvents() {
+      if (!this.g.user) return
       let timeout
       this.g.user.wallets.forEach(wallet => {
         if (!this.g.walletEventListeners.includes(wallet.id)) {

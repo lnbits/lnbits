@@ -1,14 +1,1 @@
-{% extends "base.html" %} {% block beta %}{% endblock %} {% block drawer_toggle
-%}{% endblock %} {% block drawer %}{% endblock %} {% block toolbar_title %}
-<a
-  href="/"
-  class="inherit q-btn q-btn-item non-selectable no-outline q-btn--flat q-btn--rectangle q-btn--actionable q-focusable q-hoverable q-btn--no-uppercase q-btn--wrap q-btn--dense q-btn--active"
-  style="font-size: 20px"
->
-  {% if USE_CUSTOM_LOGO %}
-  <img height="30px" alt="Logo" src="{{ USE_CUSTOM_LOGO }}" />
-  {%else%} {% if SITE_TITLE != 'LNbits' %} {{ SITE_TITLE }} {% else %}
-  <span><strong>LN</strong>bits</span>
-  {% endif %} {% endif %}
-</a>
-{% endblock %}
+{% extends "base.html" %}
