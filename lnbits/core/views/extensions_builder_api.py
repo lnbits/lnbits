@@ -16,7 +16,7 @@ from lnbits.core.models.extensions import (
     UserExtension,
 )
 from lnbits.core.models.extensions_builder import ExtensionData
-from lnbits.core.models.users import Account
+from lnbits.core.models.users import AccountId
 from lnbits.core.services.extensions import (
     activate_extension,
     install_extension,
@@ -27,7 +27,7 @@ from lnbits.core.services.extensions_builder import (
     zip_directory,
 )
 from lnbits.decorators import (
-    check_account_exists,
+    check_account_id_exists,
     check_admin,
     check_extension_builder,
 )
@@ -129,7 +129,7 @@ async def api_deploy_extension(
 )
 async def api_preview_extension(
     data: ExtensionData,
-    account: Account = Depends(check_account_exists),
+    account: AccountId = Depends(check_account_id_exists),
 ) -> SimpleStatus:
     stub_ext_id = "extension_builder_stub"
     working_dir_name = "preview_" + sha256(account.id.encode("utf-8")).hexdigest()

@@ -15,9 +15,9 @@ from lnbits.core.models import (
     CreateWebPushSubscription,
     WebPushSubscription,
 )
-from lnbits.core.models.users import Account
+from lnbits.core.models.users import AccountId
 from lnbits.decorators import (
-    check_account_exists,
+    check_account_id_exists,
 )
 
 from ..crud import (
@@ -33,7 +33,7 @@ webpush_router = APIRouter(prefix="/api/v1/webpush", tags=["Webpush"])
 async def api_create_webpush_subscription(
     request: Request,
     data: CreateWebPushSubscription,
-    account: Account = Depends(check_account_exists),
+    account: AccountId = Depends(check_account_id_exists),
 ) -> WebPushSubscription:
     try:
         subscription = json.loads(data.subscription)
@@ -61,7 +61,7 @@ async def api_create_webpush_subscription(
 @webpush_router.delete("", status_code=HTTPStatus.OK)
 async def api_delete_webpush_subscription(
     request: Request,
-    account: Account = Depends(check_account_exists),
+    account: AccountId = Depends(check_account_id_exists),
 ):
     try:
         endpoint = unquote(

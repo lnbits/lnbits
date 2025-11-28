@@ -15,7 +15,7 @@ from lnbits.core.crud.wallets import (
 from lnbits.core.models import CreateWallet, KeyType, Wallet, WalletTypeInfo
 from lnbits.core.models.lnurl import StoredPayLink, StoredPayLinks
 from lnbits.core.models.misc import SimpleStatus
-from lnbits.core.models.users import Account
+from lnbits.core.models.users import Account, AccountId
 from lnbits.core.models.wallets import (
     WalletsFilters,
     WalletSharePermission,
@@ -31,6 +31,7 @@ from lnbits.core.services.wallets import (
 from lnbits.db import Filters, Page
 from lnbits.decorators import (
     check_account_exists,
+    check_account_id_exists,
     parse_filters,
     require_admin_key,
     require_invoice_key,
@@ -66,7 +67,7 @@ async def api_wallet(key_info: WalletTypeInfo = Depends(require_invoice_key)):
     openapi_extra=generate_filter_params_openapi(WalletsFilters),
 )
 async def api_wallets_paginated(
-    account: Account = Depends(check_account_exists),
+    account: AccountId = Depends(check_account_id_exists),
     filters: Filters = Depends(parse_filters(WalletsFilters)),
 ):
     page = await get_wallets_paginated(
@@ -126,7 +127,7 @@ async def api_update_wallet_name(
 @wallet_router.put("/reset/{wallet_id}")
 async def api_reset_wallet_keys(
     wallet_id: str,
-    account: Account = Depends(check_account_exists),
+    account: AccountId = Depends(check_account_id_exists),
 ) -> Wallet:
     wallet = await get_wallet(wallet_id)
     if not wallet or wallet.user != account.id:
@@ -177,7 +178,7 @@ async def api_update_wallet(
 
 @wallet_router.delete("/{wallet_id}")
 async def api_delete_wallet(
-    wallet_id: str, account: Account = Depends(check_account_exists)
+    wallet_id: str, account: AccountId = Depends(check_account_id_exists)
 ) -> None:
     wallet = await get_wallet(wallet_id)
     if not wallet or wallet.user != account.id:

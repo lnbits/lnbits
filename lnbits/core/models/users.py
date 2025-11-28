@@ -176,7 +176,7 @@ class AccountId(BaseModel):
     id: str
 
     @property
-    def is_admin_account(self) -> bool:
+    def is_admin_id(self) -> bool:
         return settings.is_admin_user(self.id)
 
 

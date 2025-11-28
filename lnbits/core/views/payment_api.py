@@ -35,11 +35,11 @@ from lnbits.core.models import (
     SimpleStatus,
 )
 from lnbits.core.models.payments import UpdatePaymentLabels
-from lnbits.core.models.users import Account
+from lnbits.core.models.users import AccountId
 from lnbits.db import Filters, Page
 from lnbits.decorators import (
     WalletTypeInfo,
-    check_account_exists,
+    check_account_id_exists,
     parse_filters,
     require_admin_key,
     require_invoice_key,
@@ -118,9 +118,9 @@ async def api_payments_history(
 async def api_payments_counting_stats(
     count_by: PaymentCountField = Query("tag"),
     filters: Filters[PaymentFilters] = Depends(parse_filters(PaymentFilters)),
-    account: Account = Depends(check_account_exists),
+    account: AccountId = Depends(check_account_id_exists),
 ):
-    if account.is_admin:
+    if account.is_admin_id:
         # admin user can see payments from all wallets
         for_user_id = None
     else:
@@ -138,9 +138,9 @@ async def api_payments_counting_stats(
 )
 async def api_payments_wallets_stats(
     filters: Filters[PaymentFilters] = Depends(parse_filters(PaymentFilters)),
-    account: Account = Depends(check_account_exists),
+    account: AccountId = Depends(check_account_id_exists),
 ):
-    if account.is_admin:
+    if account.is_admin_id:
         # admin user can see payments from all wallets
         for_user_id = None
     else:
@@ -157,10 +157,10 @@ async def api_payments_wallets_stats(
     openapi_extra=generate_filter_params_openapi(PaymentFilters),
 )
 async def api_payments_daily_stats(
-    account: Account = Depends(check_account_exists),
+    account: AccountId = Depends(check_account_id_exists),
     filters: Filters[PaymentFilters] = Depends(parse_filters(PaymentFilters)),
 ):
-    if account.is_admin:
+    if account.is_admin_id:
         # admin user can see payments from all wallets
         for_user_id = None
     else:
@@ -208,9 +208,9 @@ async def api_payments_paginated(
 )
 async def api_all_payments_paginated(
     filters: Filters = Depends(parse_filters(PaymentFilters)),
-    account: Account = Depends(check_account_exists),
+    account: AccountId = Depends(check_account_id_exists),
 ):
-    if account.is_admin:
+    if account.is_admin_id:
         # admin user can see payments from all wallets
         for_user_id = None
     else:

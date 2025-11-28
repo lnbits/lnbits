@@ -15,11 +15,11 @@ from lnbits.core.crud.assets import (
 )
 from lnbits.core.models.assets import AssetFilters, AssetInfo, AssetUpdate
 from lnbits.core.models.misc import SimpleStatus
-from lnbits.core.models.users import Account
+from lnbits.core.models.users import AccountId
 from lnbits.core.services.assets import create_user_asset
 from lnbits.db import Filters, Page
 from lnbits.decorators import (
-    check_account_exists,
+    check_account_id_exists,
     optional_user_id,
     parse_filters,
 )
@@ -35,7 +35,7 @@ upload_file_param = File(...)
     summary="Get paginated list user assets",
 )
 async def api_get_user_assets(
-    account: Account = Depends(check_account_exists),
+    account: AccountId = Depends(check_account_id_exists),
     filters: Filters = Depends(parse_filters(AssetFilters)),
 ) -> Page[AssetInfo]:
     return await get_user_assets(account.id, filters=filters)
@@ -48,7 +48,7 @@ async def api_get_user_assets(
 )
 async def api_get_asset(
     asset_id: str,
-    account: Account = Depends(check_account_exists),
+    account: AccountId = Depends(check_account_id_exists),
 ) -> AssetInfo:
     asset_info = await get_user_asset_info(account.id, asset_id)
     if not asset_info:
@@ -120,9 +120,9 @@ async def api_get_asset_thumbnail(
 async def api_update_asset(
     asset_id: str,
     data: AssetUpdate,
-    account: Account = Depends(check_account_exists),
+    account: AccountId = Depends(check_account_id_exists),
 ) -> AssetInfo:
-    if account.is_admin:
+    if account.is_admin_id:
         asset_info = await get_asset_info(asset_id)
     else:
         asset_info = await get_user_asset_info(account.id, asset_id)
@@ -144,7 +144,7 @@ async def api_update_asset(
     summary="Upload user assets",
 )
 async def api_upload_asset(
-    account: Account = Depends(check_account_exists),
+    account: AccountId = Depends(check_account_id_exists),
     file: UploadFile = upload_file_param,
     public_asset: bool = False,
 ) -> AssetInfo:
@@ -164,7 +164,7 @@ async def api_upload_asset(
 )
 async def api_delete_asset(
     asset_id: str,
-    account: Account = Depends(check_account_exists),
+    account: AccountId = Depends(check_account_id_exists),
 ) -> SimpleStatus:
     asset = await get_user_asset(account.id, asset_id)
     if not asset:
