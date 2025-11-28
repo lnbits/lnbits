@@ -11,24 +11,16 @@
       )"
       :key="walletRec.id"
       clickable
-      :active="g.wallet && g.wallet.id === walletRec.id"
+      :active="g.lastActiveWallet === walletRec.id"
       @click="$router.push('/wallet/' + walletRec.id)"
     >
       <q-item-section side>
         <q-avatar
           size="lg"
           :text-color="$q.dark.isActive ? 'black' : 'grey-3'"
-          :class="g.wallet && g.wallet.id === walletRec.id ? '' : 'disabled'"
-          :color="
-            g.wallet && g.wallet.id === walletRec.id
-              ? walletRec.extra.color
-              : walletRec.extra.color
-          "
-          :icon="
-            g.wallet && g.wallet.id === walletRec.id
-              ? walletRec.extra.icon
-              : walletRec.extra.icon
-          "
+          :class="g.lastActiveWallet === walletRec.id ? '' : 'disabled'"
+          :color="walletRec.extra.color"
+          :icon="walletRec.extra.icon"
         >
         </q-avatar>
       </q-item-section>

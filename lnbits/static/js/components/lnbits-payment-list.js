@@ -259,7 +259,7 @@ window.app.component('lnbits-payment-list', {
     },
     checkPayment(payment_hash) {
       LNbits.api
-        .getPayment(this.g.wallet, payment_hash)
+        .getPayment(this.wallet, payment_hash)
         .then(res => {
           this.update = !this.update
           if (res.data.status == 'success') {
@@ -319,7 +319,7 @@ window.app.component('lnbits-payment-list', {
     },
     cancelHoldInvoice(payment_hash) {
       LNbits.api
-        .cancelInvoice(this.g.wallet, payment_hash)
+        .cancelInvoice(this.wallet, payment_hash)
         .then(() => {
           this.update = !this.update
           Quasar.Notify.create({
@@ -331,7 +331,7 @@ window.app.component('lnbits-payment-list', {
     },
     settleHoldInvoice(preimage) {
       LNbits.api
-        .settleInvoice(this.g.wallet, preimage)
+        .settleInvoice(this.wallet, preimage)
         .then(() => {
           this.update = !this.update
           Quasar.Notify.create({
@@ -354,7 +354,7 @@ window.app.component('lnbits-payment-list', {
         direction: pagination.descending ? 'desc' : 'asc'
       }
       const params = new URLSearchParams(query)
-      LNbits.api.getPayments(this.g.wallet, params).then(response => {
+      LNbits.api.getPayments(this.wallet, params).then(response => {
         let payments = response.data.data.map(this.mapPayment)
         let columns = this.paymentsCSV.columns
 
@@ -382,7 +382,7 @@ window.app.component('lnbits-payment-list', {
         LNbits.utils.exportCSV(
           columns,
           payments,
-          this.g.wallet.name + '-payments'
+          this.wallet.name + '-payments'
         )
       })
     },
@@ -451,7 +451,7 @@ window.app.component('lnbits-payment-list', {
         await LNbits.api.request(
           'PUT',
           `/api/v1/payments/${this.selectedPayment.payment_hash}/labels`,
-          this.g.wallet.adminkey,
+          this.wallet.adminkey,
           {
             labels: labels
           }
