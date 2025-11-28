@@ -37,6 +37,7 @@ from lnbits.decorators import (
     require_invoice_key,
 )
 from lnbits.helpers import generate_filter_params_openapi
+from lnbits.utils.cache import cache
 
 from ..crud import (
     delete_wallet,
@@ -132,6 +133,10 @@ async def api_reset_wallet_keys(
     wallet = await get_wallet(wallet_id)
     if not wallet or wallet.user != account_id.id:
         raise HTTPException(status_code=HTTPStatus.NOT_FOUND, detail="Wallet not found")
+
+    cache.pop(f"auth:wallet:{wallet.id}")
+    cache.pop(f"auth:x-api-key:{wallet.adminkey}")
+    cache.pop(f"auth:x-api-key:{wallet.inkey}")
 
     wallet.adminkey = uuid4().hex
     wallet.inkey = uuid4().hex

@@ -147,8 +147,14 @@ class LightKeyChecker(BaseKeyChecker):
 
     async def __call__(self, request: Request) -> BaseWalletTypeInfo:
         key_value = self._extract_key_value(request)
+        cache_key = f"auth:x-api-key:{key_value}"
+        cache_time = settings.auth_authentication_cache_minutes * 60
 
-        wallet = await get_base_wallet_for_key(key_value)
+        wallet = None
+        if cache_time > 0:
+            wallet = cache.get(cache_key)
+        if not wallet:
+            wallet = await get_base_wallet_for_key(key_value)
 
         if not wallet:
             raise HTTPException(
@@ -157,7 +163,11 @@ class LightKeyChecker(BaseKeyChecker):
             )
 
         key_type = await self._extractkey_type(request, key_value, wallet)
-        return BaseWalletTypeInfo(key_type, wallet)
+        key_info = BaseWalletTypeInfo(key_type, wallet)
+        if cache_time > 0:
+            cache.set(cache_key, wallet, expiry=cache_time)
+            cache.set(f"auth:wallet:{wallet.id}", wallet, expiry=cache_time)
+        return key_info
 
 
 async def require_admin_key(
@@ -172,12 +182,36 @@ async def require_admin_key(
     return await check(request)
 
 
+async def require_light_admin_key(
+    request: Request,
+    api_key_header: str = Security(api_key_header),
+    api_key_query: str = Security(api_key_query),
+) -> BaseWalletTypeInfo:
+    check: LightKeyChecker = LightKeyChecker(
+        api_key=api_key_header or api_key_query,
+        expected_key_type=KeyType.admin,
+    )
+    return await check(request)
+
+
 async def require_invoice_key(
     request: Request,
     api_key_header: str = Security(api_key_header),
     api_key_query: str = Security(api_key_query),
 ) -> WalletTypeInfo:
     check: KeyChecker = KeyChecker(
+        api_key=api_key_header or api_key_query,
+        expected_key_type=KeyType.invoice,
+    )
+    return await check(request)
+
+
+async def require_light_invoice_key(
+    request: Request,
+    api_key_header: str = Security(api_key_header),
+    api_key_query: str = Security(api_key_query),
+) -> BaseWalletTypeInfo:
+    check: LightKeyChecker = LightKeyChecker(
         api_key=api_key_header or api_key_query,
         expected_key_type=KeyType.invoice,
     )

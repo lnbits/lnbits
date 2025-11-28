@@ -6,6 +6,7 @@ from lnbits.core.db import db
 from lnbits.core.models.wallets import BaseWallet, WalletsFilters, WalletType
 from lnbits.db import Connection, Filters, Page
 from lnbits.settings import settings
+from lnbits.utils.cache import cache
 
 from ..models import Wallet
 
@@ -51,6 +52,11 @@ async def delete_wallet(
     conn: Connection | None = None,
 ) -> None:
     now = int(time())
+    cached_wallet: BaseWallet | None = cache.pop(f"auth:wallet:{wallet_id}")
+    if cached_wallet:
+        cache.pop(f"auth:x-api-key:{cached_wallet.adminkey}")
+        cache.pop(f"auth:x-api-key:{cached_wallet.inkey}")
+
     await (conn or db).execute(
         # Timestamp placeholder is safe from SQL injection (not user input)
         f"""
