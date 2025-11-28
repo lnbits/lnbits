@@ -604,16 +604,17 @@ window.PageWallet = {
       this.decodeRequest()
       this.parse.show = true
     }
-    let wallet = g.user.wallets.find(w => w.id === this.$route.params.id)
-    if (!wallet) {
-      const walletId = g.lastActiveWallet || g.user.wallets[0].id
-      wallet = g.user.wallets.find(w => w.id === walletId)
-      // TODO: should show PageError(404) if wallet not found
+    const wallet = g.user.wallets.find(w => w.id === this.$route.params.id)
+    if (wallet) {
+      this.g.wallet = wallet
+      this.g.lastActiveWallet = wallet.id
+      this.$q.localStorage.setItem('lnbits.lastActiveWallet', wallet.id)
+      this.$router.replace(`/wallet/${wallet.id}`)
+    } else {
+      this.g.errorCode = 404
+      this.g.errorMessage = 'Wallet not found.'
+      this.$router.push('/error')
     }
-    this.g.wallet = wallet
-    this.g.lastActiveWallet = wallet.id
-    this.$q.localStorage.setItem('lnbits.lastActiveWallet', wallet.id)
-    this.$router.replace(`/wallet/${wallet.id}`)
   },
   watch: {
     'g.updatePaymentsHash'() {

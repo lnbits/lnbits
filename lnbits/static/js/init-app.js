@@ -78,6 +78,11 @@ const routes = [
     path: '/',
     name: 'PageHome',
     component: PageHome
+  },
+  {
+    path: '/error',
+    name: 'PageError',
+    component: PageError
   }
 ]
 

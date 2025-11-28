@@ -9,6 +9,8 @@ const localStore = (key, defaultValue) => {
 }
 
 window.g = Vue.reactive({
+  errorCode: null,
+  errorMessage: null,
   isUserAuthorized: !!Quasar.Cookies.get('is_lnbits_user_authorized'),
   offline: !navigator.onLine,
   hasCamera: false,

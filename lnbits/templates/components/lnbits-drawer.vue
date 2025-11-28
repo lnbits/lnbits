@@ -24,7 +24,6 @@
             flat
             :icon="g.walletFlip ? 'view_list' : 'view_column'"
             color="grey"
-            class=""
             @click="g.walletFlip = !g.walletFlip"
           >
             <q-tooltip

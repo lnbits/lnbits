@@ -221,6 +221,7 @@ async def index(
 
 
 @generic_router.get("/")
+@generic_router.get("/error")
 @generic_router.get("/node/public")
 @generic_router.get("/first_install", dependencies=[Depends(check_first_install)])
 async def index_public(request: Request) -> HTMLResponse:

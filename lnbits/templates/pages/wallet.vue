@@ -1,5 +1,5 @@
 <template id="page-wallet">
-  <div class="row q-col-gutter-md" style="margin-bottom: 6rem">
+  <div v-if="g.wallet" class="row q-col-gutter-md" style="margin-bottom: 6rem">
     <div class="col-12 col-md-7 q-gutter-y-md wallet-wrapper">
       <q-card class="wallet-card">
         <q-card-section>

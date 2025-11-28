@@ -454,3 +454,12 @@ video {
     width: 90% !important;
   }
 }
+.error-code {
+  font-size: clamp(15vh, 20vw, 30vh);
+}
+
+.error-message {
+  font-size: clamp(1.5rem, 3vw, 3.75rem);
+  font-weight: 300;
+  opacity: 0.4;
+}
