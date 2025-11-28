@@ -2,7 +2,7 @@
 
 from importlib.util import find_spec
 
-if find_spec("breez_sdk_liquid"):
+if not find_spec("breez_sdk_liquid"):
 
     class BreezLiquidSdkWallet:  # pyright: ignore
         def __init__(self):
