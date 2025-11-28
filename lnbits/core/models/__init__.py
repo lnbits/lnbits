@@ -46,7 +46,7 @@ from .users import (
     UserAcls,
     UserExtra,
 )
-from .wallets import BaseWallet, CreateWallet, KeyType, Wallet, WalletTypeInfo
+from .wallets import CreateWallet, KeyType, Wallet, WalletBasicInfo, WalletTypeInfo
 from .webpush import CreateWebPushSubscription, WebPushSubscription
 
 __all__ = [
@@ -57,7 +57,6 @@ __all__ = [
     "AuditEntry",
     "AuditFilters",
     "BalanceDelta",
-    "BaseWallet",
     "Callback",
     "CancelInvoice",
     "ConversionData",
@@ -99,6 +98,7 @@ __all__ = [
     "UserAcls",
     "UserExtra",
     "Wallet",
+    "WalletBasicInfo",
     "WalletTypeInfo",
     "WebPushSubscription",
 ]

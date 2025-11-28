@@ -11,7 +11,7 @@ from lnbits.db import FilterModel
 from lnbits.settings import settings
 
 
-class BaseWallet(BaseModel):
+class WalletBasicInfo(BaseModel):
     id: str
     name: str
     adminkey: str
@@ -110,13 +110,16 @@ class WalletExtra(BaseModel):
         ]
 
 
-class Wallet(BaseModel):
+class BaseWallet(BaseModel):
     id: str
     user: str
-    name: str
+    wallet_type: str = WalletType.LIGHTNING.value
     adminkey: str
     inkey: str
-    wallet_type: str = WalletType.LIGHTNING.value
+
+
+class Wallet(BaseWallet):
+    name: str
     # Must be set only for shared wallets
     shared_wallet_id: str | None = None
     deleted: bool = False
@@ -228,6 +231,12 @@ class KeyType(Enum):
 class WalletTypeInfo:
     key_type: KeyType
     wallet: Wallet
+
+
+@dataclass
+class BaseWalletTypeInfo:
+    key_type: KeyType
+    wallet: BaseWallet
 
 
 class WalletsFilters(FilterModel):

@@ -3,7 +3,7 @@ from time import time
 from uuid import uuid4
 
 from lnbits.core.db import db
-from lnbits.core.models.wallets import WalletsFilters, WalletType
+from lnbits.core.models.wallets import BaseWallet, WalletsFilters, WalletType
 from lnbits.db import Connection, Filters, Page
 from lnbits.settings import settings
 
@@ -237,6 +237,24 @@ async def get_wallet_for_key(
     if wallet.is_lightning_shared_wallet:
         mw = await get_source_wallet(wallet, conn)
         return mw
+    return wallet
+
+
+async def get_base_wallet_for_key(
+    key: str,
+    conn: Connection | None = None,
+) -> BaseWallet | None:
+    wallet = await (conn or db).fetchone(
+        """
+        SELECT id, user, wallet_type, adminkey, inkey FROM wallets
+        WHERE (adminkey = :key OR inkey = :key) AND deleted = false
+        """,
+        {"key": key},
+        BaseWallet,
+    )
+    if not wallet:
+        return None
+
     return wallet
 
 

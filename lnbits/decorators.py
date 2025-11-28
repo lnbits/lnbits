@@ -19,6 +19,7 @@ from lnbits.core.crud import (
     get_wallet_for_key,
 )
 from lnbits.core.crud.users import get_user_access_control_lists
+from lnbits.core.crud.wallets import get_base_wallet_for_key
 from lnbits.core.models import (
     AccessTokenPayload,
     Account,
@@ -28,6 +29,7 @@ from lnbits.core.models import (
     WalletTypeInfo,
 )
 from lnbits.core.models.users import AccountId
+from lnbits.core.models.wallets import BaseWallet, BaseWalletTypeInfo
 from lnbits.db import Connection, Filter, Filters, TFilterModel
 from lnbits.helpers import normalize_path, path_segments, sha256s
 from lnbits.settings import AuthMethods, settings
@@ -54,7 +56,7 @@ api_key_query = APIKeyQuery(
 )
 
 
-class KeyChecker(SecurityBase):
+class BaseKeyChecker(SecurityBase):
     def __init__(
         self,
         api_key: str | None = None,
@@ -79,8 +81,7 @@ class KeyChecker(SecurityBase):
             )
         self.model: APIKey = openapi_model  # type: ignore
 
-    async def __call__(self, request: Request) -> WalletTypeInfo:
-
+    def _extract_key_value(self, request):
         key_value = (
             self._api_key
             if self._api_key
@@ -93,14 +94,11 @@ class KeyChecker(SecurityBase):
                 detail="No Api Key provided.",
             )
 
-        wallet = await get_wallet_for_key(key_value)
+        return key_value
 
-        if not wallet:
-            raise HTTPException(
-                status_code=HTTPStatus.NOT_FOUND,
-                detail="Wallet not found.",
-            )
-
+    async def _extractkey_type(
+        self, request: Request, key_value: str, wallet: BaseWallet
+    ) -> KeyType:
         request.scope["user_id"] = wallet.user
         if self.expected_key_type is KeyType.admin and wallet.adminkey != key_value:
             raise HTTPException(
@@ -111,7 +109,55 @@ class KeyChecker(SecurityBase):
         await _check_user_access(request, wallet.user)
 
         key_type = KeyType.admin if wallet.adminkey == key_value else KeyType.invoice
+        return key_type
+
+
+class KeyChecker(BaseKeyChecker):
+
+    def __init__(
+        self,
+        api_key: str | None = None,
+        expected_key_type: KeyType | None = None,
+    ):
+        super().__init__(api_key, expected_key_type)
+
+    async def __call__(self, request: Request) -> WalletTypeInfo:
+        key_value = self._extract_key_value(request)
+
+        wallet = await get_wallet_for_key(key_value)
+
+        if not wallet:
+            raise HTTPException(
+                status_code=HTTPStatus.NOT_FOUND,
+                detail="Wallet not found.",
+            )
+
+        key_type = await self._extractkey_type(request, key_value, wallet)
         return WalletTypeInfo(key_type, wallet)
+
+
+class LightKeyChecker(BaseKeyChecker):
+
+    def __init__(
+        self,
+        api_key: str | None = None,
+        expected_key_type: KeyType | None = None,
+    ):
+        super().__init__(api_key, expected_key_type)
+
+    async def __call__(self, request: Request) -> BaseWalletTypeInfo:
+        key_value = self._extract_key_value(request)
+
+        wallet = await get_base_wallet_for_key(key_value)
+
+        if not wallet:
+            raise HTTPException(
+                status_code=HTTPStatus.NOT_FOUND,
+                detail="Wallet not found.",
+            )
+
+        key_type = await self._extractkey_type(request, key_value, wallet)
+        return BaseWalletTypeInfo(key_type, wallet)
 
 
 async def require_admin_key(

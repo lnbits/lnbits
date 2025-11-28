@@ -5,7 +5,7 @@ import pytest
 from loguru import logger
 from pytest_mock.plugin import MockerFixture
 
-from lnbits.core.models import BaseWallet
+from lnbits.core.models import WalletBasicInfo
 from tests.wallets.fixtures.models import DataObject
 from tests.wallets.fixtures.models import Mock as RpcMock
 from tests.wallets.helpers import (
@@ -91,7 +91,7 @@ def _check_calls(expected_calls):
                 func_call["spy"].assert_called_with(*args, **kwargs)
 
 
-def _spy_mocks(mocker: MockerFixture, test_data: WalletTest, wallet: BaseWallet):
+def _spy_mocks(mocker: MockerFixture, test_data: WalletTest, wallet: WalletBasicInfo):
     expected_calls: dict[str, list] = {}
     for mock in test_data.mocks:
         client_field = getattr(wallet, mock.name)
