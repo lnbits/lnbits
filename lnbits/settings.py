@@ -270,6 +270,7 @@ class ThemesSettings(LNbitsSettings):
     lnbits_allowed_currencies: list[str] = Field(default=[])
     lnbits_default_accounting_currency: str | None = Field(default=None)
     lnbits_qr_logo: str = Field(default="/static/images/favicon_qr_logo.png")
+    lnbits_apple_touch_icon: str | None = Field(default=None)
     lnbits_default_reaction: str = Field(default="confettiBothSides")
     lnbits_default_theme: str = Field(default="salvador")
     lnbits_default_border: str = Field(default="hard-border")

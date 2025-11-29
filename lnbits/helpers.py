@@ -91,6 +91,7 @@ def template_renderer(additional_folders: list | None = None) -> Jinja2Templates
         "LNBITS_NODE_UI": settings.lnbits_node_ui and settings.has_nodemanager,
         "LNBITS_NODE_UI_AVAILABLE": settings.has_nodemanager,
         "LNBITS_QR_LOGO": settings.lnbits_qr_logo,
+        "LNBITS_APPLE_TOUCH_ICON": settings.lnbits_apple_touch_icon,
         "LNBITS_SERVICE_FEE": settings.lnbits_service_fee,
         "LNBITS_SERVICE_FEE_MAX": settings.lnbits_service_fee_max,
         "LNBITS_SERVICE_FEE_WALLET": settings.lnbits_service_fee_wallet,

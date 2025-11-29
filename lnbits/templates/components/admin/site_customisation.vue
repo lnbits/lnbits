@@ -75,6 +75,16 @@
             :hint="$t('ui_qr_code_logo_hint')"
           ></q-input>
         </div>
+        <div class="col-12 col-md-4">
+          <p><span v-text="$t('ui_apple_touch_icon')"></span></p>
+          <q-input
+            filled
+            type="text"
+            v-model="formData.lnbits_apple_touch_icon"
+            label="https://example.com/image.png"
+            :hint="$t('ui_apple_touch_icon_hint')"
+          ></q-input>
+        </div>
       </div>
       <div class="row q-col-gutter-md q-mt-md">
         <div class="col-12 col-md-6">
