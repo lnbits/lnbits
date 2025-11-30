@@ -3,6 +3,11 @@ const quasarConfig = {
     loading: {
       spinner: Quasar.QSpinnerBars
     }
+  },
+  defaults: {
+    QTable: {
+      rowsPerPageOptions: [5, 10, 20, 50, 100, 200, 500, 0]
+    }
   }
 }
 
