@@ -192,6 +192,7 @@
     :hide-header="g.mobileSimple && $q.screen.lt.md"
     :hide-bottom="g.mobileSimple && $q.screen.lt.md"
     v-model:pagination="paymentsTable.pagination"
+    :row-per-page-options="$q.config.table.rowsPerPageOptions"
     @request="fetchPayments"
   >
     <template v-slot:header="props">
