@@ -41,10 +41,6 @@ dependencies = [
     "fastapi-sso==0.18.0",
     # needed for boltz, lnurldevice, watchonly extensions
     "embit==0.8.0",
-    # needed for lnurlp, nostrclient, nostrmarket
-    "secp256k1==0.14.0",
-    # keep for backwards compatibility with lnurlp
-    "environs==14.2.0",
     # needed for scheduler extension
     "python-crontab==3.2.0",
     "pynostr==0.6.2",
