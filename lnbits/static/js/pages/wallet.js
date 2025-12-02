@@ -604,7 +604,7 @@ window.PageWallet = {
       this.decodeRequest()
       this.parse.show = true
     }
-    const wallet = g.user.wallets.find(w => w.id === this.$route.params.id)
+    const wallet = this.g.user.wallets.find(w => w.id === this.$route.params.id)
     if (wallet) {
       this.g.wallet = wallet
       this.g.lastActiveWallet = wallet.id
