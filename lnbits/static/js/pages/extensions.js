@@ -8,7 +8,7 @@ window.PageExtensions = {
       fullscreen: false,
       autoplay: true,
       searchTerm: '',
-      tab: 'all',
+      tab: 'installed',
       manageExtensionTab: 'releases',
       filteredExtensions: [],
       updatableExtensions: [],
