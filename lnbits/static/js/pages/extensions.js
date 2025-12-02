@@ -638,6 +638,10 @@ window.PageExtensions = {
     this.extensions = await this.fetchAllExtensions()
     this.extbuilderEnabled = user.admin || this.LNBITS_EXT_BUILDER
 
+    if (this.g.user.extensions.length == 0) {
+      this.tab = 'all'
+    }
+
     const extId = window.location.hash.replace('#', '')
     const ext = this.extensions.find(ext => ext.id === extId)
 
