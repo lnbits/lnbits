@@ -23,7 +23,6 @@ window.app.component('lnbits-payment-list', {
           }
         ],
         pagination: {
-          rowPerPageOptions: [100, 1000],
           rowsPerPage: 10,
           page: 1,
           sortBy: 'time',
