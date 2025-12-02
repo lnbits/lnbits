@@ -106,7 +106,7 @@
                   - the user completed the checkout process
                   <li><code>invoice.paid</code></li>
                   - the invoice was successfully paid (for subscriptions)
-                  <li><code>intent (all)</code></li>
+                  <li><code>payment_intent.succeeded</code></li>
                   - the intent was successfully paid (for tap-to-pay in TPoS)
                 </ul>
               </q-card-section>
