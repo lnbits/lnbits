@@ -15,7 +15,7 @@
           <template v-slot:header>
             <q-item-section avatar>
               <q-avatar>
-                <img src="/static/images/stripe_logo.ico" />
+                <q-img src="/static/images/stripe_logo.ico"></q-img>
               </q-avatar>
             </q-item-section>
 
@@ -279,7 +279,7 @@
           <template v-slot:header>
             <q-item-section avatar>
               <q-avatar>
-                <img src="/static/images/square_logo.png" />
+                <q-img src="/static/images/square_logo.png"></q-img>
               </q-avatar>
             </q-item-section>
 

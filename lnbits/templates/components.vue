@@ -525,12 +525,12 @@ include('components/lnbits-wallet-extra.vue') %}
           <q-tooltip :model-value="href === '' ? value : href"></q-tooltip>
         </qrcode-vue>
       </a>
-      <img
+      <q-img
         :src="logo"
         class="qrcode__image"
         alt="qrcode icon"
         style="pointer-events: none"
-      />
+      ></q-img>
     </div>
     <div
       v-if="showButtons"

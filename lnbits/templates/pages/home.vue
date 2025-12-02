@@ -150,8 +150,8 @@
       class="flex justify-center q-col-gutter-sm q-mb-lg"
     >
       <a :href="ad[0]" class="col lnbits-ad" v-for="ad in g.ads">
-        <img class="full-width" v-if="$q.dark.isActive" :src="ad[1]" />
-        <img class="full-width" v-else :src="ad[2]" />
+        <q-img class="full-width" v-if="$q.dark.isActive" :src="ad[1]"></q-img>
+        <q-img class="full-width" v-else :src="ad[2]"></q-img>
       </a>
     </div>
     <lnbits-home-logos />

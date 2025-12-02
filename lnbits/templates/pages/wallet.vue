@@ -335,7 +335,7 @@
             >
               <q-item-section avatar>
                 <q-avatar square>
-                  <img src="/static/images/logos/lnbits.png" />
+                  <q-img src="/static/images/logos/lnbits.png"></q-img>
                 </q-avatar>
               </q-item-section>
               <q-item-section>
@@ -354,7 +354,7 @@
             >
               <q-item-section avatar>
                 <q-avatar>
-                  <img src="/static/images/stripe_logo.ico" />
+                  <q-img src="/static/images/stripe_logo.ico"></q-img>
                 </q-avatar>
               </q-item-section>
               <q-item-section>
@@ -687,7 +687,7 @@
               v-text="parse.lnurlpay.description"
             ></p>
             <p class="col-4 q-pl-md" v-if="parse.lnurlpay.image">
-              <q-img :src="parse.lnurlpay.image" />
+              <q-img :src="parse.lnurlpay.image"></q-img>
             </p>
           </div>
           <div class="row">

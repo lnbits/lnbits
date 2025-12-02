@@ -22,12 +22,12 @@
       ></q-btn>
       <q-toolbar-title>
         <q-btn flat no-caps dense size="lg" type="a" href="/">
-          <img
+          <q-img
             v-if="customLogoUrl"
             height="30px"
             alt="Logo"
             :src="customLogoUrl"
-          />
+          ></q-img>
           <span v-else-if="!titleIsLnbits"><strong>LN</strong>bits</span>
           <span v-else v-text="title"></span>
         </q-btn>
@@ -81,11 +81,11 @@
       >
         <template v-slot:label>
           <div>
-            <img
+            <q-img
               v-if="hasUserPicture"
               :src="userPictureUrl"
               style="max-width: 32px"
-            />
+            ></q-img>
             <q-icon v-else name="account_circle" />
           </div>
         </template>
