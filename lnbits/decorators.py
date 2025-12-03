@@ -186,7 +186,7 @@ async def require_admin_key(
     return await check(request)
 
 
-async def require_light_admin_key(
+async def require_base_admin_key(
     request: Request,
     api_key_header: str = Security(api_key_header),
     api_key_query: str = Security(api_key_query),
@@ -210,7 +210,7 @@ async def require_invoice_key(
     return await check(request)
 
 
-async def require_light_invoice_key(
+async def require_base_invoice_key(
     request: Request,
     api_key_header: str = Security(api_key_header),
     api_key_query: str = Security(api_key_query),

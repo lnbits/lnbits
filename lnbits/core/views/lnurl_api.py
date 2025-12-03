@@ -24,7 +24,7 @@ from lnbits.core.models.lnurl import CreateLnurlPayment, LnurlScan
 from lnbits.decorators import (
     WalletTypeInfo,
     require_admin_key,
-    require_light_invoice_key,
+    require_base_invoice_key,
 )
 from lnbits.helpers import check_callback_url
 from lnbits.settings import settings
@@ -48,7 +48,7 @@ async def _handle(lnurl: str) -> LnurlResponseModel:
 
 @lnurl_router.get(
     "/api/v1/lnurlscan/{code}",
-    dependencies=[Depends(require_light_invoice_key)],
+    dependencies=[Depends(require_base_invoice_key)],
     deprecated=True,
     response_model=LnurlPayResponse
     | LnurlWithdrawResponse
@@ -64,7 +64,7 @@ async def api_lnurlscan(code: str) -> LnurlResponseModel:
 
 @lnurl_router.post(
     "/api/v1/lnurlscan",
-    dependencies=[Depends(require_light_invoice_key)],
+    dependencies=[Depends(require_base_invoice_key)],
     response_model=LnurlPayResponse
     | LnurlWithdrawResponse
     | LnurlAuthResponse
