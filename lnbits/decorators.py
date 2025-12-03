@@ -155,7 +155,7 @@ async def check_account_id_exists(
     if access_token:
         cache_key = f"auth:access_token:{sha256s(access_token)}"
     elif usr:
-        cache_key = f"auth:user_id:{usr.hex}"
+        cache_key = f"auth:user_id:{sha256s(usr.hex)}"
 
     if cache_key and settings.auth_authentication_cache_minutes > 0:
         account_id = cache.get(cache_key)
