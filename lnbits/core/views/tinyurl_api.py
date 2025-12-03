@@ -7,10 +7,11 @@ from fastapi import (
 )
 from starlette.responses import RedirectResponse
 
+from lnbits.core.models.wallets import BaseWalletTypeInfo
 from lnbits.decorators import (
     WalletTypeInfo,
     require_admin_key,
-    require_invoice_key,
+    require_light_invoice_key,
 )
 
 from ..crud import (
@@ -50,12 +51,12 @@ async def api_create_tinyurl(
     description="get a tinyurl by id",
 )
 async def api_get_tinyurl(
-    tinyurl_id: str, wallet: WalletTypeInfo = Depends(require_invoice_key)
+    tinyurl_id: str, key_info: BaseWalletTypeInfo = Depends(require_light_invoice_key)
 ):
     try:
         tinyurl = await get_tinyurl(tinyurl_id)
         if tinyurl:
-            if tinyurl.wallet == wallet.wallet.id:
+            if tinyurl.wallet == key_info.wallet.id:
                 return tinyurl
         raise HTTPException(
             status_code=HTTPStatus.FORBIDDEN, detail="Wrong key provided."

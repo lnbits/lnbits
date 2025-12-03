@@ -43,7 +43,6 @@ from lnbits.decorators import (
     check_account_id_exists,
     parse_filters,
     require_admin_key,
-    require_invoice_key,
     require_light_admin_key,
     require_light_invoice_key,
 )
@@ -246,10 +245,10 @@ async def api_all_payments_paginated(
 )
 async def api_payments_create(
     invoice_data: CreateInvoice,
-    wallet: WalletTypeInfo = Depends(require_invoice_key),
+    key_info: BaseWalletTypeInfo = Depends(require_light_invoice_key),
 ) -> Payment:
-    wallet_id = wallet.wallet.id
-    if invoice_data.out is True and wallet.key_type == KeyType.admin:
+    wallet_id = key_info.wallet.id
+    if invoice_data.out is True and key_info.key_type == KeyType.admin:
         if not invoice_data.bolt11:
             raise HTTPException(
                 status_code=HTTPStatus.BAD_REQUEST,
