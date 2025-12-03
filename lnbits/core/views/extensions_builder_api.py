@@ -129,10 +129,10 @@ async def api_deploy_extension(
 )
 async def api_preview_extension(
     data: ExtensionData,
-    account: AccountId = Depends(check_account_id_exists),
+    account_id: AccountId = Depends(check_account_id_exists),
 ) -> SimpleStatus:
     stub_ext_id = "extension_builder_stub"
-    working_dir_name = "preview_" + sha256(account.id.encode("utf-8")).hexdigest()
+    working_dir_name = "preview_" + sha256(account_id.id.encode("utf-8")).hexdigest()
     await build_extension_from_data(data, stub_ext_id, working_dir_name)
 
     return SimpleStatus(success=True, message=f"Extension '{data.id}' preview ready.")

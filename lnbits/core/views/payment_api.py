@@ -118,14 +118,14 @@ async def api_payments_history(
 async def api_payments_counting_stats(
     count_by: PaymentCountField = Query("tag"),
     filters: Filters[PaymentFilters] = Depends(parse_filters(PaymentFilters)),
-    account: AccountId = Depends(check_account_id_exists),
+    account_id: AccountId = Depends(check_account_id_exists),
 ):
-    if account.is_admin_id:
+    if account_id.is_admin_id:
         # admin user can see payments from all wallets
         for_user_id = None
     else:
         # regular user can only see payments from their wallets
-        for_user_id = account.id
+        for_user_id = account_id.id
 
     return await get_payment_count_stats(count_by, filters=filters, user_id=for_user_id)
 
@@ -138,14 +138,14 @@ async def api_payments_counting_stats(
 )
 async def api_payments_wallets_stats(
     filters: Filters[PaymentFilters] = Depends(parse_filters(PaymentFilters)),
-    account: AccountId = Depends(check_account_id_exists),
+    account_id: AccountId = Depends(check_account_id_exists),
 ):
-    if account.is_admin_id:
+    if account_id.is_admin_id:
         # admin user can see payments from all wallets
         for_user_id = None
     else:
         # regular user can only see payments from their wallets
-        for_user_id = account.id
+        for_user_id = account_id.id
 
     return await get_wallets_stats(filters, user_id=for_user_id)
 
@@ -157,15 +157,15 @@ async def api_payments_wallets_stats(
     openapi_extra=generate_filter_params_openapi(PaymentFilters),
 )
 async def api_payments_daily_stats(
-    account: AccountId = Depends(check_account_id_exists),
+    account_id: AccountId = Depends(check_account_id_exists),
     filters: Filters[PaymentFilters] = Depends(parse_filters(PaymentFilters)),
 ):
-    if account.is_admin_id:
+    if account_id.is_admin_id:
         # admin user can see payments from all wallets
         for_user_id = None
     else:
         # regular user can only see payments from their wallets
-        for_user_id = account.id
+        for_user_id = account_id.id
     return await get_payments_daily_stats(filters, user_id=for_user_id)
 
 
@@ -208,14 +208,14 @@ async def api_payments_paginated(
 )
 async def api_all_payments_paginated(
     filters: Filters = Depends(parse_filters(PaymentFilters)),
-    account: AccountId = Depends(check_account_id_exists),
+    account_id: AccountId = Depends(check_account_id_exists),
 ):
-    if account.is_admin_id:
+    if account_id.is_admin_id:
         # admin user can see payments from all wallets
         for_user_id = None
     else:
         # regular user can only see payments from their wallets
-        for_user_id = account.id
+        for_user_id = account_id.id
 
     return await get_payments_paginated(
         filters=filters,

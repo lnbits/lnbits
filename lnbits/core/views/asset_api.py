@@ -35,10 +35,10 @@ upload_file_param = File(...)
     summary="Get paginated list user assets",
 )
 async def api_get_user_assets(
-    account: AccountId = Depends(check_account_id_exists),
+    account_id: AccountId = Depends(check_account_id_exists),
     filters: Filters = Depends(parse_filters(AssetFilters)),
 ) -> Page[AssetInfo]:
-    return await get_user_assets(account.id, filters=filters)
+    return await get_user_assets(account_id.id, filters=filters)
 
 
 @asset_router.get(
@@ -48,9 +48,9 @@ async def api_get_user_assets(
 )
 async def api_get_asset(
     asset_id: str,
-    account: AccountId = Depends(check_account_id_exists),
+    account_id: AccountId = Depends(check_account_id_exists),
 ) -> AssetInfo:
-    asset_info = await get_user_asset_info(account.id, asset_id)
+    asset_info = await get_user_asset_info(account_id.id, asset_id)
     if not asset_info:
         raise HTTPException(HTTPStatus.NOT_FOUND, "Asset not found.")
     return asset_info
@@ -120,12 +120,12 @@ async def api_get_asset_thumbnail(
 async def api_update_asset(
     asset_id: str,
     data: AssetUpdate,
-    account: AccountId = Depends(check_account_id_exists),
+    account_id: AccountId = Depends(check_account_id_exists),
 ) -> AssetInfo:
-    if account.is_admin_id:
+    if account_id.is_admin_id:
         asset_info = await get_asset_info(asset_id)
     else:
-        asset_info = await get_user_asset_info(account.id, asset_id)
+        asset_info = await get_user_asset_info(account_id.id, asset_id)
 
     if not asset_info:
         raise HTTPException(HTTPStatus.NOT_FOUND, "Asset not found.")
@@ -144,13 +144,13 @@ async def api_update_asset(
     summary="Upload user assets",
 )
 async def api_upload_asset(
-    account: AccountId = Depends(check_account_id_exists),
+    account_id: AccountId = Depends(check_account_id_exists),
     file: UploadFile = upload_file_param,
     public_asset: bool = False,
 ) -> AssetInfo:
-    asset = await create_user_asset(account.id, file, public_asset)
+    asset = await create_user_asset(account_id.id, file, public_asset)
 
-    asset_info = await get_user_asset_info(account.id, asset.id)
+    asset_info = await get_user_asset_info(account_id.id, asset.id)
     if not asset_info:
         raise ValueError("Failed to retrieve asset info after upload.")
 
@@ -164,11 +164,11 @@ async def api_upload_asset(
 )
 async def api_delete_asset(
     asset_id: str,
-    account: AccountId = Depends(check_account_id_exists),
+    account_id: AccountId = Depends(check_account_id_exists),
 ) -> SimpleStatus:
-    asset = await get_user_asset(account.id, asset_id)
+    asset = await get_user_asset(account_id.id, asset_id)
     if not asset:
         raise HTTPException(HTTPStatus.NOT_FOUND, "Asset not found.")
 
-    await delete_user_asset(account.id, asset_id)
+    await delete_user_asset(account_id.id, asset_id)
     return SimpleStatus(success=True, message="Asset deleted successfully.")

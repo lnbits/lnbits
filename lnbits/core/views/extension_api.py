@@ -165,7 +165,7 @@ async def api_update_pay_to_enable(
 
 @extension_router.put("/{ext_id}/enable")
 async def api_enable_extension(
-    ext_id: str, account: AccountId = Depends(check_account_id_exists)
+    ext_id: str, account_id: AccountId = Depends(check_account_id_exists)
 ) -> SimpleStatus:
     if ext_id not in [e.code for e in await get_valid_extensions()]:
         raise HTTPException(
@@ -179,12 +179,12 @@ async def api_enable_extension(
     if not ext.active:
         raise ValueError(f"Extension '{ext_id}' is not activated.")
 
-    user_ext = await get_user_extension(account.id, ext_id)
+    user_ext = await get_user_extension(account_id.id, ext_id)
     if not user_ext:
-        user_ext = UserExtension(user=account.id, extension=ext_id, active=False)
+        user_ext = UserExtension(user=account_id.id, extension=ext_id, active=False)
         await create_user_extension(user_ext)
 
-    if account.is_admin_id or not ext.requires_payment:
+    if account_id.is_admin_id or not ext.requires_payment:
         user_ext.active = True
         await update_user_extension(user_ext)
         return SimpleStatus(success=True, message=f"Extension '{ext_id}' enabled.")
@@ -221,13 +221,13 @@ async def api_enable_extension(
 
 @extension_router.put("/{ext_id}/disable")
 async def api_disable_extension(
-    ext_id: str, account: AccountId = Depends(check_account_id_exists)
+    ext_id: str, account_id: AccountId = Depends(check_account_id_exists)
 ) -> SimpleStatus:
     if ext_id not in [e.code for e in await get_valid_extensions()]:
         raise HTTPException(
             HTTPStatus.BAD_REQUEST, f"Extension '{ext_id}' doesn't exist."
         )
-    user_ext = await get_user_extension(account.id, ext_id)
+    user_ext = await get_user_extension(account_id.id, ext_id)
     if not user_ext or not user_ext.active:
         return SimpleStatus(
             success=True, message=f"Extension '{ext_id}' already disabled."
@@ -380,7 +380,7 @@ async def get_pay_to_install_invoice(
 async def get_pay_to_enable_invoice(
     ext_id: str,
     data: PayToEnableInfo,
-    account: AccountId = Depends(check_account_id_exists),
+    account_id: AccountId = Depends(check_account_id_exists),
 ):
     if not data.amount or data.amount <= 0:
         raise HTTPException(
@@ -426,9 +426,9 @@ async def get_pay_to_enable_invoice(
         memo=f"Enable '{ext.name}' extension.",
     )
 
-    user_ext = await get_user_extension(account.id, ext_id)
+    user_ext = await get_user_extension(account_id.id, ext_id)
     if not user_ext:
-        user_ext = UserExtension(user=account.id, extension=ext_id, active=False)
+        user_ext = UserExtension(user=account_id.id, extension=ext_id, active=False)
         await create_user_extension(user_ext)
     user_ext_info = user_ext.extra if user_ext.extra else UserExtensionInfo()
     user_ext_info.payment_hash_to_enable = payment.payment_hash
@@ -460,10 +460,12 @@ async def get_extension_release(org: str, repo: str, tag_name: str):
 
 @extension_router.get("")
 async def api_get_user_extensions(
-    account: AccountId = Depends(check_account_id_exists),
+    account_id: AccountId = Depends(check_account_id_exists),
 ) -> list[Extension]:
 
-    user_extensions_ids = [ue.extension for ue in await get_user_extensions(account.id)]
+    user_extensions_ids = [
+        ue.extension for ue in await get_user_extensions(account_id.id)
+    ]
     return [
         ext
         for ext in await get_valid_extensions(False)
@@ -502,7 +504,7 @@ async def delete_extension_db(ext_id: str):
 
 # TODO: create a response model for this
 @extension_router.get("/all")
-async def extensions(account: AccountId = Depends(check_account_id_exists)):
+async def extensions(account_id: AccountId = Depends(check_account_id_exists)):
     installed_exts: list[InstallableExtension] = await get_installed_extensions()
     installed_exts_ids = [e.id for e in installed_exts]
 
@@ -514,7 +516,7 @@ async def extensions(account: AccountId = Depends(check_account_id_exists)):
         installed_ext = next((ie for ie in installed_exts if e.id == ie.id), None)
         if installed_ext and installed_ext.meta:
             installed_release = installed_ext.meta.installed_release
-            if installed_ext.meta.pay_to_enable and not account.is_admin_id:
+            if installed_ext.meta.pay_to_enable and not account_id.is_admin_id:
                 # not a security leak, but better not to share the wallet id
                 installed_ext.meta.pay_to_enable.wallet = None
             pay_to_enable = installed_ext.meta.pay_to_enable

@@ -44,7 +44,9 @@ async def health() -> dict:
 
 
 @api_router.get("/api/v1/status", status_code=HTTPStatus.OK)
-async def health_check(account: AccountId = Depends(check_account_id_exists)) -> dict:
+async def health_check(
+    account_id: AccountId = Depends(check_account_id_exists),
+) -> dict:
     stat: dict[str, Any] = {
         "server_time": int(time()),
         "up_time": settings.lnbits_server_up_time,
@@ -52,7 +54,7 @@ async def health_check(account: AccountId = Depends(check_account_id_exists)) ->
     }
 
     stat["version"] = settings.version
-    if not account.is_admin_id:
+    if not account_id.is_admin_id:
         return stat
 
     funding_source = get_funding_source()

@@ -67,11 +67,11 @@ async def api_wallet(key_info: WalletTypeInfo = Depends(require_invoice_key)):
     openapi_extra=generate_filter_params_openapi(WalletsFilters),
 )
 async def api_wallets_paginated(
-    account: AccountId = Depends(check_account_id_exists),
+    account_id: AccountId = Depends(check_account_id_exists),
     filters: Filters = Depends(parse_filters(WalletsFilters)),
 ):
     page = await get_wallets_paginated(
-        user_id=account.id,
+        user_id=account_id.id,
         filters=filters,
     )
 
@@ -127,10 +127,10 @@ async def api_update_wallet_name(
 @wallet_router.put("/reset/{wallet_id}")
 async def api_reset_wallet_keys(
     wallet_id: str,
-    account: AccountId = Depends(check_account_id_exists),
+    account_id: AccountId = Depends(check_account_id_exists),
 ) -> Wallet:
     wallet = await get_wallet(wallet_id)
-    if not wallet or wallet.user != account.id:
+    if not wallet or wallet.user != account_id.id:
         raise HTTPException(status_code=HTTPStatus.NOT_FOUND, detail="Wallet not found")
 
     wallet.adminkey = uuid4().hex
@@ -178,10 +178,10 @@ async def api_update_wallet(
 
 @wallet_router.delete("/{wallet_id}")
 async def api_delete_wallet(
-    wallet_id: str, account: AccountId = Depends(check_account_id_exists)
+    wallet_id: str, account_id: AccountId = Depends(check_account_id_exists)
 ) -> None:
     wallet = await get_wallet(wallet_id)
-    if not wallet or wallet.user != account.id:
+    if not wallet or wallet.user != account_id.id:
         raise HTTPException(status_code=HTTPStatus.NOT_FOUND, detail="Wallet not found")
 
     await delete_wallet(
