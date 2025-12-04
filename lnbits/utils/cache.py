@@ -13,6 +13,9 @@ class Cached(NamedTuple):
     value: Any
     expiry: float
 
+    def older_than(self, seconds: float) -> bool:
+        return time() - self.expiry > seconds
+
 
 class Cache:
     """
@@ -22,6 +25,9 @@ class Cache:
     def __init__(self, interval: float = 10) -> None:
         self.interval = interval
         self._values: dict[Any, Cached] = {}
+
+    def value(self, key: str) -> Cached | None:
+        return self._values.get(key)
 
     def get(self, key: str, default=None) -> Any | None:
         cached = self._values.get(key)

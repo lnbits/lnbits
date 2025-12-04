@@ -57,7 +57,9 @@ async def run_by_the_minute_tasks() -> None:
         if minute_counter % 60 == 0:
             try:
                 # initialize the list of all extensions
-                await InstallableExtension.get_installable_extensions()
+                await InstallableExtension.get_installable_extensions(
+                    post_refresh_cache=True
+                )
             except Exception as ex:
                 logger.error(ex)
 

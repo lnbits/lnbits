@@ -6,6 +6,7 @@ import json
 import os
 import shutil
 import zipfile
+from asyncio.tasks import create_task
 from pathlib import Path
 from typing import Any
 
@@ -20,6 +21,7 @@ from lnbits.helpers import (
     version_parse,
 )
 from lnbits.settings import settings
+from lnbits.utils.cache import cache
 
 
 class ExplicitRelease(BaseModel):
@@ -606,8 +608,43 @@ class InstallableExtension(BaseModel):
 
     @classmethod
     async def get_installable_extensions(
+        cls, post_refresh_cache: bool = False
+    ) -> list[InstallableExtension]:
+        extension_list: list[InstallableExtension] = []
+
+        cache_key = "extensions:installable"
+        cache_value = cache.value(cache_key)
+        if not cache_value:
+            print("### cache_value not found")
+            extension_list = await cls._get_installable_extensions()
+            cache.set(cache_key, extension_list, expiry=3600)  # one hour
+            return extension_list
+
+        if cache_value.older_than(10 * 60) or post_refresh_cache:
+            print("### refreshing installable extensions cache")
+            # refresh cache in background if older than 10 minutes or requested
+            create_task(cls._refresh_installable_extensions_cache())
+
+        extension_list = cache_value.value  # type: ignore
+        return extension_list
+
+    @classmethod
+    async def _refresh_installable_extensions_cache(
+        cls,
+    ) -> None:
+        print("### _refresh_installable_extensions_cache")
+        cache_key = "extensions:installable"
+        extension_list: list[InstallableExtension] = (
+            await cls._get_installable_extensions()
+        )
+
+        cache.set(cache_key, extension_list, expiry=3600)
+
+    @classmethod
+    async def _get_installable_extensions(
         cls,
     ) -> list[InstallableExtension]:
+        print("### get_installable_extensions called 2")
         extension_list: list[InstallableExtension] = []
 
         for url in settings.lnbits_extensions_manifests:
