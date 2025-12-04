@@ -615,13 +615,11 @@ class InstallableExtension(BaseModel):
         cache_key = "extensions:installable"
         cache_value = cache.value(cache_key)
         if not cache_value:
-            print("### cache_value not found")
             extension_list = await cls._get_installable_extensions()
             cache.set(cache_key, extension_list, expiry=3600)  # one hour
             return extension_list
 
         if cache_value.older_than(10 * 60) or post_refresh_cache:
-            print("### refreshing installable extensions cache")
             # refresh cache in background if older than 10 minutes or requested
             create_task(cls._refresh_installable_extensions_cache())
 
@@ -632,7 +630,6 @@ class InstallableExtension(BaseModel):
     async def _refresh_installable_extensions_cache(
         cls,
     ) -> None:
-        print("### _refresh_installable_extensions_cache")
         cache_key = "extensions:installable"
         extension_list: list[InstallableExtension] = (
             await cls._get_installable_extensions()
@@ -644,7 +641,6 @@ class InstallableExtension(BaseModel):
     async def _get_installable_extensions(
         cls,
     ) -> list[InstallableExtension]:
-        print("### get_installable_extensions called 2")
         extension_list: list[InstallableExtension] = []
 
         for url in settings.lnbits_extensions_manifests:
