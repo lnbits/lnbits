@@ -1,7 +1,7 @@
 <template id="page-home">
   <div class="home row justify-center items-center">
     <div
-      class="full-width content-center"
+      class="full-width content-center q-pb-xl"
       :style="`max-width: ${hasCustomImage ? '850' : '600'}px; min-height: 55vh;`"
     >
       <div class="row q-mb-md">
@@ -149,9 +149,9 @@
       :class="$q.screen.lt.md ? 'column col-10' : 'col-10'"
       class="flex justify-center q-col-gutter-sm q-mb-lg"
     >
-      <a :href="ad[0]" class="col lnbits-ad" v-for="ad in g.ads">
-        <q-img class="full-width" v-if="$q.dark.isActive" :src="ad[1]"></q-img>
-        <q-img class="full-width" v-else :src="ad[2]"></q-img>
+      <a :href="ad[0]" class="col lnbits-ad full-width" v-for="ad in g.ads">
+        <q-img v-if="$q.dark.isActive" :src="ad[1]"></q-img>
+        <q-img v-else :src="ad[2]"></q-img>
       </a>
     </div>
     <lnbits-home-logos />
