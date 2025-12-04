@@ -473,6 +473,7 @@ function confettiStars() {
             F = t.width * I.x,
             N = t.height * I.y;
           E--;
+
         )
           S.push(
             ((o = {
