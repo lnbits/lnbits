@@ -648,7 +648,7 @@ include('components/lnbits-error.vue') %}
           dense
           filled
           v-model="walletName"
-          :label="$t('name_your_wallet', {name: '{{ SITE_TITLE }} *'})"
+          :label="$t('name_your_wallet', {name: SITE_TITLE + ' *'})"
         ></q-input>
         <q-card-actions vertical align="center" class="q-pa-none">
           <q-btn
@@ -864,8 +864,8 @@ include('components/lnbits-error.vue') %}
         <div class="row items-center no-wrap">
           <q-avatar size="32px">
             <q-img
+              src="/static/images/logos/nostr.svg"
               class="bg-primary"
-              :src="`{{ static_url_for('static', 'images/logos/nostr.svg') }}`"
             ></q-img>
           </q-avatar>
         </div>
@@ -885,7 +885,7 @@ include('components/lnbits-error.vue') %}
         <div class="row items-center no-wrap">
           <q-avatar size="32px">
             <q-img
-              :src="`{{ static_url_for('static', 'images/github-logo.png') }}`"
+              src="/static/images/github-logo.png"
               :style="$q.dark.isActive ? 'filter: grayscale(1) invert(1)' : ''"
             ></q-img>
           </q-avatar>
@@ -903,9 +903,7 @@ include('components/lnbits-error.vue') %}
       >
         <div class="row items-center no-wrap">
           <q-avatar size="32px">
-            <q-img
-              :src="`{{ static_url_for('static', 'images/google-logo.png') }}`"
-            ></q-img>
+            <q-img src="/static/images/google-logo.png"></q-img>
           </q-avatar>
         </div>
         <q-tooltip>
@@ -926,7 +924,7 @@ include('components/lnbits-error.vue') %}
             :src="
               keycloakIcon
                 ? keycloakIcon
-                : `{{ static_url_for('static', 'images/keycloak-logo.png') }}`
+                : 'lnbits/static/images/keycloak-logo.png'
             "
           ></q-img>
         </q-avatar>
