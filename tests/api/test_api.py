@@ -903,7 +903,7 @@ async def test_api_search_payment_labels(client):
     )
     assert response.is_success
     all_payments = response.json()
-    print('### all_payments', all_payments)
+    print("### all_payments", all_payments)
 
     assert all_payments["total"] == payment_count
 
@@ -924,7 +924,7 @@ async def test_api_search_payment_labels(client):
     )
     assert response.is_success
     data = response.json()
-    print('### data 1000', data)
+    print("### data 1000", data)
 
     # search payments by label A after update
     response = await client.get(
@@ -934,7 +934,7 @@ async def test_api_search_payment_labels(client):
     )
     assert response.is_success
     data = response.json()
-    print('### data 2000', data)
+    print("### data 2000", data)
     assert data["total"] == payment_count // 2 + 1  # one more after update
     for payment in data["data"]:
         assert "label A" in payment["labels"]
