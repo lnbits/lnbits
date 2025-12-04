@@ -509,7 +509,7 @@ async def extensions(account_id: AccountId = Depends(check_account_id_exists)):
     installed_exts_ids = [e.id for e in installed_exts]
 
     installable_exts = await InstallableExtension.get_installable_extensions(
-        post_refresh_cache=user.admin
+        post_refresh_cache=account_id.is_admin_id
     )
     installable_exts_ids = [e.id for e in installable_exts]
     installable_exts += [e for e in installed_exts if e.id not in installable_exts_ids]
