@@ -2,7 +2,7 @@ window.app.component('lnbits-qrcode', {
   mixins: [window.windowMixin],
   template: '#lnbits-qrcode',
   components: {
-    QrcodeVue
+    QrcodeVue: QrcodeVue.default
   },
   props: {
     value: {
