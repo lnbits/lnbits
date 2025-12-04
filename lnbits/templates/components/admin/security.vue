@@ -29,6 +29,16 @@
         </q-input>
       </div>
       <div class="col-12 col-md-6">
+        <q-input
+          filled
+          v-model="formData.auth_authentication_cache_minutes"
+          type="number"
+          :label="$t('auth_authentication_cache_label')"
+          :hint="$t('auth_authentication_cache_hint')"
+        >
+        </q-input>
+      </div>
+      <div class="col-12 col-md-6">
         <q-select
           filled
           v-model="formData.auth_allowed_methods"

@@ -574,6 +574,9 @@ window.localisation.en = {
   authentication: 'Authentication',
   auth_token_expiry_label: 'Token expire minutes',
   auth_token_expiry_hint: 'Time in minutes until the token expires',
+  auth_authentication_cache_label: 'Cache time (minutes)',
+  auth_authentication_cache_hint:
+    'Time in minutes to cache successful authentication (0 to disable)',
   auth_allowed_methods_label: 'Allowed authorization methods',
   auth_allowed_methods_hint: 'Select authorization methods',
   auth_nostr_label: 'Nostr Request URL',
