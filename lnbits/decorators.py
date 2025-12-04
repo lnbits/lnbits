@@ -150,14 +150,12 @@ class LightKeyChecker(BaseKeyChecker):
 
         if cache_time > 0:
             key_info: BaseWalletTypeInfo | None = cache.get(cache_key)
-            print("### get key_info", key_info)
             if key_info:
                 request.scope["user_id"] = key_info.wallet.user
                 await _check_user_access(request, key_info.wallet.user)
                 return key_info
 
         wallet = await get_base_wallet_for_key(key_value)
-        print("### LightKeyChecker wallet", wallet)
 
         if not wallet:
             raise HTTPException(
@@ -171,7 +169,6 @@ class LightKeyChecker(BaseKeyChecker):
         key_info = BaseWalletTypeInfo(key_type, wallet)
 
         if cache_time > 0:
-            print("### set key_info", key_info)
             cache.set(cache_key, key_info, expiry=cache_time)
             cache.set(f"auth:wallet:{wallet.id}", wallet, expiry=cache_time)
         return key_info

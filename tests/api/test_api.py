@@ -8,8 +8,6 @@ import shortuuid
 from pytest_mock.plugin import MockerFixture
 
 from lnbits import bolt11
-from lnbits.core.crud.users import get_account
-from lnbits.core.crud.wallets import get_base_wallet_for_key
 from lnbits.core.models import CreateInvoice, Payment
 from lnbits.core.models.users import Account, UserExtra, UserLabel
 from lnbits.core.services.users import create_user_account
@@ -826,16 +824,12 @@ async def test_api_search_payment_labels(client):
             ),
         )
     )
-    print("### user", user)
-
     assert len(user.extra.labels) == 2
     adminkey = user.wallets[0].adminkey
     payments_headers = {
         "X-Api-Key": adminkey,
         "Content-type": "application/json",
     }
-    base_wallet = await get_base_wallet_for_key(adminkey)
-    print("### base_wallet 1000", base_wallet)
 
     payment_count = 10
     await _create_some_payments(payment_count, client, payments_headers)
@@ -921,22 +915,12 @@ async def test_api_search_payment_labels(client):
         None,
     )
     assert no_label_a_payment is not None
-
-    _account = await get_account(user.id)
-    print("### _account after payments 1000", _account)
-    base_wallet = await get_base_wallet_for_key(adminkey)
-    print("### base_wallet 1000", base_wallet)
     payment_hash = no_label_a_payment["payment_hash"]
     response = await client.put(
         f"/api/v1/payments/{payment_hash}/labels",
         headers=payments_headers,
         json={"labels": ["label A"]},
     )
-    assert response.is_success
-    _account = await get_account(user.id)
-    print("### _account after payments 1010", _account)
-    base_wallet = await get_base_wallet_for_key(adminkey)
-    print("### base_wallet 1000", base_wallet)
 
     # search payments by label A after update
     response = await client.get(
@@ -944,10 +928,6 @@ async def test_api_search_payment_labels(client):
         params={"labels[every]": ["label A"]},
         headers=payments_headers,
     )
-    _account = await get_account(user.id)
-    print("### _account after payments 2000", _account)
-    base_wallet = await get_base_wallet_for_key(adminkey)
-    print("### base_wallet 1000", base_wallet)
     assert response.is_success
     data = response.json()
     assert data["total"] == payment_count // 2 + 1  # one more after update
