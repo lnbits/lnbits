@@ -278,7 +278,7 @@ async def api_update_payment_labels(
     data: UpdatePaymentLabels,
     key_type: BaseWalletTypeInfo = Depends(require_base_admin_key),
 ) -> SimpleStatus:
-
+    print('### api_update_payment_labels data.labels', data)
     payment = await get_standalone_payment(payment_hash, wallet_id=key_type.wallet.id)
     if payment is None:
         raise HTTPException(HTTPStatus.NOT_FOUND, "Payment does not exist.")
