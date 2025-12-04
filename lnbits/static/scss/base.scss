@@ -1,7 +1,7 @@
-@import 'themes';
-@import 'borders';
-@import 'background';
-@import 'home';
+@use 'themes';
+@use 'borders';
+@use 'background';
+@use 'home';
 
 [v-cloak] {
   display: none;

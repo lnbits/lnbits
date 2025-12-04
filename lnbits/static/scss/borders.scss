@@ -1,4 +1,6 @@
-@each $theme, $colors in $themes {
+@use 'themes';
+
+@each $theme, $colors in themes.$themes {
   @each $name, $color in $colors {
     @if $name== 'primary' {
       body[data-theme='#{$theme}'].neon-border {

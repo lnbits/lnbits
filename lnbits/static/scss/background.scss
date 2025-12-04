@@ -1,6 +1,7 @@
 @use 'sass:color';
+@use 'themes';
 
-@each $theme, $colors in $themes {
+@each $theme, $colors in themes.$themes {
   body[data-theme='#{$theme}'] {
     @each $name, $color in $colors {
       @if $name== 'dark' {
