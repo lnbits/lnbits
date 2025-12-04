@@ -786,3 +786,63 @@ async def m038_add_labels_for_payments(db: Connection):
         ALTER TABLE apipayments ADD COLUMN labels TEXT
         """
     )
+
+
+async def m039_index_payments(db: Connection):
+    indexes = [
+        "wallet_id",
+        "checking_id",
+        "payment_hash",
+        "amount",
+        "labels",
+        "time",
+        "status",
+        "created_at",
+        "updated_at",
+    ]
+    for index in indexes:
+        logger.debug(f"Creating index idx_payments_{index}...")
+        await db.execute(
+            f"""
+            CREATE INDEX IF NOT EXISTS idx_payments_{index} ON apipayments ({index});
+            """
+        )
+
+
+async def m040_index_wallets(db: Connection):
+    indexes = [
+        "id",
+        "user",
+        "deleted",
+        "adminkey",
+        "inkey",
+        "wallet_type",
+        "created_at",
+        "updated_at",
+    ]
+
+    for index in indexes:
+        logger.debug(f"Creating index idx_wallets_{index}...")
+        await db.execute(
+            f"""
+            CREATE INDEX IF NOT EXISTS idx_wallets_{index} ON wallets ("{index}");
+            """
+        )
+
+
+async def m042_index_accounts(db: Connection):
+    indexes = [
+        "id",
+        "email",
+        "username",
+        "pubkey",
+        "external_id",
+    ]
+
+    for index in indexes:
+        logger.debug(f"Creating index idx_wallets_{index}...")
+        await db.execute(
+            f"""
+            CREATE INDEX IF NOT EXISTS idx_accounts_{index} ON accounts ("{index}");
+            """
+        )

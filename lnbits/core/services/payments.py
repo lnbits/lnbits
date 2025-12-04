@@ -67,12 +67,14 @@ async def pay_invoice(
     if settings.lnbits_only_allow_incoming_payments:
         raise PaymentError("Only incoming payments allowed.", status="failed")
     invoice = _validate_payment_request(payment_request, max_sat)
+
     if not invoice.amount_msat:
         raise ValueError("Missig invoice amount.")
 
     async with db.reuse_conn(conn) if conn else db.connect() as new_conn:
         amount_msat = invoice.amount_msat
         wallet = await _check_wallet_for_payment(wallet_id, tag, amount_msat, new_conn)
+
         if not wallet.can_send_payments:
             raise PaymentError(
                 "Wallet does not have permission to pay invoices.",
@@ -95,10 +97,12 @@ async def pay_invoice(
             labels=labels,
         )
 
-    payment = await _pay_invoice(wallet.source_wallet_id, create_payment_model, conn)
-
     async with db.reuse_conn(conn) if conn else db.connect() as new_conn:
-        await _credit_service_fee_wallet(wallet, payment, new_conn)
+        payment = await _pay_invoice(
+            wallet.source_wallet_id, create_payment_model, conn=new_conn
+        )
+
+        await _credit_service_fee_wallet(wallet, payment, conn=new_conn)
 
     return payment
 
@@ -197,20 +201,22 @@ async def create_wallet_invoice(wallet_id: str, data: CreateInvoice) -> Payment:
         # do not save memo if description_hash or unhashed_description is set
         memo = ""
 
-    payment = await create_invoice(
-        wallet_id=wallet_id,
-        amount=data.amount,
-        memo=memo,
-        currency=data.unit,
-        description_hash=description_hash,
-        unhashed_description=unhashed_description,
-        expiry=data.expiry,
-        extra=data.extra,
-        webhook=data.webhook,
-        internal=data.internal,
-        payment_hash=data.payment_hash,
-        labels=data.labels,
-    )
+    async with db.connect() as conn:
+        payment = await create_invoice(
+            wallet_id=wallet_id,
+            amount=data.amount,
+            memo=memo,
+            currency=data.unit,
+            description_hash=description_hash,
+            unhashed_description=unhashed_description,
+            expiry=data.expiry,
+            extra=data.extra,
+            webhook=data.webhook,
+            internal=data.internal,
+            payment_hash=data.payment_hash,
+            labels=data.labels,
+            conn=conn,
+        )
 
     if data.lnurl_withdraw:
         try:
@@ -355,13 +361,15 @@ async def update_pending_payments(wallet_id: str):
         await update_pending_payment(payment)
 
 
-async def update_pending_payment(payment: Payment) -> Payment:
+async def update_pending_payment(
+    payment: Payment, conn: Connection | None = None
+) -> Payment:
     status = await payment.check_status()
     if status.failed:
         payment.status = PaymentState.FAILED
-        await update_payment(payment)
+        await update_payment(payment, conn=conn)
     elif status.success:
-        payment = await update_payment_success_status(payment, status)
+        payment = await update_payment_success_status(payment, status, conn=conn)
     return payment
 
 
@@ -698,6 +706,7 @@ async def _pay_internal_invoice(
     internal_payment = await check_internal(
         create_payment_model.payment_hash, conn=conn
     )
+
     if not internal_payment:
         return None
 
@@ -706,6 +715,7 @@ async def _pay_internal_invoice(
     internal_invoice = await get_standalone_payment(
         internal_payment.checking_id, incoming=True, conn=conn
     )
+
     if not internal_invoice:
         raise PaymentError("Internal payment not found.", status="failed")
 
@@ -727,6 +737,7 @@ async def _pay_internal_invoice(
 
     internal_id = f"internal_{create_payment_model.payment_hash}"
     logger.debug(f"creating temporary internal payment with id {internal_id}")
+
     payment = await create_payment(
         checking_id=internal_id,
         data=create_payment_model,

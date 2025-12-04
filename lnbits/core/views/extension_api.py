@@ -6,6 +6,7 @@ from bolt11 import decode as bolt11_decode
 from fastapi import APIRouter, Depends, HTTPException
 from loguru import logger
 
+from lnbits.core import db
 from lnbits.core.crud.extensions import get_user_extensions
 from lnbits.core.models import (
     SimpleStatus,
@@ -462,15 +463,16 @@ async def get_extension_release(org: str, repo: str, tag_name: str):
 async def api_get_user_extensions(
     account_id: AccountId = Depends(check_account_id_exists),
 ) -> list[Extension]:
-
-    user_extensions_ids = [
-        ue.extension for ue in await get_user_extensions(account_id.id)
-    ]
-    return [
-        ext
-        for ext in await get_valid_extensions(False)
-        if ext.code in user_extensions_ids
-    ]
+    async with db.connect() as conn:
+        user_extensions_ids = [
+            ue.extension for ue in await get_user_extensions(account_id.id, conn=conn)
+        ]
+        valid_extensions = [
+            ext
+            for ext in await get_valid_extensions(False, conn=conn)
+            if ext.code in user_extensions_ids
+        ]
+        return valid_extensions
 
 
 @extension_router.delete(

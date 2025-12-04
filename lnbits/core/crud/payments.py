@@ -33,9 +33,9 @@ async def get_payment(checking_id: str, conn: Connection | None = None) -> Payme
 
 async def get_standalone_payment(
     checking_id_or_hash: str,
-    conn: Connection | None = None,
     incoming: bool | None = False,
     wallet_id: str | None = None,
+    conn: Connection | None = None,
 ) -> Payment | None:
     clause: str = "checking_id = :checking_id OR payment_hash = :hash"
     values = {
@@ -124,7 +124,6 @@ async def get_payments_paginated(  # noqa: C901
     Filters payments to be returned by:
       - complete | pending | failed | outgoing | incoming.
     """
-
     values: dict[str, Any] = {
         "time": since,
     }
@@ -134,7 +133,7 @@ async def get_payments_paginated(  # noqa: C901
         clause.append(f"time > {db.timestamp_placeholder('time')}")
 
     if wallet_id:
-        wallet = await get_wallet(wallet_id)
+        wallet = await get_wallet(wallet_id, conn=conn)
         if not wallet or not wallet.can_view_payments:
             return Page(data=[], total=0)
 

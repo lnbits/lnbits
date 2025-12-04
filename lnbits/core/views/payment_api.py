@@ -12,6 +12,7 @@ from fastapi.responses import JSONResponse
 from lnurl import url_decode
 
 from lnbits import bolt11
+from lnbits.core import db
 from lnbits.core.crud.payments import (
     get_payment_count_stats,
     get_wallets_stats,
@@ -186,16 +187,18 @@ async def api_payments_paginated(
     ),
     filters: Filters = Depends(parse_filters(PaymentFilters)),
 ) -> Page[Payment]:
-    page = await get_payments_paginated(
-        wallet_id=key_info.wallet.id,
-        filters=filters,
-    )
-    if not recheck_pending:
-        return page
+    async with db.connect() as conn:
+        page = await get_payments_paginated(
+            wallet_id=key_info.wallet.id,
+            filters=filters,
+            conn=conn,
+        )
+        if not recheck_pending:
+            return page
 
-    for payment in page.data:
-        if payment.pending:
-            await update_pending_payment(payment)
+        for payment in page.data:
+            if payment.pending:
+                await update_pending_payment(payment, conn=conn)
 
     return page
 
@@ -219,10 +222,10 @@ async def api_all_payments_paginated(
         # regular user can only see payments from their wallets
         for_user_id = account_id.id
 
-    return await get_payments_paginated(
-        filters=filters,
-        user_id=for_user_id,
-    )
+    async with db.connect() as conn:
+        return await get_payments_paginated(
+            filters=filters, user_id=for_user_id, conn=conn
+        )
 
 
 @payment_router.post(

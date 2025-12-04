@@ -16,6 +16,7 @@ from lnbits.core.crud.extensions import (
     update_installed_extension,
 )
 from lnbits.core.helpers import migrate_extension_database
+from lnbits.db import Connection
 from lnbits.settings import settings
 
 from ..models.extensions import Extension, ExtensionMeta, InstallableExtension
@@ -149,9 +150,9 @@ async def start_extension_background_work(ext_id: str) -> bool:
 
 
 async def get_valid_extensions(
-    include_deactivated: bool | None = True,
+    include_deactivated: bool | None = True, conn: Connection | None = None
 ) -> list[Extension]:
-    installed_extensions = await get_installed_extensions()
+    installed_extensions = await get_installed_extensions(conn=conn)
     valid_extensions = [Extension.from_installable_ext(e) for e in installed_extensions]
 
     if include_deactivated:
