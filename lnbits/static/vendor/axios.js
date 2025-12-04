@@ -1,4 +1,4 @@
-/*! Axios v1.12.0 Copyright (c) 2025 Matt Zabriskie and contributors */
+/*! Axios v1.13.2 Copyright (c) 2025 Matt Zabriskie and contributors */
 (function (global, factory) {
   typeof exports === 'object' && typeof module !== 'undefined' ? module.exports = factory() :
   typeof define === 'function' && define.amd ? define(factory) :
@@ -668,6 +668,13 @@
     };
   }
 
+  /**
+   * Create a bound version of a function with a specified `this` context
+   *
+   * @param {Function} fn - The function to bind
+   * @param {*} thisArg - The value to be passed as the `this` parameter
+   * @returns {Function} A new function that will call the original function with the specified `this` context
+   */
   function bind(fn, thisArg) {
     return function wrap() {
       return fn.apply(thisArg, arguments);
@@ -1031,10 +1038,8 @@
         result[targetKey] = merge({}, val);
       } else if (isArray(val)) {
         result[targetKey] = val.slice();
-      } else {
-        if (!skipUndefined || !isUndefined(val)) {
-          result[targetKey] = val;
-        }
+      } else if (!skipUndefined || !isUndefined(val)) {
+        result[targetKey] = val;
       }
     };
     for (var i = 0, l = arguments.length; i < l; i++) {
@@ -1833,7 +1838,7 @@
        *
        * @param {Number} id The ID that was returned by `use`
        *
-       * @returns {Boolean} `true` if the interceptor was removed, `false` otherwise
+       * @returns {void}
        */
     }, {
       key: "eject",
@@ -2704,20 +2709,33 @@
   var cookies = platform.hasStandardBrowserEnv ?
   // Standard browser envs support document.cookie
   {
-    write: function write(name, value, expires, path, domain, secure) {
-      var cookie = [name + '=' + encodeURIComponent(value)];
-      utils$1.isNumber(expires) && cookie.push('expires=' + new Date(expires).toGMTString());
-      utils$1.isString(path) && cookie.push('path=' + path);
-      utils$1.isString(domain) && cookie.push('domain=' + domain);
-      secure === true && cookie.push('secure');
+    write: function write(name, value, expires, path, domain, secure, sameSite) {
+      if (typeof document === 'undefined') return;
+      var cookie = ["".concat(name, "=").concat(encodeURIComponent(value))];
+      if (utils$1.isNumber(expires)) {
+        cookie.push("expires=".concat(new Date(expires).toUTCString()));
+      }
+      if (utils$1.isString(path)) {
+        cookie.push("path=".concat(path));
+      }
+      if (utils$1.isString(domain)) {
+        cookie.push("domain=".concat(domain));
+      }
+      if (secure === true) {
+        cookie.push('secure');
+      }
+      if (utils$1.isString(sameSite)) {
+        cookie.push("SameSite=".concat(sameSite));
+      }
       document.cookie = cookie.join('; ');
     },
     read: function read(name) {
-      var match = document.cookie.match(new RegExp('(^|;\\s*)(' + name + ')=([^;]*)'));
-      return match ? decodeURIComponent(match[3]) : null;
+      if (typeof document === 'undefined') return null;
+      var match = document.cookie.match(new RegExp('(?:^|; )' + name + '=([^;]*)'));
+      return match ? decodeURIComponent(match[1]) : null;
     },
     remove: function remove(name) {
-      this.write(name, '', Date.now() - 86400000);
+      this.write(name, '', Date.now() - 86400000, '/');
     }
   } :
   // Non-standard browser env (web workers, react-native) lack needed support.
@@ -3353,11 +3371,9 @@
   var DEFAULT_CHUNK_SIZE = 64 * 1024;
   var isFunction = utils$1.isFunction;
   var globalFetchAPI = function (_ref) {
-    var fetch = _ref.fetch,
-      Request = _ref.Request,
+    var Request = _ref.Request,
       Response = _ref.Response;
     return {
-      fetch: fetch,
       Request: Request,
       Response: Response
     };
@@ -3376,11 +3392,14 @@
     }
   };
   var factory = function factory(env) {
-    var _Object$assign = Object.assign({}, globalFetchAPI, env),
-      fetch = _Object$assign.fetch,
-      Request = _Object$assign.Request,
-      Response = _Object$assign.Response;
-    var isFetchSupported = isFunction(fetch);
+    env = utils$1.merge.call({
+      skipUndefined: true
+    }, globalFetchAPI, env);
+    var _env = env,
+      envFetch = _env.fetch,
+      Request = _env.Request,
+      Response = _env.Response;
+    var isFetchSupported = envFetch ? isFunction(envFetch) : typeof fetch === 'function';
     var isRequestSupported = isFunction(Request);
     var isResponseSupported = isFunction(Response);
     if (!isFetchSupported) {
@@ -3521,31 +3540,32 @@
     }();
     return /*#__PURE__*/function () {
       var _ref5 = _asyncToGenerator( /*#__PURE__*/_regeneratorRuntime().mark(function _callee4(config) {
-        var _resolveConfig, url, method, data, signal, cancelToken, timeout, onDownloadProgress, onUploadProgress, responseType, headers, _resolveConfig$withCr, withCredentials, fetchOptions, composedSignal, request, unsubscribe, requestContentLength, _request, contentTypeHeader, _progressEventDecorat, _progressEventDecorat2, onProgress, flush, isCredentialsSupported, resolvedOptions, response, isStreamResponse, options, responseContentLength, _ref6, _ref7, _onProgress, _flush, responseData;
+        var _resolveConfig, url, method, data, signal, cancelToken, timeout, onDownloadProgress, onUploadProgress, responseType, headers, _resolveConfig$withCr, withCredentials, fetchOptions, _fetch, composedSignal, request, unsubscribe, requestContentLength, _request, contentTypeHeader, _progressEventDecorat, _progressEventDecorat2, onProgress, flush, isCredentialsSupported, resolvedOptions, response, isStreamResponse, options, responseContentLength, _ref6, _ref7, _onProgress, _flush, responseData;
         return _regeneratorRuntime().wrap(function _callee4$(_context4) {
           while (1) switch (_context4.prev = _context4.next) {
             case 0:
               _resolveConfig = resolveConfig(config), url = _resolveConfig.url, method = _resolveConfig.method, data = _resolveConfig.data, signal = _resolveConfig.signal, cancelToken = _resolveConfig.cancelToken, timeout = _resolveConfig.timeout, onDownloadProgress = _resolveConfig.onDownloadProgress, onUploadProgress = _resolveConfig.onUploadProgress, responseType = _resolveConfig.responseType, headers = _resolveConfig.headers, _resolveConfig$withCr = _resolveConfig.withCredentials, withCredentials = _resolveConfig$withCr === void 0 ? 'same-origin' : _resolveConfig$withCr, fetchOptions = _resolveConfig.fetchOptions;
+              _fetch = envFetch || fetch;
               responseType = responseType ? (responseType + '').toLowerCase() : 'text';
               composedSignal = composeSignals$1([signal, cancelToken && cancelToken.toAbortSignal()], timeout);
               request = null;
               unsubscribe = composedSignal && composedSignal.unsubscribe && function () {
                 composedSignal.unsubscribe();
               };
-              _context4.prev = 5;
+              _context4.prev = 6;
               _context4.t0 = onUploadProgress && supportsRequestStream && method !== 'get' && method !== 'head';
               if (!_context4.t0) {
-                _context4.next = 12;
+                _context4.next = 13;
                 break;
               }
-              _context4.next = 10;
+              _context4.next = 11;
               return resolveBodyLength(headers, data);
-            case 10:
+            case 11:
               _context4.t1 = requestContentLength = _context4.sent;
               _context4.t0 = _context4.t1 !== 0;
-            case 12:
+            case 13:
               if (!_context4.t0) {
-                _context4.next = 16;
+                _context4.next = 17;
                 break;
               }
               _request = new Request(url, {
@@ -3560,7 +3580,7 @@
                 _progressEventDecorat = progressEventDecorator(requestContentLength, progressEventReducer(asyncDecorator(onUploadProgress))), _progressEventDecorat2 = _slicedToArray(_progressEventDecorat, 2), onProgress = _progressEventDecorat2[0], flush = _progressEventDecorat2[1];
                 data = trackStream(_request.body, DEFAULT_CHUNK_SIZE, onProgress, flush);
               }
-            case 16:
+            case 17:
               if (!utils$1.isString(withCredentials)) {
                 withCredentials = withCredentials ? 'include' : 'omit';
               }
@@ -3577,9 +3597,9 @@
                 credentials: isCredentialsSupported ? withCredentials : undefined
               });
               request = isRequestSupported && new Request(url, resolvedOptions);
-              _context4.next = 22;
-              return isRequestSupported ? fetch(request, fetchOptions) : fetch(url, resolvedOptions);
-            case 22:
+              _context4.next = 23;
+              return isRequestSupported ? _fetch(request, fetchOptions) : _fetch(url, resolvedOptions);
+            case 23:
               response = _context4.sent;
               isStreamResponse = supportsResponseStream && (responseType === 'stream' || responseType === 'response');
               if (supportsResponseStream && (onDownloadProgress || isStreamResponse && unsubscribe)) {
@@ -3595,12 +3615,12 @@
                 }), options);
               }
               responseType = responseType || 'text';
-              _context4.next = 28;
+              _context4.next = 29;
               return resolvers[utils$1.findKey(resolvers, responseType) || 'text'](response, config);
-            case 28:
+            case 29:
               responseData = _context4.sent;
               !isStreamResponse && unsubscribe && unsubscribe();
-              _context4.next = 32;
+              _context4.next = 33;
               return new Promise(function (resolve, reject) {
                 settle(resolve, reject, {
                   data: responseData,
@@ -3611,26 +3631,26 @@
                   request: request
                 });
               });
-            case 32:
+            case 33:
               return _context4.abrupt("return", _context4.sent);
-            case 35:
-              _context4.prev = 35;
-              _context4.t2 = _context4["catch"](5);
+            case 36:
+              _context4.prev = 36;
+              _context4.t2 = _context4["catch"](6);
               unsubscribe && unsubscribe();
               if (!(_context4.t2 && _context4.t2.name === 'TypeError' && /Load failed|fetch/i.test(_context4.t2.message))) {
-                _context4.next = 40;
+                _context4.next = 41;
                 break;
               }
               throw Object.assign(new AxiosError('Network Error', AxiosError.ERR_NETWORK, config, request), {
                 cause: _context4.t2.cause || _context4.t2
               });
-            case 40:
-              throw AxiosError.from(_context4.t2, _context4.t2 && _context4.t2.code, config, request);
             case 41:
+              throw AxiosError.from(_context4.t2, _context4.t2 && _context4.t2.code, config, request);
+            case 42:
             case "end":
               return _context4.stop();
           }
-        }, _callee4, null, [[5, 35]]);
+        }, _callee4, null, [[6, 36]]);
       }));
       return function (_x5) {
         return _ref5.apply(this, arguments);
@@ -3639,9 +3659,7 @@
   };
   var seedCache = new Map();
   var getFetch = function getFetch(config) {
-    var env = utils$1.merge.call({
-      skipUndefined: true
-    }, globalFetchAPI, config ? config.env : null);
+    var env = config && config.env || {};
     var fetch = env.fetch,
       Request = env.Request,
       Response = env.Response;
@@ -3661,6 +3679,15 @@
   };
   getFetch();
 
+  /**
+   * Known adapters mapping.
+   * Provides environment-specific adapters for Axios:
+   * - `http` for Node.js
+   * - `xhr` for browsers
+   * - `fetch` for fetch API-based requests
+   * 
+   * @type {Object<string, Function|Object>}
+   */
   var knownAdapters = {
     http: httpAdapter,
     xhr: xhrAdapter,
@@ -3668,6 +3695,8 @@
       get: getFetch
     }
   };
+
+  // Assign adapter names for easier debugging and identification
   utils$1.forEach(knownAdapters, function (fn, value) {
     if (fn) {
       try {
@@ -3682,47 +3711,85 @@
       });
     }
   });
+
+  /**
+   * Render a rejection reason string for unknown or unsupported adapters
+   * 
+   * @param {string} reason
+   * @returns {string}
+   */
   var renderReason = function renderReason(reason) {
     return "- ".concat(reason);
   };
+
+  /**
+   * Check if the adapter is resolved (function, null, or false)
+   * 
+   * @param {Function|null|false} adapter
+   * @returns {boolean}
+   */
   var isResolvedHandle = function isResolvedHandle(adapter) {
     return utils$1.isFunction(adapter) || adapter === null || adapter === false;
   };
+
+  /**
+   * Get the first suitable adapter from the provided list.
+   * Tries each adapter in order until a supported one is found.
+   * Throws an AxiosError if no adapter is suitable.
+   * 
+   * @param {Array<string|Function>|string|Function} adapters - Adapter(s) by name or function.
+   * @param {Object} config - Axios request configuration
+   * @throws {AxiosError} If no suitable adapter is available
+   * @returns {Function} The resolved adapter function
+   */
+  function getAdapter(adapters, config) {
+    adapters = utils$1.isArray(adapters) ? adapters : [adapters];
+    var _adapters = adapters,
+      length = _adapters.length;
+    var nameOrAdapter;
+    var adapter;
+    var rejectedReasons = {};
+    for (var i = 0; i < length; i++) {
+      nameOrAdapter = adapters[i];
+      var id = void 0;
+      adapter = nameOrAdapter;
+      if (!isResolvedHandle(nameOrAdapter)) {
+        adapter = knownAdapters[(id = String(nameOrAdapter)).toLowerCase()];
+        if (adapter === undefined) {
+          throw new AxiosError("Unknown adapter '".concat(id, "'"));
+        }
+      }
+      if (adapter && (utils$1.isFunction(adapter) || (adapter = adapter.get(config)))) {
+        break;
+      }
+      rejectedReasons[id || '#' + i] = adapter;
+    }
+    if (!adapter) {
+      var reasons = Object.entries(rejectedReasons).map(function (_ref) {
+        var _ref2 = _slicedToArray(_ref, 2),
+          id = _ref2[0],
+          state = _ref2[1];
+        return "adapter ".concat(id, " ") + (state === false ? 'is not supported by the environment' : 'is not available in the build');
+      });
+      var s = length ? reasons.length > 1 ? 'since :\n' + reasons.map(renderReason).join('\n') : ' ' + renderReason(reasons[0]) : 'as no adapter specified';
+      throw new AxiosError("There is no suitable adapter to dispatch the request " + s, 'ERR_NOT_SUPPORT');
+    }
+    return adapter;
+  }
+
+  /**
+   * Exports Axios adapters and utility to resolve an adapter
+   */
   var adapters = {
-    getAdapter: function getAdapter(adapters, config) {
-      adapters = utils$1.isArray(adapters) ? adapters : [adapters];
-      var _adapters = adapters,
-        length = _adapters.length;
-      var nameOrAdapter;
-      var adapter;
-      var rejectedReasons = {};
-      for (var i = 0; i < length; i++) {
-        nameOrAdapter = adapters[i];
-        var id = void 0;
-        adapter = nameOrAdapter;
-        if (!isResolvedHandle(nameOrAdapter)) {
-          adapter = knownAdapters[(id = String(nameOrAdapter)).toLowerCase()];
-          if (adapter === undefined) {
-            throw new AxiosError("Unknown adapter '".concat(id, "'"));
-          }
-        }
-        if (adapter && (utils$1.isFunction(adapter) || (adapter = adapter.get(config)))) {
-          break;
-        }
-        rejectedReasons[id || '#' + i] = adapter;
-      }
-      if (!adapter) {
-        var reasons = Object.entries(rejectedReasons).map(function (_ref) {
-          var _ref2 = _slicedToArray(_ref, 2),
-            id = _ref2[0],
-            state = _ref2[1];
-          return "adapter ".concat(id, " ") + (state === false ? 'is not supported by the environment' : 'is not available in the build');
-        });
-        var s = length ? reasons.length > 1 ? 'since :\n' + reasons.map(renderReason).join('\n') : ' ' + renderReason(reasons[0]) : 'as no adapter specified';
-        throw new AxiosError("There is no suitable adapter to dispatch the request " + s, 'ERR_NOT_SUPPORT');
-      }
-      return adapter;
-    },
+    /**
+     * Resolve an adapter from a list of adapter names or functions.
+     * @type {Function}
+     */
+    getAdapter: getAdapter,
+    /**
+     * Exposes all known adapters
+     * @type {Object<string, Function|Object>}
+     */
     adapters: knownAdapters
   };
 
@@ -3780,7 +3847,7 @@
     });
   }
 
-  var VERSION = "1.12.0";
+  var VERSION = "1.13.2";
 
   var validators$1 = {};
 
@@ -4023,7 +4090,6 @@
         }
         len = requestInterceptorChain.length;
         var newConfig = config;
-        i = 0;
         while (i < len) {
           var onFulfilled = requestInterceptorChain[i++];
           var onRejected = requestInterceptorChain[i++];
@@ -4317,7 +4383,13 @@
     InsufficientStorage: 507,
     LoopDetected: 508,
     NotExtended: 510,
-    NetworkAuthenticationRequired: 511
+    NetworkAuthenticationRequired: 511,
+    WebServerIsDown: 521,
+    ConnectionTimedOut: 522,
+    OriginIsUnreachable: 523,
+    TimeoutOccurred: 524,
+    SslHandshakeFailed: 525,
+    InvalidSslCertificate: 526
   };
   Object.entries(HttpStatusCode).forEach(function (_ref) {
     var _ref2 = _slicedToArray(_ref, 2),

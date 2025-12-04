@@ -38,6 +38,7 @@ var NostrTools = (() => {
     nip10: () => nip10_exports,
     nip11: () => nip11_exports,
     nip13: () => nip13_exports,
+    nip17: () => nip17_exports,
     nip18: () => nip18_exports,
     nip19: () => nip19_exports,
     nip21: () => nip21_exports,
@@ -49,7 +50,10 @@ var NostrTools = (() => {
     nip42: () => nip42_exports,
     nip44: () => nip44_exports,
     nip47: () => nip47_exports,
+    nip54: () => nip54_exports,
     nip57: () => nip57_exports,
+    nip59: () => nip59_exports,
+    nip77: () => nip77_exports,
     nip98: () => nip98_exports,
     parseReferences: () => parseReferences,
     serializeEvent: () => serializeEvent,
@@ -2037,7 +2041,7 @@ var NostrTools = (() => {
       if (!Array.isArray(tag))
         return false;
       for (let j = 0; j < tag.length; j++) {
-        if (typeof tag[j] === "object")
+        if (typeof tag[j] !== "string")
           return false;
       }
     }
@@ -2368,6 +2372,8 @@ var NostrTools = (() => {
     Queue: () => Queue,
     QueueNode: () => QueueNode,
     binarySearch: () => binarySearch,
+    bytesToHex: () => bytesToHex2,
+    hexToBytes: () => hexToBytes2,
     insertEventIntoAscendingList: () => insertEventIntoAscendingList,
     insertEventIntoDescendingList: () => insertEventIntoDescendingList,
     normalizeURL: () => normalizeURL,
@@ -2377,17 +2383,25 @@ var NostrTools = (() => {
   var utf8Decoder = new TextDecoder("utf-8");
   var utf8Encoder = new TextEncoder();
   function normalizeURL(url) {
-    if (url.indexOf("://") === -1)
-      url = "wss://" + url;
-    let p = new URL(url);
-    p.pathname = p.pathname.replace(/\/+/g, "/");
-    if (p.pathname.endsWith("/"))
-      p.pathname = p.pathname.slice(0, -1);
-    if (p.port === "80" && p.protocol === "ws:" || p.port === "443" && p.protocol === "wss:")
-      p.port = "";
-    p.searchParams.sort();
-    p.hash = "";
-    return p.toString();
+    try {
+      if (url.indexOf("://") === -1)
+        url = "wss://" + url;
+      let p = new URL(url);
+      if (p.protocol === "http:")
+        p.protocol = "ws:";
+      else if (p.protocol === "https:")
+        p.protocol = "wss:";
+      p.pathname = p.pathname.replace(/\/+/g, "/");
+      if (p.pathname.endsWith("/"))
+        p.pathname = p.pathname.slice(0, -1);
+      if (p.port === "80" && p.protocol === "ws:" || p.port === "443" && p.protocol === "wss:")
+        p.port = "";
+      p.searchParams.sort();
+      p.hash = "";
+      return p.toString();
+    } catch (e) {
+      throw new Error(`Invalid URL: ${url}`);
+    }
   }
   function insertEventIntoDescendingList(sortedArray, event) {
     const [idx, found] = binarySearch(sortedArray, (b) => {
@@ -2474,6 +2488,9 @@ var NostrTools = (() => {
       }
       const target = this.first;
       this.first = target.next;
+      if (this.first) {
+        this.first.prev = null;
+      }
       return target.value;
     }
   };
@@ -2553,17 +2570,18 @@ var NostrTools = (() => {
     CreateOrUpdateStall: () => CreateOrUpdateStall,
     Curationsets: () => Curationsets,
     Date: () => Date2,
+    DirectMessageRelaysList: () => DirectMessageRelaysList,
     DraftClassifiedListing: () => DraftClassifiedListing,
     DraftLong: () => DraftLong,
     Emojisets: () => Emojisets,
     EncryptedDirectMessage: () => EncryptedDirectMessage,
-    EncryptedDirectMessages: () => EncryptedDirectMessages,
     EventDeletion: () => EventDeletion,
     FileMetadata: () => FileMetadata,
     FileServerPreference: () => FileServerPreference,
     Followsets: () => Followsets,
     GenericRepost: () => GenericRepost,
     Genericlists: () => Genericlists,
+    GiftWrap: () => GiftWrap,
     HTTPAuth: () => HTTPAuth,
     Handlerinformation: () => Handlerinformation,
     Handlerrecommendation: () => Handlerrecommendation,
@@ -2586,6 +2604,7 @@ var NostrTools = (() => {
     NostrConnect: () => NostrConnect,
     OpenTimestamps: () => OpenTimestamps,
     Pinlist: () => Pinlist,
+    PrivateDirectMessage: () => PrivateDirectMessage,
     ProblemTracker: () => ProblemTracker,
     ProfileBadges: () => ProfileBadges,
     PublicChatsList: () => PublicChatsList,
@@ -2596,6 +2615,7 @@ var NostrTools = (() => {
     Report: () => Report,
     Reporting: () => Reporting,
     Repost: () => Repost,
+    Seal: () => Seal,
     SearchRelaysList: () => SearchRelaysList,
     ShortTextNote: () => ShortTextNote,
     Time: () => Time,
@@ -2605,21 +2625,22 @@ var NostrTools = (() => {
     ZapGoal: () => ZapGoal,
     ZapRequest: () => ZapRequest,
     classifyKind: () => classifyKind,
+    isAddressableKind: () => isAddressableKind,
     isEphemeralKind: () => isEphemeralKind,
-    isParameterizedReplaceableKind: () => isParameterizedReplaceableKind,
+    isKind: () => isKind,
     isRegularKind: () => isRegularKind,
     isReplaceableKind: () => isReplaceableKind
   });
   function isRegularKind(kind) {
-    return 1e3 <= kind && kind < 1e4 || [1, 2, 4, 5, 6, 7, 8, 16, 40, 41, 42, 43, 44].includes(kind);
+    return kind < 1e4 && kind !== 0 && kind !== 3;
   }
   function isReplaceableKind(kind) {
-    return [0, 3].includes(kind) || 1e4 <= kind && kind < 2e4;
+    return kind === 0 || kind === 3 || 1e4 <= kind && kind < 2e4;
   }
   function isEphemeralKind(kind) {
     return 2e4 <= kind && kind < 3e4;
   }
-  function isParameterizedReplaceableKind(kind) {
+  function isAddressableKind(kind) {
     return 3e4 <= kind && kind < 4e4;
   }
   function classifyKind(kind) {
@@ -2629,20 +2650,25 @@ var NostrTools = (() => {
       return "replaceable";
     if (isEphemeralKind(kind))
       return "ephemeral";
-    if (isParameterizedReplaceableKind(kind))
+    if (isAddressableKind(kind))
       return "parameterized";
     return "unknown";
+  }
+  function isKind(event, kind) {
+    const kindAsArray = kind instanceof Array ? kind : [kind];
+    return validateEvent(event) && kindAsArray.includes(event.kind) || false;
   }
   var Metadata = 0;
   var ShortTextNote = 1;
   var RecommendRelay = 2;
   var Contacts = 3;
   var EncryptedDirectMessage = 4;
-  var EncryptedDirectMessages = 4;
   var EventDeletion = 5;
   var Repost = 6;
   var Reaction = 7;
   var BadgeAward = 8;
+  var Seal = 13;
+  var PrivateDirectMessage = 14;
   var GenericRepost = 16;
   var ChannelCreation = 40;
   var ChannelMetadata = 41;
@@ -2650,6 +2676,7 @@ var NostrTools = (() => {
   var ChannelHideMessage = 43;
   var ChannelMuteUser = 44;
   var OpenTimestamps = 1040;
+  var GiftWrap = 1059;
   var FileMetadata = 1063;
   var LiveChatMessage = 1311;
   var ProblemTracker = 1971;
@@ -2674,6 +2701,7 @@ var NostrTools = (() => {
   var SearchRelaysList = 10007;
   var InterestsList = 10015;
   var UserEmojiList = 10030;
+  var DirectMessageRelaysList = 10050;
   var FileServerPreference = 10096;
   var NWCWalletInfo = 13194;
   var LightningPubRPC = 21e3;
@@ -2779,7 +2807,7 @@ var NostrTools = (() => {
       Math.max(0, filter.limit ?? Infinity),
       filter.ids?.length ?? Infinity,
       filter.authors?.length && filter.kinds?.every((kind) => isReplaceableKind(kind)) ? filter.authors.length * filter.kinds.length : Infinity,
-      filter.authors?.length && filter.kinds?.every((kind) => isParameterizedReplaceableKind(kind)) && filter["#d"]?.length ? filter.authors.length * filter.kinds.length * filter["#d"].length : Infinity
+      filter.authors?.length && filter.kinds?.every((kind) => isAddressableKind(kind)) && filter["#d"]?.length ? filter.authors.length * filter.kinds.length * filter["#d"].length : Infinity
     );
   }
 
@@ -2849,15 +2877,30 @@ var NostrTools = (() => {
 
   // helpers.ts
   async function yieldThread() {
-    return new Promise((resolve) => {
-      const ch = new MessageChannel();
-      const handler = () => {
-        ch.port1.removeEventListener("message", handler);
-        resolve();
-      };
-      ch.port1.addEventListener("message", handler);
-      ch.port2.postMessage(0);
-      ch.port1.start();
+    return new Promise((resolve, reject) => {
+      try {
+        if (typeof MessageChannel !== "undefined") {
+          const ch = new MessageChannel();
+          const handler = () => {
+            ch.port1.removeEventListener("message", handler);
+            resolve();
+          };
+          ch.port1.addEventListener("message", handler);
+          ch.port2.postMessage(0);
+          ch.port1.start();
+        } else {
+          if (typeof setImmediate !== "undefined") {
+            setImmediate(resolve);
+          } else if (typeof setTimeout !== "undefined") {
+            setTimeout(resolve, 0);
+          } else {
+            resolve();
+          }
+        }
+      } catch (e) {
+        console.error("during yield: ", e);
+        reject(e);
+      }
     });
   }
   var alwaysTrue = (t) => {
@@ -2866,16 +2909,31 @@ var NostrTools = (() => {
   };
 
   // abstract-relay.ts
+  var SendingOnClosedConnection = class extends Error {
+    constructor(message, relay) {
+      super(`Tried to send message '${message} on a closed connection to ${relay}.`);
+      this.name = "SendingOnClosedConnection";
+    }
+  };
   var AbstractRelay = class {
     url;
     _connected = false;
     onclose = null;
     onnotice = (msg) => console.debug(`NOTICE from ${this.url}: ${msg}`);
-    _onauth = null;
     baseEoseTimeout = 4400;
     connectionTimeout = 4400;
+    publishTimeout = 4400;
+    pingFrequency = 2e4;
+    pingTimeout = 2e4;
+    resubscribeBackoff = [1e4, 1e4, 1e4, 2e4, 2e4, 3e4, 6e4];
     openSubs = /* @__PURE__ */ new Map();
+    enablePing;
+    enableReconnect;
     connectionTimeoutHandle;
+    reconnectTimeoutHandle;
+    pingTimeoutHandle;
+    reconnectAttempts = 0;
+    closedIntentionally = false;
     connectionPromise;
     openCountRequests = /* @__PURE__ */ new Map();
     openEventPublishes = /* @__PURE__ */ new Map();
@@ -2883,6 +2941,7 @@ var NostrTools = (() => {
     incomingMessageQueue = new Queue();
     queueRunning = false;
     challenge;
+    authPromise;
     serial = 0;
     verifyEvent;
     _WebSocket;
@@ -2890,6 +2949,8 @@ var NostrTools = (() => {
       this.url = normalizeURL(url);
       this.verifyEvent = opts.verifyEvent;
       this._WebSocket = opts.websocketImplementation || WebSocket;
+      this.enablePing = opts.enablePing;
+      this.enableReconnect = opts.enableReconnect || false;
     }
     static async connect(url, opts) {
       const relay = new AbstractRelay(url, opts);
@@ -2913,10 +2974,37 @@ var NostrTools = (() => {
     get connected() {
       return this._connected;
     }
+    async reconnect() {
+      const backoff = this.resubscribeBackoff[Math.min(this.reconnectAttempts, this.resubscribeBackoff.length - 1)];
+      this.reconnectAttempts++;
+      this.reconnectTimeoutHandle = setTimeout(async () => {
+        try {
+          await this.connect();
+        } catch (err) {
+        }
+      }, backoff);
+    }
+    handleHardClose(reason) {
+      if (this.pingTimeoutHandle) {
+        clearTimeout(this.pingTimeoutHandle);
+        this.pingTimeoutHandle = void 0;
+      }
+      this._connected = false;
+      this.connectionPromise = void 0;
+      const wasIntentional = this.closedIntentionally;
+      this.closedIntentionally = false;
+      this.onclose?.();
+      if (this.enableReconnect && !wasIntentional) {
+        this.reconnect();
+      } else {
+        this.closeAllSubscriptions(reason);
+      }
+    }
     async connect() {
       if (this.connectionPromise)
         return this.connectionPromise;
       this.challenge = void 0;
+      this.authPromise = void 0;
       this.connectionPromise = new Promise((resolve, reject) => {
         this.connectionTimeoutHandle = setTimeout(() => {
           reject("connection timed out");
@@ -2927,34 +3015,76 @@ var NostrTools = (() => {
         try {
           this.ws = new this._WebSocket(this.url);
         } catch (err) {
+          clearTimeout(this.connectionTimeoutHandle);
           reject(err);
           return;
         }
         this.ws.onopen = () => {
+          if (this.reconnectTimeoutHandle) {
+            clearTimeout(this.reconnectTimeoutHandle);
+            this.reconnectTimeoutHandle = void 0;
+          }
           clearTimeout(this.connectionTimeoutHandle);
           this._connected = true;
+          this.reconnectAttempts = 0;
+          for (const sub of this.openSubs.values()) {
+            sub.eosed = false;
+            if (typeof this.enableReconnect === "function") {
+              sub.filters = this.enableReconnect(sub.filters);
+            }
+            sub.fire();
+          }
+          if (this.enablePing) {
+            this.pingpong();
+          }
           resolve();
         };
         this.ws.onerror = (ev) => {
+          clearTimeout(this.connectionTimeoutHandle);
           reject(ev.message || "websocket error");
-          if (this._connected) {
-            this._connected = false;
-            this.connectionPromise = void 0;
-            this.onclose?.();
-            this.closeAllSubscriptions("relay connection errored");
-          }
+          this.handleHardClose("relay connection errored");
         };
-        this.ws.onclose = async () => {
-          if (this._connected) {
-            this._connected = false;
-            this.connectionPromise = void 0;
-            this.onclose?.();
-            this.closeAllSubscriptions("relay connection closed");
-          }
+        this.ws.onclose = (ev) => {
+          clearTimeout(this.connectionTimeoutHandle);
+          reject(ev.message || "websocket closed");
+          this.handleHardClose("relay connection closed");
         };
         this.ws.onmessage = this._onmessage.bind(this);
       });
       return this.connectionPromise;
+    }
+    waitForPingPong() {
+      return new Promise((resolve) => {
+        ;
+        this.ws.once("pong", () => resolve(true));
+        this.ws.ping();
+      });
+    }
+    async waitForDummyReq() {
+      return new Promise((resolve, _) => {
+        const sub = this.subscribe([{ ids: ["a".repeat(64)] }], {
+          oneose: () => {
+            sub.close();
+            resolve(true);
+          },
+          eoseTimeout: this.pingTimeout + 1e3
+        });
+      });
+    }
+    async pingpong() {
+      if (this.ws?.readyState === 1) {
+        const result = await Promise.any([
+          this.ws && this.ws.ping && this.ws.once ? this.waitForPingPong() : this.waitForDummyReq(),
+          new Promise((res) => setTimeout(() => res(false), this.pingTimeout))
+        ]);
+        if (result) {
+          this.pingTimeoutHandle = setTimeout(() => this.pingpong(), this.pingFrequency);
+        } else {
+          if (this.ws?.readyState === this._WebSocket.OPEN) {
+            this.ws?.close();
+          }
+        }
+      }
     }
     async runQueue() {
       this.queueRunning = true;
@@ -3017,11 +3147,14 @@ var NostrTools = (() => {
             const ok = data[2];
             const reason = data[3];
             const ep = this.openEventPublishes.get(id);
-            if (ok)
-              ep.resolve(reason);
-            else
-              ep.reject(new Error(reason));
-            this.openEventPublishes.delete(id);
+            if (ep) {
+              clearTimeout(ep.timeout);
+              if (ok)
+                ep.resolve(reason);
+              else
+                ep.reject(new Error(reason));
+              this.openEventPublishes.delete(id);
+            }
             return;
           }
           case "CLOSED": {
@@ -3033,12 +3166,17 @@ var NostrTools = (() => {
             so.close(data[2]);
             return;
           }
-          case "NOTICE":
+          case "NOTICE": {
             this.onnotice(data[1]);
             return;
+          }
           case "AUTH": {
             this.challenge = data[1];
-            this._onauth?.(data[1]);
+            return;
+          }
+          default: {
+            const so = this.openSubs.get(data[1]);
+            so?.oncustom?.(data);
             return;
           }
         }
@@ -3048,24 +3186,45 @@ var NostrTools = (() => {
     }
     async send(message) {
       if (!this.connectionPromise)
-        throw new Error("sending on closed connection");
+        throw new SendingOnClosedConnection(message, this.url);
       this.connectionPromise.then(() => {
         this.ws?.send(message);
       });
     }
     async auth(signAuthEvent) {
-      if (!this.challenge)
+      const challenge2 = this.challenge;
+      if (!challenge2)
         throw new Error("can't perform auth, no challenge was received");
-      const evt = await signAuthEvent(makeAuthEvent(this.url, this.challenge));
-      const ret = new Promise((resolve, reject) => {
-        this.openEventPublishes.set(evt.id, { resolve, reject });
+      if (this.authPromise)
+        return this.authPromise;
+      this.authPromise = new Promise(async (resolve, reject) => {
+        try {
+          let evt = await signAuthEvent(makeAuthEvent(this.url, challenge2));
+          let timeout = setTimeout(() => {
+            let ep = this.openEventPublishes.get(evt.id);
+            if (ep) {
+              ep.reject(new Error("auth timed out"));
+              this.openEventPublishes.delete(evt.id);
+            }
+          }, this.publishTimeout);
+          this.openEventPublishes.set(evt.id, { resolve, reject, timeout });
+          this.send('["AUTH",' + JSON.stringify(evt) + "]");
+        } catch (err) {
+          console.warn("subscribe auth function failed:", err);
+        }
       });
-      this.send('["AUTH",' + JSON.stringify(evt) + "]");
-      return ret;
+      return this.authPromise;
     }
     async publish(event) {
       const ret = new Promise((resolve, reject) => {
-        this.openEventPublishes.set(event.id, { resolve, reject });
+        const timeout = setTimeout(() => {
+          const ep = this.openEventPublishes.get(event.id);
+          if (ep) {
+            ep.reject(new Error("publish timed out"));
+            this.openEventPublishes.delete(event.id);
+          }
+        }, this.publishTimeout);
+        this.openEventPublishes.set(event.id, { resolve, reject, timeout });
       });
       this.send('["EVENT",' + JSON.stringify(event) + "]");
       return ret;
@@ -3080,21 +3239,33 @@ var NostrTools = (() => {
       return ret;
     }
     subscribe(filters, params) {
-      const subscription = this.prepareSubscription(filters, params);
-      subscription.fire();
-      return subscription;
+      const sub = this.prepareSubscription(filters, params);
+      sub.fire();
+      return sub;
     }
     prepareSubscription(filters, params) {
       this.serial++;
-      const id = params.id || "sub:" + this.serial;
+      const id = params.id || (params.label ? params.label + ":" : "sub:") + this.serial;
       const subscription = new Subscription(this, id, filters, params);
       this.openSubs.set(id, subscription);
       return subscription;
     }
     close() {
+      this.closedIntentionally = true;
+      if (this.reconnectTimeoutHandle) {
+        clearTimeout(this.reconnectTimeoutHandle);
+        this.reconnectTimeoutHandle = void 0;
+      }
+      if (this.pingTimeoutHandle) {
+        clearTimeout(this.pingTimeoutHandle);
+        this.pingTimeoutHandle = void 0;
+      }
       this.closeAllSubscriptions("relay connection closed by us");
       this._connected = false;
-      this.ws?.close();
+      this.onclose?.();
+      if (this.ws?.readyState === this._WebSocket.OPEN) {
+        this.ws?.close();
+      }
     }
     _onmessage(ev) {
       this.incomingMessageQueue.enqueue(ev.data);
@@ -3114,9 +3285,12 @@ var NostrTools = (() => {
     onevent;
     oneose;
     onclose;
+    oncustom;
     eoseTimeout;
     eoseTimeoutHandle;
     constructor(relay, id, filters, params) {
+      if (filters.length === 0)
+        throw new Error("subscription can't be created with zero filters");
       this.relay = relay;
       this.filters = filters;
       this.id = id;
@@ -3145,7 +3319,14 @@ var NostrTools = (() => {
     }
     close(reason = "closed by caller") {
       if (!this.closed && this.relay.connected) {
-        this.relay.send('["CLOSE",' + JSON.stringify(this.id) + "]");
+        try {
+          this.relay.send('["CLOSE",' + JSON.stringify(this.id) + "]");
+        } catch (err) {
+          if (err instanceof SendingOnClosedConnection) {
+          } else {
+            throw err;
+          }
+        }
         this.closed = true;
       }
       this.relay.openSubs.delete(this.id);
@@ -3160,11 +3341,11 @@ var NostrTools = (() => {
   } catch {
   }
   var Relay = class extends AbstractRelay {
-    constructor(url) {
-      super(url, { verifyEvent, websocketImplementation: _WebSocket });
+    constructor(url, options) {
+      super(url, { verifyEvent, websocketImplementation: _WebSocket, ...options });
     }
-    static async connect(url) {
-      const relay = new Relay(url);
+    static async connect(url, options) {
+      const relay = new Relay(url, options);
       await relay.connect();
       return relay;
     }
@@ -3176,11 +3357,15 @@ var NostrTools = (() => {
     seenOn = /* @__PURE__ */ new Map();
     trackRelays = false;
     verifyEvent;
+    enablePing;
+    enableReconnect;
     trustedRelayURLs = /* @__PURE__ */ new Set();
     _WebSocket;
     constructor(opts) {
       this.verifyEvent = opts.verifyEvent;
       this._WebSocket = opts.websocketImplementation;
+      this.enablePing = opts.enablePing;
+      this.enableReconnect = opts.enableReconnect;
     }
     async ensureRelay(url, params) {
       url = normalizeURL(url);
@@ -3188,8 +3373,15 @@ var NostrTools = (() => {
       if (!relay) {
         relay = new AbstractRelay(url, {
           verifyEvent: this.trustedRelayURLs.has(url) ? alwaysTrue : this.verifyEvent,
-          websocketImplementation: this._WebSocket
+          websocketImplementation: this._WebSocket,
+          enablePing: this.enablePing,
+          enableReconnect: this.enableReconnect
         });
+        relay.onclose = () => {
+          if (relay && !relay.enableReconnect) {
+            this.relays.delete(url);
+          }
+        };
         if (params?.connectionTimeout)
           relay.connectionTimeout = params.connectionTimeout;
         this.relays.set(url, relay);
@@ -3200,12 +3392,43 @@ var NostrTools = (() => {
     close(relays) {
       relays.map(normalizeURL).forEach((url) => {
         this.relays.get(url)?.close();
+        this.relays.delete(url);
       });
     }
-    subscribeMany(relays, filters, params) {
-      return this.subscribeManyMap(Object.fromEntries(relays.map((url) => [url, filters])), params);
+    subscribe(relays, filter, params) {
+      params.onauth = params.onauth || params.doauth;
+      const request = [];
+      for (let i2 = 0; i2 < relays.length; i2++) {
+        const url = normalizeURL(relays[i2]);
+        if (!request.find((r) => r.url === url)) {
+          request.push({ url, filter });
+        }
+      }
+      return this.subscribeMap(request, params);
     }
-    subscribeManyMap(requests, params) {
+    subscribeMany(relays, filter, params) {
+      params.onauth = params.onauth || params.doauth;
+      const request = [];
+      const uniqUrls = [];
+      for (let i2 = 0; i2 < relays.length; i2++) {
+        const url = normalizeURL(relays[i2]);
+        if (uniqUrls.indexOf(url) === -1) {
+          uniqUrls.push(url);
+          request.push({ url, filter });
+        }
+      }
+      return this.subscribeMap(request, params);
+    }
+    subscribeMap(requests, params) {
+      params.onauth = params.onauth || params.doauth;
+      const grouped = /* @__PURE__ */ new Map();
+      for (const req of requests) {
+        const { url, filter } = req;
+        if (!grouped.has(url))
+          grouped.set(url, []);
+        grouped.get(url).push(filter);
+      }
+      const groupedRequests = Array.from(grouped.entries()).map(([url, filters]) => ({ url, filters }));
       if (this.trackRelays) {
         params.receivedEvent = (relay, id) => {
           let set = this.seenOn.get(id);
@@ -3218,11 +3441,12 @@ var NostrTools = (() => {
       }
       const _knownIds = /* @__PURE__ */ new Set();
       const subs = [];
-      const relaysLength = Object.keys(requests).length;
       const eosesReceived = [];
       let handleEose = (i2) => {
+        if (eosesReceived[i2])
+          return;
         eosesReceived[i2] = true;
-        if (eosesReceived.filter((a) => a).length === relaysLength) {
+        if (eosesReceived.filter((a) => a).length === groupedRequests.length) {
           params.oneose?.();
           handleEose = () => {
           };
@@ -3230,9 +3454,11 @@ var NostrTools = (() => {
       };
       const closesReceived = [];
       let handleClose = (i2, reason) => {
+        if (closesReceived[i2])
+          return;
         handleEose(i2);
         closesReceived[i2] = reason;
-        if (closesReceived.filter((a) => a).length === relaysLength) {
+        if (closesReceived.filter((a) => a).length === groupedRequests.length) {
           params.onclose?.(closesReceived);
           handleClose = () => {
           };
@@ -3247,13 +3473,7 @@ var NostrTools = (() => {
         return have;
       };
       const allOpened = Promise.all(
-        Object.entries(requests).map(async (req, i2, arr) => {
-          if (arr.indexOf(req) !== i2) {
-            handleClose(i2, "duplicate url");
-            return;
-          }
-          let [url, filters] = req;
-          url = normalizeURL(url);
+        groupedRequests.map(async ({ url, filters }, i2) => {
           let relay;
           try {
             relay = await this.ensureRelay(url, {
@@ -3266,7 +3486,25 @@ var NostrTools = (() => {
           let subscription = relay.subscribe(filters, {
             ...params,
             oneose: () => handleEose(i2),
-            onclose: (reason) => handleClose(i2, reason),
+            onclose: (reason) => {
+              if (reason.startsWith("auth-required: ") && params.onauth) {
+                relay.auth(params.onauth).then(() => {
+                  relay.subscribe(filters, {
+                    ...params,
+                    oneose: () => handleEose(i2),
+                    onclose: (reason2) => {
+                      handleClose(i2, reason2);
+                    },
+                    alreadyHaveEvent: localAlreadyHaveEventHandler,
+                    eoseTimeout: params.maxWait
+                  });
+                }).catch((err) => {
+                  handleClose(i2, `auth was required and attempted, but failed with: ${err}`);
+                });
+              } else {
+                handleClose(i2, reason);
+              }
+            },
             alreadyHaveEvent: localAlreadyHaveEventHandler,
             eoseTimeout: params.maxWait
           });
@@ -3274,19 +3512,30 @@ var NostrTools = (() => {
         })
       );
       return {
-        async close() {
+        async close(reason) {
           await allOpened;
           subs.forEach((sub) => {
-            sub.close();
+            sub.close(reason);
           });
         }
       };
     }
-    subscribeManyEose(relays, filters, params) {
-      const subcloser = this.subscribeMany(relays, filters, {
+    subscribeEose(relays, filter, params) {
+      params.onauth = params.onauth || params.doauth;
+      const subcloser = this.subscribe(relays, filter, {
         ...params,
         oneose() {
-          subcloser.close();
+          subcloser.close("closed automatically on eose");
+        }
+      });
+      return subcloser;
+    }
+    subscribeManyEose(relays, filter, params) {
+      params.onauth = params.onauth || params.doauth;
+      const subcloser = this.subscribeMany(relays, filter, {
+        ...params,
+        oneose() {
+          subcloser.close("closed automatically on eose");
         }
       });
       return subcloser;
@@ -3294,7 +3543,7 @@ var NostrTools = (() => {
     async querySync(relays, filter, params) {
       return new Promise(async (resolve) => {
         const events = [];
-        this.subscribeManyEose(relays, [filter], {
+        this.subscribeEose(relays, filter, {
           ...params,
           onevent(event) {
             events.push(event);
@@ -3311,13 +3560,29 @@ var NostrTools = (() => {
       events.sort((a, b) => b.created_at - a.created_at);
       return events[0] || null;
     }
-    publish(relays, event) {
+    publish(relays, event, options) {
       return relays.map(normalizeURL).map(async (url, i2, arr) => {
         if (arr.indexOf(url) !== i2) {
           return Promise.reject("duplicate url");
         }
         let r = await this.ensureRelay(url);
-        return r.publish(event);
+        return r.publish(event).catch(async (err) => {
+          if (err instanceof Error && err.message.startsWith("auth-required: ") && options?.onauth) {
+            await r.auth(options.onauth);
+            return r.publish(event);
+          }
+          throw err;
+        }).then((reason) => {
+          if (this.trackRelays) {
+            let set = this.seenOn.get(event.id);
+            if (!set) {
+              set = /* @__PURE__ */ new Set();
+              this.seenOn.set(event.id, set);
+            }
+            set.add(r);
+          }
+          return reason;
+        });
       });
     }
     listConnectionStatus() {
@@ -3338,8 +3603,8 @@ var NostrTools = (() => {
   } catch {
   }
   var SimplePool = class extends AbstractSimplePool {
-    constructor() {
-      super({ verifyEvent, websocketImplementation: _WebSocket2 });
+    constructor(options) {
+      super({ verifyEvent, websocketImplementation: _WebSocket2, ...options });
     }
   };
 
@@ -3348,14 +3613,15 @@ var NostrTools = (() => {
   __export(nip19_exports, {
     BECH32_REGEX: () => BECH32_REGEX,
     Bech32MaxSize: () => Bech32MaxSize,
+    NostrTypeGuard: () => NostrTypeGuard,
     decode: () => decode,
+    decodeNostrURI: () => decodeNostrURI,
     encodeBytes: () => encodeBytes,
     naddrEncode: () => naddrEncode,
     neventEncode: () => neventEncode,
     noteEncode: () => noteEncode,
     nprofileEncode: () => nprofileEncode,
     npubEncode: () => npubEncode,
-    nrelayEncode: () => nrelayEncode,
     nsecEncode: () => nsecEncode
   });
 
@@ -3713,6 +3979,15 @@ var NostrTools = (() => {
   var coderTypeError = `Invalid encoding type. Available types: ${Object.keys(CODERS).join(", ")}`;
 
   // nip19.ts
+  var NostrTypeGuard = {
+    isNProfile: (value) => /^nprofile1[a-z\d]+$/.test(value || ""),
+    isNEvent: (value) => /^nevent1[a-z\d]+$/.test(value || ""),
+    isNAddr: (value) => /^naddr1[a-z\d]+$/.test(value || ""),
+    isNSec: (value) => /^nsec1[a-z\d]{58}$/.test(value || ""),
+    isNPub: (value) => /^npub1[a-z\d]{58}$/.test(value || ""),
+    isNote: (value) => /^note1[a-z\d]+$/.test(value || ""),
+    isNcryptsec: (value) => /^ncryptsec1[a-z\d]+$/.test(value || "")
+  };
   var Bech32MaxSize = 5e3;
   var BECH32_REGEX = /[\x21-\x7E]{1,83}1[023456789acdefghjklmnpqrstuvwxyz]{6,}/;
   function integerToUint8Array(number4) {
@@ -3723,8 +3998,17 @@ var NostrTools = (() => {
     uint8Array[3] = number4 & 255;
     return uint8Array;
   }
-  function decode(nip19) {
-    let { prefix, words } = bech32.decode(nip19, Bech32MaxSize);
+  function decodeNostrURI(nip19code) {
+    try {
+      if (nip19code.startsWith("nostr:"))
+        nip19code = nip19code.substring(6);
+      return decode(nip19code);
+    } catch (_err) {
+      return { type: "invalid", data: null };
+    }
+  }
+  function decode(code) {
+    let { prefix, words } = bech32.decode(code, Bech32MaxSize);
     let data = new Uint8Array(bech32.fromWords(words));
     switch (prefix) {
       case "nprofile": {
@@ -3781,15 +4065,6 @@ var NostrTools = (() => {
             kind: parseInt(bytesToHex2(tlv[3][0]), 16),
             relays: tlv[1] ? tlv[1].map((d) => utf8Decoder.decode(d)) : []
           }
-        };
-      }
-      case "nrelay": {
-        let tlv = parseTLV(data);
-        if (!tlv[0]?.[0])
-          throw new Error("missing TLV 0 for nrelay");
-        return {
-          type: "nrelay",
-          data: utf8Decoder.decode(tlv[0][0])
         };
       }
       case "nsec":
@@ -3862,12 +4137,6 @@ var NostrTools = (() => {
       3: [new Uint8Array(kind)]
     });
     return encodeBech32("naddr", data);
-  }
-  function nrelayEncode(url) {
-    let data = encodeTLV({
-      0: [utf8Encoder.encode(url)]
-    });
-    return encodeBech32("nrelay", data);
   }
   function encodeTLV(tlv) {
     let entries = [];
@@ -4018,6 +4287,44 @@ var NostrTools = (() => {
   var isLE3 = new Uint8Array(new Uint32Array([287454020]).buffer)[0] === 68;
   if (!isLE3)
     throw new Error("Non little-endian hardware is not supported");
+  var hexes3 = /* @__PURE__ */ Array.from({ length: 256 }, (_, i2) => i2.toString(16).padStart(2, "0"));
+  function bytesToHex3(bytes4) {
+    bytes3(bytes4);
+    let hex2 = "";
+    for (let i2 = 0; i2 < bytes4.length; i2++) {
+      hex2 += hexes3[bytes4[i2]];
+    }
+    return hex2;
+  }
+  var asciis = { _0: 48, _9: 57, _A: 65, _F: 70, _a: 97, _f: 102 };
+  function asciiToBase16(char) {
+    if (char >= asciis._0 && char <= asciis._9)
+      return char - asciis._0;
+    if (char >= asciis._A && char <= asciis._F)
+      return char - (asciis._A - 10);
+    if (char >= asciis._a && char <= asciis._f)
+      return char - (asciis._a - 10);
+    return;
+  }
+  function hexToBytes3(hex2) {
+    if (typeof hex2 !== "string")
+      throw new Error("hex string expected, got " + typeof hex2);
+    const hl = hex2.length;
+    const al = hl / 2;
+    if (hl % 2)
+      throw new Error("padded hex string expected, got unpadded hex of length " + hl);
+    const array = new Uint8Array(al);
+    for (let ai = 0, hi = 0; ai < al; ai++, hi += 2) {
+      const n1 = asciiToBase16(hex2.charCodeAt(hi));
+      const n2 = asciiToBase16(hex2.charCodeAt(hi + 1));
+      if (n1 === void 0 || n2 === void 0) {
+        const char = hex2[hi] + hex2[hi + 1];
+        throw new Error('hex string expected, got non-hex character "' + char + '" at index ' + hi);
+      }
+      array[ai] = n1 * 16 + n2;
+    }
+    return array;
+  }
   function utf8ToBytes4(str) {
     if (typeof str !== "string")
       throw new Error(`string expected, got ${typeof str}`);
@@ -4758,7 +5065,7 @@ var NostrTools = (() => {
   });
 
   // nip04.ts
-  async function encrypt2(secretKey, pubkey, text) {
+  function encrypt2(secretKey, pubkey, text) {
     const privkey = secretKey instanceof Uint8Array ? bytesToHex2(secretKey) : secretKey;
     const key = secp256k1.getSharedSecret(privkey, "02" + pubkey);
     const normalizedKey = getNormalizedX(key);
@@ -4769,7 +5076,7 @@ var NostrTools = (() => {
     let ivb64 = base64.encode(new Uint8Array(iv.buffer));
     return `${ctb64}?iv=${ivb64}`;
   }
-  async function decrypt2(secretKey, pubkey, data) {
+  function decrypt2(secretKey, pubkey, data) {
     const privkey = secretKey instanceof Uint8Array ? bytesToHex2(secretKey) : secretKey;
     let [ctb64, ivb64] = data.split("?iv=");
     let key = secp256k1.getSharedSecret(privkey, "02" + pubkey);
@@ -4787,16 +5094,19 @@ var NostrTools = (() => {
   var nip05_exports = {};
   __export(nip05_exports, {
     NIP05_REGEX: () => NIP05_REGEX,
+    isNip05: () => isNip05,
     isValid: () => isValid,
     queryProfile: () => queryProfile,
     searchDomain: () => searchDomain,
     useFetchImplementation: () => useFetchImplementation
   });
   var NIP05_REGEX = /^(?:([\w.+-]+)@)?([\w_-]+(\.[\w_-]+)+)$/;
+  var isNip05 = (value) => NIP05_REGEX.test(value || "");
   var _fetch;
   try {
     _fetch = fetch;
-  } catch {
+  } catch (_) {
+    null;
   }
   function useFetchImplementation(fetchImplementation) {
     _fetch = fetchImplementation;
@@ -4804,7 +5114,10 @@ var NostrTools = (() => {
   async function searchDomain(domain, query = "") {
     try {
       const url = `https://${domain}/.well-known/nostr.json?name=${query}`;
-      const res = await _fetch(url, { redirect: "error" });
+      const res = await _fetch(url, { redirect: "manual" });
+      if (res.status !== 200) {
+        throw Error("Wrong response code");
+      }
       const json = await res.json();
       return json.names;
     } catch (_) {
@@ -4815,18 +5128,22 @@ var NostrTools = (() => {
     const match = fullname.match(NIP05_REGEX);
     if (!match)
       return null;
-    const [_, name = "_", domain] = match;
+    const [, name = "_", domain] = match;
     try {
       const url = `https://${domain}/.well-known/nostr.json?name=${name}`;
-      const res = await (await _fetch(url, { redirect: "error" })).json();
-      let pubkey = res.names[name];
-      return pubkey ? { pubkey, relays: res.relays?.[pubkey] } : null;
+      const res = await _fetch(url, { redirect: "manual" });
+      if (res.status !== 200) {
+        throw Error("Wrong response code");
+      }
+      const json = await res.json();
+      const pubkey = json.names[name];
+      return pubkey ? { pubkey, relays: json.relays?.[pubkey] } : null;
     } catch (_e) {
       return null;
     }
   }
   async function isValid(pubkey, nip05) {
-    let res = await queryProfile(nip05);
+    const res = await queryProfile(nip05);
     return res ? res.pubkey === pubkey : false;
   }
 
@@ -4840,51 +5157,98 @@ var NostrTools = (() => {
       reply: void 0,
       root: void 0,
       mentions: [],
-      profiles: []
+      profiles: [],
+      quotes: []
     };
-    const eTags = [];
-    for (const tag of event.tags) {
+    let maybeParent;
+    let maybeRoot;
+    for (let i2 = event.tags.length - 1; i2 >= 0; i2--) {
+      const tag = event.tags[i2];
       if (tag[0] === "e" && tag[1]) {
-        eTags.push(tag);
+        const [_, eTagEventId, eTagRelayUrl, eTagMarker, eTagAuthor] = tag;
+        const eventPointer = {
+          id: eTagEventId,
+          relays: eTagRelayUrl ? [eTagRelayUrl] : [],
+          author: eTagAuthor
+        };
+        if (eTagMarker === "root") {
+          result.root = eventPointer;
+          continue;
+        }
+        if (eTagMarker === "reply") {
+          result.reply = eventPointer;
+          continue;
+        }
+        if (eTagMarker === "mention") {
+          result.mentions.push(eventPointer);
+          continue;
+        }
+        if (!maybeParent) {
+          maybeParent = eventPointer;
+        } else {
+          maybeRoot = eventPointer;
+        }
+        result.mentions.push(eventPointer);
+        continue;
+      }
+      if (tag[0] === "q" && tag[1]) {
+        const [_, eTagEventId, eTagRelayUrl] = tag;
+        result.quotes.push({
+          id: eTagEventId,
+          relays: eTagRelayUrl ? [eTagRelayUrl] : []
+        });
       }
       if (tag[0] === "p" && tag[1]) {
         result.profiles.push({
           pubkey: tag[1],
           relays: tag[2] ? [tag[2]] : []
         });
+        continue;
       }
     }
-    for (let eTagIndex = 0; eTagIndex < eTags.length; eTagIndex++) {
-      const eTag = eTags[eTagIndex];
-      const [_, eTagEventId, eTagRelayUrl, eTagMarker] = eTag;
-      const eventPointer = {
-        id: eTagEventId,
-        relays: eTagRelayUrl ? [eTagRelayUrl] : []
-      };
-      const isFirstETag = eTagIndex === 0;
-      const isLastETag = eTagIndex === eTags.length - 1;
-      if (eTagMarker === "root") {
-        result.root = eventPointer;
-        continue;
-      }
-      if (eTagMarker === "reply") {
-        result.reply = eventPointer;
-        continue;
-      }
-      if (eTagMarker === "mention") {
-        result.mentions.push(eventPointer);
-        continue;
-      }
-      if (isFirstETag) {
-        result.root = eventPointer;
-        continue;
-      }
-      if (isLastETag) {
-        result.reply = eventPointer;
-        continue;
-      }
-      result.mentions.push(eventPointer);
+    if (!result.root) {
+      result.root = maybeRoot || maybeParent || result.reply;
     }
+    if (!result.reply) {
+      result.reply = maybeParent || result.root;
+    }
+    ;
+    [result.reply, result.root].forEach((ref) => {
+      if (!ref)
+        return;
+      let idx = result.mentions.indexOf(ref);
+      if (idx !== -1) {
+        result.mentions.splice(idx, 1);
+      }
+      if (ref.author) {
+        let author = result.profiles.find((p) => p.pubkey === ref.author);
+        if (author && author.relays) {
+          if (!ref.relays) {
+            ref.relays = [];
+          }
+          author.relays.forEach((url) => {
+            if (ref.relays?.indexOf(url) === -1)
+              ref.relays.push(url);
+          });
+          author.relays = ref.relays;
+        }
+      }
+    });
+    result.mentions.forEach((ref) => {
+      if (ref.author) {
+        let author = result.profiles.find((p) => p.pubkey === ref.author);
+        if (author && author.relays) {
+          if (!ref.relays) {
+            ref.relays = [];
+          }
+          author.relays.forEach((url) => {
+            if (ref.relays.indexOf(url) === -1)
+              ref.relays.push(url);
+          });
+          author.relays = ref.relays;
+        }
+      }
+    });
     return result;
   }
 
@@ -4911,17 +5275,18 @@ var NostrTools = (() => {
   // nip13.ts
   var nip13_exports = {};
   __export(nip13_exports, {
+    fastEventHash: () => fastEventHash,
     getPow: () => getPow,
     minePow: () => minePow
   });
   function getPow(hex2) {
     let count = 0;
-    for (let i2 = 0; i2 < hex2.length; i2++) {
-      const nibble = parseInt(hex2[i2], 16);
+    for (let i2 = 0; i2 < 64; i2 += 8) {
+      const nibble = parseInt(hex2.substring(i2, i2 + 8), 16);
       if (nibble === 0) {
-        count += 4;
+        count += 32;
       } else {
-        count += Math.clz32(nibble) - 28;
+        count += Math.clz32(nibble);
         break;
       }
     }
@@ -4933,340 +5298,45 @@ var NostrTools = (() => {
     const tag = ["nonce", count.toString(), difficulty.toString()];
     event.tags.push(tag);
     while (true) {
-      const now = Math.floor(new Date().getTime() / 1e3);
-      if (now !== event.created_at) {
+      const now2 = Math.floor(new Date().getTime() / 1e3);
+      if (now2 !== event.created_at) {
         count = 0;
-        event.created_at = now;
+        event.created_at = now2;
       }
       tag[1] = (++count).toString();
-      event.id = getEventHash(event);
+      event.id = fastEventHash(event);
       if (getPow(event.id) >= difficulty) {
         break;
       }
     }
     return event;
   }
-
-  // nip18.ts
-  var nip18_exports = {};
-  __export(nip18_exports, {
-    finishRepostEvent: () => finishRepostEvent,
-    getRepostedEvent: () => getRepostedEvent,
-    getRepostedEventPointer: () => getRepostedEventPointer
-  });
-  function finishRepostEvent(t, reposted, relayUrl, privateKey) {
-    return finalizeEvent(
-      {
-        kind: Repost,
-        tags: [...t.tags ?? [], ["e", reposted.id, relayUrl], ["p", reposted.pubkey]],
-        content: t.content === "" ? "" : JSON.stringify(reposted),
-        created_at: t.created_at
-      },
-      privateKey
+  function fastEventHash(evt) {
+    return bytesToHex2(
+      sha2562(utf8Encoder.encode(JSON.stringify([0, evt.pubkey, evt.created_at, evt.kind, evt.tags, evt.content])))
     );
   }
-  function getRepostedEventPointer(event) {
-    if (event.kind !== Repost) {
-      return void 0;
-    }
-    let lastETag;
-    let lastPTag;
-    for (let i2 = event.tags.length - 1; i2 >= 0 && (lastETag === void 0 || lastPTag === void 0); i2--) {
-      const tag = event.tags[i2];
-      if (tag.length >= 2) {
-        if (tag[0] === "e" && lastETag === void 0) {
-          lastETag = tag;
-        } else if (tag[0] === "p" && lastPTag === void 0) {
-          lastPTag = tag;
-        }
-      }
-    }
-    if (lastETag === void 0) {
-      return void 0;
-    }
-    return {
-      id: lastETag[1],
-      relays: [lastETag[2], lastPTag?.[2]].filter((x) => typeof x === "string"),
-      author: lastPTag?.[1]
-    };
-  }
-  function getRepostedEvent(event, { skipVerification } = {}) {
-    const pointer = getRepostedEventPointer(event);
-    if (pointer === void 0 || event.content === "") {
-      return void 0;
-    }
-    let repostedEvent;
-    try {
-      repostedEvent = JSON.parse(event.content);
-    } catch (error) {
-      return void 0;
-    }
-    if (repostedEvent.id !== pointer.id) {
-      return void 0;
-    }
-    if (!skipVerification && !verifyEvent(repostedEvent)) {
-      return void 0;
-    }
-    return repostedEvent;
-  }
 
-  // nip21.ts
-  var nip21_exports = {};
-  __export(nip21_exports, {
-    NOSTR_URI_REGEX: () => NOSTR_URI_REGEX,
-    parse: () => parse2,
-    test: () => test
+  // nip17.ts
+  var nip17_exports = {};
+  __export(nip17_exports, {
+    unwrapEvent: () => unwrapEvent2,
+    unwrapManyEvents: () => unwrapManyEvents2,
+    wrapEvent: () => wrapEvent2,
+    wrapManyEvents: () => wrapManyEvents2
   });
-  var NOSTR_URI_REGEX = new RegExp(`nostr:(${BECH32_REGEX.source})`);
-  function test(value) {
-    return typeof value === "string" && new RegExp(`^${NOSTR_URI_REGEX.source}$`).test(value);
-  }
-  function parse2(uri) {
-    const match = uri.match(new RegExp(`^${NOSTR_URI_REGEX.source}$`));
-    if (!match)
-      throw new Error(`Invalid Nostr URI: ${uri}`);
-    return {
-      uri: match[0],
-      value: match[1],
-      decoded: decode(match[1])
-    };
-  }
 
-  // nip25.ts
-  var nip25_exports = {};
-  __export(nip25_exports, {
-    finishReactionEvent: () => finishReactionEvent,
-    getReactedEventPointer: () => getReactedEventPointer
+  // nip59.ts
+  var nip59_exports = {};
+  __export(nip59_exports, {
+    createRumor: () => createRumor,
+    createSeal: () => createSeal,
+    createWrap: () => createWrap,
+    unwrapEvent: () => unwrapEvent,
+    unwrapManyEvents: () => unwrapManyEvents,
+    wrapEvent: () => wrapEvent,
+    wrapManyEvents: () => wrapManyEvents
   });
-  function finishReactionEvent(t, reacted, privateKey) {
-    const inheritedTags = reacted.tags.filter((tag) => tag.length >= 2 && (tag[0] === "e" || tag[0] === "p"));
-    return finalizeEvent(
-      {
-        ...t,
-        kind: Reaction,
-        tags: [...t.tags ?? [], ...inheritedTags, ["e", reacted.id], ["p", reacted.pubkey]],
-        content: t.content ?? "+"
-      },
-      privateKey
-    );
-  }
-  function getReactedEventPointer(event) {
-    if (event.kind !== Reaction) {
-      return void 0;
-    }
-    let lastETag;
-    let lastPTag;
-    for (let i2 = event.tags.length - 1; i2 >= 0 && (lastETag === void 0 || lastPTag === void 0); i2--) {
-      const tag = event.tags[i2];
-      if (tag.length >= 2) {
-        if (tag[0] === "e" && lastETag === void 0) {
-          lastETag = tag;
-        } else if (tag[0] === "p" && lastPTag === void 0) {
-          lastPTag = tag;
-        }
-      }
-    }
-    if (lastETag === void 0 || lastPTag === void 0) {
-      return void 0;
-    }
-    return {
-      id: lastETag[1],
-      relays: [lastETag[2], lastPTag[2]].filter((x) => x !== void 0),
-      author: lastPTag[1]
-    };
-  }
-
-  // nip27.ts
-  var nip27_exports = {};
-  __export(nip27_exports, {
-    matchAll: () => matchAll,
-    regex: () => regex,
-    replaceAll: () => replaceAll
-  });
-  var regex = () => new RegExp(`\\b${NOSTR_URI_REGEX.source}\\b`, "g");
-  function* matchAll(content) {
-    const matches = content.matchAll(regex());
-    for (const match of matches) {
-      try {
-        const [uri, value] = match;
-        yield {
-          uri,
-          value,
-          decoded: decode(value),
-          start: match.index,
-          end: match.index + uri.length
-        };
-      } catch (_e) {
-      }
-    }
-  }
-  function replaceAll(content, replacer) {
-    return content.replaceAll(regex(), (uri, value) => {
-      return replacer({
-        uri,
-        value,
-        decoded: decode(value)
-      });
-    });
-  }
-
-  // nip28.ts
-  var nip28_exports = {};
-  __export(nip28_exports, {
-    channelCreateEvent: () => channelCreateEvent,
-    channelHideMessageEvent: () => channelHideMessageEvent,
-    channelMessageEvent: () => channelMessageEvent,
-    channelMetadataEvent: () => channelMetadataEvent,
-    channelMuteUserEvent: () => channelMuteUserEvent
-  });
-  var channelCreateEvent = (t, privateKey) => {
-    let content;
-    if (typeof t.content === "object") {
-      content = JSON.stringify(t.content);
-    } else if (typeof t.content === "string") {
-      content = t.content;
-    } else {
-      return void 0;
-    }
-    return finalizeEvent(
-      {
-        kind: ChannelCreation,
-        tags: [...t.tags ?? []],
-        content,
-        created_at: t.created_at
-      },
-      privateKey
-    );
-  };
-  var channelMetadataEvent = (t, privateKey) => {
-    let content;
-    if (typeof t.content === "object") {
-      content = JSON.stringify(t.content);
-    } else if (typeof t.content === "string") {
-      content = t.content;
-    } else {
-      return void 0;
-    }
-    return finalizeEvent(
-      {
-        kind: ChannelMetadata,
-        tags: [["e", t.channel_create_event_id], ...t.tags ?? []],
-        content,
-        created_at: t.created_at
-      },
-      privateKey
-    );
-  };
-  var channelMessageEvent = (t, privateKey) => {
-    const tags = [["e", t.channel_create_event_id, t.relay_url, "root"]];
-    if (t.reply_to_channel_message_event_id) {
-      tags.push(["e", t.reply_to_channel_message_event_id, t.relay_url, "reply"]);
-    }
-    return finalizeEvent(
-      {
-        kind: ChannelMessage,
-        tags: [...tags, ...t.tags ?? []],
-        content: t.content,
-        created_at: t.created_at
-      },
-      privateKey
-    );
-  };
-  var channelHideMessageEvent = (t, privateKey) => {
-    let content;
-    if (typeof t.content === "object") {
-      content = JSON.stringify(t.content);
-    } else if (typeof t.content === "string") {
-      content = t.content;
-    } else {
-      return void 0;
-    }
-    return finalizeEvent(
-      {
-        kind: ChannelHideMessage,
-        tags: [["e", t.channel_message_event_id], ...t.tags ?? []],
-        content,
-        created_at: t.created_at
-      },
-      privateKey
-    );
-  };
-  var channelMuteUserEvent = (t, privateKey) => {
-    let content;
-    if (typeof t.content === "object") {
-      content = JSON.stringify(t.content);
-    } else if (typeof t.content === "string") {
-      content = t.content;
-    } else {
-      return void 0;
-    }
-    return finalizeEvent(
-      {
-        kind: ChannelMuteUser,
-        tags: [["p", t.pubkey_to_mute], ...t.tags ?? []],
-        content,
-        created_at: t.created_at
-      },
-      privateKey
-    );
-  };
-
-  // nip30.ts
-  var nip30_exports = {};
-  __export(nip30_exports, {
-    EMOJI_SHORTCODE_REGEX: () => EMOJI_SHORTCODE_REGEX,
-    matchAll: () => matchAll2,
-    regex: () => regex2,
-    replaceAll: () => replaceAll2
-  });
-  var EMOJI_SHORTCODE_REGEX = /:(\w+):/;
-  var regex2 = () => new RegExp(`\\B${EMOJI_SHORTCODE_REGEX.source}\\B`, "g");
-  function* matchAll2(content) {
-    const matches = content.matchAll(regex2());
-    for (const match of matches) {
-      try {
-        const [shortcode, name] = match;
-        yield {
-          shortcode,
-          name,
-          start: match.index,
-          end: match.index + shortcode.length
-        };
-      } catch (_e) {
-      }
-    }
-  }
-  function replaceAll2(content, replacer) {
-    return content.replaceAll(regex2(), (shortcode, name) => {
-      return replacer({
-        shortcode,
-        name
-      });
-    });
-  }
-
-  // nip39.ts
-  var nip39_exports = {};
-  __export(nip39_exports, {
-    useFetchImplementation: () => useFetchImplementation3,
-    validateGithub: () => validateGithub
-  });
-  var _fetch3;
-  try {
-    _fetch3 = fetch;
-  } catch {
-  }
-  function useFetchImplementation3(fetchImplementation) {
-    _fetch3 = fetchImplementation;
-  }
-  async function validateGithub(pubkey, username, proof) {
-    try {
-      let res = await (await _fetch3(`https://gist.github.com/${username}/${proof}/raw`)).text();
-      return res === `Verifying that I control the following Nostr public key: ${pubkey}`;
-    } catch (_) {
-      return false;
-    }
-  }
 
   // nip44.ts
   var nip44_exports = {};
@@ -6084,6 +6154,557 @@ var NostrTools = (() => {
     decrypt: decrypt3
   };
 
+  // nip59.ts
+  var TWO_DAYS = 2 * 24 * 60 * 60;
+  var now = () => Math.round(Date.now() / 1e3);
+  var randomNow = () => Math.round(now() - Math.random() * TWO_DAYS);
+  var nip44ConversationKey = (privateKey, publicKey) => getConversationKey(privateKey, publicKey);
+  var nip44Encrypt = (data, privateKey, publicKey) => encrypt3(JSON.stringify(data), nip44ConversationKey(privateKey, publicKey));
+  var nip44Decrypt = (data, privateKey) => JSON.parse(decrypt3(data.content, nip44ConversationKey(privateKey, data.pubkey)));
+  function createRumor(event, privateKey) {
+    const rumor = {
+      created_at: now(),
+      content: "",
+      tags: [],
+      ...event,
+      pubkey: getPublicKey(privateKey)
+    };
+    rumor.id = getEventHash(rumor);
+    return rumor;
+  }
+  function createSeal(rumor, privateKey, recipientPublicKey) {
+    return finalizeEvent(
+      {
+        kind: Seal,
+        content: nip44Encrypt(rumor, privateKey, recipientPublicKey),
+        created_at: randomNow(),
+        tags: []
+      },
+      privateKey
+    );
+  }
+  function createWrap(seal, recipientPublicKey) {
+    const randomKey = generateSecretKey();
+    return finalizeEvent(
+      {
+        kind: GiftWrap,
+        content: nip44Encrypt(seal, randomKey, recipientPublicKey),
+        created_at: randomNow(),
+        tags: [["p", recipientPublicKey]]
+      },
+      randomKey
+    );
+  }
+  function wrapEvent(event, senderPrivateKey, recipientPublicKey) {
+    const rumor = createRumor(event, senderPrivateKey);
+    const seal = createSeal(rumor, senderPrivateKey, recipientPublicKey);
+    return createWrap(seal, recipientPublicKey);
+  }
+  function wrapManyEvents(event, senderPrivateKey, recipientsPublicKeys) {
+    if (!recipientsPublicKeys || recipientsPublicKeys.length === 0) {
+      throw new Error("At least one recipient is required.");
+    }
+    const senderPublicKey = getPublicKey(senderPrivateKey);
+    const wrappeds = [wrapEvent(event, senderPrivateKey, senderPublicKey)];
+    recipientsPublicKeys.forEach((recipientPublicKey) => {
+      wrappeds.push(wrapEvent(event, senderPrivateKey, recipientPublicKey));
+    });
+    return wrappeds;
+  }
+  function unwrapEvent(wrap, recipientPrivateKey) {
+    const unwrappedSeal = nip44Decrypt(wrap, recipientPrivateKey);
+    return nip44Decrypt(unwrappedSeal, recipientPrivateKey);
+  }
+  function unwrapManyEvents(wrappedEvents, recipientPrivateKey) {
+    let unwrappedEvents = [];
+    wrappedEvents.forEach((e) => {
+      unwrappedEvents.push(unwrapEvent(e, recipientPrivateKey));
+    });
+    unwrappedEvents.sort((a, b) => a.created_at - b.created_at);
+    return unwrappedEvents;
+  }
+
+  // nip17.ts
+  function createEvent(recipients, message, conversationTitle, replyTo) {
+    const baseEvent = {
+      created_at: Math.ceil(Date.now() / 1e3),
+      kind: PrivateDirectMessage,
+      tags: [],
+      content: message
+    };
+    const recipientsArray = Array.isArray(recipients) ? recipients : [recipients];
+    recipientsArray.forEach(({ publicKey, relayUrl }) => {
+      baseEvent.tags.push(relayUrl ? ["p", publicKey, relayUrl] : ["p", publicKey]);
+    });
+    if (replyTo) {
+      baseEvent.tags.push(["e", replyTo.eventId, replyTo.relayUrl || "", "reply"]);
+    }
+    if (conversationTitle) {
+      baseEvent.tags.push(["subject", conversationTitle]);
+    }
+    return baseEvent;
+  }
+  function wrapEvent2(senderPrivateKey, recipient, message, conversationTitle, replyTo) {
+    const event = createEvent(recipient, message, conversationTitle, replyTo);
+    return wrapEvent(event, senderPrivateKey, recipient.publicKey);
+  }
+  function wrapManyEvents2(senderPrivateKey, recipients, message, conversationTitle, replyTo) {
+    if (!recipients || recipients.length === 0) {
+      throw new Error("At least one recipient is required.");
+    }
+    const senderPublicKey = getPublicKey(senderPrivateKey);
+    return [{ publicKey: senderPublicKey }, ...recipients].map(
+      (recipient) => wrapEvent2(senderPrivateKey, recipient, message, conversationTitle, replyTo)
+    );
+  }
+  var unwrapEvent2 = unwrapEvent;
+  var unwrapManyEvents2 = unwrapManyEvents;
+
+  // nip18.ts
+  var nip18_exports = {};
+  __export(nip18_exports, {
+    finishRepostEvent: () => finishRepostEvent,
+    getRepostedEvent: () => getRepostedEvent,
+    getRepostedEventPointer: () => getRepostedEventPointer
+  });
+  function finishRepostEvent(t, reposted, relayUrl, privateKey) {
+    let kind;
+    const tags = [...t.tags ?? [], ["e", reposted.id, relayUrl], ["p", reposted.pubkey]];
+    if (reposted.kind === ShortTextNote) {
+      kind = Repost;
+    } else {
+      kind = GenericRepost;
+      tags.push(["k", String(reposted.kind)]);
+    }
+    return finalizeEvent(
+      {
+        kind,
+        tags,
+        content: t.content === "" || reposted.tags?.find((tag) => tag[0] === "-") ? "" : JSON.stringify(reposted),
+        created_at: t.created_at
+      },
+      privateKey
+    );
+  }
+  function getRepostedEventPointer(event) {
+    if (![Repost, GenericRepost].includes(event.kind)) {
+      return void 0;
+    }
+    let lastETag;
+    let lastPTag;
+    for (let i2 = event.tags.length - 1; i2 >= 0 && (lastETag === void 0 || lastPTag === void 0); i2--) {
+      const tag = event.tags[i2];
+      if (tag.length >= 2) {
+        if (tag[0] === "e" && lastETag === void 0) {
+          lastETag = tag;
+        } else if (tag[0] === "p" && lastPTag === void 0) {
+          lastPTag = tag;
+        }
+      }
+    }
+    if (lastETag === void 0) {
+      return void 0;
+    }
+    return {
+      id: lastETag[1],
+      relays: [lastETag[2], lastPTag?.[2]].filter((x) => typeof x === "string"),
+      author: lastPTag?.[1]
+    };
+  }
+  function getRepostedEvent(event, { skipVerification } = {}) {
+    const pointer = getRepostedEventPointer(event);
+    if (pointer === void 0 || event.content === "") {
+      return void 0;
+    }
+    let repostedEvent;
+    try {
+      repostedEvent = JSON.parse(event.content);
+    } catch (error) {
+      return void 0;
+    }
+    if (repostedEvent.id !== pointer.id) {
+      return void 0;
+    }
+    if (!skipVerification && !verifyEvent(repostedEvent)) {
+      return void 0;
+    }
+    return repostedEvent;
+  }
+
+  // nip21.ts
+  var nip21_exports = {};
+  __export(nip21_exports, {
+    NOSTR_URI_REGEX: () => NOSTR_URI_REGEX,
+    parse: () => parse2,
+    test: () => test
+  });
+  var NOSTR_URI_REGEX = new RegExp(`nostr:(${BECH32_REGEX.source})`);
+  function test(value) {
+    return typeof value === "string" && new RegExp(`^${NOSTR_URI_REGEX.source}$`).test(value);
+  }
+  function parse2(uri) {
+    const match = uri.match(new RegExp(`^${NOSTR_URI_REGEX.source}$`));
+    if (!match)
+      throw new Error(`Invalid Nostr URI: ${uri}`);
+    return {
+      uri: match[0],
+      value: match[1],
+      decoded: decode(match[1])
+    };
+  }
+
+  // nip25.ts
+  var nip25_exports = {};
+  __export(nip25_exports, {
+    finishReactionEvent: () => finishReactionEvent,
+    getReactedEventPointer: () => getReactedEventPointer
+  });
+  function finishReactionEvent(t, reacted, privateKey) {
+    const inheritedTags = reacted.tags.filter((tag) => tag.length >= 2 && (tag[0] === "e" || tag[0] === "p"));
+    return finalizeEvent(
+      {
+        ...t,
+        kind: Reaction,
+        tags: [...t.tags ?? [], ...inheritedTags, ["e", reacted.id], ["p", reacted.pubkey]],
+        content: t.content ?? "+"
+      },
+      privateKey
+    );
+  }
+  function getReactedEventPointer(event) {
+    if (event.kind !== Reaction) {
+      return void 0;
+    }
+    let lastETag;
+    let lastPTag;
+    for (let i2 = event.tags.length - 1; i2 >= 0 && (lastETag === void 0 || lastPTag === void 0); i2--) {
+      const tag = event.tags[i2];
+      if (tag.length >= 2) {
+        if (tag[0] === "e" && lastETag === void 0) {
+          lastETag = tag;
+        } else if (tag[0] === "p" && lastPTag === void 0) {
+          lastPTag = tag;
+        }
+      }
+    }
+    if (lastETag === void 0 || lastPTag === void 0) {
+      return void 0;
+    }
+    return {
+      id: lastETag[1],
+      relays: [lastETag[2], lastPTag[2]].filter((x) => x !== void 0),
+      author: lastPTag[1]
+    };
+  }
+
+  // nip27.ts
+  var nip27_exports = {};
+  __export(nip27_exports, {
+    parse: () => parse3
+  });
+  var noCharacter = /\W/m;
+  var noURLCharacter = /\W |\W$|$|,| /m;
+  var MAX_HASHTAG_LENGTH = 42;
+  function* parse3(content) {
+    let emojis = [];
+    if (typeof content !== "string") {
+      for (let i2 = 0; i2 < content.tags.length; i2++) {
+        const tag = content.tags[i2];
+        if (tag[0] === "emoji" && tag.length >= 3) {
+          emojis.push({ type: "emoji", shortcode: tag[1], url: tag[2] });
+        }
+      }
+      content = content.content;
+    }
+    const max = content.length;
+    let prevIndex = 0;
+    let index = 0;
+    mainloop:
+      while (index < max) {
+        const u = content.indexOf(":", index);
+        const h = content.indexOf("#", index);
+        if (u === -1 && h === -1) {
+          break mainloop;
+        }
+        if (u === -1 || h >= 0 && h < u) {
+          if (h === 0 || content[h - 1] === " ") {
+            const m = content.slice(h + 1, h + MAX_HASHTAG_LENGTH).match(noCharacter);
+            const end = m ? h + 1 + m.index : max;
+            yield { type: "text", text: content.slice(prevIndex, h) };
+            yield { type: "hashtag", value: content.slice(h + 1, end) };
+            index = end;
+            prevIndex = index;
+            continue mainloop;
+          }
+          index = h + 1;
+          continue mainloop;
+        }
+        if (content.slice(u - 5, u) === "nostr") {
+          const m = content.slice(u + 60).match(noCharacter);
+          const end = m ? u + 60 + m.index : max;
+          try {
+            let pointer;
+            let { data, type } = decode(content.slice(u + 1, end));
+            switch (type) {
+              case "npub":
+                pointer = { pubkey: data };
+                break;
+              case "nsec":
+              case "note":
+                index = end + 1;
+                continue;
+              default:
+                pointer = data;
+            }
+            if (prevIndex !== u - 5) {
+              yield { type: "text", text: content.slice(prevIndex, u - 5) };
+            }
+            yield { type: "reference", pointer };
+            index = end;
+            prevIndex = index;
+            continue mainloop;
+          } catch (_err) {
+            index = u + 1;
+            continue mainloop;
+          }
+        } else if (content.slice(u - 5, u) === "https" || content.slice(u - 4, u) === "http") {
+          const m = content.slice(u + 4).match(noURLCharacter);
+          const end = m ? u + 4 + m.index : max;
+          const prefixLen = content[u - 1] === "s" ? 5 : 4;
+          try {
+            let url = new URL(content.slice(u - prefixLen, end));
+            if (url.hostname.indexOf(".") === -1) {
+              throw new Error("invalid url");
+            }
+            if (prevIndex !== u - prefixLen) {
+              yield { type: "text", text: content.slice(prevIndex, u - prefixLen) };
+            }
+            if (/\.(png|jpe?g|gif|webp|heic|svg)$/i.test(url.pathname)) {
+              yield { type: "image", url: url.toString() };
+              index = end;
+              prevIndex = index;
+              continue mainloop;
+            }
+            if (/\.(mp4|avi|webm|mkv|mov)$/i.test(url.pathname)) {
+              yield { type: "video", url: url.toString() };
+              index = end;
+              prevIndex = index;
+              continue mainloop;
+            }
+            if (/\.(mp3|aac|ogg|opus|wav|flac)$/i.test(url.pathname)) {
+              yield { type: "audio", url: url.toString() };
+              index = end;
+              prevIndex = index;
+              continue mainloop;
+            }
+            yield { type: "url", url: url.toString() };
+            index = end;
+            prevIndex = index;
+            continue mainloop;
+          } catch (_err) {
+            index = end + 1;
+            continue mainloop;
+          }
+        } else if (content.slice(u - 3, u) === "wss" || content.slice(u - 2, u) === "ws") {
+          const m = content.slice(u + 4).match(noURLCharacter);
+          const end = m ? u + 4 + m.index : max;
+          const prefixLen = content[u - 1] === "s" ? 3 : 2;
+          try {
+            let url = new URL(content.slice(u - prefixLen, end));
+            if (url.hostname.indexOf(".") === -1) {
+              throw new Error("invalid ws url");
+            }
+            if (prevIndex !== u - prefixLen) {
+              yield { type: "text", text: content.slice(prevIndex, u - prefixLen) };
+            }
+            yield { type: "relay", url: url.toString() };
+            index = end;
+            prevIndex = index;
+            continue mainloop;
+          } catch (_err) {
+            index = end + 1;
+            continue mainloop;
+          }
+        } else {
+          for (let e = 0; e < emojis.length; e++) {
+            const emoji = emojis[e];
+            if (content[u + emoji.shortcode.length + 1] === ":" && content.slice(u + 1, u + emoji.shortcode.length + 1) === emoji.shortcode) {
+              if (prevIndex !== u) {
+                yield { type: "text", text: content.slice(prevIndex, u) };
+              }
+              yield emoji;
+              index = u + emoji.shortcode.length + 2;
+              prevIndex = index;
+              continue mainloop;
+            }
+          }
+          index = u + 1;
+          continue mainloop;
+        }
+      }
+    if (prevIndex !== max) {
+      yield { type: "text", text: content.slice(prevIndex) };
+    }
+  }
+
+  // nip28.ts
+  var nip28_exports = {};
+  __export(nip28_exports, {
+    channelCreateEvent: () => channelCreateEvent,
+    channelHideMessageEvent: () => channelHideMessageEvent,
+    channelMessageEvent: () => channelMessageEvent,
+    channelMetadataEvent: () => channelMetadataEvent,
+    channelMuteUserEvent: () => channelMuteUserEvent
+  });
+  var channelCreateEvent = (t, privateKey) => {
+    let content;
+    if (typeof t.content === "object") {
+      content = JSON.stringify(t.content);
+    } else if (typeof t.content === "string") {
+      content = t.content;
+    } else {
+      return void 0;
+    }
+    return finalizeEvent(
+      {
+        kind: ChannelCreation,
+        tags: [...t.tags ?? []],
+        content,
+        created_at: t.created_at
+      },
+      privateKey
+    );
+  };
+  var channelMetadataEvent = (t, privateKey) => {
+    let content;
+    if (typeof t.content === "object") {
+      content = JSON.stringify(t.content);
+    } else if (typeof t.content === "string") {
+      content = t.content;
+    } else {
+      return void 0;
+    }
+    return finalizeEvent(
+      {
+        kind: ChannelMetadata,
+        tags: [["e", t.channel_create_event_id], ...t.tags ?? []],
+        content,
+        created_at: t.created_at
+      },
+      privateKey
+    );
+  };
+  var channelMessageEvent = (t, privateKey) => {
+    const tags = [["e", t.channel_create_event_id, t.relay_url, "root"]];
+    if (t.reply_to_channel_message_event_id) {
+      tags.push(["e", t.reply_to_channel_message_event_id, t.relay_url, "reply"]);
+    }
+    return finalizeEvent(
+      {
+        kind: ChannelMessage,
+        tags: [...tags, ...t.tags ?? []],
+        content: t.content,
+        created_at: t.created_at
+      },
+      privateKey
+    );
+  };
+  var channelHideMessageEvent = (t, privateKey) => {
+    let content;
+    if (typeof t.content === "object") {
+      content = JSON.stringify(t.content);
+    } else if (typeof t.content === "string") {
+      content = t.content;
+    } else {
+      return void 0;
+    }
+    return finalizeEvent(
+      {
+        kind: ChannelHideMessage,
+        tags: [["e", t.channel_message_event_id], ...t.tags ?? []],
+        content,
+        created_at: t.created_at
+      },
+      privateKey
+    );
+  };
+  var channelMuteUserEvent = (t, privateKey) => {
+    let content;
+    if (typeof t.content === "object") {
+      content = JSON.stringify(t.content);
+    } else if (typeof t.content === "string") {
+      content = t.content;
+    } else {
+      return void 0;
+    }
+    return finalizeEvent(
+      {
+        kind: ChannelMuteUser,
+        tags: [["p", t.pubkey_to_mute], ...t.tags ?? []],
+        content,
+        created_at: t.created_at
+      },
+      privateKey
+    );
+  };
+
+  // nip30.ts
+  var nip30_exports = {};
+  __export(nip30_exports, {
+    EMOJI_SHORTCODE_REGEX: () => EMOJI_SHORTCODE_REGEX,
+    matchAll: () => matchAll,
+    regex: () => regex,
+    replaceAll: () => replaceAll
+  });
+  var EMOJI_SHORTCODE_REGEX = /:(\w+):/;
+  var regex = () => new RegExp(`\\B${EMOJI_SHORTCODE_REGEX.source}\\B`, "g");
+  function* matchAll(content) {
+    const matches = content.matchAll(regex());
+    for (const match of matches) {
+      try {
+        const [shortcode, name] = match;
+        yield {
+          shortcode,
+          name,
+          start: match.index,
+          end: match.index + shortcode.length
+        };
+      } catch (_e) {
+      }
+    }
+  }
+  function replaceAll(content, replacer) {
+    return content.replaceAll(regex(), (shortcode, name) => {
+      return replacer({
+        shortcode,
+        name
+      });
+    });
+  }
+
+  // nip39.ts
+  var nip39_exports = {};
+  __export(nip39_exports, {
+    useFetchImplementation: () => useFetchImplementation3,
+    validateGithub: () => validateGithub
+  });
+  var _fetch3;
+  try {
+    _fetch3 = fetch;
+  } catch {
+  }
+  function useFetchImplementation3(fetchImplementation) {
+    _fetch3 = fetchImplementation;
+  }
+  async function validateGithub(pubkey, username, proof) {
+    try {
+      let res = await (await _fetch3(`https://gist.github.com/${username}/${proof}/raw`)).text();
+      return res === `Verifying that I control the following Nostr public key: ${pubkey}`;
+    } catch (_) {
+      return false;
+    }
+  }
+
   // nip47.ts
   var nip47_exports = {};
   __export(nip47_exports, {
@@ -6091,8 +6712,8 @@ var NostrTools = (() => {
     parseConnectionString: () => parseConnectionString
   });
   function parseConnectionString(connectionString) {
-    const { pathname, searchParams } = new URL(connectionString);
-    const pubkey = pathname;
+    const { host, pathname, searchParams } = new URL(connectionString);
+    const pubkey = pathname || host;
     const relay = searchParams.get("relay");
     const secret = searchParams.get("secret");
     if (!pubkey || !relay || !secret) {
@@ -6107,7 +6728,7 @@ var NostrTools = (() => {
         invoice
       }
     };
-    const encryptedContent = await encrypt2(secretKey, pubkey, JSON.stringify(content));
+    const encryptedContent = encrypt2(secretKey, pubkey, JSON.stringify(content));
     const eventTemplate = {
       kind: NWCWalletRequest,
       created_at: Math.round(Date.now() / 1e3),
@@ -6117,9 +6738,26 @@ var NostrTools = (() => {
     return finalizeEvent(eventTemplate, secretKey);
   }
 
+  // nip54.ts
+  var nip54_exports = {};
+  __export(nip54_exports, {
+    normalizeIdentifier: () => normalizeIdentifier
+  });
+  function normalizeIdentifier(name) {
+    name = name.trim().toLowerCase();
+    name = name.normalize("NFKC");
+    return Array.from(name).map((char) => {
+      if (/\p{Letter}/u.test(char) || /\p{Number}/u.test(char)) {
+        return char;
+      }
+      return "-";
+    }).join("");
+  }
+
   // nip57.ts
   var nip57_exports = {};
   __export(nip57_exports, {
+    getSatoshisAmountFromBolt11: () => getSatoshisAmountFromBolt11,
     getZapEndpoint: () => getZapEndpoint,
     makeZapReceipt: () => makeZapReceipt,
     makeZapRequest: () => makeZapRequest,
@@ -6138,13 +6776,13 @@ var NostrTools = (() => {
     try {
       let lnurl = "";
       let { lud06, lud16 } = JSON.parse(metadata.content);
-      if (lud06) {
+      if (lud16) {
+        let [name, domain] = lud16.split("@");
+        lnurl = new URL(`/.well-known/lnurlp/${name}`, `https://${domain}`).toString();
+      } else if (lud06) {
         let { words } = bech32.decode(lud06, 1e3);
         let data = bech32.fromWords(words);
         lnurl = utf8Decoder.decode(data);
-      } else if (lud16) {
-        let [name, domain] = lud16.split("@");
-        lnurl = new URL(`/.well-known/lnurlp/${name}`, `https://${domain}`).toString();
       } else {
         return null;
       }
@@ -6157,29 +6795,30 @@ var NostrTools = (() => {
     }
     return null;
   }
-  function makeZapRequest({
-    profile,
-    event,
-    amount,
-    relays,
-    comment = ""
-  }) {
-    if (!amount)
-      throw new Error("amount not given");
-    if (!profile)
-      throw new Error("profile not given");
+  function makeZapRequest(params) {
     let zr = {
       kind: 9734,
       created_at: Math.round(Date.now() / 1e3),
-      content: comment,
+      content: params.comment || "",
       tags: [
-        ["p", profile],
-        ["amount", amount.toString()],
-        ["relays", ...relays]
+        ["p", "pubkey" in params ? params.pubkey : params.event.pubkey],
+        ["amount", params.amount.toString()],
+        ["relays", ...params.relays]
       ]
     };
-    if (event) {
-      zr.tags.push(["e", event]);
+    if ("event" in params) {
+      zr.tags.push(["e", params.event.id]);
+      if (isReplaceableKind(params.event.kind)) {
+        const a = ["a", `${params.event.kind}:${params.event.pubkey}:`];
+        zr.tags.push(a);
+      } else if (isAddressableKind(params.event.kind)) {
+        let d = params.event.tags.find(([t, v]) => t === "d" && v);
+        if (!d)
+          throw new Error("d tag not found or is empty");
+        const a = ["a", `${params.event.kind}:${params.event.pubkey}:${d[1]}`];
+        zr.tags.push(a);
+      }
+      zr.tags.push(["k", params.event.kind.toString()]);
     }
     return zr;
   }
@@ -6226,6 +6865,545 @@ var NostrTools = (() => {
     }
     return zap;
   }
+  function getSatoshisAmountFromBolt11(bolt11) {
+    if (bolt11.length < 50) {
+      return 0;
+    }
+    bolt11 = bolt11.substring(0, 50);
+    const idx = bolt11.lastIndexOf("1");
+    if (idx === -1) {
+      return 0;
+    }
+    const hrp = bolt11.substring(0, idx);
+    if (!hrp.startsWith("lnbc")) {
+      return 0;
+    }
+    const amount = hrp.substring(4);
+    if (amount.length < 1) {
+      return 0;
+    }
+    const char = amount[amount.length - 1];
+    const digit = char.charCodeAt(0) - "0".charCodeAt(0);
+    const isDigit = digit >= 0 && digit <= 9;
+    let cutPoint = amount.length - 1;
+    if (isDigit) {
+      cutPoint++;
+    }
+    if (cutPoint < 1) {
+      return 0;
+    }
+    const num = parseInt(amount.substring(0, cutPoint));
+    switch (char) {
+      case "m":
+        return num * 1e5;
+      case "u":
+        return num * 100;
+      case "n":
+        return num / 10;
+      case "p":
+        return num / 1e4;
+      default:
+        return num * 1e8;
+    }
+  }
+
+  // nip77.ts
+  var nip77_exports = {};
+  __export(nip77_exports, {
+    Negentropy: () => Negentropy,
+    NegentropyStorageVector: () => NegentropyStorageVector,
+    NegentropySync: () => NegentropySync
+  });
+  var PROTOCOL_VERSION = 97;
+  var ID_SIZE = 32;
+  var FINGERPRINT_SIZE = 16;
+  var Mode = {
+    Skip: 0,
+    Fingerprint: 1,
+    IdList: 2
+  };
+  var WrappedBuffer = class {
+    _raw;
+    length;
+    constructor(buffer) {
+      if (typeof buffer === "number") {
+        this._raw = new Uint8Array(buffer);
+        this.length = 0;
+      } else if (buffer instanceof Uint8Array) {
+        this._raw = new Uint8Array(buffer);
+        this.length = buffer.length;
+      } else {
+        this._raw = new Uint8Array(512);
+        this.length = 0;
+      }
+    }
+    unwrap() {
+      return this._raw.subarray(0, this.length);
+    }
+    get capacity() {
+      return this._raw.byteLength;
+    }
+    extend(buf) {
+      if (buf instanceof WrappedBuffer)
+        buf = buf.unwrap();
+      if (typeof buf.length !== "number")
+        throw Error("bad length");
+      const targetSize = buf.length + this.length;
+      if (this.capacity < targetSize) {
+        const oldRaw = this._raw;
+        const newCapacity = Math.max(this.capacity * 2, targetSize);
+        this._raw = new Uint8Array(newCapacity);
+        this._raw.set(oldRaw);
+      }
+      this._raw.set(buf, this.length);
+      this.length += buf.length;
+    }
+    shift() {
+      const first = this._raw[0];
+      this._raw = this._raw.subarray(1);
+      this.length--;
+      return first;
+    }
+    shiftN(n = 1) {
+      const firstSubarray = this._raw.subarray(0, n);
+      this._raw = this._raw.subarray(n);
+      this.length -= n;
+      return firstSubarray;
+    }
+  };
+  function decodeVarInt(buf) {
+    let res = 0;
+    while (1) {
+      if (buf.length === 0)
+        throw Error("parse ends prematurely");
+      let byte = buf.shift();
+      res = res << 7 | byte & 127;
+      if ((byte & 128) === 0)
+        break;
+    }
+    return res;
+  }
+  function encodeVarInt(n) {
+    if (n === 0)
+      return new WrappedBuffer(new Uint8Array([0]));
+    let o = [];
+    while (n !== 0) {
+      o.push(n & 127);
+      n >>>= 7;
+    }
+    o.reverse();
+    for (let i2 = 0; i2 < o.length - 1; i2++)
+      o[i2] |= 128;
+    return new WrappedBuffer(new Uint8Array(o));
+  }
+  function getByte(buf) {
+    return getBytes(buf, 1)[0];
+  }
+  function getBytes(buf, n) {
+    if (buf.length < n)
+      throw Error("parse ends prematurely");
+    return buf.shiftN(n);
+  }
+  var Accumulator = class {
+    buf;
+    constructor() {
+      this.setToZero();
+    }
+    setToZero() {
+      this.buf = new Uint8Array(ID_SIZE);
+    }
+    add(otherBuf) {
+      let currCarry = 0, nextCarry = 0;
+      let p = new DataView(this.buf.buffer);
+      let po = new DataView(otherBuf.buffer);
+      for (let i2 = 0; i2 < 8; i2++) {
+        let offset = i2 * 4;
+        let orig = p.getUint32(offset, true);
+        let otherV = po.getUint32(offset, true);
+        let next = orig;
+        next += currCarry;
+        next += otherV;
+        if (next > 4294967295)
+          nextCarry = 1;
+        p.setUint32(offset, next & 4294967295, true);
+        currCarry = nextCarry;
+        nextCarry = 0;
+      }
+    }
+    negate() {
+      let p = new DataView(this.buf.buffer);
+      for (let i2 = 0; i2 < 8; i2++) {
+        let offset = i2 * 4;
+        p.setUint32(offset, ~p.getUint32(offset, true));
+      }
+      let one = new Uint8Array(ID_SIZE);
+      one[0] = 1;
+      this.add(one);
+    }
+    getFingerprint(n) {
+      let input = new WrappedBuffer();
+      input.extend(this.buf);
+      input.extend(encodeVarInt(n));
+      let hash3 = sha2562(input.unwrap());
+      return hash3.subarray(0, FINGERPRINT_SIZE);
+    }
+  };
+  var NegentropyStorageVector = class {
+    items;
+    sealed;
+    constructor() {
+      this.items = [];
+      this.sealed = false;
+    }
+    insert(timestamp, id) {
+      if (this.sealed)
+        throw Error("already sealed");
+      const idb = hexToBytes3(id);
+      if (idb.byteLength !== ID_SIZE)
+        throw Error("bad id size for added item");
+      this.items.push({ timestamp, id: idb });
+    }
+    seal() {
+      if (this.sealed)
+        throw Error("already sealed");
+      this.sealed = true;
+      this.items.sort(itemCompare);
+      for (let i2 = 1; i2 < this.items.length; i2++) {
+        if (itemCompare(this.items[i2 - 1], this.items[i2]) === 0)
+          throw Error("duplicate item inserted");
+      }
+    }
+    unseal() {
+      this.sealed = false;
+    }
+    size() {
+      this._checkSealed();
+      return this.items.length;
+    }
+    getItem(i2) {
+      this._checkSealed();
+      if (i2 >= this.items.length)
+        throw Error("out of range");
+      return this.items[i2];
+    }
+    iterate(begin, end, cb) {
+      this._checkSealed();
+      this._checkBounds(begin, end);
+      for (let i2 = begin; i2 < end; ++i2) {
+        if (!cb(this.items[i2], i2))
+          break;
+      }
+    }
+    findLowerBound(begin, end, bound) {
+      this._checkSealed();
+      this._checkBounds(begin, end);
+      return this._binarySearch(this.items, begin, end, (a) => itemCompare(a, bound) < 0);
+    }
+    fingerprint(begin, end) {
+      let out = new Accumulator();
+      out.setToZero();
+      this.iterate(begin, end, (item) => {
+        out.add(item.id);
+        return true;
+      });
+      return out.getFingerprint(end - begin);
+    }
+    _checkSealed() {
+      if (!this.sealed)
+        throw Error("not sealed");
+    }
+    _checkBounds(begin, end) {
+      if (begin > end || end > this.items.length)
+        throw Error("bad range");
+    }
+    _binarySearch(arr, first, last, cmp) {
+      let count = last - first;
+      while (count > 0) {
+        let it = first;
+        let step = Math.floor(count / 2);
+        it += step;
+        if (cmp(arr[it])) {
+          first = ++it;
+          count -= step + 1;
+        } else {
+          count = step;
+        }
+      }
+      return first;
+    }
+  };
+  var Negentropy = class {
+    storage;
+    frameSizeLimit;
+    lastTimestampIn;
+    lastTimestampOut;
+    constructor(storage, frameSizeLimit = 6e4) {
+      if (frameSizeLimit < 4096)
+        throw Error("frameSizeLimit too small");
+      this.storage = storage;
+      this.frameSizeLimit = frameSizeLimit;
+      this.lastTimestampIn = 0;
+      this.lastTimestampOut = 0;
+    }
+    _bound(timestamp, id) {
+      return { timestamp, id: id || new Uint8Array(0) };
+    }
+    initiate() {
+      let output4 = new WrappedBuffer();
+      output4.extend(new Uint8Array([PROTOCOL_VERSION]));
+      this.splitRange(0, this.storage.size(), this._bound(Number.MAX_VALUE), output4);
+      return bytesToHex3(output4.unwrap());
+    }
+    reconcile(queryMsg, onhave, onneed) {
+      const query = new WrappedBuffer(hexToBytes3(queryMsg));
+      this.lastTimestampIn = this.lastTimestampOut = 0;
+      let fullOutput = new WrappedBuffer();
+      fullOutput.extend(new Uint8Array([PROTOCOL_VERSION]));
+      let protocolVersion = getByte(query);
+      if (protocolVersion < 96 || protocolVersion > 111)
+        throw Error("invalid negentropy protocol version byte");
+      if (protocolVersion !== PROTOCOL_VERSION) {
+        throw Error("unsupported negentropy protocol version requested: " + (protocolVersion - 96));
+      }
+      let storageSize = this.storage.size();
+      let prevBound = this._bound(0);
+      let prevIndex = 0;
+      let skip = false;
+      while (query.length !== 0) {
+        let o = new WrappedBuffer();
+        let doSkip = () => {
+          if (skip) {
+            skip = false;
+            o.extend(this.encodeBound(prevBound));
+            o.extend(encodeVarInt(Mode.Skip));
+          }
+        };
+        let currBound = this.decodeBound(query);
+        let mode = decodeVarInt(query);
+        let lower = prevIndex;
+        let upper = this.storage.findLowerBound(prevIndex, storageSize, currBound);
+        if (mode === Mode.Skip) {
+          skip = true;
+        } else if (mode === Mode.Fingerprint) {
+          let theirFingerprint = getBytes(query, FINGERPRINT_SIZE);
+          let ourFingerprint = this.storage.fingerprint(lower, upper);
+          if (compareUint8Array(theirFingerprint, ourFingerprint) !== 0) {
+            doSkip();
+            this.splitRange(lower, upper, currBound, o);
+          } else {
+            skip = true;
+          }
+        } else if (mode === Mode.IdList) {
+          let numIds = decodeVarInt(query);
+          let theirElems = {};
+          for (let i2 = 0; i2 < numIds; i2++) {
+            let e = getBytes(query, ID_SIZE);
+            theirElems[bytesToHex3(e)] = e;
+          }
+          skip = true;
+          this.storage.iterate(lower, upper, (item) => {
+            let k = item.id;
+            const id = bytesToHex3(k);
+            if (!theirElems[id]) {
+              onhave?.(id);
+            } else {
+              delete theirElems[bytesToHex3(k)];
+            }
+            return true;
+          });
+          if (onneed) {
+            for (let v of Object.values(theirElems)) {
+              onneed(bytesToHex3(v));
+            }
+          }
+        } else {
+          throw Error("unexpected mode");
+        }
+        if (this.exceededFrameSizeLimit(fullOutput.length + o.length)) {
+          let remainingFingerprint = this.storage.fingerprint(upper, storageSize);
+          fullOutput.extend(this.encodeBound(this._bound(Number.MAX_VALUE)));
+          fullOutput.extend(encodeVarInt(Mode.Fingerprint));
+          fullOutput.extend(remainingFingerprint);
+          break;
+        } else {
+          fullOutput.extend(o);
+        }
+        prevIndex = upper;
+        prevBound = currBound;
+      }
+      return fullOutput.length === 1 ? null : bytesToHex3(fullOutput.unwrap());
+    }
+    splitRange(lower, upper, upperBound, o) {
+      let numElems = upper - lower;
+      let buckets = 16;
+      if (numElems < buckets * 2) {
+        o.extend(this.encodeBound(upperBound));
+        o.extend(encodeVarInt(Mode.IdList));
+        o.extend(encodeVarInt(numElems));
+        this.storage.iterate(lower, upper, (item) => {
+          o.extend(item.id);
+          return true;
+        });
+      } else {
+        let itemsPerBucket = Math.floor(numElems / buckets);
+        let bucketsWithExtra = numElems % buckets;
+        let curr = lower;
+        for (let i2 = 0; i2 < buckets; i2++) {
+          let bucketSize = itemsPerBucket + (i2 < bucketsWithExtra ? 1 : 0);
+          let ourFingerprint = this.storage.fingerprint(curr, curr + bucketSize);
+          curr += bucketSize;
+          let nextBound;
+          if (curr === upper) {
+            nextBound = upperBound;
+          } else {
+            let prevItem;
+            let currItem;
+            this.storage.iterate(curr - 1, curr + 1, (item, index) => {
+              if (index === curr - 1)
+                prevItem = item;
+              else
+                currItem = item;
+              return true;
+            });
+            nextBound = this.getMinimalBound(prevItem, currItem);
+          }
+          o.extend(this.encodeBound(nextBound));
+          o.extend(encodeVarInt(Mode.Fingerprint));
+          o.extend(ourFingerprint);
+        }
+      }
+    }
+    exceededFrameSizeLimit(n) {
+      return n > this.frameSizeLimit - 200;
+    }
+    decodeTimestampIn(encoded) {
+      let timestamp = decodeVarInt(encoded);
+      timestamp = timestamp === 0 ? Number.MAX_VALUE : timestamp - 1;
+      if (this.lastTimestampIn === Number.MAX_VALUE || timestamp === Number.MAX_VALUE) {
+        this.lastTimestampIn = Number.MAX_VALUE;
+        return Number.MAX_VALUE;
+      }
+      timestamp += this.lastTimestampIn;
+      this.lastTimestampIn = timestamp;
+      return timestamp;
+    }
+    decodeBound(encoded) {
+      let timestamp = this.decodeTimestampIn(encoded);
+      let len = decodeVarInt(encoded);
+      if (len > ID_SIZE)
+        throw Error("bound key too long");
+      let id = getBytes(encoded, len);
+      return { timestamp, id };
+    }
+    encodeTimestampOut(timestamp) {
+      if (timestamp === Number.MAX_VALUE) {
+        this.lastTimestampOut = Number.MAX_VALUE;
+        return encodeVarInt(0);
+      }
+      let temp = timestamp;
+      timestamp -= this.lastTimestampOut;
+      this.lastTimestampOut = temp;
+      return encodeVarInt(timestamp + 1);
+    }
+    encodeBound(key) {
+      let output4 = new WrappedBuffer();
+      output4.extend(this.encodeTimestampOut(key.timestamp));
+      output4.extend(encodeVarInt(key.id.length));
+      output4.extend(key.id);
+      return output4;
+    }
+    getMinimalBound(prev, curr) {
+      if (curr.timestamp !== prev.timestamp) {
+        return this._bound(curr.timestamp);
+      } else {
+        let sharedPrefixBytes = 0;
+        let currKey = curr.id;
+        let prevKey = prev.id;
+        for (let i2 = 0; i2 < ID_SIZE; i2++) {
+          if (currKey[i2] !== prevKey[i2])
+            break;
+          sharedPrefixBytes++;
+        }
+        return this._bound(curr.timestamp, curr.id.subarray(0, sharedPrefixBytes + 1));
+      }
+    }
+  };
+  function compareUint8Array(a, b) {
+    for (let i2 = 0; i2 < a.byteLength; i2++) {
+      if (a[i2] < b[i2])
+        return -1;
+      if (a[i2] > b[i2])
+        return 1;
+    }
+    if (a.byteLength > b.byteLength)
+      return 1;
+    if (a.byteLength < b.byteLength)
+      return -1;
+    return 0;
+  }
+  function itemCompare(a, b) {
+    if (a.timestamp === b.timestamp) {
+      return compareUint8Array(a.id, b.id);
+    }
+    return a.timestamp - b.timestamp;
+  }
+  var NegentropySync = class {
+    relay;
+    storage;
+    neg;
+    filter;
+    subscription;
+    onhave;
+    onneed;
+    constructor(relay, storage, filter, params = {}) {
+      this.relay = relay;
+      this.storage = storage;
+      this.neg = new Negentropy(storage);
+      this.onhave = params.onhave;
+      this.onneed = params.onneed;
+      this.filter = filter;
+      this.subscription = this.relay.prepareSubscription([{}], { label: params.label || "negentropy" });
+      this.subscription.oncustom = (data) => {
+        switch (data[0]) {
+          case "NEG-MSG": {
+            if (data.length < 3) {
+              console.warn(`got invalid NEG-MSG from ${this.relay.url}: ${data}`);
+            }
+            try {
+              const response = this.neg.reconcile(data[2], this.onhave, this.onneed);
+              if (response) {
+                this.relay.send(`["NEG-MSG", "${this.subscription.id}", "${response}"]`);
+              } else {
+                this.close();
+                params.onclose?.();
+              }
+            } catch (error) {
+              console.error("negentropy reconcile error:", error);
+              params?.onclose?.(`reconcile error: ${error}`);
+            }
+            break;
+          }
+          case "NEG-CLOSE": {
+            const reason = data[2];
+            console.warn("negentropy error:", reason);
+            params.onclose?.(reason);
+            break;
+          }
+          case "NEG-ERR": {
+            params.onclose?.();
+          }
+        }
+      };
+    }
+    async start() {
+      const initMsg = this.neg.initiate();
+      this.relay.send(`["NEG-OPEN","${this.subscription.id}",${JSON.stringify(this.filter)},"${initMsg}"]`);
+    }
+    close() {
+      this.relay.send(`["NEG-CLOSE","${this.subscription.id}"]`);
+      this.subscription.close();
+    }
+  };
 
   // nip98.ts
   var nip98_exports = {};
