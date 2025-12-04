@@ -14,7 +14,7 @@
     </q-banner>
     <q-toolbar>
       <q-btn
-        v-if="!g.public"
+        v-if="!g.isPublicPage"
         dense
         flat
         round

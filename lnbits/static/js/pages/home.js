@@ -124,7 +124,7 @@ window.PageHome = {
       try {
         const res = await LNbits.api.auth()
         this.g.user = LNbits.map.user(res.data)
-        this.g.public = false
+        this.g.isPublicPage = false
         this.$router.push('/wallet')
       } catch (e) {
         console.warn(e)

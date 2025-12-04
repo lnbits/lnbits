@@ -33,17 +33,19 @@
   <body data-theme="bitcoin">
     <div id="vue">
       <q-layout view="hHh lpR lfr" v-cloak>
-        <lnbits-disclaimer v-if="g.user && !g.public"></lnbits-disclaimer>
+        <lnbits-disclaimer v-if="g.user && !g.isPublicPage"></lnbits-disclaimer>
         <lnbits-qrcode-scanner @detect="handleScan"></lnbits-qrcode-scanner>
         <lnbits-theme></lnbits-theme>
         <lnbits-header></lnbits-header>
-        <lnbits-drawer v-if="g.user && !g.public"></lnbits-drawer>
+        <lnbits-drawer v-if="g.user && !g.isPublicPage"></lnbits-drawer>
         {% block page_container %}
         <q-page-container>
           <q-page class="q-px-md q-py-lg" :class="{'q-px-lg': $q.screen.gt.xs}">
-            <lnbits-wallet-new v-if="g.user && !g.public"></lnbits-wallet-new>
+            <lnbits-wallet-new
+              v-if="g.user && !g.isPublicPage"
+            ></lnbits-wallet-new>
             <lnbits-header-wallets
-              v-if="g.user && !g.public"
+              v-if="g.user && !g.isPublicPage"
             ></lnbits-header-wallets>
             <router-view v-if="isVueRoute" :key="$route.path"></router-view>
             <!-- FastAPI Content from extensions -->
@@ -75,12 +77,9 @@
     {% if user %}
     <script>
       window.g.user = LNbits.map.user(JSON.parse({{ user | tojson | safe }}));
-    </script>
-    {% endif %}
-    <!-- public init -->
-    {% if not public %}
-    <script>
-      window.g.public = false
+      {% if not public %}
+      window.g.isPublicPage = false
+      {% endif %}
     </script>
     {% endif %}
     <!-- scripts from extensions -->
