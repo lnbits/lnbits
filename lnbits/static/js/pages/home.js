@@ -38,7 +38,7 @@ window.PageHome = {
       return this.LNBITS_CUSTOM_IMAGE
     },
     showHomepageElements() {
-      return this.HOMEPAGE_ELEMENTS_ENABLED
+      return this.LNBITS_SHOW_HOME_PAGE_ELEMENTS === true
     },
     siteTitle() {
       return this.SITE_TITLE || ''
@@ -54,13 +54,6 @@ window.PageHome = {
     },
     ads() {
       return this.AD_SPACE.map(ad => ad.split(';'))
-    },
-    lnbitsBannerEnabled() {
-      return (
-        this.isSatsDenomination &&
-        this.SITE_TITLE == 'LNbits' &&
-        this.LNBITS_SHOW_HOME_PAGE_ELEMENTS == true
-      )
     }
   },
   methods: {

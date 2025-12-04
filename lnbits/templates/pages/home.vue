@@ -1,12 +1,12 @@
 <template id="page-home">
   <div class="home row justify-center items-center">
     <div
-      class="full-width content-center q-pb-xl"
+      class="full-width content-center"
       :style="`max-width: ${hasCustomImage ? '850' : '600'}px; min-height: 55vh;`"
     >
-      <div class="row q-mb-md">
+      <div v-if="showHomepageElements" class="row q-mb-md">
         <div class="col-12">
-          <div v-if="showHomepageElements">
+          <div>
             <h5 v-text="siteTitle" class="q-my-none"></h5>
             <template v-if="$q.screen.gt.sm">
               <h6 class="q-my-sm" v-text="siteTagline"></h6>
@@ -33,7 +33,7 @@
               class="col-12"
               :class="{'col-sm-7': hasCustomImage, 'col-lg-6': hasCustomImage}"
             >
-              <div v-if="showClaimLnurl" class="full-height content-center">
+              <div v-if="showClaimLnurl">
                 <q-card-section>
                   <div class="text-body1">
                     <span v-text="$t('claim_desc')"></span>
@@ -51,7 +51,7 @@
                   ></q-btn>
                 </q-card-section>
               </div>
-              <div v-else class="full-height content-center">
+              <div v-else>
                 <username-password
                   v-if="authMethod != 'user-id-only'"
                   :allowed_new_users="allowRegister"
@@ -122,36 +122,38 @@
           </div>
         </q-card>
       </div>
-    </div>
-    <div v-if="lnbitsBannerEnabled" class="full-width q-mb-lg q-mt-sm">
-      <div class="flex flex-center q-gutter-md q-py-md">
-        <q-btn
-          outline
-          color="grey"
-          type="a"
-          href="https://github.com/lnbits/lnbits"
-          target="_blank"
-          rel="noopener noreferrer"
-          :label="$t('view_github')"
-        ></q-btn>
-        <q-btn
-          outline
-          color="grey"
-          type="a"
-          href="https://demo.lnbits.com/lnurlp/link/fH59GD"
-          target="_blank"
-          rel="noopener noreferrer"
-          :label="$t('donate')"
-        ></q-btn>
+
+      <div v-if="showHomepageElements">
+        <div class="flex flex-center q-gutter-md q-py-md">
+          <q-btn
+            outline
+            color="grey"
+            type="a"
+            href="https://github.com/lnbits/lnbits"
+            target="_blank"
+            rel="noopener noreferrer"
+            :label="$t('view_github')"
+          ></q-btn>
+          <q-btn
+            outline
+            color="grey"
+            type="a"
+            href="https://demo.lnbits.com/lnurlp/link/fH59GD"
+            target="_blank"
+            rel="noopener noreferrer"
+            :label="$t('donate')"
+          ></q-btn>
+        </div>
       </div>
     </div>
+
     <div
-      :class="$q.screen.lt.md ? 'column col-10' : 'col-10'"
-      class="flex justify-center q-col-gutter-sm q-mb-lg"
+      v-if="adsEnabled"
+      class="justify-center col-10 q-my-lg row q-col-gutter-sm"
     >
-      <a :href="ad[0]" class="col lnbits-ad full-width" v-for="ad in g.ads">
-        <q-img v-if="$q.dark.isActive" :src="ad[1]"></q-img>
-        <q-img v-else :src="ad[2]"></q-img>
+      <a v-for="ad in g.ads" class="lnbits-ad col-12 col-md-4">
+        <q-img :href="ad[0]" v-if="$q.dark.isActive" :src="ad[1]"></q-img>
+        <q-img :href="ad[0]" v-else :src="ad[2]"></q-img>
       </a>
     </div>
     <lnbits-home-logos />
