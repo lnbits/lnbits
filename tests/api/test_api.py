@@ -8,6 +8,7 @@ import shortuuid
 from pytest_mock.plugin import MockerFixture
 
 from lnbits import bolt11
+from lnbits.core.crud.users import get_user
 from lnbits.core.models import CreateInvoice, Payment
 from lnbits.core.models.users import Account, UserExtra, UserLabel
 from lnbits.core.services.users import create_user_account
@@ -824,6 +825,7 @@ async def test_api_search_payment_labels(client):
             ),
         )
     )
+    print("### user", user)
     assert len(user.extra.labels) == 2
     adminkey = user.wallets[0].adminkey
     payments_headers = {
@@ -903,7 +905,6 @@ async def test_api_search_payment_labels(client):
     )
     assert response.is_success
     all_payments = response.json()
-    print("### all_payments", all_payments)
 
     assert all_payments["total"] == payment_count
 
@@ -916,15 +917,18 @@ async def test_api_search_payment_labels(client):
         None,
     )
     assert no_label_a_payment is not None
-    print("### no_label_a_payment", no_label_a_payment)
+
+    _user = await get_user(user.id)
+    print("### user after payments 1000", _user)
     payment_hash = no_label_a_payment["payment_hash"]
     response = await client.put(
         f"/api/v1/payments/{payment_hash}/labels",
         headers=payments_headers,
         json={"labels": ["label A"]},
     )
-    print("### data 1000", response.text)
     assert response.is_success
+    _user = await get_user(user.id)
+    print("### user after payments 2000", _user)
 
     # search payments by label A after update
     response = await client.get(
@@ -932,9 +936,10 @@ async def test_api_search_payment_labels(client):
         params={"labels[every]": ["label A"]},
         headers=payments_headers,
     )
+    _user = await get_user(user.id)
+    print("### user after payments 3000", _user)
     assert response.is_success
     data = response.json()
-    print("### data 2000", data)
     assert data["total"] == payment_count // 2 + 1  # one more after update
     for payment in data["data"]:
         assert "label A" in payment["labels"]
