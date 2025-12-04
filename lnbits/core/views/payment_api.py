@@ -282,6 +282,7 @@ async def api_update_payment_labels(
     payment = await get_standalone_payment(payment_hash, wallet_id=key_type.wallet.id)
     if payment is None:
         raise HTTPException(HTTPStatus.NOT_FOUND, "Payment does not exist.")
+    print("### api_update_payment_labels key_type", key_type)
     account = await get_account(key_type.wallet.user)
     if not account:
         raise HTTPException(HTTPStatus.NOT_FOUND, "Account does not exist.")

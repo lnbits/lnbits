@@ -916,15 +916,15 @@ async def test_api_search_payment_labels(client):
         None,
     )
     assert no_label_a_payment is not None
+    print("### no_label_a_payment", no_label_a_payment)
     payment_hash = no_label_a_payment["payment_hash"]
     response = await client.put(
         f"/api/v1/payments/{payment_hash}/labels",
         headers=payments_headers,
         json={"labels": ["label A"]},
     )
+    print("### data 1000", response.text)
     assert response.is_success
-    data = response.json()
-    print("### data 1000", data)
 
     # search payments by label A after update
     response = await client.get(
