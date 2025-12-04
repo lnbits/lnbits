@@ -33,7 +33,8 @@ const routes = [
   {
     path: '/wallet',
     redirect: to => {
-      const walletId = window.g?.lastActiveWallet || window.user?.wallets[0].id
+      const walletId =
+        window.g?.lastActiveWallet || window.g?.user?.wallets[0].id
       return `/wallet/${to.query.wal || walletId || 'default'}`
     }
   },
