@@ -45,10 +45,6 @@ window.app.component('lnbits-manage-extension-list', {
             .toLocaleLowerCase()
             .includes(this.searchTerm.toLocaleLowerCase())
         })
-        .map(obj => {
-          obj.isActive = window.location.pathname.startsWith(obj.url)
-          return obj
-        })
     }
   },
   async created() {

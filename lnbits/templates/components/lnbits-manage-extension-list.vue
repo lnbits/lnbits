@@ -19,7 +19,7 @@
       v-for="extension in userExtensions"
       :key="extension.code"
       clickable
-      :active="extension.isActive"
+      :active="$route.path == extension.url"
       tag="a"
       :href="extension.url"
     >
@@ -33,7 +33,7 @@
           ><span v-text="extension.name"></span>
         </q-item-label>
       </q-item-section>
-      <q-item-section side v-show="extension.isActive">
+      <q-item-section side v-show="$route.path == extension.url">
         <q-icon name="chevron_right" color="grey-5" size="md"></q-icon>
       </q-item-section>
     </q-item>
