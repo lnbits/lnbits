@@ -89,7 +89,7 @@ window._lnbitsApi = {
       }
     })
   },
-  auth() {
+  getAuthUser() {
     return axios({
       method: 'GET',
       url: '/api/v1/auth'

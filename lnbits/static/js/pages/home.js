@@ -86,7 +86,7 @@ window.PageHome = {
           this.password,
           this.passwordRepeat
         )
-        this.auth()
+        this.refreshAuthUser()
       } catch (e) {
         LNbits.utils.notifyApiError(e)
       }
@@ -98,7 +98,7 @@ window.PageHome = {
           this.password,
           this.passwordRepeat
         )
-        this.auth()
+        this.refreshAuthUser()
       } catch (e) {
         LNbits.utils.notifyApiError(e)
       }
@@ -106,7 +106,7 @@ window.PageHome = {
     async login() {
       try {
         await LNbits.api.login(this.username, this.password)
-        this.auth()
+        this.refreshAuthUser()
       } catch (e) {
         LNbits.utils.notifyApiError(e)
       }
@@ -114,15 +114,15 @@ window.PageHome = {
     async loginUsr() {
       try {
         await LNbits.api.loginUsr(this.usr)
-        this.auth()
+        this.refreshAuthUser()
       } catch (e) {
         console.warn(e)
         LNbits.utils.notifyApiError(e)
       }
     },
-    async auth() {
+    async refreshAuthUser() {
       try {
-        const res = await LNbits.api.auth()
+        const res = await LNbits.api.getAuthUser()
         this.g.user = LNbits.map.user(res.data)
         this.g.isPublicPage = false
         this.$router.push(`/wallet/${this.g.user.wallets[0].id}`)
@@ -146,7 +146,7 @@ window.PageHome = {
   },
   created() {
     if (this.g.isUserAuthorized) {
-      return this.auth()
+      return this.refreshAuthUser()
     }
     const urlParams = new URLSearchParams(window.location.search)
     this.reset_key = urlParams.get('reset_key')
