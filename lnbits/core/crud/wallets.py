@@ -252,7 +252,7 @@ async def get_base_wallet_for_key(
 ) -> BaseWallet | None:
     wallet = await (conn or db).fetchone(
         """
-        SELECT id, user, wallet_type, adminkey, inkey FROM wallets
+        SELECT id, "user", wallet_type, adminkey, inkey FROM wallets
         WHERE (adminkey = :key OR inkey = :key) AND deleted = false
         """,
         {"key": key},
