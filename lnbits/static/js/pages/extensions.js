@@ -26,8 +26,7 @@ window.PageExtensions = {
       selectedRelease: null,
       uninstallAndDropDb: false,
       maxStars: 5,
-      paylinkWebsocket: null,
-      user: null
+      paylinkWebsocket: null
     }
   },
   watch: {
@@ -636,7 +635,7 @@ window.PageExtensions = {
   },
   async created() {
     this.extensions = await this.fetchAllExtensions()
-    this.extbuilderEnabled = user.admin || this.LNBITS_EXT_BUILDER
+    this.extbuilderEnabled = this.g.user.admin || this.LNBITS_EXT_BUILDER
 
     const extId = window.location.hash.replace('#', '')
     const ext = this.extensions.find(ext => ext.id === extId)

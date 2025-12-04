@@ -50,9 +50,6 @@ window.LNbits = {
       }
       newWallet.msat = data.balance_msat
       newWallet.sat = Math.floor(data.balance_msat / 1000)
-      newWallet.fsat = new Intl.NumberFormat(window.i18n.global.locale).format(
-        newWallet.sat
-      )
       if (newWallet.walletType === 'lightning-shared') {
         const perms = newWallet.sharePermissions
         newWallet.canReceivePayments = perms.includes('receive-payments')

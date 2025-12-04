@@ -45,7 +45,7 @@
             <lnbits-wallet-new></lnbits-wallet-new>
             <lnbits-header-wallets></lnbits-header-wallets>
             <router-view v-if="isVueRoute" :key="$route.path"></router-view>
-            <!-- FastAPI Content -->
+            <!-- FastAPI Content from extensions -->
             <div v-else>{% block page %}{% endblock %}</div>
           </q-page>
         </q-page-container>
@@ -60,11 +60,24 @@
         window[key] = WINDOW_SETTINGS[key]
       })
     </script>
-    {% include('components.vue') %} {% include('pages.vue') %} {% block
-    vue_templates %}{% endblock %} {% for url in INCLUDED_JS %}
+    <!-- vue templates -->
+    {% include('components.vue') %} {% include('pages.vue') %}
+    <!-- vue extension templates -->
+    {% block vue_templates %}{% endblock %}
+    <!-- scripts libraries -->
+    {% for url in INCLUDED_JS %}
     <script src="{{ static_url_for('static', url) }}"></script>
-    {% endfor %} {% block scripts %}{% endblock %} {% for url in
-    INCLUDED_COMPONENTS %}
+    {% endfor %}
+    <!-- user init -->
+    {% if user %}
+    <script>
+      window.g.user = LNbits.map.user(JSON.parse({{ user | tojson | safe }}));
+    </script>
+    {% endif %}
+    <!-- scripts from extensions -->
+    {% block scripts %}{% endblock %}
+    <!-- components js -->
+    {% for url in INCLUDED_COMPONENTS %}
     <script src="{{ static_url_for('static', url) }}"></script>
     {% endfor %}
   </body>

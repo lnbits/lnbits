@@ -1,9 +1,4 @@
 {% macro window_vars(user) -%}
-  <script id="window-vars-script">
-    {% if user %}
-      window.user = JSON.parse({{ user | tojson | safe }});
-    {% endif %}
-  </script>
   <script>
   //Needed for Vue to create the app on first load (although called on every page, its only loaded once)
   window.app = Vue.createApp({

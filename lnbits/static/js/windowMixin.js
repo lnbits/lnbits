@@ -20,14 +20,12 @@ window.windowMixin = {
         console.error('ws message no payment', data)
         return
       }
-
       // update sidebar wallet balances
       this.g.user.wallets.forEach(w => {
         if (w.id === data.payment.wallet_id) {
           w.sat = data.wallet_balance
         }
       })
-
       // if current wallet, update balance and payments
       if (this.g.wallet.id === data.payment.wallet_id) {
         this.g.wallet.sat = data.wallet_balance
@@ -35,7 +33,6 @@ window.windowMixin = {
         this.g.updatePayments = !this.g.updatePayments
         this.g.updatePaymentsHash = !this.g.updatePaymentsHash
       }
-
       // NOTE: react only on incoming payments for now
       if (data.payment.amount > 0) {
         eventReaction(data.wallet_balance * 1000)
@@ -72,9 +69,7 @@ window.windowMixin = {
     }
   },
   created() {
-    // map jinja variable once on pageload
-    if (window.user && !this.g.user) {
-      this.g.user = window.LNbits.map.user(window.user)
+    if (this.g.user && this.g.walletEventListeners.length === 0) {
       this.paymentEvents()
     }
   }
