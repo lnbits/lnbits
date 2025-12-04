@@ -360,7 +360,7 @@ window.app.component('lnbits-update-balance', {
   props: ['wallet_id', 'small_btn'],
   computed: {
     admin() {
-      return this.g.user && this.g.user.super_user
+      return this.g.user?.super_user === true
     }
   },
   data() {
