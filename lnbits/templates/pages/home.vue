@@ -151,9 +151,9 @@
       v-if="adsEnabled"
       class="justify-center col-10 q-my-lg row q-col-gutter-sm"
     >
-      <a v-for="ad in g.ads" class="lnbits-ad col-12 col-md-4">
-        <q-img :href="ad[0]" v-if="$q.dark.isActive" :src="ad[1]"></q-img>
-        <q-img :href="ad[0]" v-else :src="ad[2]"></q-img>
+      <a :href="ad[0]" v-for="ad in g.ads" class="lnbits-ad col-12 col-md-4">
+        <q-img v-if="$q.dark.isActive" :src="ad[1]"></q-img>
+        <q-img v-else :src="ad[2]"></q-img>
       </a>
     </div>
     <lnbits-home-logos />
