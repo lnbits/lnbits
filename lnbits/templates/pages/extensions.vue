@@ -64,7 +64,7 @@
                 flat
                 round
                 icon="settings"
-                @click="$router.push('/admin#extensions')"
+                to="/admin#extensions"
                 ><q-tooltip v-text="$t('admin_settings')"></q-tooltip
               ></q-btn>
             </q-tabs>
