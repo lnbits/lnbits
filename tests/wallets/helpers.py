@@ -5,7 +5,7 @@ import operator
 
 import pytest
 
-from lnbits.core.models import WalletBasicInfo
+from lnbits.core.models import WalletInfo
 from tests.wallets.fixtures.models import FundingSourceConfig, WalletTest
 
 wallets_module = importlib.import_module("lnbits.wallets")
@@ -57,7 +57,7 @@ def build_test_id(test: WalletTest):
     return f"{test.funding_source.name}.{test.function}({test.description})"
 
 
-def load_funding_source(funding_source: FundingSourceConfig) -> WalletBasicInfo:
+def load_funding_source(funding_source: FundingSourceConfig) -> WalletInfo:
     custom_settings = funding_source.settings
     original_settings = {}
 
@@ -67,9 +67,7 @@ def load_funding_source(funding_source: FundingSourceConfig) -> WalletBasicInfo:
         original_settings[s] = getattr(settings, s)
         setattr(settings, s, custom_settings[s])
 
-    fs_instance: WalletBasicInfo = getattr(
-        wallets_module, funding_source.wallet_class
-    )()
+    fs_instance: WalletInfo = getattr(wallets_module, funding_source.wallet_class)()
 
     # rollback settings (global variable)
     for s in original_settings:

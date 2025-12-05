@@ -11,7 +11,7 @@ from lnbits.db import FilterModel
 from lnbits.settings import settings
 
 
-class WalletBasicInfo(BaseModel):
+class WalletInfo(BaseModel):
     id: str
     name: str
     adminkey: str

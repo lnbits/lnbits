@@ -46,7 +46,7 @@ from .users import (
     UserAcls,
     UserExtra,
 )
-from .wallets import CreateWallet, KeyType, Wallet, WalletBasicInfo, WalletTypeInfo
+from .wallets import CreateWallet, KeyType, Wallet, WalletInfo, WalletTypeInfo
 from .webpush import CreateWebPushSubscription, WebPushSubscription
 
 __all__ = [
@@ -98,7 +98,7 @@ __all__ = [
     "UserAcls",
     "UserExtra",
     "Wallet",
-    "WalletBasicInfo",
+    "WalletInfo",
     "WalletTypeInfo",
     "WebPushSubscription",
 ]

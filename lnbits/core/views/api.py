@@ -12,7 +12,6 @@ from lnbits.core.models import (
     CreateWallet,
     User,
     Wallet,
-    WalletBasicInfo,
 )
 from lnbits.core.models.users import AccountId
 from lnbits.decorators import (
@@ -71,7 +70,6 @@ async def health_check(
     "/api/v1/wallets",
     name="Wallets",
     description="Get basic info for all of user's wallets.",
-    response_model=list[WalletBasicInfo],
 )
 async def api_wallets(user: User = Depends(check_user_exists)) -> list[Wallet]:
     return user.wallets
