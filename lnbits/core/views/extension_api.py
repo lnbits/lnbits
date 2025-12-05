@@ -507,7 +507,16 @@ async def delete_extension_db(ext_id: str):
 # TODO: create a response model for this
 @extension_router.get("/all")
 async def extensions(account_id: AccountId = Depends(check_account_id_exists)):
-    installed_exts: list[InstallableExtension] = await get_installed_extensions()
+    async with db.connect() as conn:
+        installed_exts: list[InstallableExtension] = await get_installed_extensions(
+            conn=conn
+        )
+        all_ext_ids = [ext.code for ext in await get_valid_extensions(conn=conn)]
+        inactive_extensions = [
+            e.id for e in await get_installed_extensions(active=False, conn=conn)
+        ]
+        db_versions = await get_db_versions(conn=conn)
+
     installed_exts_ids = [e.id for e in installed_exts]
 
     installable_exts = await InstallableExtension.get_installable_extensions(
@@ -537,10 +546,6 @@ async def extensions(account_id: AccountId = Depends(check_account_id_exists)):
             e.name = installed_ext.name
             e.short_description = installed_ext.short_description
             e.icon = installed_ext.icon
-
-    all_ext_ids = [ext.code for ext in await get_valid_extensions()]
-    inactive_extensions = [e.id for e in await get_installed_extensions(active=False)]
-    db_versions = await get_db_versions()
 
     extension_data = [
         {
