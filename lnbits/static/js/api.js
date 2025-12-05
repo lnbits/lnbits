@@ -151,11 +151,7 @@ window._lnbitsApi = {
     )
   },
   deleteWallet(wallet) {
-    return this.request('delete', `/api/v1/wallet/${wallet.id}`).then(_ => {
-      let url = new URL(window.location.href)
-      url.searchParams.delete('wal')
-      window.location = url
-    })
+    return this.request('delete', `/api/v1/wallet/${wallet.id}`)
   },
   getPayments(wallet, params) {
     return this.request(

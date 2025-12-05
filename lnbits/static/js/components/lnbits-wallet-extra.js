@@ -29,7 +29,12 @@ window.app.component('lnbits-wallet-extra', {
         .onOk(() => {
           LNbits.api
             .deleteWallet(this.g.wallet)
-            .then(_ => {
+            .then(() => {
+              this.g.user.wallets = this.g.user.wallets.filter(
+                w => w.id !== this.g.wallet.id
+              )
+              this.g.lastActiveWallet = this.g.user.wallets[0].id
+              this.$router.push(`/wallet/${this.g.lastActiveWallet}`)
               Quasar.Notify.create({
                 timeout: 3000,
                 message: `Wallet deleted!`,
