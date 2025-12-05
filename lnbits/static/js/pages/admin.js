@@ -22,13 +22,13 @@ window.PageAdmin = {
     $route(to) {
       if (to.hash.length > 1) {
         this.tab = to.hash.replace('#', '')
-      } else {
-        this.$router.push(`/admin#funding`)
       }
     }
   },
   async created() {
-    this.tab = this.$route.hash.replace('#', '')
+    if (this.$route.hash.length > 1) {
+      this.tab = this.$route.hash.replace('#', '')
+    }
     await this.getSettings()
   },
   computed: {

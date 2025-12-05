@@ -197,8 +197,6 @@ window.PageAccount = {
     $route(to) {
       if (to.hash.length > 1) {
         this.tab = to.hash.replace('#', '')
-      } else {
-        this.$router.push(`/account#user`)
       }
     },
     'assetsTable.search': {
@@ -698,7 +696,9 @@ window.PageAccount = {
     } catch (e) {
       LNbits.utils.notifyApiError(e)
     }
-    this.tab = this.$route.hash.replace('#', '')
+    if (this.$route.hash.length > 1) {
+      this.tab = this.$route.hash.replace('#', '')
+    }
     await this.getApiACLs()
     await this.getUserAssets()
 
