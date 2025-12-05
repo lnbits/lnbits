@@ -198,7 +198,7 @@ window.PageAccount = {
       if (to.hash.length > 1) {
         this.tab = to.hash.replace('#', '')
       } else {
-        this.$router.push(`/account#funding`)
+        this.$router.push(`/account#user`)
       }
     },
     'assetsTable.search': {
