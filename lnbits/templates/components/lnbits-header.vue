@@ -91,44 +91,32 @@
           </div>
         </template>
         <q-list>
-          <q-item to="/account" clickable v-close-popup
-            ><q-item-section>
-              <q-icon name="person" />
-            </q-item-section>
+          <q-item to="/account" clickable v-close-popup>
             <q-item-section>
               <q-item-label>
+                <q-icon class="q-mr-sm" name="person"></q-icon>
                 <span v-text="$t('my_account')"></span>
               </q-item-label>
             </q-item-section>
-            <q-item-section>
-              <q-item-label> </q-item-label>
-            </q-item-section>
           </q-item>
-          <q-item to="/account#theme" clickable v-close-popup
-            ><q-item-section>
-              <q-icon :name="$q.dark.isActive ? 'dark_mode' : 'light_mode'" />
-            </q-item-section>
+          <q-item to="/account#theme" clickable v-close-popup>
             <q-item-section>
               <q-item-label>
+                <q-icon
+                  class="q-mr-sm"
+                  :name="$q.dark.isActive ? 'dark_mode' : 'light_mode'"
+                ></q-icon>
                 <span v-text="$t('theme')"></span>
               </q-item-label>
             </q-item-section>
-            <q-item-section>
-              <q-item-label> </q-item-label>
-            </q-item-section>
           </q-item>
           <q-separator></q-separator>
-          <q-item clickable v-close-popup @click="utils.logout"
-            ><q-item-section>
-              <q-icon name="logout" />
-            </q-item-section>
+          <q-item clickable v-close-popup @click="utils.logout">
             <q-item-section>
               <q-item-label>
+                <q-icon class="q-mr-sm" name="logout"></q-icon>
                 <span v-text="$t('logout')"></span>
               </q-item-label>
-            </q-item-section>
-            <q-item-section>
-              <q-item-label> </q-item-label>
             </q-item-section>
           </q-item>
         </q-list>
