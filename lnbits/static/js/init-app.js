@@ -55,12 +55,6 @@ const routes = [
   },
   {
     path: '/admin',
-    redirect: () => {
-      return `/admin/funding`
-    }
-  },
-  {
-    path: '/admin/:id',
     name: 'Admin',
     component: PageAdmin
   },

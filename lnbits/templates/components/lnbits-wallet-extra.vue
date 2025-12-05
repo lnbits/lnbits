@@ -153,7 +153,7 @@
                     round
                     icon="settings"
                     class="float-right q-mb-lg"
-                    @click="$router.push('/admin/exchange_providers')"
+                    @click="$router.push('/admin#exchange_providers')"
                     ><q-tooltip v-text="$t('exchange_providers')"></q-tooltip
                   ></q-btn>
                 </div>
