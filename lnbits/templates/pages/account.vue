@@ -35,7 +35,6 @@
                 name="user"
                 icon="person"
                 :label="$q.screen.gt.sm ? $t('account_settings') : ''"
-                @update="val => (tab = val.name)"
               >
                 <q-tooltip v-if="!$q.screen.gt.sm"
                   ><span v-text="$t('account_settings')"></span
@@ -46,7 +45,6 @@
                 name="notifications"
                 icon="notifications"
                 :label="$q.screen.gt.sm ? $t('notifications') : ''"
-                @update="val => (tab = val.name)"
               >
                 <q-tooltip v-if="!$q.screen.gt.sm"
                   ><span v-text="$t('notifications')"></span
@@ -56,7 +54,6 @@
                 name="theme"
                 icon="palette"
                 :label="$q.screen.gt.sm ? $t('look_and_feel') : ''"
-                @update="val => (tab = val.name)"
               >
                 <q-tooltip v-if="!$q.screen.gt.sm"
                   ><span v-text="$t('look_and_feel')"></span
@@ -66,7 +63,6 @@
                 name="api_acls"
                 icon="lock"
                 :label="$q.screen.gt.sm ? $t('access_control_list') : ''"
-                @update="val => (tab = val.name)"
               >
                 <q-tooltip v-if="!$q.screen.gt.sm"
                   ><span v-text="$t('access_control_list')"></span
@@ -76,7 +72,6 @@
                 name="assets"
                 icon="perm_media"
                 :label="$q.screen.gt.sm ? $t('assets') : ''"
-                @update="val => (tab = val.name)"
               >
                 <q-tooltip v-if="!$q.screen.gt.sm"
                   ><span v-text="$t('assets')"></span
@@ -86,7 +81,6 @@
                 name="labels"
                 icon="local_offer"
                 :label="$q.screen.gt.sm ? $t('labels') : ''"
-                @update="val => (tab = val.name)"
               >
                 <q-tooltip v-if="!$q.screen.gt.sm"
                   ><span v-text="$t('labels')"></span
