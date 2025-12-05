@@ -3,7 +3,9 @@ from uuid import uuid4
 
 from loguru import logger
 
+from lnbits.core.db import db
 from lnbits.core.models.extensions import UserExtension
+from lnbits.db import Connection
 from lnbits.settings import (
     EditableSettings,
     SuperSettings,
@@ -48,37 +50,43 @@ async def create_user_account_no_ckeck(
     account: Account | None = None,
     wallet_name: str | None = None,
     default_exts: list[str] | None = None,
+    conn: Connection | None = None,
 ) -> User:
+    async with db.reuse_conn(conn) if conn else db.connect() as conn:
+        if account:
+            account.validate_fields()
+            if account.username and await get_account_by_username(
+                account.username, conn=conn
+            ):
+                raise ValueError("Username already exists.")
 
-    if account:
-        account.validate_fields()
-        if account.username and await get_account_by_username(account.username):
-            raise ValueError("Username already exists.")
+            if account.email and await get_account_by_email(account.email, conn=conn):
+                raise ValueError("Email already exists.")
 
-        if account.email and await get_account_by_email(account.email):
-            raise ValueError("Email already exists.")
+            if account.pubkey and await get_account_by_pubkey(
+                account.pubkey, conn=conn
+            ):
+                raise ValueError("Pubkey already exists.")
 
-        if account.pubkey and await get_account_by_pubkey(account.pubkey):
-            raise ValueError("Pubkey already exists.")
+            if not account.id:
+                account.id = uuid4().hex
 
-        if not account.id:
-            account.id = uuid4().hex
+        account = await create_account(account, conn=conn)
+        await create_wallet(
+            user_id=account.id,
+            wallet_name=wallet_name or settings.lnbits_default_wallet_name,
+            conn=conn,
+        )
 
-    account = await create_account(account)
-    await create_wallet(
-        user_id=account.id,
-        wallet_name=wallet_name or settings.lnbits_default_wallet_name,
-    )
+        user_extensions = (default_exts or []) + settings.lnbits_user_default_extensions
+        for ext_id in user_extensions:
+            try:
+                user_ext = UserExtension(user=account.id, extension=ext_id, active=True)
+                await create_user_extension(user_ext, conn=conn)
+            except Exception as e:
+                logger.error(f"Error enabeling default extension {ext_id}: {e}")
 
-    user_extensions = (default_exts or []) + settings.lnbits_user_default_extensions
-    for ext_id in user_extensions:
-        try:
-            user_ext = UserExtension(user=account.id, extension=ext_id, active=True)
-            await create_user_extension(user_ext)
-        except Exception as e:
-            logger.error(f"Error enabeling default extension {ext_id}: {e}")
-
-    user = await get_user_from_account(account)
+        user = await get_user_from_account(account, conn=conn)
     if not user:
         raise ValueError("Cannot find user for account.")
 
