@@ -201,6 +201,10 @@ class Account(AccountId):
         self.is_admin = settings.is_admin_user(self.id)
         self.fiat_providers = settings.get_fiat_providers_for_user(self.id)
 
+    @property
+    def has_password(self) -> bool:
+        return self.password_hash is not None
+
     def hash_password(self, password: str) -> str:
         """sets and returns the hashed password"""
         salt = gensalt()

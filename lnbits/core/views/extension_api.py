@@ -7,10 +7,10 @@ from fastapi import APIRouter, Depends, HTTPException
 from loguru import logger
 
 from lnbits.core.crud.extensions import get_user_extensions
+from lnbits.core.crud.wallets import get_wallets_ids
 from lnbits.core.db import db
 from lnbits.core.models import (
     SimpleStatus,
-    User,
 )
 from lnbits.core.models.extensions import (
     CreateExtension,
@@ -24,7 +24,7 @@ from lnbits.core.models.extensions import (
     UserExtension,
     UserExtensionInfo,
 )
-from lnbits.core.models.users import AccountId
+from lnbits.core.models.users import Account, AccountId
 from lnbits.core.services import check_transaction_status, create_invoice
 from lnbits.core.services.extensions import (
     activate_extension,
@@ -145,9 +145,10 @@ async def api_extension_details(
 async def api_update_pay_to_enable(
     ext_id: str,
     data: PayToEnableInfo,
-    user: User = Depends(check_admin),
+    account: Account = Depends(check_admin),
 ) -> SimpleStatus:
-    if data.wallet not in user.wallet_ids:
+    user_wallet_ids = await get_wallets_ids(account.id, deleted=False)
+    if data.wallet not in user_wallet_ids:
         raise HTTPException(
             HTTPStatus.BAD_REQUEST, "Wallet does not belong to this admin user."
         )

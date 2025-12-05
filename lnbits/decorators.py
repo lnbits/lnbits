@@ -349,29 +349,36 @@ async def access_token_payload(
     return AccessTokenPayload(**payload)
 
 
-async def check_admin(user: Annotated[User, Depends(check_user_exists)]) -> User:
-    if user.id != settings.super_user and user.id not in settings.lnbits_admin_users:
+async def check_admin(
+    account: Annotated[Account, Depends(check_account_exists)],
+) -> Account:
+    if (
+        account.id != settings.super_user
+        and account.id not in settings.lnbits_admin_users
+    ):
         raise HTTPException(
             HTTPStatus.FORBIDDEN, "User not authorized. No admin privileges."
         )
-    if not user.has_password:
+    if not account.has_password:
         raise HTTPException(
             HTTPStatus.FORBIDDEN, "Admin users must have credentials configured."
         )
 
-    return user
+    return account
 
 
-async def check_super_user(user: Annotated[User, Depends(check_user_exists)]) -> User:
-    if user.id != settings.super_user:
+async def check_super_user(
+    account: Annotated[Account, Depends(check_admin)],
+) -> Account:
+    if account.id != settings.super_user:
         raise HTTPException(
             HTTPStatus.FORBIDDEN, "User not authorized. No super user privileges."
         )
-    if not user.has_password:
+    if not account.has_password:
         raise HTTPException(
             HTTPStatus.FORBIDDEN, "Super user must have credentials configured."
         )
-    return user
+    return account
 
 
 def parse_filters(model: type[TFilterModel]):
