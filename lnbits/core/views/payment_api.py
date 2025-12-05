@@ -12,13 +12,13 @@ from fastapi.responses import JSONResponse
 from lnurl import url_decode
 
 from lnbits import bolt11
-from lnbits.core import db
 from lnbits.core.crud.payments import (
     get_payment_count_stats,
     get_wallets_stats,
     update_payment,
 )
 from lnbits.core.crud.users import get_account
+from lnbits.core.db import db
 from lnbits.core.models import (
     CancelInvoice,
     CreateInvoice,
