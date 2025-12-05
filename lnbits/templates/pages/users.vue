@@ -491,7 +491,7 @@
                       flat
                       round
                       icon="settings"
-                      to="/admin#users"
+                      @click="$router.push('/admin/users')"
                     >
                       <q-tooltip v-text="$t('admin_settings')"></q-tooltip>
                     </q-btn>

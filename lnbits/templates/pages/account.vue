@@ -378,7 +378,7 @@
                     flat
                     round
                     icon="settings"
-                    to="/admin#site_customisation"
+                    @click="$router.push('/admin/site_customisation')"
                     ><q-tooltip v-text="$t('admin_settings')"></q-tooltip
                   ></q-btn>
                   <div class="row q-mb-md">

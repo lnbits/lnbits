@@ -13,7 +13,7 @@
                 flat
                 round
                 icon="settings"
-                to="/admin#audit"
+                @click="$router.push('/admin/audit')"
               >
                 <q-tooltip v-text="$t('admin_settings')"></q-tooltip>
               </q-btn>

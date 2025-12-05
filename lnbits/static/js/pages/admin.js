@@ -15,12 +15,14 @@ window.PageAdmin = {
       needsRestart: false
     }
   },
-  async created() {
-    await this.getSettings()
-    const hash = window.location.hash.replace('#', '')
-    if (hash) {
-      this.tab = hash
+  watch: {
+    tab(tab) {
+      this.$router.push(`/admin/${tab}`)
     }
+  },
+  async created() {
+    this.tab = this.$route.params.id
+    await this.getSettings()
   },
   computed: {
     checkChanges() {
