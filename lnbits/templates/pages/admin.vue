@@ -107,7 +107,6 @@
                 name="funding"
                 icon="account_balance_wallet"
                 :label="$q.screen.gt.sm ? $t('funding') : null"
-                @update="val => (tab = val.name)"
                 ><q-tooltip v-if="!$q.screen.gt.sm"
                   ><span v-text="$t('funding')"></span></q-tooltip
               ></q-tab>
@@ -115,7 +114,6 @@
                 name="security"
                 icon="security"
                 :label="$q.screen.gt.sm ? $t('security') : null"
-                @update="val => (tab = val.name)"
                 ><q-tooltip v-if="!$q.screen.gt.sm"
                   ><span v-text="$t('security')"></span></q-tooltip
               ></q-tab>
@@ -123,7 +121,6 @@
                 name="server"
                 icon="price_change"
                 :label="$q.screen.gt.sm ? $t('payments') : null"
-                @update="val => (tab = val.name)"
                 ><q-tooltip v-if="!$q.screen.gt.sm"
                   ><span v-text="$t('payments')"></span></q-tooltip
               ></q-tab>
@@ -145,7 +142,6 @@
                 name="users"
                 icon="group"
                 :label="$q.screen.gt.sm ? $t('users') : null"
-                @update="val => (tab = val.name)"
                 ><q-tooltip v-if="!$q.screen.gt.sm"
                   ><span v-text="$t('users')"></span></q-tooltip
               ></q-tab>
@@ -154,7 +150,6 @@
                 name="extensions"
                 icon="extension"
                 :label="$q.screen.gt.sm ? $t('extensions') : null"
-                @update="val => (tab = val.name)"
                 ><q-tooltip v-if="!$q.screen.gt.sm"
                   ><span v-text="$t('extensions')"></span></q-tooltip
               ></q-tab>
@@ -163,7 +158,6 @@
                 name="notifications"
                 icon="notifications"
                 :label="$q.screen.gt.sm ? $t('notifications') : null"
-                @update="val => (tab = val.name)"
                 ><q-tooltip v-if="!$q.screen.gt.sm"
                   ><span v-text="$t('notifications')"></span></q-tooltip
               ></q-tab>
@@ -171,7 +165,6 @@
                 name="audit"
                 icon="playlist_add_check_circle"
                 :label="$q.screen.gt.sm ? $t('audit') : null"
-                @update="val => (tab = val.name)"
                 ><q-tooltip v-if="!$q.screen.gt.sm"
                   ><span v-text="$t('audit')"></span></q-tooltip
               ></q-tab>
@@ -179,7 +172,6 @@
                 name="assets-config"
                 icon="perm_media"
                 :label="$q.screen.gt.sm ? $t('assets') : null"
-                @update="val => (tab = val.name)"
                 ><q-tooltip v-if="!$q.screen.gt.sm"
                   ><span v-text="$t('assets')"></span></q-tooltip
               ></q-tab>
@@ -188,7 +180,6 @@
                 name="site_customisation"
                 icon="language"
                 :label="$q.screen.gt.sm ? $t('site_customisation') : null"
-                @update="val => (tab = val.name)"
                 ><q-tooltip v-if="!$q.screen.gt.sm"
                   ><span v-text="$t('site_customisation')"></span></q-tooltip
               ></q-tab>
