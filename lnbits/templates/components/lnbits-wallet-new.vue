@@ -8,7 +8,7 @@
       </q-card-section>
       <q-card-section v-if="g.user.walletInvitesCount">
         <q-badge
-          @click="g.newWallet = 'lightning-shared'"
+          @click="g.newWalletType = 'lightning-shared'"
           class="cursor-pointer"
         >
           <span
@@ -29,7 +29,7 @@
           emit-value
           map-options
           :label="$t('wallet_type')"
-          v-model="g.newWallet"
+          v-model="g.newWalletType"
           dense
         ></q-select>
         <q-input

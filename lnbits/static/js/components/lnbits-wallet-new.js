@@ -9,7 +9,7 @@ window.app.component('lnbits-wallet-new', {
     }
   },
   watch: {
-    'g.newWallet'(val) {
+    'g.newWalletType'(val) {
       if (val === null) return
       this.showNewWalletDialog = true
     },
@@ -20,10 +20,10 @@ window.app.component('lnbits-wallet-new', {
   },
   computed: {
     isLightning() {
-      return this.g.newWallet === 'lightning'
+      return this.g.newWalletType === 'lightning'
     },
     isLightningShared() {
-      return this.g.newWallet === 'lightning-shared'
+      return this.g.newWalletType === 'lightning-shared'
     },
     inviteWalletOptions() {
       return (this.g.user?.extra?.wallet_invite_requests || []).map(i => ({
@@ -35,7 +35,7 @@ window.app.component('lnbits-wallet-new', {
   methods: {
     reset() {
       this.showNewWalletDialog = false
-      this.g.newWallet = null
+      this.g.newWalletType = null
       this.wallet = {name: '', sharedWalletId: ''}
     },
     async submitRejectWalletInvitation() {
@@ -70,14 +70,14 @@ window.app.component('lnbits-wallet-new', {
     },
     submitAddWallet() {
       const data = this.wallet
-      if (this.g.newWallet === 'lightning' && !data.name) {
+      if (this.g.newWalletType === 'lightning' && !data.name) {
         this.$q.notify({
           message: 'Please enter a name for the wallet',
           color: 'warning'
         })
         return
       }
-      if (this.g.newWallet === 'lightning-shared' && !data.sharedWalletId) {
+      if (this.g.newWalletType === 'lightning-shared' && !data.sharedWalletId) {
         this.$q.notify({
           message: 'Missing a shared wallet ID',
           color: 'warning'
@@ -85,7 +85,7 @@ window.app.component('lnbits-wallet-new', {
         return
       }
       LNbits.api
-        .createWallet(data.name, this.g.newWallet, {
+        .createWallet(data.name, this.g.newWalletType, {
           shared_wallet_id: data.sharedWalletId
         })
         .then(res => {

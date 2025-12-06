@@ -28,9 +28,9 @@ window.app.component('lnbits-manage-wallet-list', {
   methods: {
     openNewWalletDialog() {
       if (this.g.user.walletInvitesCount) {
-        this.g.newWallet = 'lightning-shared'
+        this.g.newWalletType = 'lightning-shared'
       } else {
-        this.g.newWallet = 'lightning'
+        this.g.newWalletType = 'lightning'
       }
     },
     onWebsocketMessage(ev) {

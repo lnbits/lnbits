@@ -56,7 +56,7 @@ window.g = Vue.reactive({
   denomination: WINDOW_SETTINGS.LNBITS_DENOMINATION,
   isSatsDenomination: WINDOW_SETTINGS.LNBITS_DENOMINATION == 'sats',
   scanner: null,
-  newWallet: null
+  newWalletType: null
 })
 
 window.dateFormat = 'YYYY-MM-DD HH:mm'
