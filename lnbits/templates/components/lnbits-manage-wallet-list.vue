@@ -44,6 +44,9 @@
       >
         <q-icon name="group" :color="walletRec.extra.color" size="xs"></q-icon>
       </q-item-section>
+      <q-item-section side v-show="walletRec.id === activeWalletId">
+        <q-icon name="chevron_right" color="grey-5" size="md"></q-icon>
+      </q-item-section>
     </q-item>
     <q-item
       v-if="g.user.hiddenWalletsCount > 0"

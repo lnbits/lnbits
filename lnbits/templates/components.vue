@@ -47,6 +47,9 @@ include('components/lnbits-error.vue') %}
         <q-item-section>
           <q-item-label lines="1" v-text="$t('settings')"></q-item-label>
         </q-item-section>
+        <q-item-section side v-show="isActive('/admin')">
+          <q-icon name="chevron_right" color="grey-5" size="md"></q-icon>
+        </q-item-section>
       </q-item>
       <q-item v-if="showNode" to="/node">
         <q-item-section side>
@@ -58,6 +61,9 @@ include('components/lnbits-error.vue') %}
         </q-item-section>
         <q-item-section>
           <q-item-label lines="1" v-text="$t('node')"></q-item-label>
+        </q-item-section>
+        <q-item-section side v-show="isActive('/node')">
+          <q-icon name="chevron_right" color="grey-5" size="md"></q-icon>
         </q-item-section>
       </q-item>
       <q-item v-if="showUsers" to="/users">
@@ -71,6 +77,9 @@ include('components/lnbits-error.vue') %}
         <q-item-section>
           <q-item-label lines="1" v-text="$t('users')"></q-item-label>
         </q-item-section>
+        <q-item-section side v-show="isActive('/users')">
+          <q-icon name="chevron_right" color="grey-5" size="md"></q-icon>
+        </q-item-section>
       </q-item>
       <q-item v-if="showAudit" to="/audit">
         <q-item-section side>
@@ -82,6 +91,9 @@ include('components/lnbits-error.vue') %}
         </q-item-section>
         <q-item-section>
           <q-item-label lines="1" v-text="$t('api_watch')"></q-item-label>
+        </q-item-section>
+        <q-item-section side v-show="isActive('/audit')">
+          <q-icon name="chevron_right" color="grey-5" size="md"></q-icon>
         </q-item-section>
       </q-item>
     </div>
@@ -96,6 +108,9 @@ include('components/lnbits-error.vue') %}
       <q-item-section>
         <q-item-label lines="1" v-text="$t('payments')"></q-item-label>
       </q-item-section>
+      <q-item-section side v-show="isActive('/payments')">
+        <q-icon name="chevron_right" color="grey-5" size="md"></q-icon>
+      </q-item-section>
     </q-item>
     <q-item v-if="showExtensions" to="/extensions">
       <q-item-section side>
@@ -108,6 +123,9 @@ include('components/lnbits-error.vue') %}
       <q-item-section>
         <q-item-label lines="1" v-text="$t('extensions')"></q-item-label>
       </q-item-section>
+      <q-item-section side v-show="isActive('/extensions')">
+        <q-icon name="chevron_right" color="grey-5" size="md"></q-icon>
+      </q-item-section>
     </q-item>
   </q-list>
 </template>
@@ -119,7 +137,6 @@ include('components/lnbits-error.vue') %}
         <q-item-label v-text="$t('created')"></q-item-label>
         <q-item-label caption v-text="payment.date"></q-item-label>
       </q-item-section>
-
       <q-item-section side top>
         <q-item-label caption v-text="payment.dateFrom"></q-item-label>
       </q-item-section>
