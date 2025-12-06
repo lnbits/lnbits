@@ -1,6 +1,5 @@
 window.PageExtensionBuilder = {
   template: '#page-extension-builder',
-  mixins: [windowMixin],
   data() {
     return {
       step: 1,

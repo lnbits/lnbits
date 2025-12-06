@@ -1,6 +1,5 @@
 window.app.component('lnbits-header', {
   template: '#lnbits-header',
-  mixins: [window.windowMixin],
   computed: {
     hasServiceFeeMax() {
       return (

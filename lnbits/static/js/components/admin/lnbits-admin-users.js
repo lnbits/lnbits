@@ -1,7 +1,6 @@
 window.app.component('lnbits-admin-users', {
   props: ['form-data'],
   template: '#lnbits-admin-users',
-  mixins: [window.windowMixin],
   data() {
     return {
       formAddUser: '',

@@ -1,6 +1,5 @@
 window.app.component('lnbits-footer', {
   template: '#lnbits-footer',
-  mixins: [window.windowMixin],
   computed: {
     version() {
       return this.LNBITS_VERSION || 'unknown version'

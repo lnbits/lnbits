@@ -1,6 +1,5 @@
 window.app.component('lnbits-home-logos', {
   template: '#lnbits-home-logos',
-  mixins: [window.windowMixin],
   data() {
     return {
       logos: [

@@ -1,6 +1,5 @@
 window.PageWallets = {
   template: '#page-wallets',
-  mixins: [window.windowMixin],
   data() {
     return {
       user: null,

@@ -1,7 +1,6 @@
 window.app.component('lnbits-admin-notifications', {
   props: ['form-data'],
   template: '#lnbits-admin-notifications',
-  mixins: [window.windowMixin],
   data() {
     return {
       nostrNotificationIdentifier: '',
