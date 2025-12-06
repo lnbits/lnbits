@@ -177,8 +177,6 @@ window._lnbitsApi = {
   getDefaultSetting(fieldName) {
     return LNbits.api
       .request('GET', `/admin/api/v1/settings/default?field_name=${fieldName}`)
-      .catch(function (error) {
-        LNbits.utils.notifyApiError(error)
-      })
+      .catch(LNbits.utils.notifyApiError)
   }
 }
