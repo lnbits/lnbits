@@ -26,6 +26,13 @@ window.app.component('lnbits-manage-wallet-list', {
     }
   },
   methods: {
+    openNewWalletDialog() {
+      if (this.g.user.walletInvitesCount) {
+        this.g.newWallet = 'lightning-shared'
+      } else {
+        this.g.newWallet = 'lightning'
+      }
+    },
     onWebsocketMessage(ev) {
       const data = JSON.parse(ev.data)
       if (!data.payment) {

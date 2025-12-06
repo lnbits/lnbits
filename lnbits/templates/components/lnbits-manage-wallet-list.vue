@@ -61,14 +61,7 @@
         ></q-item-label>
       </q-item-section>
     </q-item>
-    <q-item
-      clickable
-      @click="
-        g.user.walletInvitesCount
-          ? openNewWalletDialog('lightning-shared')
-          : openNewWalletDialog('lightning')
-      "
-    >
+    <q-item clickable @click="openNewWalletDialog">
       <q-item-section side>
         <q-icon name="add" color="grey-5" size="md"></q-icon>
       </q-item-section>

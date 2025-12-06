@@ -24,8 +24,6 @@ window.g = Vue.reactive({
   fiatTracking: false,
   payments: [],
   walletEventListeners: [],
-  showNewWalletDialog: false,
-  newWalletType: 'lightning',
   updatePayments: false, // used for updating the lnbits-payment-list
   updatePaymentsHash: false, // used for closing the receive dialog
   currencies: WINDOW_SETTINGS.LNBITS_CURRENCIES ?? [],
@@ -57,7 +55,8 @@ window.g = Vue.reactive({
   ads: WINDOW_SETTINGS.AD_SPACE.split(',').map(ad => ad.split(';')),
   denomination: WINDOW_SETTINGS.LNBITS_DENOMINATION,
   isSatsDenomination: WINDOW_SETTINGS.LNBITS_DENOMINATION == 'sats',
-  scanner: null
+  scanner: null,
+  newWallet: null
 })
 
 window.dateFormat = 'YYYY-MM-DD HH:mm'

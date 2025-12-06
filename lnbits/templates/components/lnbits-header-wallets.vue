@@ -18,7 +18,7 @@
         <q-card-section class="flex flex-center column full-height text-center">
           <div>
             <q-btn
-              @click="openNewWalletDialog()"
+              @click="g.newWallet = 'lightning'"
               round
               color="primary"
               icon="add"
@@ -29,7 +29,7 @@
           <div>
             <q-badge
               v-if="g.user.walletInvitesCount"
-              @click="openNewWalletDialog('lightning-shared')"
+              @click="g.newWallet = 'lightning-shared'"
               dense
               outline
               class="q-mt-sm"

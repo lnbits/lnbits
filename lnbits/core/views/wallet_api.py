@@ -197,11 +197,14 @@ async def api_delete_wallet(
 
 @wallet_router.post("")
 async def api_create_wallet(
-    data: CreateWallet,
-    key_info: WalletTypeInfo = Depends(require_admin_key),
+    data: CreateWallet, account_id: AccountId = Depends(check_account_id_exists)
 ) -> Wallet:
-    if data.wallet_type == WalletType.LIGHTNING:
-        return await create_wallet(user_id=key_info.wallet.user, wallet_name=data.name)
+
+    if data.wallet_type not in list(WalletType):
+        raise HTTPException(
+            HTTPStatus.BAD_REQUEST,
+            f"Wallet type {data.wallet_type} does not exist.",
+        )
 
     if data.wallet_type == WalletType.LIGHTNING_SHARED:
         if not data.shared_wallet_id:
@@ -210,11 +213,9 @@ async def api_create_wallet(
                 "Shared wallet ID is required for shared wallets.",
             )
         return await create_lightning_shared_wallet(
-            user_id=key_info.wallet.user,
+            user_id=account_id.id,
             source_wallet_id=data.shared_wallet_id,
         )
 
-    raise HTTPException(
-        HTTPStatus.BAD_REQUEST,
-        f"Unknown wallet type: {data.wallet_type}.",
-    )
+    # default WalletType.LIGHTNING:
+    return await create_wallet(user_id=account_id.id, wallet_name=data.name)

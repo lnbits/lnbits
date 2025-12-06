@@ -6,7 +6,7 @@
           <div class="row items-center justify-between q-gutter-xs">
             <div class="col">
               <q-btn
-                @click="openNewWalletDialog()"
+                @click="g.showNewWalletDialog = true"
                 :label="$t('add_wallet')"
                 color="primary"
               >
