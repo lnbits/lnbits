@@ -71,17 +71,9 @@ window.app.component('lnbits-admin-exchange-providers', {
   },
   methods: {
     getDefaultSetting(fieldName) {
-      LNbits.api
-        .request(
-          'GET',
-          `/admin/api/v1/settings/default?field_name=${fieldName}`
-        )
-        .then(response => {
-          this.formData[fieldName] = response.data.default_value
-        })
-        .catch(function (error) {
-          LNbits.utils.notifyApiError(error)
-        })
+      LNbits.api.getDefaultSetting(fieldName).then(response => {
+        this.formData[fieldName] = response.data.default_value
+      })
     },
     getExchangeRateHistory() {
       LNbits.api

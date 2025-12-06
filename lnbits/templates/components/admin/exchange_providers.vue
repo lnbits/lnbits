@@ -64,7 +64,7 @@
     </div>
     <div class="col-6">
       <q-btn
-        @click="getDefaultSetting('lnbits_exchange_rate_providers')"
+        @click="utils.getDefaultSetting('lnbits_exchange_rate_providers')"
         flat
         :label="$t('reset_defaults')"
         color="primary"
