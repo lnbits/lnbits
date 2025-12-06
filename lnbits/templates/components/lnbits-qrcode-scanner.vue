@@ -10,7 +10,7 @@
       </div>
       <div class="row q-mt-lg">
         <q-btn
-          @click="showScanner = false"
+          @click="reset"
           flat
           color="grey"
           class="q-ml-auto"

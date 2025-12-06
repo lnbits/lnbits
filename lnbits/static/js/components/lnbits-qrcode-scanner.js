@@ -9,35 +9,36 @@ window.app.component('lnbits-qrcode-scanner', {
   watch: {
     callback(newVal) {
       if (newVal === null) {
-        this.showScanner = false
-        return
+        return this.reset()
       }
       if (typeof newVal !== 'function') {
         Quasar.Notify.create({
           message: 'QR code scanner callback is not a function.',
           type: 'negative'
         })
-        this.showScanner = false
-        return
+        return this.reset()
       }
       if (this.g.hasCamera === false) {
         Quasar.Notify.create({
           message: 'No camera found on this device.',
           type: 'negative'
         })
-        this.showScanner = false
-        return
+        return this.reset()
       }
       this.showScanner = true
     }
   },
   methods: {
+    reset() {
+      this.showScanner = false
+      this.g.scanner = null
+    },
     detect(val) {
       const rawValue = val[0].rawValue
       console.log('Detected QR code value:', rawValue)
       this.callback(rawValue)
       this.$emit('detect', rawValue)
-      this.showScanner = false
+      this.reset()
     },
     async onInitQR(promise) {
       try {
@@ -66,7 +67,7 @@ window.app.component('lnbits-qrcode-scanner', {
           type: 'negative'
         })
         this.g.hasCamera = false
-        this.showScanner = false
+        this.reset()
       }
     }
   }
