@@ -53,11 +53,9 @@ window.app.component('lnbits-manage-wallet-list', {
     paymentEvents() {
       if (!this.g.user) return
       let timeout
-      let count = 0
-      this.g.user.wallets.forEach(wallet => {
-        if (count >= this.maxWallets) return
+      const wallets = this.g.user.wallets.slice(0, this.maxWallets)
+      wallets.forEach(wallet => {
         if (!this.g.walletEventListeners.includes(wallet.id)) {
-          count += 1
           this.g.walletEventListeners.push(wallet.id)
           const ws = new WebSocket(`${websocketUrl}/${wallet.inkey}`)
           ws.onmessage = this.onWebsocketMessage
