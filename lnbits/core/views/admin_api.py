@@ -8,8 +8,8 @@ from urllib.parse import urlparse
 from fastapi import APIRouter, Depends, File
 from fastapi.responses import FileResponse
 
-from lnbits.core.models import User
 from lnbits.core.models.notifications import NotificationType
+from lnbits.core.models.users import Account
 from lnbits.core.services import (
     enqueue_admin_notification,
     get_balance_delta,
@@ -67,9 +67,9 @@ async def api_test_email():
 
 @admin_router.get("/api/v1/settings")
 async def api_get_settings(
-    user: User = Depends(check_admin),
+    account: Account = Depends(check_admin),
 ) -> AdminSettings | None:
-    admin_settings = await get_admin_settings(user.super_user)
+    admin_settings = await get_admin_settings(account.is_super_user)
     return admin_settings
 
 
@@ -77,12 +77,14 @@ async def api_get_settings(
     "/api/v1/settings",
     status_code=HTTPStatus.OK,
 )
-async def api_update_settings(data: UpdateSettings, user: User = Depends(check_admin)):
+async def api_update_settings(
+    data: UpdateSettings, account: Account = Depends(check_admin)
+):
     enqueue_admin_notification(
-        NotificationType.settings_update, {"username": user.username}
+        NotificationType.settings_update, {"username": account.username}
     )
     await update_admin_settings(data)
-    admin_settings = await get_admin_settings(user.super_user)
+    admin_settings = await get_admin_settings(account.is_super_user)
     if not admin_settings:
         raise ValueError("Updated admin settings not found.")
     update_cached_settings(admin_settings.dict())
@@ -94,9 +96,11 @@ async def api_update_settings(data: UpdateSettings, user: User = Depends(check_a
     "/api/v1/settings",
     status_code=HTTPStatus.OK,
 )
-async def api_update_settings_partial(data: dict, user: User = Depends(check_admin)):
+async def api_update_settings_partial(
+    data: dict, account: Account = Depends(check_admin)
+):
     updatable_settings = dict_to_settings({**settings.dict(), **data})
-    return await api_update_settings(updatable_settings, user)
+    return await api_update_settings(updatable_settings, account)
 
 
 @admin_router.get(
@@ -110,9 +114,9 @@ async def api_reset_settings(field_name: str):
 
 
 @admin_router.delete("/api/v1/settings", status_code=HTTPStatus.OK)
-async def api_delete_settings(user: User = Depends(check_super_user)) -> None:
+async def api_delete_settings(account: Account = Depends(check_super_user)) -> None:
     enqueue_admin_notification(
-        NotificationType.settings_update, {"username": user.username}
+        NotificationType.settings_update, {"username": account.username}
     )
     await reset_core_settings()
     server_restart.set()

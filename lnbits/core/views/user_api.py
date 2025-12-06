@@ -115,12 +115,12 @@ async def api_create_user(data: CreateUser) -> CreateUser:
 
 @users_router.put("/user/{user_id}", name="Update user")
 async def api_update_user(
-    user_id: str, data: CreateUser, user: User = Depends(check_admin)
+    user_id: str, data: CreateUser, account: Account = Depends(check_admin)
 ) -> CreateUser:
     if user_id != data.id:
         raise HTTPException(HTTPStatus.BAD_REQUEST, "User Id missmatch.")
 
-    if user_id == settings.super_user and user.id != settings.super_user:
+    if user_id == settings.super_user and account.id != settings.super_user:
         raise HTTPException(
             status_code=HTTPStatus.BAD_REQUEST,
             detail="Action only allowed for super user.",
@@ -154,7 +154,7 @@ async def api_update_user(
     name="Delete user by Id",
 )
 async def api_users_delete_user(
-    user_id: str, user: User = Depends(check_admin)
+    user_id: str, account: Account = Depends(check_admin)
 ) -> SimpleStatus:
     wallets = await get_wallets(user_id, deleted=False)
     if len(wallets) > 0:
@@ -169,7 +169,7 @@ async def api_users_delete_user(
             detail="Cannot delete super user.",
         )
 
-    if user_id in settings.lnbits_admin_users and not user.super_user:
+    if user_id in settings.lnbits_admin_users and not account.is_super_user:
         raise HTTPException(
             status_code=HTTPStatus.BAD_REQUEST,
             detail="Only super_user can delete admin user.",
@@ -295,7 +295,7 @@ async def api_users_delete_all_user_wallet(user_id: str) -> SimpleStatus:
     "The second time it is called will delete the entry from the DB",
 )
 async def api_users_delete_user_wallet(
-    user_id: str, wallet: str, user: User = Depends(check_admin)
+    user_id: str, wallet: str, account: Account = Depends(check_admin)
 ) -> SimpleStatus:
     wal = await get_wallet(wallet)
     if not wal:
@@ -304,7 +304,7 @@ async def api_users_delete_user_wallet(
             detail="Wallet does not exist.",
         )
 
-    if user_id == settings.super_user and user.id != settings.super_user:
+    if user_id == settings.super_user and account.id != settings.super_user:
         raise HTTPException(
             status_code=HTTPStatus.BAD_REQUEST,
             detail="Action only allowed for super user.",
