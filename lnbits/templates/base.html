@@ -34,7 +34,7 @@
     <div id="vue">
       <q-layout view="hHh lpR lfr" v-cloak>
         <lnbits-disclaimer v-if="g.user && !g.isPublicPage"></lnbits-disclaimer>
-        <lnbits-qrcode-scanner @detect="handleScan"></lnbits-qrcode-scanner>
+        <lnbits-qrcode-scanner :callback="g.scanner"></lnbits-qrcode-scanner>
         <lnbits-theme></lnbits-theme>
         <lnbits-header></lnbits-header>
         <lnbits-drawer v-if="g.user && !g.isPublicPage"></lnbits-drawer>

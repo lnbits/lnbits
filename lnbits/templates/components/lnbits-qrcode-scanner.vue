@@ -1,5 +1,5 @@
 <template id="lnbits-qrcode-scanner">
-  <q-dialog v-model="g.showScanner" position="top">
+  <q-dialog v-model="showScanner" position="top">
     <q-card class="q-pa-lg q-pt-xl">
       <div class="text-center q-mb-lg">
         <qrcode-stream
@@ -10,7 +10,7 @@
       </div>
       <div class="row q-mt-lg">
         <q-btn
-          @click="g.showScanner = false"
+          @click="showScanner = false"
           flat
           color="grey"
           class="q-ml-auto"

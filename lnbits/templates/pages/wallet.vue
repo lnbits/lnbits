@@ -162,10 +162,9 @@
                 unelevated
                 icon="qr_code_scanner"
                 color="secondary"
-                @click="openScanDialog(decodeQR)"
+                @click="g.scanner = decodeQR"
                 :disable="
-                  !this.g.wallet.canReceivePayments &&
-                  !this.g.wallet.canSendPayments
+                  !g.wallet.canReceivePayments && !g.wallet.canSendPayments
                 "
               >
                 <q-tooltip
@@ -861,7 +860,7 @@
     </q-tabs>
 
     <q-btn
-      @click="openScanDialog(decodeQR)"
+      @click="g.scanner = decodeQR"
       round
       unelevated
       size="35px"
