@@ -115,7 +115,9 @@
                 <div class="text-bold text-italic">BTC Price</div>
                 <span
                   class="text-bold text-italic"
-                  v-text="formattedExchange"
+                  v-text="
+                    utils.formatCurrency(g.exchangeRate, g.wallet.currency)
+                  "
                 ></span>
               </div>
               <q-btn

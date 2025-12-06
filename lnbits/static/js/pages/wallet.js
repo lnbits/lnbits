@@ -49,7 +49,6 @@ window.PageWallet = {
       hasNfc: false,
       nfcReaderAbortController: null,
       formattedFiatAmount: 0,
-      formattedExchange: null,
       paymentFilter: {
         'status[ne]': 'failed'
       },
@@ -658,10 +657,6 @@ window.PageWallet = {
       if (this.g.fiatTracking && this.g.wallet.currency) {
         this.g.fiatBalance =
           (this.g.exchangeRate / 100000000) * this.g.wallet.sat
-        this.formattedExchange = LNbits.utils.formatCurrency(
-          this.g.exchangeRate,
-          this.g.wallet.currency
-        )
       }
     }
   }
