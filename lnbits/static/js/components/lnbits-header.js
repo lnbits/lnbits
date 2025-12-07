@@ -39,16 +39,32 @@ window.app.component('lnbits-header', {
       return this.USE_CUSTOM_LOGO || null
     },
     userPictureUrl() {
-      return this.g.user.config.picture
+      return this.g.user.extra.picture
     },
     hasUserPicture() {
-      return this.g.user && this.g.user.config && this.g.user.config.picture
+      return this.g.user && this.g.user.extra && this.g.user.extra.picture != ''
     },
     showAdmin() {
       return this.g.user && (this.g.user.super_user || this.g.user.admin)
     },
     showVoidwallet() {
       return this.g.user && this.VOIDWALLET == true
+    },
+    displayName() {
+      return (
+        this.g.user?.extra?.display_name ||
+        this.g.user?.extra?.first_name ||
+        'Anon'
+      )
+    },
+    displayRole() {
+      if (this.g.user?.super_user) {
+        return 'Super User'
+      } else if (this.g.user?.admin) {
+        return 'Admin'
+      } else {
+        return 'User'
+      }
     }
   }
 })

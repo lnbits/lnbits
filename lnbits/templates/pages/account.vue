@@ -360,7 +360,7 @@
                         :label="$t('change_password')"
                         filled
                         color="primary"
-                        class="float-right"
+                        class="float-right q-mb-md"
                       ></q-btn>
                     </q-card-section>
                   </div>

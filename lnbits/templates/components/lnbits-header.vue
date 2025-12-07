@@ -81,16 +81,27 @@
         class="q-pl-sm"
       >
         <template v-slot:label>
-          <div>
-            <q-img
-              v-if="hasUserPicture"
-              :src="userPictureUrl"
-              style="max-width: 32px"
-            ></q-img>
-            <q-icon v-else name="account_circle" />
-          </div>
+          <q-avatar v-if="hasUserPicture" size="18px">
+            <q-img :src="userPictureUrl"></q-img>
+          </q-avatar>
+          <q-avatar v-else icon="account_circle"></q-avatar>
         </template>
-        <q-list>
+        <q-list style="max-width: 200px">
+          <q-item>
+            <q-item-section avatar v-if="hasUserPicture">
+              <q-avatar size="md">
+                <img :src="userPictureUrl" />
+              </q-avatar>
+            </q-item-section>
+            <q-item-section>
+              <q-item-label
+                class="ellipsis"
+                v-text="displayName"
+              ></q-item-label>
+              <q-item-label caption v-text="displayRole"></q-item-label>
+            </q-item-section>
+          </q-item>
+          <q-separator></q-separator>
           <q-item to="/account" clickable v-close-popup>
             <q-item-section>
               <q-item-label>
