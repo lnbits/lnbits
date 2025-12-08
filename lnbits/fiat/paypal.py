@@ -56,7 +56,7 @@ class PayPalWallet(FiatProvider):
 
         self.endpoint = normalize_endpoint(settings.paypal_api_endpoint)
         self.headers = {
-            "User-Agent": settings.user_agent,
+            "User-Agent": settings.user_agent or f"LNbits/{settings.version}",
         }
         self._access_token: str | None = None
         self._token_expires_at: float = 0
