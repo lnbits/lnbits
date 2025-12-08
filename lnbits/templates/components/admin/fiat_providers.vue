@@ -76,7 +76,7 @@
 
             <q-expansion-item :label="$t('webhook')" default-opened>
               <q-card-section>
-                <span v-text="$t('webhook_stripe_description')"></span>poo
+                <span v-text="$t('webhook_stripe_description')"></span>
               </q-card-section>
               <q-card-section>
                 <q-input
@@ -565,6 +565,68 @@
           </q-card>
         </q-expansion-item>
       </q-list>
+      <div
+        class="q-my-md q-pa-sm text-body2 text-grey-4 bg-grey-9 rounded-borders"
+      >
+        <q-icon
+          name="warning"
+          color="orange-4"
+          size="18px"
+          class="q-mr-xs"
+        ></q-icon>
+        <span v-text="$t('fiat_warning_bitcoin')"></span>
+      </div>
+      <q-card flat bordered class="q-mt-sm q-pa-md text-body2">
+        <div class="q-gutter-y-sm">
+          <div class="row items-center q-gutter-sm">
+            <div class="text-bold" style="min-width: 140px">Stripe</div>
+            <q-chip dense color="positive" text-color="white" icon="check"
+              >Checkout</q-chip
+            >
+            <q-chip dense color="positive" text-color="white" icon="check"
+              >Subscriptions</q-chip
+            >
+            <q-chip dense color="positive" text-color="white" icon="check">
+              Tap-to-pay (with LNbits Android TPoS Wrapper APP)
+            </q-chip>
+            <q-chip dense color="grey-9" text-color="white" icon="public"
+              >Regions: Global</q-chip
+            >
+          </div>
+          <div class="row items-center q-gutter-sm">
+            <div class="text-bold" style="min-width: 140px">PayPal</div>
+            <q-chip dense color="positive" text-color="white" icon="check"
+              >Checkout</q-chip
+            >
+            <q-chip dense color="positive" text-color="white" icon="check"
+              >Subscriptions</q-chip
+            >
+            <q-chip dense color="negative" text-color="white" icon="close"
+              >Tap-to-pay</q-chip
+            >
+            <q-chip dense color="grey-9" text-color="white" icon="public"
+              >Regions: Global</q-chip
+            >
+          </div>
+          <div class="row items-center q-gutter-sm">
+            <div class="text-bold" style="min-width: 140px">
+              Square (coming soon)
+            </div>
+            <q-chip dense color="positive" text-color="white" icon="check"
+              >Checkout</q-chip
+            >
+            <q-chip dense color="positive" text-color="white" icon="check"
+              >Subscriptions</q-chip
+            >
+            <q-chip dense color="negative" text-color="white" icon="close"
+              >Tap-to-pay</q-chip
+            >
+            <q-chip dense color="grey-9" text-color="white" icon="public"
+              >Regions: Global</q-chip
+            >
+          </div>
+        </div>
+      </q-card>
     </div>
   </div>
 </template>

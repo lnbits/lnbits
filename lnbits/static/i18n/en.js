@@ -74,6 +74,8 @@ window.localisation.en = {
   update_name: 'Update name',
   fiat_tracking: 'Fiat tracking',
   fiat_providers: 'Fiat providers',
+  fiat_warning_bitcoin:
+    'Fiat providers can get twitchy about anything bitcoin, so avoid using word "bitcoin" in your memos!',
   currency: 'Currency',
   update_currency: 'Update currency',
   press_to_claim: 'Press to claim bitcoin',
@@ -428,8 +430,7 @@ window.localisation.en = {
   look_and_feel: 'Look and Feel',
   endpoint: 'Endpoint',
   api: 'API',
-  api_stripe:
-    'API (warning: Stripe are twitchy about anything bitcoin, so avoid using word "bitcoin" in your memos!)',
+  api_stripe: 'API',
   api_token: 'API Token',
   api_tokens: 'API Tokens',
   access_control_list: 'Access Control List',
