@@ -5,6 +5,7 @@ window.app.component('lnbits-admin-fiat-providers', {
   data() {
     return {
       formAddStripeUser: '',
+      formAddPaypalUser: '',
       hideInputToggle: true
     }
   },
@@ -25,6 +26,23 @@ window.app.component('lnbits-admin-fiat-providers', {
     removeStripeAllowedUser(user) {
       this.formData.stripe_limits.allowed_users =
         this.formData.stripe_limits.allowed_users.filter(u => u !== user)
+    },
+    addPaypalAllowedUser() {
+      const addUser = this.formAddPaypalUser || ''
+      if (
+        addUser.length &&
+        !this.formData.paypal_limits.allowed_users.includes(addUser)
+      ) {
+        this.formData.paypal_limits.allowed_users = [
+          ...this.formData.paypal_limits.allowed_users,
+          addUser
+        ]
+        this.formAddPaypalUser = ''
+      }
+    },
+    removePaypalAllowedUser(user) {
+      this.formData.paypal_limits.allowed_users =
+        this.formData.paypal_limits.allowed_users.filter(u => u !== user)
     },
     checkFiatProvider(providerName) {
       LNbits.api

@@ -642,6 +642,20 @@ class StripeFiatProvider(LNbitsSettings):
     stripe_limits: FiatProviderLimits = Field(default_factory=FiatProviderLimits)
 
 
+class PayPalFiatProvider(LNbitsSettings):
+    paypal_enabled: bool = Field(default=False)
+    paypal_api_endpoint: str = Field(default="https://api-m.paypal.com")
+    paypal_client_id: str | None = Field(default=None)
+    paypal_client_secret: str | None = Field(default=None)
+    paypal_payment_success_url: str = Field(default="https://lnbits.com")
+    paypal_payment_webhook_url: str = Field(
+        default="https://your-lnbits-domain-here.com/api/v1/callback/paypal"
+    )
+    paypal_webhook_id: str | None = Field(default=None)
+
+    paypal_limits: FiatProviderLimits = Field(default_factory=FiatProviderLimits)
+
+
 class LightningSettings(LNbitsSettings):
     lightning_invoice_expiry: int = Field(default=3600, gt=0)
 
@@ -677,7 +691,7 @@ class FundingSourcesSettings(
     funding_source_max_retries: int = Field(default=4, ge=0)
 
 
-class FiatProvidersSettings(StripeFiatProvider):
+class FiatProvidersSettings(StripeFiatProvider, PayPalFiatProvider):
     def is_fiat_provider_enabled(self, provider: str | None) -> bool:
         """
         Checks if a specific fiat provider is enabled.
@@ -686,7 +700,8 @@ class FiatProvidersSettings(StripeFiatProvider):
             return False
         if provider == "stripe":
             return self.stripe_enabled
-        # Add checks for other fiat providers here as needed
+        if provider == "paypal":
+            return self.paypal_enabled
         return False
 
     def get_fiat_providers_for_user(self, user_id: str) -> list[str]:
@@ -700,7 +715,12 @@ class FiatProvidersSettings(StripeFiatProvider):
         ):
             allowed_providers.append("stripe")
 
-        # Add other fiat providers here as needed
+        if self.paypal_enabled and (
+            not self.paypal_limits.allowed_users
+            or user_id in self.paypal_limits.allowed_users
+        ):
+            allowed_providers.append("paypal")
+
         return allowed_providers
 
     def get_fiat_provider_limits(self, provider_name: str) -> FiatProviderLimits | None:

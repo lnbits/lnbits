@@ -347,6 +347,7 @@
             </q-item>
             <q-separator></q-separator>
             <q-item
+              v-if="g.user.fiat_providers?.includes('stripe')"
               :active="receive.fiatProvider === 'stripe'"
               @click="receive.fiatProvider = 'stripe'"
               active-class="bg-teal-1 text-grey-8 text-weight-bold"
@@ -360,6 +361,22 @@
               </q-item-section>
               <q-item-section>
                 <span v-text="$t('pay_with', {provider: 'Stripe'})"></span>
+              </q-item-section>
+            </q-item>
+            <q-separator v-if="g.user.fiat_providers?.includes('paypal')"></q-separator>
+            <q-item
+              v-if="g.user.fiat_providers?.includes('paypal')"
+              :active="receive.fiatProvider === 'paypal'"
+              @click="receive.fiatProvider = 'paypal'"
+              active-class="bg-teal-1 text-grey-8 text-weight-bold"
+              clickable
+              v-ripple
+            >
+              <q-item-section avatar>
+                <q-avatar color="blue-8" text-color="white">PP</q-avatar>
+              </q-item-section>
+              <q-item-section>
+                <span v-text="$t('pay_with', {provider: 'PayPal'})"></span>
               </q-item-section>
             </q-item>
           </q-list>
@@ -399,7 +416,6 @@
     >
       <lnbits-qrcode
         v-if="receive.fiatPaymentReq"
-        :show-buttons="false"
         :href="receive.fiatPaymentReq"
         :value="receive.fiatPaymentReq"
       >

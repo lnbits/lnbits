@@ -75,20 +75,28 @@ async def cancel_subscription(
 )
 async def connection_token(provider: str):
     fiat_provider = await get_fiat_provider(provider)
-    if provider == "stripe":
-        if not isinstance(fiat_provider, StripeWallet):
+    if not fiat_provider:
+        raise HTTPException(status_code=404, detail="Fiat provider not found")
+
+    if provider != "stripe":
+        raise HTTPException(
+            status_code=400,
+            detail=f"Connection tokens are not supported for provider '{provider}'.",
+        )
+
+    if not isinstance(fiat_provider, StripeWallet):
+        raise HTTPException(
+            status_code=500, detail="Stripe wallet/provider not configured"
+        )
+    try:
+        tok = await fiat_provider.create_terminal_connection_token()
+        secret = tok.get("secret")
+        if not secret:
             raise HTTPException(
-                status_code=500, detail="Stripe wallet/provider not configured"
+                status_code=502, detail="Stripe returned no connection token"
             )
-        try:
-            tok = await fiat_provider.create_terminal_connection_token()
-            secret = tok.get("secret")
-            if not secret:
-                raise HTTPException(
-                    status_code=502, detail="Stripe returned no connection token"
-                )
-            return {"secret": secret}
-        except Exception as e:
-            raise HTTPException(
-                status_code=500, detail="Failed to create connection token"
-            ) from e
+        return {"secret": secret}
+    except Exception as e:
+        raise HTTPException(
+            status_code=500, detail="Failed to create connection token"
+        ) from e

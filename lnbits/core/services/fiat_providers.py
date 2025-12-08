@@ -3,6 +3,7 @@ import hmac
 import time
 
 from loguru import logger
+import httpx
 
 from lnbits.core.crud import get_wallet
 from lnbits.core.crud.payments import create_payment
@@ -68,6 +69,60 @@ def check_stripe_signature(
     if hmac.compare_digest(computed_signature, signature) is not True:
         logger.warning("Stripe signature verification failed.")
         raise ValueError("Stripe signature verification failed.")
+
+
+async def verify_paypal_webhook(headers, payload: bytes):
+    """
+    Validate PayPal webhook signatures using the PayPal verify API.
+    """
+    webhook_id = settings.paypal_webhook_id
+    if not webhook_id:
+        logger.warning("PayPal webhook ID not set; skipping verification.")
+        return
+
+    required_headers = {
+        "PAYPAL-TRANSMISSION-ID": headers.get("PAYPAL-TRANSMISSION-ID"),
+        "PAYPAL-TRANSMISSION-TIME": headers.get("PAYPAL-TRANSMISSION-TIME"),
+        "PAYPAL-TRANSMISSION-SIG": headers.get("PAYPAL-TRANSMISSION-SIG"),
+        "PAYPAL-CERT-URL": headers.get("PAYPAL-CERT-URL"),
+        "PAYPAL-AUTH-ALGO": headers.get("PAYPAL-AUTH-ALGO"),
+    }
+    if not all(required_headers.values()):
+        logger.warning("Missing PayPal webhook headers; skipping verification.")
+        return
+
+    try:
+        async with httpx.AsyncClient(base_url=settings.paypal_api_endpoint) as client:
+            token_resp = await client.post(
+                "/v1/oauth2/token",
+                data={"grant_type": "client_credentials"},
+                auth=(settings.paypal_client_id or "", settings.paypal_client_secret or ""),
+            )
+            token_resp.raise_for_status()
+            access_token = token_resp.json().get("access_token")
+            if not access_token:
+                raise ValueError("PayPal token missing in verification flow.")
+
+            verify_resp = await client.post(
+                "/v1/notifications/verify-webhook-signature",
+                json={
+                    "auth_algo": required_headers["PAYPAL-AUTH-ALGO"],
+                    "cert_url": required_headers["PAYPAL-CERT-URL"],
+                    "transmission_id": required_headers["PAYPAL-TRANSMISSION-ID"],
+                    "transmission_sig": required_headers["PAYPAL-TRANSMISSION-SIG"],
+                    "transmission_time": required_headers["PAYPAL-TRANSMISSION-TIME"],
+                    "webhook_id": webhook_id,
+                    "webhook_event": json.loads(payload.decode()),
+                },
+                headers={"Authorization": f"Bearer {access_token}"},
+            )
+            verify_resp.raise_for_status()
+            verification_status = verify_resp.json().get("verification_status")
+            if verification_status != "SUCCESS":
+                raise ValueError("PayPal webhook verification failed.")
+    except Exception as exc:
+        logger.warning(exc)
+        raise ValueError("PayPal webhook cannot be verified.") from exc
 
 
 async def test_connection(provider: str) -> SimpleStatus:

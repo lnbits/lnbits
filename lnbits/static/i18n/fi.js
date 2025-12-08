@@ -628,10 +628,15 @@ window.localisation.fi = {
   filter_payments: 'Suodata maksuja',
   filter_date: 'Suodata päiväyksellä',
   websocket_example: 'Websocket example',
+  client_id: 'Client ID',
   secret_key: 'Secret Key',
   signing_secret: 'Signing Secret',
   signing_secret_hint:
     'Signing secret for the webhook. Messages will be signed with this secret.',
+  webhook_id: 'Webhook ID',
+  webhook_id_hint: 'PayPal webhook ID used to verify incoming events.',
+  webhook_paypal_description:
+    'On the PayPal side configure a webhook pointing to your LNbits server.',
   callback_success_url: 'Callback Success URL',
   callback_success_url_hint:
     'The user will be redirected to this URL after the payment is successful'
