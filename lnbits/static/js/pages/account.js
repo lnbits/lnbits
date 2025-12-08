@@ -210,7 +210,7 @@ window.PageAccount = {
   },
   computed: {
     isUserTouched() {
-      return JSON.stringify(this.g.user) !== JSON.stringify(this.untouchedUser)
+      return !_.isEqual(this.g.user, this.untouchedUser)
     }
   },
   methods: {
