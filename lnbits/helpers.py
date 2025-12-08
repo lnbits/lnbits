@@ -113,6 +113,7 @@ def template_renderer(additional_folders: list | None = None) -> Jinja2Templates
         "LNBITS_EXT_BUILDER": settings.lnbits_extensions_builder_activate_non_admins,
         "LNBITS_CURRENCIES": list(currencies.keys()),
         "LNBITS_ALLOWED_CURRENCIES": settings.lnbits_allowed_currencies,
+        "CACHE_KEY": settings.server_startup_time,
     }
 
     t.env.globals["WINDOW_SETTINGS"] = window_settings

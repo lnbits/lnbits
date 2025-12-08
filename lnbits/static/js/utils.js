@@ -1,8 +1,13 @@
 window._lnbitsUtils = {
+  url_for(url) {
+    const _url = new URL(url, window.location.origin)
+    _url.searchParams.set('v', WINDOW_SETTINGS.CACHE_KEY)
+    return _url.toString()
+  },
   loadScript(src) {
     return new Promise((resolve, reject) => {
       const script = document.createElement('script')
-      script.src = src
+      script.src = this.url_for(src)
       script.onload = () => {
         resolve()
       }
@@ -13,7 +18,7 @@ window._lnbitsUtils = {
     })
   },
   async loadTemplate(url) {
-    return fetch(url)
+    return fetch(this.url_for(url))
       .then(response => {
         if (!response.ok) {
           throw new Error(`Failed to load template from ${url}`)

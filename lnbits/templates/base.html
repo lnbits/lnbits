@@ -27,7 +27,7 @@
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <link
       rel="apple-touch-icon"
-      href="{{ LNBITS_APPLE_TOUCH_ICON if LNBITS_APPLE_TOUCH_ICON else static_url_for('static', 'images/maskable_icon.png') }}"
+      href="{{ LNBITS_APPLE_TOUCH_ICON or static_url_for('static', 'images/maskable_icon.png') }}"
     />
     {% if web_manifest %}
     <link async="async" rel="manifest" href="{{ web_manifest }}" />
