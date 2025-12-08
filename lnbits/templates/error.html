@@ -1,5 +1,8 @@
 {% extends "public.html" %} {% from "macros.jinja" import window_vars with
 context %} {% block scripts %} {{ window_vars() }} {% endblock %} {% block
 page_container %}
-<lnbits-error code="{{ status_code }}" message="{{ message }}"></lnbits-error>
+<lnbits-error
+  code="{{ status_code | safe }}"
+  message="{{ message | safe }}"
+></lnbits-error>
 {% endblock %}
