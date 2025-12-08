@@ -44,11 +44,28 @@ async def test_create_account(client, settings: Settings):
 # check POST and DELETE /api/v1/wallet with adminkey and user token:
 # create additional wallet and delete it
 @pytest.mark.anyio
-async def test_create_wallet_and_delete(
-    client, adminkey_headers_from, user_headers_from
-):
+async def test_create_wallet_and_delete(client, user_headers_from):
+    tiny_id = shortuuid.uuid()[:8]
     response = await client.post(
-        "/api/v1/wallet", json={"name": "test"}, headers=adminkey_headers_from
+        "/api/v1/auth/register",
+        json={
+            "username": f"u21.{tiny_id}",
+            "password": "secret1234",
+            "password_repeat": "secret1234",
+            "email": f"u21.{tiny_id}@lnbits.com",
+        },
+    )
+
+    client.cookies.clear()
+
+    access_token = response.json().get("access_token")
+    assert response.status_code == 200, "User created."
+    assert response.json().get("access_token") is not None
+
+    response = await client.post(
+        "/api/v1/wallet",
+        json={"name": "test"},
+        headers={"Authorization": f"Bearer {access_token}"},
     )
     assert response.status_code == 200
     result = response.json()
@@ -58,6 +75,7 @@ async def test_create_wallet_and_delete(
     assert "id" in result
     assert "adminkey" in result
 
+    # should not work with admin key only with user
     invalid_response = await client.delete(
         f"/api/v1/wallet/{result['id']}",
         headers={
@@ -69,7 +87,7 @@ async def test_create_wallet_and_delete(
 
     response = await client.delete(
         f"/api/v1/wallet/{result['id']}",
-        headers=user_headers_from,
+        headers={"Authorization": f"Bearer {access_token}"},
     )
     assert response.status_code == 200
 
