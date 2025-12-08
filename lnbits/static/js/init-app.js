@@ -15,6 +15,7 @@ const DynamicComponent = {
     const path = `/${name}/`
     const routesPath = `/${name}/static/routes.json`
     if (this.$router.getRoutes().some(r => r.path === path)) return
+    if (this.$route.fullPath.startsWith('/extensions/builder/preview')) return
     fetch(routesPath)
       .then(async res => {
         if (!res.ok) throw new Error('No dynamic routes found')

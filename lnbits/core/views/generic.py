@@ -76,8 +76,8 @@ async def extensions_builder_preview(
             request,
             "error.html",
             {
-                "err": f"Extension {ext_id} not found",
-                "message": "Please 'Refresh Preview' first.",
+                "code": 404,
+                "message": f"Extension {ext_id} not found, refresh Preview.",
             },
             status_code=HTTPStatus.NOT_FOUND,
         )
@@ -87,7 +87,6 @@ async def extensions_builder_preview(
         html_file_path.as_posix(),
         {
             "user": user.json(),
-            "ajax": _is_ajax_request(request),
         },
     )
 
@@ -96,6 +95,7 @@ async def extensions_builder_preview(
         "style-src 'self' 'unsafe-inline'; "
         "script-src 'self' 'unsafe-inline' 'unsafe-eval'"
     )
+
     return response
 
 
@@ -285,7 +285,3 @@ async def lnurlwallet(request: Request, lightning: str = ""):
     return RedirectResponse(
         f"/wallet?usr={account.id}&wal={wallet.id}",
     )
-
-
-def _is_ajax_request(request: Request):
-    return request.headers.get("X-Requested-With", None) == "XMLHttpRequest"
