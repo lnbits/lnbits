@@ -29,6 +29,13 @@ window.app.component('lnbits-payment-list', {
           descending: true,
           rowsNumber: 10
         },
+        sortFields: [
+          {name: 'amount', label: 'Amount'},
+          {name: 'fee', label: 'Fee'},
+          {name: 'memo', label: 'Memo'},
+          {name: 'time', label: 'Creation Date'},
+          {name: 'updated_at', label: 'Last Updated'}
+        ],
         search: '',
         loading: false
       },
@@ -242,6 +249,16 @@ window.app.component('lnbits-payment-list', {
             LNbits.utils.notifyApiError(err)
           }
         })
+    },
+    sortByColumn(columnName) {
+      if (this.paymentsTable.pagination.sortBy === columnName) {
+        this.paymentsTable.pagination.descending =
+          !this.paymentsTable.pagination.descending
+      } else {
+        this.paymentsTable.pagination.sortBy = columnName
+        this.paymentsTable.pagination.descending = false
+      }
+      this.fetchPayments()
     },
     fetchPaymentsAsAdmin(walletId, params) {
       params = (params || '') + '&wallet_id=' + walletId

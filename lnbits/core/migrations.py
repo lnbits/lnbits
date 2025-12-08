@@ -794,9 +794,11 @@ async def m039_index_payments(db: Connection):
         "checking_id",
         "payment_hash",
         "amount",
+        "fee",
         "labels",
         "time",
         "status",
+        "memo",
         "created_at",
         "updated_at",
     ]

@@ -196,7 +196,15 @@ class PaymentFilters(FilterModel):
         "labels",
     ]
 
-    __sort_fields__ = ["created_at", "amount", "fee", "memo", "time", "tag"]
+    __sort_fields__ = [
+        "created_at",
+        "updated_at",
+        "amount",
+        "fee",
+        "memo",
+        "time",
+        "tag",
+    ]
 
     status: str | None
     tag: str | None

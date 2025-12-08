@@ -119,6 +119,46 @@
           <span v-text="$t('filter_payments')"></span>
         </q-tooltip>
       </q-btn>
+      <q-btn color="grey" icon="sort" class="q-pa-sm" flat>
+        <q-menu>
+          <q-list>
+            <template
+              class="full-width"
+              v-for="column in paymentsTable.sortFields"
+              :key="column.name"
+            >
+              <q-item
+                @click="sortByColumn(column.name)"
+                clickable
+                v-ripple
+                v-close-popup
+                dense
+              >
+                <q-item-section>
+                  <q-item-label lines="1" class="full-width"
+                    ><span v-text="column.label"></span
+                  ></q-item-label>
+                </q-item-section>
+                <q-item-section side>
+                  <template
+                    v-if="paymentsTable.pagination.sortBy === column.name"
+                  >
+                    <q-icon
+                      v-if="paymentsTable.pagination.descending"
+                      name="arrow_downward"
+                    ></q-icon>
+                    <q-icon v-else name="arrow_upward"></q-icon>
+                  </template>
+                </q-item-section>
+              </q-item>
+            </template>
+          </q-list>
+        </q-menu>
+        <q-tooltip>
+          <span v-text="$t('filter_payments')"></span>
+        </q-tooltip>
+      </q-btn>
+
       <q-btn-dropdown
         dense
         outline
