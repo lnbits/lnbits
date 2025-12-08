@@ -79,15 +79,32 @@
                 <span v-text="$t('webhook_stripe_description')"></span>
               </q-card-section>
               <q-card-section>
-                <q-input
-                  filled
-                  class="q-mt-md"
-                  type="text"
-                  disable
-                  v-model="formData.stripe_payment_webhook_url"
-                  :label="$t('webhook_url')"
-                  :hint="$t('webhook_url_hint')"
-                ></q-input>
+                <div class="row items-center q-gutter-sm q-mt-md">
+                  <div class="col">
+                    <q-input
+                      filled
+                      type="text"
+                      disable
+                      :model-value="stripeWebhookUrl"
+                      :label="$t('webhook_url')"
+                      :hint="$t('webhook_url_hint')"
+                      readonly
+                    ></q-input>
+                  </div>
+                  <div class="col-auto">
+                    <q-btn
+                      outline
+                      color="grey"
+                      icon="content_copy"
+                      @click="copyWebhookUrl(stripeWebhookUrl)"
+                      :aria-label="$t('copy_webhook_url')"
+                    >
+                      <q-tooltip>
+                        <span v-text="$t('copy_webhook_url')"></span>
+                      </q-tooltip>
+                    </q-btn>
+                  </div>
+                </div>
                 <q-input
                   filled
                   class="q-mt-md"
@@ -350,15 +367,32 @@
                 <span v-text="$t('webhook_paypal_description')"></span>
               </q-card-section>
               <q-card-section>
-                <q-input
-                  filled
-                  class="q-mt-md"
-                  type="text"
-                  disable
-                  v-model="formData.paypal_payment_webhook_url"
-                  :label="$t('webhook_url')"
-                  :hint="$t('webhook_url_hint')"
-                ></q-input>
+                <div class="row items-center q-gutter-sm q-mt-md">
+                  <div class="col">
+                    <q-input
+                      filled
+                      type="text"
+                      disable
+                      :model-value="paypalWebhookUrl"
+                      :label="$t('webhook_url')"
+                      :hint="$t('webhook_url_hint')"
+                      readonly
+                    ></q-input>
+                  </div>
+                  <div class="col-auto">
+                    <q-btn
+                      outline
+                      color="grey"
+                      icon="content_copy"
+                      @click="copyWebhookUrl(paypalWebhookUrl)"
+                      :aria-label="$t('copy_webhook_url')"
+                    >
+                      <q-tooltip>
+                        <span v-text="$t('copy_webhook_url')"></span>
+                      </q-tooltip>
+                    </q-btn>
+                  </div>
+                </div>
                 <q-input
                   filled
                   class="q-mt-md"

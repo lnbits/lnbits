@@ -9,7 +9,75 @@ window.app.component('lnbits-admin-fiat-providers', {
       hideInputToggle: true
     }
   },
+  computed: {
+    stripeWebhookUrl() {
+      return (
+        this.formData?.stripe_payment_webhook_url ||
+        this.calculateWebhookUrl('stripe')
+      )
+    },
+    paypalWebhookUrl() {
+      return (
+        this.formData?.paypal_payment_webhook_url ||
+        this.calculateWebhookUrl('paypal')
+      )
+    }
+  },
+  watch: {
+    formData: {
+      handler() {
+        this.syncWebhookUrls()
+      },
+      immediate: true
+    }
+  },
   methods: {
+    basePathFromLocation() {
+      if (typeof window === 'undefined') {
+        return ''
+      }
+      const normalizedPath = window.location.pathname.replace(/\/+$/, '')
+      const adminIndex = normalizedPath.lastIndexOf('/admin')
+      const basePath =
+        adminIndex >= 0
+          ? normalizedPath.slice(0, adminIndex)
+          : normalizedPath || ''
+      return basePath || ''
+    },
+    calculateWebhookUrl(provider) {
+      if (typeof window === 'undefined') {
+        return ''
+      }
+      const basePath = this.basePathFromLocation()
+      const path = `${basePath}/api/v1/callback/${provider}`.replace(
+        /\/+/g,
+        '/'
+      )
+      const withLeadingSlash = path.startsWith('/') ? path : `/${path}`
+      return `${window.location.origin}${withLeadingSlash}`
+    },
+    syncWebhookUrls() {
+      this.maybeSetWebhookUrl('stripe_payment_webhook_url', 'stripe')
+      this.maybeSetWebhookUrl('paypal_payment_webhook_url', 'paypal')
+    },
+    maybeSetWebhookUrl(fieldName, provider) {
+      if (!this.formData) {
+        return
+      }
+      const calculated = this.calculateWebhookUrl(provider)
+      const current = this.formData[fieldName]
+      const hasPlaceholder =
+        !current || current.includes('your-lnbits-domain-here.com')
+      if (hasPlaceholder && calculated) {
+        this.formData[fieldName] = calculated
+      }
+    },
+    copyWebhookUrl(url) {
+      if (!url) {
+        return
+      }
+      this.copyText(url)
+    },
     addStripeAllowedUser() {
       const addUser = this.formAddStripeUser || ''
       if (
