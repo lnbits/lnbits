@@ -90,7 +90,7 @@
           </template>
           <template v-slot:after>
             <q-scroll-area style="height: 80vh">
-              <q-tab-panels v-if="user" v-model="tab">
+              <q-tab-panels v-if="g.user" v-model="tab">
                 <q-tab-panel name="user">
                   <div v-if="credentialsData.show">
                     <q-card-section>
@@ -102,9 +102,9 @@
                         </div>
                         <div class="col">
                           <q-img
-                            v-if="user.extra.picture"
+                            v-if="g.user.extra.picture"
                             style="max-width: 100px"
-                            :src="user.extra.picture"
+                            :src="g.user.extra.picture"
                             class="float-right"
                           ></q-img>
                         </div>
@@ -120,7 +120,7 @@
                         class="q-mb-md"
                       ></q-input>
                       <q-input
-                        v-if="user.has_password"
+                        v-if="g.user.has_password"
                         v-model="credentialsData.oldPassword"
                         type="password"
                         autocomplete="off"
@@ -202,12 +202,12 @@
                     </q-card-section>
                   </div>
                   <div v-else>
-                    <q-card-section v-if="user.extra.picture">
+                    <q-card-section v-if="g.user.extra.picture">
                       <div class="row">
                         <div class="col">
                           <q-img
                             style="max-width: 100px"
-                            :src="user.extra.picture"
+                            :src="g.user.extra.picture"
                             class="float-right"
                           ></q-img>
                         </div>
@@ -216,7 +216,7 @@
 
                     <q-card-section>
                       <q-input
-                        v-model="user.id"
+                        v-model="g.user.id"
                         :label="$t('user_id')"
                         filled
                         dense
@@ -232,7 +232,7 @@
                         ></q-btn>
                       </q-input>
                       <q-input
-                        v-model="user.username"
+                        v-model="g.user.username"
                         :label="$t('username')"
                         filled
                         dense
@@ -241,7 +241,7 @@
                       >
                       </q-input>
                       <q-input
-                        v-model="user.pubkey"
+                        v-model="g.user.pubkey"
                         :label="$t('pubkey')"
                         filled
                         dense
@@ -250,7 +250,7 @@
                       >
                       </q-input>
                       <q-input
-                        v-model="user.email"
+                        v-model="g.user.email"
                         :label="$t('email')"
                         filled
                         dense
@@ -258,8 +258,8 @@
                         class="q-mb-md"
                       >
                       </q-input>
-                      <div v-if="!user.email" class="row"></div>
-                      <div v-if="!user.email" class="row">
+                      <div v-if="!g.user.email" class="row"></div>
+                      <div v-if="!g.user.email" class="row">
                         {% if "google-auth" in LNBITS_AUTH_METHODS or
                         "github-auth" in LNBITS_AUTH_METHODS %}
                         <div class="col q-pa-sm text-h6">
@@ -268,7 +268,7 @@
                         {%endif%} {% if "google-auth" in LNBITS_AUTH_METHODS %}
                         <div class="col q-pa-sm">
                           <q-btn
-                            :href="`/api/v1/auth/google?user_id=${user.id}`"
+                            :href="`/api/v1/auth/google?user_id=${g.user.id}`"
                             type="a"
                             outline
                             no-caps
@@ -287,7 +287,7 @@
                         {%endif%} {% if "github-auth" in LNBITS_AUTH_METHODS %}
                         <div class="col q-pa-sm">
                           <q-btn
-                            :href="`/api/v1/auth/github?user_id=${user.id}`"
+                            :href="`/api/v1/auth/github?user_id=${g.user.id}`"
                             type="a"
                             outline
                             no-caps
@@ -307,9 +307,9 @@
                       </div>
                     </q-card-section>
 
-                    <q-card-section v-if="user.extra">
+                    <q-card-section v-if="g.user.extra">
                       <q-input
-                        v-model="user.extra.first_name"
+                        v-model="g.user.extra.first_name"
                         :label="$t('first_name')"
                         filled
                         dense
@@ -317,7 +317,7 @@
                       >
                       </q-input>
                       <q-input
-                        v-model="user.extra.last_name"
+                        v-model="g.user.extra.last_name"
                         :label="$t('last_name')"
                         filled
                         dense
@@ -325,7 +325,7 @@
                       >
                       </q-input>
                       <q-input
-                        v-model="user.extra.provider"
+                        v-model="g.user.extra.provider"
                         :label="$t('auth_provider')"
                         filled
                         dense
@@ -334,7 +334,7 @@
                       >
                       </q-input>
                       <q-input
-                        v-model="user.external_id"
+                        v-model="g.user.external_id"
                         :label="$t('external_id')"
                         filled
                         dense
@@ -344,7 +344,7 @@
                       </q-input>
 
                       <q-input
-                        v-model="user.extra.picture"
+                        v-model="g.user.extra.picture"
                         :label="$t('picture')"
                         :hint="$t('user_picture_desc')"
                         filled
@@ -389,7 +389,7 @@
                     </div>
                     <div class="col-8">
                       <q-input
-                        v-model="user.extra.visible_wallet_count"
+                        v-model="g.user.extra.visible_wallet_count"
                         :label="$t('visible_wallet_count')"
                         filled
                         dense
@@ -533,7 +533,7 @@
                         <q-input
                           filled
                           dense
-                          v-model="user.extra.notifications.nostr_identifier"
+                          v-model="g.user.extra.notifications.nostr_identifier"
                           :hint="$t('notifications_nostr_identifier_desc')"
                         >
                         </q-input>
@@ -553,7 +553,7 @@
                         <q-input
                           filled
                           dense
-                          v-model="user.extra.notifications.telegram_chat_id"
+                          v-model="g.user.extra.notifications.telegram_chat_id"
                           :hint="$t('notifications_chat_id_desc')"
                         />
                       </div>
@@ -573,7 +573,7 @@
                           min="0"
                           step="1"
                           v-model="
-                            user.extra.notifications.outgoing_payments_sats
+                            g.user.extra.notifications.outgoing_payments_sats
                           "
                           :hint="$t('notification_outgoing_payment_desc')"
                         />
@@ -593,7 +593,7 @@
                           min="0"
                           step="1"
                           v-model="
-                            user.extra.notifications.incoming_payments_sats
+                            g.user.extra.notifications.incoming_payments_sats
                           "
                           :hint="$t('notification_incoming_payment_desc')"
                         />
@@ -610,7 +610,7 @@
                           emit-value
                           map-options
                           multiple
-                          v-model="user.extra.notifications.excluded_wallets"
+                          v-model="g.user.extra.notifications.excluded_wallets"
                           :options="g.user.walletOptions"
                           :label="$t('exclude_wallets')"
                           :hint="$t('notifications_excluded_wallets_desc')"
@@ -623,7 +623,7 @@
                 </q-tab-panel>
                 <q-tab-panel name="api_acls">
                   <div class="row q-mb-md">
-                    <q-badge v-if="user.admin">
+                    <q-badge v-if="g.user.admin">
                       <span
                         v-text="$t('access_control_list_admin_warning')"
                       ></span>
@@ -1081,7 +1081,7 @@
                   <q-separator></q-separator>
                   <q-card-section>
                     <q-table
-                      :rows="user.extra.labels"
+                      :rows="g.user.extra.labels"
                       :columns="labelsTable.columns"
                       v-model:pagination="labelsTable.pagination"
                       :loading="labelsTable.loading"
@@ -1327,7 +1327,7 @@
         ></q-btn>
         <q-btn
           v-if="
-            user.extra.labels.some(
+            g.user.extra.labels.some(
               label => label.name === labelsDialog.data.name
             )
           "

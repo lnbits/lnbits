@@ -38,12 +38,6 @@ window.app.component('lnbits-header', {
     customLogoUrl() {
       return this.USE_CUSTOM_LOGO || null
     },
-    userPictureUrl() {
-      return this.g.user.extra.picture
-    },
-    hasUserPicture() {
-      return this.g.user && this.g.user.extra && this.g.user.extra.picture != ''
-    },
     showAdmin() {
       return this.g.user && (this.g.user.super_user || this.g.user.admin)
     },

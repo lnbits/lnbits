@@ -3,7 +3,6 @@ window.PageAccount = {
   mixins: [window.windowMixin],
   data() {
     return {
-      user: null,
       untouchedUser: null,
       hasUsername: false,
       showUserId: false,
@@ -211,7 +210,7 @@ window.PageAccount = {
   },
   computed: {
     isUserTouched() {
-      return JSON.stringify(this.user) !== JSON.stringify(this.untouchedUser)
+      return JSON.stringify(this.g.user) !== JSON.stringify(this.untouchedUser)
     }
   },
   methods: {
@@ -229,13 +228,12 @@ window.PageAccount = {
           '/api/v1/auth/update',
           null,
           {
-            user_id: this.user.id,
-            username: this.user.username,
-            email: this.user.email,
-            extra: this.user.extra
+            user_id: this.g.user.id,
+            username: this.g.user.username,
+            email: this.g.user.email,
+            extra: this.g.user.extra
           }
         )
-        this.user = data
         this.untouchedUser = JSON.parse(JSON.stringify(data))
         this.hasUsername = !!data.username
         Quasar.Notify.create({
@@ -268,14 +266,13 @@ window.PageAccount = {
           '/api/v1/auth/password',
           null,
           {
-            user_id: this.user.id,
+            user_id: this.g.user.id,
             username: this.credentialsData.username,
             password_old: this.credentialsData.oldPassword,
             password: this.credentialsData.newPassword,
             password_repeat: this.credentialsData.newPasswordRepeat
           }
         )
-        this.user = data
         this.untouchedUser = JSON.parse(JSON.stringify(data))
         this.hasUsername = !!data.username
         this.credentialsData.show = false
@@ -294,11 +291,10 @@ window.PageAccount = {
           '/api/v1/auth/pubkey',
           null,
           {
-            user_id: this.user.id,
+            user_id: this.g.user.id,
             pubkey: this.credentialsData.pubkey
           }
         )
-        this.user = data
         this.untouchedUser = JSON.parse(JSON.stringify(data))
         this.hasUsername = !!data.username
         this.credentialsData.show = false
@@ -314,8 +310,8 @@ window.PageAccount = {
       this.credentialsData = {
         show: true,
         oldPassword: null,
-        username: this.user.username,
-        pubkey: this.user.pubkey,
+        username: this.g.user.username,
+        pubkey: this.g.user.pubkey,
         newPassword: null,
         newPasswordRepeat: null
       }
@@ -431,7 +427,7 @@ window.PageAccount = {
           '/api/v1/auth/acl',
           null,
           {
-            id: this.user.id,
+            id: this.g.user.id,
             password: this.apiAcl.password,
             ...this.selectedApiAcl
           }
@@ -632,8 +628,8 @@ window.PageAccount = {
         })
         return
       }
-      this.user.extra.labels = this.user.extra.labels || []
-      const duplicate = this.user.extra.labels.find(
+      this.g.user.extra.labels = this.g.user.extra.labels || []
+      const duplicate = this.g.user.extra.labels.find(
         label => label.name === this.labelsDialog.data.name
       )
       if (duplicate) {
@@ -643,7 +639,7 @@ window.PageAccount = {
         })
         return
       }
-      this.user.extra.labels.unshift({...this.labelsDialog.data})
+      this.g.user.extra.labels.unshift({...this.labelsDialog.data})
       this.labelsDialog.show = false
       return true
     },
@@ -665,13 +661,15 @@ window.PageAccount = {
     },
     updateUserLabel() {
       const label = this.labelsDialog.data
-      const existingLabels = JSON.parse(JSON.stringify(this.user.extra.labels))
-      this.user.extra.labels = this.user.extra.labels.filter(
+      const existingLabels = JSON.parse(
+        JSON.stringify(this.g.user.extra.labels)
+      )
+      this.g.user.extra.labels = this.g.user.extra.labels.filter(
         l => l.name !== label.name
       )
       const labelUpdated = this.addUserLabel()
       if (!labelUpdated) {
-        this.user.extra.labels = existingLabels
+        this.g.user.extra.labels = existingLabels
       }
       this.labelsDialog.show = false
     },
@@ -679,7 +677,7 @@ window.PageAccount = {
       LNbits.utils
         .confirmDialog('Are you sure you want to delete this label?')
         .onOk(() => {
-          this.user.extra.labels = this.user.extra.labels.filter(
+          this.g.user.extra.labels = this.g.user.extra.labels.filter(
             l => l.name !== label.name
           )
         })
@@ -687,21 +685,13 @@ window.PageAccount = {
   },
 
   async created() {
-    try {
-      const {data} = await LNbits.api.getAuthenticatedUser()
-      this.user = data
-      this.untouchedUser = JSON.parse(JSON.stringify(data))
-      this.hasUsername = !!data.username
-      if (!this.user.extra) this.user.extra = {}
-    } catch (e) {
-      LNbits.utils.notifyApiError(e)
-    }
+    this.untouchedUser = JSON.parse(JSON.stringify(this.g.user))
+    this.hasUsername = !!this.g.username
     if (this.$route.hash.length > 1) {
       this.tab = this.$route.hash.replace('#', '')
     }
     await this.getApiACLs()
     await this.getUserAssets()
-
     // filter out themes that are not allowed
     this.themeOptions = this.themeOptions.filter(theme =>
       this.LNBITS_THEME_OPTIONS.includes(theme.name)

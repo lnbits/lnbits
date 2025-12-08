@@ -81,19 +81,16 @@
         class="q-pl-sm"
       >
         <template v-slot:label>
-          <q-avatar v-if="hasUserPicture" size="18px">
-            <q-img :src="userPictureUrl"></q-img>
+          <q-avatar v-if="g.user?.extra?.picture !== ''" size="18px">
+            <q-img :src="g.user?.extra?.picture"></q-img>
           </q-avatar>
           <q-avatar v-else icon="account_circle" size="18px"></q-avatar>
         </template>
         <q-list style="max-width: 200px">
           <q-item>
-            <q-item-section
-              avatar
-              v-if="hasUserPicture && userPictureUrl !== ''"
-            >
+            <q-item-section avatar v-if="g.user?.extra?.picture !== ''">
               <q-avatar size="md">
-                <img :src="userPictureUrl" />
+                <img :src="g.user?.extra?.picture" />
               </q-avatar>
             </q-item-section>
             <q-item-section>
