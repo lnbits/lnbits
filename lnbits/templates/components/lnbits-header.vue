@@ -84,11 +84,14 @@
           <q-avatar v-if="hasUserPicture" size="18px">
             <q-img :src="userPictureUrl"></q-img>
           </q-avatar>
-          <q-avatar v-else icon="account_circle"></q-avatar>
+          <q-avatar v-else icon="account_circle" size="18px"></q-avatar>
         </template>
         <q-list style="max-width: 200px">
           <q-item>
-            <q-item-section avatar v-if="hasUserPicture">
+            <q-item-section
+              avatar
+              v-if="hasUserPicture && userPictureUrl !== ''"
+            >
               <q-avatar size="md">
                 <img :src="userPictureUrl" />
               </q-avatar>

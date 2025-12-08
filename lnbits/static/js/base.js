@@ -6,6 +6,7 @@ window.LNbits = {
     user(data) {
       const obj = {
         id: data.id,
+        username: data.username,
         admin: data.admin,
         email: data.email,
         extensions: data.extensions,

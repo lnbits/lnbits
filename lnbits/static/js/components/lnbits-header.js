@@ -53,6 +53,7 @@ window.app.component('lnbits-header', {
     displayName() {
       return (
         this.g.user?.extra?.display_name ||
+        this.g.user.username ||
         this.g.user?.extra?.first_name ||
         'Anon'
       )
