@@ -76,7 +76,7 @@ async def extensions_builder_preview(
             request,
             "error.html",
             {
-                "code": 404,
+                "status_code": 404,
                 "message": f"Extension {ext_id} not found, refresh Preview.",
             },
             status_code=HTTPStatus.NOT_FOUND,
