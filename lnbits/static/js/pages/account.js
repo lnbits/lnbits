@@ -686,7 +686,7 @@ window.PageAccount = {
 
   async created() {
     this.untouchedUser = JSON.parse(JSON.stringify(this.g.user))
-    this.hasUsername = !!this.g.username
+    this.hasUsername = !!this.g.user.username
     if (this.$route.hash.length > 1) {
       this.tab = this.$route.hash.replace('#', '')
     }
