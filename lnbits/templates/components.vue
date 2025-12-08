@@ -960,9 +960,9 @@ include('components/lnbits-error.vue') %}
         <q-avatar size="32px" class="q-mr-md">
           <q-img
             :src="
-              keycloakIcon
-                ? keycloakIcon
-                : 'lnbits/static/images/keycloak-logo.png'
+              g.settings.keycloakIcon
+                ? g.settings.keycloakIcon
+                : utils.url_for('lnbits/static/images/keycloak-logo.png')
             "
           ></q-img>
         </q-avatar>
@@ -970,7 +970,7 @@ include('components/lnbits-error.vue') %}
           <span
             v-text="
               $t('signin_with_custom_org', {
-                custom_org: keycloakOrg
+                custom_org: g.settings.keycloakOrg
               })
             "
           ></span>

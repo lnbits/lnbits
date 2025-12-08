@@ -13,6 +13,7 @@ window.g = Vue.reactive({
   errorMessage: null,
   user: null,
   wallet: null,
+  settings: null,
   isPublicPage: true,
   isUserAuthorized: !!Quasar.Cookies.get('is_lnbits_user_authorized'),
   isUserImpersonated: !!Quasar.Cookies.get('is_lnbits_user_impersonated'),

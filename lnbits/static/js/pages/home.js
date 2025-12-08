@@ -19,18 +19,15 @@ window.PageHome = {
     showClaimLnurl() {
       return (
         this.lnurl !== '' &&
-        this.allowRegister &&
-        'user-id-only' in this.LNBITS_AUTH_METHODS
+        this.g.settings.allowRegister &&
+        'user-id-only' in this.g.settings.authMethods
       )
     },
     formatDescription() {
-      return LNbits.utils.convertMarkdown(this.SITE_DESCRIPTION)
+      return LNbits.utils.convertMarkdown(this.g.settings.siteDescription)
     },
     isAccessTokenExpired() {
       return this.$q.cookies.get('is_access_token_expired')
-    },
-    allowRegister() {
-      return this.LNBITS_NEW_ACCOUNTS_ALLOWED
     },
     // TODO: this makes no sense
     hasCustomImage() {

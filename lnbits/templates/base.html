@@ -71,9 +71,6 @@
     <script type="text/javascript">
       const RENDERED_ROUTE = '{{ normalize_path(request.path) }}'
       const WINDOW_SETTINGS = {{ WINDOW_SETTINGS | tojson }}
-      Object.keys(WINDOW_SETTINGS).forEach(key => {
-        window[key] = WINDOW_SETTINGS[key]
-      })
     </script>
     <!-- vue templates -->
     {% include('components.vue') %} {% include('pages.vue') %}
@@ -84,14 +81,15 @@
     <script src="{{ static_url_for('static', url) }}"></script>
     {% endfor %}
     <!-- user init -->
-    {% if user %}
     <script>
-      window.g.user = LNbits.map.user(JSON.parse({{ user | tojson | safe }}));
-      {% if not public %}
-      window.g.isPublicPage = false
+      window.g.settings = LNbits.map.settings(WINDOW_SETTINGS);
+      {% if user %}
+        window.g.user = LNbits.map.user(JSON.parse({{ user | tojson | safe }}));
+        {% if not public %}
+        window.g.isPublicPage = false
+        {% endif %}
       {% endif %}
     </script>
-    {% endif %}
     <!-- scripts from extensions -->
     {% block scripts %}{% endblock %}
     <!-- components js -->

@@ -54,8 +54,8 @@
               <div v-else>
                 <username-password
                   v-if="authMethod != 'user-id-only'"
-                  :allowed_new_users="allowRegister"
-                  :auth-methods="LNBITS_AUTH_METHODS"
+                  :allowed_new_users="g.settings.allowRegister"
+                  :auth-methods="g.settings.authMethods"
                   :auth-action="authAction"
                   v-model:user-name="username"
                   v-model:password_1="password"
@@ -70,7 +70,7 @@
                     v-if="authAction !== 'reset'"
                   >
                     <p
-                      v-if="authAction === 'login' && allowRegister"
+                      v-if="authAction === 'login' && g.settings.allowRegister"
                       class="q-mb-none"
                     >
                       Not registered?
@@ -82,7 +82,9 @@
                       >
                     </p>
                     <p
-                      v-else-if="authAction === 'login' && !allowRegister"
+                      v-else-if="
+                        authAction === 'login' && !g.settings.allowRegister
+                      "
                       class="q-mb-none"
                     >
                       <span v-text="$t('new_user_not_allowed')"></span>
@@ -101,7 +103,7 @@
                 </username-password>
                 <user-id-only
                   v-if="authMethod == 'user-id-only'"
-                  :allowed_new_users="allowRegister"
+                  :allowed_new_users="g.settings.allowRegister"
                   v-model:usr="usr"
                   v-model:wallet="walletName"
                   :auth-action="authAction"
