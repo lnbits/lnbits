@@ -14,16 +14,10 @@ const DynamicComponent = {
     const name = this.$route.path.split('/')[1]
     const path = `/${name}/`
     const routesPath = `/${name}/static/routes.json`
-    const hasPath = this.$router.getRoutes().some(r => r.path === path)
-    if (hasPath) {
-      console.log('Dynamic route already exists for extension:', name)
-      return
-    }
+    if (this.$router.getRoutes().some(r => r.path === path)) return
     fetch(routesPath)
       .then(async res => {
-        if (!res.ok) {
-          throw new Error('No dynamic routes found')
-        }
+        if (!res.ok) throw new Error('No dynamic routes found')
         const routes = await res.json()
         routes.forEach(r => {
           console.log('Adding dynamic route:', r.path)
@@ -40,9 +34,9 @@ const DynamicComponent = {
         })
       })
       .catch(() => {
-        if (RENDERED_ROUTE !== path) {
-          console.log('Redirecting to non-vue route:', path)
-          window.location = path
+        if (RENDERED_ROUTE !== this.$route.fullPath) {
+          console.log('Redirecting to non-vue route:', this.$route.fullPath)
+          window.location = this.$route.fullPath
           return
         }
       })
