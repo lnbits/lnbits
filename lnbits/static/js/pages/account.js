@@ -234,7 +234,7 @@ window.PageAccount = {
             extra: this.g.user.extra
           }
         )
-        this.untouchedUser = JSON.parse(JSON.stringify(data))
+        this.untouchedUser = JSON.parse(JSON.stringify(this.g.user))
         this.hasUsername = !!data.username
         Quasar.Notify.create({
           type: 'positive',
