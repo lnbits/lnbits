@@ -363,7 +363,9 @@
                 <span v-text="$t('pay_with', {provider: 'Stripe'})"></span>
               </q-item-section>
             </q-item>
-            <q-separator v-if="g.user.fiat_providers?.includes('paypal')"></q-separator>
+            <q-separator
+              v-if="g.user.fiat_providers?.includes('paypal')"
+            ></q-separator>
             <q-item
               v-if="g.user.fiat_providers?.includes('paypal')"
               :active="receive.fiatProvider === 'paypal'"

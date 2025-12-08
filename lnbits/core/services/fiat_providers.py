@@ -1,9 +1,10 @@
 import hashlib
 import hmac
+import json
 import time
 
-from loguru import logger
 import httpx
+from loguru import logger
 
 from lnbits.core.crud import get_wallet
 from lnbits.core.crud.payments import create_payment
@@ -96,7 +97,10 @@ async def verify_paypal_webhook(headers, payload: bytes):
             token_resp = await client.post(
                 "/v1/oauth2/token",
                 data={"grant_type": "client_credentials"},
-                auth=(settings.paypal_client_id or "", settings.paypal_client_secret or ""),
+                auth=(
+                    settings.paypal_client_id or "",
+                    settings.paypal_client_secret or "",
+                ),
             )
             token_resp.raise_for_status()
             access_token = token_resp.json().get("access_token")

@@ -195,7 +195,10 @@ async def handle_paypal_event(event: dict):
         await payment.check_fiat_status()
         return
 
-    if event_type in ("PAYMENT.SALE.COMPLETED", "BILLING.SUBSCRIPTION.PAYMENT.SUCCEEDED"):
+    if event_type in (
+        "PAYMENT.SALE.COMPLETED",
+        "BILLING.SUBSCRIPTION.PAYMENT.SUCCEEDED",
+    ):
         await _handle_paypal_subscription_payment(resource)
         return
 

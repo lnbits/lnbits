@@ -1,15 +1,14 @@
 import asyncio
+import json
 import time
 from collections.abc import AsyncGenerator
 from typing import Any
-import json
 
 import httpx
 from loguru import logger
 from pydantic import BaseModel, Field, ValidationError
 
-from lnbits.helpers import normalize_endpoint
-from lnbits.helpers import urlsafe_short_hash
+from lnbits.helpers import normalize_endpoint, urlsafe_short_hash
 from lnbits.settings import settings
 
 from .base import (
@@ -102,7 +101,9 @@ class PayPalWallet(FiatProvider):
             await self._ensure_access_token()
         except Exception as exc:
             logger.warning(exc)
-            return FiatInvoiceResponse(ok=False, error_message="Unable to authenticate.")
+            return FiatInvoiceResponse(
+                ok=False, error_message="Unable to authenticate."
+            )
 
         co = opts.checkout or PayPalCheckoutOptions()
         success_url = (
@@ -147,7 +148,9 @@ class PayPalWallet(FiatProvider):
                 )
 
             return FiatInvoiceResponse(
-                ok=True, checking_id=f"fiat_paypal_{order_id}", payment_request=approval_url
+                ok=True,
+                checking_id=f"fiat_paypal_{order_id}",
+                payment_request=approval_url,
             )
         except Exception as exc:
             logger.warning(exc)
