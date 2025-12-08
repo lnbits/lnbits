@@ -310,7 +310,7 @@
                 <q-input
                   filled
                   class="q-mt-md"
-                  type="text"
+                  :type="hideInputToggle ? 'password' : 'text'"
                   v-model="formData.paypal_client_id"
                   :label="$t('client_id')"
                 ></q-input>
