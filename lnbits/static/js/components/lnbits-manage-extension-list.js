@@ -17,16 +17,14 @@ window.app.component('lnbits-manage-extension-list', {
     }
   },
   methods: {
-    loadExtensions() {
-      LNbits.api
-        .request('GET', '/api/v1/extension')
-        .then(res => {
-          this.extensions = res.data.sort((a, b) =>
-            a.name.localeCompare(b.name)
-          )
-          this.filterUserExtensionsByTerm()
-        })
-        .catch(LNbits.utils.notifyApiError)
+    async loadExtensions() {
+      try {
+        res = await LNbits.api.request('GET', '/api/v1/extension')
+        this.extensions = res.data.sort((a, b) => a.name.localeCompare(b.name))
+        this.filterUserExtensionsByTerm()
+      } catch (error) {
+        LNbits.utils.notifyApiError(error)
+      }
     },
     filterUserExtensionsByTerm() {
       const userExts = this.g.user.extensions
@@ -40,7 +38,7 @@ window.app.component('lnbits-manage-extension-list', {
         })
     }
   },
-  created() {
-    this.loadExtensions()
+  async created() {
+    await this.loadExtensions()
   }
 })
