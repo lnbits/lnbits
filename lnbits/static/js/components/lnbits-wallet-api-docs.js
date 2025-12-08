@@ -39,6 +39,7 @@ window.app.component('lnbits-wallet-api-docs', {
   },
   data() {
     return {
+      origin: window.location.origin,
       inkeyHidden: true,
       adminkeyHidden: true,
       walletIdHidden: true

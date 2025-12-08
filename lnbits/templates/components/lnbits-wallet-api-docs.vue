@@ -13,6 +13,25 @@
               <strong>Node URL: </strong><em v-text="origin"></em>
             </q-item-label>
           </q-item-section>
+          <q-item-section side>
+            <div>
+              <q-icon
+                name="content_copy"
+                class="cursor-pointer q-ml-sm"
+                @click="utils.copyText(origin)"
+              ></q-icon>
+              <q-icon name="qr_code" class="cursor-pointer q-ml-sm">
+                <q-popup-proxy>
+                  <div class="q-pa-md">
+                    <lnbits-qrcode
+                      :value="origin"
+                      :show-buttons="false"
+                    ></lnbits-qrcode>
+                  </div>
+                </q-popup-proxy>
+              </q-icon>
+            </div>
+          </q-item-section>
         </q-item>
         <q-item dense class="q-pa-none">
           <q-item-section>
