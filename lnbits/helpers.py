@@ -68,6 +68,7 @@ def template_renderer(additional_folders: list | None = None) -> Jinja2Templates
         folders.extend(additional_folders)
     t = Jinja2Templates(loader=jinja2.FileSystemLoader(folders))
     t.env.globals["static_url_for"] = static_url_for
+    t.env.globals["normalize_path"] = normalize_path
 
     window_settings = {
         "AD_SPACE": settings.lnbits_ad_space,
