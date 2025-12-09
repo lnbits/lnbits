@@ -52,7 +52,9 @@
               v-if="g.user && !g.isPublicPage"
             ></lnbits-header-wallets>
             <!-- block page content from static extensions -->
-            <div v-if="$route.path === '{{ normalize_path(request.path) }}/'">
+            <div
+              v-if="$route.path.startsWith('{{ normalize_path(request.path) }}')"
+            >
               {% block page %}{% endblock %}
             </div>
             <!-- vue router-view -->
@@ -67,7 +69,7 @@
       </q-layout>
     </div>
     <script type="text/javascript">
-      const RENDERED_ROUTE = '{{ normalize_path(request.path) }}/'
+      const RENDERED_ROUTE = '{{ normalize_path(request.path) }}'
       const WINDOW_SETTINGS = {{ WINDOW_SETTINGS | tojson }}
       Object.keys(WINDOW_SETTINGS).forEach(key => {
         window[key] = WINDOW_SETTINGS[key]
