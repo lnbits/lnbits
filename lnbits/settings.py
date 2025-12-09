@@ -1162,7 +1162,7 @@ class PublicSettings(BaseModel):
     qr_logo: str = Field(alias="qrLogo")
     site_description: str | None = Field(alias="siteDescription")
     auth_methods: list[str] = Field(alias="authMethods")
-    keycloak_org: str | None = Field(alias="keycloakOrg", default="Keycloak")
+    keycloak_org: str | None = Field(alias="keycloakOrg")
     keycloak_icon: str | None = Field(alias="keycloakIcon")
 
 

@@ -970,7 +970,7 @@ include('components/lnbits-error.vue') %}
           <span
             v-text="
               $t('signin_with_custom_org', {
-                custom_org: g.settings.keycloakOrg
+                custom_org: g.settings.keycloakOrg || 'Keycloak'
               })
             "
           ></span>
