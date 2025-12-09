@@ -63,16 +63,8 @@ window.LNbits = {
       return newWallet
     },
     settings(data) {
-      const obj = {
-        qrLogo: window._lnbitsUtils.url_for(data.LNBITS_QR_LOGO),
-        siteDescription: data.SITE_DESCRIPTION,
-        allowRegister: data.LNBITS_NEW_ACCOUNTS_ALLOWED,
-        authMethods: data.LNBITS_AUTH_METHODS,
-        keycloakOrg: data.LNBITS_AUTH_KEYCLOAK_ORG || 'Keycloak',
-        keycloakIcon: data.LNBITS_AUTH_KEYCLOAK_ICON
-      }
-      console.log('Loaded settings...', obj)
-      return obj
+      console.log('Loaded settings...', data)
+      return data
     }
   }
 }

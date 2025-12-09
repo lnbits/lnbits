@@ -82,7 +82,7 @@
     {% endfor %}
     <!-- user init -->
     <script>
-      window.g.settings = LNbits.map.settings(WINDOW_SETTINGS);
+        window.g.settings = LNbits.map.settings({{ SETTINGS | tojson | safe }});
       {% if user %}
         window.g.user = LNbits.map.user(JSON.parse({{ user | tojson | safe }}));
         {% if not public %}

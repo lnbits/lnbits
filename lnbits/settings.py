@@ -1131,6 +1131,16 @@ class Settings(EditableSettings, ReadOnlySettings, TransientSettings, BaseSettin
             and ext_id in self.lnbits_all_extensions_ids
         )
 
+    def to_public(self) -> PublicSettings:
+        return PublicSettings(
+            allowRegister=self.new_accounts_allowed,
+            qrLogo=self.lnbits_qr_logo,
+            siteDescription=self.lnbits_site_description,
+            authMethods=self.auth_allowed_methods,
+            keycloakOrg=self.keycloak_client_custom_org,
+            keycloakIcon=self.keycloak_client_custom_icon,
+        )
+
 
 class SuperSettings(EditableSettings):
     super_user: str
@@ -1145,6 +1155,15 @@ class SettingsField(BaseModel):
     id: str
     value: Any | None
     tag: str = "core"
+
+
+class PublicSettings(BaseModel):
+    allow_register: bool = Field(alias="allowRegister")
+    qr_logo: str = Field(alias="qrLogo")
+    site_description: str | None = Field(alias="siteDescription")
+    auth_methods: list[str] = Field(alias="authMethods")
+    keycloak_org: str | None = Field(alias="keycloakOrg", default="Keycloak")
+    keycloak_icon: str | None = Field(alias="keycloakIcon")
 
 
 def _re_fullmatch_safe(pattern: str, string: str):

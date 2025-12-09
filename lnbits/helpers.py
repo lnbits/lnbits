@@ -78,20 +78,14 @@ def template_renderer(additional_folders: list | None = None) -> Jinja2Templates
         "HIDE_API": settings.lnbits_hide_api,
         "SITE_TITLE": settings.lnbits_site_title,
         "SITE_TAGLINE": settings.lnbits_site_tagline,
-        "SITE_DESCRIPTION": settings.lnbits_site_description,
         "LNBITS_ADMIN_UI": settings.lnbits_admin_ui,
         "LNBITS_AUDIT_ENABLED": settings.lnbits_audit_enabled,
-        "LNBITS_AUTH_METHODS": settings.auth_allowed_methods,
-        "LNBITS_AUTH_KEYCLOAK_ORG": settings.keycloak_client_custom_org,
-        "LNBITS_AUTH_KEYCLOAK_ICON": settings.keycloak_client_custom_icon,
         "LNBITS_CUSTOM_IMAGE": settings.lnbits_custom_image,
         "LNBITS_CUSTOM_BADGE": settings.lnbits_custom_badge,
         "LNBITS_CUSTOM_BADGE_COLOR": settings.lnbits_custom_badge_color,
         "LNBITS_EXTENSIONS_DEACTIVATE_ALL": settings.lnbits_extensions_deactivate_all,
-        "LNBITS_NEW_ACCOUNTS_ALLOWED": settings.new_accounts_allowed,
         "LNBITS_NODE_UI": settings.lnbits_node_ui and settings.has_nodemanager,
         "LNBITS_NODE_UI_AVAILABLE": settings.has_nodemanager,
-        "LNBITS_QR_LOGO": settings.lnbits_qr_logo,
         "LNBITS_APPLE_TOUCH_ICON": settings.lnbits_apple_touch_icon,
         "LNBITS_SERVICE_FEE": settings.lnbits_service_fee,
         "LNBITS_SERVICE_FEE_MAX": settings.lnbits_service_fee_max,
@@ -124,6 +118,8 @@ def template_renderer(additional_folders: list | None = None) -> Jinja2Templates
     t.env.globals["WINDOW_SETTINGS"] = window_settings
     for key, value in window_settings.items():
         t.env.globals[key] = value
+
+    t.env.globals["SETTINGS"] = settings.to_public().dict(by_alias=True)
 
     if settings.bundle_assets:
         t.env.globals["INCLUDED_JS"] = ["bundle.min.js"]
