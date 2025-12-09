@@ -637,7 +637,7 @@ window.PageExtensions = {
     this.extensions = await this.fetchAllExtensions()
     this.extbuilderEnabled = this.g.user.admin || this.LNBITS_EXT_BUILDER
 
-    if (this.g.user.extensions.length == 0) {
+    if (this.g.user.extensions.length === 0) {
       this.tab = 'all'
     }
 
