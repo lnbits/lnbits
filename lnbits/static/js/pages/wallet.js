@@ -32,7 +32,7 @@ window.PageWallet = {
         amountMsat: null,
         minMax: [0, 2100000000000000],
         lnurl: null,
-        units: ['sat', ...(this.currencies || [])],
+        units: ['sat'],
         unit: 'sat',
         fiatProvider: '',
         data: {
@@ -105,6 +105,12 @@ window.PageWallet = {
       this.receive.data.memo = null
       this.receive.data.internalMemo = null
       this.receive.data.payment_hash = null
+      this.receive.units = [
+        'sat',
+        ...(this.g.allowedCurrencies.length > 0
+          ? this.g.allowedCurrencies
+          : this.g.currencies)
+      ]
       this.receive.unit = this.g.isFiatPriority
         ? this.g.wallet.currency || 'sat'
         : 'sat'
