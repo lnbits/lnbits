@@ -155,7 +155,11 @@ def run_interval(
 
     async def wrapper() -> None:
         while settings.lnbits_running:
-            await func()
+            try:
+                await func()
+            except Exception as e:
+                logger.error(f"Error occurred in interval task: {e}")
+                logger.warning(traceback.format_exc())
             await asyncio.sleep(interval_seconds)
 
     return wrapper
