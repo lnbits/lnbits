@@ -32,7 +32,7 @@ window.PageWallet = {
         amountMsat: null,
         minMax: [0, 2100000000000000],
         lnurl: null,
-        units: ['sat'],
+        units: [],
         unit: 'sat',
         fiatProvider: '',
         data: {
