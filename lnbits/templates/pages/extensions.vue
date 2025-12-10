@@ -1117,7 +1117,7 @@
           </div>
         </div>
       </q-card-section>
-      <q-separator />
+    <q-separator></q-separator>
       <q-card-section v-if="!reviewsConfig">
         <div class="text-negative" v-text="$t('reviews_no_oracle')"></div>
       </q-card-section>
