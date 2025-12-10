@@ -52,6 +52,7 @@ class ExtensionsSettings(LNbitsSettings):
     lnbits_user_default_extensions: list[str] = Field(default=[])
     lnbits_extensions_deactivate_all: bool = Field(default=False)
     lnbits_extensions_builder_activate_non_admins: bool = Field(default=False)
+    lnbits_reviews_oracle: str = Field(default="")
     lnbits_extensions_manifests: list[str] = Field(
         default=[
             "https://raw.githubusercontent.com/lnbits/lnbits-extensions/main/extensions.json"

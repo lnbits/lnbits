@@ -561,11 +561,32 @@ include('components/lnbits-error.vue') %}
 </template>
 
 <template id="lnbits-extension-rating">
-  <div style="margin-bottom: 3px">
-    <q-rating v-model="rating" size="1.5em" :max="5" color="primary"
-      ><q-tooltip>
-        <span v-text="$t('extension_rating_soon')"></span> </q-tooltip
-    ></q-rating>
+  <div class="row items-center q-gutter-xs" style="margin-bottom: 3px">
+    <q-rating
+      :model-value="displayRating"
+      size="1.4em"
+      :max="5"
+      color="primary"
+      icon="star_border"
+      icon-selected="star"
+      icon-half="star_half"
+      readonly
+      :class="clickable ? 'cursor-pointer' : ''"
+      @click="handleClick"
+    >
+      <q-tooltip v-if="!hasData">
+        <span v-text="$t('extension_rating_soon')"></span>
+      </q-tooltip>
+      <q-tooltip v-else-if="clickable">
+        <span v-text="$t('reviews_open')"></span>
+      </q-tooltip>
+    </q-rating>
+    <div
+      class="text-caption text-grey"
+      v-if="count !== null && count !== undefined"
+    >
+      <span v-text="`(${count})`"></span>
+    </div>
   </div>
 </template>
 

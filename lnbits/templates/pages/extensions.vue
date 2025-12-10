@@ -163,7 +163,20 @@
                 v-text="extension.name"
               ></div>
               <div style="justify-content: space-between; display: flex">
-                <lnbits-extension-rating :rating="0" />
+                <lnbits-extension-rating
+                  :rating="
+                    formatAvg(
+                      extension.reviewStats ? extension.reviewStats.avg_rating : 0
+                    )
+                  "
+                  :count="
+                    extension.reviewStats
+                      ? extension.reviewStats.review_count
+                      : null
+                  "
+                  :clickable="!!reviewsConfig"
+                  @click="openReviews(extension)"
+                />
                 <q-btn-group size="xs" style="margin: 5px 0">
                   <q-btn
                     v-if="extension.hasFreeRelease"
@@ -998,8 +1011,20 @@
           </div>
           <div class="col-sm-12 col-md-4 q-pl-sm">
             <lnbits-extension-rating
-              :rating="0"
-              size="2.5em"
+              :rating="
+                formatAvg(
+                  selectedExtension && selectedExtension.reviewStats
+                    ? selectedExtension.reviewStats.avg_rating
+                    : 0
+                )
+              "
+              :count="
+                selectedExtension && selectedExtension.reviewStats
+                  ? selectedExtension.reviewStats.review_count
+                  : null
+              "
+              :clickable="!!reviewsConfig"
+              @click="openReviews(selectedExtension)"
             ></lnbits-extension-rating>
             <div class="q-mt-md">
               <b>
@@ -1055,6 +1080,177 @@
           </div>
         </div>
       </q-card-section>
+    </q-card>
+  </q-dialog>
+  <q-dialog v-model="reviewsDialog.show" position="top">
+    <q-card class="q-pa-md lnbits__dialog-card" style="width: 900px; max-width: 95vw">
+      <q-card-section class="q-gutter-y-sm">
+        <div class="row items-center">
+          <div class="col">
+            <div
+              class="text-h6"
+              v-text="
+                (reviewsDialog.extension && reviewsDialog.extension.name) ||
+                (reviewsDialog.extension && reviewsDialog.extension.id)
+              "
+            ></div>
+            <div
+              class="text-caption text-grey"
+              v-text="reviewsDialog.extension && reviewsDialog.extension.id"
+            ></div>
+          </div>
+          <div class="col-auto">
+            <lnbits-extension-rating
+              :rating="
+                formatAvg(
+                  reviewsDialog.extension && reviewsDialog.extension.reviewStats
+                    ? reviewsDialog.extension.reviewStats.avg_rating
+                    : 0
+                )
+              "
+              :count="
+                reviewsDialog.extension && reviewsDialog.extension.reviewStats
+                  ? reviewsDialog.extension.reviewStats.review_count
+                  : null
+              "
+            ></lnbits-extension-rating>
+          </div>
+        </div>
+      </q-card-section>
+      <q-separator />
+      <q-card-section v-if="!reviewsConfig">
+        <div class="text-negative" v-text="$t('reviews_no_oracle')"></div>
+      </q-card-section>
+      <q-card-section v-else>
+        <div v-if="reviewsDialog.loading" class="row justify-center q-pa-lg">
+          <q-spinner-bars color="primary" size="2.55em"></q-spinner-bars>
+        </div>
+        <div v-else>
+          <div v-if="reviewsDialog.error" class="text-negative q-mb-md">
+            <span v-text="reviewsDialog.error"></span>
+          </div>
+          <div class="row q-col-gutter-lg">
+            <div class="col-12 col-md-7">
+              <div
+                v-if="reviewsDialog.items.length === 0"
+                class="text-grey q-mb-md"
+              >
+                <span v-text="$t('no_reviews')"></span>
+              </div>
+              <q-list v-else bordered separator>
+                <q-item v-for="item in reviewsDialog.items" :key="item.id">
+                  <q-item-section>
+                    <q-item-label class="text-subtitle2">
+                      <span v-text="item.name || item.tag"></span>
+                      <small class="q-ml-xs text-grey">
+                        <span v-text="formatReviewDate(item.created_at)"></span>
+                      </small>
+                    </q-item-label>
+                    <q-item-label
+                      class="text-body2"
+                      style="white-space: pre-wrap"
+                    >
+                      <span v-text="item.comment"></span>
+                    </q-item-label>
+                  </q-item-section>
+                  <q-item-section side top>
+                    <q-rating
+                      readonly
+                      icon="star_border"
+                      icon-selected="star"
+                      icon-half="star_half"
+                      :model-value="formatAvg(item.rating)"
+                      size="sm"
+                      color="secondary"
+                    ></q-rating>
+                  </q-item-section>
+                </q-item>
+              </q-list>
+              <div class="row justify-between q-mt-md">
+                <q-btn
+                  flat
+                  icon="chevron_left"
+                  :disable="reviewsDialog.cursorStack.length <= 1"
+                  @click="previousReviewsPage"
+                />
+                <q-btn
+                  flat
+                  icon-right="chevron_right"
+                  :disable="!reviewsDialog.nextCursor"
+                  @click="loadMoreReviews"
+                />
+              </div>
+            </div>
+            <div class="col-12 col-md-5">
+              <q-form @submit="submitReview" class="q-gutter-md">
+                <q-input
+                  dense
+                  filled
+                  v-model="reviewsDialog.form.name"
+                  :label="$t('reviews_name')"
+                ></q-input>
+                <q-rating
+                  v-model="reviewsDialog.form.rating"
+                  max="10"
+                  icon="star_border"
+                  icon-selected="star"
+                  icon-half="star_half"
+                  color="primary"
+                ></q-rating>
+                <q-input
+                  dense
+                  filled
+                  type="textarea"
+                  autogrow
+                  v-model="reviewsDialog.form.comment"
+                  :label="$t('reviews_comment')"
+                ></q-input>
+                <div class="row justify-end">
+                  <q-btn
+                    type="submit"
+                    color="primary"
+                    unelevated
+                    :loading="reviewsDialog.submitting"
+                    :disable="!reviewsDialog.form.rating"
+                    :label="$t('reviews_submit')"
+                  ></q-btn>
+                </div>
+              </q-form>
+            </div>
+          </div>
+        </div>
+      </q-card-section>
+    </q-card>
+  </q-dialog>
+  <q-dialog v-model="paymentDialog.show" position="top">
+    <q-card class="q-pa-md lnbits__dialog-card">
+      <q-card-section class="text-center">
+        <div class="text-h6" v-text="$t('reviews_invoice_title')"></div>
+      </q-card-section>
+      <q-card-section>
+        <q-responsive :ratio="1" class="q-mx-xl q-mb-xl">
+          <lnbits-qrcode
+            :value="paymentDialog.invoice"
+            :options="{width: 800}"
+            class="rounded-borders"
+          ></lnbits-qrcode>
+        </q-responsive>
+      </q-card-section>
+      <q-card-actions align="between">
+        <q-btn
+          v-close-popup
+          flat
+          color="grey"
+          :label="$t('close')"
+        ></q-btn>
+        <q-btn
+          flat
+          color="primary"
+          icon="content_copy"
+          @click="utils.copyText(paymentDialog.invoice)"
+          :label="$t('copy_invoice')"
+        ></q-btn>
+      </q-card-actions>
     </q-card>
   </q-dialog>
   <q-dialog v-model="showUpdateAllDialog" position="top">

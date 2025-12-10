@@ -624,6 +624,237 @@ window.PageExtensions = {
       })
       this.showUpdateAllDialog = false
     },
+    formatAvg(raw) {
+      const val = Number(raw || 0)
+      return Math.round((val / 2 / 100) * 2) / 2
+    },
+    parseReviewsOracle(url) {
+      if (!url) return null
+      try {
+        const parsed = new URL(url)
+        const segments = parsed.pathname.split('/').filter(Boolean)
+        const paidIdx = segments.indexOf('paidreviews')
+        let settingsId =
+          parsed.searchParams.get('settings_id') ||
+          parsed.searchParams.get('settingsId') ||
+          null
+        if (paidIdx >= 0 && segments[paidIdx + 1]) {
+          settingsId = decodeURIComponent(segments[paidIdx + 1])
+        }
+        const baseSegments =
+          paidIdx >= 0 ? segments.slice(0, paidIdx + 1) : segments
+        const basePath = baseSegments.length ? `/${baseSegments.join('/')}` : ''
+        const apiBase = `${parsed.origin}${basePath}`.replace(/\/$/, '')
+        return settingsId
+          ? {
+              origin: parsed.origin,
+              apiBase,
+              settingsId
+            }
+          : null
+      } catch (error) {
+        console.warn(error)
+        return null
+      }
+    },
+    async loadReviewStats() {
+      if (!this.reviewsConfig?.settingsId) return
+      const url = `${this.reviewsConfig.apiBase}/api/v1/tags/${encodeURIComponent(
+        this.reviewsConfig.settingsId
+      )}`
+      try {
+        const {data} = await axios.get(url, {timeout: 10000})
+        const map = {}
+        data.forEach(stat => {
+          map[stat.tag] = stat
+        })
+        this.extensions.forEach(ext => {
+          ext.reviewStats = map[ext.id] || null
+        })
+        this.filterExtensions(this.searchTerm, this.tab)
+      } catch (error) {
+        console.warn(error)
+      }
+    },
+    async openReviews(extension) {
+      const targetExtension =
+        extension ||
+        (this.selectedExtensionDetails
+          ? this.extensions.find(e => e.id === this.selectedExtensionDetails.id)
+          : null)
+      if (!targetExtension) {
+        return
+      }
+      if (!this.reviewsConfig?.settingsId) {
+        Quasar.Notify.create({
+          type: 'warning',
+          message: this.$t('reviews_no_oracle')
+        })
+        return
+      }
+      this.reviewsDialog.extension = targetExtension
+      this.reviewsDialog.show = true
+      await this.refreshReviews()
+    },
+    reviewApiUrl(path) {
+      return `${this.reviewsConfig.apiBase}${path}`
+    },
+    async fetchReviewsPage(before = null, reset = false) {
+      if (!this.reviewsConfig?.settingsId || !this.reviewsDialog.extension) {
+        return
+      }
+      this.reviewsDialog.loading = true
+      this.reviewsDialog.error = null
+      try {
+        const params = new URLSearchParams({limit: '10'})
+        if (before !== null && before !== undefined) {
+          params.set('before', String(before))
+        }
+        params.set(
+          '_',
+          typeof crypto !== 'undefined' && crypto.randomUUID
+            ? crypto.randomUUID()
+            : String(Date.now())
+        )
+        const url = this.reviewApiUrl(
+          `/api/v1/${encodeURIComponent(
+            this.reviewsConfig.settingsId
+          )}/${encodeURIComponent(this.reviewsDialog.extension.id)}?${params.toString()}`
+        )
+        const {data} = await axios.get(url, {timeout: 10000})
+        this.reviewsDialog.items = data.items || []
+        this.reviewsDialog.nextCursor = data.next_cursor || null
+        if (reset) {
+          this.reviewsDialog.cursorStack = [before ?? null]
+        } else if (before !== null && before !== undefined) {
+          this.reviewsDialog.cursorStack.push(before)
+        }
+        if (this.reviewsDialog.extension) {
+          this.reviewsDialog.extension.reviewStats = {
+            avg_rating: data.avg_rating,
+            review_count: data.review_count
+          }
+          const ext = this.extensions.find(
+            e => e.id === this.reviewsDialog.extension.id
+          )
+          if (ext) {
+            ext.reviewStats = {
+              avg_rating: data.avg_rating,
+              review_count: data.review_count
+            }
+          }
+        }
+        this.filterExtensions(this.searchTerm, this.tab)
+      } catch (error) {
+        console.warn(error)
+        this.reviewsDialog.error =
+          error?.response?.data?.detail || this.$t('reviews_error_load')
+      } finally {
+        this.reviewsDialog.loading = false
+      }
+    },
+    async refreshReviews() {
+      this.reviewsDialog.cursorStack = [null]
+      await this.fetchReviewsPage(null, true)
+    },
+    async loadMoreReviews() {
+      if (!this.reviewsDialog.nextCursor) return
+      await this.fetchReviewsPage(this.reviewsDialog.nextCursor, false)
+    },
+    async previousReviewsPage() {
+      if (this.reviewsDialog.cursorStack.length <= 1) return
+      this.reviewsDialog.cursorStack.pop()
+      const prev =
+        this.reviewsDialog.cursorStack[this.reviewsDialog.cursorStack.length - 1] ??
+        null
+      await this.fetchReviewsPage(prev, true)
+    },
+    formatReviewDate(val) {
+      if (!val) return ''
+      try {
+        const numeric = Number(val)
+        if (!Number.isNaN(numeric)) {
+          return new Date(numeric * 1000).toLocaleString()
+        }
+        return new Date(val).toLocaleString()
+      } catch {
+        return val
+      }
+    },
+    async submitReview() {
+      if (!this.reviewsDialog.extension || !this.reviewsConfig?.settingsId) {
+        return
+      }
+      this.reviewsDialog.submitting = true
+      try {
+        const payload = {
+          settings_id: this.reviewsConfig.settingsId,
+          name: this.reviewsDialog.form.name,
+          tag: this.reviewsDialog.extension.id,
+          rating: this.reviewsDialog.form.rating * 100,
+          comment: this.reviewsDialog.form.comment
+        }
+        const {data} = await axios.post(
+          this.reviewApiUrl('/api/v1/review'),
+          payload,
+          {timeout: 15000}
+        )
+        if (data.payment_request) {
+          this.openInvoiceDialog(data.payment_request, data.payment_hash)
+        } else {
+          Quasar.Notify.create({
+            type: 'positive',
+            message: 'Review submitted'
+          })
+          this.resetReviewForm()
+          await this.refreshReviews()
+          await this.loadReviewStats()
+        }
+      } catch (error) {
+        LNbits.utils.notifyApiError(error)
+      } finally {
+        this.reviewsDialog.submitting = false
+      }
+    },
+    openInvoiceDialog(invoice, hash) {
+      this.paymentDialog.invoice = invoice
+      this.paymentDialog.hash = hash
+      this.paymentDialog.show = true
+      this.listenForPayment(hash)
+    },
+    resetReviewForm() {
+      this.reviewsDialog.form = {
+        name: '',
+        rating: 0,
+        comment: ''
+      }
+      this.paymentDialog = {
+        show: false,
+        invoice: '',
+        hash: ''
+      }
+    },
+    listenForPayment(hash) {
+      try {
+        const base = new URL(this.reviewsConfig.origin)
+        base.protocol = base.protocol === 'https:' ? 'wss:' : 'ws:'
+        base.pathname = `/api/v1/ws/${hash}`
+        const ws = new WebSocket(base)
+        ws.addEventListener('message', async () => {
+          Quasar.Notify.create({
+            type: 'positive',
+            message: this.$t('reviews_invoice_paid')
+          })
+          this.paymentDialog.show = false
+          this.resetReviewForm()
+          await this.refreshReviews()
+          await this.loadReviewStats()
+          ws.close()
+        })
+      } catch (error) {
+        console.warn(error)
+      }
+    },
     async fetchAllExtensions() {
       try {
         const {data} = await LNbits.api.request('GET', `/api/v1/extension/all`)
@@ -638,6 +869,7 @@ window.PageExtensions = {
   async created() {
     this.extensions = await this.fetchAllExtensions()
     this.extbuilderEnabled = this.g.user.admin || this.LNBITS_EXT_BUILDER
+    this.reviewsConfig = this.parseReviewsOracle(this.LNBITS_REVIEWS_ORACLE)
 
     if (this.g.user.extensions.length === 0) {
       this.tab = 'all'
@@ -653,6 +885,10 @@ window.PageExtensions = {
     this.updatableExtensions = this.extensions.filter(ext =>
       this.hasNewVersion(ext)
     )
+
+    if (this.reviewsConfig) {
+      await this.loadReviewStats()
+    }
 
     this.filterExtensions(this.searchTerm, this.tab)
   }
