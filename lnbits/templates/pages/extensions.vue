@@ -166,7 +166,9 @@
                 <lnbits-extension-rating
                   :rating="
                     formatAvg(
-                      extension.reviewStats ? extension.reviewStats.avg_rating : 0
+                      extension.reviewStats
+                        ? extension.reviewStats.avg_rating
+                        : 0
                     )
                   "
                   :count="
@@ -1083,7 +1085,10 @@
     </q-card>
   </q-dialog>
   <q-dialog v-model="reviewsDialog.show" position="top">
-    <q-card class="q-pa-md lnbits__dialog-card" style="width: 900px; max-width: 95vw">
+    <q-card
+      class="q-pa-md lnbits__dialog-card"
+      style="width: 900px; max-width: 95vw"
+    >
       <q-card-section class="q-gutter-y-sm">
         <div class="row items-center">
           <div class="col">
@@ -1117,7 +1122,7 @@
           </div>
         </div>
       </q-card-section>
-    <q-separator></q-separator>
+      <q-separator></q-separator>
       <q-card-section v-if="!reviewsConfig">
         <div class="text-negative" v-text="$t('reviews_no_oracle')"></div>
       </q-card-section>
@@ -1234,12 +1239,7 @@
         </q-responsive>
       </q-card-section>
       <q-card-actions align="between">
-        <q-btn
-          v-close-popup
-          flat
-          color="grey"
-          :label="$t('close')"
-        ></q-btn>
+        <q-btn v-close-popup flat color="grey" :label="$t('close')"></q-btn>
       </q-card-actions>
     </q-card>
   </q-dialog>

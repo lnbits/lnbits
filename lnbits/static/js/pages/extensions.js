@@ -765,8 +765,9 @@ window.PageExtensions = {
       if (this.reviewsDialog.cursorStack.length <= 1) return
       this.reviewsDialog.cursorStack.pop()
       const prev =
-        this.reviewsDialog.cursorStack[this.reviewsDialog.cursorStack.length - 1] ??
-        null
+        this.reviewsDialog.cursorStack[
+          this.reviewsDialog.cursorStack.length - 1
+        ] ?? null
       await this.fetchReviewsPage(prev, true)
     },
     formatReviewDate(val) {
