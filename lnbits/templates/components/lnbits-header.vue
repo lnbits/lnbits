@@ -22,7 +22,7 @@
         @click="g.visibleDrawer = !g.visibleDrawer"
       ></q-btn>
       <q-toolbar-title>
-        <q-btn flat no-caps dense size="lg" type="a" href="/">
+        <q-btn flat no-caps dense class="q-mr-sm" size="lg" type="a" href="/">
           <q-img
             v-if="customLogoUrl"
             height="30px"
