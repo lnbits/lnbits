@@ -217,6 +217,7 @@ body.body--dark .q-header,
 body.body--dark .q-drawer {
   --q-dark: rgba(29, 29, 29, 0.3);
   background-color: var(--q-dark);
+  backdrop-filter: blur(6px) brightness(0.8);
 }
 
 :root {
