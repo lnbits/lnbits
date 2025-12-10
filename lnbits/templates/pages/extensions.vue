@@ -1224,9 +1224,6 @@
   </q-dialog>
   <q-dialog v-model="paymentDialog.show" position="top">
     <q-card class="q-pa-md lnbits__dialog-card">
-      <q-card-section class="text-center">
-        <div class="text-h6" v-text="$t('reviews_invoice_title')"></div>
-      </q-card-section>
       <q-card-section>
         <q-responsive :ratio="1" class="q-mx-xl q-mb-xl">
           <lnbits-qrcode
@@ -1242,13 +1239,6 @@
           flat
           color="grey"
           :label="$t('close')"
-        ></q-btn>
-        <q-btn
-          flat
-          color="primary"
-          icon="content_copy"
-          @click="utils.copyText(paymentDialog.invoice)"
-          :label="$t('copy_invoice')"
         ></q-btn>
       </q-card-actions>
     </q-card>
