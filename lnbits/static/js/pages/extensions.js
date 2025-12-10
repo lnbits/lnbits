@@ -325,6 +325,9 @@ window.PageExtensions = {
       if (!detailsLink) {
         return
       }
+      // keep a reference to the extension so we can show rating stats
+      this.selectedExtension =
+        this.extensions.find(ext => ext.id === extId) || this.selectedExtension
       this.selectedExtensionDetails = null
       this.showExtensionDetailsDialog = true
       this.slide = 0
