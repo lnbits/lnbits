@@ -768,15 +768,11 @@ window.PageExtensions = {
     },
     formatReviewDate(val) {
       if (!val) return ''
-      try {
-        const numeric = Number(val)
-        if (!Number.isNaN(numeric)) {
-          return new Date(numeric * 1000).toLocaleString()
-        }
-        return new Date(val).toLocaleString()
-      } catch {
-        return val
+      const numeric = Number(val)
+      if (!Number.isNaN(numeric)) {
+        return this.utils.formatTimestamp(numeric)
       }
+      return this.utils.formatDate(val)
     },
     async submitReview() {
       if (!this.reviewsDialog.extension || !this.reviewsConfig?.settingsId) {
