@@ -633,28 +633,21 @@ window.PageExtensions = {
     },
     parseReviewsOracle(url) {
       if (!url) return null
+      const clean = url.replace(/\/+$/, '')
       try {
-        const parsed = new URL(url)
+        const parsed = new URL(clean)
         const segments = parsed.pathname.split('/').filter(Boolean)
         const paidIdx = segments.indexOf('paidreviews')
-        let settingsId =
-          parsed.searchParams.get('settings_id') ||
-          parsed.searchParams.get('settingsId') ||
-          null
-        if (paidIdx >= 0 && segments[paidIdx + 1]) {
-          settingsId = decodeURIComponent(segments[paidIdx + 1])
+        if (paidIdx === -1 || !segments[paidIdx + 1]) {
+          return null
         }
-        const baseSegments =
-          paidIdx >= 0 ? segments.slice(0, paidIdx + 1) : segments
-        const basePath = baseSegments.length ? `/${baseSegments.join('/')}` : ''
-        const apiBase = `${parsed.origin}${basePath}`.replace(/\/$/, '')
-        return settingsId
-          ? {
-              origin: parsed.origin,
-              apiBase,
-              settingsId
-            }
-          : null
+        const settingsId = decodeURIComponent(segments[paidIdx + 1])
+        const basePath = [''].concat(segments.slice(0, paidIdx + 1)).join('/')
+        return {
+          origin: parsed.origin,
+          apiBase: `${parsed.origin}${basePath}`,
+          settingsId
+        }
       } catch (error) {
         console.warn(error)
         return null
