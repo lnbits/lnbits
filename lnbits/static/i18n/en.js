@@ -187,9 +187,9 @@ window.localisation.en = {
     'Only admin accounts can create extensions',
   admin_only: 'Admin Only',
   new_version: 'New Version',
-  reviews_oracle: 'Reviews oracle',
-  reviews_oracle_label: 'Reviews oracle URL',
-  reviews_oracle_hint:
+  reviews_url: 'Reviews URL',
+  reviews_url_label: 'Reviews server URL',
+  reviews_url_hint:
     'Full PaidReviews URL including the settings id (e.g. https://example.com/paidreviews/SETTINGS_ID)',
   reviews_open: 'View reviews',
   reviews_leave: 'Leave a review',

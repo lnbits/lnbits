@@ -139,13 +139,13 @@
         </div>
         <div class="col-12 col-md-6">
           <p>
-            <span v-text="$t('reviews_oracle')"></span>
+            <span v-text="$t('reviews_url')"></span>
           </p>
           <q-input
             filled
-            v-model="formData.lnbits_reviews_oracle"
-            :label="$t('reviews_oracle_label')"
-            :hint="$t('reviews_oracle_hint')"
+            v-model="formData.lnbits_reviews_url"
+            :label="$t('reviews_url_label')"
+            :hint="$t('reviews_url_hint')"
             type="url"
             autocomplete="off"
           ></q-input>

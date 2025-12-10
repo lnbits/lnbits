@@ -631,7 +631,7 @@ window.PageExtensions = {
       const val = Number(raw || 0)
       return Math.round((val / 2 / 100) * 2) / 2
     },
-    parseReviewsOracle(url) {
+    parseReviewsUrl(url) {
       if (!url) return null
       const clean = url.replace(/\/+$/, '')
       try {
@@ -866,7 +866,7 @@ window.PageExtensions = {
   async created() {
     this.extensions = await this.fetchAllExtensions()
     this.extbuilderEnabled = this.g.user.admin || this.LNBITS_EXT_BUILDER
-    this.reviewsConfig = this.parseReviewsOracle(this.LNBITS_REVIEWS_ORACLE)
+    this.reviewsConfig = this.parseReviewsUrl(this.LNBITS_REVIEWS_URL)
 
     if (this.g.user.extensions.length === 0) {
       this.tab = 'all'
