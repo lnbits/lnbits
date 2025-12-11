@@ -81,13 +81,20 @@
         class="q-pl-sm"
       >
         <template v-slot:label>
-          <q-avatar v-if="g.user?.extra?.picture !== ''" size="18px">
+          <q-avatar
+            v-if="g.user?.extra?.picture && g.user?.extra?.picture !== ''"
+            size="18px"
+          >
             <q-img :src="g.user?.extra?.picture"></q-img>
           </q-avatar>
           <q-avatar v-else icon="account_circle" size="18px"></q-avatar>
         </template>
         <q-list style="max-width: 200px">
-          <q-item>
+          <q-item
+            v-if="
+              g.user && g.user?.extra?.picture && g.user?.extra?.picture !== ''
+            "
+          >
             <q-item-section avatar v-if="g.user?.extra?.picture !== ''">
               <q-avatar size="md">
                 <img :src="g.user?.extra?.picture" />
@@ -95,10 +102,10 @@
             </q-item-section>
             <q-item-section>
               <q-item-label
+                caption
                 class="ellipsis"
                 v-text="displayName"
               ></q-item-label>
-              <q-item-label caption v-text="displayRole"></q-item-label>
             </q-item-section>
           </q-item>
           <q-separator></q-separator>
