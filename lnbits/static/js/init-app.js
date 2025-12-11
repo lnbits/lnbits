@@ -138,6 +138,9 @@ window.router = VueRouter.createRouter({
   routes
 })
 
+// BACKWARDS compatibility extensions
+window.LOCALE = window.g.locale
+
 window.i18n = new VueI18n.createI18n({
   locale: window.g.locale,
   fallbackLocale: 'en',
