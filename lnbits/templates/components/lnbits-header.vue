@@ -84,12 +84,15 @@
           <q-avatar v-else icon="account_circle" size="18px"></q-avatar>
         </template>
         <q-list style="max-width: 200px">
-          <q-item
-            v-if="
-              g.user && g.user?.extra?.picture && g.user?.extra?.picture !== ''
-            "
-          >
-            <q-item-section avatar v-if="g.user?.extra?.picture !== ''">
+          <q-item>
+            <q-item-section
+              avatar
+              v-if="
+                g.user &&
+                g.user?.extra?.picture &&
+                g.user?.extra?.picture !== ''
+              "
+            >
               <q-avatar size="md">
                 <img :src="g.user?.extra?.picture" />
               </q-avatar>
