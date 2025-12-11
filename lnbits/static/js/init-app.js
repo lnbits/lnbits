@@ -38,7 +38,7 @@ const DynamicComponent = {
         let route = RENDERED_ROUTE
         // append trailing slash only on the root path `/path` -> `/path/`
         if (route.split('/').length === 2) route += '/'
-        if (route !== this.$route.fullPath) {
+        if (route !== this.$route.path) {
           console.log('Redirecting to non-vue route:', this.$route.fullPath)
           window.location = this.$route.fullPath
           return
