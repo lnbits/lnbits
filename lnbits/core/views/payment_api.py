@@ -91,7 +91,7 @@ payment_router = APIRouter(prefix="/api/v1/payments", tags=["Payments"])
 )
 async def api_payments_fetch_invoice(
         fetchinvoice: FetchInvoice,
-        key_info: WalletTypeInfo = Depends(require_invoice_key),
+        key_info: WalletTypeInfo = Depends(require_base_invoice_key),
         ) -> str:
 
     invoice = await fetch_invoice(
