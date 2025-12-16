@@ -138,7 +138,9 @@ def register_exception_handlers(app: FastAPI):  # noqa: C901
 
     @app.exception_handler(404)
     async def error_handler_404(request: Request, exc: HTTPException):
-        logger.error(f"404: {request.url.path} {exc.status_code}: {exc.detail}")
+
+        if not request.url.path.endswith("routes.json"):
+            logger.error(f"404: {request.url.path} {exc.status_code}: {exc.detail}")
 
         if not _is_browser_request(request):
             return JSONResponse(
