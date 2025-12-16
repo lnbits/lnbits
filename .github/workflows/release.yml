@@ -32,11 +32,11 @@ jobs:
       - id: get_upload_url
         name: get upload url of github release
         env:
-          github_token: ${{ secrets.github_token }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           tag: ${{ github.ref_name }}
         run: |
-          upload_url=$(gh release view "$tag" --json uploadurl -q ".uploadurl")
-          echo "upload_url=$upload_url" >> "$github_output"
+          upload_url=$(gh release view "$tag" --json uploadUrl -q ".uploadUrl")
+          echo "upload_url=$upload_url" >> "$GITHUB_OUTPUT"
 
   docker:
     if: github.repository == 'lnbits/lnbits'
