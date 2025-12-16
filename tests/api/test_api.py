@@ -245,7 +245,7 @@ async def test_create_invoice_validates_used_currency(
     )
     assert response.status_code == 400
     res_data = response.json()
-    assert "The provided unit is not supported" in res_data["detail"]
+    assert "The provided unit is not supported" == res_data["detail"][0]["msg"]
 
 
 # check POST /api/v1/payments: invoice creation for internal payments only
