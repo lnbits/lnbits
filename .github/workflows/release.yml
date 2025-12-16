@@ -22,7 +22,8 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           tag: ${{ github.ref_name }}
         run: |
-          upload_url=$(gh release create "$tag" --generate-notes --draft --json upload_url -q '.upload_url')
+          gh release create "$tag" --generate-notes --draft
+          upload_url=$(gh release view $tag --repo lnbits/lnbits --json uploadUrl -q ".uploadUrl")
           echo "upload_url=$upload_url" >> "$GITHUB_OUTPUT"
 
   docker:
