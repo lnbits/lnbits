@@ -288,7 +288,7 @@ async def create_payment(
         payment_hash=data.payment_hash,
         bolt11=data.bolt11,
         amount=data.amount_msat,
-        offer_id = data.offer_id,
+        offer_id=data.offer_id,
         memo=data.memo,
         payer_note=data.payer_note,
         preimage=data.preimage,

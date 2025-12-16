@@ -209,9 +209,7 @@ async def update_offer(
     offer: Offer,
     conn: Connection | None = None,
 ) -> None:
-    await (conn or db).update(
-        "apioffers", offer, "WHERE offer_id = :offer_id"
-    )
+    await (conn or db).update("apioffers", offer, "WHERE offer_id = :offer_id")
 
 
 async def delete_wallet_offer(

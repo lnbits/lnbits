@@ -34,7 +34,7 @@ class StatusResponse(NamedTuple):
 
 class OfferResponse(NamedTuple):
     ok: bool
-    offer_id: str | None = None 
+    offer_id: str | None = None
     active: bool | None = None
     single_use: bool | None = None
     invoice_offer: str | None = None
@@ -298,17 +298,19 @@ class Wallet(ABC):
     async def decode_invoice(self, invoice_string: str) -> InvoiceData | None:
         try:
             invoice = bolt11_decode(invoice_string)
-            return InvoiceData(payment_hash = invoice.payment_hash,
-                               description = invoice.description,
-                               description_hash = invoice.description_hash,
-                               payment_secret = invoice.payment_secret,
-                               amount_msat = invoice.amount_msat,
-                               offer_issuer_id = invoice.payee,
-                               invoice_node_id = invoice.payee,
-                               invoice_created_at = invoice.date,
-                               invoice_relative_expiry = invoice.expiry,
-                               bolt11 = invoice_string,
-                               bolt11_is_fake = False)
+            return InvoiceData(
+                payment_hash=invoice.payment_hash,
+                description=invoice.description,
+                description_hash=invoice.description_hash,
+                payment_secret=invoice.payment_secret,
+                amount_msat=invoice.amount_msat,
+                offer_issuer_id=invoice.payee,
+                invoice_node_id=invoice.payee,
+                invoice_created_at=invoice.date,
+                invoice_relative_expiry=invoice.expiry,
+                bolt11=invoice_string,
+                bolt11_is_fake=False,
+            )
 
         except Bolt11Bech32InvalidException as exc:
             return None
@@ -317,10 +319,8 @@ class Wallet(ABC):
             return None
 
     async def get_invoice_extended_status(
-            self,
-            checking_id: str,
-            offer_id: str | None = None
-            ) -> InvoiceExtendedStatus | None:
+        self, checking_id: str, offer_id: str | None = None
+    ) -> InvoiceExtendedStatus | None:
         return None
 
     async def paid_invoices_stream(self) -> AsyncGenerator[str, None]:
@@ -338,17 +338,17 @@ class Wallet(ABC):
             await asyncio.sleep(5)
 
     def generate_fake_bolt11(
-            self,
-            created_at: int,
-            amount_msat: int | None = None,
-            description: str | None = None,
-            expire_time: int | None = None
-            ) -> str:
+        self,
+        created_at: int,
+        amount_msat: int | None = None,
+        description: str | None = None,
+        expire_time: int | None = None,
+    ) -> str:
         payment_secret, payment_hash = random_secret_and_hash()
         dict_tags = {
-                    "payment_hash": payment_hash,
-                    "payment_secret": payment_secret,
-                }
+            "payment_hash": payment_hash,
+            "payment_secret": payment_secret,
+        }
 
         if description:
             dict_tags["description"] = description

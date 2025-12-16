@@ -84,10 +84,12 @@ async def create_offer(
 
     funding_source = get_funding_source()
 
-    #How should this be handled with offers?
+    # How should this be handled with offers?
     if amount_sat:
         if amount_sat <= 0:
-            raise OfferError("Offers with negative or zero amounts are not valid.", status="failed")
+            raise OfferError(
+                "Offers with negative or zero amounts are not valid.", status="failed"
+            )
         if amount_sat > settings.lnbits_max_incoming_payment_amount_sats:
             raise OfferError(
                 f"Offer amount {amount_sat} sats is too high. Max allowed: "
@@ -109,12 +111,13 @@ async def create_offer(
             issuer=secrets.token_hex(8),
             memo=offer_memo,
             absolute_expiry=absolute_expiry,
-            single_use = single_use
+            single_use=single_use,
         )
 
         if not offer_resp.ok or not offer_resp.invoice_offer or not offer_resp.offer_id:
             raise OfferError(
-                offer_resp.error_message or "unexpected backend error.", status="pending"
+                offer_resp.error_message or "unexpected backend error.",
+                status="pending",
             )
 
         if offer_resp.created:
@@ -152,18 +155,14 @@ async def enable_offer(
     offer = await get_standalone_offer(offer_id=offer_id, wallet_id=wallet_id)
 
     if not offer:
-        raise OfferError(
-            "Could not find offer", status="error"
-        )
+        raise OfferError("Could not find offer", status="error")
 
     if offer.active is True:
         return True
 
     funding_source = get_funding_source()
 
-    offer_resp = await funding_source.enable_offer(
-        offer_id = offer_id
-    )
+    offer_resp = await funding_source.enable_offer(offer_id=offer_id)
 
     if not offer_resp.ok:
         raise OfferError(
@@ -172,7 +171,11 @@ async def enable_offer(
 
     if offer_resp.created:
 
-        if not offer_resp.invoice_offer or not offer_resp.offer_id==offer_id or not offer_resp.active:
+        if (
+            not offer_resp.invoice_offer
+            or not offer_resp.offer_id == offer_id
+            or not offer_resp.active
+        ):
             raise OfferError(
                 offer_resp.error_message or "unexpected backend state.", status="error"
             )
@@ -195,15 +198,11 @@ async def disable_offer(
         return False
 
     if not offer:
-        raise OfferError(
-            "Could not find offer", status="error"
-        )
+        raise OfferError("Could not find offer", status="error")
 
     funding_source = get_funding_source()
 
-    offer_resp = await funding_source.disable_offer(
-        offer_id = offer_id
-    )
+    offer_resp = await funding_source.disable_offer(offer_id=offer_id)
 
     if not offer_resp.ok:
         raise OfferError(
@@ -212,7 +211,11 @@ async def disable_offer(
 
     if offer_resp.created:
 
-        if not offer_resp.invoice_offer or not offer_resp.offer_id==offer_id or offer_resp.active:
+        if (
+            not offer_resp.invoice_offer
+            or not offer_resp.offer_id == offer_id
+            or offer_resp.active
+        ):
             raise OfferError(
                 offer_resp.error_message or "unexpected backend state.", status="error"
             )
@@ -231,7 +234,7 @@ async def fetch_invoice(
     currency: str | None = "sat",
     extra: dict | None = None,
     conn: Connection | None = None,
-    ) -> str:
+) -> str:
 
     if settings.lnbits_only_allow_incoming_payments:
         raise PaymentError("Only incoming payments allowed.", status="failed")
@@ -254,10 +257,8 @@ async def fetch_invoice(
     funding_source = get_funding_source()
 
     invoice_response = await funding_source.fetch_invoice(
-            offer=offer,
-            amount=amount_sat,
-            payer_note=payer_note
-            )
+        offer=offer, amount=amount_sat, payer_note=payer_note
+    )
 
     if invoice_response.ok is not True:
         raise InvoiceError(invoice_response.error_message, status="failed")
@@ -303,8 +304,8 @@ async def pay_invoice(
             bolt11=invoice.bolt11,
             payment_hash=invoice.payment_hash,
             amount_msat=-amount_msat,
-            offer_id = invoice.offer_id,
-            payer_note = invoice.payer_note,
+            offer_id=invoice.offer_id,
+            payer_note=invoice.payer_note,
             expiry=(invoice.invoice_created_at + invoice.invoice_relative_expiry),
             memo=description or invoice.description or "",
             extra=extra,
@@ -313,7 +314,10 @@ async def pay_invoice(
 
     async with db.reuse_conn(conn) if conn else db.connect() as new_conn:
         payment = await _pay_invoice(
-            wallet.source_wallet_id, payment_request, create_payment_model, conn=new_conn
+            wallet.source_wallet_id,
+            payment_request,
+            create_payment_model,
+            conn=new_conn,
         )
 
         await _credit_service_fee_wallet(wallet, payment, conn=new_conn)
@@ -901,9 +905,13 @@ async def _pay_invoice(
                 f"Could not fetch wallet '{wallet_id}'.", status="failed"
             )
 
-        payment = await _pay_internal_invoice(wallet, payment_request, create_payment_model, conn)
+        payment = await _pay_internal_invoice(
+            wallet, payment_request, create_payment_model, conn
+        )
         if not payment:
-            payment = await _pay_external_invoice(wallet, payment_request, create_payment_model, conn)
+            payment = await _pay_external_invoice(
+                wallet, payment_request, create_payment_model, conn
+            )
         return payment
 
 
@@ -917,7 +925,7 @@ async def _pay_internal_invoice(
     Pay an internal payment.
     returns None if the payment is not internal.
     """
-    #If bolt11 payment
+    # If bolt11 payment
     if not create_payment_model.offer_id:
         # check_internal() returns the payment of the invoice we're waiting for
         # (pending only)
@@ -926,7 +934,7 @@ async def _pay_internal_invoice(
         )
         if not internal_payment:
             return None
-    
+
         # perform additional checks on the internal payment
         # the payment hash is not enough to make sure that this is the same invoice
         internal_invoice = await get_standalone_payment(
@@ -935,30 +943,34 @@ async def _pay_internal_invoice(
 
         if not internal_invoice:
             raise PaymentError("Internal payment not found.", status="failed")
-    
+
         amount_msat = create_payment_model.amount_msat
         if (
             internal_invoice.amount != abs(amount_msat)
             or internal_invoice.bolt11 != create_payment_model.bolt11.lower()
         ):
             raise PaymentError("Invalid invoice. Bolt11 changed.", status="failed")
-    
-    #Else if bolt12 payment
+
+    # Else if bolt12 payment
     else:
-        #First check if offer ID is internal
+        # First check if offer ID is internal
         internal_offer = await get_offer(offer_id=create_payment_model.offer_id)
 
         if not internal_offer:
             return None
-        #Then check if the funding source knows about an internal invoice with a matching payment hash and offer ID
+        # Then check if the funding source knows about an internal invoice with a matching payment hash and offer ID
         funding_source = get_funding_source()
-        internal_invoice_extended_status = await funding_source.get_invoice_extended_status(create_payment_model.payment_hash, create_payment_model.offer_id)
+        internal_invoice_extended_status = (
+            await funding_source.get_invoice_extended_status(
+                create_payment_model.payment_hash, create_payment_model.offer_id
+            )
+        )
 
         if not internal_invoice_extended_status:
             return None
-    
-        #Reject the internal payment if the bolt12 string does not match
-        if (internal_invoice_extended_status.string != payment_request.lower()):
+
+        # Reject the internal payment if the bolt12 string does not match
+        if internal_invoice_extended_status.string != payment_request.lower():
             raise PaymentError("Invalid invoice. Bolt12 changed.", status="failed")
         amount_msat = create_payment_model.amount_msat
 
@@ -981,10 +993,10 @@ async def _pay_internal_invoice(
         conn=conn,
     )
 
-    #If an internal bolt11 payment, the internal invoice entry for the other
-    #side was created along with the invoice, so it can be updated here.
-    #For an internal bolt12 payment, the internal invoice entry for the other
-    #side has yet to be created, and the task is left to invoice_callback_dispatcher
+    # If an internal bolt11 payment, the internal invoice entry for the other
+    # side was created along with the invoice, so it can be updated here.
+    # For an internal bolt12 payment, the internal invoice entry for the other
+    # side has yet to be created, and the task is left to invoice_callback_dispatcher
     # mark the invoice from the other side as not pending anymore
     # so the other side only has access to his new money when we are sure
     # the payer has enough to deduct from

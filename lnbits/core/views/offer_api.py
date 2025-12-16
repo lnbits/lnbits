@@ -139,13 +139,11 @@ async def api_offers_create(
 
 @offer_router.get("/{offer_id}")
 async def api_offer(
-        offer_id,
-        key_info: WalletTypeInfo = Depends(require_invoice_key),
-        ):
+    offer_id,
+    key_info: WalletTypeInfo = Depends(require_invoice_key),
+):
 
-    offer = await get_standalone_offer(
-        offer_id, wallet_id=key_info.wallet.id
-    )
+    offer = await get_standalone_offer(offer_id, wallet_id=key_info.wallet.id)
     if offer is None:
         raise HTTPException(
             status_code=HTTPStatus.NOT_FOUND, detail="Offer does not exist."
@@ -170,10 +168,7 @@ async def api_offers_enable(
 ) -> bool:
 
     try:
-        return await enable_offer(
-            wallet_id=key_info.wallet.id,
-            offer_id=offer_id
-        )
+        return await enable_offer(wallet_id=key_info.wallet.id, offer_id=offer_id)
 
     except OfferError as exc:
         raise HTTPException(
@@ -199,14 +194,10 @@ async def api_offers_disable(
 ) -> bool:
 
     try:
-        return await disable_offer(
-            wallet_id=key_info.wallet.id,
-            offer_id=offer_id
-        )
+        return await disable_offer(wallet_id=key_info.wallet.id, offer_id=offer_id)
 
     except OfferError as exc:
         raise HTTPException(
             status_code=HTTPStatus.BAD_REQUEST,
             detail="Offer could not be disabled",
         ) from exc
-

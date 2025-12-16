@@ -84,7 +84,15 @@ class Offer(BaseModel):
 
 
 class OfferFilters(FilterModel):
-    __search_fields__ = ["memo", "amount", "wallet_id", "tag", "active", "single_use", "used"]
+    __search_fields__ = [
+        "memo",
+        "amount",
+        "wallet_id",
+        "tag",
+        "active",
+        "single_use",
+        "used",
+    ]
 
     __sort_fields__ = ["created_at", "amount", "fee", "memo", "tag"]
 

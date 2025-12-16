@@ -206,10 +206,16 @@ async def invoice_callback_dispatcher(checking_id: str, is_internal: bool = Fals
             logger.warning(f"No payment found for '{checking_id}'.")
             return
 
-        logger.info(f"Invoice extended status successfully recovered for invoice {checking_id}")
+        logger.info(
+            f"Invoice extended status successfully recovered for invoice {checking_id}"
+        )
 
-        if not invoice_status.success and (not invoice_status.pending or not is_internal):
-            logger.warning(f"Invoice for '{checking_id}' has not been successfully paid and it is not a pending internal invoice.")
+        if not invoice_status.success and (
+            not invoice_status.pending or not is_internal
+        ):
+            logger.warning(
+                f"Invoice for '{checking_id}' has not been successfully paid and it is not a pending internal invoice."
+            )
             return
 
         if invoice_status.offer_id:
@@ -219,7 +225,7 @@ async def invoice_callback_dispatcher(checking_id: str, is_internal: bool = Fals
                 logger.warning(f"No offer found for '{invoice_status.offer_id}'.")
                 return
 
-            logger.info(f"Offer {invoice_status.offer_id} was found in db") 
+            logger.info(f"Offer {invoice_status.offer_id} was found in db")
             data = await funding_source.decode_invoice(invoice_status.string)
 
             if not data:
@@ -231,10 +237,16 @@ async def invoice_callback_dispatcher(checking_id: str, is_internal: bool = Fals
                 return
 
             if data.offer_id != invoice_status.offer_id:
-                logger.error(f"The offer_id for decoded invoice {checking_id} ({data.offer_id}) does not match the offer_id from the invoice's extended status ({invoice_status.offer_id})")
+                logger.error(
+                    f"The offer_id for decoded invoice {checking_id} ({data.offer_id}) does not match the offer_id from the invoice's extended status ({invoice_status.offer_id})"
+                )
                 return
 
-            description = data.description or f"Offer {data.offer_id} payment" if data.offer_id else f"Payment for invoice {data.payment_hash}"
+            description = (
+                data.description or f"Offer {data.offer_id} payment"
+                if data.offer_id
+                else f"Payment for invoice {data.payment_hash}"
+            )
             create_payment_model = CreatePayment(
                 wallet_id=offer.wallet_id,
                 bolt11=data.bolt11,
@@ -242,7 +254,11 @@ async def invoice_callback_dispatcher(checking_id: str, is_internal: bool = Fals
                 preimage=invoice_status.payment_preimage,
                 amount_msat=data.amount_msat,
                 offer_id=data.offer_id,
-                expiry=data.invoice_created_at+data.invoice_relative_expiry if data.invoice_relative_expiry else None,
+                expiry=(
+                    data.invoice_created_at + data.invoice_relative_expiry
+                    if data.invoice_relative_expiry
+                    else None
+                ),
                 memo=description,
             )
 
@@ -254,7 +270,7 @@ async def invoice_callback_dispatcher(checking_id: str, is_internal: bool = Fals
                 data=create_payment_model,
                 created_at=data.invoice_created_at,
                 updated_at=invoice_status.paid_at or datetime.now(timezone.utc),
-                status = PaymentState.SUCCESS
+                status=PaymentState.SUCCESS,
             )
 
             internal = "internal" if is_internal else ""
