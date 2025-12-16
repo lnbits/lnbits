@@ -111,9 +111,13 @@ async def api_offers_create(
 
     offer = await create_offer(
         wallet_id=key_info.wallet.id,
-        amount_sat=offer_data.amount_msat / 1000 if offer_data.amount_msat else None,
+        amount_sat=(
+            int(offer_data.amount_msat / 1000) if offer_data.amount_msat else None
+        ),
         memo=offer_data.memo,
-        absolute_expiry=offer_data.expiry,
+        absolute_expiry=(
+            int(offer_data.expiry.timestamp()) if offer_data.expiry else None
+        ),
         extra=offer_data.extra,
         webhook=offer_data.webhook,
     )

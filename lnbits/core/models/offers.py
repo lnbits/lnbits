@@ -62,12 +62,12 @@ class Offer(BaseModel):
         return not self.used == True  # noqa E712
 
     @property
-    def msat(self) -> int:
+    def msat(self) -> int | None:
         return self.amount
 
     @property
-    def sat(self) -> int:
-        return self.amount / 1000
+    def sat(self) -> int | None:
+        return int(self.amount / 1000) if self.amount else None
 
     @property
     def is_expired(self) -> bool:

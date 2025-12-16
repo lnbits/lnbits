@@ -6,7 +6,7 @@ from collections.abc import AsyncGenerator, Coroutine
 from enum import Enum
 from typing import TYPE_CHECKING, NamedTuple
 
-from bolt11 import Bolt11, Tags
+from bolt11 import Bolt11, MilliSatoshi, Tags
 from bolt11 import decode as bolt11_decode
 from bolt11 import encode as bolt11_encode
 from bolt11.exceptions import Bolt11Bech32InvalidException
@@ -34,11 +34,11 @@ class StatusResponse(NamedTuple):
 class OfferResponse(NamedTuple):
     ok: bool
     offer_id: str | None = None
-    active: bool | None = None
-    single_use: bool | None = None
+    active: bool = False
+    single_use: bool = False
     invoice_offer: str | None = None
-    used: bool | None = None
-    created: bool | None = None
+    used: bool = False
+    created: bool = False
     label: str | None = None
     error_message: str | None = None
 
@@ -52,29 +52,28 @@ class OfferResponse(NamedTuple):
 
 
 class OfferStatus(NamedTuple):
-    active: bool | None = None
-    used: bool | None = None
+    active_: bool | None = None
+    used_: bool | None = None
 
     @property
     def active(self) -> bool:
-        return self.active is True
+        return self.active_ is True
 
     @property
     def used(self) -> bool:
-        return self.used is True
+        return self.used_ is True
 
     @property
     def error(self) -> bool:
-        return self.active is None
+        return self.active_ is None
 
 
 class OfferErrorStatus(OfferStatus):
-    active = None
-    used = None
+    active_ = None
+    used_ = None
 
 
 class FetchInvoiceResponse(NamedTuple):
-    ok: bool
     payment_request: str | None = None
     error_message: str | None = None
     preimage: str | None = None
@@ -82,15 +81,11 @@ class FetchInvoiceResponse(NamedTuple):
 
     @property
     def success(self) -> bool:
-        return self.ok is True
-
-    @property
-    def pending(self) -> bool:
-        return self.ok is None
+        return self.payment_request is not None
 
     @property
     def failed(self) -> bool:
-        return self.ok is False
+        return not self.payment_request
 
 
 class OfferData(NamedTuple):
@@ -105,7 +100,10 @@ class OfferData(NamedTuple):
 
 
 class InvoiceData(NamedTuple):
-    payment_hash: str | None = None
+    payment_hash: str
+    bolt11: str
+    bolt11_is_fake: bool
+    invoice_created_at: int
     description: str | None = None
     description_hash: str | None = None
     payment_secret: str | None = None
@@ -115,10 +113,7 @@ class InvoiceData(NamedTuple):
     offer_issuer_id: str | None = None
     invoice_node_id: str | None = None
     offer_absolute_expiry: int | None = None
-    invoice_created_at: int | None = None
     invoice_relative_expiry: int | None = None
-    bolt11: str | None = None
-    bolt11_is_fake: bool | None = None
 
 
 class InvoiceResponse(NamedTuple):
@@ -143,11 +138,12 @@ class InvoiceResponse(NamedTuple):
 
 
 class InvoiceExtendedStatus(NamedTuple):
+    string: str
     paid: bool | None = None
-    string: str | None = None
     offer_id: str | None = None
     paid_at: int | None = None
     payment_preimage: str | None = None
+    amount_received_msat: int = 0
 
     @property
     def success(self) -> bool:
@@ -291,6 +287,51 @@ class Wallet(ABC):
             message="Hold invoices are not supported by this wallet.", status="failed"
         )
 
+    async def create_offer(
+        self,
+        amount: int | None = None,
+        memo: str | None = None,
+        issuer: str | None = None,
+        absolute_expiry: int | None = None,
+        single_use: bool | None = None,
+        **kwargs,
+    ) -> OfferResponse:
+        return OfferResponse(
+            ok=False,
+            error_message="Offers are not supported by this wallet.",
+        )
+
+    async def enable_offer(
+        self,
+        offer_id: str,
+    ) -> OfferResponse:
+        return OfferResponse(
+            ok=False,
+            error_message="Offers are not supported by this wallet.",
+        )
+
+    async def disable_offer(
+        self,
+        offer_id: str,
+    ) -> OfferResponse:
+        return OfferResponse(
+            ok=False,
+            error_message="Offers are not supported by this wallet.",
+        )
+
+    async def get_offer_status(
+        self, offer_id: str, active_only: bool = False
+    ) -> OfferStatus:
+        return OfferErrorStatus()
+
+    async def fetch_invoice(
+        self,
+        offer: str,
+        amount: int | None = None,
+        payer_note: str | None = None,
+    ) -> FetchInvoiceResponse:
+        return FetchInvoiceResponse(None, "Offers are not supported by this wallet.")
+
     async def decode_offer(self, bolt12_offer: str) -> OfferData | None:
         return None
 
@@ -344,7 +385,7 @@ class Wallet(ABC):
         expire_time: int | None = None,
     ) -> str:
         payment_secret, payment_hash = random_secret_and_hash()
-        dict_tags = {
+        dict_tags: dict[str, str | int] = {
             "payment_hash": payment_hash,
             "payment_secret": payment_secret,
         }
@@ -356,7 +397,7 @@ class Wallet(ABC):
             dict_tags["expire_time"] = expire_time
         bolt11_invoice = Bolt11(
             currency="bc",
-            amount_msat=amount_msat,
+            amount_msat=None if not amount_msat else MilliSatoshi(amount_msat),
             date=created_at,
             tags=Tags.from_dict(dict_tags),
         )

@@ -251,10 +251,13 @@ async def invoice_callback_dispatcher(checking_id: str, is_internal: bool = Fals
                 bolt11=data.bolt11,
                 payment_hash=data.payment_hash,
                 preimage=invoice_status.payment_preimage,
-                amount_msat=data.amount_msat,
+                amount_msat=invoice_status.amount_received_msat,
                 offer_id=data.offer_id,
                 expiry=(
-                    data.invoice_created_at + data.invoice_relative_expiry
+                    datetime.fromtimestamp(
+                        data.invoice_created_at + data.invoice_relative_expiry,
+                        timezone.utc,
+                    )
                     if data.invoice_relative_expiry
                     else None
                 ),
@@ -268,7 +271,8 @@ async def invoice_callback_dispatcher(checking_id: str, is_internal: bool = Fals
                 checking_id=checking_id,
                 data=create_payment_model,
                 created_at=data.invoice_created_at,
-                updated_at=invoice_status.paid_at or datetime.now(timezone.utc),
+                updated_at=invoice_status.paid_at
+                or int(datetime.now(timezone.utc).timestamp()),
                 status=PaymentState.SUCCESS,
             )
 

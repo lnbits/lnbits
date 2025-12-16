@@ -118,7 +118,11 @@ async def create_offer(
         amount_msat=amount_sat * 1000 if amount_sat else None,
         memo=memo,
         extra=extra,
-        expiry=absolute_expiry,
+        expiry=(
+            datetime.fromtimestamp(absolute_expiry, timezone.utc)
+            if absolute_expiry
+            else None
+        ),
         webhook=webhook,
     )
 
@@ -185,11 +189,11 @@ async def disable_offer(
 
     offer = await get_standalone_offer(offer_id=offer_id, wallet_id=wallet_id)
 
-    if offer.active is False:
-        return False
-
     if not offer:
         raise OfferError("Could not find offer", status="error")
+
+    if offer.active is False:
+        return False
 
     funding_source = get_funding_source()
 
@@ -225,7 +229,7 @@ async def fetch_invoice(
     currency: str | None = "sat",
     extra: dict | None = None,
     conn: Connection | None = None,
-) -> str:
+) -> str | None:
 
     if settings.lnbits_only_allow_incoming_payments:
         raise PaymentError("Only incoming payments allowed.", status="failed")
@@ -243,7 +247,7 @@ async def fetch_invoice(
                 amount, user_wallet, currency, extra
             )
         else:
-            amount_sat = amount
+            amount_sat = int(amount)
 
     funding_source = get_funding_source()
 
@@ -251,8 +255,15 @@ async def fetch_invoice(
         offer=offer, amount=amount_sat, payer_note=payer_note
     )
 
-    if invoice_response.ok is not True:
-        raise InvoiceError(invoice_response.error_message, status="failed")
+    if invoice_response.failed:
+        raise InvoiceError(
+            (
+                invoice_response.error_message
+                if invoice_response.error_message
+                else "Could not fetch invoice"
+            ),
+            status="failed",
+        )
 
     return invoice_response.payment_request
 
@@ -297,7 +308,14 @@ async def pay_invoice(
             amount_msat=-amount_msat,
             offer_id=invoice.offer_id,
             payer_note=invoice.payer_note,
-            expiry=(invoice.invoice_created_at + invoice.invoice_relative_expiry),
+            expiry=(
+                datetime.fromtimestamp(
+                    (invoice.invoice_created_at + invoice.invoice_relative_expiry),
+                    timezone.utc,
+                )
+                if invoice.invoice_relative_expiry
+                else None
+            ),
             memo=description or invoice.description or "",
             extra=extra,
             labels=labels,
@@ -972,8 +990,9 @@ async def _pay_internal_invoice(
     if wallet.balance_msat < abs(amount_msat) + fee_reserve_total_msat:
         raise PaymentError("Insufficient balance.", status="failed")
 
-    # release the preimage
-    create_payment_model.preimage = internal_invoice.preimage
+    if internal_invoice:
+        # release the preimage
+        create_payment_model.preimage = internal_invoice.preimage
 
     internal_id = f"internal_{create_payment_model.payment_hash}"
     logger.debug(f"creating temporary internal payment with id {internal_id}")
@@ -992,7 +1011,7 @@ async def _pay_internal_invoice(
     # mark the invoice from the other side as not pending anymore
     # so the other side only has access to his new money when we are sure
     # the payer has enough to deduct from
-    if not create_payment_model.offer_id:
+    if internal_payment:
         internal_payment.status = PaymentState.SUCCESS
         await update_payment(internal_payment, conn=conn)
         logger.success(f"internal payment successful {internal_payment.checking_id}")
@@ -1158,8 +1177,12 @@ async def _validate_payment_request(
         funding_source = get_funding_source()
 
         invoice = await funding_source.decode_invoice(payment_request)
+
     except Exception as exc:
         raise PaymentError("Invoice decoding failed.", status="failed") from exc
+
+    if not invoice:
+        raise PaymentError("Invoice decoding failed.", status="failed")
 
     if not invoice.amount_msat or not invoice.amount_msat > 0:
         raise PaymentError("Amountless invoices not supported.", status="failed")

@@ -1268,6 +1268,7 @@ dependencies = [
     { name = "jsonpath-ng" },
     { name = "lnurl" },
     { name = "loguru" },
+    { name = "nostr-sdk" },
     { name = "packaging" },
     { name = "pillow" },
     { name = "protobuf" },
@@ -1350,6 +1351,7 @@ requires-dist = [
     { name = "jsonpath-ng", specifier = "==1.7.0" },
     { name = "lnurl", specifier = "==0.8.3" },
     { name = "loguru", specifier = "==0.7.3" },
+    { name = "nostr-sdk", specifier = "==0.42.1" },
     { name = "packaging", specifier = "==25.0" },
     { name = "pillow", specifier = ">=12.0.0" },
     { name = "protobuf", specifier = "==5.29.5" },
@@ -1615,6 +1617,26 @@ source = { registry = "https://pypi.org/simple" }
 sdist = { url = "https://files.pythonhosted.org/packages/43/16/fc88b08840de0e0a72a2f9d8c6bae36be573e475a6326ae854bcc549fc45/nodeenv-1.9.1.tar.gz", hash = "sha256:6ec12890a2dab7946721edbfbcd91f3319c6ccc9aec47be7c7e6b7011ee6645f", size = 47437, upload-time = "2024-06-04T18:44:11.171Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/d2/1d/1b658dbd2b9fa9c4c9f32accbfc0205d532c8c6194dc0f2a4c0428e7128a/nodeenv-1.9.1-py2.py3-none-any.whl", hash = "sha256:ba11c9782d29c27c70ffbdda2d7415098754709be8a7056d79a737cd901155c9", size = 22314, upload-time = "2024-06-04T18:44:08.352Z" },
+]
+
+[[package]]
+name = "nostr-sdk"
+version = "0.42.1"
+source = { registry = "https://pypi.org/simple" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/09/4e/d413f3620707daad7649a7e83be7b395a0b4130372fb7dc90850e6eb4988/nostr_sdk-0.42.1-cp39-abi3-macosx_11_0_arm64.whl", hash = "sha256:57ac8b7a6f56bb619a3ef58fbfe1bd93e180d5cd73681b45eeaf5ae2dd45d345", size = 3925439, upload-time = "2025-05-26T09:08:53.522Z" },
+    { url = "https://files.pythonhosted.org/packages/e5/2b/ae1dadd3390846d067bd6602f484e690232f868dc30f11d138262ec9ca97/nostr_sdk-0.42.1-cp39-abi3-macosx_11_0_x86_64.whl", hash = "sha256:8897a4c3c34aa3cf4d500e570a1697ba253f89223e8548d2b75da2006fc730eb", size = 3988204, upload-time = "2025-05-26T09:09:06.853Z" },
+    { url = "https://files.pythonhosted.org/packages/e9/8d/f0f8def4999384df6739dd5dce8166454a6bacf73d374e5984b3f1d25e79/nostr_sdk-0.42.1-cp39-abi3-manylinux_2_17_aarch64.whl", hash = "sha256:166f1c7b1901813ad9a6296641384cbcc7e35c18ccdf3229d88fcd1e0b51d6ee", size = 3673138, upload-time = "2025-05-26T09:08:42.03Z" },
+    { url = "https://files.pythonhosted.org/packages/fb/50/2fea941dcfcd311250f181913dd23031ad8422820acefe86914935c09a6e/nostr_sdk-0.42.1-cp39-abi3-manylinux_2_17_armv7l.whl", hash = "sha256:f2b86bc50805be59113c974665bdf4dcaaf76a1f591a9dba41f1d50acb674b3c", size = 3420691, upload-time = "2025-05-26T09:08:49.608Z" },
+    { url = "https://files.pythonhosted.org/packages/cd/cf/cdf16f83a5ed1bfe88512fb4a899ec395296c6b63bb19d329d3cb51f20f6/nostr_sdk-0.42.1-cp39-abi3-manylinux_2_17_i686.whl", hash = "sha256:73b0c16494221a0faf8ec369a2609faba3f17ffd0f03620baa0ec83c58c49b71", size = 3706012, upload-time = "2025-05-26T09:08:57.181Z" },
+    { url = "https://files.pythonhosted.org/packages/4a/ee/9b1e90670fe32bb4d520c73dfe25035dc989518f43ae9facf7d4e286179e/nostr_sdk-0.42.1-cp39-abi3-manylinux_2_17_x86_64.whl", hash = "sha256:f68663073630c8edee55d9bec689f019ea616ef6482857e7f72ba1dc1b4fa9cc", size = 3817054, upload-time = "2025-05-26T09:09:11.778Z" },
+    { url = "https://files.pythonhosted.org/packages/f4/f3/8b62b3bc24c63a5c165669dfb444c877275959fe7983a80a5e0c60e8ff42/nostr_sdk-0.42.1-cp39-abi3-musllinux_1_2_aarch64.whl", hash = "sha256:b6659308d7629e23be252455c46d81549fe6bf945915ec4a0cba2c4b61815c07", size = 3670777, upload-time = "2025-05-26T09:09:02.686Z" },
+    { url = "https://files.pythonhosted.org/packages/62/14/78851a956ab8dae47c28812a89c93e883aeadf2655596522a72030943541/nostr_sdk-0.42.1-cp39-abi3-musllinux_1_2_armv7l.whl", hash = "sha256:1fa8a8688cf17e838c31caf5c8a357b7c7c2ba3b6ee85e39c05c93e80d999b99", size = 3419180, upload-time = "2025-05-26T09:09:16.714Z" },
+    { url = "https://files.pythonhosted.org/packages/b4/06/41bad843700ce7d47c2ef2a17ccd823db9e10504c4d368168f24c91f2d81/nostr_sdk-0.42.1-cp39-abi3-musllinux_1_2_i686.whl", hash = "sha256:0a89ae1c7b2c36025024511240aa10540aade2551e8b97d40b4a0b88feaabe8c", size = 3571964, upload-time = "2025-05-26T09:08:45.516Z" },
+    { url = "https://files.pythonhosted.org/packages/f6/ea/d62f311a90faae44d4e0c0d6646c5a8dca10124bd5706fa3fa51156d892c/nostr_sdk-0.42.1-cp39-abi3-musllinux_1_2_x86_64.whl", hash = "sha256:e3dda5d65591158a0c9794aa79a2f2ea7bbe3cfcba236645fbff8291d94946f1", size = 3822060, upload-time = "2025-05-26T09:08:39.336Z" },
+    { url = "https://files.pythonhosted.org/packages/f3/39/935f70ee05a25de220d236774a1258d13b470595954bd5fd1ffcf4f5df2a/nostr_sdk-0.42.1-cp39-abi3-win32.whl", hash = "sha256:d20988c0d6dd16c183607dfdbd243e4f5cc9d8a4faa0c498df546fa8383da902", size = 3254061, upload-time = "2025-05-26T09:09:14.515Z" },
+    { url = "https://files.pythonhosted.org/packages/7f/9e/d509f09b98c4d91f339bd68d3a9d6c313161e54554e392d001466206ca67/nostr_sdk-0.42.1-cp39-abi3-win_amd64.whl", hash = "sha256:35978a8e526e66d05a346546391c28d643dfca31117a95c51c940c994c422d7d", size = 3500340, upload-time = "2025-05-26T09:09:00.279Z" },
+    { url = "https://files.pythonhosted.org/packages/bc/0f/f704d328499458434b45c54ef88bdfee803366e0c9ef32f3377e2f396921/nostr_sdk-0.42.1-cp39-abi3-win_arm64.whl", hash = "sha256:802c74f903b120b74bf501bf68c81d5ee1dc9f7f57801a53a507044a14b9a840", size = 3303179, upload-time = "2025-05-26T09:09:09.122Z" },
 ]
 
 [[package]]

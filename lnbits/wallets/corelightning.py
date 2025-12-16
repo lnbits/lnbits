@@ -1,4 +1,5 @@
 import asyncio
+import random
 from collections.abc import AsyncGenerator
 from secrets import token_urlsafe
 from typing import Any
@@ -103,7 +104,7 @@ class CoreLightningWallet(Wallet):
         single_use: bool | None = None,
         **kwargs,
     ) -> OfferResponse:
-        label = kwargs.get("label", f"lbl{random.random()}")
+        label = kwargs.get("label", f"lbl{random.random()}")  # noqa S311
         try:
             payload = {
                 "amount": int(amount * 1000) if amount else "any",
@@ -132,27 +133,16 @@ class CoreLightningWallet(Wallet):
         except RpcError as exc:
             logger.warning(exc)
             error_message = f"RPC '{exc.method}' failed with '{exc.error}'."
-            return OfferResponse(
-                False, None, None, None, None, None, None, None, error_message
-            )
+            return OfferResponse(ok=False, error_message=error_message)
         except KeyError as exc:
             logger.warning(exc)
             return OfferResponse(
-                False,
-                None,
-                None,
-                None,
-                None,
-                None,
-                None,
-                None,
-                "Server error: 'missing required fields'",
+                ok=False,
+                error_message="Server error: 'missing required fields'",
             )
         except Exception as e:
             logger.warning(e)
-            return OfferResponse(
-                False, None, None, None, None, None, None, None, str(e)
-            )
+            return OfferResponse(ok=False, error_message=str(e))
 
     async def enable_offer(
         self,
@@ -178,19 +168,15 @@ class CoreLightningWallet(Wallet):
         except RpcError as exc:
             logger.warning(exc)
             error_message = f"RPC '{exc.method}' failed with '{exc.error}'."
-            return OfferResponse(
-                False, None, None, None, None, None, None, None, error_message
-            )
+            return OfferResponse(ok=False, error_message=error_message)
         except KeyError as exc:
             logger.warning(exc)
             return OfferResponse(
-                False, None, None, None, "Server error: 'missing required fields'"
+                ok=False, error_message="Server error: 'missing required fields'"
             )
         except Exception as e:
             logger.warning(e)
-            return OfferResponse(
-                False, None, None, None, None, None, None, None, str(e)
-            )
+            return OfferResponse(ok=False, error_message=str(e))
 
     async def disable_offer(
         self,
@@ -216,19 +202,15 @@ class CoreLightningWallet(Wallet):
         except RpcError as exc:
             logger.warning(exc)
             error_message = f"RPC '{exc.method}' failed with '{exc.error}'."
-            return OfferResponse(
-                False, None, None, None, None, None, None, None, error_message
-            )
+            return OfferResponse(ok=False, error_message=error_message)
         except KeyError as exc:
             logger.warning(exc)
             return OfferResponse(
-                False, None, None, None, "Server error: 'missing required fields'"
+                ok=False, error_message="Server error: 'missing required fields'"
             )
         except Exception as e:
             logger.warning(e)
-            return OfferResponse(
-                False, None, None, None, None, None, None, None, str(e)
-            )
+            return OfferResponse(ok=False, error_message=str(e))
 
     async def get_offer_status(
         self, offer_id: str, active_only: bool = False
@@ -274,19 +256,17 @@ class CoreLightningWallet(Wallet):
             if r.get("code") and r.get("code") < 0:  # type: ignore
                 raise Exception(r.get("message"))
 
-            return FetchInvoiceResponse(True, r["invoice"], None)
+            return FetchInvoiceResponse(r["invoice"], None)
         except RpcError as exc:
             logger.warning(exc)
             error_message = f"RPC '{exc.method}' failed with '{exc.error}'."
-            return FetchInvoiceResponse(False, None, error_message)
+            return FetchInvoiceResponse(None, error_message)
         except KeyError as exc:
             logger.warning(exc)
-            return FetchInvoiceResponse(
-                False, None, "Server error: 'missing required fields'"
-            )
+            return FetchInvoiceResponse(None, "Server error: 'missing required fields'")
         except Exception as e:
             logger.warning(e)
-            return FetchInvoiceResponse(False, None, str(e))
+            return FetchInvoiceResponse(None, str(e))
 
     async def create_invoice(
         self,
@@ -349,6 +329,12 @@ class CoreLightningWallet(Wallet):
     async def pay_invoice(self, bolt11: str, fee_limit_msat: int) -> PaymentResponse:
         try:
             invoice = await self.decode_invoice(bolt11)
+
+            if not invoice:
+                return PaymentResponse(
+                    ok=False, error_message="Could not decode invoice"
+                )
+
         except Exception as exc:
             return PaymentResponse(ok=False, error_message=str(exc))
 
@@ -414,7 +400,7 @@ class CoreLightningWallet(Wallet):
             if not r["type"] == "bolt12 offer":
                 raise Exception("Provided string is not a bolt12 offer")
 
-            if not r["valid"] == True:
+            if not r["valid"]:
                 raise Exception("Provided bolt12 offer is invalid")
 
             if r.get("offer_currency") and r.get("offer_amount"):
@@ -424,9 +410,7 @@ class CoreLightningWallet(Wallet):
                         "Offer does contain an offer amount but no currency minor unit"
                     )
 
-                currency_amount = r.get("offer_amount") / pow(
-                    10, r.get("offer_minor_unit")
-                )
+                currency_amount = r["offer_amount"] / pow(10, r["offer_minor_unit"])
 
                 return OfferData(
                     offer_id=r["offer_id"],
@@ -462,7 +446,7 @@ class CoreLightningWallet(Wallet):
 
             logger.debug(f"Returned decoded invoice is {r}")
 
-            if not r["valid"] == True:
+            if not r["valid"]:
                 raise Exception("Provided invoice is invalid")
 
             if r["type"] == "bolt12 invoice":
@@ -470,7 +454,7 @@ class CoreLightningWallet(Wallet):
                 description = (
                     r.get("offer_description") or f"Offer {offer_id} payment"
                     if offer_id
-                    else f"Payment for invoice {r.invoice_payment_hash}"
+                    else f"Payment for invoice {r['invoice_payment_hash']}"
                 )
                 bolt11 = self.generate_fake_bolt11(
                     amount_msat=r.get("invoice_amount_msat"),
@@ -506,7 +490,7 @@ class CoreLightningWallet(Wallet):
                     invoice_created_at=r["created_at"],
                     invoice_relative_expiry=r["expiry"],
                     bolt11=invoice_string,
-                    bolt11_is_fake=True,
+                    bolt11_is_fake=False,
                 )
 
             else:
@@ -546,6 +530,7 @@ class CoreLightningWallet(Wallet):
                     offer_id=invoice_resp.get("local_offer_id"),
                     paid_at=invoice_resp["paid_at"],
                     payment_preimage=invoice_resp["payment_preimage"],
+                    amount_received_msat=invoice_resp["amount_received_msat"],
                 )
 
             else:

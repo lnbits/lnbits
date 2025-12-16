@@ -269,8 +269,8 @@ async def delete_expired_invoices(
 async def create_payment(
     checking_id: str,
     data: CreatePayment,
-    created_at: datetime | None = None,
-    updated_at: datetime | None = None,
+    created_at: int | None = None,
+    updated_at: int | None = None,
     status: PaymentState = PaymentState.PENDING,
     conn: Connection | None = None,
 ) -> Payment:
