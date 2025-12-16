@@ -44,7 +44,14 @@
       >
         <q-tooltip>Write NFC Tag</q-tooltip>
       </q-btn>
-      <q-btn flat dense class="text-grey" @click="printQrCode()" icon="print">
+      <q-btn
+        v-if="showPrint"
+        flat
+        dense
+        class="text-grey"
+        @click="printQrCode()"
+        icon="print"
+      >
         <q-tooltip>Print</q-tooltip>
       </q-btn>
       <q-btn flat dense class="text-grey" icon="download" @click="downloadSVG">
