@@ -25,10 +25,10 @@ jobs:
     needs: [ release ]
     runs-on: ubuntu-24.04
     outputs:
-      upload_url: ${{ steps.create_release.outputs.upload_url }}
+      upload_url: ${{ steps.get_upload_url.outputs.upload_url }}
     steps:
-      - uses: actions/checkout@v4
-      - name: get upload url of github release
+      - id: get_upload_url
+        name: get upload url of github release
         env:
           github_token: ${{ secrets.github_token }}
           tag: ${{ github.ref_name }}
