@@ -15,10 +15,6 @@ window.app.component('lnbits-qrcode', {
     },
     print: {
       type: Boolean,
-      default: true
-    },
-    showPrint: {
-      type: Boolean,
       default: false
     },
     href: {
