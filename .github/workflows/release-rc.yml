@@ -10,6 +10,21 @@ permissions:
 
 jobs:
 
+  release:
+    runs-on: ubuntu-24.04
+    outputs:
+      upload_url: ${{ steps.create_release.outputs.upload_url }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Create github pre-release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          tag: ${{ github.ref_name }}
+        run: |
+          gh release create "$tag" --prerelease --generate-notes --draft
+          upload_url=$(gh release view $tag --repo lnbits/lnbits --json uploadUrl -q ".uploadUrl")
+          echo "upload_url=$upload_url" >> "$GITHUB_OUTPUT"
+
   docker:
     uses: ./.github/workflows/docker.yml
     with:
@@ -30,3 +45,10 @@ jobs:
         uses: JRubics/poetry-publish@v1.15
         with:
           pypi_token: ${{ secrets.PYPI_API_KEY }}
+
+  appimage:
+    needs: [ release ]
+    uses: ./.github/workflows/appimage.yml
+    with:
+      tag_name: ${{ github.ref_name }}
+      upload_url: ${{ needs.release.outputs.upload_url }}
