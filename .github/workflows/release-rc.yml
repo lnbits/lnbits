@@ -12,8 +12,6 @@ jobs:
 
   release:
     runs-on: ubuntu-24.04
-    outputs:
-      upload_url: ${{ steps.create_release.outputs.upload_url }}
     steps:
       - uses: actions/checkout@v4
       - name: Create github pre-release
@@ -22,10 +20,24 @@ jobs:
           tag: ${{ github.ref_name }}
         run: |
           gh release create "$tag" --prerelease --generate-notes --draft
-          upload_url=$(gh release view $tag --repo lnbits/lnbits --json uploadUrl -q ".uploadUrl")
-          echo "upload_url=$upload_url" >> "$GITHUB_OUTPUT"
+
+  uploadurl:
+    needs: [ release ]
+    runs-on: ubuntu-24.04
+    outputs:
+      upload_url: ${{ steps.create_release.outputs.upload_url }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: get upload url of github release
+        env:
+          github_token: ${{ secrets.github_token }}
+          tag: ${{ github.ref_name }}
+        run: |
+          upload_url=$(gh release view "$tag" --json uploadurl -q ".uploadurl")
+          echo "upload_url=$upload_url" >> "$github_output"
 
   docker:
+    if: github.repository == 'lnbits/lnbits'
     uses: ./.github/workflows/docker.yml
     with:
       tag: ${{ github.ref_name }}
@@ -34,6 +46,7 @@ jobs:
       DOCKER_PASSWORD: ${{ secrets.DOCKER_PASSWORD }}
 
   pypi:
+    if: github.repository == 'lnbits/lnbits'
     runs-on: ubuntu-24.04
     steps:
       - name: Install dependencies for building secp256k1
@@ -47,8 +60,8 @@ jobs:
           pypi_token: ${{ secrets.PYPI_API_KEY }}
 
   appimage:
-    needs: [ release ]
+    needs: [ uploadurl ]
     uses: ./.github/workflows/appimage.yml
     with:
       tag_name: ${{ github.ref_name }}
-      upload_url: ${{ needs.release.outputs.upload_url }}
+      upload_url: ${{ needs.uploadurl.outputs.upload_url }}
