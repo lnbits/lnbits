@@ -13,6 +13,8 @@ jobs:
 
   release:
     runs-on: ubuntu-24.04
+    outputs:
+      upload_url: ${{ steps.get_upload_url.outputs.upload_url }}
     steps:
       - uses: actions/checkout@v4
       - name: Create github release
@@ -21,16 +23,8 @@ jobs:
           tag: ${{ github.ref_name }}
         run: |
           gh release create "$tag" --generate-notes --draft
-
-  uploadurl:
-    needs: [ release ]
-    runs-on: ubuntu-24.04
-    outputs:
-      upload_url: ${{ steps.get_upload_url.outputs.upload_url }}
-    steps:
-      - uses: actions/checkout@v4
       - id: get_upload_url
-        name: get upload url of github release
+        name: Get upload url of Github release
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           tag: ${{ github.ref_name }}
@@ -73,8 +67,8 @@ jobs:
           pypi_token: ${{ secrets.PYPI_API_KEY }}
 
   appimage:
-    needs: [ uploadurl ]
+    needs: [ release ]
     uses: ./.github/workflows/appimage.yml
     with:
       tag_name: ${{ github.ref_name }}
-      upload_url: ${{ needs.uploadurl.outputs.upload_url }}
+      upload_url: ${{ needs.release.outputs.upload_url }}
