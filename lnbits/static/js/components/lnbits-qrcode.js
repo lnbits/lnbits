@@ -59,7 +59,6 @@ window.app.component('lnbits-qrcode', {
                 align-items: center;
                 height: 100vh;
                 margin: 0;
-                  position: relative;
               }
               img {
                 position: absolute;
