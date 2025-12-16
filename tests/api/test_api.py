@@ -823,7 +823,7 @@ async def test_api_payments_pay_lnurl(client, adminkey_headers_from):
         "/api/v1/payments/lnurl", json=lnurl_data, headers=adminkey_headers_from
     )
     assert response.status_code == 400
-    assert "value_error.url.scheme" in response.json()["detail"][0]
+    assert "value_error.url.scheme" == response.json()["detail"][0]["type"]
 
 
 ################################ Labels ################################
