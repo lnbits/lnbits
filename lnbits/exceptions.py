@@ -56,13 +56,21 @@ def render_html_error(request: Request, exc: Exception) -> Response | None:
         else HTTPStatus.INTERNAL_SERVER_ERROR
     )
 
+    if isinstance(exc, RequestValidationError):
+        message = "Validation error."
+        for err in exc.errors():
+            field = ".".join(err["loc"])
+            message += " (" + field + ") " + err["msg"]
+    else:
+        message = str(exc).split(":")[-1].strip()
+
     return template_renderer().TemplateResponse(
         request,
         "error.html",
         {
             "err": f"Error: {exc!s}",
             "status_code": int(status_code),
-            "message": str(exc).split(":")[-1].strip(),
+            "message": message,
         },
         status_code,
     )
@@ -109,7 +117,7 @@ def register_exception_handlers(app: FastAPI):  # noqa: C901
         logger.error(f"RequestValidationError: {exc!s}")
         return render_html_error(request, exc) or JSONResponse(
             status_code=HTTPStatus.BAD_REQUEST,
-            content={"detail": str(exc)},
+            content={"detail": exc.errors()},
         )
 
     @app.exception_handler(HTTPException)

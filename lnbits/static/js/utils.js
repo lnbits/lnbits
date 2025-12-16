@@ -123,15 +123,19 @@ window._lnbitsUtils = {
       401: 'warning',
       500: 'negative'
     }
+    let message = error.response.data.message || error.response.data.detail
+    if (Array.isArray(message)) {
+      message = message.map(m => '(' + m.loc.join('.') + ') ' + m.msg).join(' ')
+    }
+    const caption = [error.response.status, ' ', error.response.statusText]
+      .join('')
+      .toUpperCase()
+
     Quasar.Notify.create({
       timeout: 5000,
       type: types[error.response.status] || 'warning',
-      message:
-        error.response.data.message || error.response.data.detail || null,
-      caption:
-        [error.response.status, ' ', error.response.statusText]
-          .join('')
-          .toUpperCase() || null,
+      message: message || 'An error occurred',
+      caption: caption,
       icon: null
     })
   },
