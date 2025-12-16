@@ -13,7 +13,7 @@ window.app.component('lnbits-qrcode', {
       type: Boolean,
       default: false
     },
-    showButtons: {
+    print: {
       type: Boolean,
       default: true
     },

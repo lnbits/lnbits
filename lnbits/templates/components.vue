@@ -534,7 +534,7 @@ include('components/lnbits-error.vue') %}
       <q-tab name="bech32" icon="qr_code" label="bech32"></q-tab>
       <q-tab name="lud17" icon="link" label="url (lud17)"></q-tab>
     </q-tabs>
-    <lnbits-qrcode :value="lnurl" nfc="true"></lnbits-qrcode>
+    <lnbits-qrcode :value="lnurl" nfc="true" print="true"></lnbits-qrcode>
   </div>
 </template>
 

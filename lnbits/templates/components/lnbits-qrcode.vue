@@ -45,7 +45,7 @@
         <q-tooltip>Write NFC Tag</q-tooltip>
       </q-btn>
       <q-btn
-        v-if="showPrint"
+        v-if="print"
         flat
         dense
         class="text-grey"
