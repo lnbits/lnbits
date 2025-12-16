@@ -1,4 +1,5 @@
 import asyncio
+import secrets
 import time
 from datetime import datetime, timedelta, timezone
 
@@ -15,7 +16,7 @@ from lnbits.core.models import PaymentDailyStats, PaymentFilters
 from lnbits.core.models.payments import CreateInvoice
 from lnbits.db import Connection, Filters
 from lnbits.decorators import check_user_extension_access
-from lnbits.exceptions import OfferError, InvoiceError, PaymentError, UnsupportedError
+from lnbits.exceptions import InvoiceError, OfferError, PaymentError, UnsupportedError
 from lnbits.fiat import get_fiat_provider
 from lnbits.helpers import check_callback_url
 from lnbits.settings import settings
@@ -24,10 +25,7 @@ from lnbits.utils.crypto import fake_privkey, random_secret_and_hash, verify_pre
 from lnbits.utils.exchange_rates import fiat_amount_as_satoshis, satoshis_amount_as_fiat
 from lnbits.wallets import fake_wallet, get_funding_source
 from lnbits.wallets.base import (
-    OfferErrorStatus,
-    OfferStatus,
     InvoiceData,
-    FetchInvoiceResponse,
     InvoiceResponse,
     PaymentPendingStatus,
     PaymentResponse,
@@ -37,27 +35,20 @@ from lnbits.wallets.base import (
 
 from ..crud import (
     check_internal,
-    create_offer as crud_create_offer,
-    enable_offer as crud_enable_offer,
-    disable_offer as crud_disable_offer,
-    get_offer,
-    get_standalone_offer,
     create_payment,
+    get_offer,
     get_payments,
+    get_standalone_offer,
     get_standalone_payment,
     get_wallet,
     get_wallet_payment,
     is_internal_status_success,
     update_payment,
 )
-from ..models import (
-    CreateOffer,
-    Offer,
-    CreatePayment,
-    Payment,
-    PaymentState,
-    Wallet,
-)
+from ..crud import create_offer as crud_create_offer
+from ..crud import disable_offer as crud_disable_offer
+from ..crud import enable_offer as crud_enable_offer
+from ..models import CreateOffer, CreatePayment, Offer, Payment, PaymentState, Wallet
 from .notifications import send_payment_notification_in_background
 
 payment_lock = asyncio.Lock()
@@ -958,7 +949,8 @@ async def _pay_internal_invoice(
 
         if not internal_offer:
             return None
-        # Then check if the funding source knows about an internal invoice with a matching payment hash and offer ID
+        # Then check if the funding source knows about an internal invoice with a
+        # matching payment hash and offer ID
         funding_source = get_funding_source()
         internal_invoice_extended_status = (
             await funding_source.get_invoice_extended_status(

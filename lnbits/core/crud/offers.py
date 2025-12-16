@@ -1,8 +1,7 @@
 from time import time
-from typing import Tuple
 
 from lnbits.core.db import db
-from lnbits.db import Connection, DateTrunc, Filters, Page
+from lnbits.db import Connection, Filters, Page
 
 from ..models import (
     CreateOffer,
@@ -38,7 +37,7 @@ async def get_standalone_offer(
         f"""
         SELECT * FROM apioffers
         WHERE {clause}
-        """,
+        """,  # noqa: S608
         values,
         Offer,
     )
@@ -150,7 +149,7 @@ async def delete_expired_offers(
         f"""
         DELETE FROM apioffers
         WHERE expiry < {db.timestamp_placeholder("now")}
-        """,
+        """,  # noqa: S608
         {"now": int(time())},
     )
 
@@ -199,8 +198,10 @@ async def update_offer_used(
 ) -> None:
     await (conn or db).execute(
         f"""
-        UPDATE apioffers SET used = :used, updated_at = {db.timestamp_placeholder("now")} WHERE offer_id = :offer_id
-        """,
+        UPDATE apioffers SET used = :used,
+        updated_at = {db.timestamp_placeholder("now")}
+        WHERE offer_id = :offer_id
+        """,  # noqa: S608
         {"now": time(), "offer_id": offer_id, "used": used},
     )
 
@@ -224,9 +225,10 @@ async def delete_wallet_offer(
 async def enable_offer(offer_id: str) -> None:
     await db.execute(
         f"""
-        UPDATE apioffers SET active = :active, updated_at = {db.timestamp_placeholder("now")}
+        UPDATE apioffers SET active = :active,
+        updated_at = {db.timestamp_placeholder("now")}
         WHERE offer_id = :offer_id
-        """,
+        """,  # noqa: S608
         {"now": time(), "offer_id": offer_id, "active": True},
     )
 
@@ -234,9 +236,10 @@ async def enable_offer(offer_id: str) -> None:
 async def disable_offer(offer_id: str) -> None:
     await db.execute(
         f"""
-        UPDATE apioffers SET active = :active, updated_at = {db.timestamp_placeholder("now")}
+        UPDATE apioffers SET active = :active,
+        updated_at = {db.timestamp_placeholder("now")}
         WHERE offer_id = :offer_id
-        """,
+        """,  # noqa: S608
         {"now": time(), "offer_id": offer_id, "active": False},
     )
 

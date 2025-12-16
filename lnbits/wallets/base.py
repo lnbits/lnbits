@@ -10,12 +10,11 @@ from bolt11 import Bolt11, Tags
 from bolt11 import decode as bolt11_decode
 from bolt11 import encode as bolt11_encode
 from bolt11.exceptions import Bolt11Bech32InvalidException
-
 from loguru import logger
 
 from lnbits.exceptions import InvoiceError
-from lnbits.utils.crypto import fake_privkey, random_secret_and_hash
 from lnbits.settings import settings
+from lnbits.utils.crypto import fake_privkey, random_secret_and_hash
 
 if TYPE_CHECKING:
     from lnbits.nodes.base import Node
@@ -312,7 +311,7 @@ class Wallet(ABC):
                 bolt11_is_fake=False,
             )
 
-        except Bolt11Bech32InvalidException as exc:
+        except Bolt11Bech32InvalidException:
             return None
         except Exception as exc:
             logger.warning(exc)

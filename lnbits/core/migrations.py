@@ -854,7 +854,7 @@ async def m043_create_offer_table(db: Connection):
     await db.execute("ALTER TABLE apipayments ADD COLUMN payer_note TEXT")
     await db.execute("ALTER TABLE apipayments ADD COLUMN offer_id TEXT")
     await db.execute(
-        f"""
+        """
         CREATE TABLE IF NOT EXISTS apioffers (
             offer_id TEXT NOT NULL,
             amount INT,
@@ -865,9 +865,9 @@ async def m043_create_offer_table(db: Connection):
             webhook TEXT,
             webhook_status TEXT,
             expiry TIMESTAMP,
-            active BOOLEAN NOT NULL DEFAULT false, 
-            single_use BOOLEAN NOT NULL DEFAULT false, 
-            used BOOLEAN NOT NULL DEFAULT false, 
+            active BOOLEAN NOT NULL DEFAULT false,
+            single_use BOOLEAN NOT NULL DEFAULT false,
+            used BOOLEAN NOT NULL DEFAULT false,
             tag TEXT,
             extension TEXT,
             created_at TIMESTAMP,

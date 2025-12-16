@@ -1,28 +1,16 @@
-import json
-import ssl
 from http import HTTPStatus
-from math import ceil
-from typing import List, Optional
-from urllib.parse import urlparse
 
-import httpx
 from fastapi import (
     APIRouter,
     Depends,
-    Header,
     HTTPException,
-    Query,
 )
-from fastapi.responses import JSONResponse
-from loguru import logger
 
 from lnbits.core.models import (
     CreateOffer,
-    DecodeOffer,
     Offer,
     OfferFilters,
 )
-from lnbits.core.models.users import User
 from lnbits.db import Filters, Page
 from lnbits.decorators import (
     WalletTypeInfo,
@@ -32,23 +20,18 @@ from lnbits.decorators import (
 )
 from lnbits.exceptions import OfferError
 from lnbits.helpers import (
-    check_callback_url,
-    filter_dict_keys,
     generate_filter_params_openapi,
 )
-from lnbits.settings import settings
-from lnbits.utils.exchange_rates import fiat_amount_as_satoshis
 
 from ..crud import (
     get_offers,
     get_offers_paginated,
     get_standalone_offer,
-    get_wallet_for_key,
 )
 from ..services import (
     create_offer,
-    enable_offer,
     disable_offer,
+    enable_offer,
 )
 
 offer_router = APIRouter(prefix="/api/v1/offers", tags=["Offers"])
@@ -59,7 +42,7 @@ offer_router = APIRouter(prefix="/api/v1/offers", tags=["Offers"])
     name="Offer List",
     summary="get list of offers",
     response_description="list of offers",
-    response_model=List[Offer],
+    response_model=list[Offer],
     openapi_extra=generate_filter_params_openapi(OfferFilters),
 )
 async def api_offers(

@@ -1,14 +1,10 @@
 from __future__ import annotations
 
 from datetime import datetime, timezone
-from enum import Enum
-from typing import Literal
 
-from fastapi import Query
-from pydantic import BaseModel, Field, validator
+from pydantic import BaseModel, Field
 
 from lnbits.db import FilterModel
-from lnbits.utils.exchange_rates import allowed_currencies
 from lnbits.wallets import get_funding_source
 from lnbits.wallets.base import (
     OfferStatus,
@@ -43,27 +39,27 @@ class Offer(BaseModel):
 
     @property
     def is_active(self) -> bool:
-        return not self.active == False
+        return not self.active == False  # noqa E712
 
     @property
     def is_inactive(self) -> bool:
-        return self.active == False
+        return self.active == False  # noqa E712
 
     @property
     def is_single_use(self) -> bool:
-        return not self.single_use == False
+        return not self.single_use == False  # noqa E712
 
     @property
     def is_multiple_use(self) -> bool:
-        return self.single_use == False
+        return self.single_use == False  # noqa E712
 
     @property
     def is_used(self) -> bool:
-        return self.used == True
+        return self.used == True  # noqa E712
 
     @property
     def is_unused(self) -> bool:
-        return not self.used == True
+        return not self.used == True  # noqa E712
 
     @property
     def msat(self) -> int:

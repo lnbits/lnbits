@@ -1,23 +1,19 @@
 import asyncio
-from datetime import datetime, timezone
 import traceback
 import uuid
 from collections.abc import Callable, Coroutine
-
-from bolt11 import Bolt11, Tags
-from bolt11 import encode as bolt11_encode
+from datetime import datetime, timezone
 
 from loguru import logger
 
 from lnbits.core.crud import (
-    get_standalone_offer,
-    update_offer_used,
     create_payment,
-    get_payments,
+    get_standalone_offer,
     get_standalone_payment,
+    update_offer_used,
     update_payment,
 )
-from lnbits.core.models import Payment, PaymentState, CreatePayment
+from lnbits.core.models import CreatePayment, Payment, PaymentState
 from lnbits.core.services.fiat_providers import handle_fiat_payment_confirmation
 from lnbits.settings import settings
 from lnbits.wallets import get_funding_source
@@ -214,7 +210,8 @@ async def invoice_callback_dispatcher(checking_id: str, is_internal: bool = Fals
             not invoice_status.pending or not is_internal
         ):
             logger.warning(
-                f"Invoice for '{checking_id}' has not been successfully paid and it is not a pending internal invoice."
+                f"""Invoice for '{checking_id}' has not been successfully paid and
+                it is not a pending internal invoice."""
             )
             return
 
@@ -238,7 +235,9 @@ async def invoice_callback_dispatcher(checking_id: str, is_internal: bool = Fals
 
             if data.offer_id != invoice_status.offer_id:
                 logger.error(
-                    f"The offer_id for decoded invoice {checking_id} ({data.offer_id}) does not match the offer_id from the invoice's extended status ({invoice_status.offer_id})"
+                    f"""The offer_id for decoded invoice {checking_id} ({data.offer_id})
+                    does not match the offer_id from the invoice's extended status
+                    ({invoice_status.offer_id})"""
                 )
                 return
 

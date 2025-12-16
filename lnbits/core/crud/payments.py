@@ -1,5 +1,5 @@
-from time import time
 from datetime import datetime, timezone
+from time import time
 from typing import Any
 
 from lnbits.core.crud.wallets import get_total_balance, get_wallet, get_wallets_ids
@@ -269,13 +269,15 @@ async def delete_expired_invoices(
 async def create_payment(
     checking_id: str,
     data: CreatePayment,
-    created_at: datetime = datetime.now(timezone.utc),
-    updated_at: datetime = datetime.now(timezone.utc),
+    created_at: datetime | None = None,
+    updated_at: datetime | None = None,
     status: PaymentState = PaymentState.PENDING,
     conn: Connection | None = None,
 ) -> Payment:
     # we don't allow the creation of the same invoice twice
     # note: this can be removed if the db uniqueness constraints are set appropriately
+    created_at = datetime.now(timezone.utc) if None else created_at
+    updated_at = datetime.now(timezone.utc) if None else updated_at
     previous_payment = await get_standalone_payment(checking_id, conn=conn)
     if previous_payment is not None and previous_payment.checking_id == checking_id:
         raise ValueError("Payment already exists")
@@ -399,7 +401,6 @@ async def get_payment_count_stats(
     user_id: str | None = None,
     conn: Connection | None = None,
 ) -> list[PaymentCountStat]:
-
     if not filters:
         filters = Filters()
     extra_stmts = []
@@ -432,7 +433,6 @@ async def get_daily_stats(
     user_id: str | None = None,
     conn: Connection | None = None,
 ) -> tuple[list[PaymentDailyStats], list[PaymentDailyStats]]:
-
     if not filters:
         filters = Filters()
 
@@ -482,7 +482,6 @@ async def get_wallets_stats(
     user_id: str | None = None,
     conn: Connection | None = None,
 ) -> list[PaymentWalletStats]:
-
     if not filters:
         filters = Filters()
 
