@@ -276,8 +276,6 @@ async def create_payment(
 ) -> Payment:
     # we don't allow the creation of the same invoice twice
     # note: this can be removed if the db uniqueness constraints are set appropriately
-    created_at = datetime.now(timezone.utc) if None else created_at
-    updated_at = datetime.now(timezone.utc) if None else updated_at
     previous_payment = await get_standalone_payment(checking_id, conn=conn)
     if previous_payment is not None and previous_payment.checking_id == checking_id:
         raise ValueError("Payment already exists")
@@ -298,8 +296,8 @@ async def create_payment(
         webhook=data.webhook,
         fee=-abs(data.fee),
         tag=extra.get("tag", None),
-        created_at=created_at,
-        updated_at=updated_at,
+        created_at=datetime.now(timezone.utc) if not created_at else created_at,
+        updated_at=datetime.now(timezone.utc) if not updated_at else updated_at,
         extra=extra,
         labels=data.labels or [],
     )
