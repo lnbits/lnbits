@@ -27,6 +27,7 @@ jobs:
     outputs:
       upload_url: ${{ steps.get_upload_url.outputs.upload_url }}
     steps:
+      - uses: actions/checkout@v4
       - id: get_upload_url
         name: get upload url of github release
         env:
