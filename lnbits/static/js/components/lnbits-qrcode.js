@@ -41,6 +41,42 @@ window.app.component('lnbits-qrcode', {
     }
   },
   methods: {
+    printQrCode() {
+      const svg = this.$refs.qrCode.$el.outerHTML
+      const printWindow = window.open('', '_blank')
+      printWindow.document.write(`
+        <html>
+          <head>
+            <title>Print QR Code</title>
+            <style>
+              body {
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                height: 100vh;
+                margin: 0;
+                  position: relative;
+              }
+              img {
+                position: absolute;
+                max-width: 51px;
+                width: 14%;
+                overflow: hidden;
+                background: #fff;
+                overflow: hidden;
+                padding: -1.2rem;
+                border-radius: -1.2rem;
+              }
+            </style>
+          </head>
+          <body>${svg}<img src="${this.logo}"></body>
+        </html>
+      `)
+      printWindow.document.close()
+      printWindow.focus()
+      printWindow.print()
+      printWindow.close()
+    },
     clickQrCode(event) {
       if (this.href === '') {
         this.utils.copyText(this.value)
