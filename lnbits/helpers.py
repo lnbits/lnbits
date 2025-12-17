@@ -132,6 +132,7 @@ def template_renderer(additional_folders: list | None = None) -> Jinja2Templates
             t.env.globals["INCLUDED_JS"] = vendor_files["js"]
             t.env.globals["INCLUDED_CSS"] = vendor_files["css"]
             t.env.globals["INCLUDED_COMPONENTS"] = vendor_files["components"]
+            t.env.globals["INCLUDED_MODULES"] = vendor_files["modules"]
 
     return t
 

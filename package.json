@@ -16,6 +16,8 @@
     "test:unit:watch": "vitest tests/frontend/unit"
   },
   "devDependencies": {
+    "@quasar/quasar-app-extension-testing-unit-vitest": "^1.2.4",
+    "@vitejs/plugin-vue": "^6.0.3",
     "@vue/test-utils": "^2.4.6",
     "clean-css-cli": "^5.6.3",
     "concat": "^1.0.3",
@@ -24,7 +26,7 @@
     "pyright": "1.1.289",
     "sass": "^1.94.2",
     "terser": "^5.44.1",
-    "vitest": "^4.0.16"
+    "vitest": "^3"
   },
   "dependencies": {
     "axios": "^1.13.2",
@@ -100,6 +102,9 @@
       "js/event-reactions.js",
       "js/bolt11-decoder.js"
     ],
+    "modules": [
+      "components/lnbits-error.vue"
+    ],
     "components": [
       "js/pages/error.js",
       "js/pages/home.js",
@@ -135,7 +140,6 @@
       "js/components/lnbits-wallet-paylinks.js",
       "js/components/lnbits-wallet-extra.js",
       "js/components/lnbits-home-logos.js",
-      "js/components/lnbits-error.js",
       "js/components/lnbits-qrcode.js",
       "js/components/lnbits-qrcode-lnurl.js",
       "js/components/lnbits-disclaimer.js",

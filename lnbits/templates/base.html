@@ -94,6 +94,10 @@
     {% endif %}
     <!-- scripts from extensions -->
     {% block scripts %}{% endblock %}
+    <!-- modules js -->
+    {% for url in INCLUDED_MODULES %}
+    <script type="module" src="{{ static_url_for('static', url) }}"></script>
+    {% endfor %}
     <!-- components js -->
     {% for url in INCLUDED_COMPONENTS %}
     <script src="{{ static_url_for('static', url) }}"></script>
