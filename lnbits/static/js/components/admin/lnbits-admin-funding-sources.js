@@ -89,8 +89,14 @@ window.app.component('lnbits-admin-funding-sources', {
             lnd_rest_cert: 'Certificate',
             lnd_rest_macaroon: 'Macaroon',
             lnd_rest_macaroon_encrypted: 'Encrypted Macaroon',
-            lnd_rest_route_hints: 'Enable Route Hints',
-            lnd_rest_allow_self_payment: 'Allow Self Payment'
+            lnd_rest_route_hints: {
+              advanced: true,
+              label: 'Enable Route Hints'
+            },
+            lnd_rest_allow_self_payment: {
+              advanced: true,
+              label: 'Allow Self Payment'
+            }
           }
         ],
         [
@@ -170,20 +176,18 @@ window.app.component('lnbits-admin-funding-sources', {
             },
             boltz_client_cert: {
               label: 'Certificate path or hex',
-              hint: 'Certificate path or hex',
               value: '/home/ubuntu/.boltz/tls.cert'
+            },
+            boltz_mnemonic: {
+              label: 'Liquid mnemonic',
+              hint: 'Boltz will fetch once connected, but you can change later (can be opened in a liquid wallet) ',
+              copy: true,
+              qrcode: true
             },
             boltz_client_password: {
               label: 'Wallet Password',
               hint: '*optional',
               advanced: true
-            },
-            boltz_mnemonic: {
-              label: 'Liquid mnemonic',
-              hint: '*optional, Boltz will fetch once connected, but you can change later (can be opened in a liquid wallet) ',
-              advanced: true,
-              copy: true,
-              qrcode: true
             }
           }
         ],
