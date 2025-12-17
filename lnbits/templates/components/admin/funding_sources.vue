@@ -50,6 +50,24 @@
               :hint="prop.hint"
               :value="prop.value"
             >
+              <q-btn
+                v-if="prop.copy"
+                @click="utils.copyText(formData[key])"
+                icon="content_copy"
+                class="cursor-pointer"
+                color="grey"
+                flat
+                dense
+              ></q-btn>
+              <q-btn
+                v-if="prop.qrcode"
+                @click="showQRValue(formData[key])"
+                icon="qr_code"
+                class="cursor-pointer"
+                color="grey"
+                flat
+                dense
+              ></q-btn>
             </q-input>
           </div>
         </div>
