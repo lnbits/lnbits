@@ -1,4 +1,4 @@
-FROM boltz/boltz-client:latest AS boltz
+FROM boltz/boltz-client:2.10.0 AS boltz
 
 FROM lnbits/lnbits:latest
 
