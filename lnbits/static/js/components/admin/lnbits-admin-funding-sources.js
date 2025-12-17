@@ -179,7 +179,7 @@ window.app.component('lnbits-admin-funding-sources', {
               value: '/home/ubuntu/.boltz/tls.cert'
             },
             boltz_mnemonic: {
-              label: 'Liquid mnemonic',
+              label: 'Liquid seed phrase',
               hint: 'Boltz will fetch once connected, but you can change later (can be opened in a liquid wallet) ',
               copy: true,
               qrcode: true
@@ -187,13 +187,6 @@ window.app.component('lnbits-admin-funding-sources', {
             boltz_client_password: {
               label: 'Wallet Password (optional)',
               advanced: true
-            },
-            boltz_mnemonic: {
-              label: 'Liquid mnemonic (optional)',
-              hint: 'Boltz will fetch once connected, but you can change later (can be opened in a liquid wallet) ',
-              advanced: true,
-              copy: true,
-              qrcode: true
             }
           }
         ],
