@@ -161,8 +161,14 @@ window.app.component('lnbits-admin-funding-sources', {
           'Boltz',
           {
             boltz_client_endpoint: 'Endpoint',
-            boltz_client_macaroon: 'Admin Macaroon path or hex',
-            boltz_client_cert: 'Certificate path or hex',
+            boltz_client_macaroon: {
+              label: 'Admin Macaroon path or hex',
+              default: '/home/ubuntu/.boltz/macaroons/admin.macaroon'
+            },
+            boltz_client_cert: {
+              label: 'Certificate path or hex',
+              default: '/home/ben/.boltz/tls.cert'
+            },
             boltz_client_wallet: 'Wallet Name',
             boltz_client_password: 'Wallet Password (can be empty)',
             boltz_mnemonic: {
