@@ -23,3 +23,10 @@ mypy.ini
 package-lock.json
 package.json
 pytest.ini
+
+.mypy_cache
+.github
+.pytest_cache
+.vscode
+bin
+dist

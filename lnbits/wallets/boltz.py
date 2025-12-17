@@ -5,7 +5,7 @@ from bolt11.decode import decode
 from grpc.aio import AioRpcError
 from loguru import logger
 
-from lnbits.helpers import normalize_endpoint
+from lnbits.helpers import normalize_endpoint, sha256s
 from lnbits.settings import settings
 from lnbits.wallets.boltz_grpc_files import boltzrpc_pb2, boltzrpc_pb2_grpc
 from lnbits.wallets.lnd_grpc_files.lightning_pb2_grpc import grpc
@@ -38,10 +38,6 @@ class BoltzWallet(Wallet):
             raise ValueError(
                 "cannot initialize BoltzWallet: missing boltz_client_endpoint"
             )
-        if not settings.boltz_client_wallet:
-            raise ValueError(
-                "cannot initialize BoltzWallet: missing boltz_client_wallet"
-            )
 
         self.endpoint = normalize_endpoint(
             settings.boltz_client_endpoint, add_proto=True
@@ -63,31 +59,20 @@ class BoltzWallet(Wallet):
 
         self.rpc = boltzrpc_pb2_grpc.BoltzStub(channel)
         self.wallet_id = 0
+        self.wallet_name = "lnbits"
 
-        # Auto-create wallet if running in Docker mode
-        async def _init_boltz_wallet():
-            try:
-                wallet_name = settings.boltz_client_wallet or "lnbits"
-                mnemonic = await self._fetch_wallet(wallet_name)
-                if mnemonic:
-                    logger.info(
-                        "✅ Mnemonic found for Boltz wallet, saving to settings"
-                    )
-                    settings.boltz_mnemonic = mnemonic
-
-                    from lnbits.core.crud.settings import set_settings_field
-
-                    await set_settings_field("boltz_mnemonic", mnemonic)
-                else:
-                    logger.warning("⚠️ No mnemonic returned from Boltz")
-            except Exception as e:
-                logger.error(f"❌ Failed to auto-create Boltz wallet: {e}")
-
-        self._init_wallet_task = asyncio.create_task(_init_boltz_wallet())
+        if settings.boltz_mnemonic:  # restore wallet from mnemonic
+            self._init_wallet_task = asyncio.create_task(
+                self._restore_boltz_wallet(
+                    settings.boltz_mnemonic, settings.boltz_client_password
+                )
+            )
+        else:  # create new wallet
+            self._init_wallet_task = asyncio.create_task(self._create_boltz_wallet())
 
     async def status(self) -> StatusResponse:
         try:
-            request = boltzrpc_pb2.GetWalletRequest(name=settings.boltz_client_wallet)
+            request = boltzrpc_pb2.GetWalletRequest(name=self.wallet_name)
             response: boltzrpc_pb2.Wallet = await self.rpc.GetWallet(
                 request, metadata=self.metadata
             )
@@ -253,24 +238,85 @@ class BoltzWallet(Wallet):
                 )
                 await asyncio.sleep(5)
 
-    async def _fetch_wallet(self, wallet_name: str) -> str | None:
+    async def _check_wallet_exists(
+        self, wallet_name: str
+    ) -> boltzrpc_pb2.Wallet | None:
         try:
             request = boltzrpc_pb2.GetWalletRequest(name=wallet_name)
             response = await self.rpc.GetWallet(request, metadata=self.metadata)
             logger.info(f"Wallet '{wallet_name}' already exists with ID {response.id}")
-            return settings.boltz_mnemonic
+            return response
         except AioRpcError as exc:
-            details = exc.details() or "unknown error"
             if exc.code() != grpc.StatusCode.NOT_FOUND:
-                logger.error(f"Error checking wallet existence: {details}")
-                raise
+                logger.warning(f"Wallet '{wallet_name}' does not exist.")
+                return None
+            logger.error(f"Error checking wallet existence: {exc.details()}")
+            return None
 
+    async def _delete_wallet(self, wallet_id: int) -> None:
+        logger.info(f"Deleting wallet '{wallet_id}'")
+        delete_request = boltzrpc_pb2.RemoveWalletRequest(id=wallet_id)
+        await self.rpc.RemoveWallet(delete_request, metadata=self.metadata)
+
+    async def _restore_wallet(self, wallet_name: str, mnemonic: str, password: str):
+        logger.info(f"Restoring wallet '{wallet_name}' from mnemonic")
+        credentials = boltzrpc_pb2.WalletCredentials(mnemonic=mnemonic)
+        params = boltzrpc_pb2.WalletParams(
+            name=wallet_name,
+            currency=boltzrpc_pb2.LBTC,
+            password=password,
+        )
+        restore_request = boltzrpc_pb2.ImportWalletRequest(
+            credentials=credentials, params=params
+        )
+        response = await self.rpc.ImportWallet(restore_request, metadata=self.metadata)
+        return response
+
+    async def _create_wallet(self, wallet_name: str, password: str) -> str:
         logger.info(f"Creating new wallet '{wallet_name}'")
         params = boltzrpc_pb2.WalletParams(
             name=wallet_name,
             currency=boltzrpc_pb2.LBTC,
-            password=settings.boltz_client_password,
+            password=password,
         )
         create_request = boltzrpc_pb2.CreateWalletRequest(params=params)
         response = await self.rpc.CreateWallet(create_request, metadata=self.metadata)
         return response.mnemonic
+
+    async def _restore_boltz_wallet(self, mnemonic: str, password: str):
+        try:
+            # delete the wallet with to name without hashing first if it exists
+            wallet = await self._check_wallet_exists(self.wallet_name)
+            if wallet:
+                await self._delete_wallet(wallet.id)
+
+            # recreate the wallet with the hashed name
+            self.wallet_name = sha256s(mnemonic + password)
+            wallet = await self._check_wallet_exists(self.wallet_name)
+            if wallet:
+                logger.success("✅ Boltz wallet exists.")
+                return
+            await self._restore_wallet(self.wallet_name, mnemonic, password)
+            logger.success("✅ Boltz wallet restored from existing mnemonic")
+        except Exception as e:
+            logger.error(f"❌ Failed to restore Boltz wallet: {e}")
+
+    async def _create_boltz_wallet(self):
+        try:
+            # delete the wallet with to name without hashing first if it exists
+            wallet = await self._check_wallet_exists(self.wallet_name)
+            if wallet:
+                await self._delete_wallet(wallet.id)
+
+            logger.info("No Mnemonic found for Boltz wallet, creating wallet...")
+            mnemonic = await self._create_wallet(
+                self.wallet_name, settings.boltz_client_password
+            )
+            logger.success("✅ Boltz wallet created successfully")
+            settings.boltz_mnemonic = mnemonic
+            from lnbits.core.crud.settings import set_settings_field
+
+            await set_settings_field("boltz_mnemonic", mnemonic)
+
+        except Exception as e:
+            logger.error(f"❌ Failed to create Boltz wallet: {e}")
