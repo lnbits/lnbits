@@ -185,9 +185,15 @@ window.app.component('lnbits-admin-funding-sources', {
               qrcode: true
             },
             boltz_client_password: {
-              label: 'Wallet Password',
-              hint: '*optional',
+              label: 'Wallet Password (optional)',
               advanced: true
+            },
+            boltz_mnemonic: {
+              label: 'Liquid mnemonic (optional)',
+              hint: 'Boltz will fetch once connected, but you can change later (can be opened in a liquid wallet) ',
+              advanced: true,
+              copy: true,
+              qrcode: true
             }
           }
         ],
