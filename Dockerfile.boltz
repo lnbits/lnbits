@@ -1,6 +1,7 @@
-FROM boltz/boltz-client:latest AS boltz
+ARG LNBITS_TAG=latest
 
-FROM lnbits/lnbits:latest
+FROM boltz/boltz-client:latest AS boltz
+FROM lnbits/lnbits:${LNBITS_TAG}
 
 COPY --from=boltz /bin/boltzd /bin/boltzcli /usr/local/bin/
 RUN ls -l /usr/local/bin/boltzd

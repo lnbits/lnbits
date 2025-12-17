@@ -62,3 +62,4 @@ jobs:
             platforms: linux/amd64,linux/arm64
             cache-from: type=local,src=/tmp/.buildx-cache
             cache-to: type=local,dest=/tmp/.buildx-cache
+            build-args: LNBITS_TAG=${{ inputs.tag }}
