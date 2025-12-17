@@ -12,6 +12,13 @@ jobs:
   lint:
     uses: ./.github/workflows/lint.yml
 
+  test-frontend:
+    needs: [ lint ]
+    uses: ./.github/workflows/make.yml
+    with:
+      make: test-frontend
+      npm: true
+
   test-api:
     needs: [ lint ]
     strategy:

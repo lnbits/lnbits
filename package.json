@@ -10,15 +10,21 @@
     "vendor_minify_css": "./node_modules/.bin/cleancss -o ./lnbits/static/bundle.min.css ./lnbits/static/bundle.css",
     "vendor_minify_js": "./node_modules/.bin/terser ./lnbits/static/bundle.js -o ./lnbits/static/bundle.min.js --compress --mangle",
     "vendor_minify_components": "./node_modules/.bin/terser ./lnbits/static/bundle-components.js -o ./lnbits/static/bundle-components.min.js --compress --mangle",
-    "bundle": "npm run sass && npm run vendor_copy && npm run vendor_json && npm run vendor_bundle_css && npm run vendor_bundle_js && npm run vendor_bundle_components && npm run vendor_minify_css && npm run vendor_minify_js && npm run vendor_minify_components"
+    "bundle": "npm run sass && npm run vendor_copy && npm run vendor_json && npm run vendor_bundle_css && npm run vendor_bundle_js && npm run vendor_bundle_components && npm run vendor_minify_css && npm run vendor_minify_js && npm run vendor_minify_components",
+    "test": "npm run test:unit",
+    "test:unit": "vitest --watch=false tests/frontend/unit",
+    "test:unit:watch": "vitest tests/frontend/unit"
   },
   "devDependencies": {
+    "@vue/test-utils": "^2.4.6",
     "clean-css-cli": "^5.6.3",
     "concat": "^1.0.3",
+    "jsdom": "^27.3.0",
     "prettier": "^3.7.4",
     "pyright": "1.1.289",
     "sass": "^1.94.2",
-    "terser": "^5.44.1"
+    "terser": "^5.44.1",
+    "vitest": "^4.0.16"
   },
   "dependencies": {
     "axios": "^1.13.2",
