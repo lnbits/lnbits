@@ -1,6 +1,6 @@
 [project]
 name = "lnbits"
-version = "1.4.0-rc3"
+version = "1.4.0-rc4"
 requires-python = ">=3.10,<3.13"
 description = "LNbits, free and open-source Lightning wallet and accounts system."
 authors = [{ name = "Alan Bits", email = "alan@lnbits.com" }]
