@@ -35,7 +35,9 @@
       >
         <div
           class="row"
-          v-for="([key, prop], i) in Object.entries(fundingSources.get(fund))"
+          v-for="([key, prop], i) in Object.entries(
+            fundingSources.get(fund)
+          ).filter(([, p]) => !p.advanced)"
           :key="i"
         >
           <div class="col-12">
@@ -69,6 +71,55 @@
             </q-input>
           </div>
         </div>
+        <q-expansion-item
+          v-if="
+            Object.entries(fundingSources.get(fund)).some(([, p]) => p.advanced)
+          "
+          dense
+          expand-separator
+          icon="tune"
+          label="Advanced"
+          class="q-mt-sm"
+        >
+          <div
+            class="row"
+            v-for="([key, prop], i) in Object.entries(
+              fundingSources.get(fund)
+            ).filter(([, p]) => p.advanced)"
+            :key="`adv-${i}`"
+          >
+            <div class="col-12">
+              <q-input
+                v-model="formData[key]"
+                filled
+                class="q-mt-sm"
+                :type="hideInput ? 'password' : 'text'"
+                :label="prop.label"
+                :hint="prop.hint"
+                :readonly="prop.readonly || false"
+              >
+                <q-btn
+                  v-if="prop.copy"
+                  @click="utils.copyText(formData[key])"
+                  icon="content_copy"
+                  class="cursor-pointer"
+                  color="grey"
+                  flat
+                  dense
+                ></q-btn>
+                <q-btn
+                  v-if="prop.qrcode"
+                  @click="showQRValue(formData[key])"
+                  icon="qr_code"
+                  class="cursor-pointer"
+                  color="grey"
+                  flat
+                  dense
+                ></q-btn>
+              </q-input>
+            </div>
+          </div>
+        </q-expansion-item>
       </div>
     </q-list>
     <q-dialog v-model="showQRDialog">

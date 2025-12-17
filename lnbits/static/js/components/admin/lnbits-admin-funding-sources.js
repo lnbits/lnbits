@@ -165,12 +165,13 @@ window.app.component('lnbits-admin-funding-sources', {
             boltz_client_cert: 'Certificate path or hex',
             boltz_client_password: {
               label: 'Wallet Password',
-              hint: '*optional'
+              hint: '*optional',
+              advanced: true
             },
             boltz_mnemonic: {
-              label: 'Liquid mnemonic',
-              hint:
-                '*optional, Boltz will fetch once connected, but you can change later (can be opened in a liquid wallet) ',
+              label: 'Wallet Seed Phrase',
+              hint: '*optional, Boltz will fetch once connected, but you can change later (can be opened in a liquid wallet) ',
+              advanced: true,
               copy: true,
               qrcode: true
             }
