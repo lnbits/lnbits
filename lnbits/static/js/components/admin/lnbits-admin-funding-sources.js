@@ -163,9 +163,14 @@ window.app.component('lnbits-admin-funding-sources', {
             boltz_client_endpoint: 'Endpoint',
             boltz_client_macaroon: 'Admin Macaroon path or hex',
             boltz_client_cert: 'Certificate path or hex',
-            boltz_client_password: 'Wallet Password (can be empty)',
+            boltz_client_password: {
+              label: 'Wallet Password',
+              hint: '*optional'
+            },
             boltz_mnemonic: {
-              label: 'Liquid mnemonic (copy into greenwallet)',
+              label: 'Liquid mnemonic',
+              hint:
+                '*optional, Boltz will fetch once connected, but you can change later (can be opened in a liquid wallet) ',
               copy: true,
               qrcode: true
             }
