@@ -6,6 +6,7 @@ import inspect
 import json
 import os
 import re
+import secrets
 from datetime import datetime, timezone
 from enum import Enum
 from os import path
@@ -16,6 +17,21 @@ from uuid import uuid4
 
 from loguru import logger
 from pydantic import BaseModel, BaseSettings, Extra, Field, validator
+
+
+def generate_default_boltz_mnemonic() -> str | None:
+    """
+    Generate a BIP39 mnemonic using the bundled embit dependency.
+    If embit is unavailable at runtime, return None to avoid blocking startup.
+    """
+    try:
+        from embit import bip39
+    except Exception as exc:  # pragma: no cover - dependency missing at runtime
+        logger.warning(f"Unable to generate Boltz mnemonic (embit missing): {exc}")
+        return None
+
+    entropy = secrets.token_bytes(16)  # 128 bits -> 12-word mnemonic
+    return bip39.mnemonic_from_bytes(entropy)
 
 
 def list_parse_fallback(v: str):
@@ -604,7 +620,9 @@ class BoltzFundingSource(LNbitsSettings):
     boltz_client_wallet: str | None = Field(default="lnbits")
     boltz_client_password: str = Field(default="")
     boltz_client_cert: str | None = Field(default=None)
-    boltz_mnemonic: str | None = Field(default=None)
+    boltz_mnemonic: str | None = Field(
+        default_factory=generate_default_boltz_mnemonic
+    )
 
 
 class StrikeFundingSource(LNbitsSettings):

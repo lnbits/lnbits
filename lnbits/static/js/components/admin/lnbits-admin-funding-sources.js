@@ -167,9 +167,9 @@ window.app.component('lnbits-admin-funding-sources', {
             boltz_client_password: 'Wallet Password (can be empty)',
             boltz_mnemonic: {
               label: 'Liquid mnemonic (copy into greenwallet)',
-              readonly: true,
               copy: true,
-              qrcode: true
+              qrcode: true,
+              hint: 'Paste or type your liquid mnemonic'
             }
           }
         ],
