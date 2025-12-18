@@ -159,6 +159,10 @@ class BoltzWallet(Wallet):
             if response.id == "":
                 # note that there is no way to provide a checking id here,
                 # but there is no need since it immediately is considered as successfull
+                logger.warning(
+                    "Boltz invoice paid directly on liquid network using magic routing"
+                    " hints NOOOO FEEEE"
+                )
                 return PaymentResponse(
                     ok=True,
                     checking_id=invoice.payment_hash,
@@ -175,10 +179,12 @@ class BoltzWallet(Wallet):
                 info_request, metadata=self.metadata
             ):
                 if info.swap.state == boltzrpc_pb2.SUCCESSFUL:
+                    fee_msat = (info.swap.onchain_fee + info.swap.service_fee) * 1000
+                    logger.error(f"Boltz swap successful, fee_msat: {fee_msat}")
                     return PaymentResponse(
                         ok=True,
                         checking_id=invoice.payment_hash,
-                        fee_msat=(info.swap.onchain_fee + info.swap.service_fee) * 1000,
+                        fee_msat=fee_msat,
                         preimage=info.swap.preimage,
                     )
                 elif info.swap.error != "":
