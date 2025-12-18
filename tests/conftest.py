@@ -48,6 +48,7 @@ def settings():
     lnbits_settings.lnbits_admin_ui = True
     lnbits_settings.lnbits_extensions_default_install = []
     lnbits_settings.lnbits_extensions_deactivate_all = True
+    lnbits_settings.lnbits_reserve_fee_min = 30000
 
     yield lnbits_settings
 
