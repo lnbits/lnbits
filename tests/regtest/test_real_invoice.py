@@ -18,7 +18,6 @@ from ..helpers import FakeError, is_fake, is_regtest
 from .helpers import (
     cancel_invoice,
     get_real_invoice,
-    mine_blocks_liquid,
     pay_real_invoice,
     settle_invoice,
 )
@@ -176,18 +175,7 @@ async def test_create_real_invoice(client, adminkey_headers_from, inkey_headers_
         wait_for_paid_invoices("test_create_invoice", on_paid)()
     )
 
-    # required for submarine swaps that need blocks to confirm
-    # async def mine():
-    #     await asyncio.sleep(10)
-    #     mine_blocks_liquid(3)
-
-    async def pay():
-        pay_real_invoice(invoice["bolt11"])
-
-    # mine_task = create_task(mine())
-    # pay_task = create_task(pay())
-    # await asyncio.gather(pay_task, mine_task)
-    await pay()
+    pay_real_invoice(invoice["bolt11"])
 
     # wait for the task to exit
     with pytest.raises(FakeError):
@@ -426,18 +414,7 @@ async def test_receive_real_invoice_set_pending_and_check_state(
         wait_for_paid_invoices("test_create_invoice", on_paid)()
     )
 
-    # required for submarine swaps that need blocks to confirm
-    async def mine():
-        await asyncio.sleep(10)
-        mine_blocks_liquid(3)
-
-    async def pay():
-        pay_real_invoice(invoice["bolt11"])
-
-    mine_task = create_task(mine())
-    pay_task = create_task(pay())
-
-    await asyncio.gather(mine_task, pay_task)
+    pay_real_invoice(invoice["bolt11"])
 
     with pytest.raises(FakeError):
         await wait_for_paid_task
