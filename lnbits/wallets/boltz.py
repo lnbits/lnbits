@@ -59,17 +59,18 @@ class BoltzWallet(Wallet):
         self.rpc = boltzrpc_pb2_grpc.BoltzStub(channel)
         self.wallet_id = 0
         self.wallet_name = "lnbits"
-
-        if settings.boltz_mnemonic:  # restore wallet from mnemonic
-            self._init_wallet_task = asyncio.create_task(
-                self._restore_boltz_wallet(
-                    settings.boltz_mnemonic, settings.boltz_client_password
-                )
-            )
-        else:  # create new wallet
-            self._init_wallet_task = asyncio.create_task(self._create_boltz_wallet())
+        self.wallet_ready = False
 
     async def status(self) -> StatusResponse:
+        if self.wallet_ready is False:
+            self.wallet_ready = True
+            if settings.boltz_mnemonic:  # restore wallet from mnemonic
+                await self._restore_boltz_wallet(
+                    settings.boltz_mnemonic,
+                    settings.boltz_client_password,
+                )
+            else:  # create new wallet
+                await self._create_boltz_wallet()
         try:
             request = boltzrpc_pb2.GetWalletRequest(name=self.wallet_name)
             response: boltzrpc_pb2.Wallet = await self.rpc.GetWallet(
