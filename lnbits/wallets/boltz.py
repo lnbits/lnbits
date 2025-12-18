@@ -117,6 +117,9 @@ class BoltzWallet(Wallet):
         )
 
     async def pay_invoice(self, bolt11: str, fee_limit_msat: int) -> PaymentResponse:
+
+        logger.error(f"fee_limit_msat: {fee_limit_msat}")
+
         pair = boltzrpc_pb2.Pair(**{"from": boltzrpc_pb2.LBTC})
         try:
             pair_info: boltzrpc_pb2.PairInfo
@@ -128,8 +131,11 @@ class BoltzWallet(Wallet):
 
             if not invoice.amount_msat:
                 raise ValueError("amountless invoice")
+
             service_fee: float = invoice.amount_msat * pair_info.fees.percentage / 100
-            estimate = service_fee + pair_info.fees.miner_fees * 1000
+            logger.error(f"service_fee: {service_fee}")
+            estimate = int(service_fee + pair_info.fees.miner_fees * 1000)
+            logger.error(f"estimate: {estimate}")
             if estimate > fee_limit_msat:
                 error = f"fee of {estimate} msat exceeds limit of {fee_limit_msat} msat"
 
