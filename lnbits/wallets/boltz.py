@@ -137,9 +137,7 @@ class BoltzWallet(Wallet):
                 raise ValueError("amountless invoice")
 
             service_fee: float = invoice.amount_msat * pair_info.fees.percentage / 100
-            logger.error(f"service_fee: {service_fee}")
             estimate = int(service_fee + pair_info.fees.miner_fees * 1000)
-            logger.error(f"estimate: {estimate}")
             if estimate > fee_limit_msat:
                 error = f"fee of {estimate} msat exceeds limit of {fee_limit_msat} msat"
 
