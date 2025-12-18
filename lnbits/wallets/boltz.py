@@ -115,11 +115,12 @@ class BoltzWallet(Wallet):
         except AioRpcError as exc:
             return InvoiceResponse(ok=False, error_message=exc.details())
         invoice = decode(response.invoice)
+        fee_msat = response.routing_fee_milli_sat
         return InvoiceResponse(
             ok=True,
             checking_id=invoice.payment_hash,
             payment_request=response.invoice,
-            fee_msat=response.routing_fee_milli_sat,
+            fee_msat=fee_msat,
         )
 
     async def pay_invoice(self, bolt11: str, fee_limit_msat: int) -> PaymentResponse:
@@ -161,7 +162,6 @@ class BoltzWallet(Wallet):
                 # but there is no need since it immediately is considered as successfull
                 logger.warning(
                     "Boltz invoice paid directly on liquid network using magic routing"
-                    " hints NOOOO FEEEE"
                 )
                 return PaymentResponse(
                     ok=True,
@@ -253,6 +253,8 @@ class BoltzWallet(Wallet):
                         and reverse.state == boltzrpc_pb2.SUCCESSFUL
                         and reverse.status == "invoice.settled"
                     ):
+                        fee_msat = ((reverse.service_fee + reverse.onchain_fee) * 1000,)
+                        print("Reverse swap fee_msat:", fee_msat)
                         invoice = decode(reverse.invoice)
                         yield invoice.payment_hash
             except Exception as exc:
