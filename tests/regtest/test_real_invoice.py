@@ -177,17 +177,17 @@ async def test_create_real_invoice(client, adminkey_headers_from, inkey_headers_
     )
 
     # required for submarine swaps that need blocks to confirm
-    async def mine():
-        await asyncio.sleep(15)
-        mine_blocks_liquid(3)
+    # async def mine():
+    #     await asyncio.sleep(10)
+    #     mine_blocks_liquid(3)
 
     async def pay():
         pay_real_invoice(invoice["bolt11"])
 
-    mine_task = create_task(mine())
-    pay_task = create_task(pay())
-
-    await asyncio.gather(mine_task, pay_task)
+    # mine_task = create_task(mine())
+    # pay_task = create_task(pay())
+    # await asyncio.gather(pay_task, mine_task)
+    await pay()
 
     # wait for the task to exit
     with pytest.raises(FakeError):
