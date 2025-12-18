@@ -44,9 +44,8 @@ class BoltzWallet(Wallet):
         )
 
         if settings.boltz_client_macaroon:
-            self.metadata = [
-                ("macaroon", load_macaroon(settings.boltz_client_macaroon))
-            ]
+            macaroon = load_macaroon(settings.boltz_client_macaroon)
+            self.metadata = [("macaroon", macaroon)]
         else:
             self.metadata = None
 
