@@ -65,7 +65,6 @@ jobs:
           LNBITS_KEY: "d08a3313322a4514af75d488bcc27eee"
           ECLAIR_URL: http://127.0.0.1:8082
           BOLTZ_CLIENT_ENDPOINT: 127.0.0.1:9002
-          BOLTZ_CLIENT_MACAROON: ./docker/data/boltz-client/macaroons/admin.macaroon
           LNBITS_MAX_OUTGOING_PAYMENT_AMOUNT_SATS: 1000000000
           LNBITS_MAX_INCOMING_PAYMENT_AMOUNT_SATS: 1000000000
           ECLAIR_PASS: lnbits
