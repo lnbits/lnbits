@@ -48,7 +48,6 @@ def settings():
     lnbits_settings.lnbits_admin_ui = True
     lnbits_settings.lnbits_extensions_default_install = []
     lnbits_settings.lnbits_extensions_deactivate_all = True
-    lnbits_settings.lnbits_reserve_fee_min = 30000
 
     yield lnbits_settings
 
@@ -332,8 +331,8 @@ def _settings_cleanup(settings: Settings):
     settings.lnbits_allowed_users = []
     settings.auth_allowed_methods = AuthMethods.all()
     settings.auth_credetials_update_threshold = 120
-    settings.lnbits_reserve_fee_percent = 1
-    settings.lnbits_reserve_fee_min = 2000
+    settings.lnbits_reserve_fee_percent = 2
+    settings.lnbits_reserve_fee_min = 20000
     settings.lnbits_service_fee = 0
     settings.lnbits_reserve_fee_percent = 0
     settings.lnbits_wallet_limit_daily_max_withdraw = 0
