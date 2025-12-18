@@ -262,13 +262,8 @@ class BoltzWallet(Wallet):
         try:
             request = boltzrpc_pb2.GetWalletRequest(name=wallet_name)
             response = await self.rpc.GetWallet(request, metadata=self.metadata)
-            logger.info(f"Wallet '{wallet_name}' already exists with ID {response.id}")
             return response
-        except AioRpcError as exc:
-            if exc.code() != grpc.StatusCode.NOT_FOUND:
-                logger.warning(f"Wallet '{wallet_name}' does not exist.")
-                return None
-            logger.error(f"Error checking wallet existence: {exc.details()}")
+        except AioRpcError:
             return None
 
     async def _delete_wallet(self, wallet_id: int) -> None:
