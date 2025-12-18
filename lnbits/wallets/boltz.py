@@ -176,7 +176,10 @@ class BoltzWallet(Wallet):
             ):
                 if info.swap.state == boltzrpc_pb2.SUCCESSFUL:
                     fee_msat = (info.swap.onchain_fee + info.swap.service_fee) * 1000
-                    logger.error(f"Boltz swap successful, fee_msat: {fee_msat}")
+                    logger.debug(
+                        f"Boltz swap successful, status: {info.swap.status}"
+                        f"fee_msat: {fee_msat}"
+                    )
                     return PaymentResponse(
                         ok=True,
                         checking_id=response.id,
@@ -203,10 +206,14 @@ class BoltzWallet(Wallet):
             logger.warning(exc)
             return PaymentPendingStatus()
         if swap.state == boltzrpc_pb2.SwapState.SUCCESSFUL:
+            fee_msat = (
+                swap.service_fee + swap.onchain_fee
+            ) * 1000 + swap.routing_fee_msat
+            logger.debug(
+                f"Boltz swap successful, status: {swap.status}, fee_msat: {fee_msat}"
+            )
             return PaymentSuccessStatus(
-                fee_msat=(
-                    (swap.service_fee + swap.onchain_fee) * 1000 + swap.routing_fee_msat
-                ),
+                fee_msat=fee_msat,
                 preimage=swap.preimage,
             )
         elif swap.state == boltzrpc_pb2.SwapState.PENDING:
@@ -225,8 +232,12 @@ class BoltzWallet(Wallet):
             logger.warning(exc)
             return PaymentPendingStatus()
         if swap.state == boltzrpc_pb2.SwapState.SUCCESSFUL:
+            fee_msat = (swap.service_fee + swap.onchain_fee) * 1000
+            logger.debug(
+                f"Boltz swap successful, status: {swap.status}, fee_msat: {fee_msat}"
+            )
             return PaymentSuccessStatus(
-                fee_msat=(swap.service_fee + swap.onchain_fee) * 1000,
+                fee_msat=fee_msat,
                 preimage=swap.preimage,
             )
         elif swap.state == boltzrpc_pb2.SwapState.PENDING:
@@ -249,9 +260,13 @@ class BoltzWallet(Wallet):
                         and reverse.status == "invoice.settled"
                     ):
                         fee_msat = ((reverse.service_fee + reverse.onchain_fee) * 1000,)
-                        print("Reverse swap fee_msat:", fee_msat)
-                        invoice = decode(reverse.invoice)
-                        yield invoice.payment_hash
+                        logger.debug(
+                            f"Boltz reverse swap settled: {reverse.id}, "
+                            f"fee_msat: {fee_msat}"
+                        )
+                        # print("Reverse swap fee_msat:", fee_msat)
+                        # invoice = decode(reverse.invoice)
+                        yield reverse.id
             except Exception as exc:
                 logger.error(
                     f"lost connection to boltz client swap stream: '{exc}', retrying in"
