@@ -934,6 +934,9 @@ async def _pay_internal_invoice(
     Pay an internal payment.
     returns None if the payment is not internal.
     """
+    internal_payment = None
+    internal_invoice = None
+
     # If bolt11 payment
     if not create_payment_model.offer_id:
         # check_internal() returns the payment of the invoice we're waiting for
