@@ -113,6 +113,7 @@ class BoltzWallet(Wallet):
         try:
             response = await self.rpc.CreateReverseSwap(request, metadata=self.metadata)
         except AioRpcError as exc:
+            logger.warning(exc)
             return InvoiceResponse(ok=False, error_message=exc.details())
         fee_msat = response.routing_fee_milli_sat
         return InvoiceResponse(
@@ -164,6 +165,7 @@ class BoltzWallet(Wallet):
                 )
                 return PaymentResponse(ok=True, checking_id=response.id)
         except AioRpcError as exc:
+            logger.warning(exc)
             return PaymentResponse(ok=False, error_message=exc.details())
 
         try:
@@ -187,6 +189,7 @@ class BoltzWallet(Wallet):
                 ok=False, error_message="stream stopped unexpectedly"
             )
         except AioRpcError as exc:
+            logger.warning(exc)
             return PaymentResponse(ok=False, error_message=exc.details())
 
     async def get_invoice_status(self, checking_id: str) -> PaymentStatus:
@@ -196,7 +199,8 @@ class BoltzWallet(Wallet):
                 metadata=self.metadata,
             )
             swap = response.reverse_swap
-        except AioRpcError:
+        except AioRpcError as exc:
+            logger.warning(exc)
             return PaymentPendingStatus()
         if swap.state == boltzrpc_pb2.SwapState.SUCCESSFUL:
             return PaymentSuccessStatus(
@@ -217,7 +221,8 @@ class BoltzWallet(Wallet):
                 metadata=self.metadata,
             )
             swap = response.swap
-        except AioRpcError:
+        except AioRpcError as exc:
+            logger.warning(exc)
             return PaymentPendingStatus()
         if swap.state == boltzrpc_pb2.SwapState.SUCCESSFUL:
             return PaymentSuccessStatus(
