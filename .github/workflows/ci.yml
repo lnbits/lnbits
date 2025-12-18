@@ -75,7 +75,14 @@ jobs:
     strategy:
       matrix:
         python-version: ["3.10"]
-        backend-wallet-class: ["LndRestWallet", "LndWallet", "CoreLightningWallet", "CoreLightningRestWallet", "LNbitsWallet", "EclairWallet"]
+        backend-wallet-class:
+          - BoltzWallet
+          - LndRestWallet
+          - LndWallet
+          - CoreLightningWallet
+          - CoreLightningRestWallet
+          - LNbitsWallet
+          - EclairWallet
     with:
       custom-pytest: "uv run pytest tests/regtest"
       python-version: ${{ matrix.python-version }}
