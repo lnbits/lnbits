@@ -26,6 +26,16 @@ docker_bitcoin_cli = [
     "-regtest",
 ]
 
+docker_elements_cli = [
+    "docker",
+    "exec",
+    "lnbits-elementsd-1",
+    "elements-cli",
+    "-rpcuser=lnbits",
+    "-rpcpassword=lnbits",
+    "-regtest",
+]
+
 
 docker_lightning_unconnected_cli = [
     "docker",
@@ -124,6 +134,12 @@ def pay_real_invoice(invoice: str) -> str:
 
 def mine_blocks(blocks: int = 1) -> str:
     cmd = docker_bitcoin_cli.copy()
+    cmd.extend(["-generate", str(blocks)])
+    return run_cmd(cmd)
+
+
+def mine_blocks_liquid(blocks: int = 1) -> str:
+    cmd = docker_elements_cli.copy()
     cmd.extend(["-generate", str(blocks)])
     return run_cmd(cmd)
 
