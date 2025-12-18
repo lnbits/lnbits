@@ -43,11 +43,13 @@ class BoltzWallet(Wallet):
             settings.boltz_client_endpoint, add_proto=True
         )
 
+        self.metadata = None
         if settings.boltz_client_macaroon:
-            macaroon = load_macaroon(settings.boltz_client_macaroon)
-            self.metadata = [("macaroon", macaroon)]
-        else:
-            self.metadata = None
+            try:
+                macaroon = load_macaroon(settings.boltz_client_macaroon)
+                self.metadata = [("macaroon", macaroon)]
+            except Exception as e:
+                logger.error(f"BoltzWallet failed to load macaroon: {e}")
 
         if settings.boltz_client_cert:
             cert = open(settings.boltz_client_cert, "rb").read()
