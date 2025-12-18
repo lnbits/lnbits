@@ -112,13 +112,15 @@ class BoltzWallet(Wallet):
             response = await self.rpc.CreateReverseSwap(request, metadata=self.metadata)
         except AioRpcError as exc:
             return InvoiceResponse(ok=False, error_message=exc.details())
+        invoice = decode(response.invoice)
         return InvoiceResponse(
-            ok=True, checking_id=response.id, payment_request=response.invoice
+            ok=True,
+            checking_id=invoice.payment_hash,
+            payment_request=response.invoice,
+            fee_msat=response.routing_fee_milli_sat,
         )
 
     async def pay_invoice(self, bolt11: str, fee_limit_msat: int) -> PaymentResponse:
-
-        logger.error(f"fee_limit_msat: {fee_limit_msat}")
 
         pair = boltzrpc_pb2.Pair(**{"from": boltzrpc_pb2.LBTC})
         try:
@@ -159,13 +161,15 @@ class BoltzWallet(Wallet):
                 # but there is no need since it immediately is considered as successfull
                 return PaymentResponse(
                     ok=True,
-                    checking_id=response.id,
+                    checking_id=invoice.payment_hash,
                 )
         except AioRpcError as exc:
             return PaymentResponse(ok=False, error_message=exc.details())
 
         try:
-            info_request = boltzrpc_pb2.GetSwapInfoRequest(id=response.id)
+            info_request = boltzrpc_pb2.GetSwapInfoRequest(
+                payment_hash=bytes.fromhex(invoice.payment_hash)
+            )
             info: boltzrpc_pb2.GetSwapInfoResponse
             async for info in self.rpc.GetSwapInfoStream(
                 info_request, metadata=self.metadata
@@ -173,7 +177,7 @@ class BoltzWallet(Wallet):
                 if info.swap.state == boltzrpc_pb2.SUCCESSFUL:
                     return PaymentResponse(
                         ok=True,
-                        checking_id=response.id,
+                        checking_id=invoice.payment_hash,
                         fee_msat=(info.swap.onchain_fee + info.swap.service_fee) * 1000,
                         preimage=info.swap.preimage,
                     )
@@ -188,7 +192,10 @@ class BoltzWallet(Wallet):
     async def get_invoice_status(self, checking_id: str) -> PaymentStatus:
         try:
             response: boltzrpc_pb2.GetSwapInfoResponse = await self.rpc.GetSwapInfo(
-                boltzrpc_pb2.GetSwapInfoRequest(id=checking_id), metadata=self.metadata
+                boltzrpc_pb2.GetSwapInfoRequest(
+                    payment_hash=bytes.fromhex(checking_id)
+                ),
+                metadata=self.metadata,
             )
             swap = response.reverse_swap
         except AioRpcError:
@@ -235,8 +242,13 @@ class BoltzWallet(Wallet):
                     request, metadata=self.metadata
                 ):
                     reverse = info.reverse_swap
-                    if reverse and reverse.state == boltzrpc_pb2.SUCCESSFUL:
-                        yield reverse.id
+                    if (
+                        reverse
+                        and reverse.state == boltzrpc_pb2.SUCCESSFUL
+                        and reverse.status == "invoice.settled"
+                    ):
+                        invoice = decode(reverse.invoice)
+                        yield invoice.payment_hash
             except Exception as exc:
                 logger.error(
                     f"lost connection to boltz client swap stream: '{exc}', retrying in"

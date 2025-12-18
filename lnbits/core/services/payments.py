@@ -811,11 +811,7 @@ async def _pay_external_invoice(
         return payment
 
     # payment failed
-    if (
-        payment_response.checking_id is None
-        or payment_response.ok is False
-        or payment_response.checking_id != checking_id
-    ):
+    if payment_response.checking_id is None or payment_response.ok is False:
         payment.status = PaymentState.FAILED
         await update_payment(payment, conn=conn)
         message = payment_response.error_message or "without an error message."
