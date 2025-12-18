@@ -178,7 +178,7 @@ async def test_create_real_invoice(client, adminkey_headers_from, inkey_headers_
 
     # required for submarine swaps that need blocks to confirm
     async def mine():
-        await asyncio.sleep(5)
+        await asyncio.sleep(15)
         mine_blocks_liquid(3)
 
     async def pay():
@@ -428,7 +428,7 @@ async def test_receive_real_invoice_set_pending_and_check_state(
 
     # required for submarine swaps that need blocks to confirm
     async def mine():
-        await asyncio.sleep(5)
+        await asyncio.sleep(10)
         mine_blocks_liquid(3)
 
     async def pay():

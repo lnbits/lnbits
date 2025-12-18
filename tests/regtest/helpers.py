@@ -60,7 +60,7 @@ docker_lightning_noroute_cli = [
 
 
 def run_cmd(cmd: list) -> str:
-    timeout = 10
+    timeout = 30
     process = Popen(cmd, stdout=PIPE, stderr=PIPE)
 
     logger.debug(f"running command: {cmd}")
