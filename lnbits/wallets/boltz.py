@@ -196,7 +196,6 @@ class BoltzWallet(Wallet):
             return PaymentResponse(ok=False, error_message=exc.details())
 
     async def get_invoice_status(self, checking_id: str) -> PaymentStatus:
-        print("### get_invoice_status 0000", checking_id)
         try:
             request = boltzrpc_pb2.GetSwapInfoRequest(id=checking_id)
             response: boltzrpc_pb2.GetSwapInfoResponse = await self.rpc.GetSwapInfo(
@@ -224,7 +223,6 @@ class BoltzWallet(Wallet):
         return PaymentFailedStatus()
 
     async def get_payment_status(self, checking_id: str) -> PaymentStatus:
-        print("### boltz 0000", checking_id)
         try:
             checking_id_bytes = bytes.fromhex(checking_id)
             request = boltzrpc_pb2.GetSwapInfoRequest(payment_hash=checking_id_bytes)
@@ -235,21 +233,17 @@ class BoltzWallet(Wallet):
             swap = response.swap
         except AioRpcError as exc:
             logger.warning(exc)
-            print("### boltz 1000")
             return PaymentPendingStatus()
-        print("### boltz 1010", swap)
         if swap.state == boltzrpc_pb2.SwapState.SUCCESSFUL:
             fee_msat = (swap.service_fee + swap.onchain_fee) * 1000
             logger.debug(
                 f"Boltz swap successful, status: {swap.status}, fee_msat: {fee_msat}"
             )
-            print("### boltz 1015", fee_msat)
             return PaymentSuccessStatus(
                 fee_msat=fee_msat,
                 preimage=swap.preimage,
             )
         elif swap.state == boltzrpc_pb2.SwapState.PENDING:
-            print("### boltz 1020")
             return PaymentPendingStatus()
 
         return PaymentFailedStatus()
@@ -263,20 +257,16 @@ class BoltzWallet(Wallet):
                     request, metadata=self.metadata
                 ):
                     reverse = info.reverse_swap
-                    print("### boltz stream", reverse)
                     if (
                         reverse
                         and reverse.state == boltzrpc_pb2.SUCCESSFUL
                         and reverse.status == "invoice.settled"
                     ):
-                        print("### boltz stream settled")
                         fee_msat = ((reverse.service_fee + reverse.onchain_fee) * 1000,)
                         logger.debug(
                             f"Boltz reverse swap settled: {reverse.id}, "
                             f"fee_msat: {fee_msat}"
                         )
-                        # print("Reverse swap fee_msat:", fee_msat)
-                        # invoice = decode(reverse.invoice)
                         yield reverse.id
             except Exception as exc:
                 logger.error(

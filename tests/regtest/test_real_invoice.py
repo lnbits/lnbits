@@ -220,8 +220,7 @@ async def test_pay_real_invoice_set_pending_and_check_state(
     print("#### status 200:", status)
     assert status.paid
 
-    mine_blocks_liquid(1)
-    await asyncio.sleep(1)  # wait for the invoice stream
+    await asyncio.sleep(5)  # wait for the invoice stream
     # get the outgoing payment from the db
     payment = await get_standalone_payment(invoice["payment_hash"])
     assert payment
