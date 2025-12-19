@@ -390,14 +390,14 @@ class StripeWallet(FiatProvider):
                 )
             if term.reader_id:
                 try:
-                    await self._process_terminal_payment_intent(
-                        term.reader_id, pi_id
-                    )
+                    await self._process_terminal_payment_intent(term.reader_id, pi_id)
                 except Exception as exc:
                     logger.warning(exc)
                     return FiatInvoiceResponse(
                         ok=False,
-                        error_message="Error: unable to process PaymentIntent on reader",
+                        error_message=(
+                            "Error: unable to process PaymentIntent on reader"
+                        ),
                     )
             return FiatInvoiceResponse(
                 ok=True, checking_id=pi_id, payment_request=client_secret
