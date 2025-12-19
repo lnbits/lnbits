@@ -337,7 +337,7 @@ async def api_payment(payment_hash, x_api_key: str | None = Header(None)):
         return {"paid": False, "status": "failed"}
 
     try:
-        status = await payment.check_status()
+        payment = await update_pending_payment(payment)
     except Exception:
         if wallet and wallet.id == payment.wallet_id:
             return {"paid": False, "details": payment}
@@ -345,12 +345,12 @@ async def api_payment(payment_hash, x_api_key: str | None = Header(None)):
 
     if wallet and wallet.id == payment.wallet_id:
         return {
-            "paid": status.success,
-            "status": f"{status!s}",
+            "paid": payment.success,
+            "status": f"{payment.status!s}",
             "preimage": payment.preimage,
             "details": payment,
         }
-    return {"paid": status.success, "preimage": payment.preimage}
+    return {"paid": payment.success, "preimage": payment.preimage}
 
 
 @payment_router.post("/decode", status_code=HTTPStatus.OK)
