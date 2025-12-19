@@ -6,10 +6,16 @@ from lnbits.core.services import (
 )
 from lnbits.exceptions import PaymentError
 
+from ..helpers import funding_source
+
 description = "test pay invoice"
 
 
 @pytest.mark.anyio
+@pytest.mark.skipif(
+    funding_source.__class__.__name__ == "BoltzWallet",
+    reason="BoltzWallet requires mining fees that make this test fail",
+)
 async def test_services_pay_invoice(to_wallet, real_invoice):
     payment = await pay_invoice(
         wallet_id=to_wallet.id,
