@@ -153,7 +153,8 @@ async def test_create_real_invoice(client, adminkey_headers_from, inkey_headers_
 
     async def on_paid(payment: Payment):
 
-        assert payment.checking_id == invoice["payment_hash"]
+        assert payment.payment_hash == invoice["payment_hash"]
+        assert payment.checking_id == invoice["checking_id"]
 
         response = await client.get(
             f'/api/v1/payments/{invoice["payment_hash"]}', headers=inkey_headers_from
@@ -382,7 +383,9 @@ async def test_receive_real_invoice_set_pending_and_check_state(
     assert not payment_status["paid"]
 
     async def on_paid(payment: Payment):
-        assert payment.checking_id == invoice["payment_hash"]
+
+        assert payment.payment_hash == invoice["payment_hash"]
+        assert payment.checking_id == invoice["checking_id"]
 
         response = await client.get(
             f'/api/v1/payments/{invoice["payment_hash"]}', headers=inkey_headers_from
