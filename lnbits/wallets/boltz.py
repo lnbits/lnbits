@@ -163,7 +163,7 @@ class BoltzWallet(Wallet):
                 logger.warning(
                     "Boltz invoice paid directly on liquid network using magic routing"
                 )
-                return PaymentResponse(ok=True, checking_id=response.id)
+                return PaymentResponse(ok=True, checking_id=invoice.payment_hash)
         except AioRpcError as exc:
             logger.warning(exc)
             return PaymentResponse(ok=False, error_message=exc.details())
@@ -182,7 +182,7 @@ class BoltzWallet(Wallet):
                     )
                     return PaymentResponse(
                         ok=True,
-                        checking_id=response.id,
+                        checking_id=invoice.payment_hash,
                         fee_msat=fee_msat,
                         preimage=info.swap.preimage,
                     )
