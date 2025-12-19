@@ -18,6 +18,7 @@ from ..helpers import FakeError, is_fake, is_regtest
 from .helpers import (
     cancel_invoice,
     get_real_invoice,
+    mine_blocks_liquid,
     pay_real_invoice,
     settle_invoice,
 )
@@ -204,6 +205,7 @@ async def test_pay_real_invoice_set_pending_and_check_state(
     print("#### invoice 200:", invoice)
 
     # check the payment status
+    mine_blocks_liquid(10)
     await asyncio.sleep(3)
     response = await client.get(
         f'/api/v1/payments/{invoice["payment_hash"]}', headers=inkey_headers_from
