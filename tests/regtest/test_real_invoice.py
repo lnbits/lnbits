@@ -211,16 +211,13 @@ async def test_pay_real_invoice_set_pending_and_check_state(
         f'/api/v1/payments/{invoice["payment_hash"]}', headers=inkey_headers_from
     )
     payment_status = response.json()
-    print("#### payment_status 200:", payment_status["paid"], payment_status)
     assert payment_status["paid"]
 
     # make sure that the backend also thinks it's paid
     funding_source = get_funding_source()
     status = await funding_source.get_payment_status(invoice["payment_hash"])
-    print("#### status 200:", status)
     assert status.paid
 
-    await asyncio.sleep(5)  # wait for the invoice stream
     # get the outgoing payment from the db
     payment = await get_standalone_payment(invoice["payment_hash"])
     assert payment
