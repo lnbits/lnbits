@@ -18,6 +18,7 @@ from ..helpers import FakeError, is_fake, is_regtest
 from .helpers import (
     cancel_invoice,
     get_real_invoice,
+    is_boltz_wallet,
     pay_real_invoice,
     settle_invoice,
 )
@@ -144,8 +145,12 @@ async def test_create_real_invoice(client, adminkey_headers_from, inkey_headers_
     assert response.status_code < 300
     invoice = response.json()
 
+    checking_id = invoice["payment_hash"]
+    if is_boltz_wallet:
+        checking_id = response.checking_id
+
     response = await client.get(
-        f'/api/v1/payments/{invoice["payment_hash"]}', headers=inkey_headers_from
+        f"/api/v1/payments/{checking_id}", headers=inkey_headers_from
     )
     assert response.status_code < 300
     payment_status = response.json()
@@ -153,10 +158,10 @@ async def test_create_real_invoice(client, adminkey_headers_from, inkey_headers_
 
     async def on_paid(payment: Payment):
 
-        assert payment.checking_id == invoice["payment_hash"]
+        assert payment.checking_id == checking_id
 
         response = await client.get(
-            f'/api/v1/payments/{invoice["payment_hash"]}', headers=inkey_headers_from
+            f"/api/v1/payments/{checking_id}", headers=inkey_headers_from
         )
         assert response.status_code < 300
         payment_status = response.json()
@@ -376,19 +381,26 @@ async def test_receive_real_invoice_set_pending_and_check_state(
         json=create_invoice.dict(),
         headers=adminkey_headers_from,
     )
+
     assert response.status_code < 300
     invoice = response.json()
+
+    checking_id = invoice["payment_hash"]
+    if is_boltz_wallet:
+        checking_id = response.checking_id
+
     response = await client.get(
-        f'/api/v1/payments/{invoice["payment_hash"]}', headers=inkey_headers_from
+        f"/api/v1/payments/{checking_id}", headers=inkey_headers_from
     )
+
     payment_status = response.json()
     assert not payment_status["paid"]
 
     async def on_paid(payment: Payment):
-        assert payment.checking_id == invoice["payment_hash"]
+        assert payment.checking_id == checking_id
 
         response = await client.get(
-            f'/api/v1/payments/{invoice["payment_hash"]}', headers=inkey_headers_from
+            f"/api/v1/payments/{checking_id}", headers=inkey_headers_from
         )
         assert response.status_code < 300
         payment_status = response.json()
@@ -400,9 +412,7 @@ async def test_receive_real_invoice_set_pending_and_check_state(
         payment.status = PaymentState.PENDING
         await update_payment(payment)
 
-        payment_pending = await get_standalone_payment(
-            invoice["payment_hash"], incoming=True
-        )
+        payment_pending = await get_standalone_payment(checking_id, incoming=True)
         assert payment_pending
         assert payment_pending.success is False
         assert payment_pending.failed is False

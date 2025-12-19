@@ -6,6 +6,11 @@ from subprocess import PIPE, Popen, TimeoutExpired
 
 from loguru import logger
 
+from lnbits.wallets import get_funding_source
+
+funding_source = get_funding_source()
+is_boltz_wallet = funding_source.__class__.__name__ == "BoltzWallet"
+
 docker_lightning_cli = [
     "docker",
     "exec",

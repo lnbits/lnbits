@@ -7,9 +7,10 @@ from lnbits.core.services import (
 from lnbits.wallets import get_funding_source
 from lnbits.wallets.base import PaymentStatus
 
+from .helpers import is_boltz_wallet
+
 description = "test create invoice"
 funding_source = get_funding_source()
-is_submarine_swap = funding_source.__class__.__name__ == "BoltzWallet"
 
 
 @pytest.mark.skipif(
@@ -24,7 +25,7 @@ async def test_create_invoice(from_wallet):
     )
 
     # we cannot know the preimage of the swap yet
-    if not is_submarine_swap:
+    if not is_boltz_wallet:
         assert payment.preimage
 
     invoice = decode(payment.bolt11)
@@ -44,7 +45,7 @@ async def test_create_internal_invoice(from_wallet):
     )
 
     # we cannot know the preimage of the swap yet
-    if not is_submarine_swap:
+    if not is_boltz_wallet:
         assert payment.preimage
 
     invoice = decode(payment.bolt11)
