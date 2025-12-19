@@ -31,14 +31,14 @@ docker_bitcoin_cli = [
     "-regtest",
 ]
 
+
 docker_elements_cli = [
     "docker",
     "exec",
     "lnbits-elementsd-1",
     "elements-cli",
-    "-rpcuser=lnbits",
-    "-rpcpassword=lnbits",
-    "-regtest",
+    "-rpcport=18884",
+    "-chain=liquidregtest",
 ]
 
 
