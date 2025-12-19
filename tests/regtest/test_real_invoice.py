@@ -202,7 +202,6 @@ async def test_pay_real_invoice_set_pending_and_check_state(
     invoice = response.json()
     assert len(invoice["payment_hash"]) == 64
     assert len(invoice["checking_id"]) > 0
-    print("#### invoice 200:", invoice)
 
     mine_blocks_liquid(1)
     await asyncio.sleep(1)
