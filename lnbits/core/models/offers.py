@@ -5,10 +5,6 @@ from datetime import datetime, timezone
 from pydantic import BaseModel, Field
 
 from lnbits.db import FilterModel
-from lnbits.wallets import get_funding_source
-from lnbits.wallets.base import (
-    OfferStatus,
-)
 
 
 class CreateOffer(BaseModel):
@@ -35,31 +31,30 @@ class Offer(BaseModel):
     extension: str | None = None
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
-    extra: dict = {}
 
     @property
     def is_active(self) -> bool:
-        return not self.active == False  # noqa E712
+        return self.active is True
 
     @property
     def is_inactive(self) -> bool:
-        return self.active == False  # noqa E712
+        return self.active is False
 
     @property
     def is_single_use(self) -> bool:
-        return not self.single_use == False  # noqa E712
+        return self.single_use is True
 
     @property
     def is_multiple_use(self) -> bool:
-        return self.single_use == False  # noqa E712
+        return self.single_use is False
 
     @property
     def is_used(self) -> bool:
-        return self.used == True  # noqa E712
+        return self.used is True
 
     @property
     def is_unused(self) -> bool:
-        return not self.used == True  # noqa E712
+        return self.used is False
 
     @property
     def msat(self) -> int | None:
@@ -72,11 +67,6 @@ class Offer(BaseModel):
     @property
     def is_expired(self) -> bool:
         return self.expiry < datetime.now(timezone.utc) if self.expiry else False
-
-    async def check_status(self) -> OfferStatus:
-        funding_source = get_funding_source()
-        status = await funding_source.get_offer_status(self.offer_id)
-        return status
 
 
 class OfferFilters(FilterModel):

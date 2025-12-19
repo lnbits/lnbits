@@ -24,7 +24,6 @@ from lnbits.core.models import (
     CreateInvoice,
     CreateLnurlWithdraw,
     DecodePayment,
-    FetchInvoice,
     KeyType,
     Payment,
     PaymentCountField,
@@ -66,7 +65,6 @@ from ..services import (
     cancel_hold_invoice,
     create_payment_request,
     fee_reserve_total,
-    fetch_invoice,
     get_payments_daily_stats,
     pay_invoice,
     perform_withdraw,
@@ -75,33 +73,6 @@ from ..services import (
 )
 
 payment_router = APIRouter(prefix="/api/v1/payments", tags=["Payments"])
-
-
-@payment_router.post(
-    "/fetch_invoice",
-    summary="Fetch an invoice",
-    description="""
-        This endpoint can be used to fetch an invoice.
-        The offer field is mandatory.
-    """,
-    status_code=HTTPStatus.CREATED,
-    responses={
-        520: {"description": "Fetch invoice error."},
-    },
-)
-async def api_payments_fetch_invoice(
-    fetchinvoice: FetchInvoice,
-    key_info: WalletTypeInfo = Depends(require_base_invoice_key),
-) -> str | None:
-
-    invoice = await fetch_invoice(
-        wallet_id=key_info.wallet.id,
-        offer=fetchinvoice.offer,
-        amount=fetchinvoice.amount,
-        payer_note=fetchinvoice.payer_note,
-        currency=fetchinvoice.currency,
-    )
-    return invoice
 
 
 @payment_router.get(

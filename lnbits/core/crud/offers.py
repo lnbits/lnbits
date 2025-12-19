@@ -100,9 +100,9 @@ async def get_offers(
     used: bool | None = None,
     since: int | None = None,
     filters: Filters[OfferFilters] | None = None,
-    conn: Connection | None = None,
     limit: int | None = None,
     offset: int | None = None,
+    conn: Connection | None = None,
 ) -> list[Offer]:
     """
     Filters offers to be returned by active | single_use | used.
@@ -168,7 +168,6 @@ async def create_offer(
     # note: this can be removed if the db uniqueness constraints are set appropriately
     previous_offer = await get_standalone_offer(offer_id, conn=conn)
     assert previous_offer is None, "Offer already exists"
-    extra = data.extra or {}
 
     offer = Offer(
         offer_id=offer_id,
@@ -181,8 +180,6 @@ async def create_offer(
         memo=data.memo,
         expiry=data.expiry,
         webhook=data.webhook,
-        tag=extra.get("tag", None),
-        extra=extra,
     )
     print(offer)
 
@@ -222,8 +219,8 @@ async def delete_wallet_offer(
     )
 
 
-async def enable_offer(offer_id: str) -> None:
-    await db.execute(
+async def enable_offer(offer_id: str, conn: Connection | None = None) -> None:
+    await (conn or db).execute(
         f"""
         UPDATE apioffers SET active = :active,
         updated_at = {db.timestamp_placeholder("now")}
@@ -233,8 +230,8 @@ async def enable_offer(offer_id: str) -> None:
     )
 
 
-async def disable_offer(offer_id: str) -> None:
-    await db.execute(
+async def disable_offer(offer_id: str, conn: Connection | None = None) -> None:
+    await (conn or db).execute(
         f"""
         UPDATE apioffers SET active = :active,
         updated_at = {db.timestamp_placeholder("now")}

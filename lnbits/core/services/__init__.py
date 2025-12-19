@@ -4,6 +4,12 @@ from .funding_source import (
 )
 from .lnurl import fetch_lnurl_pay_request, get_pr_from_lnurl, perform_withdraw
 from .notifications import enqueue_admin_notification, send_payment_notification
+from .offers import (
+    create_offer,
+    disable_offer,
+    enable_offer,
+    fetch_invoice,
+)
 from .payments import (
     calculate_fiat_amounts,
     cancel_hold_invoice,
@@ -11,14 +17,10 @@ from .payments import (
     check_wallet_limits,
     create_fiat_invoice,
     create_invoice,
-    create_offer,
     create_payment_request,
     create_wallet_invoice,
-    disable_offer,
-    enable_offer,
     fee_reserve,
     fee_reserve_total,
-    fetch_invoice,
     get_payments_daily_stats,
     pay_invoice,
     service_fee,

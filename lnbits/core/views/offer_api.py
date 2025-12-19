@@ -8,6 +8,7 @@ from fastapi import (
 
 from lnbits.core.models import (
     CreateOffer,
+    FetchInvoice,
     Offer,
     OfferFilters,
 )
@@ -16,7 +17,7 @@ from lnbits.decorators import (
     WalletTypeInfo,
     check_admin,
     parse_filters,
-    require_invoice_key,
+    require_base_invoice_key,
 )
 from lnbits.exceptions import OfferError
 from lnbits.helpers import (
@@ -32,6 +33,7 @@ from ..services import (
     create_offer,
     disable_offer,
     enable_offer,
+    fetch_invoice,
 )
 
 offer_router = APIRouter(prefix="/api/v1/offers", tags=["Offers"])
@@ -42,13 +44,12 @@ offer_router = APIRouter(prefix="/api/v1/offers", tags=["Offers"])
     name="Offer List",
     summary="get list of offers",
     response_description="list of offers",
-    response_model=list[Offer],
     openapi_extra=generate_filter_params_openapi(OfferFilters),
 )
 async def api_offers(
-    key_info: WalletTypeInfo = Depends(require_invoice_key),
+    key_info: WalletTypeInfo = Depends(require_base_invoice_key),
     filters: Filters = Depends(parse_filters(OfferFilters)),
-):
+) -> list[Offer]:
     return await get_offers(
         wallet_id=key_info.wallet.id,
         filters=filters,
@@ -64,7 +65,7 @@ async def api_offers(
     openapi_extra=generate_filter_params_openapi(OfferFilters),
 )
 async def api_offers_paginated(
-    key_info: WalletTypeInfo = Depends(require_invoice_key),
+    key_info: WalletTypeInfo = Depends(require_base_invoice_key),
     filters: Filters = Depends(parse_filters(OfferFilters)),
 ):
     page = await get_offers_paginated(
@@ -106,7 +107,7 @@ async def api_all_offers_paginated(
 )
 async def api_offers_create(
     offer_data: CreateOffer,
-    key_info: WalletTypeInfo = Depends(require_invoice_key),
+    key_info: WalletTypeInfo = Depends(require_base_invoice_key),
 ) -> Offer:
 
     offer = await create_offer(
@@ -127,7 +128,7 @@ async def api_offers_create(
 @offer_router.get("/{offer_id}")
 async def api_offer(
     offer_id,
-    key_info: WalletTypeInfo = Depends(require_invoice_key),
+    key_info: WalletTypeInfo = Depends(require_base_invoice_key),
 ):
 
     offer = await get_standalone_offer(offer_id, wallet_id=key_info.wallet.id)
@@ -141,9 +142,7 @@ async def api_offer(
 @offer_router.post(
     "/{offer_id}/enable",
     summary="Enable an offer",
-    description="""
-        This endpoint can be used to enable an offer.
-    """,
+    description="This endpoint can be used to enable an offer.",
     status_code=HTTPStatus.OK,
     responses={
         520: {"description": "Offer error."},
@@ -151,7 +150,7 @@ async def api_offer(
 )
 async def api_offers_enable(
     offer_id,
-    key_info: WalletTypeInfo = Depends(require_invoice_key),
+    key_info: WalletTypeInfo = Depends(require_base_invoice_key),
 ) -> bool:
 
     try:
@@ -177,7 +176,7 @@ async def api_offers_enable(
 )
 async def api_offers_disable(
     offer_id,
-    key_info: WalletTypeInfo = Depends(require_invoice_key),
+    key_info: WalletTypeInfo = Depends(require_base_invoice_key),
 ) -> bool:
 
     try:
@@ -187,4 +186,37 @@ async def api_offers_disable(
         raise HTTPException(
             status_code=HTTPStatus.BAD_REQUEST,
             detail="Offer could not be disabled",
+        ) from exc
+
+
+@offer_router.post(
+    "/fetch_invoice",
+    summary="Fetch an invoice",
+    description="""
+        This endpoint can be used to fetch an invoice.
+        The offer field is mandatory.
+    """,
+    status_code=HTTPStatus.CREATED,
+    responses={
+        520: {"description": "Fetch invoice error."},
+    },
+)
+async def api_offers_fetch_invoice(
+    fetchinvoice: FetchInvoice,
+    key_info: WalletTypeInfo = Depends(require_base_invoice_key),
+):
+
+    try:
+        return await fetch_invoice(
+            wallet_id=key_info.wallet.id,
+            offer=fetchinvoice.offer,
+            amount=fetchinvoice.amount,
+            payer_note=fetchinvoice.payer_note,
+            currency=fetchinvoice.currency,
+        )
+
+    except Exception as exc:
+        raise HTTPException(
+            status_code=HTTPStatus.BAD_REQUEST,
+            detail="Invoice could not be fetched",
         ) from exc
