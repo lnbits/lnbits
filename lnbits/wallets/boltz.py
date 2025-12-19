@@ -263,11 +263,13 @@ class BoltzWallet(Wallet):
                     request, metadata=self.metadata
                 ):
                     reverse = info.reverse_swap
+                    print("### boltz stream", reverse)
                     if (
                         reverse
                         and reverse.state == boltzrpc_pb2.SUCCESSFUL
                         and reverse.status == "invoice.settled"
                     ):
+                        print("### boltz stream settled")
                         fee_msat = ((reverse.service_fee + reverse.onchain_fee) * 1000,)
                         logger.debug(
                             f"Boltz reverse swap settled: {reverse.id}, "
