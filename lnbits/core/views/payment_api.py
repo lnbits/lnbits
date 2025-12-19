@@ -345,12 +345,12 @@ async def api_payment(payment_hash, x_api_key: str | None = Header(None)):
 
     if wallet and wallet.id == payment.wallet_id:
         return {
-            "paid": payment.success,
+            "paid": status.success,
             "status": f"{status!s}",
             "preimage": payment.preimage,
             "details": payment,
         }
-    return {"paid": payment.success, "preimage": payment.preimage}
+    return {"paid": status.success, "preimage": payment.preimage}
 
 
 @payment_router.post("/decode", status_code=HTTPStatus.OK)

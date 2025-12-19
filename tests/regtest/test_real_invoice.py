@@ -349,6 +349,7 @@ async def test_pay_hold_invoice_check_pending_and_fail_cancel_payment_task_in_me
     assert preimage_hash == invoice_obj.payment_hash
     cancel_invoice(preimage_hash)
 
+    mine_blocks_liquid(10)
     # check if paid
     await asyncio.sleep(1)
 
