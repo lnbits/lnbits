@@ -39,7 +39,7 @@ async def test_pay_real_invoice(
     )
     assert response.status_code < 300
     invoice = response.json()
-    print('#### invoice:', invoice)
+    print("#### invoice:", invoice)
     assert len(invoice["payment_hash"]) == 64
     assert len(invoice["checking_id"]) > 0
 
@@ -59,7 +59,7 @@ async def test_pay_real_invoice(
     )
     assert response.status_code < 300
     payment_status = response.json()
-    print('#### payment_status:', payment_status)
+    print("#### payment_status:", payment_status)
     assert payment_status["paid"]
 
     funding_source = get_funding_source()
@@ -151,6 +151,7 @@ async def test_create_real_invoice(client, adminkey_headers_from, inkey_headers_
     )
     assert response.status_code < 300
     payment_status = response.json()
+    print("### payment_status 100:", payment_status)
     assert not payment_status["paid"]
 
     async def on_paid(payment: Payment):
@@ -163,10 +164,13 @@ async def test_create_real_invoice(client, adminkey_headers_from, inkey_headers_
         )
         assert response.status_code < 300
         payment_status = response.json()
+        print("### payment_status on_paid:", payment_status)
         assert payment_status["paid"]
 
         await asyncio.sleep(1)
         balance = await get_node_balance_sats()
+        print("#### balance 100:", balance)
+        print("#### prev_balance 100:", prev_balance)
         assert balance - prev_balance == create_invoice.amount
 
         assert payment_status.get("preimage") is not None
