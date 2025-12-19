@@ -68,7 +68,7 @@ async def test_pay_real_invoice(
 
     await asyncio.sleep(1)
     balance = await get_node_balance_sats()
-    assert prev_balance - balance == 100
+    assert prev_balance - balance == 100 + (payment.fee // 1000)
 
 
 @pytest.mark.anyio
@@ -171,7 +171,8 @@ async def test_create_real_invoice(client, adminkey_headers_from, inkey_headers_
         balance = await get_node_balance_sats()
         print("#### balance 100:", balance)
         print("#### prev_balance 100:", prev_balance)
-        assert balance - prev_balance == create_invoice.amount
+        fee = payment_status.get("fee", 0) // 1000
+        assert balance - prev_balance == create_invoice.amount - fee
 
         assert payment_status.get("preimage") is not None
 
@@ -217,6 +218,7 @@ async def test_pay_real_invoice_set_pending_and_check_state(
     # make sure that the backend also thinks it's paid
     funding_source = get_funding_source()
     status = await funding_source.get_payment_status(invoice["payment_hash"])
+    print("#### status 200:", status)
     assert status.paid
 
     # get the outgoing payment from the db
