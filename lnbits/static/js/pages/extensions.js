@@ -86,6 +86,7 @@ window.PageExtensions = {
           version: release.version
         })
         .then(response => {
+          this.selectedExtension.inProgress = false
           const extension = this.extensions.find(
             ext => ext.id === this.selectedExtension.id
           )
@@ -100,7 +101,7 @@ window.PageExtensions = {
         })
         .catch(err => {
           console.warn(err)
-          extension.inProgress = false
+          this.selectedExtension.inProgress = false
           LNbits.utils.notifyApiError(err)
         })
     },
