@@ -308,6 +308,12 @@ class AssetSettings(LNbitsSettings):
     lnbits_max_assets_per_user: int = Field(default=1, ge=0)
     lnbits_assets_no_limit_users: list[str] = Field(default=[])
 
+    def is_unlimited_assets_user(self, user_id: str) -> bool:
+        return (
+            settings.is_admin_user(user_id)
+            or user_id in self.lnbits_assets_no_limit_users
+        )
+
 
 class FeeSettings(LNbitsSettings):
     lnbits_reserve_fee_min: int = Field(default=2000, ge=0)

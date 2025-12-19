@@ -16,7 +16,7 @@ async def create_user_asset(user_id: str, file: UploadFile, is_public: bool) -> 
     if file.content_type.lower() not in settings.lnbits_assets_allowed_mime_types:
         raise ValueError(f"File type '{file.content_type}' not allowed.")
 
-    if user_id not in settings.lnbits_assets_no_limit_users:
+    if not settings.is_unlimited_assets_user(user_id):
         user_assets_count = await get_user_assets_count(user_id)
         if user_assets_count >= settings.lnbits_max_assets_per_user:
             raise ValueError(
