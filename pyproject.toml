@@ -38,7 +38,7 @@ dependencies = [
     "bolt11==2.1.1",
     "pyjwt==2.10.1",
     "itsdangerous==2.2.0",
-    "fastapi-sso==0.18.0",
+    "fastapi-sso==0.19.0",
     # needed for boltz, lnurldevice, watchonly extensions
     "embit==0.8.0",
     # needed for scheduler extension
