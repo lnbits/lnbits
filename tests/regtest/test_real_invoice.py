@@ -39,6 +39,7 @@ async def test_pay_real_invoice(
     )
     assert response.status_code < 300
     invoice = response.json()
+    print('#### invoice:', invoice)
     assert len(invoice["payment_hash"]) == 64
     assert len(invoice["checking_id"]) > 0
 
@@ -58,6 +59,7 @@ async def test_pay_real_invoice(
     )
     assert response.status_code < 300
     payment_status = response.json()
+    print('#### payment_status:', payment_status)
     assert payment_status["paid"]
 
     funding_source = get_funding_source()
