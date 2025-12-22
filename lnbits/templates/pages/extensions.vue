@@ -1137,8 +1137,55 @@
           <div v-if="reviewsDialog.error" class="text-negative q-mb-md">
             <span v-text="reviewsDialog.error"></span>
           </div>
+
+          <q-form @submit="submitReview" class="q-gutter-md">
+            <div class="row q-col-gutter-lg">
+              <div class="col-12 col-md-6">
+                <q-input
+                  dense
+                  filled
+                  v-model="reviewsDialog.form.name"
+                  :label="$t('reviews_name')"
+                ></q-input>
+              </div>
+              <div class="col-12 col-md-6">
+                <q-rating
+                  v-model="reviewsDialog.form.rating"
+                  max="10"
+                  icon="star_border"
+                  icon-selected="star"
+                  icon-half="star_half"
+                  color="primary"
+                  class="float-right"
+                ></q-rating>
+              </div>
+              <div class="col-12 col-md-6">
+                <q-input
+                  dense
+                  filled
+                  type="textarea"
+                  autogrow
+                  v-model="reviewsDialog.form.comment"
+                  :label="$t('reviews_comment')"
+                ></q-input>
+              </div>
+
+              <div class="col-12 col-md-6">
+                <q-btn
+                  type="submit"
+                  color="primary"
+                  class="float-right"
+                  unelevated
+                  :loading="reviewsDialog.submitting"
+                  :disable="!reviewsDialog.form.rating"
+                  :label="$t('reviews_submit')"
+                ></q-btn>
+              </div>
+            </div>
+          </q-form>
+          <q-separator class="q-my-md"></q-separator>
           <div class="row q-col-gutter-lg">
-            <div class="col-12 col-md-7">
+            <div class="col-12">
               <div v-if="reviews.length === 0" class="text-grey q-mb-md">
                 <span v-text="$t('no_reviews')"></span>
               </div>
@@ -1160,6 +1207,11 @@
                       <q-td key="comment" :props="props">
                         <span v-text="props.row.comment"></span>
                       </q-td>
+                      <q-td key="created_at" :props="props">
+                        <span
+                          v-text="formatReviewDate(props.row.created_at)"
+                        ></span>
+                      </q-td>
                       <q-td key="rating" :props="props">
                         <q-rating
                           class="float-right q-pt-xs"
@@ -1176,42 +1228,6 @@
                   </template>
                 </q-table>
               </div>
-            </div>
-            <div class="col-12 col-md-5">
-              <q-form @submit="submitReview" class="q-gutter-md">
-                <q-rating
-                  v-model="reviewsDialog.form.rating"
-                  max="10"
-                  icon="star_border"
-                  icon-selected="star"
-                  icon-half="star_half"
-                  color="primary"
-                ></q-rating>
-                <q-input
-                  dense
-                  filled
-                  v-model="reviewsDialog.form.name"
-                  :label="$t('reviews_name')"
-                ></q-input>
-                <q-input
-                  dense
-                  filled
-                  type="textarea"
-                  rows="4"
-                  v-model="reviewsDialog.form.comment"
-                  :label="$t('reviews_comment')"
-                ></q-input>
-                <div class="row justify-end">
-                  <q-btn
-                    type="submit"
-                    color="primary"
-                    unelevated
-                    :loading="reviewsDialog.submitting"
-                    :disable="!reviewsDialog.form.rating"
-                    :label="$t('reviews_submit')"
-                  ></q-btn>
-                </div>
-              </q-form>
             </div>
           </div>
         </div>
