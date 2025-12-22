@@ -249,7 +249,7 @@ async def check_account_id_exists(
             account_id = cache.get(cache_key)
             if account_id:
                 r.scope["user_id"] = account_id.id
-                await _check_user_access(r, account_id, conn=conn)
+                await _check_user_access(r, account_id.id, conn=conn)
                 return account_id
 
         account = await _check_account_exists(r, access_token, usr, conn=conn)
