@@ -10,7 +10,6 @@ from lnbits.wallets.base import PaymentStatus
 from .helpers import is_boltz_wallet
 
 description = "test create invoice"
-funding_source = get_funding_source()
 
 
 @pytest.mark.anyio
@@ -30,6 +29,7 @@ async def test_create_invoice(from_wallet):
     assert invoice.amount_msat == 1000000
     assert invoice.description == description
 
+    funding_source = get_funding_source()
     status = await funding_source.get_invoice_status(payment.payment_hash)
     assert isinstance(status, PaymentStatus)
     assert status.pending
