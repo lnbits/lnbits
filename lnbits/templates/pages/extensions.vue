@@ -1124,7 +1124,10 @@
       </q-card-section>
       <q-separator></q-separator>
       <q-card-section v-if="!reviewsConfig">
-        <div class="text-negative" v-text="$t('reviews_no_oracle')"></div>
+        <div
+          class="text-negative"
+          v-text="$t('reviews_url_not_configured')"
+        ></div>
       </q-card-section>
       <q-card-section v-else>
         <div v-if="reviewsDialog.loading" class="row justify-center q-pa-lg">
@@ -1136,64 +1139,46 @@
           </div>
           <div class="row q-col-gutter-lg">
             <div class="col-12 col-md-7">
-              <div
-                v-if="reviewsDialog.items.length === 0"
-                class="text-grey q-mb-md"
-              >
+              <div v-if="reviews.length === 0" class="text-grey q-mb-md">
                 <span v-text="$t('no_reviews')"></span>
               </div>
-              <q-list v-else bordered separator>
-                <q-item v-for="item in reviewsDialog.items" :key="item.id">
-                  <q-item-section>
-                    <q-item-label class="text-subtitle2">
-                      <span v-text="item.name || item.tag"></span>
-                      <small class="q-ml-xs text-grey">
-                        <span v-text="formatReviewDate(item.created_at)"></span>
-                      </small>
-                    </q-item-label>
-                    <q-item-label
-                      class="text-body2"
-                      style="white-space: pre-wrap"
-                    >
-                      <span v-text="item.comment"></span>
-                    </q-item-label>
-                  </q-item-section>
-                  <q-item-section side top>
-                    <q-rating
-                      readonly
-                      icon="star_border"
-                      icon-selected="star"
-                      icon-half="star_half"
-                      :model-value="formatAvg(item.rating)"
-                      size="sm"
-                      color="secondary"
-                    ></q-rating>
-                  </q-item-section>
-                </q-item>
-              </q-list>
-              <div class="row justify-between q-mt-md">
-                <q-btn
-                  flat
-                  icon="chevron_left"
-                  :disable="reviewsDialog.cursorStack.length <= 1"
-                  @click="previousReviewsPage"
-                />
-                <q-btn
-                  flat
-                  icon-right="chevron_right"
-                  :disable="!reviewsDialog.nextCursor"
-                  @click="loadMoreReviews"
-                />
+              <div v-else>
+                <q-table
+                  :rows="reviews"
+                  :columns="reviewsTable.columns"
+                  v-model:pagination="reviewsTable.pagination"
+                  @request="getTagReviews"
+                  :loading="reviewsTable.loading"
+                  row-key="name"
+                  :filter="reviewsTable.search"
+                >
+                  <template v-slot:body="props">
+                    <q-tr :props="props">
+                      <q-td key="name" :props="props">
+                        <span v-text="props.row.name"></span>
+                      </q-td>
+                      <q-td key="comment" :props="props">
+                        <span v-text="props.row.comment"></span>
+                      </q-td>
+                      <q-td key="rating" :props="props">
+                        <q-rating
+                          class="float-right q-pt-xs"
+                          readonly
+                          icon="star_border"
+                          icon-selected="star"
+                          icon-half="star_half"
+                          :model-value="formatAvg(props.row.rating)"
+                          size="sm"
+                          color="secondary"
+                        ></q-rating>
+                      </q-td>
+                    </q-tr>
+                  </template>
+                </q-table>
               </div>
             </div>
             <div class="col-12 col-md-5">
               <q-form @submit="submitReview" class="q-gutter-md">
-                <q-input
-                  dense
-                  filled
-                  v-model="reviewsDialog.form.name"
-                  :label="$t('reviews_name')"
-                ></q-input>
                 <q-rating
                   v-model="reviewsDialog.form.rating"
                   max="10"
@@ -1205,8 +1190,14 @@
                 <q-input
                   dense
                   filled
+                  v-model="reviewsDialog.form.name"
+                  :label="$t('reviews_name')"
+                ></q-input>
+                <q-input
+                  dense
+                  filled
                   type="textarea"
-                  autogrow
+                  rows="4"
                   v-model="reviewsDialog.form.comment"
                   :label="$t('reviews_comment')"
                 ></q-input>

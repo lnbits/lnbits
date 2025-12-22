@@ -72,7 +72,6 @@ window.PageExtensions = {
       // the install logic has been triggered one way or another
       this.unsubscribeFromPaylinkWs()
 
-      const extension = this.selectedExtension
       this.selectedExtension.inProgress = true
       this.showManageExtensionDialog = false
       release.payment_hash =
@@ -631,33 +630,10 @@ window.PageExtensions = {
       const val = Number(raw || 0)
       return Math.round((val / 2 / 100) * 2) / 2
     },
-    parseReviewsUrl(url) {
-      if (!url) return null
-      const clean = url.replace(/\/+$/, '')
-      try {
-        const parsed = new URL(clean)
-        const segments = parsed.pathname.split('/').filter(Boolean)
-        const paidIdx = segments.indexOf('paidreviews')
-        if (paidIdx === -1 || !segments[paidIdx + 1]) {
-          return null
-        }
-        const settingsId = decodeURIComponent(segments[paidIdx + 1])
-        const basePath = [''].concat(segments.slice(0, paidIdx + 1)).join('/')
-        return {
-          origin: parsed.origin,
-          apiBase: `${parsed.origin}${basePath}`,
-          settingsId
-        }
-      } catch (error) {
-        console.warn(error)
-        return null
-      }
-    },
+
     async loadReviewStats() {
-      if (!this.reviewsConfig?.settingsId) return
-      const url = `${this.reviewsConfig.apiBase}/api/v1/tags/${encodeURIComponent(
-        this.reviewsConfig.settingsId
-      )}`
+      if (!this.reviewsConfig) return
+      const url = `${this.reviewsConfig}/tags`
       try {
         const {data} = await axios.get(url, {timeout: 10000})
         const map = {}
@@ -681,91 +657,37 @@ window.PageExtensions = {
       if (!targetExtension) {
         return
       }
-      if (!this.reviewsConfig?.settingsId) {
+      if (!this.reviewsConfig) {
         Quasar.Notify.create({
           type: 'warning',
-          message: this.$t('reviews_no_oracle')
+          message: this.$t('reviews_url_not_configured')
         })
         return
       }
       this.reviewsDialog.extension = targetExtension
+      this.selectedExtension = extension
       this.reviewsDialog.show = true
-      await this.refreshReviews()
+      await this.getTagReviews()
     },
     reviewApiUrl(path) {
       return `${this.reviewsConfig.apiBase}${path}`
     },
-    async fetchReviewsPage(before = null, reset = false) {
-      if (!this.reviewsConfig?.settingsId || !this.reviewsDialog.extension) {
-        return
-      }
-      this.reviewsDialog.loading = true
-      this.reviewsDialog.error = null
+    async getTagReviews(props) {
+      if (!this.reviewsConfig) return
       try {
-        const params = new URLSearchParams({limit: '10'})
-        if (before !== null && before !== undefined) {
-          params.set('before', String(before))
-        }
-        params.set(
-          '_',
-          typeof crypto !== 'undefined' && crypto.randomUUID
-            ? crypto.randomUUID()
-            : String(Date.now())
-        )
-        const url = this.reviewApiUrl(
-          `/api/v1/${encodeURIComponent(
-            this.reviewsConfig.settingsId
-          )}/${encodeURIComponent(this.reviewsDialog.extension.id)}?${params.toString()}`
-        )
+        this.reviewsTable.loading = true
+        const params = LNbits.utils.prepareFilterQuery(this.reviewsTable, props)
+        const url = `${this.reviewsConfig}/reviews/${this.selectedExtension.id}?${params}`
         const {data} = await axios.get(url, {timeout: 10000})
-        this.reviewsDialog.items = data.items || []
-        this.reviewsDialog.nextCursor = data.next_cursor || null
-        if (reset) {
-          this.reviewsDialog.cursorStack = [before ?? null]
-        } else if (before !== null && before !== undefined) {
-          this.reviewsDialog.cursorStack.push(before)
-        }
-        if (this.reviewsDialog.extension) {
-          this.reviewsDialog.extension.reviewStats = {
-            avg_rating: data.avg_rating,
-            review_count: data.review_count
-          }
-          const ext = this.extensions.find(
-            e => e.id === this.reviewsDialog.extension.id
-          )
-          if (ext) {
-            ext.reviewStats = {
-              avg_rating: data.avg_rating,
-              review_count: data.review_count
-            }
-          }
-        }
-        this.filterExtensions(this.searchTerm, this.tab)
-      } catch (error) {
-        console.warn(error)
-        this.reviewsDialog.error =
-          error?.response?.data?.detail || this.$t('reviews_error_load')
+        this.reviews = data.data
+        this.reviewsTable.pagination.rowsNumber = data.total
+      } catch (e) {
+        LNbits.utils.notifyApiError(e)
       } finally {
-        this.reviewsDialog.loading = false
+        this.reviewsTable.loading = false
       }
     },
-    async refreshReviews() {
-      this.reviewsDialog.cursorStack = [null]
-      await this.fetchReviewsPage(null, true)
-    },
-    async loadMoreReviews() {
-      if (!this.reviewsDialog.nextCursor) return
-      await this.fetchReviewsPage(this.reviewsDialog.nextCursor, false)
-    },
-    async previousReviewsPage() {
-      if (this.reviewsDialog.cursorStack.length <= 1) return
-      this.reviewsDialog.cursorStack.pop()
-      const prev =
-        this.reviewsDialog.cursorStack[
-          this.reviewsDialog.cursorStack.length - 1
-        ] ?? null
-      await this.fetchReviewsPage(prev, true)
-    },
+
     formatReviewDate(val) {
       if (!val) return ''
       const numeric = Number(val)
@@ -775,23 +697,19 @@ window.PageExtensions = {
       return this.utils.formatDate(val)
     },
     async submitReview() {
-      if (!this.reviewsDialog.extension || !this.reviewsConfig?.settingsId) {
+      if (!this.reviewsDialog.extension || !this.reviewsConfig) {
         return
       }
       this.reviewsDialog.submitting = true
       try {
         const payload = {
-          settings_id: this.reviewsConfig.settingsId,
-          name: this.reviewsDialog.form.name,
           tag: this.reviewsDialog.extension.id,
+          name: this.reviewsDialog.form.name,
           rating: this.reviewsDialog.form.rating * 100,
           comment: this.reviewsDialog.form.comment
         }
-        const {data} = await axios.post(
-          this.reviewApiUrl('/api/v1/review'),
-          payload,
-          {timeout: 15000}
-        )
+        const url = `${this.reviewsConfig}/reviews`
+        const {data} = await axios.post(url, payload, {timeout: 15000})
         if (data.payment_request) {
           this.openInvoiceDialog(data.payment_request, data.payment_hash)
         } else {
@@ -800,7 +718,7 @@ window.PageExtensions = {
             message: 'Review submitted'
           })
           this.resetReviewForm()
-          await this.refreshReviews()
+          await this.getTagReviews()
           await this.loadReviewStats()
         }
       } catch (error) {
@@ -829,7 +747,7 @@ window.PageExtensions = {
     },
     listenForPayment(hash) {
       try {
-        const base = new URL(this.reviewsConfig.origin)
+        const base = new URL(this.reviewsConfig)
         base.protocol = base.protocol === 'https:' ? 'wss:' : 'ws:'
         base.pathname = `/api/v1/ws/${hash}`
         const ws = new WebSocket(base)
@@ -840,7 +758,7 @@ window.PageExtensions = {
           })
           this.paymentDialog.show = false
           this.resetReviewForm()
-          await this.refreshReviews()
+          await this.getTagReviews()
           await this.loadReviewStats()
           ws.close()
         })
@@ -862,7 +780,9 @@ window.PageExtensions = {
   async created() {
     this.extensions = await this.fetchAllExtensions()
     this.extbuilderEnabled = this.g.user.admin || this.LNBITS_EXT_BUILDER
-    this.reviewsConfig = this.parseReviewsUrl(this.LNBITS_REVIEWS_URL)
+    // this.reviewsConfig = this.parseReviewsUrl(this.LNBITS_REVIEWS_URL)
+    this.reviewsConfig = this.LNBITS_REVIEWS_URL
+    console.log('### Reviews config:', this.reviewsConfig)
 
     if (this.g.user.extensions.length === 0) {
       this.tab = 'all'

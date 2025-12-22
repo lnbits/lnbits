@@ -200,7 +200,7 @@ window.localisation.en = {
   reviews_loading: 'Loading reviews...',
   reviews_refresh: 'Refresh reviews',
   reviews_error_load: 'Could not load reviews',
-  reviews_no_oracle: 'Reviews oracle not configured',
+  reviews_url_not_configured: 'Reviews URL not configured',
   reviews_pay_invoice: 'Pay invoice',
   reviews_invoice_paid: 'Invoice paid',
   reviews_invoice_title: 'Pay this invoice to submit your review',
