@@ -6,6 +6,8 @@ from lnbits.core.services import (
 )
 from lnbits.exceptions import PaymentError
 
+from .helpers import is_boltz_wallet
+
 description = "test pay invoice"
 
 
@@ -17,9 +19,12 @@ async def test_services_pay_invoice(to_wallet, real_invoice):
         description=description,
     )
     assert payment
-    assert payment.status == PaymentState.SUCCESS
     assert payment.memo == description
-    assert payment.preimage
+    if not is_boltz_wallet:
+        assert payment.status == PaymentState.SUCCESS
+        assert payment.preimage
+    else:
+        assert payment.status == PaymentState.PENDING
 
 
 @pytest.mark.anyio

@@ -13,9 +13,6 @@ description = "test create invoice"
 funding_source = get_funding_source()
 
 
-@pytest.mark.skipif(
-    reason="this should not raise for lnd",
-)
 @pytest.mark.anyio
 async def test_create_invoice(from_wallet):
     payment = await create_invoice(
