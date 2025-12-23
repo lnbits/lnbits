@@ -1,22 +1,37 @@
-// import { installQuasarPlugin } from '@quasar/quasar-app-extension-testing-unit-vitest';
 import {mount} from '@vue/test-utils'
 import {expect, test} from 'vitest'
-import {createApp} from 'vue'
-import {Quasar} from 'quasar'
 import LnbitsError from '../../../lnbits/static/components/lnbits-error.vue'
 
+// installQuasarPlugin()
+export const quasarMock = {
+  global: {
+    mocks: {
+      g: {
+        isUserAuthorized: true
+      },
+      $q: {
+        platform: {},
+        screen: {},
+        dark: false
+      }
+    },
+    stubs: {
+      QCard: true,
+      QCardSection: true,
+      QIcon: true,
+      QBtn: true
+    }
+  }
+}
 test('displays message and code', () => {
-  const app = createApp({})
-  app.use(Quasar)
+  expect(LnbitsError).toBeTruthy()
 
   const wrapper = mount(LnbitsError, {
-    global: {
-      plugins: [Quasar]
-    },
     props: {
       message: 'Page not found!!!',
       code: 404
-    }
+    },
+    ...quasarMock
   })
   expect(wrapper.text()).toContain('Page not found!!!')
   expect(wrapper.text()).toContain('404')

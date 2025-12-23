@@ -13,7 +13,8 @@
     "bundle": "npm run sass && npm run vendor_copy && npm run vendor_json && npm run vendor_bundle_css && npm run vendor_bundle_js && npm run vendor_bundle_components && npm run vendor_minify_css && npm run vendor_minify_js && npm run vendor_minify_components",
     "test": "npm run test:unit",
     "test:unit": "vitest --watch=false tests/frontend/unit",
-    "test:unit:watch": "vitest tests/frontend/unit"
+    "test:unit:watch": "vitest tests/frontend/unit",
+    "build": "vite build"
   },
   "devDependencies": {
     "@quasar/quasar-app-extension-testing-unit-vitest": "^1.2.4",
@@ -101,9 +102,6 @@
       "js/windowMixin.js",
       "js/event-reactions.js",
       "js/bolt11-decoder.js"
-    ],
-    "modules": [
-      "components/lnbits-error.vue"
     ],
     "components": [
       "js/pages/error.js",
