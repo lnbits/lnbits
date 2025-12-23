@@ -41,7 +41,6 @@
     "js/event-reactions.js",
     "js/bolt11-decoder.js"
   ],
-  "modules": ["components/lnbits-error.vue"],
   "components": [
     "js/pages/error.js",
     "js/pages/home.js",
