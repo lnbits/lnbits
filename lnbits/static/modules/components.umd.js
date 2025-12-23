@@ -50,18 +50,18 @@
     }
     if (i(e) || u(e)) return e
   }
-  const w = /;(?![^(]*\))/g,
-    b = /:([^]+)/,
+  const b = /;(?![^(]*\))/g,
+    w = /:([^]+)/,
     E = /\/\*[^]*?\*\//g
   function C(e) {
     const n = {}
     return (
       e
         .replace(E, '')
-        .split(w)
+        .split(b)
         .forEach(e => {
           if (e) {
-            const t = e.split(b)
+            const t = e.split(w)
             t.length > 1 && (n[t[0].trim()] = t[1].trim())
           }
         }),
@@ -305,8 +305,8 @@
   const B = []
   let G = -1
   const J = []
-  let L = null,
-    W = 0
+  let W = null,
+    L = 0
   const K = Promise.resolve()
   let Q = null
   function X(e) {
@@ -361,19 +361,19 @@
         (function (e) {
           if (J.length) {
             const n = [...new Set(J)].sort((e, n) => Z(e) - Z(n))
-            if (((J.length = 0), L)) return void L.push(...n)
+            if (((J.length = 0), W)) return void W.push(...n)
             for (
-              L = n, 'production' !== T.NODE_ENV && (e = e || new Map()), W = 0;
-              W < L.length;
-              W++
+              W = n, 'production' !== T.NODE_ENV && (e = e || new Map()), L = 0;
+              L < W.length;
+              L++
             ) {
-              const n = L[W]
+              const n = W[L]
               ;('production' !== T.NODE_ENV && ne(e, n)) ||
                 (4 & n.flags && (n.flags &= -2),
                 8 & n.flags || n(),
                 (n.flags &= -2))
             }
-            ;((L = null), (W = 0))
+            ;((W = null), (L = 0))
           }
         })(e),
         (Q = null),
@@ -447,8 +447,8 @@
         }),
           c(r)
             ? J.push(...r)
-            : L && -1 === r.id
-              ? L.splice(W + 1, 0, r)
+            : W && -1 === r.id
+              ? W.splice(L + 1, 0, r)
               : 1 & r.flags || (J.push(r), (r.flags |= 1)),
           Y())
         var r
@@ -524,7 +524,7 @@
   function ve(e = !1) {
     ye.push((_e = e ? null : []))
   }
-  function we(e) {
+  function be(e) {
     return (
       (e.dynamicChildren = _e || t),
       ye.pop(),
@@ -533,8 +533,8 @@
       e
     )
   }
-  function be(e, n, t, o, r) {
-    return we(ke(e, n, t, o, r, !0))
+  function we(e, n, t, o, r) {
+    return be(ke(e, n, t, o, r, !0))
   }
   const Ee = ({key: e}) => (null != e ? e : null),
     Ce = ({ref: e, ref_key: n, ref_for: t}) => (
@@ -897,12 +897,19 @@
       : (window.devtoolsFormatters = [i])
   }
   'production' !== {}.NODE_ENV && Ie()
-  const Me = (e, n) => {
-      const t = e.__vccOpts || e
-      for (const [o, r] of n) t[o] = r
-      return t
-    },
-    Ue = {
+  const Me = {class: 'text-center q-pa-md flex flex-center'},
+    Ue = ['textContent'],
+    He = ['textContent'],
+    Pe = {
+      class: 'q-mx-auto q-mt-lg justify-center',
+      style: {width: 'max-content'}
+    }
+  const qe = ((e, n) => {
+    const t = e.__vccOpts || e
+    for (const [o, r] of n) t[o] = r
+    return t
+  })(
+    {
       props: ['dynamic', 'code', 'message'],
       computed: {
         isExtension() {
@@ -943,78 +950,71 @@
             void this.logOut()
           )
       }
-    }
-  'undefined' != typeof window && (window.LnbitsError = Ue)
-  const He = {class: 'text-center q-pa-md flex flex-center'},
-    Pe = ['textContent'],
-    qe = ['textContent'],
-    ze = {
-      class: 'q-mx-auto q-mt-lg justify-center',
-      style: {width: 'max-content'}
-    }
-  const Be = Me(Ue, [
+    },
     [
-      'render',
-      function (e, n, t, o, r, s) {
-        const c = ae('q-btn')
-        return (
-          ve(),
-          (l = 'div'),
-          (i = He),
-          (a = [
-            Ne('div', null, [
-              Ne(
-                'div',
-                {class: 'error-code', textContent: x(e.code)},
-                null,
-                8,
-                Pe
-              ),
-              Ne(
-                'div',
-                {class: 'error-message', textContent: x(e.message)},
-                null,
-                8,
-                qe
-              ),
-              Ne('div', ze, [
-                e.isExtension
-                  ? (ve(),
-                    be(c, {
-                      key: 0,
-                      color: 'primary',
-                      onClick: n[0] || (n[0] = n => e.goToExtension()),
-                      label: 'Go To Extension'
-                    }))
-                  : e.g.isUserAuthorized
+      [
+        'render',
+        function (e, n, t, o, r, s) {
+          const c = ae('q-btn')
+          return (
+            ve(),
+            (l = 'div'),
+            (i = Me),
+            (a = [
+              Ne('div', null, [
+                Ne(
+                  'div',
+                  {class: 'error-code', textContent: x(t.code)},
+                  null,
+                  8,
+                  Ue
+                ),
+                Ne(
+                  'div',
+                  {class: 'error-message', textContent: x(t.message)},
+                  null,
+                  8,
+                  He
+                ),
+                Ne('div', Pe, [
+                  s.isExtension
                     ? (ve(),
-                      be(c, {
-                        key: 1,
+                      we(c, {
+                        key: 0,
                         color: 'primary',
-                        onClick: n[1] || (n[1] = n => e.goToWallet()),
-                        label: 'Go to Wallet'
+                        onClick: n[0] || (n[0] = e => s.goToExtension()),
+                        label: 'Go To Extension'
                       }))
-                    : (ve(),
-                      be(c, {
-                        key: 2,
-                        color: 'primary',
-                        onClick: n[2] || (n[2] = n => e.goBack()),
-                        label: 'Go Back'
-                      })),
-                n[4] || (n[4] = Ne('span', {class: 'q-mx-md'}, 'OR', -1)),
-                ke(c, {
-                  color: 'secondary',
-                  onClick: n[3] || (n[3] = n => e.goHome()),
-                  label: 'Go Home'
-                })
+                    : e.g.isUserAuthorized
+                      ? (ve(),
+                        we(c, {
+                          key: 1,
+                          color: 'primary',
+                          onClick: n[1] || (n[1] = e => s.goToWallet()),
+                          label: 'Go to Wallet'
+                        }))
+                      : (ve(),
+                        we(c, {
+                          key: 2,
+                          color: 'primary',
+                          onClick: n[2] || (n[2] = e => s.goBack()),
+                          label: 'Go Back'
+                        })),
+                  n[4] || (n[4] = Ne('span', {class: 'q-mx-md'}, 'OR', -1)),
+                  ke(c, {
+                    color: 'secondary',
+                    onClick: n[3] || (n[3] = e => s.goHome()),
+                    label: 'Go Home'
+                  })
+                ])
               ])
-            ])
-          ]),
-          we(Ne(l, i, a, u, p, d, !0))
-        )
-        var l, i, a, u, p, d
-      }
+            ]),
+            be(Ne(l, i, a, u, p, d, !0))
+          )
+          var l, i, a, u, p, d
+        }
+      ]
     ]
-  ])
-  window.LnbitsError = Be
+  )
+  window.LnbitsError = qe
 })
