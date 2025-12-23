@@ -76,7 +76,6 @@
     "js/components/lnbits-wallet-paylinks.js",
     "js/components/lnbits-wallet-extra.js",
     "js/components/lnbits-home-logos.js",
-    "js/components/lnbits-error.js",
     "js/components/lnbits-qrcode.js",
     "js/components/lnbits-qrcode-lnurl.js",
     "js/components/lnbits-disclaimer.js",

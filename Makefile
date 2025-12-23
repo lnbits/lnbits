@@ -41,6 +41,10 @@ dev:
 docker:
 	docker build -t lnbits/lnbits .
 
+test-frontend:
+	npm install
+	npm test
+
 test-wallets:
 	LNBITS_DATA_FOLDER="./tests/data" \
 	LNBITS_BACKEND_WALLET_CLASS="FakeWallet" \
