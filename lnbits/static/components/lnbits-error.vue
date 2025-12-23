@@ -23,7 +23,7 @@
     </div>
   </div>
 </template>
-<script setup>
+<script>
 const LnbitsError = {
   props: ['dynamic', 'code', 'message'],
   computed: {
