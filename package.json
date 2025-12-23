@@ -1,5 +1,6 @@
 {
   "name": "lnbits",
+  "type": "module",
   "scripts": {
     "sass": "./node_modules/.bin/sass ./lnbits/static/scss/base.scss > ./lnbits/static/css/base.css",
     "vendor_copy": "node -e \"require('./package.json').vendor.forEach((file) => require('fs').copyFileSync(file, './lnbits/static/vendor/'+file.split('/').pop()))\"",
