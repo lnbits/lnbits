@@ -58,7 +58,7 @@ lnbits = "lnbits.server:main"
 lnbits-cli = "lnbits.commands:main"
 
 [project.optional-dependencies]
-breez = ["breez-sdk==0.8.0", "breez-sdk-liquid==0.9.1"]
+breez = ["breez-sdk==0.8.0", "breez-sdk-liquid==0.11.11"]
 liquid = ["wallycore==1.4.0"]
 migration = ["psycopg2-binary==2.9.10"]
 
