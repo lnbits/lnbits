@@ -170,7 +170,6 @@ window.app.use(window.i18n)
 window.app.use(window.router)
 
 window.app.component(QrcodeVue)
-window.app.component('lnbits-extension-rating', LnbitsExtensionRating)
 window.app.component('lnbits-error', window.LnbitsError)
 
 window.app.mount('#vue')

@@ -1,7 +1,25 @@
-const LnbitsExtensionRating = {
+window.app.component(QrcodeVue)
+
+window.app.component('lnbits-extension-rating', {
   template: '#lnbits-extension-rating',
+  name: 'lnbits-extension-rating',
   props: ['rating']
-}
+})
+
+window.app.component('lnbits-fsat', {
+  template: '<span>{{ fsat }}</span>',
+  props: {
+    amount: {
+      type: Number,
+      default: 0
+    }
+  },
+  computed: {
+    fsat() {
+      return LNbits.utils.formatSat(this.amount)
+    }
+  }
+})
 
 window.app.component('lnbits-manage', {
   mixins: [window.windowMixin],
