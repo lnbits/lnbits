@@ -14,7 +14,8 @@
     "test": "npm run test:unit",
     "test:unit": "vitest --watch=false tests/frontend/unit",
     "test:unit:watch": "vitest tests/frontend/unit",
-    "build": "vite build"
+    "build": "vite build",
+    "watch": "vite build --watch"
   },
   "devDependencies": {
     "@quasar/quasar-app-extension-testing-unit-vitest": "^1.2.4",
