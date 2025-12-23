@@ -7,7 +7,7 @@ export default defineConfig({
     environment: 'jsdom'
   },
   define: {
-    'process.env': {}, // Replace process.env with an empty object for browser builds
+    'process.env': {} // Replace process.env with an empty object for browser builds
   },
   build: {
     lib: {
