@@ -24,7 +24,7 @@
   </div>
 </template>
 <script>
-const LnbitsError = {
+export default {
   props: ['dynamic', 'code', 'message'],
   computed: {
     isExtension() {
@@ -75,7 +75,4 @@ const LnbitsError = {
     }
   }
 }
-// expose to window on the browser
-if (typeof window !== 'undefined') window.LnbitsError = LnbitsError
-export default LnbitsError
 </script>

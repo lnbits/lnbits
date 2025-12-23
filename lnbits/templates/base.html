@@ -95,7 +95,7 @@
     <!-- scripts from extensions -->
     {% block scripts %}{% endblock %}
     <!-- modules js -->
-    <script src="{{ static_url_for('static', 'modules/components.umd.js') }}"></script>
+    <script src="/static/modules/components.umd.js"></script>
     <!-- components js -->
     {% for url in INCLUDED_COMPONENTS %}
     <script src="{{ static_url_for('static', url) }}"></script>
