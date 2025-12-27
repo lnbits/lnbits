@@ -83,9 +83,7 @@
                       class="text-center"
                       v-text="$t('export_to_phone_desc')"
                     ></p>
-                    <lnbits-qrcode
-                      :value="`${baseUrl}wallet?usr=${g.user.id}&wal=${g.wallet.id}`"
-                    ></lnbits-qrcode>
+                    <lnbits-qrcode :value="exportUrl"></lnbits-qrcode>
                   </q-card-section>
                 </q-card>
               </q-expansion-item>

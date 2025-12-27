@@ -1,9 +1,10 @@
 window.app.component('lnbits-wallet-extra', {
   template: '#lnbits-wallet-extra',
-  mixins: [window.windowMixin],
   props: ['chartConfig'],
-  data() {
-    return {}
+  computed: {
+    exportUrl() {
+      return `${window.location.origin}/wallet?usr=${this.g.user.id}&wal=${this.g.wallet.id}`
+    }
   },
   methods: {
     handleSendLnurl(lnurl) {
