@@ -1336,7 +1336,7 @@ requires-dist = [
     { name = "fastapi", specifier = "==0.116.1" },
     { name = "fastapi-sso", specifier = "==0.19.0" },
     { name = "filetype", specifier = "==1.2.0" },
-    { name = "greenlet", specifier = ">=3.3.0,<4.0.0" },
+    { name = "greenlet", specifier = "==3.3.0" },
     { name = "grpcio", specifier = "==1.69.0" },
     { name = "httpx", specifier = "==0.27.0" },
     { name = "itsdangerous", specifier = "==2.2.0" },
