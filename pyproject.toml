@@ -22,6 +22,7 @@ dependencies = [
     "typing-extensions==4.14.0",
     "uvicorn==0.34.3",
     "sqlalchemy==1.4.54",
+    "greenlet==3.3.0",
     "aiosqlite==0.21.0",
     "asyncpg==0.30.0",
     "uvloop==0.21.0",
