@@ -73,6 +73,7 @@ class OfferFilters(FilterModel):
     __search_fields__ = [
         "memo",
         "amount",
+        "offer_id",
         "wallet_id",
         "tag",
         "active",
@@ -80,14 +81,14 @@ class OfferFilters(FilterModel):
         "used",
     ]
 
-    __sort_fields__ = ["created_at", "amount", "fee", "memo", "tag"]
+    __sort_fields__ = ["created_at", "updated_at", "amount", "fee", "memo", "tag"]
 
     active: bool | None
     single_use: bool | None
     used: bool | None
     tag: str | None
     offer_id: str | None
-    amount: int
+    amount: int | None
     memo: str | None
     wallet_id: str | None
 

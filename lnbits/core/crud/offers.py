@@ -23,6 +23,7 @@ async def get_standalone_offer(
     offer_id: str,
     conn: Connection | None = None,
     wallet_id: str | None = None,
+    active: bool | None = None,
 ) -> Offer | None:
     clause: str = "offer_id = :offer_id"
     values = {
@@ -32,6 +33,9 @@ async def get_standalone_offer(
 
     if wallet_id:
         clause = f"({clause}) AND wallet_id = :wallet_id"
+
+    if active is not None:
+        clause = f"({clause}) AND active = :active"
 
     row = await (conn or db).fetchone(
         f"""

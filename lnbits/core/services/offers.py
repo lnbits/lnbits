@@ -104,7 +104,7 @@ async def enable_offer(
     wallet_id: str,
     offer_id: str,
     conn: Connection | None = None,
-) -> bool:
+) -> Offer:
 
     offer = await get_standalone_offer(offer_id=offer_id, wallet_id=wallet_id)
 
@@ -112,7 +112,7 @@ async def enable_offer(
         raise OfferError("Could not find offer", status="error")
 
     if offer.active is True:
-        return True
+        return offer
 
     funding_source = get_funding_source()
 
@@ -137,7 +137,8 @@ async def enable_offer(
         assert offer_resp.offer_id
         await crud_enable_offer(offer_resp.offer_id)
 
-    return True
+    offer.active = True
+    return offer
 
 
 async def disable_offer(
@@ -145,7 +146,7 @@ async def disable_offer(
     wallet_id: str,
     offer_id: str,
     conn: Connection | None = None,
-) -> bool:
+) -> Offer:
 
     offer = await get_standalone_offer(offer_id=offer_id, wallet_id=wallet_id)
 
@@ -153,7 +154,7 @@ async def disable_offer(
         raise OfferError("Could not find offer", status="error")
 
     if offer.active is False:
-        return False
+        return offer
 
     funding_source = get_funding_source()
 
@@ -178,7 +179,8 @@ async def disable_offer(
         assert offer_resp.offer_id
         await crud_disable_offer(offer_resp.offer_id)
 
-    return False
+    offer.active = False
+    return offer
 
 
 async def fetch_invoice(

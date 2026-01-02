@@ -67,7 +67,7 @@ async def api_offers(
 async def api_offers_paginated(
     key_info: WalletTypeInfo = Depends(require_base_invoice_key),
     filters: Filters = Depends(parse_filters(OfferFilters)),
-):
+) -> Page[Offer]:
     page = await get_offers_paginated(
         wallet_id=key_info.wallet.id,
         filters=filters,
@@ -86,7 +86,7 @@ async def api_offers_paginated(
 )
 async def api_all_offers_paginated(
     filters: Filters = Depends(parse_filters(OfferFilters)),
-):
+) -> Page[Offer]:
     return await get_offers_paginated(
         filters=filters,
     )
@@ -129,7 +129,7 @@ async def api_offers_create(
 async def api_offer(
     offer_id,
     key_info: WalletTypeInfo = Depends(require_base_invoice_key),
-):
+) -> Offer:
 
     offer = await get_standalone_offer(offer_id, wallet_id=key_info.wallet.id)
     if offer is None:
@@ -151,7 +151,7 @@ async def api_offer(
 async def api_offers_enable(
     offer_id,
     key_info: WalletTypeInfo = Depends(require_base_invoice_key),
-) -> bool:
+) -> Offer:
 
     try:
         return await enable_offer(wallet_id=key_info.wallet.id, offer_id=offer_id)
@@ -177,7 +177,7 @@ async def api_offers_enable(
 async def api_offers_disable(
     offer_id,
     key_info: WalletTypeInfo = Depends(require_base_invoice_key),
-) -> bool:
+) -> Offer:
 
     try:
         return await disable_offer(wallet_id=key_info.wallet.id, offer_id=offer_id)
@@ -204,7 +204,7 @@ async def api_offers_disable(
 async def api_offers_fetch_invoice(
     fetchinvoice: FetchInvoice,
     key_info: WalletTypeInfo = Depends(require_base_invoice_key),
-):
+) -> str:
 
     try:
         return await fetch_invoice(
