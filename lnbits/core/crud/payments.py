@@ -296,8 +296,16 @@ async def create_payment(
         webhook=data.webhook,
         fee=-abs(data.fee),
         tag=extra.get("tag", None),
-        created_at=datetime.now(timezone.utc) if not created_at else created_at,
-        updated_at=datetime.now(timezone.utc) if not updated_at else updated_at,
+        created_at=(
+            datetime.now(timezone.utc)
+            if not created_at
+            else datetime.fromtimestamp(created_at, timezone.utc)
+        ),
+        updated_at=(
+            datetime.now(timezone.utc)
+            if not updated_at
+            else datetime.fromtimestamp(updated_at, timezone.utc)
+        ),
         extra=extra,
         labels=data.labels or [],
     )
