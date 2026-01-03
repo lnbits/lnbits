@@ -314,6 +314,7 @@ async def update_payment(
     new_checking_id: str | None = None,
     conn: Connection | None = None,
 ) -> None:
+    payment.update_timestamp()
     await (conn or db).update(
         "apipayments", payment, "WHERE checking_id = :checking_id"
     )
