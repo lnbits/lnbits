@@ -68,6 +68,9 @@ class Offer(BaseModel):
     def is_expired(self) -> bool:
         return self.expiry < datetime.now(timezone.utc) if self.expiry else False
 
+    def update_timestamp(self):
+        self.updated_at = datetime.now(timezone.utc)
+
 
 class OfferFilters(FilterModel):
     __search_fields__ = [

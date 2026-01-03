@@ -211,6 +211,7 @@ async def update_offer(
     offer: Offer,
     conn: Connection | None = None,
 ) -> None:
+    offer.update_timestamp()
     await (conn or db).update("apioffers", offer, "WHERE offer_id = :offer_id")
 
 
