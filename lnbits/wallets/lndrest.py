@@ -93,9 +93,24 @@ class LndRestWallet(Wallet):
 
         except json.JSONDecodeError:
             return StatusResponse("Server error: 'invalid json response'", 0)
+        except httpx.HTTPStatusError as exc:
+            error_message = f"HTTP {exc.response.status_code}"
+            try:
+                error_body = exc.response.json()
+                if "message" in error_body:
+                    error_message = f"{error_message}: {error_body['message']}"
+                else:
+                    error_message = f"{error_message}: {exc.response.text[:200]}"
+            except Exception:
+                error_message = f"{error_message}: {exc.response.text[:200]}"
+            logger.warning(f"LndRestWallet status error: {error_message}")
+            return StatusResponse(error_message, 0)
+        except (httpx.ConnectError, httpx.ConnectTimeout) as exc:
+            logger.warning(f"LndRestWallet connection error: {exc}")
+            return StatusResponse(f"Unable to connect to {self.endpoint}: {exc}", 0)
         except Exception as exc:
-            logger.warning(exc)
-            return StatusResponse(f"Unable to connect to {self.endpoint}.", 0)
+            logger.warning(f"LndRestWallet status error: {exc}")
+            return StatusResponse(f"Status error: {exc}", 0)
 
         return StatusResponse(None, int(data["balance"]) * 1000)
 
@@ -164,11 +179,26 @@ class LndRestWallet(Wallet):
             return InvoiceResponse(
                 ok=False, error_message="Server error: 'invalid json response'"
             )
-        except Exception as exc:
-            logger.warning(exc)
+        except httpx.HTTPStatusError as exc:
+            error_message = f"HTTP {exc.response.status_code}"
+            try:
+                error_body = exc.response.json()
+                if "message" in error_body:
+                    error_message = f"{error_message}: {error_body['message']}"
+                else:
+                    error_message = f"{error_message}: {exc.response.text[:200]}"
+            except Exception:
+                error_message = f"{error_message}: {exc.response.text[:200]}"
+            logger.warning(f"LndRestWallet create_invoice error: {error_message}")
+            return InvoiceResponse(ok=False, error_message=error_message)
+        except (httpx.ConnectError, httpx.ConnectTimeout) as exc:
+            logger.warning(f"LndRestWallet connection error: {exc}")
             return InvoiceResponse(
-                ok=False, error_message=f"Unable to connect to {self.endpoint}."
+                ok=False, error_message=f"Unable to connect to {self.endpoint}: {exc}"
             )
+        except Exception as exc:
+            logger.warning(f"LndRestWallet create_invoice error: {exc}")
+            return InvoiceResponse(ok=False, error_message=f"Invoice error: {exc}")
 
     async def pay_invoice(self, bolt11: str, fee_limit_msat: int) -> PaymentResponse:
         req = {
@@ -192,11 +222,26 @@ class LndRestWallet(Wallet):
             return PaymentResponse(
                 error_message="Server error: 'invalid json response'"
             )
-        except Exception as exc:
-            logger.warning(f"LndRestWallet pay_invoice POST error: {exc}.")
+        except httpx.HTTPStatusError as exc:
+            error_message = f"HTTP {exc.response.status_code}"
+            try:
+                error_body = exc.response.json()
+                if "message" in error_body:
+                    error_message = f"{error_message}: {error_body['message']}"
+                else:
+                    error_message = f"{error_message}: {exc.response.text[:200]}"
+            except Exception:
+                error_message = f"{error_message}: {exc.response.text[:200]}"
+            logger.warning(f"LndRestWallet pay_invoice error: {error_message}")
+            return PaymentResponse(error_message=error_message)
+        except (httpx.ConnectError, httpx.ConnectTimeout) as exc:
+            logger.warning(f"LndRestWallet connection error: {exc}")
             return PaymentResponse(
-                error_message=f"Unable to connect to {self.endpoint}."
+                error_message=f"Unable to connect to {self.endpoint}: {exc}"
             )
+        except Exception as exc:
+            logger.warning(f"LndRestWallet pay_invoice error: {exc}")
+            return PaymentResponse(error_message=f"Payment error: {exc}")
 
         payment_error = data.get("payment_error")
         if payment_error:
