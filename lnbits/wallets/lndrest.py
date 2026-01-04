@@ -178,7 +178,7 @@ class LndRestWallet(Wallet):
             "no_inflight_updates": True,
         }
         if settings.lnd_rest_allow_self_payment:
-            req["allow_self_payment"] = 1
+            req["allow_self_payment"] = True
 
         try:
             r = await self.client.post(
