@@ -19,6 +19,7 @@
                 :dense="dense"
                 class="float-right q-pr-xl"
                 v-model="searchTerm"
+                :style="$q.screen.lt.sm ? 'min-width: 50%' : ''"
               >
                 <template v-slot:before>
                   <q-icon name="search"> </q-icon>
