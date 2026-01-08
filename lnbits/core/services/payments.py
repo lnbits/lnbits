@@ -15,14 +15,14 @@ from lnbits.core.models import PaymentDailyStats, PaymentFilters
 from lnbits.core.models.payments import CreateInvoice
 from lnbits.db import Connection, Filters
 from lnbits.decorators import check_user_extension_access
-from lnbits.exceptions import InvoiceError, PaymentError, UnsupportedError
+from lnbits.exceptions import InvoiceError, PaymentError
 from lnbits.fiat import get_fiat_provider
 from lnbits.helpers import check_callback_url
 from lnbits.settings import settings
 from lnbits.tasks import create_task, internal_invoice_queue_put
 from lnbits.utils.crypto import fake_privkey, random_secret_and_hash, verify_preimage
 from lnbits.utils.exchange_rates import fiat_amount_as_satoshis, satoshis_amount_as_fiat
-from lnbits.wallets import fake_wallet, get_funding_source
+from lnbits.wallets import Feature, fake_wallet, get_funding_source
 from lnbits.wallets.base import (
     InvoiceResponse,
     PaymentPendingStatus,
@@ -296,19 +296,18 @@ async def create_invoice(
         )
 
     if payment_hash:
-        try:
-            invoice_response = await funding_source.create_hold_invoice(
-                amount=amount_sat,
-                memo=invoice_memo,
-                payment_hash=payment_hash,
-                description_hash=description_hash,
-            )
-            extra["hold_invoice"] = True
-        except UnsupportedError as exc:
+        if not funding_source.has_feature(Feature.holdinvoice):
             raise InvoiceError(
                 "Hold invoices are not supported by the funding source.",
                 status="failed",
-            ) from exc
+            )
+        invoice_response = await funding_source.create_hold_invoice(
+            amount=amount_sat,
+            memo=invoice_memo,
+            payment_hash=payment_hash,
+            description_hash=description_hash,
+        )
+        extra["hold_invoice"] = True
     else:
         invoice_response = await funding_source.create_invoice(
             amount=amount_sat,

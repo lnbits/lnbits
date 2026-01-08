@@ -18,7 +18,7 @@ if TYPE_CHECKING:
 class Feature(Enum):
     nodemanager = "nodemanager"
     holdinvoice = "holdinvoice"
-    # bolt12 = "bolt12"
+    bolt12 = "bolt12"
 
 
 class StatusResponse(NamedTuple):
