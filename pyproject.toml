@@ -21,7 +21,7 @@ dependencies = [
     "sse-starlette==2.3.6",
     "typing-extensions==4.15.0",
     "uvicorn==0.40.0",
-    "sqlalchemy==2.0.45",
+    "sqlalchemy==1.4.54",
     "aiosqlite==0.22.1",
     "asyncpg==0.31.0",
     "uvloop==0.22.1",
