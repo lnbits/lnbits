@@ -1,3 +1,5 @@
+import asyncio
+
 import pytest
 
 from lnbits.core.crud import (
@@ -6,6 +8,7 @@ from lnbits.core.crud import (
     get_payments_paginated,
     update_payment,
 )
+from lnbits.core.crud.payments import get_standalone_payment
 from lnbits.core.models import PaymentFilters, PaymentState
 from lnbits.core.services import (
     create_invoice,
@@ -25,7 +28,7 @@ async def update_payments(payments):
 
 
 @pytest.mark.anyio
-async def test_crud_get_payments(app):
+async def test_crud_get_payments():
 
     user = await create_user_account()
     wallet = await create_wallet(user_id=user.id)
@@ -39,6 +42,15 @@ async def test_crud_get_payments(app):
     filters = Filters(limit=100)
     payments = await get_payments(wallet_id=wallet.id, filters=filters)
     assert len(payments) == 22, "should return 22 successful payments"
+    first_payment = payments[0]
+    first_payment_updated_at = first_payment.updated_at.replace()
+    await update_payment(first_payment)
+    await asyncio.sleep(0.1)  # ensure updated_at will be different
+    first_payment_updated = await get_standalone_payment(first_payment.checking_id)
+    assert first_payment_updated, "Updated payment not found"
+    assert (
+        first_payment_updated.updated_at > first_payment_updated_at
+    ), "Updated payment timestamp is not newer"
 
     payments = await get_payments(wallet_id=wallet.id, incoming=True, filters=filters)
     assert len(payments) == 11, "should return 11 successful incoming payments"
