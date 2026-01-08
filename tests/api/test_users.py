@@ -5,6 +5,7 @@ import pytest
 import shortuuid
 from httpx import AsyncClient
 
+from lnbits.core.crud.wallets import get_wallets
 from lnbits.core.models.users import Account, User
 from lnbits.core.services.users import create_user_account
 from lnbits.settings import Settings
@@ -510,3 +511,44 @@ async def test_search_users(http_client: AsyncClient, superuser_token):
     data = create_resp.json()
     assert data["total"] == 1
     assert data["data"][0]["username"] == users[0].username
+
+
+@pytest.mark.anyio
+async def test_delete_user_success(http_client: AsyncClient, superuser_token):
+    # Create a user first
+    tiny_id = shortuuid.uuid()[:8]
+    data = {
+        "username": f"delete_{tiny_id}",
+        "password": "secret1234",
+        "password_repeat": "secret1234",
+        "email": f"delete_{tiny_id}@lnbits.com",
+    }
+    create_resp = await http_client.post(
+        "/users/api/v1/user",
+        json=data,
+        headers={"Authorization": f"Bearer {superuser_token}"},
+    )
+    assert create_resp.status_code == 200
+    user = create_resp.json()
+    user_id = user["id"]
+
+    wallets = await get_wallets(user_id=user_id)
+    assert len(wallets) == 1
+
+    # Delete the user
+    delete_resp = await http_client.delete(
+        f"/users/api/v1/user/{user_id}",
+        headers={"Authorization": f"Bearer {superuser_token}"},
+    )
+    assert delete_resp.status_code == 200
+    assert delete_resp.json()["success"] is True
+
+    # Ensure user is deleted
+    get_resp = await http_client.get(
+        f"/users/api/v1/user/{user_id}",
+        headers={"Authorization": f"Bearer {superuser_token}"},
+    )
+    assert get_resp.status_code == 404
+
+    wallets = await get_wallets(user_id=user_id)
+    assert len(wallets) == 0
