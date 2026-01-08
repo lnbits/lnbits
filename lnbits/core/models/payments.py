@@ -184,9 +184,6 @@ class Payment(BaseModel):
 
         return fiat_status
 
-    def update_timestamp(self):
-        self.updated_at = datetime.now(timezone.utc)
-
 
 class PaymentFilters(FilterModel):
     __search_fields__ = [
