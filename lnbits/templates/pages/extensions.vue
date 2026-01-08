@@ -15,11 +15,11 @@
               <q-space></q-space>
 
               <q-input
+                v-if="$q.screen.gt.sm"
                 :label="$t('search_extensions')"
                 :dense="dense"
                 class="float-right q-pr-xl"
                 v-model="searchTerm"
-                :style="$q.screen.lt.sm ? 'min-width: 50%' : ''"
               >
                 <template v-slot:before>
                   <q-icon name="search"> </q-icon>
@@ -34,6 +34,14 @@
                   </q-icon>
                 </template>
               </q-input>
+              <q-btn
+                v-else
+                flat
+                icon="search"
+                @click="searchToggle = !searchToggle"
+                class="q-mr-md"
+              >
+              </q-btn>
               <q-badge
                 v-if="g.user.admin && updatableExtensions?.length"
                 @click="showUpdateAllDialog = true"
@@ -69,6 +77,24 @@
                 ><q-tooltip v-text="$t('admin_settings')"></q-tooltip
               ></q-btn>
             </q-tabs>
+            <div v-if="$q.screen.lt.sm && searchToggle" class="q-pa-sm">
+              <q-input
+                :label="$t('search_extensions')"
+                dense
+                class=""
+                v-model="searchTerm"
+              >
+                <template v-slot:append>
+                  <q-icon
+                    v-if="searchTerm !== ''"
+                    name="close"
+                    @click="searchTerm = ''"
+                    class="cursor-pointer"
+                  >
+                  </q-icon>
+                </template>
+              </q-input>
+            </div>
           </div>
         </div>
       </q-card>

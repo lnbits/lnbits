@@ -26,7 +26,8 @@ window.PageExtensions = {
       selectedRelease: null,
       uninstallAndDropDb: false,
       maxStars: 5,
-      paylinkWebsocket: null
+      paylinkWebsocket: null,
+      searchToggle: false
     }
   },
   watch: {
