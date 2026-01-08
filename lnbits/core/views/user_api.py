@@ -20,6 +20,7 @@ from lnbits.core.crud import (
     update_admin_settings,
     update_wallet,
 )
+from lnbits.core.crud.wallets import delete_wallet_by_id
 from lnbits.core.models import (
     AccountFilters,
     AccountOverview,
@@ -157,11 +158,8 @@ async def api_users_delete_user(
     user_id: str, account: Account = Depends(check_admin)
 ) -> SimpleStatus:
     wallets = await get_wallets(user_id, deleted=False)
-    if len(wallets) > 0:
-        raise HTTPException(
-            status_code=HTTPStatus.BAD_REQUEST,
-            detail="Cannot delete user with wallets.",
-        )
+    for wallet in wallets:
+        await delete_wallet_by_id(wallet.id)
 
     if user_id == settings.super_user:
         raise HTTPException(
