@@ -222,7 +222,7 @@ async def api_users_toggle_admin(user_id: str) -> SimpleStatus:
 
 @users_router.get("/user/{user_id}/wallet", name="Get wallets for user")
 async def api_users_get_user_wallet(user_id: str) -> list[Wallet]:
-    return await get_wallets(user_id)
+    return await get_wallets(user_id, deleted=True)
 
 
 @users_router.post("/user/{user_id}/wallet", name="Create a new wallet for user")
