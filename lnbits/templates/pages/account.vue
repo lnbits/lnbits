@@ -120,7 +120,7 @@
                         class="q-mb-md"
                       ></q-input>
                       <q-input
-                        v-if="g.user.has_password"
+                        v-if="g.user.hasPassword"
                         v-model="credentialsData.oldPassword"
                         type="password"
                         autocomplete="off"

@@ -13,7 +13,8 @@ window.LNbits = {
         wallets: data.wallets,
         fiat_providers: data.fiat_providers || [],
         super_user: data.super_user,
-        extra: data.extra ?? {}
+        extra: data.extra ?? {},
+        hasPassword: data.has_password ?? false
       }
       const mapWallet = this.wallet
       obj.wallets = obj.wallets.map(mapWallet).sort((a, b) => {
