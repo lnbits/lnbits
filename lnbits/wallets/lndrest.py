@@ -26,6 +26,42 @@ from .base import (
 from .macaroon import load_macaroon
 
 
+def _parse_http_error(exc: httpx.HTTPStatusError) -> str:
+    """Extract error message from HTTPStatusError response."""
+    error_message = f"HTTP {exc.response.status_code}"
+    try:
+        error_body = exc.response.json()
+        if "message" in error_body:
+            error_message = f"{error_message}: {error_body['message']}"
+        else:
+            error_message = f"{error_message}: {exc.response.text[:200]}"
+    except Exception:
+        error_message = f"{error_message}: {exc.response.text[:200]}"
+    return error_message
+
+
+def _handle_payment_status(payment: dict, checking_id: str) -> PaymentResponse:
+    """Handle LND payment status and return appropriate PaymentResponse."""
+    status = payment.get("status")
+    if status == "SUCCEEDED":
+        return PaymentResponse(
+            ok=True,
+            checking_id=checking_id,
+            fee_msat=abs(int(payment.get("fee_msat", 0))),
+            preimage=payment.get("payment_preimage"),
+        )
+    if status == "FAILED":
+        reason = payment.get("failure_reason", "unknown reason")
+        return PaymentResponse(ok=False, checking_id=checking_id, error_message=reason)
+    if status == "IN_FLIGHT":
+        return PaymentResponse(ok=None, checking_id=checking_id)
+    return PaymentResponse(
+        ok=False,
+        checking_id=checking_id,
+        error_message="Server error: 'unknown payment status returned'",
+    )
+
+
 class LndRestWallet(Wallet):
     """https://api.lightning.community/#lnd-rest-api-reference"""
 
@@ -94,15 +130,7 @@ class LndRestWallet(Wallet):
         except json.JSONDecodeError:
             return StatusResponse("Server error: 'invalid json response'", 0)
         except httpx.HTTPStatusError as exc:
-            error_message = f"HTTP {exc.response.status_code}"
-            try:
-                error_body = exc.response.json()
-                if "message" in error_body:
-                    error_message = f"{error_message}: {error_body['message']}"
-                else:
-                    error_message = f"{error_message}: {exc.response.text[:200]}"
-            except Exception:
-                error_message = f"{error_message}: {exc.response.text[:200]}"
+            error_message = _parse_http_error(exc)
             logger.warning(f"LndRestWallet status error: {error_message}")
             return StatusResponse(error_message, 0)
         except (httpx.ConnectError, httpx.ConnectTimeout) as exc:
@@ -147,17 +175,9 @@ class LndRestWallet(Wallet):
             r.raise_for_status()
             data = r.json()
 
-            if len(data) == 0:
-                return InvoiceResponse(ok=False, error_message="no data")
-
             if "error" in data:
                 return InvoiceResponse(
                     ok=False, error_message=f"""Server error: '{data["error"]}'"""
-                )
-
-            if r.is_error:
-                return InvoiceResponse(
-                    ok=False, error_message=f"Server error: '{r.text}'"
                 )
 
             if "payment_request" not in data or "r_hash" not in data:
@@ -167,10 +187,9 @@ class LndRestWallet(Wallet):
 
             payment_request = data["payment_request"]
             payment_hash = base64.b64decode(data["r_hash"]).hex()
-            checking_id = payment_hash
             return InvoiceResponse(
                 ok=True,
-                checking_id=checking_id,
+                checking_id=payment_hash,
                 payment_request=payment_request,
                 preimage=preimage,
             )
@@ -180,15 +199,7 @@ class LndRestWallet(Wallet):
                 ok=False, error_message="Server error: 'invalid json response'"
             )
         except httpx.HTTPStatusError as exc:
-            error_message = f"HTTP {exc.response.status_code}"
-            try:
-                error_body = exc.response.json()
-                if "message" in error_body:
-                    error_message = f"{error_message}: {error_body['message']}"
-                else:
-                    error_message = f"{error_message}: {exc.response.text[:200]}"
-            except Exception:
-                error_message = f"{error_message}: {exc.response.text[:200]}"
+            error_message = _parse_http_error(exc)
             logger.warning(f"LndRestWallet create_invoice error: {error_message}")
             return InvoiceResponse(ok=False, error_message=error_message)
         except (httpx.ConnectError, httpx.ConnectTimeout) as exc:
@@ -223,15 +234,7 @@ class LndRestWallet(Wallet):
                 error_message="Server error: 'invalid json response'"
             )
         except httpx.HTTPStatusError as exc:
-            error_message = f"HTTP {exc.response.status_code}"
-            try:
-                error_body = exc.response.json()
-                if "message" in error_body:
-                    error_message = f"{error_message}: {error_body['message']}"
-                else:
-                    error_message = f"{error_message}: {exc.response.text[:200]}"
-            except Exception:
-                error_message = f"{error_message}: {exc.response.text[:200]}"
+            error_message = _parse_http_error(exc)
             logger.warning(f"LndRestWallet pay_invoice error: {error_message}")
             return PaymentResponse(error_message=error_message)
         except (httpx.ConnectError, httpx.ConnectTimeout) as exc:
@@ -248,34 +251,13 @@ class LndRestWallet(Wallet):
             logger.warning(f"LndRestWallet payment_error: {payment_error}.")
             return PaymentResponse(ok=False, error_message=payment_error)
 
-        try:
-            payment = data["result"]
-            status = payment["status"]
-            checking_id = payment["payment_hash"]
-            preimage = payment["payment_preimage"]
-            fee_msat = abs(int(payment["fee_msat"]))
-        except KeyError as exc:
-            logger.warning(exc)
+        payment = data.get("result")
+        if not payment or "payment_hash" not in payment:
             return PaymentResponse(
                 error_message="Server error: 'missing required fields'"
             )
 
-        if status == "SUCCEEDED":
-            return PaymentResponse(
-                ok=True, checking_id=checking_id, fee_msat=fee_msat, preimage=preimage
-            )
-        elif status == "FAILED":
-            reason = payment.get("failure_reason", "unknown reason")
-            return PaymentResponse(
-                ok=False, checking_id=checking_id, error_message=reason
-            )
-        elif status == "IN_FLIGHT":
-            return PaymentResponse(ok=None, checking_id=checking_id)
-        return PaymentResponse(
-            ok=False,
-            checking_id=checking_id,
-            error_message="Server error: 'unknown payment status returned'",
-        )
+        return _handle_payment_status(payment, payment["payment_hash"])
 
     async def get_invoice_status(self, checking_id: str) -> PaymentStatus:
         r = await self.client.get(url=f"/v1/invoice/{checking_id}")
