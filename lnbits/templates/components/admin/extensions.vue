@@ -143,7 +143,7 @@
           </p>
           <q-input
             filled
-            v-model="formData.lnbits_reviews_url"
+            v-model="formData.lnbits_extensions_reviews_url"
             :label="$t('reviews_url_label')"
             :hint="$t('reviews_url_hint')"
             type="url"

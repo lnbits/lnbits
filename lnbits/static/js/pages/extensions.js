@@ -285,8 +285,7 @@ window.PageExtensions = {
       try {
         const {data} = await LNbits.api.request(
           'GET',
-          `/api/v1/extension/${extension.id}/releases`,
-          this.g.user.wallets[0].adminkey
+          `/api/v1/extension/${extension.id}/releases`
         )
 
         this.selectedExtensionRepos = data.reduce((repos, release) => {
@@ -335,8 +334,7 @@ window.PageExtensions = {
       try {
         const {data} = await LNbits.api.request(
           'GET',
-          `/api/v1/extension/${extId}/details?details_link=${detailsLink}`,
-          this.g.user.wallets[0].inkey
+          `/api/v1/extension/${extId}/details?details_link=${detailsLink}`
         )
 
         this.selectedExtensionDetails = data
@@ -457,7 +455,7 @@ window.PageExtensions = {
       const {data} = await LNbits.api.request(
         'PUT',
         `/api/v1/extension/${extId}/invoice/install`,
-        this.g.user.wallets[0].adminkey,
+        null,
         {
           ext_id: extId,
           archive: release.archive,
@@ -473,7 +471,7 @@ window.PageExtensions = {
       const {data} = await LNbits.api.request(
         'PUT',
         `/api/v1/extension/${extId}/invoice/enable`,
-        this.g.user.wallets[0].adminkey,
+        null,
         {
           amount
         }
@@ -564,8 +562,7 @@ window.PageExtensions = {
       try {
         const {data} = await LNbits.api.request(
           'GET',
-          `/api/v1/extension/release/${org}/${repo}/${release.version}`,
-          this.g.user.wallets[0].adminkey
+          `/api/v1/extension/release/${org}/${repo}/${release.version}`
         )
         release.loaded = true
         release.is_version_compatible = data.is_version_compatible
@@ -590,18 +587,13 @@ window.PageExtensions = {
             continue
           }
           ext.inProgress = true
-          await LNbits.api.request(
-            'POST',
-            `/api/v1/extension`,
-            this.g.user.wallets[0].adminkey,
-            {
-              ext_id: ext.id,
-              archive: ext.latestRelease.archive,
-              source_repo: ext.latestRelease.source_repo,
-              payment_hash: ext.latestRelease.payment_hash,
-              version: ext.latestRelease.version
-            }
-          )
+          await LNbits.api.request('POST', `/api/v1/extension`, null, {
+            ext_id: ext.id,
+            archive: ext.latestRelease.archive,
+            source_repo: ext.latestRelease.source_repo,
+            payment_hash: ext.latestRelease.payment_hash,
+            version: ext.latestRelease.version
+          })
           count++
           ext.isAvailable = true
           ext.isInstalled = true
@@ -632,10 +624,15 @@ window.PageExtensions = {
     },
 
     async loadReviewStats() {
-      if (!this.reviewsUrl) return
-      const url = `${this.reviewsUrl}/tags`
+      if (!this.reviewsUrl) {
+        console.info('Extension reviews are not configured')
+        return
+      }
       try {
-        const {data} = await axios.get(url, {timeout: 10000})
+        const {data} = await LNbits.api.request(
+          'GET',
+          `/api/v1/extension/reviews/tags`
+        )
         const map = {}
         data.forEach(stat => {
           map[stat.tag] = stat
@@ -670,12 +667,20 @@ window.PageExtensions = {
       await this.getTagReviews()
     },
     async getTagReviews(props) {
-      if (!this.reviewsUrl) return
+      if (!this.reviewsUrl) {
+        Quasar.Notify.create({
+          type: 'warning',
+          message: this.$t('reviews_url_not_configured')
+        })
+        return
+      }
       try {
         this.reviewsTable.loading = true
         const params = LNbits.utils.prepareFilterQuery(this.reviewsTable, props)
-        const url = `${this.reviewsUrl}/reviews/${this.selectedExtension.id}?${params}`
-        const {data} = await axios.get(url, {timeout: 10000})
+        const {data} = await LNbits.api.request(
+          'GET',
+          `/api/v1/extension/reviews/${this.selectedExtension.id}?${params}`
+        )
         this.reviews = data.data
         this.reviewsTable.pagination.rowsNumber = data.total
       } catch (e) {
@@ -705,8 +710,12 @@ window.PageExtensions = {
           rating: this.reviewsDialog.form.rating * 100,
           comment: this.reviewsDialog.form.comment
         }
-        const url = `${this.reviewsUrl}/reviews`
-        const {data} = await axios.post(url, payload, {timeout: 15000})
+        const {data} = await LNbits.api.request(
+          'PUT',
+          `/api/v1/extension/reviews`,
+          null,
+          payload
+        )
         if (data.payment_request) {
           this.openInvoiceDialog(data.payment_request, data.payment_hash)
         } else {
@@ -780,7 +789,7 @@ window.PageExtensions = {
   async created() {
     this.extensions = await this.fetchAllExtensions()
     this.extbuilderEnabled = this.g.user.admin || this.LNBITS_EXT_BUILDER
-    this.reviewsUrl = this.LNBITS_REVIEWS_URL
+    this.reviewsUrl = this.LNBITS_EXTENSIONS_REVIEWS_URL
 
     if (this.g.user.extensions.length === 0) {
       this.tab = 'all'
@@ -797,9 +806,7 @@ window.PageExtensions = {
       this.hasNewVersion(ext)
     )
 
-    if (this.reviewsUrl) {
-      await this.loadReviewStats()
-    }
+    await this.loadReviewStats()
 
     this.filterExtensions(this.searchTerm, this.tab)
   }

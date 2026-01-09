@@ -2,8 +2,10 @@ import sys
 import traceback
 from http import HTTPStatus
 
+import httpx
 from bolt11 import decode as bolt11_decode
 from fastapi import APIRouter, Depends, HTTPException
+from fastapi.requests import Request
 from loguru import logger
 
 from lnbits.core.crud.extensions import get_user_extensions
@@ -18,6 +20,7 @@ from lnbits.core.models.extensions import (
     ExtensionConfig,
     ExtensionMeta,
     ExtensionRelease,
+    ExtensionReviews,
     InstallableExtension,
     PayToEnableInfo,
     ReleasePaymentInfo,
@@ -589,3 +592,45 @@ async def extensions(account_id: AccountId = Depends(check_account_id_exists)):
         for ext in installable_exts
     ]
     return extension_data
+
+
+@extension_router.get(
+    "/reviews/tags",
+    dependencies=[Depends(check_account_exists)],
+)
+async def get_extension_reviews_tags() -> list[ExtensionReviews]:
+    async with httpx.AsyncClient() as client:
+        resp = await client.get(settings.lnbits_extensions_reviews_url + "/tags")
+        resp.raise_for_status()
+        data = resp.json()
+        return [ExtensionReviews(**item) for item in data]
+
+
+@extension_router.get(
+    "/reviews/{ext_id}",
+    dependencies=[Depends(check_account_exists)],
+)
+async def get_extension_reviews(ext_id: str, request: Request):
+    async with httpx.AsyncClient() as client:
+        query_string = str(request.query_params)
+        resp = await client.get(
+            settings.lnbits_extensions_reviews_url + f"/reviews/{ext_id}?{query_string}"
+        )
+        resp.raise_for_status()
+        data = resp.json()
+        return data
+
+
+@extension_router.put(
+    "/reviews",
+    dependencies=[Depends(check_account_exists)],
+)
+async def create_extension_review(request: Request):
+    data = await request.json()
+    async with httpx.AsyncClient() as client:
+        resp = await client.post(
+            settings.lnbits_extensions_reviews_url + "/reviews", json=data
+        )
+        resp.raise_for_status()
+        data = resp.json()
+        return data

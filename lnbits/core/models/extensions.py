@@ -777,6 +777,12 @@ class ExtensionDetailsRequest(BaseModel):
     version: str
 
 
+class ExtensionReviews(BaseModel):
+    tag: str
+    avg_rating: float
+    review_count: int
+
+
 async def github_api_get(url: str, error_msg: str | None) -> Any:
     headers = {"User-Agent": settings.user_agent}
     if settings.lnbits_ext_github_token:
