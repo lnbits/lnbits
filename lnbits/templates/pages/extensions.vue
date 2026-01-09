@@ -83,6 +83,7 @@
                 dense
                 class=""
                 v-model="searchTerm"
+                autofocus
               >
                 <template v-slot:append>
                   <q-icon
