@@ -632,8 +632,8 @@ window.PageExtensions = {
     },
 
     async loadReviewStats() {
-      if (!this.reviewsConfig) return
-      const url = `${this.reviewsConfig}/tags`
+      if (!this.reviewsUrl) return
+      const url = `${this.reviewsUrl}/tags`
       try {
         const {data} = await axios.get(url, {timeout: 10000})
         const map = {}
@@ -657,7 +657,7 @@ window.PageExtensions = {
       if (!targetExtension) {
         return
       }
-      if (!this.reviewsConfig) {
+      if (!this.reviewsUrl) {
         Quasar.Notify.create({
           type: 'warning',
           message: this.$t('reviews_url_not_configured')
@@ -669,15 +669,12 @@ window.PageExtensions = {
       this.reviewsDialog.show = true
       await this.getTagReviews()
     },
-    reviewApiUrl(path) {
-      return `${this.reviewsConfig.apiBase}${path}`
-    },
     async getTagReviews(props) {
-      if (!this.reviewsConfig) return
+      if (!this.reviewsUrl) return
       try {
         this.reviewsTable.loading = true
         const params = LNbits.utils.prepareFilterQuery(this.reviewsTable, props)
-        const url = `${this.reviewsConfig}/reviews/${this.selectedExtension.id}?${params}`
+        const url = `${this.reviewsUrl}/reviews/${this.selectedExtension.id}?${params}`
         const {data} = await axios.get(url, {timeout: 10000})
         this.reviews = data.data
         this.reviewsTable.pagination.rowsNumber = data.total
@@ -697,7 +694,7 @@ window.PageExtensions = {
       return this.utils.formatDate(val)
     },
     async submitReview() {
-      if (!this.reviewsDialog.extension || !this.reviewsConfig) {
+      if (!this.reviewsDialog.extension || !this.reviewsUrl) {
         return
       }
       this.reviewsDialog.submitting = true
@@ -708,7 +705,7 @@ window.PageExtensions = {
           rating: this.reviewsDialog.form.rating * 100,
           comment: this.reviewsDialog.form.comment
         }
-        const url = `${this.reviewsConfig}/reviews`
+        const url = `${this.reviewsUrl}/reviews`
         const {data} = await axios.post(url, payload, {timeout: 15000})
         if (data.payment_request) {
           this.openInvoiceDialog(data.payment_request, data.payment_hash)
@@ -747,7 +744,7 @@ window.PageExtensions = {
     },
     listenForPayment(hash) {
       try {
-        const base = new URL(this.reviewsConfig)
+        const base = new URL(this.reviewsUrl)
         base.protocol = base.protocol === 'https:' ? 'wss:' : 'ws:'
         base.pathname = `/api/v1/ws/${hash}`
         const ws = new WebSocket(base)
@@ -758,7 +755,10 @@ window.PageExtensions = {
           })
           this.paymentDialog.show = false
           this.resetReviewForm()
-          await this.getTagReviews()
+          setTimeout(async () => {
+            await this.getTagReviews()
+          }, 1000)
+
           await this.loadReviewStats()
           ws.close()
         })
@@ -780,9 +780,7 @@ window.PageExtensions = {
   async created() {
     this.extensions = await this.fetchAllExtensions()
     this.extbuilderEnabled = this.g.user.admin || this.LNBITS_EXT_BUILDER
-    // this.reviewsConfig = this.parseReviewsUrl(this.LNBITS_REVIEWS_URL)
-    this.reviewsConfig = this.LNBITS_REVIEWS_URL
-    console.log('### Reviews config:', this.reviewsConfig)
+    this.reviewsUrl = this.LNBITS_REVIEWS_URL
 
     if (this.g.user.extensions.length === 0) {
       this.tab = 'all'
@@ -799,7 +797,7 @@ window.PageExtensions = {
       this.hasNewVersion(ext)
     )
 
-    if (this.reviewsConfig) {
+    if (this.reviewsUrl) {
       await this.loadReviewStats()
     }
 

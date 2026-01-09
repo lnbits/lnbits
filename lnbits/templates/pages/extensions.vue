@@ -176,7 +176,7 @@
                       ? extension.reviewStats.review_count
                       : null
                   "
-                  :clickable="!!reviewsConfig"
+                  :clickable="!!reviewsUrl"
                   @click="openReviews(extension)"
                 />
                 <q-btn-group size="xs" style="margin: 5px 0">
@@ -1025,7 +1025,7 @@
                   ? selectedExtension.reviewStats.review_count
                   : null
               "
-              :clickable="!!reviewsConfig"
+              :clickable="!!reviewsUrl"
               @click="openReviews(selectedExtension)"
             ></lnbits-extension-rating>
             <div class="q-mt-md">
@@ -1123,7 +1123,7 @@
         </div>
       </q-card-section>
       <q-separator></q-separator>
-      <q-card-section v-if="!reviewsConfig">
+      <q-card-section v-if="!reviewsUrl">
         <div
           class="text-negative"
           v-text="$t('reviews_url_not_configured')"
@@ -1231,6 +1231,16 @@
             </div>
           </div>
         </div>
+      </q-card-section>
+      <q-separator v-if="reviews.length"></q-separator>
+      <q-card-section>
+        <q-btn
+          @click="reviewsDialog.show = false"
+          color="grey"
+          outline
+          class="float-right"
+          :label="$t('close')"
+        ></q-btn>
       </q-card-section>
     </q-card>
   </q-dialog>
