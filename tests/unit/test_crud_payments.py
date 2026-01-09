@@ -28,7 +28,7 @@ async def update_payments(payments):
 
 
 @pytest.mark.anyio
-async def test_crud_get_payments():
+async def test_crud_get_payments(app):
 
     user = await create_user_account()
     wallet = await create_wallet(user_id=user.id)
