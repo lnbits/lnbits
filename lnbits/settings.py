@@ -54,7 +54,10 @@ class ExtensionsSettings(LNbitsSettings):
     lnbits_extensions_builder_activate_non_admins: bool = Field(default=False)
     lnbits_extensions_reviews_url: str = Field(
         default="https://demo.lnbits.com/paidreviews/api/v1/AdFzLjzuKFLsdk4Bcnff6r",
-        description="URL for the paid reviews. Regular users can view this URL (not secret).",
+        description="""
+            URL for the paid reviews.
+            Regular users can view this URL (not secret).
+            """,
     )
     lnbits_extensions_manifests: list[str] = Field(
         default=[
