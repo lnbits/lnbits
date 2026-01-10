@@ -4,6 +4,7 @@ from typing import Any
 
 import httpx
 from loguru import logger
+from bolt11 import decode as bolt11_decode
 
 from lnbits.helpers import normalize_endpoint
 from lnbits.settings import settings
@@ -131,9 +132,18 @@ class LightsparkSparkWallet(Wallet):
     async def pay_invoice(self, bolt11: str, fee_limit_msat: int) -> PaymentResponse:
         try:
             max_fee_sats = (int(fee_limit_msat) + 999) // 1000
-            payload = {"bolt11": bolt11, "max_fee_sats": max_fee_sats}
+            payment_hash = None
+            try:
+                payment_hash = bolt11_decode(bolt11).payment_hash
+            except Exception:
+                payment_hash = None
+            payload = {
+                "bolt11": bolt11,
+                "max_fee_sats": max_fee_sats,
+                "payment_hash": payment_hash,
+            }
             res = await self._request("POST", "/v1/payments", payload)
-            checking_id = res.get("checking_id")
+            checking_id = payment_hash or res.get("checking_id")
             if not checking_id:
                 raise SparkSidecarError(
                     "Spark sidecar payment response missing checking_id."
