@@ -7,6 +7,8 @@ const HOST = process.env.SPARK_SIDECAR_HOST || '127.0.0.1'
 const API_KEY = process.env.SPARK_SIDECAR_API_KEY || ''
 const MNEMONIC = process.env.SPARK_MNEMONIC || ''
 const NETWORK = process.env.SPARK_NETWORK || 'MAINNET'
+const PAY_WAIT_MS = parseInt(process.env.SPARK_PAY_WAIT_MS || '4000', 10)
+const PAY_POLL_MS = parseInt(process.env.SPARK_PAY_POLL_MS || '500', 10)
 const ACCOUNT_NUMBER = process.env.SPARK_ACCOUNT_NUMBER
   ? parseInt(process.env.SPARK_ACCOUNT_NUMBER, 10)
   : undefined
@@ -85,6 +87,35 @@ function feeToMsat(fee) {
   }
 }
 
+const SEND_SUCCESS_STATUSES = new Set([
+  'LIGHTNING_PAYMENT_SUCCEEDED',
+  'TRANSFER_COMPLETED',
+  'PREIMAGE_PROVIDED'
+])
+const SEND_FAILURE_STATUSES = new Set([
+  'LIGHTNING_PAYMENT_FAILED',
+  'TRANSFER_FAILED',
+  'PREIMAGE_PROVIDING_FAILED',
+  'USER_TRANSFER_VALIDATION_FAILED',
+  'USER_SWAP_RETURN_FAILED'
+])
+
+function isSendTerminal(status) {
+  return SEND_SUCCESS_STATUSES.has(status) || SEND_FAILURE_STATUSES.has(status)
+}
+
+async function waitForSendStatus(wallet, requestId, timeoutMs) {
+  const deadline = Date.now() + timeoutMs
+  while (Date.now() < deadline) {
+    const payment = await wallet.getLightningSendRequest(requestId)
+    if (payment && isSendTerminal(payment.status)) {
+      return payment
+    }
+    await new Promise(resolve => setTimeout(resolve, PAY_POLL_MS))
+  }
+  return null
+}
+
 const server = http.createServer(async (req, res) => {
   const url = new URL(
     req.url || '/',
@@ -144,11 +175,22 @@ const server = http.createServer(async (req, res) => {
         ? Number(body.amount_sats)
         : undefined
       const paymentHash = body.payment_hash || null
-      const payment = await wallet.payLightningInvoice({
+      let payment = await wallet.payLightningInvoice({
         invoice: bolt11,
         maxFeeSats,
         amountSatsToSend
       })
+      if (
+        PAY_WAIT_MS > 0 &&
+        payment &&
+        payment.id &&
+        !isSendTerminal(payment.status)
+      ) {
+        const refreshed = await waitForSendStatus(wallet, payment.id, PAY_WAIT_MS)
+        if (refreshed) {
+          payment = refreshed
+        }
+      }
       if (paymentHash && payment?.id) {
         paymentHashToRequestId.set(paymentHash, payment.id)
       }
