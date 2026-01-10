@@ -578,6 +578,11 @@ class SparkFundingSource(LNbitsSettings):
     spark_token: str | None = Field(default=None)
 
 
+class SparkL2FundingSource(LNbitsSettings):
+    spark_l2_endpoint: str | None = Field(default="http://127.0.0.1:8765")
+    spark_l2_api_key: str | None = Field(default=None)
+
+
 class LnTipsFundingSource(LNbitsSettings):
     lntips_api_endpoint: str | None = Field(default=None)
     lntips_api_key: str | None = Field(default=None)
@@ -683,6 +688,7 @@ class FundingSourcesSettings(
     PhoenixdFundingSource,
     OpenNodeFundingSource,
     SparkFundingSource,
+    SparkL2FundingSource,
     LnTipsFundingSource,
     NWCFundingSource,
     BreezSdkFundingSource,
@@ -1010,6 +1016,7 @@ class SuperUserSettings(LNbitsSettings):
             "FakeWallet",
             "LNPayWallet",
             "LNbitsWallet",
+            "LightsparkSparkWallet",
             "LnTipsWallet",
             "LndRestWallet",
             "LndWallet",

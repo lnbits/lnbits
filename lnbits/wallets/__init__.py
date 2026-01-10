@@ -32,6 +32,7 @@ from .spark import SparkWallet
 from .strike import StrikeWallet
 from .void import VoidWallet
 from .zbd import ZBDWallet
+from .lightspark import LightsparkSparkWallet
 
 
 def set_funding_source(class_name: str | None = None) -> None:
@@ -76,6 +77,7 @@ __all__ = [
     "OpenNodeWallet",
     "PhoenixdWallet",
     "SparkWallet",
+    "LightsparkSparkWallet",
     "StrikeWallet",
     "VoidWallet",
     "ZBDWallet",
