@@ -186,7 +186,11 @@ const server = http.createServer(async (req, res) => {
         payment.id &&
         !isSendTerminal(payment.status)
       ) {
-        const refreshed = await waitForSendStatus(wallet, payment.id, PAY_WAIT_MS)
+        const refreshed = await waitForSendStatus(
+          wallet,
+          payment.id,
+          PAY_WAIT_MS
+        )
         if (refreshed) {
           payment = refreshed
         }
