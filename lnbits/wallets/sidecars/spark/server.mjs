@@ -17,6 +17,7 @@ if (!MNEMONIC) {
 }
 
 let walletPromise
+const paymentHashToRequestId = new Map()
 async function getWallet() {
   if (!walletPromise) {
     walletPromise = SparkWallet.initialize({
@@ -142,13 +143,17 @@ const server = http.createServer(async (req, res) => {
       const amountSatsToSend = body.amount_sats
         ? Number(body.amount_sats)
         : undefined
+      const paymentHash = body.payment_hash || null
       const payment = await wallet.payLightningInvoice({
         invoice: bolt11,
         maxFeeSats,
         amountSatsToSend
       })
+      if (paymentHash && payment?.id) {
+        paymentHashToRequestId.set(paymentHash, payment.id)
+      }
       return sendJson(res, 200, {
-        checking_id: payment.id,
+        checking_id: paymentHash || payment.id,
         status: payment.status,
         fee_msat: feeToMsat(payment.fee),
         preimage: payment.paymentPreimage || null
@@ -172,12 +177,14 @@ const server = http.createServer(async (req, res) => {
 
     if (parts.length === 3 && parts[0] === 'v1' && parts[1] === 'payments') {
       const wallet = await getWallet()
-      const payment = await wallet.getLightningSendRequest(parts[2])
+      const requestedId = parts[2]
+      const lookupId = paymentHashToRequestId.get(requestedId) || requestedId
+      const payment = await wallet.getLightningSendRequest(lookupId)
       if (!payment) {
         return sendJson(res, 404, {error: 'Not found'})
       }
       return sendJson(res, 200, {
-        checking_id: payment.id,
+        checking_id: requestedId,
         status: payment.status,
         fee_msat: feeToMsat(payment.fee),
         preimage: payment.paymentPreimage || null
