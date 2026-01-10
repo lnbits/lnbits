@@ -3,8 +3,8 @@ import json
 from typing import Any
 
 import httpx
-from loguru import logger
 from bolt11 import decode as bolt11_decode
+from loguru import logger
 
 from lnbits.helpers import normalize_endpoint
 from lnbits.settings import settings
