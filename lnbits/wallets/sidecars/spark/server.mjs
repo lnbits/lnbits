@@ -3,6 +3,7 @@ import http from 'node:http'
 import {SparkWallet} from '@buildonspark/spark-sdk'
 
 const PORT = parseInt(process.env.SPARK_SIDECAR_PORT || '8765', 10)
+const HOST = process.env.SPARK_SIDECAR_HOST || '127.0.0.1'
 const API_KEY = process.env.SPARK_SIDECAR_API_KEY || ''
 const MNEMONIC = process.env.SPARK_MNEMONIC || ''
 const NETWORK = process.env.SPARK_NETWORK || 'MAINNET'
@@ -26,6 +27,26 @@ async function getWallet() {
   }
   return walletPromise
 }
+
+async function shutdown() {
+  try {
+    if (walletPromise) {
+      const wallet = await walletPromise
+      if (wallet && typeof wallet.cleanupConnections === 'function') {
+        await wallet.cleanupConnections()
+      } else if (wallet && typeof wallet.cleanup === 'function') {
+        wallet.cleanup()
+      }
+    }
+  } catch (error) {
+    console.error('Error during Spark sidecar shutdown:', error)
+  } finally {
+    process.exit(0)
+  }
+}
+
+process.on('SIGINT', shutdown)
+process.on('SIGTERM', shutdown)
 
 function sendJson(res, statusCode, payload) {
   res.writeHead(statusCode, {'content-type': 'application/json'})
@@ -170,6 +191,14 @@ const server = http.createServer(async (req, res) => {
   }
 })
 
-server.listen(PORT, () => {
-  console.log(`Spark sidecar listening on :${PORT}`)
+server.listen(PORT, HOST, () => {
+  console.log(`Spark sidecar listening on ${HOST}:${PORT}`)
+})
+
+server.on('error', err => {
+  if (err && err.code === 'EADDRINUSE') {
+    console.error(`Spark sidecar port ${HOST}:${PORT} already in use.`)
+    process.exit(1)
+  }
+  throw err
 })
