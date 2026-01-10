@@ -229,6 +229,20 @@ window.app.component('lnbits-admin-funding-sources', {
           }
         ],
         [
+          'LightsparkSparkWallet',
+          'Spark (L2)',
+          {
+            spark_l2_endpoint: {
+              label: 'Sidecar Endpoint',
+              value: 'http://127.0.0.1:8765'
+            },
+            spark_l2_api_key: {
+              label: 'Sidecar API Key',
+              advanced: true
+            }
+          }
+        ],
+        [
           'NWCWallet',
           'Nostr Wallet Connect',
           {
