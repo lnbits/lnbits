@@ -69,7 +69,7 @@ class LightsparkSparkWallet(Wallet):
         except (httpx.RequestError, httpx.HTTPStatusError, json.JSONDecodeError) as exc:
             raise SparkSidecarError(f"Spark sidecar request failed: {exc}") from exc
 
-        if "error" in j and j["error"]:
+        if j.get("error"):
             raise SparkSidecarError(str(j["error"]))
         return j
 
@@ -114,7 +114,9 @@ class LightsparkSparkWallet(Wallet):
             bolt11 = res.get("payment_request")
             checking_id = res.get("checking_id")
             if not bolt11 or not checking_id:
-                raise SparkSidecarError("Spark sidecar invoice response missing fields.")
+                raise SparkSidecarError(
+                    "Spark sidecar invoice response missing fields."
+                )
             self.pending_invoices.append(checking_id)
 
             return InvoiceResponse(
@@ -133,7 +135,9 @@ class LightsparkSparkWallet(Wallet):
             res = await self._request("POST", "/v1/payments", payload)
             checking_id = res.get("checking_id")
             if not checking_id:
-                raise SparkSidecarError("Spark sidecar payment response missing checking_id.")
+                raise SparkSidecarError(
+                    "Spark sidecar payment response missing checking_id."
+                )
             status = res.get("status")
             fee_msat = res.get("fee_msat")
             ok = None

@@ -20,6 +20,7 @@ from .corelightning import CoreLightningWallet as CLightningWallet
 from .corelightningrest import CoreLightningRestWallet
 from .eclair import EclairWallet
 from .fake import FakeWallet
+from .lightspark import LightsparkSparkWallet
 from .lnbits import LNbitsWallet
 from .lndgrpc import LndWallet
 from .lndrest import LndRestWallet
@@ -32,7 +33,6 @@ from .spark import SparkWallet
 from .strike import StrikeWallet
 from .void import VoidWallet
 from .zbd import ZBDWallet
-from .lightspark import LightsparkSparkWallet
 
 
 def set_funding_source(class_name: str | None = None) -> None:
@@ -70,6 +70,7 @@ __all__ = [
     "FakeWallet",
     "LNPayWallet",
     "LNbitsWallet",
+    "LightsparkSparkWallet",
     "LnTipsWallet",
     "LndRestWallet",
     "LndWallet",
@@ -77,7 +78,6 @@ __all__ = [
     "OpenNodeWallet",
     "PhoenixdWallet",
     "SparkWallet",
-    "LightsparkSparkWallet",
     "StrikeWallet",
     "VoidWallet",
     "ZBDWallet",
