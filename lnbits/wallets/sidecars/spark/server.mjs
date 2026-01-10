@@ -1,170 +1,175 @@
-import http from "node:http";
+import http from 'node:http'
 
-import { SparkWallet } from "@buildonspark/spark-sdk";
+import {SparkWallet} from '@buildonspark/spark-sdk'
 
-const PORT = parseInt(process.env.SPARK_SIDECAR_PORT || "8765", 10);
-const API_KEY = process.env.SPARK_SIDECAR_API_KEY || "";
-const MNEMONIC = process.env.SPARK_MNEMONIC || "";
-const NETWORK = process.env.SPARK_NETWORK || "MAINNET";
+const PORT = parseInt(process.env.SPARK_SIDECAR_PORT || '8765', 10)
+const API_KEY = process.env.SPARK_SIDECAR_API_KEY || ''
+const MNEMONIC = process.env.SPARK_MNEMONIC || ''
+const NETWORK = process.env.SPARK_NETWORK || 'MAINNET'
 const ACCOUNT_NUMBER = process.env.SPARK_ACCOUNT_NUMBER
   ? parseInt(process.env.SPARK_ACCOUNT_NUMBER, 10)
-  : undefined;
+  : undefined
 
 if (!MNEMONIC) {
-  console.error("Missing SPARK_MNEMONIC for Spark sidecar.");
-  process.exit(1);
+  console.error('Missing SPARK_MNEMONIC for Spark sidecar.')
+  process.exit(1)
 }
 
-let walletPromise;
+let walletPromise
 async function getWallet() {
   if (!walletPromise) {
     walletPromise = SparkWallet.initialize({
       mnemonicOrSeed: MNEMONIC,
       accountNumber: ACCOUNT_NUMBER,
-      options: { network: NETWORK },
-    }).then(({ wallet }) => wallet);
+      options: {network: NETWORK}
+    }).then(({wallet}) => wallet)
   }
-  return walletPromise;
+  return walletPromise
 }
 
 function sendJson(res, statusCode, payload) {
-  res.writeHead(statusCode, { "content-type": "application/json" });
-  res.end(JSON.stringify(payload));
+  res.writeHead(statusCode, {'content-type': 'application/json'})
+  res.end(JSON.stringify(payload))
 }
 
 async function readJson(req) {
-  const chunks = [];
+  const chunks = []
   for await (const chunk of req) {
-    chunks.push(chunk);
+    chunks.push(chunk)
   }
   if (chunks.length === 0) {
-    return {};
+    return {}
   }
-  return JSON.parse(Buffer.concat(chunks).toString("utf8"));
+  return JSON.parse(Buffer.concat(chunks).toString('utf8'))
 }
 
 function feeToMsat(fee) {
   if (!fee || fee.originalValue === undefined || !fee.originalUnit) {
-    return null;
+    return null
   }
-  const value = Number(fee.originalValue);
+  const value = Number(fee.originalValue)
   if (!Number.isFinite(value)) {
-    return null;
+    return null
   }
   switch (fee.originalUnit) {
-    case "MILLISATOSHI":
-      return BigInt(Math.round(value)).toString();
-    case "SATOSHI":
-      return BigInt(Math.round(value * 1000)).toString();
-    case "BITCOIN":
-      return BigInt(Math.round(value * 100_000_000_000)).toString();
+    case 'MILLISATOSHI':
+      return BigInt(Math.round(value)).toString()
+    case 'SATOSHI':
+      return BigInt(Math.round(value * 1000)).toString()
+    case 'BITCOIN':
+      return BigInt(Math.round(value * 100_000_000_000)).toString()
     default:
-      return BigInt(Math.round(value * 1000)).toString();
+      return BigInt(Math.round(value * 1000)).toString()
   }
 }
 
 const server = http.createServer(async (req, res) => {
-  const url = new URL(req.url || "/", `http://${req.headers.host || "localhost"}`);
+  const url = new URL(
+    req.url || '/',
+    `http://${req.headers.host || 'localhost'}`
+  )
 
-  if (API_KEY && req.headers["x-api-key"] !== API_KEY) {
-    return sendJson(res, 401, { error: "Unauthorized" });
+  if (API_KEY && req.headers['x-api-key'] !== API_KEY) {
+    return sendJson(res, 401, {error: 'Unauthorized'})
   }
 
   try {
-    if (req.method === "GET" && url.pathname === "/health") {
-      return sendJson(res, 200, { status: "ok" });
+    if (req.method === 'GET' && url.pathname === '/health') {
+      return sendJson(res, 200, {status: 'ok'})
     }
 
-    if (req.method === "POST" && url.pathname === "/v1/balance") {
-      const wallet = await getWallet();
-      const balance = await wallet.getBalance();
-      const sats = BigInt(balance.balance);
+    if (req.method === 'POST' && url.pathname === '/v1/balance') {
+      const wallet = await getWallet()
+      const balance = await wallet.getBalance()
+      const sats = BigInt(balance.balance)
       return sendJson(res, 200, {
         balance_sats: sats.toString(),
-        balance_msat: (sats * 1000n).toString(),
-      });
+        balance_msat: (sats * 1000n).toString()
+      })
     }
 
-    if (req.method === "POST" && url.pathname === "/v1/invoices") {
-      const wallet = await getWallet();
-      const body = await readJson(req);
-      const amountSats = Number(body.amount_sats);
+    if (req.method === 'POST' && url.pathname === '/v1/invoices') {
+      const wallet = await getWallet()
+      const body = await readJson(req)
+      const amountSats = Number(body.amount_sats)
       if (!Number.isFinite(amountSats) || amountSats < 0) {
-        return sendJson(res, 400, { error: "Invalid amount_sats" });
+        return sendJson(res, 400, {error: 'Invalid amount_sats'})
       }
       const invoice = await wallet.createLightningInvoice({
         amountSats,
         memo: body.memo || undefined,
         descriptionHash: body.description_hash || undefined,
-        expirySeconds: body.expiry_seconds || undefined,
-      });
+        expirySeconds: body.expiry_seconds || undefined
+      })
       return sendJson(res, 200, {
         checking_id: invoice.id,
         payment_request: invoice.invoice.encodedInvoice,
         payment_hash: invoice.invoice.paymentHash,
         status: invoice.status,
-        preimage: invoice.paymentPreimage || null,
-      });
+        preimage: invoice.paymentPreimage || null
+      })
     }
 
-    if (req.method === "POST" && url.pathname === "/v1/payments") {
-      const wallet = await getWallet();
-      const body = await readJson(req);
-      const bolt11 = body.bolt11;
+    if (req.method === 'POST' && url.pathname === '/v1/payments') {
+      const wallet = await getWallet()
+      const body = await readJson(req)
+      const bolt11 = body.bolt11
       if (!bolt11) {
-        return sendJson(res, 400, { error: "Missing bolt11" });
+        return sendJson(res, 400, {error: 'Missing bolt11'})
       }
-      const maxFeeSats = Number(body.max_fee_sats || 0);
-      const amountSatsToSend = body.amount_sats ? Number(body.amount_sats) : undefined;
+      const maxFeeSats = Number(body.max_fee_sats || 0)
+      const amountSatsToSend = body.amount_sats
+        ? Number(body.amount_sats)
+        : undefined
       const payment = await wallet.payLightningInvoice({
         invoice: bolt11,
         maxFeeSats,
-        amountSatsToSend,
-      });
+        amountSatsToSend
+      })
       return sendJson(res, 200, {
         checking_id: payment.id,
         status: payment.status,
         fee_msat: feeToMsat(payment.fee),
-        preimage: payment.paymentPreimage || null,
-      });
+        preimage: payment.paymentPreimage || null
+      })
     }
 
-    const parts = url.pathname.split("/").filter(Boolean);
-    if (parts.length === 3 && parts[0] === "v1" && parts[1] === "invoices") {
-      const wallet = await getWallet();
-      const invoice = await wallet.getLightningReceiveRequest(parts[2]);
+    const parts = url.pathname.split('/').filter(Boolean)
+    if (parts.length === 3 && parts[0] === 'v1' && parts[1] === 'invoices') {
+      const wallet = await getWallet()
+      const invoice = await wallet.getLightningReceiveRequest(parts[2])
       if (!invoice) {
-        return sendJson(res, 404, { error: "Not found" });
+        return sendJson(res, 404, {error: 'Not found'})
       }
       return sendJson(res, 200, {
         checking_id: invoice.id,
         status: invoice.status,
         payment_hash: invoice.invoice.paymentHash,
-        preimage: invoice.paymentPreimage || null,
-      });
+        preimage: invoice.paymentPreimage || null
+      })
     }
 
-    if (parts.length === 3 && parts[0] === "v1" && parts[1] === "payments") {
-      const wallet = await getWallet();
-      const payment = await wallet.getLightningSendRequest(parts[2]);
+    if (parts.length === 3 && parts[0] === 'v1' && parts[1] === 'payments') {
+      const wallet = await getWallet()
+      const payment = await wallet.getLightningSendRequest(parts[2])
       if (!payment) {
-        return sendJson(res, 404, { error: "Not found" });
+        return sendJson(res, 404, {error: 'Not found'})
       }
       return sendJson(res, 200, {
         checking_id: payment.id,
         status: payment.status,
         fee_msat: feeToMsat(payment.fee),
-        preimage: payment.paymentPreimage || null,
-      });
+        preimage: payment.paymentPreimage || null
+      })
     }
 
-    return sendJson(res, 404, { error: "Not found" });
+    return sendJson(res, 404, {error: 'Not found'})
   } catch (error) {
-    const message = error instanceof Error ? error.message : String(error);
-    return sendJson(res, 500, { error: message });
+    const message = error instanceof Error ? error.message : String(error)
+    return sendJson(res, 500, {error: message})
   }
-});
+})
 
 server.listen(PORT, () => {
-  console.log(`Spark sidecar listening on :${PORT}`);
-});
+  console.log(`Spark sidecar listening on :${PORT}`)
+})
