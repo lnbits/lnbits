@@ -8,19 +8,21 @@ import os
 import sqlite3
 import sys
 
+from loguru import logger
+
 from lnbits.settings import settings
 
 try:
     import psycopg2  # type: ignore
 except ImportError:
-    print("Please install psycopg2")
+    logger.warning("Please install psycopg2")
     sys.exit(1)
 
 sqfolder = settings.lnbits_data_folder
 db_url = settings.lnbits_database_url
 
 if db_url is None:
-    print("missing LNBITS_DATABASE_URL")
+    logger.warning("missing LNBITS_DATABASE_URL")
     sys.exit(1)
 else:
     # parse postgres://lnbits:postgres@localhost:5432/lnbits
@@ -66,7 +68,7 @@ def check_db_versions(sqdb):
     postgres.close()
     connection.close()
 
-    print("Database versions OK, converting")
+    logger.info("Database versions OK, converting")
 
 
 def fix_id(seq, values):
@@ -95,11 +97,11 @@ def insert_to_pg(query, data):
             cursor.execute(query, d)
         except Exception as exc:
             if args.ignore_errors:
-                print(exc)
-                print(f"Failed to insert {d}")
+                logger.error(exc)
+                logger.error(f"Failed to insert {d}")
             else:
-                print("query:", query)
-                print("data:", d)
+                logger.error("query:", query)
+                logger.error("data:", d)
                 raise ValueError(f"Failed to insert {d}") from exc
     connection.commit()
 
@@ -110,17 +112,20 @@ def insert_to_pg(query, data):
 def migrate_core(file: str, exclude_tables: list[str] | None = None):
     if exclude_tables is None:
         exclude_tables = []
-    print(f"Migrating core: {file}")
+    logger.info(f"Migrating core: {file}")
     migrate_db(file, "public", exclude_tables)
-    print("✅ Migrated core")
+    logger.info("✅ Migrated core")
 
 
 def migrate_ext(file: str):
     filename = os.path.basename(file)
     schema = filename.replace("ext_", "").split(".")[0]
-    print(f"Migrating ext: {schema} from file {file}")
-    migrate_db(file, schema)
-    print(f"✅ Migrated ext: {schema}")
+    try:
+        logger.info(f"Migrating ext: {schema} from file {file}")
+        migrate_db(file, schema)
+        logger.info(f"✅ Migrated ext: {schema}")
+    except Exception as exc:
+        logger.error(f"🛑  Failed to migrate extension {schema}: {exc}")
 
 
 def migrate_db(file: str, schema: str, exclude_tables: list[str] | None = None):
@@ -139,7 +144,7 @@ def migrate_db(file: str, schema: str, exclude_tables: list[str] | None = None):
 
     for table in tables:
         table_name = table[0]
-        print(f"Migrating table {table_name}")
+        logger.info(f"Migrating table {table_name}")
         # hard coded skip for dbversions (already produced during startup)
         if table_name == "dbversions":
             continue
@@ -152,7 +157,7 @@ def migrate_db(file: str, schema: str, exclude_tables: list[str] | None = None):
         data = cursor.execute(f"SELECT * FROM {table_name};").fetchall()
 
         if len(data) == 0:
-            print(f"🛑 You sneaky dev! Table {table_name} is empty!")
+            logger.warning(f"🛑 You sneaky dev! Table {table_name} is empty!")
 
         insert_to_pg(q, data)
     cursor.close()
@@ -161,10 +166,42 @@ def migrate_db(file: str, schema: str, exclude_tables: list[str] | None = None):
 def build_insert_query(schema, table_name, columns):
     to_columns = ", ".join([f'"{column[1].lower()}"' for column in columns])
     values = ", ".join([to_column_type(column[2]) for column in columns])
+    on_conflict_update = build_on_conflict_query_statement(schema, table_name, columns)
     return f"""
             INSERT INTO {schema}.{table_name}({to_columns})
-            VALUES ({values});
+            VALUES ({values})
+            {on_conflict_update}
         """
+
+
+def build_on_conflict_query_statement(schema, table_name, columns):
+    unique_cols = table_unique_columns(schema, table_name)
+    if len(unique_cols) == 0:
+        return ""
+    return f"""
+        ON CONFLICT ({", ".join([f'"{col}"' for col in unique_cols])})
+        DO UPDATE SET
+        {", ".join([
+            f'"{column[1].lower()}"=EXCLUDED."{column[1].lower()}"'
+            for column in columns
+            ])}
+    """
+
+
+def table_unique_columns(schema, table_name):
+    cursor = get_postgres_cursor()
+    query = f"""
+        SELECT a.attname
+        FROM   pg_index i
+        JOIN   pg_attribute a ON a.attrelid = i.indrelid
+                             AND a.attnum = ANY(i.indkey)
+        WHERE  i.indrelid = '{schema}.{table_name}'::regclass
+        AND    i.indisunique;
+    """
+    cursor.execute(query)
+    columns = [row[0] for row in cursor.fetchall()]
+    cursor.close()
+    return columns
 
 
 def to_column_type(column_type):
@@ -218,7 +255,7 @@ parser.add_argument(
 
 args = parser.parse_args()
 
-print("Selected path: ", args.sqlite_path)
+logger.info("Selected path: ", args.sqlite_path)
 
 if os.path.isdir(args.sqlite_path):
     exclude_tables = ["dbversions"]
