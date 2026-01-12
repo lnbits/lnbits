@@ -27,7 +27,62 @@ window.PageExtensions = {
       uninstallAndDropDb: false,
       maxStars: 5,
       paylinkWebsocket: null,
-      searchToggle: false
+      searchToggle: false,
+      reviewsUrl: null,
+      reviewsDialog: {
+        show: false,
+        extension: null,
+        loading: false,
+        submitting: false,
+        form: {
+          name: '',
+          rating: 0,
+          comment: ''
+        },
+        error: null
+      },
+      reviews: [],
+      reviewsTable: {
+        loading: false,
+        columns: [
+          {
+            name: 'name',
+            align: 'left',
+            label: this.$t('Name'),
+            field: 'name',
+            sortable: true
+          },
+          {
+            name: 'comment',
+            align: 'left',
+            label: this.$t('Comment'),
+            field: 'comment'
+          },
+          {
+            name: 'created_at',
+            align: 'left',
+            label: this.$t('Date'),
+            field: 'created_at'
+          },
+          {
+            name: 'rating',
+            align: 'right',
+            label: 'Rating',
+            field: 'rating'
+          }
+        ],
+        pagination: {
+          rowsPerPage: 5,
+          sortBy: 'created_at',
+          descending: true,
+          page: 1
+        }
+      },
+      paymentDialog: {
+        show: false,
+        invoice: '',
+        hash: ''
+      }
     }
   },
   watch: {
