@@ -137,6 +137,19 @@
             :hint="$t('extension_builder_manifest_url_hint')"
           ></q-input>
         </div>
+        <div class="col-12 col-md-6">
+          <p>
+            <span v-text="$t('reviews_url')"></span>
+          </p>
+          <q-input
+            filled
+            v-model="formData.lnbits_extensions_reviews_url"
+            :label="$t('reviews_url_label')"
+            :hint="$t('reviews_url_hint')"
+            type="url"
+            autocomplete="off"
+          ></q-input>
+        </div>
       </div>
     </div>
   </q-card-section>

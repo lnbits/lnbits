@@ -12,7 +12,7 @@ from typing import Any
 
 import httpx
 from loguru import logger
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from lnbits.helpers import (
     download_url,
@@ -775,6 +775,32 @@ class ExtensionDetailsRequest(BaseModel):
     ext_id: str
     source_repo: str
     version: str
+
+
+class ExtensionReviewsStatus(BaseModel):
+    tag: str
+    avg_rating: float
+    review_count: int
+
+
+class CreateExtensionReview(BaseModel):
+    tag: str
+    name: str | None = Field(None)
+    rating: int = Field(..., ge=0, le=1000)
+    comment: str | None = Field(None)
+
+
+class ExtensionReviewPaymentRequest(BaseModel):
+    payment_hash: str
+    payment_request: str
+
+
+class ExtensionReview(BaseModel):
+    id: str
+    name: str | None = Field(default=None)
+    tag: str | None = Field(default=None)
+    rating: int = Field(default=0, ge=0, le=1000)
+    comment: str | None = Field(default=None)
 
 
 async def github_api_get(url: str, error_msg: str | None) -> Any:

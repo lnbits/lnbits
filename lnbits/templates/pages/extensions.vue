@@ -15,6 +15,7 @@
               <q-space></q-space>
 
               <q-input
+                v-if="$q.screen.gt.sm"
                 :label="$t('search_extensions')"
                 :dense="dense"
                 class="float-right q-pr-xl"
@@ -33,6 +34,14 @@
                   </q-icon>
                 </template>
               </q-input>
+              <q-btn
+                v-else
+                flat
+                icon="search"
+                @click="searchToggle = !searchToggle"
+                class="q-mr-md"
+              >
+              </q-btn>
               <q-badge
                 v-if="g.user.admin && updatableExtensions?.length"
                 @click="showUpdateAllDialog = true"
@@ -68,6 +77,25 @@
                 ><q-tooltip v-text="$t('admin_settings')"></q-tooltip
               ></q-btn>
             </q-tabs>
+            <div v-if="$q.screen.lt.sm && searchToggle" class="q-pa-sm">
+              <q-input
+                :label="$t('search_extensions')"
+                dense
+                class=""
+                v-model="searchTerm"
+                autofocus
+              >
+                <template v-slot:append>
+                  <q-icon
+                    v-if="searchTerm !== ''"
+                    name="close"
+                    @click="searchTerm = ''"
+                    class="cursor-pointer"
+                  >
+                  </q-icon>
+                </template>
+              </q-input>
+            </div>
           </div>
         </div>
       </q-card>
@@ -135,7 +163,22 @@
                 v-text="extension.name"
               ></div>
               <div style="justify-content: space-between; display: flex">
-                <lnbits-extension-rating :rating="0" />
+                <lnbits-extension-rating
+                  :rating="
+                    formatAvg(
+                      extension.reviewStats
+                        ? extension.reviewStats.avg_rating
+                        : 0
+                    )
+                  "
+                  :count="
+                    extension.reviewStats
+                      ? extension.reviewStats.review_count
+                      : null
+                  "
+                  :clickable="!!reviewsUrl"
+                  @click="openReviews(extension)"
+                />
                 <q-btn-group size="xs" style="margin: 5px 0">
                   <q-btn
                     v-if="extension.hasFreeRelease"
@@ -970,8 +1013,20 @@
           </div>
           <div class="col-sm-12 col-md-4 q-pl-sm">
             <lnbits-extension-rating
-              :rating="0"
-              size="2.5em"
+              :rating="
+                formatAvg(
+                  selectedExtension && selectedExtension.reviewStats
+                    ? selectedExtension.reviewStats.avg_rating
+                    : 0
+                )
+              "
+              :count="
+                selectedExtension && selectedExtension.reviewStats
+                  ? selectedExtension.reviewStats.review_count
+                  : null
+              "
+              :clickable="!!reviewsUrl"
+              @click="openReviews(selectedExtension)"
             ></lnbits-extension-rating>
             <div class="q-mt-md">
               <b>
@@ -1027,6 +1082,182 @@
           </div>
         </div>
       </q-card-section>
+    </q-card>
+  </q-dialog>
+  <q-dialog v-model="reviewsDialog.show" position="top">
+    <q-card
+      class="q-pa-md lnbits__dialog-card"
+      style="width: 900px; max-width: 95vw"
+    >
+      <q-card-section class="q-gutter-y-sm">
+        <div class="row items-center">
+          <div class="col">
+            <div
+              class="text-h6"
+              v-text="
+                (reviewsDialog.extension && reviewsDialog.extension.name) ||
+                (reviewsDialog.extension && reviewsDialog.extension.id)
+              "
+            ></div>
+            <div
+              class="text-caption text-grey"
+              v-text="reviewsDialog.extension && reviewsDialog.extension.id"
+            ></div>
+          </div>
+          <div class="col-auto">
+            <lnbits-extension-rating
+              :rating="
+                formatAvg(
+                  reviewsDialog.extension && reviewsDialog.extension.reviewStats
+                    ? reviewsDialog.extension.reviewStats.avg_rating
+                    : 0
+                )
+              "
+              :count="
+                reviewsDialog.extension && reviewsDialog.extension.reviewStats
+                  ? reviewsDialog.extension.reviewStats.review_count
+                  : null
+              "
+            ></lnbits-extension-rating>
+          </div>
+        </div>
+      </q-card-section>
+      <q-separator></q-separator>
+      <q-card-section v-if="!reviewsUrl">
+        <div
+          class="text-negative"
+          v-text="$t('reviews_url_not_configured')"
+        ></div>
+      </q-card-section>
+      <q-card-section v-else>
+        <div v-if="reviewsDialog.loading" class="row justify-center q-pa-lg">
+          <q-spinner-bars color="primary" size="2.55em"></q-spinner-bars>
+        </div>
+        <div v-else>
+          <div v-if="reviewsDialog.error" class="text-negative q-mb-md">
+            <span v-text="reviewsDialog.error"></span>
+          </div>
+
+          <q-form @submit="submitReview" class="q-gutter-md">
+            <div class="row q-col-gutter-lg">
+              <div class="col-12 col-md-6">
+                <q-input
+                  dense
+                  filled
+                  v-model="reviewsDialog.form.name"
+                  :label="$t('reviews_name')"
+                ></q-input>
+              </div>
+              <div class="col-12 col-md-6">
+                <q-rating
+                  v-model="reviewsDialog.form.rating"
+                  max="10"
+                  icon="star_border"
+                  icon-selected="star"
+                  icon-half="star_half"
+                  color="primary"
+                  class="float-right"
+                ></q-rating>
+              </div>
+              <div class="col-12 col-md-6">
+                <q-input
+                  dense
+                  filled
+                  type="textarea"
+                  autogrow
+                  v-model="reviewsDialog.form.comment"
+                  :label="$t('reviews_comment')"
+                ></q-input>
+              </div>
+
+              <div class="col-12 col-md-6">
+                <q-btn
+                  type="submit"
+                  color="primary"
+                  class="float-right"
+                  unelevated
+                  :loading="reviewsDialog.submitting"
+                  :disable="!reviewsDialog.form.rating"
+                  :label="$t('reviews_submit')"
+                ></q-btn>
+              </div>
+            </div>
+          </q-form>
+          <q-separator class="q-my-md"></q-separator>
+          <div class="row q-col-gutter-lg">
+            <div class="col-12">
+              <div v-if="reviews.length === 0" class="text-grey q-mb-md">
+                <span v-text="$t('no_reviews')"></span>
+              </div>
+              <div v-else>
+                <q-table
+                  :rows="reviews"
+                  :columns="reviewsTable.columns"
+                  v-model:pagination="reviewsTable.pagination"
+                  @request="getTagReviews"
+                  :loading="reviewsTable.loading"
+                  row-key="name"
+                  :filter="reviewsTable.search"
+                >
+                  <template v-slot:body="props">
+                    <q-tr :props="props">
+                      <q-td key="name" :props="props">
+                        <span v-text="props.row.name"></span>
+                      </q-td>
+                      <q-td key="comment" :props="props">
+                        <span v-text="props.row.comment"></span>
+                      </q-td>
+                      <q-td key="created_at" :props="props">
+                        <span
+                          v-text="formatReviewDate(props.row.created_at)"
+                        ></span>
+                      </q-td>
+                      <q-td key="rating" :props="props">
+                        <q-rating
+                          class="float-right q-pt-xs"
+                          readonly
+                          icon="star_border"
+                          icon-selected="star"
+                          icon-half="star_half"
+                          :model-value="formatAvg(props.row.rating)"
+                          size="sm"
+                          color="secondary"
+                        ></q-rating>
+                      </q-td>
+                    </q-tr>
+                  </template>
+                </q-table>
+              </div>
+            </div>
+          </div>
+        </div>
+      </q-card-section>
+      <q-separator v-if="reviews.length"></q-separator>
+      <q-card-section>
+        <q-btn
+          @click="reviewsDialog.show = false"
+          color="grey"
+          outline
+          class="float-right"
+          :label="$t('close')"
+        ></q-btn>
+      </q-card-section>
+    </q-card>
+  </q-dialog>
+  <q-dialog v-model="paymentDialog.show" position="top">
+    <q-card class="q-pa-md lnbits__dialog-card">
+      <q-card-section>
+        <q-responsive :ratio="1" class="q-mx-xl q-mb-xl">
+          <lnbits-qrcode
+            :value="paymentDialog.invoice"
+            :options="{width: 800}"
+            class="rounded-borders"
+          ></lnbits-qrcode>
+        </q-responsive>
+      </q-card-section>
+      <q-card-actions align="between">
+        <q-btn v-close-popup flat color="grey" :label="$t('close')"></q-btn>
+      </q-card-actions>
     </q-card>
   </q-dialog>
   <q-dialog v-model="showUpdateAllDialog" position="top">

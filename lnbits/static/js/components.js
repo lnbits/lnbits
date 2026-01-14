@@ -3,7 +3,34 @@ window.app.component(QrcodeVue)
 window.app.component('lnbits-extension-rating', {
   template: '#lnbits-extension-rating',
   name: 'lnbits-extension-rating',
-  props: ['rating']
+  props: {
+    rating: {
+      type: Number,
+      default: 0
+    },
+    count: {
+      type: Number,
+      default: null
+    },
+    clickable: {
+      type: Boolean,
+      default: false
+    }
+  },
+  computed: {
+    displayRating() {
+      return Math.round((this.rating || 0) * 2) / 2
+    },
+    hasData() {
+      return this.count !== null && this.count !== undefined
+    }
+  },
+  methods: {
+    handleClick() {
+      if (!this.clickable) return
+      this.$emit('click')
+    }
+  }
 })
 
 window.app.component('lnbits-fsat', {

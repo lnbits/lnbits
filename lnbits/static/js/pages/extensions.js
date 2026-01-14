@@ -26,7 +26,63 @@ window.PageExtensions = {
       selectedRelease: null,
       uninstallAndDropDb: false,
       maxStars: 5,
-      paylinkWebsocket: null
+      paylinkWebsocket: null,
+      searchToggle: false,
+      reviewsUrl: null,
+      reviewsDialog: {
+        show: false,
+        extension: null,
+        loading: false,
+        submitting: false,
+        form: {
+          name: '',
+          rating: 0,
+          comment: ''
+        },
+        error: null
+      },
+      reviews: [],
+      reviewsTable: {
+        loading: false,
+        columns: [
+          {
+            name: 'name',
+            align: 'left',
+            label: this.$t('Name'),
+            field: 'name',
+            sortable: true
+          },
+          {
+            name: 'comment',
+            align: 'left',
+            label: this.$t('Comment'),
+            field: 'comment'
+          },
+          {
+            name: 'created_at',
+            align: 'left',
+            label: this.$t('Date'),
+            field: 'created_at'
+          },
+          {
+            name: 'rating',
+            align: 'right',
+            label: 'Rating',
+            field: 'rating'
+          }
+        ],
+        pagination: {
+          rowsPerPage: 5,
+          sortBy: 'created_at',
+          descending: true,
+          page: 1
+        }
+      },
+      paymentDialog: {
+        show: false,
+        invoice: '',
+        hash: ''
+      }
     }
   },
   watch: {
@@ -71,7 +127,6 @@ window.PageExtensions = {
       // the install logic has been triggered one way or another
       this.unsubscribeFromPaylinkWs()
 
-      const extension = this.selectedExtension
       this.selectedExtension.inProgress = true
       this.showManageExtensionDialog = false
       release.payment_hash =
@@ -285,8 +340,7 @@ window.PageExtensions = {
       try {
         const {data} = await LNbits.api.request(
           'GET',
-          `/api/v1/extension/${extension.id}/releases`,
-          this.g.user.wallets[0].adminkey
+          `/api/v1/extension/${extension.id}/releases`
         )
 
         this.selectedExtensionRepos = data.reduce((repos, release) => {
@@ -324,6 +378,9 @@ window.PageExtensions = {
       if (!detailsLink) {
         return
       }
+      // keep a reference to the extension so we can show rating stats
+      this.selectedExtension =
+        this.extensions.find(ext => ext.id === extId) || this.selectedExtension
       this.selectedExtensionDetails = null
       this.showExtensionDetailsDialog = true
       this.slide = 0
@@ -332,8 +389,7 @@ window.PageExtensions = {
       try {
         const {data} = await LNbits.api.request(
           'GET',
-          `/api/v1/extension/${extId}/details?details_link=${detailsLink}`,
-          this.g.user.wallets[0].inkey
+          `/api/v1/extension/${extId}/details?details_link=${detailsLink}`
         )
 
         this.selectedExtensionDetails = data
@@ -454,7 +510,7 @@ window.PageExtensions = {
       const {data} = await LNbits.api.request(
         'PUT',
         `/api/v1/extension/${extId}/invoice/install`,
-        this.g.user.wallets[0].adminkey,
+        null,
         {
           ext_id: extId,
           archive: release.archive,
@@ -470,7 +526,7 @@ window.PageExtensions = {
       const {data} = await LNbits.api.request(
         'PUT',
         `/api/v1/extension/${extId}/invoice/enable`,
-        this.g.user.wallets[0].adminkey,
+        null,
         {
           amount
         }
@@ -561,8 +617,7 @@ window.PageExtensions = {
       try {
         const {data} = await LNbits.api.request(
           'GET',
-          `/api/v1/extension/release/${org}/${repo}/${release.version}`,
-          this.g.user.wallets[0].adminkey
+          `/api/v1/extension/release/${org}/${repo}/${release.version}`
         )
         release.loaded = true
         release.is_version_compatible = data.is_version_compatible
@@ -587,18 +642,13 @@ window.PageExtensions = {
             continue
           }
           ext.inProgress = true
-          await LNbits.api.request(
-            'POST',
-            `/api/v1/extension`,
-            this.g.user.wallets[0].adminkey,
-            {
-              ext_id: ext.id,
-              archive: ext.latestRelease.archive,
-              source_repo: ext.latestRelease.source_repo,
-              payment_hash: ext.latestRelease.payment_hash,
-              version: ext.latestRelease.version
-            }
-          )
+          await LNbits.api.request('POST', `/api/v1/extension`, null, {
+            ext_id: ext.id,
+            archive: ext.latestRelease.archive,
+            source_repo: ext.latestRelease.source_repo,
+            payment_hash: ext.latestRelease.payment_hash,
+            version: ext.latestRelease.version
+          })
           count++
           ext.isAvailable = true
           ext.isInstalled = true
@@ -623,6 +673,163 @@ window.PageExtensions = {
       })
       this.showUpdateAllDialog = false
     },
+    formatAvg(raw) {
+      const val = Number(raw || 0)
+      return Math.round((val / 2 / 100) * 2) / 2
+    },
+
+    async loadReviewStats() {
+      if (!this.reviewsUrl) {
+        console.info('Extension reviews are not configured')
+        return
+      }
+      try {
+        const {data} = await LNbits.api.request(
+          'GET',
+          `/api/v1/extension/reviews/tags`
+        )
+        const map = {}
+        data.forEach(stat => {
+          map[stat.tag] = stat
+        })
+        this.extensions.forEach(ext => {
+          ext.reviewStats = map[ext.id] || null
+        })
+        this.filterExtensions(this.searchTerm, this.tab)
+      } catch (error) {
+        console.warn(error)
+      }
+    },
+    async openReviews(extension) {
+      const targetExtension =
+        extension ||
+        (this.selectedExtensionDetails
+          ? this.extensions.find(e => e.id === this.selectedExtensionDetails.id)
+          : null)
+      if (!targetExtension) {
+        return
+      }
+      if (!this.reviewsUrl) {
+        Quasar.Notify.create({
+          type: 'warning',
+          message: this.$t('reviews_url_not_configured')
+        })
+        return
+      }
+      this.reviewsDialog.extension = targetExtension
+      this.selectedExtension = extension
+      this.reviewsDialog.show = true
+      await this.getTagReviews()
+    },
+    async getTagReviews(props) {
+      if (!this.reviewsUrl) {
+        Quasar.Notify.create({
+          type: 'warning',
+          message: this.$t('reviews_url_not_configured')
+        })
+        return
+      }
+      try {
+        this.reviewsTable.loading = true
+        const params = LNbits.utils.prepareFilterQuery(this.reviewsTable, props)
+        const {data} = await LNbits.api.request(
+          'GET',
+          `/api/v1/extension/reviews/${this.selectedExtension.id}?${params}`
+        )
+        this.reviews = data.data
+        this.reviewsTable.pagination.rowsNumber = data.total
+      } catch (e) {
+        LNbits.utils.notifyApiError(e)
+      } finally {
+        this.reviewsTable.loading = false
+      }
+    },
+
+    formatReviewDate(val) {
+      if (!val) return ''
+      const numeric = Number(val)
+      if (!Number.isNaN(numeric)) {
+        return this.utils.formatTimestamp(numeric)
+      }
+      return this.utils.formatDate(val)
+    },
+    async submitReview() {
+      if (!this.reviewsDialog.extension || !this.reviewsUrl) {
+        return
+      }
+      this.reviewsDialog.submitting = true
+      try {
+        const payload = {
+          tag: this.reviewsDialog.extension.id,
+          name: this.reviewsDialog.form.name,
+          rating: this.reviewsDialog.form.rating * 100,
+          comment: this.reviewsDialog.form.comment
+        }
+        const {data} = await LNbits.api.request(
+          'PUT',
+          `/api/v1/extension/reviews`,
+          null,
+          payload
+        )
+        if (data.payment_request) {
+          this.openInvoiceDialog(data.payment_request, data.payment_hash)
+        } else {
+          Quasar.Notify.create({
+            type: 'positive',
+            message: 'Review submitted'
+          })
+          this.resetReviewForm()
+          await this.getTagReviews()
+          await this.loadReviewStats()
+        }
+      } catch (error) {
+        LNbits.utils.notifyApiError(error)
+      } finally {
+        this.reviewsDialog.submitting = false
+      }
+    },
+    openInvoiceDialog(invoice, hash) {
+      this.paymentDialog.invoice = invoice
+      this.paymentDialog.hash = hash
+      this.paymentDialog.show = true
+      this.listenForPayment(hash)
+    },
+    resetReviewForm() {
+      this.reviewsDialog.form = {
+        name: '',
+        rating: 0,
+        comment: ''
+      }
+      this.paymentDialog = {
+        show: false,
+        invoice: '',
+        hash: ''
+      }
+    },
+    listenForPayment(hash) {
+      try {
+        const base = new URL(this.reviewsUrl)
+        base.protocol = base.protocol === 'https:' ? 'wss:' : 'ws:'
+        base.pathname = `/api/v1/ws/${hash}`
+        const ws = new WebSocket(base)
+        ws.addEventListener('message', async () => {
+          Quasar.Notify.create({
+            type: 'positive',
+            message: this.$t('reviews_invoice_paid')
+          })
+          this.paymentDialog.show = false
+          this.resetReviewForm()
+          setTimeout(async () => {
+            await this.getTagReviews()
+          }, 1000)
+
+          await this.loadReviewStats()
+          ws.close()
+        })
+      } catch (error) {
+        console.warn(error)
+      }
+    },
     async fetchAllExtensions() {
       try {
         const {data} = await LNbits.api.request('GET', `/api/v1/extension/all`)
@@ -637,6 +844,7 @@ window.PageExtensions = {
   async created() {
     this.extensions = await this.fetchAllExtensions()
     this.extbuilderEnabled = this.g.user.admin || this.LNBITS_EXT_BUILDER
+    this.reviewsUrl = this.LNBITS_EXTENSIONS_REVIEWS_URL
 
     if (this.g.user.extensions.length === 0) {
       this.tab = 'all'
@@ -652,6 +860,8 @@ window.PageExtensions = {
     this.updatableExtensions = this.extensions.filter(ext =>
       this.hasNewVersion(ext)
     )
+
+    await this.loadReviewStats()
 
     this.filterExtensions(this.searchTerm, this.tab)
   }

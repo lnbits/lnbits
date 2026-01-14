@@ -107,6 +107,7 @@ def template_renderer(additional_folders: list | None = None) -> Jinja2Templates
         "LNBITS_DEFAULT_BGIMAGE": settings.lnbits_default_bgimage,
         "VOIDWALLET": settings.lnbits_backend_wallet_class == "VoidWallet",
         "WEBPUSH_PUBKEY": settings.lnbits_webpush_pubkey,
+        "LNBITS_EXTENSIONS_REVIEWS_URL": settings.lnbits_extensions_reviews_url,
         "LNBITS_DENOMINATION": settings.lnbits_denomination,
         "has_holdinvoice": settings.has_holdinvoice,
         "LNBITS_NOSTR_CONFIGURED": settings.is_nostr_notifications_configured(),
