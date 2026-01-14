@@ -1,6 +1,7 @@
+import asyncio
 import hashlib
 import json
-from typing import Any
+from typing import Any, AsyncGenerator
 
 import httpx
 from bolt11 import decode as bolt11_decode
@@ -238,3 +239,46 @@ class LightsparkSparkWallet(Wallet):
         if mapped.failed:
             return False
         return None
+
+    async def _poll_pending_invoices(self) -> AsyncGenerator[str, None]:
+        while settings.lnbits_running:
+            for invoice in list(self.pending_invoices):
+                try:
+                    status = await self.get_invoice_status(invoice)
+                    if status.paid:
+                        yield invoice
+                        self.pending_invoices.remove(invoice)
+                    elif status.failed:
+                        self.pending_invoices.remove(invoice)
+                except Exception as exc:
+                    logger.error(f"could not get status of invoice {invoice}: '{exc}' ")
+            await asyncio.sleep(5)
+
+    async def paid_invoices_stream(self) -> AsyncGenerator[str, None]:
+        stream_path = "/v1/invoices/stream"
+        while settings.lnbits_running:
+            try:
+                async with self.client.stream("GET", stream_path, timeout=None) as r:
+                    if r.status_code in {404, 405}:
+                        logger.warning(
+                            "Spark sidecar invoice stream not available, "
+                            "falling back to polling."
+                        )
+                        async for checking_id in self._poll_pending_invoices():
+                            yield checking_id
+                        return
+                    r.raise_for_status()
+                    logger.info("connected to Spark sidecar invoice stream.")
+                    async for line in r.aiter_lines():
+                        if not line or not line.startswith("data:"):
+                            continue
+                        data = json.loads(line[5:].strip())
+                        checking_id = data.get("checking_id")
+                        if checking_id:
+                            yield checking_id
+            except Exception as exc:
+                logger.error(
+                    "lost connection to Spark sidecar invoice stream: "
+                    f"'{exc}' retrying in 5 seconds"
+                )
+                await asyncio.sleep(5)
