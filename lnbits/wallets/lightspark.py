@@ -1,7 +1,8 @@
 import asyncio
 import hashlib
 import json
-from typing import Any, AsyncGenerator
+from collections.abc import AsyncGenerator
+from typing import Any
 
 import httpx
 from bolt11 import decode as bolt11_decode
