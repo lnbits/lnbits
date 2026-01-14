@@ -195,7 +195,23 @@ def _copy_ext_stub_to_build_dir(
     ext_build_dir = Path(working_dir, new_ext_id, working_dir_name, new_ext_id)
     shutil.rmtree(ext_build_dir, True)
 
-    shutil.copytree(ext_stub_cache_dir, ext_build_dir)
+    shutil.copytree(
+        ext_stub_cache_dir,
+        ext_build_dir,
+        ignore=shutil.ignore_patterns(
+            "__pycache__",
+            ".git",
+            ".env",
+            ".venv",
+            "*.env",
+            "*.log",
+            "node_modules",
+            ".mypy_cache",
+            ".pytest_cache",
+            ".ruff_cache",
+            ".github",
+        ),
+    )
     return ext_build_dir
 
 
@@ -209,7 +225,7 @@ def _replace_jinja_placeholders(data: ExtensionData, ext_stub_dir: Path) -> None
 
         _remove_lines_with_string(template_path, remove_line_marker)
 
-    template_path = Path(ext_stub_dir, "static", "js", "index.js").as_posix()
+    template_path = Path(ext_stub_dir, "static", "index.js").as_posix()
     rederer = _render_file(
         template_path, {"preview": data.preview_action, **parsed_data}
     )
@@ -234,9 +250,7 @@ def _replace_jinja_placeholders(data: ExtensionData, ext_stub_dir: Path) -> None
         "settingsFormDialog.data",
         ext_stub_dir,
     )
-    template_path = Path(
-        ext_stub_dir, "templates", "extension_builder_stub", "index.html"
-    ).as_posix()
+    template_path = Path(ext_stub_dir, "static", "index.vue").as_posix()
     rederer = _render_file(
         template_path,
         {
@@ -263,9 +277,7 @@ def _replace_jinja_placeholders(data: ExtensionData, ext_stub_dir: Path) -> None
         "publicClientData",
         ext_stub_dir,
     )
-    public_template_path = Path(
-        ext_stub_dir, "templates", "extension_builder_stub", "public_page.html"
-    )
+    public_template_path = Path(ext_stub_dir, "static", "public_page.vue")
     template_path = public_template_path.as_posix()
     if not data.public_page.has_public_page:
         public_template_path.unlink(missing_ok=True)
@@ -328,7 +340,7 @@ def _rename_extension_builder_stub(data: ExtensionData, extension_dir: Path) -> 
             directory=extension_dir_path,
             old_text=old_text,
             new_text=new_text,
-            file_extensions=[".py", ".js", ".html", ".md", ".json", ".toml"],
+            file_extensions=[".py", ".js", ".vue", ".html", ".md", ".json", ".toml"],
         )
 
     _rename_files_and_dirs_in_directory(
@@ -536,7 +548,7 @@ def _rename_files_and_dirs_in_directory(directory, old_text, new_text):
                     logger.warning(f"Failed to rename directory {old_dir_path}: {e}")
 
 
-def _is_excluded_dir(path):
+def _is_excluded_dir(path: str) -> bool:
     for excluded_dir in excluded_dirs:
         if path.startswith(excluded_dir):
             return True
