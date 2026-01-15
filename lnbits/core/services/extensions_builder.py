@@ -444,6 +444,15 @@ def _parse_extension_data(data: ExtensionData) -> dict:
             ],
             "db_fields": [field.field_to_db() for field in data.owner_data.fields],
             "all_fields": [field.field_to_py() for field in data.owner_data.fields],
+            "public_fields": [
+                field.field_to_py()
+                for field in data.owner_data.fields
+                if field.name
+                in [
+                    data.public_page.owner_data_fields.name,
+                    data.public_page.owner_data_fields.description,
+                ]
+            ],
         },
         "client_data": {
             "name": data.client_data.name,
