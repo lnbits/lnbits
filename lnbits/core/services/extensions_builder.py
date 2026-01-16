@@ -217,7 +217,8 @@ def _copy_ext_stub_to_build_dir(
 
 def _replace_jinja_placeholders(data: ExtensionData, ext_stub_dir: Path) -> None:
     parsed_data = _parse_extension_data(data)
-    for py_file in py_files:
+    test_files = [f"tests/{p.name}" for p in Path(ext_stub_dir, "tests").glob("*.py")]
+    for py_file in py_files + test_files:
         template_path = Path(ext_stub_dir, py_file).as_posix()
         rederer = _render_file(template_path, parsed_data)
         with open(template_path, "w", encoding="utf-8") as f:
@@ -418,6 +419,7 @@ def _parse_extension_data(data: ExtensionData) -> dict:
         "owner_data": {
             "name": data.owner_data.name,
             "editable": data.owner_data.editable,
+            "fields": [field.name for field in data.owner_data.fields],
             "js_fields": [
                 field.field_to_js()
                 for field in data.owner_data.fields
@@ -444,6 +446,9 @@ def _parse_extension_data(data: ExtensionData) -> dict:
             ],
             "db_fields": [field.field_to_db() for field in data.owner_data.fields],
             "all_fields": [field.field_to_py() for field in data.owner_data.fields],
+            "random_fields_values": [
+                field.field_to_random_value() for field in data.owner_data.fields
+            ],
             "public_fields": [
                 field.field_to_py()
                 for field in data.owner_data.fields
@@ -478,6 +483,9 @@ def _parse_extension_data(data: ExtensionData) -> dict:
             ],
             "db_fields": [field.field_to_db() for field in data.client_data.fields],
             "all_fields": [field.field_to_py() for field in data.client_data.fields],
+            "random_fields_values": [
+                field.field_to_random_value() for field in data.client_data.fields
+            ],
         },
         "settings_data": {
             "enabled": data.settings_data.enabled,
