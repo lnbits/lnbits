@@ -144,6 +144,7 @@
       "js/components/lnbits-language-dropdown.js",
       "js/components/lnbits-payment-list.js",
       "js/components/lnbits-label-selector.js",
+      "js/components/lnbits-preview.js",
       "js/components/extension-settings.js",
       "js/components/data-fields.js",
       "js/components.js",

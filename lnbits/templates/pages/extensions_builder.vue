@@ -191,12 +191,11 @@
         >
           <div class="row q-col-gutter-md q-mt-md">
             <div class="col-md-8 col-sm-12">
-              <iframe
-                ref="iframeStep3"
-                class="full-width"
-                height="400px"
-                sandbox="allow-scripts allow-same-origin"
-              ></iframe>
+              <lnbits-preview
+                name="PageBitcoinswitch"
+                template="/bitcoinswitch/static/index.vue"
+                component="/bitcoinswitch/static/index.js"
+              ></lnbits-preview>
             </div>
             <div class="col-md-4 col-sm-12">
               <q-btn
