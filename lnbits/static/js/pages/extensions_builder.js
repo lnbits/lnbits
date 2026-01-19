@@ -288,11 +288,10 @@ window.PageExtensionBuilder = {
           `/api/v1/extension/${stub_ext_id}/releases`
         )
 
-        this.extensionStubVersions = data.sort((a, b) =>
-          a.version < b.version ? 1 : -1
-        )
-        this.extensionData.stub_version = this.extensionStubVersions[0]
-          ? this.extensionStubVersions[0].version
+        this.extensionStubVersions = data
+        const validVersions = data.filter(v => v.is_version_compatible)
+        this.extensionData.stub_version = validVersions[0]
+          ? validVersions[0].version
           : ''
       } catch (error) {
         LNbits.utils.notifyApiError(error)

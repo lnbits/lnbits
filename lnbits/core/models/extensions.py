@@ -269,10 +269,30 @@ class ExtensionRelease(BaseModel):
     async def get_github_releases(cls, org: str, repo: str) -> list[ExtensionRelease]:
         try:
             github_releases = await cls.fetch_github_releases(org, repo)
-            return [
+            extension_releases = [
                 ExtensionRelease.from_github_release(f"{org}/{repo}", r)
                 for r in github_releases
             ]
+            for release in extension_releases:
+                if not release.details_link:
+                    continue
+                try:
+                    config = await ExtensionConfig.fetch_github_release_config(
+                        org, repo, release.version
+                    )
+                except Exception as e:
+                    logger.warning(e)
+                    config = None
+                if not config:
+                    continue
+
+                release.min_lnbits_version = config.min_lnbits_version
+                release.max_lnbits_version = config.max_lnbits_version
+                release.is_version_compatible = config.is_version_compatible()
+
+                release.icon = icon_to_github_url(f"{org}/{repo}", config.tile)
+
+            return extension_releases
         except Exception as e:
             logger.warning(e)
             return []
