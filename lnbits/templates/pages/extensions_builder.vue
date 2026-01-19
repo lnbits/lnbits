@@ -191,11 +191,19 @@
         >
           <div class="row q-col-gutter-md q-mt-md">
             <div class="col-md-8 col-sm-12">
-              <lnbits-preview
-                name="PageBitcoinswitch"
-                template="/bitcoinswitch/static/index.vue"
-                component="/bitcoinswitch/static/index.js"
-              ></lnbits-preview>
+              <q-scroll-area style="height: 30vh" class="full-width">
+                <lnbits-preview
+                  name="Pagetest_ext_03"
+                  template="/extensions/builder/preview/test_ext_03/template?page_name="
+                  component="/extensions/builder/preview/test_ext_03/component?page_name="
+                ></lnbits-preview>
+              </q-scroll-area>
+              <!-- <iframe
+                ref="iframeStep3"
+                class="full-width"
+                height="400px"
+                sandbox="allow-scripts allow-same-origin"
+              ></iframe> -->
             </div>
             <div class="col-md-4 col-sm-12">
               <q-btn
