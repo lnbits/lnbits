@@ -34,14 +34,6 @@ window.PageExtensionBuilderPreview = {
     this.pageName = urlParams.get('page') || ''
     this.component = urlParams.get('component') || ''
 
-    console.log(
-      '### Preview params',
-      this.extId,
-      ':',
-      this.pageName,
-      ':',
-      this.component
-    ) // --- IGNORE ---
     await this.reload()
   },
   render() {

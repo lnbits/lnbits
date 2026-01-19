@@ -191,14 +191,6 @@
         >
           <div class="row q-col-gutter-md q-mt-md">
             <div class="col-md-8 col-sm-12">
-              <!-- <q-scroll-area style="height: 30vh" class="full-width">
-                <lnbits-preview
-                  ref="iframeStep3"
-                  name="Pagetest_ext_03"
-                  template="/extensions/builder/preview/test_ext_03/template?page_name="
-                  component="/extensions/builder/preview/test_ext_03/component?page_name="
-                ></lnbits-preview>
-              </q-scroll-area> -->
               <iframe
                 ref="iframeStep3"
                 class="full-width"
