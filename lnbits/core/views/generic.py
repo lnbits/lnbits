@@ -192,6 +192,9 @@ admin_ui_checks = [Depends(check_admin), Depends(check_admin_ui)]
 @generic_router.get(
     "/extensions/builder", dependencies=[Depends(check_extension_builder)]
 )
+@generic_router.get(
+    "/extensions/builder/preview", dependencies=[Depends(check_extension_builder)]
+)
 async def index(
     request: Request, user: User = Depends(check_user_exists)
 ) -> HTMLResponse:

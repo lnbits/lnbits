@@ -77,10 +77,6 @@ window.PageExtensionBuilder = {
         {label: 'Client Data', value: 'client_data'},
         {label: 'Owner Data', value: 'owner_data'}
       ],
-      previewConfig: {
-        template: '',
-        component: ''
-      },
       extensionStubVersions: []
     }
   },
@@ -303,23 +299,23 @@ window.PageExtensionBuilder = {
       }
     },
     refreshIframe(previewPageName = '') {
-      // const iframe = this.$refs[`iframeStep${this.step}`]
-      // if (!iframe) {
-      //   console.warn('Extension Builder Preview iframe not loaded yet.')
-      //   return
-      // }
-      // iframe.onload = () => {
-      //   const iframeDoc =
-      //     iframe.contentDocument || iframe.contentWindow.document
+      const iframe = this.$refs[`iframeStep${this.step}`]
+      if (!iframe) {
+        console.warn('Extension Builder Preview iframe not loaded yet.')
+        return
+      }
+      iframe.onload = () => {
+        const iframeDoc =
+          iframe.contentDocument || iframe.contentWindow.document
 
-      //   iframeDoc.body.style.transform = 'scale(0.8)'
-      //   iframeDoc.body.style.transformOrigin = 'center top'
-      // }
-      // iframe.src = `/extensions/builder/preview/${this.extensionData.id}?page_name=${previewPageName}`
-      // const path = `/extensions/builder/preview/${this.extensionData.id}?page_name=${previewPageName}`
-      this.previewConfig.template = `/extensions/builder/preview/${this.extensionData.id}/template?page_name=${previewPageName}`
-      this.previewConfig.component = `/extensions/builder/preview/${this.extensionData.id}/component?page_name=${previewPageName}`
-      console.log('### previewConfig', this.previewConfig)
+        iframeDoc.body.style.transform = 'scale(0.8)'
+        iframeDoc.body.style.transformOrigin = 'center top'
+      }
+      iframe.src =
+        `/extensions/builder/preview?` +
+        `ext_id=${this.extensionData.id}` +
+        `&page=${previewPageName}` +
+        `&component=Page${this.extensionData.id}`
     },
     initBasicData() {
       this.extensionData.owner_data.fields = [
