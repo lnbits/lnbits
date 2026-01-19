@@ -210,7 +210,6 @@ def _copy_ext_stub_to_build_dir(
             ".mypy_cache",
             ".pytest_cache",
             ".ruff_cache",
-            ".github",
         ),
     )
     return ext_build_dir
