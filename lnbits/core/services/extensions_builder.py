@@ -20,6 +20,7 @@ from lnbits.helpers import (
     camel_to_words,
     download_url,
     lowercase_first_letter,
+    snake_to_camel,
 )
 from lnbits.settings import settings
 
@@ -279,9 +280,11 @@ def _replace_jinja_placeholders(data: ExtensionData, ext_stub_dir: Path) -> None
         ext_stub_dir,
     )
     public_template_path = Path(ext_stub_dir, "static", "public_page.vue")
+    public_component_path = Path(ext_stub_dir, "static", "public_page.js")
     template_path = public_template_path.as_posix()
     if not data.public_page.has_public_page:
         public_template_path.unlink(missing_ok=True)
+        public_component_path.unlink(missing_ok=True)
     else:
         rederer = _render_file(
             template_path,
@@ -321,8 +324,10 @@ def zip_directory(source_dir, zip_path):
 
 def _rename_extension_builder_stub(data: ExtensionData, extension_dir: Path) -> None:
     extension_dir_path = extension_dir.as_posix()
+    # the order of fields is important, do not chage
     rename_values = {
         "extension_builder_stub_name": data.name,
+        "extension_builder_stub_camel_name": snake_to_camel(data.id, True),
         "extension_builder_stub_short_description": data.short_description or "",
         "extension_builder_stub": data.id,
         "OwnerData": data.owner_data.name,

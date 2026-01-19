@@ -311,11 +311,20 @@ window.PageExtensionBuilder = {
         iframeDoc.body.style.transform = 'scale(0.8)'
         iframeDoc.body.style.transformOrigin = 'center top'
       }
+
+      let componentName =
+        'Page' +
+        this.extensionData.id
+          .toLowerCase()
+          .split('_')
+          .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+          .join('')
+      if (previewPageName === 'public_page') componentName += 'Public'
       iframe.src =
         `/extensions/builder/preview?` +
         `ext_id=${this.extensionData.id}` +
         `&page=${previewPageName}` +
-        `&component=Page${this.extensionData.id}`
+        `&component=${componentName}`
     },
     initBasicData() {
       this.extensionData.owner_data.fields = [

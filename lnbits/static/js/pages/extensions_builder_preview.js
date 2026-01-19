@@ -8,7 +8,7 @@ window.PageExtensionBuilderPreview = {
     return {
       extId: '',
       pageName: '',
-      component: null
+      componentName: null
     }
   },
   methods: {
@@ -19,11 +19,12 @@ window.PageExtensionBuilderPreview = {
       await LNbits.utils.loadScript(
         `/extensions/builder/preview/${this.extId}/component?page_name=${this.pageName}`
       )
-      self._component = window[this.component]
+
+      this._component = window[this.componentName]
       console.log(
-        'LNbits preview reloaded component:',
-        self.component,
-        !!self._component
+        'LNbits preview reloaded componentName:',
+        this.componentName,
+        !!this._component
       )
       this.$forceUpdate()
     }
@@ -32,13 +33,13 @@ window.PageExtensionBuilderPreview = {
     const urlParams = new URLSearchParams(window.location.search)
     this.extId = urlParams.get('ext_id') || ''
     this.pageName = urlParams.get('page') || ''
-    this.component = urlParams.get('component') || ''
+    this.componentName = urlParams.get('component') || ''
 
     await this.reload()
   },
   render() {
-    if (self._component) {
-      return Vue.h(self._component)
+    if (this._component) {
+      return Vue.h(this._component)
     }
     return Vue.h('div', 'Loading...')
   }
