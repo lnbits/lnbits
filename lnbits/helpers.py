@@ -391,6 +391,14 @@ def camel_to_snake(name: str) -> str:
     return name.lower()
 
 
+def snake_to_camel(name: str, capitalize_first: bool | None = False) -> str:
+    components = name.split("_")
+    camel = components[0] + "".join(x.capitalize() for x in components[1:])
+    if capitalize_first:
+        camel = camel[0].upper() + camel[1:]
+    return camel
+
+
 def is_camel_case(v: str) -> bool:
     return re.match(r"^[A-Z][a-z0-9]+([A-Z][a-z0-9]+)*$", v) is not None
 

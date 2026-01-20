@@ -98,6 +98,8 @@
       "js/pages/error.js",
       "js/pages/home.js",
       "js/pages/extensions_builder.js",
+      "js/pages/extensions_builder.js",
+      "js/pages/extensions_builder_preview.js",
       "js/pages/extensions.js",
       "js/pages/first-install.js",
       "js/pages/payments.js",

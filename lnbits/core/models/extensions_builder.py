@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import json
+import random
+import uuid
 from datetime import datetime, timedelta, timezone
 from typing import Any, Literal
 
@@ -54,6 +56,29 @@ class DataField(BaseModel):
         if self.type == "currency":
             field_type += ' = "sat"'
         return f"{field_name}: {field_type}"
+
+    def field_to_random_value(self) -> str:
+        field_name = camel_to_snake(self.name)
+        field_value: Any = f'"{self.type}"'
+        if self.type == "json":
+            field_value = '"{}"'
+        elif self.type == "wallet":
+            field_value = f'"{uuid.uuid4()}"'
+        elif self.type == "currency":
+            field_value = '"sat"'
+        elif self.type in ["str", "text"]:
+            field_value = f'"{field_name}_{urlsafe_short_hash()}"'
+        elif self.type == "int":
+            field_value = random.randint(1, 100)  # noqa: S311
+        elif self.type == "float":
+            field_value = random.uniform(1.0, 100.0)  # noqa: S311
+        elif self.type == "bool":
+            field_value = random.choice([True, False])  # noqa: S311
+        elif self.type == "datetime":
+            random_days = random.randint(-30, 30)  # noqa: S311
+            random_date = datetime.now(timezone.utc) - timedelta(days=random_days)
+            field_value = f"""datetime.fromisoformat("{random_date.isoformat()}")"""
+        return f"{field_name} = {field_value},"
 
     def field_to_js(self) -> str:
         field_name = camel_to_snake(self.name)

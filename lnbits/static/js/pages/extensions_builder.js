@@ -288,11 +288,10 @@ window.PageExtensionBuilder = {
           `/api/v1/extension/${stub_ext_id}/releases`
         )
 
-        this.extensionStubVersions = data.sort((a, b) =>
-          a.version < b.version ? 1 : -1
-        )
-        this.extensionData.stub_version = this.extensionStubVersions[0]
-          ? this.extensionStubVersions[0].version
+        this.extensionStubVersions = data
+        const validVersions = data.filter(v => v.is_version_compatible)
+        this.extensionData.stub_version = validVersions[0]
+          ? validVersions[0].version
           : ''
       } catch (error) {
         LNbits.utils.notifyApiError(error)
@@ -311,7 +310,20 @@ window.PageExtensionBuilder = {
         iframeDoc.body.style.transform = 'scale(0.8)'
         iframeDoc.body.style.transformOrigin = 'center top'
       }
-      iframe.src = `/extensions/builder/preview/${this.extensionData.id}?page_name=${previewPageName}`
+
+      let componentName =
+        'Page' +
+        this.extensionData.id
+          .toLowerCase()
+          .split('_')
+          .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+          .join('')
+      if (previewPageName === 'public_page') componentName += 'Public'
+      iframe.src =
+        `/extensions/builder/preview?` +
+        `ext_id=${this.extensionData.id}` +
+        `&page=${previewPageName}` +
+        `&component=${componentName}`
     },
     initBasicData() {
       this.extensionData.owner_data.fields = [
