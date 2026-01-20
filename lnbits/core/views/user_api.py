@@ -245,7 +245,7 @@ async def api_users_create_user_wallet(
     "/user/{user_id}/wallet/{wallet}/undelete", name="Reactivate deleted wallet"
 )
 async def api_users_undelete_user_wallet(user_id: str, wallet: str) -> SimpleStatus:
-    wal = await get_wallet(wallet)
+    wal = await get_wallet(wallet, deleted=True)
     if not wal:
         raise HTTPException(
             status_code=HTTPStatus.NOT_FOUND,
