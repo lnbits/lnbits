@@ -1,4 +1,4 @@
-from datetime import date
+from datetime import date, timezone
 
 import pytest
 
@@ -8,6 +8,9 @@ from lnbits.core.crud import (
     get_wallet,
     get_wallet_for_key,
 )
+from lnbits.core.crud.payments import get_payment
+from lnbits.core.models import CreateInvoice
+from lnbits.core.services.payments import create_wallet_invoice
 from lnbits.db import POSTGRES
 
 
@@ -16,6 +19,24 @@ async def test_date_conversion(db):
     if db.type == POSTGRES:
         row = await db.fetchone("SELECT now()::date as now")
         assert row and isinstance(row.get("now"), date)
+
+
+@pytest.mark.anyio
+async def test_payment_datetime_fields_have_timezone(app, to_user):
+    """Test that Payment datetime fields always have UTC timezone info."""
+    wallet = await create_wallet(user_id=to_user.id, wallet_name="test_tz_wallet")
+    invoice_data = CreateInvoice(amount=10, memo="timezone_test", out=False)
+    invoice = await create_wallet_invoice(wallet.id, invoice_data)
+
+    payment = await get_payment(invoice.checking_id)
+    assert payment is not None
+
+    # All datetime fields should have UTC timezone info
+    assert payment.time.tzinfo == timezone.utc
+    assert payment.created_at.tzinfo == timezone.utc
+    assert payment.updated_at.tzinfo == timezone.utc
+    if payment.expiry:
+        assert payment.expiry.tzinfo == timezone.utc
 
 
 # make test to create wallet and delete wallet
