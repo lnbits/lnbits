@@ -100,8 +100,8 @@ def insert_to_pg(query, data):
                 logger.error(exc)
                 logger.error(f"Failed to insert {d}")
             else:
-                logger.error("query:", query)
-                logger.error("data:", d)
+                logger.error("query: " + query)
+                logger.error("data: " + str(d))
                 raise ValueError(f"Failed to insert {d}") from exc
     connection.commit()
 
@@ -158,8 +158,10 @@ def migrate_db(file: str, schema: str, exclude_tables: list[str] | None = None):
 
         if len(data) == 0:
             logger.warning(f"🛑 You sneaky dev! Table {table_name} is empty!")
+            continue
 
         insert_to_pg(q, data)
+        logger.info(f"✅ Migrated table {table_name} successfully")
     cursor.close()
 
 
@@ -191,7 +193,7 @@ def build_on_conflict_query_statement(schema, table_name, columns):
 def table_unique_columns(schema, table_name):
     cursor = get_postgres_cursor()
     query = f"""
-        SELECT a.attname
+        SELECT a.attname, i.indisprimary
         FROM   pg_index i
         JOIN   pg_attribute a ON a.attrelid = i.indrelid
                              AND a.attnum = ANY(i.indkey)
@@ -199,7 +201,11 @@ def table_unique_columns(schema, table_name):
         AND    i.indisunique;
     """
     cursor.execute(query)
-    columns = [row[0] for row in cursor.fetchall()]
+    rows = cursor.fetchall()
+    columns = [row[0] for row in rows if not row[1]]  # exclude primary keys
+    if len(columns) == 0:
+        # use primary keys if no unique keys found
+        columns = [row[0] for row in rows if row[1]]
     cursor.close()
     return columns
 
@@ -255,7 +261,7 @@ parser.add_argument(
 
 args = parser.parse_args()
 
-logger.info("Selected path: ", args.sqlite_path)
+logger.info("Selected path: " + args.sqlite_path)
 
 if os.path.isdir(args.sqlite_path):
     exclude_tables = ["dbversions"]
