@@ -1,7 +1,6 @@
 window.app.component('lnbits-admin-exchange-providers', {
   props: ['form-data'],
   template: '#lnbits-admin-exchange-providers',
-  mixins: [window.windowMixin],
   data() {
     return {
       exchangeData: {

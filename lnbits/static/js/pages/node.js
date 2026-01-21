@@ -1,5 +1,4 @@
 window.PageNode = {
-  mixins: [window.windowMixin],
   template: '#page-node',
   config: {
     globalProperties: {

@@ -33,23 +33,7 @@ window.app.component('lnbits-extension-rating', {
   }
 })
 
-window.app.component('lnbits-fsat', {
-  template: '<span>{{ fsat }}</span>',
-  props: {
-    amount: {
-      type: Number,
-      default: 0
-    }
-  },
-  computed: {
-    fsat() {
-      return LNbits.utils.formatSat(this.amount)
-    }
-  }
-})
-
 window.app.component('lnbits-manage', {
-  mixins: [window.windowMixin],
   template: '#lnbits-manage',
   computed: {
     showAdmin() {
@@ -81,10 +65,8 @@ window.app.component('lnbits-manage', {
 })
 
 window.app.component('lnbits-payment-details', {
-  mixins: [window.windowMixin],
   template: '#lnbits-payment-details',
   props: ['payment'],
-  mixins: [window.windowMixin],
   computed: {
     hasPreimage() {
       return (
@@ -128,7 +110,6 @@ window.app.component('lnbits-payment-details', {
 })
 
 window.app.component('lnbits-lnurlpay-success-action', {
-  mixins: [window.windowMixin],
   template: '#lnbits-lnurlpay-success-action',
   props: ['payment', 'success_action'],
   data() {
@@ -148,7 +129,6 @@ window.app.component('lnbits-lnurlpay-success-action', {
 
 window.app.component('lnbits-notifications-btn', {
   template: '#lnbits-notifications-btn',
-  mixins: [window.windowMixin],
   props: ['pubkey'],
   data() {
     return {
@@ -319,7 +299,6 @@ window.app.component('lnbits-notifications-btn', {
 
 window.app.component('lnbits-dynamic-fields', {
   template: '#lnbits-dynamic-fields',
-  mixins: [window.windowMixin],
   props: ['options', 'modelValue'],
   data() {
     return {
@@ -352,7 +331,6 @@ window.app.component('lnbits-dynamic-fields', {
 
 window.app.component('lnbits-dynamic-chips', {
   template: '#lnbits-dynamic-chips',
-  mixins: [window.windowMixin],
   props: ['modelValue'],
   data() {
     return {
@@ -383,7 +361,6 @@ window.app.component('lnbits-dynamic-chips', {
 
 window.app.component('lnbits-update-balance', {
   template: '#lnbits-update-balance',
-  mixins: [window.windowMixin],
   props: ['wallet_id', 'small_btn'],
   computed: {
     admin() {
@@ -422,7 +399,6 @@ window.app.component('lnbits-update-balance', {
 
 window.app.component('user-id-only', {
   template: '#user-id-only',
-  mixins: [window.windowMixin],
   props: {
     allowed_new_users: Boolean,
     authAction: String,
@@ -466,7 +442,6 @@ window.app.component('user-id-only', {
 
 window.app.component('username-password', {
   template: '#username-password',
-  mixins: [window.windowMixin],
   props: {
     allowed_new_users: Boolean,
     authMethods: Array,
@@ -704,7 +679,6 @@ window.app.component('lnbits-stat', {
 
 window.app.component('lnbits-node-qrcode', {
   props: ['info'],
-  mixins: [window.windowMixin],
   template: `
     <q-card class="my-card">
       <q-card-section>
@@ -783,7 +757,6 @@ window.app.component('lnbits-node-info', {
       showDialog: false
     }
   },
-  mixins: [window.windowMixin],
   methods: {
     shortenNodeId(nodeId) {
       return nodeId

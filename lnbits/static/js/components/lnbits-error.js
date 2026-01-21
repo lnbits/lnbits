@@ -1,6 +1,5 @@
 window.app.component('lnbits-error', {
   template: '#lnbits-error',
-  mixins: [window.windowMixin],
   props: ['dynamic', 'code', 'message'],
   computed: {
     isExtension() {

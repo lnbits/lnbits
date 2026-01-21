@@ -1,6 +1,5 @@
 window.PageHome = {
   template: '#page-home',
-  mixins: [window.windowMixin],
   data() {
     return {
       lnurl: '',

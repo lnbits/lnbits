@@ -1,7 +1,6 @@
 window.app.component('lnbits-label-selector', {
   template: '#lnbits-label-selector',
   props: ['labels'],
-  mixins: [window.windowMixin],
   data() {
     return {
       labelFilter: '',

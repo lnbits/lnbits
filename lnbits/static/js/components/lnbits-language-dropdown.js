@@ -1,6 +1,5 @@
 window.app.component('lnbits-language-dropdown', {
   template: '#lnbits-language-dropdown',
-  mixins: [window.windowMixin],
   methods: {
     activeLanguage(lang) {
       return window.i18n.global.locale === lang

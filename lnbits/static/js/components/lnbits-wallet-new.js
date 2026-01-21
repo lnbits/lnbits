@@ -1,6 +1,5 @@
 window.app.component('lnbits-wallet-new', {
   template: '#lnbits-wallet-new',
-  mixins: [window.windowMixin],
   data() {
     return {
       walletTypes: [{label: 'Lightning Wallet', value: 'lightning'}],

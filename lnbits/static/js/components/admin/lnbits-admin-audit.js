@@ -1,7 +1,6 @@
 window.app.component('lnbits-admin-audit', {
   props: ['form-data'],
   template: '#lnbits-admin-audit',
-  mixins: [window.windowMixin],
   data() {
     return {
       formAddIncludePath: '',

@@ -1,5 +1,4 @@
 window.app.component('lnbits-manage-extension-list', {
-  mixins: [window.windowMixin],
   template: '#lnbits-manage-extension-list',
   data() {
     return {
