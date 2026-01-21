@@ -130,9 +130,11 @@ window._lnbitsUtils = {
       401: 'warning',
       500: 'negative'
     }
-    let messages = this.parseJSONSafe(error.response.data.detail)
+    let messages = error.response.data.detail
     if (messages) {
-      messages = messages.map(e => e.msg + ` (${e.loc?.join('/')})`)
+      messages = Array.isArray(messages)
+        ? messages.map(e => e.msg + ` (${e.loc?.join('/')})`)
+        : (messages = [messages])
     } else {
       messages = [error.response.data.message || error.response.data.detail]
     }

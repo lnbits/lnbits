@@ -1,4 +1,3 @@
-import json
 import sys
 import traceback
 from http import HTTPStatus
@@ -108,10 +107,9 @@ def register_exception_handlers(app: FastAPI):  # noqa: C901
         request: Request, exc: RequestValidationError
     ):
         logger.error(f"RequestValidationError: {exc!s}")
-        errors = [dict(e) for e in exc.errors()]
         return render_html_error(request, exc) or JSONResponse(
             status_code=HTTPStatus.BAD_REQUEST,
-            content={"detail": json.dumps(errors)},
+            content={"detail": [dict(e) for e in exc.errors()]},
         )
 
     @app.exception_handler(HTTPException)
