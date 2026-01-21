@@ -2044,5 +2044,6 @@ async def test_api_update_user_labels(http_client: AsyncClient):
     assert response.status_code == 400
     data = response.json()
     assert (
-        """string does not match regex "([A-Za-z0-9 ._-]{1,100}$)""" in data["detail"]
+        """string does not match regex "([A-Za-z0-9 ._-]{1,100}$)"""
+        in data["detail"][0]["msg"]
     )
