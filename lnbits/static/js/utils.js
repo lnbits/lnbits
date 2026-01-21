@@ -114,6 +114,13 @@ window._lnbitsUtils = {
   formatMsat(value) {
     return this.formatSat(value / 1000)
   },
+  parseJSONSafe(str) {
+    try {
+      return JSON.parse(str)
+    } catch (e) {
+      return null
+    }
+  },
   notifyApiError(error) {
     if (!error.response) {
       return console.error(error)
@@ -123,17 +130,26 @@ window._lnbitsUtils = {
       401: 'warning',
       500: 'negative'
     }
-    Quasar.Notify.create({
-      timeout: 5000,
-      type: types[error.response.status] || 'warning',
-      message:
-        error.response.data.message || error.response.data.detail || null,
-      caption:
-        [error.response.status, ' ', error.response.statusText]
-          .join('')
-          .toUpperCase() || null,
-      icon: null
-    })
+    let messages = this.parseJSONSafe(error.response.data.detail)
+    if (messages) {
+      messages = messages.map(e => e.msg + ` (${e.loc?.join('/')})`)
+    } else {
+      messages = [error.response.data.message || error.response.data.detail]
+    }
+
+    messages.forEach(message =>
+      Quasar.Notify.create({
+        timeout: 5000,
+        type: types[error.response.status] || 'warning',
+        message,
+        caption:
+          [error.response.status, ' ', error.response.statusText]
+            .join('')
+            .toUpperCase() || null,
+        icon: null,
+        closeBtn: true
+      })
+    )
   },
   search(data, q, field, separator) {
     try {
