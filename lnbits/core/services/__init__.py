@@ -4,6 +4,12 @@ from .funding_source import (
 )
 from .lnurl import fetch_lnurl_pay_request, get_pr_from_lnurl, perform_withdraw
 from .notifications import enqueue_admin_notification, send_payment_notification
+from .offers import (
+    create_offer,
+    disable_offer,
+    enable_offer,
+    fetch_invoice,
+)
 from .payments import (
     calculate_fiat_amounts,
     cancel_hold_invoice,
@@ -45,13 +51,17 @@ __all__ = [
     "check_webpush_settings",
     "create_fiat_invoice",
     "create_invoice",
+    "create_offer",
     "create_payment_request",
     "create_user_account",
     "create_user_account_no_ckeck",
     "create_wallet_invoice",
+    "disable_offer",
+    "enable_offer",
     "enqueue_admin_notification",
     "fee_reserve",
     "fee_reserve_total",
+    "fetch_invoice",
     "fetch_lnurl_pay_request",
     "get_balance_delta",
     "get_payments_daily_stats",

@@ -15,6 +15,7 @@ from .views.fiat_api import fiat_router
 from .views.generic import generic_router
 from .views.lnurl_api import lnurl_router
 from .views.node_api import node_router, public_node_router, super_node_router
+from .views.offer_api import offer_router
 from .views.payment_api import payment_router
 from .views.tinyurl_api import tinyurl_router
 from .views.user_api import users_router
@@ -36,6 +37,7 @@ def init_core_routers(app: FastAPI):
     app.include_router(extension_builder_router)
     app.include_router(super_node_router)
     app.include_router(public_node_router)
+    app.include_router(offer_router)
     app.include_router(payment_router)
     app.include_router(wallet_router)
     app.include_router(api_router)

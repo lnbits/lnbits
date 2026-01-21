@@ -6,10 +6,15 @@ from collections.abc import AsyncGenerator, Coroutine
 from enum import Enum
 from typing import TYPE_CHECKING, NamedTuple
 
+from bolt11 import Bolt11, MilliSatoshi, Tags
+from bolt11 import decode as bolt11_decode
+from bolt11 import encode as bolt11_encode
+from bolt11.exceptions import Bolt11Bech32InvalidException
 from loguru import logger
 
 from lnbits.exceptions import InvoiceError
 from lnbits.settings import settings
+from lnbits.utils.crypto import fake_privkey, random_secret_and_hash
 
 if TYPE_CHECKING:
     from lnbits.nodes.base import Node
@@ -24,6 +29,91 @@ class Feature(Enum):
 class StatusResponse(NamedTuple):
     error_message: str | None
     balance_msat: int
+
+
+class OfferResponse(NamedTuple):
+    ok: bool
+    offer_id: str | None = None
+    active: bool = False
+    single_use: bool = False
+    invoice_offer: str | None = None
+    used: bool = False
+    created: bool = False
+    label: str | None = None
+    error_message: str | None = None
+
+    @property
+    def success(self) -> bool:
+        return self.ok is True
+
+    @property
+    def failed(self) -> bool:
+        return self.ok is not True
+
+
+class OfferStatus(NamedTuple):
+    active_: bool | None = None
+    used_: bool | None = None
+
+    @property
+    def active(self) -> bool:
+        return self.active_ is True
+
+    @property
+    def used(self) -> bool:
+        return self.used_ is True
+
+    @property
+    def error(self) -> bool:
+        return self.active_ is None
+
+
+class OfferErrorStatus(OfferStatus):
+    active_ = None
+    used_ = None
+
+
+class FetchInvoiceResponse(NamedTuple):
+    payment_request: str | None = None
+    error_message: str | None = None
+    preimage: str | None = None
+    fee_msat: int | None = None
+
+    @property
+    def success(self) -> bool:
+        return self.payment_request is not None
+
+    @property
+    def failed(self) -> bool:
+        return not self.payment_request
+
+
+class OfferData(NamedTuple):
+    offer_id: str
+    currency: str | None = None
+    currency_amount: float | None = None
+    amount_msat: int | None = None
+    description: str | None = None
+    issuer: str | None = None
+    absolute_expiry: int | None = None
+    offer_issuer_id: str | None = None
+
+
+class InvoiceData(NamedTuple):
+    payment_hash: str
+    bolt11: str
+    bolt11_is_fake: bool
+    invoice_created_at: int
+    description: str | None = None
+    description_hash: str | None = None
+    payment_secret: str | None = None
+    payer_note: str | None = None
+    amount_msat: int | None = None
+    offer_id: str | None = None
+    offer_issuer_id: str | None = None
+    invoice_node_id: str | None = None
+    offer_absolute_expiry: int | None = None
+    invoice_relative_expiry: int | None = None
 
 
 class InvoiceResponse(NamedTuple):
@@ -45,6 +135,27 @@ class InvoiceResponse(NamedTuple):
     @property
     def failed(self) -> bool:
         return self.ok is False
+
+
+class InvoiceExtendedStatus(NamedTuple):
+    string: str
+    paid: bool | None = None
+    offer_id: str | None = None
+    paid_at: int | None = None
+    payment_preimage: str | None = None
+    amount_received_msat: int = 0
+
+    @property
+    def success(self) -> bool:
+        return self.paid is True
+
+    @property
+    def pending(self) -> bool:
+        return self.paid is False
+
+    @property
+    def failed(self) -> bool:
+        return self.paid is None
 
 
 class PaymentResponse(NamedTuple):
@@ -176,6 +287,82 @@ class Wallet(ABC):
             message="Hold invoices are not supported by this wallet.", status="failed"
         )
 
+    async def create_offer(
+        self,
+        amount: int | None = None,
+        memo: str | None = None,
+        issuer: str | None = None,
+        absolute_expiry: int | None = None,
+        single_use: bool | None = None,
+        **kwargs,
+    ) -> OfferResponse:
+        return OfferResponse(
+            ok=False,
+            error_message="Offers are not supported by this wallet.",
+        )
+
+    async def enable_offer(
+        self,
+        offer_id: str,
+    ) -> OfferResponse:
+        return OfferResponse(
+            ok=False,
+            error_message="Offers are not supported by this wallet.",
+        )
+
+    async def disable_offer(
+        self,
+        offer_id: str,
+    ) -> OfferResponse:
+        return OfferResponse(
+            ok=False,
+            error_message="Offers are not supported by this wallet.",
+        )
+
+    async def get_offer_status(
+        self, offer_id: str, active_only: bool = False
+    ) -> OfferStatus:
+        return OfferErrorStatus()
+
+    async def fetch_invoice(
+        self,
+        offer: str,
+        amount: int | None = None,
+        payer_note: str | None = None,
+    ) -> FetchInvoiceResponse:
+        return FetchInvoiceResponse(None, "Offers are not supported by this wallet.")
+
+    async def decode_offer(self, bolt12_offer: str) -> OfferData | None:
+        return None
+
+    async def decode_invoice(self, invoice_string: str) -> InvoiceData | None:
+        try:
+            invoice = bolt11_decode(invoice_string)
+            return InvoiceData(
+                payment_hash=invoice.payment_hash,
+                description=invoice.description,
+                description_hash=invoice.description_hash,
+                payment_secret=invoice.payment_secret,
+                amount_msat=invoice.amount_msat,
+                offer_issuer_id=invoice.payee,
+                invoice_node_id=invoice.payee,
+                invoice_created_at=invoice.date,
+                invoice_relative_expiry=invoice.expiry,
+                bolt11=invoice_string,
+                bolt11_is_fake=False,
+            )
+
+        except Bolt11Bech32InvalidException:
+            return None
+        except Exception as exc:
+            logger.warning(exc)
+            return None
+
+    async def get_invoice_extended_status(
+        self, checking_id: str, offer_id: str | None = None
+    ) -> InvoiceExtendedStatus | None:
+        return None
+
     async def paid_invoices_stream(self) -> AsyncGenerator[str, None]:
         while settings.lnbits_running:
             for invoice in self.pending_invoices:
@@ -189,3 +376,40 @@ class Wallet(ABC):
                 except Exception as exc:
                     logger.error(f"could not get status of invoice {invoice}: '{exc}' ")
             await asyncio.sleep(5)
+
+    def generate_fake_bolt11(
+        self,
+        created_at: int,
+        amount_msat: int | None = None,
+        description: str | None = None,
+        expire_time: int | None = None,
+    ) -> str:
+        payment_secret, payment_hash = random_secret_and_hash()
+        dict_tags: dict[str, str | int] = {
+            "payment_hash": payment_hash,
+            "payment_secret": payment_secret,
+        }
+
+        if description:
+            dict_tags["description"] = description
+
+        if expire_time:
+            dict_tags["expire_time"] = expire_time
+        bolt11_invoice = Bolt11(
+            currency="bc",
+            amount_msat=None if not amount_msat else MilliSatoshi(amount_msat),
+            date=created_at,
+            tags=Tags.from_dict(dict_tags),
+        )
+        privkey = fake_privkey(settings.fake_wallet_secret)
+        return bolt11_encode(bolt11_invoice, privkey)
+
+    def normalize_endpoint(self, endpoint: str, add_proto=True) -> str:
+        endpoint = endpoint[:-1] if endpoint.endswith("/") else endpoint
+        if add_proto:
+            if endpoint.startswith("ws://") or endpoint.startswith("wss://"):
+                return endpoint
+            endpoint = (
+                f"https://{endpoint}" if not endpoint.startswith("http") else endpoint
+            )
+        return endpoint

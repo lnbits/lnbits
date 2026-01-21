@@ -848,3 +848,32 @@ async def m042_index_accounts(db: Connection):
             CREATE INDEX IF NOT EXISTS idx_accounts_{index} ON accounts ("{index}");
             """
         )
+
+
+async def m043_create_offer_table(db: Connection):
+    await db.execute("ALTER TABLE apipayments ADD COLUMN payer_note TEXT")
+    await db.execute("ALTER TABLE apipayments ADD COLUMN offer_id TEXT")
+    await db.execute(
+        """
+        CREATE TABLE IF NOT EXISTS apioffers (
+            offer_id TEXT NOT NULL,
+            amount INT,
+            wallet_id TEXT NOT NULL,
+            memo TEXT,
+            bolt12 TEXT,
+            extra TEXT,
+            webhook TEXT,
+            webhook_status TEXT,
+            expiry TIMESTAMP,
+            active BOOLEAN NOT NULL DEFAULT false,
+            single_use BOOLEAN NOT NULL DEFAULT false,
+            used BOOLEAN NOT NULL DEFAULT false,
+            tag TEXT,
+            extension TEXT,
+            created_at TIMESTAMP,
+            updated_at TIMESTAMP,
+            UNIQUE (wallet_id, offer_id)
+        )
+        """
+    )
+    await db.execute("CREATE INDEX by_offer ON apioffers (offer_id)")
