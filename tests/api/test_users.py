@@ -552,3 +552,61 @@ async def test_delete_user_success(http_client: AsyncClient, superuser_token):
 
     wallets = await get_wallets(user_id=user_id)
     assert len(wallets) == 0
+
+
+@pytest.mark.anyio
+async def test_delete_and_undelete_wallet(http_client: AsyncClient, superuser_token):
+    # Create a user
+    tiny_id = shortuuid.uuid()[:8]
+    user_data = {
+        "username": f"walletuser_{tiny_id}",
+        "password": "secret1234",
+        "password_repeat": "secret1234",
+        "email": f"walletuser_{tiny_id}@lnbits.com",
+    }
+    user_resp = await http_client.post(
+        "/users/api/v1/user",
+        json=user_data,
+        headers={"Authorization": f"Bearer {superuser_token}"},
+    )
+    assert user_resp.status_code == 200
+    user = user_resp.json()
+    user_id = user["id"]
+
+    # Create a wallet for the user
+    wallet_resp = await http_client.post(
+        f"/users/api/v1/user/{user_id}/wallet",
+        json={"name": "Test Wallet"},
+        headers={"Authorization": f"Bearer {superuser_token}"},
+    )
+    assert wallet_resp.status_code == 200
+    wallet = wallet_resp.json()
+    wallet_id = wallet["id"]
+
+    # Delete the wallet (soft delete)
+    delete_resp = await http_client.delete(
+        f"/users/api/v1/user/{user_id}/wallet/{wallet_id}",
+        headers={"Authorization": f"Bearer {superuser_token}"},
+    )
+    assert delete_resp.status_code == 200
+    assert delete_resp.json()["success"] is True
+
+    # Wallet should be marked as deleted
+    wallets = await get_wallets(user_id=user_id, deleted=True)
+    deleted_wallet = next((w for w in wallets if w.id == wallet_id), None)
+    assert deleted_wallet is not None
+    assert deleted_wallet.deleted is True
+
+    # Undelete the wallet
+    undelete_resp = await http_client.put(
+        f"/users/api/v1/user/{user_id}/wallet/{wallet_id}/undelete",
+        headers={"Authorization": f"Bearer {superuser_token}"},
+    )
+    assert undelete_resp.status_code == 200
+    assert undelete_resp.json()["success"] is True
+
+    # Wallet should be active again
+    wallets = await get_wallets(user_id=user_id, deleted=False)
+    undeleted_wallet = next((w for w in wallets if w.id == wallet_id), None)
+    assert undeleted_wallet is not None
+    assert undeleted_wallet.deleted is False

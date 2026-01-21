@@ -1,6 +1,5 @@
 window.PageAdmin = {
   template: '#page-admin',
-  mixins: [windowMixin],
   data() {
     return {
       tab: 'funding',

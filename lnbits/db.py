@@ -337,7 +337,8 @@ class Database(Compat):
                     f = "%Y-%m-%d %H:%M:%S.%f"
                     if "." not in value:
                         f = "%Y-%m-%d %H:%M:%S"
-                    return datetime.strptime(value, f)
+                    # Parse and add UTC timezone info
+                    return datetime.strptime(value, f).replace(tzinfo=timezone.utc)
 
                 dbapi_connection.run_async(
                     lambda connection: connection.set_type_codec(
@@ -756,7 +757,11 @@ def dict_to_model(_row: dict, model: type[TModel]) -> TModel:  # noqa: C901
             if DB_TYPE == SQLITE:
                 _dict[key] = datetime.fromtimestamp(value, timezone.utc)
             else:
-                _dict[key] = value
+                # Ensure PostgreSQL datetime values have timezone info
+                if isinstance(value, datetime) and value.tzinfo is None:
+                    _dict[key] = value.replace(tzinfo=timezone.utc)
+                else:
+                    _dict[key] = value
             continue
         if issubclass(type_, BaseModel):
             _dict[key] = dict_to_submodel(type_, value)

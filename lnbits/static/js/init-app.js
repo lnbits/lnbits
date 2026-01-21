@@ -107,6 +107,11 @@ const routes = [
     component: PageExtensionBuilder
   },
   {
+    path: '/extensions/builder/preview',
+    name: 'ExtensionsBuilderPreview',
+    component: PageExtensionBuilderPreview
+  },
+  {
     path: '/extensions',
     name: 'Extensions',
     component: PageExtensions

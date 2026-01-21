@@ -1,7 +1,6 @@
 window.app.component('lnbits-admin-site-customisation', {
   props: ['form-data'],
   template: '#lnbits-admin-site-customisation',
-  mixins: [window.windowMixin],
   data() {
     return {
       lnbits_theme_options: [

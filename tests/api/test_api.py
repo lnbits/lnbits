@@ -245,7 +245,7 @@ async def test_create_invoice_validates_used_currency(
     )
     assert response.status_code == 400
     res_data = response.json()
-    assert "The provided unit is not supported" in res_data["detail"]
+    assert "The provided unit is not supported" in res_data["detail"][0]["msg"]
 
 
 # check POST /api/v1/payments: invoice creation for internal payments only
@@ -823,7 +823,7 @@ async def test_api_payments_pay_lnurl(client, adminkey_headers_from):
         "/api/v1/payments/lnurl", json=lnurl_data, headers=adminkey_headers_from
     )
     assert response.status_code == 400
-    assert "value_error.url.scheme" in response.json()["detail"]
+    assert "invalid or missing URL scheme" in response.json()["detail"][0]["msg"]
 
 
 ################################ Labels ################################

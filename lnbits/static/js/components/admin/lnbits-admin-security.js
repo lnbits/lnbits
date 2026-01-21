@@ -1,7 +1,6 @@
 window.app.component('lnbits-admin-security', {
   props: ['form-data'],
   template: '#lnbits-admin-security',
-  mixins: [window.windowMixin],
   data() {
     return {
       logs: [],

@@ -1,6 +1,5 @@
 window.PageAudit = {
   template: '#page-audit',
-  mixins: [window.windowMixin],
   data() {
     return {
       chartsReady: false,

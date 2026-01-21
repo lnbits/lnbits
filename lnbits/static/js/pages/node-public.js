@@ -1,6 +1,5 @@
 window.PageNodePublic = {
   template: '#page-node-public',
-  mixins: [window.windowMixin],
   data() {
     return {
       enabled: false,

@@ -20,6 +20,7 @@ from lnbits.helpers import (
     camel_to_words,
     download_url,
     lowercase_first_letter,
+    snake_to_camel,
 )
 from lnbits.settings import settings
 
@@ -195,13 +196,29 @@ def _copy_ext_stub_to_build_dir(
     ext_build_dir = Path(working_dir, new_ext_id, working_dir_name, new_ext_id)
     shutil.rmtree(ext_build_dir, True)
 
-    shutil.copytree(ext_stub_cache_dir, ext_build_dir)
+    shutil.copytree(
+        ext_stub_cache_dir,
+        ext_build_dir,
+        ignore=shutil.ignore_patterns(
+            "__pycache__",
+            ".git",
+            ".env",
+            ".venv",
+            "*.env",
+            "*.log",
+            "node_modules",
+            ".mypy_cache",
+            ".pytest_cache",
+            ".ruff_cache",
+        ),
+    )
     return ext_build_dir
 
 
 def _replace_jinja_placeholders(data: ExtensionData, ext_stub_dir: Path) -> None:
     parsed_data = _parse_extension_data(data)
-    for py_file in py_files:
+    test_files = [f"tests/{p.name}" for p in Path(ext_stub_dir, "tests").glob("*.py")]
+    for py_file in py_files + test_files:
         template_path = Path(ext_stub_dir, py_file).as_posix()
         rederer = _render_file(template_path, parsed_data)
         with open(template_path, "w", encoding="utf-8") as f:
@@ -209,7 +226,7 @@ def _replace_jinja_placeholders(data: ExtensionData, ext_stub_dir: Path) -> None
 
         _remove_lines_with_string(template_path, remove_line_marker)
 
-    template_path = Path(ext_stub_dir, "static", "js", "index.js").as_posix()
+    template_path = Path(ext_stub_dir, "static", "index.js").as_posix()
     rederer = _render_file(
         template_path, {"preview": data.preview_action, **parsed_data}
     )
@@ -234,9 +251,7 @@ def _replace_jinja_placeholders(data: ExtensionData, ext_stub_dir: Path) -> None
         "settingsFormDialog.data",
         ext_stub_dir,
     )
-    template_path = Path(
-        ext_stub_dir, "templates", "extension_builder_stub", "index.html"
-    ).as_posix()
+    template_path = Path(ext_stub_dir, "static", "index.vue").as_posix()
     rederer = _render_file(
         template_path,
         {
@@ -263,12 +278,12 @@ def _replace_jinja_placeholders(data: ExtensionData, ext_stub_dir: Path) -> None
         "publicClientData",
         ext_stub_dir,
     )
-    public_template_path = Path(
-        ext_stub_dir, "templates", "extension_builder_stub", "public_page.html"
-    )
+    public_template_path = Path(ext_stub_dir, "static", "public_page.vue")
+    public_component_path = Path(ext_stub_dir, "static", "public_page.js")
     template_path = public_template_path.as_posix()
     if not data.public_page.has_public_page:
         public_template_path.unlink(missing_ok=True)
+        public_component_path.unlink(missing_ok=True)
     else:
         rederer = _render_file(
             template_path,
@@ -308,8 +323,10 @@ def zip_directory(source_dir, zip_path):
 
 def _rename_extension_builder_stub(data: ExtensionData, extension_dir: Path) -> None:
     extension_dir_path = extension_dir.as_posix()
+    # the order of fields is important, do not chage
     rename_values = {
         "extension_builder_stub_name": data.name,
+        "extension_builder_stub_camel_name": snake_to_camel(data.id, True),
         "extension_builder_stub_short_description": data.short_description or "",
         "extension_builder_stub": data.id,
         "OwnerData": data.owner_data.name,
@@ -328,7 +345,7 @@ def _rename_extension_builder_stub(data: ExtensionData, extension_dir: Path) -> 
             directory=extension_dir_path,
             old_text=old_text,
             new_text=new_text,
-            file_extensions=[".py", ".js", ".html", ".md", ".json", ".toml"],
+            file_extensions=[".py", ".js", ".vue", ".html", ".md", ".json", ".toml"],
         )
 
     _rename_files_and_dirs_in_directory(
@@ -406,6 +423,7 @@ def _parse_extension_data(data: ExtensionData) -> dict:
         "owner_data": {
             "name": data.owner_data.name,
             "editable": data.owner_data.editable,
+            "fields": [field.name for field in data.owner_data.fields],
             "js_fields": [
                 field.field_to_js()
                 for field in data.owner_data.fields
@@ -432,6 +450,18 @@ def _parse_extension_data(data: ExtensionData) -> dict:
             ],
             "db_fields": [field.field_to_db() for field in data.owner_data.fields],
             "all_fields": [field.field_to_py() for field in data.owner_data.fields],
+            "random_fields_values": [
+                field.field_to_random_value() for field in data.owner_data.fields
+            ],
+            "public_fields": [
+                field.field_to_py()
+                for field in data.owner_data.fields
+                if field.name
+                in [
+                    data.public_page.owner_data_fields.name,
+                    data.public_page.owner_data_fields.description,
+                ]
+            ],
         },
         "client_data": {
             "name": data.client_data.name,
@@ -457,6 +487,9 @@ def _parse_extension_data(data: ExtensionData) -> dict:
             ],
             "db_fields": [field.field_to_db() for field in data.client_data.fields],
             "all_fields": [field.field_to_py() for field in data.client_data.fields],
+            "random_fields_values": [
+                field.field_to_random_value() for field in data.client_data.fields
+            ],
         },
         "settings_data": {
             "enabled": data.settings_data.enabled,
@@ -536,7 +569,7 @@ def _rename_files_and_dirs_in_directory(directory, old_text, new_text):
                     logger.warning(f"Failed to rename directory {old_dir_path}: {e}")
 
 
-def _is_excluded_dir(path):
+def _is_excluded_dir(path: str) -> bool:
     for excluded_dir in excluded_dirs:
         if path.startswith(excluded_dir):
             return True

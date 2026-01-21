@@ -1,7 +1,6 @@
 window.app.component('lnbits-admin-extensions', {
   props: ['form-data'],
   template: '#lnbits-admin-extensions',
-  mixins: [window.windowMixin],
   data() {
     return {
       formAddExtensionsManifest: ''

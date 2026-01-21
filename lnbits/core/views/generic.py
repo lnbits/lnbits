@@ -42,54 +42,38 @@ async def robots():
 
 
 @generic_router.get(
-    "/extensions/builder/preview/{ext_id}",
+    "/extensions/builder/preview/{ext_id}/{resource}",
     name="extensions builder",
     dependencies=[Depends(check_extension_builder)],
 )
 async def extensions_builder_preview(
-    request: Request,
     ext_id: str,
+    resource: str | None = None,
     page_name: str | None = None,
     user: User = Depends(check_user_exists),
-) -> HTMLResponse:
+) -> FileResponse:
     working_dir_name = "preview_" + sha256(user.id.encode("utf-8")).hexdigest()
-    html_file_name = "index.html"
-    if page_name == "public_page":
-        html_file_name = "public_page.html"
 
-    html_file_path = Path(
+    file_name = "index"
+    if page_name == "public_page":
+        file_name = "public_page"
+
+    resource_path = Path(
+        settings.extension_builder_working_dir_path,
         "extension_builder_stub",
         ext_id,
         working_dir_name,
         ext_id,
-        "templates",
-        ext_id,
-        html_file_name,
+        "static",
     )
 
-    html_file_full_path = Path(
-        settings.extension_builder_working_dir_path, html_file_path
-    )
+    file_ext = ".vue" if resource == "template" else ".js"
+    file_full_path = Path(resource_path, file_name + file_ext)
 
-    if not html_file_full_path.is_file():
-        return template_renderer().TemplateResponse(
-            request,
-            "error.html",
-            {
-                "status_code": 404,
-                "message": f"Extension {ext_id} not found, refresh Preview.",
-            },
-            status_code=HTTPStatus.NOT_FOUND,
-        )
+    if not file_full_path.is_file():
+        raise HTTPException(status_code=HTTPStatus.NOT_FOUND)
 
-    response = template_renderer().TemplateResponse(
-        request,
-        html_file_path.as_posix(),
-        {
-            "user": user.json(),
-        },
-    )
-
+    response = FileResponse(file_full_path.absolute().as_posix())
     response.headers["Content-Security-Policy"] = (
         "default-src 'self'; "
         "style-src 'self' 'unsafe-inline'; "
@@ -207,6 +191,9 @@ admin_ui_checks = [Depends(check_admin), Depends(check_admin_ui)]
 @generic_router.get("/admin", dependencies=admin_ui_checks)
 @generic_router.get(
     "/extensions/builder", dependencies=[Depends(check_extension_builder)]
+)
+@generic_router.get(
+    "/extensions/builder/preview", dependencies=[Depends(check_extension_builder)]
 )
 async def index(
     request: Request, user: User = Depends(check_user_exists)

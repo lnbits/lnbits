@@ -1,6 +1,5 @@
 window.PageFirstInstall = {
   template: '#page-first-install',
-  mixins: [window.windowMixin],
   data() {
     return {
       loginData: {
