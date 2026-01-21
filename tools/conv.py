@@ -161,7 +161,7 @@ def migrate_db(file: str, schema: str, exclude_tables: list[str] | None = None):
             continue
 
         insert_to_pg(q, data)
-        logger.info(f"✅ Migrated table {table_name} successfully")
+        logger.info(f"✅ Migrated table '{schema}.{table_name}' successfully")
     cursor.close()
 
 
