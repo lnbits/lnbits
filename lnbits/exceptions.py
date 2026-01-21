@@ -109,7 +109,7 @@ def register_exception_handlers(app: FastAPI):  # noqa: C901
         logger.error(f"RequestValidationError: {exc!s}")
         return render_html_error(request, exc) or JSONResponse(
             status_code=HTTPStatus.BAD_REQUEST,
-            content={"detail": str(exc)},
+            content={"detail": [dict(e) for e in exc.errors()]},
         )
 
     @app.exception_handler(HTTPException)
