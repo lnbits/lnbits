@@ -57,11 +57,11 @@ async def api_get_asset(
 
 
 @asset_router.get(
-    "/{asset_id}/binary",
-    name="Get user asset binary",
-    summary="Get user asset binary data by ID",
+    "/{asset_id}/data",
+    name="Get user asset data",
+    summary="Get user asset data data by ID",
 )
-async def api_get_asset_binary(
+async def api_get_asset_data(
     asset_id: str,
     user_id: str | None = Depends(optional_user_id),
 ) -> Response:

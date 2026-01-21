@@ -609,7 +609,7 @@ window.PageAccount = {
       }
     },
     copyAssetLinkToClipboard(asset) {
-      const assetUrl = `${window.location.origin}/api/v1/assets/${asset.id}/binary`
+      const assetUrl = `${window.location.origin}/api/v1/assets/${asset.id}/data`
       this.utils.copyText(assetUrl)
     },
     addUserLabel() {
