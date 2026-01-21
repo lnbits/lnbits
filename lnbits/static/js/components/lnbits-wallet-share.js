@@ -1,6 +1,5 @@
 window.app.component('lnbits-wallet-share', {
   template: '#lnbits-wallet-share',
-  mixins: [window.windowMixin],
   computed: {
     walletApprovedShares() {
       return this.g.wallet.extra.shared_with.filter(

@@ -1,6 +1,5 @@
 window.app.component('lnbits-wallet-charts', {
   template: '#lnbits-wallet-charts',
-  mixins: [window.windowMixin],
   props: ['paymentFilter', 'chartConfig'],
   data() {
     return {

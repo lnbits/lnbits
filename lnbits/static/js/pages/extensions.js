@@ -1,6 +1,5 @@
 window.PageExtensions = {
   template: '#page-extensions',
-  mixins: [window.windowMixin],
   data() {
     return {
       extbuilderEnabled: false,

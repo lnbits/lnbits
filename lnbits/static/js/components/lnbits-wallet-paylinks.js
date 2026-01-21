@@ -1,6 +1,5 @@
 window.app.component('lnbits-wallet-paylinks', {
   template: '#lnbits-wallet-paylinks',
-  mixins: [window.windowMixin],
   data() {
     return {
       storedPaylinks: []

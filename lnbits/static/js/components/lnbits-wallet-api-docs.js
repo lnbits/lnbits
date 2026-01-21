@@ -1,6 +1,5 @@
 window.app.component('lnbits-wallet-api-docs', {
   template: '#lnbits-wallet-api-docs',
-  mixins: [window.windowMixin],
   methods: {
     resetKeys() {
       LNbits.utils

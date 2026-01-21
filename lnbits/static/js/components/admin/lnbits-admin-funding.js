@@ -1,7 +1,6 @@
 window.app.component('lnbits-admin-funding', {
   props: ['is-super-user', 'form-data', 'settings'],
   template: '#lnbits-admin-funding',
-  mixins: [window.windowMixin],
   data() {
     return {
       auditData: []

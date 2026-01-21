@@ -1,6 +1,5 @@
 window.app.component('lnbits-wallet-icon', {
   template: '#lnbits-wallet-icon',
-  mixins: [window.windowMixin],
   data() {
     return {
       icon: {

@@ -1,7 +1,6 @@
 window.app.component('lnbits-payment-list', {
   template: '#lnbits-payment-list',
   props: ['wallet', 'paymentFilter'],
-  mixins: [window.windowMixin],
   data() {
     return {
       payments: [],

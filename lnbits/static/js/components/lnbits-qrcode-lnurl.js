@@ -1,6 +1,5 @@
 window.app.component('lnbits-qrcode-lnurl', {
   template: '#lnbits-qrcode-lnurl',
-  mixins: [window.windowMixin],
   props: {
     url: {
       required: true,

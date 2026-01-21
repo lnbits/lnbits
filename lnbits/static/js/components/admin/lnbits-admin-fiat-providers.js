@@ -1,7 +1,6 @@
 window.app.component('lnbits-admin-fiat-providers', {
   props: ['form-data'],
   template: '#lnbits-admin-fiat-providers',
-  mixins: [window.windowMixin],
   data() {
     return {
       formAddStripeUser: '',
