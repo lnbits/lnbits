@@ -2,7 +2,7 @@ import asyncio
 import hashlib
 import json
 from collections.abc import AsyncGenerator
-from typing import Any
+from typing import Any, cast
 
 import httpx
 from bolt11 import decode as bolt11_decode
@@ -38,15 +38,9 @@ class LightsparkSparkWallet(Wallet):
     """
 
     def __init__(self):
-        super().__init__()
-        self.endpoint = normalize_endpoint(
-            getattr(settings, "spark_l2_endpoint", None)
-            or getattr(settings, "SPARK_L2_ENDPOINT", None)
-            or "http://127.0.0.1:8765"
-        )
-        api_key = getattr(settings, "spark_l2_api_key", None) or getattr(
-            settings, "SPARK_L2_API_KEY", None
-        )
+        self.pending_invoices: list[str] = []
+        self.endpoint = normalize_endpoint(cast(str, settings.spark_l2_endpoint))
+        api_key = settings.spark_l2_api_key
         headers = {"User-Agent": settings.user_agent}
         if api_key:
             headers["X-Api-Key"] = api_key
@@ -275,8 +269,9 @@ class LightsparkSparkWallet(Wallet):
                             continue
                         data = json.loads(line[5:].strip())
                         checking_id = data.get("checking_id")
-                        if checking_id:
-                            yield checking_id
+                        if not checking_id:
+                            continue
+                        yield checking_id
             except Exception as exc:
                 logger.error(
                     "lost connection to Spark sidecar invoice stream: "
