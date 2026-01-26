@@ -51,6 +51,8 @@ def check_db_versions(sqdb):
     dblite = dict(sqlite.execute("SELECT * FROM dbversions;").fetchall())
     sqlite.close()
 
+    print("### dblite.items()", dblite.items())
+
     postgres = get_postgres_cursor()
     postgres.execute("SELECT * FROM public.dbversions;")
     dbpost = dict(postgres.fetchall())  # type: ignore
@@ -58,6 +60,7 @@ def check_db_versions(sqdb):
     for key, value in dblite.items():
         if key in dblite and key in dbpost:
             version = dbpost[key]
+            print("Checking version of", key, "sqlite:", value, "pg:", version)
             if value != version:
                 raise Exception(
                     f"sqlite database version ({value}) of {key} doesn't match "
@@ -125,6 +128,7 @@ def migrate_ext(file: str):
         migrate_db(file, schema)
         logger.info(f"✅ Migrated ext: {schema}")
     except Exception as exc:
+        logger.error(exc)
         logger.error(f"🛑  Failed to migrate extension {schema}: {exc}")
 
 
@@ -134,8 +138,9 @@ def migrate_db(file: str, schema: str, exclude_tables: list[str] | None = None):
         exclude_tables = []
     assert os.path.isfile(file), f"{file} does not exist!"
 
-    cursor = get_sqlite_cursor(file)
-    tables = cursor.execute(
+    sqlite_cursor = get_sqlite_cursor(file)
+    pg_cursor = get_postgres_cursor()
+    tables = sqlite_cursor.execute(
         """
         SELECT name FROM sqlite_master
         WHERE type='table' AND name not like 'sqlite?_%' escape '?'
@@ -151,10 +156,19 @@ def migrate_db(file: str, schema: str, exclude_tables: list[str] | None = None):
         if exclude_tables and table_name in exclude_tables:
             continue
 
-        columns = cursor.execute(f"PRAGMA table_info({table_name})").fetchall()
-        q = build_insert_query(schema, table_name, columns)
+        # column = sqlite_cursor.execute(f"PRAGMA table_info({table_name})").fetchall()
+        # column_names = [col[1].upper() for col in column]
+        pg_cursor.execute(
+            f"""
+            SELECT table_name, column_name, udt_name FROM information_schema.columns
+            WHERE table_schema = '{schema}'AND table_name   = '{table_name}';"""
+        )
+        pg_columns = pg_cursor.fetchall()
+        # pg_columns = [col for col in pg_cursor.fetchall() if col[1].upper() in column_names]
 
-        data = cursor.execute(f"SELECT * FROM {table_name};").fetchall()
+        q = build_insert_query(schema, table_name, pg_columns)
+
+        data = sqlite_cursor.execute(f"SELECT * FROM {table_name};").fetchall()
 
         if len(data) == 0:
             logger.warning(f"🛑 You sneaky dev! Table {table_name} is empty!")
@@ -162,7 +176,7 @@ def migrate_db(file: str, schema: str, exclude_tables: list[str] | None = None):
 
         insert_to_pg(q, data)
         logger.info(f"✅ Migrated table '{schema}.{table_name}' successfully")
-    cursor.close()
+    sqlite_cursor.close()
 
 
 def build_insert_query(schema, table_name, columns):
@@ -210,10 +224,10 @@ def table_unique_columns(schema, table_name):
     return columns
 
 
-def to_column_type(column_type):
-    if column_type == "TIMESTAMP":
+def to_column_type(column_type: str):
+    if column_type.upper() == "TIMESTAMP":
         return "to_timestamp(%s)"
-    if column_type in ["BOOLEAN", "BOOL"]:
+    if column_type.upper() in ["BOOLEAN", "BOOL"]:
         return "%s::boolean"
     return "%s"
 
