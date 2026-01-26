@@ -86,6 +86,42 @@
           ></q-input>
         </div>
       </div>
+      <br />
+      <div class="row q-col-gutter-md">
+        <div class="col-12 col-md-4">
+          <p>
+            <span v-text="$t('wallet_featured_button_label')"></span>
+          </p>
+          <q-input
+            filled
+            type="text"
+            v-model="formData.lnbits_wallet_featured_button_label"
+            label="Loop to Onchain"
+            :hint="$t('wallet_featured_button_label_hint')"
+          ></q-input>
+        </div>
+        <div class="col-12 col-md-4">
+          <p><span v-text="$t('wallet_featured_button_url')"></span></p>
+          <q-input
+            filled
+            type="text"
+            v-model="formData.lnbits_wallet_featured_button_url"
+            label="/boltz"
+            :hint="$t('wallet_featured_button_url_hint')"
+          ></q-input>
+        </div>
+        <div class="col-12 col-md-4">
+          <p><span v-text="$t('wallet_featured_button_icon')"></span></p>
+          <q-input
+            filled
+            type="text"
+            v-model="formData.lnbits_wallet_featured_button_icon"
+            label="bolt"
+            :hint="$t('wallet_featured_button_icon_hint')"
+          ></q-input>
+        </div>
+      </div>
+
       <div class="row q-col-gutter-md q-mt-md">
         <div class="col-12 col-md-6">
           <p><span v-text="$t('ui_custom_badge')"></span></p>
