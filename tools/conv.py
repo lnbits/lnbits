@@ -217,12 +217,19 @@ def build_on_conflict_query_statement(schema, table_name, columns):
 def table_unique_columns(schema, table_name):
     cursor = get_postgres_cursor()
     query = f"""
-        SELECT a.attname, i.indisprimary
-        FROM   pg_index i
-        JOIN   pg_attribute a ON a.attrelid = i.indrelid
-                             AND a.attnum = ANY(i.indkey)
-        WHERE  i.indrelid = '{schema}.{table_name}'::regclass
-        AND    i.indisunique;
+        SELECT
+            array_agg(a.attname ORDER BY a.attnum) AS columns,
+            i.indisprimary as is_primary,
+            i.indexrelid::regclass AS index_name,
+            COUNT(*) AS column_count,
+            (COUNT(*) = 1) AS is_individual
+        FROM pg_index i
+        JOIN pg_attribute a
+        ON a.attrelid = i.indrelid
+        AND a.attnum = ANY (i.indkey)
+        WHERE i.indrelid = '{schema}.{table_name}'::regclass
+        AND i.indisunique
+        GROUP BY i.indexrelid;
     """
     cursor.execute(query)
     rows = cursor.fetchall()
@@ -231,7 +238,9 @@ def table_unique_columns(schema, table_name):
         # use primary keys if no unique keys found
         columns = [row[0] for row in rows if row[1]]
     cursor.close()
-    return columns
+    if len(columns) == 0:
+        return []
+    return columns[0]
 
 
 def to_column_type(column_type: str):
