@@ -941,7 +941,7 @@
                                 v-if="props.row.thumbnail_base64"
                                 target="_blank"
                                 style="color: inherit"
-                                :href="`/api/v1/assets/${props.row.id}/binary`"
+                                :href="`/api/v1/assets/${props.row.id}/data`"
                               >
                                 <q-img
                                   :src="
