@@ -60,5 +60,18 @@ window.app.component('lnbits-header', {
         return 'User'
       }
     }
+  },
+  methods: {
+    async stopImpersonation() {
+      try {
+        console.log('Stopping impersonation...')
+        await LNbits.api.stopImpersonation()
+        console.log('Stopped impersonation.')
+        // window.location.reload()
+      } catch (e) {
+        console.warn(e)
+        LNbits.utils.notifyApiError(e)
+      }
+    }
   }
 })

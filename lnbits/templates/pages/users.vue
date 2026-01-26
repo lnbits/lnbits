@@ -656,7 +656,18 @@
                   </q-btn>
                   <span v-text="shortify(props.row.id)"></span>
                 </q-td>
-                <q-td v-text="props.row.username"></q-td>
+                <q-td>
+                  <q-btn
+                    icon="face"
+                    size="sm"
+                    flat
+                    class="cursor-pointer q-mr-xs"
+                    @click="impersonateUser(props.row.id)"
+                  >
+                    <q-tooltip>Impersonate User</q-tooltip>
+                  </q-btn>
+                  <span v-text="props.row.username"></span>
+                </q-td>
 
                 <q-td v-text="props.row.email"></q-td>
 

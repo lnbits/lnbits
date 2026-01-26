@@ -438,6 +438,27 @@ window.PageUsers = {
         this.activeUser.show = false
       }
     },
+    async impersonateUser(user_id) {
+      if (!user_id) {
+        Quasar.Notify.create({
+          type: 'warning',
+          message: 'User ID missing!'
+        })
+        return
+      }
+      try {
+        await LNbits.api.request('POST', '/api/v1/auth/impersonate', null, {
+          usr: user_id
+        })
+        window.location.href = '/wallet'
+      } catch (error) {
+        console.warn(error)
+        Quasar.Notify.create({
+          type: 'warning',
+          message: 'Failed to impersonate user!'
+        })
+      }
+    },
     async showWalletPayments(walletId) {
       this.activeUser.show = false
       await this.fetchWallets(this.users[0].id)

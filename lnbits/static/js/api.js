@@ -123,6 +123,19 @@ window._lnbitsApi = {
       url: '/api/v1/auth/logout'
     })
   },
+  impersonate(usr) {
+    return axios({
+      method: 'POST',
+      url: '/api/v1/auth/impersonate',
+      data: {usr}
+    })
+  },
+  stopImpersonation() {
+    return axios({
+      method: 'DELETE',
+      url: '/api/v1/auth/impersonate'
+    })
+  },
   getAuthenticatedUser() {
     return this.request('get', '/api/v1/auth')
   },

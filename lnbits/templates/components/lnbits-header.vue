@@ -72,7 +72,6 @@
       </q-badge>
 
       <lnbits-language-dropdown></lnbits-language-dropdown>
-
       <q-btn-dropdown v-if="g.user" flat rounded size="sm" class="q-pl-sm">
         <template v-slot:label>
           <q-avatar
@@ -136,6 +135,16 @@
           </q-item>
         </q-list>
       </q-btn-dropdown>
+      <q-btn
+        v-if="g.user"
+        @click="stopImpersonation"
+        rounded
+        size="sm"
+        class="q-pl-sm"
+        color="negative"
+        icon="face_retouching_off"
+        label="Stop"
+      ></q-btn>
     </q-toolbar>
   </q-header>
 </template>
