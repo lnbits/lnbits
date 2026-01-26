@@ -51,8 +51,6 @@ def check_db_versions(sqdb):
     dblite = dict(sqlite.execute("SELECT * FROM dbversions;").fetchall())
     sqlite.close()
 
-    print("### dblite.items()", dblite.items())
-
     postgres = get_postgres_cursor()
     postgres.execute("SELECT * FROM public.dbversions;")
     dbpost = dict(postgres.fetchall())  # type: ignore
@@ -60,7 +58,6 @@ def check_db_versions(sqdb):
     for key, value in dblite.items():
         if key in dblite and key in dbpost:
             version = dbpost[key]
-            print("Checking version of", key, "sqlite:", value, "pg:", version)
             if value != version:
                 raise Exception(
                     f"sqlite database version ({value}) of {key} doesn't match "
@@ -156,15 +153,12 @@ def migrate_db(file: str, schema: str, exclude_tables: list[str] | None = None):
         if exclude_tables and table_name in exclude_tables:
             continue
 
-        # column = sqlite_cursor.execute(f"PRAGMA table_info({table_name})").fetchall()
-        # column_names = [col[1].upper() for col in column]
         pg_cursor.execute(
             f"""
             SELECT table_name, column_name, udt_name FROM information_schema.columns
             WHERE table_schema = '{schema}'AND table_name   = '{table_name}';"""
         )
         pg_columns = pg_cursor.fetchall()
-        # pg_columns = [col for col in pg_cursor.fetchall() if col[1].upper() in column_names]
 
         q = build_insert_query(schema, table_name, pg_columns)
 
