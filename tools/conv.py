@@ -136,7 +136,6 @@ def migrate_db(file: str, schema: str, exclude_tables: list[str] | None = None):
     assert os.path.isfile(file), f"{file} does not exist!"
 
     sqlite_cursor = get_sqlite_cursor(file)
-    pg_cursor = get_postgres_cursor()
     tables = sqlite_cursor.execute(
         """
         SELECT name FROM sqlite_master
@@ -153,14 +152,8 @@ def migrate_db(file: str, schema: str, exclude_tables: list[str] | None = None):
         if exclude_tables and table_name in exclude_tables:
             continue
 
-        pg_cursor.execute(
-            f"""
-            SELECT table_name, column_name, udt_name FROM information_schema.columns
-            WHERE table_schema = '{schema}'AND table_name   = '{table_name}';"""
-        )
-        pg_columns = pg_cursor.fetchall()
-
-        q = build_insert_query(schema, table_name, pg_columns)
+        columns = build_table_columns(file, schema, table_name)
+        q = build_insert_query(schema, table_name, columns)
 
         data = sqlite_cursor.execute(f"SELECT * FROM {table_name};").fetchall()
 
@@ -182,6 +175,29 @@ def build_insert_query(schema, table_name, columns):
             VALUES ({values})
             {on_conflict_update}
         """
+
+def build_table_columns(file: str, schema: str, table_name: str):
+    sqlite_cursor = get_sqlite_cursor(file)
+    pg_cursor = get_postgres_cursor()
+
+    sqlite_columns = sqlite_cursor.execute(
+        f"PRAGMA table_info({table_name})"
+    ).fetchall()
+    pg_cursor.execute(
+        f"""
+        SELECT table_name, column_name, udt_name FROM information_schema.columns
+        WHERE table_schema = '{schema}'AND table_name   = '{table_name}';"""
+    )
+    pg_columns = pg_cursor.fetchall()
+
+    columns = []
+    for sqlite_col in sqlite_columns:
+        for pg_col in pg_columns:
+            if sqlite_col[1].lower() == pg_col[1].lower():
+                columns.append((sqlite_col[0], sqlite_col[1], pg_col[2]))
+                break
+    sqlite_cursor.close()
+    return columns
 
 
 def build_on_conflict_query_statement(schema, table_name, columns):
