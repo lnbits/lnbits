@@ -136,7 +136,7 @@
         </q-list>
       </q-btn-dropdown>
       <q-btn
-        v-if="g.user"
+        v-if="g.isUserImpersonated"
         @click="stopImpersonation"
         rounded
         size="sm"

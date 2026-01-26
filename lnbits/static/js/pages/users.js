@@ -439,18 +439,10 @@ window.PageUsers = {
       }
     },
     async impersonateUser(user_id) {
-      if (!user_id) {
-        Quasar.Notify.create({
-          type: 'warning',
-          message: 'User ID missing!'
-        })
-        return
-      }
       try {
-        await LNbits.api.request('POST', '/api/v1/auth/impersonate', null, {
-          usr: user_id
-        })
-        window.location.href = '/wallet'
+        await LNbits.api.impersonateUser(user_id)
+        // todo: clean local storage
+        window.location = '/wallet'
       } catch (error) {
         console.warn(error)
         Quasar.Notify.create({

@@ -152,7 +152,7 @@ async def impersonate_user(
     response.set_cookie(
         "admin_access_token", cookie_access_token, httponly=True, max_age=max_age
     )
-    response.set_cookie("is_impersonating_user", "true", max_age=max_age)
+    response.set_cookie("is_lnbits_user_impersonated", "true", max_age=max_age)
     return response
 
 
@@ -180,7 +180,7 @@ async def stop_impersonate_user(
     )
     response.delete_cookie("admin_access_token")
     response.delete_cookie("is_access_token_expired")
-    response.delete_cookie("is_impersonating_user")
+    response.delete_cookie("is_lnbits_user_impersonated")
     return response
 
 
