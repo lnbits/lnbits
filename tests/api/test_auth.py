@@ -2092,11 +2092,21 @@ async def test_impersonate_user_success(http_client: AsyncClient, admin_user: Us
 
 
 @pytest.mark.anyio
-async def test_impersonate_user_no_cookie(http_client: AsyncClient):
+async def test_impersonate_user_no_cookie(http_client: AsyncClient, admin_user: User):
+    response = await http_client.post(
+        "/api/v1/auth", json={"username": admin_user.username, "password": "secret1234"}
+    )
+    admin_token = response.json()["access_token"]
     user_id = uuid4().hex
     http_client.cookies.clear()
-    response = await http_client.post("/api/v1/auth/impersonate", json={"usr": user_id})
-    assert response.status_code == 401 or response.status_code == 403
+    response = await http_client.post(
+        "/api/v1/auth/impersonate",
+        json={"usr": user_id},
+        headers={"Authorization": f"Bearer {admin_token}"},
+    )
+
+    assert response.status_code == 401
+    assert response.json()["detail"] == "Only cookie based impersonation is allowed."
 
 
 @pytest.mark.anyio
@@ -2111,7 +2121,9 @@ async def test_impersonate_user_self(http_client: AsyncClient, admin_user: User)
         json={"usr": admin_user.id},
         headers={"Authorization": f"Bearer {admin_token}"},
     )
-    assert response.status_code == 400 or response.status_code == 403
+
+    assert response.status_code == 403
+    assert response.json()["detail"] == "You cannot impersonate yourself."
 
 
 @pytest.mark.anyio
@@ -2156,13 +2168,14 @@ async def test_impersonate_user_nonexistent(
         json={"usr": fake_id},
         headers={"Authorization": f"Bearer {admin_token}"},
     )
-    print("### test_impersonate_user_nonexistent", response.status_code, response.text)
     assert response.status_code == 401
     assert response.json()["detail"] == "User ID does not exist."
 
 
 @pytest.mark.anyio
-async def test_impersonate_user_invalid_data(http_client: AsyncClient, admin_user):
+async def test_impersonate_user_invalid_data(
+    http_client: AsyncClient, admin_user: User
+):
     response = await http_client.post(
         "/api/v1/auth", json={"username": admin_user.username, "password": "secret1234"}
     )
@@ -2172,12 +2185,15 @@ async def test_impersonate_user_invalid_data(http_client: AsyncClient, admin_use
         json={"usr": None},
         headers={"Authorization": f"Bearer {admin_token}"},
     )
-    assert response.status_code in (400, 422)
+
+    assert response.status_code == 400
+    assert "type_error.none.not_allowed" in str(response.json()["detail"])
 
 
 @pytest.mark.anyio
-async def test_impersonate_user_missing_usr_field(http_client: AsyncClient, admin_user):
-    # Try to impersonate with missing 'usr' field
+async def test_impersonate_user_missing_usr_field(
+    http_client: AsyncClient, admin_user: User
+):
     response = await http_client.post(
         "/api/v1/auth", json={"username": admin_user.username, "password": "secret1234"}
     )
@@ -2189,3 +2205,35 @@ async def test_impersonate_user_missing_usr_field(http_client: AsyncClient, admi
     )
     assert response.status_code == 400
     assert "value_error.missing" in str(response.json()["detail"])
+
+
+@pytest.mark.anyio
+async def test_impersonate_user_by_non_admin(http_client: AsyncClient, user_alan: User):
+    response = await http_client.post(
+        "/api/v1/auth", json={"username": user_alan.username, "password": "secret1234"}
+    )
+    alan_token = response.json()["access_token"]
+    response = await http_client.post(
+        "/api/v1/auth/impersonate",
+        json={},
+        headers={"Authorization": f"Bearer {alan_token}"},
+    )
+    assert response.status_code == 403
+    assert response.json()["detail"] == "User not authorized. No admin privileges."
+
+
+@pytest.mark.anyio
+async def test_stop_impersonate_user_by_non_admin(
+    http_client: AsyncClient, user_alan: User
+):
+    response = await http_client.post(
+        "/api/v1/auth", json={"username": user_alan.username, "password": "secret1234"}
+    )
+
+    response = await http_client.delete("/api/v1/auth/impersonate")
+
+    assert response.status_code == 401
+    assert (
+        response.json()["detail"]
+        == "No admin access token found to stop impersonation."
+    )
