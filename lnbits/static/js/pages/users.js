@@ -442,6 +442,7 @@ window.PageUsers = {
       try {
         await LNbits.api.impersonateUser(user_id)
         LNbits.utils.backupLocalStorage('impersonation', true)
+        this.$q.localStorage.setItem('lnbits.disclaimerShown', true)
         window.location = '/wallet'
       } catch (error) {
         console.warn(error)

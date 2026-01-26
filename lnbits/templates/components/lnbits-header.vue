@@ -144,7 +144,11 @@
         color="negative"
         icon="face_retouching_off"
         label="Stop"
-      ></q-btn>
+      >
+        <q-tooltip
+          ><span v-text="$t('stop_user_impersonation')"></span
+        ></q-tooltip>
+      </q-btn>
     </q-toolbar>
   </q-header>
 </template>

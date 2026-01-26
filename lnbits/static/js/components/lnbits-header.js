@@ -66,7 +66,7 @@ window.app.component('lnbits-header', {
       try {
         await LNbits.api.stopImpersonation()
         LNbits.utils.restoreLocalStorage('impersonation')
-        window.location = '/wallet'
+        window.location = '/users'
       } catch (e) {
         console.warn(e)
         LNbits.utils.notifyApiError(e)

@@ -664,7 +664,9 @@
                     class="cursor-pointer q-mr-xs"
                     @click="impersonateUser(props.row.id)"
                   >
-                    <q-tooltip>Impersonate User</q-tooltip>
+                    <q-tooltip
+                      ><span v-text="$t('start_user_impersonation')"></span
+                    ></q-tooltip>
                   </q-btn>
                   <span v-text="props.row.username"></span>
                 </q-td>
