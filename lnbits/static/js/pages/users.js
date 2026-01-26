@@ -441,7 +441,7 @@ window.PageUsers = {
     async impersonateUser(user_id) {
       try {
         await LNbits.api.impersonateUser(user_id)
-        // todo: clean local storage
+        LNbits.utils.backupLocalStorage('impersonation', true)
         window.location = '/wallet'
       } catch (error) {
         console.warn(error)

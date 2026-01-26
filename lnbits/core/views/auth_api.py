@@ -128,8 +128,6 @@ async def impersonate_user(
     user: User = Depends(check_admin),
     cookie_access_token: Annotated[str | None, Cookie()] = None,
 ) -> JSONResponse:
-    print("### impersonate_user called", data)
-    print("### impersonate_user admin user", user)
     if not cookie_access_token:
         raise HTTPException(
             HTTPStatus.UNAUTHORIZED, "Only cookie based impersonation is allowed."
@@ -145,7 +143,7 @@ async def impersonate_user(
     account = await get_account(data.usr)
     if not account:
         raise HTTPException(HTTPStatus.UNAUTHORIZED, "User ID does not exist.")
-    print("### impersonate_user account found", account)
+
     response = _auth_success_response(account.username, account.id, account.email)
 
     max_age = settings.auth_token_expire_minutes * 60
@@ -163,9 +161,6 @@ async def stop_impersonate_user(
     user: User = Depends(check_user_exists),
     admin_access_token: Annotated[str | None, Cookie()] = None,
 ) -> JSONResponse:
-
-    print("### stop impersonate_user called", user)
-    print("### stop impersonate_user admin_access_token", admin_access_token)
     if not admin_access_token:
         raise HTTPException(
             HTTPStatus.UNAUTHORIZED,
