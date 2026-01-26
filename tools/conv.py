@@ -165,7 +165,7 @@ def migrate_db(file: str, schema: str, exclude_tables: list[str] | None = None):
         data = sqlite_cursor.execute(f"SELECT * FROM {table_name};").fetchall()
 
         if len(data) == 0:
-            logger.warning(f"🛑 You sneaky dev! Table {table_name} is empty!")
+            logger.warning(f"⚠️ You sneaky dev! Table {table_name} is empty!")
             continue
 
         insert_to_pg(q, data)
