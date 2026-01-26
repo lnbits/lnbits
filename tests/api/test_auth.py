@@ -2080,8 +2080,15 @@ async def test_impersonate_user_success(http_client: AsyncClient, admin_user: Us
     assert data["token_type"] == "bearer"
 
     # Check impersonation cookies
+    assert "cookie_access_token" in response.cookies
     assert "admin_access_token" in response.cookies
     assert response.cookies.get("is_lnbits_user_impersonated") == "true"
+
+    response = await http_client.delete("/api/v1/auth/impersonate")
+    assert "cookie_access_token" in response.cookies
+    assert response.cookies.get("cookie_access_token") == admin_token
+    assert "admin_access_token" not in response.cookies
+    assert "is_lnbits_user_impersonated" not in response.cookies
 
 
 @pytest.mark.anyio
