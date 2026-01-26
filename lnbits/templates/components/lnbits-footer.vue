@@ -1,6 +1,6 @@
 <template id="lnbits-footer">
   <q-footer
-    v-if="showFooter"
+    v-if="g.settings.showHomePageElements"
     class="bg-transparent q-px-lg q-py-md"
     :class="{'text-dark': !$q.dark.isActive}"
   >
@@ -9,7 +9,7 @@
       <q-toolbar-title class="text-caption">
         <span v-text="title"></span>
         <br />
-        <small v-text="$t('lnbits_version') + ': ' + version"></small>
+        <small v-text="version"></small>
       </q-toolbar-title>
       <q-space></q-space>
       <q-btn

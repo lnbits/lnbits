@@ -289,7 +289,7 @@
           ></q-input>
         </div>
         <q-input
-          v-if="has_holdinvoice"
+          v-if="g.settings.hasHoldinvoice"
           filled
           dense
           v-model="receive.data.payment_hash"

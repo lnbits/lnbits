@@ -1132,13 +1132,44 @@ class Settings(EditableSettings, ReadOnlySettings, TransientSettings, BaseSettin
         )
 
     def to_public(self) -> PublicSettings:
-        return PublicSettings(
-            allowRegister=self.new_accounts_allowed,
-            qrLogo=self.lnbits_qr_logo,
-            siteDescription=self.lnbits_site_description,
-            authMethods=self.auth_allowed_methods,
-            keycloakOrg=self.keycloak_client_custom_org,
-            keycloakIcon=self.keycloak_client_custom_icon,
+        return PublicSettings.from_settings(self)
+
+
+class PublicSettings(BaseModel):
+    allow_register: bool = Field(alias="allowRegister")
+    qr_logo: str = Field(alias="qrLogo")
+    site_title: str = Field(alias="siteTitle")
+    site_tagline: str = Field(alias="siteTagline")
+    site_description: str | None = Field(alias="siteDescription")
+    auth_methods: list[str] = Field(alias="authMethods")
+    keycloak_org: str | None = Field(alias="keycloakOrg")
+    keycloak_icon: str | None = Field(alias="keycloakIcon")
+    has_holdinvoice: bool = Field(alias="hasHoldinvoice")
+    has_nodemanager: bool = Field(alias="hasNodemanager")
+    show_nodemanager: bool = Field(alias="showNodemanager")
+    custom_logo: str | None = Field(alias="customLogo")
+    show_voidwallet: bool = Field(alias="showVoidwallet")
+    version: str = Field(alias="version")
+    show_home_page_elements: bool = Field(alias="showHomePageElements")
+
+    @classmethod
+    def from_settings(cls, settings: Settings):
+        return cls(
+            allowRegister=settings.new_accounts_allowed,
+            qrLogo=settings.lnbits_qr_logo,
+            siteDescription=settings.lnbits_site_description,
+            siteTitle=settings.lnbits_site_title,
+            siteTagline=settings.lnbits_site_tagline,
+            authMethods=settings.auth_allowed_methods,
+            keycloakOrg=settings.keycloak_client_custom_org,
+            keycloakIcon=settings.keycloak_client_custom_icon,
+            hasHoldinvoice=settings.has_holdinvoice,
+            hasNodemanager=settings.has_nodemanager,
+            showNodemanager=settings.lnbits_node_ui and settings.has_nodemanager,
+            customLogo=settings.lnbits_custom_logo,
+            showVoidwallet=settings.lnbits_backend_wallet_class == "VoidWallet",
+            version=settings.version,
+            showHomePageElements=settings.lnbits_show_home_page_elements,
         )
 
 
@@ -1155,15 +1186,6 @@ class SettingsField(BaseModel):
     id: str
     value: Any | None
     tag: str = "core"
-
-
-class PublicSettings(BaseModel):
-    allow_register: bool = Field(alias="allowRegister")
-    qr_logo: str = Field(alias="qrLogo")
-    site_description: str | None = Field(alias="siteDescription")
-    auth_methods: list[str] = Field(alias="authMethods")
-    keycloak_org: str | None = Field(alias="keycloakOrg")
-    keycloak_icon: str | None = Field(alias="keycloakIcon")
 
 
 def _re_fullmatch_safe(pattern: str, string: str):

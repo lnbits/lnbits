@@ -51,7 +51,7 @@ include('components/lnbits-error.vue') %}
           <q-icon name="chevron_right" color="grey-5" size="md"></q-icon>
         </q-item-section>
       </q-item>
-      <q-item v-if="showNode" to="/node">
+      <q-item v-if="g.settings.showNodemanager" to="/node">
         <q-item-section side>
           <q-icon
             name="developer_board"
@@ -686,7 +686,7 @@ include('components/lnbits-error.vue') %}
           dense
           filled
           v-model="walletName"
-          :label="$t('name_your_wallet', {name: SITE_TITLE + ' *'})"
+          :label="$t('name_your_wallet', {name: g.settings.siteTitle + ' *'})"
         ></q-input>
         <q-card-actions vertical align="center" class="q-pa-none">
           <q-btn

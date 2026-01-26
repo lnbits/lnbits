@@ -4,12 +4,12 @@
       class="full-width content-center"
       :style="`max-width: ${hasCustomImage ? '850' : '600'}px; min-height: 55vh;`"
     >
-      <div v-if="showHomepageElements" class="row q-mb-md">
+      <div v-if="g.settings.showHomepageElements" class="row q-mb-md">
         <div class="col-12">
           <div>
-            <h5 v-text="siteTitle" class="q-my-none"></h5>
+            <h5 v-text="g.settings.siteTitle" class="q-my-none"></h5>
             <template v-if="$q.screen.gt.sm">
-              <h6 class="q-my-sm" v-text="siteTagline"></h6>
+              <h6 class="q-my-sm" v-text="g.settings.siteTagline"></h6>
               <p class="q-my-sm" v-html="formatDescription"></p>
             </template>
           </div>
@@ -125,7 +125,7 @@
         </q-card>
       </div>
 
-      <div v-if="showHomepageElements">
+      <div v-if="g.settings.showHomepageElements">
         <div class="flex flex-center q-gutter-md q-py-md">
           <q-btn
             outline

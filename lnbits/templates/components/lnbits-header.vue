@@ -1,6 +1,10 @@
 <template id="lnbits-header">
   <q-header bordered class="bg-marginal-bg">
-    <q-banner v-if="showVoidwallet" class="bg-warning text-white" dense>
+    <q-banner
+      v-if="g.settings.showVoidwallet"
+      class="bg-warning text-white"
+      dense
+    >
       <template v-slot:avatar>
         <q-icon name="warning" color="white" />
       </template>
@@ -24,13 +28,15 @@
       <q-toolbar-title>
         <q-btn flat no-caps dense class="q-mr-sm" size="lg" type="a" href="/">
           <q-img
-            v-if="customLogoUrl"
+            v-if="customLogo"
             height="30px"
             alt="Logo"
-            :src="customLogoUrl"
+            :src="customLogo"
           ></q-img>
-          <span v-else-if="!titleIsLnbits"><strong>LN</strong>bits</span>
-          <span v-else v-text="title"></span>
+          <span v-else-if="g.settings.siteTitle == 'LNbits'"
+            ><strong>LN</strong>bits</span
+          >
+          <span v-else v-text="g.settings.siteTitle"></span>
         </q-btn>
         <q-badge v-if="g.user && g.user.super_user">Super User</q-badge>
         <q-badge v-else-if="g.user && g.user.admin">Admin User</q-badge>

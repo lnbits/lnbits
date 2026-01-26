@@ -28,20 +28,8 @@ window.app.component('lnbits-header', {
     customBadgeColor() {
       return this.LNBITS_CUSTOM_BADGE_COLOR || ''
     },
-    title() {
-      return this.SITE_TITLE
-    },
-    titleIsLnbits() {
-      return this.SITE_TITLE == 'LNbits'
-    },
-    customLogoUrl() {
-      return this.USE_CUSTOM_LOGO || null
-    },
     showAdmin() {
       return this.g.user && (this.g.user.super_user || this.g.user.admin)
-    },
-    showVoidwallet() {
-      return this.g.user && this.VOIDWALLET == true
     },
     displayName() {
       return (

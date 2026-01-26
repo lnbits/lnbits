@@ -42,9 +42,6 @@ window.app.component('lnbits-manage', {
     showUsers() {
       return this.LNBITS_ADMIN_UI
     },
-    showNode() {
-      return this.LNBITS_NODE_UI
-    },
     showAudit() {
       return this.LNBITS_AUDIT_ENABLED
     },

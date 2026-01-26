@@ -50,7 +50,7 @@
           <br />
         </div>
         <div class="col">
-          <div v-if="LNBITS_NODE_UI">
+          <div v-if="g.settings.hasNodemanager">
             <p>
               <span v-text="$t('node_management')"></span>
             </p>
@@ -70,7 +70,7 @@
               v-model="formData.lnbits_node_ui_transactions"
             ></q-toggle>
           </div>
-          <p v-if="!LNBITS_NODE_UI">
+          <p v-if="!g.settings.hasNodemanager">
             <span v-text="$t('node_management_not_supported')"></span>
           </p>
         </div>

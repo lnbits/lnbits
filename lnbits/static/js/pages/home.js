@@ -33,15 +33,6 @@ window.PageHome = {
     hasCustomImage() {
       return this.LNBITS_CUSTOM_IMAGE
     },
-    showHomepageElements() {
-      return this.LNBITS_SHOW_HOME_PAGE_ELEMENTS === true
-    },
-    siteTitle() {
-      return this.SITE_TITLE || ''
-    },
-    siteTagline() {
-      return this.SITE_TAGLINE || ''
-    },
     adsEnabled() {
       return this.AD_SPACE_ENABLED && this.AD_SPACE && this.AD_SPACE.length > 0
     },
