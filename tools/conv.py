@@ -176,6 +176,7 @@ def build_insert_query(schema, table_name, columns):
             {on_conflict_update}
         """
 
+
 def build_table_columns(file: str, schema: str, table_name: str):
     sqlite_cursor = get_sqlite_cursor(file)
     pg_cursor = get_postgres_cursor()
