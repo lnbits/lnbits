@@ -223,8 +223,8 @@ window.PageAccount = {
     async updateAccount() {
       try {
         const {data} = await LNbits.api.request(
-          'PUT',
-          '/api/v1/auth/update',
+          'PATCH',
+          '/api/v1/auth',
           null,
           {
             user_id: this.g.user.id,
@@ -680,6 +680,13 @@ window.PageAccount = {
             l => l.name !== label.name
           )
         })
+    },
+
+    siteCustomisationChanged(options = {}) {
+      console.log('### site customisation', options)
+      Object.keys(options).forEach(key => {
+        this.g.user[key] = options[key]
+      })
     }
   },
 

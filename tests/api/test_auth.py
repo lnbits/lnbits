@@ -2016,8 +2016,8 @@ async def test_api_update_user_labels(http_client: AsyncClient):
     ]
     data = UpdateUser(user_id=user.id, username=f"u{tiny_id}", extra=user.extra)
     assert data.extra
-    response = await http_client.put(
-        "/api/v1/auth/update?usr=" + user.id, json=data.dict()
+    response = await http_client.patch(
+        "/api/v1/auth?usr=" + user.id, json=data.dict()
     )
     assert response.status_code == 200
     user_data = response.json()
@@ -2028,8 +2028,8 @@ async def test_api_update_user_labels(http_client: AsyncClient):
     assert user_data["extra"]["labels"][1]["color"] == "#00FF00"
 
     data.extra.labels = []
-    response = await http_client.put(
-        "/api/v1/auth/update?usr=" + user.id, json=data.dict()
+    response = await http_client.patch(
+        "/api/v1/auth?usr=" + user.id, json=data.dict()
     )
     assert response.status_code == 200
     user_data = response.json()
@@ -2037,8 +2037,8 @@ async def test_api_update_user_labels(http_client: AsyncClient):
 
     json_data = data.dict()
     json_data["extra"] = {"labels": [{"name": "label + 01", "color": "#FF0000"}]}
-    response = await http_client.put(
-        "/api/v1/auth/update?usr=" + user.id, json=json_data
+    response = await http_client.patch(
+        "/api/v1/auth?usr=" + user.id, json=json_data
     )
 
     assert response.status_code == 400

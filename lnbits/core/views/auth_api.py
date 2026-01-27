@@ -467,7 +467,7 @@ async def reset_password(data: ResetUserPassword) -> JSONResponse:
     return _auth_success_response(account.username, user_id, account.email)
 
 
-@auth_router.put("/update")
+@auth_router.patch("")
 async def update(
     data: UpdateUser, account: Account = Depends(check_account_exists)
 ) -> User | None:
@@ -481,6 +481,16 @@ async def update(
 
     await update_user_account(account)
     return await get_user_from_account(account)
+
+@auth_router.patch("/ui")
+async def update(
+    req: Request, account: Account = Depends(check_account_exists)
+) -> Account:
+    print('### update ui customization', len(await req.text()))
+    account.ui_customization = await req.json()
+
+    await update_user_account(account)
+    return account
 
 
 @auth_router.put("/first_install")

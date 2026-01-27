@@ -187,6 +187,7 @@ class Account(AccountId):
     pubkey: str | None = None
     email: str | None = None
     extra: UserExtra = UserExtra()
+    ui_customization: dict = Field(default_factory=dict)
 
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
@@ -288,6 +289,7 @@ class User(BaseModel):
     fiat_providers: list[str] = []
     has_password: bool = False
     extra: UserExtra = UserExtra()
+    ui_customization: dict = Field(default_factory=dict)
 
     @property
     def wallet_ids(self) -> list[str]:

@@ -8,6 +8,7 @@ window.app.component('lnbits-language-dropdown', {
       this.g.locale = newValue
       window.i18n.global.locale = newValue
       this.$q.localStorage.set('lnbits.lang', newValue)
+      this.$emit('language-changed', newValue)
     }
   },
   data() {
