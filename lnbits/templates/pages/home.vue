@@ -2,7 +2,7 @@
   <div class="home row justify-center items-center">
     <div
       class="full-width content-center"
-      :style="`max-width: ${hasCustomImage ? '850' : '600'}px; min-height: 55vh;`"
+      :style="`max-width: ${g.settings.customImage ? '850' : '600'}px; min-height: 55vh;`"
     >
       <div v-if="g.settings.showHomepageElements" class="row q-mb-md">
         <div class="col-12">
@@ -31,7 +31,10 @@
           <div class="row">
             <div
               class="col-12"
-              :class="{'col-sm-7': hasCustomImage, 'col-lg-6': hasCustomImage}"
+              :class="{
+                'col-sm-7': g.settings.customImage,
+                'col-lg-6': g.settings.customImage
+              }"
             >
               <div v-if="showClaimLnurl">
                 <q-card-section>
@@ -116,9 +119,13 @@
                 </user-id-only>
               </div>
             </div>
-            <div v-if="hasCustomImage" class="col-sm-5 col-lg-6 gt-xs">
+            <div v-if="g.settings.customImage" class="col-sm-5 col-lg-6 gt-xs">
               <div class="full-height flex flex-center q-pa-lg">
-                <q-img :src="hasCustomImage" :ratio="1" width="250px"></q-img>
+                <q-img
+                  :src="g.settings.customImage"
+                  :ratio="1"
+                  width="250px"
+                ></q-img>
               </div>
             </div>
           </div>
@@ -150,10 +157,14 @@
     </div>
 
     <div
-      v-if="adsEnabled"
+      v-if="g.settings.showAdSpace"
       class="justify-center col-10 q-my-lg row q-col-gutter-sm"
     >
-      <a :href="ad[0]" v-for="ad in g.ads" class="lnbits-ad col-12 col-md-4">
+      <a
+        :href="ad[0]"
+        v-for="ad in g.settings.adSpace"
+        class="lnbits-ad col-12 col-md-4"
+      >
         <q-img v-if="$q.dark.isActive" :src="ad[1]"></q-img>
         <q-img v-else :src="ad[2]"></q-img>
       </a>

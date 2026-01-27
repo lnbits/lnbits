@@ -35,20 +35,6 @@ window.app.component('lnbits-extension-rating', {
 
 window.app.component('lnbits-manage', {
   template: '#lnbits-manage',
-  computed: {
-    showAdmin() {
-      return this.LNBITS_ADMIN_UI
-    },
-    showUsers() {
-      return this.LNBITS_ADMIN_UI
-    },
-    showAudit() {
-      return this.LNBITS_AUDIT_ENABLED
-    },
-    showExtensions() {
-      return this.LNBITS_EXTENSIONS_DEACTIVATE_ALL === false
-    }
-  },
   methods: {
     isActive(path) {
       return window.location.pathname === path

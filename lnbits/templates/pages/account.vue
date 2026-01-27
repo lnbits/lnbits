@@ -514,7 +514,7 @@
                     <div class="col-8">
                       <lnbits-notifications-btn
                         v-if="g.user"
-                        pubkey="{{ WEBPUSH_PUBKEY }}"
+                        pubkey="g.settings.webpushPubkey"
                       ></lnbits-notifications-btn>
                     </div>
                   </div>

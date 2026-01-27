@@ -28,19 +28,6 @@ window.PageHome = {
     },
     isAccessTokenExpired() {
       return this.$q.cookies.get('is_access_token_expired')
-    },
-    // TODO: this makes no sense
-    hasCustomImage() {
-      return this.LNBITS_CUSTOM_IMAGE
-    },
-    adsEnabled() {
-      return this.AD_SPACE_ENABLED && this.AD_SPACE && this.AD_SPACE.length > 0
-    },
-    adsTitle() {
-      return this.AD_SPACE_TITLE || ''
-    },
-    ads() {
-      return this.AD_SPACE.map(ad => ad.split(';'))
     }
   },
   methods: {

@@ -1151,10 +1151,24 @@ class PublicSettings(BaseModel):
     show_voidwallet: bool = Field(alias="showVoidwallet")
     version: str = Field(alias="version")
     show_home_page_elements: bool = Field(alias="showHomePageElements")
+    hide_api: bool = Field(alias="hideApi")
+    cache_key: str = Field(alias="cacheKey")
+    webpush_pubkey: str | None = Field(alias="webpushPubkey")
+    show_extensions: bool = Field(alias="showExtensions")
+    show_audit: bool = Field(alias="showAudit")
+    show_admin: bool = Field(alias="showAdmin")
+    ad_space: list[list[str]] = Field(alias="adSpace")
+    ad_space_title: str = Field(alias="adSpaceTitle")
+    show_ad_space: bool = Field(alias="showAdSpace")
+    custom_image: str | None = Field(alias="customImage")
 
     @classmethod
     def from_settings(cls, settings: Settings):
+        ads = [x.split(";") for x in settings.lnbits_ad_space.split(",")]
         return cls(
+            adSpace=ads,
+            adSpaceTitle=settings.lnbits_ad_space_title,
+            showAdSpace=settings.lnbits_ad_space_enabled and len(ads) > 0,
             allowRegister=settings.new_accounts_allowed,
             qrLogo=settings.lnbits_qr_logo,
             siteDescription=settings.lnbits_site_description,
@@ -1170,6 +1184,13 @@ class PublicSettings(BaseModel):
             showVoidwallet=settings.lnbits_backend_wallet_class == "VoidWallet",
             version=settings.version,
             showHomePageElements=settings.lnbits_show_home_page_elements,
+            hideApi=settings.lnbits_hide_api,
+            cacheKey=str(settings.server_startup_time),
+            webpushPubkey=settings.lnbits_webpush_pubkey,
+            showExtensions=not settings.lnbits_extensions_deactivate_all,
+            showAudit=settings.lnbits_audit_enabled,
+            showAdmin=settings.lnbits_admin_ui,
+            customImage=settings.lnbits_custom_image,
         )
 
 

@@ -212,10 +212,10 @@
         @send-lnurl="handleSendLnurl"
         :chart-config="chartConfig"
       ></lnbits-wallet-extra>
-      <q-card class="lnbits-wallet-ads" v-if="AD_SPACE_ENABLED">
+      <q-card class="lnbits-wallet-ads" v-if="g.settings.showAdSpace">
         <q-card-section class="text-subtitle1">
-          <span v-text="AD_SPACE_TITLE"></span>
-          <a :href="ad[0]" class="lnbits-ad" v-for="ad in g.ads">
+          <span v-text="g.settings.adSpaceTitle"></span>
+          <a :href="ad[0]" class="lnbits-ad" v-for="ad in g.settings.adSpace">
             <q-img class="q-mb-xs" v-if="$q.dark.isActive" :src="ad[1]"></q-img>
             <q-img class="q-mb-xs" v-else :src="ad[2]"></q-img>
           </a>
