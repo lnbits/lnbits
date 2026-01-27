@@ -711,7 +711,7 @@ window.PageAccount = {
     await this.getUserAssets()
     // filter out themes that are not allowed
     this.themeOptions = this.themeOptions.filter(theme =>
-      this.LNBITS_THEME_OPTIONS.includes(theme.name)
+      this.g.settings.themeOptions.includes(theme.name)
     )
   }
 }

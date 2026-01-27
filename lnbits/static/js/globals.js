@@ -8,28 +8,25 @@ const localStore = (key, defaultValue) => {
     : defaultValue
 }
 
+console.log('SETTINGS:', SETTINGS)
+
 window.g = Vue.reactive({
-  errorCode: null,
-  errorMessage: null,
-  user: null,
-  wallet: null,
-  settings: null,
-  isPublicPage: true,
-  isUserAuthorized: !!Quasar.Cookies.get('is_lnbits_user_authorized'),
-  isUserImpersonated: !!Quasar.Cookies.get('is_lnbits_user_impersonated'),
-  offline: !navigator.onLine,
-  hasCamera: false,
-  visibleDrawer: false,
-  extensions: WINDOW_SETTINGS.EXTENSIONS,
-  fiatBalance: 0,
-  exchangeRate: 0,
-  fiatTracking: false,
-  payments: [],
-  walletEventListeners: [],
-  updatePayments: false, // used for updating the lnbits-payment-list
-  updatePaymentsHash: false, // used for closing the receive dialog
-  currencies: WINDOW_SETTINGS.LNBITS_CURRENCIES ?? [],
-  allowedCurrencies: WINDOW_SETTINGS.LNBITS_ALLOWED_CURRENCIES ?? [],
+  // vars from server
+  settings: SETTINGS,
+  currencies: CURRENCIES,
+  extensions: SETTINGS.extensions,
+  allowedCurrencies: SETTINGS.allowedCurrencies,
+  denomination: SETTINGS.denomination,
+  isSatsDenomination: SETTINGS.denomination == 'sats',
+  // local storage vars
+  themeChoice: localStore('lnbits.theme', SETTINGS.defaultTheme),
+  borderChoice: localStore('lnbits.border', SETTINGS.defaultBorder),
+  gradientChoice: localStore('lnbits.gradientBg', SETTINGS.defaultGradient),
+  reactionChoice: localStore('lnbits.reactions', SETTINGS.defaultReaction),
+  bgimageChoice: localStore(
+    'lnbits.backgroundImage',
+    SETTINGS.defaultBgimage || ''
+  ),
   locale: localStore('lnbits.lang', navigator.languages[1] ?? 'en'),
   disclaimerShown: localStore('lnbits.disclaimerShown', false),
   isFiatPriority: localStore('lnbits.isFiatPriority', false),
@@ -37,25 +34,25 @@ window.g = Vue.reactive({
   walletFlip: localStore('lnbits.walletFlip', false),
   lastActiveWallet: localStore('lnbits.lastActiveWallet', null),
   darkChoice: localStore('lnbits.darkMode', true),
-  themeChoice: localStore('lnbits.theme', WINDOW_SETTINGS.LNBITS_DEFAULT_THEME),
-  borderChoice: localStore(
-    'lnbits.border',
-    WINDOW_SETTINGS.LNBITS_DEFAULT_BORDER || 'hard-border'
-  ),
-  gradientChoice: localStore(
-    'lnbits.gradientBg',
-    WINDOW_SETTINGS.LNBITS_DEFAULT_GRADIENT || false
-  ),
-  reactionChoice: localStore(
-    'lnbits.reactions',
-    WINDOW_SETTINGS.LNBITS_DEFAULT_REACTION || 'confettiBothSides'
-  ),
-  bgimageChoice: localStore(
-    'lnbits.backgroundImage',
-    WINDOW_SETTINGS.LNBITS_DEFAULT_BGIMAGE || ''
-  ),
-  denomination: WINDOW_SETTINGS.LNBITS_DENOMINATION,
-  isSatsDenomination: WINDOW_SETTINGS.LNBITS_DENOMINATION == 'sats',
+  // cookie vars
+  isUserAuthorized: !!Quasar.Cookies.get('is_lnbits_user_authorized'),
+  isUserImpersonated: !!Quasar.Cookies.get('is_lnbits_user_impersonated'),
+  // frontend vars
+  errorCode: null,
+  errorMessage: null,
+  user: null,
+  wallet: null,
+  isPublicPage: true,
+  offline: !navigator.onLine,
+  hasCamera: false,
+  visibleDrawer: false,
+  fiatBalance: 0,
+  exchangeRate: 0,
+  fiatTracking: false,
+  payments: [],
+  walletEventListeners: [],
+  updatePayments: false, // used for updating the lnbits-payment-list
+  updatePaymentsHash: false, // used for closing the receive dialog
   scanner: null,
   newWalletType: null
 })

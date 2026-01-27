@@ -71,20 +71,10 @@ def template_renderer(additional_folders: list | None = None) -> Jinja2Templates
     t.env.globals["normalize_path"] = normalize_path
 
     window_settings = {
-        "LNBITS_THEME_OPTIONS": settings.lnbits_theme_options,
-        "LNBITS_DEFAULT_REACTION": settings.lnbits_default_reaction,
-        "LNBITS_DEFAULT_THEME": settings.lnbits_default_theme,
-        "LNBITS_DEFAULT_BORDER": settings.lnbits_default_border,
-        "LNBITS_DEFAULT_GRADIENT": settings.lnbits_default_gradient,
-        "LNBITS_DEFAULT_BGIMAGE": settings.lnbits_default_bgimage,
         "LNBITS_EXTENSIONS_REVIEWS_URL": settings.lnbits_extensions_reviews_url,
         "LNBITS_EXT_BUILDER": settings.lnbits_extensions_builder_activate_non_admins,
         "LNBITS_NOSTR_CONFIGURED": settings.is_nostr_notifications_configured(),
         "LNBITS_TELEGRAM_CONFIGURED": settings.is_telegram_notifications_configured(),
-        "LNBITS_DENOMINATION": settings.lnbits_denomination,
-        "EXTENSIONS": list(settings.lnbits_installed_extensions_ids),
-        "LNBITS_CURRENCIES": list(currencies.keys()),
-        "LNBITS_ALLOWED_CURRENCIES": settings.lnbits_allowed_currencies,
     }
 
     # used in base.html
@@ -93,6 +83,7 @@ def template_renderer(additional_folders: list | None = None) -> Jinja2Templates
 
     t.env.globals["WINDOW_SETTINGS"] = window_settings
     t.env.globals["SETTINGS"] = settings.to_public().dict(by_alias=True)
+    t.env.globals["CURRENCIES"] = list(currencies.keys())
 
     if settings.bundle_assets:
         t.env.globals["INCLUDED_JS"] = ["bundle.min.js"]

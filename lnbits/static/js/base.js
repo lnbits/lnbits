@@ -61,10 +61,6 @@ window.LNbits = {
       newWallet.url = `/wallet?&wal=${data.id}`
       newWallet.storedPaylinks = data.stored_paylinks.links
       return newWallet
-    },
-    settings(data) {
-      console.log('Loaded settings...', data)
-      return data
     }
   }
 }

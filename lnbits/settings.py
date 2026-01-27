@@ -1166,6 +1166,15 @@ class PublicSettings(BaseModel):
     service_fee: float = Field(alias="serviceFee")
     service_fee_max: int = Field(alias="serviceFeeMax")
     service_fee_wallet: str | None = Field(alias="serviceFeeWallet")
+    theme_options: list[str] = Field(alias="themeOptions")
+    default_reaction: str = Field(alias="defaultReaction")
+    default_theme: str = Field(alias="defaultTheme")
+    default_border: str = Field(alias="defaultBorder")
+    default_bgimage: str | None = Field(alias="defaultBgimage")
+    default_gradient: bool = Field(alias="defaultGradient")
+    denomination: str | None = Field()
+    extensions: list[str] = Field()
+    allowed_currencies: list[str] = Field(alias="allowedCurrencies")
 
     @classmethod
     def from_settings(cls, settings: Settings):
@@ -1201,6 +1210,15 @@ class PublicSettings(BaseModel):
             serviceFee=settings.lnbits_service_fee,
             serviceFeeMax=settings.lnbits_service_fee_max,
             serviceFeeWallet=settings.lnbits_service_fee_wallet,
+            themeOptions=settings.lnbits_theme_options,
+            defaultReaction=settings.lnbits_default_reaction,
+            defaultTheme=settings.lnbits_default_theme,
+            defaultBorder=settings.lnbits_default_border,
+            defaultGradient=settings.lnbits_default_gradient,
+            defaultBgimage=settings.lnbits_default_bgimage,
+            denomination=settings.lnbits_denomination,
+            extensions=list(settings.lnbits_installed_extensions_ids),
+            allowedCurrencies=settings.lnbits_allowed_currencies,
         )
 
 

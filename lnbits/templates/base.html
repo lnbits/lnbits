@@ -71,6 +71,8 @@
     <script type="text/javascript">
       const RENDERED_ROUTE = '{{ normalize_path(request.path) }}'
       const WINDOW_SETTINGS = {{ WINDOW_SETTINGS | tojson }}
+      const SETTINGS = {{ SETTINGS | tojson | safe }}
+      const CURRENCIES = {{ CURRENCIES | tojson | safe }}
     </script>
     <!-- vue templates -->
     {% include('components.vue') %} {% include('pages.vue') %}
@@ -82,7 +84,6 @@
     {% endfor %}
     <!-- user init -->
     <script>
-        window.g.settings = LNbits.map.settings({{ SETTINGS | tojson | safe }});
       {% if user %}
         window.g.user = LNbits.map.user(JSON.parse({{ user | tojson | safe }}));
         {% if not public %}
