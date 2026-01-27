@@ -1161,6 +1161,11 @@ class PublicSettings(BaseModel):
     ad_space_title: str = Field(alias="adSpaceTitle")
     show_ad_space: bool = Field(alias="showAdSpace")
     custom_image: str | None = Field(alias="customImage")
+    custom_badge: str | None = Field(alias="customBadge")
+    custom_badge_color: str | None = Field(alias="customBadgeColor")
+    service_fee: float = Field(alias="serviceFee")
+    service_fee_max: int = Field(alias="serviceFeeMax")
+    service_fee_wallet: str | None = Field(alias="serviceFeeWallet")
 
     @classmethod
     def from_settings(cls, settings: Settings):
@@ -1191,6 +1196,11 @@ class PublicSettings(BaseModel):
             showAudit=settings.lnbits_audit_enabled,
             showAdmin=settings.lnbits_admin_ui,
             customImage=settings.lnbits_custom_image,
+            customBadge=settings.lnbits_custom_badge,
+            customBadgeColor=settings.lnbits_custom_badge_color,
+            serviceFee=settings.lnbits_service_fee,
+            serviceFeeMax=settings.lnbits_service_fee_max,
+            serviceFeeWallet=settings.lnbits_service_fee_wallet,
         )
 
 

@@ -71,11 +71,6 @@ def template_renderer(additional_folders: list | None = None) -> Jinja2Templates
     t.env.globals["normalize_path"] = normalize_path
 
     window_settings = {
-        "LNBITS_CUSTOM_BADGE": settings.lnbits_custom_badge,
-        "LNBITS_CUSTOM_BADGE_COLOR": settings.lnbits_custom_badge_color,
-        "LNBITS_SERVICE_FEE": settings.lnbits_service_fee,
-        "LNBITS_SERVICE_FEE_MAX": settings.lnbits_service_fee_max,
-        "LNBITS_SERVICE_FEE_WALLET": settings.lnbits_service_fee_wallet,
         "LNBITS_THEME_OPTIONS": settings.lnbits_theme_options,
         "LNBITS_DEFAULT_REACTION": settings.lnbits_default_reaction,
         "LNBITS_DEFAULT_THEME": settings.lnbits_default_theme,

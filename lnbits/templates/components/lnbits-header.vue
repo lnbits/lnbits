@@ -44,31 +44,31 @@
       <q-badge
         class="q-mr-md"
         v-show="$q.screen.gt.sm"
-        v-if="hasCustomBadge"
-        :label="customBadge"
-        :color="customBadgeColor"
+        v-if="g.settings.customBadge"
+        :label="g.settings.customBadge"
+        :color="g.settings.customBadgeColor"
       >
       </q-badge>
 
       <q-badge
         v-show="$q.screen.gt.sm"
-        v-if="hasServiceFee"
+        v-if="g.user && g.settings.serviceFee > 0"
         color="green"
         class="q-mr-md"
       >
         <span
-          v-if="hasServiceFeeMax"
+          v-if="g.user && g.settings.serviceFeeMax > 0"
           v-text="
             $t('service_fee_max_badge', {
-              amount: serviceFee,
-              max: serviceFeeMax,
+              amount: g.settings.serviceFee,
+              max: g.settings.serviceFeeMax,
               denom: g.denomination
             })
           "
         ></span>
         <span
           v-else
-          v-text="$t('service_fee_badge', {amount: serviceFee})"
+          v-text="$t('service_fee_badge', {amount: g.settings.serviceFee})"
         ></span>
         <q-tooltip><span v-text="$t('service_fee_tooltip')"></span></q-tooltip>
       </q-badge>
