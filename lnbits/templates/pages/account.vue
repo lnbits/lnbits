@@ -558,7 +558,7 @@
                         ></span>
                         <br />
                         <q-badge
-                          v-if="!LNBITS_NOSTR_CONFIGURED"
+                          v-if="!g.settings.nostrConfigured"
                           v-text="$t('not_connected')"
                         ></q-badge>
                       </div>
@@ -578,7 +578,7 @@
                         <span v-text="$t('notifications_chat_id')"></span>
                         <br />
                         <q-badge
-                          v-if="!LNBITS_TELEGRAM_CONFIGURED"
+                          v-if="!g.settings.telegramConfigured"
                           v-text="$t('not_connected')"
                         ></q-badge>
                       </div>

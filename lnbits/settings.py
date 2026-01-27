@@ -1175,6 +1175,10 @@ class PublicSettings(BaseModel):
     denomination: str | None = Field()
     extensions: list[str] = Field()
     allowed_currencies: list[str] = Field(alias="allowedCurrencies")
+    extensions_reviews_url: str = Field(alias="extensionsReviewsUrl")
+    ext_builder: bool = Field(alias="extBuilder")
+    nostr_configured: bool = Field(alias="nostrConfigured")
+    telegram_configured: bool = Field(alias="telegramConfigured")
 
     @classmethod
     def from_settings(cls, settings: Settings):
@@ -1219,6 +1223,10 @@ class PublicSettings(BaseModel):
             denomination=settings.lnbits_denomination,
             extensions=list(settings.lnbits_installed_extensions_ids),
             allowedCurrencies=settings.lnbits_allowed_currencies,
+            extensionsReviewsUrl=settings.lnbits_extensions_reviews_url,
+            extBuilder=settings.lnbits_extensions_builder_activate_non_admins,
+            nostrConfigured=settings.is_nostr_notifications_configured(),
+            telegramConfigured=settings.is_telegram_notifications_configured(),
         )
 
 

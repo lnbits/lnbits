@@ -70,18 +70,9 @@ def template_renderer(additional_folders: list | None = None) -> Jinja2Templates
     t.env.globals["static_url_for"] = static_url_for
     t.env.globals["normalize_path"] = normalize_path
 
-    window_settings = {
-        "LNBITS_EXTENSIONS_REVIEWS_URL": settings.lnbits_extensions_reviews_url,
-        "LNBITS_EXT_BUILDER": settings.lnbits_extensions_builder_activate_non_admins,
-        "LNBITS_NOSTR_CONFIGURED": settings.is_nostr_notifications_configured(),
-        "LNBITS_TELEGRAM_CONFIGURED": settings.is_telegram_notifications_configured(),
-    }
-
     # used in base.html
     t.env.globals["SITE_TITLE"] = settings.lnbits_site_title
     t.env.globals["LNBITS_APPLE_TOUCH_ICON"] = settings.lnbits_apple_touch_icon
-
-    t.env.globals["WINDOW_SETTINGS"] = window_settings
     t.env.globals["SETTINGS"] = settings.to_public().dict(by_alias=True)
     t.env.globals["CURRENCIES"] = list(currencies.keys())
 

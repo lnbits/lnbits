@@ -70,7 +70,6 @@
     </div>
     <script type="text/javascript">
       const RENDERED_ROUTE = '{{ normalize_path(request.path) }}'
-      const WINDOW_SETTINGS = {{ WINDOW_SETTINGS | tojson }}
       const SETTINGS = {{ SETTINGS | tojson | safe }}
       const CURRENCIES = {{ CURRENCIES | tojson | safe }}
     </script>
