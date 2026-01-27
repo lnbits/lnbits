@@ -100,8 +100,8 @@ def insert_to_pg(query, data):
                 logger.error(exc)
                 logger.error(f"Failed to insert {d}")
             else:
-                logger.error("query:", query)
-                logger.error("data:", d)
+                logger.error("query: " + query)
+                logger.error("data: " + str(d))
                 raise ValueError(f"Failed to insert {d}") from exc
     connection.commit()
 
@@ -125,6 +125,7 @@ def migrate_ext(file: str):
         migrate_db(file, schema)
         logger.info(f"✅ Migrated ext: {schema}")
     except Exception as exc:
+        logger.error(exc)
         logger.error(f"🛑  Failed to migrate extension {schema}: {exc}")
 
 
@@ -134,8 +135,8 @@ def migrate_db(file: str, schema: str, exclude_tables: list[str] | None = None):
         exclude_tables = []
     assert os.path.isfile(file), f"{file} does not exist!"
 
-    cursor = get_sqlite_cursor(file)
-    tables = cursor.execute(
+    sqlite_cursor = get_sqlite_cursor(file)
+    tables = sqlite_cursor.execute(
         """
         SELECT name FROM sqlite_master
         WHERE type='table' AND name not like 'sqlite?_%' escape '?'
@@ -151,16 +152,18 @@ def migrate_db(file: str, schema: str, exclude_tables: list[str] | None = None):
         if exclude_tables and table_name in exclude_tables:
             continue
 
-        columns = cursor.execute(f"PRAGMA table_info({table_name})").fetchall()
+        columns = build_table_columns(file, schema, table_name)
         q = build_insert_query(schema, table_name, columns)
 
-        data = cursor.execute(f"SELECT * FROM {table_name};").fetchall()
+        data = sqlite_cursor.execute(f"SELECT * FROM {table_name};").fetchall()
 
         if len(data) == 0:
-            logger.warning(f"🛑 You sneaky dev! Table {table_name} is empty!")
+            logger.warning(f"⚠️ You sneaky dev! Table {table_name} is empty!")
+            continue
 
         insert_to_pg(q, data)
-    cursor.close()
+        logger.info(f"✅ Migrated table '{schema}.{table_name}' successfully")
+    sqlite_cursor.close()
 
 
 def build_insert_query(schema, table_name, columns):
@@ -172,6 +175,30 @@ def build_insert_query(schema, table_name, columns):
             VALUES ({values})
             {on_conflict_update}
         """
+
+
+def build_table_columns(file: str, schema: str, table_name: str):
+    sqlite_cursor = get_sqlite_cursor(file)
+    pg_cursor = get_postgres_cursor()
+
+    sqlite_columns = sqlite_cursor.execute(
+        f"PRAGMA table_info({table_name})"
+    ).fetchall()
+    pg_cursor.execute(
+        f"""
+        SELECT table_name, column_name, udt_name FROM information_schema.columns
+        WHERE table_schema = '{schema}'AND table_name   = '{table_name}';"""
+    )
+    pg_columns = pg_cursor.fetchall()
+
+    columns = []
+    for sqlite_col in sqlite_columns:
+        for pg_col in pg_columns:
+            if sqlite_col[1].lower() == pg_col[1].lower():
+                columns.append((sqlite_col[0], sqlite_col[1], pg_col[2]))
+                break
+    sqlite_cursor.close()
+    return columns
 
 
 def build_on_conflict_query_statement(schema, table_name, columns):
@@ -191,23 +218,36 @@ def build_on_conflict_query_statement(schema, table_name, columns):
 def table_unique_columns(schema, table_name):
     cursor = get_postgres_cursor()
     query = f"""
-        SELECT a.attname
-        FROM   pg_index i
-        JOIN   pg_attribute a ON a.attrelid = i.indrelid
-                             AND a.attnum = ANY(i.indkey)
-        WHERE  i.indrelid = '{schema}.{table_name}'::regclass
-        AND    i.indisunique;
+        SELECT
+            array_agg(a.attname ORDER BY a.attnum) AS columns,
+            i.indisprimary as is_primary,
+            i.indexrelid::regclass AS index_name,
+            COUNT(*) AS column_count,
+            (COUNT(*) = 1) AS is_individual
+        FROM pg_index i
+        JOIN pg_attribute a
+        ON a.attrelid = i.indrelid
+        AND a.attnum = ANY (i.indkey)
+        WHERE i.indrelid = '{schema}.{table_name}'::regclass
+        AND i.indisunique
+        GROUP BY i.indexrelid;
     """
     cursor.execute(query)
-    columns = [row[0] for row in cursor.fetchall()]
+    rows = cursor.fetchall()
+    columns = [row[0] for row in rows if not row[1]]  # exclude primary keys
+    if len(columns) == 0:
+        # use primary keys if no unique keys found
+        columns = [row[0] for row in rows if row[1]]
     cursor.close()
-    return columns
+    if len(columns) == 0:
+        return []
+    return columns[0]
 
 
-def to_column_type(column_type):
-    if column_type == "TIMESTAMP":
+def to_column_type(column_type: str):
+    if column_type.upper() == "TIMESTAMP":
         return "to_timestamp(%s)"
-    if column_type in ["BOOLEAN", "BOOL"]:
+    if column_type.upper() in ["BOOLEAN", "BOOL"]:
         return "%s::boolean"
     return "%s"
 
@@ -255,7 +295,7 @@ parser.add_argument(
 
 args = parser.parse_args()
 
-logger.info("Selected path: ", args.sqlite_path)
+logger.info("Selected path: " + args.sqlite_path)
 
 if os.path.isdir(args.sqlite_path):
     exclude_tables = ["dbversions"]
