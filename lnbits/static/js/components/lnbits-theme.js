@@ -10,8 +10,8 @@ window.app.component('lnbits-theme', {
       this.$q.localStorage.setItem('lnbits.disclaimerShown', val)
     },
     'g.locale'(val) {
-      console.log("### g.locale changed", val)
       this.$q.localStorage.setItem('lnbits.lang', val)
+      window.i18n.global.locale = val
     },
     'g.isFiatPriority'(val) {
       this.$q.localStorage.setItem('lnbits.isFiatPriority', val)
@@ -127,12 +127,13 @@ window.app.component('lnbits-theme', {
     if (this.g.mobileSimple === true) {
       document.body.classList.add('mobile-simple')
     }
-    console.log('### lnbits-theme created', this.g.user)
-    Object.entries(this.g.user.uiCustomization || {}).forEach(([key, value]) => {
-      if (key in this.g) {
-        this.g[key] = value
+    Object.entries(this.g.user.uiCustomization || {}).forEach(
+      ([key, value]) => {
+        if (key in this.g) {
+          this.g[key] = value
+        }
       }
-    })
+    )
     this.checkUrlParams()
   }
 })

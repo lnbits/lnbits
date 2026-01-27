@@ -4,7 +4,6 @@ window.LNbits = {
   api: window._lnbitsApi,
   map: {
     user(data) {
-      console.log('### map user', data)
       const obj = {
         id: data.id,
         username: data.username,

@@ -679,6 +679,11 @@ window.PageAccount = {
 
     async siteCustomisationChanged(options = {}) {
       try {
+        Object.entries(options || {}).forEach(([key, value]) => {
+          if (key in this.g) {
+            this.g[key] = value
+          }
+        })
         await LNbits.api.updateUiCustomization(options)
         this.$q.notify({
           type: 'positive',
