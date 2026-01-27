@@ -4,6 +4,7 @@ window.LNbits = {
   api: window._lnbitsApi,
   map: {
     user(data) {
+      console.log('### map user', data)
       const obj = {
         id: data.id,
         username: data.username,
@@ -14,7 +15,8 @@ window.LNbits = {
         fiat_providers: data.fiat_providers || [],
         super_user: data.super_user,
         extra: data.extra ?? {},
-        hasPassword: data.has_password ?? false
+        hasPassword: data.has_password ?? false,
+        uiCustomization: data.ui_customization || {}
       }
       const mapWallet = this.wallet
       obj.wallets = obj.wallets.map(mapWallet).sort((a, b) => {

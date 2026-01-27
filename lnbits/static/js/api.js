@@ -155,7 +155,7 @@ window._lnbitsApi = {
     })
   },
   updateUiCustomization(data = {}) {
-    return this.request('patch', '/api/v1/wallet', null, data)
+    return this.request('patch', '/api/v1/auth/ui', null, data)
   },
   resetWalletKeys(wallet) {
     return this.request('put', `/api/v1/wallet/reset/${wallet.id}`).then(

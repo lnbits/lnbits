@@ -391,7 +391,9 @@
                     </div>
                     <div class="col-8">
                       <lnbits-language-dropdown
-                        @language-changed="siteCustomisationChanged({lang: $event })"
+                        @language-changed="
+                          siteCustomisationChanged({locale: $event})
+                        "
                       />
                     </div>
                   </div>
@@ -404,7 +406,9 @@
                       <q-btn
                         v-for="theme in themeOptions"
                         :key="theme.name"
-                        @click="siteCustomisationChanged({ themeChoice: theme.name })"
+                        @click="
+                          siteCustomisationChanged({themeChoice: theme.name})
+                        "
                         :color="theme.color"
                         dense
                         flat
@@ -424,7 +428,9 @@
                       <q-input
                         v-model="g.bgimageChoice"
                         :label="$t('background_image')"
-                        @update:model-value="siteCustomisationChanged({ bgimageChoice: $event })"
+                        @update:model-value="
+                          siteCustomisationChanged({bgimageChoice: $event})
+                        "
                       >
                         <q-tooltip
                           ><span v-text="$t('background_image')"></span
@@ -443,7 +449,9 @@
                         round
                         icon="gradient"
                         v-model="g.gradientChoice"
-                        @update:model-value="siteCustomisationChanged({ gradientChoice: $event })"
+                        @update:model-value="
+                          siteCustomisationChanged({gradientChoice: $event})
+                        "
                       >
                         <q-tooltip
                           ><span v-text="$t('toggle_gradient')"></span
@@ -462,7 +470,9 @@
                         flat
                         round
                         v-model="g.darkChoice"
-                        @update:model-value="siteCustomisationChanged({ darkChoice: $event })"
+                        @update:model-value="
+                          siteCustomisationChanged({darkChoice: $event})
+                        "
                         :icon="$q.dark.isActive ? 'brightness_3' : 'wb_sunny'"
                         size="sm"
                       >
@@ -481,7 +491,9 @@
                         v-model="g.borderChoice"
                         :options="borderOptions"
                         label="Borders"
-                        @update:model-value="siteCustomisationChanged({ borderChoice: $event })"
+                        @update:model-value="
+                          siteCustomisationChanged({borderChoice: $event})
+                        "
                       >
                         <q-tooltip
                           ><span v-text="$t('border_choices')"></span
@@ -509,7 +521,9 @@
                         v-model="g.reactionChoice"
                         :options="reactionOptions"
                         label="Reactions"
-                        @update:model-value="siteCustomisationChanged({ reactionChoice: $event })"
+                        @update:model-value="
+                          siteCustomisationChanged({reactionChoice: $event})
+                        "
                       >
                         <q-tooltip
                           ><span v-text="$t('payment_reactions')"></span

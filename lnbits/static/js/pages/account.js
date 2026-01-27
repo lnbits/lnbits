@@ -222,17 +222,12 @@ window.PageAccount = {
     },
     async updateAccount() {
       try {
-        const {data} = await LNbits.api.request(
-          'PATCH',
-          '/api/v1/auth',
-          null,
-          {
-            user_id: this.g.user.id,
-            username: this.g.user.username,
-            email: this.g.user.email,
-            extra: this.g.user.extra
-          }
-        )
+        const {data} = await LNbits.api.request('PATCH', '/api/v1/auth', null, {
+          user_id: this.g.user.id,
+          username: this.g.user.username,
+          email: this.g.user.email,
+          extra: this.g.user.extra
+        })
         this.untouchedUser = JSON.parse(JSON.stringify(this.g.user))
         this.hasUsername = !!data.username
         Quasar.Notify.create({
@@ -682,11 +677,16 @@ window.PageAccount = {
         })
     },
 
-    siteCustomisationChanged(options = {}) {
-      console.log('### site customisation', options)
-      Object.keys(options).forEach(key => {
-        this.g.user[key] = options[key]
-      })
+    async siteCustomisationChanged(options = {}) {
+      try {
+        await LNbits.api.updateUiCustomization(options)
+        this.$q.notify({
+          type: 'positive',
+          message: 'UI Customization updated.'
+        })
+      } catch (e) {
+        LNbits.utils.notifyApiError(e)
+      }
     }
   },
 

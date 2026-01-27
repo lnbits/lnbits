@@ -849,6 +849,7 @@ async def m042_index_accounts(db: Connection):
             """
         )
 
+
 async def m043_add_ui_customization_to_accounts(db: Connection):
     """
     Adds ui_customization column to accounts.

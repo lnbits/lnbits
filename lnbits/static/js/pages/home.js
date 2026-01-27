@@ -115,6 +115,7 @@ window.PageHome = {
     async refreshAuthUser() {
       try {
         const res = await LNbits.api.getAuthUser()
+        console.log('### auth user', res.data)
         this.g.user = LNbits.map.user(res.data)
         this.g.isPublicPage = false
         this.$router.push(`/wallet/${this.g.user.wallets[0].id}`)

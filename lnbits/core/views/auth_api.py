@@ -482,12 +482,18 @@ async def update(
     await update_user_account(account)
     return await get_user_from_account(account)
 
+
 @auth_router.patch("/ui")
-async def update(
+async def update_ui_customization(
     req: Request, account: Account = Depends(check_account_exists)
 ) -> Account:
-    print('### update ui customization', len(await req.text()))
-    account.ui_customization = await req.json()
+    ui_customization = await req.json()
+    account.ui_customization = {**(account.ui_customization or {}), **ui_customization}
+
+    if len(account.ui_customization or {}) > 1000 * 1024:
+        raise HTTPException(
+            HTTPStatus.BAD_REQUEST, "UI customization too large. Drop some fields."
+        )
 
     await update_user_account(account)
     return account
