@@ -8,8 +8,6 @@ const localStore = (key, defaultValue) => {
     : defaultValue
 }
 
-console.log('SETTINGS:', SETTINGS)
-
 window.g = Vue.reactive({
   // vars from server
   settings: SETTINGS,
