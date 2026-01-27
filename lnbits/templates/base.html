@@ -82,14 +82,14 @@
     <script src="{{ static_url_for('static', url) }}"></script>
     {% endfor %}
     <!-- user init -->
+    {% if user %}
     <script>
-      {% if user %}
-        window.g.user = LNbits.map.user(JSON.parse({{ user | tojson | safe }}));
-        {% if not public %}
-        window.g.isPublicPage = false
-        {% endif %}
+      window.g.user = LNbits.map.user(JSON.parse({{ user | tojson | safe }}));
+      {% if not public %}
+      window.g.isPublicPage = false
       {% endif %}
     </script>
+    {% endif %}
     <!-- scripts from extensions -->
     {% block scripts %}{% endblock %}
     <!-- components js -->
