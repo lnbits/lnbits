@@ -4,9 +4,10 @@ import json
 from collections.abc import Callable
 from http import HTTPStatus
 from time import time
+from typing import Annotated
 from uuid import uuid4
 
-from fastapi import APIRouter, Depends, HTTPException, Request
+from fastapi import APIRouter, Cookie, Depends, HTTPException, Request
 from fastapi.responses import JSONResponse, RedirectResponse
 from fastapi_sso.sso.base import OpenID, SSOBase
 from loguru import logger
@@ -29,6 +30,7 @@ from lnbits.core.services.users import update_user_account
 from lnbits.decorators import (
     access_token_payload,
     check_account_exists,
+    check_admin,
     check_user_exists,
 )
 from lnbits.helpers import (
@@ -118,6 +120,63 @@ async def login_usr(data: LoginUsr) -> JSONResponse:
             HTTPStatus.FORBIDDEN, "Admin users cannot login with user id only."
         )
     return _auth_success_response(account.username, account.id, account.email)
+
+
+@auth_router.post("/impersonate", description="Login via the User ID of another user")
+async def impersonate_user(
+    data: LoginUsr,
+    user: User = Depends(check_admin),
+    cookie_access_token: Annotated[str | None, Cookie()] = None,
+) -> JSONResponse:
+    if not cookie_access_token:
+        raise HTTPException(
+            HTTPStatus.UNAUTHORIZED, "Only cookie based impersonation is allowed."
+        )
+    if data.usr == user.id:
+        raise HTTPException(HTTPStatus.FORBIDDEN, "You cannot impersonate yourself.")
+    if settings.is_admin_user(data.usr):
+        # this check includes the superuser
+        raise HTTPException(
+            HTTPStatus.FORBIDDEN, "You cannot impersonate another admin user."
+        )
+
+    account = await get_account(data.usr)
+    if not account:
+        raise HTTPException(HTTPStatus.UNAUTHORIZED, "User ID does not exist.")
+
+    response = _auth_success_response(account.username, account.id, account.email)
+
+    max_age = settings.auth_token_expire_minutes * 60
+    response.set_cookie(
+        "admin_access_token", cookie_access_token, httponly=True, max_age=max_age
+    )
+    response.set_cookie("is_lnbits_user_impersonated", "true", max_age=max_age)
+    return response
+
+
+@auth_router.delete(
+    "/impersonate", description="Stop impersonation and go back to admin"
+)
+async def stop_impersonate_user(
+    user: User = Depends(check_user_exists),
+    admin_access_token: Annotated[str | None, Cookie()] = None,
+) -> JSONResponse:
+    if not admin_access_token:
+        raise HTTPException(
+            HTTPStatus.UNAUTHORIZED,
+            "No admin access token found to stop impersonation.",
+        )
+    response = JSONResponse(
+        {"access_token": admin_access_token, "token_type": "bearer"}
+    )
+    max_age = settings.auth_token_expire_minutes * 60
+    response.set_cookie(
+        "cookie_access_token", admin_access_token, httponly=True, max_age=max_age
+    )
+    response.delete_cookie("admin_access_token")
+    response.delete_cookie("is_access_token_expired")
+    response.delete_cookie("is_lnbits_user_impersonated")
+    return response
 
 
 @auth_router.get("/acl")

@@ -15,6 +15,7 @@ window.g = Vue.reactive({
   wallet: null,
   isPublicPage: true,
   isUserAuthorized: !!Quasar.Cookies.get('is_lnbits_user_authorized'),
+  isUserImpersonated: !!Quasar.Cookies.get('is_lnbits_user_impersonated'),
   offline: !navigator.onLine,
   hasCamera: false,
   visibleDrawer: false,
