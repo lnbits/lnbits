@@ -253,9 +253,9 @@ class ThemesSettings(LNbitsSettings):
     lnbits_show_home_page_elements: bool = Field(default=True)
     lnbits_default_wallet_name: str = Field(default="LNbits wallet")
 
-    lnbits_wallet_featured_button_label: str = Field(default="")
-    lnbits_wallet_featured_button_url: str = Field(default="")
-    lnbits_wallet_featured_button_icon: str = Field(default="")
+    lnbits_wallet_featured_button_label: str | None = Field(default="")
+    lnbits_wallet_featured_button_url: str | None = Field(default="")
+    lnbits_wallet_featured_button_icon: str | None = Field(default="")
 
     lnbits_custom_badge: str | None = Field(default=None)
     lnbits_custom_badge_color: str = Field(default="warning")
