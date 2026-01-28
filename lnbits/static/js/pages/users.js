@@ -438,6 +438,20 @@ window.PageUsers = {
         this.activeUser.show = false
       }
     },
+    async impersonateUser(user_id) {
+      try {
+        await LNbits.api.impersonateUser(user_id)
+        LNbits.utils.backupLocalStorage('impersonation', true)
+        this.$q.localStorage.setItem('lnbits.disclaimerShown', true)
+        window.location = '/wallet'
+      } catch (error) {
+        console.warn(error)
+        Quasar.Notify.create({
+          type: 'warning',
+          message: 'Failed to impersonate user!'
+        })
+      }
+    },
     async showWalletPayments(walletId) {
       this.activeUser.show = false
       await this.fetchWallets(this.users[0].id)
