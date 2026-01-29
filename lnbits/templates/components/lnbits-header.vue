@@ -33,7 +33,7 @@
           class="q-mr-sm"
           size="lg"
           type="a"
-          :href="utils.urlFor('/', true)"
+          :href="utils.urlFor('/', false)"
         >
           <q-img
             v-if="customLogo"
