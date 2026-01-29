@@ -546,9 +546,21 @@ async def check_extension_builder(
         )
 
 
-async def check_first_install():
+def validate_setup_token(request: Request) -> None:
+    if not settings.lnbits_setup_token:
+        return
+    token = request.query_params.get("token")
+    if token != settings.lnbits_setup_token:
+        raise HTTPException(
+            status_code=HTTPStatus.FORBIDDEN,
+            detail="Setup token required.",
+        )
+
+
+async def check_first_install(request: Request) -> None:
     if not settings.first_install:
         raise HTTPException(
             status_code=HTTPStatus.BAD_REQUEST,
             detail="Super user account has already been configured.",
         )
+    validate_setup_token(request)

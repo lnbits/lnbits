@@ -32,6 +32,7 @@ from lnbits.decorators import (
     check_account_exists,
     check_admin,
     check_user_exists,
+    validate_setup_token,
 )
 from lnbits.helpers import (
     create_access_token,
@@ -500,9 +501,12 @@ async def update_ui_customization(
 
 
 @auth_router.put("/first_install")
-async def first_install(data: UpdateSuperuserPassword) -> JSONResponse:
+async def first_install(
+    request: Request, data: UpdateSuperuserPassword
+) -> JSONResponse:
     if not settings.first_install:
         raise HTTPException(HTTPStatus.FORBIDDEN, "This is not your first install")
+    validate_setup_token(request)
     account = await get_account(settings.super_user)
     if not account:
         raise HTTPException(HTTPStatus.INTERNAL_SERVER_ERROR, "Superuser not found.")

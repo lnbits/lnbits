@@ -5,6 +5,7 @@ from uuid import uuid4
 import pytest
 import uvloop
 from asgi_lifespan import LifespanManager
+from fastapi import Request
 from fastapi.testclient import TestClient
 from httpx import ASGITransport, AsyncClient
 
@@ -66,12 +67,22 @@ async def app(settings: Settings):
     app = create_app()
     async with LifespanManager(app) as manager:
         settings.first_install = True
+        request = Request(
+            {
+                "type": "http",
+                "method": "PUT",
+                "path": "/api/v1/auth/first_install",
+                "headers": [],
+                "query_string": b"",
+            }
+        )
         await first_install(
+            request,
             UpdateSuperuserPassword(
                 username="superadmin",
                 password="secret1234",
                 password_repeat="secret1234",
-            )
+            ),
         )
 
         yield manager.app
