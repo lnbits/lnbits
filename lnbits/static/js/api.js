@@ -147,7 +147,7 @@ window._lnbitsApi = {
       name: name,
       wallet_type: walletType,
       ...opts
-    }).catch(LNbits.utils.notifyApiError)
+    })
   },
   updateWallet(name, wallet) {
     return this.request('patch', '/api/v1/wallet', wallet.adminkey, {
