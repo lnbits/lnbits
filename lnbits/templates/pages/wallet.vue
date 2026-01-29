@@ -216,8 +216,12 @@
         <q-card-section class="text-subtitle1">
           <span v-text="g.settings.adSpaceTitle"></span>
           <a :href="ad[0]" class="lnbits-ad" v-for="ad in g.settings.adSpace">
-            <q-img class="q-mb-xs" v-if="$q.dark.isActive" :src="ad[1]"></q-img>
-            <q-img class="q-mb-xs" v-else :src="ad[2]"></q-img>
+            <q-img
+              class="q-mb-xs"
+              v-if="$q.dark.isActive"
+              :src="utils.urlFor(ad[1])"
+            ></q-img>
+            <q-img class="q-mb-xs" v-else :src="utils.urlFor(ad[2])"></q-img>
           </a>
         </q-card-section>
       </q-card>

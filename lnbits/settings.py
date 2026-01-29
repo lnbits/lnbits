@@ -1060,6 +1060,7 @@ class EnvSettings(LNbitsSettings):
     auth_https_only: bool = Field(default=True)
     host: str = Field(default="127.0.0.1")
     port: int = Field(default=5000, gt=0)
+    root_path: str = Field(default="/")
     forwarded_allow_ips: str = Field(default="*")
     lnbits_title: str = Field(default="LNbits API")
     lnbits_path: str = Field(default=".")

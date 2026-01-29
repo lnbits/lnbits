@@ -32,7 +32,7 @@ generic_router = APIRouter(
 
 @generic_router.get("/favicon.ico", response_class=FileResponse)
 async def favicon():
-    return RedirectResponse(settings.lnbits_qr_logo)
+    return RedirectResponse(settings.root_path + settings.lnbits_qr_logo)
 
 
 @generic_router.get("/robots.txt", response_class=HTMLResponse)
