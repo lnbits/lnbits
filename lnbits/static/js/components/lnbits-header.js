@@ -69,6 +69,17 @@ window.app.component('lnbits-header', {
         window.location = '/users'
       } catch (e) {
         console.warn(e)
+      }
+    },
+    async handleLanguageChanged(lang) {
+      try {
+        await LNbits.api.updateUiCustomization({locale: lang.locale})
+        this.$q.notify({
+          type: 'positive',
+          message: 'Language Updated',
+          caption: lang.locale
+        })
+      } catch (e) {
         LNbits.utils.notifyApiError(e)
       }
     }
