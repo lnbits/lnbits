@@ -20,6 +20,18 @@ from lnbits.helpers import normalize_path, template_renderer
 from lnbits.settings import settings
 
 _LOCALHOST_IPS = {"127.0.0.1", "::1"}
+_PUBLIC_ASSET_PATHS = {
+    "/favicon.ico",
+    "/service-worker.js",
+}
+
+
+def _normalize_match_path(path: str) -> str:
+    if not path:
+        return "/"
+    if path != "/" and path.endswith("/"):
+        return path.rstrip("/")
+    return path
 
 
 def _route_pattern_matches(pattern: str, path: str) -> bool:
@@ -27,11 +39,32 @@ def _route_pattern_matches(pattern: str, path: str) -> bool:
         return False
     if not pattern.startswith("/"):
         pattern = f"/{pattern}"
+    pattern = _normalize_match_path(pattern)
+    path = _normalize_match_path(path)
+    if pattern.endswith("*"):
+        prefix = pattern.rstrip("*")
+        return path.startswith(prefix)
     if pattern == path:
         return True
     escaped = re.escape(pattern)
     escaped = re.sub(r"\\\{[^/]+\\\}", r"[^/]+", escaped)
     return re.fullmatch(escaped, path) is not None
+
+
+def _response_by_accepted_type(request: Request, msg: str, status_code: HTTPStatus):
+    accept_header = request.headers.get("accept", "")
+    if "text/html" in accept_header.split(","):
+        return HTMLResponse(
+            status_code=status_code,
+            content=template_renderer()
+            .TemplateResponse(
+                request,
+                "error.html",
+                {"err": msg, "status_code": status_code, "message": msg},
+            )
+            .body,
+        )
+    return JSONResponse(status_code=status_code, content={"detail": msg})
 
 
 class InstalledExtensionMiddleware:
@@ -264,21 +297,21 @@ def add_route_access_middleware(app: FastAPI):
             return await call_next(request)
 
         path = request.url.path or "/"
+        if "/static/" in path or path in _PUBLIC_ASSET_PATHS:
+            return await call_next(request)
         whitelist = settings.lnbits_route_access_whitelist
         blacklist = settings.lnbits_route_access_blacklist
 
         if whitelist:
             if any(_route_pattern_matches(route, path) for route in whitelist):
                 return await call_next(request)
-            return JSONResponse(
-                status_code=HTTPStatus.FORBIDDEN,
-                content={"detail": "Route not whitelisted"},
+            return _response_by_accepted_type(
+                request, f"Route not whitelisted: {path}", HTTPStatus.FORBIDDEN
             )
 
         if blacklist and any(_route_pattern_matches(route, path) for route in blacklist):
-            return JSONResponse(
-                status_code=HTTPStatus.FORBIDDEN,
-                content={"detail": "Route is blacklisted"},
+            return _response_by_accepted_type(
+                request, f"Route is blacklisted: {path}", HTTPStatus.FORBIDDEN
             )
 
         return await call_next(request)

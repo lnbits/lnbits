@@ -35,6 +35,19 @@ window.app.component('lnbits-admin-security', {
         this.routeOptionsLoading = false
       }
     },
+    addRouteOption(value, done) {
+      const route = value.trim()
+      if (!route) {
+        done()
+        return
+      }
+      if (!this.routeOptions.includes(route)) {
+        this.routeOptions.push(route)
+        this.routeOptions.sort()
+      }
+      this.routeOptionsFiltered = this.routeOptions
+      done(route)
+    },
     filterRouteOptions(val, update) {
       update(() => {
         if (!val) {

@@ -316,6 +316,8 @@
                 use-chips
                 use-input
                 input-debounce="0"
+                new-value-mode="add-unique"
+                @new-value="addRouteOption"
                 :options="routeOptionsFiltered"
                 :loading="routeOptionsLoading"
                 @filter="filterRouteOptions"
@@ -331,6 +333,8 @@
                 use-chips
                 use-input
                 input-debounce="0"
+                new-value-mode="add-unique"
+                @new-value="addRouteOption"
                 :options="routeOptionsFiltered"
                 :loading="routeOptionsLoading"
                 @filter="filterRouteOptions"
