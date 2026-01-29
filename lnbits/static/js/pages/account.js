@@ -222,9 +222,6 @@ window.PageAccount = {
     }
   },
   methods: {
-    activeLanguage(lang) {
-      return window.i18n.global.locale === lang
-    },
     changeLanguage(newValue) {
       window.i18n.global.locale = newValue
       this.$q.localStorage.set('lnbits.lang', newValue)

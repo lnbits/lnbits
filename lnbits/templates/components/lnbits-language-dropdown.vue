@@ -1,5 +1,11 @@
 <template id="lnbits-language-dropdown">
-  <q-btn-dropdown dense flat rounded size="sm" icon="language" class="q-pl-md">
+  <q-btn-dropdown dense flat rounded size="md" class="q-pl-md">
+    <template v-slot:label>
+      <q-item-section>
+        <q-item-label v-text="currentLanguage.display"></q-item-label>
+        <q-tooltip><span v-text="currentLanguage.label"></span></q-tooltip>
+      </q-item-section>
+    </template>
     <q-list v-for="(lang, index) in langs" :key="index">
       <q-item
         clickable
