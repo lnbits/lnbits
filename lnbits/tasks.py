@@ -11,7 +11,6 @@ from lnbits.core.crud import (
 )
 from lnbits.core.models import Payment, PaymentState
 from lnbits.core.services.fiat_providers import handle_fiat_payment_confirmation
-from lnbits.core.services.payments import check_payment_status
 from lnbits.settings import settings
 from lnbits.wallets import get_funding_source
 
@@ -178,6 +177,8 @@ async def invoice_callback_dispatcher(checking_id: str, is_internal: bool = Fals
     if not payment.is_in:
         logger.warning(f"Payment '{checking_id}' is not incoming, skipping.")
         return
+
+    from lnbits.core.services.payments import check_payment_status
 
     status = await check_payment_status(
         payment, skip_internal_payment_notifications=True
