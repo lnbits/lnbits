@@ -230,7 +230,10 @@ async def get_wallet_for_key(
             SELECT balance FROM balances WHERE wallet_id = wallets.id
         ), 0)
         AS balance_msat FROM wallets
-        WHERE (adminkey = :key OR inkey = :key) AND deleted = false
+        INNER JOIN accounts ON wallets.user = accounts.id
+        WHERE (adminkey = :key OR inkey = :key)
+            AND deleted = false
+            AND accounts.activated = true
         """,
         {"key": key},
         Wallet,
@@ -250,8 +253,11 @@ async def get_base_wallet_for_key(
 ) -> BaseWallet | None:
     wallet = await (conn or db).fetchone(
         """
-        SELECT id, "user", wallet_type, adminkey, inkey FROM wallets
-        WHERE (adminkey = :key OR inkey = :key) AND deleted = false
+        SELECT wallets.id, "user", wallet_type, adminkey, inkey FROM wallets
+        INNER JOIN accounts ON wallets.user = accounts.id
+        WHERE (adminkey = :key OR inkey = :key)
+            AND deleted = false
+            AND accounts.activated = true
         """,
         {"key": key},
         BaseWallet,
