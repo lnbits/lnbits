@@ -4,10 +4,12 @@ from typing import Any
 from uuid import uuid4
 
 from lnbits.core.crud.extensions import get_user_active_extensions_ids
-from lnbits.core.crud.wallets import create_wallet, get_wallets
+from lnbits.core.crud.wallets import clear_wallet_cache, create_wallet, get_wallets
 from lnbits.core.db import db
 from lnbits.core.models import UserAcls
 from lnbits.db import Connection, Filters, Page
+from lnbits.helpers import sha256s
+from lnbits.utils.cache import cache
 
 from ..models import (
     Account,
@@ -51,6 +53,7 @@ async def update_account_activation(
             "user_id": user_id,
         },
     )
+    await clear_user_id_cache(user_id)
 
 
 async def delete_account(user_id: str, conn: Connection | None = None) -> None:
@@ -280,6 +283,22 @@ async def get_user_access_control_lists(
     )
 
     return user_acls or UserAcls(id=user_id)
+
+
+async def clear_user_id_cache(user_id: str):
+    user = await get_user(user_id, activated=None)
+    if user:
+        clear_user_cache(user)
+
+
+def clear_user_cache(user: User):
+    user_cache_key: str | None = cache.pop(
+        f"auth:user:cache_key:{sha256s(user.id)}", None
+    )
+    if user_cache_key:
+        cache.pop(user_cache_key)
+    for wallet in user.wallets:
+        clear_wallet_cache(wallet)
 
 
 def _activated_clause(activated: bool | None) -> str:
