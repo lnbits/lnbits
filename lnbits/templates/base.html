@@ -72,6 +72,8 @@
       const RENDERED_ROUTE = '{{ normalize_path(request.path) }}'
       const SETTINGS = {{ SETTINGS | tojson | safe }}
       const CURRENCIES = {{ CURRENCIES | tojson | safe }}
+      // backwards compatibility for extensions (tpos)
+      const LNBITS_DENOMINATION = {{ LNBITS_DENOMINATION | tojson | safe }}
     </script>
     <!-- vue templates -->
     {% include('components.vue') %} {% include('pages.vue') %}

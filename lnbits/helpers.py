@@ -88,6 +88,9 @@ def template_renderer(additional_folders: list | None = None) -> Jinja2Templates
             t.env.globals["INCLUDED_CSS"] = vendor_files["css"]
             t.env.globals["INCLUDED_COMPONENTS"] = vendor_files["components"]
 
+    # backwards compatibility for extensions (tpos)
+    t.env.globals["LNBITS_DENOMINATION"] = settings.lnbits_denomination
+
     return t
 
 
