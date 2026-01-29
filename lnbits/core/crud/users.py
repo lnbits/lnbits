@@ -4,12 +4,10 @@ from typing import Any
 from uuid import uuid4
 
 from lnbits.core.crud.extensions import get_user_active_extensions_ids
-from lnbits.core.crud.wallets import clear_wallet_cache, create_wallet, get_wallets
+from lnbits.core.crud.wallets import create_wallet, get_wallets
 from lnbits.core.db import db
 from lnbits.core.models import UserAcls
 from lnbits.db import Connection, Filters, Page
-from lnbits.helpers import sha256s
-from lnbits.utils.cache import cache
 
 from ..models import (
     Account,
@@ -38,12 +36,28 @@ async def update_account(account: Account, conn: Connection | None = None) -> Ac
     return account
 
 
+async def update_account_activation(
+    user_id: str, activated: bool, conn: Connection | None = None
+) -> None:
+    await (conn or db).execute(
+        f"""
+        UPDATE accounts
+        SET activated = :activated, updated_at = {db.timestamp_placeholder('now')}
+        WHERE id = :user_id
+        """,  # noqa: S608
+        {
+            "activated": activated,
+            "now": int(time()),
+            "user_id": user_id,
+        },
+    )
+
+
 async def delete_account(user_id: str, conn: Connection | None = None) -> None:
     await (conn or db).execute(
         "DELETE from accounts WHERE id = :user",
         {"user": user_id},
     )
-    await clear_user_id_cache(user_id)
 
 
 async def get_accounts(
@@ -98,19 +112,30 @@ async def get_accounts(
 
 
 async def get_account(
-    user_id: str, active_only: bool = True, conn: Connection | None = None
+    user_id: str, activated: bool | None = True, conn: Connection | None = None
 ) -> Account | None:
     if len(user_id) == 0:
         return None
 
     return await (conn or db).fetchone(
-        """
+        f"""
             SELECT * FROM accounts
-            WHERE id = :id AND (activated = true OR activated = :activated)
-        """,
-        {"id": user_id, "activated": active_only},
+            WHERE id = :id {_activated_clause(activated)}
+        """,  # noqa: S608
+        {"id": user_id, "activated": activated},
         Account,
     )
+
+
+async def is_account_activated(
+    user_id: str, conn: Connection | None = None
+) -> bool | None:
+    result = await (conn or db).execute(
+        "SELECT activated FROM accounts WHERE id = :id",
+        {"id": user_id},
+    )
+    row = result.mappings().first()
+    return row.get("activated", False) if row is not None else None
 
 
 async def delete_accounts_no_wallets(
@@ -134,79 +159,72 @@ async def delete_accounts_no_wallets(
 
 
 async def get_account_by_username(
-    username: str, active_only: bool = True, conn: Connection | None = None
+    username: str, activated: bool | None = True, conn: Connection | None = None
 ) -> Account | None:
     if len(username) == 0:
         return None
 
     return await (conn or db).fetchone(
-        """
+        f"""
             SELECT * FROM accounts
-            WHERE
-                LOWER(username) = :username
-                AND (activated = true OR activated = :activated)
-        """,
-        {"username": username.lower(), "activated": active_only},
+            WHERE LOWER(username) = :username {_activated_clause(activated)}
+        """,  # noqa: S608
+        {"username": username.lower(), "activated": activated},
         Account,
     )
 
 
 async def get_account_by_pubkey(
-    pubkey: str, active_only: bool = True, conn: Connection | None = None
+    pubkey: str, activated: bool | None = True, conn: Connection | None = None
 ) -> Account | None:
     return await (conn or db).fetchone(
-        """
+        f"""
             SELECT * FROM accounts
-            WHERE
-                LOWER(pubkey) = :pubkey
-                AND (activated = true OR activated = :activated)
-        """,
-        {"pubkey": pubkey.lower(), "activated": active_only},
+            WHERE LOWER(pubkey) = :pubkey {_activated_clause(activated)}
+        """,  # noqa: S608
+        {"pubkey": pubkey.lower(), "activated": activated},
         Account,
     )
 
 
 async def get_account_by_email(
-    email: str, active_only: bool = True, conn: Connection | None = None
+    email: str, activated: bool | None = True, conn: Connection | None = None
 ) -> Account | None:
     if len(email) == 0:
         return None
 
     return await (conn or db).fetchone(
-        """
+        f"""
             SELECT * FROM accounts
-            WHERE
-                LOWER(email) = :email
-                AND (activated = true OR activated = :activated)
-        """,
-        {"email": email.lower(), "activated": active_only},
+            WHERE LOWER(email) = :email {_activated_clause(activated)}
+        """,  # noqa: S608
+        {"email": email.lower(), "activated": activated},
         Account,
     )
 
 
 async def get_account_by_username_or_email(
     username_or_email: str,
-    active_only: bool = True,
+    activated: bool | None = True,
     conn: Connection | None = None,
 ) -> Account | None:
 
     return await (conn or db).fetchone(
-        """
+        f"""
             SELECT * FROM accounts
-            WHERE
-                (LOWER(email) = :value or LOWER(username) = :value)
-                AND (activated = true OR activated = :activated)
-        """,
-        {"value": username_or_email.lower(), "activated": active_only},
+            WHERE (LOWER(email) = :value or LOWER(username) = :value)
+                {_activated_clause(activated)}
+        """,  # noqa: S608
+        {"value": username_or_email.lower(), "activated": activated},
         Account,
     )
 
 
 async def get_user(
-    user_id: str, active_only: bool = True, conn: Connection | None = None
+    user_id: str, activated: bool | None = True, conn: Connection | None = None
 ) -> User | None:
     async with db.reuse_conn(conn) if conn else db.connect() as conn:
-        account = await get_account(user_id, active_only, conn=conn)
+        account = await get_account(user_id, activated=activated, conn=conn)
         if not account:
             return None
         return await get_user_from_account(account, conn=conn)
@@ -225,7 +243,6 @@ async def get_user_from_account(
 
     return User(
         id=account.id,
-        activated=account.activated,
         email=account.email,
         username=account.username,
         pubkey=account.pubkey,
@@ -251,31 +268,21 @@ async def update_user_access_control_list(
 
 
 async def get_user_access_control_lists(
-    user_id: str, active_only: bool = True, conn: Connection | None = None
+    user_id: str, activated: bool | None = True, conn: Connection | None = None
 ) -> UserAcls:
     user_acls = await (conn or db).fetchone(
-        """
+        f"""
             SELECT id, access_control_list FROM accounts
-            WHERE id = :user_id AND (activated = true OR activated = :activated)
-        """,
-        {"user_id": user_id, "activated": active_only},
+            WHERE id = :user_id {_activated_clause(activated)}
+        """,  # noqa: S608
+        {"user_id": user_id, "activated": activated},
         UserAcls,
     )
 
     return user_acls or UserAcls(id=user_id)
 
 
-async def clear_user_id_cache(user_id: str):
-    user = await get_user(user_id, active_only=True)
-    if user:
-        clear_user_cache(user)
-
-
-def clear_user_cache(user: User):
-    user_cache_key: str | None = cache.pop(
-        f"auth:user:cache_key:{sha256s(user.id)}", None
-    )
-    if user_cache_key:
-        cache.pop(user_cache_key)
-    for wallet in user.wallets:
-        clear_wallet_cache(wallet)
+def _activated_clause(activated: bool | None) -> str:
+    if activated is None:
+        return ""
+    return "AND activated = :activated"

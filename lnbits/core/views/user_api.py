@@ -17,10 +17,11 @@ from lnbits.core.crud import (
     get_user,
     get_wallet,
     get_wallets,
+    is_account_activated,
+    update_account_activation,
     update_admin_settings,
     update_wallet,
 )
-from lnbits.core.crud.users import clear_user_id_cache, get_account, update_account
 from lnbits.core.crud.wallets import delete_wallet_by_id
 from lnbits.core.models import (
     AccountFilters,
@@ -74,7 +75,7 @@ async def api_get_users(
     summary="Get user by Id",
 )
 async def api_get_user(user_id: str) -> User:
-    user = await get_user(user_id, active_only=False)
+    user = await get_user(user_id)
     if not user:
         raise HTTPException(HTTPStatus.NOT_FOUND, "User not found.")
     return user
@@ -226,35 +227,34 @@ async def api_users_toggle_admin(user_id: str) -> SimpleStatus:
     name="Activate or deactivate a user",
 )
 async def api_users_toggle_activated(
-    user_id: str, admin_account: Account = Depends(check_admin)
+    user_id: str, account: Account = Depends(check_admin)
 ) -> SimpleStatus:
     if user_id == settings.super_user:
         raise HTTPException(
             status_code=HTTPStatus.BAD_REQUEST,
             detail="Cannot deactivate super user.",
         )
-    if user_id == admin_account.id:
+    if user_id == account.id:
         raise HTTPException(
             status_code=HTTPStatus.BAD_REQUEST,
-            detail="You cannot deactivate yourself.",
+            detail="Users cannot deactivate themselves.",
         )
 
     if settings.is_admin_user(user_id):
         settings.lnbits_admin_users.remove(user_id)
 
-    user_account = await get_account(user_id, active_only=False)
-    if not user_account:
+    is_activated = await is_account_activated(user_id)
+
+    if is_activated is None:
         raise HTTPException(
             status_code=HTTPStatus.NOT_FOUND,
             detail="User not found.",
         )
-    user_account.activated = not user_account.activated
-    await update_account(user_account)
-    await clear_user_id_cache(user_id)
+    await update_account_activation(user_id, not is_activated)
 
     return SimpleStatus(
         success=True,
-        message=f"User {'activated' if user_account.activated else 'deactivated'}.",
+        message=f"User {'activated' if not is_activated else 'deactivated'}.",
     )
 
 

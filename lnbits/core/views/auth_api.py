@@ -51,6 +51,7 @@ from ..crud import (
     get_account_by_username,
     get_account_by_username_or_email,
     get_user_from_account,
+    is_account_activated,
     update_account,
 )
 from ..models import (
@@ -83,10 +84,13 @@ async def login(data: LoginUsernamePassword) -> JSONResponse:
         raise HTTPException(
             HTTPStatus.FORBIDDEN, "Login by 'Username and Password' not allowed."
         )
-    account = await get_account_by_username_or_email(data.username)
+    account = await get_account_by_username_or_email(data.username, activated=None)
     if not account or not account.verify_password(data.password):
         raise HTTPException(HTTPStatus.UNAUTHORIZED, "Invalid credentials.")
 
+    is_activated = await is_account_activated(account.id)
+    if is_activated is False:
+        raise HTTPException(HTTPStatus.FORBIDDEN, "Account is not activated.")
     return _auth_success_response(account.username, account.id, account.email)
 
 
@@ -95,7 +99,7 @@ async def nostr_login(request: Request) -> JSONResponse:
     if not settings.is_auth_method_allowed(AuthMethods.nostr_auth_nip98):
         raise HTTPException(HTTPStatus.FORBIDDEN, "Login with Nostr Auth not allowed.")
     event = _nostr_nip98_event(request)
-    account = await get_account_by_pubkey(event["pubkey"], active_only=False)
+    account = await get_account_by_pubkey(event["pubkey"])
     if not account:
         account = Account(
             id=uuid4().hex,
@@ -103,8 +107,6 @@ async def nostr_login(request: Request) -> JSONResponse:
             extra=UserExtra(provider="nostr"),
         )
         await create_user_account(account)
-    if not account.activated:
-        raise HTTPException(HTTPStatus.UNAUTHORIZED, "User is not activated.")
     return _auth_success_response(account.username or "", account.id, account.email)
 
 
@@ -360,7 +362,7 @@ async def register(data: RegisterUser) -> JSONResponse:
     if not is_valid_username(data.username):
         raise HTTPException(HTTPStatus.BAD_REQUEST, "Invalid username.")
 
-    if await get_account_by_username(data.username, active_only=False):
+    if await get_account_by_username(data.username):
         raise HTTPException(HTTPStatus.BAD_REQUEST, "Username already exists.")
 
     if data.email and not is_valid_email_address(data.email):
@@ -530,7 +532,7 @@ async def _handle_sso_login(userinfo: OpenID, verified_user_id: str | None = Non
         raise HTTPException(HTTPStatus.BAD_REQUEST, "Invalid email.")
 
     redirect_path = "/wallet"
-    account = await get_account_by_email(email, active_only=False)
+    account = await get_account_by_email(email)
 
     if verified_user_id:
         if account:

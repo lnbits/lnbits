@@ -181,7 +181,6 @@ class AccountId(BaseModel):
 
 
 class Account(AccountId):
-    activated: bool = True
     external_id: str | None = None  # for external account linking
     username: str | None = None
     password_hash: str | None = None
@@ -242,7 +241,7 @@ class Account(AccountId):
 
 
 class AccountOverview(Account):
-    activated: bool = True
+    activated: bool
     transaction_count: int | None = 0
     wallet_count: int | None = 0
     balance_msat: int | None = 0
@@ -278,7 +277,6 @@ class AccountFilters(FilterModel):
 
 class User(BaseModel):
     id: str
-    activated: bool = True
     created_at: datetime
     updated_at: datetime
     email: str | None = None
