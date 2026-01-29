@@ -70,10 +70,10 @@ window.PageUsers = {
       usersTable: {
         columns: [
           {
-            name: 'admin',
+            name: 'activated',
             align: 'left',
-            label: 'Admin',
-            field: 'admin',
+            label: this.$t('activated'),
+            field: 'activated',
             sortable: false
           },
           {
@@ -401,12 +401,25 @@ window.PageUsers = {
 
     toggleAdmin(userId) {
       LNbits.api
-        .request('GET', `/users/api/v1/user/${userId}/admin`)
+        .request('PUT', `/users/api/v1/user/${userId}/admin`)
         .then(() => {
           this.fetchUsers()
           Quasar.Notify.create({
             type: 'positive',
             message: 'Toggled admin!',
+            icon: null
+          })
+        })
+        .catch(LNbits.utils.notifyApiError)
+    },
+    toggleUserActivated(userId) {
+      LNbits.api
+        .request('PUT', `/users/api/v1/user/${userId}/activate`)
+        .then(() => {
+          this.fetchUsers()
+          Quasar.Notify.create({
+            type: 'positive',
+            message: 'Toggled user activation!',
             icon: null
           })
         })
