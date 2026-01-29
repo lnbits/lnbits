@@ -658,6 +658,15 @@ window.localisation.en = {
   ui_site_description_hint: 'Use plain text, Markdown, or raw HTML',
   ui_default_wallet_name: 'Default Wallet Name',
   ui_default_theme: 'Default Theme',
+  wallet_featured_button_label: 'Wallet Featured Button Label',
+  wallet_featured_button_label_hint:
+    'Show featured button on the wallet homepage',
+  wallet_featured_button_url: 'Featured Button URL',
+  wallet_featured_button_url_hint:
+    'On click the button will open this URL. Leave empty to hide the button.',
+  wallet_featured_button_icon: 'Featured Button Icon',
+  wallet_featured_button_icon_hint:
+    'Icon shown on the featured button (check quasar icons)',
   lnbits_wallet: 'LNbits wallet',
   denomination: 'Denomination',
   denomination_hint: 'The name for the FakeWallet token',

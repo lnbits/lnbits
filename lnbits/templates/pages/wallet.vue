@@ -171,6 +171,19 @@
                   ><span v-text="$t('camera_tooltip')"></span
                 ></q-tooltip>
               </q-btn>
+              <div
+                v-if="WALLET_FEATURED_BUTTON_URL"
+                class="float-right q-mt-sm q-ml-sm"
+              >
+                <q-btn
+                  color="primary"
+                  :label="WALLET_FEATURED_BUTTON_LABEL"
+                  :icon="WALLET_FEATURED_BUTTON_ICON || undefined"
+                  size="sm"
+                  :to="WALLET_FEATURED_BUTTON_URL"
+                >
+                </q-btn>
+              </div>
               <lnbits-update-balance
                 v-if="$q.screen.gt.md"
                 :wallet_id="this.g.wallet.id"
