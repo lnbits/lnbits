@@ -67,6 +67,29 @@ window._lnbitsUtils = {
         }
       })
   },
+  backupLocalStorage(backupKey, cleanup = false) {
+    const lnbitsEntries =
+      Object.entries(Quasar.LocalStorage.getAll()).filter(
+        ([k, v]) => k.startsWith('lnbits.') && k !== `lnbits.${backupKey}`
+      ) || []
+
+    Quasar.LocalStorage.setItem(`lnbits.${backupKey}`, lnbitsEntries)
+    if (cleanup) {
+      lnbitsEntries.forEach(([k, v]) => Quasar.LocalStorage.remove(k))
+    }
+  },
+  restoreLocalStorage(backupKey) {
+    Object.entries(Quasar.LocalStorage.getAll())
+      .filter(
+        ([k, v]) => k.startsWith('lnbits.') && k !== `lnbits.${backupKey}`
+      )
+      .forEach(([k, v]) => Quasar.LocalStorage.remove(k))
+
+    const lnbitsEntries =
+      Quasar.LocalStorage.getItem(`lnbits.${backupKey}`) || []
+    lnbitsEntries.forEach(([k, v]) => Quasar.LocalStorage.setItem(k, v))
+    Quasar.LocalStorage.remove(`lnbits.${backupKey}`)
+  },
   async digestMessage(message) {
     const msgUint8 = new TextEncoder().encode(message)
     const hashBuffer = await crypto.subtle.digest('SHA-256', msgUint8)

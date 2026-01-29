@@ -3,6 +3,7 @@ import io
 from uuid import uuid4
 
 from fastapi import UploadFile
+from loguru import logger
 from PIL import Image
 
 from lnbits.core.crud.assets import create_asset, get_user_assets_count
@@ -29,17 +30,7 @@ async def create_user_asset(user_id: str, file: UploadFile, is_public: bool) -> 
             f"File limit of {settings.lnbits_max_asset_size_mb}MB exceeded."
         )
 
-    image = Image.open(io.BytesIO(contents))
-
-    thumbnail_width = min(256, settings.lnbits_asset_thumbnail_width)
-    thumbnail_height = min(256, settings.lnbits_asset_thumbnail_height)
-    image.thumbnail((thumbnail_width, thumbnail_height))
-
-    # Save thumbnail to an in-memory buffer
-    thumb_buffer = io.BytesIO()
-    thumbnail_format = settings.lnbits_asset_thumbnail_format or "PNG"
-    image.save(thumb_buffer, format=thumbnail_format)
-    thumb_buffer.seek(0)
+    thumb_buffer = thumbnail_from_bytes(contents)
 
     asset = Asset(
         id=uuid4().hex,
@@ -48,9 +39,32 @@ async def create_user_asset(user_id: str, file: UploadFile, is_public: bool) -> 
         is_public=is_public,
         name=file.filename or "unnamed",
         size_bytes=len(contents),
-        thumbnail_base64=base64.b64encode(thumb_buffer.getvalue()).decode("utf-8"),
+        thumbnail_base64=(
+            base64.b64encode(thumb_buffer.getvalue()).decode("utf-8")
+            if thumb_buffer
+            else None
+        ),
         data=contents,
     )
 
     await create_asset(asset)
     return asset
+
+
+def thumbnail_from_bytes(contents: bytes) -> io.BytesIO | None:
+    try:
+        image = Image.open(io.BytesIO(contents))
+
+        thumbnail_width = min(256, settings.lnbits_asset_thumbnail_width)
+        thumbnail_height = min(256, settings.lnbits_asset_thumbnail_height)
+        image.thumbnail((thumbnail_width, thumbnail_height))
+
+        # Save thumbnail to an in-memory buffer
+        thumb_buffer = io.BytesIO()
+        thumbnail_format = settings.lnbits_asset_thumbnail_format or "PNG"
+        image.save(thumb_buffer, format=thumbnail_format)
+        thumb_buffer.seek(0)
+        return thumb_buffer
+    except Exception as exc:
+        logger.warning(f"Failed to create thumbnail: {exc}")
+        return None
