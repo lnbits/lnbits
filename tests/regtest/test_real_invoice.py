@@ -7,7 +7,11 @@ from lnbits import bolt11
 from lnbits.core.crud import get_standalone_payment, update_payment
 from lnbits.core.crud.wallets import create_wallet, get_wallet
 from lnbits.core.models import CreateInvoice, Payment, PaymentState
-from lnbits.core.services import fee_reserve_total, get_balance_delta
+from lnbits.core.services import (
+    check_payment_status,
+    fee_reserve_total,
+    get_balance_delta,
+)
 from lnbits.core.services.payments import pay_invoice, update_wallet_balance
 from lnbits.core.services.users import create_user_account
 from lnbits.exceptions import PaymentError
@@ -355,7 +359,7 @@ async def test_pay_hold_invoice_check_pending_and_fail_cancel_payment_task_in_me
     assert payment_db_after_settlement is not None
 
     # payment is failed
-    status = await payment_db_after_settlement.check_status()
+    status = await check_payment_status(payment_db_after_settlement)
     assert not status.paid
     assert status.failed
 

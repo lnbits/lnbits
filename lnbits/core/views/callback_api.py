@@ -9,6 +9,7 @@ from lnbits.core.crud.payments import (
 from lnbits.core.models.misc import SimpleStatus
 from lnbits.core.models.payments import CreateInvoice
 from lnbits.core.services.fiat_providers import (
+    check_fiat_status,
     check_stripe_signature,
     verify_paypal_webhook,
 )
@@ -87,7 +88,7 @@ async def _handle_stripe_intent_session_completed(event: dict):
     if not payment:
         logger.warning(f"No payment found for hash: '{payment_hash}'.")
         return
-    await payment.check_fiat_status()
+    await check_fiat_status(payment)
 
 
 async def _handle_stripe_checkout_session_completed(event: dict):
@@ -110,7 +111,7 @@ async def _handle_stripe_checkout_session_completed(event: dict):
     payment = await get_standalone_payment(payment_hash)
     if not payment:
         raise ValueError(f"No payment found for hash: '{payment_hash}'.")
-    await payment.check_fiat_status()
+    await check_fiat_status(payment)
 
 
 async def _handle_stripe_subscription_invoice_paid(event: dict):
@@ -155,7 +156,7 @@ async def _handle_stripe_subscription_invoice_paid(event: dict):
         ),
     )
 
-    await payment.check_fiat_status()
+    await check_fiat_status(payment)
 
 
 async def _get_stripe_subscription_payment_options(
@@ -192,7 +193,7 @@ async def handle_paypal_event(event: dict):
         if not payment:
             logger.warning(f"No payment found for hash: '{payment_hash}'.")
             return
-        await payment.check_fiat_status()
+        await check_fiat_status(payment)
         return
 
     if event_type in (
@@ -247,7 +248,7 @@ async def _handle_paypal_subscription_payment(resource: dict):
         ),
     )
 
-    await payment.check_fiat_status()
+    await check_fiat_status(payment)
 
 
 def _paypal_extract_payment_hash(resource: dict) -> str | None:

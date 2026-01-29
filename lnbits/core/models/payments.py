@@ -130,6 +130,7 @@ class Payment(BaseModel):
             "fiat_"
         )
 
+    # DEPRECATED: in v1.5.0, use service check_payment_status instead
     async def check_status(
         self, skip_internal_payment_notifications: bool | None = False
     ) -> PaymentStatus:
@@ -151,6 +152,7 @@ class Payment(BaseModel):
             status = await funding_source.get_invoice_status(self.checking_id)
         return status
 
+    # DEPRECATED: in v1.5.0, use service check_payment_status instead
     async def check_fiat_status(
         self, skip_internal_payment_notifications: bool | None = False
     ) -> FiatPaymentStatus:
