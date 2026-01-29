@@ -531,6 +531,17 @@
                       </q-select>
                     </div>
                   </div>
+                  <q-card-section>
+                    <q-btn
+                      @click="
+                        siteCustomisationChanged(defaultSiteCustomisation)
+                      "
+                      :label="$t('reset_defaults')"
+                      filled
+                      color="primary"
+                      class="float-right q-mb-md"
+                    ></q-btn>
+                  </q-card-section>
                 </q-tab-panel>
                 <q-tab-panel name="notifications">
                   <q-card-section>

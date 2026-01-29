@@ -39,6 +39,15 @@ window.PageAccount = {
           color: 'pink-3'
         }
       ],
+      defaultSiteCustomisation: {
+        locale: 'en',
+        themeChoice: 'salvador',
+        bgimageChoice: '',
+        gradientChoice: true,
+        darkChoice: true,
+        borderChoice: 'hard-border',
+        reactionChoice: 'confettiBothSides'
+      },
       reactionOptions: [
         'None',
         'confettiBothSides',
