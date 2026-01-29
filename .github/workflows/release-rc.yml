@@ -44,15 +44,19 @@ jobs:
     if: github.repository == 'lnbits/lnbits'
     runs-on: ubuntu-24.04
     steps:
-      - name: Install dependencies for building secp256k1
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y build-essential automake libtool libffi-dev libgmp-dev
       - uses: actions/checkout@v4
-      - name: Build and publish to pypi
-        uses: JRubics/poetry-publish@v1.15
+      - name: Set up Python 3.10
+        uses: actions/setup-python@v5
         with:
-          pypi_token: ${{ secrets.PYPI_API_KEY }}
+          python-version: "3.10"
+      - name: Install uv
+        uses: astral-sh/setup-uv@v6
+      - name: Build the project
+        run: uv build
+      - name: Publish to pypi
+        env:
+          UV_PUBLISH_TOKEN: ${{ secrets.PYPI_API_KEY }}
+        run: uv publish
 
   appimage:
     needs: [ release ]
