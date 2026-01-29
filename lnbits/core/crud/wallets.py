@@ -50,7 +50,7 @@ async def delete_wallet(
     deleted: bool = True,
     conn: Connection | None = None,
 ) -> None:
-    _clear_wallet_cache(wallet_id)
+    clear_wallet_id_cache(wallet_id)
     now = int(time())
 
     await (conn or db).execute(
@@ -65,7 +65,7 @@ async def delete_wallet(
 
 
 async def force_delete_wallet(wallet_id: str, conn: Connection | None = None) -> None:
-    _clear_wallet_cache(wallet_id)
+    clear_wallet_id_cache(wallet_id)
     await (conn or db).execute(
         "DELETE FROM wallets WHERE id = :wallet",
         {"wallet": wallet_id},
@@ -75,7 +75,7 @@ async def force_delete_wallet(wallet_id: str, conn: Connection | None = None) ->
 async def delete_wallet_by_id(
     wallet_id: str, conn: Connection | None = None
 ) -> int | None:
-    _clear_wallet_cache(wallet_id)
+    clear_wallet_id_cache(wallet_id)
     now = int(time())
     result = await (conn or db).execute(
         # Timestamp placeholder is safe from SQL injection (not user input)
@@ -294,8 +294,14 @@ async def get_total_balance(conn: Connection | None = None):
     return row.get("balance", 0) or 0
 
 
-def _clear_wallet_cache(wallet_id):
+def clear_wallet_id_cache(wallet_id: str):
     cached_wallet: BaseWallet | None = cache.pop(f"auth:wallet:{wallet_id}")
     if cached_wallet:
         cache.pop(f"auth:x-api-key:{cached_wallet.adminkey}")
         cache.pop(f"auth:x-api-key:{cached_wallet.inkey}")
+
+
+def clear_wallet_cache(wallet: Wallet):
+    cache.pop(f"auth:wallet:{wallet.id}")
+    cache.pop(f"auth:x-api-key:{wallet.adminkey}")
+    cache.pop(f"auth:x-api-key:{wallet.inkey}")

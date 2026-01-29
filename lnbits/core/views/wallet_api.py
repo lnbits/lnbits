@@ -9,6 +9,7 @@ from fastapi import (
 )
 
 from lnbits.core.crud.wallets import (
+    clear_wallet_cache,
     create_wallet,
     get_wallets_paginated,
 )
@@ -37,7 +38,6 @@ from lnbits.decorators import (
     require_invoice_key,
 )
 from lnbits.helpers import generate_filter_params_openapi
-from lnbits.utils.cache import cache
 
 from ..crud import (
     delete_wallet,
@@ -134,9 +134,7 @@ async def api_reset_wallet_keys(
     if not wallet or wallet.user != account_id.id:
         raise HTTPException(status_code=HTTPStatus.NOT_FOUND, detail="Wallet not found")
 
-    cache.pop(f"auth:wallet:{wallet.id}")
-    cache.pop(f"auth:x-api-key:{wallet.adminkey}")
-    cache.pop(f"auth:x-api-key:{wallet.inkey}")
+    clear_wallet_cache(wallet)
 
     wallet.adminkey = uuid4().hex
     wallet.inkey = uuid4().hex
