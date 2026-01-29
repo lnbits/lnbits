@@ -61,6 +61,7 @@ async def delete_account(user_id: str, conn: Connection | None = None) -> None:
         "DELETE from accounts WHERE id = :user",
         {"user": user_id},
     )
+    await clear_user_id_cache(user_id)
 
 
 async def get_accounts(
