@@ -20,11 +20,14 @@
       clickable
       :active="$route.path.startsWith('/' + extension.code)"
       tag="a"
-      :to="'/' + extension.code + '/'"
+      :to="`/${extension.code}/`"
     >
       <q-item-section side>
         <q-avatar size="md">
-          <q-img :src="extension.tile" style="max-width: 20px"></q-img>
+          <q-img
+            :src="utils.urlFor(extension.tile)"
+            style="max-width: 20px"
+          ></q-img>
         </q-avatar>
       </q-item-section>
       <q-item-section>

@@ -1,5 +1,8 @@
 window._lnbitsApi = {
   request(method, url, apiKey, data, options = {}) {
+    const rootPath = '/lnbits/'
+    url = rootPath + url.replace(/^\/+/, '') // Ensure single slash after rootPath
+    console.log(`API Request: ${method.toUpperCase()} ${url}`)
     return axios({
       method: method,
       url: url,
@@ -67,74 +70,40 @@ window._lnbitsApi = {
     })
   },
   register(username, email, password, password_repeat) {
-    return axios({
-      method: 'POST',
-      url: '/api/v1/auth/register',
-      data: {
-        username,
-        email,
-        password,
-        password_repeat
-      }
+    return this.request('post', '/api/v1/auth/register', null, {
+      username,
+      email,
+      password,
+      password_repeat
     })
   },
   reset(reset_key, password, password_repeat) {
-    return axios({
-      method: 'PUT',
-      url: '/api/v1/auth/reset',
-      data: {
-        reset_key,
-        password,
-        password_repeat
-      }
+    return this.request('put', '/api/v1/auth/reset', null, {
+      reset_key,
+      password,
+      password_repeat
     })
   },
   getAuthUser() {
-    return axios({
-      method: 'GET',
-      url: '/api/v1/auth'
-    })
+    return this.request('get', '/api/v1/auth')
   },
   login(username, password) {
-    return axios({
-      method: 'POST',
-      url: '/api/v1/auth',
-      data: {username, password}
-    })
+    return this.request('post', '/api/v1/auth', null, {username, password})
   },
   loginByProvider(provider, headers, data) {
-    return axios({
-      method: 'POST',
-      url: `/api/v1/auth/${provider}`,
-      headers: headers,
-      data
-    })
+    return this.request('post', `/api/v1/auth/${provider}`, null, data)
   },
   loginUsr(usr) {
-    return axios({
-      method: 'POST',
-      url: '/api/v1/auth/usr',
-      data: {usr}
-    })
+    return this.request('post', '/api/v1/auth/usr', null, {usr})
   },
   logout() {
-    return axios({
-      method: 'POST',
-      url: '/api/v1/auth/logout'
-    })
+    return this.request('post', '/api/v1/auth/logout')
   },
   impersonateUser(usr) {
-    return axios({
-      method: 'POST',
-      url: '/api/v1/auth/impersonate',
-      data: {usr}
-    })
+    return this.request('POST', '/api/v1/auth/impersonate', null, {usr})
   },
   stopImpersonation() {
-    return axios({
-      method: 'DELETE',
-      url: '/api/v1/auth/impersonate'
-    })
+    return this.request('DELETE', '/api/v1/auth/impersonate')
   },
   getAuthenticatedUser() {
     return this.request('get', '/api/v1/auth')

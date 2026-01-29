@@ -23,6 +23,7 @@
       name="viewport"
       content="width=device-width, initial-scale=1, maximum-scale=1, shrink-to-fit=no"
     />
+    <link rel="icon" type="image/x-icon" href="/lnbits/favicon.ico" />
     <meta name="mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <link
@@ -32,6 +33,13 @@
     {% if web_manifest %}
     <link async="async" rel="manifest" href="{{ web_manifest }}" />
     {% endif %} {% block head_scripts %}{% endblock %}
+    <script type="text/javascript">
+      const ROOT_PATH = '{{ ROOT_PATH }}'
+      const RENDERED_ROUTE = '{{ normalize_path(request.path) }}'.replace(
+        ROOT_PATH.replace(/\/+$/, '') || '/',
+        ''
+      )
+    </script>
   </head>
 
   <body data-theme="bitcoin">
@@ -52,9 +60,7 @@
               v-if="g.user && !g.isPublicPage"
             ></lnbits-header-wallets>
             <!-- block page content from static extensions -->
-            <div
-              v-if="$route.path.startsWith('{{ normalize_path(request.path) }}')"
-            >
+            <div v-if="$route.path.startsWith(RENDERED_ROUTE)">
               {% block page %}{% endblock %}
             </div>
             <!-- vue router-view -->

@@ -18,6 +18,11 @@ from lnbits.settings import set_cli_settings, settings
 @click.option("--port", default=settings.port, help="Port to listen on")
 @click.option("--host", default=settings.host, help="Host to run LNbits on")
 @click.option(
+    "--root-path",
+    default=settings.root_path,
+    help="Root path of proxy, my.lnbits.com/rootpath ",
+)
+@click.option(
     "--forwarded-allow-ips",
     default=settings.forwarded_allow_ips,
     help="Allowed proxy servers",
@@ -30,6 +35,7 @@ from lnbits.settings import set_cli_settings, settings
 def main(
     port: int,
     host: str,
+    root_path: str,
     forwarded_allow_ips: str,
     ssl_keyfile: str,
     ssl_certfile: str,
@@ -46,7 +52,12 @@ def main(
         parents=True, exist_ok=True
     )
 
-    set_cli_settings(host=host, port=port, forwarded_allow_ips=forwarded_allow_ips)
+    set_cli_settings(
+        host=host,
+        port=port,
+        forwarded_allow_ips=forwarded_allow_ips,
+        root_path=root_path,
+    )
 
     while True:
         config = uvicorn.Config(
@@ -54,6 +65,7 @@ def main(
             loop="uvloop",
             port=port,
             host=host,
+            root_path=root_path,
             forwarded_allow_ips=forwarded_allow_ips,
             ssl_keyfile=ssl_keyfile,
             ssl_certfile=ssl_certfile,

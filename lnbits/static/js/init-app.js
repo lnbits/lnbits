@@ -11,11 +11,16 @@ const quasarConfig = {
 
 const DynamicComponent = {
   async created() {
+    // no trailing /
+    const rootPath = ROOT_PATH.replace(/\/+$/, '')
     const name = this.$route.path.split('/')[1]
-    const path = `/${name}/`
-    const routesPath = `/${name}/static/routes.json`
+    const path = `${rootPath}/${name}/`
+    const routesPath = `${rootPath}/${name}/static/routes.json`
     if (this.$router.getRoutes().some(r => r.path === path)) return
-    if (this.$route.fullPath.startsWith('/extensions/builder/preview')) return
+    if (
+      this.$route.fullPath.startsWith(rootPath + '/extensions/builder/preview')
+    )
+      return
     fetch(routesPath)
       .then(async res => {
         if (!res.ok) throw new Error('No dynamic routes found')
@@ -38,9 +43,17 @@ const DynamicComponent = {
         let route = RENDERED_ROUTE
         // append trailing slash only on the root path `/path` -> `/path/`
         if (route.split('/').length === 2) route += '/'
+        console.log('ROUTE', route)
+
+        console.log('path / fullpath', this.$route.path, this.$route.fullPath)
+
         if (route !== this.$route.path) {
-          console.log('Redirecting to non-vue route:', this.$route.fullPath)
-          window.location = this.$route.fullPath
+          const rootPath = ROOT_PATH.replace(/\/+$/, '')
+          console.log(
+            'Redirecting to non-vue route:',
+            rootPath + this.$route.fullPath
+          )
+          // window.location = rootPath + this.$route.fullPath
           return
         }
       })
@@ -139,7 +152,7 @@ const routes = [
 ]
 
 window.router = VueRouter.createRouter({
-  history: VueRouter.createWebHistory(),
+  history: VueRouter.createWebHistory(ROOT_PATH),
   routes
 })
 

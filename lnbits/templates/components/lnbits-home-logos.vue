@@ -7,7 +7,9 @@
             <a :href="logo.url" target="_blank" rel="noopener noreferrer">
               <q-img
                 contain
-                :src="$q.dark.isActive ? logo.darkSrc : logo.lightSrc"
+                :src="
+                  utils.urlFor($q.dark.isActive ? logo.darkSrc : logo.lightSrc)
+                "
               ></q-img>
             </a>
           </div>
@@ -18,7 +20,9 @@
             <a :href="logo.url" target="_blank" rel="noopener noreferrer">
               <q-img
                 contain
-                :src="$q.dark.isActive ? logo.darkSrc : logo.lightSrc"
+                :src="
+                  utils.urlFor($q.dark.isActive ? logo.darkSrc : logo.lightSrc)
+                "
               ></q-img>
             </a>
           </div>
