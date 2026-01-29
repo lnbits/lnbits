@@ -1,7 +1,6 @@
 window._lnbitsApi = {
   request(method, url, apiKey, data, options = {}) {
-    const rootPath = '/lnbits/'
-    url = rootPath + url.replace(/^\/+/, '') // Ensure single slash after rootPath
+    url = ROOT_PATH + url.replace(/^\/+/, '') // Ensure single slash after rootPath
     console.log(`API Request: ${method.toUpperCase()} ${url}`)
     return axios({
       method: method,
