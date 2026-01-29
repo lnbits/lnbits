@@ -415,11 +415,11 @@ window.PageUsers = {
     toggleUserActivated(userId) {
       LNbits.api
         .request('PUT', `/users/api/v1/user/${userId}/activate`)
-        .then(() => {
+        .then(res => {
           this.fetchUsers()
           Quasar.Notify.create({
             type: 'positive',
-            message: 'Toggled user activation!',
+            message: res.data.message,
             icon: null
           })
         })
