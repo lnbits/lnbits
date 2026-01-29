@@ -1,11 +1,11 @@
 window._lnbitsUtils = {
-  urlFor(url, noCache = false) {
+  urlFor(url, noCache = true) {
     if (url.startsWith('http://') || url.startsWith('https://')) {
       return url
     }
     const rootPath = ROOT_PATH.replace(/\/+$/, '')
     const _url = new URL(rootPath + url, window.location.origin)
-    if (!noCache) _url.searchParams.set('v', window.g.settings.cacheKey)
+    if (noCache) _url.searchParams.set('v', window.g.settings.cacheKey)
     return _url.toString()
   },
   loadScript(src) {
