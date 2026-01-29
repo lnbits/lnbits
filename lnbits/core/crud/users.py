@@ -204,6 +204,7 @@ async def get_user_from_account(
         super_user=account.is_super_user,
         fiat_providers=account.fiat_providers,
         has_password=account.password_hash is not None,
+        ui_customization=account.ui_customization or {},
     )
 
 

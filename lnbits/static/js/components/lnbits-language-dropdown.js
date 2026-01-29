@@ -1,5 +1,16 @@
 window.app.component('lnbits-language-dropdown', {
   template: '#lnbits-language-dropdown',
+  computed: {
+    currentLanguage() {
+      return (
+        this.langs.find(lang => lang.value === window.i18n.global.locale) || {
+          value: 'en',
+          label: 'English',
+          display: '🇬🇧 EN'
+        }
+      )
+    }
+  },
   methods: {
     activeLanguage(lang) {
       return window.i18n.global.locale === lang
@@ -8,6 +19,7 @@ window.app.component('lnbits-language-dropdown', {
       this.g.locale = newValue
       window.i18n.global.locale = newValue
       this.$q.localStorage.set('lnbits.lang', newValue)
+      this.$emit('language-changed', newValue)
     }
   },
   data() {

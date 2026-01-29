@@ -39,6 +39,15 @@ window.PageAccount = {
           color: 'pink-3'
         }
       ],
+      defaultSiteCustomisation: {
+        locale: 'en',
+        themeChoice: 'salvador',
+        bgimageChoice: '',
+        gradientChoice: true,
+        darkChoice: true,
+        borderChoice: 'hard-border',
+        reactionChoice: 'confettiBothSides'
+      },
       reactionOptions: [
         'None',
         'confettiBothSides',
@@ -213,26 +222,18 @@ window.PageAccount = {
     }
   },
   methods: {
-    activeLanguage(lang) {
-      return window.i18n.global.locale === lang
-    },
     changeLanguage(newValue) {
       window.i18n.global.locale = newValue
       this.$q.localStorage.set('lnbits.lang', newValue)
     },
     async updateAccount() {
       try {
-        const {data} = await LNbits.api.request(
-          'PUT',
-          '/api/v1/auth/update',
-          null,
-          {
-            user_id: this.g.user.id,
-            username: this.g.user.username,
-            email: this.g.user.email,
-            extra: this.g.user.extra
-          }
-        )
+        const {data} = await LNbits.api.request('PATCH', '/api/v1/auth', null, {
+          user_id: this.g.user.id,
+          username: this.g.user.username,
+          email: this.g.user.email,
+          extra: this.g.user.extra
+        })
         this.untouchedUser = JSON.parse(JSON.stringify(this.g.user))
         this.hasUsername = !!data.username
         Quasar.Notify.create({
@@ -680,6 +681,23 @@ window.PageAccount = {
             l => l.name !== label.name
           )
         })
+    },
+
+    async siteCustomisationChanged(options = {}) {
+      try {
+        Object.entries(options || {}).forEach(([key, value]) => {
+          if (key in this.g) {
+            this.g[key] = value
+          }
+        })
+        await LNbits.api.updateUiCustomization(options)
+        this.$q.notify({
+          type: 'positive',
+          message: 'UI Customization updated.'
+        })
+      } catch (e) {
+        LNbits.utils.notifyApiError(e)
+      }
     }
   },
 

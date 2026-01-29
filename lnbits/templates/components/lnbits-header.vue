@@ -71,8 +71,11 @@
         <span>OFFLINE</span>
       </q-badge>
 
-      <lnbits-language-dropdown></lnbits-language-dropdown>
-      <q-btn-dropdown v-if="g.user" flat rounded size="sm" class="q-pl-sm">
+      <lnbits-language-dropdown
+        @language-changed="handleLanguageChanged({locale: $event})"
+      ></lnbits-language-dropdown>
+
+      <q-btn-dropdown v-if="g.user" flat rounded size="md" class="q-pl-sm">
         <template v-slot:label>
           <q-avatar
             v-if="g.user?.extra?.picture && g.user?.extra?.picture !== ''"
