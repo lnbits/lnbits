@@ -73,9 +73,7 @@ window.PageAdmin = {
     updateSettings() {
       if (this.shouldConfirmRouteAccess()) {
         LNbits.utils
-          .confirmDialog(
-            this.$t('route_access_save_confirm')
-          )
+          .confirmDialog(this.$t('route_access_save_confirm'))
           .onOk(() => this.persistSettings())
         return
       }
@@ -87,8 +85,8 @@ window.PageAdmin = {
         'lnbits_route_access_whitelist',
         'lnbits_route_access_blacklist'
       ]
-      return fields.some(field =>
-        !_.isEqual(this.settings[field], this.formData[field])
+      return fields.some(
+        field => !_.isEqual(this.settings[field], this.formData[field])
       )
     },
     persistSettings() {

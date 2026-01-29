@@ -309,7 +309,9 @@ def add_route_access_middleware(app: FastAPI):
                 request, f"Route not whitelisted: {path}", HTTPStatus.FORBIDDEN
             )
 
-        if blacklist and any(_route_pattern_matches(route, path) for route in blacklist):
+        if blacklist and any(
+            _route_pattern_matches(route, path) for route in blacklist
+        ):
             return _response_by_accepted_type(
                 request, f"Route is blacklisted: {path}", HTTPStatus.FORBIDDEN
             )
