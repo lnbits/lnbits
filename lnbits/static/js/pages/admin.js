@@ -8,7 +8,9 @@ window.PageAdmin = {
         lnbits_exchange_rate_providers: [],
         lnbits_audit_exclude_paths: [],
         lnbits_audit_include_paths: [],
-        lnbits_audit_http_response_codes: []
+        lnbits_audit_http_response_codes: [],
+        lnbits_route_access_whitelist: [],
+        lnbits_route_access_blacklist: []
       },
       isSuperUser: false,
       needsRestart: false
@@ -69,6 +71,27 @@ window.PageAdmin = {
         .catch(LNbits.utils.notifyApiError)
     },
     updateSettings() {
+      if (this.shouldConfirmRouteAccess()) {
+        LNbits.utils
+          .confirmDialog(
+            this.$t('route_access_save_confirm')
+          )
+          .onOk(() => this.persistSettings())
+        return
+      }
+      this.persistSettings()
+    },
+    shouldConfirmRouteAccess() {
+      const fields = [
+        'lnbits_route_access_control_enabled',
+        'lnbits_route_access_whitelist',
+        'lnbits_route_access_blacklist'
+      ]
+      return fields.some(field =>
+        !_.isEqual(this.settings[field], this.formData[field])
+      )
+    },
+    persistSettings() {
       const data = _.omit(this.formData, [
         'is_super_user',
         'lnbits_allowed_funding_sources',

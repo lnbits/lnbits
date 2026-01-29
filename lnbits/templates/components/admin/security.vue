@@ -297,6 +297,52 @@
         </div>
 
         <div class="col-12 col-md-12">
+          <p v-text="$t('route_access_control')"></p>
+          <div class="row q-col-gutter-md">
+            <div class="col-12">
+              <q-toggle
+                v-model="formData.lnbits_route_access_control_enabled"
+                :label="$t('route_access_control_enable')"
+              ></q-toggle>
+              <div
+                class="text-caption text-grey-6 q-mt-xs"
+                v-text="$t('route_access_control_hint')"
+              ></div>
+            </div>
+            <div class="col-12 col-md-6">
+              <q-select
+                filled
+                multiple
+                use-chips
+                use-input
+                input-debounce="0"
+                :options="routeOptionsFiltered"
+                :loading="routeOptionsLoading"
+                @filter="filterRouteOptions"
+                v-model="formData.lnbits_route_access_whitelist"
+                :label="$t('route_access_whitelist_label')"
+                :hint="$t('route_access_whitelist_hint')"
+              ></q-select>
+            </div>
+            <div class="col-12 col-md-6">
+              <q-select
+                filled
+                multiple
+                use-chips
+                use-input
+                input-debounce="0"
+                :options="routeOptionsFiltered"
+                :loading="routeOptionsLoading"
+                @filter="filterRouteOptions"
+                v-model="formData.lnbits_route_access_blacklist"
+                :label="$t('route_access_blacklist_label')"
+                :hint="$t('route_access_blacklist_hint')"
+              ></q-select>
+            </div>
+          </div>
+        </div>
+
+        <div class="col-12 col-md-12">
           <p v-text="$t('rate_limiter')"></p>
           <div class="row q-col-gutter-md">
             <div class="col-12 col-md-6">

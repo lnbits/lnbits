@@ -66,6 +66,7 @@ from .middleware import (
     add_first_install_middleware,
     add_ip_block_middleware,
     add_ratelimit_middleware,
+    add_route_access_middleware,
 )
 from .tasks import internal_invoice_listener, invoice_listener, run_interval
 
@@ -192,6 +193,7 @@ def create_app() -> FastAPI:
 
     # adds security middleware
     add_ip_block_middleware(app)
+    add_route_access_middleware(app)
     add_ratelimit_middleware(app)
 
     register_exception_handlers(app)

@@ -1,5 +1,6 @@
 import asyncio
 import json
+import re
 from datetime import datetime, timezone
 from http import HTTPStatus
 from typing import Any
@@ -17,6 +18,20 @@ from lnbits.core.db import core_app_extra
 from lnbits.core.models import AuditEntry
 from lnbits.helpers import normalize_path, template_renderer
 from lnbits.settings import settings
+
+_LOCALHOST_IPS = {"127.0.0.1", "::1"}
+
+
+def _route_pattern_matches(pattern: str, path: str) -> bool:
+    if not pattern:
+        return False
+    if not pattern.startswith("/"):
+        pattern = f"/{pattern}"
+    if pattern == path:
+        return True
+    escaped = re.escape(pattern)
+    escaped = re.sub(r"\\\{[^/]+\\\}", r"[^/]+", escaped)
+    return re.fullmatch(escaped, path) is not None
 
 
 class InstalledExtensionMiddleware:
@@ -232,6 +247,40 @@ def add_ip_block_middleware(app: FastAPI):
                 status_code=HTTPStatus.FORBIDDEN,
                 content={"detail": "IP is blocked"},
             )
+        return await call_next(request)
+
+
+def add_route_access_middleware(app: FastAPI):
+    @app.middleware("http")
+    async def route_access_middleware(request: Request, call_next):
+        if not settings.lnbits_route_access_control_enabled:
+            return await call_next(request)
+        if not request.client:
+            return JSONResponse(
+                status_code=HTTPStatus.FORBIDDEN,
+                content={"detail": "No request client"},
+            )
+        if request.client.host in _LOCALHOST_IPS:
+            return await call_next(request)
+
+        path = request.url.path or "/"
+        whitelist = settings.lnbits_route_access_whitelist
+        blacklist = settings.lnbits_route_access_blacklist
+
+        if whitelist:
+            if any(_route_pattern_matches(route, path) for route in whitelist):
+                return await call_next(request)
+            return JSONResponse(
+                status_code=HTTPStatus.FORBIDDEN,
+                content={"detail": "Route not whitelisted"},
+            )
+
+        if blacklist and any(_route_pattern_matches(route, path) for route in blacklist):
+            return JSONResponse(
+                status_code=HTTPStatus.FORBIDDEN,
+                content={"detail": "Route is blacklisted"},
+            )
+
         return await call_next(request)
 
 

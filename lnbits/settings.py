@@ -421,6 +421,9 @@ class SecuritySettings(LNbitsSettings):
     lnbits_rate_limit_unit: str = Field(default="minute")
     lnbits_allowed_ips: list[str] = Field(default=[])
     lnbits_blocked_ips: list[str] = Field(default=[])
+    lnbits_route_access_control_enabled: bool = Field(default=False)
+    lnbits_route_access_whitelist: list[str] = Field(default=[])
+    lnbits_route_access_blacklist: list[str] = Field(default=[])
     lnbits_callback_url_rules: list[str] = Field(
         default=["https?://([a-zA-Z0-9.-]+\\.[a-zA-Z]{2,})(:\\d+)?"]
     )

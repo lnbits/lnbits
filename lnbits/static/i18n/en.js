@@ -363,6 +363,18 @@ window.localisation.en = {
   watchdog: 'Watchdog',
   server_logs: 'Server Logs',
   ip_blocker: 'IP Blocker',
+  route_access_control: 'Route Access Control',
+  route_access_control_enable: 'Enable route access control',
+  route_access_control_hint:
+    'When enabled, non-local requests are restricted. Requests from 127.0.0.1 (and ::1) are always allowed.',
+  route_access_whitelist_label: 'Route Whitelist',
+  route_access_whitelist_hint:
+    'Only allow non-local access to these routes (leave empty to disable whitelist mode).',
+  route_access_blacklist_label: 'Route Blacklist',
+  route_access_blacklist_hint:
+    'Block non-local access to these routes (ignored when a whitelist is set).',
+  route_access_save_confirm:
+    'Are you sure you want to save? This can impact access to LNbits if you are not accessing locally.',
   security: 'Security',
   security_tools: 'Security tools',
   block_access_hint: 'Block access by IP',

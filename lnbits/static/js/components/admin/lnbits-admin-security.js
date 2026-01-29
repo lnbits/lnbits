@@ -8,11 +8,45 @@ window.app.component('lnbits-admin-security', {
       serverlogEnabled: false,
       nostrAcceptedUrl: '',
       formAllowedIPs: '',
-      formCallbackUrlRule: ''
+      formCallbackUrlRule: '',
+      routeOptions: [],
+      routeOptionsFiltered: [],
+      routeOptionsLoading: false
     }
   },
-  created() {},
+  created() {
+    this.loadOpenApiRoutes()
+  },
   methods: {
+    async loadOpenApiRoutes() {
+      this.routeOptionsLoading = true
+      try {
+        const response = await fetch('/openapi.json')
+        if (!response.ok) {
+          throw new Error('Failed to load OpenAPI spec')
+        }
+        const data = await response.json()
+        const paths = Object.keys(data.paths || {}).sort()
+        this.routeOptions = paths
+        this.routeOptionsFiltered = paths
+      } catch (error) {
+        console.warn(error)
+      } finally {
+        this.routeOptionsLoading = false
+      }
+    },
+    filterRouteOptions(val, update) {
+      update(() => {
+        if (!val) {
+          this.routeOptionsFiltered = this.routeOptions
+          return
+        }
+        const needle = val.toLowerCase()
+        this.routeOptionsFiltered = this.routeOptions.filter(route =>
+          route.toLowerCase().includes(needle)
+        )
+      })
+    },
     addAllowedIPs() {
       const allowedIPs = this.formAllowedIPs.trim()
       const allowed_ips = this.formData.lnbits_allowed_ips
