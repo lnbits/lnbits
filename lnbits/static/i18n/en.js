@@ -178,6 +178,8 @@ window.localisation.en = {
   installed: 'Installed',
   activated: 'Activated',
   deactivated: 'Deactivated',
+  activate: 'Activate',
+  deactivate: 'Deactivate',
   release_notes: 'Release Notes',
   activate_extension_details: 'Make extension available/unavailable for users',
   featured: 'Featured',

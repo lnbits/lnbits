@@ -241,6 +241,7 @@ class Account(AccountId):
 
 
 class AccountOverview(Account):
+    activated: bool
     transaction_count: int | None = 0
     wallet_count: int | None = 0
     balance_msat: int | None = 0

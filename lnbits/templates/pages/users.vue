@@ -605,10 +605,18 @@
                     size="xs"
                     v-if="!props.row.is_super_user"
                     color="secondary"
-                    v-model="props.row.is_admin"
-                    @update:model-value="toggleAdmin(props.row.id)"
+                    v-model="props.row.activated"
+                    @update:model-value="toggleUserActivated(props.row.id)"
                   >
-                    <q-tooltip>Toggle Admin</q-tooltip>
+                    <q-tooltip
+                      ><span
+                        v-text="
+                          props.row.activated
+                            ? $t('deactivate')
+                            : $t('activate')
+                        "
+                      ></span
+                    ></q-tooltip>
                   </q-toggle>
                   <q-btn
                     round

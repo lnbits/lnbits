@@ -17,6 +17,8 @@ from lnbits.core.crud import (
     get_user,
     get_wallet,
     get_wallets,
+    is_account_activated,
+    update_account_activation,
     update_admin_settings,
     update_wallet,
 )
@@ -197,7 +199,7 @@ async def api_users_reset_password(user_id: str) -> str:
     return f"reset_key_{reset_key_b64}"
 
 
-@users_router.get(
+@users_router.put(
     "/user/{user_id}/admin",
     dependencies=[Depends(check_super_user)],
     name="Give or revoke admin permsisions to a user",
@@ -217,6 +219,42 @@ async def api_users_toggle_admin(user_id: str) -> SimpleStatus:
     await update_admin_settings(update_settings)
     return SimpleStatus(
         success=True, message=f"User admin: '{settings.is_admin_user(user_id)}'."
+    )
+
+
+@users_router.put(
+    "/user/{user_id}/activate",
+    name="Activate or deactivate a user",
+)
+async def api_users_toggle_activated(
+    user_id: str, account: Account = Depends(check_admin)
+) -> SimpleStatus:
+    if user_id == settings.super_user:
+        raise HTTPException(
+            status_code=HTTPStatus.BAD_REQUEST,
+            detail="Cannot deactivate super user.",
+        )
+    if user_id == account.id:
+        raise HTTPException(
+            status_code=HTTPStatus.BAD_REQUEST,
+            detail="Users cannot deactivate themselves.",
+        )
+
+    if settings.is_admin_user(user_id):
+        settings.lnbits_admin_users.remove(user_id)
+
+    is_activated = await is_account_activated(user_id)
+
+    if is_activated is None:
+        raise HTTPException(
+            status_code=HTTPStatus.NOT_FOUND,
+            detail="User not found.",
+        )
+    await update_account_activation(user_id, not is_activated)
+
+    return SimpleStatus(
+        success=True,
+        message=f"User {'activated' if not is_activated else 'deactivated'}.",
     )
 
 
