@@ -75,7 +75,7 @@ async def api_get_users(
     summary="Get user by Id",
 )
 async def api_get_user(user_id: str) -> User:
-    user = await get_user(user_id)
+    user = await get_user(user_id, activated=None)
     if not user:
         raise HTTPException(HTTPStatus.NOT_FOUND, "User not found.")
     return user
@@ -237,7 +237,7 @@ async def api_users_toggle_activated(
     if user_id == account.id:
         raise HTTPException(
             status_code=HTTPStatus.BAD_REQUEST,
-            detail="Users cannot deactivate themselves.",
+            detail="You cannot deactivate yourself.",
         )
 
     if settings.is_admin_user(user_id):
