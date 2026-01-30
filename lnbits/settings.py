@@ -983,6 +983,7 @@ class EnvSettings(LNbitsSettings):
     enable_log_to_file: bool = Field(default=True)
     log_rotation: str = Field(default="100 MB")
     log_retention: str = Field(default="3 months")
+    first_install_token: str | None = Field(default=None)
 
     cleanup_wallets_days: int = Field(default=90, ge=0)
     funding_source_max_retries: int = Field(default=4, ge=0)
