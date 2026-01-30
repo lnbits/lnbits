@@ -36,7 +36,7 @@ include('components/lnbits-error.vue') %}
   <q-list v-if="g.user" dense class="lnbits-drawer__q-list">
     <q-item-label header v-text="$t('manage')"></q-item-label>
     <div v-if="g.user.admin">
-      <q-item v-if="showAdmin" to="/admin">
+      <q-item v-if="g.settings.showAdmin" to="/admin">
         <q-item-section side>
           <q-icon
             name="settings"
@@ -51,7 +51,7 @@ include('components/lnbits-error.vue') %}
           <q-icon name="chevron_right" color="grey-5" size="md"></q-icon>
         </q-item-section>
       </q-item>
-      <q-item v-if="showNode" to="/node">
+      <q-item v-if="g.settings.showNodemanager" to="/node">
         <q-item-section side>
           <q-icon
             name="developer_board"
@@ -66,7 +66,7 @@ include('components/lnbits-error.vue') %}
           <q-icon name="chevron_right" color="grey-5" size="md"></q-icon>
         </q-item-section>
       </q-item>
-      <q-item v-if="showUsers" to="/users">
+      <q-item v-if="g.settings.showAdmin" to="/users">
         <q-item-section side>
           <q-icon
             name="groups"
@@ -81,7 +81,7 @@ include('components/lnbits-error.vue') %}
           <q-icon name="chevron_right" color="grey-5" size="md"></q-icon>
         </q-item-section>
       </q-item>
-      <q-item v-if="showAudit" to="/audit">
+      <q-item v-if="g.settings.showAudit" to="/audit">
         <q-item-section side>
           <q-icon
             name="playlist_add_check_circle"
@@ -112,7 +112,7 @@ include('components/lnbits-error.vue') %}
         <q-icon name="chevron_right" color="grey-5" size="md"></q-icon>
       </q-item-section>
     </q-item>
-    <q-item v-if="showExtensions" to="/extensions">
+    <q-item v-if="g.settings.showExtensions" to="/extensions">
       <q-item-section side>
         <q-icon
           name="extension"
@@ -686,7 +686,7 @@ include('components/lnbits-error.vue') %}
           dense
           filled
           v-model="walletName"
-          :label="$t('name_your_wallet', {name: SITE_TITLE + ' *'})"
+          :label="$t('name_your_wallet', {name: g.settings.siteTitle + ' *'})"
         ></q-input>
         <q-card-actions vertical align="center" class="q-pa-none">
           <q-btn
@@ -960,9 +960,9 @@ include('components/lnbits-error.vue') %}
         <q-avatar size="32px" class="q-mr-md">
           <q-img
             :src="
-              keycloakIcon
-                ? keycloakIcon
-                : 'lnbits/static/images/keycloak-logo.png'
+              g.settings.keycloakIcon
+                ? g.settings.keycloakIcon
+                : utils.url_for('lnbits/static/images/keycloak-logo.png')
             "
           ></q-img>
         </q-avatar>
@@ -970,7 +970,7 @@ include('components/lnbits-error.vue') %}
           <span
             v-text="
               $t('signin_with_custom_org', {
-                custom_org: keycloakOrg
+                custom_org: g.settings.keycloakOrg || 'Keycloak'
               })
             "
           ></span>

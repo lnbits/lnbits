@@ -258,15 +258,20 @@
                         class="q-mb-md"
                       >
                       </q-input>
-                      <div v-if="!g.user.email" class="row"></div>
                       <div v-if="!g.user.email" class="row">
-                        {% if "google-auth" in LNBITS_AUTH_METHODS or
-                        "github-auth" in LNBITS_AUTH_METHODS %}
-                        <div class="col q-pa-sm text-h6">
+                        <div
+                          v-if="
+                            'google-auth' in g.settings.authMethods ||
+                            'github-auth' in g.settings.authMethods
+                          "
+                          class="col q-pa-sm text-h6"
+                        >
                           <span v-text="$t('verify_email')"></span>:
                         </div>
-                        {%endif%} {% if "google-auth" in LNBITS_AUTH_METHODS %}
-                        <div class="col q-pa-sm">
+                        <div
+                          v-if="'google-auth' in g.settings.authMethods"
+                          class="col q-pa-sm"
+                        >
                           <q-btn
                             :href="`/api/v1/auth/google?user_id=${g.user.id}`"
                             type="a"
@@ -284,8 +289,10 @@
                             <div>Google</div>
                           </q-btn>
                         </div>
-                        {%endif%} {% if "github-auth" in LNBITS_AUTH_METHODS %}
-                        <div class="col q-pa-sm">
+                        <div
+                          v-if="'github-auth' in g.settings.authMethods"
+                          class="col q-pa-sm"
+                        >
                           <q-btn
                             :href="`/api/v1/auth/github?user_id=${g.user.id}`"
                             type="a"
@@ -303,7 +310,6 @@
                             <div>GitHub</div>
                           </q-btn>
                         </div>
-                        {%endif%}
                       </div>
                     </q-card-section>
 
@@ -508,7 +514,7 @@
                     <div class="col-8">
                       <lnbits-notifications-btn
                         v-if="g.user"
-                        pubkey="{{ WEBPUSH_PUBKEY }}"
+                        pubkey="g.settings.webpushPubkey"
                       ></lnbits-notifications-btn>
                     </div>
                   </div>
@@ -552,7 +558,7 @@
                         ></span>
                         <br />
                         <q-badge
-                          v-if="!LNBITS_NOSTR_CONFIGURED"
+                          v-if="!g.settings.nostrConfigured"
                           v-text="$t('not_connected')"
                         ></q-badge>
                       </div>
@@ -572,7 +578,7 @@
                         <span v-text="$t('notifications_chat_id')"></span>
                         <br />
                         <q-badge
-                          v-if="!LNBITS_TELEGRAM_CONFIGURED"
+                          v-if="!g.settings.telegramConfigured"
                           v-text="$t('not_connected')"
                         ></q-badge>
                       </div>

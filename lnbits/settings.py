@@ -1131,6 +1131,115 @@ class Settings(EditableSettings, ReadOnlySettings, TransientSettings, BaseSettin
             and ext_id in self.lnbits_all_extensions_ids
         )
 
+    def to_public(self) -> PublicSettings:
+        return PublicSettings.from_settings(self)
+
+
+class PublicSettings(BaseModel):
+    """
+    PublicSettings is used for templating and public information.
+    WARNING: do not expose private information, PublicSettings is exposed publicly.
+    """
+
+    allow_register: bool = Field(alias="allowRegister")
+    qr_logo: str = Field(alias="qrLogo")
+    site_title: str = Field(alias="siteTitle")
+    site_tagline: str = Field(alias="siteTagline")
+    site_description: str | None = Field(alias="siteDescription")
+    auth_methods: list[str] = Field(alias="authMethods")
+    keycloak_org: str | None = Field(alias="keycloakOrg")
+    keycloak_icon: str | None = Field(alias="keycloakIcon")
+    has_holdinvoice: bool = Field(alias="hasHoldinvoice")
+    has_nodemanager: bool = Field(alias="hasNodemanager")
+    show_nodemanager: bool = Field(alias="showNodemanager")
+    custom_logo: str | None = Field(alias="customLogo")
+    show_voidwallet: bool = Field(alias="showVoidwallet")
+    version: str = Field(alias="version")
+    show_home_page_elements: bool = Field(alias="showHomePageElements")
+    hide_api: bool = Field(alias="hideApi")
+    cache_key: str = Field(alias="cacheKey")
+    webpush_pubkey: str | None = Field(alias="webpushPubkey")
+    show_extensions: bool = Field(alias="showExtensions")
+    show_audit: bool = Field(alias="showAudit")
+    show_admin: bool = Field(alias="showAdmin")
+    ad_space: list[list[str]] = Field(alias="adSpace")
+    ad_space_title: str = Field(alias="adSpaceTitle")
+    show_ad_space: bool = Field(alias="showAdSpace")
+    custom_image: str | None = Field(alias="customImage")
+    custom_badge: str | None = Field(alias="customBadge")
+    custom_badge_color: str | None = Field(alias="customBadgeColor")
+    service_fee: float = Field(alias="serviceFee")
+    service_fee_max: int = Field(alias="serviceFeeMax")
+    service_fee_wallet: str | None = Field(alias="serviceFeeWallet")
+    theme_options: list[str] = Field(alias="themeOptions")
+    default_reaction: str = Field(alias="defaultReaction")
+    default_theme: str = Field(alias="defaultTheme")
+    default_border: str = Field(alias="defaultBorder")
+    default_bgimage: str | None = Field(alias="defaultBgimage")
+    default_gradient: bool = Field(alias="defaultGradient")
+    denomination: str | None = Field()
+    extensions: list[str] = Field()
+    allowed_currencies: list[str] = Field(alias="allowedCurrencies")
+    extensions_reviews_url: str = Field(alias="extensionsReviewsUrl")
+    ext_builder: bool = Field(alias="extBuilder")
+    nostr_configured: bool = Field(alias="nostrConfigured")
+    telegram_configured: bool = Field(alias="telegramConfigured")
+    wallet_featured_button_label: str | None = Field(alias="walletFeaturedButtonLabel")
+    wallet_featured_button_url: str | None = Field(alias="walletFeaturedButtonUrl")
+    wallet_featured_button_icon: str | None = Field(alias="walletFeaturedButtonIcon")
+
+    @classmethod
+    def from_settings(cls, settings: Settings):
+        ads = [x.split(";") for x in settings.lnbits_ad_space.split(",")]
+        return cls(
+            adSpace=ads,
+            adSpaceTitle=settings.lnbits_ad_space_title,
+            showAdSpace=settings.lnbits_ad_space_enabled and len(ads) > 0,
+            allowRegister=settings.new_accounts_allowed,
+            qrLogo=settings.lnbits_qr_logo,
+            siteDescription=settings.lnbits_site_description,
+            siteTitle=settings.lnbits_site_title,
+            siteTagline=settings.lnbits_site_tagline,
+            authMethods=settings.auth_allowed_methods,
+            keycloakOrg=settings.keycloak_client_custom_org,
+            keycloakIcon=settings.keycloak_client_custom_icon,
+            hasHoldinvoice=settings.has_holdinvoice,
+            hasNodemanager=settings.has_nodemanager,
+            showNodemanager=settings.lnbits_node_ui and settings.has_nodemanager,
+            customLogo=settings.lnbits_custom_logo,
+            showVoidwallet=settings.lnbits_backend_wallet_class == "VoidWallet",
+            version=settings.version,
+            showHomePageElements=settings.lnbits_show_home_page_elements,
+            hideApi=settings.lnbits_hide_api,
+            cacheKey=str(settings.server_startup_time),
+            webpushPubkey=settings.lnbits_webpush_pubkey,
+            showExtensions=not settings.lnbits_extensions_deactivate_all,
+            showAudit=settings.lnbits_audit_enabled,
+            showAdmin=settings.lnbits_admin_ui,
+            customImage=settings.lnbits_custom_image,
+            customBadge=settings.lnbits_custom_badge,
+            customBadgeColor=settings.lnbits_custom_badge_color,
+            serviceFee=settings.lnbits_service_fee,
+            serviceFeeMax=settings.lnbits_service_fee_max,
+            serviceFeeWallet=settings.lnbits_service_fee_wallet,
+            themeOptions=settings.lnbits_theme_options,
+            defaultReaction=settings.lnbits_default_reaction,
+            defaultTheme=settings.lnbits_default_theme,
+            defaultBorder=settings.lnbits_default_border,
+            defaultGradient=settings.lnbits_default_gradient,
+            defaultBgimage=settings.lnbits_default_bgimage,
+            denomination=settings.lnbits_denomination,
+            extensions=list(settings.lnbits_installed_extensions_ids),
+            allowedCurrencies=settings.lnbits_allowed_currencies,
+            extensionsReviewsUrl=settings.lnbits_extensions_reviews_url,
+            extBuilder=settings.lnbits_extensions_builder_activate_non_admins,
+            nostrConfigured=settings.is_nostr_notifications_configured(),
+            telegramConfigured=settings.is_telegram_notifications_configured(),
+            walletFeaturedButtonLabel=settings.lnbits_wallet_featured_button_label,
+            walletFeaturedButtonUrl=settings.lnbits_wallet_featured_button_url,
+            walletFeaturedButtonIcon=settings.lnbits_wallet_featured_button_icon,
+        )
+
 
 class SuperSettings(EditableSettings):
     super_user: str

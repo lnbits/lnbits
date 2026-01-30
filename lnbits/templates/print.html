@@ -45,10 +45,8 @@
     </div>
 
     <script type="text/javascript">
-      const WINDOW_SETTINGS = {{ WINDOW_SETTINGS | tojson }}
-      Object.keys(WINDOW_SETTINGS).forEach(key => {
-        window[key] = WINDOW_SETTINGS[key]
-      })
+      const SETTINGS = {{ SETTINGS | tojson | safe }}
+      const CURRENCIES = {{ CURRENCIES | tojson | safe }}
     </script>
     {% include('components.vue') %}{% block vue_templates %}{% endblock %} {%
     for url in INCLUDED_JS %}

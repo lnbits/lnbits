@@ -70,60 +70,11 @@ def template_renderer(additional_folders: list | None = None) -> Jinja2Templates
     t.env.globals["static_url_for"] = static_url_for
     t.env.globals["normalize_path"] = normalize_path
 
-    window_settings = {
-        "AD_SPACE": settings.lnbits_ad_space,
-        "AD_SPACE_ENABLED": settings.lnbits_ad_space_enabled,
-        "AD_SPACE_TITLE": settings.lnbits_ad_space_title,
-        "EXTENSIONS": list(settings.lnbits_installed_extensions_ids),
-        "HIDE_API": settings.lnbits_hide_api,
-        "SITE_TITLE": settings.lnbits_site_title,
-        "SITE_TAGLINE": settings.lnbits_site_tagline,
-        "SITE_DESCRIPTION": settings.lnbits_site_description,
-        "LNBITS_ADMIN_UI": settings.lnbits_admin_ui,
-        "LNBITS_AUDIT_ENABLED": settings.lnbits_audit_enabled,
-        "LNBITS_AUTH_METHODS": settings.auth_allowed_methods,
-        "LNBITS_AUTH_KEYCLOAK_ORG": settings.keycloak_client_custom_org,
-        "LNBITS_AUTH_KEYCLOAK_ICON": settings.keycloak_client_custom_icon,
-        "LNBITS_CUSTOM_IMAGE": settings.lnbits_custom_image,
-        "LNBITS_CUSTOM_BADGE": settings.lnbits_custom_badge,
-        "LNBITS_CUSTOM_BADGE_COLOR": settings.lnbits_custom_badge_color,
-        "LNBITS_EXTENSIONS_DEACTIVATE_ALL": settings.lnbits_extensions_deactivate_all,
-        "LNBITS_NEW_ACCOUNTS_ALLOWED": settings.new_accounts_allowed,
-        "LNBITS_NODE_UI": settings.lnbits_node_ui and settings.has_nodemanager,
-        "LNBITS_NODE_UI_AVAILABLE": settings.has_nodemanager,
-        "LNBITS_QR_LOGO": settings.lnbits_qr_logo,
-        "LNBITS_APPLE_TOUCH_ICON": settings.lnbits_apple_touch_icon,
-        "LNBITS_SERVICE_FEE": settings.lnbits_service_fee,
-        "LNBITS_SERVICE_FEE_MAX": settings.lnbits_service_fee_max,
-        "LNBITS_SERVICE_FEE_WALLET": settings.lnbits_service_fee_wallet,
-        "LNBITS_SHOW_HOME_PAGE_ELEMENTS": settings.lnbits_show_home_page_elements,
-        "LNBITS_THEME_OPTIONS": settings.lnbits_theme_options,
-        "WALLET_FEATURED_BUTTON_LABEL": settings.lnbits_wallet_featured_button_label,
-        "WALLET_FEATURED_BUTTON_URL": settings.lnbits_wallet_featured_button_url,
-        "WALLET_FEATURED_BUTTON_ICON": settings.lnbits_wallet_featured_button_icon,
-        "LNBITS_VERSION": settings.version,
-        "USE_CUSTOM_LOGO": settings.lnbits_custom_logo,
-        "LNBITS_DEFAULT_REACTION": settings.lnbits_default_reaction,
-        "LNBITS_DEFAULT_THEME": settings.lnbits_default_theme,
-        "LNBITS_DEFAULT_BORDER": settings.lnbits_default_border,
-        "LNBITS_DEFAULT_GRADIENT": settings.lnbits_default_gradient,
-        "LNBITS_DEFAULT_BGIMAGE": settings.lnbits_default_bgimage,
-        "VOIDWALLET": settings.lnbits_backend_wallet_class == "VoidWallet",
-        "WEBPUSH_PUBKEY": settings.lnbits_webpush_pubkey,
-        "LNBITS_EXTENSIONS_REVIEWS_URL": settings.lnbits_extensions_reviews_url,
-        "LNBITS_DENOMINATION": settings.lnbits_denomination,
-        "has_holdinvoice": settings.has_holdinvoice,
-        "LNBITS_NOSTR_CONFIGURED": settings.is_nostr_notifications_configured(),
-        "LNBITS_TELEGRAM_CONFIGURED": settings.is_telegram_notifications_configured(),
-        "LNBITS_EXT_BUILDER": settings.lnbits_extensions_builder_activate_non_admins,
-        "LNBITS_CURRENCIES": list(currencies.keys()),
-        "LNBITS_ALLOWED_CURRENCIES": settings.lnbits_allowed_currencies,
-        "CACHE_KEY": settings.server_startup_time,
-    }
-
-    t.env.globals["WINDOW_SETTINGS"] = window_settings
-    for key, value in window_settings.items():
-        t.env.globals[key] = value
+    # used in base.html
+    t.env.globals["SITE_TITLE"] = settings.lnbits_site_title
+    t.env.globals["LNBITS_APPLE_TOUCH_ICON"] = settings.lnbits_apple_touch_icon
+    t.env.globals["SETTINGS"] = settings.to_public().dict(by_alias=True)
+    t.env.globals["CURRENCIES"] = list(currencies.keys())
 
     if settings.bundle_assets:
         t.env.globals["INCLUDED_JS"] = ["bundle.min.js"]
@@ -136,6 +87,9 @@ def template_renderer(additional_folders: list | None = None) -> Jinja2Templates
             t.env.globals["INCLUDED_JS"] = vendor_files["js"]
             t.env.globals["INCLUDED_CSS"] = vendor_files["css"]
             t.env.globals["INCLUDED_COMPONENTS"] = vendor_files["components"]
+
+    # backwards compatibility for extensions (tpos)
+    t.env.globals["LNBITS_DENOMINATION"] = settings.lnbits_denomination
 
     return t
 
