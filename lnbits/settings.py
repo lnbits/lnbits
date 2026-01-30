@@ -1136,6 +1136,11 @@ class Settings(EditableSettings, ReadOnlySettings, TransientSettings, BaseSettin
 
 
 class PublicSettings(BaseModel):
+    """
+    PublicSettings is used for templating and public information.
+    WARNING: do not expose private information, PublicSettings is exposed publicly.
+    """
+
     allow_register: bool = Field(alias="allowRegister")
     qr_logo: str = Field(alias="qrLogo")
     site_title: str = Field(alias="siteTitle")
@@ -1179,6 +1184,9 @@ class PublicSettings(BaseModel):
     ext_builder: bool = Field(alias="extBuilder")
     nostr_configured: bool = Field(alias="nostrConfigured")
     telegram_configured: bool = Field(alias="telegramConfigured")
+    wallet_featured_button_label: str | None = Field(alias="walletFeaturedButtonLabel")
+    wallet_featured_button_url: str | None = Field(alias="walletFeaturedButtonUrl")
+    wallet_featured_button_icon: str | None = Field(alias="walletFeaturedButtonIcon")
 
     @classmethod
     def from_settings(cls, settings: Settings):
@@ -1227,6 +1235,9 @@ class PublicSettings(BaseModel):
             extBuilder=settings.lnbits_extensions_builder_activate_non_admins,
             nostrConfigured=settings.is_nostr_notifications_configured(),
             telegramConfigured=settings.is_telegram_notifications_configured(),
+            walletFeaturedButtonLabel=settings.lnbits_wallet_featured_button_label,
+            walletFeaturedButtonUrl=settings.lnbits_wallet_featured_button_url,
+            walletFeaturedButtonIcon=settings.lnbits_wallet_featured_button_icon,
         )
 
 

@@ -172,15 +172,15 @@
                 ></q-tooltip>
               </q-btn>
               <div
-                v-if="WALLET_FEATURED_BUTTON_URL"
+                v-if="g.settings.walletFeaturedButtonUrl"
                 class="float-right q-mt-sm q-ml-sm"
               >
                 <q-btn
                   color="primary"
-                  :label="WALLET_FEATURED_BUTTON_LABEL"
-                  :icon="WALLET_FEATURED_BUTTON_ICON || undefined"
+                  :label="g.settings.walletFeaturedButtonLabel"
+                  :icon="g.settings.walletFeaturedButtonIcon || undefined"
                   size="sm"
-                  :to="WALLET_FEATURED_BUTTON_URL"
+                  :to="g.settings.walletFeaturedButtonUrl"
                 >
                 </q-btn>
               </div>
