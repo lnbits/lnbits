@@ -7,7 +7,7 @@ import shortuuid
 from httpx import AsyncClient
 
 from lnbits.core.crud.wallets import get_wallets
-from lnbits.core.models import AccessTokenPayload
+from lnbits.core.models import AccessTokenPayload, Payment
 from lnbits.core.models.users import Account, User
 from lnbits.core.services.users import create_user_account
 from lnbits.settings import Settings
@@ -616,8 +616,10 @@ async def test_delete_and_undelete_wallet(http_client: AsyncClient, superuser_to
 
 @pytest.mark.anyio
 async def test_user_activation(
-    http_client: AsyncClient, settings: Settings, superuser_token: str
+    http_client: AsyncClient, invoice: Payment, settings: Settings, superuser_token: str
 ):
+
+    # Register a new user
     username = f"u21.{shortuuid.uuid()[:8]}"
     response = await http_client.post(
         "/api/v1/auth/register",
@@ -636,23 +638,100 @@ async def test_user_activation(
     access_token_payload = AccessTokenPayload(**payload)
     user_id = access_token_payload.usr
 
+    # Login works
     response = await http_client.post(
         "/api/v1/auth", json={"username": username, "password": "secret1234"}
     )
     assert response.status_code == 200, "User logs in OK"
 
-    http_client.cookies.clear()
-    deactivate_resp = await http_client.put(
+    # Deactivate the user
+    respones = await http_client.put(
         f"/users/api/v1/user/{user_id}/activate",
         headers={"Authorization": f"Bearer {superuser_token}"},
     )
 
-    assert deactivate_resp.status_code == 200, "User deactivated."
-    assert deactivate_resp.json().get("message") == "User deactivated."
+    assert respones.status_code == 200, "User deactivated."
+    assert respones.json().get("message") == "User deactivated."
 
+    # Login should now fail
     response = await http_client.post(
         "/api/v1/auth", json={"username": username, "password": "secret1234"}
     )
-    print("### response after deactivation", response.text)
     assert response.status_code == 403
     assert response.json().get("detail") == "Account is not activated."
+
+    response = await http_client.get(
+        "/api/v1/auth",
+        headers={"Authorization": f"Bearer {access_token}"},
+    )
+    assert response.status_code == 401
+    assert response.json().get("detail") == "User not found."
+
+    wallets = await get_wallets(user_id=user_id)
+    assert len(wallets) == 1, "User's wallet still exists."
+    wallet = wallets[0]
+
+    response = await http_client.get(
+        "/api/v1/payments/paginated",
+        params={"limit": 2},
+        headers={"x-Api-Key": wallet.inkey},
+    )
+
+    assert response.status_code == 404
+    assert response.json().get("detail") == "Wallet not found."
+
+    response = await http_client.post(
+        "/api/v1/payments",
+        json={
+            "out": False,
+            "amount": 1000,
+            "memo": "test payment",
+        },
+        headers={"x-Api-Key": wallet.inkey},
+    )
+    assert response.status_code == 404
+    assert response.json().get("detail") == "Wallet not found."
+
+    data = {"out": True, "bolt11": invoice.bolt11}
+    response = await http_client.post(
+        "/api/v1/payments",
+        json=data,
+        headers={"x-Api-Key": wallet.adminkey},
+    )
+
+    assert response.status_code == 404
+    assert response.json().get("detail") == "Wallet not found."
+
+    # Reactivate the user
+    response = await http_client.put(
+        f"/users/api/v1/user/{user_id}/activate",
+        headers={"Authorization": f"Bearer {superuser_token}"},
+    )
+    print("### response", response.text)
+    assert response.status_code == 200
+    assert response.json().get("message") == "User activated."
+
+    # Login should now pass
+    response = await http_client.post(
+        "/api/v1/auth", json={"username": username, "password": "secret1234"}
+    )
+    assert response.status_code == 200, "User logs in OK again."
+
+    response = await http_client.get(
+        "/api/v1/payments/paginated",
+        params={"limit": 2},
+        headers={"x-Api-Key": wallet.inkey},
+    )
+
+    assert response.status_code == 200
+
+    response = await http_client.post(
+        "/api/v1/payments",
+        json={
+            "out": False,
+            "amount": 1000,
+            "memo": "test payment",
+        },
+        headers={"x-Api-Key": wallet.inkey},
+    )
+    assert response.status_code == 201
