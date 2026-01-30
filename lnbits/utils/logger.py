@@ -14,6 +14,13 @@ from lnbits.settings import settings
 
 def log_server_info():
     logger.info("LNbits Info")
+    if settings.first_install:
+        logger.info("This is a fresh install of LNbits.")
+        if settings.first_install_token:
+            logger.info(
+                f"FIRST_INSTALL_TOKEN: {settings.first_install_token}. "
+                "Please provide this token when creating a user on /first_install."
+            )
     logger.info(f"Version: {settings.version}")
     logger.info(f"Baseurl: {settings.lnbits_baseurl}")
     logger.info(f"Host: {settings.host}")
