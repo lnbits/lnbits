@@ -504,8 +504,11 @@ async def first_install(data: UpdateSuperuserPassword) -> JSONResponse:
     if not settings.first_install:
         raise HTTPException(HTTPStatus.FORBIDDEN, "This is not your first install")
     if settings.first_install_token:
-        if not data.token and data.token == settings.first_install_token:
+        if not data.token:
+            raise HTTPException(HTTPStatus.UNAUTHORIZED, "Missing first_install_token.")
+        if settings.first_install_token != data.token:
             raise HTTPException(HTTPStatus.UNAUTHORIZED, "Invalid first_install_token.")
+
     account = await get_account(settings.super_user)
     if not account:
         raise HTTPException(HTTPStatus.INTERNAL_SERVER_ERROR, "Superuser not found.")
