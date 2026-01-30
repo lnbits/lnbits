@@ -55,7 +55,7 @@
                 ></q-input>
                 <q-input
                   filled
-                  v-model="loginData.token"
+                  v-model="loginData.firstInstallToken"
                   :label="$t('first_install_token')"
                 ></q-input>
                 <q-btn

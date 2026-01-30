@@ -8,7 +8,7 @@ window.PageFirstInstall = {
         username: '',
         password: '',
         passwordRepeat: '',
-        token: ''
+        firstInstallToken: ''
       }
     }
   },
@@ -24,17 +24,19 @@ window.PageFirstInstall = {
           username: this.loginData.username,
           password: this.loginData.password,
           password_repeat: this.loginData.passwordRepeat,
-          token: this.loginData.token
+          first_install_token: this.loginData.firstInstallToken
         })
-        .then(() => {
-          window.location.href = '/admin'
+        .then(async () => {
+          const res = await LNbits.api.getAuthUser()
+          this.g.user = LNbits.map.user(res.data)
+          this.g.isPublicPage = false
+          this.$router.push('/admin')
         })
         .catch(this.utils.notifyApiError)
     }
   },
   created() {
     const params = new URLSearchParams(window.location.search)
-    this.loginData.token = params.get('token') || ''
-    document.title = 'First Install - LNbits'
+    this.loginData.firstInstallToken = params.get('token') || ''
   }
 }
