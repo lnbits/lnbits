@@ -1,11 +1,13 @@
 from typing import Any
 from uuid import uuid4
 
+import jwt
 import pytest
 import shortuuid
 from httpx import AsyncClient
 
 from lnbits.core.crud.wallets import get_wallets
+from lnbits.core.models import AccessTokenPayload
 from lnbits.core.models.users import Account, User
 from lnbits.core.services.users import create_user_account
 from lnbits.settings import Settings
@@ -610,3 +612,47 @@ async def test_delete_and_undelete_wallet(http_client: AsyncClient, superuser_to
     undeleted_wallet = next((w for w in wallets if w.id == wallet_id), None)
     assert undeleted_wallet is not None
     assert undeleted_wallet.deleted is False
+
+
+@pytest.mark.anyio
+async def test_user_activation(
+    http_client: AsyncClient, settings: Settings, superuser_token: str
+):
+    username = f"u21.{shortuuid.uuid()[:8]}"
+    response = await http_client.post(
+        "/api/v1/auth/register",
+        json={
+            "username": username,
+            "password": "secret1234",
+            "password_repeat": "secret1234",
+            "email": f"{username}@lnbits.com",
+        },
+    )
+    access_token = response.json().get("access_token")
+    assert response.status_code == 200, "User created."
+    assert response.json().get("access_token") is not None
+
+    payload: dict = jwt.decode(access_token, settings.auth_secret_key, ["HS256"])
+    access_token_payload = AccessTokenPayload(**payload)
+    user_id = access_token_payload.usr
+
+    response = await http_client.post(
+        "/api/v1/auth", json={"username": username, "password": "secret1234"}
+    )
+    assert response.status_code == 200, "User logs in OK"
+
+    http_client.cookies.clear()
+    deactivate_resp = await http_client.put(
+        f"/users/api/v1/user/{user_id}/activate",
+        headers={"Authorization": f"Bearer {superuser_token}"},
+    )
+
+    assert deactivate_resp.status_code == 200, "User deactivated."
+    assert deactivate_resp.json().get("message") == "User deactivated."
+
+    response = await http_client.post(
+        "/api/v1/auth", json={"username": username, "password": "secret1234"}
+    )
+    print("### response after deactivation", response.text)
+    assert response.status_code == 403
+    assert response.json().get("detail") == "Account is not activated."
