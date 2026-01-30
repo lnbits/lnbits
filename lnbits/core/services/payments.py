@@ -25,6 +25,7 @@ from lnbits.utils.exchange_rates import fiat_amount_as_satoshis, satoshis_amount
 from lnbits.wallets import fake_wallet, get_funding_source
 from lnbits.wallets.base import (
     InvoiceResponse,
+    PaymentFailedStatus,
     PaymentPendingStatus,
     PaymentResponse,
     PaymentStatus,
@@ -47,6 +48,7 @@ from ..models import (
     PaymentState,
     Wallet,
 )
+from .fiat_providers import check_fiat_status
 from .notifications import send_payment_notification_in_background
 
 payment_lock = asyncio.Lock()
@@ -364,7 +366,7 @@ async def update_pending_payments(wallet_id: str):
 async def update_pending_payment(
     payment: Payment, conn: Connection | None = None
 ) -> Payment:
-    status = await payment.check_status()
+    status = await check_payment_status(payment)
     if status.failed:
         payment.status = PaymentState.FAILED
         await update_payment(payment, conn=conn)
@@ -618,7 +620,29 @@ async def check_transaction_status(
     if payment.status == PaymentState.SUCCESS.value:
         return PaymentSuccessStatus(fee_msat=payment.fee)
 
-    return await payment.check_status()
+    return await check_payment_status(payment)
+
+
+async def check_payment_status(
+    payment: Payment, skip_internal_payment_notifications: bool | None = False
+) -> PaymentStatus:
+    if payment.is_internal:
+        if payment.success:
+            return PaymentSuccessStatus()
+        if payment.failed:
+            return PaymentFailedStatus()
+        if payment.is_in and payment.fiat_provider:
+            fiat_status = await check_fiat_status(
+                payment, skip_internal_payment_notifications
+            )
+            return PaymentStatus(paid=fiat_status.paid)
+        return PaymentPendingStatus()
+    funding_source = get_funding_source()
+    if payment.is_out:
+        status = await funding_source.get_payment_status(payment.checking_id)
+    else:
+        status = await funding_source.get_invoice_status(payment.checking_id)
+    return status
 
 
 async def get_payments_daily_stats(
@@ -869,7 +893,7 @@ async def _verify_external_payment(
         raise PaymentError("Payment already paid.", status="success")
 
     # payment failed
-    status = await payment.check_status()
+    status = await check_payment_status(payment)
     if status.failed:
         raise PaymentError(
             "Payment is failed node, retrying is not possible.", status="failed"
