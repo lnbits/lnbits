@@ -157,8 +157,7 @@ window.app.mixin({
     return {
       api: window._lnbitsApi,
       utils: window._lnbitsUtils,
-      g: window.g,
-      ...WINDOW_SETTINGS
+      g: window.g
     }
   },
   // backwards compatibility for extensions, should not be used in the future

@@ -842,8 +842,8 @@ window.PageExtensions = {
   },
   async created() {
     this.extensions = await this.fetchAllExtensions()
-    this.extbuilderEnabled = this.g.user.admin || this.LNBITS_EXT_BUILDER
-    this.reviewsUrl = this.LNBITS_EXTENSIONS_REVIEWS_URL
+    this.extbuilderEnabled = this.g.user.admin || this.g.settings.extBuilder
+    this.reviewsUrl = this.g.settings.extensionsReviewsUrl
 
     if (this.g.user.extensions.length === 0) {
       this.tab = 'all'

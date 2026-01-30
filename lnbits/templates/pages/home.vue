@@ -2,14 +2,14 @@
   <div class="home row justify-center items-center">
     <div
       class="full-width content-center"
-      :style="`max-width: ${hasCustomImage ? '850' : '600'}px; min-height: 55vh;`"
+      :style="`max-width: ${g.settings.customImage ? '850' : '600'}px; min-height: 55vh;`"
     >
-      <div v-if="showHomepageElements" class="row q-mb-md">
+      <div v-if="g.settings.showHomepageElements" class="row q-mb-md">
         <div class="col-12">
           <div>
-            <h5 v-text="siteTitle" class="q-my-none"></h5>
+            <h5 v-text="g.settings.siteTitle" class="q-my-none"></h5>
             <template v-if="$q.screen.gt.sm">
-              <h6 class="q-my-sm" v-text="siteTagline"></h6>
+              <h6 class="q-my-sm" v-text="g.settings.siteTagline"></h6>
               <p class="q-my-sm" v-html="formatDescription"></p>
             </template>
           </div>
@@ -31,7 +31,10 @@
           <div class="row">
             <div
               class="col-12"
-              :class="{'col-sm-7': hasCustomImage, 'col-lg-6': hasCustomImage}"
+              :class="{
+                'col-sm-7': g.settings.customImage,
+                'col-lg-6': g.settings.customImage
+              }"
             >
               <div v-if="showClaimLnurl">
                 <q-card-section>
@@ -54,8 +57,8 @@
               <div v-else>
                 <username-password
                   v-if="authMethod != 'user-id-only'"
-                  :allowed_new_users="allowRegister"
-                  :auth-methods="LNBITS_AUTH_METHODS"
+                  :allowed_new_users="g.settings.allowRegister"
+                  :auth-methods="g.settings.authMethods"
                   :auth-action="authAction"
                   v-model:user-name="username"
                   v-model:password_1="password"
@@ -70,7 +73,7 @@
                     v-if="authAction !== 'reset'"
                   >
                     <p
-                      v-if="authAction === 'login' && allowRegister"
+                      v-if="authAction === 'login' && g.settings.allowRegister"
                       class="q-mb-none"
                     >
                       Not registered?
@@ -82,7 +85,9 @@
                       >
                     </p>
                     <p
-                      v-else-if="authAction === 'login' && !allowRegister"
+                      v-else-if="
+                        authAction === 'login' && !g.settings.allowRegister
+                      "
                       class="q-mb-none"
                     >
                       <span v-text="$t('new_user_not_allowed')"></span>
@@ -101,7 +106,7 @@
                 </username-password>
                 <user-id-only
                   v-if="authMethod == 'user-id-only'"
-                  :allowed_new_users="allowRegister"
+                  :allowed_new_users="g.settings.allowRegister"
                   v-model:usr="usr"
                   v-model:wallet="walletName"
                   :auth-action="authAction"
@@ -114,16 +119,20 @@
                 </user-id-only>
               </div>
             </div>
-            <div v-if="hasCustomImage" class="col-sm-5 col-lg-6 gt-xs">
+            <div v-if="g.settings.customImage" class="col-sm-5 col-lg-6 gt-xs">
               <div class="full-height flex flex-center q-pa-lg">
-                <q-img :src="hasCustomImage" :ratio="1" width="250px"></q-img>
+                <q-img
+                  :src="g.settings.customImage"
+                  :ratio="1"
+                  width="250px"
+                ></q-img>
               </div>
             </div>
           </div>
         </q-card>
       </div>
 
-      <div v-if="showHomepageElements">
+      <div v-if="g.settings.showHomepageElements">
         <div class="flex flex-center q-gutter-md q-py-md">
           <q-btn
             outline
@@ -148,10 +157,14 @@
     </div>
 
     <div
-      v-if="adsEnabled"
+      v-if="g.settings.showAdSpace"
       class="justify-center col-10 q-my-lg row q-col-gutter-sm"
     >
-      <a :href="ad[0]" v-for="ad in g.ads" class="lnbits-ad col-12 col-md-4">
+      <a
+        :href="ad[0]"
+        v-for="ad in g.settings.adSpace"
+        class="lnbits-ad col-12 col-md-4"
+      >
         <q-img v-if="$q.dark.isActive" :src="ad[1]"></q-img>
         <q-img v-else :src="ad[2]"></q-img>
       </a>

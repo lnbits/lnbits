@@ -172,15 +172,15 @@
                 ></q-tooltip>
               </q-btn>
               <div
-                v-if="WALLET_FEATURED_BUTTON_URL"
+                v-if="g.settings.walletFeaturedButtonUrl"
                 class="float-right q-mt-sm q-ml-sm"
               >
                 <q-btn
                   color="primary"
-                  :label="WALLET_FEATURED_BUTTON_LABEL"
-                  :icon="WALLET_FEATURED_BUTTON_ICON || undefined"
+                  :label="g.settings.walletFeaturedButtonLabel"
+                  :icon="g.settings.walletFeaturedButtonIcon || undefined"
                   size="sm"
-                  :to="WALLET_FEATURED_BUTTON_URL"
+                  :to="g.settings.walletFeaturedButtonUrl"
                 >
                 </q-btn>
               </div>
@@ -212,10 +212,10 @@
         @send-lnurl="handleSendLnurl"
         :chart-config="chartConfig"
       ></lnbits-wallet-extra>
-      <q-card class="lnbits-wallet-ads" v-if="AD_SPACE_ENABLED">
+      <q-card class="lnbits-wallet-ads" v-if="g.settings.showAdSpace">
         <q-card-section class="text-subtitle1">
-          <span v-text="AD_SPACE_TITLE"></span>
-          <a :href="ad[0]" class="lnbits-ad" v-for="ad in g.ads">
+          <span v-text="g.settings.adSpaceTitle"></span>
+          <a :href="ad[0]" class="lnbits-ad" v-for="ad in g.settings.adSpace">
             <q-img class="q-mb-xs" v-if="$q.dark.isActive" :src="ad[1]"></q-img>
             <q-img class="q-mb-xs" v-else :src="ad[2]"></q-img>
           </a>
@@ -289,7 +289,7 @@
           ></q-input>
         </div>
         <q-input
-          v-if="has_holdinvoice"
+          v-if="g.settings.hasHoldinvoice"
           filled
           dense
           v-model="receive.data.payment_hash"

@@ -35,23 +35,6 @@ window.app.component('lnbits-extension-rating', {
 
 window.app.component('lnbits-manage', {
   template: '#lnbits-manage',
-  computed: {
-    showAdmin() {
-      return this.LNBITS_ADMIN_UI
-    },
-    showUsers() {
-      return this.LNBITS_ADMIN_UI
-    },
-    showNode() {
-      return this.LNBITS_NODE_UI
-    },
-    showAudit() {
-      return this.LNBITS_AUDIT_ENABLED
-    },
-    showExtensions() {
-      return this.LNBITS_EXTENSIONS_DEACTIVATE_ALL === false
-    }
-  },
   methods: {
     isActive(path) {
       return window.location.pathname === path
@@ -462,9 +445,7 @@ window.app.component('username-password', {
       username: this.userName,
       password: this.password_1,
       passwordRepeat: this.password_2,
-      reset_key: this.resetKey,
-      keycloakOrg: LNBITS_AUTH_KEYCLOAK_ORG || 'Keycloak',
-      keycloakIcon: LNBITS_AUTH_KEYCLOAK_ICON
+      reset_key: this.resetKey
     }
   },
   methods: {

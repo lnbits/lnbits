@@ -1,7 +1,7 @@
 window._lnbitsUtils = {
   url_for(url) {
     const _url = new URL(url, window.location.origin)
-    _url.searchParams.set('v', WINDOW_SETTINGS.CACHE_KEY)
+    _url.searchParams.set('v', window.g.settings.cacheKey)
     return _url.toString()
   },
   loadScript(src) {

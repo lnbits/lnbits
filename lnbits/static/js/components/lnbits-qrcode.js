@@ -34,7 +34,7 @@ window.app.component('lnbits-qrcode', {
     },
     logo: {
       type: String,
-      default: LNBITS_QR_LOGO
+      default: window.g.settings.qrLogo || null
     }
   },
   data() {
