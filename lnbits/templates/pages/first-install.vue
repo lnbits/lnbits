@@ -53,6 +53,18 @@
                       @click="loginData.isPwdRepeat = !loginData.isPwdRepeat"
                     /> </template
                 ></q-input>
+                <q-input
+                  filled
+                  v-model.trim="loginData.firstInstallToken"
+                  :type="loginData.isPwd ? 'password' : 'text'"
+                  :label="$t('first_install_token')"
+                  ><template v-slot:append>
+                    <q-icon
+                      :name="loginData.isPwd ? 'visibility_off' : 'visibility'"
+                      class="cursor-pointer"
+                      @click="loginData.isPwd = !loginData.isPwd"
+                    /> </template
+                ></q-input>
                 <q-btn
                   @click="setPassword()"
                   unelevated
