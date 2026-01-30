@@ -238,20 +238,11 @@ def add_ip_block_middleware(app: FastAPI):
 def add_first_install_middleware(app: FastAPI):
     @app.middleware("http")
     async def first_install_middleware(request: Request, call_next):
-        if settings.first_install:
-            if settings.lnbits_setup_token:
-                if request.url.path not in (
-                    "/api/v1/auth/first_install",
-                    "/first_install",
-                ) and not request.url.path.startswith("/static"):
-                    return JSONResponse(
-                        status_code=HTTPStatus.FORBIDDEN,
-                        content={"detail": "Setup token required."},
-                    )
-            elif (
-                request.url.path != "/api/v1/auth/first_install"
-                and request.url.path != "/first_install"
-                and not request.url.path.startswith("/static")
-            ):
-                return RedirectResponse("/first_install")
+        if (
+            settings.first_install
+            and request.url.path != "/api/v1/auth/first_install"
+            and request.url.path != "/first_install"
+            and not request.url.path.startswith("/static")
+        ):
+            return RedirectResponse("/first_install")
         return await call_next(request)

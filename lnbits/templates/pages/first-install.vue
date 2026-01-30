@@ -53,6 +53,11 @@
                       @click="loginData.isPwdRepeat = !loginData.isPwdRepeat"
                     /> </template
                 ></q-input>
+                <q-input
+                  filled
+                  v-model="loginData.token"
+                  :label="$t('first_install_token')"
+                ></q-input>
                 <q-btn
                   @click="setPassword()"
                   unelevated

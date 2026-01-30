@@ -358,6 +358,7 @@ class UpdateSuperuserPassword(BaseModel):
     username: str = Query(default=..., min_length=2, max_length=20)
     password: str = Query(default=..., min_length=8, max_length=50)
     password_repeat: str = Query(default=..., min_length=8, max_length=50)
+    token: str | None = Query(None)
 
 
 class LoginUsr(BaseModel):

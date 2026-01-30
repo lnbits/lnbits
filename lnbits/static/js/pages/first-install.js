@@ -18,25 +18,18 @@ window.PageFirstInstall = {
     }
   },
   methods: {
-    async setPassword() {
-      try {
-        const tokenQuery = this.setupToken
-          ? `?token=${encodeURIComponent(this.setupToken)}`
-          : ''
-        await LNbits.api.request(
-          'PUT',
-          `/api/v1/auth/first_install${tokenQuery}`,
-          null,
-          {
-            username: this.loginData.username,
-            password: this.loginData.password,
-            password_repeat: this.loginData.passwordRepeat
-          }
-        )
-        window.location.href = '/admin'
-      } catch (e) {
-        LNbits.utils.notifyApiError(e)
-      }
+    setPassword() {
+      LNbits.api
+        .request('PUT', `/api/v1/auth/first_install`, null, {
+          username: this.loginData.username,
+          password: this.loginData.password,
+          password_repeat: this.loginData.passwordRepeat,
+          token: this.setupToken
+        })
+        .then(() => {
+          window.location.href = '/admin'
+        })
+        .catch(this.utils.notifyApiError)
     }
   },
   created() {
