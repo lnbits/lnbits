@@ -131,9 +131,15 @@ class Payment(BaseModel):
         )
 
     # DEPRECATED: in v1.5.0, use service check_payment_status instead
-    async def check_status(
-        self, skip_internal_payment_notifications: bool | None = False
-    ) -> PaymentStatus:
+async def check_status(
+self, skip_internal_payment_notifications: bool | None = False
+) -> PaymentStatus:
+       logger.warning("This method will be deprecated, please use...")
+       from lnbits.core.services.payments import check_payment_status
+
+       return await check_payment_status(
+        payment, skip_internal_payment_notifications=True
+    )
         if self.is_internal:
             if self.success:
                 return PaymentSuccessStatus()
