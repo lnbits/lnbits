@@ -1,27 +1,15 @@
 import asyncio
 
-from loguru import logger
-
-from lnbits.core.crud import (
-    create_audit_entry,
-    get_wallet,
-)
-from lnbits.core.crud.audit import delete_expired_audit_entries
+from lnbits.core.crud import create_audit_entry
 from lnbits.core.crud.payments import get_payments_status_count
 from lnbits.core.crud.users import get_accounts
 from lnbits.core.crud.wallets import get_wallets_count
 from lnbits.core.models.audit import AuditEntry
 from lnbits.core.models.extensions import InstallableExtension
 from lnbits.core.models.notifications import NotificationType
-from lnbits.core.services.funding_source import (
-    check_balance_delta_changed,
-    check_server_balance_against_node,
-    get_balance_delta,
-)
+from lnbits.core.services.funding_source import get_balance_delta
 from lnbits.core.services.notifications import (
     enqueue_admin_notification,
-    process_next_notification,
-    send_payment_notification,
 )
 from lnbits.db import Filters
 from lnbits.settings import settings
@@ -30,48 +18,23 @@ from lnbits.utils.exchange_rates import btc_rates
 audit_queue: asyncio.Queue[AuditEntry] = asyncio.Queue()
 
 
-async def run_by_the_minute_tasks() -> None:
-    minute_counter = 0
-    while settings.lnbits_running:
-        status_minutes = settings.lnbits_notification_server_status_hours * 60
-
-        if settings.notification_balance_delta_threshold_sats > 0:
-            try:
-                # runs by default every minute, the delta should not change that often
-                await check_balance_delta_changed()
-            except Exception as ex:
-                logger.error(ex)
-
-        if minute_counter % settings.lnbits_watchdog_interval_minutes == 0:
-            try:
-                await check_server_balance_against_node()
-            except Exception as ex:
-                logger.error(ex)
-
-        if minute_counter % status_minutes == 0:
-            try:
-                await _notify_server_status()
-            except Exception as ex:
-                logger.error(ex)
-
-        if minute_counter % 60 == 0:
-            try:
-                # initialize the list of all extensions
-                await InstallableExtension.get_installable_extensions(
-                    post_refresh_cache=True
-                )
-            except Exception as ex:
-                logger.error(ex)
-
-        minute_counter += 1
-        await asyncio.sleep(60)
+async def process_next_audit_entry() -> None:
+    """
+    Waits for audit entries to be pushed to the queue.
+    Then it inserts the entries into the DB.
+    """
+    data = await audit_queue.get()
+    await create_audit_entry(data)
 
 
-async def _notify_server_status() -> None:
+async def refresh_extension_cache() -> None:
+    await InstallableExtension.get_installable_extensions(post_refresh_cache=True)
+
+
+async def notify_server_status() -> None:
     accounts = await get_accounts(filters=Filters(limit=0))
     wallets_count = await get_wallets_count()
     payments = await get_payments_status_count()
-
     status = await get_balance_delta()
     values = {
         "up_time": settings.lnbits_server_up_time,
@@ -88,76 +51,15 @@ async def _notify_server_status() -> None:
     enqueue_admin_notification(NotificationType.server_status, values)
 
 
-async def wait_for_paid_invoices(invoice_paid_queue: asyncio.Queue) -> None:
-    """
-    This worker dispatches events to all extensions and dispatches webhooks.
-    """
-    while settings.lnbits_running:
-        payment = await invoice_paid_queue.get()
-        logger.trace("received invoice paid event")
-        # payment notification
-        wallet = await get_wallet(payment.wallet_id)
-        if wallet:
-            await send_payment_notification(wallet, payment)
-
-
-async def wait_for_audit_data() -> None:
-    """
-    Waits for audit entries to be pushed to the queue.
-    Then it inserts the entries into the DB.
-    """
-    while settings.lnbits_running:
-        data = await audit_queue.get()
-        try:
-            await create_audit_entry(data)
-        except Exception as ex:
-            logger.warning(ex)
-            await asyncio.sleep(3)
-
-
-async def wait_notification_messages() -> None:
-
-    while settings.lnbits_running:
-        try:
-            await process_next_notification()
-        except Exception as ex:
-            logger.warning("Payment notification error", ex)
-            await asyncio.sleep(3)
-
-
-async def purge_audit_data() -> None:
-    """
-    Remove audit entries which have passed their retention period.
-    """
-    while settings.lnbits_running:
-        try:
-            await delete_expired_audit_entries()
-        except Exception as ex:
-            logger.warning(ex)
-
-        # clean every hour
-        await asyncio.sleep(60 * 60)
-
-
 async def collect_exchange_rates_data() -> None:
     """
     Collect exchange rates data. Used for monitoring only.
     """
-    while settings.lnbits_running:
-        currency = settings.lnbits_default_accounting_currency or "USD"
-        max_history_size = settings.lnbits_exchange_history_size
-        sleep_time = settings.lnbits_exchange_history_refresh_interval_seconds
-
-        if sleep_time > 0:
-            try:
-                rates = await btc_rates(currency)
-                if rates:
-                    rates_values = [r[1] for r in rates]
-                    lnbits_rate = sum(rates_values) / len(rates_values)
-                    rates.append(("LNbits", lnbits_rate))
-                settings.append_exchange_rate_datapoint(dict(rates), max_history_size)
-            except Exception as ex:
-                logger.warning(ex)
-        else:
-            sleep_time = 60
-        await asyncio.sleep(sleep_time)
+    currency = settings.lnbits_default_accounting_currency or "USD"
+    max_history_size = settings.lnbits_exchange_history_size
+    rates = await btc_rates(currency)
+    if rates:
+        rates_values = [r[1] for r in rates]
+        lnbits_rate = sum(rates_values) / len(rates_values)
+        rates.append(("LNbits", lnbits_rate))
+    settings.append_exchange_rate_datapoint(dict(rates), max_history_size)
