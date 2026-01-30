@@ -127,7 +127,7 @@ window.app.component('lnbits-theme', {
     if (this.g.mobileSimple === true) {
       document.body.classList.add('mobile-simple')
     }
-    Object.entries(this.g.user.uiCustomization || {}).forEach(
+    Object.entries(this.g.user?.uiCustomization || {}).forEach(
       ([key, value]) => {
         if (key in this.g) {
           this.g[key] = value
