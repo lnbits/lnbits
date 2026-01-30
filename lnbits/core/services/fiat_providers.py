@@ -12,6 +12,12 @@ from lnbits.core.models import CreatePayment, Payment, PaymentState
 from lnbits.core.models.misc import SimpleStatus
 from lnbits.db import Connection
 from lnbits.fiat import get_fiat_provider
+from lnbits.fiat.base import (
+    FiatPaymentFailedStatus,
+    FiatPaymentPendingStatus,
+    FiatPaymentStatus,
+    FiatPaymentSuccessStatus,
+)
 from lnbits.settings import settings
 
 
@@ -27,6 +33,40 @@ async def handle_fiat_payment_confirmation(
         await _debit_fiat_service_faucet_wallet(payment, conn=conn)
     except Exception as e:
         logger.warning(e)
+
+
+async def check_fiat_status(
+    payment: Payment, skip_internal_payment_notifications: bool | None = False
+) -> FiatPaymentStatus:
+    if not payment.is_internal:
+        return FiatPaymentPendingStatus()
+    if payment.success:
+        return FiatPaymentSuccessStatus()
+    if payment.failed:
+        return FiatPaymentFailedStatus()
+
+    if not payment.fiat_provider:
+        return FiatPaymentPendingStatus()
+
+    checking_id = payment.extra.get("fiat_checking_id")
+    if not checking_id:
+        return FiatPaymentPendingStatus()
+
+    fiat_provider = await get_fiat_provider(payment.fiat_provider)
+    if not fiat_provider:
+        return FiatPaymentPendingStatus()
+    fiat_status = await fiat_provider.get_invoice_status(checking_id)
+
+    if skip_internal_payment_notifications:
+        return fiat_status
+
+    if fiat_status.success:
+        # notify receivers asynchronously
+        from lnbits.tasks import internal_invoice_queue
+
+        await internal_invoice_queue.put(payment.checking_id)
+
+    return fiat_status
 
 
 def check_stripe_signature(

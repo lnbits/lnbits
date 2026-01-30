@@ -12,7 +12,7 @@ from lnbits.core.crud.wallets import create_wallet
 from lnbits.core.models.payments import CreateInvoice, PaymentState
 from lnbits.core.models.users import User
 from lnbits.core.models.wallets import Wallet
-from lnbits.core.services import payments
+from lnbits.core.services import check_payment_status, payments
 from lnbits.core.services.fiat_providers import (
     check_stripe_signature,
     handle_fiat_payment_confirmation,
@@ -221,7 +221,7 @@ async def test_create_wallet_fiat_invoice_success(
     assert payment.checking_id.startswith("fiat_stripe_")
     assert payment.fee <= 0
 
-    status = await payment.check_status()
+    status = await check_payment_status(payment)
     assert status.success is False
     assert status.pending is True
 
@@ -230,7 +230,7 @@ async def test_create_wallet_fiat_invoice_success(
         "lnbits.fiat.StripeWallet.get_invoice_status",
         AsyncMock(return_value=fiat_mock_status),
     )
-    status = await payment.check_status()
+    status = await check_payment_status(payment)
     assert status.paid is True
     assert status.success is True
 

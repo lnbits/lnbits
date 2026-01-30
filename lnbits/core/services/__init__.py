@@ -1,3 +1,4 @@
+from .fiat_providers import check_fiat_status
 from .funding_source import (
     get_balance_delta,
     switch_to_voidwallet,
@@ -7,6 +8,7 @@ from .notifications import enqueue_admin_notification, send_payment_notification
 from .payments import (
     calculate_fiat_amounts,
     cancel_hold_invoice,
+    check_payment_status,
     check_transaction_status,
     check_wallet_limits,
     create_fiat_invoice,
@@ -40,6 +42,8 @@ __all__ = [
     "calculate_fiat_amounts",
     "cancel_hold_invoice",
     "check_admin_settings",
+    "check_fiat_status",
+    "check_payment_status",
     "check_transaction_status",
     "check_wallet_limits",
     "check_webpush_settings",
