@@ -2,13 +2,13 @@ window.PageFirstInstall = {
   template: '#page-first-install',
   data() {
     return {
-      setupToken: '',
       loginData: {
         isPwd: true,
         isPwdRepeat: true,
         username: '',
         password: '',
-        passwordRepeat: ''
+        passwordRepeat: '',
+        token: ''
       }
     }
   },
@@ -24,7 +24,7 @@ window.PageFirstInstall = {
           username: this.loginData.username,
           password: this.loginData.password,
           password_repeat: this.loginData.passwordRepeat,
-          token: this.setupToken
+          token: this.loginData.token
         })
         .then(() => {
           window.location.href = '/admin'
@@ -34,7 +34,7 @@ window.PageFirstInstall = {
   },
   created() {
     const params = new URLSearchParams(window.location.search)
-    this.setupToken = params.get('token') || ''
+    this.loginData.token = params.get('token') || ''
     document.title = 'First Install - LNbits'
   }
 }
