@@ -310,7 +310,13 @@
             <div class="col-12 col-md-6">
               <q-select
                 filled
-                :options="[$t('second'), $t('minute'), $t('hour')]"
+                :options="[
+                  { label: $t('second'), value: 'second' },
+                  { label: $t('minute'), value: 'minute' },
+                  { label: $t('hour'), value: 'hour' }
+                ]"
+                emit-value
+                map-options
                 v-model="formData.lnbits_rate_limit_unit"
                 :label="$t('time_unit')"
               ></q-select>
