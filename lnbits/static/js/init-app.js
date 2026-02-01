@@ -26,8 +26,14 @@ const DynamicComponent = {
             path: r.path,
             name: r.name,
             component: async () => {
-              await LNbits.utils.loadTemplate(r.template)
-              await LNbits.utils.loadScript(r.component)
+              const templatePath = r.template.startsWith('/')
+                ? r.template
+                : `/${name}/${r.template}`
+              const componentPath = r.component.startsWith('/')
+                ? r.component
+                : `/${name}/${r.component}`
+              await LNbits.utils.loadTemplate(templatePath)
+              await LNbits.utils.loadScript(componentPath)
               return window[r.name]
             }
           })
