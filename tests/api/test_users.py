@@ -637,6 +637,7 @@ async def test_user_activation(
     payload: dict = jwt.decode(access_token, settings.auth_secret_key, ["HS256"])
     access_token_payload = AccessTokenPayload(**payload)
     user_id = access_token_payload.usr
+    assert user_id is not None
 
     # Login works
     response = await http_client.post(
