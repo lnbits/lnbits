@@ -87,8 +87,6 @@ async def login(data: LoginUsernamePassword) -> JSONResponse:
     if not account or not account.verify_password(data.password):
         raise HTTPException(HTTPStatus.UNAUTHORIZED, "Invalid credentials.")
 
-    if not account.activated:
-        raise HTTPException(HTTPStatus.FORBIDDEN, "Account is not activated.")
     return _auth_success_response(account.username, account.id, account.email)
 
 
