@@ -38,24 +38,6 @@ async def update_account(account: Account, conn: Connection | None = None) -> Ac
     return account
 
 
-async def update_account_activation(
-    user_id: str, activated: bool, conn: Connection | None = None
-) -> None:
-    await (conn or db).execute(
-        f"""
-        UPDATE accounts
-        SET activated = :activated, updated_at = {db.timestamp_placeholder('now')}
-        WHERE id = :user_id
-        """,  # noqa: S608
-        {
-            "activated": activated,
-            "now": int(time()),
-            "user_id": user_id,
-        },
-    )
-    await clear_user_id_cache(user_id)
-
-
 async def delete_account(user_id: str, conn: Connection | None = None) -> None:
     await (conn or db).execute(
         "DELETE from accounts WHERE id = :user",
