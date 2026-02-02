@@ -776,12 +776,7 @@ async def _pay_internal_invoice(
     await update_payment(internal_payment, conn=conn)
     logger.success(f"internal payment successful {internal_payment.checking_id}")
 
-    # fetch balance again
-    _wallet = await get_wallet(wallet.id, conn=conn)
-    if not _wallet:
-        raise PaymentError(f"Could not fetch wallet '{wallet.id}'.", status="failed")
-
-    send_payment_notification_in_background(_wallet, payment)
+    await _send_payment_notification_in_background(wallet.id, payment, conn=conn)
 
     # notify receiver asynchronously
     from lnbits.tasks import internal_invoice_queue
@@ -863,7 +858,7 @@ async def _pay_external_invoice(
                 status="failed",
             )
 
-        send_payment_notification_in_background(_wallet, payment)
+        await _send_payment_notification_in_background(wallet.id, payment, conn=conn)
         logger.success(f"payment successful {payment_response.checking_id}")
 
     payment.checking_id = payment_response.checking_id
@@ -1071,3 +1066,13 @@ async def cancel_hold_invoice(payment: Payment) -> InvoiceResponse:
     await update_payment(payment)
 
     return response
+
+
+async def _send_payment_notification_in_background(
+    wallet_id: str, payment: Payment, conn: Connection | None = None
+):
+    # fetch balance again
+    wallet = await get_wallet(wallet_id, conn=conn)
+    if not wallet:
+        raise PaymentError(f"Could not fetch wallet '{wallet_id}'.", status="failed")
+    send_payment_notification_in_background(wallet, payment)
