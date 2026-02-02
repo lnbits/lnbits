@@ -720,6 +720,11 @@ window.localisation.en = {
   one_time_activation_code_label: 'Add activation code',
   one_time_activation_code_hint:
     'List of one-time activation codes. Each code can be used only once, then will be reomved from the list.',
+  confirmation_code: 'Confirmation Code',
+  confirmation_code_hint: 'The confirmation code that you have received.',
+  email: 'Email',
+  email_confirmation_hint: 'Email address to send the confirmation code to.',
+
   new_user_not_allowed: 'Registration is disabled.',
   start_user_impersonation: 'Impersonate this user',
   stop_user_impersonation: 'Stop User Impersonation',
