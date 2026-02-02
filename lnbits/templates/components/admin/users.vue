@@ -116,7 +116,11 @@
               <div class="row items-center">
                 <q-toggle
                   size="md"
-                  :label="$t('enabled')"
+                  :label="
+                    formData.lnbits_user_activation_by_invitation_code
+                      ? $t('enabled')
+                      : $t('disabled')
+                  "
                   v-model="formData.lnbits_user_activation_by_invitation_code"
                   color="green"
                   unchecked-icon="clear"
@@ -228,7 +232,12 @@
               <div class="row items-center">
                 <q-toggle
                   size="md"
-                  :label="$t('enabled')"
+                  disable
+                  :label="
+                    formData.lnbits_user_activation_by_payment
+                      ? $t('enabled')
+                      : $t('disabled')
+                  "
                   v-model="formData.lnbits_user_activation_by_payment"
                   color="green"
                   unchecked-icon="clear"
@@ -237,7 +246,22 @@
             </q-item-section>
           </template>
 
-          <q-card class="q-pb-xl"> qqq </q-card>
+          <q-card class="q-pb-xl">
+            <q-card-section>
+              <div
+                class="q-my-md q-pa-sm text-body2 text-grey-4 bg-grey-9 rounded-borders"
+              >
+                <q-icon
+                  name="info"
+                  color="orange-4"
+                  size="18px"
+                  class="q-mr-xs"
+                ></q-icon>
+                Users will need to make a payment during registration to
+                activate their account.
+              </div>
+            </q-card-section>
+          </q-card>
         </q-expansion-item>
         <q-separator></q-separator>
         <q-expansion-item header-class="text-primary text-bold">
@@ -257,7 +281,12 @@
               <div class="row items-center">
                 <q-toggle
                   size="md"
-                  :label="$t('enabled')"
+                  disable
+                  :label="
+                    formData.lnbits_user_activation_by_nostr
+                      ? $t('enabled')
+                      : $t('disabled')
+                  "
                   v-model="formData.lnbits_user_activation_by_nostr"
                   color="green"
                   unchecked-icon="clear"
@@ -266,7 +295,21 @@
             </q-item-section>
           </template>
 
-          <q-card class="q-pb-xl"> wwww </q-card>
+          <q-card class="q-pb-xl">
+            <q-card-section>
+              <div
+                class="q-my-md q-pa-sm text-body2 text-grey-4 bg-grey-9 rounded-borders"
+              >
+                <q-icon
+                  name="info"
+                  color="orange-4"
+                  size="18px"
+                  class="q-mr-xs"
+                ></q-icon>
+                Users will receive a confirmation code via Nostr.
+              </div>
+            </q-card-section>
+          </q-card>
         </q-expansion-item>
         <q-separator></q-separator>
         <q-expansion-item header-class="text-primary text-bold">
@@ -282,8 +325,13 @@
             <q-item-section side>
               <div class="row items-center">
                 <q-toggle
+                  disable
                   size="md"
-                  :label="$t('enabled')"
+                  :label="
+                    formData.lnbits_user_activation_by_email
+                      ? $t('enabled')
+                      : $t('disabled')
+                  "
                   v-model="formData.lnbits_user_activation_by_email"
                   color="green"
                   unchecked-icon="clear"
@@ -292,7 +340,21 @@
             </q-item-section>
           </template>
 
-          <q-card class="q-pb-xl"> xxxx </q-card>
+          <q-card class="q-pb-xl">
+            <q-card-section>
+              <div
+                class="q-my-md q-pa-sm text-body2 text-grey-4 bg-grey-9 rounded-borders"
+              >
+                <q-icon
+                  name="info"
+                  color="orange-4"
+                  size="18px"
+                  class="q-mr-xs"
+                ></q-icon>
+                Users will receive a confirmation email.
+              </div>
+            </q-card-section>
+          </q-card>
         </q-expansion-item>
       </q-list>
     </div>
