@@ -125,7 +125,24 @@
             </q-item-section>
           </template>
 
-          <q-card class="q-pb-xl"> yyy </q-card>
+          <q-card class="q-pb-xl">
+            <q-card-section>
+              <div
+                class="q-my-md q-pa-sm text-body2 text-grey-4 bg-grey-9 rounded-borders"
+              >
+                <q-icon
+                  name="info"
+                  color="orange-4"
+                  size="18px"
+                  class="q-mr-xs"
+                ></q-icon>
+                Users will need to provide a valid invitation code during
+                registration to activate their account.
+              </div>
+            </q-card-section>
+            <q-card-section>
+            </q-card-section>
+          </q-card>
         </q-expansion-item>
         <q-separator></q-separator>
 
