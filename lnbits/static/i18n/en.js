@@ -708,6 +708,9 @@ window.localisation.en = {
   allowed_users_label: 'User ID',
   allow_creation_user: 'Allow creation of new users',
   allow_creation_user_desc: 'Allow creation of new users on the index page',
+  require_user_activation: 'Require user activation',
+  require_user_activation_desc:
+    'New users will be activated only after they pass one of the confirmation methods. Admins can activate users manually from the admin panel.',
   new_user_not_allowed: 'Registration is disabled.',
   start_user_impersonation: 'Impersonate this user',
   stop_user_impersonation: 'Stop User Impersonation',
