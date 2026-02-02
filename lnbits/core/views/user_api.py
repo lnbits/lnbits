@@ -20,7 +20,7 @@ from lnbits.core.crud import (
     update_admin_settings,
     update_wallet,
 )
-from lnbits.core.crud.users import get_account
+from lnbits.core.crud.users import get_account, update_account
 from lnbits.core.crud.wallets import delete_wallet_by_id
 from lnbits.core.models import (
     AccountFilters,
@@ -242,14 +242,14 @@ async def api_users_toggle_activated(
     if settings.is_admin_user(user_id):
         settings.lnbits_admin_users.remove(user_id)
 
-    user_account = await get_account(user_id)
+    user_account = await get_account(user_id, activated=None)
     if not user_account:
         raise HTTPException(
             status_code=HTTPStatus.NOT_FOUND,
             detail="User not found.",
         )
     user_account.activated = not user_account.activated
-    await update_user_account(user_account)
+    await update_account(user_account)
 
     return SimpleStatus(
         success=True,

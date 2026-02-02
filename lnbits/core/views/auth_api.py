@@ -83,7 +83,7 @@ async def login(data: LoginUsernamePassword) -> JSONResponse:
         raise HTTPException(
             HTTPStatus.FORBIDDEN, "Login by 'Username and Password' not allowed."
         )
-    account = await get_account_by_username_or_email(data.username, activated=None)
+    account = await get_account_by_username_or_email(data.username)
     if not account or not account.verify_password(data.password):
         raise HTTPException(HTTPStatus.UNAUTHORIZED, "Invalid credentials.")
 
