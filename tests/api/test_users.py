@@ -658,8 +658,8 @@ async def test_user_activation(
     response = await http_client.post(
         "/api/v1/auth", json={"username": username, "password": "secret1234"}
     )
-    assert response.status_code == 403
-    assert response.json().get("detail") == "Account is not activated."
+    assert response.status_code == 401
+    assert response.json().get("detail") == "Invalid credentials."
 
     response = await http_client.get(
         "/api/v1/auth",
