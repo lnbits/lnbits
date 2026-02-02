@@ -61,9 +61,7 @@ from .users import (
     get_user,
     get_user_access_control_lists,
     get_user_from_account,
-    is_account_activated,
     update_account,
-    update_account_activation,
 )
 from .wallets import (
     create_wallet,
@@ -146,13 +144,11 @@ __all__ = [
     "get_wallets",
     "get_webpush_subscription",
     "get_webpush_subscriptions_for_user",
-    "is_account_activated",
     "is_internal_status_success",
     "mark_webhook_sent",
     "remove_deleted_wallets",
     "reset_core_settings",
     "update_account",
-    "update_account_activation",
     "update_admin_settings",
     "update_installed_extension",
     "update_installed_extension_state",

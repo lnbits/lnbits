@@ -17,11 +17,10 @@ from lnbits.core.crud import (
     get_user,
     get_wallet,
     get_wallets,
-    is_account_activated,
-    update_account_activation,
     update_admin_settings,
     update_wallet,
 )
+from lnbits.core.crud.users import get_account
 from lnbits.core.crud.wallets import delete_wallet_by_id
 from lnbits.core.models import (
     AccountFilters,
@@ -227,14 +226,14 @@ async def api_users_toggle_admin(user_id: str) -> SimpleStatus:
     name="Activate or deactivate a user",
 )
 async def api_users_toggle_activated(
-    user_id: str, account: Account = Depends(check_admin)
+    user_id: str, admin_account: Account = Depends(check_admin)
 ) -> SimpleStatus:
     if user_id == settings.super_user:
         raise HTTPException(
             status_code=HTTPStatus.BAD_REQUEST,
             detail="Cannot deactivate super user.",
         )
-    if user_id == account.id:
+    if user_id == admin_account.id:
         raise HTTPException(
             status_code=HTTPStatus.BAD_REQUEST,
             detail="You cannot deactivate yourself.",
@@ -243,18 +242,18 @@ async def api_users_toggle_activated(
     if settings.is_admin_user(user_id):
         settings.lnbits_admin_users.remove(user_id)
 
-    is_activated = await is_account_activated(user_id)
-
-    if is_activated is None:
+    user_account = await get_account(user_id)
+    if not user_account:
         raise HTTPException(
             status_code=HTTPStatus.NOT_FOUND,
             detail="User not found.",
         )
-    await update_account_activation(user_id, not is_activated)
+    user_account.activated = not user_account.activated
+    await update_user_account(user_account)
 
     return SimpleStatus(
         success=True,
-        message=f"User {'activated' if not is_activated else 'deactivated'}.",
+        message=f"User {'activated' if user_account.activated else 'deactivated'}.",
     )
 
 

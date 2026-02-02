@@ -51,7 +51,6 @@ from ..crud import (
     get_account_by_username,
     get_account_by_username_or_email,
     get_user_from_account,
-    is_account_activated,
     update_account,
 )
 from ..models import (
@@ -88,8 +87,7 @@ async def login(data: LoginUsernamePassword) -> JSONResponse:
     if not account or not account.verify_password(data.password):
         raise HTTPException(HTTPStatus.UNAUTHORIZED, "Invalid credentials.")
 
-    is_activated = await is_account_activated(account.id)
-    if is_activated is False:
+    if not account.activated:
         raise HTTPException(HTTPStatus.FORBIDDEN, "Account is not activated.")
     return _auth_success_response(account.username, account.id, account.email)
 
