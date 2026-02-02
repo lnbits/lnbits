@@ -107,19 +107,17 @@
         <q-expansion-item header-class="text-primary text-bold">
           <template v-slot:header>
             <q-item-section avatar>
-              <q-avatar>
-                <q-icon name="email"></q-icon>
-              </q-avatar>
+              <q-icon name="confirmation_number" size="md"></q-icon>
             </q-item-section>
 
-            <q-item-section> Email </q-item-section>
+            <q-item-section> Invitation Code </q-item-section>
 
             <q-item-section side>
               <div class="row items-center">
                 <q-toggle
                   size="md"
                   :label="$t('enabled')"
-                  v-model="formData.lnbits_user_activation_by_email"
+                  v-model="formData.lnbits_user_activation_by_invitation_code"
                   color="green"
                   unchecked-icon="clear"
                 />
@@ -127,11 +125,36 @@
             </q-item-section>
           </template>
 
-          <q-card class="q-pb-xl"> xxxx </q-card>
+          <q-card class="q-pb-xl"> yyy </q-card>
         </q-expansion-item>
-
         <q-separator></q-separator>
 
+        <q-expansion-item header-class="text-primary text-bold">
+          <template v-slot:header>
+            <q-item-section avatar>
+              <q-avatar>
+                <q-icon name="receipt" size="md"></q-icon>
+              </q-avatar>
+            </q-item-section>
+
+            <q-item-section> Payment </q-item-section>
+
+            <q-item-section side>
+              <div class="row items-center">
+                <q-toggle
+                  size="md"
+                  :label="$t('enabled')"
+                  v-model="formData.lnbits_user_activation_by_payment"
+                  color="green"
+                  unchecked-icon="clear"
+                />
+              </div>
+            </q-item-section>
+          </template>
+
+          <q-card class="q-pb-xl"> qqq </q-card>
+        </q-expansion-item>
+        <q-separator></q-separator>
         <q-expansion-item header-class="text-primary text-bold">
           <template v-slot:header>
             <q-item-section avatar>
@@ -165,18 +188,18 @@
           <template v-slot:header>
             <q-item-section avatar>
               <q-avatar>
-                <q-icon name="receipt" size="md"></q-icon>
+                <q-icon name="email"></q-icon>
               </q-avatar>
             </q-item-section>
 
-            <q-item-section> Payment </q-item-section>
+            <q-item-section> Email </q-item-section>
 
             <q-item-section side>
               <div class="row items-center">
                 <q-toggle
                   size="md"
                   :label="$t('enabled')"
-                  v-model="formData.lnbits_user_activation_by_payment"
+                  v-model="formData.lnbits_user_activation_by_email"
                   color="green"
                   unchecked-icon="clear"
                 />
@@ -184,32 +207,7 @@
             </q-item-section>
           </template>
 
-          <q-card class="q-pb-xl"> qqq </q-card>
-        </q-expansion-item>
-        <q-separator></q-separator>
-
-        <q-expansion-item header-class="text-primary text-bold">
-          <template v-slot:header>
-            <q-item-section avatar>
-              <q-icon name="confirmation_number" size="md"></q-icon>
-            </q-item-section>
-
-            <q-item-section> Invitation Code </q-item-section>
-
-            <q-item-section side>
-              <div class="row items-center">
-                <q-toggle
-                  size="md"
-                  :label="$t('enabled')"
-                  v-model="formData.lnbits_user_activation_by_invitation_code"
-                  color="green"
-                  unchecked-icon="clear"
-                />
-              </div>
-            </q-item-section>
-          </template>
-
-          <q-card class="q-pb-xl"> yyy </q-card>
+          <q-card class="q-pb-xl"> xxxx </q-card>
         </q-expansion-item>
       </q-list>
     </div>
