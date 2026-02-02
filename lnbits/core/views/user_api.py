@@ -20,7 +20,7 @@ from lnbits.core.crud import (
     update_admin_settings,
     update_wallet,
 )
-from lnbits.core.crud.users import get_account, update_account
+from lnbits.core.crud.users import clear_user_id_cache, get_account, update_account
 from lnbits.core.crud.wallets import delete_wallet_by_id
 from lnbits.core.models import (
     AccountFilters,
@@ -250,6 +250,7 @@ async def api_users_toggle_activated(
         )
     user_account.activated = not user_account.activated
     await update_account(user_account)
+    await clear_user_id_cache(user_id)
 
     return SimpleStatus(
         success=True,
