@@ -41,6 +41,12 @@ class UsersSettings(LNbitsSettings):
     lnbits_admin_users: list[str] = Field(default=[])
     lnbits_allowed_users: list[str] = Field(default=[])
     lnbits_allow_new_accounts: bool = Field(default=True)
+    lnbits_require_user_activation: bool = Field(default=False)
+
+    lnbits_user_activation_by_email: bool = Field(default=False)
+    lnbits_user_activation_by_nostr: bool = Field(default=False)
+    lnbits_user_activation_by_payment: bool = Field(default=False)
+    lnbits_user_activation_by_invitation_code: bool = Field(default=False)
 
     @property
     def new_accounts_allowed(self) -> bool:
