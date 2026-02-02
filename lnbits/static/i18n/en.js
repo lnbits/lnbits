@@ -171,6 +171,7 @@ window.localisation.en = {
   drop_db: 'Remove Data',
   enable: 'Enable',
   enabled: 'Enabled',
+  disabled: 'Disabled',
   pay_to_enable: 'Pay To Enable',
   enable_extension_details: 'Enable extension for current user',
   disable: 'Disable',
