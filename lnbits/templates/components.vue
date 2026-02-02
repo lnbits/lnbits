@@ -814,6 +814,64 @@ include('components/lnbits-error.vue') %}
           type="password"
           :rules="[val => !val || val.length >= 8 || $t('invalid_password')]"
         ></q-input>
+        <div class="row justify-center q-mb-md">
+          <q-tabs
+            v-model="confirmationMethod"
+            dense
+            active-color="primary"
+            indicator-color="primary"
+          >
+            <q-tab name="code" icon="confirmation_number" label="Code"></q-tab>
+            <q-tab name="payment" icon="bolt" label="Payment"></q-tab>
+            <q-tab name="nostr" icon="bolt" label="Nostr"></q-tab>
+            <q-tab name="email" icon="email" label="Email"></q-tab>
+          </q-tabs>
+        </div>
+        <div>
+          <q-tab-panels v-model="confirmationMethod">
+            <q-tab-panel name="code" class="q-pa-none">
+              <div>
+                <q-input
+                  dense
+                  filled
+                  v-model="confirmationCode"
+                  :label="$t('confirmation_code')"
+                  :type="showConfirmationCode ? 'text' : 'password'"
+                  :hint="$t('confirmation_code_hint')"
+                >
+                  <q-btn
+                    @click="showConfirmationCode = !showConfirmationCode"
+                    dense
+                    flat
+                    :icon="
+                      showConfirmationCode ? 'visibility_off' : 'visibility'
+                    "
+                    color="grey"
+                  ></q-btn>
+                </q-input>
+              </div>
+            </q-tab-panel>
+            <q-tab-panel name="payment">
+              <div>payment</div>
+            </q-tab-panel>
+            <q-tab-panel name="nostr">
+              <div>nostr</div>
+            </q-tab-panel>
+            <q-tab-panel name="email" class="q-pa-none">
+              <div>
+                <q-input
+                  dense
+                  filled
+                  v-model="confirmationEmail"
+                  :label="$t('email')"
+                  :hint="$t('email_confirmation_hint')"
+                >
+                </q-input>
+              </div>
+            </q-tab-panel>
+          </q-tab-panels>
+        </div>
+
         <div class="row justify-end">
           <q-btn
             unelevated

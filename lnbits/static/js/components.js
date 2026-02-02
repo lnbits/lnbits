@@ -445,7 +445,11 @@ window.app.component('username-password', {
       username: this.userName,
       password: this.password_1,
       passwordRepeat: this.password_2,
-      reset_key: this.resetKey
+      reset_key: this.resetKey,
+      confirmationMethod: 'code',
+      confirmationEmail: '',
+      confirmationCode: '',
+      showConfirmationCode: false
     }
   },
   methods: {
