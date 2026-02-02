@@ -850,14 +850,6 @@ async def _pay_external_invoice(
             payment, payment_response, conn=conn
         )
 
-        # fetch wallet balance
-        _wallet = await get_wallet(wallet.id, conn=conn)
-        if not _wallet:
-            raise PaymentError(
-                f"Could not fetch wallet '{wallet.id}'.",
-                status="failed",
-            )
-
         await _send_payment_notification_in_background(wallet.id, payment, conn=conn)
         logger.success(f"payment successful {payment_response.checking_id}")
 
