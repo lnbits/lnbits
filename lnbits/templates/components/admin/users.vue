@@ -141,6 +141,74 @@
               </div>
             </q-card-section>
             <q-card-section>
+              <div class="row">
+                <div class="col-12 col-md-6 q-pr-sm">
+                  <p><span v-text="$t('reusable_activation_code')"></span></p>
+                  <q-input
+                    filled
+                    v-model="formData.lnbits_register_reusable_activation_code"
+                    :type="showReusableActivationCode ? 'text' : 'password'"
+                    :label="$t('reusable_activation_code_label')"
+                    :hint="$t('reusable_activation_code_hint')"
+                  >
+                    <q-btn
+                      @click="
+                        showReusableActivationCode = !showReusableActivationCode
+                      "
+                      dense
+                      flat
+                      :icon="
+                        showReusableActivationCode
+                          ? 'visibility_off'
+                          : 'visibility'
+                      "
+                      color="grey"
+                    ></q-btn>
+                    <q-btn
+                      @click="
+                        utils.copyText(
+                          formData.lnbits_register_reusable_activation_code
+                        )
+                      "
+                      dense
+                      flat
+                      icon="content_copy"
+                      color="grey"
+                    ></q-btn>
+                  </q-input>
+                </div>
+                <div class="col-12 col-md-6">
+                  <p><span v-text="$t('one_time_activation_code')"></span></p>
+                  <q-input
+                    filled
+                    v-model="formAddActivationCode"
+                    @keydown.enter="addOneTimeActivationCode"
+                    type="text"
+                    :label="$t('one_time_activation_code_label')"
+                    :hint="$t('one_time_activation_code_hint')"
+                  >
+                    <q-btn
+                      @click="addOneTimeActivationCode"
+                      dense
+                      flat
+                      icon="add"
+                    ></q-btn>
+                  </q-input>
+                  <div>
+                    <q-chip
+                      v-for="code in formData.lnbits_register_one_time_activation_codes"
+                      :key="code"
+                      removable
+                      @remove="removeOneTimeActivationCode(code)"
+                      color="primary"
+                      text-color="white"
+                      :label="code"
+                      class="ellipsis"
+                    >
+                    </q-chip>
+                  </div>
+                </div>
+              </div>
             </q-card-section>
           </q-card>
         </q-expansion-item>
@@ -150,7 +218,7 @@
           <template v-slot:header>
             <q-item-section avatar>
               <q-avatar>
-                <q-icon name="receipt" size="md"></q-icon>
+                <q-icon name="bolt" size="md"></q-icon>
               </q-avatar>
             </q-item-section>
 
