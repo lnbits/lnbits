@@ -434,6 +434,7 @@ window.app.component('username-password', {
     password_2: String,
     resetKey: String
   },
+
   data() {
     return {
       oauth: [
@@ -449,7 +450,8 @@ window.app.component('username-password', {
       confirmationMethod: 'code',
       confirmationEmail: '',
       confirmationCode: '',
-      showConfirmationCode: false
+      showConfirmationCode: false,
+      nostrConfirmationIdentifier: ''
     }
   },
   methods: {
@@ -553,6 +555,33 @@ window.app.component('username-password', {
   computed: {
     showOauth() {
       return this.oauth.some(m => this.authMethods.includes(m))
+    },
+    disableRegister() {
+      const usernameOK = !!this.username
+      const passwordOK = !!this.password && this.password.length >= 8
+      const passwordsMatch = this.password === this.passwordRepeat
+      const codeOk =
+        this.confirmationMethodsCount === 0 ||
+        this.confirmationMethod !== 'code' ||
+        this.confirmationCode.length > 0
+
+      const nostrOk =
+        this.confirmationMethodsCount === 0 ||
+        this.confirmationMethod !== 'nostr' ||
+        this.nostrConfirmationIdentifier.length > 0
+
+      return (
+        !usernameOK || !passwordOK || !passwordsMatch || !codeOk || !nostrOk
+      )
+    },
+    confirmationMethodsCount() {
+      const methods = [
+        this.g.settings.userActivationByEmail,
+        this.g.settings.userActivationByNostr,
+        this.g.settings.userActivationByPayment,
+        this.g.settings.userActivationByInvitationCode
+      ]
+      return methods.filter(Boolean).length
     }
   },
   created() {}

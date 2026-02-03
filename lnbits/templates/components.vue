@@ -814,20 +814,54 @@ include('components/lnbits-error.vue') %}
           type="password"
           :rules="[val => !val || val.length >= 8 || $t('invalid_password')]"
         ></q-input>
-        <div class="row justify-center q-mb-md">
+        <div
+          v-if="confirmationMethodsCount > 0"
+          class="q-my-md q-pa-sm text-body2 text-grey-4 bg-grey-9 rounded-borders"
+        >
+          <q-icon name="info" color="orange-4" class="q-mr-xs"></q-icon>
+
+          Confirmation required before you can log in.
+          <div v-if="confirmationMethodsCount > 1">
+            Please choose one of the methods below.
+          </div>
+        </div>
+        <div
+          v-if="confirmationMethodsCount > 1"
+          class="row justify-center q-mb-md"
+        >
           <q-tabs
             v-model="confirmationMethod"
             dense
             active-color="primary"
             indicator-color="primary"
           >
-            <q-tab name="code" icon="confirmation_number" label="Code"></q-tab>
-            <q-tab name="payment" icon="bolt" label="Payment"></q-tab>
-            <q-tab name="nostr" icon="bolt" label="Nostr"></q-tab>
-            <q-tab name="email" icon="email" label="Email"></q-tab>
+            <q-tab
+              v-if="g.settings.userActivationByInvitationCode"
+              name="code"
+              icon="confirmation_number"
+              label="Code"
+            ></q-tab>
+            <q-tab
+              v-if="g.settings.userActivationByPayment"
+              name="payment"
+              icon="bolt"
+              label="Payment"
+            ></q-tab>
+            <q-tab
+              v-if="g.settings.userActivationByNostr"
+              name="nostr"
+              icon="bolt"
+              label="Nostr"
+            ></q-tab>
+            <q-tab
+              v-if="g.settings.userActivationByEmail"
+              name="email"
+              icon="email"
+              label="Email"
+            ></q-tab>
           </q-tabs>
         </div>
-        <div>
+        <div v-if="confirmationMethodsCount > 0" class="q-mb-md">
           <q-tab-panels v-model="confirmationMethod">
             <q-tab-panel name="code" class="q-pa-none">
               <div>
@@ -854,8 +888,17 @@ include('components/lnbits-error.vue') %}
             <q-tab-panel name="payment">
               <div>payment</div>
             </q-tab-panel>
-            <q-tab-panel name="nostr">
-              <div>nostr</div>
+            <q-tab-panel name="nostr" class="q-pa-none">
+              <div>
+                <q-input
+                  dense
+                  filled
+                  v-model="nostrConfirmationIdentifier"
+                  :label="$t('nostr_identifier')"
+                  :hint="$t('nostr_identifier_hint')"
+                >
+                </q-input>
+              </div>
             </q-tab-panel>
             <q-tab-panel name="email" class="q-pa-none">
               <div>
@@ -876,12 +919,7 @@ include('components/lnbits-error.vue') %}
           <q-btn
             unelevated
             color="primary"
-            :disable="
-              !password ||
-              !passwordRepeat ||
-              !username ||
-              password !== passwordRepeat
-            "
+            :disable="disableRegister"
             type="submit"
             class="full-width"
             :label="$t('create_account')"

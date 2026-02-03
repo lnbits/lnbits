@@ -285,7 +285,7 @@ window.localisation.en = {
     'Nip5 identifier to send notifications to',
   notifications_nostr_identifiers: 'Nostr Identifiers',
   notifications_nostr_identifiers_desc:
-    'List of identifiers to send notifications to',
+    'List of identifiers to send notifications to.',
 
   notifications_telegram_config: 'Telegram Configuration',
   notifications_enable_telegram: 'Enable Telegram',
@@ -724,6 +724,9 @@ window.localisation.en = {
   confirmation_code_hint: 'The confirmation code that you have received.',
   email: 'Email',
   email_confirmation_hint: 'Email address to send the confirmation code to.',
+  nostr_identifier: 'Nostr Identifier',
+  nostr_identifier_hint:
+    'Nostr nip5 identifier or <npub> to send the confirmation code to.',
 
   new_user_not_allowed: 'Registration is disabled.',
   start_user_impersonation: 'Impersonate this user',
