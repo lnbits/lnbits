@@ -59,7 +59,7 @@ window.dateFormat = 'YYYY-MM-DD HH:mm'
 
 const websocketPrefix =
   window.location.protocol === 'http:' ? 'ws://' : 'wss://'
-const websocketUrl = `${websocketPrefix}${window.location.host}/api/v1/ws`
+const websocketUrl = `${websocketPrefix}${window.location.host}${ROOT_PATH}api/v1/ws`
 
 const _access_cookies_for_safari_refresh_do_not_delete = document.cookie
 
@@ -74,9 +74,11 @@ addEventListener('online', event => {
 })
 
 if (navigator.serviceWorker != null) {
-  navigator.serviceWorker.register('/service-worker.js').then(registration => {
-    console.log('Registered events at scope: ', registration.scope)
-  })
+  navigator.serviceWorker
+    .register(ROOT_PATH + 'service-worker.js')
+    .then(registration => {
+      console.log('Registered events at scope: ', registration.scope)
+    })
 }
 
 if (navigator.mediaDevices && navigator.mediaDevices.enumerateDevices) {

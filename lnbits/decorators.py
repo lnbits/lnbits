@@ -516,6 +516,7 @@ async def _check_account_api_access(
         raise HTTPException(HTTPStatus.FORBIDDEN, "Method not allowed.")
 
 
+# TODO: this messes up my extension urls
 def url_for_interceptor(original_method):
     def normalize_url(self, *args, **kwargs):
         url = original_method(self, *args, **kwargs)
@@ -526,6 +527,7 @@ def url_for_interceptor(original_method):
 
 # Upgraded extensions modify the path.
 # This interceptor ensures that the path is normalized.
+# TODO: this messes up my extension urls
 Request.url_for = url_for_interceptor(Request.url_for)  # type: ignore[method-assign]
 
 

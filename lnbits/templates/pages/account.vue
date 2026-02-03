@@ -283,7 +283,9 @@
                           >
                             <q-avatar size="32px" class="q-mr-md">
                               <q-img
-                                :src="'{{ static_url_for('static', 'images/google-logo.png') }}'"
+                                :src="
+                                  utils.urlFor('/static/images/google-logo.png')
+                                "
                               ></q-img>
                             </q-avatar>
                             <div>Google</div>
@@ -304,7 +306,9 @@
                           >
                             <q-avatar size="32px" class="q-mr-md">
                               <q-img
-                                :src="'{{ static_url_for('static', 'images/github-logo.png') }}'"
+                                :src="
+                                  utils.urlFor('/static/images/github-logo.png')
+                                "
                               ></q-img>
                             </q-avatar>
                             <div>GitHub</div>

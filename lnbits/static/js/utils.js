@@ -1,13 +1,17 @@
 window._lnbitsUtils = {
-  url_for(url) {
-    const _url = new URL(url, window.location.origin)
-    _url.searchParams.set('v', window.g.settings.cacheKey)
+  urlFor(url, noCache = true) {
+    if (url.startsWith('http://') || url.startsWith('https://')) {
+      return url
+    }
+    const rootPath = ROOT_PATH.replace(/\/+$/, '')
+    const _url = new URL(rootPath + url, window.location.origin)
+    if (noCache) _url.searchParams.set('v', window.g.settings.cacheKey)
     return _url.toString()
   },
   loadScript(src) {
     return new Promise((resolve, reject) => {
       const script = document.createElement('script')
-      script.src = this.url_for(src)
+      script.src = this.urlFor(src)
       script.onload = () => {
         resolve()
       }
@@ -18,7 +22,7 @@ window._lnbitsUtils = {
     })
   },
   async loadTemplate(url) {
-    return fetch(this.url_for(url))
+    return fetch(this.urlFor(url))
       .then(response => {
         if (!response.ok) {
           throw new Error(`Failed to load template from ${url}`)

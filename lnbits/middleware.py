@@ -19,6 +19,7 @@ from lnbits.helpers import normalize_path, template_renderer
 from lnbits.settings import settings
 
 
+# TODO: root path should be considered here?
 class InstalledExtensionMiddleware:
     # This middleware class intercepts calls made to the extensions API and:
     #  - it blocks the calls if the extension has been disabled or uninstalled.
@@ -50,7 +51,7 @@ class InstalledExtensionMiddleware:
             await self.app(scope, receive, send)
             return
 
-        # re-route all trafic if the extension has been upgraded
+        # re-route all traffic if the extension has been upgraded
         if top_path in settings.lnbits_upgraded_extensions:
             upgrade_path = (
                 f"""{settings.lnbits_upgraded_extensions[top_path]}/{top_path}"""
@@ -240,6 +241,7 @@ def add_first_install_middleware(app: FastAPI):
     async def first_install_middleware(request: Request, call_next):
         if (
             settings.first_install
+            # TODO: root path should be considered here?
             and request.url.path != "/api/v1/auth/first_install"
             and request.url.path != "/first_install"
             and not request.url.path.startswith("/static")

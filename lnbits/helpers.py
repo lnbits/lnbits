@@ -49,8 +49,11 @@ def url_for(endpoint: str, external: bool | None = False, **params: Any) -> str:
     return url
 
 
-def static_url_for(static: str, path: str) -> str:
-    return f"/{static}/{path}?v={settings.server_startup_time}"
+def static_url_for(static: str, path: str, no_cache: bool = False) -> str:
+    url = f"{settings.root_path}{static}/{path}"
+    if no_cache:
+        url += f"?v={settings.server_startup_time}"
+    return url
 
 
 def template_renderer(additional_folders: list | None = None) -> Jinja2Templates:
@@ -59,7 +62,6 @@ def template_renderer(additional_folders: list | None = None) -> Jinja2Templates
         "lnbits/core/templates",
         settings.extension_builder_working_dir_path.as_posix(),
     ]
-
     if additional_folders:
         additional_folders += [
             Path(settings.lnbits_extensions_path, "extensions", f)
@@ -71,6 +73,7 @@ def template_renderer(additional_folders: list | None = None) -> Jinja2Templates
     t.env.globals["normalize_path"] = normalize_path
 
     # used in base.html
+    t.env.globals["ROOT_PATH"] = settings.root_path
     t.env.globals["SITE_TITLE"] = settings.lnbits_site_title
     t.env.globals["LNBITS_APPLE_TOUCH_ICON"] = settings.lnbits_apple_touch_icon
     t.env.globals["SETTINGS"] = settings.to_public().dict(by_alias=True)
@@ -312,6 +315,8 @@ def get_api_routes(routes: list) -> dict[str, str]:
 
 def path_segments(path: str) -> list[str]:
     path = path.strip("/")
+    # Remove empty segments caused by '//' in the path
+    # segments = [s for s in path.split("/") if s]
     segments = path.split("/")
     if len(segments) < 2:
         return segments
@@ -321,8 +326,16 @@ def path_segments(path: str) -> list[str]:
 
 
 def normalize_path(path: str | None) -> str:
+    print(path)
     path = path or ""
-    return "/" + "/".join(path_segments(path))
+    segments = path_segments(path)
+    print(segments)
+    joined = "/".join(segments)
+    print("!!!!!!!!!!")
+    print(joined)
+    return joined
+
+    # return "/" + "/".join(path_segments(path))
 
 
 def normalize_endpoint(endpoint: str, add_proto=True) -> str:
