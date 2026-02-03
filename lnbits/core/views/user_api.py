@@ -74,7 +74,7 @@ async def api_get_users(
     summary="Get user by Id",
 )
 async def api_get_user(user_id: str) -> User:
-    user = await get_user(user_id, activated=None)
+    user = await get_user(user_id, active_only=False)
     if not user:
         raise HTTPException(HTTPStatus.NOT_FOUND, "User not found.")
     return user
@@ -242,7 +242,7 @@ async def api_users_toggle_activated(
     if settings.is_admin_user(user_id):
         settings.lnbits_admin_users.remove(user_id)
 
-    user_account = await get_account(user_id, activated=None)
+    user_account = await get_account(user_id, active_only=False)
     if not user_account:
         raise HTTPException(
             status_code=HTTPStatus.NOT_FOUND,

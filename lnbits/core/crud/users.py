@@ -98,19 +98,17 @@ async def get_accounts(
 
 
 async def get_account(
-    user_id: str, activated: bool | None = True, conn: Connection | None = None
+    user_id: str, active_only: bool = True, conn: Connection | None = None
 ) -> Account | None:
     if len(user_id) == 0:
         return None
 
-    activate_clause = "" if activated is None else "AND activated = :activated"
-
     return await (conn or db).fetchone(
-        f"""
+        """
             SELECT * FROM accounts
-            WHERE id = :id {activate_clause}
-        """,  # noqa: S608
-        {"id": user_id, "activated": activated},
+            WHERE id = :id AND (activated = true OR activated = :activated)
+        """,
+        {"id": user_id, "activated": active_only},
         Account,
     )
 
@@ -136,7 +134,7 @@ async def delete_accounts_no_wallets(
 
 
 async def get_account_by_username(
-    username: str, activated: bool = True, conn: Connection | None = None
+    username: str, active_only: bool = True, conn: Connection | None = None
 ) -> Account | None:
     if len(username) == 0:
         return None
@@ -144,28 +142,32 @@ async def get_account_by_username(
     return await (conn or db).fetchone(
         """
             SELECT * FROM accounts
-            WHERE LOWER(username) = :username AND activated = :activated
+            WHERE
+                LOWER(username) = :username
+                AND (activated = true OR activated = :activated)
         """,
-        {"username": username.lower(), "activated": activated},
+        {"username": username.lower(), "activated": active_only},
         Account,
     )
 
 
 async def get_account_by_pubkey(
-    pubkey: str, activated: bool | None = True, conn: Connection | None = None
+    pubkey: str, active_only: bool = True, conn: Connection | None = None
 ) -> Account | None:
     return await (conn or db).fetchone(
         """
             SELECT * FROM accounts
-            WHERE LOWER(pubkey) = :pubkey AND activated = :activated
+            WHERE
+                LOWER(pubkey) = :pubkey
+                AND (activated = true OR activated = :activated)
         """,
-        {"pubkey": pubkey.lower(), "activated": activated},
+        {"pubkey": pubkey.lower(), "activated": active_only},
         Account,
     )
 
 
 async def get_account_by_email(
-    email: str, activated: bool = True, conn: Connection | None = None
+    email: str, active_only: bool = True, conn: Connection | None = None
 ) -> Account | None:
     if len(email) == 0:
         return None
@@ -173,35 +175,38 @@ async def get_account_by_email(
     return await (conn or db).fetchone(
         """
             SELECT * FROM accounts
-            WHERE LOWER(email) = :email AND activated = :activated
+            WHERE
+                LOWER(email) = :email
+                AND (activated = true OR activated = :activated)
         """,
-        {"email": email.lower(), "activated": activated},
+        {"email": email.lower(), "activated": active_only},
         Account,
     )
 
 
 async def get_account_by_username_or_email(
     username_or_email: str,
-    activated: bool = True,
+    active_only: bool = True,
     conn: Connection | None = None,
 ) -> Account | None:
 
     return await (conn or db).fetchone(
         """
             SELECT * FROM accounts
-            WHERE (LOWER(email) = :value or LOWER(username) = :value)
-                AND activated = :activated
+            WHERE
+                (LOWER(email) = :value or LOWER(username) = :value)
+                AND (activated = true OR activated = :activated)
         """,
-        {"value": username_or_email.lower(), "activated": activated},
+        {"value": username_or_email.lower(), "activated": active_only},
         Account,
     )
 
 
 async def get_user(
-    user_id: str, activated: bool | None = True, conn: Connection | None = None
+    user_id: str, active_only: bool = True, conn: Connection | None = None
 ) -> User | None:
     async with db.reuse_conn(conn) if conn else db.connect() as conn:
-        account = await get_account(user_id, activated=activated, conn=conn)
+        account = await get_account(user_id, active_only, conn=conn)
         if not account:
             return None
         return await get_user_from_account(account, conn=conn)
@@ -246,14 +251,14 @@ async def update_user_access_control_list(
 
 
 async def get_user_access_control_lists(
-    user_id: str, activated: bool = True, conn: Connection | None = None
+    user_id: str, active_only: bool = True, conn: Connection | None = None
 ) -> UserAcls:
     user_acls = await (conn or db).fetchone(
         """
             SELECT id, access_control_list FROM accounts
-            WHERE id = :user_id AND activated = :activated
+            WHERE id = :user_id AND (activated = true OR activated = :activated)
         """,
-        {"user_id": user_id, "activated": activated},
+        {"user_id": user_id, "activated": active_only},
         UserAcls,
     )
 
@@ -261,7 +266,7 @@ async def get_user_access_control_lists(
 
 
 async def clear_user_id_cache(user_id: str):
-    user = await get_user(user_id, activated=None)
+    user = await get_user(user_id, active_only=True)
     if user:
         clear_user_cache(user)
 
