@@ -268,53 +268,6 @@
           <template v-slot:header>
             <q-item-section avatar>
               <q-avatar>
-                <q-img
-                  src="/static/images/logos/nostr.svg"
-                  class="bg-primary"
-                ></q-img>
-              </q-avatar>
-            </q-item-section>
-
-            <q-item-section> Nostr </q-item-section>
-
-            <q-item-section side>
-              <div class="row items-center">
-                <q-toggle
-                  size="md"
-                  :label="
-                    formData.lnbits_user_activation_by_nostr
-                      ? $t('enabled')
-                      : $t('disabled')
-                  "
-                  v-model="formData.lnbits_user_activation_by_nostr"
-                  color="green"
-                  unchecked-icon="clear"
-                />
-              </div>
-            </q-item-section>
-          </template>
-
-          <q-card class="q-pb-xl">
-            <q-card-section>
-              <div
-                class="q-my-md q-pa-sm text-body2 text-grey-4 bg-grey-9 rounded-borders"
-              >
-                <q-icon
-                  name="info"
-                  color="orange-4"
-                  size="18px"
-                  class="q-mr-xs"
-                ></q-icon>
-                Users will receive a confirmation code via Nostr.
-              </div>
-            </q-card-section>
-          </q-card>
-        </q-expansion-item>
-        <q-separator></q-separator>
-        <q-expansion-item header-class="text-primary text-bold">
-          <template v-slot:header>
-            <q-item-section avatar>
-              <q-avatar>
                 <q-icon name="email"></q-icon>
               </q-avatar>
             </q-item-section>
