@@ -12,6 +12,7 @@ from fastapi.responses import JSONResponse, RedirectResponse
 from fastapi_sso.sso.base import OpenID, SSOBase
 from loguru import logger
 
+from lnbits.core.crud.settings import set_settings_field
 from lnbits.core.crud.users import (
     get_user_access_control_lists,
     update_user_access_control_list,
@@ -388,7 +389,10 @@ async def check_register_activation_settings(data: RegisterUser) -> bool:
             return True
         if code in settings.lnbits_register_one_time_activation_codes:
             settings.lnbits_register_one_time_activation_codes.remove(code)
-
+            await set_settings_field(
+                "lnbits_register_one_time_activation_codes",
+                settings.lnbits_register_one_time_activation_codes,
+            )
             return True
 
     return False
