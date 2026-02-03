@@ -365,8 +365,7 @@ async def register(data: RegisterUser) -> JSONResponse:
     if data.email and not is_valid_email_address(data.email):
         raise HTTPException(HTTPStatus.BAD_REQUEST, "Invalid email.")
 
-    if not await check_register_activation_settings(data):
-        raise HTTPException(HTTPStatus.FORBIDDEN, "User activation failed.")
+    await check_register_activation_settings(data)
 
     account = Account(
         id=uuid4().hex,
@@ -378,22 +377,23 @@ async def register(data: RegisterUser) -> JSONResponse:
     return _auth_success_response(account.username, account.id, account.email)
 
 
-async def check_register_activation_settings(data: RegisterUser) -> bool:
+async def check_register_activation_settings(data: RegisterUser):
     if not settings.lnbits_require_user_activation:
-        return True
+        return None
     if settings.lnbits_user_activation_by_invitation_code and data.invitation_code:
         code = data.invitation_code.strip()
         if code == settings.lnbits_register_reusable_activation_code:
-            return True
+            return None
         if code in settings.lnbits_register_one_time_activation_codes:
             settings.lnbits_register_one_time_activation_codes.remove(code)
             await set_settings_field(
                 "lnbits_register_one_time_activation_codes",
                 settings.lnbits_register_one_time_activation_codes,
             )
-            return True
+            return None
+        raise ValueError("Invalid invitation code.")
 
-    return False
+    raise ValueError("No activation method provided.")
 
 
 @auth_router.put("/pubkey")

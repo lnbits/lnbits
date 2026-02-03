@@ -432,6 +432,7 @@ window.app.component('username-password', {
     username: String,
     password_1: String,
     password_2: String,
+    invitationCode: String,
     resetKey: String
   },
 
@@ -449,7 +450,7 @@ window.app.component('username-password', {
       reset_key: this.resetKey,
       confirmationMethod: 'code',
       confirmationEmail: '',
-      confirmationCode: '',
+      confirmationCode: this.invitationCode || '',
       showConfirmationCode: false,
       nostrConfirmationIdentifier: ''
     }
@@ -464,6 +465,7 @@ window.app.component('username-password', {
       this.$emit('update:userName', this.username)
       this.$emit('update:password_1', this.password)
       this.$emit('update:password_2', this.passwordRepeat)
+      this.$emit('update:invitationCode', this.confirmationCode)
       this.$emit('register')
     },
     reset() {
@@ -570,6 +572,13 @@ window.app.component('username-password', {
         this.confirmationMethod !== 'nostr' ||
         this.nostrConfirmationIdentifier.length > 0
 
+      console.log('### disableRegister', {
+        usernameOK,
+        passwordOK,
+        passwordsMatch,
+        codeOk,
+        nostrOk
+      })
       return (
         !usernameOK || !passwordOK || !passwordsMatch || !codeOk || !nostrOk
       )
