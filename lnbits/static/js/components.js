@@ -451,8 +451,7 @@ window.app.component('username-password', {
       confirmationMethod: 'code',
       confirmationEmail: '',
       confirmationCode: this.invitationCode || '',
-      showConfirmationCode: false,
-      nostrConfirmationIdentifier: ''
+      showConfirmationCode: false
     }
   },
   methods: {
@@ -567,26 +566,17 @@ window.app.component('username-password', {
         this.confirmationMethod !== 'code' ||
         this.confirmationCode.length > 0
 
-      const nostrOk =
-        this.confirmationMethodsCount === 0 ||
-        this.confirmationMethod !== 'nostr' ||
-        this.nostrConfirmationIdentifier.length > 0
-
       console.log('### disableRegister', {
         usernameOK,
         passwordOK,
         passwordsMatch,
-        codeOk,
-        nostrOk
+        codeOk
       })
-      return (
-        !usernameOK || !passwordOK || !passwordsMatch || !codeOk || !nostrOk
-      )
+      return !usernameOK || !passwordOK || !passwordsMatch || !codeOk
     },
     confirmationMethodsCount() {
       const methods = [
         this.g.settings.userActivationByEmail,
-        this.g.settings.userActivationByNostr,
         this.g.settings.userActivationByPayment,
         this.g.settings.userActivationByInvitationCode
       ]
