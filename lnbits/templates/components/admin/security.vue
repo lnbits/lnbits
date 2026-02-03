@@ -311,9 +311,9 @@
               <q-select
                 filled
                 :options="[
-                  { label: $t('second'), value: 'second' },
-                  { label: $t('minute'), value: 'minute' },
-                  { label: $t('hour'), value: 'hour' }
+                  {label: $t('second'), value: 'second'},
+                  {label: $t('minute'), value: 'minute'},
+                  {label: $t('hour'), value: 'hour'}
                 ]"
                 emit-value
                 map-options
