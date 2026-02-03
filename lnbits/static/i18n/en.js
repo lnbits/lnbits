@@ -720,8 +720,8 @@ window.localisation.en = {
   one_time_activation_code_label: 'Add activation code',
   one_time_activation_code_hint:
     'List of one-time activation codes. Each code can be used only once, then will be reomved from the list.',
-  confirmation_code: 'Confirmation Code',
-  confirmation_code_hint: 'The confirmation code that you have received.',
+  invitation_code: 'Invitation Code',
+  invitation_code_hint: 'The invitation code that you have received.',
   email: 'Email',
   email_confirmation_hint: 'Email address to send the confirmation code to.',
   nostr_identifier: 'Nostr Identifier',

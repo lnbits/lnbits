@@ -815,17 +815,6 @@ include('components/lnbits-error.vue') %}
           :rules="[val => !val || val.length >= 8 || $t('invalid_password')]"
         ></q-input>
         <div
-          v-if="confirmationMethodsCount > 0"
-          class="q-my-md q-pa-sm text-body2 text-grey-4 bg-grey-9 rounded-borders"
-        >
-          <q-icon name="info" color="orange-4" class="q-mr-xs"></q-icon>
-
-          Confirmation required before you can log in.
-          <div v-if="confirmationMethodsCount > 1">
-            Please choose one of the methods below.
-          </div>
-        </div>
-        <div
           v-if="confirmationMethodsCount > 1"
           class="row justify-center q-mb-md"
         >
@@ -864,14 +853,20 @@ include('components/lnbits-error.vue') %}
         <div v-if="confirmationMethodsCount > 0" class="q-mb-md">
           <q-tab-panels v-model="confirmationMethod">
             <q-tab-panel name="code" class="q-pa-none">
+              <div
+                class="q-my-md q-pa-sm text-body2 text-grey-4 bg-grey-9 rounded-borders"
+              >
+                <q-icon name="info" color="orange-4" class="q-mr-xs"></q-icon>
+                You need an invitation code to register.
+              </div>
               <div>
                 <q-input
                   dense
                   filled
                   v-model="confirmationCode"
-                  :label="$t('confirmation_code')"
+                  :label="$t('invitation_code')"
                   :type="showConfirmationCode ? 'text' : 'password'"
-                  :hint="$t('confirmation_code_hint')"
+                  :hint="$t('invitation_code_hint')"
                 >
                   <q-btn
                     @click="showConfirmationCode = !showConfirmationCode"
@@ -889,6 +884,13 @@ include('components/lnbits-error.vue') %}
               <div>payment</div>
             </q-tab-panel>
             <q-tab-panel name="nostr" class="q-pa-none">
+              <div
+                class="q-my-md q-pa-sm text-body2 text-grey-4 bg-grey-9 rounded-borders"
+              >
+                <q-icon name="info" color="orange-4" class="q-mr-xs"></q-icon>
+                You will receive a confirmation link at the provided Nostr
+                identifier or NPub.
+              </div>
               <div>
                 <q-input
                   dense

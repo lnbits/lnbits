@@ -12,7 +12,6 @@ from fastapi.responses import JSONResponse, RedirectResponse
 from fastapi_sso.sso.base import OpenID, SSOBase
 from loguru import logger
 
-from lnbits.core.crud.settings import set_settings_field
 from lnbits.core.crud.users import (
     get_user_access_control_lists,
     update_user_access_control_list,
@@ -27,7 +26,10 @@ from lnbits.core.models.users import (
     UpdateAccessControlList,
 )
 from lnbits.core.services import create_user_account
-from lnbits.core.services.users import update_user_account
+from lnbits.core.services.users import (
+    check_register_activation_settings,
+    update_user_account,
+)
 from lnbits.decorators import (
     access_token_payload,
     check_account_exists,
@@ -377,25 +379,6 @@ async def register(data: RegisterUser) -> JSONResponse:
     account.hash_password(data.password)
     await create_user_account(account)
     return _auth_success_response(account.username, account.id, account.email)
-
-
-async def check_register_activation_settings(data: RegisterUser):
-    if not settings.lnbits_require_user_activation:
-        return None
-    if settings.lnbits_user_activation_by_invitation_code and data.invitation_code:
-        code = data.invitation_code.strip()
-        if code == settings.lnbits_register_reusable_activation_code:
-            return None
-        if code in settings.lnbits_register_one_time_activation_codes:
-            settings.lnbits_register_one_time_activation_codes.remove(code)
-            await set_settings_field(
-                "lnbits_register_one_time_activation_codes",
-                settings.lnbits_register_one_time_activation_codes,
-            )
-            return None
-        raise ValueError("Invalid invitation code.")
-
-    raise ValueError("No activation method provided.")
 
 
 @auth_router.put("/pubkey")
