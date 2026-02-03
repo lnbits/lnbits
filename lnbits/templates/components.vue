@@ -837,12 +837,6 @@ include('components/lnbits-error.vue') %}
               label="Payment"
             ></q-tab>
             <q-tab
-              v-if="g.settings.userActivationByNostr"
-              name="nostr"
-              icon="bolt"
-              label="Nostr"
-            ></q-tab>
-            <q-tab
               v-if="g.settings.userActivationByEmail"
               name="email"
               icon="email"
@@ -883,25 +877,7 @@ include('components/lnbits-error.vue') %}
             <q-tab-panel name="payment">
               <div>payment</div>
             </q-tab-panel>
-            <q-tab-panel name="nostr" class="q-pa-none">
-              <div
-                class="q-my-md q-pa-sm text-body2 text-grey-4 bg-grey-9 rounded-borders"
-              >
-                <q-icon name="info" color="orange-4" class="q-mr-xs"></q-icon>
-                You will receive a confirmation link at the provided Nostr
-                identifier or NPub.
-              </div>
-              <div>
-                <q-input
-                  dense
-                  filled
-                  v-model="nostrConfirmationIdentifier"
-                  :label="$t('nostr_identifier')"
-                  :hint="$t('nostr_identifier_hint')"
-                >
-                </q-input>
-              </div>
-            </q-tab-panel>
+
             <q-tab-panel name="email" class="q-pa-none">
               <div>
                 <q-input
