@@ -371,6 +371,15 @@ window.localisation.pi = {
   auth_keycloak_ci_hint:
     "Make sure thant th' authorization callback URL be set t' https://{domain}/api/v1/auth/keycloak/token",
   auth_keycloak_cs_label: 'Keycloak Client Secret',
+  auth_keycloak_custom_org_label: 'Keycloak Custom Organization',
+  auth_keycloak_custom_icon_label: 'Keycloak Custom Icon (URL)',
+  auth_oidc_label: 'OIDC Discovery URL',
+  auth_oidc_ci_label: 'OIDC Client ID',
+  auth_oidc_ci_hint:
+    "Make sure thant th' authorization callback URL be set t' https://{domain}/api/v1/auth/oidc/token",
+  auth_oidc_cs_label: 'OIDC Client Secret',
+  auth_oidc_custom_org_label: 'OIDC Custom Organization Name (e.g., Zitadel, Authentik)',
+  auth_oidc_custom_icon_label: 'OIDC Custom Icon (URL)',
   currency_settings: "Doubloon Settin's",
   allowed_currencies: "Allo'ed Doubloons",
   allowed_currencies_hint: 'Limit the number of available fiat doubloons',

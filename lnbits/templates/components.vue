@@ -976,6 +976,34 @@ include('components/lnbits-error.vue') %}
           ></span>
         </div>
       </q-btn>
+      <q-btn
+        v-if="authMethods.includes('oidc-auth')"
+        href="/api/v1/auth/oidc"
+        type="a"
+        outline
+        no-caps
+        color="grey"
+        class="btn-fixed-width"
+      >
+        <q-avatar size="32px" class="q-mr-md">
+          <q-img
+            :src="
+              g.settings.oidcIcon
+                ? g.settings.oidcIcon
+                : utils.url_for('lnbits/static/images/generic-oidc-logo.svg')
+            "
+          ></q-img>
+        </q-avatar>
+        <div>
+          <span
+            v-text="
+              $t('signin_with_custom_org', {
+                custom_org: g.settings.oidcOrg || 'OIDC'
+              })
+            "
+          ></span>
+        </div>
+      </q-btn>
     </div>
   </q-card-section>
 </template>

@@ -193,6 +193,57 @@
       </div>
     </div>
   </q-card-section>
+  <q-card-section
+    v-if="formData.auth_allowed_methods?.includes('oidc-auth')"
+    class="q-pl-xl"
+  >
+    <strong class="q-my-none q-mb-sm">OIDC Auth</strong>
+
+    <div class="row q-col-gutter-sm q-col-gutter-y-md">
+      <div class="col-12 col-md-4">
+        <q-input
+          filled
+          v-model="formData.oidc_discovery_url"
+          :label="$t('auth_oidc_label')"
+        >
+        </q-input>
+      </div>
+      <div class="col-12 col-md-4">
+        <q-input
+          filled
+          v-model="formData.oidc_client_id"
+          :label="$t('auth_oidc_ci_label')"
+          :hint="$t('auth_oidc_ci_hint')"
+        >
+        </q-input>
+      </div>
+      <div class="col-12 col-md-4">
+        <q-input
+          filled
+          v-model="formData.oidc_client_secret"
+          type="password"
+          :label="$t('auth_oidc_cs_label')"
+        >
+        </q-input>
+      </div>
+      <div class="col-12 col-md-4">
+        <q-input
+          filled
+          v-model="formData.oidc_client_custom_org"
+          :label="$t('auth_oidc_custom_org_label')"
+        >
+        </q-input>
+      </div>
+      <div class="col-12 col-md-8">
+        <q-input
+          filled
+          v-model="formData.oidc_client_custom_icon"
+          :label="$t('auth_oidc_custom_icon_label')"
+        >
+        </q-input>
+      </div>
+    </div>
+  </q-card-section>
   <q-separator></q-separator>
   <q-card-section class="q-pa-none">
     <br />

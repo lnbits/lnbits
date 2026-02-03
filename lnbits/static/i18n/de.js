@@ -377,6 +377,15 @@ window.localisation.de = {
   auth_keycloak_ci_hint:
     'Stellen Sie sicher, dass die Autorisierungs-Callback-URL auf https://{domain}/api/v1/auth/keycloak/token eingestellt ist.',
   auth_keycloak_cs_label: 'Keycloak-Client-Geheimnis',
+  auth_keycloak_custom_org_label: 'Keycloak Benutzerdefinierte Organisation',
+  auth_keycloak_custom_icon_label: 'Keycloak Benutzerdefiniertes Symbol (URL)',
+  auth_oidc_label: 'OIDC Discovery-URL',
+  auth_oidc_ci_label: 'OIDC-Client-ID',
+  auth_oidc_ci_hint:
+    'Stellen Sie sicher, dass die Autorisierungs-Callback-URL auf https://{domain}/api/v1/auth/oidc/token eingestellt ist.',
+  auth_oidc_cs_label: 'OIDC-Client-Geheimnis',
+  auth_oidc_custom_org_label: 'OIDC Benutzerdefinierter Organisationsname (z.B. Zitadel, Authentik)',
+  auth_oidc_custom_icon_label: 'OIDC Benutzerdefiniertes Symbol (URL)',
   currency_settings: 'Währungseinstellungen',
   allowed_currencies: 'Erlaubte Währungen',
   allowed_currencies_hint:

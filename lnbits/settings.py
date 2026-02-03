@@ -773,6 +773,7 @@ class AuthMethods(Enum):
     google_auth = "google-auth"
     github_auth = "github-auth"
     keycloak_auth = "keycloak-auth"
+    oidc_auth = "oidc-auth"
 
     @classmethod
     def all(cls):
@@ -783,6 +784,7 @@ class AuthMethods(Enum):
             AuthMethods.google_auth.value,
             AuthMethods.github_auth.value,
             AuthMethods.keycloak_auth.value,
+            AuthMethods.oidc_auth.value,
         ]
 
 
@@ -826,6 +828,14 @@ class KeycloakAuthSettings(LNbitsSettings):
     keycloak_client_secret: str = Field(default="")
     keycloak_client_custom_org: str | None = Field(default=None)
     keycloak_client_custom_icon: str | None = Field(default=None)
+
+
+class OidcAuthSettings(LNbitsSettings):
+    oidc_discovery_url: str = Field(default="")
+    oidc_client_id: str = Field(default="")
+    oidc_client_secret: str = Field(default="")
+    oidc_client_custom_org: str | None = Field(default=None)
+    oidc_client_custom_icon: str | None = Field(default=None)
 
 
 class AuditSettings(LNbitsSettings):
@@ -935,6 +945,7 @@ class EditableSettings(
     GoogleAuthSettings,
     GitHubAuthSettings,
     KeycloakAuthSettings,
+    OidcAuthSettings,
 ):
     @validator(
         "lnbits_admin_users",
@@ -1150,6 +1161,8 @@ class PublicSettings(BaseModel):
     auth_methods: list[str] = Field(alias="authMethods")
     keycloak_org: str | None = Field(alias="keycloakOrg")
     keycloak_icon: str | None = Field(alias="keycloakIcon")
+    oidc_org: str | None = Field(alias="oidcOrg")
+    oidc_icon: str | None = Field(alias="oidcIcon")
     has_holdinvoice: bool = Field(alias="hasHoldinvoice")
     has_nodemanager: bool = Field(alias="hasNodemanager")
     show_nodemanager: bool = Field(alias="showNodemanager")
@@ -1204,6 +1217,8 @@ class PublicSettings(BaseModel):
             authMethods=settings.auth_allowed_methods,
             keycloakOrg=settings.keycloak_client_custom_org,
             keycloakIcon=settings.keycloak_client_custom_icon,
+            oidcOrg=settings.oidc_client_custom_org,
+            oidcIcon=settings.oidc_client_custom_icon,
             hasHoldinvoice=settings.has_holdinvoice,
             hasNodemanager=settings.has_nodemanager,
             showNodemanager=settings.lnbits_node_ui and settings.has_nodemanager,

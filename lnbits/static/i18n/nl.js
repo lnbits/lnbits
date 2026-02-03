@@ -377,6 +377,15 @@ window.localisation.nl = {
   auth_keycloak_ci_hint:
     'Zorg ervoor dat de autorisatie callback-URL is ingesteld op https://{domain}/api/v1/auth/keycloak/token',
   auth_keycloak_cs_label: 'Keycloak Clientgeheim',
+  auth_keycloak_custom_org_label: 'Keycloak Aangepaste Organisatie',
+  auth_keycloak_custom_icon_label: 'Keycloak Aangepast Pictogram (URL)',
+  auth_oidc_label: 'OIDC Ontdekking URL',
+  auth_oidc_ci_label: 'OIDC-client-ID',
+  auth_oidc_ci_hint:
+    'Zorg ervoor dat de autorisatie callback-URL is ingesteld op https://{domain}/api/v1/auth/oidc/token',
+  auth_oidc_cs_label: 'OIDC Clientgeheim',
+  auth_oidc_custom_org_label: 'OIDC Aangepaste Organisatienaam (bijv. Zitadel, Authentik)',
+  auth_oidc_custom_icon_label: 'OIDC Aangepast Pictogram (URL)',
   currency_settings: 'Valuta-instellingen',
   allowed_currencies: "Toegestane valuta's",
   allowed_currencies_hint: "Beperk het aantal beschikbare fiatvaluta's",

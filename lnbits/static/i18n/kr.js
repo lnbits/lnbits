@@ -365,6 +365,15 @@ window.localisation.kr = {
   auth_keycloak_ci_hint:
     '승인 콜백 URL이 https://{domain}/api/v1/auth/keycloak/token으로 설정되어 있는지 확인하십시오.',
   auth_keycloak_cs_label: 'Keycloak 클라이언트 시크릿',
+  auth_keycloak_custom_org_label: 'Keycloak 사용자 정의 조직',
+  auth_keycloak_custom_icon_label: 'Keycloak 사용자 정의 아이콘 (URL)',
+  auth_oidc_label: 'OIDC 디스커버리 URL',
+  auth_oidc_ci_label: 'OIDC 클라이언트 ID',
+  auth_oidc_ci_hint:
+    '승인 콜백 URL이 https://{domain}/api/v1/auth/oidc/token으로 설정되어 있는지 확인하십시오.',
+  auth_oidc_cs_label: 'OIDC 클라이언트 시크릿',
+  auth_oidc_custom_org_label: 'OIDC 사용자 정의 조직 이름 (예: Zitadel, Authentik)',
+  auth_oidc_custom_icon_label: 'OIDC 사용자 정의 아이콘 (URL)',
   currency_settings: '통화 설정',
   allowed_currencies: '허용되는 통화',
   allowed_currencies_hint: '사용 가능한 법정 화폐의 수를 제한하십시오.',
