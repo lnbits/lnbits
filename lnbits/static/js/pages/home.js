@@ -11,6 +11,7 @@ window.PageHome = {
       email: '',
       password: '',
       passwordRepeat: '',
+      invitationCode: '',
       walletName: '',
       signup: false
     }
@@ -40,6 +41,7 @@ window.PageHome = {
       this.username = null
       this.password = null
       this.passwordRepeat = null
+      this.invitationCode = null
 
       this.authAction = 'register'
       this.authMethod = authMethod
@@ -51,7 +53,8 @@ window.PageHome = {
           this.username,
           this.email,
           this.password,
-          this.passwordRepeat
+          this.passwordRepeat,
+          this.invitationCode
         )
         this.refreshAuthUser()
       } catch (e) {
