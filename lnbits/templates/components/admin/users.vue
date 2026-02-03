@@ -281,7 +281,6 @@
               <div class="row items-center">
                 <q-toggle
                   size="md"
-                  disable
                   :label="
                     formData.lnbits_user_activation_by_nostr
                       ? $t('enabled')
