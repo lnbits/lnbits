@@ -566,12 +566,6 @@ window.app.component('username-password', {
         this.confirmationMethod !== 'code' ||
         this.confirmationCode.length > 0
 
-      console.log('### disableRegister', {
-        usernameOK,
-        passwordOK,
-        passwordsMatch,
-        codeOk
-      })
       return !usernameOK || !passwordOK || !passwordsMatch || !codeOk
     },
     confirmationMethodsCount() {
