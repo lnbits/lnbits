@@ -155,7 +155,7 @@ window._lnbitsUtils = {
     }
     let messages = error.response.data.detail
     if (!messages) {
-      const text = await error.response.data.text()
+      const text = await error.response.data?.text()
       messages = this.parseJSONSafe(text)?.detail
     }
     if (messages) {
