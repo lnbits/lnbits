@@ -71,6 +71,10 @@ window.app.component('lnbits-wallet-extra', {
             'lnbits.exchangeRate.' + this.g.wallet.currency,
             this.g.exchangeRate
           )
+          if (this.g.exchangeRate <= 0) {
+            this.g.fiatTracking = false
+            this.g.isFiatPriority = false
+          }
         })
         .catch(e => console.error(e))
     }
