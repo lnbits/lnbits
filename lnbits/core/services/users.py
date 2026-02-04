@@ -199,8 +199,11 @@ async def init_admin_settings(super_user: str | None = None) -> SuperSettings:
 async def check_register_activation_settings(data: RegisterUser):
     if not settings.lnbits_require_user_activation:
         return None
-    code = data.invitation_code.strip() if data.invitation_code else None
-    if settings.lnbits_user_activation_by_invitation_code and code:
+    if settings.lnbits_user_activation_by_invitation_code:
+        code = data.invitation_code.strip() if data.invitation_code else ""
+        if len(code) == 0:
+            raise ValueError("Invitation code cannot be empty.")
+
         if code == settings.lnbits_register_reusable_activation_code:
             return None
         if code in settings.lnbits_register_one_time_activation_codes:
