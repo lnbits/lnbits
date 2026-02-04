@@ -52,7 +52,7 @@ A backend wallet is selected and configured entirely through LNbits environment 
 
 ### CLNRest (using [runes](https://docs.corelightning.org/reference/lightning-createrune))
 
-[Core Lightning REST API docs](https://docs.corelightning.org/docs/rest)  
+[Core Lightning REST API docs](https://docs.corelightning.org/docs/rest)
 Should also work with the [Rust version of CLNRest](https://github.com/daywalker90/clnrest-rs)
 
 **Environment variables**
@@ -337,6 +337,8 @@ Configure in the admin UI or via env vars:
 - `NWC_PAIRING_URL`: `nostr+walletconnect://...your...pairing...secret...`
 
 <a id="strike"></a>
+
+## TODO: add Spark
 
 ## Strike (alpha)
 
