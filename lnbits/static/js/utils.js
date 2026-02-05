@@ -144,7 +144,7 @@ window._lnbitsUtils = {
       return null
     }
   },
-  notifyApiError(error) {
+  async notifyApiError(error) {
     if (!error.response) {
       return console.error(error)
     }
@@ -154,6 +154,10 @@ window._lnbitsUtils = {
       500: 'negative'
     }
     let messages = error.response.data.detail
+    if (!messages) {
+      const text = await error.response.data?.text()
+      messages = this.parseJSONSafe(text)?.detail
+    }
     if (messages) {
       messages = Array.isArray(messages)
         ? messages.map(e => e.msg + ` (${e.loc?.join('/')})`)
