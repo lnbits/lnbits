@@ -69,7 +69,7 @@ class LightsparkSparkWallet(Wallet):
         repo, branch = "spark_sidecar", "main"
 
         node_modules_path = Path(self._sidecar_path, f"{repo}-{branch}")
-        if not Path(self._sidecar_path, "package.json").is_file():
+        if not Path(node_modules_path, "package.json").is_file():
             logger.info("⏳ Downloading Spark sidecar.")
             await asyncio.to_thread(
                 download_url,
@@ -84,6 +84,8 @@ class LightsparkSparkWallet(Wallet):
             )
             logger.info("✅ Extracted Spark sidecar.")
             # todo: remove zip
+        else:
+            logger.info("Spark sidecar already downloaded.")
 
 
         if not Path(self._sidecar_path, node_modules_path, "node_modules").is_dir():
@@ -99,17 +101,31 @@ class LightsparkSparkWallet(Wallet):
             print(result.stderr)
 
         print("### Starting Spark sidecar node server")
-        result = subprocess.run(
+        # result = subprocess.run(
+        #     ["node", "server.mjs"],
+        #     cwd=str(node_modules_path),
+        #     capture_output=True,
+        #     text=True,
+        #     # check=True, # raises an exception if node fails
+        # )
+
+        # print("### Spark sidecar output:")
+        # print(result.stdout)
+        # print(result.stderr)
+
+        process = subprocess.Popen(
             ["node", "server.mjs"],
             cwd=str(node_modules_path),
-            capture_output=True,
-            text=True,
-            # check=True, # raises an exception if node fails
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+            text=True
         )
 
-        print("### Spark sidecar output:")
-        print(result.stdout)
-        print(result.stderr)
+        if process.stdout:
+            for line in process.stdout:
+                logger.info(f"Spark: {line}", end="")
+        else:
+            logger.warning(" No output captured for Spark sidecar.")
 
     async def cleanup(self):
         try:
