@@ -157,12 +157,16 @@ class LightsparkSparkWallet(Wallet):
         )
 
         print("### Spark sidecar DONE")
+        await asyncio.to_thread(
+                self._log_process_output, process
+            )
 
-        # if process.stdout:
-        #     for line in process.stdout:
-        #         logger.info(f"Spark: {line}", end="")
-        # else:
-        #     logger.warning(" No output captured for Spark sidecar.")
+    def _log_process_output(self, process: subprocess.Popen):
+        if process.stdout:
+            for line in process.stdout:
+                logger.info(f"Spark: {line}", end="")
+        else:
+            logger.warning(" No output captured for Spark sidecar.")
 
     async def cleanup(self):
         try:
