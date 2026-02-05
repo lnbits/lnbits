@@ -44,6 +44,9 @@ window.PageAccount = {
         themeChoice: 'salvador',
         bgimageChoice: '',
         gradientChoice: true,
+        cardRoundedChoice: false,
+        cardGradientChoice: false,
+        cardShadowChoice: false,
         darkChoice: true,
         borderChoice: 'hard-border',
         reactionChoice: 'confettiBothSides'

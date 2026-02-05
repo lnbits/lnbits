@@ -220,6 +220,145 @@ body.body--dark .q-drawer {
   backdrop-filter: blur(6px) brightness(0.8);
 }
 
+body.rounded-ui .q-card,
+body.rounded-ui .q-btn {
+  border-radius: 10px;
+}
+
+body[data-theme=classic].card-gradient .q-card:not(.q-dialog .q-card, .lnbits__dialog-card, .q-dialog-plugin--dark) {
+  background-image: linear-gradient(135deg, rgba(103, 58, 183, 0.08), rgba(156, 39, 176, 0.06));
+}
+body[data-theme=classic].card-gradient .q-drawer {
+  background-image: linear-gradient(165deg, rgba(103, 58, 183, 0.06), rgba(156, 39, 176, 0.04));
+}
+
+body[data-theme=classic].card-gradient.body--dark .q-card:not(.q-dialog .q-card, .lnbits__dialog-card, .q-dialog-plugin--dark) {
+  background-image: linear-gradient(135deg, rgb(38.6192771084, 42.356626506, 64.7807228916), rgba(103, 58, 183, 0.07));
+}
+body[data-theme=classic].card-gradient.body--dark .q-drawer {
+  background-image: linear-gradient(165deg, rgb(36.7144578313, 40.2674698795, 61.5855421687), rgba(103, 58, 183, 0.05));
+}
+
+body[data-theme=bitcoin].card-gradient .q-card:not(.q-dialog .q-card, .lnbits__dialog-card, .q-dialog-plugin--dark) {
+  background-image: linear-gradient(135deg, rgba(234, 97, 29, 0.08), rgba(229, 111, 53, 0.06));
+}
+body[data-theme=bitcoin].card-gradient .q-drawer {
+  background-image: linear-gradient(165deg, rgba(234, 97, 29, 0.06), rgba(229, 111, 53, 0.04));
+}
+
+body[data-theme=bitcoin].card-gradient.body--dark .q-card:not(.q-dialog .q-card, .lnbits__dialog-card, .q-dialog-plugin--dark) {
+  background-image: linear-gradient(135deg, rgb(54.18, 49.364, 71.036), rgba(234, 97, 29, 0.07));
+}
+body[data-theme=bitcoin].card-gradient.body--dark .q-drawer {
+  background-image: linear-gradient(165deg, rgb(51.885, 47.273, 68.027), rgba(234, 97, 29, 0.05));
+}
+
+body[data-theme=freedom].card-gradient .q-card:not(.q-dialog .q-card, .lnbits__dialog-card, .q-dialog-plugin--dark) {
+  background-image: linear-gradient(135deg, rgba(226, 33, 86, 0.08), rgba(185, 26, 69, 0.06));
+}
+body[data-theme=freedom].card-gradient .q-drawer {
+  background-image: linear-gradient(165deg, rgba(226, 33, 86, 0.06), rgba(185, 26, 69, 0.04));
+}
+
+body[data-theme=freedom].card-gradient.body--dark .q-card:not(.q-dialog .q-card, .lnbits__dialog-card, .q-dialog-plugin--dark) {
+  background-image: linear-gradient(135deg, rgb(82.2051282051, 55.1948717949, 63.4153846154), rgba(226, 33, 86, 0.07));
+}
+body[data-theme=freedom].card-gradient.body--dark .q-drawer {
+  background-image: linear-gradient(165deg, rgb(79.1538461538, 53.1461538462, 61.0615384615), rgba(226, 33, 86, 0.05));
+}
+
+body[data-theme=cyber].card-gradient .q-card:not(.q-dialog .q-card, .lnbits__dialog-card, .q-dialog-plugin--dark) {
+  background-image: linear-gradient(135deg, rgba(124, 179, 66, 0.08), rgba(85, 139, 47, 0.06));
+}
+body[data-theme=cyber].card-gradient .q-drawer {
+  background-image: linear-gradient(165deg, rgba(124, 179, 66, 0.06), rgba(85, 139, 47, 0.04));
+}
+
+body[data-theme=cyber].card-gradient.body--dark .q-card:not(.q-dialog .q-card, .lnbits__dialog-card, .q-dialog-plugin--dark) {
+  background-image: linear-gradient(135deg, rgb(10.2, 10.2, 10.2), rgba(124, 179, 66, 0.07));
+}
+body[data-theme=cyber].card-gradient.body--dark .q-drawer {
+  background-image: linear-gradient(165deg, rgb(7.65, 7.65, 7.65), rgba(124, 179, 66, 0.05));
+}
+
+body[data-theme=mint].card-gradient .q-card:not(.q-dialog .q-card, .lnbits__dialog-card, .q-dialog-plugin--dark) {
+  background-image: linear-gradient(135deg, rgba(58, 183, 125, 0.08), rgba(39, 176, 101, 0.06));
+}
+body[data-theme=mint].card-gradient .q-drawer {
+  background-image: linear-gradient(165deg, rgba(58, 183, 125, 0.06), rgba(39, 176, 101, 0.04));
+}
+
+body[data-theme=mint].card-gradient.body--dark .q-card:not(.q-dialog .q-card, .lnbits__dialog-card, .q-dialog-plugin--dark) {
+  background-image: linear-gradient(135deg, rgb(38.6192771084, 64.7807228916, 53.5686746988), rgba(58, 183, 125, 0.07));
+}
+body[data-theme=mint].card-gradient.body--dark .q-drawer {
+  background-image: linear-gradient(165deg, rgb(36.7144578313, 61.5855421687, 50.9265060241), rgba(58, 183, 125, 0.05));
+}
+
+body[data-theme=autumn].card-gradient .q-card:not(.q-dialog .q-card, .lnbits__dialog-card, .q-dialog-plugin--dark) {
+  background-image: linear-gradient(135deg, rgba(183, 118, 58, 0.08), rgba(176, 121, 39, 0.06));
+}
+body[data-theme=autumn].card-gradient .q-drawer {
+  background-image: linear-gradient(165deg, rgba(183, 118, 58, 0.06), rgba(176, 121, 39, 0.04));
+}
+
+body[data-theme=autumn].card-gradient.body--dark .q-card:not(.q-dialog .q-card, .lnbits__dialog-card, .q-dialog-plugin--dark) {
+  background-image: linear-gradient(135deg, rgb(64.7807228916, 51.0771084337, 38.6192771084), rgba(183, 118, 58, 0.07));
+}
+body[data-theme=autumn].card-gradient.body--dark .q-drawer {
+  background-image: linear-gradient(165deg, rgb(61.5855421687, 48.5578313253, 36.7144578313), rgba(183, 118, 58, 0.05));
+}
+
+body[data-theme=flamingo].card-gradient .q-card:not(.q-dialog .q-card, .lnbits__dialog-card, .q-dialog-plugin--dark) {
+  background-image: linear-gradient(135deg, rgba(255, 0, 255, 0.08), rgba(253, 163, 253, 0.06));
+}
+body[data-theme=flamingo].card-gradient .q-drawer {
+  background-image: linear-gradient(165deg, rgba(255, 0, 255, 0.06), rgba(253, 163, 253, 0.04));
+}
+
+body[data-theme=flamingo].card-gradient.body--dark .q-card:not(.q-dialog .q-card, .lnbits__dialog-card, .q-dialog-plugin--dark) {
+  background-image: linear-gradient(135deg, rgb(66.176, 4.224, 66.176), rgba(255, 0, 255, 0.07));
+}
+body[data-theme=flamingo].card-gradient.body--dark .q-drawer {
+  background-image: linear-gradient(165deg, rgb(61.382, 3.918, 61.382), rgba(255, 0, 255, 0.05));
+}
+
+body[data-theme=monochrome].card-gradient .q-card:not(.q-dialog .q-card, .lnbits__dialog-card, .q-dialog-plugin--dark) {
+  background-image: linear-gradient(135deg, rgba(73, 73, 73, 0.08), rgba(107, 107, 107, 0.06));
+}
+body[data-theme=monochrome].card-gradient .q-drawer {
+  background-image: linear-gradient(165deg, rgba(73, 73, 73, 0.06), rgba(107, 107, 107, 0.04));
+}
+
+body[data-theme=monochrome].card-gradient.body--dark .q-card:not(.q-dialog .q-card, .lnbits__dialog-card, .q-dialog-plugin--dark) {
+  background-image: linear-gradient(135deg, rgb(10.2, 10.2, 10.2), rgba(73, 73, 73, 0.07));
+}
+body[data-theme=monochrome].card-gradient.body--dark .q-drawer {
+  background-image: linear-gradient(165deg, rgb(7.65, 7.65, 7.65), rgba(73, 73, 73, 0.05));
+}
+
+body[data-theme=salvador].card-gradient .q-card:not(.q-dialog .q-card, .lnbits__dialog-card, .q-dialog-plugin--dark) {
+  background-image: linear-gradient(135deg, rgba(25, 118, 210, 0.08), rgba(38, 166, 154, 0.06));
+}
+body[data-theme=salvador].card-gradient .q-drawer {
+  background-image: linear-gradient(165deg, rgba(25, 118, 210, 0.06), rgba(38, 166, 154, 0.04));
+}
+
+body[data-theme=salvador].card-gradient.body--dark .q-card:not(.q-dialog .q-card, .lnbits__dialog-card, .q-dialog-plugin--dark) {
+  background-image: linear-gradient(135deg, rgb(43.9888888889, 64.2, 84.4111111111), rgba(25, 118, 210, 0.07));
+}
+body[data-theme=salvador].card-gradient.body--dark .q-drawer {
+  background-image: linear-gradient(165deg, rgb(42.2416666667, 61.65, 81.0583333333), rgba(25, 118, 210, 0.05));
+}
+
+body.card-shadow .q-card:not(.q-dialog .q-card, .lnbits__dialog-card, .q-dialog-plugin--dark) {
+  filter: drop-shadow(0 10px 24px rgba(0, 0, 0, 0.18));
+}
+
+body.card-shadow.body--dark .q-card:not(.q-dialog .q-card, .lnbits__dialog-card, .q-dialog-plugin--dark) {
+  filter: drop-shadow(0 12px 28px rgba(0, 0, 0, 0.45));
+}
+
 :root {
   --size: 100px;
   --gap: 25px;

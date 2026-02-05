@@ -296,6 +296,9 @@ class ThemesSettings(LNbitsSettings):
     lnbits_default_border: str = Field(default="hard-border")
     lnbits_default_gradient: bool = Field(default=True)
     lnbits_default_bgimage: str | None = Field(default=None)
+    lnbits_default_card_rounded: bool = Field(default=False)
+    lnbits_default_card_gradient: bool = Field(default=False)
+    lnbits_default_card_shadow: bool = Field(default=False)
 
 
 class OpsSettings(LNbitsSettings):
@@ -1186,6 +1189,9 @@ class PublicSettings(BaseModel):
     default_border: str = Field(alias="defaultBorder")
     default_bgimage: str | None = Field(alias="defaultBgimage")
     default_gradient: bool = Field(alias="defaultGradient")
+    default_card_rounded: bool = Field(alias="defaultCardRounded")
+    default_card_gradient: bool = Field(alias="defaultCardGradient")
+    default_card_shadow: bool = Field(alias="defaultCardShadow")
     denomination: str | None = Field()
     extensions: list[str] = Field()
     allowed_currencies: list[str] = Field(alias="allowedCurrencies")
@@ -1242,6 +1248,9 @@ class PublicSettings(BaseModel):
             defaultBorder=settings.lnbits_default_border,
             defaultGradient=settings.lnbits_default_gradient,
             defaultBgimage=settings.lnbits_default_bgimage,
+            defaultCardRounded=settings.lnbits_default_card_rounded,
+            defaultCardGradient=settings.lnbits_default_card_gradient,
+            defaultCardShadow=settings.lnbits_default_card_shadow,
             denomination=settings.lnbits_denomination,
             extensions=list(settings.lnbits_installed_extensions_ids),
             allowedCurrencies=settings.lnbits_allowed_currencies,
