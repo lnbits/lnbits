@@ -40,7 +40,7 @@ window.g = Vue.reactive({
   mobileSimple: localStore('lnbits.mobileSimple', true),
   walletFlip: localStore('lnbits.walletFlip', false),
   lastActiveWallet: localStore('lnbits.lastActiveWallet', null),
-  darkChoice: localStore('lnbits.darkMode', true),
+  darkChoice: localStore('lnbits.darkMode', SETTINGS.defaultDark),
   // cookie vars
   isUserAuthorized: !!Quasar.Cookies.get('is_lnbits_user_authorized'),
   isUserImpersonated: !!Quasar.Cookies.get('is_lnbits_user_impersonated'),

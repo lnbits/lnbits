@@ -296,6 +296,7 @@ class ThemesSettings(LNbitsSettings):
     lnbits_default_border: str = Field(default="hard-border")
     lnbits_default_gradient: bool = Field(default=True)
     lnbits_default_bgimage: str | None = Field(default=None)
+    lnbits_default_dark: bool = Field(default=True)
     lnbits_default_card_rounded: bool = Field(default=False)
     lnbits_default_card_gradient: bool = Field(default=False)
     lnbits_default_card_shadow: bool = Field(default=False)
@@ -1189,6 +1190,7 @@ class PublicSettings(BaseModel):
     default_border: str = Field(alias="defaultBorder")
     default_bgimage: str | None = Field(alias="defaultBgimage")
     default_gradient: bool = Field(alias="defaultGradient")
+    default_dark: bool = Field(alias="defaultDark")
     default_card_rounded: bool = Field(alias="defaultCardRounded")
     default_card_gradient: bool = Field(alias="defaultCardGradient")
     default_card_shadow: bool = Field(alias="defaultCardShadow")
@@ -1248,6 +1250,7 @@ class PublicSettings(BaseModel):
             defaultBorder=settings.lnbits_default_border,
             defaultGradient=settings.lnbits_default_gradient,
             defaultBgimage=settings.lnbits_default_bgimage,
+            defaultDark=settings.lnbits_default_dark,
             defaultCardRounded=settings.lnbits_default_card_rounded,
             defaultCardGradient=settings.lnbits_default_card_gradient,
             defaultCardShadow=settings.lnbits_default_card_shadow,
