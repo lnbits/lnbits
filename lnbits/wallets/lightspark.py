@@ -59,15 +59,23 @@ class LightsparkSparkWallet(Wallet):
     async def _request(
         self, method: str, path: str, json_data: dict[str, Any] | None = None
     ) -> dict[str, Any]:
+        error_message = None
         try:
             r = await self.client.request(method, path, json=json_data)
             r.raise_for_status()
             j = r.json()
         except (httpx.RequestError, httpx.HTTPStatusError, json.JSONDecodeError) as exc:
-            raise SparkSidecarError(f"Spark sidecar request failed: {exc}") from exc
+            if isinstance(exc, httpx.HTTPStatusError) and exc.response is not None:
+                try:
+                    error_json = exc.response.json()
+                    if "error" in error_json:
+                        error_message = error_json["error"]
+                except Exception as json_exc:
+                    logger.error(f"Failed to parse Spark error response as JSON: {json_exc}")
+            raise SparkSidecarError(error_message or f"Spark sidecar request error: '{exc}'") from exc
 
-        if j.get("error"):
-            raise SparkSidecarError(str(j["error"]))
+        if error_message or j.get("error"):
+            raise SparkSidecarError(error_message or f"Spark sidecar error: {j['error']}")
         return j
 
     async def status(self) -> StatusResponse:
@@ -128,6 +136,7 @@ class LightsparkSparkWallet(Wallet):
     async def pay_invoice(self, bolt11: str, fee_limit_msat: int) -> PaymentResponse:
         try:
             max_fee_sats = (int(fee_limit_msat) + 999) // 1000
+            
             payment_hash = None
             try:
                 payment_hash = bolt11_decode(bolt11).payment_hash
