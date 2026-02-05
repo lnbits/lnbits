@@ -298,6 +298,148 @@ async def test_register_ok(http_client: AsyncClient):
 
 
 @pytest.mark.anyio
+async def test_register_no_activation_code(
+    http_client: AsyncClient, settings: Settings
+):
+    settings.lnbits_require_user_activation = True
+
+    tiny_id = shortuuid.uuid()[:8]
+    response = await http_client.post(
+        "/api/v1/auth/register",
+        json={
+            "username": f"u21.{tiny_id}",
+            "password": "secret1234",
+            "password_repeat": "secret1234",
+            "email": f"u21.{tiny_id}@lnbits.com",
+        },
+    )
+
+    assert response.status_code == 400
+    assert response.json().get("detail") == "No activation method provided."
+
+    settings.lnbits_user_activation_by_invitation_code = True
+
+    response = await http_client.post(
+        "/api/v1/auth/register",
+        json={
+            "username": f"u21.{tiny_id}",
+            "password": "secret1234",
+            "password_repeat": "secret1234",
+            "email": f"u21.{tiny_id}@lnbits.com",
+        },
+    )
+
+    assert response.status_code == 400, "User creation blocked without activation code."
+    assert response.json().get("detail") == "Invitation code cannot be empty."
+
+
+@pytest.mark.anyio
+async def test_register_invalid_activation_code(
+    http_client: AsyncClient, settings: Settings
+):
+    settings.lnbits_require_user_activation = True
+    settings.lnbits_user_activation_by_invitation_code = True
+    settings.lnbits_register_reusable_activation_code = "foo"
+    settings.lnbits_register_one_time_activation_codes = ["baz", "qux"]
+
+    tiny_id = shortuuid.uuid()[:8]
+    response = await http_client.post(
+        "/api/v1/auth/register",
+        json={
+            "username": f"u21.{tiny_id}",
+            "password": "secret1234",
+            "password_repeat": "secret1234",
+            "email": f"u21.{tiny_id}@lnbits.com",
+            "invitation_code": "bar",
+        },
+    )
+
+    assert response.status_code == 400
+    assert response.json().get("detail") == "Invalid invitation code."
+
+
+@pytest.mark.anyio
+async def test_register_reusable_activation_code(
+    http_client: AsyncClient, settings: Settings
+):
+    settings.lnbits_require_user_activation = True
+    settings.lnbits_user_activation_by_invitation_code = True
+    settings.lnbits_register_reusable_activation_code = "foo"
+
+    tiny_id = shortuuid.uuid()[:8]
+    response = await http_client.post(
+        "/api/v1/auth/register",
+        json={
+            "username": f"u21.{tiny_id}",
+            "password": "secret1234",
+            "password_repeat": "secret1234",
+            "email": f"u21.{tiny_id}@lnbits.com",
+            "invitation_code": "foo",
+        },
+    )
+
+    assert response.status_code == 200, "User created with reusable code."
+    assert response.json().get("access_token") is not None
+
+    # Register again with the same code
+    tiny_id = shortuuid.uuid()[:8]
+    response = await http_client.post(
+        "/api/v1/auth/register",
+        json={
+            "username": f"u21.{tiny_id}",
+            "password": "secret1234",
+            "password_repeat": "secret1234",
+            "email": f"u21.{tiny_id}@lnbits.com",
+            "invitation_code": "foo",
+        },
+    )
+
+    assert response.status_code == 200, "User created with reusable code."
+    assert response.json().get("access_token") is not None
+
+
+@pytest.mark.anyio
+async def test_register_one_time_activation_code(
+    http_client: AsyncClient, settings: Settings
+):
+    settings.lnbits_require_user_activation = True
+    settings.lnbits_user_activation_by_invitation_code = True
+    settings.lnbits_register_reusable_activation_code = "foo"
+    settings.lnbits_register_one_time_activation_codes = ["baz", "qux"]
+
+    tiny_id = shortuuid.uuid()[:8]
+    response = await http_client.post(
+        "/api/v1/auth/register",
+        json={
+            "username": f"u21.{tiny_id}",
+            "password": "secret1234",
+            "password_repeat": "secret1234",
+            "email": f"u21.{tiny_id}@lnbits.com",
+            "invitation_code": "baz",
+        },
+    )
+
+    assert response.status_code == 200, "User created with one-time code."
+    assert response.json().get("access_token") is not None
+
+    # Register again with the same code
+    tiny_id = shortuuid.uuid()[:8]
+    response = await http_client.post(
+        "/api/v1/auth/register",
+        json={
+            "username": f"u21.{tiny_id}",
+            "password": "secret1234",
+            "password_repeat": "secret1234",
+            "email": f"u21.{tiny_id}@lnbits.com",
+            "invitation_code": "baz",
+        },
+    )
+
+    assert response.status_code == 400, "Invalid invitation code."
+    assert response.json().get("detail") == "Invalid invitation code."
+
+
+@pytest.mark.anyio
 async def test_register_email_twice(http_client: AsyncClient):
     tiny_id = shortuuid.uuid()[:8]
     response = await http_client.post(

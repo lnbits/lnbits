@@ -3,8 +3,10 @@ from uuid import uuid4
 
 from loguru import logger
 
+from lnbits.core.crud.settings import set_settings_field
 from lnbits.core.db import db
 from lnbits.core.models.extensions import UserExtension
+from lnbits.core.models.users import RegisterUser
 from lnbits.db import Connection
 from lnbits.settings import (
     EditableSettings,
@@ -192,3 +194,25 @@ async def init_admin_settings(super_user: str | None = None) -> SuperSettings:
 
     editable_settings = EditableSettings.from_dict(settings.dict())
     return await create_admin_settings(account.id, editable_settings.dict())
+
+
+async def check_register_activation_settings(data: RegisterUser):
+    if not settings.lnbits_require_user_activation:
+        return None
+    if settings.lnbits_user_activation_by_invitation_code:
+        code = data.invitation_code.strip() if data.invitation_code else ""
+        if len(code) == 0:
+            raise ValueError("Invitation code cannot be empty.")
+
+        if code == settings.lnbits_register_reusable_activation_code:
+            return None
+        if code in settings.lnbits_register_one_time_activation_codes:
+            settings.lnbits_register_one_time_activation_codes.remove(code)
+            await set_settings_field(
+                "lnbits_register_one_time_activation_codes",
+                settings.lnbits_register_one_time_activation_codes,
+            )
+            return None
+        raise ValueError("Invalid invitation code.")
+
+    raise ValueError("No activation method provided.")

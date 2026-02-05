@@ -63,6 +63,7 @@
                   v-model:user-name="username"
                   v-model:password_1="password"
                   v-model:password_2="passwordRepeat"
+                  v-model:invitation-code="invitationCode"
                   v-model:reset-key="reset_key"
                   @login="login"
                   @register="register"

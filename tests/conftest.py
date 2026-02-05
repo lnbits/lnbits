@@ -341,3 +341,7 @@ def _settings_cleanup(settings: Settings):
     settings.lnbits_max_outgoing_payment_amount_sats = 10_000_000_100
     settings.lnbits_max_incoming_payment_amount_sats = 10_000_000_200
     settings.stripe_limits = FiatProviderLimits()
+    settings.lnbits_require_user_activation = False
+    settings.lnbits_user_activation_by_invitation_code = False
+    settings.lnbits_register_reusable_activation_code = ""
+    settings.lnbits_register_one_time_activation_codes = []
