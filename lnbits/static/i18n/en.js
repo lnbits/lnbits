@@ -171,6 +171,7 @@ window.localisation.en = {
   drop_db: 'Remove Data',
   enable: 'Enable',
   enabled: 'Enabled',
+  disabled: 'Disabled',
   pay_to_enable: 'Pay To Enable',
   enable_extension_details: 'Enable extension for current user',
   disable: 'Disable',
@@ -284,7 +285,7 @@ window.localisation.en = {
     'Nip5 identifier to send notifications to',
   notifications_nostr_identifiers: 'Nostr Identifiers',
   notifications_nostr_identifiers_desc:
-    'List of identifiers to send notifications to',
+    'List of identifiers to send notifications to.',
 
   notifications_telegram_config: 'Telegram Configuration',
   notifications_enable_telegram: 'Enable Telegram',
@@ -708,6 +709,25 @@ window.localisation.en = {
   allowed_users_label: 'User ID',
   allow_creation_user: 'Allow creation of new users',
   allow_creation_user_desc: 'Allow creation of new users on the index page',
+  require_user_activation: 'Require user activation',
+  require_user_activation_desc:
+    'New users will be activated only after they pass one of the confirmation methods. Admins can activate users manually from the admin panel.',
+  reusable_activation_code: 'Reusable activation code',
+  reusable_activation_code_label: 'Reusable activation code',
+  reusable_activation_code_hint:
+    'This activation code can be used multiple times by different users.',
+  one_time_activation_code: 'One-time activation codes',
+  one_time_activation_code_label: 'Add activation code',
+  one_time_activation_code_hint:
+    'List of one-time activation codes. Each code can be used only once, then will be reomved from the list.',
+  invitation_code: 'Invitation Code',
+  invitation_code_hint: 'The invitation code that you have received.',
+  email: 'Email',
+  email_confirmation_hint: 'Email address to send the confirmation code to.',
+  nostr_identifier: 'Nostr Identifier',
+  nostr_identifier_hint:
+    'Nostr nip5 identifier or <npub> to send the confirmation code to.',
+
   new_user_not_allowed: 'Registration is disabled.',
   start_user_impersonation: 'Impersonate this user',
   stop_user_impersonation: 'Stop User Impersonation',

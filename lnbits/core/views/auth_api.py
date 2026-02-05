@@ -26,7 +26,10 @@ from lnbits.core.models.users import (
     UpdateAccessControlList,
 )
 from lnbits.core.services import create_user_account
-from lnbits.core.services.users import update_user_account
+from lnbits.core.services.users import (
+    check_register_activation_settings,
+    update_user_account,
+)
 from lnbits.decorators import (
     access_token_payload,
     check_account_exists,
@@ -365,6 +368,8 @@ async def register(data: RegisterUser) -> JSONResponse:
 
     if data.email and not is_valid_email_address(data.email):
         raise HTTPException(HTTPStatus.BAD_REQUEST, "Invalid email.")
+
+    await check_register_activation_settings(data)
 
     account = Account(
         id=uuid4().hex,
