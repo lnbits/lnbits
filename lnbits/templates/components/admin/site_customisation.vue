@@ -248,15 +248,6 @@
           </q-select>
         </div>
         <div class="col-12 col-sm-6 col-lg-3">
-          <q-toggle
-            type="bool"
-            v-model="formData.lnbits_default_dark"
-            color="primary"
-            :label="$t('toggle_darkmode')"
-          >
-          </q-toggle>
-        </div>
-        <div class="col-12 col-sm-6 col-lg-3">
           <q-input
             type="text"
             v-model="formData.lnbits_default_bgimage"
@@ -266,7 +257,9 @@
           >
           </q-input>
         </div>
-        <div class="col-12 col-sm-6 col-lg-3">
+      </div>
+      <div class="row q-col-gutter-md q-mb-md">
+        <div class="col-12 col-sm-6 col-lg-2">
           <q-toggle
             type="bool"
             v-model="formData.lnbits_default_gradient"
@@ -275,7 +268,16 @@
           >
           </q-toggle>
         </div>
-        <div class="col-12 col-sm-6 col-lg-3">
+        <div class="col-12 col-sm-6 col-lg-2">
+          <q-toggle
+            type="bool"
+            v-model="formData.lnbits_default_dark"
+            color="primary"
+            :label="$t('toggle_darkmode')"
+          >
+          </q-toggle>
+        </div>
+        <div class="col-12 col-sm-6 col-lg-2">
           <q-toggle
             type="bool"
             v-model="formData.lnbits_default_card_rounded"
@@ -284,7 +286,7 @@
           >
           </q-toggle>
         </div>
-        <div class="col-12 col-sm-6 col-lg-3">
+        <div class="col-12 col-sm-6 col-lg-2">
           <q-toggle
             type="bool"
             v-model="formData.lnbits_default_card_gradient"
@@ -293,7 +295,7 @@
           >
           </q-toggle>
         </div>
-        <div class="col-12 col-sm-6 col-lg-3">
+        <div class="col-12 col-sm-6 col-lg-2">
           <q-toggle
             type="bool"
             v-model="formData.lnbits_default_card_shadow"
