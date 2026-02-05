@@ -178,6 +178,8 @@ window.localisation.en = {
   installed: 'Installed',
   activated: 'Activated',
   deactivated: 'Deactivated',
+  activate: 'Activate',
+  deactivate: 'Deactivate',
   release_notes: 'Release Notes',
   activate_extension_details: 'Make extension available/unavailable for users',
   featured: 'Featured',
@@ -186,6 +188,8 @@ window.localisation.en = {
   only_admins_can_create_extensions:
     'Only admin accounts can create extensions',
   admin_only: 'Admin Only',
+  make_user_admin: 'Make User Admin',
+  revoke_admin: 'Revoke Admin',
   new_version: 'New Version',
   reviews_url: 'Reviews URL',
   reviews_url_label: 'Reviews server URL',

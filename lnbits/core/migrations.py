@@ -856,3 +856,11 @@ async def m043_add_ui_customization_to_accounts(db: Connection):
     Used for server side persistence of UI customization settings.
     """
     await db.execute("ALTER TABLE accounts ADD COLUMN ui_customization TEXT")
+
+
+async def m044_add_activated_to_accounts(db: Connection):
+    """
+    Adds activated column to accounts.
+    Used for account activation status.
+    """
+    await db.execute("ALTER TABLE accounts ADD COLUMN activated BOOLEAN DEFAULT true")

@@ -86,6 +86,7 @@ async def login(data: LoginUsernamePassword) -> JSONResponse:
     account = await get_account_by_username_or_email(data.username)
     if not account or not account.verify_password(data.password):
         raise HTTPException(HTTPStatus.UNAUTHORIZED, "Invalid credentials.")
+
     return _auth_success_response(account.username, account.id, account.email)
 
 
@@ -94,7 +95,7 @@ async def nostr_login(request: Request) -> JSONResponse:
     if not settings.is_auth_method_allowed(AuthMethods.nostr_auth_nip98):
         raise HTTPException(HTTPStatus.FORBIDDEN, "Login with Nostr Auth not allowed.")
     event = _nostr_nip98_event(request)
-    account = await get_account_by_pubkey(event["pubkey"])
+    account = await get_account_by_pubkey(event["pubkey"], active_only=False)
     if not account:
         account = Account(
             id=uuid4().hex,
@@ -102,6 +103,8 @@ async def nostr_login(request: Request) -> JSONResponse:
             extra=UserExtra(provider="nostr"),
         )
         await create_user_account(account)
+    if not account.activated:
+        raise HTTPException(HTTPStatus.UNAUTHORIZED, "User is not activated.")
     return _auth_success_response(account.username or "", account.id, account.email)
 
 
@@ -357,7 +360,7 @@ async def register(data: RegisterUser) -> JSONResponse:
     if not is_valid_username(data.username):
         raise HTTPException(HTTPStatus.BAD_REQUEST, "Invalid username.")
 
-    if await get_account_by_username(data.username):
+    if await get_account_by_username(data.username, active_only=False):
         raise HTTPException(HTTPStatus.BAD_REQUEST, "Username already exists.")
 
     if data.email and not is_valid_email_address(data.email):
@@ -527,7 +530,7 @@ async def _handle_sso_login(userinfo: OpenID, verified_user_id: str | None = Non
         raise HTTPException(HTTPStatus.BAD_REQUEST, "Invalid email.")
 
     redirect_path = "/wallet"
-    account = await get_account_by_email(email)
+    account = await get_account_by_email(email, active_only=False)
 
     if verified_user_id:
         if account:
