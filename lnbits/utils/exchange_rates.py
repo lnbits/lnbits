@@ -292,7 +292,8 @@ async def btc_rates(currency: str) -> list[tuple[str, float]]:
 async def btc_price(currency: str) -> float:
     rates = await btc_rates(currency)
     if not rates:
-        raise ValueError("Could not fetch any Bitcoin price.")
+        logger.warning("Could not fetch any Bitcoin price.")
+        return 0.0
     elif len(rates) == 1:
         logger.warning("Could only fetch one Bitcoin price.")
 
@@ -306,7 +307,8 @@ async def get_fiat_rate_and_price_satoshis(currency: str) -> tuple[float, float]
         f"btc-price-{currency}",
         settings.lnbits_exchange_rate_cache_seconds,
     )
-    return float(100_000_000 / price), price
+    rate = float(100_000_000 / price) if price > 0 else 0.0
+    return rate, price
 
 
 async def get_fiat_rate_satoshis(currency: str) -> float:
@@ -316,9 +318,13 @@ async def get_fiat_rate_satoshis(currency: str) -> float:
 
 async def fiat_amount_as_satoshis(amount: float, currency: str) -> int:
     rate = await get_fiat_rate_satoshis(currency)
-    return int(amount * (rate))
+    if rate > 0:
+        return int(amount * rate)
+    raise ValueError(f"Could not get exchange rate for {currency}.")
 
 
 async def satoshis_amount_as_fiat(amount: float, currency: str) -> float:
     rate = await get_fiat_rate_satoshis(currency)
-    return float(amount / rate)
+    if rate > 0:
+        return float(amount / rate)
+    raise ValueError(f"Could not get exchange rate for {currency}.")
