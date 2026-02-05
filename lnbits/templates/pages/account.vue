@@ -602,9 +602,7 @@
                   </div>
                   <q-card-section>
                     <q-btn
-                      @click="
-                        siteCustomisationChanged(defaultSiteCustomisation)
-                      "
+                      @click="resetThemeDefaults"
                       :label="$t('reset_defaults')"
                       filled
                       color="primary"

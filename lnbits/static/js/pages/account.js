@@ -40,16 +40,7 @@ window.PageAccount = {
         }
       ],
       defaultSiteCustomisation: {
-        locale: 'en',
-        themeChoice: 'salvador',
-        bgimageChoice: '',
-        gradientChoice: true,
-        cardRoundedChoice: false,
-        cardGradientChoice: false,
-        cardShadowChoice: false,
-        darkChoice: true,
-        borderChoice: 'hard-border',
-        reactionChoice: 'confettiBothSides'
+        locale: 'en'
       },
       reactionOptions: [
         'None',
@@ -701,6 +692,20 @@ window.PageAccount = {
       } catch (e) {
         LNbits.utils.notifyApiError(e)
       }
+    },
+    resetThemeDefaults() {
+      const defaults = {
+        themeChoice: this.g.settings.defaultTheme,
+        borderChoice: this.g.settings.defaultBorder,
+        gradientChoice: this.g.settings.defaultGradient,
+        bgimageChoice: this.g.settings.defaultBgimage || '',
+        reactionChoice: this.g.settings.defaultReaction,
+        darkChoice: this.g.settings.defaultDark,
+        cardRoundedChoice: this.g.settings.defaultCardRounded,
+        cardGradientChoice: this.g.settings.defaultCardGradient,
+        cardShadowChoice: this.g.settings.defaultCardShadow
+      }
+      this.siteCustomisationChanged(defaults)
     }
   },
 
