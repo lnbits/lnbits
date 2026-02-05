@@ -218,6 +218,26 @@
                 :label="$t('update_account')"
                 class="q-ml-md"
               ></q-btn>
+
+              <q-btn
+                v-if="activeUser.data.id"
+                outline
+                color="primary"
+                class="q-ml-md"
+              >
+                <q-toggle
+                  size="xs"
+                  color="secondary"
+                  v-model="activeUser.data.admin"
+                  @update:model-value="toggleAdmin(activeUser.data.id)"
+                  :label="
+                    activeUser.data.admin
+                      ? $t('revoke_admin')
+                      : $t('make_user_admin')
+                  "
+                >
+                </q-toggle>
+              </q-btn>
               <q-btn
                 v-else
                 @click="createUser()"
@@ -590,9 +610,9 @@
                   <q-btn
                     @click="showAccountPage(props.row.id)"
                     round
-                    icon="edit"
+                    :icon="props.row.is_admin ? 'admin_panel_settings' : 'edit'"
                     size="sm"
-                    color="secondary"
+                    :color="props.row.is_admin ? 'primary' : 'secondary'"
                     class="q-ml-xs"
                   >
                     <q-tooltip>
@@ -605,10 +625,18 @@
                     size="xs"
                     v-if="!props.row.is_super_user"
                     color="secondary"
-                    v-model="props.row.is_admin"
-                    @update:model-value="toggleAdmin(props.row.id)"
+                    v-model="props.row.activated"
+                    @update:model-value="toggleUserActivated(props.row.id)"
                   >
-                    <q-tooltip>Toggle Admin</q-tooltip>
+                    <q-tooltip
+                      ><span
+                        v-text="
+                          props.row.activated
+                            ? $t('deactivate')
+                            : $t('activate')
+                        "
+                      ></span
+                    ></q-tooltip>
                   </q-toggle>
                   <q-btn
                     round

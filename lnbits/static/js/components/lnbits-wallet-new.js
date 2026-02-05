@@ -97,6 +97,7 @@ window.app.component('lnbits-wallet-new', {
           this.g.lastWalletId = res.data.id
           this.$router.push(`/wallet/${res.data.id}`)
         })
+        .catch(LNbits.utils.notifyApiError)
     }
   },
   created() {
