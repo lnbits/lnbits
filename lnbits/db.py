@@ -12,7 +12,6 @@ from typing import Any, Generic, Literal, TypeVar, get_origin
 
 from loguru import logger
 from pydantic import BaseModel, ValidationError, root_validator
-from sqlalchemy import event
 from sqlalchemy.ext.asyncio import AsyncConnection, AsyncEngine, create_async_engine
 from sqlalchemy.sql import text
 
@@ -54,14 +53,6 @@ def compat_timestamp_placeholder(key: str):
         return f"cast(:{key} AS timestamp)"
     else:
         return f":{key}"
-
-
-def get_placeholder(model: Any, field: str) -> str:
-    type_ = model.__fields__[field].type_
-    if type_ == datetime:
-        return compat_timestamp_placeholder(field)
-    else:
-        return f":{field}"
 
 
 class Compat:
@@ -326,31 +317,7 @@ class Database(Compat):
         self.engine: AsyncEngine = create_async_engine(
             database_uri, echo=settings.debug_database
         )
-
-        if self.type in {POSTGRES, COCKROACH}:
-
-            @event.listens_for(self.engine.sync_engine, "connect")
-            def register_custom_types(dbapi_connection, *_):
-                def _parse_date(value) -> datetime:
-                    if value is None:
-                        value = "1970-01-01 00:00:00"
-                    f = "%Y-%m-%d %H:%M:%S.%f"
-                    if "." not in value:
-                        f = "%Y-%m-%d %H:%M:%S"
-                    # Parse and add UTC timezone info
-                    return datetime.strptime(value, f).replace(tzinfo=timezone.utc)
-
-                dbapi_connection.run_async(
-                    lambda connection: connection.set_type_codec(
-                        "TIMESTAMP",
-                        encoder=datetime,
-                        decoder=_parse_date,
-                        schema="pg_catalog",
-                    )
-                )
-
         self.lock = asyncio.Lock()
-
         logger.trace(f"database {self.type} added for {self.name}")
 
     @asynccontextmanager
@@ -663,7 +630,7 @@ def insert_query(table_name: str, model: BaseModel) -> str:
     placeholders = []
     keys = model_to_dict(model).keys()
     for field in keys:
-        placeholders.append(get_placeholder(model, field))
+        placeholders.append(f":{field}")
     # add quotes to keys to avoid SQL conflicts (e.g. `user` is a reserved keyword)
     fields = ", ".join([f'"{key}"' for key in keys])
     values = ", ".join(placeholders)
@@ -681,9 +648,8 @@ def update_query(
     """
     fields = []
     for field in model_to_dict(model).keys():
-        placeholder = get_placeholder(model, field)
         # add quotes to keys to avoid SQL conflicts (e.g. `user` is a reserved keyword)
-        fields.append(f'"{field}" = {placeholder}')
+        fields.append(f'"{field}" = :{field}')
     query = ", ".join(fields)
     return f"UPDATE {table_name} SET {query} {where}"  # noqa: S608
 
@@ -701,7 +667,12 @@ def model_to_dict(model: BaseModel) -> dict:
         if model.__fields__[key].field_info.extra.get("no_database", False):
             continue
         if isinstance(value, datetime):
-            _dict[key] = value.timestamp()
+            if DB_TYPE == SQLITE:
+                _dict[key] = value.timestamp()
+            else:
+                # remove tz. postgres and cockroach TIMESTAMP is not tz aware
+                # so it will throw if we dont remove the UTC.
+                _dict[key] = value.replace(tzinfo=None)
             continue
         if (
             type(type_) is type(BaseModel)
@@ -757,11 +728,7 @@ def dict_to_model(_row: dict, model: type[TModel]) -> TModel:  # noqa: C901
             if DB_TYPE == SQLITE:
                 _dict[key] = datetime.fromtimestamp(value, timezone.utc)
             else:
-                # Ensure PostgreSQL datetime values have timezone info
-                if isinstance(value, datetime) and value.tzinfo is None:
-                    _dict[key] = value.replace(tzinfo=timezone.utc)
-                else:
-                    _dict[key] = value
+                _dict[key] = value.replace(tzinfo=timezone.utc)
             continue
         if issubclass(type_, BaseModel):
             _dict[key] = dict_to_submodel(type_, value)
