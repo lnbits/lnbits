@@ -83,23 +83,26 @@ class LightsparkSparkWallet(Wallet):
             return
         logger.info(f"npm found: {npm_path}")
 
+        repo, branch = "spark_sidecar", "main"
+
+        node_modules_path = Path(self._sidecar_path, f"{repo}-{branch}")
         if not Path(self._sidecar_path, "package.json").is_file():
             logger.info("⏳ Downloading Spark sidecar.")
             await asyncio.to_thread(
                 download_url,
-                "https://github.com/lnbits/spark_sidecar/archive/refs/heads/main.zip",
-                Path(self._sidecar_path, "spark_sidecar.zip"),
+                f"https://github.com/lnbits/{repo}/archive/refs/heads/{branch}.zip",
+                Path(self._sidecar_path, f"{repo}.zip"),
             )
             logger.info("✅ Downloaded Spark sidecar.")
             logger.info("⏳ Extracting Spark sidecar.")
             shutil.unpack_archive(
-                Path(self._sidecar_path, "spark_sidecar.zip"),
+                Path(self._sidecar_path, f"{repo}.zip"),
                 self._sidecar_path,
             )
             logger.info("✅ Extracted Spark sidecar.")
             # todo: remove zip
 
-        node_modules_path = Path(self._sidecar_path, "spark_sidecar-main")
+
         if not Path(self._sidecar_path, node_modules_path, "node_modules").is_dir():
             result = subprocess.run(
                 ["npm", "install"],
@@ -118,7 +121,7 @@ class LightsparkSparkWallet(Wallet):
             cwd=str(node_modules_path),
             capture_output=True,
             text=True,
-            check=True, # raises an exception if node fails
+            # check=True, # raises an exception if node fails
         )
 
         print("### Spark sidecar output:")
