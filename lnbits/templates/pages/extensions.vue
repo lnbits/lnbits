@@ -178,7 +178,7 @@
                   "
                   :clickable="!!reviewsUrl"
                   @click="openReviews(extension)"
-                />
+                ></lnbits-extension-rating>
                 <q-btn-group size="xs" style="margin: 5px 0">
                   <q-btn
                     v-if="extension.hasFreeRelease"
