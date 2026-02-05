@@ -318,7 +318,7 @@ class RegisterUser(BaseModel):
     username: str = Query(default=..., min_length=2, max_length=20)
     password: str = Query(default=..., min_length=8, max_length=50)
     password_repeat: str = Query(default=..., min_length=8, max_length=50)
-    invitation_code: str | None = Query(default=None, min_length=1, max_length=256)
+    invitation_code: str | None = Query(default=None, max_length=256)
 
 
 class CreateUser(BaseModel):
