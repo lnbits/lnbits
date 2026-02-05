@@ -57,9 +57,7 @@ Below is a side-by-side comparison of Lightning funding sources you can use with
 | **LN.tips**                    | Custodial/Self-Custodial | Depends on provider | Medium                         | ❌                        | Low               | Provider-managed         | Moderate          | Low                    | Transaction fees may apply                   | Medium          | Simple hosted service; use LN.tips API as your backend.                                    |
 | **Fake Wallet**                | Testing (simulated)      | ❌                  | Low                            | ❌                        | N/A               | N/A                      | Easy              | Low                    | None (test only)                             | N/A             | For testing only; mints accounting units in LNbits (no real sats, unit name configurable). |
 
-
-TODO: add Spark
----
+## TODO: add Spark
 
 ### Notes for readers
 

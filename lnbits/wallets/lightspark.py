@@ -1,14 +1,17 @@
 import asyncio
 import hashlib
 import json
+import shutil
+import subprocess
 from collections.abc import AsyncGenerator
+from pathlib import Path
 from typing import Any, cast
 
 import httpx
 from bolt11 import decode as bolt11_decode
 from loguru import logger
 
-from lnbits.helpers import normalize_endpoint
+from lnbits.helpers import download_url, normalize_endpoint
 from lnbits.settings import settings
 
 from .base import (
@@ -38,21 +41,77 @@ class LightsparkSparkWallet(Wallet):
     """
 
     def __init__(self):
+        self._status = "Initializing"
+        self._sidecar_path = Path(settings.lnbits_data_folder, "light_spark")
         self.pending_invoices: list[str] = []
         self.endpoint = normalize_endpoint(cast(str, settings.spark_l2_endpoint))
         api_key = settings.spark_l2_api_key
         headers = {"User-Agent": settings.user_agent}
         if api_key:
             headers["X-Api-Key"] = api_key
+
+        self.sidecar_task = asyncio.create_task(self._start_sidecar())
+
         self.client = httpx.AsyncClient(
             base_url=self.endpoint,
             headers=headers,
             timeout=60,
         )
 
+    async def _start_sidecar(self):
+        logger.info("Starting Spark sidecar")
+        npm_path = shutil.which("npm")
+        if not npm_path:
+            logger.error("npm not found in PATH, cannot start Spark sidecar")
+            return
+        logger.info(f"npm found: {npm_path}")
+
+        if not Path(self._sidecar_path, "package.json").is_file():
+            logger.info("⏳ Downloading Spark sidecar.")
+            await asyncio.to_thread(
+                download_url,
+                "https://github.com/lnbits/spark_sidecar/archive/refs/heads/main.zip",
+                Path(self._sidecar_path, "spark_sidecar.zip"),
+            )
+            logger.info("✅ Downloaded Spark sidecar.")
+            logger.info("⏳ Extracting Spark sidecar.")
+            shutil.unpack_archive(
+                Path(self._sidecar_path, "spark_sidecar.zip"),
+                self._sidecar_path,
+            )
+            logger.info("✅ Extracted Spark sidecar.")
+            # todo: remove zip
+
+        node_modules_path = Path(self._sidecar_path, "spark_sidecar-main")
+        if not Path(self._sidecar_path, node_modules_path, "node_modules").is_dir():
+            result = subprocess.run(
+                ["npm", "install"],
+                cwd=str(node_modules_path),
+                capture_output=True,
+                text=True,
+                check=True, # raises an exception if npm fails
+            )
+            print("### npm install output:")
+            print(result.stdout)
+            print(result.stderr)
+
+        print("### Starting Spark sidecar node server")
+        result = subprocess.run(
+            ["node", "server.mjs"],
+            cwd=str(node_modules_path),
+            capture_output=True,
+            text=True,
+            check=True, # raises an exception if node fails
+        )
+
+        print("### Spark sidecar output:")
+        print(result.stdout)
+        print(result.stderr)
+
     async def cleanup(self):
         try:
             await self.client.aclose()
+            self.sidecar_task.cancel()
         except RuntimeError as e:
             logger.warning(f"Error closing wallet connection: {e}")
 
