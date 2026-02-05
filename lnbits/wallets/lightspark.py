@@ -75,6 +75,56 @@ class LightsparkSparkWallet(Wallet):
             timeout=60,
         )
 
+    async def _start_sidecar(self):
+        logger.info("Starting Spark sidecar")
+        npm_path = shutil.which("npm")
+        if not npm_path:
+            logger.error("npm not found in PATH, cannot start Spark sidecar")
+            return
+        logger.info(f"npm found: {npm_path}")
+
+        if not Path(self._sidecar_path, "package.json").is_file():
+            logger.info("⏳ Downloading Spark sidecar.")
+            await asyncio.to_thread(
+                download_url,
+                "https://github.com/lnbits/spark_sidecar/archive/refs/heads/main.zip",
+                Path(self._sidecar_path, "spark_sidecar.zip"),
+            )
+            logger.info("✅ Downloaded Spark sidecar.")
+            logger.info("⏳ Extracting Spark sidecar.")
+            shutil.unpack_archive(
+                Path(self._sidecar_path, "spark_sidecar.zip"),
+                self._sidecar_path,
+            )
+            logger.info("✅ Extracted Spark sidecar.")
+            # todo: remove zip
+
+        node_modules_path = Path(self._sidecar_path, "spark_sidecar-main")
+        if not Path(self._sidecar_path, node_modules_path, "node_modules").is_dir():
+            result = subprocess.run(
+                ["npm", "install"],
+                cwd=str(node_modules_path),
+                capture_output=True,
+                text=True,
+                check=True, # raises an exception if npm fails
+            )
+            print("### npm install output:")
+            print(result.stdout)
+            print(result.stderr)
+
+        print("### Starting Spark sidecar node server")
+        result = subprocess.run(
+            ["node", "server.mjs"],
+            cwd=str(node_modules_path),
+            capture_output=True,
+            text=True,
+            check=True, # raises an exception if node fails
+        )
+
+        print("### Spark sidecar output:")
+        print(result.stdout)
+        print(result.stderr)
+
     async def cleanup(self):
         try:
             await self.client.aclose()
