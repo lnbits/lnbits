@@ -14,7 +14,7 @@ from coincurve.keys import PrivateKey
 from embit.bip39 import mnemonic_from_bytes, mnemonic_is_valid
 from loguru import logger
 
-from lnbits.helpers import download_url, normalize_endpoint
+from lnbits.helpers import download_url, normalize_endpoint, urlsafe_short_hash
 from lnbits.settings import settings
 
 from .base import (
@@ -383,6 +383,7 @@ class LightsparkSparkWallet(Wallet):
         await set_settings_field("spark_l2_mnemonic", words)
 
     async def _start_sidecar_process(self, node_path: str, node_modules_path: Path):
+        print(f"### Starting Spark sidecar with NODE_PATH={node_path} in {node_modules_path}")
         logger.info("Starting Spark sidecar node process.")
 
         await self._check_mnemonic()
@@ -393,6 +394,7 @@ class LightsparkSparkWallet(Wallet):
             "SPARK_PAY_WAIT_MS": str(settings.spark_l2_pay_wait_ms),
             "SPARK_MNEMONIC": str(settings.spark_l2_mnemonic),
         }
+        print("### Spark sidecar environment variables:",env)
 
         process = subprocess.Popen(  # noqa: S603
             [node_path, "server.mjs"],
