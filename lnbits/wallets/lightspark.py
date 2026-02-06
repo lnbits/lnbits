@@ -11,7 +11,7 @@ import httpx
 from bolt11 import decode as bolt11_decode
 from loguru import logger
 
-from lnbits.helpers import download_url, normalize_endpoint
+from lnbits.helpers import download_url, normalize_endpoint, urlsafe_short_hash
 from lnbits.settings import settings
 
 from .base import (
@@ -43,20 +43,24 @@ class LightsparkSparkWallet(Wallet):
     def __init__(self):
         self._status = "Initializing"
         self._sidecar_path = Path(settings.lnbits_data_folder, "light_spark")
+
         self.pending_invoices: list[str] = []
 
-        self.endpoint = normalize_endpoint(cast(str, settings.spark_l2_endpoint))
-        self.network = "MAINNET"
-        self.pay_wait_ms = 20000
-        self.mnemonic = (
-            "garage soldier inch broccoli"
-            " prize owner build dignity slam embark mouse drill"
-        )
+        if settings.spark_l2_external_endpoint:
+            self.endpoint = normalize_endpoint(
+                cast(str, settings.spark_l2_external_endpoint)
+            )
+            logger.info(f"Using external Spark sidecar endpoint: {self.endpoint}")
+        else:
+            self.endpoint = "http://127.0.0.1:8765"
+            logger.info(f"Using internal Spark sidecar endpoint: {self.endpoint}")
 
-        api_key = settings.spark_l2_api_key
-        headers = {"User-Agent": settings.user_agent}
-        if api_key:
-            headers["X-Api-Key"] = api_key
+        if settings.spark_l2_external_api_key:
+            self._api_key = settings.spark_l2_external_api_key
+        else:
+            self._api_key = urlsafe_short_hash()
+
+        headers = {"User-Agent": settings.user_agent, "X-Api-Key": self._api_key}
 
         self.sidecar_task = asyncio.create_task(self._start_sidecar())
 
@@ -325,13 +329,13 @@ class LightsparkSparkWallet(Wallet):
         else:
             logger.info("Spark sidecar already downloaded.")
 
-        if not Path(self._sidecar_path, node_modules_path, "node_modules").is_dir():
+        if not Path(node_modules_path, "node_modules").is_dir():
             self._install_sidecar_packages(node_modules_path)
         else:
             logger.info("Spark sidecar npm dependencies already installed.")
 
     def _install_sidecar_packages(self, node_modules_path: Path):
-        logger.info("Installing Spark sidecar npm dependencies")
+        logger.info(f"Installing Spark sidecar npm dependencies {node_modules_path}")
         npm_path = shutil.which("npm")
         if not npm_path:
             logger.error("npm not found in PATH, cannot start Spark sidecar")
@@ -352,13 +356,16 @@ class LightsparkSparkWallet(Wallet):
         logger.error(result.stderr)
 
     async def _start_sidecar_process(self, node_path: str, node_modules_path: Path):
+        print(f"### Starting Spark sidecar with NODE_PATH={node_path} in {node_modules_path}")
         logger.info("Starting Spark sidecar node process.")
 
         env = {
-            "SPARK_NETWORK": self.network,
-            "SPARK_PAY_WAIT_MS": str(self.pay_wait_ms),
-            "SPARK_MNEMONIC": self.mnemonic,
+            "SPARK_NETWORK": settings.spark_l2_network,
+            "API_KEY": self._api_key or "",
+            "SPARK_PAY_WAIT_MS": str(settings.spark_l2_pay_wait_ms),
+            "SPARK_MNEMONIC": str(settings.spark_l2_mnemonic),
         }
+        print("### Spark sidecar environment variables:",env)
 
         process = subprocess.Popen(  # noqa: S603
             [node_path, "server.mjs"],
