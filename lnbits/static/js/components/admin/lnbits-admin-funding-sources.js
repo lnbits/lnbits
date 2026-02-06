@@ -232,12 +232,36 @@ window.app.component('lnbits-admin-funding-sources', {
           'LightsparkSparkWallet',
           'Spark (L2)',
           {
-            spark_l2_endpoint: {
-              label: 'Sidecar Endpoint',
-              value: 'http://127.0.0.1:8765'
+            spark_l2_mnemonic: {
+              label: 'Mnemonic'
             },
-            spark_l2_api_key: {
-              label: 'Sidecar API Key',
+            spark_l2_network: {
+              label: 'Network',
+              value: 'MAINNET'
+            },
+            spark_l2_external_endpoint: {
+              label:
+                'Sidecar Endpoint (only if you do not want to use the default sidecar at http://127.0.0.1:8765)',
+              value: '',
+              advanced: true
+            },
+            spark_l2_external_api_key: {
+              label:
+                'Sidecar API Key (only if you do not want to use the default sidecar at http://127.0.0.1:8765)',
+              value: '',
+              advanced: true
+            },
+
+            spark_l2_pay_wait_ms: {
+              label: 'Pay Wait Time (ms)',
+              advanced: true
+            },
+            spark_l2_pay_poll_ms: {
+              label: 'Pay Poll Time (ms)',
+              advanced: true
+            },
+            spark_l2_stream_keepalive_ms: {
+              label: 'Stream Keepalive Time (ms)',
               advanced: true
             }
           }
