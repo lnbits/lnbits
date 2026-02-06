@@ -3,6 +3,7 @@ import hashlib
 import json
 import shutil
 import subprocess
+import uuid
 from collections.abc import AsyncGenerator
 from pathlib import Path
 from typing import Any, cast
@@ -11,7 +12,7 @@ import httpx
 from bolt11 import decode as bolt11_decode
 from loguru import logger
 
-from lnbits.helpers import download_url, normalize_endpoint, urlsafe_short_hash
+from lnbits.helpers import download_url, normalize_endpoint
 from lnbits.settings import settings
 
 from .base import (
@@ -58,7 +59,7 @@ class LightsparkSparkWallet(Wallet):
         if settings.spark_l2_external_api_key:
             self._api_key = settings.spark_l2_external_api_key
         else:
-            self._api_key = urlsafe_short_hash()
+            self._api_key = uuid.uuid4().hex
 
         headers = {"User-Agent": settings.user_agent, "X-Api-Key": self._api_key}
 
@@ -356,16 +357,14 @@ class LightsparkSparkWallet(Wallet):
         logger.error(result.stderr)
 
     async def _start_sidecar_process(self, node_path: str, node_modules_path: Path):
-        print(f"### Starting Spark sidecar with NODE_PATH={node_path} in {node_modules_path}")
         logger.info("Starting Spark sidecar node process.")
 
         env = {
             "SPARK_NETWORK": settings.spark_l2_network,
-            "API_KEY": self._api_key or "",
+            "SPARK_SIDECAR_API_KEY": self._api_key or "",
             "SPARK_PAY_WAIT_MS": str(settings.spark_l2_pay_wait_ms),
             "SPARK_MNEMONIC": str(settings.spark_l2_mnemonic),
         }
-        print("### Spark sidecar environment variables:",env)
 
         process = subprocess.Popen(  # noqa: S603
             [node_path, "server.mjs"],
