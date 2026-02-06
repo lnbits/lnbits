@@ -1,7 +1,6 @@
 import asyncio
 import hashlib
 import json
-import os
 import shutil
 import subprocess
 from collections.abc import AsyncGenerator
@@ -60,106 +59,12 @@ class LightsparkSparkWallet(Wallet):
             headers["X-Api-Key"] = api_key
 
         self.sidecar_task = asyncio.create_task(self._start_sidecar())
-        print("###" \
-        " after side car start")
 
         self.client = httpx.AsyncClient(
             base_url=self.endpoint,
             headers=headers,
             timeout=60,
         )
-
-    async def _start_sidecar(self):
-        logger.info("Starting Spark sidecar")
-        node_path = shutil.which("node")
-        if not node_path:
-            logger.error("Node.js not found in PATH, cannot start Spark sidecar")
-            return
-        logger.info(f"Node.js found: {node_path}")
-
-        repo, branch = "spark_sidecar", "main"
-
-        node_modules_path = Path(self._sidecar_path, f"{repo}-{branch}")
-        if not Path(node_modules_path, "package.json").is_file():
-            logger.info("⏳ Downloading Spark sidecar.")
-            await asyncio.to_thread(
-                download_url,
-                f"https://github.com/lnbits/{repo}/archive/refs/heads/{branch}.zip",
-                Path(self._sidecar_path, f"{repo}.zip"),
-            )
-            logger.info("✅ Downloaded Spark sidecar.")
-            logger.info("⏳ Extracting Spark sidecar.")
-            shutil.unpack_archive(
-                Path(self._sidecar_path, f"{repo}.zip"),
-                self._sidecar_path,
-            )
-            logger.info("✅ Extracted Spark sidecar.")
-            # todo: remove zip
-        else:
-            logger.info("Spark sidecar already downloaded.")
-
-        print("### Checking Spark sidecar npm dependencies", Path(self._sidecar_path, node_modules_path, "node_modules"))
-        if not Path(self._sidecar_path, node_modules_path, "node_modules").is_dir():
-            logger.debug("Installing Spark sidecar npm dependencies")
-            npm_path = shutil.which("npm")
-            if not npm_path:
-                logger.error("npm not found in PATH, cannot start Spark sidecar")
-                return
-            logger.info(f"npm found: {npm_path}")
-
-            result = subprocess.run(
-                [npm_path, "install"],
-                cwd=str(node_modules_path),
-                capture_output=True,
-                text=True,
-                check=True,  # raises an exception if npm fails
-            )
-            logger.debug("Spark sidecar npm dependencies installed")
-            print("### npm install output:")
-            print(result.stdout)
-            print(result.stderr)
-
-        print("### Starting Spark sidecar node server")
-
-        # env = os.environ.copy()
-        env = {}
-        env["SPARK_NETWORK"] = self.network
-        env["SPARK_PAY_WAIT_MS"] = str(self.pay_wait_ms)
-        env["SPARK_MNEMONIC"] = self.mnemonic
-
-        # result = subprocess.run(
-        #     ["node", "server.mjs"],
-        #     cwd=str(node_modules_path),
-        #     # capture_output=True,
-        #     text=True,
-        #     check=True, # raises an exception if node fails
-        #     env=env,
-        # )
-
-        print("### Spark sidecar output:")
-        # print(result.stdout)
-        # print(result.stderr)
-
-        process = subprocess.Popen(
-            [node_path, "server.mjs"],
-            env=env,
-            cwd=str(node_modules_path),
-            stdout=subprocess.PIPE,
-            stderr=subprocess.STDOUT,
-            text=True,
-        )
-
-        print("### Spark sidecar DONE")
-        await asyncio.to_thread(
-                self._log_process_output, process
-            )
-
-    def _log_process_output(self, process: subprocess.Popen):
-        if process.stdout:
-            for line in process.stdout:
-                logger.info(f"Spark: {line}", end="")
-        else:
-            logger.warning(" No output captured for Spark sidecar.")
 
     async def cleanup(self):
         try:
@@ -399,3 +304,99 @@ class LightsparkSparkWallet(Wallet):
                     f"'{exc}' retrying in 5 seconds"
                 )
                 await asyncio.sleep(5)
+
+    async def _start_sidecar(self):
+        logger.info("Starting Spark sidecar")
+        node_path = shutil.which("node")
+        if not node_path:
+            logger.error("Node.js not found in PATH, cannot start Spark sidecar")
+            return
+        logger.info(f"Node.js found: {node_path}")
+
+        repo, branch = "spark_sidecar", "main"
+        node_modules_path = Path(self._sidecar_path, f"{repo}-{branch}")
+        await self._prepare_sidecar(repo, branch, node_modules_path)
+
+        await self._start_sidecar_process(node_path, node_modules_path)
+
+    async def _prepare_sidecar(self, repo: str, branch: str, node_modules_path: Path):
+        if not Path(node_modules_path, "package.json").is_file():
+            await self._download_sidecar(repo, branch)
+        else:
+            logger.info("Spark sidecar already downloaded.")
+
+        if not Path(self._sidecar_path, node_modules_path, "node_modules").is_dir():
+            self._install_sidecar_packages(node_modules_path)
+        else:
+            logger.info("Spark sidecar npm dependencies already installed.")
+
+    def _install_sidecar_packages(self, node_modules_path: Path):
+        logger.info("Installing Spark sidecar npm dependencies")
+        npm_path = shutil.which("npm")
+        if not npm_path:
+            logger.error("npm not found in PATH, cannot start Spark sidecar")
+            return
+        logger.info(f"npm found: {npm_path}")
+
+        result = subprocess.run(  # noqa: S603
+            [npm_path, "install"],
+            cwd=str(node_modules_path),
+            capture_output=True,
+            text=True,
+            shell=False,
+            check=True,  # raises an exception if npm fails
+        )
+        logger.info("Spark sidecar npm dependencies installed.")
+        logger.info("npm install output:")
+        logger.info(result.stdout)
+        logger.error(result.stderr)
+
+    async def _start_sidecar_process(self, node_path: str, node_modules_path: Path):
+        logger.info("Starting Spark sidecar node process.")
+
+        env = {
+            "SPARK_NETWORK": self.network,
+            "SPARK_PAY_WAIT_MS": str(self.pay_wait_ms),
+            "SPARK_MNEMONIC": self.mnemonic,
+        }
+
+        process = subprocess.Popen(  # noqa: S603
+            [node_path, "server.mjs"],
+            env=env,
+            cwd=str(node_modules_path),
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+            shell=False,
+            text=True,
+        )
+
+        logger.info("Started Spark sidecar node process.")
+        await asyncio.to_thread(self._log_process_output, process)
+
+    async def _download_sidecar(self, repo: str, branch: str):
+        logger.info("⏳ Downloading Spark sidecar.")
+        zip_path = Path(self._sidecar_path, f"{repo}.zip")
+
+        await asyncio.to_thread(
+            download_url,
+            f"https://github.com/lnbits/{repo}/archive/refs/heads/{branch}.zip",
+            zip_path,
+        )
+        logger.info("✅ Downloaded Spark sidecar.")
+
+        logger.info("⏳ Extracting Spark sidecar.")
+
+        shutil.unpack_archive(
+            zip_path,
+            self._sidecar_path,
+        )
+        logger.info("✅ Extracted Spark sidecar.")
+        shutil.rmtree(zip_path, ignore_errors=True)
+        # todo: remove zip
+
+    def _log_process_output(self, process: subprocess.Popen):
+        if process.stdout:
+            for line in process.stdout:
+                logger.warning(f"[Lightspark]: {line}", end="")
+        else:
+            logger.error(" No output captured for Spark sidecar.")
