@@ -10,6 +10,8 @@ from typing import Any, cast
 
 import httpx
 from bolt11 import decode as bolt11_decode
+from coincurve.keys import PrivateKey
+from embit.bip39 import mnemonic_from_bytes, mnemonic_is_valid
 from loguru import logger
 
 from lnbits.helpers import download_url, normalize_endpoint
@@ -364,8 +366,26 @@ class LightsparkSparkWallet(Wallet):
         logger.info(result.stdout)
         logger.error(result.stderr)
 
+    async def _check_mnemonic(self):
+        if settings.spark_l2_mnemonic and len(settings.spark_l2_mnemonic) > 0:
+            valid = mnemonic_is_valid(settings.spark_l2_mnemonic)
+            if not valid:
+                logger.warning("SPARK_L2_MNEMONIC is set but invalid. Please recheck!")
+
+            return
+
+        logger.info("SPARK_L2_MNEMONIC is not set, generating random mnemonic.")
+
+        words = mnemonic_from_bytes(PrivateKey().secret)
+        settings.spark_l2_mnemonic = words
+        from lnbits.core.crud.settings import set_settings_field
+
+        await set_settings_field("spark_l2_mnemonic", words)
+
     async def _start_sidecar_process(self, node_path: str, node_modules_path: Path):
         logger.info("Starting Spark sidecar node process.")
+
+        await self._check_mnemonic()
 
         env = {
             "SPARK_NETWORK": settings.spark_l2_network,
@@ -412,6 +432,6 @@ class LightsparkSparkWallet(Wallet):
     def _log_process_output(self, process: subprocess.Popen):
         if process.stdout:
             for line in process.stdout:
-                logger.warning(f"[Lightspark]: {line}", end="")
+                logger.info(f"[Lightspark]: {line}", end="")
         else:
             logger.error(" No output captured for Spark sidecar.")

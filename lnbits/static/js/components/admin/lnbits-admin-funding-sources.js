@@ -238,8 +238,9 @@ window.app.component('lnbits-admin-funding-sources', {
               value: ''
             },
             spark_l2_mnemonic: {
-              label: 'Mnemonic',
-              hint: 'Only required if Interna Sidecar version is specified.'
+              label:
+                'Mnemonic (only required if Internal Sidecar version is specified.)',
+              hint: 'Even if a random mnemonic is generated, it is strongly recommended to use your own mnemonic.'
             },
             spark_l2_network: {
               label: 'Network',
