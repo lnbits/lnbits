@@ -93,11 +93,17 @@ class LightsparkSparkWallet(Wallet):
                     if "error" in error_json:
                         error_message = error_json["error"]
                 except Exception as json_exc:
-                    logger.error(f"Failed to parse Spark error response as JSON: {json_exc}")
-            raise SparkSidecarError(error_message or f"Spark sidecar request error: '{exc}'") from exc
+                    logger.error(
+                        f"Failed to parse Spark error response as JSON: {json_exc}"
+                    )
+            raise SparkSidecarError(
+                error_message or f"Spark sidecar request error: '{exc}'"
+            ) from exc
 
         if error_message or j.get("error"):
-            raise SparkSidecarError(error_message or f"Spark sidecar error: {j['error']}")
+            raise SparkSidecarError(
+                error_message or f"Spark sidecar error: {j['error']}"
+            )
         return j
 
     async def status(self) -> StatusResponse:
@@ -158,7 +164,7 @@ class LightsparkSparkWallet(Wallet):
     async def pay_invoice(self, bolt11: str, fee_limit_msat: int) -> PaymentResponse:
         try:
             max_fee_sats = (int(fee_limit_msat) + 999) // 1000
-            
+
             payment_hash = None
             try:
                 payment_hash = bolt11_decode(bolt11).payment_hash
