@@ -156,7 +156,7 @@ class LightsparkSparkWallet(Wallet):
                 "payment_hash": payment_hash,
             }
             res = await self._request("POST", "/v1/payments", payload)
-            checking_id = payment_hash or res.get("checking_id")  # todo: preimage
+            checking_id = payment_hash or res.get("checking_id")
             if not checking_id:
                 return PaymentResponse(
                     ok=False,
