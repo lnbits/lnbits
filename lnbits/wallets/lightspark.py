@@ -47,23 +47,25 @@ class LightsparkSparkWallet(Wallet):
 
         self.pending_invoices: list[str] = []
 
-        if settings.spark_l2_external_endpoint:
+        self.endpoint = "http://127.0.0.1:8765"
+        self._api_key = uuid.uuid4().hex
+        if settings.spark_l2_internal_sidecar_version:
+            self._sidecar_version = settings.spark_l2_internal_sidecar_version
+            self.sidecar_task = asyncio.create_task(self._start_sidecar())
+            logger.info(f"Internal Spark sidecar ({self._sidecar_version}).")
+        elif settings.spark_l2_external_endpoint:
             self.endpoint = normalize_endpoint(
                 cast(str, settings.spark_l2_external_endpoint)
             )
+            self._api_key = settings.spark_l2_external_api_key
             logger.info(f"Using external Spark sidecar endpoint: {self.endpoint}")
         else:
-            self.endpoint = "http://127.0.0.1:8765"
-            logger.info(f"Using internal Spark sidecar endpoint: {self.endpoint}")
-
-        if settings.spark_l2_external_api_key:
-            self._api_key = settings.spark_l2_external_api_key
-        else:
-            self._api_key = uuid.uuid4().hex
+            logger.error(
+                "No Spark sidecar configuration found. Please set either "
+                "spark_l2_internal_sidecar_version or spark_l2_external_endpoint."
+            )
 
         headers = {"User-Agent": settings.user_agent, "X-Api-Key": self._api_key}
-
-        self.sidecar_task = asyncio.create_task(self._start_sidecar())
 
         self.client = httpx.AsyncClient(
             base_url=self.endpoint,
@@ -324,15 +326,15 @@ class LightsparkSparkWallet(Wallet):
             return
         logger.info(f"Node.js found: {node_path}")
 
-        repo, branch = "spark_sidecar", "main"
-        node_modules_path = Path(self._sidecar_path, f"{repo}-{branch}")
-        await self._prepare_sidecar(repo, branch, node_modules_path)
+        repo, version = "spark_sidecar", self._sidecar_version
+        node_modules_path = Path(self._sidecar_path, f"{repo}-{version}")
+        await self._prepare_sidecar(repo, version, node_modules_path)
 
         await self._start_sidecar_process(node_path, node_modules_path)
 
-    async def _prepare_sidecar(self, repo: str, branch: str, node_modules_path: Path):
+    async def _prepare_sidecar(self, repo: str, version: str, node_modules_path: Path):
         if not Path(node_modules_path, "package.json").is_file():
-            await self._download_sidecar(repo, branch)
+            await self._download_sidecar(repo, version)
         else:
             logger.info("Spark sidecar already downloaded.")
 
@@ -385,13 +387,14 @@ class LightsparkSparkWallet(Wallet):
         logger.info("Started Spark sidecar node process.")
         await asyncio.to_thread(self._log_process_output, process)
 
-    async def _download_sidecar(self, repo: str, branch: str):
-        logger.info("⏳ Downloading Spark sidecar.")
+    async def _download_sidecar(self, repo: str, version: str):
         zip_path = Path(self._sidecar_path, f"{repo}.zip")
+        logger.info(f"⏳ Downloading Spark sidecar to {zip_path}")
+        Path(zip_path).parent.mkdir(parents=True, exist_ok=True)
 
         await asyncio.to_thread(
             download_url,
-            f"https://github.com/lnbits/{repo}/archive/refs/heads/{branch}.zip",
+            f"https://github.com/lnbits/{repo}/archive/refs/tags/v{version}.zip",
             zip_path,
         )
         logger.info("✅ Downloaded Spark sidecar.")

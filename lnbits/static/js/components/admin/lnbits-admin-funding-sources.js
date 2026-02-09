@@ -232,22 +232,29 @@ window.app.component('lnbits-admin-funding-sources', {
           'LightsparkSparkWallet',
           'Spark (L2)',
           {
+            spark_l2_internal_sidecar_version: {
+              label: 'Internal Sidecar Version (eg: 0.1.1).',
+              hint: 'If specified then the sidecar will be downloaded. Alternatively you can specify an External Sidecar endpoint in the Advanced section.',
+              value: ''
+            },
             spark_l2_mnemonic: {
-              label: 'Mnemonic'
+              label: 'Mnemonic',
+              hint: 'Only required if Interna Sidecar version is specified.'
             },
             spark_l2_network: {
               label: 'Network',
               value: 'MAINNET'
             },
+
             spark_l2_external_endpoint: {
-              label:
-                'Sidecar Endpoint (only if you do not want to use the default sidecar at http://127.0.0.1:8765)',
+              label: 'External Sidecar Endpoint. ',
+              hint: 'If specified then this endpoint will be used instead of the internal sidecar. Make sure to also specify the API key if your sidecar requires authentication.',
               value: '',
               advanced: true
             },
             spark_l2_external_api_key: {
-              label:
-                'Sidecar API Key (only if you do not want to use the default sidecar at http://127.0.0.1:8765)',
+              label: 'External Sidecar API Key. ',
+              hint: 'API Key for authenticating with the external sidecar if it requires authentication.',
               value: '',
               advanced: true
             },
