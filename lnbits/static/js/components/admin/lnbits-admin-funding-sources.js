@@ -232,6 +232,11 @@ window.app.component('lnbits-admin-funding-sources', {
           'LightsparkSparkWallet',
           'Spark (L2)',
           {
+            spark_l2_internal_sidecar_version: {
+              label: 'Internal Sidecar Version (eg: 0.1.1).',
+              hint: 'If specified then the sidecar will be downloaded. Alternatively you can specify an External Sidecar endpoint in the Advanced section.',
+              value: ''
+            },
             spark_l2_mnemonic: {
               label:
                 'Mnemonic Phrase - You can leave this blank to generate a new mnemonic on restart.',
