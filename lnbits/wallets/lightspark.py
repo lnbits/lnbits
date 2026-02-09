@@ -1,6 +1,7 @@
 import asyncio
 import hashlib
 import json
+import os
 import shutil
 import subprocess
 import uuid
@@ -82,34 +83,6 @@ class LightsparkSparkWallet(Wallet):
         except RuntimeError as e:
             logger.warning(f"Error closing wallet connection: {e}")
 
-    async def _request(
-        self, method: str, path: str, json_data: dict[str, Any] | None = None
-    ) -> dict[str, Any]:
-        error_message = None
-        try:
-            r = await self.client.request(method, path, json=json_data)
-            r.raise_for_status()
-            j = r.json()
-        except (httpx.RequestError, httpx.HTTPStatusError, json.JSONDecodeError) as exc:
-            if isinstance(exc, httpx.HTTPStatusError) and exc.response is not None:
-                try:
-                    error_json = exc.response.json()
-                    if "error" in error_json:
-                        error_message = error_json["error"]
-                except Exception as json_exc:
-                    logger.error(
-                        f"Failed to parse Spark error response as JSON: {json_exc}"
-                    )
-            raise SparkSidecarError(
-                error_message or f"Spark sidecar request error: '{exc}'"
-            ) from exc
-
-        if error_message or j.get("error"):
-            raise SparkSidecarError(
-                error_message or f"Spark sidecar error: {j['error']}"
-            )
-        return j
-
     async def status(self) -> StatusResponse:
         try:
             res = await self._request("POST", "/v1/balance")
@@ -121,6 +94,7 @@ class LightsparkSparkWallet(Wallet):
                 return StatusResponse("Spark sidecar: missing balance.", 0)
             return StatusResponse(None, int(balance_sats) * 1000)
         except Exception as e:
+            logger.warning(e)
             return StatusResponse(f"Spark sidecar status error: {e}", 0)
 
     async def create_invoice(
@@ -151,8 +125,9 @@ class LightsparkSparkWallet(Wallet):
             bolt11 = res.get("payment_request")
             checking_id = res.get("checking_id")
             if not bolt11 or not checking_id:
-                raise SparkSidecarError(
-                    "Spark sidecar invoice response missing fields."
+                return InvoiceResponse(
+                    ok=False,
+                    error_message="Spark sidecar invoice response missing fields.",
                 )
             self.pending_invoices.append(checking_id)
 
@@ -160,7 +135,7 @@ class LightsparkSparkWallet(Wallet):
                 ok=True,
                 payment_request=bolt11,
                 checking_id=checking_id,
-                preimage=res.get("preimage"),
+                preimage=res.get("preimage", None),
             )
         except Exception as e:
             return InvoiceResponse(ok=False, error_message=str(e))
@@ -172,7 +147,8 @@ class LightsparkSparkWallet(Wallet):
             payment_hash = None
             try:
                 payment_hash = bolt11_decode(bolt11).payment_hash
-            except Exception:
+            except Exception as exc:
+                logger.warning(exc)
                 payment_hash = None
             payload = {
                 "bolt11": bolt11,
@@ -180,10 +156,11 @@ class LightsparkSparkWallet(Wallet):
                 "payment_hash": payment_hash,
             }
             res = await self._request("POST", "/v1/payments", payload)
-            checking_id = payment_hash or res.get("checking_id")
+            checking_id = payment_hash or res.get("checking_id")  # todo: preimage
             if not checking_id:
-                raise SparkSidecarError(
-                    "Spark sidecar payment response missing checking_id."
+                return PaymentResponse(
+                    ok=False,
+                    error_message="Spark sidecar payment response missing checking_id.",
                 )
             status = res.get("status")
             fee_msat = res.get("fee_msat")
@@ -207,7 +184,8 @@ class LightsparkSparkWallet(Wallet):
             if not status:
                 return PaymentPendingStatus()
             return self._map_invoice_status(status)
-        except Exception:
+        except Exception as exc:
+            logger.warning(exc)
             return PaymentPendingStatus()
 
     async def get_payment_status(self, checking_id: str) -> PaymentStatus:
@@ -227,68 +205,9 @@ class LightsparkSparkWallet(Wallet):
             if mapped.failed:
                 return PaymentFailedStatus()
             return PaymentPendingStatus()
-        except Exception:
+        except Exception as exc:
+            logger.warning(exc)
             return PaymentPendingStatus()
-
-    def _map_invoice_status(self, status: str) -> PaymentStatus:
-        success = {
-            "LIGHTNING_PAYMENT_RECEIVED",
-            "TRANSFER_COMPLETED",
-            "PAYMENT_PREIMAGE_RECOVERED",
-        }
-        failed = {
-            "TRANSFER_FAILED",
-            "PAYMENT_PREIMAGE_RECOVERING_FAILED",
-            "REFUND_SIGNING_FAILED",
-            "REFUND_SIGNING_COMMITMENTS_QUERYING_FAILED",
-            "TRANSFER_CREATION_FAILED",
-        }
-        if status in success:
-            return PaymentSuccessStatus()
-        if status in failed:
-            return PaymentFailedStatus()
-        return PaymentPendingStatus()
-
-    def _map_payment_status(self, status: str) -> PaymentStatus:
-        success = {
-            "LIGHTNING_PAYMENT_SUCCEEDED",
-            "TRANSFER_COMPLETED",
-            "PREIMAGE_PROVIDED",
-        }
-        failed = {
-            "LIGHTNING_PAYMENT_FAILED",
-            "TRANSFER_FAILED",
-            "PREIMAGE_PROVIDING_FAILED",
-            "USER_TRANSFER_VALIDATION_FAILED",
-            "USER_SWAP_RETURN_FAILED",
-        }
-        if status in success:
-            return PaymentSuccessStatus()
-        if status in failed:
-            return PaymentFailedStatus()
-        return PaymentPendingStatus()
-
-    def _map_payment_ok(self, status: str) -> bool | None:
-        mapped = self._map_payment_status(status)
-        if mapped.success:
-            return True
-        if mapped.failed:
-            return False
-        return None
-
-    async def _poll_pending_invoices(self) -> AsyncGenerator[str, None]:
-        while settings.lnbits_running:
-            for invoice in list(self.pending_invoices):
-                try:
-                    status = await self.get_invoice_status(invoice)
-                    if status.paid:
-                        yield invoice
-                        self.pending_invoices.remove(invoice)
-                    elif status.failed:
-                        self.pending_invoices.remove(invoice)
-                except Exception as exc:
-                    logger.error(f"could not get status of invoice {invoice}: '{exc}' ")
-            await asyncio.sleep(5)
 
     async def paid_invoices_stream(self) -> AsyncGenerator[str, None]:
         stream_path = "/v1/invoices/stream"
@@ -319,6 +238,48 @@ class LightsparkSparkWallet(Wallet):
                     f"'{exc}' retrying in 5 seconds"
                 )
                 await asyncio.sleep(5)
+
+    async def _request(
+        self, method: str, path: str, json_data: dict[str, Any] | None = None
+    ) -> dict[str, Any]:
+        error_message = None
+        try:
+            r = await self.client.request(method, path, json=json_data)
+            r.raise_for_status()
+            j = r.json()
+        except (httpx.RequestError, httpx.HTTPStatusError, json.JSONDecodeError) as exc:
+            if isinstance(exc, httpx.HTTPStatusError) and exc.response is not None:
+                try:
+                    error_json = exc.response.json()
+                    if "error" in error_json:
+                        error_message = error_json["error"]
+                except Exception as json_exc:
+                    logger.error(
+                        f"Failed to parse Spark error response as JSON: {json_exc}"
+                    )
+            raise SparkSidecarError(
+                error_message or f"Spark sidecar request error: '{exc}'"
+            ) from exc
+
+        if error_message or j.get("error"):
+            raise SparkSidecarError(
+                error_message or f"Spark sidecar error: {j['error']}"
+            )
+        return j
+
+    async def _poll_pending_invoices(self) -> AsyncGenerator[str, None]:
+        while settings.lnbits_running:
+            for invoice in list(self.pending_invoices):
+                try:
+                    status = await self.get_invoice_status(invoice)
+                    if status.paid:
+                        yield invoice
+                        self.pending_invoices.remove(invoice)
+                    elif status.failed:
+                        self.pending_invoices.remove(invoice)
+                except Exception as exc:
+                    logger.error(f"could not get status of invoice {invoice}: '{exc}' ")
+            await asyncio.sleep(5)
 
     async def _start_sidecar(self):
         logger.info("Starting Spark sidecar")
@@ -411,6 +372,8 @@ class LightsparkSparkWallet(Wallet):
         zip_path = Path(self._sidecar_path, f"{repo}.zip")
         logger.info(f"⏳ Downloading Spark sidecar to {zip_path}")
         Path(zip_path).parent.mkdir(parents=True, exist_ok=True)
+        if zip_path.is_file():
+            os.remove(zip_path)
 
         await asyncio.to_thread(
             download_url,
@@ -426,8 +389,6 @@ class LightsparkSparkWallet(Wallet):
             self._sidecar_path,
         )
         logger.info("✅ Extracted Spark sidecar.")
-        shutil.rmtree(zip_path, ignore_errors=True)
-        # todo: remove zip
 
     def _log_process_output(self, process: subprocess.Popen):
         if process.stdout:
@@ -435,3 +396,49 @@ class LightsparkSparkWallet(Wallet):
                 logger.info(f"[Lightspark]: {line}", end="")
         else:
             logger.error(" No output captured for Spark sidecar.")
+
+    def _map_invoice_status(self, status: str) -> PaymentStatus:
+        success = {
+            "LIGHTNING_PAYMENT_RECEIVED",
+            "TRANSFER_COMPLETED",
+            "PAYMENT_PREIMAGE_RECOVERED",
+        }
+        failed = {
+            "TRANSFER_FAILED",
+            "PAYMENT_PREIMAGE_RECOVERING_FAILED",
+            "REFUND_SIGNING_FAILED",
+            "REFUND_SIGNING_COMMITMENTS_QUERYING_FAILED",
+            "TRANSFER_CREATION_FAILED",
+        }
+        if status in success:
+            return PaymentSuccessStatus()
+        if status in failed:
+            return PaymentFailedStatus()
+        return PaymentPendingStatus()
+
+    def _map_payment_status(self, status: str) -> PaymentStatus:
+        success = {
+            "LIGHTNING_PAYMENT_SUCCEEDED",
+            "TRANSFER_COMPLETED",
+            "PREIMAGE_PROVIDED",
+        }
+        failed = {
+            "LIGHTNING_PAYMENT_FAILED",
+            "TRANSFER_FAILED",
+            "PREIMAGE_PROVIDING_FAILED",
+            "USER_TRANSFER_VALIDATION_FAILED",
+            "USER_SWAP_RETURN_FAILED",
+        }
+        if status in success:
+            return PaymentSuccessStatus()
+        if status in failed:
+            return PaymentFailedStatus()
+        return PaymentPendingStatus()
+
+    def _map_payment_ok(self, status: str) -> bool | None:
+        mapped = self._map_payment_status(status)
+        if mapped.success:
+            return True
+        if mapped.failed:
+            return False
+        return None
