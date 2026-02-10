@@ -41,6 +41,14 @@ class UsersSettings(LNbitsSettings):
     lnbits_admin_users: list[str] = Field(default=[])
     lnbits_allowed_users: list[str] = Field(default=[])
     lnbits_allow_new_accounts: bool = Field(default=True)
+    lnbits_require_user_activation: bool = Field(default=False)
+
+    lnbits_user_activation_by_email: bool = Field(default=False)
+    lnbits_user_activation_by_payment: bool = Field(default=False)
+    lnbits_user_activation_by_invitation_code: bool = Field(default=False)
+
+    lnbits_register_reusable_activation_code: str = Field(default="")
+    lnbits_register_one_time_activation_codes: list[str] = Field(default=[])
 
     @property
     def new_accounts_allowed(self) -> bool:
@@ -1201,6 +1209,11 @@ class PublicSettings(BaseModel):
     wallet_featured_button_label: str | None = Field(alias="walletFeaturedButtonLabel")
     wallet_featured_button_url: str | None = Field(alias="walletFeaturedButtonUrl")
     wallet_featured_button_icon: str | None = Field(alias="walletFeaturedButtonIcon")
+    lnbits_user_activation_by_email: bool = Field(alias="userActivationByEmail")
+    lnbits_user_activation_by_payment: bool = Field(alias="userActivationByPayment")
+    lnbits_user_activation_by_invitation_code: bool = Field(
+        alias="userActivationByInvitationCode"
+    )
 
     @classmethod
     def from_settings(cls, settings: Settings):
@@ -1254,6 +1267,9 @@ class PublicSettings(BaseModel):
             walletFeaturedButtonLabel=settings.lnbits_wallet_featured_button_label,
             walletFeaturedButtonUrl=settings.lnbits_wallet_featured_button_url,
             walletFeaturedButtonIcon=settings.lnbits_wallet_featured_button_icon,
+            userActivationByEmail=settings.lnbits_user_activation_by_email,
+            userActivationByPayment=settings.lnbits_user_activation_by_payment,
+            userActivationByInvitationCode=settings.lnbits_user_activation_by_invitation_code,
         )
 
 

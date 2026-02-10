@@ -432,8 +432,10 @@ window.app.component('username-password', {
     username: String,
     password_1: String,
     password_2: String,
+    invitationCode: String,
     resetKey: String
   },
+
   data() {
     return {
       oauth: [
@@ -446,7 +448,11 @@ window.app.component('username-password', {
       username: this.userName,
       password: this.password_1,
       passwordRepeat: this.password_2,
-      reset_key: this.resetKey
+      reset_key: this.resetKey,
+      confirmationMethod: 'code',
+      confirmationEmail: '',
+      confirmationCode: this.invitationCode || '',
+      showConfirmationCode: false
     }
   },
   methods: {
@@ -459,6 +465,7 @@ window.app.component('username-password', {
       this.$emit('update:userName', this.username)
       this.$emit('update:password_1', this.password)
       this.$emit('update:password_2', this.passwordRepeat)
+      this.$emit('update:invitationCode', this.confirmationCode)
       this.$emit('register')
     },
     reset() {
@@ -550,6 +557,25 @@ window.app.component('username-password', {
   computed: {
     showOauth() {
       return this.oauth.some(m => this.authMethods.includes(m))
+    },
+    disableRegister() {
+      const usernameOK = !!this.username
+      const passwordOK = !!this.password && this.password.length >= 8
+      const passwordsMatch = this.password === this.passwordRepeat
+      const codeOk =
+        this.confirmationMethodsCount === 0 ||
+        this.confirmationMethod !== 'code' ||
+        this.confirmationCode.length > 0
+
+      return !usernameOK || !passwordOK || !passwordsMatch || !codeOk
+    },
+    confirmationMethodsCount() {
+      const methods = [
+        this.g.settings.userActivationByEmail,
+        this.g.settings.userActivationByPayment,
+        this.g.settings.userActivationByInvitationCode
+      ]
+      return methods.filter(Boolean).length
     }
   },
   created() {}

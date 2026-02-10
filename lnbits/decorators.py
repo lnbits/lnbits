@@ -261,6 +261,7 @@ async def check_account_id_exists(
             account_id,
             expiry=settings.auth_authentication_cache_minutes * 60,
         )
+        cache.set(f"auth:user:cache_key:{sha256s(account.id)}", cache_key)
 
     return account_id
 

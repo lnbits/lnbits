@@ -814,16 +814,90 @@ include('components/lnbits-error.vue') %}
           type="password"
           :rules="[val => !val || val.length >= 8 || $t('invalid_password')]"
         ></q-input>
+        <div
+          v-if="confirmationMethodsCount > 1"
+          class="row justify-center q-mb-md"
+        >
+          <q-tabs
+            v-model="confirmationMethod"
+            dense
+            active-color="primary"
+            indicator-color="primary"
+          >
+            <q-tab
+              v-if="g.settings.userActivationByInvitationCode"
+              name="code"
+              icon="confirmation_number"
+              label="Code"
+            ></q-tab>
+            <q-tab
+              v-if="g.settings.userActivationByPayment"
+              name="payment"
+              icon="bolt"
+              label="Payment"
+            ></q-tab>
+            <q-tab
+              v-if="g.settings.userActivationByEmail"
+              name="email"
+              icon="email"
+              label="Email"
+            ></q-tab>
+          </q-tabs>
+        </div>
+        <div v-if="confirmationMethodsCount > 0" class="q-mb-md">
+          <q-tab-panels v-model="confirmationMethod">
+            <q-tab-panel name="code" class="q-pa-none">
+              <div
+                class="q-my-md q-pa-sm text-body2 text-grey-4 bg-grey-9 rounded-borders"
+              >
+                <q-icon name="info" color="orange-4" class="q-mr-xs"></q-icon>
+                You need an invitation code to register.
+              </div>
+              <div>
+                <q-input
+                  dense
+                  filled
+                  v-model="confirmationCode"
+                  :label="$t('invitation_code')"
+                  :type="showConfirmationCode ? 'text' : 'password'"
+                  :hint="$t('invitation_code_hint')"
+                >
+                  <q-btn
+                    @click="showConfirmationCode = !showConfirmationCode"
+                    dense
+                    flat
+                    :icon="
+                      showConfirmationCode ? 'visibility_off' : 'visibility'
+                    "
+                    color="grey"
+                  ></q-btn>
+                </q-input>
+              </div>
+            </q-tab-panel>
+            <q-tab-panel name="payment">
+              <div>payment</div>
+            </q-tab-panel>
+
+            <q-tab-panel name="email" class="q-pa-none">
+              <div>
+                <q-input
+                  dense
+                  filled
+                  v-model="confirmationEmail"
+                  :label="$t('email')"
+                  :hint="$t('email_confirmation_hint')"
+                >
+                </q-input>
+              </div>
+            </q-tab-panel>
+          </q-tab-panels>
+        </div>
+
         <div class="row justify-end">
           <q-btn
             unelevated
             color="primary"
-            :disable="
-              !password ||
-              !passwordRepeat ||
-              !username ||
-              password !== passwordRepeat
-            "
+            :disable="disableRegister"
             type="submit"
             class="full-width"
             :label="$t('create_account')"

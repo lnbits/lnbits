@@ -118,8 +118,8 @@ async def verify_paypal_webhook(headers, payload: bytes):
     """
     webhook_id = settings.paypal_webhook_id
     if not webhook_id:
-        logger.warning("PayPal webhook ID not set; skipping verification.")
-        return
+        logger.warning("PayPal webhook ID not set.")
+        raise ValueError("PayPal webhook cannot be verified. Missing webhook ID.")
 
     required_headers = {
         "PAYPAL-TRANSMISSION-ID": headers.get("PAYPAL-TRANSMISSION-ID"),
@@ -129,8 +129,8 @@ async def verify_paypal_webhook(headers, payload: bytes):
         "PAYPAL-AUTH-ALGO": headers.get("PAYPAL-AUTH-ALGO"),
     }
     if not all(required_headers.values()):
-        logger.warning("Missing PayPal webhook headers; skipping verification.")
-        return
+        logger.warning("Missing PayPal webhook headers.")
+        raise ValueError("PayPal webhook cannot be verified. Missing headers.")
 
     try:
         async with httpx.AsyncClient(base_url=settings.paypal_api_endpoint) as client:
