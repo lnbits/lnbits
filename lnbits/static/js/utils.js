@@ -295,5 +295,58 @@ window._lnbitsUtils = {
         let decoder = new TextDecoder('utf-8')
         return decoder.decode(valueb)
       })
+  },
+  createWebSocket(endpoint, handlers, options = {}) {
+    const {onMessage, onError, onOpen, onClose} = handlers
+    const {autoParseJSON = true} = options
+
+    try {
+      const url = new URL(window.location)
+      url.protocol = url.protocol === 'https:' ? 'wss:' : 'ws:'
+      url.pathname = `/api/v1/ws/${endpoint}`
+
+      const ws = new WebSocket(url)
+
+      ws.onmessage = async event => {
+        try {
+          const data = autoParseJSON ? JSON.parse(event.data) : event.data
+          if (onMessage) {
+            await onMessage(data, ws)
+          }
+        } catch (err) {
+          console.error('WebSocket message parsing error:', err)
+          if (onError) {
+            onError(err, ws)
+          }
+        }
+      }
+
+      ws.onerror = error => {
+        console.warn('WebSocket error:', error)
+        if (onError) {
+          onError(error, ws)
+        }
+      }
+
+      ws.onopen = event => {
+        if (onOpen) {
+          onOpen(event, ws)
+        }
+      }
+
+      ws.onclose = event => {
+        if (onClose) {
+          onClose(event, ws)
+        }
+      }
+
+      return ws
+    } catch (err) {
+      console.warn('WebSocket creation error:', err)
+      if (onError) {
+        onError(err, null)
+      }
+      throw err
+    }
   }
 }
