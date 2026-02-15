@@ -33,6 +33,7 @@ from lnbits.core.tasks import (
     audit_queue,
     collect_exchange_rates_data,
     purge_audit_data,
+    purge_expired_invoices,
     run_by_the_minute_tasks,
     wait_for_audit_data,
     wait_for_paid_invoices,
@@ -480,6 +481,7 @@ def register_async_tasks() -> None:
 
     create_permanent_task(run_by_the_minute_tasks)
     create_permanent_task(purge_audit_data)
+    create_permanent_task(purge_expired_invoices)
     create_permanent_task(collect_exchange_rates_data)
 
     # server logs for websocket
