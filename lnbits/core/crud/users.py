@@ -60,9 +60,11 @@ async def get_accounts(
         else None
     )
     if filters and wallet_filter and wallet_filter.values:
-        where_clauses.append("wallets.id = :wallet_id")
-        values = {**values, "wallet_id": next(iter(wallet_filter.values.values()))}
-        filters.filters = [f for f in filters.filters if f.field != "wallet_id"]
+        wallet_id_value = next(iter(wallet_filter.values.values()), None)
+        if wallet_id_value is not None:
+            where_clauses.append("wallets.id = :wallet_id")
+            values = {**values, "wallet_id": wallet_id_value}
+            filters.filters = [f for f in filters.filters if f.field != "wallet_id"]
 
     return await (conn or db).fetch_page(
         """
