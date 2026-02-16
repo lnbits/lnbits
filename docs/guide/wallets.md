@@ -41,7 +41,7 @@ A backend wallet is selected and configured entirely through LNbits environment 
 | [CoreLightning](#corelightning)                 | [LND (gRPC)](#lnd-grpc)               | [Blink](#blink)                                   |
 | [CoreLightning REST](#corelightning-rest)       | [LNbits](#lnbits)                     | [Alby](#alby)                                     |
 | [Spark (Core Lightning)](#spark-core-lightning) | [LNPay](#lnpay)                       | [Boltz](#boltz)                                   |
-| [Spark (L2)](#spark-l2)               |                                       |                                                   |
+| [Spark (L2)](#spark-l2)                         |                                       |                                                   |
 | [Cliche Wallet](#cliche-wallet)                 | [ZBD](#zbd)                           | [Phoenixd](#phoenixd)                             |
 | [Breez SDK](#breez-sdk)                         | [Breez Liquid SDK](#breez-liquid-sdk) | [Nostr Wallet Connect](#nostr-wallet-connect-nwc) |
 | [Strike](#strike)                               | [Eclair (ACINQ)](#eclair-acinq)       | [LN.tips](#lntips)                                |
@@ -379,7 +379,6 @@ Configure in the admin UI or via env vars:
 - `NWC_PAIRING_URL`: `nostr+walletconnect://...your...pairing...secret...`
 
 <a id="strike"></a>
-
 
 ## Strike (alpha)
 
