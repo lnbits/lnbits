@@ -609,7 +609,7 @@ class SparkFundingSource(LNbitsSettings):
 class SparkL2FundingSource(LNbitsSettings):
     spark_l2_mnemonic: str | None = Field(default=None)
     spark_l2_network: str = Field(default="MAINNET")
-    spark_l2_internal_sidecar_version: str | None = Field(default="0.1.1")
+    spark_l2_internal_sidecar_version: str | None = Field(default=None)
     spark_l2_external_endpoint: str | None = Field(default=None)
     spark_l2_external_api_key: str | None = Field(default=None)
     spark_l2_pay_wait_ms: int = Field(default=4000, ge=0)
