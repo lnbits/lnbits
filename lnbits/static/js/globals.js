@@ -20,6 +20,15 @@ window.g = Vue.reactive({
   themeChoice: localStore('lnbits.theme', SETTINGS.defaultTheme),
   borderChoice: localStore('lnbits.border', SETTINGS.defaultBorder),
   gradientChoice: localStore('lnbits.gradientBg', SETTINGS.defaultGradient),
+  cardRoundedChoice: localStore(
+    'lnbits.cardRounded',
+    SETTINGS.defaultCardRounded
+  ),
+  cardGradientChoice: localStore(
+    'lnbits.cardGradient',
+    SETTINGS.defaultCardGradient
+  ),
+  cardShadowChoice: localStore('lnbits.cardShadow', SETTINGS.defaultCardShadow),
   reactionChoice: localStore('lnbits.reactions', SETTINGS.defaultReaction),
   bgimageChoice: localStore(
     'lnbits.backgroundImage',
@@ -31,7 +40,7 @@ window.g = Vue.reactive({
   mobileSimple: localStore('lnbits.mobileSimple', true),
   walletFlip: localStore('lnbits.walletFlip', false),
   lastActiveWallet: localStore('lnbits.lastActiveWallet', null),
-  darkChoice: localStore('lnbits.darkMode', true),
+  darkChoice: localStore('lnbits.darkMode', SETTINGS.defaultDark),
   // cookie vars
   isUserAuthorized: !!Quasar.Cookies.get('is_lnbits_user_authorized'),
   isUserImpersonated: !!Quasar.Cookies.get('is_lnbits_user_impersonated'),

@@ -1,0 +1,72 @@
+@use 'sass:color';
+@use 'sass:map';
+@use 'themes';
+
+$card-radius: 10px;
+
+body.rounded-ui {
+  .q-card,
+  .q-btn {
+    border-radius: $card-radius;
+  }
+}
+
+@each $theme, $colors in themes.$themes {
+  $primary: map.get($colors, primary);
+  $secondary: map.get($colors, secondary);
+  $dark: map.get($colors, dark);
+
+  body[data-theme='#{$theme}'].card-gradient {
+    .q-card:not(
+      .q-dialog .q-card,
+      .lnbits__dialog-card,
+      .q-dialog-plugin--dark
+    ) {
+      background-image: linear-gradient(
+        135deg,
+        color.adjust($primary, $alpha: -0.92),
+        color.adjust($secondary, $alpha: -0.94)
+      );
+    }
+    .q-drawer {
+      background-image: linear-gradient(
+        165deg,
+        color.adjust($primary, $alpha: -0.94),
+        color.adjust($secondary, $alpha: -0.96)
+      );
+    }
+  }
+
+  body[data-theme='#{$theme}'].card-gradient.body--dark {
+    .q-card:not(
+      .q-dialog .q-card,
+      .lnbits__dialog-card,
+      .q-dialog-plugin--dark
+    ) {
+      background-image: linear-gradient(
+        135deg,
+        color.adjust($dark, $lightness: 4%),
+        color.adjust($primary, $alpha: -0.93)
+      );
+    }
+    .q-drawer {
+      background-image: linear-gradient(
+        165deg,
+        color.adjust($dark, $lightness: 3%),
+        color.adjust($primary, $alpha: -0.95)
+      );
+    }
+  }
+}
+
+body.card-shadow {
+  .q-card:not(.q-dialog .q-card, .lnbits__dialog-card, .q-dialog-plugin--dark) {
+    filter: drop-shadow(0 10px 24px rgba(0, 0, 0, 0.18));
+  }
+}
+
+body.card-shadow.body--dark {
+  .q-card:not(.q-dialog .q-card, .lnbits__dialog-card, .q-dialog-plugin--dark) {
+    filter: drop-shadow(0 12px 28px rgba(0, 0, 0, 0.45));
+  }
+}

@@ -45,6 +45,30 @@ window.app.component('lnbits-theme', {
         document.body.classList.remove('gradient-bg')
       }
     },
+    'g.cardRoundedChoice'(val) {
+      this.$q.localStorage.set('lnbits.cardRounded', val)
+      if (val === true) {
+        document.body.classList.add('rounded-ui')
+      } else {
+        document.body.classList.remove('rounded-ui')
+      }
+    },
+    'g.cardGradientChoice'(val) {
+      this.$q.localStorage.set('lnbits.cardGradient', val)
+      if (val === true) {
+        document.body.classList.add('card-gradient')
+      } else {
+        document.body.classList.remove('card-gradient')
+      }
+    },
+    'g.cardShadowChoice'(val) {
+      this.$q.localStorage.set('lnbits.cardShadow', val)
+      if (val === true) {
+        document.body.classList.add('card-shadow')
+      } else {
+        document.body.classList.remove('card-shadow')
+      }
+    },
     'g.mobileSimple'(val) {
       this.$q.localStorage.set('lnbits.mobileSimple', val)
       if (val === true) {
@@ -116,6 +140,15 @@ window.app.component('lnbits-theme', {
     document.body.classList.add(this.g.borderChoice)
     if (this.g.gradientChoice === true) {
       document.body.classList.add('gradient-bg')
+    }
+    if (this.g.cardRoundedChoice === true) {
+      document.body.classList.add('rounded-ui')
+    }
+    if (this.g.cardGradientChoice === true) {
+      document.body.classList.add('card-gradient')
+    }
+    if (this.g.cardShadowChoice === true) {
+      document.body.classList.add('card-shadow')
     }
     if (this.g.bgimageChoice !== '') {
       document.body.classList.add('bg-image')
