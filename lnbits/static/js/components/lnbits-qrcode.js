@@ -24,6 +24,10 @@ window.app.component('lnbits-qrcode', {
       type: String,
       default: ''
     },
+    newTab: {
+      type: Boolean,
+      default: true
+    },
     margin: {
       type: Number,
       default: 3
@@ -86,7 +90,7 @@ window.app.component('lnbits-qrcode', {
         this.utils.copyText(this.value)
         return false
       } else if (this.href) {
-        window.open(this.href, '_blank')
+        window.open(this.href, this.newTab ? '_blank' : '_self')
         return false
       }
     },
