@@ -615,9 +615,8 @@ def _new_sso(provider: str) -> SSOBase | None:
             return None
 
         sso_provider_class = _find_auth_provider_class(provider)
-        # Disallow insecure HTTP by default. Enable only in debug/dev.
         sso_provider = sso_provider_class(
-            client_id, client_secret, None, allow_insecure_http=settings.debug
+            client_id, client_secret, None, allow_insecure_http=settings.dev_mode
         )
         if (
             discovery_url
