@@ -8,41 +8,50 @@
   >
     <q-card class="q-pa-lg q-pt-xl lnbits__dialog-card">
       <!-- Header with optional title -->
-      <div v-if="title" class="text-h6 q-mb-md" v-text="title"></div>
+      <q-card-section v-if="title">
+        <div class="text-h6 q-mb-md" v-text="title"></div>
+      </q-card-section>
 
       <!-- Main content slot -->
-      <slot></slot>
+      <q-card-section>
+        <slot></slot>
+      </q-card-section>
 
       <!-- Footer actions -->
-      <div class="row q-mt-lg">
-        <!-- Left-aligned action buttons -->
-        <div v-if="hasActionsSlot" class="col">
-          <slot name="actions"></slot>
-        </div>
+      <q-card-actions class="q-mt-lg" align="right">
+        <!-- Left-aligned buttons -->
+        <!-- <div> -->
+        <!-- <slot v-if="hasActionsSlot" name="actions"></slot> -->
+        <q-btn
+          v-if="showCancel"
+          v-close-popup
+          flat
+          :color="cancelColor"
+          :label="cancelLabel"
+          :class="{'q-ml-sm': hasActionsSlot}"
+          @click="handleCancel"
+        />
+        <!-- </div> -->
 
-        <!-- Right-aligned buttons -->
-        <div class="col-auto q-ml-auto">
-          <q-btn
-            v-if="showCancel"
-            v-close-popup
-            flat
-            :color="cancelColor"
-            :label="cancelLabel"
-            @click="handleCancel"
-          />
-          <q-btn
-            v-if="showConfirm"
-            :outline="confirmOutline"
-            :flat="confirmFlat"
-            :color="confirmColor"
-            :label="confirmLabel"
-            :loading="confirmLoading"
-            :disable="confirmDisable"
-            class="q-ml-sm"
-            @click="handleConfirm"
-          />
-        </div>
-      </div>
+        <q-space></q-space>
+
+        <!-- Right-aligned primary action -->
+        <!-- <div> -->
+        <q-btn
+          v-if="hasAction"
+          :outline="actionProps.outline"
+          :flat="actionProps.flat"
+          :unelevated="actionProps.unelevated"
+          :no-caps="actionProps.noCaps"
+          :color="actionProps.color"
+          :label="actionProps.label"
+          :icon="actionProps.icon"
+          :loading="actionProps.loading"
+          :disable="actionProps.disable"
+          @click="handleAction"
+        />
+        <!-- </div> -->
+      </q-card-actions>
     </q-card>
   </q-dialog>
 </template>
