@@ -613,6 +613,12 @@ class Filters(BaseModel, Generic[TFilterModel]):
         for page_filter in self.filters:
             page_filter.table_name = table_name
 
+    def get_filter_by_field(self, field: str) -> Filter[TFilterModel] | None:
+        return next((f for f in self.filters if f.field == field), None)
+
+    def remove_filter_by_field(self, field: str) -> None:
+        self.filters = [f for f in self.filters if f.field != field]
+
 
 class DbJsonEncoder(json.JSONEncoder):
     def default(self, o):
