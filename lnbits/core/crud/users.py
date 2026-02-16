@@ -4,7 +4,12 @@ from typing import Any
 from uuid import uuid4
 
 from lnbits.core.crud.extensions import get_user_active_extensions_ids
-from lnbits.core.crud.wallets import clear_wallet_cache, create_wallet, get_wallets
+from lnbits.core.crud.wallets import (
+    clear_wallet_cache,
+    create_wallet,
+    get_standalone_wallet,
+    get_wallets,
+)
 from lnbits.core.db import db
 from lnbits.core.models import UserAcls
 from lnbits.db import Connection, Filters, Page
@@ -52,19 +57,22 @@ async def get_accounts(
 ) -> Page[AccountOverview]:
     where_clauses = []
     values: dict[str, Any] = {}
+    filters = filters or Filters()
 
-    # Make wallet filter explicit
-    wallet_filter = (
-        next((f for f in filters.filters if f.field == "wallet_id"), None)
-        if filters
-        else None
-    )
-    if filters and wallet_filter and wallet_filter.values:
+    wallet_filter = filters.get_filter_by_field("wallet_id")
+
+    if wallet_filter and wallet_filter.values:
         wallet_id_value = next(iter(wallet_filter.values.values()), None)
-        if wallet_id_value is not None:
-            where_clauses.append("wallets.id = :wallet_id")
-            values = {**values, "wallet_id": wallet_id_value}
-            filters.filters = [f for f in filters.filters if f.field != "wallet_id"]
+        wallet = (
+            await get_standalone_wallet(wallet_id_value, deleted=None, conn=conn)
+            if wallet_id_value
+            else None
+        )
+        if not wallet:
+            return Page(data=[], total=0)
+        where_clauses.append("accounts.id = :account_id")
+        values = {**values, "account_id": wallet.user}
+        filters.remove_filter_by_field("wallet_id")
 
     return await (conn or db).fetch_page(
         """
