@@ -80,10 +80,13 @@ window.app.component('lnbits-qrcode', {
       printWindow.close()
     },
     clickQrCode(event) {
+      event.preventDefault()
+      event.stopPropagation()
       if (this.href === '') {
         this.utils.copyText(this.value)
-        event.preventDefault()
-        event.stopPropagation()
+        return false
+      } else if (this.href) {
+        window.open(this.href, '_blank')
         return false
       }
     },
