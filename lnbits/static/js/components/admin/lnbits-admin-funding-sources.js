@@ -229,15 +229,19 @@ window.app.component('lnbits-admin-funding-sources', {
           }
         ],
         [
-          'LightsparkSparkWallet',
+          'SparkL2Wallet',
           'Spark (L2)',
           {
-            spark_l2_mnemonic: {
-              label:
-                'Mnemonic Phrase - You can leave this blank to generate a new mnemonic on restart.',
-              hint: 'Remember to write the mnemonic down and store it securely. It is the only way to recover your funds if you lose access to LNbits.'
+            spark_l2_external_endpoint: {
+              label: 'External Sidecar Endpoint',
+              hint: 'If specified then this endpoint will be used instead of the internal sidecar. Make sure to also specify the API key if your sidecar requires authentication.',
+              value: ''
             },
-
+            spark_l2_external_api_key: {
+              label: 'External Sidecar API Key',
+              hint: 'API key for authenticating with the external sidecar if it requires authentication.',
+              value: ''
+            },
             spark_l2_network: {
               label: 'Network',
               value: 'MAINNET',
@@ -257,18 +261,6 @@ window.app.component('lnbits-admin-funding-sources', {
             spark_l2_stream_keepalive_ms: {
               label: 'Stream Keepalive Time (ms)',
               hint: 'The time to wait between sending keepalive messages to the Spark sidecar to keep the connection open.',
-              advanced: true
-            },
-            spark_l2_external_endpoint: {
-              label: 'External Sidecar Endpoint',
-              hint: 'If specified then this endpoint will be used instead of the internal sidecar. Make sure to also specify the API key if your sidecar requires authentication.',
-              value: '',
-              advanced: true
-            },
-            spark_l2_external_api_key: {
-              label: 'External Sidecar API Key',
-              hint: 'API key for authenticating with the external sidecar if it requires authentication.',
-              value: '',
               advanced: true
             }
           }

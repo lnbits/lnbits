@@ -20,7 +20,7 @@ from .corelightning import CoreLightningWallet as CLightningWallet
 from .corelightningrest import CoreLightningRestWallet
 from .eclair import EclairWallet
 from .fake import FakeWallet
-from .lightspark import LightsparkSparkWallet
+from .lightspark import SparkL2Wallet
 from .lnbits import LNbitsWallet
 from .lndgrpc import LndWallet
 from .lndrest import LndRestWallet
@@ -70,13 +70,13 @@ __all__ = [
     "FakeWallet",
     "LNPayWallet",
     "LNbitsWallet",
-    "LightsparkSparkWallet",
     "LnTipsWallet",
     "LndRestWallet",
     "LndWallet",
     "NWCWallet",
     "OpenNodeWallet",
     "PhoenixdWallet",
+    "SparkL2Wallet",
     "SparkWallet",
     "StrikeWallet",
     "VoidWallet",

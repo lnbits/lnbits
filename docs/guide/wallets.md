@@ -134,7 +134,7 @@ Spark L2 is a self-custodial funding source that uses a small Node.js sidecar to
 
 **Required env vars**
 
-- `LNBITS_BACKEND_WALLET_CLASS`: `LightsparkSparkWallet`
+- `LNBITS_BACKEND_WALLET_CLASS`: `SparkL2Wallet`
 
 **Internal sidecar (LNbits-managed)**
 
