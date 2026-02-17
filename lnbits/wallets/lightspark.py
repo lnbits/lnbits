@@ -29,7 +29,7 @@ class SparkSidecarError(Exception):
     pass
 
 
-class LightsparkSparkWallet(Wallet):
+class SparkL2Wallet(Wallet):
     """
     Spark L2 funding source via a local sidecar service.
 
@@ -52,10 +52,15 @@ class LightsparkSparkWallet(Wallet):
             self.endpoint = normalize_endpoint(
                 cast(str, settings.spark_l2_external_endpoint)
             )
-            self._api_key = settings.spark_l2_external_api_key
             logger.info(f"Using external Spark sidecar endpoint: {self.endpoint}")
         else:
             logger.error("No Spark sidecar endpoint configuration found.")
+
+        if settings.spark_l2_external_api_key:
+            self._api_key = cast(str, settings.spark_l2_external_api_key)
+            logger.info("Using external Spark sidecar API key from configuration.")
+        else:
+            logger.warning("No Spark sidecar API key configured.")
 
         headers = {"User-Agent": settings.user_agent, "X-Api-Key": self._api_key}
 
