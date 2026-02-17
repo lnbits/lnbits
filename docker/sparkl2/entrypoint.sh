@@ -1,10 +1,6 @@
 #!/bin/bash
 set -e
 
-SPARK_MNEMONIC="$SPARK_MNEMONIC" \
-SPARK_NETWORK="$SPARK_NETWORK" \
-SPARK_SIDECAR_PORT="$SPARK_SIDECAR_PORT" \
-SPARK_PAY_WAIT_MS=20000 \
 node server.mjs
 
 # Wait for startup
