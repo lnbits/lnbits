@@ -229,6 +229,43 @@ window.app.component('lnbits-admin-funding-sources', {
           }
         ],
         [
+          'SparkL2Wallet',
+          'Spark (L2)',
+          {
+            spark_l2_external_endpoint: {
+              label: 'External Sidecar Endpoint',
+              hint: 'If specified then this endpoint will be used instead of the internal sidecar. Make sure to also specify the API key if your sidecar requires authentication.',
+              value: ''
+            },
+            spark_l2_external_api_key: {
+              label: 'External Sidecar API Key',
+              hint: 'API key for authenticating with the external sidecar if it requires authentication.',
+              value: ''
+            },
+            spark_l2_network: {
+              label: 'Network',
+              value: 'MAINNET',
+              hint: 'The network to use for the Spark wallet.',
+              advanced: true
+            },
+            spark_l2_pay_wait_ms: {
+              label: 'Payment Wait Time (ms)',
+              hint: 'The time to wait for a payment to be processed before considering it failed.',
+              advanced: true
+            },
+            spark_l2_pay_poll_ms: {
+              label: 'Payment Poll Time (ms)',
+              hint: 'The time to wait between polling for payment status updates.',
+              advanced: true
+            },
+            spark_l2_stream_keepalive_ms: {
+              label: 'Stream Keepalive Time (ms)',
+              hint: 'The time to wait between sending keepalive messages to the Spark sidecar to keep the connection open.',
+              advanced: true
+            }
+          }
+        ],
+        [
           'NWCWallet',
           'Nostr Wallet Connect',
           {
