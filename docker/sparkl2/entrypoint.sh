@@ -9,7 +9,7 @@ node server.mjs
 
 # Wait for startup
 for i in {1..10}; do
-  if nc -z localhost 8765; then
+  if nc -z localhost $SPARK_SIDECAR_PORT; then
     echo "sparksidebar is up!"
     break
   fi
@@ -18,7 +18,7 @@ for i in {1..10}; do
 done
 
 # Optional: check if still not up
-if ! nc -z localhost 8765; then
+if ! nc -z localhost $SPARK_SIDECAR_PORT; then
   echo "sparksidebar did not start successfully."
   exit 1
 fi
