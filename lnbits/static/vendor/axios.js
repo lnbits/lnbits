@@ -1,74 +1,27 @@
-/*! Axios v1.13.2 Copyright (c) 2025 Matt Zabriskie and contributors */
+/*! Axios v1.13.5 Copyright (c) 2026 Matt Zabriskie and contributors */
 (function (global, factory) {
   typeof exports === 'object' && typeof module !== 'undefined' ? module.exports = factory() :
   typeof define === 'function' && define.amd ? define(factory) :
   (global = typeof globalThis !== 'undefined' ? globalThis : global || self, global.axios = factory());
 })(this, (function () { 'use strict';
 
-  function _AsyncGenerator(e) {
-    var r, t;
-    function resume(r, t) {
-      try {
-        var n = e[r](t),
-          o = n.value,
-          u = o instanceof _OverloadYield;
-        Promise.resolve(u ? o.v : o).then(function (t) {
-          if (u) {
-            var i = "return" === r ? "return" : "next";
-            if (!o.k || t.done) return resume(i, t);
-            t = e[i](t).value;
-          }
-          settle(n.done ? "return" : "normal", t);
-        }, function (e) {
-          resume("throw", e);
-        });
-      } catch (e) {
-        settle("throw", e);
-      }
-    }
-    function settle(e, n) {
-      switch (e) {
-        case "return":
-          r.resolve({
-            value: n,
-            done: !0
-          });
-          break;
-        case "throw":
-          r.reject(n);
-          break;
-        default:
-          r.resolve({
-            value: n,
-            done: !1
-          });
-      }
-      (r = r.next) ? resume(r.key, r.arg) : t = null;
-    }
-    this._invoke = function (e, n) {
-      return new Promise(function (o, u) {
-        var i = {
-          key: e,
-          arg: n,
-          resolve: o,
-          reject: u,
-          next: null
-        };
-        t ? t = t.next = i : (r = t = i, resume(e, n));
-      });
-    }, "function" != typeof e.return && (this.return = void 0);
+  function _OverloadYield(e, d) {
+    this.v = e, this.k = d;
   }
-  _AsyncGenerator.prototype["function" == typeof Symbol && Symbol.asyncIterator || "@@asyncIterator"] = function () {
-    return this;
-  }, _AsyncGenerator.prototype.next = function (e) {
-    return this._invoke("next", e);
-  }, _AsyncGenerator.prototype.throw = function (e) {
-    return this._invoke("throw", e);
-  }, _AsyncGenerator.prototype.return = function (e) {
-    return this._invoke("return", e);
-  };
-  function _OverloadYield(t, e) {
-    this.v = t, this.k = e;
+  function _arrayLikeToArray(r, a) {
+    (null == a || a > r.length) && (a = r.length);
+    for (var e = 0, n = Array(a); e < a; e++) n[e] = r[e];
+    return n;
+  }
+  function _arrayWithHoles(r) {
+    if (Array.isArray(r)) return r;
+  }
+  function _arrayWithoutHoles(r) {
+    if (Array.isArray(r)) return _arrayLikeToArray(r);
+  }
+  function _assertThisInitialized(e) {
+    if (void 0 === e) throw new ReferenceError("this hasn't been initialised - super() hasn't been called");
+    return e;
   }
   function _asyncGeneratorDelegate(t) {
     var e = {},
@@ -136,8 +89,148 @@
       }
     }, new AsyncFromSyncIterator(r);
   }
+  function asyncGeneratorStep(n, t, e, r, o, a, c) {
+    try {
+      var i = n[a](c),
+        u = i.value;
+    } catch (n) {
+      return void e(n);
+    }
+    i.done ? t(u) : Promise.resolve(u).then(r, o);
+  }
+  function _asyncToGenerator(n) {
+    return function () {
+      var t = this,
+        e = arguments;
+      return new Promise(function (r, o) {
+        var a = n.apply(t, e);
+        function _next(n) {
+          asyncGeneratorStep(a, r, o, _next, _throw, "next", n);
+        }
+        function _throw(n) {
+          asyncGeneratorStep(a, r, o, _next, _throw, "throw", n);
+        }
+        _next(void 0);
+      });
+    };
+  }
   function _awaitAsyncGenerator(e) {
     return new _OverloadYield(e, 0);
+  }
+  function _callSuper(t, o, e) {
+    return o = _getPrototypeOf(o), _possibleConstructorReturn(t, _isNativeReflectConstruct() ? Reflect.construct(o, e || [], _getPrototypeOf(t).constructor) : o.apply(t, e));
+  }
+  function _classCallCheck(a, n) {
+    if (!(a instanceof n)) throw new TypeError("Cannot call a class as a function");
+  }
+  function _construct(t, e, r) {
+    if (_isNativeReflectConstruct()) return Reflect.construct.apply(null, arguments);
+    var o = [null];
+    o.push.apply(o, e);
+    var p = new (t.bind.apply(t, o))();
+    return r && _setPrototypeOf(p, r.prototype), p;
+  }
+  function _defineProperties(e, r) {
+    for (var t = 0; t < r.length; t++) {
+      var o = r[t];
+      o.enumerable = o.enumerable || !1, o.configurable = !0, "value" in o && (o.writable = !0), Object.defineProperty(e, _toPropertyKey(o.key), o);
+    }
+  }
+  function _createClass(e, r, t) {
+    return r && _defineProperties(e.prototype, r), t && _defineProperties(e, t), Object.defineProperty(e, "prototype", {
+      writable: !1
+    }), e;
+  }
+  function _createForOfIteratorHelper(r, e) {
+    var t = "undefined" != typeof Symbol && r[Symbol.iterator] || r["@@iterator"];
+    if (!t) {
+      if (Array.isArray(r) || (t = _unsupportedIterableToArray(r)) || e && r && "number" == typeof r.length) {
+        t && (r = t);
+        var n = 0,
+          F = function () {};
+        return {
+          s: F,
+          n: function () {
+            return n >= r.length ? {
+              done: !0
+            } : {
+              done: !1,
+              value: r[n++]
+            };
+          },
+          e: function (r) {
+            throw r;
+          },
+          f: F
+        };
+      }
+      throw new TypeError("Invalid attempt to iterate non-iterable instance.\nIn order to be iterable, non-array objects must have a [Symbol.iterator]() method.");
+    }
+    var o,
+      a = !0,
+      u = !1;
+    return {
+      s: function () {
+        t = t.call(r);
+      },
+      n: function () {
+        var r = t.next();
+        return a = r.done, r;
+      },
+      e: function (r) {
+        u = !0, o = r;
+      },
+      f: function () {
+        try {
+          a || null == t.return || t.return();
+        } finally {
+          if (u) throw o;
+        }
+      }
+    };
+  }
+  function _defineProperty(e, r, t) {
+    return (r = _toPropertyKey(r)) in e ? Object.defineProperty(e, r, {
+      value: t,
+      enumerable: !0,
+      configurable: !0,
+      writable: !0
+    }) : e[r] = t, e;
+  }
+  function _getPrototypeOf(t) {
+    return _getPrototypeOf = Object.setPrototypeOf ? Object.getPrototypeOf.bind() : function (t) {
+      return t.__proto__ || Object.getPrototypeOf(t);
+    }, _getPrototypeOf(t);
+  }
+  function _inherits(t, e) {
+    if ("function" != typeof e && null !== e) throw new TypeError("Super expression must either be null or a function");
+    t.prototype = Object.create(e && e.prototype, {
+      constructor: {
+        value: t,
+        writable: !0,
+        configurable: !0
+      }
+    }), Object.defineProperty(t, "prototype", {
+      writable: !1
+    }), e && _setPrototypeOf(t, e);
+  }
+  function _isNativeFunction(t) {
+    try {
+      return -1 !== Function.toString.call(t).indexOf("[native code]");
+    } catch (n) {
+      return "function" == typeof t;
+    }
+  }
+  function _isNativeReflectConstruct() {
+    try {
+      var t = !Boolean.prototype.valueOf.call(Reflect.construct(Boolean, [], function () {}));
+    } catch (t) {}
+    return (_isNativeReflectConstruct = function () {
+      return !!t;
+    })();
+  }
+  function _iterableToArray(r) {
+    if ("undefined" != typeof Symbol && null != r[Symbol.iterator] || null != r["@@iterator"]) return Array.from(r);
   }
   function _iterableToArrayLimit(r, l) {
     var t = null == r ? null : "undefined" != typeof Symbol && r[Symbol.iterator] || r["@@iterator"];
@@ -166,6 +259,12 @@
       return a;
     }
   }
+  function _nonIterableRest() {
+    throw new TypeError("Invalid attempt to destructure non-iterable instance.\nIn order to be iterable, non-array objects must have a [Symbol.iterator]() method.");
+  }
+  function _nonIterableSpread() {
+    throw new TypeError("Invalid attempt to spread non-iterable instance.\nIn order to be iterable, non-array objects must have a [Symbol.iterator]() method.");
+  }
   function ownKeys(e, r) {
     var t = Object.keys(e);
     if (Object.getOwnPropertySymbols) {
@@ -187,306 +286,146 @@
     }
     return e;
   }
-  function _regeneratorRuntime() {
-    _regeneratorRuntime = function () {
-      return e;
-    };
-    var t,
-      e = {},
-      r = Object.prototype,
-      n = r.hasOwnProperty,
-      o = Object.defineProperty || function (t, e, r) {
-        t[e] = r.value;
-      },
-      i = "function" == typeof Symbol ? Symbol : {},
-      a = i.iterator || "@@iterator",
-      c = i.asyncIterator || "@@asyncIterator",
-      u = i.toStringTag || "@@toStringTag";
-    function define(t, e, r) {
-      return Object.defineProperty(t, e, {
-        value: r,
-        enumerable: !0,
-        configurable: !0,
-        writable: !0
-      }), t[e];
-    }
-    try {
-      define({}, "");
-    } catch (t) {
-      define = function (t, e, r) {
-        return t[e] = r;
-      };
-    }
-    function wrap(t, e, r, n) {
-      var i = e && e.prototype instanceof Generator ? e : Generator,
-        a = Object.create(i.prototype),
-        c = new Context(n || []);
-      return o(a, "_invoke", {
-        value: makeInvokeMethod(t, r, c)
-      }), a;
-    }
-    function tryCatch(t, e, r) {
-      try {
-        return {
-          type: "normal",
-          arg: t.call(e, r)
+  function _possibleConstructorReturn(t, e) {
+    if (e && ("object" == typeof e || "function" == typeof e)) return e;
+    if (void 0 !== e) throw new TypeError("Derived constructors may only return object or undefined");
+    return _assertThisInitialized(t);
+  }
+  function _regenerator() {
+    /*! regenerator-runtime -- Copyright (c) 2014-present, Facebook, Inc. -- license (MIT): https://github.com/babel/babel/blob/main/packages/babel-helpers/LICENSE */
+    var e,
+      t,
+      r = "function" == typeof Symbol ? Symbol : {},
+      n = r.iterator || "@@iterator",
+      o = r.toStringTag || "@@toStringTag";
+    function i(r, n, o, i) {
+      var c = n && n.prototype instanceof Generator ? n : Generator,
+        u = Object.create(c.prototype);
+      return _regeneratorDefine(u, "_invoke", function (r, n, o) {
+        var i,
+          c,
+          u,
+          f = 0,
+          p = o || [],
+          y = !1,
+          G = {
+            p: 0,
+            n: 0,
+            v: e,
+            a: d,
+            f: d.bind(e, 4),
+            d: function (t, r) {
+              return i = t, c = 0, u = e, G.n = r, a;
+            }
+          };
+        function d(r, n) {
+          for (c = r, u = n, t = 0; !y && f && !o && t < p.length; t++) {
+            var o,
+              i = p[t],
+              d = G.p,
+              l = i[2];
+            r > 3 ? (o = l === n) && (u = i[(c = i[4]) ? 5 : (c = 3, 3)], i[4] = i[5] = e) : i[0] <= d && ((o = r < 2 && d < i[1]) ? (c = 0, G.v = n, G.n = i[1]) : d < l && (o = r < 3 || i[0] > n || n > l) && (i[4] = r, i[5] = n, G.n = l, c = 0));
+          }
+          if (o || r > 1) return a;
+          throw y = !0, n;
+        }
+        return function (o, p, l) {
+          if (f > 1) throw TypeError("Generator is already running");
+          for (y && 1 === p && d(p, l), c = p, u = l; (t = c < 2 ? e : u) || !y;) {
+            i || (c ? c < 3 ? (c > 1 && (G.n = -1), d(c, u)) : G.n = u : G.v = u);
+            try {
+              if (f = 2, i) {
+                if (c || (o = "next"), t = i[o]) {
+                  if (!(t = t.call(i, u))) throw TypeError("iterator result is not an object");
+                  if (!t.done) return t;
+                  u = t.value, c < 2 && (c = 0);
+                } else 1 === c && (t = i.return) && t.call(i), c < 2 && (u = TypeError("The iterator does not provide a '" + o + "' method"), c = 1);
+                i = e;
+              } else if ((t = (y = G.n < 0) ? u : r.call(n, G)) !== a) break;
+            } catch (t) {
+              i = e, c = 1, u = t;
+            } finally {
+              f = 1;
+            }
+          }
+          return {
+            value: t,
+            done: y
+          };
         };
-      } catch (t) {
-        return {
-          type: "throw",
-          arg: t
-        };
-      }
+      }(r, o, i), !0), u;
     }
-    e.wrap = wrap;
-    var h = "suspendedStart",
-      l = "suspendedYield",
-      f = "executing",
-      s = "completed",
-      y = {};
+    var a = {};
     function Generator() {}
     function GeneratorFunction() {}
     function GeneratorFunctionPrototype() {}
-    var p = {};
-    define(p, a, function () {
+    t = Object.getPrototypeOf;
+    var c = [][n] ? t(t([][n]())) : (_regeneratorDefine(t = {}, n, function () {
+        return this;
+      }), t),
+      u = GeneratorFunctionPrototype.prototype = Generator.prototype = Object.create(c);
+    function f(e) {
+      return Object.setPrototypeOf ? Object.setPrototypeOf(e, GeneratorFunctionPrototype) : (e.__proto__ = GeneratorFunctionPrototype, _regeneratorDefine(e, o, "GeneratorFunction")), e.prototype = Object.create(u), e;
+    }
+    return GeneratorFunction.prototype = GeneratorFunctionPrototype, _regeneratorDefine(u, "constructor", GeneratorFunctionPrototype), _regeneratorDefine(GeneratorFunctionPrototype, "constructor", GeneratorFunction), GeneratorFunction.displayName = "GeneratorFunction", _regeneratorDefine(GeneratorFunctionPrototype, o, "GeneratorFunction"), _regeneratorDefine(u), _regeneratorDefine(u, o, "Generator"), _regeneratorDefine(u, n, function () {
       return this;
-    });
-    var d = Object.getPrototypeOf,
-      v = d && d(d(values([])));
-    v && v !== r && n.call(v, a) && (p = v);
-    var g = GeneratorFunctionPrototype.prototype = Generator.prototype = Object.create(p);
-    function defineIteratorMethods(t) {
-      ["next", "throw", "return"].forEach(function (e) {
-        define(t, e, function (t) {
-          return this._invoke(e, t);
+    }), _regeneratorDefine(u, "toString", function () {
+      return "[object Generator]";
+    }), (_regenerator = function () {
+      return {
+        w: i,
+        m: f
+      };
+    })();
+  }
+  function _regeneratorDefine(e, r, n, t) {
+    var i = Object.defineProperty;
+    try {
+      i({}, "", {});
+    } catch (e) {
+      i = 0;
+    }
+    _regeneratorDefine = function (e, r, n, t) {
+      function o(r, n) {
+        _regeneratorDefine(e, r, function (e) {
+          return this._invoke(r, n, e);
         });
-      });
-    }
-    function AsyncIterator(t, e) {
-      function invoke(r, o, i, a) {
-        var c = tryCatch(t[r], t, o);
-        if ("throw" !== c.type) {
-          var u = c.arg,
-            h = u.value;
-          return h && "object" == typeof h && n.call(h, "__await") ? e.resolve(h.__await).then(function (t) {
-            invoke("next", t, i, a);
-          }, function (t) {
-            invoke("throw", t, i, a);
-          }) : e.resolve(h).then(function (t) {
-            u.value = t, i(u);
-          }, function (t) {
-            return invoke("throw", t, i, a);
-          });
-        }
-        a(c.arg);
       }
-      var r;
-      o(this, "_invoke", {
-        value: function (t, n) {
-          function callInvokeWithMethodAndArg() {
-            return new e(function (e, r) {
-              invoke(t, n, e, r);
-            });
-          }
-          return r = r ? r.then(callInvokeWithMethodAndArg, callInvokeWithMethodAndArg) : callInvokeWithMethodAndArg();
-        }
-      });
-    }
-    function makeInvokeMethod(e, r, n) {
-      var o = h;
-      return function (i, a) {
-        if (o === f) throw new Error("Generator is already running");
-        if (o === s) {
-          if ("throw" === i) throw a;
-          return {
-            value: t,
-            done: !0
+      r ? i ? i(e, r, {
+        value: n,
+        enumerable: !t,
+        configurable: !t,
+        writable: !t
+      }) : e[r] = n : (o("next", 0), o("throw", 1), o("return", 2));
+    }, _regeneratorDefine(e, r, n, t);
+  }
+  function _regeneratorValues(e) {
+    if (null != e) {
+      var t = e["function" == typeof Symbol && Symbol.iterator || "@@iterator"],
+        r = 0;
+      if (t) return t.call(e);
+      if ("function" == typeof e.next) return e;
+      if (!isNaN(e.length)) return {
+        next: function () {
+          return e && r >= e.length && (e = void 0), {
+            value: e && e[r++],
+            done: !e
           };
         }
-        for (n.method = i, n.arg = a;;) {
-          var c = n.delegate;
-          if (c) {
-            var u = maybeInvokeDelegate(c, n);
-            if (u) {
-              if (u === y) continue;
-              return u;
-            }
-          }
-          if ("next" === n.method) n.sent = n._sent = n.arg;else if ("throw" === n.method) {
-            if (o === h) throw o = s, n.arg;
-            n.dispatchException(n.arg);
-          } else "return" === n.method && n.abrupt("return", n.arg);
-          o = f;
-          var p = tryCatch(e, r, n);
-          if ("normal" === p.type) {
-            if (o = n.done ? s : l, p.arg === y) continue;
-            return {
-              value: p.arg,
-              done: n.done
-            };
-          }
-          "throw" === p.type && (o = s, n.method = "throw", n.arg = p.arg);
-        }
       };
     }
-    function maybeInvokeDelegate(e, r) {
-      var n = r.method,
-        o = e.iterator[n];
-      if (o === t) return r.delegate = null, "throw" === n && e.iterator.return && (r.method = "return", r.arg = t, maybeInvokeDelegate(e, r), "throw" === r.method) || "return" !== n && (r.method = "throw", r.arg = new TypeError("The iterator does not provide a '" + n + "' method")), y;
-      var i = tryCatch(o, e.iterator, r.arg);
-      if ("throw" === i.type) return r.method = "throw", r.arg = i.arg, r.delegate = null, y;
-      var a = i.arg;
-      return a ? a.done ? (r[e.resultName] = a.value, r.next = e.nextLoc, "return" !== r.method && (r.method = "next", r.arg = t), r.delegate = null, y) : a : (r.method = "throw", r.arg = new TypeError("iterator result is not an object"), r.delegate = null, y);
-    }
-    function pushTryEntry(t) {
-      var e = {
-        tryLoc: t[0]
-      };
-      1 in t && (e.catchLoc = t[1]), 2 in t && (e.finallyLoc = t[2], e.afterLoc = t[3]), this.tryEntries.push(e);
-    }
-    function resetTryEntry(t) {
-      var e = t.completion || {};
-      e.type = "normal", delete e.arg, t.completion = e;
-    }
-    function Context(t) {
-      this.tryEntries = [{
-        tryLoc: "root"
-      }], t.forEach(pushTryEntry, this), this.reset(!0);
-    }
-    function values(e) {
-      if (e || "" === e) {
-        var r = e[a];
-        if (r) return r.call(e);
-        if ("function" == typeof e.next) return e;
-        if (!isNaN(e.length)) {
-          var o = -1,
-            i = function next() {
-              for (; ++o < e.length;) if (n.call(e, o)) return next.value = e[o], next.done = !1, next;
-              return next.value = t, next.done = !0, next;
-            };
-          return i.next = i;
-        }
-      }
-      throw new TypeError(typeof e + " is not iterable");
-    }
-    return GeneratorFunction.prototype = GeneratorFunctionPrototype, o(g, "constructor", {
-      value: GeneratorFunctionPrototype,
-      configurable: !0
-    }), o(GeneratorFunctionPrototype, "constructor", {
-      value: GeneratorFunction,
-      configurable: !0
-    }), GeneratorFunction.displayName = define(GeneratorFunctionPrototype, u, "GeneratorFunction"), e.isGeneratorFunction = function (t) {
-      var e = "function" == typeof t && t.constructor;
-      return !!e && (e === GeneratorFunction || "GeneratorFunction" === (e.displayName || e.name));
-    }, e.mark = function (t) {
-      return Object.setPrototypeOf ? Object.setPrototypeOf(t, GeneratorFunctionPrototype) : (t.__proto__ = GeneratorFunctionPrototype, define(t, u, "GeneratorFunction")), t.prototype = Object.create(g), t;
-    }, e.awrap = function (t) {
-      return {
-        __await: t
-      };
-    }, defineIteratorMethods(AsyncIterator.prototype), define(AsyncIterator.prototype, c, function () {
-      return this;
-    }), e.AsyncIterator = AsyncIterator, e.async = function (t, r, n, o, i) {
-      void 0 === i && (i = Promise);
-      var a = new AsyncIterator(wrap(t, r, n, o), i);
-      return e.isGeneratorFunction(r) ? a : a.next().then(function (t) {
-        return t.done ? t.value : a.next();
-      });
-    }, defineIteratorMethods(g), define(g, u, "Generator"), define(g, a, function () {
-      return this;
-    }), define(g, "toString", function () {
-      return "[object Generator]";
-    }), e.keys = function (t) {
-      var e = Object(t),
-        r = [];
-      for (var n in e) r.push(n);
-      return r.reverse(), function next() {
-        for (; r.length;) {
-          var t = r.pop();
-          if (t in e) return next.value = t, next.done = !1, next;
-        }
-        return next.done = !0, next;
-      };
-    }, e.values = values, Context.prototype = {
-      constructor: Context,
-      reset: function (e) {
-        if (this.prev = 0, this.next = 0, this.sent = this._sent = t, this.done = !1, this.delegate = null, this.method = "next", this.arg = t, this.tryEntries.forEach(resetTryEntry), !e) for (var r in this) "t" === r.charAt(0) && n.call(this, r) && !isNaN(+r.slice(1)) && (this[r] = t);
-      },
-      stop: function () {
-        this.done = !0;
-        var t = this.tryEntries[0].completion;
-        if ("throw" === t.type) throw t.arg;
-        return this.rval;
-      },
-      dispatchException: function (e) {
-        if (this.done) throw e;
-        var r = this;
-        function handle(n, o) {
-          return a.type = "throw", a.arg = e, r.next = n, o && (r.method = "next", r.arg = t), !!o;
-        }
-        for (var o = this.tryEntries.length - 1; o >= 0; --o) {
-          var i = this.tryEntries[o],
-            a = i.completion;
-          if ("root" === i.tryLoc) return handle("end");
-          if (i.tryLoc <= this.prev) {
-            var c = n.call(i, "catchLoc"),
-              u = n.call(i, "finallyLoc");
-            if (c && u) {
-              if (this.prev < i.catchLoc) return handle(i.catchLoc, !0);
-              if (this.prev < i.finallyLoc) return handle(i.finallyLoc);
-            } else if (c) {
-              if (this.prev < i.catchLoc) return handle(i.catchLoc, !0);
-            } else {
-              if (!u) throw new Error("try statement without catch or finally");
-              if (this.prev < i.finallyLoc) return handle(i.finallyLoc);
-            }
-          }
-        }
-      },
-      abrupt: function (t, e) {
-        for (var r = this.tryEntries.length - 1; r >= 0; --r) {
-          var o = this.tryEntries[r];
-          if (o.tryLoc <= this.prev && n.call(o, "finallyLoc") && this.prev < o.finallyLoc) {
-            var i = o;
-            break;
-          }
-        }
-        i && ("break" === t || "continue" === t) && i.tryLoc <= e && e <= i.finallyLoc && (i = null);
-        var a = i ? i.completion : {};
-        return a.type = t, a.arg = e, i ? (this.method = "next", this.next = i.finallyLoc, y) : this.complete(a);
-      },
-      complete: function (t, e) {
-        if ("throw" === t.type) throw t.arg;
-        return "break" === t.type || "continue" === t.type ? this.next = t.arg : "return" === t.type ? (this.rval = this.arg = t.arg, this.method = "return", this.next = "end") : "normal" === t.type && e && (this.next = e), y;
-      },
-      finish: function (t) {
-        for (var e = this.tryEntries.length - 1; e >= 0; --e) {
-          var r = this.tryEntries[e];
-          if (r.finallyLoc === t) return this.complete(r.completion, r.afterLoc), resetTryEntry(r), y;
-        }
-      },
-      catch: function (t) {
-        for (var e = this.tryEntries.length - 1; e >= 0; --e) {
-          var r = this.tryEntries[e];
-          if (r.tryLoc === t) {
-            var n = r.completion;
-            if ("throw" === n.type) {
-              var o = n.arg;
-              resetTryEntry(r);
-            }
-            return o;
-          }
-        }
-        throw new Error("illegal catch attempt");
-      },
-      delegateYield: function (e, r, n) {
-        return this.delegate = {
-          iterator: values(e),
-          resultName: r,
-          nextLoc: n
-        }, "next" === this.method && (this.arg = t), y;
-      }
-    }, e;
+    throw new TypeError(typeof e + " is not iterable");
+  }
+  function _setPrototypeOf(t, e) {
+    return _setPrototypeOf = Object.setPrototypeOf ? Object.setPrototypeOf.bind() : function (t, e) {
+      return t.__proto__ = e, t;
+    }, _setPrototypeOf(t, e);
+  }
+  function _slicedToArray(r, e) {
+    return _arrayWithHoles(r) || _iterableToArrayLimit(r, e) || _unsupportedIterableToArray(r, e) || _nonIterableRest();
+  }
+  function _toConsumableArray(r) {
+    return _arrayWithoutHoles(r) || _iterableToArray(r) || _unsupportedIterableToArray(r) || _nonIterableSpread();
   }
   function _toPrimitive(t, r) {
     if ("object" != typeof t || !t) return t;
@@ -500,7 +439,7 @@
   }
   function _toPropertyKey(t) {
     var i = _toPrimitive(t, "string");
-    return "symbol" == typeof i ? i : String(i);
+    return "symbol" == typeof i ? i : i + "";
   }
   function _typeof(o) {
     "@babel/helpers - typeof";
@@ -511,161 +450,101 @@
       return o && "function" == typeof Symbol && o.constructor === Symbol && o !== Symbol.prototype ? "symbol" : typeof o;
     }, _typeof(o);
   }
-  function _wrapAsyncGenerator(fn) {
+  function _unsupportedIterableToArray(r, a) {
+    if (r) {
+      if ("string" == typeof r) return _arrayLikeToArray(r, a);
+      var t = {}.toString.call(r).slice(8, -1);
+      return "Object" === t && r.constructor && (t = r.constructor.name), "Map" === t || "Set" === t ? Array.from(r) : "Arguments" === t || /^(?:Ui|I)nt(?:8|16|32)(?:Clamped)?Array$/.test(t) ? _arrayLikeToArray(r, a) : void 0;
+    }
+  }
+  function _wrapAsyncGenerator(e) {
     return function () {
-      return new _AsyncGenerator(fn.apply(this, arguments));
+      return new AsyncGenerator(e.apply(this, arguments));
     };
   }
-  function asyncGeneratorStep(gen, resolve, reject, _next, _throw, key, arg) {
-    try {
-      var info = gen[key](arg);
-      var value = info.value;
-    } catch (error) {
-      reject(error);
-      return;
+  function AsyncGenerator(e) {
+    var r, t;
+    function resume(r, t) {
+      try {
+        var n = e[r](t),
+          o = n.value,
+          u = o instanceof _OverloadYield;
+        Promise.resolve(u ? o.v : o).then(function (t) {
+          if (u) {
+            var i = "return" === r ? "return" : "next";
+            if (!o.k || t.done) return resume(i, t);
+            t = e[i](t).value;
+          }
+          settle(n.done ? "return" : "normal", t);
+        }, function (e) {
+          resume("throw", e);
+        });
+      } catch (e) {
+        settle("throw", e);
+      }
     }
-    if (info.done) {
-      resolve(value);
-    } else {
-      Promise.resolve(value).then(_next, _throw);
+    function settle(e, n) {
+      switch (e) {
+        case "return":
+          r.resolve({
+            value: n,
+            done: !0
+          });
+          break;
+        case "throw":
+          r.reject(n);
+          break;
+        default:
+          r.resolve({
+            value: n,
+            done: !1
+          });
+      }
+      (r = r.next) ? resume(r.key, r.arg) : t = null;
     }
-  }
-  function _asyncToGenerator(fn) {
-    return function () {
-      var self = this,
-        args = arguments;
-      return new Promise(function (resolve, reject) {
-        var gen = fn.apply(self, args);
-        function _next(value) {
-          asyncGeneratorStep(gen, resolve, reject, _next, _throw, "next", value);
-        }
-        function _throw(err) {
-          asyncGeneratorStep(gen, resolve, reject, _next, _throw, "throw", err);
-        }
-        _next(undefined);
-      });
-    };
-  }
-  function _classCallCheck(instance, Constructor) {
-    if (!(instance instanceof Constructor)) {
-      throw new TypeError("Cannot call a class as a function");
-    }
-  }
-  function _defineProperties(target, props) {
-    for (var i = 0; i < props.length; i++) {
-      var descriptor = props[i];
-      descriptor.enumerable = descriptor.enumerable || false;
-      descriptor.configurable = true;
-      if ("value" in descriptor) descriptor.writable = true;
-      Object.defineProperty(target, _toPropertyKey(descriptor.key), descriptor);
-    }
-  }
-  function _createClass(Constructor, protoProps, staticProps) {
-    if (protoProps) _defineProperties(Constructor.prototype, protoProps);
-    if (staticProps) _defineProperties(Constructor, staticProps);
-    Object.defineProperty(Constructor, "prototype", {
-      writable: false
-    });
-    return Constructor;
-  }
-  function _defineProperty(obj, key, value) {
-    key = _toPropertyKey(key);
-    if (key in obj) {
-      Object.defineProperty(obj, key, {
-        value: value,
-        enumerable: true,
-        configurable: true,
-        writable: true
-      });
-    } else {
-      obj[key] = value;
-    }
-    return obj;
-  }
-  function _slicedToArray(arr, i) {
-    return _arrayWithHoles(arr) || _iterableToArrayLimit(arr, i) || _unsupportedIterableToArray(arr, i) || _nonIterableRest();
-  }
-  function _toConsumableArray(arr) {
-    return _arrayWithoutHoles(arr) || _iterableToArray(arr) || _unsupportedIterableToArray(arr) || _nonIterableSpread();
-  }
-  function _arrayWithoutHoles(arr) {
-    if (Array.isArray(arr)) return _arrayLikeToArray(arr);
-  }
-  function _arrayWithHoles(arr) {
-    if (Array.isArray(arr)) return arr;
-  }
-  function _iterableToArray(iter) {
-    if (typeof Symbol !== "undefined" && iter[Symbol.iterator] != null || iter["@@iterator"] != null) return Array.from(iter);
-  }
-  function _unsupportedIterableToArray(o, minLen) {
-    if (!o) return;
-    if (typeof o === "string") return _arrayLikeToArray(o, minLen);
-    var n = Object.prototype.toString.call(o).slice(8, -1);
-    if (n === "Object" && o.constructor) n = o.constructor.name;
-    if (n === "Map" || n === "Set") return Array.from(o);
-    if (n === "Arguments" || /^(?:Ui|I)nt(?:8|16|32)(?:Clamped)?Array$/.test(n)) return _arrayLikeToArray(o, minLen);
-  }
-  function _arrayLikeToArray(arr, len) {
-    if (len == null || len > arr.length) len = arr.length;
-    for (var i = 0, arr2 = new Array(len); i < len; i++) arr2[i] = arr[i];
-    return arr2;
-  }
-  function _nonIterableSpread() {
-    throw new TypeError("Invalid attempt to spread non-iterable instance.\nIn order to be iterable, non-array objects must have a [Symbol.iterator]() method.");
-  }
-  function _nonIterableRest() {
-    throw new TypeError("Invalid attempt to destructure non-iterable instance.\nIn order to be iterable, non-array objects must have a [Symbol.iterator]() method.");
-  }
-  function _createForOfIteratorHelper(o, allowArrayLike) {
-    var it = typeof Symbol !== "undefined" && o[Symbol.iterator] || o["@@iterator"];
-    if (!it) {
-      if (Array.isArray(o) || (it = _unsupportedIterableToArray(o)) || allowArrayLike && o && typeof o.length === "number") {
-        if (it) o = it;
-        var i = 0;
-        var F = function () {};
-        return {
-          s: F,
-          n: function () {
-            if (i >= o.length) return {
-              done: true
-            };
-            return {
-              done: false,
-              value: o[i++]
-            };
-          },
-          e: function (e) {
-            throw e;
-          },
-          f: F
+    this._invoke = function (e, n) {
+      return new Promise(function (o, u) {
+        var i = {
+          key: e,
+          arg: n,
+          resolve: o,
+          reject: u,
+          next: null
         };
+        t ? t = t.next = i : (r = t = i, resume(e, n));
+      });
+    }, "function" != typeof e.return && (this.return = void 0);
+  }
+  AsyncGenerator.prototype["function" == typeof Symbol && Symbol.asyncIterator || "@@asyncIterator"] = function () {
+    return this;
+  }, AsyncGenerator.prototype.next = function (e) {
+    return this._invoke("next", e);
+  }, AsyncGenerator.prototype.throw = function (e) {
+    return this._invoke("throw", e);
+  }, AsyncGenerator.prototype.return = function (e) {
+    return this._invoke("return", e);
+  };
+  function _wrapNativeSuper(t) {
+    var r = "function" == typeof Map ? new Map() : void 0;
+    return _wrapNativeSuper = function (t) {
+      if (null === t || !_isNativeFunction(t)) return t;
+      if ("function" != typeof t) throw new TypeError("Super expression must either be null or a function");
+      if (void 0 !== r) {
+        if (r.has(t)) return r.get(t);
+        r.set(t, Wrapper);
       }
-      throw new TypeError("Invalid attempt to iterate non-iterable instance.\nIn order to be iterable, non-array objects must have a [Symbol.iterator]() method.");
-    }
-    var normalCompletion = true,
-      didErr = false,
-      err;
-    return {
-      s: function () {
-        it = it.call(o);
-      },
-      n: function () {
-        var step = it.next();
-        normalCompletion = step.done;
-        return step;
-      },
-      e: function (e) {
-        didErr = true;
-        err = e;
-      },
-      f: function () {
-        try {
-          if (!normalCompletion && it.return != null) it.return();
-        } finally {
-          if (didErr) throw err;
+      function Wrapper() {
+        return _construct(t, arguments, _getPrototypeOf(this).constructor);
+      }
+      return Wrapper.prototype = Object.create(t.prototype, {
+        constructor: {
+          value: Wrapper,
+          enumerable: !1,
+          writable: !0,
+          configurable: !0
         }
-      }
-    };
+      }), _setPrototypeOf(Wrapper, t);
+    }, _wrapNativeSuper(t);
   }
 
   /**
@@ -706,7 +585,7 @@
   };
 
   /**
-   * Determine if a value is an Array
+   * Determine if a value is a non-null object
    *
    * @param {Object} val The value to test
    *
@@ -721,7 +600,7 @@
    *
    * @returns {boolean} True if the value is undefined, otherwise false
    */
-  var isUndefined = typeOfTest('undefined');
+  var isUndefined = typeOfTest("undefined");
 
   /**
    * Determine if a value is a Buffer
@@ -741,7 +620,7 @@
    *
    * @returns {boolean} True if value is an ArrayBuffer, otherwise false
    */
-  var isArrayBuffer = kindOfTest('ArrayBuffer');
+  var isArrayBuffer = kindOfTest("ArrayBuffer");
 
   /**
    * Determine if a value is a view on an ArrayBuffer
@@ -752,7 +631,7 @@
    */
   function isArrayBufferView(val) {
     var result;
-    if (typeof ArrayBuffer !== 'undefined' && ArrayBuffer.isView) {
+    if (typeof ArrayBuffer !== "undefined" && ArrayBuffer.isView) {
       result = ArrayBuffer.isView(val);
     } else {
       result = val && val.buffer && isArrayBuffer(val.buffer);
@@ -767,7 +646,7 @@
    *
    * @returns {boolean} True if value is a String, otherwise false
    */
-  var isString = typeOfTest('string');
+  var isString = typeOfTest("string");
 
   /**
    * Determine if a value is a Function
@@ -775,7 +654,7 @@
    * @param {*} val The value to test
    * @returns {boolean} True if value is a Function, otherwise false
    */
-  var isFunction$1 = typeOfTest('function');
+  var isFunction$1 = typeOfTest("function");
 
   /**
    * Determine if a value is a Number
@@ -784,7 +663,7 @@
    *
    * @returns {boolean} True if value is a Number, otherwise false
    */
-  var isNumber = typeOfTest('number');
+  var isNumber = typeOfTest("number");
 
   /**
    * Determine if a value is an Object
@@ -794,7 +673,7 @@
    * @returns {boolean} True if value is an Object, otherwise false
    */
   var isObject = function isObject(thing) {
-    return thing !== null && _typeof(thing) === 'object';
+    return thing !== null && _typeof(thing) === "object";
   };
 
   /**
@@ -815,7 +694,7 @@
    * @returns {boolean} True if value is a plain Object, otherwise false
    */
   var isPlainObject = function isPlainObject(val) {
-    if (kindOf(val) !== 'object') {
+    if (kindOf(val) !== "object") {
       return false;
     }
     var prototype = getPrototypeOf(val);
@@ -849,7 +728,7 @@
    *
    * @returns {boolean} True if value is a Date, otherwise false
    */
-  var isDate = kindOfTest('Date');
+  var isDate = kindOfTest("Date");
 
   /**
    * Determine if a value is a File
@@ -858,7 +737,7 @@
    *
    * @returns {boolean} True if value is a File, otherwise false
    */
-  var isFile = kindOfTest('File');
+  var isFile = kindOfTest("File");
 
   /**
    * Determine if a value is a Blob
@@ -867,7 +746,7 @@
    *
    * @returns {boolean} True if value is a Blob, otherwise false
    */
-  var isBlob = kindOfTest('Blob');
+  var isBlob = kindOfTest("Blob");
 
   /**
    * Determine if a value is a FileList
@@ -876,7 +755,7 @@
    *
    * @returns {boolean} True if value is a File, otherwise false
    */
-  var isFileList = kindOfTest('FileList');
+  var isFileList = kindOfTest("FileList");
 
   /**
    * Determine if a value is a Stream
@@ -898,9 +777,9 @@
    */
   var isFormData = function isFormData(thing) {
     var kind;
-    return thing && (typeof FormData === 'function' && thing instanceof FormData || isFunction$1(thing.append) && ((kind = kindOf(thing)) === 'formdata' ||
+    return thing && (typeof FormData === "function" && thing instanceof FormData || isFunction$1(thing.append) && ((kind = kindOf(thing)) === "formdata" ||
     // detect form-data instance
-    kind === 'object' && isFunction$1(thing.toString) && thing.toString() === '[object FormData]'));
+    kind === "object" && isFunction$1(thing.toString) && thing.toString() === "[object FormData]"));
   };
 
   /**
@@ -910,8 +789,8 @@
    *
    * @returns {boolean} True if value is a URLSearchParams object, otherwise false
    */
-  var isURLSearchParams = kindOfTest('URLSearchParams');
-  var _map = ['ReadableStream', 'Request', 'Response', 'Headers'].map(kindOfTest),
+  var isURLSearchParams = kindOfTest("URLSearchParams");
+  var _map = ["ReadableStream", "Request", "Response", "Headers"].map(kindOfTest),
     _map2 = _slicedToArray(_map, 4),
     isReadableStream = _map2[0],
     isRequest = _map2[1],
@@ -926,7 +805,7 @@
    * @returns {String} The String freed of excess whitespace
    */
   var trim = function trim(str) {
-    return str.trim ? str.trim() : str.replace(/^[\s\uFEFF\xA0]+|[\s\uFEFF\xA0]+$/g, '');
+    return str.trim ? str.trim() : str.replace(/^[\s\uFEFF\xA0]+|[\s\uFEFF\xA0]+$/g, "");
   };
 
   /**
@@ -938,10 +817,11 @@
    * If 'obj' is an Object callback will be called passing
    * the value, key, and complete object for each property.
    *
-   * @param {Object|Array} obj The object to iterate
+   * @param {Object|Array<unknown>} obj The object to iterate
    * @param {Function} fn The callback to invoke for each item
    *
-   * @param {Boolean} [allOwnKeys = false]
+   * @param {Object} [options]
+   * @param {Boolean} [options.allOwnKeys = false]
    * @returns {any}
    */
   function forEach(obj, fn) {
@@ -949,14 +829,14 @@
       _ref$allOwnKeys = _ref.allOwnKeys,
       allOwnKeys = _ref$allOwnKeys === void 0 ? false : _ref$allOwnKeys;
     // Don't bother if no value provided
-    if (obj === null || typeof obj === 'undefined') {
+    if (obj === null || typeof obj === "undefined") {
       return;
     }
     var i;
     var l;
 
     // Force an array if not already something iterable
-    if (_typeof(obj) !== 'object') {
+    if (_typeof(obj) !== "object") {
       /*eslint no-param-reassign:0*/
       obj = [obj];
     }
@@ -1000,7 +880,7 @@
   var _global = function () {
     /*eslint no-undef:0*/
     if (typeof globalThis !== "undefined") return globalThis;
-    return typeof self !== "undefined" ? self : typeof window !== 'undefined' ? window : global;
+    return typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : global;
   }();
   var isContextDefined = function isContextDefined(context) {
     return !isUndefined(context) && context !== _global;
@@ -1016,7 +896,7 @@
    * Example:
    *
    * ```js
-   * var result = merge({foo: 123}, {foo: 456});
+   * const result = merge({foo: 123}, {foo: 456});
    * console.log(result.foo); // outputs 456
    * ```
    *
@@ -1024,13 +904,17 @@
    *
    * @returns {Object} Result of all merge properties
    */
-  function merge( /* obj1, obj2, obj3, ... */
+  function merge(/* obj1, obj2, obj3, ... */
   ) {
     var _ref2 = isContextDefined(this) && this || {},
       caseless = _ref2.caseless,
       skipUndefined = _ref2.skipUndefined;
     var result = {};
     var assignValue = function assignValue(val, key) {
+      // Skip dangerous property names to prevent prototype pollution
+      if (key === "__proto__" || key === "constructor" || key === "prototype") {
+        return;
+      }
       var targetKey = caseless && findKey(result, key) || key;
       if (isPlainObject(result[targetKey]) && isPlainObject(val)) {
         result[targetKey] = merge(result[targetKey], val);
@@ -1055,7 +939,8 @@
    * @param {Object} b The object to copy properties from
    * @param {Object} thisArg The object to bind function to
    *
-   * @param {Boolean} [allOwnKeys]
+   * @param {Object} [options]
+   * @param {Boolean} [options.allOwnKeys]
    * @returns {Object} The resulting value of object a
    */
   var extend = function extend(a, b, thisArg) {
@@ -1063,9 +948,19 @@
       allOwnKeys = _ref3.allOwnKeys;
     forEach(b, function (val, key) {
       if (thisArg && isFunction$1(val)) {
-        a[key] = bind(val, thisArg);
+        Object.defineProperty(a, key, {
+          value: bind(val, thisArg),
+          writable: true,
+          enumerable: true,
+          configurable: true
+        });
       } else {
-        a[key] = val;
+        Object.defineProperty(a, key, {
+          value: val,
+          writable: true,
+          enumerable: true,
+          configurable: true
+        });
       }
     }, {
       allOwnKeys: allOwnKeys
@@ -1081,7 +976,7 @@
    * @returns {string} content value without BOM
    */
   var stripBOM = function stripBOM(content) {
-    if (content.charCodeAt(0) === 0xFEFF) {
+    if (content.charCodeAt(0) === 0xfeff) {
       content = content.slice(1);
     }
     return content;
@@ -1098,8 +993,13 @@
    */
   var inherits = function inherits(constructor, superConstructor, props, descriptors) {
     constructor.prototype = Object.create(superConstructor.prototype, descriptors);
-    constructor.prototype.constructor = constructor;
-    Object.defineProperty(constructor, 'super', {
+    Object.defineProperty(constructor.prototype, "constructor", {
+      value: constructor,
+      writable: true,
+      enumerable: false,
+      configurable: true
+    });
+    Object.defineProperty(constructor, "super", {
       value: superConstructor.prototype
     });
     props && Object.assign(constructor.prototype, props);
@@ -1189,7 +1089,7 @@
     return function (thing) {
       return TypedArray && thing instanceof TypedArray;
     };
-  }(typeof Uint8Array !== 'undefined' && getPrototypeOf(Uint8Array));
+  }(typeof Uint8Array !== "undefined" && getPrototypeOf(Uint8Array));
 
   /**
    * For each entry in the object, call the function with the key and value.
@@ -1227,7 +1127,7 @@
   };
 
   /* Checking if the kindOfTest function returns true when passed an HTMLFormElement. */
-  var isHTMLForm = kindOfTest('HTMLFormElement');
+  var isHTMLForm = kindOfTest("HTMLFormElement");
   var toCamelCase = function toCamelCase(str) {
     return str.toLowerCase().replace(/[-_\s]([a-z\d])(\w*)/g, function replacer(m, p1, p2) {
       return p1.toUpperCase() + p2;
@@ -1249,7 +1149,7 @@
    *
    * @returns {boolean} True if value is a RegExp object, otherwise false
    */
-  var isRegExp = kindOfTest('RegExp');
+  var isRegExp = kindOfTest("RegExp");
   var reduceDescriptors = function reduceDescriptors(obj, reducer) {
     var descriptors = Object.getOwnPropertyDescriptors(obj);
     var reducedDescriptors = {};
@@ -1270,19 +1170,19 @@
   var freezeMethods = function freezeMethods(obj) {
     reduceDescriptors(obj, function (descriptor, name) {
       // skip restricted props in strict mode
-      if (isFunction$1(obj) && ['arguments', 'caller', 'callee'].indexOf(name) !== -1) {
+      if (isFunction$1(obj) && ["arguments", "caller", "callee"].indexOf(name) !== -1) {
         return false;
       }
       var value = obj[name];
       if (!isFunction$1(value)) return;
       descriptor.enumerable = false;
-      if ('writable' in descriptor) {
+      if ("writable" in descriptor) {
         descriptor.writable = false;
         return;
       }
       if (!descriptor.set) {
         descriptor.set = function () {
-          throw Error('Can not rewrite read-only method \'' + name + '\'');
+          throw Error("Can not rewrite read-only method '" + name + "'");
         };
       }
     });
@@ -1310,11 +1210,11 @@
    * @returns {boolean}
    */
   function isSpecCompliantForm(thing) {
-    return !!(thing && isFunction$1(thing.append) && thing[toStringTag] === 'FormData' && thing[iterator]);
+    return !!(thing && isFunction$1(thing.append) && thing[toStringTag] === "FormData" && thing[iterator]);
   }
   var toJSONObject = function toJSONObject(obj) {
     var stack = new Array(10);
-    var visit = function visit(source, i) {
+    var _visit = function visit(source, i) {
       if (isObject(source)) {
         if (stack.indexOf(source) >= 0) {
           return;
@@ -1324,11 +1224,11 @@
         if (isBuffer(source)) {
           return source;
         }
-        if (!('toJSON' in source)) {
+        if (!("toJSON" in source)) {
           stack[i] = source;
           var target = isArray(source) ? [] : {};
           forEach(source, function (value, key) {
-            var reducedValue = visit(value, i + 1);
+            var reducedValue = _visit(value, i + 1);
             !isUndefined(reducedValue) && (target[key] = reducedValue);
           });
           stack[i] = undefined;
@@ -1337,9 +1237,9 @@
       }
       return source;
     };
-    return visit(obj, 0);
+    return _visit(obj, 0);
   };
-  var isAsyncFn = kindOfTest('AsyncFunction');
+  var isAsyncFn = kindOfTest("AsyncFunction");
   var isThenable = function isThenable(thing) {
     return thing && (isObject(thing) || isFunction$1(thing)) && isFunction$1(thing.then) && isFunction$1(thing["catch"]);
   };
@@ -1366,8 +1266,8 @@
     }("axios@".concat(Math.random()), []) : function (cb) {
       return setTimeout(cb);
     };
-  }(typeof setImmediate === 'function', isFunction$1(_global.postMessage));
-  var asap = typeof queueMicrotask !== 'undefined' ? queueMicrotask.bind(_global) : typeof process !== 'undefined' && process.nextTick || _setImmediate;
+  }(typeof setImmediate === "function", isFunction$1(_global.postMessage));
+  var asap = typeof queueMicrotask !== "undefined" ? queueMicrotask.bind(_global) : typeof process !== "undefined" && process.nextTick || _setImmediate;
 
   // *********************
 
@@ -1435,94 +1335,79 @@
     isIterable: isIterable
   };
 
-  /**
-   * Create an Error with the specified message, config, error code, request and response.
-   *
-   * @param {string} message The error message.
-   * @param {string} [code] The error code (for example, 'ECONNABORTED').
-   * @param {Object} [config] The config.
-   * @param {Object} [request] The request.
-   * @param {Object} [response] The response.
-   *
-   * @returns {Error} The created error.
-   */
-  function AxiosError(message, code, config, request, response) {
-    Error.call(this);
-    if (Error.captureStackTrace) {
-      Error.captureStackTrace(this, this.constructor);
-    } else {
-      this.stack = new Error().stack;
+  var AxiosError = /*#__PURE__*/function (_Error) {
+    /**
+     * Create an Error with the specified message, config, error code, request and response.
+     *
+     * @param {string} message The error message.
+     * @param {string} [code] The error code (for example, 'ECONNABORTED').
+     * @param {Object} [config] The config.
+     * @param {Object} [request] The request.
+     * @param {Object} [response] The response.
+     *
+     * @returns {Error} The created error.
+     */
+    function AxiosError(message, code, config, request, response) {
+      var _this;
+      _classCallCheck(this, AxiosError);
+      _this = _callSuper(this, AxiosError, [message]);
+      _this.name = 'AxiosError';
+      _this.isAxiosError = true;
+      code && (_this.code = code);
+      config && (_this.config = config);
+      request && (_this.request = request);
+      if (response) {
+        _this.response = response;
+        _this.status = response.status;
+      }
+      return _this;
     }
-    this.message = message;
-    this.name = 'AxiosError';
-    code && (this.code = code);
-    config && (this.config = config);
-    request && (this.request = request);
-    if (response) {
-      this.response = response;
-      this.status = response.status ? response.status : null;
-    }
-  }
-  utils$1.inherits(AxiosError, Error, {
-    toJSON: function toJSON() {
-      return {
-        // Standard
-        message: this.message,
-        name: this.name,
-        // Microsoft
-        description: this.description,
-        number: this.number,
-        // Mozilla
-        fileName: this.fileName,
-        lineNumber: this.lineNumber,
-        columnNumber: this.columnNumber,
-        stack: this.stack,
-        // Axios
-        config: utils$1.toJSONObject(this.config),
-        code: this.code,
-        status: this.status
-      };
-    }
-  });
-  var prototype$1 = AxiosError.prototype;
-  var descriptors = {};
-  ['ERR_BAD_OPTION_VALUE', 'ERR_BAD_OPTION', 'ECONNABORTED', 'ETIMEDOUT', 'ERR_NETWORK', 'ERR_FR_TOO_MANY_REDIRECTS', 'ERR_DEPRECATED', 'ERR_BAD_RESPONSE', 'ERR_BAD_REQUEST', 'ERR_CANCELED', 'ERR_NOT_SUPPORT', 'ERR_INVALID_URL'
-  // eslint-disable-next-line func-names
-  ].forEach(function (code) {
-    descriptors[code] = {
-      value: code
-    };
-  });
-  Object.defineProperties(AxiosError, descriptors);
-  Object.defineProperty(prototype$1, 'isAxiosError', {
-    value: true
-  });
-
-  // eslint-disable-next-line func-names
-  AxiosError.from = function (error, code, config, request, response, customProps) {
-    var axiosError = Object.create(prototype$1);
-    utils$1.toFlatObject(error, axiosError, function filter(obj) {
-      return obj !== Error.prototype;
-    }, function (prop) {
-      return prop !== 'isAxiosError';
-    });
-    var msg = error && error.message ? error.message : 'Error';
-
-    // Prefer explicit code; otherwise copy the low-level error's code (e.g. ECONNREFUSED)
-    var errCode = code == null && error ? error.code : code;
-    AxiosError.call(axiosError, msg, errCode, config, request, response);
-
-    // Chain the original error on the standard field; non-enumerable to avoid JSON noise
-    if (error && axiosError.cause == null) {
-      Object.defineProperty(axiosError, 'cause', {
-        value: error,
-        configurable: true
-      });
-    }
-    axiosError.name = error && error.name || 'Error';
-    customProps && Object.assign(axiosError, customProps);
-    return axiosError;
-  };
+    _inherits(AxiosError, _Error);
+    return _createClass(AxiosError, [{
+      key: "toJSON",
+      value: function toJSON() {
+        return {
+          // Standard
+          message: this.message,
+          name: this.name,
+          // Microsoft
+          description: this.description,
+          number: this.number,
+          // Mozilla
+          fileName: this.fileName,
+          lineNumber: this.lineNumber,
+          columnNumber: this.columnNumber,
+          stack: this.stack,
+          // Axios
+          config: utils$1.toJSONObject(this.config),
+          code: this.code,
+          status: this.status
+        };
+      }
+    }], [{
+      key: "from",
+      value: function from(error, code, config, request, response, customProps) {
+        var axiosError = new AxiosError(error.message, code || error.code, config, request, response);
+        axiosError.cause = error;
+        axiosError.name = error.name;
+        customProps && Object.assign(axiosError, customProps);
+        return axiosError;
+      }
+    }]);
+  }(/*#__PURE__*/_wrapNativeSuper(Error)); // This can be changed to static properties as soon as the parser options in .eslint.cjs are updated.
+  AxiosError.ERR_BAD_OPTION_VALUE = 'ERR_BAD_OPTION_VALUE';
+  AxiosError.ERR_BAD_OPTION = 'ERR_BAD_OPTION';
+  AxiosError.ECONNABORTED = 'ECONNABORTED';
+  AxiosError.ETIMEDOUT = 'ETIMEDOUT';
+  AxiosError.ERR_NETWORK = 'ERR_NETWORK';
+  AxiosError.ERR_FR_TOO_MANY_REDIRECTS = 'ERR_FR_TOO_MANY_REDIRECTS';
+  AxiosError.ERR_DEPRECATED = 'ERR_DEPRECATED';
+  AxiosError.ERR_BAD_RESPONSE = 'ERR_BAD_RESPONSE';
+  AxiosError.ERR_BAD_REQUEST = 'ERR_BAD_REQUEST';
+  AxiosError.ERR_CANCELED = 'ERR_CANCELED';
+  AxiosError.ERR_NOT_SUPPORT = 'ERR_NOT_SUPPORT';
+  AxiosError.ERR_INVALID_URL = 'ERR_INVALID_URL';
+  var AxiosError$1 = AxiosError;
 
   // eslint-disable-next-line strict
   var httpAdapter = null;
@@ -1640,7 +1525,7 @@
         return value.toString();
       }
       if (!useBlob && utils$1.isBlob(value)) {
-        throw new AxiosError('Blob is not supported. Use a Buffer instead.');
+        throw new AxiosError$1('Blob is not supported. Use a Buffer instead.');
       }
       if (utils$1.isArrayBuffer(value) || utils$1.isTypedArray(value)) {
         return useBlob && typeof Blob === 'function' ? new Blob([value]) : Buffer.from(value);
@@ -1780,22 +1665,19 @@
    * @returns {string} The formatted url
    */
   function buildURL(url, params, options) {
-    /*eslint no-param-reassign:0*/
     if (!params) {
       return url;
     }
     var _encode = options && options.encode || encode;
-    if (utils$1.isFunction(options)) {
-      options = {
-        serialize: options
-      };
-    }
-    var serializeFn = options && options.serialize;
+    var _options = utils$1.isFunction(options) ? {
+      serialize: options
+    } : options;
+    var serializeFn = _options && _options.serialize;
     var serializedParams;
     if (serializeFn) {
-      serializedParams = serializeFn(params, options);
+      serializedParams = serializeFn(params, _options);
     } else {
-      serializedParams = utils$1.isURLSearchParams(params) ? params.toString() : new AxiosURLSearchParams(params, options).toString(_encode);
+      serializedParams = utils$1.isURLSearchParams(params) ? params.toString() : new AxiosURLSearchParams(params, _options).toString(_encode);
     }
     if (serializedParams) {
       var hashmarkIndex = url.indexOf("#");
@@ -1818,10 +1700,11 @@
      *
      * @param {Function} fulfilled The function to handle `then` for a `Promise`
      * @param {Function} rejected The function to handle `reject` for a `Promise`
+     * @param {Object} options The options for the interceptor, synchronous and runWhen
      *
      * @return {Number} An ID used to remove interceptor later
      */
-    _createClass(InterceptorManager, [{
+    return _createClass(InterceptorManager, [{
       key: "use",
       value: function use(fulfilled, rejected, options) {
         this.handlers.push({
@@ -1881,14 +1764,14 @@
         });
       }
     }]);
-    return InterceptorManager;
   }();
   var InterceptorManager$1 = InterceptorManager;
 
   var transitionalDefaults = {
     silentJSONParsing: true,
     forcedJSONParsing: true,
-    clarifyTimeoutError: false
+    clarifyTimeoutError: false,
+    legacyInterceptorReqResOrdering: true
   };
 
   var URLSearchParams$1 = typeof URLSearchParams !== 'undefined' ? URLSearchParams : AxiosURLSearchParams;
@@ -2126,7 +2009,7 @@
         } catch (e) {
           if (strictJSONParsing) {
             if (e.name === 'SyntaxError') {
-              throw AxiosError.from(e, AxiosError.ERR_BAD_RESPONSE, this, null, this.response);
+              throw AxiosError$1.from(e, AxiosError$1.ERR_BAD_RESPONSE, this, null, this.response);
             }
             throw e;
           }
@@ -2258,12 +2141,12 @@
       });
     });
   }
-  var AxiosHeaders = /*#__PURE__*/function (_Symbol$iterator, _Symbol$toStringTag) {
+  var AxiosHeaders = /*#__PURE__*/function () {
     function AxiosHeaders(headers) {
       _classCallCheck(this, AxiosHeaders);
       headers && this.set(headers);
     }
-    _createClass(AxiosHeaders, [{
+    return _createClass(AxiosHeaders, [{
       key: "set",
       value: function set(header, valueOrRewrite, rewrite) {
         var self = this;
@@ -2422,7 +2305,7 @@
         return obj;
       }
     }, {
-      key: _Symbol$iterator,
+      key: Symbol.iterator,
       value: function value() {
         return Object.entries(this.toJSON())[Symbol.iterator]();
       }
@@ -2442,7 +2325,7 @@
         return this.get("set-cookie") || [];
       }
     }, {
-      key: _Symbol$toStringTag,
+      key: Symbol.toStringTag,
       get: function get() {
         return 'AxiosHeaders';
       }
@@ -2482,8 +2365,7 @@
         return this;
       }
     }]);
-    return AxiosHeaders;
-  }(Symbol.iterator, Symbol.toStringTag);
+  }();
   AxiosHeaders.accessor(['Content-Type', 'Content-Length', 'Accept', 'Accept-Encoding', 'User-Agent', 'Authorization']);
 
   // reserved names hotfix
@@ -2526,23 +2408,28 @@
     return !!(value && value.__CANCEL__);
   }
 
-  /**
-   * A `CanceledError` is an object that is thrown when an operation is canceled.
-   *
-   * @param {string=} message The message.
-   * @param {Object=} config The config.
-   * @param {Object=} request The request.
-   *
-   * @returns {CanceledError} The created error.
-   */
-  function CanceledError(message, config, request) {
-    // eslint-disable-next-line no-eq-null,eqeqeq
-    AxiosError.call(this, message == null ? 'canceled' : message, AxiosError.ERR_CANCELED, config, request);
-    this.name = 'CanceledError';
-  }
-  utils$1.inherits(CanceledError, AxiosError, {
-    __CANCEL__: true
-  });
+  var CanceledError = /*#__PURE__*/function (_AxiosError) {
+    /**
+     * A `CanceledError` is an object that is thrown when an operation is canceled.
+     *
+     * @param {string=} message The message.
+     * @param {Object=} config The config.
+     * @param {Object=} request The request.
+     *
+     * @returns {CanceledError} The created error.
+     */
+    function CanceledError(message, config, request) {
+      var _this;
+      _classCallCheck(this, CanceledError);
+      _this = _callSuper(this, CanceledError, [message == null ? 'canceled' : message, AxiosError$1.ERR_CANCELED, config, request]);
+      _this.name = 'CanceledError';
+      _this.__CANCEL__ = true;
+      return _this;
+    }
+    _inherits(CanceledError, _AxiosError);
+    return _createClass(CanceledError);
+  }(AxiosError$1);
+  var CanceledError$1 = CanceledError;
 
   /**
    * Resolve or reject a Promise based on response status.
@@ -2558,7 +2445,7 @@
     if (!response.status || !validateStatus || validateStatus(response.status)) {
       resolve(response);
     } else {
-      reject(new AxiosError('Request failed with status code ' + response.status, [AxiosError.ERR_BAD_REQUEST, AxiosError.ERR_BAD_RESPONSE][Math.floor(response.status / 100) - 4], response.config, response.request, response));
+      reject(new AxiosError$1('Request failed with status code ' + response.status, [AxiosError$1.ERR_BAD_REQUEST, AxiosError$1.ERR_BAD_RESPONSE][Math.floor(response.status / 100) - 4], response.config, response.request, response));
     }
   }
 
@@ -2758,6 +2645,9 @@
     // A URL is considered absolute if it begins with "<scheme>://" or "//" (protocol-relative URL).
     // RFC 3986 defines scheme name as a sequence of characters beginning with a letter and followed
     // by any combination of letters, digits, plus, period, or hyphen.
+    if (typeof url !== 'string') {
+      return false;
+    }
     return /^([a-z][a-z\d+\-.]*:)?\/\//i.test(url);
   }
 
@@ -2820,8 +2710,6 @@
       }
       return source;
     }
-
-    // eslint-disable-next-line consistent-return
     function mergeDeepProperties(a, b, prop, caseless) {
       if (!utils$1.isUndefined(b)) {
         return getMergedValue(a, b, prop, caseless);
@@ -2888,7 +2776,8 @@
       }
     };
     utils$1.forEach(Object.keys(_objectSpread2(_objectSpread2({}, config1), config2)), function computeConfigValue(prop) {
-      var merge = mergeMap[prop] || mergeDeepProperties;
+      if (prop === "__proto__" || prop === "constructor" || prop === "prototype") return;
+      var merge = utils$1.hasOwnProp(mergeMap, prop) ? mergeMap[prop] : mergeDeepProperties;
       var configValue = merge(config1[prop], config2[prop], prop);
       utils$1.isUndefined(configValue) && merge !== mergeDirectKeys || (config[prop] = configValue);
     });
@@ -3024,7 +2913,7 @@
         if (!request) {
           return;
         }
-        reject(new AxiosError('Request aborted', AxiosError.ECONNABORTED, config, request));
+        reject(new AxiosError$1('Request aborted', AxiosError$1.ECONNABORTED, config, request));
 
         // Clean up request
         request = null;
@@ -3036,7 +2925,7 @@
         // (message may be empty; when present, surface it)
         // See https://developer.mozilla.org/docs/Web/API/XMLHttpRequest/error_event
         var msg = event && event.message ? event.message : 'Network Error';
-        var err = new AxiosError(msg, AxiosError.ERR_NETWORK, config, request);
+        var err = new AxiosError$1(msg, AxiosError$1.ERR_NETWORK, config, request);
         // attach the underlying event for consumers who want details
         err.event = event || null;
         reject(err);
@@ -3050,7 +2939,7 @@
         if (_config.timeoutErrorMessage) {
           timeoutErrorMessage = _config.timeoutErrorMessage;
         }
-        reject(new AxiosError(timeoutErrorMessage, transitional.clarifyTimeoutError ? AxiosError.ETIMEDOUT : AxiosError.ECONNABORTED, config, request));
+        reject(new AxiosError$1(timeoutErrorMessage, transitional.clarifyTimeoutError ? AxiosError$1.ETIMEDOUT : AxiosError$1.ECONNABORTED, config, request));
 
         // Clean up request
         request = null;
@@ -3101,7 +2990,7 @@
           if (!request) {
             return;
           }
-          reject(!cancel || cancel.type ? new CanceledError(null, config, request) : cancel);
+          reject(!cancel || cancel.type ? new CanceledError$1(null, config, request) : cancel);
           request.abort();
           request = null;
         };
@@ -3112,7 +3001,7 @@
       }
       var protocol = parseProtocol(_config.url);
       if (protocol && platform.protocols.indexOf(protocol) === -1) {
-        reject(new AxiosError('Unsupported protocol ' + protocol + ':', AxiosError.ERR_BAD_REQUEST, config));
+        reject(new AxiosError$1('Unsupported protocol ' + protocol + ':', AxiosError$1.ERR_BAD_REQUEST, config));
         return;
       }
 
@@ -3132,12 +3021,12 @@
           aborted = true;
           unsubscribe();
           var err = reason instanceof Error ? reason : this.reason;
-          controller.abort(err instanceof AxiosError ? err : new CanceledError(err instanceof Error ? err.message : err));
+          controller.abort(err instanceof AxiosError$1 ? err : new CanceledError$1(err instanceof Error ? err.message : err));
         }
       };
       var timer = timeout && setTimeout(function () {
         timer = null;
-        onabort(new AxiosError("timeout ".concat(timeout, " of ms exceeded"), AxiosError.ETIMEDOUT));
+        onabort(new AxiosError$1("timeout of ".concat(timeout, "ms exceeded"), AxiosError$1.ETIMEDOUT));
       }, timeout);
       var unsubscribe = function unsubscribe() {
         if (signals) {
@@ -3161,147 +3050,144 @@
   };
   var composeSignals$1 = composeSignals;
 
-  var streamChunk = /*#__PURE__*/_regeneratorRuntime().mark(function streamChunk(chunk, chunkSize) {
+  var streamChunk = /*#__PURE__*/_regenerator().m(function streamChunk(chunk, chunkSize) {
     var len, pos, end;
-    return _regeneratorRuntime().wrap(function streamChunk$(_context) {
-      while (1) switch (_context.prev = _context.next) {
+    return _regenerator().w(function (_context) {
+      while (1) switch (_context.n) {
         case 0:
           len = chunk.byteLength;
           if (!(!chunkSize || len < chunkSize)) {
-            _context.next = 5;
+            _context.n = 2;
             break;
           }
-          _context.next = 4;
+          _context.n = 1;
           return chunk;
-        case 4:
-          return _context.abrupt("return");
-        case 5:
+        case 1:
+          return _context.a(2);
+        case 2:
           pos = 0;
-        case 6:
+        case 3:
           if (!(pos < len)) {
-            _context.next = 13;
+            _context.n = 5;
             break;
           }
           end = pos + chunkSize;
-          _context.next = 10;
+          _context.n = 4;
           return chunk.slice(pos, end);
-        case 10:
+        case 4:
           pos = end;
-          _context.next = 6;
+          _context.n = 3;
           break;
-        case 13:
-        case "end":
-          return _context.stop();
+        case 5:
+          return _context.a(2);
       }
     }, streamChunk);
   });
   var readBytes = /*#__PURE__*/function () {
-    var _ref = _wrapAsyncGenerator( /*#__PURE__*/_regeneratorRuntime().mark(function _callee(iterable, chunkSize) {
-      var _iteratorAbruptCompletion, _didIteratorError, _iteratorError, _iterator, _step, chunk;
-      return _regeneratorRuntime().wrap(function _callee$(_context2) {
-        while (1) switch (_context2.prev = _context2.next) {
+    var _ref = _wrapAsyncGenerator(/*#__PURE__*/_regenerator().m(function _callee(iterable, chunkSize) {
+      var _iteratorAbruptCompletion, _didIteratorError, _iteratorError, _iterator, _step, chunk, _t;
+      return _regenerator().w(function (_context2) {
+        while (1) switch (_context2.p = _context2.n) {
           case 0:
             _iteratorAbruptCompletion = false;
             _didIteratorError = false;
-            _context2.prev = 2;
+            _context2.p = 1;
             _iterator = _asyncIterator(readStream(iterable));
-          case 4:
-            _context2.next = 6;
+          case 2:
+            _context2.n = 3;
             return _awaitAsyncGenerator(_iterator.next());
-          case 6:
-            if (!(_iteratorAbruptCompletion = !(_step = _context2.sent).done)) {
-              _context2.next = 12;
+          case 3:
+            if (!(_iteratorAbruptCompletion = !(_step = _context2.v).done)) {
+              _context2.n = 5;
               break;
             }
             chunk = _step.value;
-            return _context2.delegateYield(_asyncGeneratorDelegate(_asyncIterator(streamChunk(chunk, chunkSize))), "t0", 9);
-          case 9:
+            return _context2.d(_regeneratorValues(_asyncGeneratorDelegate(_asyncIterator(streamChunk(chunk, chunkSize)))), 4);
+          case 4:
             _iteratorAbruptCompletion = false;
-            _context2.next = 4;
+            _context2.n = 2;
             break;
-          case 12:
-            _context2.next = 18;
+          case 5:
+            _context2.n = 7;
             break;
-          case 14:
-            _context2.prev = 14;
-            _context2.t1 = _context2["catch"](2);
+          case 6:
+            _context2.p = 6;
+            _t = _context2.v;
             _didIteratorError = true;
-            _iteratorError = _context2.t1;
-          case 18:
-            _context2.prev = 18;
-            _context2.prev = 19;
+            _iteratorError = _t;
+          case 7:
+            _context2.p = 7;
+            _context2.p = 8;
             if (!(_iteratorAbruptCompletion && _iterator["return"] != null)) {
-              _context2.next = 23;
+              _context2.n = 9;
               break;
             }
-            _context2.next = 23;
+            _context2.n = 9;
             return _awaitAsyncGenerator(_iterator["return"]());
-          case 23:
-            _context2.prev = 23;
+          case 9:
+            _context2.p = 9;
             if (!_didIteratorError) {
-              _context2.next = 26;
+              _context2.n = 10;
               break;
             }
             throw _iteratorError;
-          case 26:
-            return _context2.finish(23);
-          case 27:
-            return _context2.finish(18);
-          case 28:
-          case "end":
-            return _context2.stop();
+          case 10:
+            return _context2.f(9);
+          case 11:
+            return _context2.f(7);
+          case 12:
+            return _context2.a(2);
         }
-      }, _callee, null, [[2, 14, 18, 28], [19,, 23, 27]]);
+      }, _callee, null, [[8,, 9, 11], [1, 6, 7, 12]]);
     }));
     return function readBytes(_x, _x2) {
       return _ref.apply(this, arguments);
     };
   }();
   var readStream = /*#__PURE__*/function () {
-    var _ref2 = _wrapAsyncGenerator( /*#__PURE__*/_regeneratorRuntime().mark(function _callee2(stream) {
+    var _ref2 = _wrapAsyncGenerator(/*#__PURE__*/_regenerator().m(function _callee2(stream) {
       var reader, _yield$_awaitAsyncGen, done, value;
-      return _regeneratorRuntime().wrap(function _callee2$(_context3) {
-        while (1) switch (_context3.prev = _context3.next) {
+      return _regenerator().w(function (_context3) {
+        while (1) switch (_context3.p = _context3.n) {
           case 0:
             if (!stream[Symbol.asyncIterator]) {
-              _context3.next = 3;
+              _context3.n = 2;
               break;
             }
-            return _context3.delegateYield(_asyncGeneratorDelegate(_asyncIterator(stream)), "t0", 2);
+            return _context3.d(_regeneratorValues(_asyncGeneratorDelegate(_asyncIterator(stream))), 1);
+          case 1:
+            return _context3.a(2);
           case 2:
-            return _context3.abrupt("return");
-          case 3:
             reader = stream.getReader();
-            _context3.prev = 4;
-          case 5:
-            _context3.next = 7;
+            _context3.p = 3;
+          case 4:
+            _context3.n = 5;
             return _awaitAsyncGenerator(reader.read());
-          case 7:
-            _yield$_awaitAsyncGen = _context3.sent;
+          case 5:
+            _yield$_awaitAsyncGen = _context3.v;
             done = _yield$_awaitAsyncGen.done;
             value = _yield$_awaitAsyncGen.value;
             if (!done) {
-              _context3.next = 12;
+              _context3.n = 6;
               break;
             }
-            return _context3.abrupt("break", 16);
-          case 12:
-            _context3.next = 14;
+            return _context3.a(3, 8);
+          case 6:
+            _context3.n = 7;
             return value;
-          case 14:
-            _context3.next = 5;
+          case 7:
+            _context3.n = 4;
             break;
-          case 16:
-            _context3.prev = 16;
-            _context3.next = 19;
+          case 8:
+            _context3.p = 8;
+            _context3.n = 9;
             return _awaitAsyncGenerator(reader.cancel());
-          case 19:
-            return _context3.finish(16);
-          case 20:
-          case "end":
-            return _context3.stop();
+          case 9:
+            return _context3.f(8);
+          case 10:
+            return _context3.a(2);
         }
-      }, _callee2, null, [[4,, 16, 20]]);
+      }, _callee2, null, [[3,, 8, 10]]);
     }));
     return function readStream(_x3) {
       return _ref2.apply(this, arguments);
@@ -3319,44 +3205,43 @@
     };
     return new ReadableStream({
       pull: function pull(controller) {
-        return _asyncToGenerator( /*#__PURE__*/_regeneratorRuntime().mark(function _callee3() {
-          var _yield$iterator$next, _done, value, len, loadedBytes;
-          return _regeneratorRuntime().wrap(function _callee3$(_context4) {
-            while (1) switch (_context4.prev = _context4.next) {
+        return _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee3() {
+          var _yield$iterator$next, _done, value, len, loadedBytes, _t2;
+          return _regenerator().w(function (_context4) {
+            while (1) switch (_context4.p = _context4.n) {
               case 0:
-                _context4.prev = 0;
-                _context4.next = 3;
+                _context4.p = 0;
+                _context4.n = 1;
                 return iterator.next();
-              case 3:
-                _yield$iterator$next = _context4.sent;
+              case 1:
+                _yield$iterator$next = _context4.v;
                 _done = _yield$iterator$next.done;
                 value = _yield$iterator$next.value;
                 if (!_done) {
-                  _context4.next = 10;
+                  _context4.n = 2;
                   break;
                 }
                 _onFinish();
                 controller.close();
-                return _context4.abrupt("return");
-              case 10:
+                return _context4.a(2);
+              case 2:
                 len = value.byteLength;
                 if (onProgress) {
                   loadedBytes = bytes += len;
                   onProgress(loadedBytes);
                 }
                 controller.enqueue(new Uint8Array(value));
-                _context4.next = 19;
+                _context4.n = 4;
                 break;
-              case 15:
-                _context4.prev = 15;
-                _context4.t0 = _context4["catch"](0);
-                _onFinish(_context4.t0);
-                throw _context4.t0;
-              case 19:
-              case "end":
-                return _context4.stop();
+              case 3:
+                _context4.p = 3;
+                _t2 = _context4.v;
+                _onFinish(_t2);
+                throw _t2;
+              case 4:
+                return _context4.a(2);
             }
-          }, _callee3, null, [[0, 15]]);
+          }, _callee3, null, [[0, 3]]);
         }))();
       },
       cancel: function cancel(reason) {
@@ -3410,20 +3295,18 @@
       return function (str) {
         return encoder.encode(str);
       };
-    }(new TextEncoder()) : ( /*#__PURE__*/function () {
-      var _ref2 = _asyncToGenerator( /*#__PURE__*/_regeneratorRuntime().mark(function _callee(str) {
-        return _regeneratorRuntime().wrap(function _callee$(_context) {
-          while (1) switch (_context.prev = _context.next) {
+    }(new TextEncoder()) : (/*#__PURE__*/function () {
+      var _ref2 = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee(str) {
+        var _t, _t2;
+        return _regenerator().w(function (_context) {
+          while (1) switch (_context.n) {
             case 0:
-              _context.t0 = Uint8Array;
-              _context.next = 3;
+              _t = Uint8Array;
+              _context.n = 1;
               return new Request(str).arrayBuffer();
-            case 3:
-              _context.t1 = _context.sent;
-              return _context.abrupt("return", new _context.t0(_context.t1));
-            case 5:
-            case "end":
-              return _context.stop();
+            case 1:
+              _t2 = _context.v;
+              return _context.a(2, new _t(_t2));
           }
         }, _callee);
       }));
@@ -3458,61 +3341,60 @@
           if (method) {
             return method.call(res);
           }
-          throw new AxiosError("Response type '".concat(type, "' is not supported"), AxiosError.ERR_NOT_SUPPORT, config);
+          throw new AxiosError$1("Response type '".concat(type, "' is not supported"), AxiosError$1.ERR_NOT_SUPPORT, config);
         });
       });
     }();
     var getBodyLength = /*#__PURE__*/function () {
-      var _ref3 = _asyncToGenerator( /*#__PURE__*/_regeneratorRuntime().mark(function _callee2(body) {
+      var _ref3 = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee2(body) {
         var _request;
-        return _regeneratorRuntime().wrap(function _callee2$(_context2) {
-          while (1) switch (_context2.prev = _context2.next) {
+        return _regenerator().w(function (_context2) {
+          while (1) switch (_context2.n) {
             case 0:
               if (!(body == null)) {
-                _context2.next = 2;
+                _context2.n = 1;
                 break;
               }
-              return _context2.abrupt("return", 0);
-            case 2:
+              return _context2.a(2, 0);
+            case 1:
               if (!utils$1.isBlob(body)) {
-                _context2.next = 4;
+                _context2.n = 2;
                 break;
               }
-              return _context2.abrupt("return", body.size);
-            case 4:
+              return _context2.a(2, body.size);
+            case 2:
               if (!utils$1.isSpecCompliantForm(body)) {
-                _context2.next = 9;
+                _context2.n = 4;
                 break;
               }
               _request = new Request(platform.origin, {
                 method: 'POST',
                 body: body
               });
-              _context2.next = 8;
+              _context2.n = 3;
               return _request.arrayBuffer();
-            case 8:
-              return _context2.abrupt("return", _context2.sent.byteLength);
-            case 9:
+            case 3:
+              return _context2.a(2, _context2.v.byteLength);
+            case 4:
               if (!(utils$1.isArrayBufferView(body) || utils$1.isArrayBuffer(body))) {
-                _context2.next = 11;
+                _context2.n = 5;
                 break;
               }
-              return _context2.abrupt("return", body.byteLength);
-            case 11:
+              return _context2.a(2, body.byteLength);
+            case 5:
               if (utils$1.isURLSearchParams(body)) {
                 body = body + '';
               }
               if (!utils$1.isString(body)) {
-                _context2.next = 16;
+                _context2.n = 7;
                 break;
               }
-              _context2.next = 15;
+              _context2.n = 6;
               return encodeText(body);
-            case 15:
-              return _context2.abrupt("return", _context2.sent.byteLength);
-            case 16:
-            case "end":
-              return _context2.stop();
+            case 6:
+              return _context2.a(2, _context2.v.byteLength);
+            case 7:
+              return _context2.a(2);
           }
         }, _callee2);
       }));
@@ -3521,16 +3403,13 @@
       };
     }();
     var resolveBodyLength = /*#__PURE__*/function () {
-      var _ref4 = _asyncToGenerator( /*#__PURE__*/_regeneratorRuntime().mark(function _callee3(headers, body) {
+      var _ref4 = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee3(headers, body) {
         var length;
-        return _regeneratorRuntime().wrap(function _callee3$(_context3) {
-          while (1) switch (_context3.prev = _context3.next) {
+        return _regenerator().w(function (_context3) {
+          while (1) switch (_context3.n) {
             case 0:
               length = utils$1.toFiniteNumber(headers.getContentLength());
-              return _context3.abrupt("return", length == null ? getBodyLength(body) : length);
-            case 2:
-            case "end":
-              return _context3.stop();
+              return _context3.a(2, length == null ? getBodyLength(body) : length);
           }
         }, _callee3);
       }));
@@ -3539,10 +3418,10 @@
       };
     }();
     return /*#__PURE__*/function () {
-      var _ref5 = _asyncToGenerator( /*#__PURE__*/_regeneratorRuntime().mark(function _callee4(config) {
-        var _resolveConfig, url, method, data, signal, cancelToken, timeout, onDownloadProgress, onUploadProgress, responseType, headers, _resolveConfig$withCr, withCredentials, fetchOptions, _fetch, composedSignal, request, unsubscribe, requestContentLength, _request, contentTypeHeader, _progressEventDecorat, _progressEventDecorat2, onProgress, flush, isCredentialsSupported, resolvedOptions, response, isStreamResponse, options, responseContentLength, _ref6, _ref7, _onProgress, _flush, responseData;
-        return _regeneratorRuntime().wrap(function _callee4$(_context4) {
-          while (1) switch (_context4.prev = _context4.next) {
+      var _ref5 = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee4(config) {
+        var _resolveConfig, url, method, data, signal, cancelToken, timeout, onDownloadProgress, onUploadProgress, responseType, headers, _resolveConfig$withCr, withCredentials, fetchOptions, _fetch, composedSignal, request, unsubscribe, requestContentLength, _request, contentTypeHeader, _progressEventDecorat, _progressEventDecorat2, onProgress, flush, isCredentialsSupported, resolvedOptions, response, isStreamResponse, options, responseContentLength, _ref6, _ref7, _onProgress, _flush, responseData, _t3, _t4, _t5;
+        return _regenerator().w(function (_context4) {
+          while (1) switch (_context4.p = _context4.n) {
             case 0:
               _resolveConfig = resolveConfig(config), url = _resolveConfig.url, method = _resolveConfig.method, data = _resolveConfig.data, signal = _resolveConfig.signal, cancelToken = _resolveConfig.cancelToken, timeout = _resolveConfig.timeout, onDownloadProgress = _resolveConfig.onDownloadProgress, onUploadProgress = _resolveConfig.onUploadProgress, responseType = _resolveConfig.responseType, headers = _resolveConfig.headers, _resolveConfig$withCr = _resolveConfig.withCredentials, withCredentials = _resolveConfig$withCr === void 0 ? 'same-origin' : _resolveConfig$withCr, fetchOptions = _resolveConfig.fetchOptions;
               _fetch = envFetch || fetch;
@@ -3552,20 +3431,20 @@
               unsubscribe = composedSignal && composedSignal.unsubscribe && function () {
                 composedSignal.unsubscribe();
               };
-              _context4.prev = 6;
-              _context4.t0 = onUploadProgress && supportsRequestStream && method !== 'get' && method !== 'head';
-              if (!_context4.t0) {
-                _context4.next = 13;
+              _context4.p = 1;
+              _t3 = onUploadProgress && supportsRequestStream && method !== 'get' && method !== 'head';
+              if (!_t3) {
+                _context4.n = 3;
                 break;
               }
-              _context4.next = 11;
+              _context4.n = 2;
               return resolveBodyLength(headers, data);
-            case 11:
-              _context4.t1 = requestContentLength = _context4.sent;
-              _context4.t0 = _context4.t1 !== 0;
-            case 13:
-              if (!_context4.t0) {
-                _context4.next = 17;
+            case 2:
+              _t4 = requestContentLength = _context4.v;
+              _t3 = _t4 !== 0;
+            case 3:
+              if (!_t3) {
+                _context4.n = 4;
                 break;
               }
               _request = new Request(url, {
@@ -3580,7 +3459,7 @@
                 _progressEventDecorat = progressEventDecorator(requestContentLength, progressEventReducer(asyncDecorator(onUploadProgress))), _progressEventDecorat2 = _slicedToArray(_progressEventDecorat, 2), onProgress = _progressEventDecorat2[0], flush = _progressEventDecorat2[1];
                 data = trackStream(_request.body, DEFAULT_CHUNK_SIZE, onProgress, flush);
               }
-            case 17:
+            case 4:
               if (!utils$1.isString(withCredentials)) {
                 withCredentials = withCredentials ? 'include' : 'omit';
               }
@@ -3597,10 +3476,10 @@
                 credentials: isCredentialsSupported ? withCredentials : undefined
               });
               request = isRequestSupported && new Request(url, resolvedOptions);
-              _context4.next = 23;
+              _context4.n = 5;
               return isRequestSupported ? _fetch(request, fetchOptions) : _fetch(url, resolvedOptions);
-            case 23:
-              response = _context4.sent;
+            case 5:
+              response = _context4.v;
               isStreamResponse = supportsResponseStream && (responseType === 'stream' || responseType === 'response');
               if (supportsResponseStream && (onDownloadProgress || isStreamResponse && unsubscribe)) {
                 options = {};
@@ -3615,12 +3494,12 @@
                 }), options);
               }
               responseType = responseType || 'text';
-              _context4.next = 29;
+              _context4.n = 6;
               return resolvers[utils$1.findKey(resolvers, responseType) || 'text'](response, config);
-            case 29:
-              responseData = _context4.sent;
+            case 6:
+              responseData = _context4.v;
               !isStreamResponse && unsubscribe && unsubscribe();
-              _context4.next = 33;
+              _context4.n = 7;
               return new Promise(function (resolve, reject) {
                 settle(resolve, reject, {
                   data: responseData,
@@ -3631,26 +3510,25 @@
                   request: request
                 });
               });
-            case 33:
-              return _context4.abrupt("return", _context4.sent);
-            case 36:
-              _context4.prev = 36;
-              _context4.t2 = _context4["catch"](6);
+            case 7:
+              return _context4.a(2, _context4.v);
+            case 8:
+              _context4.p = 8;
+              _t5 = _context4.v;
               unsubscribe && unsubscribe();
-              if (!(_context4.t2 && _context4.t2.name === 'TypeError' && /Load failed|fetch/i.test(_context4.t2.message))) {
-                _context4.next = 41;
+              if (!(_t5 && _t5.name === 'TypeError' && /Load failed|fetch/i.test(_t5.message))) {
+                _context4.n = 9;
                 break;
               }
-              throw Object.assign(new AxiosError('Network Error', AxiosError.ERR_NETWORK, config, request), {
-                cause: _context4.t2.cause || _context4.t2
+              throw Object.assign(new AxiosError$1('Network Error', AxiosError$1.ERR_NETWORK, config, request, _t5 && _t5.response), {
+                cause: _t5.cause || _t5
               });
-            case 41:
-              throw AxiosError.from(_context4.t2, _context4.t2 && _context4.t2.code, config, request);
-            case 42:
-            case "end":
-              return _context4.stop();
+            case 9:
+              throw AxiosError$1.from(_t5, _t5 && _t5.code, config, request, _t5 && _t5.response);
+            case 10:
+              return _context4.a(2);
           }
-        }, _callee4, null, [[6, 36]]);
+        }, _callee4, null, [[1, 8]]);
       }));
       return function (_x5) {
         return _ref5.apply(this, arguments);
@@ -3756,7 +3634,7 @@
       if (!isResolvedHandle(nameOrAdapter)) {
         adapter = knownAdapters[(id = String(nameOrAdapter)).toLowerCase()];
         if (adapter === undefined) {
-          throw new AxiosError("Unknown adapter '".concat(id, "'"));
+          throw new AxiosError$1("Unknown adapter '".concat(id, "'"));
         }
       }
       if (adapter && (utils$1.isFunction(adapter) || (adapter = adapter.get(config)))) {
@@ -3772,7 +3650,7 @@
         return "adapter ".concat(id, " ") + (state === false ? 'is not supported by the environment' : 'is not available in the build');
       });
       var s = length ? reasons.length > 1 ? 'since :\n' + reasons.map(renderReason).join('\n') : ' ' + renderReason(reasons[0]) : 'as no adapter specified';
-      throw new AxiosError("There is no suitable adapter to dispatch the request " + s, 'ERR_NOT_SUPPORT');
+      throw new AxiosError$1("There is no suitable adapter to dispatch the request " + s, 'ERR_NOT_SUPPORT');
     }
     return adapter;
   }
@@ -3805,7 +3683,7 @@
       config.cancelToken.throwIfRequested();
     }
     if (config.signal && config.signal.aborted) {
-      throw new CanceledError(null, config);
+      throw new CanceledError$1(null, config);
     }
   }
 
@@ -3847,7 +3725,7 @@
     });
   }
 
-  var VERSION = "1.13.2";
+  var VERSION = "1.13.5";
 
   var validators$1 = {};
 
@@ -3876,7 +3754,7 @@
     // eslint-disable-next-line func-names
     return function (value, opt, opts) {
       if (validator === false) {
-        throw new AxiosError(formatMessage(opt, ' has been removed' + (version ? ' in ' + version : '')), AxiosError.ERR_DEPRECATED);
+        throw new AxiosError$1(formatMessage(opt, ' has been removed' + (version ? ' in ' + version : '')), AxiosError$1.ERR_DEPRECATED);
       }
       if (version && !deprecatedWarnings[opt]) {
         deprecatedWarnings[opt] = true;
@@ -3906,7 +3784,7 @@
 
   function assertOptions(options, schema, allowUnknown) {
     if (_typeof(options) !== 'object') {
-      throw new AxiosError('options must be an object', AxiosError.ERR_BAD_OPTION_VALUE);
+      throw new AxiosError$1('options must be an object', AxiosError$1.ERR_BAD_OPTION_VALUE);
     }
     var keys = Object.keys(options);
     var i = keys.length;
@@ -3917,12 +3795,12 @@
         var value = options[opt];
         var result = value === undefined || validator(value, opt, options);
         if (result !== true) {
-          throw new AxiosError('option ' + opt + ' must be ' + result, AxiosError.ERR_BAD_OPTION_VALUE);
+          throw new AxiosError$1('option ' + opt + ' must be ' + result, AxiosError$1.ERR_BAD_OPTION_VALUE);
         }
         continue;
       }
       if (allowUnknown !== true) {
-        throw new AxiosError('Unknown option ' + opt, AxiosError.ERR_BAD_OPTION);
+        throw new AxiosError$1('Unknown option ' + opt, AxiosError$1.ERR_BAD_OPTION);
       }
     }
   }
@@ -3958,45 +3836,44 @@
      *
      * @returns {Promise} The Promise to be fulfilled
      */
-    _createClass(Axios, [{
+    return _createClass(Axios, [{
       key: "request",
       value: (function () {
-        var _request2 = _asyncToGenerator( /*#__PURE__*/_regeneratorRuntime().mark(function _callee(configOrUrl, config) {
-          var dummy, stack;
-          return _regeneratorRuntime().wrap(function _callee$(_context) {
-            while (1) switch (_context.prev = _context.next) {
+        var _request2 = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee(configOrUrl, config) {
+          var dummy, stack, _t;
+          return _regenerator().w(function (_context) {
+            while (1) switch (_context.p = _context.n) {
               case 0:
-                _context.prev = 0;
-                _context.next = 3;
+                _context.p = 0;
+                _context.n = 1;
                 return this._request(configOrUrl, config);
-              case 3:
-                return _context.abrupt("return", _context.sent);
-              case 6:
-                _context.prev = 6;
-                _context.t0 = _context["catch"](0);
-                if (_context.t0 instanceof Error) {
+              case 1:
+                return _context.a(2, _context.v);
+              case 2:
+                _context.p = 2;
+                _t = _context.v;
+                if (_t instanceof Error) {
                   dummy = {};
                   Error.captureStackTrace ? Error.captureStackTrace(dummy) : dummy = new Error();
 
                   // slice off the Error: ... line
                   stack = dummy.stack ? dummy.stack.replace(/^.+\n/, '') : '';
                   try {
-                    if (!_context.t0.stack) {
-                      _context.t0.stack = stack;
+                    if (!_t.stack) {
+                      _t.stack = stack;
                       // match without the 2 top stack lines
-                    } else if (stack && !String(_context.t0.stack).endsWith(stack.replace(/^.+\n.+\n/, ''))) {
-                      _context.t0.stack += '\n' + stack;
+                    } else if (stack && !String(_t.stack).endsWith(stack.replace(/^.+\n.+\n/, ''))) {
+                      _t.stack += '\n' + stack;
                     }
                   } catch (e) {
                     // ignore the case where "stack" is an un-writable property
                   }
                 }
-                throw _context.t0;
-              case 10:
-              case "end":
-                return _context.stop();
+                throw _t;
+              case 3:
+                return _context.a(2);
             }
-          }, _callee, this, [[0, 6]]);
+          }, _callee, this, [[0, 2]]);
         }));
         function request(_x, _x2) {
           return _request2.apply(this, arguments);
@@ -4023,7 +3900,8 @@
           validator.assertOptions(transitional, {
             silentJSONParsing: validators.transitional(validators["boolean"]),
             forcedJSONParsing: validators.transitional(validators["boolean"]),
-            clarifyTimeoutError: validators.transitional(validators["boolean"])
+            clarifyTimeoutError: validators.transitional(validators["boolean"]),
+            legacyInterceptorReqResOrdering: validators.transitional(validators["boolean"])
           }, false);
         }
         if (paramsSerializer != null) {
@@ -4068,7 +3946,13 @@
             return;
           }
           synchronousRequestInterceptors = synchronousRequestInterceptors && interceptor.synchronous;
-          requestInterceptorChain.unshift(interceptor.fulfilled, interceptor.rejected);
+          var transitional = config.transitional || transitionalDefaults;
+          var legacyInterceptorReqResOrdering = transitional && transitional.legacyInterceptorReqResOrdering;
+          if (legacyInterceptorReqResOrdering) {
+            requestInterceptorChain.unshift(interceptor.fulfilled, interceptor.rejected);
+          } else {
+            requestInterceptorChain.push(interceptor.fulfilled, interceptor.rejected);
+          }
         });
         var responseInterceptorChain = [];
         this.interceptors.response.forEach(function pushResponseInterceptors(interceptor) {
@@ -4120,7 +4004,6 @@
         return buildURL(fullPath, config.params, config.paramsSerializer);
       }
     }]);
-    return Axios;
   }(); // Provide aliases for supported request methods
   utils$1.forEach(['delete', 'get', 'head', 'options'], function forEachMethodNoData(method) {
     /*eslint func-names:0*/
@@ -4199,7 +4082,7 @@
           // Cancellation has already been requested
           return;
         }
-        token.reason = new CanceledError(message, config, request);
+        token.reason = new CanceledError$1(message, config, request);
         resolvePromise(token.reason);
       });
     }
@@ -4207,7 +4090,7 @@
     /**
      * Throws a `CanceledError` if cancellation has been requested.
      */
-    _createClass(CancelToken, [{
+    return _createClass(CancelToken, [{
       key: "throwIfRequested",
       value: function throwIfRequested() {
         if (this.reason) {
@@ -4278,7 +4161,6 @@
         };
       }
     }]);
-    return CancelToken;
   }();
   var CancelToken$1 = CancelToken;
 
@@ -4289,7 +4171,7 @@
    *
    *  ```js
    *  function f(x, y, z) {}
-   *  var args = [1, 2, 3];
+   *  const args = [1, 2, 3];
    *  f.apply(null, args);
    *  ```
    *
@@ -4434,14 +4316,14 @@
   axios.Axios = Axios$1;
 
   // Expose Cancel & CancelToken
-  axios.CanceledError = CanceledError;
+  axios.CanceledError = CanceledError$1;
   axios.CancelToken = CancelToken$1;
   axios.isCancel = isCancel;
   axios.VERSION = VERSION;
   axios.toFormData = toFormData;
 
   // Expose AxiosError class
-  axios.AxiosError = AxiosError;
+  axios.AxiosError = AxiosError$1;
 
   // alias for CanceledError for backward compatibility
   axios.Cancel = axios.CanceledError;
