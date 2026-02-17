@@ -20,7 +20,6 @@ from .corelightning import CoreLightningWallet as CLightningWallet
 from .corelightningrest import CoreLightningRestWallet
 from .eclair import EclairWallet
 from .fake import FakeWallet
-from .lightspark import SparkL2Wallet
 from .lnbits import LNbitsWallet
 from .lndgrpc import LndWallet
 from .lndrest import LndRestWallet
@@ -30,6 +29,7 @@ from .nwc import NWCWallet
 from .opennode import OpenNodeWallet
 from .phoenixd import PhoenixdWallet
 from .spark import SparkWallet
+from .sparkl2 import SparkL2Wallet
 from .strike import StrikeWallet
 from .void import VoidWallet
 from .zbd import ZBDWallet

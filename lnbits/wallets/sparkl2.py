@@ -58,7 +58,7 @@ class SparkL2Wallet(Wallet):
 
         if settings.spark_l2_external_api_key:
             self._api_key = cast(str, settings.spark_l2_external_api_key)
-            logger.info("Using external Spark sidecar API key from configuration.")
+            logger.info("Using external Spark sidecar API.")
         else:
             logger.warning("No Spark sidecar API key configured.")
 
