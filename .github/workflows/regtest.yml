@@ -53,8 +53,8 @@ jobs:
           LND_REST_MACAROON: ./docker/regtest/data/lnd-3/data/chain/bitcoin/regtest/admin.macaroon
           LND_GRPC_ENDPOINT: localhost
           LND_GRPC_PORT: 10009
-          LND_GRPC_CERT: docker/regtest/data/lnd-3/tls.cert
-          LND_GRPC_MACAROON: docker/regtest/data/lnd-3/data/chain/bitcoin/regtest/admin.macaroon
+          LND_GRPC_CERT: ./docker/regtest/data/lnd-3/tls.cert
+          LND_GRPC_MACAROON: ./docker/regtest/data/lnd-3/data/chain/bitcoin/regtest/admin.macaroon
           CORELIGHTNING_RPC: ./docker/regtest/data/clightning-1/regtest/lightning-rpc
           CORELIGHTNING_REST_URL: https://localhost:3001
           CORELIGHTNING_REST_MACAROON: ./docker/regtest/data/clightning-2-rest/access.macaroon
