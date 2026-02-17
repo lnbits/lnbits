@@ -56,9 +56,21 @@ jobs:
         uses: docker/build-push-action@v5
         with:
             context: .
-            file: Dockerfile.boltz
+            file: docker/boltzclient/Dockerfile
             push: true
             tags: ${{ secrets.DOCKER_USERNAME }}/lnbits-boltz:${{ inputs.tag }}
+            platforms: linux/amd64,linux/arm64
+            cache-from: type=local,src=/tmp/.buildx-cache
+            cache-to: type=local,dest=/tmp/.buildx-cache
+            build-args: LNBITS_TAG=${{ inputs.tag }}
+
+      - name: Build and push sparkl2
+        uses: docker/build-push-action@v5
+        with:
+            context: .
+            file: docker/sparkl2/Dockerfile
+            push: true
+            tags: ${{ secrets.DOCKER_USERNAME }}/lnbits-sparkl2:${{ inputs.tag }}
             platforms: linux/amd64,linux/arm64
             cache-from: type=local,src=/tmp/.buildx-cache
             cache-to: type=local,dest=/tmp/.buildx-cache

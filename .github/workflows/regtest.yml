@@ -38,8 +38,7 @@ jobs:
 
       - name: Setup Regtest
         run: |
-          git clone https://github.com/lnbits/legend-regtest-enviroment.git docker
-          cd docker
+          cd docker/regtest
           chmod +x ./start-regtest
           ./start-regtest
           sudo chmod -R a+rwx .
@@ -50,16 +49,16 @@ jobs:
           LNBITS_DATABASE_URL: ${{ inputs.db-url }}
           LNBITS_BACKEND_WALLET_CLASS: ${{ inputs.backend-wallet-class }}
           LND_REST_ENDPOINT: https://localhost:8081/
-          LND_REST_CERT: ./docker/data/lnd-3/tls.cert
-          LND_REST_MACAROON: ./docker/data/lnd-3/data/chain/bitcoin/regtest/admin.macaroon
+          LND_REST_CERT: ./docker/regtest/data/lnd-3/tls.cert
+          LND_REST_MACAROON: ./docker/regtest/data/lnd-3/data/chain/bitcoin/regtest/admin.macaroon
           LND_GRPC_ENDPOINT: localhost
           LND_GRPC_PORT: 10009
-          LND_GRPC_CERT: docker/data/lnd-3/tls.cert
-          LND_GRPC_MACAROON: docker/data/lnd-3/data/chain/bitcoin/regtest/admin.macaroon
-          CORELIGHTNING_RPC: ./docker/data/clightning-1/regtest/lightning-rpc
+          LND_GRPC_CERT: docker/regtest/data/lnd-3/tls.cert
+          LND_GRPC_MACAROON: docker/regtest/data/lnd-3/data/chain/bitcoin/regtest/admin.macaroon
+          CORELIGHTNING_RPC: ./docker/regtest/data/clightning-1/regtest/lightning-rpc
           CORELIGHTNING_REST_URL: https://localhost:3001
-          CORELIGHTNING_REST_MACAROON: ./docker/data/clightning-2-rest/access.macaroon
-          CORELIGHTNING_REST_CERT: ./docker/data/clightning-2-rest/certificate.pem
+          CORELIGHTNING_REST_MACAROON: ./docker/regtest/data/clightning-2-rest/access.macaroon
+          CORELIGHTNING_REST_CERT: ./docker/regtest/data/clightning-2-rest/certificate.pem
           LNBITS_ENDPOINT: http://localhost:5001
           LNBITS_KEY: "d08a3313322a4514af75d488bcc27eee"
           ECLAIR_URL: http://127.0.0.1:8082

@@ -27,7 +27,7 @@ ENV BOLTZ_CLIENT_WALLET="lnbits"
 EXPOSE 5000
 
 # Entrypoint to start boltzd and LNbits
-COPY dockerboltz.sh /dockerboltz.sh
-RUN chmod +x /dockerboltz.sh
+COPY entrypoint.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh
 
-CMD ["/dockerboltz.sh"]
+CMD ["/entrypoint.sh"]
