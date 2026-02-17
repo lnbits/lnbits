@@ -1,15 +1,18 @@
 ![TESTS](https://github.com/lnbits/legend-regtest-enviroment/actions/workflows/ci.yml/badge.svg)
 
 # nodes
-* lnd-1: for locally testing your current lnbits
-* lnd-2: used for boltz backend
-* lnd-3: used for lnbits inside docker
-* cln-1: for locally testing your current lnbits
-* cln-2: used for clightning-REST
-* eclair-1: for locally testing your current lnbits
+
+- lnd-1: for locally testing your current lnbits
+- lnd-2: used for boltz backend
+- lnd-3: used for lnbits inside docker
+- cln-1: for locally testing your current lnbits
+- cln-2: used for clightning-REST
+- eclair-1: for locally testing your current lnbits
 
 # Installing regtest
+
 get the regtest enviroment ready
+
 ```sh
 # Install docker https://docs.docker.com/engine/install/
 # Make sure your user has permission to use docker 'sudo usermod -aG docker ${USER}' then reboot
@@ -28,7 +31,9 @@ sudo chown -R $USER ./data # Give the data file permissions for user
 ```
 
 # Running LNbits on regtest
+
 add this ENV variables to your `.env` file
+
 ```sh
 DEBUG=true
 
@@ -51,6 +56,7 @@ make dev
 ```
 
 # testing
+
 ```sh
 chmod +x ./start-regtest
 ./start-regtest
@@ -59,6 +65,7 @@ chmod +x ./start-regtest
 ```
 
 usage of the `bitcoin-cli-sim`, `lightning-cli-sim` and `lncli-sim` aliases
+
 ```sh
 cd ~/lnbits/docker
 source docker-scripts.sh
@@ -76,12 +83,14 @@ lncli-sim 2 listpeers
 ```
 
 # urls
-* mempool: http://localhost:8080/
-* boltz api: http://localhost:9001/
-* lnd-1 rest: http://localhost:8081/
-* lnbits: http://localhost:5001/
+
+- mempool: http://localhost:8080/
+- boltz api: http://localhost:9001/
+- lnd-1 rest: http://localhost:8081/
+- lnbits: http://localhost:5001/
 
 # debugging docker logs
+
 ```sh
 docker logs lnbits-lnbits-1 -f
 docker logs lnbits-boltz-1 -f
