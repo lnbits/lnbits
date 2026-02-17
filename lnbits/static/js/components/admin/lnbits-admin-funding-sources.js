@@ -237,12 +237,6 @@ window.app.component('lnbits-admin-funding-sources', {
                 'Mnemonic Phrase - You can leave this blank to generate a new mnemonic on restart.',
               hint: 'Remember to write the mnemonic down and store it securely. It is the only way to recover your funds if you lose access to LNbits.'
             },
-            spark_l2_internal_sidecar_version: {
-              label: 'Internal Sidecar Version - e.g. "0.1.1"',
-              hint: 'If specified then LNbits will auto run the Spark funding source. If left blank, LNbits will use the "External Sidecar Endpoint" value.',
-              value: '',
-              advanced: true
-            },
 
             spark_l2_network: {
               label: 'Network',
