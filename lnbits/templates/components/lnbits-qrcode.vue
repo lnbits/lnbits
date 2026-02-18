@@ -12,7 +12,7 @@
       >
         <qrcode-vue
           ref="qrCode"
-          :value="value"
+          :value="qrValue"
           :margin="margin"
           :size="size"
           level="Q"

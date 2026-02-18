@@ -43,7 +43,52 @@ window.app.component('lnbits-qrcode', {
       nfcSupported: typeof NDEFReader != 'undefined'
     }
   },
+  computed: {
+    qrValue() {
+      return this.normalizeQrValue(this.value)
+    }
+  },
   methods: {
+    normalizeQrValue(value) {
+      if (typeof value !== 'string' || value.length === 0) {
+        return value
+      }
+
+      const lower = value.toLowerCase()
+      const upper = value.toUpperCase()
+      const isMixedCase = value !== lower && value !== upper
+      if (isMixedCase) {
+        return value
+      }
+
+      const prefix = 'lightning:'
+      if (lower.startsWith(prefix)) {
+        const prefixOriginal = value.slice(0, prefix.length)
+        const rest = value.slice(prefix.length)
+        const normalizedRest = this.normalizeBech32IfLower(rest)
+        if (normalizedRest !== rest) {
+          return prefixOriginal.toUpperCase() + normalizedRest
+        }
+        return value
+      }
+
+      return this.normalizeBech32IfLower(value)
+    },
+    normalizeBech32IfLower(value) {
+      if (typeof value !== 'string' || value.length === 0) {
+        return value
+      }
+
+      const lower = value.toLowerCase()
+      if (value !== lower) {
+        return value
+      }
+
+      // Bech32 strings are case-insensitive, but must be all upper or all lower.
+      // Uppercasing enables QR alphanumeric mode and reduces QR size for LN strings.
+      const bech32Like = /^ln[0-9a-z]*1[0-9ac-hj-np-z]+$/
+      return bech32Like.test(value) ? value.toUpperCase() : value
+    },
     printQrCode() {
       const svg = this.$refs.qrCode.$el.outerHTML
       const printWindow = window.open('', '_blank')
