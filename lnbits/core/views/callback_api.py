@@ -181,6 +181,7 @@ async def _get_stripe_subscription_payment_options(
 
 
 async def handle_paypal_event(event: dict):
+    print("### PayPal event received:", json.dumps(event, indent=2))
     event_type = event.get("event_type", "")
     resource = event.get("resource", {})
 
@@ -208,8 +209,8 @@ async def handle_paypal_event(event: dict):
 
 async def _handle_paypal_subscription_payment(resource: dict):
     amount_info = resource.get("amount") or {}
-    currency = (amount_info.get("currency_code") or "").upper()
-    total = amount_info.get("value")
+    currency = (amount_info.get("currency") or "").upper()
+    total = amount_info.get("total")
     if not currency or total is None:
         raise ValueError("PayPal subscription event missing amount.")
 
@@ -217,12 +218,7 @@ async def _handle_paypal_subscription_payment(resource: dict):
     if not custom_id:
         raise ValueError("PayPal subscription event missing custom metadata.")
 
-    try:
-        metadata = json.loads(custom_id)
-    except json.JSONDecodeError:
-        metadata = {}
-
-    payment_options = FiatSubscriptionPaymentOptions(**metadata)
+    payment_options = _deserialize_paypal_metadata(custom_id)
     if not payment_options.wallet_id:
         raise ValueError("PayPal subscription event missing wallet_id.")
 
@@ -259,3 +255,29 @@ def _paypal_extract_payment_hash(resource: dict) -> str | None:
         if pu.get("custom_id"):
             return pu.get("custom_id")
     return None
+
+
+def _deserialize_paypal_metadata(custom_id: str) -> FiatSubscriptionPaymentOptions:
+    try:
+        meta = json.loads(custom_id)
+        wallet_id = meta[0] if len(meta) > 0 else None
+        tag = meta[1] if len(meta) > 1 else None
+        subscription_request_id = meta[2] if len(meta) > 2 else None
+        extra_link = meta[3] if len(meta) > 3 else None
+        memo = meta[4] if len(meta) > 4 else None
+
+        extra = {
+            "link": extra_link,
+            "subscription_request_id": subscription_request_id,
+        }
+
+        return FiatSubscriptionPaymentOptions(
+            wallet_id=wallet_id,
+            tag=tag,
+            subscription_request_id=subscription_request_id,
+            extra=extra,
+            memo=memo,
+        )
+    except (json.JSONDecodeError, IndexError) as e:
+        logger.warning(f"Failed to deserialize PayPal metadata: {e}")
+        return FiatSubscriptionPaymentOptions()

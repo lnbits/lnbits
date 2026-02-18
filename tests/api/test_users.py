@@ -708,7 +708,7 @@ async def test_user_activation(
         f"/users/api/v1/user/{user_id}/activate",
         headers={"Authorization": f"Bearer {superuser_token}"},
     )
-    print("### response", response.text)
+
     assert response.status_code == 200
     assert response.json().get("message") == "User activated."
 
