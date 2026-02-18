@@ -55,8 +55,7 @@ jobs:
       - name: Build and push boltz
         uses: docker/build-push-action@v5
         with:
-            context: .
-            file: docker/boltzclient/Dockerfile
+            context: docker/boltzclient
             push: true
             tags: ${{ secrets.DOCKER_USERNAME }}/lnbits-boltz:${{ inputs.tag }}
             platforms: linux/amd64,linux/arm64
@@ -67,8 +66,7 @@ jobs:
       - name: Build and push sparkl2
         uses: docker/build-push-action@v5
         with:
-            context: .
-            file: docker/sparkl2/Dockerfile
+            context: docker/sparkl2
             push: true
             tags: ${{ secrets.DOCKER_USERNAME }}/lnbits-sparkl2:${{ inputs.tag }}
             platforms: linux/amd64,linux/arm64
