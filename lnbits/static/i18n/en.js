@@ -529,7 +529,7 @@ window.localisation.en = {
   hash: 'Hash: ',
   welcome_lnbits: 'Welcome to LNbits',
   setup_su_account: 'Set up the Superuser account below.',
-  first_install_token: 'First Install Token (optional)',
+  first_install_token: 'First Install Token',
   create_ticker_converter: 'Create Currency Ticker Converter',
   enable_audit: 'Enable Audit',
   recommended: 'Recommended',
