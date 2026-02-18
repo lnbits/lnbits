@@ -1,7 +1,9 @@
 #!/bin/bash
 set -e
 
-node server.mjs
+node spark_sidecar/server.mjs &
+
+SIDECAR_PID=$!
 
 # Wait for startup
 for i in {1..10}; do
