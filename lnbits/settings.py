@@ -1220,6 +1220,7 @@ class PublicSettings(BaseModel):
     lnbits_user_activation_by_invitation_code: bool = Field(
         alias="userActivationByInvitationCode"
     )
+    has_first_install_token: bool = Field(alias="hasFirstInstallToken")
 
     @classmethod
     def from_settings(cls, settings: Settings):
@@ -1278,6 +1279,7 @@ class PublicSettings(BaseModel):
             userActivationByEmail=settings.lnbits_user_activation_by_email,
             userActivationByPayment=settings.lnbits_user_activation_by_payment,
             userActivationByInvitationCode=settings.lnbits_user_activation_by_invitation_code,
+            hasFirstInstallToken=settings.first_install_token is not None,
         )
 
 
