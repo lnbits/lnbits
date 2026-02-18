@@ -14,11 +14,13 @@ ENV PATH="/root/.local/bin:$PATH"
 # Reinstall dependencies just in case (needed for CMD usage)
 RUN uv sync --all-extras
 
-# LNbits + boltzd configuration
+# LNbits
 ENV LNBITS_PORT="5000"
 ENV LNBITS_HOST="0.0.0.0"
 ENV LNBITS_BACKEND_WALLET_CLASS="BoltzWallet"
 ENV FUNDING_SOURCE_MAX_RETRIES=10
+
+# Boltzd
 ENV BOLTZ_CLIENT_ENDPOINT="127.0.0.1:9002"
 ENV BOLTZ_CLIENT_MACAROON="/root/.boltz/macaroons/admin.macaroon"
 ENV BOLTZ_CLIENT_CERT="/root/.boltz/tls.cert"
@@ -26,8 +28,7 @@ ENV BOLTZ_CLIENT_WALLET="lnbits"
 
 EXPOSE 5000
 
-# Entrypoint to start boltzd and LNbits
-COPY dockerboltz.sh /dockerboltz.sh
-RUN chmod +x /dockerboltz.sh
+COPY entrypoint.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh
 
-CMD ["/dockerboltz.sh"]
+CMD ["/entrypoint.sh"]

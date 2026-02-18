@@ -1,0 +1,434 @@
+services:
+
+  lnbits:
+    hostname: lnbits
+    depends_on:
+      - lnd-3
+    image: lnbits/lnbits
+    restart: on-failure
+    user: "0:0"
+    environment:
+      LNBITS_PORT: 5001
+      DEBUG: true
+      LNBITS_ADMIN_UI: false
+      LNBITS_BACKEND_WALLET_CLASS: "LndRestWallet"
+      LNBITS_DATA_FOLDER: "./data"
+      LND_REST_ENDPOINT: "https://lnd-3:8081/"
+      LND_REST_CERT: "./lnd/tls.cert"
+      LND_REST_MACAROON: "./lnd/data/chain/bitcoin/regtest/admin.macaroon"
+    ports:
+      - 5001:5001
+    volumes:
+      - lnbits-data:/app/data
+      - ./data/lnd-3:/app/lnd:uid=1000,gid=1000
+
+  boltz:
+    hostname: boltz
+    depends_on:
+      - lnd-2
+      - boltz-postgres
+    restart: always
+    image: boltz/boltz:latest
+    ports:
+      - 9000:9000
+    entrypoint: "sh -c 'sleep 30; /boltz-backend/bin/boltzd'"
+    volumes:
+      - ./data/lnd-2:/data/lnd/
+      - ./data/boltz/:/root/.boltz/
+      - elements-data:/root/.elements
+      - bitcoin-data:/root/.bitcoin
+
+  boltz-client:
+    hostname: boltz-client
+    depends_on:
+      - boltz
+    restart: always
+    image: boltz/boltz-client:latest
+    ports:
+      - 9002:9002
+      - 9003:9003
+    expose:
+      - 9002
+    healthcheck:
+      test: ['CMD', 'boltzcli', '--host', 'boltz-client', 'getinfo']
+      interval: 5s
+      timeout: 3s
+      retries: 10
+      start_period: 0s
+    volumes:
+      - elements-data:/root/.elements
+      - ./data/boltz-client:/root/.boltz
+
+  boltz-backend-nginx:
+    hostname: boltz-nginx
+    restart: always
+    image: nginx:latest
+    ports:
+      - 9001:9001
+    volumes:
+      - nginx-data:/etc/nginx/conf.d
+    healthcheck:
+      test: ['CMD-SHELL', 'curl http://localhost:9001/version']
+      timeout: 1s
+      retries: 10
+      interval: 1s
+      start_period: 0s
+
+  boltz-postgres:
+    hostname: boltz-postgres
+    restart: always
+    image: postgres:14-alpine
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready --dbname boltz --username boltz"]
+      interval: 5s
+      timeout: 30s
+      retries: 10
+      start_period: 5s
+    environment:
+      - POSTGRES_DB=boltz
+      - POSTGRES_USER=boltz
+      - POSTGRES_PASSWORD=boltz
+    expose:
+      - 5432
+
+  bitcoind:
+    hostname: bitcoind
+    image: boltz/bitcoin-core:25.0
+    command:
+      - -regtest
+      - -fallbackfee=0.00000253
+      - -zmqpubrawtx=tcp://0.0.0.0:29000
+      - -zmqpubrawblock=tcp://0.0.0.0:29001
+      - -zmqpubhashblock=tcp://0.0.0.0:29002
+      - -txindex
+      - -rpcallowip=0.0.0.0/0
+      - -rpcbind=0.0.0.0
+      - -addresstype=bech32
+      - -changetype=bech32
+      - -dbcache=2048
+      - -rpcworkqueue=256
+    volumes:
+      - bitcoin-data:/root/.bitcoin
+    expose:
+      - 29000
+      - 29001
+      - 29002
+      - 18443
+      - 18444
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "bitcoin-cli",
+          "--rpccookiefile=/root/.bitcoin/regtest/.cookie",
+          "-regtest",
+          "getblockchaininfo",
+        ]
+      timeout: 1s
+      retries: 1
+      interval: 1s
+      start_period: 0s
+
+  clightning-1:
+    hostname: clightning-1
+    depends_on:
+      - bitcoind
+    image: boltz/c-lightning:24.11
+    command:
+      - --large-channels
+      - --network=regtest
+      - --grpc-port=9736
+      - --bind-addr=0.0.0.0:9735
+      - --bitcoin-rpcconnect=bitcoind
+      - --bitcoin-rpcport=18443
+      - --clnrest-host=0.0.0.0
+      - --clnrest-port=3010
+    expose:
+      - 9735
+    ports:
+      - 9736:9736
+      - 3010:3010
+    volumes:
+      - ./data/clightning-1:/root/.lightning/
+      - bitcoin-data:/root/.bitcoin
+
+  clightning-2:
+    hostname: clightning-2
+    depends_on:
+      - bitcoind
+    image: boltz/c-lightning:22.11.1
+    command:
+      - --large-channels
+      - --network=regtest
+      - --grpc-port=9737
+      - --bind-addr=0.0.0.0:9735
+      - --bitcoin-rpcconnect=bitcoind
+      - --bitcoin-rpcport=18443
+    expose:
+      - 9735
+    ports:
+      - 9737:9737
+    volumes:
+      - ./data/clightning-2:/root/.lightning/
+      - bitcoin-data:/root/.bitcoin
+
+  clightning-2-rest:
+    hostname: clightning-2-rest
+    depends_on:
+      - clightning-2
+    image: saubyk/c-lightning-rest:0.10.7
+    entrypoint: "sh -c 'sleep 35 && /sbin/tini -g -- ./docker-entrypoint.sh'"
+    ports:
+      - 3001:3001
+    expose:
+      - 3001
+    volumes:
+      - ./data/clightning-2:/root/.lightning/:uid=1000,gid=1000
+      - ./data/clightning-2-rest:/usr/src/app/certs/
+      - bitcoin-data:/root/.bitcoin
+
+  clightning-3:
+    hostname: clightning-3
+    depends_on:
+      - bitcoind
+    image: boltz/c-lightning:24.11
+    command:
+      - --large-channels
+      - --network=regtest
+      - --grpc-port=9738
+      - --bind-addr=0.0.0.0:9735
+      - --bitcoin-rpcconnect=bitcoind
+      - --bitcoin-rpcport=18443
+    expose:
+      - 9735
+    ports:
+      - 9738:9738
+    volumes:
+      - ./data/clightning-3:/root/.lightning/
+      - bitcoin-data:/root/.bitcoin
+
+  lnd-1:
+    hostname: lnd-1
+    depends_on:
+      - bitcoind
+    image: boltz/lnd:0.18.4-beta
+    restart: on-failure
+    command:
+      - --listen=lnd-1:9735
+      - --rpclisten=lnd-1:10009
+      - --restlisten=lnd-1:8081
+      - --bitcoin.active
+      - --bitcoin.regtest
+      - --bitcoin.node=bitcoind
+      - --bitcoind.rpchost=bitcoind
+      - --bitcoind.rpccookie=/root/.bitcoin/regtest/.cookie
+      - --bitcoind.zmqpubrawtx=bitcoind:29000
+      - --bitcoind.zmqpubrawblock=bitcoind:29001
+      - --noseedbackup
+      - --protocol.wumbo-channels
+    expose:
+      - 8081
+      - 9735
+      - 10009
+    volumes:
+      - ./data/lnd-1:/root/.lnd/
+      - bitcoin-data:/root/.bitcoin
+
+  lnd-2:
+    hostname: lnd-2
+    depends_on:
+      - bitcoind
+    image: boltz/lnd:0.19.3-beta
+    restart: on-failure
+    command:
+      - --listen=lnd-2:9735
+      - --rpclisten=lnd-2:10009
+      - --restlisten=lnd-2:8081
+      - --bitcoin.active
+      - --bitcoin.regtest
+      - --bitcoin.node=bitcoind
+      - --bitcoind.rpchost=bitcoind
+      - --bitcoind.rpccookie=/root/.bitcoin/regtest/.cookie
+      - --bitcoind.zmqpubrawtx=bitcoind:29000
+      - --bitcoind.zmqpubrawblock=bitcoind:29001
+      - --noseedbackup
+      - --protocol.wumbo-channels
+    expose:
+      - 8081
+      - 9735
+      - 10009
+    volumes:
+      - ./data/lnd-2:/root/.lnd/
+      - bitcoin-data:/root/.bitcoin
+
+  lnd-3:
+    hostname: lnd-3
+    depends_on:
+      - bitcoind
+    image: boltz/lnd:0.18.4-beta
+    restart: on-failure
+    command:
+      - --listen=lnd-3:9735
+      - --rpclisten=lnd-3:10009
+      - --restlisten=lnd-3:8081
+      - --bitcoin.active
+      - --bitcoin.regtest
+      - --bitcoin.node=bitcoind
+      - --bitcoind.rpchost=bitcoind
+      - --bitcoind.rpccookie=/root/.bitcoin/regtest/.cookie
+      - --bitcoind.zmqpubrawtx=bitcoind:29000
+      - --bitcoind.zmqpubrawblock=bitcoind:29001
+      - --noseedbackup
+      - --protocol.wumbo-channels
+    ports:
+      - 8081:8081
+      - 10009:10009
+    expose:
+      - 8081
+      - 9735
+      - 10009
+    volumes:
+      - ./data/lnd-3:/root/.lnd/
+      - bitcoin-data:/root/.bitcoin
+
+  lnd-4:
+    hostname: lnd-4
+    depends_on:
+      - bitcoind
+    image: boltz/lnd:0.18.4-beta
+    restart: on-failure
+    command:
+      - --listen=lnd-4:9735
+      - --rpclisten=lnd-4:10009
+      - --restlisten=lnd-4:8081
+      - --bitcoin.active
+      - --bitcoin.regtest
+      - --bitcoin.node=bitcoind
+      - --bitcoind.rpchost=bitcoind
+      - --bitcoind.rpccookie=/root/.bitcoin/regtest/.cookie
+      - --bitcoind.zmqpubrawtx=bitcoind:29000
+      - --bitcoind.zmqpubrawblock=bitcoind:29001
+      - --noseedbackup
+      - --protocol.wumbo-channels
+    expose:
+      - 8081
+      - 9735
+      - 10009
+    volumes:
+      - ./data/lnd-4:/root/.lnd/
+      - bitcoin-data:/root/.bitcoin
+
+  eclair:
+    hostname: eclair
+    depends_on:
+      - bitcoind
+    image: boltz/eclair:0.8.0
+    restart: on-failure
+    entrypoint: "sh -c 'JAVA_OPTS=-Xmx512m /eclair-node/bin/eclair-node.sh -Declair.datadir=/root/eclair -Declair.printToConsole'"
+    ports:
+      - 8082:8080
+    expose:
+      - 9735
+      - 8080
+    volumes:
+      - ./data/eclair:/root/eclair
+      - bitcoin-data:/root/.bitcoin
+
+  electrs:
+    hostname: electrs
+    restart: always
+    image: boltz/electrs:latest
+    entrypoint: ["electrs-bitcoin"]
+    command:
+      - --electrum-rpc-addr
+      - electrs:19001
+      - --http-addr
+      - electrs:3002
+      - --daemon-rpc-addr
+      - bitcoind:18443
+      - --network
+      - regtest
+      - --jsonrpc-import
+    healthcheck:
+      test: ["CMD-SHELL", "curl -s $(hostname):3002/blocks/tip/height"]
+      timeout: 1s
+      retries: 20
+      interval: 2s
+      start_period: 5s
+    ports:
+      - 19001:19001
+      - 3002:3002
+    volumes:
+      - bitcoin-data:/root/.bitcoin
+
+  elementsd:
+    hostname: elementsd
+    restart: always
+    image: boltz/elements:latest
+    expose:
+      - 31001
+    ports:
+      - 31000:31000
+      - 31002:31002
+      - 18884:18884
+    command:
+    - -chain=liquidregtest
+    - -txindex=1
+    - -rest=1
+    - -server=1
+    - -rpcallowip=0.0.0.0/0
+    - -validatepegin=0
+    - -initialfreecoins=2100000000000000
+    - -fallbackfee=0.000001
+    - -rpcbind=0.0.0.0
+    - -rpcport=18884
+    - -zmqpubrawtx=tcp://0.0.0.0:31000
+    - -zmqpubrawblock=tcp://0.0.0.0:31001
+    - -zmqpubhashblock=tcp://0.0.0.0:31002
+    - -acceptdiscountct=1
+    - -creatediscountct=1
+    volumes:
+      - elements-data:/root/.elements
+
+  electrs-liquid:
+    hostname: electrs-liquid
+    restart: always
+    image: boltz/electrs:latest
+    entrypoint: ["electrs-liquid"]
+    command:
+      - --electrum-rpc-addr
+      - electrs-liquid:19002
+      - --http-addr
+      - electrs-liquid:3003
+      - --daemon-rpc-addr
+      - elementsd:18884
+      - --daemon-dir
+      - /root/.elements
+      - --network
+      - liquidregtest
+      - --parent-network
+      - regtest
+      - --jsonrpc-import
+    healthcheck:
+      test: ["CMD-SHELL", "curl -s $(hostname):3003/blocks/tip/height"]
+      timeout: 15s
+      retries: 20
+      interval: 2s
+      start_period: 5s
+    ports:
+      - 19002:19002
+      - 3003:3003
+    volumes:
+      - elements-data:/root/.elements
+
+volumes:
+  lnbits-data:
+  bitcoin-data:
+  elements-data:
+  nginx-data:
+    name: nginx-data
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ./data/boltz-nginx/

@@ -42,7 +42,6 @@ lnbits/static/bundle.min.js.old
 lnbits/static/bundle.min.css.old
 lnbits/static/bundle-components.min.js.old
 lnbits/upgrades
-docker
 
 # Nix
 *result*
