@@ -6,10 +6,6 @@ from pydantic import BaseModel
 from lnbits.wallets import get_funding_source, set_funding_source
 
 
-class FakeError(Exception):
-    pass
-
-
 class DbTestModel(BaseModel):
     id: int
     name: str

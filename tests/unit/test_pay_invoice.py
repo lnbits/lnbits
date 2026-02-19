@@ -230,12 +230,23 @@ async def test_pay_for_extension(to_wallet: Wallet, settings: Settings):
 
 
 @pytest.mark.anyio
-async def test_notification_for_internal_payment(to_wallet: Wallet):
+async def test_notification_for_internal_payment(
+    to_wallet: Wallet, mocker: MockerFixture
+):
     test_name = "test_notification_for_internal_payment"
 
     create_permanent_task(internal_invoice_listener)
     invoice_queue: asyncio.Queue = asyncio.Queue()
     register_invoice_listener(invoice_queue, test_name)
+
+    on_paid_mock = mocker.AsyncMock()
+
+    async def listener():
+        while True:
+            payment: Payment = await invoice_queue.get()
+            on_paid_mock(payment)
+
+    create_permanent_task(listener)
 
     payment = await create_invoice(
         wallet_id=to_wallet.id,
@@ -248,17 +259,15 @@ async def test_notification_for_internal_payment(to_wallet: Wallet):
     )
     await asyncio.sleep(1)
 
-    while True:
-        _payment: Payment = invoice_queue.get_nowait()  # raises if queue empty
-        assert _payment
-        if _payment.memo == test_name:
-            assert _payment.status == PaymentState.SUCCESS.value
-            assert _payment.bolt11 == payment.bolt11
-            assert _payment.amount == 123_000
-            updated_payment = await get_payment(_payment.checking_id)
-            assert updated_payment.webhook_status == "404"
+    assert on_paid_mock.call_count == 1
+    _payment = on_paid_mock.call_args_list[0][0][0]
 
-            break  # we found our payment, success
+    assert _payment.memo == test_name
+    assert _payment.status == PaymentState.SUCCESS.value
+    assert _payment.bolt11 == payment.bolt11
+    assert _payment.amount == 123_000
+    updated_payment = await get_payment(_payment.checking_id)
+    assert updated_payment.webhook_status == "404"
 
 
 @pytest.mark.anyio
