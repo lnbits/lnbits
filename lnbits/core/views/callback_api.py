@@ -24,7 +24,7 @@ callback_router = APIRouter(prefix="/api/v1/callback", tags=["callback"])
 async def api_generic_webhook_handler(
     provider_name: str, request: Request
 ) -> SimpleStatus:
-
+    logger.info(f"Received callback from provider: '{provider_name}'.")
     if provider_name.lower() == "stripe":
         payload = await request.body()
         sig_header = request.headers.get("Stripe-Signature")
@@ -181,9 +181,10 @@ async def _get_stripe_subscription_payment_options(
 
 
 async def handle_paypal_event(event: dict):
-    print("### PayPal event received:", json.dumps(event, indent=2))
+    event_id = event.get("id", "")
     event_type = event.get("event_type", "")
     resource = event.get("resource", {})
+    logger.info(f"Handling PayPal event: '{event_id}'. Type: '{event_type}'.")
 
     if event_type in ("CHECKOUT.ORDER.APPROVED", "PAYMENT.CAPTURE.COMPLETED"):
         payment_hash = _paypal_extract_payment_hash(resource)
@@ -197,14 +198,11 @@ async def handle_paypal_event(event: dict):
         await check_fiat_status(payment)
         return
 
-    if event_type in (
-        "PAYMENT.SALE.COMPLETED",
-        "BILLING.SUBSCRIPTION.PAYMENT.SUCCEEDED",
-    ):
+    if event_type in ("PAYMENT.SALE.COMPLETED"):
         await _handle_paypal_subscription_payment(resource)
         return
 
-    logger.info(f"Unhandled PayPal event type: '{event_type}'.")
+    logger.warning(f"Unhandled PayPal event type: '{event_type}'.")
 
 
 async def _handle_paypal_subscription_payment(resource: dict):
@@ -223,8 +221,10 @@ async def _handle_paypal_subscription_payment(resource: dict):
         raise ValueError("PayPal subscription event missing wallet_id.")
 
     memo = payment_options.memo or ""
+
     extra = {
         **(payment_options.extra or {}),
+        "subscription_request_id": resource.get("billing_agreement_id"),
         "fiat_method": "subscription",
         "tag": payment_options.tag,
         "subscription": {

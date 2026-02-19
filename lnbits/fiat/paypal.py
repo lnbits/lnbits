@@ -113,7 +113,7 @@ class PayPalWallet(FiatProvider):
             checking_id = term.checking_id or urlsafe_short_hash()
             return FiatInvoiceResponse(
                 ok=True,
-                checking_id=f"fiat_paypal_subscription_{checking_id}",
+                checking_id=f"subscription_{checking_id}",
                 payment_request=term.payment_request or "",
             )
 
@@ -191,6 +191,7 @@ class PayPalWallet(FiatProvider):
             or "https://lnbits.com"
         )
 
+        logger.debug(f"Creating PayPal subscription with ID '{subscription_id}'")
         if not payment_options.subscription_request_id:
             payment_options.subscription_request_id = urlsafe_short_hash()
         payment_options.extra = payment_options.extra or {}
@@ -213,6 +214,7 @@ class PayPalWallet(FiatProvider):
                 json=payload,
                 headers=self._auth_headers(),
             )
+
             r.raise_for_status()
             data = r.json()
             approval_url = self._get_approval_url(data.get("links") or [])
@@ -224,7 +226,7 @@ class PayPalWallet(FiatProvider):
             return FiatSubscriptionResponse(
                 ok=True,
                 checkout_session_url=approval_url,
-                subscription_request_id=payment_options.subscription_request_id,
+                subscription_request_id=data.get("id"),
             )
         except Exception as exc:
             logger.warning(exc)
@@ -238,6 +240,10 @@ class PayPalWallet(FiatProvider):
         correlation_id: str,
         **kwargs,
     ) -> FiatSubscriptionResponse:
+        logger.debug(
+            f"Cancelling PayPal subscription '{subscription_id}'. "
+            f"Correlation ID '{correlation_id}'."
+        )
         try:
             await self._ensure_access_token()
             r = await self.client.post(
@@ -245,6 +251,7 @@ class PayPalWallet(FiatProvider):
                 json={"reason": f"Cancelled by {correlation_id}"},
                 headers=self._auth_headers(),
             )
+
             r.raise_for_status()
             return FiatSubscriptionResponse(ok=True)
         except Exception as exc:
