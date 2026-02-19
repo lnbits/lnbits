@@ -13,37 +13,45 @@ const DynamicComponent = {
   async created() {
     const name = this.$route.path.split('/')[1]
     const path = `/${name}/`
-    const routesPath = `/${name}/static/routes.json`
     if (this.$router.getRoutes().some(r => r.path === path)) return
     if (this.$route.fullPath.startsWith('/extensions/builder/preview')) return
-    fetch(routesPath)
-      .then(async res => {
-        if (!res.ok) throw new Error('No dynamic routes found')
-        const routes = await res.json()
-        routes.forEach(r => {
-          console.log('Adding dynamic route:', r.path)
-          window.router.addRoute({
-            path: r.path,
-            name: r.name,
-            component: async () => {
-              await LNbits.utils.loadTemplate(r.template)
-              await LNbits.utils.loadScript(r.component)
-              return window[r.name]
-            }
-          })
-          window.router.push(this.$route.fullPath)
-        })
-      })
-      .catch(() => {
-        let route = RENDERED_ROUTE
-        // append trailing slash only on the root path `/path` -> `/path/`
-        if (route.split('/').length === 2) route += '/'
-        if (route !== this.$route.path) {
-          console.log('Redirecting to non-vue route:', this.$route.fullPath)
-          window.location = this.$route.fullPath
-          return
+    try {
+      // Prefer global routes.json so deep links (e.g. /lnurlp/link/<id>) don't
+      // incorrectly try to load assets from /lnurlp/static/*.
+      const routesPaths = ['/static/routes.json', `/${name}/static/routes.json`]
+      let routes = null
+      for (const routesPath of routesPaths) {
+        const res = await fetch(routesPath)
+        if (res.ok) {
+          routes = await res.json()
+          break
         }
+      }
+      if (!routes) throw new Error('No dynamic routes found')
+
+      routes.forEach(r => {
+        console.log('Adding dynamic route:', r.path)
+        window.router.addRoute({
+          path: r.path,
+          name: r.name,
+          component: async () => {
+            await LNbits.utils.loadTemplate(r.template)
+            await LNbits.utils.loadScript(r.component)
+            return window[r.name]
+          }
+        })
+        window.router.push(this.$route.fullPath)
       })
+    } catch {
+      let route = RENDERED_ROUTE
+      // append trailing slash only on the root path `/path` -> `/path/`
+      if (route.split('/').length === 2) route += '/'
+      if (route !== this.$route.path) {
+        console.log('Redirecting to non-vue route:', this.$route.fullPath)
+        window.location = this.$route.fullPath
+        return
+      }
+    }
   }
 }
 
