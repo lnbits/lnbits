@@ -1076,9 +1076,9 @@ async def _send_payment_notification_in_background(
 
 async def update_invoice_callback(checking_id: str) -> Payment | None:
     """
-    Takes a checking_id of an incoming payment, checks its status,
-    updates and returns it. return None if no payment was found
-    or its and outgoing payment
+    Takes a checking_id of an incoming payment, from either paid_invoices_stream()
+    or internal_invoice_queue. Checks its status, updates and returns it.
+    returns None if no payment was found or it not and incoming payment.
     """
     payment = await get_standalone_payment(checking_id, incoming=True)
     if not payment:
