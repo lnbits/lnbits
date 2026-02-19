@@ -1249,9 +1249,8 @@
       <q-card-section>
         <q-responsive :ratio="1" class="q-mx-xl q-mb-xl">
           <lnbits-qrcode
-            :value="paymentDialog.invoice"
-            :options="{width: 800}"
-            class="rounded-borders"
+            :value="'lightning:' + paymentDialog.invoice.toUpperCase()"
+            :href="'lightning:' + paymentDialog.invoice"
           ></lnbits-qrcode>
         </q-responsive>
       </q-card-section>
