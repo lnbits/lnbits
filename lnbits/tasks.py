@@ -5,12 +5,8 @@ from collections.abc import Callable, Coroutine
 
 from loguru import logger
 
-from lnbits.core.crud import (
-    get_standalone_payment,
-    update_payment,
-)
-from lnbits.core.models import Payment, PaymentState
-from lnbits.core.services.fiat_providers import handle_fiat_payment_confirmation
+from lnbits.core.models import Payment
+from lnbits.core.services.payments import update_invoice_callback
 from lnbits.settings import settings
 from lnbits.wallets import get_funding_source
 
@@ -116,7 +112,10 @@ async def internal_invoice_listener() -> None:
     while settings.lnbits_running:
         checking_id = await internal_invoice_queue.get()
         logger.info(f"got an internal payment notification {checking_id}")
-        await invoice_callback_dispatcher(checking_id, is_internal=True)
+        payment = await update_invoice_callback(checking_id)
+        if payment:
+            logger.success(f"internal invoice {checking_id} settled")
+            await invoice_callback_dispatcher(payment)
 
 
 async def invoice_listener() -> None:
@@ -129,7 +128,10 @@ async def invoice_listener() -> None:
     funding_source = get_funding_source()
     async for checking_id in funding_source.paid_invoices_stream():
         logger.info(f"got a payment notification {checking_id}")
-        await invoice_callback_dispatcher(checking_id)
+        payment = await update_invoice_callback(checking_id)
+        if payment:
+            logger.success(f"fundingsource invoice {checking_id} settled")
+            await invoice_callback_dispatcher(payment)
 
 
 def wait_for_paid_invoices(
@@ -165,33 +167,7 @@ def run_interval(
     return wrapper
 
 
-async def invoice_callback_dispatcher(checking_id: str, is_internal: bool = False):
-    """
-    Takes an incoming payment, checks its status, and dispatches it to
-    invoice_listeners from core and extensions.
-    """
-    payment = await get_standalone_payment(checking_id, incoming=True)
-    if not payment:
-        logger.warning(f"No payment found for '{checking_id}'.")
-        return
-    if not payment.is_in:
-        logger.warning(f"Payment '{checking_id}' is not incoming, skipping.")
-        return
-
-    from lnbits.core.services.payments import check_payment_status
-
-    status = await check_payment_status(
-        payment, skip_internal_payment_notifications=True
-    )
-    payment.fee = status.fee_msat or payment.fee
-    # only overwrite preimage if status.preimage provides it
-    payment.preimage = status.preimage or payment.preimage
-    payment.status = PaymentState.SUCCESS
-    await update_payment(payment)
-    if payment.fiat_provider:
-        await handle_fiat_payment_confirmation(payment)
-    internal = "internal" if is_internal else ""
-    logger.success(f"{internal} invoice {checking_id} settled")
+async def invoice_callback_dispatcher(payment: Payment):
     for name, send_chan in invoice_listeners.items():
         logger.trace(f"invoice listeners: sending to `{name}`")
         await send_chan.put(payment)

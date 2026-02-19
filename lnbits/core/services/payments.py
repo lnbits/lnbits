@@ -13,13 +13,13 @@ from lnbits.core.crud.payments import get_daily_stats
 from lnbits.core.db import db
 from lnbits.core.models import PaymentDailyStats, PaymentFilters
 from lnbits.core.models.payments import CreateInvoice
+from lnbits.core.services.fiat_providers import handle_fiat_payment_confirmation
 from lnbits.db import Connection, Filters
 from lnbits.decorators import check_user_extension_access
 from lnbits.exceptions import InvoiceError, PaymentError, UnsupportedError
 from lnbits.fiat import get_fiat_provider
 from lnbits.helpers import check_callback_url
 from lnbits.settings import settings
-from lnbits.tasks import create_task, internal_invoice_queue_put
 from lnbits.utils.crypto import fake_privkey, random_secret_and_hash, verify_preimage
 from lnbits.utils.exchange_rates import fiat_amount_as_satoshis, satoshis_amount_as_fiat
 from lnbits.wallets import fake_wallet, get_funding_source
@@ -509,6 +509,8 @@ async def update_wallet_balance(
         )
         payment.status = PaymentState.SUCCESS
         await update_payment(payment, conn=conn)
+        from lnbits.tasks import internal_invoice_queue_put
+
         await internal_invoice_queue_put(payment.checking_id)
 
 
@@ -819,6 +821,8 @@ async def _pay_external_invoice(
 
     fee_reserve_msat = fee_reserve(amount_msat, internal=False)
 
+    from lnbits.tasks import create_task
+
     task = create_task(
         _fundingsource_pay_invoice(checking_id, payment.bolt11, fee_reserve_msat)
     )
@@ -1068,3 +1072,30 @@ async def _send_payment_notification_in_background(
     if not wallet:
         raise PaymentError(f"Could not fetch wallet '{wallet_id}'.", status="failed")
     send_payment_notification_in_background(wallet, payment)
+
+
+async def update_invoice_callback(checking_id: str) -> Payment | None:
+    """
+    Takes a checking_id of an incoming payment, checks its status,
+    updates and returns it. return None if no payment was found
+    or its and outgoing payment
+    """
+    payment = await get_standalone_payment(checking_id, incoming=True)
+    if not payment:
+        logger.warning(f"No payment found for '{checking_id}'.")
+        return None
+    if not payment.is_in:
+        logger.warning(f"Payment '{checking_id}' is not incoming, skipping.")
+        return None
+
+    status = await check_payment_status(
+        payment, skip_internal_payment_notifications=True
+    )
+    payment.fee = status.fee_msat or payment.fee
+    # only overwrite preimage if status.preimage provides it
+    payment.preimage = status.preimage or payment.preimage
+    payment.status = PaymentState.SUCCESS
+    await update_payment(payment)
+    if payment.fiat_provider:
+        await handle_fiat_payment_confirmation(payment)
+    return payment
