@@ -1247,12 +1247,10 @@
   <q-dialog v-model="paymentDialog.show" position="top">
     <q-card class="q-pa-md lnbits__dialog-card">
       <q-card-section>
-        <q-responsive :ratio="1" class="q-mx-xl q-mb-xl">
-          <lnbits-qrcode
-            :value="'lightning:' + paymentDialog.invoice.toUpperCase()"
-            :href="'lightning:' + paymentDialog.invoice"
-          ></lnbits-qrcode>
-        </q-responsive>
+        <lnbits-qrcode
+          :value="'lightning:' + paymentDialog.invoice.toUpperCase()"
+          :href="'lightning:' + paymentDialog.invoice"
+        ></lnbits-qrcode>
       </q-card-section>
       <q-card-actions align="between">
         <q-btn v-close-popup flat color="grey" :label="$t('close')"></q-btn>
