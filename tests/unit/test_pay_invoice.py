@@ -10,16 +10,12 @@ from pytest_mock.plugin import MockerFixture
 
 from lnbits.core.crud import create_wallet, get_standalone_payment, get_wallet
 from lnbits.core.crud.payments import get_payment, get_payments_paginated
-from lnbits.core.models import Payment, PaymentState, Wallet
+from lnbits.core.models import PaymentState, Wallet
 from lnbits.core.services import create_invoice, create_user_account, pay_invoice
 from lnbits.core.services.payments import update_wallet_balance
 from lnbits.exceptions import InvoiceError, PaymentError
 from lnbits.settings import Settings
-from lnbits.tasks import (
-    create_permanent_task,
-    internal_invoice_listener,
-    register_invoice_listener,
-)
+from lnbits.tasks import create_task, wait_for_paid_invoices
 from lnbits.wallets.base import PaymentResponse
 from lnbits.wallets.fake import FakeWallet
 
@@ -235,19 +231,8 @@ async def test_notification_for_internal_payment(
 ):
     test_name = "test_notification_for_internal_payment"
 
-    create_permanent_task(internal_invoice_listener)
-    invoice_queue: asyncio.Queue = asyncio.Queue()
-    register_invoice_listener(invoice_queue, test_name)
-
     on_paid_mock = mocker.AsyncMock()
-
-    async def listener():
-        while True:
-            payment: Payment = await invoice_queue.get()
-            on_paid_mock(payment)
-
-    create_permanent_task(listener)
-
+    create_task(wait_for_paid_invoices(test_name, on_paid_mock)())
     payment = await create_invoice(
         wallet_id=to_wallet.id,
         amount=123,
