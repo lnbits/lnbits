@@ -221,7 +221,6 @@ async def _handle_paypal_subscription_payment(resource: dict):
         raise ValueError("PayPal subscription event missing wallet_id.")
 
     memo = payment_options.memo or ""
-
     extra = {
         **(payment_options.extra or {}),
         "subscription_request_id": resource.get("billing_agreement_id"),

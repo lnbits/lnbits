@@ -214,7 +214,6 @@ class PayPalWallet(FiatProvider):
                 json=payload,
                 headers=self._auth_headers(),
             )
-
             r.raise_for_status()
             data = r.json()
             approval_url = self._get_approval_url(data.get("links") or [])
@@ -251,7 +250,6 @@ class PayPalWallet(FiatProvider):
                 json={"reason": f"Cancelled by {correlation_id}"},
                 headers=self._auth_headers(),
             )
-
             r.raise_for_status()
             return FiatSubscriptionResponse(ok=True)
         except Exception as exc:
