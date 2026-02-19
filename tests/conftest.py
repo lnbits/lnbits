@@ -43,6 +43,7 @@ def anyio_backend():
 @pytest.fixture(scope="session")
 def settings():
     # override settings for tests
+    lnbits_settings.auth_https_only = False
     lnbits_settings.lnbits_admin_extensions = []
     lnbits_settings.lnbits_data_folder = "./tests/data"
     lnbits_settings.lnbits_admin_ui = True
