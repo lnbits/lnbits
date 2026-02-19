@@ -157,14 +157,14 @@ async def impersonate_user(
         "admin_access_token",
         cookie_access_token,
         httponly=True,
-        secure=True,
+        secure=settings.auth_https_only,
         samesite="lax",
         max_age=max_age,
     )
     response.set_cookie(
         "is_lnbits_user_impersonated",
         "true",
-        secure=True,
+        secure=settings.auth_https_only,
         samesite="lax",
         max_age=max_age,
     )
@@ -191,7 +191,7 @@ async def stop_impersonate_user(
         "cookie_access_token",
         admin_access_token,
         httponly=True,
-        secure=True,
+        secure=settings.auth_https_only,
         samesite="lax",
         max_age=max_age,
     )
@@ -594,14 +594,14 @@ def _auth_success_response(
         "cookie_access_token",
         access_token,
         httponly=True,
-        secure=True,
+        secure=settings.auth_https_only,
         samesite="lax",
         max_age=max_age,
     )
     response.set_cookie(
         "is_lnbits_user_authorized",
         "true",
-        secure=True,
+        secure=settings.auth_https_only,
         samesite="lax",
         max_age=max_age,
     )
@@ -632,14 +632,14 @@ def _auth_redirect_response(path: str, user_id: str, email: str) -> RedirectResp
         "cookie_access_token",
         access_token,
         httponly=True,
-        secure=True,
+        secure=settings.auth_https_only,
         samesite="lax",
         max_age=max_age,
     )
     response.set_cookie(
         "is_lnbits_user_authorized",
         "true",
-        secure=True,
+        secure=settings.auth_https_only,
         samesite="lax",
         max_age=max_age,
     )
@@ -662,7 +662,10 @@ def _new_sso(provider: str) -> SSOBase | None:
 
         sso_provider_class = _find_auth_provider_class(provider)
         sso_provider = sso_provider_class(
-            client_id, client_secret, None, allow_insecure_http=False
+            client_id,
+            client_secret,
+            None,
+            allow_insecure_http=not settings.auth_https_only,
         )
         if (
             discovery_url
