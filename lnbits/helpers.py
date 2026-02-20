@@ -56,7 +56,6 @@ def static_url_for(static: str, path: str) -> str:
 def template_renderer(additional_folders: list | None = None) -> Jinja2Templates:
     folders = [
         "lnbits/templates",
-        "lnbits/core/templates",
         settings.extension_builder_working_dir_path.as_posix(),
     ]
 
