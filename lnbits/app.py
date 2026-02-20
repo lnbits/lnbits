@@ -468,7 +468,12 @@ def register_async_tasks() -> None:
     create_permanent_task(wait_for_audit_data)
     create_permanent_task(wait_notification_messages)
 
-    create_permanent_task(run_interval(30 * 60, check_pending_payments))
+    create_permanent_task(
+        run_interval(
+            settings.lnbits_funding_source_pending_interval_seconds,
+            check_pending_payments,
+        )
+    )
     create_permanent_task(invoice_listener)
     create_permanent_task(internal_invoice_listener)
     create_permanent_task(cache.invalidate_forever)

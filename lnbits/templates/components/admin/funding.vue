@@ -160,6 +160,27 @@
             min="0"
           ></q-input>
         </div>
+        <div class="col-12 col-md-3">
+          <p>
+            <span v-text="$t('payment_pending_interval')"></span>
+            <sup>
+              <q-icon name="info" size="16px" class="q-ml-xs"></q-icon>
+              <q-tooltip max-width="150px">
+                <span v-text="$t('payment_pending_interval_tooltip')"></span>
+              </q-tooltip>
+            </sup>
+          </p>
+          <q-input
+            type="number"
+            filled
+            name="lnbits_funding_source_pending_interval_seconds"
+            v-model="formData.lnbits_funding_source_pending_interval_seconds"
+            :label="$t('payment_pending_interval')"
+            :hint="$t('payment_pending_interval_desc')"
+            step="1"
+            min="0"
+          ></q-input>
+        </div>
       </div>
       <div v-if="isSuperUser">
         <lnbits-admin-funding-sources
