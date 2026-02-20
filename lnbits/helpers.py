@@ -7,15 +7,14 @@ from typing import Any
 from urllib import request
 from urllib.parse import urlparse
 
-import jinja2
 import jwt
 import shortuuid
 from fastapi.routing import APIRoute
 from loguru import logger
 from packaging import version
 from pydantic.schema import field_schema
+from starlette.templating import Jinja2Templates
 
-from lnbits.jinja2_templating import Jinja2Templates
 from lnbits.settings import settings
 from lnbits.utils.crypto import AESCipher
 from lnbits.utils.exchange_rates import currencies
@@ -66,7 +65,7 @@ def template_renderer(additional_folders: list | None = None) -> Jinja2Templates
             for f in additional_folders
         ]
         folders.extend(additional_folders)
-    t = Jinja2Templates(loader=jinja2.FileSystemLoader(folders))
+    t = Jinja2Templates(directory=folders)
     t.env.globals["static_url_for"] = static_url_for
     t.env.globals["normalize_path"] = normalize_path
 
