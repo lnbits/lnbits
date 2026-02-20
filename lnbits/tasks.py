@@ -5,6 +5,7 @@ from collections.abc import Callable, Coroutine
 from loguru import logger
 
 from lnbits.core.models import Payment
+from lnbits.settings import settings
 from lnbits.task_manager import task_manager
 
 
@@ -56,3 +57,23 @@ def register_invoice_listener(send_chan: asyncio.Queue, name: str | None = None)
         send_chan.put_nowait(payment)
 
     task_manager.register_invoice_listener(forward_queue, name=name)
+
+
+# DEPRECATED use task_manager.register_invoice_listener(coro, name="myext")
+def wait_for_paid_invoices(
+    invoice_listener_name: str,
+    func: Callable[[Payment], Coroutine],
+) -> Callable[[], Coroutine]:
+    logger.debug(
+        "wait_for_paid_invoices is deprecated use "
+        "task_manager.register_invoice_listener instead."
+    )
+
+    async def wrapper() -> None:
+        invoice_queue: asyncio.Queue = asyncio.Queue()
+        register_invoice_listener(invoice_queue, invoice_listener_name)
+        while settings.lnbits_running:
+            payment = await invoice_queue.get()
+            await func(payment)
+
+    return wrapper
