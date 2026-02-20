@@ -70,6 +70,7 @@
     "js/components/admin/lnbits-admin-site-customisation.js",
     "js/components/admin/lnbits-admin-assets-config.js",
     "js/components/admin/lnbits-admin-audit.js",
+    "js/components/lnbits-dialog.js",
     "js/components/lnbits-wallet-charts.js",
     "js/components/lnbits-wallet-api-docs.js",
     "js/components/lnbits-wallet-icon.js",
@@ -95,12 +96,8 @@
     "js/components/lnbits-label-selector.js",
     "js/components/extension-settings.js",
     "js/components/data-fields.js",
-    "js/components/lnbits-dialog.js",
     "js/components.js",
     "js/init-app.js"
   ],
-  "css": [
-    "vendor/quasar.css",
-    "css/base.css"
-  ]
+  "css": ["vendor/quasar.css", "css/base.css"]
 }
