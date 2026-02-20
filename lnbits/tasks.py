@@ -1,143 +1,73 @@
 import asyncio
-import traceback
 import uuid
 from collections.abc import Callable, Coroutine
 
 from loguru import logger
 
 from lnbits.core.models import Payment
-from lnbits.core.services.payments import update_invoice_callback
 from lnbits.settings import settings
-from lnbits.wallets import get_funding_source
-
-tasks: list[asyncio.Task] = []
-unique_tasks: dict[str, asyncio.Task] = {}
+from lnbits.task_manager import task_manager
 
 
+# DEPRECATED: use task_manager.create_task instead.
 def create_task(coro: Coroutine) -> asyncio.Task:
-    task = asyncio.create_task(coro)
-    tasks.append(task)
-    return task
+    return task_manager.create_task(coro)._task
 
 
+# DEPRECATED: use task_manager.create_task with `name` kwarg.
 def create_unique_task(name: str, coro: Coroutine) -> asyncio.Task:
-    if unique_tasks.get(name):
-        logger.warning(f"task `{name}` already exists, cancelling it")
-        try:
-            unique_tasks[name].cancel()
-        except Exception as exc:
-            logger.warning(f"error while cancelling task `{name}`: {exc!s}")
-    task = asyncio.create_task(coro)
-    unique_tasks[name] = task
-    return task
+    return task_manager.create_task(coro, name=name)._task
 
 
+# DEPRECATED: use task_manager.create_permanent_task instead.
 def create_permanent_task(func: Callable[[], Coroutine]) -> asyncio.Task:
-    return create_task(catch_everything_and_restart(func))
+    return task_manager.create_permanent_task(func)._task
 
 
+# DEPRECATED: use task_manager.create_permanent_task with `name` argument instead.
 def create_permanent_unique_task(
     name: str, coro: Callable[[], Coroutine]
 ) -> asyncio.Task:
     return create_unique_task(name, catch_everything_and_restart(coro, name))
 
 
-def cancel_all_tasks() -> None:
-    for task in tasks:
-        try:
-            task.cancel()
-        except Exception as exc:
-            logger.warning(f"error while cancelling task: {exc!s}")
-    for name, task in unique_tasks.items():
-        try:
-            task.cancel()
-        except Exception as exc:
-            logger.warning(f"error while cancelling task `{name}`: {exc!s}")
-
-
+# DEPRECATED don't use this, use task_manager.create_permanent_task instead.
 async def catch_everything_and_restart(
     func: Callable[[], Coroutine],
     name: str = "unnamed",
 ) -> Coroutine:
-    try:
-        return await func()
-    except asyncio.CancelledError:
-        raise  # because we must pass this up
-    except Exception as exc:
-        logger.error(f"exception in background task `{name}`:", exc)
-        logger.error(traceback.format_exc())
-        logger.error("will restart the task in 5 seconds.")
-        await asyncio.sleep(5)
-        return await catch_everything_and_restart(func, name)
+    _ = name
+    return await task_manager._catch_everything_and_restart(func)
 
 
-invoice_listeners: dict[str, asyncio.Queue] = {}
-
-
-# TODO: name should not be optional
-# some extensions still dont use a name, but they should
 def register_invoice_listener(send_chan: asyncio.Queue, name: str | None = None):
     """
-    A method intended for extensions (and core/tasks.py) to call when they want to be
-    notified about new invoice payments incoming. Will emit all incoming payments.
+    DEPRECATED: use task_manager.register_invoice_listener instead,
+    which also allows to pass a callback instead of a queue.
+    This method will still work but it is not recommended for new code.
     """
-    if not name:
-        # fallback to a random name if extension didn't provide one
-        name = f"no_name_{str(uuid.uuid4())[:8]}"
+    logger.debug(
+        "register_invoice_listener is deprecated use "
+        "task_manager.register_invoice_listener instead."
+    )
+    name = f"forward_{name or str(uuid.uuid4())[:8]}"
 
-    if invoice_listeners.get(name):
-        logger.warning(f"invoice listener `{name}` already exists, replacing it")
+    # here we just forwarding the payments to the provided queue
+    async def forward_queue(payment: Payment):
+        send_chan.put_nowait(payment)
 
-    logger.trace(f"registering invoice listener `{name}`")
-    invoice_listeners[name] = send_chan
-
-
-internal_invoice_queue: asyncio.Queue = asyncio.Queue(0)
-
-
-async def internal_invoice_queue_put(checking_id: str) -> None:
-    """
-    A method to call when it wants to notify about an internal invoice payment.
-    """
-    await internal_invoice_queue.put(checking_id)
+    task_manager.register_invoice_listener(forward_queue, name=name)
 
 
-async def internal_invoice_listener() -> None:
-    """
-    internal_invoice_queue will be filled directly in core/services.py
-    after the payment was deemed to be settled internally.
-
-    Called by the app startup sequence.
-    """
-    while settings.lnbits_running:
-        checking_id = await internal_invoice_queue.get()
-        logger.info(f"got an internal payment notification {checking_id}")
-        payment = await update_invoice_callback(checking_id)
-        if payment:
-            logger.success(f"internal invoice {checking_id} settled")
-            await invoice_callback_dispatcher(payment)
-
-
-async def invoice_listener() -> None:
-    """
-    invoice_listener will collect all invoices that come directly
-    from the backend wallet.
-
-    Called by the app startup sequence.
-    """
-    funding_source = get_funding_source()
-    async for checking_id in funding_source.paid_invoices_stream():
-        logger.info(f"got a payment notification {checking_id}")
-        payment = await update_invoice_callback(checking_id)
-        if payment:
-            logger.success(f"fundingsource invoice {checking_id} settled")
-            await invoice_callback_dispatcher(payment)
-
-
+# DEPRECATED use task_manager.register_invoice_listener(coro, name="myext")
 def wait_for_paid_invoices(
     invoice_listener_name: str,
     func: Callable[[Payment], Coroutine],
 ) -> Callable[[], Coroutine]:
+    logger.debug(
+        "wait_for_paid_invoices is deprecated use "
+        "task_manager.register_invoice_listener instead."
+    )
 
     async def wrapper() -> None:
         invoice_queue: asyncio.Queue = asyncio.Queue()
@@ -147,27 +77,3 @@ def wait_for_paid_invoices(
             await func(payment)
 
     return wrapper
-
-
-def run_interval(
-    interval_seconds: int,
-    func: Callable[[], Coroutine],
-) -> Callable[[], Coroutine]:
-    """Run a function at a specified interval in seconds, while the server is running"""
-
-    async def wrapper() -> None:
-        while settings.lnbits_running:
-            try:
-                await func()
-            except Exception as e:
-                logger.error(f"Error occurred in interval task: {e}")
-                logger.warning(traceback.format_exc())
-            await asyncio.sleep(interval_seconds)
-
-    return wrapper
-
-
-async def invoice_callback_dispatcher(payment: Payment):
-    for name, send_chan in invoice_listeners.items():
-        logger.trace(f"invoice listeners: sending to `{name}`")
-        await send_chan.put(payment)

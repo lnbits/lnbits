@@ -37,18 +37,15 @@ def log_server_info():
 
 def initialize_server_websocket_logger() -> Callable:
     super_user_hash = sha256(settings.super_user.encode("utf-8")).hexdigest()
-
     serverlog_queue: asyncio.Queue = asyncio.Queue()
-
-    async def update_websocket_serverlog():
-        while settings.lnbits_running:
-            msg = await serverlog_queue.get()
-            await websocket_updater(super_user_hash, msg)
-
     logger.add(
         lambda msg: serverlog_queue.put_nowait(msg),
         format=Formatter().format,
     )
+
+    async def update_websocket_serverlog():
+        msg = await serverlog_queue.get()
+        await websocket_updater(super_user_hash, msg)
 
     return update_websocket_serverlog
 

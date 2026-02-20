@@ -2,6 +2,7 @@ import asyncio
 
 import pytest
 
+from lnbits.task_manager import task_manager
 from lnbits.utils.cache import Cache
 
 key = "foo"
@@ -10,11 +11,10 @@ value = "bar"
 
 @pytest.fixture
 async def cache():
-    cache = Cache(interval=0.1)
-
-    task = asyncio.create_task(cache.invalidate_forever())
+    cache = Cache()
+    task = task_manager.create_permanent_task(cache.invalidate_cache, interval=1)
     yield cache
-    task.cancel()
+    task_manager.cancel_task(task)
 
 
 @pytest.mark.anyio
@@ -28,13 +28,13 @@ async def test_cache_get_set(cache):
 @pytest.mark.anyio
 async def test_cache_expiry(cache):
     # gets expired by `get` call
-    cache.set(key, value, expiry=0.01)
-    await asyncio.sleep(0.02)
+    cache.set(key, value, expiry=1)
+    await asyncio.sleep(2)
     assert not cache.get(key)
 
     # gets expired by invalidation task
-    cache.set(key, value, expiry=0.1)
-    await asyncio.sleep(0.2)
+    cache.set(key, value, expiry=1)
+    await asyncio.sleep(2)
     assert key not in cache._values
     assert not cache.get(key)
 

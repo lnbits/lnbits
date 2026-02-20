@@ -23,29 +23,34 @@ from lnbits.core.crud import (
     get_installed_extensions,
     update_installed_extension_state,
 )
+from lnbits.core.crud.audit import delete_expired_audit_entries
 from lnbits.core.crud.extensions import create_installed_extension
 from lnbits.core.helpers import migrate_extension_database
 from lnbits.core.models.notifications import NotificationType
 from lnbits.core.services.extensions import deactivate_extension, get_valid_extensions
-from lnbits.core.services.notifications import enqueue_admin_notification
-from lnbits.core.services.payments import check_pending_payments
+from lnbits.core.services.funding_source import (
+    check_balance_delta_changed,
+    check_server_balance_against_node,
+)
+from lnbits.core.services.notifications import (
+    dispatch_payment_notification,
+    enqueue_admin_notification,
+    process_next_notification,
+)
+from lnbits.core.services.payments import (
+    check_pending_payments,
+    fundingsource_invoice_producer,
+)
 from lnbits.core.tasks import (
     audit_queue,
     collect_exchange_rates_data,
-    purge_audit_data,
-    run_by_the_minute_tasks,
-    wait_for_audit_data,
-    wait_for_paid_invoices,
-    wait_notification_messages,
+    notify_server_status,
+    process_next_audit_entry,
+    refresh_extension_cache,
 )
 from lnbits.exceptions import register_exception_handlers
 from lnbits.helpers import version_parse
 from lnbits.settings import settings
-from lnbits.tasks import (
-    cancel_all_tasks,
-    create_permanent_task,
-    register_invoice_listener,
-)
 from lnbits.utils.cache import cache
 from lnbits.utils.logger import (
     configure_logger,
@@ -67,7 +72,7 @@ from .middleware import (
     add_ip_block_middleware,
     add_ratelimit_middleware,
 )
-from .tasks import internal_invoice_listener, invoice_listener, run_interval
+from .task_manager import task_manager
 
 
 async def startup(app: FastAPI):
@@ -128,7 +133,7 @@ async def shutdown():
     settings.lnbits_running = False
 
     # shutdown event
-    cancel_all_tasks()
+    task_manager.cancel_all_tasks()
 
     # wait a bit to allow them to finish, so that cleanup can run without problems
     await asyncio.sleep(0.1)
@@ -465,24 +470,42 @@ async def check_and_register_extensions(app: FastAPI) -> None:
 
 def register_async_tasks() -> None:
 
-    create_permanent_task(wait_for_audit_data)
-    create_permanent_task(wait_notification_messages)
+    task_manager.init()
 
-    create_permanent_task(run_interval(30 * 60, check_pending_payments))
-    create_permanent_task(invoice_listener)
-    create_permanent_task(internal_invoice_listener)
-    create_permanent_task(cache.invalidate_forever)
+    # listen to all incoming payments and dispatch payment notifications
+    # note: should be the first in task list for a bit quicker notifications
+    task_manager.register_invoice_listener(dispatch_payment_notification, "core")
 
-    # core invoice listener
-    invoice_queue: asyncio.Queue = asyncio.Queue()
-    register_invoice_listener(invoice_queue, "core")
-    create_permanent_task(lambda: wait_for_paid_invoices(invoice_queue))
+    # periodic tasks
+    task_manager.create_permanent_task(cache.invalidate_cache, interval=10)
+    task_manager.create_permanent_task(delete_expired_audit_entries, interval=60 * 60)
+    task_manager.create_permanent_task(
+        check_pending_payments,
+        interval=settings.check_pending_payments_interval,
+    )
+    task_manager.create_permanent_task(
+        collect_exchange_rates_data,
+        interval=max(60, settings.lnbits_exchange_history_refresh_interval_seconds),
+    )
+    task_manager.create_permanent_task(check_balance_delta_changed, interval=60)
+    task_manager.create_permanent_task(
+        check_server_balance_against_node,
+        interval=60 * settings.lnbits_watchdog_interval_minutes,
+    )
+    task_manager.create_permanent_task(
+        notify_server_status,
+        interval=60 * 60 * settings.lnbits_notification_server_status_hours,
+    )
+    task_manager.create_permanent_task(refresh_extension_cache, interval=60)
 
-    create_permanent_task(run_by_the_minute_tasks)
-    create_permanent_task(purge_audit_data)
-    create_permanent_task(collect_exchange_rates_data)
+    # permanent tasks run in a loop, will be restarted if they fail
+    task_manager.create_permanent_task(fundingsource_invoice_producer)
+    task_manager.create_permanent_task(process_next_notification)
+    task_manager.create_permanent_task(process_next_audit_entry)
 
     # server logs for websocket
     if settings.lnbits_admin_ui:
         server_log_task = initialize_server_websocket_logger()
-        create_permanent_task(server_log_task)
+        task_manager.create_permanent_task(
+            server_log_task, name="server_websocket_logger"
+        )

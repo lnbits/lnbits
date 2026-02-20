@@ -2,6 +2,7 @@ import asyncio
 import hashlib
 
 import pytest
+from pytest_mock import MockerFixture
 
 from lnbits import bolt11
 from lnbits.core.crud import get_standalone_payment, update_payment
@@ -12,13 +13,16 @@ from lnbits.core.services import (
     fee_reserve_total,
     get_balance_delta,
 )
-from lnbits.core.services.payments import pay_invoice, update_wallet_balance
+from lnbits.core.services.payments import (
+    pay_invoice,
+    update_wallet_balance,
+)
 from lnbits.core.services.users import create_user_account
 from lnbits.exceptions import PaymentError
-from lnbits.tasks import create_task, wait_for_paid_invoices
+from lnbits.task_manager import task_manager
 from lnbits.wallets import get_funding_source
 
-from ..helpers import FakeError, is_fake, is_regtest
+from ..helpers import is_fake, is_regtest
 from .helpers import (
     cancel_invoice,
     get_real_invoice,
@@ -138,7 +142,9 @@ async def test_pay_real_invoice_mainnet(
 
 @pytest.mark.anyio
 @pytest.mark.skipif(is_fake, reason="this only works in regtest")
-async def test_create_real_invoice(client, adminkey_headers_from, inkey_headers_from):
+async def test_create_real_invoice(
+    client, adminkey_headers_from, inkey_headers_from, mocker: MockerFixture
+):
     prev_balance = await get_node_balance_sats()
     create_invoice = CreateInvoice(out=False, amount=1000, memo="test")
     response = await client.post(
@@ -156,34 +162,31 @@ async def test_create_real_invoice(client, adminkey_headers_from, inkey_headers_
     payment_status = response.json()
     assert not payment_status["paid"]
 
-    async def on_paid(payment: Payment):
+    on_paid_mock = mocker.AsyncMock()
+    task_manager.register_invoice_listener(on_paid_mock, "test_create_invoice")
 
-        assert payment.payment_hash == invoice["payment_hash"]
-        assert payment.checking_id == invoice["checking_id"]
-
-        response = await client.get(
-            f'/api/v1/payments/{invoice["payment_hash"]}', headers=inkey_headers_from
-        )
-        assert response.status_code < 300
-        payment_status = response.json()
-        assert payment_status["paid"]
-
-        await asyncio.sleep(1)
-        balance = await get_node_balance_sats()
-        fee = abs(payment_status.get("details", {}).get("fee", 0) // 1000)
-        assert balance - prev_balance == create_invoice.amount - fee
-
-        assert payment_status.get("preimage") is not None
-
-        # exit out of infinite loop
-        raise FakeError()
-
-    task = create_task(wait_for_paid_invoices("test_create_invoice", on_paid)())
     pay_real_invoice(invoice["bolt11"])
 
-    # wait for the task to exit
-    with pytest.raises(FakeError):
-        await task
+    await asyncio.sleep(1)
+    assert on_paid_mock.call_count == 1
+    payment = on_paid_mock.call_args_list[0][0][0]
+
+    assert payment.payment_hash == invoice["payment_hash"]
+    assert payment.checking_id == invoice["checking_id"]
+
+    response = await client.get(
+        f'/api/v1/payments/{invoice["payment_hash"]}', headers=inkey_headers_from
+    )
+    assert response.status_code < 300
+    payment_status = response.json()
+    assert payment_status["paid"]
+
+    await asyncio.sleep(1)
+    balance = await get_node_balance_sats()
+    fee = abs(payment_status.get("details", {}).get("fee", 0) // 1000)
+    assert balance - prev_balance == create_invoice.amount - fee
+
+    assert payment_status.get("preimage") is not None
 
 
 @pytest.mark.anyio
@@ -367,7 +370,7 @@ async def test_pay_hold_invoice_check_pending_and_fail_cancel_payment_task_in_me
 @pytest.mark.anyio
 @pytest.mark.skipif(is_fake, reason="this only works in regtest")
 async def test_receive_real_invoice_set_pending_and_check_state(
-    client, adminkey_headers_from, inkey_headers_from
+    client, adminkey_headers_from, inkey_headers_from, mocker: MockerFixture
 ):
     """
     1. We create a real invoice
@@ -391,39 +394,37 @@ async def test_receive_real_invoice_set_pending_and_check_state(
     payment_status = response.json()
     assert not payment_status["paid"]
 
-    async def on_paid(payment: Payment):
+    on_paid_mock = mocker.AsyncMock()
+    task_manager.register_invoice_listener(on_paid_mock, "test_create_invoice")
 
-        assert payment.payment_hash == invoice["payment_hash"]
-        assert payment.checking_id == invoice["checking_id"]
-
-        response = await client.get(
-            f'/api/v1/payments/{invoice["payment_hash"]}', headers=inkey_headers_from
-        )
-        assert response.status_code < 300
-        payment_status = response.json()
-        assert payment_status["paid"]
-
-        assert payment
-
-        # set the incoming invoice to pending
-        payment.status = PaymentState.PENDING
-        await update_payment(payment)
-
-        payment_pending = await get_standalone_payment(
-            invoice["payment_hash"], incoming=True
-        )
-        assert payment_pending
-        assert payment_pending.success is False
-        assert payment_pending.failed is False
-
-        # exit out of infinite loop
-        raise FakeError()
-
-    task = create_task(wait_for_paid_invoices("test_create_invoice", on_paid)())
     pay_real_invoice(invoice["bolt11"])
 
-    with pytest.raises(FakeError):
-        await task
+    await asyncio.sleep(1)
+    assert on_paid_mock.call_count == 1
+    payment = on_paid_mock.call_args_list[0][0][0]
+
+    assert payment.payment_hash == invoice["payment_hash"]
+    assert payment.checking_id == invoice["checking_id"]
+
+    response = await client.get(
+        f'/api/v1/payments/{invoice["payment_hash"]}', headers=inkey_headers_from
+    )
+    assert response.status_code < 300
+    payment_status = response.json()
+    assert payment_status["paid"]
+
+    assert payment
+
+    # set the incoming invoice to pending
+    payment.status = PaymentState.PENDING
+    await update_payment(payment)
+
+    payment_pending = await get_standalone_payment(
+        invoice["payment_hash"], incoming=True
+    )
+    assert payment_pending
+    assert payment_pending.success is False
+    assert payment_pending.failed is False
 
 
 @pytest.mark.anyio
