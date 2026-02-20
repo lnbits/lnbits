@@ -7,7 +7,7 @@ from lnbits.core.crud import (
     get_wallet,
 )
 from lnbits.core.crud.audit import delete_expired_audit_entries
-from lnbits.core.crud.payments import get_payments_status_count
+from lnbits.core.crud.payments import delete_expired_invoices, get_payments_status_count
 from lnbits.core.crud.users import get_accounts
 from lnbits.core.crud.wallets import get_wallets_count
 from lnbits.core.models.audit import AuditEntry
@@ -132,6 +132,20 @@ async def purge_audit_data() -> None:
     while settings.lnbits_running:
         try:
             await delete_expired_audit_entries()
+        except Exception as ex:
+            logger.warning(ex)
+
+        # clean every hour
+        await asyncio.sleep(60 * 60)
+
+
+async def purge_expired_invoices() -> None:
+    """
+    Remove expired invoices that have passed their expiration time.
+    """
+    while settings.lnbits_running:
+        try:
+            await delete_expired_invoices()
         except Exception as ex:
             logger.warning(ex)
 
