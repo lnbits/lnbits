@@ -4,11 +4,7 @@ window.app.component('lnbits-dialog', {
   props: {
     show: {
       type: Boolean,
-      default: undefined
-    },
-    modelValue: {
-      type: Boolean,
-      default: undefined
+      default: false
     },
     title: {
       type: String,
@@ -40,7 +36,7 @@ window.app.component('lnbits-dialog', {
     }
   },
 
-  emits: ['update:show', 'update:model-value', 'hide', 'cancel', 'action'],
+  emits: ['update:show', 'hide', 'cancel', 'action'],
 
   computed: {
     hasAction() {
@@ -52,27 +48,15 @@ window.app.component('lnbits-dialog', {
       return {
         label: action.label || 'Action',
         color: action.color || 'primary',
-        outline: !!action.outline,
-        flat: !!action.flat,
-        unelevated: !!action.unelevated,
-        noCaps: !!action.noCaps,
-        icon: action.icon || undefined,
         loading: !!action.loading,
         disable: !!action.disable
       }
-    },
-
-    dialogShow() {
-      if (typeof this.show === 'boolean') return this.show
-      if (typeof this.modelValue === 'boolean') return this.modelValue
-      return false
     }
   },
 
   methods: {
     handleModelUpdate(value) {
       this.$emit('update:show', value)
-      this.$emit('update:model-value', value)
     },
 
     handleHide() {
@@ -84,15 +68,19 @@ window.app.component('lnbits-dialog', {
       this.$emit('cancel')
     },
 
-    handleAction() {
-      if (this.action && typeof this.action.handler === 'function') {
-        this.action.handler()
-      }
+    async handleAction() {
+      try {
+        if (this.action && typeof this.action.handler === 'function') {
+          await this.action.handler()
+        }
 
-      this.$emit('action')
+        this.$emit('action')
 
-      if (this.action && this.action.closeOnClick) {
-        this.handleModelUpdate(false)
+        if (this.action && this.action.closeOnClick) {
+          this.handleModelUpdate(false)
+        }
+      } catch (error) {
+        console.error('lnbits-dialog action handler failed', error)
       }
     }
   }
