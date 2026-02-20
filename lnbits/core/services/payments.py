@@ -1073,7 +1073,7 @@ async def _send_payment_notification_in_background(
     send_payment_notification_in_background(wallet, payment)
 
 
-async def update_invoice_callback(checking_id: str) -> Payment | None:
+async def _update_invoice_callback(checking_id: str) -> Payment | None:
     """
     Takes a checking_id of an incoming payment, from either paid_invoices_stream()
     or internal_invoice_queue. Checks its status, updates and returns it.
@@ -1098,3 +1098,18 @@ async def update_invoice_callback(checking_id: str) -> Payment | None:
     if payment.fiat_provider:
         await handle_fiat_payment_confirmation(payment)
     return payment
+
+
+async def fundingsource_invoice_producer() -> None:
+    """
+    will collect all invoices that come directly from the backend wallet.
+
+    Called registered in the app startup sequence and run by taskmanager.
+    """
+    funding_source = get_funding_source()
+    async for checking_id in funding_source.paid_invoices_stream():
+        logger.info(f"got a payment notification {checking_id}")
+        payment = await _update_invoice_callback(checking_id)
+        if payment:
+            logger.success(f"fundingsource invoice {checking_id} settled")
+            task_manager.invoice_queue.put_nowait(payment)
