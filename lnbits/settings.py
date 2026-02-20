@@ -989,8 +989,16 @@ class UpdateSettings(EditableSettings):
 
 
 class EnvSettings(LNbitsSettings):
-    debug: bool = Field(default=False)
-    debug_database: bool = Field(default=False)
+    dev_mode: bool = Field(
+        default=False, description="Enable unsecured features for development purposes"
+    )
+    debug: bool = Field(
+        default=False,
+        description="Enable debug mode with more verbose logging and error messages",
+    )
+    debug_database: bool = Field(
+        default=False, description="Enable debug mode for database queries"
+    )
     bundle_assets: bool = Field(default=True)
     host: str = Field(default="127.0.0.1")
     port: int = Field(default=5000, gt=0)

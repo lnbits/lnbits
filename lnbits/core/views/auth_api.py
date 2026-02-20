@@ -622,7 +622,7 @@ def _new_sso(provider: str) -> SSOBase | None:
 
         sso_provider_class = _find_auth_provider_class(provider)
         sso_provider = sso_provider_class(
-            client_id, client_secret, None, allow_insecure_http=True
+            client_id, client_secret, None, allow_insecure_http=settings.dev_mode
         )
         if (
             discovery_url
