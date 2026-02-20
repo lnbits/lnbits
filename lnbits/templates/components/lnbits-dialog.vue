@@ -20,8 +20,6 @@
       <!-- Footer actions -->
       <q-card-actions class="q-mt-lg" align="right">
         <!-- Left-aligned buttons -->
-        <!-- <div> -->
-        <!-- <slot v-if="hasActionsSlot" name="actions"></slot> -->
         <q-btn
           v-if="showCancel"
           v-close-popup
@@ -30,13 +28,11 @@
           :label="cancelLabel"
           :class="{'q-ml-sm': hasActionsSlot}"
           @click="handleCancel"
-        />
-        <!-- </div> -->
+        ></q-btn>
 
         <q-space></q-space>
 
         <!-- Right-aligned primary action -->
-        <!-- <div> -->
         <q-btn
           v-if="hasAction"
           :outline="actionProps.outline"
@@ -49,8 +45,7 @@
           :loading="actionProps.loading"
           :disable="actionProps.disable"
           @click="handleAction"
-        />
-        <!-- </div> -->
+        ></q-btn>
       </q-card-actions>
     </q-card>
   </q-dialog>

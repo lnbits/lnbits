@@ -43,10 +43,6 @@ window.app.component('lnbits-dialog', {
   emits: ['update:show', 'update:model-value', 'hide', 'cancel', 'action'],
 
   computed: {
-    hasActionsSlot() {
-      return !!this.$slots.actions
-    },
-
     hasAction() {
       return !!(this.action && this.action.label)
     },
@@ -60,7 +56,7 @@ window.app.component('lnbits-dialog', {
         flat: !!action.flat,
         unelevated: !!action.unelevated,
         noCaps: !!action.noCaps,
-        icon: action.icon || null,
+        icon: action.icon || undefined,
         loading: !!action.loading,
         disable: !!action.disable
       }
