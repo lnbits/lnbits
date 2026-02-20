@@ -598,6 +598,10 @@ window.localisation.en = {
   fee_reserve_percent: 'Fee Reserve Percent',
   fee_reserve_msats: 'Reserve fee in msats',
   reserve_fee_in_percent: 'Reserve fee in percent',
+  payment_pending_interval: 'Check payment interval (sec)',
+  payment_pending_interval_desc: 'Interval to check pending payments',
+  payment_pending_interval_tooltip:
+    'Controls how often LNbits checks for pending payments to update their status. Higher values can reduce the load on the node and speed up the payment process, but it will take longer for pending payments to be updated.',
   payment_wait_time: 'Payment Wait Time (sec)',
   payment_wait_time_desc:
     'Wait time before marking an outgoing payment as pending. Default: 5s; raise for slow-settling invoices.',

@@ -731,6 +731,7 @@ class FundingSourcesSettings(
     # How long to wait for the payment to be confirmed before returning a pending status
     # It will not fail the payment, it will make it return pending after the timeout
     lnbits_funding_source_pay_invoice_wait_seconds: int = Field(default=5, ge=0)
+    lnbits_funding_source_pending_interval_seconds: int = Field(default=1800, ge=0)
     funding_source_max_retries: int = Field(default=4, ge=0)
 
 

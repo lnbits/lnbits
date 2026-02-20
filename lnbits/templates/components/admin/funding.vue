@@ -76,7 +76,7 @@
         </div>
       </div>
       <div class="row q-col-gutter-md">
-        <div class="col-12 col-md-3">
+        <div class="col-12 col-md-2">
           <p><span v-text="$t('fee_reserve')"></span></p>
 
           <q-input
@@ -87,7 +87,7 @@
           >
           </q-input>
         </div>
-        <div class="col-12 col-md-3">
+        <div class="col-12 col-md-2">
           <p>
             <span v-text="$t('fee_reserve_percent')"></span>
           </p>
@@ -100,7 +100,7 @@
             step="0.1"
           ></q-input>
         </div>
-        <div class="col-12 col-md-3">
+        <div class="col-12 col-md-2">
           <p><span v-text="$t('invoice_expiry')"></span></p>
           <q-input
             filled
@@ -128,6 +128,27 @@
             v-model="formData.lnbits_funding_source_pay_invoice_wait_seconds"
             :label="$t('payment_wait_time')"
             :hint="$t('payment_wait_time_desc')"
+            step="1"
+            min="0"
+          ></q-input>
+        </div>
+        <div class="col-12 col-md-3">
+          <p>
+            <span v-text="$t('payment_pending_interval')"></span>
+            <sup>
+              <q-icon name="info" size="16px" class="q-ml-xs"></q-icon>
+              <q-tooltip max-width="150px">
+                <span v-text="$t('payment_pending_interval_tooltip')"></span>
+              </q-tooltip>
+            </sup>
+          </p>
+          <q-input
+            type="number"
+            filled
+            name="lnbits_funding_source_pending_interval_seconds"
+            v-model="formData.lnbits_funding_source_pending_interval_seconds"
+            :label="$t('payment_pending_interval')"
+            :hint="$t('payment_pending_interval_desc')"
             step="1"
             min="0"
           ></q-input>
