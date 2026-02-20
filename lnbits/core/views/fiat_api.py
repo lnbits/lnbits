@@ -1,6 +1,7 @@
 from http import HTTPStatus
 
 from fastapi import APIRouter, Depends, HTTPException
+from loguru import logger
 
 from lnbits.core.models.misc import SimpleStatus
 from lnbits.core.models.wallets import WalletTypeInfo
@@ -30,6 +31,11 @@ async def create_subscription(
     data: CreateFiatSubscription,
     key_type: WalletTypeInfo = Depends(require_admin_key),
 ) -> FiatSubscriptionResponse:
+    logger.debug(
+        f"Creating subscription with provider '{provider}. '"
+        f"Subscription ID '{data.subscription_id}'."
+    )
+
     fiat_provider = await get_fiat_provider(provider)
     if not fiat_provider:
         raise HTTPException(404, "Fiat provider not found")
@@ -47,6 +53,12 @@ async def create_subscription(
     subscription_response = await fiat_provider.create_subscription(
         data.subscription_id, data.quantity, data.payment_options
     )
+    if subscription_response.error_message:
+        logger.warning(
+            f"Failed to create subscription with provider '{provider}': "
+            f"{subscription_response.error_message}"
+        )
+
     return subscription_response
 
 
