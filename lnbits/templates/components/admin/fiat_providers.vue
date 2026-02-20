@@ -408,7 +408,6 @@
                   <li><code>CHECKOUT.ORDER.APPROVED</code></li>
                   <li><code>PAYMENT.CAPTURE.COMPLETED</code></li>
                   <li><code>PAYMENT.SALE.COMPLETED</code></li>
-                  <li><code>BILLING.SUBSCRIPTION.PAYMENT.SUCCEEDED</code></li>
                 </ul>
               </q-card-section>
             </q-expansion-item>
