@@ -1,9 +1,5 @@
 {% macro window_vars(user) -%}
-  <script>
-  //Needed for Vue to create the app on first load (although called on every page, its only loaded once)
-  window.app = Vue.createApp({
-    el: '#vue',
-    mixins: [window.windowMixin]
-  })
+<script>
+  // deprecated dont use window_vars anymore
 </script>
 {%- endmacro %}
