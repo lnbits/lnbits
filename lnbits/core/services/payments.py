@@ -1108,3 +1108,18 @@ async def update_invoice_from_paid_invoices_stream(checking_id: str) -> Payment 
     payment = await update_payment(payment)
 
     return payment
+
+
+async def fundingsource_invoice_producer() -> None:
+    """
+    will collect all invoices that come directly from the backend wallet.
+
+    Called registered in the app startup sequence and run by taskmanager.
+    """
+    funding_source = get_funding_source()
+    async for checking_id in funding_source.paid_invoices_stream():
+        logger.info(f"got a payment notification {checking_id}")
+        payment = await _update_invoice_callback(checking_id)
+        if payment:
+            logger.success(f"fundingsource invoice {checking_id} settled")
+            task_manager.invoice_queue.put_nowait(payment)
