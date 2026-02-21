@@ -1,9 +1,12 @@
 from __future__ import annotations
 
+import asyncio
+
 import time
 from pathlib import Path
 
 import httpx
+import json
 from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import HTMLResponse, Response
 from fastapi.staticfiles import StaticFiles
@@ -15,6 +18,7 @@ from lnbits.db import Database
 from lnbits.decorators import check_user_exists
 from lnbits.helpers import template_renderer
 from lnbits.settings import settings
+from lnbits.tasks import register_invoice_listener, unregister_invoice_listener
 
 from .service import WasmExecutionError, wasm_call
 
@@ -154,6 +158,49 @@ def register_wasm_ext_routes(app, ext) -> None:
         await _kv_set(db, ext_id, key, str(new_value))
         await websocket_updater(f"{ext_id}:{key}", str(new_value))
         return {"key": key, "value": new_value}
+
+    @router.post("/api/v1/watch")
+    async def api_watch_payment(payload: dict, user: User = Depends(check_user_exists)):
+        payment_hash = payload.get("payment_hash")
+        handler = payload.get("handler") or "on_payment"
+        tag = payload.get("tag")
+        store_key = payload.get("store_key") or "last_payment"
+        if not payment_hash:
+            raise HTTPException(400, "Missing payment_hash")
+        await _require_permission(user.id, ext_id, "ext.payments.watch")
+        await _require_permission(user.id, ext_id, "ext.db.read_write")
+
+        queue_name = f"wasm:{ext_id}:{payment_hash}:{time.time()}"
+        invoice_queue: asyncio.Queue = asyncio.Queue()
+        register_invoice_listener(invoice_queue, queue_name)
+
+        async def _watch():
+            try:
+                while True:
+                    payment = await invoice_queue.get()
+                    if payment.payment_hash != payment_hash:
+                        continue
+                    if tag:
+                        extra = payment.extra or {}
+                        if extra.get("tag") != tag:
+                            continue
+                    if payment.pending is False:
+                        payload_json = json.dumps(payment.dict(exclude={"preimage"}))
+                        await _kv_set(db, ext_id, store_key, payload_json)
+                        await wasm_call(
+                            ext_id,
+                            handler,
+                            [],
+                            upgrade_hash=ext.upgrade_hash,
+                        )
+                        return
+            except Exception:
+                return
+            finally:
+                unregister_invoice_listener(queue_name)
+
+        asyncio.create_task(_watch())
+        return {"ok": True}
 
     @router.post("/api/v1/proxy")
     async def api_proxy(payload: dict, req: Request, user: User = Depends(check_user_exists)):
