@@ -921,6 +921,46 @@
     </q-card>
   </q-dialog>
 
+  <q-dialog v-model="permissionsDialog.show" position="top">
+    <q-card class="q-pa-md" style="min-width: 360px; max-width: 90vw">
+      <q-card-section>
+        <div class="text-h6">Permissions required</div>
+        <div class="text-caption text-grey">
+          This extension can:
+        </div>
+        <q-list v-if="permissionsDialog.extension">
+          <q-item
+            v-for="perm in permissionsDialog.extension.permissions"
+            :key="perm.id"
+            clickable
+          >
+            <q-item-section>
+              <q-item-label v-text="perm.label"></q-item-label>
+              <q-item-label caption v-text="perm.description"></q-item-label>
+            </q-item-section>
+            <q-item-section side>
+              <q-checkbox v-model="permissionsDialog.checked" :val="perm.id" />
+            </q-item-section>
+          </q-item>
+        </q-list>
+      </q-card-section>
+      <q-card-actions align="right">
+        <q-btn
+          flat
+          color="grey"
+          v-text="$t('cancel')"
+          @click="cancelPermissionsDialog"
+        ></q-btn>
+        <q-btn
+          color="primary"
+          :disable="!permissionsAllChecked"
+          v-text="$t('enable')"
+          @click="confirmPermissionsDialog"
+        ></q-btn>
+      </q-card-actions>
+    </q-card>
+  </q-dialog>
+
   <q-dialog v-model="showExtensionDetailsDialog" position="top">
     <q-card
       v-if="selectedExtensionDetails"

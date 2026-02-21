@@ -4,7 +4,7 @@ from http import HTTPStatus
 
 import httpx
 from bolt11 import decode as bolt11_decode
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Body, Depends, HTTPException
 from fastapi.requests import Request
 from loguru import logger
 
@@ -24,6 +24,7 @@ from lnbits.core.models.extensions import (
     ExtensionReview,
     ExtensionReviewPaymentRequest,
     ExtensionReviewsStatus,
+    ExtensionPermissionsGrant,
     InstallableExtension,
     PayToEnableInfo,
     ReleasePaymentInfo,
@@ -174,7 +175,9 @@ async def api_update_pay_to_enable(
 
 @extension_router.put("/{ext_id}/enable")
 async def api_enable_extension(
-    ext_id: str, account_id: AccountId = Depends(check_account_id_exists)
+    ext_id: str,
+    account_id: AccountId = Depends(check_account_id_exists),
+    grant: ExtensionPermissionsGrant | None = Body(default=None),
 ) -> SimpleStatus:
     if ext_id not in [e.code for e in await get_valid_extensions()]:
         raise HTTPException(
@@ -192,6 +195,27 @@ async def api_enable_extension(
     if not user_ext:
         user_ext = UserExtension(user=account_id.id, extension=ext_id, active=False)
         await create_user_extension(user_ext)
+
+    required_permissions = (
+        [p.id for p in ext.meta.permissions] if ext.meta and ext.meta.permissions else []
+    )
+    granted_permissions = []
+    if grant and grant.permissions:
+        granted_permissions = grant.permissions
+    elif user_ext.extra and user_ext.extra.granted_permissions:
+        granted_permissions = user_ext.extra.granted_permissions
+
+    if required_permissions:
+        missing = [p for p in required_permissions if p not in granted_permissions]
+        if missing:
+            raise HTTPException(
+                HTTPStatus.BAD_REQUEST,
+                "Missing required permissions to enable this extension.",
+            )
+        user_ext_info = user_ext.extra or UserExtensionInfo()
+        user_ext_info.granted_permissions = granted_permissions
+        user_ext.extra = user_ext_info
+        await update_user_extension(user_ext)
 
     if account_id.is_admin_id or not ext.requires_payment:
         user_ext.active = True
@@ -571,6 +595,11 @@ async def extensions(account_id: AccountId = Depends(check_account_id_exists)):
             "isAvailable": ext.id in all_ext_ids,
             "isAdminOnly": ext.id in settings.lnbits_admin_extensions,
             "isActive": ext.id not in inactive_extensions,
+            "permissions": (
+                [dict(p) for p in ext.meta.permissions]
+                if ext.meta and ext.meta.permissions
+                else []
+            ),
             "latestRelease": (
                 dict(ext.meta.latest_release)
                 if ext.meta and ext.meta.latest_release

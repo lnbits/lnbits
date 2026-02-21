@@ -28,6 +28,11 @@ window.PageExtensions = {
       paylinkWebsocket: null,
       searchToggle: false,
       reviewsUrl: null,
+      permissionsDialog: {
+        show: false,
+        extension: null,
+        checked: []
+      },
       reviewsDialog: {
         show: false,
         extension: null,
@@ -90,6 +95,14 @@ window.PageExtensions = {
     },
     tab(val) {
       this.filterExtensions(this.searchTerm, val)
+    }
+  },
+  computed: {
+    permissionsAllChecked() {
+      const ext = this.permissionsDialog.extension
+      if (!ext || !Array.isArray(ext.permissions)) return true
+      const required = ext.permissions.map(p => p.id)
+      return required.every(p => this.permissionsDialog.checked.includes(p))
     }
   },
   methods: {
@@ -241,18 +254,27 @@ window.PageExtensions = {
         })
     },
     async enableExtensionForUser(extension) {
+      if (extension.permissions && extension.permissions.length) {
+        this.openPermissionsDialog(extension)
+        return
+      }
       if (extension.isPaymentRequired) {
         this.showPayToEnable(extension)
         return
       }
       this.enableExtension(extension)
     },
-    async enableExtension(extension) {
+    async enableExtension(extension, permissions) {
+      const granted =
+        permissions ||
+        extension._grantedPermissions ||
+        (extension.permissions ? extension.permissions.map(p => p.id) : [])
       LNbits.api
         .request(
           'PUT',
           `/api/v1/extension/${extension.id}/enable`,
-          this.g.user.wallets[0].adminkey
+          this.g.user.wallets[0].adminkey,
+          granted.length ? {permissions: granted} : null
         )
         .then(response => {
           this.g.user.extensions = this.g.user.extensions.concat([extension.id])
@@ -287,12 +309,39 @@ window.PageExtensions = {
           LNbits.utils.notifyApiError(err)
         })
     },
-    showPayToEnable(extension) {
+    showPayToEnable(extension, permissions) {
       this.selectedExtension = extension
+      if (permissions) {
+        this.selectedExtension._grantedPermissions = permissions
+      }
       this.selectedExtension.payToEnable.paidAmount =
         extension.payToEnable.amount
       this.selectedExtension.payToEnable.showQRCode = false
       this.showPayToEnableDialog = true
+    },
+    openPermissionsDialog(extension) {
+      this.permissionsDialog.extension = extension
+      this.permissionsDialog.checked = []
+      this.permissionsDialog.show = true
+    },
+    cancelPermissionsDialog() {
+      this.permissionsDialog.show = false
+      this.permissionsDialog.extension = null
+      this.permissionsDialog.checked = []
+    },
+    confirmPermissionsDialog() {
+      const ext = this.permissionsDialog.extension
+      const granted = this.permissionsDialog.checked.slice()
+      this.permissionsDialog.show = false
+      this.permissionsDialog.extension = null
+      this.permissionsDialog.checked = []
+      if (!ext) return
+      ext._grantedPermissions = granted
+      if (ext.isPaymentRequired) {
+        this.showPayToEnable(ext, granted)
+      } else {
+        this.enableExtension(ext, granted)
+      }
     },
     updatePayToInstallData(extension) {
       LNbits.api

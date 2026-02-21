@@ -83,6 +83,9 @@ class ExtensionConfig(BaseModel):
     warning: str | None = ""
     min_lnbits_version: str | None
     max_lnbits_version: str | None
+    permissions: list["ExtensionPermission"] = []
+    extension_type: str | None = "python"
+    public_kv_keys: list[str] = []
 
     def is_version_compatible(self) -> bool:
         return is_lnbits_version_ok(self.min_lnbits_version, self.max_lnbits_version)
@@ -115,6 +118,18 @@ class PayToEnableInfo(BaseModel):
 class UserExtensionInfo(BaseModel):
     paid_to_enable: bool | None = False
     payment_hash_to_enable: str | None = None
+    granted_permissions: list[str] | None = None
+
+
+class ExtensionPermission(BaseModel):
+    id: str
+    label: str
+    description: str
+    dangerous: bool | None = False
+
+
+class ExtensionPermissionsGrant(BaseModel):
+    permissions: list[str] = []
 
 
 class UserExtension(BaseModel):
@@ -147,6 +162,8 @@ class Extension(BaseModel):
     short_description: str | None = None
     tile: str | None = None
     upgrade_hash: str | None = ""
+    extension_type: str | None = None
+    public_kv_keys: list[str] = []
 
     @property
     def module_name(self) -> str:
@@ -170,6 +187,8 @@ class Extension(BaseModel):
             short_description=ext_info.short_description,
             tile=ext_info.icon,
             upgrade_hash=ext_info.hash if ext_info.ext_upgrade_dir.is_dir() else "",
+            extension_type=ext_info.meta.extension_type if ext_info.meta else None,
+            public_kv_keys=ext_info.meta.public_kv_keys if ext_info.meta else [],
         )
 
 
@@ -331,6 +350,9 @@ class ExtensionMeta(BaseModel):
     pay_to_enable: PayToEnableInfo | None = None
     payments: list[ReleasePaymentInfo] = []
     dependencies: list[str] = []
+    permissions: list[ExtensionPermission] = []
+    extension_type: str | None = "python"
+    public_kv_keys: list[str] = []
     archive: str | None = None
     featured: bool = False
     paid_features: str | None = None
@@ -454,6 +476,10 @@ class InstallableExtension(BaseModel):
 
             self.name = config_json.get("name")
             self.short_description = config_json.get("short_description")
+            if self.meta:
+                self.meta.permissions = config_json.get("permissions", [])
+                self.meta.extension_type = config_json.get("extension_type", "python")
+                self.meta.public_kv_keys = config_json.get("public_kv_keys", [])
 
             if (
                 self.meta
@@ -572,6 +598,9 @@ class InstallableExtension(BaseModel):
                     latest_release=ExtensionRelease.from_github_release(
                         source_repo, latest_release
                     ),
+                    permissions=config.permissions,
+                    extension_type=config.extension_type,
+                    public_kv_keys=config.public_kv_keys,
                 ),
             )
         except Exception as e:
@@ -617,7 +646,10 @@ class InstallableExtension(BaseModel):
                             source_repo=f"{conf_path}",
                             min_lnbits_version=config_json.get("min_lnbits_version"),
                             max_lnbits_version=config_json.get("max_lnbits_version"),
-                        )
+                        ),
+                        permissions=config_json.get("permissions", []),
+                        extension_type=config_json.get("extension_type", "python"),
+                        public_kv_keys=config_json.get("public_kv_keys", []),
                     ),
                 )
 

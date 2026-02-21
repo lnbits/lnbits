@@ -41,6 +41,7 @@ from lnbits.core.tasks import (
 from lnbits.exceptions import register_exception_handlers
 from lnbits.helpers import version_parse
 from lnbits.settings import settings
+from lnbits.core.wasm.extension_host import register_wasm_ext_routes
 from lnbits.tasks import (
     cancel_all_tasks,
     create_permanent_task,
@@ -419,6 +420,8 @@ def register_new_ratelimiter(app: FastAPI) -> Callable:
 
 def register_ext_tasks(ext: Extension) -> None:
     """Register extension async tasks."""
+    if ext.extension_type == "wasm":
+        return
     ext_module = importlib.import_module(ext.module_name)
 
     if hasattr(ext_module, f"{ext.code}_start"):
@@ -428,6 +431,10 @@ def register_ext_tasks(ext: Extension) -> None:
 
 def register_ext_routes(app: FastAPI, ext: Extension) -> None:
     """Register FastAPI routes for extension."""
+    if ext.extension_type == "wasm":
+        settings.activate_extension_paths(ext.code, ext.upgrade_hash, [])
+        register_wasm_ext_routes(app, ext)
+        return
     ext_module = importlib.import_module(ext.module_name)
 
     ext_route = getattr(ext_module, f"{ext.code}_ext")

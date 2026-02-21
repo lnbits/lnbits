@@ -91,6 +91,9 @@ async def stop_extension_background_work(ext_id: str) -> bool:
     Stop background work for extension (like asyncio.Tasks, WebSockets, etc).
     Extension must expose a `myextension_stop()` function if it is starting tasks.
     """
+    installed = await get_installed_extension(ext_id)
+    if installed and installed.meta and installed.meta.extension_type == "wasm":
+        return True
     upgrade_hash = settings.extension_upgrade_hash(ext_id)
     ext = Extension(code=ext_id, is_valid=True, upgrade_hash=upgrade_hash)
 
@@ -123,6 +126,9 @@ async def start_extension_background_work(ext_id: str) -> bool:
     Extension CAN expose a `myextension_start()` function if it is starting tasks.
     Extension MUST expose a `myextension_stop()` in that case.
     """
+    installed = await get_installed_extension(ext_id)
+    if installed and installed.meta and installed.meta.extension_type == "wasm":
+        return True
     upgrade_hash = settings.extension_upgrade_hash(ext_id)
     ext = Extension(code=ext_id, is_valid=True, upgrade_hash=upgrade_hash)
 
