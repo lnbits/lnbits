@@ -1,3 +1,5 @@
+import re
+
 from lnbits.core.db import db
 from lnbits.core.models.extensions import (
     InstallableExtension,
@@ -49,7 +51,8 @@ async def drop_extension_db(ext_id: str, conn: Connection | None = None) -> None
     )
     # Check that 'ext_id' is a valid extension id and not a malicious string
     if not row:
-        raise Exception(f"Extension '{ext_id}' db version cannot be found")
+        if not re.fullmatch(r"[a-zA-Z_][a-zA-Z0-9_]*", ext_id):
+            raise Exception(f"Extension '{ext_id}' db version cannot be found")
 
     is_file_based_db = await Database.clean_ext_db_files(ext_id)
     if is_file_based_db:

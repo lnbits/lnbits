@@ -10,6 +10,7 @@ from lnbits.core.crud import (
     get_db_version,
     get_installed_extension,
     update_installed_extension_state,
+    update_migration_version,
 )
 from lnbits.core.crud.extensions import (
     get_installed_extensions,
@@ -52,6 +53,9 @@ async def install_extension(
         await create_installed_extension(ext_info)
     else:
         await update_installed_extension(ext_info)
+
+    if ext_info.meta and ext_info.meta.extension_type == "wasm":
+        await update_migration_version(None, ext_info.id, 0)
 
     extension = Extension.from_installable_ext(ext_info)
     if extension.is_upgrade_extension:

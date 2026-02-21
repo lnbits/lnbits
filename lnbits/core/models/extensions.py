@@ -873,3 +873,6 @@ def icon_to_github_url(source_repo: str, path: str | None) -> str:
     _, _, *rest = path.split("/")
     tail = "/".join(rest)
     return f"https://github.com/{source_repo}/raw/main/{tail}"
+
+
+ExtensionConfig.update_forward_refs(ExtensionPermission=ExtensionPermission)
