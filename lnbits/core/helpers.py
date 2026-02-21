@@ -82,8 +82,8 @@ def _is_wasm_extension(ext: InstallableExtension) -> bool:
                 config_json = json.load(json_file)
             if config_json.get("extension_type") == "wasm":
                 return True
-    except Exception:
-        pass
+    except Exception as exc:
+        logger.debug(f"Failed to load extension config for '{ext.id}': {exc!s}")
 
     return False
 

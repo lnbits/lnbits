@@ -954,6 +954,25 @@
             </q-item-section>
           </q-item>
         </q-list>
+        <div
+          v-if="
+            permissionsDialog.extension &&
+            permissionsDialog.extension.kvSchema &&
+            Object.keys(permissionsDialog.extension.kvSchema).length
+          "
+          class="q-mt-md"
+        >
+          <div class="text-caption text-grey">KV keys defined:</div>
+          <q-chip
+            v-for="(value, key) in permissionsDialog.extension.kvSchema"
+            :key="key"
+            color="grey-3"
+            text-color="black"
+            class="q-mr-xs q-mt-xs"
+          >
+            {{ key }}
+          </q-chip>
+        </div>
       </q-card-section>
       <q-card-actions align="right">
         <q-btn

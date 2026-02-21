@@ -18,6 +18,54 @@ from wasmtime import (
 from lnbits.db import Database
 from lnbits.settings import settings
 
+_kv_schema_cache: dict[str, dict] = {}
+
+
+def _load_kv_schema(ext_id: str) -> dict:
+    if ext_id in _kv_schema_cache:
+        return _kv_schema_cache[ext_id]
+    try:
+        conf_path = Path(
+            settings.lnbits_extensions_path, "extensions", ext_id, "config.json"
+        )
+        if not conf_path.is_file():
+            _kv_schema_cache[ext_id] = {}
+            return _kv_schema_cache[ext_id]
+        with open(conf_path, "r+") as json_file:
+            config_json = json.load(json_file)
+        schema = config_json.get("kv_schema", {})
+        if not isinstance(schema, dict):
+            schema = {}
+        _kv_schema_cache[ext_id] = schema
+        return schema
+    except Exception:
+        _kv_schema_cache[ext_id] = {}
+        return _kv_schema_cache[ext_id]
+
+
+def _schema_for_key(schema: dict, key: str) -> dict | None:
+    if not schema:
+        return None
+    entry = schema.get(key)
+    return entry if isinstance(entry, dict) else None
+
+
+def _coerce_schema_value(schema_entry: dict, value: str):
+    value_type = schema_entry.get("type", "string")
+    if value_type == "int":
+        return int(value)
+    if value_type == "float":
+        return float(value)
+    if value_type == "bool":
+        if value.lower() in {"true", "1", "yes", "y"}:
+            return True
+        if value.lower() in {"false", "0", "no", "n"}:
+            return False
+        raise ValueError("Invalid bool value")
+    if value_type == "json":
+        return json.loads(value)
+    return value
+
 
 def _run(coro):
     return asyncio.run(coro)
@@ -62,7 +110,11 @@ def _db_get(
     key = _read_bytes(caller, key_ptr, key_len).decode(errors="ignore")
     _run(db.execute(_ensure_kv_table(db, ext_id)))
     table = f"{ext_id}.kv" if db.schema else "kv"
-    row = _run(db.fetchone(f"SELECT value FROM {table} WHERE key = :key", {"key": key}))
+    row = _run(
+        db.fetchone(
+            f"SELECT value FROM {table} WHERE key = :key", {"key": key}
+        )
+    )
     if not row:
         return 0
     value = str(row.get("value", ""))
@@ -82,9 +134,23 @@ def _db_set(
 ) -> int:
     key = _read_bytes(caller, key_ptr, key_len).decode(errors="ignore")
     value = _read_bytes(caller, val_ptr, val_len).decode(errors="ignore")
+    schema = _load_kv_schema(ext_id)
+    entry = _schema_for_key(schema, key)
+    if schema and not entry:
+        raise RuntimeError("Key not allowed by schema")
+    if entry:
+        try:
+            coerced = _coerce_schema_value(entry, value)
+        except Exception as exc:
+            raise RuntimeError("Invalid value for schema") from exc
+        value = json.dumps(coerced) if entry.get("type") == "json" else str(coerced)
     _run(db.execute(_ensure_kv_table(db, ext_id)))
     table = f"{ext_id}.kv" if db.schema else "kv"
-    row = _run(db.fetchone(f"SELECT key FROM {table} WHERE key = :key", {"key": key}))
+    row = _run(
+        db.fetchone(
+            f"SELECT key FROM {table} WHERE key = :key", {"key": key}
+        )
+    )
     if row:
         _run(
             db.execute(

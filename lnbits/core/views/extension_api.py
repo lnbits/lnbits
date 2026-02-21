@@ -22,12 +22,12 @@ from lnbits.core.models.extensions import (
     Extension,
     ExtensionConfig,
     ExtensionMeta,
+    ExtensionPermission,
+    ExtensionPermissionsGrant,
     ExtensionRelease,
     ExtensionReview,
     ExtensionReviewPaymentRequest,
     ExtensionReviewsStatus,
-    ExtensionPermission,
-    ExtensionPermissionsGrant,
     InstallableExtension,
     PayToEnableInfo,
     ReleasePaymentInfo,
@@ -182,56 +182,104 @@ async def api_enable_extension(
     account_id: AccountId = Depends(check_account_id_exists),
     grant: ExtensionPermissionsGrant | None = Body(default=None),
 ) -> SimpleStatus:
+    await _ensure_extension_exists(ext_id)
+    logger.info(f"Enabling extension: {ext_id}.")
+
+    ext = await _get_installed_active_extension(ext_id)
+    user_ext = await _get_or_create_user_extension(account_id.id, ext_id)
+
+    required_permissions = _get_required_permissions(ext_id, ext)
+    granted_permissions = _get_granted_permissions(grant, user_ext)
+    _ensure_permissions(required_permissions, granted_permissions)
+
+    if grant and grant.permissions:
+        await _store_granted_permissions(user_ext, granted_permissions)
+
+    if account_id.is_admin_id or not ext.requires_payment:
+        await _activate_user_extension(user_ext)
+        return SimpleStatus(success=True, message=f"Extension '{ext_id}' enabled.")
+
+    return await _enable_paid_extension(ext_id, ext, user_ext)
+
+
+async def _ensure_extension_exists(ext_id: str) -> None:
     if ext_id not in [e.code for e in await get_valid_extensions()]:
         raise HTTPException(
             HTTPStatus.NOT_FOUND, f"Extension '{ext_id}' doesn't exist."
         )
 
-    logger.info(f"Enabling extension: {ext_id}.")
+
+async def _get_installed_active_extension(ext_id: str) -> InstallableExtension:
     ext = await get_installed_extension(ext_id)
     if not ext:
         raise ValueError(f"Extension '{ext_id}' is not installed.")
     if not ext.active:
         raise ValueError(f"Extension '{ext_id}' is not activated.")
+    return ext
 
-    user_ext = await get_user_extension(account_id.id, ext_id)
+
+async def _get_or_create_user_extension(user_id: str, ext_id: str) -> UserExtension:
+    user_ext = await get_user_extension(user_id, ext_id)
     if not user_ext:
-        user_ext = UserExtension(user=account_id.id, extension=ext_id, active=False)
+        user_ext = UserExtension(user=user_id, extension=ext_id, active=False)
         await create_user_extension(user_ext)
+    return user_ext
 
+
+def _get_required_permissions(ext_id: str, ext: InstallableExtension) -> list[str]:
     permissions_source = (
         ext.meta.permissions
         if ext.meta and ext.meta.permissions
         else _load_permissions_from_config(ext_id)
     )
-    required_permissions = [p.id for p in permissions_source] if permissions_source else []
-    granted_permissions = []
+    return [p.id for p in permissions_source] if permissions_source else []
+
+
+def _get_granted_permissions(
+    grant: ExtensionPermissionsGrant | None, user_ext: UserExtension
+) -> list[str]:
     if grant and grant.permissions:
-        granted_permissions = grant.permissions
-    elif user_ext.extra and user_ext.extra.granted_permissions:
-        granted_permissions = user_ext.extra.granted_permissions
+        return grant.permissions
+    if user_ext.extra and user_ext.extra.granted_permissions:
+        return user_ext.extra.granted_permissions
+    return []
 
-    if required_permissions:
-        missing = [p for p in required_permissions if p not in granted_permissions]
-        if missing:
-            raise HTTPException(
-                HTTPStatus.BAD_REQUEST,
-                "Missing required permissions to enable this extension.",
-            )
 
-    if account_id.is_admin_id or not ext.requires_payment:
-        user_ext.active = True
-        await update_user_extension(user_ext)
-        return SimpleStatus(success=True, message=f"Extension '{ext_id}' enabled.")
+def _ensure_permissions(required: list[str], granted: list[str]) -> None:
+    if not required:
+        return
+    missing = [p for p in required if p not in granted]
+    if missing:
+        raise HTTPException(
+            HTTPStatus.BAD_REQUEST,
+            "Missing required permissions to enable this extension.",
+        )
 
+
+async def _store_granted_permissions(
+    user_ext: UserExtension, granted_permissions: list[str]
+) -> None:
+    user_ext_info = user_ext.extra or UserExtensionInfo()
+    user_ext_info.granted_permissions = granted_permissions
+    user_ext.extra = user_ext_info
+    await update_user_extension(user_ext)
+
+
+async def _activate_user_extension(user_ext: UserExtension) -> None:
+    user_ext.active = True
+    await update_user_extension(user_ext)
+
+
+async def _enable_paid_extension(
+    ext_id: str, ext: InstallableExtension, user_ext: UserExtension
+) -> SimpleStatus:
     if not (user_ext.extra and user_ext.extra.payment_hash_to_enable):
         raise HTTPException(
             HTTPStatus.PAYMENT_REQUIRED, f"Extension '{ext_id}' requires payment."
         )
 
     if user_ext.is_paid:
-        user_ext.active = True
-        await update_user_extension(user_ext)
+        await _activate_user_extension(user_ext)
         return SimpleStatus(success=True, message=f"Paid extension '{ext_id}' enabled.")
 
     if not ext.meta or not ext.meta.pay_to_enable or not ext.meta.pay_to_enable.wallet:
@@ -248,9 +296,8 @@ async def api_enable_extension(
             f"Invoice generated but not paid for enabeling extension '{ext_id}'.",
         )
 
-    user_ext.active = True
     user_ext.extra.paid_to_enable = True
-    await update_user_extension(user_ext)
+    await _activate_user_extension(user_ext)
     return SimpleStatus(success=True, message=f"Paid extension '{ext_id}' enabled.")
 
 
@@ -302,7 +349,9 @@ async def api_update_extension_permissions(
         if ext.meta and ext.meta.permissions
         else _load_permissions_from_config(ext_id)
     )
-    required_permissions = [p.id for p in permissions_source] if permissions_source else []
+    required_permissions = (
+        [p.id for p in permissions_source] if permissions_source else []
+    )
     granted_permissions = grant.permissions if grant and grant.permissions else []
 
     if required_permissions:
@@ -654,6 +703,7 @@ async def extensions(account_id: AccountId = Depends(check_account_id_exists)):
                 if ext.meta and ext.meta.permissions
                 else [dict(p) for p in _load_permissions_from_config(ext.id)]
             ),
+            "kvSchema": _load_kv_schema_from_config(ext.id),
             "grantedPermissions": (
                 user_exts_map.get(ext.id).extra.granted_permissions
                 if user_exts_map.get(ext.id) and user_exts_map.get(ext.id).extra
@@ -699,6 +749,21 @@ def _load_permissions_from_config(ext_id: str) -> list[ExtensionPermission]:
         return [ExtensionPermission(**p) for p in permissions]
     except Exception:
         return []
+
+
+def _load_kv_schema_from_config(ext_id: str) -> dict:
+    try:
+        conf_path = Path(
+            settings.lnbits_extensions_path, "extensions", ext_id, "config.json"
+        )
+        if not conf_path.is_file():
+            return {}
+        with open(conf_path, "r+") as json_file:
+            config_json = json.load(json_file)
+        schema = config_json.get("kv_schema", {})
+        return schema if isinstance(schema, dict) else {}
+    except Exception:
+        return {}
 
 
 @extension_router.get(

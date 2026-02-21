@@ -1,12 +1,11 @@
 from __future__ import annotations
 
 import asyncio
-
+import json
 import time
 from pathlib import Path
 
 import httpx
-import json
 from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import HTMLResponse, Response
 from fastapi.staticfiles import StaticFiles
@@ -48,6 +47,59 @@ def _ensure_kv_table(db: Database, ext_id: str) -> str:
     return query
 
 
+_kv_schema_cache: dict[str, dict] = {}
+
+
+def _load_kv_schema(ext_id: str) -> dict:
+    if ext_id in _kv_schema_cache:
+        return _kv_schema_cache[ext_id]
+    try:
+        conf_path = Path(
+            settings.lnbits_extensions_path, "extensions", ext_id, "config.json"
+        )
+        if not conf_path.is_file():
+            _kv_schema_cache[ext_id] = {}
+            return _kv_schema_cache[ext_id]
+        with open(conf_path, "r+") as json_file:
+            config_json = json.load(json_file)
+        schema = config_json.get("kv_schema", {})
+        if not isinstance(schema, dict):
+            schema = {}
+        _kv_schema_cache[ext_id] = schema
+        return schema
+    except Exception:
+        _kv_schema_cache[ext_id] = {}
+        return _kv_schema_cache[ext_id]
+
+
+def _schema_for_key(schema: dict, key: str) -> dict | None:
+    if not schema:
+        return None
+    entry = schema.get(key)
+    return entry if isinstance(entry, dict) else None
+
+
+def _coerce_schema_value(schema_entry: dict, value):
+    value_type = schema_entry.get("type", "string")
+    if value_type == "int":
+        return int(value)
+    if value_type == "float":
+        return float(value)
+    if value_type == "bool":
+        if isinstance(value, bool):
+            return value
+        if isinstance(value, str):
+            return value.lower() in {"true", "1", "yes", "y"}
+        return bool(value)
+    if value_type == "json":
+        if isinstance(value, (dict, list)):
+            return value
+        if isinstance(value, str):
+            return json.loads(value)
+        raise ValueError("Invalid json value")
+    return str(value)
+
+
 async def _kv_get(db: Database, ext_id: str, key: str) -> str | None:
     await db.execute(_ensure_kv_table(db, ext_id))
     table = f"{ext_id}.kv" if db.schema else "kv"
@@ -56,6 +108,17 @@ async def _kv_get(db: Database, ext_id: str, key: str) -> str | None:
         {"key": key},
     )
     if not row:
+        schema = _load_kv_schema(ext_id)
+        entry = _schema_for_key(schema, key)
+        if entry and "default" in entry:
+            default_value = _coerce_schema_value(entry, entry.get("default"))
+            stored = (
+                json.dumps(default_value)
+                if entry.get("type") == "json"
+                else str(default_value)
+            )
+            await _kv_set(db, ext_id, key, stored)
+            return stored
         return None
     return row.get("value")
 
@@ -88,12 +151,7 @@ async def _require_permission(user_id: str, ext_id: str, permission: str) -> Non
         raise HTTPException(403, f"Missing permission: {permission}")
 
 
-def register_wasm_ext_routes(app, ext) -> None:
-    ext_id = ext.code
-    db = Database(f"ext_{ext_id}")
-    router = APIRouter(prefix=f"/{ext_id}", tags=[f"{ext_id} (wasm)"])
-    proxy_block = f"/{ext_id}/api/v1/proxy"
-
+def _register_pages_routes(router: APIRouter, ext_id: str) -> None:
     @router.get("/", response_class=HTMLResponse)
     async def index(req: Request, user: User = Depends(check_user_exists)):
         try:
@@ -114,6 +172,8 @@ def register_wasm_ext_routes(app, ext) -> None:
         except Exception:
             return HTMLResponse("Public page not found", status_code=404)
 
+
+def _register_kv_routes(router: APIRouter, ext_id: str, db: Database, ext) -> None:
     @router.get("/api/v1/kv/{key}")
     async def api_kv_get(key: str, user: User = Depends(check_user_exists)):
         await _require_permission(user.id, ext_id, "ext.db.read_write")
@@ -139,6 +199,16 @@ def register_wasm_ext_routes(app, ext) -> None:
         value = payload.get("value")
         if value is None:
             raise HTTPException(400, "Missing value")
+        schema = _load_kv_schema(ext_id)
+        entry = _schema_for_key(schema, key)
+        if schema and not entry:
+            raise HTTPException(400, "Key not allowed by schema")
+        if entry:
+            try:
+                coerced = _coerce_schema_value(entry, value)
+            except Exception:
+                raise HTTPException(400, "Invalid value for schema") from None
+            value = json.dumps(coerced) if entry.get("type") == "json" else str(coerced)
         await _kv_set(db, ext_id, key, str(value))
         await websocket_updater(f"{ext_id}:{key}", str(value))
         return {"key": key, "value": value}
@@ -159,6 +229,8 @@ def register_wasm_ext_routes(app, ext) -> None:
         await websocket_updater(f"{ext_id}:{key}", str(new_value))
         return {"key": key, "value": new_value}
 
+
+def _register_watch_routes(router: APIRouter, ext_id: str, db: Database, ext) -> None:
     @router.post("/api/v1/watch")
     async def api_watch_payment(payload: dict, user: User = Depends(check_user_exists)):
         payment_hash = payload.get("payment_hash")
@@ -199,11 +271,17 @@ def register_wasm_ext_routes(app, ext) -> None:
             finally:
                 unregister_invoice_listener(queue_name)
 
-        asyncio.create_task(_watch())
-        return {"ok": True}
+        task = asyncio.create_task(_watch())
+        return {"ok": True, "task_id": id(task)}
 
+
+def _register_proxy_routes(
+    router: APIRouter, app, ext_id: str, proxy_block: str
+) -> None:
     @router.post("/api/v1/proxy")
-    async def api_proxy(payload: dict, req: Request, user: User = Depends(check_user_exists)):
+    async def api_proxy(
+        payload: dict, req: Request, user: User = Depends(check_user_exists)
+    ):
         method = str(payload.get("method", "GET")).upper()
         path = str(payload.get("path", "")).strip()
         if not path.startswith("/") or "://" in path:
@@ -233,13 +311,28 @@ def register_wasm_ext_routes(app, ext) -> None:
             media_type=resp.headers.get("content-type"),
         )
 
-    static_dir = _ext_static_dir(ext_id, ext.upgrade_hash)
+
+def _mount_static(app, ext_id: str, upgrade_hash: str | None) -> None:
+    static_dir = _ext_static_dir(ext_id, upgrade_hash)
     if static_dir.is_dir():
         app.mount(
             f"/{ext_id}/static",
             StaticFiles(directory=static_dir),
             name=f"{ext_id}_static",
         )
+
+
+def register_wasm_ext_routes(app, ext) -> None:
+    ext_id = ext.code
+    db = Database(f"ext_{ext_id}")
+    router = APIRouter(prefix=f"/{ext_id}", tags=[f"{ext_id} (wasm)"])
+    proxy_block = f"/{ext_id}/api/v1/proxy"
+
+    _register_pages_routes(router, ext_id)
+    _register_kv_routes(router, ext_id, db, ext)
+    _register_watch_routes(router, ext_id, db, ext)
+    _register_proxy_routes(router, app, ext_id, proxy_block)
+    _mount_static(app, ext_id, ext.upgrade_hash)
 
     prefix = f"/upgrades/{ext.upgrade_hash}" if ext.upgrade_hash else ""
     app.include_router(router, prefix=prefix)
