@@ -1,6 +1,8 @@
+import json
 import sys
 import traceback
 from http import HTTPStatus
+from pathlib import Path
 
 import httpx
 from bolt11 import decode as bolt11_decode
@@ -24,6 +26,7 @@ from lnbits.core.models.extensions import (
     ExtensionReview,
     ExtensionReviewPaymentRequest,
     ExtensionReviewsStatus,
+    ExtensionPermission,
     ExtensionPermissionsGrant,
     InstallableExtension,
     PayToEnableInfo,
@@ -196,9 +199,12 @@ async def api_enable_extension(
         user_ext = UserExtension(user=account_id.id, extension=ext_id, active=False)
         await create_user_extension(user_ext)
 
-    required_permissions = (
-        [p.id for p in ext.meta.permissions] if ext.meta and ext.meta.permissions else []
+    permissions_source = (
+        ext.meta.permissions
+        if ext.meta and ext.meta.permissions
+        else _load_permissions_from_config(ext_id)
     )
+    required_permissions = [p.id for p in permissions_source] if permissions_source else []
     granted_permissions = []
     if grant and grant.permissions:
         granted_permissions = grant.permissions
@@ -212,10 +218,6 @@ async def api_enable_extension(
                 HTTPStatus.BAD_REQUEST,
                 "Missing required permissions to enable this extension.",
             )
-        user_ext_info = user_ext.extra or UserExtensionInfo()
-        user_ext_info.granted_permissions = granted_permissions
-        user_ext.extra = user_ext_info
-        await update_user_extension(user_ext)
 
     if account_id.is_admin_id or not ext.requires_payment:
         user_ext.active = True
@@ -267,8 +269,56 @@ async def api_disable_extension(
         )
     logger.info(f"Disabling extension: {ext_id}.")
     user_ext.active = False
+    if user_ext.extra and user_ext.extra.granted_permissions:
+        user_ext.extra.granted_permissions = []
     await update_user_extension(user_ext)
     return SimpleStatus(success=True, message=f"Extension '{ext_id}' disabled.")
+
+
+@extension_router.put("/{ext_id}/permissions")
+async def api_update_extension_permissions(
+    ext_id: str,
+    account_id: AccountId = Depends(check_account_id_exists),
+    grant: ExtensionPermissionsGrant | None = Body(default=None),
+) -> SimpleStatus:
+    if ext_id not in [e.code for e in await get_valid_extensions()]:
+        raise HTTPException(
+            HTTPStatus.NOT_FOUND, f"Extension '{ext_id}' doesn't exist."
+        )
+
+    ext = await get_installed_extension(ext_id)
+    if not ext:
+        raise ValueError(f"Extension '{ext_id}' is not installed.")
+    if not ext.active:
+        raise ValueError(f"Extension '{ext_id}' is not activated.")
+
+    user_ext = await get_user_extension(account_id.id, ext_id)
+    if not user_ext:
+        user_ext = UserExtension(user=account_id.id, extension=ext_id, active=False)
+        await create_user_extension(user_ext)
+
+    permissions_source = (
+        ext.meta.permissions
+        if ext.meta and ext.meta.permissions
+        else _load_permissions_from_config(ext_id)
+    )
+    required_permissions = [p.id for p in permissions_source] if permissions_source else []
+    granted_permissions = grant.permissions if grant and grant.permissions else []
+
+    if required_permissions:
+        missing = [p for p in required_permissions if p not in granted_permissions]
+        if missing:
+            raise HTTPException(
+                HTTPStatus.BAD_REQUEST,
+                "Missing required permissions to save for this extension.",
+            )
+
+    user_ext_info = user_ext.extra or UserExtensionInfo()
+    user_ext_info.granted_permissions = granted_permissions
+    user_ext.extra = user_ext_info
+    await update_user_extension(user_ext)
+
+    return SimpleStatus(success=True, message=f"Permissions saved for '{ext_id}'.")
 
 
 @extension_router.put("/{ext_id}/activate", dependencies=[Depends(check_admin)])
@@ -543,6 +593,7 @@ async def extensions(account_id: AccountId = Depends(check_account_id_exists)):
         installed_exts: list[InstallableExtension] = await get_installed_extensions(
             conn=conn
         )
+        user_exts = await get_user_extensions(account_id.id, conn=conn)
         all_ext_ids = [ext.code for ext in await get_valid_extensions(conn=conn)]
         inactive_extensions = [
             e.id for e in await get_installed_extensions(active=False, conn=conn)
@@ -550,6 +601,7 @@ async def extensions(account_id: AccountId = Depends(check_account_id_exists)):
         db_versions = await get_db_versions(conn=conn)
 
     installed_exts_ids = [e.id for e in installed_exts]
+    user_exts_map = {e.extension: e for e in user_exts}
 
     installable_exts = await InstallableExtension.get_installable_extensions(
         post_refresh_cache=account_id.is_admin_id
@@ -578,6 +630,8 @@ async def extensions(account_id: AccountId = Depends(check_account_id_exists)):
             e.name = installed_ext.name
             e.short_description = installed_ext.short_description
             e.icon = installed_ext.icon
+        if e.meta and not e.meta.permissions:
+            e.meta.permissions = _load_permissions_from_config(e.id)
 
     extension_data = [
         {
@@ -598,6 +652,11 @@ async def extensions(account_id: AccountId = Depends(check_account_id_exists)):
             "permissions": (
                 [dict(p) for p in ext.meta.permissions]
                 if ext.meta and ext.meta.permissions
+                else [dict(p) for p in _load_permissions_from_config(ext.id)]
+            ),
+            "grantedPermissions": (
+                user_exts_map.get(ext.id).extra.granted_permissions
+                if user_exts_map.get(ext.id) and user_exts_map.get(ext.id).extra
                 else []
             ),
             "latestRelease": (
@@ -625,6 +684,21 @@ async def extensions(account_id: AccountId = Depends(check_account_id_exists)):
         for ext in installable_exts
     ]
     return extension_data
+
+
+def _load_permissions_from_config(ext_id: str) -> list[ExtensionPermission]:
+    try:
+        conf_path = Path(
+            settings.lnbits_extensions_path, "extensions", ext_id, "config.json"
+        )
+        if not conf_path.is_file():
+            return []
+        with open(conf_path, "r+") as json_file:
+            config_json = json.load(json_file)
+        permissions = config_json.get("permissions", [])
+        return [ExtensionPermission(**p) for p in permissions]
+    except Exception:
+        return []
 
 
 @extension_router.get(

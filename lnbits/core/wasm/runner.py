@@ -1,8 +1,7 @@
+import asyncio
 import json
 import sys
 from pathlib import Path
-
-import asyncio
 
 from wasmtime import (
     Caller,
@@ -108,11 +107,14 @@ def _load_module(module_path: Path, ext_id: str):
     config.consume_fuel = True
     engine = Engine(config)
     store = Store(engine)
-    store.add_fuel(settings.lnbits_wasm_fuel)
+    if hasattr(store, "add_fuel"):
+        store.add_fuel(settings.lnbits_wasm_fuel)
     module = Module.from_file(engine, str(module_path))
     db = Database(f"ext_{ext_id}")
 
-    def db_get(caller: Caller, key_ptr: int, key_len: int, out_ptr: int, out_len: int) -> int:
+    def db_get(
+        caller: Caller, key_ptr: int, key_len: int, out_ptr: int, out_len: int
+    ) -> int:
         return _db_get(db, ext_id, caller, key_ptr, key_len, out_ptr, out_len)
 
     def db_set(
@@ -126,7 +128,10 @@ def _load_module(module_path: Path, ext_id: str):
         "db_get",
         Func(
             store,
-            FuncType([ValType.i32(), ValType.i32(), ValType.i32(), ValType.i32()], [ValType.i32()]),
+            FuncType(
+                [ValType.i32(), ValType.i32(), ValType.i32(), ValType.i32()],
+                [ValType.i32()],
+            ),
             db_get,
         ),
     )
@@ -135,7 +140,10 @@ def _load_module(module_path: Path, ext_id: str):
         "db_set",
         Func(
             store,
-            FuncType([ValType.i32(), ValType.i32(), ValType.i32(), ValType.i32()], [ValType.i32()]),
+            FuncType(
+                [ValType.i32(), ValType.i32(), ValType.i32(), ValType.i32()],
+                [ValType.i32()],
+            ),
             db_set,
         ),
     )

@@ -67,14 +67,23 @@ async def wasm_call(
         proc.kill()
         raise WasmExecutionError("WASM execution timed out") from exc
 
+    payload = {}
+    if stdout:
+        try:
+            payload = json.loads(stdout.decode())
+        except json.JSONDecodeError:
+            payload = {}
+
     if proc.returncode != 0:
-        detail = stderr.decode().strip() if stderr else "WASM runner error"
+        detail = payload.get("error")
+        if not detail and stderr:
+            detail = stderr.decode().strip()
+        if not detail:
+            detail = "WASM runner error"
         raise WasmExecutionError(detail)
 
-    try:
-        payload = json.loads(stdout.decode()) if stdout else {}
-    except json.JSONDecodeError as exc:
-        raise WasmExecutionError("Invalid WASM runner output") from exc
+    if not payload:
+        raise WasmExecutionError("Invalid WASM runner output")
 
     if not payload.get("ok"):
         raise WasmExecutionError(payload.get("error", "WASM execution failed"))

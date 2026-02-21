@@ -255,8 +255,13 @@ window.PageExtensions = {
     },
     async enableExtensionForUser(extension) {
       if (extension.permissions && extension.permissions.length) {
-        this.openPermissionsDialog(extension)
-        return
+        if (!extension._grantedPermissions) {
+          Quasar.Notify.create({
+            type: 'warning',
+            message: 'Save permissions before enabling this extension.'
+          })
+          return
+        }
       }
       if (extension.isPaymentRequired) {
         this.showPayToEnable(extension)
@@ -329,7 +334,19 @@ window.PageExtensions = {
       this.permissionsDialog.extension = null
       this.permissionsDialog.checked = []
     },
-    confirmPermissionsDialog() {
+    openPermissionsForExtension(extension) {
+      if (!extension.permissions || !extension.permissions.length) {
+        Quasar.Notify.create({
+          type: 'warning',
+          message: 'This extension does not declare permissions.'
+        })
+        return
+      }
+      this.permissionsDialog.extension = extension
+      this.permissionsDialog.checked = []
+      this.permissionsDialog.show = true
+    },
+    async confirmPermissionsDialog() {
       const ext = this.permissionsDialog.extension
       const granted = this.permissionsDialog.checked.slice()
       this.permissionsDialog.show = false
@@ -337,10 +354,19 @@ window.PageExtensions = {
       this.permissionsDialog.checked = []
       if (!ext) return
       ext._grantedPermissions = granted
-      if (ext.isPaymentRequired) {
-        this.showPayToEnable(ext, granted)
-      } else {
-        this.enableExtension(ext, granted)
+      try {
+        await LNbits.api.request(
+          'PUT',
+          `/api/v1/extension/${ext.id}/permissions`,
+          this.g.user.wallets[0].adminkey,
+          {permissions: granted}
+        )
+        Quasar.Notify.create({
+          type: 'positive',
+          message: 'Permissions saved.'
+        })
+      } catch (err) {
+        LNbits.utils.notifyApiError(err)
       }
     },
     updatePayToInstallData(extension) {
@@ -881,6 +907,11 @@ window.PageExtensions = {
     async fetchAllExtensions() {
       try {
         const {data} = await LNbits.api.request('GET', `/api/v1/extension/all`)
+        data.forEach(ext => {
+          if (ext.grantedPermissions && ext.grantedPermissions.length) {
+            ext._grantedPermissions = ext.grantedPermissions
+          }
+        })
         return data
       } catch (error) {
         console.warn(error)

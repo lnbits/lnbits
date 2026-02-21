@@ -83,7 +83,7 @@ class ExtensionConfig(BaseModel):
     warning: str | None = ""
     min_lnbits_version: str | None
     max_lnbits_version: str | None
-    permissions: list["ExtensionPermission"] = []
+    permissions: list[ExtensionPermission] = []
     extension_type: str | None = "python"
     public_kv_keys: list[str] = []
 

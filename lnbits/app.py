@@ -1,6 +1,7 @@
 import asyncio
 import glob
 import importlib
+import json
 import os
 import shutil
 import sys
@@ -38,10 +39,10 @@ from lnbits.core.tasks import (
     wait_for_paid_invoices,
     wait_notification_messages,
 )
+from lnbits.core.wasm.extension_host import register_wasm_ext_routes
 from lnbits.exceptions import register_exception_handlers
 from lnbits.helpers import version_parse
 from lnbits.settings import settings
-from lnbits.core.wasm.extension_host import register_wasm_ext_routes
 from lnbits.tasks import (
     cancel_all_tasks,
     create_permanent_task,
@@ -431,6 +432,8 @@ def register_ext_tasks(ext: Extension) -> None:
 
 def register_ext_routes(app: FastAPI, ext: Extension) -> None:
     """Register FastAPI routes for extension."""
+    if ext.extension_type != "wasm":
+        ext.extension_type = _load_extension_type(ext.code) or ext.extension_type
     if ext.extension_type == "wasm":
         settings.activate_extension_paths(ext.code, ext.upgrade_hash, [])
         register_wasm_ext_routes(app, ext)
@@ -458,6 +461,20 @@ def register_ext_routes(app: FastAPI, ext: Extension) -> None:
     logger.trace(f"Adding route for extension {ext_module}.")
     prefix = f"/upgrades/{ext.upgrade_hash}" if ext.upgrade_hash != "" else ""
     app.include_router(router=ext_route, prefix=prefix)
+
+
+def _load_extension_type(ext_id: str) -> str | None:
+    try:
+        conf_path = Path(
+            settings.lnbits_extensions_path, "extensions", ext_id, "config.json"
+        )
+        if not conf_path.is_file():
+            return None
+        with open(conf_path, "r+") as json_file:
+            config_json = json.load(json_file)
+        return config_json.get("extension_type")
+    except Exception:
+        return None
 
 
 async def check_and_register_extensions(app: FastAPI) -> None:

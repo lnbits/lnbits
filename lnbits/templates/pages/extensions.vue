@@ -329,6 +329,19 @@
                   <span v-text="$t('enable_extension_details')">
                   </span> </q-tooltip
               ></q-btn>
+              <q-btn
+                v-if="
+                  extension.isInstalled &&
+                  extension.isActive &&
+                  !g.user.extensions.includes(extension.id) &&
+                  extension.permissions &&
+                  extension.permissions.length
+                "
+                flat
+                color="grey-5"
+                @click="openPermissionsForExtension(extension)"
+                label="Permissions"
+              ></q-btn>
 
               <q-btn
                 @click="showManageExtension(extension)"
@@ -925,9 +938,7 @@
     <q-card class="q-pa-md" style="min-width: 360px; max-width: 90vw">
       <q-card-section>
         <div class="text-h6">Permissions required</div>
-        <div class="text-caption text-grey">
-          This extension can:
-        </div>
+        <div class="text-caption text-grey">This extension can:</div>
         <q-list v-if="permissionsDialog.extension">
           <q-item
             v-for="perm in permissionsDialog.extension.permissions"
@@ -954,7 +965,7 @@
         <q-btn
           color="primary"
           :disable="!permissionsAllChecked"
-          v-text="$t('enable')"
+          label="Save"
           @click="confirmPermissionsDialog"
         ></q-btn>
       </q-card-actions>
