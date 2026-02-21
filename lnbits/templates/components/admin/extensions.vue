@@ -191,15 +191,6 @@
                 hint="Per user per extension"
               ></q-input>
             </div>
-            <div class="col-12 col-md-4">
-              <q-input
-                filled
-                type="number"
-                v-model.number="formData.lnbits_wasm_max_invoice_ops_per_min"
-                label="Max invoice ops per minute"
-                hint="Per user per extension"
-              ></q-input>
-            </div>
           </div>
         </div>
       </div>

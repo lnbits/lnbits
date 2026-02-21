@@ -1,23 +1,20 @@
 from __future__ import annotations
 
-import asyncio
 import time
 from pathlib import Path
 
 import httpx
-from fastapi import APIRouter, Depends, HTTPException, Query, Request, WebSocket
+from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import HTMLResponse, Response
 from fastapi.staticfiles import StaticFiles
 
 from lnbits.core.crud.extensions import get_user_extension
-from lnbits.core.crud.wallets import get_wallet_for_key, get_wallets_ids
 from lnbits.core.models import User
-from lnbits.core.services import create_invoice, pay_invoice, websocket_updater
+from lnbits.core.services import websocket_updater
 from lnbits.db import Database
 from lnbits.decorators import check_user_exists
 from lnbits.helpers import template_renderer
 from lnbits.settings import settings
-from lnbits.tasks import register_invoice_listener, unregister_invoice_listener
 
 from .service import WasmExecutionError, wasm_call
 
@@ -85,39 +82,6 @@ async def _require_permission(user_id: str, ext_id: str, permission: str) -> Non
     granted = user_ext.extra.granted_permissions if user_ext.extra else []
     if permission not in (granted or []):
         raise HTTPException(403, f"Missing permission: {permission}")
-
-
-async def _require_wallet_access(user_id: str, wallet_id: str) -> None:
-    wallet_ids = await get_wallets_ids(user_id, deleted=False)
-    if wallet_id not in wallet_ids:
-        raise HTTPException(403, "Wallet does not belong to user.")
-
-
-async def _wait_for_increment_payment(
-    ext_id: str, payment_hash: str, db: Database, upgrade_hash: str | None
-) -> None:
-    queue_name = f"wasm:{ext_id}:{payment_hash}:{time.time()}"
-    invoice_queue: asyncio.Queue = asyncio.Queue()
-    register_invoice_listener(invoice_queue, queue_name)
-    try:
-        while True:
-            payment = await asyncio.wait_for(invoice_queue.get(), timeout=3600)
-            if payment.payment_hash != payment_hash:
-                continue
-            if payment.pending is False:
-                try:
-                    new_value = await wasm_call(
-                        ext_id, "increment_counter", [], upgrade_hash=upgrade_hash
-                    )
-                except WasmExecutionError:
-                    return
-                await _kv_set(db, ext_id, "counter", str(new_value))
-                await websocket_updater(f"{ext_id}:counter", str(new_value))
-                return
-    except asyncio.TimeoutError:
-        return
-    finally:
-        unregister_invoice_listener(queue_name)
 
 
 def register_wasm_ext_routes(app, ext) -> None:
@@ -191,94 +155,6 @@ def register_wasm_ext_routes(app, ext) -> None:
         await websocket_updater(f"{ext_id}:{key}", str(new_value))
         return {"key": key, "value": new_value}
 
-    @router.post("/api/v1/invoices")
-    async def api_create_invoice(
-        payload: dict, user: User = Depends(check_user_exists)
-    ):
-        await _require_permission(user.id, ext_id, "lnbits.invoice.create")
-        _check_quota(
-            user.id, ext_id, "invoice", settings.lnbits_wasm_max_invoice_ops_per_min
-        )
-        wallet_id = payload.get("wallet_id")
-        amount = payload.get("amount")
-        memo = payload.get("memo") or f"{ext_id} invoice"
-        if not wallet_id or not amount:
-            raise HTTPException(400, "Missing wallet_id or amount")
-        await _require_wallet_access(user.id, wallet_id)
-
-        try:
-            amount = int(amount)
-        except (TypeError, ValueError):
-            raise HTTPException(400, "Invalid amount")
-
-        payment = await create_invoice(wallet_id=wallet_id, amount=amount, memo=memo)
-        return {
-            "payment_hash": payment.payment_hash,
-            "payment_request": payment.bolt11,
-            "amount": payment.amount,
-        }
-
-    @router.post("/api/v1/invoices/increment")
-    async def api_create_increment_invoice(
-        payload: dict, user: User = Depends(check_user_exists)
-    ):
-        await _require_permission(user.id, ext_id, "ext.db.read_write")
-        await _require_permission(user.id, ext_id, "lnbits.invoice.create")
-        await _require_permission(user.id, ext_id, "lnbits.payments.subscribe")
-        _check_quota(
-            user.id, ext_id, "invoice", settings.lnbits_wasm_max_invoice_ops_per_min
-        )
-        wallet_id = payload.get("wallet_id")
-        memo = payload.get("memo") or f"{ext_id} increment"
-        if not wallet_id:
-            raise HTTPException(400, "Missing wallet_id")
-        await _require_wallet_access(user.id, wallet_id)
-
-        try:
-            amount = await wasm_call(
-                ext_id, "get_increment_amount", [], upgrade_hash=ext.upgrade_hash
-            )
-        except WasmExecutionError as exc:
-            raise HTTPException(500, str(exc)) from exc
-        if not amount or amount < 0:
-            raise HTTPException(400, "Invalid amount")
-
-        payment = await create_invoice(wallet_id=wallet_id, amount=amount, memo=memo)
-        asyncio.create_task(
-            _wait_for_increment_payment(
-                ext_id, payment.payment_hash, db, ext.upgrade_hash
-            )
-        )
-        return {
-            "payment_hash": payment.payment_hash,
-            "payment_request": payment.bolt11,
-            "amount": payment.amount,
-        }
-
-    @router.post("/api/v1/invoices/pay")
-    async def api_pay_invoice(payload: dict, user: User = Depends(check_user_exists)):
-        await _require_permission(user.id, ext_id, "lnbits.invoice.pay")
-        _check_quota(
-            user.id, ext_id, "invoice", settings.lnbits_wasm_max_invoice_ops_per_min
-        )
-        wallet_id = payload.get("wallet_id")
-        payment_request = payload.get("payment_request")
-        if not wallet_id or not payment_request:
-            raise HTTPException(400, "Missing wallet_id or payment_request")
-        await _require_wallet_access(user.id, wallet_id)
-
-        payment = await pay_invoice(
-            wallet_id=wallet_id,
-            payment_request=payment_request,
-            description=f"{ext_id} payment",
-            tag=ext_id,
-        )
-        return {
-            "payment_hash": payment.payment_hash,
-            "amount_msat": payment.amount_msat,
-            "status": payment.status,
-        }
-
     @router.post("/api/v1/proxy")
     async def api_proxy(payload: dict, req: Request, user: User = Depends(check_user_exists)):
         method = str(payload.get("method", "GET")).upper()
@@ -309,34 +185,6 @@ def register_wasm_ext_routes(app, ext) -> None:
             status_code=resp.status_code,
             media_type=resp.headers.get("content-type"),
         )
-
-    @router.websocket("/api/v1/events/ws")
-    async def events_ws(websocket: WebSocket, api_key: str = Query(default="")):
-        await websocket.accept()
-        wallet = await get_wallet_for_key(api_key) if api_key else None
-        if not wallet:
-            await websocket.close(code=1008)
-            return
-        try:
-            await _require_permission(wallet.user, ext_id, "lnbits.payments.subscribe")
-        except HTTPException:
-            await websocket.close(code=1008)
-            return
-
-        wallet_ids = await get_wallets_ids(wallet.user, deleted=False)
-        queue_name = f"wasm:{ext_id}:{wallet.user}:{id(websocket)}"
-        invoice_queue: asyncio.Queue = asyncio.Queue()
-        register_invoice_listener(invoice_queue, queue_name)
-
-        try:
-            while True:
-                payment = await invoice_queue.get()
-                if payment.wallet_id in wallet_ids:
-                    await websocket.send_json(payment.dict())
-        except Exception:
-            pass
-        finally:
-            unregister_invoice_listener(queue_name)
 
     static_dir = _ext_static_dir(ext_id, ext.upgrade_hash)
     if static_dir.is_dir():

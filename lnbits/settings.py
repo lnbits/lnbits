@@ -79,7 +79,6 @@ class ExtensionsSettings(LNbitsSettings):
     lnbits_wasm_fuel: int = Field(default=50_000, ge=1_000)
     lnbits_wasm_max_module_bytes: int = Field(default=1_000_000, ge=0)
     lnbits_wasm_max_db_ops_per_min: int = Field(default=120, ge=0)
-    lnbits_wasm_max_invoice_ops_per_min: int = Field(default=30, ge=0)
 
     @property
     def extension_builder_working_dir_path(self) -> Path:
