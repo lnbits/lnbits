@@ -957,21 +957,22 @@
         <div
           v-if="
             permissionsDialog.extension &&
-            permissionsDialog.extension.kvSchema &&
-            Object.keys(permissionsDialog.extension.kvSchema).length
+            permissionsDialog.extension.kvSchemaKeys &&
+            permissionsDialog.extension.kvSchemaKeys.length
           "
           class="q-mt-md"
         >
-          <div class="text-caption text-grey">KV keys defined:</div>
+          <div class="text-caption text-grey">
+            Data this extension stores in its db:
+          </div>
           <q-chip
-            v-for="(value, key) in permissionsDialog.extension.kvSchema"
-            :key="key"
+            v-for="kvKey in permissionsDialog.extension.kvSchemaKeys"
+            :key="kvKey"
+            :label="kvKey"
             color="grey-3"
             text-color="black"
             class="q-mr-xs q-mt-xs"
-          >
-            {{ key }}
-          </q-chip>
+          />
         </div>
       </q-card-section>
       <q-card-actions align="right">

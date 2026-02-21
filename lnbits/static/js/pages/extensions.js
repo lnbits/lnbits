@@ -911,6 +911,8 @@ window.PageExtensions = {
           if (ext.grantedPermissions && ext.grantedPermissions.length) {
             ext._grantedPermissions = ext.grantedPermissions
           }
+          const schema = ext.kvSchema || ext.kv_schema || {}
+          ext.kvSchemaKeys = Object.keys(schema)
         })
         return data
       } catch (error) {
