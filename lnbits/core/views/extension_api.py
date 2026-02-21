@@ -705,8 +705,8 @@ async def extensions(account_id: AccountId = Depends(check_account_id_exists)):
             ),
             "kvSchema": _load_kv_schema_from_config(ext.id),
             "grantedPermissions": (
-                user_exts_map.get(ext.id).extra.granted_permissions
-                if user_exts_map.get(ext.id) and user_exts_map.get(ext.id).extra
+                user_ext.extra.granted_permissions
+                if (user_ext := user_exts_map.get(ext.id)) and user_ext.extra
                 else []
             ),
             "latestRelease": (

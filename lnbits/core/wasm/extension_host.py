@@ -2,8 +2,10 @@ from __future__ import annotations
 
 import asyncio
 import json
+import re
 import time
 from pathlib import Path
+from typing import Any
 
 import httpx
 from fastapi import APIRouter, Depends, HTTPException, Request
@@ -37,7 +39,7 @@ def _ext_static_dir(ext_id: str, upgrade_hash: str | None = None) -> Path:
 
 
 def _ensure_kv_table(db: Database, ext_id: str) -> str:
-    table = f"{ext_id}.kv" if db.schema else "kv"
+    table = _kv_table_name(db, ext_id)
     query = f"""
     CREATE TABLE IF NOT EXISTS {table} (
         key TEXT PRIMARY KEY,
@@ -48,6 +50,16 @@ def _ensure_kv_table(db: Database, ext_id: str) -> str:
 
 
 _kv_schema_cache: dict[str, dict] = {}
+
+
+def _kv_table_name(db: Database, ext_id: str) -> str:
+    table = f"{ext_id}.kv" if db.schema else "kv"
+    if (
+        re.fullmatch(r"[a-zA-Z_][a-zA-Z0-9_]*(\.[a-zA-Z_][a-zA-Z0-9_]*)?", table)
+        is None
+    ):
+        raise ValueError("Invalid KV table name")
+    return table
 
 
 def _load_kv_schema(ext_id: str) -> dict:
@@ -102,9 +114,9 @@ def _coerce_schema_value(schema_entry: dict, value):
 
 async def _kv_get(db: Database, ext_id: str, key: str) -> str | None:
     await db.execute(_ensure_kv_table(db, ext_id))
-    table = f"{ext_id}.kv" if db.schema else "kv"
-    row = await db.fetchone(
-        f"SELECT value FROM {table} WHERE key = :key",
+    table = _kv_table_name(db, ext_id)
+    row: dict[str, Any] | None = await db.fetchone(
+        f"SELECT value FROM {table} WHERE key = :key",  # noqa: S608
         {"key": key},
     )
     if not row:
@@ -125,19 +137,19 @@ async def _kv_get(db: Database, ext_id: str, key: str) -> str | None:
 
 async def _kv_set(db: Database, ext_id: str, key: str, value: str) -> None:
     await db.execute(_ensure_kv_table(db, ext_id))
-    table = f"{ext_id}.kv" if db.schema else "kv"
-    existing = await db.fetchone(
-        f"SELECT key FROM {table} WHERE key = :key",
+    table = _kv_table_name(db, ext_id)
+    existing: dict[str, Any] | None = await db.fetchone(
+        f"SELECT key FROM {table} WHERE key = :key",  # noqa: S608
         {"key": key},
     )
     if existing:
         await db.execute(
-            f"UPDATE {table} SET value = :value WHERE key = :key",
+            f"UPDATE {table} SET value = :value WHERE key = :key",  # noqa: S608
             {"key": key, "value": value},
         )
     else:
         await db.execute(
-            f"INSERT INTO {table} (key, value) VALUES (:key, :value)",
+            f"INSERT INTO {table} (key, value) VALUES (:key, :value)",  # noqa: S608
             {"key": key, "value": value},
         )
 
@@ -174,6 +186,12 @@ def _register_pages_routes(router: APIRouter, ext_id: str) -> None:
 
 
 def _register_kv_routes(router: APIRouter, ext_id: str, db: Database, ext) -> None:
+    _register_kv_read_routes(router, ext_id, db, ext)
+    _register_kv_write_routes(router, ext_id, db)
+    _register_kv_increment_route(router, ext_id, db, ext)
+
+
+def _register_kv_read_routes(router: APIRouter, ext_id: str, db: Database, ext) -> None:
     @router.get("/api/v1/kv/{key}")
     async def api_kv_get(key: str, user: User = Depends(check_user_exists)):
         await _require_permission(user.id, ext_id, "ext.db.read_write")
@@ -190,6 +208,8 @@ def _register_kv_routes(router: APIRouter, ext_id: str, db: Database, ext) -> No
         value = await _kv_get(db, ext_id, key)
         return {"key": key, "value": value}
 
+
+def _register_kv_write_routes(router: APIRouter, ext_id: str, db: Database) -> None:
     @router.post("/api/v1/kv/{key}")
     async def api_kv_set(
         key: str, payload: dict, user: User = Depends(check_user_exists)
@@ -213,6 +233,10 @@ def _register_kv_routes(router: APIRouter, ext_id: str, db: Database, ext) -> No
         await websocket_updater(f"{ext_id}:{key}", str(value))
         return {"key": key, "value": value}
 
+
+def _register_kv_increment_route(
+    router: APIRouter, ext_id: str, db: Database, ext
+) -> None:
     @router.post("/api/v1/kv/{key}/increment")
     async def api_kv_increment(key: str, user: User = Depends(check_user_exists)):
         await _require_permission(user.id, ext_id, "ext.db.read_write")
