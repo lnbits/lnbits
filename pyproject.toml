@@ -51,6 +51,7 @@ dependencies = [
     "pillow>=12.1.0",
     "python-dotenv>=1.2.1",
     "greenlet (>=3.3.0,<4.0.0)",
+    "wasmtime>=16.0.0",
 ]
 
 [project.scripts]
