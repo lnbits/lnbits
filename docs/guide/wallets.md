@@ -156,22 +156,19 @@ LNbits downloads and runs the sidecar. Requires Node.js and npm on the host.
 - `SPARK_L2_PAY_POLL_MS`: `500` _(polling interval in ms)_
 - `SPARK_L2_STREAM_KEEPALIVE_MS`: `15000` _(SSE keepalive in ms)_
 
-External sidecar
+### Example: run the sidecar manually (external mode)
 
-- `SPARK_L2_EXTERNAL_ENDPOINT`: http://127.0.0.1:8765
-- `SPARK_L2_EXTERNAL_API_KEY`: ... (if your sidecar requires auth)
-
-Example: run the sidecar manually (external mode)
-
-git clone https://github.com/lnbits/spark_sidecar.git  
-cd spark_sidecar  
-npm install  
+```bash
+git clone https://github.com/lnbits/spark_sidecar.git
+cd spark_sidecar
+npm install
 
 SPARK_MNEMONIC="bottom bottom bottom bottom bottom bottom bottom bottom bottom bottom bottom bottom" \
 SPARK_NETWORK=MAINNET \
 SPARK_SIDECAR_PORT=8765 \
 SPARK_PAY_WAIT_MS=20000 \
 node server.mjs
+```
 
 For testing, you can generate a 12-word mnemonic at https://iancoleman.io/bip39/. Store it securely — it controls your funds. Then select Spark (L2) as the funding source in LNbits.
 
