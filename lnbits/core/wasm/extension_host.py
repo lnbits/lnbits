@@ -49,6 +49,17 @@ def _ensure_kv_table(db: Database, ext_id: str) -> str:
     return query
 
 
+def _ensure_secret_kv_table(db: Database, ext_id: str) -> str:
+    table = _secret_kv_table_name(db, ext_id)
+    query = f"""
+    CREATE TABLE IF NOT EXISTS {table} (
+        key TEXT PRIMARY KEY,
+        value TEXT
+    );
+    """
+    return query
+
+
 _kv_schema_cache: dict[str, dict] = {}
 
 
@@ -59,6 +70,16 @@ def _kv_table_name(db: Database, ext_id: str) -> str:
         is None
     ):
         raise ValueError("Invalid KV table name")
+    return table
+
+
+def _secret_kv_table_name(db: Database, ext_id: str) -> str:
+    table = f"{ext_id}.secret_kv" if db.schema else "secret_kv"
+    if (
+        re.fullmatch(r"[a-zA-Z_][a-zA-Z0-9_]*(\.[a-zA-Z_][a-zA-Z0-9_]*)?", table)
+        is None
+    ):
+        raise ValueError("Invalid secret KV table name")
     return table
 
 
@@ -82,6 +103,21 @@ def _load_kv_schema(ext_id: str) -> dict:
     except Exception:
         _kv_schema_cache[ext_id] = {}
         return _kv_schema_cache[ext_id]
+
+
+def _load_public_wasm_functions(ext_id: str) -> list[str]:
+    try:
+        conf_path = Path(
+            settings.lnbits_extensions_path, "extensions", ext_id, "config.json"
+        )
+        if not conf_path.is_file():
+            return []
+        with open(conf_path, "r+") as json_file:
+            config_json = json.load(json_file)
+        funcs = config_json.get("public_wasm_functions", [])
+        return funcs if isinstance(funcs, list) else []
+    except Exception:
+        return []
 
 
 def _schema_for_key(schema: dict, key: str) -> dict | None:
@@ -154,6 +190,46 @@ async def _kv_set(db: Database, ext_id: str, key: str, value: str) -> None:
         )
 
 
+async def _secret_kv_get(db: Database, ext_id: str, key: str) -> str | None:
+    await db.execute(_ensure_secret_kv_table(db, ext_id))
+    table = _secret_kv_table_name(db, ext_id)
+    row: dict[str, Any] | None = await db.fetchone(
+        f"SELECT value FROM {table} WHERE key = :key",  # noqa: S608
+        {"key": key},
+    )
+    if not row:
+        return None
+    return row.get("value")
+
+
+async def _secret_kv_set(db: Database, ext_id: str, key: str, value: str) -> None:
+    await db.execute(_ensure_secret_kv_table(db, ext_id))
+    table = _secret_kv_table_name(db, ext_id)
+    existing: dict[str, Any] | None = await db.fetchone(
+        f"SELECT key FROM {table} WHERE key = :key",  # noqa: S608
+        {"key": key},
+    )
+    if existing:
+        await db.execute(
+            f"UPDATE {table} SET value = :value WHERE key = :key",  # noqa: S608
+            {"key": key, "value": value},
+        )
+    else:
+        await db.execute(
+            f"INSERT INTO {table} (key, value) VALUES (:key, :value)",  # noqa: S608
+            {"key": key, "value": value},
+        )
+
+
+async def _secret_kv_delete(db: Database, ext_id: str, key: str) -> None:
+    await db.execute(_ensure_secret_kv_table(db, ext_id))
+    table = _secret_kv_table_name(db, ext_id)
+    await db.execute(
+        f"DELETE FROM {table} WHERE key = :key",  # noqa: S608
+        {"key": key},
+    )
+
+
 async def _require_permission(user_id: str, ext_id: str, permission: str) -> None:
     user_ext = await get_user_extension(user_id, ext_id)
     if not user_ext or not user_ext.active:
@@ -189,6 +265,87 @@ def _register_kv_routes(router: APIRouter, ext_id: str, db: Database, ext) -> No
     _register_kv_read_routes(router, ext_id, db, ext)
     _register_kv_write_routes(router, ext_id, db)
     _register_kv_increment_route(router, ext_id, db, ext)
+    _register_secret_routes(router, ext_id, db)
+
+
+def _register_secret_routes(router: APIRouter, ext_id: str, db: Database) -> None:
+    @router.post("/api/v1/secret/{key}")
+    async def api_secret_set(
+        key: str, payload: dict, user: User = Depends(check_user_exists)
+    ):
+        await _require_permission(user.id, ext_id, "ext.db.read_write")
+        _check_quota(user.id, ext_id, "db", settings.lnbits_wasm_max_db_ops_per_min)
+        value = payload.get("value")
+        if value is None:
+            raise HTTPException(400, "Missing value")
+        await _secret_kv_set(db, ext_id, key, str(value))
+        return {"key": key}
+
+    @router.delete("/api/v1/secret/{key}")
+    async def api_secret_delete(key: str, user: User = Depends(check_user_exists)):
+        await _require_permission(user.id, ext_id, "ext.db.read_write")
+        _check_quota(user.id, ext_id, "db", settings.lnbits_wasm_max_db_ops_per_min)
+        await _secret_kv_delete(db, ext_id, key)
+        return {"key": key}
+
+
+def _register_public_call_routes(
+    router: APIRouter, ext_id: str, db: Database, ext
+) -> None:
+    @router.post("/api/v1/public/call/{handler}")
+    async def api_public_wasm_call(handler: str, payload: dict):
+        funcs = getattr(ext, "public_wasm_functions", None) or _load_public_wasm_functions(
+            ext_id
+        )
+        if handler not in funcs:
+            raise HTTPException(404, "Handler not public")
+        _check_quota("public", ext_id, "db", settings.lnbits_wasm_max_db_ops_per_min)
+
+        request_id = int(time.time() * 1000) % 2147483647
+        raw = payload.get("raw")
+        value = raw if isinstance(raw, str) else json.dumps(payload)
+        await _kv_set(db, ext_id, f"public_request:{request_id}", value)
+        await _kv_set(db, ext_id, "public_request", value)
+
+        try:
+            await wasm_call(
+                ext_id, handler, [request_id], upgrade_hash=ext.upgrade_hash
+            )
+        except WasmExecutionError as exc:
+            raise HTTPException(500, str(exc)) from exc
+
+        response = await _kv_get(db, ext_id, f"public_response:{request_id}")
+        if response is None:
+            response = await _kv_get(db, ext_id, "public_response")
+        if response is None:
+            raise HTTPException(500, "No response")
+        try:
+            data = json.loads(response)
+        except Exception:
+            return {"raw": response}
+
+        watch = payload.get("watch") if isinstance(payload, dict) else None
+        if isinstance(watch, dict) and isinstance(data, dict):
+            payment_hash = data.get("payment_hash")
+            store_key = watch.get("store_key")
+            tag = watch.get("tag")
+            handler_name = watch.get("handler") or "noop"
+            if (
+                isinstance(payment_hash, str)
+                and isinstance(store_key, str)
+                and handler_name in funcs
+            ):
+                _start_payment_watch(
+                    ext_id,
+                    db,
+                    payment_hash,
+                    handler_name,
+                    tag if isinstance(tag, str) else None,
+                    store_key,
+                    ext.upgrade_hash,
+                )
+
+        return data
 
 
 def _register_kv_read_routes(router: APIRouter, ext_id: str, db: Database, ext) -> None:
@@ -265,38 +422,51 @@ def _register_watch_routes(router: APIRouter, ext_id: str, db: Database, ext) ->
             raise HTTPException(400, "Missing payment_hash")
         await _require_permission(user.id, ext_id, "ext.payments.watch")
         await _require_permission(user.id, ext_id, "ext.db.read_write")
-
-        queue_name = f"wasm:{ext_id}:{payment_hash}:{time.time()}"
-        invoice_queue: asyncio.Queue = asyncio.Queue()
-        register_invoice_listener(invoice_queue, queue_name)
-
-        async def _watch():
-            try:
-                while True:
-                    payment = await invoice_queue.get()
-                    if payment.payment_hash != payment_hash:
-                        continue
-                    if tag:
-                        extra = payment.extra or {}
-                        if extra.get("tag") != tag:
-                            continue
-                    if payment.pending is False:
-                        payload_json = json.dumps(payment.dict(exclude={"preimage"}))
-                        await _kv_set(db, ext_id, store_key, payload_json)
-                        await wasm_call(
-                            ext_id,
-                            handler,
-                            [],
-                            upgrade_hash=ext.upgrade_hash,
-                        )
-                        return
-            except Exception:
-                return
-            finally:
-                unregister_invoice_listener(queue_name)
-
-        task = asyncio.create_task(_watch())
+        task = _start_payment_watch(
+            ext_id, db, payment_hash, handler, tag, store_key, ext.upgrade_hash
+        )
         return {"ok": True, "task_id": id(task)}
+
+
+def _start_payment_watch(
+    ext_id: str,
+    db: Database,
+    payment_hash: str,
+    handler: str,
+    tag: str | None,
+    store_key: str,
+    upgrade_hash: str | None,
+) -> asyncio.Task:
+    queue_name = f"wasm:{ext_id}:{payment_hash}:{time.time()}"
+    invoice_queue: asyncio.Queue = asyncio.Queue()
+    register_invoice_listener(invoice_queue, queue_name)
+
+    async def _watch():
+        try:
+            while True:
+                payment = await invoice_queue.get()
+                if payment.payment_hash != payment_hash:
+                    continue
+                if tag:
+                    extra = payment.extra or {}
+                    if extra.get("tag") != tag:
+                        continue
+                if payment.pending is False:
+                    payload_json = json.dumps(payment.dict(exclude={"preimage"}))
+                    await _kv_set(db, ext_id, store_key, payload_json)
+                    await wasm_call(
+                        ext_id,
+                        handler,
+                        [],
+                        upgrade_hash=upgrade_hash,
+                    )
+                    return
+        except Exception:
+            return
+        finally:
+            unregister_invoice_listener(queue_name)
+
+    return asyncio.create_task(_watch())
 
 
 def _register_proxy_routes(
@@ -354,6 +524,7 @@ def register_wasm_ext_routes(app, ext) -> None:
 
     _register_pages_routes(router, ext_id)
     _register_kv_routes(router, ext_id, db, ext)
+    _register_public_call_routes(router, ext_id, db, ext)
     _register_watch_routes(router, ext_id, db, ext)
     _register_proxy_routes(router, app, ext_id, proxy_block)
     _mount_static(app, ext_id, ext.upgrade_hash)

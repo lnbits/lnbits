@@ -76,7 +76,7 @@ class ExtensionsSettings(LNbitsSettings):
         default="https://raw.githubusercontent.com/lnbits/extension_builder_stub/refs/heads/main/manifest.json"
     )
     lnbits_wasm_timeout_seconds: float = Field(default=3.0, ge=0.1)
-    lnbits_wasm_fuel: int = Field(default=50_000, ge=1_000)
+    lnbits_wasm_fuel: int = Field(default=50_000, ge=0)
     lnbits_wasm_max_module_bytes: int = Field(default=1_000_000, ge=0)
     lnbits_wasm_max_db_ops_per_min: int = Field(default=120, ge=0)
 

@@ -17,7 +17,7 @@ from lnbits.core.crud.extensions import (
     update_installed_extension,
 )
 from lnbits.core.helpers import migrate_extension_database
-from lnbits.db import Connection
+from lnbits.db import Connection, Database, COCKROACH, POSTGRES
 from lnbits.settings import settings
 
 from ..models.extensions import Extension, ExtensionMeta, InstallableExtension
@@ -74,8 +74,22 @@ async def uninstall_extension(ext_id: str):
 
     extension = await get_installed_extension(ext_id)
     if extension:
+        if extension.meta and extension.meta.extension_type == "wasm":
+            await _purge_wasm_extension_db(ext_id)
         extension.clean_extension_files()
     await delete_installed_extension(ext_id=ext_id)
+
+
+async def _purge_wasm_extension_db(ext_id: str) -> None:
+    cleaned = await Database.clean_ext_db_files(ext_id)
+    if cleaned:
+        return
+    try:
+        db = Database(f"ext_{ext_id}")
+        if db.type in {POSTGRES, COCKROACH}:
+            await db.execute(f"DROP SCHEMA IF EXISTS {ext_id} CASCADE")  # noqa: S608
+    except Exception as exc:
+        logger.warning(f"Failed to drop WASM extension schema for '{ext_id}': {exc}")
 
 
 async def activate_extension(ext: Extension):

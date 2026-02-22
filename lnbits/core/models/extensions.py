@@ -86,6 +86,7 @@ class ExtensionConfig(BaseModel):
     permissions: list[ExtensionPermission] = []
     extension_type: str | None = "python"
     public_kv_keys: list[str] = []
+    public_wasm_functions: list[str] = []
 
     def is_version_compatible(self) -> bool:
         return is_lnbits_version_ok(self.min_lnbits_version, self.max_lnbits_version)
@@ -164,6 +165,7 @@ class Extension(BaseModel):
     upgrade_hash: str | None = ""
     extension_type: str | None = None
     public_kv_keys: list[str] = []
+    public_wasm_functions: list[str] = []
 
     @property
     def module_name(self) -> str:
@@ -189,6 +191,9 @@ class Extension(BaseModel):
             upgrade_hash=ext_info.hash if ext_info.ext_upgrade_dir.is_dir() else "",
             extension_type=ext_info.meta.extension_type if ext_info.meta else None,
             public_kv_keys=ext_info.meta.public_kv_keys if ext_info.meta else [],
+            public_wasm_functions=ext_info.meta.public_wasm_functions
+            if ext_info.meta
+            else [],
         )
 
 
@@ -353,6 +358,7 @@ class ExtensionMeta(BaseModel):
     permissions: list[ExtensionPermission] = []
     extension_type: str | None = "python"
     public_kv_keys: list[str] = []
+    public_wasm_functions: list[str] = []
     archive: str | None = None
     featured: bool = False
     paid_features: str | None = None
@@ -480,6 +486,9 @@ class InstallableExtension(BaseModel):
                 self.meta.permissions = config_json.get("permissions", [])
                 self.meta.extension_type = config_json.get("extension_type", "python")
                 self.meta.public_kv_keys = config_json.get("public_kv_keys", [])
+                self.meta.public_wasm_functions = config_json.get(
+                    "public_wasm_functions", []
+                )
 
             if (
                 self.meta
@@ -601,6 +610,7 @@ class InstallableExtension(BaseModel):
                     permissions=config.permissions,
                     extension_type=config.extension_type,
                     public_kv_keys=config.public_kv_keys,
+                    public_wasm_functions=config.public_wasm_functions,
                 ),
             )
         except Exception as e:
@@ -650,6 +660,9 @@ class InstallableExtension(BaseModel):
                         permissions=config_json.get("permissions", []),
                         extension_type=config_json.get("extension_type", "python"),
                         public_kv_keys=config_json.get("public_kv_keys", []),
+                        public_wasm_functions=config_json.get(
+                            "public_wasm_functions", []
+                        ),
                     ),
                 )
 
