@@ -5,7 +5,7 @@
   </picture>
 </a>
 
-![phase: stable](https://img.shields.io/badge/phase-stable-2EA043) [![license-badge]](LICENSE) [![docs-badge]][docs] ![PRs: welcome](https://img.shields.io/badge/PRs-Welcome-yellow) [![explore: LNbits extensions](https://img.shields.io/badge/explore-LNbits%20extensions-10B981)](https://extensions.lnbits.com/) [![hardware: LNBitsShop](https://img.shields.io/badge/hardware-LNBitsShop-7C3AED)](https://shop.lnbits.com/) [<img src="https://img.shields.io/badge/community_chat-Telegram-24A1DE">](https://t.me/lnbits) [<img src="https://img.shields.io/badge/supported_by-%3E__OpenSats-f97316">](https://opensats.org)  
+![phase: stable](https://img.shields.io/badge/phase-stable-2EA043) [![license-badge]](LICENSE) [![docs-badge]][docs] ![PRs: welcome](https://img.shields.io/badge/PRs-Welcome-yellow) [![explore: LNbits extensions](https://img.shields.io/badge/explore-LNbits%20extensions-10B981)](https://extensions.lnbits.com/) [![hardware: LNBitsShop](https://img.shields.io/badge/hardware-LNBitsShop-7C3AED)](https://shop.lnbits.com/) [<img src="https://img.shields.io/badge/community_chat-Telegram-24A1DE">](https://t.me/lnbits)
 <img width="2000" height="203" alt="lnbits_head" src="https://github.com/user-attachments/assets/77669718-ac10-43c7-ae95-6ce236c77401" />  
 [![tip-hero](https://img.shields.io/badge/TipJar-LNBits%20Hero-9b5cff?labelColor=6b7280&logo=lightning&logoColor=white)](https://demo.lnbits.com/tipjar/DwaUiE4kBX6mUW6pj3X5Kg)
 
