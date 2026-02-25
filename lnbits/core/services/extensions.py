@@ -17,6 +17,10 @@ from lnbits.core.crud.extensions import (
     update_installed_extension,
 )
 from lnbits.core.helpers import migrate_extension_database
+from lnbits.core.wasm.extension_host import (
+    clear_schedules_for_extension,
+    clear_tag_watches_for_extension,
+)
 from lnbits.db import Connection, Database, COCKROACH, POSTGRES
 from lnbits.settings import settings
 
@@ -75,6 +79,8 @@ async def uninstall_extension(ext_id: str):
     extension = await get_installed_extension(ext_id)
     if extension:
         if extension.meta and extension.meta.extension_type == "wasm":
+            await clear_tag_watches_for_extension(ext_id)
+            await clear_schedules_for_extension(ext_id)
             await _purge_wasm_extension_db(ext_id)
         extension.clean_extension_files()
     await delete_installed_extension(ext_id=ext_id)
@@ -101,6 +107,10 @@ async def activate_extension(ext: Extension):
 async def deactivate_extension(ext_id: str):
     settings.deactivate_extension_paths(ext_id)
     await update_installed_extension_state(ext_id=ext_id, active=False)
+    extension = await get_installed_extension(ext_id)
+    if extension and extension.meta and extension.meta.extension_type == "wasm":
+        await clear_tag_watches_for_extension(ext_id)
+        await clear_schedules_for_extension(ext_id)
     await stop_extension_background_work(ext_id)
 
 

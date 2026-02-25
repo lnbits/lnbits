@@ -8,6 +8,7 @@ import httpx
 from bolt11 import decode as bolt11_decode
 from fastapi import APIRouter, Body, Depends, HTTPException
 from fastapi.requests import Request
+from starlette.routing import Match
 from loguru import logger
 
 from lnbits.core.crud.extensions import get_user_extensions
@@ -34,6 +35,7 @@ from lnbits.core.models.extensions import (
     UserExtension,
     UserExtensionInfo,
 )
+from lnbits.core.wasm import WASM_HOST_MANIFEST
 from lnbits.core.models.users import Account, AccountId
 from lnbits.core.services import check_transaction_status, create_invoice
 from lnbits.core.services.extensions import (
@@ -43,6 +45,10 @@ from lnbits.core.services.extensions import (
     get_valid_extensions,
     install_extension,
     uninstall_extension,
+)
+from lnbits.core.wasm.extension_host import (
+    clear_schedules_for_user,
+    clear_tag_watches_for_user,
 )
 from lnbits.db import Page
 from lnbits.decorators import (
@@ -179,6 +185,7 @@ async def api_update_pay_to_enable(
 @extension_router.put("/{ext_id}/enable")
 async def api_enable_extension(
     ext_id: str,
+    request: Request,
     account_id: AccountId = Depends(check_account_id_exists),
     grant: ExtensionPermissionsGrant | None = Body(default=None),
 ) -> SimpleStatus:
@@ -190,10 +197,19 @@ async def api_enable_extension(
 
     required_permissions = _get_required_permissions(ext_id, ext)
     granted_permissions = _get_granted_permissions(grant, user_ext)
+    granted_tags = _get_granted_payment_tags(grant, user_ext)
+    required_tags = _get_required_payment_tags(ext_id, ext)
+    if _is_wasm_extension(ext_id, ext):
+        _ensure_api_permissions_available(
+            request, _merge_permissions(required_permissions, granted_permissions)
+        )
+        _ensure_payment_tags_allowed(required_tags, granted_tags)
     _ensure_permissions(required_permissions, granted_permissions)
 
     if grant and grant.permissions:
         await _store_granted_permissions(user_ext, granted_permissions)
+    if grant and grant.payment_tags:
+        await _store_granted_payment_tags(user_ext, granted_tags)
 
     if account_id.is_admin_id or not ext.requires_payment:
         await _activate_user_extension(user_ext)
@@ -245,6 +261,25 @@ def _get_granted_permissions(
     return []
 
 
+def _get_required_payment_tags(ext_id: str, ext: InstallableExtension) -> list[str]:
+    tags_source = (
+        ext.meta.payment_tags
+        if ext.meta and ext.meta.payment_tags
+        else _load_payment_tags_from_config(ext_id)
+    )
+    return tags_source if tags_source else []
+
+
+def _get_granted_payment_tags(
+    grant: ExtensionPermissionsGrant | None, user_ext: UserExtension
+) -> list[str]:
+    if grant and grant.payment_tags:
+        return grant.payment_tags
+    if user_ext.extra and user_ext.extra.granted_payment_tags:
+        return user_ext.extra.granted_payment_tags
+    return []
+
+
 def _ensure_permissions(required: list[str], granted: list[str]) -> None:
     if not required:
         return
@@ -261,6 +296,15 @@ async def _store_granted_permissions(
 ) -> None:
     user_ext_info = user_ext.extra or UserExtensionInfo()
     user_ext_info.granted_permissions = granted_permissions
+    user_ext.extra = user_ext_info
+    await update_user_extension(user_ext)
+
+
+async def _store_granted_payment_tags(
+    user_ext: UserExtension, granted_tags: list[str]
+) -> None:
+    user_ext_info = user_ext.extra or UserExtensionInfo()
+    user_ext_info.granted_payment_tags = granted_tags
     user_ext.extra = user_ext_info
     await update_user_extension(user_ext)
 
@@ -318,13 +362,20 @@ async def api_disable_extension(
     user_ext.active = False
     if user_ext.extra and user_ext.extra.granted_permissions:
         user_ext.extra.granted_permissions = []
+    if user_ext.extra and user_ext.extra.granted_payment_tags:
+        user_ext.extra.granted_payment_tags = []
     await update_user_extension(user_ext)
+    ext = await get_installed_extension(ext_id)
+    if ext and ext.meta and ext.meta.extension_type == "wasm":
+        await clear_tag_watches_for_user(ext_id, account_id.id)
+        await clear_schedules_for_user(ext_id, account_id.id)
     return SimpleStatus(success=True, message=f"Extension '{ext_id}' disabled.")
 
 
 @extension_router.put("/{ext_id}/permissions")
 async def api_update_extension_permissions(
     ext_id: str,
+    request: Request,
     account_id: AccountId = Depends(check_account_id_exists),
     grant: ExtensionPermissionsGrant | None = Body(default=None),
 ) -> SimpleStatus:
@@ -353,6 +404,14 @@ async def api_update_extension_permissions(
         [p.id for p in permissions_source] if permissions_source else []
     )
     granted_permissions = grant.permissions if grant and grant.permissions else []
+    granted_tags = grant.payment_tags if grant and grant.payment_tags else []
+    if _is_wasm_extension(ext_id, ext):
+        _ensure_api_permissions_available(
+            request, _merge_permissions(required_permissions, granted_permissions)
+        )
+        _ensure_payment_tags_allowed(
+            _get_required_payment_tags(ext_id, ext), granted_tags
+        )
 
     if required_permissions:
         missing = [p for p in required_permissions if p not in granted_permissions]
@@ -364,10 +423,52 @@ async def api_update_extension_permissions(
 
     user_ext_info = user_ext.extra or UserExtensionInfo()
     user_ext_info.granted_permissions = granted_permissions
+    user_ext_info.granted_payment_tags = granted_tags
     user_ext.extra = user_ext_info
     await update_user_extension(user_ext)
 
     return SimpleStatus(success=True, message=f"Permissions saved for '{ext_id}'.")
+
+
+@extension_router.get("/{ext_id}/capabilities")
+async def api_extension_capabilities(
+    ext_id: str,
+    request: Request,
+    account_id: AccountId = Depends(check_account_id_exists),
+) -> dict:
+    await _ensure_extension_exists(ext_id)
+    ext = await get_installed_extension(ext_id)
+    if not ext:
+        raise ValueError(f"Extension '{ext_id}' is not installed.")
+
+    permissions_source = (
+        ext.meta.permissions
+        if ext.meta and ext.meta.permissions
+        else _load_permissions_from_config(ext_id)
+    )
+    permissions = [p.id for p in permissions_source] if permissions_source else []
+    missing = (
+        _missing_api_permissions(request, permissions)
+        if _is_wasm_extension(ext_id, ext)
+        else []
+    )
+    payment_tags = _get_required_payment_tags(ext_id, ext)
+
+    return {
+        "ok": True,
+        "extension": ext_id,
+        "is_wasm": _is_wasm_extension(ext_id, ext),
+        "permissions": permissions,
+        "missing_permissions": missing,
+        "payment_tags": payment_tags,
+    }
+
+
+@extension_router.get("/wasm/manifest")
+async def api_wasm_manifest(
+    account_id: AccountId = Depends(check_account_id_exists),
+) -> dict:
+    return WASM_HOST_MANIFEST
 
 
 @extension_router.put("/{ext_id}/activate", dependencies=[Depends(check_admin)])
@@ -681,6 +782,8 @@ async def extensions(account_id: AccountId = Depends(check_account_id_exists)):
             e.icon = installed_ext.icon
         if e.meta and not e.meta.permissions:
             e.meta.permissions = _load_permissions_from_config(e.id)
+        if e.meta and not e.meta.payment_tags:
+            e.meta.payment_tags = _load_payment_tags_from_config(e.id)
 
     extension_data = [
         {
@@ -703,9 +806,19 @@ async def extensions(account_id: AccountId = Depends(check_account_id_exists)):
                 if ext.meta and ext.meta.permissions
                 else [dict(p) for p in _load_permissions_from_config(ext.id)]
             ),
+            "paymentTags": (
+                ext.meta.payment_tags
+                if ext.meta and ext.meta.payment_tags
+                else _load_payment_tags_from_config(ext.id)
+            ),
             "kvSchema": _load_kv_schema_from_config(ext.id),
             "grantedPermissions": (
                 user_ext.extra.granted_permissions
+                if (user_ext := user_exts_map.get(ext.id)) and user_ext.extra
+                else []
+            ),
+            "grantedPaymentTags": (
+                user_ext.extra.granted_payment_tags
                 if (user_ext := user_exts_map.get(ext.id)) and user_ext.extra
                 else []
             ),
@@ -764,6 +877,126 @@ def _load_kv_schema_from_config(ext_id: str) -> dict:
         return schema if isinstance(schema, dict) else {}
     except Exception:
         return {}
+
+
+def _load_payment_tags_from_config(ext_id: str) -> list[str]:
+    try:
+        conf_path = Path(
+            settings.lnbits_extensions_path, "extensions", ext_id, "config.json"
+        )
+        if not conf_path.is_file():
+            return []
+        with open(conf_path, "r+") as json_file:
+            config_json = json.load(json_file)
+        tags = config_json.get("payment_tags", [])
+        return tags if isinstance(tags, list) else []
+    except Exception:
+        return []
+
+
+def _merge_permissions(required: list[str], granted: list[str]) -> list[str]:
+    merged = set()
+    for perm in required or []:
+        merged.add(perm)
+    for perm in granted or []:
+        merged.add(perm)
+    return list(merged)
+
+
+def _ensure_payment_tags_allowed(required: list[str], granted: list[str]) -> None:
+    if not required and granted:
+        raise HTTPException(
+            HTTPStatus.BAD_REQUEST,
+            "This extension does not declare any payment tags.",
+        )
+    if not required or not granted:
+        return
+    invalid = [t for t in granted if t not in required]
+    if invalid:
+        raise HTTPException(
+            HTTPStatus.BAD_REQUEST,
+            f"Invalid payment tags requested: {', '.join(invalid)}",
+        )
+
+
+def _ensure_api_permissions_available(request: Request, permissions: list[str]) -> None:
+    if not permissions:
+        return
+    missing = []
+    for perm in permissions:
+        parsed = _parse_api_permission(perm)
+        if not parsed:
+            continue
+        method, path = parsed
+        if not _route_exists(request, method, path):
+            missing.append(perm)
+    if missing:
+        raise HTTPException(
+            HTTPStatus.BAD_REQUEST,
+            f"Permissions reference missing endpoints: {', '.join(missing)}",
+        )
+
+
+def _parse_api_permission(perm: str) -> tuple[str, str] | None:
+    if not perm.startswith("api."):
+        return None
+    try:
+        method_part, path = perm.split(":", 1)
+        method = method_part.replace("api.", "").upper()
+    except ValueError:
+        return None
+    if not path.startswith("/"):
+        return None
+    return method, path
+
+
+def _missing_api_permissions(request: Request, permissions: list[str]) -> list[str]:
+    missing = []
+    for perm in permissions or []:
+        parsed = _parse_api_permission(perm)
+        if not parsed:
+            continue
+        method, path = parsed
+        if not _route_exists(request, method, path):
+            missing.append(perm)
+    return missing
+
+
+def _route_exists(request: Request, method: str, path: str) -> bool:
+    scope = {
+        "type": "http",
+        "method": method,
+        "path": path,
+        "root_path": "",
+        "headers": [],
+    }
+    for route in request.app.router.routes:
+        methods = getattr(route, "methods", None)
+        if methods and method not in methods:
+            continue
+        try:
+            match, _ = route.matches(scope)
+        except Exception:
+            continue
+        if match == Match.FULL:
+            return True
+    return False
+
+
+def _is_wasm_extension(ext_id: str, ext: InstallableExtension) -> bool:
+    if ext.meta and ext.meta.extension_type == "wasm":
+        return True
+    try:
+        conf_path = Path(
+            settings.lnbits_extensions_path, "extensions", ext_id, "config.json"
+        )
+        if not conf_path.is_file():
+            return False
+        with open(conf_path, "r+") as json_file:
+            config_json = json.load(json_file)
+        return config_json.get("extension_type") == "wasm"
+    except Exception:
+        return False
 
 
 @extension_router.get(

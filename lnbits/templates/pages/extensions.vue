@@ -956,6 +956,31 @@
         </q-list>
         <div
           v-if="
+            permissionsDialog.tagOptions &&
+            permissionsDialog.tagOptions.length
+          "
+          class="q-mt-md"
+        >
+          <div class="text-caption text-grey">
+            Allow this extension to listen for payment tags:
+          </div>
+          <q-list>
+            <q-item
+              v-for="tag in permissionsDialog.tagOptions"
+              :key="tag"
+              clickable
+            >
+              <q-item-section>
+                <q-item-label v-text="tag"></q-item-label>
+              </q-item-section>
+              <q-item-section side>
+                <q-checkbox v-model="permissionsDialog.tags" :val="tag" />
+              </q-item-section>
+            </q-item>
+          </q-list>
+        </div>
+        <div
+          v-if="
             permissionsDialog.extension &&
             permissionsDialog.extension.kvSchemaKeys &&
             permissionsDialog.extension.kvSchemaKeys.length
@@ -974,6 +999,22 @@
             class="q-mr-xs q-mt-xs"
           />
         </div>
+        <div
+          v-if="permissionsDialog.missing && permissionsDialog.missing.length"
+          class="q-mt-md text-negative"
+        >
+          <div class="text-caption">
+            Missing API endpoints required by this extension:
+          </div>
+          <q-chip
+            v-for="perm in permissionsDialog.missing"
+            :key="perm"
+            :label="perm"
+            color="red-2"
+            text-color="black"
+            class="q-mr-xs q-mt-xs"
+          />
+        </div>
       </q-card-section>
       <q-card-actions align="right">
         <q-btn
@@ -984,7 +1025,7 @@
         ></q-btn>
         <q-btn
           color="primary"
-          :disable="!permissionsAllChecked"
+          :disable="!permissionsAllChecked || permissionsHasMissingEndpoints"
           label="Save"
           @click="confirmPermissionsDialog"
         ></q-btn>

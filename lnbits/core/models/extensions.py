@@ -87,6 +87,7 @@ class ExtensionConfig(BaseModel):
     extension_type: str | None = "python"
     public_kv_keys: list[str] = []
     public_wasm_functions: list[str] = []
+    payment_tags: list[str] = []
 
     def is_version_compatible(self) -> bool:
         return is_lnbits_version_ok(self.min_lnbits_version, self.max_lnbits_version)
@@ -120,6 +121,7 @@ class UserExtensionInfo(BaseModel):
     paid_to_enable: bool | None = False
     payment_hash_to_enable: str | None = None
     granted_permissions: list[str] | None = None
+    granted_payment_tags: list[str] | None = None
 
 
 class ExtensionPermission(BaseModel):
@@ -131,6 +133,7 @@ class ExtensionPermission(BaseModel):
 
 class ExtensionPermissionsGrant(BaseModel):
     permissions: list[str] = []
+    payment_tags: list[str] = []
 
 
 class UserExtension(BaseModel):
@@ -166,6 +169,7 @@ class Extension(BaseModel):
     extension_type: str | None = None
     public_kv_keys: list[str] = []
     public_wasm_functions: list[str] = []
+    payment_tags: list[str] = []
 
     @property
     def module_name(self) -> str:
@@ -194,6 +198,7 @@ class Extension(BaseModel):
             public_wasm_functions=ext_info.meta.public_wasm_functions
             if ext_info.meta
             else [],
+            payment_tags=ext_info.meta.payment_tags if ext_info.meta else [],
         )
 
 
@@ -359,6 +364,7 @@ class ExtensionMeta(BaseModel):
     extension_type: str | None = "python"
     public_kv_keys: list[str] = []
     public_wasm_functions: list[str] = []
+    payment_tags: list[str] = []
     archive: str | None = None
     featured: bool = False
     paid_features: str | None = None
@@ -489,6 +495,7 @@ class InstallableExtension(BaseModel):
                 self.meta.public_wasm_functions = config_json.get(
                     "public_wasm_functions", []
                 )
+                self.meta.payment_tags = config_json.get("payment_tags", [])
 
             if (
                 self.meta
@@ -611,6 +618,7 @@ class InstallableExtension(BaseModel):
                     extension_type=config.extension_type,
                     public_kv_keys=config.public_kv_keys,
                     public_wasm_functions=config.public_wasm_functions,
+                    payment_tags=config.payment_tags,
                 ),
             )
         except Exception as e:
@@ -663,6 +671,7 @@ class InstallableExtension(BaseModel):
                         public_wasm_functions=config_json.get(
                             "public_wasm_functions", []
                         ),
+                        payment_tags=config_json.get("payment_tags", []),
                     ),
                 )
 

@@ -313,6 +313,11 @@ async def send_ws_payment_notification(wallet: Wallet, payment: Payment):
         payment.payment_hash,
         json.dumps({"pending": payment.pending, "status": payment.status}),
     )
+    if payment.tag and not payment.is_out:
+        await websocket_manager.send(
+            f"tag:{wallet.id}:{payment.tag}",
+            payment.json(),
+        )
 
 
 async def send_chat_payment_notification(wallet: Wallet, payment: Payment):
