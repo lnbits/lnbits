@@ -115,6 +115,8 @@ class PayToEnableInfo(BaseModel):
 class UserExtensionInfo(BaseModel):
     paid_to_enable: bool | None = False
     payment_hash_to_enable: str | None = None
+    granted_permissions: list[str] | None = None
+    granted_payment_tags: list[str] | None = None
 
 
 class UserExtension(BaseModel):
@@ -147,6 +149,7 @@ class Extension(BaseModel):
     short_description: str | None = None
     tile: str | None = None
     upgrade_hash: str | None = ""
+    extension_type: str | None = None
 
     @property
     def module_name(self) -> str:
