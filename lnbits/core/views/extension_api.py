@@ -8,8 +8,8 @@ import httpx
 from bolt11 import decode as bolt11_decode
 from fastapi import APIRouter, Body, Depends, HTTPException
 from fastapi.requests import Request
-from starlette.routing import Match
 from loguru import logger
+from starlette.routing import Match
 
 from lnbits.core.crud.extensions import get_user_extensions
 from lnbits.core.crud.wallets import get_wallets_ids
@@ -35,7 +35,6 @@ from lnbits.core.models.extensions import (
     UserExtension,
     UserExtensionInfo,
 )
-from lnbits.core.wasm import WASM_HOST_MANIFEST
 from lnbits.core.models.users import Account, AccountId
 from lnbits.core.services import check_transaction_status, create_invoice
 from lnbits.core.services.extensions import (
@@ -46,6 +45,7 @@ from lnbits.core.services.extensions import (
     install_extension,
     uninstall_extension,
 )
+from lnbits.core.wasm import WASM_HOST_MANIFEST
 from lnbits.core.wasm.extension_host import (
     clear_schedules_for_user,
     clear_tag_watches_for_user,
@@ -976,7 +976,8 @@ def _route_exists(request: Request, method: str, path: str) -> bool:
             continue
         try:
             match, _ = route.matches(scope)
-        except Exception:
+        except Exception as exc:
+            logger.debug(f"Route match failed for {method} {path}: {exc!s}")
             continue
         if match == Match.FULL:
             return True

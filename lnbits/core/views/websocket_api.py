@@ -15,7 +15,9 @@ async def websocket_connect(websocket: WebSocket, item_id: str) -> None:
 
 @websocket_router.websocket("/tag/{tag}")
 async def websocket_connect_tag(websocket: WebSocket, tag: str) -> None:
-    api_key = websocket.headers.get("X-API-KEY") or websocket.query_params.get("api-key")
+    api_key = websocket.headers.get("X-API-KEY") or websocket.query_params.get(
+        "api-key"
+    )
     if not api_key:
         await websocket.close(code=4401)
         return

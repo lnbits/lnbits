@@ -4,22 +4,22 @@ import asyncio
 import json
 import re
 import time
-from pathlib import Path
 from dataclasses import dataclass
+from pathlib import Path
 from typing import Any
 
 import httpx
 from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import HTMLResponse, Response
 from fastapi.staticfiles import StaticFiles
+from loguru import logger
 
 from lnbits.core.crud.extensions import get_user_extension
+from lnbits.core.crud.payments import get_standalone_payment, update_payment
+from lnbits.core.crud.wallets import get_wallet
 from lnbits.core.models import User
 from lnbits.core.models.payments import Payment
-from lnbits.core.crud.wallets import get_wallet
-from lnbits.core.crud.payments import get_standalone_payment, update_payment
 from lnbits.core.services import websocket_updater
-from loguru import logger
 from lnbits.db import Database
 from lnbits.decorators import check_user_exists
 from lnbits.helpers import template_renderer
@@ -42,6 +42,7 @@ class TagWatch:
 
 _tag_watchers: dict[tuple[str, str], list[TagWatch]] = {}
 _TAG_WATCH_KV_KEY = "watch_tags"
+_background_tasks: list[asyncio.Task] = []
 
 
 @dataclass
@@ -323,19 +324,23 @@ async def handle_wasm_tag_payment(payment: Payment) -> None:
     if not watchers:
         return
     for watch in watchers:
-        asyncio.create_task(_dispatch_tag_watch(payment, watch))
+        _background_tasks.append(
+            asyncio.create_task(_dispatch_tag_watch(payment, watch))
+        )
 
 
 async def _dispatch_tag_watch(payment: Payment, watch: TagWatch) -> None:
     try:
         user_ext = await get_user_extension(watch.user_id, watch.ext_id)
         if not user_ext or not user_ext.active:
-            _remove_tag_watch(payment.wallet_id, payment.tag, watch)
+            if payment.tag:
+                _remove_tag_watch(payment.wallet_id, payment.tag, watch)
             await _remove_persisted_tag_watch(watch.ext_id, watch)
             return
         granted_tags = user_ext.extra.granted_payment_tags if user_ext.extra else []
         if watch.tag not in (granted_tags or []):
-            _remove_tag_watch(payment.wallet_id, payment.tag, watch)
+            if payment.tag:
+                _remove_tag_watch(payment.wallet_id, payment.tag, watch)
             await _remove_persisted_tag_watch(watch.ext_id, watch)
             return
 
@@ -409,7 +414,9 @@ async def clear_tag_watches_for_user(ext_id: str, user_id: str) -> None:
     keys = list(_tag_watchers.keys())
     for wallet_id, tag in keys:
         existing = _tag_watchers.get((wallet_id, tag), [])
-        remaining = [w for w in existing if not (w.ext_id == ext_id and w.user_id == user_id)]
+        remaining = [
+            w for w in existing if not (w.ext_id == ext_id and w.user_id == user_id)
+        ]
         if remaining:
             _tag_watchers[(wallet_id, tag)] = remaining
         else:
@@ -488,11 +495,13 @@ async def restore_tag_watches(ext_id: str, upgrade_hash: str | None) -> None:
 async def wasm_scheduler() -> None:
     while settings.lnbits_running:
         now = time.time()
-        for ext_id, tasks in list(_scheduled_tasks.items()):
+        for _ext_id, tasks in list(_scheduled_tasks.items()):
             for task in list(tasks):
                 if task.next_run > now:
                     continue
-                asyncio.create_task(_dispatch_schedule_task(task))
+                _background_tasks.append(
+                    asyncio.create_task(_dispatch_schedule_task(task))
+                )
                 task.next_run = now + max(1, task.interval_seconds)
         await asyncio.sleep(1)
 
@@ -501,14 +510,18 @@ async def _dispatch_schedule_task(task: ScheduleTask) -> None:
     try:
         user_ext = await get_user_extension(task.user_id, task.ext_id)
         if not user_ext or not user_ext.active:
-            _remove_schedule_entries(task.ext_id, task.user_id, task.handler, task.store_key)
+            _remove_schedule_entries(
+                task.ext_id, task.user_id, task.handler, task.store_key
+            )
             await _remove_persisted_schedule_entries(
                 task.ext_id, task.user_id, task.handler, task.store_key
             )
             return
         granted = user_ext.extra.granted_permissions if user_ext.extra else []
         if "ext.tasks.schedule" not in (granted or []):
-            _remove_schedule_entries(task.ext_id, task.user_id, task.handler, task.store_key)
+            _remove_schedule_entries(
+                task.ext_id, task.user_id, task.handler, task.store_key
+            )
             await _remove_persisted_schedule_entries(
                 task.ext_id, task.user_id, task.handler, task.store_key
             )
@@ -839,9 +852,9 @@ def _register_public_call_routes(
 ) -> None:
     @router.post("/api/v1/public/call/{handler}")
     async def api_public_wasm_call(handler: str, payload: dict):
-        funcs = getattr(ext, "public_wasm_functions", None) or _load_public_wasm_functions(
-            ext_id
-        )
+        funcs = getattr(
+            ext, "public_wasm_functions", None
+        ) or _load_public_wasm_functions(ext_id)
         if handler not in funcs:
             raise HTTPException(404, "Handler not public")
         _check_quota("public", ext_id, "db", settings.lnbits_wasm_max_db_ops_per_min)
@@ -936,7 +949,9 @@ def _register_kv_write_routes(router: APIRouter, ext_id: str, db: Database) -> N
         return {"key": key, "value": value}
 
 
-def _register_watch_routes(router: APIRouter, ext_id: str, db: Database, ext) -> None:
+def _register_watch_routes(  # noqa: C901
+    router: APIRouter, ext_id: str, db: Database, ext
+) -> None:
     @router.post("/api/v1/watch")
     async def api_watch_payment(payload: dict, user: User = Depends(check_user_exists)):
         payment_hash = payload.get("payment_hash")
@@ -971,9 +986,9 @@ def _register_watch_routes(router: APIRouter, ext_id: str, db: Database, ext) ->
         if not wallet or wallet.user != user.id:
             raise HTTPException(403, "Wallet not found or not owned by user")
 
-        funcs = getattr(ext, "public_wasm_functions", None) or _load_public_wasm_functions(
-            ext_id
-        )
+        funcs = getattr(
+            ext, "public_wasm_functions", None
+        ) or _load_public_wasm_functions(ext_id)
         if handler not in funcs:
             raise HTTPException(400, "Handler not allowed")
 
@@ -1022,9 +1037,7 @@ def _register_watch_routes(router: APIRouter, ext_id: str, db: Database, ext) ->
         wallet = await get_wallet(wallet_id)
         if not wallet or wallet.user != user.id:
             raise HTTPException(403, "Wallet not found or not owned by user")
-        _remove_tag_watch_entries(
-            ext_id, user.id, wallet_id, tag, handler, store_key
-        )
+        _remove_tag_watch_entries(ext_id, user.id, wallet_id, tag, handler, store_key)
         await _remove_persisted_tag_watch_entries(
             ext_id, user.id, wallet_id, tag, handler, store_key
         )
@@ -1040,16 +1053,16 @@ def _register_watch_routes(router: APIRouter, ext_id: str, db: Database, ext) ->
         try:
             interval_seconds = int(interval_seconds)
         except Exception:
-            raise HTTPException(400, "Invalid interval_seconds")
+            raise HTTPException(400, "Invalid interval_seconds") from None
         if interval_seconds < 5:
             raise HTTPException(400, "Minimum interval is 5 seconds")
 
         await _require_permission(user.id, ext_id, "ext.tasks.schedule")
         await _require_permission(user.id, ext_id, "ext.db.read_write")
 
-        funcs = getattr(ext, "public_wasm_functions", None) or _load_public_wasm_functions(
-            ext_id
-        )
+        funcs = getattr(
+            ext, "public_wasm_functions", None
+        ) or _load_public_wasm_functions(ext_id)
         if handler not in funcs:
             raise HTTPException(400, "Handler not allowed")
 
@@ -1088,7 +1101,7 @@ def _register_watch_routes(router: APIRouter, ext_id: str, db: Database, ext) ->
         await _require_permission(user.id, ext_id, "ext.db.sql")
         _check_quota(user.id, ext_id, "db", settings.lnbits_wasm_max_db_ops_per_min)
         _validate_sql(ext_id, sql, read_only=True)
-        rows = await db.fetchall(sql, params)  # noqa: S608
+        rows: list[dict] = await db.fetchall(sql, params)
         return {"rows": rows}
 
     @router.post("/api/v1/sql/exec")
@@ -1102,11 +1115,11 @@ def _register_watch_routes(router: APIRouter, ext_id: str, db: Database, ext) ->
         await _require_permission(user.id, ext_id, "ext.db.sql")
         _check_quota(user.id, ext_id, "db", settings.lnbits_wasm_max_db_ops_per_min)
         _validate_sql(ext_id, sql, read_only=False)
-        await db.execute(sql, params)  # noqa: S608
+        await db.execute(sql, params)
         return {"ok": True}
 
 
-def _start_payment_watch(
+def _start_payment_watch(  # noqa: C901
     ext_id: str,
     db: Database,
     payment_hash: str,
@@ -1118,20 +1131,24 @@ def _start_payment_watch(
     queue_name = f"wasm:{ext_id}:{payment_hash}:{time.time()}"
     invoice_queue: asyncio.Queue = asyncio.Queue()
     register_invoice_listener(invoice_queue, queue_name)
-    logger.debug(f"wasm watch registered ext={ext_id} hash={payment_hash} store_key={store_key}")
+    logger.debug(
+        f"wasm watch registered ext={ext_id} hash={payment_hash} store_key={store_key}"
+    )
 
     async def _watch():
         try:
             existing = await get_standalone_payment(payment_hash, incoming=True)
             if existing and existing.pending is False:
-                logger.debug(f"wasm watch already paid ext={ext_id} hash={payment_hash}")
+                logger.debug(
+                    f"wasm watch already paid ext={ext_id} hash={payment_hash}"
+                )
                 if tag:
                     extra = existing.extra or {}
                     if extra.get("tag") != tag:
                         extra["tag"] = tag
                         existing.extra = extra
                         existing.tag = tag
-                        await update_payment(existing, conn=db)
+                        await update_payment(existing)
                 payload_json = json.dumps(existing.dict(exclude={"preimage"}))
                 await _kv_set(db, ext_id, store_key, payload_json)
                 await websocket_updater(f"{ext_id}:{store_key}", payload_json)
@@ -1154,14 +1171,19 @@ def _start_payment_watch(
                 payment = await invoice_queue.get()
                 if payment.payment_hash != payment_hash:
                     continue
-                logger.debug(f"wasm watch event ext={ext_id} hash={payment_hash} pending={payment.pending}")
+                logger.debug(
+                    "wasm watch event ext=%s hash=%s pending=%s",
+                    ext_id,
+                    payment_hash,
+                    payment.pending,
+                )
                 if tag:
                     extra = payment.extra or {}
                     if extra.get("tag") != tag:
                         extra["tag"] = tag
                         payment.extra = extra
                         payment.tag = tag
-                        await update_payment(payment, conn=db)
+                        await update_payment(payment)
                 if payment.pending is False:
                     payload_json = json.dumps(payment.dict(exclude={"preimage"}))
                     await _kv_set(db, ext_id, store_key, payload_json)
@@ -1171,7 +1193,9 @@ def _start_payment_watch(
                         "store_key": store_key,
                         "tag": tag,
                     }
-                    await _kv_set(db, ext_id, "watch_request", json.dumps(watch_payload))
+                    await _kv_set(
+                        db, ext_id, "watch_request", json.dumps(watch_payload)
+                    )
                     watch_value = store_key.rsplit(":", 1)[-1]
                     await _kv_set(db, ext_id, "public_request", watch_value)
                     await wasm_call(
@@ -1251,8 +1275,12 @@ def register_wasm_ext_routes(app, ext) -> None:
 
     prefix = f"/upgrades/{ext.upgrade_hash}" if ext.upgrade_hash else ""
     app.include_router(router, prefix=prefix)
-    asyncio.create_task(restore_tag_watches(ext_id, ext.upgrade_hash))
-    asyncio.create_task(restore_schedules(ext_id, ext.upgrade_hash))
+    _background_tasks.append(
+        asyncio.create_task(restore_tag_watches(ext_id, ext.upgrade_hash))
+    )
+    _background_tasks.append(
+        asyncio.create_task(restore_schedules(ext_id, ext.upgrade_hash))
+    )
 
 
 _quota_events: dict[tuple[str, str, str], list[float]] = {}

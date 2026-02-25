@@ -36,8 +36,10 @@ from lnbits.core.tasks import (
     purge_audit_data,
     run_by_the_minute_tasks,
     wait_for_audit_data,
-    wait_for_paid_invoices,
     wait_notification_messages,
+)
+from lnbits.core.tasks import (
+    wait_for_paid_invoices as wait_for_paid_invoices_core,
 )
 from lnbits.core.wasm.extension_host import (
     handle_wasm_tag_payment,
@@ -51,6 +53,9 @@ from lnbits.tasks import (
     cancel_all_tasks,
     create_permanent_task,
     register_invoice_listener,
+)
+from lnbits.tasks import (
+    wait_for_paid_invoices as wait_for_paid_invoices_listener,
 )
 from lnbits.utils.cache import cache
 from lnbits.utils.logger import (
@@ -504,10 +509,12 @@ def register_async_tasks() -> None:
     # core invoice listener
     invoice_queue: asyncio.Queue = asyncio.Queue()
     register_invoice_listener(invoice_queue, "core")
-    create_permanent_task(lambda: wait_for_paid_invoices(invoice_queue))
+    create_permanent_task(lambda: wait_for_paid_invoices_core(invoice_queue))
 
     # wasm tag watcher listener
-    create_permanent_task(wait_for_paid_invoices("wasm_tags", handle_wasm_tag_payment))
+    create_permanent_task(
+        wait_for_paid_invoices_listener("wasm_tags", handle_wasm_tag_payment)
+    )
     create_permanent_task(wasm_scheduler)
 
     create_permanent_task(run_by_the_minute_tasks)

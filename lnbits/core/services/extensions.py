@@ -21,7 +21,7 @@ from lnbits.core.wasm.extension_host import (
     clear_schedules_for_extension,
     clear_tag_watches_for_extension,
 )
-from lnbits.db import Connection, Database, COCKROACH, POSTGRES
+from lnbits.db import COCKROACH, POSTGRES, Connection, Database
 from lnbits.settings import settings
 
 from ..models.extensions import Extension, ExtensionMeta, InstallableExtension
@@ -93,7 +93,7 @@ async def _purge_wasm_extension_db(ext_id: str) -> None:
     try:
         db = Database(f"ext_{ext_id}")
         if db.type in {POSTGRES, COCKROACH}:
-            await db.execute(f"DROP SCHEMA IF EXISTS {ext_id} CASCADE")  # noqa: S608
+            await db.execute(f"DROP SCHEMA IF EXISTS {ext_id} CASCADE")
     except Exception as exc:
         logger.warning(f"Failed to drop WASM extension schema for '{ext_id}': {exc}")
 

@@ -19,8 +19,8 @@ from wasmtime import (
     ValType,
 )
 
-from lnbits.db import Database
 from lnbits.core.services import websocket_updater
+from lnbits.db import Database
 from lnbits.settings import settings
 
 _kv_schema_cache: dict[str, dict] = {}
@@ -169,7 +169,8 @@ def _get_memory(caller: Caller):
 
 def _read_bytes(caller: Caller, ptr: int, length: int) -> bytes:
     memory = _get_memory(caller)
-    return memory.read(caller, ptr, ptr + length)
+    # wasmtime's memory API is dynamically typed; keep pyright quiet
+    return memory.read(caller, ptr, ptr + length)  # type: ignore[attr-defined]
 
 
 def _write_bytes(caller: Caller, ptr: int, data: bytes) -> None:
@@ -179,7 +180,7 @@ def _write_bytes(caller: Caller, ptr: int, data: bytes) -> None:
     elif isinstance(data, str):
         data = data.encode()
     try:
-        memory.write(caller, data, ptr)
+        memory.write(caller, data, ptr)  # type: ignore[attr-defined]
     except Exception as exc:
         raise RuntimeError(f"memory.write failed for type={type(data)}") from exc
 
@@ -468,6 +469,35 @@ def _load_module(module_path: Path, ext_id: str):
             access_caller=True,
         ),
     )
+
+    def _http_request_wrapper(
+        caller,
+        method_ptr,
+        method_len,
+        path_ptr,
+        path_len,
+        body_ptr,
+        body_len,
+        key_ptr,
+        key_len,
+        out_ptr,
+        out_len,
+    ):
+        return _http_request(
+            ext_id,
+            caller,
+            method_ptr,
+            method_len,
+            path_ptr,
+            path_len,
+            body_ptr,
+            body_len,
+            key_ptr,
+            key_len,
+            out_ptr,
+            out_len,
+        )
+
     linker_define(
         linker,
         "host",
@@ -489,20 +519,7 @@ def _load_module(module_path: Path, ext_id: str):
                 ],
                 [ValType.i32()],
             ),
-            lambda caller, method_ptr, method_len, path_ptr, path_len, body_ptr, body_len, key_ptr, key_len, out_ptr, out_len: _http_request(
-                ext_id,
-                caller,
-                method_ptr,
-                method_len,
-                path_ptr,
-                path_len,
-                body_ptr,
-                body_len,
-                key_ptr,
-                key_len,
-                out_ptr,
-                out_len,
-            ),
+            _http_request_wrapper,
             access_caller=True,
         ),
     )
@@ -519,10 +536,10 @@ def _load_module(module_path: Path, ext_id: str):
             lambda caller, topic_ptr, topic_len, payload_ptr, payload_len: _run(
                 _ws_publish(
                     ext_id,
-                    _read_bytes(caller, topic_ptr, topic_len)
-                    .decode(errors="ignore"),
-                    _read_bytes(caller, payload_ptr, payload_len)
-                    .decode(errors="ignore"),
+                    _read_bytes(caller, topic_ptr, topic_len).decode(errors="ignore"),
+                    _read_bytes(caller, payload_ptr, payload_len).decode(
+                        errors="ignore"
+                    ),
                 )
             ),
             access_caller=True,

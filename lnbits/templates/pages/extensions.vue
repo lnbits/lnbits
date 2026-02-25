@@ -956,8 +956,7 @@
         </q-list>
         <div
           v-if="
-            permissionsDialog.tagOptions &&
-            permissionsDialog.tagOptions.length
+            permissionsDialog.tagOptions && permissionsDialog.tagOptions.length
           "
           class="q-mt-md"
         >

@@ -195,9 +195,9 @@ class Extension(BaseModel):
             upgrade_hash=ext_info.hash if ext_info.ext_upgrade_dir.is_dir() else "",
             extension_type=ext_info.meta.extension_type if ext_info.meta else None,
             public_kv_keys=ext_info.meta.public_kv_keys if ext_info.meta else [],
-            public_wasm_functions=ext_info.meta.public_wasm_functions
-            if ext_info.meta
-            else [],
+            public_wasm_functions=(
+                ext_info.meta.public_wasm_functions if ext_info.meta else []
+            ),
             payment_tags=ext_info.meta.payment_tags if ext_info.meta else [],
         )
 
