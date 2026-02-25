@@ -50,9 +50,6 @@ from lnbits.tasks import (
     create_permanent_task,
     register_invoice_listener,
 )
-from lnbits.tasks import (
-    wait_for_paid_invoices as wait_for_paid_invoices_listener,
-)
 from lnbits.utils.cache import cache
 from lnbits.utils.logger import (
     configure_logger,
