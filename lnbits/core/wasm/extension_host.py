@@ -14,7 +14,9 @@ from fastapi.staticfiles import StaticFiles
 
 from lnbits.core.crud.extensions import get_user_extension
 from lnbits.core.models import User
+from lnbits.core.crud.payments import get_standalone_payment, update_payment
 from lnbits.core.services import websocket_updater
+from loguru import logger
 from lnbits.db import Database
 from lnbits.decorators import check_user_exists
 from lnbits.helpers import template_renderer
@@ -440,20 +442,62 @@ def _start_payment_watch(
     queue_name = f"wasm:{ext_id}:{payment_hash}:{time.time()}"
     invoice_queue: asyncio.Queue = asyncio.Queue()
     register_invoice_listener(invoice_queue, queue_name)
+    logger.debug(f"wasm watch registered ext={ext_id} hash={payment_hash} store_key={store_key}")
 
     async def _watch():
         try:
+            existing = await get_standalone_payment(payment_hash, incoming=True)
+            if existing and existing.pending is False:
+                logger.debug(f"wasm watch already paid ext={ext_id} hash={payment_hash}")
+                if tag:
+                    extra = existing.extra or {}
+                    if extra.get("tag") != tag:
+                        extra["tag"] = tag
+                        existing.extra = extra
+                        existing.tag = tag
+                        await update_payment(existing, conn=db)
+                payload_json = json.dumps(existing.dict(exclude={"preimage"}))
+                await _kv_set(db, ext_id, store_key, payload_json)
+                await websocket_updater(f"{ext_id}:{store_key}", payload_json)
+                watch_payload = {
+                    "payment_hash": payment_hash,
+                    "store_key": store_key,
+                    "tag": tag,
+                }
+                await _kv_set(db, ext_id, "watch_request", json.dumps(watch_payload))
+                watch_value = store_key.rsplit(":", 1)[-1]
+                await _kv_set(db, ext_id, "public_request", watch_value)
+                await wasm_call(
+                    ext_id,
+                    handler,
+                    [],
+                    upgrade_hash=upgrade_hash,
+                )
+                return
             while True:
                 payment = await invoice_queue.get()
                 if payment.payment_hash != payment_hash:
                     continue
+                logger.debug(f"wasm watch event ext={ext_id} hash={payment_hash} pending={payment.pending}")
                 if tag:
                     extra = payment.extra or {}
                     if extra.get("tag") != tag:
-                        continue
+                        extra["tag"] = tag
+                        payment.extra = extra
+                        payment.tag = tag
+                        await update_payment(payment, conn=db)
                 if payment.pending is False:
                     payload_json = json.dumps(payment.dict(exclude={"preimage"}))
                     await _kv_set(db, ext_id, store_key, payload_json)
+                    await websocket_updater(f"{ext_id}:{store_key}", payload_json)
+                    watch_payload = {
+                        "payment_hash": payment_hash,
+                        "store_key": store_key,
+                        "tag": tag,
+                    }
+                    await _kv_set(db, ext_id, "watch_request", json.dumps(watch_payload))
+                    watch_value = store_key.rsplit(":", 1)[-1]
+                    await _kv_set(db, ext_id, "public_request", watch_value)
                     await wasm_call(
                         ext_id,
                         handler,
