@@ -96,6 +96,11 @@ def register_invoice_listener(send_chan: asyncio.Queue, name: str | None = None)
     invoice_listeners[name] = send_chan
 
 
+def unregister_invoice_listener(name: str) -> None:
+    if name in invoice_listeners:
+        invoice_listeners.pop(name, None)
+
+
 internal_invoice_queue: asyncio.Queue = asyncio.Queue(0)
 
 

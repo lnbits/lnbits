@@ -1,6 +1,8 @@
+import json
 import sys
 import traceback
 from http import HTTPStatus
+from pathlib import Path
 
 import httpx
 from bolt11 import decode as bolt11_decode
@@ -47,6 +49,20 @@ from lnbits.decorators import (
     check_admin,
 )
 from lnbits.settings import settings
+
+
+def _load_extension_type(ext_id: str) -> str:
+    try:
+        conf_path = Path(
+            settings.lnbits_extensions_path, "extensions", ext_id, "config.json"
+        )
+        if not conf_path.is_file():
+            return "python"
+        with open(conf_path, "r+") as json_file:
+            config_json = json.load(json_file)
+        return config_json.get("extension_type", "python")
+    except Exception:
+        return "python"
 
 from ..crud import (
     create_user_extension,
@@ -592,6 +608,7 @@ async def extensions(account_id: AccountId = Depends(check_account_id_exists)):
             "isPaymentRequired": ext.requires_payment,
             "inProgress": False,
             "selectedForUpdate": False,
+            "extensionType": _load_extension_type(ext.id),
         }
         for ext in installable_exts
     ]

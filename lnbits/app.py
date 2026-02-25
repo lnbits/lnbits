@@ -53,6 +53,10 @@ from lnbits.utils.logger import (
     log_server_info,
 )
 from lnbits.wallets import get_funding_source, set_funding_source
+try:
+    from lnbits.extensions.wasm.wasm_host.extension_host import register_wasm_ext_routes
+except Exception:  # pragma: no cover - optional parent extension
+    register_wasm_ext_routes = None
 
 from .commands import migrate_databases
 from .core import init_core_routers
@@ -419,6 +423,8 @@ def register_new_ratelimiter(app: FastAPI) -> Callable:
 
 def register_ext_tasks(ext: Extension) -> None:
     """Register extension async tasks."""
+    if ext.extension_type == "wasm":
+        return
     ext_module = importlib.import_module(ext.module_name)
 
     if hasattr(ext_module, f"{ext.code}_start"):
@@ -428,6 +434,18 @@ def register_ext_tasks(ext: Extension) -> None:
 
 def register_ext_routes(app: FastAPI, ext: Extension) -> None:
     """Register FastAPI routes for extension."""
+    if ext.extension_type != "wasm":
+        ext.extension_type = _load_extension_type(ext.code) or ext.extension_type
+    if ext.extension_type == "wasm":
+        settings.activate_extension_paths(ext.code, ext.upgrade_hash, [])
+        if register_wasm_ext_routes is None:
+            logger.error(
+                "WASM host extension not installed; cannot register wasm extension "
+                f"{ext.code}."
+            )
+            return
+        register_wasm_ext_routes(app, ext)
+        return
     ext_module = importlib.import_module(ext.module_name)
 
     ext_route = getattr(ext_module, f"{ext.code}_ext")
@@ -451,6 +469,20 @@ def register_ext_routes(app: FastAPI, ext: Extension) -> None:
     logger.trace(f"Adding route for extension {ext_module}.")
     prefix = f"/upgrades/{ext.upgrade_hash}" if ext.upgrade_hash != "" else ""
     app.include_router(router=ext_route, prefix=prefix)
+
+
+def _load_extension_type(ext_id: str) -> str | None:
+    try:
+        conf_path = Path(
+            settings.lnbits_extensions_path, "extensions", ext_id, "config.json"
+        )
+        if not conf_path.is_file():
+            return None
+        with open(conf_path, "r+") as json_file:
+            config_json = json.load(json_file)
+        return config_json.get("extension_type")
+    except Exception:
+        return None
 
 
 async def check_and_register_extensions(app: FastAPI) -> None:

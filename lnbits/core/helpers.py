@@ -22,6 +22,8 @@ from lnbits.settings import settings
 async def migrate_extension_database(
     ext: InstallableExtension, current_version: DbVersion | None = None
 ):
+    if _is_wasm_extension(ext):
+        return
 
     try:
         ext_migrations = importlib.import_module(f"{ext.module_name}.migrations")
@@ -32,6 +34,34 @@ async def migrate_extension_database(
 
     async with ext_db.connect() as ext_conn:
         await run_migration(ext_conn, ext_migrations, ext.id, current_version)
+
+
+def _is_wasm_extension(ext: InstallableExtension) -> bool:
+    if ext.meta and getattr(ext.meta, "extension_type", None) == "wasm":
+        return True
+
+    try:
+        import json
+        from pathlib import Path
+
+        candidate_dirs = [
+            Path(ext.ext_dir),
+            Path(settings.lnbits_extensions_path, "extensions", ext.id),
+            Path(settings.lnbits_path, "extensions", ext.id),
+            Path.cwd() / "extensions" / ext.id,
+        ]
+        for base in candidate_dirs:
+            conf_path = Path(base, "config.json")
+            if not conf_path.is_file():
+                continue
+            with open(conf_path, "r+") as json_file:
+                config_json = json.load(json_file)
+            if config_json.get("extension_type") == "wasm":
+                return True
+    except Exception as exc:
+        logger.debug(f"Failed to load extension config for '{ext.id}': {exc!s}")
+
+    return False
 
 
 async def run_migration(
