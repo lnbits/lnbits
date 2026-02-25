@@ -909,6 +909,11 @@ def _ensure_payment_tags_allowed(required: list[str], granted: list[str]) -> Non
             HTTPStatus.BAD_REQUEST,
             "This extension does not declare any payment tags.",
         )
+    if required and not granted:
+        raise HTTPException(
+            HTTPStatus.BAD_REQUEST,
+            "Select at least one payment tag before enabling this extension.",
+        )
     if not required or not granted:
         return
     invalid = [t for t in granted if t not in required]

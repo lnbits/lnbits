@@ -150,49 +150,6 @@
             autocomplete="off"
           ></q-input>
         </div>
-        <div class="col-12">
-          <p>
-            <span>WASM Sandbox Limits</span>
-          </p>
-          <div class="row q-col-gutter-md">
-            <div class="col-12 col-md-4">
-              <q-input
-                filled
-                type="number"
-                v-model.number="formData.lnbits_wasm_timeout_seconds"
-                label="WASM timeout (seconds)"
-                hint="Max wall time per WASM call"
-              ></q-input>
-            </div>
-            <div class="col-12 col-md-4">
-              <q-input
-                filled
-                type="number"
-                v-model.number="formData.lnbits_wasm_fuel"
-                label="WASM fuel limit"
-                hint="Max instruction budget per call"
-              ></q-input>
-            </div>
-            <div class="col-12 col-md-4">
-              <q-input
-                filled
-                type="number"
-                v-model.number="formData.lnbits_wasm_max_module_bytes"
-                label="Max module size (bytes)"
-                hint="Reject larger WASM/WAT modules"
-              ></q-input>
-            </div>
-            <div class="col-12 col-md-4">
-              <q-input
-                filled
-                type="number"
-                v-model.number="formData.lnbits_wasm_max_db_ops_per_min"
-                label="Max DB ops per minute"
-                hint="Per user per extension"
-              ></q-input>
-            </div>
-          </div>
-        </div>
       </div>
     </div>
   </q-card-section>

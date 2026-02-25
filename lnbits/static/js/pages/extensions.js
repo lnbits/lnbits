@@ -272,6 +272,18 @@ window.PageExtensions = {
           return
         }
       }
+      if (extension.paymentTags && extension.paymentTags.length) {
+        if (
+          !extension._grantedPaymentTags ||
+          !extension._grantedPaymentTags.length
+        ) {
+          Quasar.Notify.create({
+            type: 'warning',
+            message: 'Select payment tags before enabling this extension.'
+          })
+          return
+        }
+      }
       if (extension.isPaymentRequired) {
         this.showPayToEnable(extension)
         return
@@ -342,11 +354,15 @@ window.PageExtensions = {
       this.permissionsDialog.extension = extension
       this.permissionsDialog.checked = extension._grantedPermissions
         ? extension._grantedPermissions.slice()
-        : []
+        : extension.grantedPermissions
+          ? extension.grantedPermissions.slice()
+          : []
       this.permissionsDialog.missing = []
       this.permissionsDialog.tags = extension._grantedPaymentTags
         ? extension._grantedPaymentTags.slice()
-        : []
+        : extension.grantedPaymentTags
+          ? extension.grantedPaymentTags.slice()
+          : []
       this.permissionsDialog.tagOptions = []
       this.permissionsDialog.show = true
     },
@@ -367,9 +383,17 @@ window.PageExtensions = {
         return
       }
       this.permissionsDialog.extension = extension
-      this.permissionsDialog.checked = []
+      this.permissionsDialog.checked = extension._grantedPermissions
+        ? extension._grantedPermissions.slice()
+        : extension.grantedPermissions
+          ? extension.grantedPermissions.slice()
+          : []
       this.permissionsDialog.missing = []
-      this.permissionsDialog.tags = []
+      this.permissionsDialog.tags = extension._grantedPaymentTags
+        ? extension._grantedPaymentTags.slice()
+        : extension.grantedPaymentTags
+          ? extension.grantedPaymentTags.slice()
+          : []
       this.permissionsDialog.tagOptions = []
       try {
         const {data} = await LNbits.api.request(
@@ -408,7 +432,9 @@ window.PageExtensions = {
       }
       if (!ext) return
       ext._grantedPermissions = granted
+      ext.grantedPermissions = granted
       ext._grantedPaymentTags = tags
+      ext.grantedPaymentTags = tags
       try {
         await LNbits.api.request(
           'PUT',
