@@ -47,16 +47,23 @@ def _is_wasm_extension(ext: InstallableExtension) -> bool:
         candidate_dirs = [
             Path(ext.ext_dir),
             Path(settings.lnbits_extensions_path, "extensions", ext.id),
+            Path(settings.lnbits_extensions_path, ext.id),
+            Path(settings.lnbits_path, "lnbits", "extensions", ext.id),
             Path(settings.lnbits_path, "extensions", ext.id),
+            Path.cwd() / "lnbits" / "extensions" / ext.id,
             Path.cwd() / "extensions" / ext.id,
         ]
         for base in candidate_dirs:
             conf_path = Path(base, "config.json")
             if not conf_path.is_file():
                 continue
-            with open(conf_path, "r+") as json_file:
+            with open(conf_path, "r") as json_file:
                 config_json = json.load(json_file)
             if config_json.get("extension_type") == "wasm":
+                return True
+        for base in candidate_dirs:
+            wasm_dir = Path(base, "wasm")
+            if (wasm_dir / "module.wasm").is_file() or (wasm_dir / "module.wat").is_file():
                 return True
     except Exception as exc:
         logger.debug(f"Failed to load extension config for '{ext.id}': {exc!s}")

@@ -52,17 +52,35 @@ from lnbits.settings import settings
 
 
 def _load_extension_type(ext_id: str) -> str:
-    try:
-        conf_path = Path(
-            settings.lnbits_extensions_path, "extensions", ext_id, "config.json"
-        )
-        if not conf_path.is_file():
-            return "python"
-        with open(conf_path, "r+") as json_file:
-            config_json = json.load(json_file)
-        return config_json.get("extension_type", "python")
-    except Exception:
-        return "python"
+    base_dirs = [
+        Path(settings.lnbits_extensions_path, "extensions", ext_id),
+        Path(settings.lnbits_extensions_path, ext_id),
+        Path(settings.lnbits_path, "lnbits", "extensions", ext_id),
+        Path(settings.lnbits_path, "extensions", ext_id),
+        Path.cwd() / "lnbits" / "extensions" / ext_id,
+        Path.cwd() / "extensions" / ext_id,
+    ]
+    for base in base_dirs:
+        try:
+            conf_path = base / "config.json"
+            if not conf_path.is_file():
+                continue
+            with open(conf_path, "r") as json_file:
+                config_json = json.load(json_file)
+            ext_type = config_json.get("extension_type")
+            if ext_type:
+                return ext_type
+        except Exception:
+            continue
+
+    for base in base_dirs:
+        try:
+            wasm_dir = base / "wasm"
+            if (wasm_dir / "module.wasm").is_file() or (wasm_dir / "module.wat").is_file():
+                return "wasm"
+        except Exception:
+            continue
+    return "python"
 
 from ..crud import (
     create_user_extension,
