@@ -517,6 +517,69 @@
                       </q-toggle>
                     </div>
                   </div>
+                  <div class="row q-mb-md">
+                    <div class="col-4">
+                      <span v-text="$t('rounded_ui')"></span>
+                    </div>
+                    <div class="col-8">
+                      <q-toggle
+                        dense
+                        flat
+                        round
+                        icon="rounded_corner"
+                        v-model="g.cardRoundedChoice"
+                        @update:model-value="
+                          siteCustomisationChanged({cardRoundedChoice: $event})
+                        "
+                      >
+                        <q-tooltip
+                          ><span v-text="$t('toggle_rounded_ui')"></span
+                        ></q-tooltip>
+                      </q-toggle>
+                    </div>
+                  </div>
+                  <div class="row q-mb-md">
+                    <div class="col-4">
+                      <span v-text="$t('card_gradient')"></span>
+                    </div>
+                    <div class="col-8">
+                      <q-toggle
+                        dense
+                        flat
+                        round
+                        icon="gradient"
+                        v-model="g.cardGradientChoice"
+                        @update:model-value="
+                          siteCustomisationChanged({cardGradientChoice: $event})
+                        "
+                      >
+                        <q-tooltip
+                          ><span v-text="$t('toggle_card_gradient')"></span
+                        ></q-tooltip>
+                      </q-toggle>
+                    </div>
+                  </div>
+                  <div class="row q-mb-md">
+                    <div class="col-4">
+                      <span v-text="$t('card_shadow')"></span>
+                    </div>
+                    <div class="col-8">
+                      <q-toggle
+                        dense
+                        flat
+                        round
+                        icon="blur_on"
+                        v-model="g.cardShadowChoice"
+                        @update:model-value="
+                          siteCustomisationChanged({cardShadowChoice: $event})
+                        "
+                      >
+                        <q-tooltip
+                          ><span v-text="$t('toggle_card_shadow')"></span
+                        ></q-tooltip>
+                      </q-toggle>
+                    </div>
+                  </div>
 
                   <div class="row q-mb-md">
                     <div class="col-4">
@@ -591,9 +654,7 @@
                   </div>
                   <q-card-section>
                     <q-btn
-                      @click="
-                        siteCustomisationChanged(defaultSiteCustomisation)
-                      "
+                      @click="resetThemeDefaults"
                       :label="$t('reset_defaults')"
                       filled
                       color="primary"

@@ -55,6 +55,7 @@
                 ></q-input>
                 <q-input
                   filled
+                  v-if="g.settings.hasFirstInstallToken"
                   v-model.trim="loginData.firstInstallToken"
                   :type="loginData.isPwd ? 'password' : 'text'"
                   :label="$t('first_install_token')"

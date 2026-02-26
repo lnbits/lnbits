@@ -1,0 +1,49 @@
+standalone = true
+network = "regtest"
+
+# Path the the log file
+logfile = ""
+
+electrumUrl = "electrs:19001"
+electrumLiquidUrl = "electrs-liquid:19002"
+
+[BOLTZ]
+# By default the daemon automatically connects to the official Boltz instance for the network LND is on
+# This value is used to override that
+url = "http://boltz-nginx:9001"
+
+[DATABASE]
+# Path to the SQLite database file
+# path = "/home/michael/test.db"
+
+[RPC]
+# Host of
+host = "0.0.0.0"
+
+# Port of the gRPC interface
+port = 9002
+
+# Whether the REST proxy for the gRPC interface should be disabled
+restDisabled = false
+
+# Host of the REST proxy
+restHost = "0.0.0.0"
+
+# Port of the REST proxy
+restPort = 9003
+
+# Path to the TLS cert for the gRPC and REST interface
+tlsCert = ""
+
+# Path to the TLS private key for the gRPC and REST interface
+tlsKey = ""
+noTls = true
+
+# Whether the macaroon authentication for the gRPC and REST interface should be disabled
+noMacaroons = true
+
+# Path to the admin macaroon for the gRPC and REST interface
+adminMacaroonPath = ""
+
+# Path to the read only macaroon for the gRPC and REST interface
+readOnlyMacaroonPath = ""

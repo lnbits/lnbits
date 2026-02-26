@@ -2,7 +2,7 @@ import asyncio
 import json
 import time
 from collections.abc import AsyncGenerator
-from typing import Any
+from typing import Any, Literal
 
 import httpx
 from loguru import logger
@@ -24,6 +24,8 @@ from .base import (
     FiatSubscriptionResponse,
 )
 
+FiatMethod = Literal["checkout", "subscription"]
+
 
 class PayPalCheckoutOptions(BaseModel):
     class Config:
@@ -34,11 +36,21 @@ class PayPalCheckoutOptions(BaseModel):
     metadata: dict[str, Any] = Field(default_factory=dict)
 
 
+class PayPalSubscriptionOptions(BaseModel):
+    class Config:
+        extra = "ignore"
+
+    checking_id: str | None = None
+    payment_request: str | None = None
+
+
 class PayPalCreateInvoiceOptions(BaseModel):
     class Config:
         extra = "ignore"
 
+    fiat_method: FiatMethod = "checkout"
     checkout: PayPalCheckoutOptions | None = None
+    subscription: PayPalSubscriptionOptions | None = None
 
 
 class PayPalWallet(FiatProvider):
@@ -96,6 +108,14 @@ class PayPalWallet(FiatProvider):
         opts = self._parse_create_opts(extra or {})
         if opts is None:
             return FiatInvoiceResponse(ok=False, error_message="Invalid PayPal options")
+        if opts.fiat_method == "subscription":
+            term = opts.subscription or PayPalSubscriptionOptions()
+            checking_id = term.checking_id or urlsafe_short_hash()
+            return FiatInvoiceResponse(
+                ok=True,
+                checking_id=f"subscription_{checking_id}",
+                payment_request=term.payment_request or "",
+            )
 
         try:
             await self._ensure_access_token()
@@ -171,6 +191,7 @@ class PayPalWallet(FiatProvider):
             or "https://lnbits.com"
         )
 
+        logger.debug(f"Creating PayPal subscription with ID '{subscription_id}'")
         if not payment_options.subscription_request_id:
             payment_options.subscription_request_id = urlsafe_short_hash()
         payment_options.extra = payment_options.extra or {}
@@ -182,7 +203,6 @@ class PayPalWallet(FiatProvider):
             await self._ensure_access_token()
             payload = {
                 "plan_id": subscription_id,
-                "quantity": str(quantity),
                 "custom_id": self._serialize_metadata(payment_options),
                 "application_context": {
                     "return_url": success_url,
@@ -205,7 +225,7 @@ class PayPalWallet(FiatProvider):
             return FiatSubscriptionResponse(
                 ok=True,
                 checkout_session_url=approval_url,
-                subscription_request_id=payment_options.subscription_request_id,
+                subscription_request_id=data.get("id"),
             )
         except Exception as exc:
             logger.warning(exc)
@@ -219,6 +239,10 @@ class PayPalWallet(FiatProvider):
         correlation_id: str,
         **kwargs,
     ) -> FiatSubscriptionResponse:
+        logger.debug(
+            f"Cancelling PayPal subscription '{subscription_id}'. "
+            f"Correlation ID '{correlation_id}'."
+        )
         try:
             await self._ensure_access_token()
             r = await self.client.post(
@@ -240,12 +264,20 @@ class PayPalWallet(FiatProvider):
     async def get_invoice_status(self, checking_id: str) -> FiatPaymentStatus:
         try:
             await self._ensure_access_token()
-            order_id = self._normalize_paypal_id(checking_id)
-            r = await self.client.get(
-                f"/v2/checkout/orders/{order_id}", headers=self._auth_headers()
-            )
-            r.raise_for_status()
-            return self._status_from_order(r.json())
+            paypal_id = self._normalize_paypal_id(checking_id)
+            if paypal_id.startswith("subscription_"):
+                capture_id = paypal_id.replace("subscription_", "", 1)
+                r = await self.client.get(
+                    f"v2/payments/captures/{capture_id}", headers=self._auth_headers()
+                )
+                r.raise_for_status()
+                return self._status_from_capture(r.json())
+            else:
+                r = await self.client.get(
+                    f"/v2/checkout/orders/{paypal_id}", headers=self._auth_headers()
+                )
+                r.raise_for_status()
+                return self._status_from_order(r.json())
         except Exception as exc:
             logger.debug(f"Error getting PayPal order status: {exc}")
             return FiatPaymentPendingStatus()
@@ -270,6 +302,14 @@ class PayPalWallet(FiatProvider):
             return FiatPaymentFailedStatus()
         return FiatPaymentPendingStatus()
 
+    def _status_from_capture(self, order: dict[str, Any]) -> FiatPaymentStatus:
+        status = (order.get("status") or "").upper()
+        if status in ["COMPLETED"]:
+            return FiatPaymentSuccessStatus()
+        if status in ["DECLINED", "FAILED", "CANCELLED", "CANCELED"]:
+            return FiatPaymentFailedStatus()
+        return FiatPaymentPendingStatus()
+
     def _normalize_paypal_id(self, checking_id: str) -> str:
         return (
             checking_id.replace("fiat_paypal_", "", 1)
@@ -280,15 +320,20 @@ class PayPalWallet(FiatProvider):
     def _serialize_metadata(
         self, payment_options: FiatSubscriptionPaymentOptions
     ) -> str:
-        md = {
-            "wallet_id": payment_options.wallet_id,
-            "memo": payment_options.memo,
-            "extra": payment_options.extra,
-            "tag": payment_options.tag,
-            "subscription_request_id": payment_options.subscription_request_id,
-        }
-        raw = json.dumps(md)
-        return raw[:127]  # PayPal custom_id limit
+        meta = [
+            payment_options.wallet_id,
+            payment_options.tag,
+            payment_options.subscription_request_id,
+        ]
+        if payment_options.extra:
+            meta.append(payment_options.extra.get("link", None))
+
+        # Keep custom_id within PayPal's 127-char limit
+        memo_limit = 120 - len(json.dumps(meta))
+        if memo_limit > 0 and payment_options.memo:
+            meta.append(payment_options.memo[:memo_limit])
+
+        return json.dumps(meta)
 
     def _parse_create_opts(
         self, raw_opts: dict[str, Any]

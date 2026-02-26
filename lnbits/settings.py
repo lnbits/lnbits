@@ -296,6 +296,10 @@ class ThemesSettings(LNbitsSettings):
     lnbits_default_border: str = Field(default="hard-border")
     lnbits_default_gradient: bool = Field(default=True)
     lnbits_default_bgimage: str | None = Field(default=None)
+    lnbits_default_dark: bool = Field(default=True)
+    lnbits_default_card_rounded: bool = Field(default=False)
+    lnbits_default_card_gradient: bool = Field(default=False)
+    lnbits_default_card_shadow: bool = Field(default=False)
 
 
 class OpsSettings(LNbitsSettings):
@@ -602,6 +606,15 @@ class SparkFundingSource(LNbitsSettings):
     spark_token: str | None = Field(default=None)
 
 
+class SparkL2FundingSource(LNbitsSettings):
+    spark_l2_network: str = Field(default="MAINNET")
+    spark_l2_external_endpoint: str | None = Field(default="http://localhost:8765")
+    spark_l2_external_api_key: str | None = Field(default=None)
+    spark_l2_pay_wait_ms: int = Field(default=4000, ge=0)
+    spark_l2_pay_poll_ms: int = Field(default=500, ge=0)
+    spark_l2_stream_keepalive_ms: int = Field(default=15000, ge=0)
+
+
 class LnTipsFundingSource(LNbitsSettings):
     lntips_api_endpoint: str | None = Field(default=None)
     lntips_api_key: str | None = Field(default=None)
@@ -707,6 +720,7 @@ class FundingSourcesSettings(
     PhoenixdFundingSource,
     OpenNodeFundingSource,
     SparkFundingSource,
+    SparkL2FundingSource,
     LnTipsFundingSource,
     NWCFundingSource,
     BreezSdkFundingSource,
@@ -1046,6 +1060,7 @@ class SuperUserSettings(LNbitsSettings):
             "FakeWallet",
             "LNPayWallet",
             "LNbitsWallet",
+            "SparkL2Wallet",
             "LnTipsWallet",
             "LndRestWallet",
             "LndWallet",
@@ -1199,6 +1214,10 @@ class PublicSettings(BaseModel):
     default_border: str = Field(alias="defaultBorder")
     default_bgimage: str | None = Field(alias="defaultBgimage")
     default_gradient: bool = Field(alias="defaultGradient")
+    default_dark: bool = Field(alias="defaultDark")
+    default_card_rounded: bool = Field(alias="defaultCardRounded")
+    default_card_gradient: bool = Field(alias="defaultCardGradient")
+    default_card_shadow: bool = Field(alias="defaultCardShadow")
     denomination: str | None = Field()
     extensions: list[str] = Field()
     allowed_currencies: list[str] = Field(alias="allowedCurrencies")
@@ -1214,6 +1233,7 @@ class PublicSettings(BaseModel):
     lnbits_user_activation_by_invitation_code: bool = Field(
         alias="userActivationByInvitationCode"
     )
+    has_first_install_token: bool = Field(alias="hasFirstInstallToken")
 
     @classmethod
     def from_settings(cls, settings: Settings):
@@ -1257,6 +1277,10 @@ class PublicSettings(BaseModel):
             defaultBorder=settings.lnbits_default_border,
             defaultGradient=settings.lnbits_default_gradient,
             defaultBgimage=settings.lnbits_default_bgimage,
+            defaultDark=settings.lnbits_default_dark,
+            defaultCardRounded=settings.lnbits_default_card_rounded,
+            defaultCardGradient=settings.lnbits_default_card_gradient,
+            defaultCardShadow=settings.lnbits_default_card_shadow,
             denomination=settings.lnbits_denomination,
             extensions=list(settings.lnbits_installed_extensions_ids),
             allowedCurrencies=settings.lnbits_allowed_currencies,
@@ -1270,6 +1294,7 @@ class PublicSettings(BaseModel):
             userActivationByEmail=settings.lnbits_user_activation_by_email,
             userActivationByPayment=settings.lnbits_user_activation_by_payment,
             userActivationByInvitationCode=settings.lnbits_user_activation_by_invitation_code,
+            hasFirstInstallToken=settings.first_install_token is not None,
         )
 
 
