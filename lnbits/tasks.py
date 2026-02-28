@@ -178,14 +178,15 @@ async def invoice_callback_dispatcher(checking_id: str, is_internal: bool = Fals
         logger.warning(f"Payment '{checking_id}' is not incoming, skipping.")
         return
 
-    from lnbits.core.services.payments import check_payment_status
+    if not is_internal:
+        from lnbits.core.services.payments import check_payment_status
 
-    status = await check_payment_status(
-        payment, skip_internal_payment_notifications=True
-    )
-    payment.fee = status.fee_msat or payment.fee
-    # only overwrite preimage if status.preimage provides it
-    payment.preimage = status.preimage or payment.preimage
+        status = await check_payment_status(
+            payment, skip_internal_payment_notifications=True
+        )
+        payment.fee = status.fee_msat or payment.fee
+        # only overwrite preimage if status.preimage provides it
+        payment.preimage = status.preimage or payment.preimage
     payment.status = PaymentState.SUCCESS
     await update_payment(payment)
     if payment.fiat_provider:
