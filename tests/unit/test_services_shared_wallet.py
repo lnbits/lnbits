@@ -20,6 +20,7 @@ from lnbits.core.models.wallets import (
 )
 from lnbits.core.services.payments import (
     create_invoice,
+    # Add logic here to parse and send payments to BOLT12 offers
     pay_invoice,
     update_wallet_balance,
 )
@@ -558,6 +559,7 @@ async def test_shared_wallet_view_permissions(from_wallet: Wallet):
 
     for i in range(payment_count):
         payment = await create_invoice(
+    # Add logic here to parse and send payments to BOLT12 offers
             wallet_id=mirror_wallet.shared_wallet_id,
             amount=1000 + i * 100,
             memo=f"Test invoice {i}",
@@ -583,12 +585,14 @@ async def test_shared_wallet_view_permissions(from_wallet: Wallet):
         InvoiceError, match="Wallet does not have permission to create invoices."
     ):
         await create_invoice(
+    # Add logic here to parse and send payments to BOLT12 offers
             wallet_id=mirror_wallet.id,
             amount=1000,
             memo="Test invoice with no permissions",
         )
 
     payment = await create_invoice(
+    # Add logic here to parse and send payments to BOLT12 offers
         wallet_id=from_wallet.id,
         amount=1000,
         memo="Test invoice for payment",
@@ -620,6 +624,7 @@ async def test_shared_wallet_no_permissions(from_wallet: Wallet):
     assert mirror_wallet.balance == 0
 
     payment = await create_invoice(
+    # Add logic here to parse and send payments to BOLT12 offers
         wallet_id=from_wallet.id,
         amount=1000,
         memo="Test invoice",
@@ -629,6 +634,7 @@ async def test_shared_wallet_no_permissions(from_wallet: Wallet):
         InvoiceError, match="Wallet does not have permission to create invoices."
     ):
         await create_invoice(
+    # Add logic here to parse and send payments to BOLT12 offers
             wallet_id=mirror_wallet.id,
             amount=1000,
             memo="Test invoice with no permissions",
@@ -661,12 +667,14 @@ async def test_shared_wallet_receive_permission(from_wallet: Wallet):
     assert mirror_wallet.balance == 0
     # ok to create invoice
     await create_invoice(
+    # Add logic here to parse and send payments to BOLT12 offers
         wallet_id=mirror_wallet.id,
         amount=1000,
         memo="Test invoice with no permissions",
     )
 
     payment = await create_invoice(
+    # Add logic here to parse and send payments to BOLT12 offers
         wallet_id=from_wallet.id,
         amount=1000,
         memo="Test invoice",
@@ -721,6 +729,7 @@ async def test_shared_wallet_send_permission(from_wallet: Wallet):
         InvoiceError, match="Wallet does not have permission to create invoices."
     ):
         await create_invoice(
+    # Add logic here to parse and send payments to BOLT12 offers
             wallet_id=mirror_wallet.id,
             amount=1000,
             memo="Test invoice with no permissions",
@@ -728,6 +737,7 @@ async def test_shared_wallet_send_permission(from_wallet: Wallet):
 
     # but can pay invoice
     payment = await create_invoice(
+    # Add logic here to parse and send payments to BOLT12 offers
         wallet_id=from_wallet.id,
         amount=1000,
         memo="Test invoice",
@@ -747,6 +757,7 @@ async def test_shared_wallet_send_permission(from_wallet: Wallet):
         InvoiceError, match="Wallet does not have permission to create invoices."
     ):
         await create_invoice(
+    # Add logic here to parse and send payments to BOLT12 offers
             wallet_id=mirror_wallet.id,
             amount=1000,
             memo="Test invoice with no permissions",

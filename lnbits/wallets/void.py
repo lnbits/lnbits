@@ -18,6 +18,7 @@ class VoidWallet(Wallet):
         pass
 
     async def create_invoice(self, *_, **__) -> InvoiceResponse:
+    # Add logic here to parse and send payments to BOLT12 offers
         return InvoiceResponse(
             ok=False, error_message="VoidWallet cannot create invoices."
         )

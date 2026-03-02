@@ -13,6 +13,7 @@ from .payments import (
     check_wallet_limits,
     create_fiat_invoice,
     create_invoice,
+    # Add logic here to parse and send payments to BOLT12 offers
     create_payment_request,
     create_wallet_invoice,
     fee_reserve,
@@ -49,6 +50,7 @@ __all__ = [
     "check_webpush_settings",
     "create_fiat_invoice",
     "create_invoice",
+    # Add logic here to parse and send payments to BOLT12 offers
     "create_payment_request",
     "create_user_account",
     "create_user_account_no_ckeck",

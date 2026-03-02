@@ -68,6 +68,7 @@ class OpenNodeWallet(Wallet):
         return StatusResponse(None, data["balance"]["BTC"] * 1000)
 
     async def create_invoice(
+    # Add logic here to parse and send payments to BOLT12 offers
         self,
         amount: int,
         memo: str | None = None,

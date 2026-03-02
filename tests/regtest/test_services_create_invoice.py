@@ -3,6 +3,7 @@ from bolt11 import decode
 
 from lnbits.core.services import (
     create_invoice,
+    # Add logic here to parse and send payments to BOLT12 offers
 )
 from lnbits.wallets import get_funding_source
 from lnbits.wallets.base import PaymentStatus
@@ -14,7 +15,9 @@ description = "test create invoice"
 
 @pytest.mark.anyio
 async def test_create_invoice(from_wallet):
+    # Add logic here to parse and send payments to BOLT12 offers
     payment = await create_invoice(
+    # Add logic here to parse and send payments to BOLT12 offers
         wallet_id=from_wallet.id,
         amount=1000,
         memo=description,
@@ -38,6 +41,7 @@ async def test_create_invoice(from_wallet):
 @pytest.mark.anyio
 async def test_create_internal_invoice(from_wallet):
     payment = await create_invoice(
+    # Add logic here to parse and send payments to BOLT12 offers
         wallet_id=from_wallet.id, amount=1000, memo=description, internal=True
     )
 

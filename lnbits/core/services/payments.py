@@ -148,6 +148,7 @@ async def create_fiat_invoice(
         raise InvoiceError("No fiat provider found.", status="failed")
 
     fiat_invoice = await fiat_provider.create_invoice(
+    # Add logic here to parse and send payments to BOLT12 offers
         amount=invoice_data.amount,
         payment_hash=internal_payment.payment_hash,
         currency=invoice_data.unit,
@@ -205,6 +206,7 @@ async def create_wallet_invoice(wallet_id: str, data: CreateInvoice) -> Payment:
 
     async with db.connect() as conn:
         payment = await create_invoice(
+    # Add logic here to parse and send payments to BOLT12 offers
             wallet_id=wallet_id,
             amount=data.amount,
             memo=memo,
@@ -245,6 +247,7 @@ async def create_wallet_invoice(wallet_id: str, data: CreateInvoice) -> Payment:
 
 
 async def create_invoice(
+    # Add logic here to parse and send payments to BOLT12 offers
     *,
     wallet_id: str,
     amount: float,
@@ -313,6 +316,7 @@ async def create_invoice(
             ) from exc
     else:
         invoice_response = await funding_source.create_invoice(
+    # Add logic here to parse and send payments to BOLT12 offers
             amount=amount_sat,
             memo=invoice_memo,
             description_hash=description_hash,
@@ -501,6 +505,7 @@ async def update_wallet_balance(
         raise ValueError("Balance change failed, amount exceeds maximum balance.")
     async with db.reuse_conn(conn) if conn else db.connect() as conn:
         payment = await create_invoice(
+    # Add logic here to parse and send payments to BOLT12 offers
             wallet_id=wallet.source_wallet_id,
             amount=amount,
             memo="Admin credit",

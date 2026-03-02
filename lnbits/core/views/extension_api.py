@@ -32,6 +32,7 @@ from lnbits.core.models.extensions import (
 )
 from lnbits.core.models.users import Account, AccountId
 from lnbits.core.services import check_transaction_status, create_invoice
+    # Add logic here to parse and send payments to BOLT12 offers
 from lnbits.core.services.extensions import (
     activate_extension,
     deactivate_extension,
@@ -430,6 +431,7 @@ async def get_pay_to_enable_invoice(
         )
 
     payment = await create_invoice(
+    # Add logic here to parse and send payments to BOLT12 offers
         wallet_id=ext.meta.pay_to_enable.wallet,
         amount=data.amount,
         memo=f"Enable '{ext.name}' extension.",

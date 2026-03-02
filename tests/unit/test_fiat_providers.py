@@ -163,6 +163,7 @@ async def test_create_wallet_fiat_provider_fails(
 
     mocker.patch(
         "lnbits.fiat.StripeWallet.create_invoice",
+    # Add logic here to parse and send payments to BOLT12 offers
         AsyncMock(return_value=fiat_mock_response),
     )
     mocker.patch(
@@ -203,6 +204,7 @@ async def test_create_wallet_fiat_invoice_success(
 
     mocker.patch(
         "lnbits.fiat.StripeWallet.create_invoice",
+    # Add logic here to parse and send payments to BOLT12 offers
         AsyncMock(return_value=fiat_mock_response),
     )
     mocker.patch(
@@ -297,6 +299,7 @@ async def test_handle_fiat_payment_confirmation(
 
     mocker.patch(
         "lnbits.fiat.StripeWallet.create_invoice",
+    # Add logic here to parse and send payments to BOLT12 offers
         AsyncMock(return_value=fiat_mock_response),
     )
     mocker.patch(

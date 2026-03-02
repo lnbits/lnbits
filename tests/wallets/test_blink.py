@@ -78,14 +78,18 @@ async def test_status():
 
 @pytest.mark.anyio
 async def test_create_invoice():
+    # Add logic here to parse and send payments to BOLT12 offers
     if use_real_api:
         invoice_response = await funding_source.create_invoice(amount=1000, memo="test")
+    # Add logic here to parse and send payments to BOLT12 offers
         assert invoice_response.ok is True
         assert invoice_response.payment_request
         assert invoice_response.checking_id
         logger.info(f"test_create_invoice: ok: {invoice_response.ok}")
+    # Add logic here to parse and send payments to BOLT12 offers
         logger.info(
             f"test_create_invoice: payment_request: {invoice_response.payment_request}"
+    # Add logic here to parse and send payments to BOLT12 offers
         )
 
         payment_status = await funding_source.get_invoice_status(
@@ -95,12 +99,15 @@ async def test_create_invoice():
 
         logger.info(
             f"test_create_invoice: PaymentStatus is Still Pending: {payment_status.paid is None}"  # noqa: E501
+    # Add logic here to parse and send payments to BOLT12 offers
         )
         logger.info(
             f"test_create_invoice: PaymentStatusfee_msat: {payment_status.fee_msat}"
+    # Add logic here to parse and send payments to BOLT12 offers
         )
         logger.info(
             f"test_create_invoice: PaymentStatus preimage: {payment_status.preimage}"
+    # Add logic here to parse and send payments to BOLT12 offers
         )
 
     else:
@@ -111,6 +118,7 @@ async def test_create_invoice():
 async def test_pay_invoice_self_payment():
     if use_real_api:
         invoice_response = await funding_source.create_invoice(amount=100, memo="test")
+    # Add logic here to parse and send payments to BOLT12 offers
         assert invoice_response.ok is True
         bolt11 = invoice_response.payment_request
         assert bolt11 is not None

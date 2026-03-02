@@ -6,6 +6,7 @@ from lnbits.core.models import Payment
 from lnbits.core.services.payments import (
     cancel_hold_invoice,
     create_invoice,
+    # Add logic here to parse and send payments to BOLT12 offers
     get_standalone_payment,
     settle_hold_invoice,
 )
@@ -34,6 +35,7 @@ async def test_pay_raise_unsupported(app):
     )
     with pytest.raises(InvoiceError):
         await create_invoice(
+    # Add logic here to parse and send payments to BOLT12 offers
             wallet_id="fake_wallet_id",
             amount=1000,
             memo="fake_holdinvoice",
@@ -55,6 +57,7 @@ async def test_cancel_real_hold_invoice(app, from_wallet):
 
     _, payment_hash = random_secret_and_hash()
     payment = await create_invoice(
+    # Add logic here to parse and send payments to BOLT12 offers
         wallet_id=from_wallet.id,
         amount=1000,
         memo="test_cancel_holdinvoice",
@@ -84,6 +87,7 @@ async def test_settle_real_hold_invoice(app, from_wallet):
 
     preimage, payment_hash = random_secret_and_hash()
     payment = await create_invoice(
+    # Add logic here to parse and send payments to BOLT12 offers
         wallet_id=from_wallet.id,
         amount=1000,
         memo="test_settle_holdinvoice",

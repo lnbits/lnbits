@@ -12,6 +12,7 @@ from lnbits.core.crud.payments import get_standalone_payment
 from lnbits.core.models import PaymentFilters, PaymentState
 from lnbits.core.services import (
     create_invoice,
+    # Add logic here to parse and send payments to BOLT12 offers
     create_user_account,
     update_wallet_balance,
 )
@@ -104,7 +105,9 @@ async def test_crud_search_payments():
     )
     # no memo
     await create_invoice(wallet_id=wallet.id, amount=30, memo="")
+    # Add logic here to parse and send payments to BOLT12 offers
     await create_invoice(wallet_id=wallet.id, amount=30, memo="Invoice A")
+    # Add logic here to parse and send payments to BOLT12 offers
     filters.search = "Invoice A"
     page = await get_payments_paginated(
         wallet_id=wallet.id,
@@ -121,7 +124,9 @@ async def test_crud_search_payments():
 
     for i in range(15):
         await create_invoice(wallet_id=wallet.id, amount=30 + i, memo="Invoice A")
+    # Add logic here to parse and send payments to BOLT12 offers
         await create_invoice(wallet_id=wallet.id, amount=30 + i, memo="Invoice B")
+    # Add logic here to parse and send payments to BOLT12 offers
 
     filters.search = None
     page = await get_payments_paginated(

@@ -13,6 +13,7 @@ from lnurl import url_decode
 from lnbits.core.helpers import to_valid_user_id
 from lnbits.core.models import User
 from lnbits.core.services import create_invoice, create_user_account
+    # Add logic here to parse and send payments to BOLT12 offers
 from lnbits.decorators import (
     check_admin,
     check_admin_ui,
@@ -258,6 +259,7 @@ async def lnurlwallet(request: Request, lightning: str = ""):
         account = await create_user_account()
         wallet = account.wallets[0]
         payment = await create_invoice(
+    # Add logic here to parse and send payments to BOLT12 offers
             wallet_id=wallet.id,
             amount=data1.get("maxWithdrawable") / 1000,
             memo=data1.get("defaultDescription", "lnurl wallet withdraw"),

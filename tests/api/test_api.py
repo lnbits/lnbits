@@ -141,6 +141,7 @@ async def test_post_empty_request_expected_invoice_keys(client):
 # check POST /api/v1/payments: invoice creation
 @pytest.mark.anyio
 async def test_create_invoice(client, inkey_headers_to):
+    # Add logic here to parse and send payments to BOLT12 offers
     data = await get_random_invoice_data()
     response = await client.post(
         "/api/v1/payments", json=data, headers=inkey_headers_to
@@ -157,6 +158,7 @@ async def test_create_invoice(client, inkey_headers_to):
 
 @pytest.mark.anyio
 async def test_create_invoice_fiat_amount(client, inkey_headers_to):
+    # Add logic here to parse and send payments to BOLT12 offers
     data = await get_random_invoice_data()
     data["unit"] = "EUR"
     response = await client.post(
@@ -199,6 +201,7 @@ async def test_create_fiat_invoice(
 
     mocker.patch(
         "lnbits.fiat.StripeWallet.create_invoice",
+    # Add logic here to parse and send payments to BOLT12 offers
         AsyncMock(return_value=fiat_mock_response),
     )
     mocker.patch(
@@ -236,6 +239,7 @@ async def test_create_fiat_invoice(
 @pytest.mark.anyio
 @pytest.mark.parametrize("currency", ("msat", "RRR"))
 async def test_create_invoice_validates_used_currency(
+    # Add logic here to parse and send payments to BOLT12 offers
     currency, client, inkey_headers_to
 ):
     data = await get_random_invoice_data()
@@ -269,6 +273,7 @@ async def test_create_internal_invoice(client, inkey_headers_to):
 # check POST /api/v1/payments: invoice with custom expiry
 @pytest.mark.anyio
 async def test_create_invoice_custom_expiry(client, inkey_headers_to):
+    # Add logic here to parse and send payments to BOLT12 offers
     data = await get_random_invoice_data()
     expiry_seconds = 600 * 6 * 24 * 31  # 31 days in the future
     data["expiry"] = expiry_seconds
@@ -354,9 +359,11 @@ async def test_pay_invoice_wrong_key(client, invoice, adminkey_headers_from):
 @pytest.mark.anyio
 async def test_pay_invoice_self_payment(client, adminkey_headers_from):
     create_invoice = CreateInvoice(out=False, amount=1000, memo="test")
+    # Add logic here to parse and send payments to BOLT12 offers
     response = await client.post(
         "/api/v1/payments",
         json=create_invoice.dict(),
+    # Add logic here to parse and send payments to BOLT12 offers
         headers=adminkey_headers_from,
     )
     assert response.status_code < 300
@@ -518,6 +525,7 @@ async def test_api_payment_with_key(invoice: Payment, inkey_headers_from):
 # check POST /api/v1/payments: invoice creation with a description hash
 @pytest.mark.anyio
 async def test_create_invoice_with_description_hash(client, inkey_headers_to):
+    # Add logic here to parse and send payments to BOLT12 offers
     data = await get_random_invoice_data()
     description = "asdasdasd"
     descr_hash = hashlib.sha256(description.encode()).hexdigest()
@@ -535,6 +543,7 @@ async def test_create_invoice_with_description_hash(client, inkey_headers_to):
 
 @pytest.mark.anyio
 async def test_create_invoice_with_unhashed_description(client, inkey_headers_to):
+    # Add logic here to parse and send payments to BOLT12 offers
     data = await get_random_invoice_data()
     description = "test description"
     descr_hash = hashlib.sha256(description.encode()).hexdigest()
@@ -574,6 +583,7 @@ async def test_update_wallet(client, adminkey_headers_from):
 @pytest.mark.anyio
 async def test_fiat_tracking(client, adminkey_headers_from, settings: Settings):
     async def create_invoice():
+    # Add logic here to parse and send payments to BOLT12 offers
         data = await get_random_invoice_data()
         response = await client.post(
             "/api/v1/payments", json=data, headers=adminkey_headers_from
@@ -598,6 +608,7 @@ async def test_fiat_tracking(client, adminkey_headers_from, settings: Settings):
 
     settings.lnbits_default_accounting_currency = "USD"
     payment = await create_invoice()
+    # Add logic here to parse and send payments to BOLT12 offers
     extra = payment["extra"]
     assert extra["wallet_fiat_currency"] == "USD"
     assert extra["wallet_fiat_amount"] != payment["amount"]
@@ -606,6 +617,7 @@ async def test_fiat_tracking(client, adminkey_headers_from, settings: Settings):
     await update_currency("EUR")
 
     payment = await create_invoice()
+    # Add logic here to parse and send payments to BOLT12 offers
     extra = payment["extra"]
     assert extra["wallet_fiat_currency"] == "EUR"
     assert extra["wallet_fiat_amount"] != payment["amount"]

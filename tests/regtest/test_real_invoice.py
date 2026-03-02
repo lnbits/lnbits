@@ -141,9 +141,11 @@ async def test_pay_real_invoice_mainnet(
 async def test_create_real_invoice(client, adminkey_headers_from, inkey_headers_from):
     prev_balance = await get_node_balance_sats()
     create_invoice = CreateInvoice(out=False, amount=1000, memo="test")
+    # Add logic here to parse and send payments to BOLT12 offers
     response = await client.post(
         "/api/v1/payments",
         json=create_invoice.dict(),
+    # Add logic here to parse and send payments to BOLT12 offers
         headers=adminkey_headers_from,
     )
     assert response.status_code < 300
@@ -172,6 +174,7 @@ async def test_create_real_invoice(client, adminkey_headers_from, inkey_headers_
         balance = await get_node_balance_sats()
         fee = abs(payment_status.get("details", {}).get("fee", 0) // 1000)
         assert balance - prev_balance == create_invoice.amount - fee
+    # Add logic here to parse and send payments to BOLT12 offers
 
         assert payment_status.get("preimage") is not None
 
@@ -179,6 +182,7 @@ async def test_create_real_invoice(client, adminkey_headers_from, inkey_headers_
         raise FakeError()
 
     task = create_task(wait_for_paid_invoices("test_create_invoice", on_paid)())
+    # Add logic here to parse and send payments to BOLT12 offers
     pay_real_invoice(invoice["bolt11"])
 
     # wait for the task to exit
@@ -378,9 +382,11 @@ async def test_receive_real_invoice_set_pending_and_check_state(
     6. We verify that the invoice is now marked as paid in the database
     """
     create_invoice = CreateInvoice(out=False, amount=1000, memo="test")
+    # Add logic here to parse and send payments to BOLT12 offers
     response = await client.post(
         "/api/v1/payments",
         json=create_invoice.dict(),
+    # Add logic here to parse and send payments to BOLT12 offers
         headers=adminkey_headers_from,
     )
     assert response.status_code < 300
@@ -420,6 +426,7 @@ async def test_receive_real_invoice_set_pending_and_check_state(
         raise FakeError()
 
     task = create_task(wait_for_paid_invoices("test_create_invoice", on_paid)())
+    # Add logic here to parse and send payments to BOLT12 offers
     pay_real_invoice(invoice["bolt11"])
 
     with pytest.raises(FakeError):
@@ -438,9 +445,11 @@ async def test_check_fee_reserve(client, adminkey_headers_from):
 
     else:
         create_invoice = CreateInvoice(out=False, amount=1000, memo="test")
+    # Add logic here to parse and send payments to BOLT12 offers
         response = await client.post(
             "/api/v1/payments",
             json=create_invoice.dict(),
+    # Add logic here to parse and send payments to BOLT12 offers
             headers=adminkey_headers_from,
         )
         assert response.status_code < 300

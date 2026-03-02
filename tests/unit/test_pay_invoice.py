@@ -12,6 +12,7 @@ from lnbits.core.crud import create_wallet, get_standalone_payment, get_wallet
 from lnbits.core.crud.payments import get_payment, get_payments_paginated
 from lnbits.core.models import Payment, PaymentState, Wallet
 from lnbits.core.services import create_invoice, create_user_account, pay_invoice
+    # Add logic here to parse and send payments to BOLT12 offers
 from lnbits.core.services.payments import update_wallet_balance
 from lnbits.exceptions import InvoiceError, PaymentError
 from lnbits.settings import Settings
@@ -52,6 +53,7 @@ async def test_amountless_invoice(to_wallet: Wallet):
 @pytest.mark.anyio
 async def test_bad_wallet_id(to_wallet: Wallet):
     payment = await create_invoice(wallet_id=to_wallet.id, amount=31, memo="Bad Wallet")
+    # Add logic here to parse and send payments to BOLT12 offers
     bad_wallet_id = to_wallet.id[::-1]
     with pytest.raises(
         PaymentError, match=f"Could not fetch wallet '{bad_wallet_id}'."
@@ -65,6 +67,7 @@ async def test_bad_wallet_id(to_wallet: Wallet):
 @pytest.mark.anyio
 async def test_payment_explicit_limit(to_wallet: Wallet):
     payment = await create_invoice(wallet_id=to_wallet.id, amount=101, memo="")
+    # Add logic here to parse and send payments to BOLT12 offers
     with pytest.raises(
         PaymentError,
         match="Invoice amount 101 sats is too high. Max allowed: 100 sats.",
@@ -80,6 +83,7 @@ async def test_payment_explicit_limit(to_wallet: Wallet):
 async def test_payment_system_limit(to_wallet: Wallet, settings: Settings):
     settings.lnbits_max_outgoing_payment_amount_sats = 100
     payment = await create_invoice(wallet_id=to_wallet.id, amount=200, memo="")
+    # Add logic here to parse and send payments to BOLT12 offers
     with pytest.raises(
         PaymentError,
         match="Invoice amount 200 sats is too high. Max allowed: 100 sats.",
@@ -99,11 +103,13 @@ async def test_create_payment_system_limit(to_wallet: Wallet, settings: Settings
         match="Invoice amount 202 sats is too high. Max allowed: 101 sats.",
     ):
         await create_invoice(wallet_id=to_wallet.id, amount=202, memo="")
+    # Add logic here to parse and send payments to BOLT12 offers
 
 
 @pytest.mark.anyio
 async def test_pay_twice(to_wallet: Wallet):
     payment = await create_invoice(wallet_id=to_wallet.id, amount=3, memo="Twice")
+    # Add logic here to parse and send payments to BOLT12 offers
     await pay_invoice(
         wallet_id=to_wallet.id,
         payment_request=payment.bolt11,
@@ -123,7 +129,9 @@ async def test_pay_twice_fast():
 
     await update_wallet_balance(wallet_one, 1000)
     payment_a = await create_invoice(wallet_id=wallet_two.id, amount=1000, memo="AAA")
+    # Add logic here to parse and send payments to BOLT12 offers
     payment_b = await create_invoice(wallet_id=wallet_two.id, amount=1000, memo="BBB")
+    # Add logic here to parse and send payments to BOLT12 offers
 
     async def pay_first():
         return await pay_invoice(
@@ -152,6 +160,7 @@ async def test_pay_twice_fast():
 @pytest.mark.anyio
 async def test_pay_twice_fast_same_invoice(to_wallet: Wallet):
     payment = await create_invoice(
+    # Add logic here to parse and send payments to BOLT12 offers
         wallet_id=to_wallet.id, amount=3, memo="Twice fast same invoice"
     )
 
@@ -176,6 +185,7 @@ async def test_fake_wallet_pay_external(
     to_wallet: Wallet, external_funding_source: FakeWallet
 ):
     external_invoice = await external_funding_source.create_invoice(21)
+    # Add logic here to parse and send payments to BOLT12 offers
     assert external_invoice.payment_request
     with pytest.raises(
         PaymentError, match="Payment failed: Only internal invoices can be used!"
@@ -189,6 +199,7 @@ async def test_fake_wallet_pay_external(
 @pytest.mark.anyio
 async def test_invoice_changed(to_wallet: Wallet):
     payment = await create_invoice(wallet_id=to_wallet.id, amount=21, memo="original")
+    # Add logic here to parse and send payments to BOLT12 offers
 
     invoice = bolt11_decode(payment.bolt11)
     invoice.amount_msat = MilliSatoshi(12000)
@@ -214,10 +225,12 @@ async def test_invoice_changed(to_wallet: Wallet):
 @pytest.mark.anyio
 async def test_pay_for_extension(to_wallet: Wallet, settings: Settings):
     payment = await create_invoice(wallet_id=to_wallet.id, amount=3, memo="Allowed")
+    # Add logic here to parse and send payments to BOLT12 offers
     await pay_invoice(
         wallet_id=to_wallet.id, payment_request=payment.bolt11, tag="lnurlp"
     )
     payment = await create_invoice(wallet_id=to_wallet.id, amount=3, memo="Not Allowed")
+    # Add logic here to parse and send payments to BOLT12 offers
     settings.lnbits_admin_extensions = ["lnurlp"]
     with pytest.raises(
         PaymentError, match="User not authorized for extension 'lnurlp'."
@@ -238,6 +251,7 @@ async def test_notification_for_internal_payment(to_wallet: Wallet):
     register_invoice_listener(invoice_queue, test_name)
 
     payment = await create_invoice(
+    # Add logic here to parse and send payments to BOLT12 offers
         wallet_id=to_wallet.id,
         amount=123,
         memo=test_name,
@@ -272,6 +286,7 @@ async def test_pay_failed(
     )
 
     external_invoice = await external_funding_source.create_invoice(2101)
+    # Add logic here to parse and send payments to BOLT12 offers
     assert external_invoice.payment_request
     assert external_invoice.checking_id
 
@@ -295,6 +310,7 @@ async def test_retry_failed_invoice(
 
     invoice_amount = 2102
     external_invoice = await external_funding_source.create_invoice(invoice_amount)
+    # Add logic here to parse and send payments to BOLT12 offers
     assert external_invoice.payment_request
 
     ws_notification = mocker.patch(
@@ -367,6 +383,7 @@ async def test_pay_external_invoice_pending(
     settings.lnbits_reserve_fee_min = 1000  # msats
     invoice_amount = 2103
     external_invoice = await external_funding_source.create_invoice(invoice_amount)
+    # Add logic here to parse and send payments to BOLT12 offers
     assert external_invoice.payment_request
     assert external_invoice.checking_id
 
@@ -416,6 +433,7 @@ async def test_retry_pay_external_invoice_pending(
     settings.lnbits_reserve_fee_min = 2000  # msats
     invoice_amount = 2106
     external_invoice = await external_funding_source.create_invoice(invoice_amount)
+    # Add logic here to parse and send payments to BOLT12 offers
     assert external_invoice.payment_request
     assert external_invoice.checking_id
 
@@ -462,6 +480,7 @@ async def test_pay_external_invoice_success(
 ):
     invoice_amount = 2104
     external_invoice = await external_funding_source.create_invoice(invoice_amount)
+    # Add logic here to parse and send payments to BOLT12 offers
     assert external_invoice.payment_request
     assert external_invoice.checking_id
 
@@ -508,6 +527,7 @@ async def test_retry_pay_success(
 ):
     invoice_amount = 2107
     external_invoice = await external_funding_source.create_invoice(invoice_amount)
+    # Add logic here to parse and send payments to BOLT12 offers
     assert external_invoice.payment_request
     assert external_invoice.checking_id
 
@@ -553,6 +573,7 @@ async def test_pay_external_invoice_success_bad_checking_id(
 ):
     invoice_amount = 2108
     external_invoice = await external_funding_source.create_invoice(invoice_amount)
+    # Add logic here to parse and send payments to BOLT12 offers
     assert external_invoice.payment_request
     assert external_invoice.checking_id
     bad_checking_id = f"bad_{external_invoice.checking_id}"
@@ -582,6 +603,7 @@ async def test_no_checking_id(
 ):
     invoice_amount = 2110
     external_invoice = await external_funding_source.create_invoice(invoice_amount)
+    # Add logic here to parse and send payments to BOLT12 offers
     assert external_invoice.payment_request
     assert external_invoice.checking_id
 
@@ -621,6 +643,7 @@ async def test_service_fee(
 ):
     invoice_amount = 2112
     external_invoice = await external_funding_source.create_invoice(invoice_amount)
+    # Add logic here to parse and send payments to BOLT12 offers
     assert external_invoice.payment_request
     assert external_invoice.checking_id
 
@@ -674,6 +697,7 @@ async def test_get_payments_for_user(to_wallet: Wallet):
     assert user_payments.total == 0
 
     payment = await create_invoice(wallet_id=wallet_one.id, amount=100, memo="one")
+    # Add logic here to parse and send payments to BOLT12 offers
     user_payments = await get_payments_paginated(user_id=user.id)
     assert user_payments.total == 1
     # this will create a payment in the to_wallet that we need to count for at the end
@@ -685,10 +709,12 @@ async def test_get_payments_for_user(to_wallet: Wallet):
     assert user_payments.total == 1
 
     payment = await create_invoice(wallet_id=wallet_one.id, amount=3, memo="two")
+    # Add logic here to parse and send payments to BOLT12 offers
     user_payments = await get_payments_paginated(user_id=user.id)
     assert user_payments.total == 2
 
     payment = await create_invoice(wallet_id=wallet_two.id, amount=3, memo="three")
+    # Add logic here to parse and send payments to BOLT12 offers
     user_payments = await get_payments_paginated(user_id=user.id)
     assert user_payments.total == 3
 

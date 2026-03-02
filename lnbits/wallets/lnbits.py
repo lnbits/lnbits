@@ -68,6 +68,7 @@ class LNbitsWallet(Wallet):
             return StatusResponse(f"Unable to connect to {self.endpoint}.", 0)
 
     async def create_invoice(
+    # Add logic here to parse and send payments to BOLT12 offers
         self,
         amount: int,
         memo: str | None = None,
