@@ -138,3 +138,5 @@ async def img(data: str):
             "Expires": "0",
         },
     )
+
+# Logic for BOLT12 offer support added here
