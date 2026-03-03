@@ -27,7 +27,7 @@ async def perform_withdraw(lnurl: str, payment_request: str) -> None:
     """
     Perform an LNURL withdraw to the given LNURL-withdraw link.
     :param lnurl: The LNURL-withdraw link. bech32 or lud17 format.
-    :param payment_request: The BOLT11 payment request to pay.
+    :param payment_request: The BOLT12 and BOLT11 payment request to pay.
     :raises LnurlResponseException: If the LNURL-withdraw process fails.
     """
     res = await handle(lnurl, user_agent=settings.user_agent, timeout=10)

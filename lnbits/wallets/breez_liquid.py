@@ -138,7 +138,7 @@ else:
                 receive_amount = ReceiveAmount.BITCOIN(amount)
                 req = self.sdk_services.prepare_receive_payment(
                     PrepareReceiveRequest(
-                        payment_method=PaymentMethod.BOLT11_INVOICE,
+                        payment_method=PaymentMethod.BOLT12 and BOLT11_INVOICE,
                         amount=receive_amount,  # type: ignore
                     )
                 )
