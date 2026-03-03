@@ -8,6 +8,8 @@ from typing import Any, cast
 
 import httpx
 from bolt11 import decode as bolt11_decode
+from coincurve.keys import PrivateKey
+from embit.bip39 import mnemonic_from_bytes, mnemonic_is_valid
 from loguru import logger
 
 from lnbits.helpers import normalize_endpoint
@@ -70,11 +72,18 @@ class SparkL2Wallet(Wallet):
             timeout=60,
         )
 
+        self._sidcar_mnemonic_task = asyncio.create_task(self._check_sidecar_mnemonic())
+
     async def cleanup(self):
         try:
             await self.client.aclose()
         except RuntimeError as e:
             logger.warning(f"Error closing wallet connection: {e}")
+
+        try:
+            self._sidcar_mnemonic_task.cancel()
+        except RuntimeError as e:
+            logger.warning(f"Error canceling sidecar mnemonic task: {e}")
 
     async def status(self) -> StatusResponse:
         try:
@@ -237,7 +246,7 @@ class SparkL2Wallet(Wallet):
     ) -> dict[str, Any]:
         error_message = None
         try:
-            r = await self.client.request(method, path, json=json_data)
+            r = await self.client.request(method, path, json=json_data, timeout=30)
             r.raise_for_status()
             j = r.json()
         except (httpx.RequestError, httpx.HTTPStatusError, json.JSONDecodeError) as exc:
@@ -319,3 +328,28 @@ class SparkL2Wallet(Wallet):
         if mapped.failed:
             return False
         return None
+
+    async def _check_sidecar_mnemonic(self):
+        if settings.spark_l2_mnemonic:
+            valid = mnemonic_is_valid(settings.spark_l2_mnemonic)
+            if not valid:
+                logger.warning("SPARK_L2_MNEMONIC is set but invalid. Please recheck!")
+                return
+            await self._set_sidecar_mnemonic(settings.spark_l2_mnemonic)
+            return
+
+        logger.info("SPARK_L2_MNEMONIC is not set, one will be generated for you.")
+        mnemonic = await self._generate_mnemonic()
+        await self._set_sidecar_mnemonic(mnemonic)
+
+    async def _generate_mnemonic(self) -> str:
+        words = mnemonic_from_bytes(PrivateKey().secret)
+        settings.spark_l2_mnemonic = words
+        from lnbits.core.crud.settings import set_settings_field
+
+        await set_settings_field("spark_l2_mnemonic", words)
+        return words
+
+    async def _set_sidecar_mnemonic(self, mnemonic: str):
+        payload = {"mnemonic": mnemonic}
+        await self._request("POST", "/v1/mnemonic", payload)

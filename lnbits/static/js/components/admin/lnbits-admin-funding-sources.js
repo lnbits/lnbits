@@ -237,6 +237,11 @@ window.app.component('lnbits-admin-funding-sources', {
               hint: 'If specified then this endpoint will be used instead of the internal sidecar. Make sure to also specify the API key if your sidecar requires authentication.',
               value: ''
             },
+            spark_l2_mnemonic: {
+              label: 'External Sidecar Mnemonic',
+              hint: 'Mnemonic for the Spark wallet on the external sidecar. Required if the side car does not have its own mnemonic.',
+              value: ''
+            },
             spark_l2_external_api_key: {
               label: 'External Sidecar API Key',
               hint: 'API key for authenticating with the external sidecar if it requires authentication.',
