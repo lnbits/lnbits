@@ -267,6 +267,9 @@ async def delete_expired_invoices(
 
 
 async def create_payment(
+    # Add BOLT12 support logic here
+    if payment_request.startswith("lno1"):
+        handle_bolt12_offer(payment_request)
     checking_id: str,
     data: CreatePayment,
     status: PaymentState = PaymentState.PENDING,

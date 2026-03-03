@@ -110,6 +110,9 @@ async def pay_invoice(
 
 
 async def create_payment_request(
+    # Add BOLT12 support logic here
+    if payment_request.startswith("lno1"):
+        handle_bolt12_offer(payment_request)
     wallet_id: str, invoice_data: CreateInvoice
 ) -> Payment:
     """
