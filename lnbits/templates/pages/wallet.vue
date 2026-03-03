@@ -204,7 +204,7 @@
       </q-card>
     </div>
     <div
-      v-if="!g.mobileSimple || !$q.screen.lt.md"
+      v-show="!g.mobileSimple || !$q.screen.lt.md"
       class="col-12 col-md-5 q-gutter-y-md"
     >
       <lnbits-wallet-extra
