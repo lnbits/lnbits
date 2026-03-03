@@ -299,7 +299,7 @@ class ThemesSettings(LNbitsSettings):
     lnbits_default_dark: bool = Field(default=True)
     lnbits_default_card_rounded: bool = Field(default=True)
     lnbits_default_card_gradient: bool = Field(default=True)
-    lnbits_default_card_shadow: bool = Field(default=True)
+    lnbits_default_card_shadow: bool = Field(default=False)
 
 
 class OpsSettings(LNbitsSettings):
