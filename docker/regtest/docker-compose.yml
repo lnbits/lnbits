@@ -28,7 +28,7 @@ services:
       - lnd-2
       - boltz-postgres
     restart: always
-    image: boltz/boltz:latest
+    image: boltz/boltz:v3.12.1
     ports:
       - 9000:9000
     entrypoint: "sh -c 'sleep 30; /boltz-backend/bin/boltzd'"
