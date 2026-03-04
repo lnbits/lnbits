@@ -72,18 +72,11 @@ class SparkL2Wallet(Wallet):
             timeout=60,
         )
 
-        self._sidcar_mnemonic_task = asyncio.create_task(self._check_sidecar_mnemonic())
-
     async def cleanup(self):
         try:
             await self.client.aclose()
         except RuntimeError as e:
             logger.warning(f"Error closing wallet connection: {e}")
-
-        try:
-            self._sidcar_mnemonic_task.cancel()
-        except RuntimeError as e:
-            logger.warning(f"Error canceling sidecar mnemonic task: {e}")
 
     async def status(self) -> StatusResponse:
         try:
@@ -91,7 +84,7 @@ class SparkL2Wallet(Wallet):
             status = res.get("status")
             if status == "missing_mnemonic":
                 await self._check_sidecar_mnemonic()
-                return StatusResponse("Spark sidecar not ready", 0)
+                return StatusResponse("Spark sidecar mnemonic not set", 0)
 
             balance_msat = res.get("balance_msat")
             if balance_msat is not None:
@@ -344,18 +337,19 @@ class SparkL2Wallet(Wallet):
             return
 
         logger.info("SPARK_L2_MNEMONIC is not set, one will be generated for you.")
-        mnemonic = await self._generate_mnemonic()
+        mnemonic = mnemonic_from_bytes(PrivateKey().secret)
         await self._set_sidecar_mnemonic(mnemonic)
 
-    async def _generate_mnemonic(self) -> str:
-        words = mnemonic_from_bytes(PrivateKey().secret)
-        settings.spark_l2_mnemonic = words
-        from lnbits.core.crud.settings import set_settings_field
-
-        await set_settings_field("spark_l2_mnemonic", words)
-        return words
-
     async def _set_sidecar_mnemonic(self, mnemonic: str):
-        logger.warning("SPARK_L2_MNEMONIC is not set, setting Spark sidecar mnemonic.")
+        logger.info("Checking 'SPARK_L2_MNEMONIC' on the Spark sidecar.")
         payload = {"mnemonic": mnemonic}
-        await self._request("POST", "/v1/mnemonic", payload)
+        resp = await self._request("POST", "/v1/mnemonic", payload)
+        status = resp.get("status")
+        logger.info(f"Spark sidecar mnemonic status: {status}")
+        if status == "set":
+            logger.info("Updating 'SPARK_L2_MNEMONIC' mnemonic settings.")
+            from lnbits.core.crud.settings import set_settings_field
+
+            await set_settings_field("spark_l2_mnemonic", mnemonic)
+        else:
+            logger.info("Nothing to do for 'SPARK_L2_MNEMONIC' on the Spark sidecar.")
