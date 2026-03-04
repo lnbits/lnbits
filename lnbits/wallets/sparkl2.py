@@ -88,6 +88,11 @@ class SparkL2Wallet(Wallet):
     async def status(self) -> StatusResponse:
         try:
             res = await self._request("POST", "/v1/balance")
+            status = res.get("status")
+            if status == "missing_mnemonic":
+                await self._check_sidecar_mnemonic()
+                return StatusResponse("Spark sidecar not ready", 0)
+
             balance_msat = res.get("balance_msat")
             if balance_msat is not None:
                 return StatusResponse(None, int(balance_msat))
@@ -351,5 +356,6 @@ class SparkL2Wallet(Wallet):
         return words
 
     async def _set_sidecar_mnemonic(self, mnemonic: str):
+        logger.warning("SPARK_L2_MNEMONIC is not set, setting Spark sidecar mnemonic.")
         payload = {"mnemonic": mnemonic}
         await self._request("POST", "/v1/mnemonic", payload)
