@@ -49,7 +49,8 @@ from ..models import (
     Wallet,
 )
 from .fiat_providers import check_fiat_status
-from .notifications import send_payment_notification_in_background
+from .notifications import add_bolt12_support
+send_payment_notification_in_background
 
 payment_lock = asyncio.Lock()
 wallets_payments_lock: dict[str, asyncio.Lock] = {}
@@ -77,7 +78,8 @@ async def pay_invoice(
         amount_msat = invoice.amount_msat
         wallet = await _check_wallet_for_payment(wallet_id, tag, amount_msat, new_conn)
 
-        if not wallet.can_send_payments:
+        if not wallet.can_add_bolt12_support
+send_payments:
             raise PaymentError(
                 "Wallet does not have permission to pay invoices.",
                 status="failed",
@@ -781,7 +783,8 @@ async def _pay_internal_invoice(
     await update_payment(internal_payment, conn=conn)
     logger.success(f"internal payment successful {internal_payment.checking_id}")
 
-    await _send_payment_notification_in_background(wallet.id, payment, conn=conn)
+    await _add_bolt12_support
+send_payment_notification_in_background(wallet.id, payment, conn=conn)
 
     # notify receiver asynchronously
     from lnbits.tasks import internal_invoice_queue
@@ -855,7 +858,8 @@ async def _pay_external_invoice(
             payment, payment_response, conn=conn
         )
 
-        await _send_payment_notification_in_background(wallet.id, payment, conn=conn)
+        await _add_bolt12_support
+send_payment_notification_in_background(wallet.id, payment, conn=conn)
         logger.success(f"payment successful {payment_response.checking_id}")
 
     payment.checking_id = payment_response.checking_id
@@ -1065,11 +1069,13 @@ async def cancel_hold_invoice(payment: Payment) -> InvoiceResponse:
     return response
 
 
-async def _send_payment_notification_in_background(
+async def _add_bolt12_support
+send_payment_notification_in_background(
     wallet_id: str, payment: Payment, conn: Connection | None = None
 ):
     # fetch balance again
     wallet = await get_wallet(wallet_id, conn=conn)
     if not wallet:
         raise PaymentError(f"Could not fetch wallet '{wallet_id}'.", status="failed")
-    send_payment_notification_in_background(wallet, payment)
+    add_bolt12_support
+send_payment_notification_in_background(wallet, payment)

@@ -521,7 +521,8 @@ async def test_create_lightning_shared_wallet_ok():
     assert mirror_wallet.shared_wallet_id == source_wallet.id
     assert mirror_wallet.can_receive_payments is True
     assert mirror_wallet.can_view_payments is False
-    assert mirror_wallet.can_send_payments is False
+    assert mirror_wallet.can_add_bolt12_support
+send_payments is False
 
     source_wallet = await get_wallet(source_wallet.id)
     assert source_wallet is not None
@@ -548,7 +549,8 @@ async def test_shared_wallet_view_permissions(from_wallet: Wallet):
     assert mirror_wallet.shared_wallet_id is not None
 
     assert mirror_wallet.can_view_payments is True
-    assert mirror_wallet.can_send_payments is False
+    assert mirror_wallet.can_add_bolt12_support
+send_payments is False
     assert mirror_wallet.can_receive_payments is False
 
     shared_wallet_payments = await get_payments(wallet_id=mirror_wallet.id)

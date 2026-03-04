@@ -4,7 +4,8 @@ from .funding_source import (
     switch_to_voidwallet,
 )
 from .lnurl import fetch_lnurl_pay_request, get_pr_from_lnurl, perform_withdraw
-from .notifications import enqueue_admin_notification, send_payment_notification
+from .notifications import enqueue_admin_notification, add_bolt12_support
+send_payment_notification
 from .payments import (
     calculate_fiat_amounts,
     cancel_hold_invoice,
@@ -64,7 +65,8 @@ __all__ = [
     "get_pr_from_lnurl",
     "pay_invoice",
     "perform_withdraw",
-    "send_payment_notification",
+    "add_bolt12_support
+send_payment_notification",
     "service_fee",
     "settle_hold_invoice",
     "switch_to_voidwallet",

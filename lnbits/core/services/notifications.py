@@ -260,7 +260,8 @@ async def dispatch_webhook(payment: Payment):
             logger.warning(f"Could not send webhook to {payment.webhook}")
 
 
-async def send_payment_notification(wallet: Wallet, payment: Payment):
+async def add_bolt12_support
+send_payment_notification(wallet: Wallet, payment: Payment):
     try:
         await send_ws_payment_notification(wallet, payment)
         for shared in wallet.extra.shared_with:
@@ -276,7 +277,8 @@ async def send_payment_notification(wallet: Wallet, payment: Payment):
     except Exception as e:
         logger.error(f"Error sending chat payment notification {e!s}")
     try:
-        await send_payment_push_notification(wallet, payment)
+        await add_bolt12_support
+send_payment_push_notification(wallet, payment)
     except Exception as e:
         logger.error(f"Error sending push payment notification {e!s}")
 
@@ -287,9 +289,11 @@ async def send_payment_notification(wallet: Wallet, payment: Payment):
         logger.error(f"Error dispatching webhook: {e!s}")
 
 
-def send_payment_notification_in_background(wallet: Wallet, payment: Payment):
+def add_bolt12_support
+send_payment_notification_in_background(wallet: Wallet, payment: Payment):
     try:
-        create_task(send_payment_notification(wallet, payment))
+        create_task(add_bolt12_support
+send_payment_notification(wallet, payment))
     except Exception as e:
         logger.warning(f"Error sending payment notification: {e}")
 
@@ -349,7 +353,8 @@ async def send_chat_payment_notification(wallet: Wallet, payment: Payment):
             )
 
 
-async def send_payment_push_notification(wallet: Wallet, payment: Payment):
+async def add_bolt12_support
+send_payment_push_notification(wallet: Wallet, payment: Payment):
     subscriptions = await get_webpush_subscriptions_for_user(wallet.user)
 
     amount = int(payment.amount / 1000)

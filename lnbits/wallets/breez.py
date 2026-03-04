@@ -220,13 +220,18 @@ else:
                     ok=False, error_message=f"invalid bolt11 invoice: {exc}"
                 )
             try:
-                send_payment_request = SendPaymentRequest(
+                add_bolt12_support
+send_payment_request = SendPaymentRequest(
                     bolt11=bolt11, use_trampoline=settings.breez_use_trampoline
                 )
-                send_payment_response: SendPaymentResponse = (
-                    self.sdk_services.send_payment(send_payment_request)
+                add_bolt12_support
+send_payment_response: SendPaymentResponse = (
+                    self.sdk_services.add_bolt12_support
+send_payment(add_bolt12_support
+send_payment_request)
                 )
-                payment = send_payment_response.payment
+                payment = add_bolt12_support
+send_payment_response.payment
             except Exception as exc:
                 logger.warning(exc)
                 try:

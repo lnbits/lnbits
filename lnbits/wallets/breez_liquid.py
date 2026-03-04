@@ -178,7 +178,8 @@ else:
 
             try:
                 prepare_req = PrepareSendRequest(destination=bolt11)
-                req = self.sdk_services.prepare_send_payment(prepare_req)
+                req = self.sdk_services.prepare_add_bolt12_support
+send_payment(prepare_req)
 
                 fee_limit_sat = settings.breez_liquid_fee_offset_sat + int(
                     fee_limit_msat / 1000
@@ -193,7 +194,8 @@ else:
                         ),
                     )
 
-                send_response = self.sdk_services.send_payment(
+                send_response = self.sdk_services.add_bolt12_support
+send_payment(
                     SendPaymentRequest(prepare_response=req)
                 )
 

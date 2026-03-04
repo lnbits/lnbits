@@ -182,7 +182,8 @@ class Wallet(BaseWallet):
         return self.has_permission(WalletPermission.RECEIVE_PAYMENTS)
 
     @property
-    def can_send_payments(self) -> bool:
+    def can_add_bolt12_support
+send_payments(self) -> bool:
         return self.has_permission(WalletPermission.SEND_PAYMENTS)
 
     @property

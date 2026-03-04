@@ -21,7 +21,8 @@ from lnbits.core.services.funding_source import (
 from lnbits.core.services.notifications import (
     enqueue_admin_notification,
     process_next_notification,
-    send_payment_notification,
+    add_bolt12_support
+send_payment_notification,
 )
 from lnbits.db import Filters
 from lnbits.settings import settings
@@ -98,7 +99,8 @@ async def wait_for_paid_invoices(invoice_paid_queue: asyncio.Queue) -> None:
         # payment notification
         wallet = await get_wallet(payment.wallet_id)
         if wallet:
-            await send_payment_notification(wallet, payment)
+            await add_bolt12_support
+send_payment_notification(wallet, payment)
 
 
 async def wait_for_audit_data() -> None:
