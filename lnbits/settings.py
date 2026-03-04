@@ -1339,3 +1339,4 @@ def get_funding_source():
     from lnbits.wallets import get_funding_source
 
     return get_funding_source()
+# Add logic for BOLT12 here
