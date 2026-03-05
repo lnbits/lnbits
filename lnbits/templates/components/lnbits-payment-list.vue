@@ -487,55 +487,44 @@
               </div>
             </div>
           </lnbits-dialog>
-          <q-dialog v-model="hodlInvoice.show" position="top">
-            <q-card class="q-pa-sm q-pt-xl lnbits__dialog-card">
-              <q-card-section>
-                <q-item-label class="text-h6">
-                  <span v-text="$t('hold_invoice')"></span>
-                </q-item-label>
-                <q-item-label class="text-subtitle2">
-                  <span v-text="$t('hold_invoice_description')"></span>
-                </q-item-label>
-              </q-card-section>
-              <q-card-section>
-                <q-input
-                  filled
-                  :label="$t('preimage')"
-                  :hint="$t('preimage_hint')"
-                  v-model="hodlInvoice.preimage"
-                  dense
-                  autofocus
-                  @keyup.enter="settleHoldInvoice(hodlInvoice.preimage)"
-                >
-                </q-input>
-              </q-card-section>
-              <q-card-section class="row q-gutter-x-sm">
-                <q-btn
-                  @click="settleHoldInvoice(hodlInvoice.preimage)"
-                  outline
-                  v-close-popup
-                  color="grey"
-                  :label="$t('settle_invoice')"
-                >
-                </q-btn>
-                <q-btn
-                  v-close-popup
-                  outline
-                  color="grey"
-                  class="q-ml-sm"
-                  @click="cancelHoldInvoice(hodlInvoice.payment.payment_hash)"
-                  :label="$t('cancel_invoice')"
-                ></q-btn>
-                <q-btn
-                  v-close-popup
-                  flat
-                  color="grey"
-                  class="q-ml-auto"
-                  :label="$t('close')"
-                ></q-btn>
-              </q-card-section>
-            </q-card>
-          </q-dialog>
+          <lnbits-dialog
+            :show="hodlInvoice.show"
+            :cancel-label="$t('close')"
+            :action="{
+              handler: () => cancelHoldInvoice(hodlInvoice.payment.payment_hash),
+              label: $t('cancel_invoice'),
+              color: 'grey',
+              closePopup: true
+            }"
+            :secondary-action="{
+              handler: () => settleHoldInvoice(hodlInvoice.preimage),
+              label: $t('settle_invoice'),
+              color: 'grey',
+              closePopup: true
+            }"
+            @update:show="hodlInvoice.show = $event"
+          >
+            <q-card-section>
+              <q-item-label class="text-h6">
+                <span v-text="$t('hold_invoice')"></span>
+              </q-item-label>
+              <q-item-label class="text-subtitle2">
+                <span v-text="$t('hold_invoice_description')"></span>
+              </q-item-label>
+            </q-card-section>
+            <q-card-section>
+              <q-input
+                filled
+                :label="$t('preimage')"
+                :hint="$t('preimage_hint')"
+                v-model="hodlInvoice.preimage"
+                dense
+                autofocus
+                @keyup.enter="settleHoldInvoice(hodlInvoice.preimage)"
+              >
+              </q-input>
+            </q-card-section>
+          </lnbits-dialog>
         </q-tr>
       </template>
     </q-table>
