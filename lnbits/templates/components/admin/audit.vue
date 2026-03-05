@@ -32,7 +32,7 @@
     </div>
     <q-separator class="q-mb-lg q-mt-sm"></q-separator>
     <div class="row">
-      <div class="col-md-3 col-sm-12 q-pr-sm">
+      <div class="col-md-6 col-sm-12 q-pr-sm">
         <q-item tag="label" v-ripple>
           <q-item-section avatar>
             <q-toggle
@@ -62,7 +62,7 @@
           </q-item-section>
         </q-item>
       </div>
-      <div class="col-md-3 col-sm-12 q-pr-sm">
+      <div class="col-md-6 col-sm-12 q-pr-sm">
         <q-item tag="label" v-ripple>
           <q-item-section avatar>
             <q-toggle
@@ -83,7 +83,7 @@
           </q-item-section>
         </q-item>
       </div>
-      <div class="col-md-3 col-sm-12 q-pr-sm">
+      <div class="col-md-6 col-sm-12 q-pr-sm">
         <q-item tag="label" v-ripple>
           <q-item-section avatar>
             <q-toggle
@@ -104,7 +104,7 @@
           </q-item-section>
         </q-item>
       </div>
-      <div class="col-md-3 col-sm-12 q-pr-sm">
+      <div class="col-md-6 col-sm-12 q-pr-sm">
         <q-item tag="label" v-ripple>
           <q-item-section avatar>
             <q-toggle
@@ -129,7 +129,6 @@
     <q-separator class="q-mb-xl q-mt-sm"></q-separator>
     <div class="row q-mb-lg">
       <div class="col-md-6 col-sm-12 q-pr-sm">
-        <p><span v-text="$t('audit_http_methods')"></span></p>
         <q-select
           filled
           v-model="formData.lnbits_audit_http_methods"
@@ -148,7 +147,6 @@
         ></q-select>
       </div>
       <div class="col-md-6 col-sm-12 q-pr-sm">
-        <p><span v-text="$t('audit_resp_codes')"></span></p>
         <q-input
           class="q-mb-md"
           filled
@@ -177,7 +175,6 @@
 
     <div class="row">
       <div class="col-md-6 col-sm-12 q-pr-sm">
-        <p><span v-text="$t('audit_paths')"></span></p>
         <q-input
           class="q-mb-md"
           filled
@@ -204,9 +201,6 @@
         <br />
       </div>
       <div class="col-md-6 col-sm-12">
-        <p>
-          <span v-text="$t('audit_paths_exclude')"></span>
-        </p>
         <q-input
           class="q-mb-md"
           filled
