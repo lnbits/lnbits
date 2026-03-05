@@ -36,6 +36,8 @@ lnurl_router = APIRouter(tags=["LNURL"])
 
 async def _handle(lnurl: str) -> LnurlResponseModel:
     try:
+        if "@" in lnurl:  # lower case lightning addresses
+            lnurl = lnurl.lower()
         res = await lnurl_handle(lnurl, user_agent=settings.user_agent, timeout=5)
         if isinstance(res, LnurlErrorResponse):
             raise HTTPException(status_code=HTTPStatus.BAD_REQUEST, detail=res.reason)
