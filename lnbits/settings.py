@@ -292,13 +292,13 @@ class ThemesSettings(LNbitsSettings):
     lnbits_qr_logo: str = Field(default="/static/images/favicon_qr_logo.png")
     lnbits_apple_touch_icon: str | None = Field(default=None)
     lnbits_default_reaction: str = Field(default="confettiBothSides")
-    lnbits_default_theme: str = Field(default="salvador")
+    lnbits_default_theme: str = Field(default="bitcoin")
     lnbits_default_border: str = Field(default="hard-border")
     lnbits_default_gradient: bool = Field(default=True)
     lnbits_default_bgimage: str | None = Field(default=None)
     lnbits_default_dark: bool = Field(default=True)
-    lnbits_default_card_rounded: bool = Field(default=False)
-    lnbits_default_card_gradient: bool = Field(default=False)
+    lnbits_default_card_rounded: bool = Field(default=True)
+    lnbits_default_card_gradient: bool = Field(default=True)
     lnbits_default_card_shadow: bool = Field(default=False)
 
 
