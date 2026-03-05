@@ -18,7 +18,7 @@
       </q-card-section>
 
       <q-card-actions
-        v-if="showCancel || hasAction"
+        v-if="showCancel || hasAction || hasSecondaryAction"
         class="q-mt-lg"
         align="right"
       >
@@ -33,6 +33,18 @@
         <q-space></q-space>
 
         <q-btn
+          v-if="hasSecondaryAction"
+          :icon="secondaryActionProps.icon"
+          :color="secondaryActionProps.color"
+          :label="secondaryActionProps.label"
+          :loading="secondaryActionProps.loading"
+          :disable="secondaryActionProps.disable"
+          @click="handleSecondaryAction"
+          v-close-popup="secondaryActionProps.closePopup"
+          class="q-mr-sm"
+        ></q-btn>
+
+        <q-btn
           v-if="hasAction"
           :icon="actionProps.icon"
           :color="actionProps.color"
@@ -40,6 +52,7 @@
           :loading="actionProps.loading"
           :disable="actionProps.disable"
           @click="handleAction"
+          v-close-popup="actionProps.closePopup"
         ></q-btn>
       </q-card-actions>
     </q-card>

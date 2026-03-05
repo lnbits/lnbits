@@ -33,14 +33,21 @@ window.app.component('lnbits-dialog', {
     action: {
       type: Object,
       default: null
+    },
+    secondaryAction: {
+      type: Object,
+      default: null
     }
   },
 
-  emits: ['update:show', 'hide', 'cancel', 'action'],
+  emits: ['update:show', 'hide', 'cancel', 'action', 'secondary-action'],
 
   computed: {
     hasAction() {
       return !!(this.action && this.action.label)
+    },
+    hasSecondaryAction() {
+      return !!(this.secondaryAction && this.secondaryAction.label)
     },
 
     actionProps() {
@@ -50,7 +57,19 @@ window.app.component('lnbits-dialog', {
         label: action.label || 'Action',
         color: action.color || 'primary',
         loading: !!action.loading,
-        disable: !!action.disable
+        disable: !!action.disable,
+        closePopup: !!action.closePopup
+      }
+    },
+    secondaryActionProps() {
+      const action = this.secondaryAction || {}
+      return {
+        icon: action.icon || null,
+        label: action.label || 'Secondary',
+        color: action.color || 'secondary',
+        loading: !!action.loading,
+        disable: !!action.disable,
+        closePopup: !!action.closePopup
       }
     }
   },
@@ -82,6 +101,22 @@ window.app.component('lnbits-dialog', {
         }
       } catch (error) {
         console.error('lnbits-dialog action handler failed', error)
+      }
+    },
+    async handleSecondaryAction() {
+      try {
+        if (
+          this.secondaryAction &&
+          typeof this.secondaryAction.handler === 'function'
+        ) {
+          await this.secondaryAction.handler()
+        }
+        this.$emit('secondary-action')
+        if (this.secondaryAction && this.secondaryAction.closeOnClick) {
+          this.handleModelUpdate(false)
+        }
+      } catch (error) {
+        console.error('lnbits-dialog secondary action handler failed', error)
       }
     }
   }
