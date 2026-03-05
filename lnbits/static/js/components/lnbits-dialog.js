@@ -52,25 +52,31 @@ window.app.component('lnbits-dialog', {
 
     actionProps() {
       const action = this.action || {}
-      return {
-        icon: action.icon || null,
+      const obj = {
         label: action.label || 'Action',
         color: action.color || 'primary',
         loading: !!action.loading,
         disable: !!action.disable,
         closePopup: !!action.closePopup
       }
+      if (action.icon) {
+        obj.icon = action.icon
+      }
+      return obj
     },
     secondaryActionProps() {
       const action = this.secondaryAction || {}
-      return {
-        icon: action.icon || null,
+      const obj = {
         label: action.label || 'Secondary',
         color: action.color || 'secondary',
         loading: !!action.loading,
         disable: !!action.disable,
         closePopup: !!action.closePopup
       }
+      if (action.icon) {
+        obj.icon = action.icon
+      }
+      return obj
     }
   },
 
