@@ -132,6 +132,7 @@ Old REST interface using [RTL c-lightning-REST](https://github.com/Ride-The-Ligh
 
 Self-custodial funding source using the [Spark L2](https://docs.spark.money/start/overview) network. Requires a Node.js [sidecar](https://github.com/lnbits/spark_sidecar) that bridges lnbits talking to Spark. Works in addition with any Spark-compatible seed (Wallet of Satoshi, BuhoGO, BlitzWallet).
 
+
 ### External sidecar (recommended)
 
 Run the sidecar yourself — your seed never enters LNbits.
@@ -140,14 +141,6 @@ Run the sidecar yourself — your seed never enters LNbits.
 - `SPARK_L2_EXTERNAL_ENDPOINT`: `http://127.0.0.1:8765`
 - `SPARK_L2_EXTERNAL_API_KEY`: _(optional)_
 
-### Internal sidecar (LNbits-managed)
-
-LNbits downloads and runs the sidecar. Requires Node.js and npm on the host.
-
-- `LNBITS_BACKEND_WALLET_CLASS`: `LightsparkSparkWallet`
-- `SPARK_L2_INTERNAL_SIDECAR_VERSION`: `0.1.1`
-- `SPARK_L2_MNEMONIC`: `_Must provide an existing Spark wallet mnemonic_`
-- `SPARK_L2_NETWORK`: `MAINNET`
 
 ### Optional tuning
 
