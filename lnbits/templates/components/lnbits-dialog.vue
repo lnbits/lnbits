@@ -28,13 +28,13 @@
           flat
           :color="cancelColor"
           :label="cancelLabel"
-          @click="handleCancel"
         ></q-btn>
 
         <q-space></q-space>
 
         <q-btn
           v-if="hasAction"
+          :icon="actionProps.icon"
           :color="actionProps.color"
           :label="actionProps.label"
           :loading="actionProps.loading"

@@ -16,7 +16,7 @@ window.app.component('lnbits-dialog', {
     },
     persistent: {
       type: Boolean,
-      default: true
+      default: false
     },
     showCancel: {
       type: Boolean,
@@ -46,6 +46,7 @@ window.app.component('lnbits-dialog', {
     actionProps() {
       const action = this.action || {}
       return {
+        icon: action.icon || null,
         label: action.label || 'Action',
         color: action.color || 'primary',
         loading: !!action.loading,
