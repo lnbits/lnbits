@@ -53,7 +53,7 @@ A backend wallet is selected and configured entirely through LNbits environment 
 
 ### CLNRest (using [runes](https://docs.corelightning.org/reference/lightning-createrune))
 
-[Core Lightning REST API docs](https://docs.corelightning.org/docs/rest)  
+[Core Lightning REST API docs](https://docs.corelightning.org/docs/rest)
 Should also work with the [Rust version of CLNRest](https://github.com/daywalker90/clnrest-rs)
 
 **Environment variables**
@@ -131,7 +131,6 @@ Old REST interface using [RTL c-lightning-REST](https://github.com/Ride-The-Ligh
 ## Spark L2
 
 Self-custodial funding source using the [Spark L2](https://docs.spark.money/start/overview) network. Requires a Node.js [sidecar](https://github.com/lnbits/spark_sidecar) that bridges lnbits talking to Spark. Works in addition with any Spark-compatible seed (Wallet of Satoshi, BuhoGO, BlitzWallet).
-You can let LNbits run the sidecar internally, or run it yourself and point LNbits at it.
 
 ### External sidecar (recommended)
 

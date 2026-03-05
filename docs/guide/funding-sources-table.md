@@ -60,7 +60,7 @@ Below is a side-by-side comparison of Lightning funding sources you can use with
 
 ## Spark (L2)
 
-Spark L2 uses a local Node.js sidecar to expose an HTTP API that LNbits can use as a funding source. It is self-custodial and secured by a standard mnemonic seed. You can let LNbits run the sidecar internally or run your own instance (see `https://github.com/lnbits/spark_sidecar`).
+Spark L2 uses a local Node.js sidecar to expose an HTTP API that LNbits can use as a funding source. It is self-custodial and secured by a standard mnemonic seed. Sidecar repo `https://github.com/lnbits/spark_sidecar`.
 
 ### Notes for readers
 
