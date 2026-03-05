@@ -598,12 +598,19 @@ window.localisation.en = {
   toggle_public_node_ui: 'Public Node UI',
   toggle_transactions_node_ui: 'Transactions Tab (Disable on large CLN nodes)',
   invoice_expiry: 'Invoice Expiry',
-  invoice_expiry_label: 'Invoice expiry (seconds)',
-  fee_reserve: 'Fee Reserve',
-  fee_reserve_percent: 'Fee Reserve Percent',
-  fee_reserve_msats: 'Reserve fee in msats',
-  reserve_fee_in_percent: 'Reserve fee in percent',
-  payment_wait_time: 'Payment Wait Time (sec)',
+  routing_fee_reserve_calculations: 'Routing Fee Reserve Calculations',
+  routing_fee_reserve_calculations_desc:
+    'LNbits sets aside a “reserve amount” for each payment to cover routing fees. The maximum routing fee passed to the funding source is whichever is higher: the <strong>minimum routing fee reserve</strong> or the <strong>routing fee reserve percentage</strong>.',
+  millisats: 'millisats',
+  fee_reserve: 'Minimum Routing Fee Reserve',
+  fee_reserve_percent: 'Routing Fee Reserve Percentage',
+  fee_reserve_min_hint:
+    'The minimum fee reserved per payment.<br>This acts as a floor - the maximum routing fee will never be lower than this value regardless of payment size.',
+  fee_reserve_percent_hint:
+    'The percentage of the payment amount to reserve for routing fees.',
+  payment_timeouts: 'Payment Timeouts',
+  payment_wait_time: 'Payment Wait Time',
+  seconds: 'seconds',
   payment_wait_time_desc:
     'Wait time before marking an outgoing payment as pending. Default: 5s; raise for slow-settling invoices.',
   payment_wait_time_tooltip:

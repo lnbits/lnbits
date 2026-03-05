@@ -1,5 +1,27 @@
-# 1. Always check the results of the procedure
-# 2. Always run "npx prettier -w lnbits/static/i18n/XX.js" to reformat the result
+"""_summary_
+The script syncs missing translation keys from en.js into another language file
+using GPT-4o.
+
+What it does:
+1. Loads en.js and the target language file (e.g. de.js)
+2. Finds keys present in en.js but missing from the target
+3. For each missing key, calls GPT-4o to translate the English string
+4. Preserves %{variable} placeholders verbatim — skips the translation if they get
+mangled
+5. Writes the updated language file back, maintaining key order from en.js
+6. If no keys are missing, it instead checks that %{variable} placeholders match
+between English and the target
+
+1. Always check the results of the procedure
+2. Always run "npx prettier -w lnbits/static/i18n/XX.js" to format the result
+
+Usage:
+export OPENAI_API_KEY=sk-...
+python3 tools/i18n-ai-tool.py de
+npx prettier -w lnbits/static/i18n/de.js
+Returns:
+    _type_: _description_
+"""
 
 import os
 import re
