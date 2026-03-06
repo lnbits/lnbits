@@ -131,6 +131,22 @@ window._lnbitsUtils = {
       currency: currency || 'sat'
     }).format(value)
   },
+  getCurrencySymbol(currency) {
+    const code = (currency || '').toUpperCase()
+    if (code === 'BTC' || code === 'XBT' || code === 'SAT' || code === 'SATS') {
+      return '₿'
+    }
+    try {
+      const parts = new Intl.NumberFormat(window.i18n.global.locale, {
+        style: 'currency',
+        currency: code
+      }).formatToParts(0)
+      const symbolPart = parts.find(part => part.type === 'currency')
+      return symbolPart?.value || code || '¤'
+    } catch (e) {
+      return code || '¤'
+    }
+  },
   formatSat(value) {
     return new Intl.NumberFormat(window.i18n.global.locale).format(value)
   },

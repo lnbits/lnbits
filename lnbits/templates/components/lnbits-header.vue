@@ -27,12 +27,9 @@
       ></q-btn>
       <q-toolbar-title>
         <q-btn flat no-caps dense class="q-mr-sm" size="lg" type="a" href="/">
-          <q-img
-            v-if="customLogo"
-            height="30px"
-            alt="Logo"
-            :src="customLogo"
-          ></q-img>
+          <q-avatar v-if="g.settings.customLogo" height="30px">
+            <img alt="Logo" :src="g.settings.customLogo" />
+          </q-avatar>
           <span v-else-if="g.settings.siteTitle == 'LNbits'"
             ><strong>LN</strong>bits</span
           >
