@@ -125,15 +125,14 @@
         </q-expansion-item>
       </div>
     </q-list>
-    <q-dialog v-model="showQRDialog">
-      <q-card class="q-pa-md">
-        <q-card-section>
-          <lnbits-qrcode :value="qrValue"></lnbits-qrcode>
-        </q-card-section>
-        <q-card-actions align="right">
-          <q-btn flat :label="$t('close')" v-close-popup />
-        </q-card-actions>
-      </q-card>
-    </q-dialog>
+    <lnbits-dialog
+      :show="showQRDialog"
+      :position="'standard'"
+      @update:model-value="showQRDialog = $event"
+    >
+      <q-card-section>
+        <lnbits-qrcode :value="qrValue"></lnbits-qrcode>
+      </q-card-section>
+    </lnbits-dialog>
   </div>
 </template>
