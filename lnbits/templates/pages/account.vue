@@ -1231,213 +1231,173 @@
     </div>
   </div>
 
-  <q-dialog v-model="apiAcl.showPasswordDialog" position="top">
-    <q-card class="q-pa-md q-pt-md lnbits__dialog-card">
-      <strong>User Password</strong>
-      <div class="row q-mt-md q-col-gutter-md">
-        <div class="col-12">
-          <q-input
-            v-model="apiAcl.password"
-            type="password"
-            dense
-            filled
-            label="Password"
-            hint="User password is required for this action."
-          >
-          </q-input>
-        </div>
+  <lnbits-dialog
+    :show="apiAcl.showPasswordDialog"
+    title="Password Required"
+    :action="{
+      handler: () => runPasswordGuardedFunction(),
+      label: $t('ok')
+    }"
+    @update:model-value="apiAcl.showPasswordDialog = $event"
+  >
+    <div class="row q-col-gutter-md">
+      <div class="col-12">
+        <q-input
+          v-model="apiAcl.password"
+          type="password"
+          dense
+          filled
+          label="Password"
+          hint="User password is required for this action."
+        >
+        </q-input>
       </div>
-      <div class="row q-mt-lg">
-        <q-btn
-          v-close-popup
-          flat
-          color="grey"
-          class="q-ml-auto"
-          v-text="$t('cancel')"
-        ></q-btn>
-        <q-btn
-          @click="runPasswordGuardedFunction()"
-          :label="$t('ok')"
-          color="primary"
-        ></q-btn>
-      </div>
-    </q-card>
-  </q-dialog>
+    </div>
+  </lnbits-dialog>
 
-  <q-dialog v-model="apiAcl.showNewAclDialog" position="top">
-    <q-card class="q-pa-md q-pt-md lnbits__dialog-card">
-      <strong>New API Access Control List</strong>
-      <div class="row q-mt-md q-col-gutter-md">
-        <div class="col-12">
-          <q-input v-model="apiAcl.newAclName" dense filled label="ACL Name">
-          </q-input>
-        </div>
+  <lnbits-dialog
+    :show="apiAcl.showNewAclDialog"
+    title="New API Access Control List"
+    :action="{
+      handler: () => addApiACL(),
+      label: 'Create'
+    }"
+    :cancel-label="$t('close')"
+    @update:model-value="apiAcl.showNewAclDialog = $event"
+  >
+    <div class="row q-col-gutter-md">
+      <div class="col-12">
+        <q-input v-model="apiAcl.newAclName" dense filled label="ACL Name">
+        </q-input>
       </div>
-      <div class="row q-mt-lg">
-        <q-btn @click="addApiACL()" label="Create" color="primary"></q-btn>
-        <q-btn
-          v-close-popup
-          flat
-          color="grey"
-          class="q-ml-auto"
-          v-text="$t('close')"
-        ></q-btn>
-      </div>
-    </q-card>
-  </q-dialog>
-  <q-dialog v-model="apiAcl.showNewTokenDialog" position="top">
-    <q-card class="q-pa-md q-pt-md lnbits__dialog-card">
-      <strong>New API Token</strong>
-      <div class="row q-col-gutter-md q-mt-md">
-        <div class="col-12">
-          <q-input
-            v-model="apiAcl.newTokenName"
-            dense
-            filled
-            label="Token Name"
-          >
-          </q-input>
-        </div>
-        <div class="col-12">
-          <q-input
-            v-model="apiAcl.newTokenExpiry"
-            dense
-            filled
-            label="Expiration"
-            hit="Expiration time in minutes (default xxx)"
-          >
-            <template v-slot:prepend>
-              <q-icon name="event" class="cursor-pointer">
-                <q-popup-proxy
-                  cover
-                  transition-show="scale"
-                  transition-hide="scale"
-                >
-                  <q-date
-                    v-model="apiAcl.newTokenExpiry"
-                    mask="YYYY-MM-DD HH:mm"
-                  >
-                    <div class="row items-center justify-end">
-                      <q-btn v-close-popup label="Close" color="primary" flat />
-                    </div>
-                  </q-date>
-                </q-popup-proxy>
-              </q-icon>
-            </template>
+    </div>
+  </lnbits-dialog>
 
-            <template v-slot:append>
-              <q-icon name="access_time" class="cursor-pointer">
-                <q-popup-proxy
-                  cover
-                  transition-show="scale"
-                  transition-hide="scale"
+  <lnbits-dialog
+    :show="apiAcl.showNewTokenDialog"
+    title="New API Token"
+    :action="{
+      handler: () => generateApiToken(),
+      label: 'Create'
+    }"
+    :cancel-label="$t('close')"
+    @update:model-value="apiAcl.showNewTokenDialog = $event"
+  >
+    <div class="row q-col-gutter-md">
+      <div class="col-12">
+        <q-input v-model="apiAcl.newTokenName" dense filled label="Token Name">
+        </q-input>
+      </div>
+      <div class="col-12">
+        <q-input
+          v-model="apiAcl.newTokenExpiry"
+          dense
+          filled
+          label="Expiration"
+          hit="Expiration time in minutes (default xxx)"
+        >
+          <template v-slot:prepend>
+            <q-icon name="event" class="cursor-pointer">
+              <q-popup-proxy
+                cover
+                transition-show="scale"
+                transition-hide="scale"
+              >
+                <q-date v-model="apiAcl.newTokenExpiry" mask="YYYY-MM-DD HH:mm">
+                  <div class="row items-center justify-end">
+                    <q-btn v-close-popup label="Close" color="primary" flat />
+                  </div>
+                </q-date>
+              </q-popup-proxy>
+            </q-icon>
+          </template>
+
+          <template v-slot:append>
+            <q-icon name="access_time" class="cursor-pointer">
+              <q-popup-proxy
+                cover
+                transition-show="scale"
+                transition-hide="scale"
+              >
+                <q-time
+                  v-model="apiAcl.newTokenExpiry"
+                  mask="YYYY-MM-DD HH:mm"
+                  format24h
                 >
-                  <q-time
-                    v-model="apiAcl.newTokenExpiry"
-                    mask="YYYY-MM-DD HH:mm"
-                    format24h
-                  >
-                    <div class="row items-center justify-end">
-                      <q-btn v-close-popup label="Close" color="primary" flat />
-                    </div>
-                  </q-time>
-                </q-popup-proxy>
-              </q-icon>
-            </template>
-          </q-input>
-        </div>
+                  <div class="row items-center justify-end">
+                    <q-btn v-close-popup label="Close" color="primary" flat />
+                  </div>
+                </q-time>
+              </q-popup-proxy>
+            </q-icon>
+          </template>
+        </q-input>
       </div>
-      <div class="row q-mt-lg">
-        <q-btn
-          @click="generateApiToken()"
-          label="Create"
-          color="primary"
-        ></q-btn>
-        <q-btn
-          v-close-popup
-          flat
-          color="grey"
-          class="q-ml-auto"
-          v-text="$t('close')"
-        ></q-btn>
+    </div>
+  </lnbits-dialog>
+
+  <lnbits-dialog
+    :show="labelsDialog.show"
+    :title="$t('label')"
+    :action="{
+      handler: () =>
+        g.user.extra.labels.some(label => label.name === labelsDialog.data.name)
+          ? updateUserLabel()
+          : addUserLabel(),
+      label: g.user.extra.labels.some(
+        label => label.name === labelsDialog.data.name
+      )
+        ? $t('update_label')
+        : $t('add_label'),
+      disable: !labelsDialog.data.name || !labelsDialog.data.color
+    }"
+    :cancel-label="$t('cancel')"
+    @update:model-value="labelsDialog.show = $event"
+  >
+    <div class="row q-col-gutter-md">
+      <div class="col-12">
+        <q-input
+          v-model="labelsDialog.data.name"
+          dense
+          filled
+          :label="$t('name')"
+        >
+        </q-input>
       </div>
-    </q-card>
-  </q-dialog>
-  <q-dialog v-model="labelsDialog.show" position="top">
-    <q-card class="q-pa-md q-pt-md lnbits__dialog-card">
-      <strong v-text="$t('label')"></strong>
-      <div class="row q-mt-md q-col-gutter-md">
-        <div class="col-12">
-          <q-input
-            v-model="labelsDialog.data.name"
-            dense
-            filled
-            :label="$t('name')"
-          >
-          </q-input>
-        </div>
-        <div class="col-12">
-          <q-input
-            v-model="labelsDialog.data.description"
-            dense
-            filled
-            type="textarea"
-            rows="3"
-            :label="$t('description')"
-          >
-          </q-input>
-        </div>
-        <div class="col-12">
-          <q-input
-            v-model="labelsDialog.data.color"
-            filled
-            dense
-            class="my-input"
-          >
-            <template v-slot:append>
-              <q-icon name="colorize" class="cursor-pointer">
-                <q-popup-proxy
-                  cover
-                  transition-show="scale"
-                  transition-hide="scale"
-                >
-                  <q-color
-                    v-model="labelsDialog.data.color"
-                    default-view="palette"
-                  />
-                </q-popup-proxy>
-              </q-icon>
-            </template>
-          </q-input>
-        </div>
+      <div class="col-12">
+        <q-input
+          v-model="labelsDialog.data.description"
+          dense
+          filled
+          type="textarea"
+          rows="3"
+          :label="$t('description')"
+        >
+        </q-input>
       </div>
-      <div class="row q-mt-lg">
-        <q-btn
-          v-close-popup
-          flat
-          color="grey"
-          class="q-ml-auto"
-          v-text="$t('cancel')"
-        ></q-btn>
-        <q-btn
-          v-if="
-            g.user.extra.labels.some(
-              label => label.name === labelsDialog.data.name
-            )
-          "
-          @click="updateUserLabel()"
-          :disable="!labelsDialog.data.name || !labelsDialog.data.color"
-          :label="$t('update_label')"
-          color="primary"
-        ></q-btn>
-        <q-btn
-          v-else
-          @click="addUserLabel()"
-          :disable="!labelsDialog.data.name || !labelsDialog.data.color"
-          :label="$t('add_label')"
-          color="primary"
-        ></q-btn>
+      <div class="col-12">
+        <q-input
+          v-model="labelsDialog.data.color"
+          filled
+          dense
+          class="my-input"
+        >
+          <template v-slot:append>
+            <q-icon name="colorize" class="cursor-pointer">
+              <q-popup-proxy
+                cover
+                transition-show="scale"
+                transition-hide="scale"
+              >
+                <q-color
+                  v-model="labelsDialog.data.color"
+                  default-view="palette"
+                />
+              </q-popup-proxy>
+            </q-icon>
+          </template>
+        </q-input>
       </div>
-    </q-card>
-  </q-dialog>
+    </div>
+  </lnbits-dialog>
 </template>
