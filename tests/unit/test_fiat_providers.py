@@ -9,18 +9,61 @@ from pytest_mock.plugin import MockerFixture
 from lnbits.core.crud.payments import get_payments
 from lnbits.core.crud.users import get_user
 from lnbits.core.crud.wallets import create_wallet
-from lnbits.core.models.payments import CreateInvoice, PaymentState
+from lnbits.core.models.payments import CreateInvoice, Payment, PaymentState
 from lnbits.core.models.users import User
 from lnbits.core.models.wallets import Wallet
 from lnbits.core.services import check_payment_status, payments
 from lnbits.core.services.fiat_providers import (
+    check_fiat_status,
     check_stripe_signature,
     handle_fiat_payment_confirmation,
+    test_connection as fiat_provider_connection,
+    verify_paypal_webhook,
 )
 from lnbits.core.services.users import create_user_account
-from lnbits.fiat.base import FiatInvoiceResponse, FiatPaymentStatus
+from lnbits.fiat.base import FiatInvoiceResponse, FiatPaymentStatus, FiatStatusResponse
 from lnbits.settings import Settings
 from tests.helpers import get_random_string
+
+
+class MockHTTPResponse:
+    def __init__(self, json_data=None, error: Exception | None = None):
+        self._json_data = json_data or {}
+        self._error = error
+
+    def raise_for_status(self):
+        if self._error:
+            raise self._error
+
+    def json(self):
+        return self._json_data
+
+
+class MockHTTPClient:
+    def __init__(self, responses: list[MockHTTPResponse]):
+        self._responses = responses
+        self.calls: list[tuple[str, dict]] = []
+
+    async def __aenter__(self):
+        return self
+
+    async def __aexit__(self, exc_type, exc, tb):
+        return False
+
+    async def post(self, path: str, **kwargs):
+        self.calls.append((path, kwargs))
+        return self._responses.pop(0)
+
+
+@pytest.fixture(autouse=True)
+def fiat_provider_test_settings(settings: Settings):
+    original_allowed_currencies = settings.lnbits_allowed_currencies
+    original_paypal_enabled = settings.paypal_enabled
+    settings.lnbits_allowed_currencies = []
+    settings.paypal_enabled = False
+    yield
+    settings.lnbits_allowed_currencies = original_allowed_currencies
+    settings.paypal_enabled = original_paypal_enabled
 
 
 @pytest.mark.anyio
@@ -433,3 +476,188 @@ def _make_stripe_sig_header(payload, secret, timestamp=None):
         secret.encode(), signed_payload.encode(), hashlib.sha256
     ).hexdigest()
     return f"t={timestamp},v1={signature}", timestamp, signature
+
+
+@pytest.mark.anyio
+async def test_check_fiat_status_handles_internal_states(mocker: MockerFixture):
+    pending_payment = Payment(
+        checking_id="external_payment",
+        payment_hash="hash_pending",
+        wallet_id="wallet_id",
+        amount=1000,
+        fee=0,
+        bolt11="bolt11",
+        status=PaymentState.PENDING,
+    )
+    success_payment = Payment(
+        checking_id="fiat_success",
+        payment_hash="hash_success",
+        wallet_id="wallet_id",
+        amount=1000,
+        fee=0,
+        bolt11="bolt11",
+        status=PaymentState.SUCCESS,
+        fiat_provider="stripe",
+    )
+    failed_payment = Payment(
+        checking_id="fiat_failed",
+        payment_hash="hash_failed",
+        wallet_id="wallet_id",
+        amount=1000,
+        fee=0,
+        bolt11="bolt11",
+        status=PaymentState.FAILED,
+        fiat_provider="stripe",
+    )
+
+    assert (await check_fiat_status(pending_payment)).pending is True
+    assert (await check_fiat_status(success_payment)).success is True
+    assert (await check_fiat_status(failed_payment)).failed is True
+
+    provider = mocker.Mock()
+    provider.get_invoice_status = AsyncMock(return_value=FiatPaymentStatus(paid=True))
+    mocker.patch(
+        "lnbits.core.services.fiat_providers.get_fiat_provider",
+        AsyncMock(return_value=provider),
+    )
+    queue_put = mocker.patch("lnbits.tasks.internal_invoice_queue.put", AsyncMock())
+
+    success_status = await check_fiat_status(
+        Payment(
+            checking_id="fiat_pending",
+            payment_hash="hash_queue",
+            wallet_id="wallet_id",
+            amount=1000,
+            fee=0,
+            bolt11="bolt11",
+            status=PaymentState.PENDING,
+            fiat_provider="stripe",
+            extra={"fiat_checking_id": "stripe_checking_id"},
+        )
+    )
+
+    assert success_status.success is True
+    queue_put.assert_awaited_once_with("fiat_pending")
+
+    await check_fiat_status(
+        Payment(
+            checking_id="fiat_pending_skip",
+            payment_hash="hash_skip",
+            wallet_id="wallet_id",
+            amount=1000,
+            fee=0,
+            bolt11="bolt11",
+            status=PaymentState.PENDING,
+            fiat_provider="stripe",
+            extra={"fiat_checking_id": "stripe_checking_id"},
+        ),
+        skip_internal_payment_notifications=True,
+    )
+    assert queue_put.await_count == 1
+
+
+@pytest.mark.anyio
+async def test_verify_paypal_webhook_requires_configuration(settings: Settings):
+    settings.paypal_webhook_id = None
+
+    with pytest.raises(
+        ValueError, match="PayPal webhook cannot be verified. Missing webhook ID."
+    ):
+        await verify_paypal_webhook({}, b"{}")
+
+
+@pytest.mark.anyio
+async def test_verify_paypal_webhook_requires_headers(settings: Settings):
+    settings.paypal_webhook_id = "webhook-id"
+
+    with pytest.raises(
+        ValueError, match="PayPal webhook cannot be verified. Missing headers."
+    ):
+        await verify_paypal_webhook({}, b"{}")
+
+
+@pytest.mark.anyio
+async def test_verify_paypal_webhook_success(
+    settings: Settings, mocker: MockerFixture
+):
+    settings.paypal_webhook_id = "webhook-id"
+    client = MockHTTPClient(
+        [
+            MockHTTPResponse(json_data={"access_token": "token"}),
+            MockHTTPResponse(json_data={"verification_status": "SUCCESS"}),
+        ]
+    )
+    mocker.patch(
+        "lnbits.core.services.fiat_providers.httpx.AsyncClient",
+        return_value=client,
+    )
+
+    await verify_paypal_webhook(
+        {
+            "PAYPAL-TRANSMISSION-ID": "tx-id",
+            "PAYPAL-TRANSMISSION-TIME": "2024-01-01T00:00:00Z",
+            "PAYPAL-TRANSMISSION-SIG": "signature",
+            "PAYPAL-CERT-URL": "https://cert.example.com",
+            "PAYPAL-AUTH-ALGO": "SHA256withRSA",
+        },
+        b'{"id":"event-1"}',
+    )
+
+    assert client.calls[0][0] == "/v1/oauth2/token"
+    assert client.calls[1][0] == "/v1/notifications/verify-webhook-signature"
+    assert client.calls[1][1]["headers"]["Authorization"] == "Bearer token"
+
+
+@pytest.mark.anyio
+async def test_verify_paypal_webhook_raises_on_failed_verification(
+    settings: Settings, mocker: MockerFixture
+):
+    settings.paypal_webhook_id = "webhook-id"
+    client = MockHTTPClient(
+        [
+            MockHTTPResponse(json_data={"access_token": "token"}),
+            MockHTTPResponse(json_data={"verification_status": "FAILURE"}),
+        ]
+    )
+    mocker.patch(
+        "lnbits.core.services.fiat_providers.httpx.AsyncClient",
+        return_value=client,
+    )
+
+    with pytest.raises(ValueError, match="PayPal webhook cannot be verified."):
+        await verify_paypal_webhook(
+            {
+                "PAYPAL-TRANSMISSION-ID": "tx-id",
+                "PAYPAL-TRANSMISSION-TIME": "2024-01-01T00:00:00Z",
+                "PAYPAL-TRANSMISSION-SIG": "signature",
+                "PAYPAL-CERT-URL": "https://cert.example.com",
+                "PAYPAL-AUTH-ALGO": "SHA256withRSA",
+            },
+            b'{"id":"event-1"}',
+        )
+
+
+@pytest.mark.anyio
+async def test_test_connection_reports_provider_status(mocker: MockerFixture):
+    mocker.patch(
+        "lnbits.core.services.fiat_providers.get_fiat_provider",
+        AsyncMock(return_value=None),
+    )
+    missing_status = await fiat_provider_connection("stripe")
+    assert missing_status.success is False
+    assert missing_status.message == "Fiat provider 'stripe' not found."
+
+    provider = mocker.Mock()
+    provider.status = AsyncMock(return_value=FiatStatusResponse(error_message="bad key"))
+    mocker.patch(
+        "lnbits.core.services.fiat_providers.get_fiat_provider",
+        AsyncMock(return_value=provider),
+    )
+    error_status = await fiat_provider_connection("stripe")
+    assert error_status.success is False
+    assert error_status.message == "Cconnection test failed: bad key"
+
+    provider.status = AsyncMock(return_value=FiatStatusResponse(balance=21.0))
+    success_status = await fiat_provider_connection("stripe")
+    assert success_status.success is True
+    assert success_status.message == "Connection test successful. Balance: 21.0."
