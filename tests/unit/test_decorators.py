@@ -11,7 +11,16 @@ from pydantic.types import UUID4
 from lnbits.core.crud.users import delete_account
 from lnbits.core.models import User
 from lnbits.core.models.users import AccessTokenPayload
-from lnbits.decorators import check_user_exists
+from lnbits.decorators import (
+    access_token_payload,
+    check_access_token,
+    check_admin_ui,
+    check_extension_builder,
+    check_first_install,
+    check_user_exists,
+    optional_user_id,
+)
+from lnbits.helpers import create_access_token
 from lnbits.settings import AuthMethods, Settings, settings
 
 
@@ -136,3 +145,83 @@ async def test_check_user_exists_with_user_id_only_not_allowed(user_alan: User):
         await check_user_exists(request, access_token=None, usr=UUID4(user_alan.id))
     assert exc_info.value.status_code == 401
     assert exc_info.value.detail == "Missing user ID or access token."
+
+
+@pytest.mark.anyio
+async def test_check_access_token_prefers_available_source():
+    assert await check_access_token("header", "cookie", "bearer") == "header"
+    assert await check_access_token(None, "cookie", "bearer") == "cookie"
+    assert await check_access_token(None, None, "bearer") == "bearer"
+
+
+@pytest.mark.anyio
+async def test_access_token_payload_success_and_missing(settings: Settings):
+    token = create_access_token({"sub": "alice", "usr": "user-id"})
+
+    payload = await access_token_payload(token)
+
+    assert isinstance(payload, AccessTokenPayload)
+    assert payload.sub == "alice"
+    assert payload.usr == "user-id"
+
+    with pytest.raises(HTTPException, match="Missing access token."):
+        await access_token_payload(None)
+
+
+@pytest.mark.anyio
+async def test_optional_user_id_uses_user_id_or_access_token(
+    user_alan: User, settings: Settings
+):
+    settings.auth_allowed_methods = [AuthMethods.user_id_only.value]
+    request = Request({"type": "http", "path": "/wallet", "method": "GET"})
+
+    assert (
+        await optional_user_id(request, access_token=None, usr=UUID4(user_alan.id))
+        == user_alan.id
+    )
+
+    settings.auth_allowed_methods = []
+    token = create_access_token({"sub": user_alan.username, "usr": user_alan.id})
+    assert await optional_user_id(request, access_token=token, usr=None) == user_alan.id
+    assert await optional_user_id(request, access_token=None, usr=None) is None
+
+
+@pytest.mark.anyio
+async def test_check_admin_ui_and_first_install(settings: Settings):
+    original_admin_ui = settings.lnbits_admin_ui
+    original_first_install = settings.first_install
+    try:
+        settings.lnbits_admin_ui = False
+        with pytest.raises(HTTPException, match="Admin UI is disabled."):
+            await check_admin_ui()
+
+        settings.lnbits_admin_ui = True
+        await check_admin_ui()
+
+        settings.first_install = False
+        with pytest.raises(
+            HTTPException, match="Super user account has already been configured."
+        ):
+            await check_first_install()
+
+        settings.first_install = True
+        await check_first_install()
+    finally:
+        settings.lnbits_admin_ui = original_admin_ui
+        settings.first_install = original_first_install
+
+
+@pytest.mark.anyio
+async def test_check_extension_builder_requires_admin_when_disabled_for_users(
+    settings: Settings, user_alan: User
+):
+    settings.lnbits_extensions_builder_activate_non_admins = False
+
+    with pytest.raises(
+        HTTPException, match="Extension Builder is disabled for non admin users."
+    ):
+        await check_extension_builder(user_alan)
+
+    admin_user = user_alan.copy(deep=True)
+    admin_user.admin = True
+    await check_extension_builder(admin_user)
