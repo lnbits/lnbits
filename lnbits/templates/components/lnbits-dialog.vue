@@ -9,7 +9,7 @@
     <q-card class="q-pa-lg q-pt-xl lnbits__dialog-card">
       <!-- Header with optional title -->
       <q-card-section v-if="title">
-        <div class="text-h6 q-mb-md" v-text="title"></div>
+        <div class="text-h6" v-text="title"></div>
       </q-card-section>
 
       <!-- Main content slot -->
