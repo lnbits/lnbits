@@ -170,33 +170,23 @@
     </div>
   </div>
 
-  <q-dialog v-model="auditDetailsDialog.show" position="top">
-    <q-card class="q-pa-md q-pt-md lnbits__dialog-card">
-      <strong v-text="$t('http_request_details')"></strong>
-      <q-input
-        filled
-        dense
-        v-model.trim="auditDetailsDialog.data"
-        type="textarea"
-        rows="25"
-      ></q-input>
-
-      <div class="row q-mt-lg">
-        <q-btn
-          @click="utils.copyText(auditDetailsDialog.data)"
-          icon="content_copy"
-          color="grey"
-          flat
-          v-text="$t('copy')"
-        ></q-btn>
-        <q-btn
-          v-close-popup
-          flat
-          color="grey"
-          class="q-ml-auto"
-          v-text="$t('close')"
-        ></q-btn>
-      </div>
-    </q-card>
-  </q-dialog>
+  <lnbits-dialog
+    :show="auditDetailsDialog.show"
+    :title="$t('http_request_details')"
+    :action="{
+      handler: () => utils.copyText(auditDetailsDialog.data),
+      label: $t('copy'),
+      icon: 'content_copy'
+    }"
+    :cancel-label="$t('close')"
+    @update:model-value="auditDetailsDialog.show = $event"
+  >
+    <q-input
+      filled
+      dense
+      v-model.trim="auditDetailsDialog.data"
+      type="textarea"
+      rows="25"
+    ></q-input>
+  </lnbits-dialog>
 </template>
