@@ -1,5 +1,5 @@
-from uuid import uuid4
 from types import SimpleNamespace
+from uuid import uuid4
 
 import pytest
 from pytest_mock.plugin import MockerFixture
@@ -8,7 +8,6 @@ from lnbits.core.crud import (
     create_installed_extension,
     delete_installed_extension,
     get_installed_extension,
-    get_installed_extensions,
 )
 from lnbits.core.models.extensions import (
     Extension,
@@ -57,7 +56,9 @@ def _installable_extension(
 
 
 @pytest.mark.anyio
-async def test_install_extension_rejects_incompatible_release(tmp_path, settings: Settings):
+async def test_install_extension_rejects_incompatible_release(
+    tmp_path, settings: Settings
+):
     ext_info = _installable_extension(f"ext_{uuid4().hex[:8]}", compatible=False)
     original_data_folder = settings.lnbits_data_folder
     original_extensions_path = settings.lnbits_extensions_path
@@ -293,7 +294,9 @@ async def test_get_valid_extensions_and_single_extension_respect_settings(
         assert ext_id_one in valid_codes
         assert ext_id_two not in valid_codes
 
-        assert await get_valid_extension(ext_id_one, include_deactivated=True) is not None
+        assert (
+            await get_valid_extension(ext_id_one, include_deactivated=True) is not None
+        )
 
         settings.lnbits_extensions_deactivate_all = True
         assert await get_valid_extensions(include_deactivated=False) == []
