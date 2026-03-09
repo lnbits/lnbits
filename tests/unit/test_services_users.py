@@ -1,7 +1,6 @@
 from uuid import uuid4
 
 import pytest
-from sqlalchemy.exc import DBAPIError
 
 from lnbits.core.crud import (
     create_account,
@@ -14,7 +13,6 @@ from lnbits.core.crud import (
     get_wallets,
 )
 from lnbits.core.crud.settings import get_settings_field, set_settings_field
-from lnbits.db import DB_TYPE, POSTGRES
 from lnbits.core.models import Account
 from lnbits.core.models.extensions import UserExtension
 from lnbits.core.models.users import RegisterUser
