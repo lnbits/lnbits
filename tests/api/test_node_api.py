@@ -320,7 +320,8 @@ async def test_node_api_route_functions_with_fake_node(
 
         rank = await node_api.api_get_1ml_stats(node=node)
         assert rank is not None
-        assert rank.channelcount == 2
+        rank_data = node_api.NodeRank.parse_obj(rank)
+        assert rank_data.channelcount == 2
     finally:
         settings.lnbits_node_ui_transactions = original_transactions
 

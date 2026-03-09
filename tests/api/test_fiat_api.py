@@ -6,9 +6,16 @@ from lnbits.core.models.misc import SimpleStatus
 from lnbits.fiat.base import FiatSubscriptionResponse
 
 
+class _UnsetSecret:
+    pass
+
+
+UNSET_SECRET = _UnsetSecret()
+
+
 class FakeStripeWallet:
-    def __init__(self, secret: str | None = None):
-        self._secret = secret if secret is not None else "connection-token"
+    def __init__(self, secret: str | None | _UnsetSecret = UNSET_SECRET):
+        self._secret = "connection-token" if isinstance(secret, _UnsetSecret) else secret
 
     async def create_terminal_connection_token(self) -> dict[str, str]:
         if self._secret is None:
