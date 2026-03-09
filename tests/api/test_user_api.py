@@ -96,5 +96,7 @@ async def test_user_api_create_wallet_validates_currency():
     with pytest.raises(ValueError, match="Currency 'INVALID' not allowed."):
         await api_users_create_user_wallet(user.id, name="invalid", currency="INVALID")
 
-    wallet = await api_users_create_user_wallet(user.id, name="eur wallet", currency="EUR")
+    wallet = await api_users_create_user_wallet(
+        user.id, name="eur wallet", currency="EUR"
+    )
     assert wallet.currency == "EUR"

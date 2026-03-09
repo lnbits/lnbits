@@ -163,7 +163,9 @@ async def test_callback_api_handles_subscription_flows_and_validation(mocker):
     )
     assert create_fiat_invoice_mock.await_count == 2
 
-    with pytest.raises(ValueError, match="PayPal subscription event missing custom metadata."):
+    with pytest.raises(
+        ValueError, match="PayPal subscription event missing custom metadata."
+    ):
         await handle_paypal_event(
             {
                 "id": "evt_bad_sale",

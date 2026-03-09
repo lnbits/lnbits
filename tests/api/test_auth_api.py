@@ -6,9 +6,9 @@ from fastapi.responses import RedirectResponse
 from httpx import AsyncClient
 
 from lnbits.core.crud.users import get_account, update_account
-from lnbits.core.views.auth_api import get_account_by_email
 from lnbits.core.models.users import Account
 from lnbits.core.services.users import create_user_account
+from lnbits.core.views.auth_api import get_account_by_email
 from lnbits.settings import Settings
 
 
@@ -59,9 +59,7 @@ async def test_auth_api_logout_and_update_ui_customization(
 
 
 @pytest.mark.anyio
-async def test_auth_api_sso_login_and_callback(
-    http_client: AsyncClient, mocker
-):
+async def test_auth_api_sso_login_and_callback(http_client: AsyncClient, mocker):
     user = await create_user_account(
         Account(
             id=uuid4().hex,

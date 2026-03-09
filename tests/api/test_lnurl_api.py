@@ -20,13 +20,13 @@ from lnbits.core.models import Account, CreateInvoice
 from lnbits.core.models.lnurl import CreateLnurlPayment, LnurlScan
 from lnbits.core.models.wallets import KeyType, WalletTypeInfo
 from lnbits.core.services.payments import create_wallet_invoice
+from lnbits.core.services.users import create_user_account
 from lnbits.core.views.lnurl_api import (
     api_lnurlscan,
     api_lnurlscan_post,
     api_payments_pay_lnurl,
     api_perform_lnurlauth,
 )
-from lnbits.core.services.users import create_user_account
 
 TEST_BOLT11 = (
     "lnbc1pnsu5z3pp57getmdaxhg5kc9yh2a2qsh7cjf4gnccgkw0qenm8vsqv50w7s"
@@ -57,9 +57,13 @@ async def test_lnurl_api_scan_routes_validate_and_forward(mocker):
     )
 
     scanned = await api_lnurlscan("lnurl1example")
+    assert isinstance(scanned, LnurlPayResponse)
     assert scanned.callback == pay_response.callback
 
-    scanned_post = await api_lnurlscan_post(scan=LnurlScan(lnurl=LnAddress("alice@example.com")))
+    scanned_post = await api_lnurlscan_post(
+        scan=LnurlScan(lnurl=LnAddress("alice@example.com"))
+    )
+    assert isinstance(scanned_post, LnurlPayResponse)
     assert scanned_post.callback == pay_response.callback
 
     mocker.patch(
@@ -102,6 +106,7 @@ async def test_lnurl_api_auth_and_pay_flow(mocker):
         mocker.AsyncMock(return_value=auth_response),
     )
     authenticated = await api_perform_lnurlauth(auth_response, wallet_info)
+    assert isinstance(authenticated, LnurlAuthResponse)
     assert authenticated.k1 == "k1-value"
 
     mocker.patch(
@@ -114,7 +119,7 @@ async def test_lnurl_api_auth_and_pay_flow(mocker):
     action_response = LnurlPayActionResponse(
         pr=LightningInvoice(TEST_BOLT11),
         disposable=False,
-        successAction=MessageAction(message="paid"),
+        successAction=parse_obj_as(MessageAction, {"message": "paid"}),
     )
     fetch_mock = mocker.patch(
         "lnbits.core.views.lnurl_api.fetch_lnurl_pay_request",
@@ -126,13 +131,16 @@ async def test_lnurl_api_auth_and_pay_flow(mocker):
     )
 
     paid = await api_payments_pay_lnurl(
-        CreateLnurlPayment(res=pay_response, amount=2_000, unit="USD", comment="thanks"),
+        CreateLnurlPayment(
+            res=pay_response, amount=2_000, unit="USD", comment="thanks"
+        ),
         wallet_info,
     )
     assert paid.payment_hash == payment.payment_hash
     fetch_mock.assert_awaited_once()
     pay_mock.assert_awaited_once()
     assert pay_mock.await_args is not None
+    assert action_response.successAction is not None
     assert pay_mock.await_args.kwargs["extra"] == {
         "stored": True,
         "success_action": action_response.successAction.json(),
