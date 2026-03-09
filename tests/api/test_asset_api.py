@@ -85,7 +85,9 @@ async def test_asset_api_upload_list_update_and_delete(
     assert deleted.status_code == 200
     assert deleted.json()["success"] is True
 
-    missing = await client.get(f"/api/v1/assets/{asset['id']}", headers=user_headers_from)
+    missing = await client.get(
+        f"/api/v1/assets/{asset['id']}", headers=user_headers_from
+    )
     assert missing.status_code == 404
 
 

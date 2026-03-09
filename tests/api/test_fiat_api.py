@@ -1,5 +1,3 @@
-from typing import Any
-
 import pytest
 from httpx import AsyncClient
 from pytest_mock.plugin import MockerFixture
@@ -9,8 +7,8 @@ from lnbits.fiat.base import FiatSubscriptionResponse
 
 
 class FakeStripeWallet:
-    def __init__(self, secret: str | None = "secret"):
-        self._secret = secret
+    def __init__(self, secret: str | None = None):
+        self._secret = secret if secret is not None else "connection-token"
 
     async def create_terminal_connection_token(self) -> dict[str, str]:
         if self._secret is None:
@@ -77,6 +75,7 @@ async def test_fiat_api_test_provider_and_subscription_lifecycle(
     assert created.status_code == 200
     assert created.json()["checkout_session_url"] == "https://stripe.example/checkout"
     provider.create_subscription.assert_awaited_once()
+    assert provider.create_subscription.await_args is not None
     assert provider.create_subscription.await_args.args[2].wallet_id == from_wallet.id
 
     cancelled = await client.delete(
