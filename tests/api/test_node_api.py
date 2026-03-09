@@ -1,9 +1,10 @@
-from typing import Any
+from collections.abc import Callable
+from typing import Any, cast
 from uuid import uuid4
 
 import httpx
 import pytest
-from httpx import AsyncClient
+from fastapi import HTTPException
 from pytest_mock.plugin import MockerFixture
 
 from lnbits.core.views import node_api
@@ -12,6 +13,8 @@ from lnbits.nodes.base import (
     ChannelBalance,
     ChannelPoint,
     ChannelState,
+    ChannelStats,
+    Node,
     NodeChannel,
     NodeFees,
     NodeInfoResponse,
@@ -46,13 +49,13 @@ class FakeNode:
             color="#ffffff",
             num_peers=1,
             blockheight=1,
-            channel_stats={
-                "counts": {ChannelState.ACTIVE: 1},
-                "avg_size": 3000,
-                "biggest_size": 3000,
-                "smallest_size": 3000,
-                "total_capacity": 3000,
-            },
+            channel_stats=ChannelStats(
+                counts={ChannelState.ACTIVE: 1},
+                avg_size=3000,
+                biggest_size=3000,
+                smallest_size=3000,
+                total_capacity=3000,
+            ),
             addresses=["127.0.0.1:9735"],
             onchain_balance_sat=1,
             onchain_confirmed_sat=1,
@@ -146,8 +149,20 @@ class FakeNode:
         return "fake-node-id"
 
 
+class FakeFundingSource:
+    def __init__(
+        self,
+        features: list[Feature],
+        node_factory: Callable[[Any], Any] | None,
+    ):
+        self.features = features
+        self.__node_cls__ = node_factory
+
+
 class MockHTTPResponse:
-    def __init__(self, json_data: dict[str, Any], status_error: Exception | None = None):
+    def __init__(
+        self, json_data: dict[str, Any], status_error: Exception | None = None
+    ):
         self._json_data = json_data
         self._status_error = status_error
 
@@ -181,26 +196,24 @@ async def test_node_api_dependency_guards(settings: Settings, mocker: MockerFixt
     original_public = settings.lnbits_public_node_ui
     try:
         settings.lnbits_node_ui = True
-        funding_source = type("FundingSource", (), {})()
-        funding_source.features = []
-        funding_source.__node_cls__ = None
+        funding_source = FakeFundingSource([], None)
         mocker.patch(
             "lnbits.core.views.node_api.get_funding_source",
             return_value=funding_source,
         )
-        with pytest.raises(Exception) as excinfo:
+        with pytest.raises(HTTPException) as excinfo:
             node_api.require_node()
         assert excinfo.value.status_code == 501
 
-        node_enabled_source = type("FundingSource", (), {})()
-        node_enabled_source.features = [Feature.nodemanager]
-        node_enabled_source.__node_cls__ = lambda wallet: "fake-node"
+        node_enabled_source = FakeFundingSource(
+            [Feature.nodemanager], lambda wallet: "fake-node"
+        )
         mocker.patch(
             "lnbits.core.views.node_api.get_funding_source",
             return_value=node_enabled_source,
         )
         settings.lnbits_node_ui = False
-        with pytest.raises(Exception) as disabled:
+        with pytest.raises(HTTPException) as disabled:
             node_api.require_node()
         assert disabled.value.status_code == 503
 
@@ -208,7 +221,7 @@ async def test_node_api_dependency_guards(settings: Settings, mocker: MockerFixt
         assert node_api.require_node() == "fake-node"
 
         settings.lnbits_public_node_ui = False
-        with pytest.raises(Exception) as public_disabled:
+        with pytest.raises(HTTPException) as public_disabled:
             node_api.check_public()
         assert public_disabled.value.status_code == 503
     finally:
@@ -222,6 +235,7 @@ async def test_node_api_route_functions_with_fake_node(
     mocker: MockerFixture,
 ):
     fake_node = FakeNode()
+    node = cast(Node, fake_node)
     original_transactions = settings.lnbits_node_ui_transactions
     settings.lnbits_node_ui_transactions = True
     rank_response = MockHTTPResponse(
@@ -243,23 +257,23 @@ async def test_node_api_route_functions_with_fake_node(
     try:
         assert await node_api.api_get_ok() is None
 
-        public_info = await node_api.api_get_public_info(node=fake_node)
+        public_info = await node_api.api_get_public_info(node=node)
         assert public_info.backend_name == "FakeNode"
 
-        info = await node_api.api_get_info(node=fake_node)
+        info = await node_api.api_get_info(node=node)
         assert info is not None
         assert info.id == "node-id"
 
-        channels = await node_api.api_get_channels(node=fake_node)
+        channels = await node_api.api_get_channels(node=node)
         assert channels is not None
         assert channels[0].id == "chan-1"
 
-        channel = await node_api.api_get_channel("chan-1", node=fake_node)
+        channel = await node_api.api_get_channel("chan-1", node=node)
         assert channel is not None
         assert channel.peer_id == "peer-1"
 
         created = await node_api.api_create_channel(
-            node=fake_node,
+            node=node,
             peer_id="peer-1",
             funding_amount=10_000,
             push_amount=100,
@@ -272,41 +286,41 @@ async def test_node_api_route_functions_with_fake_node(
             funding_txid=None,
             output_index=None,
             force=True,
-            node=fake_node,
+            node=node,
         )
         assert deleted is not None
         assert deleted[0].id == "chan-1"
 
         await node_api.api_set_channel_fees(
             "chan-1",
-            node=fake_node,
+            node=node,
             fee_ppm=42,
             fee_base_msat=7,
         )
         assert fake_node.fees_updated == ("chan-1", 7, 42)
 
-        payments = await node_api.api_get_payments(node=fake_node, filters=Filters())
+        payments = await node_api.api_get_payments(node=node, filters=Filters())
         assert payments is not None
         assert payments.total == 1
 
-        invoices = await node_api.api_get_invoices(node=fake_node, filters=Filters())
+        invoices = await node_api.api_get_invoices(node=node, filters=Filters())
         assert invoices is not None
         assert invoices.total == 1
 
-        peers = await node_api.api_get_peers(node=fake_node)
+        peers = await node_api.api_get_peers(node=node)
         assert peers[0].id == "peer-1"
 
         connect = await node_api.api_connect_peer(
-            uri="peer-1@127.0.0.1:9735", node=fake_node
+            uri="peer-1@127.0.0.1:9735", node=node
         )
         assert connect["uri"] == "peer-1@127.0.0.1:9735"
 
-        disconnect = await node_api.api_disconnect_peer("peer-1", node=fake_node)
+        disconnect = await node_api.api_disconnect_peer("peer-1", node=node)
         assert disconnect["peer_id"] == "peer-1"
 
-        rank = await node_api.api_get_1ml_stats(node=fake_node)
+        rank = await node_api.api_get_1ml_stats(node=node)
         assert rank is not None
-        assert rank["channelcount"] == 2
+        assert rank.channelcount == 2
     finally:
         settings.lnbits_node_ui_transactions = original_transactions
 
@@ -317,6 +331,7 @@ async def test_node_api_transactions_and_rank_errors(
     mocker: MockerFixture,
 ):
     fake_node = FakeNode()
+    node = cast(Node, fake_node)
     original_transactions = settings.lnbits_node_ui_transactions
     settings.lnbits_node_ui_transactions = False
 
@@ -334,16 +349,16 @@ async def test_node_api_transactions_and_rank_errors(
     )
 
     try:
-        with pytest.raises(Exception) as payments:
-            await node_api.api_get_payments(node=fake_node, filters=Filters())
+        with pytest.raises(HTTPException) as payments:
+            await node_api.api_get_payments(node=node, filters=Filters())
         assert payments.value.status_code == 503
 
-        with pytest.raises(Exception) as invoices:
-            await node_api.api_get_invoices(node=fake_node, filters=Filters())
+        with pytest.raises(HTTPException) as invoices:
+            await node_api.api_get_invoices(node=node, filters=Filters())
         assert invoices.value.status_code == 503
 
-        with pytest.raises(Exception) as rank:
-            await node_api.api_get_1ml_stats(node=fake_node)
+        with pytest.raises(HTTPException) as rank:
+            await node_api.api_get_1ml_stats(node=node)
         assert rank.value.status_code == 404
         assert rank.value.detail == "Node not found on 1ml.com"
     finally:
