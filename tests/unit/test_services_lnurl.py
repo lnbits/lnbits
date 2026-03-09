@@ -6,12 +6,11 @@ from lnurl import (
     LnAddress,
     LnurlErrorResponse,
     LnurlPayActionResponse,
-    LnurlPayResponse,
     LnurlResponseException,
     LnurlSuccessResponse,
     LnurlWithdrawResponse,
 )
-from lnurl.types import CallbackUrl, LightningInvoice, LnurlPayMetadata
+from lnurl.types import CallbackUrl, LightningInvoice
 from pydantic import parse_obj_as
 from pytest_mock.plugin import MockerFixture
 
@@ -25,6 +24,7 @@ from lnbits.core.services.lnurl import (
     perform_withdraw,
     store_paylink,
 )
+from tests.helpers import make_lnurl_pay_response
 
 TEST_BOLT11 = (
     "lnbc1pnsu5z3pp57getmdaxhg5kc9yh2a2qsh7cjf4gnccgkw0qenm8vsqv50w7s"
@@ -33,33 +33,6 @@ TEST_BOLT11 = (
     "73aym6ynrdl9nkzqnag49vt3sjjn8qdfq5cr6ha0vrdz5c5r3v4aghndly0hplmv"
     "6hjxepwp93cq398l3s"
 )
-
-
-def _make_pay_response() -> LnurlPayResponse:
-    return LnurlPayResponse(
-        callback=parse_obj_as(CallbackUrl, "https://example.com/callback"),
-        minSendable=MilliSatoshi(1),
-        maxSendable=MilliSatoshi(10_000),
-        metadata=LnurlPayMetadata(
-            '[["text/plain","Test"],["text/identifier","alice@example.com"]]'
-        ),
-    )
-
-
-def _make_wallet() -> Wallet:
-    return Wallet(
-        id="wallet-id",
-        user="user-id",
-        name="Wallet",
-        adminkey="admin-key",
-        inkey="invoice-key",
-    )
-
-
-async def _create_wallet() -> Wallet:
-    user_id = uuid4().hex
-    await create_account(Account(id=user_id, username=f"user_{user_id[:8]}"))
-    return await create_wallet(user_id=user_id, wallet_name="Wallet")
 
 
 @pytest.mark.anyio
@@ -105,7 +78,7 @@ async def test_perform_withdraw_rejects_error_response(mocker: MockerFixture):
 
 @pytest.mark.anyio
 async def test_get_pr_from_lnurl_success_and_error(mocker: MockerFixture):
-    pay_response = _make_pay_response()
+    pay_response = make_lnurl_pay_response(min_sendable_msat=1, text="Test")
     mocker.patch(
         "lnbits.core.services.lnurl.handle",
         mocker.AsyncMock(return_value=pay_response),
@@ -131,7 +104,7 @@ async def test_get_pr_from_lnurl_success_and_error(mocker: MockerFixture):
 async def test_fetch_lnurl_pay_request_converts_currency_and_stores_paylink(
     mocker: MockerFixture,
 ):
-    pay_response = _make_pay_response()
+    pay_response = make_lnurl_pay_response(min_sendable_msat=1, text="Test")
     action_response = LnurlPayActionResponse(
         pr=LightningInvoice(TEST_BOLT11), disposable=False
     )
@@ -168,7 +141,7 @@ async def test_fetch_lnurl_pay_request_converts_currency_and_stores_paylink(
 @pytest.mark.anyio
 async def test_store_paylink_appends_and_updates_existing():
     wallet = await _create_wallet()
-    pay_response = _make_pay_response()
+    pay_response = make_lnurl_pay_response(min_sendable_msat=1, text="Test")
     action_response = LnurlPayActionResponse(
         pr=LightningInvoice(TEST_BOLT11), disposable=False
     )
@@ -191,3 +164,19 @@ async def test_store_paylink_appends_and_updates_existing():
     assert stored_wallet is not None
     assert len(stored_wallet.stored_paylinks.links) == 1
     assert stored_wallet.stored_paylinks.links[0].last_used >= first_used
+
+
+def _make_wallet() -> Wallet:
+    return Wallet(
+        id="wallet-id",
+        user="user-id",
+        name="Wallet",
+        adminkey="admin-key",
+        inkey="invoice-key",
+    )
+
+
+async def _create_wallet() -> Wallet:
+    user_id = uuid4().hex
+    await create_account(Account(id=user_id, username=f"user_{user_id[:8]}"))
+    return await create_wallet(user_id=user_id, wallet_name="Wallet")

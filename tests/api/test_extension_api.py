@@ -19,7 +19,6 @@ from lnbits.core.models.extensions import (
     CreateExtensionReview,
     Extension,
     ExtensionConfig,
-    ExtensionMeta,
     ExtensionRelease,
     InstallableExtension,
     PayToEnableInfo,
@@ -49,45 +48,7 @@ from lnbits.core.views.extension_api import (
     get_pay_to_enable_invoice,
     get_pay_to_install_invoice,
 )
-
-
-def _release(ext_id: str, version: str = "1.0.0") -> ExtensionRelease:
-    return ExtensionRelease(
-        name=ext_id,
-        version=version,
-        archive=f"https://example.com/{ext_id}.zip",
-        source_repo="org/repo",
-        hash=f"hash-{ext_id}",
-        details_link=f"https://example.com/{ext_id}/details.json",
-        repo=f"https://github.com/org/{ext_id}",
-        icon=f"/{ext_id}/static/icon.png",
-        pay_link=f"https://pay.example/{ext_id}",
-    )
-
-
-def _installable_extension(
-    ext_id: str,
-    *,
-    active: bool = True,
-    pay_to_enable: PayToEnableInfo | None = None,
-    dependencies: list[str] | None = None,
-    payments: list[ReleasePaymentInfo] | None = None,
-) -> InstallableExtension:
-    release = _release(ext_id)
-    return InstallableExtension(
-        id=ext_id,
-        name=f"Extension {ext_id}",
-        version=release.version,
-        active=active,
-        short_description="Demo extension",
-        icon=release.icon,
-        meta=ExtensionMeta(
-            installed_release=release,
-            pay_to_enable=pay_to_enable,
-            dependencies=dependencies or [],
-            payments=payments or [],
-        ),
-    )
+from tests.helpers import make_extension_release, make_installable_extension
 
 
 class _MockHTTPResponse:
@@ -132,7 +93,7 @@ class _MockHTTPClient:
 @pytest.mark.anyio
 async def test_extension_api_install_details_and_release_endpoints(mocker):
     ext_id = f"ext_{uuid4().hex[:8]}"
-    release = _release(ext_id)
+    release = make_extension_release(ext_id)
     create_data = CreateExtension(
         ext_id=ext_id,
         archive=release.archive,
@@ -172,7 +133,7 @@ async def test_extension_api_install_details_and_release_endpoints(mocker):
     assert details["icon"] == release.icon
     assert details["repo"] == release.repo
 
-    installed_ext = _installable_extension(
+    installed_ext = make_installable_extension(
         ext_id,
         payments=[
             ReleasePaymentInfo(
@@ -218,7 +179,7 @@ async def test_extension_api_pay_to_enable_and_catalog_views(mocker, admin_user)
 
     ext_id = f"paid_{uuid4().hex[:8]}"
     await create_installed_extension(
-        _installable_extension(
+        make_installable_extension(
             ext_id,
             pay_to_enable=PayToEnableInfo(
                 required=True, amount=10, wallet=admin_wallet.id
@@ -294,7 +255,7 @@ async def test_extension_api_pay_to_enable_and_catalog_views(mocker, admin_user)
     visible_extensions = await api_get_user_extensions(AccountId(id=regular_user.id))
     assert [ext.code for ext in visible_extensions] == [ext_id]
 
-    catalog_entry = _installable_extension(
+    catalog_entry = make_installable_extension(
         ext_id,
         pay_to_enable=PayToEnableInfo(required=True, amount=21, wallet=admin_wallet.id),
     )
@@ -315,11 +276,11 @@ async def test_extension_api_activate_uninstall_install_invoice_and_cleanup(mock
     uninstall_ext = f"uninstall_{uuid4().hex[:8]}"
     db_ext = f"db_{uuid4().hex[:8]}"
 
-    await create_installed_extension(_installable_extension(base_ext))
+    await create_installed_extension(make_installable_extension(base_ext))
     await create_installed_extension(
-        _installable_extension(dependent_ext, dependencies=[base_ext])
+        make_installable_extension(dependent_ext, dependencies=[base_ext])
     )
-    await create_installed_extension(_installable_extension(uninstall_ext))
+    await create_installed_extension(make_installable_extension(uninstall_ext))
 
     mocker.patch(
         "lnbits.core.views.extension_api.get_valid_extensions",
@@ -370,7 +331,7 @@ async def test_extension_api_activate_uninstall_install_invoice_and_cleanup(mock
     install_invoice = await create_wallet_invoice(
         wallet.id, CreateInvoice(out=False, amount=33, memo="install extension")
     )
-    release = _release(base_ext, version="2.0.0")
+    release = make_extension_release(base_ext, version="2.0.0")
     payment_info = ReleasePaymentInfo(
         amount=33,
         pay_link=release.pay_link,
