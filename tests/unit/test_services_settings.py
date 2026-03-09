@@ -1,9 +1,9 @@
-from unittest.mock import AsyncMock
-
 import pytest
 from pydantic import ValidationError
 from pytest_mock.plugin import MockerFixture
 
+from lnbits.core.crud import create_admin_settings, delete_admin_settings, get_super_settings
+from lnbits.core.crud.settings import get_settings_field
 from lnbits.core.services.settings import (
     check_webpush_settings,
     dict_to_settings,
@@ -74,21 +74,40 @@ def test_update_cached_settings_updates_runtime_values(settings: Settings):
 async def test_check_webpush_settings_generates_and_persists_keys(
     settings: Settings, mocker: MockerFixture
 ):
-    mocker.patch.object(settings, "lnbits_webpush_privkey", "")
-    mocker.patch.object(settings, "lnbits_webpush_pubkey", None)
-    mocker.patch.object(settings, "lnbits_admin_ui", True)
+    previous_settings = await get_super_settings()
+    previous_private = settings.lnbits_webpush_privkey
+    previous_public = settings.lnbits_webpush_pubkey
+    previous_admin_ui = settings.lnbits_admin_ui
+    await delete_admin_settings()
+
+    settings.lnbits_webpush_privkey = ""
+    settings.lnbits_webpush_pubkey = None
+    settings.lnbits_admin_ui = True
     mocker.patch("lnbits.core.services.settings.Vapid", return_value=FakeVapid())
     mocker.patch("lnbits.core.services.settings.b64urlencode", return_value="public-key")
-    update_admin = mocker.patch(
-        "lnbits.core.services.settings.update_admin_settings",
-        AsyncMock(),
-    )
+    try:
+        await check_webpush_settings()
 
-    await check_webpush_settings()
+        stored_private = await get_settings_field("lnbits_webpush_privkey")
+        stored_public = await get_settings_field("lnbits_webpush_pubkey")
 
-    assert settings.lnbits_webpush_privkey == "private-key"
-    assert settings.lnbits_webpush_pubkey == "public-key"
-    update_admin.assert_awaited_once()
+        assert settings.lnbits_webpush_privkey == "private-key"
+        assert settings.lnbits_webpush_pubkey == "public-key"
+        assert stored_private is not None
+        assert stored_private.value == "private-key"
+        assert stored_public is not None
+        assert stored_public.value == "public-key"
+    finally:
+        await delete_admin_settings()
+        if previous_settings:
+            await create_admin_settings(
+                previous_settings.super_user,
+                previous_settings.dict(exclude={"super_user"}),
+            )
+            update_cached_settings(previous_settings.dict())
+        settings.lnbits_webpush_privkey = previous_private
+        settings.lnbits_webpush_pubkey = previous_public
+        settings.lnbits_admin_ui = previous_admin_ui
 
 
 @pytest.mark.anyio
@@ -110,15 +129,19 @@ async def test_check_webpush_settings_requires_public_key(
 async def test_check_webpush_settings_skips_generation_when_keys_exist(
     settings: Settings, mocker: MockerFixture
 ):
-    mocker.patch.object(settings, "lnbits_webpush_privkey", "existing-private-key")
-    mocker.patch.object(settings, "lnbits_webpush_pubkey", "existing-public-key")
+    previous_private = settings.lnbits_webpush_privkey
+    previous_public = settings.lnbits_webpush_pubkey
+    previous_private_field = await get_settings_field("lnbits_webpush_privkey")
+    previous_public_field = await get_settings_field("lnbits_webpush_pubkey")
+    settings.lnbits_webpush_privkey = "existing-private-key"
+    settings.lnbits_webpush_pubkey = "existing-public-key"
     vapid = mocker.patch("lnbits.core.services.settings.Vapid")
-    update_admin = mocker.patch(
-        "lnbits.core.services.settings.update_admin_settings",
-        AsyncMock(),
-    )
+    try:
+        await check_webpush_settings()
+    finally:
+        settings.lnbits_webpush_privkey = previous_private
+        settings.lnbits_webpush_pubkey = previous_public
 
-    await check_webpush_settings()
-
+    assert await get_settings_field("lnbits_webpush_privkey") == previous_private_field
+    assert await get_settings_field("lnbits_webpush_pubkey") == previous_public_field
     vapid.assert_not_called()
-    update_admin.assert_not_awaited()
