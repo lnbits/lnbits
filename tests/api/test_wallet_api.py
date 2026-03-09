@@ -8,10 +8,6 @@ from lnbits.core.models.users import Account
 from lnbits.core.services.users import create_user_account
 
 
-def _admin_headers(adminkey: str) -> dict[str, str]:
-    return {"X-Api-Key": adminkey, "Content-type": "application/json"}
-
-
 @pytest.mark.anyio
 async def test_wallet_api_share_invite_reject_accept_and_delete(
     http_client: AsyncClient,
@@ -188,3 +184,7 @@ async def test_wallet_api_shared_wallet_requires_source_id(http_client: AsyncCli
     assert (
         response.json()["detail"] == "Shared wallet ID is required for shared wallets."
     )
+
+
+def _admin_headers(adminkey: str) -> dict[str, str]:
+    return {"X-Api-Key": adminkey, "Content-type": "application/json"}
