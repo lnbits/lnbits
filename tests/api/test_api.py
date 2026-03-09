@@ -507,9 +507,9 @@ async def test_api_payment_without_key(invoice: Payment):
 
 # check api_payment() internal function call (NOT API): payment status
 @pytest.mark.anyio
-async def test_api_payment_with_key(invoice: Payment, inkey_headers_from):
+async def test_api_payment_with_key(invoice: Payment, inkey_headers_to):
     # check the payment status
-    response = await api_payment(invoice.payment_hash, inkey_headers_from["X-Api-Key"])
+    response = await api_payment(invoice.payment_hash, inkey_headers_to["X-Api-Key"])
     assert isinstance(response, dict)
     assert response["paid"] is True
     assert "details" in response
