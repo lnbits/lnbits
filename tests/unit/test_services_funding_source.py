@@ -1,4 +1,5 @@
 from types import SimpleNamespace
+from typing import Any, cast
 from uuid import uuid4
 
 import pytest
@@ -139,10 +140,11 @@ async def test_check_server_balance_against_node_notifies_and_switches(
 async def test_check_balance_delta_changed_tracks_and_notifies(
     settings: Settings, mocker: MockerFixture
 ):
+    settings_any = cast(Any, settings)
     original_latest = settings.latest_balance_delta_sats
     original_threshold = settings.notification_balance_delta_threshold_sats
     try:
-        settings.latest_balance_delta_sats = None
+        settings_any.latest_balance_delta_sats = None
         settings.notification_balance_delta_threshold_sats = 3
         mocker.patch(
             "lnbits.core.services.funding_source.get_balance_delta",
@@ -165,5 +167,5 @@ async def test_check_balance_delta_changed_tracks_and_notifies(
         enqueue.assert_called_once()
         assert settings.latest_balance_delta_sats == 10
     finally:
-        settings.latest_balance_delta_sats = original_latest
+        settings_any.latest_balance_delta_sats = original_latest
         settings.notification_balance_delta_threshold_sats = original_threshold

@@ -1,7 +1,7 @@
-import asyncio
+from typing import cast
 
 import pytest
-from fastapi import WebSocketDisconnect
+from fastapi import WebSocket, WebSocketDisconnect
 from pytest_mock.plugin import MockerFixture
 
 from lnbits.core.services.websockets import (
@@ -37,7 +37,7 @@ async def test_websocket_connection_manager_connect_and_send():
     manager = WebsocketConnectionManager()
     websocket = FakeWebSocket()
 
-    conn = await manager.connect("item-1", websocket)
+    conn = await manager.connect("item-1", cast(WebSocket, websocket))
     await manager.send("item-1", "payload")
 
     assert websocket.accepted is True
@@ -52,7 +52,7 @@ async def test_websocket_connection_manager_listen_queues_messages_and_disconnec
 ):
     manager = WebsocketConnectionManager()
     websocket = FakeWebSocket(["hello", WebSocketDisconnect()])
-    conn = await manager.connect("item-2", websocket)
+    conn = await manager.connect("item-2", cast(WebSocket, websocket))
     original_running = settings.lnbits_running
     try:
         settings.lnbits_running = True

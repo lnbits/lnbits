@@ -328,7 +328,7 @@ def test_public_settings_from_settings(settings: Settings):
 def test_set_cli_settings_updates_runtime_settings(settings: Settings):
     original_host = settings.host
     try:
-        set_cli_settings(host="0.0.0.0")
-        assert settings.host == "0.0.0.0"
+        set_cli_settings(host="0.0.0.0")  # noqa S104
+        assert settings.host == "0.0.0.0"  # noqa S104
     finally:
         settings.host = original_host
