@@ -13,7 +13,9 @@ def _admin_headers(adminkey: str) -> dict[str, str]:
 
 
 @pytest.mark.anyio
-async def test_wallet_api_share_invite_reject_accept_and_delete(http_client: AsyncClient):
+async def test_wallet_api_share_invite_reject_accept_and_delete(
+    http_client: AsyncClient,
+):
     owner = await create_user_account(
         Account(
             id=uuid4().hex,
@@ -129,7 +131,9 @@ async def test_wallet_api_paginated_update_reset_and_store_paylinks(
     assert renamed.json()["name"] == "renamed-wallet"
 
     original_admin_key = extra_wallet.adminkey
-    reset = await http_client.put(f"/api/v1/wallet/reset/{extra_wallet.id}?usr={user.id}")
+    reset = await http_client.put(
+        f"/api/v1/wallet/reset/{extra_wallet.id}?usr={user.id}"
+    )
     assert reset.status_code == 200
     assert reset.json()["adminkey"] != original_admin_key
 
@@ -181,4 +185,6 @@ async def test_wallet_api_shared_wallet_requires_source_id(http_client: AsyncCli
         json={"wallet_type": "lightning-shared"},
     )
     assert response.status_code == 400
-    assert response.json()["detail"] == "Shared wallet ID is required for shared wallets."
+    assert (
+        response.json()["detail"] == "Shared wallet ID is required for shared wallets."
+    )

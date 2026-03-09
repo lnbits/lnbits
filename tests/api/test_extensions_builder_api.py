@@ -7,7 +7,6 @@ from lnbits.core.crud.extensions import create_user_extension, get_user_extensio
 from lnbits.core.crud.users import get_account
 from lnbits.core.models.extensions import (
     Extension,
-    ExtensionMeta,
     ExtensionRelease,
     UserExtension,
 )
@@ -81,7 +80,9 @@ async def test_extensions_builder_api_build_preview_and_cleanup(
         "lnbits.core.views.extensions_builder_api.build_extension_from_data",
         mocker.AsyncMock(return_value=(_release(ext_id), build_dir)),
     )
-    clean_mock = mocker.patch("lnbits.core.views.extensions_builder_api.clean_extension_builder_data")
+    clean_mock = mocker.patch(
+        "lnbits.core.views.extensions_builder_api.clean_extension_builder_data"
+    )
 
     try:
         settings.lnbits_data_folder = str(tmp_path)
