@@ -1,6 +1,7 @@
 from uuid import uuid4
 
 import pytest
+from bolt11.types import MilliSatoshi
 from lnurl import (
     LnAddress,
     LnurlErrorResponse,
@@ -10,6 +11,8 @@ from lnurl import (
     LnurlSuccessResponse,
     LnurlWithdrawResponse,
 )
+from lnurl.types import CallbackUrl, LightningInvoice, LnurlPayMetadata
+from pydantic import parse_obj_as
 from pytest_mock.plugin import MockerFixture
 
 from lnbits.core.crud import create_account, create_wallet, get_wallet
@@ -34,10 +37,12 @@ TEST_BOLT11 = (
 
 def _make_pay_response() -> LnurlPayResponse:
     return LnurlPayResponse(
-        callback="https://example.com/callback",
-        minSendable=1,
-        maxSendable=10_000,
-        metadata='[["text/plain","Test"],["text/identifier","alice@example.com"]]',
+        callback=parse_obj_as(CallbackUrl, "https://example.com/callback"),
+        minSendable=MilliSatoshi(1),
+        maxSendable=MilliSatoshi(10_000),
+        metadata=LnurlPayMetadata(
+            '[["text/plain","Test"],["text/identifier","alice@example.com"]]'
+        ),
     )
 
 
@@ -60,10 +65,10 @@ async def _create_wallet() -> Wallet:
 @pytest.mark.anyio
 async def test_perform_withdraw_success_and_validation(mocker: MockerFixture):
     withdraw_response = LnurlWithdrawResponse(
-        callback="https://example.com/callback",
+        callback=parse_obj_as(CallbackUrl, "https://example.com/callback"),
         k1="k1",
-        minWithdrawable=1,
-        maxWithdrawable=1000,
+        minWithdrawable=MilliSatoshi(1),
+        maxWithdrawable=MilliSatoshi(1000),
         defaultDescription="test",
     )
     execute_withdraw_mock = mocker.patch(
@@ -107,7 +112,9 @@ async def test_get_pr_from_lnurl_success_and_error(mocker: MockerFixture):
     )
     mocker.patch(
         "lnbits.core.services.lnurl.execute_pay_request",
-        mocker.AsyncMock(return_value=LnurlPayActionResponse(pr=TEST_BOLT11)),
+        mocker.AsyncMock(
+            return_value=LnurlPayActionResponse(pr=LightningInvoice(TEST_BOLT11))
+        ),
     )
 
     assert await get_pr_from_lnurl("lnurl", 1000, comment="hello") == TEST_BOLT11
@@ -125,7 +132,9 @@ async def test_fetch_lnurl_pay_request_converts_currency_and_stores_paylink(
     mocker: MockerFixture,
 ):
     pay_response = _make_pay_response()
-    action_response = LnurlPayActionResponse(pr=TEST_BOLT11, disposable=False)
+    action_response = LnurlPayActionResponse(
+        pr=LightningInvoice(TEST_BOLT11), disposable=False
+    )
     mocker.patch(
         "lnbits.core.services.lnurl.fiat_amount_as_satoshis",
         mocker.AsyncMock(return_value=100),
@@ -146,8 +155,11 @@ async def test_fetch_lnurl_pay_request_converts_currency_and_stores_paylink(
     assert response == pay_response
     assert action == action_response
     execute_mock.assert_awaited_once()
+    assert execute_mock.await_args is not None
     assert execute_mock.await_args.kwargs["msat"] == 100_000
-    store_paylink_mock.assert_awaited_once_with(pay_response, action_response, wallet, None)
+    store_paylink_mock.assert_awaited_once_with(
+        pay_response, action_response, wallet, None
+    )
 
     with pytest.raises(LnurlResponseException, match="No LNURL pay request provided."):
         await fetch_lnurl_pay_request(CreateLnurlPayment(amount=1))
@@ -157,9 +169,13 @@ async def test_fetch_lnurl_pay_request_converts_currency_and_stores_paylink(
 async def test_store_paylink_appends_and_updates_existing():
     wallet = await _create_wallet()
     pay_response = _make_pay_response()
-    action_response = LnurlPayActionResponse(pr=TEST_BOLT11, disposable=False)
+    action_response = LnurlPayActionResponse(
+        pr=LightningInvoice(TEST_BOLT11), disposable=False
+    )
 
-    await store_paylink(pay_response, action_response, wallet, LnAddress("alice@example.com"))
+    await store_paylink(
+        pay_response, action_response, wallet, LnAddress("alice@example.com")
+    )
     stored_wallet = await get_wallet(wallet.id)
 
     assert stored_wallet is not None
@@ -167,7 +183,9 @@ async def test_store_paylink_appends_and_updates_existing():
     assert stored_wallet.stored_paylinks.links[0].lnurl == "alice@example.com"
 
     first_used = stored_wallet.stored_paylinks.links[0].last_used
-    await store_paylink(pay_response, action_response, wallet, LnAddress("alice@example.com"))
+    await store_paylink(
+        pay_response, action_response, wallet, LnAddress("alice@example.com")
+    )
     stored_wallet = await get_wallet(wallet.id)
 
     assert stored_wallet is not None

@@ -15,7 +15,8 @@ from lnbits.core.crud import (
 from lnbits.core.crud.settings import get_settings_field, set_settings_field
 from lnbits.core.models import Account
 from lnbits.core.models.extensions import UserExtension
-from lnbits.core.models.users import RegisterUser, UserExtra
+from lnbits.core.models.users import RegisterUser
+from lnbits.core.services.settings import update_cached_settings
 from lnbits.core.services.users import (
     check_admin_settings,
     check_register_activation_settings,
@@ -25,7 +26,6 @@ from lnbits.core.services.users import (
     update_user_account,
     update_user_extensions,
 )
-from lnbits.core.services.settings import update_cached_settings
 from lnbits.settings import Settings
 
 
@@ -219,7 +219,9 @@ async def test_update_user_extensions_toggles_existing_and_creates_missing(
     finally:
         settings.lnbits_user_default_extensions = original_default_exts
 
-    await create_user_extension(UserExtension(user=user.id, extension="keep", active=True))
+    await create_user_extension(
+        UserExtension(user=user.id, extension="keep", active=True)
+    )
     await create_user_extension(
         UserExtension(user=user.id, extension="enable", active=False)
     )
@@ -360,7 +362,9 @@ async def test_check_register_activation_settings_handles_invitation_codes(
             is None
         )
         assert one_time not in settings.lnbits_register_one_time_activation_codes
-        stored_codes = await get_settings_field("lnbits_register_one_time_activation_codes")
+        stored_codes = await get_settings_field(
+            "lnbits_register_one_time_activation_codes"
+        )
         assert stored_codes is not None
         assert stored_codes.value == []
 
