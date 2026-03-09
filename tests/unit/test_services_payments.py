@@ -17,13 +17,12 @@ from lnbits.core.models import (
     Account,
     CreateInvoice,
     CreatePayment,
-    PaymentDailyStats,
     PaymentState,
     Wallet,
 )
 from lnbits.core.services.payments import (
-    cancel_hold_invoice,
     calculate_fiat_amounts,
+    cancel_hold_invoice,
     check_payment_status,
     check_pending_payments,
     check_time_limit_between_transactions,
@@ -55,7 +54,9 @@ def _account() -> Account:
 async def _create_wallet() -> Wallet:
     account = _account()
     await create_account(account)
-    return await create_wallet(user_id=account.id, wallet_name=f"wallet_{account.id[:8]}")
+    return await create_wallet(
+        user_id=account.id, wallet_name=f"wallet_{account.id[:8]}"
+    )
 
 
 async def _create_payment(
@@ -103,7 +104,10 @@ async def test_create_payment_request_routes_by_invoice_type(mocker: MockerFixtu
         mocker.AsyncMock(return_value=fiat_payment),
     )
 
-    assert await create_payment_request("wallet-1", CreateInvoice(amount=1)) == wallet_payment
+    assert (
+        await create_payment_request("wallet-1", CreateInvoice(amount=1))
+        == wallet_payment
+    )
     assert (
         await create_payment_request(
             "wallet-1",
@@ -165,7 +169,9 @@ async def test_check_pending_payments_skips_voidwallet_and_updates_recent_items(
         "lnbits.core.services.payments.get_funding_source",
         return_value=VoidWallet(),
     )
-    sleep_mock = mocker.patch("lnbits.core.services.payments.asyncio.sleep", mocker.AsyncMock())
+    sleep_mock = mocker.patch(
+        "lnbits.core.services.payments.asyncio.sleep", mocker.AsyncMock()
+    )
 
     await check_pending_payments()
     sleep_mock.assert_not_awaited()

@@ -264,7 +264,10 @@ def test_path_and_case_helpers():
     assert normalize_path("/upgrades/ext/assets/app.js") == "/assets/app.js"
     assert normalize_endpoint("example.com/") == "https://example.com"
     assert normalize_endpoint("ws://socket.example.com") == "ws://socket.example.com"
-    assert normalize_endpoint("http://example.com/", add_proto=False) == "http://example.com"
+    assert (
+        normalize_endpoint("http://example.com/", add_proto=False)
+        == "http://example.com"
+    )
 
     assert camel_to_words("CamelCaseName") == "Camel Case Name"
     assert camel_to_snake("CamelCaseName") == "camel_case_name"

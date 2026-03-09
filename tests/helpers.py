@@ -44,6 +44,7 @@ def get_random_string(iterations: int = 10):
 async def get_random_invoice_data():
     return {"out": False, "amount": 10, "memo": f"test_memo_{get_random_string(10)}"}
 
+
 settings.lnbits_backend_wallet_class = "FakeWallet"
 set_funding_source("FakeWallet")
 funding_source = get_funding_source()

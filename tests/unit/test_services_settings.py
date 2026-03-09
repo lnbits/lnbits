@@ -2,7 +2,11 @@ import pytest
 from pydantic import ValidationError
 from pytest_mock.plugin import MockerFixture
 
-from lnbits.core.crud import create_admin_settings, delete_admin_settings, get_super_settings
+from lnbits.core.crud import (
+    create_admin_settings,
+    delete_admin_settings,
+    get_super_settings,
+)
 from lnbits.core.crud.settings import get_settings_field
 from lnbits.core.services.settings import (
     check_webpush_settings,
@@ -84,7 +88,9 @@ async def test_check_webpush_settings_generates_and_persists_keys(
     settings.lnbits_webpush_pubkey = None
     settings.lnbits_admin_ui = True
     mocker.patch("lnbits.core.services.settings.Vapid", return_value=FakeVapid())
-    mocker.patch("lnbits.core.services.settings.b64urlencode", return_value="public-key")
+    mocker.patch(
+        "lnbits.core.services.settings.b64urlencode", return_value="public-key"
+    )
     try:
         await check_webpush_settings()
 

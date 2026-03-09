@@ -1,6 +1,3 @@
-from types import SimpleNamespace
-
-import httpx
 import pytest
 from pytest_mock.plugin import MockerFixture
 
