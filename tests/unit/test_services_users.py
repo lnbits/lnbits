@@ -102,29 +102,20 @@ async def test_create_user_account_no_check_creates_wallet_and_extensions(
     assert all(ext.active is True for ext in user_extensions)
 
 
-# TDOO: revisit for postgres
-# @pytest.mark.anyio
-# async def test_create_user_account_no_check_duplicate_extension_insert_behavior(
-#     settings: Settings,
-# ):
-#     account = _account()
-#     original_default_exts = list(settings.lnbits_user_default_extensions)
-#     try:
-#         settings.lnbits_user_default_extensions = ["dup-ext"]
-#         if DB_TYPE == POSTGRES:
-#             with pytest.raises(DBAPIError, match="current transaction is aborted"):
-#                 await create_user_account_no_ckeck(account, default_exts=["dup-ext"])
-#         else:
-#             user = await
-# create_user_account_no_ckeck(account, default_exts=["dup-ext"])
-#     finally:
-#         settings.lnbits_user_default_extensions = original_default_exts
+@pytest.mark.anyio
+async def test_create_user_account_no_check_ignores_duplicate_extension_insert(
+    settings: Settings,
+):
+    account = _account()
+    original_default_exts = list(settings.lnbits_user_default_extensions)
+    try:
+        settings.lnbits_user_default_extensions = ["dup-ext"]
+        user = await create_user_account_no_ckeck(account, default_exts=["dup-ext"])
+    finally:
+        settings.lnbits_user_default_extensions = original_default_exts
 
-#     if DB_TYPE == POSTGRES:
-#         assert await get_account(account.id) is not None
-#     else:
-#         user_extensions = await get_user_extensions(user.id)
-#         assert [ext.extension for ext in user_extensions] == ["dup-ext"]
+    user_extensions = await get_user_extensions(user.id)
+    assert [ext.extension for ext in user_extensions] == ["dup-ext"]
 
 
 @pytest.mark.anyio
