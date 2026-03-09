@@ -3,6 +3,7 @@ import string
 
 from pydantic import BaseModel
 
+from lnbits.settings import settings
 from lnbits.wallets import get_funding_source, set_funding_source
 
 
@@ -43,8 +44,8 @@ def get_random_string(iterations: int = 10):
 async def get_random_invoice_data():
     return {"out": False, "amount": 10, "memo": f"test_memo_{get_random_string(10)}"}
 
-
-set_funding_source()
+settings.lnbits_backend_wallet_class = "FakeWallet"
+set_funding_source("FakeWallet")
 funding_source = get_funding_source()
 is_fake: bool = funding_source.__class__.__name__ == "FakeWallet"
 is_regtest: bool = not is_fake
