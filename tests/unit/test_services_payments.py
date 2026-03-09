@@ -46,51 +46,6 @@ from lnbits.wallets.base import (
 )
 
 
-def _account() -> Account:
-    account_id = uuid4().hex
-    return Account(id=account_id, username=f"user_{account_id[:8]}")
-
-
-async def _create_wallet() -> Wallet:
-    account = _account()
-    await create_account(account)
-    return await create_wallet(
-        user_id=account.id, wallet_name=f"wallet_{account.id[:8]}"
-    )
-
-
-async def _create_payment(
-    wallet: Wallet,
-    *,
-    amount_msat: int = 2_000,
-    status: PaymentState = PaymentState.PENDING,
-    checking_id: str | None = None,
-    payment_hash: str | None = None,
-    fee: int = 0,
-    time: datetime | None = None,
-) -> str:
-    checking_id = checking_id or f"checking_{uuid4().hex[:8]}"
-    payment_hash = payment_hash or uuid4().hex
-    payment = await create_payment(
-        checking_id=checking_id,
-        data=CreatePayment(
-            wallet_id=wallet.id,
-            payment_hash=payment_hash,
-            bolt11=f"bolt11-{checking_id}",
-            amount_msat=amount_msat,
-            memo="memo",
-            fee=fee,
-        ),
-        status=status,
-    )
-    if time:
-        payment.time = time
-        payment.created_at = time
-        payment.updated_at = time
-        await update_payment(payment)
-    return checking_id
-
-
 @pytest.mark.anyio
 async def test_create_payment_request_routes_by_invoice_type(mocker: MockerFixture):
     wallet_payment = SimpleNamespace(checking_id="wallet")
@@ -454,3 +409,48 @@ async def test_settle_and_cancel_hold_invoice_persist_status(mocker: MockerFixtu
     assert stored.extra["hold_invoice_settled"] is True
     assert stored.extra["hold_invoice_cancelled"] is True
     assert stored.status == PaymentState.FAILED
+
+
+def _account() -> Account:
+    account_id = uuid4().hex
+    return Account(id=account_id, username=f"user_{account_id[:8]}")
+
+
+async def _create_wallet() -> Wallet:
+    account = _account()
+    await create_account(account)
+    return await create_wallet(
+        user_id=account.id, wallet_name=f"wallet_{account.id[:8]}"
+    )
+
+
+async def _create_payment(
+    wallet: Wallet,
+    *,
+    amount_msat: int = 2_000,
+    status: PaymentState = PaymentState.PENDING,
+    checking_id: str | None = None,
+    payment_hash: str | None = None,
+    fee: int = 0,
+    time: datetime | None = None,
+) -> str:
+    checking_id = checking_id or f"checking_{uuid4().hex[:8]}"
+    payment_hash = payment_hash or uuid4().hex
+    payment = await create_payment(
+        checking_id=checking_id,
+        data=CreatePayment(
+            wallet_id=wallet.id,
+            payment_hash=payment_hash,
+            bolt11=f"bolt11-{checking_id}",
+            amount_msat=amount_msat,
+            memo="memo",
+            fee=fee,
+        ),
+        status=status,
+    )
+    if time:
+        payment.time = time
+        payment.created_at = time
+        payment.updated_at = time
+        await update_payment(payment)
+    return checking_id

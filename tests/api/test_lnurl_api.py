@@ -1,7 +1,6 @@
 from uuid import uuid4
 
 import pytest
-from bolt11.types import MilliSatoshi
 from fastapi import HTTPException
 from lnurl import (
     LnAddress,
@@ -13,7 +12,7 @@ from lnurl import (
     LnurlResponseException,
 )
 from lnurl.models import MessageAction
-from lnurl.types import CallbackUrl, LightningInvoice, LnurlPayMetadata
+from lnurl.types import CallbackUrl, LightningInvoice
 from pydantic import parse_obj_as
 
 from lnbits.core.models import Account, CreateInvoice
@@ -27,6 +26,7 @@ from lnbits.core.views.lnurl_api import (
     api_payments_pay_lnurl,
     api_perform_lnurlauth,
 )
+from tests.helpers import make_lnurl_pay_response
 
 TEST_BOLT11 = (
     "lnbc1pnsu5z3pp57getmdaxhg5kc9yh2a2qsh7cjf4gnccgkw0qenm8vsqv50w7s"
@@ -37,20 +37,9 @@ TEST_BOLT11 = (
 )
 
 
-def _pay_response() -> LnurlPayResponse:
-    return LnurlPayResponse(
-        callback=parse_obj_as(CallbackUrl, "https://example.com/callback"),
-        minSendable=MilliSatoshi(1_000),
-        maxSendable=MilliSatoshi(10_000),
-        metadata=LnurlPayMetadata(
-            '[["text/plain","Test payment"],["text/identifier","alice@example.com"]]'
-        ),
-    )
-
-
 @pytest.mark.anyio
 async def test_lnurl_api_scan_routes_validate_and_forward(mocker):
-    pay_response = _pay_response()
+    pay_response = make_lnurl_pay_response()
     mocker.patch(
         "lnbits.core.views.lnurl_api.lnurl_handle",
         mocker.AsyncMock(return_value=pay_response),
@@ -92,7 +81,7 @@ async def test_lnurl_api_auth_and_pay_flow(mocker):
     )
     wallet = user.wallets[0]
     wallet_info = WalletTypeInfo(key_type=KeyType.admin, wallet=wallet)
-    pay_response = _pay_response()
+    pay_response = make_lnurl_pay_response()
     payment = await create_wallet_invoice(
         wallet.id, CreateInvoice(out=False, amount=21, memo="lnurl")
     )

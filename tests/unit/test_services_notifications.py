@@ -69,53 +69,6 @@ class MockHTTPClient:
         return self.post_response
 
 
-async def _create_wallet(
-    notifications: UserNotifications | None = None,
-    *,
-    name: str | None = None,
-) -> Wallet:
-    account = Account(
-        id=uuid4().hex,
-        username=f"user_{uuid4().hex[:8]}",
-        extra=UserExtra(notifications=notifications or UserNotifications()),
-    )
-    await create_account(account)
-    return await create_wallet(
-        user_id=account.id,
-        wallet_name=name or f"wallet_{account.id[:8]}",
-    )
-
-
-async def _create_payment(
-    wallet: Wallet,
-    *,
-    amount_msat: int = 2_000,
-    status: PaymentState = PaymentState.SUCCESS,
-    webhook: str | None = None,
-    webhook_status: str | None = None,
-    memo: str | None = "memo",
-    extra: dict | None = None,
-) -> Payment:
-    checking_id = f"checking_{uuid4().hex[:8]}"
-    payment = await create_payment(
-        checking_id=checking_id,
-        data=CreatePayment(
-            wallet_id=wallet.id,
-            payment_hash=uuid4().hex,
-            bolt11=f"bolt11-{checking_id}",
-            amount_msat=amount_msat,
-            memo=memo or "",
-            webhook=webhook,
-            extra=extra or {},
-        ),
-        status=status,
-    )
-    if webhook_status is not None:
-        payment.webhook_status = webhook_status
-        await update_payment(payment)
-    return await get_payment(checking_id)
-
-
 @pytest.mark.anyio
 async def test_enqueue_and_process_notifications(
     settings: Settings, mocker: MockerFixture
@@ -606,3 +559,50 @@ async def test_send_payment_push_notification_and_cleanup_gone_subscriptions(
         settings.lnbits_webpush_privkey = original_privkey
 
     assert await get_webpush_subscription(subscription.endpoint, wallet.user) is None
+
+
+async def _create_wallet(
+    notifications: UserNotifications | None = None,
+    *,
+    name: str | None = None,
+) -> Wallet:
+    account = Account(
+        id=uuid4().hex,
+        username=f"user_{uuid4().hex[:8]}",
+        extra=UserExtra(notifications=notifications or UserNotifications()),
+    )
+    await create_account(account)
+    return await create_wallet(
+        user_id=account.id,
+        wallet_name=name or f"wallet_{account.id[:8]}",
+    )
+
+
+async def _create_payment(
+    wallet: Wallet,
+    *,
+    amount_msat: int = 2_000,
+    status: PaymentState = PaymentState.SUCCESS,
+    webhook: str | None = None,
+    webhook_status: str | None = None,
+    memo: str | None = "memo",
+    extra: dict | None = None,
+) -> Payment:
+    checking_id = f"checking_{uuid4().hex[:8]}"
+    payment = await create_payment(
+        checking_id=checking_id,
+        data=CreatePayment(
+            wallet_id=wallet.id,
+            payment_hash=uuid4().hex,
+            bolt11=f"bolt11-{checking_id}",
+            amount_msat=amount_msat,
+            memo=memo or "",
+            webhook=webhook,
+            extra=extra or {},
+        ),
+        status=status,
+    )
+    if webhook_status is not None:
+        payment.webhook_status = webhook_status
+        await update_payment(payment)
+    return await get_payment(checking_id)

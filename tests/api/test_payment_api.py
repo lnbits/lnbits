@@ -33,30 +33,6 @@ ZERO_AMOUNT_INVOICE = (
 )
 
 
-async def _create_payment(
-    wallet_id: str,
-    *,
-    amount_msat: int,
-    status: PaymentState = PaymentState.SUCCESS,
-    payment_hash: str | None = None,
-    tag: str | None = None,
-) -> str:
-    checking_id = f"checking_{uuid4().hex[:8]}"
-    await create_payment(
-        checking_id=checking_id,
-        data=CreatePayment(
-            wallet_id=wallet_id,
-            payment_hash=payment_hash or uuid4().hex,
-            bolt11=f"bolt11_{checking_id}",
-            amount_msat=amount_msat,
-            memo=f"payment_{checking_id}",
-            extra={"tag": tag} if tag else {},
-        ),
-        status=status,
-    )
-    return checking_id
-
-
 @pytest.mark.anyio
 async def test_payment_api_stats_and_all_paginated(admin_user):
     first_user = await create_user_account(
@@ -185,3 +161,27 @@ async def test_payment_api_fee_reserve_and_hold_invoice_actions(mocker):
     )
     assert cancelled.failed is True
     cancel_mock.assert_awaited_once()
+
+
+async def _create_payment(
+    wallet_id: str,
+    *,
+    amount_msat: int,
+    status: PaymentState = PaymentState.SUCCESS,
+    payment_hash: str | None = None,
+    tag: str | None = None,
+) -> str:
+    checking_id = f"checking_{uuid4().hex[:8]}"
+    await create_payment(
+        checking_id=checking_id,
+        data=CreatePayment(
+            wallet_id=wallet_id,
+            payment_hash=payment_hash or uuid4().hex,
+            bolt11=f"bolt11_{checking_id}",
+            amount_msat=amount_msat,
+            memo=f"payment_{checking_id}",
+            extra={"tag": tag} if tag else {},
+        ),
+        status=status,
+    )
+    return checking_id

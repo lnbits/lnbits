@@ -11,8 +11,6 @@ from lnbits.core.crud import (
 )
 from lnbits.core.models.extensions import (
     Extension,
-    ExtensionMeta,
-    ExtensionRelease,
     InstallableExtension,
     ReleasePaymentInfo,
 )
@@ -27,39 +25,14 @@ from lnbits.core.services.extensions import (
     uninstall_extension,
 )
 from lnbits.settings import Settings
-
-
-def _installable_extension(
-    ext_id: str,
-    version: str = "1.0.0",
-    compatible: bool = True,
-    *,
-    payments: list[ReleasePaymentInfo] | None = None,
-) -> InstallableExtension:
-    return InstallableExtension(
-        id=ext_id,
-        name=f"Extension {ext_id}",
-        version=version,
-        short_description="Demo extension",
-        meta=ExtensionMeta(
-            installed_release=ExtensionRelease(
-                name=ext_id,
-                version=version,
-                archive=f"https://example.com/{ext_id}.zip",
-                source_repo="org/repo",
-                hash=f"hash-{ext_id}",
-                is_version_compatible=compatible,
-            ),
-            payments=payments or [],
-        ),
-    )
+from tests.helpers import make_installable_extension
 
 
 @pytest.mark.anyio
 async def test_install_extension_rejects_incompatible_release(
     tmp_path, settings: Settings
 ):
-    ext_info = _installable_extension(f"ext_{uuid4().hex[:8]}", compatible=False)
+    ext_info = make_installable_extension(f"ext_{uuid4().hex[:8]}", compatible=False)
     original_data_folder = settings.lnbits_data_folder
     original_extensions_path = settings.lnbits_extensions_path
     try:
@@ -78,7 +51,7 @@ async def test_install_extension_creates_new_extension_and_starts_background_wor
     tmp_path, settings: Settings, mocker: MockerFixture
 ):
     ext_id = f"ext_{uuid4().hex[:8]}"
-    ext_info = _installable_extension(ext_id)
+    ext_info = make_installable_extension(ext_id)
     original_data_folder = settings.lnbits_data_folder
     original_extensions_path = settings.lnbits_extensions_path
     download_mock = mocker.patch.object(
@@ -125,8 +98,8 @@ async def test_install_extension_updates_existing_upgrade_and_preserves_payments
         pay_link="https://pay.example",
         payment_hash="payment-hash",
     )
-    existing_ext = _installable_extension(ext_id, payments=[existing_payment])
-    updated_ext = _installable_extension(ext_id, version="2.0.0")
+    existing_ext = make_installable_extension(ext_id, payments=[existing_payment])
+    updated_ext = make_installable_extension(ext_id, version="2.0.0")
     original_data_folder = settings.lnbits_data_folder
     original_extensions_path = settings.lnbits_extensions_path
     extract_mock = mocker.patch.object(InstallableExtension, "extract_archive")
@@ -175,7 +148,7 @@ async def test_uninstall_activate_and_deactivate_extensions(
     tmp_path, settings: Settings, mocker: MockerFixture
 ):
     ext_id = f"ext_{uuid4().hex[:8]}"
-    ext_info = _installable_extension(ext_id)
+    ext_info = make_installable_extension(ext_id)
     original_data_folder = settings.lnbits_data_folder
     original_extensions_path = settings.lnbits_extensions_path
     original_deactivated = set(settings.lnbits_deactivated_extensions)
@@ -274,8 +247,8 @@ async def test_get_valid_extensions_and_single_extension_respect_settings(
 ):
     ext_id_one = f"ext_{uuid4().hex[:8]}"
     ext_id_two = f"ext_{uuid4().hex[:8]}"
-    ext_one = _installable_extension(ext_id_one)
-    ext_two = _installable_extension(ext_id_two)
+    ext_one = make_installable_extension(ext_id_one)
+    ext_two = make_installable_extension(ext_id_two)
     original_deactivated = set(settings.lnbits_deactivated_extensions)
     original_deactivate_all = settings.lnbits_extensions_deactivate_all
     original_data_folder = settings.lnbits_data_folder

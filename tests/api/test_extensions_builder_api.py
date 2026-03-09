@@ -7,18 +7,7 @@ from lnbits.core.crud.extensions import create_user_extension, get_user_extensio
 from lnbits.core.crud.users import get_account
 from lnbits.core.models.extensions import (
     Extension,
-    ExtensionRelease,
     UserExtension,
-)
-from lnbits.core.models.extensions_builder import (
-    ActionFields,
-    ClientDataFields,
-    DataField,
-    DataFields,
-    ExtensionData,
-    OwnerDataFields,
-    PublicPageFields,
-    SettingsFields,
 )
 from lnbits.core.models.users import AccountId
 from lnbits.core.views.extensions_builder_api import (
@@ -28,41 +17,7 @@ from lnbits.core.views.extensions_builder_api import (
     api_preview_extension,
 )
 from lnbits.settings import Settings
-
-
-def _extension_data(ext_id: str = "demoext") -> ExtensionData:
-    return ExtensionData(
-        id=ext_id,
-        name="Demo Extension",
-        stub_version="0.1.0",
-        short_description="Generated extension",
-        owner_data=DataFields(
-            name="OwnerData",
-            fields=[DataField(name="wallet_id", type="wallet")],
-        ),
-        client_data=DataFields(
-            name="ClientData",
-            fields=[DataField(name="amount", type="int")],
-        ),
-        settings_data=SettingsFields(name="SettingsData", fields=[]),
-        public_page=PublicPageFields(
-            owner_data_fields=OwnerDataFields(),
-            client_data_fields=ClientDataFields(),
-            action_fields=ActionFields(),
-        ),
-    )
-
-
-def _release(ext_id: str) -> ExtensionRelease:
-    return ExtensionRelease(
-        name=ext_id,
-        version="0.1.0",
-        archive=f"https://example.com/{ext_id}.zip",
-        source_repo="org/repo",
-        is_github_release=False,
-        hash=f"hash-{ext_id}",
-        icon=f"/{ext_id}/static/image/{ext_id}.png",
-    )
+from tests.helpers import make_extension_data, make_extension_release
 
 
 @pytest.mark.anyio
@@ -70,7 +25,7 @@ async def test_extensions_builder_api_build_preview_and_cleanup(
     tmp_path, settings: Settings, mocker, from_user
 ):
     ext_id = f"builder_{uuid4().hex[:8]}"
-    data = _extension_data(ext_id)
+    data = make_extension_data(ext_id)
     build_dir = tmp_path / "build"
     build_dir.mkdir(parents=True, exist_ok=True)
     (build_dir / "index.txt").write_text("hello")
@@ -78,7 +33,9 @@ async def test_extensions_builder_api_build_preview_and_cleanup(
     original_data_folder = settings.lnbits_data_folder
     build_mock = mocker.patch(
         "lnbits.core.views.extensions_builder_api.build_extension_from_data",
-        mocker.AsyncMock(return_value=(_release(ext_id), build_dir)),
+        mocker.AsyncMock(
+            return_value=(make_extension_release(ext_id, "0.1.0"), build_dir)
+        ),
     )
     clean_mock = mocker.patch(
         "lnbits.core.views.extensions_builder_api.clean_extension_builder_data"
@@ -108,7 +65,7 @@ async def test_extensions_builder_api_deploy_updates_user_extension(
     tmp_path, settings: Settings, mocker, admin_user
 ):
     ext_id = f"deploy_{uuid4().hex[:8]}"
-    data = _extension_data(ext_id)
+    data = make_extension_data(ext_id)
     account = await get_account(admin_user.id)
     assert account is not None
 
@@ -123,7 +80,9 @@ async def test_extensions_builder_api_deploy_updates_user_extension(
 
     mocker.patch(
         "lnbits.core.views.extensions_builder_api.build_extension_from_data",
-        mocker.AsyncMock(return_value=(_release(ext_id), build_root)),
+        mocker.AsyncMock(
+            return_value=(make_extension_release(ext_id, "0.1.0"), build_root)
+        ),
     )
     install_mock = mocker.patch(
         "lnbits.core.views.extensions_builder_api.install_extension",

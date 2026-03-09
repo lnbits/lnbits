@@ -1,39 +1,11 @@
-from io import BytesIO
 from uuid import uuid4
 
 import pytest
-from fastapi import UploadFile
 from httpx import AsyncClient
-from PIL import Image
-from starlette.datastructures import Headers
 
 from lnbits.core.crud.assets import get_user_asset
 from lnbits.core.services.assets import create_user_asset
-
-
-def _png_bytes() -> bytes:
-    image = Image.new("RGB", (32, 32), color="blue")
-    buffer = BytesIO()
-    image.save(buffer, format="PNG")
-    return buffer.getvalue()
-
-
-def _upload_file(contents: bytes, filename: str, content_type: str) -> UploadFile:
-    return UploadFile(
-        BytesIO(contents),
-        filename=filename,
-        headers=Headers({"content-type": content_type}),
-    )
-
-
-async def _user_headers(client: AsyncClient, user_id: str) -> dict[str, str]:
-    response = await client.post("/api/v1/auth/usr", json={"usr": user_id})
-    client.cookies.clear()
-    access_token = response.json()["access_token"]
-    return {
-        "Authorization": f"Bearer {access_token}",
-        "Content-type": "application/json",
-    }
+from tests.helpers import get_png_bytes, get_user_token_headers, make_upload_file
 
 
 @pytest.mark.anyio
@@ -100,10 +72,14 @@ async def test_asset_api_enforces_visibility_and_supports_admin_updates(
 ):
     private_asset = await create_user_asset(
         from_user.id,
-        _upload_file(_png_bytes(), f"private_{uuid4().hex[:8]}.png", "image/png"),
+        make_upload_file(
+            get_png_bytes(),
+            filename=f"private_{uuid4().hex[:8]}.png",
+            content_type="image/png",
+        ),
         is_public=False,
     )
-    other_user_headers = await _user_headers(client, to_user.id)
+    other_user_headers = await get_user_token_headers(client, to_user.id)
 
     anonymous = await client.get(f"/api/v1/assets/{private_asset.id}/data")
     assert anonymous.status_code == 404
@@ -152,7 +128,7 @@ async def test_asset_api_validates_uploads_and_missing_assets(
 
     stored = await create_user_asset(
         "missing-user-check",
-        _upload_file(b"content", "content.txt", "text/plain"),
+        make_upload_file(b"content", filename="content.txt", content_type="text/plain"),
         is_public=True,
     )
     fetched = await get_user_asset("missing-user-check", stored.id)

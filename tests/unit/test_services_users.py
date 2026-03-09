@@ -29,26 +29,6 @@ from lnbits.core.services.users import (
 from lnbits.settings import Settings
 
 
-def _pubkey(value: int) -> str:
-    return f"{value:064x}"
-
-
-def _account(
-    *,
-    id_: str | None = None,
-    username: str | None = None,
-    email: str | None = None,
-    pubkey: str | None = None,
-) -> Account:
-    account_id = id_ or uuid4().hex
-    return Account(
-        id=account_id,
-        username=username or f"user_{account_id[:8]}",
-        email=email or f"{account_id[:8]}@example.com",
-        pubkey=pubkey,
-    )
-
-
 @pytest.mark.anyio
 async def test_create_user_account_rejects_when_registration_disabled(
     settings: Settings,
@@ -74,7 +54,7 @@ async def test_create_user_account_rejects_when_registration_disabled(
             "Email already exists.",
         ),
         (
-            {"pubkey": _pubkey(1)},
+            {"pubkey": f"{1:064x}"},
             {"pubkey": lambda existing: existing.pubkey},
             "Pubkey already exists.",
         ),
@@ -397,3 +377,23 @@ async def test_check_register_activation_settings_handles_invitation_codes(
             "lnbits_register_one_time_activation_codes",
             previous_stored_codes.value if previous_stored_codes else original_one_time,
         )
+
+
+def _pubkey(value: int) -> str:
+    return f"{value:064x}"
+
+
+def _account(
+    *,
+    id_: str | None = None,
+    username: str | None = None,
+    email: str | None = None,
+    pubkey: str | None = None,
+) -> Account:
+    account_id = id_ or uuid4().hex
+    return Account(
+        id=account_id,
+        username=username or f"user_{account_id[:8]}",
+        email=email or f"{account_id[:8]}@example.com",
+        pubkey=pubkey,
+    )

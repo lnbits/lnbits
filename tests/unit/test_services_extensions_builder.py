@@ -7,52 +7,20 @@ import pytest
 from pytest_mock.plugin import MockerFixture
 
 from lnbits.core.models.extensions import ExtensionRelease
-from lnbits.core.models.extensions_builder import (
-    ActionFields,
-    ClientDataFields,
-    DataField,
-    DataFields,
-    ExtensionData,
-    OwnerDataFields,
-    PublicPageFields,
-    SettingsFields,
-)
 from lnbits.core.services.extensions_builder import (
     build_extension_from_data,
     clean_extension_builder_data,
     zip_directory,
 )
 from lnbits.settings import Settings
-
-
-def _extension_data() -> ExtensionData:
-    return ExtensionData(
-        id="demoext",
-        name="Demo Extension",
-        stub_version="0.1.0",
-        short_description="Generated extension",
-        owner_data=DataFields(
-            name="OwnerData",
-            fields=[DataField(name="wallet_id", type="wallet")],
-        ),
-        client_data=DataFields(
-            name="ClientData",
-            fields=[DataField(name="amount", type="int")],
-        ),
-        settings_data=SettingsFields(name="SettingsData", fields=[]),
-        public_page=PublicPageFields(
-            owner_data_fields=OwnerDataFields(),
-            client_data_fields=ClientDataFields(),
-            action_fields=ActionFields(),
-        ),
-    )
+from tests.helpers import make_extension_data
 
 
 @pytest.mark.anyio
 async def test_build_extension_from_data_orchestrates_builder_steps(
     tmp_path, mocker: MockerFixture
 ):
-    data = _extension_data()
+    data = make_extension_data()
     release = ExtensionRelease(
         name="stub",
         version="0.1.0",
