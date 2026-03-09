@@ -11,6 +11,7 @@ from lnbits.core.models.payments import CancelInvoice, CreatePayment, SettleInvo
 from lnbits.core.models.users import AccountId
 from lnbits.core.models.wallets import KeyType, WalletTypeInfo
 from lnbits.core.services.payments import create_wallet_invoice
+from lnbits.core.services.users import create_user_account
 from lnbits.core.views.payment_api import (
     api_all_payments_paginated,
     api_payments_cancel,
@@ -20,7 +21,6 @@ from lnbits.core.views.payment_api import (
     api_payments_settle,
     api_payments_wallets_stats,
 )
-from lnbits.core.services.users import create_user_account
 from lnbits.db import Filters
 from lnbits.wallets.base import InvoiceResponse
 

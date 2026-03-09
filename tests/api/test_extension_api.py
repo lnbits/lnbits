@@ -220,7 +220,9 @@ async def test_extension_api_pay_to_enable_and_catalog_views(mocker, admin_user)
     await create_installed_extension(
         _installable_extension(
             ext_id,
-            pay_to_enable=PayToEnableInfo(required=True, amount=10, wallet=admin_wallet.id),
+            pay_to_enable=PayToEnableInfo(
+                required=True, amount=10, wallet=admin_wallet.id
+            ),
         )
     )
 
@@ -410,6 +412,10 @@ async def test_extension_api_activate_uninstall_install_invoice_and_cleanup(mock
 @pytest.mark.anyio
 async def test_extension_api_review_endpoints(mocker):
     ext_id = f"review_{uuid4().hex[:8]}"
+    reviews_base = "https://demo.lnbits.com/paidreviews/api/v1/AdFzLjzuKFLsdk4Bcnff6r"
+    tags_url = f"{reviews_base}/tags"
+    reviews_url = f"{reviews_base}/reviews/{ext_id}?offset=0&limit=5"
+    create_review_url = f"{reviews_base}/reviews"
     request = Request(
         {
             "type": "http",
@@ -421,10 +427,10 @@ async def test_extension_api_review_endpoints(mocker):
     )
     mock_client = _MockHTTPClient(
         {
-            "https://demo.lnbits.com/paidreviews/api/v1/AdFzLjzuKFLsdk4Bcnff6r/tags": _MockHTTPResponse(
+            tags_url: _MockHTTPResponse(
                 json_data=[{"tag": "good", "avg_rating": 900, "review_count": 3}]
             ),
-            f"https://demo.lnbits.com/paidreviews/api/v1/AdFzLjzuKFLsdk4Bcnff6r/reviews/{ext_id}?offset=0&limit=5": _MockHTTPResponse(
+            reviews_url: _MockHTTPResponse(
                 json_data={
                     "data": [
                         {
@@ -438,7 +444,7 @@ async def test_extension_api_review_endpoints(mocker):
                     "total": 1,
                 }
             ),
-            "https://demo.lnbits.com/paidreviews/api/v1/AdFzLjzuKFLsdk4Bcnff6r/reviews": _MockHTTPResponse(
+            create_review_url: _MockHTTPResponse(
                 json_data={
                     "payment_hash": f"hash_{uuid4().hex[:8]}",
                     "payment_request": "lnbc1review",
@@ -446,7 +452,9 @@ async def test_extension_api_review_endpoints(mocker):
             ),
         }
     )
-    mocker.patch("lnbits.core.views.extension_api.httpx.AsyncClient", return_value=mock_client)
+    mocker.patch(
+        "lnbits.core.views.extension_api.httpx.AsyncClient", return_value=mock_client
+    )
 
     tags = await get_extension_reviews_tags()
     assert tags[0].tag == "good"
