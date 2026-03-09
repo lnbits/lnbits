@@ -18,14 +18,6 @@ from lnbits.core.services.payments import update_wallet_balance
 from lnbits.settings import Settings
 
 
-async def _create_wallet_with_balance(amount: int):
-    user_id = uuid4().hex
-    await create_account(Account(id=user_id, username=f"user_{user_id[:8]}"))
-    wallet = await create_wallet(user_id=user_id, wallet_name="wallet")
-    await update_wallet_balance(wallet=wallet, amount=amount)
-    return wallet
-
-
 @pytest.mark.anyio
 async def test_switch_to_voidwallet_returns_when_already_using_voidwallet(
     settings: Settings, mocker: MockerFixture
@@ -169,3 +161,11 @@ async def test_check_balance_delta_changed_tracks_and_notifies(
     finally:
         settings_any.latest_balance_delta_sats = original_latest
         settings.notification_balance_delta_threshold_sats = original_threshold
+
+
+async def _create_wallet_with_balance(amount: int):
+    user_id = uuid4().hex
+    await create_account(Account(id=user_id, username=f"user_{user_id[:8]}"))
+    wallet = await create_wallet(user_id=user_id, wallet_name="wallet")
+    await update_wallet_balance(wallet=wallet, amount=amount)
+    return wallet
