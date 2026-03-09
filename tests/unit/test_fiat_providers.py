@@ -17,8 +17,10 @@ from lnbits.core.services.fiat_providers import (
     check_fiat_status,
     check_stripe_signature,
     handle_fiat_payment_confirmation,
-    test_connection as fiat_provider_connection,
     verify_paypal_webhook,
+)
+from lnbits.core.services.fiat_providers import (
+    test_connection as fiat_provider_connection,
 )
 from lnbits.core.services.users import create_user_account
 from lnbits.fiat.base import FiatInvoiceResponse, FiatPaymentStatus, FiatStatusResponse
