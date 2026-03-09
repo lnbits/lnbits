@@ -3,8 +3,8 @@ import json
 import pytest
 
 from lnbits.db import (
-    dict_to_submodel,
     dict_to_model,
+    dict_to_submodel,
     insert_query,
     model_to_dict,
     update_query,

@@ -18,7 +18,9 @@ from lnbits.utils.exchange_rates import (
 
 
 class MockResponse:
-    def __init__(self, *, text: str = "", json_data=None, error: Exception | None = None):
+    def __init__(
+        self, *, text: str = "", json_data=None, error: Exception | None = None
+    ):
         self.text = text
         self._json_data = json_data or {}
         self._error = error
@@ -263,7 +265,9 @@ async def test_btc_rates_skips_unsupported_and_failing_providers(
     )
     client = MockAsyncClient(MockResponse(error=httpx.HTTPError("boom")))
     mocker.patch.object(settings, "lnbits_allowed_currencies", [])
-    mocker.patch.object(settings, "lnbits_exchange_rate_providers", [unsupported, failing])
+    mocker.patch.object(
+        settings, "lnbits_exchange_rate_providers", [unsupported, failing]
+    )
     mocker.patch("lnbits.utils.exchange_rates.httpx.AsyncClient", return_value=client)
 
     assert await btc_rates("usd") == []

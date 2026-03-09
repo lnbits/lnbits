@@ -1,5 +1,4 @@
 import asyncio
-from datetime import datetime, timezone
 from http import HTTPStatus
 from types import SimpleNamespace
 from unittest.mock import MagicMock
@@ -7,8 +6,8 @@ from uuid import uuid4
 
 import httpx
 import pytest
-from pywebpush import WebPushException
 from pytest_mock.plugin import MockerFixture
+from pywebpush import WebPushException
 
 from lnbits.core.crud import (
     create_account,
@@ -37,9 +36,9 @@ from lnbits.core.services.notifications import (
     send_chat_payment_notification,
     send_email,
     send_email_notification,
-    send_notification,
     send_nostr_notification,
     send_nostr_notifications,
+    send_notification,
     send_payment_notification,
     send_payment_push_notification,
     send_push_notification,
@@ -118,7 +117,9 @@ async def _create_payment(
 
 
 @pytest.mark.anyio
-async def test_enqueue_and_process_notifications(settings: Settings, mocker: MockerFixture):
+async def test_enqueue_and_process_notifications(
+    settings: Settings, mocker: MockerFixture
+):
     queue: asyncio.Queue = asyncio.Queue()
     admin_mock = mocker.patch(
         "lnbits.core.services.notifications.send_admin_notification",
@@ -138,6 +139,7 @@ async def test_enqueue_and_process_notifications(settings: Settings, mocker: Moc
     await process_next_notification()
 
     assert admin_mock.await_count == 1
+    assert admin_mock.await_args is not None
     assert admin_mock.await_args.args[0].startswith(f"[{settings.lnbits_site_title}]")
     assert "alice" in admin_mock.await_args.args[0]
     assert admin_mock.await_args.args[1] == NotificationType.settings_update.value
@@ -151,6 +153,7 @@ async def test_enqueue_and_process_notifications(settings: Settings, mocker: Moc
     await process_next_notification()
 
     assert user_mock.await_count == 1
+    assert user_mock.await_args is not None
     assert user_mock.await_args.args[0] == user_notifications
     assert "hello" in user_mock.await_args.args[1]
     assert user_mock.await_args.args[2] == NotificationType.text_message.value
@@ -405,6 +408,7 @@ async def test_dispatch_webhook_marks_missing_invalid_and_failed_requests(
     assert (await get_payment(payment.checking_id)).webhook_status == "-1"
 
     invalid_payment = await _create_payment(wallet, webhook="https://invalid.example")
+    assert invalid_payment.webhook is not None
     invalid_client = MockHTTPClient(
         post_response=httpx.Response(
             200,
@@ -422,9 +426,13 @@ async def test_dispatch_webhook_marks_missing_invalid_and_failed_requests(
     )
 
     await dispatch_webhook(invalid_payment)
-    assert (await get_payment(invalid_payment.checking_id)).webhook_status in {"-1", "200"}
+    assert (await get_payment(invalid_payment.checking_id)).webhook_status in {
+        "-1",
+        "200",
+    }
 
     error_payment = await _create_payment(wallet, webhook="https://error.example")
+    assert error_payment.webhook is not None
     mocker.patch(
         "lnbits.core.services.notifications.check_callback_url",
         return_value=None,
@@ -443,6 +451,7 @@ async def test_dispatch_webhook_marks_missing_invalid_and_failed_requests(
     assert (await get_payment(error_payment.checking_id)).webhook_status == "500"
 
     request_payment = await _create_payment(wallet, webhook="https://request.example")
+    assert request_payment.webhook is not None
     mocker.patch(
         "lnbits.core.services.notifications.httpx.AsyncClient",
         return_value=MockHTTPClient(
@@ -574,6 +583,7 @@ async def test_send_payment_push_notification_and_cleanup_gone_subscriptions(
 
     await send_payment_push_notification(wallet, payment)
 
+    assert send_push_mock.await_args is not None
     assert send_push_mock.await_args.args[0].endpoint == subscription.endpoint
     assert send_push_mock.await_args.args[1] == f"LNbits: {wallet.name}"
     assert "received 2 sats" in send_push_mock.await_args.args[2]
