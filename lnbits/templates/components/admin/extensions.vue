@@ -137,7 +137,7 @@
             :hint="$t('extension_builder_manifest_url_hint')"
           ></q-input>
         </div>
-        <div class="col-12 col-md-6">
+        <div class="col-12 col-md-6 q-pb-md">
           <p>
             <span v-text="$t('reviews_url')"></span>
           </p>

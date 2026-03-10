@@ -3,9 +3,6 @@
     <h6 class="q-my-none q-mb-sm">Assets</h6>
     <div class="row q-col-gutter-md">
       <div class="col-12 col-md-3">
-        <p>
-          <span v-text="$t('max_asset_size_mb')"></span>
-        </p>
         <q-input
           filled
           type="number"
@@ -18,9 +15,6 @@
       </div>
 
       <div class="col-12 col-md-9">
-        <p>
-          <span v-text="$t('assets_allowed_mime_types')"></span>
-        </p>
         <q-input
           filled
           v-model.number="newAllowedAssetMimeType"
@@ -56,11 +50,8 @@
     </div>
     <q-separator class="q-mb-lg q-mt-sm"></q-separator>
     <h6 class="q-my-none q-mb-sm">Thumbnails</h6>
-    <div class="row q-col-gutter-md">
-      <div class="col-12 col-md-3">
-        <p>
-          <span v-text="$t('thumbnail_width')"></span>
-        </p>
+    <div class="row q-col-gutter-md q-my-lg">
+      <div class="col-12 col-md-4">
         <q-input
           filled
           type="number"
@@ -71,10 +62,7 @@
           :hint="$t('thumbnail_width_desc')"
         ></q-input>
       </div>
-      <div class="col-12 col-md-3">
-        <p>
-          <span v-text="$t('thumbnail_height')"></span>
-        </p>
+      <div class="col-12 col-md-4">
         <q-input
           filled
           type="number"
@@ -85,10 +73,7 @@
           :hint="$t('thumbnail_height_desc')"
         ></q-input>
       </div>
-      <div class="col-12 col-md-3">
-        <p>
-          <span v-text="$t('thumbnail_format')"></span>
-        </p>
+      <div class="col-12 col-md-4">
         <q-input
           filled
           v-model.number="formData.lnbits_asset_thumbnail_format"
@@ -101,9 +86,6 @@
     <h6 class="q-my-none q-mb-sm">Users</h6>
     <div class="row q-col-gutter-md">
       <div class="col-12 col-md-3">
-        <p>
-          <span v-text="$t('max_assets_per_user')"></span>
-        </p>
         <q-input
           filled
           type="number"
@@ -115,9 +97,6 @@
         ></q-input>
       </div>
       <div class="col-12 col-md-9">
-        <p>
-          <span v-text="$t('assets_no_limit_users')"></span>
-        </p>
         <q-input
           filled
           v-model="newNoLimitUser"

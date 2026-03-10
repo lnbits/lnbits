@@ -12,11 +12,14 @@
 
     <div class="row">
       <div class="col-12">
-        <p>Active Funding<small> (Requires server restart)</small></p>
+        <p>
+          <span v-text="$t('funding_source')"></span>
+          <small><span v-text="$t('requires_server_restart')"></span></small>
+        </p>
         <q-select
           filled
           v-model="formData.lnbits_backend_wallet_class"
-          hint="Select the active funding wallet"
+          :hint="$t('funding_source_info')"
           :options="sortedAllowedFundingSources"
           :option-label="item => getFundingSourceLabel(item)"
         ></q-select>
