@@ -38,14 +38,11 @@
       </div>
 
       <q-separator class="q-mb-lg q-mt-sm"></q-separator>
-      <h6 class="q-my-none">
+      <h6 class="q-my-none q-mb-sm">
         <span v-text="$t('payments')"></span>
       </h6>
       <div class="row q-col-gutter-md">
-        <div class="col-12 col-md-3">
-          <p>
-            <span v-text="$t('max_outgoing_payment_amount')"></span>
-          </p>
+        <div class="col-12 col-md-4">
           <q-input
             filled
             type="number"
@@ -57,10 +54,7 @@
           ></q-input>
         </div>
 
-        <div class="col-12 col-md-3">
-          <p>
-            <span v-text="$t('max_incoming_payment_amount')"></span>
-          </p>
+        <div class="col-12 col-md-4">
           <q-input
             filled
             type="number"
@@ -75,7 +69,7 @@
       </div>
 
       <q-separator class="q-mb-lg q-mt-sm"></q-separator>
-      <h6 class="q-my-none">
+      <h6 class="q-my-none q-mb-sm">
         <span v-text="$t('wallet_limiter')"></span>
       </h6>
       <div class="row q-col-gutter-md">
@@ -113,35 +107,32 @@
       </div>
 
       <q-separator class="q-mb-lg q-mt-sm"></q-separator>
-      <h6 class="q-my-none">
-        <span v-text="$t('service_fee')"></span>
+      <h6 class="q-my-none q-mb-sm">
+        <span v-text="$t('service_fees')"></span>
       </h6>
       <div class="row q-col-gutter-md">
-        <div class="col-12 col-md-6">
-          <p><span v-text="$t('service_fee')"></span></p>
+        <div class="col-12 col-md-4">
           <q-input
             filled
             type="number"
             v-model.number="formData.lnbits_service_fee"
             :label="$t('service_fee_label')"
             step="0.1"
-            :hint="$t('service_fee_hint')"
+            :suffix="'%'"
           ></q-input>
           <br />
         </div>
-        <div class="col-12 col-md-6">
-          <p><span v-text="$t('service_fee_max')"></span></p>
+        <div class="col-12 col-md-4">
           <q-input
             filled
             type="number"
             v-model.number="formData.lnbits_service_fee_max"
             :label="$t('service_fee_max_label')"
-            :hint="$t('service_fee_max_hint')"
+            :suffix="$t('sats')"
           ></q-input>
           <br />
         </div>
         <div class="col-12 col-md-6">
-          <p><span v-text="$t('fee_wallet')"></span></p>
           <q-input
             filled
             v-model="formData.lnbits_service_fee_wallet"
@@ -151,16 +142,9 @@
           <br />
         </div>
         <div class="col-12 col-md-6">
-          <p>
-            <span v-text="$t('disable_fee_internal')"></span>
-          </p>
           <q-item tag="label" v-ripple>
             <q-item-section>
               <q-item-label v-text="$t('disable_fee')"></q-item-label>
-              <q-item-label
-                caption
-                v-text="$t('disable_fee_internal_desc')"
-              ></q-item-label>
             </q-item-section>
             <q-item-section avatar>
               <q-toggle

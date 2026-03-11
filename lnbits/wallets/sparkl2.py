@@ -8,6 +8,8 @@ from typing import Any, cast
 
 import httpx
 from bolt11 import decode as bolt11_decode
+from coincurve.keys import PrivateKey
+from embit.bip39 import mnemonic_from_bytes, mnemonic_is_valid
 from loguru import logger
 
 from lnbits.helpers import normalize_endpoint
@@ -79,6 +81,11 @@ class SparkL2Wallet(Wallet):
     async def status(self) -> StatusResponse:
         try:
             res = await self._request("POST", "/v1/balance")
+            status = res.get("status")
+            if status == "missing_mnemonic":
+                await self._check_sidecar_mnemonic()
+                return StatusResponse("Spark sidecar mnemonic not set", 0)
+
             balance_msat = res.get("balance_msat")
             if balance_msat is not None:
                 return StatusResponse(None, int(balance_msat))
@@ -237,7 +244,7 @@ class SparkL2Wallet(Wallet):
     ) -> dict[str, Any]:
         error_message = None
         try:
-            r = await self.client.request(method, path, json=json_data)
+            r = await self.client.request(method, path, json=json_data, timeout=30)
             r.raise_for_status()
             j = r.json()
         except (httpx.RequestError, httpx.HTTPStatusError, json.JSONDecodeError) as exc:
@@ -319,3 +326,30 @@ class SparkL2Wallet(Wallet):
         if mapped.failed:
             return False
         return None
+
+    async def _check_sidecar_mnemonic(self):
+        if settings.spark_l2_mnemonic:
+            valid = mnemonic_is_valid(settings.spark_l2_mnemonic)
+            if not valid:
+                logger.warning("SPARK_L2_MNEMONIC is set but invalid. Please recheck!")
+                return
+            await self._set_sidecar_mnemonic(settings.spark_l2_mnemonic)
+            return
+
+        logger.info("SPARK_L2_MNEMONIC is not set, one will be generated for you.")
+        mnemonic = mnemonic_from_bytes(PrivateKey().secret)
+        await self._set_sidecar_mnemonic(mnemonic)
+
+    async def _set_sidecar_mnemonic(self, mnemonic: str):
+        logger.info("Checking 'SPARK_L2_MNEMONIC' on the Spark sidecar.")
+        payload = {"mnemonic": mnemonic}
+        resp = await self._request("POST", "/v1/mnemonic", payload)
+        status = resp.get("status")
+        logger.info(f"Spark sidecar mnemonic status: {status}")
+        if status == "set":
+            logger.info("Updating 'SPARK_L2_MNEMONIC' mnemonic settings.")
+            from lnbits.core.crud.settings import set_settings_field
+
+            await set_settings_field("spark_l2_mnemonic", mnemonic)
+        else:
+            logger.info("Nothing to do for 'SPARK_L2_MNEMONIC' on the Spark sidecar.")
