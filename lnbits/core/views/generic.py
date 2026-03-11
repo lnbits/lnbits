@@ -202,7 +202,7 @@ async def index(
         request,
         "index.html",
         {
-            "user": user.json(),
+            "user": user.model_dump_json(),
         },
     )
 
@@ -244,7 +244,7 @@ async def lnurlwallet(request: Request, lightning: str = ""):
         check_callback_url(lnurl)
         res1 = await client.get(lnurl, timeout=2)
         res1.raise_for_status()
-        data1 = res1.json()
+        data1 = res1.model_dump_json()
         if data1.get("tag") != "withdrawRequest":
             raise HTTPException(
                 status_code=HTTPStatus.BAD_REQUEST,

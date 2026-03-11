@@ -221,7 +221,7 @@ class ExtensionRelease(BaseModel):
             async with httpx.AsyncClient() as client:
                 resp = await client.get(url)
                 resp.raise_for_status()
-                return ReleasePaymentInfo(**resp.json())
+                return ReleasePaymentInfo(**resp.model_dump_json())
         except Exception as e:
             logger.warning(e)
             return None
@@ -313,7 +313,7 @@ class ExtensionRelease(BaseModel):
             async with httpx.AsyncClient() as client:
                 resp = await client.get(details_link)
                 resp.raise_for_status()
-                data = resp.json()
+                data = resp.model_dump_json()
                 if "description_md" in data:
                     resp = await client.get(data["description_md"])
                     if not resp.is_error:
@@ -832,7 +832,7 @@ async def github_api_get(url: str, error_msg: str | None) -> Any:
         if resp.status_code != 200:
             logger.warning(f"{error_msg} ({url}): {resp.text}")
         resp.raise_for_status()
-        return resp.json()
+        return resp.model_dump_json()
 
 
 def icon_to_github_url(source_repo: str, path: str | None) -> str:

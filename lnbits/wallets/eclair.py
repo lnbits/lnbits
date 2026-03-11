@@ -63,7 +63,7 @@ class EclairWallet(Wallet):
             r = await self.client.post("/globalbalance", timeout=5)
             r.raise_for_status()
 
-            data = r.json()
+            data = r.model_dump_json()
 
             if len(data) == 0:
                 return StatusResponse("no data", 0)
@@ -109,7 +109,7 @@ class EclairWallet(Wallet):
         try:
             r = await self.client.post("/createinvoice", data=data, timeout=40)
             r.raise_for_status()
-            data = r.json()
+            data = r.model_dump_json()
 
             if len(data) == 0:
                 return InvoiceResponse(ok=False, error_message="no data")
@@ -152,7 +152,7 @@ class EclairWallet(Wallet):
                 timeout=None,
             )
             r.raise_for_status()
-            data = r.json()
+            data = r.model_dump_json()
 
             if "error" in data:
                 return PaymentResponse(error_message=data["error"])
@@ -195,7 +195,7 @@ class EclairWallet(Wallet):
             )
 
             r.raise_for_status()
-            data = r.json()
+            data = r.model_dump_json()
 
             if r.is_error or "error" in data or data.get("status") is None:
                 raise Exception("error in eclair response")
@@ -219,7 +219,7 @@ class EclairWallet(Wallet):
 
             r.raise_for_status()
 
-            data = r.json()[-1]
+            data = r.model_dump_json()[-1]
 
             if r.is_error or "error" in data or data.get("status") is None:
                 raise Exception("error in eclair response")

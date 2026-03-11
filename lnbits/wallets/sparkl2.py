@@ -246,11 +246,11 @@ class SparkL2Wallet(Wallet):
         try:
             r = await self.client.request(method, path, json=json_data, timeout=30)
             r.raise_for_status()
-            j = r.json()
+            j = r.model_dump_json()
         except (httpx.RequestError, httpx.HTTPStatusError, json.JSONDecodeError) as exc:
             if isinstance(exc, httpx.HTTPStatusError) and exc.response is not None:
                 try:
-                    error_json = exc.response.json()
+                    error_json = exc.response.model_dump_json()
                     if "error" in error_json:
                         error_message = error_json["error"]
                 except Exception as json_exc:

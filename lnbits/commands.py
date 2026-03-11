@@ -711,7 +711,7 @@ async def _call_install_extension(
         user_id = user_id or get_super_user()
         async with httpx.AsyncClient() as client:
             resp = await client.post(
-                f"{url}/api/v1/extension?usr={user_id}", json=data.dict(), timeout=40
+                f"{url}/api/v1/extension?usr={user_id}", json=data.model_dump(), timeout=40
             )
             resp.raise_for_status()
     else:

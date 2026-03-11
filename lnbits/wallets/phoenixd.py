@@ -72,7 +72,7 @@ class PhoenixdWallet(Wallet):
         try:
             r = await self.client.get("/getinfo", timeout=10)
             r.raise_for_status()
-            data = r.json()
+            data = r.model_dump_json()
 
             if len(data) == 0:
                 return StatusResponse("no data", 0)
@@ -132,7 +132,7 @@ class PhoenixdWallet(Wallet):
                 timeout=40,
             )
             r.raise_for_status()
-            data = r.json()
+            data = r.model_dump_json()
 
             if r.is_error or "paymentHash" not in data:
                 error_message = data["message"]
@@ -194,7 +194,7 @@ class PhoenixdWallet(Wallet):
             )
 
         try:
-            data = r.json()
+            data = r.model_dump_json()
 
             if "routingFeeSat" not in data and ("reason" in data or "message" in data):
                 error_message = data.get("reason", data.get("message", "Unknown error"))
@@ -238,7 +238,7 @@ class PhoenixdWallet(Wallet):
                 )
                 return PaymentPendingStatus()
         try:
-            data = r.json()
+            data = r.model_dump_json()
         except json.JSONDecodeError:
             # should never return invalid json, but just in case we keep it pending
             logger.warning(
@@ -270,7 +270,7 @@ class PhoenixdWallet(Wallet):
                 )
                 return PaymentPendingStatus()
         try:
-            data = r.json()
+            data = r.model_dump_json()
         except json.JSONDecodeError:
             # should never return invalid json, but just in case we keep it pending
             logger.warning(

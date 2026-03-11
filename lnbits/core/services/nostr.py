@@ -61,7 +61,7 @@ async def fetch_nip5_details(identifier: str) -> tuple[str, list[str]]:
     async with httpx.AsyncClient() as client:
         resp = await client.get(url)
         resp.raise_for_status()
-        data = resp.json()
+        data = resp.model_dump_json()
         if "names" not in data or identifier not in data["names"]:
             raise ValueError("NIP5 not name found")
         pubkey = data["names"][identifier]

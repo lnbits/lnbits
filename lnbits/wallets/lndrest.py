@@ -85,7 +85,7 @@ class LndRestWallet(Wallet):
             r = await self.client.get("/v1/balance/channels")
             r.raise_for_status()
 
-            data = r.json()
+            data = r.model_dump_json()
             if len(data) == 0:
                 return StatusResponse("no data", 0)
             if r.is_error or "balance" not in data:
@@ -130,7 +130,7 @@ class LndRestWallet(Wallet):
         try:
             r = await self.client.post(url="/v1/invoices", json=_data)
             r.raise_for_status()
-            data = r.json()
+            data = r.model_dump_json()
 
             if len(data) == 0:
                 return InvoiceResponse(ok=False, error_message="no data")
@@ -187,7 +187,7 @@ class LndRestWallet(Wallet):
                 timeout=None,
             )
             r.raise_for_status()
-            data = r.json()
+            data = r.model_dump_json()
         except json.JSONDecodeError:
             return PaymentResponse(
                 error_message="Server error: 'invalid json response'"
@@ -237,7 +237,7 @@ class LndRestWallet(Wallet):
 
         try:
             r.raise_for_status()
-            data = r.json()
+            data = r.model_dump_json()
         except Exception as e:
             logger.warning(f"Error getting invoice status: {e}")
             return PaymentPendingStatus()
@@ -354,7 +354,7 @@ class LndRestWallet(Wallet):
         try:
             r = await self.client.post(url="/v2/invoices/hodl", json=data)
             r.raise_for_status()
-            data = r.json()
+            data = r.model_dump_json()
         except httpx.HTTPStatusError as exc:
             logger.warning(exc)
             return InvoiceResponse(ok=False, error_message=exc.response.text)

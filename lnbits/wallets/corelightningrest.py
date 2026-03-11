@@ -84,7 +84,7 @@ class CoreLightningRestWallet(Wallet):
                 f"{self.url}/v1/channel/localremotebal", timeout=5
             )
             r.raise_for_status()
-            data = r.json()
+            data = r.model_dump_json()
 
             if len(data) == 0:
                 return StatusResponse("no data", 0)
@@ -140,7 +140,7 @@ class CoreLightningRestWallet(Wallet):
             )
             r.raise_for_status()
 
-            data = r.json()
+            data = r.model_dump_json()
 
             if len(data) == 0:
                 return InvoiceResponse(ok=False, error_message="no data")
@@ -196,7 +196,7 @@ class CoreLightningRestWallet(Wallet):
             )
 
             r.raise_for_status()
-            data = r.json()
+            data = r.model_dump_json()
 
             status = self.statuses.get(data["status"])
             if "payment_preimage" not in data:
@@ -214,7 +214,7 @@ class CoreLightningRestWallet(Wallet):
         except httpx.HTTPStatusError as exc:
             try:
                 logger.debug(exc)
-                data = exc.response.json()
+                data = exc.response.model_dump_json()
                 error_code = int(data["error"]["code"])
                 if error_code in self.pay_failure_error_codes:
                     error_message = data["error"]["message"]
@@ -246,7 +246,7 @@ class CoreLightningRestWallet(Wallet):
         )
         try:
             r.raise_for_status()
-            data = r.json()
+            data = r.model_dump_json()
 
             if r.is_error or "error" in data or data.get("invoices") is None:
                 raise Exception("error in cln response")
@@ -262,7 +262,7 @@ class CoreLightningRestWallet(Wallet):
         )
         try:
             r.raise_for_status()
-            data = r.json()
+            data = r.model_dump_json()
 
             if r.is_error or "error" in data or not data.get("pays"):
                 raise Exception("error in corelightning-rest response")
@@ -311,7 +311,7 @@ class CoreLightningRestWallet(Wallet):
                             f"{self.url}/v1/invoice/listInvoices",
                             params={"label": inv["label"]},
                         )
-                        paid_invoice = r.json()
+                        paid_invoice = r.model_dump_json()
                         logger.trace(f"paid invoice: {paid_invoice}")
                         if not self.statuses[paid_invoice["invoices"][0]["status"]]:
                             raise ValueError("streamed invoice not paid")

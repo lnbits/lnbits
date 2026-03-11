@@ -60,10 +60,10 @@ class OpenNodeWallet(Wallet):
             return StatusResponse(f"Unable to connect to '{self.endpoint}'", 0)
 
         if r.is_error:
-            error_message = r.json()["message"]
+            error_message = r.model_dump_json()["message"]
             return StatusResponse(error_message, 0)
 
-        data = r.json()["data"]
+        data = r.model_dump_json()["data"]
         # multiply balance by 1000 to get msats balance
         return StatusResponse(None, data["balance"]["BTC"] * 1000)
 
@@ -88,10 +88,10 @@ class OpenNodeWallet(Wallet):
         )
 
         if r.is_error:
-            error_message = r.json()["message"]
+            error_message = r.model_dump_json()["message"]
             return InvoiceResponse(ok=False, error_message=error_message)
 
-        data = r.json()["data"]
+        data = r.model_dump_json()["data"]
         checking_id = data["id"]
         payment_request = data["lightning_invoice"]["payreq"]
         self.pending_invoices.append(checking_id)
@@ -107,11 +107,11 @@ class OpenNodeWallet(Wallet):
         )
 
         if r.is_error:
-            error_message = r.json()["message"]
+            error_message = r.model_dump_json()["message"]
             logger.warning(error_message)
             return PaymentResponse(ok=None, error_message=error_message)
 
-        data = r.json()["data"]
+        data = r.model_dump_json()["data"]
         checking_id = data["id"]
         fee_msat = -data["fee"] * 1000
         # pending
@@ -123,7 +123,7 @@ class OpenNodeWallet(Wallet):
         r = await self.client.get(f"/v1/charge/{checking_id}")
         if r.is_error:
             return PaymentPendingStatus()
-        data = r.json()["data"]
+        data = r.model_dump_json()["data"]
         statuses = {"processing": None, "paid": True, "unpaid": None, "expired": False}
         return PaymentStatus(statuses[data.get("status")])
 
@@ -133,7 +133,7 @@ class OpenNodeWallet(Wallet):
         if r.is_error:
             return PaymentPendingStatus()
 
-        data = r.json()["data"]
+        data = r.model_dump_json()["data"]
         statuses = {
             "initial": None,
             "pending": None,

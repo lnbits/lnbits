@@ -495,7 +495,7 @@ async def update(
 async def update_ui_customization(
     req: Request, account: Account = Depends(check_account_exists)
 ) -> Account:
-    ui_customization = await req.json()
+    ui_customization = await req.model_dump_json()
     account.ui_customization = {**(account.ui_customization or {}), **ui_customization}
 
     if len(account.ui_customization or {}) > 1000 * 1024:
@@ -571,7 +571,7 @@ def _auth_success_response(
     payload = AccessTokenPayload(
         sub=username or "", usr=user_id, email=email, auth_time=int(time())
     )
-    access_token = create_access_token(data=payload.dict())
+    access_token = create_access_token(data=payload.model_dump())
     max_age = settings.auth_token_expire_minutes * 60
     response = JSONResponse({"access_token": access_token, "token_type": "bearer"})
     response.set_cookie(
@@ -590,13 +590,13 @@ def _auth_api_token_response(
         sub=username, api_token_id=api_token_id, auth_time=int(time())
     )
     return create_access_token(
-        data=payload.dict(), token_expire_minutes=token_expire_minutes
+        data=payload.model_dump(), token_expire_minutes=token_expire_minutes
     )
 
 
 def _auth_redirect_response(path: str, email: str) -> RedirectResponse:
     payload = AccessTokenPayload(sub="" or "", email=email, auth_time=int(time()))
-    access_token = create_access_token(data=payload.dict())
+    access_token = create_access_token(data=payload.model_dump())
     max_age = settings.auth_token_expire_minutes * 60
     response = RedirectResponse(path)
     response.set_cookie(

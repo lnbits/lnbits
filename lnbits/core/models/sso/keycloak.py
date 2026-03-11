@@ -31,6 +31,6 @@ class KeycloakSSO(SSOBase):
         """Get document containing handy urls"""
         async with httpx.AsyncClient() as session:
             response = await session.get(self.discovery_url)
-            content = response.json()
+            content = response.model_dump_json()
 
             return content

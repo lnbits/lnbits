@@ -11,7 +11,7 @@ from enum import Enum
 from typing import Any, Generic, Literal, TypeVar, get_origin
 
 from loguru import logger
-from pydantic import BaseModel, ValidationError, root_validator
+from pydantic import BaseModel, ValidationError, root_validator, model_validator
 from sqlalchemy.ext.asyncio import AsyncConnection, AsyncEngine, create_async_engine
 from sqlalchemy.sql import text
 
@@ -546,7 +546,8 @@ class Filters(BaseModel, Generic[TFilterModel]):
 
     table_name: str | None = None
 
-    @root_validator(pre=True)
+    @model_validator(mode='before')
+    @classmethod
     def validate_sortby(cls, values):
         sortby = values.get("sortby")
         model = values.get("model")
@@ -661,7 +662,7 @@ def model_to_dict(model: BaseModel) -> dict:
     :param model: Pydantic model
     """
     _dict: dict = {}
-    for key, value in model.dict().items():
+    for key, value in model.model_dump().items():
         type_ = model.__fields__[key].type_
         outertype_ = model.__fields__[key].outer_type_
         if model.__fields__[key].field_info.extra.get("no_database", False):

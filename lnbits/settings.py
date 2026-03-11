@@ -1329,7 +1329,7 @@ if not settings.user_agent:
 # printing environment variable for debugging
 if not settings.lnbits_admin_ui:
     logger.debug("Environment Settings:")
-    for key, value in settings.dict(exclude_none=True).items():
+    for key, value in settings.model_dump(exclude_none=True).items():
         logger.debug(f"{key}: {value}")
 
 

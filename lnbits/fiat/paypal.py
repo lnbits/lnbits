@@ -159,7 +159,7 @@ class PayPalWallet(FiatProvider):
                 "/v2/checkout/orders", json=order_data, headers=self._auth_headers()
             )
             r.raise_for_status()
-            data = r.json()
+            data = r.model_dump_json()
             order_id = data.get("id")
             approval_url = self._get_approval_url(data.get("links") or [])
             if not order_id or not approval_url:
@@ -215,7 +215,7 @@ class PayPalWallet(FiatProvider):
                 headers=self._auth_headers(),
             )
             r.raise_for_status()
-            data = r.json()
+            data = r.model_dump_json()
             approval_url = self._get_approval_url(data.get("links") or [])
             if not approval_url:
                 return FiatSubscriptionResponse(
@@ -271,13 +271,13 @@ class PayPalWallet(FiatProvider):
                     f"v2/payments/captures/{capture_id}", headers=self._auth_headers()
                 )
                 r.raise_for_status()
-                return self._status_from_capture(r.json())
+                return self._status_from_capture(r.model_dump_json())
             else:
                 r = await self.client.get(
                     f"/v2/checkout/orders/{paypal_id}", headers=self._auth_headers()
                 )
                 r.raise_for_status()
-                return self._status_from_order(r.json())
+                return self._status_from_order(r.model_dump_json())
         except Exception as exc:
             logger.debug(f"Error getting PayPal order status: {exc}")
             return FiatPaymentPendingStatus()
@@ -355,7 +355,7 @@ class PayPalWallet(FiatProvider):
             headers={"Accept": "application/json"},
         )
         r.raise_for_status()
-        data = r.json()
+        data = r.model_dump_json()
         token = data.get("access_token")
         expires_in = int(data.get("expires_in") or 300)
         if not token:

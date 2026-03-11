@@ -120,7 +120,7 @@ async def api_payments_pay_lnurl(
     if res2.disposable is False:
         extra["stored"] = True
     if res2.successAction:
-        extra["success_action"] = res2.successAction.json()
+        extra["success_action"] = res2.successAction.model_dump_json()
     if data.comment:
         extra["comment"] = data.comment
     if data.unit and data.unit != "sat":

@@ -266,7 +266,7 @@ async def btc_rates(currency: str) -> list[tuple[str, float]]:
 
                 if not provider.path:
                     return provider.name, float(r.text.replace(",", ""))
-                data = r.json()
+                data = r.model_dump_json()
                 price_query = jpx.parse(json_path)
                 result = price_query.find(data)
                 return provider.name, float(result[0].value)

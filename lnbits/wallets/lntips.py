@@ -54,7 +54,7 @@ class LnTipsWallet(Wallet):
     async def status(self) -> StatusResponse:
         r = await self.client.get("/api/v1/balance", timeout=40)
         try:
-            data = r.json()
+            data = r.model_dump_json()
         except Exception:
             return StatusResponse(
                 f"Failed to connect to {self.endpoint}, got: '{r.text[:200]}...'", 0
@@ -87,14 +87,14 @@ class LnTipsWallet(Wallet):
 
         if r.is_error:
             try:
-                data = r.json()
+                data = r.model_dump_json()
                 error_message = data["message"]
             except Exception:
                 error_message = r.text
 
             return InvoiceResponse(ok=False, error_message=error_message)
 
-        data = r.json()
+        data = r.model_dump_json()
         return InvoiceResponse(
             ok=True,
             checking_id=data["payment_hash"],
@@ -111,15 +111,15 @@ class LnTipsWallet(Wallet):
         if r.is_error:
             return PaymentResponse(ok=False, error_message=r.text)
 
-        if "error" in r.json():
+        if "error" in r.model_dump_json():
             try:
-                data = r.json()
+                data = r.model_dump_json()
                 error_message = data["error"]
             except Exception:
                 error_message = r.text
             return PaymentResponse(ok=False, error_message=error_message)
 
-        data = r.json()["details"]
+        data = r.model_dump_json()["details"]
         checking_id = data["payment_hash"]
         fee_msat = -data["fee"]
         preimage = data["preimage"]
@@ -136,7 +136,7 @@ class LnTipsWallet(Wallet):
             if r.is_error or len(r.text) == 0:
                 raise Exception
 
-            data = r.json()
+            data = r.model_dump_json()
             return PaymentStatus(data["paid"])
         except Exception:
             return PaymentPendingStatus()
@@ -149,7 +149,7 @@ class LnTipsWallet(Wallet):
 
             if r.is_error:
                 raise Exception
-            data = r.json()
+            data = r.model_dump_json()
 
             paid_to_status = {False: None, True: True}
             return PaymentStatus(paid_to_status[data.get("paid")])

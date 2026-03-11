@@ -73,7 +73,7 @@ def template_renderer(additional_folders: list | None = None) -> Jinja2Templates
     # used in base.html
     t.env.globals["SITE_TITLE"] = settings.lnbits_site_title
     t.env.globals["LNBITS_APPLE_TOUCH_ICON"] = settings.lnbits_apple_touch_icon
-    t.env.globals["SETTINGS"] = settings.to_public().dict(by_alias=True)
+    t.env.globals["SETTINGS"] = settings.to_public().model_dump(by_alias=True)
     t.env.globals["CURRENCIES"] = list(currencies.keys())
 
     if settings.bundle_assets:

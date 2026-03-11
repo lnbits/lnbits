@@ -156,7 +156,7 @@ class StrikeWallet(Wallet):
         try:
             r = await self._get("/balances")
             r.raise_for_status()
-            data = r.json()
+            data = r.model_dump_json()
             balances = data.get("data", []) if isinstance(data, dict) else data
             btc = next((b for b in balances if b.get("currency") == "BTC"), None)
             if btc and "available" in btc:
@@ -204,7 +204,7 @@ class StrikeWallet(Wallet):
                 json=payload,
             )
             r.raise_for_status()
-            resp = r.json()
+            resp = r.model_dump_json()
             invoice_id = resp.get("receiveRequestId")
             bolt11 = resp.get("bolt11", {}).get("invoice")
             if not invoice_id or not bolt11:
@@ -219,7 +219,7 @@ class StrikeWallet(Wallet):
             )
         except httpx.HTTPStatusError as e:
             logger.warning(e)
-            msg = e.response.json().get("message", e.response.text)
+            msg = e.response.model_dump_json().get("message", e.response.text)
             return InvoiceResponse(ok=False, error_message=f"Strike API error: {msg}")
         except Exception as e:
             logger.warning(e)
@@ -301,7 +301,7 @@ class StrikeWallet(Wallet):
             r = await self._get(f"/receive-requests/{checking_id}/receives")
 
             if r.status_code == 200:
-                data = r.json()
+                data = r.model_dump_json()
                 items = data.get("items", [])
 
                 if not items:
@@ -383,7 +383,7 @@ class StrikeWallet(Wallet):
                 "/invoices", params=params
             )  # Get invoices from Strike API.
             r.raise_for_status()
-            return r.json()
+            return r.model_dump_json()
         except Exception:
             logger.warning("Error in get_invoices()")
             return {"error": "unable to fetch invoices"}
@@ -495,7 +495,7 @@ class StrikeWallet(Wallet):
             )
             return None, error_msg
 
-        quote_data = q.json()
+        quote_data = q.model_dump_json()
         quote_id = quote_data.get("paymentQuoteId")
         if not quote_id:
             logger.warning(
@@ -526,7 +526,7 @@ class StrikeWallet(Wallet):
             )
             return None, error_msg
 
-        data = e.json() if e.content else {}
+        data = e.model_dump_json() if e.content else {}
         payment_id = data.get("paymentId")
         if not payment_id:
             logger.warning(f"Strike: missing paymentId in response: {data}")
@@ -569,7 +569,7 @@ class StrikeWallet(Wallet):
         params = {"$filter": filter_expr, "$top": len(invoice_ids)}
         r = await self._get("/receive-requests/receives", params=params)
         r.raise_for_status()
-        items = r.json().get("items") or r.json().get("value") or []
+        items = r.model_dump_json().get("items") or r.model_dump_json().get("value") or []
         completed = {item.get("receiveRequestId") for item in items}
         for inv in invoice_ids:
             out[inv] = (
@@ -589,7 +589,7 @@ class StrikeWallet(Wallet):
         resp = await self._get(f"/payment-quotes/{quote_id}")
         resp.raise_for_status()
 
-        data = resp.json()
+        data = resp.model_dump_json()
         state = data.get("state", "").upper()
 
         # Extract preimage from lightning object (new API structure)
@@ -637,7 +637,7 @@ class StrikeWallet(Wallet):
         r_payment = await self._get(f"/payments/{checking_id}")
 
         if r_payment.status_code == 200:
-            data = r_payment.json()
+            data = r_payment.model_dump_json()
             state = data.get("state", "").upper()
 
             # Extract data from lightning object (new API structure)
@@ -675,7 +675,7 @@ class StrikeWallet(Wallet):
 
         if r_payment.status_code == 400:
             try:
-                error_data = r_payment.json()
+                error_data = r_payment.model_dump_json()
                 # Check for Strike's specific validation
                 # error structure for paymentId format
                 if error_data.get("data", {}).get("code") == "INVALID_DATA":

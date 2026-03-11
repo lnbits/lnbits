@@ -606,7 +606,7 @@ async def get_extension_reviews_tags() -> list[ExtensionReviewsStatus]:
     async with httpx.AsyncClient() as client:
         resp = await client.get(settings.lnbits_extensions_reviews_url + "/tags")
         resp.raise_for_status()
-        data = resp.json()
+        data = resp.model_dump_json()
         return [ExtensionReviewsStatus(**item) for item in data]
 
 
@@ -621,7 +621,7 @@ async def get_extension_reviews(ext_id: str, request: Request) -> Page[Extension
             settings.lnbits_extensions_reviews_url + f"/reviews/{ext_id}?{query_string}"
         )
         resp.raise_for_status()
-        reviews = resp.json()
+        reviews = resp.model_dump_json()
         return Page(
             data=[ExtensionReview(**item) for item in reviews["data"]],
             total=reviews["total"],
@@ -637,8 +637,8 @@ async def create_extension_review(
 ) -> ExtensionReviewPaymentRequest:
     async with httpx.AsyncClient() as client:
         resp = await client.post(
-            settings.lnbits_extensions_reviews_url + "/reviews", json=data.dict()
+            settings.lnbits_extensions_reviews_url + "/reviews", json=data.model_dump()
         )
         resp.raise_for_status()
-        payment_request = resp.json()
+        payment_request = resp.model_dump_json()
         return ExtensionReviewPaymentRequest(**payment_request)

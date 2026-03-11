@@ -81,7 +81,7 @@ class SparkWallet(Wallet):
                 raise UnknownError(f"error connecting to spark: {exc}") from exc
 
             try:
-                data = r.json()
+                data = r.model_dump_json()
             except Exception as exc:
                 raise UnknownError(r.text) from exc
 

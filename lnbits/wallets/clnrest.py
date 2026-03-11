@@ -128,7 +128,7 @@ class CLNRestWallet(Wallet):
             )
             r.raise_for_status()
 
-            response_data = r.json()
+            response_data = r.model_dump_json()
 
             if not response_data:
                 logger.warning("Received empty response data")
@@ -215,7 +215,7 @@ class CLNRestWallet(Wallet):
                 headers=self.invoice_headers,
             )
             r.raise_for_status()
-            response_data = r.json()
+            response_data = r.model_dump_json()
 
             if "error" in response_data:
                 error_message = response_data["error"]
@@ -291,7 +291,7 @@ class CLNRestWallet(Wallet):
             )
 
             r.raise_for_status()
-            data = r.json()
+            data = r.model_dump_json()
 
             if "payment_preimage" not in data:
                 error_message = data.get("error", "No payment preimage in response")
@@ -306,7 +306,7 @@ class CLNRestWallet(Wallet):
             )
         except httpx.HTTPStatusError as exc:
             try:
-                data = exc.response.json()
+                data = exc.response.model_dump_json()
                 error = data.get("error", {})
                 error_code = int(error.get("code", 0))
                 error_message = error.get("message", "Unknown error")
@@ -334,7 +334,7 @@ class CLNRestWallet(Wallet):
                 headers=self.readonly_headers,
             )
             r.raise_for_status()
-            data = r.json()
+            data = r.model_dump_json()
             if r.is_error or "error" in data or data.get("invoices") is None:
                 logger.warning(f"error in cln response '{checking_id}'")
                 return PaymentPendingStatus()
@@ -360,7 +360,7 @@ class CLNRestWallet(Wallet):
                 headers=self.readonly_headers,
             )
             r.raise_for_status()
-            data = r.json()
+            data = r.model_dump_json()
 
             if r.is_error or "error" in data:
                 logger.warning(f"API response error: {data}")

@@ -61,7 +61,7 @@ class LNPayWallet(Wallet):
         if r.is_error:
             return StatusResponse(r.text[:250], 0)
 
-        data = r.json()
+        data = r.model_dump_json()
         if data["statusType"]["name"] != "active":
             return StatusResponse(
                 f"Wallet {data['user_label']} (data['id']) not active, but"
@@ -93,7 +93,7 @@ class LNPayWallet(Wallet):
             timeout=60,
         )
         if r.status_code == 201:
-            data = r.json()
+            data = r.model_dump_json()
             self.pending_invoices.append(data["id"])
             return InvoiceResponse(
                 ok=True,
@@ -112,7 +112,7 @@ class LNPayWallet(Wallet):
         )
 
         try:
-            data = r.json()
+            data = r.model_dump_json()
         except Exception:
             return PaymentResponse(ok=False, error_message="Got invalid JSON.")
 
@@ -137,7 +137,7 @@ class LNPayWallet(Wallet):
         if r.is_error:
             return PaymentPendingStatus()
 
-        data = r.json()
+        data = r.model_dump_json()
         preimage = data["payment_preimage"]
         fee_msat = data["fee_msat"]
         statuses = {0: None, 1: True, -1: False}

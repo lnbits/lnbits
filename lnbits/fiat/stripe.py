@@ -101,7 +101,7 @@ class StripeWallet(FiatProvider):
         try:
             r = await self.client.get(url="/v1/balance", timeout=15)
             r.raise_for_status()
-            data = r.json()
+            data = r.model_dump_json()
 
             available = data.get("available") or []
             available_balance = 0
@@ -171,7 +171,7 @@ class StripeWallet(FiatProvider):
             ("line_items[0][price]", subscription_id),
             ("line_items[0][quantity]", f"{quantity}"),
         ]
-        subscription_data = {**payment_options.dict(), "alan_action": "subscription"}
+        subscription_data = {**payment_options.model_dump(), "alan_action": "subscription"}
         subscription_data["extra"] = json.dumps(subscription_data.get("extra") or {})
 
         form_data += self._encode_metadata(
@@ -186,7 +186,7 @@ class StripeWallet(FiatProvider):
                 content=urlencode(form_data),
             )
             r.raise_for_status()
-            data = r.json()
+            data = r.model_dump_json()
 
             url = data.get("url")
             if not url:
@@ -226,7 +226,7 @@ class StripeWallet(FiatProvider):
                 params=params,
             )
             r.raise_for_status()
-            search_result = r.json()
+            search_result = r.model_dump_json()
             data = search_result.get("data") or []
             if not data or len(data) == 0:
                 return FiatSubscriptionResponse(
@@ -260,17 +260,17 @@ class StripeWallet(FiatProvider):
             if stripe_id.startswith("cs_"):
                 r = await self.client.get(f"/v1/checkout/sessions/{stripe_id}")
                 r.raise_for_status()
-                return self._status_from_checkout_session(r.json())
+                return self._status_from_checkout_session(r.model_dump_json())
 
             if stripe_id.startswith("pi_"):
                 r = await self.client.get(f"/v1/payment_intents/{stripe_id}")
                 r.raise_for_status()
-                return self._status_from_payment_intent(r.json())
+                return self._status_from_payment_intent(r.model_dump_json())
 
             if stripe_id.startswith("in_"):
                 r = await self.client.get(f"/v1/invoices/{stripe_id}")
                 r.raise_for_status()
-                return self._status_from_invoice(r.json())
+                return self._status_from_invoice(r.model_dump_json())
 
             logger.debug(f"Unknown Stripe id prefix: {checking_id}")
             return FiatPaymentPendingStatus()
@@ -294,7 +294,7 @@ class StripeWallet(FiatProvider):
     async def create_terminal_connection_token(self) -> dict:
         r = await self.client.post("/v1/terminal/connection_tokens")
         r.raise_for_status()
-        return r.json()
+        return r.model_dump_json()
 
     async def _process_terminal_payment_intent(
         self, reader_id: str, payment_intent_id: str
@@ -340,7 +340,7 @@ class StripeWallet(FiatProvider):
                 content=urlencode(form_data),
             )
             r.raise_for_status()
-            data = r.json()
+            data = r.model_dump_json()
             session_id, url = data.get("id"), data.get("url")
             if not session_id or not url:
                 return FiatInvoiceResponse(
@@ -381,7 +381,7 @@ class StripeWallet(FiatProvider):
         try:
             r = await self.client.post("/v1/payment_intents", data=data)
             r.raise_for_status()
-            pi = r.json()
+            pi = r.model_dump_json()
             pi_id, client_secret = pi.get("id"), pi.get("client_secret")
             if not pi_id or not client_secret:
                 return FiatInvoiceResponse(

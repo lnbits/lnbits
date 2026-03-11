@@ -215,7 +215,7 @@ async def api_get_1ml_stats(node: Node = Depends(require_node)) -> NodeRank | No
         r = await client.get(url=f"https://1ml.com/node/{node_id}/json", timeout=15)
         try:
             r.raise_for_status()
-            data = r.json()
+            data = r.model_dump_json()
             if "noderank" not in data:
                 return None
             return data["noderank"]

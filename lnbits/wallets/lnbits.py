@@ -52,7 +52,7 @@ class LNbitsWallet(Wallet):
         try:
             r = await self.client.get(url="/api/v1/wallet", timeout=15)
             r.raise_for_status()
-            data = r.json()
+            data = r.model_dump_json()
 
             if len(data) == 0:
                 return StatusResponse("no data", 0)
@@ -86,7 +86,7 @@ class LNbitsWallet(Wallet):
         try:
             r = await self.client.post(url="/api/v1/payments", json=data)
             r.raise_for_status()
-            data = r.json()
+            data = r.model_dump_json()
 
             # Backwards compatibility for pre-v1 which used the key "payment_request"
             payment_str = data.get("bolt11") or data.get("payment_request")
@@ -126,7 +126,7 @@ class LNbitsWallet(Wallet):
             )
 
             r.raise_for_status()
-            data = r.json()
+            data = r.model_dump_json()
 
             checking_id = data["payment_hash"]
 
@@ -144,7 +144,7 @@ class LNbitsWallet(Wallet):
         except httpx.HTTPStatusError as exc:
             try:
                 logger.debug(exc)
-                data = exc.response.json()
+                data = exc.response.model_dump_json()
                 error_message = f"Payment {data['status']}: {data['detail']}."
                 if data["status"] == "failed":
                     return PaymentResponse(ok=False, error_message=error_message)
@@ -175,7 +175,7 @@ class LNbitsWallet(Wallet):
             )
             r.raise_for_status()
 
-            data = r.json()
+            data = r.model_dump_json()
 
             if data.get("paid", False) is True:
                 return PaymentSuccessStatus()
@@ -189,7 +189,7 @@ class LNbitsWallet(Wallet):
 
             if r.is_error:
                 return PaymentPendingStatus()
-            data = r.json()
+            data = r.model_dump_json()
 
             if data.get("status") == "failed":
                 return PaymentFailedStatus()

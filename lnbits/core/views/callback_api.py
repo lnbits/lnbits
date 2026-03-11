@@ -31,7 +31,7 @@ async def api_generic_webhook_handler(
         check_stripe_signature(
             payload, sig_header, settings.stripe_webhook_signing_secret
         )
-        event = await request.json()
+        event = await request.model_dump_json()
         await handle_stripe_event(event)
 
         return SimpleStatus(
@@ -42,7 +42,7 @@ async def api_generic_webhook_handler(
     if provider_name.lower() == "paypal":
         payload = await request.body()
         await verify_paypal_webhook(request.headers, payload)
-        event = await request.json()
+        event = await request.model_dump_json()
         await handle_paypal_event(event)
 
         return SimpleStatus(

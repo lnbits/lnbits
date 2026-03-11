@@ -48,10 +48,10 @@ class ZBDWallet(Wallet):
             return StatusResponse(f"Unable to connect to '{self.endpoint}'", 0)
 
         if r.is_error:
-            error_message = r.json()["message"]
+            error_message = r.model_dump_json()["message"]
             return StatusResponse(error_message, 0)
 
-        data = int(r.json()["data"]["balance"])
+        data = int(r.model_dump_json()["data"]["balance"])
         # ZBD returns everything as a str not int
         # balance is returned in msats already in ZBD
         return StatusResponse(None, data)
@@ -89,10 +89,10 @@ class ZBDWallet(Wallet):
         )
 
         if r.is_error:
-            error_message = r.json()["message"]
+            error_message = r.model_dump_json()["message"]
             return InvoiceResponse(ok=False, error_message=error_message)
 
-        data = r.json()["data"]
+        data = r.model_dump_json()["data"]
         checking_id = data["id"]  # this is a zbd id
         payment_request = data["invoice"]["request"]
         preimage = data["invoice"].get("preimage")
@@ -118,10 +118,10 @@ class ZBDWallet(Wallet):
         )
 
         if r.is_error:
-            error_message = r.json()["message"]
+            error_message = r.model_dump_json()["message"]
             return PaymentResponse(ok=False, error_message=error_message)
 
-        data = r.json()
+        data = r.model_dump_json()
 
         checking_id = bolt11_decode(bolt11).payment_hash
         fee_msat = -int(data["data"]["fee"])
@@ -135,7 +135,7 @@ class ZBDWallet(Wallet):
         r = await self.client.get(f"charges/{checking_id}")
         if r.is_error:
             return PaymentPendingStatus()
-        data = r.json()["data"]
+        data = r.model_dump_json()["data"]
 
         statuses = {
             "pending": None,
@@ -151,7 +151,7 @@ class ZBDWallet(Wallet):
         if r.is_error:
             return PaymentPendingStatus()
 
-        data = r.json()["data"]
+        data = r.model_dump_json()["data"]
 
         statuses = {
             "initial": None,

@@ -327,7 +327,7 @@ class BlinkWallet(Wallet):
     async def _graphql_query(self, payload) -> dict:
         response = await self.client.post(self.endpoint, json=payload, timeout=10)
         response.raise_for_status()
-        return response.json()
+        return response.model_dump_json()
 
     async def _init_wallet_id(self) -> str:
         """

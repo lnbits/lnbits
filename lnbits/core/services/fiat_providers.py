@@ -143,7 +143,7 @@ async def verify_paypal_webhook(headers, payload: bytes):
                 ),
             )
             token_resp.raise_for_status()
-            access_token = token_resp.json().get("access_token")
+            access_token = token_resp.model_dump_json().get("access_token")
             if not access_token:
                 raise ValueError("PayPal token missing in verification flow.")
 
@@ -161,7 +161,7 @@ async def verify_paypal_webhook(headers, payload: bytes):
                 headers={"Authorization": f"Bearer {access_token}"},
             )
             verify_resp.raise_for_status()
-            verification_status = verify_resp.json().get("verification_status")
+            verification_status = verify_resp.model_dump_json().get("verification_status")
             if verification_status != "SUCCESS":
                 raise ValueError("PayPal webhook verification failed.")
     except Exception as exc:

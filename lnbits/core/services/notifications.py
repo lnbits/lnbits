@@ -174,7 +174,7 @@ async def send_telegram_message(token: str, chat_id: str, message: str) -> dict:
     async with httpx.AsyncClient() as client:
         response = await client.post(url, data=payload)
         response.raise_for_status()
-        return response.json()
+        return response.model_dump_json()
 
 
 async def send_email_notification(
@@ -246,7 +246,7 @@ async def dispatch_webhook(payment: Payment):
             await mark_webhook_sent(payment.payment_hash, "-1")
             logger.warning(f"Invalid webhook URL {payment.webhook}: {exc!s}")
         try:
-            r = await client.post(payment.webhook, json=payment.json(), timeout=40)
+            r = await client.post(payment.webhook, json=payment.model_dump_json(), timeout=40)
             r.raise_for_status()
             await mark_webhook_sent(payment.payment_hash, str(r.status_code))
         except httpx.HTTPStatusError as exc:
@@ -296,7 +296,7 @@ def send_payment_notification_in_background(wallet: Wallet, payment: Payment):
 
 async def send_ws_payment_notification(wallet: Wallet, payment: Payment):
     # TODO: websocket message should be a clean payment model
-    # await websocket_manager.send(wallet.inkey, payment.json())
+    # await websocket_manager.send(wallet.inkey, payment.model_dump_json())
     # TODO: figure out why we send the balance with the payment here.
     # cleaner would be to have a separate message for the balance
     # and send it with the id of the wallet so wallets can subscribe to it
@@ -304,7 +304,7 @@ async def send_ws_payment_notification(wallet: Wallet, payment: Payment):
         {
             "wallet_balance": wallet.balance,
             # use pydantic json serialization to get the correct datetime format
-            "payment": json.loads(payment.json()),
+            "payment": json.loads(payment.model_dump_json()),
         },
     )
     await websocket_manager.send(wallet.inkey, payment_notification)

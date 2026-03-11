@@ -46,7 +46,7 @@ class AlbyWallet(Wallet):
             r = await self.client.get("/balance", timeout=10)
             r.raise_for_status()
 
-            data = r.json()
+            data = r.model_dump_json()
 
             if len(data) == 0:
                 return StatusResponse("no data", 0)
@@ -92,7 +92,7 @@ class AlbyWallet(Wallet):
             )
             r.raise_for_status()
 
-            data = r.json()
+            data = r.model_dump_json()
 
             if r.is_error:
                 error_message = data["message"] if "message" in data else r.text
@@ -132,7 +132,7 @@ class AlbyWallet(Wallet):
                 timeout=None,
             )
             r.raise_for_status()
-            data = r.json()
+            data = r.model_dump_json()
 
             if r.is_error:
                 error_message = data["message"] if "message" in data else r.text
@@ -173,7 +173,7 @@ class AlbyWallet(Wallet):
             if r.is_error:
                 return PaymentPendingStatus()
 
-            data = r.json()
+            data = r.model_dump_json()
 
             # TODO: how can we detect a failed payment?
             statuses = {
