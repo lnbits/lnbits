@@ -605,7 +605,7 @@ window.localisation.en = {
   fee_reserve: 'Minimum Routing Fee Reserve',
   fee_reserve_percent: 'Routing Fee Reserve Percentage',
   fee_reserve_min_hint:
-    'The minimum fee reserved per payment.<br>This acts as a floor - the maximum routing fee will never be lower than this value regardless of payment size.',
+    'The minimum fee reserved per payment.<br>This acts as a floor - the maximum allowed routing fee will never be lower than this value regardless of payment size.',
   fee_reserve_percent_hint:
     'The percentage of the payment amount to reserve for routing fees.',
   payment_timeouts: 'Payment Timeouts',
