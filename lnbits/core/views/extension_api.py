@@ -50,6 +50,19 @@ from lnbits.decorators import (
 )
 from lnbits.settings import settings
 
+from ..crud import (
+    create_user_extension,
+    delete_dbversion,
+    drop_extension_db,
+    get_db_version,
+    get_db_versions,
+    get_installed_extension,
+    get_installed_extensions,
+    get_user_extension,
+    update_installed_extension,
+    update_user_extension,
+)
+
 
 def _load_extension_type(ext_id: str) -> str:
     base_dirs = [
@@ -65,35 +78,37 @@ def _load_extension_type(ext_id: str) -> str:
             conf_path = base / "config.json"
             if not conf_path.is_file():
                 continue
-            with open(conf_path, "r") as json_file:
+            with open(conf_path) as json_file:
                 config_json = json.load(json_file)
             ext_type = config_json.get("extension_type")
             if ext_type:
                 return ext_type
-        except Exception:
+        except Exception as exc:
+            logger.debug(
+                "Failed to read extension config.json for '{}' in '{}': {}",
+                ext_id,
+                base,
+                exc,
+            )
             continue
 
     for base in base_dirs:
         try:
             wasm_dir = base / "wasm"
-            if (wasm_dir / "module.wasm").is_file() or (wasm_dir / "module.wat").is_file():
+            if (wasm_dir / "module.wasm").is_file() or (
+                wasm_dir / "module.wat"
+            ).is_file():
                 return "wasm"
-        except Exception:
+        except Exception as exc:
+            logger.debug(
+                "Failed to probe wasm files for '{}' in '{}': {}",
+                ext_id,
+                base,
+                exc,
+            )
             continue
     return "python"
 
-from ..crud import (
-    create_user_extension,
-    delete_dbversion,
-    drop_extension_db,
-    get_db_version,
-    get_db_versions,
-    get_installed_extension,
-    get_installed_extensions,
-    get_user_extension,
-    update_installed_extension,
-    update_user_extension,
-)
 
 extension_router = APIRouter(
     tags=["Extension Managment"],

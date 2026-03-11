@@ -1,5 +1,5 @@
 version = 1
-revision = 3
+revision = 2
 requires-python = ">=3.10, <3.13"
 
 [options]
@@ -1335,6 +1335,9 @@ liquid = [
 migration = [
     { name = "psycopg2-binary" },
 ]
+wasm = [
+    { name = "wasmtime" },
+]
 
 [package.dev-dependencies]
 dev = [
@@ -1361,6 +1364,7 @@ dev = [
 
 [package.metadata]
 requires-dist = [
+<<<<<<< HEAD
     { name = "aiosqlite", specifier = "~=0.22.1" },
     { name = "asyncpg", specifier = "~=0.31.0" },
     { name = "bcrypt", specifier = "~=5.0.0" },
@@ -1409,8 +1413,57 @@ requires-dist = [
     { name = "wallycore", marker = "extra == 'liquid'", specifier = "~=1.5.1" },
     { name = "websocket-client", specifier = "~=1.9.0" },
     { name = "websockets", specifier = "~=15.0.1" },
+=======
+    { name = "aiosqlite", specifier = "==0.22.1" },
+    { name = "asyncpg", specifier = "==0.31.0" },
+    { name = "bcrypt", specifier = "==5.0.0" },
+    { name = "bech32", specifier = "==1.2.0" },
+    { name = "bolt11", specifier = "==2.1.1" },
+    { name = "breez-sdk", marker = "extra == 'breez'", specifier = "==0.8.0" },
+    { name = "breez-sdk-liquid", marker = "extra == 'breez'", specifier = "==0.11.11" },
+    { name = "click", specifier = "==8.3.1" },
+    { name = "embit", specifier = "==0.8.0" },
+    { name = "fastapi", specifier = "==0.116.1" },
+    { name = "fastapi-sso", specifier = "==0.19.0" },
+    { name = "filetype", specifier = "==1.2.0" },
+    { name = "greenlet", specifier = ">=3.3.0,<4.0.0" },
+    { name = "grpcio", specifier = "==1.76.0" },
+    { name = "httpx", specifier = "==0.27.2" },
+    { name = "itsdangerous", specifier = "==2.2.0" },
+    { name = "jinja2", specifier = "==3.1.6" },
+    { name = "jsonpath-ng", specifier = "==1.7.0" },
+    { name = "lnurl", specifier = "==0.8.3" },
+    { name = "loguru", specifier = "==0.7.3" },
+    { name = "nostr-sdk", specifier = "==0.44.0" },
+    { name = "packaging", specifier = "==25.0" },
+    { name = "pillow", specifier = ">=12.1.0" },
+    { name = "protobuf", specifier = "==6.33.2" },
+    { name = "psycopg2-binary", marker = "extra == 'migration'", specifier = "==2.9.11" },
+    { name = "pycryptodomex", specifier = "==3.23.0" },
+    { name = "pydantic", specifier = "==1.10.26" },
+    { name = "pyjwt", specifier = "==2.10.1" },
+    { name = "pyln-client", specifier = "==25.12" },
+    { name = "pynostr", specifier = "==0.7.0" },
+    { name = "pyqrcode", specifier = "==1.2.1" },
+    { name = "python-crontab", specifier = "==3.3.0" },
+    { name = "python-dotenv", specifier = ">=1.2.1" },
+    { name = "python-multipart", specifier = "==0.0.21" },
+    { name = "pywebpush", specifier = "==2.2.0" },
+    { name = "shortuuid", specifier = "==1.0.13" },
+    { name = "slowapi", specifier = "==0.1.9" },
+    { name = "sqlalchemy", specifier = "==1.4.54" },
+    { name = "sse-starlette", specifier = "==2.3.6" },
+    { name = "starlette", specifier = "==0.47.1" },
+    { name = "typing-extensions", specifier = "==4.15.0" },
+    { name = "uvicorn", specifier = "==0.40.0" },
+    { name = "uvloop", specifier = "==0.22.1" },
+    { name = "wallycore", marker = "extra == 'liquid'", specifier = "==1.5.1" },
+    { name = "wasmtime", marker = "extra == 'wasm'", specifier = ">=18.0.0" },
+    { name = "websocket-client", specifier = "==1.9.0" },
+    { name = "websockets", specifier = "==15.0.1" },
+>>>>>>> 3aa01d9f9 (make)
 ]
-provides-extras = ["breez", "liquid", "migration"]
+provides-extras = ["breez", "liquid", "migration", "wasm"]
 
 [package.metadata.requires-dev]
 dev = [
@@ -2841,6 +2894,25 @@ wheels = [
     { url = "https://files.pythonhosted.org/packages/a1/f2/3ebe2523c988130d5317b6f1d72606ab314b89698e61a7adea584c230be6/wallycore-1.5.3-cp312-cp312-manylinux_2_28_x86_64.whl", hash = "sha256:3dba21b8b16a484f873e5a32b7342407b4b38f5c2556e4212842359adb563aa3", size = 4414976, upload-time = "2026-04-15T22:04:28.686Z" },
     { url = "https://files.pythonhosted.org/packages/41/4f/a343382aec64e15336b1849a335e93dc4f518a416a2059a87d99b86b0501/wallycore-1.5.3-cp312-cp312-musllinux_1_2_x86_64.whl", hash = "sha256:09037840cba79f68723b2fa06b41b3c131a142d239d57681c63d26e207d7a6f5", size = 4307358, upload-time = "2026-04-15T22:04:33.009Z" },
     { url = "https://files.pythonhosted.org/packages/41/e5/1c1d2979d074cba4f0a1516f2bf4c3ee66067b6ba3b96e5cb4460555d474/wallycore-1.5.3-cp312-cp312-win_amd64.whl", hash = "sha256:c3343a1df11a7ef4572521e002f4550a0157aea2c749dcfd9be62fb5babe0d03", size = 1728038, upload-time = "2026-04-15T22:04:36.434Z" },
+]
+
+[[package]]
+name = "wasmtime"
+version = "42.0.0"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/54/cd/1f110419ed006f91624010f4df4da82490220bd5527650284c97fc758a6c/wasmtime-42.0.0.tar.gz", hash = "sha256:90485655d6e541b817a7baa1b3071b4525d03f76bcb6ad04661774f06a3b02d4", size = 117133, upload-time = "2026-02-24T19:12:53.321Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/20/cb/f206f7a839d6843b01c041000056bf7aad23cf72fe2333a0c5dad144e0f2/wasmtime-42.0.0-py3-none-android_26_arm64_v8a.whl", hash = "sha256:214e7d294ce1b5adb94f09a870a2ab6759173dc0194bdde74ee4492b477d8392", size = 6829706, upload-time = "2026-02-24T19:12:36.637Z" },
+    { url = "https://files.pythonhosted.org/packages/2d/97/d4f5f46eef74e013c3a0caa9b8625bb1c4162e2b9817258596ee6932c019/wasmtime-42.0.0-py3-none-android_26_x86_64.whl", hash = "sha256:cdd9710fad242dde7cb0eacbe48bf902bb1bac6ecbecd3e743c31af463a795c6", size = 7699640, upload-time = "2026-02-24T19:12:38.471Z" },
+    { url = "https://files.pythonhosted.org/packages/c6/d2/5b2bf901b0a9b8050d966dff61e353de7cd86dd58679a79e48372ff8b3a6/wasmtime-42.0.0-py3-none-any.whl", hash = "sha256:7a166bd262608806f3295343fcd07ee3e037f931f6d3b0a24ab1cfc7ccc3e8eb", size = 6403639, upload-time = "2026-02-24T19:12:39.777Z" },
+    { url = "https://files.pythonhosted.org/packages/3c/6f/a40322bdd55809441bab7e1ac707aa38ced3572904a700f1dfb4b2520dcd/wasmtime-42.0.0-py3-none-macosx_10_13_x86_64.whl", hash = "sha256:21e3dafd74704de0e7ed7668ab76cc5a9df130b4306befbfcb08ddb29673c784", size = 7483525, upload-time = "2026-02-24T19:12:41.422Z" },
+    { url = "https://files.pythonhosted.org/packages/47/04/ef61af9fe9e5c0a8d782c8662302535ee6e6dba1a6929191fa3ea371a491/wasmtime-42.0.0-py3-none-macosx_11_0_arm64.whl", hash = "sha256:411bf05df47c8a36c6b31b6012720ac1251b95fdd155e389b25eb6fbbd7e181c", size = 6493225, upload-time = "2026-02-24T19:12:42.9Z" },
+    { url = "https://files.pythonhosted.org/packages/44/54/a774313c19c1c0ae2c1897af697c12178904d67911f42c4a9bdddba68640/wasmtime-42.0.0-py3-none-manylinux1_x86_64.whl", hash = "sha256:ca12269ee88aac6b1f64b5f324abf3c6370ff853338d991292f10cb17b906667", size = 7740997, upload-time = "2026-02-24T19:12:44.453Z" },
+    { url = "https://files.pythonhosted.org/packages/ed/5d/fae28526b1d42f0365e4fd6c2a212c7c000e47d7320632018fa45735a06e/wasmtime-42.0.0-py3-none-manylinux2014_aarch64.whl", hash = "sha256:78f9353b9fdc2f6e7ed13e28ce0394533f5a62710b75c00434ac82681f738924", size = 6785820, upload-time = "2026-02-24T19:12:45.777Z" },
+    { url = "https://files.pythonhosted.org/packages/a3/ae/5c5e96273a36c70753e8ba4db323dd9b1ccf6fcea4ccad99d458ad2ecf13/wasmtime-42.0.0-py3-none-musllinux_1_2_aarch64.whl", hash = "sha256:ba317e879aab71c407e7012f4dc10b221c6daf737496c501005612e11d26e8ee", size = 6810021, upload-time = "2026-02-24T19:12:47.453Z" },
+    { url = "https://files.pythonhosted.org/packages/46/68/5c129389f67219a90c3ba0dcf85555249bde9797760f2d715bec03bc198a/wasmtime-42.0.0-py3-none-musllinux_1_2_x86_64.whl", hash = "sha256:e9ef6dbd1a2cff21694ba64f27b90a7ab0af61a54d911a59682005830683dc8a", size = 7779984, upload-time = "2026-02-24T19:12:48.642Z" },
+    { url = "https://files.pythonhosted.org/packages/9a/e5/6650c9e7ad904c9a6730c4b762b1dfed4f7d7b0e981e3624a6ecd7abb7ed/wasmtime-42.0.0-py3-none-win_amd64.whl", hash = "sha256:3a360a1285457021efe24369490cd719996596f2cbe1aa62dae6ad68179cf0f9", size = 6403647, upload-time = "2026-02-24T19:12:50.373Z" },
+    { url = "https://files.pythonhosted.org/packages/44/b2/e93046661deef4d8fee2f40080a28e5ff201cc98d4fb1929a46367c34778/wasmtime-42.0.0-py3-none-win_arm64.whl", hash = "sha256:8caa13a6ee264969449c008da1dcb8f9f6c954800853527714e7fcddbdda9166", size = 5397896, upload-time = "2026-02-24T19:12:51.639Z" },
 ]
 
 [[package]]

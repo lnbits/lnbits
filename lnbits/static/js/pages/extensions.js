@@ -268,7 +268,8 @@ window.PageExtensions = {
         if (!wasmHost || !wasmHost.isInstalled || !wasmHost.isActive) {
           Quasar.Notify.create({
             type: 'warning',
-            message: 'Enable the WASM! host extension before using this extension.'
+            message:
+              'Enable the WASM! host extension before using this extension.'
           })
           return
         }
