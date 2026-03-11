@@ -1,6 +1,7 @@
 import asyncio
 import glob
 import importlib
+import json
 import os
 import shutil
 import sys
@@ -53,10 +54,6 @@ from lnbits.utils.logger import (
     log_server_info,
 )
 from lnbits.wallets import get_funding_source, set_funding_source
-try:
-    from lnbits.extensions.wasm.wasm_host.extension_host import register_wasm_ext_routes
-except Exception:  # pragma: no cover - optional parent extension
-    register_wasm_ext_routes = None
 
 from .commands import migrate_databases
 from .core import init_core_routers
@@ -438,10 +435,21 @@ def register_ext_routes(app: FastAPI, ext: Extension) -> None:
         ext.extension_type = _load_extension_type(ext.code) or ext.extension_type
     if ext.extension_type == "wasm":
         settings.activate_extension_paths(ext.code, ext.upgrade_hash, [])
-        if register_wasm_ext_routes is None:
+        try:
+            module = importlib.import_module(
+                "lnbits.extensions.wasm.wasm_host.extension_host"
+            )
+            register_wasm_ext_routes = getattr(module, "register_wasm_ext_routes", None)
+        except Exception:  # pragma: no cover - optional parent extension
             logger.error(
                 "WASM host extension not installed; cannot register wasm extension "
                 f"{ext.code}."
+            )
+            return
+        if register_wasm_ext_routes is None:
+            logger.error(
+                "WASM host extension missing register_wasm_ext_routes; cannot "
+                f"register wasm extension {ext.code}."
             )
             return
         register_wasm_ext_routes(app, ext)
@@ -484,20 +492,34 @@ def _load_extension_type(ext_id: str) -> str | None:
         try:
             conf_path = base / "config.json"
             if conf_path.is_file():
-                with open(conf_path, "r") as json_file:
+                with open(conf_path) as json_file:
                     config_json = json.load(json_file)
                 ext_type = config_json.get("extension_type")
                 if ext_type:
                     return ext_type
-        except Exception:
+        except Exception as exc:
+            logger.debug(
+                "Failed to read extension config.json for '{}' in '{}': {}",
+                ext_id,
+                base,
+                exc,
+            )
             continue
 
     for base in base_dirs:
         try:
             wasm_dir = base / "wasm"
-            if (wasm_dir / "module.wasm").is_file() or (wasm_dir / "module.wat").is_file():
+            if (wasm_dir / "module.wasm").is_file() or (
+                wasm_dir / "module.wat"
+            ).is_file():
                 return "wasm"
-        except Exception:
+        except Exception as exc:
+            logger.debug(
+                "Failed to probe wasm files for '{}' in '{}': {}",
+                ext_id,
+                base,
+                exc,
+            )
             continue
     return None
 
