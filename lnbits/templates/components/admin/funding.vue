@@ -166,6 +166,11 @@
         <p v-text="$t('watchdog')"></p>
       </h6>
       <div class="row q-col-gutter-md">
+        <div class="col-12">
+          <p v-text="$t('watchdog_introduction')"></p>
+        </div>
+      </div>
+      <div class="row q-col-gutter-md">
         <div class="col-12 col-md-6">
           <q-item tag="label" v-ripple>
             <q-item-section>
@@ -239,6 +244,7 @@
               <q-input
                 filled
                 v-model="formData.lnbits_watchdog_delta"
+                :suffix="$t('sats')"
                 type="number"
               />
             </q-item-section>

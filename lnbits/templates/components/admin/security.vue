@@ -1,11 +1,10 @@
 <template id="lnbits-admin-security">
   <q-card-section class="q-pa-none">
-    <h6 class="q-my-none">
+    <h6 class="q-my-none q-mb-sm">
       <span v-text="$t('server_management')"></span>
     </h6>
     <div class="row">
       <div class="col-12 col-md-6">
-        <p><span v-text="$t('base_url')"></span></p>
         <q-input
           filled
           v-model.number="formData.lnbits_baseurl"
@@ -17,7 +16,7 @@
     <h6 class="q-my-none q-mb-sm">
       <span v-text="$t('authentication')"></span>
     </h6>
-    <div class="row q-col-gutter-sm">
+    <div class="row q-col-gutter-sm q-mb-md">
       <div class="col-12 col-md-6">
         <q-input
           filled
@@ -356,6 +355,7 @@
                 type="number"
                 v-model.number="formData.lnbits_rate_limit_no"
                 :label="$t('number_of_requests')"
+                :hint="$t('number_of_requests_hint')"
               ></q-input>
             </div>
             <div class="col-12 col-md-6">

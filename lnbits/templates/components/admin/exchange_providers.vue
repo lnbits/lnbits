@@ -19,6 +19,7 @@
     </div>
     <div class="col-12 col-md-4">
       <q-input
+        class="q-mb-md"
         filled
         v-model="formData.lnbits_exchange_history_refresh_interval_seconds"
         type="number"

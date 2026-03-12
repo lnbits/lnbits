@@ -128,7 +128,7 @@
                 </ul>
               </q-card-section>
             </q-expansion-item>
-            <q-expansion-item :label="$t('service_fee')">
+            <q-expansion-item :label="$t('service_fees')">
               <q-card-section>
                 <div class="row">
                   <div class="col-md-4 col-sm-12">
@@ -140,7 +140,6 @@
                       v-model="formData.stripe_limits.service_fee_percent"
                       @update:model-value="formData.touch = null"
                       :label="$t('service_fee_label')"
-                      :hint="$t('service_fee_hint')"
                     ></q-input>
                   </div>
                   <div class="col-md-4 col-sm-12">
@@ -151,8 +150,7 @@
                       min="0"
                       v-model="formData.stripe_limits.service_max_fee_sats"
                       @update:model-value="formData.touch = null"
-                      :label="$t('service_fee_max')"
-                      :hint="$t('service_fee_max_hint')"
+                      :label="$t('service_fee_max_label')"
                     ></q-input>
                   </div>
                   <div class="col-md-4 col-sm-12">
