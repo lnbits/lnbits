@@ -817,10 +817,10 @@ async def _pay_external_invoice(
         conn=conn,
     )
 
-    fee_reserve_msat = fee_reserve(amount_msat, internal=False)
+    fee_limit_msat = settings.fee_limit(amount_msat, internal=False)
 
     task = create_task(
-        _fundingsource_pay_invoice(checking_id, payment.bolt11, fee_reserve_msat)
+        _fundingsource_pay_invoice(checking_id, payment.bolt11, fee_limit_msat)
     )
 
     # make sure a hold invoice or deferred payment is not blocking the server
@@ -872,12 +872,12 @@ async def update_payment_success_status(
 
 
 async def _fundingsource_pay_invoice(
-    checking_id: str, bolt11: str, fee_reserve_msat: int
+    checking_id: str, bolt11: str, fee_limit_msat: int
 ) -> PaymentResponse:
     logger.debug(f"fundingsource: sending payment {checking_id}")
     funding_source = get_funding_source()
     payment_response: PaymentResponse = await funding_source.pay_invoice(
-        bolt11, fee_reserve_msat
+        bolt11, fee_limit_msat
     )
     logger.debug(f"backend: pay_invoice finished {checking_id}, {payment_response}")
     return payment_response

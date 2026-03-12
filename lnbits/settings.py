@@ -346,19 +346,37 @@ class AssetSettings(LNbitsSettings):
 class FeeSettings(LNbitsSettings):
     lnbits_reserve_fee_min: int = Field(default=2000, ge=0)
     lnbits_reserve_fee_percent: float = Field(default=1.0, ge=0)
+    lnbits_fee_max_msat: int | None = Field(default=None, ge=0)
+    lnbits_fee_max_percent: float | None = Field(default=None, ge=0)
     lnbits_service_fee: float = Field(default=0, ge=0)
     lnbits_service_fee_ignore_internal: bool = Field(default=True)
     lnbits_service_fee_max: int = Field(default=0)
     lnbits_service_fee_wallet: str | None = Field(default=None)
 
-    # WARN: this same value must be used for balance check and passed to
-    # funding_source.pay_invoice(), it may cause a vulnerability if the values differ
+    # WARN: fee_reserve is used for balance checks (wallet must hold enough to cover
+    # potential routing fees). fee_limit is what gets sent to the funding source as the
+    # max routing fee. By default fee_limit falls back to fee_reserve for backward
+    # compatibility, but they can be configured independently.
     def fee_reserve(self, amount_msat: int, internal: bool = False) -> int:
         if internal:
             return 0
         reserve_min = self.lnbits_reserve_fee_min
         reserve_percent = self.lnbits_reserve_fee_percent
         return max(int(reserve_min), int(abs(amount_msat) * reserve_percent / 100.0))
+
+    def fee_limit(self, amount_msat: int, internal: bool = False) -> int:
+        """Max routing fee passed to the funding source (e.g. LND fee_limit_msat).
+        Falls back to fee_reserve when not explicitly configured."""
+        if internal:
+            return 0
+        if (
+            self.lnbits_fee_max_msat is not None
+            or self.lnbits_fee_max_percent is not None
+        ):
+            fee_max = self.lnbits_fee_max_msat or 0
+            fee_percent = self.lnbits_fee_max_percent or 0.0
+            return max(int(fee_max), int(abs(amount_msat) * fee_percent / 100.0))
+        return self.fee_reserve(amount_msat, internal)
 
 
 class ExchangeProvidersSettings(LNbitsSettings):

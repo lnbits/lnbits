@@ -603,6 +603,11 @@ window.localisation.en = {
   fee_reserve_percent: 'Fee Reserve Percent',
   fee_reserve_msats: 'Reserve fee in msats',
   reserve_fee_in_percent: 'Reserve fee in percent',
+  fee_limit: 'Max Routing Fee',
+  fee_limit_percent: 'Max Routing Fee Percent',
+  fee_limit_msats: 'Max routing fee in msats',
+  fee_limit_percent_label: 'Max routing fee in percent',
+  fee_limit_hint: 'If empty, uses fee reserve value',
   payment_wait_time: 'Payment Wait Time (sec)',
   payment_wait_time_desc:
     'Wait time before marking an outgoing payment as pending. Default: 5s; raise for slow-settling invoices.',
