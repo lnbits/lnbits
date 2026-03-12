@@ -51,6 +51,7 @@ from lnbits.helpers import (
     filter_dict_keys,
     generate_filter_params_openapi,
 )
+from lnbits.settings import settings
 from lnbits.wallets.base import InvoiceResponse
 
 from ..crud import (
@@ -302,6 +303,7 @@ async def api_payments_fee_reserve(invoice: str = Query("invoice")) -> JSONRespo
     if invoice_obj.amount_msat:
         response = {
             "fee_reserve": fee_reserve_total(invoice_obj.amount_msat),
+            "fee_limit": settings.fee_limit(invoice_obj.amount_msat),
         }
         return JSONResponse(response)
     else:
