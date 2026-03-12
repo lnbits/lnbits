@@ -24,6 +24,7 @@ from lnbits.core.crud import (
     update_installed_extension_state,
 )
 from lnbits.core.crud.extensions import create_installed_extension
+from lnbits.core.crud.payments import delete_expired_invoices
 from lnbits.core.helpers import migrate_extension_database
 from lnbits.core.models.notifications import NotificationType
 from lnbits.core.services.extensions import deactivate_extension, get_valid_extensions
@@ -480,6 +481,7 @@ def register_async_tasks() -> None:
 
     create_permanent_task(run_by_the_minute_tasks)
     create_permanent_task(purge_audit_data)
+    create_permanent_task(run_interval(60 * 60, delete_expired_invoices))
     create_permanent_task(collect_exchange_rates_data)
 
     # server logs for websocket
