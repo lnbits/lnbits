@@ -705,3 +705,32 @@ async def test_get_payments_for_non_user():
     assert (
         user_payments.total == 0
     ), "No payments should be found for non-existent user."
+
+
+@pytest.mark.anyio
+async def test_internal_payment_receiver_fee_is_zero(to_wallet: Wallet):
+    """
+    Verify that the receiver's payment record has fee=0 after an internal
+    transfer. Previously, the receiver's fee was incorrectly set to -amount,
+    which caused the balance view to calculate amount - ABS(fee) = 0.
+    """
+    payment = await create_invoice(
+        wallet_id=to_wallet.id,
+        amount=1000,
+        memo="test_internal_fee",
+    )
+    await pay_invoice(
+        wallet_id=to_wallet.id,
+        payment_request=payment.bolt11,
+    )
+
+    # Check the receiver's payment record
+    receiver_payment = await get_standalone_payment(
+        payment.checking_id, incoming=True
+    )
+    assert receiver_payment is not None
+    assert receiver_payment.status == PaymentState.SUCCESS.value
+    assert receiver_payment.amount == 1_000_000  # 1000 sats in msats
+    assert receiver_payment.fee == 0, (
+        f"Receiver fee should be 0 for internal transfers, got {receiver_payment.fee}"
+    )
