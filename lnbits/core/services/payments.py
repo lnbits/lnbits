@@ -773,6 +773,9 @@ async def _pay_internal_invoice(
     # so the other side only has access to his new money when we are sure
     # the payer has enough to deduct from
     internal_payment.status = PaymentState.SUCCESS
+    # ensure the receiver's fee is 0 for internal payments
+    # (the fee field can get incorrectly set to -amount during the transfer)
+    internal_payment.fee = 0
     await update_payment(internal_payment, conn=conn)
     logger.success(f"internal payment successful {internal_payment.checking_id}")
 
