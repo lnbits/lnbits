@@ -24,6 +24,7 @@ from lnbits.core.crud import (
     update_installed_extension_state,
 )
 from lnbits.core.crud.extensions import create_installed_extension
+from lnbits.core.crud.settings import reset_settings_and_superuser
 from lnbits.core.helpers import migrate_extension_database
 from lnbits.core.models.notifications import NotificationType
 from lnbits.core.services.extensions import deactivate_extension, get_valid_extensions
@@ -74,8 +75,13 @@ async def startup(app: FastAPI):
     logger.info(f"Starting LNbits Version: {settings.version}")
     start = time.perf_counter()
     settings.lnbits_running = True
+
     # wait till migration is done
     await migrate_databases()
+
+    if settings.permanently_delete_settings_and_superuser:
+        logger.warning("Permanently deleting all settings and change superuser...")
+        await reset_settings_and_superuser()
 
     # setup admin settings
     await check_admin_settings()

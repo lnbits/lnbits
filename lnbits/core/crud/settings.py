@@ -81,6 +81,14 @@ async def reset_core_settings() -> None:
     )
 
 
+async def reset_settings_and_superuser() -> None:
+    await db.execute(
+        "UPDATE wallets SET deleted = true FROM system_settings WHERE "
+        "system_settings.id = 'super_user' AND wallets.user = system_settings.value;"
+    )
+    await db.execute("DELETE from system_settings;")
+
+
 async def create_admin_settings(super_user: str, new_settings: dict) -> SuperSettings:
     data = {"super_user": super_user, **new_settings}
     for key, value in data.items():
