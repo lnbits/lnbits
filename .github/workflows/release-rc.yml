@@ -41,12 +41,12 @@ jobs:
       DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
       DOCKER_PASSWORD: ${{ secrets.DOCKER_PASSWORD }}
 
-  docker-dev:
+  docker-latest-rc:
     if: github.repository == 'lnbits/lnbits'
     needs: [ release ]
     uses: ./.github/workflows/docker.yml
     with:
-      tag: dev
+      tag: latest-rc
     secrets:
       DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
       DOCKER_PASSWORD: ${{ secrets.DOCKER_PASSWORD }}
