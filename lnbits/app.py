@@ -11,6 +11,7 @@ from pathlib import Path
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fast_llms_txt import create_llms_txt_router
 from fastapi.staticfiles import StaticFiles
 from loguru import logger
 from slowapi import Limiter
@@ -100,6 +101,9 @@ async def startup(app: FastAPI):
 
     # register core routes
     init_core_routers(app)
+
+    # register llms.txt endpoint for AI agents
+    app.include_router(create_llms_txt_router(app), prefix="/docs")
 
     # initialize tasks
     register_async_tasks()
