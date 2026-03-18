@@ -22,10 +22,10 @@ ENV LNBITS_BACKEND_WALLET_CLASS="SparkL2Wallet"
 ENV FUNDING_SOURCE_MAX_RETRIES=10
 
 # spark sidecar
-ENV SPARK_MNEMONIC="bottom bottom bottom bottom bottom bottom bottom bottom bottom bottom bottom bottom"
 ENV SPARK_NETWORK="MAINNET"
 ENV SPARK_SIDECAR_PORT="8765"
 ENV SPARK_PAY_WAIT_MS="20000"
+ENV SPARK_MULTIPLICITY="3"
 
 EXPOSE 5000
 
