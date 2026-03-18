@@ -52,6 +52,16 @@ jobs:
       DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
       DOCKER_PASSWORD: ${{ secrets.DOCKER_PASSWORD }}
 
+  docker-latest-rc:
+    if: github.repository == 'lnbits/lnbits'
+    needs: [ release ]
+    uses: ./.github/workflows/docker.yml
+    with:
+      tag: latest-rc
+    secrets:
+      DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
+      DOCKER_PASSWORD: ${{ secrets.DOCKER_PASSWORD }}
+
   pypi:
     if: github.repository == 'lnbits/lnbits'
     runs-on: ubuntu-24.04
