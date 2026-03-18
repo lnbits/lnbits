@@ -143,6 +143,9 @@ class SparkL2Wallet(Wallet):
     async def pay_invoice(self, bolt11: str, fee_limit_msat: int) -> PaymentResponse:
         try:
             max_fee_sats = (int(fee_limit_msat) + 999) // 1000
+            logger.info(
+                f"Paying invoice via Spark sidecar with max fee {max_fee_sats} sats."
+            )
 
             payment_hash = None
             try:
