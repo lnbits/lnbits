@@ -990,6 +990,7 @@ class UpdateSettings(EditableSettings):
 
 
 class EnvSettings(LNbitsSettings):
+    permanently_delete_settings_and_superuser: bool = Field(default=False)
     debug: bool = Field(default=False)
     debug_database: bool = Field(default=False)
     bundle_assets: bool = Field(default=True)
