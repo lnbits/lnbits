@@ -378,6 +378,15 @@ window.localisation.it = {
   auth_keycloak_ci_hint:
     "Assicurati che l'URL di callback dell'autorizzazione sia impostato su https://{domain}/api/v1/auth/keycloak/token",
   auth_keycloak_cs_label: 'Keycloak Client Secret',
+  auth_keycloak_custom_org_label: 'Organizzazione personalizzata di Keycloak',
+  auth_keycloak_custom_icon_label: 'Icona personalizzata di Keycloak (URL)',
+  auth_oidc_label: 'URL di individuazione di OIDC',
+  auth_oidc_ci_label: 'ID client di OIDC',
+  auth_oidc_ci_hint:
+    "Assicurati che l'URL di callback dell'autorizzazione sia impostato su https://{domain}/api/v1/auth/oidc/token",
+  auth_oidc_cs_label: 'OIDC Client Secret',
+  auth_oidc_custom_org_label: 'Nome organizzazione personalizzata OIDC (es. Zitadel, Authentik)',
+  auth_oidc_custom_icon_label: 'Icona personalizzata di OIDC (URL)',
   currency_settings: 'Impostazioni valuta',
   allowed_currencies: 'Valute consentite',
   allowed_currencies_hint: 'Limita il numero di valute fiat disponibili',

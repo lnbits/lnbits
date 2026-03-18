@@ -642,6 +642,13 @@ window.localisation.en = {
   auth_keycloak_cs_label: 'Keycloak Client Secret',
   auth_keycloak_custom_org_label: 'Keycloak Custom Organization',
   auth_keycloak_custom_icon_label: 'Keycloak Custom Icon (URL)',
+  auth_oidc_label: 'OIDC Discovery URL',
+  auth_oidc_ci_label: 'OIDC Client ID',
+  auth_oidc_ci_hint:
+    'Make sure that the authorization callback URL is set to https://{domain}/api/v1/auth/oidc/token',
+  auth_oidc_cs_label: 'OIDC Client Secret',
+  auth_oidc_custom_org_label: 'OIDC Custom Organization Name (e.g., Zitadel, Authentik)',
+  auth_oidc_custom_icon_label: 'OIDC Custom Icon (URL)',
   currency_settings: 'Currency Settings',
   allowed_currencies: 'Allowed Currencies',
   allowed_currencies_hint:

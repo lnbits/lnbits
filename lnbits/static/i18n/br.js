@@ -640,6 +640,15 @@ window.localisation.br = {
   auth_keycloak_ci_hint:
     'Certifique-se de que a URL de retorno de chamada de autorização esteja definida para https://{domain}/api/v1/auth/keycloak/token',
   auth_keycloak_cs_label: 'Segredo do Cliente Keycloak',
+  auth_keycloak_custom_org_label: 'Organização Personalizada do Keycloak',
+  auth_keycloak_custom_icon_label: 'Ícone Personalizado do Keycloak (URL)',
+  auth_oidc_label: 'URL de Descoberta do OIDC',
+  auth_oidc_ci_label: 'ID do Cliente OIDC',
+  auth_oidc_ci_hint:
+    'Certifique-se de que a URL de retorno de chamada de autorização esteja definida para https://{domain}/api/v1/auth/oidc/token',
+  auth_oidc_cs_label: 'Segredo do Cliente OIDC',
+  auth_oidc_custom_org_label: 'Nome da Organização Personalizada OIDC (ex. Zitadel, Authentik)',
+  auth_oidc_custom_icon_label: 'Ícone Personalizado do OIDC (URL)',
   auth_keycloak_custom_org_label: 'Keycloak Custom Organization',
   auth_keycloak_custom_icon_label: 'Ícone Personalizado do Keycloak (URL)',
   currency_settings: 'Configurações de Moeda',

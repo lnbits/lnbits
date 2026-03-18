@@ -442,7 +442,8 @@ window.app.component('username-password', {
         'nostr-auth-nip98',
         'google-auth',
         'github-auth',
-        'keycloak-auth'
+        'keycloak-auth',
+        'oidc-auth'
       ],
       username: this.userName,
       password: this.password_1,

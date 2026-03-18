@@ -353,6 +353,15 @@ window.localisation.cn = {
   auth_keycloak_ci_hint:
     '确保授权回调URL设置为https://{domain}/api/v1/auth/keycloak/token',
   auth_keycloak_cs_label: 'Keycloak客户端密钥',
+  auth_keycloak_custom_org_label: 'Keycloak 自定义组织',
+  auth_keycloak_custom_icon_label: 'Keycloak 自定义图标 (URL)',
+  auth_oidc_label: 'OIDC 发现 URL',
+  auth_oidc_ci_label: 'OIDC 客户端 ID',
+  auth_oidc_ci_hint:
+    '确保授权回调URL设置为https://{domain}/api/v1/auth/oidc/token',
+  auth_oidc_cs_label: 'OIDC客户端密钥',
+  auth_oidc_custom_org_label: 'OIDC 自定义组织名称（例如 Zitadel、Authentik）',
+  auth_oidc_custom_icon_label: 'OIDC 自定义图标 (URL)',
   currency_settings: '货币设置',
   allowed_currencies: '允许的货币',
   allowed_currencies_hint: '限制可用法定货币的数量',
