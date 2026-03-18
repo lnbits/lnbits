@@ -1,0 +1,24 @@
+networks:
+  lnbits-net:
+
+services:
+  postgres-db:
+    container_name: postgres_container_test
+    image: postgres:14
+    environment:
+      POSTGRES_DB: lnbits
+      POSTGRES_USER: lnbits
+      POSTGRES_PASSWORD: lnbits
+      PGDATA: /lnbits/data/postgres
+    volumes:
+      - ./data/postgres_test:/lnbits/data/postgres
+    ports:
+      - '5444:5432'
+    restart: unless-stopped
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -d lnbits_db']
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - lnbits-net

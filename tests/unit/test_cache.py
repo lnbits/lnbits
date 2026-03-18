@@ -1,8 +1,11 @@
 import asyncio
+from time import time
 
 import pytest
+from pytest_mock.plugin import MockerFixture
 
-from lnbits.utils.cache import Cache
+from lnbits.settings import Settings
+from lnbits.utils.cache import Cache, Cached
 
 key = "foo"
 value = "bar"
@@ -59,3 +62,55 @@ async def test_cache_coro(cache):
     await cache.save_result(test, key="test")
     result = await cache.save_result(test, key="test")
     assert result == called == 1
+
+
+def test_cached_older_than():
+    cached = Cached(value="value", expiry=time() - 5)
+
+    assert cached.older_than(1) is True
+    assert cached.older_than(10) is False
+
+
+@pytest.mark.anyio
+async def test_cache_value_returns_cached_metadata(cache):
+    cache.set(key, value, expiry=1)
+
+    cached = cache.value(key)
+
+    assert cached is not None
+    assert cached.value == value
+    assert cached.expiry > time()
+
+
+@pytest.mark.anyio
+async def test_cache_pop_expired_returns_default(cache):
+    cache.set(key, value, expiry=0.01)
+    await asyncio.sleep(0.02)
+
+    assert cache.pop(key, default="fallback") == "fallback"
+
+
+@pytest.mark.anyio
+async def test_invalidate_forever_logs_and_recovers_from_errors(
+    settings: Settings, mocker: MockerFixture
+):
+    test_cache = Cache(interval=0)
+    logger_error = mocker.patch("lnbits.utils.cache.logger.error")
+    original_running = settings.lnbits_running
+    calls = 0
+
+    async def fake_sleep(_interval):
+        nonlocal calls
+        calls += 1
+        if calls == 1:
+            raise RuntimeError("boom")
+        settings.lnbits_running = False
+
+    try:
+        settings.lnbits_running = True
+        mocker.patch("lnbits.utils.cache.asyncio.sleep", side_effect=fake_sleep)
+        await test_cache.invalidate_forever()
+    finally:
+        settings.lnbits_running = original_running
+
+    logger_error.assert_called_once_with("Error invalidating cache")

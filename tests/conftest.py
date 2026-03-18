@@ -44,6 +44,7 @@ def anyio_backend():
 def settings():
     # override settings for tests
     lnbits_settings.lnbits_admin_extensions = []
+    lnbits_settings.lnbits_backend_wallet_class = "FakeWallet"
     lnbits_settings.lnbits_data_folder = "./tests/data"
     lnbits_settings.lnbits_admin_ui = True
     lnbits_settings.lnbits_extensions_default_install = []
@@ -64,7 +65,7 @@ def run_before_and_after_tests(settings: Settings):
 @pytest.fixture(scope="session")
 async def app(settings: Settings):
     app = create_app()
-    async with LifespanManager(app) as manager:
+    async with LifespanManager(app, startup_timeout=15, shutdown_timeout=15) as manager:
         settings.first_install = True
         await first_install(
             UpdateSuperuserPassword(
