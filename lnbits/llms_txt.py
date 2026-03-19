@@ -1,9 +1,9 @@
 """Generate llms.txt markdown from FastAPI OpenAPI schema for AI agents."""
 
 from typing import Any
+
 from fastapi import FastAPI
 from fastapi.responses import PlainTextResponse
-from fastapi.routing import APIRoute
 
 
 def generate_llms_txt(app: FastAPI) -> str:
@@ -37,11 +37,13 @@ def generate_llms_txt(app: FastAPI) -> str:
             tag = tags[0] if tags else "Endpoints"
             if tag not in endpoints_by_tag:
                 endpoints_by_tag[tag] = []
-            endpoints_by_tag[tag].append({
-                "path": path,
-                "method": method.upper(),
-                "operation": operation,
-            })
+            endpoints_by_tag[tag].append(
+                {
+                    "path": path,
+                    "method": method.upper(),
+                    "operation": operation,
+                }
+            )
 
     # Generate sections by tag
     for tag, endpoints in endpoints_by_tag.items():
@@ -64,6 +66,7 @@ def generate_llms_txt(app: FastAPI) -> str:
 
 def create_llms_txt_route(app: FastAPI) -> None:
     """Add a /llms.txt endpoint to the app."""
+
     @app.get(
         "/docs/llms.txt",
         response_class=PlainTextResponse,
