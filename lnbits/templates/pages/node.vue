@@ -589,23 +589,16 @@
                           v-if="transactionDetailsDialog.data.bolt11"
                           class="text-center q-mb-lg"
                         >
-                          <a
+                          <lnbits-qrcode
                             :href="
                               'lightning:' +
                               transactionDetailsDialog.data.bolt11
                             "
-                          >
-                            <q-responsive :ratio="1" class="q-mx-xl">
-                              <qrcode-vue
-                                :value="
-                                  'lightning:' +
-                                  transactionDetailsDialog.data.bolt11.toUpperCase()
-                                "
-                                :options="{width: 340}"
-                                class="rounded-borders"
-                              ></qrcode-vue>
-                            </q-responsive>
-                          </a>
+                            :value="
+                              'LIGHTNING:' +
+                              transactionDetailsDialog.data.bolt11.toUpperCase()
+                            "
+                          ></lnbits-qrcode>
                           <q-btn
                             outline
                             color="grey"
@@ -698,25 +691,15 @@
                                         v-if="props.row.bolt11"
                                         class="text-center q-mb-lg"
                                       >
-                                        <a
+                                        <lnbits-qrcode
+                                          :value="
+                                            'LIGHTNING:' +
+                                            props.row.bolt11.toUpperCase()
+                                          "
                                           :href="
                                             'lightning:' + props.row.bolt11
                                           "
-                                        >
-                                          <q-responsive
-                                            :ratio="1"
-                                            class="q-mx-xl"
-                                          >
-                                            <qrcode-vue
-                                              :value="
-                                                'lightning:' +
-                                                props.row.bolt11.toUpperCase()
-                                              "
-                                              :options="{width: 340}"
-                                              class="rounded-borders"
-                                            ></qrcode-vue>
-                                          </q-responsive>
-                                        </a>
+                                        ></lnbits-qrcode>
                                       </div>
                                       <div class="row q-mt-lg">
                                         <q-btn
