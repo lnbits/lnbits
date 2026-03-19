@@ -468,9 +468,7 @@
             </q-list>
 
             <div
-              v-if="
-                props.row.isIn && props.row.isPending && props.row.bolt11
-              "
+              v-if="props.row.isIn && props.row.isPending && props.row.bolt11"
             >
               <div v-if="props.row.extra.fiat_payment_request">
                 <lnbits-qrcode
@@ -491,7 +489,8 @@
             :show="hodlInvoice.show"
             :cancel-label="$t('close')"
             :action="{
-              handler: () => cancelHoldInvoice(hodlInvoice.payment.payment_hash),
+              handler: () =>
+                cancelHoldInvoice(hodlInvoice.payment.payment_hash),
               label: $t('cancel_invoice'),
               color: 'grey',
               closePopup: true
