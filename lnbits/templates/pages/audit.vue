@@ -174,12 +174,12 @@
     :show="auditDetailsDialog.show"
     :title="$t('http_request_details')"
     :action="{
-      handler: () => utils.copyText(auditDetailsDialog.data),
       label: $t('copy'),
       icon: 'content_copy'
     }"
     :cancel-label="$t('close')"
-    @update:model-value="auditDetailsDialog.show = $event"
+    @update:show="auditDetailsDialog.show = $event"
+    @action="utils.copyText(auditDetailsDialog.data)"
   >
     <q-input
       filled

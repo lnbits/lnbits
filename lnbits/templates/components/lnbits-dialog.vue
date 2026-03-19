@@ -28,6 +28,7 @@
           flat
           :color="cancelColor"
           :label="cancelLabel"
+          @click="handleCancel"
         ></q-btn>
 
         <q-space></q-space>

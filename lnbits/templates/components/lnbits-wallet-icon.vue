@@ -11,11 +11,11 @@
   <lnbits-dialog
     :show="icon.show"
     :action="{
-      handler: setIcon,
       label: 'Save Icon',
       disable: !icon.data.icon
     }"
     @update:show="icon.show = $event"
+    @action="setIcon"
     @hide="icon.data = {}"
   >
     <q-form class="q-gutter-md">

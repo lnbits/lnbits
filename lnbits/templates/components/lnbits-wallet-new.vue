@@ -3,14 +3,12 @@
     :show="showNewWalletDialog"
     :title="$t('add_new_wallet')"
     :action="{
-      handler: submitAddWallet,
       label: $t('add_wallet'),
       closePopup: true
     }"
     :secondary-action="
       isLightningShared
         ? {
-            handler: submitRejectWalletInvitation,
             label: $t('reject_wallet'),
             color: 'negative',
             closePopup: true
@@ -18,6 +16,8 @@
         : null
     "
     @update:show="showNewWalletDialog = $event"
+    @action="submitAddWallet"
+    @secondary-action="submitRejectWalletInvitation"
   >
     <q-card-section v-if="g.user.walletInvitesCount">
       <q-badge

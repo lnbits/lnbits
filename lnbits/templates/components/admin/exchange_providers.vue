@@ -203,11 +203,11 @@
     :show="exchangeData.showTickerConversion"
     :title="$t('create_ticker_converter')"
     :action="{
-      handler: () => addExchangeTickerConversion(),
       label: 'Add Ticker Conversion'
     }"
     :cancel-label="$t('close')"
-    @update:model-value="exchangeData.showTickerConversion = $event"
+    @update:show="exchangeData.showTickerConversion = $event"
+    @action="addExchangeTickerConversion()"
   >
     <div class="row">
       <div class="col-12 q-mb-md">

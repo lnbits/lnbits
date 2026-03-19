@@ -94,36 +94,12 @@ window.app.component('lnbits-dialog', {
       this.$emit('cancel')
     },
 
-    async handleAction() {
-      try {
-        if (this.action && typeof this.action.handler === 'function') {
-          await this.action.handler()
-        }
-
-        this.$emit('action')
-
-        if (this.action && this.action.closeOnClick) {
-          this.handleModelUpdate(false)
-        }
-      } catch (error) {
-        console.error('lnbits-dialog action handler failed', error)
-      }
+    handleAction() {
+      this.$emit('action')
     },
-    async handleSecondaryAction() {
-      try {
-        if (
-          this.secondaryAction &&
-          typeof this.secondaryAction.handler === 'function'
-        ) {
-          await this.secondaryAction.handler()
-        }
-        this.$emit('secondary-action')
-        if (this.secondaryAction && this.secondaryAction.closeOnClick) {
-          this.handleModelUpdate(false)
-        }
-      } catch (error) {
-        console.error('lnbits-dialog secondary action handler failed', error)
-      }
+
+    handleSecondaryAction() {
+      this.$emit('secondary-action')
     }
   }
 })

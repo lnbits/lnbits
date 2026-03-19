@@ -398,11 +398,11 @@
             :show="props.expand"
             :cancel-label="$t('close')"
             :action="{
-              handler: () => checkPayment(props.row.payment_hash),
               label: $t('check_payment'),
               icon: 'refresh'
             }"
             @update:show="props.expand = $event"
+            @action="checkPayment(props.row.payment_hash)"
           >
             <q-list bordered separator>
               <q-expansion-item
@@ -489,19 +489,18 @@
             :show="hodlInvoice.show"
             :cancel-label="$t('close')"
             :action="{
-              handler: () =>
-                cancelHoldInvoice(hodlInvoice.payment.payment_hash),
               label: $t('cancel_invoice'),
               color: 'grey',
               closePopup: true
             }"
             :secondary-action="{
-              handler: () => settleHoldInvoice(hodlInvoice.preimage),
               label: $t('settle_invoice'),
               color: 'grey',
               closePopup: true
             }"
             @update:show="hodlInvoice.show = $event"
+            @action="cancelHoldInvoice(hodlInvoice.payment.payment_hash)"
+            @secondary-action="settleHoldInvoice(hodlInvoice.preimage)"
           >
             <q-card-section>
               <q-item-label class="text-h6">

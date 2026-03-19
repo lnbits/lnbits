@@ -128,7 +128,7 @@
     <lnbits-dialog
       :show="showQRDialog"
       :position="'standard'"
-      @update:model-value="showQRDialog = $event"
+      @update:show="showQRDialog = $event"
     >
       <q-card-section>
         <lnbits-qrcode :value="qrValue"></lnbits-qrcode>

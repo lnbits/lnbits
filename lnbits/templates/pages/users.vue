@@ -451,11 +451,11 @@
           title="Create Wallet"
           :action="{
             label: 'Create',
-            handler: createWallet,
             closePopup: true
           }"
           cancel-label="Cancel"
-          @update:model-value="createWalletDialog.show = $event"
+          @update:show="createWalletDialog.show = $event"
+          @action="createWallet"
         >
           <div class="row">
             <div class="col-12">

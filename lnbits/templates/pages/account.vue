@@ -1235,10 +1235,10 @@
     :show="apiAcl.showPasswordDialog"
     title="Password Required"
     :action="{
-      handler: () => runPasswordGuardedFunction(),
       label: $t('ok')
     }"
-    @update:model-value="apiAcl.showPasswordDialog = $event"
+    @update:show="apiAcl.showPasswordDialog = $event"
+    @action="runPasswordGuardedFunction()"
   >
     <div class="row q-col-gutter-md">
       <div class="col-12">
@@ -1259,11 +1259,11 @@
     :show="apiAcl.showNewAclDialog"
     title="New API Access Control List"
     :action="{
-      handler: () => addApiACL(),
       label: 'Create'
     }"
     :cancel-label="$t('close')"
-    @update:model-value="apiAcl.showNewAclDialog = $event"
+    @update:show="apiAcl.showNewAclDialog = $event"
+    @action="addApiACL()"
   >
     <div class="row q-col-gutter-md">
       <div class="col-12">
@@ -1277,11 +1277,11 @@
     :show="apiAcl.showNewTokenDialog"
     title="New API Token"
     :action="{
-      handler: () => generateApiToken(),
       label: 'Create'
     }"
     :cancel-label="$t('close')"
-    @update:model-value="apiAcl.showNewTokenDialog = $event"
+    @update:show="apiAcl.showNewTokenDialog = $event"
+    @action="generateApiToken()"
   >
     <div class="row q-col-gutter-md">
       <div class="col-12">
@@ -1340,10 +1340,6 @@
     :show="labelsDialog.show"
     :title="$t('label')"
     :action="{
-      handler: () =>
-        g.user.extra.labels.some(label => label.name === labelsDialog.data.name)
-          ? updateUserLabel()
-          : addUserLabel(),
       label: g.user.extra.labels.some(
         label => label.name === labelsDialog.data.name
       )
@@ -1352,7 +1348,12 @@
       disable: !labelsDialog.data.name || !labelsDialog.data.color
     }"
     :cancel-label="$t('cancel')"
-    @update:model-value="labelsDialog.show = $event"
+    @update:show="labelsDialog.show = $event"
+    @action="
+      g.user.extra.labels.some(label => label.name === labelsDialog.data.name)
+        ? updateUserLabel()
+        : addUserLabel()
+    "
   >
     <div class="row q-col-gutter-md">
       <div class="col-12">

@@ -106,11 +106,11 @@
               <lnbits-dialog
                 :show="connectPeerDialog.show"
                 :action="{
-                  label: $t('connect'),
-                  handler: connectPeer
+                  label: $t('connect')
                 }"
                 :cancel-label="$t('cancel')"
-                @update:model-value="connectPeerDialog.show = $event"
+                @update:show="connectPeerDialog.show = $event"
+                @action="connectPeer"
               >
                 <q-form class="q-gutter-md">
                   <q-input
@@ -128,11 +128,11 @@
                 :show="setFeeDialog.show"
                 title="Set Channel Fee"
                 :action="{
-                  label: $t('set'),
-                  handler: () => setChannelFee(setFeeDialog.channel_id)
+                  label: $t('set')
                 }"
                 :cancel-label="$t('cancel')"
-                @update:model-value="setFeeDialog.show = $event"
+                @update:show="setFeeDialog.show = $event"
+                @action="setChannelFee(setFeeDialog.channel_id)"
               >
                 <p class="text-caption" v-text="setFeeDialog.channel_id"></p>
                 <q-separator></q-separator>
@@ -157,11 +157,11 @@
               <lnbits-dialog
                 :show="openChannelDialog.show"
                 :action="{
-                  label: $t('open'),
-                  handler: openChannel
+                  label: $t('open')
                 }"
                 :cancel-label="$t('cancel')"
-                @update:model-value="openChannelDialog.show = $event"
+                @update:show="openChannelDialog.show = $event"
+                @action="openChannel"
               >
                 <q-form class="q-gutter-md">
                   <q-input
@@ -209,11 +209,11 @@
                 :show="closeChannelDialog.show"
                 title="Close Channel"
                 :action="{
-                  label: $t('close'),
-                  handler: closeChannel
+                  label: $t('close')
                 }"
                 :cancel-label="$t('cancel')"
-                @update:model-value="closeChannelDialog.show = $event"
+                @update:show="closeChannelDialog.show = $event"
+                @action="closeChannel"
               >
                 <q-form class="q-gutter-md">
                   <div>

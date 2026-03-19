@@ -370,11 +370,11 @@
     :show="showUninstallDialog"
     :title="$t('warning')"
     :action="{
-      handler: () => uninstallExtension(),
       label: $t('uninstall_confirm')
     }"
     :cancel-label="$t('cancel')"
-    @update:model-value="showUninstallDialog = $event"
+    @update:show="showUninstallDialog = $event"
+    @action="uninstallExtension()"
   >
     <p>
       <span v-text="$t('extension_uninstall_warning')"></span><br />
@@ -399,13 +399,13 @@
     :show="showDropDbDialog"
     :title="$t('warning')"
     :action="{
-      handler: () => dropExtensionDb(),
       label: $t('confirm'),
       color: 'red',
       disable: dropDbExtensionId !== selectedExtension.id
     }"
     :cancel-label="$t('cancel')"
-    @update:model-value="showDropDbDialog = $event"
+    @update:show="showDropDbDialog = $event"
+    @action="dropExtensionDb()"
   >
     <p><span v-text="$t('extension_db_drop_warning')"></span><br /></p>
     <q-input
@@ -1247,7 +1247,7 @@
   <lnbits-dialog
     :show="paymentDialog.show"
     :cancel-label="$t('close')"
-    @update:model-value="paymentDialog.show = $event"
+    @update:show="paymentDialog.show = $event"
   >
     <q-responsive :ratio="1" class="q-mx-xl q-mb-xl">
       <lnbits-qrcode
@@ -1262,11 +1262,11 @@
     :show="showUpdateAllDialog"
     :title="$t('update')"
     :action="{
-      handler: () => updateSelectedExtensions(),
       label: $t('update')
     }"
     :cancel-label="$t('cancel')"
-    @update:model-value="showUpdateAllDialog = $event"
+    @update:show="showUpdateAllDialog = $event"
+    @action="updateSelectedExtensions()"
   >
     <div v-if="updatableExtensions?.length > 1" class="row">
       <div class="col-12 q-mb-md">
