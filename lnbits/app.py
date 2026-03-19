@@ -11,7 +11,6 @@ from pathlib import Path
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from lnbits.llms_txt import create_llms_txt_route
 from fastapi.staticfiles import StaticFiles
 from loguru import logger
 from slowapi import Limiter
@@ -41,6 +40,7 @@ from lnbits.core.tasks import (
 )
 from lnbits.exceptions import register_exception_handlers
 from lnbits.helpers import version_parse
+from lnbits.llms_txt import create_llms_txt_route
 from lnbits.settings import settings
 from lnbits.tasks import (
     cancel_all_tasks,
