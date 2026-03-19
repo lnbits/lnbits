@@ -438,7 +438,7 @@
       <q-card-section>
         <div v-if="selectedRelease.paymentRequest">
           <lnbits-qrcode
-            :value="'lightning:' + selectedRelease.paymentRequest.toUpperCase()"
+            :value="'LIGHTNING:' + selectedRelease.paymentRequest.toUpperCase()"
             :href="'lightning:' + selectedRelease.paymentRequest"
           ></lnbits-qrcode>
         </div>
@@ -836,7 +836,7 @@
           <div v-if="selectedExtension.payToEnable.paymentRequest" class="col">
             <lnbits-qrcode
               :value="
-                'lightning:' +
+                'LIGHTNING:' +
                 selectedExtension.payToEnable.paymentRequest.toUpperCase()
               "
               :href="
@@ -1248,7 +1248,7 @@
     <q-card class="q-pa-md lnbits__dialog-card">
       <q-card-section>
         <lnbits-qrcode
-          :value="'lightning:' + paymentDialog.invoice.toUpperCase()"
+          :value="'LIGHTNING:' + paymentDialog.invoice.toUpperCase()"
           :href="'lightning:' + paymentDialog.invoice"
         ></lnbits-qrcode>
       </q-card-section>
