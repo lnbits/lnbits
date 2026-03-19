@@ -154,9 +154,20 @@ async def impersonate_user(
 
     max_age = settings.auth_token_expire_minutes * 60
     response.set_cookie(
-        "admin_access_token", cookie_access_token, httponly=True, max_age=max_age
+        "admin_access_token",
+        cookie_access_token,
+        httponly=True,
+        secure=settings.auth_https_only,
+        samesite="lax",
+        max_age=max_age,
     )
-    response.set_cookie("is_lnbits_user_impersonated", "true", max_age=max_age)
+    response.set_cookie(
+        "is_lnbits_user_impersonated",
+        "true",
+        secure=settings.auth_https_only,
+        samesite="lax",
+        max_age=max_age,
+    )
     return response
 
 
@@ -177,7 +188,12 @@ async def stop_impersonate_user(
     )
     max_age = settings.auth_token_expire_minutes * 60
     response.set_cookie(
-        "cookie_access_token", admin_access_token, httponly=True, max_age=max_age
+        "cookie_access_token",
+        admin_access_token,
+        httponly=True,
+        secure=settings.auth_https_only,
+        samesite="lax",
+        max_age=max_age,
     )
     response.delete_cookie("admin_access_token")
     response.delete_cookie("is_access_token_expired")
@@ -560,7 +576,7 @@ async def _handle_sso_login(userinfo: OpenID, verified_user_id: str | None = Non
             id=uuid4().hex, email=email, extra=UserExtra(email_verified=True)
         )
         await create_user_account(account)
-    return _auth_redirect_response(redirect_path, email)
+    return _auth_redirect_response(redirect_path, account.id, email)
 
 
 def _auth_success_response(
@@ -575,9 +591,20 @@ def _auth_success_response(
     max_age = settings.auth_token_expire_minutes * 60
     response = JSONResponse({"access_token": access_token, "token_type": "bearer"})
     response.set_cookie(
-        "cookie_access_token", access_token, httponly=True, max_age=max_age
+        "cookie_access_token",
+        access_token,
+        httponly=True,
+        secure=settings.auth_https_only,
+        samesite="lax",
+        max_age=max_age,
     )
-    response.set_cookie("is_lnbits_user_authorized", "true", max_age=max_age)
+    response.set_cookie(
+        "is_lnbits_user_authorized",
+        "true",
+        secure=settings.auth_https_only,
+        samesite="lax",
+        max_age=max_age,
+    )
     response.delete_cookie("is_access_token_expired")
 
     return response
@@ -594,15 +621,28 @@ def _auth_api_token_response(
     )
 
 
-def _auth_redirect_response(path: str, email: str) -> RedirectResponse:
-    payload = AccessTokenPayload(sub="" or "", email=email, auth_time=int(time()))
+def _auth_redirect_response(path: str, user_id: str, email: str) -> RedirectResponse:
+    payload = AccessTokenPayload(
+        usr=user_id, sub="", email=email, auth_time=int(time())
+    )
     access_token = create_access_token(data=payload.dict())
     max_age = settings.auth_token_expire_minutes * 60
     response = RedirectResponse(path)
     response.set_cookie(
-        "cookie_access_token", access_token, httponly=True, max_age=max_age
+        "cookie_access_token",
+        access_token,
+        httponly=True,
+        secure=settings.auth_https_only,
+        samesite="lax",
+        max_age=max_age,
     )
-    response.set_cookie("is_lnbits_user_authorized", "true", max_age=max_age)
+    response.set_cookie(
+        "is_lnbits_user_authorized",
+        "true",
+        secure=settings.auth_https_only,
+        samesite="lax",
+        max_age=max_age,
+    )
     response.delete_cookie("is_access_token_expired")
     return response
 
@@ -622,7 +662,10 @@ def _new_sso(provider: str) -> SSOBase | None:
 
         sso_provider_class = _find_auth_provider_class(provider)
         sso_provider = sso_provider_class(
-            client_id, client_secret, None, allow_insecure_http=True
+            client_id,
+            client_secret,
+            None,
+            allow_insecure_http=not settings.auth_https_only,
         )
         if (
             discovery_url
