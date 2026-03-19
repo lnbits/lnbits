@@ -61,6 +61,7 @@ lnbits-cli = "lnbits.commands:main"
 breez = ["breez-sdk==0.8.0", "breez-sdk-liquid==0.11.11"]
 liquid = ["wallycore==1.5.1"]
 migration = ["psycopg2-binary==2.9.11"]
+wasm = ["wasmtime>=18.0.0"]
 
 [dependency-groups]
 dev = [

@@ -1,6 +1,8 @@
+import json
 import sys
 import traceback
 from http import HTTPStatus
+from pathlib import Path
 
 import httpx
 from bolt11 import decode as bolt11_decode
@@ -60,6 +62,53 @@ from ..crud import (
     update_installed_extension,
     update_user_extension,
 )
+
+
+def _load_extension_type(ext_id: str) -> str:
+    base_dirs = [
+        Path(settings.lnbits_extensions_path, "extensions", ext_id),
+        Path(settings.lnbits_extensions_path, ext_id),
+        Path(settings.lnbits_path, "lnbits", "extensions", ext_id),
+        Path(settings.lnbits_path, "extensions", ext_id),
+        Path.cwd() / "lnbits" / "extensions" / ext_id,
+        Path.cwd() / "extensions" / ext_id,
+    ]
+    for base in base_dirs:
+        try:
+            conf_path = base / "config.json"
+            if not conf_path.is_file():
+                continue
+            with open(conf_path) as json_file:
+                config_json = json.load(json_file)
+            ext_type = config_json.get("extension_type")
+            if ext_type:
+                return ext_type
+        except Exception as exc:
+            logger.debug(
+                "Failed to read extension config.json for '{}' in '{}': {}",
+                ext_id,
+                base,
+                exc,
+            )
+            continue
+
+    for base in base_dirs:
+        try:
+            wasm_dir = base / "wasm"
+            if (wasm_dir / "module.wasm").is_file() or (
+                wasm_dir / "module.wat"
+            ).is_file():
+                return "wasm"
+        except Exception as exc:
+            logger.debug(
+                "Failed to probe wasm files for '{}' in '{}': {}",
+                ext_id,
+                base,
+                exc,
+            )
+            continue
+    return "python"
+
 
 extension_router = APIRouter(
     tags=["Extension Managment"],
@@ -592,6 +641,7 @@ async def extensions(account_id: AccountId = Depends(check_account_id_exists)):
             "isPaymentRequired": ext.requires_payment,
             "inProgress": False,
             "selectedForUpdate": False,
+            "extensionType": _load_extension_type(ext.id),
         }
         for ext in installable_exts
     ]

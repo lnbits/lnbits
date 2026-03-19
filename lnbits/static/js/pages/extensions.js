@@ -28,6 +28,14 @@ window.PageExtensions = {
       paylinkWebsocket: null,
       searchToggle: false,
       reviewsUrl: null,
+      permissionsDialog: {
+        show: false,
+        extension: null,
+        checked: [],
+        missing: [],
+        tags: [],
+        tagOptions: []
+      },
       reviewsDialog: {
         show: false,
         extension: null,
@@ -90,6 +98,20 @@ window.PageExtensions = {
     },
     tab(val) {
       this.filterExtensions(this.searchTerm, val)
+    }
+  },
+  computed: {
+    permissionsAllChecked() {
+      const ext = this.permissionsDialog.extension
+      if (!ext || !Array.isArray(ext.permissions)) return true
+      const required = ext.permissions.map(p => p.id)
+      return required.every(p => this.permissionsDialog.checked.includes(p))
+    },
+    permissionsHasMissingEndpoints() {
+      return (
+        this.permissionsDialog.missing &&
+        this.permissionsDialog.missing.length > 0
+      )
     }
   },
   methods: {
@@ -241,6 +263,38 @@ window.PageExtensions = {
         })
     },
     async enableExtensionForUser(extension) {
+      if (extension.extensionType === 'wasm') {
+        const wasmHost = this.extensions.find(ext => ext.id === 'wasm')
+        if (!wasmHost || !wasmHost.isInstalled || !wasmHost.isActive) {
+          Quasar.Notify.create({
+            type: 'warning',
+            message:
+              'Enable the WASM! host extension before using this extension.'
+          })
+          return
+        }
+        if (extension.permissions && extension.permissions.length) {
+          if (!extension._grantedPermissions) {
+            Quasar.Notify.create({
+              type: 'warning',
+              message: 'Save permissions before enabling this extension.'
+            })
+            return
+          }
+        }
+        if (extension.paymentTags && extension.paymentTags.length) {
+          if (
+            !extension._grantedPaymentTags ||
+            !extension._grantedPaymentTags.length
+          ) {
+            Quasar.Notify.create({
+              type: 'warning',
+              message: 'Select payment tags before enabling this extension.'
+            })
+            return
+          }
+        }
+      }
       if (extension.isPaymentRequired) {
         this.showPayToEnable(extension)
         return
@@ -293,6 +347,118 @@ window.PageExtensions = {
         extension.payToEnable.amount
       this.selectedExtension.payToEnable.showQRCode = false
       this.showPayToEnableDialog = true
+    },
+    openPermissionsDialog(extension) {
+      this.permissionsDialog.extension = extension
+      this.permissionsDialog.checked = extension._grantedPermissions
+        ? extension._grantedPermissions.slice()
+        : extension.grantedPermissions
+          ? extension.grantedPermissions.slice()
+          : []
+      this.permissionsDialog.missing = []
+      this.permissionsDialog.tags = extension._grantedPaymentTags
+        ? extension._grantedPaymentTags.slice()
+        : extension.grantedPaymentTags
+          ? extension.grantedPaymentTags.slice()
+          : []
+      this.permissionsDialog.tagOptions = []
+      this.permissionsDialog.show = true
+    },
+    cancelPermissionsDialog() {
+      this.permissionsDialog.show = false
+      this.permissionsDialog.extension = null
+      this.permissionsDialog.checked = []
+      this.permissionsDialog.missing = []
+      this.permissionsDialog.tags = []
+      this.permissionsDialog.tagOptions = []
+    },
+    async openPermissionsForExtension(extension) {
+      if (extension.extensionType !== 'wasm') {
+        Quasar.Notify.create({
+          type: 'warning',
+          message: 'This extension does not use WASM permissions.'
+        })
+        return
+      }
+      this.permissionsDialog.extension = extension
+      this.permissionsDialog.checked = extension._grantedPermissions
+        ? extension._grantedPermissions.slice()
+        : extension.grantedPermissions
+          ? extension.grantedPermissions.slice()
+          : []
+      this.permissionsDialog.missing = []
+      this.permissionsDialog.tags = extension._grantedPaymentTags
+        ? extension._grantedPaymentTags.slice()
+        : extension.grantedPaymentTags
+          ? extension.grantedPaymentTags.slice()
+          : []
+      this.permissionsDialog.tagOptions = []
+      try {
+        const {data} = await LNbits.api.request(
+          'GET',
+          `/wasm/api/v1/extensions/${extension.id}/capabilities`,
+          this.g.user.wallets[0].adminkey
+        )
+        if (data && Array.isArray(data.permissions)) {
+          extension.permissions = data.permissions
+        }
+        if (data && Array.isArray(data.missing_permissions)) {
+          this.permissionsDialog.missing = data.missing_permissions
+        }
+        if (data && Array.isArray(data.payment_tags)) {
+          extension.paymentTags = data.payment_tags
+          this.permissionsDialog.tagOptions = data.payment_tags
+        }
+        if (data && Array.isArray(data.granted_permissions)) {
+          extension.grantedPermissions = data.granted_permissions
+          this.permissionsDialog.checked = data.granted_permissions.slice()
+        }
+        if (data && Array.isArray(data.granted_payment_tags)) {
+          extension.grantedPaymentTags = data.granted_payment_tags
+          this.permissionsDialog.tags = data.granted_payment_tags.slice()
+        }
+      } catch (err) {
+        LNbits.utils.notifyApiError(err)
+      }
+      this.permissionsDialog.show = true
+    },
+    async confirmPermissionsDialog() {
+      const ext = this.permissionsDialog.extension
+      const granted = this.permissionsDialog.checked.slice()
+      const tags = this.permissionsDialog.tags.slice()
+      this.permissionsDialog.show = false
+      this.permissionsDialog.extension = null
+      this.permissionsDialog.checked = []
+      const missing = this.permissionsDialog.missing || []
+      this.permissionsDialog.missing = []
+      this.permissionsDialog.tags = []
+      this.permissionsDialog.tagOptions = []
+      if (missing.length) {
+        Quasar.Notify.create({
+          type: 'negative',
+          message: 'Missing API endpoints for one or more permissions.'
+        })
+        return
+      }
+      if (!ext) return
+      ext._grantedPermissions = granted
+      ext.grantedPermissions = granted
+      ext._grantedPaymentTags = tags
+      ext.grantedPaymentTags = tags
+      try {
+        await LNbits.api.request(
+          'PUT',
+          `/wasm/api/v1/extensions/${ext.id}/permissions`,
+          this.g.user.wallets[0].adminkey,
+          {permissions: granted, payment_tags: tags}
+        )
+        Quasar.Notify.create({
+          type: 'positive',
+          message: 'Permissions saved.'
+        })
+      } catch (err) {
+        LNbits.utils.notifyApiError(err)
+      }
     },
     updatePayToInstallData(extension) {
       LNbits.api

@@ -329,6 +329,18 @@
                   <span v-text="$t('enable_extension_details')">
                   </span> </q-tooltip
               ></q-btn>
+              <q-btn
+                v-if="
+                  extension.isInstalled &&
+                  extension.isActive &&
+                  !g.user.extensions.includes(extension.id) &&
+                  extension.extensionType === 'wasm'
+                "
+                flat
+                color="grey-5"
+                @click="openPermissionsForExtension(extension)"
+                label="Permissions"
+              ></q-btn>
 
               <q-btn
                 @click="showManageExtension(extension)"
@@ -918,6 +930,91 @@
           </div>
         </div>
       </q-card-section>
+    </q-card>
+  </q-dialog>
+
+  <q-dialog v-model="permissionsDialog.show" position="top">
+    <q-card class="q-pa-md" style="min-width: 360px; max-width: 90vw">
+      <q-card-section>
+        <div class="text-h6">Permissions required</div>
+        <div class="text-caption text-grey">This extension can:</div>
+        <q-list v-if="permissionsDialog.extension">
+          <q-item
+            v-for="perm in permissionsDialog.extension.permissions"
+            :key="perm.id || perm"
+            clickable
+          >
+            <q-item-section>
+              <q-item-label v-text="perm.label || perm"></q-item-label>
+              <q-item-label
+                caption
+                v-if="perm.description"
+                v-text="perm.description"
+              ></q-item-label>
+            </q-item-section>
+            <q-item-section side>
+              <q-checkbox
+                v-model="permissionsDialog.checked"
+                :val="perm.id || perm"
+              />
+            </q-item-section>
+          </q-item>
+        </q-list>
+        <div
+          v-if="
+            permissionsDialog.tagOptions && permissionsDialog.tagOptions.length
+          "
+          class="q-mt-md"
+        >
+          <div class="text-caption text-grey">
+            Allow this extension to listen for payment tags:
+          </div>
+          <q-list>
+            <q-item
+              v-for="tag in permissionsDialog.tagOptions"
+              :key="tag"
+              clickable
+            >
+              <q-item-section>
+                <q-item-label v-text="tag"></q-item-label>
+              </q-item-section>
+              <q-item-section side>
+                <q-checkbox v-model="permissionsDialog.tags" :val="tag" />
+              </q-item-section>
+            </q-item>
+          </q-list>
+        </div>
+        <div
+          v-if="permissionsDialog.missing && permissionsDialog.missing.length"
+          class="q-mt-md text-negative"
+        >
+          <div class="text-caption">
+            Missing API endpoints required by this extension:
+          </div>
+          <q-chip
+            v-for="perm in permissionsDialog.missing"
+            :key="perm"
+            :label="perm"
+            color="red-2"
+            text-color="black"
+            class="q-mr-xs q-mt-xs"
+          />
+        </div>
+      </q-card-section>
+      <q-card-actions align="right">
+        <q-btn
+          flat
+          color="grey"
+          v-text="$t('cancel')"
+          @click="cancelPermissionsDialog"
+        ></q-btn>
+        <q-btn
+          color="primary"
+          :disable="!permissionsAllChecked || permissionsHasMissingEndpoints"
+          label="Save"
+          @click="confirmPermissionsDialog"
+        ></q-btn>
+      </q-card-actions>
     </q-card>
   </q-dialog>
 

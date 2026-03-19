@@ -1,6 +1,7 @@
 import asyncio
 import glob
 import importlib
+import json
 import os
 import shutil
 import sys
@@ -419,6 +420,8 @@ def register_new_ratelimiter(app: FastAPI) -> Callable:
 
 def register_ext_tasks(ext: Extension) -> None:
     """Register extension async tasks."""
+    if ext.extension_type == "wasm":
+        return
     ext_module = importlib.import_module(ext.module_name)
 
     if hasattr(ext_module, f"{ext.code}_start"):
@@ -428,6 +431,29 @@ def register_ext_tasks(ext: Extension) -> None:
 
 def register_ext_routes(app: FastAPI, ext: Extension) -> None:
     """Register FastAPI routes for extension."""
+    if ext.extension_type != "wasm":
+        ext.extension_type = _load_extension_type(ext.code) or ext.extension_type
+    if ext.extension_type == "wasm":
+        settings.activate_extension_paths(ext.code, ext.upgrade_hash, [])
+        try:
+            module = importlib.import_module(
+                "lnbits.extensions.wasm.wasm_host.extension_host"
+            )
+            register_wasm_ext_routes = getattr(module, "register_wasm_ext_routes", None)
+        except Exception:  # pragma: no cover - optional parent extension
+            logger.error(
+                "WASM host extension not installed; cannot register wasm extension "
+                f"{ext.code}."
+            )
+            return
+        if register_wasm_ext_routes is None:
+            logger.error(
+                "WASM host extension missing register_wasm_ext_routes; cannot "
+                f"register wasm extension {ext.code}."
+            )
+            return
+        register_wasm_ext_routes(app, ext)
+        return
     ext_module = importlib.import_module(ext.module_name)
 
     ext_route = getattr(ext_module, f"{ext.code}_ext")
@@ -451,6 +477,51 @@ def register_ext_routes(app: FastAPI, ext: Extension) -> None:
     logger.trace(f"Adding route for extension {ext_module}.")
     prefix = f"/upgrades/{ext.upgrade_hash}" if ext.upgrade_hash != "" else ""
     app.include_router(router=ext_route, prefix=prefix)
+
+
+def _load_extension_type(ext_id: str) -> str | None:
+    base_dirs = [
+        Path(settings.lnbits_extensions_path, "extensions", ext_id),
+        Path(settings.lnbits_extensions_path, ext_id),
+        Path(settings.lnbits_path, "lnbits", "extensions", ext_id),
+        Path(settings.lnbits_path, "extensions", ext_id),
+        Path.cwd() / "lnbits" / "extensions" / ext_id,
+        Path.cwd() / "extensions" / ext_id,
+    ]
+    for base in base_dirs:
+        try:
+            conf_path = base / "config.json"
+            if conf_path.is_file():
+                with open(conf_path) as json_file:
+                    config_json = json.load(json_file)
+                ext_type = config_json.get("extension_type")
+                if ext_type:
+                    return ext_type
+        except Exception as exc:
+            logger.debug(
+                "Failed to read extension config.json for '{}' in '{}': {}",
+                ext_id,
+                base,
+                exc,
+            )
+            continue
+
+    for base in base_dirs:
+        try:
+            wasm_dir = base / "wasm"
+            if (wasm_dir / "module.wasm").is_file() or (
+                wasm_dir / "module.wat"
+            ).is_file():
+                return "wasm"
+        except Exception as exc:
+            logger.debug(
+                "Failed to probe wasm files for '{}' in '{}': {}",
+                ext_id,
+                base,
+                exc,
+            )
+            continue
+    return None
 
 
 async def check_and_register_extensions(app: FastAPI) -> None:
