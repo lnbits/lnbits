@@ -90,6 +90,9 @@
       {% if not public %}
       window.g.isPublicPage = false
       {% endif %}
+      window.app = Vue.createApp({
+        el: '#vue',
+      })
     </script>
     {% endif %}
     <!-- scripts from extensions -->
