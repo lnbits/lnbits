@@ -2,10 +2,10 @@ ARG LNBITS_TAG=latest
 
 FROM lnbits/lnbits:${LNBITS_TAG}
 
+RUN curl -fsSL https://deb.nodesource.com/setup_lts.x | bash -
+
 RUN apt-get update && apt-get -y upgrade
-RUN apt-get install -y ca-certificates curl gnupg netcat-openbsd git
-RUN curl -fsSL https://deb.nodesource.com/setup_20.x | bash -
-RUN apt-get install -y nodejs
+RUN apt-get install -y ca-certificates curl gnupg netcat-openbsd git npm nodejs
 
 RUN curl -LsSf https://astral.sh/uv/install.sh | sh
 ENV PATH="/root/.local/bin:$PATH"
