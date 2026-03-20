@@ -40,6 +40,7 @@ from lnbits.core.tasks import (
 )
 from lnbits.exceptions import register_exception_handlers
 from lnbits.helpers import version_parse
+from lnbits.llms_txt import create_llms_txt_route
 from lnbits.settings import settings
 from lnbits.tasks import (
     cancel_all_tasks,
@@ -100,6 +101,9 @@ async def startup(app: FastAPI):
 
     # register core routes
     init_core_routers(app)
+
+    # register llms.txt endpoint for AI agents
+    create_llms_txt_route(app)
 
     # initialize tasks
     register_async_tasks()
