@@ -10,31 +10,26 @@ from lnbits.db import Connection
 
 
 async def m000_create_migrations_table(db: Connection):
-    await db.execute(
-        """
+    await db.execute("""
     CREATE TABLE IF NOT EXISTS dbversions (
         db TEXT PRIMARY KEY,
         version INT NOT NULL
     )
-    """
-    )
+    """)
 
 
 async def m001_initial(db: Connection):
     """
     Initial LNbits tables.
     """
-    await db.execute(
-        """
+    await db.execute("""
         CREATE TABLE IF NOT EXISTS accounts (
             id TEXT PRIMARY KEY,
             email TEXT,
             pass TEXT
         );
-    """
-    )
-    await db.execute(
-        """
+    """)
+    await db.execute("""
         CREATE TABLE IF NOT EXISTS extensions (
             "user" TEXT NOT NULL,
             extension TEXT NOT NULL,
@@ -42,10 +37,8 @@ async def m001_initial(db: Connection):
 
             UNIQUE ("user", extension)
         );
-    """
-    )
-    await db.execute(
-        """
+    """)
+    await db.execute("""
         CREATE TABLE IF NOT EXISTS wallets (
             id TEXT PRIMARY KEY,
             name TEXT NOT NULL,
@@ -53,10 +46,8 @@ async def m001_initial(db: Connection):
             adminkey TEXT NOT NULL,
             inkey TEXT
         );
-    """
-    )
-    await db.execute(
-        f"""
+    """)
+    await db.execute(f"""
         CREATE TABLE IF NOT EXISTS apipayments (
             payhash TEXT NOT NULL,
             amount {db.big_int} NOT NULL,
@@ -67,11 +58,9 @@ async def m001_initial(db: Connection):
             time TIMESTAMP NOT NULL DEFAULT {db.timestamp_now},
             UNIQUE (wallet, payhash)
         );
-    """
-    )
+    """)
 
-    await db.execute(
-        """
+    await db.execute("""
         CREATE VIEW balances AS
         SELECT wallet, COALESCE(SUM(s), 0) AS balance FROM (
             SELECT wallet, SUM(amount) AS s  -- incoming
@@ -85,8 +74,7 @@ async def m001_initial(db: Connection):
             GROUP BY wallet
         )x
         GROUP BY wallet;
-    """
-    )
+    """)
 
 
 async def m002_add_fields_to_apipayments(db: Connection):
@@ -149,8 +137,7 @@ async def m004_ensure_fees_are_always_negative(db: Connection):
     """
 
     await db.execute("DROP VIEW balances")
-    await db.execute(
-        """
+    await db.execute("""
         CREATE VIEW balances AS
         SELECT wallet, COALESCE(SUM(s), 0) AS balance FROM (
             SELECT wallet, SUM(amount) AS s  -- incoming
@@ -164,8 +151,7 @@ async def m004_ensure_fees_are_always_negative(db: Connection):
             GROUP BY wallet
         )x
         GROUP BY wallet;
-    """
-    )
+    """)
 
 
 async def m005_balance_check_balance_notify(db: Connection):
@@ -174,8 +160,7 @@ async def m005_balance_check_balance_notify(db: Connection):
     LNbits wallet and of balanceNotify URLs supplied by users to empty their wallets.
     """
 
-    await db.execute(
-        """
+    await db.execute("""
         CREATE TABLE IF NOT EXISTS balance_check (
           wallet TEXT NOT NULL REFERENCES wallets (id),
           service TEXT NOT NULL,
@@ -183,19 +168,16 @@ async def m005_balance_check_balance_notify(db: Connection):
 
           UNIQUE(wallet, service)
         );
-    """
-    )
+    """)
 
-    await db.execute(
-        """
+    await db.execute("""
         CREATE TABLE IF NOT EXISTS balance_notify (
           wallet TEXT NOT NULL REFERENCES wallets (id),
           url TEXT NOT NULL,
 
           UNIQUE(wallet, url)
         );
-    """
-    )
+    """)
 
 
 async def m006_add_invoice_expiry_to_apipayments(db: Connection):
@@ -262,19 +244,16 @@ async def m007_set_invoice_expiries(db: Connection):
 
 
 async def m008_create_admin_settings_table(db: Connection):
-    await db.execute(
-        """
+    await db.execute("""
         CREATE TABLE IF NOT EXISTS settings (
             super_user TEXT,
             editable_settings TEXT NOT NULL DEFAULT '{}'
         );
-    """
-    )
+    """)
 
 
 async def m009_create_tinyurl_table(db: Connection):
-    await db.execute(
-        f"""
+    await db.execute(f"""
         CREATE TABLE IF NOT EXISTS tiny_url (
           id TEXT PRIMARY KEY,
           url TEXT,
@@ -282,13 +261,11 @@ async def m009_create_tinyurl_table(db: Connection):
           wallet TEXT,
           time TIMESTAMP NOT NULL DEFAULT {db.timestamp_now}
         );
-    """
-    )
+    """)
 
 
 async def m010_create_installed_extensions_table(db: Connection):
-    await db.execute(
-        """
+    await db.execute("""
         CREATE TABLE IF NOT EXISTS installed_extensions (
             id TEXT PRIMARY KEY,
             version TEXT NOT NULL,
@@ -299,8 +276,7 @@ async def m010_create_installed_extensions_table(db: Connection):
             active BOOLEAN DEFAULT false,
             meta TEXT NOT NULL DEFAULT '{}'
         );
-    """
-    )
+    """)
 
 
 async def m011_optimize_balances_view(db: Connection):
@@ -309,23 +285,19 @@ async def m011_optimize_balances_view(db: Connection):
     over the payments table instead of 2.
     """
     await db.execute("DROP VIEW balances")
-    await db.execute(
-        """
+    await db.execute("""
         CREATE VIEW balances AS
         SELECT wallet, SUM(amount - abs(fee)) AS balance
         FROM apipayments
         WHERE (pending = false AND amount > 0) OR amount < 0
         GROUP BY wallet
-    """
-    )
+    """)
 
 
 async def m012_add_currency_to_wallet(db: Connection):
-    await db.execute(
-        """
+    await db.execute("""
         ALTER TABLE wallets ADD COLUMN currency TEXT
-        """
-    )
+        """)
 
 
 async def m013_add_deleted_to_wallets(db: Connection):
@@ -345,15 +317,13 @@ async def m014_set_deleted_wallets(db: Connection):
     Sets deleted column to wallets.
     """
     try:
-        result = await db.execute(
-            """
+        result = await db.execute("""
             SELECT *
             FROM wallets
             WHERE user LIKE 'del:%'
             AND adminkey LIKE 'del:%'
             AND inkey LIKE 'del:%'
-            """
-        )
+            """)
         rows = result.mappings().all()
 
         for row in rows:
@@ -386,8 +356,7 @@ async def m014_set_deleted_wallets(db: Connection):
 
 
 async def m015_create_push_notification_subscriptions_table(db: Connection):
-    await db.execute(
-        f"""
+    await db.execute(f"""
         CREATE TABLE IF NOT EXISTS webpush_subscriptions (
             endpoint TEXT NOT NULL,
             "user" TEXT NOT NULL,
@@ -396,8 +365,7 @@ async def m015_create_push_notification_subscriptions_table(db: Connection):
             timestamp TIMESTAMP NOT NULL DEFAULT {db.timestamp_now},
             PRIMARY KEY (endpoint, "user")
         );
-    """
-    )
+    """)
 
 
 async def m016_add_username_column_to_accounts(db: Connection):
@@ -484,8 +452,7 @@ async def m018_balances_view_exclude_deleted(db: Connection):
     Make deleted wallets not show up in the balances view.
     """
     await db.execute("DROP VIEW balances")
-    await db.execute(
-        """
+    await db.execute("""
         CREATE VIEW balances AS
         SELECT apipayments.wallet,
                SUM(apipayments.amount - ABS(apipayments.fee)) AS balance
@@ -495,8 +462,7 @@ async def m018_balances_view_exclude_deleted(db: Connection):
               AND ((apipayments.pending = false AND apipayments.amount > 0)
               OR apipayments.amount < 0)
         GROUP BY wallet
-    """
-    )
+    """)
 
 
 async def m019_balances_view_based_on_wallets(db: Connection):
@@ -505,8 +471,7 @@ async def m019_balances_view_based_on_wallets(db: Connection):
     Important for querying whole lnbits balances.
     """
     await db.execute("DROP VIEW balances")
-    await db.execute(
-        """
+    await db.execute("""
         CREATE VIEW balances AS
         SELECT apipayments.wallet,
                SUM(apipayments.amount - ABS(apipayments.fee)) AS balance
@@ -516,8 +481,7 @@ async def m019_balances_view_based_on_wallets(db: Connection):
               AND ((apipayments.pending = false AND apipayments.amount > 0)
               OR apipayments.amount < 0)
         GROUP BY apipayments.wallet
-    """
-    )
+    """)
 
 
 async def m020_add_column_column_to_user_extensions(db: Connection):
@@ -536,8 +500,7 @@ async def m021_add_success_failed_to_apipayments(db: Connection):
     await db.execute("UPDATE apipayments SET status = 'success' WHERE NOT pending")
 
     await db.execute("DROP VIEW balances")
-    await db.execute(
-        """
+    await db.execute("""
         CREATE VIEW balances AS
         SELECT apipayments.wallet,
                SUM(apipayments.amount - ABS(apipayments.fee)) AS balance
@@ -549,8 +512,7 @@ async def m021_add_success_failed_to_apipayments(db: Connection):
             OR (apipayments.status IN ('success', 'pending') AND apipayments.amount < 0)
         )
         GROUP BY apipayments.wallet
-    """
-    )
+    """)
 
 
 async def m022_add_pubkey_to_accounts(db: Connection):
@@ -581,8 +543,7 @@ async def m024_drop_pending(db: Connection):
 
 async def m025_refresh_view(db: Connection):
     await db.execute("DROP VIEW balances")
-    await db.execute(
-        """
+    await db.execute("""
         CREATE VIEW balances AS
         SELECT apipayments.wallet_id,
                SUM(apipayments.amount - ABS(apipayments.fee)) AS balance
@@ -594,8 +555,7 @@ async def m025_refresh_view(db: Connection):
             OR (apipayments.status IN ('success', 'pending') AND apipayments.amount < 0)
         )
         GROUP BY apipayments.wallet_id
-    """
-    )
+    """)
 
 
 async def m026_update_payment_table(db: Connection):
@@ -658,8 +618,7 @@ async def m027_update_apipayments_data(db: Connection):
 
 async def m028_update_settings(db: Connection):
 
-    await db.execute(
-        """
+    await db.execute("""
         CREATE TABLE IF NOT EXISTS system_settings (
             id TEXT PRIMARY KEY,
             value TEXT,
@@ -667,8 +626,7 @@ async def m028_update_settings(db: Connection):
 
             UNIQUE (id, tag)
         );
-    """
-    )
+    """)
 
     async def _insert_key_value(id_: str, value: Any):
         await db.execute(
@@ -691,8 +649,7 @@ async def m028_update_settings(db: Connection):
 
 
 async def m029_create_audit_table(db: Connection):
-    await db.execute(
-        f"""
+    await db.execute(f"""
         CREATE TABLE IF NOT EXISTS audit (
             component TEXT,
             ip_address TEXT,
@@ -706,16 +663,13 @@ async def m029_create_audit_table(db: Connection):
             delete_at TIMESTAMP,
             created_at TIMESTAMP NOT NULL DEFAULT {db.timestamp_now}
         );
-        """
-    )
+        """)
 
 
 async def m030_add_user_api_tokens_column(db: Connection):
-    await db.execute(
-        """
+    await db.execute("""
         ALTER TABLE accounts ADD COLUMN access_control_list TEXT
-        """
-    )
+        """)
 
 
 async def m031_add_color_and_icon_to_wallets(db: Connection):
@@ -738,32 +692,25 @@ async def m033_update_payment_table(db: Connection):
 
 
 async def m034_add_stored_paylinks_to_wallet(db: Connection):
-    await db.execute(
-        """
+    await db.execute("""
         ALTER TABLE wallets ADD COLUMN stored_paylinks TEXT
-        """
-    )
+        """)
 
 
 async def m035_add_wallet_type_column(db: Connection):
-    await db.execute(
-        """
+    await db.execute("""
         ALTER TABLE wallets ADD COLUMN wallet_type TEXT DEFAULT 'lightning'
-        """
-    )
+        """)
 
 
 async def m036_add_shared_wallet_column(db: Connection):
-    await db.execute(
-        """
+    await db.execute("""
         ALTER TABLE wallets ADD COLUMN shared_wallet_id TEXT
-        """
-    )
+        """)
 
 
 async def m037_create_assets_table(db: Connection):
-    await db.execute(
-        f"""
+    await db.execute(f"""
         CREATE TABLE IF NOT EXISTS assets (
             id TEXT PRIMARY KEY,
             user_id TEXT NOT NULL,
@@ -776,16 +723,13 @@ async def m037_create_assets_table(db: Connection):
             data {db.blob} NOT NULL,
             created_at TIMESTAMP NOT NULL DEFAULT {db.timestamp_now}
         );
-        """
-    )
+        """)
 
 
 async def m038_add_labels_for_payments(db: Connection):
-    await db.execute(
-        """
+    await db.execute("""
         ALTER TABLE apipayments ADD COLUMN labels TEXT
-        """
-    )
+        """)
 
 
 async def m039_index_payments(db: Connection):
@@ -804,11 +748,9 @@ async def m039_index_payments(db: Connection):
     ]
     for index in indexes:
         logger.debug(f"Creating index idx_payments_{index}...")
-        await db.execute(
-            f"""
+        await db.execute(f"""
             CREATE INDEX IF NOT EXISTS idx_payments_{index} ON apipayments ({index});
-            """
-        )
+            """)
 
 
 async def m040_index_wallets(db: Connection):
@@ -825,11 +767,9 @@ async def m040_index_wallets(db: Connection):
 
     for index in indexes:
         logger.debug(f"Creating index idx_wallets_{index}...")
-        await db.execute(
-            f"""
+        await db.execute(f"""
             CREATE INDEX IF NOT EXISTS idx_wallets_{index} ON wallets ("{index}");
-            """
-        )
+            """)
 
 
 async def m042_index_accounts(db: Connection):
@@ -843,11 +783,9 @@ async def m042_index_accounts(db: Connection):
 
     for index in indexes:
         logger.debug(f"Creating index idx_wallets_{index}...")
-        await db.execute(
-            f"""
+        await db.execute(f"""
             CREATE INDEX IF NOT EXISTS idx_accounts_{index} ON accounts ("{index}");
-            """
-        )
+            """)
 
 
 async def m043_add_ui_customization_to_accounts(db: Connection):

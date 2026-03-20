@@ -6,25 +6,21 @@ from tests.helpers import DbTestModel
 @pytest.fixture(scope="session")
 async def fetch_page(db):
     await db.execute("DROP TABLE IF EXISTS test_db_fetch_page")
-    await db.execute(
-        """
+    await db.execute("""
         CREATE TABLE test_db_fetch_page (
             id TEXT PRIMARY KEY,
             value TEXT NOT NULL,
             name TEXT NOT NULL
         )
-        """
-    )
-    await db.execute(
-        """
+        """)
+    await db.execute("""
         INSERT INTO test_db_fetch_page (id, name, value) VALUES
             ('1', 'Alice', 'foo'),
             ('2', 'Bob', 'bar'),
             ('3', 'Carol', 'bar'),
             ('4', 'Dave', 'bar'),
             ('5', 'Dave', 'foo')
-        """
-    )
+        """)
     yield
     await db.execute("DROP TABLE test_db_fetch_page")
 

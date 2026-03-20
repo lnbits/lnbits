@@ -40,7 +40,7 @@ def encrypt_content(priv_key, dest_pub_key, content):
 def decrypt_content(priv_key, source_pub_key, content):
     p = PublicKey(bytes.fromhex("02" + source_pub_key))
     shared = p.multiply(bytes.fromhex(priv_key)).format()[1:]
-    (encrypted_content_b64, iv_b64) = content.split("?iv=")
+    encrypted_content_b64, iv_b64 = content.split("?iv=")
     encrypted_content = base64.b64decode(encrypted_content_b64.encode("ascii"))
     iv = base64.b64decode(iv_b64.encode("ascii"))
     aes = AES.new(shared, AES.MODE_CBC, iv)
