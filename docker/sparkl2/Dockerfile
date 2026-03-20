@@ -2,15 +2,17 @@ ARG LNBITS_TAG=latest
 
 FROM lnbits/lnbits:${LNBITS_TAG}
 
+RUN curl -fsSL https://deb.nodesource.com/setup_lts.x | bash -
+
 RUN apt-get update && apt-get -y upgrade
-RUN apt-get install -y netcat-openbsd npm nodejs git
+RUN apt-get install -y ca-certificates curl gnupg netcat-openbsd git nodejs
 
 RUN curl -LsSf https://astral.sh/uv/install.sh | sh
 ENV PATH="/root/.local/bin:$PATH"
 
 # install sparksidecar
 RUN git clone https://github.com/lnbits/spark_sidecar
-RUN cd spark_sidecar && npm install
+RUN cd spark_sidecar && npm ci
 
 # Reinstall dependencies for lnbits just in case (needed for CMD usage)
 RUN uv sync --all-extras
