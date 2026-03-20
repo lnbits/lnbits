@@ -446,50 +446,44 @@
         </div>
       </div>
       <div v-else-if="activeWallet.show">
-        <q-dialog v-model="createWalletDialog.show" position="top">
-          <q-card class="q-pa-md q-pt-md lnbits__dialog-card">
-            <strong>Create Wallet</strong>
-            <div class="row">
-              <div class="col-12">
-                <div class="row q-mt-lg">
-                  <div class="col">
-                    <q-input
-                      v-model="createWalletDialog.data.name"
-                      :label="$t('name_your_wallet')"
-                      filled
-                      dense
-                      class="q-mb-md"
-                    >
-                    </q-input>
-                  </div>
-                </div>
-                <div class="row q-mt-lg">
-                  <div class="col">
-                    <q-select
-                      filled
-                      dense
-                      v-model="createWalletDialog.data.currency"
-                      :options="{{ currencies | safe }}"
-                    ></q-select>
-                  </div>
-                </div>
-                <div class="row q-mt-lg">
-                  <q-btn
-                    v-close-popup
-                    @click="createWallet()"
-                    unelevated
-                    color="primary"
-                    type="submit"
-                    >Create</q-btn
+        <lnbits-dialog
+          :show="createWalletDialog.show"
+          title="Create Wallet"
+          :action="{
+            label: 'Create',
+            closePopup: true
+          }"
+          cancel-label="Cancel"
+          @update:show="createWalletDialog.show = $event"
+          @action="createWallet"
+        >
+          <div class="row">
+            <div class="col-12">
+              <div class="row q-mt-lg">
+                <div class="col">
+                  <q-input
+                    v-model="createWalletDialog.data.name"
+                    :label="$t('name_your_wallet')"
+                    filled
+                    dense
+                    class="q-mb-md"
                   >
-                  <q-btn v-close-popup flat color="grey" class="q-ml-auto"
-                    >Cancel</q-btn
-                  >
+                  </q-input>
+                </div>
+              </div>
+              <div class="row q-mt-lg">
+                <div class="col">
+                  <q-select
+                    filled
+                    dense
+                    v-model="createWalletDialog.data.currency"
+                    :options="g.allowedCurrencies"
+                  ></q-select>
                 </div>
               </div>
             </div>
-          </q-card>
-        </q-dialog>
+          </div>
+        </lnbits-dialog>
       </div>
       <div v-else>
         <div class="row q-col-gutter-md q-mb-md">

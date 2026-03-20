@@ -366,72 +366,72 @@
     </div>
   </div>
 
-  <q-dialog v-model="showUninstallDialog" position="top">
-    <q-card class="q-pa-lg">
-      <h6 class="q-my-md text-primary" v-text="$t('warning')"></h6>
-      <p>
-        <span v-text="$t('extension_uninstall_warning')"></span><br />
-        <span v-text="$t('confirm_continue')"></span>
-      </p>
+  <lnbits-dialog
+    :show="showUninstallDialog"
+    :title="$t('warning')"
+    :action="{
+      label: $t('uninstall_confirm')
+    }"
+    :cancel-label="$t('cancel')"
+    @update:show="showUninstallDialog = $event"
+    @action="uninstallExtension()"
+  >
+    <p>
+      <span v-text="$t('extension_uninstall_warning')"></span><br />
+      <span v-text="$t('confirm_continue')"></span>
+    </p>
 
-      <div class="row q-mt-lg">
-        <q-checkbox
-          v-model="uninstallAndDropDb"
-          value="false"
-          label="Cleanup database tables"
-        >
-          <q-tooltip class="bg-grey-8" anchor="bottom left" self="top left"
-            ><span v-text="$t('extension_db_drop_info')"></span>
-          </q-tooltip>
-        </q-checkbox>
-      </div>
-      <div class="row q-mt-lg">
-        <q-btn
-          outline
-          color="grey"
-          @click="uninstallExtension()"
-          v-text="$t('uninstall_confirm')"
-        ></q-btn>
-        <q-btn
-          v-close-popup
-          flat
-          color="grey"
-          class="q-ml-auto"
-          v-text="$t('cancel')"
-        ></q-btn>
-      </div>
-    </q-card>
-  </q-dialog>
+    <div class="row q-mt-lg">
+      <q-checkbox
+        v-model="uninstallAndDropDb"
+        value="false"
+        label="Cleanup database tables"
+      >
+        <q-tooltip class="bg-grey-8" anchor="bottom left" self="top left"
+          ><span v-text="$t('extension_db_drop_info')"></span>
+        </q-tooltip>
+      </q-checkbox>
+    </div>
+  </lnbits-dialog>
 
-  <q-dialog v-model="showDropDbDialog" position="top">
-    <q-card v-if="selectedExtension" class="q-pa-lg">
-      <h6 class="q-my-md text-primary" v-text="$t('warning')"></h6>
-      <p><span v-text="$t('extension_db_drop_warning')"></span><br /></p>
-      <q-input
-        v-model="dropDbExtensionId"
-        :label="selectedExtension.id"
-      ></q-input>
-      <br />
-      <p v-text="$t('confirm_continue')"></p>
+  <lnbits-dialog
+    v-if="selectedExtension"
+    :show="showDropDbDialog"
+    :title="$t('warning')"
+    :action="{
+      label: $t('confirm'),
+      color: 'red',
+      disable: dropDbExtensionId !== selectedExtension.id
+    }"
+    :cancel-label="$t('cancel')"
+    @update:show="showDropDbDialog = $event"
+    @action="dropExtensionDb()"
+  >
+    <p><span v-text="$t('extension_db_drop_warning')"></span><br /></p>
+    <q-input
+      v-model="dropDbExtensionId"
+      :label="selectedExtension.id"
+    ></q-input>
+    <br />
+    <p v-text="$t('confirm_continue')"></p>
 
-      <div class="row q-mt-lg">
-        <q-btn
-          :disable="dropDbExtensionId !== selectedExtension.id"
-          outline
-          color="red"
-          @click="dropExtensionDb()"
-          v-text="$t('confirm')"
-        ></q-btn>
-        <q-btn
-          v-close-popup
-          flat
-          color="grey"
-          class="q-ml-auto"
-          v-text="$t('cancel')"
-        ></q-btn>
-      </div>
-    </q-card>
-  </q-dialog>
+    <div class="row q-mt-lg">
+      <q-btn
+        :disable="dropDbExtensionId !== selectedExtension.id"
+        outline
+        color="red"
+        @click="dropExtensionDb()"
+        v-text="$t('confirm')"
+      ></q-btn>
+      <q-btn
+        v-close-popup
+        flat
+        color="grey"
+        class="q-ml-auto"
+        v-text="$t('cancel')"
+      ></q-btn>
+    </div>
+  </lnbits-dialog>
 
   <q-dialog v-model="showManageExtensionDialog" position="top">
     <q-card v-if="selectedRelease" class="q-pa-lg lnbits__dialog-card">
@@ -1244,76 +1244,61 @@
       </q-card-section>
     </q-card>
   </q-dialog>
-  <q-dialog v-model="paymentDialog.show" position="top">
-    <q-card class="q-pa-md lnbits__dialog-card">
-      <q-card-section>
-        <q-responsive :ratio="1" class="q-mx-xl q-mb-xl">
-          <lnbits-qrcode
-            :value="paymentDialog.invoice"
-            :options="{width: 800}"
-            class="rounded-borders"
-          ></lnbits-qrcode>
-        </q-responsive>
-      </q-card-section>
-      <q-card-actions align="between">
-        <q-btn v-close-popup flat color="grey" :label="$t('close')"></q-btn>
-      </q-card-actions>
-    </q-card>
-  </q-dialog>
-  <q-dialog v-model="showUpdateAllDialog" position="top">
-    <q-card class="q-pa-md q-pt-md lnbits__dialog-card">
-      <div class="row">
-        <div class="col-12">
-          <h6 class="q-my-md" v-text="$t('update')"></h6>
-        </div>
-      </div>
-      <div v-if="updatableExtensions?.length > 1" class="row">
-        <div class="col-12">
-          <q-btn
-            outline
-            color="grey"
-            @click="selectAllUpdatableExtensionss()"
-            v-text="$t('select_all')"
-          ></q-btn>
-        </div>
-      </div>
+  <lnbits-dialog
+    :show="paymentDialog.show"
+    :cancel-label="$t('close')"
+    @update:show="paymentDialog.show = $event"
+  >
+    <q-responsive :ratio="1" class="q-mx-xl q-mb-xl">
+      <lnbits-qrcode
+        :value="paymentDialog.invoice"
+        :options="{width: 800}"
+        class="rounded-borders"
+      ></lnbits-qrcode>
+    </q-responsive>
+  </lnbits-dialog>
 
-      <q-virtual-scroll :items="updatableExtensions" style="max-height: 400px">
-        <template v-slot="{item, index}">
-          <div class="row">
-            <div class="q-col">
-              <q-checkbox
-                v-model="item.selectedForUpdate"
-                :disable="item.isUpgraded"
-                value="false"
-                :label="item.name + ` (v${item.latestRelease?.version})`"
-              >
-                <q-spinner-bars
-                  v-if="item.inProgress"
-                  color="primary"
-                  size="1.5em"
-                  class="q-ml-md"
-                ></q-spinner-bars>
-              </q-checkbox>
-            </div>
-          </div>
-        </template>
-      </q-virtual-scroll>
-      <div class="row q-mt-lg">
+  <lnbits-dialog
+    :show="showUpdateAllDialog"
+    :title="$t('update')"
+    :action="{
+      label: $t('update')
+    }"
+    :cancel-label="$t('cancel')"
+    @update:show="showUpdateAllDialog = $event"
+    @action="updateSelectedExtensions()"
+  >
+    <div v-if="updatableExtensions?.length > 1" class="row">
+      <div class="col-12 q-mb-md">
         <q-btn
-          @click="updateSelectedExtensions()"
           outline
           color="grey"
-          v-text="$t('update')"
-        ></q-btn>
-        <q-btn
-          v-close-popup
-          flat
-          color="grey"
-          class="q-ml-auto"
-          v-text="$t('cancel')"
+          @click="selectAllUpdatableExtensionss()"
+          v-text="$t('select_all')"
         ></q-btn>
       </div>
-    </q-card>
-  </q-dialog>
+    </div>
+
+    <q-virtual-scroll :items="updatableExtensions" style="max-height: 400px">
+      <template v-slot="{item, index}">
+        <div class="row">
+          <div class="q-col">
+            <q-checkbox
+              v-model="item.selectedForUpdate"
+              :disable="item.isUpgraded"
+              value="false"
+              :label="item.name + ` (v${item.latestRelease?.version})`"
+            >
+              <q-spinner-bars
+                v-if="item.inProgress"
+                color="primary"
+                size="1.5em"
+                class="q-ml-md"
+              ></q-spinner-bars>
+            </q-checkbox>
+          </div>
+        </div>
+      </template>
+    </q-virtual-scroll>
+  </lnbits-dialog>
 </template>

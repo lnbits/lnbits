@@ -103,164 +103,127 @@
               </q-card-section>
             </q-tab-panel>
             <q-tab-panel name="channels">
-              <q-dialog v-model="connectPeerDialog.show" position="top">
-                <q-card class="q-pa-lg q-pt-xl lnbits__dialog-card">
-                  <q-form class="q-gutter-md">
-                    <q-input
-                      dense
-                      type="text"
-                      filled
-                      v-model="connectPeerDialog.data.uri"
-                      label="Node URI"
-                      hint="pubkey@host:port"
-                    ></q-input>
+              <lnbits-dialog
+                :show="connectPeerDialog.show"
+                :action="{
+                  label: $t('connect')
+                }"
+                :cancel-label="$t('cancel')"
+                @update:show="connectPeerDialog.show = $event"
+                @action="connectPeer"
+              >
+                <q-form class="q-gutter-md">
+                  <q-input
+                    dense
+                    type="text"
+                    filled
+                    v-model="connectPeerDialog.data.uri"
+                    label="Node URI"
+                    hint="pubkey@host:port"
+                  ></q-input>
+                </q-form>
+              </lnbits-dialog>
 
-                    <div class="row q-mt-lg">
-                      <q-btn
-                        :label="$t('connect')"
-                        color="primary"
-                        @click="connectPeer"
-                      ></q-btn>
-                      <q-btn
-                        v-close-popup
-                        flat
-                        color="grey"
-                        class="q-ml-auto"
-                        :label="$t('cancel')"
-                      ></q-btn>
-                    </div>
-                  </q-form>
-                </q-card>
-              </q-dialog>
+              <lnbits-dialog
+                :show="setFeeDialog.show"
+                title="Set Channel Fee"
+                :action="{
+                  label: $t('set')
+                }"
+                :cancel-label="$t('cancel')"
+                @update:show="setFeeDialog.show = $event"
+                @action="setChannelFee(setFeeDialog.channel_id)"
+              >
+                <p class="text-caption" v-text="setFeeDialog.channel_id"></p>
+                <q-separator></q-separator>
+                <q-form class="q-gutter-md">
+                  <q-input
+                    dense
+                    type="number"
+                    filled
+                    v-model.number="setFeeDialog.data.fee_ppm"
+                    label="Fee Rate PPM"
+                  ></q-input>
+                  <q-input
+                    dense
+                    type="number"
+                    filled
+                    v-model.number="setFeeDialog.data.fee_base_msat"
+                    label="Fee Base msat"
+                  ></q-input>
+                </q-form>
+              </lnbits-dialog>
 
-              <q-dialog v-model="setFeeDialog.show">
-                <q-card class="q-pa-lg q-pt-xl lnbits__dialog-card">
-                  <label class="text-h6">Set Channel Fee</label>
-                  <p class="text-caption" v-text="setFeeDialog.channel_id"></p>
-                  <q-separator></q-separator>
-                  <q-form class="q-gutter-md">
-                    <q-input
-                      dense
-                      type="number"
-                      filled
-                      v-model.number="setFeeDialog.data.fee_ppm"
-                      label="Fee Rate PPM"
-                    ></q-input>
-                    <q-input
-                      dense
-                      type="number"
-                      filled
-                      v-model.number="setFeeDialog.data.fee_base_msat"
-                      label="Fee Base msat"
-                    ></q-input>
+              <lnbits-dialog
+                :show="openChannelDialog.show"
+                :action="{
+                  label: $t('open')
+                }"
+                :cancel-label="$t('cancel')"
+                @update:show="openChannelDialog.show = $event"
+                @action="openChannel"
+              >
+                <q-form class="q-gutter-md">
+                  <q-input
+                    dense
+                    type="text"
+                    filled
+                    v-model="openChannelDialog.data.peer_id"
+                    label="Peer ID"
+                  ></q-input>
+                  <q-input
+                    dense
+                    type="number"
+                    filled
+                    v-model.number="openChannelDialog.data.funding_amount"
+                    label="Funding Amount"
+                  ></q-input>
+                  <q-expansion-item icon="warning" label="Advanced">
+                    <q-card>
+                      <q-card-section>
+                        <div class="column q-gutter-md">
+                          <q-input
+                            dense
+                            type="number"
+                            filled
+                            v-model.number="openChannelDialog.data.push_amount"
+                            label="Push Amount"
+                            hint="This gifts sats to the other side!"
+                          ></q-input>
 
-                    <div class="row q-mt-lg">
-                      <q-btn
-                        :label="$t('set')"
-                        color="primary"
-                        @click="setChannelFee(setFeeDialog.channel_id)"
-                      ></q-btn>
-                      <q-btn
-                        v-close-popup
-                        flat
-                        color="grey"
-                        class="q-ml-auto"
-                        :label="$t('cancel')"
-                      ></q-btn>
-                    </div>
-                  </q-form>
-                </q-card>
-              </q-dialog>
+                          <q-input
+                            dense
+                            type="number"
+                            filled
+                            v-model.number="openChannelDialog.data.fee_rate"
+                            label="Fee Rate"
+                          ></q-input>
+                        </div>
+                      </q-card-section>
+                    </q-card>
+                  </q-expansion-item>
+                </q-form>
+              </lnbits-dialog>
 
-              <q-dialog v-model="openChannelDialog.show">
-                <q-card class="q-pa-lg q-pt-xl lnbits__dialog-card">
-                  <q-form class="q-gutter-md">
-                    <q-input
-                      dense
-                      type="text"
-                      filled
-                      v-model="openChannelDialog.data.peer_id"
-                      label="Peer ID"
-                    ></q-input>
-                    <q-input
-                      dense
-                      type="number"
-                      filled
-                      v-model.number="openChannelDialog.data.funding_amount"
-                      label="Funding Amount"
-                    ></q-input>
-                    <q-expansion-item icon="warning" label="Advanced">
-                      <q-card>
-                        <q-card-section>
-                          <div class="column q-gutter-md">
-                            <q-input
-                              dense
-                              type="number"
-                              filled
-                              v-model.number="
-                                openChannelDialog.data.push_amount
-                              "
-                              label="Push Amount"
-                              hint="This gifts sats to the other side!"
-                            ></q-input>
-
-                            <q-input
-                              dense
-                              type="number"
-                              filled
-                              v-model.number="openChannelDialog.data.fee_rate"
-                              label="Fee Rate"
-                            ></q-input>
-                          </div>
-                        </q-card-section>
-                      </q-card>
-                    </q-expansion-item>
-
-                    <div class="row q-mt-lg">
-                      <q-btn
-                        :label="$t('open')"
-                        color="primary"
-                        @click="openChannel"
-                      ></q-btn>
-                      <q-btn
-                        v-close-popup
-                        flat
-                        color="grey"
-                        class="q-ml-auto"
-                        :label="$t('cancel')"
-                      ></q-btn>
-                    </div>
-                  </q-form>
-                </q-card>
-              </q-dialog>
-
-              <q-dialog v-model="closeChannelDialog.show" position="top">
-                <q-card class="q-pa-lg q-pt-xl lnbits__dialog-card">
-                  <q-form class="q-gutter-md">
-                    <div>
-                      <q-checkbox
-                        v-model="closeChannelDialog.data.force"
-                        label="Force"
-                      />
-                    </div>
-
-                    <div class="row q-mt-lg">
-                      <q-btn
-                        :label="$t('close')"
-                        color="primary"
-                        @click="closeChannel"
-                      ></q-btn>
-                      <q-btn
-                        v-close-popup
-                        flat
-                        color="grey"
-                        class="q-ml-auto"
-                        :label="$t('cancel')"
-                      ></q-btn>
-                    </div>
-                  </q-form>
-                </q-card>
-              </q-dialog>
+              <lnbits-dialog
+                :show="closeChannelDialog.show"
+                title="Close Channel"
+                :action="{
+                  label: $t('close')
+                }"
+                :cancel-label="$t('cancel')"
+                @update:show="closeChannelDialog.show = $event"
+                @action="closeChannel"
+              >
+                <q-form class="q-gutter-md">
+                  <div>
+                    <q-checkbox
+                      v-model="closeChannelDialog.data.force"
+                      label="Force"
+                    />
+                  </div>
+                </q-form>
+              </lnbits-dialog>
 
               <q-card-section class="q-pa-none">
                 <div class="row q-col-gutter-lg">

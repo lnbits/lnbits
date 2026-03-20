@@ -199,47 +199,36 @@
     </div>
     <div class="col-md-8 col-sm-12"></div>
   </div>
-
-  <q-dialog v-model="exchangeData.showTickerConversion" position="top">
-    <q-card class="q-pa-md q-pt-md lnbits__dialog-card">
-      <div class="q-mb-md">
-        <strong v-text="$t('create_ticker_converter')"></strong>
+  <lnbits-dialog
+    :show="exchangeData.showTickerConversion"
+    :title="$t('create_ticker_converter')"
+    :action="{
+      label: 'Add Ticker Conversion'
+    }"
+    :cancel-label="$t('close')"
+    @update:show="exchangeData.showTickerConversion = $event"
+    @action="addExchangeTickerConversion()"
+  >
+    <div class="row">
+      <div class="col-12 q-mb-md">
+        <q-select
+          filled
+          dense
+          v-model="exchangeData.convertFromTicker"
+          label="From Currency"
+          :options="currencies"
+        ></q-select>
       </div>
-      <div class="row">
-        <div class="col-12 q-mb-md">
-          <q-select
-            filled
-            dense
-            v-model="exchangeData.convertFromTicker"
-            label="From Currency"
-            :options="currencies"
-          ></q-select>
-        </div>
-        <div class="col-12">
-          <q-input
-            v-model="exchangeData.convertToTicker"
-            dense
-            filled
-            label="New Ticker"
-            hint="This ticker will be used for the exchange API calls."
-          >
-          </q-input>
-        </div>
+      <div class="col-12">
+        <q-input
+          v-model="exchangeData.convertToTicker"
+          dense
+          filled
+          label="New Ticker"
+          hint="This ticker will be used for the exchange API calls."
+        >
+        </q-input>
       </div>
-      <div class="row q-mt-lg">
-        <q-btn
-          @click="addExchangeTickerConversion()"
-          label="Add Ticker Conversion"
-          color="primary"
-        ></q-btn>
-        <q-btn
-          v-close-popup
-          flat
-          color="grey"
-          class="q-ml-auto"
-          v-text="$t('close')"
-        ></q-btn>
-      </div>
-    </q-card>
-  </q-dialog>
+    </div>
+  </lnbits-dialog>
 </template>
