@@ -19,6 +19,7 @@ from lnbits.utils.crypto import random_secret_and_hash
 
 from .base import (
     InvoiceResponse,
+    PaymentFailedStatus,
     PaymentPendingStatus,
     PaymentResponse,
     PaymentStatus,
@@ -382,6 +383,12 @@ class CLNRestWallet(Wallet):
             if pay["status"] == "complete":
                 fee_msat = pay["amount_sent_msat"] - pay["amount_msat"]
                 return PaymentSuccessStatus(fee_msat=fee_msat, preimage=pay["preimage"])
+
+            if pay["status"] == "failed":
+                logger.info(
+                    f"CLNRest payment {checking_id} failed: {pay.get('description', 'unknown reason')}"
+                )
+                return PaymentFailedStatus()
 
         except Exception as exc:
             logger.warning(f"Error getting payment status: {exc}")
