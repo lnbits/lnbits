@@ -183,7 +183,15 @@ async def invoice_callback_dispatcher(checking_id: str, is_internal: bool = Fals
     status = await check_payment_status(
         payment, skip_internal_payment_notifications=True
     )
-    payment.fee = status.fee_msat or payment.fee
+    # For internal payments, the receiver's fee should always be 0.
+    # The receiver's checking_id doesn't start with "internal_" (it's the
+    # raw payment_hash from FakeWallet), so check_payment_status may route
+    # to the real funding source which can return an incorrect fee_msat.
+    # Guard against this by preserving fee=0 for internal transfers.
+    if is_internal:
+        payment.fee = 0
+    else:
+        payment.fee = status.fee_msat or payment.fee
     # only overwrite preimage if status.preimage provides it
     payment.preimage = status.preimage or payment.preimage
     payment.status = PaymentState.SUCCESS
