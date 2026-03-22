@@ -76,7 +76,7 @@ class LndRestNode(Node):
         return response.json()
 
     def get(self, path: str, **kwargs):
-        return self.request("GET", path, **kwargs)
+        return self.request("GET", path, timeout=30, **kwargs)
 
     async def _get_id(self) -> str:
         info = await self.get("/v1/getinfo")
@@ -99,11 +99,12 @@ class LndRestNode(Node):
                 "perm": True,
                 "timeout": 30,
             },
+            timeout=30,
         )
 
     async def disconnect_peer(self, peer_id: str):
         try:
-            await self.request("DELETE", "/v1/peers/" + peer_id)
+            await self.request("DELETE", "/v1/peers/" + peer_id, timeout=30)
         except HTTPException as exc:
             if "unable to disconnect" in exc.detail:
                 raise HTTPException(
@@ -141,6 +142,7 @@ class LndRestNode(Node):
                 "local_funding_amount": local_amount,
                 "push_sat": push_amount,
             },
+            timeout=30,
         )
         return ChannelPoint(
             # WHY IS THIS REVERSED?!
@@ -214,6 +216,7 @@ class LndRestNode(Node):
                 # 'min_htlc_msat': <uint64>,
                 # 'inbound_fee': <InboundFee>,
             },
+            timeout=30,
         )
 
     async def get_channel(self, channel_id: str) -> NodeChannel | None:
