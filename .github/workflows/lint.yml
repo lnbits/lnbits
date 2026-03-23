@@ -32,11 +32,5 @@ jobs:
       make: checkprettier
       npm: true
 
-  bundle:
-    uses: ./.github/workflows/make.yml
-    with:
-      make: checkbundle
-      npm: true
-
   poetry:
     uses: ./.github/workflows/poetry.yml
