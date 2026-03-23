@@ -8,8 +8,11 @@ on:
 
 
 jobs:
+  bundle:
+    uses: ./.github/workflows/bundle.yml
 
   lint:
+    needs: [ bundle ]
     uses: ./.github/workflows/lint.yml
 
   test-api:
