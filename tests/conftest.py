@@ -62,6 +62,7 @@ def run_before_and_after_tests(settings: Settings):
 
 
 # use session scope to run once before and once after all tests
+# random change
 @pytest.fixture(scope="session")
 async def app(settings: Settings):
     app = create_app()
