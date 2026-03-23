@@ -1263,7 +1263,7 @@ wheels = [
 
 [[package]]
 name = "lnbits"
-version = "1.5.2rc3"
+version = "1.5.2"
 source = { editable = "." }
 dependencies = [
     { name = "aiosqlite" },
