@@ -11,9 +11,6 @@ jobs:
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-          ref: ${{ github.ref_name }}
       - uses: lnbits/lnbits/.github/actions/prepare@dev
         with:
           python-version: "3.10"
