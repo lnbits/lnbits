@@ -1,5 +1,7 @@
 window.app.component(QrcodeVue)
 
+console.log('change bundle')
+
 window.app.component('lnbits-extension-rating', {
   template: '#lnbits-extension-rating',
   name: 'lnbits-extension-rating',
