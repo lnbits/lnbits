@@ -25,7 +25,6 @@ jobs:
       make: pyright
       npm: true
 
-
   prettier:
     uses: ./.github/workflows/make.yml
     with:
