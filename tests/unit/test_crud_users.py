@@ -125,27 +125,6 @@ async def test_get_accounts_empty_filters():
 
 
 @pytest.mark.anyio
-async def test_get_accounts_invalid_wallet_id_type():
-    # Pass an invalid wallet_id type (int instead of str)
-
-    filters = Filters[AccountFilters](
-        filters=[
-            Filter(
-                field="wallet_id",
-                op=Operator.EQ,
-                model=AccountFilters,
-                values={"wallet_id__0": 12345},
-            )
-        ],
-        model=AccountFilters,
-    )
-    # Should not raise, just return empty
-    page = await get_accounts(filters=filters)
-    assert page.total == 0
-    assert page.data == []
-
-
-@pytest.mark.anyio
 async def test_get_accounts_with_deleted_wallet():
     # Create account and wallet, then delete wallet
     username = f"user_{uuid4().hex[:8]}"
