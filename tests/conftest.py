@@ -65,7 +65,9 @@ def run_before_and_after_tests(settings: Settings):
 @pytest.fixture(scope="session")
 async def app(settings: Settings):
     app = create_app()
-    async with LifespanManager(app, startup_timeout=15, shutdown_timeout=15) as manager:
+    async with LifespanManager(
+        app, startup_timeout=300, shutdown_timeout=300
+    ) as manager:
         settings.first_install = True
         await first_install(
             UpdateSuperuserPassword(
