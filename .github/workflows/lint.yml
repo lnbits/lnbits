@@ -6,39 +6,23 @@ jobs:
 
   black:
     uses: ./.github/workflows/make.yml
-    strategy:
-      matrix:
-        python-version: ["3.10", "3.11", "3.12"]
     with:
       make: checkblack
-      python-version: ${{ matrix.python-version }}
 
   ruff:
     uses: ./.github/workflows/make.yml
-    strategy:
-      matrix:
-        python-version: ["3.10", "3.11", "3.12"]
     with:
       make: checkruff
-      python-version: ${{ matrix.python-version }}
 
   mypy:
     uses: ./.github/workflows/make.yml
-    strategy:
-      matrix:
-        python-version: ["3.10", "3.11", "3.12"]
     with:
       make: mypy
-      python-version: ${{ matrix.python-version }}
 
   pyright:
     uses: ./.github/workflows/make.yml
-    strategy:
-      matrix:
-        python-version: ["3.10", "3.11", "3.12"]
     with:
       make: pyright
-      python-version: ${{ matrix.python-version }}
       npm: true
 
 
