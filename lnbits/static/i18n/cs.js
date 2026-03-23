@@ -374,7 +374,8 @@ window.localisation.cs = {
   auth_oidc_ci_hint:
     'Ujistěte se, že je autorizace callback URL nastavena na https://{domain}/api/v1/auth/oidc/token',
   auth_oidc_cs_label: 'Klíč k aplikaci OIDC tajemství',
-  auth_oidc_custom_org_label: 'Název vlastní organizace OIDC (např. Zitadel, Authentik)',
+  auth_oidc_custom_org_label:
+    'Název vlastní organizace OIDC (např. Zitadel, Authentik)',
   auth_oidc_custom_icon_label: 'Vlastní ikona OIDC (URL)',
   currency_settings: 'Nastavení měny',
   allowed_currencies: 'Povolené měny',

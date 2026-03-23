@@ -385,7 +385,8 @@ window.localisation.it = {
   auth_oidc_ci_hint:
     "Assicurati che l'URL di callback dell'autorizzazione sia impostato su https://{domain}/api/v1/auth/oidc/token",
   auth_oidc_cs_label: 'OIDC Client Secret',
-  auth_oidc_custom_org_label: 'Nome organizzazione personalizzata OIDC (es. Zitadel, Authentik)',
+  auth_oidc_custom_org_label:
+    'Nome organizzazione personalizzata OIDC (es. Zitadel, Authentik)',
   auth_oidc_custom_icon_label: 'Icona personalizzata di OIDC (URL)',
   currency_settings: 'Impostazioni valuta',
   allowed_currencies: 'Valute consentite',

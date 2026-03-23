@@ -384,7 +384,8 @@ window.localisation.nl = {
   auth_oidc_ci_hint:
     'Zorg ervoor dat de autorisatie callback-URL is ingesteld op https://{domain}/api/v1/auth/oidc/token',
   auth_oidc_cs_label: 'OIDC Clientgeheim',
-  auth_oidc_custom_org_label: 'OIDC Aangepaste Organisatienaam (bijv. Zitadel, Authentik)',
+  auth_oidc_custom_org_label:
+    'OIDC Aangepaste Organisatienaam (bijv. Zitadel, Authentik)',
   auth_oidc_custom_icon_label: 'OIDC Aangepast Pictogram (URL)',
   currency_settings: 'Valuta-instellingen',
   allowed_currencies: "Toegestane valuta's",

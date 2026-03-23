@@ -334,7 +334,9 @@
                                 "
                               ></q-img>
                             </q-avatar>
-                            <div v-text="g.settings.keycloakOrg || 'Keycloak'"></div>
+                            <div
+                              v-text="g.settings.keycloakOrg || 'Keycloak'"
+                            ></div>
                           </q-btn>
                         </div>
                         <div

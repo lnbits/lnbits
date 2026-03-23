@@ -382,7 +382,8 @@ window.localisation.pt = {
   auth_oidc_ci_hint:
     'Certifique-se de que o URL de retorno de chamada de autorização esteja definido como https://{domain}/api/v1/auth/oidc/token',
   auth_oidc_cs_label: 'Segredo do Cliente do OIDC',
-  auth_oidc_custom_org_label: 'Nome da Organização Personalizada OIDC (ex. Zitadel, Authentik)',
+  auth_oidc_custom_org_label:
+    'Nome da Organização Personalizada OIDC (ex. Zitadel, Authentik)',
   auth_oidc_custom_icon_label: 'Ícone Personalizado do OIDC (URL)',
   currency_settings: 'Configurações de Moeda',
   allowed_currencies: 'Moedas Permitidas',

@@ -647,7 +647,8 @@ window.localisation.en = {
   auth_oidc_ci_hint:
     'Make sure that the authorization callback URL is set to https://{domain}/api/v1/auth/oidc/token',
   auth_oidc_cs_label: 'OIDC Client Secret',
-  auth_oidc_custom_org_label: 'OIDC Custom Organization Name (e.g., Zitadel, Authentik)',
+  auth_oidc_custom_org_label:
+    'OIDC Custom Organization Name (e.g., Zitadel, Authentik)',
   auth_oidc_custom_icon_label: 'OIDC Custom Icon (URL)',
   currency_settings: 'Currency Settings',
   allowed_currencies: 'Allowed Currencies',

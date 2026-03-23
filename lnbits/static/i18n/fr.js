@@ -388,7 +388,8 @@ window.localisation.fr = {
   auth_oidc_ci_hint:
     "Assurez-vous que l'URL de rappel d'autorisation est définie sur https://{domain}/api/v1/auth/oidc/token",
   auth_oidc_cs_label: 'Secret client OIDC',
-  auth_oidc_custom_org_label: 'Nom de l\'organisation personnalisée OIDC (par ex. Zitadel, Authentik)',
+  auth_oidc_custom_org_label:
+    "Nom de l'organisation personnalisée OIDC (par ex. Zitadel, Authentik)",
   auth_oidc_custom_icon_label: 'Icône personnalisée OIDC (URL)',
   currency_settings: 'Paramètres de devise',
   allowed_currencies: 'Devises autorisées',

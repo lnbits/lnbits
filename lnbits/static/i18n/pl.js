@@ -379,7 +379,8 @@ window.localisation.pl = {
   auth_oidc_ci_hint:
     'Upewnij się, że URL zwrotu autoryzacji jest ustawiony na https://{domain}/api/v1/auth/oidc/token',
   auth_oidc_cs_label: 'Hasło klienta OIDC',
-  auth_oidc_custom_org_label: 'Nazwa własnej organizacji OIDC (np. Zitadel, Authentik)',
+  auth_oidc_custom_org_label:
+    'Nazwa własnej organizacji OIDC (np. Zitadel, Authentik)',
   auth_oidc_custom_icon_label: 'Własna ikona OIDC (URL)',
   currency_settings: 'Ustawienia waluty',
   allowed_currencies: 'Dozwolone waluty',

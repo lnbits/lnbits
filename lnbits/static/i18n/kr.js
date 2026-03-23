@@ -372,7 +372,8 @@ window.localisation.kr = {
   auth_oidc_ci_hint:
     '승인 콜백 URL이 https://{domain}/api/v1/auth/oidc/token으로 설정되어 있는지 확인하십시오.',
   auth_oidc_cs_label: 'OIDC 클라이언트 시크릿',
-  auth_oidc_custom_org_label: 'OIDC 사용자 정의 조직 이름 (예: Zitadel, Authentik)',
+  auth_oidc_custom_org_label:
+    'OIDC 사용자 정의 조직 이름 (예: Zitadel, Authentik)',
   auth_oidc_custom_icon_label: 'OIDC 사용자 정의 아이콘 (URL)',
   currency_settings: '통화 설정',
   allowed_currencies: '허용되는 통화',

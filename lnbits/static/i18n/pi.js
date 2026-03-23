@@ -378,7 +378,8 @@ window.localisation.pi = {
   auth_oidc_ci_hint:
     "Make sure thant th' authorization callback URL be set t' https://{domain}/api/v1/auth/oidc/token",
   auth_oidc_cs_label: 'OIDC Client Secret',
-  auth_oidc_custom_org_label: 'OIDC Custom Organization Name (e.g., Zitadel, Authentik)',
+  auth_oidc_custom_org_label:
+    'OIDC Custom Organization Name (e.g., Zitadel, Authentik)',
   auth_oidc_custom_icon_label: 'OIDC Custom Icon (URL)',
   currency_settings: "Doubloon Settin's",
   allowed_currencies: "Allo'ed Doubloons",

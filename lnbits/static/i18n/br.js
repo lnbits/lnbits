@@ -647,7 +647,8 @@ window.localisation.br = {
   auth_oidc_ci_hint:
     'Certifique-se de que a URL de retorno de chamada de autorização esteja definida para https://{domain}/api/v1/auth/oidc/token',
   auth_oidc_cs_label: 'Segredo do Cliente OIDC',
-  auth_oidc_custom_org_label: 'Nome da Organização Personalizada OIDC (ex. Zitadel, Authentik)',
+  auth_oidc_custom_org_label:
+    'Nome da Organização Personalizada OIDC (ex. Zitadel, Authentik)',
   auth_oidc_custom_icon_label: 'Ícone Personalizado do OIDC (URL)',
   auth_keycloak_custom_org_label: 'Keycloak Custom Organization',
   auth_keycloak_custom_icon_label: 'Ícone Personalizado do Keycloak (URL)',

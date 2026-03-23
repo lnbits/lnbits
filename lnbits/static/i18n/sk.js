@@ -378,7 +378,8 @@ window.localisation.sk = {
   auth_oidc_ci_hint:
     'Uistite sa, že URL spätného volania autorizácie je nastavená na https://{domain}/api/v1/auth/oidc/token',
   auth_oidc_cs_label: 'Tajný kľúč klienta OIDC',
-  auth_oidc_custom_org_label: 'Názov vlastnej organizácie OIDC (napr. Zitadel, Authentik)',
+  auth_oidc_custom_org_label:
+    'Názov vlastnej organizácie OIDC (napr. Zitadel, Authentik)',
   auth_oidc_custom_icon_label: 'Vlastná ikona OIDC (URL)',
   currency_settings: 'Nastavenia meny',
   allowed_currencies: 'Povolené meny',

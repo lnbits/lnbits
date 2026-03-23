@@ -377,7 +377,8 @@ window.localisation.we = {
   auth_oidc_ci_hint:
     "Gwnewch yn siŵr bod URL adalw awdurdodiad wedi'i osod i https://{domain}/api/v1/auth/oidc/token",
   auth_oidc_cs_label: 'Cyfrinach Cleient OIDC',
-  auth_oidc_custom_org_label: "Enw Sefydliad Wedi'i Addasu OIDC (e.e. Zitadel, Authentik)",
+  auth_oidc_custom_org_label:
+    "Enw Sefydliad Wedi'i Addasu OIDC (e.e. Zitadel, Authentik)",
   auth_oidc_custom_icon_label: "Eicon Wedi'i Addasu OIDC (URL)",
   currency_settings: 'Gosodiadau Arian Cyfred',
   allowed_currencies: 'Ariannau a Ganiateir',
