@@ -450,14 +450,14 @@ files = [
 
 [[package]]
 name = "bip32"
-version = "4.0"
-description = "Minimalistic implementation of the BIP32 key derivation scheme"
+version = "5.0.0"
+description = "Minimalistic implementation of BIP32 (Bitcoin HD wallets)"
 optional = false
-python-versions = "*"
+python-versions = ">=3.9"
 groups = ["main"]
 files = [
-    {file = "bip32-4.0-py3-none-any.whl", hash = "sha256:9728b38336129c00e1f870bbb3e328c9632d51c1bddeef4011fd3115cb3aeff9"},
-    {file = "bip32-4.0.tar.gz", hash = "sha256:8035588f252f569bb414bc60df151ae431fc1c6789a19488a32890532ef3a2fc"},
+    {file = "bip32-5.0.0-py3-none-any.whl", hash = "sha256:b20872795ae2bb4e5fac351f53ccdf2b998f82e927413922a2c5473a004bd6d0"},
+    {file = "bip32-5.0.0.tar.gz", hash = "sha256:4caa1f74eed9f2cd4624b55f34a4094f52542552fe3d0cc52e1179b8d6e9f21e"},
 ]
 
 [package.dependencies]
@@ -1361,25 +1361,6 @@ trio = ["trio (>=0.30)"]
 wmi = ["wmi (>=1.5.1) ; platform_system == \"Windows\""]
 
 [[package]]
-name = "ecdsa"
-version = "0.19.1"
-description = "ECDSA cryptographic signature library (pure python)"
-optional = false
-python-versions = "!=3.0.*,!=3.1.*,!=3.2.*,!=3.3.*,!=3.4.*,!=3.5.*,>=2.6"
-groups = ["main"]
-files = [
-    {file = "ecdsa-0.19.1-py2.py3-none-any.whl", hash = "sha256:30638e27cf77b7e15c4c4cc1973720149e1033827cfd00661ca5c8cc0cdb24c3"},
-    {file = "ecdsa-0.19.1.tar.gz", hash = "sha256:478cba7b62555866fcb3bb3fe985e06decbdb68ef55713c4e5ab98c57d508e61"},
-]
-
-[package.dependencies]
-six = ">=1.9.0"
-
-[package.extras]
-gmpy = ["gmpy"]
-gmpy2 = ["gmpy2"]
-
-[[package]]
 name = "email-validator"
 version = "2.3.0"
 description = "A robust email address syntax and deliverability validation library."
@@ -2278,24 +2259,24 @@ valkey = ["valkey (>=6)"]
 
 [[package]]
 name = "lnurl"
-version = "0.8.3"
+version = "0.10.0"
 description = "LNURL implementation for Python."
 optional = false
-python-versions = ">=3.10"
+python-versions = "<3.13,>=3.10"
 groups = ["main"]
 files = [
-    {file = "lnurl-0.8.3-py3-none-any.whl", hash = "sha256:670cdeaef2c55de986dad89126ab58275d5199ba6554a93d9965d1e162080c2a"},
-    {file = "lnurl-0.8.3.tar.gz", hash = "sha256:8ca73af84fb9ee36a184d731d165f289ba7bc6260d4dadb2b6cf24f381c3afba"},
+    {file = "lnurl-0.10.0-py3-none-any.whl", hash = "sha256:0d43561b4370cecec19c8f1044fc840f0199fc2698bc83cd8782e8264bfde8f4"},
+    {file = "lnurl-0.10.0.tar.gz", hash = "sha256:55ba0a7e810bcdfc7410c682f91c76df4446ff24e83d6bf931a7c759e2e0d5cc"},
 ]
 
 [package.dependencies]
 bech32 = "*"
-bip32 = ">=4.0,<5.0"
+bip32 = ">=5.0.0"
 bolt11 = "*"
-ecdsa = "*"
+coincurve = ">=20.0.0"
 httpx = "*"
-pycryptodomex = ">=3.21.0,<4.0.0"
-pydantic = ">=1,<2"
+pycryptodomex = ">=3.21.0"
+pydantic = ">=1.10.0,<2.0.0"
 
 [[package]]
 name = "loguru"
@@ -3409,21 +3390,24 @@ windows-terminal = ["colorama (>=0.4.6)"]
 
 [[package]]
 name = "pyjwt"
-version = "2.10.1"
+version = "2.12.1"
 description = "JSON Web Token implementation in Python"
 optional = false
 python-versions = ">=3.9"
 groups = ["main"]
 files = [
-    {file = "PyJWT-2.10.1-py3-none-any.whl", hash = "sha256:dcdd193e30abefd5debf142f9adfcdd2b58004e644f25406ffaebd50bd98dacb"},
-    {file = "pyjwt-2.10.1.tar.gz", hash = "sha256:3cc5772eb20009233caf06e9d8a0577824723b44e6648ee0a2aedb6cf9381953"},
+    {file = "pyjwt-2.12.1-py3-none-any.whl", hash = "sha256:28ca37c070cad8ba8cd9790cd940535d40274d22f80ab87f3ac6a713e6e8454c"},
+    {file = "pyjwt-2.12.1.tar.gz", hash = "sha256:c74a7a2adf861c04d002db713dd85f84beb242228e671280bf709d765b03672b"},
 ]
+
+[package.dependencies]
+typing_extensions = {version = ">=4.0", markers = "python_version < \"3.11\""}
 
 [package.extras]
 crypto = ["cryptography (>=3.4.0)"]
-dev = ["coverage[toml] (==5.0.4)", "cryptography (>=3.4.0)", "pre-commit", "pytest (>=6.0.0,<7.0.0)", "sphinx", "sphinx-rtd-theme", "zope.interface"]
+dev = ["coverage[toml] (==7.10.7)", "cryptography (>=3.4.0)", "pre-commit", "pytest (>=8.4.2,<9.0.0)", "sphinx", "sphinx-rtd-theme", "zope.interface"]
 docs = ["sphinx", "sphinx-rtd-theme", "zope.interface"]
-tests = ["coverage[toml] (==5.0.4)", "pytest (>=6.0.0,<7.0.0)"]
+tests = ["coverage[toml] (==7.10.7)", "pytest (>=8.4.2,<9.0.0)"]
 
 [[package]]
 name = "pyln-bolt7"
@@ -4117,7 +4101,7 @@ version = "1.17.0"
 description = "Python 2 and 3 compatibility utilities"
 optional = false
 python-versions = "!=3.0.*,!=3.1.*,!=3.2.*,>=2.7"
-groups = ["main", "dev"]
+groups = ["dev"]
 files = [
     {file = "six-1.17.0-py2.py3-none-any.whl", hash = "sha256:4721f391ed90541fddacab5acf947aa0d3dc7d27b2e1e8eda2be8970586c3274"},
     {file = "six-1.17.0.tar.gz", hash = "sha256:ff70335d468e7eb6ec65b95b99d3a2836546063f63acc5171de367e834932a81"},
@@ -5044,4 +5028,4 @@ migration = ["psycopg2-binary"]
 [metadata]
 lock-version = "2.1"
 python-versions = ">=3.10,<3.13"
-content-hash = "0a17b39d328781b8411a2f009d1ad5629ffeae680612fc14b471f1c8d572193d"
+content-hash = "42751c05e1fa8250ff90981def5e0ce8d1b284eeb2acc2c7ac9ae5847cf99e17"
