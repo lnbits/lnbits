@@ -385,9 +385,8 @@ class CLNRestWallet(Wallet):
                 return PaymentSuccessStatus(fee_msat=fee_msat, preimage=pay["preimage"])
 
             if pay["status"] == "failed":
-                logger.info(
-                    f"CLNRest payment {checking_id} failed: {pay.get('description', 'unknown reason')}"
-                )
+                desc = pay.get("description", "unknown reason")
+                logger.info(f"CLNRest payment {checking_id} failed: {desc}")
                 return PaymentFailedStatus()
 
         except Exception as exc:
