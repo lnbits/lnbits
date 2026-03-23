@@ -160,7 +160,7 @@
             min="0"
           ></q-input>
         </div>
-        <div class="col-12 col-md-3">
+        <div class="col-12 col-md-4">
           <p>
             <span v-text="$t('payment_pending_interval')"></span>
             <sup>
