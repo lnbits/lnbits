@@ -705,3 +705,74 @@ async def test_get_payments_for_non_user():
     assert (
         user_payments.total == 0
     ), "No payments should be found for non-existent user."
+
+
+@pytest.mark.anyio
+async def test_internal_payment_receiver_fee_is_zero(to_wallet: Wallet):
+    """
+    Verify that the receiver's payment record has fee=0 after an internal
+    wallet-to-wallet transfer.
+
+    Regression test for #3869: internal transfers set fee=-amount on the
+    receiver's payment record, causing the balance to zero out.
+
+    Tests both fix locations:
+    1. internal_payment.fee = 0 in _pay_internal_invoice()
+    2. payment.fee = 0 guard in invoice_callback_dispatcher() when is_internal=True
+    """
+    # Create an invoice on to_wallet (receiver)
+    payment = await create_invoice(
+        wallet_id=to_wallet.id,
+        amount=1000,
+        memo="test_internal_fee_guard",
+    )
+
+    # Pay from same wallet to same wallet (self-transfer = internal)
+    await pay_invoice(
+        wallet_id=to_wallet.id,
+        payment_request=payment["bolt11"],
+    )
+
+    # Check the receiver's payment record
+    receiver_payment = await get_standalone_payment(
+        payment["checking_id"], incoming=True
+    )
+    assert receiver_payment is not None
+    assert receiver_payment.status == PaymentState.SUCCESS.value
+    assert receiver_payment.amount == 1_000_000  # 1000 sats in msats
+    assert receiver_payment.fee == 0, (
+        f"Receiver fee should be 0 for internal transfers, got {receiver_payment.fee}"
+    )
+
+
+@pytest.mark.anyio
+async def test_internal_payment_callback_fee_guard(to_wallet: Wallet):
+    """
+    Verify that invoice_callback_dispatcher preserves fee=0 for internal payments
+    even when check_payment_status returns a non-zero fee_msat.
+
+    This tests the root-cause guard: the receiver's checking_id doesn't start
+    with 'internal_' (it's the raw payment_hash from FakeWallet), so
+    check_payment_status may route to the real funding source which returns
+    an incorrect fee_msat. The is_internal guard in invoice_callback_dispatcher
+    prevents this from corrupting the fee field.
+    """
+    payment = await create_invoice(
+        wallet_id=to_wallet.id,
+        amount=5000,
+        memo="test_callback_fee_guard",
+    )
+
+    await pay_invoice(
+        wallet_id=to_wallet.id,
+        payment_request=payment["bolt11"],
+    )
+
+    # After pay_invoice completes (which triggers the callback), verify fee=0
+    receiver_payment = await get_standalone_payment(
+        payment["checking_id"], incoming=True
+    )
+    assert receiver_payment is not None
+    assert receiver_payment.fee == 0, (
+        f"Callback should preserve fee=0 for internal payments, got {receiver_payment.fee}"
+    )
