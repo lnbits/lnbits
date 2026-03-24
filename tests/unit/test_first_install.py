@@ -86,7 +86,9 @@ async def test_first_install_confirms_first_install_token(app):
         assert account.extra.provider == "lnbits"
         assert account.verify_password("secret1234")
     finally:
-        await _restore_setting_field("first_install_token_confirmed", original_confirmed_row)
+        await _restore_setting_field(
+            "first_install_token_confirmed", original_confirmed_row
+        )
         settings.super_user = original_super_user
         settings.first_install = original_first_install
         settings.first_install_token = original_first_install_token
@@ -105,7 +107,9 @@ async def test_check_admin_settings_clears_persisted_super_user_when_token_chang
     original_confirmed_row = await get_settings_field("first_install_token_confirmed")
     super_user_file = Path(settings.lnbits_data_folder) / ".super_user"
 
-    await create_account(Account(id=temp_super_user, extra=UserExtra(provider="lnbits")))
+    await create_account(
+        Account(id=temp_super_user, extra=UserExtra(provider="lnbits"))
+    )
 
     try:
         await set_settings_field("super_user", temp_super_user)
@@ -125,7 +129,9 @@ async def test_check_admin_settings_clears_persisted_super_user_when_token_chang
         assert settings.first_install is True
     finally:
         await _restore_setting_field("super_user", original_super_user_row)
-        await _restore_setting_field("first_install_token_confirmed", original_confirmed_row)
+        await _restore_setting_field(
+            "first_install_token_confirmed", original_confirmed_row
+        )
         settings.super_user = original_super_user
         settings.first_install = original_first_install
         settings.first_install_token = original_first_install_token
