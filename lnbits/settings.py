@@ -447,6 +447,7 @@ class SecuritySettings(LNbitsSettings):
 
     lnbits_max_outgoing_payment_amount_sats: int = Field(default=10_000_000, ge=0)
     lnbits_max_incoming_payment_amount_sats: int = Field(default=10_000_000, ge=0)
+    first_install_token_confirmed: str | None = Field(default=None)
 
     def is_wallet_max_balance_exceeded(self, amount):
         return (
@@ -1014,6 +1015,13 @@ class EnvSettings(LNbitsSettings):
     @property
     def has_default_extension_path(self) -> bool:
         return self.lnbits_extensions_path == "lnbits"
+
+    def has_first_install_token_changed(self) -> bool:
+        if not self.first_install_token:
+            return False
+        if not settings.first_install_token_confirmed:
+            return False
+        return self.first_install_token != settings.first_install_token_confirmed
 
     def check_auth_secret_key(self):
         if self.auth_secret_key:

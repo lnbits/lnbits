@@ -12,6 +12,7 @@ from fastapi.responses import JSONResponse, RedirectResponse
 from fastapi_sso.sso.base import OpenID, SSOBase
 from loguru import logger
 
+from lnbits.core.crud.settings import set_settings_field
 from lnbits.core.crud.users import (
     get_user_access_control_lists,
     update_user_access_control_list,
@@ -517,6 +518,10 @@ async def first_install(data: UpdateSuperuserPassword) -> JSONResponse:
             raise HTTPException(HTTPStatus.UNAUTHORIZED, "Missing first_install_token.")
         if settings.first_install_token != data.first_install_token:
             raise HTTPException(HTTPStatus.UNAUTHORIZED, "Invalid first_install_token.")
+        settings.first_install_token_confirmed = data.first_install_token
+        await set_settings_field(
+            "first_install_token_confirmed", data.first_install_token
+        )
 
     account = await get_account_by_username(data.username, False)
     if account:

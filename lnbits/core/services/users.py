@@ -173,6 +173,11 @@ async def check_admin_settings():
         if account and account.extra and account.extra.provider == "env":
             settings.first_install = True
 
+        if settings.has_first_install_token_changed():
+            logger.warning("First install token is changed. Resetting admin settings.")
+            await set_settings_field("super_user", "")
+            settings.first_install = True
+
         logger.success(
             "✔️ Admin UI is enabled. run `uv run lnbits-cli superuser` "
             "to get the superuser."
