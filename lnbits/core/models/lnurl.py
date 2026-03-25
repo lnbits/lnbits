@@ -1,11 +1,9 @@
 from time import time
 
-# TODO something is wrong about LnAddress
-from lnurl import Lnurl, LnurlPayResponse
+from lnurl import LnAddress, Lnurl, LnurlPayResponse
 from pydantic import BaseModel, Field
 
 
-# Warning: Mixing V1 and V2 models is not supported. `LnurlPayResponse` is a V2 model.
 class CreateLnurlPayment(BaseModel):
     res: LnurlPayResponse | None = None
     lnurl: Lnurl | None = None
@@ -16,11 +14,11 @@ class CreateLnurlPayment(BaseModel):
 
 
 class CreateLnurlWithdraw(BaseModel):
-    lnurl_w: Lnurl
+    lnurl_w: Lnurl | LnAddress
 
 
 class LnurlScan(BaseModel):
-    lnurl: Lnurl
+    lnurl: Lnurl | LnAddress
 
 
 class StoredPayLink(BaseModel):

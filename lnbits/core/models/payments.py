@@ -5,8 +5,7 @@ from enum import Enum
 from typing import Any, Literal
 
 from fastapi import Query
-
-# from lnurl import LnurlWithdrawResponse
+from lnurl import LnurlWithdrawResponse
 from loguru import logger
 from pydantic import BaseModel, Field, field_validator
 
@@ -249,8 +248,7 @@ class CreateInvoice(BaseModel):
     extra: dict | None = None
     webhook: str | None = None
     bolt11: str | None = None
-    # TODO: cannot mix v1 and v2
-    # lnurl_withdraw: LnurlWithdrawResponse | None = None
+    lnurl_withdraw: LnurlWithdrawResponse | None = None
     fiat_provider: str | None = None
     labels: list[str] = []
 
