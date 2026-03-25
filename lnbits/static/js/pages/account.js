@@ -11,6 +11,10 @@ window.PageAccount = {
           color: 'deep-orange'
         },
         {
+          name: 'classic',
+          color: 'purple'
+        },
+        {
           name: 'mint',
           color: 'green'
         },

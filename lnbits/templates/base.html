@@ -82,9 +82,8 @@
     <!-- scripts libraries -->
     {% for url in INCLUDED_JS %}
     <script src="{{ static_url_for('static', url) }}"></script>
-    {% endfor %}
+    {% endfor %} {% if user %}
     <!-- user init -->
-    {% if user %}
     <script>
       window.g.user = LNbits.map.user(JSON.parse({{ user | tojson | safe }}));
       {% if not public %}
@@ -92,6 +91,12 @@
       {% endif %}
     </script>
     {% endif %}
+    <!-- app init -->
+    <script>
+      window.app = Vue.createApp({
+        el: '#vue'
+      })
+    </script>
     <!-- scripts from extensions -->
     {% block scripts %}{% endblock %}
     <!-- components js -->

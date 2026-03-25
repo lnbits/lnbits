@@ -8,7 +8,6 @@ on:
 
 
 jobs:
-
   lint:
     uses: ./.github/workflows/lint.yml
 
@@ -98,3 +97,7 @@ jobs:
     uses: ./.github/workflows/jmeter.yml
     with:
       python-version: ${{ matrix.python-version }}
+
+  bundle:
+    needs: [ lint, test-api, test-wallets, test-unit, migration, openapi, regtest, jmeter ]
+    uses: ./.github/workflows/bundle.yml

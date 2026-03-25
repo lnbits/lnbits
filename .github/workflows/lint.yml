@@ -25,17 +25,10 @@ jobs:
       make: pyright
       npm: true
 
-
   prettier:
     uses: ./.github/workflows/make.yml
     with:
       make: checkprettier
-      npm: true
-
-  bundle:
-    uses: ./.github/workflows/make.yml
-    with:
-      make: checkbundle
       npm: true
 
   poetry:
