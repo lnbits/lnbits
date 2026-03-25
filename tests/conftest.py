@@ -72,6 +72,7 @@ async def app(settings: Settings):
                 username="superadmin",
                 password="secret1234",
                 password_repeat="secret1234",
+                first_install_token=settings.first_install_token,
             )
         )
 

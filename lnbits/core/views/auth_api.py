@@ -12,6 +12,7 @@ from fastapi.responses import JSONResponse, RedirectResponse
 from fastapi_sso.sso.base import OpenID, SSOBase
 from loguru import logger
 
+from lnbits.core.crud.settings import set_settings_field
 from lnbits.core.crud.users import (
     get_user_access_control_lists,
     update_user_access_control_list,
@@ -548,6 +549,13 @@ async def first_install(data: UpdateSuperuserPassword) -> JSONResponse:
     account.hash_password(data.password)
     await update_account(account)
     settings.first_install = False
+
+    # only confrm it after the super user has been successfully updated
+    if settings.first_install_token:
+        settings.first_install_token_confirmed = data.first_install_token
+        await set_settings_field(
+            "first_install_token_confirmed", data.first_install_token
+        )
     return _auth_success_response(account.username, account.id, account.email)
 
 
