@@ -87,9 +87,7 @@ def run_before_and_after_tests(settings: Settings):
 @pytest.fixture(scope="session")
 async def app(settings: Settings):
     app = create_app()
-    async with LifespanManager(
-        app, startup_timeout=300, shutdown_timeout=300
-    ) as manager:
+    async with LifespanManager(app) as manager:
         settings.first_install = True
         await first_install(
             UpdateSuperuserPassword(
@@ -385,4 +383,3 @@ def _settings_cleanup(settings: Settings):
     settings.lnbits_user_activation_by_invitation_code = False
     settings.lnbits_register_reusable_activation_code = ""
     settings.lnbits_register_one_time_activation_codes = []
-    # settings.lnbits_backend_wallet_class = "FakeWallet"
