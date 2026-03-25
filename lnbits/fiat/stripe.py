@@ -8,7 +8,7 @@ from urllib.parse import urlencode
 
 import httpx
 from loguru import logger
-from pydantic.v1 import BaseModel, Field, ValidationError
+from pydantic import BaseModel, ConfigDict, Field, ValidationError
 
 from lnbits.helpers import normalize_endpoint, urlsafe_short_hash
 from lnbits.settings import settings
@@ -30,8 +30,7 @@ FiatMethod = Literal["checkout", "terminal", "subscription"]
 
 
 class StripeTerminalOptions(BaseModel):
-    class Config:
-        extra = "ignore"
+    model_config = ConfigDict(extra="ignore")
 
     capture_method: Literal["automatic", "manual"] = "automatic"
     metadata: dict[str, str] = Field(default_factory=dict)
@@ -39,8 +38,7 @@ class StripeTerminalOptions(BaseModel):
 
 
 class StripeCheckoutOptions(BaseModel):
-    class Config:
-        extra = "ignore"
+    model_config = ConfigDict(extra="ignore")
 
     success_url: str | None = None
     metadata: dict[str, str] = Field(default_factory=dict)
@@ -48,16 +46,14 @@ class StripeCheckoutOptions(BaseModel):
 
 
 class StripeSubscriptionOptions(BaseModel):
-    class Config:
-        extra = "ignore"
+    model_config = ConfigDict(extra="ignore")
 
     checking_id: str | None = None
     payment_request: str | None = None
 
 
 class StripeCreateInvoiceOptions(BaseModel):
-    class Config:
-        extra = "ignore"
+    model_config = ConfigDict(extra="ignore")
 
     fiat_method: FiatMethod = "checkout"
     terminal: StripeTerminalOptions | None = None
@@ -171,7 +167,10 @@ class StripeWallet(FiatProvider):
             ("line_items[0][price]", subscription_id),
             ("line_items[0][quantity]", f"{quantity}"),
         ]
-        subscription_data = {**payment_options.dict(), "alan_action": "subscription"}
+        subscription_data = {
+            **payment_options.model_dump(),
+            "alan_action": "subscription",
+        }
         subscription_data["extra"] = json.dumps(subscription_data.get("extra") or {})
 
         form_data += self._encode_metadata(
@@ -494,7 +493,7 @@ class StripeWallet(FiatProvider):
         self, raw_opts: dict[str, Any]
     ) -> StripeCreateInvoiceOptions | None:
         try:
-            return StripeCreateInvoiceOptions.parse_obj(raw_opts)
+            return StripeCreateInvoiceOptions.model_validate(raw_opts)
         except ValidationError as e:
             logger.warning(f"Invalid Stripe options: {e}")
             return None

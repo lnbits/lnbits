@@ -2,7 +2,7 @@ from http import HTTPStatus
 
 import httpx
 from fastapi import APIRouter, Body, Depends, HTTPException
-from pydantic.v1 import BaseModel
+from pydantic import BaseModel
 
 from lnbits.decorators import check_admin, check_super_user, parse_filters
 from lnbits.settings import settings

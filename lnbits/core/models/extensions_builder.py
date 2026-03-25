@@ -6,7 +6,7 @@ import uuid
 from datetime import datetime, timedelta, timezone
 from typing import Any, Literal
 
-from pydantic.v1 import BaseModel, validator
+from pydantic import BaseModel, field_validator
 
 from lnbits.helpers import (
     camel_to_snake,
@@ -141,7 +141,8 @@ class DataField(BaseModel):
         else:
             return f"{self.name} {index}"
 
-    @validator("name")
+    @field_validator("name")
+    @classmethod
     def validate_name(cls, v: str) -> str:
         if v.strip() == "":
             raise ValueError("Field name is required.")
@@ -149,7 +150,8 @@ class DataField(BaseModel):
             raise ValueError(f"Field Name must be snake_case. Found: {v}")
         return v
 
-    @validator("type")
+    @field_validator("type")
+    @classmethod
     def validate_type(cls, v: str) -> str:
         if v.strip() == "":
             raise ValueError("Owner Data type is required")
@@ -171,7 +173,8 @@ class DataField(BaseModel):
             )
         return v
 
-    @validator("label")
+    @field_validator("label")
+    @classmethod
     def validate_label(cls, v: str | None) -> str | None:
         if v and '"' in v:
             raise ValueError(
@@ -179,7 +182,8 @@ class DataField(BaseModel):
             )
         return v
 
-    @validator("hint")
+    @field_validator("hint")
+    @classmethod
     def validate_hint(cls, v: str | None) -> str | None:
         if v and '"' in v:
             raise ValueError(f'Field hint cannot contain double quotes ("). Value: {v}')
@@ -191,8 +195,7 @@ class DataFields(BaseModel):
     editable: bool = True
     fields: list[DataField] = []
 
-    def __init__(self, **data):
-        super().__init__(**data)
+    def model_post_init(self, __context: Any) -> None:
         self.normalize()
 
     def normalize(self) -> None:
@@ -210,7 +213,8 @@ class DataFields(BaseModel):
                 return field
         return None
 
-    @validator("name")
+    @field_validator("name")
+    @classmethod
     def validate_name(cls, v: str) -> str:
         if v.strip() == "":
             raise ValueError("Data fields name is required")
@@ -223,12 +227,13 @@ class SettingsFields(DataFields):
     enabled: bool = False
     type: str = "user"
 
-    @validator("type")
+    @field_validator("type")
+    @classmethod
     def validate_type(cls, v: str) -> str:
         if v.strip() == "":
             raise ValueError("Settings type is required")
         if v not in ["user", "admin"]:
-            raise ValueError("Field Type must be one of: user, admin." f" Found: {v}")
+            raise ValueError(f"Field Type must be one of: user, admin. Found: {v}")
         return v
 
 
@@ -265,8 +270,7 @@ class PreviewAction(BaseModel):
     is_client_data_preview: bool = False
     is_public_page_preview: bool = False
 
-    def __init__(self, **data):
-        super().__init__(**data)
+    def model_post_init(self, __context: Any) -> None:
         if not self.is_preview_mode:
             self.is_settings_preview = False
             self.is_owner_data_preview = False
@@ -286,8 +290,7 @@ class ExtensionData(BaseModel):
     public_page: PublicPageFields
     preview_action: PreviewAction = PreviewAction()
 
-    def __init__(self, **data):
-        super().__init__(**data)
+    def model_post_init(self, __context: Any) -> None:
         self.validate_data()
         self.normalize()
 
@@ -434,7 +437,8 @@ class ExtensionData(BaseModel):
                     f" Received: {paid_flag_field.type}."
                 )
 
-    @validator("id")
+    @field_validator("id")
+    @classmethod
     def validate_id(cls, v: str) -> str:
         if v.strip() == "":
             raise ValueError("Extension ID is required")
@@ -442,13 +446,15 @@ class ExtensionData(BaseModel):
             raise ValueError(f"Extension Id must be snake_case. Found: {v}")
         return v
 
-    @validator("name")
+    @field_validator("name")
+    @classmethod
     def validate_name(cls, v: str) -> str:
         if v.strip() == "":
             raise ValueError("Extension name is required")
         return v
 
-    @validator("stub_version")
+    @field_validator("stub_version")
+    @classmethod
     def validate_stub_version(cls, v: str | None) -> str | None:
         if v and '"' in v:
             raise ValueError(
@@ -456,7 +462,8 @@ class ExtensionData(BaseModel):
             )
         return v
 
-    @validator("short_description")
+    @field_validator("short_description")
+    @classmethod
     def validate_short_description(cls, v: str | None) -> str | None:
         if v and '"' in v:
             raise ValueError(
@@ -464,7 +471,8 @@ class ExtensionData(BaseModel):
             )
         return v
 
-    @validator("description")
+    @field_validator("description")
+    @classmethod
     def validate_description(cls, v: str | None) -> str | None:
         if v and '"' in v:
             raise ValueError(
@@ -472,13 +480,15 @@ class ExtensionData(BaseModel):
             )
         return v
 
-    @validator("owner_data")
+    @field_validator("owner_data")
+    @classmethod
     def validate_owner_data(cls, v: DataFields) -> DataFields:
         if len(v.fields) == 0:
             raise ValueError("At least one owner data field is required")
         return v
 
-    @validator("client_data")
+    @field_validator("client_data")
+    @classmethod
     def validate_client_data(cls, v: DataFields) -> DataFields:
         if len(v.fields) == 0:
             raise ValueError("At least one client data field is required")

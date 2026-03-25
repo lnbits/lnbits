@@ -3,10 +3,11 @@ from __future__ import annotations
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from enum import Enum
+from typing import Any
 
-from pydantic.v1 import BaseModel, Field
+from pydantic import BaseModel, Field
 
-# from lnbits.core.models.lnurl import StoredPayLinks
+from lnbits.core.models.lnurl import StoredPayLinks
 from lnbits.db import FilterModel
 from lnbits.settings import settings
 
@@ -126,15 +127,16 @@ class Wallet(BaseWallet):
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     currency: str | None = None
-    balance_msat: int = Field(default=0, no_database=True)
+    balance_msat: int = Field(default=0, json_schema_extra={"no_database": True})
     extra: WalletExtra = WalletExtra()
-    # TODO dont mix v1 and v2
-    # stored_paylinks: StoredPayLinks = StoredPayLinks()
+    stored_paylinks: StoredPayLinks = Field(default_factory=StoredPayLinks)
     # What permission this wallet has when it's a shared wallet
-    share_permissions: list[WalletPermission] = Field(default=[], no_database=True)
+    share_permissions: list[WalletPermission] = Field(
+        default=[],
+        json_schema_extra={"no_database": True},
+    )
 
-    def __init__(self, **data):
-        super().__init__(**data)
+    def model_post_init(self, __context: Any) -> None:
         self._validate_data()
 
     def mirror_shared_wallet(

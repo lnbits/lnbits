@@ -87,7 +87,7 @@ async def api_update_settings(
     admin_settings = await get_admin_settings(account.is_super_user)
     if not admin_settings:
         raise ValueError("Updated admin settings not found.")
-    update_cached_settings(admin_settings.dict())
+    update_cached_settings(admin_settings.model_dump())
     core_app_extra.register_new_ratelimiter()
     return {"status": "Success"}
 
@@ -99,7 +99,7 @@ async def api_update_settings(
 async def api_update_settings_partial(
     data: dict, account: Account = Depends(check_admin)
 ):
-    updatable_settings = dict_to_settings({**settings.dict(), **data})
+    updatable_settings = dict_to_settings({**settings.model_dump(), **data})
     return await api_update_settings(updatable_settings, account)
 
 

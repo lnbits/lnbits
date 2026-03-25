@@ -1,11 +1,12 @@
 from __future__ import annotations
 
 from datetime import datetime, timezone
+from typing import Any
 from uuid import UUID
 
 from bcrypt import checkpw, gensalt, hashpw
 from fastapi import Query
-from pydantic.v1 import BaseModel, Field
+from pydantic import BaseModel, Field
 
 from lnbits.core.models.misc import SimpleItem
 from lnbits.db import FilterModel
@@ -38,11 +39,9 @@ class WalletInviteRequest(BaseModel):
 
 
 class UserLabel(BaseModel):
-    name: str = Field(regex=r"([A-Za-z0-9 ._-]{1,100}$)")
+    name: str = Field(pattern=r"([A-Za-z0-9 ._-]{1,100}$)")
     description: str | None = Field(default=None, max_length=250)
-    color: str | None = Field(
-        default=None, regex=r"^#[0-9A-Fa-f]{6}$"
-    )  # e.g., "#RRGGBB"
+    color: str | None = Field(default=None, pattern=r"^#[0-9A-Fa-f]{6}$")
 
 
 class UserExtra(BaseModel):
@@ -193,12 +192,20 @@ class Account(AccountId):
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
-    is_super_user: bool = Field(default=False, no_database=True)
-    is_admin: bool = Field(default=False, no_database=True)
-    fiat_providers: list[str] = Field(default=[], no_database=True)
+    is_super_user: bool = Field(
+        default=False,
+        json_schema_extra={"no_database": True},
+    )
+    is_admin: bool = Field(
+        default=False,
+        json_schema_extra={"no_database": True},
+    )
+    fiat_providers: list[str] = Field(
+        default=[],
+        json_schema_extra={"no_database": True},
+    )
 
-    def __init__(self, **data):
-        super().__init__(**data)
+    def model_post_init(self, __context: Any) -> None:
         self.is_super_user = settings.is_super_user(self.id)
         self.is_admin = settings.is_admin_user(self.id)
         self.fiat_providers = settings.get_fiat_providers_for_user(self.id)

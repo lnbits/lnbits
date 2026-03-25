@@ -2,13 +2,13 @@ from __future__ import annotations
 
 from datetime import datetime, timezone
 from enum import Enum
-from typing import Literal
+from typing import Any, Literal
 
 from fastapi import Query
 
 # from lnurl import LnurlWithdrawResponse
 from loguru import logger
-from pydantic.v1 import BaseModel, Field, validator
+from pydantic import BaseModel, Field, field_validator
 
 from lnbits.db import FilterModel
 from lnbits.fiat.base import (
@@ -63,7 +63,10 @@ class Payment(BaseModel):
     amount: int
     fee: int
     bolt11: str
-    payment_request: str | None = Field(default=None, no_database=True)
+    payment_request: str | None = Field(
+        default=None,
+        json_schema_extra={"no_database": True},
+    )
     fiat_provider: str | None = None
     status: str = PaymentState.PENDING
     memo: str | None = None
@@ -79,8 +82,7 @@ class Payment(BaseModel):
     labels: list[str] = []
     extra: dict = {}
 
-    def __init__(self, **data):
-        super().__init__(**data)
+    def model_post_init(self, __context: Any) -> None:
         if "fiat_payment_request" in self.extra:
             self.payment_request = self.extra["fiat_payment_request"]
         else:
@@ -252,13 +254,14 @@ class CreateInvoice(BaseModel):
     fiat_provider: str | None = None
     labels: list[str] = []
 
-    @validator("payment_hash")
+    @field_validator("payment_hash")
+    @classmethod
     def check_hex(cls, v):
         if v:
             _ = bytes.fromhex(v)
         return v
 
-    @validator("unit")
+    @field_validator("unit")
     @classmethod
     def unit_is_from_allowed_currencies(cls, v):
         if v != "sat" and v not in allowed_currencies():
@@ -281,7 +284,8 @@ class SettleInvoice(BaseModel):
         max_length=64,
     )
 
-    @validator("preimage")
+    @field_validator("preimage")
+    @classmethod
     def check_hex(cls, v):
         _ = bytes.fromhex(v)
         return v
@@ -295,7 +299,8 @@ class CancelInvoice(BaseModel):
         max_length=64,
     )
 
-    @validator("payment_hash")
+    @field_validator("payment_hash")
+    @classmethod
     def check_hex(cls, v):
         _ = bytes.fromhex(v)
         return v

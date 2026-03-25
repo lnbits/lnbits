@@ -6,7 +6,7 @@ from typing import Any, Literal
 
 import httpx
 from loguru import logger
-from pydantic.v1 import BaseModel, Field, ValidationError
+from pydantic import BaseModel, ConfigDict, Field, ValidationError
 
 from lnbits.helpers import normalize_endpoint, urlsafe_short_hash
 from lnbits.settings import settings
@@ -28,8 +28,7 @@ FiatMethod = Literal["checkout", "subscription"]
 
 
 class PayPalCheckoutOptions(BaseModel):
-    class Config:
-        extra = "ignore"
+    model_config = ConfigDict(extra="ignore")
 
     success_url: str | None = None
     cancel_url: str | None = None
@@ -37,16 +36,14 @@ class PayPalCheckoutOptions(BaseModel):
 
 
 class PayPalSubscriptionOptions(BaseModel):
-    class Config:
-        extra = "ignore"
+    model_config = ConfigDict(extra="ignore")
 
     checking_id: str | None = None
     payment_request: str | None = None
 
 
 class PayPalCreateInvoiceOptions(BaseModel):
-    class Config:
-        extra = "ignore"
+    model_config = ConfigDict(extra="ignore")
 
     fiat_method: FiatMethod = "checkout"
     checkout: PayPalCheckoutOptions | None = None
@@ -339,7 +336,7 @@ class PayPalWallet(FiatProvider):
         self, raw_opts: dict[str, Any]
     ) -> PayPalCreateInvoiceOptions | None:
         try:
-            return PayPalCreateInvoiceOptions.parse_obj(raw_opts)
+            return PayPalCreateInvoiceOptions.model_validate(raw_opts)
         except ValidationError as e:
             logger.warning(f"Invalid PayPal options: {e}")
             return None

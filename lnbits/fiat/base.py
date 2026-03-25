@@ -4,7 +4,7 @@ from abc import ABC, abstractmethod
 from collections.abc import AsyncGenerator, Coroutine
 from typing import TYPE_CHECKING, Any, NamedTuple
 
-from pydantic.v1 import BaseModel, Field
+from pydantic import BaseModel, Field
 
 if TYPE_CHECKING:
     pass

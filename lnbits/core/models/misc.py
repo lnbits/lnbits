@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from collections.abc import Callable
 
-from pydantic.v1 import BaseModel
+from pydantic import BaseModel
 
 
 def _do_nothing(*_):

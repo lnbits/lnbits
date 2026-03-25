@@ -637,7 +637,8 @@ async def create_extension_review(
 ) -> ExtensionReviewPaymentRequest:
     async with httpx.AsyncClient() as client:
         resp = await client.post(
-            settings.lnbits_extensions_reviews_url + "/reviews", json=data.dict()
+            settings.lnbits_extensions_reviews_url + "/reviews",
+            json=data.model_dump(),
         )
         resp.raise_for_status()
         payment_request = resp.json()

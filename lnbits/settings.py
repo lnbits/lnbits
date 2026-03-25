@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import importlib
 import importlib.metadata
-import inspect
 import json
 import os
 import re
@@ -11,11 +10,12 @@ from enum import Enum
 from os import path
 from pathlib import Path
 from time import gmtime, strftime, time
-from typing import Any
+from typing import Any, get_args, get_origin
 from uuid import uuid4
 
+from dotenv import dotenv_values
 from loguru import logger
-from pydantic.v1 import BaseModel, BaseSettings, Extra, Field, validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 
 def list_parse_fallback(v: str):
@@ -27,6 +27,89 @@ def list_parse_fallback(v: str):
             return v.split(",")
     else:
         return []
+
+
+def _remove_env_names(schema: dict[str, Any]) -> None:
+    for prop in schema.get("properties", {}).values():
+        prop.pop("env_names", None)
+
+
+def _iter_validation_aliases(validation_alias: Any) -> list[str]:
+    if isinstance(validation_alias, str):
+        return [validation_alias]
+
+    choices = getattr(validation_alias, "choices", None)
+    if not choices:
+        return []
+
+    return [choice for choice in choices if isinstance(choice, str)]
+
+
+def _annotation_has_origin(annotation: Any, origins: tuple[type, ...]) -> bool:
+    origin = get_origin(annotation)
+    if origin in origins:
+        return True
+
+    return any(_annotation_has_origin(arg, origins) for arg in get_args(annotation))
+
+
+def _parse_settings_value(value: Any, annotation: Any) -> Any:
+    if not isinstance(value, str):
+        return value
+
+    stripped_value = value.strip()
+
+    if stripped_value.startswith("[") or stripped_value.startswith("{"):
+        return json.loads(stripped_value)
+
+    if _annotation_has_origin(annotation, (list, set, tuple)):
+        return list_parse_fallback(value)
+
+    return value
+
+
+class LNbitsBaseSettings(BaseModel):
+    def __init__(self, **data):
+        super().__init__(**{**self._settings_data(), **data})
+
+    @classmethod
+    def _settings_data(cls) -> dict[str, Any]:
+        env_file = cls.model_config.get("env_file")
+        env_file_encoding = cls.model_config.get("env_file_encoding")
+        case_sensitive = bool(cls.model_config.get("case_sensitive", False))
+
+        raw_values: dict[str, Any] = {}
+        if env_file:
+            dotenv_items = dotenv_values(env_file, encoding=env_file_encoding)
+            raw_values.update(
+                {key: value for key, value in dotenv_items.items() if value is not None}
+            )
+        raw_values.update(os.environ)
+
+        lookup_values = (
+            raw_values
+            if case_sensitive
+            else {str(key).lower(): value for key, value in raw_values.items()}
+        )
+
+        settings_values: dict[str, Any] = {}
+        for field_name, field in cls.model_fields.items():
+            lookup_keys = _iter_validation_aliases(field.validation_alias)
+            if field.alias and field.alias != field_name:
+                lookup_keys.append(field.alias)
+            lookup_keys.append(field_name)
+
+            for key in lookup_keys:
+                lookup_key = key if case_sensitive else key.lower()
+                if lookup_key not in lookup_values:
+                    continue
+
+                settings_values[field_name] = _parse_settings_value(
+                    lookup_values[lookup_key], field.annotation
+                )
+                break
+
+        return settings_values
 
 
 class LNbitsSettings(BaseModel):
@@ -324,7 +407,7 @@ class AssetSettings(LNbitsSettings):
             "heif",
             "heics",
             "text/plain",
-            "text/json" "text/xml",
+            "text/jsontext/xml",
             "application/json",
             "application/pdf",
         ]
@@ -652,9 +735,9 @@ class BoltzFundingSource(LNbitsSettings):
 
 class StrikeFundingSource(LNbitsSettings):
     strike_api_endpoint: str | None = Field(
-        default="https://api.strike.me/v1", env="STRIKE_API_ENDPOINT"
+        default="https://api.strike.me/v1", validation_alias="STRIKE_API_ENDPOINT"
     )
-    strike_api_key: str | None = Field(default=None, env="STRIKE_API_KEY")
+    strike_api_key: str | None = Field(default=None, validation_alias="STRIKE_API_KEY")
 
 
 class FiatProviderLimits(BaseModel):
@@ -971,12 +1054,12 @@ class EditableSettings(
     KeycloakAuthSettings,
     OidcAuthSettings,
 ):
-    @validator(
+    @field_validator(
         "lnbits_admin_users",
         "lnbits_allowed_users",
         "lnbits_theme_options",
         "lnbits_admin_extensions",
-        pre=True,
+        mode="before",
     )
     @classmethod
     def validate_editable_settings(cls, val):
@@ -984,21 +1067,21 @@ class EditableSettings(
 
     @classmethod
     def from_dict(cls, d: dict):
-        return cls(
-            **{k: v for k, v in d.items() if k in inspect.signature(cls).parameters}
-        )
+        return cls(**{k: v for k, v in d.items() if k in cls.model_fields})
 
-    # fixes openapi.json validation, remove field env_names
-    class Config:
-        @staticmethod
-        def schema_extra(schema: dict[str, Any]) -> None:
-            for prop in schema.get("properties", {}).values():
-                prop.pop("env_names", None)
+    # Fixes openapi.json validation by removing the v1-only env_names metadata.
+    model_config = ConfigDict(
+        populate_by_name=True,
+        json_schema_extra=_remove_env_names,
+    )
 
 
 class UpdateSettings(EditableSettings):
-    class Config:
-        extra = Extra.forbid
+    model_config = ConfigDict(
+        populate_by_name=True,
+        extra="forbid",
+        json_schema_extra=_remove_env_names,
+    )
 
 
 class EnvSettings(LNbitsSettings):
@@ -1110,7 +1193,7 @@ class TransientSettings(InstalledExtensionsSettings, ExchangeHistorySettings):
 
     @classmethod
     def readonly_fields(cls):
-        return [f for f in inspect.signature(cls).parameters if not f.startswith("_")]
+        return [f for f in cls.model_fields if not f.startswith("_")]
 
 
 class ReadOnlySettings(
@@ -1125,9 +1208,9 @@ class ReadOnlySettings(
     def lnbits_extensions_upgrade_path(self) -> str:
         return str(Path(self.lnbits_data_folder, "upgrades"))
 
-    @validator(
+    @field_validator(
         "lnbits_allowed_funding_sources",
-        pre=True,
+        mode="before",
     )
     @classmethod
     def validate_readonly_settings(cls, val):
@@ -1135,15 +1218,18 @@ class ReadOnlySettings(
 
     @classmethod
     def readonly_fields(cls):
-        return [f for f in inspect.signature(cls).parameters if not f.startswith("_")]
+        return [f for f in cls.model_fields if not f.startswith("_")]
 
 
-class Settings(EditableSettings, ReadOnlySettings, TransientSettings, BaseSettings):
-    class Config:
-        env_file = ".env"
-        env_file_encoding = "utf-8"
-        case_sensitive = False
-        json_loads = list_parse_fallback
+class Settings(
+    EditableSettings, ReadOnlySettings, TransientSettings, LNbitsBaseSettings
+):
+    model_config = ConfigDict(
+        populate_by_name=True,
+        env_file=".env",
+        env_file_encoding="utf-8",
+        case_sensitive=False,
+    )
 
     def is_user_allowed(self, user_id: str) -> bool:
         return (
@@ -1348,7 +1434,7 @@ if not settings.user_agent:
 # printing environment variable for debugging
 if not settings.lnbits_admin_ui:
     logger.debug("Environment Settings:")
-    for key, value in settings.dict(exclude_none=True).items():
+    for key, value in settings.model_dump(exclude_none=True).items():
         logger.debug(f"{key}: {value}")
 
 

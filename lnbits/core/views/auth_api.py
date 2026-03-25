@@ -587,7 +587,7 @@ def _auth_success_response(
     payload = AccessTokenPayload(
         sub=username or "", usr=user_id, email=email, auth_time=int(time())
     )
-    access_token = create_access_token(data=payload.dict())
+    access_token = create_access_token(data=payload.model_dump())
     max_age = settings.auth_token_expire_minutes * 60
     response = JSONResponse({"access_token": access_token, "token_type": "bearer"})
     response.set_cookie(
@@ -617,7 +617,7 @@ def _auth_api_token_response(
         sub=username, api_token_id=api_token_id, auth_time=int(time())
     )
     return create_access_token(
-        data=payload.dict(), token_expire_minutes=token_expire_minutes
+        data=payload.model_dump(), token_expire_minutes=token_expire_minutes
     )
 
 
@@ -625,7 +625,7 @@ def _auth_redirect_response(path: str, user_id: str, email: str) -> RedirectResp
     payload = AccessTokenPayload(
         usr=user_id, sub="", email=email, auth_time=int(time())
     )
-    access_token = create_access_token(data=payload.dict())
+    access_token = create_access_token(data=payload.model_dump())
     max_age = settings.auth_token_expire_minutes * 60
     response = RedirectResponse(path)
     response.set_cookie(

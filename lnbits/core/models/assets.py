@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from datetime import datetime, timezone
 
-from pydantic.v1 import BaseModel, Field
+from pydantic import BaseModel, Field
 
 from lnbits.db import FilterModel
 

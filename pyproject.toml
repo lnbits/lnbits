@@ -51,6 +51,7 @@ dependencies = [
     "pillow~=12.1.0",
     "python-dotenv~=1.2.1",
     "greenlet~=3.3.0",
+    "pydantic-settings>=2.13.1",
 ]
 
 [project.scripts]

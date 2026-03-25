@@ -1,6 +1,7 @@
 import pytest
+from pydantic import ValidationError
 
-from lnbits.settings import RedirectPath
+from lnbits.settings import EditableSettings, RedirectPath, Settings, UpdateSettings
 
 lnurlp_redirect_path = {
     "from_path": "/.well-known/lnurlp",
@@ -166,3 +167,60 @@ def test_redirect_path_new_path_from(lnurlp: RedirectPath):
         lnurlp.new_path_from("/.well-known/lnurlp/path/more")
         == "/lnurlp/api/v1/well-known/path/more"
     )
+
+
+def test_settings_loads_env_and_dotenv_values(tmp_path, monkeypatch):
+    env_file = tmp_path / ".env"
+    env_file.write_text(
+        "\n".join(
+            [
+                "lnbits_admin_users=alice,bob",
+                "STRIKE_API_ENDPOINT=https://dotenv.strike.example",
+            ]
+        ),
+        encoding="utf-8",
+    )
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setenv("LNBITS_ALLOWED_USERS", ' ["carol", "dave"] ')
+    monkeypatch.setenv("STRIKE_API_KEY", "secret-key")
+    monkeypatch.setenv("STRIKE_API_ENDPOINT", "https://env.strike.example")
+
+    settings = Settings()
+
+    assert settings.lnbits_admin_users == ["alice", "bob"]
+    assert settings.lnbits_allowed_users == ["carol", "dave"]
+    assert settings.strike_api_endpoint == "https://env.strike.example"
+    assert settings.strike_api_key == "secret-key"
+
+
+def test_editable_settings_from_dict_ignores_unknown_fields():
+    editable_settings = EditableSettings.from_dict(
+        {"lnbits_admin_users": ["alice"], "unknown_setting": "ignored"}
+    )
+
+    assert editable_settings.lnbits_admin_users == ["alice"]
+    assert "unknown_setting" not in editable_settings.model_dump()
+
+
+def test_update_settings_splits_string_lists_and_forbids_extra_fields():
+    updated = UpdateSettings.model_validate(
+        {
+            "lnbits_admin_users": "alice,bob",
+            "strike_api_endpoint": "https://api.strike.me/v1",
+            "strike_api_key": "secret-key",
+        }
+    )
+
+    assert updated.lnbits_admin_users == ["alice", "bob"]
+    assert updated.strike_api_endpoint == "https://api.strike.me/v1"
+    assert updated.strike_api_key == "secret-key"
+
+    with pytest.raises(ValidationError):
+        UpdateSettings.model_validate({"unknown_setting": True})
+
+
+def test_update_settings_schema_does_not_include_env_names():
+    schema = UpdateSettings.model_json_schema()
+
+    assert "properties" in schema
+    assert all("env_names" not in prop for prop in schema["properties"].values())

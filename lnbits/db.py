@@ -8,9 +8,11 @@ import time
 from contextlib import asynccontextmanager
 from datetime import datetime, timezone
 from enum import Enum
-from typing import Any, Generic, Literal, TypeVar, get_origin
+from types import UnionType
+from typing import Any, Generic, Literal, TypeVar, Union, get_args, get_origin
 
 from loguru import logger
+from pydantic import BaseModel as BaseModelV2
 from pydantic.v1 import BaseModel, ValidationError, root_validator
 from sqlalchemy.ext.asyncio import AsyncConnection, AsyncEngine, create_async_engine
 from sqlalchemy.sql import text
@@ -20,6 +22,7 @@ from lnbits.settings import settings
 POSTGRES = "POSTGRES"
 COCKROACH = "COCKROACH"
 SQLITE = "SQLITE"
+PYDANTIC_MODEL_TYPES = (BaseModel, BaseModelV2)
 
 DateTrunc = Literal["hour", "day", "month"]
 sqlite_formats = {
@@ -28,6 +31,80 @@ sqlite_formats = {
     "month": "%Y-%m-01 00:00:00",
 }
 
+
+def _is_pydantic_model_class(model: Any) -> bool:
+    return isinstance(model, type) and any(
+        issubclass(model, model_type) for model_type in PYDANTIC_MODEL_TYPES
+    )
+
+
+def _is_v2_pydantic_model_class(model: Any) -> bool:
+    return isinstance(model, type) and issubclass(model, BaseModelV2)
+
+
+def _issubclass(candidate: Any, parent: Any) -> bool:
+    return isinstance(candidate, type) and issubclass(candidate, parent)
+
+
+def _strip_optional(annotation: Any) -> Any:
+    origin = get_origin(annotation)
+    if origin not in {Union, UnionType}:
+        return annotation
+
+    args = [arg for arg in get_args(annotation) if arg is not type(None)]
+    if len(args) == 1:
+        return _strip_optional(args[0])
+    return annotation
+
+
+def _model_fields(model: type[Any]) -> dict[str, Any]:
+    fields = getattr(model, "model_fields", None)
+    if fields is not None:
+        return fields
+    return getattr(model, "__fields__", {})
+
+
+def _field_annotation(field: Any) -> Any:
+    annotation = getattr(field, "annotation", None)
+    if annotation is None:
+        annotation = getattr(field, "outer_type_", Any)
+    return _strip_optional(annotation)
+
+
+def _field_inner_type(field: Any) -> Any:
+    type_ = getattr(field, "type_", None)
+    if type_ is not None:
+        return _strip_optional(type_)
+
+    annotation = _field_annotation(field)
+    origin = get_origin(annotation)
+    if origin in {list, set, tuple, dict}:
+        args = get_args(annotation)
+        return _strip_optional(args[0]) if args else Any
+
+    return annotation
+
+
+def _field_extra(field: Any) -> dict[str, Any]:
+    field_info = getattr(field, "field_info", None)
+    if field_info is not None:
+        return field_info.extra
+
+    return getattr(field, "json_schema_extra", None) or {}
+
+
+def _model_dump(model: BaseModel | BaseModelV2) -> dict[str, Any]:
+    if isinstance(model, BaseModelV2):
+        return model.model_dump()
+    return model.dict()
+
+
+def _validate_model(model: type[Any], values: dict[str, Any]) -> Any:
+    if _is_v2_pydantic_model_class(model):
+        return model.model_validate(values)
+    return model.parse_obj(values)
+
+
 if settings.lnbits_database_url:
     database_uri = settings.lnbits_database_url
     if database_uri.startswith("cockroachdb://"):
@@ -35,7 +112,7 @@ if settings.lnbits_database_url:
     else:
         if not database_uri.startswith("postgres://"):
             raise ValueError(
-                "Please use the 'postgres://...' " "format for the database URL."
+                "Please use the 'postgres://...' format for the database URL."
             )
         DB_TYPE = POSTGRES
 
@@ -452,7 +529,7 @@ class FilterModel(BaseModel):
 
 
 T = TypeVar("T")
-TModel = TypeVar("TModel", bound=BaseModel)
+TModel = TypeVar("TModel", bound=BaseModel | BaseModelV2)
 TFilterModel = TypeVar("TFilterModel", bound=FilterModel)
 
 
@@ -660,17 +737,19 @@ def update_query(
     return f"UPDATE {table_name} SET {query} {where}"  # noqa: S608
 
 
-def model_to_dict(model: BaseModel) -> dict:
+def model_to_dict(model: BaseModel | BaseModelV2) -> dict:
     """
     Convert a Pydantic model to a dictionary with JSON-encoded nested models
     private fields starting with _ are ignored
     :param model: Pydantic model
     """
     _dict: dict = {}
-    for key, value in model.dict().items():
-        type_ = model.__fields__[key].type_
-        outertype_ = model.__fields__[key].outer_type_
-        if model.__fields__[key].field_info.extra.get("no_database", False):
+    model_fields = _model_fields(type(model))
+    for key, value in _model_dump(model).items():
+        field = model_fields[key]
+        type_ = _field_inner_type(field)
+        outertype_ = _field_annotation(field)
+        if _field_extra(field).get("no_database", False):
             continue
         if isinstance(value, datetime):
             if DB_TYPE == SQLITE:
@@ -681,7 +760,7 @@ def model_to_dict(model: BaseModel) -> dict:
                 _dict[key] = value.replace(tzinfo=None)
             continue
         if (
-            type(type_) is type(BaseModel)
+            _is_pydantic_model_class(type_)
             or type_ is dict
             or get_origin(outertype_) is list
         ):
@@ -705,51 +784,50 @@ def dict_to_submodel(model: type[TModel], value: dict | str) -> TModel | None:
     return dict_to_model(_subdict, model)
 
 
-def dict_to_model(_row: dict, model: type[TModel]) -> TModel:  # noqa: C901
+def dict_to_model(_row: dict, model: type[TModel]) -> TModel:
     """
     Convert a dictionary with JSON-encoded nested models to a Pydantic model
     :param _dict: Dictionary from database
     :param model: Pydantic model
     """
     _dict: dict = {}
+    model_fields = _model_fields(model)
     for key, value in _row.items():
         if value is None:
             continue
-        if key not in model.__fields__:
+        if key not in model_fields:
             # Somethimes an SQL JOIN will create additional column
             continue
-        type_ = model.__fields__[key].type_
-        outertype_ = model.__fields__[key].outer_type_
+        field = model_fields[key]
+        type_ = _field_inner_type(field)
+        outertype_ = _field_annotation(field)
         if get_origin(outertype_) is list:
             _items = _safe_load_json(value) if isinstance(value, str) else value
             _dict[key] = [
-                dict_to_submodel(type_, v) if issubclass(type_, BaseModel) else v
+                dict_to_submodel(type_, v) if _is_pydantic_model_class(type_) else v
                 for v in _items
             ]
             continue
-        if issubclass(type_, bool):
+        if _issubclass(type_, bool):
             _dict[key] = bool(value)
             continue
-        if issubclass(type_, datetime):
+        if _issubclass(type_, datetime):
             if DB_TYPE == SQLITE:
                 _dict[key] = datetime.fromtimestamp(value, timezone.utc)
             else:
                 _dict[key] = value.replace(tzinfo=timezone.utc)
             continue
-        if issubclass(type_, BaseModel):
+        if _is_pydantic_model_class(type_):
             _dict[key] = dict_to_submodel(type_, value)
             continue
         # TODO: remove this when all sub models are migrated to Pydantic
         # NOTE: this is for type dict on BaseModel, (used in Payment class)
-        if type_ is dict and value:
+        if (type_ is dict or get_origin(outertype_) is dict) and value:
             _dict[key] = _safe_load_json(value)
             continue
         _dict[key] = value
         continue
-    _model = model.construct(**_dict)
-    if isinstance(_model, BaseModel):
-        _model.__init__(**_dict)  # type: ignore
-    return _model
+    return _validate_model(model, _dict)
 
 
 def _safe_load_json(value: str) -> dict:

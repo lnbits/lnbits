@@ -12,7 +12,7 @@ from typing import Any
 
 import httpx
 from loguru import logger
-from pydantic.v1 import BaseModel, Field
+from pydantic import BaseModel, Field
 
 from lnbits.helpers import (
     download_url,
@@ -96,7 +96,7 @@ class ExtensionConfig(BaseModel):
         )
         error_msg = "Cannot fetch GitHub extension config"
         config = await github_api_get(config_url, error_msg)
-        return ExtensionConfig.parse_obj(config)
+        return ExtensionConfig.model_validate(config)
 
 
 class ReleasePaymentInfo(BaseModel):
@@ -304,7 +304,7 @@ class ExtensionRelease(BaseModel):
         releases_url = f"https://api.github.com/repos/{org}/{repo}/releases"
         error_msg = "Cannot fetch extension releases"
         releases = await github_api_get(releases_url, error_msg)
-        return [GitHubRepoRelease.parse_obj(r) for r in releases]
+        return [GitHubRepoRelease.model_validate(r) for r in releases]
 
     @classmethod
     async def fetch_release_details(cls, details_link: str) -> dict | None:
@@ -757,7 +757,7 @@ class InstallableExtension(BaseModel):
         repo_url = f"https://api.github.com/repos/{org}/{repository}"
         error_msg = "Cannot fetch extension repo"
         repo = await github_api_get(repo_url, error_msg)
-        github_repo = GitHubRepo.parse_obj(repo)
+        github_repo = GitHubRepo.model_validate(repo)
 
         lates_release_url = (
             f"https://api.github.com/repos/{org}/{repository}/releases/latest"
@@ -771,15 +771,15 @@ class InstallableExtension(BaseModel):
 
         return (
             github_repo,
-            GitHubRepoRelease.parse_obj(latest_release),
-            ExtensionConfig.parse_obj(config),
+            GitHubRepoRelease.model_validate(latest_release),
+            ExtensionConfig.model_validate(config),
         )
 
     @classmethod
     async def fetch_manifest(cls, url) -> Manifest:
         error_msg = "Cannot fetch extensions manifest"
         manifest = await github_api_get(url, error_msg)
-        return Manifest.parse_obj(manifest)
+        return Manifest.model_validate(manifest)
 
 
 class CreateExtension(BaseModel):
