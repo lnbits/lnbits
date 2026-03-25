@@ -105,7 +105,8 @@ async def get_settings_field(
     )
     if not row:
         return None
-    return SettingsField(id=row["id"], value=json.loads(row["value"]), tag=row["tag"])
+    value = json.loads(row["value"]) if row["value"] else None
+    return SettingsField(id=row["id"], value=value, tag=row["tag"])
 
 
 async def set_settings_field(id_: str, value: Any | None, tag: str | None = "core"):
