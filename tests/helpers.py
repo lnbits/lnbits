@@ -182,9 +182,6 @@ def make_lnurl_pay_response(
         ),
     )
 
-
-settings.lnbits_backend_wallet_class = "FakeWallet"
-set_funding_source("FakeWallet")
 funding_source = get_funding_source()
 is_fake: bool = funding_source.__class__.__name__ == "FakeWallet"
 is_regtest: bool = not is_fake
