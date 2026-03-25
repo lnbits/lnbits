@@ -1,8 +1,9 @@
 import pytest
-from pydantic import ValidationError
+from pydantic import TypeAdapter, ValidationError
 
 from lnbits.core.models.extensions import InstallableExtension
 from lnbits.core.models.lnurl import StoredPayLink
+from lnbits.core.models.payments import PaymentFilters
 from lnbits.core.models.users import UserLabel
 from lnbits.core.models.wallets import (
     Wallet,
@@ -10,7 +11,8 @@ from lnbits.core.models.wallets import (
     WalletSharePermission,
     WalletShareStatus,
 )
-from lnbits.db import dict_to_model
+from lnbits.db import Filter, Page, dict_to_model
+from lnbits.nodes.base import NodePayment
 
 
 def test_user_label_uses_pydantic_v2_pattern_validation():
@@ -78,3 +80,32 @@ def test_db_dict_to_model_parses_optional_nested_pydantic_v2_models():
     assert ext.meta is not None
     assert ext.meta.installed_release is not None
     assert ext.meta.installed_release.source_repo == "lnbits/example"
+
+
+def test_page_generic_validates_through_pydantic_v2_type_adapter():
+    page = Page[NodePayment](
+        data=[
+            NodePayment(
+                pending=False,
+                amount=1,
+                time=1,
+                preimage="preimage",
+                payment_hash="payment-hash",
+            )
+        ],
+        total=1,
+    )
+
+    validated = TypeAdapter(Page[NodePayment]).validate_python(
+        page, from_attributes=True
+    )
+
+    assert validated.total == 1
+    assert validated.data[0].payment_hash == "payment-hash"
+
+
+def test_filter_parse_query_uses_pydantic_v2_field_validation():
+    parsed = Filter.parse_query("amount[eq]", ["42"], PaymentFilters)
+
+    assert parsed.field == "amount"
+    assert parsed.values == {"amount__0": 42}

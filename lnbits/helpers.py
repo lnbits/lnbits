@@ -12,7 +12,6 @@ import shortuuid
 from fastapi.routing import APIRoute
 from loguru import logger
 from packaging import version
-from pydantic.v1.schema import field_schema
 from starlette.templating import Jinja2Templates
 
 from lnbits.settings import settings
@@ -127,23 +126,26 @@ def generate_filter_params_openapi(model: type[FilterModel], keep_optional=False
     :param keep_optional: If false, all parameters will be optional,
     otherwise inferred from model
     """
-    fields = list(model.__fields__.values())
+    schema = model.model_json_schema()
+    properties = schema.get("properties", {})
+    required = set(schema.get("required", []))
     params = []
-    for field in fields:
-        schema, _, _ = field_schema(field, model_name_map={})
+    for field_name, field in model.model_fields.items():
+        field_key = field.alias or field_name
+        field_schema = properties.get(field_key, {})
 
         description = "Supports Filtering"
         if (
             hasattr(model, "__search_fields__")
-            and field.name in model.__search_fields__
+            and field_name in model.__search_fields__
         ):
             description += ". Supports Search"
 
         parameter = {
-            "name": field.alias,
+            "name": field_key,
             "in": "query",
-            "required": field.required if keep_optional else False,
-            "schema": schema,
+            "required": field_key in required if keep_optional else False,
+            "schema": field_schema,
             "description": description,
         }
         params.append(parameter)
