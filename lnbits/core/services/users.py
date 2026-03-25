@@ -175,8 +175,8 @@ async def check_admin_settings():
 
         if settings.has_first_install_token_changed():
             logger.warning("First install token is changed. Resetting admin settings.")
-            settings.super_user = ""
-            await set_settings_field("super_user", settings.super_user)
+            new_settings = await init_admin_settings()
+            settings.super_user = new_settings.super_user
             settings.first_install = True
 
         logger.success(

@@ -518,10 +518,6 @@ async def first_install(data: UpdateSuperuserPassword) -> JSONResponse:
             raise HTTPException(HTTPStatus.UNAUTHORIZED, "Missing first_install_token.")
         if settings.first_install_token != data.first_install_token:
             raise HTTPException(HTTPStatus.UNAUTHORIZED, "Invalid first_install_token.")
-        settings.first_install_token_confirmed = data.first_install_token
-        await set_settings_field(
-            "first_install_token_confirmed", data.first_install_token
-        )
 
     account = await get_account_by_username(data.username, False)
     if account:
@@ -537,6 +533,13 @@ async def first_install(data: UpdateSuperuserPassword) -> JSONResponse:
     account.hash_password(data.password)
     await update_account(account)
     settings.first_install = False
+
+    # only confrm it after the super user has been successfully updated
+    if settings.first_install_token:
+        settings.first_install_token_confirmed = data.first_install_token
+        await set_settings_field(
+            "first_install_token_confirmed", data.first_install_token
+        )
     return _auth_success_response(account.username, account.id, account.email)
 
 
