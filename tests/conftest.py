@@ -385,4 +385,4 @@ def _settings_cleanup(settings: Settings):
     settings.lnbits_user_activation_by_invitation_code = False
     settings.lnbits_register_reusable_activation_code = ""
     settings.lnbits_register_one_time_activation_codes = []
-    settings.lnbits_backend_wallet_class = "FakeWallet"
+    # settings.lnbits_backend_wallet_class = "FakeWallet"
