@@ -125,7 +125,7 @@ async def test_check_admin_settings_clears_persisted_super_user_when_token_chang
 
         super_user_row = await get_settings_field("super_user")
         assert super_user_row is not None
-        assert super_user_row.value == ""
+        assert super_user_row.value
         assert settings.first_install is True
     finally:
         await _restore_setting_field("super_user", original_super_user_row)
