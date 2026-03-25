@@ -165,5 +165,26 @@ window.app.component('lnbits-qrcode', {
     this.$refs.qrCode.$el.style.maxWidth = this.maxWidth + 'px'
     this.$refs.qrCode.$el.setAttribute('width', '100%')
     this.$refs.qrCode.$el.removeAttribute('height')
+  },
+  computed: {
+    optimizedValue() {
+      const separatorIndex = this.value.indexOf(':')
+      const type =
+        separatorIndex === -1 ? '' : this.value.substring(0, separatorIndex)
+      const value =
+        separatorIndex === -1
+          ? this.value
+          : this.value.substring(separatorIndex + 1)
+
+      if (this.utils.isValidBech32(value)) {
+        const normalizedValue = value.toUpperCase()
+        if (type) {
+          return `${type.toUpperCase()}:${normalizedValue}`
+        }
+        return normalizedValue
+      }
+
+      return this.value
+    }
   }
 })
