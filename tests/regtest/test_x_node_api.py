@@ -4,7 +4,7 @@ from http import HTTPStatus
 
 import pytest
 from httpx import AsyncClient, Headers
-from pydantic import parse_obj_as
+from pydantic import TypeAdapter
 
 from lnbits import bolt11
 from lnbits.nodes.base import ChannelPoint, ChannelState, NodeChannel
@@ -111,7 +111,7 @@ async def test_get_channel(node_client):
     await asyncio.sleep(3)
     response = await node_client.get("/node/api/v1/channels")
     assert response.status_code == 200
-    channels = parse_obj_as(list[NodeChannel], response.json())
+    channels = TypeAdapter(list[NodeChannel]).validate_python(response.json())
     ch = random.choice(
         [channel for channel in channels if channel.state == ChannelState.ACTIVE]
     )
@@ -121,7 +121,7 @@ async def test_get_channel(node_client):
     response = await node_client.get(f"/node/api/v1/channels/{ch.id}")
     assert response.status_code == 200
 
-    channel = parse_obj_as(NodeChannel, response.json())
+    channel = TypeAdapter(NodeChannel).validate_python(response.json())
     assert channel.id == ch.id
 
 
@@ -131,7 +131,7 @@ async def test_set_channel_fees(node_client):
     await asyncio.sleep(3)
     response = await node_client.get("/node/api/v1/channels")
     assert response.status_code == 200
-    channels = parse_obj_as(list[NodeChannel], response.json())
+    channels = TypeAdapter(list[NodeChannel]).validate_python(response.json())
 
     ch = random.choice(
         [channel for channel in channels if channel.state == ChannelState.ACTIVE]
@@ -146,7 +146,7 @@ async def test_set_channel_fees(node_client):
 
     response = await node_client.get(f"/node/api/v1/channels/{ch.id}")
     assert response.status_code == 200
-    channel = parse_obj_as(NodeChannel, response.json())
+    channel = TypeAdapter(NodeChannel).validate_python(response.json())
     assert channel.fee_ppm == 69
     assert channel.fee_base_msat == 42
 
@@ -162,7 +162,7 @@ async def test_channel_management(node_client):
         await asyncio.sleep(3)
         response = await node_client.get("/node/api/v1/channels")
         assert response.status_code == 200
-        return parse_obj_as(list[NodeChannel], response.json())
+        return TypeAdapter(list[NodeChannel]).validate_python(response.json())
 
     data = await get_channels()
     close = random.choice(

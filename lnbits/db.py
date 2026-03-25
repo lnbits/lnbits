@@ -11,7 +11,7 @@ from enum import Enum
 from typing import Any, Generic, Literal, TypeVar, get_origin
 
 from loguru import logger
-from pydantic import BaseModel, ValidationError, root_validator
+from pydantic.v1 import BaseModel, ValidationError, root_validator
 from sqlalchemy.ext.asyncio import AsyncConnection, AsyncEngine, create_async_engine
 from sqlalchemy.sql import text
 

@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from pydantic import BaseModel
+from pydantic.v1 import BaseModel
 
 
 class CreateWebPushSubscription(BaseModel):

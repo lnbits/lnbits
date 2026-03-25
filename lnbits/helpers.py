@@ -12,7 +12,7 @@ import shortuuid
 from fastapi.routing import APIRoute
 from loguru import logger
 from packaging import version
-from pydantic.schema import field_schema
+from pydantic.v1.schema import field_schema
 from starlette.templating import Jinja2Templates
 
 from lnbits.settings import settings

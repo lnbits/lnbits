@@ -4,9 +4,9 @@ from dataclasses import dataclass
 from datetime import datetime, timezone
 from enum import Enum
 
-from pydantic import BaseModel, Field
+from pydantic.v1 import BaseModel, Field
 
-from lnbits.core.models.lnurl import StoredPayLinks
+# from lnbits.core.models.lnurl import StoredPayLinks
 from lnbits.db import FilterModel
 from lnbits.settings import settings
 
@@ -128,7 +128,8 @@ class Wallet(BaseWallet):
     currency: str | None = None
     balance_msat: int = Field(default=0, no_database=True)
     extra: WalletExtra = WalletExtra()
-    stored_paylinks: StoredPayLinks = StoredPayLinks()
+    # TODO dont mix v1 and v2
+    # stored_paylinks: StoredPayLinks = StoredPayLinks()
     # What permission this wallet has when it's a shared wallet
     share_permissions: list[WalletPermission] = Field(default=[], no_database=True)
 

@@ -15,7 +15,7 @@ from typing import Any
 from uuid import uuid4
 
 from loguru import logger
-from pydantic import BaseModel, BaseSettings, Extra, Field, validator
+from pydantic.v1 import BaseModel, BaseSettings, Extra, Field, validator
 
 
 def list_parse_fallback(v: str):

@@ -6,7 +6,7 @@ from typing import Any, Literal
 
 import httpx
 from loguru import logger
-from pydantic import BaseModel, Field, ValidationError
+from pydantic.v1 import BaseModel, Field, ValidationError
 
 from lnbits.helpers import normalize_endpoint, urlsafe_short_hash
 from lnbits.settings import settings

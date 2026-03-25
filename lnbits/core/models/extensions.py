@@ -12,7 +12,7 @@ from typing import Any
 
 import httpx
 from loguru import logger
-from pydantic import BaseModel, Field
+from pydantic.v1 import BaseModel, Field
 
 from lnbits.helpers import (
     download_url,

@@ -1,7 +1,7 @@
 import random
 import string
 
-from pydantic import BaseModel
+from pydantic.v1 import BaseModel
 
 from lnbits.wallets import get_funding_source, set_funding_source
 

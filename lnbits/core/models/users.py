@@ -5,7 +5,7 @@ from uuid import UUID
 
 from bcrypt import checkpw, gensalt, hashpw
 from fastapi import Query
-from pydantic import BaseModel, Field
+from pydantic.v1 import BaseModel, Field
 
 from lnbits.core.models.misc import SimpleItem
 from lnbits.db import FilterModel

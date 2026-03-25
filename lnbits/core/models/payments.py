@@ -5,9 +5,10 @@ from enum import Enum
 from typing import Literal
 
 from fastapi import Query
-from lnurl import LnurlWithdrawResponse
+
+# from lnurl import LnurlWithdrawResponse
 from loguru import logger
-from pydantic import BaseModel, Field, validator
+from pydantic.v1 import BaseModel, Field, validator
 
 from lnbits.db import FilterModel
 from lnbits.fiat.base import (
@@ -246,7 +247,8 @@ class CreateInvoice(BaseModel):
     extra: dict | None = None
     webhook: str | None = None
     bolt11: str | None = None
-    lnurl_withdraw: LnurlWithdrawResponse | None = None
+    # TODO: cannot mix v1 and v2
+    # lnurl_withdraw: LnurlWithdrawResponse | None = None
     fiat_provider: str | None = None
     labels: list[str] = []
 

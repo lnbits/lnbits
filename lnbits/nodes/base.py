@@ -4,7 +4,7 @@ from abc import ABC, abstractmethod
 from enum import Enum
 from typing import TYPE_CHECKING
 
-from pydantic import BaseModel
+from pydantic.v1 import BaseModel
 
 from lnbits.db import FilterModel, Filters, Page
 from lnbits.utils.cache import cache

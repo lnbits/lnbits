@@ -5,7 +5,7 @@ from collections.abc import AsyncGenerator
 
 import httpx
 from loguru import logger
-from pydantic import BaseModel
+from pydantic.v1 import BaseModel
 from websockets import Subprotocol, connect
 
 from lnbits import bolt11
