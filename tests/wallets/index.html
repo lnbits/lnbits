@@ -1506,7 +1506,7 @@
                               >
                                 <div class="section-title">
                                   <div>
-                                    <h3>Test Mock Definition {{ itemIndex + 1 }}</h3>
+                                    <h3>{{ testMockItemTitle(item, itemIndex) }}</h3>
                                   </div>
                                   <q-btn
                                     color="negative"
@@ -1611,6 +1611,15 @@
 
           <q-card-section class="q-pa-lg">
             <div v-if="currentFundingSource">
+              <div class="q-mb-lg">
+                <q-checkbox
+                  v-model="currentFundingSourceSkip"
+                  label="Skip this funding source in generated wallet tests"
+                  color="warning"
+                  keep-color
+                ></q-checkbox>
+              </div>
+
               <div class="settings-editor" v-if="currentFundingSourceSettingRows.length">
                 <div class="settings-table">
                   <div class="settings-table-header settings-table-grid">
@@ -2494,6 +2503,7 @@
             datasets,
             editorDialog: false,
             fundingSourceSettingsDialog: false,
+            lastFilePickerHandle: null,
             functionMockDraftRowId: 0,
             functionMocksDialog: false,
             functionMockDrafts,
@@ -2536,6 +2546,38 @@
                 fs => fs.name === this.currentFundingSourceName
               ) || null
             )
+          },
+          currentFundingSourceSkip: {
+            get() {
+              return Boolean(this.currentFundingSource?.skip)
+            },
+            set(value) {
+              if (!this.currentFundingSourceName) {
+                return
+              }
+
+              this.applyDatasetMutation(
+                this.selectedDatasetKey,
+                data => {
+                  const fundingSource =
+                    data.funding_sources?.[this.currentFundingSourceName]
+
+                  if (!fundingSource) {
+                    return
+                  }
+
+                  if (value) {
+                    fundingSource.skip = true
+                  } else {
+                    delete fundingSource.skip
+                  }
+                },
+                {
+                  preserveSettingsDrafts: true,
+                  preserveFunctionMockDrafts: true
+                }
+              )
+            }
           },
           currentFundingSourceSettingRows() {
             if (!this.currentFundingSourceName) {
@@ -2945,6 +2987,16 @@
             )
 
             return availableName?.value || ''
+          },
+          testMockItemTitle(item, itemIndex) {
+            const parsed = parseJsonText(item?.text || '')
+            const description = parsed.ok ? parsed.data?.description : ''
+
+            if (typeof description === 'string' && description.trim() !== '') {
+              return description.trim()
+            }
+
+            return `Test Mock Definition ${itemIndex + 1}`
           },
           addTestMockBinding(testEntry, mockSet) {
             mockSet.bindings.push(
@@ -3702,20 +3754,35 @@
 
             return ''
           },
+          openFilePickerOptions() {
+            const options = {
+              id: 'lnbits-wallet-fixture-studio',
+              multiple: false,
+              types: [
+                {
+                  description: 'JSON fixture file',
+                  accept: {
+                    'application/json': ['.json']
+                  }
+                }
+              ]
+            }
+
+            const startIn =
+              this.currentDataset.fileHandle || this.lastFilePickerHandle
+
+            if (startIn) {
+              options.startIn = startIn
+            }
+
+            return options
+          },
           async openFilePicker() {
             if (window.showOpenFilePicker) {
               try {
-                const [handle] = await window.showOpenFilePicker({
-                  multiple: false,
-                  types: [
-                    {
-                      description: 'JSON fixture file',
-                      accept: {
-                        'application/json': ['.json']
-                      }
-                    }
-                  ]
-                })
+                const [handle] = await window.showOpenFilePicker(
+                  this.openFilePickerOptions()
+                )
 
                 if (!handle) {
                   return
@@ -3780,6 +3847,11 @@
               sourceLabel: options.sourceLabel || `Loaded from ${file.name}`,
               loadError: ''
             })
+
+            if (options.fileHandle) {
+              this.lastFilePickerHandle = options.fileHandle
+            }
+
             this.notify(`Loaded ${file.name}.`, 'positive')
           },
           async saveDataset(datasetKey) {
@@ -3813,7 +3885,8 @@
 
             if (window.showSaveFilePicker) {
               try {
-                const handle = await window.showSaveFilePicker({
+                const savePickerOptions = {
+                  id: 'lnbits-wallet-fixture-studio',
                   suggestedName: dataset.fileName,
                   types: [
                     {
@@ -3823,13 +3896,22 @@
                       }
                     }
                   ]
-                })
+                }
+                const saveStartIn =
+                  dataset.fileHandle || this.lastFilePickerHandle
+
+                if (saveStartIn) {
+                  savePickerOptions.startIn = saveStartIn
+                }
+
+                const handle = await window.showSaveFilePicker(savePickerOptions)
 
                 const writable = await handle.createWritable()
                 await writable.write(contents)
                 await writable.close()
 
                 dataset.fileHandle = handle
+                this.lastFilePickerHandle = handle
                 dataset.sourceLabel = `Save picker: ${dataset.fileName}`
                 this.notify(`Saved ${dataset.fileName}.`, 'positive')
                 return
