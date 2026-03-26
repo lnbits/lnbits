@@ -515,6 +515,43 @@
         min-height: 240px;
       }
 
+      .test-mock-binding {
+        margin-top: 12px;
+        padding: 12px;
+        border-radius: 16px;
+        border: 1px solid rgba(25, 54, 61, 0.08);
+        background: rgba(255, 255, 255, 0.7);
+      }
+
+      .test-mock-binding:first-of-type {
+        margin-top: 14px;
+      }
+
+      .test-mock-binding-header {
+        display: flex;
+        gap: 12px;
+        align-items: flex-start;
+        justify-content: space-between;
+      }
+
+      .test-mock-binding-body {
+        flex: 1 1 auto;
+        min-width: 0;
+      }
+
+      .test-mock-item-list {
+        margin-top: 12px;
+        display: grid;
+        gap: 12px;
+      }
+
+      .test-mock-item-card {
+        padding: 12px;
+        border-radius: 14px;
+        border: 1px solid rgba(25, 54, 61, 0.08);
+        background: rgba(25, 54, 61, 0.03);
+      }
+
       .detail-label {
         color: var(--studio-muted);
         font-size: 0.74rem;
@@ -1022,6 +1059,10 @@
         .settings-row-grid,
         .settings-table-grid {
           grid-template-columns: 1fr;
+        }
+
+        .test-mock-binding-header {
+          flex-direction: column;
         }
 
         .settings-table-header {
@@ -1698,23 +1739,127 @@
                               <div class="mock-card-title">{{ mockSet.label }}</div>
                             </div>
                             <q-chip dense square color="primary" text-color="white">
-                              {{ Object.keys(mockSet.value || {}).length }} mock names
+                              {{ mockSet.bindings.length }} function mocks
                             </q-chip>
                           </div>
 
-                          <label
-                            class="field-label q-mt-md"
-                            :for="`test-mock-definition-${group.key}-${testEntry.index}-${mockSetIndex}`"
+                          <div
+                            v-if="mockSet.metaFields.description !== undefined"
+                            class="q-mt-md"
                           >
-                            Test Mock Definition
-                          </label>
-                          <textarea
-                            :id="`test-mock-definition-${group.key}-${testEntry.index}-${mockSetIndex}`"
-                            v-model="mockSet.valueText"
-                            class="native-textarea test-mock-editor"
-                            spellcheck="false"
-                            @blur="persistTestMockDefinition(testEntry, mockSet)"
-                          ></textarea>
+                            <label
+                              class="field-label"
+                              :for="`test-mock-description-${group.key}-${testEntry.index}-${mockSetIndex}`"
+                            >
+                              Description
+                            </label>
+                            <input
+                              :id="`test-mock-description-${group.key}-${testEntry.index}-${mockSetIndex}`"
+                              v-model="mockSet.metaFields.description"
+                              class="native-input"
+                              type="text"
+                              spellcheck="false"
+                              @blur="persistTestMockSet(testEntry, mockSet)"
+                            />
+                          </div>
+
+                          <div
+                            v-for="(binding, bindingIndex) in mockSet.bindings"
+                            :key="`${mockSet.path}-binding-${bindingIndex}`"
+                            class="test-mock-binding"
+                          >
+                            <div class="test-mock-binding-header">
+                              <div class="test-mock-binding-body">
+                                <label
+                                  class="field-label"
+                                  :for="`test-mock-binding-${group.key}-${testEntry.index}-${mockSetIndex}-${bindingIndex}`"
+                                >
+                                  Function Mock
+                                </label>
+                                <q-select
+                                  :id="`test-mock-binding-${group.key}-${testEntry.index}-${mockSetIndex}-${bindingIndex}`"
+                                  v-model="binding.selectedMockName"
+                                  :options="testMockBindingOptions(binding.selectedMockName)"
+                                  emit-value
+                                  map-options
+                                  outlined
+                                  dense
+                                  options-dense
+                                  behavior="menu"
+                                  hide-dropdown-icon
+                                  class="fixture-select"
+                                  @update:model-value="persistTestMockSet(testEntry, mockSet)"
+                                >
+                                  <template v-slot:append>
+                                    <span class="fixture-select-icon" aria-hidden="true">expand_more</span>
+                                  </template>
+                                </q-select>
+                              </div>
+
+                              <div class="pill-row">
+                                <q-btn
+                                  color="negative"
+                                  outline
+                                  label="Remove"
+                                  @click="removeTestMockBinding(testEntry, mockSet, bindingIndex)"
+                                ></q-btn>
+                              </div>
+                            </div>
+
+                            <div class="test-mock-item-list" v-if="binding.itemTexts.length">
+                              <div
+                                v-for="(item, itemIndex) in binding.itemTexts"
+                                :key="`${mockSet.path}-binding-${bindingIndex}-item-${itemIndex}`"
+                                class="test-mock-item-card"
+                              >
+                                <div class="section-title">
+                                  <div>
+                                    <h3>Test Mock Definition {{ itemIndex + 1 }}</h3>
+                                  </div>
+                                  <q-btn
+                                    color="negative"
+                                    outline
+                                    label="Remove"
+                                    @click="removeTestMockBindingItem(testEntry, mockSet, binding, itemIndex)"
+                                  ></q-btn>
+                                </div>
+
+                                <textarea
+                                  :id="`test-mock-definition-${group.key}-${testEntry.index}-${mockSetIndex}-${bindingIndex}-${itemIndex}`"
+                                  v-model="item.text"
+                                  class="native-textarea test-mock-editor"
+                                  spellcheck="false"
+                                  @blur="persistTestMockSet(testEntry, mockSet)"
+                                ></textarea>
+                                <div v-if="item.error" class="settings-error q-mt-sm">
+                                  {{ item.error }}
+                                </div>
+                              </div>
+                            </div>
+
+                            <div v-else class="empty-state q-mt-md">
+                              No objects are defined in this mock array yet.
+                            </div>
+
+                            <div class="pill-row q-mt-md">
+                              <q-btn
+                                color="primary"
+                                outline
+                                label="Add Object"
+                                @click="addTestMockBindingItem(testEntry, mockSet, binding)"
+                              ></q-btn>
+                            </div>
+                          </div>
+
+                          <div class="pill-row q-mt-md">
+                            <q-btn
+                              color="primary"
+                              outline
+                              label="Add Function Mock"
+                              @click="addTestMockBinding(testEntry, mockSet)"
+                            ></q-btn>
+                          </div>
+
                           <div v-if="mockSet.error" class="settings-error q-mt-sm">
                             {{ mockSet.error }}
                           </div>
@@ -2400,6 +2545,24 @@
               this.currentFundingSourceName
             )
           },
+          currentFunctionMockNameOptions() {
+            const seen = new Set()
+
+            return this.currentFunctionMockRows
+              .map(row => row.name.trim())
+              .filter(name => {
+                if (!name || seen.has(name)) {
+                  return false
+                }
+
+                seen.add(name)
+                return true
+              })
+              .map(name => ({
+                label: name,
+                value: name
+              }))
+          },
           currentFunctionTestsForFundingSource() {
             if (!this.currentFunction || !this.currentFundingSource) {
               return []
@@ -2436,9 +2599,10 @@
                     this.currentFundingSource.name
                   )
                 : ''
+              const walletMockValueIsArray = Array.isArray(rawWalletMockValue)
               const rawMockSets = rawWalletMockValue === undefined
                 ? []
-                : (Array.isArray(rawWalletMockValue)
+                : (walletMockValueIsArray
                     ? rawWalletMockValue
                     : [rawWalletMockValue]
                   ).map((mockSet, index) => ({
@@ -2446,11 +2610,27 @@
                       ? `Mock set ${index + 1}`
                       : 'Mock set',
                     setIndex: index,
+                    walletMockValueIsArray,
                     path: Array.isArray(rawWalletMockValue)
                       ? `${rawWalletPath}[${index}]`
                       : rawWalletPath,
                     value: deepClone(mockSet),
-                    valueText: safeStringify(mockSet),
+                    metaFields: Object.fromEntries(
+                      Object.entries(isPlainObject(mockSet) ? mockSet : {}).filter(
+                        ([key]) => key === 'description'
+                      )
+                    ),
+                    bindings: Object.entries(isPlainObject(mockSet) ? mockSet : {})
+                      .filter(([key]) => key !== 'description')
+                      .map(([key, value]) => ({
+                        selectedMockName: key,
+                        itemTexts: (Array.isArray(value) ? value : [value]).map(
+                          item => ({
+                            text: safeStringify(item),
+                            error: ''
+                          })
+                        )
+                      })),
                     error: ''
                   }))
               const variants = testsForFundingSource(
@@ -2680,6 +2860,72 @@
                 mock.response !== undefined ? safeStringify(mock.response) : '',
               error: ''
             }
+          },
+          createTestMockBindingDraft(mockName = '', items = []) {
+            const normalizedItems = Array.isArray(items)
+              ? items
+              : items === undefined
+                ? []
+                : [items]
+
+            return {
+              selectedMockName: mockName,
+              itemTexts: normalizedItems.map(item => ({
+                text: safeStringify(item),
+                error: ''
+              }))
+            }
+          },
+          testMockBindingOptions(selectedMockName = '') {
+            const names = this.currentFunctionMockNameOptions.map(
+              option => option.value
+            )
+
+            if (selectedMockName && !names.includes(selectedMockName)) {
+              names.unshift(selectedMockName)
+            }
+
+            return names.map(name => ({
+              label: name,
+              value: name
+            }))
+          },
+          nextAvailableTestMockName(mockSet) {
+            const usedNames = new Set(
+              (mockSet.bindings || [])
+                .map(binding => (binding.selectedMockName || '').trim())
+                .filter(Boolean)
+            )
+
+            const availableName = this.currentFunctionMockNameOptions.find(
+              option => !usedNames.has(option.value)
+            )
+
+            return availableName?.value || ''
+          },
+          addTestMockBinding(testEntry, mockSet) {
+            mockSet.bindings.push(
+              this.createTestMockBindingDraft(
+                this.nextAvailableTestMockName(mockSet),
+                []
+              )
+            )
+            this.persistTestMockSet(testEntry, mockSet)
+          },
+          removeTestMockBinding(testEntry, mockSet, bindingIndex) {
+            mockSet.bindings.splice(bindingIndex, 1)
+            this.persistTestMockSet(testEntry, mockSet)
+          },
+          addTestMockBindingItem(testEntry, mockSet, binding) {
+            binding.itemTexts.push({
+              text: safeStringify({}),
+              error: ''
+            })
+            this.persistTestMockSet(testEntry, mockSet)
+          },
+          removeTestMockBindingItem(testEntry, mockSet, binding, itemIndex) {
+            binding.itemTexts.splice(itemIndex, 1)
+            this.persistTestMockSet(testEntry, mockSet)
           },
           getSettingsDraftRows(datasetKey, fundingSourceName) {
             const draftKey = this.makeSettingsDraftKey(datasetKey, fundingSourceName)
@@ -2937,28 +3183,73 @@
               }
             )
           },
-          persistTestMockDefinition(testEntry, mockSet) {
+          persistTestMockSet(testEntry, mockSet) {
             if (!this.currentFunctionName || !this.currentFundingSourceName) {
               return
             }
 
             mockSet.error = ''
+            ;(mockSet.bindings || []).forEach(binding => {
+              ;(binding.itemTexts || []).forEach(item => {
+                item.error = ''
+              })
+            })
 
-            let nextValue
-            try {
-              nextValue = this.parseEditableTestJson(
-                mockSet.valueText,
-                'Test Mock Definition'
-              )
-            } catch (error) {
-              mockSet.error =
-                error instanceof Error ? error.message : String(error)
-              this.notify(
-                'Could not save test mock definition.',
-                'negative',
-                mockSet.error
-              )
-              return
+            const nextValue = deepClone(mockSet.metaFields || {})
+
+            for (const binding of mockSet.bindings || []) {
+              const mockName = (binding.selectedMockName || '').trim()
+
+              if (!mockName) {
+                if ((binding.itemTexts || []).length) {
+                  mockSet.error = 'Select a function mock before editing its overrides.'
+                  this.notify(
+                    'Could not save test mock definition.',
+                    'negative',
+                    mockSet.error
+                  )
+                  return
+                }
+
+                continue
+              }
+
+              if (Object.prototype.hasOwnProperty.call(nextValue, mockName)) {
+                mockSet.error = `Duplicate function mock selected: ${mockName}`
+                this.notify(
+                  'Could not save test mock definition.',
+                  'negative',
+                  mockSet.error
+                )
+                return
+              }
+
+              const parsedItems = []
+
+              for (let itemIndex = 0; itemIndex < (binding.itemTexts || []).length; itemIndex += 1) {
+                const item = binding.itemTexts[itemIndex]
+
+                try {
+                  parsedItems.push(
+                    this.parseEditableTestJson(
+                      item.text,
+                      `${mockName} item ${itemIndex + 1}`
+                    )
+                  )
+                } catch (error) {
+                  item.error =
+                    error instanceof Error ? error.message : String(error)
+                  mockSet.error = item.error
+                  this.notify(
+                    'Could not save test mock definition.',
+                    'negative',
+                    mockSet.error
+                  )
+                  return
+                }
+              }
+
+              nextValue[mockName] = parsedItems
             }
 
             this.applyDatasetMutation(
@@ -2972,8 +3263,13 @@
 
                 const walletMockValue = rawTest.mocks[this.currentFundingSourceName]
 
-                if (Array.isArray(walletMockValue)) {
-                  walletMockValue[mockSet.setIndex] = nextValue
+                if (Array.isArray(walletMockValue) || mockSet.walletMockValueIsArray) {
+                  if (!Array.isArray(rawTest.mocks[this.currentFundingSourceName])) {
+                    rawTest.mocks[this.currentFundingSourceName] = []
+                  }
+
+                  rawTest.mocks[this.currentFundingSourceName][mockSet.setIndex] =
+                    nextValue
                 } else {
                   rawTest.mocks[this.currentFundingSourceName] = nextValue
                 }
