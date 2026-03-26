@@ -65,7 +65,7 @@ jobs:
       make: openapi
 
   regtest:
-    needs: [ lint ]
+    needs: [ lint, test-api, test-wallets, test-unit, migration, openapi ]
     uses: ./.github/workflows/regtest.yml
     strategy:
       matrix:
