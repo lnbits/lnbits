@@ -13,7 +13,7 @@ funding_source = get_funding_source()
 
 def is_boltz_wallet():
     print(
-        "### funding_source.__class__.__name__",
+        "### funding_source.__class__.__name__ 2",
         funding_source.__class__.__name__,
     )
     return funding_source.__class__.__name__ == "BoltzWallet"
