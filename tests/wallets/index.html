@@ -136,13 +136,6 @@
         justify-content: flex-end;
       }
 
-      .dataset-tabs {
-        margin-top: 20px;
-        border-radius: 18px;
-        background: rgba(22, 32, 40, 0.04);
-        padding: 6px;
-      }
-
       .stats-row {
         margin-top: 18px;
         display: grid;
@@ -182,7 +175,7 @@
         display: grid;
         gap: 18px;
         grid-template-columns: repeat(2, minmax(0, 1fr));
-        align-items: start;
+        align-items: stretch;
       }
 
       .stack {
@@ -200,6 +193,23 @@
 
       .studio-card .q-card__section--vert {
         padding: 18px 20px;
+      }
+
+      .picker-card {
+        height: 100%;
+      }
+
+      .picker-card .q-card__section--vert {
+        height: 100%;
+        padding: 16px 18px;
+      }
+
+      .picker-card .section-title {
+        margin-bottom: 10px;
+      }
+
+      .picker-card .section-caption {
+        font-size: 0.84rem;
       }
 
       .section-title {
@@ -275,7 +285,7 @@
 
       .native-select-label {
         display: block;
-        margin-bottom: 8px;
+        margin-bottom: 6px;
         color: var(--studio-muted);
         font-size: 0.74rem;
         text-transform: uppercase;
@@ -304,7 +314,7 @@
       }
 
       .fixture-select .q-field__control {
-        min-height: 50px;
+        min-height: 46px;
         border-radius: 10px;
         background: rgba(255, 255, 255, 0.92);
       }
@@ -337,6 +347,34 @@
         color: var(--studio-muted);
         user-select: none;
         pointer-events: none;
+      }
+
+      .picker-action-row {
+        display: flex;
+        gap: 12px;
+        align-items: flex-start;
+      }
+
+      .picker-select {
+        flex: 1 1 auto;
+        min-width: 0;
+      }
+
+      .editor-dialog-card {
+        width: calc(100vw - 32px);
+        max-width: calc(100vw - 32px);
+        border-radius: 24px;
+      }
+
+      .dialog-header {
+        position: relative;
+        padding-right: 96px;
+      }
+
+      .dialog-close-btn {
+        position: absolute;
+        top: 16px;
+        right: 16px;
       }
 
       .native-input,
@@ -1061,6 +1099,7 @@
           grid-template-columns: 1fr;
         }
 
+        .picker-action-row,
         .test-mock-binding-header {
           flex-direction: column;
         }
@@ -1105,8 +1144,7 @@
                 <code>fixtures_rest.json</code>
                 and
                 <code>fixtures_rpc.json</code>
-                with the same expansion logic the wallet tests use. The explorer shows which
-                funding source, test case, and merged mocks produce each generated wallet test.
+                with the same expansion logic the wallet tests use.
               </p>
             </div>
 
@@ -1114,26 +1152,8 @@
               <q-btn
                 color="primary"
                 unelevated
-                label="Try Relative Load"
-                @click="loadAllRelative"
-              ></q-btn>
-              <q-btn
-                color="secondary"
-                outline
-                label="Pick Fixtures Folder"
-                @click="pickFixturesDirectory"
-              ></q-btn>
-              <q-btn
-                color="accent"
-                outline
-                label="Load Both Files"
-                @click="openBulkInput"
-              ></q-btn>
-              <q-btn
-                color="primary"
-                outline
-                label="Open Current File"
-                @click="openCurrentFile"
+                label="Load File"
+                @click="openFilePicker"
               ></q-btn>
               <q-btn
                 color="secondary"
@@ -1149,29 +1169,6 @@
               ></q-btn>
             </div>
           </div>
-
-          <q-tabs
-            v-model="selectedDatasetKey"
-            dense
-            active-color="white"
-            indicator-color="transparent"
-            align="left"
-            class="dataset-tabs text-primary"
-          >
-            <q-tab
-              v-for="datasetDef in datasetDefs"
-              :key="datasetDef.key"
-              :name="datasetDef.key"
-            >
-              <div class="text-left">
-                <div class="text-weight-bold">{{ datasetDef.label }}</div>
-                <div class="text-caption">
-                  {{ datasets[datasetDef.key].analysis ? datasets[datasetDef.key].analysis.summary.expandedTests : 0 }}
-                  generated wallet tests
-                </div>
-              </div>
-            </q-tab>
-          </q-tabs>
 
           <div class="stats-row" v-if="currentDataset.analysis">
             <div class="stat-card">
@@ -1205,7 +1202,7 @@
 
         <main class="workspace-grid">
           <section class="primary-row">
-            <q-card flat class="studio-card">
+            <q-card flat class="studio-card picker-card">
               <q-card-section>
                 <div class="section-title">
                   <div>
@@ -1219,170 +1216,51 @@
                 <label class="native-select-label" for="funding-source-select">
                   Funding source
                 </label>
-                <q-select
-                  id="funding-source-select"
-                  v-model="selectedFundingSourceByDataset[selectedDatasetKey]"
-                  :options="fundingSourceOptions"
-                  emit-value
-                  map-options
-                  outlined
-                  dense
-                  options-dense
-                  behavior="menu"
-                  hide-dropdown-icon
-                  class="fixture-select"
+                <div class="picker-action-row">
+                  <q-select
+                    id="funding-source-select"
+                    v-model="selectedFundingSourceByDataset[selectedDatasetKey]"
+                    :options="fundingSourceOptions"
+                    emit-value
+                    map-options
+                    outlined
+                    dense
+                    options-dense
+                    behavior="menu"
+                    hide-dropdown-icon
+                    class="fixture-select picker-select"
+                  >
+                    <template v-slot:append>
+                      <span class="fixture-select-icon" aria-hidden="true">expand_more</span>
+                    </template>
+                  </q-select>
+
+                  <q-btn
+                    color="primary"
+                    outline
+                    label="Settings"
+                    :disable="!currentFundingSource"
+                    @click="fundingSourceSettingsDialog = true"
+                  ></q-btn>
+                </div>
+
+                <div
+                  v-if="currentFundingSource && currentFundingSource.skip"
+                  class="pill-row q-mt-sm"
                 >
-                  <template v-slot:append>
-                    <span class="fixture-select-icon" aria-hidden="true">expand_more</span>
-                  </template>
-                </q-select>
-
-                <div v-if="currentFundingSource" class="q-mt-md">
-                  <div v-if="currentFundingSource.skip" class="pill-row q-mb-md">
-                    <q-chip
-                      dense
-                      square
-                      color="warning"
-                      text-color="white"
-                    >
-                      Skipped by wallet config
-                    </q-chip>
-                  </div>
-
-                  <details class="wallet-expanded-card test-expander">
-                    <summary class="wallet-expanded-header test-summary">
-                      <div class="test-summary-copy">
-                        <span class="test-summary-arrow"></span>
-                        <div>
-                          <h3 class="wallet-expanded-title">
-                            Settings to configure for the selected funding source.
-                          </h3>
-                        </div>
-                      </div>
-
-                      <div class="pill-row">
-                        <q-chip dense square color="primary" text-color="white">
-                          {{ currentFundingSourceSettingRows.length }} rows
-                        </q-chip>
-                      </div>
-                    </summary>
-
-                    <div class="wallet-expanded-body">
-                      <div class="section-caption">
-                        Edit, add, or remove key-value settings. Changes update the active fixture JSON immediately.
-                      </div>
-
-                      <div class="settings-editor q-mt-md" v-if="currentFundingSourceSettingRows.length">
-                        <div class="settings-table">
-                          <div class="settings-table-header settings-table-grid">
-                            <div class="settings-table-heading">Key</div>
-                            <div class="settings-table-heading">Type</div>
-                            <div class="settings-table-heading">Value</div>
-                            <div class="settings-table-heading">Actions</div>
-                          </div>
-
-                          <div
-                            v-for="(row, rowIndex) in currentFundingSourceSettingRows"
-                            :key="row.id"
-                            class="settings-table-row"
-                          >
-                            <div class="settings-table-grid">
-                              <div>
-                                <input
-                                  :id="`setting-key-${row.id}`"
-                                  v-model="row.key"
-                                  class="native-input"
-                                  type="text"
-                                  placeholder="setting_key"
-                                  spellcheck="false"
-                                  @blur="persistFundingSourceSettings()"
-                                />
-                              </div>
-
-                              <div class="native-select-wrap">
-                                <select
-                                  :id="`setting-type-${row.id}`"
-                                  v-model="row.type"
-                                  class="native-select"
-                                  @change="handleFundingSourceSettingTypeChange(row)"
-                                >
-                                  <option
-                                    v-for="option in settingTypeOptions"
-                                    :key="option.value"
-                                    :value="option.value"
-                                  >
-                                    {{ option.label }}
-                                  </option>
-                                </select>
-                              </div>
-
-                              <div>
-                                <div v-if="row.type === 'boolean'" class="native-select-wrap">
-                                  <select
-                                    :id="`setting-value-${row.id}`"
-                                    v-model="row.valueText"
-                                    class="native-select"
-                                    @change="persistFundingSourceSettings()"
-                                  >
-                                    <option value="true">true</option>
-                                    <option value="false">false</option>
-                                  </select>
-                                </div>
-                                <textarea
-                                  v-else-if="row.type === 'json'"
-                                  :id="`setting-value-${row.id}`"
-                                  v-model="row.valueText"
-                                  class="native-textarea"
-                                  spellcheck="false"
-                                  @blur="persistFundingSourceSettings()"
-                                ></textarea>
-                                <input
-                                  v-else
-                                  :id="`setting-value-${row.id}`"
-                                  v-model="row.valueText"
-                                  class="native-input"
-                                  type="text"
-                                  spellcheck="false"
-                                  @blur="persistFundingSourceSettings()"
-                                />
-                              </div>
-
-                              <div class="settings-table-actions">
-                                <q-btn
-                                  color="negative"
-                                  outline
-                                  label="Remove"
-                                  @click="removeFundingSourceSettingRow(rowIndex)"
-                                ></q-btn>
-                              </div>
-                            </div>
-
-                            <div v-if="row.error" class="settings-error settings-table-note">
-                              {{ row.error }}
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-
-                      <div v-else class="empty-state q-mt-md">
-                        No settings are defined yet for this funding source.
-                      </div>
-
-                      <div class="pill-row q-mt-md">
-                        <q-btn
-                          color="primary"
-                          outline
-                          label="Add Setting"
-                          @click="addFundingSourceSettingRow()"
-                        ></q-btn>
-                      </div>
-                    </div>
-                  </details>
+                  <q-chip
+                    dense
+                    square
+                    color="warning"
+                    text-color="white"
+                  >
+                    Skipped by wallet config
+                  </q-chip>
                 </div>
               </q-card-section>
             </q-card>
 
-            <q-card flat class="studio-card" v-if="currentDataset.analysis">
+            <q-card flat class="studio-card picker-card" v-if="currentDataset.analysis">
               <q-card-section>
                 <div class="section-title">
                   <div>
@@ -1396,209 +1274,32 @@
                 <label class="native-select-label" for="function-select">
                   Function
                 </label>
-                <q-select
-                  id="function-select"
-                  v-model="selectedFunctionByDataset[selectedDatasetKey]"
-                  :options="functionOptions"
-                  emit-value
-                  map-options
-                  outlined
-                  dense
-                  options-dense
-                  behavior="menu"
-                  hide-dropdown-icon
-                  class="fixture-select"
-                >
-                  <template v-slot:append>
-                    <span class="fixture-select-icon" aria-hidden="true">expand_more</span>
-                  </template>
-                </q-select>
+                <div class="picker-action-row">
+                  <q-select
+                    id="function-select"
+                    v-model="selectedFunctionByDataset[selectedDatasetKey]"
+                    :options="functionOptions"
+                    emit-value
+                    map-options
+                    outlined
+                    dense
+                    options-dense
+                    behavior="menu"
+                    hide-dropdown-icon
+                    class="fixture-select picker-select"
+                  >
+                    <template v-slot:append>
+                      <span class="fixture-select-icon" aria-hidden="true">expand_more</span>
+                    </template>
+                  </q-select>
 
-                <details
-                  v-if="currentFunction && currentFundingSource"
-                  class="wallet-expanded-card test-expander q-mt-lg"
-                >
-                  <summary class="wallet-expanded-header test-summary">
-                    <div class="test-summary-copy">
-                      <span class="test-summary-arrow"></span>
-                      <div>
-                        <h3 class="wallet-expanded-title">
-                          Function Mocks
-                        </h3>
-                      </div>
-                    </div>
-
-                    <div class="pill-row">
-                      <q-chip dense square color="primary" text-color="white">
-                        {{ currentFunctionMockRows.length }} mocks
-                      </q-chip>
-                    </div>
-                  </summary>
-
-                  <div class="wallet-expanded-body">
-                    <div class="section-caption">
-                      Reusable mocks for this function and the selected funding source.
-                    </div>
-                    <div class="section-caption">
-                      Edit the mock fields directly. Changes update
-                      <code>{{ currentFunctionBaseMockPath }}</code>
-                      immediately.
-                    </div>
-
-                    <div class="settings-editor q-mt-md" v-if="currentFunctionMockRows.length">
-                      <div class="function-mocks-table-wrap">
-                        <div class="function-mocks-table">
-                          <div class="function-mocks-header function-mocks-table-grid">
-                            <div class="function-mocks-heading">Mock Name</div>
-                            <div class="function-mocks-heading">URI</div>
-                            <div class="function-mocks-heading">Method</div>
-                            <div class="function-mocks-heading">Headers JSON</div>
-                            <div class="function-mocks-heading">Query Params JSON</div>
-                            <div class="function-mocks-heading">Request Type</div>
-                            <div class="function-mocks-heading">Response Type</div>
-                            <div class="function-mocks-heading">Response JSON</div>
-                          </div>
-
-                          <div
-                            v-for="(mockRow, rowIndex) in currentFunctionMockRows"
-                            :key="mockRow.id"
-                            class="function-mocks-row"
-                          >
-                            <div class="function-mocks-table-grid">
-                              <div>
-                                <input
-                                  :id="`function-mock-name-${mockRow.id}`"
-                                  v-model="mockRow.name"
-                                  class="native-input"
-                                  type="text"
-                                  placeholder="mock_name"
-                                  spellcheck="false"
-                                  @blur="persistFunctionMocks()"
-                                />
-                                <div class="function-mock-primary-actions">
-                                  <q-btn
-                                    color="negative"
-                                    outline
-                                    label="Remove Mock"
-                                    @click="removeFunctionMockRow(rowIndex)"
-                                  ></q-btn>
-                                </div>
-                              </div>
-
-                              <div>
-                                <input
-                                  :id="`function-mock-uri-${mockRow.id}`"
-                                  v-model="mockRow.uri"
-                                  class="native-input"
-                                  type="text"
-                                  placeholder="/path"
-                                  spellcheck="false"
-                                  @blur="persistFunctionMocks()"
-                                />
-                              </div>
-
-                              <div>
-                                <input
-                                  :id="`function-mock-method-${mockRow.id}`"
-                                  v-model="mockRow.method"
-                                  class="native-input"
-                                  type="text"
-                                  placeholder="GET"
-                                  spellcheck="false"
-                                  @blur="persistFunctionMocks()"
-                                />
-                              </div>
-
-                              <div>
-                                <textarea
-                                  :id="`function-mock-headers-${mockRow.id}`"
-                                  v-model="mockRow.headersText"
-                                  class="native-textarea"
-                                  placeholder='{"Authorization":"Bearer ..."}'
-                                  spellcheck="false"
-                                  @blur="persistFunctionMocks()"
-                                ></textarea>
-                              </div>
-
-                              <div>
-                                <textarea
-                                  :id="`function-mock-query-${mockRow.id}`"
-                                  v-model="mockRow.queryParamsText"
-                                  class="native-textarea"
-                                  placeholder='{"foo":"bar"}'
-                                  spellcheck="false"
-                                  @blur="persistFunctionMocks()"
-                                ></textarea>
-                              </div>
-
-                              <div>
-                                <input
-                                  :id="`function-mock-request-type-${mockRow.id}`"
-                                  v-model="mockRow.requestType"
-                                  class="native-input"
-                                  type="text"
-                                  placeholder="function"
-                                  spellcheck="false"
-                                  @blur="persistFunctionMocks()"
-                                />
-                              </div>
-
-                              <div>
-                                <input
-                                  :id="`function-mock-response-type-${mockRow.id}`"
-                                  v-model="mockRow.responseType"
-                                  class="native-input"
-                                  type="text"
-                                  placeholder="data"
-                                  spellcheck="false"
-                                  @blur="persistFunctionMocks()"
-                                />
-                              </div>
-
-                              <div>
-                                <textarea
-                                  :id="`function-mock-response-${mockRow.id}`"
-                                  v-model="mockRow.responseText"
-                                  class="native-textarea"
-                                  placeholder='{"field":"value"}'
-                                  spellcheck="false"
-                                  @blur="persistFunctionMocks()"
-                                ></textarea>
-                              </div>
-
-                            </div>
-
-                            <div v-if="mockRow.error" class="settings-error function-mocks-note">
-                              {{ mockRow.error }}
-                            </div>
-                            <div v-else class="settings-hint function-mocks-note">
-                              Leave unused fields blank. JSON columns must contain valid JSON objects or values.
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-
-                    <div v-else class="empty-state q-mt-md">
-                      No function-level mocks are defined yet for
-                      <code>{{ currentFundingSource.name }}</code>
-                      in
-                      <code>{{ currentFunction.name }}</code>.
-                    </div>
-
-                    <div class="pill-row q-mt-md">
-                      <q-btn
-                        color="primary"
-                        outline
-                        label="Add Mock"
-                        @click="addFunctionMockRow()"
-                      ></q-btn>
-                    </div>
-                  </div>
-                </details>
-
-                <div v-else class="empty-state q-mt-lg">
-                  Select a funding source and function to inspect reusable mocks.
+                  <q-btn
+                    color="primary"
+                    outline
+                    label="Mocks"
+                    :disable="!currentFunction || !currentFundingSource"
+                    @click="functionMocksDialog = true"
+                  ></q-btn>
                 </div>
               </q-card-section>
             </q-card>
@@ -1795,15 +1496,6 @@
                                   </template>
                                 </q-select>
                               </div>
-
-                              <div class="pill-row">
-                                <q-btn
-                                  color="negative"
-                                  outline
-                                  label="Remove"
-                                  @click="removeTestMockBinding(testEntry, mockSet, bindingIndex)"
-                                ></q-btn>
-                              </div>
                             </div>
 
                             <div class="test-mock-item-list" v-if="binding.itemTexts.length">
@@ -1883,6 +1575,351 @@
           </q-card>
         </main>
       </div>
+
+      <q-dialog v-model="fundingSourceSettingsDialog" full-width position="top">
+        <q-card class="editor-dialog-card">
+          <q-card-section class="q-pa-lg dialog-header">
+            <div>
+              <h2 class="q-my-none">Funding Source Settings</h2>
+              <div class="section-caption">
+                Edit the settings for the selected funding source. Changes update the active fixture JSON immediately.
+              </div>
+            </div>
+
+            <div class="pill-row q-mt-md">
+              <q-chip
+                v-if="currentFundingSource"
+                dense
+                square
+                color="primary"
+                text-color="white"
+              >
+                {{ currentFundingSourceSettingRows.length }} rows
+              </q-chip>
+            </div>
+
+            <q-btn
+              flat
+              color="primary"
+              label="Close"
+              class="dialog-close-btn"
+              v-close-popup
+            ></q-btn>
+          </q-card-section>
+
+          <q-separator></q-separator>
+
+          <q-card-section class="q-pa-lg">
+            <div v-if="currentFundingSource">
+              <div class="settings-editor" v-if="currentFundingSourceSettingRows.length">
+                <div class="settings-table">
+                  <div class="settings-table-header settings-table-grid">
+                    <div class="settings-table-heading">Key</div>
+                    <div class="settings-table-heading">Type</div>
+                    <div class="settings-table-heading">Value</div>
+                    <div class="settings-table-heading">Actions</div>
+                  </div>
+
+                  <div
+                    v-for="(row, rowIndex) in currentFundingSourceSettingRows"
+                    :key="row.id"
+                    class="settings-table-row"
+                  >
+                    <div class="settings-table-grid">
+                      <div>
+                        <input
+                          :id="`setting-key-${row.id}`"
+                          v-model="row.key"
+                          class="native-input"
+                          type="text"
+                          placeholder="setting_key"
+                          spellcheck="false"
+                          @blur="persistFundingSourceSettings()"
+                        />
+                      </div>
+
+                      <div class="native-select-wrap">
+                        <select
+                          :id="`setting-type-${row.id}`"
+                          v-model="row.type"
+                          class="native-select"
+                          @change="handleFundingSourceSettingTypeChange(row)"
+                        >
+                          <option
+                            v-for="option in settingTypeOptions"
+                            :key="option.value"
+                            :value="option.value"
+                          >
+                            {{ option.label }}
+                          </option>
+                        </select>
+                      </div>
+
+                      <div>
+                        <div v-if="row.type === 'boolean'" class="native-select-wrap">
+                          <select
+                            :id="`setting-value-${row.id}`"
+                            v-model="row.valueText"
+                            class="native-select"
+                            @change="persistFundingSourceSettings()"
+                          >
+                            <option value="true">true</option>
+                            <option value="false">false</option>
+                          </select>
+                        </div>
+                        <textarea
+                          v-else-if="row.type === 'json'"
+                          :id="`setting-value-${row.id}`"
+                          v-model="row.valueText"
+                          class="native-textarea"
+                          spellcheck="false"
+                          @blur="persistFundingSourceSettings()"
+                        ></textarea>
+                        <input
+                          v-else
+                          :id="`setting-value-${row.id}`"
+                          v-model="row.valueText"
+                          class="native-input"
+                          type="text"
+                          spellcheck="false"
+                          @blur="persistFundingSourceSettings()"
+                        />
+                      </div>
+
+                      <div class="settings-table-actions">
+                        <q-btn
+                          color="negative"
+                          outline
+                          label="Remove"
+                          @click="removeFundingSourceSettingRow(rowIndex)"
+                        ></q-btn>
+                      </div>
+                    </div>
+
+                    <div v-if="row.error" class="settings-error settings-table-note">
+                      {{ row.error }}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div v-else class="empty-state">
+                No settings are defined yet for this funding source.
+              </div>
+
+              <div class="pill-row q-mt-md">
+                <q-btn
+                  color="primary"
+                  outline
+                  label="Add Setting"
+                  @click="addFundingSourceSettingRow()"
+                ></q-btn>
+              </div>
+            </div>
+
+            <div v-else class="empty-state">
+              Select a funding source first.
+            </div>
+          </q-card-section>
+        </q-card>
+      </q-dialog>
+
+      <q-dialog v-model="functionMocksDialog" full-width position="top">
+        <q-card class="editor-dialog-card">
+          <q-card-section class="q-pa-lg dialog-header">
+            <div>
+              <h2 class="q-my-none">Function Mocks</h2>
+              <div class="section-caption">
+                Reusable mocks for the selected function and funding source.
+              </div>
+              <div v-if="currentFunctionBaseMockPath" class="section-caption">
+                Changes update
+                <code>{{ currentFunctionBaseMockPath }}</code>
+                immediately.
+              </div>
+            </div>
+
+            <div class="pill-row q-mt-md">
+              <q-chip
+                v-if="currentFunction && currentFundingSource"
+                dense
+                square
+                color="primary"
+                text-color="white"
+              >
+                {{ currentFunctionMockRows.length }} mocks
+              </q-chip>
+            </div>
+
+            <q-btn
+              flat
+              color="primary"
+              label="Close"
+              class="dialog-close-btn"
+              v-close-popup
+            ></q-btn>
+          </q-card-section>
+
+          <q-separator></q-separator>
+
+          <q-card-section class="q-pa-lg">
+            <div v-if="currentFunction && currentFundingSource">
+              <div class="settings-editor" v-if="currentFunctionMockRows.length">
+                <div class="function-mocks-table-wrap">
+                  <div class="function-mocks-table">
+                    <div class="function-mocks-header function-mocks-table-grid">
+                      <div class="function-mocks-heading">Mock Name</div>
+                      <div class="function-mocks-heading">URI</div>
+                      <div class="function-mocks-heading">Method</div>
+                      <div class="function-mocks-heading">Headers JSON</div>
+                      <div class="function-mocks-heading">Query Params JSON</div>
+                      <div class="function-mocks-heading">Request Type</div>
+                      <div class="function-mocks-heading">Response Type</div>
+                      <div class="function-mocks-heading">Response JSON</div>
+                    </div>
+
+                    <div
+                      v-for="(mockRow, rowIndex) in currentFunctionMockRows"
+                      :key="mockRow.id"
+                      class="function-mocks-row"
+                    >
+                      <div class="function-mocks-table-grid">
+                        <div>
+                          <input
+                            :id="`function-mock-name-${mockRow.id}`"
+                            v-model="mockRow.name"
+                            class="native-input"
+                            type="text"
+                            placeholder="mock_name"
+                            spellcheck="false"
+                            @blur="persistFunctionMocks()"
+                          />
+                          <div class="function-mock-primary-actions">
+                            <q-btn
+                              color="negative"
+                              outline
+                              label="Remove Mock"
+                              @click="removeFunctionMockRow(rowIndex)"
+                            ></q-btn>
+                          </div>
+                        </div>
+
+                        <div>
+                          <input
+                            :id="`function-mock-uri-${mockRow.id}`"
+                            v-model="mockRow.uri"
+                            class="native-input"
+                            type="text"
+                            placeholder="/path"
+                            spellcheck="false"
+                            @blur="persistFunctionMocks()"
+                          />
+                        </div>
+
+                        <div>
+                          <input
+                            :id="`function-mock-method-${mockRow.id}`"
+                            v-model="mockRow.method"
+                            class="native-input"
+                            type="text"
+                            placeholder="GET"
+                            spellcheck="false"
+                            @blur="persistFunctionMocks()"
+                          />
+                        </div>
+
+                        <div>
+                          <textarea
+                            :id="`function-mock-headers-${mockRow.id}`"
+                            v-model="mockRow.headersText"
+                            class="native-textarea"
+                            placeholder='{"Authorization":"Bearer ..."}'
+                            spellcheck="false"
+                            @blur="persistFunctionMocks()"
+                          ></textarea>
+                        </div>
+
+                        <div>
+                          <textarea
+                            :id="`function-mock-query-${mockRow.id}`"
+                            v-model="mockRow.queryParamsText"
+                            class="native-textarea"
+                            placeholder='{"foo":"bar"}'
+                            spellcheck="false"
+                            @blur="persistFunctionMocks()"
+                          ></textarea>
+                        </div>
+
+                        <div>
+                          <input
+                            :id="`function-mock-request-type-${mockRow.id}`"
+                            v-model="mockRow.requestType"
+                            class="native-input"
+                            type="text"
+                            placeholder="function"
+                            spellcheck="false"
+                            @blur="persistFunctionMocks()"
+                          />
+                        </div>
+
+                        <div>
+                          <input
+                            :id="`function-mock-response-type-${mockRow.id}`"
+                            v-model="mockRow.responseType"
+                            class="native-input"
+                            type="text"
+                            placeholder="data"
+                            spellcheck="false"
+                            @blur="persistFunctionMocks()"
+                          />
+                        </div>
+
+                        <div>
+                          <textarea
+                            :id="`function-mock-response-${mockRow.id}`"
+                            v-model="mockRow.responseText"
+                            class="native-textarea"
+                            placeholder='{"field":"value"}'
+                            spellcheck="false"
+                            @blur="persistFunctionMocks()"
+                          ></textarea>
+                        </div>
+                      </div>
+
+                      <div v-if="mockRow.error" class="settings-error function-mocks-note">
+                        {{ mockRow.error }}
+                      </div>
+                      <div v-else class="settings-hint function-mocks-note">
+                        Leave unused fields blank. JSON columns must contain valid JSON objects or values.
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div v-else class="empty-state">
+                No function-level mocks are defined yet for
+                <code>{{ currentFundingSource.name }}</code>
+                in
+                <code>{{ currentFunction.name }}</code>.
+              </div>
+
+              <div class="pill-row q-mt-md">
+                <q-btn
+                  color="primary"
+                  outline
+                  label="Add Mock"
+                  @click="addFunctionMockRow()"
+                ></q-btn>
+              </div>
+            </div>
+
+            <div v-else class="empty-state">
+              Select a funding source and function first.
+            </div>
+          </q-card-section>
+        </q-card>
+      </q-dialog>
 
       <q-dialog v-model="editorDialog" maximized>
         <q-card>
@@ -1987,26 +2024,11 @@
       </q-dialog>
 
       <input
-        ref="bulkInput"
+        ref="loadFileInput"
         class="hidden-input"
         type="file"
         accept=".json,application/json"
-        multiple
-        @change="handleBulkFileSelection"
-      />
-      <input
-        ref="restInput"
-        class="hidden-input"
-        type="file"
-        accept=".json,application/json"
-        @change="handleSingleFileSelection('rest', $event)"
-      />
-      <input
-        ref="rpcInput"
-        class="hidden-input"
-        type="file"
-        accept=".json,application/json"
-        @change="handleSingleFileSelection('rpc', $event)"
+        @change="handleSingleFileSelection($event)"
       />
     </div>
 
@@ -2390,6 +2412,33 @@
         }
       }
 
+      function inferDatasetKeyFromData(data) {
+        let rpcHint = false
+
+        for (const fn of Object.values(data?.functions || {})) {
+          for (const walletMocks of Object.values(fn?.mocks || {})) {
+            for (const mockDefinition of Object.values(walletMocks || {})) {
+              if (!isPlainObject(mockDefinition)) {
+                continue
+              }
+
+              if (Object.prototype.hasOwnProperty.call(mockDefinition, 'uri')) {
+                return 'rest'
+              }
+
+              if (
+                Object.prototype.hasOwnProperty.call(mockDefinition, 'request_type') ||
+                Object.prototype.hasOwnProperty.call(mockDefinition, 'response_type')
+              ) {
+                rpcHint = true
+              }
+            }
+          }
+        }
+
+        return rpcHint ? 'rpc' : ''
+      }
+
       function settingTypeFromValue(value) {
         if (value === null) {
           return 'null'
@@ -2442,10 +2491,11 @@
           })
 
           return {
-            datasetDefs: DATASET_DEFS,
             datasets,
             editorDialog: false,
+            fundingSourceSettingsDialog: false,
             functionMockDraftRowId: 0,
+            functionMocksDialog: false,
             functionMockDrafts,
             settingsDraftRowId: 0,
             settingsDrafts,
@@ -2513,13 +2563,6 @@
                 fn => fn.name === this.currentFunctionName
               ) || null
             )
-          },
-          currentDatasetKindHelp() {
-            if (this.selectedDatasetKey === 'rest') {
-              return 'HTTP funding sources with request and response mocks consumed by pytest_httpserver.'
-            }
-
-            return 'RPC funding sources with patched Python methods, nested return data, and spy assertions.'
           },
           editorDirty() {
             return this.currentDataset.rawText !== this.currentDataset.snapshotText
@@ -2786,7 +2829,7 @@
           }
         },
         mounted() {
-          this.loadAllRelative()
+          this.loadRelative(this.selectedDatasetKey)
 
           window.addEventListener('keydown', this.handleGlobalKeydown)
         },
@@ -2910,10 +2953,6 @@
                 []
               )
             )
-            this.persistTestMockSet(testEntry, mockSet)
-          },
-          removeTestMockBinding(testEntry, mockSet, bindingIndex) {
-            mockSet.bindings.splice(bindingIndex, 1)
             this.persistTestMockSet(testEntry, mockSet)
           },
           addTestMockBindingItem(testEntry, mockSet, binding) {
@@ -3630,7 +3669,7 @@
             } catch (error) {
               dataset.loadError =
                 `Automatic relative loading failed for ${dataset.fileName}. ` +
-                `If you opened this page with file://, use “Load Both Files” or “Pick Fixtures Folder”.`
+                'If you opened this page with file://, use “Load File” to pick it manually.'
 
               if (!dataset.analysis) {
                 dataset.parseError = ''
@@ -3639,16 +3678,31 @@
               console.error(error)
             }
           },
-          async loadAllRelative() {
-            await Promise.all(this.datasetDefs.map(def => this.loadRelative(def.key)))
-          },
-          openBulkInput() {
-            this.$refs.bulkInput.value = ''
-            this.$refs.bulkInput.click()
-          },
-          async openCurrentFile() {
-            const datasetKey = this.currentDataset.key
+          inferDatasetKey(fileName, data = null) {
+            const normalizedName = String(fileName || '').toLowerCase()
+            const exactMatch = DATASET_DEFS.find(
+              def => def.fileName.toLowerCase() === normalizedName
+            )
 
+            if (exactMatch) {
+              return exactMatch.key
+            }
+
+            if (normalizedName.includes('fixtures_rest') || normalizedName.includes('_rest')) {
+              return 'rest'
+            }
+
+            if (normalizedName.includes('fixtures_rpc') || normalizedName.includes('_rpc')) {
+              return 'rpc'
+            }
+
+            if (data) {
+              return inferDatasetKeyFromData(data)
+            }
+
+            return ''
+          },
+          async openFilePicker() {
             if (window.showOpenFilePicker) {
               try {
                 const [handle] = await window.showOpenFilePicker({
@@ -3668,7 +3722,7 @@
                 }
 
                 const file = await handle.getFile()
-                await this.loadDatasetFromFile(datasetKey, file, {
+                await this.loadChosenDatasetFile(file, {
                   fileHandle: handle,
                   sourceLabel: `File picker: ${file.name}`
                 })
@@ -3680,46 +3734,37 @@
               }
             }
 
-            const refName = `${datasetKey}Input`
-            this.$refs[refName].value = ''
-            this.$refs[refName].click()
+            this.$refs.loadFileInput.value = ''
+            this.$refs.loadFileInput.click()
           },
-          async handleBulkFileSelection(event) {
-            const files = Array.from(event.target.files || [])
-            const byName = Object.fromEntries(files.map(file => [file.name, file]))
-
-            for (const def of this.datasetDefs) {
-              if (byName[def.fileName]) {
-                await this.loadDatasetFromFile(def.key, byName[def.fileName], {
-                  sourceLabel: `Manual file load: ${byName[def.fileName].name}`
-                })
-              }
-            }
-
-            const missing = this.datasetDefs
-              .filter(def => !byName[def.fileName])
-              .map(def => def.fileName)
-
-            if (missing.length) {
-              this.notify(
-                `Missing file selection for ${missing.join(', ')}.`,
-                'warning'
-              )
-            }
-          },
-          async handleSingleFileSelection(datasetKey, event) {
+          async handleSingleFileSelection(event) {
             const file = event.target.files?.[0]
             if (!file) {
               return
             }
 
-            await this.loadDatasetFromFile(datasetKey, file, {
+            await this.loadChosenDatasetFile(file, {
               sourceLabel: `Manual file load: ${file.name}`
             })
           },
-          async loadDatasetFromFile(datasetKey, file, options = {}) {
+          async loadChosenDatasetFile(file, options = {}) {
             const text = await file.text()
             const parsed = parseJsonText(text)
+            const datasetKey = this.inferDatasetKey(
+              file.name,
+              parsed.ok ? parsed.data : null
+            )
+
+            if (!datasetKey) {
+              this.notify(
+                'Could not determine whether that fixture file is REST or RPC.',
+                'negative',
+                'Use fixtures_rest.json or fixtures_rpc.json.'
+              )
+              return
+            }
+
+            this.selectedDatasetKey = datasetKey
 
             if (!parsed.ok) {
               this.datasets[datasetKey].parseError = `Invalid JSON in ${file.name}: ${parsed.error}`
@@ -3731,46 +3776,11 @@
             this.commitDataset(datasetKey, parsed.data, {
               rawText: formatted,
               snapshotText: formatted,
-              fileHandle: options.fileHandle,
+              fileHandle: options.fileHandle || null,
               sourceLabel: options.sourceLabel || `Loaded from ${file.name}`,
               loadError: ''
             })
             this.notify(`Loaded ${file.name}.`, 'positive')
-          },
-          async pickFixturesDirectory() {
-            if (!window.showDirectoryPicker) {
-              this.notify(
-                'Directory picker is not available in this browser. Use “Load Both Files” instead.',
-                'warning'
-              )
-              return
-            }
-
-            try {
-              const directoryHandle = await window.showDirectoryPicker({
-                mode: 'readwrite'
-              })
-
-              for (const def of this.datasetDefs) {
-                try {
-                  const fileHandle = await directoryHandle.getFileHandle(def.fileName)
-                  const file = await fileHandle.getFile()
-                  await this.loadDatasetFromFile(def.key, file, {
-                    fileHandle,
-                    sourceLabel: `Directory handle: ${def.fileName}`
-                  })
-                } catch (error) {
-                  console.error(error)
-                  this.datasets[def.key].loadError =
-                    `Could not find ${def.fileName} in the selected folder. Choose tests/wallets/fixtures/json.`
-                }
-              }
-            } catch (error) {
-              if (error && error.name !== 'AbortError') {
-                console.error(error)
-                this.notify('Could not open the selected folder.', 'negative')
-              }
-            }
           },
           async saveDataset(datasetKey) {
             const parsedData = this.validateEditor(datasetKey)
