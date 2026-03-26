@@ -66,6 +66,7 @@ test-regtest:
 	LNBITS_DATA_FOLDER="./tests/data" \
 	PYTHONUNBUFFERED=1 \
 	DEBUG=true \
+	rm -rf ./tests/data \
 	uv run pytest tests/regtest
 
 test-migration:
