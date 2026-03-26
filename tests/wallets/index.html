@@ -774,6 +774,64 @@
         gap: 12px;
       }
 
+      .test-type-tabs {
+        margin-top: 8px;
+        border-radius: 18px;
+        background: rgba(22, 32, 40, 0.04);
+        padding: 6px;
+      }
+
+      .test-type-tabs .q-tab {
+        flex: 1 1 0;
+        min-width: 0;
+      }
+
+      .test-type-panels {
+        margin-top: 14px;
+        background: transparent;
+        box-shadow: none;
+      }
+
+      .test-type-panel {
+        padding: 0;
+      }
+
+      .test-case-stack {
+        display: grid;
+        gap: 14px;
+      }
+
+      .test-case-section {
+        display: grid;
+        gap: 14px;
+      }
+
+      .test-case-section + .test-case-section {
+        padding-top: 18px;
+        border-top: 1px solid rgba(25, 54, 61, 0.08);
+      }
+
+      .test-case-header {
+        display: flex;
+        gap: 12px;
+        align-items: flex-start;
+        justify-content: space-between;
+      }
+
+      .test-case-title {
+        margin: 0;
+        font-size: 1rem;
+        line-height: 1.25;
+        font-weight: 800;
+      }
+
+      .test-case-subtitle {
+        margin-top: 4px;
+        color: var(--studio-muted);
+        font-size: 0.84rem;
+        line-height: 1.45;
+      }
+
       .mock-card {
         border-radius: 16px;
         border: 1px solid rgba(25, 54, 61, 0.08);
@@ -1469,102 +1527,138 @@
                 <div>
                   <h2>Tests For Selected Function</h2>
                   <div class="section-caption">
-                    Each card shows the raw test case for the selected function, plus the mocks attached to the selected funding source.
+                    Browse the raw test types for this function, then inspect the call params, expected result, and selected funding source mocks.
                   </div>
                 </div>
               </div>
 
-              <div class="wallet-expanded-list">
-                <details
-                  v-for="testEntry in currentFunctionTestsForFundingSource"
-                  :key="`${currentFunction.name}-${currentFundingSource.name}-${testEntry.index}`"
-                  class="wallet-expanded-card test-expander"
+              <q-tabs
+                v-if="currentFunctionTestTypeGroups.length"
+                v-model="currentSelectedTestTypeKey"
+                dense
+                active-color="white"
+                indicator-color="transparent"
+                align="justify"
+                class="test-type-tabs text-primary"
+              >
+                <q-tab
+                  v-for="group in currentFunctionTestTypeGroups"
+                  :key="group.key"
+                  :name="group.key"
                 >
-                  <summary class="wallet-expanded-header test-summary">
-                    <div class="test-summary-copy">
-                      <span class="test-summary-arrow"></span>
-                      <div>
-                        <h3 class="wallet-expanded-title">
-                          {{ testEntry.description || `Test ${testEntry.index + 1}` }}
-                        </h3>
-                      </div>
-                    </div>
+                  <div class="text-weight-bold">{{ group.label }}</div>
+                </q-tab>
+              </q-tabs>
 
-                    <div class="pill-row">
-                      <q-chip
-                        dense
-                        square
-                        :color="testEntry.status.color"
-                        text-color="white"
-                      >
-                        {{ testEntry.status.label }}
-                      </q-chip>
-                      <q-chip dense square color="secondary" text-color="white">
-                        {{ currentFundingSource.name }}
-                      </q-chip>
-                      <q-chip dense square color="primary" text-color="white">
-                        {{ testEntry.variantCount }} generated variants
-                      </q-chip>
-                    </div>
-                  </summary>
-
-                  <div class="wallet-expanded-body">
-                    <div v-if="testEntry.note" class="empty-state">
-                      {{ testEntry.note }}
-                    </div>
-
-                    <div class="test-detail-grid">
-                      <div class="detail-panel">
-                        <json-panel
-                          label="Call Params"
-                          :value="testEntry.call_params || {}"
-                          max-height="220px"
-                        ></json-panel>
-                      </div>
-                      <div class="detail-panel">
-                        <json-panel
-                          :label="testEntry.expectedLabel"
-                          :value="testEntry.expectedBlock"
-                          empty-label="No expected result block"
-                          max-height="220px"
-                        ></json-panel>
-                      </div>
-                    </div>
-
-                    <div class="mock-list q-mt-lg" v-if="testEntry.rawMockSets.length">
-                      <div
-                        v-for="mockSet in testEntry.rawMockSets"
-                        :key="mockSet.path"
-                        class="mock-card"
-                      >
-                        <div class="mock-card-header">
-                          <div>
-                            <div class="mock-card-title">{{ mockSet.label }}</div>
+              <q-tab-panels
+                v-if="currentSelectedTestTypeGroup"
+                v-model="currentSelectedTestTypeKey"
+                animated
+                class="test-type-panels"
+              >
+                <q-tab-panel
+                  v-for="group in currentFunctionTestTypeGroups"
+                  :key="group.key"
+                  :name="group.key"
+                  class="test-type-panel"
+                >
+                  <div class="test-case-stack">
+                    <div
+                      v-for="(testEntry, entryIndex) in group.entries"
+                      :key="`${group.key}-${testEntry.index}-${entryIndex}`"
+                      class="test-case-section"
+                    >
+                      <div class="test-case-header">
+                        <div v-if="group.entries.length > 1">
+                          <h3
+                            class="test-case-title"
+                          >
+                            {{
+                              `${group.label} ${entryIndex + 1}`
+                            }}
+                          </h3>
+                          <div
+                            class="test-case-subtitle"
+                          >
+                            Raw test {{ testEntry.index + 1 }}
                           </div>
-                          <q-chip dense square color="primary" text-color="white">
-                            {{ Object.keys(mockSet.value || {}).length }} mock names
-                          </q-chip>
                         </div>
 
-                        <json-panel
-                          class="q-mt-md"
-                          label="Test Mock Definition"
-                          :value="mockSet.value"
-                          max-height="320px"
-                        ></json-panel>
+                        <div class="pill-row">
+                          <q-chip
+                            dense
+                            square
+                            :color="testEntry.status.color"
+                            text-color="white"
+                          >
+                            {{ testEntry.status.label }}
+                          </q-chip>
+                          <q-chip dense square color="secondary" text-color="white">
+                            {{ currentFundingSource.name }}
+                          </q-chip>
+                          <q-chip dense square color="primary" text-color="white">
+                            {{ testEntry.variantCount }} generated variants
+                          </q-chip>
+                        </div>
+                      </div>
+
+                      <div v-if="testEntry.note" class="empty-state">
+                        {{ testEntry.note }}
+                      </div>
+
+                      <div class="test-detail-grid">
+                        <div class="detail-panel">
+                          <json-panel
+                            label="Call Params"
+                            :value="testEntry.call_params || {}"
+                            max-height="220px"
+                          ></json-panel>
+                        </div>
+                        <div class="detail-panel">
+                          <json-panel
+                            :label="testEntry.expectedLabel"
+                            :value="testEntry.expectedBlock"
+                            empty-label="No expected result block"
+                            max-height="220px"
+                          ></json-panel>
+                        </div>
+                      </div>
+
+                      <div class="mock-list q-mt-lg" v-if="testEntry.rawMockSets.length">
+                        <div
+                          v-for="mockSet in testEntry.rawMockSets"
+                          :key="mockSet.path"
+                          class="mock-card"
+                        >
+                          <div class="mock-card-header">
+                            <div>
+                              <div class="mock-card-title">{{ mockSet.label }}</div>
+                            </div>
+                            <q-chip dense square color="primary" text-color="white">
+                              {{ Object.keys(mockSet.value || {}).length }} mock names
+                            </q-chip>
+                          </div>
+
+                          <json-panel
+                            class="q-mt-md"
+                            label="Test Mock Definition"
+                            :value="mockSet.value"
+                            max-height="320px"
+                          ></json-panel>
+                        </div>
+                      </div>
+
+                      <div v-else class="empty-state q-mt-lg">
+                        No wallet-specific mock entry is defined for
+                        <code>{{ currentFundingSource.name }}</code>
+                        in this test.
                       </div>
                     </div>
-
-                    <div v-else class="empty-state q-mt-md">
-                      No wallet-specific mock entry is defined for
-                      <code>{{ currentFundingSource.name }}</code>
-                      in this test.
-                    </div>
                   </div>
-                </details>
-              </div>
+                </q-tab-panel>
+              </q-tab-panels>
 
-              <div v-if="!currentFunctionTestsForFundingSource.length" class="empty-state">
+              <div v-if="!currentFunctionTestTypeGroups.length" class="empty-state">
                 No tests are defined for this function.
               </div>
             </q-card-section>
@@ -2138,6 +2232,7 @@
             settingsDraftRowId: 0,
             settingsDrafts,
             selectedDatasetKey: 'rest',
+            selectedTestTypeByScope: {},
             selectedFunctionByDataset,
             selectedFundingSourceByDataset
           }
@@ -2325,6 +2420,78 @@
                 expectedLabel: test.expect ? 'Expect' : 'Expect Error'
               }
             })
+          },
+          currentTestTypeScopeKey() {
+            if (!this.currentFunctionName || !this.currentFundingSourceName) {
+              return ''
+            }
+
+            return [
+              this.selectedDatasetKey,
+              this.currentFunctionName,
+              this.currentFundingSourceName
+            ].join(':')
+          },
+          currentFunctionTestTypeGroups() {
+            const groups = []
+            const groupMap = new Map()
+
+            this.currentFunctionTestsForFundingSource.forEach(testEntry => {
+              const label =
+                (testEntry.description || `Test ${testEntry.index + 1}`).trim() ||
+                `Test ${testEntry.index + 1}`
+
+              if (!groupMap.has(label)) {
+                const group = {
+                  key: label,
+                  label,
+                  entries: [],
+                  totalVariants: 0
+                }
+                groupMap.set(label, group)
+                groups.push(group)
+              }
+
+              const group = groupMap.get(label)
+              group.entries.push(testEntry)
+              group.totalVariants += testEntry.variantCount
+            })
+
+            return groups
+          },
+          currentSelectedTestTypeKey: {
+            get() {
+              const scopeKey = this.currentTestTypeScopeKey
+              if (!scopeKey) {
+                return ''
+              }
+
+              const selectedKey = this.selectedTestTypeByScope[scopeKey]
+              if (
+                selectedKey &&
+                this.currentFunctionTestTypeGroups.some(
+                  group => group.key === selectedKey
+                )
+              ) {
+                return selectedKey
+              }
+
+              return this.currentFunctionTestTypeGroups[0]?.key || ''
+            },
+            set(value) {
+              if (!this.currentTestTypeScopeKey) {
+                return
+              }
+
+              this.selectedTestTypeByScope[this.currentTestTypeScopeKey] = value
+            }
+          },
+          currentSelectedTestTypeGroup() {
+            return (
+              this.currentFunctionTestTypeGroups.find(
+                group => group.key === this.currentSelectedTestTypeKey
+              ) || null
+            )
           }
         },
         watch: {
