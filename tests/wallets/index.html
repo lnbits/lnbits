@@ -1244,18 +1244,14 @@
                   ></q-btn>
                 </div>
 
-                <div
-                  v-if="currentFundingSource && currentFundingSource.skip"
-                  class="pill-row q-mt-sm"
-                >
-                  <q-chip
+                <div v-if="currentFundingSource" class="q-mt-sm">
+                  <q-checkbox
+                    v-model="currentFundingSourceSkip"
                     dense
-                    square
                     color="warning"
-                    text-color="white"
-                  >
-                    Skipped by wallet config
-                  </q-chip>
+                    keep-color
+                    label="Skip this funding source"
+                  ></q-checkbox>
                 </div>
               </q-card-section>
             </q-card>
@@ -1516,6 +1512,17 @@
                                   ></q-btn>
                                 </div>
 
+                                <div v-if="testMockItemHasSkip(item)" class="q-mb-md">
+                                  <q-checkbox
+                                    :model-value="testMockItemSkip(item)"
+                                    dense
+                                    color="warning"
+                                    keep-color
+                                    label="Skip this mock definition"
+                                    @update:model-value="setTestMockItemSkip(testEntry, mockSet, item, $event)"
+                                  ></q-checkbox>
+                                </div>
+
                                 <textarea
                                   :id="`test-mock-definition-${group.key}-${testEntry.index}-${mockSetIndex}-${bindingIndex}-${itemIndex}`"
                                   v-model="item.text"
@@ -1611,15 +1618,6 @@
 
           <q-card-section class="q-pa-lg">
             <div v-if="currentFundingSource">
-              <div class="q-mb-lg">
-                <q-checkbox
-                  v-model="currentFundingSourceSkip"
-                  label="Skip this funding source in generated wallet tests"
-                  color="warning"
-                  keep-color
-                ></q-checkbox>
-              </div>
-
               <div class="settings-editor" v-if="currentFundingSourceSettingRows.length">
                 <div class="settings-table">
                   <div class="settings-table-header settings-table-grid">
@@ -2566,11 +2564,7 @@
                     return
                   }
 
-                  if (value) {
-                    fundingSource.skip = true
-                  } else {
-                    delete fundingSource.skip
-                  }
+                  fundingSource.skip = Boolean(value)
                 },
                 {
                   preserveSettingsDrafts: true,
@@ -2997,6 +2991,51 @@
             }
 
             return `Test Mock Definition ${itemIndex + 1}`
+          },
+          testMockItemHasSkip(item) {
+            const parsed = parseJsonText(item?.text || '')
+
+            return (
+              parsed.ok &&
+              isPlainObject(parsed.data) &&
+              typeof parsed.data.skip === 'boolean'
+            )
+          },
+          testMockItemSkip(item) {
+            const parsed = parseJsonText(item?.text || '')
+
+            if (
+              !parsed.ok ||
+              !isPlainObject(parsed.data) ||
+              typeof parsed.data.skip !== 'boolean'
+            ) {
+              return false
+            }
+
+            return parsed.data.skip
+          },
+          setTestMockItemSkip(testEntry, mockSet, item, value) {
+            const parsed = parseJsonText(item?.text || '')
+
+            if (
+              !parsed.ok ||
+              !isPlainObject(parsed.data) ||
+              typeof parsed.data.skip !== 'boolean'
+            ) {
+              item.error =
+                'Could not update skip because this mock definition is not valid JSON with a boolean skip field.'
+              this.notify(
+                'Could not save mock skip flag.',
+                'negative',
+                item.error
+              )
+              return
+            }
+
+            item.error = ''
+            parsed.data.skip = Boolean(value)
+            item.text = safeStringify(parsed.data)
+            this.persistTestMockSet(testEntry, mockSet)
           },
           addTestMockBinding(testEntry, mockSet) {
             mockSet.bindings.push(
