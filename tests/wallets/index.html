@@ -176,7 +176,12 @@
       .workspace-grid {
         display: grid;
         gap: 18px;
-        grid-template-columns: 320px minmax(0, 1fr);
+      }
+
+      .primary-row {
+        display: grid;
+        gap: 18px;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
         align-items: start;
       }
 
@@ -250,17 +255,65 @@
 
       .native-select-wrap {
         position: relative;
+        border: 1px solid rgba(25, 54, 61, 0.14);
+        border-radius: 10px;
+        background:
+          linear-gradient(
+            180deg,
+            rgba(255, 255, 255, 0.98) 0%,
+            rgba(247, 243, 236, 0.94) 100%
+          );
+        box-shadow:
+          inset 0 1px 0 rgba(255, 255, 255, 0.9),
+          0 6px 18px rgba(20, 30, 36, 0.04);
+        overflow: hidden;
+        transition:
+          border-color 0.18s ease,
+          box-shadow 0.18s ease,
+          transform 0.18s ease;
+      }
+
+      .native-select-wrap::before {
+        content: '';
+        position: absolute;
+        top: 6px;
+        right: 6px;
+        bottom: 6px;
+        width: 38px;
+        border-radius: 8px;
+        background: rgba(25, 54, 61, 0.06);
+        border: 1px solid rgba(25, 54, 61, 0.08);
+        pointer-events: none;
       }
 
       .native-select-wrap::after {
-        content: '▾';
+        content: 'unfold_more';
         position: absolute;
-        right: 14px;
+        right: 13px;
         top: 50%;
         transform: translateY(-50%);
+        font-family: 'Material Icons';
+        font-feature-settings: 'liga';
+        font-style: normal;
+        font-weight: 400;
         color: var(--studio-muted);
         pointer-events: none;
-        font-size: 0.95rem;
+        font-size: 1.2rem;
+        line-height: 1;
+      }
+
+      .native-select-wrap:hover {
+        border-color: rgba(25, 54, 61, 0.2);
+        box-shadow:
+          inset 0 1px 0 rgba(255, 255, 255, 0.9),
+          0 10px 24px rgba(20, 30, 36, 0.06);
+      }
+
+      .native-select-wrap:focus-within {
+        border-color: rgba(25, 54, 61, 0.24);
+        box-shadow:
+          0 0 0 3px rgba(25, 54, 61, 0.12),
+          inset 0 1px 0 rgba(255, 255, 255, 0.95);
       }
 
       .native-select-label {
@@ -277,20 +330,26 @@
         width: 100%;
         appearance: none;
         -webkit-appearance: none;
-        border: 1px solid rgba(25, 54, 61, 0.14);
-        border-radius: 10px;
-        background: rgba(255, 255, 255, 0.92);
+        -moz-appearance: none;
+        border: 0;
+        border-radius: 0;
+        background: transparent;
+        background-image: none;
         color: var(--studio-ink);
-        padding: 14px 42px 14px 14px;
+        padding: 14px 54px 14px 14px;
         font: inherit;
         font-size: 0.95rem;
         line-height: 1.35;
-        box-shadow: inset 0 1px 1px rgba(20, 30, 36, 0.04);
+        box-shadow: none;
+        cursor: pointer;
       }
 
       .native-select:focus {
-        outline: 2px solid rgba(25, 54, 61, 0.18);
-        border-color: rgba(25, 54, 61, 0.22);
+        outline: none;
+      }
+
+      .native-select::-ms-expand {
+        display: none;
       }
 
       .native-input,
@@ -874,12 +933,6 @@
         display: none;
       }
 
-      @media (max-width: 1320px) {
-        .workspace-grid {
-          grid-template-columns: 300px minmax(0, 1fr);
-        }
-      }
-
       @media (max-width: 1080px) {
         .hero-row {
           flex-direction: column;
@@ -893,7 +946,7 @@
           grid-template-columns: repeat(2, minmax(0, 1fr));
         }
 
-        .workspace-grid {
+        .primary-row {
           grid-template-columns: 1fr;
         }
 
@@ -967,6 +1020,24 @@
                 label="Load Both Files"
                 @click="openBulkInput"
               ></q-btn>
+              <q-btn
+                color="primary"
+                outline
+                label="Open Current File"
+                @click="openCurrentFile"
+              ></q-btn>
+              <q-btn
+                color="secondary"
+                outline
+                label="Reload Current"
+                @click="loadRelative(currentDataset.key)"
+              ></q-btn>
+              <q-btn
+                color="accent"
+                outline
+                label="Open JSON Editor"
+                @click="editorDialog = true"
+              ></q-btn>
             </div>
           </div>
 
@@ -1011,88 +1082,20 @@
               <div class="stat-value">{{ currentDataset.analysis.summary.expandedTests }}</div>
             </div>
           </div>
+
+          <q-banner
+            v-if="currentDataset.loadError"
+            dense
+            rounded
+            inline-actions
+            class="bg-orange-1 text-orange-10 q-mt-md"
+          >
+            {{ currentDataset.loadError }}
+          </q-banner>
         </header>
 
         <main class="workspace-grid">
-          <section class="stack">
-            <q-card flat class="studio-card">
-              <q-card-section>
-                <div class="section-title">
-                  <div>
-                    <h2>Current Dataset</h2>
-                    <div class="section-caption">
-                      {{ currentDatasetKindHelp }}
-                    </div>
-                  </div>
-                  <q-chip
-                    dense
-                    square
-                    :color="currentDataset.analysis ? 'positive' : 'grey-6'"
-                    text-color="white"
-                  >
-                    {{ currentDataset.analysis ? 'Loaded' : 'Waiting' }}
-                  </q-chip>
-                </div>
-
-                <div class="summary-grid">
-                  <div class="summary-item">
-                    <div class="summary-item-label">Fixture File</div>
-                    <div class="summary-item-value">{{ currentDataset.fileName }}</div>
-                  </div>
-                  <div class="summary-item">
-                    <div class="summary-item-label">Fixture Path</div>
-                    <div class="summary-item-value">{{ currentDataset.relativePath }}</div>
-                  </div>
-                  <div class="summary-item">
-                    <div class="summary-item-label">Pytest File</div>
-                    <div class="summary-item-value">{{ currentDataset.testFile }}</div>
-                  </div>
-                  <div class="summary-item">
-                    <div class="summary-item-label">Loaded From</div>
-                    <div class="summary-item-value">
-                      {{ currentDataset.sourceLabel || 'Not loaded yet' }}
-                    </div>
-                  </div>
-                </div>
-
-                <q-banner
-                  v-if="currentDataset.loadError"
-                  dense
-                  rounded
-                  inline-actions
-                  class="bg-orange-1 text-orange-10 q-mt-md"
-                >
-                  {{ currentDataset.loadError }}
-                </q-banner>
-
-                <div class="pill-row q-mt-md">
-                  <q-btn
-                    size="sm"
-                    color="primary"
-                    outline
-                    label="Open Current File"
-                    @click="openCurrentFile"
-                  ></q-btn>
-                  <q-btn
-                    size="sm"
-                    color="secondary"
-                    outline
-                    label="Reload Relative"
-                    @click="loadRelative(currentDataset.key)"
-                  ></q-btn>
-                  <q-btn
-                    size="sm"
-                    color="accent"
-                    outline
-                    label="Open JSON Editor"
-                    @click="editorDialog = true"
-                  ></q-btn>
-                </div>
-              </q-card-section>
-            </q-card>
-          </section>
-
-          <section class="stack">
+          <section class="primary-row">
             <q-card flat class="studio-card">
               <q-card-section>
                 <div class="section-title">
@@ -1125,20 +1128,8 @@
                 </div>
 
                 <div v-if="currentFundingSource" class="q-mt-md">
-                  <div class="pill-row q-mb-md">
-                    <q-chip dense square color="primary" text-color="white">
-                      {{ currentFundingSource.wallet_class }}
-                    </q-chip>
+                  <div v-if="currentFundingSource.skip" class="pill-row q-mb-md">
                     <q-chip
-                      dense
-                      square
-                      color="grey-8"
-                      text-color="white"
-                    >
-                      funding_sources.{{ currentFundingSource.name }}
-                    </q-chip>
-                    <q-chip
-                      v-if="currentFundingSource.skip"
                       dense
                       square
                       color="warning"
@@ -1281,7 +1272,7 @@
               </q-card-section>
             </q-card>
 
-            <q-card flat class="studio-card" v-if="currentFunction && currentFundingSource">
+            <q-card flat class="studio-card" v-if="currentDataset.analysis">
               <q-card-section>
                 <div class="section-title">
                   <div>
@@ -1312,7 +1303,10 @@
                   </select>
                 </div>
 
-                <details class="wallet-expanded-card test-expander q-mt-lg">
+                <details
+                  v-if="currentFunction && currentFundingSource"
+                  class="wallet-expanded-card test-expander q-mt-lg"
+                >
                   <summary class="wallet-expanded-header test-summary">
                     <div class="test-summary-copy">
                       <span class="test-summary-arrow"></span>
@@ -1491,129 +1485,121 @@
                     </div>
                   </div>
                 </details>
+
+                <div v-else class="empty-state q-mt-lg">
+                  Select a funding source and function to inspect reusable mocks.
+                </div>
               </q-card-section>
             </q-card>
 
-            <q-card flat class="studio-card" v-if="currentFunction && currentFundingSource">
-              <q-card-section>
-                <div class="section-title">
-                  <div>
-                    <h2>Tests For Selected Function</h2>
-                    <div class="section-caption">
-                      Each card shows the raw test case for the selected function, plus the mocks attached to the selected funding source.
-                    </div>
+          </section>
+
+          <q-card flat class="studio-card" v-if="currentFunction && currentFundingSource">
+            <q-card-section>
+              <div class="section-title">
+                <div>
+                  <h2>Tests For Selected Function</h2>
+                  <div class="section-caption">
+                    Each card shows the raw test case for the selected function, plus the mocks attached to the selected funding source.
                   </div>
                 </div>
+              </div>
 
-                <div class="wallet-expanded-list">
-                  <details
-                    v-for="testEntry in currentFunctionTestsForFundingSource"
-                    :key="`${currentFunction.name}-${currentFundingSource.name}-${testEntry.index}`"
-                    class="wallet-expanded-card test-expander"
-                  >
-                    <summary class="wallet-expanded-header test-summary">
-                      <div class="test-summary-copy">
-                        <span class="test-summary-arrow"></span>
-                        <div>
-                          <h3 class="wallet-expanded-title">
-                            {{ testEntry.description || `Test ${testEntry.index + 1}` }}
-                          </h3>
-                          <div class="wallet-expanded-meta">
-                            functions.{{ currentFunction.name }}.tests[{{ testEntry.index }}]
-                          </div>
-                        </div>
-                      </div>
-
-                      <div class="pill-row">
-                        <q-chip
-                          dense
-                          square
-                          :color="testEntry.status.color"
-                          text-color="white"
-                        >
-                          {{ testEntry.status.label }}
-                        </q-chip>
-                        <q-chip dense square color="secondary" text-color="white">
-                          {{ currentFundingSource.name }}
-                        </q-chip>
-                        <q-chip dense square color="primary" text-color="white">
-                          {{ testEntry.variantCount }} generated variants
-                        </q-chip>
-                      </div>
-                    </summary>
-
-                    <div class="wallet-expanded-body">
-                      <div v-if="testEntry.note" class="empty-state">
-                        {{ testEntry.note }}
-                      </div>
-
-                      <div class="test-detail-grid">
-                        <div class="detail-panel">
-                          <json-panel
-                            label="Call Params"
-                            :value="testEntry.call_params || {}"
-                            max-height="220px"
-                          ></json-panel>
-                        </div>
-                        <div class="detail-panel">
-                          <json-panel
-                            :label="testEntry.expectedLabel"
-                            :value="testEntry.expectedBlock"
-                            empty-label="No expected result block"
-                            max-height="220px"
-                          ></json-panel>
-                        </div>
-                      </div>
-
-                      <div class="section-title q-mt-lg">
-                        <div>
-                          <h3>Test Mocks</h3>
-                          <div class="section-caption">
-                            Mock entries under the selected funding source for this test.
-                          </div>
-                        </div>
-                      </div>
-
-                      <div class="mock-list" v-if="testEntry.rawMockSets.length">
-                        <div
-                          v-for="mockSet in testEntry.rawMockSets"
-                          :key="mockSet.path"
-                          class="mock-card"
-                        >
-                          <div class="mock-card-header">
-                            <div>
-                              <div class="mock-card-title">{{ mockSet.label }}</div>
-                              <div class="mock-card-subtitle">{{ mockSet.path }}</div>
-                            </div>
-                            <q-chip dense square color="primary" text-color="white">
-                              {{ Object.keys(mockSet.value || {}).length }} mock names
-                            </q-chip>
-                          </div>
-
-                          <json-panel
-                            class="q-mt-md"
-                            label="Test Mock Definition"
-                            :value="mockSet.value"
-                            max-height="320px"
-                          ></json-panel>
-                        </div>
-                      </div>
-
-                      <div v-else class="empty-state q-mt-md">
-                        No wallet-specific mock entry is defined for
-                        <code>{{ currentFundingSource.name }}</code>
-                        in this test.
+              <div class="wallet-expanded-list">
+                <details
+                  v-for="testEntry in currentFunctionTestsForFundingSource"
+                  :key="`${currentFunction.name}-${currentFundingSource.name}-${testEntry.index}`"
+                  class="wallet-expanded-card test-expander"
+                >
+                  <summary class="wallet-expanded-header test-summary">
+                    <div class="test-summary-copy">
+                      <span class="test-summary-arrow"></span>
+                      <div>
+                        <h3 class="wallet-expanded-title">
+                          {{ testEntry.description || `Test ${testEntry.index + 1}` }}
+                        </h3>
                       </div>
                     </div>
-                  </details>
-                </div>
 
-                <div v-if="!currentFunctionTestsForFundingSource.length" class="empty-state">
-                  No tests are defined for this function.
-                </div>
-              </q-card-section>
-            </q-card>
-          </section>
+                    <div class="pill-row">
+                      <q-chip
+                        dense
+                        square
+                        :color="testEntry.status.color"
+                        text-color="white"
+                      >
+                        {{ testEntry.status.label }}
+                      </q-chip>
+                      <q-chip dense square color="secondary" text-color="white">
+                        {{ currentFundingSource.name }}
+                      </q-chip>
+                      <q-chip dense square color="primary" text-color="white">
+                        {{ testEntry.variantCount }} generated variants
+                      </q-chip>
+                    </div>
+                  </summary>
+
+                  <div class="wallet-expanded-body">
+                    <div v-if="testEntry.note" class="empty-state">
+                      {{ testEntry.note }}
+                    </div>
+
+                    <div class="test-detail-grid">
+                      <div class="detail-panel">
+                        <json-panel
+                          label="Call Params"
+                          :value="testEntry.call_params || {}"
+                          max-height="220px"
+                        ></json-panel>
+                      </div>
+                      <div class="detail-panel">
+                        <json-panel
+                          :label="testEntry.expectedLabel"
+                          :value="testEntry.expectedBlock"
+                          empty-label="No expected result block"
+                          max-height="220px"
+                        ></json-panel>
+                      </div>
+                    </div>
+
+                    <div class="mock-list q-mt-lg" v-if="testEntry.rawMockSets.length">
+                      <div
+                        v-for="mockSet in testEntry.rawMockSets"
+                        :key="mockSet.path"
+                        class="mock-card"
+                      >
+                        <div class="mock-card-header">
+                          <div>
+                            <div class="mock-card-title">{{ mockSet.label }}</div>
+                          </div>
+                          <q-chip dense square color="primary" text-color="white">
+                            {{ Object.keys(mockSet.value || {}).length }} mock names
+                          </q-chip>
+                        </div>
+
+                        <json-panel
+                          class="q-mt-md"
+                          label="Test Mock Definition"
+                          :value="mockSet.value"
+                          max-height="320px"
+                        ></json-panel>
+                      </div>
+                    </div>
+
+                    <div v-else class="empty-state q-mt-md">
+                      No wallet-specific mock entry is defined for
+                      <code>{{ currentFundingSource.name }}</code>
+                      in this test.
+                    </div>
+                  </div>
+                </details>
+              </div>
+
+              <div v-if="!currentFunctionTestsForFundingSource.length" class="empty-state">
+                No tests are defined for this function.
+              </div>
+            </q-card-section>
+          </q-card>
         </main>
       </div>
 
