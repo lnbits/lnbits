@@ -278,7 +278,7 @@
         appearance: none;
         -webkit-appearance: none;
         border: 1px solid rgba(25, 54, 61, 0.14);
-        border-radius: 18px;
+        border-radius: 10px;
         background: rgba(255, 255, 255, 0.92);
         color: var(--studio-ink);
         padding: 14px 42px 14px 14px;
@@ -291,6 +291,43 @@
       .native-select:focus {
         outline: 2px solid rgba(25, 54, 61, 0.18);
         border-color: rgba(25, 54, 61, 0.22);
+      }
+
+      .native-input,
+      .native-textarea {
+        width: 100%;
+        border: 1px solid rgba(25, 54, 61, 0.14);
+        border-radius: 10px;
+        background: rgba(255, 255, 255, 0.92);
+        color: var(--studio-ink);
+        padding: 14px;
+        font: inherit;
+        font-size: 0.95rem;
+        line-height: 1.35;
+        box-shadow: inset 0 1px 1px rgba(20, 30, 36, 0.04);
+      }
+
+      .native-textarea {
+        min-height: 92px;
+        resize: vertical;
+        font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', monospace;
+        font-size: 0.84rem;
+      }
+
+      .native-input:focus,
+      .native-textarea:focus {
+        outline: 2px solid rgba(25, 54, 61, 0.18);
+        border-color: rgba(25, 54, 61, 0.22);
+      }
+
+      .field-label {
+        display: block;
+        margin-bottom: 8px;
+        color: var(--studio-muted);
+        font-size: 0.72rem;
+        text-transform: uppercase;
+        letter-spacing: 0.1em;
+        font-weight: 700;
       }
 
       .pill-row {
@@ -414,7 +451,6 @@
       .test-detail-grid {
         display: grid;
         gap: 12px;
-        grid-template-columns: repeat(3, minmax(0, 1fr));
       }
 
       .detail-panel {
@@ -436,6 +472,149 @@
       .wallet-expanded-list {
         display: grid;
         gap: 14px;
+      }
+
+      .settings-editor {
+        display: grid;
+        gap: 12px;
+      }
+
+      .settings-table {
+        border: 1px solid rgba(25, 54, 61, 0.08);
+        border-radius: 20px;
+        background: rgba(255, 255, 255, 0.78);
+        overflow: hidden;
+      }
+
+      .settings-table-grid {
+        display: grid;
+        gap: 12px;
+        grid-template-columns: minmax(180px, 1fr) 140px minmax(220px, 1.3fr) auto;
+        align-items: center;
+      }
+
+      .settings-table-header {
+        padding: 12px 14px;
+        border-bottom: 1px solid rgba(25, 54, 61, 0.08);
+        background: rgba(25, 54, 61, 0.05);
+      }
+
+      .settings-table-heading {
+        color: var(--studio-muted);
+        font-size: 0.72rem;
+        text-transform: uppercase;
+        letter-spacing: 0.1em;
+        font-weight: 700;
+      }
+
+      .settings-table-row {
+        padding: 14px;
+        border-bottom: 1px solid rgba(25, 54, 61, 0.08);
+      }
+
+      .settings-table-row:last-child {
+        border-bottom: 0;
+      }
+
+      .settings-table-actions {
+        display: flex;
+        justify-content: flex-end;
+      }
+
+      .settings-table-note {
+        margin-top: 10px;
+      }
+
+      .settings-row {
+        padding: 14px;
+        border-radius: 18px;
+        border: 1px solid rgba(25, 54, 61, 0.08);
+        background: rgba(255, 255, 255, 0.78);
+      }
+
+      .settings-row-grid {
+        display: grid;
+        gap: 12px;
+        grid-template-columns: minmax(180px, 1fr) 140px minmax(220px, 1.3fr) auto;
+        align-items: end;
+      }
+
+      .settings-row-actions {
+        display: flex;
+        justify-content: flex-end;
+      }
+
+      .function-mocks-table-wrap {
+        overflow-x: auto;
+      }
+
+      .function-mocks-table {
+        min-width: 1320px;
+        border: 1px solid rgba(25, 54, 61, 0.08);
+        border-radius: 20px;
+        background: rgba(255, 255, 255, 0.78);
+        overflow: hidden;
+      }
+
+      .function-mocks-table-grid {
+        display: grid;
+        gap: 12px;
+        grid-template-columns:
+          minmax(150px, 1fr)
+          minmax(180px, 1.1fr)
+          120px
+          minmax(220px, 1.2fr)
+          minmax(180px, 1fr)
+          120px
+          120px
+          minmax(220px, 1.2fr);
+        align-items: start;
+      }
+
+      .function-mocks-header {
+        padding: 12px 14px;
+        border-bottom: 1px solid rgba(25, 54, 61, 0.08);
+        background: rgba(25, 54, 61, 0.05);
+      }
+
+      .function-mocks-heading {
+        color: var(--studio-muted);
+        font-size: 0.72rem;
+        text-transform: uppercase;
+        letter-spacing: 0.1em;
+        font-weight: 700;
+      }
+
+      .function-mocks-row {
+        padding: 14px;
+        border-bottom: 1px solid rgba(25, 54, 61, 0.08);
+      }
+
+      .function-mocks-row:last-child {
+        border-bottom: 0;
+      }
+
+      .function-mock-primary-actions {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+        margin-top: 10px;
+      }
+
+      .function-mocks-note {
+        margin-top: 10px;
+      }
+
+      .settings-hint {
+        color: var(--studio-muted);
+        font-size: 0.82rem;
+        line-height: 1.45;
+      }
+
+      .settings-error {
+        color: var(--q-negative);
+        font-size: 0.82rem;
+        line-height: 1.45;
       }
 
       .wallet-expanded-card {
@@ -462,7 +641,7 @@
         padding: 16px 18px;
         display: flex;
         gap: 12px;
-        align-items: flex-start;
+        align-items: center;
         justify-content: space-between;
         background: rgba(25, 54, 61, 0.05);
       }
@@ -480,7 +659,7 @@
         display: flex;
         gap: 12px;
         min-width: 0;
-        align-items: flex-start;
+        align-items: center;
       }
 
       .test-summary-arrow {
@@ -493,6 +672,7 @@
         background: rgba(25, 54, 61, 0.08);
         color: var(--studio-muted);
         font-size: 1rem;
+        line-height: 1;
         flex: 0 0 auto;
       }
 
@@ -665,7 +845,7 @@
         min-height: 68vh;
         resize: vertical;
         padding: 16px;
-        border-radius: 20px;
+        border-radius: 12px;
         border: 1px solid rgba(25, 54, 61, 0.12);
         background: #fffdf9;
         color: #172127;
@@ -717,9 +897,19 @@
           grid-template-columns: 1fr;
         }
 
-        .test-detail-grid,
-        .mock-source-grid {
+        .mock-source-grid,
+        .settings-row-grid,
+        .settings-table-grid {
           grid-template-columns: 1fr;
+        }
+
+        .settings-table-header {
+          display: none;
+        }
+
+        .settings-row-actions,
+        .settings-table-actions {
+          justify-content: flex-start;
         }
       }
 
@@ -958,24 +1148,135 @@
                     </q-chip>
                   </div>
 
-                  <div class="section-caption q-mb-sm">
-                    Settings to configure for the selected funding source.
-                  </div>
+                  <details class="wallet-expanded-card test-expander">
+                    <summary class="wallet-expanded-header test-summary">
+                      <div class="test-summary-copy">
+                        <span class="test-summary-arrow"></span>
+                        <div>
+                          <h3 class="wallet-expanded-title">
+                            Settings to configure for the selected funding source.
+                          </h3>
+                        </div>
+                      </div>
 
-                  <div class="summary-grid" v-if="currentFundingSourceSettings.length">
-                    <div
-                      v-for="setting in currentFundingSourceSettings"
-                      :key="`${currentFundingSource.name}-${setting.key}`"
-                      class="summary-item"
-                    >
-                      <div class="summary-item-label">{{ setting.key }}</div>
-                      <div class="summary-item-value">{{ prettyValue(setting.value) }}</div>
+                      <div class="pill-row">
+                        <q-chip dense square color="primary" text-color="white">
+                          {{ currentFundingSourceSettingRows.length }} rows
+                        </q-chip>
+                      </div>
+                    </summary>
+
+                    <div class="wallet-expanded-body">
+                      <div class="section-caption">
+                        Edit, add, or remove key-value settings. Changes update the active fixture JSON immediately.
+                      </div>
+
+                      <div class="settings-editor q-mt-md" v-if="currentFundingSourceSettingRows.length">
+                        <div class="settings-table">
+                          <div class="settings-table-header settings-table-grid">
+                            <div class="settings-table-heading">Key</div>
+                            <div class="settings-table-heading">Type</div>
+                            <div class="settings-table-heading">Value</div>
+                            <div class="settings-table-heading">Actions</div>
+                          </div>
+
+                          <div
+                            v-for="(row, rowIndex) in currentFundingSourceSettingRows"
+                            :key="row.id"
+                            class="settings-table-row"
+                          >
+                            <div class="settings-table-grid">
+                              <div>
+                                <input
+                                  :id="`setting-key-${row.id}`"
+                                  v-model="row.key"
+                                  class="native-input"
+                                  type="text"
+                                  placeholder="setting_key"
+                                  spellcheck="false"
+                                  @blur="persistFundingSourceSettings()"
+                                />
+                              </div>
+
+                              <div class="native-select-wrap">
+                                <select
+                                  :id="`setting-type-${row.id}`"
+                                  v-model="row.type"
+                                  class="native-select"
+                                  @change="handleFundingSourceSettingTypeChange(row)"
+                                >
+                                  <option
+                                    v-for="option in settingTypeOptions"
+                                    :key="option.value"
+                                    :value="option.value"
+                                  >
+                                    {{ option.label }}
+                                  </option>
+                                </select>
+                              </div>
+
+                              <div>
+                                <div v-if="row.type === 'boolean'" class="native-select-wrap">
+                                  <select
+                                    :id="`setting-value-${row.id}`"
+                                    v-model="row.valueText"
+                                    class="native-select"
+                                    @change="persistFundingSourceSettings()"
+                                  >
+                                    <option value="true">true</option>
+                                    <option value="false">false</option>
+                                  </select>
+                                </div>
+                                <textarea
+                                  v-else-if="row.type === 'json'"
+                                  :id="`setting-value-${row.id}`"
+                                  v-model="row.valueText"
+                                  class="native-textarea"
+                                  spellcheck="false"
+                                  @blur="persistFundingSourceSettings()"
+                                ></textarea>
+                                <input
+                                  v-else
+                                  :id="`setting-value-${row.id}`"
+                                  v-model="row.valueText"
+                                  class="native-input"
+                                  type="text"
+                                  spellcheck="false"
+                                  @blur="persistFundingSourceSettings()"
+                                />
+                              </div>
+
+                              <div class="settings-table-actions">
+                                <q-btn
+                                  color="negative"
+                                  outline
+                                  label="Remove"
+                                  @click="removeFundingSourceSettingRow(rowIndex)"
+                                ></q-btn>
+                              </div>
+                            </div>
+
+                            <div v-if="row.error" class="settings-error settings-table-note">
+                              {{ row.error }}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div v-else class="empty-state q-mt-md">
+                        No settings are defined yet for this funding source.
+                      </div>
+
+                      <div class="pill-row q-mt-md">
+                        <q-btn
+                          color="primary"
+                          outline
+                          label="Add Setting"
+                          @click="addFundingSourceSettingRow()"
+                        ></q-btn>
+                      </div>
                     </div>
-                  </div>
-
-                  <div v-else class="empty-state">
-                    No settings are defined for this funding source.
-                  </div>
+                  </details>
                 </div>
               </q-card-section>
             </q-card>
@@ -1011,58 +1312,185 @@
                   </select>
                 </div>
 
-                <div class="pill-row q-mt-md" v-if="currentFunction && currentFundingSource">
-                  <q-chip dense square color="primary" text-color="white">
-                    {{ currentFunction.name }}
-                  </q-chip>
-                  <q-chip dense square color="secondary" text-color="white">
-                    {{ currentFundingSource.name }}
-                  </q-chip>
-                  <q-chip dense square color="grey-8" text-color="white">
-                    {{ currentFunctionBaseMockPath }}
-                  </q-chip>
-                </div>
+                <details class="wallet-expanded-card test-expander q-mt-lg">
+                  <summary class="wallet-expanded-header test-summary">
+                    <div class="test-summary-copy">
+                      <span class="test-summary-arrow"></span>
+                      <div>
+                        <h3 class="wallet-expanded-title">
+                          Function Mocks
+                        </h3>
+                      </div>
+                    </div>
 
-                <div class="section-title q-mt-lg">
-                  <div>
-                    <h2>Function Mocks</h2>
+                    <div class="pill-row">
+                      <q-chip dense square color="primary" text-color="white">
+                        {{ currentFunctionMockRows.length }} mocks
+                      </q-chip>
+                    </div>
+                  </summary>
+
+                  <div class="wallet-expanded-body">
                     <div class="section-caption">
                       Reusable mocks for this function and the selected funding source.
                     </div>
-                  </div>
-                </div>
-
-                <div class="mock-list" v-if="currentFunctionBaseMockEntries.length">
-                  <div
-                    v-for="mock in currentFunctionBaseMockEntries"
-                    :key="`${currentFunction.name}-${currentFundingSource.name}-${mock.name}`"
-                    class="mock-card"
-                  >
-                    <div class="mock-card-header">
-                      <div>
-                        <div class="mock-card-title">{{ mock.name }}</div>
-                        <div class="mock-card-subtitle">{{ mockSummary(mock) }}</div>
-                      </div>
-                      <q-chip dense square color="primary" text-color="white">
-                        {{ mock.response_type || mock.request_type || 'mock' }}
-                      </q-chip>
+                    <div class="section-caption">
+                      Edit the mock fields directly. Changes update
+                      <code>{{ currentFunctionBaseMockPath }}</code>
+                      immediately.
                     </div>
 
-                    <json-panel
-                      class="q-mt-md"
-                      label="Mock Definition"
-                      :value="mock"
-                      max-height="320px"
-                    ></json-panel>
-                  </div>
-                </div>
+                    <div class="settings-editor q-mt-md" v-if="currentFunctionMockRows.length">
+                      <div class="function-mocks-table-wrap">
+                        <div class="function-mocks-table">
+                          <div class="function-mocks-header function-mocks-table-grid">
+                            <div class="function-mocks-heading">Mock Name</div>
+                            <div class="function-mocks-heading">URI</div>
+                            <div class="function-mocks-heading">Method</div>
+                            <div class="function-mocks-heading">Headers JSON</div>
+                            <div class="function-mocks-heading">Query Params JSON</div>
+                            <div class="function-mocks-heading">Request Type</div>
+                            <div class="function-mocks-heading">Response Type</div>
+                            <div class="function-mocks-heading">Response JSON</div>
+                          </div>
 
-                <div v-else class="empty-state q-mt-md">
-                  No function-level mocks are defined for
-                  <code>{{ currentFundingSource.name }}</code>
-                  in
-                  <code>{{ currentFunction.name }}</code>.
-                </div>
+                          <div
+                            v-for="(mockRow, rowIndex) in currentFunctionMockRows"
+                            :key="mockRow.id"
+                            class="function-mocks-row"
+                          >
+                            <div class="function-mocks-table-grid">
+                              <div>
+                                <input
+                                  :id="`function-mock-name-${mockRow.id}`"
+                                  v-model="mockRow.name"
+                                  class="native-input"
+                                  type="text"
+                                  placeholder="mock_name"
+                                  spellcheck="false"
+                                  @blur="persistFunctionMocks()"
+                                />
+                                <div class="function-mock-primary-actions">
+                                  <q-btn
+                                    color="negative"
+                                    outline
+                                    label="Remove Mock"
+                                    @click="removeFunctionMockRow(rowIndex)"
+                                  ></q-btn>
+                                </div>
+                              </div>
+
+                              <div>
+                                <input
+                                  :id="`function-mock-uri-${mockRow.id}`"
+                                  v-model="mockRow.uri"
+                                  class="native-input"
+                                  type="text"
+                                  placeholder="/path"
+                                  spellcheck="false"
+                                  @blur="persistFunctionMocks()"
+                                />
+                              </div>
+
+                              <div>
+                                <input
+                                  :id="`function-mock-method-${mockRow.id}`"
+                                  v-model="mockRow.method"
+                                  class="native-input"
+                                  type="text"
+                                  placeholder="GET"
+                                  spellcheck="false"
+                                  @blur="persistFunctionMocks()"
+                                />
+                              </div>
+
+                              <div>
+                                <textarea
+                                  :id="`function-mock-headers-${mockRow.id}`"
+                                  v-model="mockRow.headersText"
+                                  class="native-textarea"
+                                  placeholder='{"Authorization":"Bearer ..."}'
+                                  spellcheck="false"
+                                  @blur="persistFunctionMocks()"
+                                ></textarea>
+                              </div>
+
+                              <div>
+                                <textarea
+                                  :id="`function-mock-query-${mockRow.id}`"
+                                  v-model="mockRow.queryParamsText"
+                                  class="native-textarea"
+                                  placeholder='{"foo":"bar"}'
+                                  spellcheck="false"
+                                  @blur="persistFunctionMocks()"
+                                ></textarea>
+                              </div>
+
+                              <div>
+                                <input
+                                  :id="`function-mock-request-type-${mockRow.id}`"
+                                  v-model="mockRow.requestType"
+                                  class="native-input"
+                                  type="text"
+                                  placeholder="function"
+                                  spellcheck="false"
+                                  @blur="persistFunctionMocks()"
+                                />
+                              </div>
+
+                              <div>
+                                <input
+                                  :id="`function-mock-response-type-${mockRow.id}`"
+                                  v-model="mockRow.responseType"
+                                  class="native-input"
+                                  type="text"
+                                  placeholder="data"
+                                  spellcheck="false"
+                                  @blur="persistFunctionMocks()"
+                                />
+                              </div>
+
+                              <div>
+                                <textarea
+                                  :id="`function-mock-response-${mockRow.id}`"
+                                  v-model="mockRow.responseText"
+                                  class="native-textarea"
+                                  placeholder='{"field":"value"}'
+                                  spellcheck="false"
+                                  @blur="persistFunctionMocks()"
+                                ></textarea>
+                              </div>
+
+                            </div>
+
+                            <div v-if="mockRow.error" class="settings-error function-mocks-note">
+                              {{ mockRow.error }}
+                            </div>
+                            <div v-else class="settings-hint function-mocks-note">
+                              Leave unused fields blank. JSON columns must contain valid JSON objects or values.
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div v-else class="empty-state q-mt-md">
+                      No function-level mocks are defined yet for
+                      <code>{{ currentFundingSource.name }}</code>
+                      in
+                      <code>{{ currentFunction.name }}</code>.
+                    </div>
+
+                    <div class="pill-row q-mt-md">
+                      <q-btn
+                        color="primary"
+                        outline
+                        label="Add Mock"
+                        @click="addFunctionMockRow()"
+                      ></q-btn>
+                    </div>
+                  </div>
+                </details>
               </q-card-section>
             </q-card>
 
@@ -1132,13 +1560,6 @@
                             :label="testEntry.expectedLabel"
                             :value="testEntry.expectedBlock"
                             empty-label="No expected result block"
-                            max-height="220px"
-                          ></json-panel>
-                        </div>
-                        <div class="detail-panel">
-                          <json-panel
-                            label="Wallet Mock Path"
-                            :value="testEntry.rawWalletPath || 'No wallet-specific mock path for this test.'"
                             max-height="220px"
                           ></json-panel>
                         </div>
@@ -1702,6 +2123,38 @@
         }
       }
 
+      function settingTypeFromValue(value) {
+        if (value === null) {
+          return 'null'
+        }
+        if (Array.isArray(value) || isPlainObject(value)) {
+          return 'json'
+        }
+        if (typeof value === 'boolean') {
+          return 'boolean'
+        }
+        if (typeof value === 'number') {
+          return 'number'
+        }
+        return 'string'
+      }
+
+      function settingValueToText(value, type = settingTypeFromValue(value)) {
+        if (type === 'null') {
+          return 'null'
+        }
+        if (type === 'boolean') {
+          return value === true ? 'true' : 'false'
+        }
+        if (type === 'number') {
+          return value === undefined || value === null ? '' : String(value)
+        }
+        if (type === 'json') {
+          return safeStringify(value)
+        }
+        return value === undefined || value === null ? '' : String(value)
+      }
+
       const { createApp } = Vue
 
       createApp({
@@ -1710,8 +2163,10 @@
         },
         data() {
           const datasets = {}
+          const functionMockDrafts = {}
           const selectedFunctionByDataset = {}
           const selectedFundingSourceByDataset = {}
+          const settingsDrafts = {}
 
           DATASET_DEFS.forEach(def => {
             datasets[def.key] = createDatasetState(def)
@@ -1723,6 +2178,10 @@
             datasetDefs: DATASET_DEFS,
             datasets,
             editorDialog: false,
+            functionMockDraftRowId: 0,
+            functionMockDrafts,
+            settingsDraftRowId: 0,
+            settingsDrafts,
             selectedDatasetKey: 'rest',
             selectedFunctionByDataset,
             selectedFundingSourceByDataset
@@ -1741,6 +2200,15 @@
               value: fs.name
             }))
           },
+          settingTypeOptions() {
+            return [
+              { label: 'String', value: 'string' },
+              { label: 'Boolean', value: 'boolean' },
+              { label: 'Number', value: 'number' },
+              { label: 'Null', value: 'null' },
+              { label: 'JSON', value: 'json' }
+            ]
+          },
           currentFundingSourceName() {
             return this.selectedFundingSourceByDataset[this.selectedDatasetKey] || ''
           },
@@ -1751,16 +2219,14 @@
               ) || null
             )
           },
-          currentFundingSourceSettings() {
-            if (!this.currentFundingSource?.settings) {
+          currentFundingSourceSettingRows() {
+            if (!this.currentFundingSourceName) {
               return []
             }
 
-            return Object.entries(this.currentFundingSource.settings).map(
-              ([key, value]) => ({
-                key,
-                value
-              })
+            return this.getSettingsDraftRows(
+              this.selectedDatasetKey,
+              this.currentFundingSourceName
             )
           },
           functionOptions() {
@@ -1790,20 +2256,6 @@
           editorDirty() {
             return this.currentDataset.rawText !== this.currentDataset.snapshotText
           },
-          currentFunctionBaseMockEntry() {
-            if (!this.currentFunction || !this.currentFundingSource) {
-              return null
-            }
-
-            return (
-              this.currentFunction.baseMockWallets.find(
-                entry => entry.fundingSource.name === this.currentFundingSource.name
-              ) || null
-            )
-          },
-          currentFunctionBaseMockEntries() {
-            return this.currentFunctionBaseMockEntry?.mockEntries || []
-          },
           currentFunctionBaseMockPath() {
             if (!this.currentFunction || !this.currentFundingSource) {
               return ''
@@ -1812,6 +2264,17 @@
             return this.baseWalletPath(
               this.currentFunction.name,
               this.currentFundingSource.name
+            )
+          },
+          currentFunctionMockRows() {
+            if (!this.currentFunctionName || !this.currentFundingSourceName) {
+              return []
+            }
+
+            return this.getFunctionMockDraftRows(
+              this.selectedDatasetKey,
+              this.currentFunctionName,
+              this.currentFundingSourceName
             )
           },
           currentFunctionTestsForFundingSource() {
@@ -1912,6 +2375,15 @@
         watch: {
           selectedDatasetKey() {
             this.ensureSelections(this.selectedDatasetKey)
+            this.ensureSettingsDraftForCurrent()
+            this.ensureFunctionMockDraftForCurrent()
+          },
+          currentFundingSourceName() {
+            this.ensureSettingsDraftForCurrent()
+            this.ensureFunctionMockDraftForCurrent()
+          },
+          currentFunctionName() {
+            this.ensureFunctionMockDraftForCurrent()
           }
         },
         mounted() {
@@ -1938,27 +2410,6 @@
               this.saveDataset(this.currentDataset.key)
             }
           },
-          mockSummary(mock) {
-            const pieces = []
-
-            if (mock.method && mock.uri) {
-              pieces.push(`${mock.method} ${mock.uri}`)
-            } else if (mock.method) {
-              pieces.push(mock.method)
-            } else if (mock.uri) {
-              pieces.push(mock.uri)
-            }
-
-            if (mock.request_type) {
-              pieces.push(`request=${mock.request_type}`)
-            }
-
-            if (mock.response_type) {
-              pieces.push(`response=${mock.response_type}`)
-            }
-
-            return pieces.join(' · ') || 'No mock metadata'
-          },
           prettyValue(value) {
             if (typeof value === 'string') {
               return value
@@ -1972,6 +2423,386 @@
             }
 
             return safeStringify(value)
+          },
+          makeSettingsDraftKey(datasetKey, fundingSourceName) {
+            return `${datasetKey}:${fundingSourceName}`
+          },
+          makeFunctionMockDraftKey(datasetKey, functionName, fundingSourceName) {
+            return `${datasetKey}:${functionName}:${fundingSourceName}`
+          },
+          createSettingsDraftRow(key = '', value = '') {
+            const type = settingTypeFromValue(value)
+
+            return {
+              id: ++this.settingsDraftRowId,
+              key,
+              type,
+              valueText: settingValueToText(value, type),
+              error: ''
+            }
+          },
+          createFunctionMockDraftRow(name = '', value = {}) {
+            const mock = isPlainObject(value) ? value : {}
+
+            return {
+              id: ++this.functionMockDraftRowId,
+              name,
+              uri: mock.uri ?? '',
+              method: mock.method ?? '',
+              headersText:
+                mock.headers !== undefined ? safeStringify(mock.headers) : '',
+              queryParamsText:
+                mock.query_params !== undefined
+                  ? safeStringify(mock.query_params)
+                  : '',
+              requestType: mock.request_type ?? '',
+              responseType: mock.response_type ?? '',
+              responseText:
+                mock.response !== undefined ? safeStringify(mock.response) : '',
+              error: ''
+            }
+          },
+          getSettingsDraftRows(datasetKey, fundingSourceName) {
+            const draftKey = this.makeSettingsDraftKey(datasetKey, fundingSourceName)
+            return this.settingsDrafts[draftKey] || []
+          },
+          getFunctionMockDraftRows(datasetKey, functionName, fundingSourceName) {
+            const draftKey = this.makeFunctionMockDraftKey(
+              datasetKey,
+              functionName,
+              fundingSourceName
+            )
+            return this.functionMockDrafts[draftKey] || []
+          },
+          ensureSettingsDraft(datasetKey, fundingSourceName, force = false) {
+            if (!datasetKey || !fundingSourceName) {
+              return []
+            }
+
+            const draftKey = this.makeSettingsDraftKey(datasetKey, fundingSourceName)
+
+            if (!force && this.settingsDrafts[draftKey]) {
+              return this.settingsDrafts[draftKey]
+            }
+
+            const settings =
+              this.datasets[datasetKey].data?.funding_sources?.[fundingSourceName]
+                ?.settings || {}
+
+            this.settingsDrafts[draftKey] = Object.entries(settings).map(
+              ([key, value]) => this.createSettingsDraftRow(key, value)
+            )
+
+            return this.settingsDrafts[draftKey]
+          },
+          ensureFunctionMockDraft(
+            datasetKey,
+            functionName,
+            fundingSourceName,
+            force = false
+          ) {
+            if (!datasetKey || !functionName || !fundingSourceName) {
+              return []
+            }
+
+            const draftKey = this.makeFunctionMockDraftKey(
+              datasetKey,
+              functionName,
+              fundingSourceName
+            )
+
+            if (!force && this.functionMockDrafts[draftKey]) {
+              return this.functionMockDrafts[draftKey]
+            }
+
+            const mocks =
+              this.datasets[datasetKey].data?.functions?.[functionName]?.mocks?.[
+                fundingSourceName
+              ] || {}
+
+            this.functionMockDrafts[draftKey] = Object.entries(mocks).map(
+              ([name, value]) => this.createFunctionMockDraftRow(name, value)
+            )
+
+            return this.functionMockDrafts[draftKey]
+          },
+          ensureSettingsDraftForCurrent(force = false) {
+            if (!this.currentFundingSourceName) {
+              return
+            }
+
+            this.ensureSettingsDraft(
+              this.selectedDatasetKey,
+              this.currentFundingSourceName,
+              force
+            )
+          },
+          ensureFunctionMockDraftForCurrent(force = false) {
+            if (!this.currentFunctionName || !this.currentFundingSourceName) {
+              return
+            }
+
+            this.ensureFunctionMockDraft(
+              this.selectedDatasetKey,
+              this.currentFunctionName,
+              this.currentFundingSourceName,
+              force
+            )
+          },
+          clearSettingsDrafts(datasetKey) {
+            Object.keys(this.settingsDrafts).forEach(key => {
+              if (key.startsWith(`${datasetKey}:`)) {
+                delete this.settingsDrafts[key]
+              }
+            })
+          },
+          clearFunctionMockDrafts(datasetKey) {
+            Object.keys(this.functionMockDrafts).forEach(key => {
+              if (key.startsWith(`${datasetKey}:`)) {
+                delete this.functionMockDrafts[key]
+              }
+            })
+          },
+          parseSettingRowValue(row) {
+            if (row.type === 'boolean') {
+              return row.valueText === 'true'
+            }
+
+            if (row.type === 'number') {
+              if (row.valueText === '') {
+                throw new Error('Number values cannot be empty.')
+              }
+
+              const value = Number(row.valueText)
+              if (Number.isNaN(value)) {
+                throw new Error('Enter a valid number.')
+              }
+
+              return value
+            }
+
+            if (row.type === 'null') {
+              return null
+            }
+
+            if (row.type === 'json') {
+              if (row.valueText.trim() === '') {
+                throw new Error('Enter valid JSON for this value.')
+              }
+
+              return JSON.parse(row.valueText)
+            }
+
+            return row.valueText
+          },
+          parseFunctionMockRowBody(row) {
+            const mock = {}
+
+            const name = row.name.trim()
+            if (!name) {
+              throw new Error('Mock name cannot be empty.')
+            }
+
+            if (row.uri.trim() !== '') {
+              mock.uri = row.uri
+            }
+
+            if (row.method.trim() !== '') {
+              mock.method = row.method
+            }
+
+            if (row.headersText.trim() !== '') {
+              const parsedHeaders = JSON.parse(row.headersText)
+              if (!isPlainObject(parsedHeaders)) {
+                throw new Error('Headers must be a JSON object.')
+              }
+              mock.headers = parsedHeaders
+            }
+
+            if (row.queryParamsText.trim() !== '') {
+              const parsedQueryParams = JSON.parse(row.queryParamsText)
+              if (!isPlainObject(parsedQueryParams)) {
+                throw new Error('Query params must be a JSON object.')
+              }
+              mock.query_params = parsedQueryParams
+            }
+
+            if (row.requestType.trim() !== '') {
+              mock.request_type = row.requestType
+            }
+
+            if (row.responseType.trim() !== '') {
+              mock.response_type = row.responseType
+            }
+
+            if (row.responseText.trim() !== '') {
+              mock.response = JSON.parse(row.responseText)
+            }
+
+            return mock
+          },
+          applyDatasetMutation(datasetKey, mutator, options = {}) {
+            const dataset = this.datasets[datasetKey]
+            if (!dataset.data) {
+              return
+            }
+
+            const nextData = deepClone(dataset.data)
+            mutator(nextData)
+
+            const rawText = JSON.stringify(nextData, null, 2)
+            this.commitDataset(datasetKey, nextData, {
+              rawText,
+              snapshotText: dataset.snapshotText,
+              sourceLabel: dataset.sourceLabel,
+              fileHandle: dataset.fileHandle,
+              loadError: dataset.loadError,
+              preserveSettingsDrafts: options.preserveSettingsDrafts === true,
+              preserveFunctionMockDrafts:
+                options.preserveFunctionMockDrafts === true
+            })
+          },
+          addFundingSourceSettingRow() {
+            if (!this.currentFundingSourceName) {
+              return
+            }
+
+            const rows = this.ensureSettingsDraft(
+              this.selectedDatasetKey,
+              this.currentFundingSourceName
+            )
+            rows.push(this.createSettingsDraftRow('', ''))
+          },
+          handleFundingSourceSettingTypeChange(row) {
+            if (row.type === 'boolean') {
+              row.valueText =
+                row.valueText === 'true' || row.valueText === 'false'
+                  ? row.valueText
+                  : 'false'
+            } else if (row.type === 'null') {
+              row.valueText = 'null'
+            } else if (row.type === 'number') {
+              row.valueText = row.valueText.trim() === '' ? '0' : row.valueText
+            } else if (row.type === 'json') {
+              row.valueText =
+                row.valueText.trim() === '' ? '{}' : row.valueText
+            }
+
+            this.persistFundingSourceSettings()
+          },
+          removeFundingSourceSettingRow(rowIndex) {
+            const rows = this.currentFundingSourceSettingRows
+            rows.splice(rowIndex, 1)
+            this.persistFundingSourceSettings()
+          },
+          persistFundingSourceSettings() {
+            if (!this.currentFundingSourceName) {
+              return
+            }
+
+            const rows = this.currentFundingSourceSettingRows
+            const nextSettings = {}
+
+            for (const row of rows) {
+              row.error = ''
+            }
+
+            for (const row of rows) {
+              const key = row.key.trim()
+
+              if (!key) {
+                continue
+              }
+
+              try {
+                nextSettings[key] = this.parseSettingRowValue(row)
+              } catch (error) {
+                row.error =
+                  error instanceof Error ? error.message : String(error)
+                this.notify(
+                  `Could not save setting "${key || 'new setting'}".`,
+                  'negative',
+                  row.error
+                )
+                return
+              }
+            }
+
+            this.applyDatasetMutation(
+              this.selectedDatasetKey,
+              data => {
+                data.funding_sources[this.currentFundingSourceName].settings =
+                  nextSettings
+              },
+              {
+                preserveSettingsDrafts: true
+              }
+            )
+          },
+          addFunctionMockRow() {
+            if (!this.currentFunctionName || !this.currentFundingSourceName) {
+              return
+            }
+
+            const rows = this.ensureFunctionMockDraft(
+              this.selectedDatasetKey,
+              this.currentFunctionName,
+              this.currentFundingSourceName
+            )
+            rows.push(this.createFunctionMockDraftRow('', {}))
+          },
+          removeFunctionMockRow(rowIndex) {
+            const rows = this.currentFunctionMockRows
+            rows.splice(rowIndex, 1)
+            this.persistFunctionMocks()
+          },
+          persistFunctionMocks() {
+            if (!this.currentFunctionName || !this.currentFundingSourceName) {
+              return
+            }
+
+            const rows = this.currentFunctionMockRows
+            const nextMocks = {}
+
+            for (const row of rows) {
+              row.error = ''
+            }
+
+            for (const row of rows) {
+              const name = row.name.trim()
+
+              if (!name) {
+                continue
+              }
+
+              try {
+                nextMocks[name] = this.parseFunctionMockRowBody(row)
+              } catch (error) {
+                row.error =
+                  error instanceof Error ? error.message : String(error)
+                this.notify(
+                  `Could not save mock "${name || 'new mock'}".`,
+                  'negative',
+                  row.error
+                )
+                return
+              }
+            }
+
+            this.applyDatasetMutation(
+              this.selectedDatasetKey,
+              data => {
+                if (!data.functions[this.currentFunctionName].mocks) {
+                  data.functions[this.currentFunctionName].mocks = {}
+                }
+                data.functions[this.currentFunctionName].mocks[
+                  this.currentFundingSourceName
+                ] = nextMocks
+              },
+              {
+                preserveFunctionMockDrafts: true
+              }
+            )
           },
           baseWalletPath(functionName, fundingSourceName) {
             return `functions.${functionName}.mocks.${fundingSourceName}`
@@ -2040,7 +2871,33 @@
               dataset.loadError = options.loadError
             }
 
+            if (options.preserveSettingsDrafts !== true) {
+              this.clearSettingsDrafts(datasetKey)
+            }
+            if (options.preserveFunctionMockDrafts !== true) {
+              this.clearFunctionMockDrafts(datasetKey)
+            }
+
             this.ensureSelections(datasetKey)
+
+            if (
+              datasetKey === this.selectedDatasetKey &&
+              this.selectedFundingSourceByDataset[datasetKey]
+            ) {
+              this.ensureSettingsDraft(
+                datasetKey,
+                this.selectedFundingSourceByDataset[datasetKey],
+                options.preserveSettingsDrafts !== true
+              )
+              if (this.selectedFunctionByDataset[datasetKey]) {
+                this.ensureFunctionMockDraft(
+                  datasetKey,
+                  this.selectedFunctionByDataset[datasetKey],
+                  this.selectedFundingSourceByDataset[datasetKey],
+                  options.preserveFunctionMockDrafts !== true
+                )
+              }
+            }
           },
           validateEditor(datasetKey) {
             const dataset = this.datasets[datasetKey]
@@ -2087,9 +2944,22 @@
           },
           resetEditor(datasetKey) {
             const dataset = this.datasets[datasetKey]
-            dataset.rawText = dataset.snapshotText
-            dataset.parseError = ''
-            this.notify(`Reset editor for ${dataset.fileName}.`, 'info')
+            const parsed = parseJsonText(dataset.snapshotText)
+
+            if (!parsed.ok) {
+              dataset.parseError = `Invalid JSON in ${dataset.fileName}: ${parsed.error}`
+              this.notify(`Could not reset ${dataset.fileName}.`, 'negative')
+              return
+            }
+
+            this.commitDataset(datasetKey, parsed.data, {
+              rawText: dataset.snapshotText,
+              snapshotText: dataset.snapshotText,
+              fileHandle: dataset.fileHandle,
+              sourceLabel: dataset.sourceLabel,
+              loadError: dataset.loadError
+            })
+            this.notify(`Reset ${dataset.fileName} to the last saved snapshot.`, 'info')
           },
           async loadRelative(datasetKey) {
             const dataset = this.datasets[datasetKey]
