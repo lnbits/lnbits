@@ -327,6 +327,18 @@
         color: var(--studio-muted);
       }
 
+      .fixture-select-icon {
+        font-family: 'Material Icons';
+        font-feature-settings: 'liga';
+        font-style: normal;
+        font-weight: 400;
+        font-size: 1.2rem;
+        line-height: 1;
+        color: var(--studio-muted);
+        user-select: none;
+        pointer-events: none;
+      }
+
       .native-input,
       .native-textarea {
         width: 100%;
@@ -485,6 +497,7 @@
       .test-detail-grid {
         display: grid;
         gap: 12px;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
       }
 
       .detail-panel {
@@ -492,6 +505,14 @@
         border-radius: 18px;
         border: 1px solid rgba(25, 54, 61, 0.08);
         background: rgba(255, 255, 255, 0.72);
+      }
+
+      .test-json-editor {
+        min-height: 220px;
+      }
+
+      .test-mock-editor {
+        min-height: 240px;
       }
 
       .detail-label {
@@ -784,6 +805,19 @@
       .test-type-tabs .q-tab {
         flex: 1 1 0;
         min-width: 0;
+        border-radius: 12px;
+        color: var(--q-primary);
+      }
+
+      .test-type-tabs .q-tab--active {
+        background: var(--q-primary);
+        color: white;
+      }
+
+      .test-type-tabs .q-tab--active,
+      .test-type-tabs .q-tab--active .q-tab__label,
+      .test-type-tabs .q-tab--active .text-weight-bold {
+        color: white !important;
       }
 
       .test-type-panels {
@@ -984,6 +1018,7 @@
         }
 
         .mock-source-grid,
+        .test-detail-grid,
         .settings-row-grid,
         .settings-table-grid {
           grid-template-columns: 1fr;
@@ -1153,9 +1188,13 @@
                   dense
                   options-dense
                   behavior="menu"
-                  dropdown-icon="expand_more"
+                  hide-dropdown-icon
                   class="fixture-select"
-                ></q-select>
+                >
+                  <template v-slot:append>
+                    <span class="fixture-select-icon" aria-hidden="true">expand_more</span>
+                  </template>
+                </q-select>
 
                 <div v-if="currentFundingSource" class="q-mt-md">
                   <div v-if="currentFundingSource.skip" class="pill-row q-mb-md">
@@ -1326,9 +1365,13 @@
                   dense
                   options-dense
                   behavior="menu"
-                  dropdown-icon="expand_more"
+                  hide-dropdown-icon
                   class="fixture-select"
-                ></q-select>
+                >
+                  <template v-slot:append>
+                    <span class="fixture-select-icon" aria-hidden="true">expand_more</span>
+                  </template>
+                </q-select>
 
                 <details
                   v-if="currentFunction && currentFundingSource"
@@ -1553,7 +1596,6 @@
               <q-tab-panels
                 v-if="currentSelectedTestTypeGroup"
                 v-model="currentSelectedTestTypeKey"
-                animated
                 class="test-type-panels"
               >
                 <q-tab-panel
@@ -1608,25 +1650,46 @@
 
                       <div class="test-detail-grid">
                         <div class="detail-panel">
-                          <json-panel
-                            label="Call Params"
-                            :value="testEntry.call_params || {}"
-                            max-height="220px"
-                          ></json-panel>
+                          <label
+                            class="field-label"
+                            :for="`test-call-params-${group.key}-${testEntry.index}-${entryIndex}`"
+                          >
+                            Call Params
+                          </label>
+                          <textarea
+                            :id="`test-call-params-${group.key}-${testEntry.index}-${entryIndex}`"
+                            v-model="testEntry.callParamsText"
+                            class="native-textarea test-json-editor"
+                            spellcheck="false"
+                            @blur="persistTestCallParams(testEntry)"
+                          ></textarea>
+                          <div v-if="testEntry.callParamsError" class="settings-error q-mt-sm">
+                            {{ testEntry.callParamsError }}
+                          </div>
                         </div>
                         <div class="detail-panel">
-                          <json-panel
-                            :label="testEntry.expectedLabel"
-                            :value="testEntry.expectedBlock"
-                            empty-label="No expected result block"
-                            max-height="220px"
-                          ></json-panel>
+                          <label
+                            class="field-label"
+                            :for="`test-expected-${group.key}-${testEntry.index}-${entryIndex}`"
+                          >
+                            {{ testEntry.expectedLabel }}
+                          </label>
+                          <textarea
+                            :id="`test-expected-${group.key}-${testEntry.index}-${entryIndex}`"
+                            v-model="testEntry.expectedText"
+                            class="native-textarea test-json-editor"
+                            spellcheck="false"
+                            @blur="persistTestExpected(testEntry)"
+                          ></textarea>
+                          <div v-if="testEntry.expectedError" class="settings-error q-mt-sm">
+                            {{ testEntry.expectedError }}
+                          </div>
                         </div>
                       </div>
 
                       <div class="mock-list q-mt-lg" v-if="testEntry.rawMockSets.length">
                         <div
-                          v-for="mockSet in testEntry.rawMockSets"
+                          v-for="(mockSet, mockSetIndex) in testEntry.rawMockSets"
                           :key="mockSet.path"
                           class="mock-card"
                         >
@@ -1639,12 +1702,22 @@
                             </q-chip>
                           </div>
 
-                          <json-panel
-                            class="q-mt-md"
-                            label="Test Mock Definition"
-                            :value="mockSet.value"
-                            max-height="320px"
-                          ></json-panel>
+                          <label
+                            class="field-label q-mt-md"
+                            :for="`test-mock-definition-${group.key}-${testEntry.index}-${mockSetIndex}`"
+                          >
+                            Test Mock Definition
+                          </label>
+                          <textarea
+                            :id="`test-mock-definition-${group.key}-${testEntry.index}-${mockSetIndex}`"
+                            v-model="mockSet.valueText"
+                            class="native-textarea test-mock-editor"
+                            spellcheck="false"
+                            @blur="persistTestMockDefinition(testEntry, mockSet)"
+                          ></textarea>
+                          <div v-if="mockSet.error" class="settings-error q-mt-sm">
+                            {{ mockSet.error }}
+                          </div>
                         </div>
                       </div>
 
@@ -2347,6 +2420,15 @@
               const rawWalletMockValue = hasMockEntry
                 ? test.raw.mocks[this.currentFundingSource.name]
                 : undefined
+              const hasExpectField = Object.prototype.hasOwnProperty.call(
+                test.raw || {},
+                'expect'
+              )
+              const expectedField = hasExpectField
+                ? 'expect'
+                : Object.prototype.hasOwnProperty.call(test.raw || {}, 'expect_error')
+                  ? 'expect_error'
+                  : 'expect'
               const rawWalletPath = hasMockEntry
                 ? this.testWalletPath(
                     this.currentFunction.name,
@@ -2363,10 +2445,13 @@
                     label: Array.isArray(rawWalletMockValue)
                       ? `Mock set ${index + 1}`
                       : 'Mock set',
+                    setIndex: index,
                     path: Array.isArray(rawWalletMockValue)
                       ? `${rawWalletPath}[${index}]`
                       : rawWalletPath,
-                    value: deepClone(mockSet)
+                    value: deepClone(mockSet),
+                    valueText: safeStringify(mockSet),
+                    error: ''
                   }))
               const variants = testsForFundingSource(
                 this.currentFundingSource,
@@ -2416,8 +2501,20 @@
                 variantCount: variants.length,
                 status,
                 note,
-                expectedBlock: test.expect ?? test.expect_error,
-                expectedLabel: test.expect ? 'Expect' : 'Expect Error'
+                callParamsText: safeStringify(test.call_params || {}),
+                callParamsError: '',
+                expectedField,
+                expectedBlock:
+                  expectedField === 'expect'
+                    ? (test.expect === undefined ? null : test.expect)
+                    : (test.expect_error === undefined ? null : test.expect_error),
+                expectedText: safeStringify(
+                  expectedField === 'expect'
+                    ? (test.expect === undefined ? null : test.expect)
+                    : (test.expect_error === undefined ? null : test.expect_error)
+                ),
+                expectedError: '',
+                expectedLabel: expectedField === 'expect' ? 'Expect' : 'Expect Error'
               }
             })
           },
@@ -2762,6 +2859,130 @@
             }
 
             return mock
+          },
+          parseEditableTestJson(text, label) {
+            const parsed = parseJsonText(text)
+
+            if (!parsed.ok) {
+              throw new Error(`${label}: ${parsed.error}`)
+            }
+
+            return parsed.data
+          },
+          persistTestCallParams(testEntry) {
+            if (!this.currentFunctionName) {
+              return
+            }
+
+            testEntry.callParamsError = ''
+
+            let nextValue
+            try {
+              nextValue = this.parseEditableTestJson(
+                testEntry.callParamsText,
+                'Call Params'
+              )
+            } catch (error) {
+              testEntry.callParamsError =
+                error instanceof Error ? error.message : String(error)
+              this.notify('Could not save call params.', 'negative', testEntry.callParamsError)
+              return
+            }
+
+            this.applyDatasetMutation(
+              this.selectedDatasetKey,
+              data => {
+                data.functions[this.currentFunctionName].tests[testEntry.index].call_params =
+                  nextValue
+              },
+              {
+                preserveSettingsDrafts: true,
+                preserveFunctionMockDrafts: true
+              }
+            )
+          },
+          persistTestExpected(testEntry) {
+            if (!this.currentFunctionName) {
+              return
+            }
+
+            testEntry.expectedError = ''
+
+            let nextValue
+            try {
+              nextValue = this.parseEditableTestJson(
+                testEntry.expectedText,
+                testEntry.expectedLabel
+              )
+            } catch (error) {
+              testEntry.expectedError =
+                error instanceof Error ? error.message : String(error)
+              this.notify(
+                `Could not save ${testEntry.expectedLabel.toLowerCase()}.`,
+                'negative',
+                testEntry.expectedError
+              )
+              return
+            }
+
+            this.applyDatasetMutation(
+              this.selectedDatasetKey,
+              data => {
+                const rawTest = data.functions[this.currentFunctionName].tests[testEntry.index]
+                rawTest[testEntry.expectedField || 'expect'] = nextValue
+              },
+              {
+                preserveSettingsDrafts: true,
+                preserveFunctionMockDrafts: true
+              }
+            )
+          },
+          persistTestMockDefinition(testEntry, mockSet) {
+            if (!this.currentFunctionName || !this.currentFundingSourceName) {
+              return
+            }
+
+            mockSet.error = ''
+
+            let nextValue
+            try {
+              nextValue = this.parseEditableTestJson(
+                mockSet.valueText,
+                'Test Mock Definition'
+              )
+            } catch (error) {
+              mockSet.error =
+                error instanceof Error ? error.message : String(error)
+              this.notify(
+                'Could not save test mock definition.',
+                'negative',
+                mockSet.error
+              )
+              return
+            }
+
+            this.applyDatasetMutation(
+              this.selectedDatasetKey,
+              data => {
+                const rawTest = data.functions[this.currentFunctionName].tests[testEntry.index]
+
+                if (!rawTest.mocks) {
+                  rawTest.mocks = {}
+                }
+
+                const walletMockValue = rawTest.mocks[this.currentFundingSourceName]
+
+                if (Array.isArray(walletMockValue)) {
+                  walletMockValue[mockSet.setIndex] = nextValue
+                } else {
+                  rawTest.mocks[this.currentFundingSourceName] = nextValue
+                }
+              },
+              {
+                preserveSettingsDrafts: true,
+                preserveFunctionMockDrafts: true
+              }
+            )
           },
           applyDatasetMutation(datasetKey, mutator, options = {}) {
             const dataset = this.datasets[datasetKey]
