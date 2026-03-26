@@ -691,14 +691,11 @@
         gap: 12px;
         grid-template-columns:
           minmax(150px, 1fr)
-          minmax(180px, 1.1fr)
-          120px
+          minmax(240px, 1.3fr)
           minmax(220px, 1.2fr)
           minmax(180px, 1fr)
-          120px
-          120px
-          minmax(220px, 1.2fr);
-        align-items: start;
+          minmax(260px, 1.3fr);
+        align-items: stretch;
       }
 
       .function-mocks-header {
@@ -729,6 +726,27 @@
         gap: 8px;
         flex-wrap: wrap;
         margin-top: 10px;
+      }
+
+      .function-mock-cell-stack {
+        display: grid;
+        gap: 12px;
+      }
+
+      .function-mock-subfield {
+        display: grid;
+        gap: 6px;
+      }
+
+      .function-mock-json-cell {
+        display: flex;
+        flex-direction: column;
+        height: 100%;
+      }
+
+      .function-mock-json-cell .native-textarea {
+        flex: 1 1 auto;
+        min-height: 248px;
       }
 
       .function-mocks-note {
@@ -1160,6 +1178,12 @@
                 outline
                 label="Reload Current"
                 @click="loadRelative(currentDataset.key)"
+              ></q-btn>
+              <q-btn
+                color="accent"
+                outline
+                label="Save"
+                @click="saveDataset(currentDataset.key)"
               ></q-btn>
               <q-btn
                 color="accent"
@@ -1776,13 +1800,10 @@
                   <div class="function-mocks-table">
                     <div class="function-mocks-header function-mocks-table-grid">
                       <div class="function-mocks-heading">Mock Name</div>
-                      <div class="function-mocks-heading">URI</div>
                       <div class="function-mocks-heading">Method</div>
                       <div class="function-mocks-heading">Headers JSON</div>
                       <div class="function-mocks-heading">Query Params JSON</div>
-                      <div class="function-mocks-heading">Request Type</div>
-                      <div class="function-mocks-heading">Response Type</div>
-                      <div class="function-mocks-heading">Response JSON</div>
+                      <div class="function-mocks-heading">Response</div>
                     </div>
 
                     <div
@@ -1801,6 +1822,9 @@
                             spellcheck="false"
                             @blur="persistFunctionMocks()"
                           />
+                          <div class="settings-hint q-mt-sm">
+                            Mock Name: Stable mock identifier used inside this function's fixture map.
+                          </div>
                           <div class="function-mock-primary-actions">
                             <q-btn
                               color="negative"
@@ -1811,31 +1835,55 @@
                           </div>
                         </div>
 
-                        <div>
-                          <input
-                            :id="`function-mock-uri-${mockRow.id}`"
-                            v-model="mockRow.uri"
-                            class="native-input"
-                            type="text"
-                            placeholder="/path"
-                            spellcheck="false"
-                            @blur="persistFunctionMocks()"
-                          />
+                        <div class="function-mock-cell-stack">
+                          <div class="function-mock-subfield">
+                            <input
+                              :id="`function-mock-request-type-${mockRow.id}`"
+                              v-model="mockRow.requestType"
+                              class="native-input"
+                              type="text"
+                              placeholder="json"
+                              spellcheck="false"
+                              @blur="persistFunctionMocks()"
+                            />
+                            <div class="settings-hint">
+                              Request Type: Optional request payload format such as
+                              <code>json</code>.
+                            </div>
+                          </div>
+
+                          <div class="function-mock-subfield">
+                            <input
+                              :id="`function-mock-method-${mockRow.id}`"
+                              v-model="mockRow.method"
+                              class="native-input"
+                              type="text"
+                              placeholder="GET"
+                              spellcheck="false"
+                              @blur="persistFunctionMocks()"
+                            />
+                            <div class="settings-hint">
+                              Method: HTTP verb or RPC method name used by this reusable mock.
+                            </div>
+                          </div>
+
+                          <div class="function-mock-subfield">
+                            <input
+                              :id="`function-mock-uri-${mockRow.id}`"
+                              v-model="mockRow.uri"
+                              class="native-input"
+                              type="text"
+                              placeholder="/path"
+                              spellcheck="false"
+                              @blur="persistFunctionMocks()"
+                            />
+                            <div class="settings-hint">
+                              Path: Request path or URI matcher for REST mocks.
+                            </div>
+                          </div>
                         </div>
 
-                        <div>
-                          <input
-                            :id="`function-mock-method-${mockRow.id}`"
-                            v-model="mockRow.method"
-                            class="native-input"
-                            type="text"
-                            placeholder="GET"
-                            spellcheck="false"
-                            @blur="persistFunctionMocks()"
-                          />
-                        </div>
-
-                        <div>
+                        <div class="function-mock-json-cell">
                           <textarea
                             :id="`function-mock-headers-${mockRow.id}`"
                             v-model="mockRow.headersText"
@@ -1844,9 +1892,12 @@
                             spellcheck="false"
                             @blur="persistFunctionMocks()"
                           ></textarea>
+                          <div class="settings-hint q-mt-sm">
+                            Headers JSON: JSON object of request headers that must match.
+                          </div>
                         </div>
 
-                        <div>
+                        <div class="function-mock-json-cell">
                           <textarea
                             :id="`function-mock-query-${mockRow.id}`"
                             v-model="mockRow.queryParamsText"
@@ -1855,41 +1906,44 @@
                             spellcheck="false"
                             @blur="persistFunctionMocks()"
                           ></textarea>
+                          <div class="settings-hint q-mt-sm">
+                            Query Params JSON: JSON object of expected query-string parameters.
+                          </div>
                         </div>
 
-                        <div>
-                          <input
-                            :id="`function-mock-request-type-${mockRow.id}`"
-                            v-model="mockRow.requestType"
-                            class="native-input"
-                            type="text"
-                            placeholder="function"
-                            spellcheck="false"
-                            @blur="persistFunctionMocks()"
-                          />
-                        </div>
+                        <div class="function-mock-cell-stack">
+                          <div class="function-mock-subfield">
+                            <input
+                              :id="`function-mock-response-type-${mockRow.id}`"
+                              v-model="mockRow.responseType"
+                              class="native-input"
+                              type="text"
+                              placeholder="json"
+                              spellcheck="false"
+                              @blur="persistFunctionMocks()"
+                            />
+                            <div class="settings-hint">
+                              Response Type: Optional response mode such as
+                              <code>json</code>,
+                              <code>data</code>,
+                              or
+                              <code>exception</code>.
+                            </div>
+                          </div>
 
-                        <div>
-                          <input
-                            :id="`function-mock-response-type-${mockRow.id}`"
-                            v-model="mockRow.responseType"
-                            class="native-input"
-                            type="text"
-                            placeholder="data"
-                            spellcheck="false"
-                            @blur="persistFunctionMocks()"
-                          />
-                        </div>
-
-                        <div>
-                          <textarea
-                            :id="`function-mock-response-${mockRow.id}`"
-                            v-model="mockRow.responseText"
-                            class="native-textarea"
-                            placeholder='{"field":"value"}'
-                            spellcheck="false"
-                            @blur="persistFunctionMocks()"
-                          ></textarea>
+                          <div class="function-mock-subfield">
+                            <textarea
+                              :id="`function-mock-response-${mockRow.id}`"
+                              v-model="mockRow.responseText"
+                              class="native-textarea"
+                              placeholder='{"field":"value"}'
+                              spellcheck="false"
+                              @blur="persistFunctionMocks()"
+                            ></textarea>
+                            <div class="settings-hint">
+                              Response Body: JSON payload, data object, or exception body returned by the mock.
+                            </div>
+                          </div>
                         </div>
                       </div>
 
