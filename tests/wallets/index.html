@@ -255,41 +255,12 @@
 
       .native-select-wrap {
         position: relative;
-        border: 1px solid rgba(25, 54, 61, 0.14);
-        border-radius: 10px;
-        background:
-          linear-gradient(
-            180deg,
-            rgba(255, 255, 255, 0.98) 0%,
-            rgba(247, 243, 236, 0.94) 100%
-          );
-        box-shadow:
-          inset 0 1px 0 rgba(255, 255, 255, 0.9),
-          0 6px 18px rgba(20, 30, 36, 0.04);
-        overflow: hidden;
-        transition:
-          border-color 0.18s ease,
-          box-shadow 0.18s ease,
-          transform 0.18s ease;
-      }
-
-      .native-select-wrap::before {
-        content: '';
-        position: absolute;
-        top: 6px;
-        right: 6px;
-        bottom: 6px;
-        width: 38px;
-        border-radius: 8px;
-        background: rgba(25, 54, 61, 0.06);
-        border: 1px solid rgba(25, 54, 61, 0.08);
-        pointer-events: none;
       }
 
       .native-select-wrap::after {
-        content: 'unfold_more';
+        content: 'expand_more';
         position: absolute;
-        right: 13px;
+        right: 14px;
         top: 50%;
         transform: translateY(-50%);
         font-family: 'Material Icons';
@@ -300,20 +271,6 @@
         pointer-events: none;
         font-size: 1.2rem;
         line-height: 1;
-      }
-
-      .native-select-wrap:hover {
-        border-color: rgba(25, 54, 61, 0.2);
-        box-shadow:
-          inset 0 1px 0 rgba(255, 255, 255, 0.9),
-          0 10px 24px rgba(20, 30, 36, 0.06);
-      }
-
-      .native-select-wrap:focus-within {
-        border-color: rgba(25, 54, 61, 0.24);
-        box-shadow:
-          0 0 0 3px rgba(25, 54, 61, 0.12),
-          inset 0 1px 0 rgba(255, 255, 255, 0.95);
       }
 
       .native-select-label {
@@ -330,26 +287,44 @@
         width: 100%;
         appearance: none;
         -webkit-appearance: none;
-        -moz-appearance: none;
-        border: 0;
-        border-radius: 0;
-        background: transparent;
-        background-image: none;
+        border: 1px solid rgba(25, 54, 61, 0.14);
+        border-radius: 10px;
+        background: rgba(255, 255, 255, 0.92);
         color: var(--studio-ink);
-        padding: 14px 54px 14px 14px;
+        padding: 14px 42px 14px 14px;
         font: inherit;
         font-size: 0.95rem;
         line-height: 1.35;
-        box-shadow: none;
-        cursor: pointer;
+        box-shadow: inset 0 1px 1px rgba(20, 30, 36, 0.04);
       }
 
       .native-select:focus {
-        outline: none;
+        outline: 2px solid rgba(25, 54, 61, 0.18);
+        border-color: rgba(25, 54, 61, 0.22);
       }
 
-      .native-select::-ms-expand {
-        display: none;
+      .fixture-select .q-field__control {
+        min-height: 50px;
+        border-radius: 10px;
+        background: rgba(255, 255, 255, 0.92);
+      }
+
+      .fixture-select.q-field--outlined .q-field__control::before {
+        border-color: rgba(25, 54, 61, 0.14);
+      }
+
+      .fixture-select.q-field--outlined .q-field__control:hover::before {
+        border-color: rgba(25, 54, 61, 0.22);
+      }
+
+      .fixture-select .q-field__native,
+      .fixture-select .q-field__input,
+      .fixture-select .q-field__marginal {
+        color: var(--studio-ink);
+      }
+
+      .fixture-select .q-field__append {
+        color: var(--studio-muted);
       }
 
       .native-input,
@@ -1110,22 +1085,19 @@
                 <label class="native-select-label" for="funding-source-select">
                   Funding source
                 </label>
-                <div class="native-select-wrap">
-                  <select
-                    id="funding-source-select"
-                    v-model="selectedFundingSourceByDataset[selectedDatasetKey]"
-                    class="native-select"
-                  >
-                    <option disabled value="">Select funding source</option>
-                    <option
-                      v-for="option in fundingSourceOptions"
-                      :key="option.value"
-                      :value="option.value"
-                    >
-                      {{ option.label }}
-                    </option>
-                  </select>
-                </div>
+                <q-select
+                  id="funding-source-select"
+                  v-model="selectedFundingSourceByDataset[selectedDatasetKey]"
+                  :options="fundingSourceOptions"
+                  emit-value
+                  map-options
+                  outlined
+                  dense
+                  options-dense
+                  behavior="menu"
+                  dropdown-icon="expand_more"
+                  class="fixture-select"
+                ></q-select>
 
                 <div v-if="currentFundingSource" class="q-mt-md">
                   <div v-if="currentFundingSource.skip" class="pill-row q-mb-md">
@@ -1286,22 +1258,19 @@
                 <label class="native-select-label" for="function-select">
                   Function
                 </label>
-                <div class="native-select-wrap">
-                  <select
-                    id="function-select"
-                    v-model="selectedFunctionByDataset[selectedDatasetKey]"
-                    class="native-select"
-                  >
-                    <option disabled value="">Select function</option>
-                    <option
-                      v-for="option in functionOptions"
-                      :key="option.value"
-                      :value="option.value"
-                    >
-                      {{ option.label }}
-                    </option>
-                  </select>
-                </div>
+                <q-select
+                  id="function-select"
+                  v-model="selectedFunctionByDataset[selectedDatasetKey]"
+                  :options="functionOptions"
+                  emit-value
+                  map-options
+                  outlined
+                  dense
+                  options-dense
+                  behavior="menu"
+                  dropdown-icon="expand_more"
+                  class="fixture-select"
+                ></q-select>
 
                 <details
                   v-if="currentFunction && currentFundingSource"
