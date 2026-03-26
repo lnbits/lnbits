@@ -22,7 +22,11 @@ async def test_create_invoice(from_wallet):
 
     # we cannot know the preimage of the swap yet
     funding_source = get_funding_source()
-    print("### funding_source.__class__.__name__", funding_source.__class__.__name__)
+    print(
+        "### funding_source.__class__.__name__",
+        is_boltz_wallet,
+        funding_source.__class__.__name__,
+    )
     if not is_boltz_wallet:
         assert payment.preimage
 
@@ -45,7 +49,11 @@ async def test_create_internal_invoice(from_wallet):
 
     # we cannot know the preimage of the swap yet
     funding_source = get_funding_source()
-    print("### funding_source.__class__.__name__", funding_source.__class__.__name__)
+    print(
+        "### funding_source.__class__.__name__",
+        is_boltz_wallet,
+        funding_source.__class__.__name__,
+    )
     if not is_boltz_wallet:
         assert payment.preimage
 
