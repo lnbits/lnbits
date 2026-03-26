@@ -176,7 +176,7 @@
       .workspace-grid {
         display: grid;
         gap: 18px;
-        grid-template-columns: 320px minmax(0, 1fr) 430px;
+        grid-template-columns: 320px minmax(0, 1fr);
         align-items: start;
       }
 
@@ -246,6 +246,51 @@
         font-size: 0.86rem;
         line-height: 1.5;
         word-break: break-word;
+      }
+
+      .native-select-wrap {
+        position: relative;
+      }
+
+      .native-select-wrap::after {
+        content: '▾';
+        position: absolute;
+        right: 14px;
+        top: 50%;
+        transform: translateY(-50%);
+        color: var(--studio-muted);
+        pointer-events: none;
+        font-size: 0.95rem;
+      }
+
+      .native-select-label {
+        display: block;
+        margin-bottom: 8px;
+        color: var(--studio-muted);
+        font-size: 0.74rem;
+        text-transform: uppercase;
+        letter-spacing: 0.12em;
+        font-weight: 700;
+      }
+
+      .native-select {
+        width: 100%;
+        appearance: none;
+        -webkit-appearance: none;
+        border: 1px solid rgba(25, 54, 61, 0.14);
+        border-radius: 18px;
+        background: rgba(255, 255, 255, 0.92);
+        color: var(--studio-ink);
+        padding: 14px 42px 14px 14px;
+        font: inherit;
+        font-size: 0.95rem;
+        line-height: 1.35;
+        box-shadow: inset 0 1px 1px rgba(20, 30, 36, 0.04);
+      }
+
+      .native-select:focus {
+        outline: 2px solid rgba(25, 54, 61, 0.18);
+        border-color: rgba(25, 54, 61, 0.22);
       }
 
       .pill-row {
@@ -405,6 +450,14 @@
         overflow: hidden;
       }
 
+      .test-expander > summary {
+        list-style: none;
+      }
+
+      .test-expander > summary::-webkit-details-marker {
+        display: none;
+      }
+
       .wallet-expanded-header {
         padding: 16px 18px;
         display: flex;
@@ -412,6 +465,47 @@
         align-items: flex-start;
         justify-content: space-between;
         background: rgba(25, 54, 61, 0.05);
+      }
+
+      .test-summary {
+        cursor: pointer;
+        user-select: none;
+      }
+
+      .test-summary:hover {
+        background: rgba(25, 54, 61, 0.08);
+      }
+
+      .test-summary-copy {
+        display: flex;
+        gap: 12px;
+        min-width: 0;
+        align-items: flex-start;
+      }
+
+      .test-summary-arrow {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 32px;
+        height: 32px;
+        border-radius: 999px;
+        background: rgba(25, 54, 61, 0.08);
+        color: var(--studio-muted);
+        font-size: 1rem;
+        flex: 0 0 auto;
+      }
+
+      .test-summary-arrow::before {
+        content: '▸';
+      }
+
+      .test-expander[open] .test-summary-arrow {
+        background: rgba(25, 54, 61, 0.14);
+      }
+
+      .test-expander[open] .test-summary-arrow::before {
+        content: '▾';
       }
 
       .wallet-expanded-title {
@@ -551,11 +645,6 @@
         font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', monospace;
       }
 
-      .editor-card {
-        position: sticky;
-        top: 20px;
-      }
-
       .editor-toolbar {
         display: flex;
         gap: 10px;
@@ -573,7 +662,7 @@
 
       .fixture-editor {
         width: 100%;
-        min-height: 72vh;
+        min-height: 68vh;
         resize: vertical;
         padding: 16px;
         border-radius: 20px;
@@ -608,12 +697,6 @@
       @media (max-width: 1320px) {
         .workspace-grid {
           grid-template-columns: 300px minmax(0, 1fr);
-        }
-
-        .editor-card {
-          position: static;
-          top: auto;
-          grid-column: 1 / -1;
         }
       }
 
@@ -811,271 +894,205 @@
                     size="sm"
                     color="accent"
                     outline
-                    label="Reset Editor"
-                    @click="resetEditor(currentDataset.key)"
+                    label="Open JSON Editor"
+                    @click="editorDialog = true"
                   ></q-btn>
-                </div>
-              </q-card-section>
-            </q-card>
-
-            <q-card flat class="studio-card">
-              <q-card-section>
-                <div class="section-title">
-                  <div>
-                    <h2>Function Explorer</h2>
-                    <div class="section-caption">
-                      Select a wallet interface method, then inspect its raw test cases.
-                    </div>
-                  </div>
-                </div>
-
-                <q-input
-                  v-model.trim="search"
-                  dense
-                  outlined
-                  clearable
-                  placeholder="Search functions, tests, or funding sources"
-                ></q-input>
-
-                <div class="function-list q-mt-md">
-                  <div
-                    v-for="fn in filteredFunctions"
-                    :key="fn.name"
-                    class="function-item"
-                    :class="{ active: fn.name === currentFunctionName }"
-                  >
-                    <button class="list-button" @click="selectFunction(fn.name)">
-                      <div class="list-button-title">{{ fn.name }}</div>
-                      <div class="list-button-subtitle">
-                        {{ fn.tests.length }} raw tests · {{ fn.expandedCount }} generated wallet tests
-                      </div>
-                    </button>
-                  </div>
-                </div>
-
-                <div v-if="!filteredFunctions.length" class="empty-state q-mt-md">
-                  No functions match the current search.
-                </div>
-              </q-card-section>
-            </q-card>
-
-            <q-card flat class="studio-card">
-              <q-card-section>
-                <div class="section-title">
-                  <div>
-                    <h2>Raw Test Cases</h2>
-                    <div class="section-caption">
-                      These are the entries under
-                      <code>functions.{{ currentFunctionName || '...' }}.tests</code>.
-                    </div>
-                  </div>
-                </div>
-
-                <div class="test-list">
-                  <div
-                    v-for="test in filteredTests"
-                    :key="`${currentFunctionName}-${test.index}`"
-                    class="test-item"
-                    :class="{ active: test.index === currentTestIndex }"
-                  >
-                    <button class="list-button" @click="selectTest(test.index)">
-                      <div class="list-button-title">
-                        {{ test.description || `Test ${test.index + 1}` }}
-                      </div>
-                      <div class="list-button-subtitle">
-                        {{ test.readyWalletCount }} wallets with generated variants ·
-                        {{ test.generatedVariants }} generated tests
-                      </div>
-                    </button>
-                  </div>
-                </div>
-
-                <div v-if="!filteredTests.length" class="empty-state q-mt-md">
-                  No raw tests match the current search for this function.
-                </div>
-              </q-card-section>
-            </q-card>
-
-            <q-card flat class="studio-card">
-              <q-card-section>
-                <div class="section-title">
-                  <div>
-                    <h2>Funding Sources</h2>
-                    <div class="section-caption">
-                      Wallet classes and settings configured in the current fixture file.
-                    </div>
-                  </div>
-                </div>
-
-                <div class="wallet-list">
-                  <div
-                    v-for="wallet in currentFundingSources"
-                    :key="wallet.name"
-                    class="wallet-item"
-                  >
-                    <div class="list-button">
-                      <div class="list-button-title">{{ wallet.name }}</div>
-                      <div class="list-button-subtitle">
-                        {{ wallet.wallet_class }}
-                      </div>
-                      <div class="pill-row q-mt-sm">
-                        <q-chip dense size="sm" square color="primary" text-color="white">
-                          {{ Object.keys(wallet.settings || {}).length }} settings
-                        </q-chip>
-                        <q-chip
-                          v-if="wallet.skip"
-                          dense
-                          size="sm"
-                          square
-                          color="warning"
-                          text-color="white"
-                        >
-                          Skipped by wallet config
-                        </q-chip>
-                      </div>
-                    </div>
-                  </div>
                 </div>
               </q-card-section>
             </q-card>
           </section>
 
           <section class="stack">
-            <q-card flat class="studio-card" v-if="currentFunction">
+            <q-card flat class="studio-card">
               <q-card-section>
                 <div class="section-title">
                   <div>
-                    <h2>Function-Level Mock Templates</h2>
+                    <h2>Funding Source</h2>
                     <div class="section-caption">
-                      These are the reusable mock definitions under
-                      <code>functions.{{ currentFunction.name }}.mocks</code>.
+                      Pick one wallet implementation, then inspect the settings and mocks that apply to it.
                     </div>
                   </div>
+                </div>
+
+                <label class="native-select-label" for="funding-source-select">
+                  Funding source
+                </label>
+                <div class="native-select-wrap">
+                  <select
+                    id="funding-source-select"
+                    v-model="selectedFundingSourceByDataset[selectedDatasetKey]"
+                    class="native-select"
+                  >
+                    <option disabled value="">Select funding source</option>
+                    <option
+                      v-for="option in fundingSourceOptions"
+                      :key="option.value"
+                      :value="option.value"
+                    >
+                      {{ option.label }}
+                    </option>
+                  </select>
+                </div>
+
+                <div v-if="currentFundingSource" class="q-mt-md">
+                  <div class="pill-row q-mb-md">
+                    <q-chip dense square color="primary" text-color="white">
+                      {{ currentFundingSource.wallet_class }}
+                    </q-chip>
+                    <q-chip
+                      dense
+                      square
+                      color="grey-8"
+                      text-color="white"
+                    >
+                      funding_sources.{{ currentFundingSource.name }}
+                    </q-chip>
+                    <q-chip
+                      v-if="currentFundingSource.skip"
+                      dense
+                      square
+                      color="warning"
+                      text-color="white"
+                    >
+                      Skipped by wallet config
+                    </q-chip>
+                  </div>
+
+                  <div class="section-caption q-mb-sm">
+                    Settings to configure for the selected funding source.
+                  </div>
+
+                  <div class="summary-grid" v-if="currentFundingSourceSettings.length">
+                    <div
+                      v-for="setting in currentFundingSourceSettings"
+                      :key="`${currentFundingSource.name}-${setting.key}`"
+                      class="summary-item"
+                    >
+                      <div class="summary-item-label">{{ setting.key }}</div>
+                      <div class="summary-item-value">{{ prettyValue(setting.value) }}</div>
+                    </div>
+                  </div>
+
+                  <div v-else class="empty-state">
+                    No settings are defined for this funding source.
+                  </div>
+                </div>
+              </q-card-section>
+            </q-card>
+
+            <q-card flat class="studio-card" v-if="currentFunction && currentFundingSource">
+              <q-card-section>
+                <div class="section-title">
+                  <div>
+                    <h2>Function</h2>
+                    <div class="section-caption">
+                      Choose the wallet interface method to inspect for the selected funding source.
+                    </div>
+                  </div>
+                </div>
+
+                <label class="native-select-label" for="function-select">
+                  Function
+                </label>
+                <div class="native-select-wrap">
+                  <select
+                    id="function-select"
+                    v-model="selectedFunctionByDataset[selectedDatasetKey]"
+                    class="native-select"
+                  >
+                    <option disabled value="">Select function</option>
+                    <option
+                      v-for="option in functionOptions"
+                      :key="option.value"
+                      :value="option.value"
+                    >
+                      {{ option.label }}
+                    </option>
+                  </select>
+                </div>
+
+                <div class="pill-row q-mt-md" v-if="currentFunction && currentFundingSource">
                   <q-chip dense square color="primary" text-color="white">
                     {{ currentFunction.name }}
                   </q-chip>
+                  <q-chip dense square color="secondary" text-color="white">
+                    {{ currentFundingSource.name }}
+                  </q-chip>
+                  <q-chip dense square color="grey-8" text-color="white">
+                    {{ currentFunctionBaseMockPath }}
+                  </q-chip>
                 </div>
 
-                <div class="function-matrix">
+                <div class="section-title q-mt-lg">
+                  <div>
+                    <h2>Function Mocks</h2>
+                    <div class="section-caption">
+                      Reusable mocks for this function and the selected funding source.
+                    </div>
+                  </div>
+                </div>
+
+                <div class="mock-list" v-if="currentFunctionBaseMockEntries.length">
                   <div
-                    v-for="entry in currentFunction.baseMockWallets"
-                    :key="`${currentFunction.name}-${entry.fundingSource.name}`"
-                    class="matrix-card"
+                    v-for="mock in currentFunctionBaseMockEntries"
+                    :key="`${currentFunction.name}-${currentFundingSource.name}-${mock.name}`"
+                    class="mock-card"
                   >
-                    <div class="matrix-card-header">
+                    <div class="mock-card-header">
                       <div>
-                        <h3 class="matrix-card-title">{{ entry.fundingSource.name }}</h3>
-                        <div class="matrix-card-meta">
-                          {{ entry.fundingSource.wallet_class }}
-                        </div>
+                        <div class="mock-card-title">{{ mock.name }}</div>
+                        <div class="mock-card-subtitle">{{ mockSummary(mock) }}</div>
                       </div>
-                      <q-chip
-                        dense
-                        square
-                        :color="entry.mockNames.length ? 'primary' : 'grey-6'"
-                        text-color="white"
-                      >
-                        {{ entry.mockNames.length }} mocks
+                      <q-chip dense square color="primary" text-color="white">
+                        {{ mock.response_type || mock.request_type || 'mock' }}
                       </q-chip>
                     </div>
 
-                    <div class="matrix-list" v-if="entry.mockEntries.length">
-                      <div
-                        v-for="mock in entry.mockEntries"
-                        :key="`${entry.fundingSource.name}-${mock.name}`"
-                        class="matrix-list-row"
-                      >
-                        <div class="matrix-list-title">{{ mock.name }}</div>
-                        <div class="matrix-list-caption">{{ mockSummary(mock) }}</div>
-                      </div>
-                    </div>
-
-                    <div v-else class="empty-state q-mt-md">
-                      No base mock templates for this wallet in this function.
-                    </div>
+                    <json-panel
+                      class="q-mt-md"
+                      label="Mock Definition"
+                      :value="mock"
+                      max-height="320px"
+                    ></json-panel>
                   </div>
+                </div>
+
+                <div v-else class="empty-state q-mt-md">
+                  No function-level mocks are defined for
+                  <code>{{ currentFundingSource.name }}</code>
+                  in
+                  <code>{{ currentFunction.name }}</code>.
                 </div>
               </q-card-section>
             </q-card>
 
-            <q-card flat class="studio-card" v-if="selectedRawTest">
+            <q-card flat class="studio-card" v-if="currentFunction && currentFundingSource">
               <q-card-section>
                 <div class="section-title">
                   <div>
-                    <h2>Selected Raw Test</h2>
+                    <h2>Tests For Selected Function</h2>
                     <div class="section-caption">
-                      Source path:
-                      <code>{{ selectedRawTestPath }}</code>
-                    </div>
-                  </div>
-                  <q-chip dense square color="secondary" text-color="white">
-                    {{ selectedRawTest.description || `Test ${selectedRawTest.index + 1}` }}
-                  </q-chip>
-                </div>
-
-                <div class="pill-row q-mb-md">
-                  <q-chip
-                    v-for="coverage in selectedRawTest.walletCoverage"
-                    :key="`${selectedRawTest.index}-${coverage.fundingSource.name}`"
-                    dense
-                    square
-                    :color="coverageChipColor(coverage)"
-                    text-color="white"
-                  >
-                    {{ coverage.fundingSource.name }} · {{ coverage.variantCount }}
-                  </q-chip>
-                </div>
-
-                <div class="test-detail-grid">
-                  <div class="detail-panel">
-                    <json-panel
-                      label="Call Params"
-                      :value="selectedRawTest.call_params || {}"
-                      max-height="220px"
-                    ></json-panel>
-                  </div>
-                  <div class="detail-panel">
-                    <json-panel
-                      label="Expect"
-                      :value="selectedRawTest.expect"
-                      max-height="220px"
-                    ></json-panel>
-                  </div>
-                  <div class="detail-panel">
-                    <json-panel
-                      label="Expect Error"
-                      :value="selectedRawTest.expect_error"
-                      empty-label="No expect_error block"
-                      max-height="220px"
-                    ></json-panel>
-                  </div>
-                </div>
-              </q-card-section>
-            </q-card>
-
-            <q-card flat class="studio-card" v-if="selectedRawTest">
-              <q-card-section>
-                <div class="section-title">
-                  <div>
-                    <h2>Generated Wallet Tests</h2>
-                    <div class="section-caption">
-                      Expanded using the same wallet-test combination rules as
-                      <code>{{ currentDataset.testFile }}</code>.
+                      Each card shows the raw test case for the selected function, plus the mocks attached to the selected funding source.
                     </div>
                   </div>
                 </div>
 
                 <div class="wallet-expanded-list">
-                  <div
-                    v-for="walletEntry in expandedWalletEntries"
-                    :key="`${currentFunctionName}-${selectedRawTest.index}-${walletEntry.fundingSource.name}`"
-                    class="wallet-expanded-card"
+                  <details
+                    v-for="testEntry in currentFunctionTestsForFundingSource"
+                    :key="`${currentFunction.name}-${currentFundingSource.name}-${testEntry.index}`"
+                    class="wallet-expanded-card test-expander"
                   >
-                    <div class="wallet-expanded-header">
-                      <div>
-                        <h3 class="wallet-expanded-title">{{ walletEntry.fundingSource.name }}</h3>
-                        <div class="wallet-expanded-meta">
-                          {{ walletEntry.fundingSource.wallet_class }}
+                    <summary class="wallet-expanded-header test-summary">
+                      <div class="test-summary-copy">
+                        <span class="test-summary-arrow"></span>
+                        <div>
+                          <h3 class="wallet-expanded-title">
+                            {{ testEntry.description || `Test ${testEntry.index + 1}` }}
+                          </h3>
+                          <div class="wallet-expanded-meta">
+                            functions.{{ currentFunction.name }}.tests[{{ testEntry.index }}]
+                          </div>
                         </div>
                       </div>
 
@@ -1083,231 +1100,203 @@
                         <q-chip
                           dense
                           square
-                          :color="walletEntry.status.color"
+                          :color="testEntry.status.color"
                           text-color="white"
                         >
-                          {{ walletEntry.status.label }}
+                          {{ testEntry.status.label }}
+                        </q-chip>
+                        <q-chip dense square color="secondary" text-color="white">
+                          {{ currentFundingSource.name }}
                         </q-chip>
                         <q-chip dense square color="primary" text-color="white">
-                          {{ walletEntry.variants.length }} variants
+                          {{ testEntry.variantCount }} generated variants
                         </q-chip>
                       </div>
-                    </div>
+                    </summary>
 
                     <div class="wallet-expanded-body">
-                      <div class="pill-row">
-                        <q-chip dense square color="grey-8" text-color="white">
-                          Base path: {{ walletEntry.basePath }}
-                        </q-chip>
-                        <q-chip
-                          v-if="walletEntry.testPath"
-                          dense
-                          square
-                          color="grey-8"
-                          text-color="white"
-                        >
-                          Test path: {{ walletEntry.testPath }}
-                        </q-chip>
+                      <div v-if="testEntry.note" class="empty-state">
+                        {{ testEntry.note }}
                       </div>
 
-                      <div
-                        v-if="walletEntry.note"
-                        class="empty-state"
-                      >
-                        {{ walletEntry.note }}
+                      <div class="test-detail-grid">
+                        <div class="detail-panel">
+                          <json-panel
+                            label="Call Params"
+                            :value="testEntry.call_params || {}"
+                            max-height="220px"
+                          ></json-panel>
+                        </div>
+                        <div class="detail-panel">
+                          <json-panel
+                            :label="testEntry.expectedLabel"
+                            :value="testEntry.expectedBlock"
+                            empty-label="No expected result block"
+                            max-height="220px"
+                          ></json-panel>
+                        </div>
+                        <div class="detail-panel">
+                          <json-panel
+                            label="Wallet Mock Path"
+                            :value="testEntry.rawWalletPath || 'No wallet-specific mock path for this test.'"
+                            max-height="220px"
+                          ></json-panel>
+                        </div>
                       </div>
 
-                      <div v-if="walletEntry.variants.length">
-                        <div
-                          v-for="variant in walletEntry.variants"
-                          :key="variant._meta.variantKey"
-                          class="variant-card"
-                        >
-                          <div class="variant-header">
-                            <div>
-                              <h4 class="variant-title">{{ variantDisplayLabel(variant) }}</h4>
-                              <div class="variant-subtitle">
-                                {{ buildTestId(variant) }}
-                              </div>
-                            </div>
-                            <div class="pill-row">
-                              <q-chip
-                                v-if="variant.skip"
-                                dense
-                                square
-                                color="warning"
-                                text-color="white"
-                              >
-                                Skipped
-                              </q-chip>
-                              <q-chip
-                                dense
-                                square
-                                :color="variant.expect_error ? 'negative' : 'positive'"
-                                text-color="white"
-                              >
-                                {{ variant.expect_error ? 'expect_error' : 'expect' }}
-                              </q-chip>
-                            </div>
+                      <div class="section-title q-mt-lg">
+                        <div>
+                          <h3>Test Mocks</h3>
+                          <div class="section-caption">
+                            Mock entries under the selected funding source for this test.
                           </div>
+                        </div>
+                      </div>
 
-                          <div class="pill-row q-mt-sm">
-                            <q-chip
-                              v-for="mock in variant.mocks"
-                              :key="`${variant._meta.variantKey}-${mock.name}`"
-                              dense
-                              square
-                              color="secondary"
-                              text-color="white"
-                            >
-                              {{ mock.name }}
+                      <div class="mock-list" v-if="testEntry.rawMockSets.length">
+                        <div
+                          v-for="mockSet in testEntry.rawMockSets"
+                          :key="mockSet.path"
+                          class="mock-card"
+                        >
+                          <div class="mock-card-header">
+                            <div>
+                              <div class="mock-card-title">{{ mockSet.label }}</div>
+                              <div class="mock-card-subtitle">{{ mockSet.path }}</div>
+                            </div>
+                            <q-chip dense square color="primary" text-color="white">
+                              {{ Object.keys(mockSet.value || {}).length }} mock names
                             </q-chip>
                           </div>
 
-                          <div class="mock-list" v-if="variant.mocks.length">
-                            <div
-                              v-for="mock in variant.mocks"
-                              :key="`${variant._meta.variantKey}-mock-${mock.name}`"
-                              class="mock-card"
-                            >
-                              <div class="mock-card-header">
-                                <div>
-                                  <div class="mock-card-title">{{ mock.name }}</div>
-                                  <div class="mock-card-subtitle">{{ mockSummary(mock) }}</div>
-                                </div>
-                                <q-chip
-                                  dense
-                                  square
-                                  :color="mock.skip ? 'warning' : 'primary'"
-                                  text-color="white"
-                                >
-                                  {{ mock.response_type || 'n/a' }}
-                                </q-chip>
-                              </div>
-
-                              <div class="mock-source-grid">
-                                <div class="source-chip">
-                                  <div class="source-chip-label">Base Mock Path</div>
-                                  <div class="source-chip-value">
-                                    {{ baseMockPath(currentFunctionName, walletEntry.fundingSource.name, mock.name) }}
-                                  </div>
-                                </div>
-                                <div class="source-chip" v-if="mock._meta">
-                                  <div class="source-chip-label">Test Mock Path</div>
-                                  <div class="source-chip-value">
-                                    {{ testMockPath(currentFunctionName, selectedRawTest.index, walletEntry.fundingSource.name, mock.name, mock._meta.testMockIndex) }}
-                                  </div>
-                                </div>
-                              </div>
-
-                              <json-panel
-                                class="q-mt-md"
-                                label="Merged Mock"
-                                :value="cleanMockForDisplay(mock)"
-                                max-height="360px"
-                              ></json-panel>
-                            </div>
-                          </div>
-
-                          <div v-else class="empty-state q-mt-md">
-                            This variant does not generate any combined mocks.
-                          </div>
+                          <json-panel
+                            class="q-mt-md"
+                            label="Test Mock Definition"
+                            :value="mockSet.value"
+                            max-height="320px"
+                          ></json-panel>
                         </div>
                       </div>
+
+                      <div v-else class="empty-state q-mt-md">
+                        No wallet-specific mock entry is defined for
+                        <code>{{ currentFundingSource.name }}</code>
+                        in this test.
+                      </div>
                     </div>
-                  </div>
+                  </details>
+                </div>
+
+                <div v-if="!currentFunctionTestsForFundingSource.length" class="empty-state">
+                  No tests are defined for this function.
                 </div>
               </q-card-section>
             </q-card>
           </section>
-
-          <aside class="stack">
-            <q-card flat class="studio-card editor-card">
-              <q-card-section>
-                <div class="section-title">
-                  <div>
-                    <h2>Raw JSON Editor</h2>
-                    <div class="section-caption">
-                      Edit the current fixture file directly, then apply or save the changes.
-                    </div>
-                  </div>
-                </div>
-
-                <div class="editor-toolbar">
-                  <div class="editor-status">
-                    <q-chip
-                      dense
-                      square
-                      :color="editorDirty ? 'warning' : 'positive'"
-                      text-color="white"
-                    >
-                      {{ editorDirty ? 'Unsaved editor changes' : 'Editor synced' }}
-                    </q-chip>
-                    <q-chip
-                      dense
-                      square
-                      :color="currentDataset.parseError ? 'negative' : 'primary'"
-                      text-color="white"
-                    >
-                      {{ currentDataset.parseError ? 'JSON error' : 'Valid JSON' }}
-                    </q-chip>
-                  </div>
-
-                  <div class="pill-row">
-                    <q-btn
-                      size="sm"
-                      color="primary"
-                      unelevated
-                      label="Apply"
-                      @click="applyEditor(currentDataset.key)"
-                    ></q-btn>
-                    <q-btn
-                      size="sm"
-                      color="secondary"
-                      outline
-                      label="Format"
-                      @click="formatEditor(currentDataset.key)"
-                    ></q-btn>
-                    <q-btn
-                      size="sm"
-                      color="accent"
-                      outline
-                      label="Save"
-                      @click="saveDataset(currentDataset.key)"
-                    ></q-btn>
-                    <q-btn
-                      size="sm"
-                      color="grey-8"
-                      outline
-                      label="Download"
-                      @click="downloadDataset(currentDataset.key)"
-                    ></q-btn>
-                  </div>
-                </div>
-
-                <q-banner
-                  v-if="currentDataset.parseError"
-                  dense
-                  rounded
-                  inline-actions
-                  class="bg-red-1 text-red-10 q-mb-md"
-                >
-                  {{ currentDataset.parseError }}
-                </q-banner>
-
-                <textarea
-                  v-model="datasets[selectedDatasetKey].rawText"
-                  class="fixture-editor"
-                  spellcheck="false"
-                  autocapitalize="off"
-                  autocomplete="off"
-                  autocorrect="off"
-                ></textarea>
-              </q-card-section>
-            </q-card>
-          </aside>
         </main>
       </div>
+
+      <q-dialog v-model="editorDialog" maximized>
+        <q-card>
+          <q-card-section class="row items-start justify-between q-pa-lg">
+            <div>
+              <h2 class="q-my-none">Raw JSON Editor</h2>
+              <div class="section-caption">
+                Edit the current fixture file directly, then apply, save, or download the changes.
+              </div>
+            </div>
+
+            <q-btn
+              flat
+              color="primary"
+              label="Close"
+              v-close-popup
+            ></q-btn>
+          </q-card-section>
+
+          <q-separator></q-separator>
+
+          <q-card-section class="q-pa-lg">
+            <div class="editor-toolbar">
+              <div class="editor-status">
+                <q-chip
+                  dense
+                  square
+                  :color="editorDirty ? 'warning' : 'positive'"
+                  text-color="white"
+                >
+                  {{ editorDirty ? 'Unsaved editor changes' : 'Editor synced' }}
+                </q-chip>
+                <q-chip
+                  dense
+                  square
+                  :color="currentDataset.parseError ? 'negative' : 'primary'"
+                  text-color="white"
+                >
+                  {{ currentDataset.parseError ? 'JSON error' : 'Valid JSON' }}
+                </q-chip>
+              </div>
+
+              <div class="pill-row">
+                <q-btn
+                  size="sm"
+                  color="primary"
+                  unelevated
+                  label="Apply"
+                  @click="applyEditor(currentDataset.key)"
+                ></q-btn>
+                <q-btn
+                  size="sm"
+                  color="secondary"
+                  outline
+                  label="Format"
+                  @click="formatEditor(currentDataset.key)"
+                ></q-btn>
+                <q-btn
+                  size="sm"
+                  color="accent"
+                  outline
+                  label="Reset"
+                  @click="resetEditor(currentDataset.key)"
+                ></q-btn>
+                <q-btn
+                  size="sm"
+                  color="accent"
+                  outline
+                  label="Save"
+                  @click="saveDataset(currentDataset.key)"
+                ></q-btn>
+                <q-btn
+                  size="sm"
+                  color="grey-8"
+                  outline
+                  label="Download"
+                  @click="downloadDataset(currentDataset.key)"
+                ></q-btn>
+              </div>
+            </div>
+
+            <q-banner
+              v-if="currentDataset.parseError"
+              dense
+              rounded
+              inline-actions
+              class="bg-red-1 text-red-10 q-mb-md"
+            >
+              {{ currentDataset.parseError }}
+            </q-banner>
+
+            <textarea
+              v-model="datasets[selectedDatasetKey].rawText"
+              class="fixture-editor"
+              spellcheck="false"
+              autocapitalize="off"
+              autocomplete="off"
+              autocorrect="off"
+            ></textarea>
+          </q-card-section>
+        </q-card>
+      </q-dialog>
 
       <input
         ref="bulkInput"
@@ -1419,10 +1408,6 @@
             error: error instanceof Error ? error.message : String(error)
           }
         }
-      }
-
-      function buildTestId(test) {
-        return `${test.funding_source.name}.${test.function}(${test.description})`
       }
 
       function combineMocks(mockName, fsMock, testMock, testMockIndex) {
@@ -1726,21 +1711,21 @@
         data() {
           const datasets = {}
           const selectedFunctionByDataset = {}
-          const selectedTestIndexByDataset = {}
+          const selectedFundingSourceByDataset = {}
 
           DATASET_DEFS.forEach(def => {
             datasets[def.key] = createDatasetState(def)
             selectedFunctionByDataset[def.key] = ''
-            selectedTestIndexByDataset[def.key] = 0
+            selectedFundingSourceByDataset[def.key] = ''
           })
 
           return {
             datasetDefs: DATASET_DEFS,
             datasets,
+            editorDialog: false,
             selectedDatasetKey: 'rest',
             selectedFunctionByDataset,
-            selectedTestIndexByDataset,
-            search: ''
+            selectedFundingSourceByDataset
           }
         },
         computed: {
@@ -1749,6 +1734,41 @@
           },
           currentFundingSources() {
             return this.currentDataset.analysis?.fundingSources || []
+          },
+          fundingSourceOptions() {
+            return this.currentFundingSources.map(fs => ({
+              label: `${fs.name} · ${fs.wallet_class}`,
+              value: fs.name
+            }))
+          },
+          currentFundingSourceName() {
+            return this.selectedFundingSourceByDataset[this.selectedDatasetKey] || ''
+          },
+          currentFundingSource() {
+            return (
+              this.currentFundingSources.find(
+                fs => fs.name === this.currentFundingSourceName
+              ) || null
+            )
+          },
+          currentFundingSourceSettings() {
+            if (!this.currentFundingSource?.settings) {
+              return []
+            }
+
+            return Object.entries(this.currentFundingSource.settings).map(
+              ([key, value]) => ({
+                key,
+                value
+              })
+            )
+          },
+          functionOptions() {
+            const functions = this.currentDataset.analysis?.functions || []
+            return functions.map(fn => ({
+              label: `${fn.name} · ${fn.tests.length} tests`,
+              value: fn.name
+            }))
           },
           currentFunctionName() {
             return this.selectedFunctionByDataset[this.selectedDatasetKey] || ''
@@ -1760,68 +1780,6 @@
               ) || null
             )
           },
-          currentTestIndex() {
-            return this.selectedTestIndexByDataset[this.selectedDatasetKey] || 0
-          },
-          selectedRawTest() {
-            if (!this.currentFunction) {
-              return null
-            }
-
-            return (
-              this.currentFunction.tests.find(
-                test => test.index === this.currentTestIndex
-              ) || this.currentFunction.tests[0] || null
-            )
-          },
-          filteredFunctions() {
-            const functions = this.currentDataset.analysis?.functions || []
-            const query = this.search.toLowerCase().trim()
-
-            if (!query) {
-              return functions
-            }
-
-            return functions.filter(fn => {
-              const walletNames = fn.baseMockWallets
-                .map(entry => entry.fundingSource.name)
-                .join(' ')
-              const testDescriptions = fn.tests
-                .map(test => test.description)
-                .join(' ')
-
-              return `${fn.name} ${walletNames} ${testDescriptions}`
-                .toLowerCase()
-                .includes(query)
-            })
-          },
-          filteredTests() {
-            if (!this.currentFunction) {
-              return []
-            }
-
-            const query = this.search.toLowerCase().trim()
-
-            if (!query) {
-              return this.currentFunction.tests
-            }
-
-            return this.currentFunction.tests.filter(test => {
-              const walletNames = test.walletCoverage
-                .map(entry => entry.fundingSource.name)
-                .join(' ')
-              return `${test.description} ${walletNames}`
-                .toLowerCase()
-                .includes(query)
-            })
-          },
-          selectedRawTestPath() {
-            if (!this.currentFunction || !this.selectedRawTest) {
-              return ''
-            }
-
-            return `functions.${this.currentFunction.name}.tests[${this.selectedRawTest.index}]`
-          },
           currentDatasetKindHelp() {
             if (this.selectedDatasetKey === 'rest') {
               return 'HTTP funding sources with request and response mocks consumed by pytest_httpserver.'
@@ -1832,74 +1790,121 @@
           editorDirty() {
             return this.currentDataset.rawText !== this.currentDataset.snapshotText
           },
-          expandedWalletEntries() {
-            if (!this.currentFunction || !this.selectedRawTest) {
+          currentFunctionBaseMockEntry() {
+            if (!this.currentFunction || !this.currentFundingSource) {
+              return null
+            }
+
+            return (
+              this.currentFunction.baseMockWallets.find(
+                entry => entry.fundingSource.name === this.currentFundingSource.name
+              ) || null
+            )
+          },
+          currentFunctionBaseMockEntries() {
+            return this.currentFunctionBaseMockEntry?.mockEntries || []
+          },
+          currentFunctionBaseMockPath() {
+            if (!this.currentFunction || !this.currentFundingSource) {
+              return ''
+            }
+
+            return this.baseWalletPath(
+              this.currentFunction.name,
+              this.currentFundingSource.name
+            )
+          },
+          currentFunctionTestsForFundingSource() {
+            if (!this.currentFunction || !this.currentFundingSource) {
               return []
             }
 
-            return this.currentFundingSources.map(fs => {
-              const variants = testsForFundingSource(
-                fs,
-                this.currentFunction.name,
-                this.currentFunction.raw,
-                this.selectedRawTest.raw,
-                this.selectedRawTest.index
+            return this.currentFunction.tests.map(test => {
+              const rawHasMocksBlock = Object.prototype.hasOwnProperty.call(
+                test.raw || {},
+                'mocks'
               )
-              const hasMocksEntry = Boolean(
-                this.selectedRawTest.raw?.mocks &&
+              const hasMockEntry = Boolean(
+                rawHasMocksBlock &&
                   Object.prototype.hasOwnProperty.call(
-                    this.selectedRawTest.raw.mocks,
-                    fs.name
+                    test.raw.mocks || {},
+                    this.currentFundingSource.name
                   )
               )
-              const basePath = this.baseWalletPath(this.currentFunction.name, fs.name)
-              const testPath = hasMocksEntry
+              const rawWalletMockValue = hasMockEntry
+                ? test.raw.mocks[this.currentFundingSource.name]
+                : undefined
+              const rawWalletPath = hasMockEntry
                 ? this.testWalletPath(
                     this.currentFunction.name,
-                    this.selectedRawTest.index,
-                    fs.name
+                    test.index,
+                    this.currentFundingSource.name
                   )
                 : ''
+              const rawMockSets = rawWalletMockValue === undefined
+                ? []
+                : (Array.isArray(rawWalletMockValue)
+                    ? rawWalletMockValue
+                    : [rawWalletMockValue]
+                  ).map((mockSet, index) => ({
+                    label: Array.isArray(rawWalletMockValue)
+                      ? `Mock set ${index + 1}`
+                      : 'Mock set',
+                    path: Array.isArray(rawWalletMockValue)
+                      ? `${rawWalletPath}[${index}]`
+                      : rawWalletPath,
+                    value: deepClone(mockSet)
+                  }))
+              const variants = testsForFundingSource(
+                this.currentFundingSource,
+                this.currentFunction.name,
+                this.currentFunction.raw,
+                test.raw,
+                test.index
+              )
 
-              let note = ''
               let status = {
                 label: 'Ready',
                 color: 'positive'
               }
+              let note = ''
 
-              if (fs.skip) {
+              if (this.currentFundingSource.skip) {
                 status = {
-                  label: 'Skipped wallet',
+                  label: 'Wallet skipped',
                   color: 'warning'
                 }
-                note = 'This funding source is marked with `skip: true` in the fixture file.'
-              } else if (!hasMocksEntry && this.selectedRawTest.raw?.mocks) {
+                note = 'The selected funding source is marked with `skip: true` in the fixture configuration.'
+              } else if (rawHasMocksBlock && !hasMockEntry) {
                 status = {
-                  label: 'Missing mock entry',
+                  label: 'Missing wallet mocks',
                   color: 'negative'
                 }
-                note = 'This raw test omits this funding source under its `mocks` section, so the generated wallet test is skipped.'
-              } else if (!variants.length) {
+                note = 'This test has a `mocks` block, but it does not define one for the selected funding source.'
+              } else if (rawHasMocksBlock && hasMockEntry && !rawMockSets.length) {
                 status = {
-                  label: 'No variants',
+                  label: 'Empty wallet mocks',
                   color: 'grey-7'
                 }
-                note = 'This wallet has a mock entry, but it expands to zero generated variants.'
-              } else if (variants.every(variant => variant.skip)) {
+                note = 'This test defines the selected funding source, but the mock set is empty.'
+              } else if (!rawHasMocksBlock) {
                 status = {
-                  label: 'All skipped',
-                  color: 'warning'
+                  label: 'No test-level mocks',
+                  color: 'grey-7'
                 }
+                note = 'This test case does not include a `mocks` section.'
               }
 
               return {
-                fundingSource: fs,
+                ...test,
+                rawWalletPath,
+                rawMockSets,
                 variants,
-                hasMocksEntry,
-                basePath,
-                testPath,
+                variantCount: variants.length,
+                status,
                 note,
-                status
+                expectedBlock: test.expect ?? test.expect_error,
+                expectedLabel: test.expect ? 'Expect' : 'Expect Error'
               }
             })
           }
@@ -1954,62 +1959,48 @@
 
             return pieces.join(' · ') || 'No mock metadata'
           },
-          cleanMockForDisplay(mock) {
-            const clone = deepClone(mock)
-            delete clone._meta
-            return clone
-          },
-          coverageChipColor(coverage) {
-            if (coverage.fundingSource.skip) {
-              return 'warning'
+          prettyValue(value) {
+            if (typeof value === 'string') {
+              return value
             }
-            if (!coverage.hasMocksEntry) {
-              return 'negative'
-            }
-            if (!coverage.variantCount) {
-              return 'grey-7'
-            }
-            if (!coverage.readyCount) {
-              return 'warning'
-            }
-            return 'positive'
-          },
-          variantDisplayLabel(variant) {
-            const raw = variant._meta?.rawDescription || variant.description || ''
-            const extra = variant._meta?.extraDescription
-
-            if (extra) {
-              return `${raw} / ${extra}`
+            if (
+              typeof value === 'number' ||
+              typeof value === 'boolean' ||
+              value === null
+            ) {
+              return String(value)
             }
 
-            return raw || variant.description || 'Generated variant'
+            return safeStringify(value)
           },
-          buildTestId,
           baseWalletPath(functionName, fundingSourceName) {
             return `functions.${functionName}.mocks.${fundingSourceName}`
           },
           testWalletPath(functionName, testIndex, fundingSourceName) {
             return `functions.${functionName}.tests[${testIndex}].mocks.${fundingSourceName}`
           },
-          baseMockPath(functionName, fundingSourceName, mockName) {
-            return `functions.${functionName}.mocks.${fundingSourceName}.${mockName}`
-          },
-          testMockPath(
-            functionName,
-            testIndex,
-            fundingSourceName,
-            mockName,
-            mockIndex
-          ) {
-            return `functions.${functionName}.tests[${testIndex}].mocks.${fundingSourceName}.${mockName}[${mockIndex}]`
-          },
           ensureSelections(datasetKey) {
             const dataset = this.datasets[datasetKey]
+            const fundingSources = dataset.analysis?.fundingSources || []
             const functions = dataset.analysis?.functions || []
+
+            if (!fundingSources.length) {
+              this.selectedFundingSourceByDataset[datasetKey] = ''
+            } else {
+              const currentFundingSourceName =
+                this.selectedFundingSourceByDataset[datasetKey]
+              const selectedFundingSource = fundingSources.find(
+                fs => fs.name === currentFundingSourceName
+              )
+
+              if (!selectedFundingSource) {
+                this.selectedFundingSourceByDataset[datasetKey] =
+                  fundingSources[0].name
+              }
+            }
 
             if (!functions.length) {
               this.selectedFunctionByDataset[datasetKey] = ''
-              this.selectedTestIndexByDataset[datasetKey] = 0
               return
             }
 
@@ -2021,33 +2012,6 @@
             if (!selectedFunction) {
               this.selectedFunctionByDataset[datasetKey] = functions[0].name
             }
-
-            const nextFunction = functions.find(
-              fn => fn.name === this.selectedFunctionByDataset[datasetKey]
-            )
-            const tests = nextFunction?.tests || []
-            const currentIndex = this.selectedTestIndexByDataset[datasetKey]
-
-            if (!tests.length) {
-              this.selectedTestIndexByDataset[datasetKey] = 0
-              return
-            }
-
-            const matchingTest = tests.find(test => test.index === currentIndex)
-            if (!matchingTest) {
-              this.selectedTestIndexByDataset[datasetKey] = tests[0].index
-            }
-          },
-          selectFunction(functionName) {
-            this.selectedFunctionByDataset[this.selectedDatasetKey] = functionName
-            const fn = this.currentDataset.analysis?.functions.find(
-              item => item.name === functionName
-            )
-            this.selectedTestIndexByDataset[this.selectedDatasetKey] =
-              fn?.tests[0]?.index || 0
-          },
-          selectTest(testIndex) {
-            this.selectedTestIndexByDataset[this.selectedDatasetKey] = testIndex
           },
           commitDataset(datasetKey, parsedData, options = {}) {
             const dataset = this.datasets[datasetKey]
