@@ -620,6 +620,20 @@
         align-items: end;
       }
 
+      .test-mock-item-action-row {
+        display: grid;
+        gap: 12px;
+        grid-template-columns: minmax(0, 1fr) auto;
+        align-items: end;
+      }
+
+      .test-mock-item-pair-row {
+        display: grid;
+        gap: 12px;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        align-items: end;
+      }
+
       .test-mock-item-skip {
         display: flex;
         align-items: center;
@@ -642,12 +656,6 @@
       .test-mock-item-column + .test-mock-item-column {
         padding-left: 16px;
         border-left: 1px solid rgba(25, 54, 61, 0.12);
-      }
-
-      .test-mock-item-toolbar {
-        display: flex;
-        justify-content: flex-end;
-        margin-bottom: 12px;
       }
 
       .test-mock-item-json {
@@ -1224,7 +1232,10 @@
         }
 
         .mock-source-grid,
+        .test-mock-item-action-row,
+        .test-mock-item-pair-row,
         .test-detail-grid,
+        .test-mock-item-top-row,
         .test-mock-item-grid,
         .test-mock-item-columns,
         .settings-row-grid,
@@ -1718,27 +1729,7 @@
                                   </template>
 
                                   <template v-else>
-                                    <div class="test-mock-item-toolbar">
-                                      <q-btn
-                                        color="negative"
-                                        outline
-                                        label="Remove"
-                                        @click="removeTestMockBindingItem(testEntry, mockSet, activeTestMockBinding(mockSet), itemIndex)"
-                                      ></q-btn>
-                                    </div>
-
-                                    <div v-if="testMockItemHasSkip(item)" class="q-mb-md">
-                                      <q-checkbox
-                                        :model-value="testMockItemSkip(item)"
-                                        dense
-                                        color="warning"
-                                        keep-color
-                                        label="Skip this mock definition"
-                                        @update:model-value="setTestMockItemSkip(testEntry, mockSet, item, $event)"
-                                      ></q-checkbox>
-                                    </div>
-
-                                    <div class="test-mock-item-grid">
+                                    <div class="test-mock-item-action-row">
                                       <div>
                                         <label
                                           class="field-label"
@@ -1757,40 +1748,146 @@
                                         />
                                       </div>
 
+                                      <q-btn
+                                        color="negative"
+                                        outline
+                                        label="Remove"
+                                        @click="removeTestMockBindingItem(testEntry, mockSet, activeTestMockBinding(mockSet), itemIndex)"
+                                      ></q-btn>
+                                    </div>
+
+                                    <div class="test-mock-item-pair-row q-mt-md">
                                       <div>
                                         <label
                                           class="field-label"
-                                          :for="`test-mock-item-response-type-${group.key}-${testEntry.index}-${mockSetIndex}-${activeTestMockBindingName(mockSet)}-${itemIndex}`"
+                                          :for="`test-mock-item-rpc-call-name-${group.key}-${testEntry.index}-${mockSetIndex}-${activeTestMockBindingName(mockSet)}-${itemIndex}`"
                                         >
-                                          Response Type
+                                          RPC Call
                                         </label>
                                         <input
-                                          :id="`test-mock-item-response-type-${group.key}-${testEntry.index}-${mockSetIndex}-${activeTestMockBindingName(mockSet)}-${itemIndex}`"
-                                          v-model="item.responseType"
+                                          :id="`test-mock-item-rpc-call-name-${group.key}-${testEntry.index}-${mockSetIndex}-${activeTestMockBindingName(mockSet)}-${itemIndex}`"
+                                          v-model="item.rpcCallName"
                                           class="native-input"
                                           type="text"
-                                          placeholder="json"
+                                          placeholder="some_rpc_call"
                                           spellcheck="false"
                                           @input="persistTestMockSet(testEntry, mockSet, { silent: true })"
                                         />
                                       </div>
 
-                                      <div class="test-mock-item-full">
+                                      <div>
                                         <label
                                           class="field-label"
-                                          :for="`test-mock-item-response-${group.key}-${testEntry.index}-${mockSetIndex}-${activeTestMockBindingName(mockSet)}-${itemIndex}`"
+                                          :for="`test-mock-item-rpc-description-${group.key}-${testEntry.index}-${mockSetIndex}-${activeTestMockBindingName(mockSet)}-${itemIndex}`"
                                         >
-                                          Response
+                                          RPC Call Description
                                         </label>
-                                        <textarea
-                                          :id="`test-mock-item-response-${group.key}-${testEntry.index}-${mockSetIndex}-${activeTestMockBindingName(mockSet)}-${itemIndex}`"
-                                          v-model="item.responseText"
-                                          class="native-textarea test-mock-item-json"
+                                        <input
+                                          :id="`test-mock-item-rpc-description-${group.key}-${testEntry.index}-${mockSetIndex}-${activeTestMockBindingName(mockSet)}-${itemIndex}`"
+                                          v-model="item.rpcDescriptionText"
+                                          class="native-input"
+                                          type="text"
+                                          placeholder="Optional label"
                                           spellcheck="false"
                                           @input="persistTestMockSet(testEntry, mockSet, { silent: true })"
-                                        ></textarea>
-                                        <div v-if="item.responseError" class="settings-error q-mt-sm">
-                                          {{ item.responseError }}
+                                        />
+                                      </div>
+                                    </div>
+
+                                    <div class="test-mock-item-columns q-mt-md">
+                                      <div class="test-mock-item-column">
+                                        <div>
+                                          <label
+                                            class="field-label"
+                                            :for="`test-mock-item-request-type-${group.key}-${testEntry.index}-${mockSetIndex}-${activeTestMockBindingName(mockSet)}-${itemIndex}`"
+                                          >
+                                            Request Type
+                                          </label>
+                                          <q-select
+                                            :id="`test-mock-item-request-type-${group.key}-${testEntry.index}-${mockSetIndex}-${activeTestMockBindingName(mockSet)}-${itemIndex}`"
+                                            v-model="item.requestType"
+                                            :options="rpcTestMockRequestTypeOptions"
+                                            emit-value
+                                            map-options
+                                            outlined
+                                            dense
+                                            options-dense
+                                            behavior="menu"
+                                            hide-dropdown-icon
+                                            class="fixture-select"
+                                            @update:model-value="persistTestMockSet(testEntry, mockSet, { silent: true })"
+                                          >
+                                            <template v-slot:append>
+                                              <span class="fixture-select-icon" aria-hidden="true">expand_more</span>
+                                            </template>
+                                          </q-select>
+                                        </div>
+
+                                        <div>
+                                          <label
+                                            class="field-label"
+                                            :for="`test-mock-item-request-data-${group.key}-${testEntry.index}-${mockSetIndex}-${activeTestMockBindingName(mockSet)}-${itemIndex}`"
+                                          >
+                                            Request Data
+                                          </label>
+                                          <textarea
+                                            :id="`test-mock-item-request-data-${group.key}-${testEntry.index}-${mockSetIndex}-${activeTestMockBindingName(mockSet)}-${itemIndex}`"
+                                            v-model="item.requestBodyText"
+                                            class="native-textarea test-mock-item-json"
+                                            spellcheck="false"
+                                            @input="persistTestMockSet(testEntry, mockSet, { silent: true })"
+                                          ></textarea>
+                                          <div v-if="item.requestBodyError" class="settings-error q-mt-sm">
+                                            {{ item.requestBodyError }}
+                                          </div>
+                                        </div>
+                                      </div>
+
+                                      <div class="test-mock-item-column">
+                                        <div>
+                                          <label
+                                            class="field-label"
+                                            :for="`test-mock-item-rpc-response-type-${group.key}-${testEntry.index}-${mockSetIndex}-${activeTestMockBindingName(mockSet)}-${itemIndex}`"
+                                          >
+                                            Response Type
+                                          </label>
+                                          <q-select
+                                            :id="`test-mock-item-rpc-response-type-${group.key}-${testEntry.index}-${mockSetIndex}-${activeTestMockBindingName(mockSet)}-${itemIndex}`"
+                                            v-model="item.rpcResponseType"
+                                            :options="rpcTestMockResponseTypeOptions"
+                                            emit-value
+                                            map-options
+                                            outlined
+                                            dense
+                                            options-dense
+                                            behavior="menu"
+                                            hide-dropdown-icon
+                                            class="fixture-select"
+                                            @update:model-value="persistTestMockSet(testEntry, mockSet, { silent: true })"
+                                          >
+                                            <template v-slot:append>
+                                              <span class="fixture-select-icon" aria-hidden="true">expand_more</span>
+                                            </template>
+                                          </q-select>
+                                        </div>
+
+                                        <div>
+                                          <label
+                                            class="field-label"
+                                            :for="`test-mock-item-response-${group.key}-${testEntry.index}-${mockSetIndex}-${activeTestMockBindingName(mockSet)}-${itemIndex}`"
+                                          >
+                                            Response
+                                          </label>
+                                          <textarea
+                                            :id="`test-mock-item-response-${group.key}-${testEntry.index}-${mockSetIndex}-${activeTestMockBindingName(mockSet)}-${itemIndex}`"
+                                            v-model="item.responseText"
+                                            class="native-textarea test-mock-item-json"
+                                            spellcheck="false"
+                                            @input="persistTestMockSet(testEntry, mockSet, { silent: true })"
+                                          ></textarea>
+                                          <div v-if="item.responseError" class="settings-error q-mt-sm">
+                                            {{ item.responseError }}
+                                          </div>
                                         </div>
                                       </div>
                                     </div>
@@ -2786,8 +2883,45 @@
         }
       }
 
-      function createTestMockItemDraftState(item = {}) {
+      function createTestMockItemDraftState(item = {}, mode = 'rest') {
         const source = isPlainObject(item) ? item : {}
+
+        if (mode === 'rpc') {
+          const responseMap = isPlainObject(source.response) ? source.response : {}
+          const [rpcCallName, rpcCallValue] = Object.entries(responseMap)[0] || ['', {}]
+          const rpcCall = isPlainObject(rpcCallValue) ? rpcCallValue : {}
+
+          return {
+            descriptionText:
+              typeof source.description === 'string' ? source.description : '',
+            skip: false,
+            hasSkipField: false,
+            requestType:
+              typeof rpcCall.request_type === 'string'
+                ? rpcCall.request_type
+                : 'function',
+            requestBodyText:
+              rpcCall.request_data !== undefined
+                ? safeStringify(rpcCall.request_data)
+                : '',
+            requestBodyError: '',
+            responseType:
+              typeof source.response_type === 'string'
+                ? source.response_type
+                : 'data',
+            responseText:
+              rpcCall.response !== undefined ? safeStringify(rpcCall.response) : '',
+            responseError: '',
+            rpcCallName,
+            rpcDescriptionText:
+              typeof rpcCall.description === 'string' ? rpcCall.description : '',
+            rpcResponseType:
+              typeof rpcCall.response_type === 'string'
+                ? rpcCall.response_type
+                : 'data',
+            error: ''
+          }
+        }
 
         return {
           descriptionText:
@@ -2944,6 +3078,21 @@
               { label: 'async-function', value: 'async-function' },
               { label: 'json', value: 'json' },
               { label: 'exception', value: 'exception' }
+            ]
+          },
+          rpcTestMockRequestTypeOptions() {
+            return [
+              { label: 'function', value: 'function' },
+              { label: 'async-function', value: 'async-function' }
+            ]
+          },
+          rpcTestMockResponseTypeOptions() {
+            return [
+              { label: 'data', value: 'data' },
+              { label: 'json', value: 'json' },
+              { label: 'exception', value: 'exception' },
+              { label: 'function', value: 'function' },
+              { label: '__aiter__', value: '__aiter__' }
             ]
           },
           restTestMockRequestTypeOptions() {
@@ -3148,7 +3297,10 @@
                       .map(([key, value]) => ({
                         selectedMockName: key,
                         items: (Array.isArray(value) ? value : [value]).map(item =>
-                          createTestMockItemDraftState(item)
+                          createTestMockItemDraftState(
+                            item,
+                            this.functionMockModeByName(key)
+                          )
                         )
                       })),
                     error: ''
@@ -3762,6 +3914,68 @@
               fundingSourceName
             )
 
+            if (datasetKey === 'rpc') {
+              const template = {}
+              const sampleValue = isPlainObject(sample) ? sample : {}
+              const functionMockResponse = isPlainObject(functionMockValue?.response)
+                ? functionMockValue.response
+                : {}
+              const sampleResponse = isPlainObject(sampleValue.response)
+                ? sampleValue.response
+                : {}
+              const [sampleCallName, sampleCallValue] =
+                Object.entries(sampleResponse)[0] ||
+                Object.entries(functionMockResponse)[0] ||
+                ['some_rpc_call', {}]
+              const innerSample = isPlainObject(sampleCallValue)
+                ? sampleCallValue
+                : {}
+
+              if (Object.prototype.hasOwnProperty.call(sampleValue, 'description')) {
+                template.description = ''
+              }
+
+              template.response_type =
+                typeof sampleValue.response_type === 'string' &&
+                sampleValue.response_type.trim()
+                  ? sampleValue.response_type
+                  : 'data'
+
+              template.response = {
+                [sampleCallName || 'some_rpc_call']: {
+                  ...(Object.prototype.hasOwnProperty.call(
+                    innerSample,
+                    'description'
+                  )
+                    ? { description: '' }
+                    : {}),
+                  request_type:
+                    typeof innerSample.request_type === 'string' &&
+                    innerSample.request_type.trim()
+                      ? innerSample.request_type
+                      : 'function',
+                  ...(Object.prototype.hasOwnProperty.call(
+                    innerSample,
+                    'request_data'
+                  )
+                    ? { request_data: {} }
+                    : {}),
+                  response_type:
+                    typeof innerSample.response_type === 'string' &&
+                    innerSample.response_type.trim()
+                      ? innerSample.response_type
+                      : 'data',
+                  response: Array.isArray(innerSample.response)
+                    ? []
+                    : innerSample.response === null
+                      ? null
+                      : {}
+                }
+              }
+
+              return template
+            }
+
             if (isPlainObject(sample)) {
               const template = {}
 
@@ -3911,10 +4125,13 @@
               : items === undefined
                 ? []
                 : [items]
+            const mode = this.functionMockModeByName(mockName)
 
             return {
               selectedMockName: mockName,
-              items: normalizedItems.map(item => createTestMockItemDraftState(item))
+              items: normalizedItems.map(item =>
+                createTestMockItemDraftState(item, mode)
+              )
             }
           },
           testMockBindingScopeKey(mockSet) {
@@ -4088,7 +4305,21 @@
             this.persistTestMockSet(testEntry, mockSet)
           },
           addTestMockBindingItem(testEntry, mockSet, binding) {
-            binding.items.push(createTestMockItemDraftState({}))
+            const functionMockValue =
+              this.datasets[this.selectedDatasetKey].data?.functions?.[
+                this.currentFunctionName
+              ]?.mocks?.[this.currentTestFundingSourceName]?.[
+                binding.selectedMockName
+              ] || {}
+            const mode = this.functionMockModeByName(binding.selectedMockName)
+            const template = this.createTestMockItemTemplate(
+              this.selectedDatasetKey,
+              this.currentFunctionName,
+              this.currentTestFundingSourceName,
+              functionMockValue
+            )
+
+            binding.items.push(createTestMockItemDraftState(template, mode))
             this.persistTestMockSet(testEntry, mockSet)
           },
           removeTestMockBindingItem(testEntry, mockSet, binding, itemIndex) {
@@ -4437,11 +4668,14 @@
                 const item = binding.items[itemIndex]
                 const nextItem = {}
 
-                if ((item.descriptionText || '').trim() !== '') {
+                if (
+                  bindingMode === 'rest' &&
+                  (item.descriptionText || '').trim() !== ''
+                ) {
                   nextItem.description = item.descriptionText.trim()
                 }
 
-                if (item.hasSkipField || item.skip === true) {
+                if (bindingMode === 'rest' && (item.hasSkipField || item.skip === true)) {
                   nextItem.skip = Boolean(item.skip)
                 }
 
@@ -4476,11 +4710,17 @@
                   }
                 }
 
-                if ((item.responseType || '').trim() !== '') {
+                if (
+                  bindingMode === 'rest' &&
+                  (item.responseType || '').trim() !== ''
+                ) {
                   nextItem.response_type = item.responseType.trim()
                 }
 
-                if ((item.responseText || '').trim() !== '') {
+                if (
+                  bindingMode === 'rest' &&
+                  (item.responseText || '').trim() !== ''
+                ) {
                   try {
                     nextItem.response = this.parseEditableTestJson(
                       item.responseText,
@@ -4498,6 +4738,101 @@
                       )
                     }
                     return
+                  }
+                }
+
+                if (bindingMode !== 'rest') {
+                  if ((item.descriptionText || '').trim() !== '') {
+                    nextItem.description = item.descriptionText.trim()
+                  }
+
+                  if ((item.responseType || '').trim() !== '') {
+                    nextItem.response_type = item.responseType.trim()
+                  }
+
+                  const rpcCallName = (item.rpcCallName || '').trim()
+                  const rpcCallHasValues = Boolean(
+                    rpcCallName ||
+                      (item.rpcDescriptionText || '').trim() ||
+                      (item.requestType || '').trim() ||
+                      (item.requestBodyText || '').trim() ||
+                      (item.rpcResponseType || '').trim() ||
+                      (item.responseText || '').trim()
+                  )
+
+                  if (!rpcCallName && rpcCallHasValues) {
+                    item.error = 'Enter the RPC call name before editing its mock data.'
+                    mockSet.error = item.error
+                    if (!options.silent) {
+                      this.notify(
+                        'Could not save test mock definition.',
+                        'negative',
+                        mockSet.error
+                      )
+                    }
+                    return
+                  }
+
+                  if (rpcCallName) {
+                    const rpcCall = {}
+
+                    if ((item.rpcDescriptionText || '').trim() !== '') {
+                      rpcCall.description = item.rpcDescriptionText.trim()
+                    }
+
+                    if ((item.requestType || '').trim() !== '') {
+                      rpcCall.request_type = item.requestType.trim()
+                    }
+
+                    if ((item.requestBodyText || '').trim() !== '') {
+                      try {
+                        rpcCall.request_data = this.parseEditableTestJson(
+                          item.requestBodyText,
+                          `${mockName} request_data ${itemIndex + 1}`
+                        )
+                      } catch (error) {
+                        item.requestBodyError =
+                          error instanceof Error ? error.message : String(error)
+                        mockSet.error = item.requestBodyError
+                        if (!options.silent) {
+                          this.notify(
+                            'Could not save test mock definition.',
+                            'negative',
+                            mockSet.error
+                          )
+                        }
+                        return
+                      }
+                    }
+
+                    if ((item.rpcResponseType || '').trim() !== '') {
+                      rpcCall.response_type = item.rpcResponseType.trim()
+                    }
+
+                    if ((item.responseText || '').trim() !== '') {
+                      try {
+                        rpcCall.response = this.parseEditableTestJson(
+                          item.responseText,
+                          `${mockName} response ${itemIndex + 1}`
+                        )
+                      } catch (error) {
+                        item.responseError =
+                          error instanceof Error ? error.message : String(error)
+                        mockSet.error = item.responseError
+                        if (!options.silent) {
+                          this.notify(
+                            'Could not save test mock definition.',
+                            'negative',
+                            mockSet.error
+                          )
+                        }
+                        return
+                      }
+                    }
+
+                    nextItem.response = {
+                      [rpcCallName]: rpcCall
+                    }
                   }
                 }
 
