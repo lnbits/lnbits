@@ -720,13 +720,22 @@
       .function-mocks-table-grid {
         display: grid;
         gap: 12px;
+        align-items: stretch;
+      }
+
+      .function-mocks-table-grid--rest {
         grid-template-columns:
           minmax(150px, 1fr)
           minmax(240px, 1.3fr)
           minmax(220px, 1.2fr)
-          minmax(180px, 1fr)
-          minmax(260px, 1.3fr);
-        align-items: stretch;
+          minmax(180px, 1fr);
+      }
+
+      .function-mocks-table-grid--rpc {
+        grid-template-columns:
+          minmax(150px, 1fr)
+          minmax(280px, 1.35fr)
+          minmax(320px, 1.65fr);
       }
 
       .function-mocks-header {
@@ -1567,7 +1576,7 @@
                                       />
                                     </div>
 
-                                    <div>
+                                    <div v-if="activeTestMockBindingMode(mockSet) === 'rest'">
                                       <label
                                         class="field-label"
                                         :for="`test-mock-item-request-type-${group.key}-${testEntry.index}-${mockSetIndex}-${activeTestMockBindingName(mockSet)}-${itemIndex}`"
@@ -1585,7 +1594,7 @@
                                       />
                                     </div>
 
-                                    <div>
+                                    <div v-if="activeTestMockBindingMode(mockSet) === 'rest'">
                                       <label
                                         class="field-label"
                                         :for="`test-mock-item-request-body-${group.key}-${testEntry.index}-${mockSetIndex}-${activeTestMockBindingName(mockSet)}-${itemIndex}`"
@@ -1918,12 +1927,19 @@
               <div class="settings-editor" v-if="currentFunctionMockRows.length">
                 <div class="function-mocks-table-wrap">
                   <div class="function-mocks-table">
-                    <div class="function-mocks-header function-mocks-table-grid">
+                    <div
+                      class="function-mocks-header function-mocks-table-grid"
+                      :class="`function-mocks-table-grid--${currentFunctionMockEditorMode}`"
+                    >
                       <div class="function-mocks-heading">Mock Name</div>
                       <div class="function-mocks-heading">Method</div>
-                      <div class="function-mocks-heading">Headers JSON</div>
-                      <div class="function-mocks-heading">Query Params JSON</div>
-                      <div class="function-mocks-heading">Response</div>
+                      <template v-if="currentFunctionMockEditorMode === 'rest'">
+                        <div class="function-mocks-heading">Headers JSON</div>
+                        <div class="function-mocks-heading">Query Params JSON</div>
+                      </template>
+                      <template v-else>
+                        <div class="function-mocks-heading">Response</div>
+                      </template>
                     </div>
 
                     <div
@@ -1931,7 +1947,10 @@
                       :key="mockRow.id"
                       class="function-mocks-row"
                     >
-                      <div class="function-mocks-table-grid">
+                      <div
+                        class="function-mocks-table-grid"
+                        :class="`function-mocks-table-grid--${functionMockRowMode(mockRow)}`"
+                      >
                         <div>
                           <input
                             :id="`function-mock-name-${mockRow.id}`"
@@ -2015,68 +2034,74 @@
                           </div>
                         </div>
 
-                        <div class="function-mock-json-cell">
-                          <textarea
-                            :id="`function-mock-headers-${mockRow.id}`"
-                            v-model="mockRow.headersText"
-                            class="native-textarea"
-                            placeholder='{"Authorization":"Bearer ..."}'
-                            spellcheck="false"
-                            @input="persistFunctionMocks({ silent: true })"
-                          ></textarea>
-                          <div class="settings-hint q-mt-sm">
-                            Headers JSON: JSON object of request headers that must match.
-                          </div>
-                        </div>
-
-                        <div class="function-mock-json-cell">
-                          <textarea
-                            :id="`function-mock-query-${mockRow.id}`"
-                            v-model="mockRow.queryParamsText"
-                            class="native-textarea"
-                            placeholder='{"foo":"bar"}'
-                            spellcheck="false"
-                            @input="persistFunctionMocks({ silent: true })"
-                          ></textarea>
-                          <div class="settings-hint q-mt-sm">
-                            Query Params JSON: JSON object of expected query-string parameters.
-                          </div>
-                        </div>
-
-                        <div class="function-mock-cell-stack">
-                          <div class="function-mock-subfield">
-                            <input
-                              :id="`function-mock-response-type-${mockRow.id}`"
-                              v-model="mockRow.responseType"
-                              class="native-input"
-                              type="text"
-                              placeholder="json"
-                              spellcheck="false"
-                              @input="persistFunctionMocks({ silent: true })"
-                            />
-                            <div class="settings-hint">
-                              Response Type: Optional response mode such as
-                              <code>json</code>,
-                              <code>data</code>,
-                              or
-                              <code>exception</code>.
-                            </div>
-                          </div>
-
-                          <div class="function-mock-subfield">
+                        <template v-if="functionMockRowMode(mockRow) === 'rest'">
+                          <div class="function-mock-json-cell">
                             <textarea
-                              :id="`function-mock-response-${mockRow.id}`"
-                              v-model="mockRow.responseText"
+                              :id="`function-mock-headers-${mockRow.id}`"
+                              v-model="mockRow.headersText"
                               class="native-textarea"
-                              placeholder='{"field":"value"}'
+                              placeholder='{"Authorization":"Bearer ..."}'
                               spellcheck="false"
                               @input="persistFunctionMocks({ silent: true })"
                             ></textarea>
-                            <div class="settings-hint">
-                              Response Body: JSON payload, data object, or exception body returned by the mock.
+                            <div class="settings-hint q-mt-sm">
+                              Headers JSON: JSON object of request headers that must match.
                             </div>
                           </div>
-                        </div>
+
+                          <div class="function-mock-json-cell">
+                            <textarea
+                              :id="`function-mock-query-${mockRow.id}`"
+                              v-model="mockRow.queryParamsText"
+                              class="native-textarea"
+                              placeholder='{"foo":"bar"}'
+                              spellcheck="false"
+                              @input="persistFunctionMocks({ silent: true })"
+                            ></textarea>
+                            <div class="settings-hint q-mt-sm">
+                              Query Params JSON: JSON object of expected query-string parameters.
+                            </div>
+                          </div>
+                        </template>
+
+                        <template v-else>
+                          <div class="function-mock-cell-stack">
+                            <div class="function-mock-subfield">
+                              <input
+                                :id="`function-mock-response-type-${mockRow.id}`"
+                                v-model="mockRow.responseType"
+                                class="native-input"
+                                type="text"
+                                placeholder="data"
+                                spellcheck="false"
+                                @input="persistFunctionMocks({ silent: true })"
+                              />
+                              <div class="settings-hint">
+                                Response Type: Optional RPC return mode such as
+                                <code>data</code>,
+                                <code>function</code>,
+                                <code>async-function</code>,
+                                <code>json</code>,
+                                or
+                                <code>exception</code>.
+                              </div>
+                            </div>
+
+                            <div class="function-mock-subfield">
+                              <textarea
+                                :id="`function-mock-response-${mockRow.id}`"
+                                v-model="mockRow.responseText"
+                                class="native-textarea"
+                                placeholder='{"method_name":{"request_type":"function","response_type":"json","response":{}}}'
+                                spellcheck="false"
+                                @input="persistFunctionMocks({ silent: true })"
+                              ></textarea>
+                              <div class="settings-hint">
+                                Response: RPC mock object returned by the patched function.
+                              </div>
+                            </div>
+                          </div>
+                        </template>
                       </div>
 
                       <div v-if="mockRow.error" class="settings-error function-mocks-note">
@@ -2858,6 +2883,13 @@
               this.currentFunctionName,
               this.currentTestFundingSourceName
             )
+          },
+          currentFunctionMockEditorMode() {
+            if (this.currentFunctionMockRows.length) {
+              return this.functionMockRowMode(this.currentFunctionMockRows[0])
+            }
+
+            return this.selectedDatasetKey === 'rpc' ? 'rpc' : 'rest'
           },
           currentFunctionMockNameOptions() {
             const seen = new Set()
@@ -3763,6 +3795,32 @@
               ) || null
             )
           },
+          functionMockRowMode(row) {
+            return row?.requestType === 'function' ? 'rpc' : 'rest'
+          },
+          functionMockModeByName(mockName) {
+            const normalizedName = (mockName || '').trim()
+            if (!normalizedName) {
+              return this.selectedDatasetKey === 'rpc' ? 'rpc' : 'rest'
+            }
+
+            const draftRow = this.currentFunctionMockRows.find(
+              row => (row.name || '').trim() === normalizedName
+            )
+            if (draftRow) {
+              return this.functionMockRowMode(draftRow)
+            }
+
+            const mockValue =
+              this.datasets[this.selectedDatasetKey].data?.functions?.[
+                this.currentFunctionName
+              ]?.mocks?.[this.currentTestFundingSourceName]?.[normalizedName] || {}
+
+            return mockValue?.request_type === 'function' ? 'rpc' : 'rest'
+          },
+          activeTestMockBindingMode(mockSet) {
+            return this.functionMockModeByName(this.activeTestMockBindingName(mockSet))
+          },
           nextAvailableTestMockName(mockSet) {
             const usedNames = new Set(
               (mockSet.bindings || [])
@@ -4004,46 +4062,49 @@
           },
           parseFunctionMockRowBody(row) {
             const mock = {}
+            const mode = this.functionMockRowMode(row)
 
             const name = row.name.trim()
             if (!name) {
               throw new Error('Mock name cannot be empty.')
             }
 
-            if (row.uri.trim() !== '') {
-              mock.uri = row.uri
-            }
-
             if (row.method.trim() !== '') {
               mock.method = row.method
             }
 
-            if (row.headersText.trim() !== '') {
-              const parsedHeaders = JSON.parse(row.headersText)
-              if (!isPlainObject(parsedHeaders)) {
-                throw new Error('Headers must be a JSON object.')
+            if (mode === 'rest') {
+              if (row.uri.trim() !== '') {
+                mock.uri = row.uri
               }
-              mock.headers = parsedHeaders
-            }
 
-            if (row.queryParamsText.trim() !== '') {
-              const parsedQueryParams = JSON.parse(row.queryParamsText)
-              if (!isPlainObject(parsedQueryParams)) {
-                throw new Error('Query params must be a JSON object.')
+              if (row.headersText.trim() !== '') {
+                const parsedHeaders = JSON.parse(row.headersText)
+                if (!isPlainObject(parsedHeaders)) {
+                  throw new Error('Headers must be a JSON object.')
+                }
+                mock.headers = parsedHeaders
               }
-              mock.query_params = parsedQueryParams
-            }
 
-            if (row.requestType.trim() !== '') {
-              mock.request_type = row.requestType
-            }
+              if (row.queryParamsText.trim() !== '') {
+                const parsedQueryParams = JSON.parse(row.queryParamsText)
+                if (!isPlainObject(parsedQueryParams)) {
+                  throw new Error('Query params must be a JSON object.')
+                }
+                mock.query_params = parsedQueryParams
+              }
+            } else {
+              if (row.requestType.trim() !== '') {
+                mock.request_type = row.requestType
+              }
 
-            if (row.responseType.trim() !== '') {
-              mock.response_type = row.responseType
-            }
+              if (row.responseType.trim() !== '') {
+                mock.response_type = row.responseType
+              }
 
-            if (row.responseText.trim() !== '') {
-              mock.response = JSON.parse(row.responseText)
+              if (row.responseText.trim() !== '') {
+                mock.response = JSON.parse(row.responseText)
+              }
             }
 
             return mock
@@ -4060,6 +4121,11 @@
 
             if (row.requestType === 'function') {
               row.uri = ''
+              row.headersText = ''
+              row.queryParamsText = ''
+            } else {
+              row.responseType = ''
+              row.responseText = ''
             }
 
             this.persistFunctionMocks({ silent: true })
@@ -4167,6 +4233,7 @@
 
             for (const binding of mockSet.bindings || []) {
               const mockName = (binding.selectedMockName || '').trim()
+              const bindingMode = this.functionMockModeByName(mockName)
 
               if (!mockName) {
                 if ((binding.items || []).length) {
@@ -4210,11 +4277,17 @@
                   nextItem.skip = Boolean(item.skip)
                 }
 
-                if ((item.requestType || '').trim() !== '') {
+                if (
+                  bindingMode === 'rest' &&
+                  (item.requestType || '').trim() !== ''
+                ) {
                   nextItem.request_type = item.requestType.trim()
                 }
 
-                if ((item.requestBodyText || '').trim() !== '') {
+                if (
+                  bindingMode === 'rest' &&
+                  (item.requestBodyText || '').trim() !== ''
+                ) {
                   try {
                     nextItem.request_body = this.parseEditableTestJson(
                       item.requestBodyText,
