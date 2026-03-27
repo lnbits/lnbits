@@ -613,6 +613,32 @@
         grid-template-columns: repeat(2, minmax(0, 1fr));
       }
 
+      .test-mock-item-top-row {
+        display: grid;
+        gap: 12px;
+        grid-template-columns: minmax(0, 1fr) auto;
+        align-items: end;
+      }
+
+      .test-mock-item-skip {
+        display: flex;
+        align-items: center;
+        min-height: 46px;
+      }
+
+      .test-mock-item-columns {
+        display: grid;
+        gap: 12px;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        align-items: start;
+      }
+
+      .test-mock-item-column {
+        display: grid;
+        gap: 12px;
+        align-content: start;
+      }
+
       .test-mock-item-json {
         min-height: 160px;
       }
@@ -1189,6 +1215,8 @@
         .mock-source-grid,
         .test-detail-grid,
         .test-mock-item-grid,
+        .test-mock-item-top-row,
+        .test-mock-item-columns,
         .settings-row-grid,
         .settings-table-grid {
           grid-template-columns: 1fr;
@@ -1546,110 +1574,206 @@
                                     ></q-btn>
                                   </div>
 
-                                  <div v-if="testMockItemHasSkip(item)" class="q-mb-md">
-                                    <q-checkbox
-                                      :model-value="testMockItemSkip(item)"
-                                      dense
-                                      color="warning"
-                                      keep-color
-                                      label="Skip this mock definition"
-                                      @update:model-value="setTestMockItemSkip(testEntry, mockSet, item, $event)"
-                                    ></q-checkbox>
-                                  </div>
+                                  <template v-if="activeTestMockBindingMode(mockSet) === 'rest'">
+                                    <div class="test-mock-item-top-row">
+                                      <div>
+                                        <label
+                                          class="field-label"
+                                          :for="`test-mock-item-description-${group.key}-${testEntry.index}-${mockSetIndex}-${activeTestMockBindingName(mockSet)}-${itemIndex}`"
+                                        >
+                                          Description
+                                        </label>
+                                        <input
+                                          :id="`test-mock-item-description-${group.key}-${testEntry.index}-${mockSetIndex}-${activeTestMockBindingName(mockSet)}-${itemIndex}`"
+                                          v-model="item.descriptionText"
+                                          class="native-input"
+                                          type="text"
+                                          placeholder="Optional label"
+                                          spellcheck="false"
+                                          @input="persistTestMockSet(testEntry, mockSet, { silent: true })"
+                                        />
+                                      </div>
 
-                                  <div class="test-mock-item-grid">
-                                    <div>
-                                      <label
-                                        class="field-label"
-                                        :for="`test-mock-item-description-${group.key}-${testEntry.index}-${mockSetIndex}-${activeTestMockBindingName(mockSet)}-${itemIndex}`"
-                                      >
-                                        Description
-                                      </label>
-                                      <input
-                                        :id="`test-mock-item-description-${group.key}-${testEntry.index}-${mockSetIndex}-${activeTestMockBindingName(mockSet)}-${itemIndex}`"
-                                        v-model="item.descriptionText"
-                                        class="native-input"
-                                        type="text"
-                                        placeholder="Optional label"
-                                        spellcheck="false"
-                                        @input="persistTestMockSet(testEntry, mockSet, { silent: true })"
-                                      />
-                                    </div>
-
-                                    <div v-if="activeTestMockBindingMode(mockSet) === 'rest'">
-                                      <label
-                                        class="field-label"
-                                        :for="`test-mock-item-request-type-${group.key}-${testEntry.index}-${mockSetIndex}-${activeTestMockBindingName(mockSet)}-${itemIndex}`"
-                                      >
-                                        Request Type
-                                      </label>
-                                      <input
-                                        :id="`test-mock-item-request-type-${group.key}-${testEntry.index}-${mockSetIndex}-${activeTestMockBindingName(mockSet)}-${itemIndex}`"
-                                        v-model="item.requestType"
-                                        class="native-input"
-                                        type="text"
-                                        placeholder="json"
-                                        spellcheck="false"
-                                        @input="persistTestMockSet(testEntry, mockSet, { silent: true })"
-                                      />
-                                    </div>
-
-                                    <div v-if="activeTestMockBindingMode(mockSet) === 'rest'">
-                                      <label
-                                        class="field-label"
-                                        :for="`test-mock-item-request-body-${group.key}-${testEntry.index}-${mockSetIndex}-${activeTestMockBindingName(mockSet)}-${itemIndex}`"
-                                      >
-                                        Request Body
-                                      </label>
-                                      <textarea
-                                        :id="`test-mock-item-request-body-${group.key}-${testEntry.index}-${mockSetIndex}-${activeTestMockBindingName(mockSet)}-${itemIndex}`"
-                                        v-model="item.requestBodyText"
-                                        class="native-textarea test-mock-item-json"
-                                        spellcheck="false"
-                                        @input="persistTestMockSet(testEntry, mockSet, { silent: true })"
-                                      ></textarea>
-                                      <div v-if="item.requestBodyError" class="settings-error q-mt-sm">
-                                        {{ item.requestBodyError }}
+                                      <div class="test-mock-item-skip">
+                                        <q-checkbox
+                                          :model-value="testMockItemSkip(item)"
+                                          dense
+                                          color="warning"
+                                          keep-color
+                                          label="Skip this mock definition"
+                                          @update:model-value="setTestMockItemSkip(testEntry, mockSet, item, $event)"
+                                        ></q-checkbox>
                                       </div>
                                     </div>
 
-                                    <div>
-                                      <label
-                                        class="field-label"
-                                        :for="`test-mock-item-response-type-${group.key}-${testEntry.index}-${mockSetIndex}-${activeTestMockBindingName(mockSet)}-${itemIndex}`"
-                                      >
-                                        Response Type
-                                      </label>
-                                      <input
-                                        :id="`test-mock-item-response-type-${group.key}-${testEntry.index}-${mockSetIndex}-${activeTestMockBindingName(mockSet)}-${itemIndex}`"
-                                        v-model="item.responseType"
-                                        class="native-input"
-                                        type="text"
-                                        placeholder="json"
-                                        spellcheck="false"
-                                        @input="persistTestMockSet(testEntry, mockSet, { silent: true })"
-                                      />
-                                    </div>
+                                    <div class="test-mock-item-columns q-mt-md">
+                                      <div class="test-mock-item-column">
+                                        <div>
+                                          <label
+                                            class="field-label"
+                                            :for="`test-mock-item-request-type-${group.key}-${testEntry.index}-${mockSetIndex}-${activeTestMockBindingName(mockSet)}-${itemIndex}`"
+                                          >
+                                            Request Type
+                                          </label>
+                                          <q-select
+                                            :id="`test-mock-item-request-type-${group.key}-${testEntry.index}-${mockSetIndex}-${activeTestMockBindingName(mockSet)}-${itemIndex}`"
+                                            v-model="item.requestType"
+                                            :options="restTestMockRequestTypeOptions"
+                                            emit-value
+                                            map-options
+                                            outlined
+                                            dense
+                                            options-dense
+                                            behavior="menu"
+                                            hide-dropdown-icon
+                                            class="fixture-select"
+                                            @update:model-value="persistTestMockSet(testEntry, mockSet, { silent: true })"
+                                          >
+                                            <template v-slot:append>
+                                              <span class="fixture-select-icon" aria-hidden="true">expand_more</span>
+                                            </template>
+                                          </q-select>
+                                        </div>
 
-                                    <div class="test-mock-item-full">
-                                      <label
-                                        class="field-label"
-                                        :for="`test-mock-item-response-${group.key}-${testEntry.index}-${mockSetIndex}-${activeTestMockBindingName(mockSet)}-${itemIndex}`"
-                                      >
-                                        Response
-                                      </label>
-                                      <textarea
-                                        :id="`test-mock-item-response-${group.key}-${testEntry.index}-${mockSetIndex}-${activeTestMockBindingName(mockSet)}-${itemIndex}`"
-                                        v-model="item.responseText"
-                                        class="native-textarea test-mock-item-json"
-                                        spellcheck="false"
-                                        @input="persistTestMockSet(testEntry, mockSet, { silent: true })"
-                                      ></textarea>
-                                      <div v-if="item.responseError" class="settings-error q-mt-sm">
-                                        {{ item.responseError }}
+                                        <div>
+                                          <label
+                                            class="field-label"
+                                            :for="`test-mock-item-request-body-${group.key}-${testEntry.index}-${mockSetIndex}-${activeTestMockBindingName(mockSet)}-${itemIndex}`"
+                                          >
+                                            Request Body
+                                          </label>
+                                          <textarea
+                                            :id="`test-mock-item-request-body-${group.key}-${testEntry.index}-${mockSetIndex}-${activeTestMockBindingName(mockSet)}-${itemIndex}`"
+                                            v-model="item.requestBodyText"
+                                            class="native-textarea test-mock-item-json"
+                                            spellcheck="false"
+                                            @input="persistTestMockSet(testEntry, mockSet, { silent: true })"
+                                          ></textarea>
+                                          <div v-if="item.requestBodyError" class="settings-error q-mt-sm">
+                                            {{ item.requestBodyError }}
+                                          </div>
+                                        </div>
+                                      </div>
+
+                                      <div class="test-mock-item-column">
+                                        <div>
+                                          <label
+                                            class="field-label"
+                                            :for="`test-mock-item-response-type-${group.key}-${testEntry.index}-${mockSetIndex}-${activeTestMockBindingName(mockSet)}-${itemIndex}`"
+                                          >
+                                            Response Type
+                                          </label>
+                                          <q-select
+                                            :id="`test-mock-item-response-type-${group.key}-${testEntry.index}-${mockSetIndex}-${activeTestMockBindingName(mockSet)}-${itemIndex}`"
+                                            v-model="item.responseType"
+                                            :options="restTestMockResponseTypeOptions"
+                                            emit-value
+                                            map-options
+                                            outlined
+                                            dense
+                                            options-dense
+                                            behavior="menu"
+                                            hide-dropdown-icon
+                                            class="fixture-select"
+                                            @update:model-value="persistTestMockSet(testEntry, mockSet, { silent: true })"
+                                          >
+                                            <template v-slot:append>
+                                              <span class="fixture-select-icon" aria-hidden="true">expand_more</span>
+                                            </template>
+                                          </q-select>
+                                        </div>
+
+                                        <div>
+                                          <label
+                                            class="field-label"
+                                            :for="`test-mock-item-response-${group.key}-${testEntry.index}-${mockSetIndex}-${activeTestMockBindingName(mockSet)}-${itemIndex}`"
+                                          >
+                                            Response
+                                          </label>
+                                          <textarea
+                                            :id="`test-mock-item-response-${group.key}-${testEntry.index}-${mockSetIndex}-${activeTestMockBindingName(mockSet)}-${itemIndex}`"
+                                            v-model="item.responseText"
+                                            class="native-textarea test-mock-item-json"
+                                            spellcheck="false"
+                                            @input="persistTestMockSet(testEntry, mockSet, { silent: true })"
+                                          ></textarea>
+                                          <div v-if="item.responseError" class="settings-error q-mt-sm">
+                                            {{ item.responseError }}
+                                          </div>
+                                        </div>
                                       </div>
                                     </div>
-                                  </div>
+                                  </template>
+
+                                  <template v-else>
+                                    <div v-if="testMockItemHasSkip(item)" class="q-mb-md">
+                                      <q-checkbox
+                                        :model-value="testMockItemSkip(item)"
+                                        dense
+                                        color="warning"
+                                        keep-color
+                                        label="Skip this mock definition"
+                                        @update:model-value="setTestMockItemSkip(testEntry, mockSet, item, $event)"
+                                      ></q-checkbox>
+                                    </div>
+
+                                    <div class="test-mock-item-grid">
+                                      <div>
+                                        <label
+                                          class="field-label"
+                                          :for="`test-mock-item-description-${group.key}-${testEntry.index}-${mockSetIndex}-${activeTestMockBindingName(mockSet)}-${itemIndex}`"
+                                        >
+                                          Description
+                                        </label>
+                                        <input
+                                          :id="`test-mock-item-description-${group.key}-${testEntry.index}-${mockSetIndex}-${activeTestMockBindingName(mockSet)}-${itemIndex}`"
+                                          v-model="item.descriptionText"
+                                          class="native-input"
+                                          type="text"
+                                          placeholder="Optional label"
+                                          spellcheck="false"
+                                          @input="persistTestMockSet(testEntry, mockSet, { silent: true })"
+                                        />
+                                      </div>
+
+                                      <div>
+                                        <label
+                                          class="field-label"
+                                          :for="`test-mock-item-response-type-${group.key}-${testEntry.index}-${mockSetIndex}-${activeTestMockBindingName(mockSet)}-${itemIndex}`"
+                                        >
+                                          Response Type
+                                        </label>
+                                        <input
+                                          :id="`test-mock-item-response-type-${group.key}-${testEntry.index}-${mockSetIndex}-${activeTestMockBindingName(mockSet)}-${itemIndex}`"
+                                          v-model="item.responseType"
+                                          class="native-input"
+                                          type="text"
+                                          placeholder="json"
+                                          spellcheck="false"
+                                          @input="persistTestMockSet(testEntry, mockSet, { silent: true })"
+                                        />
+                                      </div>
+
+                                      <div class="test-mock-item-full">
+                                        <label
+                                          class="field-label"
+                                          :for="`test-mock-item-response-${group.key}-${testEntry.index}-${mockSetIndex}-${activeTestMockBindingName(mockSet)}-${itemIndex}`"
+                                        >
+                                          Response
+                                        </label>
+                                        <textarea
+                                          :id="`test-mock-item-response-${group.key}-${testEntry.index}-${mockSetIndex}-${activeTestMockBindingName(mockSet)}-${itemIndex}`"
+                                          v-model="item.responseText"
+                                          class="native-textarea test-mock-item-json"
+                                          spellcheck="false"
+                                          @input="persistTestMockSet(testEntry, mockSet, { silent: true })"
+                                        ></textarea>
+                                        <div v-if="item.responseError" class="settings-error q-mt-sm">
+                                          {{ item.responseError }}
+                                        </div>
+                                      </div>
+                                    </div>
+                                  </template>
 
                                   <div v-if="item.error" class="settings-error q-mt-sm">
                                     {{ item.error }}
@@ -2067,15 +2191,24 @@
                         <template v-else>
                           <div class="function-mock-cell-stack">
                             <div class="function-mock-subfield">
-                              <input
+                              <q-select
                                 :id="`function-mock-response-type-${mockRow.id}`"
                                 v-model="mockRow.responseType"
-                                class="native-input"
-                                type="text"
-                                placeholder="data"
-                                spellcheck="false"
-                                @input="persistFunctionMocks({ silent: true })"
-                              />
+                                :options="functionMockRpcResponseTypeOptions"
+                                emit-value
+                                map-options
+                                outlined
+                                dense
+                                options-dense
+                                behavior="menu"
+                                hide-dropdown-icon
+                                class="fixture-select"
+                                @update:model-value="persistFunctionMocks({ silent: true })"
+                              >
+                                <template v-slot:append>
+                                  <span class="fixture-select-icon" aria-hidden="true">expand_more</span>
+                                </template>
+                              </q-select>
                               <div class="settings-hint">
                                 Response Type: Optional RPC return mode such as
                                 <code>data</code>,
@@ -2781,6 +2914,29 @@
             return [
               { label: 'REST', value: '' },
               { label: 'RPC', value: 'function' }
+            ]
+          },
+          functionMockRpcResponseTypeOptions() {
+            return [
+              { label: 'data', value: 'data' },
+              { label: 'function', value: 'function' },
+              { label: 'async-function', value: 'async-function' },
+              { label: 'json', value: 'json' },
+              { label: 'exception', value: 'exception' }
+            ]
+          },
+          restTestMockRequestTypeOptions() {
+            return [
+              { label: 'data', value: 'data' },
+              { label: 'json', value: 'json' }
+            ]
+          },
+          restTestMockResponseTypeOptions() {
+            return [
+              { label: 'json', value: 'json' },
+              { label: 'data', value: 'data' },
+              { label: 'response', value: 'response' },
+              { label: 'stream', value: 'stream' }
             ]
           },
           currentFundingSourceName() {
