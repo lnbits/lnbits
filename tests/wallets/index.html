@@ -958,14 +958,6 @@
         min-width: 0;
       }
 
-      .function-content-header {
-        display: flex;
-        gap: 12px;
-        align-items: flex-start;
-        justify-content: space-between;
-        margin-bottom: 12px;
-      }
-
       .test-type-layout {
         display: grid;
         gap: 18px;
@@ -1330,7 +1322,7 @@
         </header>
 
         <main class="workspace-grid">
-          <q-card flat class="studio-card" v-if="currentFundingSource && currentDataset.analysis">
+          <q-card flat class="studio-card" v-if="currentTestFundingSource && currentDataset.analysis">
             <q-card-section>
               <q-tabs
                 v-if="functionOptions.length"
@@ -1355,16 +1347,6 @@
 
               <div v-if="functionOptions.length">
                 <div class="function-content">
-                  <div class="function-content-header" v-if="currentFunction">
-                    <q-btn
-                      color="primary"
-                      outline
-                      label="Mocks"
-                      :disable="!currentFunction || !currentFundingSource"
-                      @click="functionMocksDialog = true"
-                    ></q-btn>
-                  </div>
-
                   <div v-if="currentFunctionTestTypeGroups.length" class="test-type-layout">
                     <q-tabs
                       v-model="currentSelectedTestTypeKey"
@@ -1426,7 +1408,7 @@
                               {{ testEntry.status.label }}
                             </q-chip>
                             <q-chip dense square color="secondary" text-color="white">
-                              {{ currentFundingSource.name }}
+                              {{ currentTestFundingSource.name }}
                             </q-chip>
                             <q-chip dense square color="primary" text-color="white">
                               {{ testEntry.variantCount }} generated variants
@@ -1474,10 +1456,46 @@
                             <div v-if="testEntry.expectedError" class="settings-error q-mt-sm">
                               {{ testEntry.expectedError }}
                             </div>
+                            </div>
                           </div>
-                        </div>
 
-                        <div class="mock-list q-mt-lg" v-if="testEntry.rawMockSets.length">
+                          <div class="q-mt-lg">
+                            <label
+                              class="field-label"
+                              :for="`test-funding-source-${group.key}-${testEntry.index}-${entryIndex}`"
+                            >
+                              Funding Source
+                            </label>
+                            <div class="picker-action-row">
+                              <q-select
+                                :id="`test-funding-source-${group.key}-${testEntry.index}-${entryIndex}`"
+                                v-model="selectedTestFundingSourceByDataset[selectedDatasetKey]"
+                                :options="fundingSourceOptions"
+                                emit-value
+                                map-options
+                                outlined
+                                dense
+                                options-dense
+                                behavior="menu"
+                                hide-dropdown-icon
+                                class="fixture-select picker-select"
+                              >
+                                <template v-slot:append>
+                                  <span class="fixture-select-icon" aria-hidden="true">expand_more</span>
+                                </template>
+                              </q-select>
+
+                              <q-btn
+                                color="primary"
+                                outline
+                                label="Mocks"
+                                :disable="!currentFunction || !currentTestFundingSource"
+                                @click="functionMocksDialog = true"
+                              ></q-btn>
+                            </div>
+                          </div>
+
+                          <div class="mock-list q-mt-lg" v-if="testEntry.rawMockSets.length">
                           <div
                             v-for="(mockSet, mockSetIndex) in testEntry.rawMockSets"
                             :key="mockSet.path"
@@ -1706,7 +1724,7 @@
 
                         <div v-else class="empty-state q-mt-lg">
                           No wallet-specific mock entry is defined for
-                          <code>{{ currentFundingSource.name }}</code>
+                          <code>{{ currentTestFundingSource.name }}</code>
                           in this test.
                         </div>
                       </div>
@@ -1927,7 +1945,7 @@
 
             <div class="pill-row q-mt-md">
               <q-chip
-                v-if="currentFunction && currentFundingSource"
+                v-if="currentFunction && currentTestFundingSource"
                 dense
                 square
                 color="primary"
@@ -1949,7 +1967,7 @@
           <q-separator></q-separator>
 
           <q-card-section class="q-pa-lg">
-            <div v-if="currentFunction && currentFundingSource">
+            <div v-if="currentFunction && currentTestFundingSource">
               <div class="settings-editor" v-if="currentFunctionMockRows.length">
                 <div class="function-mocks-table-wrap">
                   <div class="function-mocks-table">
@@ -2115,7 +2133,7 @@
 
               <div v-else class="empty-state">
                 No function-level mocks are defined yet for
-                <code>{{ currentFundingSource.name }}</code>
+                <code>{{ currentTestFundingSource.name }}</code>
                 in
                 <code>{{ currentFunction.name }}</code>.
               </div>
@@ -2722,12 +2740,14 @@
           const functionMockDrafts = {}
           const selectedFunctionByDataset = {}
           const selectedFundingSourceByDataset = {}
+          const selectedTestFundingSourceByDataset = {}
           const settingsDrafts = {}
 
           DATASET_DEFS.forEach(def => {
             datasets[def.key] = createDatasetState(def)
             selectedFunctionByDataset[def.key] = ''
             selectedFundingSourceByDataset[def.key] = ''
+            selectedTestFundingSourceByDataset[def.key] = ''
           })
 
           return {
@@ -2741,6 +2761,7 @@
             settingsDraftRowId: 0,
             settingsDrafts,
             selectedDatasetKey: 'rest',
+            selectedTestFundingSourceByDataset,
             selectedTestTypeByScope: {},
             selectedFunctionByDataset,
             selectedFundingSourceByDataset
@@ -2775,6 +2796,18 @@
             return (
               this.currentFundingSources.find(
                 fs => fs.name === this.currentFundingSourceName
+              ) || null
+            )
+          },
+          currentTestFundingSourceName() {
+            return (
+              this.selectedTestFundingSourceByDataset[this.selectedDatasetKey] || ''
+            )
+          },
+          currentTestFundingSource() {
+            return (
+              this.currentFundingSources.find(
+                fs => fs.name === this.currentTestFundingSourceName
               ) || null
             )
           },
@@ -2837,24 +2870,24 @@
             return this.currentDataset.rawText !== this.currentDataset.snapshotText
           },
           currentFunctionBaseMockPath() {
-            if (!this.currentFunction || !this.currentFundingSource) {
+            if (!this.currentFunction || !this.currentTestFundingSource) {
               return ''
             }
 
             return this.baseWalletPath(
               this.currentFunction.name,
-              this.currentFundingSource.name
+              this.currentTestFundingSource.name
             )
           },
           currentFunctionMockRows() {
-            if (!this.currentFunctionName || !this.currentFundingSourceName) {
+            if (!this.currentFunctionName || !this.currentTestFundingSourceName) {
               return []
             }
 
             return this.getFunctionMockDraftRows(
               this.selectedDatasetKey,
               this.currentFunctionName,
-              this.currentFundingSourceName
+              this.currentTestFundingSourceName
             )
           },
           currentFunctionMockNameOptions() {
@@ -2876,7 +2909,7 @@
               }))
           },
           currentFunctionTestsForFundingSource() {
-            if (!this.currentFunction || !this.currentFundingSource) {
+            if (!this.currentFunction || !this.currentTestFundingSource) {
               return []
             }
 
@@ -2889,11 +2922,11 @@
                 rawHasMocksBlock &&
                   Object.prototype.hasOwnProperty.call(
                     test.raw.mocks || {},
-                    this.currentFundingSource.name
+                    this.currentTestFundingSource.name
                   )
               )
               const rawWalletMockValue = hasMockEntry
-                ? test.raw.mocks[this.currentFundingSource.name]
+                ? test.raw.mocks[this.currentTestFundingSource.name]
                 : undefined
               const hasExpectField = Object.prototype.hasOwnProperty.call(
                 test.raw || {},
@@ -2908,7 +2941,7 @@
                 ? this.testWalletPath(
                     this.currentFunction.name,
                     test.index,
-                    this.currentFundingSource.name
+                    this.currentTestFundingSource.name
                   )
                 : ''
               const walletMockValueIsArray = Array.isArray(rawWalletMockValue)
@@ -2943,7 +2976,7 @@
                     error: ''
                   }))
               const variants = testsForFundingSource(
-                this.currentFundingSource,
+                this.currentTestFundingSource,
                 this.currentFunction.name,
                 this.currentFunction.raw,
                 test.raw,
@@ -2956,7 +2989,7 @@
               }
               let note = ''
 
-              if (this.currentFundingSource.skip) {
+              if (this.currentTestFundingSource.skip) {
                 status = {
                   label: 'Wallet skipped',
                   color: 'warning'
@@ -3008,14 +3041,14 @@
             })
           },
           currentTestTypeScopeKey() {
-            if (!this.currentFunctionName || !this.currentFundingSourceName) {
+            if (!this.currentFunctionName || !this.currentTestFundingSourceName) {
               return ''
             }
 
             return [
               this.selectedDatasetKey,
               this.currentFunctionName,
-              this.currentFundingSourceName
+              this.currentTestFundingSourceName
             ].join(':')
           },
           currentFunctionTestTypeGroups() {
@@ -3088,6 +3121,8 @@
           },
           currentFundingSourceName() {
             this.ensureSettingsDraftForCurrent()
+          },
+          currentTestFundingSourceName() {
             this.ensureFunctionMockDraftForCurrent()
           },
           currentFunctionName() {
@@ -3323,14 +3358,14 @@
             )
           },
           ensureFunctionMockDraftForCurrent(force = false) {
-            if (!this.currentFunctionName || !this.currentFundingSourceName) {
+            if (!this.currentFunctionName || !this.currentTestFundingSourceName) {
               return
             }
 
             this.ensureFunctionMockDraft(
               this.selectedDatasetKey,
               this.currentFunctionName,
-              this.currentFundingSourceName,
+              this.currentTestFundingSourceName,
               force
             )
           },
@@ -3504,7 +3539,7 @@
             )
           },
           persistTestMockSet(testEntry, mockSet) {
-            if (!this.currentFunctionName || !this.currentFundingSourceName) {
+            if (!this.currentFunctionName || !this.currentTestFundingSourceName) {
               return
             }
 
@@ -3621,17 +3656,17 @@
                   rawTest.mocks = {}
                 }
 
-                const walletMockValue = rawTest.mocks[this.currentFundingSourceName]
+                const walletMockValue = rawTest.mocks[this.currentTestFundingSourceName]
 
                 if (Array.isArray(walletMockValue) || mockSet.walletMockValueIsArray) {
-                  if (!Array.isArray(rawTest.mocks[this.currentFundingSourceName])) {
-                    rawTest.mocks[this.currentFundingSourceName] = []
+                  if (!Array.isArray(rawTest.mocks[this.currentTestFundingSourceName])) {
+                    rawTest.mocks[this.currentTestFundingSourceName] = []
                   }
 
-                  rawTest.mocks[this.currentFundingSourceName][mockSet.setIndex] =
+                  rawTest.mocks[this.currentTestFundingSourceName][mockSet.setIndex] =
                     nextValue
                 } else {
-                  rawTest.mocks[this.currentFundingSourceName] = nextValue
+                  rawTest.mocks[this.currentTestFundingSourceName] = nextValue
                 }
               },
               {
@@ -3739,14 +3774,14 @@
             )
           },
           addFunctionMockRow() {
-            if (!this.currentFunctionName || !this.currentFundingSourceName) {
+            if (!this.currentFunctionName || !this.currentTestFundingSourceName) {
               return
             }
 
             const rows = this.ensureFunctionMockDraft(
               this.selectedDatasetKey,
               this.currentFunctionName,
-              this.currentFundingSourceName
+              this.currentTestFundingSourceName
             )
             rows.push(this.createFunctionMockDraftRow('', {}))
           },
@@ -3756,7 +3791,7 @@
             this.persistFunctionMocks()
           },
           persistFunctionMocks() {
-            if (!this.currentFunctionName || !this.currentFundingSourceName) {
+            if (!this.currentFunctionName || !this.currentTestFundingSourceName) {
               return
             }
 
@@ -3795,7 +3830,7 @@
                   data.functions[this.currentFunctionName].mocks = {}
                 }
                 data.functions[this.currentFunctionName].mocks[
-                  this.currentFundingSourceName
+                  this.currentTestFundingSourceName
                 ] = nextMocks
               },
               {
@@ -3816,6 +3851,7 @@
 
             if (!fundingSources.length) {
               this.selectedFundingSourceByDataset[datasetKey] = ''
+              this.selectedTestFundingSourceByDataset[datasetKey] = ''
             } else {
               const currentFundingSourceName =
                 this.selectedFundingSourceByDataset[datasetKey]
@@ -3825,6 +3861,17 @@
 
               if (!selectedFundingSource) {
                 this.selectedFundingSourceByDataset[datasetKey] =
+                  fundingSources[0].name
+              }
+
+              const currentTestFundingSourceName =
+                this.selectedTestFundingSourceByDataset[datasetKey]
+              const selectedTestFundingSource = fundingSources.find(
+                fs => fs.name === currentTestFundingSourceName
+              )
+
+              if (!selectedTestFundingSource) {
+                this.selectedTestFundingSourceByDataset[datasetKey] =
                   fundingSources[0].name
               }
             }
@@ -3892,7 +3939,7 @@
                 this.ensureFunctionMockDraft(
                   datasetKey,
                   this.selectedFunctionByDataset[datasetKey],
-                  this.selectedFundingSourceByDataset[datasetKey],
+                  this.selectedTestFundingSourceByDataset[datasetKey],
                   options.preserveFunctionMockDrafts !== true
                 )
               }
