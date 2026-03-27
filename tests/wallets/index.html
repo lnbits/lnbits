@@ -199,6 +199,10 @@
         height: 100%;
       }
 
+      .picker-card--full {
+        grid-column: 1 / -1;
+      }
+
       .picker-card .q-card__section--vert {
         height: 100%;
         padding: 16px 18px;
@@ -590,6 +594,20 @@
         background: rgba(25, 54, 61, 0.03);
       }
 
+      .test-mock-item-grid {
+        display: grid;
+        gap: 12px;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      .test-mock-item-json {
+        min-height: 160px;
+      }
+
+      .test-mock-item-full {
+        grid-column: 1 / -1;
+      }
+
       .detail-label {
         color: var(--studio-muted);
         font-size: 0.74rem;
@@ -888,18 +906,78 @@
         gap: 12px;
       }
 
+      .function-tabs {
+        margin-bottom: 14px;
+        border-radius: 18px;
+        background: rgba(22, 32, 40, 0.04);
+        padding: 6px;
+      }
+
+      .function-tabs .q-tab {
+        flex: 1 1 0;
+        min-width: 0;
+        justify-content: center;
+        min-height: 48px;
+        border-radius: 12px;
+        color: var(--q-primary);
+        text-align: center;
+      }
+
+      .function-tabs .q-tab__content {
+        align-items: center;
+        justify-content: center;
+        width: 100%;
+      }
+
+      .function-tabs .q-tab--active {
+        background: var(--q-primary);
+        color: white;
+      }
+
+      .function-tabs .q-tab--active,
+      .function-tabs .q-tab--active .q-tab__label,
+      .function-tabs .q-tab--active .text-weight-bold,
+      .function-tabs .q-tab--active .text-caption {
+        color: white !important;
+      }
+
+      .function-content {
+        min-width: 0;
+      }
+
+      .function-content-header {
+        display: flex;
+        gap: 12px;
+        align-items: flex-start;
+        justify-content: space-between;
+        margin-bottom: 12px;
+      }
+
+      .test-type-layout {
+        display: grid;
+        gap: 18px;
+        grid-template-columns: minmax(220px, 260px) minmax(0, 1fr);
+        align-items: start;
+      }
+
       .test-type-tabs {
-        margin-top: 8px;
         border-radius: 18px;
         background: rgba(22, 32, 40, 0.04);
         padding: 6px;
       }
 
       .test-type-tabs .q-tab {
-        flex: 1 1 0;
-        min-width: 0;
+        justify-content: flex-start;
+        min-height: 48px;
         border-radius: 12px;
         color: var(--q-primary);
+        text-align: left;
+      }
+
+      .test-type-tabs .q-tab__content {
+        align-items: flex-start;
+        justify-content: center;
+        width: 100%;
       }
 
       .test-type-tabs .q-tab--active {
@@ -914,9 +992,9 @@
       }
 
       .test-type-panels {
-        margin-top: 14px;
         background: transparent;
         box-shadow: none;
+        min-width: 0;
       }
 
       .test-type-panel {
@@ -1110,8 +1188,13 @@
           grid-template-columns: 1fr;
         }
 
+        .test-type-layout {
+          grid-template-columns: 1fr;
+        }
+
         .mock-source-grid,
         .test-detail-grid,
+        .test-mock-item-grid,
         .settings-row-grid,
         .settings-table-grid {
           grid-template-columns: 1fr;
@@ -1226,7 +1309,7 @@
 
         <main class="workspace-grid">
           <section class="primary-row">
-            <q-card flat class="studio-card picker-card">
+            <q-card flat class="studio-card picker-card picker-card--full">
               <q-card-section>
                 <div class="section-title">
                   <div>
@@ -1280,327 +1363,401 @@
               </q-card-section>
             </q-card>
 
-            <q-card flat class="studio-card picker-card" v-if="currentDataset.analysis">
-              <q-card-section>
-                <div class="section-title">
-                  <div>
-                    <h2>Function</h2>
-                    <div class="section-caption">
-                      Choose the wallet interface method to inspect for the selected funding source.
-                    </div>
-                  </div>
-                </div>
-
-                <label class="native-select-label" for="function-select">
-                  Function
-                </label>
-                <div class="picker-action-row">
-                  <q-select
-                    id="function-select"
-                    v-model="selectedFunctionByDataset[selectedDatasetKey]"
-                    :options="functionOptions"
-                    emit-value
-                    map-options
-                    outlined
-                    dense
-                    options-dense
-                    behavior="menu"
-                    hide-dropdown-icon
-                    class="fixture-select picker-select"
-                  >
-                    <template v-slot:append>
-                      <span class="fixture-select-icon" aria-hidden="true">expand_more</span>
-                    </template>
-                  </q-select>
-
-                  <q-btn
-                    color="primary"
-                    outline
-                    label="Mocks"
-                    :disable="!currentFunction || !currentFundingSource"
-                    @click="functionMocksDialog = true"
-                  ></q-btn>
-                </div>
-              </q-card-section>
-            </q-card>
-
           </section>
 
-          <q-card flat class="studio-card" v-if="currentFunction && currentFundingSource">
+          <q-card flat class="studio-card" v-if="currentFundingSource && currentDataset.analysis">
             <q-card-section>
-              <div class="section-title">
-                <div>
-                  <h2>Tests For Selected Function</h2>
-                  <div class="section-caption">
-                    Browse the raw test types for this function, then inspect the call params, expected result, and selected funding source mocks.
-                  </div>
-                </div>
-              </div>
-
               <q-tabs
-                v-if="currentFunctionTestTypeGroups.length"
-                v-model="currentSelectedTestTypeKey"
+                v-if="functionOptions.length"
+                v-model="selectedFunctionByDataset[selectedDatasetKey]"
                 dense
                 active-color="white"
                 indicator-color="transparent"
                 align="justify"
-                class="test-type-tabs text-primary"
+                class="function-tabs text-primary"
               >
                 <q-tab
-                  v-for="group in currentFunctionTestTypeGroups"
-                  :key="group.key"
-                  :name="group.key"
+                  v-for="fn in currentDataset.analysis.functions"
+                  :key="fn.name"
+                  :name="fn.name"
                 >
-                  <div class="text-weight-bold">{{ group.label }}</div>
+                  <div class="text-left">
+                    <div class="text-weight-bold">{{ fn.name }}</div>
+                    <div class="text-caption">{{ fn.tests.length }} tests</div>
+                  </div>
                 </q-tab>
               </q-tabs>
 
-              <q-tab-panels
-                v-if="currentSelectedTestTypeGroup"
-                v-model="currentSelectedTestTypeKey"
-                class="test-type-panels"
-              >
-                <q-tab-panel
-                  v-for="group in currentFunctionTestTypeGroups"
-                  :key="group.key"
-                  :name="group.key"
-                  class="test-type-panel"
-                >
-                  <div class="test-case-stack">
-                    <div
-                      v-for="(testEntry, entryIndex) in group.entries"
-                      :key="`${group.key}-${testEntry.index}-${entryIndex}`"
-                      class="test-case-section"
+              <div v-if="functionOptions.length">
+                <div class="function-content">
+                  <div class="function-content-header" v-if="currentFunction">
+                    <q-btn
+                      color="primary"
+                      outline
+                      label="Mocks"
+                      :disable="!currentFunction || !currentFundingSource"
+                      @click="functionMocksDialog = true"
+                    ></q-btn>
+                  </div>
+
+                  <div v-if="currentFunctionTestTypeGroups.length" class="test-type-layout">
+                    <q-tabs
+                      v-model="currentSelectedTestTypeKey"
+                      vertical
+                      dense
+                      active-color="white"
+                      indicator-color="transparent"
+                      class="test-type-tabs text-primary"
                     >
-                      <div class="test-case-header">
-                        <div v-if="group.entries.length > 1">
-                          <h3
-                            class="test-case-title"
-                          >
-                            {{
-                              `${group.label} ${entryIndex + 1}`
-                            }}
-                          </h3>
-                          <div
-                            class="test-case-subtitle"
-                          >
-                            Raw test {{ testEntry.index + 1 }}
-                          </div>
-                        </div>
+                      <q-tab
+                        v-for="group in currentFunctionTestTypeGroups"
+                        :key="group.key"
+                        :name="group.key"
+                      >
+                        <div class="text-weight-bold">{{ group.label }}</div>
+                      </q-tab>
+                    </q-tabs>
 
-                        <div class="pill-row">
-                          <q-chip
-                            dense
-                            square
-                            :color="testEntry.status.color"
-                            text-color="white"
-                          >
-                            {{ testEntry.status.label }}
-                          </q-chip>
-                          <q-chip dense square color="secondary" text-color="white">
-                            {{ currentFundingSource.name }}
-                          </q-chip>
-                          <q-chip dense square color="primary" text-color="white">
-                            {{ testEntry.variantCount }} generated variants
-                          </q-chip>
-                        </div>
-                      </div>
-
-                      <div v-if="testEntry.note" class="empty-state">
-                        {{ testEntry.note }}
-                      </div>
-
-                      <div class="test-detail-grid">
-                        <div class="detail-panel">
-                          <label
-                            class="field-label"
-                            :for="`test-call-params-${group.key}-${testEntry.index}-${entryIndex}`"
-                          >
-                            Call Params
-                          </label>
-                          <textarea
-                            :id="`test-call-params-${group.key}-${testEntry.index}-${entryIndex}`"
-                            v-model="testEntry.callParamsText"
-                            class="native-textarea test-json-editor"
-                            spellcheck="false"
-                            @blur="persistTestCallParams(testEntry)"
-                          ></textarea>
-                          <div v-if="testEntry.callParamsError" class="settings-error q-mt-sm">
-                            {{ testEntry.callParamsError }}
-                          </div>
-                        </div>
-                        <div class="detail-panel">
-                          <label
-                            class="field-label"
-                            :for="`test-expected-${group.key}-${testEntry.index}-${entryIndex}`"
-                          >
-                            {{ testEntry.expectedLabel }}
-                          </label>
-                          <textarea
-                            :id="`test-expected-${group.key}-${testEntry.index}-${entryIndex}`"
-                            v-model="testEntry.expectedText"
-                            class="native-textarea test-json-editor"
-                            spellcheck="false"
-                            @blur="persistTestExpected(testEntry)"
-                          ></textarea>
-                          <div v-if="testEntry.expectedError" class="settings-error q-mt-sm">
-                            {{ testEntry.expectedError }}
-                          </div>
-                        </div>
-                      </div>
-
-                      <div class="mock-list q-mt-lg" v-if="testEntry.rawMockSets.length">
-                        <div
-                          v-for="(mockSet, mockSetIndex) in testEntry.rawMockSets"
-                          :key="mockSet.path"
-                          class="mock-card"
-                        >
-                          <div class="mock-card-header">
-                            <div>
-                              <div class="mock-card-title">{{ mockSet.label }}</div>
+                    <q-tab-panels
+                      v-if="currentSelectedTestTypeGroup"
+                      v-model="currentSelectedTestTypeKey"
+                      class="test-type-panels"
+                    >
+                      <q-tab-panel
+                        v-for="group in currentFunctionTestTypeGroups"
+                        :key="group.key"
+                        :name="group.key"
+                        class="test-type-panel"
+                      >
+                    <div class="test-case-stack">
+                      <div
+                        v-for="(testEntry, entryIndex) in group.entries"
+                        :key="`${group.key}-${testEntry.index}-${entryIndex}`"
+                        class="test-case-section"
+                      >
+                        <div class="test-case-header">
+                          <div v-if="group.entries.length > 1">
+                            <h3
+                              class="test-case-title"
+                            >
+                              {{
+                                `${group.label} ${entryIndex + 1}`
+                              }}
+                            </h3>
+                            <div
+                              class="test-case-subtitle"
+                            >
+                              Raw test {{ testEntry.index + 1 }}
                             </div>
+                          </div>
+
+                          <div class="pill-row">
+                            <q-chip
+                              dense
+                              square
+                              :color="testEntry.status.color"
+                              text-color="white"
+                            >
+                              {{ testEntry.status.label }}
+                            </q-chip>
+                            <q-chip dense square color="secondary" text-color="white">
+                              {{ currentFundingSource.name }}
+                            </q-chip>
                             <q-chip dense square color="primary" text-color="white">
-                              {{ mockSet.bindings.length }} function mocks
+                              {{ testEntry.variantCount }} generated variants
                             </q-chip>
                           </div>
+                        </div>
 
-                          <div
-                            v-if="mockSet.metaFields.description !== undefined"
-                            class="q-mt-md"
-                          >
+                        <div v-if="testEntry.note" class="empty-state">
+                          {{ testEntry.note }}
+                        </div>
+
+                        <div class="test-detail-grid">
+                          <div class="detail-panel">
                             <label
                               class="field-label"
-                              :for="`test-mock-description-${group.key}-${testEntry.index}-${mockSetIndex}`"
+                              :for="`test-call-params-${group.key}-${testEntry.index}-${entryIndex}`"
                             >
-                              Description
+                              Call Params
                             </label>
-                            <input
-                              :id="`test-mock-description-${group.key}-${testEntry.index}-${mockSetIndex}`"
-                              v-model="mockSet.metaFields.description"
-                              class="native-input"
-                              type="text"
+                            <textarea
+                              :id="`test-call-params-${group.key}-${testEntry.index}-${entryIndex}`"
+                              v-model="testEntry.callParamsText"
+                              class="native-textarea test-json-editor"
                               spellcheck="false"
-                              @blur="persistTestMockSet(testEntry, mockSet)"
-                            />
+                              @blur="persistTestCallParams(testEntry)"
+                            ></textarea>
+                            <div v-if="testEntry.callParamsError" class="settings-error q-mt-sm">
+                              {{ testEntry.callParamsError }}
+                            </div>
                           </div>
+                          <div class="detail-panel">
+                            <label
+                              class="field-label"
+                              :for="`test-expected-${group.key}-${testEntry.index}-${entryIndex}`"
+                            >
+                              {{ testEntry.expectedLabel }}
+                            </label>
+                            <textarea
+                              :id="`test-expected-${group.key}-${testEntry.index}-${entryIndex}`"
+                              v-model="testEntry.expectedText"
+                              class="native-textarea test-json-editor"
+                              spellcheck="false"
+                              @blur="persistTestExpected(testEntry)"
+                            ></textarea>
+                            <div v-if="testEntry.expectedError" class="settings-error q-mt-sm">
+                              {{ testEntry.expectedError }}
+                            </div>
+                          </div>
+                        </div>
 
+                        <div class="mock-list q-mt-lg" v-if="testEntry.rawMockSets.length">
                           <div
-                            v-for="(binding, bindingIndex) in mockSet.bindings"
-                            :key="`${mockSet.path}-binding-${bindingIndex}`"
-                            class="test-mock-binding"
+                            v-for="(mockSet, mockSetIndex) in testEntry.rawMockSets"
+                            :key="mockSet.path"
+                            class="mock-card"
                           >
-                            <div class="test-mock-binding-header">
-                              <div class="test-mock-binding-body">
-                                <label
-                                  class="field-label"
-                                  :for="`test-mock-binding-${group.key}-${testEntry.index}-${mockSetIndex}-${bindingIndex}`"
-                                >
-                                  Function Mock
-                                </label>
-                                <q-select
-                                  :id="`test-mock-binding-${group.key}-${testEntry.index}-${mockSetIndex}-${bindingIndex}`"
-                                  v-model="binding.selectedMockName"
-                                  :options="testMockBindingOptions(binding.selectedMockName)"
-                                  emit-value
-                                  map-options
-                                  outlined
-                                  dense
-                                  options-dense
-                                  behavior="menu"
-                                  hide-dropdown-icon
-                                  class="fixture-select"
-                                  @update:model-value="persistTestMockSet(testEntry, mockSet)"
-                                >
-                                  <template v-slot:append>
-                                    <span class="fixture-select-icon" aria-hidden="true">expand_more</span>
-                                  </template>
-                                </q-select>
+                            <div class="mock-card-header">
+                              <div>
+                                <div class="mock-card-title">{{ mockSet.label }}</div>
                               </div>
+                              <q-chip dense square color="primary" text-color="white">
+                                {{ mockSet.bindings.length }} function mocks
+                              </q-chip>
                             </div>
 
-                            <div class="test-mock-item-list" v-if="binding.itemTexts.length">
-                              <div
-                                v-for="(item, itemIndex) in binding.itemTexts"
-                                :key="`${mockSet.path}-binding-${bindingIndex}-item-${itemIndex}`"
-                                class="test-mock-item-card"
+                            <div
+                              v-if="mockSet.metaFields.description !== undefined"
+                              class="q-mt-md"
+                            >
+                              <label
+                                class="field-label"
+                                :for="`test-mock-description-${group.key}-${testEntry.index}-${mockSetIndex}`"
                               >
-                                <div class="section-title">
-                                  <div>
-                                    <h3>{{ testMockItemTitle(item, itemIndex) }}</h3>
-                                  </div>
-                                  <q-btn
-                                    color="negative"
-                                    outline
-                                    label="Remove"
-                                    @click="removeTestMockBindingItem(testEntry, mockSet, binding, itemIndex)"
-                                  ></q-btn>
-                                </div>
-
-                                <div v-if="testMockItemHasSkip(item)" class="q-mb-md">
-                                  <q-checkbox
-                                    :model-value="testMockItemSkip(item)"
-                                    dense
-                                    color="warning"
-                                    keep-color
-                                    label="Skip this mock definition"
-                                    @update:model-value="setTestMockItemSkip(testEntry, mockSet, item, $event)"
-                                  ></q-checkbox>
-                                </div>
-
-                                <textarea
-                                  :id="`test-mock-definition-${group.key}-${testEntry.index}-${mockSetIndex}-${bindingIndex}-${itemIndex}`"
-                                  v-model="item.text"
-                                  class="native-textarea test-mock-editor"
-                                  spellcheck="false"
-                                  @blur="persistTestMockSet(testEntry, mockSet)"
-                                ></textarea>
-                                <div v-if="item.error" class="settings-error q-mt-sm">
-                                  {{ item.error }}
-                                </div>
-                              </div>
+                                Description
+                              </label>
+                              <input
+                                :id="`test-mock-description-${group.key}-${testEntry.index}-${mockSetIndex}`"
+                                v-model="mockSet.metaFields.description"
+                                class="native-input"
+                                type="text"
+                                spellcheck="false"
+                                @blur="persistTestMockSet(testEntry, mockSet)"
+                              />
                             </div>
 
-                            <div v-else class="empty-state q-mt-md">
-                              No objects are defined in this mock array yet.
+                            <div
+                              v-for="(binding, bindingIndex) in mockSet.bindings"
+                              :key="`${mockSet.path}-binding-${bindingIndex}`"
+                              class="test-mock-binding"
+                            >
+                              <div class="test-mock-binding-header">
+                                <div class="test-mock-binding-body">
+                                  <label
+                                    class="field-label"
+                                    :for="`test-mock-binding-${group.key}-${testEntry.index}-${mockSetIndex}-${bindingIndex}`"
+                                  >
+                                    Function Mock
+                                  </label>
+                                  <q-select
+                                    :id="`test-mock-binding-${group.key}-${testEntry.index}-${mockSetIndex}-${bindingIndex}`"
+                                    v-model="binding.selectedMockName"
+                                    :options="testMockBindingOptions(binding.selectedMockName)"
+                                    emit-value
+                                    map-options
+                                    outlined
+                                    dense
+                                    options-dense
+                                    behavior="menu"
+                                    hide-dropdown-icon
+                                    class="fixture-select"
+                                    @update:model-value="persistTestMockSet(testEntry, mockSet)"
+                                  >
+                                    <template v-slot:append>
+                                      <span class="fixture-select-icon" aria-hidden="true">expand_more</span>
+                                    </template>
+                                  </q-select>
+                                </div>
+                              </div>
+
+                              <div class="test-mock-item-list" v-if="binding.items.length">
+                                <div
+                                  v-for="(item, itemIndex) in binding.items"
+                                  :key="`${mockSet.path}-binding-${bindingIndex}-item-${itemIndex}`"
+                                  class="test-mock-item-card"
+                                >
+                                  <div class="section-title">
+                                    <div>
+                                      <h3>{{ testMockItemTitle(item, itemIndex) }}</h3>
+                                    </div>
+                                    <q-btn
+                                      color="negative"
+                                      outline
+                                      label="Remove"
+                                      @click="removeTestMockBindingItem(testEntry, mockSet, binding, itemIndex)"
+                                    ></q-btn>
+                                  </div>
+
+                                  <div v-if="testMockItemHasSkip(item)" class="q-mb-md">
+                                    <q-checkbox
+                                      :model-value="testMockItemSkip(item)"
+                                      dense
+                                      color="warning"
+                                      keep-color
+                                      label="Skip this mock definition"
+                                      @update:model-value="setTestMockItemSkip(testEntry, mockSet, item, $event)"
+                                    ></q-checkbox>
+                                  </div>
+
+                                  <div class="test-mock-item-grid">
+                                    <div>
+                                      <label
+                                        class="field-label"
+                                        :for="`test-mock-item-description-${group.key}-${testEntry.index}-${mockSetIndex}-${bindingIndex}-${itemIndex}`"
+                                      >
+                                        Description
+                                      </label>
+                                      <input
+                                        :id="`test-mock-item-description-${group.key}-${testEntry.index}-${mockSetIndex}-${bindingIndex}-${itemIndex}`"
+                                        v-model="item.descriptionText"
+                                        class="native-input"
+                                        type="text"
+                                        placeholder="Optional label"
+                                        spellcheck="false"
+                                        @blur="persistTestMockSet(testEntry, mockSet)"
+                                      />
+                                    </div>
+
+                                    <div>
+                                      <label
+                                        class="field-label"
+                                        :for="`test-mock-item-request-type-${group.key}-${testEntry.index}-${mockSetIndex}-${bindingIndex}-${itemIndex}`"
+                                      >
+                                        Request Type
+                                      </label>
+                                      <input
+                                        :id="`test-mock-item-request-type-${group.key}-${testEntry.index}-${mockSetIndex}-${bindingIndex}-${itemIndex}`"
+                                        v-model="item.requestType"
+                                        class="native-input"
+                                        type="text"
+                                        placeholder="json"
+                                        spellcheck="false"
+                                        @blur="persistTestMockSet(testEntry, mockSet)"
+                                      />
+                                    </div>
+
+                                    <div>
+                                      <label
+                                        class="field-label"
+                                        :for="`test-mock-item-request-body-${group.key}-${testEntry.index}-${mockSetIndex}-${bindingIndex}-${itemIndex}`"
+                                      >
+                                        Request Body
+                                      </label>
+                                      <textarea
+                                        :id="`test-mock-item-request-body-${group.key}-${testEntry.index}-${mockSetIndex}-${bindingIndex}-${itemIndex}`"
+                                        v-model="item.requestBodyText"
+                                        class="native-textarea test-mock-item-json"
+                                        spellcheck="false"
+                                        @blur="persistTestMockSet(testEntry, mockSet)"
+                                      ></textarea>
+                                      <div v-if="item.requestBodyError" class="settings-error q-mt-sm">
+                                        {{ item.requestBodyError }}
+                                      </div>
+                                    </div>
+
+                                    <div>
+                                      <label
+                                        class="field-label"
+                                        :for="`test-mock-item-response-type-${group.key}-${testEntry.index}-${mockSetIndex}-${bindingIndex}-${itemIndex}`"
+                                      >
+                                        Response Type
+                                      </label>
+                                      <input
+                                        :id="`test-mock-item-response-type-${group.key}-${testEntry.index}-${mockSetIndex}-${bindingIndex}-${itemIndex}`"
+                                        v-model="item.responseType"
+                                        class="native-input"
+                                        type="text"
+                                        placeholder="json"
+                                        spellcheck="false"
+                                        @blur="persistTestMockSet(testEntry, mockSet)"
+                                      />
+                                    </div>
+
+                                    <div class="test-mock-item-full">
+                                      <label
+                                        class="field-label"
+                                        :for="`test-mock-item-response-${group.key}-${testEntry.index}-${mockSetIndex}-${bindingIndex}-${itemIndex}`"
+                                      >
+                                        Response
+                                      </label>
+                                      <textarea
+                                        :id="`test-mock-item-response-${group.key}-${testEntry.index}-${mockSetIndex}-${bindingIndex}-${itemIndex}`"
+                                        v-model="item.responseText"
+                                        class="native-textarea test-mock-item-json"
+                                        spellcheck="false"
+                                        @blur="persistTestMockSet(testEntry, mockSet)"
+                                      ></textarea>
+                                      <div v-if="item.responseError" class="settings-error q-mt-sm">
+                                        {{ item.responseError }}
+                                      </div>
+                                    </div>
+                                  </div>
+
+                                  <div v-if="item.error" class="settings-error q-mt-sm">
+                                    {{ item.error }}
+                                  </div>
+                                </div>
+                              </div>
+
+                              <div v-else class="empty-state q-mt-md">
+                                No objects are defined in this mock array yet.
+                              </div>
+
+                              <div class="pill-row q-mt-md">
+                                <q-btn
+                                  color="primary"
+                                  outline
+                                  label="Add Object"
+                                  @click="addTestMockBindingItem(testEntry, mockSet, binding)"
+                                ></q-btn>
+                              </div>
                             </div>
 
                             <div class="pill-row q-mt-md">
                               <q-btn
                                 color="primary"
                                 outline
-                                label="Add Object"
-                                @click="addTestMockBindingItem(testEntry, mockSet, binding)"
+                                label="Add Function Mock"
+                                @click="addTestMockBinding(testEntry, mockSet)"
                               ></q-btn>
                             </div>
-                          </div>
 
-                          <div class="pill-row q-mt-md">
-                            <q-btn
-                              color="primary"
-                              outline
-                              label="Add Function Mock"
-                              @click="addTestMockBinding(testEntry, mockSet)"
-                            ></q-btn>
-                          </div>
-
-                          <div v-if="mockSet.error" class="settings-error q-mt-sm">
-                            {{ mockSet.error }}
+                            <div v-if="mockSet.error" class="settings-error q-mt-sm">
+                              {{ mockSet.error }}
+                            </div>
                           </div>
                         </div>
-                      </div>
 
-                      <div v-else class="empty-state q-mt-lg">
-                        No wallet-specific mock entry is defined for
-                        <code>{{ currentFundingSource.name }}</code>
-                        in this test.
+                        <div v-else class="empty-state q-mt-lg">
+                          No wallet-specific mock entry is defined for
+                          <code>{{ currentFundingSource.name }}</code>
+                          in this test.
+                        </div>
                       </div>
                     </div>
+                      </q-tab-panel>
+                    </q-tab-panels>
                   </div>
-                </q-tab-panel>
-              </q-tab-panels>
 
-              <div v-if="!currentFunctionTestTypeGroups.length" class="empty-state">
-                No tests are defined for this function.
+                  <div v-else-if="currentFunction" class="empty-state">
+                    No tests are defined for this function.
+                  </div>
+                </div>
+              </div>
+
+              <div v-else class="empty-state">
+                No functions are defined for this fixture file.
               </div>
             </q-card-section>
           </q-card>
@@ -2473,6 +2630,30 @@
         }
       }
 
+      function createTestMockItemDraftState(item = {}) {
+        const source = isPlainObject(item) ? item : {}
+
+        return {
+          descriptionText:
+            typeof source.description === 'string' ? source.description : '',
+          skip: typeof source.skip === 'boolean' ? source.skip : false,
+          hasSkipField: typeof source.skip === 'boolean',
+          requestType:
+            typeof source.request_type === 'string' ? source.request_type : '',
+          requestBodyText:
+            source.request_body !== undefined
+              ? safeStringify(source.request_body)
+              : '',
+          requestBodyError: '',
+          responseType:
+            typeof source.response_type === 'string' ? source.response_type : '',
+          responseText:
+            source.response !== undefined ? safeStringify(source.response) : '',
+          responseError: '',
+          error: ''
+        }
+      }
+
       function inferDatasetKeyFromData(data) {
         let rpcHint = false
 
@@ -2757,11 +2938,8 @@
                       .filter(([key]) => key !== 'description')
                       .map(([key, value]) => ({
                         selectedMockName: key,
-                        itemTexts: (Array.isArray(value) ? value : [value]).map(
-                          item => ({
-                            text: safeStringify(item),
-                            error: ''
-                          })
+                        items: (Array.isArray(value) ? value : [value]).map(item =>
+                          createTestMockItemDraftState(item)
                         )
                       })),
                     error: ''
@@ -3003,10 +3181,7 @@
 
             return {
               selectedMockName: mockName,
-              itemTexts: normalizedItems.map(item => ({
-                text: safeStringify(item),
-                error: ''
-              }))
+              items: normalizedItems.map(item => createTestMockItemDraftState(item))
             }
           },
           testMockBindingOptions(selectedMockName = '') {
@@ -3037,8 +3212,7 @@
             return availableName?.value || ''
           },
           testMockItemTitle(item, itemIndex) {
-            const parsed = parseJsonText(item?.text || '')
-            const description = parsed.ok ? parsed.data?.description : ''
+            const description = item?.descriptionText || ''
 
             if (typeof description === 'string' && description.trim() !== '') {
               return description.trim()
@@ -3047,48 +3221,15 @@
             return `Test Mock Definition ${itemIndex + 1}`
           },
           testMockItemHasSkip(item) {
-            const parsed = parseJsonText(item?.text || '')
-
-            return (
-              parsed.ok &&
-              isPlainObject(parsed.data) &&
-              typeof parsed.data.skip === 'boolean'
-            )
+            return Boolean(item?.hasSkipField || item?.skip === true)
           },
           testMockItemSkip(item) {
-            const parsed = parseJsonText(item?.text || '')
-
-            if (
-              !parsed.ok ||
-              !isPlainObject(parsed.data) ||
-              typeof parsed.data.skip !== 'boolean'
-            ) {
-              return false
-            }
-
-            return parsed.data.skip
+            return Boolean(item?.skip)
           },
           setTestMockItemSkip(testEntry, mockSet, item, value) {
-            const parsed = parseJsonText(item?.text || '')
-
-            if (
-              !parsed.ok ||
-              !isPlainObject(parsed.data) ||
-              typeof parsed.data.skip !== 'boolean'
-            ) {
-              item.error =
-                'Could not update skip because this mock definition is not valid JSON with a boolean skip field.'
-              this.notify(
-                'Could not save mock skip flag.',
-                'negative',
-                item.error
-              )
-              return
-            }
-
             item.error = ''
-            parsed.data.skip = Boolean(value)
-            item.text = safeStringify(parsed.data)
+            item.hasSkipField = true
+            item.skip = Boolean(value)
             this.persistTestMockSet(testEntry, mockSet)
           },
           addTestMockBinding(testEntry, mockSet) {
@@ -3101,14 +3242,11 @@
             this.persistTestMockSet(testEntry, mockSet)
           },
           addTestMockBindingItem(testEntry, mockSet, binding) {
-            binding.itemTexts.push({
-              text: safeStringify({}),
-              error: ''
-            })
+            binding.items.push(createTestMockItemDraftState({}))
             this.persistTestMockSet(testEntry, mockSet)
           },
           removeTestMockBindingItem(testEntry, mockSet, binding, itemIndex) {
-            binding.itemTexts.splice(itemIndex, 1)
+            binding.items.splice(itemIndex, 1)
             this.persistTestMockSet(testEntry, mockSet)
           },
           getSettingsDraftRows(datasetKey, fundingSourceName) {
@@ -3374,8 +3512,10 @@
 
             mockSet.error = ''
             ;(mockSet.bindings || []).forEach(binding => {
-              ;(binding.itemTexts || []).forEach(item => {
+              ;(binding.items || []).forEach(item => {
                 item.error = ''
+                item.requestBodyError = ''
+                item.responseError = ''
               })
             })
 
@@ -3385,7 +3525,7 @@
               const mockName = (binding.selectedMockName || '').trim()
 
               if (!mockName) {
-                if ((binding.itemTexts || []).length) {
+                if ((binding.items || []).length) {
                   mockSet.error = 'Select a function mock before editing its overrides.'
                   this.notify(
                     'Could not save test mock definition.',
@@ -3410,27 +3550,65 @@
 
               const parsedItems = []
 
-              for (let itemIndex = 0; itemIndex < (binding.itemTexts || []).length; itemIndex += 1) {
-                const item = binding.itemTexts[itemIndex]
+              for (let itemIndex = 0; itemIndex < (binding.items || []).length; itemIndex += 1) {
+                const item = binding.items[itemIndex]
+                const nextItem = {}
 
-                try {
-                  parsedItems.push(
-                    this.parseEditableTestJson(
-                      item.text,
-                      `${mockName} item ${itemIndex + 1}`
-                    )
-                  )
-                } catch (error) {
-                  item.error =
-                    error instanceof Error ? error.message : String(error)
-                  mockSet.error = item.error
-                  this.notify(
-                    'Could not save test mock definition.',
-                    'negative',
-                    mockSet.error
-                  )
-                  return
+                if ((item.descriptionText || '').trim() !== '') {
+                  nextItem.description = item.descriptionText.trim()
                 }
+
+                if (item.hasSkipField || item.skip === true) {
+                  nextItem.skip = Boolean(item.skip)
+                }
+
+                if ((item.requestType || '').trim() !== '') {
+                  nextItem.request_type = item.requestType.trim()
+                }
+
+                if ((item.requestBodyText || '').trim() !== '') {
+                  try {
+                    nextItem.request_body = this.parseEditableTestJson(
+                      item.requestBodyText,
+                      `${mockName} request_body ${itemIndex + 1}`
+                    )
+                  } catch (error) {
+                    item.requestBodyError =
+                      error instanceof Error ? error.message : String(error)
+                    mockSet.error = item.requestBodyError
+                    this.notify(
+                      'Could not save test mock definition.',
+                      'negative',
+                      mockSet.error
+                    )
+                    return
+                  }
+                }
+
+                if ((item.responseType || '').trim() !== '') {
+                  nextItem.response_type = item.responseType.trim()
+                }
+
+                if ((item.responseText || '').trim() !== '') {
+                  try {
+                    nextItem.response = this.parseEditableTestJson(
+                      item.responseText,
+                      `${mockName} response ${itemIndex + 1}`
+                    )
+                  } catch (error) {
+                    item.responseError =
+                      error instanceof Error ? error.message : String(error)
+                    mockSet.error = item.responseError
+                    this.notify(
+                      'Could not save test mock definition.',
+                      'negative',
+                      mockSet.error
+                    )
+                    return
+                  }
+                }
+
+                parsedItems.push(nextItem)
               }
 
               nextValue[mockName] = parsedItems
