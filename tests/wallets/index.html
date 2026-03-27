@@ -1477,22 +1477,21 @@
                             </div>
 
                             <div
-                              v-for="(binding, bindingIndex) in mockSet.bindings"
-                              :key="`${mockSet.path}-binding-${bindingIndex}`"
                               class="test-mock-binding"
+                              :key="`${mockSet.path}-binding-${activeTestMockBindingName(mockSet)}`"
                             >
                               <div class="test-mock-binding-header">
                                 <div class="test-mock-binding-body">
                                   <label
                                     class="field-label"
-                                    :for="`test-mock-binding-${group.key}-${testEntry.index}-${mockSetIndex}-${bindingIndex}`"
+                                    :for="`test-mock-binding-${group.key}-${testEntry.index}-${mockSetIndex}`"
                                   >
                                     Function Mock
                                   </label>
                                   <q-select
-                                    :id="`test-mock-binding-${group.key}-${testEntry.index}-${mockSetIndex}-${bindingIndex}`"
-                                    :model-value="binding.selectedMockName"
-                                    :options="testMockBindingOptions(binding.selectedMockName)"
+                                    :id="`test-mock-binding-${group.key}-${testEntry.index}-${mockSetIndex}`"
+                                    :model-value="activeTestMockBindingName(mockSet)"
+                                    :options="testMockBindingOptions(mockSet)"
                                     emit-value
                                     map-options
                                     outlined
@@ -1501,7 +1500,7 @@
                                     behavior="menu"
                                     hide-dropdown-icon
                                     class="fixture-select"
-                                    @update:model-value="handleTestMockBindingSelection(testEntry, mockSet, binding, $event)"
+                                    @update:model-value="handleTestMockBindingSelection(testEntry, mockSet, $event)"
                                   >
                                     <template v-slot:append>
                                       <span class="fixture-select-icon" aria-hidden="true">expand_more</span>
@@ -1510,10 +1509,13 @@
                                 </div>
                               </div>
 
-                              <div class="test-mock-item-list" v-if="binding.items.length">
+                              <div
+                                class="test-mock-item-list"
+                                v-if="activeTestMockBinding(mockSet) && activeTestMockBinding(mockSet).items.length"
+                              >
                                 <div
-                                  v-for="(item, itemIndex) in binding.items"
-                                  :key="`${mockSet.path}-binding-${bindingIndex}-item-${itemIndex}`"
+                                  v-for="(item, itemIndex) in activeTestMockBinding(mockSet).items"
+                                  :key="`${mockSet.path}-binding-${activeTestMockBindingName(mockSet)}-item-${itemIndex}`"
                                   class="test-mock-item-card"
                                 >
                                   <div class="section-title">
@@ -1524,7 +1526,7 @@
                                       color="negative"
                                       outline
                                       label="Remove"
-                                      @click="removeTestMockBindingItem(testEntry, mockSet, binding, itemIndex)"
+                                      @click="removeTestMockBindingItem(testEntry, mockSet, activeTestMockBinding(mockSet), itemIndex)"
                                     ></q-btn>
                                   </div>
 
@@ -1543,12 +1545,12 @@
                                     <div>
                                       <label
                                         class="field-label"
-                                        :for="`test-mock-item-description-${group.key}-${testEntry.index}-${mockSetIndex}-${bindingIndex}-${itemIndex}`"
+                                        :for="`test-mock-item-description-${group.key}-${testEntry.index}-${mockSetIndex}-${activeTestMockBindingName(mockSet)}-${itemIndex}`"
                                       >
                                         Description
                                       </label>
                                       <input
-                                        :id="`test-mock-item-description-${group.key}-${testEntry.index}-${mockSetIndex}-${bindingIndex}-${itemIndex}`"
+                                        :id="`test-mock-item-description-${group.key}-${testEntry.index}-${mockSetIndex}-${activeTestMockBindingName(mockSet)}-${itemIndex}`"
                                         v-model="item.descriptionText"
                                         class="native-input"
                                         type="text"
@@ -1561,12 +1563,12 @@
                                     <div>
                                       <label
                                         class="field-label"
-                                        :for="`test-mock-item-request-type-${group.key}-${testEntry.index}-${mockSetIndex}-${bindingIndex}-${itemIndex}`"
+                                        :for="`test-mock-item-request-type-${group.key}-${testEntry.index}-${mockSetIndex}-${activeTestMockBindingName(mockSet)}-${itemIndex}`"
                                       >
                                         Request Type
                                       </label>
                                       <input
-                                        :id="`test-mock-item-request-type-${group.key}-${testEntry.index}-${mockSetIndex}-${bindingIndex}-${itemIndex}`"
+                                        :id="`test-mock-item-request-type-${group.key}-${testEntry.index}-${mockSetIndex}-${activeTestMockBindingName(mockSet)}-${itemIndex}`"
                                         v-model="item.requestType"
                                         class="native-input"
                                         type="text"
@@ -1579,12 +1581,12 @@
                                     <div>
                                       <label
                                         class="field-label"
-                                        :for="`test-mock-item-request-body-${group.key}-${testEntry.index}-${mockSetIndex}-${bindingIndex}-${itemIndex}`"
+                                        :for="`test-mock-item-request-body-${group.key}-${testEntry.index}-${mockSetIndex}-${activeTestMockBindingName(mockSet)}-${itemIndex}`"
                                       >
                                         Request Body
                                       </label>
                                       <textarea
-                                        :id="`test-mock-item-request-body-${group.key}-${testEntry.index}-${mockSetIndex}-${bindingIndex}-${itemIndex}`"
+                                        :id="`test-mock-item-request-body-${group.key}-${testEntry.index}-${mockSetIndex}-${activeTestMockBindingName(mockSet)}-${itemIndex}`"
                                         v-model="item.requestBodyText"
                                         class="native-textarea test-mock-item-json"
                                         spellcheck="false"
@@ -1598,12 +1600,12 @@
                                     <div>
                                       <label
                                         class="field-label"
-                                        :for="`test-mock-item-response-type-${group.key}-${testEntry.index}-${mockSetIndex}-${bindingIndex}-${itemIndex}`"
+                                        :for="`test-mock-item-response-type-${group.key}-${testEntry.index}-${mockSetIndex}-${activeTestMockBindingName(mockSet)}-${itemIndex}`"
                                       >
                                         Response Type
                                       </label>
                                       <input
-                                        :id="`test-mock-item-response-type-${group.key}-${testEntry.index}-${mockSetIndex}-${bindingIndex}-${itemIndex}`"
+                                        :id="`test-mock-item-response-type-${group.key}-${testEntry.index}-${mockSetIndex}-${activeTestMockBindingName(mockSet)}-${itemIndex}`"
                                         v-model="item.responseType"
                                         class="native-input"
                                         type="text"
@@ -1616,12 +1618,12 @@
                                     <div class="test-mock-item-full">
                                       <label
                                         class="field-label"
-                                        :for="`test-mock-item-response-${group.key}-${testEntry.index}-${mockSetIndex}-${bindingIndex}-${itemIndex}`"
+                                        :for="`test-mock-item-response-${group.key}-${testEntry.index}-${mockSetIndex}-${activeTestMockBindingName(mockSet)}-${itemIndex}`"
                                       >
                                         Response
                                       </label>
                                       <textarea
-                                        :id="`test-mock-item-response-${group.key}-${testEntry.index}-${mockSetIndex}-${bindingIndex}-${itemIndex}`"
+                                        :id="`test-mock-item-response-${group.key}-${testEntry.index}-${mockSetIndex}-${activeTestMockBindingName(mockSet)}-${itemIndex}`"
                                         v-model="item.responseText"
                                         class="native-textarea test-mock-item-json"
                                         spellcheck="false"
@@ -1648,7 +1650,8 @@
                                   color="primary"
                                   outline
                                   label="Add Object"
-                                  @click="addTestMockBindingItem(testEntry, mockSet, binding)"
+                                  :disable="!activeTestMockBinding(mockSet)"
+                                  @click="addTestMockBindingItem(testEntry, mockSet, activeTestMockBinding(mockSet))"
                                 ></q-btn>
                               </div>
                             </div>
@@ -2688,6 +2691,7 @@
           const functionMockDrafts = {}
           const selectedFunctionByDataset = {}
           const selectedFundingSourceByDataset = {}
+          const selectedTestMockBindingByScope = {}
           const selectedTestFundingSourceByDataset = {}
           const settingsDrafts = {}
 
@@ -2709,6 +2713,7 @@
             settingsDraftRowId: 0,
             settingsDrafts,
             selectedDatasetKey: 'rest',
+            selectedTestMockBindingByScope,
             selectedTestFundingSourceByDataset,
             selectedTestTypeByScope: {},
             selectedFunctionByDataset,
@@ -3269,6 +3274,7 @@
                 selectedDatasetKey: this.selectedDatasetKey,
                 selectedFunctionByDataset: this.selectedFunctionByDataset,
                 selectedFundingSourceByDataset: this.selectedFundingSourceByDataset,
+                selectedTestMockBindingByScope: this.selectedTestMockBindingByScope,
                 selectedTestFundingSourceByDataset:
                   this.selectedTestFundingSourceByDataset,
                 selectedTestTypeByScope: this.selectedTestTypeByScope
@@ -3309,6 +3315,12 @@
                 this.selectedFundingSourceByDataset,
                 state.selectedFundingSourceByDataset
               )
+            }
+
+            if (isPlainObject(state.selectedTestMockBindingByScope)) {
+              this.selectedTestMockBindingByScope = {
+                ...state.selectedTestMockBindingByScope
+              }
             }
 
             if (isPlainObject(state.selectedTestFundingSourceByDataset)) {
@@ -3375,6 +3387,7 @@
 
             return {
               id: ++this.functionMockDraftRowId,
+              originalName: name,
               name,
               uri: mock.uri ?? '',
               method: mock.method ?? '',
@@ -3391,6 +3404,282 @@
               error: ''
             }
           },
+          nextGeneratedFunctionMockName() {
+            const existingNames = new Set(
+              this.currentFunctionMockRows
+                .map(row => (row.name || '').trim())
+                .filter(Boolean)
+            )
+
+            let index = 1
+            let candidate = `new_mock_${index}`
+
+            while (existingNames.has(candidate)) {
+              index += 1
+              candidate = `new_mock_${index}`
+            }
+
+            return candidate
+          },
+          findSampleFunctionMockValue(datasetKey, functionName, fundingSourceName) {
+            const mocks =
+              this.datasets[datasetKey].data?.functions?.[functionName]?.mocks?.[
+                fundingSourceName
+              ] || {}
+
+            return (
+              Object.values(mocks).find(value => isPlainObject(value)) || null
+            )
+          },
+          findSampleTestMockItem(datasetKey, functionName, fundingSourceName) {
+            const tests =
+              this.datasets[datasetKey].data?.functions?.[functionName]?.tests || []
+
+            for (const test of tests) {
+              const fundingSourceMocks = test?.mocks?.[fundingSourceName]
+              if (!fundingSourceMocks) {
+                continue
+              }
+
+              const mockSets = Array.isArray(fundingSourceMocks)
+                ? fundingSourceMocks
+                : [fundingSourceMocks]
+
+              for (const mockSet of mockSets) {
+                if (!isPlainObject(mockSet)) {
+                  continue
+                }
+
+                for (const [mockName, items] of Object.entries(mockSet)) {
+                  if (mockName === 'description') {
+                    continue
+                  }
+
+                  const firstItem = Array.isArray(items) ? items[0] : items
+                  if (isPlainObject(firstItem)) {
+                    return firstItem
+                  }
+                }
+              }
+            }
+
+            return null
+          },
+          createFunctionMockValueTemplate(datasetKey, functionName, fundingSourceName) {
+            const sample = this.findSampleFunctionMockValue(
+              datasetKey,
+              functionName,
+              fundingSourceName
+            )
+
+            if (isPlainObject(sample)) {
+              const template = {}
+              const sampleMethod =
+                typeof sample.method === 'string' ? sample.method : ''
+              const looksLikeHttpVerb = /^[A-Z]+$/.test(sampleMethod)
+
+              if (Object.prototype.hasOwnProperty.call(sample, 'uri')) {
+                template.uri = ''
+              }
+              if (Object.prototype.hasOwnProperty.call(sample, 'headers')) {
+                template.headers = {}
+              }
+              if (Object.prototype.hasOwnProperty.call(sample, 'query_params')) {
+                template.query_params = {}
+              }
+              if (Object.prototype.hasOwnProperty.call(sample, 'method')) {
+                template.method = looksLikeHttpVerb ? sampleMethod : ''
+              }
+              if (Object.prototype.hasOwnProperty.call(sample, 'request_type')) {
+                template.request_type =
+                  typeof sample.request_type === 'string' && sample.request_type.trim()
+                    ? sample.request_type
+                    : 'function'
+              }
+              if (Object.prototype.hasOwnProperty.call(sample, 'response_type')) {
+                template.response_type =
+                  typeof sample.response_type === 'string' &&
+                  sample.response_type.trim()
+                    ? sample.response_type
+                    : 'data'
+              }
+              if (Object.prototype.hasOwnProperty.call(sample, 'response')) {
+                template.response = {}
+              }
+
+              return template
+            }
+
+            if (datasetKey === 'rest') {
+              return {
+                uri: '',
+                headers: {},
+                method: 'GET'
+              }
+            }
+
+            return {
+              method: '',
+              request_type: 'function',
+              response_type: 'data',
+              response: {}
+            }
+          },
+          createTestMockItemTemplate(
+            datasetKey,
+            functionName,
+            fundingSourceName,
+            functionMockValue = {}
+          ) {
+            const sample = this.findSampleTestMockItem(
+              datasetKey,
+              functionName,
+              fundingSourceName
+            )
+
+            if (isPlainObject(sample)) {
+              const template = {}
+
+              if (Object.prototype.hasOwnProperty.call(sample, 'request_type')) {
+                template.request_type =
+                  typeof sample.request_type === 'string' ? sample.request_type : ''
+              }
+              if (Object.prototype.hasOwnProperty.call(sample, 'request_body')) {
+                template.request_body = {}
+              }
+              if (Object.prototype.hasOwnProperty.call(sample, 'response_type')) {
+                template.response_type =
+                  typeof sample.response_type === 'string'
+                    ? sample.response_type
+                    : 'json'
+              }
+              template.response = {}
+
+              return template
+            }
+
+            if (datasetKey === 'rest') {
+              return {
+                response_type: 'json',
+                response: {}
+              }
+            }
+
+            if (
+              isPlainObject(functionMockValue) &&
+              Object.prototype.hasOwnProperty.call(functionMockValue, 'response_type')
+            ) {
+              return {
+                response: {}
+              }
+            }
+
+            return {
+              response_type: 'data',
+              response: {}
+            }
+          },
+          withFundingSourceMockSets(data, functionName, fundingSourceName, visitor) {
+            const tests = data?.functions?.[functionName]?.tests || []
+
+            tests.forEach((test, testIndex) => {
+              if (
+                !test.mocks ||
+                !Object.prototype.hasOwnProperty.call(test.mocks, fundingSourceName)
+              ) {
+                return
+              }
+
+              const fundingSourceMocks = test.mocks[fundingSourceName]
+
+              if (Array.isArray(fundingSourceMocks)) {
+                fundingSourceMocks.forEach((mockSet, mockSetIndex) => {
+                  if (isPlainObject(mockSet)) {
+                    visitor(mockSet, test, testIndex, mockSetIndex)
+                  }
+                })
+                return
+              }
+
+              if (isPlainObject(fundingSourceMocks)) {
+                visitor(fundingSourceMocks, test, testIndex, 0)
+              }
+            })
+          },
+          addFunctionMockToTestSets(
+            data,
+            functionName,
+            fundingSourceName,
+            mockName,
+            functionMockValue
+          ) {
+            const defaultItem = this.createTestMockItemTemplate(
+              this.selectedDatasetKey,
+              functionName,
+              fundingSourceName,
+              functionMockValue
+            )
+
+            this.withFundingSourceMockSets(
+              data,
+              functionName,
+              fundingSourceName,
+              mockSet => {
+                if (!Object.prototype.hasOwnProperty.call(mockSet, mockName)) {
+                  mockSet[mockName] = [deepClone(defaultItem)]
+                }
+              }
+            )
+          },
+          renameFunctionMockInTestSets(
+            data,
+            functionName,
+            fundingSourceName,
+            previousName,
+            nextName
+          ) {
+            if (!previousName || !nextName || previousName === nextName) {
+              return
+            }
+
+            this.withFundingSourceMockSets(
+              data,
+              functionName,
+              fundingSourceName,
+              mockSet => {
+                if (!Object.prototype.hasOwnProperty.call(mockSet, previousName)) {
+                  return
+                }
+
+                if (!Object.prototype.hasOwnProperty.call(mockSet, nextName)) {
+                  mockSet[nextName] = mockSet[previousName]
+                }
+
+                delete mockSet[previousName]
+              }
+            )
+          },
+          removeFunctionMockFromTestSets(
+            data,
+            functionName,
+            fundingSourceName,
+            mockName
+          ) {
+            if (!mockName) {
+              return
+            }
+
+            this.withFundingSourceMockSets(
+              data,
+              functionName,
+              fundingSourceName,
+              mockSet => {
+                if (Object.prototype.hasOwnProperty.call(mockSet, mockName)) {
+                  delete mockSet[mockName]
+                }
+              }
+            )
+          },
           createTestMockBindingDraft(mockName = '', items = []) {
             const normalizedItems = Array.isArray(items)
               ? items
@@ -3403,19 +3692,60 @@
               items: normalizedItems.map(item => createTestMockItemDraftState(item))
             }
           },
-          testMockBindingOptions(selectedMockName = '') {
-            const names = this.currentFunctionMockNameOptions.map(
-              option => option.value
-            )
+          testMockBindingScopeKey(mockSet) {
+            if (!mockSet?.path) {
+              return ''
+            }
 
-            if (selectedMockName && !names.includes(selectedMockName)) {
-              names.unshift(selectedMockName)
+            return [
+              this.selectedDatasetKey,
+              this.currentFunctionName,
+              this.currentTestFundingSourceName,
+              mockSet.path
+            ].join(':')
+          },
+          testMockBindingOptions(mockSet) {
+            const names = this.currentFunctionMockNameOptions.map(option => option.value)
+            const activeName = this.activeTestMockBindingName(mockSet)
+
+            ;(mockSet?.bindings || []).forEach(binding => {
+              const name = (binding.selectedMockName || '').trim()
+              if (name && !names.includes(name)) {
+                names.push(name)
+              }
+            })
+
+            if (activeName && !names.includes(activeName)) {
+              names.unshift(activeName)
             }
 
             return names.map(name => ({
               label: name,
               value: name
             }))
+          },
+          activeTestMockBindingName(mockSet) {
+            const scopeKey = this.testMockBindingScopeKey(mockSet)
+            const selectedName = scopeKey
+              ? this.selectedTestMockBindingByScope[scopeKey]
+              : ''
+            const bindingNames = (mockSet?.bindings || [])
+              .map(binding => (binding.selectedMockName || '').trim())
+              .filter(Boolean)
+
+            if (selectedName && bindingNames.includes(selectedName)) {
+              return selectedName
+            }
+
+            return bindingNames[0] || ''
+          },
+          activeTestMockBinding(mockSet) {
+            const activeName = this.activeTestMockBindingName(mockSet)
+            return (
+              (mockSet?.bindings || []).find(
+                binding => (binding.selectedMockName || '').trim() === activeName
+              ) || null
+            )
           },
           nextAvailableTestMockName(mockSet) {
             const usedNames = new Set(
@@ -3429,6 +3759,21 @@
             )
 
             return availableName?.value || ''
+          },
+          createDefaultTestMockBindingItems(mockName) {
+            const functionMockValue =
+              this.datasets[this.selectedDatasetKey].data?.functions?.[
+                this.currentFunctionName
+              ]?.mocks?.[this.currentTestFundingSourceName]?.[mockName] || {}
+
+            return [
+              this.createTestMockItemTemplate(
+                this.selectedDatasetKey,
+                this.currentFunctionName,
+                this.currentTestFundingSourceName,
+                functionMockValue
+              )
+            ]
           },
           testMockItemTitle(item, itemIndex) {
             const description = item?.descriptionText || ''
@@ -3451,29 +3796,53 @@
             item.skip = Boolean(value)
             this.persistTestMockSet(testEntry, mockSet)
           },
-          handleTestMockBindingSelection(testEntry, mockSet, binding, value) {
+          handleTestMockBindingSelection(testEntry, mockSet, value) {
             const nextName = typeof value === 'string' ? value : ''
-            const previousName = (binding.selectedMockName || '').trim()
-
-            binding.selectedMockName = nextName
-
-            if (!nextName) {
-              binding.items = []
-            } else if (nextName !== previousName || !Array.isArray(binding.items)) {
-              binding.items = [createTestMockItemDraftState({})]
-            } else if (!binding.items.length) {
-              binding.items.push(createTestMockItemDraftState({}))
+            const scopeKey = this.testMockBindingScopeKey(mockSet)
+            if (!nextName || !scopeKey) {
+              return
             }
 
-            this.persistTestMockSet(testEntry, mockSet)
+            let binding = (mockSet.bindings || []).find(
+              candidate => (candidate.selectedMockName || '').trim() === nextName
+            )
+
+            if (!binding) {
+              binding = this.createTestMockBindingDraft(
+                nextName,
+                this.createDefaultTestMockBindingItems(nextName)
+              )
+              mockSet.bindings.push(binding)
+              this.selectedTestMockBindingByScope[scopeKey] = nextName
+              this.persistUiState()
+              this.persistTestMockSet(testEntry, mockSet)
+              return
+            }
+
+            if (!Array.isArray(binding.items)) {
+              binding.items = []
+            }
+
+            this.selectedTestMockBindingByScope[scopeKey] = nextName
+            this.persistUiState()
           },
           addTestMockBinding(testEntry, mockSet) {
+            const nextName = this.nextAvailableTestMockName(mockSet)
+            if (!nextName) {
+              return
+            }
+
             mockSet.bindings.push(
               this.createTestMockBindingDraft(
-                this.nextAvailableTestMockName(mockSet),
-                [{}]
+                nextName,
+                this.createDefaultTestMockBindingItems(nextName)
               )
             )
+            const scopeKey = this.testMockBindingScopeKey(mockSet)
+            if (scopeKey) {
+              this.selectedTestMockBindingByScope[scopeKey] = nextName
+              this.persistUiState()
+            }
             this.persistTestMockSet(testEntry, mockSet)
           },
           addTestMockBindingItem(testEntry, mockSet, binding) {
@@ -3998,17 +4367,89 @@
               return
             }
 
+            const newMockName = this.nextGeneratedFunctionMockName()
+            const nextMockValue = this.createFunctionMockValueTemplate(
+              this.selectedDatasetKey,
+              this.currentFunctionName,
+              this.currentTestFundingSourceName
+            )
             const rows = this.ensureFunctionMockDraft(
               this.selectedDatasetKey,
               this.currentFunctionName,
               this.currentTestFundingSourceName
             )
-            rows.push(this.createFunctionMockDraftRow('', {}))
+            rows.push(this.createFunctionMockDraftRow(newMockName, nextMockValue))
+
+            this.applyDatasetMutation(
+              this.selectedDatasetKey,
+              data => {
+                if (!data.functions[this.currentFunctionName].mocks) {
+                  data.functions[this.currentFunctionName].mocks = {}
+                }
+
+                if (
+                  !data.functions[this.currentFunctionName].mocks[
+                    this.currentTestFundingSourceName
+                  ]
+                ) {
+                  data.functions[this.currentFunctionName].mocks[
+                    this.currentTestFundingSourceName
+                  ] = {}
+                }
+
+                data.functions[this.currentFunctionName].mocks[
+                  this.currentTestFundingSourceName
+                ][newMockName] = deepClone(nextMockValue)
+
+                this.addFunctionMockToTestSets(
+                  data,
+                  this.currentFunctionName,
+                  this.currentTestFundingSourceName,
+                  newMockName,
+                  nextMockValue
+                )
+              },
+              {
+                preserveFunctionMockDrafts: true,
+                preserveSettingsDrafts: true
+              }
+            )
           },
           removeFunctionMockRow(rowIndex) {
             const rows = this.currentFunctionMockRows
-            rows.splice(rowIndex, 1)
-            this.persistFunctionMocks()
+            const [removedRow] = rows.splice(rowIndex, 1)
+
+            this.applyDatasetMutation(
+              this.selectedDatasetKey,
+              data => {
+                const functionMocks =
+                  data.functions?.[this.currentFunctionName]?.mocks?.[
+                    this.currentTestFundingSourceName
+                  ]
+
+                if (
+                  functionMocks &&
+                  removedRow?.originalName &&
+                  Object.prototype.hasOwnProperty.call(
+                    functionMocks,
+                    removedRow.originalName
+                  )
+                ) {
+                  delete functionMocks[removedRow.originalName]
+                }
+
+                this.removeFunctionMockFromTestSets(
+                  data,
+                  this.currentFunctionName,
+                  this.currentTestFundingSourceName,
+                  removedRow?.originalName || removedRow?.name || ''
+                )
+              },
+              {
+                preserveFunctionMockDrafts: true,
+                preserveSettingsDrafts: true
+              }
+            )
           },
           persistFunctionMocks(options = {}) {
             if (!this.currentFunctionName || !this.currentTestFundingSourceName) {
@@ -4017,6 +4458,7 @@
 
             const rows = this.currentFunctionMockRows
             const nextMocks = {}
+            const renamePairs = []
 
             for (const row of rows) {
               row.error = ''
@@ -4024,9 +4466,34 @@
 
             for (const row of rows) {
               const name = row.name.trim()
+              const originalName = (row.originalName || '').trim()
+
+              if (!name && !originalName) {
+                continue
+              }
 
               if (!name) {
-                continue
+                row.error = 'Mock name cannot be empty.'
+                if (!options.silent) {
+                  this.notify(
+                    `Could not save mock "${originalName || 'new mock'}".`,
+                    'negative',
+                    row.error
+                  )
+                }
+                return
+              }
+
+              if (Object.prototype.hasOwnProperty.call(nextMocks, name)) {
+                row.error = `Duplicate mock name: ${name}`
+                if (!options.silent) {
+                  this.notify(
+                    `Could not save mock "${name}".`,
+                    'negative',
+                    row.error
+                  )
+                }
+                return
               }
 
               try {
@@ -4043,22 +4510,79 @@
                 }
                 return
               }
+
+              if (originalName && originalName !== name) {
+                renamePairs.push({
+                  from: originalName,
+                  to: name
+                })
+              }
             }
 
             this.applyDatasetMutation(
               this.selectedDatasetKey,
               data => {
+                const currentMocks =
+                  data.functions?.[this.currentFunctionName]?.mocks?.[
+                    this.currentTestFundingSourceName
+                  ] || {}
+                const currentNames = Object.keys(currentMocks)
+                const nextNames = Object.keys(nextMocks)
+                const renameFrom = new Set(renamePairs.map(item => item.from))
+                const renameTo = new Set(renamePairs.map(item => item.to))
+                const removedNames = currentNames.filter(
+                  name => !nextNames.includes(name) && !renameFrom.has(name)
+                )
+                const addedNames = nextNames.filter(
+                  name => !currentNames.includes(name) && !renameTo.has(name)
+                )
+
                 if (!data.functions[this.currentFunctionName].mocks) {
                   data.functions[this.currentFunctionName].mocks = {}
                 }
+
+                renamePairs.forEach(pair => {
+                  this.renameFunctionMockInTestSets(
+                    data,
+                    this.currentFunctionName,
+                    this.currentTestFundingSourceName,
+                    pair.from,
+                    pair.to
+                  )
+                })
+
+                removedNames.forEach(name => {
+                  this.removeFunctionMockFromTestSets(
+                    data,
+                    this.currentFunctionName,
+                    this.currentTestFundingSourceName,
+                    name
+                  )
+                })
+
+                addedNames.forEach(name => {
+                  this.addFunctionMockToTestSets(
+                    data,
+                    this.currentFunctionName,
+                    this.currentTestFundingSourceName,
+                    name,
+                    nextMocks[name]
+                  )
+                })
+
                 data.functions[this.currentFunctionName].mocks[
                   this.currentTestFundingSourceName
                 ] = nextMocks
               },
               {
-                preserveFunctionMockDrafts: true
+                preserveFunctionMockDrafts: true,
+                preserveSettingsDrafts: true
               }
             )
+
+            rows.forEach(row => {
+              row.originalName = row.name.trim()
+            })
           },
           baseWalletPath(functionName, fundingSourceName) {
             return `functions.${functionName}.mocks.${fundingSourceName}`
