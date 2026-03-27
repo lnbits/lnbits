@@ -1646,18 +1646,18 @@
                                           </label>
                                           <q-select
                                             :id="`test-mock-item-request-type-${group.key}-${testEntry.index}-${mockSetIndex}-${activeTestMockBindingName(mockSet)}-${itemIndex}`"
-                                            v-model="item.requestType"
+                                            :model-value="item.requestType"
                                             :options="restTestMockRequestTypeOptions"
                                             emit-value
                                             map-options
                                             outlined
                                             dense
-                                            options-dense
-                                            behavior="menu"
-                                            hide-dropdown-icon
-                                            class="fixture-select"
-                                            @update:model-value="persistTestMockSet(testEntry, mockSet, { silent: true })"
-                                          >
+                                          options-dense
+                                          behavior="menu"
+                                          hide-dropdown-icon
+                                          class="fixture-select"
+                                          @update:model-value="handleTestMockSelectChange(testEntry, mockSet, item, 'requestType', $event)"
+                                        >
                                             <template v-slot:append>
                                               <span class="fixture-select-icon" aria-hidden="true">expand_more</span>
                                             </template>
@@ -1694,18 +1694,18 @@
                                           </label>
                                           <q-select
                                             :id="`test-mock-item-response-type-${group.key}-${testEntry.index}-${mockSetIndex}-${activeTestMockBindingName(mockSet)}-${itemIndex}`"
-                                            v-model="item.responseType"
+                                            :model-value="item.responseType"
                                             :options="restTestMockResponseTypeOptions"
                                             emit-value
                                             map-options
                                             outlined
                                             dense
-                                            options-dense
-                                            behavior="menu"
-                                            hide-dropdown-icon
-                                            class="fixture-select"
-                                            @update:model-value="persistTestMockSet(testEntry, mockSet, { silent: true })"
-                                          >
+                                          options-dense
+                                          behavior="menu"
+                                          hide-dropdown-icon
+                                          class="fixture-select"
+                                          @update:model-value="handleTestMockSelectChange(testEntry, mockSet, item, 'responseType', $event)"
+                                        >
                                             <template v-slot:append>
                                               <span class="fixture-select-icon" aria-hidden="true">expand_more</span>
                                             </template>
@@ -1811,7 +1811,7 @@
                                           </label>
                                           <q-select
                                             :id="`test-mock-item-request-type-${group.key}-${testEntry.index}-${mockSetIndex}-${activeTestMockBindingName(mockSet)}-${itemIndex}`"
-                                            v-model="item.requestType"
+                                            :model-value="item.requestType"
                                             :options="rpcTestMockRequestTypeOptions"
                                             emit-value
                                             map-options
@@ -1821,7 +1821,7 @@
                                             behavior="menu"
                                             hide-dropdown-icon
                                             class="fixture-select"
-                                            @update:model-value="persistTestMockSet(testEntry, mockSet, { silent: true })"
+                                            @update:model-value="handleTestMockSelectChange(testEntry, mockSet, item, 'requestType', $event)"
                                           >
                                             <template v-slot:append>
                                               <span class="fixture-select-icon" aria-hidden="true">expand_more</span>
@@ -1859,7 +1859,7 @@
                                           </label>
                                           <q-select
                                             :id="`test-mock-item-rpc-response-type-${group.key}-${testEntry.index}-${mockSetIndex}-${activeTestMockBindingName(mockSet)}-${itemIndex}`"
-                                            v-model="item.rpcResponseType"
+                                            :model-value="item.rpcResponseType"
                                             :options="rpcTestMockResponseTypeOptions"
                                             emit-value
                                             map-options
@@ -1869,7 +1869,7 @@
                                             behavior="menu"
                                             hide-dropdown-icon
                                             class="fixture-select"
-                                            @update:model-value="persistTestMockSet(testEntry, mockSet, { silent: true })"
+                                            @update:model-value="handleTestMockSelectChange(testEntry, mockSet, item, 'rpcResponseType', $event)"
                                           >
                                             <template v-slot:append>
                                               <span class="fixture-select-icon" aria-hidden="true">expand_more</span>
@@ -2240,7 +2240,7 @@
                           <div class="function-mock-subfield">
                             <q-select
                               :id="`function-mock-request-type-${mockRow.id}`"
-                              v-model="mockRow.requestType"
+                              :model-value="mockRow.requestType"
                               :options="functionMockRequestTypeOptions"
                               emit-value
                               map-options
@@ -2250,7 +2250,7 @@
                               behavior="menu"
                               hide-dropdown-icon
                               class="fixture-select"
-                              @update:model-value="handleFunctionMockRequestTypeChange(mockRow)"
+                              @update:model-value="handleFunctionMockRequestTypeChange(mockRow, $event)"
                             >
                               <template v-slot:append>
                                 <span class="fixture-select-icon" aria-hidden="true">expand_more</span>
@@ -2328,7 +2328,7 @@
                             <div class="function-mock-subfield">
                               <q-select
                                 :id="`function-mock-response-type-${mockRow.id}`"
-                                v-model="mockRow.responseType"
+                                :model-value="mockRow.responseType"
                                 :options="functionMockRpcResponseTypeOptions"
                                 emit-value
                                 map-options
@@ -2338,7 +2338,7 @@
                                 behavior="menu"
                                 hide-dropdown-icon
                                 class="fixture-select"
-                                @update:model-value="persistFunctionMocks({ silent: true })"
+                                @update:model-value="handleFunctionMockResponseTypeChange(mockRow, $event)"
                               >
                                 <template v-slot:append>
                                   <span class="fixture-select-icon" aria-hidden="true">expand_more</span>
@@ -3543,6 +3543,34 @@
               return false
             }
           },
+          clearPersistedFixtureState() {
+            if (!this.canUseLocalStorage()) {
+              return
+            }
+
+            DATASET_DEFS.forEach(def => {
+              window.localStorage.removeItem(this.storageKey(def.key))
+            })
+            window.localStorage.removeItem(this.activeDatasetStorageKey())
+            window.localStorage.removeItem(this.uiStateStorageKey())
+          },
+          resetInMemoryFixtureState(nextDatasetKey = this.selectedDatasetKey) {
+            DATASET_DEFS.forEach(def => {
+              this.datasets[def.key] = createDatasetState(def)
+              this.selectedFunctionByDataset[def.key] = ''
+              this.selectedFundingSourceByDataset[def.key] = ''
+              this.selectedTestFundingSourceByDataset[def.key] = ''
+            })
+
+            this.functionMockDrafts = {}
+            this.settingsDrafts = {}
+            this.selectedTestMockBindingByScope = {}
+            this.selectedTestTypeByScope = {}
+            this.functionMockDraftRowId = 0
+            this.settingsDraftRowId = 0
+            this.lastFilePickerHandle = null
+            this.selectedDatasetKey = nextDatasetKey
+          },
           persistDatasetToStorage(datasetKey) {
             if (!this.canUseLocalStorage()) {
               return
@@ -4554,8 +4582,8 @@
 
             return 'Method: HTTP verb used by this REST mock, such as GET or POST.'
           },
-          handleFunctionMockRequestTypeChange(row) {
-            row.requestType = row.requestType === 'function' ? 'function' : ''
+          handleFunctionMockRequestTypeChange(row, value) {
+            row.requestType = value === 'function' ? 'function' : ''
 
             if (row.requestType === 'function') {
               row.uri = ''
@@ -4566,7 +4594,21 @@
               row.responseText = ''
             }
 
-            this.persistFunctionMocks({ silent: true })
+            this.$nextTick(() => {
+              this.persistFunctionMocks({ silent: true })
+            })
+          },
+          handleFunctionMockResponseTypeChange(row, value) {
+            row.responseType = typeof value === 'string' ? value : ''
+            this.$nextTick(() => {
+              this.persistFunctionMocks({ silent: true })
+            })
+          },
+          handleTestMockSelectChange(testEntry, mockSet, item, field, value) {
+            item[field] = typeof value === 'string' ? value : ''
+            this.$nextTick(() => {
+              this.persistTestMockSet(testEntry, mockSet, { silent: true })
+            })
           },
           parseEditableTestJson(text, label) {
             const parsed = parseJsonText(text)
@@ -5565,13 +5607,14 @@
               return
             }
 
-            this.selectedDatasetKey = datasetKey
-
             if (!parsed.ok) {
               this.datasets[datasetKey].parseError = `Invalid JSON in ${file.name}: ${parsed.error}`
               this.notify(`Could not read ${file.name}.`, 'negative')
               return
             }
+
+            this.clearPersistedFixtureState()
+            this.resetInMemoryFixtureState(datasetKey)
 
             const formatted = JSON.stringify(parsed.data, null, 2)
             this.commitDataset(datasetKey, parsed.data, {
