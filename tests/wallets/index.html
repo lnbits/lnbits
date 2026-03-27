@@ -408,8 +408,14 @@
         box-shadow: inset 0 1px 1px rgba(20, 30, 36, 0.04);
       }
 
+      .native-input {
+        min-height: 46px;
+        padding: 10px 14px;
+      }
+
       .native-textarea {
         min-height: 92px;
+        padding: 14px;
         resize: vertical;
         font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', monospace;
         font-size: 0.84rem;
@@ -2123,6 +2129,17 @@
               No funding sources are defined for this fixture file.
             </div>
           </q-card-section>
+
+          <q-separator></q-separator>
+
+          <q-card-actions align="right" class="q-pa-lg">
+            <q-btn
+              color="primary"
+              unelevated
+              label="Done"
+              v-close-popup
+            ></q-btn>
+          </q-card-actions>
         </q-card>
       </q-dialog>
 
@@ -2387,6 +2404,17 @@
               Select a funding source and function first.
             </div>
           </q-card-section>
+
+          <q-separator></q-separator>
+
+          <q-card-actions align="right" class="q-pa-lg">
+            <q-btn
+              color="primary"
+              unelevated
+              label="Done"
+              v-close-popup
+            ></q-btn>
+          </q-card-actions>
         </q-card>
       </q-dialog>
 
@@ -2490,6 +2518,17 @@
               @input="syncEditorFromRawText(selectedDatasetKey, { silent: true })"
             ></textarea>
           </q-card-section>
+
+          <q-separator></q-separator>
+
+          <q-card-actions align="right" class="q-pa-lg">
+            <q-btn
+              color="primary"
+              unelevated
+              label="Done"
+              v-close-popup
+            ></q-btn>
+          </q-card-actions>
         </q-card>
       </q-dialog>
 
