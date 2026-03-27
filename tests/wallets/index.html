@@ -1217,7 +1217,7 @@
           <div class="hero-row">
             <div class="hero-copy">
               <div class="hero-eyebrow">Wallet Fixture Studio</div>
-              <h1 class="hero-title">Fixture editor and test matrix for wallet funding sources</h1>
+              <h1 class="hero-title">Test matrix for wallet funding sources</h1>
               <p>
                 Browse and edit
                 <code>fixtures_rest.json</code>
@@ -1491,7 +1491,7 @@
                                   </label>
                                   <q-select
                                     :id="`test-mock-binding-${group.key}-${testEntry.index}-${mockSetIndex}-${bindingIndex}`"
-                                    v-model="binding.selectedMockName"
+                                    :model-value="binding.selectedMockName"
                                     :options="testMockBindingOptions(binding.selectedMockName)"
                                     emit-value
                                     map-options
@@ -1501,7 +1501,7 @@
                                     behavior="menu"
                                     hide-dropdown-icon
                                     class="fixture-select"
-                                    @update:model-value="persistTestMockSet(testEntry, mockSet)"
+                                    @update:model-value="handleTestMockBindingSelection(testEntry, mockSet, binding, $event)"
                                   >
                                     <template v-slot:append>
                                       <span class="fixture-select-icon" aria-hidden="true">expand_more</span>
@@ -3451,11 +3451,27 @@
             item.skip = Boolean(value)
             this.persistTestMockSet(testEntry, mockSet)
           },
+          handleTestMockBindingSelection(testEntry, mockSet, binding, value) {
+            const nextName = typeof value === 'string' ? value : ''
+            const previousName = (binding.selectedMockName || '').trim()
+
+            binding.selectedMockName = nextName
+
+            if (!nextName) {
+              binding.items = []
+            } else if (nextName !== previousName || !Array.isArray(binding.items)) {
+              binding.items = [createTestMockItemDraftState({})]
+            } else if (!binding.items.length) {
+              binding.items.push(createTestMockItemDraftState({}))
+            }
+
+            this.persistTestMockSet(testEntry, mockSet)
+          },
           addTestMockBinding(testEntry, mockSet) {
             mockSet.bindings.push(
               this.createTestMockBindingDraft(
                 this.nextAvailableTestMockName(mockSet),
-                []
+                [{}]
               )
             )
             this.persistTestMockSet(testEntry, mockSet)
