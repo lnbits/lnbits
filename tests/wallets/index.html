@@ -1042,33 +1042,6 @@
         line-height: 1.45;
       }
 
-      .mock-card {
-        border-radius: 16px;
-        border: 1px solid rgba(25, 54, 61, 0.08);
-        background: rgba(25, 54, 61, 0.03);
-        padding: 12px;
-      }
-
-      .mock-card-header {
-        display: flex;
-        gap: 10px;
-        justify-content: space-between;
-        align-items: flex-start;
-      }
-
-      .mock-card-title {
-        font-size: 0.88rem;
-        font-weight: 800;
-      }
-
-      .mock-card-subtitle {
-        margin-top: 4px;
-        color: var(--studio-muted);
-        font-size: 0.8rem;
-        line-height: 1.45;
-        word-break: break-word;
-      }
-
       .mock-source-grid {
         margin-top: 10px;
         display: grid;
@@ -1482,20 +1455,10 @@
                           <div
                             v-for="(mockSet, mockSetIndex) in testEntry.rawMockSets"
                             :key="mockSet.path"
-                            class="mock-card"
                           >
-                            <div class="mock-card-header">
-                              <div>
-                                <div class="mock-card-title">{{ mockSet.label }}</div>
-                              </div>
-                              <q-chip dense square color="primary" text-color="white">
-                                {{ mockSet.bindings.length }} function mocks
-                              </q-chip>
-                            </div>
-
                             <div
                               v-if="mockSet.metaFields.description !== undefined"
-                              class="q-mt-md"
+                              class="q-mb-md"
                             >
                               <label
                                 class="field-label"
