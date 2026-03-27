@@ -144,6 +144,8 @@
       }
 
       .stat-card {
+        display: flex;
+        flex-direction: column;
         padding: 16px 18px;
         border-radius: 22px;
         border: 1px solid var(--studio-border);
@@ -164,6 +166,17 @@
         font-size: 1.8rem;
         line-height: 1;
         font-weight: 800;
+      }
+
+      .stat-value-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+      }
+
+      .stat-card-action {
+        flex: 0 0 auto;
       }
 
       .workspace-grid {
@@ -1280,7 +1293,16 @@
           <div class="stats-row" v-if="currentDataset.analysis">
             <div class="stat-card">
               <div class="stat-label">Funding Sources</div>
-              <div class="stat-value">{{ currentDataset.analysis.summary.fundingSources }}</div>
+              <div class="stat-value-row">
+                <div class="stat-value">{{ currentDataset.analysis.summary.fundingSources }}</div>
+                <q-btn
+                  color="dark"
+                  unelevated
+                  label="Settings"
+                  class="stat-card-action"
+                  @click="fundingSourceSettingsDialog = true"
+                ></q-btn>
+              </div>
             </div>
             <div class="stat-card">
               <div class="stat-label">Functions</div>
@@ -1308,63 +1330,6 @@
         </header>
 
         <main class="workspace-grid">
-          <section class="primary-row">
-            <q-card flat class="studio-card picker-card picker-card--full">
-              <q-card-section>
-                <div class="section-title">
-                  <div>
-                    <h2>Funding Source</h2>
-                    <div class="section-caption">
-                      Pick one wallet implementation, then inspect the settings and mocks that apply to it.
-                    </div>
-                  </div>
-                </div>
-
-                <label class="native-select-label" for="funding-source-select">
-                  Funding source
-                </label>
-                <div class="picker-action-row">
-                  <q-select
-                    id="funding-source-select"
-                    v-model="selectedFundingSourceByDataset[selectedDatasetKey]"
-                    :options="fundingSourceOptions"
-                    emit-value
-                    map-options
-                    outlined
-                    dense
-                    options-dense
-                    behavior="menu"
-                    hide-dropdown-icon
-                    class="fixture-select picker-select"
-                  >
-                    <template v-slot:append>
-                      <span class="fixture-select-icon" aria-hidden="true">expand_more</span>
-                    </template>
-                  </q-select>
-
-                  <q-btn
-                    color="primary"
-                    outline
-                    label="Settings"
-                    :disable="!currentFundingSource"
-                    @click="fundingSourceSettingsDialog = true"
-                  ></q-btn>
-                </div>
-
-                <div v-if="currentFundingSource" class="q-mt-sm">
-                  <q-checkbox
-                    v-model="currentFundingSourceSkip"
-                    dense
-                    color="warning"
-                    keep-color
-                    label="Skip this funding source"
-                  ></q-checkbox>
-                </div>
-              </q-card-section>
-            </q-card>
-
-          </section>
-
           <q-card flat class="studio-card" v-if="currentFundingSource && currentDataset.analysis">
             <q-card-section>
               <q-tabs
@@ -1798,6 +1763,39 @@
           <q-separator></q-separator>
 
           <q-card-section class="q-pa-lg">
+            <div v-if="fundingSourceOptions.length">
+              <label class="native-select-label" for="dialog-funding-source-select">
+                Funding source
+              </label>
+              <q-select
+                id="dialog-funding-source-select"
+                v-model="selectedFundingSourceByDataset[selectedDatasetKey]"
+                :options="fundingSourceOptions"
+                emit-value
+                map-options
+                outlined
+                dense
+                options-dense
+                behavior="menu"
+                hide-dropdown-icon
+                class="fixture-select"
+              >
+                <template v-slot:append>
+                  <span class="fixture-select-icon" aria-hidden="true">expand_more</span>
+                </template>
+              </q-select>
+
+              <div v-if="currentFundingSource" class="q-mt-md q-mb-lg">
+                <q-checkbox
+                  v-model="currentFundingSourceSkip"
+                  dense
+                  color="warning"
+                  keep-color
+                  label="Skip this funding source"
+                ></q-checkbox>
+              </div>
+            </div>
+
             <div v-if="currentFundingSource">
               <div class="settings-editor" v-if="currentFundingSourceSettingRows.length">
                 <div class="settings-table">
@@ -1906,7 +1904,7 @@
             </div>
 
             <div v-else class="empty-state">
-              Select a funding source first.
+              No funding sources are defined for this fixture file.
             </div>
           </q-card-section>
         </q-card>
