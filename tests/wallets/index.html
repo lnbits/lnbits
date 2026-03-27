@@ -616,7 +616,7 @@
       .test-mock-item-top-row {
         display: grid;
         gap: 12px;
-        grid-template-columns: minmax(0, 1fr) auto;
+        grid-template-columns: minmax(0, 1fr) auto auto;
         align-items: end;
       }
 
@@ -637,6 +637,17 @@
         display: grid;
         gap: 12px;
         align-content: start;
+      }
+
+      .test-mock-item-column + .test-mock-item-column {
+        padding-left: 16px;
+        border-left: 1px solid rgba(25, 54, 61, 0.12);
+      }
+
+      .test-mock-item-toolbar {
+        display: flex;
+        justify-content: flex-end;
+        margin-bottom: 12px;
       }
 
       .test-mock-item-json {
@@ -1215,11 +1226,17 @@
         .mock-source-grid,
         .test-detail-grid,
         .test-mock-item-grid,
-        .test-mock-item-top-row,
         .test-mock-item-columns,
         .settings-row-grid,
         .settings-table-grid {
           grid-template-columns: 1fr;
+        }
+
+        .test-mock-item-column + .test-mock-item-column {
+          padding-left: 0;
+          border-left: 0;
+          padding-top: 12px;
+          border-top: 1px solid rgba(25, 54, 61, 0.12);
         }
 
         .picker-action-row,
@@ -1562,18 +1579,6 @@
                                   :key="`${mockSet.path}-binding-${activeTestMockBindingName(mockSet)}-item-${itemIndex}`"
                                   class="test-mock-item-card"
                                 >
-                                  <div class="section-title">
-                                    <div>
-                                      <h3>{{ testMockItemTitle(item, itemIndex) }}</h3>
-                                    </div>
-                                    <q-btn
-                                      color="negative"
-                                      outline
-                                      label="Remove"
-                                      @click="removeTestMockBindingItem(testEntry, mockSet, activeTestMockBinding(mockSet), itemIndex)"
-                                    ></q-btn>
-                                  </div>
-
                                   <template v-if="activeTestMockBindingMode(mockSet) === 'rest'">
                                     <div class="test-mock-item-top-row">
                                       <div>
@@ -1604,6 +1609,13 @@
                                           @update:model-value="setTestMockItemSkip(testEntry, mockSet, item, $event)"
                                         ></q-checkbox>
                                       </div>
+
+                                      <q-btn
+                                        color="negative"
+                                        outline
+                                        label="Remove"
+                                        @click="removeTestMockBindingItem(testEntry, mockSet, activeTestMockBinding(mockSet), itemIndex)"
+                                      ></q-btn>
                                     </div>
 
                                     <div class="test-mock-item-columns q-mt-md">
@@ -1706,6 +1718,15 @@
                                   </template>
 
                                   <template v-else>
+                                    <div class="test-mock-item-toolbar">
+                                      <q-btn
+                                        color="negative"
+                                        outline
+                                        label="Remove"
+                                        @click="removeTestMockBindingItem(testEntry, mockSet, activeTestMockBinding(mockSet), itemIndex)"
+                                      ></q-btn>
+                                    </div>
+
                                     <div v-if="testMockItemHasSkip(item)" class="q-mb-md">
                                       <q-checkbox
                                         :model-value="testMockItemSkip(item)"
@@ -1789,7 +1810,7 @@
                                 <q-btn
                                   color="primary"
                                   outline
-                                  label="Add Object"
+                                  label="Add Function Mock"
                                   :disable="!activeTestMockBinding(mockSet)"
                                   @click="addTestMockBindingItem(testEntry, mockSet, activeTestMockBinding(mockSet))"
                                 ></q-btn>
@@ -4004,15 +4025,6 @@
                 functionMockValue
               )
             ]
-          },
-          testMockItemTitle(item, itemIndex) {
-            const description = item?.descriptionText || ''
-
-            if (typeof description === 'string' && description.trim() !== '') {
-              return description.trim()
-            }
-
-            return `Test Mock Definition ${itemIndex + 1}`
           },
           testMockItemHasSkip(item) {
             return Boolean(item?.hasSkipField || item?.skip === true)
