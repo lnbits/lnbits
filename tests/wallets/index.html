@@ -1382,8 +1382,8 @@
                         :key="`${group.key}-${testEntry.index}-${entryIndex}`"
                         class="test-case-section"
                       >
-                        <div class="test-case-header">
-                          <div v-if="group.entries.length > 1">
+                        <div class="test-case-header" v-if="group.entries.length > 1">
+                          <div>
                             <h3
                               class="test-case-title"
                             >
@@ -1396,23 +1396,6 @@
                             >
                               Raw test {{ testEntry.index + 1 }}
                             </div>
-                          </div>
-
-                          <div class="pill-row">
-                            <q-chip
-                              dense
-                              square
-                              :color="testEntry.status.color"
-                              text-color="white"
-                            >
-                              {{ testEntry.status.label }}
-                            </q-chip>
-                            <q-chip dense square color="secondary" text-color="white">
-                              {{ currentTestFundingSource.name }}
-                            </q-chip>
-                            <q-chip dense square color="primary" text-color="white">
-                              {{ testEntry.variantCount }} generated variants
-                            </q-chip>
                           </div>
                         </div>
 
@@ -1488,7 +1471,7 @@
                               <q-btn
                                 color="primary"
                                 outline
-                                label="Mocks"
+                                :label="`Funding Source Mocks (${currentFunctionMockRows.length})`"
                                 :disable="!currentFunction || !currentTestFundingSource"
                                 @click="functionMocksDialog = true"
                               ></q-btn>
