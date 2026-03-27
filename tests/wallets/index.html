@@ -762,11 +762,18 @@
       .function-mock-cell-stack {
         display: grid;
         gap: 12px;
+        align-content: start;
       }
 
       .function-mock-subfield {
         display: grid;
         gap: 6px;
+        align-content: start;
+      }
+
+      .function-mock-cell-stack--rpc {
+        grid-auto-rows: min-content;
+        align-self: start;
       }
 
       .function-mock-json-cell {
@@ -1656,15 +1663,6 @@
                               </div>
                             </div>
 
-                            <div class="pill-row q-mt-md">
-                              <q-btn
-                                color="primary"
-                                outline
-                                label="Add Function Mock"
-                                @click="addTestMockBinding(testEntry, mockSet)"
-                              ></q-btn>
-                            </div>
-
                             <div v-if="mockSet.error" class="settings-error q-mt-sm">
                               {{ mockSet.error }}
                             </div>
@@ -1957,20 +1955,32 @@
                           </div>
                         </div>
 
-                        <div class="function-mock-cell-stack">
+                        <div
+                          class="function-mock-cell-stack"
+                          :class="{ 'function-mock-cell-stack--rpc': mockRow.requestType === 'function' }"
+                        >
                           <div class="function-mock-subfield">
-                            <input
+                            <q-select
                               :id="`function-mock-request-type-${mockRow.id}`"
                               v-model="mockRow.requestType"
-                              class="native-input"
-                              type="text"
-                              placeholder="json"
-                              spellcheck="false"
-                              @input="persistFunctionMocks({ silent: true })"
-                            />
+                              :options="functionMockRequestTypeOptions"
+                              emit-value
+                              map-options
+                              outlined
+                              dense
+                              options-dense
+                              behavior="menu"
+                              hide-dropdown-icon
+                              class="fixture-select"
+                              @update:model-value="handleFunctionMockRequestTypeChange(mockRow)"
+                            >
+                              <template v-slot:append>
+                                <span class="fixture-select-icon" aria-hidden="true">expand_more</span>
+                              </template>
+                            </q-select>
                             <div class="settings-hint">
-                              Request Type: Optional request payload format such as
-                              <code>json</code>.
+                              Request Type: Choose <code>REST</code> for HTTP mocks or
+                              <code>RPC</code> for Python patch mocks.
                             </div>
                           </div>
 
@@ -1980,16 +1990,16 @@
                               v-model="mockRow.method"
                               class="native-input"
                               type="text"
-                              placeholder="GET"
+                              :placeholder="mockRow.requestType === 'function' ? 'package.module.symbol' : 'GET'"
                               spellcheck="false"
                               @input="persistFunctionMocks({ silent: true })"
                             />
                             <div class="settings-hint">
-                              Method: HTTP verb or RPC method name used by this reusable mock.
+                              {{ functionMockMethodHint(mockRow) }}
                             </div>
                           </div>
 
-                          <div class="function-mock-subfield">
+                          <div v-if="mockRow.requestType !== 'function'" class="function-mock-subfield">
                             <input
                               :id="`function-mock-uri-${mockRow.id}`"
                               v-model="mockRow.uri"
@@ -2740,6 +2750,12 @@
               { label: 'Number', value: 'number' },
               { label: 'Null', value: 'null' },
               { label: 'JSON', value: 'json' }
+            ]
+          },
+          functionMockRequestTypeOptions() {
+            return [
+              { label: 'REST', value: '' },
+              { label: 'RPC', value: 'function' }
             ]
           },
           currentFundingSourceName() {
@@ -4031,6 +4047,22 @@
             }
 
             return mock
+          },
+          functionMockMethodHint(row) {
+            if (row?.requestType === 'function') {
+              return 'Method: Fully qualified Python function or constructor path used by this RPC mock.'
+            }
+
+            return 'Method: HTTP verb used by this REST mock, such as GET or POST.'
+          },
+          handleFunctionMockRequestTypeChange(row) {
+            row.requestType = row.requestType === 'function' ? 'function' : ''
+
+            if (row.requestType === 'function') {
+              row.uri = ''
+            }
+
+            this.persistFunctionMocks({ silent: true })
           },
           parseEditableTestJson(text, label) {
             const parsed = parseJsonText(text)
