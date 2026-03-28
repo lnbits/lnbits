@@ -1091,7 +1091,13 @@ async def update_invoice_callback(checking_id: str) -> Payment | None:
     status = await check_payment_status(
         payment, skip_internal_payment_notifications=True
     )
-    payment.fee = status.fee_msat or payment.fee
+    # Incoming payments should never have fees — fees are a sender-side concept.
+    # Without this guard, internal transfers (same instance) get fee_msat from the
+    # funding source equal to the full payment amount, zeroing out the balance.
+    if payment.is_in:
+        payment.fee = 0
+    else:
+        payment.fee = status.fee_msat or payment.fee
     # only overwrite preimage if status.preimage provides it
     payment.preimage = status.preimage or payment.preimage
     payment.status = PaymentState.SUCCESS
