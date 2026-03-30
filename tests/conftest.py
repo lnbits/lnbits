@@ -40,7 +40,9 @@ from tests.helpers import (
 asyncio.set_event_loop_policy(uvloop.EventLoopPolicy())
 
 ADMIN_USER_ID = uuid4().hex
-_PURE_SETTINGS = Settings()
+# Snapshot the initialized module settings instead of a fresh Settings() instance.
+# The module settings include runtime-populated values like `version`.
+_PURE_SETTINGS = copy.deepcopy(lnbits_settings)
 _PURE_SETTINGS_FIELDS = tuple(
     sorted(
         {
