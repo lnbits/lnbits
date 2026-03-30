@@ -9,15 +9,7 @@ from loguru import logger
 from lnbits.wallets import get_funding_source
 
 funding_source = get_funding_source()
-
-
-def is_boltz_wallet():
-    print(
-        "### funding_source.__class__.__name__ 2",
-        get_funding_source().__class__.__name__,
-    )
-    return get_funding_source().__class__.__name__ == "BoltzWallet"
-
+is_boltz_wallet = funding_source.__class__.__name__ == "BoltzWallet"
 
 docker_lightning_cli = [
     "docker",
