@@ -197,7 +197,7 @@ async def test_update_wallet_balance_validates_credit_and_debit(
 
         settings.lnbits_wallet_limit_max_balance = 0
         queue_mock = mocker.patch(
-            "lnbits.core.services.payments.internal_invoice_queue_put",
+            "lnbits.tasks.internal_invoice_queue_put",
             mocker.AsyncMock(),
         )
 
