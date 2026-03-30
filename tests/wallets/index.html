@@ -1811,6 +1811,10 @@
                                               spellcheck="false"
                                               @input="persistTestMockSet(testEntry, mockSet, { silent: true })"
                                             />
+                                            <div class="settings-hint q-mt-xs">
+                                              Test label for this RPC mock
+                                              variant.
+                                            </div>
                                           </div>
 
                                           <q-btn
@@ -1840,6 +1844,10 @@
                                               spellcheck="false"
                                               @input="persistTestMockSet(testEntry, mockSet, { silent: true })"
                                             />
+                                            <div class="settings-hint q-mt-xs">
+                                              Mocked RPC method name used by
+                                              the wallet code.
+                                            </div>
                                           </div>
 
                                           <div>
@@ -1858,6 +1866,84 @@
                                               spellcheck="false"
                                               @input="persistTestMockSet(testEntry, mockSet, { silent: true })"
                                             />
+                                            <div class="settings-hint q-mt-xs">
+                                              Optional label for the nested RPC
+                                              call.
+                                            </div>
+                                          </div>
+                                        </div>
+
+                                        <div
+                                          class="test-mock-item-pair-row q-mt-md"
+                                        >
+                                          <div>
+                                            <label
+                                              class="field-label"
+                                              :for="`test-mock-item-request-type-${group.key}-${testEntry.index}-${mockSetIndex}-${activeTestMockBindingName(mockSet)}-${itemIndex}`"
+                                            >
+                                              Request Type
+                                            </label>
+                                            <q-select
+                                              :id="`test-mock-item-request-type-${group.key}-${testEntry.index}-${mockSetIndex}-${activeTestMockBindingName(mockSet)}-${itemIndex}`"
+                                              :model-value="item.requestType"
+                                              :options="rpcTestMockRequestTypeOptions"
+                                              emit-value
+                                              map-options
+                                              outlined
+                                              dense
+                                              options-dense
+                                              behavior="menu"
+                                              hide-dropdown-icon
+                                              class="fixture-select"
+                                              @update:model-value="handleTestMockSelectChange(testEntry, mockSet, item, 'requestType', $event)"
+                                            >
+                                              <template v-slot:append>
+                                                <span
+                                                  class="fixture-select-icon"
+                                                  aria-hidden="true"
+                                                  >expand_more</span
+                                                >
+                                              </template>
+                                            </q-select>
+                                            <div class="settings-hint q-mt-xs">
+                                              How the mocked RPC callable is
+                                              invoked.
+                                            </div>
+                                          </div>
+
+                                          <div>
+                                            <label
+                                              class="field-label"
+                                              :for="`test-mock-item-rpc-response-type-${group.key}-${testEntry.index}-${mockSetIndex}-${activeTestMockBindingName(mockSet)}-${itemIndex}`"
+                                            >
+                                              Response Type
+                                            </label>
+                                            <q-select
+                                              :id="`test-mock-item-rpc-response-type-${group.key}-${testEntry.index}-${mockSetIndex}-${activeTestMockBindingName(mockSet)}-${itemIndex}`"
+                                              :model-value="item.rpcResponseType"
+                                              :options="rpcTestMockResponseTypeOptions"
+                                              emit-value
+                                              map-options
+                                              outlined
+                                              dense
+                                              options-dense
+                                              behavior="menu"
+                                              hide-dropdown-icon
+                                              class="fixture-select"
+                                              @update:model-value="handleTestMockSelectChange(testEntry, mockSet, item, 'rpcResponseType', $event)"
+                                            >
+                                              <template v-slot:append>
+                                                <span
+                                                  class="fixture-select-icon"
+                                                  aria-hidden="true"
+                                                  >expand_more</span
+                                                >
+                                              </template>
+                                            </q-select>
+                                            <div class="settings-hint q-mt-xs">
+                                              Return mode expected by the test
+                                              harness.
+                                            </div>
                                           </div>
                                         </div>
 
@@ -1868,53 +1954,76 @@
                                             <div>
                                               <label
                                                 class="field-label"
-                                                :for="`test-mock-item-request-type-${group.key}-${testEntry.index}-${mockSetIndex}-${activeTestMockBindingName(mockSet)}-${itemIndex}`"
+                                                :for="`test-mock-item-request-args-${group.key}-${testEntry.index}-${mockSetIndex}-${activeTestMockBindingName(mockSet)}-${itemIndex}`"
                                               >
-                                                Request Type
+                                                Request Args
                                               </label>
-                                              <q-select
-                                                :id="`test-mock-item-request-type-${group.key}-${testEntry.index}-${mockSetIndex}-${activeTestMockBindingName(mockSet)}-${itemIndex}`"
-                                                :model-value="item.requestType"
-                                                :options="rpcTestMockRequestTypeOptions"
-                                                emit-value
-                                                map-options
-                                                outlined
-                                                dense
-                                                options-dense
-                                                behavior="menu"
-                                                hide-dropdown-icon
-                                                class="fixture-select"
-                                                @update:model-value="handleTestMockSelectChange(testEntry, mockSet, item, 'requestType', $event)"
+                                              <textarea
+                                                :id="`test-mock-item-request-args-${group.key}-${testEntry.index}-${mockSetIndex}-${activeTestMockBindingName(mockSet)}-${itemIndex}`"
+                                                v-model="item.requestArgsText"
+                                                class="native-textarea test-mock-item-json"
+                                                spellcheck="false"
+                                                @input="persistTestMockSet(testEntry, mockSet, { silent: true })"
+                                              ></textarea>
+                                              <div class="settings-hint q-mt-xs">
+                                                JSON array of positional
+                                                arguments passed into the RPC
+                                                call.
+                                              </div>
+                                              <div
+                                                v-if="item.requestArgsError"
+                                                class="settings-error q-mt-sm"
                                               >
-                                                <template v-slot:append>
-                                                  <span
-                                                    class="fixture-select-icon"
-                                                    aria-hidden="true"
-                                                    >expand_more</span
-                                                  >
-                                                </template>
-                                              </q-select>
+                                                {{ item.requestArgsError }}
+                                              </div>
                                             </div>
 
                                             <div>
                                               <label
                                                 class="field-label"
-                                                :for="`test-mock-item-request-data-${group.key}-${testEntry.index}-${mockSetIndex}-${activeTestMockBindingName(mockSet)}-${itemIndex}`"
+                                                :for="`test-mock-item-request-kwargs-${group.key}-${testEntry.index}-${mockSetIndex}-${activeTestMockBindingName(mockSet)}-${itemIndex}`"
                                               >
-                                                Request Data
+                                                Request Kwargs
                                               </label>
                                               <textarea
-                                                :id="`test-mock-item-request-data-${group.key}-${testEntry.index}-${mockSetIndex}-${activeTestMockBindingName(mockSet)}-${itemIndex}`"
-                                                v-model="item.requestBodyText"
+                                                :id="`test-mock-item-request-kwargs-${group.key}-${testEntry.index}-${mockSetIndex}-${activeTestMockBindingName(mockSet)}-${itemIndex}`"
+                                                v-model="item.requestKwargsText"
                                                 class="native-textarea test-mock-item-json"
                                                 spellcheck="false"
                                                 @input="persistTestMockSet(testEntry, mockSet, { silent: true })"
                                               ></textarea>
+                                              <div class="settings-hint q-mt-xs">
+                                                JSON object of keyword
+                                                arguments passed into the RPC
+                                                call.
+                                              </div>
                                               <div
-                                                v-if="item.requestBodyError"
+                                                v-if="item.requestKwargsError"
                                                 class="settings-error q-mt-sm"
                                               >
-                                                {{ item.requestBodyError }}
+                                                {{ item.requestKwargsError }}
+                                              </div>
+                                            </div>
+
+                                            <div>
+                                              <label
+                                                class="field-label"
+                                                :for="`test-mock-item-request-class-${group.key}-${testEntry.index}-${mockSetIndex}-${activeTestMockBindingName(mockSet)}-${itemIndex}`"
+                                              >
+                                                Request Class
+                                              </label>
+                                              <input
+                                                :id="`test-mock-item-request-class-${group.key}-${testEntry.index}-${mockSetIndex}-${activeTestMockBindingName(mockSet)}-${itemIndex}`"
+                                                v-model="item.requestClassName"
+                                                class="native-input"
+                                                type="text"
+                                                placeholder="optional.import.path.ClassName"
+                                                spellcheck="false"
+                                                @input="persistTestMockSet(testEntry, mockSet, { silent: true })"
+                                              />
+                                              <div class="settings-hint q-mt-xs">
+                                                Optional request class used by
+                                                the RPC test harness.
                                               </div>
                                             </div>
                                           </div>
@@ -1923,40 +2032,9 @@
                                             <div>
                                               <label
                                                 class="field-label"
-                                                :for="`test-mock-item-rpc-response-type-${group.key}-${testEntry.index}-${mockSetIndex}-${activeTestMockBindingName(mockSet)}-${itemIndex}`"
-                                              >
-                                                Response Type
-                                              </label>
-                                              <q-select
-                                                :id="`test-mock-item-rpc-response-type-${group.key}-${testEntry.index}-${mockSetIndex}-${activeTestMockBindingName(mockSet)}-${itemIndex}`"
-                                                :model-value="item.rpcResponseType"
-                                                :options="rpcTestMockResponseTypeOptions"
-                                                emit-value
-                                                map-options
-                                                outlined
-                                                dense
-                                                options-dense
-                                                behavior="menu"
-                                                hide-dropdown-icon
-                                                class="fixture-select"
-                                                @update:model-value="handleTestMockSelectChange(testEntry, mockSet, item, 'rpcResponseType', $event)"
-                                              >
-                                                <template v-slot:append>
-                                                  <span
-                                                    class="fixture-select-icon"
-                                                    aria-hidden="true"
-                                                    >expand_more</span
-                                                  >
-                                                </template>
-                                              </q-select>
-                                            </div>
-
-                                            <div>
-                                              <label
-                                                class="field-label"
                                                 :for="`test-mock-item-response-${group.key}-${testEntry.index}-${mockSetIndex}-${activeTestMockBindingName(mockSet)}-${itemIndex}`"
                                               >
-                                                Response
+                                                Response Payload
                                               </label>
                                               <textarea
                                                 :id="`test-mock-item-response-${group.key}-${testEntry.index}-${mockSetIndex}-${activeTestMockBindingName(mockSet)}-${itemIndex}`"
@@ -1965,6 +2043,10 @@
                                                 spellcheck="false"
                                                 @input="persistTestMockSet(testEntry, mockSet, { silent: true })"
                                               ></textarea>
+                                              <div class="settings-hint q-mt-xs">
+                                                Business data returned by this
+                                                mocked RPC call.
+                                              </div>
                                               <div
                                                 v-if="item.responseError"
                                                 class="settings-error q-mt-sm"
@@ -3059,6 +3141,14 @@
             responseMap
           )[0] || ['', {}]
           const rpcCall = isPlainObject(rpcCallValue) ? rpcCallValue : {}
+          const requestData = isPlainObject(rpcCall.request_data)
+            ? rpcCall.request_data
+            : {}
+          const requestDataExtras = Object.fromEntries(
+            Object.entries(requestData).filter(
+              ([key]) => !['args', 'kwargs', 'klass'].includes(key)
+            )
+          )
 
           return {
             descriptionText:
@@ -3069,11 +3159,19 @@
               typeof rpcCall.request_type === 'string'
                 ? rpcCall.request_type
                 : 'function',
-            requestBodyText:
-              rpcCall.request_data !== undefined
-                ? safeStringify(rpcCall.request_data)
+            requestArgsText:
+              Object.prototype.hasOwnProperty.call(requestData, 'args')
+                ? safeStringify(requestData.args)
                 : '',
-            requestBodyError: '',
+            requestArgsError: '',
+            requestKwargsText:
+              Object.prototype.hasOwnProperty.call(requestData, 'kwargs')
+                ? safeStringify(requestData.kwargs)
+                : '',
+            requestKwargsError: '',
+            requestClassName:
+              typeof requestData.klass === 'string' ? requestData.klass : '',
+            requestDataExtras,
             responseType:
               typeof source.response_type === 'string'
                 ? source.response_type
@@ -4986,6 +5084,8 @@
               ;(binding.items || []).forEach(item => {
                 item.error = ''
                 item.requestBodyError = ''
+                item.requestArgsError = ''
+                item.requestKwargsError = ''
                 item.responseError = ''
               })
             })
@@ -5125,7 +5225,9 @@
                     rpcCallName ||
                     (item.rpcDescriptionText || '').trim() ||
                     (item.requestType || '').trim() ||
-                    (item.requestBodyText || '').trim() ||
+                    (item.requestArgsText || '').trim() ||
+                    (item.requestKwargsText || '').trim() ||
+                    (item.requestClassName || '').trim() ||
                     (item.rpcResponseType || '').trim() ||
                     (item.responseText || '').trim()
                   )
@@ -5155,16 +5257,30 @@
                       rpcCall.request_type = item.requestType.trim()
                     }
 
-                    if ((item.requestBodyText || '').trim() !== '') {
+                    const requestData = isPlainObject(item.requestDataExtras)
+                      ? deepClone(item.requestDataExtras)
+                      : {}
+
+                    if ((item.requestArgsText || '').trim() !== '') {
                       try {
-                        rpcCall.request_data = this.parseEditableTestJson(
-                          item.requestBodyText,
-                          `${mockName} request_data ${itemIndex + 1}`
+                        const parsedArgs = this.parseEditableTestJson(
+                          item.requestArgsText,
+                          `${mockName} request_data.args ${itemIndex + 1}`
                         )
+
+                        if (!Array.isArray(parsedArgs)) {
+                          throw new Error(
+                            `${mockName} request_data.args ${
+                              itemIndex + 1
+                            }: expected a JSON array`
+                          )
+                        }
+
+                        requestData.args = parsedArgs
                       } catch (error) {
-                        item.requestBodyError =
+                        item.requestArgsError =
                           error instanceof Error ? error.message : String(error)
-                        mockSet.error = item.requestBodyError
+                        mockSet.error = item.requestArgsError
                         if (!options.silent) {
                           this.notify(
                             'Could not save test mock definition.',
@@ -5174,6 +5290,45 @@
                         }
                         return
                       }
+                    }
+
+                    if ((item.requestKwargsText || '').trim() !== '') {
+                      try {
+                        const parsedKwargs = this.parseEditableTestJson(
+                          item.requestKwargsText,
+                          `${mockName} request_data.kwargs ${itemIndex + 1}`
+                        )
+
+                        if (!isPlainObject(parsedKwargs)) {
+                          throw new Error(
+                            `${mockName} request_data.kwargs ${
+                              itemIndex + 1
+                            }: expected a JSON object`
+                          )
+                        }
+
+                        requestData.kwargs = parsedKwargs
+                      } catch (error) {
+                        item.requestKwargsError =
+                          error instanceof Error ? error.message : String(error)
+                        mockSet.error = item.requestKwargsError
+                        if (!options.silent) {
+                          this.notify(
+                            'Could not save test mock definition.',
+                            'negative',
+                            mockSet.error
+                          )
+                        }
+                        return
+                      }
+                    }
+
+                    if ((item.requestClassName || '').trim() !== '') {
+                      requestData.klass = item.requestClassName.trim()
+                    }
+
+                    if (Object.keys(requestData).length > 0) {
+                      rpcCall.request_data = requestData
                     }
 
                     if ((item.rpcResponseType || '').trim() !== '') {
