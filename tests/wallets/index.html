@@ -1845,8 +1845,8 @@
                                               @input="persistTestMockSet(testEntry, mockSet, { silent: true })"
                                             />
                                             <div class="settings-hint q-mt-xs">
-                                              Mocked RPC method name used by
-                                              the wallet code.
+                                              Mocked RPC method name used by the
+                                              wallet code.
                                             </div>
                                           </div>
 
@@ -1965,7 +1965,9 @@
                                                 spellcheck="false"
                                                 @input="persistTestMockSet(testEntry, mockSet, { silent: true })"
                                               ></textarea>
-                                              <div class="settings-hint q-mt-xs">
+                                              <div
+                                                class="settings-hint q-mt-xs"
+                                              >
                                                 JSON array of positional
                                                 arguments passed into the RPC
                                                 call.
@@ -1992,10 +1994,11 @@
                                                 spellcheck="false"
                                                 @input="persistTestMockSet(testEntry, mockSet, { silent: true })"
                                               ></textarea>
-                                              <div class="settings-hint q-mt-xs">
-                                                JSON object of keyword
-                                                arguments passed into the RPC
-                                                call.
+                                              <div
+                                                class="settings-hint q-mt-xs"
+                                              >
+                                                JSON object of keyword arguments
+                                                passed into the RPC call.
                                               </div>
                                               <div
                                                 v-if="item.requestKwargsError"
@@ -2021,7 +2024,9 @@
                                                 spellcheck="false"
                                                 @input="persistTestMockSet(testEntry, mockSet, { silent: true })"
                                               />
-                                              <div class="settings-hint q-mt-xs">
+                                              <div
+                                                class="settings-hint q-mt-xs"
+                                              >
                                                 Optional request class used by
                                                 the RPC test harness.
                                               </div>
@@ -2043,7 +2048,9 @@
                                                 spellcheck="false"
                                                 @input="persistTestMockSet(testEntry, mockSet, { silent: true })"
                                               ></textarea>
-                                              <div class="settings-hint q-mt-xs">
+                                              <div
+                                                class="settings-hint q-mt-xs"
+                                              >
                                                 Business data returned by this
                                                 mocked RPC call.
                                               </div>
@@ -3159,15 +3166,19 @@
               typeof rpcCall.request_type === 'string'
                 ? rpcCall.request_type
                 : 'function',
-            requestArgsText:
-              Object.prototype.hasOwnProperty.call(requestData, 'args')
-                ? safeStringify(requestData.args)
-                : '',
+            requestArgsText: Object.prototype.hasOwnProperty.call(
+              requestData,
+              'args'
+            )
+              ? safeStringify(requestData.args)
+              : '',
             requestArgsError: '',
-            requestKwargsText:
-              Object.prototype.hasOwnProperty.call(requestData, 'kwargs')
-                ? safeStringify(requestData.kwargs)
-                : '',
+            requestKwargsText: Object.prototype.hasOwnProperty.call(
+              requestData,
+              'kwargs'
+            )
+              ? safeStringify(requestData.kwargs)
+              : '',
             requestKwargsError: '',
             requestClassName:
               typeof requestData.klass === 'string' ? requestData.klass : '',
