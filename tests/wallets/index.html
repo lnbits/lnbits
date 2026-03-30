@@ -1312,13 +1312,7 @@
             <div class="hero-copy">
               <div class="hero-eyebrow">Wallet Fixture Studio</div>
               <h1 class="hero-title">Test matrix for wallet funding sources</h1>
-              <p>
-                Browse and edit
-                <code>fixtures_rest.json</code>
-                and
-                <code>fixtures_rpc.json</code>
-                with the same expansion logic the wallet tests use.
-              </p>
+              <p><code>{{ currentLoadedFileName }}</code></p>
             </div>
 
             <div class="hero-actions">
@@ -3101,6 +3095,9 @@
         computed: {
           currentDataset() {
             return this.datasets[this.selectedDatasetKey]
+          },
+          currentLoadedFileName() {
+            return this.currentDataset.fileHandle?.name || this.currentDataset.fileName
           },
           currentFundingSources() {
             return this.currentDataset.analysis?.fundingSources || []
