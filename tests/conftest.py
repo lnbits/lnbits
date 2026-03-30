@@ -361,6 +361,7 @@ def _settings_cleanup(settings: Settings):
     _restore_pure_settings(settings)
     settings.auth_https_only = False
     settings.lnbits_data_folder = "./tests/data"
+    settings.bundle_assets = True
     settings.lnbits_admin_ui = True
     settings.lnbits_extensions_default_install = []
     settings.lnbits_extensions_deactivate_all = True
