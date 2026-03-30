@@ -43,7 +43,11 @@ ADMIN_USER_ID = uuid4().hex
 _PURE_SETTINGS = Settings()
 _PURE_SETTINGS_FIELDS = tuple(
     sorted(
-        set(Settings.readonly_fields())
+        {
+            field_name
+            for field_name in Settings.readonly_fields()
+            if field_name != "super_user"
+        }
         | {
             name
             for name in inspect.signature(EditableSettings).parameters
