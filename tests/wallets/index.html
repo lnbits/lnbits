@@ -4149,6 +4149,23 @@
               error: ''
             }
           },
+          nextGeneratedSettingKey() {
+            const existingKeys = new Set(
+              this.currentFundingSourceSettingRows
+                .map(row => (row.key || '').trim())
+                .filter(Boolean)
+            )
+
+            let index = 1
+            let candidate = `new_setting_${index}`
+
+            while (existingKeys.has(candidate)) {
+              index += 1
+              candidate = `new_setting_${index}`
+            }
+
+            return candidate
+          },
           createFunctionMockDraftRow(name = '', value = {}) {
             const mock = isPlainObject(value) ? value : {}
 
@@ -5449,7 +5466,10 @@
               this.selectedDatasetKey,
               this.currentFundingSourceName
             )
-            rows.push(this.createSettingsDraftRow('', ''))
+            rows.push(
+              this.createSettingsDraftRow(this.nextGeneratedSettingKey(), '')
+            )
+            this.persistFundingSourceSettings({silent: true})
           },
           handleFundingSourceSettingTypeChange(row) {
             if (row.type === 'boolean') {
