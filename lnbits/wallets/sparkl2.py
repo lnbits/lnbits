@@ -80,22 +80,40 @@ class SparkL2Wallet(Wallet):
 
     async def status(self) -> StatusResponse:
         try:
-            res = await self._request("POST", "/v1/balance")
-            status = res.get("status")
+            r = await self.client.post("/v1/balance", timeout=30)
+            r.raise_for_status()
+            data = r.json()
+            if not isinstance(data, dict) or len(data) == 0:
+                return StatusResponse("no data", 0)
+
+            error_message = self._extract_error_message(data)
+            if error_message:
+                return StatusResponse(self._server_error_message(error_message), 0)
+
+            status = data.get("status")
             if status == "missing_mnemonic":
                 await self._check_sidecar_mnemonic()
                 return StatusResponse("Spark sidecar mnemonic not set", 0)
 
-            balance_msat = res.get("balance_msat")
+            balance_msat = data.get("balance_msat")
             if balance_msat is not None:
                 return StatusResponse(None, int(balance_msat))
-            balance_sats = res.get("balance_sats")
+            balance_sats = data.get("balance_sats")
             if balance_sats is None:
-                return StatusResponse("Spark sidecar: missing balance.", 0)
+                return StatusResponse("no data", 0)
             return StatusResponse(None, int(balance_sats) * 1000)
+        except json.JSONDecodeError as e:
+            logger.warning(e)
+            return StatusResponse("Server error: 'invalid json response'", 0)
+        except httpx.HTTPStatusError as e:
+            logger.warning(e)
+            error_message = self._extract_http_error_message(e.response)
+            if error_message:
+                return StatusResponse(self._server_error_message(error_message), 0)
+            return StatusResponse(self._connect_error_message(), 0)
         except Exception as e:
             logger.warning(e)
-            return StatusResponse(f"Spark sidecar status error: {e}", 0)
+            return StatusResponse(self._connect_error_message(), 0)
 
     async def create_invoice(
         self,
@@ -121,13 +139,28 @@ class SparkL2Wallet(Wallet):
                 "description_hash": description_hash_hex,
                 "expiry_seconds": expiry_secs,
             }
-            res = await self._request("POST", "/v1/invoices", payload)
-            bolt11 = res.get("payment_request")
-            checking_id = res.get("checking_id")
+            r = await self.client.post("/v1/invoices", json=payload, timeout=30)
+            r.raise_for_status()
+            data = r.json()
+
+            if not isinstance(data, dict):
+                return InvoiceResponse(
+                    ok=False, error_message=self._server_error_message(r.text)
+                )
+
+            error_message = self._extract_error_message(data)
+            if error_message:
+                return InvoiceResponse(
+                    ok=False,
+                    error_message=self._server_error_message(error_message),
+                )
+
+            bolt11 = data.get("payment_request")
+            checking_id = data.get("checking_id")
             if not bolt11 or not checking_id:
                 return InvoiceResponse(
                     ok=False,
-                    error_message="Spark sidecar invoice response missing fields.",
+                    error_message="Server error: 'missing required fields'",
                 )
             self.pending_invoices.append(checking_id)
 
@@ -135,10 +168,24 @@ class SparkL2Wallet(Wallet):
                 ok=True,
                 payment_request=bolt11,
                 checking_id=checking_id,
-                preimage=res.get("preimage", None),
+                preimage=data.get("preimage", None),
             )
+        except json.JSONDecodeError:
+            return InvoiceResponse(
+                ok=False, error_message="Server error: 'invalid json response'"
+            )
+        except httpx.HTTPStatusError as e:
+            logger.warning(e)
+            error_message = self._extract_http_error_message(e.response)
+            if error_message:
+                return InvoiceResponse(
+                    ok=False,
+                    error_message=self._server_error_message(error_message),
+                )
+            return InvoiceResponse(ok=False, error_message=self._connect_error_message())
         except Exception as e:
-            return InvoiceResponse(ok=False, error_message=str(e))
+            logger.warning(e)
+            return InvoiceResponse(ok=False, error_message=self._connect_error_message())
 
     async def pay_invoice(self, bolt11: str, fee_limit_msat: int) -> PaymentResponse:
         try:
@@ -158,27 +205,53 @@ class SparkL2Wallet(Wallet):
                 "max_fee_sats": max_fee_sats,
                 "payment_hash": payment_hash,
             }
-            res = await self._request("POST", "/v1/payments", payload)
-            checking_id = payment_hash or res.get("checking_id")
+            r = await self.client.post("/v1/payments", json=payload, timeout=30)
+            r.raise_for_status()
+            data = r.json()
+
+            if not isinstance(data, dict):
+                return PaymentResponse(error_message=self._server_error_message(r.text))
+
+            error_message = self._extract_error_message(data)
+            if error_message:
+                return PaymentResponse(error_message=error_message)
+
+            if len(data) == 0:
+                return PaymentResponse(
+                    error_message="Server error: 'missing required fields'"
+                )
+
+            status = data.get("status")
+            fee_msat = data.get("fee_msat")
+            preimage = data.get("preimage")
+            ok = self._map_payment_ok(status) if status else None
+            if ok is False:
+                return PaymentResponse(ok=False)
+
+            checking_id = payment_hash or data.get("checking_id")
             if not checking_id:
                 return PaymentResponse(
-                    ok=False,
-                    error_message="Spark sidecar payment response missing checking_id.",
+                    error_message="Server error: 'missing required fields'"
                 )
-            status = res.get("status")
-            fee_msat = res.get("fee_msat")
-            ok = None
-            if status:
-                ok = self._map_payment_ok(status)
+
             return PaymentResponse(
                 ok=ok,
                 checking_id=checking_id,
                 fee_msat=int(fee_msat) if fee_msat is not None else None,
-                preimage=res.get("preimage"),
+                preimage=preimage,
             )
+        except json.JSONDecodeError:
+            return PaymentResponse(error_message="Server error: 'invalid json response'")
+        except httpx.HTTPStatusError as e:
+            logger.warning(e)
+            error_message = self._extract_http_error_message(e.response)
+            if error_message:
+                return PaymentResponse(error_message=error_message)
+            return PaymentResponse(error_message=self._connect_error_message())
 
         except Exception as e:
-            return PaymentResponse(ok=False, error_message=str(e))
+            logger.warning(e)
+            return PaymentResponse(error_message=self._connect_error_message())
 
     async def get_invoice_status(self, checking_id: str) -> PaymentStatus:
         try:
@@ -329,6 +402,32 @@ class SparkL2Wallet(Wallet):
         if mapped.failed:
             return False
         return None
+
+    def _connect_error_message(self) -> str:
+        return f"Unable to connect to {self.endpoint}."
+
+    @staticmethod
+    def _server_error_message(message: str) -> str:
+        return f"Server error: '{message}'"
+
+    @staticmethod
+    def _extract_error_message(data: Any) -> str | None:
+        if not isinstance(data, dict):
+            return None
+        for key in ("error", "message", "detail", "reason"):
+            value = data.get(key)
+            if value:
+                return str(value)
+        return None
+
+    def _extract_http_error_message(self, response: httpx.Response | None) -> str | None:
+        if response is None:
+            return None
+        try:
+            data = response.json()
+        except Exception:
+            return None
+        return self._extract_error_message(data)
 
     async def _check_sidecar_mnemonic(self):
         if settings.spark_l2_mnemonic:

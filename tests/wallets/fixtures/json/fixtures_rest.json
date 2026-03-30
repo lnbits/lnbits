@@ -49,6 +49,14 @@
         "phoenixd_api_password": "f171ba022a764e679eef950b21fb1c04f171ba022a764e679eef950b21fb1c04",
         "user_agent": "LNbits/Tests"
       }
+    },
+    "sparkl2": {
+      "wallet_class": "SparkL2Wallet",
+      "settings": {
+        "spark_l2_external_endpoint": "http://127.0.0.1:8555",
+        "spark_l2_external_api_key": "mock-spark-l2-api-key",
+        "user_agent": "LNbits/Tests"
+      }
     }
   },
   "functions": {
@@ -114,6 +122,16 @@
               "User-Agent": "LNbits/Tests"
             },
             "method": "GET"
+          }
+        },
+        "sparkl2": {
+          "status_endpoint": {
+            "uri": "/v1/balance",
+            "headers": {
+              "X-Api-Key": "mock-spark-l2-api-key",
+              "User-Agent": "LNbits/Tests"
+            },
+            "method": "POST"
           }
         }
       },
@@ -190,6 +208,16 @@
                   }
                 }
               ]
+            },
+            "sparkl2": {
+              "status_endpoint": [
+                {
+                  "response_type": "json",
+                  "response": {
+                    "balance_sats": 55
+                  }
+                }
+              ]
             }
           }
         },
@@ -255,6 +283,16 @@
                   "response": "test-error"
                 }
               ]
+            },
+            "sparkl2": {
+              "status_endpoint": [
+                {
+                  "response_type": "json",
+                  "response": {
+                    "error": "\"test-error\""
+                  }
+                }
+              ]
             }
           }
         },
@@ -313,6 +351,14 @@
                   "response": {}
                 }
               ]
+            },
+            "sparkl2": {
+              "status_endpoint": [
+                {
+                  "response_type": "json",
+                  "response": {}
+                }
+              ]
             }
           }
         },
@@ -365,6 +411,14 @@
               ]
             },
             "phoenixd": {
+              "status_endpoint": [
+                {
+                  "response_type": "data",
+                  "response": "data-not-json"
+                }
+              ]
+            },
+            "sparkl2": {
               "status_endpoint": [
                 {
                   "response_type": "data",
@@ -447,6 +501,17 @@
                   }
                 }
               ]
+            },
+            "sparkl2": {
+              "status_endpoint": [
+                {
+                  "response_type": "response",
+                  "response": {
+                    "response": "Not Found",
+                    "status": 404
+                  }
+                }
+              ]
             }
           }
         },
@@ -519,6 +584,16 @@
             "uri": "/createinvoice",
             "headers": {
               "Authorization": "Basic OmYxNzFiYTAyMmE3NjRlNjc5ZWVmOTUwYjIxZmIxYzA0ZjE3MWJhMDIyYTc2NGU2NzllZWY5NTBiMjFmYjFjMDQ=",
+              "User-Agent": "LNbits/Tests"
+            },
+            "method": "POST"
+          }
+        },
+        "sparkl2": {
+          "create_invoice_endpoint": {
+            "uri": "/v1/invoices",
+            "headers": {
+              "X-Api-Key": "mock-spark-l2-api-key",
               "User-Agent": "LNbits/Tests"
             },
             "method": "POST"
@@ -638,6 +713,24 @@
                   }
                 }
               ]
+            },
+            "sparkl2": {
+              "create_invoice_endpoint": [
+                {
+                  "request_type": "json",
+                  "request_body": {
+                    "amount_sats": 555,
+                    "memo": "Test Invoice",
+                    "description_hash": null,
+                    "expiry_seconds": null
+                  },
+                  "response_type": "json",
+                  "response": {
+                    "checking_id": "e35526a43d04e985594c0dfab848814f524b1c786598ec9a63beddb2d726ac96",
+                    "payment_request": "lnbc5550n1pnq9jg3sp52rvwstvjcypjsaenzdh0h30jazvzsf8aaye0julprtth9kysxtuspp5e5s3z7felv4t9zrcc6wpn7ehvjl5yzewanzl5crljdl3jgeffyhqdq2f38xy6t5wvxqzjccqpjrzjq0yzeq76ney45hmjlnlpvu0nakzy2g35hqh0dujq8ujdpr2e42pf2rrs6vqpgcsqqqqqqqqqqqqqqeqqyg9qxpqysgqwftcx89k5pp28435pgxfl2vx3ksemzxccppw2j9yjn0ngr6ed7wj8ztc0d5kmt2mvzdlcgrludhz7jncd5l5l9w820hc4clpwhtqj3gq62g66n"
+                  }
+                }
+              ]
             }
           }
         },
@@ -732,6 +825,23 @@
                   "response_type": "json",
                   "response": {
                     "message": "Test Error"
+                  }
+                }
+              ]
+            },
+            "sparkl2": {
+              "create_invoice_endpoint": [
+                {
+                  "request_type": "json",
+                  "request_body": {
+                    "amount_sats": 555,
+                    "memo": "Test Invoice",
+                    "description_hash": null,
+                    "expiry_seconds": null
+                  },
+                  "response_type": "json",
+                  "response": {
+                    "error": "Test Error"
                   }
                 }
               ]
@@ -845,6 +955,21 @@
                   }
                 }
               ]
+            },
+            "sparkl2": {
+              "create_invoice_endpoint": [
+                {
+                  "request_type": "json",
+                  "request_body": {
+                    "amount_sats": 555,
+                    "memo": "Test Invoice",
+                    "description_hash": null,
+                    "expiry_seconds": null
+                  },
+                  "response_type": "json",
+                  "response": {}
+                }
+              ]
             }
           }
         },
@@ -937,6 +1062,21 @@
                     "amountSat": "555000",
                     "description": "Test Invoice",
                     "externalId": ""
+                  },
+                  "response_type": "data",
+                  "response": "data-not-json"
+                }
+              ]
+            },
+            "sparkl2": {
+              "create_invoice_endpoint": [
+                {
+                  "request_type": "json",
+                  "request_body": {
+                    "amount_sats": 555,
+                    "memo": "Test Invoice",
+                    "description_hash": null,
+                    "expiry_seconds": null
                   },
                   "response_type": "data",
                   "response": "data-not-json"
@@ -1057,6 +1197,24 @@
                   }
                 }
               ]
+            },
+            "sparkl2": {
+              "create_invoice_endpoint": [
+                {
+                  "request_type": "json",
+                  "request_body": {
+                    "amount_sats": 555,
+                    "memo": "Test Invoice",
+                    "description_hash": null,
+                    "expiry_seconds": null
+                  },
+                  "response_type": "response",
+                  "response": {
+                    "response": "Not Found",
+                    "status": 404
+                  }
+                }
+              ]
             }
           }
         },
@@ -1151,6 +1309,16 @@
             "uri": "/payinvoice",
             "headers": {
               "Authorization": "Basic OmYxNzFiYTAyMmE3NjRlNjc5ZWVmOTUwYjIxZmIxYzA0ZjE3MWJhMDIyYTc2NGU2NzllZWY5NTBiMjFmYjFjMDQ=",
+              "User-Agent": "LNbits/Tests"
+            },
+            "method": "POST"
+          }
+        },
+        "sparkl2": {
+          "pay_invoice_endpoint": {
+            "uri": "/v1/payments",
+            "headers": {
+              "X-Api-Key": "mock-spark-l2-api-key",
               "User-Agent": "LNbits/Tests"
             },
             "method": "POST"
@@ -1309,6 +1477,24 @@
                   }
                 }
               ]
+            },
+            "sparkl2": {
+              "pay_invoice_endpoint": [
+                {
+                  "request_type": "json",
+                  "request_body": {
+                    "bolt11": "lnbc210n1pjlgal5sp5xr3uwlfm7ltumdjyukhys0z2rw6grgm8me9k4w9vn05zt9svzzjspp5ud2jdfpaqn5c2k2vphatsjypfafyk8rcvkvwexnrhmwm94ex4jtqdqu24hxjapq23jhxapqf9h8vmmfvdjscqpjrzjqta942048v7qxh5x7pxwplhmtwfl0f25cq23jh87rhx7lgrwwvv86r90guqqnwgqqqqqqqqqqqqqqpsqyg9qxpqysgqylngsyg960lltngzy90e8n22v4j2hvjs4l4ttuy79qqefjv8q87q9ft7uhwdjakvnsgk44qyhalv6ust54x98whl3q635hkwgsyw8xgqjl7jwu",
+                    "max_fee_sats": 25,
+                    "payment_hash": "e35526a43d04e985594c0dfab848814f524b1c786598ec9a63beddb2d726ac96"
+                  },
+                  "response_type": "json",
+                  "response": {
+                    "status": "LIGHTNING_PAYMENT_SUCCEEDED",
+                    "fee_msat": 30000,
+                    "preimage": "0000000000000000000000000000000000000000000000000000000000000000"
+                  }
+                }
+              ]
             }
           }
         },
@@ -1361,7 +1547,23 @@
             "alby": {},
             "eclair": [],
             "lnbits": [],
-            "phoenixd": []
+            "phoenixd": [],
+            "sparkl2": {
+              "pay_invoice_endpoint": [
+                {
+                  "request_type": "json",
+                  "request_body": {
+                    "bolt11": "lnbc210n1pjlgal5sp5xr3uwlfm7ltumdjyukhys0z2rw6grgm8me9k4w9vn05zt9svzzjspp5ud2jdfpaqn5c2k2vphatsjypfafyk8rcvkvwexnrhmwm94ex4jtqdqu24hxjapq23jhxapqf9h8vmmfvdjscqpjrzjqta942048v7qxh5x7pxwplhmtwfl0f25cq23jh87rhx7lgrwwvv86r90guqqnwgqqqqqqqqqqqqqqpsqyg9qxpqysgqylngsyg960lltngzy90e8n22v4j2hvjs4l4ttuy79qqefjv8q87q9ft7uhwdjakvnsgk44qyhalv6ust54x98whl3q635hkwgsyw8xgqjl7jwu",
+                    "max_fee_sats": 25,
+                    "payment_hash": "e35526a43d04e985594c0dfab848814f524b1c786598ec9a63beddb2d726ac96"
+                  },
+                  "response_type": "json",
+                  "response": {
+                    "status": "LIGHTNING_PAYMENT_FAILED"
+                  }
+                }
+              ]
+            }
           }
         },
         {
@@ -1505,7 +1707,24 @@
               }
             ],
             "lnbits": [],
-            "phoenixd": []
+            "phoenixd": [],
+            "sparkl2": {
+              "pay_invoice_endpoint": [
+                {
+                  "request_type": "json",
+                  "request_body": {
+                    "bolt11": "lnbc210n1pjlgal5sp5xr3uwlfm7ltumdjyukhys0z2rw6grgm8me9k4w9vn05zt9svzzjspp5ud2jdfpaqn5c2k2vphatsjypfafyk8rcvkvwexnrhmwm94ex4jtqdqu24hxjapq23jhxapqf9h8vmmfvdjscqpjrzjqta942048v7qxh5x7pxwplhmtwfl0f25cq23jh87rhx7lgrwwvv86r90guqqnwgqqqqqqqqqqqqqqpsqyg9qxpqysgqylngsyg960lltngzy90e8n22v4j2hvjs4l4ttuy79qqefjv8q87q9ft7uhwdjakvnsgk44qyhalv6ust54x98whl3q635hkwgsyw8xgqjl7jwu",
+                    "max_fee_sats": 25,
+                    "payment_hash": "e35526a43d04e985594c0dfab848814f524b1c786598ec9a63beddb2d726ac96"
+                  },
+                  "response_type": "json",
+                  "response": {
+                    "status": "PAYMENT_PENDING",
+                    "preimage": "0000000000000000000000000000000000000000000000000000000000000000"
+                  }
+                }
+              ]
+            }
           }
         },
         {
@@ -1595,6 +1814,22 @@
                   "response_type": "json",
                   "response": {
                     "reason": "Test Error"
+                  }
+                }
+              ]
+            },
+            "sparkl2": {
+              "pay_invoice_endpoint": [
+                {
+                  "request_type": "json",
+                  "request_body": {
+                    "bolt11": "lnbc210n1pjlgal5sp5xr3uwlfm7ltumdjyukhys0z2rw6grgm8me9k4w9vn05zt9svzzjspp5ud2jdfpaqn5c2k2vphatsjypfafyk8rcvkvwexnrhmwm94ex4jtqdqu24hxjapq23jhxapqf9h8vmmfvdjscqpjrzjqta942048v7qxh5x7pxwplhmtwfl0f25cq23jh87rhx7lgrwwvv86r90guqqnwgqqqqqqqqqqqqqqpsqyg9qxpqysgqylngsyg960lltngzy90e8n22v4j2hvjs4l4ttuy79qqefjv8q87q9ft7uhwdjakvnsgk44qyhalv6ust54x98whl3q635hkwgsyw8xgqjl7jwu",
+                    "max_fee_sats": 25,
+                    "payment_hash": "e35526a43d04e985594c0dfab848814f524b1c786598ec9a63beddb2d726ac96"
+                  },
+                  "response_type": "json",
+                  "response": {
+                    "error": "Test Error"
                   }
                 }
               ]
@@ -1693,6 +1928,20 @@
                     "paymentHash": "e35526a43d04e985594c0dfab848814f524b1c786598ec9a63beddb2d726ac96",
                     "routingFeeSat": -30
                   }
+                }
+              ]
+            },
+            "sparkl2": {
+              "pay_invoice_endpoint": [
+                {
+                  "request_type": "json",
+                  "request_body": {
+                    "bolt11": "lnbc210n1pjlgal5sp5xr3uwlfm7ltumdjyukhys0z2rw6grgm8me9k4w9vn05zt9svzzjspp5ud2jdfpaqn5c2k2vphatsjypfafyk8rcvkvwexnrhmwm94ex4jtqdqu24hxjapq23jhxapqf9h8vmmfvdjscqpjrzjqta942048v7qxh5x7pxwplhmtwfl0f25cq23jh87rhx7lgrwwvv86r90guqqnwgqqqqqqqqqqqqqqpsqyg9qxpqysgqylngsyg960lltngzy90e8n22v4j2hvjs4l4ttuy79qqefjv8q87q9ft7uhwdjakvnsgk44qyhalv6ust54x98whl3q635hkwgsyw8xgqjl7jwu",
+                    "max_fee_sats": 25,
+                    "payment_hash": "e35526a43d04e985594c0dfab848814f524b1c786598ec9a63beddb2d726ac96"
+                  },
+                  "response_type": "json",
+                  "response": {}
                 }
               ]
             }
@@ -1808,6 +2057,20 @@
                   "request_type": "json",
                   "request_body": {
                     "invoice": "lnbc5550n1pnq9jg3sp52rvwstvjcypjsaenzdh0h30jazvzsf8aaye0julprtth9kysxtuspp5e5s3z7felv4t9zrcc6wpn7ehvjl5yzewanzl5crljdl3jgeffyhqdq2f38xy6t5wvxqzjccqpjrzjq0yzeq76ney45hmjlnlpvu0nakzy2g35hqh0dujq8ujdpr2e42pf2rrs6vqpgcsqqqqqqqqqqqqqqeqqyg9qxpqysgqwftcx89k5pp28435pgxfl2vx3ksemzxccppw2j9yjn0ngr6ed7wj8ztc0d5kmt2mvzdlcgrludhz7jncd5l5l9w820hc4clpwhtqj3gq62g66n"
+                  },
+                  "response_type": "data",
+                  "response": "data-not-json"
+                }
+              ]
+            },
+            "sparkl2": {
+              "pay_invoice_endpoint": [
+                {
+                  "request_type": "json",
+                  "request_body": {
+                    "bolt11": "lnbc210n1pjlgal5sp5xr3uwlfm7ltumdjyukhys0z2rw6grgm8me9k4w9vn05zt9svzzjspp5ud2jdfpaqn5c2k2vphatsjypfafyk8rcvkvwexnrhmwm94ex4jtqdqu24hxjapq23jhxapqf9h8vmmfvdjscqpjrzjqta942048v7qxh5x7pxwplhmtwfl0f25cq23jh87rhx7lgrwwvv86r90guqqnwgqqqqqqqqqqqqqqpsqyg9qxpqysgqylngsyg960lltngzy90e8n22v4j2hvjs4l4ttuy79qqefjv8q87q9ft7uhwdjakvnsgk44qyhalv6ust54x98whl3q635hkwgsyw8xgqjl7jwu",
+                    "max_fee_sats": 25,
+                    "payment_hash": "e35526a43d04e985594c0dfab848814f524b1c786598ec9a63beddb2d726ac96"
                   },
                   "response_type": "data",
                   "response": "data-not-json"
@@ -1943,6 +2206,23 @@
                   }
                 }
               ]
+            },
+            "sparkl2": {
+              "pay_invoice_endpoint": [
+                {
+                  "request_type": "json",
+                  "request_body": {
+                    "bolt11": "lnbc210n1pjlgal5sp5xr3uwlfm7ltumdjyukhys0z2rw6grgm8me9k4w9vn05zt9svzzjspp5ud2jdfpaqn5c2k2vphatsjypfafyk8rcvkvwexnrhmwm94ex4jtqdqu24hxjapq23jhxapqf9h8vmmfvdjscqpjrzjqta942048v7qxh5x7pxwplhmtwfl0f25cq23jh87rhx7lgrwwvv86r90guqqnwgqqqqqqqqqqqqqqpsqyg9qxpqysgqylngsyg960lltngzy90e8n22v4j2hvjs4l4ttuy79qqefjv8q87q9ft7uhwdjakvnsgk44qyhalv6ust54x98whl3q635hkwgsyw8xgqjl7jwu",
+                    "max_fee_sats": 25,
+                    "payment_hash": "e35526a43d04e985594c0dfab848814f524b1c786598ec9a63beddb2d726ac96"
+                  },
+                  "response_type": "response",
+                  "response": {
+                    "response": "Not Found",
+                    "status": 404
+                  }
+                }
+              ]
             }
           }
         },
@@ -2026,6 +2306,16 @@
             "uri": "/payments/incoming/e35526a43d04e985594c0dfab848814f524b1c786598ec9a63beddb2d726ac96",
             "headers": {
               "Authorization": "Basic OmYxNzFiYTAyMmE3NjRlNjc5ZWVmOTUwYjIxZmIxYzA0ZjE3MWJhMDIyYTc2NGU2NzllZWY5NTBiMjFmYjFjMDQ=",
+              "User-Agent": "LNbits/Tests"
+            },
+            "method": "GET"
+          }
+        },
+        "sparkl2": {
+          "get_invoice_status_endpoint": {
+            "uri": "/v1/invoices/e35526a43d04e985594c0dfab848814f524b1c786598ec9a63beddb2d726ac96",
+            "headers": {
+              "X-Api-Key": "mock-spark-l2-api-key",
               "User-Agent": "LNbits/Tests"
             },
             "method": "GET"
@@ -2125,6 +2415,24 @@
                   }
                 }
               ]
+            },
+            "sparkl2": {
+              "get_invoice_status_endpoint": [
+                {
+                  "description": "LIGHTNING_PAYMENT_RECEIVED",
+                  "response_type": "json",
+                  "response": {
+                    "status": "LIGHTNING_PAYMENT_RECEIVED"
+                  }
+                },
+                {
+                  "description": "TRANSFER_COMPLETED",
+                  "response_type": "json",
+                  "response": {
+                    "status": "TRANSFER_COMPLETED"
+                  }
+                }
+              ]
             }
           }
         },
@@ -2193,7 +2501,8 @@
                   }
                 }
               ]
-            }
+            },
+            "sparkl2": {}
           }
         },
         {
@@ -2400,6 +2709,35 @@
                   "response": "data-not-json"
                 }
               ]
+            },
+            "sparkl2": {
+              "get_invoice_status_endpoint": [
+                {
+                  "description": "no data",
+                  "response_type": "json",
+                  "response": {}
+                },
+                {
+                  "description": "pending status",
+                  "response_type": "json",
+                  "response": {
+                    "status": "PAYMENT_PENDING"
+                  }
+                },
+                {
+                  "description": "bad json",
+                  "response_type": "data",
+                  "response": "data-not-json"
+                },
+                {
+                  "description": "http 404",
+                  "response_type": "response",
+                  "response": {
+                    "response": "Not Found",
+                    "status": 404
+                  }
+                }
+              ]
             }
           }
         },
@@ -2478,6 +2816,16 @@
             "uri": "/payments/outgoingbyhash/e35526a43d04e985594c0dfab848814f524b1c786598ec9a63beddb2d726ac96",
             "headers": {
               "Authorization": "Basic OmYxNzFiYTAyMmE3NjRlNjc5ZWVmOTUwYjIxZmIxYzA0ZjE3MWJhMDIyYTc2NGU2NzllZWY5NTBiMjFmYjFjMDQ=",
+              "User-Agent": "LNbits/Tests"
+            },
+            "method": "GET"
+          }
+        },
+        "sparkl2": {
+          "get_payment_status_endpoint": {
+            "uri": "/v1/payments/e35526a43d04e985594c0dfab848814f524b1c786598ec9a63beddb2d726ac96",
+            "headers": {
+              "X-Api-Key": "mock-spark-l2-api-key",
               "User-Agent": "LNbits/Tests"
             },
             "method": "GET"
@@ -2587,6 +2935,28 @@
                   }
                 }
               ]
+            },
+            "sparkl2": {
+              "get_payment_status_endpoint": [
+                {
+                  "description": "LIGHTNING_PAYMENT_SUCCEEDED",
+                  "response_type": "json",
+                  "response": {
+                    "status": "LIGHTNING_PAYMENT_SUCCEEDED",
+                    "fee_msat": 1000,
+                    "preimage": "0000000000000000000000000000000000000000000000000000000000000000"
+                  }
+                },
+                {
+                  "description": "TRANSFER_COMPLETED",
+                  "response_type": "json",
+                  "response": {
+                    "status": "TRANSFER_COMPLETED",
+                    "fee_msat": 1000,
+                    "preimage": "0000000000000000000000000000000000000000000000000000000000000000"
+                  }
+                }
+              ]
             }
           }
         },
@@ -2675,7 +3045,8 @@
                   }
                 }
               ]
-            }
+            },
+            "sparkl2": {}
           }
         },
         {
@@ -2931,6 +3302,35 @@
                   "description": "bad json",
                   "response_type": "data",
                   "response": "data-not-json"
+                }
+              ]
+            },
+            "sparkl2": {
+              "get_payment_status_endpoint": [
+                {
+                  "description": "pending status",
+                  "response_type": "json",
+                  "response": {
+                    "status": "PAYMENT_PENDING"
+                  }
+                },
+                {
+                  "description": "no data",
+                  "response_type": "json",
+                  "response": {}
+                },
+                {
+                  "description": "bad json",
+                  "response_type": "data",
+                  "response": "data-not-json"
+                },
+                {
+                  "description": "http 404",
+                  "response_type": "response",
+                  "response": {
+                    "response": "Not Found",
+                    "status": 404
+                  }
                 }
               ]
             }
