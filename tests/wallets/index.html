@@ -655,6 +655,10 @@
         align-items: end;
       }
 
+      .test-mock-item-pair-row--top {
+        align-items: start;
+      }
+
       .test-mock-item-skip {
         display: flex;
         align-items: center;
@@ -681,6 +685,50 @@
 
       .test-mock-item-json {
         min-height: 160px;
+      }
+
+      .request-detail-tabs {
+        margin-top: 12px;
+        border-radius: 8px;
+        background: rgba(22, 32, 40, 0.04);
+        padding: 4px;
+      }
+
+      .request-detail-tabs .q-tab {
+        flex: 1 1 0;
+        min-width: 0;
+        min-height: 42px;
+        border-radius: 4px !important;
+        color: var(--q-primary);
+        text-align: center;
+      }
+
+      .request-detail-tabs .q-tab__content {
+        align-items: center;
+        justify-content: center;
+        width: 100%;
+      }
+
+      .request-detail-tabs .q-tab--active {
+        background: var(--q-primary);
+        color: white;
+      }
+
+      .request-detail-tabs .q-tab--active,
+      .request-detail-tabs .q-tab--active .q-tab__label {
+        color: white !important;
+      }
+
+      .request-detail-panels {
+        margin-top: 10px;
+        border: 1px solid rgba(25, 54, 61, 0.08);
+        border-radius: 8px;
+        background: rgba(255, 255, 255, 0.7);
+        box-shadow: none;
+      }
+
+      .request-detail-panel {
+        padding: 12px;
       }
 
       .test-mock-item-full {
@@ -1826,7 +1874,7 @@
                                         </div>
 
                                         <div
-                                          class="test-mock-item-pair-row q-mt-md"
+                                          class="test-mock-item-pair-row test-mock-item-pair-row--top"
                                         >
                                           <div>
                                             <label
@@ -1874,7 +1922,7 @@
                                         </div>
 
                                         <div
-                                          class="test-mock-item-pair-row q-mt-md"
+                                          class="test-mock-item-pair-row test-mock-item-pair-row--top"
                                         >
                                           <div>
                                             <label
@@ -1909,6 +1957,125 @@
                                               How the mocked RPC callable is
                                               invoked.
                                             </div>
+
+                                            <q-tabs
+                                              :model-value="rpcRequestDetailTab(testEntry, mockSet, itemIndex)"
+                                              align="justify"
+                                              dense
+                                              indicator-color="transparent"
+                                              no-caps
+                                              class="request-detail-tabs text-primary"
+                                              @update:model-value="setRpcRequestDetailTab(testEntry, mockSet, itemIndex, $event)"
+                                            >
+                                              <q-tab
+                                                name="class"
+                                                label="Request Class"
+                                              ></q-tab>
+                                              <q-tab
+                                                name="args"
+                                                label="Request Args"
+                                              ></q-tab>
+                                              <q-tab
+                                                name="kwargs"
+                                                label="Request Kwargs"
+                                              ></q-tab>
+                                            </q-tabs>
+
+                                            <q-tab-panels
+                                              :model-value="rpcRequestDetailTab(testEntry, mockSet, itemIndex)"
+                                              class="request-detail-panels"
+                                            >
+                                              <q-tab-panel
+                                                name="class"
+                                                class="request-detail-panel"
+                                              >
+                                                <label
+                                                  class="field-label"
+                                                  :for="`test-mock-item-request-class-${group.key}-${testEntry.index}-${mockSetIndex}-${activeTestMockBindingName(mockSet)}-${itemIndex}`"
+                                                >
+                                                  Request Class
+                                                </label>
+                                                <input
+                                                  :id="`test-mock-item-request-class-${group.key}-${testEntry.index}-${mockSetIndex}-${activeTestMockBindingName(mockSet)}-${itemIndex}`"
+                                                  v-model="item.requestClassName"
+                                                  class="native-input"
+                                                  type="text"
+                                                  placeholder="optional.import.path.ClassName"
+                                                  spellcheck="false"
+                                                  @input="persistTestMockSet(testEntry, mockSet, { silent: true })"
+                                                />
+                                                <div
+                                                  class="settings-hint q-mt-xs"
+                                                >
+                                                  Optional request class used
+                                                  by the RPC test harness.
+                                                </div>
+                                              </q-tab-panel>
+
+                                              <q-tab-panel
+                                                name="args"
+                                                class="request-detail-panel"
+                                              >
+                                                <label
+                                                  class="field-label"
+                                                  :for="`test-mock-item-request-args-${group.key}-${testEntry.index}-${mockSetIndex}-${activeTestMockBindingName(mockSet)}-${itemIndex}`"
+                                                >
+                                                  Request Args
+                                                </label>
+                                                <textarea
+                                                  :id="`test-mock-item-request-args-${group.key}-${testEntry.index}-${mockSetIndex}-${activeTestMockBindingName(mockSet)}-${itemIndex}`"
+                                                  v-model="item.requestArgsText"
+                                                  class="native-textarea test-mock-item-json"
+                                                  spellcheck="false"
+                                                  @input="persistTestMockSet(testEntry, mockSet, { silent: true })"
+                                                ></textarea>
+                                                <div
+                                                  class="settings-hint q-mt-xs"
+                                                >
+                                                  JSON array of positional
+                                                  arguments passed into the RPC
+                                                  call.
+                                                </div>
+                                                <div
+                                                  v-if="item.requestArgsError"
+                                                  class="settings-error q-mt-sm"
+                                                >
+                                                  {{ item.requestArgsError }}
+                                                </div>
+                                              </q-tab-panel>
+
+                                              <q-tab-panel
+                                                name="kwargs"
+                                                class="request-detail-panel"
+                                              >
+                                                <label
+                                                  class="field-label"
+                                                  :for="`test-mock-item-request-kwargs-${group.key}-${testEntry.index}-${mockSetIndex}-${activeTestMockBindingName(mockSet)}-${itemIndex}`"
+                                                >
+                                                  Request Kwargs
+                                                </label>
+                                                <textarea
+                                                  :id="`test-mock-item-request-kwargs-${group.key}-${testEntry.index}-${mockSetIndex}-${activeTestMockBindingName(mockSet)}-${itemIndex}`"
+                                                  v-model="item.requestKwargsText"
+                                                  class="native-textarea test-mock-item-json"
+                                                  spellcheck="false"
+                                                  @input="persistTestMockSet(testEntry, mockSet, { silent: true })"
+                                                ></textarea>
+                                                <div
+                                                  class="settings-hint q-mt-xs"
+                                                >
+                                                  JSON object of keyword
+                                                  arguments passed into the RPC
+                                                  call.
+                                                </div>
+                                                <div
+                                                  v-if="item.requestKwargsError"
+                                                  class="settings-error q-mt-sm"
+                                                >
+                                                  {{ item.requestKwargsError }}
+                                                </div>
+                                              </q-tab-panel>
+                                            </q-tab-panels>
                                           </div>
 
                                           <div>
@@ -1944,97 +2111,7 @@
                                               Return mode expected by the test
                                               harness.
                                             </div>
-                                          </div>
-                                        </div>
-
-                                        <div
-                                          class="test-mock-item-columns q-mt-md"
-                                        >
-                                          <div class="test-mock-item-column">
-                                            <div>
-                                              <label
-                                                class="field-label"
-                                                :for="`test-mock-item-request-args-${group.key}-${testEntry.index}-${mockSetIndex}-${activeTestMockBindingName(mockSet)}-${itemIndex}`"
-                                              >
-                                                Request Args
-                                              </label>
-                                              <textarea
-                                                :id="`test-mock-item-request-args-${group.key}-${testEntry.index}-${mockSetIndex}-${activeTestMockBindingName(mockSet)}-${itemIndex}`"
-                                                v-model="item.requestArgsText"
-                                                class="native-textarea test-mock-item-json"
-                                                spellcheck="false"
-                                                @input="persistTestMockSet(testEntry, mockSet, { silent: true })"
-                                              ></textarea>
-                                              <div
-                                                class="settings-hint q-mt-xs"
-                                              >
-                                                JSON array of positional
-                                                arguments passed into the RPC
-                                                call.
-                                              </div>
-                                              <div
-                                                v-if="item.requestArgsError"
-                                                class="settings-error q-mt-sm"
-                                              >
-                                                {{ item.requestArgsError }}
-                                              </div>
-                                            </div>
-
-                                            <div>
-                                              <label
-                                                class="field-label"
-                                                :for="`test-mock-item-request-kwargs-${group.key}-${testEntry.index}-${mockSetIndex}-${activeTestMockBindingName(mockSet)}-${itemIndex}`"
-                                              >
-                                                Request Kwargs
-                                              </label>
-                                              <textarea
-                                                :id="`test-mock-item-request-kwargs-${group.key}-${testEntry.index}-${mockSetIndex}-${activeTestMockBindingName(mockSet)}-${itemIndex}`"
-                                                v-model="item.requestKwargsText"
-                                                class="native-textarea test-mock-item-json"
-                                                spellcheck="false"
-                                                @input="persistTestMockSet(testEntry, mockSet, { silent: true })"
-                                              ></textarea>
-                                              <div
-                                                class="settings-hint q-mt-xs"
-                                              >
-                                                JSON object of keyword arguments
-                                                passed into the RPC call.
-                                              </div>
-                                              <div
-                                                v-if="item.requestKwargsError"
-                                                class="settings-error q-mt-sm"
-                                              >
-                                                {{ item.requestKwargsError }}
-                                              </div>
-                                            </div>
-
-                                            <div>
-                                              <label
-                                                class="field-label"
-                                                :for="`test-mock-item-request-class-${group.key}-${testEntry.index}-${mockSetIndex}-${activeTestMockBindingName(mockSet)}-${itemIndex}`"
-                                              >
-                                                Request Class
-                                              </label>
-                                              <input
-                                                :id="`test-mock-item-request-class-${group.key}-${testEntry.index}-${mockSetIndex}-${activeTestMockBindingName(mockSet)}-${itemIndex}`"
-                                                v-model="item.requestClassName"
-                                                class="native-input"
-                                                type="text"
-                                                placeholder="optional.import.path.ClassName"
-                                                spellcheck="false"
-                                                @input="persistTestMockSet(testEntry, mockSet, { silent: true })"
-                                              />
-                                              <div
-                                                class="settings-hint q-mt-xs"
-                                              >
-                                                Optional request class used by
-                                                the RPC test harness.
-                                              </div>
-                                            </div>
-                                          </div>
-
-                                          <div class="test-mock-item-column">
-                                            <div>
+                                            <div class="q-mt-md">
                                               <label
                                                 class="field-label"
                                                 :for="`test-mock-item-response-${group.key}-${testEntry.index}-${mockSetIndex}-${activeTestMockBindingName(mockSet)}-${itemIndex}`"
@@ -3304,6 +3381,7 @@
           const functionMockDrafts = {}
           const selectedFunctionByDataset = {}
           const selectedFundingSourceByDataset = {}
+          const selectedRpcRequestDetailTabByScope = {}
           const selectedTestMockBindingByScope = {}
           const selectedTestFundingSourceByDataset = {}
           const settingsDrafts = {}
@@ -3326,6 +3404,7 @@
             settingsDraftRowId: 0,
             settingsDrafts,
             selectedDatasetKey: 'rest',
+            selectedRpcRequestDetailTabByScope,
             selectedTestMockBindingByScope,
             selectedTestFundingSourceByDataset,
             selectedTestTypeByScope: {},
@@ -3860,6 +3939,7 @@
 
             this.functionMockDrafts = {}
             this.settingsDrafts = {}
+            this.selectedRpcRequestDetailTabByScope = {}
             this.selectedTestMockBindingByScope = {}
             this.selectedTestTypeByScope = {}
             this.functionMockDraftRowId = 0
@@ -4025,6 +4105,8 @@
                 selectedFunctionByDataset: this.selectedFunctionByDataset,
                 selectedFundingSourceByDataset:
                   this.selectedFundingSourceByDataset,
+                selectedRpcRequestDetailTabByScope:
+                  this.selectedRpcRequestDetailTabByScope,
                 selectedTestMockBindingByScope:
                   this.selectedTestMockBindingByScope,
                 selectedTestFundingSourceByDataset:
@@ -4075,6 +4157,12 @@
                 this.selectedFundingSourceByDataset,
                 state.selectedFundingSourceByDataset
               )
+            }
+
+            if (isPlainObject(state.selectedRpcRequestDetailTabByScope)) {
+              this.selectedRpcRequestDetailTabByScope = {
+                ...state.selectedRpcRequestDetailTabByScope
+              }
             }
 
             if (isPlainObject(state.selectedTestMockBindingByScope)) {
@@ -5009,6 +5097,57 @@
             this.$nextTick(() => {
               this.persistTestMockSet(testEntry, mockSet, {silent: true})
             })
+          },
+          rpcRequestDetailScopeKey(testEntry, mockSet, itemIndex) {
+            if (
+              !this.currentFunctionName ||
+              !this.currentTestFundingSourceName
+            ) {
+              return ''
+            }
+
+            return [
+              this.selectedDatasetKey,
+              this.currentFunctionName,
+              this.currentTestFundingSourceName,
+              testEntry.index,
+              mockSet.setIndex,
+              this.activeTestMockBindingName(mockSet),
+              itemIndex
+            ].join(':')
+          },
+          rpcRequestDetailTab(testEntry, mockSet, itemIndex) {
+            const scopeKey = this.rpcRequestDetailScopeKey(
+              testEntry,
+              mockSet,
+              itemIndex
+            )
+            const currentValue = this.selectedRpcRequestDetailTabByScope[
+              scopeKey
+            ]
+
+            return ['class', 'args', 'kwargs'].includes(currentValue)
+              ? currentValue
+              : 'class'
+          },
+          setRpcRequestDetailTab(testEntry, mockSet, itemIndex, value) {
+            const scopeKey = this.rpcRequestDetailScopeKey(
+              testEntry,
+              mockSet,
+              itemIndex
+            )
+            if (!scopeKey) {
+              return
+            }
+
+            this.selectedRpcRequestDetailTabByScope[scopeKey] = [
+              'class',
+              'args',
+              'kwargs'
+            ].includes(value)
+              ? value
+              : 'class'
+            this.persistUiState()
           },
           parseEditableTestJson(text, label) {
             const parsed = parseJsonText(text)
