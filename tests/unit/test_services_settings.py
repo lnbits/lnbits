@@ -1,4 +1,3 @@
-
 import pytest
 from pydantic import ValidationError
 from pytest_mock.plugin import MockerFixture
