@@ -1,4 +1,6 @@
 import asyncio
+import copy
+import inspect
 from datetime import datetime, timezone
 from uuid import uuid4
 
@@ -23,7 +25,12 @@ from lnbits.core.services import create_user_account, update_wallet_balance
 from lnbits.core.services.payments import create_wallet_invoice
 from lnbits.core.views.auth_api import first_install
 from lnbits.db import DB_TYPE, SQLITE, Database
-from lnbits.settings import AuthMethods, FiatProviderLimits, Settings
+from lnbits.settings import (
+    AuthMethods,
+    EditableSettings,
+    FiatProviderLimits,
+    Settings,
+)
 from lnbits.settings import settings as lnbits_settings
 from lnbits.wallets.fake import FakeWallet
 from tests.helpers import (
@@ -33,6 +40,17 @@ from tests.helpers import (
 asyncio.set_event_loop_policy(uvloop.EventLoopPolicy())
 
 ADMIN_USER_ID = uuid4().hex
+_PURE_SETTINGS = Settings()
+_PURE_SETTINGS_FIELDS = tuple(
+    sorted(
+        set(Settings.readonly_fields())
+        | {
+            name
+            for name in inspect.signature(EditableSettings).parameters
+            if not name.startswith("_")
+        }
+    )
+)
 
 
 @pytest.fixture(scope="session")
@@ -328,7 +346,20 @@ async def new_user(username: str | None = None) -> User:
     return user
 
 
+def _restore_pure_settings(settings: Settings):
+    for field_name in _PURE_SETTINGS_FIELDS:
+        setattr(
+            settings, field_name, copy.deepcopy(getattr(_PURE_SETTINGS, field_name))
+        )
+
+
 def _settings_cleanup(settings: Settings):
+    _restore_pure_settings(settings)
+    settings.auth_https_only = False
+    settings.lnbits_data_folder = "./tests/data"
+    settings.lnbits_admin_ui = True
+    settings.lnbits_extensions_default_install = []
+    settings.lnbits_extensions_deactivate_all = True
     settings.lnbits_allow_new_accounts = True
     settings.lnbits_allowed_users = []
     settings.auth_allowed_methods = AuthMethods.all()
