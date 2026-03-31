@@ -4,6 +4,7 @@ import pytest
 
 from lnbits.db import (
     dict_to_model,
+    dict_to_submodel,
     insert_query,
     model_to_dict,
     update_query,
@@ -83,3 +84,22 @@ async def test_helpers_dict_to_model():
     assert m.active is True
     assert type(m.child) is DbTestModel2
     assert type(m.child.child) is DbTestModel
+
+
+@pytest.mark.anyio
+async def test_helpers_dict_to_submodel():
+    model = dict_to_submodel(
+        DbTestModel,
+        '{"id": 9, "name": "submodel", "value": "value"}',
+    )
+
+    assert model == DbTestModel(id=9, name="submodel", value="value")
+    assert dict_to_submodel(DbTestModel, "") is None
+    assert dict_to_submodel(DbTestModel, "null") is None
+
+
+@pytest.mark.anyio
+async def test_helpers_dict_to_model_ignores_unknown_fields():
+    model = dict_to_model({**test_dict, "ignored": "field"}, DbTestModel3)
+
+    assert model == test_data
