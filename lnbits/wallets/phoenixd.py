@@ -117,11 +117,12 @@ class PhoenixdWallet(Wallet):
             # PhoenixD description limited to 128 characters
             if description_hash:
                 data["descriptionHash"] = description_hash.hex()
+            elif unhashed_description:
+                data["descriptionHash"] = hashlib.sha256(
+                    unhashed_description
+                ).hexdigest()
             else:
-                desc = memo
-                if desc is None and unhashed_description:
-                    desc = unhashed_description.decode()
-                desc = desc or ""
+                desc = memo or ""
                 if len(desc) > 128:
                     data["descriptionHash"] = hashlib.sha256(desc.encode()).hexdigest()
                 else:
