@@ -652,9 +652,9 @@ class InstallableExtension(BaseModel):
         cls,
     ) -> None:
         cache_key = "extensions:installable"
-        extension_list: list[
-            InstallableExtension
-        ] = await cls._get_installable_extensions()
+        extension_list: list[InstallableExtension] = (
+            await cls._get_installable_extensions()
+        )
 
         cache.set(cache_key, extension_list, expiry=3600)
 
@@ -740,9 +740,9 @@ class InstallableExtension(BaseModel):
     async def get_extension_release(
         cls, ext_id: str, source_repo: str, archive: str, version: str
     ) -> ExtensionRelease | None:
-        all_releases: list[
-            ExtensionRelease
-        ] = await InstallableExtension.get_extension_releases(ext_id)
+        all_releases: list[ExtensionRelease] = (
+            await InstallableExtension.get_extension_releases(ext_id)
+        )
         selected_release = [
             r
             for r in all_releases
