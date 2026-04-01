@@ -58,6 +58,7 @@ class Manifest(BaseModel):
     featured: list[str] = []
     extensions: list[ExplicitRelease] = []
     repos: list[GitHubRelease] = []
+    profiles: dict[str, list[str]] = {}
 
 
 class GitHubRepoRelease(BaseModel):
@@ -308,7 +309,6 @@ class ExtensionRelease(BaseModel):
 
     @classmethod
     async def fetch_release_details(cls, details_link: str) -> dict | None:
-
         try:
             async with httpx.AsyncClient() as client:
                 resp = await client.get(details_link)
@@ -333,6 +333,7 @@ class ExtensionMeta(BaseModel):
     dependencies: list[str] = []
     archive: str | None = None
     featured: bool = False
+    profiles: dict[str, list[str]] = {}
     paid_features: str | None = None
     has_paid_release: bool = False
     has_free_release: bool = False
@@ -651,9 +652,9 @@ class InstallableExtension(BaseModel):
         cls,
     ) -> None:
         cache_key = "extensions:installable"
-        extension_list: list[InstallableExtension] = (
-            await cls._get_installable_extensions()
-        )
+        extension_list: list[
+            InstallableExtension
+        ] = await cls._get_installable_extensions()
 
         cache.set(cache_key, extension_list, expiry=3600)
 
@@ -680,6 +681,7 @@ class InstallableExtension(BaseModel):
 
                     meta = ext.meta or ExtensionMeta()
                     meta.featured = ext.id in manifest.featured
+                    meta.profiles = manifest.profiles
                     ext.meta = meta
                     extension_list += [ext]
 
@@ -695,6 +697,7 @@ class InstallableExtension(BaseModel):
                     ext.check_release_updates(release)
                     meta = ext.meta or ExtensionMeta()
                     meta.featured = ext.id in manifest.featured
+                    meta.profiles = manifest.profiles
                     ext.meta = meta
                     extension_list += [ext]
             except Exception as e:
@@ -737,9 +740,9 @@ class InstallableExtension(BaseModel):
     async def get_extension_release(
         cls, ext_id: str, source_repo: str, archive: str, version: str
     ) -> ExtensionRelease | None:
-        all_releases: list[ExtensionRelease] = (
-            await InstallableExtension.get_extension_releases(ext_id)
-        )
+        all_releases: list[
+            ExtensionRelease
+        ] = await InstallableExtension.get_extension_releases(ext_id)
         selected_release = [
             r
             for r in all_releases

@@ -292,7 +292,6 @@ async def api_deactivate_extension(ext_id: str) -> SimpleStatus:
 
 @extension_router.delete("/{ext_id}", dependencies=[Depends(check_admin)])
 async def api_uninstall_extension(ext_id: str) -> SimpleStatus:
-
     extension = await get_installed_extension(ext_id)
     if not extension:
         raise HTTPException(
@@ -333,9 +332,9 @@ async def api_uninstall_extension(ext_id: str) -> SimpleStatus:
 @extension_router.get("/{ext_id}/releases", dependencies=[Depends(check_admin)])
 async def get_extension_releases(ext_id: str) -> list[ExtensionRelease]:
     try:
-        extension_releases: list[ExtensionRelease] = (
-            await InstallableExtension.get_extension_releases(ext_id)
-        )
+        extension_releases: list[
+            ExtensionRelease
+        ] = await InstallableExtension.get_extension_releases(ext_id)
 
         installed_ext = await get_installed_extension(ext_id)
         if not installed_ext:
@@ -567,6 +566,17 @@ async def extensions(account_id: AccountId = Depends(check_account_id_exists)):
             "shortDescription": ext.short_description,
             "stars": ext.stars,
             "isFeatured": ext.meta.featured if ext.meta else False,
+            "profiles": (
+                [
+                    profile_name
+                    for profile_name, ext_ids in ext.meta.profiles.items()
+                    if ext.id in ext_ids
+                ]
+                if ext.meta and isinstance(ext.meta.profiles, dict)
+                else ext.meta.profiles
+                if ext.meta and isinstance(ext.meta.profiles, list)
+                else []
+            ),
             "dependencies": ext.meta.dependencies if ext.meta else "",
             "isInstalled": ext.id in installed_exts_ids,
             "hasDatabaseTables": next(

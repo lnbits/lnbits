@@ -7,7 +7,25 @@
             <q-tabs v-model="tab" active-color="primary" align="left">
               <q-tab name="installed" :label="$t('installed')"></q-tab>
               <q-tab name="all" :label="$t('all')"></q-tab>
-              <q-tab name="featured" :label="$t('featured')"></q-tab>
+              <q-btn-dropdown auto-close stretch flat :label="$t('profiles')">
+                <q-list>
+                  <q-item clickable v-close-popup @click="tab = 'featured'">
+                    <q-item-section>
+                      <q-item-label v-text="$t('featured')"></q-item-label>
+                    </q-item-section>
+                  </q-item>
+                  <q-item clickable v-close-popup @click="tab = 'merchant'">
+                    <q-item-section>
+                      <q-item-label v-text="$t('merchant')"></q-item-label>
+                    </q-item-section>
+                  </q-item>
+                  <q-item clickable v-close-popup @click="tab = 'nostr'">
+                    <q-item-section>
+                      <q-item-label>Nostr</q-item-label>
+                    </q-item-section>
+                  </q-item>
+                </q-list>
+              </q-btn-dropdown>
               <i
                 v-if="!g.user.admin && tab != 'installed'"
                 v-text="$t('only_admins_can_install')"

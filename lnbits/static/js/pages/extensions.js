@@ -106,13 +106,17 @@ window.PageExtensions = {
         }
       }
 
+      const isProfileTab = !['installed', 'all'].includes(tab)
+      const isInSelectedProfile = extension =>
+        extension.profiles?.includes(tab) ?? false
+
       this.filteredExtensions = this.extensions
         .filter(e => (tab === 'all' ? !e.isInstalled : true))
         .filter(e => (tab === 'installed' ? e.isInstalled : true))
         .filter(e =>
           tab === 'installed' ? (e.isActive ? true : !!this.g.user.admin) : true
         )
-        .filter(e => (tab === 'featured' ? e.isFeatured : true))
+        .filter(e => (isProfileTab ? isInSelectedProfile(e) : true))
         .filter(extensionNameContains(term))
         .map(e => ({
           ...e,
@@ -832,6 +836,7 @@ window.PageExtensions = {
     async fetchAllExtensions() {
       try {
         const {data} = await LNbits.api.request('GET', `/api/v1/extension/all`)
+        console.log('Fetched extensions', data)
         return data
       } catch (error) {
         console.warn(error)
