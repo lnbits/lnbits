@@ -837,8 +837,6 @@ window.PageExtensions = {
     async fetchAllExtensions() {
       try {
         const {data} = await LNbits.api.request('GET', `/api/v1/extension/all`)
-        console.log('Fetched extensions', data)
-        // collect profiles for the dropdown
         data.forEach(ext => {
           ext.profiles?.forEach(profile => this.profiles.add(profile))
         })
