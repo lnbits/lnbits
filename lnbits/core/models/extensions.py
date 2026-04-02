@@ -680,7 +680,6 @@ class InstallableExtension(BaseModel):
                         continue
 
                     meta = ext.meta or ExtensionMeta()
-                    meta.featured = ext.id in manifest.featured
                     meta.profiles = manifest.profiles
                     ext.meta = meta
                     extension_list += [ext]
@@ -696,7 +695,6 @@ class InstallableExtension(BaseModel):
                     ext = InstallableExtension.from_explicit_release(e)
                     ext.check_release_updates(release)
                     meta = ext.meta or ExtensionMeta()
-                    meta.featured = ext.id in manifest.featured
                     meta.profiles = manifest.profiles
                     ext.meta = meta
                     extension_list += [ext]

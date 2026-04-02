@@ -565,7 +565,6 @@ async def extensions(account_id: AccountId = Depends(check_account_id_exists)):
             "icon": ext.icon,
             "shortDescription": ext.short_description,
             "stars": ext.stars,
-            "isFeatured": ext.meta.featured if ext.meta else False,
             "profiles": (
                 [
                     profile_name

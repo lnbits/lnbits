@@ -9,19 +9,18 @@
               <q-tab name="all" :label="$t('all')"></q-tab>
               <q-btn-dropdown auto-close stretch flat :label="$t('profiles')">
                 <q-list>
-                  <q-item clickable v-close-popup @click="tab = 'featured'">
+                  <q-item
+                    clickable
+                    v-close-popup
+                    v-for="profile in profiles"
+                    @click="tab = profile"
+                    :key="profile"
+                  >
                     <q-item-section>
-                      <q-item-label v-text="$t('featured')"></q-item-label>
-                    </q-item-section>
-                  </q-item>
-                  <q-item clickable v-close-popup @click="tab = 'merchant'">
-                    <q-item-section>
-                      <q-item-label v-text="$t('merchant')"></q-item-label>
-                    </q-item-section>
-                  </q-item>
-                  <q-item clickable v-close-popup @click="tab = 'nostr'">
-                    <q-item-section>
-                      <q-item-label>Nostr</q-item-label>
+                      <q-item-label
+                        class="text-capitalize"
+                        v-text="profile"
+                      ></q-item-label>
                     </q-item-section>
                   </q-item>
                 </q-list>

@@ -10,6 +10,7 @@ window.PageExtensions = {
       tab: 'installed',
       manageExtensionTab: 'releases',
       filteredExtensions: [],
+      profiles: new Set(),
       updatableExtensions: [],
       showUninstallDialog: false,
       showManageExtensionDialog: false,
@@ -837,6 +838,10 @@ window.PageExtensions = {
       try {
         const {data} = await LNbits.api.request('GET', `/api/v1/extension/all`)
         console.log('Fetched extensions', data)
+        // collect profiles for the dropdown
+        data.forEach(ext => {
+          ext.profiles?.forEach(profile => this.profiles.add(profile))
+        })
         return data
       } catch (error) {
         console.warn(error)
