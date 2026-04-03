@@ -55,7 +55,6 @@ class GitHubRelease(BaseModel):
 
 
 class Manifest(BaseModel):
-    featured: list[str] = []
     extensions: list[ExplicitRelease] = []
     repos: list[GitHubRelease] = []
     profiles: dict[str, list[str]] = {}
@@ -332,7 +331,6 @@ class ExtensionMeta(BaseModel):
     payments: list[ReleasePaymentInfo] = []
     dependencies: list[str] = []
     archive: str | None = None
-    featured: bool = False
     profiles: dict[str, list[str]] = {}
     paid_features: str | None = None
     has_paid_release: bool = False
