@@ -297,6 +297,10 @@ class LndRestWallet(Wallet):
                     logger.info(f"LNDRest Payment failed: {reason}")
                     return PaymentFailedStatus()
                 elif status == "IN_FLIGHT":
+                    # Stay in the stream loop — LND will push the final
+                    # status (SUCCEEDED/FAILED) when the payment resolves.
+                    # No polling needed; the event loop is free while we
+                    # await the next line from the stream. See #3917.
                     logger.info(f"LNDRest Payment in flight: {checking_id}")
                     continue
 
