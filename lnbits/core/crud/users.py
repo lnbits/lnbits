@@ -38,7 +38,9 @@ async def create_account(
 
 
 async def get_accounts_count(conn: Connection | None = None) -> int:
-    row = await (conn or db).fetchone("SELECT COUNT(*) as count FROM accounts")
+    row: dict | None = await (conn or db).fetchone(
+        "SELECT COUNT(*) as count FROM accounts"
+    )
     return int(row["count"]) if row else 0
 
 
