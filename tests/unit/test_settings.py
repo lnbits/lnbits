@@ -217,10 +217,10 @@ def test_max_limits_are_env_only_settings():
     assert "lnbits_max_extensions" not in AdminSettings.__fields__
 
     with pytest.raises(ValidationError):
-        UpdateSettings(lnbits_max_users=1)
+        UpdateSettings.parse_obj({"lnbits_max_users": 1})
 
     with pytest.raises(ValidationError):
-        UpdateSettings(lnbits_max_extensions=1)
+        UpdateSettings.parse_obj({"lnbits_max_extensions": 1})
 
 
 def test_installed_extensions_settings_activate_and_deactivate_paths():
