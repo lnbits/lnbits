@@ -303,7 +303,6 @@ async def test_check_admin_settings_initializes_cache_and_marks_first_install(
         settings.first_install = previous_first_install
 
 
-@pytest.mark.anyio
 async def test_init_admin_settings_creates_account_and_wallet_when_missing():
     super_user = uuid4().hex
 
