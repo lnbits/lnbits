@@ -23,6 +23,7 @@ from ..crud import (
     get_account_by_email,
     get_account_by_pubkey,
     get_account_by_username,
+    get_accounts_count,
     get_super_settings,
     get_user_extensions,
     get_user_from_account,
@@ -55,6 +56,8 @@ async def create_user_account_no_ckeck(
     conn: Connection | None = None,
 ) -> User:
     async with db.reuse_conn(conn) if conn else db.connect() as conn:
+        await check_users_limit(conn)
+
         if account:
             account.validate_fields()
             if account.username and await get_account_by_username(
@@ -93,6 +96,15 @@ async def create_user_account_no_ckeck(
         raise ValueError("Cannot find user for account.")
 
     return user
+
+
+async def check_users_limit(conn: Connection | None = None):
+    if settings.lnbits_max_users == 0:
+        return
+
+    users_count = await get_accounts_count(conn=conn)
+    if users_count >= settings.lnbits_max_users:
+        raise ValueError("Max amount of users have been created")
 
 
 async def update_user_account(account: Account) -> Account:

@@ -37,6 +37,11 @@ async def create_account(
     return account
 
 
+async def get_accounts_count(conn: Connection | None = None) -> int:
+    row = await (conn or db).fetchone("SELECT COUNT(*) as count FROM accounts")
+    return int(row["count"]) if row else 0
+
+
 async def update_account(account: Account, conn: Connection | None = None) -> Account:
     account.updated_at = datetime.now(timezone.utc)
     await (conn or db).update("accounts", account)

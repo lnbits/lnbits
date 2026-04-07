@@ -90,6 +90,46 @@ async def test_install_extension_creates_new_extension_and_starts_background_wor
 
 
 @pytest.mark.anyio
+async def test_install_extension_rejects_when_max_extensions_limit_reached(
+    tmp_path, settings: Settings, mocker: MockerFixture
+):
+    ext_id = f"ext_{uuid4().hex[:8]}"
+    seed_ext_id = f"seed_{uuid4().hex[:8]}"
+    ext_info = make_installable_extension(ext_id)
+    original_data_folder = settings.lnbits_data_folder
+    original_extensions_path = settings.lnbits_extensions_path
+    original_max_extensions = settings.lnbits_max_extensions
+    mocker.patch.object(InstallableExtension, "download_archive", mocker.AsyncMock())
+    mocker.patch.object(InstallableExtension, "extract_archive")
+    mocker.patch(
+        "lnbits.core.services.extensions.get_db_version",
+        mocker.AsyncMock(return_value=0),
+    )
+    mocker.patch(
+        "lnbits.core.services.extensions.migrate_extension_database",
+        mocker.AsyncMock(),
+    )
+
+    try:
+        settings.lnbits_data_folder = str(tmp_path / "data")
+        settings.lnbits_extensions_path = str(tmp_path / "code")
+        settings.lnbits_max_extensions = 0
+        await create_installed_extension(make_installable_extension(seed_ext_id))
+        settings.lnbits_max_extensions = 1
+
+        with pytest.raises(
+            ValueError, match="Max amount of extensions have been installed"
+        ):
+            await install_extension(ext_info)
+    finally:
+        await delete_installed_extension(ext_id=ext_id)
+        await delete_installed_extension(ext_id=seed_ext_id)
+        settings.lnbits_data_folder = original_data_folder
+        settings.lnbits_extensions_path = original_extensions_path
+        settings.lnbits_max_extensions = original_max_extensions
+
+
+@pytest.mark.anyio
 async def test_install_extension_updates_existing_upgrade_and_preserves_payments(
     tmp_path, settings: Settings, mocker: MockerFixture
 ):

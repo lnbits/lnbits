@@ -9,6 +9,7 @@ from lnbits.core.crud import (
     delete_installed_extension,
     get_db_version,
     get_installed_extension,
+    get_installed_extensions_count,
     update_installed_extension_state,
 )
 from lnbits.core.crud.extensions import (
@@ -38,6 +39,8 @@ async def install_extension(
     if installed_ext and installed_ext.meta:
         ext_info.meta.payments = installed_ext.meta.payments
 
+    await check_extensions_limit(installed_ext)
+
     if not skip_download:
         await ext_info.download_archive()
 
@@ -61,6 +64,15 @@ async def install_extension(
     await start_extension_background_work(ext_info.id)
 
     return extension
+
+
+async def check_extensions_limit(installed_ext: InstallableExtension | None = None):
+    if settings.lnbits_max_extensions == 0 or installed_ext:
+        return
+
+    extensions_count = await get_installed_extensions_count()
+    if extensions_count >= settings.lnbits_max_extensions:
+        raise ValueError("Max amount of extensions have been installed")
 
 
 async def uninstall_extension(ext_id: str):
