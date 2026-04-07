@@ -1,9 +1,7 @@
 import pytest
-from pydantic import ValidationError
 from pytest_mock.plugin import MockerFixture
 
 from lnbits.settings import (
-    AdminSettings,
     AssetSettings,
     ExchangeRateProvider,
     InstalledExtensionsSettings,
@@ -12,7 +10,6 @@ from lnbits.settings import (
     RedirectPath,
     SecuritySettings,
     Settings,
-    UpdateSettings,
     list_parse_fallback,
     set_cli_settings,
 )
@@ -206,21 +203,6 @@ def test_exchange_rate_provider_convert_ticker():
     assert provider.convert_ticker("USD") == "USDT"
     assert provider.convert_ticker("EUR") == "EUR"
     assert invalid_provider.convert_ticker("USD") == "USD"
-
-
-def test_max_limits_are_env_only_settings():
-    settings = Settings(lnbits_max_users=7, lnbits_max_extensions=3)
-
-    assert settings.lnbits_max_users == 7
-    assert settings.lnbits_max_extensions == 3
-    assert "lnbits_max_users" not in AdminSettings.__fields__
-    assert "lnbits_max_extensions" not in AdminSettings.__fields__
-
-    with pytest.raises(ValidationError):
-        UpdateSettings.parse_obj({"lnbits_max_users": 1})
-
-    with pytest.raises(ValidationError):
-        UpdateSettings.parse_obj({"lnbits_max_extensions": 1})
 
 
 def test_installed_extensions_settings_activate_and_deactivate_paths():

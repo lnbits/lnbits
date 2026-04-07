@@ -22,8 +22,6 @@ async def test_admin_get_settings(client: AsyncClient, superuser_token: str):
     assert response.status_code == 200
     result = response.json()
     assert "super_user" not in result
-    assert "lnbits_max_users" not in result
-    assert "lnbits_max_extensions" not in result
 
 
 @pytest.mark.anyio

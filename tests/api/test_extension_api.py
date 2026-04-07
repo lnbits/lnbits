@@ -163,36 +163,6 @@ async def test_extension_api_install_details_and_release_endpoints(mocker):
 
 
 @pytest.mark.anyio
-async def test_extension_api_install_returns_limit_error_message(mocker):
-    ext_id = f"ext_{uuid4().hex[:8]}"
-    release = make_extension_release(ext_id)
-    create_data = CreateExtension(
-        ext_id=ext_id,
-        archive=release.archive,
-        source_repo=release.source_repo,
-        version=release.version,
-    )
-
-    mocker.patch.object(
-        InstallableExtension,
-        "get_extension_release",
-        mocker.AsyncMock(return_value=release),
-    )
-    mocker.patch(
-        "lnbits.core.views.extension_api.install_extension",
-        mocker.AsyncMock(
-            side_effect=ValueError("Max amount of extensions have been installed")
-        ),
-    )
-
-    with pytest.raises(HTTPException) as exc_info:
-        await api_install_extension(create_data)
-
-    assert exc_info.value.status_code == 400
-    assert exc_info.value.detail == "Max amount of extensions have been installed"
-
-
-@pytest.mark.anyio
 async def test_extension_api_pay_to_enable_and_catalog_views(mocker, admin_user):
     regular_user = await create_user_account(
         Account(

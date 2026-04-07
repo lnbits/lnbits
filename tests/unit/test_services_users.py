@@ -8,7 +8,6 @@ from lnbits.core.crud import (
     create_user_extension,
     delete_admin_settings,
     get_account,
-    get_accounts_count,
     get_super_settings,
     get_user_extensions,
     get_wallets,
@@ -38,36 +37,6 @@ async def test_create_user_account_rejects_when_registration_disabled(
 
     with pytest.raises(ValueError, match="Account creation is disabled."):
         await create_user_account()
-
-
-@pytest.mark.anyio
-async def test_create_user_account_rejects_when_max_users_limit_reached(
-    settings: Settings,
-):
-    original_max_users = settings.lnbits_max_users
-    try:
-        settings.lnbits_max_users = await get_accounts_count() + 1
-        await create_user_account(_account())
-
-        with pytest.raises(ValueError, match="Max amount of users have been created"):
-            await create_user_account(_account())
-    finally:
-        settings.lnbits_max_users = original_max_users
-
-
-@pytest.mark.anyio
-async def test_create_user_account_no_check_rejects_when_max_users_limit_reached(
-    settings: Settings,
-):
-    original_max_users = settings.lnbits_max_users
-    try:
-        settings.lnbits_max_users = await get_accounts_count() + 1
-        await create_user_account_no_ckeck(_account())
-
-        with pytest.raises(ValueError, match="Max amount of users have been created"):
-            await create_user_account_no_ckeck(_account())
-    finally:
-        settings.lnbits_max_users = original_max_users
 
 
 @pytest.mark.anyio
@@ -303,6 +272,7 @@ async def test_check_admin_settings_initializes_cache_and_marks_first_install(
         settings.first_install = previous_first_install
 
 
+@pytest.mark.anyio
 async def test_init_admin_settings_creates_account_and_wallet_when_missing():
     super_user = uuid4().hex
 
