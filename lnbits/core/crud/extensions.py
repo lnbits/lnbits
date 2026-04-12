@@ -90,6 +90,13 @@ async def get_installed_extensions(
     return all_extensions
 
 
+async def get_installed_extensions_count(conn: Connection | None = None) -> int:
+    row: dict | None = await (conn or db).fetchone(
+        "SELECT COUNT(*) as count FROM installed_extensions"
+    )
+    return int(row["count"]) if row else 0
+
+
 async def get_user_extension(
     user_id: str, extension: str, conn: Connection | None = None
 ) -> UserExtension | None:

@@ -1026,6 +1026,8 @@ class EnvSettings(LNbitsSettings):
 
     cleanup_wallets_days: int = Field(default=90, ge=0)
     funding_source_max_retries: int = Field(default=4, ge=0)
+    lnbits_max_users: int = Field(default=0, ge=0)
+    lnbits_max_extensions: int = Field(default=0, ge=0)
 
     @property
     def has_default_extension_path(self) -> bool:
