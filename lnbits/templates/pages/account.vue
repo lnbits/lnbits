@@ -262,7 +262,9 @@
                         <div
                           v-if="
                             'google-auth' in g.settings.authMethods ||
-                            'github-auth' in g.settings.authMethods
+                            'github-auth' in g.settings.authMethods ||
+                            'keycloak-auth' in g.settings.authMethods ||
+                            'oidc-auth' in g.settings.authMethods
                           "
                           class="col q-pa-sm text-h6"
                         >
@@ -308,6 +310,58 @@
                               ></q-img>
                             </q-avatar>
                             <div>GitHub</div>
+                          </q-btn>
+                        </div>
+                        <div
+                          v-if="'keycloak-auth' in g.settings.authMethods"
+                          class="col q-pa-sm"
+                        >
+                          <q-btn
+                            :href="`/api/v1/auth/keycloak?user_id=${g.user.id}`"
+                            type="a"
+                            outline
+                            no-caps
+                            color="grey"
+                            rounded
+                            class="full-width"
+                          >
+                            <q-avatar size="32px" class="q-mr-md">
+                              <q-img
+                                :src="
+                                  g.settings.keycloakIcon
+                                    ? g.settings.keycloakIcon
+                                    : '{{ static_url_for('static', 'images/keycloak-logo.png') }}'
+                                "
+                              ></q-img>
+                            </q-avatar>
+                            <div
+                              v-text="g.settings.keycloakOrg || 'Keycloak'"
+                            ></div>
+                          </q-btn>
+                        </div>
+                        <div
+                          v-if="'oidc-auth' in g.settings.authMethods"
+                          class="col q-pa-sm"
+                        >
+                          <q-btn
+                            :href="`/api/v1/auth/oidc?user_id=${g.user.id}`"
+                            type="a"
+                            outline
+                            no-caps
+                            color="grey"
+                            rounded
+                            class="full-width"
+                          >
+                            <q-avatar size="32px" class="q-mr-md">
+                              <q-img
+                                :src="
+                                  g.settings.oidcIcon
+                                    ? g.settings.oidcIcon
+                                    : '{{ static_url_for('static', 'images/generic-oidc-logo.svg') }}'
+                                "
+                              ></q-img>
+                            </q-avatar>
+                            <div v-text="g.settings.oidcOrg || 'OIDC'"></div>
                           </q-btn>
                         </div>
                       </div>

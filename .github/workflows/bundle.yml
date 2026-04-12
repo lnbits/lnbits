@@ -1,0 +1,29 @@
+name: bundle
+on:
+  workflow_call:
+
+jobs:
+  bundle:
+    permissions:
+      contents: write
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.head_ref }}
+      - uses: lnbits/lnbits/.github/actions/prepare@dev
+        with:
+          python-version: "3.10"
+          node-version: "24.x"
+          npm: true
+      - run: make bundle
+      - name: Commit and push bundle changes
+        run: |
+          git config user.name "alan"
+          git config user.email "alan@lnbits.com"
+          git add lnbits/static
+          if git diff --cached --quiet; then
+            exit 0
+          fi
+          git commit -m "chore: make bundle [skip ci]"
+          git push

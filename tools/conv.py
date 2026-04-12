@@ -136,12 +136,10 @@ def migrate_db(file: str, schema: str, exclude_tables: list[str] | None = None):
     assert os.path.isfile(file), f"{file} does not exist!"
 
     sqlite_cursor = get_sqlite_cursor(file)
-    tables = sqlite_cursor.execute(
-        """
+    tables = sqlite_cursor.execute("""
         SELECT name FROM sqlite_master
         WHERE type='table' AND name not like 'sqlite?_%' escape '?'
-    """
-    ).fetchall()
+    """).fetchall()
 
     for table in tables:
         table_name = table[0]
@@ -184,11 +182,9 @@ def build_table_columns(file: str, schema: str, table_name: str):
     sqlite_columns = sqlite_cursor.execute(
         f"PRAGMA table_info({table_name})"
     ).fetchall()
-    pg_cursor.execute(
-        f"""
+    pg_cursor.execute(f"""
         SELECT table_name, column_name, udt_name FROM information_schema.columns
-        WHERE table_schema = '{schema}'AND table_name   = '{table_name}';"""
-    )
+        WHERE table_schema = '{schema}'AND table_name   = '{table_name}';""")
     pg_columns = pg_cursor.fetchall()
 
     columns = []

@@ -447,6 +447,7 @@ class SecuritySettings(LNbitsSettings):
 
     lnbits_max_outgoing_payment_amount_sats: int = Field(default=10_000_000, ge=0)
     lnbits_max_incoming_payment_amount_sats: int = Field(default=10_000_000, ge=0)
+    first_install_token_confirmed: str | None = Field(default=None)
 
     def is_wallet_max_balance_exceeded(self, amount):
         return (
@@ -732,6 +733,7 @@ class FundingSourcesSettings(
     # How long to wait for the payment to be confirmed before returning a pending status
     # It will not fail the payment, it will make it return pending after the timeout
     lnbits_funding_source_pay_invoice_wait_seconds: int = Field(default=5, ge=0)
+    lnbits_funding_source_pending_interval_seconds: int = Field(default=1800, ge=0)
     funding_source_max_retries: int = Field(default=4, ge=0)
 
 
@@ -796,6 +798,7 @@ class AuthMethods(Enum):
     google_auth = "google-auth"
     github_auth = "github-auth"
     keycloak_auth = "keycloak-auth"
+    oidc_auth = "oidc-auth"
 
     @classmethod
     def all(cls):
@@ -806,6 +809,7 @@ class AuthMethods(Enum):
             AuthMethods.google_auth.value,
             AuthMethods.github_auth.value,
             AuthMethods.keycloak_auth.value,
+            AuthMethods.oidc_auth.value,
         ]
 
 
@@ -849,6 +853,14 @@ class KeycloakAuthSettings(LNbitsSettings):
     keycloak_client_secret: str = Field(default="")
     keycloak_client_custom_org: str | None = Field(default=None)
     keycloak_client_custom_icon: str | None = Field(default=None)
+
+
+class OidcAuthSettings(LNbitsSettings):
+    oidc_discovery_url: str = Field(default="")
+    oidc_client_id: str = Field(default="")
+    oidc_client_secret: str = Field(default="")
+    oidc_client_custom_org: str | None = Field(default=None)
+    oidc_client_custom_icon: str | None = Field(default=None)
 
 
 class AuditSettings(LNbitsSettings):
@@ -958,6 +970,7 @@ class EditableSettings(
     GoogleAuthSettings,
     GitHubAuthSettings,
     KeycloakAuthSettings,
+    OidcAuthSettings,
 ):
     @validator(
         "lnbits_admin_users",
@@ -993,6 +1006,9 @@ class EnvSettings(LNbitsSettings):
     debug: bool = Field(default=False)
     debug_database: bool = Field(default=False)
     bundle_assets: bool = Field(default=True)
+    # When enabled, auth cookies require HTTPS and SSO will reject insecure HTTP.
+    # Set to false for local/dev environments that run without TLS.
+    auth_https_only: bool = Field(default=True)
     host: str = Field(default="127.0.0.1")
     port: int = Field(default=5000, gt=0)
     forwarded_allow_ips: str = Field(default="*")
@@ -1010,10 +1026,19 @@ class EnvSettings(LNbitsSettings):
 
     cleanup_wallets_days: int = Field(default=90, ge=0)
     funding_source_max_retries: int = Field(default=4, ge=0)
+    lnbits_max_users: int = Field(default=0, ge=0)
+    lnbits_max_extensions: int = Field(default=0, ge=0)
 
     @property
     def has_default_extension_path(self) -> bool:
         return self.lnbits_extensions_path == "lnbits"
+
+    def has_first_install_token_changed(self) -> bool:
+        if not self.first_install_token:
+            return False
+        if not settings.first_install_token_confirmed:
+            return False
+        return self.first_install_token != settings.first_install_token_confirmed
 
     def check_auth_secret_key(self):
         if self.auth_secret_key:
@@ -1174,6 +1199,8 @@ class PublicSettings(BaseModel):
     auth_methods: list[str] = Field(alias="authMethods")
     keycloak_org: str | None = Field(alias="keycloakOrg")
     keycloak_icon: str | None = Field(alias="keycloakIcon")
+    oidc_org: str | None = Field(alias="oidcOrg")
+    oidc_icon: str | None = Field(alias="oidcIcon")
     has_holdinvoice: bool = Field(alias="hasHoldinvoice")
     has_nodemanager: bool = Field(alias="hasNodemanager")
     show_nodemanager: bool = Field(alias="showNodemanager")
@@ -1238,6 +1265,8 @@ class PublicSettings(BaseModel):
             authMethods=settings.auth_allowed_methods,
             keycloakOrg=settings.keycloak_client_custom_org,
             keycloakIcon=settings.keycloak_client_custom_icon,
+            oidcOrg=settings.oidc_client_custom_org,
+            oidcIcon=settings.oidc_client_custom_icon,
             hasHoldinvoice=settings.has_holdinvoice,
             hasNodemanager=settings.has_nodemanager,
             showNodemanager=settings.lnbits_node_ui and settings.has_nodemanager,

@@ -371,6 +371,16 @@ window.localisation.sk = {
   auth_keycloak_ci_hint:
     'Uistite sa, že URL spätného volania autorizácie je nastavená na https://{domain}/api/v1/auth/keycloak/token',
   auth_keycloak_cs_label: 'Tajný kľúč klienta Keycloak',
+  auth_keycloak_custom_org_label: 'Vlastná organizácia Keycloak',
+  auth_keycloak_custom_icon_label: 'Vlastná ikona Keycloak (URL)',
+  auth_oidc_label: 'URL zistenia OIDC',
+  auth_oidc_ci_label: 'ID klienta OIDC',
+  auth_oidc_ci_hint:
+    'Uistite sa, že URL spätného volania autorizácie je nastavená na https://{domain}/api/v1/auth/oidc/token',
+  auth_oidc_cs_label: 'Tajný kľúč klienta OIDC',
+  auth_oidc_custom_org_label:
+    'Názov vlastnej organizácie OIDC (napr. Zitadel, Authentik)',
+  auth_oidc_custom_icon_label: 'Vlastná ikona OIDC (URL)',
   currency_settings: 'Nastavenia meny',
   allowed_currencies: 'Povolené meny',
   allowed_currencies_hint: 'Obmedzte počet dostupných fiat mien',

@@ -200,7 +200,7 @@ async def index(
 ) -> HTMLResponse:
     return template_renderer().TemplateResponse(
         request,
-        "index.html",
+        "base.html",
         {
             "user": user.json(),
         },
@@ -211,7 +211,7 @@ async def index(
 @generic_router.get("/node/public")
 @generic_router.get("/first_install", dependencies=[Depends(check_first_install)])
 async def index_public(request: Request) -> HTMLResponse:
-    return template_renderer().TemplateResponse(request, "index.html", {"public": True})
+    return template_renderer().TemplateResponse(request, "base.html", {"public": True})
 
 
 @generic_router.get("/uuidv4/{hex_value}")

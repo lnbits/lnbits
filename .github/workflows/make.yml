@@ -14,7 +14,7 @@ on:
       python-version:
         description: "python version"
         type: string
-        default: "3.10"
+        default: "3.12"
 
 jobs:
   make:
@@ -22,7 +22,7 @@ jobs:
     strategy:
       matrix:
         os-version: ["ubuntu-24.04"]
-        node-version: ["18.x"]
+        node-version: ["24.x"]
     runs-on: ${{ matrix.os-version }}
     steps:
       - uses: actions/checkout@v4
