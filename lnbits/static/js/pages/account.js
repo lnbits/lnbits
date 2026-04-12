@@ -545,30 +545,55 @@ window.PageAccount = {
       if (file) {
         this.uploadAsset(file)
       }
+      e.target.value = null
     },
-    async uploadAsset(file) {
+    onBackgroundImageInput(e) {
+      const file = e.target.files[0]
+      if (file) {
+        this.uploadBackgroundImage(file)
+      }
+      e.target.value = null
+    },
+    async uploadAsset(
+      file,
+      {isPublic = this.assetsUploadToPublic, notifySuccess = true} = {}
+    ) {
       const formData = new FormData()
       formData.append('file', file)
       try {
-        await LNbits.api.request(
+        const {data} = await LNbits.api.request(
           'POST',
-          `/api/v1/assets?public_asset=${this.assetsUploadToPublic}`,
+          `/api/v1/assets?public_asset=${isPublic}`,
           null,
           formData,
           {
             headers: {'Content-Type': 'multipart/form-data'}
           }
         )
-        this.$q.notify({
-          type: 'positive',
-          message: 'Upload successful!',
-          icon: null
-        })
+        if (notifySuccess) {
+          this.$q.notify({
+            type: 'positive',
+            message: 'Upload successful!',
+            icon: null
+          })
+        }
         await this.getUserAssets()
+        return data
       } catch (e) {
         console.warn(e)
         LNbits.utils.notifyApiError(e)
       }
+    },
+    async uploadBackgroundImage(file) {
+      const asset = await this.uploadAsset(file, {
+        isPublic: false,
+        notifySuccess: false
+      })
+      if (!asset) {
+        return
+      }
+      const assetUrl = `${window.location.origin}/api/v1/assets/${asset.id}/thumbnail`
+      await this.siteCustomisationChanged({bgimageChoice: assetUrl})
     },
     async deleteAsset(asset) {
       LNbits.utils

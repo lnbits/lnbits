@@ -492,10 +492,28 @@
                           siteCustomisationChanged({bgimageChoice: $event})
                         "
                       >
+                        <template v-slot:append>
+                          <q-btn
+                            dense
+                            flat
+                            round
+                            icon="upload"
+                            @click="$refs.backgroundImageInput.click()"
+                          >
+                            <q-tooltip>Upload background image</q-tooltip>
+                          </q-btn>
+                        </template>
                         <q-tooltip
                           ><span v-text="$t('background_image')"></span
                         ></q-tooltip>
                       </q-input>
+                      <input
+                        type="file"
+                        ref="backgroundImageInput"
+                        accept="image/*"
+                        style="display: none"
+                        @change="onBackgroundImageInput"
+                      />
                     </div>
                   </div>
                   <div class="row q-mb-md">
