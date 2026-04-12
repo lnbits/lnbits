@@ -135,6 +135,8 @@ async def test_auth_api_first_install_success_and_validation(
         )
         assert success.status_code == 200
         assert success.json()["access_token"]
+        assert "cookie_access_token=" in success.headers["set-cookie"]
+        assert "Secure" not in success.headers["set-cookie"]
 
         updated_superuser = await get_account(settings.super_user, active_only=False)
         assert updated_superuser is not None
@@ -159,3 +161,43 @@ async def test_auth_api_first_install_success_and_validation(
         await update_account(restored_superuser)
         settings.first_install = original_first_install
         settings.first_install_token = original_first_install_token
+
+
+@pytest.mark.anyio
+async def test_auth_api_first_install_uses_secure_cookie_when_enabled(
+    http_client: AsyncClient, settings: Settings
+):
+    superuser = await get_account(settings.super_user, active_only=False)
+    assert superuser is not None
+
+    original_username = superuser.username
+    original_password_hash = superuser.password_hash
+    original_first_install = settings.first_install
+    original_auth_https_only = settings.auth_https_only
+
+    new_username = f"secure_{uuid4().hex[:8]}"
+
+    try:
+        settings.first_install = True
+        settings.auth_https_only = True
+
+        success = await http_client.put(
+            "/api/v1/auth/first_install",
+            json={
+                "username": new_username,
+                "password": "secret1234",
+                "password_repeat": "secret1234",
+            },
+        )
+
+        assert success.status_code == 200
+        assert "cookie_access_token=" in success.headers["set-cookie"]
+        assert "Secure" in success.headers["set-cookie"]
+    finally:
+        restored_superuser = await get_account(settings.super_user, active_only=False)
+        assert restored_superuser is not None
+        restored_superuser.username = original_username
+        restored_superuser.password_hash = original_password_hash
+        await update_account(restored_superuser)
+        settings.first_install = original_first_install
+        settings.auth_https_only = original_auth_https_only
