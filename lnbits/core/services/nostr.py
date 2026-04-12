@@ -29,18 +29,32 @@ async def send_nostr_dm(
     dm_event.sign(private_key_hex=from_private_key_hex)
     notification = dm_event.to_message()
 
-    ws_connections: list[WebSocket] = []
-    for relay in relays:
+    async def _publish(relay: str) -> WebSocket | None:
+        # websocket-client's create_connection and send are synchronous and
+        # will block the asyncio event loop on slow TCP/TLS handshakes,
+        # starving NWC and other WebSocket-based extensions. Offload to a
+        # worker thread and cap total time with wait_for so a single dead
+        # relay cannot stall the whole publish batch.
         try:
-            ws = create_connection(relay, timeout=2)
-            ws.send(notification)
-            ws_connections.append(ws)
+            ws = await asyncio.wait_for(
+                asyncio.to_thread(create_connection, relay, timeout=2),
+                timeout=3,
+            )
+            await asyncio.wait_for(
+                asyncio.to_thread(ws.send, notification),
+                timeout=3,
+            )
+            return ws
         except Exception as e:
             logger.warning(f"Error sending notification to relay {relay}: {e}")
+            return None
+
+    results = await asyncio.gather(*(_publish(r) for r in relays))
+    ws_connections: list[WebSocket] = [ws for ws in results if ws]
     await asyncio.sleep(1)
     for ws in ws_connections:
         try:
-            ws.close()
+            await asyncio.to_thread(ws.close)
         except Exception as e:
             logger.debug(f"Failed to close websocket connection: {e}")
 
