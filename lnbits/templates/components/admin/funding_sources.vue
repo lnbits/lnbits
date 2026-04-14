@@ -52,6 +52,7 @@
               :label="prop.label"
               :hint="prop.hint"
               :value="prop.value"
+              :readonly="prop.readonly || false"
             >
               <q-btn
                 v-if="prop.copy"

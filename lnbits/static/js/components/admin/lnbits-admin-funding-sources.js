@@ -205,11 +205,14 @@ window.app.component('lnbits-admin-funding-sources', {
             phoenixd_api_password: 'Key',
             phoenixd_data_dir: {
               label: 'Data Directory',
-              hint: 'Directory where phoenixd stores its data, including the seed phrase. Only needed if phoenixd is not running on the same machine as lnbits.'
+              hint: 'Directory where phoenixd stores its data, including the seed phrase.'
             },
             phoenixd_mnemonic: {
               label: 'Phoenixd Seed Phrase',
-              hint: 'Only available if phoenixd is in data folder'
+              hint: 'Only available if phoenixd data-dir is specified',
+              readonly: true,
+              copy: true,
+              qrcode: true
             }
           }
         ],
