@@ -63,6 +63,7 @@ class PhoenixdWallet(Wallet):
         }
 
         self.client = httpx.AsyncClient(base_url=self.endpoint, headers=self.headers)
+        self._seed_mnemonic_to_persist: str | None = None
         self._load_mnemonic_from_seed_file()
 
     async def cleanup(self):
@@ -72,6 +73,7 @@ class PhoenixdWallet(Wallet):
             logger.warning(f"Error closing wallet connection: {e}")
 
     async def status(self) -> StatusResponse:
+        await self._persist_loaded_mnemonic()
         try:
             r = await self.client.get("/getinfo", timeout=10)
             r.raise_for_status()
@@ -349,3 +351,19 @@ class PhoenixdWallet(Wallet):
             return
 
         settings.phoenixd_mnemonic = mnemonic
+        self._seed_mnemonic_to_persist = mnemonic
+
+    async def _persist_loaded_mnemonic(self):
+        if not self._seed_mnemonic_to_persist:
+            return
+
+        logger.info("Updating 'PHOENIXD_MNEMONIC' mnemonic settings.")
+        try:
+            from lnbits.core.crud.settings import set_settings_field
+
+            await set_settings_field(
+                "phoenixd_mnemonic", self._seed_mnemonic_to_persist
+            )
+            self._seed_mnemonic_to_persist = None
+        except Exception as exc:
+            logger.warning(f"Failed to persist Phoenixd mnemonic: {exc}")
