@@ -267,6 +267,8 @@ class LndRestWallet(Wallet):
             return PaymentPendingStatus()
 
         url = f"/v2/router/track/{checking_id}"
+        # Timeout prevents hanging forever if the stream stalls (e.g. LND bug).
+        # 5 minutes is generous — most payments resolve in seconds.
         async with self.client.stream("GET", url, timeout=30) as r:
             async for json_line in r.aiter_lines():
                 try:
@@ -299,8 +301,6 @@ class LndRestWallet(Wallet):
                 elif status == "IN_FLIGHT":
                     # Stay in the stream loop — LND will push the final
                     # status (SUCCEEDED/FAILED) when the payment resolves.
-                    # No polling needed; the event loop is free while we
-                    # await the next line from the stream. See #3917.
                     logger.info(f"LNDRest Payment in flight: {checking_id}")
                     continue
 
