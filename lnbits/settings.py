@@ -589,7 +589,7 @@ class ZBDFundingSource(LNbitsSettings):
 class PhoenixdFundingSource(LNbitsSettings):
     phoenixd_api_endpoint: str | None = Field(default="http://localhost:9740/")
     phoenixd_api_password: str | None = Field(default=None)
-    phoenixd_data_dir: str | None = Field(default="data/")
+    phoenixd_data_dir: str | None = Field(default=None)
     phoenixd_mnemonic: str | None = Field(default=None)
 
 

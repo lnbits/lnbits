@@ -325,7 +325,10 @@ class PhoenixdWallet(Wallet):
                 await asyncio.sleep(5)
 
     def _load_mnemonic_from_seed_file(self):
-        data_dir = settings.phoenixd_data_dir or "data/"
+        data_dir = settings.phoenixd_data_dir
+        if not data_dir:
+            return
+
         seed_path = Path(data_dir).expanduser() / "seed.dat"
         if not seed_path.is_file():
             return
