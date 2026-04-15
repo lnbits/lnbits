@@ -4,9 +4,11 @@ import hashlib
 import json
 import urllib.parse
 from collections.abc import AsyncGenerator
+from pathlib import Path
 from typing import Any
 
 import httpx
+from embit.bip39 import mnemonic_is_valid
 from httpx import RequestError, TimeoutException
 from loguru import logger
 from websockets import connect
@@ -61,6 +63,7 @@ class PhoenixdWallet(Wallet):
         }
 
         self.client = httpx.AsyncClient(base_url=self.endpoint, headers=self.headers)
+        self._load_mnemonic_from_seed_file()
 
     async def cleanup(self):
         try:
@@ -101,7 +104,6 @@ class PhoenixdWallet(Wallet):
         unhashed_description: bytes | None = None,
         **kwargs,
     ) -> InvoiceResponse:
-
         try:
             msats_amount = amount
             data: dict[str, Any] = {
@@ -309,7 +311,7 @@ class PhoenixdWallet(Wallet):
                             and message_json.get("type") == "payment_received"
                         ):
                             logger.info(
-                                f'payment-received: {message_json["paymentHash"]}'
+                                f"payment-received: {message_json['paymentHash']}"
                             )
                             yield message_json["paymentHash"]
 
@@ -319,3 +321,31 @@ class PhoenixdWallet(Wallet):
                     "retrying in 5 seconds"
                 )
                 await asyncio.sleep(5)
+
+    def _load_mnemonic_from_seed_file(self):
+        if settings.phoenixd_mnemonic:
+            return
+
+        data_dir = settings.phoenixd_data_dir or "data/"
+        seed_path = Path(data_dir).expanduser() / "seed.dat"
+        if not seed_path.is_file():
+            return
+
+        try:
+            mnemonic = seed_path.read_text(encoding="utf-8").strip()
+        except OSError as exc:
+            logger.warning(f"Failed to read Phoenixd seed file '{seed_path}': {exc}")
+            return
+
+        if not mnemonic:
+            logger.warning(f"Phoenixd seed file '{seed_path}' is empty.")
+            return
+
+        if not mnemonic_is_valid(mnemonic):
+            logger.warning(
+                f"Phoenixd seed file '{seed_path}' does not contain a valid "
+                "BIP39 mnemonic."
+            )
+            return
+
+        settings.phoenixd_mnemonic = mnemonic
