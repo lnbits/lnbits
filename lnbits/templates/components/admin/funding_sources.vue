@@ -36,14 +36,6 @@
           fund === formData.lnbits_backend_wallet_class
         "
       >
-        <!-- <div class="row">
-          <p v-if="fund === 'PhoenixdWallet'" class="col-12 q-my-md">
-            <span>
-              <q-icon name="warning" color="orange" size="xs"></q-icon>
-              <span v-text="$t('phoenixd_warning')"></span>
-            </span>
-          </p>
-        </div> -->
         <div
           class="row"
           v-for="([key, prop], i) in Object.entries(
