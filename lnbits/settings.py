@@ -324,7 +324,8 @@ class AssetSettings(LNbitsSettings):
             "heif",
             "heics",
             "text/plain",
-            "text/jsontext/xml",
+            "text/json",
+            "text/xml",
             "application/json",
             "application/pdf",
         ]
