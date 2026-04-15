@@ -14,7 +14,6 @@ from time import gmtime, strftime, time
 from typing import Any
 from uuid import uuid4
 
-from embit.bip39 import mnemonic_is_valid
 from loguru import logger
 from pydantic import BaseModel, BaseSettings, Extra, Field, validator
 
@@ -591,36 +590,6 @@ class PhoenixdFundingSource(LNbitsSettings):
     phoenixd_api_password: str | None = Field(default=None)
     phoenixd_data_dir: str | None = Field(default="data/")
     phoenixd_mnemonic: str | None = Field(default=None)
-
-    @validator("phoenixd_mnemonic", always=True)
-    @classmethod
-    def validate_phoenixd_mnemonic(cls, val, values):
-        if val:
-            return val
-
-        data_dir = values.get("phoenixd_data_dir") or "data/"
-        seed_path = Path(data_dir).expanduser() / "seed.dat"
-        if not seed_path.is_file():
-            return val
-
-        try:
-            mnemonic = seed_path.read_text(encoding="utf-8").strip()
-        except OSError as exc:
-            logger.warning(f"Failed to read Phoenixd seed file '{seed_path}': {exc}")
-            return val
-
-        if not mnemonic:
-            logger.warning(f"Phoenixd seed file '{seed_path}' is empty.")
-            return val
-
-        if not mnemonic_is_valid(mnemonic):
-            logger.warning(
-                f"Phoenixd seed file '{seed_path}' does not contain a valid "
-                "BIP39 mnemonic."
-            )
-            return val
-
-        return mnemonic
 
 
 class AlbyFundingSource(LNbitsSettings):
