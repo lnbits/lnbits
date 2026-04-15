@@ -325,9 +325,6 @@ class PhoenixdWallet(Wallet):
                 await asyncio.sleep(5)
 
     def _load_mnemonic_from_seed_file(self):
-        if settings.phoenixd_mnemonic:
-            return
-
         data_dir = settings.phoenixd_data_dir or "data/"
         seed_path = Path(data_dir).expanduser() / "seed.dat"
         if not seed_path.is_file():
@@ -335,6 +332,8 @@ class PhoenixdWallet(Wallet):
 
         try:
             mnemonic = seed_path.read_text(encoding="utf-8").strip()
+            if mnemonic == settings.phoenixd_mnemonic:
+                return
         except OSError as exc:
             logger.warning(f"Failed to read Phoenixd seed file '{seed_path}': {exc}")
             return
