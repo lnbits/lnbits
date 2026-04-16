@@ -275,6 +275,8 @@ window.localisation.en = {
   requires_server_restart:
     'Changing these settings requires a server restart to take effect.',
   funding_source_info: 'Select the active funding wallet',
+  phoenixd_warning:
+    "Phoenixd mnemonic is only available if phoenixd data-dir is specified and is readable by LNbits. It's not indicative of phoenixd not running. It just means LNbits cannot access the mnemonic to display it here.",
   latest_update: 'You are on the latest version {version}.',
   notifications: 'Notifications',
   notifications_configure: 'Configure Notifications',

@@ -4,9 +4,11 @@ import hashlib
 import json
 import urllib.parse
 from collections.abc import AsyncGenerator
+from pathlib import Path
 from typing import Any
 
 import httpx
+from embit.bip39 import mnemonic_is_valid
 from httpx import RequestError, TimeoutException
 from loguru import logger
 from websockets import connect
@@ -61,6 +63,8 @@ class PhoenixdWallet(Wallet):
         }
 
         self.client = httpx.AsyncClient(base_url=self.endpoint, headers=self.headers)
+        self._seed_mnemonic_to_persist: str | None = None
+        self._load_mnemonic_from_seed_file()
 
     async def cleanup(self):
         try:
@@ -69,6 +73,7 @@ class PhoenixdWallet(Wallet):
             logger.warning(f"Error closing wallet connection: {e}")
 
     async def status(self) -> StatusResponse:
+        await self._persist_loaded_mnemonic()
         try:
             r = await self.client.get("/getinfo", timeout=10)
             r.raise_for_status()
@@ -101,7 +106,6 @@ class PhoenixdWallet(Wallet):
         unhashed_description: bytes | None = None,
         **kwargs,
     ) -> InvoiceResponse:
-
         try:
             msats_amount = amount
             data: dict[str, Any] = {
@@ -309,7 +313,7 @@ class PhoenixdWallet(Wallet):
                             and message_json.get("type") == "payment_received"
                         ):
                             logger.info(
-                                f'payment-received: {message_json["paymentHash"]}'
+                                f"payment-received: {message_json['paymentHash']}"
                             )
                             yield message_json["paymentHash"]
 
@@ -319,3 +323,49 @@ class PhoenixdWallet(Wallet):
                     "retrying in 5 seconds"
                 )
                 await asyncio.sleep(5)
+
+    def _load_mnemonic_from_seed_file(self):
+        data_dir = settings.phoenixd_data_dir
+        if not data_dir:
+            return
+
+        seed_path = Path(data_dir).expanduser() / "seed.dat"
+        if not seed_path.is_file():
+            return
+
+        try:
+            mnemonic = seed_path.read_text(encoding="utf-8").strip()
+            if mnemonic == settings.phoenixd_mnemonic:
+                return
+        except OSError as exc:
+            logger.warning(f"Failed to read Phoenixd seed file '{seed_path}': {exc}")
+            return
+
+        if not mnemonic:
+            logger.warning(f"Phoenixd seed file '{seed_path}' is empty.")
+            return
+
+        if not mnemonic_is_valid(mnemonic):
+            logger.warning(
+                f"Phoenixd seed file '{seed_path}' does not contain a valid "
+                "BIP39 mnemonic."
+            )
+            return
+
+        settings.phoenixd_mnemonic = mnemonic
+        self._seed_mnemonic_to_persist = mnemonic
+
+    async def _persist_loaded_mnemonic(self):
+        if not self._seed_mnemonic_to_persist:
+            return
+
+        logger.info("Updating 'PHOENIXD_MNEMONIC' mnemonic settings.")
+        try:
+            from lnbits.core.crud.settings import set_settings_field
+
+            await set_settings_field(
+                "phoenixd_mnemonic", self._seed_mnemonic_to_persist
+            )
+            self._seed_mnemonic_to_persist = None
+        except Exception as exc:
+            logger.warning(f"Failed to persist Phoenixd mnemonic: {exc}")
