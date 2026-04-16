@@ -68,7 +68,7 @@ def create_llms_txt_route(app: FastAPI) -> None:
     """Add a /llms.txt endpoint to the app."""
 
     @app.get(
-        "/docs/llms.txt",
+        "/llms.txt",
         response_class=PlainTextResponse,
         include_in_schema=False,
         summary="Get LLM-friendly API documentation",
