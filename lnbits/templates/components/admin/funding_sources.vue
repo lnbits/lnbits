@@ -52,6 +52,7 @@
               :label="prop.label"
               :hint="prop.hint"
               :value="prop.value"
+              :readonly="prop.readonly || false"
             >
               <q-btn
                 v-if="prop.copy"
@@ -73,6 +74,15 @@
               ></q-btn>
             </q-input>
           </div>
+          <p
+            v-if="fund === 'PhoenixdWallet' && key === 'phoenixd_mnemonic'"
+            class="col-12 q-my-md"
+          >
+            <span>
+              <q-icon name="warning" color="orange" size="xs"></q-icon>
+              <span v-text="$t('phoenixd_warning')"></span>
+            </span>
+          </p>
         </div>
         <q-expansion-item
           v-if="

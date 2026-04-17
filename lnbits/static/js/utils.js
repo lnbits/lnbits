@@ -160,6 +160,46 @@ window._lnbitsUtils = {
       return null
     }
   },
+  isValidBech32(value) {
+    if (typeof value !== 'string') {
+      return false
+    }
+
+    const candidate = value.trim()
+    if (
+      !candidate ||
+      (candidate !== candidate.toLowerCase() &&
+        candidate !== candidate.toUpperCase())
+    ) {
+      return false
+    }
+
+    const normalized = candidate.toLowerCase()
+    const splitPosition = normalized.lastIndexOf('1')
+    if (splitPosition <= 0) {
+      return false
+    }
+
+    const humanReadablePart = normalized.substring(0, splitPosition)
+    const data = normalized.substring(splitPosition + 1)
+    if (data.length < 6) {
+      return false
+    }
+
+    if (
+      typeof bech32ToFiveBitArray !== 'function' ||
+      typeof verify_checksum !== 'function'
+    ) {
+      return false
+    }
+
+    const words = bech32ToFiveBitArray(data)
+    if (words.some(word => word < 0)) {
+      return false
+    }
+
+    return verify_checksum(humanReadablePart, words)
+  },
   async notifyApiError(error) {
     if (!error.response) {
       return console.error(error)

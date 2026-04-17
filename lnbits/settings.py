@@ -324,7 +324,8 @@ class AssetSettings(LNbitsSettings):
             "heif",
             "heics",
             "text/plain",
-            "text/json" "text/xml",
+            "text/json",
+            "text/xml",
             "application/json",
             "application/pdf",
         ]
@@ -447,6 +448,7 @@ class SecuritySettings(LNbitsSettings):
 
     lnbits_max_outgoing_payment_amount_sats: int = Field(default=10_000_000, ge=0)
     lnbits_max_incoming_payment_amount_sats: int = Field(default=10_000_000, ge=0)
+    first_install_token_confirmed: str | None = Field(default=None)
 
     def is_wallet_max_balance_exceeded(self, amount):
         return (
@@ -587,6 +589,8 @@ class ZBDFundingSource(LNbitsSettings):
 class PhoenixdFundingSource(LNbitsSettings):
     phoenixd_api_endpoint: str | None = Field(default="http://localhost:9740/")
     phoenixd_api_password: str | None = Field(default=None)
+    phoenixd_data_dir: str | None = Field(default=None)
+    phoenixd_mnemonic: str | None = Field(default=None)
 
 
 class AlbyFundingSource(LNbitsSettings):
@@ -1006,7 +1010,6 @@ class EnvSettings(LNbitsSettings):
     debug_database: bool = Field(default=False)
     bundle_assets: bool = Field(default=True)
     # When enabled, auth cookies require HTTPS and SSO will reject insecure HTTP.
-    # Set to false for local/dev environments that run without TLS.
     auth_https_only: bool = Field(default=True)
     host: str = Field(default="127.0.0.1")
     port: int = Field(default=5000, gt=0)
@@ -1025,10 +1028,19 @@ class EnvSettings(LNbitsSettings):
 
     cleanup_wallets_days: int = Field(default=90, ge=0)
     funding_source_max_retries: int = Field(default=4, ge=0)
+    lnbits_max_users: int = Field(default=0, ge=0)
+    lnbits_max_extensions: int = Field(default=0, ge=0)
 
     @property
     def has_default_extension_path(self) -> bool:
         return self.lnbits_extensions_path == "lnbits"
+
+    def has_first_install_token_changed(self) -> bool:
+        if not self.first_install_token:
+            return False
+        if not settings.first_install_token_confirmed:
+            return False
+        return self.first_install_token != settings.first_install_token_confirmed
 
     def check_auth_secret_key(self):
         if self.auth_secret_key:

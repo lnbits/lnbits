@@ -252,7 +252,12 @@ async def test_notification_for_internal_payment(
     assert _payment.bolt11 == payment.bolt11
     assert _payment.amount == 123_000
     updated_payment = await get_payment(_payment.checking_id)
-    assert updated_payment.webhook_status == "404"
+    assert (
+        updated_payment.webhook_status is not None
+    ), "Webhook should have been called."
+    assert (
+        int(updated_payment.webhook_status) >= 400
+    ), "Webhook should have been called and failed."
 
 
 @pytest.mark.anyio

@@ -69,7 +69,10 @@ jobs:
             --onefile \
             --name lnbits \
             --hidden-import=embit \
+            --hidden-import=bitstring.bitstore_bitarray \
             --collect-all embit \
+            --collect-all bitstring \
+            --collect-all bitarray \
             --collect-all lnbits \
             --collect-all sqlalchemy \
             --collect-all breez_sdk \
