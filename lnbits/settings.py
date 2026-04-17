@@ -620,6 +620,16 @@ class SparkL2FundingSource(LNbitsSettings):
     spark_l2_stream_keepalive_ms: int = Field(default=15000, ge=0)
 
 
+class ArkadeFundingSource(LNbitsSettings):
+    arkade_external_endpoint: str | None = Field(default="http://localhost:8765")
+    arkade_external_api_key: str | None = Field(default=None)
+    arkade_mnemonic: str | None = Field(default=None)
+    arkade_ark_server_url: str | None = Field(default="https://arkade.computer")
+    arkade_boltz_server_url: str | None = Field(
+        default="https://api.ark.boltz.exchange"
+    )
+
+
 class LnTipsFundingSource(LNbitsSettings):
     lntips_api_endpoint: str | None = Field(default=None)
     lntips_api_key: str | None = Field(default=None)
@@ -726,6 +736,7 @@ class FundingSourcesSettings(
     OpenNodeFundingSource,
     SparkFundingSource,
     SparkL2FundingSource,
+    ArkadeFundingSource,
     LnTipsFundingSource,
     NWCFundingSource,
     BreezSdkFundingSource,
@@ -1065,6 +1076,7 @@ class PersistenceSettings(LNbitsSettings):
 class SuperUserSettings(LNbitsSettings):
     lnbits_allowed_funding_sources: list[str] = Field(
         default=[
+            "ArkadeWallet",
             "AlbyWallet",
             "BoltzWallet",
             "BlinkWallet",

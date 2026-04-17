@@ -38,6 +38,37 @@ window.app.component('lnbits-admin-funding-sources', {
       showQRDialog: false,
       qrValue: '',
       rawFundingSources: [
+        [
+          'ArkadeWallet',
+          'Arkade',
+          {
+            arkade_external_endpoint: {
+              label: 'External Sidecar Endpoint',
+              hint: 'URL LNbits should use to reach the Arkade sidecar.',
+              value: 'http://localhost:8765'
+            },
+            arkade_mnemonic: {
+              label: 'Sidecar Mnemonic',
+              hint: 'Mnemonic for the Arkade wallet on the sidecar. If omitted, LNbits will generate one when the sidecar reports it is missing.',
+              value: ''
+            },
+            arkade_external_api_key: {
+              label: 'External Sidecar API Key',
+              hint: 'API key for authenticating with the Arkade sidecar if it requires authentication.',
+              value: ''
+            },
+            arkade_ark_server_url: {
+              label: 'ARKADE_ARK_SERVER_URL',
+              hint: 'Arkade operator URL used by the sidecar.',
+              value: 'https://arkade.computer'
+            },
+            arkade_boltz_server_url: {
+              label: 'ARKADE_BOLTZ_SERVER_URL',
+              hint: 'Boltz API URL used by the sidecar.',
+              value: 'https://api.ark.boltz.exchange'
+            }
+          }
+        ],
         ['VoidWallet', 'Void Wallet', null],
         [
           'FakeWallet',

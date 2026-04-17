@@ -5,6 +5,7 @@ import importlib
 from lnbits.settings import settings
 from lnbits.wallets.base import Feature, Wallet
 
+from .arkade import ArkadeWallet
 from .alby import AlbyWallet
 from .blink import BlinkWallet
 from .boltz import BoltzWallet
@@ -56,6 +57,7 @@ funding_source: Wallet = fake_wallet
 
 
 __all__ = [
+    "ArkadeWallet",
     "AlbyWallet",
     "BlinkWallet",
     "BoltzWallet",
