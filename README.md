@@ -46,7 +46,7 @@ Get yourself familiar and test on our demo server [demo.lnbits.com](https://demo
 
 LNbits is packaged with tools to help manage funds, such as a table of transactions, line chart of spending, export to csv. Each wallet also comes with its own API keys, to help partition the exposure of your funding source.
 
-<img alt="lnbits_wallet" src="docs/assets/wallet.jpg" /> 
+<img alt="lnbits_wallet" src="docs/assets/wallet.jpg" />
 
 ## LNbits extension universe
 
@@ -54,13 +54,13 @@ Extend YOUR LNbits to meet YOUR needs.
 
 All non-core features are installed as extensions, reducing your code base and making your LNbits unique to you. Extend your LNbits install in any direction, and even create and share your own extensions.
 
-<img alt="lnbits_extensions" src="docs/assets/extensions.jpg" /> 
+<img alt="lnbits_extensions" src="docs/assets/extensions.jpg" />
 
 ## LNbits API
 
 LNbits has a powerful API, many projects use LNbits to do the heavy lifting for their bitcoin/lightning services.
 
-<img alt="lnbits_api" src="docs/assets/api.jpg" /> 
+<img alt="lnbits_api" src="docs/assets/api.jpg" />
 
 ## LNbits node manager
 
@@ -68,11 +68,11 @@ LNbits comes packaged with a light node management UI, to make running your node
 
 <img src="https://i.imgur.com/TYqIK60.png" style="width:800px">
 
-## LNbits across all your devices
+## LNbits merchcnat tools
 
-As well as working great in a browser, LNbits has native IoS and Android apps as well as a chrome extension. So you can enjoy the same UI across ALL your devices.
+The LNbits stack can process both bitcoin and fiat payments, making it a turnkey, all-in-one solution for merchants. With orders and inventory shared across extensions, and built-in notifications for Nostr, Telegram, and email, LNbits keeps everything in sync—freeing merchants to focus on their business.
 
-<img src="https://i.imgur.com/J96EbRf.png" style="width:800px">
+<img alt="lnbits_merchants" src="docs/assets/merchants_small.webp" />
 
 ## Powered by LNbits
 
