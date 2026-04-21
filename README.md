@@ -66,11 +66,11 @@ LNbits has a powerful API, many projects use LNbits to do the heavy lifting for 
 
 LNbits comes packaged with a light node management UI, to make running your node that much easier.
 
-<img src="https://i.imgur.com/TYqIK60.png" style="width:800px">
+<img alt="lnbits_api" src="docs/assets/lightning_node.jpg" />
 
-## LNbits merchcnat tools
+## LNbits merchant tools
 
-The LNbits stack can process both bitcoin and fiat payments, making it a turnkey, all-in-one solution for merchants. With orders and inventory shared across extensions, and built-in notifications for Nostr, Telegram, and email, LNbits keeps everything in sync—freeing merchants to focus on their business.
+The LNbits stack can process both bitcoin and fiat payments, making it a turnkey, all-in-one solution for merchants. With orders and inventory shared across extensions, and built-in notifications for Nostr, Telegram, and email, LNbits keeps everything in sync, freeing merchants to focus on their business.
 
 <img alt="lnbits_merchants" src="docs/assets/merchants_small.webp" />
 
