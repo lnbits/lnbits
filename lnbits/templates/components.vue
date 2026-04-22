@@ -774,7 +774,13 @@ include('components/lnbits-error.vue') %}
           v-model="password"
           name="password"
           :label="$t('password') + ' *'"
-          type="password"
+          :type="isPwd ? 'password' : 'text'"
+          ><template v-slot:append>
+            <q-icon
+              :name="isPwd ? 'visibility_off' : 'visibility'"
+              class="cursor-pointer"
+              @click="isPwd = !isPwd"
+            /> </template
         ></q-input>
         <div class="row justify-end">
           <q-btn
@@ -803,16 +809,28 @@ include('components/lnbits-error.vue') %}
           filled
           v-model="password"
           :label="$t('password') + ' *'"
-          type="password"
+          :type="isPwd ? 'password' : 'text'"
           :rules="[val => !val || val.length >= 8 || $t('invalid_password')]"
+          ><template v-slot:append>
+            <q-icon
+              :name="isPwd ? 'visibility_off' : 'visibility'"
+              class="cursor-pointer"
+              @click="isPwd = !isPwd"
+            /> </template
         ></q-input>
         <q-input
           dense
           filled
           v-model="passwordRepeat"
           :label="$t('password_repeat') + ' *'"
-          type="password"
+          :type="isPwdRepeat ? 'password' : 'text'"
           :rules="[val => !val || val.length >= 8 || $t('invalid_password')]"
+          ><template v-slot:append>
+            <q-icon
+              :name="isPwdRepeat ? 'visibility_off' : 'visibility'"
+              class="cursor-pointer"
+              @click="isPwdRepeat = !isPwdRepeat"
+            /> </template
         ></q-input>
         <div
           v-if="confirmationMethodsCount > 1"
@@ -925,16 +943,28 @@ include('components/lnbits-error.vue') %}
           filled
           v-model="password"
           :label="$t('password') + ' *'"
-          type="password"
+          :type="isPwd ? 'password' : 'text'"
           :rules="[val => !val || val.length >= 8 || $t('invalid_password')]"
+          ><template v-slot:append>
+            <q-icon
+              :name="isPwd ? 'visibility_off' : 'visibility'"
+              class="cursor-pointer"
+              @click="isPwd = !isPwd"
+            /> </template
         ></q-input>
         <q-input
           dense
           filled
           v-model="passwordRepeat"
           :label="$t('password_repeat') + ' *'"
-          type="password"
+          :type="isPwdRepeat ? 'password' : 'text'"
           :rules="[val => !val || val.length >= 8 || $t('invalid_password')]"
+          ><template v-slot:append>
+            <q-icon
+              :name="isPwdRepeat ? 'visibility_off' : 'visibility'"
+              class="cursor-pointer"
+              @click="isPwdRepeat = !isPwdRepeat"
+            /> </template
         ></q-input>
         <div class="row justify-end">
           <q-btn
