@@ -2592,7 +2592,6 @@
         },
         {
           "description": "failed",
-          "description1": "pending should be false in the 'expect', this is a bug",
           "call_params": {
             "checking_id": "e35526a43d04e985594c0dfab848814f524b1c786598ec9a63beddb2d726ac96"
           },
@@ -2600,7 +2599,7 @@
             "preimage": null,
             "success": false,
             "failed": true,
-            "pending": true
+            "pending": false
           },
           "mocks": {
             "corelightningrest": {
