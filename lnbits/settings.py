@@ -621,6 +621,9 @@ class SparkL2FundingSource(LNbitsSettings):
 
 
 class ArkadeFundingSource(LNbitsSettings):
+    arkade_sidecar_url: str | None = Field(default="http://localhost:8765")
+    arkade_sidecar_api_key: str | None = Field(default=None)
+    # Backwards compatibility for early Arkade LNbits settings.
     arkade_external_endpoint: str | None = Field(default="http://localhost:8765")
     arkade_external_api_key: str | None = Field(default=None)
     arkade_mnemonic: str | None = Field(default=None)

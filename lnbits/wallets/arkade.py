@@ -49,16 +49,16 @@ class ArkadeWallet(Wallet):
         self.endpoint = "http://127.0.0.1:8765"
         self._api_key = uuid.uuid4().hex
 
-        if settings.arkade_external_endpoint:
-            self.endpoint = normalize_endpoint(
-                cast(str, settings.arkade_external_endpoint)
-            )
+        sidecar_url = settings.arkade_sidecar_url or settings.arkade_external_endpoint
+        if sidecar_url:
+            self.endpoint = normalize_endpoint(cast(str, sidecar_url))
             logger.info(f"Using external Arkade sidecar endpoint: {self.endpoint}")
         else:
             logger.error("No Arkade sidecar endpoint configuration found.")
 
-        if settings.arkade_external_api_key:
-            self._api_key = cast(str, settings.arkade_external_api_key)
+        api_key = settings.arkade_sidecar_api_key or settings.arkade_external_api_key
+        if api_key:
+            self._api_key = cast(str, api_key)
             logger.info("Using external Arkade sidecar API.")
         else:
             logger.warning("No Arkade sidecar API key configured.")
@@ -217,6 +217,14 @@ class ArkadeWallet(Wallet):
             logger.warning(exc)
             return PaymentPendingStatus()
 
+    async def get_ark_address(self) -> str | None:
+        try:
+            res = await self._request("GET", "/v1/address")
+            return res.get("ark_address") or res.get("address")
+        except Exception as exc:
+            logger.warning(f"Unable to fetch Arkade receive address: {exc}")
+            return None
+
     async def paid_invoices_stream(self) -> AsyncGenerator[str, None]:
         stream_path = "/v1/invoices/stream"
         while settings.lnbits_running:
@@ -259,7 +267,7 @@ class ArkadeWallet(Wallet):
                 f"Arkade sidecar request error: '{exc}'"
             ) from exc
 
-        response_body = response.json()
+        response_body = payload.get("response", payload)
         if not isinstance(response_body, dict):
             raise ArkadeSidecarError("Arkade sidecar response missing 'response' body.")
 

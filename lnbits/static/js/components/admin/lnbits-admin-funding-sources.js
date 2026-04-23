@@ -42,8 +42,8 @@ window.app.component('lnbits-admin-funding-sources', {
           'ArkadeWallet',
           'Arkade',
           {
-            arkade_external_endpoint: {
-              label: 'External Sidecar Endpoint',
+            arkade_sidecar_url: {
+              label: 'ARKADE_SIDECAR_URL',
               hint: 'URL LNbits should use to reach the Arkade sidecar.',
               value: 'http://localhost:8765'
             },
@@ -52,8 +52,8 @@ window.app.component('lnbits-admin-funding-sources', {
               hint: 'Mnemonic for the Arkade wallet on the sidecar. If omitted, LNbits will generate one when the sidecar reports it is missing.',
               value: ''
             },
-            arkade_external_api_key: {
-              label: 'External Sidecar API Key',
+            arkade_sidecar_api_key: {
+              label: 'ARKADE_SIDECAR_API_KEY',
               hint: 'API key for authenticating with the Arkade sidecar if it requires authentication.',
               value: ''
             },
