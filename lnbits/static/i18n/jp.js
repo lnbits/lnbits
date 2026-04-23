@@ -369,6 +369,15 @@ window.localisation.jp = {
   auth_keycloak_ci_hint:
     '認証コールバックURLが https://{domain}/api/v1/auth/keycloak/token に設定されていることを確認してください。',
   auth_keycloak_cs_label: 'キークローククライアントシークレット',
+  auth_keycloak_custom_org_label: 'Keycloak カスタム組織',
+  auth_keycloak_custom_icon_label: 'Keycloak カスタムアイコン (URL)',
+  auth_oidc_label: 'OIDC ディスカバリー URL',
+  auth_oidc_ci_label: 'OIDC クライアント ID',
+  auth_oidc_ci_hint:
+    '認証コールバックURLが https://{domain}/api/v1/auth/oidc/token に設定されていることを確認してください。',
+  auth_oidc_cs_label: 'OIDC クライアントシークレット',
+  auth_oidc_custom_org_label: 'OIDC カスタム組織名（例：Zitadel、Authentik）',
+  auth_oidc_custom_icon_label: 'OIDC カスタムアイコン (URL)',
   currency_settings: '通貨設定',
   allowed_currencies: '許可されている通貨',
   allowed_currencies_hint: '利用可能な法定通貨の数を制限する',

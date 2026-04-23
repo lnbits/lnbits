@@ -275,6 +275,8 @@ window.localisation.en = {
   requires_server_restart:
     'Changing these settings requires a server restart to take effect.',
   funding_source_info: 'Select the active funding wallet',
+  phoenixd_warning:
+    "Phoenixd mnemonic is only available if phoenixd data-dir is specified and is readable by LNbits. It's not indicative of phoenixd not running. It just means LNbits cannot access the mnemonic to display it here.",
   latest_update: 'You are on the latest version {version}.',
   notifications: 'Notifications',
   notifications_configure: 'Configure Notifications',
@@ -611,6 +613,10 @@ window.localisation.en = {
   payment_timeouts: 'Payment Timeouts',
   payment_wait_time: 'Payment Wait Time',
   seconds: 'seconds',
+  payment_pending_interval: 'Check payment interval (sec)',
+  payment_pending_interval_desc: 'Interval to check pending payments',
+  payment_pending_interval_tooltip:
+    'Controls how often LNbits checks for pending payments to update their status. Higher values can reduce the load on the node and speed up the payment process, but it will take longer for pending payments to be updated.',
   payment_wait_time_desc:
     'Wait time before marking an outgoing payment as pending. Default: 5s; raise for slow-settling invoices.',
   payment_wait_time_tooltip:
@@ -642,6 +648,14 @@ window.localisation.en = {
   auth_keycloak_cs_label: 'Keycloak Client Secret',
   auth_keycloak_custom_org_label: 'Keycloak Custom Organization',
   auth_keycloak_custom_icon_label: 'Keycloak Custom Icon (URL)',
+  auth_oidc_label: 'OIDC Discovery URL',
+  auth_oidc_ci_label: 'OIDC Client ID',
+  auth_oidc_ci_hint:
+    'Make sure that the authorization callback URL is set to https://{domain}/api/v1/auth/oidc/token',
+  auth_oidc_cs_label: 'OIDC Client Secret',
+  auth_oidc_custom_org_label:
+    'OIDC Custom Organization Name (e.g., Zitadel, Authentik)',
+  auth_oidc_custom_icon_label: 'OIDC Custom Icon (URL)',
   currency_settings: 'Currency Settings',
   allowed_currencies: 'Allowed Currencies',
   allowed_currencies_hint:

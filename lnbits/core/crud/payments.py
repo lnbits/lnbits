@@ -149,14 +149,12 @@ async def get_payments_paginated(  # noqa: C901
             f"(status = '{PaymentState.SUCCESS}' OR status = '{PaymentState.PENDING}')"
         )
     elif complete:
-        clause.append(
-            f"""
+        clause.append(f"""
             (
                 status = '{PaymentState.SUCCESS}'
                 OR (amount < 0 AND status = '{PaymentState.PENDING}')
             )
-            """
-        )
+            """)
     elif pending:
         clause.append(f"status = '{PaymentState.PENDING}'")
     elif failed:
@@ -346,14 +344,12 @@ async def get_payments_history(
         "wallet_id": wallet_id,
     }
     # count outgoing payments if they are still pending
-    where = [
-        f"""
+    where = [f"""
         wallet_id = :wallet_id AND (
             status = '{PaymentState.SUCCESS}'
             OR (amount < 0 AND status = '{PaymentState.PENDING}')
         )
-        """
-    ]
+        """]
     clause = filters.where(where)
     transactions: list[dict] = await db.fetchall(
         # This query is safe from SQL injection:

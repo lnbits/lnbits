@@ -75,7 +75,35 @@
           </p>
         </div>
       </div>
-      <div class="row q-col-gutter-md">
+      <div v-if="isSuperUser">
+        <lnbits-admin-funding-sources
+          :form-data="formData"
+          :allowed-funding-sources="settings.lnbits_allowed_funding_sources"
+        />
+        <div class="row q-col-gutter-md q-my-md">
+          <div class="col-12 col-sm-8">
+            <q-item tag="div">
+              <q-item-section>
+                <q-item-label
+                  v-text="$t('funding_source_retries')"
+                ></q-item-label>
+                <q-item-label
+                  caption
+                  v-text="$t('funding_source_retries_desc')"
+                ></q-item-label>
+              </q-item-section>
+              <q-item-section>
+                <q-input
+                  filled
+                  v-model="formData.funding_source_max_retries"
+                  type="number"
+                />
+              </q-item-section>
+            </q-item>
+          </div>
+        </div>
+      </div>
+      <div class="row q-col-gutter-md q-mt-lg">
         <div class="col-12">
           <h6 class="q-my-none">
             <span v-text="$t('routing_fee_reserve_calculations')"></span>
@@ -160,33 +188,26 @@
             min="0"
           ></q-input>
         </div>
-      </div>
-      <div v-if="isSuperUser">
-        <lnbits-admin-funding-sources
-          :form-data="formData"
-          :allowed-funding-sources="settings.lnbits_allowed_funding_sources"
-        />
-        <div class="row q-col-gutter-md q-my-md">
-          <div class="col-12 col-sm-8">
-            <q-item tag="div">
-              <q-item-section>
-                <q-item-label
-                  v-text="$t('funding_source_retries')"
-                ></q-item-label>
-                <q-item-label
-                  caption
-                  v-text="$t('funding_source_retries_desc')"
-                ></q-item-label>
-              </q-item-section>
-              <q-item-section>
-                <q-input
-                  filled
-                  v-model="formData.funding_source_max_retries"
-                  type="number"
-                />
-              </q-item-section>
-            </q-item>
-          </div>
+        <div class="col-12 col-md-4">
+          <p>
+            <span v-text="$t('payment_pending_interval')"></span>
+            <sup>
+              <q-icon name="info" size="16px" class="q-ml-xs"></q-icon>
+              <q-tooltip max-width="150px">
+                <span v-text="$t('payment_pending_interval_tooltip')"></span>
+              </q-tooltip>
+            </sup>
+          </p>
+          <q-input
+            type="number"
+            filled
+            name="lnbits_funding_source_pending_interval_seconds"
+            v-model="formData.lnbits_funding_source_pending_interval_seconds"
+            :label="$t('payment_pending_interval')"
+            :hint="$t('payment_pending_interval_desc')"
+            step="1"
+            min="0"
+          ></q-input>
         </div>
       </div>
       <q-separator></q-separator>

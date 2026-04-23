@@ -69,7 +69,7 @@ def decrypt_content(
         1:
     ]
     # extract iv and content
-    (encrypted_content_b64, iv_b64) = content.split("?iv=")
+    encrypted_content_b64, iv_b64 = content.split("?iv=")
     encrypted_content = base64.b64decode(encrypted_content_b64.encode("ascii"))
     iv = base64.b64decode(iv_b64.encode("ascii"))
     # Decrypt

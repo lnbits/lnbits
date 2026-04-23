@@ -438,7 +438,7 @@
       <lnbits-qrcode
         v-else
         :href="'lightning:' + receive.paymentReq"
-        :value="'lightning:' + receive.paymentReq"
+        :value="'LIGHTNING:' + receive.paymentReq.toUpperCase()"
       >
       </lnbits-qrcode>
       <div class="text-center">

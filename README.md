@@ -1,12 +1,12 @@
 <a href="https://lnbits.com" target="_blank" rel="noopener noreferrer">
   <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="https://i.imgur.com/QE6SIrs.png">
-    <img src="https://i.imgur.com/fyKPgVT.png" alt="LNbits" style="width:300px">
+    <source media="(prefers-color-scheme: dark)" srcset="docs/logos/lnbits-full-inverse.svg">
+    <img src="docs/logos/lnbits-full.svg" alt="LNbits" style="width:300px">
   </picture>
 </a>
 
 ![phase: stable](https://img.shields.io/badge/phase-stable-2EA043) [![license-badge]](LICENSE) [![docs-badge]][docs] ![PRs: welcome](https://img.shields.io/badge/PRs-Welcome-yellow) [![explore: LNbits extensions](https://img.shields.io/badge/explore-LNbits%20extensions-10B981)](https://extensions.lnbits.com/) [![hardware: LNBitsShop](https://img.shields.io/badge/hardware-LNBitsShop-7C3AED)](https://shop.lnbits.com/) [<img src="https://img.shields.io/badge/community_chat-Telegram-24A1DE">](https://t.me/lnbits) [<img src="https://img.shields.io/badge/supported_by-%3E__OpenSats-f97316">](https://opensats.org)  
-<img width="2000" height="203" alt="lnbits_head" src="https://github.com/user-attachments/assets/77669718-ac10-43c7-ae95-6ce236c77401" />  
+<img alt="lnbits_head" src="docs/assets/header.jpg" />  
 [![tip-hero](https://img.shields.io/badge/TipJar-LNBits%20Hero-9b5cff?labelColor=6b7280&logo=lightning&logoColor=white)](https://demo.lnbits.com/tipjar/DwaUiE4kBX6mUW6pj3X5Kg)
 
 # LNbits — The most powerful Bitcoin & Lightning toolkit
@@ -46,7 +46,7 @@ Get yourself familiar and test on our demo server [demo.lnbits.com](https://demo
 
 LNbits is packaged with tools to help manage funds, such as a table of transactions, line chart of spending, export to csv. Each wallet also comes with its own API keys, to help partition the exposure of your funding source.
 
-<img src="https://i.imgur.com/w8jdGpF.png" style="width:800px">
+<img alt="lnbits_wallet" src="docs/assets/wallet.jpg" />
 
 ## LNbits extension universe
 
@@ -54,25 +54,25 @@ Extend YOUR LNbits to meet YOUR needs.
 
 All non-core features are installed as extensions, reducing your code base and making your LNbits unique to you. Extend your LNbits install in any direction, and even create and share your own extensions.
 
-<img src="https://i.imgur.com/aEBpwJF.png" style="width:800px">
+<img alt="lnbits_extensions" src="docs/assets/extensions.jpg" />
 
 ## LNbits API
 
 LNbits has a powerful API, many projects use LNbits to do the heavy lifting for their bitcoin/lightning services.
 
-<img src="https://i.imgur.com/V742sb9.png" style="width:800px">
+<img alt="lnbits_api" src="docs/assets/api.jpg" />
 
 ## LNbits node manager
 
 LNbits comes packaged with a light node management UI, to make running your node that much easier.
 
-<img src="https://i.imgur.com/TYqIK60.png" style="width:800px">
+<img alt="lnbits_api" src="docs/assets/lightning_node.jpg" />
 
-## LNbits across all your devices
+## LNbits merchant tools
 
-As well as working great in a browser, LNbits has native IoS and Android apps as well as a chrome extension. So you can enjoy the same UI across ALL your devices.
+The LNbits stack can process both bitcoin and fiat payments, making it a turnkey, all-in-one solution for merchants. With orders and inventory shared across extensions, and built-in notifications for Nostr, Telegram, and email, LNbits keeps everything in sync, freeing merchants to focus on their business.
 
-<img src="https://i.imgur.com/J96EbRf.png" style="width:800px">
+<img alt="lnbits_merchants" src="docs/assets/merchants_small.webp" />
 
 ## Powered by LNbits
 

@@ -520,6 +520,14 @@ window.localisation.fi = {
   auth_keycloak_cs_label: 'Keycloak-asiakassalasana',
   auth_keycloak_custom_org_label: 'Valinnainen Keycloak-organisaatio',
   auth_keycloak_custom_icon_label: 'Valinnainen Keycloak-kuvake (URL)',
+  auth_oidc_label: 'OIDC-discovery-URL',
+  auth_oidc_ci_label: 'OIDC-asiakastunnus',
+  auth_oidc_ci_hint:
+    'Varmista, että valtuutuksen palautus-URL on asetettu muotoon https://{domain}/api/v1/auth/oidc/token',
+  auth_oidc_cs_label: 'OIDC-asiakassalasana',
+  auth_oidc_custom_org_label:
+    'OIDC mukautetun organisaation nimi (esim. Zitadel, Authentik)',
+  auth_oidc_custom_icon_label: 'Valinnainen OIDC-kuvake (URL)',
   currency_settings: 'Valuutta-asetukset',
   allowed_currencies: 'Käytettävät valuutat',
   allowed_currencies_hint: 'Valitse käytettävissä olevat fiat-valuutat',

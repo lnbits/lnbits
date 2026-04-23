@@ -22,6 +22,7 @@ jobs:
       - name: run LNbits
         env:
           LNBITS_ADMIN_UI: true
+          AUTH_HTTPS_ONLY: false
           LNBITS_EXTENSIONS_DEFAULT_INSTALL: "watchonly, satspay, tipjar, tpos, lnurlp, withdraw"
           LNBITS_BACKEND_WALLET_CLASS: FakeWallet
         run: |

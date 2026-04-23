@@ -442,7 +442,8 @@ window.app.component('username-password', {
         'nostr-auth-nip98',
         'google-auth',
         'github-auth',
-        'keycloak-auth'
+        'keycloak-auth',
+        'oidc-auth'
       ],
       username: this.userName,
       password: this.password_1,
@@ -691,12 +692,10 @@ window.app.component('lnbits-node-qrcode', {
       <q-card-section>
         <div class="text-h6">
           <div style="text-align: center">
-            <vue-qrcode
-              :value="info.addresses[0]"
-              :options="{width: 250}"
+            <lnbits-qrcode
               v-if='info.addresses[0]'
-              class="rounded-borders"
-            ></vue-qrcode>
+              :value="info.addresses[0]"
+            ></lnbits-qrcode>
             <div v-else class='text-subtitle1'>
               No addresses available
             </div>
