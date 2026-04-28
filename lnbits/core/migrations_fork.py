@@ -13,4 +13,20 @@ Conventions:
     `OperationalError` so re-runs on partially-migrated databases don't fail.
 
 This file is intentionally empty in upstream. Forks fill it in.
+
+Example (uncomment and adapt in your fork):
+
+    from sqlalchemy.exc import OperationalError
+
+    from lnbits.db import Connection
+
+
+    async def m001_add_custom_column_to_accounts(db: Connection):
+        '''
+        Adds a fork-specific column to the accounts table.
+        '''
+        try:
+            await db.execute("ALTER TABLE accounts ADD COLUMN my_column TEXT")
+        except OperationalError:
+            pass
 """
