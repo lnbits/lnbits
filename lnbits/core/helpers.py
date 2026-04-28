@@ -7,6 +7,7 @@ from uuid import UUID
 from loguru import logger
 
 from lnbits.core import migrations as core_migrations
+from lnbits.core import migrations_fork as core_migrations_fork
 from lnbits.core.crud import (
     get_db_versions,
     get_installed_extensions,
@@ -99,6 +100,15 @@ async def migrate_databases():
             DbVersion(db="core", version=0),
         )
         await run_migration(conn, core_migrations, "core", core_version)
+
+        # Run fork-specific migrations under a separate dbversions key so
+        # downstream forks can add their own schema changes without
+        # conflicting with upstream's `core` migration numbering.
+        core_fork_version = next(
+            (v for v in current_versions if v.db == "core_fork"),
+            DbVersion(db="core_fork", version=0),
+        )
+        await run_migration(conn, core_migrations_fork, "core_fork", core_fork_version)
 
     # here is the first place we can be sure that the
     # `installed_extensions` table has been created
