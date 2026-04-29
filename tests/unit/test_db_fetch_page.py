@@ -1,5 +1,6 @@
 import pytest
 
+from lnbits.db import Filters
 from tests.helpers import DbTestModel
 
 
@@ -29,6 +30,19 @@ async def fetch_page(db):
 async def test_db_fetch_page_simple(fetch_page, db):
     row = await db.fetch_page(
         query="select * from test_db_fetch_page",
+        model=DbTestModel,
+    )
+
+    assert row
+    assert row.total == 5
+    assert len(row.data) == 5
+
+
+@pytest.mark.anyio
+async def test_db_fetch_page_limit_zero_returns_all(fetch_page, db):
+    row = await db.fetch_page(
+        query="select * from test_db_fetch_page",
+        filters=Filters(limit=0),
         model=DbTestModel,
     )
 
