@@ -560,7 +560,9 @@ class Filters(BaseModel, Generic[TFilterModel]):
 
     def pagination(self) -> str:
         stmt = ""
-        self.limit = self.limit or 10
+        if self.limit == 0:
+            return stmt
+        self.limit = 10 if self.limit is None else self.limit
         stmt += f"LIMIT {min(1000, self.limit)} "
         if self.offset:
             stmt += f"OFFSET {self.offset}"
