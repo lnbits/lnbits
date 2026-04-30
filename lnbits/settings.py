@@ -597,6 +597,14 @@ class LndGrpcFundingSource(LNbitsSettings):
     lnd_grpc_invoice_macaroon: str | None = Field(default=None)
     lnd_grpc_macaroon: str | None = Field(default=None)
     lnd_grpc_macaroon_encrypted: str | None = Field(default=None)
+    # Mirror of lnd_rest_allow_self_payment for the gRPC funding
+    # source. When true, SendPaymentV2 requests carry
+    # allow_self_payment=true, letting lnd settle invoices it issued
+    # itself instead of refusing with "self-payments not allowed".
+    # Required when this lnd backs both an LNbits wallet and a
+    # downstream payee on the same node (e.g. a co-located prism
+    # paywall) — otherwise the user can't pay the paywall's invoice.
+    lnd_grpc_allow_self_payment: bool = Field(default=False)
 
 
 class LnPayFundingSource(LNbitsSettings):

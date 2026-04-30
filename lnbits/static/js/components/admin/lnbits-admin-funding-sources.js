@@ -108,7 +108,11 @@ window.app.component('lnbits-admin-funding-sources', {
             lnd_grpc_macaroon: 'GRPC Macaroon',
             lnd_grpc_invoice_macaroon: 'GRPC Invoice Macaroon',
             lnd_grpc_admin_macaroon: 'GRPC Admin Macaroon',
-            lnd_grpc_macaroon_encrypted: 'Encrypted Macaroon'
+            lnd_grpc_macaroon_encrypted: 'Encrypted Macaroon',
+            lnd_grpc_allow_self_payment: {
+              advanced: true,
+              label: 'Allow Self Payment'
+            }
           }
         ],
         [

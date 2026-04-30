@@ -194,6 +194,7 @@ class LndWallet(Wallet):
             no_inflight_updates=True,
             max_parts=16,
             time_pref=0.9,
+            allow_self_payment=settings.lnd_grpc_allow_self_payment,
         )
         try:
             res: Payment = await self.router_rpc.SendPaymentV2(req).read()
