@@ -306,9 +306,7 @@
                 @click="disableExtension(extension)"
                 :label="$t('disable')"
               ></q-btn>
-              <q-badge
-                v-if="extension.isSuperUserOnly && !g.user.super_user"
-              >
+              <q-badge v-if="extension.isSuperUserOnly && !g.user.super_user">
                 Super User Only
               </q-badge>
 

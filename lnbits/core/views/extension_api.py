@@ -180,6 +180,19 @@ async def api_update_pay_to_enable(
     )
 
 
+def _check_enable_extension_access(
+    ext_id: str, ext: InstallableExtension, account_id: AccountId
+) -> None:
+    if ext.is_super_user_only and not settings.is_super_user(account_id.id):
+        raise HTTPException(
+            HTTPStatus.FORBIDDEN, f"User not authorized for extension '{ext_id}'."
+        )
+    if ext.is_admin_only and not settings.is_admin_user(account_id.id):
+        raise HTTPException(
+            HTTPStatus.FORBIDDEN, f"User not authorized for extension '{ext_id}'."
+        )
+
+
 @extension_router.put("/{ext_id}/enable")
 async def api_enable_extension(
     ext_id: str, account_id: AccountId = Depends(check_account_id_exists)
@@ -195,14 +208,7 @@ async def api_enable_extension(
         raise ValueError(f"Extension '{ext_id}' is not installed.")
     if not ext.active:
         raise ValueError(f"Extension '{ext_id}' is not activated.")
-    if ext.is_super_user_only and not settings.is_super_user(account_id.id):
-        raise HTTPException(
-            HTTPStatus.FORBIDDEN, f"User not authorized for extension '{ext_id}'."
-        )
-    if ext.is_admin_only and not settings.is_admin_user(account_id.id):
-        raise HTTPException(
-            HTTPStatus.FORBIDDEN, f"User not authorized for extension '{ext_id}'."
-        )
+    _check_enable_extension_access(ext_id, ext, account_id)
 
     user_ext = await get_user_extension(account_id.id, ext_id)
     if not user_ext:

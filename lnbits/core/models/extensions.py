@@ -597,9 +597,7 @@ class InstallableExtension(BaseModel):
             )
             source_repo = f"{github_release.organisation}/{github_release.repository}"
             admin_only = github_release.admin_only or config.admin_only
-            super_user_only = (
-                github_release.super_user_only or config.super_user_only
-            )
+            super_user_only = github_release.super_user_only or config.super_user_only
             latest_extension_release = ExtensionRelease.from_github_release(
                 source_repo, latest_release
             )
@@ -672,10 +670,8 @@ class InstallableExtension(BaseModel):
                             min_lnbits_version=config_json.get("min_lnbits_version"),
                             max_lnbits_version=config_json.get("max_lnbits_version"),
                             admin_only=config_json.get("admin_only", False),
-                            super_user_only=config_json.get(
-                                "super_user_only", False
-                            ),
-                        )
+                            super_user_only=config_json.get("super_user_only", False),
+                        ),
                     ),
                 )
 

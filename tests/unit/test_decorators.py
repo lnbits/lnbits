@@ -250,7 +250,9 @@ async def test_check_user_extension_access_honors_extension_metadata(
     admin_status = await check_user_extension_access(admin_user.id, admin_only_ext)
     assert admin_status.success is True
 
-    admin_super_status = await check_user_extension_access(admin_user.id, super_only_ext)
+    admin_super_status = await check_user_extension_access(
+        admin_user.id, super_only_ext
+    )
     assert admin_super_status.success is False
 
     previous_super_user = settings.super_user
