@@ -137,6 +137,7 @@ window.localisation.jp = {
   only_admins_can_install:
     '(管理者アカウントのみが拡張機能をインストールできます)',
   admin_only: '管理者のみ',
+  super_user_only: 'スーパー ユーザーのみ',
   new_version: '新しいバージョン',
   extension_depends_on: '依存先:',
   extension_rating_soon: '評価は近日公開',

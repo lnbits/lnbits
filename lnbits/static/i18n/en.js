@@ -189,6 +189,7 @@ window.localisation.en = {
   only_admins_can_create_extensions:
     'Only admin accounts can create extensions',
   admin_only: 'Admin Only',
+  super_user_only: 'Super User Only',
   make_user_admin: 'Make User Admin',
   revoke_admin: 'Revoke Admin',
   new_version: 'New Version',

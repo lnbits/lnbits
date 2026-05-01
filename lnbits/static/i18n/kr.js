@@ -139,6 +139,7 @@ window.localisation.kr = {
   all: '전체',
   only_admins_can_install: '(관리자 계정만이 확장 기능을 설치할 수 있습니다)',
   admin_only: '관리자 전용',
+  super_user_only: '슈퍼유저 전용',
   new_version: '새로운 버전',
   extension_depends_on: '의존성 존재:',
   extension_rating_soon: '평점 기능도 곧 구현됩니다',

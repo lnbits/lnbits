@@ -142,6 +142,7 @@ window.localisation.it = {
   only_admins_can_install:
     'Solo gli account amministratore possono installare estensioni.',
   admin_only: 'Solo amministratore',
+  super_user_only: 'Solo superutente',
   new_version: 'Nuova Versione',
   extension_depends_on: 'Dipende da:',
   extension_rating_soon: 'Valutazioni in arrivo',

@@ -139,6 +139,7 @@ window.localisation.we = {
   all: 'Pob',
   only_admins_can_install: 'Dim ond cyfrifon gweinyddwr all osod estyniadau',
   admin_only: 'Dim ond Gweinyddwr',
+  super_user_only: 'Dim ond Uwchddefnyddiwr',
   new_version: 'Fersiwn Newydd',
   extension_depends_on: 'Dibynnu ar:',
   extension_rating_soon: 'Sgôr yn dod yn fuan',
