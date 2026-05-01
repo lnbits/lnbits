@@ -20,7 +20,9 @@ from lnbits.core.models.extensions import (
     Extension,
     ExtensionConfig,
     ExtensionRelease,
+    GitHubRelease,
     InstallableExtension,
+    Manifest,
     PayToEnableInfo,
     ReleasePaymentInfo,
     UserExtensionInfo,
@@ -464,3 +466,36 @@ async def test_extension_api_enable_rejects_admin_and_super_only_extensions(
 
     with pytest.raises(HTTPException, match="User not authorized"):
         await api_enable_extension(super_only_ext, AccountId(id=admin_user.id))
+
+
+@pytest.mark.anyio
+async def test_repo_manifest_flags_apply_to_repo_releases(mocker):
+    ext_id = f"repo_{uuid4().hex[:8]}"
+    release = make_extension_release(ext_id)
+    manifest = Manifest(
+        repos=[
+            GitHubRelease(
+                id=ext_id,
+                organisation="lnbits",
+                repository="tunnel_me_out",
+                admin_only=True,
+                super_user_only=True,
+            )
+        ]
+    )
+    mocker.patch.object(
+        InstallableExtension,
+        "fetch_manifest",
+        mocker.AsyncMock(return_value=manifest),
+    )
+    mocker.patch.object(
+        ExtensionRelease,
+        "get_github_releases",
+        mocker.AsyncMock(return_value=[release]),
+    )
+
+    releases = await InstallableExtension.get_extension_releases(ext_id)
+
+    assert len(releases) == 1
+    assert releases[0].admin_only is True
+    assert releases[0].super_user_only is True

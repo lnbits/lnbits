@@ -54,6 +54,8 @@ class GitHubRelease(BaseModel):
     id: str
     organisation: str
     repository: str
+    admin_only: bool = False
+    super_user_only: bool = False
 
 
 class Manifest(BaseModel):
@@ -594,6 +596,15 @@ class InstallableExtension(BaseModel):
                 github_release.organisation, github_release.repository
             )
             source_repo = f"{github_release.organisation}/{github_release.repository}"
+            admin_only = github_release.admin_only or config.admin_only
+            super_user_only = (
+                github_release.super_user_only or config.super_user_only
+            )
+            latest_extension_release = ExtensionRelease.from_github_release(
+                source_repo, latest_release
+            )
+            latest_extension_release.admin_only = admin_only
+            latest_extension_release.super_user_only = super_user_only
             return InstallableExtension(
                 id=github_release.id,
                 name=config.name,
@@ -605,11 +616,9 @@ class InstallableExtension(BaseModel):
                     config.tile,
                 ),
                 meta=ExtensionMeta(
-                    admin_only=config.admin_only,
-                    super_user_only=config.super_user_only,
-                    latest_release=ExtensionRelease.from_github_release(
-                        source_repo, latest_release
-                    ),
+                    admin_only=admin_only,
+                    super_user_only=super_user_only,
+                    latest_release=latest_extension_release,
                 ),
             )
         except Exception as e:
@@ -768,6 +777,13 @@ class InstallableExtension(BaseModel):
                     repo_releases = await ExtensionRelease.get_github_releases(
                         r.organisation, r.repository
                     )
+                    for repo_release in repo_releases:
+                        repo_release.admin_only = (
+                            repo_release.admin_only or r.admin_only
+                        )
+                        repo_release.super_user_only = (
+                            repo_release.super_user_only or r.super_user_only
+                        )
                     extension_releases += repo_releases
 
                 for e in manifest.extensions:
