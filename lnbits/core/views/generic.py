@@ -20,7 +20,7 @@ from lnbits.decorators import (
     check_first_install,
     check_user_exists,
 )
-from lnbits.helpers import check_callback_url, template_renderer
+from lnbits.helpers import check_callback_url, extension_id_from_path, template_renderer
 from lnbits.settings import settings
 
 from ..crud import get_user
@@ -198,7 +198,9 @@ admin_ui_checks = [Depends(check_admin), Depends(check_admin_ui)]
 async def index(
     request: Request, user: User = Depends(check_user_exists)
 ) -> HTMLResponse:
-    return template_renderer().TemplateResponse(
+    return template_renderer(
+        extension_id=extension_id_from_path(request.url.path)
+    ).TemplateResponse(
         request,
         "base.html",
         {
@@ -211,7 +213,9 @@ async def index(
 @generic_router.get("/node/public")
 @generic_router.get("/first_install", dependencies=[Depends(check_first_install)])
 async def index_public(request: Request) -> HTMLResponse:
-    return template_renderer().TemplateResponse(request, "base.html", {"public": True})
+    return template_renderer(
+        extension_id=extension_id_from_path(request.url.path)
+    ).TemplateResponse(request, "base.html", {"public": True})
 
 
 @generic_router.get("/uuidv4/{hex_value}")

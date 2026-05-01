@@ -90,7 +90,9 @@
       window.g.isPublicPage = false
       {% endif %}
     </script>
-    {% endif %}
+    {% endif %} {% for url in INCLUDED_EXTENSION_I18N %}
+    <script src="{{ url }}"></script>
+    {% endfor %}
     <!-- app init -->
     <script>
       window.app = Vue.createApp({

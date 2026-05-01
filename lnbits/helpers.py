@@ -52,7 +52,45 @@ def static_url_for(static: str, path: str) -> str:
     return f"/{static}/{path}?v={settings.server_startup_time}"
 
 
-def template_renderer(additional_folders: list | None = None) -> Jinja2Templates:
+def extension_id_from_path(path: str) -> str | None:
+    parts = [part for part in path.split("/") if part]
+    if not parts:
+        return None
+
+    if len(parts) >= 3 and parts[0] == "upgrades":
+        return parts[2]
+
+    ext_id = parts[0]
+    ext_i18n_dir = Path(
+        settings.lnbits_extensions_path, "extensions", ext_id, "static", "i18n"
+    )
+    if ext_i18n_dir.is_dir():
+        return ext_id
+
+    return None
+
+
+def extension_i18n_urls(extension_id: str | None) -> list[str]:
+    if not extension_id:
+        return []
+
+    i18n_dir = Path(
+        settings.lnbits_extensions_path, "extensions", extension_id, "static", "i18n"
+    )
+    if not i18n_dir.is_dir():
+        return []
+
+    files = [file.name for file in i18n_dir.glob("*.js") if file.is_file()]
+    return [
+        static_url_for(f"{extension_id}/static", f"i18n/{filename}")
+        for filename in sorted(files, key=lambda name: (name != "en.js", name))
+    ]
+
+
+def template_renderer(
+    additional_folders: list | None = None,
+    extension_id: str | None = None,
+) -> Jinja2Templates:
     folders = [
         "lnbits/templates",
         settings.extension_builder_working_dir_path.as_posix(),
@@ -85,6 +123,14 @@ def template_renderer(additional_folders: list | None = None) -> Jinja2Templates
             t.env.globals["INCLUDED_JS"] = vendor_files["js"]
             t.env.globals["INCLUDED_CSS"] = vendor_files["css"]
             t.env.globals["INCLUDED_COMPONENTS"] = vendor_files["components"]
+
+    if not extension_id and additional_folders:
+        for folder in additional_folders:
+            parts = Path(folder).parts
+            if parts and parts[-1] == "templates" and len(parts) >= 2:
+                extension_id = parts[-2]
+                break
+    t.env.globals["INCLUDED_EXTENSION_I18N"] = extension_i18n_urls(extension_id)
 
     # backwards compatibility for extensions (tpos)
     t.env.globals["LNBITS_DENOMINATION"] = settings.lnbits_denomination
