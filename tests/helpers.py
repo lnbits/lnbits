@@ -141,9 +141,13 @@ def make_installable_extension(
     pay_to_enable: PayToEnableInfo | None = None,
     dependencies: list[str] | None = None,
     payments: list[ReleasePaymentInfo] | None = None,
+    admin_only: bool = False,
+    super_user_only: bool = False,
 ) -> InstallableExtension:
     release = make_extension_release(ext_id, version)
     release.is_version_compatible = compatible
+    release.admin_only = admin_only
+    release.super_user_only = super_user_only
     return InstallableExtension(
         id=ext_id,
         name=f"Extension {ext_id}",
@@ -156,6 +160,8 @@ def make_installable_extension(
             pay_to_enable=pay_to_enable,
             dependencies=dependencies or [],
             payments=payments or [],
+            admin_only=admin_only,
+            super_user_only=super_user_only,
         ),
     )
 

@@ -307,7 +307,13 @@
                 :label="$t('disable')"
               ></q-btn>
               <q-badge
-                v-if="extension.isAdminOnly && !g.user.admin"
+                v-if="extension.isSuperUserOnly && !g.user.super_user"
+              >
+                Super User Only
+              </q-badge>
+
+              <q-badge
+                v-else-if="extension.isAdminOnly && !g.user.admin"
                 v-text="$t('admin_only')"
               >
               </q-badge>
@@ -316,7 +322,9 @@
                 v-else-if="
                   extension.isInstalled &&
                   extension.isActive &&
-                  !g.user.extensions.includes(extension.id)
+                  !g.user.extensions.includes(extension.id) &&
+                  (!extension.isAdminOnly || g.user.admin) &&
+                  (!extension.isSuperUserOnly || g.user.super_user)
                 "
                 flat
                 color="primary"
