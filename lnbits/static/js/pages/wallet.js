@@ -223,6 +223,12 @@ window.PageWallet = {
           if (data.tag === 'payRequest') {
             this.parse.lnurlpay = Object.freeze(data)
             this.parse.data.amount = data.minSendable / 1000
+            this.receive.units = [
+              'sat',
+              ...(this.g.allowedCurrencies.length > 0
+                ? this.g.allowedCurrencies
+                : this.g.currencies)
+            ]
           } else if (data.tag === 'login') {
             this.parse.lnurlauth = Object.freeze(data)
           } else if (data.tag === 'withdrawRequest') {
