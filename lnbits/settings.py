@@ -627,6 +627,15 @@ class LnTipsFundingSource(LNbitsSettings):
     lntips_invoice_key: str | None = Field(default=None)
 
 
+class ClavestraFundingSource(LNbitsSettings):
+    clavestra_api_url: str | None = Field(default=None)
+    clavestra_admin_key: str | None = Field(default=None)
+    clavestra_invoice_key: str | None = Field(default=None)
+    clavestra_timeout_seconds: float = Field(default=30.0, ge=0)
+    clavestra_verify_tls: bool = Field(default=True)
+    clavestra_default_currency: str = Field(default="BTC")
+
+
 class NWCFundingSource(LNbitsSettings):
     nwc_pairing_url: str | None = Field(default=None)
 
@@ -731,6 +740,7 @@ class FundingSourcesSettings(
     BreezSdkFundingSource,
     StrikeFundingSource,
     BreezLiquidSdkFundingSource,
+    ClavestraFundingSource,
 ):
     lnbits_backend_wallet_class: str = Field(default="VoidWallet")
     # How long to wait for the payment to be confirmed before returning a pending status
