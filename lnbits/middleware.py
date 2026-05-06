@@ -3,6 +3,7 @@ import json
 from datetime import datetime, timezone
 from http import HTTPStatus
 from typing import Any
+from pyinstrument import Profiler
 
 from fastapi import FastAPI, Request, Response
 from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
@@ -245,4 +246,17 @@ def add_first_install_middleware(app: FastAPI):
             and not request.url.path.startswith("/static")
         ):
             return RedirectResponse("/first_install")
+        return await call_next(request)
+
+
+def add_profiler_middleware(app: FastAPI):
+    @app.middleware("http")
+    async def profile_middleware(request: Request, call_next):
+        profiling = request.query_params.get("profiler", False)
+        if profiling:
+            profiler = Profiler(async_mode="enabled")
+            profiler.start()
+            _ = await call_next(request)
+            profiler.stop()
+            return HTMLResponse(profiler.output_html())
         return await call_next(request)
