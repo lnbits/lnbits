@@ -224,7 +224,7 @@ window.PageWallet = {
             this.parse.lnurlpay = Object.freeze(data)
             this.parse.data.amount = data.minSendable / 1000
             this.receive.units = [
-              'sat',
+              'sats',
               ...(this.g.allowedCurrencies.length > 0
                 ? this.g.allowedCurrencies
                 : this.g.currencies)
