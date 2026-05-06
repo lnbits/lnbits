@@ -35,7 +35,7 @@ if settings.lnbits_database_url:
     else:
         if not database_uri.startswith("postgres://"):
             raise ValueError(
-                "Please use the 'postgres://...' " "format for the database URL."
+                "Please use the 'postgres://...' format for the database URL."
             )
         DB_TYPE = POSTGRES
 
@@ -561,7 +561,7 @@ class Filters(BaseModel, Generic[TFilterModel]):
     def pagination(self) -> str:
         stmt = ""
         if self.limit == 0:
-            return stmt
+            self.limit = 1000
         self.limit = 10 if self.limit is None else self.limit
         stmt += f"LIMIT {min(1000, self.limit)} "
         if self.offset:
