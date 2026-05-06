@@ -64,8 +64,8 @@ from .middleware import (
     ExtensionsRedirectMiddleware,
     InstalledExtensionMiddleware,
     add_first_install_middleware,
-    add_profiler_middleware,
     add_ip_block_middleware,
+    add_profiler_middleware,
     add_ratelimit_middleware,
 )
 from .tasks import internal_invoice_listener, invoice_listener, run_interval

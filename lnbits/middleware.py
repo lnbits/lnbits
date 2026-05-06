@@ -3,11 +3,11 @@ import json
 from datetime import datetime, timezone
 from http import HTTPStatus
 from typing import Any
-from pyinstrument import Profiler
 
 from fastapi import FastAPI, Request, Response
 from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
 from loguru import logger
+from pyinstrument import Profiler
 from slowapi import _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
 from slowapi.middleware import SlowAPIMiddleware
