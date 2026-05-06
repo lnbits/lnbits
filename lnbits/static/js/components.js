@@ -453,8 +453,8 @@ window.app.component('username-password', {
       confirmationEmail: '',
       confirmationCode: this.invitationCode || '',
       showConfirmationCode: false,
-      isPwd: true,
-      isPwdRepeat: true
+      showPwd: false,
+      showPwdRepeat: false
     }
   },
   methods: {
