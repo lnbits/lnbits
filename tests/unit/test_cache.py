@@ -91,6 +91,61 @@ async def test_cache_pop_expired_returns_default(cache):
 
 
 @pytest.mark.anyio
+async def test_cache_coro_stale_returns_immediately(cache):
+    """Stale entry is served immediately; background refresh updates the value."""
+    calls = 0
+
+    async def test():
+        nonlocal calls
+        calls += 1
+        return calls
+
+    # cold start
+    result = await cache.save_result(test, key="test", expiry=0.01)
+    assert result == 1
+
+    # let the entry expire
+    await asyncio.sleep(0.02)
+
+    # stale-while-revalidate: returns old value immediately
+    result = await cache.save_result(test, key="test", expiry=0.5)
+    assert result == 1  # stale value returned, not the new one
+
+    # allow background refresh to complete
+    await asyncio.sleep(0.05)
+    assert calls == 2
+    # now the cache has the fresh value
+    result = await cache.save_result(test, key="test", expiry=0.5)
+    assert result == 2
+
+
+@pytest.mark.anyio
+async def test_cache_coro_no_stampede(cache):
+    """Multiple concurrent requests on a stale entry spawn only one refresh."""
+    calls = 0
+
+    async def slow_fetch():
+        nonlocal calls
+        calls += 1
+        await asyncio.sleep(0.05)
+        return calls
+
+    await cache.save_result(slow_fetch, key="test", expiry=0.01)
+    await asyncio.sleep(0.02)
+
+    # fire multiple concurrent requests while stale
+    results = await asyncio.gather(
+        cache.save_result(slow_fetch, key="test", expiry=0.5),
+        cache.save_result(slow_fetch, key="test", expiry=0.5),
+        cache.save_result(slow_fetch, key="test", expiry=0.5),
+    )
+
+    await asyncio.sleep(0.1)  # let the single background task finish
+    assert all(r == 1 for r in results)  # all got stale value
+    assert calls == 2  # cold start + exactly one background refresh
+
+
+@pytest.mark.anyio
 async def test_invalidate_forever_logs_and_recovers_from_errors(
     settings: Settings, mocker: MockerFixture
 ):
