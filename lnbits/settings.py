@@ -1009,6 +1009,7 @@ class EnvSettings(LNbitsSettings):
     debug: bool = Field(default=False)
     debug_database: bool = Field(default=False)
     bundle_assets: bool = Field(default=True)
+    profiler: bool = Field(default=False)
     # When enabled, auth cookies require HTTPS and SSO will reject insecure HTTP.
     auth_https_only: bool = Field(default=True)
     host: str = Field(default="127.0.0.1")
