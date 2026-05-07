@@ -84,18 +84,18 @@ class ArkadeWallet(Wallet):
             status = res.get("status")
             if status == "missing_mnemonic":
                 await self._check_sidecar_mnemonic()
-                return StatusResponse("Arkade sidecar mnemonic not set", 0)
+                return StatusResponse("Arkade wallet mnemonic not set", 0)
 
             balance_msat = res.get("balance_msat")
             if balance_msat is not None:
                 return StatusResponse(None, int(balance_msat))
             balance_sats = res.get("balance_sats")
             if balance_sats is None:
-                return StatusResponse("Arkade sidecar: missing balance.", 0)
+                return StatusResponse("Arkade: missing balance.", 0)
             return StatusResponse(None, int(balance_sats) * 1000)
         except Exception as e:
             logger.warning(f"Arkade sidecar status error: {e}")
-            return StatusResponse(f"Arkade sidecar status error: {e}", 0)
+            return StatusResponse(f"Arkade wallet status error: {e}", 0)
 
     async def create_invoice(
         self,
@@ -127,7 +127,7 @@ class ArkadeWallet(Wallet):
             if not bolt11 or not checking_id:
                 return InvoiceResponse(
                     ok=False,
-                    error_message="Arkade sidecar invoice response missing fields.",
+                    error_message="Arkade wallet invoice response missing fields.",
                 )
             self.pending_invoices.append(checking_id)
 
@@ -145,7 +145,7 @@ class ArkadeWallet(Wallet):
             bolt11 = bolt11.removeprefix("lightning:").removeprefix("LIGHTNING:")
             max_fee_sats = (int(fee_limit_msat) + 999) // 1000
             logger.info(
-                f"Paying invoice via Arkade sidecar with max fee {max_fee_sats} sats."
+                f"Paying invoice via Arkade wallet with max fee {max_fee_sats} sats."
             )
 
             payment_hash = None
@@ -165,7 +165,7 @@ class ArkadeWallet(Wallet):
             if not checking_id:
                 return PaymentResponse(
                     ok=False,
-                    error_message="Arkade sidecar payment response missing checking_id.",
+                    error_message="Arkade wallet payment response missing checking_id.",
                 )
             status = res.get("status")
             fee_msat = res.get("fee_msat")
@@ -249,7 +249,7 @@ class ArkadeWallet(Wallet):
                             yield checking_id
             except Exception as exc:
                 logger.error(
-                    "lost connection to Arkade sidecar invoice stream: "
+                    "lost connection to Arkade wallet invoice stream: "
                     f"'{exc}' retrying in 5 seconds"
                 )
                 await asyncio.sleep(5)
@@ -263,13 +263,11 @@ class ArkadeWallet(Wallet):
             )
             payload = response.json()
         except (httpx.RequestError, json.JSONDecodeError) as exc:
-            raise ArkadeSidecarError(
-                f"Arkade sidecar request error: '{exc}'"
-            ) from exc
+            raise ArkadeSidecarError(f"Arkade wallet request error: '{exc}'") from exc
 
         response_body = payload.get("response", payload)
         if not isinstance(response_body, dict):
-            raise ArkadeSidecarError("Arkade sidecar response missing 'response' body.")
+            raise ArkadeSidecarError("Arkade wallet response missing 'response' body.")
 
         error_message = response_body.get("error")
 
@@ -279,7 +277,7 @@ class ArkadeWallet(Wallet):
         if response.is_error:
             raise ArkadeSidecarError(
                 error_message
-                or f"Arkade sidecar request failed with status {response.status_code}."
+                or f"Arkade wallet request failed with status {response.status_code}."
             )
 
         if error_message:
@@ -361,10 +359,10 @@ class ArkadeWallet(Wallet):
         await self._set_sidecar_mnemonic(mnemonic)
 
     async def _set_sidecar_mnemonic(self, mnemonic: str):
-        logger.info("Checking 'ARKADE_MNEMONIC' on the Arkade sidecar.")
+        logger.info("Checking 'ARKADE_MNEMONIC' on the Arkade wallet.")
         resp = await self._request("POST", "/v1/mnemonic", {"mnemonic": mnemonic})
         status = resp.get("status")
-        logger.info(f"Arkade sidecar mnemonic status: {status}")
+        logger.info(f"Arkade wallet mnemonic status: {status}")
         if status == "set":
             logger.info("Updating 'ARKADE_MNEMONIC' mnemonic settings.")
             from lnbits.core.crud.settings import set_settings_field
