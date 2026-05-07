@@ -21,7 +21,10 @@ window.app.component('lnbits-qrcode-lnurl', {
       if (this.tab == 'bech32') {
         const bytes = new TextEncoder().encode(this.url)
         const bech32 = NostrTools.nip19.encodeBytes('lnurl', bytes)
-        this.lnurl = `lightning:${bech32.toUpperCase()}`
+        this.lnurl =
+          this.prefix === 'lnurlw'
+            ? `${new URL(this.url).origin}/?lightning=${bech32.toUpperCase()}`
+            : `lightning:${bech32.toUpperCase()}`
       } else if (this.tab == 'lud17') {
         if (this.url.startsWith('http://')) {
           this.lnurl = this.url.replace('http://', this.prefix + '://')
