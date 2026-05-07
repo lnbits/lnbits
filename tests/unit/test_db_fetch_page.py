@@ -76,6 +76,20 @@ async def test_db_fetch_page_limit_zero_returns_all(fetch_page, db):
 
 
 @pytest.mark.anyio
+async def test_db_fetch_page_limit(fetch_page, db):
+    limit = 5
+    row = await db.fetch_page(
+        query="select * from test_db_fetch_page",
+        filters=Filters(limit=limit),
+        model=DbTestModel,
+    )
+
+    assert row
+    assert row.total == len(TEST_DB_FETCH_PAGE_ROWS)
+    assert len(row.data) == limit
+
+
+@pytest.mark.anyio
 async def test_db_fetch_page_group_by(fetch_page, db):
     row = await db.fetch_page(
         query="select max(id) as id, name from test_db_fetch_page",
