@@ -1,4 +1,4 @@
-/*! Axios v1.15.0 Copyright (c) 2026 Matt Zabriskie and contributors */
+/*! Axios v1.15.2 Copyright (c) 2026 Matt Zabriskie and contributors */
 (function (global, factory) {
   typeof exports === 'object' && typeof module !== 'undefined' ? module.exports = factory() :
   typeof define === 'function' && define.amd ? define(factory) :
@@ -812,10 +812,16 @@
   var G = getGlobal();
   var FormDataCtor = typeof G.FormData !== 'undefined' ? G.FormData : undefined;
   var isFormData = function isFormData(thing) {
-    var kind;
-    return thing && (FormDataCtor && thing instanceof FormDataCtor || isFunction$1(thing.append) && ((kind = kindOf(thing)) === 'formdata' ||
+    if (!thing) return false;
+    if (FormDataCtor && thing instanceof FormDataCtor) return true;
+    // Reject plain objects inheriting directly from Object.prototype so prototype-pollution gadgets can't spoof FormData (GHSA-6chq-wfr3-2hj9).
+    var proto = getPrototypeOf(thing);
+    if (!proto || proto === Object.prototype) return false;
+    if (!isFunction$1(thing.append)) return false;
+    var kind = kindOf(thing);
+    return kind === 'formdata' ||
     // detect form-data instance
-    kind === 'object' && isFunction$1(thing.toString) && thing.toString() === '[object FormData]'));
+    kind === 'object' && isFunction$1(thing.toString) && thing.toString() === '[object FormData]';
   };
 
   /**
@@ -1513,6 +1519,7 @@
   AxiosError.ERR_CANCELED = 'ERR_CANCELED';
   AxiosError.ERR_NOT_SUPPORT = 'ERR_NOT_SUPPORT';
   AxiosError.ERR_INVALID_URL = 'ERR_INVALID_URL';
+  AxiosError.ERR_FORM_DATA_DEPTH_EXCEEDED = 'ERR_FORM_DATA_DEPTH_EXCEEDED';
 
   // eslint-disable-next-line strict
   var httpAdapter = null;
@@ -1617,6 +1624,7 @@
     var dots = options.dots;
     var indexes = options.indexes;
     var _Blob = options.Blob || typeof Blob !== 'undefined' && Blob;
+    var maxDepth = options.maxDepth === undefined ? 100 : options.maxDepth;
     var useBlob = _Blob && utils$1.isSpecCompliantForm(formData);
     if (!utils$1.isFunction(visitor)) {
       throw new TypeError('visitor must be a function');
@@ -1684,7 +1692,11 @@
       isVisitable: isVisitable
     });
     function build(value, path) {
+      var depth = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : 0;
       if (utils$1.isUndefined(value)) return;
+      if (depth > maxDepth) {
+        throw new AxiosError('Object is too deeply nested (' + depth + ' levels). Max depth: ' + maxDepth, AxiosError.ERR_FORM_DATA_DEPTH_EXCEEDED);
+      }
       if (stack.indexOf(value) !== -1) {
         throw Error('Circular reference detected in ' + path.join('.'));
       }
@@ -1692,7 +1704,7 @@
       utils$1.forEach(value, function each(el, key) {
         var result = !(utils$1.isUndefined(el) || el === null) && visitor.call(formData, el, utils$1.isString(key) ? key.trim() : key, path, exposedHelpers);
         if (result === true) {
-          build(el, path ? path.concat(key) : [key]);
+          build(el, path ? path.concat(key) : [key], depth + 1);
         }
       });
       stack.pop();
@@ -1719,10 +1731,9 @@
       '(': '%28',
       ')': '%29',
       '~': '%7E',
-      '%20': '+',
-      '%00': '\x00'
+      '%20': '+'
     };
-    return encodeURIComponent(str).replace(/[!'()~]|%20|%00/g, function replacer(match) {
+    return encodeURIComponent(str).replace(/[!'()~]|%20/g, function replacer(match) {
       return charMap[match];
     });
   }
@@ -2012,7 +2023,7 @@
       name = !name && utils$1.isArray(target) ? target.length : name;
       if (isLast) {
         if (utils$1.hasOwnProp(target, name)) {
-          target[name] = [target[name], value];
+          target[name] = utils$1.isArray(target[name]) ? target[name].concat(value) : [target[name], value];
         } else {
           target[name] = value;
         }
@@ -2036,6 +2047,10 @@
     }
     return null;
   }
+
+  var own = function own(obj, key) {
+    return obj != null && utils$1.hasOwnProp(obj, key) ? obj[key] : undefined;
+  };
 
   /**
    * It takes a string, tries to parse it, and if it fails, it returns the stringified version
@@ -2086,14 +2101,16 @@
       }
       var isFileList;
       if (isObjectPayload) {
+        var formSerializer = own(this, 'formSerializer');
         if (contentType.indexOf('application/x-www-form-urlencoded') > -1) {
-          return toURLEncodedForm(data, this.formSerializer).toString();
+          return toURLEncodedForm(data, formSerializer).toString();
         }
         if ((isFileList = utils$1.isFileList(data)) || contentType.indexOf('multipart/form-data') > -1) {
-          var _FormData = this.env && this.env.FormData;
+          var env = own(this, 'env');
+          var _FormData = env && env.FormData;
           return toFormData(isFileList ? {
             'files[]': data
-          } : data, _FormData && new _FormData(), this.formSerializer);
+          } : data, _FormData && new _FormData(), formSerializer);
         }
       }
       if (isObjectPayload || hasJSONContentType) {
@@ -2103,21 +2120,22 @@
       return data;
     }],
     transformResponse: [function transformResponse(data) {
-      var transitional = this.transitional || defaults.transitional;
+      var transitional = own(this, 'transitional') || defaults.transitional;
       var forcedJSONParsing = transitional && transitional.forcedJSONParsing;
-      var JSONRequested = this.responseType === 'json';
+      var responseType = own(this, 'responseType');
+      var JSONRequested = responseType === 'json';
       if (utils$1.isResponse(data) || utils$1.isReadableStream(data)) {
         return data;
       }
-      if (data && utils$1.isString(data) && (forcedJSONParsing && !this.responseType || JSONRequested)) {
+      if (data && utils$1.isString(data) && (forcedJSONParsing && !responseType || JSONRequested)) {
         var silentJSONParsing = transitional && transitional.silentJSONParsing;
         var strictJSONParsing = !silentJSONParsing && JSONRequested;
         try {
-          return JSON.parse(data, this.parseReviver);
+          return JSON.parse(data, own(this, 'parseReviver'));
         } catch (e) {
           if (strictJSONParsing) {
             if (e.name === 'SyntaxError') {
-              throw AxiosError.from(e, AxiosError.ERR_BAD_RESPONSE, this, null, this.response);
+              throw AxiosError.from(e, AxiosError.ERR_BAD_RESPONSE, this, null, own(this, 'response'));
             }
             throw e;
           }
@@ -2196,42 +2214,37 @@
   });
 
   var $internals = Symbol('internals');
-  var isValidHeaderValue = function isValidHeaderValue(value) {
-    return !/[\r\n]/.test(value);
-  };
-  function assertValidHeaderValue(value, header) {
-    if (value === false || value == null) {
-      return;
-    }
-    if (utils$1.isArray(value)) {
-      value.forEach(function (v) {
-        return assertValidHeaderValue(v, header);
-      });
-      return;
-    }
-    if (!isValidHeaderValue(String(value))) {
-      throw new Error("Invalid character in header content [\"".concat(header, "\"]"));
-    }
-  }
-  function normalizeHeader(header) {
-    return header && String(header).trim().toLowerCase();
-  }
-  function stripTrailingCRLF(str) {
+  var INVALID_HEADER_VALUE_CHARS_RE = /[^\x09\x20-\x7E\x80-\xFF]/g;
+  function trimSPorHTAB(str) {
+    var start = 0;
     var end = str.length;
-    while (end > 0) {
-      var charCode = str.charCodeAt(end - 1);
-      if (charCode !== 10 && charCode !== 13) {
+    while (start < end) {
+      var code = str.charCodeAt(start);
+      if (code !== 0x09 && code !== 0x20) {
+        break;
+      }
+      start += 1;
+    }
+    while (end > start) {
+      var _code = str.charCodeAt(end - 1);
+      if (_code !== 0x09 && _code !== 0x20) {
         break;
       }
       end -= 1;
     }
-    return end === str.length ? str : str.slice(0, end);
+    return start === 0 && end === str.length ? str : str.slice(start, end);
+  }
+  function normalizeHeader(header) {
+    return header && String(header).trim().toLowerCase();
+  }
+  function sanitizeHeaderValue(str) {
+    return trimSPorHTAB(str.replace(INVALID_HEADER_VALUE_CHARS_RE, ''));
   }
   function normalizeValue(value) {
     if (value === false || value == null) {
       return value;
     }
-    return utils$1.isArray(value) ? value.map(normalizeValue) : stripTrailingCRLF(String(value));
+    return utils$1.isArray(value) ? value.map(normalizeValue) : sanitizeHeaderValue(String(value));
   }
   function parseTokens(str) {
     var tokens = Object.create(null);
@@ -2292,7 +2305,6 @@
           }
           var key = utils$1.findKey(self, lHeader);
           if (!key || self[key] === undefined || _rewrite === true || _rewrite === undefined && self[key] !== false) {
-            assertValidHeaderValue(_value, _header);
             self[key || _header] = normalizeValue(_value);
           }
         }
@@ -2678,19 +2690,19 @@
     var bytesNotified = 0;
     var _speedometer = speedometer(50, 250);
     return throttle(function (e) {
-      var loaded = e.loaded;
+      var rawLoaded = e.loaded;
       var total = e.lengthComputable ? e.total : undefined;
-      var progressBytes = loaded - bytesNotified;
+      var loaded = total != null ? Math.min(rawLoaded, total) : rawLoaded;
+      var progressBytes = Math.max(0, loaded - bytesNotified);
       var rate = _speedometer(progressBytes);
-      var inRange = loaded <= total;
-      bytesNotified = loaded;
+      bytesNotified = Math.max(bytesNotified, loaded);
       var data = _defineProperty({
         loaded: loaded,
         total: total,
         progress: total ? loaded / total : undefined,
         bytes: progressBytes,
         rate: rate ? rate : undefined,
-        estimated: rate && total && inRange ? (total - loaded) / rate : undefined,
+        estimated: rate && total ? (total - loaded) / rate : undefined,
         event: e,
         lengthComputable: total != null
       }, isDownloadStream ? 'download' : 'upload', true);
@@ -2809,7 +2821,7 @@
    */
   function buildFullPath(baseURL, requestedURL, allowAbsoluteUrls) {
     var isRelativeUrl = !isAbsoluteURL(requestedURL);
-    if (baseURL && (isRelativeUrl || allowAbsoluteUrls == false)) {
+    if (baseURL && (isRelativeUrl || allowAbsoluteUrls === false)) {
       return combineURLs(baseURL, requestedURL);
     }
     return requestedURL;
@@ -2831,7 +2843,18 @@
   function mergeConfig(config1, config2) {
     // eslint-disable-next-line no-param-reassign
     config2 = config2 || {};
-    var config = {};
+
+    // Use a null-prototype object so that downstream reads such as `config.auth`
+    // or `config.baseURL` cannot inherit polluted values from Object.prototype
+    // (see GHSA-q8qp-cvcw-x6jj). `hasOwnProperty` is restored as a non-enumerable
+    // own slot to preserve ergonomics for user code that relies on it.
+    var config = Object.create(null);
+    Object.defineProperty(config, 'hasOwnProperty', {
+      value: Object.prototype.hasOwnProperty,
+      enumerable: false,
+      writable: true,
+      configurable: true
+    });
     function getMergedValue(target, source, prop, caseless) {
       if (utils$1.isPlainObject(target) && utils$1.isPlainObject(source)) {
         return utils$1.merge.call({
@@ -2870,9 +2893,9 @@
 
     // eslint-disable-next-line consistent-return
     function mergeDirectKeys(a, b, prop) {
-      if (prop in config2) {
+      if (utils$1.hasOwnProp(config2, prop)) {
         return getMergedValue(a, b);
-      } else if (prop in config1) {
+      } else if (utils$1.hasOwnProp(config1, prop)) {
         return getMergedValue(undefined, a);
       }
     }
@@ -2903,6 +2926,7 @@
       httpsAgent: defaultToConfig2,
       cancelToken: defaultToConfig2,
       socketPath: defaultToConfig2,
+      allowedSocketPaths: defaultToConfig2,
       responseEncoding: defaultToConfig2,
       validateStatus: mergeDirectKeys,
       headers: function headers(a, b, prop) {
@@ -2912,7 +2936,9 @@
     utils$1.forEach(Object.keys(_objectSpread2(_objectSpread2({}, config1), config2)), function computeConfigValue(prop) {
       if (prop === '__proto__' || prop === 'constructor' || prop === 'prototype') return;
       var merge = utils$1.hasOwnProp(mergeMap, prop) ? mergeMap[prop] : mergeDeepProperties;
-      var configValue = merge(config1[prop], config2[prop], prop);
+      var a = utils$1.hasOwnProp(config1, prop) ? config1[prop] : undefined;
+      var b = utils$1.hasOwnProp(config2, prop) ? config2[prop] : undefined;
+      var configValue = merge(a, b, prop);
       utils$1.isUndefined(configValue) && merge !== mergeDirectKeys || (config[prop] = configValue);
     });
     return config;
@@ -2920,14 +2946,23 @@
 
   var resolveConfig = (function (config) {
     var newConfig = mergeConfig({}, config);
-    var data = newConfig.data,
-      withXSRFToken = newConfig.withXSRFToken,
-      xsrfHeaderName = newConfig.xsrfHeaderName,
-      xsrfCookieName = newConfig.xsrfCookieName,
-      headers = newConfig.headers,
-      auth = newConfig.auth;
+
+    // Read only own properties to prevent prototype pollution gadgets
+    // (e.g. Object.prototype.baseURL = 'https://evil.com'). See GHSA-q8qp-cvcw-x6jj.
+    var own = function own(key) {
+      return utils$1.hasOwnProp(newConfig, key) ? newConfig[key] : undefined;
+    };
+    var data = own('data');
+    var withXSRFToken = own('withXSRFToken');
+    var xsrfHeaderName = own('xsrfHeaderName');
+    var xsrfCookieName = own('xsrfCookieName');
+    var headers = own('headers');
+    var auth = own('auth');
+    var baseURL = own('baseURL');
+    var allowAbsoluteUrls = own('allowAbsoluteUrls');
+    var url = own('url');
     newConfig.headers = headers = AxiosHeaders.from(headers);
-    newConfig.url = buildURL(buildFullPath(newConfig.baseURL, newConfig.url, newConfig.allowAbsoluteUrls), config.params, config.paramsSerializer);
+    newConfig.url = buildURL(buildFullPath(baseURL, url, allowAbsoluteUrls), config.params, config.paramsSerializer);
 
     // HTTP basic authentication
     if (auth) {
@@ -2957,9 +2992,15 @@
     // Specifically not if we're in a web worker, or react-native.
 
     if (platform.hasStandardBrowserEnv) {
-      withXSRFToken && utils$1.isFunction(withXSRFToken) && (withXSRFToken = withXSRFToken(newConfig));
-      if (withXSRFToken || withXSRFToken !== false && isURLSameOrigin(newConfig.url)) {
-        // Add xsrf header
+      if (utils$1.isFunction(withXSRFToken)) {
+        withXSRFToken = withXSRFToken(newConfig);
+      }
+
+      // Strict boolean check — prevents proto-pollution gadgets (e.g. Object.prototype.withXSRFToken = 1)
+      // and misconfigurations (e.g. "false") from short-circuiting the same-origin check and leaking
+      // the XSRF token cross-origin. See GHSA-xx6v-rp6x-q39c.
+      var shouldSendXSRF = withXSRFToken === true || withXSRFToken == null && isURLSameOrigin(newConfig.url);
+      if (shouldSendXSRF) {
         var xsrfValue = xsrfHeaderName && xsrfCookieName && cookies.read(xsrfCookieName);
         if (xsrfValue) {
           headers.set(xsrfHeaderName, xsrfValue);
@@ -3449,16 +3490,18 @@
     }()));
     var supportsRequestStream = isRequestSupported && isReadableStreamSupported && test(function () {
       var duplexAccessed = false;
-      var body = new ReadableStream$1();
-      var hasContentType = new Request(platform.origin, {
-        body: body,
+      var request = new Request(platform.origin, {
+        body: new ReadableStream$1(),
         method: 'POST',
         get duplex() {
           duplexAccessed = true;
           return 'half';
         }
-      }).headers.has('Content-Type');
-      body.cancel();
+      });
+      var hasContentType = request.headers.has('Content-Type');
+      if (request.body != null) {
+        request.body.cancel();
+      }
       return duplexAccessed && !hasContentType;
     });
     var supportsResponseStream = isResponseSupported && isReadableStreamSupported && test(function () {
@@ -3554,7 +3597,7 @@
     }();
     return /*#__PURE__*/function () {
       var _ref5 = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee4(config) {
-        var _resolveConfig, url, method, data, signal, cancelToken, timeout, onDownloadProgress, onUploadProgress, responseType, headers, _resolveConfig$withCr, withCredentials, fetchOptions, _fetch, composedSignal, request, unsubscribe, requestContentLength, _request, contentTypeHeader, _progressEventDecorat, _progressEventDecorat2, onProgress, flush, isCredentialsSupported, resolvedOptions, response, isStreamResponse, options, responseContentLength, _ref6, _ref7, _onProgress, _flush, responseData, _t3, _t4, _t5;
+        var _resolveConfig, url, method, data, signal, cancelToken, timeout, onDownloadProgress, onUploadProgress, responseType, headers, _resolveConfig$withCr, withCredentials, fetchOptions, _fetch, composedSignal, request, unsubscribe, requestContentLength, _request, contentTypeHeader, _progressEventDecorat, _progressEventDecorat2, onProgress, flush, isCredentialsSupported, contentType, resolvedOptions, response, isStreamResponse, options, responseContentLength, _ref6, _ref7, _onProgress, _flush, responseData, _t3, _t4, _t5;
         return _regenerator().w(function (_context4) {
           while (1) switch (_context4.p = _context4.n) {
             case 0:
@@ -3601,7 +3644,14 @@
 
               // Cloudflare Workers throws when credentials are defined
               // see https://github.com/cloudflare/workerd/issues/902
-              isCredentialsSupported = isRequestSupported && 'credentials' in Request.prototype;
+              isCredentialsSupported = isRequestSupported && 'credentials' in Request.prototype; // If data is FormData and Content-Type is multipart/form-data without boundary,
+              // delete it so fetch can set it correctly with the boundary
+              if (utils$1.isFormData(data)) {
+                contentType = headers.getContentType();
+                if (contentType && /^multipart\/form-data/i.test(contentType) && !/boundary=/i.test(contentType)) {
+                  headers["delete"]('content-type');
+                }
+              }
               resolvedOptions = _objectSpread2(_objectSpread2({}, fetchOptions), {}, {
                 signal: composedSignal,
                 method: method.toUpperCase(),
@@ -3860,7 +3910,7 @@
     });
   }
 
-  var VERSION = "1.15.0";
+  var VERSION = "1.15.2";
 
   var validators$1 = {};
 
@@ -3925,7 +3975,9 @@
     var i = keys.length;
     while (i-- > 0) {
       var opt = keys[i];
-      var validator = schema[opt];
+      // Use hasOwnProperty so a polluted Object.prototype.<opt> cannot supply
+      // a non-function validator and cause a TypeError. See GHSA-q8qp-cvcw-x6jj.
+      var validator = Object.prototype.hasOwnProperty.call(schema, opt) ? schema[opt] : undefined;
       if (validator) {
         var value = options[opt];
         var result = value === undefined || validator(value, opt, options);
