@@ -23,7 +23,14 @@ from lnbits.core.services.fiat_providers import (
     test_connection as fiat_provider_connection,
 )
 from lnbits.core.services.users import create_user_account
-from lnbits.fiat.base import FiatInvoiceResponse, FiatPaymentStatus, FiatStatusResponse
+from lnbits.core.views.callback_api import handle_paypal_event
+from lnbits.fiat.paypal import PayPalWallet
+from lnbits.fiat.base import (
+    FiatInvoiceResponse,
+    FiatPaymentStatus,
+    FiatPaymentSuccessStatus,
+    FiatStatusResponse,
+)
 from lnbits.settings import Settings
 from tests.helpers import get_random_string
 
@@ -278,6 +285,42 @@ async def test_create_wallet_fiat_invoice_success(
     status = await check_payment_status(payment)
     assert status.paid is True
     assert status.success is True
+
+
+@pytest.mark.anyio
+async def test_create_paypal_fiat_invoice_uses_raw_order_id(
+    to_wallet: Wallet, settings: Settings, mocker: MockerFixture
+):
+    settings.paypal_enabled = True
+    settings.paypal_client_id = "client-id"
+    settings.paypal_client_secret = "client-secret"
+    settings.paypal_limits.service_min_amount_sats = 0
+    settings.paypal_limits.service_max_amount_sats = 0
+    settings.paypal_limits.service_faucet_wallet_id = None
+
+    invoice_data = CreateInvoice(
+        unit="USD", amount=1.0, memo="Test", fiat_provider="paypal"
+    )
+    fiat_mock_response = FiatInvoiceResponse(
+        ok=True,
+        checking_id="ORDER123",
+        payment_request="https://paypal.com/checkoutnow?token=ORDER123",
+    )
+
+    mocker.patch(
+        "lnbits.fiat.PayPalWallet.create_invoice",
+        AsyncMock(return_value=fiat_mock_response),
+    )
+    mocker.patch(
+        "lnbits.utils.exchange_rates.get_fiat_rate_satoshis",
+        AsyncMock(return_value=1000),
+    )
+
+    payment = await payments.create_fiat_invoice(to_wallet.id, invoice_data)
+
+    assert payment.fiat_provider == "paypal"
+    assert payment.extra.get("fiat_checking_id") == "ORDER123"
+    assert payment.checking_id == "fiat_paypal_ORDER123"
 
 
 @pytest.mark.anyio
@@ -635,6 +678,67 @@ async def test_verify_paypal_webhook_raises_on_failed_verification(
             },
             b'{"id":"event-1"}',
         )
+
+
+def test_paypal_order_status_approved_is_pending():
+    wallet = object.__new__(PayPalWallet)
+
+    approved = wallet._status_from_order({"status": "APPROVED"})
+    completed = wallet._status_from_order({"status": "COMPLETED"})
+
+    assert approved.pending is True
+    assert approved.success is False
+    assert completed.success is True
+
+
+def test_paypal_normalize_id_removes_legacy_double_prefix():
+    wallet = object.__new__(PayPalWallet)
+
+    assert wallet._normalize_paypal_id("fiat_paypal_ORDER123") == "ORDER123"
+    assert wallet._normalize_paypal_id("fiat_paypal_fiat_paypal_ORDER123") == "ORDER123"
+
+
+@pytest.mark.anyio
+async def test_handle_paypal_approved_event_captures_order(mocker: MockerFixture):
+    payment = Payment(
+        checking_id="fiat_paypal_ORDER123",
+        payment_hash="hash_123",
+        wallet_id="wallet_id",
+        amount=1000,
+        fee=0,
+        bolt11="bolt11",
+        status=PaymentState.PENDING,
+        fiat_provider="paypal",
+        extra={"fiat_checking_id": "ORDER123"},
+    )
+    provider = mocker.Mock(spec=PayPalWallet)
+    provider.capture_order = AsyncMock(return_value=FiatPaymentSuccessStatus())
+
+    mocker.patch(
+        "lnbits.core.views.callback_api.get_standalone_payment",
+        AsyncMock(return_value=payment),
+    )
+    mocker.patch(
+        "lnbits.core.views.callback_api.get_fiat_provider",
+        AsyncMock(return_value=provider),
+    )
+    status_mock = mocker.patch(
+        "lnbits.core.views.callback_api.check_fiat_status",
+        AsyncMock(),
+    )
+
+    await handle_paypal_event(
+        {
+            "id": "evt_paypal_approved",
+            "event_type": "CHECKOUT.ORDER.APPROVED",
+            "resource": {
+                "purchase_units": [{"invoice_id": payment.payment_hash}],
+            },
+        }
+    )
+
+    provider.capture_order.assert_awaited_once_with("ORDER123")
+    status_mock.assert_not_awaited()
 
 
 @pytest.mark.anyio

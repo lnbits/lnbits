@@ -169,7 +169,7 @@ class PayPalWallet(FiatProvider):
 
             return FiatInvoiceResponse(
                 ok=True,
-                checking_id=f"fiat_paypal_{order_id}",
+                checking_id=order_id,
                 payment_request=approval_url,
             )
         except Exception as exc:
@@ -285,6 +285,25 @@ class PayPalWallet(FiatProvider):
     async def get_payment_status(self, checking_id: str) -> FiatPaymentStatus:
         raise NotImplementedError("PayPal does not support outgoing payments.")
 
+    async def capture_order(self, checking_id: str) -> FiatPaymentStatus:
+        try:
+            await self._ensure_access_token()
+            paypal_id = self._normalize_paypal_id(checking_id)
+            if paypal_id.startswith("subscription_"):
+                logger.warning("PayPal subscriptions do not support order capture.")
+                return FiatPaymentPendingStatus()
+
+            r = await self.client.post(
+                f"/v2/checkout/orders/{paypal_id}/capture",
+                json={},
+                headers=self._auth_headers(),
+            )
+            r.raise_for_status()
+            return self._status_from_order(r.json())
+        except Exception as exc:
+            logger.warning(f"Error capturing PayPal order '{checking_id}': {exc}")
+            return await self.get_invoice_status(checking_id)
+
     async def paid_invoices_stream(self) -> AsyncGenerator[str, None]:
         logger.warning(
             "PayPal does not support paid invoices stream. Use webhooks instead."
@@ -296,7 +315,7 @@ class PayPalWallet(FiatProvider):
 
     def _status_from_order(self, order: dict[str, Any]) -> FiatPaymentStatus:
         status = (order.get("status") or "").upper()
-        if status in ["COMPLETED", "APPROVED"]:
+        if status == "COMPLETED":
             return FiatPaymentSuccessStatus()
         if status in ["VOIDED", "CANCELLED", "CANCELED"]:
             return FiatPaymentFailedStatus()
@@ -311,11 +330,10 @@ class PayPalWallet(FiatProvider):
         return FiatPaymentPendingStatus()
 
     def _normalize_paypal_id(self, checking_id: str) -> str:
-        return (
-            checking_id.replace("fiat_paypal_", "", 1)
-            if checking_id.startswith("fiat_paypal_")
-            else checking_id
-        )
+        normalized = checking_id
+        while normalized.startswith("fiat_paypal_"):
+            normalized = normalized.replace("fiat_paypal_", "", 1)
+        return normalized
 
     def _serialize_metadata(
         self, payment_options: FiatSubscriptionPaymentOptions

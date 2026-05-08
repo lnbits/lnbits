@@ -14,6 +14,8 @@ from lnbits.core.services.fiat_providers import (
     verify_paypal_webhook,
 )
 from lnbits.core.services.payments import create_fiat_invoice
+from lnbits.fiat import get_fiat_provider
+from lnbits.fiat.paypal import PayPalWallet
 from lnbits.fiat.base import FiatSubscriptionPaymentOptions
 from lnbits.settings import settings
 
@@ -186,7 +188,11 @@ async def handle_paypal_event(event: dict):
     resource = event.get("resource", {})
     logger.info(f"Handling PayPal event: '{event_id}'. Type: '{event_type}'.")
 
-    if event_type in ("CHECKOUT.ORDER.APPROVED", "PAYMENT.CAPTURE.COMPLETED"):
+    if event_type == "CHECKOUT.ORDER.APPROVED":
+        await _handle_paypal_checkout_order_approved(resource)
+        return
+
+    if event_type == "PAYMENT.CAPTURE.COMPLETED":
         payment_hash = _paypal_extract_payment_hash(resource)
         if not payment_hash:
             logger.warning("PayPal event missing payment hash.")
@@ -203,6 +209,30 @@ async def handle_paypal_event(event: dict):
         return
 
     logger.warning(f"Unhandled PayPal event type: '{event_type}'.")
+
+
+async def _handle_paypal_checkout_order_approved(resource: dict):
+    payment_hash = _paypal_extract_payment_hash(resource)
+    if not payment_hash:
+        logger.warning("PayPal approved event missing payment hash.")
+        return
+
+    payment = await get_standalone_payment(payment_hash)
+    if not payment:
+        logger.warning(f"No payment found for hash: '{payment_hash}'.")
+        return
+
+    fiat_provider = await get_fiat_provider("paypal")
+    if not isinstance(fiat_provider, PayPalWallet):
+        logger.warning("PayPal provider unavailable for approved order capture.")
+        return
+
+    capture_status = await fiat_provider.capture_order(
+        payment.extra.get("fiat_checking_id") or payment.checking_id
+    )
+    if capture_status.failed:
+        logger.warning(f"PayPal order capture failed for hash: '{payment_hash}'.")
+    return
 
 
 async def _handle_paypal_subscription_payment(resource: dict):

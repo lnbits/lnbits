@@ -82,8 +82,17 @@ async def test_callback_api_handles_paid_events_with_real_payments(mocker):
     )
     await handle_paypal_event(
         {
-            "id": "evt_paypal",
+            "id": "evt_paypal_approved",
             "event_type": "CHECKOUT.ORDER.APPROVED",
+            "resource": {
+                "purchase_units": [{"invoice_id": payment.payment_hash}],
+            },
+        }
+    )
+    await handle_paypal_event(
+        {
+            "id": "evt_paypal",
+            "event_type": "PAYMENT.CAPTURE.COMPLETED",
             "resource": {
                 "purchase_units": [{"invoice_id": payment.payment_hash}],
             },
