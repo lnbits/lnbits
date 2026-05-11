@@ -2,6 +2,7 @@ import hashlib
 import hmac
 import json
 import time
+from base64 import b64encode
 
 import httpx
 from loguru import logger
@@ -167,6 +168,36 @@ async def verify_paypal_webhook(headers, payload: bytes):
     except Exception as exc:
         logger.warning(exc)
         raise ValueError("PayPal webhook cannot be verified.") from exc
+
+
+def check_square_signature(
+    payload: bytes,
+    sig_header: str | None,
+    secret: str | None,
+    notification_url: str | None,
+):
+    if not sig_header:
+        logger.warning("Square signature header is missing.")
+        raise ValueError("Square signature header is missing.")
+
+    if not secret:
+        logger.warning("Square webhook signature key is not set.")
+        raise ValueError("Square webhook cannot be verified.")
+
+    if not notification_url:
+        logger.warning("Square webhook notification URL is not set.")
+        raise ValueError("Square webhook cannot be verified.")
+
+    signed_payload = notification_url.encode() + payload
+    computed_signature = b64encode(
+        hmac.new(
+            key=secret.encode(), msg=signed_payload, digestmod=hashlib.sha256
+        ).digest()
+    ).decode()
+
+    if hmac.compare_digest(computed_signature, sig_header) is not True:
+        logger.warning("Square signature verification failed.")
+        raise ValueError("Square signature verification failed.")
 
 
 async def test_connection(provider: str) -> SimpleStatus:
