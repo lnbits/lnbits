@@ -378,7 +378,7 @@ async def test_square_wallet_create_invoice(settings: Settings):
             )
         ]
     )
-    wallet.client = client
+    wallet.client = client  # type: ignore[assignment]
 
     response = await wallet.create_invoice(
         amount=1.23,
@@ -423,7 +423,7 @@ async def test_square_wallet_get_invoice_status(settings: Settings):
             MockHTTPResponse(json_data={"payment": {"status": "COMPLETED"}}),
         ]
     )
-    wallet.client = client
+    wallet.client = client  # type: ignore[assignment]
 
     status = await wallet.get_invoice_status("fiat_square_order_ORDER123")
 
