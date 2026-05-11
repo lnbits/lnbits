@@ -8,6 +8,10 @@ window.app.component('lnbits-qrcode-lnurl', {
     prefix: {
       type: String,
       default: 'lnurlp'
+    },
+    useFallback: {
+      type: Boolean,
+      default: false
     }
   },
   data() {
@@ -22,7 +26,7 @@ window.app.component('lnbits-qrcode-lnurl', {
         const bytes = new TextEncoder().encode(this.url)
         const bech32 = NostrTools.nip19.encodeBytes('lnurl', bytes)
         this.lnurl =
-          this.prefix === 'lnurlw'
+          this.prefix === 'lnurlw' && this.useFallback
             ? `${new URL(this.url).origin}/?lightning=${bech32.toUpperCase()}`
             : `lightning:${bech32.toUpperCase()}`
       } else if (this.tab == 'lud17') {
