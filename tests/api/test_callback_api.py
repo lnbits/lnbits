@@ -9,6 +9,7 @@ from lnbits.core.services.payments import create_wallet_invoice
 from lnbits.core.services.users import create_user_account
 from lnbits.core.views.callback_api import (
     handle_paypal_event,
+    handle_square_event,
     handle_stripe_event,
 )
 
@@ -23,7 +24,11 @@ async def test_callback_api_generic_webhook_handler_routes_providers(
     paypal_mock = mocker.patch(
         "lnbits.core.views.callback_api.handle_paypal_event", mocker.AsyncMock()
     )
+    square_mock = mocker.patch(
+        "lnbits.core.views.callback_api.handle_square_event", mocker.AsyncMock()
+    )
     mocker.patch("lnbits.core.views.callback_api.check_stripe_signature")
+    mocker.patch("lnbits.core.views.callback_api.check_square_signature")
     mocker.patch(
         "lnbits.core.views.callback_api.verify_paypal_webhook", mocker.AsyncMock()
     )
@@ -44,6 +49,15 @@ async def test_callback_api_generic_webhook_handler_routes_providers(
     assert paypal.status_code == 200
     assert paypal.json()["success"] is True
     paypal_mock.assert_awaited_once()
+
+    square = await http_client.post(
+        "/api/v1/callback/square",
+        headers={"x-square-hmacsha256-signature": "sig"},
+        json={"event_id": "evt_3", "type": "payment.updated"},
+    )
+    assert square.status_code == 200
+    assert square.json()["success"] is True
+    square_mock.assert_awaited_once()
 
     unknown = await http_client.post("/api/v1/callback/unknown", json={"id": "evt_3"})
     assert unknown.status_code == 200
@@ -92,6 +106,37 @@ async def test_callback_api_handles_paid_events_with_real_payments(mocker):
     await handle_stripe_event({"id": "evt_unhandled", "type": "customer.created"})
 
     assert fiat_status_mock.await_count == 2
+
+
+@pytest.mark.anyio
+async def test_callback_api_handles_square_paid_events(mocker):
+    payment = mocker.Mock()
+    get_payment = mocker.patch(
+        "lnbits.core.views.callback_api.get_standalone_payment",
+        mocker.AsyncMock(return_value=payment),
+    )
+    fiat_status_mock = mocker.patch(
+        "lnbits.core.views.callback_api.check_fiat_status", mocker.AsyncMock()
+    )
+
+    await handle_square_event(
+        {
+            "event_id": "evt_square",
+            "type": "payment.updated",
+            "data": {
+                "object": {
+                    "payment": {
+                        "id": "payment_1",
+                        "order_id": "order_1",
+                        "status": "COMPLETED",
+                    }
+                }
+            },
+        }
+    )
+
+    get_payment.assert_awaited_once_with("fiat_square_order_order_1")
+    fiat_status_mock.assert_awaited_once_with(payment)
 
 
 @pytest.mark.anyio

@@ -394,6 +394,26 @@
                 <span v-text="$t('pay_with', {provider: 'PayPal'})"></span>
               </q-item-section>
             </q-item>
+            <q-separator
+              v-if="g.user.fiat_providers?.includes('square')"
+            ></q-separator>
+            <q-item
+              v-if="g.user.fiat_providers?.includes('square')"
+              :active="receive.fiatProvider === 'square'"
+              @click="receive.fiatProvider = 'square'"
+              active-class="bg-teal-1 text-grey-8 text-weight-bold"
+              clickable
+              v-ripple
+            >
+              <q-item-section avatar>
+                <q-avatar>
+                  <q-img src="/static/images/square_logo.png"></q-img>
+                </q-avatar>
+              </q-item-section>
+              <q-item-section>
+                <span v-text="$t('pay_with', {provider: 'Square'})"></span>
+              </q-item-section>
+            </q-item>
           </q-list>
         </div>
 

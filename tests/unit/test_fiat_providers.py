@@ -1,6 +1,7 @@
 import hashlib
 import hmac
 import time
+from base64 import b64encode
 from unittest.mock import AsyncMock
 
 import pytest
@@ -15,6 +16,7 @@ from lnbits.core.models.wallets import Wallet
 from lnbits.core.services import check_payment_status, payments
 from lnbits.core.services.fiat_providers import (
     check_fiat_status,
+    check_square_signature,
     check_stripe_signature,
     handle_fiat_payment_confirmation,
     verify_paypal_webhook,
@@ -24,6 +26,7 @@ from lnbits.core.services.fiat_providers import (
 )
 from lnbits.core.services.users import create_user_account
 from lnbits.fiat.base import FiatInvoiceResponse, FiatPaymentStatus, FiatStatusResponse
+from lnbits.fiat.square import SquareWallet
 from lnbits.settings import Settings
 from tests.helpers import get_random_string
 
@@ -56,16 +59,39 @@ class MockHTTPClient:
         self.calls.append((path, kwargs))
         return self._responses.pop(0)
 
+    async def get(self, path: str, **kwargs):
+        self.calls.append((path, kwargs))
+        return self._responses.pop(0)
+
 
 @pytest.fixture(autouse=True)
 def fiat_provider_test_settings(settings: Settings):
     original_allowed_currencies = settings.lnbits_allowed_currencies
     original_paypal_enabled = settings.paypal_enabled
+    original_square_enabled = settings.square_enabled
+    original_square_api_endpoint = settings.square_api_endpoint
+    original_square_access_token = settings.square_access_token
+    original_square_location_id = settings.square_location_id
+    original_square_api_version = settings.square_api_version
+    original_square_payment_success_url = settings.square_payment_success_url
+    original_square_payment_webhook_url = settings.square_payment_webhook_url
+    original_square_webhook_signature_key = settings.square_webhook_signature_key
+    original_square_limits = settings.square_limits.copy(deep=True)
     settings.lnbits_allowed_currencies = []
     settings.paypal_enabled = False
+    settings.square_enabled = False
     yield
     settings.lnbits_allowed_currencies = original_allowed_currencies
     settings.paypal_enabled = original_paypal_enabled
+    settings.square_enabled = original_square_enabled
+    settings.square_api_endpoint = original_square_api_endpoint
+    settings.square_access_token = original_square_access_token
+    settings.square_location_id = original_square_location_id
+    settings.square_api_version = original_square_api_version
+    settings.square_payment_success_url = original_square_payment_success_url
+    settings.square_payment_webhook_url = original_square_payment_webhook_url
+    settings.square_webhook_signature_key = original_square_webhook_signature_key
+    settings.square_limits = original_square_limits
 
 
 @pytest.mark.anyio
@@ -129,6 +155,22 @@ async def test_create_wallet_fiat_invoice_allowed_users(
     user = await get_user(to_user.id)
     assert user
     assert user.fiat_providers == []
+
+    settings.square_enabled = True
+    settings.square_limits.allowed_users = []
+    user = await get_user(to_user.id)
+    assert user
+    assert user.fiat_providers == ["square"]
+
+    settings.square_limits.allowed_users = ["some_other_user_id"]
+    user = await get_user(to_user.id)
+    assert user
+    assert user.fiat_providers == []
+
+    settings.square_limits.allowed_users.append(to_user.id)
+    user = await get_user(to_user.id)
+    assert user
+    assert user.fiat_providers == ["square"]
 
 
 @pytest.mark.anyio
@@ -278,6 +320,116 @@ async def test_create_wallet_fiat_invoice_success(
     status = await check_payment_status(payment)
     assert status.paid is True
     assert status.success is True
+
+
+@pytest.mark.anyio
+async def test_create_wallet_square_fiat_invoice_success(
+    to_wallet: Wallet, settings: Settings, mocker: MockerFixture
+):
+    settings.square_enabled = True
+    settings.square_access_token = "square-token"
+    settings.square_location_id = "LOC123"
+    settings.square_limits.service_min_amount_sats = 0
+    settings.square_limits.service_max_amount_sats = 0
+    settings.square_limits.service_faucet_wallet_id = None
+
+    invoice_data = CreateInvoice(
+        unit="USD", amount=1.0, memo="Test", fiat_provider="square"
+    )
+    fiat_mock_response = FiatInvoiceResponse(
+        ok=True,
+        checking_id="order_123",
+        payment_request="https://square.link/u/session_123",
+    )
+
+    mocker.patch(
+        "lnbits.fiat.SquareWallet.create_invoice",
+        AsyncMock(return_value=fiat_mock_response),
+    )
+    mocker.patch(
+        "lnbits.utils.exchange_rates.get_fiat_rate_satoshis",
+        AsyncMock(return_value=1000),
+    )
+    payment = await payments.create_fiat_invoice(to_wallet.id, invoice_data)
+    assert payment.status == PaymentState.PENDING
+    assert payment.fiat_provider == "square"
+    assert payment.extra.get("fiat_checking_id") == fiat_mock_response.checking_id
+    assert payment.checking_id.startswith("fiat_square_order_123")
+
+
+@pytest.mark.anyio
+async def test_square_wallet_create_invoice(settings: Settings):
+    settings.square_api_endpoint = "https://connect.squareupsandbox.com"
+    settings.square_access_token = "square-token"
+    settings.square_location_id = "LOC123"
+    settings.square_api_version = "2026-01-22"
+    settings.square_payment_success_url = "https://lnbits.example/success"
+
+    wallet = SquareWallet()
+    client = MockHTTPClient(
+        [
+            MockHTTPResponse(
+                json_data={
+                    "payment_link": {
+                        "order_id": "ORDER123",
+                        "url": "https://square.link/u/abc123",
+                    }
+                }
+            )
+        ]
+    )
+    wallet.client = client
+
+    response = await wallet.create_invoice(
+        amount=1.23,
+        payment_hash="hash123",
+        currency="USD",
+        memo="LNbits Square invoice",
+        extra={"checkout": {"metadata": {"source": "test"}}},
+    )
+
+    assert response.ok is True
+    assert response.checking_id == "order_ORDER123"
+    assert response.payment_request == "https://square.link/u/abc123"
+    assert client.calls[0][0] == "/v2/online-checkout/payment-links"
+    payload = client.calls[0][1]["json"]
+    assert payload["idempotency_key"] == "hash123"
+    assert payload["order"]["location_id"] == "LOC123"
+    assert payload["order"]["metadata"]["payment_hash"] == "hash123"
+    assert payload["order"]["metadata"]["alan_action"] == "invoice"
+    assert payload["order"]["metadata"]["source"] == "test"
+    assert payload["order"]["line_items"][0]["base_price_money"]["amount"] == 123
+
+
+@pytest.mark.anyio
+async def test_square_wallet_get_invoice_status(settings: Settings):
+    settings.square_api_endpoint = "https://connect.squareupsandbox.com"
+    settings.square_access_token = "square-token"
+    settings.square_location_id = "LOC123"
+    settings.square_api_version = "2026-01-22"
+
+    wallet = SquareWallet()
+    client = MockHTTPClient(
+        [
+            MockHTTPResponse(
+                json_data={
+                    "order": {
+                        "id": "ORDER123",
+                        "state": "COMPLETED",
+                        "tenders": [{"payment_id": "PAYMENT123"}],
+                    }
+                }
+            ),
+            MockHTTPResponse(json_data={"payment": {"status": "COMPLETED"}}),
+        ]
+    )
+    wallet.client = client
+
+    status = await wallet.get_invoice_status("fiat_square_order_ORDER123")
+
+    assert status.success is True
+    assert client.calls[0][0] == "/v2/orders/ORDER123"
+    assert client.calls[1][0] == "/v2/payments/PAYMENT123"
 
 
 @pytest.mark.anyio
@@ -467,6 +619,31 @@ def test_check_stripe_signature_non_utf8_payload():
     sig_header = f"t={timestamp},v1={signature}"
     with pytest.raises(UnicodeDecodeError):
         check_stripe_signature(payload, sig_header, secret)
+
+
+def test_check_square_signature_success():
+    payload = b'{"type":"payment.updated"}'
+    secret = "signature-key"
+    notification_url = "https://lnbits.example/api/v1/callback/square"
+    signature = b64encode(
+        hmac.new(
+            key=secret.encode(),
+            msg=notification_url.encode() + payload,
+            digestmod=hashlib.sha256,
+        ).digest()
+    ).decode()
+
+    check_square_signature(payload, signature, secret, notification_url)
+
+
+def test_check_square_signature_rejects_invalid_signature():
+    with pytest.raises(ValueError, match="Square signature verification failed."):
+        check_square_signature(
+            b'{"type":"payment.updated"}',
+            "invalid-signature",
+            "signature-key",
+            "https://lnbits.example/api/v1/callback/square",
+        )
 
 
 # Helper to generate a valid Stripe signature header

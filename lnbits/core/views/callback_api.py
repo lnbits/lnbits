@@ -10,6 +10,7 @@ from lnbits.core.models.misc import SimpleStatus
 from lnbits.core.models.payments import CreateInvoice
 from lnbits.core.services.fiat_providers import (
     check_fiat_status,
+    check_square_signature,
     check_stripe_signature,
     verify_paypal_webhook,
 )
@@ -44,6 +45,23 @@ async def api_generic_webhook_handler(
         await verify_paypal_webhook(request.headers, payload)
         event = await request.json()
         await handle_paypal_event(event)
+
+        return SimpleStatus(
+            success=True,
+            message=f"Callback received successfully from '{provider_name}'.",
+        )
+
+    if provider_name.lower() == "square":
+        payload = await request.body()
+        sig_header = request.headers.get("x-square-hmacsha256-signature")
+        check_square_signature(
+            payload,
+            sig_header,
+            settings.square_webhook_signature_key,
+            settings.square_payment_webhook_url,
+        )
+        event = await request.json()
+        await handle_square_event(event)
 
         return SimpleStatus(
             success=True,
@@ -280,3 +298,35 @@ def _deserialize_paypal_metadata(custom_id: str) -> FiatSubscriptionPaymentOptio
     except (json.JSONDecodeError, IndexError) as e:
         logger.warning(f"Failed to deserialize PayPal metadata: {e}")
         return FiatSubscriptionPaymentOptions()
+
+
+async def handle_square_event(event: dict):
+    event_id = event.get("event_id") or event.get("id", "")
+    event_type = event.get("type", "")
+    logger.info(f"Handling Square event: '{event_id}'. Type: '{event_type}'.")
+
+    if event_type in ("payment.created", "payment.updated"):
+        await _handle_square_payment_event(event)
+        return
+
+    logger.warning(f"Unhandled Square event type: '{event_type}'.")
+
+
+async def _handle_square_payment_event(event: dict):
+    payment = _square_extract_payment(event)
+    order_id = payment.get("order_id")
+    if not order_id:
+        logger.warning("Square payment event missing order_id.")
+        return
+
+    lnbits_payment = await get_standalone_payment(f"fiat_square_order_{order_id}")
+    if not lnbits_payment:
+        logger.warning(f"No payment found for Square order: '{order_id}'.")
+        return
+
+    await check_fiat_status(lnbits_payment)
+
+
+def _square_extract_payment(event: dict) -> dict:
+    event_object = event.get("data", {}).get("object", {})
+    return event_object.get("payment") or event_object
