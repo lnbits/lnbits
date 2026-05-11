@@ -21,12 +21,6 @@ window.app.component('lnbits-admin-fiat-providers', {
         this.formData?.paypal_payment_webhook_url ||
         this.calculateWebhookUrl('paypal')
       )
-    },
-    squareWebhookUrl() {
-      return (
-        this.formData?.square_payment_webhook_url ||
-        this.calculateWebhookUrl('square')
-      )
     }
   },
   watch: {
