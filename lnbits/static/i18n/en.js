@@ -268,7 +268,9 @@ window.localisation.en = {
   webhook_stripe_description:
     'One the stripe side you must configure a webhook with a URL that points to your LNbits server.',
   webhook_square_description:
-    'On the Square side configure a webhook pointing to your LNbits server.',
+    'On the Square side configure a webhook pointing to this exact LNbits URL.',
+  square_webhook_url_hint:
+    'Must exactly match the Square notification URL. LNbits requires the /api/v1/callback/square path.',
   access_token: 'Access Token',
   location_id: 'Location ID',
   square_location_id_hint:

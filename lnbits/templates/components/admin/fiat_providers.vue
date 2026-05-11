@@ -664,11 +664,9 @@
                     <q-input
                       filled
                       type="text"
-                      disable
-                      :model-value="squareWebhookUrl"
+                      v-model="formData.square_payment_webhook_url"
                       :label="$t('webhook_url')"
-                      :hint="$t('webhook_url_hint')"
-                      readonly
+                      :hint="$t('square_webhook_url_hint')"
                     ></q-input>
                   </div>
                   <div class="col-auto">
@@ -676,7 +674,9 @@
                       outline
                       color="grey"
                       icon="content_copy"
-                      @click="copyWebhookUrl(squareWebhookUrl)"
+                      @click="
+                        copyWebhookUrl(formData.square_payment_webhook_url)
+                      "
                       :aria-label="$t('copy_webhook_url')"
                     >
                       <q-tooltip>
