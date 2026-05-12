@@ -107,6 +107,35 @@ async def get_latest_payments_by_extension(
     )
 
 
+async def get_latest_payment_by_extra_key_value(
+    key: str,
+    value: str,
+    wallet_id: str | None = None,
+    conn: Connection | None = None,
+) -> Payment | None:
+    values = {
+        "extra_key": f'%"{key}"%',
+        "extra_value": f'%"{value}"%',
+    }
+    clause = ["extra LIKE :extra_key", "extra LIKE :extra_value"]
+    if wallet_id:
+        wallet = await get_wallet(wallet_id, conn=conn)
+        if not wallet or not wallet.can_view_payments:
+            return None
+        values["wallet_id"] = wallet.source_wallet_id
+        clause.append("wallet_id = :wallet_id")
+
+    return await (conn or db).fetchone(
+        f"""
+        SELECT * FROM apipayments
+        WHERE {" AND ".join(clause)}
+        ORDER BY time DESC LIMIT 1
+        """,  # noqa: S608
+        values,
+        Payment,
+    )
+
+
 async def get_payments_paginated(  # noqa: C901
     *,
     wallet_id: str | None = None,

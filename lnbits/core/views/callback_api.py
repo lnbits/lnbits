@@ -4,8 +4,11 @@ from fastapi import APIRouter, Request
 from loguru import logger
 
 from lnbits.core.crud.payments import (
+    get_latest_payment_by_extra_key_value,
     get_standalone_payment,
+    update_payment,
 )
+from lnbits.core.models import Payment
 from lnbits.core.models.misc import SimpleStatus
 from lnbits.core.models.payments import CreateInvoice
 from lnbits.core.services.fiat_providers import (
@@ -15,7 +18,9 @@ from lnbits.core.services.fiat_providers import (
     verify_paypal_webhook,
 )
 from lnbits.core.services.payments import create_fiat_invoice
+from lnbits.fiat import get_fiat_provider
 from lnbits.fiat.base import FiatSubscriptionPaymentOptions
+from lnbits.fiat.square import SquareWallet
 from lnbits.settings import settings
 
 callback_router = APIRouter(prefix="/api/v1/callback", tags=["callback"])
@@ -309,11 +314,23 @@ async def handle_square_event(event: dict):
         await _handle_square_payment_event(event)
         return
 
+    if event_type == "invoice.payment_made":
+        await _handle_square_invoice_payment_made(event)
+        return
+
     logger.warning(f"Unhandled Square event type: '{event_type}'.")
 
 
 async def _handle_square_payment_event(event: dict):
     payment = _square_extract_payment(event)
+    payment_options = _deserialize_square_metadata(_square_payment_note(payment))
+    if payment_options.wallet_id:
+        if not _square_payment_is_completed(payment):
+            logger.debug("Square subscription payment is not completed yet.")
+            return
+        await _handle_square_subscription_payment(payment, payment_options)
+        return
+
     order_id = payment.get("order_id")
     if not order_id:
         logger.warning("Square payment event missing order_id.")
@@ -327,6 +344,155 @@ async def _handle_square_payment_event(event: dict):
     await check_fiat_status(lnbits_payment)
 
 
+async def _handle_square_invoice_payment_made(event: dict):
+    invoice = event.get("data", {}).get("object", {}).get("invoice") or {}
+    order_id = invoice.get("order_id")
+    if not order_id:
+        logger.warning("Square invoice.payment_made event missing order_id.")
+        return
+    subscription_id = invoice.get("subscription_id")
+
+    fiat_provider = await get_fiat_provider("square")
+    if not isinstance(fiat_provider, SquareWallet):
+        logger.warning("Square fiat provider is not configured.")
+        return
+
+    payment = await fiat_provider.get_payment_for_order(order_id)
+    if not payment:
+        logger.warning(f"No Square payment found for invoice order: '{order_id}'.")
+        return
+
+    payment_options = _deserialize_square_metadata(_square_payment_note(payment))
+    if not payment_options.wallet_id:
+        stored_payment = (
+            await get_latest_payment_by_extra_key_value(
+                "square_subscription_id", subscription_id
+            )
+            if subscription_id
+            else None
+        )
+        if stored_payment:
+            payment_options = _square_payment_options_from_payment(stored_payment)
+        else:
+            logger.warning("Square subscription payment missing LNbits metadata.")
+            return
+
+    await _handle_square_subscription_payment(
+        payment,
+        payment_options,
+        invoice.get("public_url") or "",
+        square_subscription_id=subscription_id,
+    )
+
+
+async def _handle_square_subscription_payment(
+    payment: dict,
+    payment_options: FiatSubscriptionPaymentOptions,
+    payment_request: str = "",
+    square_subscription_id: str | None = None,
+):
+    amount_money = payment.get("amount_money") or {}
+    amount = amount_money.get("amount")
+    currency = (amount_money.get("currency") or "").upper()
+    payment_id = payment.get("id")
+    if amount is None or not currency or not payment_id:
+        raise ValueError("Square subscription payment event missing payment amount.")
+    wallet_id = payment_options.wallet_id
+    if not wallet_id:
+        raise ValueError("Square subscription payment event missing wallet_id.")
+
+    checking_id = f"payment_{payment_id}"
+    existing_payment = await get_standalone_payment(f"fiat_square_{checking_id}")
+    if existing_payment:
+        if (
+            square_subscription_id
+            and (existing_payment.extra or {}).get("square_subscription_id")
+            != square_subscription_id
+        ):
+            existing_payment.extra["square_subscription_id"] = square_subscription_id
+            await update_payment(existing_payment)
+        await check_fiat_status(existing_payment)
+        return
+
+    square_subscription_id = square_subscription_id or (
+        payment_options.extra or {}
+    ).get("square_subscription_id")
+    extra = {
+        **(payment_options.extra or {}),
+        "subscription_request_id": payment_options.subscription_request_id,
+        "fiat_method": "subscription",
+        "tag": payment_options.tag,
+        "subscription": {
+            "checking_id": checking_id,
+            "payment_request": payment_request,
+        },
+    }
+    if square_subscription_id:
+        extra["square_subscription_id"] = square_subscription_id
+
+    lnbits_payment = await create_fiat_invoice(
+        wallet_id=wallet_id,
+        invoice_data=CreateInvoice(
+            unit=currency,
+            amount=amount / 100,
+            memo=payment_options.memo or "",
+            extra=extra,
+            fiat_provider="square",
+        ),
+    )
+
+    await check_fiat_status(lnbits_payment)
+
+
+def _square_payment_options_from_payment(
+    payment: Payment,
+) -> FiatSubscriptionPaymentOptions:
+    extra = payment.extra or {}
+    return FiatSubscriptionPaymentOptions(
+        wallet_id=payment.wallet_id,
+        tag=extra.get("tag") or payment.tag,
+        subscription_request_id=extra.get("subscription_request_id"),
+        extra=extra,
+        memo=payment.memo,
+    )
+
+
 def _square_extract_payment(event: dict) -> dict:
     event_object = event.get("data", {}).get("object", {})
     return event_object.get("payment") or event_object
+
+
+def _square_payment_is_completed(payment: dict) -> bool:
+    return (payment.get("status") or "").upper() == "COMPLETED"
+
+
+def _square_payment_note(payment: dict) -> str:
+    return payment.get("note") or payment.get("payment_note") or ""
+
+
+def _deserialize_square_metadata(custom_id: str) -> FiatSubscriptionPaymentOptions:
+    try:
+        meta = json.loads(custom_id)
+        if not isinstance(meta, list):
+            return FiatSubscriptionPaymentOptions()
+        wallet_id = meta[0] if len(meta) > 0 else None
+        tag = meta[1] if len(meta) > 1 else None
+        subscription_request_id = meta[2] if len(meta) > 2 else None
+        extra_link = meta[3] if len(meta) > 3 else None
+        memo = meta[4] if len(meta) > 4 else None
+
+        extra = {
+            "link": extra_link,
+            "subscription_request_id": subscription_request_id,
+        }
+
+        return FiatSubscriptionPaymentOptions(
+            wallet_id=wallet_id,
+            tag=tag,
+            subscription_request_id=subscription_request_id,
+            extra=extra,
+            memo=memo,
+        )
+    except (json.JSONDecodeError, IndexError, TypeError) as e:
+        logger.debug(f"Failed to deserialize Square metadata: {e}")
+        return FiatSubscriptionPaymentOptions()
