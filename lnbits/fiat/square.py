@@ -52,6 +52,11 @@ class SquareCreateInvoiceOptions(BaseModel):
     subscription: SquareSubscriptionOptions | None = None
 
 
+class SquareSubscriptionCheckoutInfo(BaseModel):
+    plan_variation_id: str
+    price_money: dict[str, Any]
+
+
 class SquareWallet(FiatProvider):
     """https://developer.squareup.com/reference/square"""
 
@@ -199,23 +204,20 @@ class SquareWallet(FiatProvider):
         payment_options.extra["subscription_request_id"] = (
             payment_options.subscription_request_id
         )
-        print("### create_subscription", subscription_id, quantity, payment_options)
         try:
-            price_money = await self._get_subscription_price_money(subscription_id)
-            print("### price_money", price_money)
+            checkout_info = await self._get_subscription_checkout_info(subscription_id)
             metadata = self._serialize_metadata(payment_options)
-            print("### metadata", metadata)
             payload = {
                 "idempotency_key": payment_options.subscription_request_id,
                 "description": metadata,
                 "quick_pay": {
                     "name": (payment_options.memo or "LNbits Subscription")[:255],
-                    "price_money": price_money,
+                    "price_money": checkout_info.price_money,
                     "location_id": self.location_id,
                 },
                 "checkout_options": {
                     "redirect_url": success_url,
-                    "subscription_plan_id": subscription_id,
+                    "subscription_plan_id": checkout_info.plan_variation_id,
                 },
                 "payment_note": metadata,
             }
@@ -224,7 +226,6 @@ class SquareWallet(FiatProvider):
             )
             r.raise_for_status()
             data = r.json()
-            print("### response data", data)
             payment_link = data.get("payment_link") or {}
             url = payment_link.get("url")
             if not url:
@@ -338,32 +339,133 @@ class SquareWallet(FiatProvider):
         r.raise_for_status()
         return r.json().get("payment") or {}
 
-    async def _get_subscription_price_money(
-        self, plan_variation_id: str
-    ) -> dict[str, Any]:
-        r = await self.client.get(f"/v2/catalog/object/{plan_variation_id}")
-        r.raise_for_status()
-        catalog_object = r.json().get("object") or {}
-        if catalog_object.get("type") != "SUBSCRIPTION_PLAN_VARIATION":
-            raise ValueError("Square subscription ID must be a plan variation ID.")
+    async def _get_subscription_checkout_info(
+        self, subscription_plan_id: str
+    ) -> SquareSubscriptionCheckoutInfo:
+        catalog_object = await self._get_catalog_object(subscription_plan_id)
+        if catalog_object.get("type") == "SUBSCRIPTION_PLAN":
+            return await self._get_plan_checkout_info(catalog_object)
 
-        variation_data = catalog_object.get("subscription_plan_variation_data") or {}
+        if catalog_object.get("type") == "SUBSCRIPTION_PLAN_VARIATION":
+            price_money = await self._get_subscription_price_money(
+                catalog_object,
+            )
+            plan_variation_id = catalog_object.get("id")
+            if not plan_variation_id:
+                raise ValueError("Square subscription plan variation is missing an ID.")
+            return SquareSubscriptionCheckoutInfo(
+                plan_variation_id=plan_variation_id,
+                price_money=price_money,
+            )
+
+        raise ValueError(
+            "Square subscription ID must be a plan ID or plan variation ID."
+        )
+
+    async def _get_plan_checkout_info(
+        self, catalog_object: dict[str, Any]
+    ) -> SquareSubscriptionCheckoutInfo:
+        plan_data = catalog_object.get("subscription_plan_data") or {}
+        plan_variations = plan_data.get("subscription_plan_variations") or []
+        plan_variation = next(
+            (
+                variation
+                for variation in plan_variations
+                if not variation.get("is_deleted")
+            ),
+            None,
+        )
+        if not plan_variation:
+            raise ValueError("Square subscription plan is missing a variation.")
+
+        price_money = await self._get_subscription_price_money(
+            plan_variation,
+            eligible_item_ids=plan_data.get("eligible_item_ids") or [],
+        )
+        plan_variation_id = plan_variation.get("id")
+        if not plan_variation_id:
+            raise ValueError("Square subscription plan variation is missing an ID.")
+
+        return SquareSubscriptionCheckoutInfo(
+            plan_variation_id=plan_variation_id,
+            price_money=price_money,
+        )
+
+    async def _get_catalog_object(self, object_id: str) -> dict[str, Any]:
+        r = await self.client.get(f"/v2/catalog/object/{object_id}")
+        r.raise_for_status()
+        return r.json().get("object") or {}
+
+    async def _get_subscription_price_money(
+        self,
+        plan_variation: dict[str, Any],
+        eligible_item_ids: list[str] | None = None,
+    ) -> dict[str, Any]:
+        variation_data = plan_variation.get("subscription_plan_variation_data") or {}
         phases = variation_data.get("phases") or []
         for phase in phases:
             pricing = phase.get("pricing") or {}
             price_money = pricing.get("price_money") or phase.get(
                 "recurring_price_money"
             )
-            if (
-                price_money
-                and price_money.get("amount") is not None
-                and price_money.get("currency")
-            ):
-                return {
-                    "amount": int(price_money["amount"]),
-                    "currency": price_money["currency"].upper(),
-                }
+            parsed_price_money = self._parse_price_money(price_money)
+            if parsed_price_money:
+                return parsed_price_money
+
+            if pricing.get("type") == "RELATIVE":
+                return await self._get_relative_subscription_price_money(
+                    eligible_item_ids or []
+                )
+
         raise ValueError("Square subscription plan variation is missing price_money.")
+
+    async def _get_relative_subscription_price_money(
+        self, eligible_item_ids: list[str]
+    ) -> dict[str, Any]:
+        if len(eligible_item_ids) != 1:
+            raise ValueError(
+                "Square relative subscription plan must have exactly one item."
+            )
+
+        item = await self._get_catalog_object(eligible_item_ids[0])
+        item_variations: list[dict[str, Any]] = []
+        if item.get("type") == "ITEM":
+            item_variations = (item.get("item_data") or {}).get("variations") or []
+        elif item.get("type") == "ITEM_VARIATION":
+            item_variations = [item]
+
+        item_variation = next(
+            (
+                variation
+                for variation in item_variations
+                if not variation.get("is_deleted")
+            ),
+            None,
+        )
+        if not item_variation:
+            raise ValueError("Square subscription item is missing a variation.")
+
+        price_money = self._parse_price_money(
+            (item_variation.get("item_variation_data") or {}).get("price_money")
+        )
+        if price_money:
+            return price_money
+
+        raise ValueError("Square subscription item variation is missing price_money.")
+
+    def _parse_price_money(
+        self, price_money: dict[str, Any] | None
+    ) -> dict[str, Any] | None:
+        if (
+            price_money
+            and price_money.get("amount") is not None
+            and price_money.get("currency")
+        ):
+            return {
+                "amount": int(price_money["amount"]),
+                "currency": price_money["currency"].upper(),
+            }
+        return None
 
     def _status_from_payment(self, payment: dict[str, Any]) -> FiatPaymentStatus:
         status = (payment.get("status") or "").upper()

@@ -422,6 +422,7 @@ async def test_square_wallet_create_subscription(settings: Settings):
                 json_data={
                     "object": {
                         "type": "SUBSCRIPTION_PLAN_VARIATION",
+                        "id": "PLAN_VARIATION_123",
                         "subscription_plan_variation_data": {
                             "phases": [
                                 {
@@ -479,6 +480,108 @@ async def test_square_wallet_create_subscription(settings: Settings):
     metadata = json.loads(payload["payment_note"])
     assert metadata[:3] == ["wallet_1", "gold", response.subscription_request_id]
     assert metadata[3:] == ["link-1", "Monthly Gold"]
+
+
+@pytest.mark.anyio
+async def test_square_wallet_create_subscription_from_plan_id(settings: Settings):
+    settings.square_api_endpoint = "https://connect.squareupsandbox.com"
+    settings.square_access_token = "square-token"
+    settings.square_location_id = "LOC123"
+    settings.square_api_version = "2026-01-22"
+    settings.square_payment_success_url = "https://lnbits.example/success"
+
+    wallet = SquareWallet()
+    client = MockHTTPClient(
+        [
+            MockHTTPResponse(
+                json_data={
+                    "object": {
+                        "type": "SUBSCRIPTION_PLAN",
+                        "id": "PLAN123",
+                        "subscription_plan_data": {
+                            "name": "LNbits Test Weekly Personal Plan",
+                            "subscription_plan_variations": [
+                                {
+                                    "type": "SUBSCRIPTION_PLAN_VARIATION",
+                                    "id": "PLAN_VARIATION_123",
+                                    "subscription_plan_variation_data": {
+                                        "name": "LNbits Test Weekly Personal Plan",
+                                        "phases": [
+                                            {
+                                                "uid": "PHASE123",
+                                                "cadence": "WEEKLY",
+                                                "ordinal": 0,
+                                                "pricing": {"type": "RELATIVE"},
+                                            }
+                                        ],
+                                        "subscription_plan_id": "PLAN123",
+                                    },
+                                }
+                            ],
+                            "eligible_item_ids": ["ITEM123"],
+                            "all_items": False,
+                        },
+                    }
+                }
+            ),
+            MockHTTPResponse(
+                json_data={
+                    "object": {
+                        "type": "ITEM",
+                        "id": "ITEM123",
+                        "item_data": {
+                            "name": "LNbits Test Weekly Personal Plan",
+                            "variations": [
+                                {
+                                    "type": "ITEM_VARIATION",
+                                    "id": "ITEM_VARIATION_123",
+                                    "item_variation_data": {
+                                        "item_id": "ITEM123",
+                                        "name": "Regular",
+                                        "pricing_type": "FIXED_PRICING",
+                                        "price_money": {
+                                            "amount": 1500,
+                                            "currency": "USD",
+                                        },
+                                    },
+                                }
+                            ],
+                        },
+                    }
+                }
+            ),
+            MockHTTPResponse(
+                json_data={
+                    "payment_link": {
+                        "id": "plink_123",
+                        "url": "https://square.link/u/sub_123",
+                    }
+                }
+            ),
+        ]
+    )
+    wallet.client = client  # type: ignore[assignment]
+
+    response = await wallet.create_subscription(
+        "PLAN123",
+        1,
+        FiatSubscriptionPaymentOptions(
+            wallet_id="wallet_1",
+            memo="Weekly Plan",
+            success_url="https://lnbits.example/success",
+        ),
+    )
+
+    assert response.ok is True
+    assert client.calls[0][0] == "/v2/catalog/object/PLAN123"
+    assert client.calls[1][0] == "/v2/catalog/object/ITEM123"
+    assert client.calls[2][0] == "/v2/online-checkout/payment-links"
+    payload = client.calls[2][1]["json"]
+    assert payload["quick_pay"]["price_money"] == {"amount": 1500, "currency": "USD"}
+    assert payload["checkout_options"] == {
+        "redirect_url": "https://lnbits.example/success",
+        "subscription_plan_id": "PLAN_VARIATION_123",
+    }
 
 
 @pytest.mark.anyio
