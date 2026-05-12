@@ -122,6 +122,22 @@ class SquareWallet(FiatProvider):
         if opts.fiat_method == "subscription":
             return self._create_subscription_invoice(opts.subscription)
 
+        return await self._create_checkout_invoice(
+            amount=amount,
+            payment_hash=payment_hash,
+            currency=currency,
+            opts=opts,
+            memo=memo,
+        )
+
+    async def _create_checkout_invoice(
+        self,
+        amount: float,
+        payment_hash: str,
+        currency: str,
+        opts: SquareCreateInvoiceOptions,
+        memo: str | None = None,
+    ) -> FiatInvoiceResponse:
         amount_cents = int(amount * 100)
         co = opts.checkout or SquareCheckoutOptions()
         success_url = (
