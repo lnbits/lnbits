@@ -12,6 +12,8 @@ from lnbits.core.views.callback_api import (
     handle_square_event,
     handle_stripe_event,
 )
+from lnbits.fiat.square import SquareWallet
+from lnbits.settings import Settings
 
 
 @pytest.mark.anyio
@@ -140,7 +142,9 @@ async def test_callback_api_handles_square_paid_events(mocker):
 
 
 @pytest.mark.anyio
-async def test_callback_api_handles_subscription_flows_and_validation(mocker):
+async def test_callback_api_handles_subscription_flows_and_validation(
+    mocker, settings: Settings
+):
     user = await create_user_account(
         Account(
             id=uuid4().hex,
@@ -207,6 +211,98 @@ async def test_callback_api_handles_subscription_flows_and_validation(mocker):
         }
     )
     assert create_fiat_invoice_mock.await_count == 2
+
+    await handle_square_event(
+        {
+            "event_id": "evt_square_subscription",
+            "type": "payment.updated",
+            "data": {
+                "object": {
+                    "payment": {
+                        "id": "PAYMENT_SUB_1",
+                        "order_id": "ORDER_SUB_1",
+                        "status": "COMPLETED",
+                        "amount_money": {"amount": 925, "currency": "USD"},
+                        "note": json.dumps(
+                            [
+                                wallet.id,
+                                "members",
+                                "subscription_square_1",
+                                "link-1",
+                                "Square Members",
+                            ]
+                        ),
+                    }
+                }
+            },
+        }
+    )
+    assert create_fiat_invoice_mock.await_count == 3
+    square_call = create_fiat_invoice_mock.await_args.kwargs
+    assert square_call["wallet_id"] == wallet.id
+    square_invoice = square_call["invoice_data"]
+    assert square_invoice.fiat_provider == "square"
+    assert square_invoice.amount == 9.25
+    assert square_invoice.memo == "Square Members"
+    assert square_invoice.extra["fiat_method"] == "subscription"
+    assert square_invoice.extra["tag"] == "members"
+    assert (
+        square_invoice.extra["subscription"]["checking_id"] == "payment_PAYMENT_SUB_1"
+    )
+
+    payment.extra = {
+        "subscription_request_id": "subscription_square_1",
+        "tag": "members",
+        "square_subscription_id": "SUBSCRIPTION_1",
+        "link": "link-1",
+    }
+    payment.memo = "Square Members"
+    settings.square_api_endpoint = "https://connect.squareupsandbox.com"
+    settings.square_access_token = "square-token"
+    settings.square_location_id = "LOC123"
+    settings.square_api_version = "2026-01-22"
+    square_provider = SquareWallet()
+    mocker.patch.object(
+        square_provider,
+        "get_payment_for_order",
+        return_value={
+            "id": "PAYMENT_SUB_2",
+            "status": "COMPLETED",
+            "amount_money": {"amount": 925, "currency": "USD"},
+        },
+    )
+    mocker.patch(
+        "lnbits.core.views.callback_api.get_fiat_provider",
+        mocker.AsyncMock(return_value=square_provider),
+    )
+    mocker.patch(
+        "lnbits.core.views.callback_api.get_latest_payment_by_extra_key_value",
+        mocker.AsyncMock(return_value=payment),
+    )
+
+    await handle_square_event(
+        {
+            "event_id": "evt_square_invoice",
+            "type": "invoice.payment_made",
+            "data": {
+                "object": {
+                    "invoice": {
+                        "order_id": "ORDER_SUB_2",
+                        "subscription_id": "SUBSCRIPTION_1",
+                        "public_url": "https://square.example/invoice",
+                    }
+                }
+            },
+        }
+    )
+    assert create_fiat_invoice_mock.await_count == 4
+    square_invoice_call = create_fiat_invoice_mock.await_args.kwargs
+    square_invoice = square_invoice_call["invoice_data"]
+    assert square_invoice.extra["square_subscription_id"] == "SUBSCRIPTION_1"
+    assert (
+        square_invoice.extra["subscription"]["payment_request"]
+        == "https://square.example/invoice"
+    )
 
     with pytest.raises(
         ValueError, match="PayPal subscription event missing custom metadata."

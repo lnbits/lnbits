@@ -1,5 +1,6 @@
 import hashlib
 import hmac
+import json
 import time
 from base64 import b64encode
 from unittest.mock import AsyncMock
@@ -25,7 +26,12 @@ from lnbits.core.services.fiat_providers import (
     test_connection as fiat_provider_connection,
 )
 from lnbits.core.services.users import create_user_account
-from lnbits.fiat.base import FiatInvoiceResponse, FiatPaymentStatus, FiatStatusResponse
+from lnbits.fiat.base import (
+    FiatInvoiceResponse,
+    FiatPaymentStatus,
+    FiatStatusResponse,
+    FiatSubscriptionPaymentOptions,
+)
 from lnbits.fiat.square import SquareWallet
 from lnbits.settings import Settings
 from tests.helpers import get_random_string
@@ -399,6 +405,125 @@ async def test_square_wallet_create_invoice(settings: Settings):
     assert payload["order"]["metadata"]["alan_action"] == "invoice"
     assert payload["order"]["metadata"]["source"] == "test"
     assert payload["order"]["line_items"][0]["base_price_money"]["amount"] == 123
+
+
+@pytest.mark.anyio
+async def test_square_wallet_create_subscription(settings: Settings):
+    settings.square_api_endpoint = "https://connect.squareupsandbox.com"
+    settings.square_access_token = "square-token"
+    settings.square_location_id = "LOC123"
+    settings.square_api_version = "2026-01-22"
+    settings.square_payment_success_url = "https://lnbits.example/success"
+
+    wallet = SquareWallet()
+    client = MockHTTPClient(
+        [
+            MockHTTPResponse(
+                json_data={
+                    "object": {
+                        "type": "SUBSCRIPTION_PLAN_VARIATION",
+                        "subscription_plan_variation_data": {
+                            "phases": [
+                                {
+                                    "ordinal": 0,
+                                    "pricing": {
+                                        "type": "STATIC",
+                                        "price_money": {
+                                            "amount": 1500,
+                                            "currency": "USD",
+                                        },
+                                    },
+                                }
+                            ]
+                        },
+                    }
+                }
+            ),
+            MockHTTPResponse(
+                json_data={
+                    "payment_link": {
+                        "id": "plink_123",
+                        "url": "https://square.link/u/sub_123",
+                    }
+                }
+            ),
+        ]
+    )
+    wallet.client = client  # type: ignore[assignment]
+
+    payment_options = FiatSubscriptionPaymentOptions(
+        wallet_id="wallet_1",
+        memo="Monthly Gold",
+        tag="gold",
+        extra={"link": "link-1"},
+        success_url="https://lnbits.example/subscription-success",
+    )
+
+    response = await wallet.create_subscription(
+        "PLAN_VARIATION_123", 1, payment_options
+    )
+
+    assert response.ok is True
+    assert response.checkout_session_url == "https://square.link/u/sub_123"
+    assert response.subscription_request_id is not None
+    assert client.calls[0][0] == "/v2/catalog/object/PLAN_VARIATION_123"
+    assert client.calls[1][0] == "/v2/online-checkout/payment-links"
+    payload = client.calls[1][1]["json"]
+    assert payload["idempotency_key"] == response.subscription_request_id
+    assert payload["quick_pay"]["location_id"] == "LOC123"
+    assert payload["quick_pay"]["price_money"] == {"amount": 1500, "currency": "USD"}
+    assert payload["checkout_options"] == {
+        "redirect_url": "https://lnbits.example/subscription-success",
+        "subscription_plan_id": "PLAN_VARIATION_123",
+    }
+    metadata = json.loads(payload["payment_note"])
+    assert metadata[:3] == ["wallet_1", "gold", response.subscription_request_id]
+    assert metadata[3:] == ["link-1", "Monthly Gold"]
+
+
+@pytest.mark.anyio
+async def test_square_wallet_create_subscription_invoice(settings: Settings):
+    settings.square_api_endpoint = "https://connect.squareupsandbox.com"
+    settings.square_access_token = "square-token"
+    settings.square_location_id = "LOC123"
+    settings.square_api_version = "2026-01-22"
+
+    wallet = SquareWallet()
+
+    response = await wallet.create_invoice(
+        amount=15,
+        payment_hash="hash123",
+        currency="USD",
+        memo="Square subscription payment",
+        extra={
+            "fiat_method": "subscription",
+            "subscription": {
+                "checking_id": "payment_PAYMENT123",
+                "payment_request": "https://square.example/invoice",
+            },
+        },
+    )
+
+    assert response.ok is True
+    assert response.checking_id == "payment_PAYMENT123"
+    assert response.payment_request == "https://square.example/invoice"
+
+
+@pytest.mark.anyio
+async def test_square_wallet_cancel_subscription(settings: Settings):
+    settings.square_api_endpoint = "https://connect.squareupsandbox.com"
+    settings.square_access_token = "square-token"
+    settings.square_location_id = "LOC123"
+    settings.square_api_version = "2026-01-22"
+
+    wallet = SquareWallet()
+    client = MockHTTPClient([MockHTTPResponse(json_data={"subscription": {}})])
+    wallet.client = client  # type: ignore[assignment]
+
+    response = await wallet.cancel_subscription("SUBSCRIPTION123", "wallet_1")
+
+    assert response.ok is True
+    assert client.calls[0][0] == "/v2/subscriptions/SUBSCRIPTION123/cancel"
 
 
 @pytest.mark.anyio

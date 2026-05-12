@@ -698,6 +698,7 @@
                 <span v-text="$t('webhook_events_list')"></span>
                 <ul>
                   <li><code>payment.updated</code></li>
+                  <li><code>invoice.payment_made</code></li>
                 </ul>
               </q-card-section>
             </q-expansion-item>
@@ -914,7 +915,7 @@
             <q-chip dense color="positive" text-color="white" icon="check"
               >Checkout</q-chip
             >
-            <q-chip dense color="negative" text-color="white" icon="close"
+            <q-chip dense color="positive" text-color="white" icon="check"
               >Subscriptions</q-chip
             >
             <q-chip dense color="negative" text-color="white" icon="close"
