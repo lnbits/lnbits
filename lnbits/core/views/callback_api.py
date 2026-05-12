@@ -310,7 +310,7 @@ async def handle_square_event(event: dict):
     event_type = event.get("type", "")
     logger.info(f"Handling Square event: '{event_id}'. Type: '{event_type}'.")
 
-    if event_type in ("payment.created", "payment.updated"):
+    if event_type == "payment.updated":
         await _handle_square_payment_event(event)
         return
 
