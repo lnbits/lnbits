@@ -130,77 +130,6 @@ class SquareWallet(FiatProvider):
             memo=memo,
         )
 
-    async def _create_checkout_invoice(
-        self,
-        amount: float,
-        payment_hash: str,
-        currency: str,
-        opts: SquareCreateInvoiceOptions,
-        memo: str | None = None,
-    ) -> FiatInvoiceResponse:
-        amount_cents = int(amount * 100)
-        co = opts.checkout or SquareCheckoutOptions()
-        success_url = (
-            co.success_url
-            or settings.square_payment_success_url
-            or "https://lnbits.com"
-        )
-        line_item_name = (co.line_item_name or memo or "LNbits Invoice")[:255]
-        metadata = {
-            **co.metadata,
-            "payment_hash": payment_hash,
-            "alan_action": "invoice",
-        }
-
-        payload = {
-            "idempotency_key": payment_hash,
-            "order": {
-                "location_id": self.location_id,
-                "metadata": metadata,
-                "line_items": [
-                    {
-                        "name": line_item_name,
-                        "quantity": "1",
-                        "base_price_money": {
-                            "amount": amount_cents,
-                            "currency": currency.upper(),
-                        },
-                    }
-                ],
-            },
-            "checkout_options": {"redirect_url": success_url},
-        }
-        if memo:
-            payload["payment_note"] = memo[:500]
-
-        try:
-            r = await self.client.post(
-                "/v2/online-checkout/payment-links", json=payload
-            )
-            r.raise_for_status()
-            data = r.json()
-            payment_link = data.get("payment_link") or {}
-            order_id = payment_link.get("order_id")
-            url = payment_link.get("url")
-            if not order_id or not url:
-                return FiatInvoiceResponse(
-                    ok=False, error_message="Server error: missing order id or url"
-                )
-            return FiatInvoiceResponse(
-                ok=True,
-                checking_id=f"order_{order_id}",
-                payment_request=url,
-            )
-        except json.JSONDecodeError:
-            return FiatInvoiceResponse(
-                ok=False, error_message="Server error: invalid json response"
-            )
-        except Exception as exc:
-            logger.warning(exc)
-            return FiatInvoiceResponse(
-                ok=False, error_message=f"Unable to connect to {self.endpoint}."
-            )
-
     async def create_subscription(
         self,
         subscription_id: str,
@@ -490,6 +419,77 @@ class SquareWallet(FiatProvider):
         if status in ["CANCELED", "FAILED"]:
             return FiatPaymentFailedStatus()
         return FiatPaymentPendingStatus()
+
+    async def _create_checkout_invoice(
+        self,
+        amount: float,
+        payment_hash: str,
+        currency: str,
+        opts: SquareCreateInvoiceOptions,
+        memo: str | None = None,
+    ) -> FiatInvoiceResponse:
+        amount_cents = int(amount * 100)
+        co = opts.checkout or SquareCheckoutOptions()
+        success_url = (
+            co.success_url
+            or settings.square_payment_success_url
+            or "https://lnbits.com"
+        )
+        line_item_name = (co.line_item_name or memo or "LNbits Invoice")[:255]
+        metadata = {
+            **co.metadata,
+            "payment_hash": payment_hash,
+            "alan_action": "invoice",
+        }
+
+        payload = {
+            "idempotency_key": payment_hash,
+            "order": {
+                "location_id": self.location_id,
+                "metadata": metadata,
+                "line_items": [
+                    {
+                        "name": line_item_name,
+                        "quantity": "1",
+                        "base_price_money": {
+                            "amount": amount_cents,
+                            "currency": currency.upper(),
+                        },
+                    }
+                ],
+            },
+            "checkout_options": {"redirect_url": success_url},
+        }
+        if memo:
+            payload["payment_note"] = memo[:500]
+
+        try:
+            r = await self.client.post(
+                "/v2/online-checkout/payment-links", json=payload
+            )
+            r.raise_for_status()
+            data = r.json()
+            payment_link = data.get("payment_link") or {}
+            order_id = payment_link.get("order_id")
+            url = payment_link.get("url")
+            if not order_id or not url:
+                return FiatInvoiceResponse(
+                    ok=False, error_message="Server error: missing order id or url"
+                )
+            return FiatInvoiceResponse(
+                ok=True,
+                checking_id=f"order_{order_id}",
+                payment_request=url,
+            )
+        except json.JSONDecodeError:
+            return FiatInvoiceResponse(
+                ok=False, error_message="Server error: invalid json response"
+            )
+        except Exception as exc:
+            logger.warning(exc)
+            return FiatInvoiceResponse(
+                ok=False, error_message=f"Unable to connect to {self.endpoint}."
+            )
 
     def _create_subscription_invoice(
         self, opts: SquareSubscriptionOptions | None
