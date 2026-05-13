@@ -51,7 +51,8 @@ window.PageAccount = {
         'confettiBothSides',
         'confettiFireworks',
         'confettiStars',
-        'confettiTop'
+        'confettiTop',
+        'lightningStrike'
       ],
       borderOptions: [
         'retro-border',

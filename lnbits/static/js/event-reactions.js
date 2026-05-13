@@ -154,6 +154,99 @@ function confettiStars() {
   setTimeout(shoot, 100)
   setTimeout(shoot, 200)
 }
+function lightningStrike() {
+  const canvas = document.createElement('canvas')
+  const ctx = canvas.getContext('2d')
+  const dpr = window.devicePixelRatio || 1
+
+  canvas.style.position = 'fixed'
+  canvas.style.inset = '0'
+  canvas.style.pointerEvents = 'none'
+  canvas.style.zIndex = 999999
+  canvas.width = Math.floor(window.innerWidth * dpr)
+  canvas.height = Math.floor(window.innerHeight * dpr)
+  ctx.scale(dpr, dpr)
+  document.body.appendChild(canvas)
+
+  const startX = Math.random() * window.innerWidth
+  const endY = window.innerHeight * (0.45 + Math.random() * 0.35)
+  const segments = 18 + Math.floor(Math.random() * 10)
+  const points = [{x: startX, y: -20}]
+
+  for (let i = 1; i <= segments; i++) {
+    const progress = i / segments
+    const previous = points[i - 1]
+    points.push({
+      x: previous.x + (Math.random() - 0.5) * (34 + progress * 42),
+      y: progress * endY
+    })
+  }
+
+  const branches = []
+  for (
+    let i = 4;
+    i < points.length - 3;
+    i += 3 + Math.floor(Math.random() * 3)
+  ) {
+    const base = points[i]
+    const branch = [{...base}]
+    const direction = Math.random() > 0.5 ? 1 : -1
+    const length = 3 + Math.floor(Math.random() * 4)
+
+    for (let j = 1; j <= length; j++) {
+      branch.push({
+        x: base.x + direction * j * (18 + Math.random() * 22),
+        y: base.y + j * (14 + Math.random() * 18)
+      })
+    }
+    branches.push(branch)
+  }
+
+  let frame = 0
+  const maxFrames = 48
+
+  function drawBolt(path, width, alpha) {
+    ctx.beginPath()
+    ctx.moveTo(path[0].x, path[0].y)
+    path.slice(1).forEach(point => ctx.lineTo(point.x, point.y))
+    ctx.strokeStyle = `rgba(170, 220, 255, ${alpha})`
+    ctx.lineWidth = width
+    ctx.lineJoin = 'round'
+    ctx.lineCap = 'round'
+    ctx.shadowBlur = 18
+    ctx.shadowColor = '#7dd3fc'
+    ctx.stroke()
+
+    ctx.strokeStyle = `rgba(255, 255, 255, ${Math.min(1, alpha + 0.2)})`
+    ctx.lineWidth = Math.max(1, width * 0.35)
+    ctx.shadowBlur = 4
+    ctx.stroke()
+  }
+
+  function animate() {
+    const alpha = 1 - frame / maxFrames
+    ctx.clearRect(0, 0, window.innerWidth, window.innerHeight)
+
+    if (frame < 3) {
+      ctx.fillStyle = `rgba(255, 255, 255, ${0.22 - frame * 0.06})`
+      ctx.fillRect(0, 0, window.innerWidth, window.innerHeight)
+    }
+
+    drawBolt(points, 5 * alpha + 1, alpha)
+    branches.forEach(branch =>
+      drawBolt(branch, 2.5 * alpha + 0.5, alpha * 0.75)
+    )
+
+    frame += 1
+    if (frame <= maxFrames) {
+      requestAnimationFrame(animate)
+    } else {
+      canvas.remove()
+    }
+  }
+
+  animate()
+}
 !(function (t, e) {
   ;(!(function t(e, n, a, i) {
     var o = !!(
