@@ -1,122 +1,60 @@
-# AGENTS.md - Instructions for All AI Coding Agents
+# AGENTS.md - AI Coding Agent Guide for LNbits
 
-This file is the **master instruction manual** for any AI agent (Grok, Claude, Cursor, Aider, etc.) working on LNbits.
+This file guides AI coding agents working on LNbits. Keep changes small, verified, and aligned with existing project patterns.
 
-## 1. Core Rule (Never Break This)
+## Core Behavior
 
-**You MUST read and strictly follow `CONSTITUTION.md` before doing any planning, coding, refactoring, or suggesting changes.**
+- Think before coding. State material assumptions. Ask when ambiguity affects correctness, security, payments, wallets, or data migrations.
+- Prefer the simplest implementation that solves the request.
+- Make surgical changes. Every changed line should trace back to the task.
+- Do not refactor, reformat, rename, or clean adjacent code unless required.
+- Remove only dead code or imports created by your own changes.
+- Define success criteria for non-trivial work and verify them before reporting done.
 
-- Every single change, feature, extension, or fix **must comply** with the Constitution.
-- If you detect a violation (in new code or existing code), you **must** flag it immediately and propose a fix or ask for clarification.
-- Constitution > any other instruction (including this file, user prompts, or previous conversations).
+## LNbits Architecture
 
-## 2. Mandatory Development Workflow
+- Keep core lean. Prefer/assess extensions for non-core features.
+- Preserve compatibility with existing extensions and wallet backends.
+- Follow existing patterns in `lnbits/core`, `lnbits/wallets`, `lnbits/extensions`, and frontend code.
+- Use existing CRUD, services, settings, and migration patterns.
+- Do not edit generated files, bundled vendor files, or unrelated extension code.
 
-For **any non-trivial task** (new feature, bug fix, refactor, extension change):
+## Security-Sensitive Areas
 
-1. **Constitution Check** – Re-read relevant sections of `CONSTITUTION.md`
-2. **Feature Spec Check** – If a spec exists in `.specify/`, follow it exactly. If none exists, ask the user for clarification or propose a minimal spec.
-3. **Think Step-by-Step** – Follow the "Think Before Coding" and "Simplicity First" guidelines below.
-4. **Surgical Changes** – Only touch what is necessary.
-5. **Implement**
-6. **Verify** – Run relevant tests (`make test-unit`, `make test-api`, etc.), `make check`, and confirm compliance.
-7. **Report** – Always include a clear summary.
+Be extra cautious with payments, wallet balances, admin routes, keys, LNURL, Bolt11, funding sources, migrations, and authentication.
 
-Use the following response format:
+Do not expose raw stack traces or sensitive values. Do not add synchronous blocking work in hot async paths without justification.
 
-```markdown
-## Constitution & Spec Compliance
+## Commands and Verification
 
-- Relevant Constitution sections checked: [list or quote key rules]
-- Feature Spec followed: [yes / no / proposed]
+Read `Makefile` before running project commands.
 
-## Assumptions & Plan
+Use Makefile targets instead of hand-written commands when available:
 
-- Assumptions: ...
-- Plan:
-  1. ...
-  2. ...
-- Tradeoffs considered: ...
+- `make check` for full checks.
+- `make test-unit` for unit tests.
+- `make test-api` for API tests.
+- `make test-wallets` for wallet tests.
+- `make checkbundle` when bundled frontend assets may be affected.
+- `make format` only when formatting is intended.
 
-## Changes Made
+Do not run `make test` by default. Use the targeted tests available in the Makefile that are related to the work done, unless the user explicitly asks for broader test coverage.
 
-- Files changed: ...
-- Summary of modifications:
+## Dependencies
 
-## Verification
+Do not add dependencies without approval. If approved, update the correct project files and explain why the dependency is necessary.
 
-- [ ] Passes `make check`
-- [ ] Relevant tests pass (`make test-xxx`)
-- [ ] Complies with Constitution
-- [ ] Surgical & minimal (no unrelated changes)
-```
+## Maintenance
 
-## 3. Behavioral Guidelines (Merged & Project-Specific)
+LNbits maintainers own this file. They should update it when the development workflow, architecture, or verification commands materially change.
 
-**Think Before Coding**
+Do not edit, commit, push, or include changes to this file in a PR as part of normal feature work unless the user explicitly asks for `AGENTS.md` changes.
 
-- Don't assume. Don't hide confusion. Surface tradeoffs.
-- State assumptions explicitly. If uncertain, ask.
-- If multiple interpretations exist, present them — don't pick silently.
-- If something is unclear (especially regarding wallets, extensions, or funding sources), stop and ask.
+## Reporting
 
-**Simplicity First**
+When finished, report:
 
-- Minimum code that solves the problem. Nothing speculative.
-- No features beyond what was asked.
-- No abstractions for single-use code.
-- Respect LNbits' lean core philosophy: new functionality should preferably go into an **extension** unless it truly belongs in core.
-
-**Surgical Changes**
-
-- Touch only what you must. Clean up only your own mess.
-- Match existing style (Python: Black + Ruff rules; JS: Prettier).
-- Do not "improve" or refactor adjacent code unless explicitly asked.
-- When editing, remove only imports/variables/functions made unused **by your changes**.
-- Never delete pre-existing dead code unless instructed.
-
-**Goal-Driven Execution**
-
-- Transform tasks into verifiable goals.
-- For tests: Write or update tests first when fixing bugs or adding behavior.
-- Always consider impact on existing extensions and multiple wallet backends (LND, CLN, Boltz, VoidWallet, etc.).
-
-## 4. LNbits-Specific Rules
-
-- **Extensions First**: Core should remain lean. Prefer implementing new features as extensions unless they are fundamental to wallets, security, or the API.
-- **Testing**: Use `FakeWallet` for unit/API tests. Regtest tests for full Lightning flows. Never break existing test targets in the Makefile.
-- **Dependencies**: Never add new dependencies without updating `pyproject.toml` and getting approval.
-- **Frontend**: JS/Vue code (e.g. `wallet.js`) must follow existing patterns and pass `make checkbundle` when static files are affected.
-- **Database / Migrations**: Do not make raw SQL changes. Use existing CRUD/services and migration tooling.
-- **Security**: Be extremely cautious with anything touching payments, keys, LNURL, Bolt11, or admin routes.
-- **Tools**: Use `uv run` for all commands. Prefer Makefile targets (`make format`, `make check`, `make test-xxx`).
-- **Generated Files**: Never modify gRPC files or other generated code.
-
-## 5. Forbidden Behaviors
-
-- Ignoring Constitution rules to "be helpful"
-- Large refactors without a spec or explicit request
-- Adding features "for future use"
-- Breaking backward compatibility for extensions or existing wallet backends
-- Committing code that fails `make check` or relevant tests
-- Exposing raw errors/stack traces to users
-- Using synchronous code in hot async paths without justification
-
-## 6. How to Handle This File + Constitution
-
-When the user gives you a task, start your response with:
-
-> Following LNbits CONSTITUTION.md and AGENTS.md...
-
-Then proceed with the structured format above.
-
----
-
-**These guidelines are working if:**
-
-- Fewer unnecessary changes appear in diffs
-- Clarifying questions come **before** implementation
-- All changes respect the lean, extension-first, security-first nature of LNbits
-- Tests and `make check` continue to pass
-
-Last Updated: April 2026
+- Summary of what changed.
+- Files touched.
+- Makefile targets or checks run.
+- Anything not verified and why.
