@@ -802,3 +802,16 @@ async def m044_add_activated_to_accounts(db: Connection):
     Used for account activation status.
     """
     await db.execute("ALTER TABLE accounts ADD COLUMN activated BOOLEAN DEFAULT true")
+
+
+async def m045_add_external_id_to_payments(db: Connection):
+    """
+    Adds external_id column to apipayments.
+    Used for external payment references.
+    """
+    await db.execute("ALTER TABLE apipayments ADD COLUMN external_id TEXT")
+    logger.debug("Creating index idx_payments_external_id...")
+    await db.execute("""
+        CREATE INDEX IF NOT EXISTS idx_payments_external_id
+        ON apipayments (external_id);
+        """)

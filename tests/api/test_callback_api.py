@@ -4,7 +4,7 @@ from uuid import uuid4
 import pytest
 from httpx import AsyncClient
 
-from lnbits.core.models import Account, CreateInvoice
+from lnbits.core.models import Account, CreateInvoice, Payment
 from lnbits.core.services.payments import create_wallet_invoice
 from lnbits.core.services.users import create_user_account
 from lnbits.core.views.callback_api import (
@@ -253,9 +253,9 @@ async def test_callback_api_handles_subscription_flows_and_validation(
     payment.extra = {
         "subscription_request_id": "subscription_square_1",
         "tag": "members",
-        "square_subscription_id": "SUBSCRIPTION_1",
         "link": "link-1",
     }
+    payment.external_id = "SUBSCRIPTION_1"
     payment.memo = "Square Members"
     settings.square_api_endpoint = "https://connect.squareupsandbox.com"
     settings.square_access_token = "square-token"
@@ -276,8 +276,8 @@ async def test_callback_api_handles_subscription_flows_and_validation(
         mocker.AsyncMock(return_value=square_provider),
     )
     mocker.patch(
-        "lnbits.core.views.callback_api.get_latest_payment_by_extra_key_value",
-        mocker.AsyncMock(return_value=payment),
+        "lnbits.core.views.callback_api.get_payments",
+        mocker.AsyncMock(return_value=[payment]),
     )
 
     await handle_square_event(
@@ -298,7 +298,8 @@ async def test_callback_api_handles_subscription_flows_and_validation(
     assert create_fiat_invoice_mock.await_count == 4
     square_invoice_call = create_fiat_invoice_mock.await_args.kwargs
     square_invoice = square_invoice_call["invoice_data"]
-    assert square_invoice.extra["square_subscription_id"] == "SUBSCRIPTION_1"
+    assert square_invoice.external_id == "SUBSCRIPTION_1"
+    assert "square_subscription_id" not in square_invoice.extra
     assert (
         square_invoice.extra["subscription"]["payment_request"]
         == "https://square.example/invoice"
@@ -314,3 +315,83 @@ async def test_callback_api_handles_subscription_flows_and_validation(
                 "resource": {"amount": {"currency": "USD", "total": "5.00"}},
             }
         )
+
+
+@pytest.mark.anyio
+async def test_square_invoice_payment_updates_existing_subscription_external_id(
+    settings: Settings, mocker
+):
+    payment = Payment(
+        checking_id="fiat_square_payment_PAYMENT_SUB_1",
+        payment_hash="hash_square_subscription",
+        wallet_id="wallet_1",
+        amount=925000,
+        fee=0,
+        bolt11="lnbc1square",
+        fiat_provider="square",
+        extra={
+            "subscription_request_id": "subscription_square_1",
+            "tag": "members",
+            "link": "link-1",
+        },
+        memo="Square Members",
+    )
+    settings.square_api_endpoint = "https://connect.squareupsandbox.com"
+    settings.square_access_token = "square-token"
+    settings.square_location_id = "LOC123"
+    settings.square_api_version = "2026-01-22"
+    square_provider = SquareWallet()
+    mocker.patch.object(
+        square_provider,
+        "get_payment_for_order",
+        return_value={
+            "id": "PAYMENT_SUB_1",
+            "status": "COMPLETED",
+            "amount_money": {"amount": 925, "currency": "USD"},
+        },
+    )
+    mocker.patch(
+        "lnbits.core.views.callback_api.get_fiat_provider",
+        mocker.AsyncMock(return_value=square_provider),
+    )
+    get_standalone_payment_mock = mocker.patch(
+        "lnbits.core.views.callback_api.get_standalone_payment",
+        mocker.AsyncMock(return_value=payment),
+    )
+    update_payment_mock = mocker.patch(
+        "lnbits.core.views.callback_api.update_payment",
+        mocker.AsyncMock(),
+    )
+    get_payments_mock = mocker.patch(
+        "lnbits.core.views.callback_api.get_payments",
+        mocker.AsyncMock(return_value=[]),
+    )
+    create_fiat_invoice_mock = mocker.patch(
+        "lnbits.core.views.callback_api.create_fiat_invoice",
+        mocker.AsyncMock(),
+    )
+    fiat_status_mock = mocker.patch(
+        "lnbits.core.views.callback_api.check_fiat_status", mocker.AsyncMock()
+    )
+
+    await handle_square_event(
+        {
+            "event_id": "evt_square_invoice",
+            "type": "invoice.payment_made",
+            "data": {
+                "object": {
+                    "invoice": {
+                        "order_id": "ORDER_SUB_1",
+                        "subscription_id": "SUBSCRIPTION_1",
+                    }
+                }
+            },
+        }
+    )
+
+    get_standalone_payment_mock.assert_awaited_with("fiat_square_payment_PAYMENT_SUB_1")
+    assert payment.external_id == "SUBSCRIPTION_1"
+    update_payment_mock.assert_awaited_once_with(payment)
+    fiat_status_mock.assert_awaited_once_with(payment)
+    get_payments_mock.assert_not_awaited()
+    create_fiat_invoice_mock.assert_not_awaited()

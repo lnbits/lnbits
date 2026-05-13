@@ -630,6 +630,41 @@ async def test_square_wallet_cancel_subscription(settings: Settings):
 
 
 @pytest.mark.anyio
+async def test_square_wallet_cancel_subscription_by_request_id(
+    settings: Settings, mocker: MockerFixture
+):
+    settings.square_api_endpoint = "https://connect.squareupsandbox.com"
+    settings.square_access_token = "square-token"
+    settings.square_location_id = "LOC123"
+    settings.square_api_version = "2026-01-22"
+
+    wallet = SquareWallet()
+    client = MockHTTPClient([MockHTTPResponse(json_data={"subscription": {}})])
+    wallet.client = client  # type: ignore[assignment]
+    payment = Payment(
+        checking_id="fiat_square_payment_PAYMENT123",
+        payment_hash="hash123",
+        wallet_id="wallet_1",
+        amount=1000,
+        fee=0,
+        bolt11="lnbc1square",
+        fiat_provider="square",
+        extra={"subscription_request_id": "REQUEST123"},
+        external_id="SUBSCRIPTION123",
+    )
+    get_payments_mock = mocker.patch(
+        "lnbits.core.crud.payments.get_payments",
+        AsyncMock(side_effect=[[], [payment]]),
+    )
+
+    response = await wallet.cancel_subscription("REQUEST123", "wallet_1")
+
+    assert response.ok is True
+    assert client.calls[0][0] == "/v2/subscriptions/SUBSCRIPTION123/cancel"
+    assert get_payments_mock.await_count == 2
+
+
+@pytest.mark.anyio
 async def test_square_wallet_get_invoice_status(settings: Settings):
     settings.square_api_endpoint = "https://connect.squareupsandbox.com"
     settings.square_access_token = "square-token"
