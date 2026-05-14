@@ -154,6 +154,7 @@ window.localisation.fi = {
   all: 'Kaikki',
   only_admins_can_install: '(Vain pääkäyttäjät voivat asentaa laajennuksia)',
   admin_only: 'Pääkäyttäjille',
+  super_user_only: 'Vain superkäyttäjälle',
   new_version: 'Uusi versio',
   extension_depends_on: 'Edellyttää:',
   extension_rating_soon: 'Arvostelut on tulossa pian',

@@ -143,6 +143,7 @@ window.localisation.de = {
   only_admins_can_install:
     '(Nur Administratorkonten können Erweiterungen installieren)',
   admin_only: 'Nur für Admins',
+  super_user_only: 'Nur für Superuser',
   new_version: 'Neue Version',
   extension_depends_on: 'Hängt ab von:',
   extension_rating_soon: 'Bewertungen sind bald verfügbar',

@@ -79,7 +79,11 @@ async def api_install_extension(data: CreateExtension):
         raise HTTPException(HTTPStatus.BAD_REQUEST, "Incompatible extension version.")
 
     release.payment_hash = data.payment_hash
-    ext_meta = ExtensionMeta(installed_release=release)
+    ext_meta = ExtensionMeta(
+        installed_release=release,
+        admin_only=release.admin_only,
+        super_user_only=release.super_user_only,
+    )
     ext_info = InstallableExtension(
         id=data.ext_id,
         name=data.ext_id,
@@ -176,6 +180,19 @@ async def api_update_pay_to_enable(
     )
 
 
+def _check_enable_extension_access(
+    ext_id: str, ext: InstallableExtension, account_id: AccountId
+) -> None:
+    if ext.is_super_user_only and not settings.is_super_user(account_id.id):
+        raise HTTPException(
+            HTTPStatus.FORBIDDEN, f"User not authorized for extension '{ext_id}'."
+        )
+    if ext.is_admin_only and not settings.is_admin_user(account_id.id):
+        raise HTTPException(
+            HTTPStatus.FORBIDDEN, f"User not authorized for extension '{ext_id}'."
+        )
+
+
 @extension_router.put("/{ext_id}/enable")
 async def api_enable_extension(
     ext_id: str, account_id: AccountId = Depends(check_account_id_exists)
@@ -191,6 +208,7 @@ async def api_enable_extension(
         raise ValueError(f"Extension '{ext_id}' is not installed.")
     if not ext.active:
         raise ValueError(f"Extension '{ext_id}' is not activated.")
+    _check_enable_extension_access(ext_id, ext, account_id)
 
     user_ext = await get_user_extension(account_id.id, ext_id)
     if not user_ext:
@@ -464,6 +482,8 @@ async def get_extension_release(org: str, repo: str, tag_name: str):
             "min_lnbits_version": config.min_lnbits_version,
             "is_version_compatible": config.is_version_compatible(),
             "warning": config.warning,
+            "admin_only": config.admin_only,
+            "super_user_only": config.super_user_only,
         }
     except Exception as exc:
         raise HTTPException(
@@ -573,7 +593,8 @@ async def extensions(account_id: AccountId = Depends(check_account_id_exists)):
                 (True for version in db_versions if version.db == ext.id), False
             ),
             "isAvailable": ext.id in all_ext_ids,
-            "isAdminOnly": ext.id in settings.lnbits_admin_extensions,
+            "isAdminOnly": ext.is_admin_only,
+            "isSuperUserOnly": ext.is_super_user_only,
             "isActive": ext.id not in inactive_extensions,
             "latestRelease": (
                 dict(ext.meta.latest_release)

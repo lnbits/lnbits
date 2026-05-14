@@ -141,6 +141,7 @@ window.localisation.pi = {
   all: 'Arr',
   only_admins_can_install: '(Only admin accounts can install extensions)',
   admin_only: "Cap'n Only",
+  super_user_only: "Big Cap'n Only",
   new_version: 'New Version',
   extension_depends_on: 'Depends on:',
   extension_rating_soon: "Ratings a'comin' soon",

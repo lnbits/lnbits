@@ -143,6 +143,7 @@ window.localisation.nl = {
   only_admins_can_install:
     'Alleen beheerdersaccounts kunnen extensies installeren',
   admin_only: 'Alleen beheerder',
+  super_user_only: 'Alleen supergebruiker',
   new_version: 'Nieuwe Versie',
   extension_depends_on: 'Afhankelijk van:',
   extension_rating_soon: 'Beoordelingen binnenkort beschikbaar',

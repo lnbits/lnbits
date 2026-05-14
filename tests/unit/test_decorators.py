@@ -8,6 +8,7 @@ from fastapi.exceptions import HTTPException
 from httpx import AsyncClient
 from pydantic.types import UUID4
 
+from lnbits.core.crud.extensions import create_installed_extension
 from lnbits.core.crud.users import delete_account
 from lnbits.core.models import User
 from lnbits.core.models.users import AccessTokenPayload
@@ -18,10 +19,12 @@ from lnbits.decorators import (
     check_extension_builder,
     check_first_install,
     check_user_exists,
+    check_user_extension_access,
     optional_user_id,
 )
 from lnbits.helpers import create_access_token
 from lnbits.settings import AuthMethods, Settings, settings
+from tests.helpers import make_installable_extension
 
 
 @pytest.mark.anyio
@@ -225,3 +228,37 @@ async def test_check_extension_builder_requires_admin_when_disabled_for_users(
     admin_user = user_alan.copy(deep=True)
     admin_user.admin = True
     await check_extension_builder(admin_user)
+
+
+@pytest.mark.anyio
+async def test_check_user_extension_access_honors_extension_metadata(
+    settings: Settings, user_alan: User, admin_user: User
+):
+    admin_only_ext = f"admin_{uuid4().hex[:8]}"
+    super_only_ext = f"super_{uuid4().hex[:8]}"
+
+    await create_installed_extension(
+        make_installable_extension(admin_only_ext, admin_only=True)
+    )
+    await create_installed_extension(
+        make_installable_extension(super_only_ext, super_user_only=True)
+    )
+
+    regular_status = await check_user_extension_access(user_alan.id, admin_only_ext)
+    assert regular_status.success is False
+
+    admin_status = await check_user_extension_access(admin_user.id, admin_only_ext)
+    assert admin_status.success is True
+
+    admin_super_status = await check_user_extension_access(
+        admin_user.id, super_only_ext
+    )
+    assert admin_super_status.success is False
+
+    previous_super_user = settings.super_user
+    settings.super_user = admin_user.id
+    try:
+        super_status = await check_user_extension_access(admin_user.id, super_only_ext)
+        assert super_status.success is True
+    finally:
+        settings.super_user = previous_super_user

@@ -191,6 +191,7 @@ window.localisation.br = {
   only_admins_can_create_extensions:
     'Apenas contas de administrador podem criar extensões',
   admin_only: 'Apenas para Administração',
+  super_user_only: 'Apenas para superusuário',
   make_user_admin: 'Tornar usuário administrador',
   revoke_admin: 'Revogar Admin',
   new_version: 'Nova Versão',

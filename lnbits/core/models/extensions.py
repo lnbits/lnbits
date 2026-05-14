@@ -43,6 +43,8 @@ class ExplicitRelease(BaseModel):
     details_link: str | None
     paid_features: str | None
     pay_link: str | None
+    admin_only: bool = False
+    super_user_only: bool = False
 
     def is_version_compatible(self):
         return is_lnbits_version_ok(self.min_lnbits_version, self.max_lnbits_version)
@@ -52,6 +54,8 @@ class GitHubRelease(BaseModel):
     id: str
     organisation: str
     repository: str
+    admin_only: bool = False
+    super_user_only: bool = False
 
 
 class Manifest(BaseModel):
@@ -83,6 +87,8 @@ class ExtensionConfig(BaseModel):
     warning: str | None = ""
     min_lnbits_version: str | None
     max_lnbits_version: str | None
+    admin_only: bool = False
+    super_user_only: bool = False
 
     def is_version_compatible(self) -> bool:
         return is_lnbits_version_ok(self.min_lnbits_version, self.max_lnbits_version)
@@ -195,6 +201,8 @@ class ExtensionRelease(BaseModel):
     cost_sats: int | None = None
     paid_sats: int | None = 0
     payment_hash: str | None = None
+    admin_only: bool = False
+    super_user_only: bool = False
 
     @property
     def archive_url(self) -> str:
@@ -263,6 +271,8 @@ class ExtensionRelease(BaseModel):
             paid_features=e.paid_features,
             repo=e.repo,
             icon=e.icon,
+            admin_only=e.admin_only,
+            super_user_only=e.super_user_only,
         )
 
     @classmethod
@@ -289,6 +299,8 @@ class ExtensionRelease(BaseModel):
                 release.min_lnbits_version = config.min_lnbits_version
                 release.max_lnbits_version = config.max_lnbits_version
                 release.is_version_compatible = config.is_version_compatible()
+                release.admin_only = config.admin_only
+                release.super_user_only = config.super_user_only
 
                 release.icon = icon_to_github_url(f"{org}/{repo}", config.tile)
 
@@ -336,6 +348,8 @@ class ExtensionMeta(BaseModel):
     paid_features: str | None = None
     has_paid_release: bool = False
     has_free_release: bool = False
+    admin_only: bool = False
+    super_user_only: bool = False
 
 
 class InstallableExtension(BaseModel):
@@ -399,6 +413,16 @@ class InstallableExtension(BaseModel):
             return False
         return self.meta.pay_to_enable.required is True
 
+    @property
+    def is_admin_only(self) -> bool:
+        return settings.is_admin_extension(self.id) or bool(
+            self.meta and self.meta.admin_only
+        )
+
+    @property
+    def is_super_user_only(self) -> bool:
+        return bool(self.meta and self.meta.super_user_only)
+
     async def download_archive(self):
         logger.info(f"Downloading extension {self.name} ({self.installed_version}).")
         ext_zip_file = self.zip_path
@@ -454,6 +478,16 @@ class InstallableExtension(BaseModel):
 
             self.name = config_json.get("name")
             self.short_description = config_json.get("short_description")
+            if self.meta:
+                self.meta.admin_only = config_json.get("admin_only", False)
+                self.meta.super_user_only = config_json.get("super_user_only", False)
+                if self.meta.installed_release:
+                    self.meta.installed_release.admin_only = config_json.get(
+                        "admin_only", False
+                    )
+                    self.meta.installed_release.super_user_only = config_json.get(
+                        "super_user_only", False
+                    )
 
             if (
                 self.meta
@@ -496,6 +530,10 @@ class InstallableExtension(BaseModel):
             return
         if not release.is_version_compatible:
             return
+        if not self.meta:
+            self.meta = ExtensionMeta()
+        self.meta.admin_only = release.admin_only
+        self.meta.super_user_only = release.super_user_only
         if not self.meta or not self.meta.latest_release:
             meta = self.meta or ExtensionMeta()
             meta.latest_release = release
@@ -558,6 +596,13 @@ class InstallableExtension(BaseModel):
                 github_release.organisation, github_release.repository
             )
             source_repo = f"{github_release.organisation}/{github_release.repository}"
+            admin_only = github_release.admin_only or config.admin_only
+            super_user_only = github_release.super_user_only or config.super_user_only
+            latest_extension_release = ExtensionRelease.from_github_release(
+                source_repo, latest_release
+            )
+            latest_extension_release.admin_only = admin_only
+            latest_extension_release.super_user_only = super_user_only
             return InstallableExtension(
                 id=github_release.id,
                 name=config.name,
@@ -569,9 +614,9 @@ class InstallableExtension(BaseModel):
                     config.tile,
                 ),
                 meta=ExtensionMeta(
-                    latest_release=ExtensionRelease.from_github_release(
-                        source_repo, latest_release
-                    ),
+                    admin_only=admin_only,
+                    super_user_only=super_user_only,
+                    latest_release=latest_extension_release,
                 ),
             )
         except Exception as e:
@@ -580,7 +625,12 @@ class InstallableExtension(BaseModel):
 
     @classmethod
     def from_explicit_release(cls, e: ExplicitRelease) -> InstallableExtension:
-        meta = ExtensionMeta(archive=e.archive, dependencies=e.dependencies)
+        meta = ExtensionMeta(
+            archive=e.archive,
+            dependencies=e.dependencies,
+            admin_only=e.admin_only,
+            super_user_only=e.super_user_only,
+        )
         return InstallableExtension(
             id=e.id,
             name=e.name,
@@ -610,6 +660,8 @@ class InstallableExtension(BaseModel):
                     short_description=config_json.get("short_description"),
                     icon=config_json.get("tile"),
                     meta=ExtensionMeta(
+                        admin_only=config_json.get("admin_only", False),
+                        super_user_only=config_json.get("super_user_only", False),
                         installed_release=ExtensionRelease(
                             name=ext_id,
                             version=version,
@@ -617,7 +669,9 @@ class InstallableExtension(BaseModel):
                             source_repo=f"{conf_path}",
                             min_lnbits_version=config_json.get("min_lnbits_version"),
                             max_lnbits_version=config_json.get("max_lnbits_version"),
-                        )
+                            admin_only=config_json.get("admin_only", False),
+                            super_user_only=config_json.get("super_user_only", False),
+                        ),
                     ),
                 )
 
@@ -719,6 +773,13 @@ class InstallableExtension(BaseModel):
                     repo_releases = await ExtensionRelease.get_github_releases(
                         r.organisation, r.repository
                     )
+                    for repo_release in repo_releases:
+                        repo_release.admin_only = (
+                            repo_release.admin_only or r.admin_only
+                        )
+                        repo_release.super_user_only = (
+                            repo_release.super_user_only or r.super_user_only
+                        )
                     extension_releases += repo_releases
 
                 for e in manifest.extensions:

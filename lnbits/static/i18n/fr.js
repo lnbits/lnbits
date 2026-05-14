@@ -145,6 +145,7 @@ window.localisation.fr = {
   only_admins_can_install:
     'Seuls les comptes administrateurs peuvent installer des extensions',
   admin_only: 'Réservé aux administrateurs',
+  super_user_only: 'Réservé au super utilisateur',
   new_version: 'Nouvelle version',
   extension_depends_on: 'Dépend de :',
   extension_rating_soon: 'Notes des utilisateurs à venir bientôt',

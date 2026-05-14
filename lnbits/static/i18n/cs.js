@@ -140,6 +140,7 @@ window.localisation.cs = {
   only_admins_can_install:
     '(Pouze administrátorské účty mohou instalovat rozšíření)',
   admin_only: 'Pouze pro adminy',
+  super_user_only: 'Pouze pro superuživatele',
   new_version: 'Nová verze',
   extension_depends_on: 'Závisí na:',
   extension_rating_soon: 'Hodnocení brzy dostupné',

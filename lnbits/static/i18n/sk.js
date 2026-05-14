@@ -138,6 +138,7 @@ window.localisation.sk = {
   only_admins_can_install:
     '(Iba administrátorské účty môžu inštalovať rozšírenia)',
   admin_only: 'Iba pre administrátorov',
+  super_user_only: 'Iba pre superužívateľa',
   new_version: 'Nová verzia',
   extension_depends_on: 'Závisí na:',
   extension_rating_soon: 'Hodnotenia budú čoskoro dostupné',

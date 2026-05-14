@@ -20,7 +20,9 @@ from lnbits.core.models.extensions import (
     Extension,
     ExtensionConfig,
     ExtensionRelease,
+    GitHubRelease,
     InstallableExtension,
+    Manifest,
     PayToEnableInfo,
     ReleasePaymentInfo,
     UserExtensionInfo,
@@ -152,6 +154,8 @@ async def test_extension_api_install_details_and_release_endpoints(mocker):
         short_description="Config",
         min_lnbits_version="0.1.0",
         max_lnbits_version=None,
+        admin_only=True,
+        super_user_only=True,
     )
     mocker.patch.object(
         ExtensionConfig,
@@ -160,6 +164,8 @@ async def test_extension_api_install_details_and_release_endpoints(mocker):
     )
     release_info = await get_extension_release("org", ext_id, "v1.0.0")
     assert release_info["is_version_compatible"] is True
+    assert release_info["admin_only"] is True
+    assert release_info["super_user_only"] is True
 
 
 @pytest.mark.anyio
@@ -258,6 +264,8 @@ async def test_extension_api_pay_to_enable_and_catalog_views(mocker, admin_user)
     catalog_entry = make_installable_extension(
         ext_id,
         pay_to_enable=PayToEnableInfo(required=True, amount=21, wallet=admin_wallet.id),
+        admin_only=True,
+        super_user_only=True,
     )
     mocker.patch.object(
         InstallableExtension,
@@ -267,6 +275,8 @@ async def test_extension_api_pay_to_enable_and_catalog_views(mocker, admin_user)
     catalog = await extensions(AccountId(id=regular_user.id))
     catalog_item = next(item for item in catalog if item["id"] == ext_id)
     assert catalog_item["payToEnable"]["wallet"] is None
+    assert catalog_item["isAdminOnly"] is True
+    assert catalog_item["isSuperUserOnly"] is True
 
 
 @pytest.mark.anyio
@@ -428,3 +438,64 @@ async def test_extension_api_review_endpoints(mocker):
         CreateExtensionReview(tag=ext_id, name="Alice", rating=900, comment="Great")
     )
     assert payment_request.payment_hash.startswith("hash_")
+
+
+@pytest.mark.anyio
+async def test_extension_api_enable_rejects_admin_and_super_only_extensions(
+    admin_user,
+):
+    regular_user = await create_user_account(
+        Account(
+            id=uuid4().hex,
+            username=f"user_{uuid4().hex[:8]}",
+            email=f"user_{uuid4().hex[:8]}@lnbits.com",
+        )
+    )
+    admin_only_ext = f"admin_{uuid4().hex[:8]}"
+    super_only_ext = f"super_{uuid4().hex[:8]}"
+
+    await create_installed_extension(
+        make_installable_extension(admin_only_ext, admin_only=True)
+    )
+    await create_installed_extension(
+        make_installable_extension(super_only_ext, super_user_only=True)
+    )
+
+    with pytest.raises(HTTPException, match="User not authorized"):
+        await api_enable_extension(admin_only_ext, AccountId(id=regular_user.id))
+
+    with pytest.raises(HTTPException, match="User not authorized"):
+        await api_enable_extension(super_only_ext, AccountId(id=admin_user.id))
+
+
+@pytest.mark.anyio
+async def test_repo_manifest_flags_apply_to_repo_releases(mocker):
+    ext_id = f"repo_{uuid4().hex[:8]}"
+    release = make_extension_release(ext_id)
+    manifest = Manifest(
+        repos=[
+            GitHubRelease(
+                id=ext_id,
+                organisation="lnbits",
+                repository="tunnel_me_out",
+                admin_only=True,
+                super_user_only=True,
+            )
+        ]
+    )
+    mocker.patch.object(
+        InstallableExtension,
+        "fetch_manifest",
+        mocker.AsyncMock(return_value=manifest),
+    )
+    mocker.patch.object(
+        ExtensionRelease,
+        "get_github_releases",
+        mocker.AsyncMock(return_value=[release]),
+    )
+
+    releases = await InstallableExtension.get_extension_releases(ext_id)
+
+    assert len(releases) == 1
+    assert releases[0].admin_only is True
+    assert releases[0].super_user_only is True

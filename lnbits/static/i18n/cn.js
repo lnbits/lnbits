@@ -135,6 +135,7 @@ window.localisation.cn = {
   all: '全部',
   only_admins_can_install: '（只有管理员账户可以安装扩展）',
   admin_only: '仅限管理员',
+  super_user_only: '仅限超级用户',
   new_version: '新版本',
   extension_depends_on: '依赖于:',
   extension_rating_soon: '即将推出评分',
