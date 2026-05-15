@@ -232,6 +232,14 @@ def test_installed_extensions_settings_activate_and_deactivate_paths():
     assert installed.find_extension_redirect("/.well-known/lnurlp", []) is None
 
 
+def test_public_settings_include_burger_menu_background(settings: Settings):
+    settings.lnbits_default_burger_menu_background = False
+
+    public_settings = PublicSettings.from_settings(settings)
+
+    assert public_settings.default_burger_menu_background is False
+
+
 def test_installed_extensions_settings_detects_conflicting_redirects():
     installed = InstalledExtensionsSettings(
         lnbits_extensions_redirects=[

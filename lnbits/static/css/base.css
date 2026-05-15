@@ -395,6 +395,13 @@ body.card-shadow.body--dark .q-card:not(.q-dialog .q-card, .lnbits__dialog-card,
   filter: drop-shadow(0 12px 28px rgba(0, 0, 0, 0.45));
 }
 
+body.no-burger-background .q-drawer {
+  background-color: transparent !important;
+  background-image: none !important;
+  backdrop-filter: none !important;
+  box-shadow: none !important;
+}
+
 :root {
   --size: 100px;
   --gap: 25px;

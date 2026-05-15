@@ -490,6 +490,8 @@ window.localisation.en = {
   toggle_card_gradient: 'Toggle gradient on cards',
   card_shadow: 'Card Shadow',
   toggle_card_shadow: 'Toggle shadow on cards',
+  burger_menu_background: 'Burger Menu Background',
+  toggle_burger_menu_background: 'Toggle burger menu background',
   language: 'Language',
   assets: 'Assets',
   max_asset_size_mb: 'Max Asset Size (MB)',

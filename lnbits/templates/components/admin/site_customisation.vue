@@ -320,6 +320,15 @@
           >
           </q-toggle>
         </div>
+        <div class="col-12 col-sm-6 col-lg-2">
+          <q-toggle
+            type="bool"
+            v-model="formData.lnbits_default_burger_menu_background"
+            color="primary"
+            :label="$t('burger_menu_background')"
+          >
+          </q-toggle>
+        </div>
       </div>
     </div>
   </q-card-section>
