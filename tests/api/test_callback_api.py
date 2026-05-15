@@ -182,7 +182,9 @@ async def test_callback_api_handles_revolut_paid_events(mocker):
 
 
 @pytest.mark.anyio
-async def test_callback_api_handles_revolut_subscription_event(mocker, settings: Settings):
+async def test_callback_api_handles_revolut_subscription_event(
+    mocker, settings: Settings
+):
     user = await create_user_account(
         Account(
             id=uuid4().hex,

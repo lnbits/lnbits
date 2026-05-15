@@ -795,7 +795,9 @@ async def test_revolut_wallet_create_invoice(settings: Settings):
 
     assert response.ok is True
     assert response.checking_id == "order_ORDER123"
-    assert response.payment_request == "https://checkout.revolut.com/payment-link/abc123"
+    assert (
+        response.payment_request == "https://checkout.revolut.com/payment-link/abc123"
+    )
     assert client.calls[0][0] == "/api/orders"
     payload = client.calls[0][1]["json"]
     assert payload["amount"] == 123

@@ -364,7 +364,11 @@ async def handle_revolut_event(event: dict):
         await _handle_revolut_subscription_initiated(event)
         return
 
-    if event_type in ["SUBSCRIPTION_CANCELLED", "SUBSCRIPTION_FINISHED", "SUBSCRIPTION_OVERDUE"]:
+    if event_type in [
+        "SUBSCRIPTION_CANCELLED",
+        "SUBSCRIPTION_FINISHED",
+        "SUBSCRIPTION_OVERDUE",
+    ]:
         logger.info(f"Revolut subscription lifecycle event received: '{event_type}'.")
         return
 

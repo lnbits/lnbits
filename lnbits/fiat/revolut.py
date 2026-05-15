@@ -105,7 +105,9 @@ class RevolutWallet(FiatProvider):
     ) -> FiatInvoiceResponse:
         opts = self._parse_create_opts(extra or {})
         if opts is None:
-            return FiatInvoiceResponse(ok=False, error_message="Invalid Revolut options")
+            return FiatInvoiceResponse(
+                ok=False, error_message="Invalid Revolut options"
+            )
 
         amount_minor = int(amount * 100)
         checkout = opts.checkout or RevolutCheckoutOptions()
@@ -202,10 +204,15 @@ class RevolutWallet(FiatProvider):
         if extra.get("trial_duration"):
             payload["trial_duration"] = extra["trial_duration"]
 
-        headers = {**self.headers, "Idempotency-Key": payment_options.subscription_request_id}
+        headers = {
+            **self.headers,
+            "Idempotency-Key": payment_options.subscription_request_id,
+        }
 
         try:
-            r = await self.client.post("/api/subscriptions", json=payload, headers=headers)
+            r = await self.client.post(
+                "/api/subscriptions", json=payload, headers=headers
+            )
             r.raise_for_status()
             data = r.json()
             revolut_subscription_id = data.get("id")
@@ -213,7 +220,9 @@ class RevolutWallet(FiatProvider):
             if not revolut_subscription_id or not setup_order_id:
                 return FiatSubscriptionResponse(
                     ok=False,
-                    error_message="Server error: missing subscription id or setup order id",
+                    error_message=(
+                        "Server error: missing subscription id or setup order id"
+                    ),
                 )
 
             setup_order = await self.get_order(setup_order_id)
@@ -298,7 +307,9 @@ class RevolutWallet(FiatProvider):
     async def get_subscription_cycle(
         self, subscription_id: str, cycle_id: str
     ) -> dict[str, Any]:
-        r = await self.client.get(f"/api/subscriptions/{subscription_id}/cycles/{cycle_id}")
+        r = await self.client.get(
+            f"/api/subscriptions/{subscription_id}/cycles/{cycle_id}"
+        )
         r.raise_for_status()
         return r.json()
 
@@ -334,7 +345,9 @@ class RevolutWallet(FiatProvider):
         if not external_reference:
             return None
         try:
-            return RevolutSubscriptionReference.parse_obj(json.loads(external_reference))
+            return RevolutSubscriptionReference.parse_obj(
+                json.loads(external_reference)
+            )
         except (json.JSONDecodeError, ValidationError) as exc:
             logger.warning(exc)
             return None
