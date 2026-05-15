@@ -13,6 +13,7 @@ from lnbits.core.models.misc import SimpleStatus
 from lnbits.core.models.payments import CreateInvoice
 from lnbits.core.services.fiat_providers import (
     check_fiat_status,
+    check_revolut_signature,
     check_square_signature,
     check_stripe_signature,
     verify_paypal_webhook,
@@ -21,6 +22,7 @@ from lnbits.core.services.payments import create_fiat_invoice
 from lnbits.db import Filter, Filters
 from lnbits.fiat import get_fiat_provider
 from lnbits.fiat.base import FiatSubscriptionPaymentOptions
+from lnbits.fiat.revolut import RevolutWallet
 from lnbits.fiat.square import SquareWallet
 from lnbits.settings import settings
 
@@ -68,6 +70,24 @@ async def api_generic_webhook_handler(
         )
         event = await request.json()
         await handle_square_event(event)
+
+        return SimpleStatus(
+            success=True,
+            message=f"Callback received successfully from '{provider_name}'.",
+        )
+
+    if provider_name.lower() == "revolut":
+        payload = await request.body()
+        sig_header = request.headers.get("Revolut-Signature")
+        timestamp_header = request.headers.get("Revolut-Request-Timestamp")
+        check_revolut_signature(
+            payload,
+            sig_header,
+            timestamp_header,
+            settings.revolut_webhook_signing_secret,
+        )
+        event = await request.json()
+        await handle_revolut_event(event)
 
         return SimpleStatus(
             success=True,
@@ -320,6 +340,104 @@ async def handle_square_event(event: dict):
         return
 
     logger.warning(f"Unhandled Square event type: '{event_type}'.")
+
+
+async def handle_revolut_event(event: dict):
+    event_type = event.get("event", "")
+    order_id = event.get("order_id")
+    logger.info(f"Handling Revolut event: '{event_type}'. Order ID: '{order_id}'.")
+
+    if event_type in ["ORDER_AUTHORISED", "ORDER_COMPLETED"]:
+        if not order_id:
+            logger.warning("Revolut event missing order_id.")
+            return
+
+        payment = await get_standalone_payment(f"fiat_revolut_order_{order_id}")
+        if not payment:
+            logger.warning(f"No payment found for Revolut order: '{order_id}'.")
+            return
+
+        await check_fiat_status(payment)
+        return
+
+    if event_type == "SUBSCRIPTION_INITIATED":
+        await _handle_revolut_subscription_initiated(event)
+        return
+
+    if event_type in ["SUBSCRIPTION_CANCELLED", "SUBSCRIPTION_FINISHED", "SUBSCRIPTION_OVERDUE"]:
+        logger.info(f"Revolut subscription lifecycle event received: '{event_type}'.")
+        return
+
+    logger.warning(f"Unhandled Revolut event type: '{event_type}'.")
+
+
+async def _handle_revolut_subscription_initiated(event: dict):
+    subscription_id = event.get("subscription_id")
+    if not subscription_id:
+        logger.warning("Revolut subscription event missing subscription_id.")
+        return
+
+    fiat_provider = await get_fiat_provider("revolut")
+    if not isinstance(fiat_provider, RevolutWallet):
+        logger.warning("Revolut fiat provider is not configured.")
+        return
+
+    subscription = await fiat_provider.get_subscription(subscription_id)
+    reference = fiat_provider.deserialize_subscription_reference(
+        subscription.get("external_reference")
+    )
+    if not reference:
+        logger.warning("Revolut subscription event missing LNbits metadata.")
+        return
+
+    cycle_id = subscription.get("current_cycle_id")
+    if not cycle_id:
+        logger.warning("Revolut subscription missing current_cycle_id.")
+        return
+
+    cycle = await fiat_provider.get_subscription_cycle(subscription_id, cycle_id)
+    order_id = cycle.get("order_id")
+    if not order_id:
+        logger.warning("Revolut subscription cycle missing order_id.")
+        return
+
+    existing_payment = await get_standalone_payment(f"fiat_revolut_order_{order_id}")
+    if existing_payment:
+        if existing_payment.external_id != subscription_id:
+            existing_payment.external_id = subscription_id
+            await update_payment(existing_payment)
+        await check_fiat_status(existing_payment)
+        return
+
+    order = await fiat_provider.get_order(order_id)
+    amount_minor = order.get("amount")
+    currency = (order.get("currency") or "").upper()
+    if amount_minor is None or not currency:
+        raise ValueError("Revolut subscription order missing amount or currency.")
+
+    extra = {
+        **(reference.extra or {}),
+        "subscription_request_id": reference.subscription_request_id,
+        "fiat_method": "subscription",
+        "tag": reference.tag,
+        "subscription": {
+            "checking_id": f"order_{order_id}",
+            "payment_request": order.get("checkout_url") or "",
+        },
+    }
+    lnbits_payment = await create_fiat_invoice(
+        wallet_id=reference.wallet_id,
+        invoice_data=CreateInvoice(
+            unit=currency,
+            amount=amount_minor / 100,
+            memo=reference.memo or "",
+            extra=extra,
+            fiat_provider="revolut",
+            external_id=subscription_id,
+        ),
+    )
+
+    await check_fiat_status(lnbits_payment)
 
 
 async def _handle_square_payment_event(event: dict):

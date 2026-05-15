@@ -17,6 +17,7 @@ from lnbits.core.models.wallets import Wallet
 from lnbits.core.services import check_payment_status, payments
 from lnbits.core.services.fiat_providers import (
     check_fiat_status,
+    check_revolut_signature,
     check_square_signature,
     check_stripe_signature,
     handle_fiat_payment_confirmation,
@@ -32,6 +33,7 @@ from lnbits.fiat.base import (
     FiatStatusResponse,
     FiatSubscriptionPaymentOptions,
 )
+from lnbits.fiat.revolut import RevolutWallet
 from lnbits.fiat.square import SquareWallet
 from lnbits.settings import Settings
 from tests.helpers import get_random_string
@@ -83,9 +85,18 @@ def fiat_provider_test_settings(settings: Settings):
     original_square_payment_webhook_url = settings.square_payment_webhook_url
     original_square_webhook_signature_key = settings.square_webhook_signature_key
     original_square_limits = settings.square_limits.copy(deep=True)
+    original_revolut_enabled = settings.revolut_enabled
+    original_revolut_api_endpoint = settings.revolut_api_endpoint
+    original_revolut_api_secret_key = settings.revolut_api_secret_key
+    original_revolut_api_version = settings.revolut_api_version
+    original_revolut_payment_success_url = settings.revolut_payment_success_url
+    original_revolut_payment_webhook_url = settings.revolut_payment_webhook_url
+    original_revolut_webhook_signing_secret = settings.revolut_webhook_signing_secret
+    original_revolut_limits = settings.revolut_limits.copy(deep=True)
     settings.lnbits_allowed_currencies = []
     settings.paypal_enabled = False
     settings.square_enabled = False
+    settings.revolut_enabled = False
     yield
     settings.lnbits_allowed_currencies = original_allowed_currencies
     settings.paypal_enabled = original_paypal_enabled
@@ -98,6 +109,14 @@ def fiat_provider_test_settings(settings: Settings):
     settings.square_payment_webhook_url = original_square_payment_webhook_url
     settings.square_webhook_signature_key = original_square_webhook_signature_key
     settings.square_limits = original_square_limits
+    settings.revolut_enabled = original_revolut_enabled
+    settings.revolut_api_endpoint = original_revolut_api_endpoint
+    settings.revolut_api_secret_key = original_revolut_api_secret_key
+    settings.revolut_api_version = original_revolut_api_version
+    settings.revolut_payment_success_url = original_revolut_payment_success_url
+    settings.revolut_payment_webhook_url = original_revolut_payment_webhook_url
+    settings.revolut_webhook_signing_secret = original_revolut_webhook_signing_secret
+    settings.revolut_limits = original_revolut_limits
 
 
 @pytest.mark.anyio
@@ -177,6 +196,23 @@ async def test_create_wallet_fiat_invoice_allowed_users(
     user = await get_user(to_user.id)
     assert user
     assert user.fiat_providers == ["square"]
+
+    settings.square_enabled = False
+    settings.revolut_enabled = True
+    settings.revolut_limits.allowed_users = []
+    user = await get_user(to_user.id)
+    assert user
+    assert user.fiat_providers == ["revolut"]
+
+    settings.revolut_limits.allowed_users = ["some_other_user_id"]
+    user = await get_user(to_user.id)
+    assert user
+    assert user.fiat_providers == []
+
+    settings.revolut_limits.allowed_users.append(to_user.id)
+    user = await get_user(to_user.id)
+    assert user
+    assert user.fiat_providers == ["revolut"]
 
 
 @pytest.mark.anyio
@@ -693,6 +729,181 @@ async def test_square_wallet_get_invoice_status(settings: Settings):
     assert status.success is True
     assert client.calls[0][0] == "/v2/orders/ORDER123"
     assert client.calls[1][0] == "/v2/payments/PAYMENT123"
+
+
+@pytest.mark.anyio
+async def test_create_wallet_revolut_fiat_invoice_success(
+    to_wallet: Wallet, settings: Settings, mocker: MockerFixture
+):
+    settings.revolut_enabled = True
+    settings.revolut_api_secret_key = "revolut-secret"
+    settings.revolut_limits.service_min_amount_sats = 0
+    settings.revolut_limits.service_max_amount_sats = 0
+    settings.revolut_limits.service_faucet_wallet_id = None
+
+    invoice_data = CreateInvoice(
+        unit="USD", amount=1.0, memo="Test", fiat_provider="revolut"
+    )
+    fiat_mock_response = FiatInvoiceResponse(
+        ok=True,
+        checking_id="order_ORDER123",
+        payment_request="https://checkout.revolut.com/payment-link/ORDER123",
+    )
+
+    mocker.patch(
+        "lnbits.fiat.RevolutWallet.create_invoice",
+        AsyncMock(return_value=fiat_mock_response),
+    )
+    mocker.patch(
+        "lnbits.utils.exchange_rates.get_fiat_rate_satoshis",
+        AsyncMock(return_value=1000),
+    )
+    payment = await payments.create_fiat_invoice(to_wallet.id, invoice_data)
+    assert payment.status == PaymentState.PENDING
+    assert payment.fiat_provider == "revolut"
+    assert payment.extra.get("fiat_checking_id") == fiat_mock_response.checking_id
+    assert payment.checking_id.startswith("fiat_revolut_order_ORDER123")
+
+
+@pytest.mark.anyio
+async def test_revolut_wallet_create_invoice(settings: Settings):
+    settings.revolut_api_endpoint = "https://sandbox-merchant.revolut.com"
+    settings.revolut_api_secret_key = "revolut-secret"
+    settings.revolut_api_version = "2026-04-20"
+    settings.revolut_payment_success_url = "https://lnbits.example/success"
+
+    wallet = RevolutWallet()
+    client = MockHTTPClient(
+        [
+            MockHTTPResponse(
+                json_data={
+                    "id": "ORDER123",
+                    "checkout_url": "https://checkout.revolut.com/payment-link/abc123",
+                }
+            )
+        ]
+    )
+    wallet.client = client  # type: ignore[assignment]
+
+    response = await wallet.create_invoice(
+        amount=1.23,
+        payment_hash="hash123",
+        currency="USD",
+        memo="LNbits Revolut invoice",
+        extra={"checkout": {"metadata": {"source": "test"}}},
+    )
+
+    assert response.ok is True
+    assert response.checking_id == "order_ORDER123"
+    assert response.payment_request == "https://checkout.revolut.com/payment-link/abc123"
+    assert client.calls[0][0] == "/api/orders"
+    payload = client.calls[0][1]["json"]
+    assert payload["amount"] == 123
+    assert payload["currency"] == "USD"
+    assert payload["metadata"]["payment_hash"] == "hash123"
+    assert payload["metadata"]["alan_action"] == "invoice"
+    assert payload["metadata"]["source"] == "test"
+    assert payload["redirect_url"] == "https://lnbits.example/success"
+
+
+@pytest.mark.anyio
+async def test_revolut_wallet_get_invoice_status(settings: Settings):
+    settings.revolut_api_endpoint = "https://sandbox-merchant.revolut.com"
+    settings.revolut_api_secret_key = "revolut-secret"
+    settings.revolut_api_version = "2026-04-20"
+
+    wallet = RevolutWallet()
+    client = MockHTTPClient([MockHTTPResponse(json_data={"state": "COMPLETED"})])
+    wallet.client = client  # type: ignore[assignment]
+
+    status = await wallet.get_invoice_status("fiat_revolut_order_ORDER123")
+
+    assert status.success is True
+    assert client.calls[0][0] == "/api/orders/ORDER123"
+
+
+@pytest.mark.anyio
+async def test_revolut_wallet_create_subscription(settings: Settings):
+    settings.revolut_api_endpoint = "https://sandbox-merchant.revolut.com"
+    settings.revolut_api_secret_key = "revolut-secret"
+    settings.revolut_api_version = "2026-04-20"
+    settings.revolut_payment_success_url = "https://lnbits.example/subscription-success"
+
+    wallet = RevolutWallet()
+    client = MockHTTPClient(
+        [
+            MockHTTPResponse(
+                json_data={
+                    "id": "SUBSCRIPTION123",
+                    "setup_order_id": "ORDER123",
+                }
+            ),
+            MockHTTPResponse(
+                json_data={
+                    "id": "ORDER123",
+                    "checkout_url": "https://checkout.revolut.com/payment-link/sub_123",
+                }
+            ),
+        ]
+    )
+    wallet.client = client  # type: ignore[assignment]
+
+    payment_options = FiatSubscriptionPaymentOptions(
+        wallet_id="wallet_1",
+        memo="Monthly Gold",
+        tag="gold",
+        extra={"customer_id": "CUSTOMER123", "link": "link-1"},
+        success_url="https://lnbits.example/subscription-success",
+    )
+
+    response = await wallet.create_subscription(
+        "PLAN_VARIATION_123", 1, payment_options
+    )
+
+    assert response.ok is True
+    assert response.subscription_request_id == "SUBSCRIPTION123"
+    assert (
+        response.checkout_session_url
+        == "https://checkout.revolut.com/payment-link/sub_123"
+    )
+    assert client.calls[0][0] == "/api/subscriptions"
+    payload = client.calls[0][1]["json"]
+    assert payload["plan_variation_id"] == "PLAN_VARIATION_123"
+    assert payload["customer_id"] == "CUSTOMER123"
+    assert payload["setup_order_redirect_url"] == (
+        "https://lnbits.example/subscription-success"
+    )
+    reference = json.loads(payload["external_reference"])
+    assert reference["wallet_id"] == "wallet_1"
+    assert reference["tag"] == "gold"
+    assert reference["memo"] == "Monthly Gold"
+    assert reference["extra"]["customer_id"] == "CUSTOMER123"
+    assert client.calls[1][0] == "/api/orders/ORDER123"
+
+
+@pytest.mark.anyio
+async def test_revolut_wallet_cancel_subscription(settings: Settings):
+    settings.revolut_api_endpoint = "https://sandbox-merchant.revolut.com"
+    settings.revolut_api_secret_key = "revolut-secret"
+    settings.revolut_api_version = "2026-04-20"
+
+    wallet = RevolutWallet()
+    client = MockHTTPClient([MockHTTPResponse(json_data={})])
+    wallet.client = client  # type: ignore[assignment]
+
+    response = await wallet.cancel_subscription("SUBSCRIPTION123", "wallet_1")
+
+    assert response.ok is True
+    assert client.calls[0][0] == "/api/subscriptions/SUBSCRIPTION123/cancel"
+
+
+def test_check_revolut_signature():
+    payload = b'{"event":"ORDER_COMPLETED","order_id":"ORDER123"}'
+    timestamp = str(int(time.time()))
+    secret = "revolut-secret"
+    sig = hmac.new(secret.encode(), payload, hashlib.sha256).hexdigest()
+
+    check_revolut_signature(payload, sig, timestamp, secret)
 
 
 @pytest.mark.anyio

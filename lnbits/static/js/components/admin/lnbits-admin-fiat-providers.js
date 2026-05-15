@@ -6,6 +6,7 @@ window.app.component('lnbits-admin-fiat-providers', {
       formAddStripeUser: '',
       formAddPaypalUser: '',
       formAddSquareUser: '',
+      formAddRevolutUser: '',
       hideInputToggle: true
     }
   },
@@ -20,6 +21,12 @@ window.app.component('lnbits-admin-fiat-providers', {
       return (
         this.formData?.paypal_payment_webhook_url ||
         this.calculateWebhookUrl('paypal')
+      )
+    },
+    revolutWebhookUrl() {
+      return (
+        this.formData?.revolut_payment_webhook_url ||
+        this.calculateWebhookUrl('revolut')
       )
     }
   },
@@ -60,6 +67,7 @@ window.app.component('lnbits-admin-fiat-providers', {
       this.maybeSetWebhookUrl('stripe_payment_webhook_url', 'stripe')
       this.maybeSetWebhookUrl('paypal_payment_webhook_url', 'paypal')
       this.maybeSetWebhookUrl('square_payment_webhook_url', 'square')
+      this.maybeSetWebhookUrl('revolut_payment_webhook_url', 'revolut')
     },
     maybeSetWebhookUrl(fieldName, provider) {
       if (!this.formData) {
@@ -129,6 +137,23 @@ window.app.component('lnbits-admin-fiat-providers', {
     removeSquareAllowedUser(user) {
       this.formData.square_limits.allowed_users =
         this.formData.square_limits.allowed_users.filter(u => u !== user)
+    },
+    addRevolutAllowedUser() {
+      const addUser = this.formAddRevolutUser || ''
+      if (
+        addUser.length &&
+        !this.formData.revolut_limits.allowed_users.includes(addUser)
+      ) {
+        this.formData.revolut_limits.allowed_users = [
+          ...this.formData.revolut_limits.allowed_users,
+          addUser
+        ]
+        this.formAddRevolutUser = ''
+      }
+    },
+    removeRevolutAllowedUser(user) {
+      this.formData.revolut_limits.allowed_users =
+        this.formData.revolut_limits.allowed_users.filter(u => u !== user)
     },
     checkFiatProvider(providerName) {
       LNbits.api

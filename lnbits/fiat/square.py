@@ -548,55 +548,60 @@ class SquareWallet(FiatProvider):
     async def _get_square_subscription_id(
         self, subscription_id: str, wallet_id: str
     ) -> str:
-        from lnbits.core.crud.payments import get_payments
-        from lnbits.core.models import PaymentFilters
-        from lnbits.db import Filter, Filters
+        try:
+            from lnbits.core.crud.payments import get_payments
+            from lnbits.core.models import PaymentFilters
+            from lnbits.db import Filter, Filters
 
-        payments = await get_payments(
-            wallet_id=wallet_id,
-            filters=Filters(
-                filters=[
-                    Filter.parse_query("external_id", [subscription_id], PaymentFilters)
-                ],
-                model=PaymentFilters,
-                sortby="created_at",
-                direction="desc",
-                limit=1,
-            ),
-        )
-        payment = next(
-            (
-                payment
-                for payment in payments
-                if payment.external_id and payment.fiat_provider == "square"
-            ),
-            None,
-        )
-        if payment and payment.external_id:
-            return payment.external_id
+            payments = await get_payments(
+                wallet_id=wallet_id,
+                filters=Filters(
+                    filters=[
+                        Filter.parse_query(
+                            "external_id", [subscription_id], PaymentFilters
+                        )
+                    ],
+                    model=PaymentFilters,
+                    sortby="created_at",
+                    direction="desc",
+                    limit=1,
+                ),
+            )
+            payment = next(
+                (
+                    payment
+                    for payment in payments
+                    if payment.external_id and payment.fiat_provider == "square"
+                ),
+                None,
+            )
+            if payment and payment.external_id:
+                return payment.external_id
 
-        payments = await get_payments(
-            wallet_id=wallet_id,
-            incoming=True,
-            filters=Filters(
-                model=PaymentFilters,
-                sortby="created_at",
-                direction="desc",
-            ),
-        )
-        payment = next(
-            (
-                payment
-                for payment in payments
-                if payment.external_id
-                and payment.fiat_provider == "square"
-                and (payment.extra or {}).get("subscription_request_id")
-                == subscription_id
-            ),
-            None,
-        )
-        if payment and payment.external_id:
-            return payment.external_id
+            payments = await get_payments(
+                wallet_id=wallet_id,
+                incoming=True,
+                filters=Filters(
+                    model=PaymentFilters,
+                    sortby="created_at",
+                    direction="desc",
+                ),
+            )
+            payment = next(
+                (
+                    payment
+                    for payment in payments
+                    if payment.external_id
+                    and payment.fiat_provider == "square"
+                    and (payment.extra or {}).get("subscription_request_id")
+                    == subscription_id
+                ),
+                None,
+            )
+            if payment and payment.external_id:
+                return payment.external_id
+        except Exception as exc:
+            logger.warning(exc)
 
         return subscription_id
 

@@ -866,6 +866,239 @@
             </q-expansion-item>
           </q-card>
         </q-expansion-item>
+        <q-expansion-item header-class="text-primary text-bold">
+          <template v-slot:header>
+            <q-item-section avatar>
+              <q-avatar color="deep-orange-7" text-color="white">R</q-avatar>
+            </q-item-section>
+
+            <q-item-section> Revolut </q-item-section>
+
+            <q-item-section side>
+              <div class="row items-center">
+                <q-toggle
+                  size="md"
+                  :label="$t('enabled')"
+                  v-model="formData.revolut_enabled"
+                  color="green"
+                  unchecked-icon="clear"
+                />
+              </div>
+            </q-item-section>
+          </template>
+
+          <q-card class="q-pb-xl">
+            <q-expansion-item :label="$t('api')" default-opened>
+              <q-card-section class="q-pa-md">
+                <q-input
+                  filled
+                  type="text"
+                  v-model="formData.revolut_api_endpoint"
+                  :label="$t('endpoint')"
+                ></q-input>
+                <q-input
+                  filled
+                  class="q-mt-md"
+                  :type="hideInputToggle ? 'password' : 'text'"
+                  v-model="formData.revolut_api_secret_key"
+                  label="API secret key"
+                ></q-input>
+                <q-input
+                  filled
+                  class="q-mt-md"
+                  type="text"
+                  v-model="formData.revolut_api_version"
+                  :label="$t('api_version')"
+                ></q-input>
+                <q-input
+                  filled
+                  class="q-mt-md"
+                  type="text"
+                  v-model="formData.revolut_payment_success_url"
+                  :label="$t('callback_success_url')"
+                  :hint="$t('callback_success_url_hint')"
+                ></q-input>
+              </q-card-section>
+              <q-card-section class="q-pa-md">
+                <div class="row">
+                  <div class="col">
+                    <q-btn
+                      outline
+                      color="grey"
+                      class="float-right"
+                      :label="$t('check_connection')"
+                      @click="checkFiatProvider('revolut')"
+                    ></q-btn>
+                  </div>
+                </div>
+              </q-card-section>
+            </q-expansion-item>
+
+            <q-expansion-item label="Webhook" default-opened>
+              <q-card-section>
+                Configure a Revolut Merchant webhook that points to your LNbits
+                server and subscribe to <code>ORDER_AUTHORISED</code>,
+                <code>ORDER_COMPLETED</code>, and
+                <code>SUBSCRIPTION_INITIATED</code>.
+              </q-card-section>
+              <q-card-section>
+                <div class="row items-center q-gutter-sm q-mt-md">
+                  <div class="col">
+                    <q-input
+                      filled
+                      type="text"
+                      disable
+                      :model-value="revolutWebhookUrl"
+                      :label="$t('webhook_url')"
+                      readonly
+                    ></q-input>
+                  </div>
+                  <div class="col-auto">
+                    <q-btn
+                      outline
+                      color="grey"
+                      icon="content_copy"
+                      @click="copyWebhookUrl(revolutWebhookUrl)"
+                      :aria-label="$t('copy_webhook_url')"
+                    >
+                      <q-tooltip>
+                        <span v-text="$t('copy_webhook_url')"></span>
+                      </q-tooltip>
+                    </q-btn>
+                  </div>
+                </div>
+                <q-input
+                  filled
+                  class="q-mt-md"
+                  :type="hideInputToggle ? 'password' : 'text'"
+                  v-model="formData.revolut_webhook_signing_secret"
+                  label="Webhook signing secret"
+                ></q-input>
+              </q-card-section>
+            </q-expansion-item>
+
+            <q-expansion-item :label="$t('service_fee')">
+              <q-card-section>
+                <div class="row">
+                  <div class="col-md-4 col-sm-12">
+                    <q-input
+                      filled
+                      class="q-ma-sm"
+                      type="number"
+                      min="0"
+                      v-model="formData.revolut_limits.service_fee_percent"
+                      @update:model-value="formData.touch = null"
+                      :label="$t('service_fee_label')"
+                      :hint="$t('service_fee_hint')"
+                    ></q-input>
+                  </div>
+                  <div class="col-md-4 col-sm-12">
+                    <q-input
+                      filled
+                      class="q-ma-sm"
+                      type="number"
+                      min="0"
+                      v-model="formData.revolut_limits.service_max_fee_sats"
+                      @update:model-value="formData.touch = null"
+                      :label="$t('service_fee_max')"
+                      :hint="$t('service_fee_max_hint')"
+                    ></q-input>
+                  </div>
+                  <div class="col-md-4 col-sm-12">
+                    <q-input
+                      filled
+                      class="q-ma-sm"
+                      type="text"
+                      v-model="formData.revolut_limits.service_fee_wallet_id"
+                      @update:model-value="formData.touch = null"
+                      :label="$t('fee_wallet_label')"
+                      :hint="$t('fee_wallet_hint')"
+                    ></q-input>
+                  </div>
+                </div>
+              </q-card-section>
+            </q-expansion-item>
+
+            <q-expansion-item :label="$t('amount_limits')">
+              <q-card-section>
+                <div class="row">
+                  <div class="col-md-4 col-sm-12">
+                    <q-input
+                      filled
+                      class="q-ma-sm"
+                      type="number"
+                      min="0"
+                      v-model="formData.revolut_limits.service_min_amount_sats"
+                      @update:model-value="formData.touch = null"
+                      :label="$t('min_incoming_payment_amount')"
+                      :hint="$t('min_incoming_payment_amount_desc')"
+                    ></q-input>
+                  </div>
+                  <div class="col-md-4 col-sm-12">
+                    <q-input
+                      filled
+                      class="q-ma-sm"
+                      type="number"
+                      min="0"
+                      v-model="formData.revolut_limits.service_max_amount_sats"
+                      @update:model-value="formData.touch = null"
+                      :label="$t('max_incoming_payment_amount')"
+                      :hint="$t('max_incoming_payment_amount_desc')"
+                    ></q-input>
+                  </div>
+                  <div class="col-md-4 col-sm-12">
+                    <q-input
+                      filled
+                      class="q-ma-sm"
+                      v-model="formData.revolut_limits.service_faucet_wallet_id"
+                      @update:model-value="formData.touch = null"
+                      :label="$t('faucest_wallet_id')"
+                      :hint="$t('faucest_wallet_id_hint')"
+                    ></q-input>
+                  </div>
+                </div>
+              </q-card-section>
+            </q-expansion-item>
+
+            <q-expansion-item :label="$t('allowed_users')">
+              <q-card-section>
+                <q-input
+                  filled
+                  v-model="formAddRevolutUser"
+                  @keydown.enter="addRevolutAllowedUser"
+                  type="text"
+                  :label="$t('allowed_users_label')"
+                  :hint="
+                    $t('allowed_users_hint_feature', {
+                      feature: 'Revolut'
+                    })
+                  "
+                >
+                  <q-btn
+                    @click="addRevolutAllowedUser"
+                    dense
+                    flat
+                    icon="add"
+                  ></q-btn>
+                </q-input>
+                <div>
+                  <q-chip
+                    v-for="user in formData.revolut_limits.allowed_users"
+                    @update:model-value="formData.touch = null"
+                    :key="user"
+                    removable
+                    @remove="removeRevolutAllowedUser(user)"
+                    color="primary"
+                    text-color="white"
+                    :label="user"
+                    class="ellipsis"
+                  >
+                  </q-chip>
+                </div>
+              </q-card-section>
+            </q-expansion-item>
+          </q-card>
+        </q-expansion-item>
       </q-list>
       <div
         class="q-my-md q-pa-sm text-body2 text-grey-4 bg-grey-9 rounded-borders"
@@ -923,6 +1156,21 @@
             >
             <q-chip dense color="grey-9" text-color="white" icon="public"
               >Regions: Square-supported countries</q-chip
+            >
+          </div>
+          <div class="row items-center q-gutter-sm">
+            <div class="text-bold" style="min-width: 140px">Revolut</div>
+            <q-chip dense color="positive" text-color="white" icon="check"
+              >Checkout</q-chip
+            >
+            <q-chip dense color="positive" text-color="white" icon="check"
+              >Subscriptions</q-chip
+            >
+            <q-chip dense color="negative" text-color="white" icon="close"
+              >Tap-to-pay</q-chip
+            >
+            <q-chip dense color="grey-9" text-color="white" icon="public"
+              >Regions: Revolut-supported countries</q-chip
             >
           </div>
         </div>
