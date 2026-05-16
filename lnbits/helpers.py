@@ -215,7 +215,7 @@ def decrypt_internal_message(m: str | None = None, urlsafe: bool = False) -> str
         m: Message to decrypt
         urlsafe: Whether the message uses URL-safe base64 encoding
     """
-    if not m:
+    if not m or m == "null":
         return None
     return AESCipher(key=settings.auth_secret_key).decrypt(m, urlsafe=urlsafe)
 
