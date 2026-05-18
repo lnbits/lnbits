@@ -306,7 +306,7 @@ async def api_update_payment_labels(
 )
 async def api_update_payment_extra(
     data: UpdatePaymentExtra,
-    key_type: BaseWalletTypeInfo = Depends(require_base_admin_key),
+    key_type: WalletTypeInfo = Depends(require_admin_key),
 ) -> Payment:
     payment = await get_standalone_payment(
         data.payment_hash, wallet_id=key_type.wallet.id
