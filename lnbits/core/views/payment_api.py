@@ -16,6 +16,7 @@ from lnbits.core.crud.payments import (
     get_payment_count_stats,
     get_wallets_stats,
     update_payment,
+    update_payment_extra,
 )
 from lnbits.core.crud.users import get_account
 from lnbits.core.db import db
@@ -34,6 +35,7 @@ from lnbits.core.models import (
     PaymentWalletStats,
     SettleInvoice,
     SimpleStatus,
+    UpdatePaymentExtra,
 )
 from lnbits.core.models.payments import UpdatePaymentLabels
 from lnbits.core.models.users import AccountId
@@ -294,6 +296,42 @@ async def api_update_payment_labels(
     payment.labels = [label for label in data.labels if label in user_label_names]
     await update_payment(payment)
     return SimpleStatus(success=True, message="Payment labels updated.")
+
+
+@payment_router.patch(
+    "/extra",
+    name="Update payment extra",
+    description="Append new extra metadata to a payment.",
+    response_model=Payment,
+)
+async def api_update_payment_extra(
+    data: UpdatePaymentExtra,
+    key_type: BaseWalletTypeInfo = Depends(require_base_admin_key),
+) -> Payment:
+    payment = await get_standalone_payment(
+        data.payment_hash, wallet_id=key_type.wallet.id
+    )
+    if payment is None:
+        raise HTTPException(HTTPStatus.NOT_FOUND, "Payment does not exist.")
+    if not payment.success:
+        raise HTTPException(
+            HTTPStatus.BAD_REQUEST, "Payment extra can only be updated after success."
+        )
+    if not data.extra:
+        raise HTTPException(
+            HTTPStatus.BAD_REQUEST, "Extra data must contain at least one key."
+        )
+
+    duplicate_keys = sorted(set(payment.extra).intersection(data.extra))
+    if duplicate_keys:
+        raise HTTPException(
+            HTTPStatus.BAD_REQUEST,
+            f"Extra keys already exist: {', '.join(duplicate_keys)}.",
+        )
+
+    payment.extra.update(data.extra)
+    await update_payment_extra(payment)
+    return payment
 
 
 @payment_router.get("/fee-reserve")

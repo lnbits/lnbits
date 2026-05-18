@@ -34,6 +34,11 @@ class PaymentExtra(BaseModel):
     lnurl_response: str | None = None
 
 
+class UpdatePaymentExtra(BaseModel):
+    payment_hash: str
+    extra: dict = Field(default_factory=dict)
+
+
 class PayInvoice(BaseModel):
     payment_request: str
     description: str | None = None

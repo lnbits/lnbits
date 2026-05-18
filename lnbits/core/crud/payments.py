@@ -1,3 +1,4 @@
+import json
 from datetime import datetime, timezone
 from time import time
 from typing import Any
@@ -20,8 +21,22 @@ from ..models import (
 )
 
 
-def update_payment_extra():
-    pass
+async def update_payment_extra(
+    payment: Payment, conn: Connection | None = None
+) -> None:
+    payment.updated_at = datetime.now(timezone.utc)
+    await (conn or db).execute(
+        f"""
+        UPDATE apipayments
+        SET extra = :extra, updated_at = {db.timestamp_placeholder("updated_at")}
+        WHERE checking_id = :checking_id
+        """,  # noqa: S608
+        {
+            "extra": json.dumps(payment.extra),
+            "updated_at": int(payment.updated_at.timestamp()),
+            "checking_id": payment.checking_id,
+        },
+    )
 
 
 async def get_payment(checking_id: str, conn: Connection | None = None) -> Payment:

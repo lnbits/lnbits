@@ -25,6 +25,7 @@ from .payments import (
     PaymentState,
     PaymentWalletStats,
     SettleInvoice,
+    UpdatePaymentExtra,
 )
 from .tinyurl import TinyURL
 from .users import (
@@ -90,6 +91,7 @@ __all__ = [
     "SimpleStatus",
     "TinyURL",
     "UpdateBalance",
+    "UpdatePaymentExtra",
     "UpdateSuperuserPassword",
     "UpdateUser",
     "UpdateUserPassword",
