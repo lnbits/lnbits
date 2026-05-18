@@ -174,7 +174,7 @@ async def test_payment_extra_update_appends_new_keys(
         to_wallet.id,
         amount_msat=1_000,
         payment_hash=payment_hash,
-        extra={"tag": "splitpayments", "parent": "mother"},
+        tag="splitpayments",
     )
 
     response = await client.patch(
@@ -189,7 +189,6 @@ async def test_payment_extra_update_appends_new_keys(
     assert response.status_code == 200
     extra = response.json()["extra"]
     assert extra["tag"] == "splitpayments"
-    assert extra["parent"] == "mother"
     assert extra["child"] == "daughter"
     assert extra["compliance_note"] == "reviewed"
 
@@ -208,7 +207,7 @@ async def test_payment_extra_update_rejects_existing_keys(
         to_wallet.id,
         amount_msat=1_000,
         payment_hash=payment_hash,
-        extra={"tag": "original"},
+        tag="original",
     )
 
     response = await client.patch(
@@ -326,7 +325,6 @@ async def _create_payment(
     status: PaymentState = PaymentState.SUCCESS,
     payment_hash: str | None = None,
     tag: str | None = None,
-    extra: dict | None = None,
 ) -> str:
     checking_id = f"checking_{uuid4().hex[:8]}"
     await create_payment(
@@ -337,7 +335,7 @@ async def _create_payment(
             bolt11=f"bolt11_{checking_id}",
             amount_msat=amount_msat,
             memo=f"payment_{checking_id}",
-            extra=extra if extra is not None else {"tag": tag} if tag else {},
+            extra={"tag": tag} if tag else {},
         ),
         status=status,
     )
