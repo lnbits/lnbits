@@ -315,8 +315,7 @@ async def test_payment_extra_update_requires_successful_payment(
 
     assert response.status_code == 400
     assert (
-        response.json()["detail"]
-        == "Payment extra can only be updated after success."
+        response.json()["detail"] == "Payment extra can only be updated after success."
     )
 
 
