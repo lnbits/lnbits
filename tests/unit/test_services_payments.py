@@ -370,6 +370,7 @@ async def test_internal_invoice_callback_does_not_zero_receiver_balance(
 
     payment = await get_payment(checking_id)
     wallet = await get_wallet(wallet.id)
+    assert wallet is not None
 
     funding_source.get_invoice_status.assert_not_awaited()
     assert (payment.fee, wallet.balance_msat) == (0, amount_msat)
