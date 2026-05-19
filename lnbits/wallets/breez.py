@@ -39,7 +39,9 @@ else:
         default_config,
         mnemonic_to_seed,
     )
-    from breez_sdk import PaymentStatus as BreezPaymentStatus  # type: ignore[reportMissingImports]
+    from breez_sdk import (
+        PaymentStatus as BreezPaymentStatus,  # type: ignore[reportMissingImports]
+    )
     from loguru import logger
 
     from lnbits.settings import settings

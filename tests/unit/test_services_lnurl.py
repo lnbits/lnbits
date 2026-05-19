@@ -87,7 +87,9 @@ async def test_get_pr_from_lnurl_success_and_error(mocker: MockerFixture):
     mocker.patch(
         "lnbits.core.services.lnurl.execute_pay_request",
         mocker.AsyncMock(
-            return_value=LnurlPayActionResponse(pr=cast(LightningInvoice, LightningInvoice(TEST_BOLT11)))
+            return_value=LnurlPayActionResponse(
+                pr=cast(LightningInvoice, LightningInvoice(TEST_BOLT11))
+            )
         ),
     )
 

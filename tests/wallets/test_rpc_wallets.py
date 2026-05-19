@@ -81,7 +81,9 @@ def _check_calls(expected_calls):
         for func_call in func_calls:
             req = func_call["request_data"]
             args = req["args"] if "args" in req else {}
-            kwargs: dict[str, Any] = _eval_dict(req["kwargs"]) or {} if "kwargs" in req else {}
+            kwargs: dict[str, Any] = (
+                _eval_dict(req["kwargs"]) or {} if "kwargs" in req else {}
+            )
 
             if "klass" in req:
                 *rest, cls = req["klass"].split(".")
