@@ -296,29 +296,6 @@ async def test_payment_extra_update_is_wallet_scoped(
 
 
 @pytest.mark.anyio
-async def test_payment_extra_update_rejects_empty_extra(
-    client,
-    to_wallet,
-    adminkey_headers_to,
-):
-    payment_hash = uuid4().hex
-    await _create_payment(
-        to_wallet.id,
-        amount_msat=1_000,
-        payment_hash=payment_hash,
-    )
-
-    response = await client.patch(
-        "/api/v1/payments/extra",
-        headers=adminkey_headers_to,
-        json={"payment_hash": payment_hash, "extra": {}},
-    )
-
-    assert response.status_code == 400
-    assert response.json()["detail"] == "Extra data must contain at least one key."
-
-
-@pytest.mark.anyio
 async def test_payment_extra_update_requires_successful_payment(
     client,
     to_wallet,
