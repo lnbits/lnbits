@@ -112,7 +112,7 @@ async def internal_invoice_listener() -> None:
     while settings.lnbits_running:
         checking_id = await internal_invoice_queue.get()
         logger.info(f"got an internal payment notification {checking_id}")
-        payment = await update_invoice_callback(checking_id)
+        payment = await update_invoice_callback(checking_id, internal=True)
         if payment:
             logger.success(f"internal invoice {checking_id} settled")
             await invoice_callback_dispatcher(payment)
