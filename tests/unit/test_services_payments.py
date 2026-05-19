@@ -369,11 +369,11 @@ async def test_internal_invoice_callback_does_not_zero_receiver_balance(
     await update_invoice_callback(checking_id, internal=True)
 
     payment = await get_payment(checking_id)
-    wallet = await get_wallet(wallet.id)
-    assert wallet is not None
+    _wallet = await get_wallet(wallet.id)
+    assert _wallet is not None
 
     funding_source.get_invoice_status.assert_not_awaited()
-    assert (payment.fee, wallet.balance_msat) == (0, amount_msat)
+    assert (payment.fee, _wallet.balance_msat) == (0, amount_msat)
 
 
 @pytest.mark.anyio
