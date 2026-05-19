@@ -1074,7 +1074,9 @@ async def _send_payment_notification_in_background(
     send_payment_notification_in_background(wallet, payment)
 
 
-async def update_invoice_callback(checking_id: str) -> Payment | None:
+async def update_invoice_callback(
+    checking_id: str, internal: bool = False
+) -> Payment | None:
     """
     Takes a checking_id of an incoming payment, from either paid_invoices_stream()
     or internal_invoice_queue. Checks its status, updates and returns it.
@@ -1088,12 +1090,13 @@ async def update_invoice_callback(checking_id: str) -> Payment | None:
         logger.warning(f"Payment '{checking_id}' is not incoming, skipping.")
         return None
 
-    status = await check_payment_status(
-        payment, skip_internal_payment_notifications=True
-    )
-    payment.fee = status.fee_msat or payment.fee
-    # only overwrite preimage if status.preimage provides it
-    payment.preimage = status.preimage or payment.preimage
+    if not internal:
+        status = await check_payment_status(
+            payment, skip_internal_payment_notifications=True
+        )
+        payment.fee = status.fee_msat or payment.fee
+        # only overwrite preimage if status.preimage provides it
+        payment.preimage = status.preimage or payment.preimage
     payment.status = PaymentState.SUCCESS
     await update_payment(payment)
     if payment.fiat_provider:
