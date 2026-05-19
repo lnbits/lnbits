@@ -16,7 +16,6 @@ from lnbits.core.crud.payments import (
     get_payment_count_stats,
     get_wallets_stats,
     update_payment,
-    update_payment_extra,
 )
 from lnbits.core.crud.users import get_account
 from lnbits.core.db import db
@@ -318,9 +317,7 @@ async def api_update_payment_extra(
             HTTPStatus.BAD_REQUEST, "Payment extra can only be updated after success."
         )
     if not data.extra:
-        raise HTTPException(
-            HTTPStatus.BAD_REQUEST, "Extra data must contain at least one key."
-        )
+        data.extra = {}
 
     duplicate_keys = sorted(set(payment.extra).intersection(data.extra))
     if duplicate_keys:
@@ -330,7 +327,7 @@ async def api_update_payment_extra(
         )
 
     payment.extra.update(data.extra)
-    await update_payment_extra(payment)
+    await update_payment(payment)
     return payment
 
 

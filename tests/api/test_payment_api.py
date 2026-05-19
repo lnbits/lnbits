@@ -197,6 +197,32 @@ async def test_payment_extra_update_appends_new_keys(
 
 
 @pytest.mark.anyio
+async def test_payment_extra_update_creates_extra_when_missing(
+    client,
+    to_wallet,
+    adminkey_headers_to,
+):
+    payment_hash = uuid4().hex
+    checking_id = await _create_payment(
+        to_wallet.id,
+        amount_msat=1_000,
+        payment_hash=payment_hash,
+    )
+
+    response = await client.patch(
+        "/api/v1/payments/extra",
+        headers=adminkey_headers_to,
+        json={"payment_hash": payment_hash, "extra": {"note": "reviewed"}},
+    )
+
+    assert response.status_code == 200
+    assert response.json()["extra"] == {"note": "reviewed"}
+
+    payment = await get_payment(checking_id)
+    assert payment.extra == {"note": "reviewed"}
+
+
+@pytest.mark.anyio
 async def test_payment_extra_update_rejects_existing_keys(
     client,
     to_wallet,

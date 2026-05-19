@@ -37,7 +37,6 @@ from .payments import (
     mark_webhook_sent,
     update_payment,
     update_payment_checking_id,
-    update_payment_extra,
 )
 from .settings import (
     create_admin_settings,
