@@ -51,6 +51,7 @@ dependencies = [
     "pillow~=12.1.0",
     "python-dotenv~=1.2.1",
     "greenlet~=3.3.0",
+    "urllib3>=2.7.0",
 ]
 
 [project.scripts]
@@ -85,6 +86,9 @@ dev = [
   "grpcio-tools~=1.76.0",
   "pyinstrument>=5.1.2",
 ]
+
+[tool.uv]
+exclude-newer = "1 week"
 
 [tool.poetry]
 packages = [
