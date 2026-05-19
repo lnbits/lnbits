@@ -11,6 +11,7 @@ from lnbits.core.crud import (
     create_wallet,
     get_payment,
     get_payments,
+    get_wallet,
     update_payment,
 )
 from lnbits.core.models import (
@@ -31,6 +32,7 @@ from lnbits.core.services.payments import (
     create_payment_request,
     get_payments_daily_stats,
     settle_hold_invoice,
+    update_invoice_callback,
     update_pending_payment,
     update_pending_payments,
     update_wallet_balance,
@@ -42,6 +44,7 @@ from lnbits.wallets.base import (
     InvoiceResponse,
     PaymentFailedStatus,
     PaymentPendingStatus,
+    PaymentStatus,
     PaymentSuccessStatus,
 )
 
@@ -339,6 +342,37 @@ async def test_check_transaction_status_and_payment_status(mocker: MockerFixture
 
     assert (await check_payment_status(outgoing)).success is True
     assert (await check_payment_status(incoming)).pending is True
+
+
+@pytest.mark.anyio
+async def test_internal_invoice_callback_does_not_zero_receiver_balance(
+    mocker: MockerFixture,
+):
+    wallet = await _create_wallet()
+    amount_msat = 123_000
+    checking_id = await _create_payment(
+        wallet,
+        amount_msat=amount_msat,
+        status=PaymentState.SUCCESS,
+        fee=0,
+    )
+    funding_source = SimpleNamespace(
+        get_invoice_status=mocker.AsyncMock(
+            return_value=PaymentStatus(paid=True, fee_msat=-amount_msat)
+        )
+    )
+    mocker.patch(
+        "lnbits.core.services.payments.get_funding_source",
+        return_value=funding_source,
+    )
+
+    await update_invoice_callback(checking_id, internal=True)
+
+    payment = await get_payment(checking_id)
+    wallet = await get_wallet(wallet.id)
+
+    funding_source.get_invoice_status.assert_not_awaited()
+    assert (payment.fee, wallet.balance_msat) == (0, amount_msat)
 
 
 @pytest.mark.anyio
