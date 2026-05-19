@@ -19,7 +19,7 @@ else:
 
     from bolt11 import Bolt11Exception
     from bolt11 import decode as bolt11_decode
-    from breez_sdk import (
+    from breez_sdk import (  # type: ignore[reportMissingImports]
         BreezEvent,
         ConnectRequest,
         EnvironmentType,
@@ -39,7 +39,7 @@ else:
         default_config,
         mnemonic_to_seed,
     )
-    from breez_sdk import PaymentStatus as BreezPaymentStatus
+    from breez_sdk import PaymentStatus as BreezPaymentStatus  # type: ignore[reportMissingImports]
     from loguru import logger
 
     from lnbits.settings import settings
