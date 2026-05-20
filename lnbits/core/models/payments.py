@@ -140,22 +140,18 @@ class Payment(BaseModel):
         )
 
     # DEPRECATED: in v1.5.0, use service check_payment_status instead
-    async def check_status(
-        self, skip_internal_payment_notifications: bool | None = False
-    ) -> PaymentStatus:
+    async def check_status(self) -> PaymentStatus:
         logger.warning("payment.check_status() is deprecated.")
         from lnbits.core.services.payments import check_payment_status
 
-        return await check_payment_status(self, skip_internal_payment_notifications)
+        return await check_payment_status(self)
 
     # DEPRECATED: in v1.5.0, use service check_payment_status instead
-    async def check_fiat_status(
-        self, skip_internal_payment_notifications: bool | None = False
-    ) -> FiatPaymentStatus:
+    async def check_fiat_status(self) -> FiatPaymentStatus:
         logger.warning("payment.check_fiat_status() is deprecated.")
         from lnbits.core.services.fiat_providers import check_fiat_status
 
-        return await check_fiat_status(self, skip_internal_payment_notifications)
+        return await check_fiat_status(self)
 
 
 class PaymentFilters(FilterModel):

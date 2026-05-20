@@ -6,7 +6,10 @@ from collections.abc import Callable, Coroutine
 from loguru import logger
 
 from lnbits.core.models import Payment
-from lnbits.core.services.payments import update_invoice_callback
+from lnbits.core.services.payments import (
+    get_standalone_payment,
+    update_invoice_from_paid_invoices_stream,
+)
 from lnbits.settings import settings
 from lnbits.wallets import get_funding_source
 
@@ -112,7 +115,7 @@ async def internal_invoice_listener() -> None:
     while settings.lnbits_running:
         checking_id = await internal_invoice_queue.get()
         logger.info(f"got an internal payment notification {checking_id}")
-        payment = await update_invoice_callback(checking_id)
+        payment = await get_standalone_payment(checking_id, incoming=True)
         if payment:
             logger.success(f"internal invoice {checking_id} settled")
             await invoice_callback_dispatcher(payment)
@@ -128,7 +131,7 @@ async def invoice_listener() -> None:
     funding_source = get_funding_source()
     async for checking_id in funding_source.paid_invoices_stream():
         logger.info(f"got a payment notification {checking_id}")
-        payment = await update_invoice_callback(checking_id)
+        payment = await update_invoice_from_paid_invoices_stream(checking_id)
         if payment:
             logger.success(f"fundingsource invoice {checking_id} settled")
             await invoice_callback_dispatcher(payment)
