@@ -896,7 +896,8 @@ async def test_revolut_wallet_create_subscription(settings: Settings):
         wallet_id="wallet_1",
         memo="Monthly Gold",
         tag="gold",
-        extra={"customer_id": "CUSTOMER123", "link": "link-1"},
+        customer_id="CUSTOMER123",
+        extra={"link": "link-1"},
         success_url="https://lnbits.example/subscription-success",
     )
 
@@ -921,8 +922,75 @@ async def test_revolut_wallet_create_subscription(settings: Settings):
     assert reference["wallet_id"] == "wallet_1"
     assert reference["tag"] == "gold"
     assert reference["memo"] == "Monthly Gold"
-    assert reference["extra"]["customer_id"] == "CUSTOMER123"
+    assert reference["extra"]["link"] == "link-1"
     assert client.calls[1][0] == "/api/orders/ORDER123"
+
+
+@pytest.mark.anyio
+async def test_revolut_wallet_create_subscription_creates_customer(settings: Settings):
+    settings.revolut_api_endpoint = "https://sandbox-merchant.revolut.com"
+    settings.revolut_api_secret_key = "revolut-secret"
+    settings.revolut_api_version = "2026-04-20"
+
+    wallet = RevolutWallet()
+    client = MockHTTPClient(
+        [
+            MockHTTPResponse(json_data={"id": "CUSTOMER123"}),
+            MockHTTPResponse(
+                json_data={
+                    "id": "SUBSCRIPTION123",
+                    "setup_order_id": "ORDER123",
+                }
+            ),
+            MockHTTPResponse(
+                json_data={
+                    "id": "ORDER123",
+                    "checkout_url": "https://checkout.revolut.com/payment-link/sub_123",
+                }
+            ),
+        ]
+    )
+    wallet.client = client  # type: ignore[assignment]
+
+    payment_options = FiatSubscriptionPaymentOptions(
+        wallet_id="wallet_1",
+        customer_email="customer@example.com",
+    )
+
+    response = await wallet.create_subscription(
+        "PLAN_VARIATION_123", 1, payment_options
+    )
+
+    assert response.ok is True
+    assert client.calls[0][0] == "/api/customers"
+    assert client.calls[0][1]["json"] == {"email": "customer@example.com"}
+    assert client.calls[1][0] == "/api/subscriptions"
+    assert client.calls[1][1]["json"]["customer_id"] == "CUSTOMER123"
+    assert client.calls[2][0] == "/api/orders/ORDER123"
+
+
+@pytest.mark.anyio
+async def test_revolut_wallet_create_subscription_requires_customer(settings: Settings):
+    settings.revolut_api_endpoint = "https://sandbox-merchant.revolut.com"
+    settings.revolut_api_secret_key = "revolut-secret"
+    settings.revolut_api_version = "2026-04-20"
+
+    wallet = RevolutWallet()
+    client = MockHTTPClient([])
+    wallet.client = client  # type: ignore[assignment]
+
+    payment_options = FiatSubscriptionPaymentOptions(wallet_id="wallet_1")
+
+    response = await wallet.create_subscription(
+        "PLAN_VARIATION_123", 1, payment_options
+    )
+
+    assert response.ok is False
+    assert (
+        response.error_message
+        == "Revolut subscriptions require customer_id or customer_email."
+    )
+    assert client.calls == []
 
 
 @pytest.mark.anyio

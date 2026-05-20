@@ -1,8 +1,8 @@
 import asyncio
 import ipaddress
 import json
-from decimal import Decimal, ROUND_HALF_UP
 from collections.abc import AsyncGenerator
+from decimal import ROUND_HALF_UP, Decimal
 from typing import Any
 from urllib.parse import urlparse
 
@@ -212,13 +212,6 @@ class RevolutWallet(FiatProvider):
             )
 
         extra = payment_options.extra or {}
-        customer_id = extra.get("customer_id")
-        if not customer_id:
-            return FiatSubscriptionResponse(
-                ok=False,
-                error_message="Revolut subscriptions require extra.customer_id.",
-            )
-
         if not payment_options.subscription_request_id:
             payment_options.subscription_request_id = urlsafe_short_hash()
 
@@ -231,7 +224,6 @@ class RevolutWallet(FiatProvider):
         )
         payload: dict[str, Any] = {
             "plan_variation_id": subscription_id,
-            "customer_id": customer_id,
             "external_reference": self._serialize_subscription_reference(reference),
             "setup_order_redirect_url": (
                 payment_options.success_url
@@ -248,6 +240,12 @@ class RevolutWallet(FiatProvider):
         }
 
         try:
+            customer_id, customer_error = await self._get_subscription_customer_id(
+                payment_options
+            )
+            if not customer_id:
+                return FiatSubscriptionResponse(ok=False, error_message=customer_error)
+            payload["customer_id"] = customer_id
             r = await self.client.post(
                 "/api/subscriptions", json=payload, headers=headers
             )
@@ -348,6 +346,31 @@ class RevolutWallet(FiatProvider):
         r = await self.client.get(
             f"/api/subscriptions/{subscription_id}/cycles/{cycle_id}"
         )
+        r.raise_for_status()
+        return r.json()
+
+    async def _get_subscription_customer_id(
+        self, payment_options: FiatSubscriptionPaymentOptions
+    ) -> tuple[str | None, str | None]:
+        if payment_options.customer_id:
+            return payment_options.customer_id, None
+        if not payment_options.customer_email:
+            payment_options.customer_email = "test@lnbits.com"
+            # TODO: Remove the above line and uncomment the
+            # below return statement once we require customer_email for subscriptions.
+            # return (
+            #     None,
+            #     "Revolut subscriptions require customer_id or customer_email.",
+            # )
+
+        customer = await self.create_customer(payment_options.customer_email)
+        customer_id = customer.get("id")
+        if not customer_id:
+            return None, "Server error: missing customer id"
+        return customer_id, None
+
+    async def create_customer(self, email: str) -> dict[str, Any]:
+        r = await self.client.post("/api/customers", json={"email": email})
         r.raise_for_status()
         return r.json()
 

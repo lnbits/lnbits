@@ -95,6 +95,14 @@ class FiatSubscriptionPaymentOptions(BaseModel):
         description="Unique ID that can be used to identify the subscription request."
         "If not provided, one will be generated.",
     )
+    customer_id: str | None = Field(
+        default=None,
+        description="The fiat provider customer ID to use for the subscription.",
+    )
+    customer_email: str | None = Field(
+        default=None,
+        description="The customer email to use for the subscription.",
+    )
     tag: str | None = Field(
         default=None,
         description="Payments created by the recurring subscription"
