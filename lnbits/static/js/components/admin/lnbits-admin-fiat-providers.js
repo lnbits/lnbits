@@ -6,6 +6,8 @@ window.app.component('lnbits-admin-fiat-providers', {
       formAddStripeUser: '',
       formAddPaypalUser: '',
       formAddSquareUser: '',
+      formAddRevolutUser: '',
+      creatingRevolutWebhook: false,
       hideInputToggle: true
     }
   },
@@ -20,6 +22,12 @@ window.app.component('lnbits-admin-fiat-providers', {
       return (
         this.formData?.paypal_payment_webhook_url ||
         this.calculateWebhookUrl('paypal')
+      )
+    },
+    revolutWebhookUrl() {
+      return (
+        this.formData?.revolut_payment_webhook_url ||
+        this.calculateWebhookUrl('revolut')
       )
     }
   },
@@ -60,6 +68,7 @@ window.app.component('lnbits-admin-fiat-providers', {
       this.maybeSetWebhookUrl('stripe_payment_webhook_url', 'stripe')
       this.maybeSetWebhookUrl('paypal_payment_webhook_url', 'paypal')
       this.maybeSetWebhookUrl('square_payment_webhook_url', 'square')
+      this.maybeSetWebhookUrl('revolut_payment_webhook_url', 'revolut')
     },
     maybeSetWebhookUrl(fieldName, provider) {
       if (!this.formData) {
@@ -78,6 +87,47 @@ window.app.component('lnbits-admin-fiat-providers', {
         return
       }
       this.copyText(url)
+    },
+    isClearnetWebhookUrl(url) {
+      let parsedUrl
+      try {
+        parsedUrl = new URL(url)
+      } catch (e) {
+        return false
+      }
+
+      const host = parsedUrl.hostname.toLowerCase()
+      if (!['http:', 'https:'].includes(parsedUrl.protocol)) {
+        return false
+      }
+      if (
+        host === 'localhost' ||
+        host.endsWith('.localhost') ||
+        host.endsWith('.local') ||
+        host.endsWith('.onion')
+      ) {
+        return false
+      }
+      if (
+        /^127\./.test(host) ||
+        /^10\./.test(host) ||
+        /^192\.168\./.test(host) ||
+        /^169\.254\./.test(host) ||
+        /^172\.(1[6-9]|2\d|3[0-1])\./.test(host) ||
+        host === '0.0.0.0' ||
+        host === '::1'
+      ) {
+        return false
+      }
+      return true
+    },
+    notifyRevolutWebhookWarning(message) {
+      Quasar.Notify.create({
+        type: 'warning',
+        message,
+        icon: null,
+        closeBtn: true
+      })
     },
     addStripeAllowedUser() {
       const addUser = this.formAddStripeUser || ''
@@ -130,6 +180,23 @@ window.app.component('lnbits-admin-fiat-providers', {
       this.formData.square_limits.allowed_users =
         this.formData.square_limits.allowed_users.filter(u => u !== user)
     },
+    addRevolutAllowedUser() {
+      const addUser = this.formAddRevolutUser || ''
+      if (
+        addUser.length &&
+        !this.formData.revolut_limits.allowed_users.includes(addUser)
+      ) {
+        this.formData.revolut_limits.allowed_users = [
+          ...this.formData.revolut_limits.allowed_users,
+          addUser
+        ]
+        this.formAddRevolutUser = ''
+      }
+    },
+    removeRevolutAllowedUser(user) {
+      this.formData.revolut_limits.allowed_users =
+        this.formData.revolut_limits.allowed_users.filter(u => u !== user)
+    },
     checkFiatProvider(providerName) {
       LNbits.api
         .request('PUT', `/api/v1/fiat/check/${providerName}`)
@@ -143,6 +210,48 @@ window.app.component('lnbits-admin-fiat-providers', {
           })
         })
         .catch(LNbits.utils.notifyApiError)
+    },
+    createRevolutWebhook() {
+      const webhookUrl = this.calculateWebhookUrl('revolut')
+      this.formData.revolut_payment_webhook_url = webhookUrl
+
+      if (!this.formData.revolut_api_secret_key) {
+        this.notifyRevolutWebhookWarning(
+          'Add your Revolut API secret key before creating a webhook.'
+        )
+        return
+      }
+      if (!this.isClearnetWebhookUrl(webhookUrl)) {
+        this.notifyRevolutWebhookWarning(
+          'Revolut webhook URL must be a clearnet URL.'
+        )
+        return
+      }
+
+      this.creatingRevolutWebhook = true
+      LNbits.api
+        .request('POST', '/api/v1/fiat/revolut/webhook', null, {
+          url: webhookUrl,
+          endpoint: this.formData.revolut_api_endpoint,
+          api_secret_key: this.formData.revolut_api_secret_key,
+          api_version: this.formData.revolut_api_version
+        })
+        .then(response => {
+          const data = response.data
+          this.formData.revolut_payment_webhook_url = data.url
+          this.formData.revolut_webhook_signing_secret = data.signing_secret
+          Quasar.Notify.create({
+            type: 'positive',
+            message: `Revolut webhook ${
+              data.already_exists ? 'already exists' : 'created'
+            }${data.id ? `: ${data.id}` : ''}.`,
+            icon: null
+          })
+        })
+        .catch(LNbits.utils.notifyApiError)
+        .finally(() => {
+          this.creatingRevolutWebhook = false
+        })
     }
   }
 })

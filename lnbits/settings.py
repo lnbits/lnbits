@@ -713,6 +713,20 @@ class SquareFiatProvider(LNbitsSettings):
     square_limits: FiatProviderLimits = Field(default_factory=FiatProviderLimits)
 
 
+class RevolutFiatProvider(LNbitsSettings):
+    revolut_enabled: bool = Field(default=False)
+    revolut_api_endpoint: str = Field(default="https://merchant.revolut.com")
+    revolut_api_secret_key: str | None = Field(default=None)
+    revolut_api_version: str = Field(default="2026-04-20")
+    revolut_payment_success_url: str = Field(default="https://lnbits.com")
+    revolut_payment_webhook_url: str = Field(
+        default="https://your-lnbits-domain-here.com/api/v1/callback/revolut"
+    )
+    revolut_webhook_signing_secret: str | None = Field(default=None)
+
+    revolut_limits: FiatProviderLimits = Field(default_factory=FiatProviderLimits)
+
+
 class LightningSettings(LNbitsSettings):
     lightning_invoice_expiry: int = Field(default=3600, gt=0)
 
@@ -750,7 +764,12 @@ class FundingSourcesSettings(
     funding_source_max_retries: int = Field(default=4, ge=0)
 
 
-class FiatProvidersSettings(StripeFiatProvider, PayPalFiatProvider, SquareFiatProvider):
+class FiatProvidersSettings(
+    StripeFiatProvider,
+    PayPalFiatProvider,
+    SquareFiatProvider,
+    RevolutFiatProvider,
+):
     def is_fiat_provider_enabled(self, provider: str | None) -> bool:
         """
         Checks if a specific fiat provider is enabled.
@@ -763,6 +782,8 @@ class FiatProvidersSettings(StripeFiatProvider, PayPalFiatProvider, SquareFiatPr
             return self.paypal_enabled
         if provider == "square":
             return self.square_enabled
+        if provider == "revolut":
+            return self.revolut_enabled
         return False
 
     def get_fiat_providers_for_user(self, user_id: str) -> list[str]:
@@ -787,6 +808,12 @@ class FiatProvidersSettings(StripeFiatProvider, PayPalFiatProvider, SquareFiatPr
             or user_id in self.square_limits.allowed_users
         ):
             allowed_providers.append("square")
+
+        if self.revolut_enabled and (
+            not self.revolut_limits.allowed_users
+            or user_id in self.revolut_limits.allowed_users
+        ):
+            allowed_providers.append("revolut")
 
         return allowed_providers
 

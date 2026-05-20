@@ -200,6 +200,52 @@ def check_square_signature(
         raise ValueError("Square signature verification failed.")
 
 
+def check_revolut_signature(
+    payload: bytes,
+    sig_header: str | None,
+    timestamp_header: str | None,
+    secret: str | None,
+    tolerance_seconds=300,
+):
+    if not sig_header:
+        logger.warning("Revolut signature header is missing.")
+        raise ValueError("Revolut signature header is missing.")
+
+    if not timestamp_header:
+        logger.warning("Revolut timestamp header is missing.")
+        raise ValueError("Revolut timestamp header is missing.")
+
+    if not secret:
+        logger.warning("Revolut webhook signing secret is not set.")
+        raise ValueError("Revolut webhook cannot be verified.")
+
+    try:
+        timestamp = int(timestamp_header)
+    except ValueError as exc:
+        logger.warning("Invalid Revolut timestamp.")
+        raise ValueError("Invalid Revolut timestamp.") from exc
+
+    timestamp_seconds = timestamp / 1000 if timestamp > 9999999999 else timestamp
+
+    if abs(time.time() - timestamp_seconds) > tolerance_seconds:
+        logger.warning("Timestamp outside tolerance.")
+        raise ValueError("Timestamp outside tolerance." f"Timestamp: {timestamp}")
+
+    signed_payload = b"v1." + timestamp_header.encode() + b"." + payload
+    digest = hmac.new(
+        key=secret.encode(), msg=signed_payload, digestmod=hashlib.sha256
+    ).hexdigest()
+    expected_signature = f"v1={digest}"
+
+    provided_signatures = [sig.strip() for sig in sig_header.split(",") if sig.strip()]
+    if not any(
+        hmac.compare_digest(expected_signature, provided)
+        for provided in provided_signatures
+    ):
+        logger.warning("Revolut signature verification failed.")
+        raise ValueError("Revolut signature verification failed.")
+
+
 async def test_connection(provider: str) -> SimpleStatus:
     """
     Test the connection to Stripe by checking if the API key is valid.

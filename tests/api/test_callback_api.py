@@ -9,9 +9,11 @@ from lnbits.core.services.payments import create_wallet_invoice
 from lnbits.core.services.users import create_user_account
 from lnbits.core.views.callback_api import (
     handle_paypal_event,
+    handle_revolut_event,
     handle_square_event,
     handle_stripe_event,
 )
+from lnbits.fiat.revolut import RevolutWallet
 from lnbits.fiat.square import SquareWallet
 from lnbits.settings import Settings
 
@@ -29,8 +31,12 @@ async def test_callback_api_generic_webhook_handler_routes_providers(
     square_mock = mocker.patch(
         "lnbits.core.views.callback_api.handle_square_event", mocker.AsyncMock()
     )
+    revolut_mock = mocker.patch(
+        "lnbits.core.views.callback_api.handle_revolut_event", mocker.AsyncMock()
+    )
     mocker.patch("lnbits.core.views.callback_api.check_stripe_signature")
     mocker.patch("lnbits.core.views.callback_api.check_square_signature")
+    mocker.patch("lnbits.core.views.callback_api.check_revolut_signature")
     mocker.patch(
         "lnbits.core.views.callback_api.verify_paypal_webhook", mocker.AsyncMock()
     )
@@ -60,6 +66,18 @@ async def test_callback_api_generic_webhook_handler_routes_providers(
     assert square.status_code == 200
     assert square.json()["success"] is True
     square_mock.assert_awaited_once()
+
+    revolut = await http_client.post(
+        "/api/v1/callback/revolut",
+        headers={
+            "Revolut-Signature": "sig",
+            "Revolut-Request-Timestamp": "1700000000",
+        },
+        json={"event": "ORDER_COMPLETED", "order_id": "order_1"},
+    )
+    assert revolut.status_code == 200
+    assert revolut.json()["success"] is True
+    revolut_mock.assert_awaited_once()
 
     unknown = await http_client.post("/api/v1/callback/unknown", json={"id": "evt_3"})
     assert unknown.status_code == 200
@@ -138,6 +156,119 @@ async def test_callback_api_handles_square_paid_events(mocker):
     )
 
     get_payment.assert_awaited_once_with("fiat_square_order_order_1")
+    fiat_status_mock.assert_awaited_once_with(payment)
+
+
+@pytest.mark.anyio
+async def test_callback_api_handles_revolut_paid_events(mocker):
+    payment = mocker.Mock()
+    get_payment = mocker.patch(
+        "lnbits.core.views.callback_api.get_standalone_payment",
+        mocker.AsyncMock(return_value=payment),
+    )
+    fiat_status_mock = mocker.patch(
+        "lnbits.core.views.callback_api.check_fiat_status", mocker.AsyncMock()
+    )
+
+    await handle_revolut_event(
+        {
+            "event": "ORDER_COMPLETED",
+            "order_id": "order_1",
+        }
+    )
+
+    get_payment.assert_awaited_once_with("fiat_revolut_order_order_1")
+    fiat_status_mock.assert_awaited_once_with(payment)
+
+
+@pytest.mark.anyio
+async def test_callback_api_handles_revolut_subscription_event(
+    mocker, settings: Settings
+):
+    wallet_id = "wallet_1"
+    payment = mocker.Mock()
+    payment.extra = {}
+    payment.msat = 925_000
+
+    settings.revolut_api_endpoint = "https://sandbox-merchant.revolut.com"
+    settings.revolut_api_secret_key = "revolut-secret"
+    settings.revolut_api_version = "2026-04-20"
+    revolut_provider = RevolutWallet()
+    mocker.patch.object(
+        revolut_provider,
+        "get_subscription",
+        return_value={
+            "id": "SUBSCRIPTION_1",
+            "current_cycle_id": "CYCLE_1",
+            "external_reference": json.dumps(
+                {
+                    "wallet_id": wallet_id,
+                    "tag": "members",
+                    "subscription_request_id": "request_1",
+                    "extra": {"link": "link-1", "customer_id": "customer_1"},
+                    "memo": "Revolut Members",
+                }
+            ),
+        },
+    )
+    mocker.patch.object(
+        revolut_provider,
+        "get_subscription_cycle",
+        return_value={"id": "CYCLE_1", "order_id": "ORDER_SUB_1"},
+    )
+    mocker.patch.object(
+        revolut_provider,
+        "get_order",
+        return_value={
+            "id": "ORDER_SUB_1",
+            "amount": 925,
+            "currency": "USD",
+            "checkout_url": "https://checkout.revolut.com/payment-link/sub_1",
+        },
+    )
+    mocker.patch(
+        "lnbits.core.views.callback_api.get_fiat_provider",
+        mocker.AsyncMock(return_value=revolut_provider),
+    )
+    mocker.patch(
+        "lnbits.core.views.callback_api.get_standalone_payment",
+        mocker.AsyncMock(side_effect=[None]),
+    )
+    create_wallet_invoice_mock = mocker.patch(
+        "lnbits.core.views.callback_api.create_wallet_invoice",
+        mocker.AsyncMock(return_value=payment),
+    )
+    mocker.patch("lnbits.core.views.callback_api.service_fee_fiat", return_value=2)
+    update_payment_mock = mocker.patch(
+        "lnbits.core.views.callback_api.update_payment", mocker.AsyncMock()
+    )
+    fiat_status_mock = mocker.patch(
+        "lnbits.core.views.callback_api.check_fiat_status", mocker.AsyncMock()
+    )
+
+    await handle_revolut_event(
+        {
+            "event": "SUBSCRIPTION_INITIATED",
+            "subscription_id": "SUBSCRIPTION_1",
+        }
+    )
+
+    assert create_wallet_invoice_mock.await_count == 1
+    called_wallet_id, invoice = create_wallet_invoice_mock.await_args.args
+    assert called_wallet_id == "wallet_1"
+    assert invoice.amount == 9.25
+    assert invoice.memo == "Revolut Members"
+    assert invoice.external_id == "SUBSCRIPTION_1"
+    assert invoice.internal is True
+    assert invoice.extra["fiat_method"] == "subscription"
+    assert invoice.extra["subscription"]["checking_id"] == "order_ORDER_SUB_1"
+    assert payment.fiat_provider == "revolut"
+    assert payment.fee == -2
+    assert payment.extra["fiat_checking_id"] == "order_ORDER_SUB_1"
+    assert payment.checking_id == "fiat_revolut_order_ORDER_SUB_1"
+    update_payment_mock.assert_awaited_once_with(
+        payment, "fiat_revolut_order_ORDER_SUB_1"
+    )
     fiat_status_mock.assert_awaited_once_with(payment)
 
 
