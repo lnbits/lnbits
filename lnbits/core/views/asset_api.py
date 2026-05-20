@@ -1,6 +1,5 @@
 import base64
 from http import HTTPStatus
-from urllib.parse import quote
 
 from fastapi import APIRouter, Depends, File, HTTPException, Response, UploadFile
 
@@ -17,38 +16,24 @@ from lnbits.core.crud.assets import (
 from lnbits.core.models.assets import AssetFilters, AssetInfo, AssetUpdate
 from lnbits.core.models.misc import SimpleStatus
 from lnbits.core.models.users import AccountId
-from lnbits.core.services.assets import create_user_asset
+from lnbits.core.services.assets import (
+    ASSET_SECURITY_HEADERS,
+    INLINE_ASSET_MIME_TYPES,
+    content_disposition,
+    create_user_asset,
+    normalize_media_type,
+    thumbnail_media_type,
+)
 from lnbits.db import Filters, Page
 from lnbits.decorators import (
     check_account_id_exists,
     optional_user_id,
     parse_filters,
 )
-from lnbits.settings import settings
 
 asset_router = APIRouter(prefix="/api/v1/assets", tags=["Assets"])
 
 upload_file_param = File(...)
-
-INLINE_ASSET_MIME_TYPES = {
-    "image/heic",
-    "image/heics",
-    "image/heif",
-    "image/jpeg",
-    "image/png",
-}
-ASSET_SECURITY_HEADERS = {
-    "X-Content-Type-Options": "nosniff",
-    "Content-Security-Policy": (
-        "sandbox; default-src 'none'; script-src 'none'; "
-        "object-src 'none'; base-uri 'none'"
-    ),
-}
-THUMBNAIL_FORMAT_MIME_TYPES = {
-    "jpg": "image/jpeg",
-    "jpeg": "image/jpeg",
-    "png": "image/png",
-}
 
 
 @asset_router.get(
@@ -203,20 +188,3 @@ def asset_response(content: bytes, media_type: str, filename: str) -> Response:
             "Content-Disposition": content_disposition(disposition, filename),
         },
     )
-
-
-def normalize_media_type(media_type: str) -> str:
-    return media_type.split(";", 1)[0].strip().lower() or "application/octet-stream"
-
-
-def thumbnail_media_type() -> str:
-    thumbnail_format = (settings.lnbits_asset_thumbnail_format or "png").strip().lower()
-    return THUMBNAIL_FORMAT_MIME_TYPES.get(thumbnail_format, "application/octet-stream")
-
-
-def content_disposition(disposition: str, filename: str) -> str:
-    safe_filename = filename or "unnamed"
-    quoted_filename = quote(safe_filename, safe="")
-    if quoted_filename == safe_filename:
-        return f'{disposition}; filename="{safe_filename}"'
-    return f"{disposition}; filename*=utf-8''{quoted_filename}"
