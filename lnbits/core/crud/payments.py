@@ -20,6 +20,10 @@ from ..models import (
 )
 
 
+def update_payment_extra():
+    pass
+
+
 async def get_payment(checking_id: str, conn: Connection | None = None) -> Payment:
     return await (conn or db).fetchone(
         "SELECT * FROM apipayments WHERE checking_id = :checking_id",
@@ -301,7 +305,7 @@ async def update_payment_checking_id(
     await (conn or db).execute(
         f"""
             UPDATE apipayments
-            SET checking_id = :new_id, updated_at = {db.timestamp_placeholder('now')}
+            SET checking_id = :new_id, updated_at = {db.timestamp_placeholder("now")}
             WHERE checking_id = :old_id
         """,  # noqa: S608
         {
@@ -394,7 +398,6 @@ async def get_payment_count_stats(
     user_id: str | None = None,
     conn: Connection | None = None,
 ) -> list[PaymentCountStat]:
-
     if not filters:
         filters = Filters()
     extra_stmts = []
@@ -427,7 +430,6 @@ async def get_daily_stats(
     user_id: str | None = None,
     conn: Connection | None = None,
 ) -> tuple[list[PaymentDailyStats], list[PaymentDailyStats]]:
-
     if not filters:
         filters = Filters()
 
@@ -477,7 +479,6 @@ async def get_wallets_stats(
     user_id: str | None = None,
     conn: Connection | None = None,
 ) -> list[PaymentWalletStats]:
-
     if not filters:
         filters = Filters()
 
