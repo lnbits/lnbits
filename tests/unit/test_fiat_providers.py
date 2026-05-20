@@ -915,6 +915,7 @@ async def test_revolut_wallet_create_subscription(settings: Settings):
     payload = client.calls[0][1]["json"]
     assert payload["plan_variation_id"] == "PLAN_VARIATION_123"
     assert payload["customer_id"] == "CUSTOMER123"
+    assert client.calls[0][1]["timeout"] == 30
     assert payload["setup_order_redirect_url"] == (
         "https://lnbits.example/subscription-success"
     )
@@ -975,9 +976,12 @@ async def test_revolut_wallet_create_subscription_uses_customer_email(
     assert response.ok is True
     assert client.calls[0][0] == "/api/customers"
     assert client.calls[0][1]["params"] == {"limit": 500}
+    assert client.calls[0][1]["timeout"] == 30
     assert client.calls[1][0] == "/api/subscriptions"
     assert client.calls[1][1]["json"]["customer_id"] == "CUSTOMER123"
+    assert client.calls[1][1]["timeout"] == 30
     assert client.calls[2][0] == "/api/orders/ORDER123"
+    assert client.calls[2][1]["timeout"] == 30
 
 
 @pytest.mark.anyio
@@ -1045,6 +1049,7 @@ async def test_revolut_wallet_create_subscription_uses_paginated_customer_email(
         "limit": 500,
         "page_token": "PAGE2",
     }
+    assert client.calls[1][1]["timeout"] == 30
     assert client.calls[2][0] == "/api/subscriptions"
     assert client.calls[2][1]["json"]["customer_id"] == "CUSTOMER123"
     assert client.calls[3][0] == "/api/orders/ORDER123"
@@ -1107,9 +1112,76 @@ async def test_revolut_wallet_create_subscription_creates_customer(settings: Set
     }
     assert client.calls[2][0] == "/api/customers"
     assert client.calls[2][1]["json"] == {"email": "customer@example.com"}
+    assert client.calls[2][1]["timeout"] == 30
     assert client.calls[3][0] == "/api/subscriptions"
     assert client.calls[3][1]["json"]["customer_id"] == "CUSTOMER123"
     assert client.calls[4][0] == "/api/orders/ORDER123"
+
+
+@pytest.mark.anyio
+async def test_revolut_wallet_create_subscription_stops_customer_lookup_after_20_pages(
+    settings: Settings,
+):
+    settings.revolut_api_endpoint = "https://sandbox-merchant.revolut.com"
+    settings.revolut_api_secret_key = "revolut-secret"
+    settings.revolut_api_version = "2026-04-20"
+
+    wallet = RevolutWallet()
+    customer_pages = [
+        MockHTTPResponse(
+            json_data={
+                "next_page_token": f"PAGE{page + 2}",
+                "customers": [
+                    {
+                        "id": f"OTHER_CUSTOMER_{page}",
+                        "email": f"other-{page}@example.com",
+                    }
+                ],
+            }
+        )
+        for page in range(20)
+    ]
+    client = MockHTTPClient(
+        [
+            *customer_pages,
+            MockHTTPResponse(json_data={"id": "CUSTOMER123"}),
+            MockHTTPResponse(
+                json_data={
+                    "id": "SUBSCRIPTION123",
+                    "setup_order_id": "ORDER123",
+                }
+            ),
+            MockHTTPResponse(
+                json_data={
+                    "id": "ORDER123",
+                    "checkout_url": "https://checkout.revolut.com/payment-link/sub_123",
+                }
+            ),
+        ]
+    )
+    wallet.client = client  # type: ignore[assignment]
+
+    payment_options = FiatSubscriptionPaymentOptions(
+        wallet_id="wallet_1",
+        customer_email="customer@example.com",
+    )
+
+    response = await wallet.create_subscription(
+        "PLAN_VARIATION_123", 1, payment_options
+    )
+
+    assert response.ok is True
+    assert [call[0] for call in client.calls[:20]] == ["/api/customers"] * 20
+    assert client.calls[0][1]["params"] == {"limit": 500}
+    assert client.calls[19][1]["params"] == {
+        "limit": 500,
+        "page_token": "PAGE20",
+    }
+    assert client.calls[20][0] == "/api/customers"
+    assert client.calls[20][1]["json"] == {"email": "customer@example.com"}
+    assert client.calls[21][0] == "/api/subscriptions"
+    assert client.calls[21][1]["json"]["customer_id"] == "CUSTOMER123"
+    assert client.calls[22][0] == "/api/orders/ORDER123"
 
 
 @pytest.mark.anyio
@@ -1151,7 +1223,7 @@ async def test_revolut_wallet_create_subscription_uses_default_email(
     assert client.calls[0][0] == "/api/customers"
     assert client.calls[0][1]["params"] == {"limit": 500}
     assert client.calls[1][0] == "/api/customers"
-    assert client.calls[1][1]["json"] == {"email": "test01@lnbits.com"}
+    assert client.calls[1][1]["json"] == {"email": "test@lnbits.com"}
     assert client.calls[2][1]["json"]["customer_id"] == "CUSTOMER123"
 
 
@@ -1208,7 +1280,7 @@ async def test_revolut_wallet_create_webhook(mocker: MockerFixture):
         (
             "/api/webhooks",
             {
-                "timeout": 15,
+                "timeout": 30,
             },
         ),
         (
@@ -1218,7 +1290,7 @@ async def test_revolut_wallet_create_webhook(mocker: MockerFixture):
                     "url": "https://lnbits.example/api/v1/callback/revolut",
                     "events": REVOLUT_WEBHOOK_EVENTS,
                 },
-                "timeout": 15,
+                "timeout": 30,
             },
         ),
     ]
@@ -1258,7 +1330,7 @@ async def test_revolut_wallet_reuses_existing_webhook(mocker: MockerFixture):
         (
             "/api/webhooks",
             {
-                "timeout": 15,
+                "timeout": 30,
             },
         )
     ]
