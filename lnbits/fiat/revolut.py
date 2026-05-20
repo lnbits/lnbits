@@ -1,8 +1,8 @@
 import asyncio
 import ipaddress
 import json
-from collections.abc import AsyncGenerator
 from decimal import Decimal, ROUND_HALF_UP
+from collections.abc import AsyncGenerator
 from typing import Any
 from urllib.parse import urlparse
 
