@@ -363,16 +363,69 @@ class RevolutWallet(FiatProvider):
             #     "Revolut subscriptions require customer_id or customer_email.",
             # )
 
+        customer = await self.get_customer_by_email(payment_options.customer_email)
+        customer_id = customer.get("id") if customer else None
+        if customer_id:
+            return customer_id, None
+
         customer = await self.create_customer(payment_options.customer_email)
         customer_id = customer.get("id")
         if not customer_id:
             return None, "Server error: missing customer id"
         return customer_id, None
 
+    async def get_customer_by_email(self, email: str) -> dict[str, Any] | None:
+        page_token = None
+        while True:
+            customer_page = await self.list_customers(page_token=page_token)
+            customer = self._find_customer_by_email(customer_page["customers"], email)
+            if customer:
+                return customer
+
+            page_token = customer_page.get("next_page_token")
+            if not page_token:
+                return None
+
+    async def list_customers(self, page_token: str | None = None) -> dict[str, Any]:
+        params: dict[str, Any] = {"limit": 500}
+        if page_token:
+            params["page_token"] = page_token
+        r = await self.client.get("/api/customers", params=params)
+        r.raise_for_status()
+        return self._extract_customer_page(r.json())
+
     async def create_customer(self, email: str) -> dict[str, Any]:
         r = await self.client.post("/api/customers", json={"email": email})
         r.raise_for_status()
         return r.json()
+
+    @classmethod
+    def _extract_customer_page(cls, data: Any) -> dict[str, Any]:
+        if isinstance(data, list):
+            return {"customers": cls._filter_customer_list(data)}
+        if isinstance(data, dict):
+            for field in ["customers", "data", "items"]:
+                customers = data.get(field)
+                if isinstance(customers, list):
+                    return {
+                        "customers": cls._filter_customer_list(customers),
+                        "next_page_token": data.get("next_page_token"),
+                    }
+        return {"customers": []}
+
+    @classmethod
+    def _filter_customer_list(cls, customers: list[Any]) -> list[dict[str, Any]]:
+        return [customer for customer in customers if isinstance(customer, dict)]
+
+    @classmethod
+    def _find_customer_by_email(
+        cls, customers: list[dict[str, Any]], email: str
+    ) -> dict[str, Any] | None:
+        normalized_email = email.casefold()
+        for customer in customers:
+            if str(customer.get("email") or "").casefold() == normalized_email:
+                return customer
+        return None
 
     @classmethod
     async def create_webhook(
