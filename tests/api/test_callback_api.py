@@ -185,17 +185,10 @@ async def test_callback_api_handles_revolut_paid_events(mocker):
 async def test_callback_api_handles_revolut_subscription_event(
     mocker, settings: Settings
 ):
-    user = await create_user_account(
-        Account(
-            id=uuid4().hex,
-            username=f"user_{uuid4().hex[:8]}",
-            email=f"user_{uuid4().hex[:8]}@lnbits.com",
-        )
-    )
-    wallet = user.wallets[0]
-    payment = await create_wallet_invoice(
-        wallet.id, CreateInvoice(out=False, amount=15, memo="subscription")
-    )
+    wallet_id = "wallet_1"
+    payment = mocker.Mock()
+    payment.extra = {}
+    payment.msat = 925_000
 
     settings.revolut_api_endpoint = "https://sandbox-merchant.revolut.com"
     settings.revolut_api_secret_key = "revolut-secret"
@@ -209,7 +202,7 @@ async def test_callback_api_handles_revolut_subscription_event(
             "current_cycle_id": "CYCLE_1",
             "external_reference": json.dumps(
                 {
-                    "wallet_id": wallet.id,
+                    "wallet_id": wallet_id,
                     "tag": "members",
                     "subscription_request_id": "request_1",
                     "extra": {"link": "link-1", "customer_id": "customer_1"},
@@ -241,9 +234,13 @@ async def test_callback_api_handles_revolut_subscription_event(
         "lnbits.core.views.callback_api.get_standalone_payment",
         mocker.AsyncMock(side_effect=[None]),
     )
-    create_fiat_invoice_mock = mocker.patch(
-        "lnbits.core.views.callback_api.create_fiat_invoice",
+    create_wallet_invoice_mock = mocker.patch(
+        "lnbits.core.views.callback_api.create_wallet_invoice",
         mocker.AsyncMock(return_value=payment),
+    )
+    mocker.patch("lnbits.core.views.callback_api.service_fee_fiat", return_value=2)
+    update_payment_mock = mocker.patch(
+        "lnbits.core.views.callback_api.update_payment", mocker.AsyncMock()
     )
     fiat_status_mock = mocker.patch(
         "lnbits.core.views.callback_api.check_fiat_status", mocker.AsyncMock()
@@ -256,16 +253,22 @@ async def test_callback_api_handles_revolut_subscription_event(
         }
     )
 
-    assert create_fiat_invoice_mock.await_count == 1
-    revolut_call = create_fiat_invoice_mock.await_args.kwargs
-    assert revolut_call["wallet_id"] == wallet.id
-    invoice = revolut_call["invoice_data"]
-    assert invoice.fiat_provider == "revolut"
+    assert create_wallet_invoice_mock.await_count == 1
+    called_wallet_id, invoice = create_wallet_invoice_mock.await_args.args
+    assert called_wallet_id == "wallet_1"
     assert invoice.amount == 9.25
     assert invoice.memo == "Revolut Members"
     assert invoice.external_id == "SUBSCRIPTION_1"
+    assert invoice.internal is True
     assert invoice.extra["fiat_method"] == "subscription"
     assert invoice.extra["subscription"]["checking_id"] == "order_ORDER_SUB_1"
+    assert payment.fiat_provider == "revolut"
+    assert payment.fee == -2
+    assert payment.extra["fiat_checking_id"] == "order_ORDER_SUB_1"
+    assert payment.checking_id == "fiat_revolut_order_ORDER_SUB_1"
+    update_payment_mock.assert_awaited_once_with(
+        payment, "fiat_revolut_order_ORDER_SUB_1"
+    )
     fiat_status_mock.assert_awaited_once_with(payment)
 
 

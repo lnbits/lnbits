@@ -18,7 +18,11 @@ from lnbits.core.services.fiat_providers import (
     check_stripe_signature,
     verify_paypal_webhook,
 )
-from lnbits.core.services.payments import create_fiat_invoice
+from lnbits.core.services.payments import (
+    create_fiat_invoice,
+    create_wallet_invoice,
+    service_fee_fiat,
+)
 from lnbits.db import Filter, Filters
 from lnbits.fiat import get_fiat_provider
 from lnbits.fiat.base import FiatSubscriptionPaymentOptions
@@ -429,19 +433,50 @@ async def _handle_revolut_subscription_initiated(event: dict):
             "payment_request": order.get("checkout_url") or "",
         },
     }
-    lnbits_payment = await create_fiat_invoice(
+    lnbits_payment = await _create_revolut_subscription_payment(
         wallet_id=reference.wallet_id,
-        invoice_data=CreateInvoice(
-            unit=currency,
-            amount=amount_minor / 100,
-            memo=reference.memo or "",
-            extra=extra,
-            fiat_provider="revolut",
-            external_id=subscription_id,
-        ),
+        amount_minor=amount_minor,
+        currency=currency,
+        memo=reference.memo or "",
+        extra=extra,
+        order_id=order_id,
+        payment_request=order.get("checkout_url") or "",
+        subscription_id=subscription_id,
     )
 
     await check_fiat_status(lnbits_payment)
+
+
+async def _create_revolut_subscription_payment(
+    wallet_id: str,
+    amount_minor: int,
+    currency: str,
+    memo: str,
+    extra: dict,
+    order_id: str,
+    payment_request: str,
+    subscription_id: str,
+) -> Payment:
+    amount = RevolutWallet.minor_units_to_amount(amount_minor, currency)
+    payment = await create_wallet_invoice(
+        wallet_id,
+        CreateInvoice(
+            unit=currency,
+            amount=amount,
+            memo=memo,
+            extra=extra,
+            internal=True,
+            external_id=subscription_id,
+        ),
+    )
+    payment.fee = -abs(service_fee_fiat(payment.msat, "revolut"))
+    payment.fiat_provider = "revolut"
+    payment.extra["fiat_checking_id"] = f"order_{order_id}"
+    payment.extra["fiat_payment_request"] = payment_request
+    checking_id = f"fiat_revolut_order_{order_id}"
+    await update_payment(payment, checking_id)
+    payment.checking_id = checking_id
+    return payment
 
 
 async def _handle_square_payment_event(event: dict):

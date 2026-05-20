@@ -1,7 +1,6 @@
 import hashlib
 import hmac
 import json
-import math
 import time
 from base64 import b64encode
 
@@ -220,35 +219,27 @@ def check_revolut_signature(
         logger.warning("Revolut webhook signing secret is not set.")
         raise ValueError("Revolut webhook cannot be verified.")
 
-    timestamp = int(timestamp_header)
-    timestamp_seconds = timestamp / 1000 if timestamp > 9999999999 else timestamp
-    if not math.isfinite(timestamp_seconds):
+    try:
+        timestamp = int(timestamp_header)
+    except ValueError as exc:
         logger.warning("Invalid Revolut timestamp.")
-        raise ValueError("Invalid Revolut timestamp.")
+        raise ValueError("Invalid Revolut timestamp.") from exc
+
+    timestamp_seconds = timestamp / 1000 if timestamp > 9999999999 else timestamp
 
     if abs(time.time() - timestamp_seconds) > tolerance_seconds:
         logger.warning("Timestamp outside tolerance.")
         raise ValueError("Timestamp outside tolerance." f"Timestamp: {timestamp}")
 
-    candidates = [
-        b"v1." + timestamp_header.encode() + b"." + payload,
-        payload,
-        f"{timestamp_header}.{payload.decode()}".encode(),
-        timestamp_header.encode() + b"." + payload,
-    ]
-    signatures = []
-    for candidate in candidates:
-        digest = hmac.new(
-            key=secret.encode(), msg=candidate, digestmod=hashlib.sha256
-        ).digest()
-        signatures.extend(
-            [digest.hex(), f"v1={digest.hex()}", b64encode(digest).decode()]
-        )
+    signed_payload = b"v1." + timestamp_header.encode() + b"." + payload
+    digest = hmac.new(
+        key=secret.encode(), msg=signed_payload, digestmod=hashlib.sha256
+    ).hexdigest()
+    expected_signature = f"v1={digest}"
 
     provided_signatures = [sig.strip() for sig in sig_header.split(",") if sig.strip()]
     if not any(
-        hmac.compare_digest(expected, provided)
-        for expected in signatures
+        hmac.compare_digest(expected_signature, provided)
         for provided in provided_signatures
     ):
         logger.warning("Revolut signature verification failed.")

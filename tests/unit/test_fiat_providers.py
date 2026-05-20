@@ -809,6 +809,48 @@ async def test_revolut_wallet_create_invoice(settings: Settings):
 
 
 @pytest.mark.anyio
+async def test_revolut_wallet_create_invoice_uses_currency_minor_units(
+    settings: Settings,
+):
+    settings.revolut_api_endpoint = "https://sandbox-merchant.revolut.com"
+    settings.revolut_api_secret_key = "revolut-secret"
+    settings.revolut_api_version = "2026-04-20"
+
+    wallet = RevolutWallet()
+    client = MockHTTPClient(
+        [
+            MockHTTPResponse(
+                json_data={
+                    "id": "ORDER_JPY",
+                    "checkout_url": "https://checkout.revolut.com/payment-link/jpy",
+                }
+            ),
+            MockHTTPResponse(
+                json_data={
+                    "id": "ORDER_KWD",
+                    "checkout_url": "https://checkout.revolut.com/payment-link/kwd",
+                }
+            ),
+        ]
+    )
+    wallet.client = client  # type: ignore[assignment]
+
+    await wallet.create_invoice(
+        amount=123,
+        payment_hash="hash_jpy",
+        currency="JPY",
+    )
+    await wallet.create_invoice(
+        amount=1.234,
+        payment_hash="hash_kwd",
+        currency="KWD",
+    )
+
+    assert client.calls[0][1]["json"]["amount"] == 123
+    assert client.calls[1][1]["json"]["amount"] == 1234
+
+
+@pytest.mark.anyio
 async def test_revolut_wallet_get_invoice_status(settings: Settings):
     settings.revolut_api_endpoint = "https://sandbox-merchant.revolut.com"
     settings.revolut_api_secret_key = "revolut-secret"
@@ -1005,20 +1047,22 @@ async def test_revolut_wallet_rejects_local_webhook_url():
 
 def test_check_revolut_signature():
     payload = b'{"event":"ORDER_COMPLETED","order_id":"ORDER123"}'
-    timestamp = str(int(time.time()))
+    timestamp = str(int(time.time() * 1000))
     secret = "revolut-secret"
-    sig = hmac.new(secret.encode(), payload, hashlib.sha256).hexdigest()
+    signed_payload = b"v1." + timestamp.encode() + b"." + payload
+    sig = "v1=" + hmac.new(secret.encode(), signed_payload, hashlib.sha256).hexdigest()
 
     check_revolut_signature(payload, sig, timestamp, secret)
 
 
-def test_check_revolut_signature_millisecond_timestamp():
+def test_check_revolut_signature_rejects_payload_only_signature():
     payload = b'{"event":"ORDER_COMPLETED","order_id":"ORDER123"}'
     timestamp = str(int(time.time() * 1000))
     secret = "revolut-secret"
     sig = hmac.new(secret.encode(), payload, hashlib.sha256).hexdigest()
 
-    check_revolut_signature(payload, sig, timestamp, secret)
+    with pytest.raises(ValueError, match="signature verification failed"):
+        check_revolut_signature(payload, sig, timestamp, secret)
 
 
 def test_check_revolut_signature_v1_header():

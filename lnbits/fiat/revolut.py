@@ -2,6 +2,7 @@ import asyncio
 import ipaddress
 import json
 from collections.abc import AsyncGenerator
+from decimal import Decimal, ROUND_HALF_UP
 from typing import Any
 from urllib.parse import urlparse
 
@@ -55,6 +56,34 @@ REVOLUT_WEBHOOK_EVENTS = [
     "ORDER_COMPLETED",
     "SUBSCRIPTION_INITIATED",
 ]
+
+ZERO_DECIMAL_CURRENCIES = {
+    "BIF",
+    "CLP",
+    "DJF",
+    "GNF",
+    "ISK",
+    "JPY",
+    "KMF",
+    "KRW",
+    "PYG",
+    "RWF",
+    "UGX",
+    "VND",
+    "VUV",
+    "XAF",
+    "XOF",
+    "XPF",
+}
+THREE_DECIMAL_CURRENCIES = {
+    "BHD",
+    "IQD",
+    "JOD",
+    "KWD",
+    "LYD",
+    "OMR",
+    "TND",
+}
 
 
 class RevolutWallet(FiatProvider):
@@ -118,7 +147,7 @@ class RevolutWallet(FiatProvider):
                 ok=False, error_message="Invalid Revolut options"
             )
 
-        amount_minor = int(amount * 100)
+        amount_minor = self.amount_to_minor_units(amount, currency)
         checkout = opts.checkout or RevolutCheckoutOptions()
         success_url = (
             checkout.success_url
@@ -444,6 +473,25 @@ class RevolutWallet(FiatProvider):
         if status in ["CANCELLED", "FAILED"]:
             return FiatPaymentFailedStatus()
         return FiatPaymentPendingStatus()
+
+    @classmethod
+    def amount_to_minor_units(cls, amount: float | Decimal, currency: str) -> int:
+        scale = Decimal(10) ** cls.currency_exponent(currency)
+        return int((Decimal(str(amount)) * scale).quantize(Decimal("1"), ROUND_HALF_UP))
+
+    @classmethod
+    def minor_units_to_amount(cls, amount: int, currency: str) -> float:
+        scale = Decimal(10) ** cls.currency_exponent(currency)
+        return float(Decimal(amount) / scale)
+
+    @classmethod
+    def currency_exponent(cls, currency: str) -> int:
+        normalized = currency.upper()
+        if normalized in ZERO_DECIMAL_CURRENCIES:
+            return 0
+        if normalized in THREE_DECIMAL_CURRENCIES:
+            return 3
+        return 2
 
     def _parse_create_opts(
         self, raw_opts: dict[str, Any]
