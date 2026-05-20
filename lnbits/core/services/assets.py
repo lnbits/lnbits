@@ -1,6 +1,5 @@
 import base64
 import io
-from pathlib import PurePath
 from uuid import uuid4
 
 import filetype
@@ -12,12 +11,6 @@ from lnbits.core.crud.assets import create_asset, get_user_assets_count
 from lnbits.core.models.assets import Asset
 from lnbits.settings import settings
 
-BLOCKED_ASSET_EXTENSIONS = {".xsl", ".xslt"}
-BLOCKED_ASSET_MIME_TYPES = {
-    "application/xsl+xml",
-    "application/xslt+xml",
-    "text/xsl",
-}
 IMAGE_MIME_TYPE_ALIASES = {
     "heic": "image/heic",
     "heics": "image/heics",
@@ -31,12 +24,6 @@ PIL_IMAGE_FORMAT_MIME_TYPES = {
     "JPEG": "image/jpeg",
     "PNG": "image/png",
 }
-XSL_CONTENT_MARKERS = (
-    b"<?xml-stylesheet",
-    b"<xsl:stylesheet",
-    b"<xsl:transform",
-    b"http://www.w3.org/1999/xsl/transform",
-)
 
 
 async def create_user_asset(user_id: str, file: UploadFile, is_public: bool) -> Asset:
@@ -45,14 +32,8 @@ async def create_user_asset(user_id: str, file: UploadFile, is_public: bool) -> 
 
     content_type = normalize_asset_mime_type(file.content_type)
     filename = file.filename or "unnamed"
-    if is_blocked_xsl_asset(filename, content_type):
-        raise ValueError("XSL assets are not allowed.")
 
-    allowed_mime_types = {
-        normalize_asset_mime_type(mime_type)
-        for mime_type in settings.lnbits_assets_allowed_mime_types
-    }
-    if content_type not in allowed_mime_types:
+    if content_type not in allowed_asset_mime_types():
         raise ValueError(f"File type '{file.content_type}' not allowed.")
 
     if not settings.is_unlimited_assets_user(user_id):
@@ -63,19 +44,14 @@ async def create_user_asset(user_id: str, file: UploadFile, is_public: bool) -> 
             )
 
     contents = await file.read()
-    if has_xsl_content(contents):
-        raise ValueError("XSL assets are not allowed.")
-
     if len(contents) > settings.lnbits_max_asset_size_mb * 1024 * 1024:
         raise ValueError(
             f"File limit of {settings.lnbits_max_asset_size_mb}MB exceeded."
         )
 
-    stored_mime_type = content_type
-    if content_type.startswith("image/"):
-        stored_mime_type = detect_image_mime_type(contents)
-        if stored_mime_type != content_type:
-            raise ValueError("Image file content does not match declared file type.")
+    stored_mime_type = detect_image_mime_type(contents)
+    if stored_mime_type != content_type:
+        raise ValueError("Image file content does not match declared file type.")
 
     thumb_buffer = thumbnail_from_bytes(contents)
 
@@ -103,16 +79,15 @@ def normalize_asset_mime_type(content_type: str) -> str:
     return IMAGE_MIME_TYPE_ALIASES.get(content_type, content_type)
 
 
-def is_blocked_xsl_asset(filename: str, content_type: str) -> bool:
-    return (
-        content_type in BLOCKED_ASSET_MIME_TYPES
-        or PurePath(filename.strip()).suffix.lower() in BLOCKED_ASSET_EXTENSIONS
-    )
-
-
-def has_xsl_content(contents: bytes) -> bool:
-    head = contents[:8192].lower()
-    return any(marker in head for marker in XSL_CONTENT_MARKERS)
+def allowed_asset_mime_types() -> set[str]:
+    return {
+        mime_type
+        for mime_type in (
+            normalize_asset_mime_type(mime_type)
+            for mime_type in settings.lnbits_assets_allowed_mime_types
+        )
+        if mime_type.startswith("image/")
+    }
 
 
 def detect_image_mime_type(contents: bytes) -> str:

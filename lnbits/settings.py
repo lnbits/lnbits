@@ -323,9 +323,6 @@ class AssetSettings(LNbitsSettings):
             "heic",
             "heif",
             "heics",
-            "text/plain",
-            "text/json",
-            "application/json",
         ]
     )
     lnbits_asset_thumbnail_width: int = Field(default=128, ge=0)

@@ -31,29 +31,29 @@ async def test_create_user_asset_validates_upload_constraints(
     ):
         await create_user_asset("user-1", bad_type, is_public=False)
 
-    xsl_extension = make_upload_file(
+    xsl_upload = make_upload_file(
         b"hello",
         filename="style.xsl",
         content_type="text/xml",
     )
-    with pytest.raises(ValueError, match="XSL assets are not allowed."):
-        await create_user_asset("user-1", xsl_extension, is_public=False)
+    with pytest.raises(ValueError, match="File type 'text/xml' not allowed."):
+        await create_user_asset("user-1", xsl_upload, is_public=False)
 
-    xsl_mime_type = make_upload_file(
-        b"hello",
-        filename="style.xml",
-        content_type="application/xslt+xml",
-    )
-    with pytest.raises(ValueError, match="XSL assets are not allowed."):
-        await create_user_asset("user-1", xsl_mime_type, is_public=False)
-
-    xsl_content = make_upload_file(
-        b'<stylesheet xmlns="http://www.w3.org/1999/XSL/Transform"></stylesheet>',
-        filename="style.xml",
-        content_type="text/xml",
-    )
-    with pytest.raises(ValueError, match="XSL assets are not allowed."):
-        await create_user_asset("user-1", xsl_content, is_public=False)
+    original_allowed_mime_types = list(settings.lnbits_assets_allowed_mime_types)
+    try:
+        settings.lnbits_assets_allowed_mime_types = [
+            *original_allowed_mime_types,
+            "text/xml",
+        ]
+        xsl_content = make_upload_file(
+            b'<stylesheet xmlns="http://www.w3.org/1999/XSL/Transform"></stylesheet>',
+            filename="style.xml",
+            content_type="text/xml",
+        )
+        with pytest.raises(ValueError, match="File type 'text/xml' not allowed."):
+            await create_user_asset("user-1", xsl_content, is_public=False)
+    finally:
+        settings.lnbits_assets_allowed_mime_types = original_allowed_mime_types
 
     fake_image = make_upload_file(
         b"<?xml version='1.0'?><root></root>",
@@ -74,14 +74,14 @@ async def test_create_user_asset_validates_upload_constraints(
         settings.lnbits_assets_no_limit_users = []
         limited_user = await _create_user()
         allowed_type = make_upload_file(
-            b"hello", filename="ok.txt", content_type="text/plain"
+            _png_bytes(), filename="ok.png", content_type="image/png"
         )
         await create_user_asset(limited_user, allowed_type, is_public=False)
 
         blocked_by_count = make_upload_file(
-            b"again",
-            filename="again.txt",
-            content_type="text/plain",
+            _png_bytes(),
+            filename="again.png",
+            content_type="image/png",
         )
         with pytest.raises(ValueError, match="Max upload count of 1 exceeded."):
             await create_user_asset(limited_user, blocked_by_count, is_public=False)
@@ -89,9 +89,9 @@ async def test_create_user_asset_validates_upload_constraints(
         settings.lnbits_max_asset_size_mb = 0.000001
         oversized_user = await _create_user()
         large_file = make_upload_file(
-            b"0123456789",
-            filename="ok.txt",
-            content_type="text/plain",
+            _png_bytes(),
+            filename="ok.png",
+            content_type="image/png",
         )
         with pytest.raises(ValueError, match="File limit of 1e-06MB exceeded."):
             await create_user_asset(oversized_user, large_file, is_public=False)
@@ -108,20 +108,21 @@ async def test_create_user_asset_success(app, mocker: MockerFixture):
         "lnbits.core.services.assets.thumbnail_from_bytes",
         return_value=None,
     )
-    file = make_upload_file(b"hello", filename="hello.txt", content_type="text/plain")
+    contents = _png_bytes()
+    file = make_upload_file(contents, filename="hello.png", content_type="image/png")
 
     asset = await create_user_asset(user_id, file, is_public=True)
     stored = await get_user_asset(user_id, asset.id)
 
     assert asset.id
     assert asset.user_id == user_id
-    assert asset.name == "hello.txt"
-    assert asset.size_bytes == 5
-    assert asset.data == b"hello"
+    assert asset.name == "hello.png"
+    assert asset.size_bytes == len(contents)
+    assert asset.data == contents
     assert asset.is_public is True
     assert stored is not None
     assert stored.id == asset.id
-    assert stored.data == b"hello"
+    assert stored.data == contents
     assert await get_user_assets_count(user_id) == 1
 
 
@@ -173,3 +174,9 @@ async def _create_user() -> str:
     user_id = uuid4().hex
     await create_account(Account(id=user_id, username=f"user_{user_id[:8]}"))
     return user_id
+
+
+def _png_bytes() -> bytes:
+    buffer = BytesIO()
+    Image.new("RGB", (32, 32), color="green").save(buffer, format="PNG")
+    return buffer.getvalue()
