@@ -866,6 +866,7 @@
             </q-expansion-item>
           </q-card>
         </q-expansion-item>
+        <q-separator></q-separator>
         <q-expansion-item header-class="text-primary text-bold">
           <template v-slot:header>
             <q-item-section avatar>
