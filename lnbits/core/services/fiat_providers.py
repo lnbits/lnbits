@@ -1,6 +1,7 @@
 import hashlib
 import hmac
 import json
+import math
 import time
 from base64 import b64encode
 
@@ -220,13 +221,19 @@ def check_revolut_signature(
         raise ValueError("Revolut webhook cannot be verified.")
 
     timestamp = int(timestamp_header)
-    if abs(time.time() - timestamp) > tolerance_seconds:
+    timestamp_seconds = timestamp / 1000 if timestamp > 9999999999 else timestamp
+    if not math.isfinite(timestamp_seconds):
+        logger.warning("Invalid Revolut timestamp.")
+        raise ValueError("Invalid Revolut timestamp.")
+
+    if abs(time.time() - timestamp_seconds) > tolerance_seconds:
         logger.warning("Timestamp outside tolerance.")
         raise ValueError("Timestamp outside tolerance." f"Timestamp: {timestamp}")
 
     candidates = [
+        b"v1." + timestamp_header.encode() + b"." + payload,
         payload,
-        f"{timestamp}.{payload.decode()}".encode(),
+        f"{timestamp_header}.{payload.decode()}".encode(),
         timestamp_header.encode() + b"." + payload,
     ]
     signatures = []
@@ -234,9 +241,16 @@ def check_revolut_signature(
         digest = hmac.new(
             key=secret.encode(), msg=candidate, digestmod=hashlib.sha256
         ).digest()
-        signatures.extend([digest.hex(), b64encode(digest).decode()])
+        signatures.extend(
+            [digest.hex(), f"v1={digest.hex()}", b64encode(digest).decode()]
+        )
 
-    if not any(hmac.compare_digest(expected, sig_header) for expected in signatures):
+    provided_signatures = [sig.strip() for sig in sig_header.split(",") if sig.strip()]
+    if not any(
+        hmac.compare_digest(expected, provided)
+        for expected in signatures
+        for provided in provided_signatures
+    ):
         logger.warning("Revolut signature verification failed.")
         raise ValueError("Revolut signature verification failed.")
 

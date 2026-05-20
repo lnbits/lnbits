@@ -934,10 +934,11 @@
               </q-card-section>
             </q-expansion-item>
 
-            <q-expansion-item label="Webhook" default-opened>
+            <q-expansion-item :label="$t('webhook')" default-opened>
               <q-card-section>
                 Configure a Revolut Merchant webhook that points to your LNbits
-                server and subscribe to <code>ORDER_AUTHORISED</code>,
+                server. LNbits will create it through the Revolut API and
+                subscribe to <code>ORDER_AUTHORISED</code>,
                 <code>ORDER_COMPLETED</code>, and
                 <code>SUBSCRIPTION_INITIATED</code>.
               </q-card-section>
@@ -967,13 +968,39 @@
                     </q-btn>
                   </div>
                 </div>
-                <q-input
-                  filled
-                  class="q-mt-md"
-                  :type="hideInputToggle ? 'password' : 'text'"
-                  v-model="formData.revolut_webhook_signing_secret"
-                  label="Webhook signing secret"
-                ></q-input>
+                <div class="row items-center q-gutter-sm q-mt-md">
+                  <q-btn
+                    type="button"
+                    color="primary"
+                    icon="add_link"
+                    label="Create webhook"
+                    :loading="creatingRevolutWebhook"
+                    @click="createRevolutWebhook"
+                  ></q-btn>
+                  <q-chip
+                    v-if="formData.revolut_webhook_signing_secret"
+                    dense
+                    color="positive"
+                    text-color="white"
+                    icon="verified"
+                  >
+                    Signing secret saved
+                  </q-chip>
+                </div>
+              </q-card-section>
+              <q-card-section>
+                <span v-text="$t('webhook_events_list')"></span>
+                <ul>
+                  <li>
+                    <code>ORDER_AUTHORISED</code>
+                  </li>
+                  <li>
+                    <code>ORDER_COMPLETED</code>
+                  </li>
+                  <li>
+                    <code>SUBSCRIPTION_INITIATED</code>
+                  </li>
+                </ul>
               </q-card-section>
             </q-expansion-item>
 

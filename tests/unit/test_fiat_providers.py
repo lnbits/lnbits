@@ -33,7 +33,7 @@ from lnbits.fiat.base import (
     FiatStatusResponse,
     FiatSubscriptionPaymentOptions,
 )
-from lnbits.fiat.revolut import RevolutWallet
+from lnbits.fiat.revolut import REVOLUT_WEBHOOK_EVENTS, RevolutWallet
 from lnbits.fiat.square import SquareWallet
 from lnbits.settings import Settings
 from tests.helpers import get_random_string
@@ -899,6 +899,110 @@ async def test_revolut_wallet_cancel_subscription(settings: Settings):
     assert client.calls[0][0] == "/api/subscriptions/SUBSCRIPTION123/cancel"
 
 
+@pytest.mark.anyio
+async def test_revolut_wallet_create_webhook(mocker: MockerFixture):
+    client = MockHTTPClient(
+        [
+            MockHTTPResponse({"webhooks": []}),
+            MockHTTPResponse(
+                {
+                    "id": "webhook_1",
+                    "url": "https://lnbits.example/api/v1/callback/revolut",
+                    "events": REVOLUT_WEBHOOK_EVENTS,
+                    "signing_secret": "whsec_1",
+                }
+            ),
+        ]
+    )
+    async_client = mocker.patch("lnbits.fiat.revolut.httpx.AsyncClient")
+    async_client.return_value = client
+
+    response = await RevolutWallet.create_webhook(
+        url="https://lnbits.example/api/v1/callback/revolut",
+        endpoint="https://sandbox-merchant.revolut.com",
+        api_secret_key="revolut-secret",
+        api_version="2026-04-20",
+    )
+
+    assert response["signing_secret"] == "whsec_1"
+    async_client.assert_called_once()
+    assert async_client.call_args.kwargs["base_url"] == (
+        "https://sandbox-merchant.revolut.com"
+    )
+    assert async_client.call_args.kwargs["headers"]["Authorization"] == (
+        "Bearer revolut-secret"
+    )
+    assert client.calls == [
+        (
+            "/api/webhooks",
+            {
+                "timeout": 15,
+            },
+        ),
+        (
+            "/api/webhooks",
+            {
+                "json": {
+                    "url": "https://lnbits.example/api/v1/callback/revolut",
+                    "events": REVOLUT_WEBHOOK_EVENTS,
+                },
+                "timeout": 15,
+            },
+        ),
+    ]
+
+
+@pytest.mark.anyio
+async def test_revolut_wallet_reuses_existing_webhook(mocker: MockerFixture):
+    client = MockHTTPClient(
+        [
+            MockHTTPResponse(
+                {
+                    "webhooks": [
+                        {
+                            "id": "webhook_1",
+                            "url": "https://lnbits.example/api/v1/callback/revolut",
+                            "events": REVOLUT_WEBHOOK_EVENTS,
+                            "signing_secret": "whsec_1",
+                        }
+                    ]
+                }
+            )
+        ]
+    )
+    async_client = mocker.patch("lnbits.fiat.revolut.httpx.AsyncClient")
+    async_client.return_value = client
+
+    response = await RevolutWallet.create_webhook(
+        url="https://lnbits.example/api/v1/callback/revolut",
+        endpoint="https://sandbox-merchant.revolut.com",
+        api_secret_key="revolut-secret",
+        api_version="2026-04-20",
+    )
+
+    assert response["already_exists"] is True
+    assert response["signing_secret"] == "whsec_1"
+    assert client.calls == [
+        (
+            "/api/webhooks",
+            {
+                "timeout": 15,
+            },
+        )
+    ]
+
+
+@pytest.mark.anyio
+async def test_revolut_wallet_rejects_local_webhook_url():
+    with pytest.raises(ValueError, match="clearnet URL"):
+        await RevolutWallet.create_webhook(
+            url="http://localhost:5000/api/v1/callback/revolut",
+            endpoint="https://sandbox-merchant.revolut.com",
+            api_secret_key="revolut-secret",
+            api_version="2026-04-20",
+        )
+
+
 def test_check_revolut_signature():
     payload = b'{"event":"ORDER_COMPLETED","order_id":"ORDER123"}'
     timestamp = str(int(time.time()))
@@ -906,6 +1010,55 @@ def test_check_revolut_signature():
     sig = hmac.new(secret.encode(), payload, hashlib.sha256).hexdigest()
 
     check_revolut_signature(payload, sig, timestamp, secret)
+
+
+def test_check_revolut_signature_millisecond_timestamp():
+    payload = b'{"event":"ORDER_COMPLETED","order_id":"ORDER123"}'
+    timestamp = str(int(time.time() * 1000))
+    secret = "revolut-secret"
+    sig = hmac.new(secret.encode(), payload, hashlib.sha256).hexdigest()
+
+    check_revolut_signature(payload, sig, timestamp, secret)
+
+
+def test_check_revolut_signature_v1_header():
+    payload = b'{"event":"ORDER_COMPLETED","order_id":"ORDER123"}'
+    timestamp = str(int(time.time() * 1000))
+    secret = "revolut-secret"
+    signed_payload = b"v1." + timestamp.encode() + b"." + payload
+    sig = "v1=" + hmac.new(secret.encode(), signed_payload, hashlib.sha256).hexdigest()
+
+    check_revolut_signature(payload, sig, timestamp, secret)
+
+
+def test_check_revolut_signature_multiple_v1_headers():
+    payload = b'{"event":"ORDER_COMPLETED","order_id":"ORDER123"}'
+    timestamp = str(int(time.time() * 1000))
+    secret = "revolut-secret"
+    signed_payload = b"v1." + timestamp.encode() + b"." + payload
+    valid_sig = (
+        "v1=" + hmac.new(secret.encode(), signed_payload, hashlib.sha256).hexdigest()
+    )
+    sig_header = f"v1=deadbeef,{valid_sig}"
+
+    check_revolut_signature(payload, sig_header, timestamp, secret)
+
+
+def test_check_revolut_signature_docs_vector():
+    payload = (
+        b'{"data":{"id":"645a7696-22f3-aa47-9c74-cbae0449cc46",'
+        b'"new_state":"completed","old_state":"pending",'
+        b'"request_id":"app_charges-9f5d5eb3-1e06-46c5-b1c0-3914763e0bcb"},'
+        b'"event":"TransactionStateChanged",'
+        b'"timestamp":"2023-05-09T16:36:38.028960Z"}'
+    )
+    timestamp = "1683650202360"
+    secret = "wsk_r59a4HfWVAKycbCaNO1RvgCJec02gRd8"
+    sig = "v1=bca326fb378d0da7f7c490ad584a8106bab9723d8d9cdd0d50b4c5b3be3837c0"
+
+    check_revolut_signature(
+        payload, sig, timestamp, secret, tolerance_seconds=100000000
+    )
 
 
 @pytest.mark.anyio

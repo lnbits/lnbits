@@ -1,7 +1,9 @@
 import asyncio
+import ipaddress
 import json
 from collections.abc import AsyncGenerator
 from typing import Any
+from urllib.parse import urlparse
 
 import httpx
 from loguru import logger
@@ -46,6 +48,13 @@ class RevolutSubscriptionReference(BaseModel):
     subscription_request_id: str | None = None
     extra: dict[str, Any] | None = None
     memo: str | None = None
+
+
+REVOLUT_WEBHOOK_EVENTS = [
+    "ORDER_AUTHORISED",
+    "ORDER_COMPLETED",
+    "SUBSCRIPTION_INITIATED",
+]
 
 
 class RevolutWallet(FiatProvider):
@@ -312,6 +321,121 @@ class RevolutWallet(FiatProvider):
         )
         r.raise_for_status()
         return r.json()
+
+    @classmethod
+    async def create_webhook(
+        cls,
+        url: str,
+        endpoint: str | None = None,
+        api_secret_key: str | None = None,
+        api_version: str | None = None,
+    ) -> dict[str, Any]:
+        if not url:
+            raise ValueError("Missing Revolut webhook URL.")
+        cls._validate_webhook_url(url)
+        if not endpoint and not settings.revolut_api_endpoint:
+            raise ValueError("Missing Revolut API endpoint.")
+        if not api_secret_key and not settings.revolut_api_secret_key:
+            raise ValueError("Missing Revolut API secret key.")
+
+        base_url = normalize_endpoint(endpoint or settings.revolut_api_endpoint)
+        secret_key = api_secret_key or settings.revolut_api_secret_key
+        headers = {
+            "Authorization": f"Bearer {secret_key}",
+            "Revolut-Api-Version": api_version or settings.revolut_api_version,
+            "Content-Type": "application/json",
+            "User-Agent": settings.user_agent,
+        }
+        payload = {"url": url, "events": REVOLUT_WEBHOOK_EVENTS}
+        async with httpx.AsyncClient(base_url=base_url, headers=headers) as client:
+            webhooks = await cls._list_webhooks(client)
+            existing = await cls._get_existing_webhook(client, webhooks, url)
+            if existing:
+                existing["already_exists"] = True
+                return existing
+
+            response = await client.post("/api/webhooks", json=payload, timeout=15)
+            response.raise_for_status()
+            return response.json()
+
+    @classmethod
+    async def _list_webhooks(cls, client: httpx.AsyncClient) -> list[dict[str, Any]]:
+        response = await client.get("/api/webhooks", timeout=15)
+        response.raise_for_status()
+        data = response.json()
+        if isinstance(data, list):
+            return data
+        if isinstance(data, dict):
+            for field in ["webhooks", "data", "items"]:
+                if isinstance(data.get(field), list):
+                    return data[field]
+        return []
+
+    @classmethod
+    async def _get_existing_webhook(
+        cls, client: httpx.AsyncClient, webhooks: list[dict[str, Any]], url: str
+    ) -> dict[str, Any] | None:
+        for webhook in webhooks:
+            if cls._normalize_webhook_url(webhook.get("url")) != (
+                cls._normalize_webhook_url(url)
+            ):
+                continue
+
+            webhook_id = webhook.get("id")
+            if webhook_id and (
+                not webhook.get("events") or not webhook.get("signing_secret")
+            ):
+                response = await client.get(f"/api/webhooks/{webhook_id}", timeout=15)
+                response.raise_for_status()
+                webhook = response.json()
+
+            events = set(webhook.get("events") or [])
+            missing_events = set(REVOLUT_WEBHOOK_EVENTS) - events
+            if missing_events:
+                raise ValueError(
+                    "A Revolut webhook already exists for this URL, but it is "
+                    f"missing required events: {', '.join(sorted(missing_events))}."
+                )
+
+            if not webhook.get("signing_secret"):
+                raise ValueError(
+                    "A Revolut webhook already exists for this URL, but Revolut "
+                    "did not return a signing secret."
+                )
+
+            return webhook
+        return None
+
+    @classmethod
+    def _normalize_webhook_url(cls, url: str | None) -> str:
+        return (url or "").strip().rstrip("/")
+
+    @classmethod
+    def _validate_webhook_url(cls, url: str) -> None:
+        parsed = urlparse(url)
+        hostname = parsed.hostname
+        if parsed.scheme not in ["http", "https"] or not hostname:
+            raise ValueError("Revolut webhook URL must be a clearnet URL.")
+
+        host = hostname.lower()
+        if host == "localhost" or host.endswith(".localhost"):
+            raise ValueError("Revolut webhook URL must be a clearnet URL.")
+        if host.endswith(".local") or host.endswith(".onion"):
+            raise ValueError("Revolut webhook URL must be a clearnet URL.")
+
+        try:
+            ip = ipaddress.ip_address(host)
+        except ValueError:
+            return
+
+        if (
+            ip.is_loopback
+            or ip.is_private
+            or ip.is_link_local
+            or ip.is_reserved
+            or ip.is_unspecified
+        ):
+            raise ValueError("Revolut webhook URL must be a clearnet URL.")
 
     def _status_from_order(self, order: dict[str, Any]) -> FiatPaymentStatus:
         status = (order.get("state") or "").upper()
