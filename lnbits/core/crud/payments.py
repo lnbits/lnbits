@@ -320,13 +320,15 @@ async def update_payment(
     payment: Payment,
     new_checking_id: str | None = None,
     conn: Connection | None = None,
-) -> None:
+) -> Payment:
     payment.updated_at = datetime.now(timezone.utc)
     await (conn or db).update(
         "apipayments", payment, "WHERE checking_id = :checking_id"
     )
     if new_checking_id and new_checking_id != payment.checking_id:
         await update_payment_checking_id(payment.checking_id, new_checking_id, conn)
+        payment.checking_id = new_checking_id
+    return payment
 
 
 async def get_payments_history(

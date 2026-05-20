@@ -169,15 +169,15 @@ async def create_fiat_invoice(
 
     internal_payment.fiat_provider = fiat_provider_name
     internal_payment.extra["fiat_checking_id"] = fiat_invoice.checking_id
-    # todo: move to payent
+    # TODO: move to payment
     internal_payment.extra["fiat_payment_request"] = fiat_invoice.payment_request
     new_checking_id = (
         f"fiat_{fiat_provider_name}_"
         f"{fiat_invoice.checking_id or internal_payment.checking_id}"
     )
-    await update_payment(internal_payment, new_checking_id, conn=conn)
-    internal_payment.checking_id = new_checking_id
-
+    internal_payment = await update_payment(
+        internal_payment, new_checking_id, conn=conn
+    )
     return internal_payment
 
 
@@ -369,7 +369,7 @@ async def update_pending_payment(
     status = await check_payment_status(payment)
     if status.failed:
         payment.status = PaymentState.FAILED
-        await update_payment(payment, conn=conn)
+        payment = await update_payment(payment, conn=conn)
     elif status.success:
         payment = await update_payment_success_status(payment, status, conn=conn)
     return payment
@@ -871,7 +871,7 @@ async def update_payment_success_status(
         payment.status = PaymentState.SUCCESS
         payment.fee = -(abs(status.fee_msat or 0) + abs(service_fee_msat))
         payment.preimage = payment.preimage or status.preimage
-        await update_payment(payment, conn=conn)
+        payment = await update_payment(payment, conn=conn)
     return payment
 
 
@@ -1094,8 +1094,9 @@ async def update_invoice_callback(checking_id: str) -> Payment | None:
     payment.fee = status.fee_msat or payment.fee
     # only overwrite preimage if status.preimage provides it
     payment.preimage = status.preimage or payment.preimage
+
     payment.status = PaymentState.SUCCESS
-    await update_payment(payment)
+    payment = await update_payment(payment)
     if payment.fiat_provider:
         await handle_fiat_payment_confirmation(payment)
     return payment
