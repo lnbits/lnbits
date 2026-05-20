@@ -316,8 +316,6 @@ async def api_update_payment_extra(
         raise HTTPException(
             HTTPStatus.BAD_REQUEST, "Payment extra can only be updated after success."
         )
-    if not data.extra:
-        data.extra = {}
 
     duplicate_keys = sorted(set(payment.extra).intersection(data.extra))
     if duplicate_keys:
