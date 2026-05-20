@@ -153,7 +153,11 @@ async def test_create_user_asset_rejects_mismatched_image_content(app):
     )
 
     with pytest.raises(
-        ValueError, match="Image file content does not match declared file type."
+        ValueError,
+        match=(
+            "Image file content does not match declared file type. "
+            "Declared: 'image/png', detected: 'image/jpeg'."
+        ),
     ):
         await create_user_asset(user_id, file, is_public=False)
 

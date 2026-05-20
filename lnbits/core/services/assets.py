@@ -51,7 +51,15 @@ async def create_user_asset(user_id: str, file: UploadFile, is_public: bool) -> 
 
     stored_mime_type = detect_image_mime_type(contents)
     if stored_mime_type != content_type:
-        raise ValueError("Image file content does not match declared file type.")
+        logger.warning(
+            "Image MIME type mismatch: declared={}, detected={}",
+            content_type,
+            stored_mime_type,
+        )
+        raise ValueError(
+            "Image file content does not match declared file type. "
+            f"Declared: '{content_type}', detected: '{stored_mime_type}'."
+        )
 
     thumb_buffer = thumbnail_from_bytes(contents)
 
