@@ -1,5 +1,7 @@
 import importlib
+import json
 import re
+from pathlib import Path
 from typing import Any
 from urllib.parse import urlparse
 from uuid import UUID
@@ -36,41 +38,61 @@ async def migrate_extension_database(
         await run_migration(ext_conn, ext_migrations, ext.id, current_version)
 
 
-def _is_wasm_extension(ext: InstallableExtension) -> bool:
-    if ext.meta and getattr(ext.meta, "extension_type", None) == "wasm":
-        return True
-
-    try:
-        import json
-        from pathlib import Path
-
-        candidate_dirs = [
-            Path(ext.ext_dir),
-            Path(settings.lnbits_extensions_path, "extensions", ext.id),
-            Path(settings.lnbits_extensions_path, ext.id),
-            Path(settings.lnbits_path, "lnbits", "extensions", ext.id),
-            Path(settings.lnbits_path, "extensions", ext.id),
-            Path.cwd() / "lnbits" / "extensions" / ext.id,
-            Path.cwd() / "extensions" / ext.id,
+def get_extension_type(ext_id: str, ext_dir: str | None = None) -> str | None:
+    candidate_dirs = []
+    if ext_dir:
+        candidate_dirs.append(Path(ext_dir))
+    candidate_dirs.extend(
+        [
+            Path(settings.lnbits_extensions_path, "extensions", ext_id),
+            Path(settings.lnbits_extensions_path, ext_id),
+            Path(settings.lnbits_path, "lnbits", "extensions", ext_id),
+            Path(settings.lnbits_path, "extensions", ext_id),
+            Path.cwd() / "lnbits" / "extensions" / ext_id,
+            Path.cwd() / "extensions" / ext_id,
         ]
-        for base in candidate_dirs:
-            conf_path = Path(base, "config.json")
+    )
+
+    for base in candidate_dirs:
+        try:
+            conf_path = base / "config.json"
             if not conf_path.is_file():
                 continue
             with open(conf_path) as json_file:
                 config_json = json.load(json_file)
-            if config_json.get("extension_type") == "wasm":
-                return True
-        for base in candidate_dirs:
-            wasm_dir = Path(base, "wasm")
+            ext_type = config_json.get("extension_type")
+            if ext_type:
+                return ext_type
+        except Exception as exc:
+            logger.debug(
+                "Failed to read extension config.json for '{}' in '{}': {}",
+                ext_id,
+                base,
+                exc,
+            )
+
+    for base in candidate_dirs:
+        try:
+            wasm_dir = base / "wasm"
             if (wasm_dir / "module.wasm").is_file() or (
                 wasm_dir / "module.wat"
             ).is_file():
-                return True
-    except Exception as exc:
-        logger.debug(f"Failed to load extension config for '{ext.id}': {exc!s}")
+                return "wasm"
+        except Exception as exc:
+            logger.debug(
+                "Failed to probe wasm files for '{}' in '{}': {}",
+                ext_id,
+                base,
+                exc,
+            )
+    return None
 
-    return False
+
+def _is_wasm_extension(ext: InstallableExtension) -> bool:
+    if ext.meta and getattr(ext.meta, "extension_type", None) == "wasm":
+        return True
+
+    return get_extension_type(ext.id, ext.ext_dir) == "wasm"
 
 
 async def run_migration(

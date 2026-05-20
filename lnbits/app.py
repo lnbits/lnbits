@@ -1,7 +1,6 @@
 import asyncio
 import glob
 import importlib
-import json
 import os
 import shutil
 import sys
@@ -25,7 +24,7 @@ from lnbits.core.crud import (
     update_installed_extension_state,
 )
 from lnbits.core.crud.extensions import create_installed_extension
-from lnbits.core.helpers import migrate_extension_database
+from lnbits.core.helpers import get_extension_type, migrate_extension_database
 from lnbits.core.models.notifications import NotificationType
 from lnbits.core.services.extensions import deactivate_extension, get_valid_extensions
 from lnbits.core.services.notifications import enqueue_admin_notification
@@ -436,14 +435,24 @@ def register_ext_tasks(ext: Extension) -> None:
 def register_ext_routes(app: FastAPI, ext: Extension) -> None:
     """Register FastAPI routes for extension."""
     if ext.extension_type != "wasm":
-        ext.extension_type = _load_extension_type(ext.code) or ext.extension_type
+        ext.extension_type = get_extension_type(ext.code) or ext.extension_type
     if ext.extension_type == "wasm":
         settings.activate_extension_paths(ext.code, ext.upgrade_hash, [])
         try:
-            module = importlib.import_module(
-                "lnbits.extensions.wasm.wasm_host.extension_host"
-            )
-            register_wasm_ext_routes = getattr(module, "register_wasm_ext_routes", None)
+            register_wasm_ext_routes = None
+            for module_name in (
+                "wasm.wasm_host.extension_host",
+                "lnbits.extensions.wasm.wasm_host.extension_host",
+            ):
+                try:
+                    module = importlib.import_module(module_name)
+                except Exception:
+                    continue
+                register_wasm_ext_routes = getattr(
+                    module, "register_wasm_ext_routes", None
+                )
+                if register_wasm_ext_routes is not None:
+                    break
         except Exception:  # pragma: no cover - optional parent extension
             logger.error(
                 "WASM host extension not installed; cannot register wasm extension "
@@ -481,51 +490,6 @@ def register_ext_routes(app: FastAPI, ext: Extension) -> None:
     logger.trace(f"Adding route for extension {ext_module}.")
     prefix = f"/upgrades/{ext.upgrade_hash}" if ext.upgrade_hash != "" else ""
     app.include_router(router=ext_route, prefix=prefix)
-
-
-def _load_extension_type(ext_id: str) -> str | None:
-    base_dirs = [
-        Path(settings.lnbits_extensions_path, "extensions", ext_id),
-        Path(settings.lnbits_extensions_path, ext_id),
-        Path(settings.lnbits_path, "lnbits", "extensions", ext_id),
-        Path(settings.lnbits_path, "extensions", ext_id),
-        Path.cwd() / "lnbits" / "extensions" / ext_id,
-        Path.cwd() / "extensions" / ext_id,
-    ]
-    for base in base_dirs:
-        try:
-            conf_path = base / "config.json"
-            if conf_path.is_file():
-                with open(conf_path) as json_file:
-                    config_json = json.load(json_file)
-                ext_type = config_json.get("extension_type")
-                if ext_type:
-                    return ext_type
-        except Exception as exc:
-            logger.debug(
-                "Failed to read extension config.json for '{}' in '{}': {}",
-                ext_id,
-                base,
-                exc,
-            )
-            continue
-
-    for base in base_dirs:
-        try:
-            wasm_dir = base / "wasm"
-            if (wasm_dir / "module.wasm").is_file() or (
-                wasm_dir / "module.wat"
-            ).is_file():
-                return "wasm"
-        except Exception as exc:
-            logger.debug(
-                "Failed to probe wasm files for '{}' in '{}': {}",
-                ext_id,
-                base,
-                exc,
-            )
-            continue
-    return None
 
 
 async def check_and_register_extensions(app: FastAPI) -> None:
