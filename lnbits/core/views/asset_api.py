@@ -1,5 +1,6 @@
 import base64
 from http import HTTPStatus
+from urllib.parse import quote
 
 from fastapi import APIRouter, Depends, File, HTTPException, Response, UploadFile
 
@@ -23,10 +24,31 @@ from lnbits.decorators import (
     optional_user_id,
     parse_filters,
 )
+from lnbits.settings import settings
 
 asset_router = APIRouter(prefix="/api/v1/assets", tags=["Assets"])
 
 upload_file_param = File(...)
+
+INLINE_ASSET_MIME_TYPES = {
+    "image/heic",
+    "image/heics",
+    "image/heif",
+    "image/jpeg",
+    "image/png",
+}
+ASSET_SECURITY_HEADERS = {
+    "X-Content-Type-Options": "nosniff",
+    "Content-Security-Policy": (
+        "sandbox; default-src 'none'; script-src 'none'; "
+        "object-src 'none'; base-uri 'none'"
+    ),
+}
+THUMBNAIL_FORMAT_MIME_TYPES = {
+    "jpg": "image/jpeg",
+    "jpeg": "image/jpeg",
+    "png": "image/png",
+}
 
 
 @asset_router.get(
@@ -75,11 +97,7 @@ async def api_get_asset_data(
     if not asset:
         raise HTTPException(HTTPStatus.NOT_FOUND, "Asset not found.")
 
-    return Response(
-        content=asset.data,
-        media_type=asset.mime_type,
-        headers={"Content-Disposition": f'inline; filename="{asset.name}"'},
-    )
+    return asset_response(asset.data, asset.mime_type, asset.name)
 
 
 @asset_router.get(
@@ -101,14 +119,14 @@ async def api_get_asset_thumbnail(
     if not asset_info:
         raise HTTPException(HTTPStatus.NOT_FOUND, "Asset not found.")
 
-    return Response(
+    return asset_response(
         content=(
             base64.b64decode(asset_info.thumbnail_base64)
             if asset_info.thumbnail_base64
             else b""
         ),
-        media_type=asset_info.mime_type,
-        headers={"Content-Disposition": f'inline; filename="{asset_info.name}"'},
+        media_type=thumbnail_media_type(),
+        filename=asset_info.name,
     )
 
 
@@ -172,3 +190,33 @@ async def api_delete_asset(
 
     await delete_user_asset(account_id.id, asset_id)
     return SimpleStatus(success=True, message="Asset deleted successfully.")
+
+
+def asset_response(content: bytes, media_type: str, filename: str) -> Response:
+    media_type = normalize_media_type(media_type)
+    disposition = "inline" if media_type in INLINE_ASSET_MIME_TYPES else "attachment"
+    return Response(
+        content=content,
+        media_type=media_type,
+        headers={
+            **ASSET_SECURITY_HEADERS,
+            "Content-Disposition": content_disposition(disposition, filename),
+        },
+    )
+
+
+def normalize_media_type(media_type: str) -> str:
+    return media_type.split(";", 1)[0].strip().lower() or "application/octet-stream"
+
+
+def thumbnail_media_type() -> str:
+    thumbnail_format = (settings.lnbits_asset_thumbnail_format or "png").strip().lower()
+    return THUMBNAIL_FORMAT_MIME_TYPES.get(thumbnail_format, "application/octet-stream")
+
+
+def content_disposition(disposition: str, filename: str) -> str:
+    safe_filename = filename or "unnamed"
+    quoted_filename = quote(safe_filename, safe="")
+    if quoted_filename == safe_filename:
+        return f'{disposition}; filename="{safe_filename}"'
+    return f"{disposition}; filename*=utf-8''{quoted_filename}"

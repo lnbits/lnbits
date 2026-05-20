@@ -15,7 +15,7 @@ from tests.helpers import make_upload_file
 
 @pytest.mark.anyio
 async def test_create_user_asset_validates_upload_constraints(
-    settings: Settings, mocker: MockerFixture
+    app, settings: Settings, mocker: MockerFixture
 ):
     file_without_type = make_upload_file(b"hello", filename="a.txt", content_type=None)
     with pytest.raises(ValueError, match="File must have a content type."):
@@ -30,6 +30,40 @@ async def test_create_user_asset_validates_upload_constraints(
         ValueError, match="File type 'application/x-msdownload' not allowed."
     ):
         await create_user_asset("user-1", bad_type, is_public=False)
+
+    xsl_extension = make_upload_file(
+        b"hello",
+        filename="style.xsl",
+        content_type="text/xml",
+    )
+    with pytest.raises(ValueError, match="XSL assets are not allowed."):
+        await create_user_asset("user-1", xsl_extension, is_public=False)
+
+    xsl_mime_type = make_upload_file(
+        b"hello",
+        filename="style.xml",
+        content_type="application/xslt+xml",
+    )
+    with pytest.raises(ValueError, match="XSL assets are not allowed."):
+        await create_user_asset("user-1", xsl_mime_type, is_public=False)
+
+    xsl_content = make_upload_file(
+        b'<stylesheet xmlns="http://www.w3.org/1999/XSL/Transform"></stylesheet>',
+        filename="style.xml",
+        content_type="text/xml",
+    )
+    with pytest.raises(ValueError, match="XSL assets are not allowed."):
+        await create_user_asset("user-1", xsl_content, is_public=False)
+
+    fake_image = make_upload_file(
+        b"<?xml version='1.0'?><root></root>",
+        filename="fake.png",
+        content_type="image/png",
+    )
+    with pytest.raises(
+        ValueError, match="Image file content does not match declared file type."
+    ):
+        await create_user_asset("user-1", fake_image, is_public=False)
 
     original_max_assets = settings.lnbits_max_assets_per_user
     original_max_size = settings.lnbits_max_asset_size_mb
@@ -68,7 +102,7 @@ async def test_create_user_asset_validates_upload_constraints(
 
 
 @pytest.mark.anyio
-async def test_create_user_asset_success(mocker: MockerFixture):
+async def test_create_user_asset_success(app, mocker: MockerFixture):
     user_id = await _create_user()
     mocker.patch(
         "lnbits.core.services.assets.thumbnail_from_bytes",
@@ -89,6 +123,38 @@ async def test_create_user_asset_success(mocker: MockerFixture):
     assert stored.id == asset.id
     assert stored.data == b"hello"
     assert await get_user_assets_count(user_id) == 1
+
+
+@pytest.mark.anyio
+async def test_create_user_asset_stores_detected_image_mime_type(app):
+    user_id = await _create_user()
+    buffer = BytesIO()
+    Image.new("RGB", (32, 32), color="blue").save(buffer, format="JPEG")
+    file = make_upload_file(
+        buffer.getvalue(), filename="photo.jpg", content_type="image/jpg"
+    )
+
+    asset = await create_user_asset(user_id, file, is_public=True)
+    stored = await get_user_asset(user_id, asset.id)
+
+    assert asset.mime_type == "image/jpeg"
+    assert stored is not None
+    assert stored.mime_type == "image/jpeg"
+
+
+@pytest.mark.anyio
+async def test_create_user_asset_rejects_mismatched_image_content(app):
+    user_id = await _create_user()
+    buffer = BytesIO()
+    Image.new("RGB", (32, 32), color="blue").save(buffer, format="JPEG")
+    file = make_upload_file(
+        buffer.getvalue(), filename="photo.png", content_type="image/png"
+    )
+
+    with pytest.raises(
+        ValueError, match="Image file content does not match declared file type."
+    ):
+        await create_user_asset(user_id, file, is_public=False)
 
 
 def test_thumbnail_from_bytes_success_and_failure():
