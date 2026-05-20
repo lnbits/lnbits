@@ -3,6 +3,7 @@ import base64
 import hashlib
 import json
 from collections.abc import AsyncGenerator
+from typing import Any
 
 import httpx
 from loguru import logger
@@ -99,6 +100,34 @@ class LndRestWallet(Wallet):
 
         return StatusResponse(None, int(data["balance"]) * 1000)
 
+    def _parse_create_invoice_response(
+        self, r: Any, data: dict, preimage: str
+    ) -> InvoiceResponse:
+        if not data:
+            return InvoiceResponse(ok=False, error_message="no data")
+        if "error" in data:
+            return InvoiceResponse(
+                ok=False, error_message=f"Server error: '{data['error']}'"
+            )
+        if r.is_error:
+            return InvoiceResponse(ok=False, error_message=f"Server error: '{r.text}'")
+        if "payment_request" not in data or "r_hash" not in data:
+            return InvoiceResponse(
+                ok=False, error_message="Server error: 'missing required fields'"
+            )
+        try:
+            payment_hash = base64.b64decode(data["r_hash"]).hex()
+        except Exception:
+            return InvoiceResponse(
+                ok=False, error_message=f"Unable to b64decode to {data['r_hash']}."
+            )
+        return InvoiceResponse(
+            ok=True,
+            checking_id=payment_hash,
+            payment_request=data["payment_request"],
+            preimage=preimage,
+        )
+
     async def create_invoice(
         self,
         amount: int,
@@ -123,43 +152,14 @@ class LndRestWallet(Wallet):
                 hashlib.sha256(unhashed_description).digest()
             ).decode("ascii")
 
-        preimage, _payment_hash = random_secret_and_hash()
-        _data["r_hash"] = base64.b64encode(bytes.fromhex(_payment_hash)).decode()
+        preimage, payment_hash = random_secret_and_hash()
+        _data["r_hash"] = base64.b64encode(bytes.fromhex(payment_hash)).decode()
         _data["r_preimage"] = base64.b64encode(bytes.fromhex(preimage)).decode()
 
         try:
             r = await self.client.post(url="/v1/invoices", json=_data)
             r.raise_for_status()
             data = r.json()
-
-            if len(data) == 0:
-                return InvoiceResponse(ok=False, error_message="no data")
-
-            if "error" in data:
-                return InvoiceResponse(
-                    ok=False, error_message=f"""Server error: '{data["error"]}'"""
-                )
-
-            if r.is_error:
-                return InvoiceResponse(
-                    ok=False, error_message=f"Server error: '{r.text}'"
-                )
-
-            if "payment_request" not in data or "r_hash" not in data:
-                return InvoiceResponse(
-                    ok=False, error_message="Server error: 'missing required fields'"
-                )
-
-            payment_request = data["payment_request"]
-            payment_hash = base64.b64decode(data["r_hash"]).hex()
-            checking_id = payment_hash
-            return InvoiceResponse(
-                ok=True,
-                checking_id=checking_id,
-                payment_request=payment_request,
-                preimage=preimage,
-            )
-
         except json.JSONDecodeError:
             return InvoiceResponse(
                 ok=False, error_message="Server error: 'invalid json response'"
@@ -169,6 +169,8 @@ class LndRestWallet(Wallet):
             return InvoiceResponse(
                 ok=False, error_message=f"Unable to connect to {self.endpoint}."
             )
+
+        return self._parse_create_invoice_response(r, data, preimage)
 
     async def pay_invoice(self, bolt11: str, fee_limit_msat: int) -> PaymentResponse:
         req = {
@@ -242,12 +244,13 @@ class LndRestWallet(Wallet):
             logger.warning(f"Error getting invoice status: {e}")
             return PaymentPendingStatus()
 
-        if r.is_error or data.get("settled") is None:
+        if r.is_error or data.get("state") is None:
             # this must also work when checking_id is not a hex recognizable by lnd
-            # it will return an error and no "settled" attribute on the object
+            # it will return an error and no "state" attribute on the object
+            logger.warning(f"Error checking invoice from LND REST API: {r.text}")
             return PaymentPendingStatus()
 
-        if data.get("settled") is True:
+        if data.get("state") == "SETTLED":
             return PaymentSuccessStatus()
 
         if data.get("state") == "CANCELED":
@@ -264,6 +267,7 @@ class LndRestWallet(Wallet):
                 "ascii"
             )
         except ValueError:
+            logger.warning("Invalid checking_id format, must be hex: {checking_id}")
             return PaymentPendingStatus()
 
         url = f"/v2/router/track/{checking_id}"
@@ -311,13 +315,12 @@ class LndRestWallet(Wallet):
                     async for line in r.aiter_lines():
                         try:
                             inv = json.loads(line)["result"]
-                            if not inv["settled"]:
+                            if not inv.get("state") == "SETTLED":
                                 continue
+                            payment_hash = base64.b64decode(inv.get("r_hash")).hex()
                         except Exception as exc:
                             logger.debug(exc)
                             continue
-
-                        payment_hash = base64.b64decode(inv["r_hash"]).hex()
                         yield payment_hash
             except Exception as exc:
                 logger.warning(
@@ -363,8 +366,6 @@ class LndRestWallet(Wallet):
             return InvoiceResponse(ok=False, error_message=str(exc))
 
         payment_request = data["payment_request"]
-        payment_hash = base64.b64encode(bytes.fromhex(payment_hash)).decode("ascii")
-
         return InvoiceResponse(
             ok=True, checking_id=payment_hash, payment_request=payment_request
         )
