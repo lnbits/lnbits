@@ -878,6 +878,16 @@ async def test_revolut_wallet_create_subscription(settings: Settings):
         [
             MockHTTPResponse(
                 json_data={
+                    "customers": [
+                        {
+                            "id": "CUSTOMER123",
+                            "email": "customer@example.com",
+                        }
+                    ]
+                }
+            ),
+            MockHTTPResponse(
+                json_data={
                     "id": "SUBSCRIPTION123",
                     "setup_order_id": "ORDER123",
                 }
@@ -896,7 +906,7 @@ async def test_revolut_wallet_create_subscription(settings: Settings):
         wallet_id="wallet_1",
         memo="Monthly Gold",
         tag="gold",
-        customer_id="CUSTOMER123",
+        customer_email="customer@example.com",
         extra={"link": "link-1"},
         success_url="https://lnbits.example/subscription-success",
     )
@@ -911,11 +921,14 @@ async def test_revolut_wallet_create_subscription(settings: Settings):
         response.checkout_session_url
         == "https://checkout.revolut.com/payment-link/sub_123"
     )
-    assert client.calls[0][0] == "/api/subscriptions"
-    payload = client.calls[0][1]["json"]
+    assert client.calls[0][0] == "/api/customers"
+    assert client.calls[0][1]["params"] == {"limit": 500}
+    assert client.calls[0][1]["timeout"] == 30
+    assert client.calls[1][0] == "/api/subscriptions"
+    payload = client.calls[1][1]["json"]
     assert payload["plan_variation_id"] == "PLAN_VARIATION_123"
     assert payload["customer_id"] == "CUSTOMER123"
-    assert client.calls[0][1]["timeout"] == 30
+    assert client.calls[1][1]["timeout"] == 30
     assert payload["setup_order_redirect_url"] == (
         "https://lnbits.example/subscription-success"
     )
@@ -924,7 +937,7 @@ async def test_revolut_wallet_create_subscription(settings: Settings):
     assert reference["tag"] == "gold"
     assert reference["memo"] == "Monthly Gold"
     assert reference["extra"]["link"] == "link-1"
-    assert client.calls[1][0] == "/api/orders/ORDER123"
+    assert client.calls[2][0] == "/api/orders/ORDER123"
 
 
 @pytest.mark.anyio

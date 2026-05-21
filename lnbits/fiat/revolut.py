@@ -372,16 +372,11 @@ class RevolutWallet(FiatProvider):
     async def _get_subscription_customer_id(
         self, payment_options: FiatSubscriptionPaymentOptions
     ) -> tuple[str | None, str | None]:
-        if payment_options.customer_id:
-            return payment_options.customer_id, None
         if not payment_options.customer_email:
-            payment_options.customer_email = "test@lnbits.com"
-            # TODO: Remove the above line and uncomment the
-            # below return statement once we require customer_email for subscriptions.
-            # return (
-            #     None,
-            #     "Revolut subscriptions require customer_id or customer_email.",
-            # )
+            return (
+                None,
+                "Revolut subscriptions require customer_email.",
+            )
 
         customer = await self._get_customer_by_email(payment_options.customer_email)
         customer_id = customer.get("id") if customer else None
