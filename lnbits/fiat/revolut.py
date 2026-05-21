@@ -283,7 +283,7 @@ class RevolutWallet(FiatProvider):
             return FiatSubscriptionResponse(
                 ok=True,
                 checkout_session_url=checkout_url,
-                subscription_request_id=revolut_subscription_id,
+                subscription_request_id=payment_options.subscription_request_id,
             )
         except json.JSONDecodeError:
             return FiatSubscriptionResponse(
