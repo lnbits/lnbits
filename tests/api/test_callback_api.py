@@ -354,7 +354,10 @@ async def test_callback_api_handles_revolut_subscription_order_event(
     assert get_payment_mock.await_count == 2
     get_payment_mock.assert_any_await("fiat_revolut_order_ORDER_SUB_1")
     assert get_order_mock.await_count == 2
-    get_subscription_mock.assert_awaited_once_with("SUBSCRIPTION_1")
+    assert [call.args for call in get_subscription_mock.await_args_list] == [
+        ("SUBSCRIPTION_1",),
+        ("SUBSCRIPTION_1",),
+    ]
     assert create_wallet_invoice_mock.await_count == 1
     called_wallet_id, invoice = create_wallet_invoice_mock.await_args.args
     assert called_wallet_id == "wallet_1"
