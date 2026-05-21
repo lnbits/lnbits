@@ -137,6 +137,10 @@ class SquareWallet(FiatProvider):
         payment_options: FiatSubscriptionPaymentOptions,
         **kwargs,
     ) -> FiatSubscriptionResponse:
+        if settings.lnbits_running:
+            return FiatSubscriptionResponse(
+                ok=False, error_message="Subscription not supported for Square."
+            )
         success_url = (
             payment_options.success_url
             or settings.square_payment_success_url
