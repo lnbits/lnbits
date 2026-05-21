@@ -380,12 +380,10 @@ async def handle_revolut_event(event: dict):
     logger.warning(f"Unhandled Revolut event type: '{event_type}'.")
 
 
-async def _handle_revolut_subscription_initiated(
-    event: dict, subscription: dict | None = None
-):
+async def _handle_revolut_subscription_initiated(event: dict):
     subscription_id = event.get("subscription_id")
-    if not subscription_id and subscription:
-        subscription_id = subscription.get("id")
+    if not subscription_id:
+        subscription_id = event.get("id")
 
     if not subscription_id:
         logger.warning("Revolut subscription event missing subscription_id.")
@@ -395,8 +393,7 @@ async def _handle_revolut_subscription_initiated(
     if not fiat_provider:
         return
 
-    if subscription is None:
-        subscription = await fiat_provider.get_subscription(subscription_id)
+    subscription = await fiat_provider.get_subscription(subscription_id)
     await _handle_revolut_subscription(subscription, fiat_provider)
 
 
@@ -493,9 +490,7 @@ async def _handle_revolut_subscription_order_paid(order_id: str):
         logger.warning(f"Revolut subscription is not active: '{subscription_id}'.")
         return
 
-    await _handle_revolut_subscription_initiated(
-        {"subscription_id": subscription_id}, subscription
-    )
+    await _handle_revolut_subscription_initiated(subscription)
 
 
 async def _create_revolut_subscription_payment(
