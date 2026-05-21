@@ -133,6 +133,10 @@ async def create_fiat_invoice(
         raise ValueError(
             f"Fiat provider '{fiat_provider_name}' is not enabled.",
         )
+    if settings.fiat_providers_admin_only:
+        wallet = await get_wallet(wallet_id, conn=conn)
+        if not wallet or not settings.is_admin_user(wallet.user):
+            raise ValueError("Fiat providers are available to admins only.")
 
     if invoice_data.unit == "sat":
         raise ValueError("Fiat provider cannot be used with satoshis.")

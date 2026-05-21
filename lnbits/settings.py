@@ -770,6 +770,8 @@ class FiatProvidersSettings(
     SquareFiatProvider,
     RevolutFiatProvider,
 ):
+    fiat_providers_admin_only: bool = Field(default=True)
+
     def is_fiat_provider_enabled(self, provider: str | None) -> bool:
         """
         Checks if a specific fiat provider is enabled.
@@ -790,6 +792,15 @@ class FiatProvidersSettings(
         """
         Returns a list of fiat payment methods allowed for the user.
         """
+        if self.fiat_providers_admin_only:
+            if not self.is_admin_user(user_id):
+                return []
+            return [
+                provider
+                for provider in ["stripe", "paypal", "square", "revolut"]
+                if self.is_fiat_provider_enabled(provider)
+            ]
+
         allowed_providers = []
         if self.stripe_enabled and (
             not self.stripe_limits.allowed_users

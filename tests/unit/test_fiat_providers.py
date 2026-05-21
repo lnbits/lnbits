@@ -76,6 +76,7 @@ class MockHTTPClient:
 def fiat_provider_test_settings(settings: Settings):
     original_lnbits_running = settings.lnbits_running
     original_allowed_currencies = settings.lnbits_allowed_currencies
+    original_fiat_providers_admin_only = settings.fiat_providers_admin_only
     original_paypal_enabled = settings.paypal_enabled
     original_square_enabled = settings.square_enabled
     original_square_api_endpoint = settings.square_api_endpoint
@@ -95,12 +96,14 @@ def fiat_provider_test_settings(settings: Settings):
     original_revolut_webhook_signing_secret = settings.revolut_webhook_signing_secret
     original_revolut_limits = settings.revolut_limits.copy(deep=True)
     settings.lnbits_allowed_currencies = []
+    settings.fiat_providers_admin_only = False
     settings.paypal_enabled = False
     settings.square_enabled = False
     settings.revolut_enabled = False
     yield
     settings.lnbits_running = original_lnbits_running
     settings.lnbits_allowed_currencies = original_allowed_currencies
+    settings.fiat_providers_admin_only = original_fiat_providers_admin_only
     settings.paypal_enabled = original_paypal_enabled
     settings.square_enabled = original_square_enabled
     settings.square_api_endpoint = original_square_api_endpoint
@@ -215,6 +218,41 @@ async def test_create_wallet_fiat_invoice_allowed_users(
     user = await get_user(to_user.id)
     assert user
     assert user.fiat_providers == ["revolut"]
+
+
+@pytest.mark.anyio
+async def test_fiat_providers_admin_only_default(
+    to_user: User, settings: Settings
+):
+    original_admin_users = list(settings.lnbits_admin_users)
+    try:
+        settings.fiat_providers_admin_only = True
+        settings.stripe_enabled = True
+
+        user = await get_user(to_user.id)
+        assert user
+        assert user.fiat_providers == []
+
+        settings.lnbits_admin_users.append(to_user.id)
+        user = await get_user(to_user.id)
+        assert user
+        assert user.fiat_providers == ["stripe"]
+    finally:
+        settings.lnbits_admin_users = original_admin_users
+
+
+@pytest.mark.anyio
+async def test_create_wallet_fiat_invoice_admin_only_rejects_non_admin(
+    to_wallet: Wallet, settings: Settings
+):
+    settings.fiat_providers_admin_only = True
+    settings.stripe_enabled = True
+    invoice_data = CreateInvoice(
+        unit="USD", amount=1.0, memo="Test", fiat_provider="stripe"
+    )
+
+    with pytest.raises(ValueError, match="available to admins only"):
+        await payments.create_fiat_invoice(to_wallet.id, invoice_data)
 
 
 @pytest.mark.anyio

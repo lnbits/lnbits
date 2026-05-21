@@ -1,5 +1,5 @@
 <template id="lnbits-admin-fiat-providers">
-  <h6 class="q-my-none q-mb-sm">
+  <h6 class="q-my-none q-mb-sm row items-center q-gutter-sm">
     <span v-text="$t('fiat_providers')"></span>
     <q-btn
       round
@@ -7,6 +7,18 @@
       @click="hideInputToggle = !hideInputToggle"
       :icon="hideInputToggle ? 'visibility_off' : 'visibility'"
     ></q-btn>
+    <q-toggle
+      dense
+      size="sm"
+      color="warning"
+      v-model="fiatProvidersAllUsers"
+      :label="fiatProviderAccessLabel"
+    >
+      <q-tooltip>
+        If enabled for all users, your users may pass a memo that suspends your
+        account with your fiat providers
+      </q-tooltip>
+    </q-toggle>
   </h6>
   <div class="row">
     <div class="col">
@@ -46,7 +58,11 @@
                 <q-input
                   filled
                   class="q-mt-md"
-                  :type="hideInputToggle ? 'password' : 'text'"
+                  type="text"
+                  :input-style="secretInputStyle"
+                  autocomplete="off"
+                  autocapitalize="off"
+                  spellcheck="false"
                   v-model="formData.stripe_api_secret_key"
                   :label="$t('secret_key')"
                 ></q-input>
@@ -108,7 +124,11 @@
                 <q-input
                   filled
                   class="q-mt-md"
-                  :type="hideInputToggle ? 'password' : 'text'"
+                  type="text"
+                  :input-style="secretInputStyle"
+                  autocomplete="off"
+                  autocapitalize="off"
+                  spellcheck="false"
                   v-model="formData.stripe_webhook_signing_secret"
                   :label="$t('signing_secret')"
                   :hint="$t('signing_secret_hint')"
@@ -325,14 +345,22 @@
                 <q-input
                   filled
                   class="q-mt-md"
-                  :type="hideInputToggle ? 'password' : 'text'"
+                  type="text"
+                  :input-style="secretInputStyle"
+                  autocomplete="off"
+                  autocapitalize="off"
+                  spellcheck="false"
                   v-model="formData.paypal_client_id"
                   :label="$t('client_id')"
                 ></q-input>
                 <q-input
                   filled
                   class="q-mt-md"
-                  :type="hideInputToggle ? 'password' : 'text'"
+                  type="text"
+                  :input-style="secretInputStyle"
+                  autocomplete="off"
+                  autocapitalize="off"
+                  spellcheck="false"
                   v-model="formData.paypal_client_secret"
                   :label="$t('secret_key')"
                 ></q-input>
@@ -394,7 +422,11 @@
                 <q-input
                   filled
                   class="q-mt-md"
-                  :type="hideInputToggle ? 'password' : 'text'"
+                  type="text"
+                  :input-style="secretInputStyle"
+                  autocomplete="off"
+                  autocapitalize="off"
+                  spellcheck="false"
                   v-model="formData.paypal_webhook_id"
                   :label="$t('webhook_id')"
                   :hint="$t('webhook_id_hint')"
@@ -611,7 +643,11 @@
                 <q-input
                   filled
                   class="q-mt-md"
-                  :type="hideInputToggle ? 'password' : 'text'"
+                  type="text"
+                  :input-style="secretInputStyle"
+                  autocomplete="off"
+                  autocapitalize="off"
+                  spellcheck="false"
                   v-model="formData.square_access_token"
                   :label="$t('access_token')"
                 ></q-input>
@@ -688,7 +724,11 @@
                 <q-input
                   filled
                   class="q-mt-md"
-                  :type="hideInputToggle ? 'password' : 'text'"
+                  type="text"
+                  :input-style="secretInputStyle"
+                  autocomplete="off"
+                  autocapitalize="off"
+                  spellcheck="false"
                   v-model="formData.square_webhook_signature_key"
                   :label="$t('signing_secret')"
                   :hint="$t('square_webhook_signature_key_hint')"
@@ -900,7 +940,11 @@
                 <q-input
                   filled
                   class="q-mt-md"
-                  :type="hideInputToggle ? 'password' : 'text'"
+                  type="text"
+                  :input-style="secretInputStyle"
+                  autocomplete="off"
+                  autocapitalize="off"
+                  spellcheck="false"
                   v-model="formData.revolut_api_secret_key"
                   label="API secret key"
                 ></q-input>

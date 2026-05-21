@@ -12,6 +12,21 @@ window.app.component('lnbits-admin-fiat-providers', {
     }
   },
   computed: {
+    fiatProvidersAllUsers: {
+      get() {
+        return this.formData?.fiat_providers_admin_only === false
+      },
+      set(value) {
+        this.formData.fiat_providers_admin_only = !value
+        this.formData.touch = null
+      }
+    },
+    fiatProviderAccessLabel() {
+      return this.fiatProvidersAllUsers ? 'All users' : 'Admins only'
+    },
+    secretInputStyle() {
+      return this.hideInputToggle ? {'-webkit-text-security': 'disc'} : {}
+    },
     stripeWebhookUrl() {
       return (
         this.formData?.stripe_payment_webhook_url ||
