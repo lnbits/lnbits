@@ -291,8 +291,7 @@
                 "
                 flat
                 color="primary"
-                type="a"
-                :href="extension.id + '/'"
+                @click="openExtension(extension)"
                 :label="$t('open')"
               ></q-btn>
               <q-btn

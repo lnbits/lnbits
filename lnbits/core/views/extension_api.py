@@ -1,6 +1,8 @@
+import json
 import sys
 import traceback
 from http import HTTPStatus
+from pathlib import Path
 
 import httpx
 from bolt11 import decode as bolt11_decode
@@ -66,6 +68,53 @@ extension_router = APIRouter(
     tags=["Extension Managment"],
     prefix="/api/v1/extension",
 )
+
+
+def _load_wasm_extension_config(ext_id: str) -> dict:
+    candidate_dirs = [
+        Path(settings.lnbits_extensions_path, "extensions", ext_id),
+        Path(settings.lnbits_path, "lnbits", "extensions", ext_id),
+    ]
+    for base in candidate_dirs:
+        conf_path = base / "config.json"
+        if not conf_path.is_file():
+            continue
+        try:
+            with open(conf_path) as json_file:
+                config = json.load(json_file)
+            return config if isinstance(config, dict) else {}
+        except Exception:
+            return {}
+    return {}
+
+
+def _ensure_wasm_permissions_saved(ext_id: str, user_ext: UserExtension) -> None:
+    if get_extension_type(ext_id) != "wasm":
+        return
+    config = _load_wasm_extension_config(ext_id)
+    required = [
+        permission.get("id")
+        for permission in config.get("permissions", [])
+        if isinstance(permission, dict) and permission.get("id")
+    ]
+    granted = user_ext.extra.granted_permissions if user_ext.extra else []
+    missing = [
+        permission for permission in required if permission not in (granted or [])
+    ]
+    if missing:
+        raise HTTPException(
+            HTTPStatus.BAD_REQUEST,
+            "Save WASM permissions before enabling this extension.",
+        )
+
+    payment_tags = config.get("payment_tags", [])
+    granted_tags = user_ext.extra.granted_payment_tags if user_ext.extra else []
+    has_granted_payment_tag = any(tag in (granted_tags or []) for tag in payment_tags)
+    if payment_tags and not has_granted_payment_tag:
+        raise HTTPException(
+            HTTPStatus.BAD_REQUEST,
+            "Select at least one WASM payment tag before enabling this extension.",
+        )
 
 
 @extension_router.post("", dependencies=[Depends(check_admin)])
@@ -197,6 +246,8 @@ async def api_enable_extension(
     if not user_ext:
         user_ext = UserExtension(user=account_id.id, extension=ext_id, active=False)
         await create_user_extension(user_ext)
+
+    _ensure_wasm_permissions_saved(ext_id, user_ext)
 
     if account_id.is_admin_id or not ext.requires_payment:
         user_ext.active = True

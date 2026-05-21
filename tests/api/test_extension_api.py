@@ -163,6 +163,39 @@ async def test_extension_api_install_details_and_release_endpoints(mocker):
 
 
 @pytest.mark.anyio
+async def test_wasm_extension_enable_requires_saved_permissions(mocker):
+    user = await create_user_account(
+        Account(
+            id=uuid4().hex,
+            username=f"user_{uuid4().hex[:8]}",
+            email=f"user_{uuid4().hex[:8]}@lnbits.com",
+        )
+    )
+    ext_id = f"wasm_{uuid4().hex[:8]}"
+    await create_installed_extension(make_installable_extension(ext_id))
+    mocker.patch(
+        "lnbits.core.views.extension_api.get_valid_extensions",
+        mocker.AsyncMock(return_value=[Extension(code=ext_id, is_valid=True)]),
+    )
+    mocker.patch(
+        "lnbits.core.views.extension_api.get_extension_type",
+        return_value="wasm",
+    )
+    mocker.patch(
+        "lnbits.core.views.extension_api._load_wasm_extension_config",
+        return_value={
+            "extension_type": "wasm",
+            "permissions": [{"id": "ext.db.read_write"}],
+            "payment_tags": ["paidtasks"],
+        },
+    )
+
+    with pytest.raises(HTTPException) as exc:
+        await api_enable_extension(ext_id, AccountId(id=user.id))
+    assert exc.value.status_code == 400
+
+
+@pytest.mark.anyio
 async def test_extension_api_pay_to_enable_and_catalog_views(mocker, admin_user):
     regular_user = await create_user_account(
         Account(
