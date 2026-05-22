@@ -267,6 +267,15 @@ window.localisation.en = {
   webhook_events_list: 'The following events must be supported by the webhook:',
   webhook_stripe_description:
     'One the stripe side you must configure a webhook with a URL that points to your LNbits server.',
+  webhook_square_description:
+    'On the Square side configure a webhook pointing to this exact LNbits URL.',
+  square_webhook_url_hint:
+    'Must exactly match the Square notification URL. LNbits requires the /api/v1/callback/square path.',
+  access_token: 'Access Token',
+  location_id: 'Location ID',
+  square_location_id_hint:
+    'Square location ID to create payment links for. Use the endpoint to select sandbox or production.',
+  api_version: 'API Version',
   payment_proof: 'Payment Proof',
   update: 'Update',
   update_available: 'Update {version} available!',
@@ -481,6 +490,8 @@ window.localisation.en = {
   toggle_card_gradient: 'Toggle gradient on cards',
   card_shadow: 'Card Shadow',
   toggle_card_shadow: 'Toggle shadow on cards',
+  burger_menu_background: 'Burger Menu Background',
+  toggle_burger_menu_background: 'Toggle burger menu background',
   language: 'Language',
   assets: 'Assets',
   max_asset_size_mb: 'Max Asset Size (MB)',
@@ -805,6 +816,8 @@ window.localisation.en = {
   webhook_id_hint: 'PayPal webhook ID used to verify incoming events.',
   webhook_paypal_description:
     'On the PayPal side configure a webhook pointing to your LNbits server.',
+  square_webhook_signature_key_hint:
+    'Square webhook signature key used to verify incoming events.',
   callback_success_url: 'Callback Success URL',
   callback_success_url_hint:
     'The user will be redirected to this URL after the payment is successful',

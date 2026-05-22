@@ -300,6 +300,7 @@ class ThemesSettings(LNbitsSettings):
     lnbits_default_card_rounded: bool = Field(default=True)
     lnbits_default_card_gradient: bool = Field(default=True)
     lnbits_default_card_shadow: bool = Field(default=False)
+    lnbits_default_burger_menu_background: bool = Field(default=True)
 
 
 class OpsSettings(LNbitsSettings):
@@ -323,11 +324,6 @@ class AssetSettings(LNbitsSettings):
             "heic",
             "heif",
             "heics",
-            "text/plain",
-            "text/json",
-            "text/xml",
-            "application/json",
-            "application/pdf",
         ]
     )
     lnbits_asset_thumbnail_width: int = Field(default=128, ge=0)
@@ -703,6 +699,35 @@ class PayPalFiatProvider(LNbitsSettings):
     paypal_limits: FiatProviderLimits = Field(default_factory=FiatProviderLimits)
 
 
+class SquareFiatProvider(LNbitsSettings):
+    square_enabled: bool = Field(default=False)
+    square_api_endpoint: str = Field(default="https://connect.squareup.com")
+    square_access_token: str | None = Field(default=None)
+    square_location_id: str | None = Field(default=None)
+    square_api_version: str = Field(default="2026-01-22")
+    square_payment_success_url: str = Field(default="https://lnbits.com")
+    square_payment_webhook_url: str = Field(
+        default="https://your-lnbits-domain-here.com/api/v1/callback/square"
+    )
+    square_webhook_signature_key: str | None = Field(default=None)
+
+    square_limits: FiatProviderLimits = Field(default_factory=FiatProviderLimits)
+
+
+class RevolutFiatProvider(LNbitsSettings):
+    revolut_enabled: bool = Field(default=False)
+    revolut_api_endpoint: str = Field(default="https://merchant.revolut.com")
+    revolut_api_secret_key: str | None = Field(default=None)
+    revolut_api_version: str = Field(default="2026-04-20")
+    revolut_payment_success_url: str = Field(default="https://lnbits.com")
+    revolut_payment_webhook_url: str = Field(
+        default="https://your-lnbits-domain-here.com/api/v1/callback/revolut"
+    )
+    revolut_webhook_signing_secret: str | None = Field(default=None)
+
+    revolut_limits: FiatProviderLimits = Field(default_factory=FiatProviderLimits)
+
+
 class LightningSettings(LNbitsSettings):
     lightning_invoice_expiry: int = Field(default=3600, gt=0)
 
@@ -740,7 +765,12 @@ class FundingSourcesSettings(
     funding_source_max_retries: int = Field(default=4, ge=0)
 
 
-class FiatProvidersSettings(StripeFiatProvider, PayPalFiatProvider):
+class FiatProvidersSettings(
+    StripeFiatProvider,
+    PayPalFiatProvider,
+    SquareFiatProvider,
+    RevolutFiatProvider,
+):
     def is_fiat_provider_enabled(self, provider: str | None) -> bool:
         """
         Checks if a specific fiat provider is enabled.
@@ -751,6 +781,10 @@ class FiatProvidersSettings(StripeFiatProvider, PayPalFiatProvider):
             return self.stripe_enabled
         if provider == "paypal":
             return self.paypal_enabled
+        if provider == "square":
+            return self.square_enabled
+        if provider == "revolut":
+            return self.revolut_enabled
         return False
 
     def get_fiat_providers_for_user(self, user_id: str) -> list[str]:
@@ -769,6 +803,18 @@ class FiatProvidersSettings(StripeFiatProvider, PayPalFiatProvider):
             or user_id in self.paypal_limits.allowed_users
         ):
             allowed_providers.append("paypal")
+
+        if self.square_enabled and (
+            not self.square_limits.allowed_users
+            or user_id in self.square_limits.allowed_users
+        ):
+            allowed_providers.append("square")
+
+        if self.revolut_enabled and (
+            not self.revolut_limits.allowed_users
+            or user_id in self.revolut_limits.allowed_users
+        ):
+            allowed_providers.append("revolut")
 
         return allowed_providers
 
@@ -1236,6 +1282,7 @@ class PublicSettings(BaseModel):
     default_card_rounded: bool = Field(alias="defaultCardRounded")
     default_card_gradient: bool = Field(alias="defaultCardGradient")
     default_card_shadow: bool = Field(alias="defaultCardShadow")
+    default_burger_menu_background: bool = Field(alias="defaultBurgerMenuBackground")
     denomination: str | None = Field()
     extensions: list[str] = Field()
     allowed_currencies: list[str] = Field(alias="allowedCurrencies")
@@ -1299,6 +1346,7 @@ class PublicSettings(BaseModel):
             defaultCardRounded=settings.lnbits_default_card_rounded,
             defaultCardGradient=settings.lnbits_default_card_gradient,
             defaultCardShadow=settings.lnbits_default_card_shadow,
+            defaultBurgerMenuBackground=settings.lnbits_default_burger_menu_background,
             denomination=settings.lnbits_denomination,
             extensions=list(settings.lnbits_installed_extensions_ids),
             allowedCurrencies=settings.lnbits_allowed_currencies,

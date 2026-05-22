@@ -732,7 +732,8 @@ window.PageAccount = {
         darkChoice: this.g.settings.defaultDark,
         cardRoundedChoice: this.g.settings.defaultCardRounded,
         cardGradientChoice: this.g.settings.defaultCardGradient,
-        cardShadowChoice: this.g.settings.defaultCardShadow
+        cardShadowChoice: this.g.settings.defaultCardShadow,
+        burgerMenuChoice: this.g.settings.defaultBurgerMenuBackground
       }
       this.siteCustomisationChanged(defaults)
     }

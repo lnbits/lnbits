@@ -292,6 +292,7 @@ async def create_payment(
         tag=extra.get("tag", None),
         extra=extra,
         labels=data.labels or [],
+        external_id=data.external_id,
     )
 
     await (conn or db).insert("apipayments", payment)

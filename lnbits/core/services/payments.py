@@ -64,6 +64,7 @@ async def pay_invoice(
     description: str = "",
     tag: str = "",
     labels: list[str] | None = None,
+    external_id: str | None = None,
     conn: Connection | None = None,
 ) -> Payment:
     if settings.lnbits_only_allow_incoming_payments:
@@ -97,6 +98,7 @@ async def pay_invoice(
             memo=description or invoice.description or "",
             extra=extra,
             labels=labels,
+            external_id=external_id,
         )
 
     async with db.reuse_conn(conn) if conn else db.connect() as new_conn:
@@ -217,6 +219,7 @@ async def create_wallet_invoice(wallet_id: str, data: CreateInvoice) -> Payment:
             internal=data.internal,
             payment_hash=data.payment_hash,
             labels=data.labels,
+            external_id=data.external_id,
             conn=conn,
         )
 
@@ -258,6 +261,7 @@ async def create_invoice(
     internal: bool | None = False,
     payment_hash: str | None = None,
     labels: list[str] | None = None,
+    external_id: str | None = None,
     conn: Connection | None = None,
 ) -> Payment:
     if not amount > 0:
@@ -342,6 +346,7 @@ async def create_invoice(
         webhook=webhook,
         fee=invoice_response.fee_msat or 0,
         labels=labels,
+        external_id=external_id,
     )
 
     payment = await create_payment(
