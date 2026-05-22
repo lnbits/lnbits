@@ -39,6 +39,16 @@ async def catch_everything_and_restart(
 ) -> Coroutine:
     _ = name
     return await task_manager._catch_everything_and_restart(func)
+    # while settings.lnbits_running:
+    #     try:
+    #         return await func()
+    #     except asyncio.CancelledError:
+    #         raise  # because we must pass this up
+    #     except Exception as exc:
+    #         logger.error(f"exception in background task `{name}`:", exc)
+    #         logger.error(traceback.format_exc())
+    #         logger.error("will restart the task in 5 seconds.")
+    #         await asyncio.sleep(5)
 
 
 def register_invoice_listener(send_chan: asyncio.Queue, name: str | None = None):
