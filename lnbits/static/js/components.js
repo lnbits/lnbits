@@ -452,7 +452,9 @@ window.app.component('username-password', {
       confirmationMethod: 'code',
       confirmationEmail: '',
       confirmationCode: this.invitationCode || '',
-      showConfirmationCode: false
+      showConfirmationCode: false,
+      showPwd: false,
+      showPwdRepeat: false
     }
   },
   methods: {

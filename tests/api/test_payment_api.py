@@ -4,9 +4,10 @@ from uuid import uuid4
 
 import pytest
 from fastapi import HTTPException
+from pydantic import ValidationError
 
-from lnbits.core.crud.payments import create_payment, get_payment
-from lnbits.core.models import Account, CreateInvoice, PaymentState
+from lnbits.core.crud.payments import create_payment, get_payment, get_payments
+from lnbits.core.models import Account, CreateInvoice, PaymentFilters, PaymentState
 from lnbits.core.models.payments import CancelInvoice, CreatePayment, SettleInvoice
 from lnbits.core.models.users import AccountId
 from lnbits.core.models.wallets import KeyType, WalletTypeInfo
@@ -21,7 +22,7 @@ from lnbits.core.views.payment_api import (
     api_payments_settle,
     api_payments_wallets_stats,
 )
-from lnbits.db import Filters
+from lnbits.db import Filter, Filters
 from lnbits.wallets.base import InvoiceResponse
 
 ZERO_AMOUNT_INVOICE = (
@@ -89,6 +90,60 @@ async def test_payment_api_stats_and_all_paginated(admin_user):
     wallet_ids = {payment.wallet_id for payment in admin_page.data}
     assert first_wallet.id in wallet_ids
     assert second_wallet.id in wallet_ids
+
+
+@pytest.mark.anyio
+async def test_payment_external_id_is_stored_and_validated():
+    user = await create_user_account(
+        Account(
+            id=uuid4().hex,
+            username=f"user_{uuid4().hex[:8]}",
+            email=f"user_{uuid4().hex[:8]}@lnbits.com",
+        )
+    )
+    wallet = user.wallets[0]
+
+    first_payment = await create_wallet_invoice(
+        wallet.id,
+        CreateInvoice(
+            out=False,
+            amount=21,
+            memo="external reference",
+            external_id="provider_payment_123",
+        ),
+    )
+    second_payment = await create_wallet_invoice(
+        wallet.id,
+        CreateInvoice(
+            out=False,
+            amount=22,
+            memo="external reference newest",
+            external_id="provider_payment_123",
+        ),
+    )
+
+    assert first_payment.external_id == "provider_payment_123"
+    assert second_payment.external_id == "provider_payment_123"
+    stored_payments = await get_payments(
+        wallet_id=wallet.id,
+        filters=Filters(
+            filters=[
+                Filter.parse_query(
+                    "external_id", ["provider_payment_123"], PaymentFilters
+                )
+            ],
+            model=PaymentFilters,
+            sortby="created_at",
+            direction="desc",
+        ),
+    )
+    assert [payment.checking_id for payment in stored_payments] == [
+        second_payment.checking_id,
+        first_payment.checking_id,
+    ]
+
+    with pytest.raises(ValidationError, match="Invalid external id"):
+        CreateInvoice(out=False, amount=21, external_id="provider payment 123")
 
 
 @pytest.mark.anyio

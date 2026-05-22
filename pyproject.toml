@@ -52,6 +52,7 @@ dependencies = [
     "python-dotenv~=1.2.1",
     "greenlet~=3.3.0",
     "urllib3>=2.7.0",
+    "pyinstrument>=5.1.2",
 ]
 
 [project.scripts]
@@ -84,7 +85,6 @@ dev = [
   "types-mock~=5.2.0.20250924",
   "mock~=5.2.0",
   "grpcio-tools~=1.76.0",
-  "pyinstrument>=5.1.2",
 ]
 
 [tool.uv]

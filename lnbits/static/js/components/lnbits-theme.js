@@ -69,6 +69,14 @@ window.app.component('lnbits-theme', {
         document.body.classList.remove('card-shadow')
       }
     },
+    'g.burgerMenuChoice'(val) {
+      this.$q.localStorage.set('lnbits.burgerMenu', val)
+      if (val === true) {
+        document.body.classList.remove('no-burger-background')
+      } else {
+        document.body.classList.add('no-burger-background')
+      }
+    },
     'g.mobileSimple'(val) {
       this.$q.localStorage.set('lnbits.mobileSimple', val)
       if (val === true) {
@@ -149,6 +157,9 @@ window.app.component('lnbits-theme', {
     }
     if (this.g.cardShadowChoice === true) {
       document.body.classList.add('card-shadow')
+    }
+    if (this.g.burgerMenuChoice !== true) {
+      document.body.classList.add('no-burger-background')
     }
     if (this.g.bgimageChoice !== '') {
       document.body.classList.add('bg-image')
