@@ -1,5 +1,5 @@
 /*!
- * qrcode.vue v3.6.0
+ * qrcode.vue v3.9.0
  * A Vue.js component to generate QRCode. Both support Vue 2 and Vue 3
  * © 2017-PRESENT @scopewu(https://github.com/scopewu)
  * MIT License.
@@ -909,7 +909,18 @@ var qrcodegen;
 })(qrcodegen || (qrcodegen = {}));
 var QR = qrcodegen;
 
+var _uid = 0;
+function getUid() {
+    if (typeof vue.useId === 'function') {
+        return "".concat(vue.useId(), "-").concat(_uid++);
+    }
+    return "vue-".concat(Math.random().toString(36).slice(2), "-").concat(_uid++);
+}
 var defaultErrorCorrectLevel = 'L';
+var DEFAULT_QR_SIZE = 100;
+var DEFAULT_MARGIN = 0;
+var DEFAULT_IMAGE_SIZE_RATIO = 0.1;
+var IMAGE_EXCAVATE_THICKNESS = 2;
 var ErrorCorrectLevelMap = {
     L: QR.QrCode.Ecc.LOW,
     M: QR.QrCode.Ecc.MEDIUM,
@@ -929,74 +940,139 @@ var SUPPORTS_PATH2D = (function () {
 function validErrorCorrectLevel(level) {
     return level in ErrorCorrectLevelMap;
 }
+function getNeighborFlags(modules, row, col) {
+    var north = row > 0 ? modules[row - 1][col] : false;
+    var south = row < modules.length - 1 ? modules[row + 1][col] : false;
+    var west = col > 0 ? modules[row][col - 1] : false;
+    var east = col < modules[row].length - 1 ? modules[row][col + 1] : false;
+    return {
+        nw: !north && !west,
+        ne: !north && !east,
+        se: !south && !east,
+        sw: !south && !west,
+    };
+}
+function generateRoundedPath(modules, margin, radius) {
+    if (margin === void 0) { margin = 0; }
+    if (radius === void 0) { radius = 0; }
+    var pathSegments = [];
+    var r = Math.min(radius, 0.5);
+    for (var row = 0; row < modules.length; row++) {
+        for (var col = 0; col < modules[row].length; col++) {
+            if (!modules[row][col])
+                continue;
+            var _a = getNeighborFlags(modules, row, col), nw = _a.nw, ne = _a.ne, se = _a.se, sw = _a.sw;
+            var x = col + margin;
+            var y = row + margin;
+            pathSegments.push("M".concat(x + (nw ? r : 0), " ").concat(y), "L".concat(x + 1 - (ne ? r : 0), " ").concat(y));
+            if (ne) {
+                pathSegments.push("A".concat(r, " ").concat(r, " 0 0 1 ").concat(x + 1, " ").concat(y + r));
+            }
+            pathSegments.push("L".concat(x + 1, " ").concat(y + 1 - (se ? r : 0)));
+            if (se) {
+                pathSegments.push("A".concat(r, " ").concat(r, " 0 0 1 ").concat(x + 1 - r, " ").concat(y + 1));
+            }
+            pathSegments.push("L".concat(x + (sw ? r : 0), " ").concat(y + 1));
+            if (sw) {
+                pathSegments.push("A".concat(r, " ").concat(r, " 0 0 1 ").concat(x, " ").concat(y + 1 - r));
+            }
+            pathSegments.push("L".concat(x, " ").concat(y + (nw ? r : 0)));
+            if (nw) {
+                pathSegments.push("A".concat(r, " ").concat(r, " 0 0 1 ").concat(x + r, " ").concat(y));
+            }
+            pathSegments.push('z');
+        }
+    }
+    return pathSegments.join('');
+}
 function generatePath(modules, margin) {
     if (margin === void 0) { margin = 0; }
-    var ops = [];
-    modules.forEach(function (row, y) {
+    var pathSegments = [];
+    for (var y = 0; y < modules.length; y++) {
+        var row = modules[y];
         var start = null;
-        row.forEach(function (cell, x) {
+        for (var x = 0; x < row.length; x++) {
+            var cell = row[x];
             if (!cell && start !== null) {
                 // M0 0h7v1H0z injects the space with the move and drops the comma,
-                // saving a char per operation
-                ops.push("M".concat(start + margin, " ").concat(y + margin, "h").concat(x - start, "v1H").concat(start + margin, "z"));
+                pathSegments.push("M".concat(start + margin, " ").concat(y + margin, "h").concat(x - start, "v1H").concat(start + margin, "z"));
                 start = null;
-                return;
+                continue;
             }
             // end of row, clean up or skip
             if (x === row.length - 1) {
                 if (!cell) {
                     // We would have closed the op above already so this can only mean
                     // 2+ light modules in a row.
-                    return;
+                    continue;
                 }
                 if (start === null) {
                     // Just a single dark module.
-                    ops.push("M".concat(x + margin, ",").concat(y + margin, " h1v1H").concat(x + margin, "z"));
+                    pathSegments.push("M".concat(x + margin, ",").concat(y + margin, " h1v1H").concat(x + margin, "z"));
                 }
                 else {
                     // Otherwise finish the current line.
-                    ops.push("M".concat(start + margin, ",").concat(y + margin, " h").concat(x + 1 - start, "v1H").concat(start + margin, "z"));
+                    pathSegments.push("M".concat(start + margin, ",").concat(y + margin, " h").concat(x + 1 - start, "v1H").concat(start + margin, "z"));
                 }
-                return;
+                continue;
             }
             if (cell && start === null) {
                 start = x;
             }
-        });
-    });
-    return ops.join('');
+        }
+    }
+    return pathSegments.join('');
 }
 function getImageSettings(cells, size, margin, imageSettings) {
     var width = imageSettings.width, height = imageSettings.height, imageX = imageSettings.x, imageY = imageSettings.y;
     var numCells = cells.length + margin * 2;
-    var defaultSize = Math.floor(size * 0.1);
+    var defaultSize = Math.floor(size * DEFAULT_IMAGE_SIZE_RATIO);
     var scale = numCells / size;
     var w = (width || defaultSize) * scale;
     var h = (height || defaultSize) * scale;
     var x = imageX == null ? cells.length / 2 - w / 2 : imageX * scale;
     var y = imageY == null ? cells.length / 2 - h / 2 : imageY * scale;
-    var excavation = null;
-    if (imageSettings.excavate) {
-        var floorX = Math.floor(x);
-        var floorY = Math.floor(y);
-        var ceilW = Math.ceil(w + x - floorX);
-        var ceilH = Math.ceil(h + y - floorY);
-        excavation = { x: floorX, y: floorY, w: ceilW, h: ceilH };
-    }
-    return { x: x, y: y, h: h, w: w, excavation: excavation };
+    var borderRadius = (imageSettings.borderRadius || 0) * scale;
+    return { x: x, y: y, h: h, w: w, borderRadius: borderRadius };
 }
-function excavateModules(modules, excavation) {
-    return modules.slice().map(function (row, y) {
-        if (y < excavation.y || y >= excavation.y + excavation.h) {
-            return row;
-        }
-        return row.map(function (cell, x) {
-            if (x < excavation.x || x >= excavation.x + excavation.w) {
-                return cell;
-            }
-            return false;
-        });
+function useQRCode(props) {
+    var margin = vue.computed(function () { var _a; return ((_a = props.margin) !== null && _a !== void 0 ? _a : DEFAULT_MARGIN) >>> 0; });
+    var cells = vue.computed(function () {
+        var level = validErrorCorrectLevel(props.level) ? props.level : defaultErrorCorrectLevel;
+        return QR.QrCode.encodeText(props.value, ErrorCorrectLevelMap[level]).getModules();
     });
+    var numCells = vue.computed(function () { return cells.value.length + margin.value * 2; });
+    var fgPath = vue.computed(function () {
+        if (props.radius > 0) {
+            return generateRoundedPath(cells.value, margin.value, props.radius);
+        }
+        return generatePath(cells.value, margin.value);
+    });
+    var imageProps = vue.computed(function () {
+        if (!props.imageSettings.src)
+            return null;
+        var settings = getImageSettings(cells.value, props.size, margin.value, props.imageSettings);
+        return {
+            x: settings.x + margin.value,
+            y: settings.y + margin.value,
+            width: settings.w,
+            height: settings.h,
+            borderRadius: settings.borderRadius,
+        };
+    });
+    var imageBorderProps = vue.computed(function () {
+        if (!props.imageSettings.excavate || !imageProps.value)
+            return null;
+        var borderThickness = IMAGE_EXCAVATE_THICKNESS / (props.size / numCells.value);
+        return {
+            x: imageProps.value.x - borderThickness,
+            y: imageProps.value.y - borderThickness,
+            width: imageProps.value.width + borderThickness * 2,
+            height: imageProps.value.height + borderThickness * 2,
+            borderRadius: imageProps.value.borderRadius,
+        };
+    });
+    return { margin: margin, numCells: numCells, cells: cells, fgPath: fgPath, imageProps: imageProps, imageBorderProps: imageBorderProps };
 }
 var QRCodeProps = {
     value: {
@@ -1006,7 +1082,7 @@ var QRCodeProps = {
     },
     size: {
         type: Number,
-        default: 100,
+        default: DEFAULT_QR_SIZE,
     },
     level: {
         type: String,
@@ -1024,7 +1100,7 @@ var QRCodeProps = {
     margin: {
         type: Number,
         required: false,
-        default: 0,
+        default: DEFAULT_MARGIN,
     },
     imageSettings: {
         type: Object,
@@ -1052,6 +1128,12 @@ var QRCodeProps = {
         required: false,
         default: '#fff',
     },
+    radius: {
+        type: Number,
+        required: false,
+        default: 0,
+        validator: function (r) { return !isNaN(r) && r >= 0 && r <= 0.5; },
+    },
 };
 var QRCodeVueProps = __assign(__assign({}, QRCodeProps), { renderAs: {
         type: String,
@@ -1063,36 +1145,11 @@ var QrcodeSvg = vue.defineComponent({
     name: 'QRCodeSvg',
     props: QRCodeProps,
     setup: function (props) {
-        var numCells = vue.ref(0);
-        var fgPath = vue.ref('');
-        var imageProps;
-        var generate = function () {
-            var value = props.value, _level = props.level, _margin = props.margin;
-            var margin = _margin >>> 0;
-            var level = validErrorCorrectLevel(_level) ? _level : defaultErrorCorrectLevel;
-            var cells = QR.QrCode.encodeText(value, ErrorCorrectLevelMap[level]).getModules();
-            numCells.value = cells.length + margin * 2;
-            if (props.imageSettings.src) {
-                var imageSettings = getImageSettings(cells, props.size, margin, props.imageSettings);
-                imageProps = {
-                    x: imageSettings.x + margin,
-                    y: imageSettings.y + margin,
-                    width: imageSettings.w,
-                    height: imageSettings.h,
-                };
-                if (imageSettings.excavation) {
-                    cells = excavateModules(cells, imageSettings.excavation);
-                }
-            }
-            // Drawing strategy: instead of a rect per module, we're going to create a
-            // single path for the dark modules and layer that on top of a light rect,
-            // for a total of 2 DOM nodes. We pay a bit more in string concat but that's
-            // way faster than DOM ops.
-            // For level 1, 441 nodes -> 2
-            // For level 40, 31329 -> 2
-            fgPath.value = generatePath(cells, margin);
-        };
-        var renderGradient = function () {
+        var _a = useQRCode(props), numCells = _a.numCells, fgPath = _a.fgPath, imageProps = _a.imageProps, imageBorderProps = _a.imageBorderProps;
+        var uid = getUid();
+        var qrGradientId = "qrcode.vue-gradient-".concat(uid);
+        var qrLogoClipPathId = "qrcode.vue-logo-clip-path-".concat(uid);
+        var gradientVNode = vue.computed(function () {
             if (!props.gradient)
                 return null;
             var gradientProps = props.gradientType === 'linear'
@@ -1109,7 +1166,7 @@ var QrcodeSvg = vue.defineComponent({
                     fx: '50%',
                     fy: '50%',
                 };
-            return vue.h(props.gradientType === 'linear' ? 'linearGradient' : 'radialGradient', __assign({ id: 'qr-gradient' }, gradientProps), [
+            return vue.h(props.gradientType === 'linear' ? 'linearGradient' : 'radialGradient', __assign({ id: qrGradientId }, gradientProps), [
                 vue.h('stop', {
                     offset: '0%',
                     style: { stopColor: props.gradientStartColor },
@@ -1119,27 +1176,52 @@ var QrcodeSvg = vue.defineComponent({
                     style: { stopColor: props.gradientEndColor },
                 }),
             ]);
-        };
-        generate();
-        vue.onUpdated(generate);
+        });
+        var clipPathVNode = vue.computed(function () {
+            if (!imageProps.value)
+                return null;
+            var borderRadius = imageProps.value.borderRadius;
+            if (borderRadius <= 0)
+                return null;
+            return vue.h('clipPath', { id: qrLogoClipPathId }, [
+                vue.h('rect', {
+                    x: imageProps.value.x,
+                    y: imageProps.value.y,
+                    width: imageProps.value.width,
+                    height: imageProps.value.height,
+                    rx: borderRadius,
+                    ry: borderRadius,
+                }),
+            ]);
+        });
         return function () { return vue.h('svg', {
             width: props.size,
             height: props.size,
-            'shape-rendering': "crispEdges",
             xmlns: 'http://www.w3.org/2000/svg',
             viewBox: "0 0 ".concat(numCells.value, " ").concat(numCells.value),
+            role: 'img',
+            'aria-label': props.value,
         }, [
-            vue.h('defs', {}, [renderGradient()]),
+            vue.h('defs', {}, [gradientVNode.value, clipPathVNode.value]),
             vue.h('rect', {
                 width: '100%',
                 height: '100%',
                 fill: props.background,
             }),
             vue.h('path', {
-                fill: props.gradient ? 'url(#qr-gradient)' : props.foreground,
+                fill: props.gradient ? "url(#".concat(qrGradientId, ")") : props.foreground,
                 d: fgPath.value,
             }),
-            props.imageSettings.src && vue.h('image', __assign({ href: props.imageSettings.src }, imageProps)),
+            imageBorderProps.value && vue.h('rect', {
+                x: imageBorderProps.value.x,
+                y: imageBorderProps.value.y,
+                width: imageBorderProps.value.width,
+                height: imageBorderProps.value.height,
+                fill: props.background,
+                rx: imageBorderProps.value.borderRadius,
+                ry: imageBorderProps.value.borderRadius,
+            }),
+            props.imageSettings.src && imageProps.value && vue.h('image', __assign(__assign({ href: props.imageSettings.src }, imageProps.value), (imageProps.value.borderRadius > 0 ? { 'clip-path': "url(#".concat(qrLogoClipPathId, ")") } : {}))),
         ]); };
     },
 });
@@ -1147,81 +1229,89 @@ var QrcodeCanvas = vue.defineComponent({
     name: 'QRCodeCanvas',
     props: QRCodeProps,
     setup: function (props, ctx) {
+        var _a = useQRCode(props), margin = _a.margin, cells = _a.cells, numCells = _a.numCells, fgPath = _a.fgPath, imageProps = _a.imageProps, imageBorderProps = _a.imageBorderProps;
         var canvasEl = vue.ref(null);
-        var imageRef = vue.ref(null);
+        var imageEl = vue.ref(null);
+        var drawRoundedRect = function (ctx, x, y, width, height, radius) {
+            ctx.beginPath();
+            if (ctx.roundRect) {
+                ctx.roundRect(x, y, width, height, radius);
+            }
+            else {
+                ctx.rect(x, y, width, height);
+            }
+        };
         var generate = function () {
-            var value = props.value, _level = props.level, size = props.size, _margin = props.margin, background = props.background, foreground = props.foreground, gradient = props.gradient, gradientType = props.gradientType, gradientStartColor = props.gradientStartColor, gradientEndColor = props.gradientEndColor;
-            var margin = _margin >>> 0;
-            var level = validErrorCorrectLevel(_level) ? _level : defaultErrorCorrectLevel;
+            var size = props.size, background = props.background, foreground = props.foreground, gradient = props.gradient, gradientType = props.gradientType, gradientStartColor = props.gradientStartColor, gradientEndColor = props.gradientEndColor;
             var canvas = canvasEl.value;
             if (!canvas) {
                 return;
             }
-            var ctx = canvas.getContext('2d');
-            if (!ctx) {
+            var canvasCtx = canvas.getContext('2d');
+            if (!canvasCtx) {
                 return;
             }
-            var cells = QR.QrCode.encodeText(value, ErrorCorrectLevelMap[level]).getModules();
-            var numCells = cells.length + margin * 2;
-            var image = imageRef.value;
-            var imageProps = { x: 0, y: 0, width: 0, height: 0 };
-            var showImage = props.imageSettings.src && image != null && image.naturalWidth !== 0 && image.naturalHeight !== 0;
-            if (showImage) {
-                var imageSettings = getImageSettings(cells, props.size, margin, props.imageSettings);
-                imageProps = {
-                    x: imageSettings.x + margin,
-                    y: imageSettings.y + margin,
-                    width: imageSettings.w,
-                    height: imageSettings.h,
-                };
-                if (imageSettings.excavation) {
-                    cells = excavateModules(cells, imageSettings.excavation);
-                }
-            }
-            var devicePixelRatio = window.devicePixelRatio || 1;
-            var scale = (size / numCells) * devicePixelRatio;
+            var image = imageEl.value;
+            var devicePixelRatio = typeof window !== 'undefined' ? window.devicePixelRatio || 1 : 1;
+            var scale = (size / numCells.value) * devicePixelRatio;
             canvas.height = canvas.width = size * devicePixelRatio;
-            ctx.scale(scale, scale);
-            ctx.fillStyle = background;
-            ctx.fillRect(0, 0, numCells, numCells);
+            canvasCtx.setTransform(scale, 0, 0, scale, 0, 0);
+            canvasCtx.fillStyle = background;
+            canvasCtx.fillRect(0, 0, numCells.value, numCells.value);
             if (gradient) {
                 var grad = void 0;
                 if (gradientType === 'linear') {
-                    grad = ctx.createLinearGradient(0, 0, numCells, numCells);
+                    grad = canvasCtx.createLinearGradient(0, 0, numCells.value, numCells.value);
                 }
                 else {
-                    grad = ctx.createRadialGradient(numCells / 2, numCells / 2, 0, numCells / 2, numCells / 2, numCells / 2);
+                    grad = canvasCtx.createRadialGradient(numCells.value / 2, numCells.value / 2, 0, numCells.value / 2, numCells.value / 2, numCells.value / 2);
                 }
                 grad.addColorStop(0, gradientStartColor);
                 grad.addColorStop(1, gradientEndColor);
-                ctx.fillStyle = grad;
+                canvasCtx.fillStyle = grad;
             }
             else {
-                ctx.fillStyle = foreground;
+                canvasCtx.fillStyle = foreground;
             }
             if (SUPPORTS_PATH2D) {
-                ctx.fill(new Path2D(generatePath(cells, margin)));
+                canvasCtx.fill(new Path2D(fgPath.value));
             }
             else {
-                cells.forEach(function (row, rdx) {
+                cells.value.forEach(function (row, rdx) {
                     row.forEach(function (cell, cdx) {
                         if (cell) {
-                            ctx.fillRect(cdx + margin, rdx + margin, 1, 1);
+                            canvasCtx.fillRect(cdx + margin.value, rdx + margin.value, 1, 1);
                         }
                     });
                 });
             }
-            if (showImage) {
-                ctx.drawImage(image, imageProps.x, imageProps.y, imageProps.width, imageProps.height);
+            var showImage = props.imageSettings.src && image && image.naturalWidth !== 0 && image.naturalHeight !== 0;
+            if (showImage && imageProps.value) {
+                if (imageBorderProps.value) {
+                    var imageBorder = imageBorderProps.value;
+                    canvasCtx.fillStyle = props.background;
+                    drawRoundedRect(canvasCtx, imageBorder.x, imageBorder.y, imageBorder.width, imageBorder.height, imageBorder.borderRadius);
+                    canvasCtx.fill();
+                }
+                var borderRadius = imageProps.value.borderRadius;
+                if (borderRadius > 0) {
+                    canvasCtx.save();
+                    drawRoundedRect(canvasCtx, imageProps.value.x, imageProps.value.y, imageProps.value.width, imageProps.value.height, borderRadius);
+                    canvasCtx.clip();
+                    canvasCtx.drawImage(image, imageProps.value.x, imageProps.value.y, imageProps.value.width, imageProps.value.height);
+                    canvasCtx.restore();
+                }
+                else {
+                    canvasCtx.drawImage(image, imageProps.value.x, imageProps.value.y, imageProps.value.width, imageProps.value.height);
+                }
             }
         };
         vue.onMounted(generate);
-        vue.onUpdated(generate);
-        var style = ctx.attrs.style;
+        vue.watchEffect(generate);
         return function () { return vue.h(vue.Fragment, [
-            vue.h('canvas', __assign(__assign({}, ctx.attrs), { ref: canvasEl, style: __assign(__assign({}, style), { width: "".concat(props.size, "px"), height: "".concat(props.size, "px") }) })),
+            vue.h('canvas', __assign(__assign({}, ctx.attrs), { ref: canvasEl, role: 'img', 'aria-label': props.value, style: __assign(__assign({}, ctx.attrs.style), { width: "".concat(props.size, "px"), height: "".concat(props.size, "px") }) })),
             props.imageSettings.src && vue.h('img', {
-                ref: imageRef,
+                ref: imageEl,
                 src: props.imageSettings.src,
                 style: { display: 'none' },
                 onLoad: generate,
@@ -1231,23 +1321,23 @@ var QrcodeCanvas = vue.defineComponent({
 });
 var QrcodeVue = vue.defineComponent({
     name: 'Qrcode',
-    render: function () {
-        var _a = this.$props, renderAs = _a.renderAs, value = _a.value, size = _a.size, margin = _a.margin, level = _a.level, background = _a.background, foreground = _a.foreground, imageSettings = _a.imageSettings, gradient = _a.gradient, gradientType = _a.gradientType, gradientStartColor = _a.gradientStartColor, gradientEndColor = _a.gradientEndColor;
-        return vue.h(renderAs === 'svg' ? QrcodeSvg : QrcodeCanvas, {
-            value: value,
-            size: size,
-            margin: margin,
-            level: level,
-            background: background,
-            foreground: foreground,
-            imageSettings: imageSettings,
-            gradient: gradient,
-            gradientType: gradientType,
-            gradientStartColor: gradientStartColor,
-            gradientEndColor: gradientEndColor,
-        });
-    },
     props: QRCodeVueProps,
+    setup: function (props) {
+        return function () { return vue.h(props.renderAs === 'svg' ? QrcodeSvg : QrcodeCanvas, {
+            value: props.value,
+            size: props.size,
+            margin: props.margin,
+            level: props.level,
+            background: props.background,
+            foreground: props.foreground,
+            imageSettings: props.imageSettings,
+            gradient: props.gradient,
+            gradientType: props.gradientType,
+            gradientStartColor: props.gradientStartColor,
+            gradientEndColor: props.gradientEndColor,
+            radius: props.radius,
+        }); };
+    },
 });
 
 exports.QrcodeCanvas = QrcodeCanvas;

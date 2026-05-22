@@ -14,7 +14,6 @@ nav_order: 1
 ![phase: stable](https://img.shields.io/badge/phase-stable-2EA043)
 ![PRs: welcome](https://img.shields.io/badge/PRs-Welcome-yellow)
 [<img src="https://img.shields.io/badge/community_chat-Telegram-24A1DE">](https://t.me/lnbits)
-[<img src="https://img.shields.io/badge/supported_by-%3E__OpenSats-f97316">](https://opensats.org)
 
 # LNbits Roles: A Quick Overview
 

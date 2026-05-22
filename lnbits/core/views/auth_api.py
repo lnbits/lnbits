@@ -348,7 +348,11 @@ async def handle_oauth_token(request: Request, provider: str) -> RedirectRespons
         userinfo = await provider_sso.verify_and_process(request)
         if not userinfo:
             raise HTTPException(HTTPStatus.UNAUTHORIZED, "Invalid user info.")
-        user_id = decrypt_internal_message(provider_sso.state)
+        if provider_sso.state is None or provider_sso.state == "null":
+            user_id = None
+        else:
+            user_id = decrypt_internal_message(provider_sso.state)
+
     request.session.pop("user", None)
     return await _handle_sso_login(userinfo, user_id)
 

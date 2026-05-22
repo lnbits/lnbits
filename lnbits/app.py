@@ -65,6 +65,7 @@ from .middleware import (
     InstalledExtensionMiddleware,
     add_first_install_middleware,
     add_ip_block_middleware,
+    add_profiler_middleware,
     add_ratelimit_middleware,
 )
 from .tasks import internal_invoice_listener, invoice_listener, run_interval
@@ -195,6 +196,9 @@ def create_app() -> FastAPI:
     add_ratelimit_middleware(app)
 
     register_exception_handlers(app)
+
+    if settings.profiler:
+        add_profiler_middleware(app)
 
     return app
 
