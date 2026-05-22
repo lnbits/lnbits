@@ -4,6 +4,8 @@ from pytest_mock.plugin import MockerFixture
 
 from lnbits.core.models.misc import SimpleStatus
 from lnbits.fiat.base import FiatSubscriptionResponse
+from lnbits.fiat.revolut import REVOLUT_WEBHOOK_EVENTS
+from lnbits.settings import Settings
 
 
 class _UnsetSecret:
@@ -144,3 +146,82 @@ async def test_fiat_api_connection_token_validates_provider_configuration(
     assert ok.status_code == 200
     assert ok.json() == {"secret": "tok_live"}
     assert good_provider.await_count == 1
+
+
+@pytest.mark.anyio
+async def test_fiat_api_creates_revolut_webhook(
+    client: AsyncClient,
+    superuser_token: str,
+    settings: Settings,
+    mocker: MockerFixture,
+):
+    create_webhook = mocker.patch(
+        "lnbits.core.views.fiat_api.RevolutWallet.create_webhook",
+        mocker.AsyncMock(
+            return_value={
+                "id": "webhook_1",
+                "url": "https://lnbits.example/api/v1/callback/revolut",
+                "events": REVOLUT_WEBHOOK_EVENTS,
+                "signing_secret": "whsec_1",
+            }
+        ),
+    )
+
+    response = await client.post(
+        "/api/v1/fiat/revolut/webhook",
+        headers={"Authorization": f"Bearer {superuser_token}"},
+        json={
+            "url": "https://lnbits.example/api/v1/callback/revolut",
+            "endpoint": "https://sandbox-merchant.revolut.com",
+            "api_secret_key": "secret_1",
+            "api_version": "2026-04-20",
+        },
+    )
+
+    assert response.status_code == 200
+    assert response.json() == {
+        "id": "webhook_1",
+        "url": "https://lnbits.example/api/v1/callback/revolut",
+        "events": REVOLUT_WEBHOOK_EVENTS,
+        "signing_secret": "whsec_1",
+        "already_exists": False,
+    }
+    create_webhook.assert_awaited_once_with(
+        url="https://lnbits.example/api/v1/callback/revolut",
+        endpoint="https://sandbox-merchant.revolut.com",
+        api_secret_key="secret_1",
+        api_version="2026-04-20",
+    )
+    assert settings.revolut_payment_webhook_url == (
+        "https://lnbits.example/api/v1/callback/revolut"
+    )
+    assert settings.revolut_webhook_signing_secret == "whsec_1"
+
+
+@pytest.mark.anyio
+async def test_fiat_api_rejects_local_revolut_webhook(
+    client: AsyncClient,
+    superuser_token: str,
+    mocker: MockerFixture,
+):
+    create_webhook = mocker.patch(
+        "lnbits.core.views.fiat_api.RevolutWallet.create_webhook",
+        mocker.AsyncMock(
+            side_effect=ValueError("Revolut webhook URL must be a clearnet URL.")
+        ),
+    )
+
+    response = await client.post(
+        "/api/v1/fiat/revolut/webhook",
+        headers={"Authorization": f"Bearer {superuser_token}"},
+        json={
+            "url": "http://localhost:5000/api/v1/callback/revolut",
+            "endpoint": "https://sandbox-merchant.revolut.com",
+            "api_secret_key": "secret_1",
+            "api_version": "2026-04-20",
+        },
+    )
+
+    assert response.status_code == 400
+    assert response.json()["detail"] == ("Revolut webhook URL must be a clearnet URL.")
+    create_webhook.assert_awaited_once()

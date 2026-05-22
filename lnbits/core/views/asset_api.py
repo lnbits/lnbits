@@ -16,7 +16,14 @@ from lnbits.core.crud.assets import (
 from lnbits.core.models.assets import AssetFilters, AssetInfo, AssetUpdate
 from lnbits.core.models.misc import SimpleStatus
 from lnbits.core.models.users import AccountId
-from lnbits.core.services.assets import create_user_asset
+from lnbits.core.services.assets import (
+    ASSET_SECURITY_HEADERS,
+    INLINE_ASSET_MIME_TYPES,
+    content_disposition,
+    create_user_asset,
+    normalize_media_type,
+    thumbnail_media_type,
+)
 from lnbits.db import Filters, Page
 from lnbits.decorators import (
     check_account_id_exists,
@@ -75,11 +82,7 @@ async def api_get_asset_data(
     if not asset:
         raise HTTPException(HTTPStatus.NOT_FOUND, "Asset not found.")
 
-    return Response(
-        content=asset.data,
-        media_type=asset.mime_type,
-        headers={"Content-Disposition": f'inline; filename="{asset.name}"'},
-    )
+    return asset_response(asset.data, asset.mime_type, asset.name)
 
 
 @asset_router.get(
@@ -101,14 +104,14 @@ async def api_get_asset_thumbnail(
     if not asset_info:
         raise HTTPException(HTTPStatus.NOT_FOUND, "Asset not found.")
 
-    return Response(
+    return asset_response(
         content=(
             base64.b64decode(asset_info.thumbnail_base64)
             if asset_info.thumbnail_base64
             else b""
         ),
-        media_type=asset_info.mime_type,
-        headers={"Content-Disposition": f'inline; filename="{asset_info.name}"'},
+        media_type=thumbnail_media_type(),
+        filename=asset_info.name,
     )
 
 
@@ -172,3 +175,16 @@ async def api_delete_asset(
 
     await delete_user_asset(account_id.id, asset_id)
     return SimpleStatus(success=True, message="Asset deleted successfully.")
+
+
+def asset_response(content: bytes, media_type: str, filename: str) -> Response:
+    media_type = normalize_media_type(media_type)
+    disposition = "inline" if media_type in INLINE_ASSET_MIME_TYPES else "attachment"
+    return Response(
+        content=content,
+        media_type=media_type,
+        headers={
+            **ASSET_SECURITY_HEADERS,
+            "Content-Disposition": content_disposition(disposition, filename),
+        },
+    )

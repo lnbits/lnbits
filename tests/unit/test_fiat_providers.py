@@ -1,6 +1,8 @@
 import hashlib
 import hmac
+import json
 import time
+from base64 import b64encode
 from unittest.mock import AsyncMock
 
 import pytest
@@ -15,6 +17,8 @@ from lnbits.core.models.wallets import Wallet
 from lnbits.core.services import check_payment_status, payments
 from lnbits.core.services.fiat_providers import (
     check_fiat_status,
+    check_revolut_signature,
+    check_square_signature,
     check_stripe_signature,
     handle_fiat_payment_confirmation,
     verify_paypal_webhook,
@@ -23,7 +27,14 @@ from lnbits.core.services.fiat_providers import (
     test_connection as fiat_provider_connection,
 )
 from lnbits.core.services.users import create_user_account
-from lnbits.fiat.base import FiatInvoiceResponse, FiatPaymentStatus, FiatStatusResponse
+from lnbits.fiat.base import (
+    FiatInvoiceResponse,
+    FiatPaymentStatus,
+    FiatStatusResponse,
+    FiatSubscriptionPaymentOptions,
+)
+from lnbits.fiat.revolut import REVOLUT_WEBHOOK_EVENTS, RevolutWallet
+from lnbits.fiat.square import SquareWallet
 from lnbits.settings import Settings
 from tests.helpers import get_random_string
 
@@ -56,16 +67,58 @@ class MockHTTPClient:
         self.calls.append((path, kwargs))
         return self._responses.pop(0)
 
+    async def get(self, path: str, **kwargs):
+        self.calls.append((path, kwargs))
+        return self._responses.pop(0)
+
 
 @pytest.fixture(autouse=True)
 def fiat_provider_test_settings(settings: Settings):
+    original_lnbits_running = settings.lnbits_running
     original_allowed_currencies = settings.lnbits_allowed_currencies
     original_paypal_enabled = settings.paypal_enabled
+    original_square_enabled = settings.square_enabled
+    original_square_api_endpoint = settings.square_api_endpoint
+    original_square_access_token = settings.square_access_token
+    original_square_location_id = settings.square_location_id
+    original_square_api_version = settings.square_api_version
+    original_square_payment_success_url = settings.square_payment_success_url
+    original_square_payment_webhook_url = settings.square_payment_webhook_url
+    original_square_webhook_signature_key = settings.square_webhook_signature_key
+    original_square_limits = settings.square_limits.copy(deep=True)
+    original_revolut_enabled = settings.revolut_enabled
+    original_revolut_api_endpoint = settings.revolut_api_endpoint
+    original_revolut_api_secret_key = settings.revolut_api_secret_key
+    original_revolut_api_version = settings.revolut_api_version
+    original_revolut_payment_success_url = settings.revolut_payment_success_url
+    original_revolut_payment_webhook_url = settings.revolut_payment_webhook_url
+    original_revolut_webhook_signing_secret = settings.revolut_webhook_signing_secret
+    original_revolut_limits = settings.revolut_limits.copy(deep=True)
     settings.lnbits_allowed_currencies = []
     settings.paypal_enabled = False
+    settings.square_enabled = False
+    settings.revolut_enabled = False
     yield
+    settings.lnbits_running = original_lnbits_running
     settings.lnbits_allowed_currencies = original_allowed_currencies
     settings.paypal_enabled = original_paypal_enabled
+    settings.square_enabled = original_square_enabled
+    settings.square_api_endpoint = original_square_api_endpoint
+    settings.square_access_token = original_square_access_token
+    settings.square_location_id = original_square_location_id
+    settings.square_api_version = original_square_api_version
+    settings.square_payment_success_url = original_square_payment_success_url
+    settings.square_payment_webhook_url = original_square_payment_webhook_url
+    settings.square_webhook_signature_key = original_square_webhook_signature_key
+    settings.square_limits = original_square_limits
+    settings.revolut_enabled = original_revolut_enabled
+    settings.revolut_api_endpoint = original_revolut_api_endpoint
+    settings.revolut_api_secret_key = original_revolut_api_secret_key
+    settings.revolut_api_version = original_revolut_api_version
+    settings.revolut_payment_success_url = original_revolut_payment_success_url
+    settings.revolut_payment_webhook_url = original_revolut_payment_webhook_url
+    settings.revolut_webhook_signing_secret = original_revolut_webhook_signing_secret
+    settings.revolut_limits = original_revolut_limits
 
 
 @pytest.mark.anyio
@@ -129,6 +182,39 @@ async def test_create_wallet_fiat_invoice_allowed_users(
     user = await get_user(to_user.id)
     assert user
     assert user.fiat_providers == []
+
+    settings.square_enabled = True
+    settings.square_limits.allowed_users = []
+    user = await get_user(to_user.id)
+    assert user
+    assert user.fiat_providers == ["square"]
+
+    settings.square_limits.allowed_users = ["some_other_user_id"]
+    user = await get_user(to_user.id)
+    assert user
+    assert user.fiat_providers == []
+
+    settings.square_limits.allowed_users.append(to_user.id)
+    user = await get_user(to_user.id)
+    assert user
+    assert user.fiat_providers == ["square"]
+
+    settings.square_enabled = False
+    settings.revolut_enabled = True
+    settings.revolut_limits.allowed_users = []
+    user = await get_user(to_user.id)
+    assert user
+    assert user.fiat_providers == ["revolut"]
+
+    settings.revolut_limits.allowed_users = ["some_other_user_id"]
+    user = await get_user(to_user.id)
+    assert user
+    assert user.fiat_providers == []
+
+    settings.revolut_limits.allowed_users.append(to_user.id)
+    user = await get_user(to_user.id)
+    assert user
+    assert user.fiat_providers == ["revolut"]
 
 
 @pytest.mark.anyio
@@ -278,6 +364,1048 @@ async def test_create_wallet_fiat_invoice_success(
     status = await check_payment_status(payment)
     assert status.paid is True
     assert status.success is True
+
+
+@pytest.mark.anyio
+async def test_create_wallet_square_fiat_invoice_success(
+    to_wallet: Wallet, settings: Settings, mocker: MockerFixture
+):
+    settings.square_enabled = True
+    settings.square_access_token = "square-token"
+    settings.square_location_id = "LOC123"
+    settings.square_limits.service_min_amount_sats = 0
+    settings.square_limits.service_max_amount_sats = 0
+    settings.square_limits.service_faucet_wallet_id = None
+
+    invoice_data = CreateInvoice(
+        unit="USD", amount=1.0, memo="Test", fiat_provider="square"
+    )
+    fiat_mock_response = FiatInvoiceResponse(
+        ok=True,
+        checking_id="order_123",
+        payment_request="https://square.link/u/session_123",
+    )
+
+    mocker.patch(
+        "lnbits.fiat.SquareWallet.create_invoice",
+        AsyncMock(return_value=fiat_mock_response),
+    )
+    mocker.patch(
+        "lnbits.utils.exchange_rates.get_fiat_rate_satoshis",
+        AsyncMock(return_value=1000),
+    )
+    payment = await payments.create_fiat_invoice(to_wallet.id, invoice_data)
+    assert payment.status == PaymentState.PENDING
+    assert payment.fiat_provider == "square"
+    assert payment.extra.get("fiat_checking_id") == fiat_mock_response.checking_id
+    assert payment.checking_id.startswith("fiat_square_order_123")
+
+
+@pytest.mark.anyio
+async def test_square_wallet_create_invoice(settings: Settings):
+    settings.square_api_endpoint = "https://connect.squareupsandbox.com"
+    settings.square_access_token = "square-token"
+    settings.square_location_id = "LOC123"
+    settings.square_api_version = "2026-01-22"
+    settings.square_payment_success_url = "https://lnbits.example/success"
+
+    wallet = SquareWallet()
+    client = MockHTTPClient(
+        [
+            MockHTTPResponse(
+                json_data={
+                    "payment_link": {
+                        "order_id": "ORDER123",
+                        "url": "https://square.link/u/abc123",
+                    }
+                }
+            )
+        ]
+    )
+    wallet.client = client  # type: ignore[assignment]
+
+    response = await wallet.create_invoice(
+        amount=1.23,
+        payment_hash="hash123",
+        currency="USD",
+        memo="LNbits Square invoice",
+        extra={"checkout": {"metadata": {"source": "test"}}},
+    )
+
+    assert response.ok is True
+    assert response.checking_id == "order_ORDER123"
+    assert response.payment_request == "https://square.link/u/abc123"
+    assert client.calls[0][0] == "/v2/online-checkout/payment-links"
+    payload = client.calls[0][1]["json"]
+    assert payload["idempotency_key"] == "hash123"
+    assert payload["order"]["location_id"] == "LOC123"
+    assert payload["order"]["metadata"]["payment_hash"] == "hash123"
+    assert payload["order"]["metadata"]["alan_action"] == "invoice"
+    assert payload["order"]["metadata"]["source"] == "test"
+    assert payload["order"]["line_items"][0]["base_price_money"]["amount"] == 123
+
+
+@pytest.mark.anyio
+async def test_square_wallet_create_subscription(settings: Settings):
+    settings.lnbits_running = False
+    settings.square_api_endpoint = "https://connect.squareupsandbox.com"
+    settings.square_access_token = "square-token"
+    settings.square_location_id = "LOC123"
+    settings.square_api_version = "2026-01-22"
+    settings.square_payment_success_url = "https://lnbits.example/success"
+
+    wallet = SquareWallet()
+    client = MockHTTPClient(
+        [
+            MockHTTPResponse(
+                json_data={
+                    "object": {
+                        "type": "SUBSCRIPTION_PLAN_VARIATION",
+                        "id": "PLAN_VARIATION_123",
+                        "subscription_plan_variation_data": {
+                            "phases": [
+                                {
+                                    "ordinal": 0,
+                                    "pricing": {
+                                        "type": "STATIC",
+                                        "price_money": {
+                                            "amount": 1500,
+                                            "currency": "USD",
+                                        },
+                                    },
+                                }
+                            ]
+                        },
+                    }
+                }
+            ),
+            MockHTTPResponse(
+                json_data={
+                    "payment_link": {
+                        "id": "plink_123",
+                        "url": "https://square.link/u/sub_123",
+                    }
+                }
+            ),
+        ]
+    )
+    wallet.client = client  # type: ignore[assignment]
+
+    payment_options = FiatSubscriptionPaymentOptions(
+        wallet_id="wallet_1",
+        memo="Monthly Gold",
+        tag="gold",
+        extra={"link": "link-1"},
+        success_url="https://lnbits.example/subscription-success",
+    )
+
+    response = await wallet.create_subscription(
+        "PLAN_VARIATION_123", 1, payment_options
+    )
+
+    assert response.ok is True
+    assert response.checkout_session_url == "https://square.link/u/sub_123"
+    assert response.subscription_request_id is not None
+    assert client.calls[0][0] == "/v2/catalog/object/PLAN_VARIATION_123"
+    assert client.calls[1][0] == "/v2/online-checkout/payment-links"
+    payload = client.calls[1][1]["json"]
+    assert payload["idempotency_key"] == response.subscription_request_id
+    assert payload["quick_pay"]["location_id"] == "LOC123"
+    assert payload["quick_pay"]["price_money"] == {"amount": 1500, "currency": "USD"}
+    assert payload["checkout_options"] == {
+        "redirect_url": "https://lnbits.example/subscription-success",
+        "subscription_plan_id": "PLAN_VARIATION_123",
+    }
+    metadata = json.loads(payload["payment_note"])
+    assert metadata[:3] == ["wallet_1", "gold", response.subscription_request_id]
+    assert metadata[3:] == ["link-1", "Monthly Gold"]
+
+
+@pytest.mark.anyio
+async def test_square_wallet_create_subscription_from_plan_id(settings: Settings):
+    settings.lnbits_running = False
+    settings.square_api_endpoint = "https://connect.squareupsandbox.com"
+    settings.square_access_token = "square-token"
+    settings.square_location_id = "LOC123"
+    settings.square_api_version = "2026-01-22"
+    settings.square_payment_success_url = "https://lnbits.example/success"
+
+    wallet = SquareWallet()
+    client = MockHTTPClient(
+        [
+            MockHTTPResponse(
+                json_data={
+                    "object": {
+                        "type": "SUBSCRIPTION_PLAN",
+                        "id": "PLAN123",
+                        "subscription_plan_data": {
+                            "name": "LNbits Test Weekly Personal Plan",
+                            "subscription_plan_variations": [
+                                {
+                                    "type": "SUBSCRIPTION_PLAN_VARIATION",
+                                    "id": "PLAN_VARIATION_123",
+                                    "subscription_plan_variation_data": {
+                                        "name": "LNbits Test Weekly Personal Plan",
+                                        "phases": [
+                                            {
+                                                "uid": "PHASE123",
+                                                "cadence": "WEEKLY",
+                                                "ordinal": 0,
+                                                "pricing": {"type": "RELATIVE"},
+                                            }
+                                        ],
+                                        "subscription_plan_id": "PLAN123",
+                                    },
+                                }
+                            ],
+                            "eligible_item_ids": ["ITEM123"],
+                            "all_items": False,
+                        },
+                    }
+                }
+            ),
+            MockHTTPResponse(
+                json_data={
+                    "object": {
+                        "type": "ITEM",
+                        "id": "ITEM123",
+                        "item_data": {
+                            "name": "LNbits Test Weekly Personal Plan",
+                            "variations": [
+                                {
+                                    "type": "ITEM_VARIATION",
+                                    "id": "ITEM_VARIATION_123",
+                                    "item_variation_data": {
+                                        "item_id": "ITEM123",
+                                        "name": "Regular",
+                                        "pricing_type": "FIXED_PRICING",
+                                        "price_money": {
+                                            "amount": 1500,
+                                            "currency": "USD",
+                                        },
+                                    },
+                                }
+                            ],
+                        },
+                    }
+                }
+            ),
+            MockHTTPResponse(
+                json_data={
+                    "payment_link": {
+                        "id": "plink_123",
+                        "url": "https://square.link/u/sub_123",
+                    }
+                }
+            ),
+        ]
+    )
+    wallet.client = client  # type: ignore[assignment]
+
+    response = await wallet.create_subscription(
+        "PLAN123",
+        1,
+        FiatSubscriptionPaymentOptions(
+            wallet_id="wallet_1",
+            memo="Weekly Plan",
+            success_url="https://lnbits.example/success",
+        ),
+    )
+
+    assert response.ok is True
+    assert client.calls[0][0] == "/v2/catalog/object/PLAN123"
+    assert client.calls[1][0] == "/v2/catalog/object/ITEM123"
+    assert client.calls[2][0] == "/v2/online-checkout/payment-links"
+    payload = client.calls[2][1]["json"]
+    assert payload["quick_pay"]["price_money"] == {"amount": 1500, "currency": "USD"}
+    assert payload["checkout_options"] == {
+        "redirect_url": "https://lnbits.example/success",
+        "subscription_plan_id": "PLAN_VARIATION_123",
+    }
+
+
+@pytest.mark.anyio
+async def test_square_wallet_create_subscription_invoice(settings: Settings):
+    settings.square_api_endpoint = "https://connect.squareupsandbox.com"
+    settings.square_access_token = "square-token"
+    settings.square_location_id = "LOC123"
+    settings.square_api_version = "2026-01-22"
+
+    wallet = SquareWallet()
+
+    response = await wallet.create_invoice(
+        amount=15,
+        payment_hash="hash123",
+        currency="USD",
+        memo="Square subscription payment",
+        extra={
+            "fiat_method": "subscription",
+            "subscription": {
+                "checking_id": "payment_PAYMENT123",
+                "payment_request": "https://square.example/invoice",
+            },
+        },
+    )
+
+    assert response.ok is True
+    assert response.checking_id == "payment_PAYMENT123"
+    assert response.payment_request == "https://square.example/invoice"
+
+
+@pytest.mark.anyio
+async def test_square_wallet_cancel_subscription(settings: Settings):
+    settings.square_api_endpoint = "https://connect.squareupsandbox.com"
+    settings.square_access_token = "square-token"
+    settings.square_location_id = "LOC123"
+    settings.square_api_version = "2026-01-22"
+
+    wallet = SquareWallet()
+    client = MockHTTPClient([MockHTTPResponse(json_data={"subscription": {}})])
+    wallet.client = client  # type: ignore[assignment]
+
+    response = await wallet.cancel_subscription("SUBSCRIPTION123", "wallet_1")
+
+    assert response.ok is True
+    assert client.calls[0][0] == "/v2/subscriptions/SUBSCRIPTION123/cancel"
+
+
+@pytest.mark.anyio
+async def test_square_wallet_cancel_subscription_by_request_id(
+    settings: Settings, mocker: MockerFixture
+):
+    settings.square_api_endpoint = "https://connect.squareupsandbox.com"
+    settings.square_access_token = "square-token"
+    settings.square_location_id = "LOC123"
+    settings.square_api_version = "2026-01-22"
+
+    wallet = SquareWallet()
+    client = MockHTTPClient([MockHTTPResponse(json_data={"subscription": {}})])
+    wallet.client = client  # type: ignore[assignment]
+    payment = Payment(
+        checking_id="fiat_square_payment_PAYMENT123",
+        payment_hash="hash123",
+        wallet_id="wallet_1",
+        amount=1000,
+        fee=0,
+        bolt11="lnbc1square",
+        fiat_provider="square",
+        extra={"subscription_request_id": "REQUEST123"},
+        external_id="SUBSCRIPTION123",
+    )
+    get_payments_mock = mocker.patch(
+        "lnbits.core.crud.payments.get_payments",
+        AsyncMock(side_effect=[[], [payment]]),
+    )
+
+    response = await wallet.cancel_subscription("REQUEST123", "wallet_1")
+
+    assert response.ok is True
+    assert client.calls[0][0] == "/v2/subscriptions/SUBSCRIPTION123/cancel"
+    assert get_payments_mock.await_count == 2
+
+
+@pytest.mark.anyio
+async def test_square_wallet_get_invoice_status(settings: Settings):
+    settings.square_api_endpoint = "https://connect.squareupsandbox.com"
+    settings.square_access_token = "square-token"
+    settings.square_location_id = "LOC123"
+    settings.square_api_version = "2026-01-22"
+
+    wallet = SquareWallet()
+    client = MockHTTPClient(
+        [
+            MockHTTPResponse(
+                json_data={
+                    "order": {
+                        "id": "ORDER123",
+                        "state": "COMPLETED",
+                        "tenders": [{"payment_id": "PAYMENT123"}],
+                    }
+                }
+            ),
+            MockHTTPResponse(json_data={"payment": {"status": "COMPLETED"}}),
+        ]
+    )
+    wallet.client = client  # type: ignore[assignment]
+
+    status = await wallet.get_invoice_status("fiat_square_order_ORDER123")
+
+    assert status.success is True
+    assert client.calls[0][0] == "/v2/orders/ORDER123"
+    assert client.calls[1][0] == "/v2/payments/PAYMENT123"
+
+
+@pytest.mark.anyio
+async def test_create_wallet_revolut_fiat_invoice_success(
+    to_wallet: Wallet, settings: Settings, mocker: MockerFixture
+):
+    settings.revolut_enabled = True
+    settings.revolut_api_secret_key = "revolut-secret"
+    settings.revolut_limits.service_min_amount_sats = 0
+    settings.revolut_limits.service_max_amount_sats = 0
+    settings.revolut_limits.service_faucet_wallet_id = None
+
+    invoice_data = CreateInvoice(
+        unit="USD", amount=1.0, memo="Test", fiat_provider="revolut"
+    )
+    fiat_mock_response = FiatInvoiceResponse(
+        ok=True,
+        checking_id="order_ORDER123",
+        payment_request="https://checkout.revolut.com/payment-link/ORDER123",
+    )
+
+    mocker.patch(
+        "lnbits.fiat.RevolutWallet.create_invoice",
+        AsyncMock(return_value=fiat_mock_response),
+    )
+    mocker.patch(
+        "lnbits.utils.exchange_rates.get_fiat_rate_satoshis",
+        AsyncMock(return_value=1000),
+    )
+    payment = await payments.create_fiat_invoice(to_wallet.id, invoice_data)
+    assert payment.status == PaymentState.PENDING
+    assert payment.fiat_provider == "revolut"
+    assert payment.extra.get("fiat_checking_id") == fiat_mock_response.checking_id
+    assert payment.checking_id.startswith("fiat_revolut_order_ORDER123")
+
+
+@pytest.mark.anyio
+async def test_revolut_wallet_create_invoice(settings: Settings):
+    settings.revolut_api_endpoint = "https://sandbox-merchant.revolut.com"
+    settings.revolut_api_secret_key = "revolut-secret"
+    settings.revolut_api_version = "2026-04-20"
+    settings.revolut_payment_success_url = "https://lnbits.example/success"
+
+    wallet = RevolutWallet()
+    client = MockHTTPClient(
+        [
+            MockHTTPResponse(
+                json_data={
+                    "id": "ORDER123",
+                    "checkout_url": "https://checkout.revolut.com/payment-link/abc123",
+                }
+            )
+        ]
+    )
+    wallet.client = client  # type: ignore[assignment]
+
+    response = await wallet.create_invoice(
+        amount=1.23,
+        payment_hash="hash123",
+        currency="USD",
+        memo="LNbits Revolut invoice",
+        extra={"checkout": {"metadata": {"source": "test"}}},
+    )
+
+    assert response.ok is True
+    assert response.checking_id == "order_ORDER123"
+    assert (
+        response.payment_request == "https://checkout.revolut.com/payment-link/abc123"
+    )
+    assert client.calls[0][0] == "/api/orders"
+    payload = client.calls[0][1]["json"]
+    assert payload["amount"] == 123
+    assert payload["currency"] == "USD"
+    assert payload["metadata"]["payment_hash"] == "hash123"
+    assert payload["metadata"]["alan_action"] == "invoice"
+    assert payload["metadata"]["source"] == "test"
+    assert payload["redirect_url"] == "https://lnbits.example/success"
+
+
+@pytest.mark.anyio
+async def test_revolut_wallet_create_invoice_uses_currency_minor_units(
+    settings: Settings,
+):
+    settings.revolut_api_endpoint = "https://sandbox-merchant.revolut.com"
+    settings.revolut_api_secret_key = "revolut-secret"
+    settings.revolut_api_version = "2026-04-20"
+
+    wallet = RevolutWallet()
+    client = MockHTTPClient(
+        [
+            MockHTTPResponse(
+                json_data={
+                    "id": "ORDER_JPY",
+                    "checkout_url": "https://checkout.revolut.com/payment-link/jpy",
+                }
+            ),
+            MockHTTPResponse(
+                json_data={
+                    "id": "ORDER_KWD",
+                    "checkout_url": "https://checkout.revolut.com/payment-link/kwd",
+                }
+            ),
+        ]
+    )
+    wallet.client = client  # type: ignore[assignment]
+
+    await wallet.create_invoice(
+        amount=123,
+        payment_hash="hash_jpy",
+        currency="JPY",
+    )
+    await wallet.create_invoice(
+        amount=1.234,
+        payment_hash="hash_kwd",
+        currency="KWD",
+    )
+
+    assert client.calls[0][1]["json"]["amount"] == 123
+    assert client.calls[1][1]["json"]["amount"] == 1234
+
+
+@pytest.mark.anyio
+async def test_revolut_wallet_get_invoice_status(settings: Settings):
+    settings.revolut_api_endpoint = "https://sandbox-merchant.revolut.com"
+    settings.revolut_api_secret_key = "revolut-secret"
+    settings.revolut_api_version = "2026-04-20"
+
+    wallet = RevolutWallet()
+    client = MockHTTPClient([MockHTTPResponse(json_data={"state": "COMPLETED"})])
+    wallet.client = client  # type: ignore[assignment]
+
+    status = await wallet.get_invoice_status("fiat_revolut_order_ORDER123")
+
+    assert status.success is True
+    assert client.calls[0][0] == "/api/orders/ORDER123"
+
+
+@pytest.mark.anyio
+async def test_revolut_wallet_create_subscription(settings: Settings):
+    settings.revolut_api_endpoint = "https://sandbox-merchant.revolut.com"
+    settings.revolut_api_secret_key = "revolut-secret"
+    settings.revolut_api_version = "2026-04-20"
+    settings.revolut_payment_success_url = "https://lnbits.example/subscription-success"
+
+    wallet = RevolutWallet()
+    client = MockHTTPClient(
+        [
+            MockHTTPResponse(
+                json_data={
+                    "customers": [
+                        {
+                            "id": "CUSTOMER123",
+                            "email": "customer@example.com",
+                        }
+                    ]
+                }
+            ),
+            MockHTTPResponse(
+                json_data={
+                    "id": "SUBSCRIPTION123",
+                    "setup_order_id": "ORDER123",
+                }
+            ),
+            MockHTTPResponse(
+                json_data={
+                    "id": "ORDER123",
+                    "checkout_url": "https://checkout.revolut.com/payment-link/sub_123",
+                }
+            ),
+        ]
+    )
+    wallet.client = client  # type: ignore[assignment]
+
+    payment_options = FiatSubscriptionPaymentOptions(
+        wallet_id="wallet_1",
+        memo="Monthly Gold",
+        tag="gold",
+        customer_email="customer@example.com",
+        extra={"link": "link-1"},
+        success_url="https://lnbits.example/subscription-success",
+    )
+
+    response = await wallet.create_subscription(
+        "PLAN_VARIATION_123", 1, payment_options
+    )
+
+    assert response.ok is True
+    assert response.subscription_request_id is not None
+    assert (
+        response.checkout_session_url
+        == "https://checkout.revolut.com/payment-link/sub_123"
+    )
+    assert client.calls[0][0] == "/api/customers"
+    assert client.calls[0][1]["params"] == {"limit": 500}
+    assert client.calls[0][1]["timeout"] == 30
+    assert client.calls[1][0] == "/api/subscriptions"
+    payload = client.calls[1][1]["json"]
+    assert payload["plan_variation_id"] == "PLAN_VARIATION_123"
+    assert payload["customer_id"] == "CUSTOMER123"
+    assert client.calls[1][1]["timeout"] == 30
+    assert client.calls[1][1]["headers"]["Idempotency-Key"] == (
+        response.subscription_request_id
+    )
+    assert payload["setup_order_redirect_url"] == (
+        "https://lnbits.example/subscription-success"
+    )
+    reference = json.loads(payload["external_reference"])
+    assert reference["wallet_id"] == "wallet_1"
+    assert reference["tag"] == "gold"
+    assert reference["subscription_request_id"] == response.subscription_request_id
+    assert reference["memo"] == "Monthly Gold"
+    assert reference["extra"]["link"] == "link-1"
+    assert client.calls[2][0] == "/api/orders/ORDER123"
+
+
+@pytest.mark.anyio
+async def test_revolut_wallet_create_subscription_uses_customer_email(
+    settings: Settings,
+):
+    settings.revolut_api_endpoint = "https://sandbox-merchant.revolut.com"
+    settings.revolut_api_secret_key = "revolut-secret"
+    settings.revolut_api_version = "2026-04-20"
+
+    wallet = RevolutWallet()
+    client = MockHTTPClient(
+        [
+            MockHTTPResponse(
+                json_data={
+                    "customers": [
+                        {
+                            "id": "CUSTOMER123",
+                            "email": "customer@example.com",
+                        }
+                    ]
+                }
+            ),
+            MockHTTPResponse(
+                json_data={
+                    "id": "SUBSCRIPTION123",
+                    "setup_order_id": "ORDER123",
+                }
+            ),
+            MockHTTPResponse(
+                json_data={
+                    "id": "ORDER123",
+                    "checkout_url": "https://checkout.revolut.com/payment-link/sub_123",
+                }
+            ),
+        ]
+    )
+    wallet.client = client  # type: ignore[assignment]
+
+    payment_options = FiatSubscriptionPaymentOptions(
+        wallet_id="wallet_1",
+        customer_email="customer@example.com",
+    )
+
+    response = await wallet.create_subscription(
+        "PLAN_VARIATION_123", 1, payment_options
+    )
+
+    assert response.ok is True
+    assert client.calls[0][0] == "/api/customers"
+    assert client.calls[0][1]["params"] == {"limit": 500}
+    assert client.calls[0][1]["timeout"] == 30
+    assert client.calls[1][0] == "/api/subscriptions"
+    assert client.calls[1][1]["json"]["customer_id"] == "CUSTOMER123"
+    assert client.calls[1][1]["timeout"] == 30
+    assert client.calls[2][0] == "/api/orders/ORDER123"
+    assert client.calls[2][1]["timeout"] == 30
+
+
+@pytest.mark.anyio
+async def test_revolut_wallet_create_subscription_uses_paginated_customer_email(
+    settings: Settings,
+):
+    settings.revolut_api_endpoint = "https://sandbox-merchant.revolut.com"
+    settings.revolut_api_secret_key = "revolut-secret"
+    settings.revolut_api_version = "2026-04-20"
+
+    wallet = RevolutWallet()
+    client = MockHTTPClient(
+        [
+            MockHTTPResponse(
+                json_data={
+                    "next_page_token": "PAGE2",
+                    "customers": [
+                        {
+                            "id": "OTHER_CUSTOMER",
+                            "email": "other@example.com",
+                        }
+                    ],
+                }
+            ),
+            MockHTTPResponse(
+                json_data={
+                    "customers": [
+                        {
+                            "id": "CUSTOMER123",
+                            "email": "customer@example.com",
+                        }
+                    ],
+                }
+            ),
+            MockHTTPResponse(
+                json_data={
+                    "id": "SUBSCRIPTION123",
+                    "setup_order_id": "ORDER123",
+                }
+            ),
+            MockHTTPResponse(
+                json_data={
+                    "id": "ORDER123",
+                    "checkout_url": "https://checkout.revolut.com/payment-link/sub_123",
+                }
+            ),
+        ]
+    )
+    wallet.client = client  # type: ignore[assignment]
+
+    payment_options = FiatSubscriptionPaymentOptions(
+        wallet_id="wallet_1",
+        customer_email="customer@example.com",
+    )
+
+    response = await wallet.create_subscription(
+        "PLAN_VARIATION_123", 1, payment_options
+    )
+
+    assert response.ok is True
+    assert client.calls[0][0] == "/api/customers"
+    assert client.calls[0][1]["params"] == {"limit": 500}
+    assert client.calls[1][0] == "/api/customers"
+    assert client.calls[1][1]["params"] == {
+        "limit": 500,
+        "page_token": "PAGE2",
+    }
+    assert client.calls[1][1]["timeout"] == 30
+    assert client.calls[2][0] == "/api/subscriptions"
+    assert client.calls[2][1]["json"]["customer_id"] == "CUSTOMER123"
+    assert client.calls[3][0] == "/api/orders/ORDER123"
+
+
+@pytest.mark.anyio
+async def test_revolut_wallet_create_subscription_creates_customer(settings: Settings):
+    settings.revolut_api_endpoint = "https://sandbox-merchant.revolut.com"
+    settings.revolut_api_secret_key = "revolut-secret"
+    settings.revolut_api_version = "2026-04-20"
+
+    wallet = RevolutWallet()
+    client = MockHTTPClient(
+        [
+            MockHTTPResponse(
+                json_data={
+                    "next_page_token": "PAGE2",
+                    "customers": [
+                        {
+                            "id": "OTHER_CUSTOMER",
+                            "email": "other@example.com",
+                        }
+                    ],
+                }
+            ),
+            MockHTTPResponse(json_data={"customers": []}),
+            MockHTTPResponse(json_data={"id": "CUSTOMER123"}),
+            MockHTTPResponse(
+                json_data={
+                    "id": "SUBSCRIPTION123",
+                    "setup_order_id": "ORDER123",
+                }
+            ),
+            MockHTTPResponse(
+                json_data={
+                    "id": "ORDER123",
+                    "checkout_url": "https://checkout.revolut.com/payment-link/sub_123",
+                }
+            ),
+        ]
+    )
+    wallet.client = client  # type: ignore[assignment]
+
+    payment_options = FiatSubscriptionPaymentOptions(
+        wallet_id="wallet_1",
+        customer_email="customer@example.com",
+    )
+
+    response = await wallet.create_subscription(
+        "PLAN_VARIATION_123", 1, payment_options
+    )
+
+    assert response.ok is True
+    assert client.calls[0][0] == "/api/customers"
+    assert client.calls[0][1]["params"] == {"limit": 500}
+    assert client.calls[1][0] == "/api/customers"
+    assert client.calls[1][1]["params"] == {
+        "limit": 500,
+        "page_token": "PAGE2",
+    }
+    assert client.calls[2][0] == "/api/customers"
+    assert client.calls[2][1]["json"] == {"email": "customer@example.com"}
+    assert client.calls[2][1]["timeout"] == 30
+    assert client.calls[3][0] == "/api/subscriptions"
+    assert client.calls[3][1]["json"]["customer_id"] == "CUSTOMER123"
+    assert client.calls[4][0] == "/api/orders/ORDER123"
+
+
+@pytest.mark.anyio
+async def test_revolut_wallet_create_subscription_stops_customer_lookup_after_20_pages(
+    settings: Settings,
+):
+    settings.revolut_api_endpoint = "https://sandbox-merchant.revolut.com"
+    settings.revolut_api_secret_key = "revolut-secret"
+    settings.revolut_api_version = "2026-04-20"
+
+    wallet = RevolutWallet()
+    customer_pages = [
+        MockHTTPResponse(
+            json_data={
+                "next_page_token": f"PAGE{page + 2}",
+                "customers": [
+                    {
+                        "id": f"OTHER_CUSTOMER_{page}",
+                        "email": f"other-{page}@example.com",
+                    }
+                ],
+            }
+        )
+        for page in range(20)
+    ]
+    client = MockHTTPClient(
+        [
+            *customer_pages,
+            MockHTTPResponse(json_data={"id": "CUSTOMER123"}),
+            MockHTTPResponse(
+                json_data={
+                    "id": "SUBSCRIPTION123",
+                    "setup_order_id": "ORDER123",
+                }
+            ),
+            MockHTTPResponse(
+                json_data={
+                    "id": "ORDER123",
+                    "checkout_url": "https://checkout.revolut.com/payment-link/sub_123",
+                }
+            ),
+        ]
+    )
+    wallet.client = client  # type: ignore[assignment]
+
+    payment_options = FiatSubscriptionPaymentOptions(
+        wallet_id="wallet_1",
+        customer_email="customer@example.com",
+    )
+
+    response = await wallet.create_subscription(
+        "PLAN_VARIATION_123", 1, payment_options
+    )
+
+    assert response.ok is True
+    assert [call[0] for call in client.calls[:20]] == ["/api/customers"] * 20
+    assert client.calls[0][1]["params"] == {"limit": 500}
+    assert client.calls[19][1]["params"] == {
+        "limit": 500,
+        "page_token": "PAGE20",
+    }
+    assert client.calls[20][0] == "/api/customers"
+    assert client.calls[20][1]["json"] == {"email": "customer@example.com"}
+    assert client.calls[21][0] == "/api/subscriptions"
+    assert client.calls[21][1]["json"]["customer_id"] == "CUSTOMER123"
+    assert client.calls[22][0] == "/api/orders/ORDER123"
+
+
+@pytest.mark.anyio
+async def test_revolut_wallet_create_subscription_requires_customer_email(
+    settings: Settings,
+):
+    settings.revolut_api_endpoint = "https://sandbox-merchant.revolut.com"
+    settings.revolut_api_secret_key = "revolut-secret"
+    settings.revolut_api_version = "2026-04-20"
+
+    wallet = RevolutWallet()
+    client = MockHTTPClient([])
+    wallet.client = client  # type: ignore[assignment]
+
+    payment_options = FiatSubscriptionPaymentOptions(wallet_id="wallet_1")
+
+    response = await wallet.create_subscription(
+        "PLAN_VARIATION_123", 1, payment_options
+    )
+
+    assert response.ok is False
+    assert response.error_message == "Revolut subscriptions require customer_email."
+    assert client.calls == []
+
+
+@pytest.mark.anyio
+async def test_revolut_wallet_cancel_subscription(settings: Settings):
+    settings.revolut_api_endpoint = "https://sandbox-merchant.revolut.com"
+    settings.revolut_api_secret_key = "revolut-secret"
+    settings.revolut_api_version = "2026-04-20"
+
+    wallet = RevolutWallet()
+    client = MockHTTPClient([MockHTTPResponse(json_data={})])
+    wallet.client = client  # type: ignore[assignment]
+
+    response = await wallet.cancel_subscription("SUBSCRIPTION123", "wallet_1")
+
+    assert response.ok is True
+    assert client.calls[0][0] == "/api/subscriptions/SUBSCRIPTION123/cancel"
+
+
+@pytest.mark.anyio
+async def test_revolut_wallet_create_webhook(mocker: MockerFixture):
+    client = MockHTTPClient(
+        [
+            MockHTTPResponse({"webhooks": []}),
+            MockHTTPResponse(
+                {
+                    "id": "webhook_1",
+                    "url": "https://lnbits.example/api/v1/callback/revolut",
+                    "events": REVOLUT_WEBHOOK_EVENTS,
+                    "signing_secret": "whsec_1",
+                }
+            ),
+        ]
+    )
+    async_client = mocker.patch("lnbits.fiat.revolut.httpx.AsyncClient")
+    async_client.return_value = client
+
+    response = await RevolutWallet.create_webhook(
+        url="https://lnbits.example/api/v1/callback/revolut",
+        endpoint="https://sandbox-merchant.revolut.com",
+        api_secret_key="revolut-secret",
+        api_version="2026-04-20",
+    )
+
+    assert response["signing_secret"] == "whsec_1"
+    async_client.assert_called_once()
+    assert async_client.call_args.kwargs["base_url"] == (
+        "https://sandbox-merchant.revolut.com"
+    )
+    assert async_client.call_args.kwargs["headers"]["Authorization"] == (
+        "Bearer revolut-secret"
+    )
+    assert client.calls == [
+        (
+            "/api/webhooks",
+            {
+                "timeout": 30,
+            },
+        ),
+        (
+            "/api/webhooks",
+            {
+                "json": {
+                    "url": "https://lnbits.example/api/v1/callback/revolut",
+                    "events": REVOLUT_WEBHOOK_EVENTS,
+                },
+                "timeout": 30,
+            },
+        ),
+    ]
+
+
+@pytest.mark.anyio
+async def test_revolut_wallet_reuses_existing_webhook(mocker: MockerFixture):
+    client = MockHTTPClient(
+        [
+            MockHTTPResponse(
+                {
+                    "webhooks": [
+                        {
+                            "id": "webhook_1",
+                            "url": "https://lnbits.example/api/v1/callback/revolut",
+                            "events": REVOLUT_WEBHOOK_EVENTS,
+                            "signing_secret": "whsec_1",
+                        }
+                    ]
+                }
+            )
+        ]
+    )
+    async_client = mocker.patch("lnbits.fiat.revolut.httpx.AsyncClient")
+    async_client.return_value = client
+
+    response = await RevolutWallet.create_webhook(
+        url="https://lnbits.example/api/v1/callback/revolut",
+        endpoint="https://sandbox-merchant.revolut.com",
+        api_secret_key="revolut-secret",
+        api_version="2026-04-20",
+    )
+
+    assert response["already_exists"] is True
+    assert response["signing_secret"] == "whsec_1"
+    assert client.calls == [
+        (
+            "/api/webhooks",
+            {
+                "timeout": 30,
+            },
+        )
+    ]
+
+
+@pytest.mark.anyio
+async def test_revolut_wallet_rejects_local_webhook_url():
+    with pytest.raises(ValueError, match="clearnet URL"):
+        await RevolutWallet.create_webhook(
+            url="http://localhost:5000/api/v1/callback/revolut",
+            endpoint="https://sandbox-merchant.revolut.com",
+            api_secret_key="revolut-secret",
+            api_version="2026-04-20",
+        )
+
+
+def test_check_revolut_signature():
+    payload = b'{"event":"ORDER_COMPLETED","order_id":"ORDER123"}'
+    timestamp = str(int(time.time() * 1000))
+    secret = "revolut-secret"
+    signed_payload = b"v1." + timestamp.encode() + b"." + payload
+    sig = "v1=" + hmac.new(secret.encode(), signed_payload, hashlib.sha256).hexdigest()
+
+    check_revolut_signature(payload, sig, timestamp, secret)
+
+
+def test_check_revolut_signature_rejects_payload_only_signature():
+    payload = b'{"event":"ORDER_COMPLETED","order_id":"ORDER123"}'
+    timestamp = str(int(time.time() * 1000))
+    secret = "revolut-secret"
+    sig = hmac.new(secret.encode(), payload, hashlib.sha256).hexdigest()
+
+    with pytest.raises(ValueError, match="signature verification failed"):
+        check_revolut_signature(payload, sig, timestamp, secret)
+
+
+def test_check_revolut_signature_v1_header():
+    payload = b'{"event":"ORDER_COMPLETED","order_id":"ORDER123"}'
+    timestamp = str(int(time.time() * 1000))
+    secret = "revolut-secret"
+    signed_payload = b"v1." + timestamp.encode() + b"." + payload
+    sig = "v1=" + hmac.new(secret.encode(), signed_payload, hashlib.sha256).hexdigest()
+
+    check_revolut_signature(payload, sig, timestamp, secret)
+
+
+def test_check_revolut_signature_multiple_v1_headers():
+    payload = b'{"event":"ORDER_COMPLETED","order_id":"ORDER123"}'
+    timestamp = str(int(time.time() * 1000))
+    secret = "revolut-secret"
+    signed_payload = b"v1." + timestamp.encode() + b"." + payload
+    valid_sig = (
+        "v1=" + hmac.new(secret.encode(), signed_payload, hashlib.sha256).hexdigest()
+    )
+    sig_header = f"v1=deadbeef,{valid_sig}"
+
+    check_revolut_signature(payload, sig_header, timestamp, secret)
+
+
+def test_check_revolut_signature_docs_vector():
+    payload = (
+        b'{"data":{"id":"645a7696-22f3-aa47-9c74-cbae0449cc46",'
+        b'"new_state":"completed","old_state":"pending",'
+        b'"request_id":"app_charges-9f5d5eb3-1e06-46c5-b1c0-3914763e0bcb"},'
+        b'"event":"TransactionStateChanged",'
+        b'"timestamp":"2023-05-09T16:36:38.028960Z"}'
+    )
+    timestamp = "1683650202360"
+    secret = "wsk_r59a4HfWVAKycbCaNO1RvgCJec02gRd8"
+    sig = "v1=bca326fb378d0da7f7c490ad584a8106bab9723d8d9cdd0d50b4c5b3be3837c0"
+
+    check_revolut_signature(
+        payload, sig, timestamp, secret, tolerance_seconds=100000000
+    )
 
 
 @pytest.mark.anyio
@@ -467,6 +1595,31 @@ def test_check_stripe_signature_non_utf8_payload():
     sig_header = f"t={timestamp},v1={signature}"
     with pytest.raises(UnicodeDecodeError):
         check_stripe_signature(payload, sig_header, secret)
+
+
+def test_check_square_signature_success():
+    payload = b'{"type":"payment.updated"}'
+    secret = "signature-key"
+    notification_url = "https://lnbits.example/api/v1/callback/square"
+    signature = b64encode(
+        hmac.new(
+            key=secret.encode(),
+            msg=notification_url.encode() + payload,
+            digestmod=hashlib.sha256,
+        ).digest()
+    ).decode()
+
+    check_square_signature(payload, signature, secret, notification_url)
+
+
+def test_check_square_signature_rejects_invalid_signature():
+    with pytest.raises(ValueError, match="Square signature verification failed."):
+        check_square_signature(
+            b'{"type":"payment.updated"}',
+            "invalid-signature",
+            "signature-key",
+            "https://lnbits.example/api/v1/callback/square",
+        )
 
 
 # Helper to generate a valid Stripe signature header

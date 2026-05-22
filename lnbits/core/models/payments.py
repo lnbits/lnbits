@@ -13,6 +13,7 @@ from lnbits.db import FilterModel
 from lnbits.fiat.base import (
     FiatPaymentStatus,
 )
+from lnbits.helpers import is_valid_external_id
 from lnbits.utils.exchange_rates import allowed_currencies
 from lnbits.wallets.base import (
     PaymentStatus,
@@ -53,6 +54,11 @@ class CreatePayment(BaseModel):
     webhook: str | None = None
     fee: int = 0
     labels: list[str] | None = None
+    external_id: str | None = None
+
+    @validator("external_id")
+    def validate_external_id(cls, external_id):
+        return _validate_external_id(external_id)
 
 
 class Payment(BaseModel):
@@ -77,6 +83,11 @@ class Payment(BaseModel):
     updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     labels: list[str] = []
     extra: dict = {}
+    external_id: str | None = None
+
+    @validator("external_id")
+    def validate_external_id(cls, external_id):
+        return _validate_external_id(external_id)
 
     def __init__(self, **data):
         super().__init__(**data)
@@ -151,6 +162,7 @@ class PaymentFilters(FilterModel):
         "status",
         "time",
         "labels",
+        "external_id",
     ]
 
     __sort_fields__ = [
@@ -161,11 +173,13 @@ class PaymentFilters(FilterModel):
         "memo",
         "time",
         "tag",
+        "external_id",
     ]
 
     status: str | None
     tag: str | None
     checking_id: str | None
+    external_id: str | None
     amount: int
     fee: int
     memo: str | None
@@ -249,6 +263,7 @@ class CreateInvoice(BaseModel):
     lnurl_withdraw: LnurlWithdrawResponse | None = None
     fiat_provider: str | None = None
     labels: list[str] = []
+    external_id: str | None = Query(default=None, max_length=256)
 
     @validator("payment_hash")
     def check_hex(cls, v):
@@ -262,6 +277,10 @@ class CreateInvoice(BaseModel):
         if v != "sat" and v not in allowed_currencies():
             raise ValueError("The provided unit is not supported")
         return v
+
+    @validator("external_id")
+    def validate_external_id(cls, external_id):
+        return _validate_external_id(external_id)
 
 
 class PaymentsStatusCount(BaseModel):
@@ -301,3 +320,12 @@ class CancelInvoice(BaseModel):
 
 class UpdatePaymentLabels(BaseModel):
     labels: list[str] = []
+
+
+def _validate_external_id(external_id: str | None) -> str | None:
+    if external_id and not is_valid_external_id(external_id):
+        raise ValueError(
+            "Invalid external id. Max length is 256 characters. "
+            "Space and newlines are not allowed."
+        )
+    return external_id
