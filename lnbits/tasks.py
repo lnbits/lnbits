@@ -62,16 +62,16 @@ async def catch_everything_and_restart(
     func: Callable[[], Coroutine],
     name: str = "unnamed",
 ) -> Coroutine:
-    try:
-        return await func()
-    except asyncio.CancelledError:
-        raise  # because we must pass this up
-    except Exception as exc:
-        logger.error(f"exception in background task `{name}`:", exc)
-        logger.error(traceback.format_exc())
-        logger.error("will restart the task in 5 seconds.")
-        await asyncio.sleep(5)
-        return await catch_everything_and_restart(func, name)
+    while True:
+        try:
+            return await func()
+        except asyncio.CancelledError:
+            raise  # because we must pass this up
+        except Exception as exc:
+            logger.error(f"exception in background task `{name}`:", exc)
+            logger.error(traceback.format_exc())
+            logger.error("will restart the task in 5 seconds.")
+            await asyncio.sleep(5)
 
 
 invoice_listeners: dict[str, asyncio.Queue] = {}
