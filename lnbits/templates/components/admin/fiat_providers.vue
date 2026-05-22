@@ -1176,8 +1176,8 @@
             <q-chip dense color="positive" text-color="white" icon="check"
               >Checkout</q-chip
             >
-            <q-chip dense color="positive" text-color="white" icon="check"
-              >Subscriptions</q-chip
+            <q-chip dense color="warning" text-color="black" icon="schedule"
+              >Subscriptions coming soon</q-chip
             >
             <q-chip dense color="negative" text-color="white" icon="close"
               >Tap-to-pay</q-chip
