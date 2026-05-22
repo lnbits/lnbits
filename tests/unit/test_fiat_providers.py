@@ -221,9 +221,7 @@ async def test_create_wallet_fiat_invoice_allowed_users(
 
 
 @pytest.mark.anyio
-async def test_fiat_providers_admin_only_default(
-    to_user: User, settings: Settings
-):
+async def test_fiat_providers_admin_only_default(to_user: User, settings: Settings):
     original_admin_users = list(settings.lnbits_admin_users)
     try:
         settings.fiat_providers_admin_only = True
