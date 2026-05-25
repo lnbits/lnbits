@@ -331,7 +331,7 @@ class ExtensionMeta(BaseModel):
     payments: list[ReleasePaymentInfo] = []
     dependencies: list[str] = []
     archive: str | None = None
-    profiles: dict[str, list[str]] = {}
+    profiles: list[str] = []
     paid_features: str | None = None
     has_paid_release: bool = False
     has_free_release: bool = False
@@ -678,7 +678,11 @@ class InstallableExtension(BaseModel):
                         continue
 
                     meta = ext.meta or ExtensionMeta()
-                    meta.profiles = manifest.profiles
+                    meta.profiles = [
+                        profile
+                        for profile, ext_ids in manifest.profiles.items()
+                        if ext.id in ext_ids
+                    ]
                     ext.meta = meta
                     extension_list += [ext]
 
@@ -693,7 +697,11 @@ class InstallableExtension(BaseModel):
                     ext = InstallableExtension.from_explicit_release(e)
                     ext.check_release_updates(release)
                     meta = ext.meta or ExtensionMeta()
-                    meta.profiles = manifest.profiles
+                    meta.profiles = [
+                        profile
+                        for profile, ext_ids in manifest.profiles.items()
+                        if ext.id in ext_ids
+                    ]
                     ext.meta = meta
                     extension_list += [ext]
             except Exception as e:
