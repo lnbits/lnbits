@@ -38,10 +38,10 @@ async def migrate_extension_database(
         await run_migration(ext_conn, ext_migrations, ext.id, current_version)
 
 
-def get_extension_type(ext_id: str, ext_dir: str | None = None) -> str | None:
+def get_extension_type(ext_id: str, ext_dir: Path | None = None) -> str | None:
     candidate_dirs = []
     if ext_dir:
-        candidate_dirs.append(Path(ext_dir))
+        candidate_dirs.append(ext_dir)
     candidate_dirs.extend(
         [
             Path(settings.lnbits_extensions_path, "extensions", ext_id),

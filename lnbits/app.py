@@ -447,6 +447,10 @@ def register_ext_routes(app: FastAPI, ext: Extension) -> None:
                 try:
                     module = importlib.import_module(module_name)
                 except Exception:
+                    logger.warning(
+                        f"Could not import module {module_name} for wasm extension "
+                        f"{ext.code}."
+                    )
                     continue
                 register_wasm_ext_routes = getattr(
                     module, "register_wasm_ext_routes", None
