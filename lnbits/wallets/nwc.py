@@ -88,6 +88,8 @@ class NWCWallet(Wallet):
                         payment_data = await self.conn.call(
                             "lookup_invoice", {"payment_hash": payment["checking_id"]}
                         )
+                        if payment_data.get("payment_hash") != payment["checking_id"]:
+                            raise Exception("Mismatched payment hash")
                         settled = (
                             "settled_at" in payment_data
                             and payment_data["settled_at"]
@@ -264,6 +266,8 @@ class NWCWallet(Wallet):
                 payment_data = await self.conn.call(
                     "lookup_invoice", {"payment_hash": checking_id}
                 )
+                if payment_data.get("payment_hash") != checking_id:
+                    raise Exception("Mismatched payment hash")
                 settled = payment_data.get("settled_at", None) and payment_data.get(
                     "preimage", None
                 )
@@ -520,8 +524,9 @@ class NWCConnection:
         """
         sub_id = cast(str, msg[1])
         event = cast(dict, msg[2])
-        if not verify_event(event):  # Ensure the event is valid (do not trust relays)
-            raise Exception("Invalid event signature")
+        # Ensure the event is valid (do not trust relays)
+        if not verify_event(event) or event.get("pubkey") != self.service_pubkey_hex:
+            raise Exception("Invalid event")
         tags = event["tags"]
         if event["kind"] == 13194:  # An info event
             # info events are handled specially,
@@ -687,6 +692,7 @@ class NWCConnection:
             "#p": [self.account_public_key_hex],
             "#e": [event["id"]],
             "since": event["created_at"],
+            "authors": [self.service_pubkey_hex],
         }
         sub_id = self._get_new_subid()
         # register a future to receive the response asynchronously
