@@ -212,12 +212,15 @@ body.bg-image .q-page-container {
   backdrop-filter: none; /* Ensure the page content is not affected */
 }
 
-body.body--dark .q-card:not(.q-dialog .q-card, .lnbits__dialog-card, .q-dialog-plugin--dark),
+body.body--dark .q-card:not(.q-dialog .q-card, .lnbits__dialog-card, .q-dialog-plugin--dark) {
+  --q-dark: rgba(29, 29, 29, 0.3);
+  background-color: var(--q-dark);
+}
 body.body--dark .q-header,
 body.body--dark .q-drawer {
   --q-dark: rgba(29, 29, 29, 0.3);
   background-color: var(--q-dark);
-  backdrop-filter: blur(6px) brightness(0.8);
+  backdrop-filter: brightness(0.8);
 }
 
 body.rounded-ui .q-card,
@@ -388,11 +391,11 @@ body[data-theme=salvador].card-gradient.body--dark .q-drawer {
 }
 
 body.card-shadow .q-card:not(.q-dialog .q-card, .lnbits__dialog-card, .q-dialog-plugin--dark) {
-  filter: drop-shadow(0 10px 24px rgba(0, 0, 0, 0.18));
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.18);
 }
 
 body.card-shadow.body--dark .q-card:not(.q-dialog .q-card, .lnbits__dialog-card, .q-dialog-plugin--dark) {
-  filter: drop-shadow(0 12px 28px rgba(0, 0, 0, 0.45));
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.45);
 }
 
 body.no-burger-background .q-drawer {
