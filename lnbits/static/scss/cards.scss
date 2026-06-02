@@ -61,13 +61,13 @@ body.rounded-ui {
 
 body.card-shadow {
   .q-card:not(.q-dialog .q-card, .lnbits__dialog-card, .q-dialog-plugin--dark) {
-    filter: drop-shadow(0 10px 24px rgba(0, 0, 0, 0.18));
+    box-shadow: 0 10px 24px rgba(0, 0, 0, 0.18);
   }
 }
 
 body.card-shadow.body--dark {
   .q-card:not(.q-dialog .q-card, .lnbits__dialog-card, .q-dialog-plugin--dark) {
-    filter: drop-shadow(0 12px 28px rgba(0, 0, 0, 0.45));
+    box-shadow: 0 12px 28px rgba(0, 0, 0, 0.45);
   }
 }
 
