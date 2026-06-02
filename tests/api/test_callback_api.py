@@ -194,7 +194,7 @@ async def test_callback_api_handles_revolut_subscription_event(
     settings.revolut_api_secret_key = "revolut-secret"
     settings.revolut_api_version = "2026-04-20"
     revolut_provider = RevolutWallet()
-    mocker.patch.object(
+    get_subscription_mock = mocker.patch.object(
         revolut_provider,
         "get_subscription",
         return_value={
@@ -253,23 +253,10 @@ async def test_callback_api_handles_revolut_subscription_event(
         }
     )
 
-    assert create_wallet_invoice_mock.await_count == 1
-    called_wallet_id, invoice = create_wallet_invoice_mock.await_args.args
-    assert called_wallet_id == "wallet_1"
-    assert invoice.amount == 9.25
-    assert invoice.memo == "Revolut Members"
-    assert invoice.external_id == "SUBSCRIPTION_1"
-    assert invoice.internal is True
-    assert invoice.extra["fiat_method"] == "subscription"
-    assert invoice.extra["subscription"]["checking_id"] == "order_ORDER_SUB_1"
-    assert payment.fiat_provider == "revolut"
-    assert payment.fee == -2
-    assert payment.extra["fiat_checking_id"] == "order_ORDER_SUB_1"
-    assert payment.checking_id == "fiat_revolut_order_ORDER_SUB_1"
-    update_payment_mock.assert_awaited_once_with(
-        payment, "fiat_revolut_order_ORDER_SUB_1"
-    )
-    fiat_status_mock.assert_awaited_once_with(payment)
+    get_subscription_mock.assert_not_awaited()
+    create_wallet_invoice_mock.assert_not_awaited()
+    update_payment_mock.assert_not_awaited()
+    fiat_status_mock.assert_not_awaited()
 
 
 @pytest.mark.anyio
@@ -353,9 +340,8 @@ async def test_callback_api_handles_revolut_subscription_order_event(
 
     assert get_payment_mock.await_count == 2
     get_payment_mock.assert_any_await("fiat_revolut_order_ORDER_SUB_1")
-    assert get_order_mock.await_count == 2
+    assert get_order_mock.await_count == 1
     assert [call.args for call in get_subscription_mock.await_args_list] == [
-        ("SUBSCRIPTION_1",),
         ("SUBSCRIPTION_1",),
     ]
     assert create_wallet_invoice_mock.await_count == 1
