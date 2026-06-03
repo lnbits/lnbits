@@ -16,7 +16,7 @@
     "clean-css-cli": "^5.6.3",
     "concat": "^1.0.3",
     "prettier": "^3.8.3",
-    "pyright": "1.1.289",
+    "pyright": "1.1.409",
     "sass": "^1.99.0",
     "terser": "^5.47.1"
   },

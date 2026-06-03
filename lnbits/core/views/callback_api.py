@@ -384,23 +384,6 @@ async def handle_revolut_event(event: dict):
     logger.warning(f"Unhandled Revolut event type: '{event_type}'.")
 
 
-async def _handle_revolut_subscription_initiated(event: dict):
-    subscription_id = event.get("subscription_id")
-    if not subscription_id:
-        subscription_id = event.get("id")
-
-    if not subscription_id:
-        logger.warning("Revolut subscription event missing subscription_id.")
-        return
-
-    fiat_provider = await _get_revolut_provider()
-    if not fiat_provider:
-        return
-
-    subscription = await fiat_provider.get_subscription(subscription_id)
-    await _handle_revolut_subscription(subscription, fiat_provider)
-
-
 async def _get_revolut_provider() -> RevolutWallet | None:
     fiat_provider = await get_fiat_provider("revolut")
     if not isinstance(fiat_provider, RevolutWallet):

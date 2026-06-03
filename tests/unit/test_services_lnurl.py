@@ -1,3 +1,4 @@
+from typing import cast
 from uuid import uuid4
 
 import pytest
@@ -86,7 +87,9 @@ async def test_get_pr_from_lnurl_success_and_error(mocker: MockerFixture):
     mocker.patch(
         "lnbits.core.services.lnurl.execute_pay_request",
         mocker.AsyncMock(
-            return_value=LnurlPayActionResponse(pr=LightningInvoice(TEST_BOLT11))
+            return_value=LnurlPayActionResponse(
+                pr=cast(LightningInvoice, LightningInvoice(TEST_BOLT11))
+            )
         ),
     )
 
@@ -106,7 +109,7 @@ async def test_fetch_lnurl_pay_request_converts_currency_and_stores_paylink(
 ):
     pay_response = make_lnurl_pay_response(min_sendable_msat=1, text="Test")
     action_response = LnurlPayActionResponse(
-        pr=LightningInvoice(TEST_BOLT11), disposable=False
+        pr=cast(LightningInvoice, LightningInvoice(TEST_BOLT11)), disposable=False
     )
     mocker.patch(
         "lnbits.core.services.lnurl.fiat_amount_as_satoshis",
@@ -143,7 +146,7 @@ async def test_store_paylink_appends_and_updates_existing():
     wallet = await _create_wallet()
     pay_response = make_lnurl_pay_response(min_sendable_msat=1, text="Test")
     action_response = LnurlPayActionResponse(
-        pr=LightningInvoice(TEST_BOLT11), disposable=False
+        pr=cast(LightningInvoice, LightningInvoice(TEST_BOLT11)), disposable=False
     )
 
     await store_paylink(
