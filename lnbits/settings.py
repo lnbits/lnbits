@@ -1047,7 +1047,7 @@ class EditableSettings(
 
 
 class UpdateSettings(EditableSettings):
-    class Config:
+    class Config(EditableSettings.Config):
         extra = Extra.forbid
 
 
@@ -1198,11 +1198,11 @@ class ReadOnlySettings(
 
 
 class Settings(EditableSettings, ReadOnlySettings, TransientSettings, BaseSettings):
-    class Config:
+    class Config(EditableSettings.Config, BaseSettings.Config):  # type: ignore[misc]
         env_file = ".env"
         env_file_encoding = "utf-8"
         case_sensitive = False
-        json_loads = list_parse_fallback
+        json_loads = list_parse_fallback  # type: ignore[assignment]
 
     def is_user_allowed(self, user_id: str) -> bool:
         return (

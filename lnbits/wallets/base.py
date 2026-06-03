@@ -94,15 +94,15 @@ class PaymentStatus(NamedTuple):
 
 
 class PaymentSuccessStatus(PaymentStatus):
-    paid = True
+    paid = True  # type: ignore[reportIncompatibleVariableOverride]
 
 
 class PaymentFailedStatus(PaymentStatus):
-    paid = False
+    paid = False  # type: ignore[reportIncompatibleVariableOverride]
 
 
 class PaymentPendingStatus(PaymentStatus):
-    paid = None
+    paid = None  # type: ignore[reportIncompatibleVariableOverride]
 
 
 class Wallet(ABC):

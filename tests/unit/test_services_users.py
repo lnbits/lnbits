@@ -1,3 +1,4 @@
+from typing import Any
 from uuid import uuid4
 
 import pytest
@@ -66,7 +67,7 @@ async def test_create_user_account_no_check_rejects_duplicate_identity_fields(
     existing = _account(**existing_data)
     await create_account(existing)
 
-    resolved = {
+    resolved: dict[str, Any] = {
         key: (value(existing) if callable(value) else value)
         for key, value in new_data.items()
     }

@@ -118,7 +118,7 @@ class LndWallet(Wallet):
 
         cert = open(cert_path, "rb").read()
         creds = grpc.ssl_channel_credentials(cert)
-        auth_creds = grpc.metadata_call_credentials(self.metadata_callback)
+        auth_creds = grpc.metadata_call_credentials(self.metadata_callback)  # type: ignore[reportArgumentType]
         composite_creds = grpc.composite_channel_credentials(creds, auth_creds)
         channel = grpc.aio.secure_channel(
             f"{self.endpoint}:{self.port}", composite_creds

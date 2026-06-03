@@ -103,7 +103,7 @@ class FakeWallet(Wallet):
             preimage=preimage.hex(),
         )
 
-    async def pay_invoice(self, bolt11: str, _: int) -> PaymentResponse:
+    async def pay_invoice(self, bolt11: str, fee_limit_msat: int) -> PaymentResponse:
         try:
             invoice = decode(bolt11)
         except Bolt11Exception as exc:
@@ -130,7 +130,7 @@ class FakeWallet(Wallet):
             return PaymentPendingStatus()
         return PaymentFailedStatus()
 
-    async def get_payment_status(self, _: str) -> PaymentStatus:
+    async def get_payment_status(self, checking_id: str) -> PaymentStatus:
         return PaymentPendingStatus()
 
     async def paid_invoices_stream(self) -> AsyncGenerator[str, None]:

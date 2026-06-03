@@ -1,3 +1,5 @@
+from typing import Any
+
 import pytest
 from pytest_mock.plugin import MockerFixture
 
@@ -14,22 +16,22 @@ from lnbits.settings import (
     set_cli_settings,
 )
 
-lnurlp_redirect_path = {
+lnurlp_redirect_path: dict[str, Any] = {
     "from_path": "/.well-known/lnurlp",
     "redirect_to_path": "/api/v1/well-known",
 }
-lnurlp_redirect_path_with_headers = {
+lnurlp_redirect_path_with_headers: dict[str, Any] = {
     "from_path": "/.well-known/lnurlp",
     "redirect_to_path": "/api/v1/well-known",
     "header_filters": {"accept": "application/nostr+json"},
 }
 
-lnaddress_redirect_path = {
+lnaddress_redirect_path: dict[str, Any] = {
     "from_path": "/.well-known/lnurlp",
     "redirect_to_path": "/api/v1/well-known",
 }
 
-nostrrelay_redirect_path = {
+nostrrelay_redirect_path: dict[str, Any] = {
     "from_path": "/",
     "redirect_to_path": "/api/v1/relay-info",
     "header_filters": {"accept": "application/nostr+json"},
