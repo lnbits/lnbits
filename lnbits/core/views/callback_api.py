@@ -357,16 +357,20 @@ async def handle_revolut_event(event: dict):
             return
 
         payment = await get_standalone_payment(f"fiat_revolut_order_{order_id}")
-        if not payment:
+        if payment:
+            await check_fiat_status(payment)
+            return
+
+        if event_type == "ORDER_COMPLETED":
             logger.warning(f"No payment found for Revolut order: '{order_id}'.")
             await _handle_revolut_subscription_order_paid(order_id)
             return
 
-        await check_fiat_status(payment)
+        logger.info(f"Ignoring Revolut authorised order without payment: '{order_id}'.")
         return
 
     if event_type == "SUBSCRIPTION_INITIATED":
-        await _handle_revolut_subscription_initiated(event)
+        logger.info("Revolut subscription initiated event received.")
         return
 
     if event_type in [
@@ -380,23 +384,6 @@ async def handle_revolut_event(event: dict):
     logger.warning(f"Unhandled Revolut event type: '{event_type}'.")
 
 
-async def _handle_revolut_subscription_initiated(event: dict):
-    subscription_id = event.get("subscription_id")
-    if not subscription_id:
-        subscription_id = event.get("id")
-
-    if not subscription_id:
-        logger.warning("Revolut subscription event missing subscription_id.")
-        return
-
-    fiat_provider = await _get_revolut_provider()
-    if not fiat_provider:
-        return
-
-    subscription = await fiat_provider.get_subscription(subscription_id)
-    await _handle_revolut_subscription(subscription, fiat_provider)
-
-
 async def _get_revolut_provider() -> RevolutWallet | None:
     fiat_provider = await get_fiat_provider("revolut")
     if not isinstance(fiat_provider, RevolutWallet):
@@ -406,7 +393,10 @@ async def _get_revolut_provider() -> RevolutWallet | None:
 
 
 async def _handle_revolut_subscription(
-    subscription: dict, fiat_provider: RevolutWallet
+    subscription: dict,
+    fiat_provider: RevolutWallet,
+    order_id: str | None = None,
+    order: dict | None = None,
 ):
     subscription_id = subscription.get("id")
     if not subscription_id:
@@ -420,16 +410,17 @@ async def _handle_revolut_subscription(
         logger.warning("Revolut subscription event missing LNbits metadata.")
         return
 
-    cycle_id = subscription.get("current_cycle_id")
-    if not cycle_id:
-        logger.warning("Revolut subscription missing current_cycle_id.")
-        return
-
-    cycle = await fiat_provider.get_subscription_cycle(subscription_id, cycle_id)
-    order_id = cycle.get("order_id")
     if not order_id:
-        logger.warning("Revolut subscription cycle missing order_id.")
-        return
+        cycle_id = subscription.get("current_cycle_id")
+        if not cycle_id:
+            logger.warning("Revolut subscription missing current_cycle_id.")
+            return
+
+        cycle = await fiat_provider.get_subscription_cycle(subscription_id, cycle_id)
+        order_id = cycle.get("order_id")
+        if not order_id:
+            logger.warning("Revolut subscription cycle missing order_id.")
+            return
 
     existing_payment = await get_standalone_payment(f"fiat_revolut_order_{order_id}")
     if existing_payment:
@@ -439,7 +430,8 @@ async def _handle_revolut_subscription(
         await check_fiat_status(existing_payment)
         return
 
-    order = await fiat_provider.get_order(order_id)
+    if not order:
+        order = await fiat_provider.get_order(order_id)
     amount_minor = order.get("amount")
     currency = (order.get("currency") or "").upper()
     if amount_minor is None or not currency:
@@ -475,7 +467,9 @@ async def _handle_revolut_subscription_order_paid(order_id: str):
         return
 
     order = await fiat_provider.get_order(order_id)
-    if order.get("type") != "payment" or order.get("state") != "completed":
+    order_type = (order.get("type") or "").lower()
+    order_state = (order.get("state") or "").upper()
+    if order_type != "payment" or order_state != "COMPLETED":
         logger.warning(f"Revolut order is not a completed payment: '{order_id}'.")
         return
 
@@ -490,7 +484,9 @@ async def _handle_revolut_subscription_order_paid(order_id: str):
         logger.warning(f"Revolut subscription is not active: '{subscription_id}'.")
         return
 
-    await _handle_revolut_subscription_initiated(subscription)
+    await _handle_revolut_subscription(
+        subscription, fiat_provider, order_id=order_id, order=order
+    )
 
 
 async def _create_revolut_subscription_payment(
