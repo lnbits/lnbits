@@ -72,8 +72,42 @@ async def test_auth_api_sso_login_and_callback(http_client: AsyncClient, mocker)
     login_sso = _FakeSSO()
     mocker.patch("lnbits.core.views.auth_api._new_sso", return_value=login_sso)
 
-    response = await http_client.get(
+    unauthenticated = await http_client.get(
         f"/api/v1/auth/{provider}", params={"user_id": user.id}
+    )
+    assert unauthenticated.status_code == 403
+    assert unauthenticated.json()["detail"] == "User ID mismatch."
+
+    other_user = await create_user_account(
+        Account(
+            id=uuid4().hex,
+            username=f"user_{uuid4().hex[:8]}",
+            email=f"user_{uuid4().hex[:8]}@lnbits.com",
+        )
+    )
+    other_login = await http_client.post(
+        "/api/v1/auth/usr", json={"usr": other_user.id}
+    )
+    http_client.cookies.clear()
+    assert other_login.status_code == 200
+    other_headers = {
+        "Authorization": f"Bearer {other_login.json()['access_token']}",
+    }
+    wrong_user = await http_client.get(
+        f"/api/v1/auth/{provider}",
+        params={"user_id": user.id},
+        headers=other_headers,
+    )
+    assert wrong_user.status_code == 403
+    assert wrong_user.json()["detail"] == "User ID mismatch."
+
+    login = await http_client.post("/api/v1/auth/usr", json={"usr": user.id})
+    http_client.cookies.clear()
+    assert login.status_code == 200
+    headers = {"Authorization": f"Bearer {login.json()['access_token']}"}
+
+    response = await http_client.get(
+        f"/api/v1/auth/{provider}", params={"user_id": user.id}, headers=headers
     )
     assert response.status_code == 307
     assert response.headers["location"] == "https://example.com/sso/login"
