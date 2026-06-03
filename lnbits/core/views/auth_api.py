@@ -36,6 +36,7 @@ from lnbits.decorators import (
     check_account_exists,
     check_admin,
     check_user_exists,
+    optional_user_id,
 )
 from lnbits.helpers import (
     create_access_token,
@@ -320,7 +321,10 @@ async def api_delete_user_api_token(
 
 @auth_router.get("/{provider}", description="SSO Provider")
 async def login_with_sso_provider(
-    request: Request, provider: str, user_id: str | None = None
+    request: Request,
+    provider: str,
+    user_id: str | None,
+    auth_user_id: str | None = Depends(optional_user_id),
 ):
     provider_sso = _new_sso(provider)
     if not provider_sso:
@@ -328,6 +332,8 @@ async def login_with_sso_provider(
             HTTPStatus.FORBIDDEN,
             f"Login by '{provider}' not allowed.",
         )
+    if user_id and user_id != auth_user_id:
+        raise HTTPException(HTTPStatus.FORBIDDEN, "User ID mismatch.")
 
     provider_sso.redirect_uri = str(request.base_url) + f"api/v1/auth/{provider}/token"
     with provider_sso:
