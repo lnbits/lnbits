@@ -224,9 +224,9 @@ class ElectrumClient:
         await self._writer.drain()
         try:
             return await asyncio.wait_for(asyncio.shield(fut), timeout=timeout)
-        except asyncio.TimeoutError:
+        except asyncio.TimeoutError as exc:
             self._pending.pop(req_id, None)
-            raise ElectrumError(f"Timeout waiting for response to {method!r}")
+            raise ElectrumError(f"Timeout waiting for response to {method!r}") from exc
 
     def _dispatch(self, msg: dict[str, Any]) -> None:
         msg_id = msg.get("id")
