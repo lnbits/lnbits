@@ -45,9 +45,10 @@ def send_to_address(address: str, sats: int) -> str:
 
 async def wait_for_electrs(height: int, timeout: float = 15.0) -> None:
     """Poll electrs HTTP until it has indexed up to `height`."""
-    deadline = asyncio.get_event_loop().time() + timeout
+    loop = asyncio.get_running_loop()
+    deadline = loop.time() + timeout
     async with httpx.AsyncClient() as http:
-        while asyncio.get_event_loop().time() < deadline:
+        while loop.time() < deadline:
             try:
                 r = await http.get(f"{ELECTRS_HTTP}/blocks/tip/height", timeout=2)
                 if int(r.text) >= height:

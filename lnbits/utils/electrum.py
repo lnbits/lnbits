@@ -155,16 +155,19 @@ class ElectrumClient:
         self.server_version: str = ""
         self.negotiated_protocol: str = ""
 
-    async def connect(self) -> None:
+    async def connect(self, timeout: float = 10.0) -> None:
         ssl_ctx: ssl.SSLContext | None = None
         if self.use_ssl:
             ssl_ctx = ssl.create_default_context()
-        self._reader, self._writer = await asyncio.open_connection(
-            self.host, self.port, ssl=ssl_ctx, limit=4 * 1024 * 1024
+        self._reader, self._writer = await asyncio.wait_for(
+            asyncio.open_connection(
+                self.host, self.port, ssl=ssl_ctx, limit=4 * 1024 * 1024
+            ),
+            timeout=timeout,
         )
         self._recv_task = asyncio.create_task(self._recv_loop())
         result = await self._call(
-            "server.version", [self.client_name, self.protocol_version]
+            "server.version", [self.client_name, self.protocol_version], timeout=timeout
         )
         self.server_version, self.negotiated_protocol = result[0], result[1]
         logger.debug(
@@ -197,7 +200,10 @@ class ElectrumClient:
     # ---- internal plumbing ----
 
     async def _call(
-        self, method: str, params: list[Any] | dict[str, Any] | None = None
+        self,
+        method: str,
+        params: list[Any] | dict[str, Any] | None = None,
+        timeout: float = 30.0,
     ) -> Any:
         if not self._writer:
             raise ElectrumError("Not connected")
@@ -216,7 +222,11 @@ class ElectrumClient:
             + b"\n"
         )
         await self._writer.drain()
-        return await fut
+        try:
+            return await asyncio.wait_for(asyncio.shield(fut), timeout=timeout)
+        except asyncio.TimeoutError:
+            self._pending.pop(req_id, None)
+            raise ElectrumError(f"Timeout waiting for response to {method!r}")
 
     def _dispatch(self, msg: dict[str, Any]) -> None:
         msg_id = msg.get("id")
