@@ -66,7 +66,7 @@ jobs:
           BOLTZ_MNEMONIC: abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about
           LNBITS_MAX_OUTGOING_PAYMENT_AMOUNT_SATS: 1000000000
           LNBITS_MAX_INCOMING_PAYMENT_AMOUNT_SATS: 1000000000
-          LNBITS_FUNDING_SOURCE_PAY_INVOICE_WAIT_SECONDS: ${{ inputs.backend-wallet-class == 'CoreLightningRestWallet' && 15 || 5 }}
+          LNBITS_FUNDING_SOURCE_PAY_INVOICE_WAIT_SECONDS: ${{ inputs.backend-wallet-class == 'CoreLightningRestWallet' && 60 || 5 }}
           ECLAIR_PASS: lnbits
           PYTHONUNBUFFERED: 1
           DEBUG: true
