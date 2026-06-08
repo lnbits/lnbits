@@ -183,8 +183,10 @@ class ElectrumClient:
                 task.cancel()
                 try:
                     await task
-                except (asyncio.CancelledError, Exception):
+                except asyncio.CancelledError:
                     pass
+                except Exception:
+                    logger.debug("Electrum: error while cancelling task")
         self._ping_task = None
         self._recv_task = None
         if self._writer:
