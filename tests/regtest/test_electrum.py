@@ -12,45 +12,35 @@ from loguru import logger
 
 from lnbits.utils.electrum import ElectrumClient, scripthash_from_scriptpubkey
 
-from .helpers import run_cmd, run_cmd_json
+from .helpers import docker_bitcoin_cli, run_cmd, run_cmd_json
 
 ELECTRS_HOST = "localhost"
 ELECTRS_PORT = 19001
 ELECTRS_HTTP = "http://localhost:3002"
 
-# bitcoind in the regtest stack uses cookie auth (no -rpcuser/-rpcpassword)
-BITCOIN_CLI = [
-    "docker",
-    "exec",
-    "lnbits-bitcoind-1",
-    "bitcoin-cli",
-    "-rpccookiefile=/root/.bitcoin/regtest/.cookie",
-    "-regtest",
-]
-
 
 def bitcoin_height() -> int:
-    return run_cmd_json([*BITCOIN_CLI, "getblockchaininfo"])["blocks"]
+    return run_cmd_json([*docker_bitcoin_cli, "getblockchaininfo"])["blocks"]
 
 
 def mine_blocks(n: int = 1) -> int:
     """Mine n blocks and return the new chain height."""
-    run_cmd([*BITCOIN_CLI, "-generate", str(n)])
+    run_cmd([*docker_bitcoin_cli, "-generate", str(n)])
     return bitcoin_height()
 
 
 def new_address() -> str:
-    return run_cmd([*BITCOIN_CLI, "getnewaddress", "bech32"])
+    return run_cmd([*docker_bitcoin_cli, "getnewaddress", "bech32"])
 
 
 def get_scriptpubkey(address: str) -> bytes:
-    info = run_cmd_json([*BITCOIN_CLI, "getaddressinfo", address])
+    info = run_cmd_json([*docker_bitcoin_cli, "getaddressinfo", address])
     return bytes.fromhex(info["scriptPubKey"])
 
 
 def send_to_address(address: str, sats: int) -> str:
     btc = f"{sats * 1e-8:.8f}"
-    return run_cmd([*BITCOIN_CLI, "sendtoaddress", address, btc])
+    return run_cmd([*docker_bitcoin_cli, "sendtoaddress", address, btc])
 
 
 async def wait_for_electrs(height: int, timeout: float = 15.0) -> None:
