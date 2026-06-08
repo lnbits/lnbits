@@ -15,7 +15,12 @@ from lnbits.core.services import create_invoice, create_user_account, pay_invoic
 from lnbits.core.services.payments import update_wallet_balance
 from lnbits.exceptions import InvoiceError, PaymentError
 from lnbits.settings import Settings
-from lnbits.tasks import create_task, wait_for_paid_invoices
+from lnbits.tasks import (
+    create_task,
+    internal_invoice_listener,
+    internal_invoice_queue,
+    wait_for_paid_invoices,
+)
 from lnbits.wallets.base import PaymentResponse
 from lnbits.wallets.fake import FakeWallet
 
@@ -231,7 +236,15 @@ async def test_notification_for_internal_payment(
 ):
     test_name = "test_notification_for_internal_payment"
 
+    # Drain stale items left by session-scoped fixtures (e.g. update_wallet_balance)
+    while not internal_invoice_queue.empty():
+        try:
+            internal_invoice_queue.get_nowait()
+        except asyncio.QueueEmpty:
+            break
+
     on_paid_mock = mocker.AsyncMock()
+    create_task(internal_invoice_listener())
     create_task(wait_for_paid_invoices(test_name, on_paid_mock)())
     payment = await create_invoice(
         wallet_id=to_wallet.id,

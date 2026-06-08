@@ -779,8 +779,11 @@ async def _pay_internal_invoice(
     logger.success(f"internal payment successful {internal_payment.checking_id}")
 
     await _send_payment_notification_in_background(wallet.id, payment, conn=conn)
+    await _send_payment_notification_in_background(
+        internal_payment.wallet_id, internal_payment, conn=conn
+    )
 
-    # notify receiver asynchronously
+    # notify receiver asynchronously (extension listeners)
     from lnbits.tasks import internal_invoice_queue
 
     logger.debug(f"enqueuing internal invoice {internal_payment.checking_id}")
