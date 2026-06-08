@@ -241,6 +241,7 @@ class InstalledExtensionsSettings(LNbitsSettings):
 
 class ExchangeHistorySettings(LNbitsSettings):
     lnbits_exchange_rate_history: list[dict] = Field(default=[])
+    lnbits_exchange_rates: dict[str, float] = Field(default_factory=dict)
 
     def append_exchange_rate_datapoint(self, rates: dict, max_size: int):
         data = {
@@ -250,6 +251,12 @@ class ExchangeHistorySettings(LNbitsSettings):
         self.lnbits_exchange_rate_history.append(data)
         if len(self.lnbits_exchange_rate_history) > max_size:
             self.lnbits_exchange_rate_history.pop(0)
+
+    def get_exchange_rate(self, currency: str) -> float:
+        return self.lnbits_exchange_rates.get(currency.upper(), 0.0)
+
+    def set_exchange_rate(self, currency: str, price: float) -> None:
+        self.lnbits_exchange_rates[currency.upper()] = price
 
 
 class ThemesSettings(LNbitsSettings):
