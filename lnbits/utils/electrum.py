@@ -181,17 +181,27 @@ class ElectrumClient:
         for task in (self._ping_task, self._recv_task):
             if task:
                 task.cancel()
+                try:
+                    await task
+                except (asyncio.CancelledError, Exception):
+                    pass
+        self._ping_task = None
+        self._recv_task = None
         if self._writer:
             self._writer.close()
             try:
-                await self._writer.wait_closed()
+                await asyncio.wait_for(self._writer.wait_closed(), timeout=5.0)
             except Exception:
                 logger.debug("Electrum: error while closing writer")
         self._reader = None
         self._writer = None
 
     async def __aenter__(self) -> "ElectrumClient":
-        await self.connect()
+        try:
+            await self.connect()
+        except BaseException:
+            await self.close()
+            raise
         return self
 
     async def __aexit__(self, *_: Any) -> None:
