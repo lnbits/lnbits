@@ -62,7 +62,7 @@ async def wait_for_electrs(height: int, timeout: float = 15.0) -> None:
 @pytest.fixture(scope="module", autouse=True)
 async def wait_after_electrum_tests():
     yield
-    await asyncio.sleep(5)
+    await asyncio.sleep(1)
 
 
 @pytest.mark.anyio
