@@ -59,6 +59,12 @@ async def wait_for_electrs(height: int, timeout: float = 15.0) -> None:
     raise TimeoutError(f"electrs did not reach height {height} within {timeout}s")
 
 
+@pytest.fixture(scope="module", autouse=True)
+async def wait_after_electrum_tests():
+    yield
+    await asyncio.sleep(5)
+
+
 @pytest.mark.anyio
 async def test_connect_and_height():
     async with ElectrumClient(f"tcp://{ELECTRS_HOST}:{ELECTRS_PORT}") as client:
