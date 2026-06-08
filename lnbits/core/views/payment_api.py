@@ -291,9 +291,26 @@ async def api_update_payment_labels(
     if not account:
         raise HTTPException(HTTPStatus.NOT_FOUND, "Account does not exist.")
 
-    # only keep labels that belong to the user
+    from lnbits.core.models.users import UserLabel
+    from lnbits.core.services.users import update_user_account
+    from lnbits.helpers import is_valid_label
+
     user_label_names = [label.name for label in account.extra.labels]
-    payment.labels = [label for label in data.labels if label in user_label_names]
+    updated_account = False
+    for label_name in data.labels:
+        if label_name not in user_label_names:
+            if not is_valid_label(label_name):
+                raise HTTPException(
+                    HTTPStatus.BAD_REQUEST, f"Invalid label name: '{label_name}'."
+                )
+            account.extra.labels.append(UserLabel(name=label_name, color="#7f7f7f"))
+            user_label_names.append(label_name)
+            updated_account = True
+
+    if updated_account:
+        await update_user_account(account)
+
+    payment.labels = data.labels
     await update_payment(payment)
     return SimpleStatus(success=True, message="Payment labels updated.")
 
