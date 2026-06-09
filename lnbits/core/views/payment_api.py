@@ -37,8 +37,9 @@ from lnbits.core.models import (
     UpdatePaymentExtra,
 )
 from lnbits.core.models.payments import UpdatePaymentLabels
-from lnbits.core.models.users import AccountId
+from lnbits.core.models.users import AccountId, UserLabel
 from lnbits.core.models.wallets import BaseWalletTypeInfo
+from lnbits.core.services.users import update_user_account
 from lnbits.db import Filters, Page
 from lnbits.decorators import (
     WalletTypeInfo,
@@ -51,6 +52,7 @@ from lnbits.decorators import (
 from lnbits.helpers import (
     filter_dict_keys,
     generate_filter_params_openapi,
+    is_valid_label,
 )
 from lnbits.wallets.base import InvoiceResponse
 
@@ -290,10 +292,6 @@ async def api_update_payment_labels(
     account = await get_account(key_type.wallet.user)
     if not account:
         raise HTTPException(HTTPStatus.NOT_FOUND, "Account does not exist.")
-
-    from lnbits.core.models.users import UserLabel
-    from lnbits.core.services.users import update_user_account
-    from lnbits.helpers import is_valid_label
 
     user_label_names = [label.name for label in account.extra.labels]
     updated_account = False
