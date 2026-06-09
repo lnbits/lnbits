@@ -103,7 +103,9 @@ class ClicheWallet(Wallet):
             preimage=data["result"].get("preimage"),
         )
 
-    async def pay_invoice(self, bolt11: str, fee_limit_msat: int) -> PaymentResponse:
+    async def pay_invoice(
+        self, bolt11: str, fee_limit_msat: int | None
+    ) -> PaymentResponse:
         ws = create_connection(self.endpoint)
         ws.send(f"pay-invoice --invoice {bolt11}")
         checking_id, fee_msat, preimage, payment_ok = (

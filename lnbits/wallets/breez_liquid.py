@@ -171,8 +171,11 @@ else:
                 return InvoiceResponse(ok=False, error_message=str(e))
 
         async def pay_invoice(
-            self, bolt11: str, fee_limit_msat: int
+            self, bolt11: str, fee_limit_msat: int | None
         ) -> PaymentResponse:
+            # The service layer's _resolve_fee_limit_msat always supplies an
+            # int; the `int | None` here is the abstract contract from `Wallet`.
+            assert fee_limit_msat is not None
             invoice_data = bolt11_decode(bolt11)
 
             try:

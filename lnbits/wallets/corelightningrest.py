@@ -25,6 +25,8 @@ from .macaroon import load_macaroon
 
 
 class CoreLightningRestWallet(Wallet):
+    supports_fee_limit_msat = True
+
     def __init__(self):
         if not settings.corelightning_rest_url:
             raise ValueError(
@@ -176,7 +178,9 @@ class CoreLightningRestWallet(Wallet):
                 ok=False, error_message=f"Unable to connect to {self.url}."
             )
 
-    async def pay_invoice(self, bolt11: str, fee_limit_msat: int) -> PaymentResponse:
+    async def pay_invoice(
+        self, bolt11: str, fee_limit_msat: int | None
+    ) -> PaymentResponse:
         try:
             invoice = decode(bolt11)
         except Bolt11Exception as exc:

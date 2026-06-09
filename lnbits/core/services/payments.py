@@ -5,6 +5,7 @@ from datetime import datetime, timedelta, timezone
 from bolt11 import Bolt11, MilliSatoshi, Tags
 from bolt11 import decode as bolt11_decode
 from bolt11 import encode as bolt11_encode
+from fastapi import HTTPException
 from lnurl import LnurlErrorResponse, LnurlSuccessResponse
 from lnurl import execute_withdraw as lnurl_withdraw
 from loguru import logger
@@ -66,6 +67,7 @@ async def pay_invoice(
     labels: list[str] | None = None,
     external_id: str | None = None,
     conn: Connection | None = None,
+    fee_limit_msat: int | None = None,
 ) -> Payment:
     if settings.lnbits_only_allow_incoming_payments:
         raise PaymentError("Only incoming payments allowed.", status="failed")
@@ -103,7 +105,10 @@ async def pay_invoice(
 
     async with db.reuse_conn(conn) if conn else db.connect() as new_conn:
         payment = await _pay_invoice(
-            wallet.source_wallet_id, create_payment_model, conn=new_conn
+            wallet.source_wallet_id,
+            create_payment_model,
+            conn=new_conn,
+            fee_limit_msat=fee_limit_msat,
         )
 
         await _credit_service_fee_wallet(wallet, payment, conn=new_conn)
@@ -420,6 +425,27 @@ def fee_reserve(amount_msat: int, internal: bool = False) -> int:
     return settings.fee_reserve(amount_msat, internal)
 
 
+def _resolve_fee_limit_msat(amount_msat: int, caller_fee_limit_msat: int | None) -> int:
+    # The operator's policy (LNBITS_RESERVE_FEE_PERCENT) is always the ceiling.
+    # If the caller supplied its own cap, the effective limit is the lower of
+    # the two — neither party can raise the other's bound. A caller passing a
+    # cap to a backend that cannot honor it must fail loudly rather than
+    # silently fall back to the operator cap (the "Rug the Mints" bug).
+    operator_cap_msat = fee_reserve(amount_msat, internal=False)
+    if caller_fee_limit_msat is None:
+        return operator_cap_msat
+    funding_source = get_funding_source()
+    if not getattr(funding_source, "supports_fee_limit_msat", False):
+        raise HTTPException(
+            status_code=400,
+            detail=(
+                "The configured funding source does not support a per-call "
+                "fee_limit_msat."
+            ),
+        )
+    return min(caller_fee_limit_msat, operator_cap_msat)
+
+
 def service_fee(amount_msat: int, internal: bool = False) -> int:
     amount_msat = abs(amount_msat)
     service_fee_percent = settings.lnbits_service_fee
@@ -704,6 +730,7 @@ async def _pay_invoice(
     wallet_id: str,
     create_payment_model: CreatePayment,
     conn: Connection | None = None,
+    fee_limit_msat: int | None = None,
 ):
     async with payment_lock:
         if wallet_id not in wallets_payments_lock:
@@ -719,7 +746,9 @@ async def _pay_invoice(
 
         payment = await _pay_internal_invoice(wallet, create_payment_model, conn)
         if not payment:
-            payment = await _pay_external_invoice(wallet, create_payment_model, conn)
+            payment = await _pay_external_invoice(
+                wallet, create_payment_model, conn, fee_limit_msat=fee_limit_msat
+            )
         return payment
 
 
@@ -798,6 +827,7 @@ async def _pay_external_invoice(
     wallet: Wallet,
     create_payment_model: CreatePayment,
     conn: Connection | None = None,
+    fee_limit_msat: int | None = None,
 ) -> Payment:
     checking_id = create_payment_model.payment_hash
     amount_msat = create_payment_model.amount_msat
@@ -824,12 +854,12 @@ async def _pay_external_invoice(
         conn=conn,
     )
 
-    fee_reserve_msat = fee_reserve(amount_msat, internal=False)
+    effective_cap_msat = _resolve_fee_limit_msat(amount_msat, fee_limit_msat)
 
     from lnbits.tasks import create_task
 
     task = create_task(
-        _fundingsource_pay_invoice(checking_id, payment.bolt11, fee_reserve_msat)
+        _fundingsource_pay_invoice(checking_id, payment.bolt11, effective_cap_msat)
     )
 
     # make sure a hold invoice or deferred payment is not blocking the server

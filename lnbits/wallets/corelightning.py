@@ -36,6 +36,7 @@ class CoreLightningWallet(Wallet):
 
     __node_cls__ = CoreLightningNode
     features = [Feature.nodemanager]
+    supports_fee_limit_msat = True
 
     async def cleanup(self):
         pass
@@ -147,7 +148,9 @@ class CoreLightningWallet(Wallet):
             logger.warning(e)
             return InvoiceResponse(ok=False, error_message=str(e))
 
-    async def pay_invoice(self, bolt11: str, fee_limit_msat: int) -> PaymentResponse:
+    async def pay_invoice(
+        self, bolt11: str, fee_limit_msat: int | None
+    ) -> PaymentResponse:
         try:
             invoice = bolt11_decode(bolt11)
         except Bolt11Exception as exc:

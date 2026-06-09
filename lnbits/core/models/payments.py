@@ -269,6 +269,14 @@ class CreateInvoice(BaseModel):
     fiat_provider: str | None = None
     labels: list[str] = []
     external_id: str | None = Query(default=None, max_length=256)
+    fee_limit_msat: int | None = Query(
+        default=None,
+        ge=0,
+        description=(
+            "Caller-supplied cap on routing fees in millisatoshis. "
+            "Applied as min(fee_limit_msat, operator cap)."
+        ),
+    )
 
     @validator("payment_hash")
     def check_hex(cls, v):

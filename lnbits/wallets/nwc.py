@@ -194,7 +194,9 @@ class NWCWallet(Wallet):
         except Exception as e:
             return StatusResponse(str(e), 0)
 
-    async def pay_invoice(self, bolt11: str, fee_limit_msat: int) -> PaymentResponse:
+    async def pay_invoice(
+        self, bolt11: str, fee_limit_msat: int | None
+    ) -> PaymentResponse:
         try:
             resp = await self.conn.call("pay_invoice", {"invoice": bolt11})
             preimage = resp.get("preimage", None)

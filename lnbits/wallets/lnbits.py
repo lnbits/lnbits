@@ -24,6 +24,8 @@ from .base import (
 class LNbitsWallet(Wallet):
     """https://github.com/lnbits/lnbits"""
 
+    supports_fee_limit_msat = True
+
     def __init__(self):
         if not settings.lnbits_endpoint:
             raise ValueError("cannot initialize LNbitsWallet: missing lnbits_endpoint")
@@ -117,11 +119,16 @@ class LNbitsWallet(Wallet):
                 ok=False, error_message=f"Unable to connect to {self.endpoint}."
             )
 
-    async def pay_invoice(self, bolt11: str, fee_limit_msat: int) -> PaymentResponse:
+    async def pay_invoice(
+        self, bolt11: str, fee_limit_msat: int | None
+    ) -> PaymentResponse:
         try:
+            payload: dict = {"out": True, "bolt11": bolt11}
+            if fee_limit_msat is not None:
+                payload["fee_limit_msat"] = fee_limit_msat
             r = await self.client.post(
                 url="/api/v1/payments",
-                json={"out": True, "bolt11": bolt11},
+                json=payload,
                 timeout=None,
             )
 

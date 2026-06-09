@@ -225,7 +225,9 @@ class StrikeWallet(Wallet):
             logger.warning(e)
             return InvoiceResponse(ok=False, error_message="Connection error")
 
-    async def pay_invoice(self, bolt11: str, fee_limit_msat: int) -> PaymentResponse:
+    async def pay_invoice(
+        self, bolt11: str, fee_limit_msat: int | None
+    ) -> PaymentResponse:
         # Extract payment hash from invoice for checking_id
 
         try:

@@ -210,7 +210,7 @@ else:
                 return InvoiceResponse(ok=False, error_message=str(e))
 
         async def pay_invoice(
-            self, bolt11: str, fee_limit_msat: int
+            self, bolt11: str, fee_limit_msat: int | None
         ) -> PaymentResponse:
             logger.debug(f"fee_limit_msat {fee_limit_msat} is ignored by Breez SDK")
             try:

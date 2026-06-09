@@ -104,7 +104,9 @@ class LNPayWallet(Wallet):
             error_message=r.text,
         )
 
-    async def pay_invoice(self, bolt11: str, fee_limit_msat: int) -> PaymentResponse:
+    async def pay_invoice(
+        self, bolt11: str, fee_limit_msat: int | None
+    ) -> PaymentResponse:
         r = await self.client.post(
             f"/wallet/{self.wallet_key}/withdraw",
             json={"payment_request": bolt11},

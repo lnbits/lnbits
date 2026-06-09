@@ -110,6 +110,12 @@ class Wallet(ABC):
     __node_cls__: type[Node] | None = None
     features: list[Feature] | None = None
 
+    # Whether the backend honors the per-call `fee_limit_msat` argument by
+    # propagating it to the underlying Lightning node / API. Drivers that
+    # accept the argument and silently drop it MUST leave this as `False` so
+    # the service layer can reject calls that would otherwise overspend.
+    supports_fee_limit_msat: bool = False
+
     def has_feature(self, feature: Feature) -> bool:
         return self.features is not None and feature in self.features
 
@@ -137,7 +143,7 @@ class Wallet(ABC):
 
     @abstractmethod
     def pay_invoice(
-        self, bolt11: str, fee_limit_msat: int
+        self, bolt11: str, fee_limit_msat: int | None
     ) -> Coroutine[None, None, PaymentResponse]:
         pass
 

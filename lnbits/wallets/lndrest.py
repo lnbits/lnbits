@@ -31,6 +31,7 @@ class LndRestWallet(Wallet):
 
     __node_cls__ = LndRestNode
     features = [Feature.nodemanager, Feature.holdinvoice]
+    supports_fee_limit_msat = True
 
     def __init__(self):
         if not settings.lnd_rest_endpoint:
@@ -170,7 +171,9 @@ class LndRestWallet(Wallet):
                 ok=False, error_message=f"Unable to connect to {self.endpoint}."
             )
 
-    async def pay_invoice(self, bolt11: str, fee_limit_msat: int) -> PaymentResponse:
+    async def pay_invoice(
+        self, bolt11: str, fee_limit_msat: int | None
+    ) -> PaymentResponse:
         req = {
             "payment_request": bolt11,
             "fee_limit_msat": fee_limit_msat,

@@ -41,6 +41,8 @@ class SparkL2Wallet(Wallet):
       - SPARK_L2_API_KEY
     """
 
+    supports_fee_limit_msat = True
+
     def __init__(self):
         self._status = "Initializing"
         self._sidecar_path = Path(settings.lnbits_data_folder, "light_spark")
@@ -140,9 +142,14 @@ class SparkL2Wallet(Wallet):
         except Exception as e:
             return InvoiceResponse(ok=False, error_message=str(e))
 
-    async def pay_invoice(self, bolt11: str, fee_limit_msat: int) -> PaymentResponse:
+    async def pay_invoice(
+        self, bolt11: str, fee_limit_msat: int | None
+    ) -> PaymentResponse:
+        # The service layer's _resolve_fee_limit_msat always supplies an int;
+        # the `int | None` here is the abstract contract from `Wallet`.
+        assert fee_limit_msat is not None
         try:
-            max_fee_sats = (int(fee_limit_msat) + 999) // 1000
+            max_fee_sats = (fee_limit_msat + 999) // 1000
             logger.info(
                 f"Paying invoice via Spark sidecar with max fee {max_fee_sats} sats."
             )

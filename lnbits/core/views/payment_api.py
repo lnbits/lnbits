@@ -265,6 +265,7 @@ async def api_payments_create(
             extra=invoice_data.extra,
             labels=invoice_data.labels,
             external_id=invoice_data.external_id,
+            fee_limit_msat=invoice_data.fee_limit_msat,
         )
         return payment
 

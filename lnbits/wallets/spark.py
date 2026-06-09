@@ -31,6 +31,8 @@ class UnknownError(Exception):
 
 
 class SparkWallet(Wallet):
+    supports_fee_limit_msat = True
+
     def __init__(self):
         if not settings.spark_url:
             raise ValueError("cannot initialize SparkWallet: missing spark_url")
@@ -146,7 +148,9 @@ class SparkWallet(Wallet):
         except (SparkError, UnknownError) as e:
             return InvoiceResponse(ok=False, error_message=str(e))
 
-    async def pay_invoice(self, bolt11: str, fee_limit_msat: int) -> PaymentResponse:
+    async def pay_invoice(
+        self, bolt11: str, fee_limit_msat: int | None
+    ) -> PaymentResponse:
         try:
             r = await self.pay(
                 bolt11=bolt11,

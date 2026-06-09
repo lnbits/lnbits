@@ -29,6 +29,8 @@ from .base import (
 
 
 class CLNRestWallet(Wallet):
+    supports_fee_limit_msat = True
+
     def __init__(self):
         if not settings.clnrest_url:
             raise ValueError("Cannot initialize CLNRestWallet: missing CLNREST_URL")
@@ -247,7 +249,7 @@ class CLNRestWallet(Wallet):
     async def pay_invoice(
         self,
         bolt11: str,
-        fee_limit_msat: int,
+        fee_limit_msat: int | None,
         **_,
     ) -> PaymentResponse:
 

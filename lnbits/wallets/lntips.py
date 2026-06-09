@@ -102,7 +102,9 @@ class LnTipsWallet(Wallet):
             preimage=data.get("preimage"),
         )
 
-    async def pay_invoice(self, bolt11: str, fee_limit_msat: int) -> PaymentResponse:
+    async def pay_invoice(
+        self, bolt11: str, fee_limit_msat: int | None
+    ) -> PaymentResponse:
         r = await self.client.post(
             "/api/v1/payinvoice",
             json={"pay_req": bolt11},

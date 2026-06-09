@@ -103,7 +103,9 @@ class ZBDWallet(Wallet):
             preimage=preimage,
         )
 
-    async def pay_invoice(self, bolt11: str, fee_limit_msat: int) -> PaymentResponse:
+    async def pay_invoice(
+        self, bolt11: str, fee_limit_msat: int | None
+    ) -> PaymentResponse:
         # https://api.zebedee.io/v0/payments
         r = await self.client.post(
             "payments",
