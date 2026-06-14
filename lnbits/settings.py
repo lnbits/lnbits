@@ -642,6 +642,11 @@ class SparkFundingSource(LNbitsSettings):
     spark_token: str | None = Field(default=None)
 
 
+class BarkFundingSource(LNbitsSettings):
+    bark_api_endpoint: str | None = Field(default="http://localhost:3000")
+    bark_api_token: str | None = Field(default=None)
+
+
 class SparkL2FundingSource(LNbitsSettings):
     spark_l2_network: str = Field(default="MAINNET")
     spark_l2_external_endpoint: str | None = Field(default="http://localhost:8765")
@@ -788,6 +793,7 @@ class FundingSourcesSettings(
     PhoenixdFundingSource,
     OpenNodeFundingSource,
     SparkFundingSource,
+    BarkFundingSource,
     SparkL2FundingSource,
     LnTipsFundingSource,
     NWCFundingSource,
@@ -1153,6 +1159,7 @@ class SuperUserSettings(LNbitsSettings):
     lnbits_allowed_funding_sources: list[str] = Field(
         default=[
             "AlbyWallet",
+            "BarkWallet",
             "BoltzWallet",
             "BlinkWallet",
             "BreezSdkWallet",
