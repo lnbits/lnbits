@@ -126,6 +126,16 @@ class NWCWallet(Wallet):
                 )
                 self._cache_payment_data(checking_id, notification_payload)
                 self._mark_invoice_settled(checking_id, source="notification")
+        elif notification_type == "payment_sent":
+            checking_id = str(notification_payload.get("payment_hash") or "")
+            if checking_id:
+                logger.debug(
+                    "Received NWC payment_sent notification for " + checking_id
+                )
+                payment_data = dict(notification_payload)
+                payment_data.setdefault("state", "settled")
+                payment_data.setdefault("settled_at", int(time.time()))
+                self._cache_payment_data(checking_id, payment_data)
         elif notification_type == "hold_invoice_accepted":
             logger.debug(
                 "Received NWC hold_invoice_accepted notification for "
