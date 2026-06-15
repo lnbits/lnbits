@@ -1,13 +1,13 @@
 import asyncio
 import base64
-import hmac
 import hashlib
+import hmac
 import json
 import random
 import secrets
 import time
-from collections.abc import AsyncGenerator
-from typing import Any, Awaitable, Callable, cast
+from collections.abc import AsyncGenerator, Awaitable, Callable
+from typing import Any, cast
 from urllib.parse import parse_qs, unquote, urlparse
 
 from bolt11 import decode as bolt11_decode
@@ -132,7 +132,9 @@ class NWCWallet(Wallet):
                 + str(notification_payload.get("payment_hash") or "")
             )
         elif notification_type:
-            logger.debug("Ignoring unsupported NWC notification type " + notification_type)
+            logger.debug(
+                "Ignoring unsupported NWC notification type " + notification_type
+            )
 
     def _get_lookup_schedule(self) -> list[int]:
         if self.conn.supports_notification_type("payment_received"):
@@ -402,7 +404,11 @@ class NWCWallet(Wallet):
             return True
         created_at = int(payment_data.get("created_at", time.time()))
         expires_at = int(payment_data.get("expires_at", created_at + 3600))
-        return bool(expires_at and time.time() > expires_at and not self._payment_data_is_settled(payment_data))
+        return bool(
+            expires_at
+            and time.time() > expires_at
+            and not self._payment_data_is_settled(payment_data)
+        )
 
     def _payment_data_to_status(self, payment_data: dict[str, Any]) -> PaymentStatus:
         fee_msat = payment_data.get("fees_paid", None)
@@ -414,7 +420,10 @@ class NWCWallet(Wallet):
         return PaymentStatus(None, fee_msat=fee_msat, preimage=preimage)
 
     def _cache_payment_data(
-        self, checking_id: str, payment_data: dict[str, Any], cached_at: float | None = None
+        self,
+        checking_id: str,
+        payment_data: dict[str, Any],
+        cached_at: float | None = None,
     ) -> None:
         cached_at = cached_at or time.time()
         ttl = (
@@ -433,7 +442,9 @@ class NWCWallet(Wallet):
         for checking_id in list(self.payment_status_cache.keys()):
             cached = self.payment_status_cache.get(checking_id) or {}
             expires_at = float(cached.get("expires_at", 0.0) or 0.0)
-            if expires_at <= now or (keep_ids is not None and checking_id not in keep_ids):
+            if expires_at <= now or (
+                keep_ids is not None and checking_id not in keep_ids
+            ):
                 self.payment_status_cache.pop(checking_id, None)
 
     def _get_cached_payment_data(self, checking_id: str) -> dict[str, Any] | None:
@@ -460,19 +471,13 @@ class NWCWallet(Wallet):
     ) -> None:
         now = now or time.time()
         last_refresh_at = self.last_transactions_refresh_at.get(unpaid, 0.0)
-        if (
-            not force
-            and now - last_refresh_at < self.transactions_refresh_interval
-        ):
+        if not force and now - last_refresh_at < self.transactions_refresh_interval:
             return
 
         async with self.transactions_refresh_lock:
             now = time.time()
             last_refresh_at = self.last_transactions_refresh_at.get(unpaid, 0.0)
-            if (
-                not force
-                and now - last_refresh_at < self.transactions_refresh_interval
-            ):
+            if not force and now - last_refresh_at < self.transactions_refresh_interval:
                 return
 
             from_ts = from_ts or max(0, int(now - self.transactions_refresh_max_age))
@@ -960,8 +965,12 @@ class NWCConnection:
                     self._normalize_info(
                         {
                             "supported_methods": content.split(" "),
-                            "notification_types": self._get_tag_values(tags, "notifications"),
-                            "supported_encryptions": self._get_tag_values(tags, "encryption"),
+                            "notification_types": self._get_tag_values(
+                                tags, "notifications"
+                            ),
+                            "supported_encryptions": self._get_tag_values(
+                                tags, "encryption"
+                            ),
                         }
                     )
                 )
@@ -1122,7 +1131,9 @@ class NWCConnection:
         )
         normalized = {
             "supported_methods": [method for method in methods if method],
-            "notification_types": [notification for notification in notifications if notification],
+            "notification_types": [
+                notification for notification in notifications if notification
+            ],
             "supported_encryptions": encryptions,
         }
         return normalized
@@ -1146,7 +1157,11 @@ class NWCConnection:
             return NWC_ENCRYPTION_NIP44_V2
         if event.get("kind") == NWC_NOTIFICATION_KIND_NIP04:
             return NWC_ENCRYPTION_NIP04
-        return self.selected_encryption if self.selected_encryption else NWC_ENCRYPTION_NIP04
+        return (
+            self.selected_encryption
+            if self.selected_encryption
+            else NWC_ENCRYPTION_NIP04
+        )
 
     def _encrypt_payload(self, content: str) -> tuple[str, str]:
         encryption = self.selected_encryption or NWC_ENCRYPTION_NIP04
@@ -1310,11 +1325,13 @@ class NWCConnection:
                 # The error could mean that the service provider does
                 # not provide an info note
                 # So we just assume it supports the bare minimum to be Nip47 compliant
-                self.info = self._apply_capabilities({
-                    "supported_methods": ["pay_invoice"],
-                    "notification_types": [],
-                    "supported_encryptions": [NWC_ENCRYPTION_NIP04],
-                })
+                self.info = self._apply_capabilities(
+                    {
+                        "supported_methods": ["pay_invoice"],
+                        "notification_types": [],
+                        "supported_encryptions": [NWC_ENCRYPTION_NIP04],
+                    }
+                )
         return self.info
 
     async def close(self):
@@ -1463,9 +1480,7 @@ class NIP44Encryption:
         account_private_key_hex: str,
     ) -> bytes:
         return NIP44Encryption._hkdf_extract(
-            ikm=NIP44Encryption._get_shared_x(
-                service_pubkey, account_private_key_hex
-            ),
+            ikm=NIP44Encryption._get_shared_x(service_pubkey, account_private_key_hex),
             salt=b"nip44-v2",
         )
 
