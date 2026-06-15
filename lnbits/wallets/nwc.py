@@ -734,7 +734,7 @@ class NWCConnection:
         self.relay = relay
 
         # Create temporary subscriptions, stored until the response is received/expires
-        self.subscriptions = {}
+        self.subscriptions: dict[str, dict[str, Any]] = {}
         # Timeout in seconds after which a subscription is closed
         # if no response is received
         self.subscription_timeout = 10
@@ -749,7 +749,7 @@ class NWCConnection:
         self.shutdown = False
 
         # cached info about the service provider
-        self.info = None
+        self.info: dict[str, Any] | None = None
         self.supported_methods: set[str] = set()
         self.notification_types: set[str] = set()
         self.supported_encryptions = [NWC_ENCRYPTION_NIP04]
@@ -1236,16 +1236,17 @@ class NWCConnection:
         sub_id = self._get_new_subid()
         # register a future to receive the response asynchronously
         future = asyncio.get_event_loop().create_future()
+        event_id = cast(str, event["id"])
         # Check if the subscription already exists
         # (this means there is a bug somewhere, should not happen)
-        if event["id"] in self.subscriptions:
+        if event_id in self.subscriptions:
             raise Exception("Subscription for this event id already exists?")
         # Store the subscription in the list
-        self.subscriptions[event["id"]] = {
+        self.subscriptions[event_id] = {
             "method": method,
             "future": future,
             "sub_id": sub_id,
-            "event_id": event["id"],
+            "event_id": event_id,
             "timestamp": time.time(),
             "closed": False,
         }
@@ -1288,26 +1289,26 @@ class NWCConnection:
                     try:
                         account_info = await self.call("get_info", {})
                         # cache
-                        self.info = dict(service_info)
-                        self.info["alias"] = account_info.get("alias", "")
-                        self.info["color"] = account_info.get("color", "")
-                        self.info["pubkey"] = account_info.get("pubkey", "")
-                        self.info["network"] = account_info.get("network", "")
-                        self.info["block_height"] = account_info.get("block_height", 0)
-                        self.info["block_hash"] = account_info.get("block_hash", "")
-                        self.info["supported_methods"] = account_info.get(
+                        info: dict[str, Any] = dict(service_info)
+                        info["alias"] = account_info.get("alias", "")
+                        info["color"] = account_info.get("color", "")
+                        info["pubkey"] = account_info.get("pubkey", "")
+                        info["network"] = account_info.get("network", "")
+                        info["block_height"] = account_info.get("block_height", 0)
+                        info["block_hash"] = account_info.get("block_hash", "")
+                        info["supported_methods"] = account_info.get(
                             "methods",
                             service_info.get("supported_methods", ["pay_invoice"]),
                         )
-                        self.info["notification_types"] = account_info.get(
+                        info["notification_types"] = account_info.get(
                             "notifications",
                             service_info.get("notification_types", []),
                         )
-                        self.info["supported_encryptions"] = service_info.get(
+                        info["supported_encryptions"] = service_info.get(
                             "supported_encryptions",
                             [NWC_ENCRYPTION_NIP04],
                         )
-                        self.info = self._apply_capabilities(self.info)
+                        self.info = self._apply_capabilities(info)
                     except Exception as e:
                         # If there is an error, fallback to using service info
                         logger.error(
@@ -1332,7 +1333,7 @@ class NWCConnection:
                         "supported_encryptions": [NWC_ENCRYPTION_NIP04],
                     }
                 )
-        return self.info
+        return self.info or {}
 
     async def close(self):
         logger.debug("Closing NWCConnection")
