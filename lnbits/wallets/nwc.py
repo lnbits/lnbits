@@ -1,14 +1,19 @@
 import asyncio
+import base64
+import hmac
 import hashlib
 import json
 import random
+import secrets
 import time
 from collections.abc import AsyncGenerator
-from typing import cast
+from typing import Any, Awaitable, Callable, cast
 from urllib.parse import parse_qs, unquote, urlparse
 
 from bolt11 import decode as bolt11_decode
 from coincurve import PrivateKey, PublicKey
+from Cryptodome.Cipher import ChaCha20
+from Cryptodome.Hash import HMAC, SHA256
 from loguru import logger
 from websockets import connect as ws_connect
 
@@ -44,6 +49,26 @@ class NWCError(Exception):
         return f"{self.code} {self.message}"
 
 
+NWC_ENCRYPTION_NIP04 = "nip04"
+NWC_ENCRYPTION_NIP44_V2 = "nip44_v2"
+NWC_SUPPORTED_ENCRYPTIONS = [NWC_ENCRYPTION_NIP44_V2, NWC_ENCRYPTION_NIP04]
+NWC_NOTIFICATION_KIND_NIP04 = 23196
+NWC_NOTIFICATION_KIND_NIP44 = 23197
+
+
+def _normalize_supported_encryptions(encryptions: list[str]) -> list[str]:
+    normalized = [enc for enc in encryptions if enc in NWC_SUPPORTED_ENCRYPTIONS]
+    return normalized or [NWC_ENCRYPTION_NIP04]
+
+
+def _choose_preferred_encryption(encryptions: list[str]) -> str:
+    supported = set(_normalize_supported_encryptions(encryptions))
+    for encryption in NWC_SUPPORTED_ENCRYPTIONS:
+        if encryption in supported:
+            return encryption
+    return NWC_ENCRYPTION_NIP04
+
+
 class NWCWallet(Wallet):
     """
     A funding source that connects to a Nostr Wallet Connect (NWC) service provider.
@@ -51,22 +76,31 @@ class NWCWallet(Wallet):
     """
 
     def __init__(self):
+        super().__init__()
         self.shutdown = False
         nwc_data = parse_nwc(settings.nwc_pairing_url)
         self.conn = NWCConnection(
-            nwc_data["pubkey"], nwc_data["secret"], nwc_data["relay"]
+            nwc_data["pubkey"],
+            nwc_data["secret"],
+            nwc_data["relay"],
+            notification_handler=self._handle_notification,
         )
-        # pending payments for paid_invoices_stream.
-        # They are tracked until they expire or are settled
-        self.pending_payments = []
-        # interval in seconds between checks for pending payments
-        self.pending_payments_lookup_interval = 10
-        # track paid invoices for paid_invoices_stream
+        self.pending_invoice_details: dict[str, dict[str, Any]] = {}
+        self.payment_status_cache: dict[str, dict[str, Any]] = {}
+        self.payment_status_cache_pending_ttl = 30
+        self.payment_status_cache_terminal_ttl = 60 * 60 * 24
+        self.transactions_refresh_interval = 30
+        self.transactions_refresh_max_age = 60 * 60 * 24 * 15
+        self.transactions_refresh_max_pages = 20
+        self.transactions_refresh_lock = asyncio.Lock()
+        self.last_transactions_refresh_at: dict[bool, float] = {}
+        self.pending_invoices_maintenance_interval = 5
+        self.notification_lookup_schedule = [60, 120, 300, 600, 1200, 1800]
+        self.lookup_only_schedule = [15, 30, 60, 120, 300, 600, 1200, 1800]
+        self.pending_invoices_reconcile_interval = 180
+        self.next_reconcile_at = 0.0
+        self.last_connection_generation = -1
         self.paid_invoices_queue = asyncio.Queue(0)
-        # This task periodically checks if pending payments have been settled
-        self.pending_payments_lookup_task = asyncio.create_task(
-            self._handle_pending_payments()
-        )
 
     def _is_shutting_down(self) -> bool:
         """
@@ -74,59 +108,391 @@ class NWCWallet(Wallet):
         """
         return self.shutdown or not settings.lnbits_running
 
-    async def _handle_pending_payments(self):
-        """
-        Periodically checks if any pending payments have been settled.
-        """
-        while not self._is_shutting_down():
-            await asyncio.sleep(self.pending_payments_lookup_interval)
-            # Check if any pending payments have been settled or timed out
-            now = time.time()
-            for payment in self.pending_payments:
-                try:
-                    if not payment["settled"]:
-                        payment_data = await self.conn.call(
-                            "lookup_invoice", {"payment_hash": payment["checking_id"]}
-                        )
-                        if payment_data.get("payment_hash") != payment["checking_id"]:
-                            raise Exception("Mismatched payment hash")
-                        settled = (
-                            "settled_at" in payment_data
-                            and payment_data["settled_at"]
-                            and int(payment_data["settled_at"]) > 0
-                            and "preimage" in payment_data
-                            and payment_data["preimage"]
-                        )
-                        if settled:
-                            logger.debug(
-                                "Pending payment " + payment["checking_id"] + " settled"
-                            )
-                            payment["settled"] = True
-                            self.paid_invoices_queue.put_nowait(payment["checking_id"])
-                except Exception as e:
-                    logger.error("Error handling pending payment: " + str(e))
-                try:
-                    if now > payment["expires_at"]:
-                        logger.warning(
-                            "Pending payment " + payment["checking_id"] + " timed out"
-                        )
-                        payment["expired"] = True
-                except Exception as e:
-                    logger.error("Error handling pending payment: " + str(e))
+    async def _handle_notification(self, notification: dict[str, Any]):
+        notification_type = notification.get("notification_type")
+        notification_payload = notification.get("notification") or {}
+        if not isinstance(notification_payload, dict):
+            logger.warning(
+                "Ignoring malformed NWC notification payload: "
+                + str(notification_payload)
+            )
+            return
 
-            # Remove all settled or expired payments
-            self.pending_payments = [
-                payment
-                for payment in self.pending_payments
-                if not payment["settled"] and not payment["expired"]
+        if notification_type == "payment_received":
+            checking_id = str(notification_payload.get("payment_hash") or "")
+            if checking_id:
+                logger.debug(
+                    "Received NWC payment_received notification for " + checking_id
+                )
+                self._cache_payment_data(checking_id, notification_payload)
+                self._mark_invoice_settled(checking_id, source="notification")
+        elif notification_type == "hold_invoice_accepted":
+            logger.debug(
+                "Received NWC hold_invoice_accepted notification for "
+                + str(notification_payload.get("payment_hash") or "")
+            )
+        elif notification_type:
+            logger.debug("Ignoring unsupported NWC notification type " + notification_type)
+
+    def _get_lookup_schedule(self) -> list[int]:
+        if self.conn.supports_notification_type("payment_received"):
+            return self.notification_lookup_schedule
+        return self.lookup_only_schedule
+
+    def _schedule_next_lookup(self, invoice: dict[str, Any], now: float | None = None):
+        now = now or time.time()
+        schedule = self._get_lookup_schedule()
+        attempt = int(invoice.get("lookup_attempts", 0))
+        delay = schedule[min(attempt, len(schedule) - 1)]
+        jitter = random.uniform(0, min(15, max(1, delay * 0.1)))  # noqa: S311
+        invoice["next_lookup_at"] = now + delay + jitter
+
+    def _track_pending_invoice(
+        self, checking_id: str, created_at: int, expires_at: int
+    ) -> None:
+        invoice = self.pending_invoice_details.get(checking_id, {})
+        invoice["checking_id"] = checking_id
+        invoice["created_at"] = created_at
+        invoice["expires_at"] = expires_at
+        invoice.setdefault("lookup_attempts", 0)
+        invoice.setdefault("last_lookup_at", 0.0)
+        self.pending_invoice_details[checking_id] = invoice
+        if checking_id not in self.pending_invoices:
+            self.pending_invoices.append(checking_id)
+        if "next_lookup_at" not in invoice:
+            self._schedule_next_lookup(invoice, created_at)
+        self.next_reconcile_at = 0.0
+
+    def _remove_pending_invoice(self, checking_id: str) -> bool:
+        self.pending_invoice_details.pop(checking_id, None)
+        if checking_id in self.pending_invoices:
+            self.pending_invoices.remove(checking_id)
+            return True
+        return False
+
+    def _mark_invoice_settled(self, checking_id: str, source: str):
+        was_pending = self._remove_pending_invoice(checking_id)
+        if was_pending:
+            logger.debug("Pending invoice " + checking_id + " settled via " + source)
+        self.paid_invoices_queue.put_nowait(checking_id)
+
+    def _expire_pending_invoices(self, now: float):
+        expired_ids: list[str] = []
+        for checking_id in list(self.pending_invoices):
+            invoice = self.pending_invoice_details.get(checking_id, {})
+            expires_at = int(invoice.get("expires_at", 0) or 0)
+            if expires_at and now > expires_at:
+                logger.warning("Pending invoice " + checking_id + " timed out")
+                expired_ids.append(checking_id)
+        for checking_id in expired_ids:
+            self._remove_pending_invoice(checking_id)
+
+    async def _should_run_reconciliation(self, now: float) -> bool:
+        if now < self.next_reconcile_at:
+            return False
+        await self.conn.get_info()
+        if not self.conn.supports_method("list_transactions"):
+            self.next_reconcile_at = now + self.pending_invoices_reconcile_interval
+            return False
+        return True
+
+    def _cache_ids(self, *extra_ids: str) -> set[str]:
+        ids = {checking_id for checking_id in self.pending_invoices if checking_id}
+        ids.update(checking_id for checking_id in extra_ids if checking_id)
+        return ids
+
+    async def _fetch_incoming_transactions(
+        self,
+        *,
+        from_ts: int,
+        now: float | None = None,
+        cache_ids: set[str] | None = None,
+        stop_when_found_ids: set[str] | None = None,
+        unpaid: bool = False,
+    ) -> list[dict[str, Any]]:
+        now = now or time.time()
+        await self.conn.get_info()
+        if not self.conn.supports_method("list_transactions"):
+            return []
+
+        offset = 0
+        limit = 20
+        transactions: list[dict[str, Any]] = []
+        remaining_ids = {
+            checking_id for checking_id in (stop_when_found_ids or set()) if checking_id
+        }
+
+        while offset < limit * self.transactions_refresh_max_pages:
+            result = await self.conn.call(
+                "list_transactions",
+                {
+                    "from": from_ts,
+                    "until": int(now),
+                    "limit": limit,
+                    "offset": offset,
+                    "type": "incoming",
+                    "unpaid": unpaid,
+                },
+            )
+            page = result.get("transactions", [])
+            tx_summary = [
+                {
+                    "payment_hash": tx.get("payment_hash"),
+                    "state": tx.get("state"),
+                    "settled_at": tx.get("settled_at"),
+                    "expires_at": tx.get("expires_at"),
+                }
+                for tx in page
+                if isinstance(tx, dict)
             ]
+            logger.debug(
+                "NWC list_transactions response. "
+                f"from={from_ts} until={int(now)} offset={offset} "
+                f"limit={limit} unpaid={unpaid} "
+                f"count={len(page) if isinstance(page, list) else 'malformed'} "
+                f"transactions={tx_summary} raw={result}"
+            )
+            if not isinstance(page, list) or not page:
+                break
+
+            for tx in page:
+                if not isinstance(tx, dict):
+                    continue
+                checking_id = str(tx.get("payment_hash") or "")
+                if checking_id and (cache_ids is None or checking_id in cache_ids):
+                    self._cache_payment_data(checking_id, tx, cached_at=now)
+                if checking_id:
+                    remaining_ids.discard(checking_id)
+                transactions.append(tx)
+
+            if len(page) < limit:
+                break
+            if not remaining_ids and stop_when_found_ids:
+                break
+            offset += limit
+
+        return transactions
+
+    async def _reconcile_pending_invoices(self, now: float):
+        try:
+            await self.conn.get_info()
+            if not self.conn.supports_method("list_transactions"):
+                self.next_reconcile_at = now + self.pending_invoices_reconcile_interval
+                return
+
+            created_from = min(
+                int(
+                    self.pending_invoice_details.get(checking_id, {}).get(
+                        "created_at", now
+                    )
+                )
+                for checking_id in self.pending_invoices
+            )
+            from_ts = max(0, created_from - 60)
+            matched = 0
+            pending_ids = self._cache_ids()
+
+            logger.debug(
+                "Reconciling pending NWC invoices with list_transactions. "
+                f"pending_count={len(self.pending_invoices)} from={from_ts}"
+            )
+
+            transactions = await self._fetch_incoming_transactions(
+                from_ts=from_ts,
+                now=now,
+                cache_ids=pending_ids,
+                stop_when_found_ids=pending_ids,
+            )
+            for tx in transactions:
+                checking_id = str(tx.get("payment_hash") or "")
+                if checking_id not in self.pending_invoices:
+                    continue
+                if self._payment_data_is_settled(tx):
+                    self._mark_invoice_settled(checking_id, source="reconciliation")
+                    matched += 1
+
+            logger.debug(
+                "NWC reconciliation complete. "
+                f"matched={matched} remaining_pending={len(self.pending_invoices)}"
+            )
+        except Exception as e:
+            logger.error("Error reconciling pending NWC invoices: " + str(e))
+        finally:
+            self.next_reconcile_at = now + self.pending_invoices_reconcile_interval
+
+    async def _run_fallback_lookups(self, now: float):
+        await self.conn.get_info()
+        if not self.conn.supports_method("lookup_invoice"):
+            return
+
+        due_invoices = [
+            self.pending_invoice_details[checking_id]
+            for checking_id in self.pending_invoices
+            if checking_id in self.pending_invoice_details
+            and float(
+                self.pending_invoice_details[checking_id].get("next_lookup_at", 0.0)
+                or 0.0
+            )
+            <= now
+        ]
+        due_invoices.sort(key=lambda invoice: float(invoice.get("next_lookup_at", 0.0)))
+
+        for invoice in due_invoices:
+            checking_id = str(invoice["checking_id"])
+            if checking_id not in self.pending_invoices:
+                continue
+            try:
+                payment_data = await self.conn.call(
+                    "lookup_invoice", {"payment_hash": checking_id}
+                )
+                self._cache_payment_data(checking_id, payment_data, cached_at=now)
+                invoice["last_lookup_at"] = now
+                invoice["lookup_attempts"] = int(invoice.get("lookup_attempts", 0)) + 1
+                if self._payment_data_is_settled(payment_data):
+                    self._mark_invoice_settled(checking_id, source="lookup")
+                    continue
+                self._schedule_next_lookup(invoice, now)
+            except NWCError as e:
+                logger.warning(
+                    "Error handling pending invoice via lookup. "
+                    f"checking_id={checking_id} code={e.code} message={e.message}"
+                )
+                invoice["lookup_attempts"] = int(invoice.get("lookup_attempts", 0)) + 1
+                if e.code == "RATE_LIMITED":
+                    self.next_reconcile_at = max(
+                        self.next_reconcile_at,
+                        now + self.pending_invoices_reconcile_interval,
+                    )
+                self._schedule_next_lookup(invoice, now)
+            except Exception as e:
+                logger.error("Error handling pending invoice: " + str(e))
+                invoice["lookup_attempts"] = int(invoice.get("lookup_attempts", 0)) + 1
+                self._schedule_next_lookup(invoice, now)
+
+    async def _maintain_pending_invoices(self):
+        if not self.pending_invoices:
+            return
+
+        now = time.time()
+        if self.conn.connection_generation != self.last_connection_generation:
+            self.last_connection_generation = self.conn.connection_generation
+            self.next_reconcile_at = 0.0
+
+        self._expire_pending_invoices(now)
+        if not self.pending_invoices:
+            return
+
+        if await self._should_run_reconciliation(now):
+            await self._reconcile_pending_invoices(now)
+
+        await self._run_fallback_lookups(now)
+        self._prune_payment_status_cache(self._cache_ids())
+
+    def _payment_data_is_settled(self, payment_data: dict[str, Any]) -> bool:
+        state = payment_data.get("state")
+        settled_at = payment_data.get("settled_at")
+        preimage = payment_data.get("preimage")
+        if state == "settled":
+            return True
+        return bool(settled_at and int(settled_at) > 0 and preimage)
+
+    def _payment_data_is_failed(self, payment_data: dict[str, Any]) -> bool:
+        state = payment_data.get("state")
+        if state in {"expired", "failed"}:
+            return True
+        created_at = int(payment_data.get("created_at", time.time()))
+        expires_at = int(payment_data.get("expires_at", created_at + 3600))
+        return bool(expires_at and time.time() > expires_at and not self._payment_data_is_settled(payment_data))
+
+    def _payment_data_to_status(self, payment_data: dict[str, Any]) -> PaymentStatus:
+        fee_msat = payment_data.get("fees_paid", None)
+        preimage = payment_data.get("preimage", None)
+        if self._payment_data_is_settled(payment_data):
+            return PaymentStatus(True, fee_msat=fee_msat, preimage=preimage)
+        if self._payment_data_is_failed(payment_data):
+            return PaymentStatus(False, fee_msat=fee_msat, preimage=preimage)
+        return PaymentStatus(None, fee_msat=fee_msat, preimage=preimage)
+
+    def _cache_payment_data(
+        self, checking_id: str, payment_data: dict[str, Any], cached_at: float | None = None
+    ) -> None:
+        cached_at = cached_at or time.time()
+        ttl = (
+            self.payment_status_cache_terminal_ttl
+            if self._payment_data_is_settled(payment_data)
+            or self._payment_data_is_failed(payment_data)
+            else self.payment_status_cache_pending_ttl
+        )
+        self.payment_status_cache[checking_id] = {
+            "payment_data": dict(payment_data),
+            "expires_at": cached_at + ttl,
+        }
+
+    def _prune_payment_status_cache(self, keep_ids: set[str] | None = None) -> None:
+        now = time.time()
+        for checking_id in list(self.payment_status_cache.keys()):
+            cached = self.payment_status_cache.get(checking_id) or {}
+            expires_at = float(cached.get("expires_at", 0.0) or 0.0)
+            if expires_at <= now or (keep_ids is not None and checking_id not in keep_ids):
+                self.payment_status_cache.pop(checking_id, None)
+
+    def _get_cached_payment_data(self, checking_id: str) -> dict[str, Any] | None:
+        cached = self.payment_status_cache.get(checking_id)
+        if not cached:
+            return None
+        if float(cached.get("expires_at", 0.0) or 0.0) <= time.time():
+            self.payment_status_cache.pop(checking_id, None)
+            return None
+        payment_data = cached.get("payment_data")
+        if isinstance(payment_data, dict):
+            return payment_data
+        return None
+
+    async def _refresh_recent_incoming_transactions(
+        self,
+        *,
+        now: float | None = None,
+        from_ts: int | None = None,
+        cache_ids: set[str] | None = None,
+        stop_when_found_ids: set[str] | None = None,
+        unpaid: bool = True,
+        force: bool = False,
+    ) -> None:
+        now = now or time.time()
+        last_refresh_at = self.last_transactions_refresh_at.get(unpaid, 0.0)
+        if (
+            not force
+            and now - last_refresh_at < self.transactions_refresh_interval
+        ):
+            return
+
+        async with self.transactions_refresh_lock:
+            now = time.time()
+            last_refresh_at = self.last_transactions_refresh_at.get(unpaid, 0.0)
+            if (
+                not force
+                and now - last_refresh_at < self.transactions_refresh_interval
+            ):
+                return
+
+            from_ts = from_ts or max(0, int(now - self.transactions_refresh_max_age))
+
+            logger.debug(
+                "Refreshing recent NWC incoming transactions cache. "
+                f"from={from_ts} max_pages={self.transactions_refresh_max_pages}"
+            )
+
+            await self._fetch_incoming_transactions(
+                from_ts=from_ts,
+                now=now,
+                cache_ids=cache_ids,
+                stop_when_found_ids=stop_when_found_ids,
+                unpaid=unpaid,
+            )
+            self.last_transactions_refresh_at[unpaid] = now
 
     async def cleanup(self):
         self.shutdown = True
-        try:
-            self.pending_payments_lookup_task.cancel()
-        except Exception as e:
-            logger.warning("Error cancelling pending payments lookup task: " + str(e))
         await self.conn.close()
 
     async def create_invoice(
@@ -148,8 +514,8 @@ class NWCWallet(Wallet):
         else:
             desc = memo or ""
         try:
-            info = await self.conn.get_info()
-            if "make_invoice" not in info["supported_methods"]:
+            await self.conn.get_info()
+            if not self.conn.supports_method("make_invoice"):
                 return InvoiceResponse(
                     ok=False,
                     error_message="make_invoice is not supported by this NWC service.",
@@ -164,18 +530,14 @@ class NWCWallet(Wallet):
             )
             checking_id = str(resp["payment_hash"])
             payment_request = resp.get("invoice", None)
-            # if lookup_invoice is not supported, we can't track the payment
-            if "lookup_invoice" in info["supported_methods"]:
-                created_at = int(resp.get("created_at", time.time()))
-                expires_at = int(resp.get("expires_at", created_at + 3600))
-                self.pending_payments.append(
-                    {  # Start tracking
-                        "checking_id": checking_id,
-                        "expires_at": expires_at,
-                        "settled": False,
-                        "expired": False,
-                    }
-                )
+            created_at = int(resp.get("created_at", time.time()))
+            expires_at = int(resp.get("expires_at", created_at + 3600))
+            if (
+                self.conn.supports_method("lookup_invoice")
+                or self.conn.supports_method("list_transactions")
+                or self.conn.supports_notification_type("payment_received")
+            ):
+                self._track_pending_invoice(checking_id, created_at, expires_at)
             return InvoiceResponse(
                 ok=True, checking_id=checking_id, payment_request=payment_request
             )
@@ -184,8 +546,8 @@ class NWCWallet(Wallet):
 
     async def status(self) -> StatusResponse:
         try:
-            info = await self.conn.get_info()
-            if "get_balance" not in info["supported_methods"]:
+            await self.conn.get_info()
+            if not self.conn.supports_method("get_balance"):
                 logger.debug("get_balance is not supported by this NWC service.")
                 return StatusResponse(None, 0)
             resp = await self.conn.call("get_balance", {})
@@ -202,9 +564,9 @@ class NWCWallet(Wallet):
             payment_hash = invoice_data.payment_hash
             # pay_invoice doesn't return payment data, so we need
             # to call lookup_invoice too (if supported)
-            info = await self.conn.get_info()
+            await self.conn.get_info()
 
-            if "lookup_invoice" not in info["supported_methods"]:
+            if not self.conn.supports_method("lookup_invoice"):
                 # if not supported, we assume it succeeded
                 return PaymentResponse(
                     ok=True, checking_id=payment_hash, preimage=preimage, fee_msat=0
@@ -256,34 +618,64 @@ class NWCWallet(Wallet):
             # assume pending
             return PaymentResponse(error_message=msg)
 
+    async def _get_status_via_transactions(
+        self, checking_id: str, unpaid_filters: list[bool]
+    ) -> PaymentStatus | None:
+        keep_ids = self._cache_ids(checking_id)
+        self._prune_payment_status_cache()
+        payment_data = self._get_cached_payment_data(checking_id)
+        if payment_data:
+            return self._payment_data_to_status(payment_data)
+
+        if self.conn.supports_method("list_transactions"):
+            invoice_details = self.pending_invoice_details.get(checking_id, {})
+            created_at_hint = int(
+                invoice_details.get(
+                    "created_at", time.time() - self.transactions_refresh_max_age
+                )
+            )
+            from_ts = max(0, created_at_hint - 60)
+
+            for unpaid in unpaid_filters:
+                await self._refresh_recent_incoming_transactions(
+                    from_ts=from_ts,
+                    cache_ids=None,
+                    stop_when_found_ids=keep_ids,
+                    unpaid=unpaid,
+                )
+                payment_data = self._get_cached_payment_data(checking_id)
+                if payment_data:
+                    return self._payment_data_to_status(payment_data)
+
+        if self.conn.supports_method("lookup_invoice"):
+            payment_data = await self.conn.call(
+                "lookup_invoice", {"payment_hash": checking_id}
+            )
+            self._cache_payment_data(checking_id, payment_data)
+            return self._payment_data_to_status(payment_data)
+
+        return None
+
     async def get_invoice_status(self, checking_id: str) -> PaymentStatus:
-        return await self.get_payment_status(checking_id)
+        try:
+            await self.conn.get_info()
+            status = await self._get_status_via_transactions(checking_id, [True, False])
+            return status or PaymentStatus(None, fee_msat=None, preimage=None)
+        except NWCError as e:
+            logger.error("Error getting invoice status: " + str(e))
+            failed = e.code == "NOT_FOUND"
+            return PaymentStatus(
+                None if not failed else False, fee_msat=None, preimage=None
+            )
+        except Exception as e:
+            logger.error("Error getting invoice status: " + str(e))
+            return PaymentStatus(None, fee_msat=None, preimage=None)
 
     async def get_payment_status(self, checking_id: str) -> PaymentStatus:
         try:
-            info = await self.conn.get_info()
-            if "lookup_invoice" in info["supported_methods"]:
-                payment_data = await self.conn.call(
-                    "lookup_invoice", {"payment_hash": checking_id}
-                )
-                if payment_data.get("payment_hash") != checking_id:
-                    raise Exception("Mismatched payment hash")
-                settled = payment_data.get("settled_at", None) and payment_data.get(
-                    "preimage", None
-                )
-                fee_msat = payment_data.get("fees_paid", None)
-                preimage = payment_data.get("preimage", None)
-                created_at = int(payment_data.get("created_at", time.time()))
-                expires_at = int(payment_data.get("expires_at", created_at + 3600))
-                expired = expires_at and time.time() > expires_at
-                if expired and not settled:
-                    return PaymentStatus(False, fee_msat=fee_msat, preimage=preimage)
-                else:
-                    return PaymentStatus(
-                        True if settled else None, fee_msat=fee_msat, preimage=preimage
-                    )
-            else:
-                return PaymentStatus(None, fee_msat=None, preimage=None)
+            await self.conn.get_info()
+            status = await self._get_status_via_transactions(checking_id, [False])
+            return status or PaymentStatus(None, fee_msat=None, preimage=None)
         except NWCError as e:
             logger.error("Error getting payment status: " + str(e))
             failed = e.code == "NOT_FOUND"
@@ -297,8 +689,14 @@ class NWCWallet(Wallet):
 
     async def paid_invoices_stream(self) -> AsyncGenerator[str, None]:
         while not self._is_shutting_down():
-            value = await self.paid_invoices_queue.get()
-            yield value
+            try:
+                value = await asyncio.wait_for(
+                    self.paid_invoices_queue.get(),
+                    timeout=self.pending_invoices_maintenance_interval,
+                )
+                yield value
+            except asyncio.TimeoutError:
+                await self._maintain_pending_invoices()
 
 
 class NWCConnection:
@@ -306,7 +704,13 @@ class NWCConnection:
     A connection to a Nostr Wallet Connect (NWC) service provider.
     """
 
-    def __init__(self, pubkey, secret, relay):
+    def __init__(
+        self,
+        pubkey,
+        secret,
+        relay,
+        notification_handler: Callable[[dict[str, Any]], Awaitable[None]] | None = None,
+    ):
         # Parse pairing url (if invalid an exception is raised)
 
         # Extract keys (used to sign nwc events+identify NWC user)
@@ -341,6 +745,14 @@ class NWCConnection:
 
         # cached info about the service provider
         self.info = None
+        self.supported_methods: set[str] = set()
+        self.notification_types: set[str] = set()
+        self.supported_encryptions = [NWC_ENCRYPTION_NIP04]
+        self.selected_encryption = NWC_ENCRYPTION_NIP04
+        self.advertises_encryption_tag = False
+        self.notification_handler = notification_handler
+        self.notification_subscription_ids: set[str] = set()
+        self.connection_generation = 0
 
         # This task handles connection and reconnection to the relay
         self.connection_task = asyncio.create_task(self._connect_to_relay())
@@ -420,6 +832,7 @@ class NWCConnection:
         # remove the subscription from the list
         if sub_to_close:
             self.subscriptions.pop(sub_to_close["event_id"], None)
+            self.notification_subscription_ids.discard(sub_id)
             if not sub_to_close["closed"]:
                 sub_to_close["closed"] = True
                 if send_event:
@@ -448,6 +861,7 @@ class NWCConnection:
         if subscription:
             if not subscription["closed"]:
                 subscription["closed"] = True
+                self.notification_subscription_ids.discard(subscription["sub_id"])
                 if send_event:
                     try:
                         await self._send(["CLOSE", subscription["sub_id"]])
@@ -524,9 +938,8 @@ class NWCConnection:
         """
         sub_id = cast(str, msg[1])
         event = cast(dict, msg[2])
-        # Ensure the event is valid (do not trust relays)
-        if not verify_event(event) or event.get("pubkey") != self.service_pubkey_hex:
-            raise Exception("Invalid event")
+        if not verify_event(event):  # Ensure the event is valid (do not trust relays)
+            raise Exception("Invalid event signature")
         tags = event["tags"]
         if event["kind"] == 13194:  # An info event
             # info events are handled specially,
@@ -544,8 +957,16 @@ class NWCConnection:
                 # methods that is passed to the future
                 content = event["content"]
                 subscription["future"].set_result(
-                    {"supported_methods": content.split(" ")}
+                    self._normalize_info(
+                        {
+                            "supported_methods": content.split(" "),
+                            "notification_types": self._get_tag_values(tags, "notifications"),
+                            "supported_encryptions": self._get_tag_values(tags, "encryption"),
+                        }
+                    )
                 )
+        elif event["kind"] in (23196, 23197):
+            await self._on_notification_event(event)
         else:  # A response event
             subscription = None
             # find the first "e" tag that is handled by
@@ -559,9 +980,7 @@ class NWCConnection:
                         break
             # if a subscription was found, pass the result to the future
             if subscription:
-                content = decrypt_content(
-                    event["content"], self.service_pubkey, self.account_private_key_hex
-                )
+                content = self._decrypt_event_content(event)
                 content = json.loads(content)
                 result_type = content.get("result_type", "")
                 error = content.get("error", None)
@@ -577,6 +996,21 @@ class NWCConnection:
                         raise Exception("Malformed response")
                     else:
                         subscription["future"].set_result(result)
+
+    async def _on_notification_event(self, event: dict[str, Any]):
+        if event.get("pubkey") != self.service_pubkey_hex:
+            logger.warning(
+                "Ignoring NWC notification from unexpected pubkey "
+                + str(event.get("pubkey"))
+            )
+            return
+
+        if not self.notification_handler:
+            return
+
+        content = self._decrypt_event_content(event)
+        notification = json.loads(content)
+        await self.notification_handler(notification)
 
     async def _on_closed_message(self, msg: list[str]):
         """
@@ -627,6 +1061,9 @@ class NWCConnection:
                 async with ws_connect(self.relay) as ws:
                     self.ws = ws
                     self.connected = True
+                    self.connection_generation += 1
+                    self.notification_subscription_ids = set()
+                    await self._subscribe_to_notifications()
                     while (
                         not self._is_shutting_down()
                     ):  # receive messages until the connection is shutting down
@@ -653,6 +1090,94 @@ class NWCConnection:
                 logger.debug("Reconnecting to NWC relay in 5 seconds...")
                 await asyncio.sleep(5)
 
+    async def _subscribe_to_notifications(self):
+        for kind in (23197, 23196):
+            sub_id = self._get_new_subid()
+            sub_filter = {
+                "kinds": [kind],
+                "authors": [self.service_pubkey_hex],
+                "#p": [self.account_public_key_hex],
+                "since": int(time.time()),
+            }
+            self.notification_subscription_ids.add(sub_id)
+            await self._send(["REQ", sub_id, sub_filter])
+
+    def _get_tag_values(self, tags: list[list[str]], tag_name: str) -> list[str]:
+        for tag in tags:
+            if tag and tag[0] == tag_name and len(tag) > 1:
+                return [value for value in tag[1].split(" ") if value]
+        return []
+
+    def supports_notification_type(self, notification_type: str) -> bool:
+        return notification_type in self.notification_types
+
+    def supports_method(self, method: str) -> bool:
+        return method in self.supported_methods
+
+    def _normalize_info(self, info: dict[str, Any]) -> dict[str, Any]:
+        methods = info.get("supported_methods", []) or []
+        notifications = info.get("notification_types", []) or []
+        encryptions = _normalize_supported_encryptions(
+            info.get("supported_encryptions", []) or []
+        )
+        normalized = {
+            "supported_methods": [method for method in methods if method],
+            "notification_types": [notification for notification in notifications if notification],
+            "supported_encryptions": encryptions,
+        }
+        return normalized
+
+    def _apply_capabilities(self, info: dict[str, Any]) -> dict[str, Any]:
+        normalized = self._normalize_info(info)
+        self.supported_methods = set(normalized["supported_methods"])
+        self.notification_types = set(normalized["notification_types"])
+        self.supported_encryptions = normalized["supported_encryptions"]
+        self.advertises_encryption_tag = bool(info.get("supported_encryptions"))
+        self.selected_encryption = _choose_preferred_encryption(
+            normalized["supported_encryptions"]
+        )
+        return normalized
+
+    def _get_event_encryption(self, event: dict[str, Any]) -> str:
+        encryption_tag = self._get_tag_values(event.get("tags", []), "encryption")
+        if encryption_tag:
+            return _choose_preferred_encryption(encryption_tag)
+        if event.get("kind") == NWC_NOTIFICATION_KIND_NIP44:
+            return NWC_ENCRYPTION_NIP44_V2
+        if event.get("kind") == NWC_NOTIFICATION_KIND_NIP04:
+            return NWC_ENCRYPTION_NIP04
+        return self.selected_encryption if self.selected_encryption else NWC_ENCRYPTION_NIP04
+
+    def _encrypt_payload(self, content: str) -> tuple[str, str]:
+        encryption = self.selected_encryption or NWC_ENCRYPTION_NIP04
+        if encryption == NWC_ENCRYPTION_NIP44_V2:
+            return (
+                NIP44Encryption.encrypt(
+                    content, self.service_pubkey, self.account_private_key_hex
+                ),
+                encryption,
+            )
+        return (
+            encrypt_content(
+                content,
+                self.service_pubkey,
+                self.account_private_key_hex,
+            ),
+            NWC_ENCRYPTION_NIP04,
+        )
+
+    def _decrypt_event_content(self, event: dict[str, Any]) -> str:
+        encryption = self._get_event_encryption(event)
+        if encryption == NWC_ENCRYPTION_NIP44_V2:
+            return NIP44Encryption.decrypt(
+                event["content"], self.service_pubkey, self.account_private_key_hex
+            )
+        return decrypt_content(
+            event["content"],
+            self.service_pubkey,
+            self.account_private_key_hex,
+        )
+
     async def call(self, method: str, params: dict) -> dict:
         """
         Call a NWC method.
@@ -673,16 +1198,16 @@ class NWCConnection:
                 "params": params,
             }
         )
-        # Encrypt
-        content = encrypt_content(
-            content, self.service_pubkey, self.account_private_key_hex
-        )
+        content, encryption = self._encrypt_payload(content)
         # Prepare the NWC event
+        tags = [["p", self.service_pubkey_hex]]
+        if encryption != NWC_ENCRYPTION_NIP04 or self.advertises_encryption_tag:
+            tags.append(["encryption", encryption])
         event = {
             "kind": 23194,
             "content": content,
             "created_at": int(time.time()),
-            "tags": [["p", self.service_pubkey_hex]],
+            "tags": tags,
         }
         # Sign
         sign_event(event, self.account_public_key_hex, self.account_private_key)
@@ -692,7 +1217,6 @@ class NWCConnection:
             "#p": [self.account_public_key_hex],
             "#e": [event["id"]],
             "since": event["created_at"],
-            "authors": [self.service_pubkey_hex],
         }
         sub_id = self._get_new_subid()
         # register a future to receive the response asynchronously
@@ -743,12 +1267,13 @@ class NWCConnection:
                 await self._send(["REQ", sub_id, sub_filter])
                 # Wait for the response
                 service_info = await future
+                service_info = self._apply_capabilities(service_info)
                 # Get account info when possible
-                if "get_info" in service_info["supported_methods"]:
+                if self.supports_method("get_info"):
                     try:
                         account_info = await self.call("get_info", {})
                         # cache
-                        self.info = service_info
+                        self.info = dict(service_info)
                         self.info["alias"] = account_info.get("alias", "")
                         self.info["color"] = account_info.get("color", "")
                         self.info["pubkey"] = account_info.get("pubkey", "")
@@ -759,6 +1284,15 @@ class NWCConnection:
                             "methods",
                             service_info.get("supported_methods", ["pay_invoice"]),
                         )
+                        self.info["notification_types"] = account_info.get(
+                            "notifications",
+                            service_info.get("notification_types", []),
+                        )
+                        self.info["supported_encryptions"] = service_info.get(
+                            "supported_encryptions",
+                            [NWC_ENCRYPTION_NIP04],
+                        )
+                        self.info = self._apply_capabilities(self.info)
                     except Exception as e:
                         # If there is an error, fallback to using service info
                         logger.error(
@@ -776,9 +1310,11 @@ class NWCConnection:
                 # The error could mean that the service provider does
                 # not provide an info note
                 # So we just assume it supports the bare minimum to be Nip47 compliant
-                self.info = {
+                self.info = self._apply_capabilities({
                     "supported_methods": ["pay_invoice"],
-                }
+                    "notification_types": [],
+                    "supported_encryptions": [NWC_ENCRYPTION_NIP04],
+                })
         return self.info
 
     async def close(self):
@@ -793,6 +1329,11 @@ class NWCConnection:
             self.connection_task.cancel()
         except Exception as e:
             logger.warning("Error cancelling connection task: " + str(e))
+        for sub_id in list(self.notification_subscription_ids):
+            try:
+                await self._send(["CLOSE", sub_id])
+            except Exception as e:
+                logger.warning("Error closing notification subscription: " + str(e))
         # close the websocket
         try:
             if self.ws:
@@ -831,3 +1372,150 @@ def parse_nwc(nwc) -> dict:
     else:
         raise ValueError("Invalid NWC pairing url")
     return data
+
+
+class NIP44Encryption:
+    @staticmethod
+    def encrypt(
+        content: str,
+        service_pubkey: PublicKey,
+        account_private_key_hex: str,
+    ) -> str:
+        conversation_key = NIP44Encryption._get_conversation_key(
+            service_pubkey,
+            account_private_key_hex,
+        )
+        nonce = secrets.token_bytes(32)
+        chacha_key, chacha_nonce, hmac_key = NIP44Encryption._get_message_keys(
+            conversation_key,
+            nonce,
+        )
+        padded = NIP44Encryption._pad(content)
+        ciphertext = ChaCha20.new(key=chacha_key, nonce=chacha_nonce).encrypt(padded)
+        mac = HMAC.new(hmac_key, digestmod=SHA256)
+        mac.update(nonce + ciphertext)
+        payload = bytes([2]) + nonce + ciphertext + mac.digest()
+        return base64.b64encode(payload).decode("ascii")
+
+    @staticmethod
+    def decrypt(
+        content: str,
+        service_pubkey: PublicKey,
+        account_private_key_hex: str,
+    ) -> str:
+        if not content or content[0] == "#":
+            raise ValueError("unknown encryption version")
+        raw = base64.b64decode(content.encode("ascii"))
+        if len(raw) < 99 or len(raw) > 65603:
+            raise ValueError("invalid data size")
+        version = raw[0]
+        if version != 2:
+            raise ValueError(f"unknown version {version}")
+        nonce = raw[1:33]
+        ciphertext = raw[33:-32]
+        mac = raw[-32:]
+        conversation_key = NIP44Encryption._get_conversation_key(
+            service_pubkey,
+            account_private_key_hex,
+        )
+        chacha_key, chacha_nonce, hmac_key = NIP44Encryption._get_message_keys(
+            conversation_key,
+            nonce,
+        )
+        expected_mac = HMAC.new(hmac_key, digestmod=SHA256)
+        expected_mac.update(nonce + ciphertext)
+        if not hmac.compare_digest(expected_mac.digest(), mac):
+            raise ValueError("invalid MAC")
+        padded = ChaCha20.new(key=chacha_key, nonce=chacha_nonce).decrypt(ciphertext)
+        return NIP44Encryption._unpad(padded)
+
+    @staticmethod
+    def _get_shared_x(
+        service_pubkey: PublicKey,
+        account_private_key_hex: str,
+    ) -> bytes:
+        return service_pubkey.multiply(bytes.fromhex(account_private_key_hex)).format()[
+            1:
+        ]
+
+    @staticmethod
+    def _hkdf_extract(*, ikm: bytes, salt: bytes) -> bytes:
+        return hmac.new(salt, ikm, hashlib.sha256).digest()
+
+    @staticmethod
+    def _hkdf_expand(*, prk: bytes, info: bytes, length: int) -> bytes:
+        output = bytearray()
+        previous = b""
+        counter = 1
+        while len(output) < length:
+            previous = hmac.new(
+                prk,
+                previous + info + bytes([counter]),
+                hashlib.sha256,
+            ).digest()
+            output.extend(previous)
+            counter += 1
+        return bytes(output[:length])
+
+    @staticmethod
+    def _get_conversation_key(
+        service_pubkey: PublicKey,
+        account_private_key_hex: str,
+    ) -> bytes:
+        return NIP44Encryption._hkdf_extract(
+            ikm=NIP44Encryption._get_shared_x(
+                service_pubkey, account_private_key_hex
+            ),
+            salt=b"nip44-v2",
+        )
+
+    @staticmethod
+    def _calc_padded_len(unpadded_len: int) -> int:
+        if unpadded_len <= 32:
+            return 32
+        next_power = 1 << ((unpadded_len - 1).bit_length())
+        chunk = 32 if next_power <= 256 else next_power // 8
+        return chunk * (((unpadded_len - 1) // chunk) + 1)
+
+    @staticmethod
+    def _pad(content: str) -> bytes:
+        plaintext = content.encode("utf-8")
+        plaintext_len = len(plaintext)
+        if plaintext_len < 1 or plaintext_len > 65535:
+            raise ValueError("invalid plaintext length")
+        padded_len = NIP44Encryption._calc_padded_len(plaintext_len)
+        return (
+            plaintext_len.to_bytes(2, "big")
+            + plaintext
+            + bytes(padded_len - plaintext_len)
+        )
+
+    @staticmethod
+    def _unpad(padded: bytes) -> str:
+        if len(padded) < 34:
+            raise ValueError("invalid padded payload size")
+        plaintext_len = int.from_bytes(padded[:2], "big")
+        plaintext = padded[2 : 2 + plaintext_len]
+        expected_len = 2 + NIP44Encryption._calc_padded_len(plaintext_len)
+        if (
+            plaintext_len < 1
+            or len(plaintext) != plaintext_len
+            or len(padded) != expected_len
+        ):
+            raise ValueError("invalid padding")
+        return plaintext.decode("utf-8")
+
+    @staticmethod
+    def _get_message_keys(
+        conversation_key: bytes, nonce: bytes
+    ) -> tuple[bytes, bytes, bytes]:
+        if len(conversation_key) != 32:
+            raise ValueError("invalid conversation_key length")
+        if len(nonce) != 32:
+            raise ValueError("invalid nonce length")
+        keys = NIP44Encryption._hkdf_expand(
+            prk=conversation_key,
+            info=nonce,
+            length=76,
+        )
+        return keys[:32], keys[32:44], keys[44:76]
