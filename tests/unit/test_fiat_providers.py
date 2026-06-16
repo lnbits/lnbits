@@ -1235,13 +1235,55 @@ async def test_revolut_wallet_cancel_subscription(settings: Settings):
     settings.revolut_api_version = "2026-04-20"
 
     wallet = RevolutWallet()
-    client = MockHTTPClient([MockHTTPResponse(json_data={})])
+    client = MockHTTPClient(
+        [
+            MockHTTPResponse(
+                json_data={
+                    "external_reference": json.dumps({"wallet_id": "wallet_1"}),
+                }
+            ),
+            MockHTTPResponse(json_data={}),
+        ]
+    )
     wallet.client = client  # type: ignore[assignment]
 
     response = await wallet.cancel_subscription("SUBSCRIPTION123", "wallet_1")
 
     assert response.ok is True
-    assert client.calls[0][0] == "/api/subscriptions/SUBSCRIPTION123/cancel"
+    assert client.calls[0][0] == "/api/subscriptions/SUBSCRIPTION123"
+    assert client.calls[1][0] == "/api/subscriptions/SUBSCRIPTION123/cancel"
+
+
+@pytest.mark.anyio
+async def test_revolut_wallet_cancel_subscription_checks_wallet_id(
+    settings: Settings,
+):
+    settings.revolut_api_endpoint = "https://sandbox-merchant.revolut.com"
+    settings.revolut_api_secret_key = "revolut-secret"
+    settings.revolut_api_version = "2026-04-20"
+
+    wallet = RevolutWallet()
+    client = MockHTTPClient(
+        [
+            MockHTTPResponse(
+                json_data={
+                    "external_reference": json.dumps({"wallet_id": "wallet_2"}),
+                }
+            ),
+        ]
+    )
+    wallet.client = client  # type: ignore[assignment]
+
+    response = await wallet.cancel_subscription("SUBSCRIPTION123", "wallet_1")
+
+    assert response.ok is False
+    assert response.error_message == "Subscription not found."
+    assert client.calls == [
+        (
+            "/api/subscriptions/SUBSCRIPTION123",
+            {"timeout": 30},
+        )
+    ]
 
 
 @pytest.mark.anyio

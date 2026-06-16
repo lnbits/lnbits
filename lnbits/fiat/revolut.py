@@ -302,6 +302,15 @@ class RevolutWallet(FiatProvider):
         **kwargs,
     ) -> FiatSubscriptionResponse:
         try:
+            subscription = await self.get_subscription(subscription_id)
+            reference = self.deserialize_subscription_reference(
+                subscription.get("external_reference")
+            )
+            if not reference or reference.wallet_id != correlation_id:
+                return FiatSubscriptionResponse(
+                    ok=False, error_message="Subscription not found."
+                )
+
             r = await self.client.post(
                 f"/api/subscriptions/{subscription_id}/cancel",
                 timeout=REVOLUT_REQUEST_TIMEOUT,
