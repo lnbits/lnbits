@@ -919,8 +919,10 @@ async def test_revolut_wallet_create_subscription(settings: Settings):
         "PLAN_VARIATION_123", 1, payment_options
     )
 
+    subscription_request_id = payment_options.subscription_request_id
     assert response.ok is True
-    assert response.subscription_request_id is not None
+    assert response.subscription_request_id == "SUBSCRIPTION123"
+    assert subscription_request_id is not None
     assert (
         response.checkout_session_url
         == "https://checkout.revolut.com/payment-link/sub_123"
@@ -934,7 +936,7 @@ async def test_revolut_wallet_create_subscription(settings: Settings):
     assert payload["customer_id"] == "CUSTOMER123"
     assert client.calls[1][1]["timeout"] == 30
     assert client.calls[1][1]["headers"]["Idempotency-Key"] == (
-        response.subscription_request_id
+        subscription_request_id
     )
     assert payload["setup_order_redirect_url"] == (
         "https://lnbits.example/subscription-success"
@@ -942,7 +944,7 @@ async def test_revolut_wallet_create_subscription(settings: Settings):
     reference = json.loads(payload["external_reference"])
     assert reference["wallet_id"] == "wallet_1"
     assert reference["tag"] == "gold"
-    assert reference["subscription_request_id"] == response.subscription_request_id
+    assert reference["subscription_request_id"] == subscription_request_id
     assert reference["memo"] == "Monthly Gold"
     assert reference["extra"]["link"] == "link-1"
     assert client.calls[2][0] == "/api/orders/ORDER123"
