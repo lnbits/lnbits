@@ -39,9 +39,7 @@ async def test_expired_incoming_skips_backend_check(mock_update):
     """Expired incoming invoices should NOT call check_payment_status."""
     payment = _make_payment(amount=1000, expired=True)
 
-    with patch(
-        "lnbits.core.services.payments.check_payment_status"
-    ) as mock_check:
+    with patch("lnbits.core.services.payments.check_payment_status") as mock_check:
         await update_pending_payment(payment)
         mock_check.assert_not_called()
 
