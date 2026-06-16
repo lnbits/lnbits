@@ -439,7 +439,7 @@ async def _handle_revolut_subscription(
 
     extra = {
         **(reference.extra or {}),
-        "subscription_request_id": reference.subscription_request_id,
+        "subscription_request_id": subscription_id,
         "fiat_method": "subscription",
         "tag": reference.tag,
         "subscription": {
