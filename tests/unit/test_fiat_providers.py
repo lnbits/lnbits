@@ -935,9 +935,7 @@ async def test_revolut_wallet_create_subscription(settings: Settings):
     assert payload["plan_variation_id"] == "PLAN_VARIATION_123"
     assert payload["customer_id"] == "CUSTOMER123"
     assert client.calls[1][1]["timeout"] == 30
-    assert client.calls[1][1]["headers"]["Idempotency-Key"] == (
-        subscription_request_id
-    )
+    assert client.calls[1][1]["headers"]["Idempotency-Key"] == (subscription_request_id)
     assert payload["setup_order_redirect_url"] == (
         "https://lnbits.example/subscription-success"
     )
