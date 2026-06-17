@@ -229,8 +229,12 @@ async def send_email(
             smtp_server.login(username, password)
             smtp_server.sendmail(from_email, to_emails, msg.as_string())
 
-    await asyncio.to_thread(_send)
-    return True
+    try:
+        await asyncio.to_thread(_send)
+        return True
+    except Exception as e:
+        logger.warning(f"Sending Email failed. {e!s}")
+        return False
 
 
 async def dispatch_webhook(payment: Payment):
