@@ -25,6 +25,7 @@ from lnbits.core.services.notifications import (
 )
 from lnbits.db import Filters
 from lnbits.settings import settings
+from lnbits.utils.cache import cache
 from lnbits.utils.exchange_rates import btc_rates
 
 audit_queue: asyncio.Queue[AuditEntry] = asyncio.Queue()
@@ -155,7 +156,11 @@ async def collect_exchange_rates_data() -> None:
                     rates_values = [r[1] for r in rates]
                     lnbits_rate = sum(rates_values) / len(rates_values)
                     rates.append(("LNbits", lnbits_rate))
-                    settings.set_exchange_rate(currency, lnbits_rate)
+                    cache.set(
+                        f"btc-price-{currency}",
+                        lnbits_rate,
+                        expiry=settings.lnbits_exchange_rate_cache_seconds,
+                    )
                 settings.append_exchange_rate_datapoint(dict(rates), max_history_size)
             except Exception as ex:
                 logger.warning(ex)

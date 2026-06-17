@@ -302,14 +302,8 @@ async def btc_price(currency: str) -> float:
 
 
 async def get_fiat_rate_and_price_satoshis(currency: str) -> tuple[float, float]:
-    async def _get_price() -> float:
-        price = settings.get_exchange_rate(currency)
-        if price > 0:
-            return price
-        return await btc_price(currency)
-
     price = await cache.save_result(
-        _get_price,
+        lambda: btc_price(currency),
         f"btc-price-{currency}",
         settings.lnbits_exchange_rate_cache_seconds,
     )
