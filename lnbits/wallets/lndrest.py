@@ -100,34 +100,6 @@ class LndRestWallet(Wallet):
 
         return StatusResponse(None, int(data["balance"]) * 1000)
 
-    def _parse_create_invoice_response(
-        self, r: Any, data: dict, preimage: str
-    ) -> InvoiceResponse:
-        if not data:
-            return InvoiceResponse(ok=False, error_message="no data")
-        if "error" in data:
-            return InvoiceResponse(
-                ok=False, error_message=f"Server error: '{data['error']}'"
-            )
-        if r.is_error:
-            return InvoiceResponse(ok=False, error_message=f"Server error: '{r.text}'")
-        if "payment_request" not in data or "r_hash" not in data:
-            return InvoiceResponse(
-                ok=False, error_message="Server error: 'missing required fields'"
-            )
-        try:
-            payment_hash = base64.b64decode(data["r_hash"]).hex()
-        except Exception:
-            return InvoiceResponse(
-                ok=False, error_message=f"Unable to b64decode to {data['r_hash']}."
-            )
-        return InvoiceResponse(
-            ok=True,
-            checking_id=payment_hash,
-            payment_request=data["payment_request"],
-            preimage=preimage,
-        )
-
     async def create_invoice(
         self,
         amount: int,
@@ -160,6 +132,8 @@ class LndRestWallet(Wallet):
             r = await self.client.post(url="/v1/invoices", json=_data)
             r.raise_for_status()
             data = r.json()
+
+            return self._parse_create_invoice_response(r, data, preimage)
         except json.JSONDecodeError:
             return InvoiceResponse(
                 ok=False, error_message="Server error: 'invalid json response'"
@@ -169,8 +143,6 @@ class LndRestWallet(Wallet):
             return InvoiceResponse(
                 ok=False, error_message=f"Unable to connect to {self.endpoint}."
             )
-
-        return self._parse_create_invoice_response(r, data, preimage)
 
     async def pay_invoice(self, bolt11: str, fee_limit_msat: int) -> PaymentResponse:
         req = {
@@ -400,3 +372,31 @@ class LndRestWallet(Wallet):
         except Exception as exc:
             logger.warning(exc)
             return InvoiceResponse(ok=False, error_message=str(exc))
+
+    def _parse_create_invoice_response(
+        self, r: Any, data: dict, preimage: str
+    ) -> InvoiceResponse:
+        if not data:
+            return InvoiceResponse(ok=False, error_message="no data")
+        if "error" in data:
+            return InvoiceResponse(
+                ok=False, error_message=f"Server error: '{data['error']}'"
+            )
+        if r.is_error:
+            return InvoiceResponse(ok=False, error_message=f"Server error: '{r.text}'")
+        if "payment_request" not in data or "r_hash" not in data:
+            return InvoiceResponse(
+                ok=False, error_message="Server error: 'missing required fields'"
+            )
+        try:
+            payment_hash = base64.b64decode(data["r_hash"]).hex()
+        except Exception:
+            return InvoiceResponse(
+                ok=False, error_message=f"Unable to b64decode to {data['r_hash']}."
+            )
+        return InvoiceResponse(
+            ok=True,
+            checking_id=payment_hash,
+            payment_request=data["payment_request"],
+            preimage=preimage,
+        )
