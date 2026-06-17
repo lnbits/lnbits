@@ -223,15 +223,15 @@ async def send_email(
     msg.attach(MIMEText(message, "plain"))
     username = username if len(username) > 0 else from_email
 
-    def _send():
+    def _send() -> bool:
         with smtplib.SMTP(server, port) as smtp_server:
             smtp_server.starttls()
             smtp_server.login(username, password)
             smtp_server.sendmail(from_email, to_emails, msg.as_string())
+        return True
 
     try:
-        await asyncio.to_thread(_send)
-        return True
+        return await asyncio.to_thread(_send)
     except Exception as e:
         logger.warning(f"Sending Email failed. {e!s}")
         return False
