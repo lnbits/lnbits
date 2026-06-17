@@ -57,7 +57,8 @@ class GitHubRelease(BaseModel):
 class Manifest(BaseModel):
     extensions: list[ExplicitRelease] = []
     repos: list[GitHubRelease] = []
-    profiles: dict[str, list[str]] = {}
+    featured: list[str] = []
+    categories: dict[str, list[str]] = {}
 
 
 class GitHubRepoRelease(BaseModel):
@@ -331,7 +332,8 @@ class ExtensionMeta(BaseModel):
     payments: list[ReleasePaymentInfo] = []
     dependencies: list[str] = []
     archive: str | None = None
-    profiles: list[str] = []
+    featured: bool = False
+    categories: list[str] = []
     paid_features: str | None = None
     has_paid_release: bool = False
     has_free_release: bool = False
@@ -678,9 +680,10 @@ class InstallableExtension(BaseModel):
                         continue
 
                     meta = ext.meta or ExtensionMeta()
-                    meta.profiles = [
-                        profile
-                        for profile, ext_ids in manifest.profiles.items()
+                    meta.featured = ext.id in manifest.featured
+                    meta.categories = [
+                        category
+                        for category, ext_ids in manifest.categories.items()
                         if ext.id in ext_ids
                     ]
                     ext.meta = meta
@@ -697,9 +700,10 @@ class InstallableExtension(BaseModel):
                     ext = InstallableExtension.from_explicit_release(e)
                     ext.check_release_updates(release)
                     meta = ext.meta or ExtensionMeta()
-                    meta.profiles = [
-                        profile
-                        for profile, ext_ids in manifest.profiles.items()
+                    meta.featured = ext.id in manifest.featured
+                    meta.categories = [
+                        category
+                        for category, ext_ids in manifest.categories.items()
                         if ext.id in ext_ids
                     ]
                     ext.meta = meta

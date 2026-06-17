@@ -565,19 +565,8 @@ async def extensions(account_id: AccountId = Depends(check_account_id_exists)):
             "icon": ext.icon,
             "shortDescription": ext.short_description,
             "stars": ext.stars,
-            "profiles": (
-                [
-                    profile_name
-                    for profile_name, ext_ids in ext.meta.profiles.items()
-                    if ext.id in ext_ids
-                ]
-                if ext.meta and isinstance(ext.meta.profiles, dict)
-                else (
-                    ext.meta.profiles
-                    if ext.meta and isinstance(ext.meta.profiles, list)
-                    else []
-                )
-            ),
+            "isFeatured": ext.meta.featured if ext.meta else False,
+            "categories": ext.meta.categories if ext.meta else [],
             "dependencies": ext.meta.dependencies if ext.meta else "",
             "isInstalled": ext.id in installed_exts_ids,
             "hasDatabaseTables": next(

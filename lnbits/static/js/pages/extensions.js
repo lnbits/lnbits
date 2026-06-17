@@ -10,7 +10,7 @@ window.PageExtensions = {
       tab: 'installed',
       manageExtensionTab: 'releases',
       filteredExtensions: [],
-      profiles: new Set(),
+      categories: new Set(),
       updatableExtensions: [],
       showUninstallDialog: false,
       showManageExtensionDialog: false,
@@ -107,9 +107,9 @@ window.PageExtensions = {
         }
       }
 
-      const isProfileTab = !['installed', 'all'].includes(tab)
-      const isInSelectedProfile = extension =>
-        extension.profiles?.includes(tab) ?? false
+      const isCategoryTab = !['installed', 'all', 'featured'].includes(tab)
+      const isInSelectedCategory = extension =>
+        extension.categories?.includes(tab) ?? false
 
       this.filteredExtensions = this.extensions
         .filter(e => (tab === 'all' ? !e.isInstalled : true))
@@ -117,7 +117,8 @@ window.PageExtensions = {
         .filter(e =>
           tab === 'installed' ? (e.isActive ? true : !!this.g.user.admin) : true
         )
-        .filter(e => (isProfileTab ? isInSelectedProfile(e) : true))
+        .filter(e => (tab === 'featured' ? e.isFeatured : true))
+        .filter(e => (isCategoryTab ? isInSelectedCategory(e) : true))
         .filter(extensionNameContains(term))
         .map(e => ({
           ...e,
@@ -838,7 +839,7 @@ window.PageExtensions = {
       try {
         const {data} = await LNbits.api.request('GET', `/api/v1/extension/all`)
         data.forEach(ext => {
-          ext.profiles?.forEach(profile => this.profiles.add(profile))
+          ext.categories?.forEach(category => this.categories.add(category))
         })
         return data
       } catch (error) {

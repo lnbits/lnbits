@@ -7,19 +7,24 @@
             <q-tabs v-model="tab" active-color="primary" align="left">
               <q-tab name="installed" :label="$t('installed')"></q-tab>
               <q-tab name="all" :label="$t('all')"></q-tab>
-              <q-btn-dropdown auto-close stretch flat :label="$t('profiles')">
+              <q-tab
+                v-show="$q.screen.gt.xs"
+                name="featured"
+                :label="$t('featured')"
+              ></q-tab>
+              <q-btn-dropdown auto-close stretch flat :label="$t('categories')">
                 <q-list>
                   <q-item
                     clickable
                     v-close-popup
-                    v-for="profile in profiles"
-                    @click="tab = profile"
-                    :key="profile"
+                    v-for="category in categories"
+                    @click="tab = category"
+                    :key="category"
                   >
                     <q-item-section>
                       <q-item-label
                         class="text-capitalize"
-                        v-text="profile"
+                        v-text="category"
                       ></q-item-label>
                     </q-item-section>
                   </q-item>
