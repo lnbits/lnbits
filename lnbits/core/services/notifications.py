@@ -1,6 +1,7 @@
 import asyncio
 import json
 import smtplib
+from asyncio.tasks import create_task
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from http import HTTPStatus
@@ -28,7 +29,6 @@ from lnbits.core.services.nostr import fetch_nip5_details, send_nostr_dm
 from lnbits.core.services.websockets import websocket_manager
 from lnbits.helpers import check_callback_url, is_valid_email_address
 from lnbits.settings import settings
-from lnbits.tasks import create_task
 from lnbits.utils.nostr import normalize_private_key
 
 notifications_queue: asyncio.Queue[NotificationMessage] = asyncio.Queue()
