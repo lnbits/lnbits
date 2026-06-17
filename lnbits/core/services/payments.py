@@ -13,7 +13,6 @@ from lnbits.core.crud.payments import get_daily_stats
 from lnbits.core.db import db
 from lnbits.core.models import PaymentDailyStats, PaymentFilters
 from lnbits.core.models.payments import CreateInvoice
-from lnbits.core.services.fiat_providers import handle_fiat_payment_confirmation
 from lnbits.db import Connection, Filters
 from lnbits.decorators import check_user_extension_access
 from lnbits.exceptions import InvoiceError, PaymentError, UnsupportedError
@@ -630,18 +629,14 @@ async def check_transaction_status(
     return await check_payment_status(payment)
 
 
-async def check_payment_status(
-    payment: Payment, skip_internal_payment_notifications: bool | None = False
-) -> PaymentStatus:
+async def check_payment_status(payment: Payment) -> PaymentStatus:
     if payment.is_internal:
         if payment.success:
             return PaymentSuccessStatus()
         if payment.failed:
             return PaymentFailedStatus()
         if payment.is_in and payment.fiat_provider:
-            fiat_status = await check_fiat_status(
-                payment, skip_internal_payment_notifications
-            )
+            fiat_status = await check_fiat_status(payment)
             return PaymentStatus(paid=fiat_status.paid)
         return PaymentPendingStatus()
     funding_source = get_funding_source()
@@ -783,9 +778,14 @@ async def _pay_internal_invoice(
     await update_payment(internal_payment, conn=conn)
     logger.success(f"internal payment successful {internal_payment.checking_id}")
 
-    await _send_payment_notification_in_background(wallet.id, payment, conn=conn)
+    await _send_payment_notification_in_background(
+        wallet.id, payment, conn=conn
+    )  # notify the sender
+    await _send_payment_notification_in_background(
+        internal_payment.wallet_id, internal_payment, conn=conn
+    )  # notify the receiver
 
-    # notify receiver asynchronously
+    # notify receiver asynchronously (extension listeners)
     from lnbits.tasks import internal_invoice_queue
 
     logger.debug(f"enqueuing internal invoice {internal_payment.checking_id}")
@@ -1079,29 +1079,29 @@ async def _send_payment_notification_in_background(
     send_payment_notification_in_background(wallet, payment)
 
 
-async def update_invoice_callback(checking_id: str) -> Payment | None:
+async def update_invoice_from_paid_invoices_stream(checking_id: str) -> Payment | None:
     """
-    Takes a checking_id of an incoming payment, from either paid_invoices_stream()
-    or internal_invoice_queue. Checks its status, updates and returns it.
-    returns None if no payment was found or it not and incoming payment.
+    Takes a checking_id of an incoming payment from paid_invoices_stream()
+    Checks its status, updates its status and returns it.
+    returns None if no incoming payment was found or the status is not successful
     """
     payment = await get_standalone_payment(checking_id, incoming=True)
     if not payment:
-        logger.warning(f"No payment found for '{checking_id}'.")
-        return None
-    if not payment.is_in:
-        logger.warning(f"Payment '{checking_id}' is not incoming, skipping.")
+        logger.warning(f"No incoming payment found for '{checking_id}'.")
         return None
 
-    status = await check_payment_status(
-        payment, skip_internal_payment_notifications=True
-    )
+    status = await check_payment_status(payment)
+
+    if not status.success:
+        logger.error(
+            "Unexpected status response from paid_invoices_stream. Skipping update."
+        )
+        return None
+
     payment.fee = status.fee_msat or payment.fee
     # only overwrite preimage if status.preimage provides it
     payment.preimage = status.preimage or payment.preimage
-
     payment.status = PaymentState.SUCCESS
     payment = await update_payment(payment)
-    if payment.fiat_provider:
-        await handle_fiat_payment_confirmation(payment)
+
     return payment
