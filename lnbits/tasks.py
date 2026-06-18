@@ -62,7 +62,7 @@ async def catch_everything_and_restart(
     func: Callable[[], Coroutine],
     name: str = "unnamed",
 ) -> Coroutine:
-    while True:
+    while settings.lnbits_running:
         try:
             return await func()
         except asyncio.CancelledError:
