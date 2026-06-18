@@ -39,6 +39,7 @@ from lnbits.core.services.notifications import (
     send_nostr_notification,
     send_nostr_notifications,
     send_notification,
+    send_notification_in_background,
     send_payment_notification,
     send_payment_push_notification,
     send_push_notification,
@@ -117,7 +118,7 @@ async def test_send_admin_and_user_notification_use_expected_targets(
     settings: Settings, mocker: MockerFixture
 ):
     send_mock = mocker.patch(
-        "lnbits.core.services.notifications.send_notification",
+        "lnbits.core.services.notifications.send_notification_in_background",
         mocker.AsyncMock(),
     )
     original_chat_id = settings.lnbits_telegram_notifications_chat_id
@@ -157,6 +158,45 @@ async def test_send_admin_and_user_notification_use_expected_targets(
         "hello user",
         "text_message",
     )
+
+
+@pytest.mark.anyio
+async def test_send_notification_in_background_schedules_notification(
+    mocker: MockerFixture,
+):
+    scheduled = []
+
+    def create_task(coro):
+        scheduled.append(coro)
+        coro.close()
+        return mocker.Mock()
+
+    create_task_mock = mocker.patch(
+        "lnbits.core.services.notifications.create_task",
+        side_effect=create_task,
+    )
+    send_mock = mocker.patch(
+        "lnbits.core.services.notifications.send_notification",
+        mocker.AsyncMock(),
+    )
+
+    await send_notification_in_background(
+        "chat-id",
+        ["alice@example.com"],
+        ["admin@example.com"],
+        "hello",
+        "settings_update",
+    )
+
+    create_task_mock.assert_called_once()
+    send_mock.assert_called_once_with(
+        "chat-id",
+        ["alice@example.com"],
+        ["admin@example.com"],
+        "hello",
+        "settings_update",
+    )
+    assert len(scheduled) == 1
 
 
 @pytest.mark.anyio
