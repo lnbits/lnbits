@@ -46,8 +46,8 @@ async def api_auditor():
     dependencies=[Depends(check_admin)],
     response_model=list[PublicTask],
 )
-async def api_monitor() -> list[Task]:
-    return task_manager.tasks
+async def api_monitor() -> list[PublicTask]:
+    return [PublicTask(name=t.name, created_at=t.created_at) for t in task_manager.tasks]
 
 
 @admin_router.get(
