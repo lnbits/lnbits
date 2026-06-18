@@ -148,7 +148,7 @@ class TaskManager:
         self,
         func: Callable[[], Coroutine],
         restart_interval: int = 5,
-    ):
+    ) -> None:
         """Catches all exceptions from a function and restarts it after 5 seconds."""
         while settings.lnbits_running:
             try:

@@ -36,7 +36,7 @@ def create_permanent_unique_task(
 async def catch_everything_and_restart(
     func: Callable[[], Coroutine],
     name: str = "unnamed",
-) -> Coroutine:
+) -> None:
     _ = name
     return await task_manager._catch_everything_and_restart(func)
 
