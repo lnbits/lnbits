@@ -243,7 +243,7 @@ class LndRestWallet(Wallet):
             return PaymentPendingStatus()
 
         url = f"/v2/router/track/{checking_id}"
-        async with self.client.stream("GET", url, timeout=None) as r:
+        async with self.client.stream("GET", url, timeout=30) as r:
             async for json_line in r.aiter_lines():
                 try:
                     line = json.loads(json_line)
@@ -274,7 +274,7 @@ class LndRestWallet(Wallet):
                     return PaymentFailedStatus()
                 elif status == "IN_FLIGHT":
                     logger.info(f"LNDRest Payment in flight: {checking_id}")
-                    return PaymentPendingStatus()
+                    continue
 
         logger.info(f"LNDRest Payment non-existent: {checking_id}")
         return PaymentPendingStatus()
