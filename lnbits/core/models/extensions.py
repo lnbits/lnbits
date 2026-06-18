@@ -55,9 +55,10 @@ class GitHubRelease(BaseModel):
 
 
 class Manifest(BaseModel):
-    featured: list[str] = []
     extensions: list[ExplicitRelease] = []
     repos: list[GitHubRelease] = []
+    featured: list[str] = []
+    categories: dict[str, list[str]] = {}
 
 
 class GitHubRepoRelease(BaseModel):
@@ -308,7 +309,6 @@ class ExtensionRelease(BaseModel):
 
     @classmethod
     async def fetch_release_details(cls, details_link: str) -> dict | None:
-
         try:
             async with httpx.AsyncClient() as client:
                 resp = await client.get(details_link)
@@ -333,6 +333,7 @@ class ExtensionMeta(BaseModel):
     dependencies: list[str] = []
     archive: str | None = None
     featured: bool = False
+    categories: list[str] = []
     paid_features: str | None = None
     has_paid_release: bool = False
     has_free_release: bool = False
@@ -680,6 +681,11 @@ class InstallableExtension(BaseModel):
 
                     meta = ext.meta or ExtensionMeta()
                     meta.featured = ext.id in manifest.featured
+                    meta.categories = [
+                        category
+                        for category, ext_ids in manifest.categories.items()
+                        if ext.id in ext_ids
+                    ]
                     ext.meta = meta
                     extension_list += [ext]
 
@@ -695,6 +701,11 @@ class InstallableExtension(BaseModel):
                     ext.check_release_updates(release)
                     meta = ext.meta or ExtensionMeta()
                     meta.featured = ext.id in manifest.featured
+                    meta.categories = [
+                        category
+                        for category, ext_ids in manifest.categories.items()
+                        if ext.id in ext_ids
+                    ]
                     ext.meta = meta
                     extension_list += [ext]
             except Exception as e:

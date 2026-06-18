@@ -10,6 +10,7 @@ window.PageExtensions = {
       tab: 'installed',
       manageExtensionTab: 'releases',
       filteredExtensions: [],
+      categories: new Set(),
       updatableExtensions: [],
       showUninstallDialog: false,
       showManageExtensionDialog: false,
@@ -106,6 +107,10 @@ window.PageExtensions = {
         }
       }
 
+      const isCategoryTab = !['installed', 'all', 'featured'].includes(tab)
+      const isInSelectedCategory = extension =>
+        extension.categories?.includes(tab) ?? false
+
       this.filteredExtensions = this.extensions
         .filter(e => (tab === 'all' ? !e.isInstalled : true))
         .filter(e => (tab === 'installed' ? e.isInstalled : true))
@@ -113,6 +118,7 @@ window.PageExtensions = {
           tab === 'installed' ? (e.isActive ? true : !!this.g.user.admin) : true
         )
         .filter(e => (tab === 'featured' ? e.isFeatured : true))
+        .filter(e => (isCategoryTab ? isInSelectedCategory(e) : true))
         .filter(extensionNameContains(term))
         .map(e => ({
           ...e,
@@ -832,6 +838,9 @@ window.PageExtensions = {
     async fetchAllExtensions() {
       try {
         const {data} = await LNbits.api.request('GET', `/api/v1/extension/all`)
+        data.forEach(ext => {
+          ext.categories?.forEach(category => this.categories.add(category))
+        })
         return data
       } catch (error) {
         console.warn(error)
