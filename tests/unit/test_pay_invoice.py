@@ -17,7 +17,6 @@ from lnbits.core.services.payments import (
 )
 from lnbits.exceptions import InvoiceError, PaymentError
 from lnbits.settings import Settings
-from lnbits.tasks import internal_invoice_queue
 from lnbits.task_manager import task_manager
 from lnbits.wallets.base import PaymentResponse
 from lnbits.wallets.fake import FakeWallet
@@ -235,9 +234,9 @@ async def test_notification_for_internal_payment(
     test_name = "test_notification_for_internal_payment"
 
     # Drain stale items left by session-scoped fixtures (e.g. update_wallet_balance)
-    while not internal_invoice_queue.empty():
+    while not task_manager.internal_invoice_queue.empty():
         try:
-            internal_invoice_queue.get_nowait()
+            task_manager.internal_invoice_queue.get_nowait()
         except asyncio.QueueEmpty:
             break
 

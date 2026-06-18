@@ -1119,7 +1119,7 @@ async def fundingsource_invoice_producer() -> None:
     funding_source = get_funding_source()
     async for checking_id in funding_source.paid_invoices_stream():
         logger.info(f"got a payment notification {checking_id}")
-        payment = await _update_invoice_callback(checking_id)
+        payment = await update_invoice_from_paid_invoices_stream(checking_id)
         if payment:
             logger.success(f"fundingsource invoice {checking_id} settled")
             task_manager.invoice_queue.put_nowait(payment)

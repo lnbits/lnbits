@@ -5,8 +5,8 @@ import pytest
 from pytest_mock.plugin import MockerFixture
 
 from lnbits.settings import Settings
-from lnbits.utils.cache import Cache, Cached
 from lnbits.task_manager import task_manager
+from lnbits.utils.cache import Cache, Cached
 
 key = "foo"
 value = "bar"
@@ -94,12 +94,12 @@ async def test_cache_pop_expired_returns_default(cache):
 async def test_invalidate_forever_logs_and_recovers_from_errors(
     settings: Settings, mocker: MockerFixture
 ):
-    test_cache = Cache(interval=0)
+    test_cache = Cache()
     logger_error = mocker.patch("lnbits.utils.cache.logger.error")
     original_running = settings.lnbits_running
     calls = 0
 
-    async def fake_sleep(_interval):
+    async def fake_sleep():
         nonlocal calls
         calls += 1
         if calls == 1:
@@ -109,7 +109,7 @@ async def test_invalidate_forever_logs_and_recovers_from_errors(
     try:
         settings.lnbits_running = True
         mocker.patch("lnbits.utils.cache.asyncio.sleep", side_effect=fake_sleep)
-        await test_cache.invalidate_forever()
+        await test_cache.invalidate_cache()
     finally:
         settings.lnbits_running = original_running
 

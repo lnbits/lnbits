@@ -5,6 +5,7 @@ from collections.abc import Callable, Coroutine
 from loguru import logger
 
 from lnbits.core.models import Payment
+from lnbits.core.services.payments import get_standalone_payment
 from lnbits.settings import settings
 from lnbits.task_manager import task_manager
 
@@ -58,83 +59,18 @@ def register_invoice_listener(send_chan: asyncio.Queue, name: str | None = None)
 
     task_manager.register_invoice_listener(forward_queue, name=name)
 
-# async def internal_invoice_queue_put(checking_id: str) -> None:
-    # """
-    # A method to call when it wants to notify about an internal invoice payment.
-    # """
-    # await internal_invoice_queue.put(checking_id)
 
+async def internal_invoice_queue_put(checking_id: str) -> None:
+    """
+    DEPRECATED: use task_manager.internal_invoice_queue instead,
+    A method to call when it wants to notify about an internal invoice payment.
+    """
+    payment = await get_standalone_payment(checking_id, incoming=True)
+    if not payment:
+        logger.warning(f"internal_invoice_queue_put: payment {checking_id} not found")
+        return
+    await task_manager.internal_invoice_queue.put(payment)
 
-# async def internal_invoice_listener() -> None:
-    # """
-    # internal_invoice_queue will be filled directly in core/services.py
-    # after the payment was deemed to be settled internally.
-
-    # Called by the app startup sequence.
-    # """
-    # while settings.lnbits_running:
-    #     checking_id = await internal_invoice_queue.get()
-    #     logger.info(f"got an internal payment notification {checking_id}")
-    #     payment = await get_standalone_payment(checking_id, incoming=True)
-    #     if payment:
-    #         logger.success(f"internal invoice {checking_id} settled")
-    #         await invoice_callback_dispatcher(payment)
-
-
-# async def invoice_listener() -> None:
-    # """
-    # invoice_listener will collect all invoices that come directly
-    # from the backend wallet.
-
-    # Called by the app startup sequence.
-    # """
-    # funding_source = get_funding_source()
-    # async for checking_id in funding_source.paid_invoices_stream():
-    #     logger.info(f"got a payment notification {checking_id}")
-    #     payment = await update_invoice_from_paid_invoices_stream(checking_id)
-    #     if payment:
-    #         logger.success(f"fundingsource invoice {checking_id} settled")
-    #         await invoice_callback_dispatcher(payment)
-
-
-# def wait_for_paid_invoices(
-    # invoice_listener_name: str,
-    # func: Callable[[Payment], Coroutine],
-# ) -> Callable[[], Coroutine]:
-
-    # async def wrapper() -> None:
-    #     invoice_queue: asyncio.Queue = asyncio.Queue()
-    #     register_invoice_listener(invoice_queue, invoice_listener_name)
-    #     while settings.lnbits_running:
-    #         payment = await invoice_queue.get()
-    #         await func(payment)
-
-    # return wrapper
-
-
-# def run_interval(
-    # interval_seconds: int,
-    # func: Callable[[], Coroutine],
-# ) -> Callable[[], Coroutine]:
-    # """Run a function at a specified interval in seconds, while the server is running"""
-
-    # async def wrapper() -> None:
-    #     while settings.lnbits_running:
-    #         try:
-    #             await func()
-    #         except Exception as e:
-    #             logger.error(f"Error occurred in interval task: {e}")
-    #             logger.warning(traceback.format_exc())
-    #         await asyncio.sleep(interval_seconds)
-
-    # return wrapper
-
-
-# async def invoice_callback_dispatcher(payment: Payment):
-    # for name, send_chan in invoice_listeners.items():
-    #     logger.trace(f"invoice listeners: sending to `{name}`")
-    #     await send_chan.put(payment)
-# =======
 
 # DEPRECATED use task_manager.register_invoice_listener(coro, name="myext")
 def wait_for_paid_invoices(
