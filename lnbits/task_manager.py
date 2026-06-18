@@ -150,16 +150,18 @@ class TaskManager:
         restart_interval: int = 5,
     ):
         """Catches all exceptions from a function and restarts it after 5 seconds."""
-        try:
-            return await func()
-        except asyncio.CancelledError:
-            raise  # because we must pass this up
-        except Exception as exc:
-            logger.error(f"exception in background task `{func.__name__}`:", exc)
-            logger.error(traceback.format_exc())
-            logger.info(f"`{func.__name__}` restarts in {restart_interval} seconds.")
-            await asyncio.sleep(restart_interval)
-            return await self._catch_everything_and_restart(func, restart_interval)
+        while settings.lnbits_running:
+            try:
+                return await func()
+            except asyncio.CancelledError:
+                raise  # because we must pass this up
+            except Exception as exc:
+                logger.error(f"exception in background task `{func.__name__}`:", exc)
+                logger.error(traceback.format_exc())
+                logger.info(
+                    f"`{func.__name__}` restarts in {restart_interval} seconds."
+                )
+                await asyncio.sleep(restart_interval)
 
     def _invoice_listener_worker(
         self, func: Callable[[Payment], Coroutine], queue: asyncio.Queue[Payment]
