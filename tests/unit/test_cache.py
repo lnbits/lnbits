@@ -95,22 +95,32 @@ async def test_invalidate_forever_logs_and_recovers_from_errors(
     settings: Settings, mocker: MockerFixture
 ):
     test_cache = Cache()
-    logger_error = mocker.patch("lnbits.utils.cache.logger.error")
     original_running = settings.lnbits_running
     calls = 0
 
-    async def fake_sleep():
+    original_invalidate = test_cache.invalidate_cache
+
+    async def fake_invalidate():
         nonlocal calls
         calls += 1
         if calls == 1:
             raise RuntimeError("boom")
         settings.lnbits_running = False
+        await original_invalidate()
 
+    mocker.patch.object(test_cache, "invalidate_cache", side_effect=fake_invalidate)
+    mocker.patch("lnbits.task_manager.asyncio.sleep")
+    logger_error = mocker.patch("lnbits.task_manager.logger.error")
+
+    bg_task = None
     try:
         settings.lnbits_running = True
-        mocker.patch("lnbits.utils.cache.asyncio.sleep", side_effect=fake_sleep)
-        await test_cache.invalidate_cache()
+        bg_task = task_manager.create_permanent_task(test_cache.invalidate_cache)
+        await bg_task._task
     finally:
         settings.lnbits_running = original_running
+        if bg_task:
+            task_manager.cancel_task(bg_task)
 
-    logger_error.assert_called_once_with("Error invalidating cache")
+    assert logger_error.called
+    assert calls == 2
