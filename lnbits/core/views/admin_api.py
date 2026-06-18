@@ -20,7 +20,7 @@ from lnbits.core.services.settings import dict_to_settings
 from lnbits.decorators import check_admin, check_super_user
 from lnbits.server import server_restart
 from lnbits.settings import AdminSettings, Settings, UpdateSettings, settings
-from lnbits.task_manager import PublicTask, Task, task_manager
+from lnbits.task_manager import PublicTask, task_manager
 
 from .. import core_app_extra
 from ..crud import get_admin_settings, reset_core_settings, update_admin_settings
@@ -47,7 +47,9 @@ async def api_auditor():
     response_model=list[PublicTask],
 )
 async def api_monitor() -> list[PublicTask]:
-    return [PublicTask(name=t.name, created_at=t.created_at) for t in task_manager.tasks]
+    return [
+        PublicTask(name=t.name, created_at=t.created_at) for t in task_manager.tasks
+    ]
 
 
 @admin_router.get(
