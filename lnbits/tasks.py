@@ -61,7 +61,7 @@ def cancel_all_tasks() -> None:
 async def catch_everything_and_restart(
     func: Callable[[], Coroutine],
     name: str = "unnamed",
-) -> Coroutine:
+) -> None:
     while settings.lnbits_running:
         try:
             return await func()
