@@ -78,17 +78,28 @@ class LNbitsWallet(Wallet):
         data: dict = {"out": False, "amount": amount, "memo": memo or ""}
         if kwargs.get("expiry"):
             data["expiry"] = kwargs["expiry"]
+        if kwargs.get("fiat_provider"):
+            if "currency" not in kwargs or "fiat_amount" not in kwargs:
+                return InvoiceResponse(
+                    ok=False,
+                    error_message="Fiat provider requires "
+                    "'currency' and 'fiat_amount' parameters.",
+                )
+            data["amount"] = kwargs["fiat_amount"]
+            data["unit"] = kwargs["currency"]
+            data["fiat_provider"] = kwargs["fiat_provider"]
+
         if description_hash:
             data["description_hash"] = description_hash.hex()
         if unhashed_description:
             data["unhashed_description"] = unhashed_description.hex()
 
         try:
-            r = await self.client.post(url="/api/v1/payments", json=data)
+            print(f"Creating invoice with data: {data}")
+            r = await self.client.post(url="/api/v1/payments", json=data, timeout=30)
             r.raise_for_status()
             data = r.json()
 
-            # Backwards compatibility for pre-v1 which used the key "payment_request"
             payment_str = data.get("bolt11") or data.get("payment_request")
             if r.is_error or not payment_str:
                 error_message = data["detail"] if "detail" in data else r.text
@@ -100,6 +111,7 @@ class LNbitsWallet(Wallet):
                 ok=True,
                 checking_id=data["checking_id"],
                 payment_request=payment_str,
+                fiat_payment_request=data.get("payment_request"),
                 preimage=data.get("preimage"),
             )
         except json.JSONDecodeError:
@@ -110,6 +122,11 @@ class LNbitsWallet(Wallet):
             logger.warning(exc)
             return InvoiceResponse(
                 ok=False, error_message="Server error: 'missing required fields'"
+            )
+        except httpx.HTTPStatusError as exc:
+            logger.warning(exc.response.text)
+            return InvoiceResponse(
+                ok=False, error_message=f"Unable to connect to {self.endpoint}."
             )
         except Exception as exc:
             logger.warning(exc)
@@ -213,6 +230,7 @@ class LNbitsWallet(Wallet):
                     logger.info("connected to LNbits fundingsource websocket.")
                     while settings.lnbits_running:
                         message = await ws.recv()
+                        print(f"### Received message from websocket: {message}")
                         message_dict = json.loads(message)
                         if (
                             message_dict

@@ -129,6 +129,15 @@ async def create_fiat_invoice(
     if not fiat_provider_name:
         raise ValueError("Fiat provider is required for fiat invoices.")
     if not settings.is_fiat_provider_enabled(fiat_provider_name):
+        funding_source = get_funding_source()
+        if funding_source.__class__.__name__ == "LNbitsWallet":
+            fiat_invoice = await create_wallet_invoice(wallet_id, invoice_data)
+            fiat_invoice.fiat_provider = fiat_provider_name
+            fiat_invoice.extra["fiat_checking_id"] = fiat_invoice.checking_id
+            # TODO: move to payment
+            fiat_invoice.extra["fiat_payment_request"] = fiat_invoice.payment_request
+
+            return fiat_invoice
         raise ValueError(
             f"Fiat provider '{fiat_provider_name}' is not enabled.",
         )
@@ -219,6 +228,7 @@ async def create_wallet_invoice(wallet_id: str, data: CreateInvoice) -> Payment:
             payment_hash=data.payment_hash,
             labels=data.labels,
             external_id=data.external_id,
+            fiat_provider=data.fiat_provider,
             conn=conn,
         )
 
@@ -261,6 +271,7 @@ async def create_invoice(
     payment_hash: str | None = None,
     labels: list[str] | None = None,
     external_id: str | None = None,
+    fiat_provider: str | None = None,
     conn: Connection | None = None,
 ) -> Payment:
     if not amount > 0:
@@ -321,6 +332,9 @@ async def create_invoice(
             description_hash=description_hash,
             unhashed_description=unhashed_description,
             expiry=expiry or settings.lightning_invoice_expiry,
+            fiat_provider=fiat_provider,
+            currency=currency if currency != "sat" else None,
+            fiat_amount=amount if currency != "sat" else None,
         )
     if (
         not invoice_response.ok
@@ -332,6 +346,8 @@ async def create_invoice(
             status="pending",
         )
     invoice = bolt11_decode(invoice_response.payment_request)
+    extra["fiat_provider"] = fiat_provider
+    extra["fiat_payment_request"] = invoice_response.fiat_payment_request
 
     create_payment_model = CreatePayment(
         wallet_id=user_wallet.source_wallet_id,

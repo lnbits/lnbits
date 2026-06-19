@@ -30,6 +30,7 @@ class InvoiceResponse(NamedTuple):
     ok: bool
     checking_id: str | None = None  # payment_hash, rpc_id
     payment_request: str | None = None
+    fiat_payment_request: str | None = None
     error_message: str | None = None
     preimage: str | None = None
     fee_msat: int | None = None
