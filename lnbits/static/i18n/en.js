@@ -876,6 +876,11 @@ window.localisation.en = {
   reset_wallet_keys: 'Reset Keys',
   reset_wallet_keys_desc:
     'Reset the API keys for this wallet. This will invalidate the current keys and generate new ones.',
+  webhook_secret: 'Webhook signing secret',
+  webhook_secret_none: 'not set',
+  reset_webhook_secret: 'Reset Webhook Secret',
+  webhook_secret_desc:
+    'Secret used to sign outgoing webhook payloads (HMAC-SHA256) so receivers can verify they came from this wallet. Resetting generates a new secret; receivers verifying signatures will need to be updated.',
   view_list: 'View wallets as list',
   view_column: 'View wallets as rows',
   filter_payments: 'Filter payments',

@@ -128,6 +128,8 @@ class Wallet(BaseWallet):
     currency: str | None = None
     lightning_address: str | None = None
     balance_msat: int = Field(default=0, no_database=True)
+    # Secret used to sign outgoing webhook payloads (HMAC-SHA256).
+    webhook_secret: str | None = None
     extra: WalletExtra = WalletExtra()
     stored_paylinks: StoredPayLinks = StoredPayLinks()
     # What permission this wallet has when it's a shared wallet

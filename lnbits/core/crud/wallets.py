@@ -29,6 +29,7 @@ async def create_wallet(
         user=user_id,
         adminkey=uuid4().hex,
         inkey=uuid4().hex,
+        webhook_secret=uuid4().hex,
         currency=settings.lnbits_default_accounting_currency or "USD",
     )
     if settings.ln_address_creation_allowed and wallet.is_lightning_wallet:

@@ -165,6 +165,14 @@ window._lnbitsApi = {
       }
     )
   },
+  resetWebhookSecret(wallet) {
+    return this.request(
+      'put',
+      `/api/v1/wallet/webhook-secret/reset/${wallet.id}`
+    ).then(res => {
+      return res.data
+    })
+  },
   deleteWallet(wallet) {
     return this.request('delete', `/api/v1/wallet/${wallet.id}`)
   },

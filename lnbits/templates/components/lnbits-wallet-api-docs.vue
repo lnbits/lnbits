@@ -121,6 +121,38 @@
             </div>
           </q-item-section>
         </q-item>
+        <q-item dense class="q-pa-none">
+          <q-item-section>
+            <q-item-label>
+              <strong v-text="$t('webhook_secret') + ': '"></strong
+              ><em
+                v-text="
+                  !g.wallet.webhook_secret
+                    ? $t('webhook_secret_none')
+                    : webhookSecretHidden
+                      ? '****************'
+                      : g.wallet.webhook_secret
+                "
+              ></em>
+            </q-item-label>
+          </q-item-section>
+          <q-item-section side>
+            <div>
+              <q-icon
+                v-if="g.wallet.webhook_secret"
+                :name="webhookSecretHidden ? 'visibility_off' : 'visibility'"
+                class="cursor-pointer"
+                @click="webhookSecretHidden = !webhookSecretHidden"
+              ></q-icon>
+              <q-icon
+                v-if="g.wallet.webhook_secret"
+                name="content_copy"
+                class="cursor-pointer q-ml-sm"
+                @click="utils.copyText(g.wallet.webhook_secret)"
+              ></q-icon>
+            </div>
+          </q-item-section>
+        </q-item>
       </q-list>
     </q-card-section>
     <q-expansion-item
@@ -343,6 +375,16 @@
         color="red-10"
         @click="resetKeys()"
         :label="$t('reset_wallet_keys')"
+      ></q-btn>
+    </q-card-section>
+    <q-separator></q-separator>
+    <q-card-section>
+      <p v-text="$t('webhook_secret_desc')"></p>
+      <q-btn
+        unelevated
+        color="red-10"
+        @click="resetWebhookSecret()"
+        :label="$t('reset_webhook_secret')"
       ></q-btn>
     </q-card-section>
   </q-expansion-item>

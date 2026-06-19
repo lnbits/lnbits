@@ -1,6 +1,9 @@
 import asyncio
+import hashlib
+import hmac
 import json
 import smtplib
+import time
 from asyncio.tasks import create_task
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
@@ -246,16 +249,48 @@ async def dispatch_payment_notification(payment: Payment) -> None:
         await send_payment_notification(wallet, payment)
 
 
-async def dispatch_webhook(payment: Payment):
+def create_webhook_signature(payload: bytes, secret: str, timestamp: int) -> str:
+    """
+    Creates a signature header value for an outgoing webhook payload.
+
+    Mirrors the inbound Stripe scheme (see `check_stripe_signature`):
+    `t=<unix_ts>,v1=<hmac_sha256_hex>` where the signed payload is
+    `f"{timestamp}.{body}"`. The timestamp enables replay protection on the
+    receiving side.
+
+    The payload is hashed as raw bytes (no decode/re-encode round-trip) so the
+    signature always matches the exact bytes sent over the wire.
+    """
+    signed_payload = f"{timestamp}.".encode() + payload
+    signature = hmac.new(
+        key=secret.encode(), msg=signed_payload, digestmod=hashlib.sha256
+    ).hexdigest()
+    return f"t={timestamp},v1={signature}"
+
+
+async def dispatch_webhook(payment: Payment, wallet: Wallet | None = None):
     """
     Dispatches the webhook to the webhook url.
+
+    If webhook signing is enabled and the wallet has a `webhook_secret`, the
+    request carries an `LNbits-Signature` header so receivers can verify that
+    the payload was sent by this LNbits instance.
     """
     logger.debug("sending webhook", payment.webhook)
 
     if not payment.webhook:
         return await mark_webhook_sent(payment.payment_hash, "-1")
 
-    headers = {"User-Agent": settings.user_agent}
+    body = payment.json().encode()
+    headers = {"User-Agent": settings.user_agent, "Content-Type": "application/json"}
+
+    if settings.lnbits_webhook_signing_enabled:
+        wallet = wallet or await get_wallet(payment.wallet_id)
+        if wallet and wallet.webhook_secret:
+            headers["LNbits-Signature"] = create_webhook_signature(
+                body, wallet.webhook_secret, int(time.time())
+            )
+
     async with httpx.AsyncClient(headers=headers) as client:
         try:
             check_callback_url(payment.webhook)
@@ -263,7 +298,7 @@ async def dispatch_webhook(payment: Payment):
             await mark_webhook_sent(payment.payment_hash, "-1")
             logger.warning(f"Invalid webhook URL {payment.webhook}: {exc!s}")
         try:
-            r = await client.post(payment.webhook, json=payment.json(), timeout=40)
+            r = await client.post(payment.webhook, content=body, timeout=40)
             r.raise_for_status()
             await mark_webhook_sent(payment.payment_hash, str(r.status_code))
         except httpx.HTTPStatusError as exc:
@@ -299,7 +334,7 @@ async def send_payment_notification(wallet: Wallet, payment: Payment):
 
     try:
         if payment.webhook and not payment.webhook_status:
-            await dispatch_webhook(payment)
+            await dispatch_webhook(payment, wallet)
     except Exception as e:
         logger.error(f"Error dispatching webhook: {e!s}")
 

@@ -144,6 +144,22 @@ async def api_reset_wallet_keys(
     return wallet
 
 
+@wallet_router.put("/webhook-secret/reset/{wallet_id}")
+async def api_reset_webhook_secret(
+    wallet_id: str,
+    account_id: AccountId = Depends(check_account_id_exists),
+) -> Wallet:
+    wallet = await get_wallet(wallet_id)
+    if not wallet or wallet.user != account_id.id:
+        raise HTTPException(status_code=HTTPStatus.NOT_FOUND, detail="Wallet not found")
+
+    clear_wallet_cache(wallet)
+
+    wallet.webhook_secret = uuid4().hex
+    await update_wallet(wallet)
+    return wallet
+
+
 @wallet_router.put("/stored_paylinks/{wallet_id}")
 async def api_put_stored_paylinks(
     wallet_id: str,
