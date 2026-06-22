@@ -954,7 +954,9 @@ class NWCConnection:
         """
         sub_id = cast(str, msg[1])
         event = cast(dict, msg[2])
-        if not verify_event(event):  # Ensure the event is valid (do not trust relays)
+        # Ensure the event is valid and comes from the configured service
+        # provider (do not trust relays).
+        if not verify_event(event) or event.get("pubkey") != self.service_pubkey_hex:
             raise Exception("Invalid event signature")
         tags = event["tags"]
         if event["kind"] == 13194:  # An info event

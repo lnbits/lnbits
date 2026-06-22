@@ -12,7 +12,7 @@ from Cryptodome.Util.Padding import pad, unpad
 from websockets import ServerConnection
 from websockets import serve as ws_serve
 
-from lnbits.wallets.nwc import NWCWallet
+from lnbits.wallets.nwc import NWCConnection, NWCWallet
 from tests.wallets.helpers import (
     WalletTest,
     build_test_id,
@@ -177,6 +177,40 @@ async def run(data: WalletTest):
             await check_assertions(wallet, data)
             nwcwallet = cast(NWCWallet, wallet)
             await nwcwallet.cleanup()
+
+
+@pytest.mark.anyio
+async def test_nwc_rejects_event_from_unexpected_pubkey(mocker):
+    async def _noop(*args, **kwargs):
+        return None
+
+    mocker.patch("lnbits.wallets.nwc.NWCConnection._connect_to_relay", new=_noop)
+    mocker.patch("lnbits.wallets.nwc.NWCConnection._handle_timeouts", new=_noop)
+
+    service_private_key = PrivateKey()
+    service_public_key = service_private_key.public_key.format().hex()[2:]
+    attacker_private_key = PrivateKey()
+    attacker_public_key = attacker_private_key.public_key.format().hex()[2:]
+    account_private_key = PrivateKey()
+
+    conn = NWCConnection(
+        service_public_key,
+        account_private_key.secret.hex(),
+        "ws://127.0.0.1:8555",
+    )
+    try:
+        event = {
+            "kind": 23195,
+            "content": "{}",
+            "created_at": int(time.time()),
+            "tags": [["e", "request-event-id"]],
+        }
+        sign_event(attacker_public_key, attacker_private_key.secret.hex(), event)
+
+        with pytest.raises(Exception, match="Invalid event signature"):
+            await conn._on_event_message(["EVENT", "subid", event])
+    finally:
+        await conn.close()
 
 
 @pytest.mark.anyio
