@@ -806,6 +806,7 @@ class NWCConnection:
             return
         await self._wait_for_connection()  # ensure the connection is established
         tx = json_dumps(data)
+        logger.debug("Sending raw NWC relay message: " + tx)
         await self.ws.send(tx)
 
     def _get_new_subid(self) -> str:
@@ -999,8 +1000,17 @@ class NWCConnection:
                         break
             # if a subscription was found, pass the result to the future
             if subscription:
-                content = self._decrypt_event_content(event)
-                content = json.loads(content)
+                try:
+                    content = self._decrypt_event_content(event)
+                    content = json.loads(content)
+                except Exception as e:
+                    logger.error(
+                        "Failed to decode NWC response event. "
+                        f"kind={event.get('kind')} id={event.get('id')} "
+                        f"tags={event.get('tags', [])} "
+                        f"ciphertext={event.get('content')} error={e}"
+                    )
+                    raise
                 result_type = content.get("result_type", "")
                 error = content.get("error", None)
                 result = content.get("result", None)
@@ -1027,8 +1037,17 @@ class NWCConnection:
         if not self.notification_handler:
             return
 
-        content = self._decrypt_event_content(event)
-        notification = json.loads(content)
+        try:
+            content = self._decrypt_event_content(event)
+            notification = json.loads(content)
+        except Exception as e:
+            logger.error(
+                "Failed to decode NWC notification event. "
+                f"kind={event.get('kind')} id={event.get('id')} "
+                f"tags={event.get('tags', [])} "
+                f"ciphertext={event.get('content')} error={e}"
+            )
+            raise
         await self.notification_handler(notification)
 
     async def _on_closed_message(self, msg: list[str]):
@@ -1048,6 +1067,7 @@ class NWCConnection:
         Handle incoming messages from the relay.
         """
         try:
+            logger.debug("Received raw NWC relay message: " + message)
             msg = json.loads(message)
             if msg[0] == "OK":  # Event status message
                 await self._on_ok_message(msg)
@@ -1157,6 +1177,14 @@ class NWCConnection:
         self.selected_encryption = _choose_preferred_encryption(
             normalized["supported_encryptions"]
         )
+        logger.debug(
+            "Negotiated NWC provider capabilities. "
+            f"supported_encryptions={self.supported_encryptions} "
+            f"selected_encryption={self.selected_encryption} "
+            f"advertises_encryption_tag={self.advertises_encryption_tag} "
+            f"supported_methods={sorted(self.supported_methods)} "
+            f"notification_types={sorted(self.notification_types)}"
+        )
         return normalized
 
     def _get_event_encryption(self, event: dict[str, Any]) -> str:
@@ -1175,33 +1203,51 @@ class NWCConnection:
 
     def _encrypt_payload(self, content: str) -> tuple[str, str]:
         encryption = self.selected_encryption or NWC_ENCRYPTION_NIP04
+        logger.debug(
+            "Encrypting NWC payload. "
+            f"encryption={encryption} plaintext={content}"
+        )
         if encryption == NWC_ENCRYPTION_NIP44_V2:
-            return (
-                NIP44Encryption.encrypt(
-                    content, self.service_pubkey, self.account_private_key_hex
-                ),
-                encryption,
+            encrypted = NIP44Encryption.encrypt(
+                content, self.service_pubkey, self.account_private_key_hex
             )
-        return (
-            encrypt_content(
+        else:
+            encrypted = encrypt_content(
                 content,
                 self.service_pubkey,
                 self.account_private_key_hex,
-            ),
-            NWC_ENCRYPTION_NIP04,
+            )
+            encryption = NWC_ENCRYPTION_NIP04
+        logger.debug(
+            "Encrypted NWC payload. "
+            f"encryption={encryption} ciphertext={encrypted}"
         )
+        return encrypted, encryption
 
     def _decrypt_event_content(self, event: dict[str, Any]) -> str:
         encryption = self._get_event_encryption(event)
+        logger.debug(
+            "Decrypting NWC event. "
+            f"kind={event.get('kind')} id={event.get('id')} "
+            f"encryption={encryption} tags={event.get('tags', [])} "
+            f"ciphertext={event.get('content')}"
+        )
         if encryption == NWC_ENCRYPTION_NIP44_V2:
-            return NIP44Encryption.decrypt(
+            plaintext = NIP44Encryption.decrypt(
                 event["content"], self.service_pubkey, self.account_private_key_hex
             )
-        return decrypt_content(
-            event["content"],
-            self.service_pubkey,
-            self.account_private_key_hex,
+        else:
+            plaintext = decrypt_content(
+                event["content"],
+                self.service_pubkey,
+                self.account_private_key_hex,
+            )
+        logger.debug(
+            "Decrypted NWC event. "
+            f"kind={event.get('kind')} id={event.get('id')} "
+            f"encryption={encryption} plaintext={plaintext}"
         )
+        return plaintext
 
     async def call(self, method: str, params: dict) -> dict:
         """
@@ -1228,6 +1274,10 @@ class NWCConnection:
         tags = [["p", self.service_pubkey_hex]]
         if encryption != NWC_ENCRYPTION_NIP04 or self.advertises_encryption_tag:
             tags.append(["encryption", encryption])
+        logger.debug(
+            "Using NWC provider encryption for request. "
+            f"method={method} encryption={encryption} tags={tags}"
+        )
         event = {
             "kind": 23194,
             "content": content,
@@ -1239,6 +1289,7 @@ class NWCConnection:
         # Subscribe for a response to this event
         sub_filter = {
             "kinds": [23195],
+            "authors": [self.service_pubkey_hex],
             "#p": [self.account_public_key_hex],
             "#e": [event["id"]],
             "since": event["created_at"],

@@ -99,6 +99,8 @@ async def handle(  # noqa: C901
                     event,
                 )
                 await websocket.send(json.dumps(["EVENT", sub_id, event]))
+            elif 23195 in kinds:
+                assert sub_filter["authors"] == [mock_settings["service_public_key"]]
         elif msg[0] == "EVENT":
             event = msg[1]
             decrypted_content = decrypt_content(
