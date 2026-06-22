@@ -8,7 +8,7 @@ from unittest.mock import AsyncMock
 import pytest
 from pytest_mock.plugin import MockerFixture
 
-from lnbits.core.crud.payments import get_payments
+from lnbits.core.crud.payments import get_payment, get_payments
 from lnbits.core.crud.users import get_user
 from lnbits.core.crud.wallets import create_wallet
 from lnbits.core.models.payments import CreateInvoice, Payment, PaymentState
@@ -1750,6 +1750,51 @@ async def test_check_fiat_status_handles_internal_states(mocker: MockerFixture):
         )
     )
     assert queue_put.await_count == 1
+
+
+@pytest.mark.anyio
+async def test_check_fiat_status_persists_successful_payment(
+    to_wallet: Wallet, settings: Settings, mocker: MockerFixture
+):
+    settings.stripe_enabled = True
+    settings.stripe_api_secret_key = "mock_sk_test_4eC39HqLyjWDarjtT1zdp7dc"
+    settings.stripe_limits.service_min_amount_sats = 0
+    settings.stripe_limits.service_max_amount_sats = 0
+    settings.stripe_limits.service_fee_wallet_id = None
+    settings.stripe_limits.service_faucet_wallet_id = None
+
+    invoice_data = CreateInvoice(
+        unit="USD", amount=1.0, memo="Test", fiat_provider="stripe"
+    )
+    fiat_mock_response = FiatInvoiceResponse(
+        ok=True,
+        checking_id=f"session_paid_{get_random_string(10)}",
+        payment_request="https://stripe.com/pay/session_paid",
+    )
+    mocker.patch(
+        "lnbits.fiat.StripeWallet.create_invoice",
+        AsyncMock(return_value=fiat_mock_response),
+    )
+    mocker.patch(
+        "lnbits.utils.exchange_rates.get_fiat_rate_satoshis",
+        AsyncMock(return_value=1000),
+    )
+    payment = await payments.create_fiat_invoice(to_wallet.id, invoice_data)
+    assert payment.status == PaymentState.PENDING
+
+    mocker.patch(
+        "lnbits.fiat.StripeWallet.get_invoice_status",
+        AsyncMock(return_value=FiatPaymentStatus(paid=True)),
+    )
+    queue_put = mocker.patch("lnbits.tasks.internal_invoice_queue.put", AsyncMock())
+
+    status = await check_fiat_status(payment)
+
+    assert status.success is True
+    assert payment.status == PaymentState.SUCCESS
+    updated_payment = await get_payment(payment.checking_id)
+    assert updated_payment.status == PaymentState.SUCCESS
+    queue_put.assert_awaited_once_with(payment.checking_id)
 
 
 @pytest.mark.anyio

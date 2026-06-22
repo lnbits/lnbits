@@ -8,7 +8,7 @@ import httpx
 from loguru import logger
 
 from lnbits.core.crud import get_wallet
-from lnbits.core.crud.payments import create_payment
+from lnbits.core.crud.payments import create_payment, update_payment
 from lnbits.core.models import CreatePayment, Payment, PaymentState
 from lnbits.core.models.misc import SimpleStatus
 from lnbits.db import Connection
@@ -57,6 +57,8 @@ async def check_fiat_status(payment: Payment) -> FiatPaymentStatus:
     fiat_status = await fiat_provider.get_invoice_status(checking_id)
 
     if fiat_status.success:
+        payment.status = PaymentState.SUCCESS.value
+        await update_payment(payment)
         await handle_fiat_payment_confirmation(payment)
 
         # notify receivers asynchronously
