@@ -914,6 +914,8 @@ class NWCConnection:
                     now = time.time()
                     subscriptions_to_close = []
                     for subscription in self.subscriptions.values():
+                        if subscription["method"] == "notification_sub":
+                            continue
                         t = now - subscription["timestamp"]
                         if t > self.subscription_timeout:
                             logger.warning(
@@ -1139,6 +1141,15 @@ class NWCConnection:
                 "authors": [self.service_pubkey_hex],
                 "#p": [self.account_public_key_hex],
                 "since": int(time.time()),
+            }
+            future = asyncio.get_event_loop().create_future()
+            self.subscriptions[sub_id] = {
+                "method": "notification_sub",
+                "future": future,
+                "sub_id": sub_id,
+                "event_id": sub_id,
+                "timestamp": time.time(),
+                "closed": False,
             }
             self.notification_subscription_ids.add(sub_id)
             await self._send(["REQ", sub_id, sub_filter])

@@ -229,6 +229,41 @@ async def test_nwc_marks_pending_invoice_settled_only_once():
 
 
 @pytest.mark.anyio
+async def test_nwc_registers_notification_subscriptions(mocker):
+    async def _noop(*args, **kwargs):
+        return None
+
+    mocker.patch("lnbits.wallets.nwc.NWCConnection._connect_to_relay", new=_noop)
+    mocker.patch("lnbits.wallets.nwc.NWCConnection._handle_timeouts", new=_noop)
+
+    service_private_key = PrivateKey()
+    service_public_key = service_private_key.public_key.format().hex()[2:]
+    account_private_key = PrivateKey()
+
+    conn = NWCConnection(
+        service_public_key,
+        account_private_key.secret.hex(),
+        "ws://127.0.0.1:8555",
+    )
+    send_mock = mocker.patch.object(conn, "_send", mocker.AsyncMock())
+
+    try:
+        await conn._subscribe_to_notifications()
+
+        assert len(conn.notification_subscription_ids) == 2
+        assert len(conn.subscriptions) == 2
+        assert set(conn.subscriptions.keys()) == conn.notification_subscription_ids
+        assert all(
+            subscription["method"] == "notification_sub"
+            and subscription["event_id"] == subscription["sub_id"]
+            for subscription in conn.subscriptions.values()
+        )
+        assert send_mock.await_count == 2
+    finally:
+        await conn.close()
+
+
+@pytest.mark.anyio
 @pytest.mark.parametrize(
     "test_data",
     wallet_fixtures_from_json("tests/wallets/fixtures/json/fixtures_nwc.json"),
