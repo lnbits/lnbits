@@ -1224,8 +1224,7 @@ class NWCConnection:
     def _encrypt_payload(self, content: str) -> tuple[str, str]:
         encryption = self.selected_encryption or NWC_ENCRYPTION_NIP04
         logger.debug(
-            "Encrypting NWC payload. "
-            f"encryption={encryption} plaintext={content}"
+            "Encrypting NWC payload. " f"encryption={encryption} plaintext={content}"
         )
         if encryption == NWC_ENCRYPTION_NIP44_V2:
             encrypted = NIP44Encryption.encrypt(
@@ -1239,8 +1238,7 @@ class NWCConnection:
             )
             encryption = NWC_ENCRYPTION_NIP04
         logger.debug(
-            "Encrypted NWC payload. "
-            f"encryption={encryption} ciphertext={encrypted}"
+            "Encrypted NWC payload. " f"encryption={encryption} ciphertext={encrypted}"
         )
         return encrypted, encryption
 

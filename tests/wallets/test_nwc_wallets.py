@@ -265,6 +265,12 @@ async def test_nwc_registers_notification_subscriptions(mocker):
 
 @pytest.mark.anyio
 async def test_nwc_spreads_fallback_lookups_with_cooldown(mocker):
+    def _schedule_next_lookup(
+        invoice: dict[str, object], now: float | None = None
+    ) -> None:
+        assert now is not None
+        invoice["next_lookup_at"] = now + 1
+
     wallet = NWCWallet.__new__(NWCWallet)
     wallet.shutdown = False
     wallet.pending_invoices = ["checking-1", "checking-2"]
@@ -284,9 +290,7 @@ async def test_nwc_spreads_fallback_lookups_with_cooldown(mocker):
     wallet._is_shutting_down = lambda: False
     wallet._payment_data_is_settled = lambda payment_data: False
     wallet._cache_payment_data = lambda *args, **kwargs: None
-    wallet._schedule_next_lookup = lambda invoice, now: invoice.__setitem__(
-        "next_lookup_at", now + 1
-    )
+    wallet._schedule_next_lookup = _schedule_next_lookup
     wallet.conn = mocker.Mock()
     wallet.conn.get_info = mocker.AsyncMock()
     wallet.conn.supports_method = mocker.Mock(return_value=True)
