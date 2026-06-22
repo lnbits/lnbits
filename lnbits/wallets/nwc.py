@@ -186,7 +186,7 @@ class NWCWallet(Wallet):
         was_pending = self._remove_pending_invoice(checking_id)
         if was_pending:
             logger.debug("Pending invoice " + checking_id + " settled via " + source)
-        self.paid_invoices_queue.put_nowait(checking_id)
+            self.paid_invoices_queue.put_nowait(checking_id)
 
     def _expire_pending_invoices(self, now: float):
         expired_ids: list[str] = []

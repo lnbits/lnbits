@@ -1,3 +1,4 @@
+import asyncio
 import base64
 import hashlib
 import json
@@ -211,6 +212,20 @@ async def test_nwc_rejects_event_from_unexpected_pubkey(mocker):
             await conn._on_event_message(["EVENT", "subid", event])
     finally:
         await conn.close()
+
+
+@pytest.mark.anyio
+async def test_nwc_marks_pending_invoice_settled_only_once():
+    wallet = NWCWallet.__new__(NWCWallet)
+    wallet.pending_invoice_details = {"checking-id": {"checking_id": "checking-id"}}
+    wallet.pending_invoices = ["checking-id"]
+    wallet.paid_invoices_queue = asyncio.Queue(0)
+
+    wallet._mark_invoice_settled("checking-id", source="notification")
+    wallet._mark_invoice_settled("checking-id", source="notification")
+
+    assert wallet.paid_invoices_queue.qsize() == 1
+    assert await wallet.paid_invoices_queue.get() == "checking-id"
 
 
 @pytest.mark.anyio
