@@ -29,16 +29,11 @@ const DynamicComponent = {
               await LNbits.utils.loadTemplate(r.template)
               if (r.i18n) {
                 const locale =
-                  window.i18n?.global?.locale?.value ?? window.g.locale ?? 'en'
-                await LNbits.utils
-                  .loadScript(`${r.i18n}/${locale}.js`)
-                  .catch(async () => {
-                    if (locale !== 'en') {
-                      await LNbits.utils
-                        .loadScript(`${r.i18n}/en.js`)
-                        .catch(() => {})
-                    }
-                  })
+                  window.i18n?.global?.locale?.value ??
+                  window.i18n?.global?.locale ??
+                  window.g.locale ??
+                  'en'
+                await LNbits.utils.loadExtI18n(r.i18n, locale)
               }
               await LNbits.utils.loadScript(r.component)
               return window[r.name]
@@ -164,6 +159,11 @@ window.i18n = new VueI18n.createI18n({
   fallbackLocale: 'en',
   messages: window.localisation
 })
+
+Vue.watch(
+  () => window.i18n.global.locale,
+  locale => LNbits.utils.reloadExtI18nLocale(locale)
+)
 
 window.app.mixin({
   data() {
