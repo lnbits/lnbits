@@ -29,9 +29,7 @@ const DynamicComponent = {
               await LNbits.utils.loadTemplate(r.template)
               if (r.i18n) {
                 const locale =
-                  window.i18n?.global?.locale?.value ??
-                  window.g.locale ??
-                  'en'
+                  window.i18n?.global?.locale?.value ?? window.g.locale ?? 'en'
                 await LNbits.utils
                   .loadScript(`${r.i18n}/${locale}.js`)
                   .catch(async () => {
