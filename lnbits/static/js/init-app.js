@@ -27,6 +27,21 @@ const DynamicComponent = {
             name: r.name,
             component: async () => {
               await LNbits.utils.loadTemplate(r.template)
+              if (r.i18n) {
+                const locale =
+                  window.i18n?.global?.locale?.value ??
+                  window.g.locale ??
+                  'en'
+                await LNbits.utils
+                  .loadScript(`${r.i18n}/${locale}.js`)
+                  .catch(async () => {
+                    if (locale !== 'en') {
+                      await LNbits.utils
+                        .loadScript(`${r.i18n}/en.js`)
+                        .catch(() => {})
+                    }
+                  })
+              }
               await LNbits.utils.loadScript(r.component)
               return window[r.name]
             }
