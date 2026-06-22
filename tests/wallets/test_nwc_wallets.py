@@ -264,6 +264,42 @@ async def test_nwc_registers_notification_subscriptions(mocker):
 
 
 @pytest.mark.anyio
+async def test_nwc_spreads_fallback_lookups_with_cooldown(mocker):
+    wallet = NWCWallet.__new__(NWCWallet)
+    wallet.shutdown = False
+    wallet.pending_invoices = ["checking-1", "checking-2"]
+    wallet.pending_invoice_details = {
+        "checking-1": {
+            "checking_id": "checking-1",
+            "next_lookup_at": 0.0,
+            "lookup_attempts": 0,
+        },
+        "checking-2": {
+            "checking_id": "checking-2",
+            "next_lookup_at": 0.0,
+            "lookup_attempts": 0,
+        },
+    }
+    wallet.pending_invoices_lookup_cooldown = 1.0
+    wallet._is_shutting_down = lambda: False
+    wallet._payment_data_is_settled = lambda payment_data: False
+    wallet._cache_payment_data = lambda *args, **kwargs: None
+    wallet._schedule_next_lookup = lambda invoice, now: invoice.__setitem__(
+        "next_lookup_at", now + 1
+    )
+    wallet.conn = mocker.Mock()
+    wallet.conn.get_info = mocker.AsyncMock()
+    wallet.conn.supports_method = mocker.Mock(return_value=True)
+    wallet.conn.call = mocker.AsyncMock(return_value={"settled_at": None})
+    sleep_mock = mocker.patch("lnbits.wallets.nwc.asyncio.sleep", mocker.AsyncMock())
+
+    await wallet._run_fallback_lookups(100.0)
+
+    assert wallet.conn.call.await_count == 2
+    sleep_mock.assert_awaited_once_with(1.0)
+
+
+@pytest.mark.anyio
 @pytest.mark.parametrize(
     "test_data",
     wallet_fixtures_from_json("tests/wallets/fixtures/json/fixtures_nwc.json"),

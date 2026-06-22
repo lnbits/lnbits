@@ -97,6 +97,7 @@ class NWCWallet(Wallet):
         self.pending_invoices_maintenance_interval = 5
         self.notification_lookup_schedule = [60, 120, 300, 600, 1200, 1800]
         self.lookup_only_schedule = [15, 30, 60, 120, 300, 600, 1200, 1800]
+        self.pending_invoices_lookup_cooldown = 1.0
         self.pending_invoices_reconcile_interval = 180
         self.next_reconcile_at = 0.0
         self.last_connection_generation = -1
@@ -349,7 +350,7 @@ class NWCWallet(Wallet):
         ]
         due_invoices.sort(key=lambda invoice: float(invoice.get("next_lookup_at", 0.0)))
 
-        for invoice in due_invoices:
+        for index, invoice in enumerate(due_invoices):
             checking_id = str(invoice["checking_id"])
             if checking_id not in self.pending_invoices:
                 continue
@@ -380,6 +381,12 @@ class NWCWallet(Wallet):
                 logger.error("Error handling pending invoice: " + str(e))
                 invoice["lookup_attempts"] = int(invoice.get("lookup_attempts", 0)) + 1
                 self._schedule_next_lookup(invoice, now)
+            if (
+                index < len(due_invoices) - 1
+                and self.pending_invoices_lookup_cooldown > 0
+                and not self._is_shutting_down()
+            ):
+                await asyncio.sleep(self.pending_invoices_lookup_cooldown)
 
     async def _maintain_pending_invoices(self):
         if not self.pending_invoices:
