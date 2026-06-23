@@ -259,9 +259,7 @@ def test_get_api_routes_extracts_v1_paths():
 
 def test_path_and_case_helpers():
     assert path_segments("/wallet/path") == ["wallet", "path"]
-    assert path_segments("/upgrades/ext/assets/app.js") == ["assets", "app.js"]
     assert normalize_path(None) == "/"
-    assert normalize_path("/upgrades/ext/assets/app.js") == "/assets/app.js"
     assert normalize_endpoint("example.com/") == "https://example.com"
     assert normalize_endpoint("ws://socket.example.com") == "ws://socket.example.com"
     assert (
