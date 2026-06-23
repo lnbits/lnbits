@@ -951,6 +951,7 @@ window.localisation.en = {
   blockexplorer_search_label: 'Search by TXID or Address',
   blockexplorer_search_hint:
     '64-char hex = transaction  ·  anything else = Bitcoin address',
+  recent_blocks: 'Recent Blocks',
   chain_tip: 'Chain Tip',
   block_height: 'Block Height',
   block_fee: 'block fee',

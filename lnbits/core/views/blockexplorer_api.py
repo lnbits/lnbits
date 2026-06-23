@@ -7,10 +7,12 @@ from lnbits.settings import settings
 from lnbits.utils.electrum import (
     AddressResponse,
     BlockHeader,
+    BlockInfo,
     ElectrumClient,
     ElectrumError,
     FeeResponse,
     Transaction,
+    parse_block_header,
     parse_raw_tx,
     scripthash_from_address,
 )
@@ -31,6 +33,24 @@ def _check_enabled() -> None:
 
 def _client() -> ElectrumClient:
     return ElectrumClient(settings.lnbits_blockexplorer_electrum_url)
+
+
+@blockexplorer_router.get("/blocks")
+async def api_blocks() -> list[BlockInfo]:
+    _check_enabled()
+    try:
+        async with _client() as c:
+            tip = await c.get_tip()
+            start = max(0, tip.height - 4)
+            headers = await c.get_block_headers(start, tip.height - start + 1)
+        raw = bytes.fromhex(headers.hex)
+        blocks = [
+            parse_block_header(raw[i * 80 : (i + 1) * 80].hex(), start + i)
+            for i in range(headers.count)
+        ]
+        return list(reversed(blocks))
+    except ElectrumError as e:
+        raise HTTPException(HTTPStatus.SERVICE_UNAVAILABLE, detail=str(e)) from e
 
 
 @blockexplorer_router.get("/tip")

@@ -251,6 +251,39 @@ class AddressResponse(BaseModel):
     history: list[HistoryEntry]
 
 
+class BlockInfo(BaseModel):
+    height: int
+    hash: str
+    timestamp: int
+    version: int
+    bits: str
+    nonce: int
+    prev_hash: str
+    merkle_root: str
+
+
+def parse_block_header(header_hex: str, height: int) -> BlockInfo:
+    """Parse an 80-byte block header hex string into a BlockInfo model."""
+    data = bytes.fromhex(header_hex)
+    version = struct.unpack_from("<I", data, 0)[0]
+    prev_hash = data[4:36][::-1].hex()
+    merkle_root = data[36:68][::-1].hex()
+    timestamp = struct.unpack_from("<I", data, 68)[0]
+    bits = format(struct.unpack_from("<I", data, 72)[0], "08x")
+    nonce = struct.unpack_from("<I", data, 76)[0]
+    block_hash = hashlib.sha256(hashlib.sha256(data).digest()).digest()[::-1].hex()
+    return BlockInfo(
+        height=height,
+        hash=block_hash,
+        timestamp=timestamp,
+        version=version,
+        bits=bits,
+        nonce=nonce,
+        prev_hash=prev_hash,
+        merkle_root=merkle_root,
+    )
+
+
 def parse_raw_tx(hex_str: str) -> Transaction:
     """Parse a raw transaction hex string into a Transaction model."""
     data = bytes.fromhex(hex_str)

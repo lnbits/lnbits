@@ -1,6 +1,78 @@
 <template id="page-blockexplorer">
-  <div class="row q-col-gutter-md justify-center">
-    <div class="col-12 col-md-8 q-gutter-y-md">
+  <div class="row q-col-gutter-md">
+
+    <!-- Left column: blocks + search + results -->
+    <div class="col-12 col-md-7 q-gutter-y-md">
+
+      <!-- Recent blocks (mempool-style squares) -->
+      <q-card v-if="blocks.length">
+        <q-card-section>
+          <div class="text-subtitle1 q-mb-md" v-text="$t('recent_blocks')"></div>
+          <div class="row q-gutter-sm">
+            <q-card
+              v-for="b in formattedBlocks"
+              :key="b.height"
+              flat
+              class="bg-primary text-white cursor-pointer"
+              v-ripple
+              @click="openBlock(b)"
+            >
+              <q-card-section class="q-pa-sm">
+                <div class="text-subtitle1 text-weight-bold" v-text="'#' + b.height.toLocaleString()"></div>
+                <div class="text-caption q-mt-xs" v-text="b.timeAgo"></div>
+                <div class="text-caption q-mt-sm"><code v-text="b.shortHash"></code></div>
+                <div class="text-caption" v-text="'diff ' + b.difficulty"></div>
+              </q-card-section>
+            </q-card>
+          </div>
+        </q-card-section>
+      </q-card>
+
+      <!-- Block detail dialog -->
+      <q-dialog v-model="blockDialog">
+        <q-card v-if="selectedBlock">
+          <q-card-section class="bg-primary text-white q-pb-sm">
+            <div class="text-h6" v-text="'Block #' + selectedBlock.height.toLocaleString()"></div>
+            <div class="text-caption" v-text="selectedBlock.utcTime"></div>
+          </q-card-section>
+          <q-card-section>
+            <div class="q-mb-md">
+              <div class="text-caption text-grey q-mb-xs">Hash</div>
+              <code class="text-caption be-wrap" v-text="selectedBlock.hash"></code>
+            </div>
+            <div class="q-mb-md">
+              <div class="text-caption text-grey q-mb-xs">Previous block</div>
+              <code class="text-caption be-wrap" v-text="selectedBlock.prev_hash"></code>
+            </div>
+            <div class="q-mb-lg">
+              <div class="text-caption text-grey q-mb-xs">Merkle root</div>
+              <code class="text-caption be-wrap" v-text="selectedBlock.merkle_root"></code>
+            </div>
+            <div class="row q-col-gutter-md">
+              <div class="col-6 col-sm-3">
+                <div class="text-caption text-grey">Version</div>
+                <div v-text="'0x' + selectedBlock.version.toString(16)"></div>
+              </div>
+              <div class="col-6 col-sm-3">
+                <div class="text-caption text-grey">Bits</div>
+                <div v-text="selectedBlock.bits"></div>
+              </div>
+              <div class="col-6 col-sm-3">
+                <div class="text-caption text-grey">Difficulty</div>
+                <div v-text="selectedBlock.difficulty"></div>
+              </div>
+              <div class="col-6 col-sm-3">
+                <div class="text-caption text-grey">Nonce</div>
+                <div v-text="selectedBlock.nonce.toLocaleString()"></div>
+              </div>
+            </div>
+          </q-card-section>
+          <q-card-actions align="right">
+            <q-btn flat v-close-popup v-text="$t('close')"></q-btn>
+          </q-card-actions>
+        </q-card>
+      </q-dialog>
+
       <q-card>
         <q-card-section>
           <div class="text-h6" v-text="$t('block_explorer')"></div>
@@ -14,38 +86,9 @@
             @keyup.enter="search"
           >
             <template v-slot:append>
-              <q-btn
-                flat
-                round
-                dense
-                icon="search"
-                :loading="loading"
-                @click="search"
-              />
+              <q-btn flat round dense icon="search" :loading="loading" @click="search" />
             </template>
           </q-input>
-        </q-card-section>
-      </q-card>
-
-      <!-- Chain tip + fee summary -->
-      <q-card v-if="tip">
-        <q-card-section>
-          <div class="text-subtitle1 q-mb-sm" v-text="$t('chain_tip')"></div>
-          <div class="row q-col-gutter-md">
-            <div class="col-auto">
-              <div
-                class="text-caption text-grey"
-                v-text="$t('block_height')"
-              ></div>
-              <div class="text-h6" v-text="tip.height.toLocaleString()"></div>
-            </div>
-            <template v-if="feeList.length">
-              <div class="col-auto" v-for="f in feeList" :key="f.label">
-                <div class="text-caption text-grey" v-text="f.label"></div>
-                <div class="text-body2" v-text="f.rate"></div>
-              </div>
-            </template>
-          </div>
         </q-card-section>
       </q-card>
 
@@ -55,27 +98,17 @@
           <div class="text-subtitle1 q-mb-sm" v-text="$t('transaction')"></div>
           <div class="q-mb-xs">
             <span class="text-caption text-grey">txid: </span>
-            <code style="word-break: break-all" v-text="txResult.txid"></code>
+            <code class="text-caption be-wrap" v-text="txResult.txid"></code>
           </div>
           <div class="row q-col-gutter-md q-mb-sm">
             <div class="col-auto" v-if="txResult.blockheight">
-              <div
-                class="text-caption text-grey"
-                v-text="$t('block_height')"
-              ></div>
+              <div class="text-caption text-grey" v-text="$t('block_height')"></div>
               <div v-text="txResult.blockheight.toLocaleString()"></div>
             </div>
             <div class="col-auto" v-if="txResult.confirmations !== undefined">
+              <div class="text-caption text-grey" v-text="$t('confirmations')"></div>
               <div
-                class="text-caption text-grey"
-                v-text="$t('confirmations')"
-              ></div>
-              <div
-                v-text="
-                  txResult.confirmations > 0
-                    ? txResult.confirmations
-                    : $t('unconfirmed')
-                "
+                v-text="txResult.confirmations > 0 ? txResult.confirmations : $t('unconfirmed')"
               ></div>
             </div>
             <div class="col-auto" v-if="txResult.vsize || txResult.size">
@@ -96,13 +129,9 @@
             <q-list dense separator>
               <q-item v-for="(vin, i) in txResult.vin" :key="i">
                 <q-item-section>
-                  <q-item-label
-                    v-if="vin.coinbase"
-                    class="text-grey"
-                    v-text="$t('coinbase')"
-                  >
+                  <q-item-label v-if="vin.coinbase" class="text-grey" v-text="$t('coinbase')">
                   </q-item-label>
-                  <q-item-label v-else style="word-break: break-all">
+                  <q-item-label v-else class="be-wrap">
                     <a
                       href="#"
                       @click.prevent="loadTx(vin.txid)"
@@ -123,9 +152,7 @@
               <q-item v-for="(vout, i) in txResult.vout" :key="i">
                 <q-item-section>
                   <q-item-label>
-                    <template
-                      v-if="vout.scriptPubKey && vout.scriptPubKey.address"
-                    >
+                    <template v-if="vout.scriptPubKey && vout.scriptPubKey.address">
                       <a
                         href="#"
                         @click.prevent="loadAddress(vout.scriptPubKey.address)"
@@ -137,10 +164,7 @@
                       <span v-text="vout.scriptPubKey.type"></span>
                     </template>
                   </q-item-label>
-                  <q-item-label
-                    caption
-                    v-text="vout.value + ' BTC'"
-                  ></q-item-label>
+                  <q-item-label caption v-text="vout.value + ' BTC'"></q-item-label>
                 </q-item-section>
               </q-item>
             </q-list>
@@ -152,46 +176,20 @@
       <q-card v-if="addressResult">
         <q-card-section>
           <div class="text-subtitle1 q-mb-xs" v-text="$t('address')"></div>
-          <code
-            class="q-mb-sm"
-            style="word-break: break-all; display: block"
-            v-text="currentAddress"
-          ></code>
+          <div class="text-caption q-mb-sm"><code class="be-wrap" v-text="currentAddress"></code></div>
           <div class="row q-col-gutter-md q-mb-md">
             <div class="col-auto">
-              <div
-                class="text-caption text-grey"
-                v-text="$t('confirmed_balance')"
-              ></div>
-              <div
-                v-text="
-                  addressResult.balance.confirmed.toLocaleString() + ' sat'
-                "
-              ></div>
+              <div class="text-caption text-grey" v-text="$t('confirmed_balance')"></div>
+              <div v-text="addressResult.balance.confirmed.toLocaleString() + ' sat'"></div>
             </div>
-            <div
-              class="col-auto"
-              v-if="addressResult.balance.unconfirmed !== 0"
-            >
-              <div
-                class="text-caption text-grey"
-                v-text="$t('unconfirmed_balance')"
-              ></div>
-              <div
-                v-text="
-                  addressResult.balance.unconfirmed.toLocaleString() + ' sat'
-                "
-              ></div>
+            <div class="col-auto" v-if="addressResult.balance.unconfirmed !== 0">
+              <div class="text-caption text-grey" v-text="$t('unconfirmed_balance')"></div>
+              <div v-text="addressResult.balance.unconfirmed.toLocaleString() + ' sat'"></div>
             </div>
           </div>
           <div
             class="text-subtitle2 q-mb-xs"
-            v-text="
-              $t('transaction_history') +
-              ' (' +
-              addressResult.history.length +
-              ')'
-            "
+            v-text="$t('transaction_history') + ' (' + addressResult.history.length + ')'"
           ></div>
           <q-list dense separator>
             <q-item
@@ -202,18 +200,10 @@
               @click="loadTx(h.tx_hash)"
             >
               <q-item-section>
-                <q-item-label
-                  class="text-primary"
-                  style="word-break: break-all"
-                  v-text="h.tx_hash"
-                ></q-item-label>
+                <q-item-label class="text-primary be-wrap" v-text="h.tx_hash"></q-item-label>
                 <q-item-label
                   caption
-                  v-text="
-                    h.height > 0
-                      ? $t('block_height') + ': ' + h.height.toLocaleString()
-                      : $t('unconfirmed')
-                  "
+                  v-text="h.height > 0 ? $t('block_height') + ': ' + h.height.toLocaleString() : $t('unconfirmed')"
                 ></q-item-label>
               </q-item-section>
               <q-item-section side>
@@ -229,5 +219,34 @@
         </q-card-section>
       </q-card>
     </div>
+
+    <!-- Right column: chain tip + fees -->
+    <div class="col-12 col-md-5 q-gutter-y-md">
+      <q-card v-if="tip">
+        <q-card-section>
+          <div class="text-subtitle1 q-mb-sm" v-text="$t('chain_tip')"></div>
+          <div class="text-caption text-grey" v-text="$t('block_height')"></div>
+          <div class="text-h6 q-mb-md" v-text="tip.height.toLocaleString()"></div>
+          <template v-if="feeList.length">
+            <div class="text-subtitle2 q-mb-sm" v-text="$t('fee_estimates')"></div>
+            <q-list dense>
+              <q-item v-for="f in feeList" :key="f.label" class="q-px-none">
+                <q-item-section>
+                  <q-item-label class="text-caption text-grey" v-text="f.label"></q-item-label>
+                </q-item-section>
+                <q-item-section side>
+                  <q-item-label class="text-body2" v-text="f.rate"></q-item-label>
+                </q-item-section>
+              </q-item>
+            </q-list>
+          </template>
+        </q-card-section>
+      </q-card>
+    </div>
+
   </div>
 </template>
+
+<style>
+.be-wrap { word-break: break-all; }
+</style>
