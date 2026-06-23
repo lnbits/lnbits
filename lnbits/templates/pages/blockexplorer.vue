@@ -126,8 +126,8 @@
               v-if="txStatus"
               :color="txStatus.confirmed ? 'positive' : 'orange'"
               :label="txStatus.confirmed ? $t('confirmed') : $t('unconfirmed')"
-            />
-            <q-spinner-dots v-else size="1em" color="grey" />
+            ></q-badge>
+            <q-spinner v-if="!txStatus" size="1em" color="grey" />
           </div>
           <div class="q-mb-sm">
             <span class="text-caption text-grey">txid: </span>
