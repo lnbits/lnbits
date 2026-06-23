@@ -111,6 +111,36 @@ async def test_update_pending_payment_and_bulk_pending_updates(mocker: MockerFix
 
 
 @pytest.mark.anyio
+async def test_update_pending_payment_marks_expired_incoming_invoice_failed(
+    app,
+    mocker: MockerFixture,
+):
+    wallet = await _create_wallet()
+    checking_id = await _create_payment(
+        wallet,
+        expiry=datetime.now(timezone.utc) - timedelta(seconds=1),
+        labels=["test"],
+    )
+    payment = await get_payment(checking_id)
+    check_status_mock = mocker.patch(
+        "lnbits.core.services.payments.check_payment_status",
+        mocker.AsyncMock(
+            side_effect=AssertionError("expired invoices should not be checked")
+        ),
+    )
+
+    updated_payment = await update_pending_payment(payment)
+
+    assert updated_payment.status == PaymentState.FAILED
+    assert updated_payment.labels == ["test", "expired"]
+    check_status_mock.assert_not_awaited()
+
+    stored_payment = await get_payment(checking_id)
+    assert stored_payment.status == PaymentState.FAILED
+    assert stored_payment.labels == ["test", "expired"]
+
+
+@pytest.mark.anyio
 async def test_check_pending_payments_skips_voidwallet_and_updates_recent_items(
     mocker: MockerFixture,
 ):
@@ -433,6 +463,8 @@ async def _create_payment(
     payment_hash: str | None = None,
     fee: int = 0,
     time: datetime | None = None,
+    expiry: datetime | None = None,
+    labels: list[str] | None = None,
 ) -> str:
     checking_id = checking_id or f"checking_{uuid4().hex[:8]}"
     payment_hash = payment_hash or uuid4().hex
@@ -444,7 +476,9 @@ async def _create_payment(
             bolt11=f"bolt11-{checking_id}",
             amount_msat=amount_msat,
             memo="memo",
+            expiry=expiry,
             fee=fee,
+            labels=labels,
         ),
         status=status,
     )
