@@ -10,6 +10,7 @@ window.PageBlockExplorer = {
       selectedBlock: null,
       blockDialog: false,
       txResult: null,
+      txStatus: null,
       addressResult: null,
       currentAddress: ''
     }
@@ -35,8 +36,46 @@ window.PageBlockExplorer = {
   },
   async created() {
     await Promise.all([this.loadTip(), this.loadFees(), this.loadBlocks()])
+    this._blockWsActive = true
+    this._connectBlocksWs()
+  },
+  beforeUnmount() {
+    this._blockWsActive = false
+    if (this._blockWs) this._blockWs.close()
+    if (this._searchWs) this._searchWs.close()
   },
   methods: {
+    _wsUrl(path) {
+      const proto = window.location.protocol === 'https:' ? 'wss:' : 'ws:'
+      return `${proto}//${window.location.host}/blockexplorer/api/v1${path}`
+    },
+    _connectBlocksWs() {
+      const ws = new WebSocket(this._wsUrl('/ws/blocks'))
+      ws.onmessage = e => {
+        const block = JSON.parse(e.data)
+        const rest = this.blocks.filter(b => b.height !== block.height)
+        this.blocks = [block, ...rest].slice(0, 5)
+      }
+      ws.onerror = () => ws.close()
+      ws.onclose = () => {
+        if (this._blockWsActive) setTimeout(() => this._connectBlocksWs(), 5000)
+      }
+      this._blockWs = ws
+    },
+    _connectSearchWs(path, onMessage) {
+      if (this._searchWs) {
+        this._searchWs.close()
+        this._searchWs = null
+      }
+      const ws = new WebSocket(this._wsUrl(path))
+      ws.onmessage = e => {
+        try {
+          onMessage(JSON.parse(e.data))
+        } catch (_) {}
+      }
+      ws.onerror = () => ws.close()
+      this._searchWs = ws
+    },
     _timeAgo(seconds) {
       if (seconds < 60) return seconds + 's ago'
       if (seconds < 3600) return Math.floor(seconds / 60) + 'm ago'
@@ -59,7 +98,10 @@ window.PageBlockExplorer = {
     },
     async loadBlocks() {
       try {
-        const r = await LNbits.api.request('GET', '/blockexplorer/api/v1/blocks')
+        const r = await LNbits.api.request(
+          'GET',
+          '/blockexplorer/api/v1/blocks'
+        )
         this.blocks = r.data
       } catch (_) {}
     },
@@ -81,6 +123,7 @@ window.PageBlockExplorer = {
       const q = this.query.trim()
       if (!q) return
       this.txResult = null
+      this.txStatus = null
       this.addressResult = null
       this.loading = true
       try {
@@ -95,10 +138,17 @@ window.PageBlockExplorer = {
     },
     async loadTx(txid) {
       try {
-        const r = await LNbits.api.request('GET', '/blockexplorer/api/v1/tx/' + txid)
+        const r = await LNbits.api.request(
+          'GET',
+          '/blockexplorer/api/v1/tx/' + txid
+        )
         this.txResult = r.data
+        this.txStatus = null
         this.addressResult = null
         this.query = txid
+        this._connectSearchWs(`/ws/tx/${txid}`, data => {
+          if (!data.error) this.txStatus = data
+        })
       } catch (e) {
         LNbits.utils.notifyApiError(e)
       }
@@ -111,8 +161,12 @@ window.PageBlockExplorer = {
         )
         this.addressResult = r.data
         this.txResult = null
+        this.txStatus = null
         this.currentAddress = address
         this.query = address
+        this._connectSearchWs(`/ws/address/${address}`, data => {
+          if (!data.error) this.addressResult = data
+        })
       } catch (e) {
         LNbits.utils.notifyApiError(e)
       }
