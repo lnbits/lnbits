@@ -135,7 +135,9 @@ async def api_tx(txid: str) -> Transaction:
         raise HTTPException(HTTPStatus.SERVICE_UNAVAILABLE, detail=str(e)) from e
 
 
-@blockexplorer_router.get("/address/{address}", dependencies=[Depends(_check_api_access)])
+@blockexplorer_router.get(
+    "/address/{address}", dependencies=[Depends(_check_api_access)]
+)
 async def api_address(address: str) -> AddressResponse:
     try:
         scripthash = scripthash_from_address(address)
