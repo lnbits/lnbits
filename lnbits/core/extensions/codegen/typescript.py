@@ -54,7 +54,9 @@ def write_typescript_sdk(
     api_cls: type[ExtensionAPI] | None = None,
     method_ids: Sequence[str] | None = None,
 ) -> None:
-    Path(path).write_text(generate_typescript_sdk(api_cls, method_ids), encoding="utf-8")
+    Path(path).write_text(
+        generate_typescript_sdk(api_cls, method_ids), encoding="utf-8"
+    )
 
 
 def _select_methods(
@@ -149,9 +151,7 @@ def _render_method_metadata(
     lines = ["export const extensionApiMethods = ["]
     for method in methods:
         permission = (
-            f'"{method.required_permission}"'
-            if method.required_permission
-            else "null"
+            f'"{method.required_permission}"' if method.required_permission else "null"
         )
         lines.extend(
             [
