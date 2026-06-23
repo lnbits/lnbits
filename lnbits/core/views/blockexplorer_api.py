@@ -70,7 +70,7 @@ async def api_tx(txid: str) -> Transaction:
     _check_enabled()
     try:
         async with _client() as c:
-            raw_hex = await c.get_transaction(txid, verbose=False)
+            raw_hex = await c.get_transaction(txid)
         return parse_raw_tx(raw_hex)
     except ElectrumError as e:
         raise HTTPException(HTTPStatus.SERVICE_UNAVAILABLE, detail=str(e)) from e

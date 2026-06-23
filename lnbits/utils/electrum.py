@@ -19,7 +19,7 @@ from urllib.parse import urlparse
 from bech32 import bech32_decode, convertbits
 from bech32 import encode as bech32_segwit_encode
 from loguru import logger
-from pydantic import BaseModel, Field
+from pydantic import BaseModel
 
 
 class ElectrumError(Exception):
@@ -59,7 +59,10 @@ def address_to_scriptpubkey(address: str) -> bytes:
         if data is None:
             raise ValueError(f"Invalid bech32 address: {address!r}")
         witness_version = data[0]
-        witness_prog = bytes(convertbits(data[1:], 5, 8, False))
+        bits = convertbits(data[1:], 5, 8, False)
+        if bits is None:
+            raise ValueError(f"Invalid bech32 witness program in address: {address!r}")
+        witness_prog = bytes(bits)
         ver_op = 0x00 if witness_version == 0 else (0x50 + witness_version)
         return bytes([ver_op, len(witness_prog)]) + witness_prog
     else:
@@ -215,21 +218,15 @@ class ScriptPubKey(BaseModel):
 class TxInput(BaseModel):
     txid: str | None = None
     vout: int | None = None
-    script_sig: ScriptSig | None = Field(None, alias="scriptSig")
+    scriptSig: ScriptSig | None = None  # noqa: N815
     sequence: int
     coinbase: str | None = None
-
-    class Config:
-        allow_population_by_field_name = True
 
 
 class TxOutput(BaseModel):
     value: float
     n: int
-    script_pub_key: ScriptPubKey = Field(alias="scriptPubKey")
-
-    class Config:
-        allow_population_by_field_name = True
+    scriptPubKey: ScriptPubKey  # noqa: N815
 
 
 class Transaction(BaseModel):
@@ -626,10 +623,9 @@ class ElectrumClient:
         """Broadcast a raw transaction hex; returns txid on success."""
         return await self._call("blockchain.transaction.broadcast", [raw_tx])
 
-    async def get_transaction(
-        self, txid: str, verbose: bool = False
-    ) -> str | dict[str, Any]:
-        return await self._call("blockchain.transaction.get", [txid, verbose])
+    async def get_transaction(self, txid: str) -> str:
+        """Fetch raw transaction hex by txid."""
+        return await self._call("blockchain.transaction.get", [txid])
 
     async def get_merkle(self, txid: str, height: int) -> MerkleProof:
         data = await self._call("blockchain.transaction.get_merkle", [txid, height])
