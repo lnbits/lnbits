@@ -13,6 +13,7 @@ from lnbits.core.crud import (
     update_migration_version,
 )
 from lnbits.core.db import db as core_db
+from lnbits.core.extensions.loader import is_wasm_extension_id
 from lnbits.core.models import DbVersion
 from lnbits.core.models.extensions import InstallableExtension
 from lnbits.db import COCKROACH, POSTGRES, SQLITE, Connection
@@ -22,6 +23,9 @@ from lnbits.settings import settings
 async def migrate_extension_database(
     ext: InstallableExtension, current_version: DbVersion | None = None
 ):
+    if is_wasm_extension_id(ext.id):
+        logger.debug(f"Skipping Python migrations for WASM extension '{ext.id}'.")
+        return
 
     try:
         ext_migrations = importlib.import_module(f"{ext.module_name}.migrations")
@@ -105,6 +109,10 @@ async def migrate_databases():
     await load_disabled_extension_list()
 
     for ext in await get_installed_extensions():
+        if is_wasm_extension_id(ext.id):
+            logger.debug(f"Skipping Python migrations for WASM extension '{ext.id}'.")
+            continue
+
         current_version = next(
             (v for v in current_versions if v.db == ext.id),
             DbVersion(db=ext.id, version=0),
