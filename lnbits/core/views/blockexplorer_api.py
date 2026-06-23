@@ -2,10 +2,10 @@ import asyncio
 from http import HTTPStatus
 from typing import Any
 
-from fastapi import APIRouter, Depends, HTTPException, Request, Security, WebSocket
+from fastapi import APIRouter, Depends, HTTPException, WebSocket
 from loguru import logger
 
-from lnbits.decorators import KeyChecker, KeyType, api_key_header, api_key_query
+from lnbits.decorators import optional_user_id
 from lnbits.settings import settings
 from lnbits.utils.electrum import (
     AddressResponse,
@@ -37,17 +37,14 @@ def _check_enabled() -> None:
 
 
 async def _check_api_access(
-    request: Request,
-    key_header: str = Security(api_key_header),
-    key_query: str = Security(api_key_query),
+    user_id: str | None = Depends(optional_user_id),
 ) -> None:
     _check_enabled()
-    if not settings.lnbits_blockexplorer_public_api:
-        checker = KeyChecker(
-            api_key=key_header or key_query,
-            expected_key_type=KeyType.invoice,
+    if not settings.lnbits_blockexplorer_public_api and not user_id:
+        raise HTTPException(
+            status_code=HTTPStatus.UNAUTHORIZED,
+            detail="Authentication required.",
         )
-        await checker(request)
 
 
 def _client() -> ElectrumClient:
