@@ -25,6 +25,11 @@ from lnbits.core.crud import (
 )
 from lnbits.core.crud.audit import delete_expired_audit_entries
 from lnbits.core.crud.extensions import create_installed_extension
+from lnbits.core.extensions.loader import (
+    is_wasm_extension_dir,
+    is_wasm_extension_id,
+    register_wasm_extension,
+)
 from lnbits.core.helpers import migrate_extension_database
 from lnbits.core.models.notifications import NotificationType
 from lnbits.core.services.extensions import deactivate_extension, get_valid_extensions
@@ -315,8 +320,9 @@ async def build_all_installed_extensions_list(  # noqa: C901
 
             installed_extensions.append(ext_info)
             await create_installed_extension(ext_info)
-            current_version = await get_db_version(ext_id)
-            await migrate_extension_database(ext_info, current_version)
+            if not is_wasm_extension_dir(ext_dir):
+                current_version = await get_db_version(ext_id)
+                await migrate_extension_database(ext_info, current_version)
 
         except Exception as e:
             logger.warning(e)
@@ -470,10 +476,14 @@ async def check_and_register_extensions(app: FastAPI) -> None:
     await check_installed_extensions(app)
     for ext in await get_valid_extensions(False):
         try:
+            if is_wasm_extension_id(ext.code):
+                register_wasm_extension(app, ext.code)
+                continue
             register_ext_routes(app, ext)
             register_ext_tasks(ext)
         except Exception as exc:
             logger.error(f"Could not load extension `{ext.code}`: {exc!s}")
+            await update_installed_extension_state(ext_id=ext.code, active=False)
 
 
 def register_async_tasks() -> None:
