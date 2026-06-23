@@ -33,7 +33,10 @@
           <div class="text-subtitle1 q-mb-sm" v-text="$t('chain_tip')"></div>
           <div class="row q-col-gutter-md">
             <div class="col-auto">
-              <div class="text-caption text-grey" v-text="$t('block_height')"></div>
+              <div
+                class="text-caption text-grey"
+                v-text="$t('block_height')"
+              ></div>
               <div class="text-h6" v-text="tip.height.toLocaleString()"></div>
             </div>
             <template v-if="feeList.length">
@@ -56,12 +59,24 @@
           </div>
           <div class="row q-col-gutter-md q-mb-sm">
             <div class="col-auto" v-if="txResult.blockheight">
-              <div class="text-caption text-grey" v-text="$t('block_height')"></div>
+              <div
+                class="text-caption text-grey"
+                v-text="$t('block_height')"
+              ></div>
               <div v-text="txResult.blockheight.toLocaleString()"></div>
             </div>
             <div class="col-auto" v-if="txResult.confirmations !== undefined">
-              <div class="text-caption text-grey" v-text="$t('confirmations')"></div>
-              <div v-text="txResult.confirmations > 0 ? txResult.confirmations : $t('unconfirmed')"></div>
+              <div
+                class="text-caption text-grey"
+                v-text="$t('confirmations')"
+              ></div>
+              <div
+                v-text="
+                  txResult.confirmations > 0
+                    ? txResult.confirmations
+                    : $t('unconfirmed')
+                "
+              ></div>
             </div>
             <div class="col-auto" v-if="txResult.vsize || txResult.size">
               <div class="text-caption text-grey">vsize</div>
@@ -81,10 +96,19 @@
             <q-list dense separator>
               <q-item v-for="(vin, i) in txResult.vin" :key="i">
                 <q-item-section>
-                  <q-item-label v-if="vin.coinbase" class="text-grey" v-text="$t('coinbase')">
+                  <q-item-label
+                    v-if="vin.coinbase"
+                    class="text-grey"
+                    v-text="$t('coinbase')"
+                  >
                   </q-item-label>
                   <q-item-label v-else style="word-break: break-all">
-                    <a href="#" @click.prevent="loadTx(vin.txid)" class="text-primary" v-text="vin.txid + ':' + vin.vout"></a>
+                    <a
+                      href="#"
+                      @click.prevent="loadTx(vin.txid)"
+                      class="text-primary"
+                      v-text="vin.txid + ':' + vin.vout"
+                    ></a>
                   </q-item-label>
                 </q-item-section>
               </q-item>
@@ -99,7 +123,9 @@
               <q-item v-for="(vout, i) in txResult.vout" :key="i">
                 <q-item-section>
                   <q-item-label>
-                    <template v-if="vout.scriptPubKey && vout.scriptPubKey.address">
+                    <template
+                      v-if="vout.scriptPubKey && vout.scriptPubKey.address"
+                    >
                       <a
                         href="#"
                         @click.prevent="loadAddress(vout.scriptPubKey.address)"
@@ -111,7 +137,10 @@
                       <span v-text="vout.scriptPubKey.type"></span>
                     </template>
                   </q-item-label>
-                  <q-item-label caption v-text="vout.value + ' BTC'"></q-item-label>
+                  <q-item-label
+                    caption
+                    v-text="vout.value + ' BTC'"
+                  ></q-item-label>
                 </q-item-section>
               </q-item>
             </q-list>
@@ -123,18 +152,47 @@
       <q-card v-if="addressResult">
         <q-card-section>
           <div class="text-subtitle1 q-mb-xs" v-text="$t('address')"></div>
-          <code class="q-mb-sm" style="word-break: break-all; display: block" v-text="currentAddress"></code>
+          <code
+            class="q-mb-sm"
+            style="word-break: break-all; display: block"
+            v-text="currentAddress"
+          ></code>
           <div class="row q-col-gutter-md q-mb-md">
             <div class="col-auto">
-              <div class="text-caption text-grey" v-text="$t('confirmed_balance')"></div>
-              <div v-text="addressResult.balance.confirmed.toLocaleString() + ' sat'"></div>
+              <div
+                class="text-caption text-grey"
+                v-text="$t('confirmed_balance')"
+              ></div>
+              <div
+                v-text="
+                  addressResult.balance.confirmed.toLocaleString() + ' sat'
+                "
+              ></div>
             </div>
-            <div class="col-auto" v-if="addressResult.balance.unconfirmed !== 0">
-              <div class="text-caption text-grey" v-text="$t('unconfirmed_balance')"></div>
-              <div v-text="addressResult.balance.unconfirmed.toLocaleString() + ' sat'"></div>
+            <div
+              class="col-auto"
+              v-if="addressResult.balance.unconfirmed !== 0"
+            >
+              <div
+                class="text-caption text-grey"
+                v-text="$t('unconfirmed_balance')"
+              ></div>
+              <div
+                v-text="
+                  addressResult.balance.unconfirmed.toLocaleString() + ' sat'
+                "
+              ></div>
             </div>
           </div>
-          <div class="text-subtitle2 q-mb-xs" v-text="$t('transaction_history') + ' (' + addressResult.history.length + ')'"></div>
+          <div
+            class="text-subtitle2 q-mb-xs"
+            v-text="
+              $t('transaction_history') +
+              ' (' +
+              addressResult.history.length +
+              ')'
+            "
+          ></div>
           <q-list dense separator>
             <q-item
               v-for="h in addressResult.history"
@@ -144,15 +202,30 @@
               @click="loadTx(h.tx_hash)"
             >
               <q-item-section>
-                <q-item-label class="text-primary" style="word-break: break-all" v-text="h.tx_hash"></q-item-label>
-                <q-item-label caption v-text="h.height > 0 ? $t('block_height') + ': ' + h.height.toLocaleString() : $t('unconfirmed')"></q-item-label>
+                <q-item-label
+                  class="text-primary"
+                  style="word-break: break-all"
+                  v-text="h.tx_hash"
+                ></q-item-label>
+                <q-item-label
+                  caption
+                  v-text="
+                    h.height > 0
+                      ? $t('block_height') + ': ' + h.height.toLocaleString()
+                      : $t('unconfirmed')
+                  "
+                ></q-item-label>
               </q-item-section>
               <q-item-section side>
                 <q-icon name="chevron_right" color="grey-5"></q-icon>
               </q-item-section>
             </q-item>
           </q-list>
-          <div v-if="addressResult.history.length === 0" class="text-grey q-mt-sm" v-text="$t('no_transactions')"></div>
+          <div
+            v-if="addressResult.history.length === 0"
+            class="text-grey q-mt-sm"
+            v-text="$t('no_transactions')"
+          ></div>
         </q-card-section>
       </q-card>
     </div>

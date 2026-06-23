@@ -17,7 +17,10 @@
           </q-item-section>
           <q-item-section>
             <q-item-label v-text="$t('enable_block_explorer')"></q-item-label>
-            <q-item-label caption v-text="$t('block_explorer_desc')"></q-item-label>
+            <q-item-label
+              caption
+              v-text="$t('block_explorer_desc')"
+            ></q-item-label>
           </q-item-section>
         </q-item>
       </div>

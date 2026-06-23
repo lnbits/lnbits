@@ -3,10 +3,10 @@ from fastapi import APIRouter, FastAPI
 from .db import core_app_extra, db
 from .views.admin_api import admin_router
 from .views.api import api_router
-from .views.blockexplorer_api import blockexplorer_router
 from .views.asset_api import asset_router
 from .views.audit_api import audit_router
 from .views.auth_api import auth_router
+from .views.blockexplorer_api import blockexplorer_router
 from .views.callback_api import callback_router
 from .views.extension_api import extension_router
 from .views.extensions_builder_api import extension_builder_router

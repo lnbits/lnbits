@@ -56,7 +56,10 @@ window.PageBlockExplorer = {
     },
     async loadTx(txid) {
       try {
-        const r = await LNbits.api.request('GET', '/blockexplorer/api/v1/tx/' + txid)
+        const r = await LNbits.api.request(
+          'GET',
+          '/blockexplorer/api/v1/tx/' + txid
+        )
         this.txResult = r.data
         this.addressResult = null
         this.query = txid

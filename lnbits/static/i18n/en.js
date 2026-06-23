@@ -943,11 +943,14 @@ window.localisation.en = {
   set_lightning_address: 'Set Lightning Address'
   block_explorer: 'Block Explorer',
   enable_block_explorer: 'Enable Block Explorer',
-  block_explorer_desc: 'Allow users to explore Bitcoin transactions and addresses via Electrum.',
+  block_explorer_desc:
+    'Allow users to explore Bitcoin transactions and addresses via Electrum.',
   electrum_server_url: 'Electrum Server URL',
-  electrum_server_url_hint: 'e.g. ssl://electrum.blockstream.info:50002 or tcp://localhost:50001',
+  electrum_server_url_hint:
+    'e.g. ssl://electrum.blockstream.info:50002 or tcp://localhost:50001',
   blockexplorer_search_label: 'Search by TXID or Address',
-  blockexplorer_search_hint: '64-char hex = transaction  ·  anything else = Bitcoin address',
+  blockexplorer_search_hint:
+    '64-char hex = transaction  ·  anything else = Bitcoin address',
   chain_tip: 'Chain Tip',
   block_height: 'Block Height',
   block_fee: 'block fee',
