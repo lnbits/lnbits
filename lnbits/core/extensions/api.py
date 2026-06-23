@@ -7,88 +7,34 @@ import time
 from collections.abc import Awaitable, Callable, Iterable
 from dataclasses import dataclass
 from functools import wraps
-from typing import Literal, TypeVar, get_type_hints
+from typing import TypeVar, get_type_hints
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel
+
+from .models import (
+    CreateInvoiceRequest,
+    CreateInvoiceResponse,
+    EmptyRequest,
+    KvGetRequest,
+    KvGetResponse,
+    KvListRequest,
+    KvListResponse,
+    KvSetRequest,
+    KvSetResponse,
+    LogRequest,
+    LogResponse,
+    NowResponse,
+    RandomIdRequest,
+    RandomIdResponse,
+    WatchPaymentRequest,
+    WatchPaymentResponse,
+)
 
 logger = logging.getLogger("lnbits.extensions")
 
 _EXTENSION_API_METHOD_ATTR = "__lnbits_extension_api_method__"
 _RequestModel = TypeVar("_RequestModel", bound=BaseModel)
 _ResponseModel = TypeVar("_ResponseModel", bound=BaseModel)
-
-
-class EmptyRequest(BaseModel):
-    pass
-
-
-class KvGetRequest(BaseModel):
-    key: str = Field(..., min_length=1, max_length=512)
-
-
-class KvGetResponse(BaseModel):
-    value: str | None = None
-
-
-class KvSetRequest(BaseModel):
-    key: str = Field(..., min_length=1, max_length=512)
-    value: str = Field(..., max_length=65536)
-
-
-class KvSetResponse(BaseModel):
-    ok: bool = True
-
-
-class KvListRequest(BaseModel):
-    prefix: str = Field(..., min_length=1, max_length=512)
-
-
-class KvListResponse(BaseModel):
-    keys: list[str] = Field(default_factory=list)
-
-
-class CreateInvoiceRequest(BaseModel):
-    wallet_id: str = Field(..., min_length=1, max_length=128)
-    amount_sat: int = Field(..., gt=0)
-    memo: str = Field(..., max_length=512)
-    tag: str = Field(..., min_length=1, max_length=64)
-    extra: dict[str, str] = Field(default_factory=dict)
-
-
-class CreateInvoiceResponse(BaseModel):
-    payment_hash: str
-    payment_request: str
-    checking_id: str
-
-
-class WatchPaymentRequest(BaseModel):
-    payment_hash: str = Field(..., min_length=1, max_length=128)
-    callback_export: str = Field(..., min_length=1, max_length=128)
-
-
-class WatchPaymentResponse(BaseModel):
-    ok: bool = True
-
-
-class RandomIdRequest(BaseModel):
-    prefix: str = Field(..., min_length=1, max_length=32)
-
-
-class RandomIdResponse(BaseModel):
-    id: str
-
-
-class NowResponse(BaseModel):
-    timestamp: int
-
-
-class LogRequest(BaseModel):
-    level: Literal["debug", "info", "warning", "error"] = "info"
-    message: str = Field(..., min_length=1, max_length=2048)
-
-
-class LogResponse(BaseModel):
-    ok: bool = True
 
 
 @dataclass(frozen=True)
@@ -130,8 +76,8 @@ def extension_api_method(
     description: str,
     required_permission: str | None = None,
 ) -> Callable[
-    [Callable[["ExtensionAPI", _RequestModel], Awaitable[_ResponseModel]]],
-    Callable[["ExtensionAPI", _RequestModel], Awaitable[_ResponseModel]],
+    [Callable[[ExtensionAPI, _RequestModel], Awaitable[_ResponseModel]]],
+    Callable[[ExtensionAPI, _RequestModel], Awaitable[_ResponseModel]],
 ]:
     export = ExtensionAPIMethodExport(
         method_id=method_id,
@@ -144,11 +90,11 @@ def extension_api_method(
     )
 
     def decorator(
-        function: Callable[["ExtensionAPI", _RequestModel], Awaitable[_ResponseModel]],
-    ) -> Callable[["ExtensionAPI", _RequestModel], Awaitable[_ResponseModel]]:
+        function: Callable[[ExtensionAPI, _RequestModel], Awaitable[_ResponseModel]],
+    ) -> Callable[[ExtensionAPI, _RequestModel], Awaitable[_ResponseModel]]:
         @wraps(function)
         async def wrapper(
-            self: "ExtensionAPI", request: _RequestModel
+            self: ExtensionAPI, request: _RequestModel
         ) -> _ResponseModel:
             self.require_permission(required_permission)
             return await function(self, request)
@@ -238,7 +184,9 @@ class ExtensionAPI:
         description="Subscribe the extension to a payment state callback.",
         required_permission="payments.watch",
     )
-    async def payments_watch(self, request: WatchPaymentRequest) -> WatchPaymentResponse:
+    async def payments_watch(
+        self, request: WatchPaymentRequest
+    ) -> WatchPaymentResponse:
         self._raise_unwired_runtime("payments_watch")
 
     @extension_api_method(
