@@ -11,6 +11,7 @@ from .api import (
 from .loader import WasmExtension, load_wasm_extension, register_wasm_extension
 from .prototype import InMemoryExtensionAPI, InMemoryExtensionState
 from .runtime import ExtensionAPIHost
+from .wasm import invoke_wasm_extension_export
 
 __all__ = [
     "ExtensionAPI",
@@ -22,6 +23,7 @@ __all__ = [
     "extension_api_contract",
     "extension_api_method",
     "get_extension_api_method",
+    "invoke_wasm_extension_export",
     "load_wasm_extension",
     "list_extension_api_methods",
     "register_wasm_extension",
