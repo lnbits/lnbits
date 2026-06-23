@@ -52,7 +52,7 @@ def _b58decode_check(s: str) -> bytes:
 
 
 def address_to_scriptpubkey(address: str) -> bytes:
-    """Convert a Bitcoin address (P2PKH/P2SH/P2WPKH/P2WSH/P2TR) to scriptPubKey bytes."""
+    """Convert a Bitcoin address (P2PKH/P2SH/P2WPKH/P2WSH/P2TR) to scriptPubKey."""
     lower = address.lower()
     if lower.startswith(("bc1", "tb1", "bcrt1")):
         _, data = bech32_decode(address)
@@ -291,7 +291,6 @@ def parse_raw_tx(hex_str: str) -> Transaction:
                 )
             )
 
-    vout_start = i
     vout_count, i = _read_varint(data, i)
     vout: list[TxOutput] = []
     for n_out in range(vout_count):

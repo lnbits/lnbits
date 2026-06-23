@@ -40,7 +40,7 @@ async def api_tip() -> BlockHeader:
         async with _client() as c:
             return await c.get_tip()
     except ElectrumError as e:
-        raise HTTPException(HTTPStatus.SERVICE_UNAVAILABLE, detail=str(e))
+        raise HTTPException(HTTPStatus.SERVICE_UNAVAILABLE, detail=str(e)) from e
 
 
 @blockexplorer_router.get("/fees")
@@ -57,12 +57,12 @@ async def api_fees() -> FeeResponse:
             histogram = await c.fee_histogram()
         estimates = {
             str(blocks): fee
-            for blocks, fee in zip([1, 3, 6, 144], estimates_raw)
+            for blocks, fee in zip([1, 3, 6, 144], estimates_raw, strict=False)
             if fee >= 0
         }
         return FeeResponse(estimates=estimates, histogram=histogram)
     except ElectrumError as e:
-        raise HTTPException(HTTPStatus.SERVICE_UNAVAILABLE, detail=str(e))
+        raise HTTPException(HTTPStatus.SERVICE_UNAVAILABLE, detail=str(e)) from e
 
 
 @blockexplorer_router.get("/tx/{txid}")
@@ -73,7 +73,7 @@ async def api_tx(txid: str) -> Transaction:
             raw_hex = await c.get_transaction(txid, verbose=False)
         return parse_raw_tx(raw_hex)
     except ElectrumError as e:
-        raise HTTPException(HTTPStatus.SERVICE_UNAVAILABLE, detail=str(e))
+        raise HTTPException(HTTPStatus.SERVICE_UNAVAILABLE, detail=str(e)) from e
 
 
 @blockexplorer_router.get("/address/{address}")
@@ -82,7 +82,7 @@ async def api_address(address: str) -> AddressResponse:
     try:
         scripthash = scripthash_from_address(address)
     except ValueError as e:
-        raise HTTPException(HTTPStatus.BAD_REQUEST, detail=str(e))
+        raise HTTPException(HTTPStatus.BAD_REQUEST, detail=str(e)) from e
     try:
         async with _client() as c:
             balance, history = await asyncio.gather(
@@ -91,4 +91,4 @@ async def api_address(address: str) -> AddressResponse:
             )
         return AddressResponse(balance=balance, history=history)
     except ElectrumError as e:
-        raise HTTPException(HTTPStatus.SERVICE_UNAVAILABLE, detail=str(e))
+        raise HTTPException(HTTPStatus.SERVICE_UNAVAILABLE, detail=str(e)) from e
