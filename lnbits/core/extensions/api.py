@@ -100,7 +100,6 @@ class ExtensionAPIMethodExport:
     sdk_name: str
     description: str
     required_permission: str | None = None
-    public_context: bool = False
 
 
 @dataclass(frozen=True)
@@ -115,7 +114,6 @@ class ExtensionAPIMethod:
     request_model: type[BaseModel]
     response_model: type[BaseModel]
     required_permission: str | None = None
-    public_context: bool = False
 
     @property
     def sdk_qualified_name(self) -> str:
@@ -131,7 +129,6 @@ def extension_api_method(
     sdk_name: str,
     description: str,
     required_permission: str | None = None,
-    public_context: bool = False,
 ) -> Callable[
     [Callable[["ExtensionAPI", _RequestModel], Awaitable[_ResponseModel]]],
     Callable[["ExtensionAPI", _RequestModel], Awaitable[_ResponseModel]],
@@ -144,7 +141,6 @@ def extension_api_method(
         sdk_name=sdk_name,
         description=description,
         required_permission=required_permission,
-        public_context=public_context,
     )
 
     def decorator(
@@ -191,7 +187,6 @@ class ExtensionAPI:
         sdk_name="get",
         description="Read one value from the extension storage namespace.",
         required_permission="ext.storage.read_write",
-        public_context=True,
     )
     async def storage_get(self, request: KvGetRequest) -> KvGetResponse:
         self._raise_unwired_runtime("storage_get")
@@ -216,7 +211,6 @@ class ExtensionAPI:
         sdk_name="list",
         description="List keys under a prefix in the extension storage namespace.",
         required_permission="ext.storage.read_write",
-        public_context=True,
     )
     async def storage_list(self, request: KvListRequest) -> KvListResponse:
         self._raise_unwired_runtime("storage_list")
@@ -229,7 +223,6 @@ class ExtensionAPI:
         sdk_name="createInvoice",
         description="Create an incoming Lightning invoice for an allowed wallet.",
         required_permission="wallet.create_invoice",
-        public_context=True,
     )
     async def wallet_create_invoice(
         self, request: CreateInvoiceRequest
@@ -255,7 +248,6 @@ class ExtensionAPI:
         host_name="random_id",
         sdk_name="id",
         description="Create a random extension-local identifier.",
-        public_context=True,
     )
     async def system_random_id(self, request: RandomIdRequest) -> RandomIdResponse:
         return RandomIdResponse(
@@ -269,7 +261,6 @@ class ExtensionAPI:
         host_name="now",
         sdk_name="now",
         description="Return the current Unix timestamp.",
-        public_context=True,
     )
     async def system_now(self, request: EmptyRequest) -> NowResponse:
         return NowResponse(timestamp=int(time.time()))
@@ -281,7 +272,6 @@ class ExtensionAPI:
         host_name="log",
         sdk_name="log",
         description="Write a bounded message to the extension log.",
-        public_context=True,
     )
     async def system_log(self, request: LogRequest) -> LogResponse:
         log = getattr(logger, request.level)
@@ -317,7 +307,6 @@ def list_extension_api_methods(
                 request_model=request_model,
                 response_model=response_model,
                 required_permission=export.required_permission,
-                public_context=export.public_context,
             )
         )
 
@@ -350,7 +339,6 @@ def extension_api_contract(
                 "sdk_qualified_name": method.sdk_qualified_name,
                 "description": method.description,
                 "required_permission": method.required_permission,
-                "public_context": method.public_context,
                 "request_schema": method.request_model.schema(
                     ref_template="#/definitions/{model}"
                 ),

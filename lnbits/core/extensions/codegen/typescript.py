@@ -163,7 +163,6 @@ def _render_method_metadata(
                 f'    hostName: "{method.host_name}",',
                 f'    hostJsName: "{_camel(method.host_name)}",',
                 f"    requiredPermission: {permission},",
-                f"    publicContext: {_bool(method.public_context)},",
                 "  },",
             ]
         )
@@ -252,10 +251,6 @@ def _model_name(model: type[BaseModel]) -> str:
 def _camel(value: str) -> str:
     head, *tail = value.split("_")
     return head + "".join(part.capitalize() for part in tail)
-
-
-def _bool(value: bool) -> str:
-    return "true" if value else "false"
 
 
 def _is_empty_model(model: type[BaseModel]) -> bool:
