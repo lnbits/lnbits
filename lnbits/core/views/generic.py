@@ -185,6 +185,7 @@ admin_ui_checks = [Depends(check_admin), Depends(check_admin_ui)]
 @generic_router.get("/wallets")
 @generic_router.get("/account")
 @generic_router.get("/extensions")
+@generic_router.get("/blockexplorer")
 @generic_router.get("/users", dependencies=admin_ui_checks)
 @generic_router.get("/audit", dependencies=admin_ui_checks)
 @generic_router.get("/node", dependencies=admin_ui_checks)
@@ -214,7 +215,6 @@ async def index(
 
 @generic_router.get("/")
 @generic_router.get("/node/public")
-@generic_router.get("/blockexplorer")
 @generic_router.get("/first_install", dependencies=[Depends(check_first_install)])
 async def index_public(request: Request) -> HTMLResponse:
     return template_renderer().TemplateResponse(request, "base.html", {"public": True})
