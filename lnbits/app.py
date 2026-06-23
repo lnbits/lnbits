@@ -445,14 +445,6 @@ def register_ext_routes(app: FastAPI, ext: Extension) -> None:
 
     ext_route = getattr(ext_module, f"{ext.code}_ext")
 
-    if hasattr(ext_module, f"{ext.code}_static_files"):
-        ext_statics = getattr(ext_module, f"{ext.code}_static_files")
-        for s in ext_statics:
-            static_dir = Path(
-                settings.lnbits_extensions_path, "extensions", *s["path"].split("/")
-            )
-            app.mount(s["path"], StaticFiles(directory=static_dir), s["name"])
-
     ext_redirects = (
         getattr(ext_module, f"{ext.code}_redirect_paths")
         if hasattr(ext_module, f"{ext.code}_redirect_paths")
@@ -461,9 +453,31 @@ def register_ext_routes(app: FastAPI, ext: Extension) -> None:
 
     settings.activate_extension_paths(ext.code, ext.upgrade_hash, ext_redirects)
 
+    # Remove existing routes for this extension before re-registering so that
+    # an upgraded extension replaces the old one at the same paths (no prefix).
+    ext_prefix = f"/{ext.code}"
+    app.router.routes = [
+        r
+        for r in app.router.routes
+        if not (
+            getattr(r, "path", "") == ext_prefix
+            or getattr(r, "path", "").startswith(f"{ext_prefix}/")
+        )
+    ]
+    # Invalidate FastAPI's cached OpenAPI schema so the next /openapi.json
+    # request reflects the updated routes.
+    app.openapi_schema = None
+
+    if hasattr(ext_module, f"{ext.code}_static_files"):
+        ext_statics = getattr(ext_module, f"{ext.code}_static_files")
+        for s in ext_statics:
+            static_dir = Path(
+                settings.lnbits_extensions_path, "extensions", *s["path"].split("/")
+            )
+            app.mount(s["path"], StaticFiles(directory=static_dir), s["name"])
+
     logger.trace(f"Adding route for extension {ext_module}.")
-    prefix = f"/upgrades/{ext.upgrade_hash}" if ext.upgrade_hash != "" else ""
-    app.include_router(router=ext_route, prefix=prefix)
+    app.include_router(router=ext_route)
 
 
 async def check_and_register_extensions(app: FastAPI) -> None:

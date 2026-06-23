@@ -195,10 +195,8 @@ class InstalledExtensionsSettings(LNbitsSettings):
     ):
         self.lnbits_deactivated_extensions.discard(ext_id)
 
-        """
-        Update the list of upgraded extensions. The middleware will perform
-        redirects based on this
-        """
+        # Track upgrade hashes so that module names can be resolved for
+        # background-task start/stop (the module lives in the upgrades dir).
         if upgrade_hash:
             self.lnbits_upgraded_extensions[ext_id] = upgrade_hash
 
