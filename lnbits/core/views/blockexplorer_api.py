@@ -1,11 +1,12 @@
 import asyncio
 from http import HTTPStatus
-from typing import Any
+from typing import Annotated, Any
 
-from fastapi import APIRouter, Depends, HTTPException, WebSocket
+from fastapi import APIRouter, Depends, HTTPException, Request, WebSocket
 from loguru import logger
+from pydantic.types import UUID4
 
-from lnbits.decorators import optional_user_id
+from lnbits.decorators import check_access_token, check_user_exists
 from lnbits.settings import settings
 from lnbits.utils.electrum import (
     AddressResponse,
@@ -37,14 +38,13 @@ def _check_enabled() -> None:
 
 
 async def _check_api_access(
-    user_id: str | None = Depends(optional_user_id),
+    r: Request,
+    access_token: Annotated[str | None, Depends(check_access_token)],
+    usr: UUID4 | None = None,
 ) -> None:
     _check_enabled()
-    if not settings.lnbits_blockexplorer_public_api and not user_id:
-        raise HTTPException(
-            status_code=HTTPStatus.UNAUTHORIZED,
-            detail="Authentication required.",
-        )
+    if not settings.lnbits_blockexplorer_public_api:
+        await check_user_exists(r, access_token, usr)
 
 
 def _client() -> ElectrumClient:
