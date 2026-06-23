@@ -945,6 +945,9 @@ window.localisation.en = {
   enable_block_explorer: 'Enable Block Explorer',
   block_explorer_desc:
     'Allow users to explore Bitcoin transactions and addresses via Electrum.',
+  blockexplorer_public_api: 'Public API Access',
+  blockexplorer_public_api_desc:
+    'Allow unauthenticated access to the block explorer API endpoints.',
   electrum_server_url: 'Electrum Server URL',
   electrum_server_url_hint:
     'e.g. ssl://electrum.blockstream.info:50002 or tcp://localhost:50001',

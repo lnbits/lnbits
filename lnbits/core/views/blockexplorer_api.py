@@ -2,9 +2,10 @@ import asyncio
 from http import HTTPStatus
 from typing import Any
 
-from fastapi import APIRouter, HTTPException, WebSocket
+from fastapi import APIRouter, Depends, HTTPException, Request, Security, WebSocket
 from loguru import logger
 
+from lnbits.decorators import KeyChecker, KeyType, api_key_header, api_key_query
 from lnbits.settings import settings
 from lnbits.utils.electrum import (
     AddressResponse,
@@ -33,6 +34,20 @@ def _check_enabled() -> None:
             status_code=HTTPStatus.SERVICE_UNAVAILABLE,
             detail="Block explorer is not enabled.",
         )
+
+
+async def _check_api_access(
+    request: Request,
+    key_header: str = Security(api_key_header),
+    key_query: str = Security(api_key_query),
+) -> None:
+    _check_enabled()
+    if not settings.lnbits_blockexplorer_public_api:
+        checker = KeyChecker(
+            api_key=key_header or key_query,
+            expected_key_type=KeyType.invoice,
+        )
+        await checker(request)
 
 
 def _client() -> ElectrumClient:
@@ -66,9 +81,8 @@ async def _tx_status(
 # ---- REST ----
 
 
-@blockexplorer_router.get("/blocks")
+@blockexplorer_router.get("/blocks", dependencies=[Depends(_check_api_access)])
 async def api_blocks() -> list[BlockInfo]:
-    _check_enabled()
     try:
         async with _client() as c:
             tip = await c.get_tip()
@@ -84,9 +98,8 @@ async def api_blocks() -> list[BlockInfo]:
         raise HTTPException(HTTPStatus.SERVICE_UNAVAILABLE, detail=str(e)) from e
 
 
-@blockexplorer_router.get("/tip")
+@blockexplorer_router.get("/tip", dependencies=[Depends(_check_api_access)])
 async def api_tip() -> BlockHeader:
-    _check_enabled()
     try:
         async with _client() as c:
             return await c.get_tip()
@@ -94,9 +107,8 @@ async def api_tip() -> BlockHeader:
         raise HTTPException(HTTPStatus.SERVICE_UNAVAILABLE, detail=str(e)) from e
 
 
-@blockexplorer_router.get("/fees")
+@blockexplorer_router.get("/fees", dependencies=[Depends(_check_api_access)])
 async def api_fees() -> FeeResponse:
-    _check_enabled()
     try:
         async with _client() as c:
             estimates_raw = await asyncio.gather(
@@ -116,9 +128,8 @@ async def api_fees() -> FeeResponse:
         raise HTTPException(HTTPStatus.SERVICE_UNAVAILABLE, detail=str(e)) from e
 
 
-@blockexplorer_router.get("/tx/{txid}")
+@blockexplorer_router.get("/tx/{txid}", dependencies=[Depends(_check_api_access)])
 async def api_tx(txid: str) -> Transaction:
-    _check_enabled()
     try:
         async with _client() as c:
             raw_hex = await c.get_transaction(txid)
@@ -127,9 +138,8 @@ async def api_tx(txid: str) -> Transaction:
         raise HTTPException(HTTPStatus.SERVICE_UNAVAILABLE, detail=str(e)) from e
 
 
-@blockexplorer_router.get("/address/{address}")
+@blockexplorer_router.get("/address/{address}", dependencies=[Depends(_check_api_access)])
 async def api_address(address: str) -> AddressResponse:
-    _check_enabled()
     try:
         scripthash = scripthash_from_address(address)
     except ValueError as e:
