@@ -325,22 +325,17 @@ window._lnbitsUtils = {
   },
   _extI18nDirs: new Set(),
   _extI18nLoaded: {},
-  async loadExtI18n(dir, locale) {
+  loadExtI18n(dir, locale) {
     this._extI18nDirs.add(dir)
-    const loaded = (this._extI18nLoaded[dir] ??= new Set())
-    if (loaded.has(locale)) return
-    loaded.add(locale)
-    await this.loadScript(`${dir}/${locale}.js`).catch(async () => {
-      if (locale !== 'en' && !loaded.has('en')) {
-        loaded.add('en')
-        await this.loadScript(`${dir}/en.js`).catch(() => {})
+    const loaded = (this._extI18nLoaded[dir] ??= {})
+    if (loaded[locale]) return loaded[locale]
+    loaded[locale] = this.loadScript(`${dir}/${locale}.js`).catch(() => {
+      if (locale !== 'en') {
+        loaded['en'] ??= this.loadScript(`${dir}/en.js`).catch(() => {})
+        return loaded['en']
       }
     })
-  },
-  async reloadExtI18nLocale(locale) {
-    for (const dir of this._extI18nDirs) {
-      await this.loadExtI18n(dir, locale)
-    }
+    return loaded[locale]
   },
   async decryptLnurlPayAES(success_action, preimage) {
     let keyb = new Uint8Array(
