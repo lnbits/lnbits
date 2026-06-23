@@ -373,6 +373,7 @@ async def update_pending_payment(
 ) -> Payment:
     if payment.is_in and payment.is_expired:
         payment.status = PaymentState.FAILED
+        payment.labels.append("expired")
         await update_payment(payment, conn=conn)
         logger.info(f"invoice {payment.checking_id} expired, marked as failed")
         return payment
