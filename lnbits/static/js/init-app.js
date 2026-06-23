@@ -67,6 +67,11 @@ const routes = [
     component: PageNodePublic
   },
   {
+    path: '/blockexplorer',
+    name: 'BlockExplorer',
+    component: PageBlockExplorer
+  },
+  {
     path: '/payments',
     name: 'Payments',
     component: PagePayments

@@ -11,12 +11,15 @@ import hashlib
 import itertools
 import json
 import ssl
+import struct
 from collections.abc import Callable
 from typing import Any
 from urllib.parse import urlparse
 
+from bech32 import bech32_decode, convertbits
+from bech32 import encode as bech32_segwit_encode
 from loguru import logger
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 
 class ElectrumError(Exception):
@@ -26,6 +29,100 @@ class ElectrumError(Exception):
 def scripthash_from_scriptpubkey(scriptpubkey: bytes) -> str:
     """Electrum script hash: SHA-256 of scriptPubKey, byte-reversed to hex."""
     return hashlib.sha256(scriptpubkey).digest()[::-1].hex()
+
+
+_B58_ALPHABET = "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz"
+
+
+def _b58decode_check(s: str) -> bytes:
+    n = 0
+    for c in s:
+        n = n * 58 + _B58_ALPHABET.index(c)
+    nz = len(s) - len(s.lstrip("1"))
+    buf: list[int] = []
+    while n:
+        n, rem = divmod(n, 256)
+        buf.insert(0, rem)
+    raw = bytes([0] * nz + buf)
+    payload, chk = raw[:-4], raw[-4:]
+    expected = hashlib.sha256(hashlib.sha256(payload).digest()).digest()[:4]
+    if chk != expected:
+        raise ValueError(f"Bad base58check checksum: {s!r}")
+    return payload  # byte 0 = version, bytes 1:21 = hash160
+
+
+def address_to_scriptpubkey(address: str) -> bytes:
+    """Convert a Bitcoin address (P2PKH/P2SH/P2WPKH/P2WSH/P2TR) to scriptPubKey bytes."""
+    lower = address.lower()
+    if lower.startswith(("bc1", "tb1", "bcrt1")):
+        _, data = bech32_decode(address)
+        if data is None:
+            raise ValueError(f"Invalid bech32 address: {address!r}")
+        witness_version = data[0]
+        witness_prog = bytes(convertbits(data[1:], 5, 8, False))
+        ver_op = 0x00 if witness_version == 0 else (0x50 + witness_version)
+        return bytes([ver_op, len(witness_prog)]) + witness_prog
+    else:
+        payload = _b58decode_check(address)
+        version, hash160 = payload[0], payload[1:]
+        if version in (0x00, 0x6F, 0x41):  # P2PKH mainnet/testnet/regtest
+            return bytes([0x76, 0xA9, 0x14]) + hash160 + bytes([0x88, 0xAC])
+        if version in (0x05, 0xC4, 0x3A):  # P2SH mainnet/testnet/regtest
+            return bytes([0xA9, 0x14]) + hash160 + bytes([0x87])
+        raise ValueError(f"Unknown address version byte: {version:#04x}")
+
+
+def scripthash_from_address(address: str) -> str:
+    return scripthash_from_scriptpubkey(address_to_scriptpubkey(address))
+
+
+def _b58encode_check(payload: bytes) -> str:
+    chk = hashlib.sha256(hashlib.sha256(payload).digest()).digest()[:4]
+    n = int.from_bytes(payload + chk, "big")
+    chars: list[str] = []
+    while n:
+        n, rem = divmod(n, 58)
+        chars.insert(0, _B58_ALPHABET[rem])
+    nz = len(payload) - len(payload.lstrip(b"\x00"))
+    return _B58_ALPHABET[0] * nz + "".join(chars)
+
+
+def _read_varint(data: bytes, i: int) -> tuple[int, int]:
+    b = data[i]
+    if b < 0xFD:
+        return b, i + 1
+    if b == 0xFD:
+        return struct.unpack_from("<H", data, i + 1)[0], i + 3
+    if b == 0xFE:
+        return struct.unpack_from("<I", data, i + 1)[0], i + 5
+    return struct.unpack_from("<Q", data, i + 1)[0], i + 9
+
+
+def _scriptpubkey_info(script: bytes) -> tuple[str, str | None]:
+    """Return (type, address_or_None) for a scriptPubKey."""
+    n = len(script)
+    # P2PKH
+    if n == 25 and script[:3] == b"\x76\xa9\x14" and script[23:] == b"\x88\xac":
+        return "pubkeyhash", _b58encode_check(b"\x00" + script[3:23])
+    # P2SH
+    if n == 23 and script[0] == 0xA9 and script[1] == 0x14 and script[22] == 0x87:
+        return "scripthash", _b58encode_check(b"\x05" + script[2:22])
+    # P2WPKH
+    if n == 22 and script[0] == 0x00 and script[1] == 0x14:
+        return "witness_v0_keyhash", bech32_segwit_encode("bc", 0, list(script[2:]))
+    # P2WSH
+    if n == 34 and script[0] == 0x00 and script[1] == 0x20:
+        return "witness_v0_scripthash", bech32_segwit_encode("bc", 0, list(script[2:]))
+    # P2TR
+    if n == 34 and script[0] == 0x51 and script[1] == 0x20:
+        return "witness_v1_taproot", bech32_segwit_encode("bc", 1, list(script[2:]))
+    # P2PK
+    if n in (35, 67) and script[-1] == 0xAC:
+        return "pubkey", None
+    # OP_RETURN
+    if n >= 1 and script[0] == 0x6A:
+        return "nulldata", None
+    return "nonstandard", None
 
 
 # ---------------------------------------------------------------------------
@@ -103,6 +200,155 @@ class ServerFeatures(BaseModel):
     pruning: int | None = None
     hash_function: str = "sha256d"
     hosts: dict[str, Any] = {}
+
+
+class ScriptSig(BaseModel):
+    hex: str
+
+
+class ScriptPubKey(BaseModel):
+    hex: str
+    type: str
+    address: str | None = None
+
+
+class TxInput(BaseModel):
+    txid: str | None = None
+    vout: int | None = None
+    script_sig: ScriptSig | None = Field(None, alias="scriptSig")
+    sequence: int
+    coinbase: str | None = None
+
+    class Config:
+        allow_population_by_field_name = True
+
+
+class TxOutput(BaseModel):
+    value: float
+    n: int
+    script_pub_key: ScriptPubKey = Field(alias="scriptPubKey")
+
+    class Config:
+        allow_population_by_field_name = True
+
+
+class Transaction(BaseModel):
+    txid: str
+    version: int
+    locktime: int
+    vin: list[TxInput]
+    vout: list[TxOutput]
+    size: int
+    vsize: int
+    weight: int
+    hex: str
+
+
+class FeeResponse(BaseModel):
+    estimates: dict[str, float]
+    histogram: list[FeeHistogramEntry]
+
+
+class AddressResponse(BaseModel):
+    balance: Balance
+    history: list[HistoryEntry]
+
+
+def parse_raw_tx(hex_str: str) -> Transaction:
+    """Parse a raw transaction hex string into a Transaction model."""
+    data = bytes.fromhex(hex_str)
+    i = 0
+
+    version = struct.unpack_from("<I", data, i)[0]
+    i += 4
+
+    segwit = len(data) > i + 1 and data[i] == 0x00 and data[i + 1] == 0x01
+    if segwit:
+        i += 2
+
+    vin_start = i
+    vin_count, i = _read_varint(data, i)
+    vin: list[TxInput] = []
+    for _ in range(vin_count):
+        prev_txid = data[i : i + 32][::-1].hex()
+        i += 32
+        prev_vout = struct.unpack_from("<I", data, i)[0]
+        i += 4
+        script_len, i = _read_varint(data, i)
+        script_sig_hex = data[i : i + script_len].hex()
+        i += script_len
+        sequence = struct.unpack_from("<I", data, i)[0]
+        i += 4
+        if prev_txid == "0" * 64 and prev_vout == 0xFFFFFFFF:
+            vin.append(TxInput(sequence=sequence, coinbase=script_sig_hex))
+        else:
+            vin.append(
+                TxInput(
+                    txid=prev_txid,
+                    vout=prev_vout,
+                    scriptSig=ScriptSig(hex=script_sig_hex),
+                    sequence=sequence,
+                )
+            )
+
+    vout_start = i
+    vout_count, i = _read_varint(data, i)
+    vout: list[TxOutput] = []
+    for n_out in range(vout_count):
+        value_sat = struct.unpack_from("<Q", data, i)[0]
+        i += 8
+        script_len, i = _read_varint(data, i)
+        spk_bytes = data[i : i + script_len]
+        i += script_len
+        spk_type, address = _scriptpubkey_info(spk_bytes)
+        vout.append(
+            TxOutput(
+                value=round(value_sat / 1e8, 8),
+                n=n_out,
+                scriptPubKey=ScriptPubKey(
+                    hex=spk_bytes.hex(), type=spk_type, address=address
+                ),
+            )
+        )
+
+    vout_end = i
+
+    if segwit:
+        for _ in range(vin_count):
+            items, i = _read_varint(data, i)
+            for _ in range(items):
+                item_len, i = _read_varint(data, i)
+                i += item_len
+
+    locktime_start = i
+    locktime = struct.unpack_from("<I", data, i)[0]
+
+    if segwit:
+        non_witness = (
+            data[:4]
+            + data[vin_start:vout_end]
+            + data[locktime_start : locktime_start + 4]
+        )
+        txid = hashlib.sha256(hashlib.sha256(non_witness).digest()).digest()[::-1].hex()
+        base_size = 4 + (vout_end - vin_start) + 4
+        weight = base_size * 3 + len(data)
+        vsize = (weight + 3) // 4
+    else:
+        txid = hashlib.sha256(hashlib.sha256(data).digest()).digest()[::-1].hex()
+        weight = len(data) * 4
+        vsize = len(data)
+
+    return Transaction(
+        txid=txid,
+        version=version,
+        locktime=locktime,
+        vin=vin,
+        vout=vout,
+        size=len(data),
+        vsize=vsize,
+        weight=weight,
+        hex=hex_str,
+    )
 
 
 # ---------------------------------------------------------------------------
