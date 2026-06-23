@@ -5,7 +5,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 from loguru import logger
@@ -46,6 +46,7 @@ def register_wasm_extension(app: FastAPI, ext_id: str) -> WasmExtension:
     loaded = load_wasm_extension(ext_id)
     _mount_wasm_extension_static(app, loaded)
     _register_wasm_extension_routes(app, loaded)
+    _register_wasm_extension_invoke_route(app, loaded)
 
     extensions = getattr(app.state, "lnbits_wasm_extensions", {})
     extensions[ext_id] = loaded
@@ -111,6 +112,67 @@ def _register_wasm_extension_routes(app: FastAPI, extension: WasmExtension) -> N
             extension, route_config.get("entrypoint")
         )
         _add_wasm_extension_page_route(app, extension, route_path, entrypoint)
+
+
+def _register_wasm_extension_invoke_route(
+    app: FastAPI,
+    extension: WasmExtension,
+) -> None:
+    route_path = f"/api/v1/extensions/{extension.id}/invoke/{{export_name}}"
+    if any(getattr(route, "path", None) == route_path for route in app.routes):
+        return
+
+    async def invoke_wasm_extension_export(
+        export_name: str,
+        request: Request,
+    ) -> dict[str, Any]:
+        from .wasm import invoke_wasm_extension_export as invoke_export
+
+        try:
+            _require_http_wasm_export(extension, export_name)
+            payload = await _read_json_object(request)
+            return await invoke_export(
+                app,
+                extension.id,
+                export_name,
+                payload,
+            )
+        except KeyError as exc:
+            raise HTTPException(status_code=404, detail=str(exc)) from exc
+        except PermissionError as exc:
+            raise HTTPException(status_code=403, detail=str(exc)) from exc
+        except (TypeError, ValueError) as exc:
+            raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+    app.add_api_route(
+        route_path,
+        invoke_wasm_extension_export,
+        methods=["POST"],
+        name=f"{extension.id}:invoke",
+        include_in_schema=False,
+    )
+
+
+async def _read_json_object(request: Request) -> dict[str, Any]:
+    body = await request.body()
+    if not body:
+        return {}
+    value = json.loads(body)
+    if not isinstance(value, dict):
+        raise TypeError("WASM extension invoke payload must be a JSON object.")
+    return value
+
+
+def _require_http_wasm_export(extension: WasmExtension, export_name: str) -> None:
+    for export in extension.exports:
+        if export.get("name") != export_name:
+            continue
+        if export.get("visibility") in {"public", "authenticated"}:
+            return
+        raise PermissionError(
+            f"WASM export '{export_name}' is not callable over HTTP."
+        )
+    raise KeyError(f"WASM extension '{extension.id}' has no export '{export_name}'.")
 
 
 def _add_wasm_extension_page_route(
