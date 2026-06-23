@@ -98,7 +98,10 @@ window.PageBlockExplorer = {
     },
     async loadBlocks() {
       try {
-        const r = await LNbits.api.request('GET', '/blockexplorer/api/v1/blocks')
+        const r = await LNbits.api.request(
+          'GET',
+          '/blockexplorer/api/v1/blocks'
+        )
         this.blocks = r.data
       } catch (_) {}
     },
