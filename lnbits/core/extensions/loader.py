@@ -8,7 +8,7 @@ from typing import Any
 from uuid import uuid4
 
 from fastapi import Depends, FastAPI, HTTPException, Request
-from fastapi.responses import FileResponse, PlainTextResponse
+from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 from loguru import logger
 
@@ -321,9 +321,8 @@ def _add_wasm_extension_frame_route(
     if _has_route(app, frame_path, "GET"):
         return
 
-    async def serve_wasm_extension_frame(request: Request) -> Any:
-        if not _consume_wasm_extension_frame_token(request, extension, frame_path):
-            return PlainTextResponse("Not found", status_code=404)
+    async def serve_wasm_extension_frame(request: Request) -> FileResponse:
+        _consume_wasm_extension_frame_token(request, extension, frame_path)
         response = FileResponse(entrypoint)
         response.headers["Content-Security-Policy"] = (
             "sandbox allow-scripts allow-forms; "
@@ -408,10 +407,10 @@ def _consume_wasm_extension_frame_token(
     request: Request,
     extension: WasmExtension,
     frame_path: str,
-) -> bool:
+) -> None:
     token = request.query_params.get("frame_token")
     if not token:
-        return _reject_wasm_extension_frame(extension, frame_path, "missing")
+        _raise_wasm_extension_frame_not_found(extension, frame_path, "missing")
 
     token_data = cache.pop(_wasm_extension_frame_token_cache_key(token))
     if (
@@ -419,23 +418,24 @@ def _consume_wasm_extension_frame_token(
         or token_data.get("extension_id") != extension.id
         or token_data.get("frame_path") != frame_path
     ):
-        return _reject_wasm_extension_frame(extension, frame_path, "unknown")
-    return True
+        _raise_wasm_extension_frame_not_found(
+            extension, frame_path, "unknown or expired"
+        )
 
 
 def _wasm_extension_frame_token_cache_key(token: str) -> str:
     return f"wasm-frame-token:{token}"
 
 
-def _reject_wasm_extension_frame(
+def _raise_wasm_extension_frame_not_found(
     extension: WasmExtension,
     frame_path: str,
     reason: str,
-) -> bool:
+) -> None:
     logger.warning(
         f"WASM frame token {reason} for extension '{extension.id}' at '{frame_path}'."
     )
-    return False
+    raise HTTPException(status_code=404, detail="Not found")
 
 
 def _wasm_extension_bridge_api_routes(
