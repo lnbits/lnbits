@@ -26,6 +26,7 @@
 <script>
   ;(() => {
     const bridge = {{ bridge | tojson | safe }}
+    let bridgePort = null
 
     function extensionFrameWindow() {
       return extensionFrame()?.contentWindow
@@ -42,15 +43,12 @@
       frame.src = frame.dataset.frameUrl
     }
 
-    function sendResponse(targetWindow, id, payload) {
-      targetWindow?.postMessage(
-        {
-          type: 'lnbits-extension:response',
-          id,
-          ...payload
-        },
-        '*'
-      )
+    function sendResponse(reply, id, payload) {
+      reply({
+        type: 'lnbits-extension:response',
+        id,
+        ...payload
+      })
     }
 
     function allowedApiRoute(method, path) {
@@ -120,14 +118,12 @@
       }
     }
 
-    window.addEventListener('message', async event => {
-      if (event.source !== extensionFrameWindow()) return
-      const message = event.data
+    async function handleBridgeRequest(message, reply) {
       if (!message || message.type !== 'lnbits-extension:request') return
 
       try {
         if (message.action === 'context') {
-          sendResponse(event.source, message.id, {
+          sendResponse(reply, message.id, {
             ok: true,
             data: {
               extensionId: bridge.extensionId,
@@ -140,7 +136,7 @@
         }
 
         if (message.action === 'api') {
-          sendResponse(event.source, message.id, {
+          sendResponse(reply, message.id, {
             ok: true,
             data: await callApi(message)
           })
@@ -149,7 +145,7 @@
 
         if (message.action === 'ui.notify') {
           notify(message)
-          sendResponse(event.source, message.id, {
+          sendResponse(reply, message.id, {
             ok: true,
             data: {ok: true}
           })
@@ -158,11 +154,33 @@
 
         throw new Error('Unknown extension bridge action.')
       } catch (error) {
-        sendResponse(event.source, message.id, {
+        sendResponse(reply, message.id, {
           ok: false,
           error: error instanceof Error ? error.message : String(error)
         })
       }
+    }
+
+    window.addEventListener('message', event => {
+      if (event.source !== extensionFrameWindow()) return
+      const message = event.data
+      if (!message || message.type !== 'lnbits-extension:connect') return
+
+      const port = event.ports?.[0]
+      if (!port) return
+
+      bridgePort?.close()
+      bridgePort = port
+      bridgePort.addEventListener('message', portEvent => {
+        handleBridgeRequest(portEvent.data, response => {
+          port.postMessage(response)
+        })
+      })
+      bridgePort.start()
+      bridgePort.postMessage({
+        type: 'lnbits-extension:connected',
+        id: message.id
+      })
     })
     window.addEventListener('load', loadExtensionFrame)
   })()
