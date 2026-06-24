@@ -18,6 +18,20 @@ from lnbits.settings import settings
 from lnbits.utils.cache import cache
 
 WASM_FRAME_TOKEN_EXPIRY_SECONDS = 60
+WASM_EXTENSION_STATIC_MIME_TYPES = {
+    ".css": "text/css; charset=utf-8",
+    ".gif": "image/gif",
+    ".ico": "image/x-icon",
+    ".jpeg": "image/jpeg",
+    ".jpg": "image/jpeg",
+    ".js": "text/javascript; charset=utf-8",
+    ".png": "image/png",
+    ".webp": "image/webp",
+    ".woff": "font/woff",
+    ".woff2": "font/woff2",
+}
+WASM_EXTENSION_TEXT_STATIC_EXTENSIONS = {".css", ".js"}
+WASM_EXTENSION_HTML_PREFIXES = (b"<!doctype", b"<html", b"<script")
 
 
 @dataclass(frozen=True)
@@ -32,6 +46,30 @@ class WasmExtension:
     host_api: str
     exports: list[dict[str, Any]]
     config: dict[str, Any]
+
+
+class GuardedWasmExtensionStaticFiles(StaticFiles):
+    async def get_response(self, path: str, scope: dict[str, Any]) -> Any:
+        if Path(path).suffix.lower() not in WASM_EXTENSION_STATIC_MIME_TYPES:
+            raise HTTPException(status_code=404)
+        return await super().get_response(path, scope)
+
+    def file_response(
+        self,
+        full_path: str,
+        stat_result: Any,
+        scope: dict[str, Any],
+        status_code: int = 200,
+    ) -> Any:
+        suffix = Path(full_path).suffix.lower()
+        if suffix in WASM_EXTENSION_TEXT_STATIC_EXTENSIONS:
+            _reject_html_like_wasm_static_asset(Path(full_path))
+
+        response = super().file_response(full_path, stat_result, scope, status_code)
+        response.headers["Content-Type"] = WASM_EXTENSION_STATIC_MIME_TYPES[suffix]
+        response.headers["X-Content-Type-Options"] = "nosniff"
+        response.headers["Cache-Control"] = "no-store"
+        return response
 
 
 def is_wasm_extension_id(ext_id: str) -> bool:
@@ -110,7 +148,7 @@ def _mount_wasm_extension_static(app: FastAPI, extension: WasmExtension) -> None
 
     app.mount(
         mount_path,
-        StaticFiles(directory=static_path),
+        GuardedWasmExtensionStaticFiles(directory=static_path),
         name=f"{extension.id}-static",
     )
 
@@ -526,25 +564,42 @@ def _wasm_extension_ui_route_path(extension: WasmExtension, path: Any) -> str:
 
 
 def _wasm_extension_entrypoint(extension: WasmExtension, entrypoint: Any) -> Path:
-    if not isinstance(entrypoint, str) or not entrypoint.startswith("/"):
+    if not isinstance(entrypoint, str) or not entrypoint:
         raise ValueError(
             f"Invalid route entrypoint for WASM extension '{extension.id}'."
         )
-
-    static_prefix = f"/ext-assets/{extension.id}/"
-    if not entrypoint.startswith(static_prefix):
+    if entrypoint.startswith("/"):
         raise ValueError(
-            f"Route entrypoint for WASM extension '{extension.id}' must be under "
-            f"'{static_prefix}'."
+            f"Route entrypoint for WASM extension '{extension.id}' must be a "
+            "relative extension path."
         )
 
-    path = extension.root_path / "static" / entrypoint.removeprefix(static_prefix)
-    path = path.resolve()
-    if extension.root_path.resolve() not in path.parents:
+    path = (extension.root_path / entrypoint).resolve()
+    root_path = extension.root_path.resolve()
+    if path != root_path and root_path not in path.parents:
         raise ValueError(f"Route entrypoint escapes extension root: {entrypoint}")
+
+    static_path = (extension.root_path / "static").resolve()
+    if path == static_path or static_path in path.parents:
+        raise ValueError(
+            f"Route entrypoint for WASM extension '{extension.id}' must not be "
+            "inside the static asset directory."
+        )
+    if path.suffix.lower() != ".html":
+        raise ValueError(
+            f"Route entrypoint for WASM extension '{extension.id}' must be "
+            "an HTML file."
+        )
     if not path.is_file():
         raise FileNotFoundError(f"Route entrypoint not found: {path}")
     return path
+
+
+def _reject_html_like_wasm_static_asset(path: Path) -> None:
+    with path.open("rb") as asset_file:
+        prefix = asset_file.read(512).lstrip().lower()
+    if prefix.startswith(WASM_EXTENSION_HTML_PREFIXES):
+        raise HTTPException(status_code=404)
 
 
 def _check_wasm_module(path: Path) -> None:
