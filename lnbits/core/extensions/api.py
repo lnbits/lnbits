@@ -93,9 +93,7 @@ def extension_api_method(
         function: Callable[[ExtensionAPI, _RequestModel], Awaitable[_ResponseModel]],
     ) -> Callable[[ExtensionAPI, _RequestModel], Awaitable[_ResponseModel]]:
         @wraps(function)
-        async def wrapper(
-            self: ExtensionAPI, request: _RequestModel
-        ) -> _ResponseModel:
+        async def wrapper(self: ExtensionAPI, request: _RequestModel) -> _ResponseModel:
             self.require_permission(required_permission)
             return await function(self, request)
 

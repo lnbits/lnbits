@@ -207,9 +207,7 @@ def _wasm_extension_api_export(extension: WasmExtension, export_name: Any) -> st
             continue
         if export.get("visibility") in {"public", "authenticated"}:
             return export_name
-        raise PermissionError(
-            f"WASM export '{export_name}' is not callable over HTTP."
-        )
+        raise PermissionError(f"WASM export '{export_name}' is not callable over HTTP.")
     raise KeyError(f"WASM extension '{extension.id}' has no export '{export_name}'.")
 
 
@@ -301,7 +299,9 @@ def _wasm_extension_route_path(extension: WasmExtension, path: Any) -> str:
 
 def _wasm_extension_entrypoint(extension: WasmExtension, entrypoint: Any) -> Path:
     if not isinstance(entrypoint, str) or not entrypoint.startswith("/"):
-        raise ValueError(f"Invalid route entrypoint for WASM extension '{extension.id}'.")
+        raise ValueError(
+            f"Invalid route entrypoint for WASM extension '{extension.id}'."
+        )
 
     static_prefix = f"/{extension.id}/static/"
     if not entrypoint.startswith(static_prefix):
@@ -310,7 +310,7 @@ def _wasm_extension_entrypoint(extension: WasmExtension, entrypoint: Any) -> Pat
             f"'{static_prefix}'."
         )
 
-    path = (extension.root_path / "static" / entrypoint.removeprefix(static_prefix))
+    path = extension.root_path / "static" / entrypoint.removeprefix(static_prefix)
     path = path.resolve()
     if extension.root_path.resolve() not in path.parents:
         raise ValueError(f"Route entrypoint escapes extension root: {entrypoint}")
