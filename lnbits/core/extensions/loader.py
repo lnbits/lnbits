@@ -5,7 +5,6 @@ import re
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
-from urllib.parse import urlencode
 
 from fastapi import Depends, FastAPI, HTTPException, Request
 from fastapi.responses import FileResponse
@@ -325,10 +324,19 @@ def _add_wasm_extension_frame_route(
             "sandbox allow-scripts allow-forms; "
             "default-src 'self' data: blob:; "
             "connect-src 'none'; "
+            "form-action 'none'; "
             "object-src 'none'; "
             "base-uri 'none'; "
             "frame-ancestors 'self'"
         )
+        response.headers["Cache-Control"] = "no-store"
+        response.headers["Cross-Origin-Opener-Policy"] = "same-origin"
+        response.headers["Cross-Origin-Resource-Policy"] = "same-origin"
+        response.headers["Permissions-Policy"] = (
+            "camera=(), microphone=(), geolocation=(), payment=(), "
+            "clipboard-read=(), clipboard-write=(), usb=()"
+        )
+        response.headers["Referrer-Policy"] = "no-referrer"
         response.headers["X-Content-Type-Options"] = "nosniff"
         return response
 
@@ -350,14 +358,13 @@ def _wasm_extension_wrapper_response(
     path_params: dict[str, str],
     user_json: str | None,
 ) -> Any:
-    frame_url = _wasm_extension_frame_url(request, frame_path, path_params)
     public = auth == "public"
     return template_renderer().TemplateResponse(
         request,
         "wasm_extension.html",
         {
             "extension": extension,
-            "frame_url": frame_url,
+            "frame_url": frame_path,
             "bridge": {
                 "extensionId": extension.id,
                 "public": public,
@@ -369,17 +376,6 @@ def _wasm_extension_wrapper_response(
             "user": user_json,
         },
     )
-
-
-def _wasm_extension_frame_url(
-    request: Request,
-    frame_path: str,
-    path_params: dict[str, str],
-) -> str:
-    params = _read_api_path_params(request, path_params)
-    params.update(_read_api_query_params(request))
-    query = urlencode(params)
-    return f"{frame_path}?{query}" if query else frame_path
 
 
 def _wasm_extension_bridge_api_routes(
