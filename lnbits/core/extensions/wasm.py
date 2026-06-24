@@ -65,7 +65,9 @@ def _invoke_wasm_extension_export_sync(
     instance = linker.instantiate(store, wasm_component)
     function = instance.get_func(store, export_name)
     if not function:
-        raise KeyError(f"WASM extension '{extension.id}' has no export '{export_name}'.")
+        raise KeyError(
+            f"WASM extension '{extension.id}' has no export '{export_name}'."
+        )
 
     result = function(store, json.dumps(payload))
     function.post_return(store)
