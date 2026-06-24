@@ -44,6 +44,9 @@ def load_wasm_extension_config(ext_id: str) -> dict[str, Any] | None:
 
 def register_wasm_extension(app: FastAPI, ext_id: str) -> WasmExtension:
     loaded = load_wasm_extension(ext_id)
+    from .wasm import warm_wasm_extension
+
+    warm_wasm_extension(loaded)
     _mount_wasm_extension_static(app, loaded)
     _register_wasm_extension_routes(app, loaded)
     _register_wasm_extension_api_routes(app, loaded)
