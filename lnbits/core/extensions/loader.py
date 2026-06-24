@@ -1,15 +1,19 @@
 from __future__ import annotations
 
 import json
+import re
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
+from urllib.parse import urlencode
 
-from fastapi import FastAPI, HTTPException, Request
+from fastapi import Depends, FastAPI, HTTPException, Request
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 from loguru import logger
 
+from lnbits.decorators import check_user_exists, check_user_extension_access
+from lnbits.helpers import template_renderer
 from lnbits.settings import settings
 
 
@@ -48,7 +52,7 @@ def register_wasm_extension(app: FastAPI, ext_id: str) -> WasmExtension:
 
     warm_wasm_extension(loaded)
     _mount_wasm_extension_static(app, loaded)
-    _register_wasm_extension_routes(app, loaded)
+    _register_wasm_extension_ui_routes(app, loaded)
     _register_wasm_extension_api_routes(app, loaded)
 
     extensions = getattr(app.state, "lnbits_wasm_extensions", {})
@@ -97,7 +101,7 @@ def _mount_wasm_extension_static(app: FastAPI, extension: WasmExtension) -> None
     if not static_path.is_dir():
         return
 
-    mount_path = f"/{extension.id}/static"
+    mount_path = f"/ext-assets/{extension.id}"
     if any(getattr(route, "path", None) == mount_path for route in app.routes):
         return
 
@@ -108,13 +112,24 @@ def _mount_wasm_extension_static(app: FastAPI, extension: WasmExtension) -> None
     )
 
 
-def _register_wasm_extension_routes(app: FastAPI, extension: WasmExtension) -> None:
-    for route_config in extension.config.get("routes") or []:
-        route_path = _wasm_extension_route_path(extension, route_config.get("path"))
+def _register_wasm_extension_ui_routes(app: FastAPI, extension: WasmExtension) -> None:
+    for route_index, route_config in enumerate(extension.config.get("ui_routes") or []):
+        route_path = _wasm_extension_ui_route_path(extension, route_config.get("path"))
         entrypoint = _wasm_extension_entrypoint(
             extension, route_config.get("entrypoint")
         )
-        _add_wasm_extension_page_route(app, extension, route_path, entrypoint)
+        frame_path = f"/ext-frame/{extension.id}/{route_index}"
+        auth = _wasm_extension_route_auth(extension, route_config.get("auth"))
+        path_params = route_config.get("path_params") or {}
+        _add_wasm_extension_frame_route(app, extension, frame_path, entrypoint, auth)
+        _add_wasm_extension_wrapper_route(
+            app,
+            extension,
+            route_path,
+            frame_path,
+            auth,
+            path_params,
+        )
 
 
 def _register_wasm_extension_api_routes(app: FastAPI, extension: WasmExtension) -> None:
@@ -131,6 +146,7 @@ def _add_wasm_extension_api_route(
     route_path = _wasm_extension_api_path(extension, route_config.get("path"))
     export_name = _wasm_extension_api_export(extension, route_config.get("export"))
     path_params = route_config.get("path_params") or {}
+    auth = _wasm_extension_route_auth(extension, route_config.get("auth"))
 
     if _has_route(app, route_path, method):
         return
@@ -158,6 +174,7 @@ def _add_wasm_extension_api_route(
         invoke_wasm_extension_export,
         methods=[method],
         name=f"{extension.id}:{method}:{route_path}",
+        dependencies=_wasm_extension_dependencies(extension, auth),
         include_in_schema=False,
     )
 
@@ -243,25 +260,174 @@ def _snake_to_camel(value: str) -> str:
     return head + "".join(part.capitalize() for part in tail)
 
 
-def _add_wasm_extension_page_route(
+def _add_wasm_extension_wrapper_route(
     app: FastAPI,
     extension: WasmExtension,
     route_path: str,
-    entrypoint: Path,
+    frame_path: str,
+    auth: str,
+    path_params: dict[str, str],
 ) -> None:
-    if any(getattr(route, "path", None) == route_path for route in app.routes):
+    if _has_route(app, route_path, "GET"):
         return
 
-    async def serve_wasm_extension_page() -> FileResponse:
-        return FileResponse(entrypoint)
+    require_user = _require_wasm_user_extension(extension.id)
+
+    async def serve_private_wasm_extension_page(
+        request: Request,
+        user: Any = Depends(require_user),
+    ) -> Any:
+        return _wasm_extension_wrapper_response(
+            request,
+            extension,
+            frame_path,
+            auth,
+            path_params,
+            user.json(),
+        )
+
+    async def serve_public_wasm_extension_page(request: Request) -> Any:
+        return _wasm_extension_wrapper_response(
+            request,
+            extension,
+            frame_path,
+            auth,
+            path_params,
+            None,
+        )
 
     app.add_api_route(
         route_path,
-        serve_wasm_extension_page,
+        (
+            serve_public_wasm_extension_page
+            if auth == "public"
+            else serve_private_wasm_extension_page
+        ),
         methods=["GET"],
         name=f"{extension.id}:{route_path}",
         include_in_schema=False,
     )
+
+
+def _add_wasm_extension_frame_route(
+    app: FastAPI,
+    extension: WasmExtension,
+    frame_path: str,
+    entrypoint: Path,
+    auth: str,
+) -> None:
+    if _has_route(app, frame_path, "GET"):
+        return
+
+    async def serve_wasm_extension_frame() -> FileResponse:
+        response = FileResponse(entrypoint)
+        response.headers["Content-Security-Policy"] = (
+            "sandbox allow-scripts allow-forms; "
+            "default-src 'self' data: blob:; "
+            "connect-src 'none'; "
+            "object-src 'none'; "
+            "base-uri 'none'; "
+            "frame-ancestors 'self'"
+        )
+        response.headers["X-Content-Type-Options"] = "nosniff"
+        return response
+
+    app.add_api_route(
+        frame_path,
+        serve_wasm_extension_frame,
+        methods=["GET"],
+        name=f"{extension.id}:frame:{frame_path}",
+        dependencies=_wasm_extension_dependencies(extension, auth),
+        include_in_schema=False,
+    )
+
+
+def _wasm_extension_wrapper_response(
+    request: Request,
+    extension: WasmExtension,
+    frame_path: str,
+    auth: str,
+    path_params: dict[str, str],
+    user_json: str | None,
+) -> Any:
+    frame_url = _wasm_extension_frame_url(request, frame_path, path_params)
+    public = auth == "public"
+    return template_renderer().TemplateResponse(
+        request,
+        "wasm_extension.html",
+        {
+            "extension": extension,
+            "frame_url": frame_url,
+            "bridge": {
+                "extensionId": extension.id,
+                "public": public,
+                "routeParams": _read_api_path_params(request, path_params),
+                "query": _read_api_query_params(request),
+                "apiRoutes": _wasm_extension_bridge_api_routes(extension, public),
+            },
+            "public": public,
+            "user": user_json,
+        },
+    )
+
+
+def _wasm_extension_frame_url(
+    request: Request,
+    frame_path: str,
+    path_params: dict[str, str],
+) -> str:
+    params = _read_api_path_params(request, path_params)
+    params.update(_read_api_query_params(request))
+    query = urlencode(params)
+    return f"{frame_path}?{query}" if query else frame_path
+
+
+def _wasm_extension_bridge_api_routes(
+    extension: WasmExtension,
+    public: bool,
+) -> list[dict[str, str]]:
+    routes: list[dict[str, str]] = []
+    for route_config in extension.config.get("api_routes") or []:
+        auth = _wasm_extension_route_auth(extension, route_config.get("auth"))
+        if public and auth != "public":
+            continue
+        method = _wasm_extension_api_method(extension, route_config.get("method"))
+        path = _wasm_extension_api_path(extension, route_config.get("path"))
+        _wasm_extension_api_export(extension, route_config.get("export"))
+        routes.append(
+            {
+                "method": method,
+                "path": path,
+                "pattern": _path_template_pattern(path),
+            }
+        )
+    return routes
+
+
+def _path_template_pattern(path: str) -> str:
+    pattern = re.sub(r"\\{[^/{}]+\\}", r"[^/]+", re.escape(path))
+    return f"^{pattern}$"
+
+
+def _wasm_extension_dependencies(
+    extension: WasmExtension,
+    auth: str,
+) -> list[Any]:
+    if auth == "public":
+        return []
+    return [Depends(_require_wasm_user_extension(extension.id))]
+
+
+def _require_wasm_user_extension(ext_id: str) -> Any:
+    async def require_wasm_user_extension(
+        user: Any = Depends(check_user_exists),
+    ) -> Any:
+        status = await check_user_extension_access(user.id, ext_id)
+        if not status.success:
+            raise HTTPException(status_code=403, detail=status.message)
+        return user
+
+    return require_wasm_user_extension
 
 
 def _load_json(path: Path) -> dict[str, Any] | None:
@@ -289,12 +455,18 @@ def _optional_extension_path(ext_dir: Path, value: Any) -> Path | None:
     return _extension_path(ext_dir, value)
 
 
-def _wasm_extension_route_path(extension: WasmExtension, path: Any) -> str:
+def _wasm_extension_route_auth(extension: WasmExtension, auth: Any) -> str:
+    if auth in {"public", "user"}:
+        return auth
+    raise ValueError(f"Invalid route auth for WASM extension '{extension.id}'.")
+
+
+def _wasm_extension_ui_route_path(extension: WasmExtension, path: Any) -> str:
     if not isinstance(path, str) or not path.startswith("/"):
         raise ValueError(f"Invalid route path for WASM extension '{extension.id}'.")
     if path == "/":
-        return f"/{extension.id}/"
-    return f"/{extension.id}{path}"
+        return "/ext"
+    return f"/ext{path}"
 
 
 def _wasm_extension_entrypoint(extension: WasmExtension, entrypoint: Any) -> Path:
@@ -303,7 +475,7 @@ def _wasm_extension_entrypoint(extension: WasmExtension, entrypoint: Any) -> Pat
             f"Invalid route entrypoint for WASM extension '{extension.id}'."
         )
 
-    static_prefix = f"/{extension.id}/static/"
+    static_prefix = f"/ext-assets/{extension.id}/"
     if not entrypoint.startswith(static_prefix):
         raise ValueError(
             f"Route entrypoint for WASM extension '{extension.id}' must be under "
