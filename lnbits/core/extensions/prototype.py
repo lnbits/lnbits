@@ -9,12 +9,15 @@ from .api import ExtensionAPI
 from .models import (
     CreateInvoiceRequest,
     CreateInvoiceResponse,
+    EmptyRequest,
     KvGetRequest,
     KvGetResponse,
     KvListRequest,
     KvListResponse,
     KvSetRequest,
     KvSetResponse,
+    ListUserWalletsResponse,
+    UserWalletSummary,
     WatchPaymentRequest,
     WatchPaymentResponse,
 )
@@ -35,6 +38,7 @@ class InMemoryExtensionAPI(ExtensionAPI):
         state: InMemoryExtensionState | None = None,
         user_id: str | None = None,
         wallet_id: str | None = None,
+        user_wallets: list[UserWalletSummary] | None = None,
     ) -> None:
         super().__init__(
             extension_id,
@@ -43,6 +47,7 @@ class InMemoryExtensionAPI(ExtensionAPI):
             wallet_id=wallet_id,
         )
         self.state = state or InMemoryExtensionState()
+        self.user_wallets = list(user_wallets) if user_wallets is not None else None
 
     async def storage_get(self, request: KvGetRequest) -> KvGetResponse:
         self.require_permission("ext.storage.read_write")
@@ -76,6 +81,16 @@ class InMemoryExtensionAPI(ExtensionAPI):
             payment_request=f"lnbits-prototype-invoice:{payment_hash}",
             checking_id=f"{self.extension_id}:{payment_hash}",
         )
+
+    async def wallet_list_user_wallets(
+        self, _request: EmptyRequest
+    ) -> ListUserWalletsResponse:
+        self.require_permission("wallet.list")
+        if self.user_wallets is None:
+            raise PermissionError(
+                "Listing user wallets requires an authenticated user context."
+            )
+        return ListUserWalletsResponse(wallets=self.user_wallets)
 
     async def payments_watch(
         self, request: WatchPaymentRequest

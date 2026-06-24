@@ -69,10 +69,29 @@ def _select_methods(
 
 def _collect_models(methods: Sequence[ExtensionAPIMethod]) -> list[type[BaseModel]]:
     models: dict[str, type[BaseModel]] = {}
-    for method in methods:
-        models[method.request_model.__name__] = method.request_model
-        models[method.response_model.__name__] = method.response_model
+    pending = [
+        model
+        for method in methods
+        for model in (method.request_model, method.response_model)
+    ]
+
+    while pending:
+        model = pending.pop()
+        if model.__name__ in models:
+            continue
+        models[model.__name__] = model
+        for field in model.__fields__.values():
+            pending.extend(_nested_model_types(field.outer_type_))
     return [models[name] for name in sorted(models)]
+
+
+def _nested_model_types(type_: Any) -> list[type[BaseModel]]:
+    models: list[type[BaseModel]] = []
+    if _is_model_type(type_):
+        models.append(type_)
+    for arg in get_args(type_):
+        models.extend(_nested_model_types(arg))
+    return models
 
 
 def _render_model_type(model: type[BaseModel]) -> list[str]:
@@ -105,7 +124,9 @@ def _python_type_to_ts(type_: Any, allow_none: bool = False) -> str:
     if origin is Literal:
         return " | ".join(_literal_to_ts(arg) for arg in args)
 
-    if origin in (list, Sequence):
+    if _is_model_type(type_):
+        ts = _model_name(type_)
+    elif origin in (list, Sequence):
         item_type = _python_type_to_ts(args[0]) if args else "unknown"
         ts = f"{item_type}[]"
     elif origin is dict:
@@ -143,6 +164,10 @@ def _is_subclass(type_: Any, class_: type) -> bool:
         return isinstance(type_, type) and issubclass(type_, class_)
     except TypeError:
         return False
+
+
+def _is_model_type(type_: Any) -> bool:
+    return _is_subclass(type_, BaseModel)
 
 
 def _render_method_metadata(
