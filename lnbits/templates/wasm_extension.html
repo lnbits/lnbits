@@ -14,7 +14,7 @@
     <iframe
       id="lnbits-wasm-extension-frame"
       class="wasm-extension-frame"
-      src="{{ frame_url }}"
+      data-frame-url="{{ frame_url }}"
       title="{{ extension.name }}"
       sandbox="allow-scripts allow-forms"
       referrerpolicy="no-referrer"
@@ -27,8 +27,18 @@
     const bridge = {{ bridge | tojson | safe }}
 
     function extensionFrameWindow() {
+      return extensionFrame()?.contentWindow
+    }
+
+    function extensionFrame() {
       return document.getElementById('lnbits-wasm-extension-frame')
-        ?.contentWindow
+    }
+
+    function loadExtensionFrame() {
+      const frame = extensionFrame()
+      if (!frame || frame.dataset.loaded === 'true') return
+      frame.dataset.loaded = 'true'
+      frame.src = frame.dataset.frameUrl
     }
 
     function sendResponse(targetWindow, id, payload) {
@@ -153,6 +163,7 @@
         })
       }
     })
+    window.addEventListener('load', loadExtensionFrame)
   })()
 </script>
 {% endblock %}
