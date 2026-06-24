@@ -5,15 +5,19 @@ import re
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
+from uuid import uuid4
 
 from fastapi import Depends, FastAPI, HTTPException, Request
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, PlainTextResponse
 from fastapi.staticfiles import StaticFiles
 from loguru import logger
 
 from lnbits.decorators import check_user_exists, check_user_extension_access
 from lnbits.helpers import template_renderer
 from lnbits.settings import settings
+from lnbits.utils.cache import cache
+
+WASM_FRAME_TOKEN_EXPIRY_SECONDS = 60
 
 
 @dataclass(frozen=True)
@@ -120,7 +124,7 @@ def _register_wasm_extension_ui_routes(app: FastAPI, extension: WasmExtension) -
         frame_path = f"/ext-frame/{extension.id}/{route_index}"
         auth = _wasm_extension_route_auth(extension, route_config.get("auth"))
         path_params = route_config.get("path_params") or {}
-        _add_wasm_extension_frame_route(app, extension, frame_path, entrypoint, auth)
+        _add_wasm_extension_frame_route(app, extension, frame_path, entrypoint)
         _add_wasm_extension_wrapper_route(
             app,
             extension,
@@ -313,12 +317,13 @@ def _add_wasm_extension_frame_route(
     extension: WasmExtension,
     frame_path: str,
     entrypoint: Path,
-    auth: str,
 ) -> None:
     if _has_route(app, frame_path, "GET"):
         return
 
-    async def serve_wasm_extension_frame() -> FileResponse:
+    async def serve_wasm_extension_frame(request: Request) -> Any:
+        if not _consume_wasm_extension_frame_token(request, extension, frame_path):
+            return PlainTextResponse("Not found", status_code=404)
         response = FileResponse(entrypoint)
         response.headers["Content-Security-Policy"] = (
             "sandbox allow-scripts allow-forms; "
@@ -332,10 +337,10 @@ def _add_wasm_extension_frame_route(
         response.headers["Cache-Control"] = "no-store"
         response.headers["Cross-Origin-Opener-Policy"] = "same-origin"
         response.headers["Cross-Origin-Resource-Policy"] = "same-origin"
-        # for access will use the bridge API, but we don't want to allow any other access
+        # Extension access goes through the parent bridge.
         response.headers["Permissions-Policy"] = (
             "camera=(), microphone=(), geolocation=(), payment=(), "
-            "clipboard-read=(), usb=()"
+            "clipboard-read=(), clipboard-write=(), usb=()"
         )
         response.headers["Referrer-Policy"] = "no-referrer"
         response.headers["X-Content-Type-Options"] = "nosniff"
@@ -346,7 +351,6 @@ def _add_wasm_extension_frame_route(
         serve_wasm_extension_frame,
         methods=["GET"],
         name=f"{extension.id}:frame:{frame_path}",
-        dependencies=_wasm_extension_dependencies(extension, auth),
         include_in_schema=False,
     )
 
@@ -365,7 +369,7 @@ def _wasm_extension_wrapper_response(
         "wasm_extension.html",
         {
             "extension": extension,
-            "frame_url": frame_path,
+            "frame_url": _wasm_extension_frame_url(extension, frame_path),
             "bridge": {
                 "extensionId": extension.id,
                 "public": public,
@@ -377,6 +381,61 @@ def _wasm_extension_wrapper_response(
             "user": user_json,
         },
     )
+
+
+def _wasm_extension_frame_url(extension: WasmExtension, frame_path: str) -> str:
+    token = _create_wasm_extension_frame_token(extension, frame_path)
+    return f"{frame_path}?frame_token={token}"
+
+
+def _create_wasm_extension_frame_token(
+    extension: WasmExtension,
+    frame_path: str,
+) -> str:
+    token = uuid4().hex
+    cache.set(
+        _wasm_extension_frame_token_cache_key(token),
+        {
+            "extension_id": extension.id,
+            "frame_path": frame_path,
+        },
+        expiry=WASM_FRAME_TOKEN_EXPIRY_SECONDS,
+    )
+    return token
+
+
+def _consume_wasm_extension_frame_token(
+    request: Request,
+    extension: WasmExtension,
+    frame_path: str,
+) -> bool:
+    token = request.query_params.get("frame_token")
+    if not token:
+        return _reject_wasm_extension_frame(extension, frame_path, "missing")
+
+    token_data = cache.pop(_wasm_extension_frame_token_cache_key(token))
+    if (
+        not isinstance(token_data, dict)
+        or token_data.get("extension_id") != extension.id
+        or token_data.get("frame_path") != frame_path
+    ):
+        return _reject_wasm_extension_frame(extension, frame_path, "unknown")
+    return True
+
+
+def _wasm_extension_frame_token_cache_key(token: str) -> str:
+    return f"wasm-frame-token:{token}"
+
+
+def _reject_wasm_extension_frame(
+    extension: WasmExtension,
+    frame_path: str,
+    reason: str,
+) -> bool:
+    logger.warning(
+        f"WASM frame token {reason} for extension '{extension.id}' at '{frame_path}'."
+    )
+    return False
 
 
 def _wasm_extension_bridge_api_routes(
