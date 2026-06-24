@@ -21,6 +21,7 @@ from .models import (
     KvListResponse,
     KvSetRequest,
     KvSetResponse,
+    ListUserWalletsResponse,
     LogRequest,
     LogResponse,
     NowResponse,
@@ -172,6 +173,20 @@ class ExtensionAPI:
         self, request: CreateInvoiceRequest
     ) -> CreateInvoiceResponse:
         self._raise_unwired_runtime("wallet_create_invoice")
+
+    @extension_api_method(
+        method_id="wallet.list_user_wallets",
+        namespace="wallet",
+        name="List user wallets",
+        host_name="list_user_wallets",
+        sdk_name="listUserWallets",
+        description="List wallets available to the authenticated extension user.",
+        required_permission="wallet.list",
+    )
+    async def wallet_list_user_wallets(
+        self, request: EmptyRequest
+    ) -> ListUserWalletsResponse:
+        self._raise_unwired_runtime("wallet_list_user_wallets")
 
     @extension_api_method(
         method_id="payments.watch",

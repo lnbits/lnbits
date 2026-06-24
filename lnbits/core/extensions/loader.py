@@ -192,16 +192,21 @@ def _add_wasm_extension_api_route(
     if _has_route(app, route_path, method):
         return
 
-    async def invoke_wasm_extension_export(request: Request) -> dict[str, Any]:
-        from .wasm import invoke_wasm_extension_export as invoke_export
+    require_user = _require_wasm_user_extension(extension.id)
+
+    async def invoke_wasm_api_request(
+        request: Request, user: Any | None = None
+    ) -> dict[str, Any]:
+        from .wasm import invoke_wasm_extension_export as invoke_wasm_export
 
         try:
             payload = await _read_api_payload(request, path_params)
-            return await invoke_export(
+            return await invoke_wasm_export(
                 app,
                 extension.id,
                 export_name,
                 payload,
+                user=user,
             )
         except KeyError as exc:
             raise HTTPException(status_code=404, detail=str(exc)) from exc
@@ -210,12 +215,24 @@ def _add_wasm_extension_api_route(
         except (TypeError, ValueError) as exc:
             raise HTTPException(status_code=400, detail=str(exc)) from exc
 
+    async def invoke_private_wasm_extension_export(
+        request: Request,
+        user: Any = Depends(require_user),
+    ) -> dict[str, Any]:
+        return await invoke_wasm_api_request(request, user)
+
+    async def invoke_public_wasm_extension_export(request: Request) -> dict[str, Any]:
+        return await invoke_wasm_api_request(request)
+
     app.add_api_route(
         route_path,
-        invoke_wasm_extension_export,
+        (
+            invoke_public_wasm_extension_export
+            if auth == "public"
+            else invoke_private_wasm_extension_export
+        ),
         methods=[method],
         name=f"{extension.id}:{method}:{route_path}",
-        dependencies=_wasm_extension_dependencies(extension, auth),
         include_in_schema=False,
     )
 
@@ -362,14 +379,8 @@ def _add_wasm_extension_frame_route(
     async def serve_wasm_extension_frame(request: Request) -> FileResponse:
         _consume_wasm_extension_frame_token(request, extension, frame_path)
         response = FileResponse(entrypoint)
-        response.headers["Content-Security-Policy"] = (
-            "sandbox allow-scripts allow-forms; "
-            "default-src 'self' data: blob:; "
-            "connect-src 'none'; "
-            "form-action 'none'; "
-            "object-src 'none'; "
-            "base-uri 'none'; "
-            "frame-ancestors 'self'"
+        response.headers["Content-Security-Policy"] = _wasm_extension_frame_csp(
+            request, extension
         )
         response.headers["Cache-Control"] = "no-store"
         response.headers["Cross-Origin-Opener-Policy"] = "same-origin"
@@ -421,6 +432,31 @@ def _wasm_extension_wrapper_response(
     response.headers["Content-Security-Policy"] = "frame-ancestors 'self'"
     response.headers["X-Frame-Options"] = "SAMEORIGIN"
     return response
+
+
+def _wasm_extension_frame_csp(request: Request, extension: WasmExtension) -> str:
+    origin = str(request.base_url).rstrip("/")
+    extension_assets = f"{origin}/ext-assets/{extension.id}/"
+    static_assets = f"{origin}/static/"
+    return (
+        "sandbox allow-scripts; "
+        "default-src 'none'; "
+        f"script-src {extension_assets}; "
+        "script-src-attr 'none'; "
+        f"style-src {extension_assets} {static_assets}; "
+        "style-src-attr 'none'; "
+        f"img-src {extension_assets} {static_assets}; "
+        f"font-src {static_assets}; "
+        "connect-src 'none'; "
+        "form-action 'none'; "
+        "object-src 'none'; "
+        "base-uri 'none'; "
+        "frame-src 'none'; "
+        "worker-src 'none'; "
+        "media-src 'none'; "
+        "manifest-src 'none'; "
+        "frame-ancestors 'self'"
+    )
 
 
 def _wasm_extension_frame_url(extension: WasmExtension, frame_path: str) -> str:
@@ -504,15 +540,6 @@ def _wasm_extension_bridge_api_routes(
 def _path_template_pattern(path: str) -> str:
     pattern = re.sub(r"\\{[^/{}]+\\}", r"[^/]+", re.escape(path))
     return f"^{pattern}$"
-
-
-def _wasm_extension_dependencies(
-    extension: WasmExtension,
-    auth: str,
-) -> list[Any]:
-    if auth == "public":
-        return []
-    return [Depends(_require_wasm_user_extension(extension.id))]
 
 
 def _require_wasm_user_extension(ext_id: str) -> Any:

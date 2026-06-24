@@ -11,6 +11,7 @@ from fastapi import FastAPI
 
 from .api import list_extension_api_methods
 from .loader import WasmExtension, register_wasm_extension
+from .models import UserWalletSummary
 from .prototype import InMemoryExtensionAPI, InMemoryExtensionState
 from .runtime import ExtensionAPIHost
 
@@ -20,11 +21,19 @@ async def invoke_wasm_extension_export(
     ext_id: str,
     export_name: str,
     payload: Mapping[str, Any] | None = None,
+    *,
+    user: Any | None = None,
 ) -> dict[str, Any]:
     extension = _get_registered_extension(app, ext_id)
     state = _get_extension_state(app)
     permissions = _extension_permissions(extension)
-    api = InMemoryExtensionAPI(extension.id, permissions, state=state)
+    api = InMemoryExtensionAPI(
+        extension.id,
+        permissions,
+        state=state,
+        user_id=_user_id(user),
+        user_wallets=_user_wallet_summaries(user),
+    )
 
     return await asyncio.to_thread(
         _invoke_wasm_extension_export_sync,
@@ -143,8 +152,16 @@ def _dict_to_component_record(value: Mapping[str, Any]) -> Any:
 
     record = component.Record()
     for key, item in value.items():
-        setattr(record, _camel_to_kebab(key), item)
+        setattr(record, _camel_to_kebab(key), _to_component_value(item))
     return record
+
+
+def _to_component_value(value: Any) -> Any:
+    if isinstance(value, Mapping):
+        return _dict_to_component_record(value)
+    if isinstance(value, list):
+        return [_to_component_value(item) for item in value]
+    return value
 
 
 def _parse_wasm_export_result(extension: WasmExtension, value: Any) -> dict[str, Any]:
@@ -193,6 +210,32 @@ def _extension_permissions(extension: WasmExtension) -> set[str]:
         if isinstance(permission, Mapping) and isinstance(permission.get("id"), str):
             permissions.add(permission["id"])
     return permissions
+
+
+def _user_id(user: Any | None) -> str | None:
+    return getattr(user, "id", None) if user else None
+
+
+def _user_wallet_summaries(user: Any | None) -> list[UserWalletSummary] | None:
+    if user is None:
+        return None
+
+    summaries: list[UserWalletSummary] = []
+    for wallet in getattr(user, "wallets", []) or []:
+        if not getattr(wallet, "can_receive_payments", False):
+            continue
+        wallet_id = getattr(wallet, "id", None)
+        wallet_name = getattr(wallet, "name", None)
+        if not wallet_id or not wallet_name:
+            continue
+        summaries.append(
+            UserWalletSummary(
+                id=wallet_id,
+                name=wallet_name,
+                currency=getattr(wallet, "currency", None),
+            )
+        )
+    return summaries
 
 
 def _camel_to_kebab(value: str) -> str:

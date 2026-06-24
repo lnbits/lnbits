@@ -46,6 +46,16 @@ class CreateInvoiceResponse(BaseModel):
     checking_id: str
 
 
+class UserWalletSummary(BaseModel):
+    id: str
+    name: str
+    currency: str | None = None
+
+
+class ListUserWalletsResponse(BaseModel):
+    wallets: list[UserWalletSummary] = Field(default_factory=list)
+
+
 class WatchPaymentRequest(BaseModel):
     payment_hash: str = Field(..., min_length=1, max_length=128)
     callback_export: str = Field(..., min_length=1, max_length=128)
