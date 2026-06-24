@@ -5,28 +5,26 @@
     .wasm-extension-frame {
       border: 0;
       display: block;
-      min-height: calc(100vh - 170px);
+      height: calc(100vh - 56px);
+      min-height: calc(100vh - 56px);
       width: 100%;
-    }
-
-    .wasm-extension-public {
-      margin: 0 auto;
-      max-width: 1180px;
     }
   </style>
 {% endblock %}
 
-{% block page %}
-  <div class="{% if public %}wasm-extension-public{% endif %}">
-    <iframe
-      id="lnbits-wasm-extension-frame"
-      class="wasm-extension-frame"
-      src="{{ frame_url }}"
-      title="{{ extension.name }}"
-      sandbox="allow-scripts allow-forms"
-      referrerpolicy="no-referrer"
-    ></iframe>
-  </div>
+{% block page_container %}
+  <q-page-container>
+    <q-page class="q-pa-none">
+      <iframe
+        id="lnbits-wasm-extension-frame"
+        class="wasm-extension-frame"
+        src="{{ frame_url }}"
+        title="{{ extension.name }}"
+        sandbox="allow-scripts allow-forms"
+        referrerpolicy="no-referrer"
+      ></iframe>
+    </q-page>
+  </q-page-container>
 {% endblock %}
 
 {% block scripts %}
