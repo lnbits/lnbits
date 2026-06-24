@@ -340,7 +340,7 @@ def _add_wasm_extension_frame_route(
         # Extension access goes through the parent bridge.
         response.headers["Permissions-Policy"] = (
             "camera=(), microphone=(), geolocation=(), payment=(), "
-            "clipboard-read=(), clipboard-write=(), usb=()"
+            "clipboard-read=(), usb=()"
         )
         response.headers["Referrer-Policy"] = "no-referrer"
         response.headers["X-Content-Type-Options"] = "nosniff"
