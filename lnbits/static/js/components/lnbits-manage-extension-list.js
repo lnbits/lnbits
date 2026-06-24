@@ -35,6 +35,18 @@ window.app.component('lnbits-manage-extension-list', {
             .toLocaleLowerCase()
             .includes(this.searchTerm.toLocaleLowerCase())
         })
+    },
+    extensionUrl(extension) {
+      if (extension.is_wasm) {
+        return `/ext/${extension.code}`
+      }
+      return `/${extension.code}/`
+    },
+    extensionActive(extension) {
+      const extensionPath = extension.is_wasm
+        ? `/ext/${extension.code}`
+        : `/${extension.code}`
+      return this.$route.path.startsWith(extensionPath)
     }
   },
   async created() {

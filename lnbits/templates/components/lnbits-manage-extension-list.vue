@@ -18,13 +18,18 @@
     <q-item
       v-for="extension in userExtensions"
       clickable
-      :active="$route.path.startsWith('/' + extension.code)"
+      :active="extensionActive(extension)"
       tag="a"
-      :to="'/' + extension.code + '/'"
+      :to="extensionUrl(extension)"
     >
       <q-item-section side>
         <q-avatar size="md">
-          <q-img :src="extension.tile" style="max-width: 20px"></q-img>
+          <img
+            v-if="extension.tile"
+            :src="extension.tile"
+            style="width: 20px; height: 20px; object-fit: contain"
+          />
+          <q-icon v-else name="extension" size="20px"></q-icon>
         </q-avatar>
       </q-item-section>
       <q-item-section>
@@ -34,7 +39,7 @@
       </q-item-section>
       <q-item-section
         side
-        v-show="$route.path.startsWith('/' + extension.code)"
+        v-show="extensionActive(extension)"
       >
         <q-icon name="chevron_right" color="grey-5" size="md"></q-icon>
       </q-item-section>
