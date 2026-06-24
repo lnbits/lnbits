@@ -323,6 +323,20 @@ window._lnbitsUtils = {
     converter.setOption('simpleLineBreaks', true)
     return converter.makeHtml(text)
   },
+  _extI18nDirs: new Set(),
+  _extI18nLoaded: {},
+  loadExtI18n(dir, locale) {
+    this._extI18nDirs.add(dir)
+    const loaded = (this._extI18nLoaded[dir] ??= {})
+    if (loaded[locale]) return loaded[locale]
+    loaded[locale] = this.loadScript(`${dir}/${locale}.js`).catch(() => {
+      if (locale !== 'en') {
+        loaded['en'] ??= this.loadScript(`${dir}/en.js`).catch(() => {})
+        return loaded['en']
+      }
+    })
+    return loaded[locale]
+  },
   async decryptLnurlPayAES(success_action, preimage) {
     let keyb = new Uint8Array(
       preimage.match(/[\da-f]{2}/gi).map(h => parseInt(h, 16))
