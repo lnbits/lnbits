@@ -823,7 +823,7 @@ class NWCConnection:
         Returns:
             str: The generated 64 characters long subscription id (eg. lnbits0abc...)
         """
-        subid = "lnbits" + str(self.subscriptions_count)
+        subid = str(self.subscriptions_count)
         self.subscriptions_count += 1
         max_length = 64
         chars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
