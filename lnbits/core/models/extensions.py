@@ -144,6 +144,7 @@ class UserExtension(BaseModel):
 class Extension(BaseModel):
     code: str
     is_valid: bool
+    is_wasm: bool = False
     name: str | None = None
     short_description: str | None = None
     tile: str | None = None
@@ -167,6 +168,7 @@ class Extension(BaseModel):
         return Extension(
             code=ext_info.id,
             is_valid=True,
+            is_wasm=ext_info.is_wasm,
             name=ext_info.name,
             short_description=ext_info.short_description,
             tile=ext_info.icon,
@@ -399,6 +401,18 @@ class InstallableExtension(BaseModel):
         if not self.meta or not self.meta.pay_to_enable:
             return False
         return self.meta.pay_to_enable.required is True
+
+    @property
+    def is_wasm(self) -> bool:
+        config_path = Path(self.ext_dir, "config.json")
+        if not config_path.is_file():
+            return False
+        try:
+            with open(config_path, encoding="utf-8") as json_file:
+                config_json = json.load(json_file)
+        except Exception:
+            return False
+        return config_json.get("extension_type") == "wasm"
 
     async def download_archive(self):
         logger.info(f"Downloading extension {self.name} ({self.installed_version}).")
