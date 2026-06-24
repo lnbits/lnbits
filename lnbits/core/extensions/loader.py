@@ -401,7 +401,7 @@ def _wasm_extension_wrapper_response(
     user_json: str | None,
 ) -> Any:
     public = auth == "public"
-    return template_renderer().TemplateResponse(
+    response = template_renderer().TemplateResponse(
         request,
         "wasm_extension.html",
         {
@@ -418,6 +418,9 @@ def _wasm_extension_wrapper_response(
             "user": user_json,
         },
     )
+    response.headers["Content-Security-Policy"] = "frame-ancestors 'self'"
+    response.headers["X-Frame-Options"] = "SAMEORIGIN"
+    return response
 
 
 def _wasm_extension_frame_url(extension: WasmExtension, frame_path: str) -> str:
