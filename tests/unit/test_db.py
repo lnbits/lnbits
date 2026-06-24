@@ -1,4 +1,4 @@
-from datetime import date, timezone
+from datetime import date, datetime, timezone
 
 import pytest
 
@@ -9,9 +9,41 @@ from lnbits.core.crud import (
     get_wallet_for_key,
 )
 from lnbits.core.crud.payments import get_payment
-from lnbits.core.models import CreateInvoice
+from lnbits.core.models import CreateInvoice, PaymentFilters
 from lnbits.core.services.payments import create_wallet_invoice
-from lnbits.db import POSTGRES
+from lnbits.db import POSTGRES, SQLITE, Filter, Filters
+
+
+@pytest.mark.parametrize(
+    ("db_type", "lower_statement", "upper_statement"),
+    [
+        (
+            POSTGRES,
+            "(time >= to_timestamp(:time__0_0))",
+            "(time <= to_timestamp(:time__1_0))",
+        ),
+        (SQLITE, "(time >= :time__0_0)", "(time <= :time__1_0)"),
+    ],
+)
+def test_datetime_filter_uses_database_timestamp_placeholder(
+    monkeypatch, db_type, lower_statement, upper_statement
+):
+    monkeypatch.setattr("lnbits.db.DB_TYPE", db_type)
+    lower_bound = Filter.parse_query(
+        "time[ge]", ["2026-06-16T00:00:00"], PaymentFilters, 0
+    )
+    upper_bound = Filter.parse_query(
+        "time[le]", ["2026-06-23T23:59:59"], PaymentFilters, 1
+    )
+    filters = Filters(filters=[lower_bound, upper_bound], model=PaymentFilters)
+    values = filters.values()
+
+    assert isinstance(values["time__0_0"], datetime)
+    assert values["time__0_0"] == datetime(2026, 6, 16)
+    assert values["time__1_0"] == datetime(2026, 6, 23, 23, 59, 59)
+    assert filters.where() == f"WHERE {lower_statement} AND {upper_statement}"
+    assert lower_bound.statement == lower_statement
+    assert upper_bound.statement == upper_statement
 
 
 @pytest.mark.anyio
