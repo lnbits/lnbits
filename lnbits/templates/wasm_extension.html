@@ -31,10 +31,14 @@
   <script>
     ;(() => {
       const bridge = {{ bridge | tojson | safe }}
-      const frame = document.getElementById('lnbits-wasm-extension-frame')
 
-      function sendResponse(id, payload) {
-        frame.contentWindow?.postMessage(
+      function extensionFrameWindow() {
+        return document.getElementById('lnbits-wasm-extension-frame')
+          ?.contentWindow
+      }
+
+      function sendResponse(targetWindow, id, payload) {
+        targetWindow?.postMessage(
           {
             type: 'lnbits-extension:response',
             id,
@@ -112,13 +116,13 @@
       }
 
       window.addEventListener('message', async event => {
-        if (event.source !== frame.contentWindow) return
+        if (event.source !== extensionFrameWindow()) return
         const message = event.data
         if (!message || message.type !== 'lnbits-extension:request') return
 
         try {
           if (message.action === 'context') {
-            sendResponse(message.id, {
+            sendResponse(event.source, message.id, {
               ok: true,
               data: {
                 extensionId: bridge.extensionId,
@@ -131,7 +135,7 @@
           }
 
           if (message.action === 'api') {
-            sendResponse(message.id, {
+            sendResponse(event.source, message.id, {
               ok: true,
               data: await callApi(message)
             })
@@ -140,13 +144,16 @@
 
           if (message.action === 'ui.notify') {
             notify(message)
-            sendResponse(message.id, {ok: true, data: {ok: true}})
+            sendResponse(event.source, message.id, {
+              ok: true,
+              data: {ok: true}
+            })
             return
           }
 
           throw new Error('Unknown extension bridge action.')
         } catch (error) {
-          sendResponse(message.id, {
+          sendResponse(event.source, message.id, {
             ok: false,
             error: error instanceof Error ? error.message : String(error)
           })
