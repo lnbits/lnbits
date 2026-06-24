@@ -35,6 +35,10 @@ async def invoke_wasm_extension_export(
     )
 
 
+def warm_wasm_extension(extension: WasmExtension) -> None:
+    _wasm_component(extension)
+
+
 def _invoke_wasm_extension_export_sync(
     extension: WasmExtension,
     export_name: str,
@@ -57,7 +61,7 @@ def _invoke_wasm_extension_export_sync(
     linker.add_wasip2()
     _add_extension_host_imports(linker, ExtensionAPIHost(api))
 
-    wasm_component = component.Component.from_file(engine, extension.module_path)
+    wasm_component = _wasm_component(extension)
     instance = linker.instantiate(store, wasm_component)
     function = instance.get_func(store, export_name)
     if not function:
@@ -81,6 +85,26 @@ def _wasm_engine() -> Any:
     config = Config()
     config.wasm_component_model = True
     return Engine(config)
+
+
+def _wasm_component(extension: WasmExtension) -> Any:
+    stat = extension.module_path.stat()
+    return _cached_wasm_component(
+        str(extension.module_path),
+        stat.st_mtime_ns,
+        stat.st_size,
+    )
+
+
+@lru_cache(maxsize=32)
+def _cached_wasm_component(
+    module_path: str,
+    mtime_ns: int,
+    size: int,
+) -> Any:
+    from wasmtime import component
+
+    return component.Component.from_file(_wasm_engine(), module_path)
 
 
 def _add_extension_host_imports(linker: Any, api_host: ExtensionAPIHost) -> None:
