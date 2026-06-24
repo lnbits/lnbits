@@ -10,7 +10,10 @@
 </style>
 {% endblock %} {% block page_container %}
 <q-page-container>
-  <q-page class="q-pa-none">
+  <q-page
+    v-if="$route.path.startsWith('{{ normalize_path(request.path) }}')"
+    class="q-pa-none"
+  >
     <iframe
       id="lnbits-wasm-extension-frame"
       class="wasm-extension-frame"
@@ -20,6 +23,13 @@
       allow="clipboard-write"
       referrerpolicy="no-referrer"
     ></iframe>
+  </q-page>
+  <q-page v-else class="q-px-md q-py-lg" :class="{'q-px-lg': $q.screen.gt.xs}">
+    <lnbits-wallet-new v-if="g.user && !g.isPublicPage"></lnbits-wallet-new>
+    <lnbits-header-wallets
+      v-if="g.user && !g.isPublicPage"
+    ></lnbits-header-wallets>
+    <router-view :key="$route.path"></router-view>
   </q-page>
 </q-page-container>
 {% endblock %} {% block scripts %}
@@ -38,9 +48,21 @@
 
     function loadExtensionFrame() {
       const frame = extensionFrame()
-      if (!frame || frame.dataset.loaded === 'true') return
+      if (!frame) {
+        bridgePort?.close()
+        bridgePort = null
+        return
+      }
+      if (frame.dataset.loaded === 'true') return
       frame.dataset.loaded = 'true'
       frame.src = frame.dataset.frameUrl
+    }
+
+    function startExtensionFrameLoader() {
+      loadExtensionFrame()
+      window.router?.afterEach(() => {
+        window.setTimeout(loadExtensionFrame)
+      })
     }
 
     function sendResponse(reply, id, payload) {
@@ -182,7 +204,7 @@
         id: message.id
       })
     })
-    window.addEventListener('load', loadExtensionFrame)
+    window.addEventListener('load', startExtensionFrameLoader)
   })()
 </script>
 {% endblock %}
