@@ -332,9 +332,10 @@ def _add_wasm_extension_frame_route(
         response.headers["Cache-Control"] = "no-store"
         response.headers["Cross-Origin-Opener-Policy"] = "same-origin"
         response.headers["Cross-Origin-Resource-Policy"] = "same-origin"
+        # for access will use the bridge API, but we don't want to allow any other access
         response.headers["Permissions-Policy"] = (
             "camera=(), microphone=(), geolocation=(), payment=(), "
-            "clipboard-read=(), clipboard-write=(), usb=()"
+            "clipboard-read=(), usb=()"
         )
         response.headers["Referrer-Policy"] = "no-referrer"
         response.headers["X-Content-Type-Options"] = "nosniff"

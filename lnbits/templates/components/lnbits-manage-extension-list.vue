@@ -37,10 +37,7 @@
           ><span v-text="extension.name"></span>
         </q-item-label>
       </q-item-section>
-      <q-item-section
-        side
-        v-show="extensionActive(extension)"
-      >
+      <q-item-section side v-show="extensionActive(extension)">
         <q-icon name="chevron_right" color="grey-5" size="md"></q-icon>
       </q-item-section>
     </q-item>

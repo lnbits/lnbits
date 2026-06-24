@@ -1,164 +1,158 @@
-{% extends "base.html" %}
+{% extends "base.html" %} {% block styles %}
+<style>
+  .wasm-extension-frame {
+    border: 0;
+    display: block;
+    height: calc(100vh - 56px);
+    min-height: calc(100vh - 56px);
+    width: 100%;
+  }
+</style>
+{% endblock %} {% block page_container %}
+<q-page-container>
+  <q-page class="q-pa-none">
+    <iframe
+      id="lnbits-wasm-extension-frame"
+      class="wasm-extension-frame"
+      src="{{ frame_url }}"
+      title="{{ extension.name }}"
+      sandbox="allow-scripts allow-forms"
+      referrerpolicy="no-referrer"
+    ></iframe>
+  </q-page>
+</q-page-container>
+{% endblock %} {% block scripts %}
+<script>
+  ;(() => {
+    const bridge = {{ bridge | tojson | safe }}
 
-{% block styles %}
-  <style>
-    .wasm-extension-frame {
-      border: 0;
-      display: block;
-      height: calc(100vh - 56px);
-      min-height: calc(100vh - 56px);
-      width: 100%;
+    function extensionFrameWindow() {
+      return document.getElementById('lnbits-wasm-extension-frame')
+        ?.contentWindow
     }
-  </style>
-{% endblock %}
 
-{% block page_container %}
-  <q-page-container>
-    <q-page class="q-pa-none">
-      <iframe
-        id="lnbits-wasm-extension-frame"
-        class="wasm-extension-frame"
-        src="{{ frame_url }}"
-        title="{{ extension.name }}"
-        sandbox="allow-scripts allow-forms"
-        referrerpolicy="no-referrer"
-      ></iframe>
-    </q-page>
-  </q-page-container>
-{% endblock %}
+    function sendResponse(targetWindow, id, payload) {
+      targetWindow?.postMessage(
+        {
+          type: 'lnbits-extension:response',
+          id,
+          ...payload
+        },
+        '*'
+      )
+    }
 
-{% block scripts %}
-  <script>
-    ;(() => {
-      const bridge = {{ bridge | tojson | safe }}
+    function allowedApiRoute(method, path) {
+      let url
+      try {
+        url = new URL(path, window.location.origin)
+      } catch (_error) {
+        return false
+      }
+      if (url.origin !== window.location.origin) return false
 
-      function extensionFrameWindow() {
-        return document.getElementById('lnbits-wasm-extension-frame')
-          ?.contentWindow
+      method = String(method || 'GET').toUpperCase()
+      return bridge.apiRoutes.some(route => {
+        return (
+          route.method === method &&
+          new RegExp(route.pattern).test(url.pathname)
+        )
+      })
+    }
+
+    async function callApi(message) {
+      const method = String(message.method || 'GET').toUpperCase()
+      const path = String(message.path || '')
+      if (!allowedApiRoute(method, path)) {
+        throw new Error('Extension API route is not allowed.')
       }
 
-      function sendResponse(targetWindow, id, payload) {
-        targetWindow?.postMessage(
-          {
-            type: 'lnbits-extension:response',
-            id,
-            ...payload
-          },
-          '*'
+      const options = {
+        method,
+        headers: {},
+        credentials: 'same-origin'
+      }
+      if (message.body !== undefined && message.body !== null) {
+        options.headers['content-type'] = 'application/json'
+        options.body = JSON.stringify(message.body)
+      }
+
+      const response = await fetch(path, options)
+      const text = await response.text()
+      let data = text
+      if (text) {
+        try {
+          data = JSON.parse(text)
+        } catch (_error) {
+          data = text
+        }
+      }
+      if (!response.ok) {
+        throw new Error(
+          typeof data === 'object' && data.detail ? data.detail : text
         )
       }
+      return data
+    }
 
-      function allowedApiRoute(method, path) {
-        let url
-        try {
-          url = new URL(path, window.location.origin)
-        } catch (_error) {
-          return false
-        }
-        if (url.origin !== window.location.origin) return false
-
-        method = String(method || 'GET').toUpperCase()
-        return bridge.apiRoutes.some(route => {
-          return (
-            route.method === method &&
-            new RegExp(route.pattern).test(url.pathname)
-          )
+    function notify(message) {
+      const level = ['positive', 'negative', 'warning', 'info'].includes(
+        message.level
+      )
+        ? message.level
+        : 'info'
+      if (window.Quasar?.Notify) {
+        window.Quasar.Notify.create({
+          color: level,
+          message: String(message.message || '')
         })
       }
+    }
 
-      async function callApi(message) {
-        const method = String(message.method || 'GET').toUpperCase()
-        const path = String(message.path || '')
-        if (!allowedApiRoute(method, path)) {
-          throw new Error('Extension API route is not allowed.')
-        }
+    window.addEventListener('message', async event => {
+      if (event.source !== extensionFrameWindow()) return
+      const message = event.data
+      if (!message || message.type !== 'lnbits-extension:request') return
 
-        const options = {
-          method,
-          headers: {},
-          credentials: 'same-origin'
-        }
-        if (message.body !== undefined && message.body !== null) {
-          options.headers['content-type'] = 'application/json'
-          options.body = JSON.stringify(message.body)
-        }
-
-        const response = await fetch(path, options)
-        const text = await response.text()
-        let data = text
-        if (text) {
-          try {
-            data = JSON.parse(text)
-          } catch (_error) {
-            data = text
-          }
-        }
-        if (!response.ok) {
-          throw new Error(
-            typeof data === 'object' && data.detail ? data.detail : text
-          )
-        }
-        return data
-      }
-
-      function notify(message) {
-        const level = ['positive', 'negative', 'warning', 'info'].includes(
-          message.level
-        )
-          ? message.level
-          : 'info'
-        if (window.Quasar?.Notify) {
-          window.Quasar.Notify.create({
-            color: level,
-            message: String(message.message || '')
-          })
-        }
-      }
-
-      window.addEventListener('message', async event => {
-        if (event.source !== extensionFrameWindow()) return
-        const message = event.data
-        if (!message || message.type !== 'lnbits-extension:request') return
-
-        try {
-          if (message.action === 'context') {
-            sendResponse(event.source, message.id, {
-              ok: true,
-              data: {
-                extensionId: bridge.extensionId,
-                public: bridge.public,
-                routeParams: bridge.routeParams,
-                query: bridge.query
-              }
-            })
-            return
-          }
-
-          if (message.action === 'api') {
-            sendResponse(event.source, message.id, {
-              ok: true,
-              data: await callApi(message)
-            })
-            return
-          }
-
-          if (message.action === 'ui.notify') {
-            notify(message)
-            sendResponse(event.source, message.id, {
-              ok: true,
-              data: {ok: true}
-            })
-            return
-          }
-
-          throw new Error('Unknown extension bridge action.')
-        } catch (error) {
+      try {
+        if (message.action === 'context') {
           sendResponse(event.source, message.id, {
-            ok: false,
-            error: error instanceof Error ? error.message : String(error)
+            ok: true,
+            data: {
+              extensionId: bridge.extensionId,
+              public: bridge.public,
+              routeParams: bridge.routeParams,
+              query: bridge.query
+            }
           })
+          return
         }
-      })
-    })()
-  </script>
+
+        if (message.action === 'api') {
+          sendResponse(event.source, message.id, {
+            ok: true,
+            data: await callApi(message)
+          })
+          return
+        }
+
+        if (message.action === 'ui.notify') {
+          notify(message)
+          sendResponse(event.source, message.id, {
+            ok: true,
+            data: {ok: true}
+          })
+          return
+        }
+
+        throw new Error('Unknown extension bridge action.')
+      } catch (error) {
+        sendResponse(event.source, message.id, {
+          ok: false,
+          error: error instanceof Error ? error.message : String(error)
+        })
+      }
+    })
+  })()
+</script>
 {% endblock %}
