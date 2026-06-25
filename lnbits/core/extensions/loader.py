@@ -4,15 +4,21 @@ import json
 import re
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any
+from typing import Annotated, Any
 from uuid import uuid4
 
 from fastapi import Depends, FastAPI, HTTPException, Request
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 from loguru import logger
+from pydantic import UUID4
 
-from lnbits.decorators import check_user_exists, check_user_extension_access
+from lnbits.decorators import (
+    check_access_token,
+    check_user_exists,
+    check_user_extension_access,
+    optional_user_id,
+)
 from lnbits.helpers import template_renderer
 from lnbits.settings import settings
 from lnbits.utils.cache import cache
@@ -342,9 +348,13 @@ def _add_wasm_extension_wrapper_route(
             auth,
             path_params,
             user.json(),
+            user.id,
         )
 
-    async def serve_public_wasm_extension_page(request: Request) -> Any:
+    async def serve_public_wasm_extension_page(
+        request: Request,
+        user_id: str | None = Depends(_optional_wasm_user_id),
+    ) -> Any:
         return _wasm_extension_wrapper_response(
             request,
             extension,
@@ -352,6 +362,7 @@ def _add_wasm_extension_wrapper_route(
             auth,
             path_params,
             None,
+            user_id,
         )
 
     app.add_api_route(
@@ -376,8 +387,11 @@ def _add_wasm_extension_frame_route(
     if _has_route(app, frame_path, "GET"):
         return
 
-    async def serve_wasm_extension_frame(request: Request) -> FileResponse:
-        _consume_wasm_extension_frame_token(request, extension, frame_path)
+    async def serve_wasm_extension_frame(
+        request: Request,
+        user_id: str | None = Depends(_optional_wasm_user_id),
+    ) -> FileResponse:
+        _consume_wasm_extension_frame_token(request, extension, frame_path, user_id)
         response = FileResponse(entrypoint)
         response.headers["Content-Security-Policy"] = _wasm_extension_frame_csp(
             request, extension
@@ -410,6 +424,7 @@ def _wasm_extension_wrapper_response(
     auth: str,
     path_params: dict[str, str],
     user_json: str | None,
+    user_id: str | None,
 ) -> Any:
     public = auth == "public"
     response = template_renderer().TemplateResponse(
@@ -417,7 +432,7 @@ def _wasm_extension_wrapper_response(
         "wasm_extension.html",
         {
             "extension": extension,
-            "frame_url": _wasm_extension_frame_url(extension, frame_path),
+            "frame_url": _wasm_extension_frame_url(extension, frame_path, user_id),
             "bridge": {
                 "extensionId": extension.id,
                 "public": public,
@@ -459,14 +474,17 @@ def _wasm_extension_frame_csp(request: Request, extension: WasmExtension) -> str
     )
 
 
-def _wasm_extension_frame_url(extension: WasmExtension, frame_path: str) -> str:
-    token = _create_wasm_extension_frame_token(extension, frame_path)
+def _wasm_extension_frame_url(
+    extension: WasmExtension, frame_path: str, user_id: str | None
+) -> str:
+    token = _create_wasm_extension_frame_token(extension, frame_path, user_id)
     return f"{frame_path}?frame_token={token}"
 
 
 def _create_wasm_extension_frame_token(
     extension: WasmExtension,
     frame_path: str,
+    user_id: str | None,
 ) -> str:
     token = uuid4().hex
     cache.set(
@@ -474,6 +492,7 @@ def _create_wasm_extension_frame_token(
         {
             "extension_id": extension.id,
             "frame_path": frame_path,
+            "user_id": user_id,
         },
         expiry=WASM_FRAME_TOKEN_EXPIRY_SECONDS,
     )
@@ -484,12 +503,14 @@ def _consume_wasm_extension_frame_token(
     request: Request,
     extension: WasmExtension,
     frame_path: str,
+    user_id: str | None,
 ) -> None:
     token = request.query_params.get("frame_token")
     if not token:
         _raise_wasm_extension_frame_not_found(extension, frame_path, "missing")
 
-    token_data = cache.pop(_wasm_extension_frame_token_cache_key(token))
+    cache_key = _wasm_extension_frame_token_cache_key(token)
+    token_data = cache.get(cache_key)
     if (
         not isinstance(token_data, dict)
         or token_data.get("extension_id") != extension.id
@@ -498,6 +519,12 @@ def _consume_wasm_extension_frame_token(
         _raise_wasm_extension_frame_not_found(
             extension, frame_path, "unknown or expired"
         )
+
+    token_user_id = token_data.get("user_id")
+    if token_user_id and token_user_id != user_id:
+        _raise_wasm_extension_frame_not_found(extension, frame_path, "wrong user")
+
+    cache.pop(cache_key)
 
 
 def _wasm_extension_frame_token_cache_key(token: str) -> str:
@@ -552,6 +579,17 @@ def _require_wasm_user_extension(ext_id: str) -> Any:
         return user
 
     return require_wasm_user_extension
+
+
+async def _optional_wasm_user_id(
+    request: Request,
+    access_token: Annotated[str | None, Depends(check_access_token)],
+    usr: UUID4 | None = None,
+) -> str | None:
+    try:
+        return await optional_user_id(request, access_token, usr)
+    except HTTPException:
+        return None
 
 
 def _load_json(path: Path) -> dict[str, Any] | None:
