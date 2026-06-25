@@ -2,8 +2,6 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 
-
-
 from .api import ExtensionAPI
 from .models import (
     CreateInvoiceRequest,
@@ -26,6 +24,9 @@ from .models import (
 class InMemoryExtensionState:
     storage: dict[str, dict[str, str]] = field(default_factory=dict)
     payment_watchers: dict[str, dict[str, str]] = field(default_factory=dict)
+    user_wallets: dict[str, list[UserWalletSummary] | None] = field(
+        default_factory=dict
+    )
 
 
 class InMemoryExtensionAPI(ExtensionAPI):
@@ -36,17 +37,9 @@ class InMemoryExtensionAPI(ExtensionAPI):
         *,
         state: InMemoryExtensionState | None = None,
         user_id: str | None = None,
-        wallet_id: str | None = None,
-        user_wallets: list[UserWalletSummary] | None = None,
     ) -> None:
-        super().__init__(
-            extension_id,
-            permissions,
-            user_id=user_id,
-            wallet_id=wallet_id,
-        )
+        super().__init__(extension_id, permissions, user_id=user_id)
         self.state = state or InMemoryExtensionState()
-        self.user_wallets = list(user_wallets) if user_wallets is not None else None
 
     async def storage_get(self, request: KvGetRequest) -> KvGetResponse:
         self.require_permission("ext.storage.read_write")
@@ -66,12 +59,21 @@ class InMemoryExtensionAPI(ExtensionAPI):
         self, request: CreateInvoiceRequest
     ) -> CreateInvoiceResponse:
         self.require_permission("wallet.create_invoice")
-        if self.wallet_id and request.wallet_id != self.wallet_id:
-            raise PermissionError("Extension cannot create invoices for this wallet.")
 
+        from lnbits.core.crud.wallets import get_wallet
         from lnbits.core.models.payments import CreateInvoice
         from lnbits.core.services.payments import create_payment_request
-        # todo: security stuff here
+
+        if self.user_id:
+            wallet = await get_wallet(request.wallet_id)
+            if wallet is None or wallet.user != self.user_id:
+                raise PermissionError(
+                    "Creating an invoice for this wallet requires an authenticated user context."
+                )
+        else:
+            pass
+            # todo: security stuff here
+
         payment = await create_payment_request(
             request.wallet_id,
             CreateInvoice(
@@ -91,11 +93,24 @@ class InMemoryExtensionAPI(ExtensionAPI):
         self, _request: EmptyRequest
     ) -> ListUserWalletsResponse:
         self.require_permission("wallet.list")
-        if self.user_wallets is None:
+        if not self.user_id:
             raise PermissionError(
                 "Listing user wallets requires an authenticated user context."
             )
-        return ListUserWalletsResponse(wallets=self.user_wallets)
+
+        from lnbits.core.crud.wallets import get_wallets
+
+        user_wallets = await get_wallets(self.user_id)
+        if user_wallets is None:
+            raise PermissionError(
+                "Listing user wallets requires an authenticated user context."
+            )
+        return ListUserWalletsResponse(
+            wallets=[
+                UserWalletSummary(id=w.id, name=w.name, currency=w.currency)
+                for w in user_wallets
+            ]
+        )
 
     async def payments_watch(
         self, request: WatchPaymentRequest
