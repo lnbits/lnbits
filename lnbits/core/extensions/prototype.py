@@ -1,9 +1,8 @@
 from __future__ import annotations
 
-import hashlib
-import secrets
-import time
 from dataclasses import dataclass, field
+
+
 
 from .api import ExtensionAPI
 from .models import (
@@ -70,16 +69,22 @@ class InMemoryExtensionAPI(ExtensionAPI):
         if self.wallet_id and request.wallet_id != self.wallet_id:
             raise PermissionError("Extension cannot create invoices for this wallet.")
 
-        entropy = secrets.token_urlsafe(16)
-        invoice_seed = (
-            f"{self.extension_id}:{request.wallet_id}:{request.amount_sat}:"
-            f"{request.memo}:{time.time_ns()}:{entropy}"
+        from lnbits.core.models.payments import CreateInvoice
+        from lnbits.core.services.payments import create_payment_request
+        # todo: security stuff here
+        payment = await create_payment_request(
+            request.wallet_id,
+            CreateInvoice(
+                amount=request.amount_sat,
+                unit=request.currency or "sat",
+                memo=request.memo,
+                extra=request.extra,
+            ),
         )
-        payment_hash = hashlib.sha256(invoice_seed.encode()).hexdigest()
         return CreateInvoiceResponse(
-            payment_hash=payment_hash,
-            payment_request=f"lnbits-prototype-invoice:{payment_hash}",
-            checking_id=f"{self.extension_id}:{payment_hash}",
+            payment_hash=payment.payment_hash,
+            payment_request=payment.payment_request or payment.bolt11,
+            checking_id=payment.checking_id,
         )
 
     async def wallet_list_user_wallets(

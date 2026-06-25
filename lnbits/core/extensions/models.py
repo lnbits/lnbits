@@ -35,6 +35,8 @@ class KvListResponse(BaseModel):
 class CreateInvoiceRequest(BaseModel):
     wallet_id: str = Field(..., min_length=1, max_length=128)
     amount_sat: int = Field(..., gt=0)
+    # todo: bridge for extensions to select currencies
+    currency: str | None = Field(..., min_length=1, max_length=8)
     memo: str = Field(..., max_length=512)
     tag: str = Field(..., min_length=1, max_length=64)
     extra: dict[str, str] = Field(default_factory=dict)
