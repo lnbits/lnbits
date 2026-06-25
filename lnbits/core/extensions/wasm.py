@@ -26,13 +26,13 @@ async def invoke_wasm_extension_export(
 ) -> dict[str, Any]:
     extension = _get_registered_extension(app, ext_id)
     state = _get_extension_state(app)
+    state.user_wallets[extension.id] = _user_wallet_summaries(user)
     permissions = _extension_permissions(extension)
     api = InMemoryExtensionAPI(
         extension.id,
         permissions,
         state=state,
         user_id=_user_id(user),
-        user_wallets=_user_wallet_summaries(user),
     )
 
     return await asyncio.to_thread(
