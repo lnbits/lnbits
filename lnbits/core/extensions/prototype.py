@@ -15,6 +15,8 @@ from .models import (
     StorageGetResponse,
     StorageListRequest,
     StorageListResponse,
+    StoragePaginatedRequest,
+    StoragePaginatedResponse,
     StorageSetRequest,
     StorageSetResponse,
     UserWalletSummary,
@@ -23,6 +25,7 @@ from .models import (
 )
 from .storage import (
     storage_delete_row,
+    storage_get_paginated_rows,
     storage_get_row,
     storage_list_rows,
     storage_set_row,
@@ -69,6 +72,26 @@ class InMemoryExtensionAPI(ExtensionAPI):
             offset=request.offset,
         )
         return StorageListResponse(rows_json=json.dumps(rows))
+
+    async def storage_get_paginated(
+        self, request: StoragePaginatedRequest
+    ) -> StoragePaginatedResponse:
+        self.require_permission("ext.storage.read_write")
+        page = await storage_get_paginated_rows(
+            self.extension_id,
+            request.table,
+            request.filters,
+            search=request.search,
+            search_fields=request.search_fields,
+            sort_by=request.sort_by,
+            descending=request.descending,
+            limit=request.limit,
+            offset=request.offset,
+        )
+        return StoragePaginatedResponse(
+            rows_json=json.dumps(page["data"]),
+            total=page["total"],
+        )
 
     async def storage_delete(
         self, request: StorageDeleteRequest

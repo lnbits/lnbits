@@ -27,6 +27,8 @@ from .models import (
     StorageGetResponse,
     StorageListRequest,
     StorageListResponse,
+    StoragePaginatedRequest,
+    StoragePaginatedResponse,
     StorageSetRequest,
     StorageSetResponse,
     WatchPaymentRequest,
@@ -161,6 +163,20 @@ class ExtensionAPI:
     )
     async def storage_list(self, request: StorageListRequest) -> StorageListResponse:
         self._raise_unwired_runtime("storage_list")
+
+    @extension_api_method(
+        method_id="storage.get_paginated",
+        namespace="storage",
+        name="Get paginated storage rows",
+        host_name="storage_get_paginated",
+        sdk_name="getPaginated",
+        description="Get filtered, searched, sorted, paginated storage rows.",
+        required_permission="ext.storage.read_write",
+    )
+    async def storage_get_paginated(
+        self, request: StoragePaginatedRequest
+    ) -> StoragePaginatedResponse:
+        self._raise_unwired_runtime("storage_get_paginated")
 
     @extension_api_method(
         method_id="storage.delete",

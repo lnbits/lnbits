@@ -51,6 +51,33 @@ class StorageListResponse(BaseModel):
     rows_json: str = "[]"
 
 
+class StoragePaginatedRequest(BaseModel):
+    table: str = Field(..., min_length=1, max_length=128)
+    filters: dict[str, Any] = Field(default_factory=dict)
+    search: str | None = Field(None, max_length=256)
+    search_fields: list[str] = Field(default_factory=list)
+    sort_by: str | None = Field(None, min_length=1, max_length=128)
+    descending: bool = False
+    limit: int = Field(25, ge=1, le=1000)
+    offset: int = Field(0, ge=0)
+
+    @root_validator(pre=True)
+    def parse_json_fields(cls, values: dict[str, Any]) -> dict[str, Any]:
+        filters_json = values.get("filters_json")
+        if filters_json is not None and "filters" not in values:
+            values["filters"] = json.loads(filters_json)
+
+        search_fields_json = values.get("search_fields_json")
+        if search_fields_json is not None and "search_fields" not in values:
+            values["search_fields"] = json.loads(search_fields_json)
+        return values
+
+
+class StoragePaginatedResponse(BaseModel):
+    rows_json: str = "[]"
+    total: int = 0
+
+
 class StorageDeleteRequest(BaseModel):
     table: str = Field(..., min_length=1, max_length=128)
     id: str = Field(..., min_length=1, max_length=512)
