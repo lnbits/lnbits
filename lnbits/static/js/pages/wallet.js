@@ -49,6 +49,13 @@ window.PageWallet = {
       hasNfc: false,
       nfcReaderAbortController: null,
       formattedFiatAmount: 0,
+      totalBreakdown: {
+        show: false,
+        loading: false,
+        rows: [],
+        selectedTypes: ['bitcoin', 'fiat'],
+        selectedTags: []
+      },
       paymentFilter: {
         'status[ne]': 'failed'
       },
@@ -85,9 +92,97 @@ window.PageWallet = {
     },
     formattedSatAmount() {
       return LNbits.utils.formatMsat(this.receive.amountMsat) + ' sat'
+    },
+    totalBreakdownTags() {
+      const tags = this.totalBreakdown.rows.map(row => row.tag || null)
+      return [...new Set(tags)].sort((a, b) =>
+        this.totalBreakdownTagLabel(a).localeCompare(
+          this.totalBreakdownTagLabel(b)
+        )
+      )
+    },
+    hasFiatTotalBreakdown() {
+      return this.totalBreakdown.rows.some(row => row.is_fiat)
+    },
+    selectedTotalBreakdownRows() {
+      return this.totalBreakdown.rows.filter(row => {
+        const type = row.is_fiat ? 'fiat' : 'bitcoin'
+        return (
+          this.totalBreakdown.selectedTypes.includes(type) &&
+          this.totalBreakdown.selectedTags.includes(
+            this.totalBreakdownTagKey(row.tag)
+          )
+        )
+      })
+    },
+    selectedTotalBreakdownMsat() {
+      return this.selectedTotalBreakdownRows.reduce(
+        (total, row) => total + row.total,
+        0
+      )
+    },
+    selectedTotalBreakdownCount() {
+      return this.selectedTotalBreakdownRows.reduce(
+        (total, row) => total + row.payments_count,
+        0
+      )
+    },
+    formattedTotalBreakdown() {
+      return this.utils.formatBalance(
+        this.selectedTotalBreakdownMsat / 1000,
+        this.g.denomination
+      )
+    },
+    formattedTotalBreakdownFiat() {
+      if (!this.g.fiatTracking) return null
+      const sats = this.selectedTotalBreakdownMsat / 1000
+      const amount = (sats / 100000000) * this.g.exchangeRate
+      return LNbits.utils.formatCurrency(amount, this.g.wallet.currency)
     }
   },
   methods: {
+    showWalletTotalBreakdown() {
+      this.totalBreakdown.show = true
+      if (!this.totalBreakdown.rows.length) {
+        this.fetchTotalBreakdown()
+      }
+    },
+    fetchTotalBreakdown() {
+      this.totalBreakdown.loading = true
+      LNbits.api
+        .getPaymentTotalBreakdown(this.g.wallet)
+        .then(response => {
+          this.totalBreakdown.rows = response.data
+          this.totalBreakdown.selectedTypes = ['bitcoin', 'fiat']
+          this.totalBreakdown.selectedTags = this.totalBreakdownTags.map(
+            this.totalBreakdownTagKey
+          )
+          this.totalBreakdown.loading = false
+        })
+        .catch(err => {
+          this.totalBreakdown.loading = false
+          LNbits.utils.notifyApiError(err)
+        })
+    },
+    totalBreakdownTagLabel(tag) {
+      return tag || 'No tag'
+    },
+    totalBreakdownTagKey(tag) {
+      return tag || '__untagged__'
+    },
+    totalBreakdownTagCount(tag) {
+      return this.totalBreakdown.rows
+        .filter(row => (row.tag || null) === tag)
+        .reduce((total, row) => total + row.payments_count, 0)
+    },
+    totalBreakdownTagMsat(tag) {
+      return this.totalBreakdown.rows
+        .filter(row => (row.tag || null) === tag)
+        .reduce((total, row) => total + row.total, 0)
+    },
+    formatTotalBreakdownMsat(msat) {
+      return this.utils.formatBalance(msat / 1000, this.g.denomination)
+    },
     handleSendLnurl(lnurl) {
       this.parse.data.request = lnurl
       this.parse.show = true

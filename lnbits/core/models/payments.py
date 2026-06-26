@@ -221,6 +221,13 @@ class PaymentWalletStats(BaseModel):
     balance: float = 0
 
 
+class PaymentTotalBreakdown(BaseModel):
+    tag: str | None = None
+    is_fiat: bool = False
+    payments_count: int = 0
+    total: int = 0
+
+
 class PaymentDailyStats(BaseModel):
     date: datetime
     balance: float = 0

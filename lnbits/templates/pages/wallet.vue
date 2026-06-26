@@ -28,7 +28,13 @@
                 <div class="col-7">
                   <div class="row">
                     <div class="col-auto">
-                      <div class="text-h3 q-my-none full-width">
+                      <div
+                        class="text-h3 q-my-none full-width cursor-pointer"
+                        role="button"
+                        tabindex="0"
+                        @click="showWalletTotalBreakdown"
+                        @keyup.enter="showWalletTotalBreakdown"
+                      >
                         <strong
                           v-text="
                             utils.formatBalance(g.wallet.sat, g.denomination)
@@ -40,6 +46,7 @@
                             maxWidth: '100%'
                           }"
                         ></strong>
+                        <q-tooltip>Total breakdown</q-tooltip>
                       </div>
                     </div>
                     <div class="col-auto">
@@ -77,9 +84,14 @@
                     <div class="col-auto">
                       <div
                         v-if="g.fiatTracking"
-                        class="text-h3 q-my-none text-no-wrap"
+                        class="text-h3 q-my-none text-no-wrap cursor-pointer"
+                        role="button"
+                        tabindex="0"
+                        @click="showWalletTotalBreakdown"
+                        @keyup.enter="showWalletTotalBreakdown"
                       >
                         <strong v-text="formattedFiatAmount"></strong>
+                        <q-tooltip>Total breakdown</q-tooltip>
                       </div>
                     </div>
                     <div class="col-auto">
@@ -227,6 +239,111 @@
       ></lnbits-wallet-charts>
     </div>
   </div>
+
+  <q-dialog v-model="totalBreakdown.show" position="top">
+    <q-card class="q-pa-lg q-pt-xl lnbits__dialog-card">
+      <q-card-section>
+        <div class="row items-start q-mb-md">
+          <div class="col">
+            <div
+              class="text-h4 text-bold"
+              v-text="formattedTotalBreakdown"
+            ></div>
+            <div
+              v-if="formattedTotalBreakdownFiat"
+              class="text-h6 text-italic"
+              style="opacity: 0.75"
+              v-text="formattedTotalBreakdownFiat"
+            ></div>
+            <div
+              class="text-caption text-grey-5"
+              v-text="selectedTotalBreakdownCount + ' payments'"
+            ></div>
+          </div>
+          <q-btn
+            flat
+            dense
+            round
+            color="grey"
+            icon="refresh"
+            :loading="totalBreakdown.loading"
+            @click="fetchTotalBreakdown"
+          >
+            <q-tooltip>Refresh</q-tooltip>
+          </q-btn>
+        </div>
+
+        <q-inner-loading :showing="totalBreakdown.loading"></q-inner-loading>
+
+        <div v-if="hasFiatTotalBreakdown" class="q-mb-md">
+          <q-checkbox
+            v-model="totalBreakdown.selectedTypes"
+            val="bitcoin"
+            label="Bitcoin"
+          ></q-checkbox>
+          <q-checkbox
+            v-model="totalBreakdown.selectedTypes"
+            val="fiat"
+            label="Fiat"
+          ></q-checkbox>
+        </div>
+
+        <q-separator v-if="hasFiatTotalBreakdown" class="q-mb-md"></q-separator>
+
+        <q-list dense>
+          <q-item
+            v-for="tag in totalBreakdownTags"
+            :key="totalBreakdownTagKey(tag)"
+            tag="label"
+            v-ripple
+          >
+            <q-item-section side>
+              <q-checkbox
+                v-model="totalBreakdown.selectedTags"
+                :val="totalBreakdownTagKey(tag)"
+              ></q-checkbox>
+            </q-item-section>
+            <q-item-section>
+              <q-item-label>
+                <q-badge
+                  v-if="tag"
+                  color="yellow"
+                  text-color="black"
+                  v-text="'#' + tag"
+                ></q-badge>
+                <span v-else v-text="totalBreakdownTagLabel(tag)"></span>
+              </q-item-label>
+              <q-item-label
+                caption
+                v-text="totalBreakdownTagCount(tag) + ' payments'"
+              ></q-item-label>
+            </q-item-section>
+            <q-item-section side>
+              <span
+                v-text="formatTotalBreakdownMsat(totalBreakdownTagMsat(tag))"
+              ></span>
+            </q-item-section>
+          </q-item>
+        </q-list>
+
+        <div v-if="!totalBreakdown.loading && !totalBreakdown.rows.length">
+          <q-banner class="bg-transparent text-grey-5">
+            No completed payments.
+          </q-banner>
+        </div>
+
+        <div class="row q-mt-md">
+          <q-btn
+            v-close-popup
+            flat
+            color="grey"
+            class="q-ml-auto"
+            :label="$t('close')"
+          ></q-btn>
+        </div>
+      </q-card-section>
+    </q-card>
+  </q-dialog>
 
   <q-dialog v-model="receive.show" position="top" @hide="onReceiveDialogHide">
     <q-card
