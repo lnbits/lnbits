@@ -86,6 +86,47 @@ async def storage_list_rows(
     return [_row_from_db(table_schema, row) for row in rows]
 
 
+async def storage_get_paginated_rows(
+    ext_id: str,
+    table: str,
+    filters: dict[str, Any],
+    *,
+    search: str | None,
+    search_fields: list[str],
+    sort_by: str | None,
+    descending: bool,
+    limit: int,
+    offset: int,
+) -> dict[str, Any]:
+    table_schema = _load_table_schema(ext_id, table)
+    where_sql, values = _where_sql(table_schema, filters, search, search_fields)
+    order_sql = _order_sql(table_schema, sort_by, descending)
+    count_values = dict(values)
+    values.update({"limit": min(limit, 1000), "offset": offset})
+
+    table_ref = _table_ref_for_schema(ext_id, table)
+    rows_query = f"""
+        SELECT * FROM {table_ref}
+        {where_sql}
+        {order_sql}
+        LIMIT :limit
+        OFFSET :offset
+    """  # noqa: S608
+    count_query = f"""
+        SELECT COUNT(*) AS count FROM {table_ref}
+        {where_sql}
+    """  # noqa: S608
+
+    async with Database(f"ext_{ext_id}").connect() as conn:
+        rows = await conn.fetchall(rows_query, values)
+        count_row = await conn.fetchone(count_query, count_values)
+
+    return {
+        "data": [_row_from_db(table_schema, row) for row in rows],
+        "total": int(count_row["count"]) if count_row else 0,
+    }
+
+
 async def storage_delete_row(
     ext_id: str,
     table: str,
@@ -317,6 +358,48 @@ def _filters_to_db(
         field_name: _value_to_db(fields[field_name], value)
         for field_name, value in filters.items()
     }
+
+
+def _where_sql(
+    table_schema: dict[str, Any],
+    filters: dict[str, Any],
+    search: str | None,
+    search_fields: list[str],
+) -> tuple[str, dict[str, Any]]:
+    clean_filters = _filters_to_db(table_schema, filters)
+    clauses = [f"{field} = :filter_{field}" for field in clean_filters]
+    values = {f"filter_{field}": value for field, value in clean_filters.items()}
+
+    clean_search = search.strip().lower() if search else ""
+    if clean_search:
+        fields = _fields_by_name(table_schema)
+        invalid_fields = sorted(set(search_fields) - set(fields))
+        if invalid_fields:
+            raise ValueError(
+                "WASM storage search has unknown fields: " + ", ".join(invalid_fields)
+            )
+        if search_fields:
+            search_clause = " OR ".join(
+                f"LOWER(CAST({field} AS TEXT)) LIKE :search" for field in search_fields
+            )
+            clauses.append(f"({search_clause})")
+            values["search"] = f"%{clean_search}%"
+
+    return ("WHERE " + " AND ".join(clauses), values) if clauses else ("", values)
+
+
+def _order_sql(
+    table_schema: dict[str, Any],
+    sort_by: str | None,
+    descending: bool,
+) -> str:
+    if not sort_by:
+        return ""
+    fields = _fields_by_name(table_schema)
+    if sort_by not in fields:
+        raise ValueError(f"WASM storage sort field is unknown: {sort_by}")
+    direction = "DESC" if descending else "ASC"
+    return f"ORDER BY {sort_by} {direction}"
 
 
 def _row_from_db(
