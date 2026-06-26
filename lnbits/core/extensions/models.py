@@ -1,35 +1,63 @@
-from typing import Literal
+import json
+from typing import Any, Literal
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, root_validator
 
 
 class EmptyRequest(BaseModel):
     pass
 
 
-class KvGetRequest(BaseModel):
-    key: str = Field(..., min_length=1, max_length=512)
+class StorageGetRequest(BaseModel):
+    table: str = Field(..., min_length=1, max_length=128)
+    id: str = Field(..., min_length=1, max_length=512)
 
 
-class KvGetResponse(BaseModel):
-    value: str | None = None
+class StorageGetResponse(BaseModel):
+    data_json: str | None = None
 
 
-class KvSetRequest(BaseModel):
-    key: str = Field(..., min_length=1, max_length=512)
-    value: str = Field(..., max_length=65536)
+class StorageSetRequest(BaseModel):
+    table: str = Field(..., min_length=1, max_length=128)
+    data: dict[str, Any] = Field(default_factory=dict)
+
+    @root_validator(pre=True)
+    def parse_data_json(cls, values: dict[str, Any]) -> dict[str, Any]:
+        data_json = values.get("data_json")
+        if data_json is not None and "data" not in values:
+            values["data"] = json.loads(data_json)
+        return values
 
 
-class KvSetResponse(BaseModel):
+class StorageSetResponse(BaseModel):
     ok: bool = True
 
 
-class KvListRequest(BaseModel):
-    prefix: str = Field(..., min_length=1, max_length=512)
+class StorageListRequest(BaseModel):
+    table: str = Field(..., min_length=1, max_length=128)
+    filters: dict[str, Any] = Field(default_factory=dict)
+    limit: int = Field(100, ge=1, le=1000)
+    offset: int = Field(0, ge=0)
+
+    @root_validator(pre=True)
+    def parse_filters_json(cls, values: dict[str, Any]) -> dict[str, Any]:
+        filters_json = values.get("filters_json")
+        if filters_json is not None and "filters" not in values:
+            values["filters"] = json.loads(filters_json)
+        return values
 
 
-class KvListResponse(BaseModel):
-    keys: list[str] = Field(default_factory=list)
+class StorageListResponse(BaseModel):
+    rows_json: str = "[]"
+
+
+class StorageDeleteRequest(BaseModel):
+    table: str = Field(..., min_length=1, max_length=128)
+    id: str = Field(..., min_length=1, max_length=512)
+
+
+class StorageDeleteResponse(BaseModel):
+    ok: bool = True
 
 
 class CreateInvoiceRequest(BaseModel):
