@@ -46,7 +46,6 @@
                             maxWidth: '100%'
                           }"
                         ></strong>
-                        <q-tooltip>Total breakdown</q-tooltip>
                       </div>
                     </div>
                     <div class="col-auto">
@@ -91,7 +90,6 @@
                         @keyup.enter="showWalletTotalBreakdown"
                       >
                         <strong v-text="formattedFiatAmount"></strong>
-                        <q-tooltip>Total breakdown</q-tooltip>
                       </div>
                     </div>
                     <div class="col-auto">
