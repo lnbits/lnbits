@@ -68,7 +68,8 @@ class InMemoryExtensionAPI(ExtensionAPI):
             wallet = await get_wallet(request.wallet_id)
             if wallet is None or wallet.user != self.user_id:
                 raise PermissionError(
-                    "Creating an invoice for this wallet requires an authenticated user context."
+                    "Creating an invoice for this wallet requires an "
+                    "authenticated user context."
                 )
         else:
             pass
