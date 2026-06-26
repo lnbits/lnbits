@@ -1,17 +1,20 @@
 from __future__ import annotations
 
 import json
+import os
 import re
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Annotated, Any
+from typing import Annotated, Any, NoReturn
 from uuid import uuid4
 
 from fastapi import Depends, FastAPI, HTTPException, Request
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, Response
 from fastapi.staticfiles import StaticFiles
 from loguru import logger
 from pydantic import UUID4
+from starlette.staticfiles import PathLike as StaticFilesPathLike
+from starlette.types import Scope
 
 from lnbits.decorators import (
     check_access_token,
@@ -24,6 +27,19 @@ from lnbits.settings import settings
 from lnbits.utils.cache import cache
 
 WASM_FRAME_TOKEN_EXPIRY_SECONDS = 60
+WASM_EXTENSION_CORE_ASSET_PREFIX = "_lnbits"
+WASM_EXTENSION_CORE_STATIC_ASSETS = {
+    "bundle.min.css": ("static/bundle.min.css", "text/css; charset=utf-8"),
+    "quasar.css": ("static/vendor/quasar.css", "text/css; charset=utf-8"),
+    "quasar.umd.prod.js": (
+        "static/vendor/quasar.umd.prod.js",
+        "text/javascript; charset=utf-8",
+    ),
+    "vue.global.prod.js": (
+        "static/vendor/vue.global.prod.js",
+        "text/javascript; charset=utf-8",
+    ),
+}
 WASM_EXTENSION_STATIC_MIME_TYPES = {
     ".css": "text/css; charset=utf-8",
     ".gif": "image/gif",
@@ -55,18 +71,20 @@ class WasmExtension:
 
 
 class GuardedWasmExtensionStaticFiles(StaticFiles):
-    async def get_response(self, path: str, scope: dict[str, Any]) -> Any:
+    async def get_response(self, path: str, scope: Scope) -> Response:
+        if path.startswith(f"{WASM_EXTENSION_CORE_ASSET_PREFIX}/"):
+            return _wasm_extension_core_asset_response(path)
         if Path(path).suffix.lower() not in WASM_EXTENSION_STATIC_MIME_TYPES:
             raise HTTPException(status_code=404)
         return await super().get_response(path, scope)
 
     def file_response(
         self,
-        full_path: str,
-        stat_result: Any,
-        scope: dict[str, Any],
+        full_path: StaticFilesPathLike,
+        stat_result: os.stat_result,
+        scope: Scope,
         status_code: int = 200,
-    ) -> Any:
+    ) -> Response:
         suffix = Path(full_path).suffix.lower()
         if suffix in WASM_EXTENSION_TEXT_STATIC_EXTENSIONS:
             _reject_html_like_wasm_static_asset(Path(full_path))
@@ -145,8 +163,6 @@ def load_wasm_extension(ext_id: str) -> WasmExtension:
 
 def _mount_wasm_extension_static(app: FastAPI, extension: WasmExtension) -> None:
     static_path = extension.root_path / "static"
-    if not static_path.is_dir():
-        return
 
     mount_path = f"/ext-assets/{extension.id}"
     if any(getattr(route, "path", None) == mount_path for route in app.routes):
@@ -154,7 +170,7 @@ def _mount_wasm_extension_static(app: FastAPI, extension: WasmExtension) -> None
 
     app.mount(
         mount_path,
-        GuardedWasmExtensionStaticFiles(directory=static_path),
+        GuardedWasmExtensionStaticFiles(directory=static_path, check_dir=False),
         name=f"{extension.id}-static",
     )
 
@@ -452,16 +468,15 @@ def _wasm_extension_wrapper_response(
 def _wasm_extension_frame_csp(request: Request, extension: WasmExtension) -> str:
     origin = str(request.base_url).rstrip("/")
     extension_assets = f"{origin}/ext-assets/{extension.id}/"
-    static_assets = f"{origin}/static/"
     return (
         "sandbox allow-scripts; "
         "default-src 'none'; "
         f"script-src {extension_assets}; "
         "script-src-attr 'none'; "
-        f"style-src {extension_assets} {static_assets}; "
+        f"style-src {extension_assets}; "
         "style-src-attr 'none'; "
-        f"img-src {extension_assets} {static_assets}; "
-        f"font-src {static_assets}; "
+        f"img-src {extension_assets} data:; "
+        f"font-src {extension_assets}; "
         "connect-src 'none'; "
         "form-action 'none'; "
         "object-src 'none'; "
@@ -535,7 +550,7 @@ def _raise_wasm_extension_frame_not_found(
     extension: WasmExtension,
     frame_path: str,
     reason: str,
-) -> None:
+) -> NoReturn:
     logger.warning(
         f"WASM frame token {reason} for extension '{extension.id}' at '{frame_path}'."
     )
@@ -668,6 +683,27 @@ def _reject_html_like_wasm_static_asset(path: Path) -> None:
         prefix = asset_file.read(512).lstrip().lower()
     if prefix.startswith(WASM_EXTENSION_HTML_PREFIXES):
         raise HTTPException(status_code=404)
+
+
+def _wasm_extension_core_asset_response(path: str) -> FileResponse:
+    asset_name = path.removeprefix(f"{WASM_EXTENSION_CORE_ASSET_PREFIX}/")
+    if not asset_name or "/" in asset_name or "\\" in asset_name:
+        raise HTTPException(status_code=404)
+
+    asset_config = WASM_EXTENSION_CORE_STATIC_ASSETS.get(asset_name)
+    if not asset_config:
+        raise HTTPException(status_code=404)
+
+    relative_path, content_type = asset_config
+    asset_path = Path(settings.lnbits_path, relative_path)
+    if not asset_path.is_file():
+        raise HTTPException(status_code=404)
+
+    response = FileResponse(asset_path)
+    response.headers["Content-Type"] = content_type
+    response.headers["X-Content-Type-Options"] = "nosniff"
+    response.headers["Cache-Control"] = "no-store"
+    return response
 
 
 def _check_wasm_module(path: Path) -> None:
