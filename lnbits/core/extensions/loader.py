@@ -39,6 +39,10 @@ WASM_EXTENSION_CORE_STATIC_ASSETS = {
         "static/vendor/quasar.umd.prod.js",
         "text/javascript; charset=utf-8",
     ),
+    "qrcode.vue.browser.js": (
+        "static/vendor/qrcode.vue.browser.js",
+        "text/javascript; charset=utf-8",
+    ),
     "vue.global.prod.js": (
         "static/vendor/vue.global.prod.js",
         "text/javascript; charset=utf-8",
