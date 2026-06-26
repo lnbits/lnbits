@@ -25,8 +25,6 @@ from .models import (
     StorageDeleteResponse,
     StorageGetRequest,
     StorageGetResponse,
-    StorageListRequest,
-    StorageListResponse,
     StoragePaginatedRequest,
     StoragePaginatedResponse,
     StorageSetRequest,
@@ -151,18 +149,6 @@ class ExtensionAPI:
     )
     async def storage_set(self, request: StorageSetRequest) -> StorageSetResponse:
         self._raise_unwired_runtime("storage_set")
-
-    @extension_api_method(
-        method_id="storage.list",
-        namespace="storage",
-        name="List storage rows",
-        host_name="storage_list",
-        sdk_name="list",
-        description="List rows from an extension storage table.",
-        required_permission="ext.storage.read_write",
-    )
-    async def storage_list(self, request: StorageListRequest) -> StorageListResponse:
-        self._raise_unwired_runtime("storage_list")
 
     @extension_api_method(
         method_id="storage.get_paginated",
