@@ -30,6 +30,10 @@ WASM_FRAME_TOKEN_EXPIRY_SECONDS = 60
 WASM_EXTENSION_CORE_ASSET_PREFIX = "_lnbits"
 WASM_EXTENSION_CORE_STATIC_ASSETS = {
     "bundle.min.css": ("static/bundle.min.css", "text/css; charset=utf-8"),
+    "material-icons-v50.woff2": (
+        "static/fonts/material-icons-v50.woff2",
+        "font/woff2",
+    ),
     "quasar.css": ("static/vendor/quasar.css", "text/css; charset=utf-8"),
     "quasar.umd.prod.js": (
         "static/vendor/quasar.umd.prod.js",
@@ -39,6 +43,19 @@ WASM_EXTENSION_CORE_STATIC_ASSETS = {
         "static/vendor/vue.global.prod.js",
         "text/javascript; charset=utf-8",
     ),
+}
+WASM_EXTENSION_GENERATED_CORE_ASSETS = {
+    "material-icons.css": (
+        """
+        @font-face {
+          font-family: 'Material Icons';
+          font-style: normal;
+          font-weight: 400;
+          src: url('./material-icons-v50.woff2') format('woff2');
+        }
+        """,
+        "text/css; charset=utf-8",
+    )
 }
 WASM_EXTENSION_STATIC_MIME_TYPES = {
     ".css": "text/css; charset=utf-8",
@@ -685,10 +702,18 @@ def _reject_html_like_wasm_static_asset(path: Path) -> None:
         raise HTTPException(status_code=404)
 
 
-def _wasm_extension_core_asset_response(path: str) -> FileResponse:
+def _wasm_extension_core_asset_response(path: str) -> Response:
     asset_name = path.removeprefix(f"{WASM_EXTENSION_CORE_ASSET_PREFIX}/")
     if not asset_name or "/" in asset_name or "\\" in asset_name:
         raise HTTPException(status_code=404)
+
+    generated_asset = WASM_EXTENSION_GENERATED_CORE_ASSETS.get(asset_name)
+    if generated_asset:
+        content, content_type = generated_asset
+        response = Response(content=content, media_type=content_type)
+        response.headers["X-Content-Type-Options"] = "nosniff"
+        response.headers["Cache-Control"] = "no-store"
+        return response
 
     asset_config = WASM_EXTENSION_CORE_STATIC_ASSETS.get(asset_name)
     if not asset_config:
