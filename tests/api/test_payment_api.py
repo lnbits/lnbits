@@ -15,7 +15,7 @@ from lnbits.core.crud.payments import (
 from lnbits.core.models import Account, CreateInvoice, PaymentFilters, PaymentState
 from lnbits.core.models.payments import CancelInvoice, CreatePayment, SettleInvoice
 from lnbits.core.models.users import AccountId
-from lnbits.core.models.wallets import KeyType, WalletTypeInfo
+from lnbits.core.models.wallets import BaseWalletTypeInfo, KeyType, WalletTypeInfo
 from lnbits.core.services.payments import create_wallet_invoice
 from lnbits.core.services.users import create_user_account
 from lnbits.core.views.payment_api import (
@@ -183,7 +183,7 @@ async def test_payment_api_total_breakdown_groups_wallet_tags_and_fiat():
     await _create_payment(second_wallet.id, amount_msat=8_000, tag="books")
 
     breakdown = await api_payments_total_breakdown(
-        WalletTypeInfo(key_type=KeyType.invoice, wallet=first_wallet)
+        BaseWalletTypeInfo(key_type=KeyType.invoice, wallet=first_wallet)
     )
 
     assert any(
