@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 from dataclasses import dataclass, field
 
 from .api import ExtensionAPI
@@ -7,22 +8,29 @@ from .models import (
     CreateInvoiceRequest,
     CreateInvoiceResponse,
     EmptyRequest,
-    KvGetRequest,
-    KvGetResponse,
-    KvListRequest,
-    KvListResponse,
-    KvSetRequest,
-    KvSetResponse,
     ListUserWalletsResponse,
+    StorageDeleteRequest,
+    StorageDeleteResponse,
+    StorageGetRequest,
+    StorageGetResponse,
+    StorageListRequest,
+    StorageListResponse,
+    StorageSetRequest,
+    StorageSetResponse,
     UserWalletSummary,
     WatchPaymentRequest,
     WatchPaymentResponse,
+)
+from .storage import (
+    storage_delete_row,
+    storage_get_row,
+    storage_list_rows,
+    storage_set_row,
 )
 
 
 @dataclass
 class InMemoryExtensionState:
-    storage: dict[str, dict[str, str]] = field(default_factory=dict)
     payment_watchers: dict[str, dict[str, str]] = field(default_factory=dict)
     user_wallets: dict[str, list[UserWalletSummary] | None] = field(
         default_factory=dict
@@ -41,19 +49,33 @@ class InMemoryExtensionAPI(ExtensionAPI):
         super().__init__(extension_id, permissions, user_id=user_id)
         self.state = state or InMemoryExtensionState()
 
-    async def storage_get(self, request: KvGetRequest) -> KvGetResponse:
+    async def storage_get(self, request: StorageGetRequest) -> StorageGetResponse:
         self.require_permission("ext.storage.read_write")
-        return KvGetResponse(value=self._storage.get(request.key))
+        row = await storage_get_row(self.extension_id, request.table, request.id)
+        return StorageGetResponse(data_json=json.dumps(row) if row else None)
 
-    async def storage_set(self, request: KvSetRequest) -> KvSetResponse:
+    async def storage_set(self, request: StorageSetRequest) -> StorageSetResponse:
         self.require_permission("ext.storage.read_write")
-        self._storage[request.key] = request.value
-        return KvSetResponse()
+        await storage_set_row(self.extension_id, request.table, request.data)
+        return StorageSetResponse()
 
-    async def storage_list(self, request: KvListRequest) -> KvListResponse:
+    async def storage_list(self, request: StorageListRequest) -> StorageListResponse:
         self.require_permission("ext.storage.read_write")
-        keys = sorted(key for key in self._storage if key.startswith(request.prefix))
-        return KvListResponse(keys=keys)
+        rows = await storage_list_rows(
+            self.extension_id,
+            request.table,
+            request.filters,
+            limit=request.limit,
+            offset=request.offset,
+        )
+        return StorageListResponse(rows_json=json.dumps(rows))
+
+    async def storage_delete(
+        self, request: StorageDeleteRequest
+    ) -> StorageDeleteResponse:
+        self.require_permission("ext.storage.read_write")
+        await storage_delete_row(self.extension_id, request.table, request.id)
+        return StorageDeleteResponse()
 
     async def wallet_create_invoice(
         self, request: CreateInvoiceRequest
@@ -121,7 +143,3 @@ class InMemoryExtensionAPI(ExtensionAPI):
             request.payment_hash
         ] = request.callback_export
         return WatchPaymentResponse()
-
-    @property
-    def _storage(self) -> dict[str, str]:
-        return self.state.storage.setdefault(self.extension_id, {})

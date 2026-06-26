@@ -7,7 +7,7 @@ import time
 from collections.abc import Awaitable, Callable, Iterable
 from dataclasses import dataclass
 from functools import wraps
-from typing import TypeVar, get_type_hints
+from typing import NoReturn, TypeVar, cast, get_type_hints
 
 from pydantic import BaseModel
 
@@ -15,18 +15,20 @@ from .models import (
     CreateInvoiceRequest,
     CreateInvoiceResponse,
     EmptyRequest,
-    KvGetRequest,
-    KvGetResponse,
-    KvListRequest,
-    KvListResponse,
-    KvSetRequest,
-    KvSetResponse,
     ListUserWalletsResponse,
     LogRequest,
     LogResponse,
     NowResponse,
     RandomIdRequest,
     RandomIdResponse,
+    StorageDeleteRequest,
+    StorageDeleteResponse,
+    StorageGetRequest,
+    StorageGetResponse,
+    StorageListRequest,
+    StorageListResponse,
+    StorageSetRequest,
+    StorageSetResponse,
     WatchPaymentRequest,
     WatchPaymentResponse,
 )
@@ -127,38 +129,52 @@ class ExtensionAPI:
     @extension_api_method(
         method_id="storage.get",
         namespace="storage",
-        name="Get storage value",
-        host_name="kv_get",
+        name="Get storage row",
+        host_name="storage_get",
         sdk_name="get",
-        description="Read one value from the extension storage namespace.",
+        description="Read one row from an extension storage table.",
         required_permission="ext.storage.read_write",
     )
-    async def storage_get(self, request: KvGetRequest) -> KvGetResponse:
+    async def storage_get(self, request: StorageGetRequest) -> StorageGetResponse:
         self._raise_unwired_runtime("storage_get")
 
     @extension_api_method(
         method_id="storage.set",
         namespace="storage",
-        name="Set storage value",
-        host_name="kv_set",
+        name="Set storage row",
+        host_name="storage_set",
         sdk_name="set",
-        description="Write one value to the extension storage namespace.",
+        description="Create or update one row in an extension storage table.",
         required_permission="ext.storage.read_write",
     )
-    async def storage_set(self, request: KvSetRequest) -> KvSetResponse:
+    async def storage_set(self, request: StorageSetRequest) -> StorageSetResponse:
         self._raise_unwired_runtime("storage_set")
 
     @extension_api_method(
         method_id="storage.list",
         namespace="storage",
-        name="List storage keys",
-        host_name="kv_list",
+        name="List storage rows",
+        host_name="storage_list",
         sdk_name="list",
-        description="List keys under a prefix in the extension storage namespace.",
+        description="List rows from an extension storage table.",
         required_permission="ext.storage.read_write",
     )
-    async def storage_list(self, request: KvListRequest) -> KvListResponse:
+    async def storage_list(self, request: StorageListRequest) -> StorageListResponse:
         self._raise_unwired_runtime("storage_list")
+
+    @extension_api_method(
+        method_id="storage.delete",
+        namespace="storage",
+        name="Delete storage row",
+        host_name="storage_delete",
+        sdk_name="delete",
+        description="Delete one row from an extension storage table.",
+        required_permission="ext.storage.read_write",
+    )
+    async def storage_delete(
+        self, request: StorageDeleteRequest
+    ) -> StorageDeleteResponse:
+        self._raise_unwired_runtime("storage_delete")
 
     @extension_api_method(
         method_id="wallet.create_invoice",
@@ -239,7 +255,7 @@ class ExtensionAPI:
         log("extension:%s %s", self.extension_id, request.message)
         return LogResponse()
 
-    def _raise_unwired_runtime(self, method_name: str) -> None:
+    def _raise_unwired_runtime(self, method_name: str) -> NoReturn:
         raise NotImplementedError(
             f"ExtensionAPI.{method_name} must be wired to LNbits services before use."
         )
@@ -339,7 +355,7 @@ def _get_method_models(
             f"Extension API method '{function.__name__}' response must be a BaseModel."
         )
 
-    return request_model, response_model
+    return cast(type[BaseModel], request_model), cast(type[BaseModel], response_model)
 
 
 def _is_pydantic_model(value: object) -> bool:
