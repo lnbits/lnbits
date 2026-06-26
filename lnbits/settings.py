@@ -241,6 +241,7 @@ class InstalledExtensionsSettings(LNbitsSettings):
 
 class ExchangeHistorySettings(LNbitsSettings):
     lnbits_exchange_rate_history: list[dict] = Field(default=[])
+
     def append_exchange_rate_datapoint(self, rates: dict, max_size: int):
         data = {
             "timestamp": int(datetime.now(timezone.utc).timestamp()),

@@ -276,7 +276,8 @@ async def test_btc_rates_skips_unsupported_and_failing_providers(
 @pytest.mark.anyio
 async def test_btc_price_handles_empty_single_and_multiple_rates(mocker: MockerFixture):
     mocker.patch(
-        "lnbits.utils.exchange_rates.btc_price_from_aggregator", AsyncMock(return_value=None)
+        "lnbits.utils.exchange_rates.btc_price_from_aggregator",
+        AsyncMock(return_value=None),
     )
     mocker.patch("lnbits.utils.exchange_rates.btc_rates", AsyncMock(return_value=[]))
     assert await btc_price("usd") == 0.0

@@ -4,9 +4,16 @@
     A privacy-friendly, open-source Bitcoin price aggregator maintained by the
     LNbits team. Aggregates prices from multiple exchanges and returns a median,
     no API keys required.
-    <a href="https://price.lnbits.com" target="_blank" rel="noopener">price.lnbits.com</a>
+    <a href="https://price.lnbits.com" target="_blank" rel="noopener"
+      >price.lnbits.com</a
+    >
     &mdash;
-    <a href="https://github.com/lnbits/lnbits-price-aggregator" target="_blank" rel="noopener">GitHub</a>
+    <a
+      href="https://github.com/lnbits/lnbits-price-aggregator"
+      target="_blank"
+      rel="noopener"
+      >GitHub</a
+    >
   </p>
 
   <div class="row q-mb-md items-start">
@@ -114,7 +121,14 @@
     </div>
   </div>
 
-  <div class="overflow-auto" :style="formData.lnbits_price_aggregator_enabled ? 'opacity:0.4;pointer-events:none' : ''">
+  <div
+    class="overflow-auto"
+    :style="
+      formData.lnbits_price_aggregator_enabled
+        ? 'opacity:0.4;pointer-events:none'
+        : ''
+    "
+  >
     <q-table
       row-key="name"
       :rows="formData.lnbits_exchange_rate_providers"

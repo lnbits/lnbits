@@ -176,7 +176,9 @@ async def collect_exchange_rates_data() -> None:
                             lnbits_rate,
                             expiry=settings.lnbits_exchange_rate_cache_seconds,
                         )
-                    settings.append_exchange_rate_datapoint(dict(rates), max_history_size)
+                    settings.append_exchange_rate_datapoint(
+                        dict(rates), max_history_size
+                    )
             except Exception as ex:
                 logger.warning(ex)
         else:

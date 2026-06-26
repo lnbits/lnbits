@@ -306,7 +306,10 @@ async def btc_price_from_aggregator(currency: str) -> float | None:
 
 
 async def btc_price(currency: str) -> float:
-    if settings.lnbits_price_aggregator_enabled and settings.lnbits_price_aggregator_url:
+    if (
+        settings.lnbits_price_aggregator_enabled
+        and settings.lnbits_price_aggregator_url
+    ):
         price = await btc_price_from_aggregator(currency)
         if price:
             return price
