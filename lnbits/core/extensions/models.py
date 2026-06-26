@@ -33,24 +33,6 @@ class StorageSetResponse(BaseModel):
     ok: bool = True
 
 
-class StorageListRequest(BaseModel):
-    table: str = Field(..., min_length=1, max_length=128)
-    filters: dict[str, Any] = Field(default_factory=dict)
-    limit: int = Field(100, ge=1, le=1000)
-    offset: int = Field(0, ge=0)
-
-    @root_validator(pre=True)
-    def parse_filters_json(cls, values: dict[str, Any]) -> dict[str, Any]:
-        filters_json = values.get("filters_json")
-        if filters_json is not None and "filters" not in values:
-            values["filters"] = json.loads(filters_json)
-        return values
-
-
-class StorageListResponse(BaseModel):
-    rows_json: str = "[]"
-
-
 class StoragePaginatedRequest(BaseModel):
     table: str = Field(..., min_length=1, max_length=128)
     filters: dict[str, Any] = Field(default_factory=dict)
@@ -70,6 +52,9 @@ class StoragePaginatedRequest(BaseModel):
         search_fields_json = values.get("search_fields_json")
         if search_fields_json is not None and "search_fields" not in values:
             values["search_fields"] = json.loads(search_fields_json)
+
+        if values.get("sort_by") == "":
+            values["sort_by"] = None
         return values
 
 

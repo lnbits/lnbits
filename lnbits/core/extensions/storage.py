@@ -57,35 +57,6 @@ async def storage_set_row(
         await conn.execute(query, clean_data)
 
 
-async def storage_list_rows(
-    ext_id: str,
-    table: str,
-    filters: dict[str, Any],
-    *,
-    limit: int,
-    offset: int,
-) -> list[dict[str, Any]]:
-    table_schema = _load_table_schema(ext_id, table)
-    clean_filters = _filters_to_db(table_schema, filters)
-    where_sql = ""
-    if clean_filters:
-        clauses = [f"{field} = :filter_{field}" for field in clean_filters]
-        where_sql = "WHERE " + " AND ".join(clauses)
-
-    values = {f"filter_{field}": value for field, value in clean_filters.items()}
-    values.update({"limit": min(limit, 1000), "offset": offset})
-    query = f"""
-        SELECT * FROM {_table_ref_for_schema(ext_id, table)}
-        {where_sql}
-        LIMIT :limit
-        OFFSET :offset
-    """  # noqa: S608
-
-    async with Database(f"ext_{ext_id}").connect() as conn:
-        rows = await conn.fetchall(query, values)
-    return [_row_from_db(table_schema, row) for row in rows]
-
-
 async def storage_get_paginated_rows(
     ext_id: str,
     table: str,
