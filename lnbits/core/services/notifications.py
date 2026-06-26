@@ -74,7 +74,7 @@ async def send_admin_notification(
     message: str,
     message_type: str | None = None,
 ) -> None:
-    return await send_notification(
+    return await send_notification_in_background(
         settings.lnbits_telegram_notifications_chat_id,
         settings.lnbits_nostr_notifications_identifiers,
         settings.lnbits_email_notifications_to_emails,
@@ -97,7 +97,7 @@ async def send_user_notification(
         if user_notifications.nostr_identifier
         else []
     )
-    return await send_notification(
+    return await send_notification_in_background(
         user_notifications.telegram_chat_id,
         nostr_identifiers,
         email_address,
@@ -222,11 +222,19 @@ async def send_email(
     msg["Subject"] = subject
     msg.attach(MIMEText(message, "plain"))
     username = username if len(username) > 0 else from_email
-    with smtplib.SMTP(server, port) as smtp_server:
-        smtp_server.starttls()
-        smtp_server.login(username, password)
-        smtp_server.sendmail(from_email, to_emails, msg.as_string())
+
+    def _send() -> bool:
+        with smtplib.SMTP(server, port) as smtp_server:
+            smtp_server.starttls()
+            smtp_server.login(username, password)
+            smtp_server.sendmail(from_email, to_emails, msg.as_string())
         return True
+
+    try:
+        return await asyncio.to_thread(_send)
+    except Exception as e:
+        logger.warning(f"Sending Email failed. {e!s}")
+        return False
 
 
 async def dispatch_webhook(payment: Payment):
@@ -292,6 +300,27 @@ def send_payment_notification_in_background(wallet: Wallet, payment: Payment):
         create_task(send_payment_notification(wallet, payment))
     except Exception as e:
         logger.warning(f"Error sending payment notification: {e}")
+
+
+async def send_notification_in_background(
+    telegram_chat_id: str | None,
+    nostr_identifiers: list[str] | None,
+    email_addresses: list[str] | None,
+    message: str,
+    message_type: str | None = None,
+):
+    try:
+        create_task(
+            send_notification(
+                telegram_chat_id,
+                nostr_identifiers,
+                email_addresses,
+                message,
+                message_type,
+            )
+        )
+    except Exception as e:
+        logger.warning(f"Error sending notification in background: {e}")
 
 
 async def send_ws_payment_notification(wallet: Wallet, payment: Payment):

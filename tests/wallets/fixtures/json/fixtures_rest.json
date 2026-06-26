@@ -2073,7 +2073,7 @@
                 {
                   "response_type": "json",
                   "response": {
-                    "settled": true
+                    "state": "SETTLED"
                   }
                 }
               ]
@@ -2155,8 +2155,15 @@
               ]
             },
             "lndrest": {
-              "description": "lndrest.py doesn't handle the 'failed' status for `get_invoice_status`",
-              "get_invoice_status_endpoint": []
+              "get_invoice_status_endpoint": [
+                {
+                  "description": "error status",
+                  "response_type": "json",
+                  "response": {
+                    "state": "CANCELED"
+                  }
+                }
+              ]
             },
             "alby": {
               "description": "alby.py doesn't handle the 'failed' status for `get_invoice_status`",
@@ -2242,13 +2249,6 @@
                   "description": "no data",
                   "response_type": "json",
                   "response": {}
-                },
-                {
-                  "description": "error status",
-                  "response_type": "json",
-                  "response": {
-                    "seetled": false
-                  }
                 },
                 {
                   "description": "bad json",

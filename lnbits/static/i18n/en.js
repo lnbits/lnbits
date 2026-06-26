@@ -184,6 +184,7 @@ window.localisation.en = {
   release_notes: 'Release Notes',
   activate_extension_details: 'Make extension available/unavailable for users',
   featured: 'Featured',
+  categories: 'Categories',
   all: 'All',
   only_admins_can_install: '(Only admin accounts can install extensions)',
   only_admins_can_create_extensions:

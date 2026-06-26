@@ -8,7 +8,7 @@ from unittest.mock import AsyncMock
 import pytest
 from pytest_mock.plugin import MockerFixture
 
-from lnbits.core.crud.payments import get_payments
+from lnbits.core.crud.payments import get_payment, get_payments
 from lnbits.core.crud.users import get_user
 from lnbits.core.crud.wallets import create_wallet
 from lnbits.core.models.payments import CreateInvoice, Payment, PaymentState
@@ -919,8 +919,10 @@ async def test_revolut_wallet_create_subscription(settings: Settings):
         "PLAN_VARIATION_123", 1, payment_options
     )
 
+    subscription_request_id = payment_options.subscription_request_id
     assert response.ok is True
-    assert response.subscription_request_id is not None
+    assert response.subscription_request_id == "SUBSCRIPTION123"
+    assert subscription_request_id is not None
     assert (
         response.checkout_session_url
         == "https://checkout.revolut.com/payment-link/sub_123"
@@ -933,16 +935,14 @@ async def test_revolut_wallet_create_subscription(settings: Settings):
     assert payload["plan_variation_id"] == "PLAN_VARIATION_123"
     assert payload["customer_id"] == "CUSTOMER123"
     assert client.calls[1][1]["timeout"] == 30
-    assert client.calls[1][1]["headers"]["Idempotency-Key"] == (
-        response.subscription_request_id
-    )
+    assert client.calls[1][1]["headers"]["Idempotency-Key"] == (subscription_request_id)
     assert payload["setup_order_redirect_url"] == (
         "https://lnbits.example/subscription-success"
     )
     reference = json.loads(payload["external_reference"])
     assert reference["wallet_id"] == "wallet_1"
     assert reference["tag"] == "gold"
-    assert reference["subscription_request_id"] == response.subscription_request_id
+    assert reference["subscription_request_id"] == subscription_request_id
     assert reference["memo"] == "Monthly Gold"
     assert reference["extra"]["link"] == "link-1"
     assert client.calls[2][0] == "/api/orders/ORDER123"
@@ -1235,13 +1235,55 @@ async def test_revolut_wallet_cancel_subscription(settings: Settings):
     settings.revolut_api_version = "2026-04-20"
 
     wallet = RevolutWallet()
-    client = MockHTTPClient([MockHTTPResponse(json_data={})])
+    client = MockHTTPClient(
+        [
+            MockHTTPResponse(
+                json_data={
+                    "external_reference": json.dumps({"wallet_id": "wallet_1"}),
+                }
+            ),
+            MockHTTPResponse(json_data={}),
+        ]
+    )
     wallet.client = client  # type: ignore[assignment]
 
     response = await wallet.cancel_subscription("SUBSCRIPTION123", "wallet_1")
 
     assert response.ok is True
-    assert client.calls[0][0] == "/api/subscriptions/SUBSCRIPTION123/cancel"
+    assert client.calls[0][0] == "/api/subscriptions/SUBSCRIPTION123"
+    assert client.calls[1][0] == "/api/subscriptions/SUBSCRIPTION123/cancel"
+
+
+@pytest.mark.anyio
+async def test_revolut_wallet_cancel_subscription_checks_wallet_id(
+    settings: Settings,
+):
+    settings.revolut_api_endpoint = "https://sandbox-merchant.revolut.com"
+    settings.revolut_api_secret_key = "revolut-secret"
+    settings.revolut_api_version = "2026-04-20"
+
+    wallet = RevolutWallet()
+    client = MockHTTPClient(
+        [
+            MockHTTPResponse(
+                json_data={
+                    "external_reference": json.dumps({"wallet_id": "wallet_2"}),
+                }
+            ),
+        ]
+    )
+    wallet.client = client  # type: ignore[assignment]
+
+    response = await wallet.cancel_subscription("SUBSCRIPTION123", "wallet_1")
+
+    assert response.ok is False
+    assert response.error_message == "Subscription not found."
+    assert client.calls == [
+        (
+            "/api/subscriptions/SUBSCRIPTION123",
+            {"timeout": 30},
+        )
+    ]
 
 
 @pytest.mark.anyio
@@ -1702,13 +1744,57 @@ async def test_check_fiat_status_handles_internal_states(mocker: MockerFixture):
             amount=1000,
             fee=0,
             bolt11="bolt11",
-            status=PaymentState.PENDING,
+            status=PaymentState.SUCCESS,
             fiat_provider="stripe",
             extra={"fiat_checking_id": "stripe_checking_id"},
-        ),
-        skip_internal_payment_notifications=True,
+        )
     )
     assert queue_put.await_count == 1
+
+
+@pytest.mark.anyio
+async def test_check_fiat_status_persists_successful_payment(
+    to_wallet: Wallet, settings: Settings, mocker: MockerFixture
+):
+    settings.stripe_enabled = True
+    settings.stripe_api_secret_key = "mock_sk_test_4eC39HqLyjWDarjtT1zdp7dc"
+    settings.stripe_limits.service_min_amount_sats = 0
+    settings.stripe_limits.service_max_amount_sats = 0
+    settings.stripe_limits.service_fee_wallet_id = None
+    settings.stripe_limits.service_faucet_wallet_id = None
+
+    invoice_data = CreateInvoice(
+        unit="USD", amount=1.0, memo="Test", fiat_provider="stripe"
+    )
+    fiat_mock_response = FiatInvoiceResponse(
+        ok=True,
+        checking_id=f"session_paid_{get_random_string(10)}",
+        payment_request="https://stripe.com/pay/session_paid",
+    )
+    mocker.patch(
+        "lnbits.fiat.StripeWallet.create_invoice",
+        AsyncMock(return_value=fiat_mock_response),
+    )
+    mocker.patch(
+        "lnbits.utils.exchange_rates.get_fiat_rate_satoshis",
+        AsyncMock(return_value=1000),
+    )
+    payment = await payments.create_fiat_invoice(to_wallet.id, invoice_data)
+    assert payment.status == PaymentState.PENDING
+
+    mocker.patch(
+        "lnbits.fiat.StripeWallet.get_invoice_status",
+        AsyncMock(return_value=FiatPaymentStatus(paid=True)),
+    )
+    queue_put = mocker.patch("lnbits.tasks.internal_invoice_queue.put", AsyncMock())
+
+    status = await check_fiat_status(payment)
+
+    assert status.success is True
+    assert payment.status == PaymentState.SUCCESS
+    updated_payment = await get_payment(payment.checking_id)
+    assert updated_payment.status == PaymentState.SUCCESS
+    queue_put.assert_awaited_once_with(payment.checking_id)
 
 
 @pytest.mark.anyio
