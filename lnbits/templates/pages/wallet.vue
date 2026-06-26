@@ -247,13 +247,13 @@
           <div class="col">
             <div
               class="text-h4 text-bold"
-              v-text="formattedTotalBreakdown"
+              v-text="primaryTotalBreakdownValue"
             ></div>
             <div
-              v-if="formattedTotalBreakdownFiat"
+              v-if="secondaryTotalBreakdownValue"
               class="text-h6 text-italic"
               style="opacity: 0.75"
-              v-text="formattedTotalBreakdownFiat"
+              v-text="secondaryTotalBreakdownValue"
             ></div>
             <div
               class="text-caption text-grey-5"
@@ -290,41 +290,43 @@
 
         <q-separator v-if="hasFiatTotalBreakdown" class="q-mb-md"></q-separator>
 
-        <q-list dense>
-          <q-item
-            v-for="tag in totalBreakdownTags"
-            :key="totalBreakdownTagKey(tag)"
-            tag="label"
-            v-ripple
-          >
-            <q-item-section side>
-              <q-checkbox
-                v-model="totalBreakdown.selectedTags"
-                :val="totalBreakdownTagKey(tag)"
-              ></q-checkbox>
-            </q-item-section>
-            <q-item-section>
-              <q-item-label>
-                <q-badge
-                  v-if="tag"
-                  color="yellow"
-                  text-color="black"
-                  v-text="'#' + tag"
-                ></q-badge>
-                <span v-else v-text="totalBreakdownTagLabel(tag)"></span>
-              </q-item-label>
-              <q-item-label
-                caption
-                v-text="totalBreakdownTagCount(tag) + ' payments'"
-              ></q-item-label>
-            </q-item-section>
-            <q-item-section side>
-              <span
-                v-text="formatTotalBreakdownMsat(totalBreakdownTagMsat(tag))"
-              ></span>
-            </q-item-section>
-          </q-item>
-        </q-list>
+        <div style="max-height: min(52vh, 420px); overflow-y: auto">
+          <q-list dense>
+            <q-item
+              v-for="tag in totalBreakdownTags"
+              :key="totalBreakdownTagKey(tag)"
+              tag="label"
+              v-ripple
+            >
+              <q-item-section side>
+                <q-checkbox
+                  v-model="totalBreakdown.selectedTags"
+                  :val="totalBreakdownTagKey(tag)"
+                ></q-checkbox>
+              </q-item-section>
+              <q-item-section>
+                <q-item-label>
+                  <q-badge
+                    v-if="tag"
+                    color="yellow"
+                    text-color="black"
+                    v-text="'#' + tag"
+                  ></q-badge>
+                  <span v-else v-text="totalBreakdownTagLabel(tag)"></span>
+                </q-item-label>
+                <q-item-label
+                  caption
+                  v-text="totalBreakdownTagCount(tag) + ' payments'"
+                ></q-item-label>
+              </q-item-section>
+              <q-item-section side>
+                <span
+                  v-text="formatTotalBreakdownMsat(totalBreakdownTagMsat(tag))"
+                ></span>
+              </q-item-section>
+            </q-item>
+          </q-list>
+        </div>
 
         <div v-if="!totalBreakdown.loading && !totalBreakdown.rows.length">
           <q-banner class="bg-transparent text-grey-5">

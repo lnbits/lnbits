@@ -121,6 +121,9 @@ window.PageWallet = {
         0
       )
     },
+    selectedTotalBreakdownSat() {
+      return Math.round(this.selectedTotalBreakdownMsat / 1000)
+    },
     selectedTotalBreakdownCount() {
       return this.selectedTotalBreakdownRows.reduce(
         (total, row) => total + row.payments_count,
@@ -129,15 +132,28 @@ window.PageWallet = {
     },
     formattedTotalBreakdown() {
       return this.utils.formatBalance(
-        this.selectedTotalBreakdownMsat / 1000,
+        this.selectedTotalBreakdownSat,
         this.g.denomination
       )
     },
     formattedTotalBreakdownFiat() {
       if (!this.g.fiatTracking) return null
-      const sats = this.selectedTotalBreakdownMsat / 1000
-      const amount = (sats / 100000000) * this.g.exchangeRate
+      const amount =
+        (this.selectedTotalBreakdownSat / 100000000) * this.g.exchangeRate
       return LNbits.utils.formatCurrency(amount, this.g.wallet.currency)
+    },
+    primaryTotalBreakdownValue() {
+      if (this.g.isFiatPriority && this.g.fiatTracking) {
+        return this.formattedTotalBreakdownFiat || this.formattedTotalBreakdown
+      }
+      return this.formattedTotalBreakdown
+    },
+    secondaryTotalBreakdownValue() {
+      if (!this.g.fiatTracking) return null
+      if (this.g.isFiatPriority) {
+        return this.formattedTotalBreakdown
+      }
+      return this.formattedTotalBreakdownFiat
     }
   },
   methods: {
@@ -181,7 +197,10 @@ window.PageWallet = {
         .reduce((total, row) => total + row.total, 0)
     },
     formatTotalBreakdownMsat(msat) {
-      return this.utils.formatBalance(msat / 1000, this.g.denomination)
+      return this.utils.formatBalance(
+        Math.round(msat / 1000),
+        this.g.denomination
+      )
     },
     handleSendLnurl(lnurl) {
       this.parse.data.request = lnurl
