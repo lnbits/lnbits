@@ -37,6 +37,8 @@
   ;(() => {
     const bridge = {{ bridge | tojson | safe }}
     let bridgePort = null
+    const allowedPaymentHashes = new Set()
+    const paymentSubscriptions = new Map()
 
     function extensionFrameWindow() {
       return extensionFrame()?.contentWindow
@@ -49,8 +51,7 @@
     function loadExtensionFrame() {
       const frame = extensionFrame()
       if (!frame) {
-        bridgePort?.close()
-        bridgePort = null
+        closeBridgePort()
         return
       }
       if (frame.dataset.loaded === 'true') return
@@ -123,6 +124,7 @@
           typeof data === 'object' && data.detail ? data.detail : text
         )
       }
+      rememberPaymentHashes(data)
       return data
     }
 
@@ -138,6 +140,126 @@
           message: String(message.message || '')
         })
       }
+    }
+
+    function rememberPaymentHashes(value) {
+      if (!value || typeof value !== 'object') return
+
+      if (Array.isArray(value)) {
+        value.forEach(rememberPaymentHashes)
+        return
+      }
+
+      for (const [key, item] of Object.entries(value)) {
+        if (
+          ['paymentHash', 'payment_hash'].includes(key) &&
+          isPaymentHash(item)
+        ) {
+          allowedPaymentHashes.add(item)
+        }
+        rememberPaymentHashes(item)
+      }
+    }
+
+    function isPaymentHash(value) {
+      return typeof value === 'string' && /^[a-f0-9]{64}$/i.test(value)
+    }
+
+    function websocketUrl(path) {
+      const url = new URL(window.location.href)
+      url.protocol = url.protocol === 'https:' ? 'wss:' : 'ws:'
+      url.pathname = path
+      url.search = ''
+      url.hash = ''
+      return url.toString()
+    }
+
+    function sendBridgeEvent(message) {
+      if (!bridgePort) return
+      bridgePort.postMessage({
+        type: 'lnbits-extension:event',
+        ...message
+      })
+    }
+
+    function closePaymentSubscription(subscriptionId) {
+      const subscription = paymentSubscriptions.get(subscriptionId)
+      if (!subscription) return
+      paymentSubscriptions.delete(subscriptionId)
+      try {
+        subscription.socket.close()
+      } catch (_error) {}
+    }
+
+    function closePaymentSubscriptions() {
+      for (const subscriptionId of Array.from(paymentSubscriptions.keys())) {
+        closePaymentSubscription(subscriptionId)
+      }
+    }
+
+    function closeBridgePort() {
+      closePaymentSubscriptions()
+      bridgePort?.close()
+      bridgePort = null
+    }
+
+    function subscribePayment(message) {
+      const subscriptionId = String(message.subscriptionId || '')
+      const paymentHash = String(message.paymentHash || '')
+
+      if (!subscriptionId || !isPaymentHash(paymentHash)) {
+        throw new Error('Invalid payment subscription.')
+      }
+      if (!allowedPaymentHashes.has(paymentHash)) {
+        throw new Error('Payment subscription is not allowed.')
+      }
+
+      closePaymentSubscription(subscriptionId)
+
+      const socket = new WebSocket(
+        websocketUrl(`/api/v1/ws/${encodeURIComponent(paymentHash)}`)
+      )
+      paymentSubscriptions.set(subscriptionId, {paymentHash, socket})
+
+      socket.addEventListener('message', event => {
+        let data = event.data
+        try {
+          data = JSON.parse(event.data)
+        } catch (_error) {}
+
+        sendBridgeEvent({
+          event: 'payment.update',
+          subscriptionId,
+          paymentHash,
+          data
+        })
+
+        if (
+          data &&
+          typeof data === 'object' &&
+          (data.pending === false ||
+            ['success', 'settled', 'paid'].includes(String(data.status || '')))
+        ) {
+          sendBridgeEvent({
+            event: 'payment.settled',
+            subscriptionId,
+            paymentHash,
+            data
+          })
+          closePaymentSubscription(subscriptionId)
+        }
+      })
+      socket.addEventListener('error', () => {
+        sendBridgeEvent({
+          event: 'payment.error',
+          subscriptionId,
+          paymentHash
+        })
+        closePaymentSubscription(subscriptionId)
+      })
+      socket.addEventListener('close', () => {
+        paymentSubscriptions.delete(subscriptionId)
+      })
     }
 
     async function handleBridgeRequest(message, reply) {
@@ -174,6 +296,24 @@
           return
         }
 
+        if (message.action === 'payment.subscribe') {
+          subscribePayment(message)
+          sendResponse(reply, message.id, {
+            ok: true,
+            data: {ok: true}
+          })
+          return
+        }
+
+        if (message.action === 'payment.unsubscribe') {
+          closePaymentSubscription(String(message.subscriptionId || ''))
+          sendResponse(reply, message.id, {
+            ok: true,
+            data: {ok: true}
+          })
+          return
+        }
+
         throw new Error('Unknown extension bridge action.')
       } catch (error) {
         sendResponse(reply, message.id, {
@@ -191,7 +331,7 @@
       const port = event.ports?.[0]
       if (!port) return
 
-      bridgePort?.close()
+      closeBridgePort()
       bridgePort = port
       bridgePort.addEventListener('message', portEvent => {
         handleBridgeRequest(portEvent.data, response => {
