@@ -289,7 +289,29 @@ async def btc_rates(currency: str) -> list[tuple[str, float]]:
     return apply_trimmed_mean_filter(all_rates)
 
 
+async def btc_price_from_aggregator(currency: str) -> float | None:
+    url = settings.lnbits_price_aggregator_url.rstrip("/")
+    try:
+        headers = {"User-Agent": settings.user_agent}
+        async with httpx.AsyncClient(headers=headers) as client:
+            r = await client.get(f"{url}/rate/{currency.upper()}", timeout=3)
+            r.raise_for_status()
+            data = r.json()
+            median = data.get("rates", {}).get("median")
+            if median:
+                return float(median)
+    except Exception as e:
+        logger.warning(f"Failed to fetch price from aggregator {url}: {e}")
+    return None
+
+
 async def btc_price(currency: str) -> float:
+    if settings.lnbits_price_aggregator_enabled and settings.lnbits_price_aggregator_url:
+        price = await btc_price_from_aggregator(currency)
+        if price:
+            return price
+        logger.warning("Price aggregator failed, falling back to exchange providers.")
+
     rates = await btc_rates(currency)
     if not rates:
         logger.warning("Could not fetch any Bitcoin price.")
