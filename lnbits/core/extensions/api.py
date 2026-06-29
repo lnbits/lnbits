@@ -55,6 +55,7 @@ class ExtensionAPIMethodExport:
     sdk_name: str
     description: str
     required_permission: str | None = None
+    require_auth: bool = True
 
 
 @dataclass(frozen=True)
@@ -69,6 +70,7 @@ class ExtensionAPIMethod:
     request_model: type[BaseModel]
     response_model: type[BaseModel]
     required_permission: str | None = None
+    require_auth: bool = True
 
     @property
     def sdk_qualified_name(self) -> str:
@@ -84,6 +86,7 @@ def extension_api_method(
     sdk_name: str,
     description: str,
     required_permission: str | None = None,
+    require_auth: bool = True,
 ) -> Callable[
     [Callable[[ExtensionAPI, _RequestModel], Awaitable[_ResponseModel]]],
     Callable[[ExtensionAPI, _RequestModel], Awaitable[_ResponseModel]],
@@ -96,6 +99,7 @@ def extension_api_method(
         sdk_name=sdk_name,
         description=description,
         required_permission=required_permission,
+        require_auth=require_auth,
     )
 
     def decorator(
@@ -103,6 +107,10 @@ def extension_api_method(
     ) -> Callable[[ExtensionAPI, _RequestModel], Awaitable[_ResponseModel]]:
         @wraps(function)
         async def wrapper(self: ExtensionAPI, request: _RequestModel) -> _ResponseModel:
+            if require_auth and not self.user_id:
+                raise PermissionError(
+                    f"Extension API method '{method_id}' requires authentication."
+                )
             self.require_permission(required_permission)
             return await function(self, request)
 
@@ -140,9 +148,9 @@ class ExtensionAPI:
         sdk_name="get",
         description="Read one row from an extension storage table.",
         required_permission="ext.storage.read_write",
+        require_auth=True,
     )
     async def storage_get(self, request: StorageGetRequest) -> StorageGetResponse:
-        self.require_permission("ext.storage.read_write")
         row = await storage_get_row(self.extension_id, request.table, request.id)
         return StorageGetResponse(data_json=json.dumps(row) if row else None)
 
@@ -154,9 +162,9 @@ class ExtensionAPI:
         sdk_name="set",
         description="Create or update one row in an extension storage table.",
         required_permission="ext.storage.read_write",
+        require_auth=True,
     )
     async def storage_set(self, request: StorageSetRequest) -> StorageSetResponse:
-        self.require_permission("ext.storage.read_write")
         await storage_set_row(self.extension_id, request.table, request.data)
         return StorageSetResponse()
 
@@ -168,11 +176,11 @@ class ExtensionAPI:
         sdk_name="getPaginated",
         description="Get filtered, searched, sorted, paginated storage rows.",
         required_permission="ext.storage.read_write",
+        require_auth=True,
     )
     async def storage_get_paginated(
         self, request: StoragePaginatedRequest
     ) -> StoragePaginatedResponse:
-        self.require_permission("ext.storage.read_write")
         page = await storage_get_paginated_rows(
             self.extension_id,
             request.table,
@@ -197,11 +205,11 @@ class ExtensionAPI:
         sdk_name="delete",
         description="Delete one row from an extension storage table.",
         required_permission="ext.storage.read_write",
+        require_auth=True,
     )
     async def storage_delete(
         self, request: StorageDeleteRequest
     ) -> StorageDeleteResponse:
-        self.require_permission("ext.storage.read_write")
         await storage_delete_row(self.extension_id, request.table, request.id)
         return StorageDeleteResponse()
 
@@ -213,11 +221,11 @@ class ExtensionAPI:
         sdk_name="createInvoice",
         description="Create an incoming Lightning invoice for an allowed wallet.",
         required_permission="wallet.create_invoice",
+        require_auth=False,  # allow public pages to create invoices
     )
     async def wallet_create_invoice(
         self, request: CreateInvoiceRequest
     ) -> CreateInvoiceResponse:
-        self.require_permission("wallet.create_invoice")
         from lnbits.core.crud.wallets import get_wallet
         from lnbits.core.models.payments import CreateInvoice
         from lnbits.core.services.payments import create_payment_request
@@ -265,7 +273,6 @@ class ExtensionAPI:
             raise PermissionError(
                 "Listing user wallets requires an authenticated user context."
             )
-        self.require_permission("wallet.list")
 
         from lnbits.core.crud.wallets import get_wallets
 
@@ -288,6 +295,7 @@ class ExtensionAPI:
         host_name="random_id",
         sdk_name="id",
         description="Create a random extension-local identifier.",
+        require_auth=True,
     )
     async def system_random_id(self, request: RandomIdRequest) -> RandomIdResponse:
         return RandomIdResponse(
@@ -301,6 +309,7 @@ class ExtensionAPI:
         host_name="now",
         sdk_name="now",
         description="Return the current Unix timestamp.",
+        require_auth=True,
     )
     async def system_now(self, request: EmptyRequest) -> NowResponse:
         return NowResponse(timestamp=int(time.time()))
@@ -312,6 +321,7 @@ class ExtensionAPI:
         host_name="log",
         sdk_name="log",
         description="Write a bounded message to the extension log.",
+        require_auth=True,
     )
     async def system_log(self, request: LogRequest) -> LogResponse:
         log = getattr(logger, request.level)
@@ -342,6 +352,7 @@ def list_extension_api_methods(
                 request_model=request_model,
                 response_model=response_model,
                 required_permission=export.required_permission,
+                require_auth=export.require_auth,
             )
         )
 
@@ -384,6 +395,7 @@ def extension_api_contract(
                 "sdk_qualified_name": method.sdk_qualified_name,
                 "description": method.description,
                 "required_permission": method.required_permission,
+                "require_auth": method.require_auth,
                 "request_schema": method.request_model.schema(
                     ref_template="#/definitions/{model}"
                 ),
