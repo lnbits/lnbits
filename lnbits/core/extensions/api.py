@@ -5,10 +5,10 @@ import json
 import logging
 import secrets
 import time
-from collections.abc import Awaitable, Callable, Iterable
+from collections.abc import Awaitable, Callable, Iterable, Mapping
 from dataclasses import dataclass
 from functools import wraps
-from typing import TypeVar, cast, get_type_hints
+from typing import Any, TypeVar, cast, get_type_hints
 
 from pydantic import BaseModel
 
@@ -124,13 +124,13 @@ class ExtensionAPI:
     def __init__(
         self,
         extension_id: str,
-        permissions: Iterable[str],
+        permissions: Iterable[Any],
         *,
         user_id: str | None = None,
         wallet_id: str | None = None,
     ) -> None:
         self.extension_id = extension_id
-        self.permissions = set(permissions)
+        self.permissions, self.permission_policies = self._permission_data(permissions)
         self.user_id = user_id
         self.wallet_id = wallet_id
 
@@ -153,6 +153,30 @@ class ExtensionAPI:
     async def storage_get(self, request: StorageGetRequest) -> StorageGetResponse:
         row = await storage_get_row(self.extension_id, request.table, request.id)
         return StorageGetResponse(data_json=json.dumps(row) if row else None)
+
+    @extension_api_method(
+        method_id="storage.get_public",
+        namespace="storage",
+        name="Get public storage row",
+        host_name="storage_get_public",
+        sdk_name="getPublic",
+        description="Read one public row from an extension storage table.",
+        required_permission="ext.storage.read_public",
+        require_auth=False,
+    )
+    async def storage_get_public(
+        self, request: StorageGetRequest
+    ) -> StorageGetResponse:
+        public_fields = self._public_storage_fields(request.table)
+        row = await storage_get_row(self.extension_id, request.table, request.id)
+        if not row:
+            return StorageGetResponse()
+        public_row = {
+            field_name: value
+            for field_name, value in row.items()
+            if field_name in public_fields
+        }
+        return StorageGetResponse(data_json=json.dumps(public_row))
 
     @extension_api_method(
         method_id="storage.set",
@@ -327,6 +351,60 @@ class ExtensionAPI:
         log = getattr(logger, request.level)
         log("extension:%s %s", self.extension_id, request.message)
         return LogResponse()
+
+    @staticmethod
+    def _permission_data(
+        permissions: Iterable[Any],
+    ) -> tuple[set[str], dict[str, dict[str, Any]]]:
+        permission_ids: set[str] = set()
+        policies: dict[str, dict[str, Any]] = {}
+
+        for permission in permissions:
+            if isinstance(permission, str):
+                permission_ids.add(permission)
+                continue
+
+            permission_id: str | None = None
+            policy: Any = None
+            if isinstance(permission, Mapping):
+                permission_id = permission.get("id")  # type: ignore[assignment]
+                policy = permission.get("policy")
+            else:
+                permission_id = getattr(permission, "id", None)
+                policy = getattr(permission, "policy", None)
+
+            if not permission_id:
+                continue
+            permission_ids.add(permission_id)
+            if isinstance(policy, dict):
+                policies[permission_id] = policy
+
+        return permission_ids, policies
+
+    def _public_storage_fields(self, table: str) -> set[str]:
+        policy = self.permission_policies.get("ext.storage.read_public") or {}
+        tables = policy.get("tables")
+        if not isinstance(tables, list):
+            raise PermissionError(
+                "Public storage reads require a tables policy for "
+                "'ext.storage.read_public'."
+            )
+
+        for table_policy in tables:
+            if not isinstance(table_policy, dict):
+                continue
+            if table_policy.get("table_name") != table:
+                continue
+            public_fields = table_policy.get("public_fields")
+            if not isinstance(public_fields, list) or not all(
+                isinstance(field, str) and field for field in public_fields
+            ):
+                raise PermissionError(
+                    f"Public storage table '{table}' has no valid public fields."
+                )
+            return set(public_fields)
+
+        raise PermissionError(f"Storage table '{table}' is not publicly readable.")
 
 
 def list_extension_api_methods(
