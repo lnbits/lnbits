@@ -475,7 +475,9 @@
           :key="permission.id"
         >
           <q-item-section>
-            <q-item-label v-text="permissionLabel(permission)"></q-item-label>
+            <q-item-label>
+              <li><strong v-text="permissionLabel(permission)"></strong></li>
+            </q-item-label>
             <q-item-label
               v-if="permission.description"
               caption
