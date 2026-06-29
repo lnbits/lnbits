@@ -77,6 +77,13 @@ class GitHubRepo(BaseModel):
     default_branch: str
 
 
+class ExtensionPermission(BaseModel):
+    id: str
+    label: str | None = None
+    description: str | None = None
+    policy: dict[str, Any] | None = None
+
+
 class ExtensionConfig(BaseModel):
     name: str
     short_description: str
@@ -84,6 +91,8 @@ class ExtensionConfig(BaseModel):
     warning: str | None = ""
     min_lnbits_version: str | None
     max_lnbits_version: str | None
+    extension_type: str | None = None
+    permissions: list[ExtensionPermission] = []
 
     def is_version_compatible(self) -> bool:
         return is_lnbits_version_ok(self.min_lnbits_version, self.max_lnbits_version)
@@ -350,6 +359,7 @@ class InstallableExtension(BaseModel):
     icon: str | None = None
     stars: int = 0
     meta: ExtensionMeta | None = None
+    permissions: list[ExtensionPermission] = []
 
     @property
     def hash(self) -> str:
@@ -624,6 +634,11 @@ class InstallableExtension(BaseModel):
                     version=version,
                     short_description=config_json.get("short_description"),
                     icon=config_json.get("tile"),
+                    permissions=[
+                        ExtensionPermission.parse_obj(permission)
+                        for permission in config_json.get("permissions") or []
+                        if isinstance(permission, dict) and permission.get("id")
+                    ],
                     meta=ExtensionMeta(
                         installed_release=ExtensionRelease(
                             name=ext_id,
@@ -814,6 +829,7 @@ class CreateExtension(BaseModel):
     version: str
     cost_sats: int | None = 0
     payment_hash: str | None = None
+    permissions: list[ExtensionPermission] = []
 
 
 class ExtensionDetailsRequest(BaseModel):

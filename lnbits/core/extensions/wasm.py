@@ -9,6 +9,8 @@ from typing import Any
 
 from fastapi import FastAPI
 
+from lnbits.core.crud.extensions import get_installed_extension
+
 from .api import list_extension_api_methods
 from .loader import WasmExtension, register_wasm_extension
 from .models import UserWalletSummary
@@ -27,7 +29,7 @@ async def invoke_wasm_extension_export(
     extension = _get_registered_extension(app, ext_id)
     state = _get_extension_state(app)
     state.user_wallets[extension.id] = _user_wallet_summaries(user)
-    permissions = _extension_permissions(extension)
+    permissions = await _extension_permissions(extension)
     api = InMemoryExtensionAPI(
         extension.id,
         permissions,
@@ -204,12 +206,11 @@ def _get_extension_state(app: FastAPI) -> InMemoryExtensionState:
     return state
 
 
-def _extension_permissions(extension: WasmExtension) -> set[str]:
-    permissions = set()
-    for permission in extension.config.get("permissions") or []:
-        if isinstance(permission, Mapping) and isinstance(permission.get("id"), str):
-            permissions.add(permission["id"])
-    return permissions
+async def _extension_permissions(extension: WasmExtension) -> set[str]:
+    installed_extension = await get_installed_extension(extension.id)
+    if not installed_extension:
+        return set()
+    return {permission.id for permission in installed_extension.permissions}
 
 
 def _user_id(user: Any | None) -> str | None:

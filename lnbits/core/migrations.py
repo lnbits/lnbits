@@ -815,3 +815,12 @@ async def m045_add_external_id_to_payments(db: Connection):
         CREATE INDEX IF NOT EXISTS idx_payments_external_id
         ON apipayments (external_id);
         """)
+
+
+async def m046_add_permissions_to_installed_extensions(db: Connection):
+    """
+    Adds granted permissions to installed extensions.
+    """
+    await db.execute(
+        "ALTER TABLE installed_extensions ADD COLUMN permissions TEXT DEFAULT '[]'"
+    )

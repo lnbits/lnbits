@@ -89,7 +89,9 @@ async def api_install_extension(data: CreateExtension):
     )
 
     try:
-        extension = await install_extension(ext_info)
+        extension = await install_extension(
+            ext_info, granted_permissions=data.permissions
+        )
 
     except Exception as exc:
         logger.warning(exc)
@@ -463,6 +465,8 @@ async def get_extension_release(org: str, repo: str, tag_name: str):
             "min_lnbits_version": config.min_lnbits_version,
             "is_version_compatible": config.is_version_compatible(),
             "warning": config.warning,
+            "extension_type": config.extension_type,
+            "permissions": [dict(permission) for permission in config.permissions],
         }
     except Exception as exc:
         raise HTTPException(
@@ -535,9 +539,10 @@ async def extensions(account_id: AccountId = Depends(check_account_id_exists)):
     )
     installable_exts_ids = [e.id for e in installable_exts]
     installable_exts += [e for e in installed_exts if e.id not in installable_exts_ids]
+    installed_exts_by_id = {e.id: e for e in installed_exts}
 
     for e in installable_exts:
-        installed_ext = next((ie for ie in installed_exts if e.id == ie.id), None)
+        installed_ext = installed_exts_by_id.get(e.id)
         if installed_ext and installed_ext.meta:
             installed_release = installed_ext.meta.installed_release
             if installed_ext.meta.pay_to_enable and not account_id.is_admin_id:
@@ -558,47 +563,55 @@ async def extensions(account_id: AccountId = Depends(check_account_id_exists)):
             e.short_description = installed_ext.short_description
             e.icon = installed_ext.icon
 
-    extension_data = [
-        {
-            "id": ext.id,
-            "name": ext.name,
-            "icon": ext.icon,
-            "shortDescription": ext.short_description,
-            "stars": ext.stars,
-            "isFeatured": ext.meta.featured if ext.meta else False,
-            "categories": ext.meta.categories if ext.meta else [],
-            "dependencies": ext.meta.dependencies if ext.meta else "",
-            "isInstalled": ext.id in installed_exts_ids,
-            "hasDatabaseTables": next(
-                (True for version in db_versions if version.db == ext.id), False
-            ),
-            "isAvailable": ext.id in all_ext_ids,
-            "isAdminOnly": ext.id in settings.lnbits_admin_extensions,
-            "isActive": ext.id not in inactive_extensions,
-            "latestRelease": (
-                dict(ext.meta.latest_release)
-                if ext.meta and ext.meta.latest_release
-                else None
-            ),
-            "hasPaidRelease": ext.meta.has_paid_release if ext.meta else False,
-            "hasFreeRelease": ext.meta.has_free_release if ext.meta else False,
-            "paidFeatures": ext.meta.paid_features if ext.meta else False,
-            "installedRelease": (
-                dict(ext.meta.installed_release)
-                if ext.meta and ext.meta.installed_release
-                else None
-            ),
-            "payToEnable": (
-                dict(ext.meta.pay_to_enable)
-                if ext.meta and ext.meta.pay_to_enable
-                else {}
-            ),
-            "isPaymentRequired": ext.requires_payment,
-            "inProgress": False,
-            "selectedForUpdate": False,
-        }
-        for ext in installable_exts
-    ]
+    extension_data = []
+    for ext in installable_exts:
+        installed_ext = installed_exts_by_id.get(ext.id)
+        extension_data.append(
+            {
+                "id": ext.id,
+                "name": ext.name,
+                "icon": ext.icon,
+                "shortDescription": ext.short_description,
+                "stars": ext.stars,
+                "isFeatured": ext.meta.featured if ext.meta else False,
+                "categories": ext.meta.categories if ext.meta else [],
+                "dependencies": ext.meta.dependencies if ext.meta else "",
+                "isInstalled": ext.id in installed_exts_ids,
+                "hasDatabaseTables": next(
+                    (True for version in db_versions if version.db == ext.id), False
+                ),
+                "isAvailable": ext.id in all_ext_ids,
+                "isAdminOnly": ext.id in settings.lnbits_admin_extensions,
+                "isActive": ext.id not in inactive_extensions,
+                "latestRelease": (
+                    dict(ext.meta.latest_release)
+                    if ext.meta and ext.meta.latest_release
+                    else None
+                ),
+                "hasPaidRelease": ext.meta.has_paid_release if ext.meta else False,
+                "hasFreeRelease": ext.meta.has_free_release if ext.meta else False,
+                "paidFeatures": ext.meta.paid_features if ext.meta else False,
+                "installedRelease": (
+                    dict(ext.meta.installed_release)
+                    if ext.meta and ext.meta.installed_release
+                    else None
+                ),
+                "payToEnable": (
+                    dict(ext.meta.pay_to_enable)
+                    if ext.meta and ext.meta.pay_to_enable
+                    else {}
+                ),
+                "isPaymentRequired": ext.requires_payment,
+                "isWasm": installed_ext.is_wasm if installed_ext else ext.is_wasm,
+                "permissions": (
+                    [dict(permission) for permission in installed_ext.permissions]
+                    if installed_ext
+                    else []
+                ),
+                "inProgress": False,
+                "selectedForUpdate": False,
+            }
+        )
     return extension_data
 
 

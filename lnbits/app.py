@@ -112,7 +112,7 @@ async def startup(app: FastAPI):
     create_llms_txt_route(app)
 
     # initialize tasks
-    register_async_tasks()
+    register_async_tasks(app)
 
     enqueue_admin_notification(
         NotificationType.server_start_stop,
@@ -481,7 +481,7 @@ async def check_and_register_extensions(app: FastAPI) -> None:
             await update_installed_extension_state(ext_id=ext.code, active=False)
 
 
-def register_async_tasks() -> None:
+def register_async_tasks(app: FastAPI) -> None:
 
     create_permanent_task(wait_for_audit_data)
     create_permanent_task(wait_notification_messages)
@@ -499,7 +499,7 @@ def register_async_tasks() -> None:
     # core invoice listener
     invoice_queue: asyncio.Queue = asyncio.Queue()
     register_invoice_listener(invoice_queue, "core")
-    create_permanent_task(lambda: wait_for_paid_invoices(invoice_queue))
+    create_permanent_task(lambda: wait_for_paid_invoices(invoice_queue, app))
 
     create_permanent_task(run_by_the_minute_tasks)
     create_permanent_task(purge_audit_data)

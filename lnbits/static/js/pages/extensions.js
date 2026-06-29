@@ -132,6 +132,12 @@ window.PageExtensions = {
       // the install logic has been triggered one way or another
       this.unsubscribeFromPaylinkWs()
 
+      const grantedPermissions =
+        await this.resolveExtensionPermissionGrant(release)
+      if (grantedPermissions === null) {
+        return
+      }
+
       this.selectedExtension.inProgress = true
       this.showManageExtensionDialog = false
       release.payment_hash =
@@ -143,7 +149,8 @@ window.PageExtensions = {
           archive: release.archive,
           source_repo: release.source_repo,
           payment_hash: release.payment_hash,
-          version: release.version
+          version: release.version,
+          permissions: grantedPermissions
         })
         .then(response => {
           this.selectedExtension.inProgress = false
@@ -406,6 +413,10 @@ window.PageExtensions = {
     },
     async payAndInstall(release) {
       try {
+        if ((await this.resolveExtensionPermissionGrant(release)) === null) {
+          return
+        }
+
         this.selectedExtension.inProgress = true
         this.showManageExtensionDialog = false
         const paymentInfo = await this.requestPaymentForInstall(
@@ -451,6 +462,10 @@ window.PageExtensions = {
       }
     },
     async showInstallQRCode(release) {
+      if ((await this.resolveExtensionPermissionGrant(release)) === null) {
+        return
+      }
+
       this.selectedRelease = release
 
       try {
@@ -628,6 +643,8 @@ window.PageExtensions = {
         release.is_version_compatible = data.is_version_compatible
         release.min_lnbits_version = data.min_lnbits_version
         release.warning = data.warning
+        release.extension_type = data.extension_type
+        release.permissions = data.permissions || []
       } catch (error) {
         console.warn(error)
         release.error = error
@@ -635,6 +652,77 @@ window.PageExtensions = {
       } finally {
         release.inProgress = false
       }
+    },
+    async resolveExtensionPermissionGrant(release) {
+      const permissions = this.extensionPermissionsForRelease(release)
+      if (
+        !this.releaseRequiresPermissionGrant(release) ||
+        !permissions.length
+      ) {
+        return []
+      }
+      if (release.grantedPermissions) {
+        return release.grantedPermissions
+      }
+      const granted = await this.confirmExtensionPermissions(permissions)
+      if (!granted) {
+        return null
+      }
+      release.grantedPermissions = permissions
+      return permissions
+    },
+    extensionPermissionsForRelease(release) {
+      return release.permissions || this.selectedExtension?.permissions || []
+    },
+    releaseRequiresPermissionGrant(release) {
+      return (
+        release.extension_type === 'wasm' ||
+        this.selectedExtension?.isWasm === true
+      )
+    },
+    confirmExtensionPermissions(permissions) {
+      const permissionItems = permissions
+        .map(permission => {
+          const label = this.escapeHtml(permission.label || permission.id)
+          const description = permission.description
+            ? `<div class="text-caption text-grey-7">${this.escapeHtml(
+                permission.description
+              )}</div>`
+            : ''
+          return `<li><strong>${label}</strong>${description}</li>`
+        })
+        .join('')
+
+      return new Promise(resolve => {
+        this.$q
+          .dialog({
+            title: 'Grant extension permissions',
+            message: `<p>This WASM extension requests these permissions:</p><ul>${permissionItems}</ul>`,
+            html: true,
+            persistent: true,
+            ok: {
+              label: 'Grant and install',
+              color: 'primary',
+              flat: true
+            },
+            cancel: {
+              label: this.$t('cancel'),
+              color: 'grey',
+              flat: true
+            }
+          })
+          .onOk(() => resolve(true))
+          .onCancel(() => resolve(false))
+          .onDismiss(() => resolve(false))
+      })
+    },
+    escapeHtml(value) {
+      return String(value)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;')
     },
     async selectAllUpdatableExtensionss() {
       this.updatableExtensions.forEach(e => (e.selectedForUpdate = true))
@@ -644,6 +732,13 @@ window.PageExtensions = {
       for (const ext of this.updatableExtensions) {
         try {
           if (!ext.selectedForUpdate) {
+            continue
+          }
+          if (ext.isWasm) {
+            Quasar.Notify.create({
+              type: 'warning',
+              message: `Skipping ${ext.id}; WASM updates require permission approval.`
+            })
             continue
           }
           ext.inProgress = true
