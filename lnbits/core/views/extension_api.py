@@ -39,6 +39,7 @@ from lnbits.core.services.extensions import (
     get_valid_extensions,
     install_extension,
     uninstall_extension,
+    validate_extension_permissions,
 )
 from lnbits.db import Page
 from lnbits.decorators import (
@@ -461,13 +462,19 @@ async def get_extension_release(org: str, repo: str, tag_name: str):
         if not config:
             return {}
 
+        permissions = validate_extension_permissions(config.name, config.permissions)
+
         return {
             "min_lnbits_version": config.min_lnbits_version,
             "is_version_compatible": config.is_version_compatible(),
             "warning": config.warning,
             "extension_type": config.extension_type,
-            "permissions": [dict(permission) for permission in config.permissions],
+            "permissions": [dict(permission) for permission in permissions],
         }
+    except ValueError as exc:
+        raise HTTPException(
+            status_code=HTTPStatus.BAD_REQUEST, detail=str(exc)
+        ) from exc
     except Exception as exc:
         raise HTTPException(
             status_code=HTTPStatus.INTERNAL_SERVER_ERROR, detail=str(exc)
@@ -566,6 +573,13 @@ async def extensions(account_id: AccountId = Depends(check_account_id_exists)):
     extension_data = []
     for ext in installable_exts:
         installed_ext = installed_exts_by_id.get(ext.id)
+        permissions = (
+            validate_extension_permissions(
+                installed_ext.id, installed_ext.permissions, strict=False
+            )
+            if installed_ext
+            else []
+        )
         extension_data.append(
             {
                 "id": ext.id,
@@ -603,11 +617,7 @@ async def extensions(account_id: AccountId = Depends(check_account_id_exists)):
                 ),
                 "isPaymentRequired": ext.requires_payment,
                 "isWasm": installed_ext.is_wasm if installed_ext else ext.is_wasm,
-                "permissions": (
-                    [dict(permission) for permission in installed_ext.permissions]
-                    if installed_ext
-                    else []
-                ),
+                "permissions": [dict(permission) for permission in permissions],
                 "inProgress": False,
                 "selectedForUpdate": False,
             }

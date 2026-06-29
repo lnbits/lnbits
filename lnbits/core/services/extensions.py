@@ -2,6 +2,7 @@ import asyncio
 import importlib
 import json
 import zipfile
+from collections.abc import Iterable
 from pathlib import PurePosixPath
 from typing import Any
 
@@ -20,6 +21,7 @@ from lnbits.core.crud.extensions import (
     get_installed_extensions,
     update_installed_extension,
 )
+from lnbits.core.extensions.api import extension_api_permission_ids
 from lnbits.core.helpers import migrate_extension_database
 from lnbits.db import Connection
 from lnbits.settings import settings
@@ -82,6 +84,32 @@ async def install_extension(
     return extension
 
 
+def validate_extension_permissions(
+    ext_id: str,
+    permissions: Iterable[ExtensionPermission],
+    *,
+    strict: bool = True,
+) -> list[ExtensionPermission]:
+    known_permission_ids = extension_api_permission_ids()
+    normalized_permissions: list[ExtensionPermission] = []
+    unknown_ids: list[str] = []
+
+    for permission in permissions:
+        if permission.id not in known_permission_ids:
+            unknown_ids.append(permission.id)
+            if strict:
+                continue
+        normalized_permissions.append(permission.copy(update={"label": None}))
+
+    if unknown_ids and strict:
+        raise ValueError(
+            f"Extension '{ext_id}' requests unknown permissions: "
+            + ", ".join(sorted(set(unknown_ids)))
+        )
+
+    return normalized_permissions
+
+
 def _validate_extension_permissions(
     ext_info: InstallableExtension,
     granted_permissions: list[ExtensionPermission] | None,
@@ -90,25 +118,25 @@ def _validate_extension_permissions(
     if extension_config.get("extension_type") != "wasm":
         return []
 
-    requested_permissions = [
-        ExtensionPermission.parse_obj(permission)
-        for permission in extension_config.get("permissions") or []
-        if isinstance(permission, dict) and permission.get("id")
-    ]
+    requested_permissions = validate_extension_permissions(
+        ext_info.id,
+        [
+            ExtensionPermission.parse_obj(permission)
+            for permission in extension_config.get("permissions") or []
+            if isinstance(permission, dict) and permission.get("id")
+        ],
+    )
     if not requested_permissions:
         return []
 
     if granted_permissions is None:
-        raise ValueError(
-            f"WASM extension '{ext_info.id}' requires permission approval."
-        )
+        raise ValueError(f"Extension '{ext_info.id}' requires permission approval.")
 
     requested_ids = {permission.id for permission in requested_permissions}
     granted_ids = {permission.id for permission in granted_permissions}
     if requested_ids != granted_ids:
         raise ValueError(
-            f"WASM extension '{ext_info.id}' was not granted all requested "
-            "permissions."
+            f"Extension '{ext_info.id}' was not granted all requested permissions."
         )
 
     return requested_permissions
