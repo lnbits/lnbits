@@ -113,6 +113,7 @@ class InMemoryExtensionAPI(ExtensionAPI):
                 unit=request.currency or "sat",
                 memo=request.memo,
                 extra=request.extra,
+                extension=self.extension_id,
             ),
         )
         return CreateInvoiceResponse(
