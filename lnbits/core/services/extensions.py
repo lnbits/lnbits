@@ -1,5 +1,9 @@
 import asyncio
 import importlib
+import json
+import zipfile
+from pathlib import PurePosixPath
+from typing import Any
 
 from loguru import logger
 
@@ -20,11 +24,18 @@ from lnbits.core.helpers import migrate_extension_database
 from lnbits.db import Connection
 from lnbits.settings import settings
 
-from ..models.extensions import Extension, ExtensionMeta, InstallableExtension
+from ..models.extensions import (
+    Extension,
+    ExtensionMeta,
+    ExtensionPermission,
+    InstallableExtension,
+)
 
 
 async def install_extension(
-    ext_info: InstallableExtension, skip_download: bool | None = False
+    ext_info: InstallableExtension,
+    skip_download: bool | None = False,
+    granted_permissions: list[ExtensionPermission] | None = None,
 ) -> Extension:
 
     ext_info.meta = ext_info.meta or ExtensionMeta()
@@ -43,6 +54,11 @@ async def install_extension(
 
     if not skip_download:
         await ext_info.download_archive()
+
+    extension_config = _load_extension_archive_config(ext_info)
+    ext_info.permissions = _validate_extension_permissions(
+        ext_info, granted_permissions, extension_config
+    )
 
     ext_info.extract_archive()
 
@@ -64,6 +80,63 @@ async def install_extension(
     await start_extension_background_work(ext_info.id)
 
     return extension
+
+
+def _validate_extension_permissions(
+    ext_info: InstallableExtension,
+    granted_permissions: list[ExtensionPermission] | None,
+    extension_config: dict[str, Any],
+) -> list[ExtensionPermission]:
+    if extension_config.get("extension_type") != "wasm":
+        return []
+
+    requested_permissions = [
+        ExtensionPermission.parse_obj(permission)
+        for permission in extension_config.get("permissions") or []
+        if isinstance(permission, dict) and permission.get("id")
+    ]
+    if not requested_permissions:
+        return []
+
+    if granted_permissions is None:
+        raise ValueError(
+            f"WASM extension '{ext_info.id}' requires permission approval."
+        )
+
+    requested_ids = {permission.id for permission in requested_permissions}
+    granted_ids = {permission.id for permission in granted_permissions}
+    if requested_ids != granted_ids:
+        raise ValueError(
+            f"WASM extension '{ext_info.id}' was not granted all requested "
+            "permissions."
+        )
+
+    return requested_permissions
+
+
+def _load_extension_archive_config(ext_info: InstallableExtension) -> dict[str, Any]:
+    if not ext_info.zip_path.is_file():
+        return {}
+
+    try:
+        with zipfile.ZipFile(ext_info.zip_path, "r") as archive:
+            config_name = _archive_config_name(archive.namelist())
+            if not config_name:
+                return {}
+            with archive.open(config_name) as config_file:
+                config = json.load(config_file)
+    except Exception as exc:
+        raise ValueError(f"Cannot read extension config for '{ext_info.id}'.") from exc
+
+    return config if isinstance(config, dict) else {}
+
+
+def _archive_config_name(names: list[str]) -> str | None:
+    for name in names:
+        path = PurePosixPath(name)
+        if len(path.parts) == 2 and path.name == "config.json":
+            return name
+    return None
 
 
 async def check_extensions_limit(installed_ext: InstallableExtension | None = None):
