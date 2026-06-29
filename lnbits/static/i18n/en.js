@@ -523,6 +523,7 @@ window.localisation.en = {
   extension_permissions_request: 'This extension requests these permissions:',
   extension_permissions_grant_install: 'Grant and install',
   extension_permission_ext_storage_read: 'Read extension storage',
+  extension_permission_ext_storage_read_public: 'Read public extension storage',
   extension_permission_ext_storage_write: 'Write extension storage',
   extension_permission_payments_watch: 'Watch payments',
   extension_permission_wallet_create_invoice: 'Create invoices',

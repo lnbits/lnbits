@@ -193,11 +193,11 @@ def _get_registered_extension(app: FastAPI, ext_id: str) -> WasmExtension:
     return register_wasm_extension(app, ext_id)
 
 
-async def _extension_permissions(extension: WasmExtension) -> set[str]:
+async def _extension_permissions(extension: WasmExtension) -> list[Any]:
     installed_extension = await get_installed_extension(extension.id)
     if not installed_extension:
-        return set()
-    return {permission.id for permission in installed_extension.permissions}
+        return []
+    return installed_extension.permissions
 
 
 def _user_id(user: Any | None) -> str | None:
