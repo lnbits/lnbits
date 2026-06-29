@@ -75,11 +75,12 @@ async def install_extension(
         await update_installed_extension(ext_info)
 
     extension = Extension.from_installable_ext(ext_info)
-    if extension.is_upgrade_extension:
+    if extension.is_upgrade_extension and not extension.is_wasm:
         # call stop while the old routes are still active
         await stop_extension_background_work(ext_info.id)
 
-    await start_extension_background_work(ext_info.id)
+    if not extension.is_wasm:
+        await start_extension_background_work(ext_info.id)
 
     return extension
 
@@ -188,6 +189,11 @@ async def uninstall_extension(ext_id: str):
 
 
 async def activate_extension(ext: Extension):
+    if ext.is_wasm:
+        core_app_extra.register_new_wasm_ext_routes(ext.code)
+        await update_installed_extension_state(ext_id=ext.code, active=True)
+        return
+
     core_app_extra.register_new_ext_routes(ext)
     await update_installed_extension_state(ext_id=ext.code, active=True)
     await start_extension_background_work(ext.code)

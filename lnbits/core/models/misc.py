@@ -11,6 +11,7 @@ def _do_nothing(*_):
 
 class CoreAppExtra:
     register_new_ext_routes: Callable = _do_nothing
+    register_new_wasm_ext_routes: Callable = _do_nothing
     register_new_ratelimiter: Callable
 
 
