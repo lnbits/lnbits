@@ -11,10 +11,8 @@ from fastapi import FastAPI
 
 from lnbits.core.crud.extensions import get_installed_extension
 
-from .api import list_extension_api_methods
+from .api import ExtensionAPI, list_extension_api_methods
 from .loader import WasmExtension, register_wasm_extension
-from .models import UserWalletSummary
-from .prototype import InMemoryExtensionAPI, InMemoryExtensionState
 from .runtime import ExtensionAPIHost
 
 
@@ -27,13 +25,10 @@ async def invoke_wasm_extension_export(
     user: Any | None = None,
 ) -> dict[str, Any]:
     extension = _get_registered_extension(app, ext_id)
-    state = _get_extension_state(app)
-    state.user_wallets[extension.id] = _user_wallet_summaries(user)
     permissions = await _extension_permissions(extension)
-    api = InMemoryExtensionAPI(
+    api = ExtensionAPI(
         extension.id,
         permissions,
-        state=state,
         user_id=_user_id(user),
     )
 
@@ -54,7 +49,7 @@ def _invoke_wasm_extension_export_sync(
     extension: WasmExtension,
     export_name: str,
     payload: Mapping[str, Any],
-    api: InMemoryExtensionAPI,
+    api: ExtensionAPI,
 ) -> dict[str, Any]:
     try:
         from wasmtime import Store, WasiConfig, component
@@ -198,14 +193,6 @@ def _get_registered_extension(app: FastAPI, ext_id: str) -> WasmExtension:
     return register_wasm_extension(app, ext_id)
 
 
-def _get_extension_state(app: FastAPI) -> InMemoryExtensionState:
-    state = getattr(app.state, "lnbits_extension_state", None)
-    if not state:
-        state = InMemoryExtensionState()
-        app.state.lnbits_extension_state = state
-    return state
-
-
 async def _extension_permissions(extension: WasmExtension) -> set[str]:
     installed_extension = await get_installed_extension(extension.id)
     if not installed_extension:
@@ -215,28 +202,6 @@ async def _extension_permissions(extension: WasmExtension) -> set[str]:
 
 def _user_id(user: Any | None) -> str | None:
     return getattr(user, "id", None) if user else None
-
-
-def _user_wallet_summaries(user: Any | None) -> list[UserWalletSummary] | None:
-    if user is None:
-        return None
-
-    summaries: list[UserWalletSummary] = []
-    for wallet in getattr(user, "wallets", []) or []:
-        if not getattr(wallet, "can_receive_payments", False):
-            continue
-        wallet_id = getattr(wallet, "id", None)
-        wallet_name = getattr(wallet, "name", None)
-        if not wallet_id or not wallet_name:
-            continue
-        summaries.append(
-            UserWalletSummary(
-                id=wallet_id,
-                name=wallet_name,
-                currency=getattr(wallet, "currency", None),
-            )
-        )
-    return summaries
 
 
 def _camel_to_kebab(value: str) -> str:

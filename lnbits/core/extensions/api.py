@@ -1,13 +1,14 @@
 from __future__ import annotations
 
 import inspect
+import json
 import logging
 import secrets
 import time
 from collections.abc import Awaitable, Callable, Iterable
 from dataclasses import dataclass
 from functools import wraps
-from typing import NoReturn, TypeVar, cast, get_type_hints
+from typing import TypeVar, cast, get_type_hints
 
 from pydantic import BaseModel
 
@@ -29,8 +30,13 @@ from .models import (
     StoragePaginatedResponse,
     StorageSetRequest,
     StorageSetResponse,
-    WatchPaymentRequest,
-    WatchPaymentResponse,
+    UserWalletSummary,
+)
+from .storage import (
+    storage_delete_row,
+    storage_get_paginated_rows,
+    storage_get_row,
+    storage_set_row,
 )
 
 logger = logging.getLogger("lnbits.extensions")
@@ -136,7 +142,8 @@ class ExtensionAPI:
         required_permission="ext.storage.read_write",
     )
     async def storage_get(self, request: StorageGetRequest) -> StorageGetResponse:
-        self._raise_unwired_runtime("storage_get")
+        row = await storage_get_row(self.extension_id, request.table, request.id)
+        return StorageGetResponse(data_json=json.dumps(row) if row else None)
 
     @extension_api_method(
         method_id="storage.set",
@@ -148,7 +155,8 @@ class ExtensionAPI:
         required_permission="ext.storage.read_write",
     )
     async def storage_set(self, request: StorageSetRequest) -> StorageSetResponse:
-        self._raise_unwired_runtime("storage_set")
+        await storage_set_row(self.extension_id, request.table, request.data)
+        return StorageSetResponse()
 
     @extension_api_method(
         method_id="storage.get_paginated",
@@ -162,7 +170,21 @@ class ExtensionAPI:
     async def storage_get_paginated(
         self, request: StoragePaginatedRequest
     ) -> StoragePaginatedResponse:
-        self._raise_unwired_runtime("storage_get_paginated")
+        page = await storage_get_paginated_rows(
+            self.extension_id,
+            request.table,
+            request.filters,
+            search=request.search,
+            search_fields=request.search_fields,
+            sort_by=request.sort_by,
+            descending=request.descending,
+            limit=request.limit,
+            offset=request.offset,
+        )
+        return StoragePaginatedResponse(
+            rows_json=json.dumps(page["data"]),
+            total=page["total"],
+        )
 
     @extension_api_method(
         method_id="storage.delete",
@@ -176,7 +198,8 @@ class ExtensionAPI:
     async def storage_delete(
         self, request: StorageDeleteRequest
     ) -> StorageDeleteResponse:
-        self._raise_unwired_runtime("storage_delete")
+        await storage_delete_row(self.extension_id, request.table, request.id)
+        return StorageDeleteResponse()
 
     @extension_api_method(
         method_id="wallet.create_invoice",
@@ -190,7 +213,36 @@ class ExtensionAPI:
     async def wallet_create_invoice(
         self, request: CreateInvoiceRequest
     ) -> CreateInvoiceResponse:
-        self._raise_unwired_runtime("wallet_create_invoice")
+        from lnbits.core.crud.wallets import get_wallet
+        from lnbits.core.models.payments import CreateInvoice
+        from lnbits.core.services.payments import create_payment_request
+
+        if self.user_id:
+            wallet = await get_wallet(request.wallet_id)
+            if wallet is None or wallet.user != self.user_id:
+                raise PermissionError(
+                    "Creating an invoice for this wallet requires an "
+                    "authenticated user context."
+                )
+        else:
+            pass
+            # todo: security stuff here
+
+        payment = await create_payment_request(
+            request.wallet_id,
+            CreateInvoice(
+                amount=request.amount_sat,
+                unit=request.currency or "sat",
+                memo=request.memo,
+                extra=request.extra,
+                extension=self.extension_id,
+            ),
+        )
+        return CreateInvoiceResponse(
+            payment_hash=payment.payment_hash,
+            payment_request=payment.payment_request or payment.bolt11,
+            checking_id=payment.checking_id,
+        )
 
     @extension_api_method(
         method_id="wallet.list_user_wallets",
@@ -204,21 +256,24 @@ class ExtensionAPI:
     async def wallet_list_user_wallets(
         self, request: EmptyRequest
     ) -> ListUserWalletsResponse:
-        self._raise_unwired_runtime("wallet_list_user_wallets")
+        if not self.user_id:
+            raise PermissionError(
+                "Listing user wallets requires an authenticated user context."
+            )
 
-    @extension_api_method(
-        method_id="payments.watch",
-        namespace="payments",
-        name="Watch payment",
-        host_name="watch_payment",
-        sdk_name="watch",
-        description="Subscribe the extension to a payment state callback.",
-        required_permission="payments.watch",
-    )
-    async def payments_watch(
-        self, request: WatchPaymentRequest
-    ) -> WatchPaymentResponse:
-        self._raise_unwired_runtime("payments_watch")
+        from lnbits.core.crud.wallets import get_wallets
+
+        user_wallets = await get_wallets(self.user_id)
+        if user_wallets is None:
+            raise PermissionError(
+                "Listing user wallets requires an authenticated user context."
+            )
+        return ListUserWalletsResponse(
+            wallets=[
+                UserWalletSummary(id=w.id, name=w.name, currency=w.currency)
+                for w in user_wallets
+            ]
+        )
 
     @extension_api_method(
         method_id="system.random_id",
@@ -256,11 +311,6 @@ class ExtensionAPI:
         log = getattr(logger, request.level)
         log("extension:%s %s", self.extension_id, request.message)
         return LogResponse()
-
-    def _raise_unwired_runtime(self, method_name: str) -> NoReturn:
-        raise NotImplementedError(
-            f"ExtensionAPI.{method_name} must be wired to LNbits services before use."
-        )
 
 
 def list_extension_api_methods(
