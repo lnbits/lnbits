@@ -314,7 +314,7 @@
                 flat
                 color="primary"
                 type="a"
-                :href="extension.id + '/'"
+                :href="extensionOpenUrl(extension)"
                 :label="$t('open')"
               ></q-btn>
               <q-btn

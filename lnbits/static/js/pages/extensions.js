@@ -633,6 +633,9 @@ window.PageExtensions = {
 
       return ''
     },
+    extensionOpenUrl(extension) {
+      return extension.isWasm ? `/ext/${extension.id}` : `/${extension.id}`
+    },
     async getGitHubReleaseDetails(release) {
       if (!release.is_github_release || release.loaded) {
         return
