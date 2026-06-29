@@ -147,7 +147,7 @@ class ExtensionAPI:
         host_name="storage_get",
         sdk_name="get",
         description="Read one row from an extension storage table.",
-        required_permission="ext.storage.read_write",
+        required_permission="ext.storage.read",
         require_auth=True,
     )
     async def storage_get(self, request: StorageGetRequest) -> StorageGetResponse:
@@ -161,7 +161,7 @@ class ExtensionAPI:
         host_name="storage_set",
         sdk_name="set",
         description="Create or update one row in an extension storage table.",
-        required_permission="ext.storage.read_write",
+        required_permission="ext.storage.write",
         require_auth=True,
     )
     async def storage_set(self, request: StorageSetRequest) -> StorageSetResponse:
@@ -175,7 +175,7 @@ class ExtensionAPI:
         host_name="storage_get_paginated",
         sdk_name="getPaginated",
         description="Get filtered, searched, sorted, paginated storage rows.",
-        required_permission="ext.storage.read_write",
+        required_permission="ext.storage.read",
         require_auth=True,
     )
     async def storage_get_paginated(
@@ -204,7 +204,7 @@ class ExtensionAPI:
         host_name="storage_delete",
         sdk_name="delete",
         description="Delete one row from an extension storage table.",
-        required_permission="ext.storage.read_write",
+        required_permission="ext.storage.write",
         require_auth=True,
     )
     async def storage_delete(
