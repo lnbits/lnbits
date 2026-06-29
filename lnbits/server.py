@@ -58,6 +58,8 @@ def main(
             ssl_keyfile=ssl_keyfile,
             ssl_certfile=ssl_certfile,
             reload=reload or False,
+            ws_ping_interval=None,
+            ws_ping_timeout=None,
         )
 
         server = uvicorn.Server(config=config)
