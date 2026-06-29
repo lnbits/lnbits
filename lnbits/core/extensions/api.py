@@ -292,6 +292,16 @@ def list_extension_api_methods(
     return sorted(methods, key=lambda method: method.method_id)
 
 
+def extension_api_permission_ids(
+    api_cls: type[ExtensionAPI] = ExtensionAPI,
+) -> set[str]:
+    return {
+        method.required_permission
+        for method in list_extension_api_methods(api_cls)
+        if method.required_permission
+    }
+
+
 def get_extension_api_method(
     method_id: str,
     api_cls: type[ExtensionAPI] = ExtensionAPI,
