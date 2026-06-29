@@ -142,6 +142,7 @@ class ExtensionAPI:
         required_permission="ext.storage.read_write",
     )
     async def storage_get(self, request: StorageGetRequest) -> StorageGetResponse:
+        self.require_permission("ext.storage.read_write")
         row = await storage_get_row(self.extension_id, request.table, request.id)
         return StorageGetResponse(data_json=json.dumps(row) if row else None)
 
@@ -155,6 +156,7 @@ class ExtensionAPI:
         required_permission="ext.storage.read_write",
     )
     async def storage_set(self, request: StorageSetRequest) -> StorageSetResponse:
+        self.require_permission("ext.storage.read_write")
         await storage_set_row(self.extension_id, request.table, request.data)
         return StorageSetResponse()
 
@@ -170,6 +172,7 @@ class ExtensionAPI:
     async def storage_get_paginated(
         self, request: StoragePaginatedRequest
     ) -> StoragePaginatedResponse:
+        self.require_permission("ext.storage.read_write")
         page = await storage_get_paginated_rows(
             self.extension_id,
             request.table,
@@ -198,6 +201,7 @@ class ExtensionAPI:
     async def storage_delete(
         self, request: StorageDeleteRequest
     ) -> StorageDeleteResponse:
+        self.require_permission("ext.storage.read_write")
         await storage_delete_row(self.extension_id, request.table, request.id)
         return StorageDeleteResponse()
 
@@ -213,6 +217,7 @@ class ExtensionAPI:
     async def wallet_create_invoice(
         self, request: CreateInvoiceRequest
     ) -> CreateInvoiceResponse:
+        self.require_permission("wallet.create_invoice")
         from lnbits.core.crud.wallets import get_wallet
         from lnbits.core.models.payments import CreateInvoice
         from lnbits.core.services.payments import create_payment_request
@@ -260,6 +265,7 @@ class ExtensionAPI:
             raise PermissionError(
                 "Listing user wallets requires an authenticated user context."
             )
+        self.require_permission("wallet.list")
 
         from lnbits.core.crud.wallets import get_wallets
 
