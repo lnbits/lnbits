@@ -455,8 +455,53 @@
     </q-card>
   </q-dialog>
 
-  <q-dialog v-model="showManageExtensionDialog" position="top">
-    <q-card v-if="selectedRelease" class="q-pa-lg lnbits__dialog-card">
+  <q-dialog
+    v-model="showManageExtensionDialog"
+    position="top"
+    @hide="onManageExtensionDialogHide"
+  >
+    <q-card v-if="permissionGrant.show" class="q-pa-lg lnbits__dialog-card">
+      <q-card-section>
+        <div class="text-h6" v-text="$t('extension_permissions_title')"></div>
+        <div
+          class="text-body2 q-mt-sm"
+          v-text="$t('extension_permissions_request')"
+        ></div>
+      </q-card-section>
+
+      <q-list bordered separator class="q-mt-md">
+        <q-item
+          v-for="permission of permissionGrant.permissions"
+          :key="permission.id"
+        >
+          <q-item-section>
+            <q-item-label v-text="permissionLabel(permission)"></q-item-label>
+            <q-item-label
+              v-if="permission.description"
+              caption
+              v-text="permission.description"
+            ></q-item-label>
+          </q-item-section>
+        </q-item>
+      </q-list>
+
+      <div class="row q-mt-lg">
+        <q-btn
+          flat
+          color="grey"
+          v-text="$t('cancel')"
+          @click="cancelExtensionPermissions"
+        ></q-btn>
+        <q-btn
+          flat
+          color="primary"
+          class="q-ml-auto"
+          v-text="$t('extension_permissions_grant_install')"
+          @click="grantExtensionPermissions"
+        ></q-btn>
+      </div>
+    </q-card>
+    <q-card v-else-if="selectedRelease" class="q-pa-lg lnbits__dialog-card">
       <q-card-section>
         <div v-if="selectedRelease.paymentRequest">
           <lnbits-qrcode

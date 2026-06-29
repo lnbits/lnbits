@@ -24,6 +24,11 @@ window.PageExtensions = {
       selectedExtensionDetails: null,
       selectedExtensionRepos: null,
       selectedRelease: null,
+      permissionGrant: {
+        show: false,
+        permissions: [],
+        resolve: null
+      },
       uninstallAndDropDb: false,
       maxStars: 5,
       paylinkWebsocket: null,
@@ -664,12 +669,13 @@ window.PageExtensions = {
       if (release.grantedPermissions) {
         return release.grantedPermissions
       }
-      const granted = await this.confirmExtensionPermissions(permissions)
-      if (!granted) {
+      const grantedPermissions =
+        await this.confirmExtensionPermissions(permissions)
+      if (!grantedPermissions) {
         return null
       }
-      release.grantedPermissions = permissions
-      return permissions
+      release.grantedPermissions = grantedPermissions
+      return grantedPermissions
     },
     extensionPermissionsForRelease(release) {
       return release.permissions || this.selectedExtension?.permissions || []
@@ -681,48 +687,43 @@ window.PageExtensions = {
       )
     },
     confirmExtensionPermissions(permissions) {
-      const permissionItems = permissions
-        .map(permission => {
-          const label = this.escapeHtml(permission.label || permission.id)
-          const description = permission.description
-            ? `<div class="text-caption text-grey-7">${this.escapeHtml(
-                permission.description
-              )}</div>`
-            : ''
-          return `<li><strong>${label}</strong>${description}</li>`
-        })
-        .join('')
-
       return new Promise(resolve => {
-        this.$q
-          .dialog({
-            title: 'Grant extension permissions',
-            message: `<p>This WASM extension requests these permissions:</p><ul>${permissionItems}</ul>`,
-            html: true,
-            persistent: true,
-            ok: {
-              label: 'Grant and install',
-              color: 'primary',
-              flat: true
-            },
-            cancel: {
-              label: this.$t('cancel'),
-              color: 'grey',
-              flat: true
-            }
-          })
-          .onOk(() => resolve(true))
-          .onCancel(() => resolve(false))
-          .onDismiss(() => resolve(false))
+        this.selectedRelease = null
+        this.permissionGrant = {
+          show: true,
+          permissions,
+          resolve
+        }
+        this.showManageExtensionDialog = true
       })
     },
-    escapeHtml(value) {
-      return String(value)
-        .replace(/&/g, '&amp;')
-        .replace(/</g, '&lt;')
-        .replace(/>/g, '&gt;')
-        .replace(/"/g, '&quot;')
-        .replace(/'/g, '&#039;')
+    grantExtensionPermissions() {
+      this.resolveExtensionPermissionDialog(this.permissionGrant.permissions)
+    },
+    cancelExtensionPermissions() {
+      this.resolveExtensionPermissionDialog(null)
+    },
+    onManageExtensionDialogHide() {
+      if (this.permissionGrant.show) {
+        this.resolveExtensionPermissionDialog(null)
+      }
+    },
+    resolveExtensionPermissionDialog(grantedPermissions) {
+      const resolve = this.permissionGrant.resolve
+      this.permissionGrant = {
+        show: false,
+        permissions: [],
+        resolve: null
+      }
+      this.showManageExtensionDialog = false
+      if (resolve) {
+        resolve(grantedPermissions)
+      }
+    },
+    permissionLabel(permission) {
+      const key = `extension_permission_${permission.id.replace(/[^A-Za-z0-9]/g, '_')}`
+      const label = this.$t(key)
+      return label === key ? permission.id : label
     },
     async selectAllUpdatableExtensionss() {
       this.updatableExtensions.forEach(e => (e.selectedForUpdate = true))
@@ -737,7 +738,7 @@ window.PageExtensions = {
           if (ext.isWasm) {
             Quasar.Notify.create({
               type: 'warning',
-              message: `Skipping ${ext.id}; WASM updates require permission approval.`
+              message: `Skipping ${ext.id}; this extension update requires permission approval.`
             })
             continue
           }
