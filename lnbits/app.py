@@ -171,6 +171,7 @@ def create_app() -> FastAPI:
 
     # Allow registering new extensions routes without direct access to the `app` object
     core_app_extra.register_new_ext_routes = register_new_ext_routes(app)
+    core_app_extra.register_new_wasm_ext_routes = register_new_wasm_ext_routes(app)
     core_app_extra.register_new_ratelimiter = register_new_ratelimiter(app)
 
     # register static files
@@ -416,6 +417,13 @@ def register_new_ext_routes(app: FastAPI) -> Callable:
         register_ext_routes(app, ext)
 
     return register_new_ext_routes_fn
+
+
+def register_new_wasm_ext_routes(app: FastAPI) -> Callable:
+    def register_new_wasm_ext_routes_fn(ext_id: str):
+        register_wasm_extension(app, ext_id)
+
+    return register_new_wasm_ext_routes_fn
 
 
 def register_new_ratelimiter(app: FastAPI) -> Callable:
