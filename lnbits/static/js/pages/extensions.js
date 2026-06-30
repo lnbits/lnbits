@@ -736,6 +736,12 @@ window.PageExtensions = {
       const description = this.$t(key)
       return description === key ? permission.description : description
     },
+    permissionPolicyDetails(permission) {
+      if (permission.id !== 'http.request') return ''
+      const hosts = permission.policy?.hosts
+      if (!Array.isArray(hosts) || !hosts.length) return ''
+      return `${this.$t('extension_permission_http_request_hosts')}: ${hosts.join(', ')}`
+    },
     async selectAllUpdatableExtensionss() {
       this.updatableExtensions.forEach(e => (e.selectedForUpdate = true))
     },

@@ -525,6 +525,10 @@ window.localisation.en = {
   extension_permission_ext_storage_read: 'Read extension storage',
   extension_permission_ext_storage_read_public: 'Read public extension storage',
   extension_permission_ext_storage_write: 'Write extension storage',
+  extension_permission_http_request: 'Connect to external websites',
+  extension_permission_http_request_desc:
+    'Make HTTP requests to approved external hosts.',
+  extension_permission_http_request_hosts: 'Allowed hosts',
   extension_permission_payments_watch: 'Watch payments',
   extension_permission_wallet_create_invoice: 'Create invoices',
   extension_permission_wallet_create_invoice_public:

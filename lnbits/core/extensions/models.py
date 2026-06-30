@@ -118,6 +118,37 @@ class ListUserWalletsResponse(BaseModel):
     wallets: list[UserWalletSummary] = Field(default_factory=list)
 
 
+class HttpRequest(BaseModel):
+    method: Literal["DELETE", "GET", "HEAD", "PATCH", "POST", "PUT"] = "GET"
+    url: str = Field(..., min_length=1, max_length=2048)
+    headers: dict[str, str] = Field(default_factory=dict)
+    body: str | None = Field(None, max_length=65536)
+
+    @root_validator(pre=True)
+    def normalize_method(cls, values: dict[str, Any]) -> dict[str, Any]:
+        method = values.get("method")
+        if isinstance(method, str):
+            values["method"] = method.upper()
+        return values
+
+    @root_validator
+    def validate_headers_size(cls, values: dict[str, Any]) -> dict[str, Any]:
+        headers = values.get("headers") or {}
+        if len(headers) > 32:
+            raise ValueError("headers must not contain more than 32 entries.")
+        for key, value in headers.items():
+            if len(key) > 128 or len(value) > 4096:
+                raise ValueError("headers are too large.")
+        values["headers"] = headers
+        return values
+
+
+class HttpResponse(BaseModel):
+    status_code: int
+    headers: dict[str, str] = Field(default_factory=dict)
+    body: str = ""
+
+
 class RandomIdRequest(BaseModel):
     prefix: str = Field(..., min_length=1, max_length=32)
 

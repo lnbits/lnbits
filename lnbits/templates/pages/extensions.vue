@@ -483,6 +483,11 @@
               caption
               v-text="permissionDescription(permission)"
             ></q-item-label>
+            <q-item-label
+              v-if="permissionPolicyDetails(permission)"
+              caption
+              v-text="permissionPolicyDetails(permission)"
+            ></q-item-label>
           </q-item-section>
         </q-item>
       </q-list>

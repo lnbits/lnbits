@@ -19,6 +19,8 @@ from .models import (
     CreateInvoiceRequest,
     CreateInvoiceResponse,
     EmptyRequest,
+    HttpRequest,
+    HttpResponse,
     ListUserWalletsResponse,
     LogRequest,
     LogResponse,
@@ -396,6 +398,22 @@ class ExtensionAPI:
                 for w in user_wallets
             ]
         )
+
+    @extension_api_method(
+        method_id="http.request",
+        namespace="http",
+        name="HTTP request",
+        host_name="http_request",
+        sdk_name="request",
+        description="Make an outbound HTTP request to an allowed host.",
+        required_permission="http.request",
+        require_auth=True,
+    )
+    async def http_request(self, request: HttpRequest) -> HttpResponse:
+        from .http_client import send_extension_http_request
+
+        policy = self.permission_policies.get("http.request") or {}
+        return await send_extension_http_request(self.extension_id, policy, request)
 
     @extension_api_method(
         method_id="system.random_id",
