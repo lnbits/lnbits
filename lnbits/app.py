@@ -28,8 +28,8 @@ from lnbits.core.extensions.events import dispatch_wasm_invoice_paid
 from lnbits.core.extensions.loader import (
     is_wasm_extension_dir,
     is_wasm_extension_id,
-    register_wasm_extension,
 )
+from lnbits.core.extensions.routes import register_wasm_extension
 from lnbits.core.helpers import migrate_extension_database
 from lnbits.core.models.notifications import NotificationType
 from lnbits.core.services.extensions import deactivate_extension, get_valid_extensions

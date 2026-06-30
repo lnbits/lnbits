@@ -8,7 +8,8 @@ from .api import (
     get_extension_api_method,
     list_extension_api_methods,
 )
-from .loader import WasmExtension, load_wasm_extension, register_wasm_extension
+from .loader import WasmExtension, load_wasm_extension
+from .routes import register_wasm_extension
 from .runtime import ExtensionAPIHost
 from .wasm import invoke_wasm_extension_export
 
