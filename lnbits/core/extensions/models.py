@@ -82,6 +82,13 @@ class CreateInvoiceRequest(BaseModel):
     extra: dict[str, str] = Field(default_factory=dict)
 
 
+class CreateInvoicePublicRequest(BaseModel):
+    id: str = Field(..., min_length=1, max_length=512)
+    amount: float = Field(..., gt=0)
+    currency: str = Field(..., min_length=1, max_length=8)
+    memo: str = Field("", max_length=512)
+
+
 class CreateInvoiceResponse(BaseModel):
     payment_hash: str
     payment_request: str
