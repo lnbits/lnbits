@@ -25,6 +25,7 @@ from lnbits.core.crud import (
 )
 from lnbits.core.crud.audit import delete_expired_audit_entries
 from lnbits.core.crud.extensions import create_installed_extension
+from lnbits.core.extensions.events import dispatch_wasm_invoice_paid
 from lnbits.core.extensions.loader import (
     is_wasm_extension_dir,
     is_wasm_extension_id,

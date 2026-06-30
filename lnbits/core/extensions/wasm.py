@@ -33,7 +33,6 @@ async def invoke_wasm_extension_export(
         context=context,
         owner_id=owner_id,
     )
-    print("### api", api)
 
     return await asyncio.to_thread(
         _invoke_wasm_extension_export_sync,
