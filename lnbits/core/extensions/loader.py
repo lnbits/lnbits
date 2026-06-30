@@ -17,6 +17,7 @@ from starlette.staticfiles import PathLike as StaticFilesPathLike
 from starlette.types import Scope
 
 from lnbits.core.db import core_app_extra
+from lnbits.core.models import Account
 from lnbits.decorators import (
     check_access_token,
     check_account_exists,
@@ -234,7 +235,7 @@ def _add_wasm_extension_api_route(
         return
 
     async def invoke_wasm_api_request(
-        request: Request, user: Any | None = None
+        request: Request, account: Account | None = None
     ) -> dict[str, Any]:
         from .wasm import invoke_wasm_extension_export as invoke_wasm_export
 
@@ -244,7 +245,7 @@ def _add_wasm_extension_api_route(
                 extension.id,
                 export_name,
                 payload,
-                user=user,
+                user=account,
             )
         except KeyError as exc:
             raise HTTPException(status_code=404, detail=str(exc)) from exc
@@ -255,7 +256,7 @@ def _add_wasm_extension_api_route(
 
     async def invoke_private_wasm_extension_export(
         request: Request,
-        account: Any = Depends(check_account_exists),
+        account: Account = Depends(check_account_exists),
     ) -> dict[str, Any]:
         return await invoke_wasm_api_request(request, account)
 

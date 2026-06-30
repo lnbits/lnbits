@@ -10,6 +10,7 @@
 </style>
 {% endblock %} {% block page_container %}
 <q-page-container>
+  <!-- # todo:revisit this -->
   <q-page
     v-if="$route.path.startsWith('{{ normalize_path(request.path) }}')"
     class="q-pa-none"
