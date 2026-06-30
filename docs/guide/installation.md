@@ -51,7 +51,7 @@ nav_order: 1
 sudo apt-get install jq libfuse2
 wget $(curl -s https://api.github.com/repos/lnbits/lnbits/releases/latest | jq -r '.assets[] | select(.name | endswith(".AppImage")) | .browser_download_url') -O LNbits-latest.AppImage
 chmod +x LNbits-latest.AppImage
-LNBITS_ADMIN_UI=true HOST=0.0.0.0 PORT=5000 ./LNbits-latest.AppImage # most system settings are now in the admin UI, but pass additional .env variables here
+LNBITS_ADMIN_UI=true HOST=0.0.0.0 PORT=5000 AUTH_HTTPS_ONLY=false ./LNbits-latest.AppImage # most system settings are now in the admin UI, but pass additional .env variables here
 ```
 
 - LNbits will create a folder for DB and extension files **in the same directory** as the AppImage.
