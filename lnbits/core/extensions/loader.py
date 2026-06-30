@@ -244,7 +244,6 @@ def _add_wasm_extension_api_route(
         try:
             payload = await _read_api_payload(request, path_params)
             return await invoke_wasm_export(
-                app,
                 extension.id,
                 export_name,
                 payload,
