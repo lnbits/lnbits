@@ -24,6 +24,7 @@ from lnbits.core.crud import (
     update_installed_extension_state,
 )
 from lnbits.core.crud.extensions import create_installed_extension
+from lnbits.core.extensions.events import dispatch_wasm_invoice_paid
 from lnbits.core.extensions.loader import (
     is_wasm_extension_dir,
     is_wasm_extension_id,
@@ -37,7 +38,6 @@ from lnbits.core.services.payments import check_pending_payments
 from lnbits.core.tasks import (
     audit_queue,
     collect_exchange_rates_data,
-    dispatch_wasm_invoice_paid,
     purge_audit_data,
     run_by_the_minute_tasks,
     wait_for_audit_data,
