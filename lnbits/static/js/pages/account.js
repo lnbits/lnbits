@@ -217,6 +217,11 @@ window.PageAccount = {
   computed: {
     isUserTouched() {
       return !_.isEqual(this.g.user, this.untouchedUser)
+    },
+    selectedApiToken() {
+      return this.selectedApiAcl.token_id_list.find(
+        token => token.id === this.apiAcl.selectedTokenId
+      )
     }
   },
   methods: {
