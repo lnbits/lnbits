@@ -24,6 +24,7 @@ async def invoke_wasm_extension_export(
     *,
     user: Any | None = None,
     context: str = "user",
+    owner_id: str | None = None,
 ) -> dict[str, Any]:
     extension = _get_registered_extension(app, ext_id)
     permissions = await _extension_permissions(extension)
@@ -32,6 +33,7 @@ async def invoke_wasm_extension_export(
         permissions,
         user_id=_user_id(user),
         context=context,
+        owner_id=owner_id,
     )
     print("### api", api)
 
