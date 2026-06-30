@@ -2,7 +2,6 @@ import asyncio
 import json
 from typing import Any
 
-from fastapi import FastAPI
 from loguru import logger
 
 from lnbits.core.crud import (
@@ -107,7 +106,7 @@ async def wait_for_paid_invoices(invoice_paid_queue: asyncio.Queue) -> None:
         await core_app_extra.dispatch_extension_invoice_paid(payment)
 
 
-async def dispatch_wasm_invoice_paid(app: FastAPI, payment: Any) -> None:
+async def dispatch_wasm_invoice_paid(payment: Any) -> None:
     extension_id = _payment_extension_id(payment)
     if not extension_id:
         return
@@ -131,7 +130,6 @@ async def dispatch_wasm_invoice_paid(app: FastAPI, payment: Any) -> None:
         from lnbits.core.extensions.wasm import invoke_wasm_extension_export
 
         await invoke_wasm_extension_export(
-            app,
             extension.id,
             export_name,
             _wasm_invoice_paid_payload(payment),

@@ -510,7 +510,7 @@ def register_async_tasks(app: FastAPI) -> None:
     register_invoice_listener(invoice_queue, "core")
 
     async def dispatch_extension_invoice_paid(payment) -> None:
-        await dispatch_wasm_invoice_paid(app, payment)
+        await dispatch_wasm_invoice_paid(payment)
 
     core_app_extra.dispatch_extension_invoice_paid = dispatch_extension_invoice_paid
     create_permanent_task(lambda: wait_for_paid_invoices(invoice_queue))

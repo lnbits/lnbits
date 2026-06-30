@@ -7,8 +7,6 @@ from collections.abc import Mapping
 from functools import lru_cache
 from typing import Any
 
-from fastapi import FastAPI
-
 from lnbits.core.crud.extensions import get_installed_extension
 from lnbits.core.db import core_app_extra
 
@@ -18,7 +16,6 @@ from .runtime import ExtensionAPIHost
 
 
 async def invoke_wasm_extension_export(
-    app: FastAPI,
     ext_id: str,
     export_name: str,
     payload: Mapping[str, Any] | None = None,
