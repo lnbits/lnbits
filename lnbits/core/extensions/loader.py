@@ -16,6 +16,7 @@ from pydantic import UUID4
 from starlette.staticfiles import PathLike as StaticFilesPathLike
 from starlette.types import Scope
 
+from lnbits.core.db import core_app_extra
 from lnbits.decorators import (
     check_access_token,
     check_user_exists,
@@ -141,9 +142,7 @@ def register_wasm_extension(app: FastAPI, ext_id: str) -> WasmExtension:
     _register_wasm_extension_ui_routes(app, loaded)
     _register_wasm_extension_api_routes(app, loaded)
 
-    extensions = getattr(app.state, "lnbits_wasm_extensions", {})
-    extensions[ext_id] = loaded
-    app.state.lnbits_wasm_extensions = extensions
+    core_app_extra.wasm_extension_registry.register(loaded)
 
     settings.activate_extension_paths(ext_id, "", [])
     logger.info(

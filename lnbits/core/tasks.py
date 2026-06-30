@@ -112,8 +112,7 @@ async def dispatch_wasm_invoice_paid(app: FastAPI, payment: Any) -> None:
     if not extension_id:
         return
 
-    extensions = getattr(app.state, "lnbits_wasm_extensions", {})
-    extension = extensions.get(extension_id)
+    extension = core_app_extra.wasm_extension_registry.get(extension_id)
     if not extension:
         return
 

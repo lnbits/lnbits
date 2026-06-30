@@ -10,9 +10,10 @@ from typing import Any
 from fastapi import FastAPI
 
 from lnbits.core.crud.extensions import get_installed_extension
+from lnbits.core.db import core_app_extra
 
 from .api import ExtensionAPI, list_extension_api_methods
-from .loader import WasmExtension, register_wasm_extension
+from .loader import WasmExtension
 from .runtime import ExtensionAPIHost
 
 
@@ -26,7 +27,7 @@ async def invoke_wasm_extension_export(
     context: str = "user",
     owner_id: str | None = None,
 ) -> dict[str, Any]:
-    extension = _get_registered_extension(app, ext_id)
+    extension = _get_registered_extension(ext_id)
     permissions = await _extension_permissions(extension)
     api = ExtensionAPI(
         extension.id,
@@ -190,12 +191,11 @@ def _parse_wasm_export_result(extension: WasmExtension, value: Any) -> dict[str,
     return {"ok": True, "data": parsed}
 
 
-def _get_registered_extension(app: FastAPI, ext_id: str) -> WasmExtension:
-    extensions = getattr(app.state, "lnbits_wasm_extensions", {})
-    extension = extensions.get(ext_id)
+def _get_registered_extension(ext_id: str) -> WasmExtension:
+    extension = core_app_extra.wasm_extension_registry.get(ext_id)
     if extension:
         return extension
-    return register_wasm_extension(app, ext_id)
+    raise RuntimeError(f"WASM extension '{ext_id}' is not registered.")
 
 
 async def _extension_permissions(extension: WasmExtension) -> list[Any]:

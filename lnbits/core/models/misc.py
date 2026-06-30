@@ -22,6 +22,23 @@ class CoreAppExtra:
         _do_nothing_async
     )
 
+    def __init__(self) -> None:
+        self.wasm_extension_registry = WasmExtensionRegistry()
+
+
+class WasmExtensionRegistry:
+    def __init__(self) -> None:
+        self._extensions: dict[str, Any] = {}
+
+    def register(self, extension: Any) -> None:
+        self._extensions[extension.id] = extension
+
+    def get(self, ext_id: str) -> Any | None:
+        return self._extensions.get(ext_id)
+
+    def list(self) -> list[Any]:
+        return list(self._extensions.values())
+
 
 class ConversionData(BaseModel):
     from_: str = "sat"
