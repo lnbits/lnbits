@@ -23,6 +23,7 @@ async def invoke_wasm_extension_export(
     payload: Mapping[str, Any] | None = None,
     *,
     user: Any | None = None,
+    context: str = "user",
 ) -> dict[str, Any]:
     extension = _get_registered_extension(app, ext_id)
     permissions = await _extension_permissions(extension)
@@ -30,7 +31,9 @@ async def invoke_wasm_extension_export(
         extension.id,
         permissions,
         user_id=_user_id(user),
+        context=context,
     )
+    print("### api", api)
 
     return await asyncio.to_thread(
         _invoke_wasm_extension_export_sync,
