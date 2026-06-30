@@ -138,6 +138,7 @@ async def dispatch_wasm_invoice_paid(app: FastAPI, payment: Any) -> None:
             extension.id,
             export_name,
             _wasm_invoice_paid_payload(payment),
+            context="event",
         )
     except Exception as exc:
         logger.warning(
