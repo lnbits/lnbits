@@ -134,6 +134,7 @@ class ExtensionAPI:
         self.permissions, self.permission_policies = self._permission_data(permissions)
         self.user_id = user_id
         self.wallet_id = wallet_id
+        self._uuid = secrets.token_urlsafe(12).replace("-", "_")
 
     def require_permission(self, permission: str | None) -> None:
         if permission and permission not in self.permissions:
@@ -299,7 +300,7 @@ class ExtensionAPI:
         from lnbits.core.services.payments import create_payment_request
 
         table, wallet_field = self._public_invoice_wallet_source()
-        row = await storage_get_row(self.extension_id, table, request.id)
+        row = await storage_get_row(self.extension_id, table, request.source_id)
         if not row:
             raise PermissionError("Public invoice source was not found.")
 
@@ -315,7 +316,7 @@ class ExtensionAPI:
                 memo=request.memo,
                 extra={
                     "tag": self.extension_id,
-                    "source_id": request.id,
+                    "source_id": request.source_id,
                 },
                 extension=self.extension_id,
             ),
@@ -364,7 +365,7 @@ class ExtensionAPI:
         host_name="random_id",
         sdk_name="id",
         description="Create a random extension-local identifier.",
-        require_auth=True,
+        require_auth=False,
     )
     async def system_random_id(self, request: RandomIdRequest) -> RandomIdResponse:
         return RandomIdResponse(
@@ -378,7 +379,7 @@ class ExtensionAPI:
         host_name="now",
         sdk_name="now",
         description="Return the current Unix timestamp.",
-        require_auth=True,
+        require_auth=False,
     )
     async def system_now(self, request: EmptyRequest) -> NowResponse:
         return NowResponse(timestamp=int(time.time()))
@@ -390,7 +391,7 @@ class ExtensionAPI:
         host_name="log",
         sdk_name="log",
         description="Write a bounded message to the extension log.",
-        require_auth=True,
+        require_auth=False,
     )
     async def system_log(self, request: LogRequest) -> LogResponse:
         log = getattr(logger, request.level)
