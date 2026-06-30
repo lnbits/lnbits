@@ -12,6 +12,8 @@ from typing import Any, TypeVar, cast, get_type_hints
 
 from pydantic import BaseModel
 
+from lnbits.helpers import sha256s
+
 from .models import (
     CreateInvoicePublicRequest,
     CreateInvoiceRequest,
@@ -36,6 +38,7 @@ from .models import (
 from .storage import (
     storage_delete_row,
     storage_get_paginated_rows,
+    storage_get_public_row,
     storage_get_row,
     storage_set_row,
 )
@@ -129,11 +132,13 @@ class ExtensionAPI:
         *,
         user_id: str | None = None,
         context: str = "user",
+        owner_id: str | None = None,
     ) -> None:
         self.extension_id = extension_id
         self.permissions, self.permission_policies = self._permission_data(permissions)
         self.user_id = user_id
         self.context = context
+        self.owner_id = sha256s(user_id) if user_id else owner_id
         self._uuid = secrets.token_urlsafe(12).replace("-", "_")
 
     def __repr__(self) -> str:
@@ -154,6 +159,11 @@ class ExtensionAPI:
     def has_authenticated_context(self) -> bool:
         return bool(self.user_id) or self.context == "event"
 
+    def _require_owner_id(self) -> str:
+        if not self.owner_id:
+            raise PermissionError("Extension API method requires an owner context.")
+        return self.owner_id
+
     @extension_api_method(
         method_id="storage.get",
         namespace="storage",
@@ -165,7 +175,12 @@ class ExtensionAPI:
         require_auth=True,
     )
     async def storage_get(self, request: StorageGetRequest) -> StorageGetResponse:
-        row = await storage_get_row(self.extension_id, request.table, request.id)
+        row = await storage_get_row(
+            self.extension_id,
+            request.table,
+            request.id,
+            self._require_owner_id(),
+        )
         return StorageGetResponse(data_json=json.dumps(row) if row else None)
 
     @extension_api_method(
@@ -182,7 +197,7 @@ class ExtensionAPI:
         self, request: StorageGetRequest
     ) -> StorageGetResponse:
         public_fields = self._public_storage_fields(request.table)
-        row = await storage_get_row(self.extension_id, request.table, request.id)
+        row = await storage_get_public_row(self.extension_id, request.table, request.id)
         if not row:
             return StorageGetResponse()
         public_row = {
@@ -203,7 +218,12 @@ class ExtensionAPI:
         require_auth=True,
     )
     async def storage_set(self, request: StorageSetRequest) -> StorageSetResponse:
-        await storage_set_row(self.extension_id, request.table, request.data)
+        await storage_set_row(
+            self.extension_id,
+            request.table,
+            request.data,
+            self._require_owner_id(),
+        )
         return StorageSetResponse()
 
     @extension_api_method(
@@ -223,6 +243,7 @@ class ExtensionAPI:
             self.extension_id,
             request.table,
             request.filters,
+            owner_id=self._require_owner_id(),
             search=request.search,
             search_fields=request.search_fields,
             sort_by=request.sort_by,
@@ -248,7 +269,12 @@ class ExtensionAPI:
     async def storage_delete(
         self, request: StorageDeleteRequest
     ) -> StorageDeleteResponse:
-        await storage_delete_row(self.extension_id, request.table, request.id)
+        await storage_delete_row(
+            self.extension_id,
+            request.table,
+            request.id,
+            self._require_owner_id(),
+        )
         return StorageDeleteResponse()
 
     @extension_api_method(
@@ -312,7 +338,7 @@ class ExtensionAPI:
         from lnbits.core.services.payments import create_payment_request
 
         table, wallet_field = self._public_invoice_wallet_source()
-        row = await storage_get_row(self.extension_id, table, request.source_id)
+        row = await storage_get_public_row(self.extension_id, table, request.source_id)
         if not row:
             raise PermissionError("Public invoice source was not found.")
 
