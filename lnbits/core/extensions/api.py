@@ -13,6 +13,7 @@ from typing import Any, TypeVar, cast, get_type_hints
 from pydantic import BaseModel
 
 from .models import (
+    CreateInvoicePublicRequest,
     CreateInvoiceRequest,
     CreateInvoiceResponse,
     EmptyRequest,
@@ -245,7 +246,7 @@ class ExtensionAPI:
         sdk_name="createInvoice",
         description="Create an incoming Lightning invoice for an allowed wallet.",
         required_permission="wallet.create_invoice",
-        require_auth=False,  # allow public pages to create invoices
+        require_auth=True,
     )
     async def wallet_create_invoice(
         self, request: CreateInvoiceRequest
@@ -272,6 +273,50 @@ class ExtensionAPI:
                 unit=request.currency or "sat",
                 memo=request.memo,
                 extra=request.extra,
+                extension=self.extension_id,
+            ),
+        )
+        return CreateInvoiceResponse(
+            payment_hash=payment.payment_hash,
+            payment_request=payment.payment_request or payment.bolt11,
+            checking_id=payment.checking_id,
+        )
+
+    @extension_api_method(
+        method_id="wallet.create_invoice_public",
+        namespace="wallet",
+        name="Create public invoice",
+        host_name="create_invoice_public",
+        sdk_name="createInvoicePublic",
+        description="Create a public incoming Lightning invoice.",
+        required_permission="wallet.create_invoice_public",
+        require_auth=False,
+    )
+    async def wallet_create_invoice_public(
+        self, request: CreateInvoicePublicRequest
+    ) -> CreateInvoiceResponse:
+        from lnbits.core.models.payments import CreateInvoice
+        from lnbits.core.services.payments import create_payment_request
+
+        table, wallet_field = self._public_invoice_wallet_source()
+        row = await storage_get_row(self.extension_id, table, request.id)
+        if not row:
+            raise PermissionError("Public invoice source was not found.")
+
+        wallet_id = row.get(wallet_field)
+        if not isinstance(wallet_id, str) or not wallet_id:
+            raise PermissionError("Public invoice source has no valid wallet.")
+
+        payment = await create_payment_request(
+            wallet_id,
+            CreateInvoice(
+                amount=request.amount,
+                unit=request.currency,
+                memo=request.memo,
+                extra={
+                    "tag": self.extension_id,
+                    "source_id": request.id,
+                },
                 extension=self.extension_id,
             ),
         )
@@ -405,6 +450,20 @@ class ExtensionAPI:
             return set(public_fields)
 
         raise PermissionError(f"Storage table '{table}' is not publicly readable.")
+
+    def _public_invoice_wallet_source(self) -> tuple[str, str]:
+        policy = self.permission_policies.get("wallet.create_invoice_public") or {}
+        table = policy.get("table")
+        wallet_field = policy.get("wallet_field")
+        if not isinstance(table, str) or not table:
+            raise PermissionError(
+                "Public invoice creation requires a storage table policy."
+            )
+        if not isinstance(wallet_field, str) or not wallet_field:
+            raise PermissionError(
+                "Public invoice creation requires a wallet field policy."
+            )
+        return table, wallet_field
 
 
 def list_extension_api_methods(
