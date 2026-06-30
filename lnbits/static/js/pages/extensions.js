@@ -723,10 +723,18 @@ window.PageExtensions = {
         resolve(grantedPermissions)
       }
     },
+    permissionI18nKey(permission) {
+      return `extension_permission_${permission.id.replace(/[^A-Za-z0-9]/g, '_')}`
+    },
     permissionLabel(permission) {
-      const key = `extension_permission_${permission.id.replace(/[^A-Za-z0-9]/g, '_')}`
+      const key = this.permissionI18nKey(permission)
       const label = this.$t(key)
       return label === key ? permission.id : label
+    },
+    permissionDescription(permission) {
+      const key = `${this.permissionI18nKey(permission)}_desc`
+      const description = this.$t(key)
+      return description === key ? permission.description : description
     },
     async selectAllUpdatableExtensionss() {
       this.updatableExtensions.forEach(e => (e.selectedForUpdate = true))
