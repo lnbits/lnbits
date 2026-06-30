@@ -19,8 +19,7 @@ from starlette.types import Scope
 from lnbits.core.db import core_app_extra
 from lnbits.decorators import (
     check_access_token,
-    check_user_exists,
-    check_user_extension_access,
+    check_account_exists,
     optional_user_id,
 )
 from lnbits.helpers import template_renderer
@@ -234,8 +233,6 @@ def _add_wasm_extension_api_route(
     if _has_route(app, route_path, method):
         return
 
-    require_user = _require_wasm_user_extension(extension.id)
-
     async def invoke_wasm_api_request(
         request: Request, user: Any | None = None
     ) -> dict[str, Any]:
@@ -258,9 +255,9 @@ def _add_wasm_extension_api_route(
 
     async def invoke_private_wasm_extension_export(
         request: Request,
-        user: Any = Depends(require_user),
+        account: Any = Depends(check_account_exists),
     ) -> dict[str, Any]:
-        return await invoke_wasm_api_request(request, user)
+        return await invoke_wasm_api_request(request, account)
 
     async def invoke_public_wasm_extension_export(request: Request) -> dict[str, Any]:
         return await invoke_wasm_api_request(request)
@@ -370,11 +367,9 @@ def _add_wasm_extension_wrapper_route(
     if _has_route(app, route_path, "GET"):
         return
 
-    require_user = _require_wasm_user_extension(extension.id)
-
     async def serve_private_wasm_extension_page(
         request: Request,
-        user: Any = Depends(require_user),
+        account: Any = Depends(check_account_exists),
     ) -> Any:
         return _wasm_extension_wrapper_response(
             request,
@@ -382,8 +377,8 @@ def _add_wasm_extension_wrapper_route(
             frame_path,
             auth,
             path_params,
-            user.json(),
-            user.id,
+            None,
+            account.id,
         )
 
     async def serve_public_wasm_extension_page(
@@ -601,18 +596,6 @@ def _wasm_extension_bridge_api_routes(
 def _path_template_pattern(path: str) -> str:
     pattern = re.sub(r"\\{[^/{}]+\\}", r"[^/]+", re.escape(path))
     return f"^{pattern}$"
-
-
-def _require_wasm_user_extension(ext_id: str) -> Any:
-    async def require_wasm_user_extension(
-        user: Any = Depends(check_user_exists),
-    ) -> Any:
-        status = await check_user_extension_access(user.id, ext_id)
-        if not status.success:
-            raise HTTPException(status_code=403, detail=status.message)
-        return user
-
-    return require_wasm_user_extension
 
 
 async def _optional_wasm_user_id(
