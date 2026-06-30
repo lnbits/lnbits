@@ -355,6 +355,7 @@ class ExtensionAPI:
                 extra={
                     "tag": self.extension_id,
                     "source_id": request.source_id,
+                    f"extra_{self.extension_id}": request.extra,
                 },
                 extension=self.extension_id,
             ),
