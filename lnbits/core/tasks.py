@@ -9,6 +9,7 @@ from lnbits.core.crud import create_audit_entry
 from lnbits.core.crud.payments import get_payments_status_count
 from lnbits.core.crud.users import get_accounts
 from lnbits.core.crud.wallets import get_wallets_count
+from lnbits.core.db import core_app_extra
 from lnbits.core.models.audit import AuditEntry
 from lnbits.core.models.extensions import InstallableExtension
 from lnbits.core.models.notifications import NotificationType

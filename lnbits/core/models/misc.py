@@ -1,6 +1,7 @@
 from __future__ import annotations
 
-from collections.abc import Callable
+from collections.abc import Awaitable, Callable
+from typing import Any
 
 from pydantic import BaseModel
 
@@ -9,10 +10,17 @@ def _do_nothing(*_):
     pass
 
 
+async def _do_nothing_async(_: Any) -> None:
+    pass
+
+
 class CoreAppExtra:
     register_new_ext_routes: Callable = _do_nothing
     register_new_wasm_ext_routes: Callable = _do_nothing
     register_new_ratelimiter: Callable
+    dispatch_extension_invoice_paid: Callable[[Any], Awaitable[None]] = (
+        _do_nothing_async
+    )
 
 
 class ConversionData(BaseModel):
