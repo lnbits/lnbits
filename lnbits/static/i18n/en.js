@@ -527,7 +527,10 @@ window.localisation.en = {
   extension_permission_ext_storage_write: 'Write extension storage',
   extension_permission_payments_watch: 'Watch payments',
   extension_permission_wallet_create_invoice: 'Create invoices',
-  extension_permission_wallet_create_invoice_public: 'Create public invoices',
+  extension_permission_wallet_create_invoice_public:
+    'Create incoming Lightning invoices for selected wallets',
+  extension_permission_wallet_create_invoice_public_desc:
+    'Create incoming Lightning invoices for selected wallets.',
   extension_permission_wallet_list: 'List wallets',
   create_extension: 'Create Extension',
   release_details_error: 'Cannot get the release details.',
