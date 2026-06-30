@@ -113,7 +113,7 @@ async def startup(app: FastAPI):
     create_llms_txt_route(app)
 
     # initialize tasks
-    register_async_tasks(app)
+    register_async_tasks()
 
     enqueue_admin_notification(
         NotificationType.server_start_stop,
@@ -490,7 +490,7 @@ async def check_and_register_extensions(app: FastAPI) -> None:
             await update_installed_extension_state(ext_id=ext.code, active=False)
 
 
-def register_async_tasks(app: FastAPI) -> None:
+def register_async_tasks() -> None:
 
     create_permanent_task(wait_for_audit_data)
     create_permanent_task(wait_notification_messages)
