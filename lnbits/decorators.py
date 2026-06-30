@@ -448,13 +448,22 @@ async def _check_user_access(r: Request, user_id: str, conn: Connection | None =
 async def _check_user_extension_access(
     user_id: str, path: str, conn: Connection | None = None
 ):
-    ext_id = path_segments(path)[0]
+    ext_id = _extension_id_from_request_path(path)
     status = await check_user_extension_access(user_id, ext_id, conn=conn)
     if not status.success:
         raise HTTPException(
             HTTPStatus.FORBIDDEN,
             status.message,
         )
+
+
+def _extension_id_from_request_path(path: str) -> str:
+    segments = path_segments(path)
+    if len(segments) >= 2 and segments[0] == "ext":
+        return segments[1]
+    if len(segments) >= 4 and segments[:3] == ["api", "v1", "ext"]:
+        return segments[3]
+    return segments[0]
 
 
 async def _get_account_from_token(
