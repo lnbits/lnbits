@@ -27,6 +27,7 @@ from lnbits.settings import settings
 from lnbits.utils.cache import cache
 
 from .loader import WasmExtension, load_wasm_extension
+from .wasm import invoke_wasm_extension_export, warm_wasm_extension
 
 WASM_FRAME_TOKEN_EXPIRY_SECONDS = 60
 WASM_EXTENSION_CORE_ASSET_PREFIX = "_lnbits"
@@ -107,7 +108,6 @@ class GuardedWasmExtensionStaticFiles(StaticFiles):
 
 def register_wasm_extension(app: FastAPI, ext_id: str) -> WasmExtension:
     loaded = load_wasm_extension(ext_id)
-    from .wasm import warm_wasm_extension
 
     warm_wasm_extension(loaded)
     _mount_wasm_extension_static(app, loaded)
@@ -180,11 +180,9 @@ def _add_wasm_extension_api_route(
     async def invoke_wasm_api_request(
         request: Request, account: Account | None = None
     ) -> dict[str, Any]:
-        from .wasm import invoke_wasm_extension_export as invoke_wasm_export
-
         try:
             payload = await _read_api_payload(request, path_params)
-            return await invoke_wasm_export(
+            return await invoke_wasm_extension_export(
                 extension.id,
                 export_name,
                 payload,
