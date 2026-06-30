@@ -108,7 +108,7 @@ def extension_api_method(
     ) -> Callable[[ExtensionAPI, _RequestModel], Awaitable[_ResponseModel]]:
         @wraps(function)
         async def wrapper(self: ExtensionAPI, request: _RequestModel) -> _ResponseModel:
-            if require_auth and not self.user_id:
+            if require_auth and not self.has_authenticated_context():
                 raise PermissionError(
                     f"Extension API method '{method_id}' requires authentication."
                 )
@@ -128,19 +128,31 @@ class ExtensionAPI:
         permissions: Iterable[Any],
         *,
         user_id: str | None = None,
-        wallet_id: str | None = None,
+        context: str = "user",
     ) -> None:
         self.extension_id = extension_id
         self.permissions, self.permission_policies = self._permission_data(permissions)
         self.user_id = user_id
-        self.wallet_id = wallet_id
+        self.context = context
         self._uuid = secrets.token_urlsafe(12).replace("-", "_")
+
+    def __repr__(self) -> str:
+        return (
+            "ExtensionAPI("
+            f"extension_id={self.extension_id!r}, "
+            f"context={self.context!r}, "
+            f"_uuid={self._uuid!r}"
+            ")"
+        )
 
     def require_permission(self, permission: str | None) -> None:
         if permission and permission not in self.permissions:
             raise PermissionError(
                 f"Extension '{self.extension_id}' is missing permission '{permission}'."
             )
+
+    def has_authenticated_context(self) -> bool:
+        return bool(self.user_id) or self.context == "event"
 
     @extension_api_method(
         method_id="storage.get",
