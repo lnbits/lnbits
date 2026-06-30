@@ -479,9 +479,9 @@
               <li><strong v-text="permissionLabel(permission)"></strong></li>
             </q-item-label>
             <q-item-label
-              v-if="permission.description"
+              v-if="permissionDescription(permission)"
               caption
-              v-text="permission.description"
+              v-text="permissionDescription(permission)"
             ></q-item-label>
           </q-item-section>
         </q-item>
