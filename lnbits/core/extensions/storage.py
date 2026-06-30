@@ -17,9 +17,26 @@ from lnbits.settings import settings
 
 _MIGRATION_FILE_RE = re.compile(r"^(\d+)_.*\.json$")
 _SQL_IDENTIFIER_RE = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*$")
+OWNER_ID_FIELD = "__lnbits_owner_id__"
 
 
 async def storage_get_row(
+    ext_id: str,
+    table: str,
+    row_id: str,
+    owner_id: str,
+) -> dict[str, Any] | None:
+    table_schema = _load_table_schema(ext_id, table)
+    query = f"""
+        SELECT * FROM {_table_ref_for_schema(ext_id, table)}
+        WHERE id = :id AND {OWNER_ID_FIELD} = :owner_id
+    """  # noqa: S608
+    async with Database(f"ext_{ext_id}").connect() as conn:
+        row = await conn.fetchone(query, {"id": row_id, "owner_id": owner_id})
+    return _row_from_db(table_schema, row) if row else None
+
+
+async def storage_get_public_row(
     ext_id: str,
     table: str,
     row_id: str,
@@ -34,17 +51,46 @@ async def storage_get_row(
     return _row_from_db(table_schema, row) if row else None
 
 
+async def storage_get_row_owner_id(
+    ext_id: str,
+    table: str,
+    row_id: str,
+) -> str | None:
+    _load_table_schema(ext_id, table)
+    query = f"""
+        SELECT {OWNER_ID_FIELD} FROM {_table_ref_for_schema(ext_id, table)}
+        WHERE id = :id
+    """  # noqa: S608
+    async with Database(f"ext_{ext_id}").connect() as conn:
+        row = await conn.fetchone(query, {"id": row_id})
+
+    owner_id = row[OWNER_ID_FIELD] if row else None
+    return owner_id if isinstance(owner_id, str) and owner_id else None
+
+
 async def storage_set_row(
     ext_id: str,
     table: str,
     data: dict[str, Any],
+    owner_id: str,
 ) -> None:
     table_schema = _load_table_schema(ext_id, table)
     clean_data = _data_to_db(table_schema, data, require_id=True)
+    clean_data[OWNER_ID_FIELD] = owner_id
     columns = list(clean_data.keys())
     placeholders = [f":{column}" for column in columns]
-    updates = [f"{column} = excluded.{column}" for column in columns if column != "id"]
-    conflict_sql = f"DO UPDATE SET {', '.join(updates)}" if updates else "DO NOTHING"
+    updates = [
+        f"{column} = excluded.{column}"
+        for column in columns
+        if column not in ("id", OWNER_ID_FIELD)
+    ]
+    conflict_sql = (
+        "DO UPDATE SET "
+        + ", ".join(updates)
+        + f" WHERE {OWNER_ID_FIELD} = :{OWNER_ID_FIELD}"
+        if updates
+        else "DO NOTHING"
+    )
     query = f"""
         INSERT INTO {_table_ref_for_schema(ext_id, table)}
             ({", ".join(columns)})
@@ -62,6 +108,7 @@ async def storage_get_paginated_rows(
     table: str,
     filters: dict[str, Any],
     *,
+    owner_id: str,
     search: str | None,
     search_fields: list[str],
     sort_by: str | None,
@@ -71,6 +118,8 @@ async def storage_get_paginated_rows(
 ) -> dict[str, Any]:
     table_schema = _load_table_schema(ext_id, table)
     where_sql, values = _where_sql(table_schema, filters, search, search_fields)
+    where_sql = _append_owner_where_sql(where_sql)
+    values[OWNER_ID_FIELD] = owner_id
     order_sql = _order_sql(table_schema, sort_by, descending)
     count_values = dict(values)
     values.update({"limit": min(limit, 1000), "offset": offset})
@@ -102,14 +151,15 @@ async def storage_delete_row(
     ext_id: str,
     table: str,
     row_id: str,
+    owner_id: str,
 ) -> None:
     _load_table_schema(ext_id, table)
     query = f"""
         DELETE FROM {_table_ref_for_schema(ext_id, table)}
-        WHERE id = :id
+        WHERE id = :id AND {OWNER_ID_FIELD} = :owner_id
     """  # noqa: S608
     async with Database(f"ext_{ext_id}").connect() as conn:
-        await conn.execute(query, {"id": row_id})
+        await conn.execute(query, {"id": row_id, "owner_id": owner_id})
 
 
 async def migrate_wasm_extension_database(
@@ -175,11 +225,16 @@ def _create_table_sql(db: Connection, operation: dict[str, Any]) -> str:
     fields = _require_fields(operation)
     if not any(field.get("name") == "id" for field in fields):
         raise ValueError(f"WASM storage table '{table}' must define an id field.")
+    if any(field.get("name") == OWNER_ID_FIELD for field in fields):
+        raise ValueError(
+            f"WASM storage table '{table}' defines reserved field '{OWNER_ID_FIELD}'."
+        )
 
     columns = [
         _column_sql(db, field, primary_key=field.get("name") == "id")
         for field in fields
     ]
+    columns.append(f"{OWNER_ID_FIELD} TEXT NOT NULL")
     return f"""
         CREATE TABLE IF NOT EXISTS {_table_ref(db, table)} (
             {", ".join(columns)}
@@ -190,6 +245,11 @@ def _create_table_sql(db: Connection, operation: dict[str, Any]) -> str:
 def _add_field_sql(db: Connection, operation: dict[str, Any]) -> str:
     table = _require_identifier(operation, "table")
     field = _field_from_add_field_operation(operation)
+    if field["name"] == OWNER_ID_FIELD:
+        raise ValueError(
+            f"WASM storage table '{table}' cannot add reserved field "
+            f"'{OWNER_ID_FIELD}'."
+        )
     return f"""
         ALTER TABLE {_table_ref(db, table)}
         ADD COLUMN {_column_sql(db, field)};
@@ -200,6 +260,11 @@ def _create_index_sql(db: Connection, operation: dict[str, Any]) -> str:
     table = _require_identifier(operation, "table")
     name = _require_identifier(operation, "name")
     field = _require_identifier(operation, "field")
+    if field == OWNER_ID_FIELD:
+        raise ValueError(
+            f"WASM storage table '{table}' cannot index reserved field "
+            f"'{OWNER_ID_FIELD}'."
+        )
 
     if db.type == SQLITE and db.schema:
         return f"""
@@ -271,6 +336,11 @@ def _load_table_schema(ext_id: str, table: str) -> dict[str, Any]:
         if not isinstance(field, dict):
             raise ValueError(f"WASM storage table '{table}' has invalid field schema.")
         _require_identifier(field, "name")
+        if field["name"] == OWNER_ID_FIELD:
+            raise ValueError(
+                f"WASM storage table '{table}' defines reserved field "
+                f"'{OWNER_ID_FIELD}'."
+            )
     return table_schema
 
 
@@ -297,6 +367,7 @@ def _data_to_db(
         raise ValueError("WASM storage row data must be an object.")
     if require_id and not data.get("id"):
         raise ValueError("WASM storage row data must include an id.")
+    _reject_reserved_owner_field(data, "row")
 
     fields = _fields_by_name(table_schema)
     unknown_fields = sorted(set(data) - set(fields))
@@ -317,6 +388,7 @@ def _filters_to_db(
 ) -> dict[str, Any]:
     if not isinstance(filters, dict):
         raise ValueError("WASM storage filters must be an object.")
+    _reject_reserved_owner_field(filters, "filters")
 
     fields = _fields_by_name(table_schema)
     unknown_fields = sorted(set(filters) - set(fields))
@@ -359,6 +431,13 @@ def _where_sql(
     return ("WHERE " + " AND ".join(clauses), values) if clauses else ("", values)
 
 
+def _append_owner_where_sql(where_sql: str) -> str:
+    owner_clause = f"{OWNER_ID_FIELD} = :{OWNER_ID_FIELD}"
+    if where_sql:
+        return f"{where_sql} AND {owner_clause}"
+    return f"WHERE {owner_clause}"
+
+
 def _order_sql(
     table_schema: dict[str, Any],
     sort_by: str | None,
@@ -390,6 +469,11 @@ def _fields_by_name(table_schema: dict[str, Any]) -> dict[str, dict[str, Any]]:
     if not isinstance(fields, list):
         raise ValueError("WASM storage table schema fields must be a list.")
     return {field["name"]: field for field in fields}
+
+
+def _reject_reserved_owner_field(data: dict[str, Any], value_name: str) -> None:
+    if OWNER_ID_FIELD in data:
+        raise ValueError(f"WASM storage {value_name} includes a reserved owner field.")
 
 
 def _value_to_db(field: dict[str, Any], value: Any) -> Any:  # noqa: C901
