@@ -87,6 +87,19 @@ class CreateInvoicePublicRequest(BaseModel):
     amount: float = Field(..., gt=0)
     currency: str = Field(..., min_length=1, max_length=8)
     memo: str = Field("", max_length=512)
+    extra: dict[str, Any] = Field(default_factory=dict)
+
+    @root_validator
+    def validate_extra_size(cls, values: dict[str, Any]) -> dict[str, Any]:
+        extra = values.get("extra") or {}
+        try:
+            encoded = json.dumps(extra, separators=(",", ":"))
+        except TypeError as exc:
+            raise ValueError("extra must be JSON serializable.") from exc
+        if len(encoded.encode()) > 4096:
+            raise ValueError("extra must not exceed 4096 bytes.")
+        values["extra"] = extra
+        return values
 
 
 class CreateInvoiceResponse(BaseModel):
