@@ -285,10 +285,7 @@ but you can also set the env variables or pass command line arguments:
 
 ```sh
 # .env variables are currently passed when running, but LNbits can be managed with the admin UI.
-LNBITS_ADMIN_UI=true ./result/bin/lnbits --port 9000 --host 0.0.0.0
-
-# Once you have created a user, you can set as the super_user
-SUPER_USER=be54db7f245346c8833eaa430e1e0405 LNBITS_ADMIN_UI=true ./result/bin/lnbits --port 9000
+LNBITS_ADMIN_UI=true AUTH_HTTPS_ONLY=false ./result/bin/lnbits --port 9000 --host 0.0.0.0
 ```
 
 > ![NOTE](https://img.shields.io/badge/NOTE-3b82f6?labelColor=494949)
