@@ -37,6 +37,7 @@ from lnbits.core.services.payments import check_pending_payments
 from lnbits.core.tasks import (
     audit_queue,
     collect_exchange_rates_data,
+    dispatch_wasm_invoice_paid,
     purge_audit_data,
     run_by_the_minute_tasks,
     wait_for_audit_data,
@@ -507,7 +508,12 @@ def register_async_tasks(app: FastAPI) -> None:
     # core invoice listener
     invoice_queue: asyncio.Queue = asyncio.Queue()
     register_invoice_listener(invoice_queue, "core")
-    create_permanent_task(lambda: wait_for_paid_invoices(invoice_queue, app))
+
+    async def dispatch_extension_invoice_paid(payment) -> None:
+        await dispatch_wasm_invoice_paid(app, payment)
+
+    core_app_extra.dispatch_extension_invoice_paid = dispatch_extension_invoice_paid
+    create_permanent_task(lambda: wait_for_paid_invoices(invoice_queue))
 
     create_permanent_task(run_by_the_minute_tasks)
     create_permanent_task(purge_audit_data)

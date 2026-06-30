@@ -13,6 +13,7 @@ from lnbits.core.crud.audit import delete_expired_audit_entries
 from lnbits.core.crud.payments import get_payments_status_count
 from lnbits.core.crud.users import get_accounts
 from lnbits.core.crud.wallets import get_wallets_count
+from lnbits.core.db import core_app_extra
 from lnbits.core.models.audit import AuditEntry
 from lnbits.core.models.extensions import InstallableExtension
 from lnbits.core.models.notifications import NotificationType
@@ -92,9 +93,7 @@ async def _notify_server_status() -> None:
     enqueue_admin_notification(NotificationType.server_status, values)
 
 
-async def wait_for_paid_invoices(
-    invoice_paid_queue: asyncio.Queue, app: FastAPI | None = None
-) -> None:
+async def wait_for_paid_invoices(invoice_paid_queue: asyncio.Queue) -> None:
     """
     This worker dispatches events to all extensions and dispatches webhooks.
     """
@@ -105,8 +104,7 @@ async def wait_for_paid_invoices(
         wallet = await get_wallet(payment.wallet_id)
         if wallet:
             await send_payment_notification(wallet, payment)
-        if app:
-            await dispatch_wasm_invoice_paid(app, payment)
+        await core_app_extra.dispatch_extension_invoice_paid(payment)
 
 
 async def dispatch_wasm_invoice_paid(app: FastAPI, payment: Any) -> None:
