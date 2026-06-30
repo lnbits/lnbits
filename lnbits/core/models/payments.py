@@ -54,6 +54,7 @@ class CreatePayment(BaseModel):
     amount_msat: int
     memo: str
     extra: dict | None = {}
+    extension: str | None = None
     preimage: str | None = None
     expiry: datetime | None = None
     webhook: str | None = None
@@ -259,6 +260,7 @@ class CreateInvoice(BaseModel):
     )
     expiry: int | None = None
     extra: dict | None = None
+    extension: str | None = None
     webhook: str | None = None
     bolt11: str | None = None
     lnurl_withdraw: LnurlWithdrawResponse | None = None
