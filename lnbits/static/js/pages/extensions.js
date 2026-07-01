@@ -737,10 +737,28 @@ window.PageExtensions = {
       return description === key ? permission.description : description
     },
     permissionPolicyDetails(permission) {
-      if (permission.id !== 'http.request') return ''
-      const hosts = permission.policy?.hosts
-      if (!Array.isArray(hosts) || !hosts.length) return ''
-      return `${this.$t('extension_permission_http_request_hosts')}: ${hosts.join(', ')}`
+      if (permission.id === 'http.request') {
+        const hosts = permission.policy?.hosts
+        if (!Array.isArray(hosts) || !hosts.length) return ''
+        return `${this.$t('extension_permission_http_request_hosts')}: ${hosts.join(', ')}`
+      }
+      if (permission.id === 'extension.api.request') {
+        const extensions = permission.policy?.extensions
+        if (!Array.isArray(extensions) || !extensions.length) return ''
+        const targets = extensions
+          .map(extension => {
+            if (typeof extension === 'string') return `${extension} (read)`
+            if (!extension?.id) return null
+            const access = Array.isArray(extension.access)
+              ? extension.access.join(', ')
+              : 'read'
+            return `${extension.id} (${access})`
+          })
+          .filter(Boolean)
+        if (!targets.length) return ''
+        return `${this.$t('extension_permission_extension_api_request_extensions')}: ${targets.join(', ')}`
+      }
+      return ''
     },
     async selectAllUpdatableExtensionss() {
       this.updatableExtensions.forEach(e => (e.selectedForUpdate = true))

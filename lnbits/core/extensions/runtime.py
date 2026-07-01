@@ -103,7 +103,7 @@ class ExtensionAPIHost:
         if not isinstance(response, method.response_model):
             response = method.response_model.parse_obj(response)
         payload = response.dict()
-        if method.method_id == "http.request" and isinstance(
+        if method.method_id in {"http.request", "extension.api.request"} and isinstance(
             payload.get("headers"), Mapping
         ):
             payload["headers"] = list(payload["headers"].items())

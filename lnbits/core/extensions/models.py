@@ -149,6 +149,20 @@ class HttpResponse(BaseModel):
     body: str = ""
 
 
+class ExtensionApiRequest(BaseModel):
+    extension_id: str = Field(..., min_length=1, max_length=128)
+    method: Literal["DELETE", "GET", "HEAD", "PATCH", "POST", "PUT"] = "GET"
+    path: str = Field(..., min_length=1, max_length=2048)
+    body: str | None = Field(None, max_length=65536)
+
+    @root_validator(pre=True)
+    def normalize_method(cls, values: dict[str, Any]) -> dict[str, Any]:
+        method = values.get("method")
+        if isinstance(method, str):
+            values["method"] = method.upper()
+        return values
+
+
 class RandomIdRequest(BaseModel):
     prefix: str = Field(..., min_length=1, max_length=32)
 
