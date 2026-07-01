@@ -15,6 +15,7 @@ from pydantic import UUID4
 from starlette.staticfiles import PathLike as StaticFilesPathLike
 from starlette.types import Scope
 
+from lnbits.core.crud import get_user_from_account
 from lnbits.core.db import core_app_extra
 from lnbits.core.models import Account
 from lnbits.decorators import (
@@ -313,13 +314,14 @@ def _add_wasm_extension_wrapper_route(
         request: Request,
         account: Account = Depends(check_account_exists),
     ) -> Any:
+        user = await get_user_from_account(account)
         return _wasm_extension_wrapper_response(
             request,
             extension,
             frame_path,
             auth,
             path_params,
-            None,
+            user.json() if user else None,
             account.id,
         )
 
