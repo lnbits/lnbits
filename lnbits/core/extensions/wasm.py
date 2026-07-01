@@ -21,6 +21,7 @@ async def invoke_wasm_extension_export(
     payload: Mapping[str, Any] | None = None,
     *,
     user: Any | None = None,
+    access_token: str | None = None,
     context: str = "user",
     owner_id: str | None = None,
 ) -> dict[str, Any]:
@@ -30,6 +31,7 @@ async def invoke_wasm_extension_export(
         extension.id,
         permissions,
         user_id=_user_id(user),
+        access_token=access_token,
         context=context,
         owner_id=owner_id,
     )

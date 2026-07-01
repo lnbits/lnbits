@@ -134,12 +134,14 @@ class ExtensionAPI:
         permissions: Iterable[Any],
         *,
         user_id: str | None = None,
+        access_token: str | None = None,
         context: str = "user",
         owner_id: str | None = None,
     ) -> None:
         self.extension_id = extension_id
         self.permissions, self.permission_policies = self._permission_data(permissions)
         self.user_id = user_id
+        self.access_token = access_token
         self.context = context
         self.owner_id = sha256s(user_id) if user_id else owner_id
         self._uuid = secrets.token_urlsafe(12).replace("-", "_")
@@ -434,6 +436,7 @@ class ExtensionAPI:
             self.extension_id,
             policy,
             self.user_id,
+            self.access_token,
             request,
         )
 
