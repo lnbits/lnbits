@@ -33,6 +33,7 @@ async def invoke_wasm_extension_export(
         context=context,
         owner_id=owner_id,
     )
+    event_loop = asyncio.get_running_loop()
 
     return await asyncio.to_thread(
         _invoke_wasm_extension_export_sync,
@@ -40,6 +41,7 @@ async def invoke_wasm_extension_export(
         export_name,
         payload or {},
         api,
+        event_loop,
     )
 
 
@@ -52,6 +54,7 @@ def _invoke_wasm_extension_export_sync(
     export_name: str,
     payload: Mapping[str, Any],
     api: ExtensionAPI,
+    event_loop: asyncio.AbstractEventLoop,
 ) -> dict[str, Any]:
     try:
         from wasmtime import Store, WasiConfig, component
@@ -67,7 +70,7 @@ def _invoke_wasm_extension_export_sync(
 
     linker = component.Linker(engine)
     linker.add_wasip2()
-    _add_extension_host_imports(linker, ExtensionAPIHost(api))
+    _add_extension_host_imports(linker, ExtensionAPIHost(api), event_loop)
 
     wasm_component = _wasm_component(extension)
     instance = linker.instantiate(store, wasm_component)
@@ -117,20 +120,31 @@ def _cached_wasm_component(
     return component.Component.from_file(_wasm_engine(), module_path)
 
 
-def _add_extension_host_imports(linker: Any, api_host: ExtensionAPIHost) -> None:
+def _add_extension_host_imports(
+    linker: Any,
+    api_host: ExtensionAPIHost,
+    event_loop: asyncio.AbstractEventLoop,
+) -> None:
     with linker.root() as root:
         with root.add_instance("lnbits:extension/host") as host:
             for method in list_extension_api_methods():
                 host.add_func(
                     method.host_name.replace("_", "-"),
-                    _make_host_import(api_host, method.host_name),
+                    _make_host_import(api_host, method.host_name, event_loop),
                 )
 
 
-def _make_host_import(api_host: ExtensionAPIHost, host_name: str) -> Any:
+def _make_host_import(
+    api_host: ExtensionAPIHost,
+    host_name: str,
+    event_loop: asyncio.AbstractEventLoop,
+) -> Any:
     def host_import(_store: Any, request: Any = None) -> Any:
         payload = _component_payload_to_dict(request)
-        response = asyncio.run(api_host.invoke(host_name, payload))
+        future = asyncio.run_coroutine_threadsafe(
+            api_host.invoke(host_name, payload), event_loop
+        )
+        response = future.result()
         return _dict_to_component_record(response)
 
     return host_import

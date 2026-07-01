@@ -91,6 +91,8 @@ class ExtensionAPIHost:
         data = {_to_snake(key): value for key, value in payload.items()}
         if isinstance(data.get("extra"), list):
             data["extra"] = dict(data["extra"])
+        if isinstance(data.get("headers"), list):
+            data["headers"] = dict(data["headers"])
         return method.request_model.parse_obj(data)
 
     @staticmethod
@@ -100,7 +102,12 @@ class ExtensionAPIHost:
     ) -> dict[str, Any]:
         if not isinstance(response, method.response_model):
             response = method.response_model.parse_obj(response)
-        return {_snake_to_camel(key): value for key, value in response.dict().items()}
+        payload = response.dict()
+        if method.method_id == "http.request" and isinstance(
+            payload.get("headers"), Mapping
+        ):
+            payload["headers"] = list(payload["headers"].items())
+        return {_snake_to_camel(key): value for key, value in payload.items()}
 
 
 def _snake_to_camel(value: str) -> str:
