@@ -11,7 +11,6 @@ from lnbits.core.crud.extensions import (
     get_installed_extension,
     get_user_active_extensions_ids,
 )
-from lnbits.core.crud.wallets import get_wallets
 from lnbits.settings import settings
 
 from .models import ExtensionApiRequest, HttpResponse
@@ -34,17 +33,19 @@ async def send_extension_api_request(
     caller_extension_id: str,
     policy: dict[str, Any],
     user_id: str | None,
+    access_token: str | None,
     request: ExtensionApiRequest,
 ) -> HttpResponse:
     if not user_id:
         raise PermissionError("Extension API requests require authentication.")
+    if not access_token:
+        raise PermissionError("Extension API requests require an account access token.")
 
     target_extension_id = _target_extension_id(request.extension_id)
     access = _target_extension_access(policy, target_extension_id)
     _require_method_access(caller_extension_id, target_extension_id, access, request)
     await _require_enabled_extension(target_extension_id, user_id)
 
-    api_key = await _user_api_key(user_id, request.method)
     path = _extension_api_path(request.path)
     body = request.body.encode() if request.body is not None else b""
     if len(body) > 65_536:
@@ -60,7 +61,7 @@ async def send_extension_api_request(
             async with client.stream(
                 request.method,
                 url,
-                headers={"X-API-KEY": api_key},
+                headers={"Authorization": f"Bearer {access_token}"},
                 content=body,
             ) as response:
                 response_body = await _read_limited_response(response)
@@ -151,14 +152,6 @@ async def _require_enabled_extension(target_extension_id: str, user_id: str) -> 
         raise PermissionError(
             f"Target extension '{target_extension_id}' is not active for this user."
         )
-
-
-async def _user_api_key(user_id: str, method: str) -> str:
-    wallets = await get_wallets(user_id)
-    if not wallets:
-        raise PermissionError("Extension API request requires a user wallet.")
-    wallet = wallets[0]
-    return wallet.inkey if method in _READ_METHODS else wallet.adminkey
 
 
 def _extension_api_path(path: str) -> str:
