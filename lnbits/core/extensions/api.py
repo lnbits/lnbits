@@ -407,19 +407,12 @@ class ExtensionAPI:
         sdk_name="request",
         description="Make an outbound HTTP request to an allowed host.",
         required_permission="http.request",
-        require_auth=False,
+        require_auth=True,
     )
     async def http_request(self, request: HttpRequest) -> HttpResponse:
         from .http_client import send_extension_http_request
 
         policy = self.permission_policies.get("http.request") or {}
-        if (
-            not self.has_authenticated_context()
-            and policy.get("allow_public") is not True
-        ):
-            raise PermissionError(
-                "Extension API method 'http.request' requires authentication."
-            )
         return await send_extension_http_request(self.extension_id, policy, request)
 
     @extension_api_method(
