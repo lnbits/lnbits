@@ -19,6 +19,7 @@ from .models import (
     CreateInvoiceRequest,
     CreateInvoiceResponse,
     EmptyRequest,
+    ExtensionApiRequest,
     HttpRequest,
     HttpResponse,
     ListUserWalletsResponse,
@@ -414,6 +415,27 @@ class ExtensionAPI:
 
         policy = self.permission_policies.get("http.request") or {}
         return await send_extension_http_request(self.extension_id, policy, request)
+
+    @extension_api_method(
+        method_id="extension.api.request",
+        namespace="extension",
+        name="Extension API request",
+        host_name="extension_api_request",
+        sdk_name="request",
+        description="Call an allowed installed extension API.",
+        required_permission="extension.api.request",
+        require_auth=True,
+    )
+    async def extension_api_request(self, request: ExtensionApiRequest) -> HttpResponse:
+        from .extension_client import send_extension_api_request
+
+        policy = self.permission_policies.get("extension.api.request") or {}
+        return await send_extension_api_request(
+            self.extension_id,
+            policy,
+            self.user_id,
+            request,
+        )
 
     @extension_api_method(
         method_id="system.random_id",
