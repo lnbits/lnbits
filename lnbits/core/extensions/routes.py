@@ -179,7 +179,9 @@ def _add_wasm_extension_api_route(
         return
 
     async def invoke_wasm_api_request(
-        request: Request, account: Account | None = None
+        request: Request,
+        account: Account | None = None,
+        access_token: str | None = None,
     ) -> dict[str, Any]:
         try:
             payload = await _read_api_payload(request, path_params)
@@ -188,6 +190,7 @@ def _add_wasm_extension_api_route(
                 export_name,
                 payload,
                 user=account,
+                access_token=access_token,
             )
         except KeyError as exc:
             raise HTTPException(status_code=404, detail=str(exc)) from exc
@@ -198,9 +201,10 @@ def _add_wasm_extension_api_route(
 
     async def invoke_private_wasm_extension_export(
         request: Request,
+        access_token: Annotated[str | None, Depends(check_access_token)],
         account: Account = Depends(check_account_exists),
     ) -> dict[str, Any]:
-        return await invoke_wasm_api_request(request, account)
+        return await invoke_wasm_api_request(request, account, access_token)
 
     async def invoke_public_wasm_extension_export(request: Request) -> dict[str, Any]:
         return await invoke_wasm_api_request(request)
