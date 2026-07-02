@@ -30,26 +30,34 @@ class ExtensionAPIHost:
     ) -> dict[str, Any]:
         method = self._require_method(host_name)
         request = self._request_model(method, payload)
-        handler = getattr(self.api, method.python_name)
+        handler = _resolve_attr_path(self.api, method.python_name)
         response = handler(request)
         if inspect.isawaitable(response):
             response = await response
         return self._response_payload(method, response)
 
     def imports(self) -> dict[str, HostImport]:
+        return self.imports_for_interface("host")
+
+    def import_object(self) -> dict[str, dict[str, HostImport]]:
+        interfaces = sorted({method.host_interface for method in self.methods})
+        return {
+            f"lnbits:extension/{interface}": self.imports_for_interface(interface)
+            for interface in interfaces
+        }
+
+    def imports_for_interface(self, host_interface: str) -> dict[str, HostImport]:
         return {
             _snake_to_camel(method.host_name): self._make_import(method)
             for method in self.methods
+            if method.host_interface == host_interface
         }
-
-    def import_object(self) -> dict[str, dict[str, HostImport]]:
-        return {"lnbits:extension/host": self.imports()}
 
     def _make_import(self, method: ExtensionAPIMethod) -> HostImport:
         async def host_import(
             payload: Mapping[str, Any] | BaseModel | None = None,
         ) -> dict[str, Any]:
-            return await self.invoke(method.host_name, payload)
+            return await self.invoke(method.method_id, payload)
 
         return host_import
 
@@ -66,6 +74,8 @@ class ExtensionAPIHost:
         index: dict[str, ExtensionAPIMethod] = {}
         for method in methods:
             for host_name in {
+                method.method_id,
+                f"{method.host_interface}:{method.host_name}",
                 method.host_name,
                 _snake_to_camel(method.host_name),
                 method.host_name.replace("_", "-"),
@@ -118,3 +128,9 @@ def _snake_to_camel(value: str) -> str:
 def _to_snake(value: str) -> str:
     value = value.replace("-", "_")
     return re.sub(r"([a-z0-9])([A-Z])", r"\1_\2", value).lower()
+
+
+def _resolve_attr_path(value: Any, path: str) -> Any:
+    for part in path.split("."):
+        value = getattr(value, part)
+    return value
