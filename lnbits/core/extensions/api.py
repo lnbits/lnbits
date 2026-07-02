@@ -26,6 +26,8 @@ from .models import (
     LogRequest,
     LogResponse,
     NowResponse,
+    PayInvoiceRequest,
+    PayInvoiceResponse,
     RandomIdRequest,
     RandomIdResponse,
     StorageDeleteRequest,
@@ -37,6 +39,8 @@ from .models import (
     StorageSetRequest,
     StorageSetResponse,
     UserWalletSummary,
+    WalletBalanceRequest,
+    WalletBalanceResponse,
 )
 from .storage import (
     storage_delete_row,
@@ -408,6 +412,92 @@ class ExtensionAPI:
                 UserWalletSummary(id=w.id, name=w.name, currency=w.currency)
                 for w in user_wallets
             ]
+        )
+
+    @extension_api_method(
+        method_id="wallet.balance",
+        namespace="wallet",
+        name="Read wallet balance",
+        host_name="wallet_balance",
+        sdk_name="balance",
+        description="Read the balance of a wallet available to the user.",
+        required_permission="wallet.balance.read",
+    )
+    async def wallet_balance(
+        self, request: WalletBalanceRequest
+    ) -> WalletBalanceResponse:
+        from lnbits.core.crud.wallets import get_wallet
+
+        if not self.user_id:
+            raise PermissionError(
+                "Reading a wallet balance requires an authenticated user context."
+            )
+
+        wallet = await get_wallet(request.wallet_id)
+        if wallet is None or wallet.user != self.user_id:
+            raise PermissionError("Reading this wallet balance is not allowed.")
+
+        withdrawable_msat = max(wallet.withdrawable_balance, 0)
+        fee_reserve_msat = max(wallet.balance_msat - withdrawable_msat, 0)
+        return WalletBalanceResponse(
+            wallet_id=wallet.id,
+            name=wallet.name,
+            currency=wallet.currency,
+            balance_msat=wallet.balance_msat,
+            balance_sat=wallet.balance,
+            withdrawable_msat=withdrawable_msat,
+            withdrawable_sat=withdrawable_msat // 1000,
+            fee_reserve_msat=fee_reserve_msat,
+            fee_reserve_sat=fee_reserve_msat // 1000,
+            can_send_payments=wallet.can_send_payments,
+        )
+
+    @extension_api_method(
+        method_id="wallet.pay_invoice",
+        namespace="wallet",
+        name="Pay invoice",
+        host_name="pay_invoice",
+        sdk_name="payInvoice",
+        description="Pay a Lightning invoice from a wallet available to the user.",
+        required_permission="wallet.pay_invoice",
+    )
+    async def wallet_pay_invoice(
+        self, request: PayInvoiceRequest
+    ) -> PayInvoiceResponse:
+        from lnbits.core.crud.wallets import get_wallet
+        from lnbits.core.services.payments import pay_invoice
+        from lnbits.exceptions import PaymentError
+
+        if not self.user_id:
+            raise PermissionError(
+                "Paying an invoice requires an authenticated user context."
+            )
+
+        wallet = await get_wallet(request.wallet_id)
+        if wallet is None or wallet.user != self.user_id:
+            raise PermissionError("Paying invoices from this wallet is not allowed.")
+
+        try:
+            payment = await pay_invoice(
+                wallet_id=request.wallet_id,
+                payment_request=request.payment_request,
+                max_sat=request.max_sat,
+                extra={"tag": self.extension_id, **request.extra},
+                description=request.description,
+                tag=self.extension_id,
+            )
+        except (PaymentError, ValueError) as exc:
+            return PayInvoiceResponse(ok=False, error=str(exc))
+
+        return PayInvoiceResponse(
+            ok=True,
+            checking_id=payment.checking_id,
+            payment_hash=payment.payment_hash,
+            status=payment.status,
+            amount_msat=abs(payment.amount),
+            fee_msat=abs(payment.fee),
+            pending=payment.pending,
+            success=payment.success,
         )
 
     @extension_api_method(
