@@ -164,6 +164,7 @@ window.PageExtensions = {
           )
           extension.isAvailable = true
           extension.isInstalled = true
+          extension.icon = response.data.icon || extension.icon
           extension.installedRelease = release
           this.toggleExtension(extension)
           extension.inProgress = false
