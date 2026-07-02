@@ -10,6 +10,7 @@ from lnbits.helpers import normalize_endpoint
 from lnbits.settings import settings
 
 from .base import (
+    Feature,
     InvoiceResponse,
     PaymentFailedStatus,
     PaymentPendingStatus,
@@ -33,6 +34,7 @@ class BarkHTTPError(BarkError):
 
 class BarkWallet(Wallet):
     """https://second.tech/docs/barkd"""
+    features: list[Feature] = []
 
     def __init__(self):
         if not settings.bark_api_endpoint:
