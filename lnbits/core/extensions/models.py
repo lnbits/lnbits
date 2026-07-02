@@ -74,9 +74,8 @@ class StorageDeleteResponse(BaseModel):
 
 class CreateInvoiceRequest(BaseModel):
     wallet_id: str = Field(..., min_length=1, max_length=128)
-    amount_sat: int = Field(..., gt=0)
-    # todo: bridge for extensions to select currencies
-    currency: str | None = Field(..., min_length=1, max_length=8)
+    amount: float = Field(..., gt=0)
+    currency: str = Field("sat", min_length=1, max_length=8)
     memo: str = Field(..., max_length=512)
     tag: str = Field(..., min_length=1, max_length=64)
     extra: dict[str, str] = Field(default_factory=dict)
@@ -161,6 +160,107 @@ class ExtensionApiRequest(BaseModel):
         if isinstance(method, str):
             values["method"] = method.upper()
         return values
+
+
+class CurrencyListResponse(BaseModel):
+    currencies: list[str] = Field(default_factory=list)
+
+
+class CurrencyRateRequest(BaseModel):
+    currency: str = Field(..., min_length=1, max_length=8)
+
+
+class CurrencyRateResponse(BaseModel):
+    rate: float
+    price: float
+
+
+class CurrencyConvertRequest(BaseModel):
+    amount: float = Field(..., gt=0)
+    from_currency: str = Field(..., alias="from", min_length=1, max_length=8)
+    to: str = Field(..., min_length=1, max_length=256)
+
+    class Config:
+        allow_population_by_field_name = True
+
+
+class CurrencyConvertResponse(BaseModel):
+    amounts: list[tuple[str, float]] = Field(default_factory=list)
+
+
+class FiatToSatsRequest(BaseModel):
+    amount: float = Field(..., gt=0)
+    currency: str = Field(..., min_length=1, max_length=8)
+
+
+class FiatToSatsResponse(BaseModel):
+    amount_sat: int
+
+
+class SatsToFiatRequest(BaseModel):
+    amount: float = Field(..., gt=0)
+    currency: str = Field(..., min_length=1, max_length=8)
+
+
+class SatsToFiatResponse(BaseModel):
+    amount: float
+
+
+class ServerHealthResponse(BaseModel):
+    server_time: int
+    up_time: str
+
+
+class Bolt11Request(BaseModel):
+    bolt11: str = Field(..., min_length=1, max_length=8192)
+
+
+class DecodeInvoiceResponse(BaseModel):
+    valid: bool = True
+    payment_hash: str | None = None
+    amount_msat: int | None = None
+    expiry: int | None = None
+    expires_at: int | None = None
+    memo: str | None = None
+
+
+class ValidateInvoiceResponse(BaseModel):
+    valid: bool
+    error: str | None = None
+
+
+class InvoicePaymentHashResponse(BaseModel):
+    payment_hash: str
+
+
+class InvoiceAmountMsatResponse(BaseModel):
+    amount_msat: int | None = None
+
+
+class InvoiceExpiryResponse(BaseModel):
+    expires_at: int | None = None
+
+
+class InvoiceMemoResponse(BaseModel):
+    memo: str | None = None
+
+
+class VerifyPreimageRequest(BaseModel):
+    preimage: str = Field(..., min_length=64, max_length=64)
+    payment_hash: str = Field(..., min_length=64, max_length=64)
+
+
+class VerifyPreimageResponse(BaseModel):
+    valid: bool
+
+
+class RandomSecretAndHashRequest(BaseModel):
+    length: int = Field(32, ge=16, le=64)
+
+
+class RandomSecretAndHashResponse(BaseModel):
+    secret: str
+    hash: str
 
 
 class RandomIdRequest(BaseModel):
