@@ -150,6 +150,7 @@
       "js/components/extension-settings.js",
       "js/components/data-fields.js",
       "js/components.js",
+      "js/wasm-extension-component.js",
       "js/init-app.js"
     ],
     "css": [

@@ -140,6 +140,16 @@ const routes = [
     component: PageError
   },
   {
+    path: '/ext/:extId',
+    name: 'WasmExtensionRoot',
+    component: window.WasmExtensionComponent
+  },
+  {
+    path: '/ext/:extId/:pathMatch(.*)*',
+    name: 'WasmExtension',
+    component: window.WasmExtensionComponent
+  },
+  {
     path: '/:pathMatch(.*)*',
     name: 'DynamicComponent',
     component: DynamicComponent
