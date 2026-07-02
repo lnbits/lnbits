@@ -117,6 +117,43 @@ class ListUserWalletsResponse(BaseModel):
     wallets: list[UserWalletSummary] = Field(default_factory=list)
 
 
+class WalletBalanceRequest(BaseModel):
+    wallet_id: str = Field(..., min_length=1, max_length=128)
+
+
+class WalletBalanceResponse(BaseModel):
+    wallet_id: str
+    name: str
+    currency: str | None = None
+    balance_msat: int
+    balance_sat: int
+    withdrawable_msat: int
+    withdrawable_sat: int
+    fee_reserve_msat: int
+    fee_reserve_sat: int
+    can_send_payments: bool
+
+
+class PayInvoiceRequest(BaseModel):
+    wallet_id: str = Field(..., min_length=1, max_length=128)
+    payment_request: str = Field(..., min_length=1, max_length=8192)
+    max_sat: int | None = Field(None, gt=0)
+    description: str = Field("", max_length=512)
+    extra: dict[str, str] = Field(default_factory=dict)
+
+
+class PayInvoiceResponse(BaseModel):
+    ok: bool = True
+    error: str | None = None
+    checking_id: str | None = None
+    payment_hash: str | None = None
+    status: str | None = None
+    amount_msat: int = 0
+    fee_msat: int = 0
+    pending: bool = False
+    success: bool = False
+
+
 class HttpRequest(BaseModel):
     method: Literal["DELETE", "GET", "HEAD", "PATCH", "POST", "PUT"] = "GET"
     url: str = Field(..., min_length=1, max_length=2048)

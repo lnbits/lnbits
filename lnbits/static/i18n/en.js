@@ -542,7 +542,13 @@ window.localisation.en = {
     'Create Lightning invoices from public pages',
   extension_permission_wallet_create_invoice_public_desc:
     'Create incoming Lightning invoices from public pages.',
+  extension_permission_wallet_balance_read: 'View wallet balances',
+  extension_permission_wallet_balance_read_desc:
+    'Read balances of wallets available to your account.',
   extension_permission_wallet_list: 'List wallets',
+  extension_permission_wallet_pay_invoice: 'Pay invoices',
+  extension_permission_wallet_pay_invoice_desc:
+    'Send Lightning payments from wallets available to your account.',
   create_extension: 'Create Extension',
   release_details_error: 'Cannot get the release details.',
   pay_from_wallet: 'Pay from Wallet',
