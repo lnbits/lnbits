@@ -29,6 +29,7 @@ from lnbits.core.models.extensions import (
     ReleasePaymentInfo,
     UserExtension,
     UserExtensionInfo,
+    wasm_extension_icon_url,
 )
 from lnbits.core.models.users import Account, AccountId
 from lnbits.core.services import check_transaction_status, create_invoice
@@ -573,6 +574,8 @@ async def extensions(account_id: AccountId = Depends(check_account_id_exists)):
     extension_data = []
     for ext in installable_exts:
         installed_ext = installed_exts_by_id.get(ext.id)
+        is_wasm = installed_ext.is_wasm if installed_ext else ext.is_wasm
+        icon = wasm_extension_icon_url(ext.id) if is_wasm else ext.icon
         permissions = (
             validate_extension_permissions(
                 installed_ext.id, installed_ext.permissions, strict=False
@@ -584,7 +587,7 @@ async def extensions(account_id: AccountId = Depends(check_account_id_exists)):
             {
                 "id": ext.id,
                 "name": ext.name,
-                "icon": ext.icon,
+                "icon": icon,
                 "shortDescription": ext.short_description,
                 "stars": ext.stars,
                 "isFeatured": ext.meta.featured if ext.meta else False,
@@ -616,7 +619,7 @@ async def extensions(account_id: AccountId = Depends(check_account_id_exists)):
                     else {}
                 ),
                 "isPaymentRequired": ext.requires_payment,
-                "isWasm": installed_ext.is_wasm if installed_ext else ext.is_wasm,
+                "isWasm": is_wasm,
                 "permissions": [dict(permission) for permission in permissions],
                 "inProgress": False,
                 "selectedForUpdate": False,

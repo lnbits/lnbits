@@ -180,9 +180,17 @@ class Extension(BaseModel):
             is_wasm=ext_info.is_wasm,
             name=ext_info.name,
             short_description=ext_info.short_description,
-            tile=ext_info.icon,
+            tile=(
+                wasm_extension_icon_url(ext_info.id)
+                if ext_info.is_wasm
+                else ext_info.icon
+            ),
             upgrade_hash=ext_info.hash if ext_info.ext_upgrade_dir.is_dir() else "",
         )
+
+
+def wasm_extension_icon_url(ext_id: str) -> str:
+    return f"/ext-assets/{ext_id}/assets/icon.png"
 
 
 class ExtensionRelease(BaseModel):
