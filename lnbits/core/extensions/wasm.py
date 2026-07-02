@@ -128,12 +128,17 @@ def _add_extension_host_imports(
     event_loop: asyncio.AbstractEventLoop,
 ) -> None:
     with linker.root() as root:
-        with root.add_instance("lnbits:extension/host") as host:
-            for method in list_extension_api_methods():
-                host.add_func(
-                    method.host_name.replace("_", "-"),
-                    _make_host_import(api_host, method.host_name, event_loop),
-                )
+        methods_by_interface: dict[str, list[Any]] = {}
+        for method in list_extension_api_methods():
+            methods_by_interface.setdefault(method.host_interface, []).append(method)
+
+        for host_interface, methods in methods_by_interface.items():
+            with root.add_instance(f"lnbits:extension/{host_interface}") as host:
+                for method in methods:
+                    host.add_func(
+                        method.host_name.replace("_", "-"),
+                        _make_host_import(api_host, method.method_id, event_loop),
+                    )
 
 
 def _make_host_import(

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import argparse
+import re
 from collections import defaultdict
 from collections.abc import Sequence
 from pathlib import Path
@@ -185,6 +186,7 @@ def _render_method_metadata(
                 f'    namespace: "{method.namespace}",',
                 f'    sdkName: "{method.sdk_name}",',
                 f'    pythonName: "{method.python_name}",',
+                f'    hostInterface: "{method.host_interface}",',
                 f'    hostName: "{method.host_name}",',
                 f'    hostJsName: "{_camel(method.host_name)}",',
                 f"    requiredPermission: {permission},",
@@ -197,76 +199,120 @@ def _render_method_metadata(
 
 def _render_host_type(methods: Sequence[ExtensionAPIMethod]) -> list[str]:
     lines = ["export type ExtensionHost = {"]
-    for method in sorted(methods, key=lambda item: item.host_name):
-        request = _model_name(method.request_model)
-        response = _model_name(method.response_model)
-        if _is_empty_model(method.request_model):
-            lines.append(f"  {_camel(method.host_name)}(): MaybePromise<{response}>")
-        else:
-            lines.append(
-                f"  {_camel(method.host_name)}"
-                f"(input: {request}): MaybePromise<{response}>"
-            )
-    lines.append("}")
-    return lines
-
-
-def _render_sdk_type(methods: Sequence[ExtensionAPIMethod]) -> list[str]:
-    namespaces = _methods_by_namespace(methods)
-    lines = ["export type ExtensionSdk = {"]
-    for namespace, namespace_methods in namespaces.items():
-        lines.append(f"  {namespace}: {{")
-        for method in namespace_methods:
+    for host_interface, interface_methods in _methods_by_host_interface(
+        methods
+    ).items():
+        lines.append(f"  {_ts_property(host_interface)}: {{")
+        for method in sorted(interface_methods, key=lambda item: item.host_name):
             request = _model_name(method.request_model)
             response = _model_name(method.response_model)
             if _is_empty_model(method.request_model):
-                lines.append(f"    {method.sdk_name}(): Promise<{response}>")
+                lines.append(
+                    f"    {_camel(method.host_name)}(): MaybePromise<{response}>"
+                )
             else:
                 lines.append(
-                    f"    {method.sdk_name}(input: {request}): Promise<{response}>"
+                    f"    {_camel(method.host_name)}"
+                    f"(input: {request}): MaybePromise<{response}>"
                 )
         lines.append("  }")
     lines.append("}")
     return lines
 
 
+def _render_sdk_type(methods: Sequence[ExtensionAPIMethod]) -> list[str]:
+    lines = ["export type ExtensionSdk = {"]
+    _render_sdk_type_node(lines, _namespace_tree(methods), 1)
+    lines.append("}")
+    return lines
+
+
 def _render_create_sdk(methods: Sequence[ExtensionAPIMethod]) -> list[str]:
-    namespaces = _methods_by_namespace(methods)
     lines = [
         "export function createExtensionSdk(",
         "  host: ExtensionHost",
         "): ExtensionSdk {",
         "  return {",
     ]
-    for namespace, namespace_methods in namespaces.items():
-        lines.append(f"    {namespace}: {{")
-        for method in namespace_methods:
-            host_name = _camel(method.host_name)
-            if _is_empty_model(method.request_model):
-                signature = f"{method.sdk_name}()"
-                host_call = f"host.{host_name}()"
-            else:
-                signature = f"{method.sdk_name}(input)"
-                host_call = f"host.{host_name}(input)"
-            lines.extend(
-                [
-                    f"      async {signature} {{",
-                    f"        return {host_call}",
-                    "      },",
-                ]
-            )
-        lines.append("    },")
+    _render_create_sdk_node(lines, _namespace_tree(methods), 2)
     lines.extend(["  }", "}"])
     return lines
 
 
-def _methods_by_namespace(
+def _render_sdk_type_node(lines: list[str], node: dict[str, Any], level: int) -> None:
+    indent = "  " * level
+    for namespace, child in _iter_child_namespaces(node):
+        lines.append(f"{indent}{namespace}: {{")
+        _render_sdk_type_node(lines, child, level + 1)
+        lines.append(f"{indent}}}")
+
+    for method in node.get("__methods__", []):
+        request = _model_name(method.request_model)
+        response = _model_name(method.response_model)
+        if _is_empty_model(method.request_model):
+            lines.append(f"{indent}{method.sdk_name}(): Promise<{response}>")
+        else:
+            lines.append(
+                f"{indent}{method.sdk_name}(input: {request}): Promise<{response}>"
+            )
+
+
+def _render_create_sdk_node(lines: list[str], node: dict[str, Any], level: int) -> None:
+    indent = "  " * level
+    for namespace, child in _iter_child_namespaces(node):
+        lines.append(f"{indent}{namespace}: {{")
+        _render_create_sdk_node(lines, child, level + 1)
+        lines.append(f"{indent}}},")
+
+    for method in node.get("__methods__", []):
+        host_call_target = (
+            f"host{_ts_access(method.host_interface)}"
+            f"{_ts_access(_camel(method.host_name))}"
+        )
+        if _is_empty_model(method.request_model):
+            signature = f"{method.sdk_name}()"
+            host_call = f"{host_call_target}()"
+        else:
+            signature = f"{method.sdk_name}(input)"
+            host_call = f"{host_call_target}(input)"
+        lines.extend(
+            [
+                f"{indent}async {signature} {{",
+                f"{indent}  return {host_call}",
+                f"{indent}}},",
+            ]
+        )
+
+
+def _methods_by_host_interface(
     methods: Sequence[ExtensionAPIMethod],
 ) -> dict[str, list[ExtensionAPIMethod]]:
-    namespaces: dict[str, list[ExtensionAPIMethod]] = defaultdict(list)
+    interfaces: dict[str, list[ExtensionAPIMethod]] = defaultdict(list)
+    for method in sorted(
+        methods, key=lambda item: (item.host_interface, item.host_name)
+    ):
+        interfaces[method.host_interface].append(method)
+    return dict(sorted(interfaces.items()))
+
+
+def _namespace_tree(methods: Sequence[ExtensionAPIMethod]) -> dict[str, Any]:
+    tree: dict[str, Any] = {}
     for method in sorted(methods, key=lambda item: (item.namespace, item.sdk_name)):
-        namespaces[method.namespace].append(method)
-    return dict(sorted(namespaces.items()))
+        node = tree
+        for part in method.namespace.split("."):
+            node = node.setdefault(part, {})
+        node.setdefault("__methods__", []).append(method)
+    return tree
+
+
+def _iter_child_namespaces(
+    node: dict[str, Any],
+) -> list[tuple[str, dict[str, Any]]]:
+    return [
+        (key, value)
+        for key, value in sorted(node.items())
+        if key != "__methods__" and isinstance(value, dict)
+    ]
 
 
 def _model_name(model: type[BaseModel]) -> str:
@@ -276,6 +322,18 @@ def _model_name(model: type[BaseModel]) -> str:
 def _camel(value: str) -> str:
     head, *tail = value.split("_")
     return head + "".join(part.capitalize() for part in tail)
+
+
+def _ts_property(value: str) -> str:
+    if re.match(r"^[A-Za-z_$][A-Za-z0-9_$]*$", value):
+        return value
+    return f'"{value}"'
+
+
+def _ts_access(value: str) -> str:
+    if re.match(r"^[A-Za-z_$][A-Za-z0-9_$]*$", value):
+        return f".{value}"
+    return f'["{value}"]'
 
 
 def _is_empty_model(model: type[BaseModel]) -> bool:
