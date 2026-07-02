@@ -7,6 +7,7 @@ import secrets
 import time
 from collections.abc import Awaitable, Callable, Iterable, Mapping
 from dataclasses import dataclass
+from datetime import datetime
 from functools import wraps
 from typing import Any, TypeVar, cast, get_type_hints
 
@@ -15,19 +16,37 @@ from pydantic import BaseModel
 from lnbits.helpers import sha256s
 
 from .models import (
+    Bolt11Request,
     CreateInvoicePublicRequest,
     CreateInvoiceRequest,
     CreateInvoiceResponse,
+    CurrencyConvertRequest,
+    CurrencyConvertResponse,
+    CurrencyListResponse,
+    CurrencyRateRequest,
+    CurrencyRateResponse,
+    DecodeInvoiceResponse,
     EmptyRequest,
     ExtensionApiRequest,
+    FiatToSatsRequest,
+    FiatToSatsResponse,
     HttpRequest,
     HttpResponse,
+    InvoiceAmountMsatResponse,
+    InvoiceExpiryResponse,
+    InvoiceMemoResponse,
+    InvoicePaymentHashResponse,
     ListUserWalletsResponse,
     LogRequest,
     LogResponse,
     NowResponse,
     RandomIdRequest,
     RandomIdResponse,
+    RandomSecretAndHashRequest,
+    RandomSecretAndHashResponse,
+    SatsToFiatRequest,
+    SatsToFiatResponse,
+    ServerHealthResponse,
     StorageDeleteRequest,
     StorageDeleteResponse,
     StorageGetRequest,
@@ -37,6 +56,9 @@ from .models import (
     StorageSetRequest,
     StorageSetResponse,
     UserWalletSummary,
+    ValidateInvoiceResponse,
+    VerifyPreimageRequest,
+    VerifyPreimageResponse,
 )
 from .storage import (
     storage_delete_row,
@@ -313,8 +335,8 @@ class ExtensionAPI:
         payment = await create_payment_request(
             request.wallet_id,
             CreateInvoice(
-                amount=request.amount_sat,
-                unit=request.currency or "sat",
+                amount=request.amount,
+                unit=request.currency,
                 memo=request.memo,
                 extra=request.extra,
                 extension=self.extension_id,
@@ -480,6 +502,281 @@ class ExtensionAPI:
         log("extension:%s %s", self.extension_id, request.message)
         return LogResponse()
 
+    @extension_api_method(
+        method_id="utils.currencies.list",
+        namespace="utils",
+        name="List currencies",
+        host_name="utils_currencies_list",
+        sdk_name="currenciesList",
+        description="List currencies supported by LNbits exchange-rate conversion.",
+        required_permission="utils.basic",
+        require_auth=False,
+    )
+    async def utils_currencies_list(
+        self, request: EmptyRequest
+    ) -> CurrencyListResponse:
+        from lnbits.utils.exchange_rates import allowed_currencies
+
+        return CurrencyListResponse(currencies=allowed_currencies())
+
+    @extension_api_method(
+        method_id="utils.currencies.rate",
+        namespace="utils",
+        name="Get currency rate",
+        host_name="utils_currencies_rate",
+        sdk_name="currenciesRate",
+        description="Get sats-per-fiat and BTC price for a currency.",
+        required_permission="utils.basic",
+        require_auth=False,
+    )
+    async def utils_currencies_rate(
+        self, request: CurrencyRateRequest
+    ) -> CurrencyRateResponse:
+        from lnbits.utils.exchange_rates import get_fiat_rate_and_price_satoshis
+
+        rate, price = await get_fiat_rate_and_price_satoshis(request.currency)
+        return CurrencyRateResponse(rate=rate, price=price)
+
+    @extension_api_method(
+        method_id="utils.currencies.convert",
+        namespace="utils",
+        name="Convert currency amount",
+        host_name="utils_currencies_convert",
+        sdk_name="currenciesConvert",
+        description="Convert between sats, BTC, and supported fiat currencies.",
+        required_permission="utils.basic",
+        require_auth=False,
+    )
+    async def utils_currencies_convert(
+        self, request: CurrencyConvertRequest
+    ) -> CurrencyConvertResponse:
+        from lnbits.utils.exchange_rates import (
+            fiat_amount_as_satoshis,
+            satoshis_amount_as_fiat,
+        )
+
+        from_currency = request.from_currency
+        if from_currency == "sats":
+            from_currency = "sat"
+
+        amounts: list[tuple[str, float]] = []
+        if from_currency == "sat":
+            sats = int(request.amount)
+            amounts.append(("BTC", sats / 100_000_000))
+            amounts.append(("sats", sats))
+            for currency in request.to.split(","):
+                currency = currency.strip()
+                if currency:
+                    amounts.append(
+                        (
+                            currency.upper(),
+                            await satoshis_amount_as_fiat(sats, currency),
+                        )
+                    )
+        else:
+            sats = await fiat_amount_as_satoshis(request.amount, from_currency)
+            amounts.append((from_currency.upper(), request.amount))
+            amounts.append(("sats", sats))
+            amounts.append(("BTC", sats / 100_000_000))
+        return CurrencyConvertResponse(amounts=amounts)
+
+    @extension_api_method(
+        method_id="utils.currencies.fiat_to_sats",
+        namespace="utils",
+        name="Convert fiat to sats",
+        host_name="utils_currencies_fiat_to_sats",
+        sdk_name="currenciesFiatToSats",
+        description="Convert a fiat amount to sats.",
+        required_permission="utils.basic",
+        require_auth=False,
+    )
+    async def utils_currencies_fiat_to_sats(
+        self, request: FiatToSatsRequest
+    ) -> FiatToSatsResponse:
+        from lnbits.utils.exchange_rates import fiat_amount_as_satoshis
+
+        return FiatToSatsResponse(
+            amount_sat=await fiat_amount_as_satoshis(
+                request.amount,
+                request.currency,
+            )
+        )
+
+    @extension_api_method(
+        method_id="utils.currencies.sats_to_fiat",
+        namespace="utils",
+        name="Convert sats to fiat",
+        host_name="utils_currencies_sats_to_fiat",
+        sdk_name="currenciesSatsToFiat",
+        description="Convert a sats amount to fiat.",
+        required_permission="utils.basic",
+        require_auth=False,
+    )
+    async def utils_currencies_sats_to_fiat(
+        self, request: SatsToFiatRequest
+    ) -> SatsToFiatResponse:
+        from lnbits.utils.exchange_rates import satoshis_amount_as_fiat
+
+        return SatsToFiatResponse(
+            amount=await satoshis_amount_as_fiat(request.amount, request.currency)
+        )
+
+    @extension_api_method(
+        method_id="utils.server.health",
+        namespace="utils",
+        name="Server health",
+        host_name="utils_server_health",
+        sdk_name="serverHealth",
+        description="Return basic public LNbits server health data.",
+        required_permission="utils.basic",
+        require_auth=False,
+    )
+    async def utils_server_health(self, request: EmptyRequest) -> ServerHealthResponse:
+        from lnbits.settings import settings
+
+        return ServerHealthResponse(
+            server_time=int(time.time()),
+            up_time=settings.lnbits_server_up_time,
+        )
+
+    @extension_api_method(
+        method_id="utils.lightning.decode_invoice",
+        namespace="utils",
+        name="Decode Lightning invoice",
+        host_name="utils_lightning_decode_invoice",
+        sdk_name="lightningDecodeInvoice",
+        description="Decode a BOLT11 Lightning invoice.",
+        required_permission="utils.basic",
+        require_auth=False,
+    )
+    async def utils_lightning_decode_invoice(
+        self, request: Bolt11Request
+    ) -> DecodeInvoiceResponse:
+        invoice = _decode_bolt11(request.bolt11)
+        return _decoded_invoice_response(invoice)
+
+    @extension_api_method(
+        method_id="utils.lightning.validate_invoice",
+        namespace="utils",
+        name="Validate Lightning invoice",
+        host_name="utils_lightning_validate_invoice",
+        sdk_name="lightningValidateInvoice",
+        description="Validate whether a string is a BOLT11 Lightning invoice.",
+        required_permission="utils.basic",
+        require_auth=False,
+    )
+    async def utils_lightning_validate_invoice(
+        self, request: Bolt11Request
+    ) -> ValidateInvoiceResponse:
+        try:
+            _decode_bolt11(request.bolt11)
+            return ValidateInvoiceResponse(valid=True)
+        except Exception as exc:
+            return ValidateInvoiceResponse(valid=False, error=str(exc))
+
+    @extension_api_method(
+        method_id="utils.lightning.invoice_payment_hash",
+        namespace="utils",
+        name="Get Lightning invoice payment hash",
+        host_name="utils_lightning_invoice_payment_hash",
+        sdk_name="lightningInvoicePaymentHash",
+        description="Get the payment hash from a BOLT11 Lightning invoice.",
+        required_permission="utils.basic",
+        require_auth=False,
+    )
+    async def utils_lightning_invoice_payment_hash(
+        self, request: Bolt11Request
+    ) -> InvoicePaymentHashResponse:
+        return InvoicePaymentHashResponse(
+            payment_hash=str(_decode_bolt11(request.bolt11).payment_hash)
+        )
+
+    @extension_api_method(
+        method_id="utils.lightning.invoice_amount_msat",
+        namespace="utils",
+        name="Get Lightning invoice amount",
+        host_name="utils_lightning_invoice_amount_msat",
+        sdk_name="lightningInvoiceAmountMsat",
+        description="Get the amount in msat from a BOLT11 Lightning invoice.",
+        required_permission="utils.basic",
+        require_auth=False,
+    )
+    async def utils_lightning_invoice_amount_msat(
+        self, request: Bolt11Request
+    ) -> InvoiceAmountMsatResponse:
+        return InvoiceAmountMsatResponse(
+            amount_msat=_invoice_amount_msat(_decode_bolt11(request.bolt11))
+        )
+
+    @extension_api_method(
+        method_id="utils.lightning.invoice_expiry",
+        namespace="utils",
+        name="Get Lightning invoice expiry",
+        host_name="utils_lightning_invoice_expiry",
+        sdk_name="lightningInvoiceExpiry",
+        description="Get the expiry timestamp from a BOLT11 Lightning invoice.",
+        required_permission="utils.basic",
+        require_auth=False,
+    )
+    async def utils_lightning_invoice_expiry(
+        self, request: Bolt11Request
+    ) -> InvoiceExpiryResponse:
+        return InvoiceExpiryResponse(
+            expires_at=_invoice_expires_at(_decode_bolt11(request.bolt11))
+        )
+
+    @extension_api_method(
+        method_id="utils.lightning.invoice_memo",
+        namespace="utils",
+        name="Get Lightning invoice memo",
+        host_name="utils_lightning_invoice_memo",
+        sdk_name="lightningInvoiceMemo",
+        description="Get the memo from a BOLT11 Lightning invoice.",
+        required_permission="utils.basic",
+        require_auth=False,
+    )
+    async def utils_lightning_invoice_memo(
+        self, request: Bolt11Request
+    ) -> InvoiceMemoResponse:
+        return InvoiceMemoResponse(memo=_invoice_memo(_decode_bolt11(request.bolt11)))
+
+    @extension_api_method(
+        method_id="utils.lightning.verify_preimage",
+        namespace="utils",
+        name="Verify Lightning preimage",
+        host_name="utils_lightning_verify_preimage",
+        sdk_name="lightningVerifyPreimage",
+        description="Verify that a preimage matches a payment hash.",
+        required_permission="utils.basic",
+        require_auth=False,
+    )
+    async def utils_lightning_verify_preimage(
+        self, request: VerifyPreimageRequest
+    ) -> VerifyPreimageResponse:
+        from lnbits.utils.crypto import verify_preimage
+
+        return VerifyPreimageResponse(
+            valid=verify_preimage(request.preimage, request.payment_hash)
+        )
+
+    @extension_api_method(
+        method_id="utils.lightning.random_secret_and_hash",
+        namespace="utils",
+        name="Random Lightning secret and hash",
+        host_name="utils_lightning_random_secret_and_hash",
+        sdk_name="lightningRandomSecretAndHash",
+        description="Create a random secret and matching SHA256 hash.",
+        required_permission="utils.basic",
+        require_auth=False,
+    )
+    async def utils_lightning_random_secret_and_hash(
+        self, request: RandomSecretAndHashRequest
+    ) -> RandomSecretAndHashResponse:
+        from lnbits.utils.crypto import random_secret_and_hash
+
+        secret, payment_hash = random_secret_and_hash(request.length)
+        return RandomSecretAndHashResponse(secret=secret, hash=payment_hash)
+
     @staticmethod
     def _permission_data(
         permissions: Iterable[Any],
@@ -547,6 +844,55 @@ class ExtensionAPI:
                 "Public invoice creation requires a wallet field policy."
             )
         return table, wallet_field
+
+
+def _decode_bolt11(payment_request: str) -> Any:
+    from lnbits import bolt11
+
+    return bolt11.decode(payment_request)
+
+
+def _decoded_invoice_response(invoice: Any) -> DecodeInvoiceResponse:
+    return DecodeInvoiceResponse(
+        payment_hash=str(getattr(invoice, "payment_hash", "")) or None,
+        amount_msat=_invoice_amount_msat(invoice),
+        expiry=_invoice_expiry(invoice),
+        expires_at=_invoice_expires_at(invoice),
+        memo=_invoice_memo(invoice),
+    )
+
+
+def _invoice_amount_msat(invoice: Any) -> int | None:
+    amount_msat = getattr(invoice, "amount_msat", None)
+    if amount_msat is None:
+        return None
+    return int(amount_msat)
+
+
+def _invoice_expiry(invoice: Any) -> int | None:
+    expiry = getattr(invoice, "expiry", None)
+    if expiry is None:
+        return None
+    return int(expiry)
+
+
+def _invoice_expires_at(invoice: Any) -> int | None:
+    expiry_date = getattr(invoice, "expiry_date", None)
+    if isinstance(expiry_date, datetime):
+        return int(expiry_date.timestamp())
+
+    date = getattr(invoice, "date", None)
+    expiry = getattr(invoice, "expiry", None)
+    if isinstance(date, datetime) and expiry is not None:
+        return int(date.timestamp() + int(expiry))
+    if isinstance(date, (int, float)) and expiry is not None:
+        return int(date + int(expiry))
+    return None
+
+
+def _invoice_memo(invoice: Any) -> str | None:
+    memo = getattr(invoice, "description", None)
+    return str(memo) if memo is not None else None
 
 
 def list_extension_api_methods(
