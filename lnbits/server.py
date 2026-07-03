@@ -27,6 +27,8 @@ from lnbits.settings import set_cli_settings, settings
 @click.option(
     "--reload", is_flag=True, default=False, help="Enable auto-reload for development"
 )
+@click.option("--ws-max-queue", default=128, help="Websocket max queue size")
+@click.option("--ws-ping-timeout", default=900.0, help="Websocket ping timeout")
 def main(
     port: int,
     host: str,
@@ -34,6 +36,8 @@ def main(
     ssl_keyfile: str,
     ssl_certfile: str,
     reload: bool,
+    ws_max_queue: int,
+    ws_ping_timeout: float
 ):
     """Launched with `uv run lnbits` at root level"""
 
@@ -58,8 +62,8 @@ def main(
             ssl_keyfile=ssl_keyfile,
             ssl_certfile=ssl_certfile,
             reload=reload or False,
-            ws_ping_interval=None,
-            ws_ping_timeout=None,
+            ws_ping_timeout=ws_ping_timeout,
+            ws_max_queue=ws_max_queue,
         )
 
         server = uvicorn.Server(config=config)
