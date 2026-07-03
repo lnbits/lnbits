@@ -13,8 +13,6 @@ jobs:
 
   release:
     runs-on: ubuntu-24.04
-    outputs:
-      upload_url: ${{ steps.get_upload_url.outputs.upload_url }}
     steps:
       - uses: actions/checkout@v4
       - name: Create github release
@@ -23,14 +21,6 @@ jobs:
           tag: ${{ github.ref_name }}
         run: |
           gh release create "$tag" --generate-notes --draft
-      - id: get_upload_url
-        name: Get upload url of Github release
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          tag: ${{ github.ref_name }}
-        run: |
-          upload_url=$(gh release view "$tag" --json uploadUrl -q ".uploadUrl")
-          echo "upload_url=$upload_url" >> "$GITHUB_OUTPUT"
 
   docker:
     if: github.repository == 'lnbits/lnbits'
@@ -85,4 +75,3 @@ jobs:
     uses: ./.github/workflows/appimage.yml
     with:
       tag_name: ${{ github.ref_name }}
-      upload_url: ${{ needs.release.outputs.upload_url }}
