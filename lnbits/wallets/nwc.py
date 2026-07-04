@@ -579,11 +579,11 @@ class NWCWallet(Wallet):
             return StatusResponse(str(e), 0)
 
     async def pay_invoice(self, bolt11: str, fee_limit_msat: int) -> PaymentResponse:
+        invoice_data = bolt11_decode(bolt11)
+        payment_hash = invoice_data.payment_hash
         try:
             resp = await self.conn.call("pay_invoice", {"invoice": bolt11})
             preimage = resp.get("preimage", None)
-            invoice_data = bolt11_decode(bolt11)
-            payment_hash = invoice_data.payment_hash
             # pay_invoice doesn't return payment data, so we need
             # to call lookup_invoice too (if supported)
             await self.conn.get_info()
@@ -630,15 +630,23 @@ class NWCWallet(Wallet):
                 "PAYMENT_FAILED",
             ]
             failed = e.code in failure_codes
+            if failed:
+                return PaymentResponse(
+                    ok=False,
+                    checking_id=payment_hash,
+                    error_message=e.message,
+                )
             return PaymentResponse(
-                ok=None if not failed else False,
-                error_message=e.message if failed else None,
+                ok=None,
+                checking_id=payment_hash,
+                error_message=e.message,
             )
         except Exception as e:
             msg = "Error paying invoice: " + str(e)
             logger.error(msg)
-            # assume pending
-            return PaymentResponse(error_message=msg)
+            # assume pending so the core keeps the payment record
+            # and can settle it later via get_payment_status
+            return PaymentResponse(checking_id=payment_hash)
 
     async def _get_status_via_transactions(
         self, checking_id: str, unpaid_filters: list[bool]
