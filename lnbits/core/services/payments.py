@@ -1,4 +1,5 @@
 import asyncio
+import hashlib
 import time
 from datetime import datetime, timedelta, timezone
 
@@ -30,6 +31,8 @@ from lnbits.wallets.base import (
     PaymentStatus,
     PaymentSuccessStatus,
 )
+
+from .offers import is_bolt12_offer
 
 from ..crud import (
     check_internal,
@@ -68,6 +71,20 @@ async def pay_invoice(
 ) -> Payment:
     if settings.lnbits_only_allow_incoming_payments:
         raise PaymentError("Only incoming payments allowed.", status="failed")
+
+    if is_bolt12_offer(payment_request):
+        return await pay_offer(
+            wallet_id=wallet_id,
+            offer=payment_request,
+            max_sat=max_sat,
+            extra=extra,
+            description=description,
+            tag=tag,
+            labels=labels,
+            external_id=external_id,
+            conn=conn,
+        )
+
     invoice = _validate_payment_request(payment_request, max_sat)
 
     if not invoice.amount_msat:
@@ -105,6 +122,55 @@ async def pay_invoice(
             wallet.source_wallet_id, create_payment_model, conn=new_conn
         )
 
+        await _credit_service_fee_wallet(wallet, payment, conn=new_conn)
+
+    return payment
+
+
+async def pay_offer(
+    *,
+    wallet_id: str,
+    offer: str,
+    max_sat: int | None = None,
+    extra: dict | None = None,
+    description: str = "",
+    tag: str = "",
+    labels: list[str] | None = None,
+    external_id: str | None = None,
+    conn: Connection | None = None,
+) -> Payment:
+    async with db.reuse_conn(conn) if conn else db.connect() as new_conn:
+        wallet = await get_wallet(wallet_id, conn=new_conn)
+        if not wallet:
+            raise PaymentError(f"Could not fetch wallet '{wallet_id}'.", status="failed")
+
+        status = await check_user_extension_access(wallet.user, tag, conn=new_conn)
+        if not status.success:
+            raise PaymentError(status.message)
+
+        if not wallet.can_send_payments:
+            raise PaymentError("Wallet does not have permission to pay.", status="failed")
+
+        await check_wallet_limits(wallet_id, 0, new_conn)
+
+        _, extra = await calculate_fiat_amounts(0, wallet, extra=extra)
+
+        checking_id = f"offer_{hashlib.sha256(offer.encode()).hexdigest()[:64]}"
+        create_payment_model = CreatePayment(
+            wallet_id=wallet.source_wallet_id,
+            bolt11=offer,
+            payment_hash=checking_id[:64],
+            amount_msat=0,
+            memo=description or "BOLT12 offer payment",
+            extra=extra,
+            labels=labels,
+            external_id=external_id,
+        )
+
+    async with db.reuse_conn(conn) if conn else db.connect() as new_conn:
+        payment = await _pay_offer(
+            wallet.source_wallet_id, create_payment_model, offer, conn=new_conn
+        )
         await _credit_service_fee_wallet(wallet, payment, conn=new_conn)
 
     return payment
@@ -892,6 +958,81 @@ async def _fundingsource_pay_invoice(
         bolt11, fee_reserve_msat
     )
     logger.debug(f"backend: pay_invoice finished {checking_id}, {payment_response}")
+    return payment_response
+
+
+async def _pay_offer(
+    wallet_id: str,
+    create_payment_model: CreatePayment,
+    offer: str,
+    conn: Connection | None = None,
+) -> Payment:
+    async with payment_lock:
+        if wallet_id not in wallets_payments_lock:
+            wallets_payments_lock[wallet_id] = asyncio.Lock()
+
+    async with wallets_payments_lock[wallet_id]:
+        wallet = await get_wallet(wallet_id, conn=conn)
+        if not wallet:
+            raise PaymentError(
+                f"Could not fetch wallet '{wallet_id}'.", status="failed"
+            )
+
+        checking_id = create_payment_model.payment_hash
+        old_payment = await get_standalone_payment(checking_id, conn=conn)
+        if old_payment:
+            return await _verify_external_payment(old_payment, conn)
+
+        payment = await create_payment(
+            checking_id=checking_id,
+            data=create_payment_model,
+            conn=conn,
+        )
+
+        from lnbits.tasks import create_task
+
+        task = create_task(
+            _fundingsource_pay_offer(checking_id, offer)
+        )
+
+        wait_time = max(1, settings.lnbits_funding_source_pay_invoice_wait_seconds)
+        try:
+            payment_response = await asyncio.wait_for(task, timeout=wait_time)
+        except asyncio.TimeoutError:
+            logger.debug(
+                f"payment timeout after {wait_time}s, {checking_id} is still pending"
+            )
+            return payment
+
+        if (
+            payment_response.checking_id is None
+            or payment_response.ok is False
+        ):
+            payment.status = PaymentState.FAILED
+            await update_payment(payment, conn=conn)
+            message = payment_response.error_message or "without an error message."
+            raise PaymentError(f"Payment failed: {message}", status="failed")
+
+        if payment_response.success:
+            payment = await update_payment_success_status(
+                payment, payment_response, conn=conn
+            )
+            await _send_payment_notification_in_background(wallet.id, payment, conn=conn)
+            logger.success(f"payment successful {payment_response.checking_id}")
+
+        payment.checking_id = payment_response.checking_id
+        return payment
+
+
+async def _fundingsource_pay_offer(
+    checking_id: str, offer: str
+) -> PaymentResponse:
+    logger.debug(f"fundingsource: paying BOLT12 offer {checking_id}")
+    funding_source = get_funding_source()
+    payment_response: PaymentResponse = await funding_source.pay_offer(
+        offer, fee_limit_msat=0
+    )
+    logger.debug(f"backend: pay_offer finished {checking_id}, {payment_response}")
     return payment_response
 
 

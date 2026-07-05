@@ -35,7 +35,7 @@ class CoreLightningWallet(Wallet):
     """Core Lightning RPC implementation."""
 
     __node_cls__ = CoreLightningNode
-    features = [Feature.nodemanager]
+    features = [Feature.nodemanager, Feature.bolt12]
 
     async def cleanup(self):
         pass
@@ -202,6 +202,32 @@ class CoreLightningWallet(Wallet):
             )
         except Exception as exc:
             logger.info(f"Failed to pay invoice {bolt11}")
+            logger.warning(exc)
+            return PaymentResponse(error_message=f"Payment failed: '{exc}'.")
+
+    async def pay_offer(self, offer: str, fee_limit_msat: int) -> PaymentResponse:
+        try:
+            payload = {"offer": offer}
+            if fee_limit_msat > 0:
+                payload["maxfee"] = fee_limit_msat
+            r = await run_sync(lambda: self.ln.call(self.pay, payload))
+            fee_msat = -int(r["amount_sent_msat"] - r["amount_msat"])
+            return PaymentResponse(
+                True, r["payment_hash"], fee_msat, r["payment_preimage"], None
+            )
+        except RpcError as exc:
+            logger.warning(exc)
+            error_message = exc.error.get("message", str(exc.error))
+            return PaymentResponse(
+                ok=False, error_message=f"Payment failed: {error_message}"
+            )
+        except KeyError as exc:
+            logger.warning(exc)
+            return PaymentResponse(
+                error_message="Server error: 'missing required fields'"
+            )
+        except Exception as exc:
+            logger.info(f"Failed to pay offer {offer[:20]}...")
             logger.warning(exc)
             return PaymentResponse(error_message=f"Payment failed: '{exc}'.")
 

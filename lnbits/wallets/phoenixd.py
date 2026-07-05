@@ -230,6 +230,65 @@ class PhoenixdWallet(Wallet):
                 error_message=f"Unable to connect to {self.endpoint}."
             )
 
+    async def pay_offer(self, offer: str, fee_limit_msat: int) -> PaymentResponse:
+        try:
+            r = await self.client.post(
+                "/payoffer",
+                data={
+                    "offer": offer,
+                },
+                timeout=60,
+            )
+
+            r.raise_for_status()
+
+        except TimeoutException:
+            msg = f"Timeout connecting to {self.endpoint}."
+            logger.warning(msg)
+            return PaymentResponse(ok=None, error_message=msg)
+        except RequestError as exc:
+            msg = f"Unable to connect to {self.endpoint}."
+            logger.warning(msg)
+            logger.warning(exc)
+            return PaymentResponse(ok=False, error_message=msg)
+        except Exception as exc:
+            logger.warning(exc)
+            return PaymentResponse(
+                ok=None, error_message=f"Unable to connect to {self.endpoint}."
+            )
+
+        try:
+            data = r.json()
+
+            if "paymentHash" not in data and ("reason" in data or "message" in data):
+                error_message = data.get("reason", data.get("message", "Unknown error"))
+                return PaymentResponse(error_message=error_message)
+
+            checking_id = data["paymentHash"]
+            fee_msat = -int(data.get("routingFeeSat", 0)) * 1000
+            preimage = data.get("paymentPreimage")
+            return PaymentResponse(
+                ok=True,
+                checking_id=checking_id,
+                fee_msat=fee_msat,
+                preimage=preimage,
+            )
+
+        except json.JSONDecodeError:
+            return PaymentResponse(
+                error_message="Server error: 'invalid json response'"
+            )
+        except KeyError:
+            return PaymentResponse(
+                error_message="Server error: 'missing required fields'"
+            )
+        except Exception as exc:
+            logger.info(f"Failed to pay offer {offer[:20]}...")
+            logger.warning(exc)
+            return PaymentResponse(
+                error_message=f"Unable to connect to {self.endpoint}."
+            )
+
     async def get_invoice_status(self, checking_id: str) -> PaymentStatus:
         r = await self.client.get(f"/payments/incoming/{checking_id}")
         if r.is_error:
