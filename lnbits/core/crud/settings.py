@@ -14,12 +14,12 @@ from lnbits.settings import (
     settings,
 )
 
-RESET_PRESERVED_SETTINGS = {
+RESET_PRESERVED_SETTINGS = (
     "super_user",
     "lnbits_webpush_pubkey",
     "lnbits_webpush_privkey",
     *FundingSourcesSettings.__fields__,
-}
+)
 
 
 async def get_super_settings() -> SuperSettings | None:
@@ -77,17 +77,11 @@ async def delete_admin_settings(tag: str | None = "core") -> None:
 
 
 async def reset_core_settings() -> None:
-    rows: list[dict] = await db.fetchall(
-        "SELECT * FROM system_settings WHERE tag = 'core'"
-    )
-    preserved_rows = [row for row in rows if row["id"] in RESET_PRESERVED_SETTINGS]
-
-    await db.execute(
-        "DELETE FROM system_settings WHERE tag = 'core'",
-    )
-    for row in preserved_rows:
-        value = json.loads(row["value"]) if row["value"] else None
-        await set_settings_field(row["id"], value, row["tag"])
+    core_settings = await get_settings_by_tag("core") or {}
+    await delete_admin_settings()
+    for field in RESET_PRESERVED_SETTINGS:
+        if field in core_settings:
+            await set_settings_field(field, core_settings[field])
 
 
 async def create_admin_settings(super_user: str, new_settings: dict) -> SuperSettings:

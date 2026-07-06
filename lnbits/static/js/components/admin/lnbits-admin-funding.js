@@ -1,17 +1,3 @@
-const seedBackupChallengeWordCount = 4
-const seedBackupSources = {
-  BoltzWallet: {
-    label: 'Boltz',
-    seedField: 'boltz_mnemonic',
-    confirmField: 'boltz_mnemonic_backup_confirmed'
-  },
-  SparkL2Wallet: {
-    label: 'Spark L2',
-    seedField: 'spark_l2_mnemonic',
-    confirmField: 'spark_l2_mnemonic_backup_confirmed'
-  }
-}
-
 window.app.component('lnbits-admin-funding', {
   props: ['active', 'is-super-user', 'form-data', 'settings'],
   template: '#lnbits-admin-funding',
@@ -21,7 +7,6 @@ window.app.component('lnbits-admin-funding', {
       seedBackupDialog: {
         show: false,
         step: 1,
-        sourceLabel: '',
         seed: '',
         visible: false,
         challenge: [],
@@ -38,18 +23,24 @@ window.app.component('lnbits-admin-funding', {
       }
     },
     'formData.lnbits_backend_wallet_class'(walletClass, previousWalletClass) {
-      this.resetSeedBackupConfirmationOnSourceChange(
-        walletClass,
-        previousWalletClass
-      )
+      const source = this.seedBackupSource(walletClass)
+      if (previousWalletClass && source && this.formData[source.seedField]) {
+        this.formData[source.confirmField] = false
+      }
       this.openSeedBackupDialogIfRequired()
     },
     'formData.boltz_mnemonic'() {
-      this.syncSeedBackupConfirmation('boltz_mnemonic')
+      this.formData.boltz_mnemonic_backup_confirmed =
+        this.formData.boltz_mnemonic === this.settings.boltz_mnemonic
+          ? this.settings.boltz_mnemonic_backup_confirmed
+          : false
       this.openSeedBackupDialogIfRequired()
     },
     'formData.spark_l2_mnemonic'() {
-      this.syncSeedBackupConfirmation('spark_l2_mnemonic')
+      this.formData.spark_l2_mnemonic_backup_confirmed =
+        this.formData.spark_l2_mnemonic === this.settings.spark_l2_mnemonic
+          ? this.settings.spark_l2_mnemonic_backup_confirmed
+          : false
       this.openSeedBackupDialogIfRequired()
     }
   },
@@ -66,30 +57,19 @@ window.app.component('lnbits-admin-funding', {
     this.openSeedBackupDialogIfRequired()
   },
   methods: {
-    seedBackupSource() {
-      return seedBackupSources[this.formData.lnbits_backend_wallet_class]
-    },
-    resetSeedBackupConfirmationOnSourceChange(
-      walletClass,
-      previousWalletClass
-    ) {
-      if (!previousWalletClass || walletClass === previousWalletClass) return
-
-      const source = seedBackupSources[walletClass]
-      if (!source || !this.formData[source.seedField]) return
-
-      this.formData[source.confirmField] = false
-    },
-    syncSeedBackupConfirmation(seedField) {
-      const source = Object.values(seedBackupSources).find(
-        source => source.seedField === seedField
-      )
-      if (!source) return
-
-      this.formData[source.confirmField] =
-        this.formData[source.seedField] === this.settings[source.seedField]
-          ? this.settings[source.confirmField]
-          : false
+    seedBackupSource(walletClass = this.formData.lnbits_backend_wallet_class) {
+      if (walletClass === 'BoltzWallet') {
+        return {
+          seedField: 'boltz_mnemonic',
+          confirmField: 'boltz_mnemonic_backup_confirmed'
+        }
+      }
+      if (walletClass === 'SparkL2Wallet') {
+        return {
+          seedField: 'spark_l2_mnemonic',
+          confirmField: 'spark_l2_mnemonic_backup_confirmed'
+        }
+      }
     },
     openSeedBackupDialogIfRequired() {
       if (!this.active || !this.isSuperUser) return
@@ -104,7 +84,6 @@ window.app.component('lnbits-admin-funding', {
       this.seedBackupDialog = {
         show: true,
         step: 1,
-        sourceLabel: source.label,
         seed,
         visible: false,
         challenge: [],
@@ -115,7 +94,7 @@ window.app.component('lnbits-admin-funding', {
     },
     prepareSeedBackupChallenge() {
       const words = this.seedBackupDialog.seed.split(/\s+/).filter(Boolean)
-      const count = Math.min(seedBackupChallengeWordCount, words.length)
+      const count = Math.min(4, words.length)
       const indexes = _.shuffle([...Array(words.length).keys()]).slice(0, count)
       this.seedBackupDialog.challenge = indexes
         .sort((a, b) => a - b)
