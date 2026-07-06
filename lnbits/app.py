@@ -449,6 +449,18 @@ def register_ext_routes(app: FastAPI, ext: Extension) -> None:
     ]
     for k in stale:
         del sys.modules[k]
+    if stale:
+        # Pydantic v1 keeps a global _FUNCS set of validator qualnames to detect
+        # duplicates. Clear the extension's entries so reimport doesn't raise
+        # "duplicate validator" errors for validators with the same qualname.
+        try:
+            import pydantic.class_validators as _pydantic_cv
+
+            _pydantic_cv._FUNCS = {
+                f for f in _pydantic_cv._FUNCS if not f.startswith(f"{module_name}.")
+            }
+        except (ImportError, AttributeError):
+            pass
     ext_module = importlib.import_module(module_name)
 
     ext_route = getattr(ext_module, f"{ext.code}_ext")
