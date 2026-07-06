@@ -33,6 +33,14 @@ window.app.component('lnbits-admin-funding', {
       this.openSeedBackupDialogIfRequired()
     }
   },
+  computed: {
+    seedBackupWords() {
+      return this.seedBackupDialog.seed
+        .split(/\s+/)
+        .filter(Boolean)
+        .map((word, index) => ({index, word}))
+    }
+  },
   created() {
     this.getAudit()
     this.openSeedBackupDialogIfRequired()
@@ -77,7 +85,7 @@ window.app.component('lnbits-admin-funding', {
     },
     prepareSeedBackupChallenge() {
       const words = this.seedBackupDialog.seed.split(/\s+/).filter(Boolean)
-      const count = Math.min(5, words.length)
+      const count = Math.min(4, words.length)
       const indexes = _.shuffle([...Array(words.length).keys()]).slice(0, count)
       this.seedBackupDialog.challenge = indexes
         .sort((a, b) => a - b)
