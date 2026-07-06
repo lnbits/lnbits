@@ -27,7 +27,7 @@ async def dispatch_wasm_invoice_paid(payment: Any) -> None:
         return
 
     try:
-        from lnbits.core.extensions.wasm import invoke_wasm_extension_export
+        from lnbits.core.wasm_ext.wasm.invoke import invoke_wasm_extension_export
 
         await invoke_wasm_extension_export(
             extension.id,
@@ -58,7 +58,7 @@ async def _wasm_invoice_paid_owner_id(extension: Any, payment: Any) -> str | Non
     if not source_id or not source_table:
         return None
 
-    from lnbits.core.extensions.storage import storage_get_row_owner_id
+    from lnbits.core.wasm_ext.storage.crud import storage_get_row_owner_id
 
     return await storage_get_row_owner_id(extension.id, source_table, source_id)
 

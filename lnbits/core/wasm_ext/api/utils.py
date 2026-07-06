@@ -4,7 +4,7 @@ import time
 from datetime import datetime
 from typing import TYPE_CHECKING, Any
 
-from .api import extension_api_method
+from .host import extension_api_method
 from .models import (
     Bolt11Request,
     CurrencyConvertRequest,
@@ -31,11 +31,11 @@ from .models import (
 )
 
 if TYPE_CHECKING:
-    from .api import ExtensionAPI
+    from .host import ExtensionHostAPI
 
 
 class ExtensionAPIUtils:
-    def __init__(self, api: ExtensionAPI) -> None:
+    def __init__(self, api: ExtensionHostAPI) -> None:
         self.api = api
         self.currencies = ExtensionCurrencyUtils(api)
         self.server = ExtensionServerUtils(api)
@@ -43,7 +43,7 @@ class ExtensionAPIUtils:
 
 
 class _ExtensionAPIUtilsGroup:
-    def __init__(self, api: ExtensionAPI) -> None:
+    def __init__(self, api: ExtensionHostAPI) -> None:
         self.api = api
 
 

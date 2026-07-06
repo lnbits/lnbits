@@ -1,8 +1,8 @@
 from collections.abc import Iterable
 from typing import Any
 
-from lnbits.core.extensions.api import extension_api_permission_ids
 from lnbits.core.models.extensions import ExtensionPermission, InstallableExtension
+from lnbits.core.wasm_ext.api.host import extension_api_permission_ids
 
 
 def validate_extension_permissions(

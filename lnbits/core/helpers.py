@@ -13,10 +13,10 @@ from lnbits.core.crud import (
     update_migration_version,
 )
 from lnbits.core.db import db as core_db
-from lnbits.core.extensions.loader import is_wasm_extension_id
-from lnbits.core.extensions.storage import migrate_wasm_extension_database
 from lnbits.core.models import DbVersion
 from lnbits.core.models.extensions import InstallableExtension
+from lnbits.core.wasm_ext.storage.crud import migrate_wasm_extension_database
+from lnbits.core.wasm_ext.wasm.loader import is_wasm_extension_id
 from lnbits.db import COCKROACH, POSTGRES, SQLITE, Connection
 from lnbits.settings import settings
 

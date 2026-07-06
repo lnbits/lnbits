@@ -7,7 +7,7 @@ from urllib.parse import urlparse
 
 import httpx
 
-from .models import HttpRequest, HttpResponse
+from ..api.models import HttpRequest, HttpResponse
 
 HTTP_REQUEST_TIMEOUT_SECONDS = 10.0
 HTTP_MAX_RESPONSE_BYTES = 262_144
