@@ -95,17 +95,22 @@ def _target_extension_access(
             extension_id = extension
             access = ["read"]
         elif isinstance(extension, dict):
-            extension_id = extension.get("id")
-            access = extension.get("access")
+            raw_extension_id = extension.get("id")
+            raw_access = extension.get("access")
+            if not isinstance(raw_extension_id, str):
+                continue
+            if not isinstance(raw_access, list):
+                raise PermissionError(
+                    f"Extension API target '{target_extension_id}' "
+                    "has no access policy."
+                )
+            extension_id = raw_extension_id
+            access = raw_access
         else:
             continue
 
         if extension_id != target_extension_id:
             continue
-        if not isinstance(access, list):
-            raise PermissionError(
-                f"Extension API target '{target_extension_id}' has no access policy."
-            )
         clean_access = {
             item
             for item in access
