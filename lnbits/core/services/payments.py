@@ -151,9 +151,11 @@ async def pay_offer(
         if not wallet.can_send_payments:
             raise PaymentError("Wallet does not have permission to pay.", status="failed")
 
-        await check_wallet_limits(wallet_id, 0, new_conn)
+        max_sat = max_sat or settings.lnbits_max_outgoing_payment_amount_sats
+        max_sat = min(max_sat, settings.lnbits_max_outgoing_payment_amount_sats)
+        await check_wallet_limits(wallet_id, max_sat * 1000, new_conn)
 
-        _, extra = await calculate_fiat_amounts(0, wallet, extra=extra)
+        _, extra = await calculate_fiat_amounts(max_sat, wallet, extra=extra)
 
         checking_id = f"offer_{hashlib.sha256(offer.encode()).hexdigest()[:64]}"
         create_payment_model = CreatePayment(
@@ -169,7 +171,7 @@ async def pay_offer(
 
     async with db.reuse_conn(conn) if conn else db.connect() as new_conn:
         payment = await _pay_offer(
-            wallet.source_wallet_id, create_payment_model, offer, conn=new_conn
+            wallet.source_wallet_id, create_payment_model, offer, max_sat, conn=new_conn
         )
         await _credit_service_fee_wallet(wallet, payment, conn=new_conn)
 
@@ -965,6 +967,7 @@ async def _pay_offer(
     wallet_id: str,
     create_payment_model: CreatePayment,
     offer: str,
+    max_sat: int,
     conn: Connection | None = None,
 ) -> Payment:
     async with payment_lock:
@@ -992,7 +995,7 @@ async def _pay_offer(
         from lnbits.tasks import create_task
 
         task = create_task(
-            _fundingsource_pay_offer(checking_id, offer)
+            _fundingsource_pay_offer(checking_id, offer, max_sat)
         )
 
         wait_time = max(1, settings.lnbits_funding_source_pay_invoice_wait_seconds)
@@ -1014,9 +1017,12 @@ async def _pay_offer(
             raise PaymentError(f"Payment failed: {message}", status="failed")
 
         if payment_response.success:
+            if payment_response.amount_msat:
+                payment.amount = -payment_response.amount_msat
             payment = await update_payment_success_status(
                 payment, payment_response, conn=conn
             )
+            payment = await update_payment(payment, conn=conn)
             await _send_payment_notification_in_background(wallet.id, payment, conn=conn)
             logger.success(f"payment successful {payment_response.checking_id}")
 
@@ -1025,12 +1031,13 @@ async def _pay_offer(
 
 
 async def _fundingsource_pay_offer(
-    checking_id: str, offer: str
+    checking_id: str, offer: str, max_sat: int
 ) -> PaymentResponse:
     logger.debug(f"fundingsource: paying BOLT12 offer {checking_id}")
     funding_source = get_funding_source()
+    fee_limit_msat = max_sat * 1000
     payment_response: PaymentResponse = await funding_source.pay_offer(
-        offer, fee_limit_msat=0
+        offer, fee_limit_msat=fee_limit_msat
     )
     logger.debug(f"backend: pay_offer finished {checking_id}, {payment_response}")
     return payment_response

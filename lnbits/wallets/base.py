@@ -52,6 +52,7 @@ class PaymentResponse(NamedTuple):
     fee_msat: int | None = None
     preimage: str | None = None
     error_message: str | None = None
+    amount_msat: int | None = None
 
     @property
     def success(self) -> bool:

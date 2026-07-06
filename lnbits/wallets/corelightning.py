@@ -213,7 +213,8 @@ class CoreLightningWallet(Wallet):
             r = await run_sync(lambda: self.ln.call(self.pay, payload))
             fee_msat = -int(r["amount_sent_msat"] - r["amount_msat"])
             return PaymentResponse(
-                True, r["payment_hash"], fee_msat, r["payment_preimage"], None
+                True, r["payment_hash"], fee_msat, r["payment_preimage"], None,
+                amount_msat=int(r["amount_msat"])
             )
         except RpcError as exc:
             logger.warning(exc)
