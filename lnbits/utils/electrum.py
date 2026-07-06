@@ -249,6 +249,7 @@ class FeeResponse(BaseModel):
 class AddressResponse(BaseModel):
     balance: Balance
     history: list[HistoryEntry]
+    history_error: str | None = None
 
 
 class BlockInfo(BaseModel):

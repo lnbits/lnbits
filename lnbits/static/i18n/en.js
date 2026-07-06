@@ -969,5 +969,6 @@ window.localisation.en = {
   confirmed: 'Confirmed',
   unconfirmed: 'Unconfirmed',
   no_transactions: 'No transactions found',
+  history_unavailable: 'Transaction history unavailable (address has too many transactions)',
   address: 'Address'
 }

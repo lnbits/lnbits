@@ -120,14 +120,17 @@
       <!-- Transaction result -->
       <q-card v-if="txResult">
         <q-card-section>
-          <div class="row items-center q-mb-sm q-gutter-sm">
-            <div class="text-subtitle1" v-text="$t('transaction')"></div>
-            <q-badge
-              v-if="txStatus"
-              :color="txStatus.confirmed ? 'positive' : 'orange'"
-              :label="txStatus.confirmed ? $t('confirmed') : $t('unconfirmed')"
-            ></q-badge>
-            <q-spinner v-if="!txStatus" size="1em" color="grey" />
+          <div class="row items-center justify-between q-mb-sm">
+            <div class="row items-center q-gutter-sm">
+              <div class="text-subtitle1" v-text="$t('transaction')"></div>
+              <q-badge
+                v-if="txStatus"
+                :color="txStatus.confirmed ? 'positive' : 'orange'"
+                :label="txStatus.confirmed ? $t('confirmed') : $t('unconfirmed')"
+              ></q-badge>
+              <q-spinner v-if="!txStatus" size="1em" color="grey" />
+            </div>
+            <q-btn flat round dense icon="close" @click="clearResult" />
           </div>
           <div class="q-mb-sm">
             <span class="text-caption text-grey">txid: </span>
@@ -200,6 +203,14 @@
                         v-text="vout.scriptPubKey.address"
                       ></a>
                     </template>
+                    <template
+                      v-else-if="
+                        vout.scriptPubKey &&
+                        vout.scriptPubKey.type === 'nulldata'
+                      "
+                    >
+                      <span class="text-grey">OP_RETURN</span>
+                    </template>
                     <template v-else-if="vout.scriptPubKey">
                       <span v-text="vout.scriptPubKey.type"></span>
                     </template>
@@ -218,7 +229,10 @@
       <!-- Address result -->
       <q-card v-if="addressResult">
         <q-card-section>
-          <div class="text-subtitle1 q-mb-xs" v-text="$t('address')"></div>
+          <div class="row items-center justify-between q-mb-xs">
+            <div class="text-subtitle1" v-text="$t('address')"></div>
+            <q-btn flat round dense icon="close" @click="clearResult" />
+          </div>
           <div class="text-caption q-mb-sm">
             <code class="be-wrap" v-text="currentAddress"></code>
           </div>
@@ -286,7 +300,12 @@
             </q-item>
           </q-list>
           <div
-            v-if="addressResult.history.length === 0"
+            v-if="addressResult.history_error"
+            class="text-warning q-mt-sm text-caption"
+            v-text="$t('history_unavailable')"
+          ></div>
+          <div
+            v-else-if="addressResult.history.length === 0"
             class="text-grey q-mt-sm"
             v-text="$t('no_transactions')"
           ></div>

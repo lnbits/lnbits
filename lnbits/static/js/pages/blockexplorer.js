@@ -119,6 +119,16 @@ window.PageBlockExplorer = {
         this.fees = r.data
       } catch (_) {}
     },
+    clearResult() {
+      this.txResult = null
+      this.txStatus = null
+      this.addressResult = null
+      this.query = ''
+      if (this._searchWs) {
+        this._searchWs.close()
+        this._searchWs = null
+      }
+    },
     async search() {
       const q = this.query.trim()
       if (!q) return

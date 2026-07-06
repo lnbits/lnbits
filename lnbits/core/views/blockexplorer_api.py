@@ -63,15 +63,31 @@ async def _tx_status(
     c: ElectrumClient, txid: str, scripthash: str | None
 ) -> dict[str, Any]:
     if scripthash:
-        history: list[HistoryEntry] = await c.get_history(scripthash)
-        for entry in history:
-            if entry.tx_hash == txid:
-                return {
-                    "txid": txid,
-                    "confirmed": entry.height > 0,
-                    "height": entry.height if entry.height > 0 else None,
-                    "fee": entry.fee,
-                }
+        try:
+            history: list[HistoryEntry] = await c.get_history(scripthash)
+            for entry in history:
+                if entry.tx_hash == txid:
+                    return {
+                        "txid": txid,
+                        "confirmed": entry.height > 0,
+                        "height": entry.height if entry.height > 0 else None,
+                        "fee": entry.fee,
+                    }
+        except ElectrumError:
+            # History too large; check mempool to determine confirmation status.
+            try:
+                mempool = await c.get_mempool(scripthash)
+                for entry in mempool:
+                    if entry.tx_hash == txid:
+                        return {
+                            "txid": txid,
+                            "confirmed": False,
+                            "height": None,
+                            "fee": entry.fee,
+                        }
+                return {"txid": txid, "confirmed": True, "height": None, "fee": None}
+            except ElectrumError:
+                pass
     return {"txid": txid, "confirmed": False, "height": None, "fee": None}
 
 
@@ -145,11 +161,22 @@ async def api_address(address: str) -> AddressResponse:
         raise HTTPException(HTTPStatus.BAD_REQUEST, detail=str(e)) from e
     try:
         async with _client() as c:
-            balance, history = await asyncio.gather(
+            balance_res, history_res = await asyncio.gather(
                 c.get_balance(scripthash),
                 c.get_history(scripthash),
+                return_exceptions=True,
             )
-        return AddressResponse(balance=balance, history=history)
+        if isinstance(balance_res, Exception):
+            raise HTTPException(
+                HTTPStatus.SERVICE_UNAVAILABLE, detail=str(balance_res)
+            )
+        history = [] if isinstance(history_res, Exception) else history_res
+        history_error = str(history_res) if isinstance(history_res, Exception) else None
+        return AddressResponse(
+            balance=balance_res, history=history, history_error=history_error
+        )
+    except HTTPException:
+        raise
     except ElectrumError as e:
         raise HTTPException(HTTPStatus.SERVICE_UNAVAILABLE, detail=str(e)) from e
 
@@ -200,19 +227,38 @@ async def ws_address(websocket: WebSocket, address: str) -> None:
     try:
         async with _client() as c:
             await c.subscribe_scripthash(scripthash)
-            balance, history = await asyncio.gather(
-                c.get_balance(scripthash), c.get_history(scripthash)
+            balance_res, history_res = await asyncio.gather(
+                c.get_balance(scripthash),
+                c.get_history(scripthash),
+                return_exceptions=True,
             )
-            resp = AddressResponse(balance=balance, history=history)
+            if isinstance(balance_res, Exception):
+                await websocket.send_json({"error": str(balance_res)})
+                return
+            history = [] if isinstance(history_res, Exception) else history_res
+            history_error = (
+                str(history_res) if isinstance(history_res, Exception) else None
+            )
+            resp = AddressResponse(
+                balance=balance_res, history=history, history_error=history_error
+            )
             await websocket.send_json(resp.dict())
 
             async def on_address_change(params: list[Any]) -> None:
                 try:
-                    bal, hist = await asyncio.gather(
-                        c.get_balance(scripthash), c.get_history(scripthash)
+                    bal_r, hist_r = await asyncio.gather(
+                        c.get_balance(scripthash),
+                        c.get_history(scripthash),
+                        return_exceptions=True,
                     )
+                    if isinstance(bal_r, Exception):
+                        return
+                    hist = [] if isinstance(hist_r, Exception) else hist_r
+                    h_err = str(hist_r) if isinstance(hist_r, Exception) else None
                     await websocket.send_json(
-                        AddressResponse(balance=bal, history=hist).dict()
+                        AddressResponse(
+                            balance=bal_r, history=hist, history_error=h_err
+                        ).dict()
                     )
                 except Exception as e:
                     logger.debug(f"ws_address send error: {e}")
