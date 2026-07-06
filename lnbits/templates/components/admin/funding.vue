@@ -301,5 +301,83 @@
         </div>
       </div>
     </div>
+    <q-dialog v-model="seedBackupDialog.show">
+      <q-card style="width: 640px; max-width: 95vw">
+        <q-card-section>
+          <div class="text-h6">
+            Back up your {{ seedBackupDialog.sourceLabel }} seed
+          </div>
+          <div class="text-caption q-mt-xs">
+            This seed controls funds for the selected funding source. Confirm
+            your backup before continuing.
+          </div>
+        </q-card-section>
+
+        <q-separator />
+
+        <q-stepper v-model="seedBackupDialog.step" flat animated>
+          <q-step :name="1" title="Back up seed" icon="vpn_key" :done="false">
+            <q-input
+              v-model="seedBackupDialog.seed"
+              filled
+              readonly
+              autogrow
+              :type="seedBackupDialog.visible ? 'textarea' : 'password'"
+            >
+              <template v-slot:append>
+                <q-btn
+                  flat
+                  round
+                  dense
+                  :icon="
+                    seedBackupDialog.visible ? 'visibility_off' : 'visibility'
+                  "
+                  @click="seedBackupDialog.visible = !seedBackupDialog.visible"
+                />
+              </template>
+            </q-input>
+            <div class="row justify-end q-mt-md">
+              <q-btn
+                color="primary"
+                label="I have backed it up"
+                @click="prepareSeedBackupChallenge"
+              />
+            </div>
+          </q-step>
+
+          <q-step :name="2" title="Verify words" icon="check_circle">
+            <div class="row q-col-gutter-md">
+              <div
+                class="col-12 col-sm-6"
+                v-for="word in seedBackupDialog.challenge"
+                :key="word.index"
+              >
+                <q-input
+                  v-model.trim="seedBackupDialog.answers[word.index]"
+                  filled
+                  :label="`Word ${word.index + 1}`"
+                />
+              </div>
+            </div>
+            <div class="text-negative q-mt-sm" v-if="seedBackupDialog.error">
+              {{ seedBackupDialog.error }}
+            </div>
+            <div class="row justify-between q-mt-md">
+              <q-btn flat label="Back" @click="seedBackupDialog.step = 1" />
+              <q-btn
+                color="primary"
+                icon="check"
+                label="Submit"
+                @click="submitSeedBackupChallenge"
+              />
+            </div>
+          </q-step>
+        </q-stepper>
+
+        <q-card-actions align="right">
+          <q-btn flat label="Close" v-close-popup />
+        </q-card-actions>
+      </q-card>
+    </q-dialog>
   </q-card-section>
 </template>

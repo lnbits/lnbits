@@ -613,6 +613,7 @@ class SparkL2FundingSource(LNbitsSettings):
     spark_l2_external_endpoint: str | None = Field(default="http://localhost:8765")
     spark_l2_external_api_key: str | None = Field(default=None)
     spark_l2_mnemonic: str | None = Field(default=None)
+    spark_l2_mnemonic_backup_confirmed: bool = Field(default=False)
     spark_l2_pay_wait_ms: int = Field(default=4000, ge=0)
     spark_l2_pay_poll_ms: int = Field(default=500, ge=0)
     spark_l2_stream_keepalive_ms: int = Field(default=15000, ge=0)
@@ -650,6 +651,7 @@ class BoltzFundingSource(LNbitsSettings):
     boltz_client_password: str = Field(default="")
     boltz_client_cert: str | None = Field(default=None)
     boltz_mnemonic: str | None = Field(default=None)
+    boltz_mnemonic_backup_confirmed: bool = Field(default=False)
 
 
 class StrikeFundingSource(LNbitsSettings):

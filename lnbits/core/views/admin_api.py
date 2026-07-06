@@ -83,6 +83,10 @@ async def api_update_settings(
     enqueue_admin_notification(
         NotificationType.settings_update, {"username": account.username}
     )
+    if data.boltz_mnemonic != settings.boltz_mnemonic:
+        data.boltz_mnemonic_backup_confirmed = False
+    if data.spark_l2_mnemonic != settings.spark_l2_mnemonic:
+        data.spark_l2_mnemonic_backup_confirmed = False
     await update_admin_settings(data)
     admin_settings = await get_admin_settings(account.is_super_user)
     if not admin_settings:
