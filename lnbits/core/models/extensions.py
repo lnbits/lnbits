@@ -83,6 +83,14 @@ class ExtensionPermission(BaseModel):
     description: str | None = None
     policy: dict[str, Any] | None = None
 
+    @staticmethod
+    def list_from_config(config_json: Mapping[str, Any]) -> list[ExtensionPermission]:
+        return [
+            ExtensionPermission.parse_obj(permission)
+            for permission in config_json.get("permissions") or []
+            if isinstance(permission, dict) and permission.get("id")
+        ]
+
 
 class ExtensionConfig(BaseModel):
     name: str
@@ -642,11 +650,7 @@ class InstallableExtension(BaseModel):
                     version=version,
                     short_description=config_json.get("short_description"),
                     icon=config_json.get("tile"),
-                    permissions=[
-                        ExtensionPermission.parse_obj(permission)
-                        for permission in config_json.get("permissions") or []
-                        if isinstance(permission, dict) and permission.get("id")
-                    ],
+                    permissions=ExtensionPermission.list_from_config(config_json),
                     meta=ExtensionMeta(
                         installed_release=ExtensionRelease(
                             name=ext_id,
