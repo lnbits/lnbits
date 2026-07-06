@@ -53,6 +53,7 @@ from .storage import (
 logger = logging.getLogger("lnbits.extensions")
 
 _EXTENSION_API_METHOD_ATTR = "__lnbits_extension_api_method__"
+_EXTENSION_RUNTIME_PERMISSION_IDS = {"ui.camera.scan_qr"}
 _RequestModel = TypeVar("_RequestModel", bound=BaseModel)
 _ResponseModel = TypeVar("_ResponseModel", bound=BaseModel)
 
@@ -693,11 +694,13 @@ def _extension_api_method_sources(
 def extension_api_permission_ids(
     api_cls: type[ExtensionAPI] = ExtensionAPI,
 ) -> set[str]:
-    return {
+    permissions = {
         method.required_permission
         for method in list_extension_api_methods(api_cls)
         if method.required_permission
     }
+    permissions.update(_EXTENSION_RUNTIME_PERMISSION_IDS)
+    return permissions
 
 
 def get_extension_api_method(
