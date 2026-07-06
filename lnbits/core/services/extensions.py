@@ -121,11 +121,7 @@ def _validate_extension_permissions(
 
     requested_permissions = validate_extension_permissions(
         ext_info.id,
-        [
-            ExtensionPermission.parse_obj(permission)
-            for permission in extension_config.get("permissions") or []
-            if isinstance(permission, dict) and permission.get("id")
-        ],
+        ExtensionPermission.list_from_config(extension_config),
     )
     if not requested_permissions:
         return []
