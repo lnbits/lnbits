@@ -441,10 +441,15 @@ def register_ext_tasks(ext: Extension) -> None:
 def register_ext_routes(app: FastAPI, ext: Extension) -> None:
     """Register FastAPI routes for extension."""
     module_name = ext.module_name
-    if module_name in sys.modules:
-        ext_module = importlib.reload(sys.modules[module_name])
-    else:
-        ext_module = importlib.import_module(module_name)
+    # Clear all cached sub-modules so a fresh import picks up new files from ext_dir.
+    # A simple reload() would reuse cached sub-modules (e.g. views_api) and serve
+    # stale code even after the extension files have been replaced on disk.
+    stale = [
+        k for k in sys.modules if k == module_name or k.startswith(f"{module_name}.")
+    ]
+    for k in stale:
+        del sys.modules[k]
+    ext_module = importlib.import_module(module_name)
 
     ext_route = getattr(ext_module, f"{ext.code}_ext")
 
