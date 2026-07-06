@@ -8,7 +8,7 @@ import shutil
 import zipfile
 from asyncio.tasks import create_task
 from collections.abc import Mapping
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 from typing import Any
 
 import httpx
@@ -472,6 +472,30 @@ class InstallableExtension(BaseModel):
             if ext_zip_file.is_file():
                 os.remove(ext_zip_file)
             raise AssertionError("File hash missmatch. Will not install.")
+
+    def load_archive_config(self) -> dict[str, Any]:
+        if not self.zip_path.is_file():
+            return {}
+
+        try:
+            with zipfile.ZipFile(self.zip_path, "r") as archive:
+                config_name = self._archive_config_name(archive.namelist())
+                if not config_name:
+                    return {}
+                with archive.open(config_name) as config_file:
+                    config = json.load(config_file)
+        except Exception as exc:
+            raise ValueError(f"Cannot read extension config for '{self.id}'.") from exc
+
+        return config if isinstance(config, dict) else {}
+
+    @staticmethod
+    def _archive_config_name(names: list[str]) -> str | None:
+        for name in names:
+            path = PurePosixPath(name)
+            if len(path.parts) == 2 and path.name == "config.json":
+                return name
+        return None
 
     def extract_archive(self):
         logger.info(f"Extracting extension {self.name} ({self.installed_version}).")
