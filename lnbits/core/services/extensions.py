@@ -18,6 +18,7 @@ from lnbits.core.crud.extensions import (
 )
 from lnbits.core.helpers import migrate_extension_database
 from lnbits.core.wasm_ext.api.permissions import validate_wasm_extension_permissions
+from lnbits.core.wasm_ext.wasm.loader import is_wasm_extension_id
 from lnbits.db import Connection
 from lnbits.settings import settings
 
@@ -122,6 +123,9 @@ async def stop_extension_background_work(ext_id: str) -> bool:
     Stop background work for extension (like asyncio.Tasks, WebSockets, etc).
     Extension must expose a `myextension_stop()` function if it is starting tasks.
     """
+    if is_wasm_extension_id(ext_id):
+        return True
+
     upgrade_hash = settings.extension_upgrade_hash(ext_id)
     ext = Extension(code=ext_id, is_valid=True, upgrade_hash=upgrade_hash)
 
@@ -154,6 +158,9 @@ async def start_extension_background_work(ext_id: str) -> bool:
     Extension CAN expose a `myextension_start()` function if it is starting tasks.
     Extension MUST expose a `myextension_stop()` in that case.
     """
+    if is_wasm_extension_id(ext_id):
+        return False
+
     upgrade_hash = settings.extension_upgrade_hash(ext_id)
     ext = Extension(code=ext_id, is_valid=True, upgrade_hash=upgrade_hash)
 
