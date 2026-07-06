@@ -166,8 +166,6 @@ class ExchangeRateProvider(BaseModel):
 class InstalledExtensionsSettings(LNbitsSettings):
     # installed extensions that have been deactivated
     lnbits_deactivated_extensions: set[str] = Field(default=set())
-    # upgraded extensions that require API redirects
-    lnbits_upgraded_extensions: dict[str, str] = Field(default={})
     # list of redirects that extensions want to perform
     lnbits_extensions_redirects: list[RedirectPath] = Field(default=[])
 
@@ -190,15 +188,9 @@ class InstalledExtensionsSettings(LNbitsSettings):
     def activate_extension_paths(
         self,
         ext_id: str,
-        upgrade_hash: str | None = None,
         ext_redirects: list[dict] | None = None,
     ):
         self.lnbits_deactivated_extensions.discard(ext_id)
-
-        # Track upgrade hashes so that module names can be resolved for
-        # background-task start/stop (the module lives in the upgrades dir).
-        if upgrade_hash:
-            self.lnbits_upgraded_extensions[ext_id] = upgrade_hash
 
         if ext_redirects:
             self._activate_extension_redirects(ext_id, ext_redirects)
@@ -208,9 +200,6 @@ class InstalledExtensionsSettings(LNbitsSettings):
     def deactivate_extension_paths(self, ext_id: str):
         self.lnbits_deactivated_extensions.add(ext_id)
         self._remove_extension_redirects(ext_id)
-
-    def extension_upgrade_hash(self, ext_id: str) -> str:
-        return settings.lnbits_upgraded_extensions.get(ext_id, "")
 
     def _activate_extension_redirects(self, ext_id: str, ext_redirects: list[dict]):
         ext_redirect_paths = [

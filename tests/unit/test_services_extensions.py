@@ -124,7 +124,6 @@ async def test_install_extension_updates_existing_upgrade_and_preserves_payments
         settings.lnbits_data_folder = str(tmp_path / "data")
         settings.lnbits_extensions_path = str(tmp_path / "code")
         await create_installed_extension(existing_ext)
-        updated_ext.ext_upgrade_dir.mkdir(parents=True, exist_ok=True)
 
         extension = await install_extension(updated_ext, skip_download=True)
         stored = await get_installed_extension(ext_id)
@@ -134,7 +133,6 @@ async def test_install_extension_updates_existing_upgrade_and_preserves_payments
         settings.lnbits_extensions_path = original_extensions_path
 
     assert extension.code == ext_id
-    assert extension.is_upgrade_extension is True
     assert stored is not None
     assert stored.meta is not None
     assert stored.meta.payments == [existing_payment]

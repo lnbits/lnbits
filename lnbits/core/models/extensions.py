@@ -147,20 +147,12 @@ class Extension(BaseModel):
     name: str | None = None
     short_description: str | None = None
     tile: str | None = None
-    upgrade_hash: str | None = ""
 
     @property
     def module_name(self) -> str:
-        if self.is_upgrade_extension:
-            return f"{self.code}-{self.upgrade_hash}"
-
         if settings.has_default_extension_path:
             return f"lnbits.extensions.{self.code}"
         return self.code
-
-    @property
-    def is_upgrade_extension(self) -> bool:
-        return self.upgrade_hash != ""
 
     @classmethod
     def from_installable_ext(cls, ext_info: InstallableExtension) -> Extension:
@@ -170,7 +162,6 @@ class Extension(BaseModel):
             name=ext_info.name,
             short_description=ext_info.short_description,
             tile=ext_info.icon,
-            upgrade_hash=ext_info.hash if ext_info.ext_upgrade_dir.is_dir() else "",
         )
 
 
@@ -375,9 +366,6 @@ class InstallableExtension(BaseModel):
 
     @property
     def module_name(self) -> str:
-        if self.ext_upgrade_dir.is_dir():
-            return f"{self.id}-{self.hash}"
-
         if settings.has_default_extension_path:
             return f"lnbits.extensions.{self.id}"
         return self.id

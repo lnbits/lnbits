@@ -216,16 +216,11 @@ def test_installed_extensions_settings_activate_and_deactivate_paths():
         }
     ]
 
-    installed.activate_extension_paths(
-        "lnurlp",
-        upgrade_hash="hash123",
-        ext_redirects=redirects,
-    )
+    installed.activate_extension_paths("lnurlp", ext_redirects=redirects)
 
     redirect = installed.find_extension_redirect("/.well-known/lnurlp", [])
     assert redirect is not None
     assert redirect.ext_id == "lnurlp"
-    assert installed.lnbits_upgraded_extensions["lnurlp"] == "hash123"
     assert "lnurlp" in installed.lnbits_installed_extensions_ids
 
     installed.deactivate_extension_paths("lnurlp")

@@ -2,7 +2,6 @@ import asyncio
 import glob
 import importlib
 import os
-import shutil
 import sys
 import time
 from collections.abc import Callable
@@ -383,11 +382,6 @@ async def restore_installed_extension(app: FastAPI, ext: InstallableExtension):
 
 
 def register_custom_extensions_path():
-    upgrades_dir = settings.lnbits_extensions_upgrade_path
-    shutil.rmtree(upgrades_dir, True)
-    Path(upgrades_dir).mkdir(parents=True, exist_ok=True)
-    sys.path.append(str(upgrades_dir))
-
     if settings.has_default_extension_path:
         return
     default_ext_path = os.path.join("lnbits", "extensions")
@@ -441,7 +435,11 @@ def register_ext_tasks(ext: Extension) -> None:
 
 def register_ext_routes(app: FastAPI, ext: Extension) -> None:
     """Register FastAPI routes for extension."""
-    ext_module = importlib.import_module(ext.module_name)
+    module_name = ext.module_name
+    if module_name in sys.modules:
+        ext_module = importlib.reload(sys.modules[module_name])
+    else:
+        ext_module = importlib.import_module(module_name)
 
     ext_route = getattr(ext_module, f"{ext.code}_ext")
 
@@ -451,7 +449,7 @@ def register_ext_routes(app: FastAPI, ext: Extension) -> None:
         else []
     )
 
-    settings.activate_extension_paths(ext.code, ext.upgrade_hash, ext_redirects)
+    settings.activate_extension_paths(ext.code, ext_redirects)
 
     # Remove existing routes for this extension before re-registering so that
     # an upgraded extension replaces the old one at the same paths (no prefix).
