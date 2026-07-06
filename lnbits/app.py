@@ -24,12 +24,6 @@ from lnbits.core.crud import (
     update_installed_extension_state,
 )
 from lnbits.core.crud.extensions import create_installed_extension
-from lnbits.core.extensions.events import dispatch_wasm_invoice_paid
-from lnbits.core.extensions.loader import (
-    is_wasm_extension_dir,
-    is_wasm_extension_id,
-)
-from lnbits.core.extensions.routes import register_wasm_extension
 from lnbits.core.helpers import migrate_extension_database
 from lnbits.core.models.notifications import NotificationType
 from lnbits.core.services.extensions import deactivate_extension, get_valid_extensions
@@ -43,6 +37,12 @@ from lnbits.core.tasks import (
     wait_for_audit_data,
     wait_for_paid_invoices,
     wait_notification_messages,
+)
+from lnbits.core.wasm_ext.routes.register import register_wasm_extension
+from lnbits.core.wasm_ext.wasm.events import dispatch_wasm_invoice_paid
+from lnbits.core.wasm_ext.wasm.loader import (
+    is_wasm_extension_dir,
+    is_wasm_extension_id,
 )
 from lnbits.exceptions import register_exception_handlers
 from lnbits.helpers import version_parse

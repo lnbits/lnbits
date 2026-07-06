@@ -16,8 +16,8 @@ from lnbits.core.crud.extensions import (
     get_installed_extensions,
     update_installed_extension,
 )
-from lnbits.core.extensions.permissions import validate_wasm_extension_permissions
 from lnbits.core.helpers import migrate_extension_database
+from lnbits.core.wasm_ext.api.permissions import validate_wasm_extension_permissions
 from lnbits.db import Connection
 from lnbits.settings import settings
 

@@ -13,7 +13,7 @@ from lnbits.core.crud.extensions import (
 )
 from lnbits.settings import settings
 
-from .models import ExtensionApiRequest, HttpResponse
+from ..api.models import ExtensionApiRequest, HttpResponse
 
 EXTENSION_API_TIMEOUT_SECONDS = 10.0
 EXTENSION_API_MAX_RESPONSE_BYTES = 262_144
