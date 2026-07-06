@@ -15,7 +15,7 @@ from pydantic import UUID4
 from starlette.staticfiles import PathLike as StaticFilesPathLike
 from starlette.types import Scope
 
-from lnbits.core.crud import get_user_from_account
+from lnbits.core.crud import get_installed_extension, get_user_from_account
 from lnbits.core.db import core_app_extra
 from lnbits.core.models import Account
 from lnbits.decorators import (
@@ -248,6 +248,8 @@ def _add_wasm_extension_frame_config_route(
         else:
             user_id = await _optional_wasm_user_id(request, access_token, usr)
 
+        granted_permission_ids = await _wasm_extension_granted_permission_ids(extension)
+
         return _wasm_extension_frame_config(
             extension,
             ui_route["frame_path"],
@@ -256,6 +258,7 @@ def _add_wasm_extension_frame_config_route(
             ui_route["route_params"],
             _read_wasm_extension_route_query(body.get("query")),
             user_id,
+            granted_permission_ids,
         )
 
     app.add_api_route(
@@ -624,6 +627,7 @@ def _wasm_extension_frame_config(
     route_params: dict[str, str],
     query: dict[str, Any],
     user_id: str | None,
+    permissions: set[str],
 ) -> dict[str, Any]:
     public = auth == "public"
     return {
@@ -637,9 +641,19 @@ def _wasm_extension_frame_config(
             "public": public,
             "routeParams": _map_wasm_extension_route_params(route_params, path_params),
             "query": query,
+            "permissions": sorted(permissions),
             "apiRoutes": _wasm_extension_bridge_api_routes(extension, public),
         },
     }
+
+
+async def _wasm_extension_granted_permission_ids(
+    extension: WasmExtension,
+) -> set[str]:
+    installed_extension = await get_installed_extension(extension.id)
+    if not installed_extension:
+        return set()
+    return {permission.id for permission in installed_extension.permissions}
 
 
 def _map_wasm_extension_route_params(
