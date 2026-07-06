@@ -2,17 +2,17 @@ from __future__ import annotations
 
 import asyncio
 import json
-import re
 from collections.abc import Mapping
-from functools import lru_cache
 from typing import Any
 
 from lnbits.core.crud.extensions import get_installed_extension
 from lnbits.core.db import core_app_extra
 
-from .api import ExtensionAPI, list_extension_api_methods
+from ..api.host import ExtensionHostAPI
+from ..api.runtime import ExtensionAPIHost
+from .component import _wasm_component, _wasm_engine
+from .host import add_extension_host_imports
 from .loader import WasmExtension
-from .runtime import ExtensionAPIHost
 
 
 async def invoke_wasm_extension_export(
@@ -27,7 +27,7 @@ async def invoke_wasm_extension_export(
 ) -> dict[str, Any]:
     extension = _get_registered_extension(ext_id)
     permissions = await _extension_permissions(extension)
-    api = ExtensionAPI(
+    api = ExtensionHostAPI(
         extension.id,
         permissions,
         user_id=_user_id(user),
@@ -47,15 +47,11 @@ async def invoke_wasm_extension_export(
     )
 
 
-def warm_wasm_extension(extension: WasmExtension) -> None:
-    _wasm_component(extension)
-
-
 def _invoke_wasm_extension_export_sync(
     extension: WasmExtension,
     export_name: str,
     payload: Mapping[str, Any],
-    api: ExtensionAPI,
+    api: ExtensionHostAPI,
     event_loop: asyncio.AbstractEventLoop,
 ) -> dict[str, Any]:
     try:
@@ -72,7 +68,7 @@ def _invoke_wasm_extension_export_sync(
 
     linker = component.Linker(engine)
     linker.add_wasip2()
-    _add_extension_host_imports(linker, ExtensionAPIHost(api), event_loop)
+    add_extension_host_imports(linker, ExtensionAPIHost(api), event_loop)
 
     wasm_component = _wasm_component(extension)
     instance = linker.instantiate(store, wasm_component)
@@ -85,103 +81,6 @@ def _invoke_wasm_extension_export_sync(
     result = function(store, json.dumps(payload))
     function.post_return(store)
     return _parse_wasm_export_result(extension, result)
-
-
-@lru_cache(maxsize=1)
-def _wasm_engine() -> Any:
-    try:
-        from wasmtime import Config, Engine
-    except ImportError as exc:
-        raise RuntimeError(
-            "WASM extension runtime is not installed. Install the 'wasmtime' "
-            "Python package to run WASM extensions."
-        ) from exc
-
-    config = Config()
-    config.wasm_component_model = True
-    return Engine(config)
-
-
-def _wasm_component(extension: WasmExtension) -> Any:
-    stat = extension.module_path.stat()
-    return _cached_wasm_component(
-        str(extension.module_path),
-        stat.st_mtime_ns,
-        stat.st_size,
-    )
-
-
-@lru_cache(maxsize=32)
-def _cached_wasm_component(
-    module_path: str,
-    mtime_ns: int,
-    size: int,
-) -> Any:
-    from wasmtime import component
-
-    return component.Component.from_file(_wasm_engine(), module_path)
-
-
-def _add_extension_host_imports(
-    linker: Any,
-    api_host: ExtensionAPIHost,
-    event_loop: asyncio.AbstractEventLoop,
-) -> None:
-    with linker.root() as root:
-        methods_by_interface: dict[str, list[Any]] = {}
-        for method in list_extension_api_methods():
-            methods_by_interface.setdefault(method.host_interface, []).append(method)
-
-        for host_interface, methods in methods_by_interface.items():
-            with root.add_instance(f"lnbits:extension/{host_interface}") as host:
-                for method in methods:
-                    host.add_func(
-                        method.host_name.replace("_", "-"),
-                        _make_host_import(api_host, method.method_id, event_loop),
-                    )
-
-
-def _make_host_import(
-    api_host: ExtensionAPIHost,
-    host_name: str,
-    event_loop: asyncio.AbstractEventLoop,
-) -> Any:
-    def host_import(_store: Any, request: Any = None) -> Any:
-        payload = _component_payload_to_dict(request)
-        future = asyncio.run_coroutine_threadsafe(
-            api_host.invoke(host_name, payload), event_loop
-        )
-        response = future.result()
-        return _dict_to_component_record(response)
-
-    return host_import
-
-
-def _component_payload_to_dict(value: Any) -> dict[str, Any]:
-    if value is None:
-        return {}
-    if hasattr(value, "__dict__"):
-        return dict(value.__dict__)
-    if isinstance(value, Mapping):
-        return dict(value)
-    raise TypeError("WASM host function payload must be a record.")
-
-
-def _dict_to_component_record(value: Mapping[str, Any]) -> Any:
-    from wasmtime import component
-
-    record = component.Record()
-    for key, item in value.items():
-        setattr(record, _camel_to_kebab(key), _to_component_value(item))
-    return record
-
-
-def _to_component_value(value: Any) -> Any:
-    if isinstance(value, Mapping):
-        return _dict_to_component_record(value)
-    if isinstance(value, list):
-        return [_to_component_value(item) for item in value]
-    return value
 
 
 def _parse_wasm_export_result(extension: WasmExtension, value: Any) -> dict[str, Any]:
@@ -224,7 +123,3 @@ async def _extension_permissions(extension: WasmExtension) -> list[Any]:
 
 def _user_id(user: Any | None) -> str | None:
     return getattr(user, "id", None) if user else None
-
-
-def _camel_to_kebab(value: str) -> str:
-    return re.sub(r"([a-z0-9])([A-Z])", r"\1-\2", value).replace("_", "-").lower()

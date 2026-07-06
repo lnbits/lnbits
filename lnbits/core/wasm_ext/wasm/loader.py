@@ -60,7 +60,7 @@ def load_wasm_extension(ext_id: str) -> WasmExtension:
         module_path=module_path,
         wit_path=wit_path,
         world=wasm_config.get("world") or "",
-        host_api=wasm_config.get("host_api") or "lnbits.core.extensions.ExtensionAPI",
+        host_api=wasm_config.get("host_api") or "lnbits.core.wasm_ext.ExtensionHostAPI",
         exports=wasm_config.get("exports") or [],
         config=config,
     )

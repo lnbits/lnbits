@@ -14,6 +14,13 @@ from pydantic import BaseModel
 
 from lnbits.helpers import sha256s
 
+from ..storage.crud import (
+    storage_delete_row,
+    storage_get_paginated_rows,
+    storage_get_public_row,
+    storage_get_row,
+    storage_set_row,
+)
 from .models import (
     CreateInvoicePublicRequest,
     CreateInvoiceRequest,
@@ -41,13 +48,6 @@ from .models import (
     UserWalletSummary,
     WalletBalanceRequest,
     WalletBalanceResponse,
-)
-from .storage import (
-    storage_delete_row,
-    storage_get_paginated_rows,
-    storage_get_public_row,
-    storage_get_row,
-    storage_set_row,
 )
 
 logger = logging.getLogger("lnbits.extensions")
@@ -137,7 +137,7 @@ def extension_api_method(
     return decorator
 
 
-class ExtensionAPI:
+class ExtensionHostAPI:
     def __init__(
         self,
         extension_id: str,
@@ -155,13 +155,13 @@ class ExtensionAPI:
         self.context = context
         self.owner_id = sha256s(user_id) if user_id else owner_id
         self._uuid = secrets.token_urlsafe(12).replace("-", "_")
-        from .api_utils import ExtensionAPIUtils
+        from .utils import ExtensionAPIUtils
 
         self.utils = ExtensionAPIUtils(self)
 
     def __repr__(self) -> str:
         return (
-            "ExtensionAPI("
+            "ExtensionHostAPI("
             f"extension_id={self.extension_id!r}, "
             f"context={self.context!r}, "
             f"_uuid={self._uuid!r}"
@@ -512,7 +512,7 @@ class ExtensionAPI:
         require_auth=True,
     )
     async def http_request(self, request: HttpRequest) -> HttpResponse:
-        from .http_client import send_extension_http_request
+        from ..client.http import send_extension_http_request
 
         policy = self.permission_policies.get("http.request") or {}
         return await send_extension_http_request(self.extension_id, policy, request)
@@ -528,7 +528,7 @@ class ExtensionAPI:
         require_auth=True,
     )
     async def extension_api_request(self, request: ExtensionApiRequest) -> HttpResponse:
-        from .extension_client import send_extension_api_request
+        from ..client.extensions import send_extension_api_request
 
         policy = self.permission_policies.get("extension.api.request") or {}
         return await send_extension_api_request(
@@ -649,7 +649,7 @@ class ExtensionAPI:
 
 
 def list_extension_api_methods(
-    api_cls: type[ExtensionAPI] = ExtensionAPI,
+    api_cls: type[ExtensionHostAPI] = ExtensionHostAPI,
 ) -> list[ExtensionAPIMethod]:
     methods: list[ExtensionAPIMethod] = []
 
@@ -681,18 +681,18 @@ def list_extension_api_methods(
 
 
 def _extension_api_method_sources(
-    api_cls: type[ExtensionAPI],
+    api_cls: type[ExtensionHostAPI],
 ) -> list[tuple[str, type[Any]]]:
     sources: list[tuple[str, type[Any]]] = [("", api_cls)]
-    if issubclass(api_cls, ExtensionAPI):
-        from .api_utils import extension_api_utils_method_classes
+    if issubclass(api_cls, ExtensionHostAPI):
+        from .utils import extension_api_utils_method_classes
 
         sources.extend(extension_api_utils_method_classes().items())
     return sources
 
 
 def extension_api_permission_ids(
-    api_cls: type[ExtensionAPI] = ExtensionAPI,
+    api_cls: type[ExtensionHostAPI] = ExtensionHostAPI,
 ) -> set[str]:
     permissions = {
         method.required_permission
@@ -705,7 +705,7 @@ def extension_api_permission_ids(
 
 def get_extension_api_method(
     method_id: str,
-    api_cls: type[ExtensionAPI] = ExtensionAPI,
+    api_cls: type[ExtensionHostAPI] = ExtensionHostAPI,
 ) -> ExtensionAPIMethod:
     for method in list_extension_api_methods(api_cls):
         if method.method_id == method_id:
@@ -714,7 +714,7 @@ def get_extension_api_method(
 
 
 def extension_api_contract(
-    api_cls: type[ExtensionAPI] = ExtensionAPI,
+    api_cls: type[ExtensionHostAPI] = ExtensionHostAPI,
 ) -> dict[str, object]:
     return {
         "version": 1,

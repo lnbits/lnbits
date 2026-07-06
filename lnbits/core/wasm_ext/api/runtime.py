@@ -7,7 +7,7 @@ from typing import Any
 
 from pydantic import BaseModel
 
-from .api import ExtensionAPI, ExtensionAPIMethod, list_extension_api_methods
+from .host import ExtensionAPIMethod, ExtensionHostAPI, list_extension_api_methods
 
 HostImport = Callable[..., Awaitable[dict[str, Any]]]
 
@@ -15,9 +15,9 @@ HostImport = Callable[..., Awaitable[dict[str, Any]]]
 class ExtensionAPIHost:
     def __init__(
         self,
-        api: ExtensionAPI,
+        api: ExtensionHostAPI,
         *,
-        api_cls: type[ExtensionAPI] = ExtensionAPI,
+        api_cls: type[ExtensionHostAPI] = ExtensionHostAPI,
     ) -> None:
         self.api = api
         self.methods = list_extension_api_methods(api_cls)
