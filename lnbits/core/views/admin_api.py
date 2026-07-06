@@ -87,6 +87,14 @@ async def api_update_settings(
         data.boltz_mnemonic_backup_confirmed = False
     if data.spark_l2_mnemonic != settings.spark_l2_mnemonic:
         data.spark_l2_mnemonic_backup_confirmed = False
+    if data.lnbits_backend_wallet_class != settings.lnbits_backend_wallet_class:
+        if data.boltz_mnemonic and data.lnbits_backend_wallet_class == "BoltzWallet":
+            data.boltz_mnemonic_backup_confirmed = False
+        if (
+            data.spark_l2_mnemonic
+            and data.lnbits_backend_wallet_class == "SparkL2Wallet"
+        ):
+            data.spark_l2_mnemonic_backup_confirmed = False
     await update_admin_settings(data)
     admin_settings = await get_admin_settings(account.is_super_user)
     if not admin_settings:
