@@ -86,7 +86,7 @@ async def test_install_extension_creates_new_extension_and_starts_background_wor
     assert stored is not None
     download_mock.assert_awaited_once()
     extract_mock.assert_called_once()
-    start_mock.assert_awaited_once_with(ext_id)
+    start_mock.assert_not_awaited()
 
 
 @pytest.mark.anyio
@@ -138,7 +138,7 @@ async def test_install_extension_updates_existing_upgrade_and_preserves_payments
     assert stored.meta.payments == [existing_payment]
     extract_mock.assert_called_once()
     stop_mock.assert_awaited_once_with(ext_id)
-    start_mock.assert_awaited_once_with(ext_id)
+    start_mock.assert_not_awaited()
 
 
 @pytest.mark.anyio

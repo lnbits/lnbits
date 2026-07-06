@@ -59,10 +59,7 @@ async def install_extension(
     if installed_ext:
         await stop_extension_background_work(ext_info.id)
 
-    extension = Extension.from_installable_ext(ext_info)
-    await start_extension_background_work(ext_info.id)
-
-    return extension
+    return Extension.from_installable_ext(ext_info)
 
 
 async def check_extensions_limit(installed_ext: InstallableExtension | None = None):
