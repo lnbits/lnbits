@@ -11,6 +11,7 @@ from loguru import logger
 from lnbits.core.crud.extensions import get_user_extensions
 from lnbits.core.crud.wallets import get_wallets_ids
 from lnbits.core.db import db
+from lnbits.core.extensions.permissions import validate_extension_permissions
 from lnbits.core.models import (
     SimpleStatus,
 )
@@ -40,7 +41,6 @@ from lnbits.core.services.extensions import (
     get_valid_extensions,
     install_extension,
     uninstall_extension,
-    validate_extension_permissions,
 )
 from lnbits.db import Page
 from lnbits.decorators import (
