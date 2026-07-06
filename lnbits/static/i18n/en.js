@@ -970,5 +970,18 @@ window.localisation.en = {
   unconfirmed: 'Unconfirmed',
   no_transactions: 'No transactions found',
   history_unavailable: 'Transaction history unavailable (address has too many transactions)',
-  address: 'Address'
+  address: 'Address',
+  block_number: 'Block #{height}',
+  block_diff: 'diff {value}',
+  block_hash: 'Hash',
+  previous_block: 'Previous Block',
+  merkle_root: 'Merkle Root',
+  version: 'Version',
+  bits: 'Bits',
+  difficulty: 'Difficulty',
+  nonce: 'Nonce',
+  txid: 'TXID',
+  vsize: 'Virtual Size',
+  weight: 'Weight',
+  n_block_fee: '{n}-block fee'
 }

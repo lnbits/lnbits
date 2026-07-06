@@ -27,7 +27,10 @@
                 <div class="text-caption q-mt-sm">
                   <code v-text="b.shortHash"></code>
                 </div>
-                <div class="text-caption" v-text="'diff ' + b.difficulty"></div>
+                <div
+                  class="text-caption"
+                  v-text="$t('block_diff', { value: b.difficulty })"
+                ></div>
               </q-card-section>
             </q-card>
           </div>
@@ -40,27 +43,27 @@
           <q-card-section class="bg-primary text-white q-pb-sm">
             <div
               class="text-h6"
-              v-text="'Block #' + selectedBlock.height.toLocaleString()"
+              v-text="$t('block_number', { height: selectedBlock.height.toLocaleString() })"
             ></div>
             <div class="text-caption" v-text="selectedBlock.utcTime"></div>
           </q-card-section>
           <q-card-section>
             <div class="q-mb-md">
-              <div class="text-caption text-grey q-mb-xs">Hash</div>
+              <div class="text-caption text-grey q-mb-xs" v-text="$t('block_hash')"></div>
               <code
                 class="text-caption be-wrap"
                 v-text="selectedBlock.hash"
               ></code>
             </div>
             <div class="q-mb-md">
-              <div class="text-caption text-grey q-mb-xs">Previous block</div>
+              <div class="text-caption text-grey q-mb-xs" v-text="$t('previous_block')"></div>
               <code
                 class="text-caption be-wrap"
                 v-text="selectedBlock.prev_hash"
               ></code>
             </div>
             <div class="q-mb-lg">
-              <div class="text-caption text-grey q-mb-xs">Merkle root</div>
+              <div class="text-caption text-grey q-mb-xs" v-text="$t('merkle_root')"></div>
               <code
                 class="text-caption be-wrap"
                 v-text="selectedBlock.merkle_root"
@@ -68,19 +71,19 @@
             </div>
             <div class="row q-col-gutter-md">
               <div class="col-6 col-sm-3">
-                <div class="text-caption text-grey">Version</div>
+                <div class="text-caption text-grey" v-text="$t('version')"></div>
                 <div v-text="'0x' + selectedBlock.version.toString(16)"></div>
               </div>
               <div class="col-6 col-sm-3">
-                <div class="text-caption text-grey">Bits</div>
+                <div class="text-caption text-grey" v-text="$t('bits')"></div>
                 <div v-text="selectedBlock.bits"></div>
               </div>
               <div class="col-6 col-sm-3">
-                <div class="text-caption text-grey">Difficulty</div>
+                <div class="text-caption text-grey" v-text="$t('difficulty')"></div>
                 <div v-text="selectedBlock.difficulty"></div>
               </div>
               <div class="col-6 col-sm-3">
-                <div class="text-caption text-grey">Nonce</div>
+                <div class="text-caption text-grey" v-text="$t('nonce')"></div>
                 <div v-text="selectedBlock.nonce.toLocaleString()"></div>
               </div>
             </div>
@@ -133,7 +136,7 @@
             <q-btn flat round dense icon="close" @click="clearResult" />
           </div>
           <div class="q-mb-sm">
-            <span class="text-caption text-grey">txid: </span>
+            <span class="text-caption text-grey" v-text="$t('txid') + ': '"></span>
             <code class="text-caption be-wrap" v-text="txResult.txid"></code>
           </div>
           <div class="row q-col-gutter-md q-mb-sm">
@@ -145,15 +148,15 @@
               <div v-text="txStatus.height.toLocaleString()"></div>
             </div>
             <div class="col-auto" v-if="txStatus && txStatus.fee !== null">
-              <div class="text-caption text-grey">fee</div>
+              <div class="text-caption text-grey" v-text="$t('fee')"></div>
               <div v-text="txStatus.fee + ' sat'"></div>
             </div>
             <div class="col-auto" v-if="txResult.vsize || txResult.size">
-              <div class="text-caption text-grey">vsize</div>
+              <div class="text-caption text-grey" v-text="$t('vsize')"></div>
               <div v-text="(txResult.vsize || txResult.size) + ' vB'"></div>
             </div>
             <div class="col-auto" v-if="txResult.weight">
-              <div class="text-caption text-grey">weight</div>
+              <div class="text-caption text-grey" v-text="$t('weight')"></div>
               <div v-text="txResult.weight + ' WU'"></div>
             </div>
           </div>
