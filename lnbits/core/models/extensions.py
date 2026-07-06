@@ -456,6 +456,7 @@ class InstallableExtension(BaseModel):
 
         shutil.rmtree(self.ext_dir, True)
         shutil.copytree(Path(self.ext_upgrade_dir), Path(self.ext_dir))
+        shutil.rmtree(self.ext_upgrade_dir, True)
         logger.info(f"Extension {self.name} ({self.installed_version}) extracted.")
 
     def clean_extension_files(self):
