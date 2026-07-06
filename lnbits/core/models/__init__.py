@@ -7,7 +7,6 @@ from .misc import (
     CoreAppExtra,
     DbVersion,
     SimpleStatus,
-    WasmExtensionRegistry,
 )
 from .payments import (
     CancelInvoice,
@@ -103,6 +102,5 @@ __all__ = [
     "Wallet",
     "WalletInfo",
     "WalletTypeInfo",
-    "WasmExtensionRegistry",
     "WebPushSubscription",
 ]
