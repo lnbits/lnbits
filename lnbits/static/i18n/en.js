@@ -536,6 +536,9 @@ window.localisation.en = {
   extension_permission_utils_basic: 'Use basic LNbits utilities',
   extension_permission_utils_basic_desc:
     'Use public currency conversion, server health, and Lightning invoice helper functions.',
+  extension_permission_ui_camera_scan_qr: 'Scan QR codes',
+  extension_permission_ui_camera_scan_qr_desc:
+    'Use the LNbits scanner to read QR codes when you choose to scan.',
   extension_permission_payments_watch: 'Watch payments',
   extension_permission_wallet_create_invoice: 'Create invoices',
   extension_permission_wallet_create_invoice_public:

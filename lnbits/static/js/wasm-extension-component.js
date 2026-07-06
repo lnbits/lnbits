@@ -18,6 +18,36 @@ window.WasmExtensionComponent = {
         allow="clipboard-write"
         referrerpolicy="no-referrer"
       ></iframe>
+      <q-dialog v-model="cameraPrompt.show" persistent>
+        <q-card style="width: min(520px, calc(100vw - 32px)); max-width: 520px">
+          <q-card-section>
+            <div class="text-h6">Camera access</div>
+          </q-card-section>
+          <q-card-section class="q-pt-none">
+            {{ cameraPrompt.extensionName }} wants to access the camera to scan a QR code.
+          </q-card-section>
+          <q-card-actions align="right">
+            <q-btn
+              flat
+              color="negative"
+              label="Deny"
+              @click="resolveCameraPrompt('deny')"
+            ></q-btn>
+            <q-btn
+              flat
+              color="primary"
+              label="Allow"
+              @click="resolveCameraPrompt('allow')"
+            ></q-btn>
+            <q-btn
+              unelevated
+              color="primary"
+              label="Allow and Remember"
+              @click="resolveCameraPrompt('allow_remember')"
+            ></q-btn>
+          </q-card-actions>
+        </q-card>
+      </q-dialog>
     </div>
   `,
   data() {
@@ -26,11 +56,18 @@ window.WasmExtensionComponent = {
       bridge: {
         apiRoutes: [],
         extensionId: '',
+        permissions: [],
         public: false,
         query: {},
         routeParams: {}
       },
       bridgePort: null,
+      cameraPrompt: {
+        extensionName: '',
+        reject: null,
+        resolve: null,
+        show: false
+      },
       error: '',
       extensionName: '',
       frameUrl: '',
@@ -46,6 +83,7 @@ window.WasmExtensionComponent = {
   },
   unmounted() {
     window.removeEventListener('message', this.handleWindowMessage)
+    this.rejectCameraPrompt('Camera scan cancelled.')
     this.closeBridgePort()
   },
   watch: {
@@ -61,6 +99,7 @@ window.WasmExtensionComponent = {
       return {
         apiRoutes: [],
         extensionId: '',
+        permissions: [],
         public: false,
         query: {},
         routeParams: {}
@@ -72,6 +111,20 @@ window.WasmExtensionComponent = {
         public: Boolean(this.bridge.public),
         routeParams: this.plainValue(this.bridge.routeParams || {}),
         query: this.plainValue(this.bridge.query || {})
+      }
+    },
+    hasBridgePermission(permission) {
+      return (this.bridge.permissions || []).includes(permission)
+    },
+    cameraPromptStorageKey() {
+      return `lnbits.ext.permissions.${this.bridge.extensionId}.ui.camera.scan_qr`
+    },
+    emptyCameraPrompt() {
+      return {
+        extensionName: '',
+        reject: null,
+        resolve: null,
+        show: false
       }
     },
     plainValue(value) {
@@ -89,6 +142,7 @@ window.WasmExtensionComponent = {
       this.frameUrl = ''
       this.bridge = this.emptyBridge()
       this.allowedPaymentHashes.clear()
+      this.rejectCameraPrompt('Camera scan cancelled.')
       this.closeBridgePort()
 
       try {
@@ -205,6 +259,110 @@ window.WasmExtensionComponent = {
           message: String(message.message || '')
         })
       }
+    },
+    async scanQrCode() {
+      if (!this.hasBridgePermission('ui.camera.scan_qr')) {
+        throw new Error('Extension is missing scanner permission.')
+      }
+      if (!this.g) {
+        throw new Error('LNbits scanner is not available.')
+      }
+      if (this.g.scanner) {
+        throw new Error('A scanner is already active.')
+      }
+      await this.requireCameraScanApproval()
+      if (this.g.scanner) {
+        throw new Error('A scanner is already active.')
+      }
+
+      return new Promise((resolve, reject) => {
+        let completed = false
+
+        const cleanup = () => {
+          window.clearTimeout(timeout)
+          window.clearInterval(cancelPoll)
+          if (this.g.scanner === onScan) {
+            this.g.scanner = null
+          }
+        }
+
+        const complete = callback => value => {
+          if (completed) return
+          completed = true
+          cleanup()
+          callback(value)
+        }
+
+        const onScan = value => {
+          complete(resolve)({value: String(value || '')})
+        }
+
+        const timeout = window.setTimeout(() => {
+          complete(reject)(new Error('QR scan timed out.'))
+        }, 120000)
+
+        const cancelPoll = window.setInterval(() => {
+          if (!completed && this.g.scanner !== onScan) {
+            complete(reject)(new Error('QR scan cancelled.'))
+          }
+        }, 250)
+
+        this.g.scanner = onScan
+      })
+    },
+    requireCameraScanApproval() {
+      if (this.isCameraScanRemembered()) return Promise.resolve()
+      if (this.cameraPrompt.show) {
+        return Promise.reject(
+          new Error('Camera access prompt is already open.')
+        )
+      }
+
+      return new Promise((resolve, reject) => {
+        this.cameraPrompt = {
+          extensionName:
+            this.extensionName || this.bridge.extensionId || 'This extension',
+          reject,
+          resolve,
+          show: true
+        }
+      })
+    },
+    isCameraScanRemembered() {
+      try {
+        return (
+          this.$q.localStorage.getItem(this.cameraPromptStorageKey()) ===
+          'allow'
+        )
+      } catch (_error) {
+        return false
+      }
+    },
+    rememberCameraScanApproval() {
+      try {
+        this.$q.localStorage.set(this.cameraPromptStorageKey(), 'allow')
+      } catch (_error) {}
+    },
+    resolveCameraPrompt(decision) {
+      const resolve = this.cameraPrompt.resolve
+      const reject = this.cameraPrompt.reject
+      this.cameraPrompt = this.emptyCameraPrompt()
+
+      if (decision === 'allow_remember') {
+        this.rememberCameraScanApproval()
+        resolve?.()
+        return
+      }
+      if (decision === 'allow') {
+        resolve?.()
+        return
+      }
+      reject?.(new Error('Camera scan denied by user.'))
+    },
+    rejectCameraPrompt(message) {
+      const reject = this.cameraPrompt.reject
+      this.cameraPrompt = this.emptyCameraPrompt()
+      reject?.(new Error(message))
     },
     rememberPaymentHashes(value) {
       if (!value || typeof value !== 'object') return
@@ -345,6 +503,14 @@ window.WasmExtensionComponent = {
           this.sendResponse(reply, message.id, {
             ok: true,
             data: {ok: true}
+          })
+          return
+        }
+
+        if (message.action === 'ui.scan_qr') {
+          this.sendResponse(reply, message.id, {
+            ok: true,
+            data: await this.scanQrCode()
           })
           return
         }
