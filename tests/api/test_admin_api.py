@@ -220,9 +220,7 @@ async def test_admin_delete_settings_requires_superuser(
     boltz_seed = await get_settings_field("boltz_mnemonic")
     boltz_confirmed = await get_settings_field("boltz_mnemonic_backup_confirmed")
     spark_l2_seed = await get_settings_field("spark_l2_mnemonic")
-    spark_l2_confirmed = await get_settings_field(
-        "spark_l2_mnemonic_backup_confirmed"
-    )
+    spark_l2_confirmed = await get_settings_field("spark_l2_mnemonic_backup_confirmed")
     assert backend_wallet and backend_wallet.value == "BoltzWallet"
     assert boltz_seed and boltz_seed.value == "keep boltz seed"
     assert boltz_confirmed and boltz_confirmed.value is True
