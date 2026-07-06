@@ -26,7 +26,7 @@ from lnbits.core.services.notifications import (
 from lnbits.db import Filters
 from lnbits.settings import settings
 from lnbits.utils.cache import cache
-from lnbits.utils.exchange_rates import btc_rates
+from lnbits.utils.exchange_rates import btc_price_from_aggregator, btc_rates
 
 audit_queue: asyncio.Queue[AuditEntry] = asyncio.Queue()
 
@@ -151,17 +151,34 @@ async def collect_exchange_rates_data() -> None:
 
         if sleep_time > 0:
             try:
-                rates = await btc_rates(currency)
-                if rates:
-                    rates_values = [r[1] for r in rates]
-                    lnbits_rate = sum(rates_values) / len(rates_values)
-                    rates.append(("LNbits", lnbits_rate))
-                    cache.set(
-                        f"btc-price-{currency}",
-                        lnbits_rate,
-                        expiry=settings.lnbits_exchange_rate_cache_seconds,
+                if (
+                    settings.lnbits_price_aggregator_enabled
+                    and settings.lnbits_price_aggregator_url
+                ):
+                    price = await btc_price_from_aggregator(currency)
+                    if price:
+                        cache.set(
+                            f"btc-price-{currency}",
+                            price,
+                            expiry=settings.lnbits_exchange_rate_cache_seconds,
+                        )
+                        settings.append_exchange_rate_datapoint(
+                            {"Aggregator": price}, max_history_size
+                        )
+                else:
+                    rates = await btc_rates(currency)
+                    if rates:
+                        rates_values = [r[1] for r in rates]
+                        lnbits_rate = sum(rates_values) / len(rates_values)
+                        rates.append(("LNbits", lnbits_rate))
+                        cache.set(
+                            f"btc-price-{currency}",
+                            lnbits_rate,
+                            expiry=settings.lnbits_exchange_rate_cache_seconds,
+                        )
+                    settings.append_exchange_rate_datapoint(
+                        dict(rates), max_history_size
                     )
-                settings.append_exchange_rate_datapoint(dict(rates), max_history_size)
             except Exception as ex:
                 logger.warning(ex)
         else:

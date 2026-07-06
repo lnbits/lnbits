@@ -1,7 +1,46 @@
 <template id="lnbits-admin-exchange-providers">
-  <h6 class="q-my-none q-mb-sm">
-    <span v-text="$t('exchange_providers')"></span>
-  </h6>
+  <h6 class="q-my-none q-mb-xs">LNbits Price Aggregator</h6>
+  <p class="q-mb-md text-caption text-grey">
+    A privacy-friendly, open-source Bitcoin price aggregator maintained by the
+    LNbits team. Aggregates prices from multiple exchanges and returns a median,
+    no API keys required.
+    <a href="https://price.lnbits.com" target="_blank" rel="noopener"
+      >price.lnbits.com</a
+    >
+    &mdash;
+    <a
+      href="https://github.com/lnbits/lnbits-price-aggregator"
+      target="_blank"
+      rel="noopener"
+      >GitHub</a
+    >
+  </p>
+
+  <div class="row q-mb-md items-start">
+    <div class="col-auto q-mr-md q-mt-sm">
+      <q-toggle
+        v-model="formData.lnbits_price_aggregator_enabled"
+        @update:model-value="formData.touch = null"
+        label="Use Price Aggregator"
+      >
+      </q-toggle>
+    </div>
+    <div class="col-12 col-md-7">
+      <q-input
+        filled
+        v-model="formData.lnbits_price_aggregator_url"
+        type="text"
+        label="Price Aggregator URL"
+        hint="Fetch BTC price from this aggregator instead of individual providers below."
+        :disable="!formData.lnbits_price_aggregator_enabled"
+        @update:model-value="formData.touch = null"
+      >
+      </q-input>
+    </div>
+  </div>
+
+  <q-separator class="q-my-md"></q-separator>
+  <h6 class="q-my-none q-mb-sm">Bitcoin Price History</h6>
 
   <div class="row">
     <div class="col-12 col-md-8">
@@ -53,6 +92,11 @@
     </div>
   </div>
 
+  <q-separator class="q-my-md"></q-separator>
+  <h6 class="q-my-none q-mb-sm">
+    <span v-text="$t('exchange_providers')"></span>
+  </h6>
+
   <div class="row q-mt-md">
     <div class="col-6">
       <q-btn
@@ -60,6 +104,7 @@
         label="Add Exchange Provider"
         color="primary"
         class="q-mb-md"
+        :disable="formData.lnbits_price_aggregator_enabled"
       >
       </q-btn>
     </div>
@@ -70,12 +115,20 @@
         :label="$t('reset_defaults')"
         color="primary"
         class="float-right"
+        :disable="formData.lnbits_price_aggregator_enabled"
       >
       </q-btn>
     </div>
   </div>
 
-  <div class="overflow-auto">
+  <div
+    class="overflow-auto"
+    :style="
+      formData.lnbits_price_aggregator_enabled
+        ? 'opacity:0.4;pointer-events:none'
+        : ''
+    "
+  >
     <q-table
       row-key="name"
       :rows="formData.lnbits_exchange_rate_providers"

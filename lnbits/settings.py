@@ -362,6 +362,8 @@ class ExchangeProvidersSettings(LNbitsSettings):
     lnbits_exchange_rate_cache_seconds: int = Field(default=60, ge=0)
     lnbits_exchange_history_size: int = Field(default=60, ge=0)
     lnbits_exchange_history_refresh_interval_seconds: int = Field(default=300, ge=0)
+    lnbits_price_aggregator_enabled: bool = Field(default=True)
+    lnbits_price_aggregator_url: str = Field(default="https://price.lnbits.com")
 
     lnbits_exchange_rate_providers: list[ExchangeRateProvider] = Field(
         default=[
