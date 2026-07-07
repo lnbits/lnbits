@@ -447,13 +447,17 @@ window.localisation.jp = {
   http_request_details: 'HTTPリクエストの詳細',
   block_explorer: 'ブロックエクスプローラー',
   enable_block_explorer: 'ブロックエクスプローラーを有効化',
-  block_explorer_desc: 'Electrumを介してビットコインのトランザクションとアドレスを探索できます。',
+  block_explorer_desc:
+    'Electrumを介してビットコインのトランザクションとアドレスを探索できます。',
   blockexplorer_public_api: 'パブリックAPIアクセス',
-  blockexplorer_public_api_desc: 'ブロックエクスプローラーAPIエンドポイントへの非認証アクセスを許可します。',
+  blockexplorer_public_api_desc:
+    'ブロックエクスプローラーAPIエンドポイントへの非認証アクセスを許可します。',
   electrum_server_url: 'ElectrumサーバーURL',
-  electrum_server_url_hint: '例: ssl://electrum.blockstream.info:50002 または tcp://localhost:50001',
+  electrum_server_url_hint:
+    '例: ssl://electrum.blockstream.info:50002 または tcp://localhost:50001',
   blockexplorer_search_label: 'TXIDまたはアドレスで検索',
-  blockexplorer_search_hint: '64文字の16進数 = トランザクション  ·  それ以外 = ビットコインアドレス',
+  blockexplorer_search_hint:
+    '64文字の16進数 = トランザクション  ·  それ以外 = ビットコインアドレス',
   recent_blocks: '最新ブロック',
   chain_tip: 'チェーン先端',
   block_height: 'ブロック高さ',
@@ -468,7 +472,8 @@ window.localisation.jp = {
   confirmations: '確認数',
   confirmed: '確認済み',
   unconfirmed: '未確認',
-  history_unavailable: 'トランザクション履歴が取得できません（アドレスのトランザクションが多すぎます）',
+  history_unavailable:
+    'トランザクション履歴が取得できません（アドレスのトランザクションが多すぎます）',
   address: 'アドレス',
   block_number: 'ブロック #{height}',
   block_diff: 'diff {value}',

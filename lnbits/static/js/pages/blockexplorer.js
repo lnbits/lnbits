@@ -19,7 +19,7 @@ window.PageBlockExplorer = {
     feeList() {
       if (!this.fees || !this.fees.estimates) return []
       return Object.entries(this.fees.estimates).map(([blocks, rate]) => ({
-        label: this.$t('n_block_fee', { n: blocks }),
+        label: this.$t('n_block_fee', {n: blocks}),
         rate: (rate * 100000).toFixed(1) + ' sat/vB'
       }))
     },

@@ -457,13 +457,17 @@ window.localisation.it = {
   http_request_details: 'Dettagli della richiesta HTTP',
   block_explorer: 'Block Explorer',
   enable_block_explorer: 'Abilita Block Explorer',
-  block_explorer_desc: 'Consenti agli utenti di esplorare transazioni e indirizzi Bitcoin tramite Electrum.',
+  block_explorer_desc:
+    'Consenti agli utenti di esplorare transazioni e indirizzi Bitcoin tramite Electrum.',
   blockexplorer_public_api: 'Accesso API pubblico',
-  blockexplorer_public_api_desc: 'Consenti accesso non autenticato agli endpoint API dell\'esploratore di blocchi.',
+  blockexplorer_public_api_desc:
+    "Consenti accesso non autenticato agli endpoint API dell'esploratore di blocchi.",
   electrum_server_url: 'URL server Electrum',
-  electrum_server_url_hint: 'es. ssl://electrum.blockstream.info:50002 o tcp://localhost:50001',
+  electrum_server_url_hint:
+    'es. ssl://electrum.blockstream.info:50002 o tcp://localhost:50001',
   blockexplorer_search_label: 'Cerca per TXID o indirizzo',
-  blockexplorer_search_hint: 'Hex 64 caratteri = transazione  ·  altro = indirizzo Bitcoin',
+  blockexplorer_search_hint:
+    'Hex 64 caratteri = transazione  ·  altro = indirizzo Bitcoin',
   recent_blocks: 'Blocchi recenti',
   chain_tip: 'Punta della catena',
   block_height: 'Altezza blocco',
@@ -478,7 +482,8 @@ window.localisation.it = {
   confirmations: 'Conferme',
   confirmed: 'Confermato',
   unconfirmed: 'Non confermato',
-  history_unavailable: 'Storico transazioni non disponibile (l\'indirizzo ha troppe transazioni)',
+  history_unavailable:
+    "Storico transazioni non disponibile (l'indirizzo ha troppe transazioni)",
   address: 'Indirizzo',
   block_number: 'Blocco #{height}',
   block_diff: 'diff {value}',

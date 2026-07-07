@@ -429,7 +429,8 @@ window.localisation.cn = {
   blockexplorer_public_api: '公开 API 访问',
   blockexplorer_public_api_desc: '允许对区块浏览器 API 端点的未认证访问。',
   electrum_server_url: 'Electrum 服务器 URL',
-  electrum_server_url_hint: '例如 ssl://electrum.blockstream.info:50002 或 tcp://localhost:50001',
+  electrum_server_url_hint:
+    '例如 ssl://electrum.blockstream.info:50002 或 tcp://localhost:50001',
   blockexplorer_search_label: '按 TXID 或地址搜索',
   blockexplorer_search_hint: '64位十六进制 = 交易  ·  其他 = 比特币地址',
   recent_blocks: '最新区块',

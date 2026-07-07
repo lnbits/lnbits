@@ -448,14 +448,18 @@ window.localisation.we = {
   request_details: 'Manylion y Cais',
   http_request_details: 'Manylion Cais HTTP',
   block_explorer: 'Archwiliwr Bloc',
-  enable_block_explorer: 'Galluogi\'r Archwiliwr Bloc',
-  block_explorer_desc: 'Caniatáu i ddefnyddwyr archwilio trafodion a chyfeiriadau Bitcoin drwy Electrum.',
+  enable_block_explorer: "Galluogi'r Archwiliwr Bloc",
+  block_explorer_desc:
+    'Caniatáu i ddefnyddwyr archwilio trafodion a chyfeiriadau Bitcoin drwy Electrum.',
   blockexplorer_public_api: 'Mynediad API Cyhoeddus',
-  blockexplorer_public_api_desc: 'Caniatáu mynediad heb ddilysu i bwyntiau terfyn API yr archwiliwr bloc.',
+  blockexplorer_public_api_desc:
+    'Caniatáu mynediad heb ddilysu i bwyntiau terfyn API yr archwiliwr bloc.',
   electrum_server_url: 'URL Gweinydd Electrum',
-  electrum_server_url_hint: 'e.e. ssl://electrum.blockstream.info:50002 neu tcp://localhost:50001',
+  electrum_server_url_hint:
+    'e.e. ssl://electrum.blockstream.info:50002 neu tcp://localhost:50001',
   blockexplorer_search_label: 'Chwilio yn ôl TXID neu Gyfeiriad',
-  blockexplorer_search_hint: 'Hex 64 nod = trafodiad  ·  unrhyw beth arall = cyfeiriad Bitcoin',
+  blockexplorer_search_hint:
+    'Hex 64 nod = trafodiad  ·  unrhyw beth arall = cyfeiriad Bitcoin',
   recent_blocks: 'Blociau Diweddar',
   chain_tip: 'Blaen y Gadwyn',
   block_height: 'Uchder Bloc',
@@ -470,7 +474,8 @@ window.localisation.we = {
   confirmations: 'Cadarnhadau',
   confirmed: 'Cadarnhawyd',
   unconfirmed: 'Heb ei Gadarnhau',
-  history_unavailable: 'Hanes trafodion ar goll (mae cyfeiriad â gormod o drafodion)',
+  history_unavailable:
+    'Hanes trafodion ar goll (mae cyfeiriad â gormod o drafodion)',
   address: 'Cyfeiriad',
   block_number: 'Bloc #{height}',
   block_diff: 'anhawster {value}',

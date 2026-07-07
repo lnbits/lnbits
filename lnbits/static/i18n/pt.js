@@ -453,13 +453,17 @@ window.localisation.pt = {
   http_request_details: 'Detalhes da Solicitação HTTP',
   block_explorer: 'Block Explorer',
   enable_block_explorer: 'Ativar Block Explorer',
-  block_explorer_desc: 'Permite aos utilizadores explorar transações e endereços Bitcoin via Electrum.',
+  block_explorer_desc:
+    'Permite aos utilizadores explorar transações e endereços Bitcoin via Electrum.',
   blockexplorer_public_api: 'Acesso à API pública',
-  blockexplorer_public_api_desc: 'Permitir acesso não autenticado aos endpoints da API do explorador de blocos.',
+  blockexplorer_public_api_desc:
+    'Permitir acesso não autenticado aos endpoints da API do explorador de blocos.',
   electrum_server_url: 'URL do servidor Electrum',
-  electrum_server_url_hint: 'ex. ssl://electrum.blockstream.info:50002 ou tcp://localhost:50001',
+  electrum_server_url_hint:
+    'ex. ssl://electrum.blockstream.info:50002 ou tcp://localhost:50001',
   blockexplorer_search_label: 'Pesquisar por TXID ou endereço',
-  blockexplorer_search_hint: 'Hex de 64 caracteres = transação  ·  qualquer outra coisa = endereço Bitcoin',
+  blockexplorer_search_hint:
+    'Hex de 64 caracteres = transação  ·  qualquer outra coisa = endereço Bitcoin',
   recent_blocks: 'Blocos recentes',
   chain_tip: 'Ponta da cadeia',
   block_height: 'Altura do bloco',
@@ -474,7 +478,8 @@ window.localisation.pt = {
   confirmations: 'Confirmações',
   confirmed: 'Confirmado',
   unconfirmed: 'Não confirmado',
-  history_unavailable: 'Histórico de transações indisponível (endereço tem demasiadas transações)',
+  history_unavailable:
+    'Histórico de transações indisponível (endereço tem demasiadas transações)',
   address: 'Endereço',
   block_number: 'Bloco #{height}',
   block_diff: 'diff {value}',

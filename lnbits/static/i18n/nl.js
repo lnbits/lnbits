@@ -457,13 +457,17 @@ window.localisation.nl = {
   http_request_details: 'HTTP-verzoekdetails',
   block_explorer: 'Block Explorer',
   enable_block_explorer: 'Block Explorer inschakelen',
-  block_explorer_desc: 'Laat gebruikers Bitcoin-transacties en -adressen verkennen via Electrum.',
+  block_explorer_desc:
+    'Laat gebruikers Bitcoin-transacties en -adressen verkennen via Electrum.',
   blockexplorer_public_api: 'Publieke API-toegang',
-  blockexplorer_public_api_desc: 'Niet-geauthenticeerde toegang tot de block explorer API-eindpunten toestaan.',
+  blockexplorer_public_api_desc:
+    'Niet-geauthenticeerde toegang tot de block explorer API-eindpunten toestaan.',
   electrum_server_url: 'Electrum-server-URL',
-  electrum_server_url_hint: 'bijv. ssl://electrum.blockstream.info:50002 of tcp://localhost:50001',
+  electrum_server_url_hint:
+    'bijv. ssl://electrum.blockstream.info:50002 of tcp://localhost:50001',
   blockexplorer_search_label: 'Zoeken op TXID of adres',
-  blockexplorer_search_hint: '64-karakter hex = transactie  ·  alles anders = Bitcoin-adres',
+  blockexplorer_search_hint:
+    '64-karakter hex = transactie  ·  alles anders = Bitcoin-adres',
   recent_blocks: 'Recente blokken',
   chain_tip: 'Kettingtop',
   block_height: 'Blokhoogte',
@@ -478,7 +482,8 @@ window.localisation.nl = {
   confirmations: 'Bevestigingen',
   confirmed: 'Bevestigd',
   unconfirmed: 'Onbevestigd',
-  history_unavailable: 'Transactiegeschiedenis niet beschikbaar (adres heeft te veel transacties)',
+  history_unavailable:
+    'Transactiegeschiedenis niet beschikbaar (adres heeft te veel transacties)',
   address: 'Adres',
   block_number: 'Blok #{height}',
   block_diff: 'moeil. {value}',

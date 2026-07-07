@@ -446,13 +446,17 @@ window.localisation.cs = {
   http_request_details: 'Podrobnosti HTTP žádosti',
   block_explorer: 'Průzkumník bloků',
   enable_block_explorer: 'Povolit průzkumník bloků',
-  block_explorer_desc: 'Umožňuje uživatelům procházet bitcoinové transakce a adresy přes Electrum.',
+  block_explorer_desc:
+    'Umožňuje uživatelům procházet bitcoinové transakce a adresy přes Electrum.',
   blockexplorer_public_api: 'Veřejný přístup k API',
-  blockexplorer_public_api_desc: 'Povolit neověřený přístup k API koncovým bodům průzkumníku bloků.',
+  blockexplorer_public_api_desc:
+    'Povolit neověřený přístup k API koncovým bodům průzkumníku bloků.',
   electrum_server_url: 'URL Electrum serveru',
-  electrum_server_url_hint: 'např. ssl://electrum.blockstream.info:50002 nebo tcp://localhost:50001',
+  electrum_server_url_hint:
+    'např. ssl://electrum.blockstream.info:50002 nebo tcp://localhost:50001',
   blockexplorer_search_label: 'Hledat podle TXID nebo adresy',
-  blockexplorer_search_hint: '64-znakový hex = transakce  ·  cokoli jiného = bitcoinová adresa',
+  blockexplorer_search_hint:
+    '64-znakový hex = transakce  ·  cokoli jiného = bitcoinová adresa',
   recent_blocks: 'Nedávné bloky',
   chain_tip: 'Vrchol řetězu',
   block_height: 'Výška bloku',
@@ -467,7 +471,8 @@ window.localisation.cs = {
   confirmations: 'Potvrzení',
   confirmed: 'Potvrzeno',
   unconfirmed: 'Nepotvrzeno',
-  history_unavailable: 'Historie transakcí nedostupná (adresa má příliš mnoho transakcí)',
+  history_unavailable:
+    'Historie transakcí nedostupná (adresa má příliš mnoho transakcí)',
   address: 'Adresa',
   block_number: 'Blok #{height}',
   block_diff: 'obth. {value}',

@@ -451,13 +451,17 @@ window.localisation.pl = {
   http_request_details: 'Szczegóły żądania HTTP',
   block_explorer: 'Przeglądarka bloków',
   enable_block_explorer: 'Włącz przeglądarkę bloków',
-  block_explorer_desc: 'Umożliwia użytkownikom przeglądanie transakcji i adresów Bitcoin przez Electrum.',
+  block_explorer_desc:
+    'Umożliwia użytkownikom przeglądanie transakcji i adresów Bitcoin przez Electrum.',
   blockexplorer_public_api: 'Publiczny dostęp do API',
-  blockexplorer_public_api_desc: 'Zezwól na nieuwierzytelniony dostęp do punktów końcowych API przeglądarki bloków.',
+  blockexplorer_public_api_desc:
+    'Zezwól na nieuwierzytelniony dostęp do punktów końcowych API przeglądarki bloków.',
   electrum_server_url: 'URL serwera Electrum',
-  electrum_server_url_hint: 'np. ssl://electrum.blockstream.info:50002 lub tcp://localhost:50001',
+  electrum_server_url_hint:
+    'np. ssl://electrum.blockstream.info:50002 lub tcp://localhost:50001',
   blockexplorer_search_label: 'Szukaj po TXID lub adresie',
-  blockexplorer_search_hint: '64-znakowy hex = transakcja  ·  cokolwiek innego = adres Bitcoin',
+  blockexplorer_search_hint:
+    '64-znakowy hex = transakcja  ·  cokolwiek innego = adres Bitcoin',
   recent_blocks: 'Ostatnie bloki',
   chain_tip: 'Wierzchołek łańcucha',
   block_height: 'Wysokość bloku',
@@ -472,7 +476,8 @@ window.localisation.pl = {
   confirmations: 'Potwierdzenia',
   confirmed: 'Potwierdzone',
   unconfirmed: 'Niepotwierdzone',
-  history_unavailable: 'Historia transakcji niedostępna (adres ma zbyt wiele transakcji)',
+  history_unavailable:
+    'Historia transakcji niedostępna (adres ma zbyt wiele transakcji)',
   address: 'Adres',
   block_number: 'Blok #{height}',
   block_diff: 'trud. {value}',

@@ -459,13 +459,17 @@ window.localisation.de = {
   http_request_details: 'HTTP-Anfragedetails',
   block_explorer: 'Block Explorer',
   enable_block_explorer: 'Block Explorer aktivieren',
-  block_explorer_desc: 'Ermöglicht Nutzern das Durchsuchen von Bitcoin-Transaktionen und -Adressen über Electrum.',
+  block_explorer_desc:
+    'Ermöglicht Nutzern das Durchsuchen von Bitcoin-Transaktionen und -Adressen über Electrum.',
   blockexplorer_public_api: 'Öffentlicher API-Zugang',
-  blockexplorer_public_api_desc: 'Nicht-authentifizierten Zugriff auf die Block-Explorer-API-Endpunkte erlauben.',
+  blockexplorer_public_api_desc:
+    'Nicht-authentifizierten Zugriff auf die Block-Explorer-API-Endpunkte erlauben.',
   electrum_server_url: 'Electrum-Server-URL',
-  electrum_server_url_hint: 'z.B. ssl://electrum.blockstream.info:50002 oder tcp://localhost:50001',
+  electrum_server_url_hint:
+    'z.B. ssl://electrum.blockstream.info:50002 oder tcp://localhost:50001',
   blockexplorer_search_label: 'Nach TXID oder Adresse suchen',
-  blockexplorer_search_hint: '64-Zeichen-Hex = Transaktion  ·  Alles andere = Bitcoin-Adresse',
+  blockexplorer_search_hint:
+    '64-Zeichen-Hex = Transaktion  ·  Alles andere = Bitcoin-Adresse',
   recent_blocks: 'Aktuelle Blöcke',
   chain_tip: 'Kettenspitze',
   block_height: 'Blockhöhe',
@@ -480,7 +484,8 @@ window.localisation.de = {
   confirmations: 'Bestätigungen',
   confirmed: 'Bestätigt',
   unconfirmed: 'Unbestätigt',
-  history_unavailable: 'Transaktionsverlauf nicht verfügbar (Adresse hat zu viele Transaktionen)',
+  history_unavailable:
+    'Transaktionsverlauf nicht verfügbar (Adresse hat zu viele Transaktionen)',
   address: 'Adresse',
   block_number: 'Block #{height}',
   block_diff: 'Schw. {value}',

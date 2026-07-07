@@ -29,7 +29,7 @@
                 </div>
                 <div
                   class="text-caption"
-                  v-text="$t('block_diff', { value: b.difficulty })"
+                  v-text="$t('block_diff', {value: b.difficulty})"
                 ></div>
               </q-card-section>
             </q-card>
@@ -43,27 +43,40 @@
           <q-card-section class="bg-primary text-white q-pb-sm">
             <div
               class="text-h6"
-              v-text="$t('block_number', { height: selectedBlock.height.toLocaleString() })"
+              v-text="
+                $t('block_number', {
+                  height: selectedBlock.height.toLocaleString()
+                })
+              "
             ></div>
             <div class="text-caption" v-text="selectedBlock.utcTime"></div>
           </q-card-section>
           <q-card-section>
             <div class="q-mb-md">
-              <div class="text-caption text-grey q-mb-xs" v-text="$t('block_hash')"></div>
+              <div
+                class="text-caption text-grey q-mb-xs"
+                v-text="$t('block_hash')"
+              ></div>
               <code
                 class="text-caption be-wrap"
                 v-text="selectedBlock.hash"
               ></code>
             </div>
             <div class="q-mb-md">
-              <div class="text-caption text-grey q-mb-xs" v-text="$t('previous_block')"></div>
+              <div
+                class="text-caption text-grey q-mb-xs"
+                v-text="$t('previous_block')"
+              ></div>
               <code
                 class="text-caption be-wrap"
                 v-text="selectedBlock.prev_hash"
               ></code>
             </div>
             <div class="q-mb-lg">
-              <div class="text-caption text-grey q-mb-xs" v-text="$t('merkle_root')"></div>
+              <div
+                class="text-caption text-grey q-mb-xs"
+                v-text="$t('merkle_root')"
+              ></div>
               <code
                 class="text-caption be-wrap"
                 v-text="selectedBlock.merkle_root"
@@ -71,7 +84,10 @@
             </div>
             <div class="row q-col-gutter-md">
               <div class="col-6 col-sm-3">
-                <div class="text-caption text-grey" v-text="$t('version')"></div>
+                <div
+                  class="text-caption text-grey"
+                  v-text="$t('version')"
+                ></div>
                 <div v-text="'0x' + selectedBlock.version.toString(16)"></div>
               </div>
               <div class="col-6 col-sm-3">
@@ -79,7 +95,10 @@
                 <div v-text="selectedBlock.bits"></div>
               </div>
               <div class="col-6 col-sm-3">
-                <div class="text-caption text-grey" v-text="$t('difficulty')"></div>
+                <div
+                  class="text-caption text-grey"
+                  v-text="$t('difficulty')"
+                ></div>
                 <div v-text="selectedBlock.difficulty"></div>
               </div>
               <div class="col-6 col-sm-3">
@@ -129,14 +148,19 @@
               <q-badge
                 v-if="txStatus"
                 :color="txStatus.confirmed ? 'positive' : 'orange'"
-                :label="txStatus.confirmed ? $t('confirmed') : $t('unconfirmed')"
+                :label="
+                  txStatus.confirmed ? $t('confirmed') : $t('unconfirmed')
+                "
               ></q-badge>
               <q-spinner v-if="!txStatus" size="1em" color="grey" />
             </div>
             <q-btn flat round dense icon="close" @click="clearResult" />
           </div>
           <div class="q-mb-sm">
-            <span class="text-caption text-grey" v-text="$t('txid') + ': '"></span>
+            <span
+              class="text-caption text-grey"
+              v-text="$t('txid') + ': '"
+            ></span>
             <code class="text-caption be-wrap" v-text="txResult.txid"></code>
           </div>
           <div class="row q-col-gutter-md q-mb-sm">

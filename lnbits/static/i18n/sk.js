@@ -451,13 +451,17 @@ window.localisation.sk = {
   http_request_details: 'Podrobnosti požiadavky HTTP',
   block_explorer: 'Prehliadač blokov',
   enable_block_explorer: 'Povoliť prehliadač blokov',
-  block_explorer_desc: 'Umožňuje používateľom prehliadať bitcoinové transakcie a adresy cez Electrum.',
+  block_explorer_desc:
+    'Umožňuje používateľom prehliadať bitcoinové transakcie a adresy cez Electrum.',
   blockexplorer_public_api: 'Verejný prístup k API',
-  blockexplorer_public_api_desc: 'Povoliť neoverený prístup k API koncovým bodom prieskumníka blokov.',
+  blockexplorer_public_api_desc:
+    'Povoliť neoverený prístup k API koncovým bodom prieskumníka blokov.',
   electrum_server_url: 'URL Electrum servera',
-  electrum_server_url_hint: 'napr. ssl://electrum.blockstream.info:50002 alebo tcp://localhost:50001',
+  electrum_server_url_hint:
+    'napr. ssl://electrum.blockstream.info:50002 alebo tcp://localhost:50001',
   blockexplorer_search_label: 'Hľadať podľa TXID alebo adresy',
-  blockexplorer_search_hint: '64-znakový hex = transakcia  ·  čokoľvek iné = bitcoinová adresa',
+  blockexplorer_search_hint:
+    '64-znakový hex = transakcia  ·  čokoľvek iné = bitcoinová adresa',
   recent_blocks: 'Nedávne bloky',
   chain_tip: 'Vrchol reťaze',
   block_height: 'Výška bloku',
@@ -472,7 +476,8 @@ window.localisation.sk = {
   confirmations: 'Potvrdenia',
   confirmed: 'Potvrdené',
   unconfirmed: 'Nepotvrdené',
-  history_unavailable: 'História transakcií nedostupná (adresa má príliš veľa transakcií)',
+  history_unavailable:
+    'História transakcií nedostupná (adresa má príliš veľa transakcií)',
   address: 'Adresa',
   block_number: 'Blok #{height}',
   block_diff: 'obth. {value}',

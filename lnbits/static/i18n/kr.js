@@ -442,11 +442,14 @@ window.localisation.kr = {
   http_request_details: 'HTTP 요청 세부사항',
   block_explorer: '블록 탐색기',
   enable_block_explorer: '블록 탐색기 활성화',
-  block_explorer_desc: 'Electrum을 통해 비트코인 거래 및 주소를 탐색할 수 있습니다.',
+  block_explorer_desc:
+    'Electrum을 통해 비트코인 거래 및 주소를 탐색할 수 있습니다.',
   blockexplorer_public_api: '공개 API 접근',
-  blockexplorer_public_api_desc: '블록 탐색기 API 엔드포인트에 대한 비인증 접근을 허용합니다.',
+  blockexplorer_public_api_desc:
+    '블록 탐색기 API 엔드포인트에 대한 비인증 접근을 허용합니다.',
   electrum_server_url: 'Electrum 서버 URL',
-  electrum_server_url_hint: '예: ssl://electrum.blockstream.info:50002 또는 tcp://localhost:50001',
+  electrum_server_url_hint:
+    '예: ssl://electrum.blockstream.info:50002 또는 tcp://localhost:50001',
   blockexplorer_search_label: 'TXID 또는 주소로 검색',
   blockexplorer_search_hint: '64자 16진수 = 거래  ·  그 외 = 비트코인 주소',
   recent_blocks: '최근 블록',
@@ -463,7 +466,8 @@ window.localisation.kr = {
   confirmations: '확인 수',
   confirmed: '확인됨',
   unconfirmed: '미확인',
-  history_unavailable: '거래 내역을 불러올 수 없습니다 (주소의 거래가 너무 많음)',
+  history_unavailable:
+    '거래 내역을 불러올 수 없습니다 (주소의 거래가 너무 많음)',
   address: '주소',
   block_number: '블록 #{height}',
   block_diff: 'diff {value}',
