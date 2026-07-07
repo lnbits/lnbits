@@ -791,7 +791,8 @@ window.PageExtensions = {
         descriptions,
         fieldGroups: [],
         invoicePolicies: [],
-        extensionAccess: []
+        extensionAccess: [],
+        httpHosts: []
       }
 
       if (permission.id === 'ext.storage.read_public') {
@@ -808,6 +809,10 @@ window.PageExtensions = {
           key: target.id,
           label: target.name
         }))
+      }
+
+      if (permission.id === 'http.request') {
+        item.httpHosts = this.httpRequestPermissionHosts(permission)
       }
 
       if (permission.id === 'wallet.create_invoice_public') {
@@ -839,7 +844,7 @@ window.PageExtensions = {
           : this.mediumRisk()
       }
       if (permission.id === 'http.request') {
-        return this.highRisk('extension_permission_warning_http_request')
+        return this.mediumRisk()
       }
       if (
         [
@@ -884,6 +889,7 @@ window.PageExtensions = {
         'wallet.list',
         'wallet.balance.read',
         'extension.api.request',
+        'http.request',
         'ui.camera.scan_qr',
         'ext.storage.read',
         'ext.storage.write',
@@ -911,6 +917,13 @@ window.PageExtensions = {
           return tableName ? {table: tableName, fields} : null
         })
         .filter(Boolean)
+    },
+    httpRequestPermissionHosts(permission) {
+      const hosts = permission.policies
+      if (!Array.isArray(hosts)) return []
+      return hosts
+        .map(host => (typeof host === 'string' ? host : host?.host || ''))
+        .filter(host => typeof host === 'string' && host)
     },
     publicInvoicePolicies(permission) {
       const policies = permission.policies

@@ -568,6 +568,19 @@
                 ></q-badge>
               </div>
             </div>
+            <div v-if="permission.httpHosts.length" class="q-mt-sm">
+              <div
+                class="text-caption text-grey"
+                v-text="$t('extension_permission_http_request_hosts')"
+              ></div>
+              <ul class="q-my-sm q-pl-md">
+                <li
+                  v-for="host of permission.httpHosts"
+                  :key="host"
+                  v-text="host"
+                ></li>
+              </ul>
+            </div>
           </div>
         </q-expansion-item>
       </q-list>
