@@ -1,5 +1,7 @@
 import asyncio
 
+from loguru import logger
+
 from lnbits.core.crud import create_audit_entry
 from lnbits.core.crud.payments import get_payments_status_count
 from lnbits.core.crud.users import get_accounts
@@ -84,8 +86,6 @@ async def collect_exchange_rates_data() -> None:
                     lnbits_rate,
                     expiry=settings.lnbits_exchange_rate_cache_seconds,
                 )
-            settings.append_exchange_rate_datapoint(
-                dict(rates), max_history_size
-            )
+            settings.append_exchange_rate_datapoint(dict(rates), max_history_size)
     except Exception as ex:
         logger.warning(ex)
