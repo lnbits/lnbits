@@ -77,13 +77,13 @@ async def _tx_status(
             # History too large; check mempool to determine confirmation status.
             try:
                 mempool = await c.get_mempool(scripthash)
-                for entry in mempool:
-                    if entry.tx_hash == txid:
+                for mem in mempool:
+                    if mem.tx_hash == txid:
                         return {
                             "txid": txid,
                             "confirmed": False,
                             "height": None,
-                            "fee": entry.fee,
+                            "fee": mem.fee,
                         }
                 return {"txid": txid, "confirmed": True, "height": None, "fee": None}
             except ElectrumError:
