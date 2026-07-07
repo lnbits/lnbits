@@ -166,10 +166,10 @@ async def api_address(address: str) -> AddressResponse:
                 c.get_history(scripthash),
                 return_exceptions=True,
             )
-        if isinstance(balance_res, Exception):
+        if isinstance(balance_res, BaseException):
             raise HTTPException(HTTPStatus.SERVICE_UNAVAILABLE, detail=str(balance_res))
-        history = [] if isinstance(history_res, Exception) else history_res
-        history_error = str(history_res) if isinstance(history_res, Exception) else None
+        history = [] if isinstance(history_res, BaseException) else history_res
+        history_error = str(history_res) if isinstance(history_res, BaseException) else None
         return AddressResponse(
             balance=balance_res, history=history, history_error=history_error
         )
@@ -230,12 +230,12 @@ async def ws_address(websocket: WebSocket, address: str) -> None:
                 c.get_history(scripthash),
                 return_exceptions=True,
             )
-            if isinstance(balance_res, Exception):
+            if isinstance(balance_res, BaseException):
                 await websocket.send_json({"error": str(balance_res)})
                 return
-            history = [] if isinstance(history_res, Exception) else history_res
+            history = [] if isinstance(history_res, BaseException) else history_res
             history_error = (
-                str(history_res) if isinstance(history_res, Exception) else None
+                str(history_res) if isinstance(history_res, BaseException) else None
             )
             resp = AddressResponse(
                 balance=balance_res, history=history, history_error=history_error
@@ -249,10 +249,10 @@ async def ws_address(websocket: WebSocket, address: str) -> None:
                         c.get_history(scripthash),
                         return_exceptions=True,
                     )
-                    if isinstance(bal_r, Exception):
+                    if isinstance(bal_r, BaseException):
                         return
-                    hist = [] if isinstance(hist_r, Exception) else hist_r
-                    h_err = str(hist_r) if isinstance(hist_r, Exception) else None
+                    hist = [] if isinstance(hist_r, BaseException) else hist_r
+                    h_err = str(hist_r) if isinstance(hist_r, BaseException) else None
                     await websocket.send_json(
                         AddressResponse(
                             balance=bal_r, history=hist, history_error=h_err
