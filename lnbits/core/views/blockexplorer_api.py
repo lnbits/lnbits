@@ -169,7 +169,9 @@ async def api_address(address: str) -> AddressResponse:
         if isinstance(balance_res, BaseException):
             raise HTTPException(HTTPStatus.SERVICE_UNAVAILABLE, detail=str(balance_res))
         history = [] if isinstance(history_res, BaseException) else history_res
-        history_error = str(history_res) if isinstance(history_res, BaseException) else None
+        history_error = (
+            str(history_res) if isinstance(history_res, BaseException) else None
+        )
         return AddressResponse(
             balance=balance_res, history=history, history_error=history_error
         )
