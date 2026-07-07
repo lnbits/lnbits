@@ -525,10 +525,13 @@ window.localisation.en = {
   extension_permission_ext_storage_read: 'Read extension storage',
   extension_permission_ext_storage_read_public: 'Read public extension storage',
   extension_permission_ext_storage_write: 'Write extension storage',
+  extension_permission_ext_storage_read_write: 'Read & Write extension storage',
   extension_permission_extension_api_request: 'Use other extensions',
   extension_permission_extension_api_request_desc:
     'Call approved installed extensions using your account permissions.',
   extension_permission_extension_api_request_extensions: 'Allowed extensions',
+  extension_permission_access_read: 'Read',
+  extension_permission_access_write: 'Write',
   extension_permission_http_request: 'Connect to external websites',
   extension_permission_http_request_desc:
     'Make HTTP requests to approved external hosts.',
