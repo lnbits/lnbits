@@ -1,0 +1,173 @@
+{
+  "id": "lnbits-wasm-test-extension",
+  "name": "WASM Test Extension",
+  "short_description": "Minimal WASM extension used by LNbits e2e tests.",
+  "version": "0.0.1",
+  "min_lnbits_version": "1.5.5",
+  "extension_type": "wasm",
+  "wasm": {
+    "module": "wasm/module.wasm",
+    "exports": [
+      {
+        "name": "list-wallets",
+        "visibility": "authenticated"
+      },
+      {
+        "name": "invoice-details",
+        "visibility": "authenticated"
+      },
+      {
+        "name": "get-selection",
+        "visibility": "authenticated"
+      },
+      {
+        "name": "save-selection",
+        "visibility": "authenticated"
+      },
+      {
+        "name": "pay-large-invoice",
+        "visibility": "authenticated"
+      },
+      {
+        "name": "create-tip-jar",
+        "visibility": "authenticated"
+      },
+      {
+        "name": "list-tip-jars",
+        "visibility": "authenticated"
+      },
+      {
+        "name": "get-public-tip-jar",
+        "visibility": "public"
+      },
+      {
+        "name": "create-tip-invoice",
+        "visibility": "public"
+      },
+      {
+        "name": "record-payment",
+        "visibility": "event"
+      }
+    ]
+  },
+  "events": {
+    "onInvoicePaid": "record-payment"
+  },
+  "ui_routes": [
+    {
+      "path": "/lnbits-wasm-test-extension",
+      "entrypoint": "ui/admin.html",
+      "auth": "user"
+    },
+    {
+      "path": "/lnbits-wasm-test-extension/public/{item_id}",
+      "entrypoint": "ui/public.html",
+      "auth": "public",
+      "path_params": {
+        "item_id": "itemId"
+      }
+    }
+  ],
+  "api_routes": [
+    {
+      "method": "GET",
+      "path": "/wallets",
+      "export": "list-wallets",
+      "auth": "user"
+    },
+    {
+      "method": "POST",
+      "path": "/payments",
+      "export": "pay-large-invoice",
+      "auth": "user"
+    },
+    {
+      "method": "GET",
+      "path": "/jars/{jar_id}",
+      "export": "get-public-tip-jar",
+      "auth": "public",
+      "path_params": {
+        "jar_id": "jarId"
+      }
+    },
+    {
+      "method": "POST",
+      "path": "/invoice",
+      "export": "create-tip-invoice",
+      "auth": "public"
+    }
+  ],
+  "permissions": [
+    {
+      "id": "wallet.pay_invoice",
+      "description": "Pay Lightning invoices from selected wallets."
+    },
+    {
+      "id": "wallet.list",
+      "description": "List wallets available to the installing user."
+    },
+    {
+      "id": "wallet.balance.read",
+      "description": "Read wallet balances for payment selection."
+    },
+    {
+      "id": "extension.api.request",
+      "description": "Call APIs exposed by another installed extension.",
+      "policies": [
+        {
+          "id": "watchonly",
+          "access": [
+            "read",
+            "write"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "ui.camera.scan_qr",
+      "description": "Use the LNbits scanner to read QR codes when requested."
+    },
+    {
+      "id": "ext.storage.read",
+      "description": "Read extension storage rows."
+    },
+    {
+      "id": "ext.storage.write",
+      "description": "Write extension storage rows."
+    },
+    {
+      "id": "ext.storage.read_public",
+      "description": "Read public extension storage fields.",
+      "policies": [
+        {
+          "table_name": "tip_jars",
+          "public_fields": [
+            "id",
+            "title",
+            "description",
+            "currency",
+            "suggested_amounts"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "wallet.create_invoice",
+      "description": "Create incoming Lightning invoices from authenticated pages."
+    },
+    {
+      "id": "wallet.create_invoice_public",
+      "description": "Create incoming Lightning invoices from public pages.",
+      "policies": [
+        {
+          "table": "tip_jars",
+          "wallet_field": "wallet_id"
+        }
+      ]
+    },
+    {
+      "id": "utils.basic",
+      "description": "Use LNbits utility functions."
+    }
+  ]
+}

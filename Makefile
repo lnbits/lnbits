@@ -62,6 +62,12 @@ test-api:
 	DEBUG=true \
 	uv run pytest tests/api
 
+test-wasm-e2e:
+	LNBITS_BACKEND_WALLET_CLASS="FakeWallet" \
+	PYTHONUNBUFFERED=1 \
+	DEBUG=true \
+	uv run pytest tests/wasm_ext --browser chromium
+
 test-regtest:
 	LNBITS_DATA_FOLDER="./tests/data" \
 	PYTHONUNBUFFERED=1 \

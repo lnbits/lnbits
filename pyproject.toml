@@ -86,6 +86,7 @@ dev = [
   "types-mock~=5.2.0.20250924",
   "mock~=5.2.0",
   "grpcio-tools~=1.76.0",
+  "pytest-playwright>=0.8.0",
 ]
 
 [tool.uv]
