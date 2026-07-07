@@ -724,6 +724,11 @@ window.PageExtensions = {
         resolve(grantedPermissions)
       }
     },
+    permissionGrantHasHighRisk() {
+      return this.permissionGrantDisplayItems().some(
+        permission => permission.risk.level === 'high'
+      )
+    },
     permissionGrantDisplayItems() {
       const permissions = this.permissionGrant.permissions || []
       const permissionsById = new Map(
@@ -781,6 +786,7 @@ window.PageExtensions = {
         label: isReadWriteStorage
           ? this.$t('extension_permission_ext_storage_read_write')
           : this.permissionLabel(permission),
+        risk: this.permissionRisk(permissions),
         badges: [],
         descriptions,
         fieldGroups: [],
@@ -805,6 +811,68 @@ window.PageExtensions = {
 
       return item
     },
+    permissionRisk(permissions) {
+      const risks = permissions.map(permission =>
+        this.permissionRiskForPermission(permission)
+      )
+      const highestRisk = risks.find(risk => risk.level === 'high')
+      if (highestRisk) return highestRisk
+      return risks.find(risk => risk.level === 'medium') || this.lowRisk()
+    },
+    permissionRiskForPermission(permission) {
+      if (permission.id === 'wallet.pay_invoice') {
+        return this.highRisk('extension_permission_warning_wallet_pay_invoice')
+      }
+      if (permission.id === 'extension.api.request') {
+        const hasWriteAccess = this.extensionApiPermissionTargets(
+          permission
+        ).some(target => target.access.includes('write'))
+        return hasWriteAccess
+          ? this.highRisk(
+              'extension_permission_warning_extension_api_request_write'
+            )
+          : this.mediumRisk()
+      }
+      if (permission.id === 'http.request') {
+        return this.highRisk('extension_permission_warning_http_request')
+      }
+      if (
+        [
+          'wallet.list',
+          'wallet.balance.read',
+          'wallet.create_invoice_public',
+          'ext.storage.read_public',
+          'payments.watch'
+        ].includes(permission.id)
+      ) {
+        return this.mediumRisk()
+      }
+      return this.lowRisk()
+    },
+    lowRisk() {
+      return {
+        level: 'low',
+        color: 'grey-6',
+        label: this.$t('extension_permission_risk_low'),
+        warning: ''
+      }
+    },
+    mediumRisk() {
+      return {
+        level: 'medium',
+        color: 'warning',
+        label: this.$t('extension_permission_risk_medium'),
+        warning: ''
+      }
+    },
+    highRisk(warningKey) {
+      return {
+        level: 'high',
+        color: 'negative',
+        label: this.$t('extension_permission_risk_high'),
+        warning: this.$t(warningKey)
+      }
+    },
     permissionOrderIndex(permissionId) {
       const order = [
         'wallet.pay_invoice',
@@ -815,8 +883,8 @@ window.PageExtensions = {
         'ext.storage.read',
         'ext.storage.write',
         'ext.storage.read_public',
-        'wallet.create_invoice',
         'wallet.create_invoice_public',
+        'wallet.create_invoice',
         'utils.basic'
       ]
       const index = order.indexOf(permissionId)

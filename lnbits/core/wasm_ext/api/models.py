@@ -1,7 +1,41 @@
 import json
+from dataclasses import dataclass
 from typing import Any, Literal
 
 from pydantic import BaseModel, Field, root_validator
+
+
+@dataclass(frozen=True)
+class ExtensionAPIMethodExport:
+    method_id: str
+    namespace: str
+    name: str
+    host_interface: str
+    host_name: str
+    sdk_name: str
+    description: str
+    required_permission: str | None = None
+    require_auth: bool = True
+
+
+@dataclass(frozen=True)
+class ExtensionAPIMethod:
+    method_id: str
+    namespace: str
+    name: str
+    python_name: str
+    host_interface: str
+    host_name: str
+    sdk_name: str
+    description: str
+    request_model: type[BaseModel]
+    response_model: type[BaseModel]
+    required_permission: str | None = None
+    require_auth: bool = True
+
+    @property
+    def sdk_qualified_name(self) -> str:
+        return f"{self.namespace}.{self.sdk_name}"
 
 
 class EmptyRequest(BaseModel):
