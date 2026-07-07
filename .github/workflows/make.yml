@@ -15,6 +15,10 @@ on:
         description: "python version"
         type: string
         default: "3.12"
+      playwright-browser:
+        description: "Playwright browser to install before running make"
+        default: ""
+        type: string
 
 jobs:
   make:
@@ -31,4 +35,7 @@ jobs:
           python-version: ${{ inputs.python-version }}
           node-version: ${{ matrix.node-version }}
           npm: ${{ inputs.npm }}
+      - name: Install Playwright browser
+        if: ${{ inputs.playwright-browser != '' }}
+        run: uv run playwright install --with-deps ${{ inputs.playwright-browser }}
       - run: make ${{ inputs.make }}

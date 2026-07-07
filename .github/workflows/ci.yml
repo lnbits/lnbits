@@ -64,6 +64,13 @@ jobs:
     with:
       make: openapi
 
+  test-wasm-e2e:
+    needs: [ lint ]
+    uses: ./.github/workflows/make.yml
+    with:
+      make: test-wasm-e2e
+      playwright-browser: chromium
+
   regtest:
     needs: [ lint ]
     uses: ./.github/workflows/regtest.yml
@@ -95,5 +102,5 @@ jobs:
       python-version: ${{ matrix.python-version }}
 
   bundle:
-    needs: [ lint, test-api, test-wallets, test-unit, migration, openapi, regtest, jmeter ]
+    needs: [ lint, test-api, test-wallets, test-unit, migration, openapi, test-wasm-e2e, regtest, jmeter ]
     uses: ./.github/workflows/bundle.yml
