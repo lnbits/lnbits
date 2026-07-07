@@ -317,9 +317,8 @@ async def build_all_installed_extensions_list(  # noqa: C901
 
             installed_extensions.append(ext_info)
             await create_installed_extension(ext_info)
-            if not is_wasm_extension_dir(ext_dir):
-                current_version = await get_db_version(ext_id)
-                await migrate_extension_database(ext_info, current_version)
+            current_version = await get_db_version(ext_id)
+            await migrate_extension_database(ext_info, current_version)
 
         except Exception as e:
             logger.warning(e)
