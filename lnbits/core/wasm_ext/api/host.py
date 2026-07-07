@@ -242,8 +242,18 @@ class ExtensionHostAPI:
         from lnbits.core.models.payments import CreateInvoice
         from lnbits.core.services.payments import create_payment_request
 
-        table, wallet_field = self._public_invoice_wallet_source()
-        row = await storage_get_public_row(self.extension_id, table, request.source_id)
+        row: dict[str, Any] | None = None
+        wallet_field = ""
+        for policy in self._public_invoice_wallet_sources():
+            row = await storage_get_public_row(
+                self.extension_id,
+                policy["table"],
+                request.source_id,
+            )
+            if row:
+                wallet_field = policy["wallet_field"]
+                break
+
         if not row:
             raise PermissionError("Public invoice source was not found.")
 
@@ -401,8 +411,8 @@ class ExtensionHostAPI:
     async def http_request(self, request: HttpRequest) -> HttpResponse:
         from ..client.http import send_extension_http_request
 
-        policy = self.permission_policies.get("http.request") or {}
-        return await send_extension_http_request(self.extension_id, policy, request)
+        policies = self.permission_policies.get("http.request") or []
+        return await send_extension_http_request(self.extension_id, policies, request)
 
     @extension_api_method(
         method_id="extension.api.request",
@@ -417,10 +427,10 @@ class ExtensionHostAPI:
     async def extension_api_request(self, request: ExtensionApiRequest) -> HttpResponse:
         from ..client.extensions import send_extension_api_request
 
-        policy = self.permission_policies.get("extension.api.request") or {}
+        policies = self.permission_policies.get("extension.api.request") or []
         return await send_extension_api_request(
             self.extension_id,
-            policy,
+            policies,
             self.user_id,
             self.access_token,
             request,
@@ -469,9 +479,9 @@ class ExtensionHostAPI:
     @staticmethod
     def _permission_data(
         permissions: Iterable[Any],
-    ) -> tuple[set[str], dict[str, dict[str, Any]]]:
+    ) -> tuple[set[str], dict[str, list[Any]]]:
         permission_ids: set[str] = set()
-        policies: dict[str, dict[str, Any]] = {}
+        policies: dict[str, list[Any]] = {}
 
         for permission in permissions:
             if isinstance(permission, str):
@@ -479,28 +489,27 @@ class ExtensionHostAPI:
                 continue
 
             permission_id: str | None = None
-            policy: Any = None
+            permission_policies: Any = None
             if isinstance(permission, Mapping):
                 permission_id = permission.get("id")  # type: ignore[assignment]
-                policy = permission.get("policy")
+                permission_policies = permission.get("policies")
             else:
                 permission_id = getattr(permission, "id", None)
-                policy = getattr(permission, "policy", None)
+                permission_policies = getattr(permission, "policies", None)
 
             if not permission_id:
                 continue
             permission_ids.add(permission_id)
-            if isinstance(policy, dict):
-                policies[permission_id] = policy
+            if isinstance(permission_policies, list):
+                policies[permission_id] = permission_policies
 
         return permission_ids, policies
 
     def _public_storage_fields(self, table: str) -> set[str]:
-        policy = self.permission_policies.get("ext.storage.read_public") or {}
-        tables = policy.get("tables")
-        if not isinstance(tables, list):
+        tables = self.permission_policies.get("ext.storage.read_public")
+        if not isinstance(tables, list) or not tables:
             raise PermissionError(
-                "Public storage reads require a tables policy for "
+                "Public storage reads require policies for "
                 "'ext.storage.read_public'."
             )
 
@@ -520,19 +529,34 @@ class ExtensionHostAPI:
 
         raise PermissionError(f"Storage table '{table}' is not publicly readable.")
 
-    def _public_invoice_wallet_source(self) -> tuple[str, str]:
-        policy = self.permission_policies.get("wallet.create_invoice_public") or {}
-        table = policy.get("table")
-        wallet_field = policy.get("wallet_field")
-        if not isinstance(table, str) or not table:
+    def _public_invoice_wallet_sources(self) -> list[dict[str, str]]:
+        policies = self.permission_policies.get("wallet.create_invoice_public")
+        if not isinstance(policies, list) or not policies:
+            raise PermissionError("Public invoice creation requires a policies list.")
+
+        sources: list[dict[str, str]] = []
+        for source_policy in policies:
+            if not isinstance(source_policy, dict):
+                raise PermissionError(
+                    "Public invoice creation policies must be objects."
+                )
+            table = source_policy.get("table")
+            wallet_field = source_policy.get("wallet_field")
+            if not isinstance(table, str) or not table:
+                raise PermissionError(
+                    "Public invoice creation requires a storage table policy."
+                )
+            if not isinstance(wallet_field, str) or not wallet_field:
+                raise PermissionError(
+                    "Public invoice creation requires a wallet field policy."
+                )
+            sources.append({"table": table, "wallet_field": wallet_field})
+
+        if not sources:
             raise PermissionError(
-                "Public invoice creation requires a storage table policy."
+                "Public invoice creation requires at least one valid policy."
             )
-        if not isinstance(wallet_field, str) or not wallet_field:
-            raise PermissionError(
-                "Public invoice creation requires a wallet field policy."
-            )
-        return table, wallet_field
+        return sources
 
     def require_permission(self, permission: str | None) -> None:
         if permission and permission not in self.permissions:

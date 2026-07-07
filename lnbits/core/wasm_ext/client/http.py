@@ -30,10 +30,10 @@ _FORBIDDEN_RESPONSE_HEADERS = {
 
 async def send_extension_http_request(
     extension_id: str,
-    policy: dict[str, Any],
+    policies: list[Any],
     request: HttpRequest,
 ) -> HttpResponse:
-    allowed_origins = _allowed_origins(policy)
+    allowed_origins = _allowed_origins(policies)
     origin = _request_origin(request.url)
     if origin not in allowed_origins:
         raise PermissionError(
@@ -68,13 +68,13 @@ async def send_extension_http_request(
         raise ValueError("HTTP request failed.") from exc
 
 
-def _allowed_origins(policy: dict[str, Any]) -> set[str]:
-    hosts = policy.get("hosts")
-    if not isinstance(hosts, list) or not hosts:
+def _allowed_origins(policies: list[Any]) -> set[str]:
+    if not isinstance(policies, list) or not policies:
         raise PermissionError("HTTP requests require a non-empty hosts policy.")
 
     origins: set[str] = set()
-    for host in hosts:
+    for policy in policies:
+        host = policy.get("host") if isinstance(policy, dict) else policy
         if not isinstance(host, str) or not host:
             continue
         origins.add(_request_origin(host))
