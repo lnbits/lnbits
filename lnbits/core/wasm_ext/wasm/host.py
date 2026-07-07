@@ -5,8 +5,8 @@ import re
 from collections.abc import Mapping
 from typing import Any
 
-from ..api.host import list_extension_api_methods
 from ..api.models import EmptyRequest
+from ..api.registry import list_extension_api_methods
 from ..api.runtime import ExtensionAPIHost
 
 
