@@ -54,13 +54,17 @@ def _payment_extension_id(payment: Any) -> str | None:
 
 async def _wasm_invoice_paid_owner_id(extension: Any, payment: Any) -> str | None:
     source_id = _payment_source_id(payment)
-    source_table = _wasm_public_invoice_source_table(extension.config)
-    if not source_id or not source_table:
+    source_tables = _wasm_public_invoice_source_tables(extension.config)
+    if not source_id or not source_tables:
         return None
 
     from lnbits.core.wasm_ext.storage.crud import storage_get_row_owner_id
 
-    return await storage_get_row_owner_id(extension.id, source_table, source_id)
+    for source_table in source_tables:
+        owner_id = await storage_get_row_owner_id(extension.id, source_table, source_id)
+        if owner_id:
+            return owner_id
+    return None
 
 
 def _payment_source_id(payment: Any) -> str | None:
@@ -69,17 +73,24 @@ def _payment_source_id(payment: Any) -> str | None:
     return source_id if isinstance(source_id, str) and source_id else None
 
 
-def _wasm_public_invoice_source_table(config: dict[str, Any]) -> str | None:
+def _wasm_public_invoice_source_tables(config: dict[str, Any]) -> list[str]:
     permissions = config.get("permissions") or []
     for permission in permissions:
         if not isinstance(permission, dict):
             continue
         if permission.get("id") != "wallet.create_invoice_public":
             continue
-        policy = permission.get("policy") or {}
-        table = policy.get("table")
-        return table if isinstance(table, str) and table else None
-    return None
+        policies = permission.get("policies")
+        if not isinstance(policies, list):
+            return []
+        return [
+            source_policy["table"]
+            for source_policy in policies
+            if isinstance(source_policy, dict)
+            and isinstance(source_policy.get("table"), str)
+            and source_policy["table"]
+        ]
+    return []
 
 
 def _wasm_invoice_paid_export(config: dict[str, Any]) -> str | None:
