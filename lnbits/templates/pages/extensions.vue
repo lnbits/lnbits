@@ -460,7 +460,7 @@
     position="top"
     @hide="onManageExtensionDialogHide"
   >
-    <q-card v-if="permissionGrant.show" class="q-pa-lg lnbits__dialog-card">
+    <q-card v-if="permissionGrant.show" class="q-pa-md lnbits__dialog-card">
       <q-card-section>
         <div class="text-h6" v-text="$t('extension_permissions_title')"></div>
         <div
@@ -470,26 +470,73 @@
       </q-card-section>
 
       <q-list bordered separator class="q-mt-md">
-        <q-item
-          v-for="permission of permissionGrant.permissions"
+        <q-expansion-item
+          v-for="permission of permissionGrantDisplayItems()"
           :key="permission.id"
+          dense
+          expand-separator
         >
-          <q-item-section>
-            <q-item-label>
-              <li><strong v-text="permissionLabel(permission)"></strong></li>
-            </q-item-label>
-            <q-item-label
-              v-if="permissionDescription(permission)"
-              caption
-              v-text="permissionDescription(permission)"
-            ></q-item-label>
-            <q-item-label
-              v-if="permissionPolicyDetails(permission)"
-              caption
-              v-text="permissionPolicyDetails(permission)"
-            ></q-item-label>
-          </q-item-section>
-        </q-item>
+          <template v-slot:header>
+            <q-item-section>
+              <q-item-label
+                class="text-weight-medium"
+                v-text="permission.label"
+              ></q-item-label>
+              <q-item-label v-if="permission.badges.length" caption>
+                <q-badge
+                  v-for="badge of permission.badges"
+                  :key="badge.key"
+                  outline
+                  color="primary"
+                  class="q-mr-xs q-mt-xs"
+                  v-text="badge.label"
+                ></q-badge>
+              </q-item-label>
+            </q-item-section>
+          </template>
+
+          <div class="q-px-md q-pb-sm">
+            <p
+              v-for="description of permission.descriptions"
+              :key="description"
+              class="text-caption q-mb-xs"
+              v-text="description"
+            ></p>
+            <ul v-if="permission.fieldGroups.length" class="q-my-sm q-pl-md">
+              <li v-for="group of permission.fieldGroups" :key="group.table">
+                <span v-text="group.table"></span>
+                <ul v-if="group.fields.length" class="q-pl-md">
+                  <li
+                    v-for="field of group.fields"
+                    :key="group.table + ':' + field"
+                    v-text="field"
+                  ></li>
+                </ul>
+              </li>
+            </ul>
+            <div v-if="permission.extensionAccess.length" class="q-mt-sm">
+              <div
+                class="text-caption text-grey"
+                v-text="
+                  $t('extension_permission_extension_api_request_extensions')
+                "
+              ></div>
+              <div
+                v-for="target of permission.extensionAccess"
+                :key="target.id"
+                class="row items-center q-gutter-xs q-mt-xs"
+              >
+                <span class="text-caption" v-text="target.name"></span>
+                <q-badge
+                  v-for="access of target.access"
+                  :key="target.id + access"
+                  color="grey-7"
+                  v-text="permissionAccessLabel(access)"
+                ></q-badge>
+              </div>
+            </div>
+          </div>
+        </q-expansion-item>
       </q-list>
 
       <div class="row q-mt-lg">
