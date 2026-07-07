@@ -116,7 +116,7 @@ class CreateInvoiceRequest(BaseModel):
 
 
 class CreateInvoicePublicRequest(BaseModel):
-    source_id: str = Field(..., min_length=1, max_length=512)
+    source_id: str = Field(..., min_length=1, max_length=512, description="The source ID (entry id) of the wallet to create the invoice for.")
     amount: float = Field(..., gt=0)
     currency: str = Field(..., min_length=1, max_length=8)
     memo: str = Field("", max_length=512)
