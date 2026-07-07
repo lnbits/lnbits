@@ -4,7 +4,6 @@ import time
 from datetime import datetime
 from typing import TYPE_CHECKING, Any
 
-from .host import extension_api_method
 from .models import (
     Bolt11Request,
     CurrencyConvertRequest,
@@ -29,6 +28,7 @@ from .models import (
     VerifyPreimageRequest,
     VerifyPreimageResponse,
 )
+from .registry import extension_api_method
 
 if TYPE_CHECKING:
     from .host import ExtensionHostAPI

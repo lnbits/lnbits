@@ -7,7 +7,9 @@ from typing import Any
 
 from pydantic import BaseModel
 
-from .host import ExtensionAPIMethod, ExtensionHostAPI, list_extension_api_methods
+from .host import ExtensionHostAPI
+from .models import ExtensionAPIMethod
+from .registry import list_extension_api_methods
 
 HostImport = Callable[..., Awaitable[dict[str, Any]]]
 
