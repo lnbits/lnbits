@@ -467,6 +467,16 @@
           class="text-body2 q-mt-sm"
           v-text="$t('extension_permissions_request')"
         ></div>
+        <q-banner
+          v-if="permissionGrantHasHighRisk()"
+          dense
+          class="bg-red-1 text-red-10 q-mt-md"
+        >
+          <template v-slot:avatar>
+            <q-icon name="warning" color="negative"></q-icon>
+          </template>
+          <span v-text="$t('extension_permissions_high_risk_warning')"></span>
+        </q-banner>
       </q-card-section>
 
       <q-list bordered separator class="q-mt-md">
@@ -475,27 +485,44 @@
           :key="permission.id"
           dense
           expand-separator
+          class="q-pt-xs"
         >
           <template v-slot:header>
             <q-item-section>
-              <q-item-label
-                class="text-weight-medium"
-                v-text="permission.label"
-              ></q-item-label>
-              <q-item-label v-if="permission.badges.length" caption>
+              <q-item-label class="text-weight-medium">
+                <span v-text="permission.label"></span>
+              </q-item-label>
+            </q-item-section>
+            <q-item-section
+              v-if="permission.risk.level !== 'low' || permission.badges.length"
+              side
+              top
+            >
+              <div class="row items-center justify-end q-gutter-xs">
                 <q-badge
                   v-for="badge of permission.badges"
                   :key="badge.key"
                   outline
                   color="primary"
-                  class="q-mr-xs q-mt-xs"
                   v-text="badge.label"
                 ></q-badge>
-              </q-item-label>
+                <q-badge
+                  v-if="permission.risk.level !== 'low'"
+                  :color="permission.risk.color"
+                  v-text="permission.risk.label"
+                ></q-badge>
+              </div>
             </q-item-section>
           </template>
 
           <div class="q-px-md q-pb-sm">
+            <div
+              v-if="permission.risk.warning"
+              class="row items-center text-negative text-caption q-mb-xs"
+            >
+              <q-icon name="warning" size="16px" class="q-mr-xs"></q-icon>
+              <span v-text="permission.risk.warning"></span>
+            </div>
             <p
               v-for="description of permission.descriptions"
               :key="description"

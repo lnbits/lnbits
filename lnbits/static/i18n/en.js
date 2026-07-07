@@ -522,6 +522,17 @@ window.localisation.en = {
   extension_permissions_title: 'Grant extension permissions',
   extension_permissions_request: 'This extension requests these permissions:',
   extension_permissions_grant_install: 'Grant and install',
+  extension_permissions_high_risk_warning:
+    'This extension requests permissions that can move funds.',
+  extension_permission_risk_low: 'Low risk',
+  extension_permission_risk_medium: 'Medium risk',
+  extension_permission_risk_high: 'High risk',
+  extension_permission_warning_wallet_pay_invoice:
+    'Can spend funds from wallets available to your account.',
+  extension_permission_warning_extension_api_request_write:
+    'Can write data or trigger actions in approved extensions.',
+  extension_permission_warning_http_request:
+    'Can send data to external services.',
   extension_permission_ext_storage_read: 'Read extension storage',
   extension_permission_ext_storage_read_public: 'Read public extension storage',
   extension_permission_ext_storage_write: 'Write extension storage',
