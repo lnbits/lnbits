@@ -201,16 +201,14 @@ class ExtensionHostAPI:
         from lnbits.core.models.payments import CreateInvoice
         from lnbits.core.services.payments import create_payment_request
 
-        if self.user_id:
-            wallet = await get_wallet(request.wallet_id)
-            if wallet is None or wallet.user != self.user_id:
-                raise PermissionError(
-                    "Creating an invoice for this wallet requires an "
-                    "authenticated user context."
-                )
-        else:
-            pass
-            # todo: security stuff here
+        if not self.user_id:
+            raise PermissionError(
+                "Creating an invoice for this wallet requires an "
+                "authenticated user context."
+            )
+        wallet = await get_wallet(request.wallet_id)
+        if wallet is None or wallet.user != self.user_id:
+            raise PermissionError("Not your wallet.")
 
         payment = await create_payment_request(
             request.wallet_id,
