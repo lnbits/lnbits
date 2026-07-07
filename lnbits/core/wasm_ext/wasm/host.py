@@ -6,6 +6,7 @@ from collections.abc import Mapping
 from typing import Any
 
 from ..api.host import list_extension_api_methods
+from ..api.models import EmptyRequest
 from ..api.runtime import ExtensionAPIHost
 
 
@@ -24,15 +25,32 @@ def add_extension_host_imports(
                 for method in methods:
                     host.add_func(
                         method.host_name.replace("_", "-"),
-                        _make_host_import(api_host, method.method_id, event_loop),
+                        _make_host_import(
+                            api_host,
+                            method.method_id,
+                            method.request_model is EmptyRequest,
+                            event_loop,
+                        ),
                     )
 
 
 def _make_host_import(
     api_host: ExtensionAPIHost,
     host_name: str,
+    empty_request: bool,
     event_loop: asyncio.AbstractEventLoop,
 ) -> Any:
+    if empty_request:
+
+        def empty_host_import(_store: Any) -> Any:
+            future = asyncio.run_coroutine_threadsafe(
+                api_host.invoke(host_name), event_loop
+            )
+            response = future.result()
+            return _dict_to_component_record(response)
+
+        return empty_host_import
+
     def host_import(_store: Any, request: Any = None) -> Any:
         payload = _component_payload_to_dict(request)
         future = asyncio.run_coroutine_threadsafe(
