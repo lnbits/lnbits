@@ -41,7 +41,6 @@ from lnbits.core.tasks import (
 from lnbits.core.wasm_ext.routes.register import register_wasm_extension
 from lnbits.core.wasm_ext.wasm.events import dispatch_wasm_invoice_paid
 from lnbits.core.wasm_ext.wasm.loader import (
-    is_wasm_extension_dir,
     is_wasm_extension_id,
 )
 from lnbits.exceptions import register_exception_handlers
