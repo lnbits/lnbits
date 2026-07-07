@@ -1,5 +1,4 @@
 window.__lnbitsWasmTestExtensionLoaded = true
-
 ;(function () {
   const channel = new MessageChannel()
   const pending = new Map()

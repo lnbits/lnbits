@@ -16,3 +16,5 @@
 flake.lock
 
 .venv
+
+tests/fixtures/lnbits-wasm-test-extension/static/html-like.js
