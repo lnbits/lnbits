@@ -1789,7 +1789,9 @@ async def test_check_fiat_status_persists_successful_payment(
         "lnbits.fiat.StripeWallet.get_invoice_status",
         AsyncMock(return_value=FiatPaymentStatus(paid=True)),
     )
-    queue_put = mocker.patch("lnbits.tasks.internal_invoice_queue.put", AsyncMock())
+    queue_put = mocker.patch(
+        "lnbits.task_manager.task_manager.internal_invoice_queue.put_nowait"
+    )
 
     status = await check_fiat_status(payment)
 
@@ -1797,7 +1799,7 @@ async def test_check_fiat_status_persists_successful_payment(
     assert payment.status == PaymentState.SUCCESS
     updated_payment = await get_payment(payment.checking_id)
     assert updated_payment.status == PaymentState.SUCCESS
-    queue_put.assert_awaited_once_with(payment.checking_id)
+    queue_put.assert_called_once_with(payment)
 
 
 @pytest.mark.anyio
