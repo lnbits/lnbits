@@ -1,9 +1,11 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from pathlib import Path
 from typing import Any
 
 EXTENSION_ID = "lnbits-wasm-test-extension"
+REPO_ROOT = Path(__file__).resolve().parents[2]
 SERVER_HOST = "127.0.0.1"
 
 

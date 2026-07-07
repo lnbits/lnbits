@@ -116,10 +116,7 @@
       "policies": [
         {
           "id": "watchonly",
-          "access": [
-            "read",
-            "write"
-          ]
+          "access": ["read", "write"]
         }
       ]
     },

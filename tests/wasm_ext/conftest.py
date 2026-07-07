@@ -7,15 +7,17 @@ import subprocess
 import sys
 import time
 from collections.abc import Iterator
-from pathlib import Path
 from typing import Any
 
 import httpx
 import pytest
 
-from tests.wasm_ext.helpers import EXTENSION_ID, SERVER_HOST, LiveLNbitsServer
-
-REPO_ROOT = Path(__file__).resolve().parents[2]
+from tests.wasm_ext.helpers import (
+    EXTENSION_ID,
+    REPO_ROOT,
+    SERVER_HOST,
+    LiveLNbitsServer,
+)
 
 
 @pytest.fixture(scope="session")
