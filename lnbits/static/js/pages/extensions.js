@@ -724,6 +724,159 @@ window.PageExtensions = {
         resolve(grantedPermissions)
       }
     },
+    permissionGrantDisplayItems() {
+      const permissions = this.permissionGrant.permissions || []
+      const permissionsById = new Map(
+        permissions.map(permission => [permission.id, permission])
+      )
+      const hasReadWriteStorage =
+        permissionsById.has('ext.storage.read') &&
+        permissionsById.has('ext.storage.write')
+      let addedReadWriteStorage = false
+
+      return permissions
+        .map((permission, index) => {
+          if (
+            hasReadWriteStorage &&
+            ['ext.storage.read', 'ext.storage.write'].includes(permission.id)
+          ) {
+            if (addedReadWriteStorage) return null
+            addedReadWriteStorage = true
+            return {
+              index,
+              orderId: 'ext.storage.read',
+              permissions: [
+                permissionsById.get('ext.storage.read'),
+                permissionsById.get('ext.storage.write')
+              ]
+            }
+          }
+          return {
+            index,
+            orderId: permission.id,
+            permissions: [permission]
+          }
+        })
+        .filter(Boolean)
+        .sort((left, right) => {
+          const leftOrder = this.permissionOrderIndex(left.orderId)
+          const rightOrder = this.permissionOrderIndex(right.orderId)
+          return leftOrder === rightOrder
+            ? left.index - right.index
+            : leftOrder - rightOrder
+        })
+        .map(group => this.permissionDisplayItem(group.permissions))
+    },
+    permissionDisplayItem(permissions) {
+      const permission = permissions[0]
+      const isReadWriteStorage =
+        permissions.length === 2 &&
+        permissions.some(permission => permission.id === 'ext.storage.read') &&
+        permissions.some(permission => permission.id === 'ext.storage.write')
+      const descriptions = permissions
+        .map(permission => this.permissionManifestDescription(permission))
+        .filter(Boolean)
+      const item = {
+        id: isReadWriteStorage ? 'ext.storage.read_write' : permission.id,
+        label: isReadWriteStorage
+          ? this.$t('extension_permission_ext_storage_read_write')
+          : this.permissionLabel(permission),
+        badges: [],
+        descriptions,
+        fieldGroups: [],
+        extensionAccess: []
+      }
+
+      if (permission.id === 'ext.storage.read_public') {
+        item.fieldGroups = this.publicStorageFieldGroups(permission)
+        item.badges = item.fieldGroups.map(group => ({
+          key: group.table,
+          label: group.table
+        }))
+      }
+
+      if (permission.id === 'extension.api.request') {
+        item.extensionAccess = this.extensionApiPermissionTargets(permission)
+        item.badges = item.extensionAccess.map(target => ({
+          key: target.id,
+          label: target.name
+        }))
+      }
+
+      return item
+    },
+    permissionOrderIndex(permissionId) {
+      const order = [
+        'wallet.pay_invoice',
+        'wallet.list',
+        'wallet.balance.read',
+        'extension.api.request',
+        'ui.camera.scan_qr',
+        'ext.storage.read',
+        'ext.storage.write',
+        'ext.storage.read_public',
+        'wallet.create_invoice',
+        'wallet.create_invoice_public',
+        'utils.basic'
+      ]
+      const index = order.indexOf(permissionId)
+      return index === -1 ? order.length : index
+    },
+    publicStorageFieldGroups(permission) {
+      const tables = permission.policy?.tables
+      if (!Array.isArray(tables)) return []
+      return tables
+        .map(table => {
+          const tableName =
+            typeof table === 'string' ? table : table?.table_name || ''
+          const fields =
+            typeof table === 'string' || !Array.isArray(table?.public_fields)
+              ? []
+              : table.public_fields.filter(
+                  field => typeof field === 'string' && field
+                )
+          return tableName ? {table: tableName, fields} : null
+        })
+        .filter(Boolean)
+    },
+    extensionApiPermissionTargets(permission) {
+      const extensions = permission.policy?.extensions
+      if (!Array.isArray(extensions)) return []
+      return extensions
+        .map(extension => {
+          const extensionId =
+            typeof extension === 'string' ? extension : extension?.id
+          if (!extensionId) return null
+          const access =
+            typeof extension === 'string'
+              ? ['read']
+              : Array.isArray(extension.access) && extension.access.length
+                ? extension.access
+                : ['read']
+          return {
+            id: extensionId,
+            name: this.extensionDisplayName(extensionId),
+            access
+          }
+        })
+        .filter(Boolean)
+    },
+    extensionDisplayName(extensionId) {
+      const extension = (this.extensions || []).find(
+        extension => extension.id === extensionId
+      )
+      return extension?.name || extensionId
+    },
+    permissionAccessLabel(access) {
+      const key = `extension_permission_access_${access}`
+      const label = this.$t(key)
+      return label === key ? access : label
+    },
+    permissionManifestDescription(permission) {
+      return typeof permission.description === 'string'
+        ? permission.description
+        : ''
+    },
     permissionI18nKey(permission) {
       return `extension_permission_${permission.id.replace(/[^A-Za-z0-9]/g, '_')}`
     },
@@ -731,35 +884,6 @@ window.PageExtensions = {
       const key = this.permissionI18nKey(permission)
       const label = this.$t(key)
       return label === key ? permission.id : label
-    },
-    permissionDescription(permission) {
-      const key = `${this.permissionI18nKey(permission)}_desc`
-      const description = this.$t(key)
-      return description === key ? permission.description : description
-    },
-    permissionPolicyDetails(permission) {
-      if (permission.id === 'http.request') {
-        const hosts = permission.policy?.hosts
-        if (!Array.isArray(hosts) || !hosts.length) return ''
-        return `${this.$t('extension_permission_http_request_hosts')}: ${hosts.join(', ')}`
-      }
-      if (permission.id === 'extension.api.request') {
-        const extensions = permission.policy?.extensions
-        if (!Array.isArray(extensions) || !extensions.length) return ''
-        const targets = extensions
-          .map(extension => {
-            if (typeof extension === 'string') return `${extension} (read)`
-            if (!extension?.id) return null
-            const access = Array.isArray(extension.access)
-              ? extension.access.join(', ')
-              : 'read'
-            return `${extension.id} (${access})`
-          })
-          .filter(Boolean)
-        if (!targets.length) return ''
-        return `${this.$t('extension_permission_extension_api_request_extensions')}: ${targets.join(', ')}`
-      }
-      return ''
     },
     async selectAllUpdatableExtensionss() {
       this.updatableExtensions.forEach(e => (e.selectedForUpdate = true))
