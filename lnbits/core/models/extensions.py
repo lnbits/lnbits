@@ -81,7 +81,7 @@ class ExtensionPermission(BaseModel):
     id: str
     label: str | None = None
     description: str | None = None
-    policy: dict[str, Any] | None = None
+    policies: list[Any] | None = None
 
     @staticmethod
     def list_from_config(config_json: Mapping[str, Any]) -> list[ExtensionPermission]:

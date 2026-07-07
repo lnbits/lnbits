@@ -31,7 +31,7 @@ _FORBIDDEN_RESPONSE_HEADERS = {
 
 async def send_extension_api_request(
     caller_extension_id: str,
-    policy: dict[str, Any],
+    policies: list[Any],
     user_id: str | None,
     access_token: str | None,
     request: ExtensionApiRequest,
@@ -42,7 +42,7 @@ async def send_extension_api_request(
         raise PermissionError("Extension API requests require an account access token.")
 
     target_extension_id = _target_extension_id(request.extension_id)
-    access = _target_extension_access(policy, target_extension_id)
+    access = _target_extension_access(policies, target_extension_id)
     _require_method_access(caller_extension_id, target_extension_id, access, request)
     await _require_enabled_extension(target_extension_id, user_id)
 
@@ -81,16 +81,13 @@ def _target_extension_id(extension_id: str) -> str:
     return target
 
 
-def _target_extension_access(
-    policy: dict[str, Any], target_extension_id: str
-) -> set[str]:
-    extensions = policy.get("extensions")
-    if not isinstance(extensions, list) or not extensions:
+def _target_extension_access(policies: list[Any], target_extension_id: str) -> set[str]:
+    if not isinstance(policies, list) or not policies:
         raise PermissionError(
             "Extension API requests require a non-empty extensions policy."
         )
 
-    for extension in extensions:
+    for extension in policies:
         if isinstance(extension, str):
             extension_id = extension
             access = ["read"]

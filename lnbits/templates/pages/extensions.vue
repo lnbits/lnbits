@@ -529,6 +529,12 @@
               class="text-caption q-mb-xs"
               v-text="description"
             ></p>
+            <p
+              v-for="policy of permission.invoicePolicies"
+              :key="policy.table + ':' + policy.walletField"
+              class="text-caption q-mb-xs"
+              v-text="publicInvoicePolicySentence(policy)"
+            ></p>
             <ul v-if="permission.fieldGroups.length" class="q-my-sm q-pl-md">
               <li v-for="group of permission.fieldGroups" :key="group.table">
                 <span v-text="group.table"></span>

@@ -790,6 +790,7 @@ window.PageExtensions = {
         badges: [],
         descriptions,
         fieldGroups: [],
+        invoicePolicies: [],
         extensionAccess: []
       }
 
@@ -807,6 +808,10 @@ window.PageExtensions = {
           key: target.id,
           label: target.name
         }))
+      }
+
+      if (permission.id === 'wallet.create_invoice_public') {
+        item.invoicePolicies = this.publicInvoicePolicies(permission)
       }
 
       return item
@@ -891,7 +896,7 @@ window.PageExtensions = {
       return index === -1 ? order.length : index
     },
     publicStorageFieldGroups(permission) {
-      const tables = permission.policy?.tables
+      const tables = permission.policies
       if (!Array.isArray(tables)) return []
       return tables
         .map(table => {
@@ -907,8 +912,25 @@ window.PageExtensions = {
         })
         .filter(Boolean)
     },
+    publicInvoicePolicies(permission) {
+      const policies = permission.policies
+      if (!Array.isArray(policies)) return []
+      return policies
+        .map(policy => {
+          if (!policy || typeof policy !== 'object') return null
+          const table = policy.table
+          const walletField = policy.wallet_field
+          if (typeof table !== 'string' || !table) return null
+          if (typeof walletField !== 'string' || !walletField) return null
+          return {table, walletField}
+        })
+        .filter(Boolean)
+    },
+    publicInvoicePolicySentence(policy) {
+      return `Invoices will be created using ${policy.walletField} from ${policy.table}.`
+    },
     extensionApiPermissionTargets(permission) {
-      const extensions = permission.policy?.extensions
+      const extensions = permission.policies
       if (!Array.isArray(extensions)) return []
       return extensions
         .map(extension => {
