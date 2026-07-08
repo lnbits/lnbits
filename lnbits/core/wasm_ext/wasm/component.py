@@ -3,6 +3,8 @@ from __future__ import annotations
 from functools import lru_cache
 from typing import Any
 
+from wasmtime import Config, Engine
+
 from .loader import WasmExtension
 
 
@@ -12,14 +14,6 @@ def warm_wasm_extension(extension: WasmExtension) -> None:
 
 @lru_cache(maxsize=1)
 def _wasm_engine() -> Any:
-    try:
-        from wasmtime import Config, Engine
-    except ImportError as exc:
-        raise RuntimeError(
-            "WASM extension runtime is not installed. Install the 'wasmtime' "
-            "Python package to run WASM extensions."
-        ) from exc
-
     config = Config()
     config.wasm_component_model = True
     return Engine(config)

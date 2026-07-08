@@ -5,6 +5,8 @@ import re
 from collections.abc import Mapping
 from typing import Any
 
+from wasmtime import component
+
 from ..api.models import EmptyRequest
 from ..api.registry import list_extension_api_methods
 from ..api.runtime import ExtensionAPIHost
@@ -73,7 +75,6 @@ def _component_payload_to_dict(value: Any) -> dict[str, Any]:
 
 
 def _dict_to_component_record(value: Mapping[str, Any]) -> Any:
-    from wasmtime import component
 
     record = component.Record()
     for key, item in value.items():
