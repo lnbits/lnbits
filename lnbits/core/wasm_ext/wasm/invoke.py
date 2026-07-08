@@ -5,6 +5,8 @@ import json
 from collections.abc import Mapping
 from typing import Any
 
+from wasmtime import Store, WasiConfig, component
+
 from lnbits.core.crud.extensions import get_installed_extension
 from lnbits.core.db import core_app_extra
 
@@ -54,13 +56,6 @@ def _invoke_wasm_extension_export_sync(
     api: ExtensionHostAPI,
     event_loop: asyncio.AbstractEventLoop,
 ) -> dict[str, Any]:
-    try:
-        from wasmtime import Store, WasiConfig, component
-    except ImportError as exc:
-        raise RuntimeError(
-            "WASM extension runtime is not installed. Install the 'wasmtime' "
-            "Python package to run WASM extensions."
-        ) from exc
 
     engine = _wasm_engine()
     store = Store(engine)
