@@ -520,7 +520,6 @@ window.localisation.en = {
   extension_cost: 'This release requires a payment of minimum {cost} sats.',
   extension_paid_sats: 'You have already paid {paid_sats} sats.',
   extension_permissions_title: 'Grant extension permissions',
-  extension_permissions_request: 'This extension requests these permissions:',
   extension_permissions_grant_install: 'Grant and install',
   extension_permissions_high_risk_warning:
     'This extension requests permissions that can move funds.',

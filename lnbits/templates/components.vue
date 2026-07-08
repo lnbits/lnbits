@@ -19,6 +19,7 @@ include('components/lnbits-header-wallets.vue') %} {%
 include('components/lnbits-drawer.vue') %} {%
 include('components/lnbits-home-logos.vue') %} {%
 include('components/lnbits-manage-extension-list.vue') %} {%
+include('components/lnbits-extension-permissions.vue') %} {%
 include('components/lnbits-manage-wallet-list.vue') %} {%
 include('components/lnbits-language-dropdown.vue') %} {%
 include('components/lnbits-payment-list.vue') %} {%
