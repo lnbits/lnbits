@@ -830,15 +830,11 @@ async def _pay_external_invoice(
         _fundingsource_pay_invoice(checking_id, payment.bolt11, fee_reserve_msat),
         f"fundingsource_pay_invoice_{checking_id}",
     )
-    if not task._task:
-        raise PaymentError(
-            "Fundingsource pay_invoice task could not be started.", status="failed"
-        )
 
     # make sure a hold invoice or deferred payment is not blocking the server
     wait_time = max(1, settings.lnbits_funding_source_pay_invoice_wait_seconds)
     try:
-        payment_response = await asyncio.wait_for(task._task, timeout=wait_time)
+        payment_response = await asyncio.wait_for(task.task, timeout=wait_time)
     except asyncio.TimeoutError:
         # return pending payment on timeout
         logger.debug(

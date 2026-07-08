@@ -24,7 +24,7 @@ class Task:
     coro: Coroutine
     name: str
     created_at: datetime
-    _task: asyncio.Task
+    task: asyncio.Task
     invoice_queue: asyncio.Queue[Payment] | None = None
 
     def __init__(
@@ -36,7 +36,7 @@ class Task:
         self.coro = coro
         self.name = name or f"task_{uuid.uuid4()}"
         self.created_at = datetime.now(timezone.utc)
-        self._task = asyncio.create_task(self.coro, name=self.name)
+        self.task = asyncio.create_task(self.coro, name=self.name)
         self.invoice_queue = invoice_queue
 
 
@@ -66,7 +66,7 @@ class TaskManager:
         """Cancel a running task."""
         self.tasks.remove(task)
         try:
-            task._task.cancel()
+            task.task.cancel()
         except Exception as exc:
             logger.warning(f"error while cancelling task `{task.name}`: {exc!s}")
 
@@ -129,13 +129,13 @@ class TaskManager:
     async def _heart_beat(self) -> None:
         """A heartbeat that removes done tasks logs the number of tasks."""
         for task in self.tasks:
-            state = task._task._state if task._task else "NOT RUNNING"
+            state = task.task._state if task.task else "NOT RUNNING"
             if settings.task_heart_beat_verbose:
                 logger.debug(
                     f"Task Manager: `{task.name}` state: `{state}` "
                     f"created: {task.created_at.strftime('%Y-%m-%d %H:%M:%S')}`"
                 )
-            if task._task and task._task.done():
+            if task.task and task.task.done():
                 logger.debug(f"Task Manager: task `{task.name}` is done.")
                 self.cancel_task(task)
         listeners_count = sum(1 for task in self.tasks if task.invoice_queue)

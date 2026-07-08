@@ -116,7 +116,7 @@ async def test_invalidate_forever_logs_and_recovers_from_errors(
     try:
         settings.lnbits_running = True
         bg_task = task_manager.create_permanent_task(test_cache.invalidate_cache)
-        await bg_task._task
+        await bg_task.task
     finally:
         settings.lnbits_running = original_running
         if bg_task:
