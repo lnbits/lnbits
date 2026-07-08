@@ -72,7 +72,7 @@ class TaskManager:
 
     def cancel_all_tasks(self) -> None:
         """Cancel all running tasks."""
-        for task in self.tasks:
+        for task in list(self.tasks):
             self.cancel_task(task)
 
     def create_task(
@@ -156,6 +156,8 @@ class TaskManager:
             except asyncio.CancelledError:
                 raise  # because we must pass this up
             except Exception as exc:
+                if not settings.lnbits_running:
+                    return
                 logger.error(f"exception in background task `{func.__name__}`:", exc)
                 logger.error(traceback.format_exc())
                 logger.info(
