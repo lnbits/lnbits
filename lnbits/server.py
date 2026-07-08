@@ -37,7 +37,7 @@ def main(
     ssl_certfile: str,
     reload: bool,
     ws_max_queue: int,
-    ws_ping_timeout: float
+    ws_ping_timeout: float,
 ):
     """Launched with `uv run lnbits` at root level"""
 
