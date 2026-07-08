@@ -4,7 +4,8 @@ from typing import Any
 from loguru import logger
 
 from lnbits.core.db import core_app_extra
-
+from lnbits.core.wasm_ext.storage.crud import storage_get_row_owner_id
+from lnbits.core.wasm_ext.wasm.invoke import invoke_wasm_extension_export
 
 async def dispatch_wasm_invoice_paid(payment: Any) -> None:
     extension_id = _payment_extension_id(payment)
@@ -27,8 +28,6 @@ async def dispatch_wasm_invoice_paid(payment: Any) -> None:
         return
 
     try:
-        from lnbits.core.wasm_ext.wasm.invoke import invoke_wasm_extension_export
-
         await invoke_wasm_extension_export(
             extension.id,
             export_name,
@@ -58,7 +57,6 @@ async def _wasm_invoice_paid_owner_id(extension: Any, payment: Any) -> str | Non
     if not source_id or not source_tables:
         return None
 
-    from lnbits.core.wasm_ext.storage.crud import storage_get_row_owner_id
 
     for source_table in source_tables:
         owner_id = await storage_get_row_owner_id(extension.id, source_table, source_id)
