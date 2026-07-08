@@ -76,6 +76,7 @@ async def test_install_extension_creates_new_extension_and_starts_background_wor
         settings.lnbits_extensions_path = str(tmp_path / "code")
 
         extension = await install_extension(ext_info)
+        await activate_extension(extension) # starts background task
         stored = await get_installed_extension(ext_id)
     finally:
         await delete_installed_extension(ext_id=ext_id)
@@ -86,7 +87,7 @@ async def test_install_extension_creates_new_extension_and_starts_background_wor
     assert stored is not None
     download_mock.assert_awaited_once()
     extract_mock.assert_called_once()
-    start_mock.assert_not_awaited()
+    start_mock.assert_awaited_once_with(ext_id)
 
 
 @pytest.mark.anyio
@@ -124,8 +125,8 @@ async def test_install_extension_updates_existing_upgrade_and_preserves_payments
         settings.lnbits_data_folder = str(tmp_path / "data")
         settings.lnbits_extensions_path = str(tmp_path / "code")
         await create_installed_extension(existing_ext)
-
         extension = await install_extension(updated_ext, skip_download=True)
+        await activate_extension(extension) # starts background task
         stored = await get_installed_extension(ext_id)
     finally:
         await delete_installed_extension(ext_id=ext_id)
@@ -138,7 +139,7 @@ async def test_install_extension_updates_existing_upgrade_and_preserves_payments
     assert stored.meta.payments == [existing_payment]
     extract_mock.assert_called_once()
     stop_mock.assert_awaited_once_with(ext_id)
-    start_mock.assert_not_awaited()
+    start_mock.assert_awaited_once_with(ext_id)
 
 
 @pytest.mark.anyio
