@@ -6,6 +6,9 @@
     :content-inset-level="0.5"
   >
     <q-card-section>
+      <q-banner dense rounded class="bg-warning text-black q-mb-md">
+        These keys should be kept safe, sharing them could risk losing funds.
+      </q-banner>
       <q-list>
         <q-item dense class="q-pa-none">
           <q-item-section>
