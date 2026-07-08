@@ -62,6 +62,10 @@ class TaskManager:
                 return task
         return None
 
+    def get_public_tasks(self) -> list[PublicTask]:
+        """Get a list of public tasks."""
+        return [PublicTask(name=t.name, created_at=t.created_at) for t in self.tasks]
+
     def cancel_task(self, task: Task) -> None:
         """Cancel a running task."""
         self.tasks.remove(task)
