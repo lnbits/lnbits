@@ -179,7 +179,7 @@ class Extension(BaseModel):
 
     @property
     def is_upgrade_extension(self) -> bool:
-        if self.extension_type == "wasm":
+        if self.is_wasm:
             return False
         return self.upgrade_hash != ""
 
@@ -191,17 +191,9 @@ class Extension(BaseModel):
             is_wasm=ext_info.is_wasm,
             name=ext_info.name,
             short_description=ext_info.short_description,
-            tile=(
-                wasm_extension_icon_url(ext_info.id)
-                if ext_info.is_wasm
-                else ext_info.icon
-            ),
+            tile=_extension_tile(ext_info),
             upgrade_hash=ext_info.hash if ext_info.ext_upgrade_dir.is_dir() else "",
         )
-
-
-def wasm_extension_icon_url(ext_id: str) -> str:
-    return f"/ext-assets/{ext_id}/assets/icon.png"
 
 
 class ExtensionRelease(BaseModel):
@@ -921,3 +913,13 @@ def icon_to_github_url(source_repo: str, path: str | None) -> str:
     _, _, *rest = path.split("/")
     tail = "/".join(rest)
     return f"https://github.com/{source_repo}/raw/main/{tail}"
+
+
+def wasm_extension_icon_url(ext_id: str) -> str:
+    return f"/ext-assets/{ext_id}/assets/icon.png"
+
+
+def _extension_tile(ext_info: InstallableExtension) -> str | None:
+    if ext_info.is_wasm:
+        return wasm_extension_icon_url(ext_info.id)
+    return ext_info.icon
