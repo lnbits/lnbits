@@ -16,10 +16,54 @@ from collections.abc import Callable, Coroutine
 from typing import Any
 from urllib.parse import urlparse
 
-from bech32 import bech32_decode, convertbits
+from bech32 import (
+    CHARSET,
+    bech32_hrp_expand,
+    bech32_polymod,
+    convertbits,
+)
 from bech32 import encode as bech32_segwit_encode
 from loguru import logger
 from pydantic import BaseModel
+
+_BECH32M_CONST = 0x2BC830A3  # BIP-350
+
+
+def _segwit_addr_decode(address: str) -> tuple[int, bytes]:
+    """Decode a segwit address, supporting bech32 (v0) and bech32m (v1+)."""
+    lower = address.lower()
+    pos = lower.rfind("1")
+    if (
+        pos < 1
+        or pos + 7 > len(lower)
+        or not all(c in CHARSET for c in lower[pos + 1 :])
+    ):
+        raise ValueError(f"Invalid bech32 address: {address!r}")
+    hrp = lower[:pos]
+    data = [CHARSET.find(c) for c in lower[pos + 1 :]]
+    const = bech32_polymod(bech32_hrp_expand(hrp) + data)
+    if const not in (1, _BECH32M_CONST):
+        raise ValueError(f"Invalid bech32 address: {address!r}")
+    payload = data[:-6]
+    witness_version = payload[0]
+    bits = convertbits(payload[1:], 5, 8, False)
+    if bits is None:
+        raise ValueError(f"Invalid bech32 witness program in address: {address!r}")
+    expected = 1 if witness_version == 0 else _BECH32M_CONST
+    if const != expected:
+        raise ValueError(
+            f"Wrong bech32 variant for witness version {witness_version}: {address!r}"
+        )
+    return witness_version, bytes(bits)
+
+
+def _bech32m_encode(hrp: str, witver: int, witprog: bytes) -> str:
+    """Encode a segwit address with bech32m checksum (witness version 1+)."""
+    data = [witver] + (convertbits(list(witprog), 8, 5) or [])
+    values = bech32_hrp_expand(hrp) + data
+    polymod = bech32_polymod([*values, 0, 0, 0, 0, 0, 0]) ^ _BECH32M_CONST
+    checksum = [(polymod >> 5 * (5 - i)) & 31 for i in range(6)]
+    return hrp + "1" + "".join(CHARSET[d] for d in data + checksum)
 
 
 class ElectrumError(Exception):
@@ -55,14 +99,7 @@ def address_to_scriptpubkey(address: str) -> bytes:
     """Convert a Bitcoin address (P2PKH/P2SH/P2WPKH/P2WSH/P2TR) to scriptPubKey."""
     lower = address.lower()
     if lower.startswith(("bc1", "tb1", "bcrt1")):
-        _, data = bech32_decode(address)
-        if data is None:
-            raise ValueError(f"Invalid bech32 address: {address!r}")
-        witness_version = data[0]
-        bits = convertbits(data[1:], 5, 8, False)
-        if bits is None:
-            raise ValueError(f"Invalid bech32 witness program in address: {address!r}")
-        witness_prog = bytes(bits)
+        witness_version, witness_prog = _segwit_addr_decode(address)
         ver_op = 0x00 if witness_version == 0 else (0x50 + witness_version)
         return bytes([ver_op, len(witness_prog)]) + witness_prog
     else:
@@ -118,7 +155,7 @@ def _scriptpubkey_info(script: bytes) -> tuple[str, str | None]:
         return "witness_v0_scripthash", bech32_segwit_encode("bc", 0, list(script[2:]))
     # P2TR
     if n == 34 and script[0] == 0x51 and script[1] == 0x20:
-        return "witness_v1_taproot", bech32_segwit_encode("bc", 1, list(script[2:]))
+        return "witness_v1_taproot", _bech32m_encode("bc", 1, script[2:])
     # P2PK
     if n in (35, 67) and script[-1] == 0xAC:
         return "pubkey", None

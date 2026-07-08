@@ -14,6 +14,7 @@ from lnbits.utils.electrum import (
     OnchainAddressEvent,
     OnchainTxEvent,
     TransactionTracker,
+    scripthash_from_address,
 )
 
 
@@ -192,7 +193,11 @@ class TaskManager:
     def register_ws_address_queue(
         self, address: str, queue: asyncio.Queue[OnchainAddressEvent]
     ) -> None:
-        """Register a per-connection queue for a watched address."""
+        """Register a per-connection queue for a watched address.
+
+        Raises ValueError if the address is invalid.
+        """
+        scripthash_from_address(address)
         self._ws_address_queues.setdefault(address, []).append(queue)
         self.track_address(address)
 

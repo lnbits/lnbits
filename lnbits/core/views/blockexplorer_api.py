@@ -186,15 +186,14 @@ async def ws_address(websocket: WebSocket, address: str) -> None:
     if not settings.lnbits_blockexplorer_enabled:
         await websocket.close(code=1008)
         return
-    try:
-        scripthash_from_address(address)  # validate
-    except ValueError as e:
-        await websocket.close(code=1008, reason=str(e))
-        return
     await websocket.accept()
 
     queue: asyncio.Queue[OnchainAddressEvent] = asyncio.Queue()
-    task_manager.register_ws_address_queue(address, queue)
+    try:
+        task_manager.register_ws_address_queue(address, queue)
+    except ValueError as e:
+        await websocket.close(code=1008, reason=str(e))
+        return
     try:
         await _ws_address_loop(websocket, address, queue)
     finally:
