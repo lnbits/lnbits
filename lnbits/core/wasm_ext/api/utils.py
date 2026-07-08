@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import time
 from datetime import datetime
-from typing import TYPE_CHECKING, Any
+from typing import Any
 
 from lnbits import bolt11
 from lnbits.settings import settings
@@ -40,21 +40,16 @@ from .models import (
 )
 from .registry import extension_api_method
 
-if TYPE_CHECKING:
-    from .host import ExtensionHostAPI
-
 
 class ExtensionAPIUtils:
-    def __init__(self, api: ExtensionHostAPI) -> None:
-        self.api = api
-        self.currencies = ExtensionCurrencyUtils(api)
-        self.server = ExtensionServerUtils(api)
-        self.lightning = ExtensionLightningUtils(api)
+    def __init__(self) -> None:
+        self.currencies = ExtensionCurrencyUtils()
+        self.server = ExtensionServerUtils()
+        self.lightning = ExtensionLightningUtils()
 
 
 class _ExtensionAPIUtilsGroup:
-    def __init__(self, api: ExtensionHostAPI) -> None:
-        self.api = api
+    pass
 
 
 class ExtensionCurrencyUtils(_ExtensionAPIUtilsGroup):
