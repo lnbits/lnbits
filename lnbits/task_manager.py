@@ -10,6 +10,7 @@ from pydantic import BaseModel
 
 from lnbits.core.models import Payment
 from lnbits.settings import settings
+from lnbits.utils.electrum import ElectrumClient, ElectrumError, scripthash_from_address
 
 
 class PublicTask(BaseModel):
@@ -103,7 +104,12 @@ class TaskManager:
             task = self.get_task(name)
             if task:
                 self.cancel_task(task)
-        task = Task(coro=coro, name=name, invoice_queue=invoice_queue, onchain_queue=onchain_queue)
+        task = Task(
+            coro=coro,
+            name=name,
+            invoice_queue=invoice_queue,
+            onchain_queue=onchain_queue,
+        )
         self.tasks.append(task)
         return task
 
@@ -165,7 +171,7 @@ class TaskManager:
         )
 
     def track_address(self, address: str) -> None:
-        """Start tracking a Bitcoin address via Electrum. Dispatches OnchainAddressEvents."""
+        """Start tracking a Bitcoin address via Electrum."""
         if address in self._tracked_addresses:
             return
         task_name = f"onchain_address_{address}"
@@ -179,18 +185,6 @@ class TaskManager:
             task = self.get_task(task_name)
             if task:
                 self.cancel_task(task)
-
-    def track_transaction(
-        self,
-        txid: str,
-        callback: Callable[[str, int], Coroutine],
-    ) -> Task:
-        """
-        Poll until a transaction is confirmed, then call callback(txid, block_height).
-        The task cancels itself after the callback fires.
-        """
-        task_name = f"onchain_tx_{txid}"
-        return self.create_task(self._transaction_tracker(txid, callback), name=task_name)
 
     async def _heart_beat(self) -> None:
         """A heartbeat that removes done tasks logs the number of tasks."""
@@ -280,9 +274,7 @@ class TaskManager:
         self._invoice_dispatcher(payment)
 
     async def _address_tracker(self, address: str) -> None:
-        """Track an address via Electrum subscription; dispatches OnchainAddressEvents."""
-        from lnbits.utils.electrum import ElectrumClient, ElectrumError, scripthash_from_address
-
+        """Track an address via Electrum subscription; dispatch OnchainAddressEvents."""
         electrum_url = settings.lnbits_blockexplorer_electrum_url
         scripthash = scripthash_from_address(address)
 
@@ -293,11 +285,15 @@ class TaskManager:
 
                     async def on_status_change(params: list[Any]) -> None:
                         if params and params[0] == scripthash:
-                            await self._fetch_and_dispatch_address(client, address, scripthash)
+                            await self._fetch_and_dispatch_address(
+                                client, address, scripthash
+                            )
 
                     await client.subscribe_scripthash(scripthash, on_status_change)
 
-                    while address in self._tracked_addresses and settings.lnbits_running:
+                    while (
+                        address in self._tracked_addresses and settings.lnbits_running
+                    ):
                         await asyncio.sleep(30)
             except asyncio.CancelledError:
                 raise
@@ -310,9 +306,7 @@ class TaskManager:
     async def _fetch_and_dispatch_address(
         self, client: Any, address: str, scripthash: str
     ) -> None:
-        """Fetch balance + history for a scripthash and dispatch an OnchainAddressEvent."""
-        from lnbits.utils.electrum import ElectrumError
-
+        """Fetch balance + history for a scripthash and dispatch an onchain event."""
         balance = await client.get_balance(scripthash)
         txids: list[str] = []
         try:
@@ -335,30 +329,6 @@ class TaskManager:
                 txids=txids,
             )
         )
-
-    async def _transaction_tracker(
-        self, txid: str, callback: Callable[[str, int], Coroutine]
-    ) -> None:
-        """Poll Electrum until txid is confirmed, then fire callback(txid, height)."""
-        from lnbits.utils.electrum import ElectrumClient
-
-        electrum_url = settings.lnbits_blockexplorer_electrum_url
-        while settings.lnbits_running:
-            try:
-                async with ElectrumClient(electrum_url) as client:
-                    tx = await client.get_transaction(txid, verbose=True)
-                    if isinstance(tx, dict):
-                        height = tx.get("blockheight") or tx.get("block_height", 0)
-                        if height and height > 0:
-                            await callback(txid, height)
-                            return
-            except asyncio.CancelledError:
-                raise
-            except Exception as exc:
-                if not settings.lnbits_running:
-                    return
-                logger.warning(f"Tx tracker {txid[:8]}: {exc!s}")
-            await asyncio.sleep(60)
 
 
 task_manager = TaskManager()
