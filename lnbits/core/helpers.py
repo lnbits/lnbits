@@ -27,7 +27,13 @@ async def migrate_extension_database(
     if is_wasm_extension_id(ext.id):
         await migrate_wasm_extension_database(ext, current_version)
         return
+    else:
+        await migrate_py_extension_database(ext, current_version)
 
+
+async def migrate_py_extension_database(
+    ext: InstallableExtension, current_version: DbVersion | None = None
+):
     try:
         ext_migrations = importlib.import_module(f"{ext.module_name}.migrations")
         ext_db = importlib.import_module(ext.module_name).db
