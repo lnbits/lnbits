@@ -9,6 +9,7 @@ from typing import Any
 
 from lnbits.helpers import sha256s
 
+from ..client.extensions import send_extension_api_request
 from ..storage.crud import (
     storage_delete_row,
     storage_get_paginated_rows,
@@ -425,7 +426,6 @@ class ExtensionHostAPI:
         require_auth=True,
     )
     async def extension_api_request(self, request: ExtensionApiRequest) -> HttpResponse:
-        from ..client.extensions import send_extension_api_request
 
         policies = self.permission_policies.get("extension.api.request") or []
         return await send_extension_api_request(

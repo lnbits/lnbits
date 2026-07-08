@@ -4,6 +4,16 @@ import time
 from datetime import datetime
 from typing import TYPE_CHECKING, Any
 
+from lnbits import bolt11
+from lnbits.settings import settings
+from lnbits.utils.crypto import random_secret_and_hash, verify_preimage
+from lnbits.utils.exchange_rates import (
+    allowed_currencies,
+    fiat_amount_as_satoshis,
+    get_fiat_rate_and_price_satoshis,
+    satoshis_amount_as_fiat,
+)
+
 from .models import (
     Bolt11Request,
     CurrencyConvertRequest,
@@ -60,7 +70,6 @@ class ExtensionCurrencyUtils(_ExtensionAPIUtilsGroup):
         require_auth=False,
     )
     async def list(self, request: EmptyRequest) -> CurrencyListResponse:
-        from lnbits.utils.exchange_rates import allowed_currencies
 
         return CurrencyListResponse(currencies=allowed_currencies())
 
@@ -76,7 +85,6 @@ class ExtensionCurrencyUtils(_ExtensionAPIUtilsGroup):
         require_auth=False,
     )
     async def rate(self, request: CurrencyRateRequest) -> CurrencyRateResponse:
-        from lnbits.utils.exchange_rates import get_fiat_rate_and_price_satoshis
 
         rate, price = await get_fiat_rate_and_price_satoshis(request.currency)
         return CurrencyRateResponse(rate=rate, price=price)
@@ -93,10 +101,6 @@ class ExtensionCurrencyUtils(_ExtensionAPIUtilsGroup):
         require_auth=False,
     )
     async def convert(self, request: CurrencyConvertRequest) -> CurrencyConvertResponse:
-        from lnbits.utils.exchange_rates import (
-            fiat_amount_as_satoshis,
-            satoshis_amount_as_fiat,
-        )
 
         from_currency = request.from_currency
         if from_currency == "sats":
@@ -135,7 +139,6 @@ class ExtensionCurrencyUtils(_ExtensionAPIUtilsGroup):
         require_auth=False,
     )
     async def fiat_to_sats(self, request: FiatToSatsRequest) -> FiatToSatsResponse:
-        from lnbits.utils.exchange_rates import fiat_amount_as_satoshis
 
         return FiatToSatsResponse(
             amount_sat=await fiat_amount_as_satoshis(
@@ -156,7 +159,6 @@ class ExtensionCurrencyUtils(_ExtensionAPIUtilsGroup):
         require_auth=False,
     )
     async def sats_to_fiat(self, request: SatsToFiatRequest) -> SatsToFiatResponse:
-        from lnbits.utils.exchange_rates import satoshis_amount_as_fiat
 
         return SatsToFiatResponse(
             amount=await satoshis_amount_as_fiat(request.amount, request.currency)
@@ -176,7 +178,6 @@ class ExtensionServerUtils(_ExtensionAPIUtilsGroup):
         require_auth=False,
     )
     async def health(self, request: EmptyRequest) -> ServerHealthResponse:
-        from lnbits.settings import settings
 
         return ServerHealthResponse(
             server_time=int(time.time()),
@@ -298,7 +299,6 @@ class ExtensionLightningUtils(_ExtensionAPIUtilsGroup):
     async def verify_preimage(
         self, request: VerifyPreimageRequest
     ) -> VerifyPreimageResponse:
-        from lnbits.utils.crypto import verify_preimage
 
         return VerifyPreimageResponse(
             valid=verify_preimage(request.preimage, request.payment_hash)
@@ -318,7 +318,6 @@ class ExtensionLightningUtils(_ExtensionAPIUtilsGroup):
     async def random_secret_and_hash(
         self, request: RandomSecretAndHashRequest
     ) -> RandomSecretAndHashResponse:
-        from lnbits.utils.crypto import random_secret_and_hash
 
         secret, payment_hash = random_secret_and_hash(request.length)
         return RandomSecretAndHashResponse(secret=secret, hash=payment_hash)
@@ -333,7 +332,6 @@ def extension_api_utils_method_classes() -> dict[str, type[_ExtensionAPIUtilsGro
 
 
 def _decode_bolt11(payment_request: str) -> Any:
-    from lnbits import bolt11
 
     return bolt11.decode(payment_request)
 
