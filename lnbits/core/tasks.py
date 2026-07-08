@@ -31,7 +31,8 @@ async def process_next_audit_entry() -> None:
 
 
 async def refresh_extension_cache() -> None:
-    await InstallableExtension.get_installable_extensions(post_refresh_cache=True)
+    # only refreshes every 10 minutes
+    await InstallableExtension.get_installable_extensions()
 
 
 async def notify_server_status() -> None:

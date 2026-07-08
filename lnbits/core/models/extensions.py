@@ -6,7 +6,7 @@ import json
 import os
 import shutil
 import zipfile
-from asyncio.tasks import create_task
+from lnbits.task_manager import task_manager
 from pathlib import Path
 from typing import Any
 
@@ -642,7 +642,10 @@ class InstallableExtension(BaseModel):
 
         if cache_value.older_than(10 * 60) or post_refresh_cache:
             # refresh cache in background if older than 10 minutes or requested
-            create_task(cls._refresh_installable_extensions_cache())
+            task_manager.create_task(
+                cls._refresh_installable_extensions_cache(),
+                "refresh_installable_extensions_cache",
+            )
 
         extension_list = cache_value.value  # type: ignore
         return extension_list
