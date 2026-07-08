@@ -1074,11 +1074,12 @@ class EnvSettings(LNbitsSettings):
     log_rotation: str = Field(default="100 MB")
     log_retention: str = Field(default="3 months")
     first_install_token: str | None = Field(default=None)
-
     cleanup_wallets_days: int = Field(default=90, ge=0)
     funding_source_max_retries: int = Field(default=4, ge=0)
     lnbits_max_users: int = Field(default=0, ge=0)
     lnbits_max_extensions: int = Field(default=0, ge=0)
+    task_heart_beat_verbose: bool = Field(default=False)
+    task_heart_beat_interval: int = Field(default=30)
 
     @property
     def has_default_extension_path(self) -> bool:
@@ -1160,8 +1161,6 @@ class TransientSettings(InstalledExtensionsSettings, ExchangeHistorySettings):
     lnbits_all_extensions_ids: set[str] = Field(default=set())
 
     server_startup_time: int = Field(default=int(time()))
-    task_heart_beat_verbose: bool = Field(default=False)
-    task_heart_beat_interval: int = Field(default=30)
 
     has_holdinvoice: bool = Field(default=False)
     has_nodemanager: bool = Field(default=False)
