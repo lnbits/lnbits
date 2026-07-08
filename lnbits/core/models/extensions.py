@@ -473,7 +473,7 @@ class InstallableExtension(BaseModel):
 
         try:
             with zipfile.ZipFile(self.zip_path, "r") as archive:
-                config_name = self._archive_config_name(archive.namelist())
+                config_name = _archive_config_name(archive.namelist())
                 if not config_name:
                     return {}
                 with archive.open(config_name) as config_file:
@@ -482,14 +482,6 @@ class InstallableExtension(BaseModel):
             raise ValueError(f"Cannot read extension config for '{self.id}'.") from exc
 
         return config if isinstance(config, dict) else {}
-
-    @staticmethod
-    def _archive_config_name(names: list[str]) -> str | None:
-        for name in names:
-            path = PurePosixPath(name)
-            if len(path.parts) == 2 and path.name == "config.json":
-                return name
-        return None
 
     def extract_archive(self):
         logger.info(f"Extracting extension {self.name} ({self.installed_version}).")
@@ -923,3 +915,11 @@ def _extension_tile(ext_info: InstallableExtension) -> str | None:
     if ext_info.is_wasm:
         return wasm_extension_icon_url(ext_info.id)
     return ext_info.icon
+
+
+def _archive_config_name(names: list[str]) -> str | None:
+    for name in names:
+        path = PurePosixPath(name)
+        if len(path.parts) == 2 and path.name == "config.json":
+            return name
+    return None
