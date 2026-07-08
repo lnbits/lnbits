@@ -12,7 +12,7 @@ import itertools
 import json
 import ssl
 import struct
-from collections.abc import Callable
+from collections.abc import Callable, Coroutine
 from typing import Any
 from urllib.parse import urlparse
 
@@ -712,3 +712,218 @@ class ElectrumClient:
         """Returns mempool fee histogram as FeeHistogramEntry(fee_rate, vsize) list."""
         data = await self._call("mempool.get_fee_histogram")
         return [FeeHistogramEntry(fee_rate=r[0], vsize=r[1]) for r in data]
+
+
+# ---------------------------------------------------------------------------
+# Address tracking
+# ---------------------------------------------------------------------------
+
+
+class OnchainAddressEvent(BaseModel):
+    address: str
+    confirmed: int  # satoshis
+    unconfirmed: int  # satoshis
+    history: list[HistoryEntry] = []
+    history_error: str | None = None
+
+    @property
+    def txids(self) -> list[str]:
+        return [e.tx_hash for e in self.history]
+
+
+class AddressTracker:
+    """
+    Subscribes to a Bitcoin address via Electrum and calls a callback on every
+    balance/history change.  Reconnects automatically on failure.
+
+    Args:
+        url:       Electrum server URL (e.g. ``ssl://electrum.blockstream.info:50002``).
+        callback:  Async function receiving an :class:`OnchainAddressEvent`.
+        is_active: Callable returning ``False`` when tracking should stop.
+    """
+
+    def __init__(self, url: str) -> None:
+        self.url = url
+
+    async def track(
+        self,
+        address: str,
+        callback: Callable[[OnchainAddressEvent], Coroutine[Any, Any, None]],
+        is_active: Callable[[], bool],
+    ) -> None:
+        scripthash = scripthash_from_address(address)
+        while is_active():
+            try:
+                async with ElectrumClient(self.url) as client:
+                    await self._fetch_and_dispatch(
+                        client, address, scripthash, callback
+                    )
+
+                    async def on_status_change(params: list[Any]) -> None:
+                        if params and params[0] == scripthash:
+                            await self._fetch_and_dispatch(
+                                client, address, scripthash, callback
+                            )
+
+                    await client.subscribe_scripthash(scripthash, on_status_change)
+                    while is_active():
+                        await asyncio.sleep(30)
+            except asyncio.CancelledError:
+                raise
+            except Exception as exc:
+                if not is_active():
+                    return
+                logger.warning(f"AddressTracker {address}: {exc!s}, retrying in 5s")
+                await asyncio.sleep(5)
+
+    @staticmethod
+    async def _fetch_and_dispatch(
+        client: ElectrumClient,
+        address: str,
+        scripthash: str,
+        callback: Callable[[OnchainAddressEvent], Coroutine[Any, Any, None]],
+    ) -> None:
+        balance = await client.get_balance(scripthash)
+        history: list[HistoryEntry] = []
+        history_error: str | None = None
+        try:
+            history = await client.get_history(scripthash)
+        except ElectrumError as exc:
+            history_error = str(exc)
+        try:
+            seen = {e.tx_hash for e in history}
+            for m in await client.get_mempool(scripthash):
+                if m.tx_hash not in seen:
+                    history.append(HistoryEntry(tx_hash=m.tx_hash, height=0, fee=m.fee))
+        except ElectrumError:
+            pass
+        await callback(
+            OnchainAddressEvent(
+                address=address,
+                confirmed=balance.confirmed,
+                unconfirmed=balance.unconfirmed,
+                history=history,
+                history_error=history_error,
+            )
+        )
+
+
+# ---------------------------------------------------------------------------
+# Transaction tracking
+# ---------------------------------------------------------------------------
+
+
+class OnchainTxEvent(BaseModel):
+    txid: str
+    confirmed: bool
+    height: int | None = None
+    fee: int | None = None
+
+
+def tx_watch_scripthash(tx: Transaction) -> str | None:
+    """Return the scripthash of the first spendable output, used to subscribe
+    for confirmation notifications."""
+    for out in tx.vout:
+        if out.scriptPubKey.type != "nulldata":
+            return scripthash_from_scriptpubkey(bytes.fromhex(out.scriptPubKey.hex))
+    return None
+
+
+class TransactionTracker:
+    """
+    Subscribes to a Bitcoin transaction via Electrum and calls a callback on
+    each status change (unconfirmed → confirmed).  Stops automatically once
+    the transaction is confirmed or ``is_active()`` returns ``False``.
+
+    Args:
+        url: Electrum server URL (e.g. ``ssl://electrum.blockstream.info:50002``).
+    """
+
+    def __init__(self, url: str) -> None:
+        self.url = url
+
+    async def track(
+        self,
+        txid: str,
+        callback: Callable[[OnchainTxEvent], Coroutine[Any, Any, None]],
+        is_active: Callable[[], bool],
+    ) -> None:
+        while is_active():
+            try:
+                confirmed = await self._track_once(txid, callback, is_active)
+                if confirmed:
+                    return
+            except asyncio.CancelledError:
+                raise
+            except Exception as exc:
+                if not is_active():
+                    return
+                logger.warning(
+                    f"TransactionTracker {txid[:8]}: {exc!s}, retrying in 5s"
+                )
+                await asyncio.sleep(5)
+
+    async def _track_once(
+        self,
+        txid: str,
+        callback: Callable[[OnchainTxEvent], Coroutine[Any, Any, None]],
+        is_active: Callable[[], bool],
+    ) -> bool:
+        """One connection attempt; returns True if the tx is confirmed."""
+        async with ElectrumClient(self.url) as client:
+            try:
+                raw = await client.get_transaction(txid)
+            except ElectrumError as exc:
+                logger.warning(f"TransactionTracker {txid[:8]}: {exc!s}")
+                await asyncio.sleep(10)
+                return False
+
+            scripthash = tx_watch_scripthash(parse_raw_tx(raw))
+            event = await self._fetch_status(client, txid, scripthash)
+            await callback(event)
+            if event.confirmed:
+                return True
+
+            confirmed_event = asyncio.Event()
+
+            async def on_change(
+                params: list[Any],
+                _sh: str | None = scripthash,
+                _done: asyncio.Event = confirmed_event,
+            ) -> None:
+                if params and params[0] == _sh:
+                    ev = await self._fetch_status(client, txid, _sh)
+                    await callback(ev)
+                    if ev.confirmed:
+                        _done.set()
+
+            if scripthash:
+                await client.subscribe_scripthash(scripthash, on_change)
+
+            while is_active() and not confirmed_event.is_set():
+                await asyncio.sleep(5)
+            return confirmed_event.is_set()
+
+    @staticmethod
+    async def _fetch_status(
+        client: ElectrumClient, txid: str, scripthash: str | None
+    ) -> OnchainTxEvent:
+        if scripthash:
+            try:
+                for entry in await client.get_history(scripthash):
+                    if entry.tx_hash == txid:
+                        return OnchainTxEvent(
+                            txid=txid,
+                            confirmed=entry.height > 0,
+                            height=entry.height if entry.height > 0 else None,
+                            fee=entry.fee,
+                        )
+            except ElectrumError:
+                try:
+                    for m in await client.get_mempool(scripthash):
+                        if m.tx_hash == txid:
+                            return OnchainTxEvent(txid=txid, confirmed=False, fee=m.fee)
+                    return OnchainTxEvent(txid=txid, confirmed=True)
+                except ElectrumError:
+                    pass
+        return OnchainTxEvent(txid=txid, confirmed=False)

@@ -3,14 +3,18 @@ import traceback
 import uuid
 from collections.abc import Callable, Coroutine
 from datetime import datetime, timezone
-from typing import Any
 
 from loguru import logger
 from pydantic import BaseModel
 
 from lnbits.core.models import Payment
 from lnbits.settings import settings
-from lnbits.utils.electrum import ElectrumClient, ElectrumError, scripthash_from_address
+from lnbits.utils.electrum import (
+    AddressTracker,
+    OnchainAddressEvent,
+    OnchainTxEvent,
+    TransactionTracker,
+)
 
 
 class PublicTask(BaseModel):
@@ -18,13 +22,6 @@ class PublicTask(BaseModel):
 
     name: str
     created_at: datetime
-
-
-class OnchainAddressEvent(BaseModel):
-    address: str
-    confirmed: int  # satoshis
-    unconfirmed: int  # satoshis
-    txids: list[str]
 
 
 class Task:
@@ -58,7 +55,9 @@ class TaskManager:
     tasks: list[Task] = []
     invoice_queue: asyncio.Queue[Payment] = asyncio.Queue()
     internal_invoice_queue: asyncio.Queue[Payment] = asyncio.Queue()
-    _tracked_addresses: dict[str, str] = {}  # address -> task_name
+    _tracked_addresses: dict[str, int] = {}  # address -> ref count
+    _ws_address_queues: dict[str, list[asyncio.Queue[OnchainAddressEvent]]] = {}
+    _ws_tx_queues: dict[str, list[asyncio.Queue[OnchainTxEvent]]] = {}
 
     def init(self) -> None:
         self.create_permanent_task(
@@ -171,20 +170,76 @@ class TaskManager:
         )
 
     def track_address(self, address: str) -> None:
-        """Start tracking a Bitcoin address via Electrum."""
-        if address in self._tracked_addresses:
-            return
-        task_name = f"onchain_address_{address}"
-        self._tracked_addresses[address] = task_name
-        self.create_task(self._address_tracker(address), name=task_name)
+        """Start tracking a Bitcoin address via Electrum (ref-counted)."""
+        count = self._tracked_addresses.get(address, 0)
+        self._tracked_addresses[address] = count + 1
+        if count == 0:
+            self.create_task(
+                self._address_tracker(address), name=f"onchain_address_{address}"
+            )
 
     def untrack_address(self, address: str) -> None:
-        """Stop tracking a Bitcoin address."""
-        task_name = self._tracked_addresses.pop(address, None)
-        if task_name:
-            task = self.get_task(task_name)
+        """Decrement ref count; cancel the tracker when the last caller unregisters."""
+        count = self._tracked_addresses.get(address, 0)
+        if count <= 1:
+            self._tracked_addresses.pop(address, None)
+            task = self.get_task(f"onchain_address_{address}")
             if task:
                 self.cancel_task(task)
+        else:
+            self._tracked_addresses[address] = count - 1
+
+    def register_ws_address_queue(
+        self, address: str, queue: asyncio.Queue[OnchainAddressEvent]
+    ) -> None:
+        """Register a per-connection queue for a watched address."""
+        self._ws_address_queues.setdefault(address, []).append(queue)
+        self.track_address(address)
+
+    def unregister_ws_address_queue(
+        self, address: str, queue: asyncio.Queue[OnchainAddressEvent]
+    ) -> None:
+        """Deregister a per-connection queue and decrement the address ref count."""
+        queues = self._ws_address_queues.get(address, [])
+        if queue in queues:
+            queues.remove(queue)
+        if not queues:
+            self._ws_address_queues.pop(address, None)
+        self.untrack_address(address)
+
+    def register_ws_tx_queue(
+        self, txid: str, queue: asyncio.Queue[OnchainTxEvent]
+    ) -> None:
+        """Register a per-connection queue for a watched transaction."""
+        self._ws_tx_queues.setdefault(txid, []).append(queue)
+        if len(self._ws_tx_queues[txid]) == 1:
+            self.create_task(
+                self._transaction_tracker_dispatch(txid), name=f"ws_tx_{txid}"
+            )
+
+    def unregister_ws_tx_queue(
+        self, txid: str, queue: asyncio.Queue[OnchainTxEvent]
+    ) -> None:
+        """Deregister a per-connection queue; cancel tracker when last one leaves."""
+        queues = self._ws_tx_queues.get(txid, [])
+        if queue in queues:
+            queues.remove(queue)
+        if not queues:
+            self._ws_tx_queues.pop(txid, None)
+            task = self.get_task(f"ws_tx_{txid}")
+            if task:
+                self.cancel_task(task)
+
+    def track_transaction(
+        self,
+        txid: str,
+        callback: Callable[[OnchainTxEvent], Coroutine],
+    ) -> Task:
+        """Track a transaction until confirmed, calling callback on each change."""
+        return self.create_task(
+            self._transaction_tracker(txid, callback),
+            name=f"onchain_tx_{txid}",
+        )
 
     async def _heart_beat(self) -> None:
         """A heartbeat that removes done tasks logs the number of tasks."""
@@ -256,12 +311,18 @@ class TaskManager:
             logger.debug(f"Enqueing payment to task {task.name}")
             task.invoice_queue.put_nowait(payment)
 
-    def _dispatch_onchain_event(self, event: OnchainAddressEvent) -> None:
-        """Dispatches an onchain address event to all registered onchain listeners."""
+    async def _dispatch_onchain_event(self, event: OnchainAddressEvent) -> None:
+        """Dispatches an onchain address event to listeners and WS queues."""
         for task in self.tasks:
-            if not task.onchain_queue:
-                continue
-            task.onchain_queue.put_nowait(event)
+            if task.onchain_queue:
+                task.onchain_queue.put_nowait(event)
+        for q in list(self._ws_address_queues.get(event.address, [])):
+            q.put_nowait(event)
+
+    async def _dispatch_onchain_tx_event(self, event: OnchainTxEvent) -> None:
+        """Dispatches a tx event to all WS queues watching that txid."""
+        for q in list(self._ws_tx_queues.get(event.txid, [])):
+            q.put_nowait(event)
 
     async def _invoice_listener_consumer(self) -> None:
         payment = await self.invoice_queue.get()
@@ -274,60 +335,26 @@ class TaskManager:
         self._invoice_dispatcher(payment)
 
     async def _address_tracker(self, address: str) -> None:
-        """Track an address via Electrum subscription; dispatch OnchainAddressEvents."""
-        electrum_url = settings.lnbits_blockexplorer_electrum_url
-        scripthash = scripthash_from_address(address)
+        await AddressTracker(settings.lnbits_blockexplorer_electrum_url).track(
+            address,
+            self._dispatch_onchain_event,
+            lambda: address in self._tracked_addresses and settings.lnbits_running,
+        )
 
-        while address in self._tracked_addresses and settings.lnbits_running:
-            try:
-                async with ElectrumClient(electrum_url) as client:
-                    await self._fetch_and_dispatch_address(client, address, scripthash)
-
-                    async def on_status_change(params: list[Any]) -> None:
-                        if params and params[0] == scripthash:
-                            await self._fetch_and_dispatch_address(
-                                client, address, scripthash
-                            )
-
-                    await client.subscribe_scripthash(scripthash, on_status_change)
-
-                    while (
-                        address in self._tracked_addresses and settings.lnbits_running
-                    ):
-                        await asyncio.sleep(30)
-            except asyncio.CancelledError:
-                raise
-            except Exception as exc:
-                if not settings.lnbits_running:
-                    return
-                logger.warning(f"Address tracker {address}: {exc!s}, retrying in 5s")
-                await asyncio.sleep(5)
-
-    async def _fetch_and_dispatch_address(
-        self, client: Any, address: str, scripthash: str
+    async def _transaction_tracker(
+        self, txid: str, callback: Callable[[OnchainTxEvent], Coroutine]
     ) -> None:
-        """Fetch balance + history for a scripthash and dispatch an onchain event."""
-        balance = await client.get_balance(scripthash)
-        txids: list[str] = []
-        try:
-            history = await client.get_history(scripthash)
-            txids = [e.tx_hash for e in history]
-        except ElectrumError:
-            pass
-        try:
-            mempool = await client.get_mempool(scripthash)
-            for e in mempool:
-                if e.tx_hash not in txids:
-                    txids.append(e.tx_hash)
-        except ElectrumError:
-            pass
-        self._dispatch_onchain_event(
-            OnchainAddressEvent(
-                address=address,
-                confirmed=balance.confirmed,
-                unconfirmed=balance.unconfirmed,
-                txids=txids,
-            )
+        await TransactionTracker(settings.lnbits_blockexplorer_electrum_url).track(
+            txid,
+            callback,
+            lambda: settings.lnbits_running,
+        )
+
+    async def _transaction_tracker_dispatch(self, txid: str) -> None:
+        await TransactionTracker(settings.lnbits_blockexplorer_electrum_url).track(
+            txid,
+            self._dispatch_onchain_tx_event,
+            lambda: txid in self._ws_tx_queues and settings.lnbits_running,
         )
 
 

@@ -8,19 +8,19 @@ from pydantic.types import UUID4
 
 from lnbits.decorators import check_access_token, check_user_exists
 from lnbits.settings import settings
+from lnbits.task_manager import OnchainAddressEvent, OnchainTxEvent, task_manager
 from lnbits.utils.electrum import (
     AddressResponse,
+    Balance,
     BlockHeader,
     BlockInfo,
     ElectrumClient,
     ElectrumError,
     FeeResponse,
-    HistoryEntry,
     Transaction,
     parse_block_header,
     parse_raw_tx,
     scripthash_from_address,
-    scripthash_from_scriptpubkey,
 )
 
 blockexplorer_router = APIRouter(
@@ -49,46 +49,6 @@ async def _check_api_access(
 
 def _client() -> ElectrumClient:
     return ElectrumClient(settings.lnbits_blockexplorer_electrum_url)
-
-
-def _watch_scripthash(tx: Transaction) -> str | None:
-    """Return scripthash of first spendable output to watch for tx confirmation."""
-    for out in tx.vout:
-        if out.scriptPubKey.type != "nulldata":
-            return scripthash_from_scriptpubkey(bytes.fromhex(out.scriptPubKey.hex))
-    return None
-
-
-async def _tx_status(
-    c: ElectrumClient, txid: str, scripthash: str | None
-) -> dict[str, Any]:
-    if scripthash:
-        try:
-            history: list[HistoryEntry] = await c.get_history(scripthash)
-            for entry in history:
-                if entry.tx_hash == txid:
-                    return {
-                        "txid": txid,
-                        "confirmed": entry.height > 0,
-                        "height": entry.height if entry.height > 0 else None,
-                        "fee": entry.fee,
-                    }
-        except ElectrumError:
-            # History too large; check mempool to determine confirmation status.
-            try:
-                mempool = await c.get_mempool(scripthash)
-                for mem in mempool:
-                    if mem.tx_hash == txid:
-                        return {
-                            "txid": txid,
-                            "confirmed": False,
-                            "height": None,
-                            "fee": mem.fee,
-                        }
-                return {"txid": txid, "confirmed": True, "height": None, "fee": None}
-            except ElectrumError:
-                pass
-    return {"txid": txid, "confirmed": False, "height": None, "fee": None}
 
 
 # ---- REST ----
@@ -213,63 +173,61 @@ async def ws_blocks(websocket: WebSocket) -> None:
         logger.debug(f"ws_blocks error: {e}")
 
 
+def _address_event_to_response(event: OnchainAddressEvent) -> AddressResponse:
+    return AddressResponse(
+        balance=Balance(confirmed=event.confirmed, unconfirmed=event.unconfirmed),
+        history=event.history,
+        history_error=event.history_error,
+    )
+
+
 @blockexplorer_router.websocket("/ws/address/{address}")
 async def ws_address(websocket: WebSocket, address: str) -> None:
     if not settings.lnbits_blockexplorer_enabled:
         await websocket.close(code=1008)
         return
     try:
-        scripthash = scripthash_from_address(address)
+        scripthash_from_address(address)  # validate
     except ValueError as e:
         await websocket.close(code=1008, reason=str(e))
         return
     await websocket.accept()
+
+    queue: asyncio.Queue[OnchainAddressEvent] = asyncio.Queue()
+    task_manager.register_ws_address_queue(address, queue)
     try:
-        async with _client() as c:
-            await c.subscribe_scripthash(scripthash)
-            balance_res, history_res = await asyncio.gather(
-                c.get_balance(scripthash),
-                c.get_history(scripthash),
-                return_exceptions=True,
-            )
-            if isinstance(balance_res, BaseException):
-                await websocket.send_json({"error": str(balance_res)})
-                return
-            history = [] if isinstance(history_res, BaseException) else history_res
-            history_error = (
-                str(history_res) if isinstance(history_res, BaseException) else None
-            )
-            resp = AddressResponse(
-                balance=balance_res, history=history, history_error=history_error
-            )
-            await websocket.send_json(resp.dict())
+        await _ws_address_loop(websocket, address, queue)
+    finally:
+        task_manager.unregister_ws_address_queue(address, queue)
 
-            async def on_address_change(params: list[Any]) -> None:
-                try:
-                    bal_r, hist_r = await asyncio.gather(
-                        c.get_balance(scripthash),
-                        c.get_history(scripthash),
-                        return_exceptions=True,
-                    )
-                    if isinstance(bal_r, BaseException):
-                        return
-                    hist = [] if isinstance(hist_r, BaseException) else hist_r
-                    h_err = str(hist_r) if isinstance(hist_r, BaseException) else None
-                    await websocket.send_json(
-                        AddressResponse(
-                            balance=bal_r, history=hist, history_error=h_err
-                        ).dict()
-                    )
-                except Exception as e:
-                    logger.debug(f"ws_address send error: {e}")
 
-            c.on("blockchain.scripthash.subscribe", on_address_change)
-            while True:
-                msg = await websocket.receive()
-                if msg["type"] == "websocket.disconnect":
+async def _ws_address_loop(
+    websocket: WebSocket,
+    address: str,
+    queue: asyncio.Queue[OnchainAddressEvent],
+) -> None:
+    try:
+        while True:
+            recv_task = asyncio.create_task(websocket.receive())
+            event_task = asyncio.create_task(queue.get())
+            done, pending = await asyncio.wait(
+                [recv_task, event_task], return_when=asyncio.FIRST_COMPLETED
+            )
+            for t in pending:
+                t.cancel()
+            if recv_task in done:
+                if recv_task.result().get("type") == "websocket.disconnect":
                     break
-    except Exception as e:
-        logger.debug(f"ws_address error: {e}")
+            if event_task in done:
+                try:
+                    await websocket.send_json(
+                        _address_event_to_response(event_task.result()).dict()
+                    )
+                except Exception as exc:
+                    logger.debug(f"ws_address send error: {exc}")
+                    break
+    except Exception as exc:
+        logger.debug(f"ws_address error: {exc}")
 
 
 @blockexplorer_router.websocket("/ws/tx/{txid}")
@@ -278,29 +236,39 @@ async def ws_tx(websocket: WebSocket, txid: str) -> None:
         await websocket.close(code=1008)
         return
     await websocket.accept()
+
+    queue: asyncio.Queue[OnchainTxEvent] = asyncio.Queue()
+    task_manager.register_ws_tx_queue(txid, queue)
     try:
-        async with _client() as c:
-            try:
-                raw = await c.get_transaction(txid)
-            except ElectrumError as e:
-                await websocket.send_json({"error": str(e)})
-                return
-            tx = parse_raw_tx(raw)
-            watch = _watch_scripthash(tx)
-            await websocket.send_json(await _tx_status(c, txid, watch))
-            if watch:
-                await c.subscribe_scripthash(watch)
+        await _ws_tx_loop(websocket, queue)
+    finally:
+        task_manager.unregister_ws_tx_queue(txid, queue)
 
-                async def on_tx_change(params: list[Any]) -> None:
-                    try:
-                        await websocket.send_json(await _tx_status(c, txid, watch))
-                    except Exception as e:
-                        logger.debug(f"ws_tx send error: {e}")
 
-                c.on("blockchain.scripthash.subscribe", on_tx_change)
-            while True:
-                msg = await websocket.receive()
-                if msg["type"] == "websocket.disconnect":
+async def _ws_tx_loop(
+    websocket: WebSocket,
+    queue: asyncio.Queue[OnchainTxEvent],
+) -> None:
+    try:
+        while True:
+            recv_task = asyncio.create_task(websocket.receive())
+            event_task = asyncio.create_task(queue.get())
+            done, pending = await asyncio.wait(
+                [recv_task, event_task], return_when=asyncio.FIRST_COMPLETED
+            )
+            for t in pending:
+                t.cancel()
+            if recv_task in done:
+                if recv_task.result().get("type") == "websocket.disconnect":
                     break
-    except Exception as e:
-        logger.debug(f"ws_tx error: {e}")
+            if event_task in done:
+                event: OnchainTxEvent = event_task.result()
+                try:
+                    await websocket.send_json(event.dict())
+                except Exception as exc:
+                    logger.debug(f"ws_tx send error: {exc}")
+                    break
+                if event.confirmed:
+                    break
+    except Exception as exc:
+        logger.debug(f"ws_tx error: {exc}")

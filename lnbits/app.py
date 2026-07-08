@@ -568,7 +568,6 @@ async def check_and_register_extensions(app: FastAPI) -> None:
 
 
 def register_async_tasks() -> None:
-
     task_manager.init()
 
     # listen to all incoming payments and dispatch payment notifications
