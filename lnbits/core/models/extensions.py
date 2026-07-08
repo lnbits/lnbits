@@ -6,7 +6,6 @@ import json
 import os
 import shutil
 import zipfile
-from lnbits.task_manager import task_manager
 from pathlib import Path
 from typing import Any
 
@@ -21,6 +20,7 @@ from lnbits.helpers import (
     version_parse,
 )
 from lnbits.settings import settings
+from lnbits.task_manager import task_manager
 from lnbits.utils.cache import cache
 
 
