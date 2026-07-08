@@ -1149,6 +1149,9 @@ class EnvSettings(LNbitsSettings):
     lnbits_max_extensions: int = Field(default=0, ge=0)
     task_heart_beat_verbose: bool = Field(default=False)
     task_heart_beat_interval: int = Field(default=30)
+    lnbits_blockexplorer_electrum_url: str = Field(
+        default="ssl://electrum.blockstream.info:50002"
+    )
 
     @property
     def has_default_extension_path(self) -> bool:
