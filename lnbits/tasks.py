@@ -77,8 +77,7 @@ def wait_for_paid_invoices(
     invoice_listener_name: str,
     func: Callable[[Payment], Coroutine],
 ) -> Callable[[], Coroutine]:
-    logger.debug("DEPRECATED: use task_manager.register_invoice_listener instead."
-    )
+    logger.debug("DEPRECATED: use task_manager.register_invoice_listener instead.")
 
     async def wrapper() -> None:
         invoice_queue: asyncio.Queue = asyncio.Queue()
