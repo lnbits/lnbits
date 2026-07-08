@@ -531,41 +531,25 @@ window.localisation.en = {
     'Can spend funds from wallets available to your account.',
   extension_permission_warning_extension_api_request_write:
     'Can write data or trigger actions in approved extensions.',
-  extension_permission_warning_http_request:
-    'Can send data to external services.',
   extension_permission_ext_storage_read: 'Read extension storage',
   extension_permission_ext_storage_read_public: 'Read public extension storage',
   extension_permission_ext_storage_write: 'Write extension storage',
   extension_permission_ext_storage_read_write: 'Read & Write extension storage',
   extension_permission_extension_api_request: 'Use other extensions',
-  extension_permission_extension_api_request_desc:
-    'Call approved installed extensions using your account permissions.',
   extension_permission_extension_api_request_extensions: 'Allowed extensions',
   extension_permission_access_read: 'Read',
   extension_permission_access_write: 'Write',
   extension_permission_http_request: 'Connect to external websites',
-  extension_permission_http_request_desc:
-    'Make HTTP requests to approved external hosts.',
   extension_permission_http_request_hosts: 'Allowed hosts',
   extension_permission_utils_basic: 'Use basic LNbits utilities',
-  extension_permission_utils_basic_desc:
-    'Use public currency conversion, server health, and Lightning invoice helper functions.',
   extension_permission_ui_camera_scan_qr: 'Scan QR codes',
-  extension_permission_ui_camera_scan_qr_desc:
-    'Use the LNbits scanner to read QR codes when you choose to scan.',
   extension_permission_payments_watch: 'Watch payments',
   extension_permission_wallet_create_invoice: 'Create invoices',
   extension_permission_wallet_create_invoice_public:
     'Create Lightning invoices from public pages',
-  extension_permission_wallet_create_invoice_public_desc:
-    'Create incoming Lightning invoices from public pages.',
   extension_permission_wallet_balance_read: 'View wallet balances',
-  extension_permission_wallet_balance_read_desc:
-    'Read balances of wallets available to your account.',
   extension_permission_wallet_list: 'List wallets',
   extension_permission_wallet_pay_invoice: 'Pay invoices',
-  extension_permission_wallet_pay_invoice_desc:
-    'Send Lightning payments from wallets available to your account.',
   create_extension: 'Create Extension',
   release_details_error: 'Cannot get the release details.',
   pay_from_wallet: 'Pay from Wallet',
