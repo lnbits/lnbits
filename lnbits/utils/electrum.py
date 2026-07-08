@@ -465,6 +465,7 @@ class ElectrumClient:
         self._ping_task: asyncio.Task[None] | None = None
         self._reader: asyncio.StreamReader | None = None
         self._writer: asyncio.StreamWriter | None = None
+        self.closed: asyncio.Event = asyncio.Event()
         self.server_version: str = ""
         self.negotiated_protocol: str = ""
 
@@ -599,6 +600,7 @@ class ElectrumClient:
         except Exception:
             logger.exception("Electrum: recv loop error")
         finally:
+            self.closed.set()
             for fut in self._pending.values():
                 if not fut.done():
                     fut.set_exception(ElectrumError("Connection closed"))
@@ -792,9 +794,6 @@ class AddressTracker:
         while is_active():
             try:
                 async with ElectrumClient(self.url) as client:
-                    await self._fetch_and_dispatch(
-                        client, address, scripthash, callback
-                    )
 
                     async def on_status_change(params: list[Any]) -> None:
                         if params and params[0] == scripthash:
@@ -803,8 +802,15 @@ class AddressTracker:
                             )
 
                     await client.subscribe_scripthash(scripthash, on_status_change)
+                    await self._fetch_and_dispatch(
+                        client, address, scripthash, callback
+                    )
                     while is_active():
-                        await asyncio.sleep(30)
+                        try:
+                            await asyncio.wait_for(client.closed.wait(), timeout=30)
+                            break  # connection closed; reconnect
+                        except asyncio.TimeoutError:
+                            pass
             except asyncio.CancelledError:
                 raise
             except Exception as exc:
@@ -820,25 +826,32 @@ class AddressTracker:
         scripthash: str,
         callback: Callable[[OnchainAddressEvent], Coroutine[Any, Any, None]],
     ) -> None:
-        balance = await client.get_balance(scripthash)
-        history: list[HistoryEntry] = []
-        history_error: str | None = None
-        try:
-            history = await client.get_history(scripthash)
-        except ElectrumError as exc:
-            history_error = str(exc)
-        try:
+        balance_r, history_r, mempool_r = await asyncio.gather(
+            client.get_balance(scripthash),
+            client.get_history(scripthash),
+            client.get_mempool(scripthash),
+            return_exceptions=True,
+        )
+        if isinstance(balance_r, BaseException):
+            raise balance_r
+        history: list[HistoryEntry] = (
+            [] if isinstance(history_r, BaseException) else history_r
+        )
+        history_error: str | None = (
+            str(history_r) if isinstance(history_r, BaseException) else None
+        )
+        if not isinstance(mempool_r, BaseException):
             seen = {e.tx_hash for e in history}
-            for m in await client.get_mempool(scripthash):
+            for m in mempool_r:
                 if m.tx_hash not in seen:
-                    history.append(HistoryEntry(tx_hash=m.tx_hash, height=0, fee=m.fee))
-        except ElectrumError:
-            pass
+                    history.append(
+                        HistoryEntry(tx_hash=m.tx_hash, height=0, fee=m.fee)
+                    )
         await callback(
             OnchainAddressEvent(
                 address=address,
-                confirmed=balance.confirmed,
-                unconfirmed=balance.unconfirmed,
+                confirmed=balance_r.confirmed,
+                unconfirmed=balance_r.unconfirmed,
                 history=history,
                 history_error=history_error,
             )
@@ -916,11 +929,6 @@ class TransactionTracker:
                 return False
 
             scripthash = tx_watch_scripthash(parse_raw_tx(raw))
-            event = await self._fetch_status(client, txid, scripthash)
-            await callback(event)
-            if event.confirmed:
-                return True
-
             confirmed_event = asyncio.Event()
 
             async def on_change(
@@ -937,8 +945,17 @@ class TransactionTracker:
             if scripthash:
                 await client.subscribe_scripthash(scripthash, on_change)
 
+            event = await self._fetch_status(client, txid, scripthash)
+            await callback(event)
+            if event.confirmed:
+                return True
+
             while is_active() and not confirmed_event.is_set():
-                await asyncio.sleep(5)
+                try:
+                    await asyncio.wait_for(client.closed.wait(), timeout=30)
+                    break  # connection closed; reconnect
+                except asyncio.TimeoutError:
+                    pass
             return confirmed_event.is_set()
 
     @staticmethod
