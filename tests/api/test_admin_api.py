@@ -82,7 +82,8 @@ async def test_admin_audit_monitor_and_test_email(
         headers={"Authorization": f"Bearer {superuser_token}"},
     )
     assert monitor.status_code == 200
-    assert "invoice_listeners" in monitor.json()
+    task_names = [t["name"] for t in monitor.json()]
+    assert any("invoice_listener" in name for name in task_names)
 
     test_email = await client.get(
         "/admin/api/v1/testemail",

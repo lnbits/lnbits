@@ -1717,7 +1717,9 @@ async def test_check_fiat_status_handles_internal_states(mocker: MockerFixture):
         "lnbits.core.services.fiat_providers.get_fiat_provider",
         AsyncMock(return_value=provider),
     )
-    queue_put = mocker.patch("lnbits.tasks.internal_invoice_queue.put", AsyncMock())
+    queue_put = mocker.patch(
+        "lnbits.task_manager.task_manager.internal_invoice_queue.put_nowait"
+    )
 
     success_status = await check_fiat_status(
         Payment(
@@ -1734,7 +1736,8 @@ async def test_check_fiat_status_handles_internal_states(mocker: MockerFixture):
     )
 
     assert success_status.success is True
-    queue_put.assert_awaited_once_with("fiat_pending")
+    queue_put.assert_called_once()
+    assert queue_put.call_args[0][0].checking_id == "fiat_pending"
 
     await check_fiat_status(
         Payment(
@@ -1749,7 +1752,7 @@ async def test_check_fiat_status_handles_internal_states(mocker: MockerFixture):
             extra={"fiat_checking_id": "stripe_checking_id"},
         )
     )
-    assert queue_put.await_count == 1
+    assert queue_put.call_count == 1
 
 
 @pytest.mark.anyio
@@ -1786,7 +1789,9 @@ async def test_check_fiat_status_persists_successful_payment(
         "lnbits.fiat.StripeWallet.get_invoice_status",
         AsyncMock(return_value=FiatPaymentStatus(paid=True)),
     )
-    queue_put = mocker.patch("lnbits.tasks.internal_invoice_queue.put", AsyncMock())
+    queue_put = mocker.patch(
+        "lnbits.task_manager.task_manager.internal_invoice_queue.put_nowait"
+    )
 
     status = await check_fiat_status(payment)
 
@@ -1794,7 +1799,7 @@ async def test_check_fiat_status_persists_successful_payment(
     assert payment.status == PaymentState.SUCCESS
     updated_payment = await get_payment(payment.checking_id)
     assert updated_payment.status == PaymentState.SUCCESS
-    queue_put.assert_awaited_once_with(payment.checking_id)
+    queue_put.assert_called_once_with(payment)
 
 
 @pytest.mark.anyio
