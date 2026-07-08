@@ -178,6 +178,8 @@ class Extension(BaseModel):
 
     @property
     def is_upgrade_extension(self) -> bool:
+        if self.extension_type == "wasm":
+            return False
         return self.upgrade_hash != ""
 
     @classmethod

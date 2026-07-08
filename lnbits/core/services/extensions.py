@@ -71,7 +71,7 @@ async def install_extension(
         await update_installed_extension(ext_info)
 
     extension = Extension.from_installable_ext(ext_info)
-    if extension.is_upgrade_extension and not extension.is_wasm:
+    if extension.is_upgrade_extension:
         # call stop while the old routes are still active
         await stop_extension_background_work(ext_info.id)
 
