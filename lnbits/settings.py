@@ -589,6 +589,7 @@ class PhoenixdFundingSource(LNbitsSettings):
     phoenixd_api_password: str | None = Field(default=None)
     phoenixd_data_dir: str | None = Field(default=None)
     phoenixd_mnemonic: str | None = Field(default=None)
+    phoenixd_mnemonic_backup_confirmed: bool = Field(default=False)
 
 
 class AlbyFundingSource(LNbitsSettings):

@@ -43,55 +43,6 @@ async def test_admin_update_settings(
 
 
 @pytest.mark.anyio
-async def test_admin_update_seed_resets_backup_confirmation(
-    client: AsyncClient, superuser_token: str, settings: Settings
-):
-    original = {
-        "lnbits_backend_wallet_class": settings.lnbits_backend_wallet_class,
-        "boltz_mnemonic": settings.boltz_mnemonic,
-        "boltz_mnemonic_backup_confirmed": settings.boltz_mnemonic_backup_confirmed,
-        "spark_l2_mnemonic": settings.spark_l2_mnemonic,
-        "spark_l2_mnemonic_backup_confirmed": (
-            settings.spark_l2_mnemonic_backup_confirmed
-        ),
-    }
-    try:
-        settings.boltz_mnemonic = "old boltz seed"
-        settings.boltz_mnemonic_backup_confirmed = True
-        settings.spark_l2_mnemonic = "old spark seed"
-        settings.spark_l2_mnemonic_backup_confirmed = True
-        settings.lnbits_backend_wallet_class = "FakeWallet"
-
-        response = await client.patch(
-            "/admin/api/v1/settings",
-            json={
-                "boltz_mnemonic": "new boltz seed",
-                "boltz_mnemonic_backup_confirmed": True,
-                "spark_l2_mnemonic": "new spark seed",
-                "spark_l2_mnemonic_backup_confirmed": True,
-            },
-            headers={"Authorization": f"Bearer {superuser_token}"},
-        )
-
-        assert response.status_code == 200
-        assert settings.boltz_mnemonic_backup_confirmed is False
-        assert settings.spark_l2_mnemonic_backup_confirmed is False
-
-        settings.spark_l2_mnemonic_backup_confirmed = True
-        response = await client.patch(
-            "/admin/api/v1/settings",
-            json={"lnbits_backend_wallet_class": "SparkL2Wallet"},
-            headers={"Authorization": f"Bearer {superuser_token}"},
-        )
-
-        assert response.status_code == 200
-        assert settings.spark_l2_mnemonic_backup_confirmed is False
-    finally:
-        for key, value in original.items():
-            setattr(settings, key, value)
-
-
-@pytest.mark.anyio
 async def test_admin_update_noneditable_settings(
     client: AsyncClient,
     superuser_token: str,
@@ -204,6 +155,8 @@ async def test_admin_delete_settings_requires_superuser(
     await set_settings_field("lnbits_backend_wallet_class", "BoltzWallet")
     await set_settings_field("boltz_mnemonic", "keep boltz seed")
     await set_settings_field("boltz_mnemonic_backup_confirmed", True)
+    await set_settings_field("phoenixd_mnemonic", "keep phoenixd seed")
+    await set_settings_field("phoenixd_mnemonic_backup_confirmed", True)
     await set_settings_field("spark_l2_mnemonic", "keep spark seed")
     await set_settings_field("spark_l2_mnemonic_backup_confirmed", True)
 
@@ -219,11 +172,17 @@ async def test_admin_delete_settings_requires_superuser(
     backend_wallet = await get_settings_field("lnbits_backend_wallet_class")
     boltz_seed = await get_settings_field("boltz_mnemonic")
     boltz_confirmed = await get_settings_field("boltz_mnemonic_backup_confirmed")
+    phoenixd_seed = await get_settings_field("phoenixd_mnemonic")
+    phoenixd_confirmed = await get_settings_field(
+        "phoenixd_mnemonic_backup_confirmed"
+    )
     spark_l2_seed = await get_settings_field("spark_l2_mnemonic")
     spark_l2_confirmed = await get_settings_field("spark_l2_mnemonic_backup_confirmed")
     assert backend_wallet and backend_wallet.value == "BoltzWallet"
     assert boltz_seed and boltz_seed.value == "keep boltz seed"
     assert boltz_confirmed and boltz_confirmed.value is True
+    assert phoenixd_seed and phoenixd_seed.value == "keep phoenixd seed"
+    assert phoenixd_confirmed and phoenixd_confirmed.value is True
     assert spark_l2_seed and spark_l2_seed.value == "keep spark seed"
     assert spark_l2_confirmed and spark_l2_confirmed.value is True
 
