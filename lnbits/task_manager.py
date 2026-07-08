@@ -11,6 +11,8 @@ from lnbits.core.models import Payment
 from lnbits.settings import settings
 from lnbits.utils.electrum import (
     AddressTracker,
+    BlockInfo,
+    BlockTracker,
     OnchainAddressEvent,
     OnchainTxEvent,
     TransactionTracker,
@@ -57,8 +59,11 @@ class TaskManager:
     invoice_queue: asyncio.Queue[Payment] = asyncio.Queue()
     internal_invoice_queue: asyncio.Queue[Payment] = asyncio.Queue()
     _tracked_addresses: dict[str, int] = {}  # address -> ref count
+    _address_tracker: "AddressTracker | None" = None
+    _block_tracker: "BlockTracker | None" = None
     _ws_address_queues: dict[str, list[asyncio.Queue[OnchainAddressEvent]]] = {}
     _ws_tx_queues: dict[str, list[asyncio.Queue[OnchainTxEvent]]] = {}
+    _ws_block_queues: list[asyncio.Queue[BlockInfo]] = []
 
     def init(self) -> None:
         self.create_permanent_task(
@@ -175,20 +180,32 @@ class TaskManager:
         count = self._tracked_addresses.get(address, 0)
         self._tracked_addresses[address] = count + 1
         if count == 0:
-            self.create_task(
-                self._address_tracker(address), name=f"onchain_address_{address}"
-            )
+            self._get_address_tracker().add(address)
 
     def untrack_address(self, address: str) -> None:
-        """Decrement ref count; cancel the tracker when the last caller unregisters."""
+        """Decrement ref count; remove from shared tracker when last caller leaves."""
         count = self._tracked_addresses.get(address, 0)
         if count <= 1:
             self._tracked_addresses.pop(address, None)
-            task = self.get_task(f"onchain_address_{address}")
-            if task:
-                self.cancel_task(task)
+            if self._address_tracker:
+                self._address_tracker.remove(address)
         else:
             self._tracked_addresses[address] = count - 1
+
+    def _get_address_tracker(self) -> "AddressTracker":
+        if self._address_tracker is None:
+            self._address_tracker = AddressTracker(
+                settings.lnbits_blockexplorer_electrum_url
+            )
+        if not self.get_task("address_tracker"):
+            self.create_task(
+                self._address_tracker.run(
+                    self._dispatch_onchain_event,
+                    lambda: settings.lnbits_running,
+                ),
+                name="address_tracker",
+            )
+        return self._address_tracker
 
     def register_ws_address_queue(
         self, address: str, queue: asyncio.Queue[OnchainAddressEvent]
@@ -232,6 +249,31 @@ class TaskManager:
         if not queues:
             self._ws_tx_queues.pop(txid, None)
             task = self.get_task(f"ws_tx_{txid}")
+            if task:
+                self.cancel_task(task)
+
+    def register_ws_block_queue(self, queue: asyncio.Queue[BlockInfo]) -> None:
+        """Register a per-connection queue for new block events."""
+        self._ws_block_queues.append(queue)
+        if len(self._ws_block_queues) == 1:
+            if self._block_tracker is None:
+                self._block_tracker = BlockTracker(
+                    settings.lnbits_blockexplorer_electrum_url
+                )
+            self.create_task(
+                self._block_tracker.run(
+                    self._dispatch_block_event,
+                    lambda: bool(self._ws_block_queues) and settings.lnbits_running,
+                ),
+                name="block_tracker",
+            )
+
+    def unregister_ws_block_queue(self, queue: asyncio.Queue[BlockInfo]) -> None:
+        """Deregister a per-connection queue; cancel tracker when last one leaves."""
+        if queue in self._ws_block_queues:
+            self._ws_block_queues.remove(queue)
+        if not self._ws_block_queues:
+            task = self.get_task("block_tracker")
             if task:
                 self.cancel_task(task)
 
@@ -329,6 +371,11 @@ class TaskManager:
         for q in list(self._ws_tx_queues.get(event.txid, [])):
             q.put_nowait(event)
 
+    async def _dispatch_block_event(self, event: BlockInfo) -> None:
+        """Dispatches a new block event to all WS queues."""
+        for q in list(self._ws_block_queues):
+            q.put_nowait(event)
+
     async def _invoice_listener_consumer(self) -> None:
         payment = await self.invoice_queue.get()
         logger.info(f"got a payment notification {payment.checking_id}")
@@ -338,13 +385,6 @@ class TaskManager:
         payment = await self.internal_invoice_queue.get()
         logger.info(f"got an internal payment notification {payment.checking_id}")
         self._invoice_dispatcher(payment)
-
-    async def _address_tracker(self, address: str) -> None:
-        await AddressTracker(settings.lnbits_blockexplorer_electrum_url).track(
-            address,
-            self._dispatch_onchain_event,
-            lambda: address in self._tracked_addresses and settings.lnbits_running,
-        )
 
     async def _transaction_tracker(
         self, txid: str, callback: Callable[[OnchainTxEvent], Coroutine]
