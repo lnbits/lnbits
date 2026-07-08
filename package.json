@@ -143,6 +143,7 @@
       "js/components/lnbits-theme.js",
       "js/components/lnbits-qrcode-scanner.js",
       "js/components/lnbits-manage-extension-list.js",
+      "js/components/lnbits-extension-permissions.js",
       "js/components/lnbits-manage-wallet-list.js",
       "js/components/lnbits-language-dropdown.js",
       "js/components/lnbits-payment-list.js",
