@@ -12,17 +12,20 @@ from lnbits.task_manager import task_manager
 
 # DEPRECATED: use task_manager.create_task instead.
 def create_task(coro: Coroutine) -> asyncio.Task:
-    return task_manager.create_task(coro)._task
+    logger.debug("DEPRECATED: use task_manager.create_task instead.")
+    return task_manager.create_task(coro).task
 
 
 # DEPRECATED: use task_manager.create_task with `name` kwarg.
 def create_unique_task(name: str, coro: Coroutine) -> asyncio.Task:
-    return task_manager.create_task(coro, name=name)._task
+    logger.debug("DEPRECATED: use task_manager.create_task instead.")
+    return task_manager.create_task(coro, name=name).task
 
 
 # DEPRECATED: use task_manager.create_permanent_task instead.
 def create_permanent_task(func: Callable[[], Coroutine]) -> asyncio.Task:
-    return task_manager.create_permanent_task(func)._task
+    logger.debug("DEPRECATED: use task_manager.create_permanent_task instead.")
+    return task_manager.create_permanent_task(func).task
 
 
 # DEPRECATED: use task_manager.create_permanent_task with `name` argument instead.
@@ -47,10 +50,7 @@ def register_invoice_listener(send_chan: asyncio.Queue, name: str | None = None)
     which also allows to pass a callback instead of a queue.
     This method will still work but it is not recommended for new code.
     """
-    logger.debug(
-        "register_invoice_listener is deprecated use "
-        "task_manager.register_invoice_listener instead."
-    )
+    logger.debug("DEPRECATED: use task_manager.register_invoice_listener instead.")
     name = f"forward_{name or str(uuid.uuid4())[:8]}"
 
     # here we just forwarding the payments to the provided queue
@@ -77,9 +77,7 @@ def wait_for_paid_invoices(
     invoice_listener_name: str,
     func: Callable[[Payment], Coroutine],
 ) -> Callable[[], Coroutine]:
-    logger.debug(
-        "wait_for_paid_invoices is deprecated use "
-        "task_manager.register_invoice_listener instead."
+    logger.debug("DEPRECATED: use task_manager.register_invoice_listener instead."
     )
 
     async def wrapper() -> None:
