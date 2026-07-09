@@ -63,6 +63,9 @@ async def test_install_extension_creates_new_extension_and_starts_background_wor
         mocker.AsyncMock(return_value=True),
     )
     mocker.patch(
+        "lnbits.core.services.extensions.core_app_extra.register_new_ext_routes"
+    )
+    mocker.patch(
         "lnbits.core.services.extensions.get_db_version",
         mocker.AsyncMock(return_value=0),
     )
@@ -111,6 +114,9 @@ async def test_install_extension_updates_existing_upgrade_and_preserves_payments
     stop_mock = mocker.patch(
         "lnbits.core.services.extensions.stop_extension_background_work",
         mocker.AsyncMock(return_value=True),
+    )
+    mocker.patch(
+        "lnbits.core.services.extensions.core_app_extra.register_new_ext_routes"
     )
     mocker.patch(
         "lnbits.core.services.extensions.get_db_version",
