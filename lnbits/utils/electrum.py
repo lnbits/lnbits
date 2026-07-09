@@ -827,9 +827,7 @@ class AddressTracker:
                     return
                 address = subscribed.get(params[0])
                 if address:
-                    await self._fetch_and_dispatch(
-                        client, address, params[0], callback
-                    )
+                    await self._fetch_and_dispatch(client, address, params[0], callback)
 
             client.on("blockchain.scripthash.subscribe", on_status_change)
 

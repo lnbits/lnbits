@@ -3,7 +3,9 @@ import traceback
 import uuid
 from collections.abc import Callable, Coroutine
 from datetime import datetime, timezone
+from typing import TypeVar
 
+from fastapi import WebSocket
 from loguru import logger
 from pydantic import BaseModel
 
@@ -401,6 +403,47 @@ class TaskManager:
             self._dispatch_onchain_tx_event,
             lambda: txid in self._ws_tx_queues and settings.lnbits_running,
         )
+
+
+T = TypeVar("T", bound=BaseModel)
+
+
+async def relay_ws_queue(
+    websocket: WebSocket,
+    queue: "asyncio.Queue[T]",
+    serialize: Callable[[T], BaseModel] = lambda e: e,
+    stop_after: Callable[[T], bool] = lambda _: False,
+) -> None:
+    """
+    Pumps events from `queue` to `websocket` as JSON until the client
+    disconnects, sending fails, or `stop_after` returns True for an event.
+    Shared by the blockexplorer address/tx/block websocket endpoints.
+    """
+    try:
+        while True:
+            recv_task = asyncio.create_task(websocket.receive())
+            event_task = asyncio.create_task(queue.get())
+            done, pending = await asyncio.wait(
+                [recv_task, event_task], return_when=asyncio.FIRST_COMPLETED
+            )
+            for t in pending:
+                t.cancel()
+            disconnect = recv_task in done and (
+                recv_task.result().get("type") == "websocket.disconnect"
+            )
+            if disconnect:
+                break
+            if event_task in done:
+                event = event_task.result()
+                try:
+                    await websocket.send_json(serialize(event).dict())
+                except Exception as exc:
+                    logger.debug(f"ws relay send error: {exc}")
+                    break
+                if stop_after(event):
+                    break
+    except Exception as exc:
+        logger.debug(f"ws relay error: {exc}")
 
 
 task_manager = TaskManager()

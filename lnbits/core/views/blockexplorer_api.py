@@ -3,12 +3,16 @@ from http import HTTPStatus
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, Request, WebSocket
-from loguru import logger
 from pydantic.types import UUID4
 
 from lnbits.decorators import check_access_token, check_user_exists
 from lnbits.settings import settings
-from lnbits.task_manager import OnchainAddressEvent, OnchainTxEvent, task_manager
+from lnbits.task_manager import (
+    OnchainAddressEvent,
+    OnchainTxEvent,
+    relay_ws_queue,
+    task_manager,
+)
 from lnbits.utils.electrum import (
     AddressResponse,
     Balance,
@@ -154,35 +158,9 @@ async def ws_blocks(websocket: WebSocket) -> None:
     queue: asyncio.Queue[BlockInfo] = asyncio.Queue()
     task_manager.register_ws_block_queue(queue)
     try:
-        await _ws_blocks_loop(websocket, queue)
+        await relay_ws_queue(websocket, queue)
     finally:
         task_manager.unregister_ws_block_queue(queue)
-
-
-async def _ws_blocks_loop(
-    websocket: WebSocket,
-    queue: asyncio.Queue[BlockInfo],
-) -> None:
-    try:
-        while True:
-            recv_task = asyncio.create_task(websocket.receive())
-            event_task = asyncio.create_task(queue.get())
-            done, pending = await asyncio.wait(
-                [recv_task, event_task], return_when=asyncio.FIRST_COMPLETED
-            )
-            for t in pending:
-                t.cancel()
-            if recv_task in done:
-                if recv_task.result().get("type") == "websocket.disconnect":
-                    break
-            if event_task in done:
-                try:
-                    await websocket.send_json(event_task.result().dict())
-                except Exception as exc:
-                    logger.debug(f"ws_blocks send error: {exc}")
-                    break
-    except Exception as exc:
-        logger.debug(f"ws_blocks error: {exc}")
 
 
 def _address_event_to_response(event: OnchainAddressEvent) -> AddressResponse:
@@ -207,38 +185,9 @@ async def ws_address(websocket: WebSocket, address: str) -> None:
         await websocket.close(code=1008, reason=str(e))
         return
     try:
-        await _ws_address_loop(websocket, address, queue)
+        await relay_ws_queue(websocket, queue, serialize=_address_event_to_response)
     finally:
         task_manager.unregister_ws_address_queue(address, queue)
-
-
-async def _ws_address_loop(
-    websocket: WebSocket,
-    address: str,
-    queue: asyncio.Queue[OnchainAddressEvent],
-) -> None:
-    try:
-        while True:
-            recv_task = asyncio.create_task(websocket.receive())
-            event_task = asyncio.create_task(queue.get())
-            done, pending = await asyncio.wait(
-                [recv_task, event_task], return_when=asyncio.FIRST_COMPLETED
-            )
-            for t in pending:
-                t.cancel()
-            if recv_task in done:
-                if recv_task.result().get("type") == "websocket.disconnect":
-                    break
-            if event_task in done:
-                try:
-                    await websocket.send_json(
-                        _address_event_to_response(event_task.result()).dict()
-                    )
-                except Exception as exc:
-                    logger.debug(f"ws_address send error: {exc}")
-                    break
-    except Exception as exc:
-        logger.debug(f"ws_address error: {exc}")
 
 
 @blockexplorer_router.websocket("/ws/tx/{txid}")
@@ -251,35 +200,6 @@ async def ws_tx(websocket: WebSocket, txid: str) -> None:
     queue: asyncio.Queue[OnchainTxEvent] = asyncio.Queue()
     task_manager.register_ws_tx_queue(txid, queue)
     try:
-        await _ws_tx_loop(websocket, queue)
+        await relay_ws_queue(websocket, queue, stop_after=lambda e: e.confirmed)
     finally:
         task_manager.unregister_ws_tx_queue(txid, queue)
-
-
-async def _ws_tx_loop(
-    websocket: WebSocket,
-    queue: asyncio.Queue[OnchainTxEvent],
-) -> None:
-    try:
-        while True:
-            recv_task = asyncio.create_task(websocket.receive())
-            event_task = asyncio.create_task(queue.get())
-            done, pending = await asyncio.wait(
-                [recv_task, event_task], return_when=asyncio.FIRST_COMPLETED
-            )
-            for t in pending:
-                t.cancel()
-            if recv_task in done:
-                if recv_task.result().get("type") == "websocket.disconnect":
-                    break
-            if event_task in done:
-                event: OnchainTxEvent = event_task.result()
-                try:
-                    await websocket.send_json(event.dict())
-                except Exception as exc:
-                    logger.debug(f"ws_tx send error: {exc}")
-                    break
-                if event.confirmed:
-                    break
-    except Exception as exc:
-        logger.debug(f"ws_tx error: {exc}")
