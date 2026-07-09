@@ -763,7 +763,18 @@ class AddressTracker:
         for scripthash, address in list(subscribed.items()):
             if address not in still_wanted:
                 del subscribed[scripthash]
-                await client.unsubscribe_scripthash(scripthash)
+                try:
+                    await client.unsubscribe_scripthash(scripthash)
+                except ElectrumError:
+                    # blockchain.scripthash.unsubscribe is part of the spec but
+                    # many ElectrumX deployments don't implement it, returning
+                    # "unknown method". This is expected and harmless: we've
+                    # already dropped the scripthash from `subscribed` above,
+                    # so if the server keeps pushing notifications for it
+                    # anyway, on_status_change() looks it up, finds nothing,
+                    # and drops them. Not logged since it fires on every
+                    # untrack against these servers.
+                    pass
 
     async def _wait_for_change_or_close(self, client: ElectrumClient) -> bool:
         """Waits until addresses change or the connection closes; returns True

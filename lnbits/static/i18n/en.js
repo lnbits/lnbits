@@ -948,9 +948,11 @@ window.localisation.en = {
   blockexplorer_public_api: 'Public API Access',
   blockexplorer_public_api_desc:
     'Allow unauthenticated access to the block explorer API endpoints.',
+  electrum_compatible_server: 'Electrum compatible server',
   electrum_server_url: 'Electrum Server URL',
-  electrum_server_url_hint:
-    'e.g. ssl://electrum.blockstream.info:50002 or tcp://localhost:50001',
+  electrum_server_url_hint: 'Choose a public Electrum server or enter your own.',
+  electrum_server_url_custom: 'Custom Electrum Server URL',
+  view_public_electrum_servers: 'View public Electrum servers',
   blockexplorer_network: 'Bitcoin Network',
   blockexplorer_network_hint:
     'The network the Electrum server is connected to, used to render addresses correctly.',

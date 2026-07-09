@@ -46,12 +46,24 @@
       </div>
     </div>
     <q-separator class="q-mb-lg q-mt-sm"></q-separator>
+    <h6 class="q-my-none q-mb-sm">
+      <span v-text="$t('electrum_compatible_server')"></span>
+    </h6>
     <div class="row q-col-gutter-md">
-      <div class="col-12 col-md-8">
+      <div class="col-12 col-md-4">
+        <q-select
+          filled
+          v-model="electrumServerPreset"
+          :options="electrumServerOptions"
+          :label="$t('electrum_server_url')"
+          :hint="$t('electrum_server_url_hint')"
+        ></q-select>
+      </div>
+      <div class="col-12 col-md-4" v-if="electrumServerPreset === 'Custom'">
         <q-input
           filled
           v-model="formData.lnbits_blockexplorer_electrum_url"
-          :label="$t('electrum_server_url')"
+          :label="$t('electrum_server_url_custom')"
           :hint="$t('electrum_server_url_hint')"
         ></q-input>
       </div>
@@ -63,6 +75,15 @@
           :label="$t('blockexplorer_network')"
           :hint="$t('blockexplorer_network_hint')"
         ></q-select>
+      </div>
+      <div class="col-12">
+        <a
+          href="https://1209k.com/bitcoin-eye/ele.php?chain=btc"
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          <span v-text="$t('view_public_electrum_servers')"></span>
+        </a>
       </div>
     </div>
   </q-card-section>
