@@ -36,10 +36,42 @@
               v-model.number="formData[field.name]"
               :label="field.label"
               :hint="field.description"
-            ></q-input>
+            >
+              <template v-slot:append>
+                <q-btn
+                  dense
+                  flat
+                  round
+                  icon="info"
+                  color="primary"
+                  @click.stop.prevent="showWasmLimitInfo(field)"
+                >
+                  <q-tooltip max-width="360px">
+                    <span v-text="field.details"></span>
+                  </q-tooltip>
+                </q-btn>
+              </template>
+            </q-input>
           </div>
         </div>
       </div>
+
+      <q-dialog v-model="wasmLimitInfoDialog.show">
+        <q-card style="width: min(560px, calc(100vw - 32px)); max-width: 560px">
+          <q-card-section class="row items-center q-pb-none">
+            <div class="text-h6" v-text="wasmLimitInfoDialog.title"></div>
+            <q-space></q-space>
+            <q-btn v-close-popup flat round dense icon="close"></q-btn>
+          </q-card-section>
+          <q-card-section>
+            <div
+              class="text-body1"
+              style="line-height: 1.6"
+              v-text="wasmLimitInfoDialog.details"
+            ></div>
+          </q-card-section>
+        </q-card>
+      </q-dialog>
     </div>
   </q-card-section>
 </template>
