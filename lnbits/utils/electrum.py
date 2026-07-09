@@ -16,54 +16,23 @@ from collections.abc import Callable, Coroutine
 from typing import Any
 from urllib.parse import urlparse
 
-from bech32 import (
-    CHARSET,
-    bech32_hrp_expand,
-    bech32_polymod,
-    convertbits,
-)
-from bech32 import encode as bech32_segwit_encode
+from embit.networks import NETWORKS
+from embit.script import Script
+from embit.transaction import Transaction as EmbitTransaction
 from loguru import logger
 from pydantic import BaseModel
 
-_BECH32M_CONST = 0x2BC830A3  # BIP-350
+DEFAULT_NETWORK = NETWORKS["main"]
 
 
-def _segwit_addr_decode(address: str) -> tuple[int, bytes]:
-    """Decode a segwit address, supporting bech32 (v0) and bech32m (v1+)."""
-    lower = address.lower()
-    pos = lower.rfind("1")
-    if (
-        pos < 1
-        or pos + 7 > len(lower)
-        or not all(c in CHARSET for c in lower[pos + 1 :])
-    ):
-        raise ValueError(f"Invalid bech32 address: {address!r}")
-    hrp = lower[:pos]
-    data = [CHARSET.find(c) for c in lower[pos + 1 :]]
-    const = bech32_polymod(bech32_hrp_expand(hrp) + data)
-    if const not in (1, _BECH32M_CONST):
-        raise ValueError(f"Invalid bech32 address: {address!r}")
-    payload = data[:-6]
-    witness_version = payload[0]
-    bits = convertbits(payload[1:], 5, 8, False)
-    if bits is None:
-        raise ValueError(f"Invalid bech32 witness program in address: {address!r}")
-    expected = 1 if witness_version == 0 else _BECH32M_CONST
-    if const != expected:
+def network_from_name(name: str) -> dict:
+    """Look up an embit network dict (see embit.networks.NETWORKS) by name."""
+    try:
+        return NETWORKS[name]
+    except KeyError as exc:
         raise ValueError(
-            f"Wrong bech32 variant for witness version {witness_version}: {address!r}"
-        )
-    return witness_version, bytes(bits)
-
-
-def _bech32m_encode(hrp: str, witver: int, witprog: bytes) -> str:
-    """Encode a segwit address with bech32m checksum (witness version 1+)."""
-    data = [witver] + (convertbits(list(witprog), 8, 5) or [])
-    values = bech32_hrp_expand(hrp) + data
-    polymod = bech32_polymod([*values, 0, 0, 0, 0, 0, 0]) ^ _BECH32M_CONST
-    checksum = [(polymod >> 5 * (5 - i)) & 31 for i in range(6)]
-    return hrp + "1" + "".join(CHARSET[d] for d in data + checksum)
+            f"Unknown network {name!r}, expected one of {list(NETWORKS)}"
+        ) from exc
 
 
 class ElectrumError(Exception):
@@ -75,94 +44,42 @@ def scripthash_from_scriptpubkey(scriptpubkey: bytes) -> str:
     return hashlib.sha256(scriptpubkey).digest()[::-1].hex()
 
 
-_B58_ALPHABET = "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz"
-
-
-def _b58decode_check(s: str) -> bytes:
-    n = 0
-    for c in s:
-        n = n * 58 + _B58_ALPHABET.index(c)
-    nz = len(s) - len(s.lstrip("1"))
-    buf: list[int] = []
-    while n:
-        n, rem = divmod(n, 256)
-        buf.insert(0, rem)
-    raw = bytes([0] * nz + buf)
-    payload, chk = raw[:-4], raw[-4:]
-    expected = hashlib.sha256(hashlib.sha256(payload).digest()).digest()[:4]
-    if chk != expected:
-        raise ValueError(f"Bad base58check checksum: {s!r}")
-    return payload  # byte 0 = version, bytes 1:21 = hash160
-
-
 def address_to_scriptpubkey(address: str) -> bytes:
     """Convert a Bitcoin address (P2PKH/P2SH/P2WPKH/P2WSH/P2TR) to scriptPubKey."""
-    lower = address.lower()
-    if lower.startswith(("bc1", "tb1", "bcrt1")):
-        witness_version, witness_prog = _segwit_addr_decode(address)
-        ver_op = 0x00 if witness_version == 0 else (0x50 + witness_version)
-        return bytes([ver_op, len(witness_prog)]) + witness_prog
-    else:
-        payload = _b58decode_check(address)
-        version, hash160 = payload[0], payload[1:]
-        if version in (0x00, 0x6F, 0x41):  # P2PKH mainnet/testnet/regtest
-            return bytes([0x76, 0xA9, 0x14]) + hash160 + bytes([0x88, 0xAC])
-        if version in (0x05, 0xC4, 0x3A):  # P2SH mainnet/testnet/regtest
-            return bytes([0xA9, 0x14]) + hash160 + bytes([0x87])
-        raise ValueError(f"Unknown address version byte: {version:#04x}")
+    try:
+        return Script.from_address(address).data
+    except Exception as exc:
+        raise ValueError(f"Invalid address: {address!r}") from exc
 
 
 def scripthash_from_address(address: str) -> str:
     return scripthash_from_scriptpubkey(address_to_scriptpubkey(address))
 
 
-def _b58encode_check(payload: bytes) -> str:
-    chk = hashlib.sha256(hashlib.sha256(payload).digest()).digest()[:4]
-    n = int.from_bytes(payload + chk, "big")
-    chars: list[str] = []
-    while n:
-        n, rem = divmod(n, 58)
-        chars.insert(0, _B58_ALPHABET[rem])
-    nz = len(payload) - len(payload.lstrip(b"\x00"))
-    return _B58_ALPHABET[0] * nz + "".join(chars)
+_SCRIPT_TYPE_NAMES = {
+    "p2pkh": "pubkeyhash",
+    "p2sh": "scripthash",
+    "p2wpkh": "witness_v0_keyhash",
+    "p2wsh": "witness_v0_scripthash",
+    "p2tr": "witness_v1_taproot",
+}
 
 
-def _read_varint(data: bytes, i: int) -> tuple[int, int]:
-    b = data[i]
-    if b < 0xFD:
-        return b, i + 1
-    if b == 0xFD:
-        return struct.unpack_from("<H", data, i + 1)[0], i + 3
-    if b == 0xFE:
-        return struct.unpack_from("<I", data, i + 1)[0], i + 5
-    return struct.unpack_from("<Q", data, i + 1)[0], i + 9
-
-
-def _scriptpubkey_info(script: bytes) -> tuple[str, str | None]:
+def _scriptpubkey_info(spk: bytes, network: dict) -> tuple[str, str | None]:
     """Return (type, address_or_None) for a scriptPubKey."""
-    n = len(script)
-    # P2PKH
-    if n == 25 and script[:3] == b"\x76\xa9\x14" and script[23:] == b"\x88\xac":
-        return "pubkeyhash", _b58encode_check(b"\x00" + script[3:23])
-    # P2SH
-    if n == 23 and script[0] == 0xA9 and script[1] == 0x14 and script[22] == 0x87:
-        return "scripthash", _b58encode_check(b"\x05" + script[2:22])
-    # P2WPKH
-    if n == 22 and script[0] == 0x00 and script[1] == 0x14:
-        return "witness_v0_keyhash", bech32_segwit_encode("bc", 0, list(script[2:]))
-    # P2WSH
-    if n == 34 and script[0] == 0x00 and script[1] == 0x20:
-        return "witness_v0_scripthash", bech32_segwit_encode("bc", 0, list(script[2:]))
-    # P2TR
-    if n == 34 and script[0] == 0x51 and script[1] == 0x20:
-        return "witness_v1_taproot", _bech32m_encode("bc", 1, script[2:])
-    # P2PK
-    if n in (35, 67) and script[-1] == 0xAC:
+    n = len(spk)
+    # P2PK (not classified by embit)
+    if n in (35, 67) and spk[-1] == 0xAC:
         return "pubkey", None
-    # OP_RETURN
-    if n >= 1 and script[0] == 0x6A:
+    # OP_RETURN (not classified by embit)
+    if n >= 1 and spk[0] == 0x6A:
         return "nulldata", None
-    return "nonstandard", None
+
+    script = Script(spk)
+    script_type = script.script_type()
+    if script_type is None:
+        return "nonstandard", None
+    return _SCRIPT_TYPE_NAMES[script_type], script.address(network)
 
 
 # ---------------------------------------------------------------------------
@@ -322,93 +239,56 @@ def parse_block_header(header_hex: str, height: int) -> BlockInfo:
     )
 
 
-def parse_raw_tx(hex_str: str) -> Transaction:
+def parse_raw_tx(hex_str: str, network: dict | None = None) -> Transaction:
     """Parse a raw transaction hex string into a Transaction model."""
+    network = network or DEFAULT_NETWORK
     data = bytes.fromhex(hex_str)
-    i = 0
+    tx = EmbitTransaction.parse(data)
 
-    version = struct.unpack_from("<I", data, i)[0]
-    i += 4
-
-    segwit = len(data) > i + 1 and data[i] == 0x00 and data[i + 1] == 0x01
-    if segwit:
-        i += 2
-
-    vin_start = i
-    vin_count, i = _read_varint(data, i)
     vin: list[TxInput] = []
-    for _ in range(vin_count):
-        prev_txid = data[i : i + 32][::-1].hex()
-        i += 32
-        prev_vout = struct.unpack_from("<I", data, i)[0]
-        i += 4
-        script_len, i = _read_varint(data, i)
-        script_sig_hex = data[i : i + script_len].hex()
-        i += script_len
-        sequence = struct.unpack_from("<I", data, i)[0]
-        i += 4
-        if prev_txid == "0" * 64 and prev_vout == 0xFFFFFFFF:
-            vin.append(TxInput(sequence=sequence, coinbase=script_sig_hex))
+    for inp in tx.vin:
+        if inp.txid == b"\x00" * 32 and inp.vout == 0xFFFFFFFF:
+            vin.append(
+                TxInput(sequence=inp.sequence, coinbase=inp.script_sig.data.hex())
+            )
         else:
             vin.append(
                 TxInput(
-                    txid=prev_txid,
-                    vout=prev_vout,
-                    scriptSig=ScriptSig(hex=script_sig_hex),
-                    sequence=sequence,
+                    txid=inp.txid.hex(),
+                    vout=inp.vout,
+                    scriptSig=ScriptSig(hex=inp.script_sig.data.hex()),
+                    sequence=inp.sequence,
                 )
             )
 
-    vout_count, i = _read_varint(data, i)
     vout: list[TxOutput] = []
-    for n_out in range(vout_count):
-        value_sat = struct.unpack_from("<Q", data, i)[0]
-        i += 8
-        script_len, i = _read_varint(data, i)
-        spk_bytes = data[i : i + script_len]
-        i += script_len
-        spk_type, address = _scriptpubkey_info(spk_bytes)
+    for n_out, out in enumerate(tx.vout):
+        spk_type, address = _scriptpubkey_info(out.script_pubkey.data, network)
         vout.append(
             TxOutput(
-                value=round(value_sat / 1e8, 8),
+                value=round(out.value / 1e8, 8),
                 n=n_out,
                 scriptPubKey=ScriptPubKey(
-                    hex=spk_bytes.hex(), type=spk_type, address=address
+                    hex=out.script_pubkey.data.hex(), type=spk_type, address=address
                 ),
             )
         )
 
-    vout_end = i
-
-    if segwit:
-        for _ in range(vin_count):
-            items, i = _read_varint(data, i)
-            for _ in range(items):
-                item_len, i = _read_varint(data, i)
-                i += item_len
-
-    locktime_start = i
-    locktime = struct.unpack_from("<I", data, i)[0]
-
-    if segwit:
-        non_witness = (
-            data[:4]
-            + data[vin_start:vout_end]
-            + data[locktime_start : locktime_start + 4]
-        )
-        txid = hashlib.sha256(hashlib.sha256(non_witness).digest()).digest()[::-1].hex()
-        base_size = 4 + (vout_end - vin_start) + 4
+    if tx.is_segwit:
+        # base (non-witness) size = full size minus the segwit marker/flag
+        # (2 bytes) and each input's witness stack
+        witness_bytes = sum(len(inp.witness.serialize()) for inp in tx.vin)
+        base_size = len(data) - 2 - witness_bytes
         weight = base_size * 3 + len(data)
         vsize = (weight + 3) // 4
     else:
-        txid = hashlib.sha256(hashlib.sha256(data).digest()).digest()[::-1].hex()
         weight = len(data) * 4
         vsize = len(data)
 
     return Transaction(
-        txid=txid,
-        version=version,
-        locktime=locktime,
+        txid=tx.txid().hex(),
+        version=tx.version,
+        locktime=tx.locktime,
         vin=vin,
         vout=vout,
         size=len(data),
@@ -448,6 +328,7 @@ class ElectrumClient:
         client_name: str = "lnbits",
         protocol_version: str = "1.4",
         ping_interval: float = 60.0,
+        network: dict | None = None,
     ) -> None:
         parsed = urlparse(url)
         self.host = parsed.hostname or ""
@@ -458,6 +339,7 @@ class ElectrumClient:
         self.client_name = client_name
         self.protocol_version = protocol_version
         self.ping_interval = ping_interval
+        self.network = network or DEFAULT_NETWORK
         self._counter = itertools.count(1)
         self._pending: dict[int, asyncio.Future[Any]] = {}
         self._subscriptions: dict[str, list[Callable[[list[Any]], Any]]] = {}

@@ -22,6 +22,7 @@ from lnbits.utils.electrum import (
     ElectrumError,
     FeeResponse,
     Transaction,
+    network_from_name,
     parse_block_header,
     parse_raw_tx,
     scripthash_from_address,
@@ -52,7 +53,10 @@ async def _check_api_access(
 
 
 def _client() -> ElectrumClient:
-    return ElectrumClient(settings.lnbits_blockexplorer_electrum_url)
+    return ElectrumClient(
+        settings.lnbits_blockexplorer_electrum_url,
+        network=network_from_name(settings.lnbits_blockexplorer_network),
+    )
 
 
 # ---- REST ----
@@ -110,7 +114,7 @@ async def api_tx(txid: str) -> Transaction:
     try:
         async with _client() as c:
             raw_hex = await c.get_transaction(txid)
-        return parse_raw_tx(raw_hex)
+        return parse_raw_tx(raw_hex, network=c.network)
     except ElectrumError as e:
         raise HTTPException(HTTPStatus.SERVICE_UNAVAILABLE, detail=str(e)) from e
 

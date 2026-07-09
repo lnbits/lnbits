@@ -951,6 +951,9 @@ window.localisation.en = {
   electrum_server_url: 'Electrum Server URL',
   electrum_server_url_hint:
     'e.g. ssl://electrum.blockstream.info:50002 or tcp://localhost:50001',
+  blockexplorer_network: 'Bitcoin Network',
+  blockexplorer_network_hint:
+    'The network the Electrum server is connected to, used to render addresses correctly.',
   blockexplorer_search_label: 'Search by TXID or Address',
   blockexplorer_search_hint:
     '64-char hex = transaction  ·  anything else = Bitcoin address',

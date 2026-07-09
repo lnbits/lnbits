@@ -55,6 +55,15 @@
           :hint="$t('electrum_server_url_hint')"
         ></q-input>
       </div>
+      <div class="col-12 col-md-4">
+        <q-select
+          filled
+          v-model="formData.lnbits_blockexplorer_network"
+          :options="['main', 'test', 'regtest', 'signet']"
+          :label="$t('blockexplorer_network')"
+          :hint="$t('blockexplorer_network_hint')"
+        ></q-select>
+      </div>
     </div>
   </q-card-section>
 </template>
