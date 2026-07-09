@@ -219,46 +219,55 @@ class TaskManager:
         self, txid: str, queue: asyncio.Queue[OnchainTxEvent]
     ) -> None:
         """Register a per-connection queue for a watched transaction."""
-        self._ws_tx_queues.setdefault(txid, []).append(queue)
-        if len(self._ws_tx_queues[txid]) == 1:
-            self.create_task(
-                self._transaction_tracker_dispatch(txid), name=f"ws_tx_{txid}"
-            )
+        self._get_tx_tracker(txid).register_queue(queue)
 
     def unregister_ws_tx_queue(
         self, txid: str, queue: asyncio.Queue[OnchainTxEvent]
     ) -> None:
         """Deregister a per-connection queue; cancel tracker when last one leaves."""
-        queues = self._ws_tx_queues.get(txid, [])
-        if queue in queues:
-            queues.remove(queue)
-        if not queues:
-            self._ws_tx_queues.pop(txid, None)
+        tracker = self._tx_trackers.get(txid)
+        if not tracker:
+            return
+        tracker.unregister_queue(queue)
+        if not tracker.has_queues():
+            self._tx_trackers.pop(txid, None)
             task = self.get_task(f"ws_tx_{txid}")
             if task:
                 self.cancel_task(task)
 
+    def _get_tx_tracker(self, txid: str) -> "TransactionTracker":
+        tracker = self._tx_trackers.get(txid)
+        if tracker is None:
+            tracker = TransactionTracker(settings.lnbits_blockexplorer_electrum_url)
+            self._tx_trackers[txid] = tracker
+        if not self.get_task(f"ws_tx_{txid}"):
+            self.create_task(
+                self._transaction_tracker_dispatch(txid, tracker),
+                name=f"ws_tx_{txid}",
+            )
+        return tracker
+
     def register_ws_block_queue(self, queue: asyncio.Queue[BlockInfo]) -> None:
         """Register a per-connection queue for new block events."""
-        self._ws_block_queues.append(queue)
-        if len(self._ws_block_queues) == 1:
-            if self._block_tracker is None:
-                self._block_tracker = BlockTracker(
-                    settings.lnbits_blockexplorer_electrum_url
-                )
+        if self._block_tracker is None:
+            self._block_tracker = BlockTracker(
+                settings.lnbits_blockexplorer_electrum_url
+            )
+        tracker = self._block_tracker
+        was_empty = not tracker.has_queues()
+        tracker.register_queue(queue)
+        if was_empty:
             self.create_task(
-                self._block_tracker.run(
-                    self._dispatch_block_event,
-                    lambda: bool(self._ws_block_queues) and settings.lnbits_running,
-                ),
+                tracker.run(lambda: tracker.has_queues() and settings.lnbits_running),
                 name="block_tracker",
             )
 
     def unregister_ws_block_queue(self, queue: asyncio.Queue[BlockInfo]) -> None:
         """Deregister a per-connection queue; cancel tracker when last one leaves."""
-        if queue in self._ws_block_queues:
-            self._ws_block_queues.remove(queue)
-        if not self._ws_block_queues:
+        if not self._block_tracker:
+            return
+        self._block_tracker.unregister_queue(queue)
+        if not self._block_tracker.has_queues():
             task = self.get_task("block_tracker")
             if task:
                 self.cancel_task(task)
@@ -353,16 +362,6 @@ class TaskManager:
             if task.onchain_queue:
                 task.onchain_queue.put_nowait(event)
 
-    async def _dispatch_onchain_tx_event(self, event: OnchainTxEvent) -> None:
-        """Dispatches a tx event to all WS queues watching that txid."""
-        for q in list(self._ws_tx_queues.get(event.txid, [])):
-            q.put_nowait(event)
-
-    async def _dispatch_block_event(self, event: BlockInfo) -> None:
-        """Dispatches a new block event to all WS queues."""
-        for q in list(self._ws_block_queues):
-            q.put_nowait(event)
-
     async def _invoice_listener_consumer(self) -> None:
         payment = await self.invoice_queue.get()
         logger.info(f"got a payment notification {payment.checking_id}")
@@ -382,12 +381,20 @@ class TaskManager:
             lambda: settings.lnbits_running,
         )
 
-    async def _transaction_tracker_dispatch(self, txid: str) -> None:
-        await TransactionTracker(settings.lnbits_blockexplorer_electrum_url).track(
+    async def _transaction_tracker_dispatch(
+        self, txid: str, tracker: "TransactionTracker"
+    ) -> None:
+        """Runs a shared tracker whose events are fanned out to its own
+        registered queues; no separate callback dispatch is needed."""
+        await tracker.track(
             txid,
-            self._dispatch_onchain_tx_event,
-            lambda: txid in self._ws_tx_queues and settings.lnbits_running,
+            self._noop_tx_callback,
+            lambda: tracker.has_queues() and settings.lnbits_running,
         )
+
+    @staticmethod
+    async def _noop_tx_callback(_: OnchainTxEvent) -> None:
+        return None
 
 
 T = TypeVar("T", bound=BaseModel)
