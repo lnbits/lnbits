@@ -60,12 +60,9 @@ class TaskManager:
     tasks: list[Task] = []
     invoice_queue: asyncio.Queue[Payment] = asyncio.Queue()
     internal_invoice_queue: asyncio.Queue[Payment] = asyncio.Queue()
-    _tracked_addresses: dict[str, int] = {}  # address -> ref count
     _address_tracker: "AddressTracker | None" = None
     _block_tracker: "BlockTracker | None" = None
-    _ws_address_queues: dict[str, list[asyncio.Queue[OnchainAddressEvent]]] = {}
-    _ws_tx_queues: dict[str, list[asyncio.Queue[OnchainTxEvent]]] = {}
-    _ws_block_queues: list[asyncio.Queue[BlockInfo]] = []
+    _tx_trackers: dict[str, "TransactionTracker"] = {}
 
     def init(self) -> None:
         self.create_permanent_task(
@@ -179,20 +176,12 @@ class TaskManager:
 
     def track_address(self, address: str) -> None:
         """Start tracking a Bitcoin address via Electrum (ref-counted)."""
-        count = self._tracked_addresses.get(address, 0)
-        self._tracked_addresses[address] = count + 1
-        if count == 0:
-            self._get_address_tracker().add(address)
+        self._get_address_tracker().add(address)
 
     def untrack_address(self, address: str) -> None:
         """Decrement ref count; remove from shared tracker when last caller leaves."""
-        count = self._tracked_addresses.get(address, 0)
-        if count <= 1:
-            self._tracked_addresses.pop(address, None)
-            if self._address_tracker:
-                self._address_tracker.remove(address)
-        else:
-            self._tracked_addresses[address] = count - 1
+        if self._address_tracker:
+            self._address_tracker.remove(address)
 
     def _get_address_tracker(self) -> "AddressTracker":
         if self._address_tracker is None:
@@ -217,19 +206,14 @@ class TaskManager:
         Raises ValueError if the address is invalid.
         """
         scripthash_from_address(address)
-        self._ws_address_queues.setdefault(address, []).append(queue)
-        self.track_address(address)
+        self._get_address_tracker().register_queue(address, queue)
 
     def unregister_ws_address_queue(
         self, address: str, queue: asyncio.Queue[OnchainAddressEvent]
     ) -> None:
         """Deregister a per-connection queue and decrement the address ref count."""
-        queues = self._ws_address_queues.get(address, [])
-        if queue in queues:
-            queues.remove(queue)
-        if not queues:
-            self._ws_address_queues.pop(address, None)
-        self.untrack_address(address)
+        if self._address_tracker:
+            self._address_tracker.unregister_queue(address, queue)
 
     def register_ws_tx_queue(
         self, txid: str, queue: asyncio.Queue[OnchainTxEvent]
@@ -361,12 +345,13 @@ class TaskManager:
             task.invoice_queue.put_nowait(payment)
 
     async def _dispatch_onchain_event(self, event: OnchainAddressEvent) -> None:
-        """Dispatches an onchain address event to listeners and WS queues."""
+        """Dispatches an onchain address event to registered listeners.
+
+        Per-address WS queue fan-out is handled by AddressTracker itself.
+        """
         for task in self.tasks:
             if task.onchain_queue:
                 task.onchain_queue.put_nowait(event)
-        for q in list(self._ws_address_queues.get(event.address, [])):
-            q.put_nowait(event)
 
     async def _dispatch_onchain_tx_event(self, event: OnchainTxEvent) -> None:
         """Dispatches a tx event to all WS queues watching that txid."""

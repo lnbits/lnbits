@@ -774,7 +774,9 @@ class AddressTracker:
     """
     Subscribes to a set of Bitcoin addresses over a single shared Electrum
     connection and calls a callback on every balance/history change.
-    Addresses can be added/removed at runtime via :meth:`add`/:meth:`remove`.
+    Addresses can be added/removed at runtime via :meth:`add`/:meth:`remove`,
+    and per-connection queues can be attached via :meth:`register_queue` for
+    consumers (e.g. websockets) that want events for one specific address.
     Reconnects automatically on failure.
 
     Args:
@@ -783,20 +785,43 @@ class AddressTracker:
 
     def __init__(self, url: str) -> None:
         self.url = url
-        self._addresses: set[str] = set()
+        self._ref_counts: dict[str, int] = {}
+        self._queues: dict[str, list[asyncio.Queue[OnchainAddressEvent]]] = {}
         self._updated = asyncio.Event()
 
     def add(self, address: str) -> None:
-        """Start tracking an address on the shared connection."""
-        if address not in self._addresses:
-            self._addresses.add(address)
+        """Start tracking an address on the shared connection (ref-counted)."""
+        count = self._ref_counts.get(address, 0)
+        self._ref_counts[address] = count + 1
+        if count == 0:
             self._updated.set()
 
     def remove(self, address: str) -> None:
-        """Stop tracking an address on the shared connection."""
-        if address in self._addresses:
-            self._addresses.discard(address)
+        """Decrement ref count; drop the subscription once the last caller leaves."""
+        count = self._ref_counts.get(address, 0)
+        if count <= 1:
+            self._ref_counts.pop(address, None)
             self._updated.set()
+        else:
+            self._ref_counts[address] = count - 1
+
+    def register_queue(
+        self, address: str, queue: "asyncio.Queue[OnchainAddressEvent]"
+    ) -> None:
+        """Register a per-connection queue to receive events for `address`."""
+        self._queues.setdefault(address, []).append(queue)
+        self.add(address)
+
+    def unregister_queue(
+        self, address: str, queue: "asyncio.Queue[OnchainAddressEvent]"
+    ) -> None:
+        """Deregister a per-connection queue for `address`."""
+        queues = self._queues.get(address, [])
+        if queue in queues:
+            queues.remove(queue)
+        if not queues:
+            self._queues.pop(address, None)
+        self.remove(address)
 
     async def run(
         self,
@@ -843,7 +868,7 @@ class AddressTracker:
         subscribed: dict[str, str],
         callback: Callable[[OnchainAddressEvent], Coroutine[Any, Any, None]],
     ) -> None:
-        wanted = {a: scripthash_from_address(a) for a in self._addresses}
+        wanted = {a: scripthash_from_address(a) for a in self._ref_counts}
         for address, scripthash in wanted.items():
             if scripthash not in subscribed:
                 subscribed[scripthash] = address
@@ -872,8 +897,8 @@ class AddressTracker:
                     t.cancel()
         return closed_task in done
 
-    @staticmethod
     async def _fetch_and_dispatch(
+        self,
         client: ElectrumClient,
         address: str,
         scripthash: str,
@@ -898,15 +923,16 @@ class AddressTracker:
             for m in mempool_r:
                 if m.tx_hash not in seen:
                     history.append(HistoryEntry(tx_hash=m.tx_hash, height=0, fee=m.fee))
-        await callback(
-            OnchainAddressEvent(
-                address=address,
-                confirmed=balance_r.confirmed,
-                unconfirmed=balance_r.unconfirmed,
-                history=history,
-                history_error=history_error,
-            )
+        event = OnchainAddressEvent(
+            address=address,
+            confirmed=balance_r.confirmed,
+            unconfirmed=balance_r.unconfirmed,
+            history=history,
+            history_error=history_error,
         )
+        for q in list(self._queues.get(address, [])):
+            q.put_nowait(event)
+        await callback(event)
 
 
 # ---------------------------------------------------------------------------
@@ -935,6 +961,8 @@ class TransactionTracker:
     Subscribes to a Bitcoin transaction via Electrum and calls a callback on
     each status change (unconfirmed → confirmed).  Stops automatically once
     the transaction is confirmed or ``is_active()`` returns ``False``.
+    Per-connection queues can be attached via :meth:`register_queue` for
+    consumers (e.g. websockets) that want events for this transaction.
 
     Args:
         url: Electrum server URL (e.g. ``ssl://electrum.blockstream.info:50002``).
@@ -942,6 +970,19 @@ class TransactionTracker:
 
     def __init__(self, url: str) -> None:
         self.url = url
+        self._queues: list[asyncio.Queue[OnchainTxEvent]] = []
+
+    def register_queue(self, queue: "asyncio.Queue[OnchainTxEvent]") -> None:
+        """Register a per-connection queue to receive events for this tx."""
+        self._queues.append(queue)
+
+    def unregister_queue(self, queue: "asyncio.Queue[OnchainTxEvent]") -> None:
+        """Deregister a per-connection queue."""
+        if queue in self._queues:
+            self._queues.remove(queue)
+
+    def has_queues(self) -> bool:
+        return bool(self._queues)
 
     async def track(
         self,
@@ -989,7 +1030,7 @@ class TransactionTracker:
             ) -> None:
                 if params and params[0] == _sh:
                     ev = await self._fetch_status(client, txid, _sh)
-                    await callback(ev)
+                    await self._dispatch(ev, callback)
                     if ev.confirmed:
                         _done.set()
 
@@ -997,7 +1038,7 @@ class TransactionTracker:
                 await client.subscribe_scripthash(scripthash, on_change)
 
             event = await self._fetch_status(client, txid, scripthash)
-            await callback(event)
+            await self._dispatch(event, callback)
             if event.confirmed:
                 return True
 
@@ -1008,6 +1049,15 @@ class TransactionTracker:
                 except asyncio.TimeoutError:
                     pass
             return confirmed_event.is_set()
+
+    async def _dispatch(
+        self,
+        event: OnchainTxEvent,
+        callback: Callable[[OnchainTxEvent], Coroutine[Any, Any, None]],
+    ) -> None:
+        for q in list(self._queues):
+            q.put_nowait(event)
+        await callback(event)
 
     @staticmethod
     async def _fetch_status(
@@ -1041,8 +1091,9 @@ class TransactionTracker:
 
 class BlockTracker:
     """
-    Subscribes to new block headers via Electrum and calls a callback on
-    every new block.  Reconnects automatically on failure.
+    Subscribes to new block headers via Electrum and dispatches them to
+    registered queues.  Per-connection queues can be attached via
+    :meth:`register_queue`.  Reconnects automatically on failure.
 
     Args:
         url: Electrum server URL (e.g. ``ssl://electrum.blockstream.info:50002``).
@@ -1050,15 +1101,24 @@ class BlockTracker:
 
     def __init__(self, url: str) -> None:
         self.url = url
+        self._queues: list[asyncio.Queue[BlockInfo]] = []
 
-    async def run(
-        self,
-        callback: Callable[[BlockInfo], Coroutine[Any, Any, None]],
-        is_active: Callable[[], bool],
-    ) -> None:
+    def register_queue(self, queue: "asyncio.Queue[BlockInfo]") -> None:
+        """Register a per-connection queue to receive new block events."""
+        self._queues.append(queue)
+
+    def unregister_queue(self, queue: "asyncio.Queue[BlockInfo]") -> None:
+        """Deregister a per-connection queue."""
+        if queue in self._queues:
+            self._queues.remove(queue)
+
+    def has_queues(self) -> bool:
+        return bool(self._queues)
+
+    async def run(self, is_active: Callable[[], bool]) -> None:
         while is_active():
             try:
-                await self._run_once(callback, is_active)
+                await self._run_once(is_active)
             except asyncio.CancelledError:
                 raise
             except Exception as exc:
@@ -1067,19 +1127,15 @@ class BlockTracker:
                 logger.warning(f"BlockTracker: {exc!s}, retrying in 5s")
                 await asyncio.sleep(5)
 
-    async def _run_once(
-        self,
-        callback: Callable[[BlockInfo], Coroutine[Any, Any, None]],
-        is_active: Callable[[], bool],
-    ) -> None:
+    async def _run_once(self, is_active: Callable[[], bool]) -> None:
         async with ElectrumClient(self.url) as client:
 
             async def on_header(params: list[Any]) -> None:
                 h = params[0]
-                await callback(parse_block_header(h["hex"], h["height"]))
+                self._dispatch(parse_block_header(h["hex"], h["height"]))
 
             tip = await client.subscribe_headers(on_header)
-            await callback(parse_block_header(tip.hex, tip.height))
+            self._dispatch(parse_block_header(tip.hex, tip.height))
 
             while is_active():
                 try:
@@ -1087,3 +1143,7 @@ class BlockTracker:
                     break  # connection closed; reconnect
                 except asyncio.TimeoutError:
                     pass
+
+    def _dispatch(self, event: BlockInfo) -> None:
+        for q in list(self._queues):
+            q.put_nowait(event)
