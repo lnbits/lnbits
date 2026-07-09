@@ -15,6 +15,7 @@ from .ui import register_wasm_extension_ui_routes
 
 def register_wasm_extension(app: FastAPI, ext_id: str) -> WasmExtension:
     loaded = load_wasm_extension(ext_id)
+    core_app_extra.wasm_extension_registry.require_available(loaded)
 
     warm_wasm_extension(loaded)
     mount_wasm_extension_static(app, loaded)

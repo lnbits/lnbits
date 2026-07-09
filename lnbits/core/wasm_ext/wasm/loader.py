@@ -1,11 +1,14 @@
 from __future__ import annotations
 
 import json
+import re
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
 from lnbits.settings import settings
+
+_EXTENSION_ID_RE = re.compile(r"^[A-Za-z0-9_-]+$")
 
 
 @dataclass(frozen=True)
@@ -44,6 +47,7 @@ def load_wasm_extension(ext_id: str) -> WasmExtension:
         raise FileNotFoundError(f"Missing WASM extension config for '{ext_id}'.")
     if config.get("extension_type") != "wasm":
         raise ValueError(f"Extension '{ext_id}' is not a WASM extension.")
+    extension_id = validate_wasm_extension_config_id(ext_id, config)
 
     wasm_config = config.get("wasm") or {}
     module_path = _extension_path(ext_dir, wasm_config.get("module"))
@@ -53,7 +57,7 @@ def load_wasm_extension(ext_id: str) -> WasmExtension:
         raise FileNotFoundError(f"WIT file not found: {wit_path}")
 
     return WasmExtension(
-        id=config.get("id") or ext_id,
+        id=extension_id,
         name=config.get("name") or ext_id,
         version=config.get("version") or "0.0",
         root_path=ext_dir,
@@ -64,6 +68,24 @@ def load_wasm_extension(ext_id: str) -> WasmExtension:
         exports=wasm_config.get("exports") or [],
         config=config,
     )
+
+
+def validate_wasm_extension_config_id(
+    ext_id: str,
+    config: dict[str, Any],
+) -> str:
+    if not _EXTENSION_ID_RE.fullmatch(ext_id):
+        raise ValueError(f"Invalid WASM extension id '{ext_id}'.")
+
+    config_id = config.get("id")
+    if not isinstance(config_id, str) or not config_id:
+        raise ValueError(f"WASM extension '{ext_id}' config must define id.")
+    if config_id != ext_id:
+        raise ValueError(
+            f"WASM extension id mismatch: installed as '{ext_id}' "
+            f"but config declares '{config_id}'."
+        )
+    return config_id
 
 
 def _load_json(path: Path) -> dict[str, Any] | None:

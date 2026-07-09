@@ -3,6 +3,7 @@ from typing import Any
 
 from lnbits.core.models.extensions import ExtensionPermission, InstallableExtension
 from lnbits.core.wasm_ext.api.registry import extension_api_permission_ids
+from lnbits.core.wasm_ext.wasm.loader import validate_wasm_extension_config_id
 
 
 def validate_extension_permissions(
@@ -38,6 +39,8 @@ def validate_wasm_extension_permissions(
 ) -> list[ExtensionPermission]:
     if extension_config.get("extension_type") != "wasm":
         return []
+
+    validate_wasm_extension_config_id(ext_info.id, extension_config)
 
     requested_permissions = validate_extension_permissions(
         ext_info.id,
