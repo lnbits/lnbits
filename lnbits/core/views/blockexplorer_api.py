@@ -1,6 +1,6 @@
 import asyncio
 from http import HTTPStatus
-from typing import Annotated, Any
+from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, Request, WebSocket
 from loguru import logger
@@ -150,27 +150,39 @@ async def ws_blocks(websocket: WebSocket) -> None:
         await websocket.close(code=1008)
         return
     await websocket.accept()
+
+    queue: asyncio.Queue[BlockInfo] = asyncio.Queue()
+    task_manager.register_ws_block_queue(queue)
     try:
-        async with _client() as c:
-            tip = await c.subscribe_headers()
-            await websocket.send_json(parse_block_header(tip.hex, tip.height).dict())
+        await _ws_blocks_loop(websocket, queue)
+    finally:
+        task_manager.unregister_ws_block_queue(queue)
 
-            async def on_header(params: list[Any]) -> None:
-                h = params[0]
-                try:
-                    await websocket.send_json(
-                        parse_block_header(h["hex"], h["height"]).dict()
-                    )
-                except Exception as e:
-                    logger.debug(f"ws_blocks send error: {e}")
 
-            c.on("blockchain.headers.subscribe", on_header)
-            while True:
-                msg = await websocket.receive()
-                if msg["type"] == "websocket.disconnect":
+async def _ws_blocks_loop(
+    websocket: WebSocket,
+    queue: asyncio.Queue[BlockInfo],
+) -> None:
+    try:
+        while True:
+            recv_task = asyncio.create_task(websocket.receive())
+            event_task = asyncio.create_task(queue.get())
+            done, pending = await asyncio.wait(
+                [recv_task, event_task], return_when=asyncio.FIRST_COMPLETED
+            )
+            for t in pending:
+                t.cancel()
+            if recv_task in done:
+                if recv_task.result().get("type") == "websocket.disconnect":
                     break
-    except Exception as e:
-        logger.debug(f"ws_blocks error: {e}")
+            if event_task in done:
+                try:
+                    await websocket.send_json(event_task.result().dict())
+                except Exception as exc:
+                    logger.debug(f"ws_blocks send error: {exc}")
+                    break
+    except Exception as exc:
+        logger.debug(f"ws_blocks error: {exc}")
 
 
 def _address_event_to_response(event: OnchainAddressEvent) -> AddressResponse:

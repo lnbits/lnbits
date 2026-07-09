@@ -772,52 +772,107 @@ class OnchainAddressEvent(BaseModel):
 
 class AddressTracker:
     """
-    Subscribes to a Bitcoin address via Electrum and calls a callback on every
-    balance/history change.  Reconnects automatically on failure.
+    Subscribes to a set of Bitcoin addresses over a single shared Electrum
+    connection and calls a callback on every balance/history change.
+    Addresses can be added/removed at runtime via :meth:`add`/:meth:`remove`.
+    Reconnects automatically on failure.
 
     Args:
-        url:       Electrum server URL (e.g. ``ssl://electrum.blockstream.info:50002``).
-        callback:  Async function receiving an :class:`OnchainAddressEvent`.
-        is_active: Callable returning ``False`` when tracking should stop.
+        url: Electrum server URL (e.g. ``ssl://electrum.blockstream.info:50002``).
     """
 
     def __init__(self, url: str) -> None:
         self.url = url
+        self._addresses: set[str] = set()
+        self._updated = asyncio.Event()
 
-    async def track(
+    def add(self, address: str) -> None:
+        """Start tracking an address on the shared connection."""
+        if address not in self._addresses:
+            self._addresses.add(address)
+            self._updated.set()
+
+    def remove(self, address: str) -> None:
+        """Stop tracking an address on the shared connection."""
+        if address in self._addresses:
+            self._addresses.discard(address)
+            self._updated.set()
+
+    async def run(
         self,
-        address: str,
         callback: Callable[[OnchainAddressEvent], Coroutine[Any, Any, None]],
         is_active: Callable[[], bool],
     ) -> None:
-        scripthash = scripthash_from_address(address)
         while is_active():
             try:
-                async with ElectrumClient(self.url) as client:
-
-                    async def on_status_change(params: list[Any]) -> None:
-                        if params and params[0] == scripthash:
-                            await self._fetch_and_dispatch(
-                                client, address, scripthash, callback
-                            )
-
-                    await client.subscribe_scripthash(scripthash, on_status_change)
-                    await self._fetch_and_dispatch(
-                        client, address, scripthash, callback
-                    )
-                    while is_active():
-                        try:
-                            await asyncio.wait_for(client.closed.wait(), timeout=30)
-                            break  # connection closed; reconnect
-                        except asyncio.TimeoutError:
-                            pass
+                await self._run_once(callback, is_active)
             except asyncio.CancelledError:
                 raise
             except Exception as exc:
                 if not is_active():
                     return
-                logger.warning(f"AddressTracker {address}: {exc!s}, retrying in 5s")
+                logger.warning(f"AddressTracker: {exc!s}, retrying in 5s")
                 await asyncio.sleep(5)
+
+    async def _run_once(
+        self,
+        callback: Callable[[OnchainAddressEvent], Coroutine[Any, Any, None]],
+        is_active: Callable[[], bool],
+    ) -> None:
+        async with ElectrumClient(self.url) as client:
+            subscribed: dict[str, str] = {}  # scripthash -> address
+
+            async def on_status_change(params: list[Any]) -> None:
+                if not params:
+                    return
+                address = subscribed.get(params[0])
+                if address:
+                    await self._fetch_and_dispatch(
+                        client, address, params[0], callback
+                    )
+
+            client.on("blockchain.scripthash.subscribe", on_status_change)
+
+            while is_active():
+                self._updated.clear()
+                await self._sync_subscriptions(client, subscribed, callback)
+                if await self._wait_for_change_or_close(client):
+                    break  # connection closed; reconnect
+
+    async def _sync_subscriptions(
+        self,
+        client: ElectrumClient,
+        subscribed: dict[str, str],
+        callback: Callable[[OnchainAddressEvent], Coroutine[Any, Any, None]],
+    ) -> None:
+        wanted = {a: scripthash_from_address(a) for a in self._addresses}
+        for address, scripthash in wanted.items():
+            if scripthash not in subscribed:
+                subscribed[scripthash] = address
+                await client.subscribe_scripthash(scripthash)
+                await self._fetch_and_dispatch(client, address, scripthash, callback)
+        still_wanted = set(wanted.values())
+        for scripthash, address in list(subscribed.items()):
+            if address not in still_wanted:
+                del subscribed[scripthash]
+                await client.unsubscribe_scripthash(scripthash)
+
+    async def _wait_for_change_or_close(self, client: ElectrumClient) -> bool:
+        """Waits until addresses change or the connection closes; returns True
+        if it was the connection that closed."""
+        wait_task = asyncio.create_task(self._updated.wait())
+        closed_task = asyncio.create_task(client.closed.wait())
+        try:
+            done, _ = await asyncio.wait(
+                [wait_task, closed_task],
+                timeout=30,
+                return_when=asyncio.FIRST_COMPLETED,
+            )
+        finally:
+            for t in (wait_task, closed_task):
+                if not t.done():
+                    t.cancel()
+        return closed_task in done
 
     @staticmethod
     async def _fetch_and_dispatch(
@@ -979,3 +1034,58 @@ class TransactionTracker:
                 except ElectrumError:
                     pass
         return OnchainTxEvent(txid=txid, confirmed=False)
+
+
+# ---------------------------------------------------------------------------
+# Block tracking
+# ---------------------------------------------------------------------------
+
+
+class BlockTracker:
+    """
+    Subscribes to new block headers via Electrum and calls a callback on
+    every new block.  Reconnects automatically on failure.
+
+    Args:
+        url: Electrum server URL (e.g. ``ssl://electrum.blockstream.info:50002``).
+    """
+
+    def __init__(self, url: str) -> None:
+        self.url = url
+
+    async def run(
+        self,
+        callback: Callable[[BlockInfo], Coroutine[Any, Any, None]],
+        is_active: Callable[[], bool],
+    ) -> None:
+        while is_active():
+            try:
+                await self._run_once(callback, is_active)
+            except asyncio.CancelledError:
+                raise
+            except Exception as exc:
+                if not is_active():
+                    return
+                logger.warning(f"BlockTracker: {exc!s}, retrying in 5s")
+                await asyncio.sleep(5)
+
+    async def _run_once(
+        self,
+        callback: Callable[[BlockInfo], Coroutine[Any, Any, None]],
+        is_active: Callable[[], bool],
+    ) -> None:
+        async with ElectrumClient(self.url) as client:
+
+            async def on_header(params: list[Any]) -> None:
+                h = params[0]
+                await callback(parse_block_header(h["hex"], h["height"]))
+
+            tip = await client.subscribe_headers(on_header)
+            await callback(parse_block_header(tip.hex, tip.height))
+
+            while is_active():
+                try:
+                    await asyncio.wait_for(client.closed.wait(), timeout=30)
+                    break  # connection closed; reconnect
+                except asyncio.TimeoutError:
+                    pass
