@@ -1,4 +1,5 @@
 import json
+from collections.abc import Awaitable, Callable
 
 from fastapi import APIRouter, Request
 from loguru import logger
@@ -31,6 +32,82 @@ from lnbits.fiat.square import SquareWallet
 from lnbits.settings import settings
 
 callback_router = APIRouter(prefix="/api/v1/callback", tags=["callback"])
+FiatWebhookHandler = Callable[[str, dict, dict], Awaitable[bool]]
+fiat_webhook_handlers: list[tuple[str, str | None, FiatWebhookHandler]] = []
+
+
+def register_fiat_webhook_handler(
+    provider: str, source: str | None, handler: FiatWebhookHandler
+) -> None:
+    provider = provider.lower()
+    source = source.lower() if source else None
+    handler_key = (provider, source, handler)
+    if handler_key not in fiat_webhook_handlers:
+        fiat_webhook_handlers.append(handler_key)
+
+
+def unregister_fiat_webhook_handler(handler: FiatWebhookHandler) -> None:
+    fiat_webhook_handlers[:] = [
+        registered
+        for registered in fiat_webhook_handlers
+        if registered[2] is not handler
+    ]
+
+
+def _extract_fiat_webhook_metadata(provider: str, event: dict) -> dict:
+    provider = provider.lower()
+    if provider == "stripe":
+        event_object = event.get("data", {}).get("object", {})
+        return event_object.get("metadata") or {}
+
+    if provider == "paypal":
+        resource = event.get("resource", {})
+        custom_id = resource.get("custom_id") or resource.get("custom")
+        if not custom_id:
+            return {}
+        try:
+            metadata = json.loads(custom_id)
+            return metadata if isinstance(metadata, dict) else {}
+        except json.JSONDecodeError:
+            return {}
+
+    if provider == "square":
+        payment = _square_extract_payment(event)
+        note = _square_payment_note(payment)
+        if not note:
+            return {}
+        try:
+            metadata = json.loads(note)
+            return metadata if isinstance(metadata, dict) else {}
+        except json.JSONDecodeError:
+            return {}
+
+    if provider == "revolut":
+        metadata = event.get("metadata") or event.get("merchant_order_data") or {}
+        return metadata if isinstance(metadata, dict) else {}
+
+    return {}
+
+
+async def dispatch_fiat_webhook_event(provider: str, event: dict) -> bool:
+    provider = provider.lower()
+    metadata = _extract_fiat_webhook_metadata(provider, event)
+    source = metadata.get("source")
+    source = source.lower() if isinstance(source, str) else None
+
+    for handler_provider, handler_source, handler in list(fiat_webhook_handlers):
+        if handler_provider != provider:
+            continue
+        if handler_source and handler_source != source:
+            continue
+        handled = await handler(provider, event, metadata)
+        if handled:
+            logger.info(
+                f"Fiat webhook handled by extension handler. Provider: '{provider}'."
+            )
+            return True
+
+    return False
 
 
 @callback_router.post("/{provider_name}")
@@ -45,6 +122,11 @@ async def api_generic_webhook_handler(
             payload, sig_header, settings.stripe_webhook_signing_secret
         )
         event = await request.json()
+        if await dispatch_fiat_webhook_event("stripe", event):
+            return SimpleStatus(
+                success=True,
+                message=f"Callback received successfully from '{provider_name}'.",
+            )
         await handle_stripe_event(event)
 
         return SimpleStatus(
@@ -56,6 +138,11 @@ async def api_generic_webhook_handler(
         payload = await request.body()
         await verify_paypal_webhook(request.headers, payload)
         event = await request.json()
+        if await dispatch_fiat_webhook_event("paypal", event):
+            return SimpleStatus(
+                success=True,
+                message=f"Callback received successfully from '{provider_name}'.",
+            )
         await handle_paypal_event(event)
 
         return SimpleStatus(
@@ -73,6 +160,11 @@ async def api_generic_webhook_handler(
             settings.square_payment_webhook_url,
         )
         event = await request.json()
+        if await dispatch_fiat_webhook_event("square", event):
+            return SimpleStatus(
+                success=True,
+                message=f"Callback received successfully from '{provider_name}'.",
+            )
         await handle_square_event(event)
 
         return SimpleStatus(
@@ -91,6 +183,11 @@ async def api_generic_webhook_handler(
             settings.revolut_webhook_signing_secret,
         )
         event = await request.json()
+        if await dispatch_fiat_webhook_event("revolut", event):
+            return SimpleStatus(
+                success=True,
+                message=f"Callback received successfully from '{provider_name}'.",
+            )
         await handle_revolut_event(event)
 
         return SimpleStatus(

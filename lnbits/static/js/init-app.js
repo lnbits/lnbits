@@ -12,15 +12,15 @@ const quasarConfig = {
 const DynamicComponent = {
   async created() {
     const name = this.$route.path.split('/')[1]
-    const path = `/${name}/`
     const routesPath = `/${name}/static/routes.json`
-    if (this.$router.getRoutes().some(r => r.path === path)) return
     if (this.$route.fullPath.startsWith('/extensions/builder/preview')) return
     fetch(routesPath)
       .then(async res => {
         if (!res.ok) throw new Error('No dynamic routes found')
         const routes = await res.json()
+        const routeNames = new Set(this.$router.getRoutes().map(r => r.name))
         routes.forEach(r => {
+          if (routeNames.has(r.name)) return
           console.log('Adding dynamic route:', r.path)
           window.router.addRoute({
             path: r.path,
@@ -39,6 +39,7 @@ const DynamicComponent = {
               return window[r.name]
             }
           })
+          routeNames.add(r.name)
           window.router.push(this.$route.fullPath)
         })
       })
