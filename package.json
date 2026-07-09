@@ -120,6 +120,7 @@
       "js/components/admin/lnbits-admin-users.js",
       "js/components/admin/lnbits-admin-server.js",
       "js/components/admin/lnbits-admin-extensions.js",
+      "js/components/admin/lnbits-admin-wasm-runtime.js",
       "js/components/admin/lnbits-admin-notifications.js",
       "js/components/admin/lnbits-admin-site-customisation.js",
       "js/components/admin/lnbits-admin-assets-config.js",

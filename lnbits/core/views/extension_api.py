@@ -29,6 +29,8 @@ from lnbits.core.models.extensions import (
     ReleasePaymentInfo,
     UserExtension,
     UserExtensionInfo,
+    WasmInvocation,
+    WasmInvocationStats,
     wasm_extension_icon_url,
 )
 from lnbits.core.models.users import Account, AccountId
@@ -36,9 +38,13 @@ from lnbits.core.services import check_transaction_status, create_invoice
 from lnbits.core.services.extensions import (
     activate_extension,
     deactivate_extension,
+    get_current_wasm_invocations,
     get_valid_extension,
     get_valid_extensions,
+    get_wasm_invocation_history,
+    get_wasm_invocation_summary,
     install_extension,
+    stop_wasm_invocation,
     uninstall_extension,
 )
 from lnbits.core.wasm_ext.api.permissions import validate_extension_permissions
@@ -130,6 +136,54 @@ async def api_install_extension(data: CreateExtension):
             status_code=HTTPStatus.INTERNAL_SERVER_ERROR,
             detail=detail,
         ) from exc
+
+
+@extension_router.get(
+    "/wasm/invocations/current",
+    dependencies=[Depends(check_admin)],
+)
+async def api_get_current_wasm_invocations(
+    extension_id: str | None = None,
+) -> list[WasmInvocation]:
+    return get_current_wasm_invocations(extension_id=extension_id)
+
+
+@extension_router.get(
+    "/wasm/invocations",
+    dependencies=[Depends(check_admin)],
+)
+async def api_get_wasm_invocations(
+    extension_id: str | None = None,
+    status: str | None = None,
+    limit: int = 100,
+    offset: int = 0,
+) -> list[WasmInvocation]:
+    return await get_wasm_invocation_history(
+        extension_id=extension_id,
+        status=status,
+        limit=limit,
+        offset=offset,
+    )
+
+
+@extension_router.get(
+    "/wasm/invocations/stats",
+    dependencies=[Depends(check_admin)],
+)
+async def api_get_wasm_invocation_stats(
+    extension_id: str | None = None,
+    hours: int = 24,
+) -> WasmInvocationStats:
+    return await get_wasm_invocation_summary(extension_id=extension_id, hours=hours)
+
+
+@extension_router.post(
+    "/wasm/invocations/{invocation_id}/stop",
+    dependencies=[Depends(check_admin)],
+)
+async def api_stop_wasm_invocation(invocation_id: str) -> SimpleStatus:
+    await stop_wasm_invocation(invocation_id, reason="Stopped by admin.")
+    return SimpleStatus(success=True, message="WASM invocation stop requested.")
 
 
 @extension_router.get("/{ext_id}/details")

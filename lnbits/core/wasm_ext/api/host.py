@@ -60,6 +60,7 @@ class ExtensionHostAPI:
         access_token: str | None = None,
         context: str = "user",
         owner_id: str | None = None,
+        invocation_id: str | None = None,
     ) -> None:
         self.extension_id = extension_id
         self.permissions, self.permission_policies = self._permission_data(permissions)
@@ -67,6 +68,7 @@ class ExtensionHostAPI:
         self.access_token = access_token
         self.context = context
         self.owner_id = sha256s(user_id) if user_id else owner_id
+        self.invocation_id = invocation_id
         from .utils import ExtensionAPIUtils
 
         self.utils = ExtensionAPIUtils(self.extension_id, self.permissions)

@@ -16,6 +16,7 @@ def warm_wasm_extension(extension: WasmExtension) -> None:
 def _wasm_engine() -> Any:
     config = Config()
     config.wasm_component_model = True
+    config.epoch_interruption = True
     return Engine(config)
 
 

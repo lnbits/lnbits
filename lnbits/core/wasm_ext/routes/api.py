@@ -46,6 +46,12 @@ def _add_wasm_extension_api_route(
                 payload,
                 user=account,
                 access_token=access_token,
+                trigger_type="http",
+                method=request.method,
+                path=request.url.path,
+                request_id=request.headers.get("x-request-id"),
+                request_bytes=_request_body_bytes(request),
+                context_data={"origin": _request_origin(request)},
             )
         except KeyError as exc:
             raise HTTPException(status_code=404, detail=str(exc)) from exc
@@ -111,6 +117,22 @@ def _read_api_path_params(
 
 def _read_api_query_params(request: Request) -> dict[str, Any]:
     return {_snake_to_camel(key): value for key, value in request.query_params.items()}
+
+
+def _request_body_bytes(request: Request) -> int | None:
+    if request.method not in {"POST", "PUT", "PATCH"}:
+        return None
+    content_length = request.headers.get("content-length")
+    if content_length and content_length.isdigit():
+        return int(content_length)
+    return None
+
+
+def _request_origin(request: Request) -> str | None:
+    origin = request.headers.get("origin")
+    if not origin:
+        return None
+    return origin[:256]
 
 
 def _wasm_extension_api_export(extension: WasmExtension, export_name: Any) -> str:

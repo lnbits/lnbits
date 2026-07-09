@@ -14,14 +14,21 @@ from lnbits.core.models.extensions import (
     InstallableExtension,
     ReleasePaymentInfo,
 )
+from lnbits.core.services import extensions as extension_services
 from lnbits.core.services.extensions import (
     activate_extension,
+    attach_wasm_invocation_runtime,
     deactivate_extension,
+    finish_wasm_invocation,
+    get_current_wasm_invocations,
     get_valid_extension,
     get_valid_extensions,
     install_extension,
+    record_wasm_invocation_host_call,
     start_extension_background_work,
+    start_wasm_invocation,
     stop_extension_background_work,
+    stop_wasm_invocation,
     uninstall_extension,
 )
 from lnbits.settings import Settings
@@ -217,6 +224,74 @@ async def test_stop_extension_background_work_handles_missing_and_async_stops(
 
     assert await stop_extension_background_work("demoext") is True
     assert called["stop"] is True
+
+
+@pytest.mark.anyio
+async def test_wasm_invocation_tracking_counts_and_stops(mocker: MockerFixture):
+    _reset_wasm_invocation_state()
+    mocker.patch(
+        "lnbits.core.services.extensions.create_wasm_invocation",
+        mocker.AsyncMock(),
+    )
+    update_mock = mocker.patch(
+        "lnbits.core.services.extensions.update_wasm_invocation",
+        mocker.AsyncMock(),
+    )
+    mocker.patch(
+        "lnbits.core.services.extensions.get_wasm_invocation",
+        mocker.AsyncMock(return_value=None),
+    )
+    mocker.patch(
+        "lnbits.core.services.extensions.mark_stale_wasm_invocations",
+        mocker.AsyncMock(),
+    )
+    mocker.patch(
+        "lnbits.core.services.extensions.delete_old_wasm_invocations",
+        mocker.AsyncMock(),
+    )
+
+    invocation = await start_wasm_invocation(
+        extension_id="demoext",
+        export_name="render",
+        trigger_type="http",
+        method="POST",
+        path="/api/v1/ext/demoext/run",
+        context={"origin": "https://example.com"},
+    )
+    store = SimpleNamespace(deadline=None)
+    store.set_epoch_deadline = lambda deadline: setattr(store, "deadline", deadline)
+    engine = SimpleNamespace(increments=0)
+
+    def increment_epoch():
+        engine.increments += 1
+
+    engine.increment_epoch = increment_epoch
+
+    attach_wasm_invocation_runtime(invocation.id, engine=engine, store=store)
+    record_wasm_invocation_host_call(invocation.id, "http.request")
+    record_wasm_invocation_host_call(invocation.id, "storage.get")
+
+    assert await stop_wasm_invocation(invocation.id, reason="test stop") is True
+    current = get_current_wasm_invocations()
+    assert current[0].status == "stopping"
+    assert store.deadline == 1
+    assert engine.increments == 1
+
+    await finish_wasm_invocation(invocation.id, status="failed")
+    assert update_mock.await_args is not None
+    saved = update_mock.await_args.args[0]
+    assert saved.status == "stopped"
+    assert saved.stop_reason == "test stop"
+    assert saved.host_call_count == 2
+    assert saved.http_call_count == 1
+    assert saved.storage_call_count == 1
+
+
+def _reset_wasm_invocation_state():
+    with extension_services._wasm_invocation_lock:
+        extension_services._wasm_invocation_handles.clear()
+        extension_services._wasm_invocations_marked_stale = False
+        extension_services._wasm_invocations_last_cleanup_at = None
 
 
 @pytest.mark.anyio

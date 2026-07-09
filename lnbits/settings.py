@@ -60,6 +60,7 @@ class ExtensionsSettings(LNbitsSettings):
     lnbits_user_default_extensions: list[str] = Field(default=[])
     lnbits_extensions_deactivate_all: bool = Field(default=False)
     lnbits_extensions_builder_activate_non_admins: bool = Field(default=False)
+    lnbits_wasm_invocation_retention_days: int = Field(default=7, ge=0)
     lnbits_extensions_reviews_url: str = Field(
         default="https://demo.lnbits.com/paidreviews/api/v1/AdFzLjzuKFLsdk4Bcnff6r",
         description="""

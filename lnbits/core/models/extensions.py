@@ -7,6 +7,7 @@ import os
 import shutil
 import zipfile
 from collections.abc import Mapping
+from datetime import datetime, timezone
 from pathlib import Path, PurePosixPath
 from typing import Any
 
@@ -196,6 +197,51 @@ class Extension(BaseModel):
             tile=_extension_tile(ext_info),
             upgrade_hash=ext_info.hash if ext_info.ext_upgrade_dir.is_dir() else "",
         )
+
+
+class WasmInvocation(BaseModel):
+    id: str
+    extension_id: str
+    export_name: str
+    trigger_type: str = "unknown"
+    status: str = "running"
+    started_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    finished_at: datetime | None = None
+    duration_ms: int | None = None
+    user_id: str | None = None
+    wallet_id: str | None = None
+    request_id: str | None = None
+    method: str | None = None
+    path: str | None = None
+    event_type: str | None = None
+    payment_hash: str | None = None
+    checking_id: str | None = None
+    memory_peak_bytes: int | None = None
+    request_bytes: int | None = None
+    response_bytes: int | None = None
+    host_call_count: int = 0
+    http_call_count: int = 0
+    storage_call_count: int = 0
+    wallet_call_count: int = 0
+    error_type: str | None = None
+    error_message: str | None = None
+    stop_reason: str | None = None
+    context: dict = Field(default_factory=dict)
+
+
+class WasmInvocationStats(BaseModel):
+    total: int = 0
+    running: int = 0
+    completed: int = 0
+    failed: int = 0
+    stopped: int = 0
+    timeout: int = 0
+    avg_duration_ms: float = 0
+    max_duration_ms: int = 0
+    host_call_count: int = 0
+    http_call_count: int = 0
+    storage_call_count: int = 0
+    wallet_call_count: int = 0
 
 
 class ExtensionRelease(BaseModel):

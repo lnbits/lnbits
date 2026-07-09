@@ -31,12 +31,18 @@ async def dispatch_wasm_invoice_paid(payment: Any) -> None:
         return
 
     try:
+        owner_id = await _wasm_invoice_paid_owner_id(extension, payment)
         await invoke_wasm_extension_export(
             extension.id,
             export_name,
             _wasm_invoice_paid_payload(payment),
             context="event",
-            owner_id=await _wasm_invoice_paid_owner_id(extension, payment),
+            owner_id=owner_id,
+            trigger_type="event",
+            event_type="invoice_paid",
+            wallet_id=payment.wallet_id,
+            payment_hash=payment.payment_hash,
+            checking_id=payment.checking_id,
         )
     except Exception as exc:
         logger.warning(

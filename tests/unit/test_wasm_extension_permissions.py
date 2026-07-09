@@ -1,4 +1,5 @@
 from types import SimpleNamespace
+from typing import Any, cast
 
 import pytest
 from pytest_mock.plugin import MockerFixture
@@ -6,6 +7,7 @@ from pytest_mock.plugin import MockerFixture
 from lnbits.core.models.extensions import ExtensionPermission
 from lnbits.core.wasm_ext.api.permissions import validate_wasm_extension_permissions
 from lnbits.core.wasm_ext.wasm.events import _wasm_invoice_paid_owner_id
+from lnbits.core.wasm_ext.wasm.invoke import _extension_permissions
 from tests.helpers import make_installable_extension
 
 
@@ -180,6 +182,20 @@ async def test_invoice_paid_owner_lookup_uses_stored_granted_policies(
 
     assert owner_id == "owner-1"
     storage_mock.assert_awaited_once_with("demoext", "granted_table", "source-1")
+
+
+@pytest.mark.anyio
+async def test_wasm_invocation_requires_installed_active_extension(
+    mocker: MockerFixture,
+):
+    extension = SimpleNamespace(id="demoext")
+    mocker.patch(
+        "lnbits.core.wasm_ext.wasm.invoke.get_installed_extension",
+        mocker.AsyncMock(return_value=None),
+    )
+
+    with pytest.raises(PermissionError, match="deactivated"):
+        await _extension_permissions(cast(Any, extension))
 
 
 def _wasm_config(ext_id: str, permissions: list[dict]) -> dict:

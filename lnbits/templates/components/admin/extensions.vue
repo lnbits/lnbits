@@ -1,9 +1,18 @@
 <template id="lnbits-admin-extensions">
   <q-card-section class="q-pa-none">
     <div>
-      <h6 class="q-my-none">
-        <span v-text="$t('extensions')"></span>
-      </h6>
+      <div class="row items-center justify-between q-mb-md">
+        <h6 class="q-my-none">
+          <span v-text="$t('extensions')"></span>
+        </h6>
+        <q-btn
+          unelevated
+          color="primary"
+          icon="memory"
+          label="WASM Runtime"
+          to="/admin/extensions/wasm"
+        ></q-btn>
+      </div>
       <div class="row q-col-gutter-md">
         <div class="col-12 q-mb-md">
           <p>
@@ -124,6 +133,15 @@
               />
             </q-item-section>
           </q-item>
+          <q-input
+            class="q-mt-md"
+            filled
+            v-model.number="formData.lnbits_wasm_invocation_retention_days"
+            type="number"
+            min="0"
+            label="WASM invocation retention days"
+            hint="Set to 0 to disable automatic cleanup."
+          ></q-input>
           <br />
         </div>
         <div class="col-12 col-md-6">

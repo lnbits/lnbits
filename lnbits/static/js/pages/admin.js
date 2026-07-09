@@ -16,18 +16,26 @@ window.PageAdmin = {
   },
   watch: {
     tab(tab) {
-      this.$router.push(`/admin#${tab}`)
+      if (
+        tab === 'wasm-runtime' &&
+        this.$route.path.startsWith('/admin/extensions/wasm')
+      ) {
+        return
+      }
+      const target = this.adminRouteForTab(tab)
+      if (this.$route.fullPath !== target) {
+        this.$router.push(target)
+      }
     },
     $route(to) {
-      if (to.hash.length > 1) {
-        this.tab = to.hash.replace('#', '')
+      const tab = this.adminTabFromRoute(to)
+      if (this.tab !== tab) {
+        this.tab = tab
       }
     }
   },
   async created() {
-    if (this.$route.hash.length > 1) {
-      this.tab = this.$route.hash.replace('#', '')
-    }
+    this.tab = this.adminTabFromRoute(this.$route)
     await this.getSettings()
   },
   computed: {
@@ -36,6 +44,21 @@ window.PageAdmin = {
     }
   },
   methods: {
+    adminTabFromRoute(route) {
+      if (route.path.startsWith('/admin/extensions/wasm')) {
+        return 'wasm-runtime'
+      }
+      if (route.hash.length > 1) {
+        return route.hash.replace('#', '')
+      }
+      return 'funding'
+    },
+    adminRouteForTab(tab) {
+      if (tab === 'wasm-runtime') {
+        return '/admin/extensions/wasm'
+      }
+      return `/admin#${tab}`
+    },
     getDefaultSetting(fieldName) {
       LNbits.api.getDefaultSetting(fieldName).then(response => {
         this.formData[fieldName] = response.data.default_value

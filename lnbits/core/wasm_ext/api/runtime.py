@@ -31,6 +31,9 @@ class ExtensionAPIHost:
         payload: Mapping[str, Any] | BaseModel | None = None,
     ) -> dict[str, Any]:
         method = self._require_method(host_name)
+        from lnbits.core.services.extensions import record_wasm_invocation_host_call
+
+        record_wasm_invocation_host_call(self.api.invocation_id, method.method_id)
         request = self._request_model(method, payload)
         handler = _resolve_attr_path(self.api, method.python_name)
         response = handler(request)
