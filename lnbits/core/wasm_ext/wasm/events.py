@@ -1,8 +1,10 @@
 import json
+from collections.abc import Iterable
 from typing import Any
 
 from loguru import logger
 
+from lnbits.core.crud.extensions import get_installed_extension
 from lnbits.core.db import core_app_extra
 from lnbits.core.wasm_ext.storage.crud import storage_get_row_owner_id
 from lnbits.core.wasm_ext.wasm.invoke import invoke_wasm_extension_export
@@ -54,7 +56,7 @@ def _payment_extension_id(payment: Any) -> str | None:
 
 async def _wasm_invoice_paid_owner_id(extension: Any, payment: Any) -> str | None:
     source_id = _payment_source_id(payment)
-    source_tables = _wasm_public_invoice_source_tables(extension.config)
+    source_tables = await _wasm_public_invoice_source_tables(extension.id)
     if not source_id or not source_tables:
         return None
 
@@ -71,14 +73,31 @@ def _payment_source_id(payment: Any) -> str | None:
     return source_id if isinstance(source_id, str) and source_id else None
 
 
-def _wasm_public_invoice_source_tables(config: dict[str, Any]) -> list[str]:
-    permissions = config.get("permissions") or []
+async def _wasm_public_invoice_source_tables(extension_id: str) -> list[str]:
+    installed_extension = await get_installed_extension(extension_id)
+    if not installed_extension:
+        return []
+    return _wasm_public_invoice_source_tables_from_permissions(
+        installed_extension.permissions
+    )
+
+
+def _wasm_public_invoice_source_tables_from_permissions(
+    permissions: Iterable[Any],
+) -> list[str]:
     for permission in permissions:
-        if not isinstance(permission, dict):
+        permission_id = (
+            permission.get("id")
+            if isinstance(permission, dict)
+            else getattr(permission, "id", None)
+        )
+        if permission_id != "wallet.create_invoice_public":
             continue
-        if permission.get("id") != "wallet.create_invoice_public":
-            continue
-        policies = permission.get("policies")
+        policies = (
+            permission.get("policies")
+            if isinstance(permission, dict)
+            else getattr(permission, "policies", None)
+        )
         if not isinstance(policies, list):
             return []
         return [
@@ -91,16 +110,14 @@ def _wasm_public_invoice_source_tables(config: dict[str, Any]) -> list[str]:
     return []
 
 
-def _wasm_invoice_paid_export(config: dict[str, Any]) -> str | None:
-    events = config.get("events") or {}
-    export_name = events.get("onInvoicePaid")
-    return export_name if isinstance(export_name, str) and export_name else None
+def _wasm_invoice_paid_export(config: Any) -> str | None:
+    return config.events.on_invoice_paid
 
 
 def _is_wasm_event_export(extension: Any, export_name: str) -> bool:
     for export in extension.exports:
-        if export.get("name") == export_name:
-            return export.get("visibility") == "event"
+        if export.name == export_name:
+            return export.visibility == "event"
     return False
 
 

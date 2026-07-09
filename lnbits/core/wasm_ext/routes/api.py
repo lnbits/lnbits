@@ -9,25 +9,26 @@ from fastapi import Depends, FastAPI, HTTPException, Request
 from lnbits.core.models import Account
 from lnbits.decorators import check_access_token, check_account_exists
 
+from ..wasm.config import WasmAPIRouteConfig
 from ..wasm.invoke import invoke_wasm_extension_export
 from ..wasm.loader import WasmExtension
 
 
 def register_wasm_extension_api_routes(app: FastAPI, extension: WasmExtension) -> None:
-    for route_config in extension.config.get("api_routes") or []:
+    for route_config in extension.config.api_routes:
         _add_wasm_extension_api_route(app, extension, route_config)
 
 
 def _add_wasm_extension_api_route(
     app: FastAPI,
     extension: WasmExtension,
-    route_config: dict[str, Any],
+    route_config: WasmAPIRouteConfig,
 ) -> None:
-    method = _wasm_extension_api_method(extension, route_config.get("method"))
-    route_path = _wasm_extension_api_path(extension, route_config.get("path"))
-    export_name = _wasm_extension_api_export(extension, route_config.get("export"))
-    path_params = route_config.get("path_params") or {}
-    auth = _wasm_extension_route_auth(extension, route_config.get("auth"))
+    method = _wasm_extension_api_method(extension, route_config.method)
+    route_path = _wasm_extension_api_path(extension, route_config.path)
+    export_name = _wasm_extension_api_export(extension, route_config.export)
+    path_params = route_config.path_params
+    auth = _wasm_extension_route_auth(extension, route_config.auth)
 
     if _has_route(app, route_path, method):
         return
@@ -117,9 +118,9 @@ def _wasm_extension_api_export(extension: WasmExtension, export_name: Any) -> st
         raise ValueError(f"Invalid API export for WASM extension '{extension.id}'.")
 
     for export in extension.exports:
-        if export.get("name") != export_name:
+        if export.name != export_name:
             continue
-        if export.get("visibility") in {"public", "authenticated"}:
+        if export.visibility in {"public", "authenticated"}:
             return export_name
         raise PermissionError(f"WASM export '{export_name}' is not callable over HTTP.")
     raise KeyError(f"WASM extension '{extension.id}' has no export '{export_name}'.")

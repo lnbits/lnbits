@@ -84,12 +84,8 @@ def _parse_wasm_export_result(extension: WasmExtension, value: Any) -> dict[str,
     if not isinstance(value, str):
         return {"ok": True, "data": value}
 
-    max_response_bytes = (
-        (extension.config.get("wasm") or {})
-        .get("resource_limits", {})
-        .get("max_response_bytes")
-    )
-    if isinstance(max_response_bytes, int):
+    max_response_bytes = extension.config.wasm.resource_limits.max_response_bytes
+    if max_response_bytes is not None:
         response_size = len(value.encode())
         if response_size > max_response_bytes:
             raise ValueError(

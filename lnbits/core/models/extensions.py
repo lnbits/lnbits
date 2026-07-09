@@ -12,7 +12,7 @@ from typing import Any
 
 import httpx
 from loguru import logger
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, StrictStr
 
 from lnbits.helpers import (
     download_url,
@@ -79,10 +79,12 @@ class GitHubRepo(BaseModel):
 
 
 class ExtensionPermission(BaseModel):
-    id: str
-    label: str | None = None
-    description: str | None = None
+    id: StrictStr
+    description: StrictStr | None = None
     policies: list[Any] | None = None
+
+    class Config:
+        extra = "forbid"
 
     @staticmethod
     def list_from_config(config_json: Mapping[str, Any]) -> list[ExtensionPermission]:
