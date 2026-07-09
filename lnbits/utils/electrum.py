@@ -1115,10 +1115,14 @@ class BlockTracker:
     def has_queues(self) -> bool:
         return bool(self._queues)
 
-    async def run(self, is_active: Callable[[], bool]) -> None:
+    async def run(
+        self,
+        callback: Callable[[BlockInfo], Coroutine[Any, Any, None]],
+        is_active: Callable[[], bool],
+    ) -> None:
         while is_active():
             try:
-                await self._run_once(is_active)
+                await self._run_once(callback, is_active)
             except asyncio.CancelledError:
                 raise
             except Exception as exc:
@@ -1127,15 +1131,20 @@ class BlockTracker:
                 logger.warning(f"BlockTracker: {exc!s}, retrying in 5s")
                 await asyncio.sleep(5)
 
-    async def _run_once(self, is_active: Callable[[], bool]) -> None:
+    async def _run_once(
+        self,
+        callback: Callable[[BlockInfo], Coroutine[Any, Any, None]],
+        is_active: Callable[[], bool],
+    ) -> None:
         async with ElectrumClient(self.url) as client:
 
             async def on_header(params: list[Any]) -> None:
                 h = params[0]
-                self._dispatch(parse_block_header(h["hex"], h["height"]))
+                event = parse_block_header(h["hex"], h["height"])
+                await self._dispatch(event, callback)
 
             tip = await client.subscribe_headers(on_header)
-            self._dispatch(parse_block_header(tip.hex, tip.height))
+            await self._dispatch(parse_block_header(tip.hex, tip.height), callback)
 
             while is_active():
                 try:
@@ -1144,6 +1153,11 @@ class BlockTracker:
                 except asyncio.TimeoutError:
                     pass
 
-    def _dispatch(self, event: BlockInfo) -> None:
+    async def _dispatch(
+        self,
+        event: BlockInfo,
+        callback: Callable[[BlockInfo], Coroutine[Any, Any, None]],
+    ) -> None:
         for q in list(self._queues):
             q.put_nowait(event)
+        await callback(event)

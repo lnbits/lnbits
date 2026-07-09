@@ -37,21 +37,27 @@ class Task:
     created_at: datetime
     task: asyncio.Task
     invoice_queue: asyncio.Queue[Payment] | None = None
-    onchain_queue: asyncio.Queue[OnchainAddressEvent] | None = None
+    onchain_address_queue: asyncio.Queue[OnchainAddressEvent] | None = None
+    onchain_tx_queue: asyncio.Queue[OnchainTxEvent] | None = None
+    block_queue: asyncio.Queue[BlockInfo] | None = None
 
     def __init__(
         self,
         coro: Coroutine,
         name: str | None = None,
         invoice_queue: asyncio.Queue | None = None,
-        onchain_queue: asyncio.Queue | None = None,
+        onchain_address_queue: asyncio.Queue | None = None,
+        onchain_tx_queue: asyncio.Queue | None = None,
+        block_queue: asyncio.Queue | None = None,
     ) -> None:
         self.coro = coro
         self.name = name or f"task_{uuid.uuid4()}"
         self.created_at = datetime.now(timezone.utc)
         self.task = asyncio.create_task(self.coro, name=self.name)
         self.invoice_queue = invoice_queue
-        self.onchain_queue = onchain_queue
+        self.onchain_address_queue = onchain_address_queue
+        self.onchain_tx_queue = onchain_tx_queue
+        self.block_queue = block_queue
 
 
 class TaskManager:
@@ -101,7 +107,9 @@ class TaskManager:
         coro: Coroutine,
         name: str | None = None,
         invoice_queue: asyncio.Queue | None = None,
-        onchain_queue: asyncio.Queue | None = None,
+        onchain_address_queue: asyncio.Queue | None = None,
+        onchain_tx_queue: asyncio.Queue | None = None,
+        block_queue: asyncio.Queue | None = None,
     ) -> Task:
         """Create a task. If a task with the same name exists, it will be cancelled."""
         if name:
@@ -112,7 +120,9 @@ class TaskManager:
             coro=coro,
             name=name,
             invoice_queue=invoice_queue,
-            onchain_queue=onchain_queue,
+            onchain_address_queue=onchain_address_queue,
+            onchain_tx_queue=onchain_tx_queue,
+            block_queue=block_queue,
         )
         self.tasks.append(task)
         return task
@@ -121,7 +131,9 @@ class TaskManager:
         self,
         func: Callable[[], Coroutine],
         invoice_queue: asyncio.Queue | None = None,
-        onchain_queue: asyncio.Queue | None = None,
+        onchain_address_queue: asyncio.Queue | None = None,
+        onchain_tx_queue: asyncio.Queue | None = None,
+        block_queue: asyncio.Queue | None = None,
         name: str | None = None,
         interval: int = 0,
     ) -> Task:
@@ -137,7 +149,9 @@ class TaskManager:
             coro=wrapper(),
             name=name or func.__name__,
             invoice_queue=invoice_queue,
-            onchain_queue=onchain_queue,
+            onchain_address_queue=onchain_address_queue,
+            onchain_tx_queue=onchain_tx_queue,
+            block_queue=block_queue,
         )
 
     def register_invoice_listener(
@@ -166,12 +180,49 @@ class TaskManager:
         Register a callback for onchain address events dispatched by track_address.
         Will call the provided coroutine with an OnchainAddressEvent on each update.
         """
-        name = f"{name or uuid.uuid4()}_onchain_listener"
+        name = f"{name or uuid.uuid4()}_onchain_address_listener"
         queue: asyncio.Queue[OnchainAddressEvent] = asyncio.Queue()
         return self.create_permanent_task(
-            self._onchain_listener_worker(func, queue),
+            self._onchain_address_listener_worker(func, queue),
             name=name,
-            onchain_queue=queue,
+            onchain_address_queue=queue,
+        )
+
+    def register_onchain_tx_listener(
+        self,
+        func: Callable[[OnchainTxEvent], Coroutine],
+        name: str | None = None,
+    ) -> Task:
+        """
+        Register a callback for onchain transaction events dispatched for any
+        transaction currently tracked via register_ws_tx_queue.
+        Will call the provided coroutine with an OnchainTxEvent on each update.
+        """
+        name = f"{name or uuid.uuid4()}_onchain_tx_listener"
+        queue: asyncio.Queue[OnchainTxEvent] = asyncio.Queue()
+        return self.create_permanent_task(
+            self._onchain_tx_listener_worker(func, queue),
+            name=name,
+            onchain_tx_queue=queue,
+        )
+
+    def register_block_listener(
+        self,
+        func: Callable[[BlockInfo], Coroutine],
+        name: str | None = None,
+    ) -> Task:
+        """
+        Register a callback for new block events dispatched while the shared
+        block tracker is running (i.e. while a websocket or other consumer has
+        requested block updates via register_ws_block_queue).
+        Will call the provided coroutine with a BlockInfo on each new block.
+        """
+        name = f"{name or uuid.uuid4()}_block_listener"
+        queue: asyncio.Queue[BlockInfo] = asyncio.Queue()
+        return self.create_permanent_task(
+            self._block_listener_worker(func, queue),
+            name=name,
+            block_queue=queue,
         )
 
     def track_address(self, address: str) -> None:
@@ -258,7 +309,10 @@ class TaskManager:
         tracker.register_queue(queue)
         if was_empty:
             self.create_task(
-                tracker.run(lambda: tracker.has_queues() and settings.lnbits_running),
+                tracker.run(
+                    self._dispatch_block_event,
+                    lambda: tracker.has_queues() and settings.lnbits_running,
+                ),
                 name="block_tracker",
             )
 
@@ -296,7 +350,11 @@ class TaskManager:
                 logger.debug(f"Task Manager: task `{task.name}` is done.")
                 self.cancel_task(task)
         invoice_listeners = sum(1 for task in self.tasks if task.invoice_queue)
-        onchain_listeners = sum(1 for task in self.tasks if task.onchain_queue)
+        onchain_listeners = sum(
+            1
+            for task in self.tasks
+            if task.onchain_address_queue or task.onchain_tx_queue or task.block_queue
+        )
         other_tasks = len(self.tasks) - invoice_listeners - onchain_listeners
         logger.debug(
             f"Task Manager: {other_tasks} tasks, "
@@ -334,13 +392,35 @@ class TaskManager:
 
         return wrapper
 
-    def _onchain_listener_worker(
+    def _onchain_address_listener_worker(
         self,
         func: Callable[[OnchainAddressEvent], Coroutine],
         queue: asyncio.Queue[OnchainAddressEvent],
     ) -> Callable:
         async def wrapper() -> None:
             event: OnchainAddressEvent = await queue.get()
+            await func(event)
+
+        return wrapper
+
+    def _onchain_tx_listener_worker(
+        self,
+        func: Callable[[OnchainTxEvent], Coroutine],
+        queue: asyncio.Queue[OnchainTxEvent],
+    ) -> Callable:
+        async def wrapper() -> None:
+            event: OnchainTxEvent = await queue.get()
+            await func(event)
+
+        return wrapper
+
+    def _block_listener_worker(
+        self,
+        func: Callable[[BlockInfo], Coroutine],
+        queue: asyncio.Queue[BlockInfo],
+    ) -> Callable:
+        async def wrapper() -> None:
+            event: BlockInfo = await queue.get()
             await func(event)
 
         return wrapper
@@ -359,8 +439,26 @@ class TaskManager:
         Per-address WS queue fan-out is handled by AddressTracker itself.
         """
         for task in self.tasks:
-            if task.onchain_queue:
-                task.onchain_queue.put_nowait(event)
+            if task.onchain_address_queue:
+                task.onchain_address_queue.put_nowait(event)
+
+    async def _dispatch_onchain_tx_event(self, event: OnchainTxEvent) -> None:
+        """Dispatches an onchain tx event to registered listeners.
+
+        Per-tx WS queue fan-out is handled by TransactionTracker itself.
+        """
+        for task in self.tasks:
+            if task.onchain_tx_queue:
+                task.onchain_tx_queue.put_nowait(event)
+
+    async def _dispatch_block_event(self, event: BlockInfo) -> None:
+        """Dispatches a new block event to registered listeners.
+
+        Per-connection WS queue fan-out is handled by BlockTracker itself.
+        """
+        for task in self.tasks:
+            if task.block_queue:
+                task.block_queue.put_nowait(event)
 
     async def _invoice_listener_consumer(self) -> None:
         payment = await self.invoice_queue.get()
@@ -384,17 +482,11 @@ class TaskManager:
     async def _transaction_tracker_dispatch(
         self, txid: str, tracker: "TransactionTracker"
     ) -> None:
-        """Runs a shared tracker whose events are fanned out to its own
-        registered queues; no separate callback dispatch is needed."""
         await tracker.track(
             txid,
-            self._noop_tx_callback,
+            self._dispatch_onchain_tx_event,
             lambda: tracker.has_queues() and settings.lnbits_running,
         )
-
-    @staticmethod
-    async def _noop_tx_callback(_: OnchainTxEvent) -> None:
-        return None
 
 
 T = TypeVar("T", bound=BaseModel)
