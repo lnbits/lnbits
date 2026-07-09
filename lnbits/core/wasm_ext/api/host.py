@@ -69,7 +69,7 @@ class ExtensionHostAPI:
         self.owner_id = sha256s(user_id) if user_id else owner_id
         from .utils import ExtensionAPIUtils
 
-        self.utils = ExtensionAPIUtils()
+        self.utils = ExtensionAPIUtils(self.extension_id, self.permissions)
 
     @extension_api_method(
         method_id="storage.get",
