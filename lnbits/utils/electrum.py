@@ -844,9 +844,7 @@ class AddressTracker:
             seen = {e.tx_hash for e in history}
             for m in mempool_r:
                 if m.tx_hash not in seen:
-                    history.append(
-                        HistoryEntry(tx_hash=m.tx_hash, height=0, fee=m.fee)
-                    )
+                    history.append(HistoryEntry(tx_hash=m.tx_hash, height=0, fee=m.fee))
         await callback(
             OnchainAddressEvent(
                 address=address,
