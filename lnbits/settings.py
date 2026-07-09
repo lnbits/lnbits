@@ -1295,6 +1295,7 @@ class PublicSettings(BaseModel):
     extensions_reviews_url: str = Field(alias="extensionsReviewsUrl")
     ext_builder: bool = Field(alias="extBuilder")
     nostr_configured: bool = Field(alias="nostrConfigured")
+    email_configured: bool = Field(alias="emailConfigured")
     telegram_configured: bool = Field(alias="telegramConfigured")
     wallet_featured_button_label: str | None = Field(alias="walletFeaturedButtonLabel")
     wallet_featured_button_url: str | None = Field(alias="walletFeaturedButtonUrl")
@@ -1359,6 +1360,7 @@ class PublicSettings(BaseModel):
             extensionsReviewsUrl=settings.lnbits_extensions_reviews_url,
             extBuilder=settings.lnbits_extensions_builder_activate_non_admins,
             nostrConfigured=settings.is_nostr_notifications_configured(),
+            emailConfigured=settings.lnbits_email_notifications_enabled,
             telegramConfigured=settings.is_telegram_notifications_configured(),
             walletFeaturedButtonLabel=settings.lnbits_wallet_featured_button_label,
             walletFeaturedButtonUrl=settings.lnbits_wallet_featured_button_url,
