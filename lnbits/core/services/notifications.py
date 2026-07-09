@@ -237,6 +237,15 @@ async def send_email(
         return False
 
 
+async def dispatch_payment_notification(payment: Payment) -> None:
+    """
+    This worker dispatches the payment notifications.
+    """
+    wallet = await get_wallet(payment.wallet_id)
+    if wallet:
+        await send_payment_notification(wallet, payment)
+
+
 async def dispatch_webhook(payment: Payment):
     """
     Dispatches the webhook to the webhook url.

@@ -3,6 +3,7 @@ from pathlib import Path
 import pytest
 from httpx import AsyncClient
 
+from lnbits.core.crud.settings import get_settings_field, set_settings_field
 from lnbits.server import server_restart
 from lnbits.settings import Settings
 
@@ -81,7 +82,8 @@ async def test_admin_audit_monitor_and_test_email(
         headers={"Authorization": f"Bearer {superuser_token}"},
     )
     assert monitor.status_code == 200
-    assert "invoice_listeners" in monitor.json()
+    task_names = [t["name"] for t in monitor.json()]
+    assert any("invoice_listener" in name for name in task_names)
 
     test_email = await client.get(
         "/admin/api/v1/testemail",
@@ -150,6 +152,15 @@ async def test_admin_partial_reset_restart_and_backup(
 async def test_admin_delete_settings_requires_superuser(
     client: AsyncClient, superuser_token: str
 ):
+    await set_settings_field("lnbits_site_title", "Reset me")
+    await set_settings_field("lnbits_backend_wallet_class", "BoltzWallet")
+    await set_settings_field("boltz_mnemonic", "keep boltz seed")
+    await set_settings_field("boltz_mnemonic_backup_confirmed", True)
+    await set_settings_field("phoenixd_mnemonic", "keep phoenixd seed")
+    await set_settings_field("phoenixd_mnemonic_backup_confirmed", True)
+    await set_settings_field("spark_l2_mnemonic", "keep spark seed")
+    await set_settings_field("spark_l2_mnemonic_backup_confirmed", True)
+
     server_restart.clear()
     response = await client.delete(
         "/admin/api/v1/settings",
@@ -157,4 +168,21 @@ async def test_admin_delete_settings_requires_superuser(
     )
     assert response.status_code == 200
     assert server_restart.is_set() is True
+    assert await get_settings_field("lnbits_site_title") is None
+
+    backend_wallet = await get_settings_field("lnbits_backend_wallet_class")
+    boltz_seed = await get_settings_field("boltz_mnemonic")
+    boltz_confirmed = await get_settings_field("boltz_mnemonic_backup_confirmed")
+    phoenixd_seed = await get_settings_field("phoenixd_mnemonic")
+    phoenixd_confirmed = await get_settings_field("phoenixd_mnemonic_backup_confirmed")
+    spark_l2_seed = await get_settings_field("spark_l2_mnemonic")
+    spark_l2_confirmed = await get_settings_field("spark_l2_mnemonic_backup_confirmed")
+    assert backend_wallet and backend_wallet.value == "BoltzWallet"
+    assert boltz_seed and boltz_seed.value == "keep boltz seed"
+    assert boltz_confirmed and boltz_confirmed.value is True
+    assert phoenixd_seed and phoenixd_seed.value == "keep phoenixd seed"
+    assert phoenixd_confirmed and phoenixd_confirmed.value is True
+    assert spark_l2_seed and spark_l2_seed.value == "keep spark seed"
+    assert spark_l2_confirmed and spark_l2_confirmed.value is True
+
     server_restart.clear()

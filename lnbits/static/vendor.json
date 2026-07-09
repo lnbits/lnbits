@@ -58,6 +58,7 @@
     "js/pages/users.js",
     "js/pages/account.js",
     "js/pages/admin.js",
+    "js/components/admin/lnbits-admin-funding-seed-backup.js",
     "js/components/admin/lnbits-admin-funding.js",
     "js/components/admin/lnbits-admin-funding-sources.js",
     "js/components/admin/lnbits-admin-fiat-providers.js",

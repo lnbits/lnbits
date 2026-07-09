@@ -414,12 +414,19 @@ window.PageWallet = {
             switch (action.tag) {
               case 'url':
                 Quasar.Notify.create({
-                  message: `<a target="_blank" style="color: inherit" href="${action.url}">${action.url}</a>`,
+                  message: action.url,
                   caption: action.description,
-                  html: true,
+                  html: false,
                   type: 'positive',
                   timeout: 0,
-                  closeBtn: true
+                  closeBtn: true,
+                  actions: [
+                    {
+                      label: 'Open link',
+                      color: 'white',
+                      handler: () => this.utils.openUrlInNewTab(action.url)
+                    }
+                  ]
                 })
                 break
               case 'message':
@@ -431,15 +438,29 @@ window.PageWallet = {
                 })
                 break
               case 'aes':
-                this.utils.decryptLnurlPayAES(action, response.data.preimage)
-                Quasar.Notify.create({
-                  message: value,
-                  caption: extra.success_action.description,
-                  html: true,
-                  type: 'positive',
-                  timeout: 0,
-                  closeBtn: true
-                })
+                this.utils
+                  .decryptLnurlPayAES(action, response.data.preimage)
+                  .then(value => {
+                    Quasar.Notify.create({
+                      message: value,
+                      caption: action.description,
+                      html: false,
+                      type: 'positive',
+                      timeout: 0,
+                      closeBtn: true
+                    })
+                  })
+                  .catch(error => {
+                    Quasar.Notify.create({
+                      message: action.description || 'Payment successful.',
+                      caption: 'Could not decrypt success action.',
+                      html: false,
+                      type: 'warning',
+                      timeout: 0,
+                      closeBtn: true
+                    })
+                  })
+                break
             }
           }
         })

@@ -199,6 +199,7 @@
                 >
                   <q-tab-panel name="funding">
                     <lnbits-admin-funding
+                      :active="tab === 'funding'"
                       :is-super-user="isSuperUser"
                       :settings="settings"
                       :form-data="formData"

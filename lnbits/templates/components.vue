@@ -1,4 +1,5 @@
-{% include('components/admin/funding.vue') %} {%
+{% include('components/admin/funding_seed_backup.vue') %} {%
+include('components/admin/funding.vue') %} {%
 include('components/admin/funding_sources.vue') %} {%
 include('components/admin/fiat_providers.vue') %} {%
 include('components/admin/exchange_providers.vue') %} {%
