@@ -28,7 +28,7 @@ from lnbits.settings import set_cli_settings, settings
     "--reload", is_flag=True, default=False, help="Enable auto-reload for development"
 )
 @click.option("--ws-max-queue", default=128, help="Websocket max queue size")
-@click.option("--ws-ping-timeout", default=900.0, help="Websocket ping timeout")
+@click.option("--ws-ping-timeout", default=300.0, help="Websocket ping timeout")
 def main(
     port: int,
     host: str,
