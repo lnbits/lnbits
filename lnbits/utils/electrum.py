@@ -47,9 +47,12 @@ def scripthash_from_scriptpubkey(scriptpubkey: bytes) -> str:
 def address_to_scriptpubkey(address: str) -> bytes:
     """Convert a Bitcoin address (P2PKH/P2SH/P2WPKH/P2WSH/P2TR) to scriptPubKey."""
     try:
-        return Script.from_address(address).data
+        script = Script.from_address(address)
     except Exception as exc:
         raise ValueError(f"Invalid address: {address!r}") from exc
+    if script is None:
+        raise ValueError(f"Invalid address: {address!r}")
+    return script.data
 
 
 def scripthash_from_address(address: str) -> str:
@@ -854,11 +857,11 @@ class TransactionTracker:
         self.url = url
         self._queues: list[asyncio.Queue[OnchainTxEvent]] = []
 
-    def register_queue(self, queue: "asyncio.Queue[OnchainTxEvent]") -> None:
+    def register_queue(self, queue: asyncio.Queue[OnchainTxEvent]) -> None:
         """Register a per-connection queue to receive events for this tx."""
         self._queues.append(queue)
 
-    def unregister_queue(self, queue: "asyncio.Queue[OnchainTxEvent]") -> None:
+    def unregister_queue(self, queue: asyncio.Queue[OnchainTxEvent]) -> None:
         """Deregister a per-connection queue."""
         if queue in self._queues:
             self._queues.remove(queue)
