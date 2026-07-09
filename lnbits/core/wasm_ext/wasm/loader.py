@@ -22,7 +22,6 @@ class WasmExtension:
     module_path: Path
     wit_path: Path | None
     world: str
-    host_api: str
     exports: list[WasmExtensionExport]
     config: WasmExtensionConfig
 
@@ -69,7 +68,6 @@ def load_wasm_extension(ext_id: str) -> WasmExtension:
         module_path=module_path,
         wit_path=wit_path,
         world=config.wasm.world,
-        host_api=config.wasm.host_api,
         exports=config.wasm.exports,
         config=config,
     )

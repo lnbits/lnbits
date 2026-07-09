@@ -244,6 +244,18 @@ class WasmInvocationStats(BaseModel):
     wallet_call_count: int = 0
 
 
+class WasmRuntimeLimitsUpdate(BaseModel):
+    limits: dict[str, Any] = Field(default_factory=dict)
+
+
+class WasmRuntimeLimitsInfo(BaseModel):
+    id: str
+    name: str
+    active: bool | None = False
+    wasm_runtime_limits: dict[str, int] = Field(default_factory=dict)
+    effective_wasm_runtime_limits: dict[str, int] = Field(default_factory=dict)
+
+
 class ExtensionRelease(BaseModel):
     name: str
     version: str
@@ -419,6 +431,7 @@ class InstallableExtension(BaseModel):
     stars: int = 0
     meta: ExtensionMeta | None = None
     permissions: list[ExtensionPermission] = []
+    wasm_runtime_limits: dict = Field(default_factory=dict, no_database=True)
 
     @property
     def hash(self) -> str:

@@ -60,6 +60,29 @@ def test_wasm_extension_config_rejects_coerced_scalar_types():
         parse_wasm_extension_config("demoext", config)
 
 
+@pytest.mark.parametrize(
+    "config_update",
+    [
+        {"wasm": {"module": "extension.wasm", "host_api": "custom.HostAPI"}},
+        {
+            "wasm": {
+                "module": "extension.wasm",
+                "resource_limits": {"max_response_bytes": 1024},
+            }
+        },
+        {"build": {"source": "dev", "command": "npm run build"}},
+    ],
+)
+def test_wasm_extension_config_rejects_removed_extension_control_fields(
+    config_update: dict[str, Any],
+):
+    config = _wasm_config("demoext")
+    config.update(config_update)
+
+    with pytest.raises(ValueError, match="extra fields not permitted"):
+        parse_wasm_extension_config("demoext", config)
+
+
 def test_wasm_extension_config_accepts_supported_optional_sections():
     config = _wasm_config("demoext")
     config.update(
@@ -71,12 +94,10 @@ def test_wasm_extension_config_accepts_supported_optional_sections():
                 "module": "wasm/module.wasm",
                 "wit": "wasm/lnbits-extension.wit",
                 "world": "lnbits-extension",
-                "host_api": "lnbits.core.extensions.ExtensionAPI",
                 "exports": [
                     {"name": "render", "visibility": "public"},
                     {"name": "on_invoice_paid", "visibility": "event"},
                 ],
-                "resource_limits": {"max_response_bytes": 1024},
             },
             "events": {"onInvoicePaid": "on_invoice_paid"},
             "ui": {"entrypoint": "static/index.html", "sandbox": True},
@@ -99,18 +120,13 @@ def test_wasm_extension_config_accepts_supported_optional_sections():
                 }
             ],
             "permissions": [{"id": "utils.basic", "description": "Basic utils"}],
-            "build": {
-                "source": "dev",
-                "command": "npm run build",
-                "output": "wasm/module.wasm",
-            },
         }
     )
 
     parsed = parse_wasm_extension_config("demoext", config)
 
     assert parsed.events.on_invoice_paid == "on_invoice_paid"
-    assert parsed.wasm.resource_limits.max_response_bytes == 1024
+    assert parsed.wasm.world == "lnbits-extension"
 
 
 def test_install_time_permission_validation_rejects_config_id_mismatch():
@@ -175,7 +191,6 @@ def _wasm_extension(ext_id: str, root_path: Path) -> WasmExtension:
         module_path=root_path / "extension.wasm",
         wit_path=None,
         world="",
-        host_api="",
         exports=[],
         config=config,
     )

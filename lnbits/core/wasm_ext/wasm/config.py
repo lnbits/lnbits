@@ -7,10 +7,8 @@ from pydantic import (
     BaseModel,
     Field,
     StrictBool,
-    StrictInt,
     StrictStr,
     ValidationError,
-    validator,
 )
 
 from lnbits.core.models.extensions import ExtensionPermission
@@ -29,25 +27,11 @@ class WasmExtensionExport(_StrictWasmModel):
     visibility: Literal["authenticated", "event", "public"]
 
 
-class WasmResourceLimits(_StrictWasmModel):
-    max_memory_bytes: StrictInt | None = None
-    max_execution_ms: StrictInt | None = None
-    max_response_bytes: StrictInt | None = None
-
-    @validator("max_memory_bytes", "max_execution_ms", "max_response_bytes")
-    def validate_positive_limit(cls, value: int | None) -> int | None:
-        if value is not None and value <= 0:
-            raise ValueError("resource limits must be positive integers")
-        return value
-
-
 class WasmRuntimeConfig(_StrictWasmModel):
     module: StrictStr
     wit: StrictStr | None = None
     world: StrictStr = ""
-    host_api: StrictStr = "lnbits.core.wasm_ext.ExtensionHostAPI"
     exports: list[WasmExtensionExport] = Field(default_factory=list)
-    resource_limits: WasmResourceLimits = Field(default_factory=WasmResourceLimits)
 
 
 class WasmUIConfig(_StrictWasmModel):
@@ -57,12 +41,6 @@ class WasmUIConfig(_StrictWasmModel):
 
 class WasmSDKConfig(_StrictWasmModel):
     frontend_js: StrictStr | None = None
-
-
-class WasmBuildConfig(_StrictWasmModel):
-    source: StrictStr | None = None
-    command: StrictStr | None = None
-    output: StrictStr | None = None
 
 
 class WasmUIRouteConfig(_StrictWasmModel):
@@ -102,7 +80,6 @@ class WasmExtensionConfig(_StrictWasmModel):
     ui_routes: list[WasmUIRouteConfig] = Field(default_factory=list)
     api_routes: list[WasmAPIRouteConfig] = Field(default_factory=list)
     permissions: list[ExtensionPermission] = Field(default_factory=list)
-    build: WasmBuildConfig | None = None
 
 
 def parse_wasm_extension_config(

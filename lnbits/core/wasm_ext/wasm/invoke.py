@@ -18,6 +18,7 @@ from .host import add_extension_host_imports
 from .loader import WasmExtension
 
 _WASM_EPOCH_DEADLINE_TICKS = 1_000_000_000
+_WASM_UNLIMITED_FUEL = 2**63 - 1
 
 
 async def invoke_wasm_extension_export(
@@ -43,14 +44,22 @@ async def invoke_wasm_extension_export(
     from lnbits.core.services.extensions import (
         finish_wasm_invocation,
         get_wasm_invocation_stop_reason,
+        resolve_wasm_runtime_limits,
         start_wasm_invocation,
         stop_wasm_invocation,
         wasm_invocation_stop_requested,
     )
 
     extension = _get_registered_extension(ext_id)
-    permissions = await _extension_permissions(extension)
+    installed_extension = await _active_installed_extension(extension)
+    permissions = installed_extension.permissions
+    limits = resolve_wasm_runtime_limits(installed_extension)
     payload = payload or {}
+    payload_size = _json_size(payload)
+    effective_request_bytes = (
+        request_bytes if request_bytes is not None else payload_size
+    )
+    _check_wasm_request_size(effective_request_bytes, limits)
     invocation = await start_wasm_invocation(
         extension_id=extension.id,
         export_name=export_name,
@@ -63,10 +72,9 @@ async def invoke_wasm_extension_export(
         event_type=event_type,
         payment_hash=payment_hash,
         checking_id=checking_id,
-        request_bytes=(
-            request_bytes if request_bytes is not None else _json_size(payload)
-        ),
+        request_bytes=effective_request_bytes,
         context={"host_context": context, **(context_data or {})},
+        runtime_limits=limits,
     )
     api = ExtensionHostAPI(
         extension.id,
@@ -76,6 +84,7 @@ async def invoke_wasm_extension_export(
         context=context,
         owner_id=owner_id,
         invocation_id=invocation.id,
+        runtime_limits=limits,
     )
     event_loop = asyncio.get_running_loop()
     thread_task = asyncio.create_task(
@@ -87,15 +96,16 @@ async def invoke_wasm_extension_export(
             api,
             event_loop,
             invocation.id,
+            limits,
         )
     )
-    max_execution_ms = extension.config.wasm.resource_limits.max_execution_ms
+    max_execution_ms = limits["wasm_runtime_max_execution_ms"]
     timed_out = False
     finished = False
 
     try:
         try:
-            if max_execution_ms:
+            if max_execution_ms > 0:
                 result = await asyncio.wait_for(
                     asyncio.shield(thread_task),
                     timeout=max_execution_ms / 1000,
@@ -166,12 +176,14 @@ def _invoke_wasm_extension_export_sync(
     api: ExtensionHostAPI,
     event_loop: asyncio.AbstractEventLoop,
     invocation_id: str,
+    limits: dict[str, int],
 ) -> dict[str, Any]:
     from lnbits.core.services.extensions import attach_wasm_invocation_runtime
 
-    engine = _wasm_engine()
+    engine = _wasm_engine(limits["wasm_runtime_max_wasm_stack_bytes"])
     store = Store(engine)
-    _set_store_limits(store, extension)
+    _set_store_limits(store, limits)
+    _set_store_fuel(store, limits)
     store.set_epoch_deadline(_WASM_EPOCH_DEADLINE_TICKS)
     attach_wasm_invocation_runtime(invocation_id, engine=engine, store=store)
     store.set_wasi(WasiConfig())
@@ -180,7 +192,7 @@ def _invoke_wasm_extension_export_sync(
     linker.add_wasip2()
     add_extension_host_imports(linker, ExtensionAPIHost(api), event_loop)
 
-    wasm_component = _wasm_component(extension)
+    wasm_component = _wasm_component(extension, limits)
     instance = linker.instantiate(store, wasm_component)
     function = instance.get_func(store, export_name)
     if not function:
@@ -190,17 +202,17 @@ def _invoke_wasm_extension_export_sync(
 
     result = function(store, json.dumps(payload))
     function.post_return(store)
-    return _parse_wasm_export_result(extension, result)
+    return _parse_wasm_export_result(result, limits)
 
 
-def _parse_wasm_export_result(extension: WasmExtension, value: Any) -> dict[str, Any]:
+def _parse_wasm_export_result(value: Any, limits: dict[str, int]) -> dict[str, Any]:
     if isinstance(value, bytes):
         value = value.decode()
     if not isinstance(value, str):
         return {"ok": True, "data": value}
 
-    max_response_bytes = extension.config.wasm.resource_limits.max_response_bytes
-    if max_response_bytes is not None:
+    max_response_bytes = limits["wasm_runtime_max_response_bytes"]
+    if max_response_bytes > 0:
         response_size = len(value.encode())
         if response_size > max_response_bytes:
             raise ValueError(
@@ -220,7 +232,7 @@ def _get_registered_extension(ext_id: str) -> WasmExtension:
     raise RuntimeError(f"WASM extension '{ext_id}' is not registered.")
 
 
-async def _extension_permissions(extension: WasmExtension) -> list[Any]:
+async def _active_installed_extension(extension: WasmExtension) -> Any:
     installed_extension = await get_installed_extension(extension.id)
     if (
         not installed_extension
@@ -228,17 +240,39 @@ async def _extension_permissions(extension: WasmExtension) -> list[Any]:
         or not installed_extension.active
     ):
         raise PermissionError(f"WASM extension '{extension.id}' is deactivated.")
-    return installed_extension.permissions
+    return installed_extension
 
 
 def _user_id(user: Any | None) -> str | None:
     return getattr(user, "id", None) if user else None
 
 
-def _set_store_limits(store: Any, extension: WasmExtension) -> None:
-    max_memory_bytes = extension.config.wasm.resource_limits.max_memory_bytes
-    if max_memory_bytes is not None:
-        store.set_limits(memory_size=max_memory_bytes)
+def _set_store_limits(store: Any, limits: dict[str, int]) -> None:
+    store.set_limits(
+        memory_size=_wasm_limit(limits["wasm_runtime_max_memory_bytes"]),
+        table_elements=_wasm_limit(limits["wasm_runtime_max_table_elements"]),
+        instances=_wasm_limit(limits["wasm_runtime_max_instances"]),
+        tables=_wasm_limit(limits["wasm_runtime_max_tables"]),
+        memories=_wasm_limit(limits["wasm_runtime_max_memories"]),
+    )
+
+
+def _set_store_fuel(store: Any, limits: dict[str, int]) -> None:
+    store.set_fuel(
+        limits["wasm_runtime_max_fuel"]
+        if limits["wasm_runtime_max_fuel"] > 0
+        else _WASM_UNLIMITED_FUEL
+    )
+
+
+def _check_wasm_request_size(request_bytes: int, limits: dict[str, int]) -> None:
+    max_request_bytes = limits["wasm_runtime_max_request_bytes"]
+    if max_request_bytes > 0 and request_bytes > max_request_bytes:
+        raise ValueError(f"WASM extension request is too large: {request_bytes} bytes.")
+
+
+def _wasm_limit(value: int) -> int:
+    return value if value > 0 else -1
 
 
 def _json_size(value: Any) -> int:

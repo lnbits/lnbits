@@ -873,3 +873,13 @@ async def m047_create_wasm_invocations_table(db: Connection):
         CREATE INDEX IF NOT EXISTS idx_wasm_invocations_started
         ON wasm_invocations (started_at);
         """)
+
+
+async def m048_add_wasm_runtime_limits_to_installed_extensions(db: Connection):
+    """
+    Adds per-extension WASM runtime limit overrides.
+    """
+    await db.execute(
+        "ALTER TABLE installed_extensions "
+        "ADD COLUMN wasm_runtime_limits TEXT DEFAULT '{}'"
+    )

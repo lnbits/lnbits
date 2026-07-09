@@ -7,7 +7,7 @@ from pytest_mock.plugin import MockerFixture
 from lnbits.core.models.extensions import ExtensionPermission
 from lnbits.core.wasm_ext.api.permissions import validate_wasm_extension_permissions
 from lnbits.core.wasm_ext.wasm.events import _wasm_invoice_paid_owner_id
-from lnbits.core.wasm_ext.wasm.invoke import _extension_permissions
+from lnbits.core.wasm_ext.wasm.invoke import _active_installed_extension
 from tests.helpers import make_installable_extension
 
 
@@ -195,7 +195,7 @@ async def test_wasm_invocation_requires_installed_active_extension(
     )
 
     with pytest.raises(PermissionError, match="deactivated"):
-        await _extension_permissions(cast(Any, extension))
+        await _active_installed_extension(cast(Any, extension))
 
 
 def _wasm_config(ext_id: str, permissions: list[dict]) -> dict:

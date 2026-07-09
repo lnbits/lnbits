@@ -110,6 +110,11 @@ const routes = [
     component: PageAdmin
   },
   {
+    path: '/admin/extensions/wasm/limits/:extId',
+    name: 'AdminWasmLimitConfigDetail',
+    component: PageAdmin
+  },
+  {
     path: '/admin/extensions/wasm/:extId',
     name: 'AdminWasmRuntimeDetail',
     component: PageAdmin

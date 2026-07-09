@@ -1,6 +1,7 @@
 import asyncio
 import importlib
 import re
+from collections.abc import Mapping
 from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
 from threading import RLock
@@ -25,6 +26,7 @@ from lnbits.core.crud.extensions import (
     get_wasm_invocation,
     mark_stale_wasm_invocations,
     update_installed_extension,
+    update_installed_extension_wasm_runtime_limits,
     update_wasm_invocation,
 )
 from lnbits.core.crud.extensions import (
@@ -37,7 +39,7 @@ from lnbits.core.helpers import migrate_extension_database
 from lnbits.core.wasm_ext.api.permissions import validate_wasm_extension_permissions
 from lnbits.core.wasm_ext.wasm.loader import is_wasm_extension_id
 from lnbits.db import Connection
-from lnbits.settings import settings
+from lnbits.settings import WasmRuntimeLimits, settings
 
 from ..models.extensions import (
     Extension,
@@ -49,6 +51,7 @@ from ..models.extensions import (
 )
 
 _WASM_INVOCATION_CLEANUP_INTERVAL = timedelta(hours=1)
+WASM_RUNTIME_LIMIT_FIELDS = tuple(WasmRuntimeLimits.__fields__.keys())
 
 
 @dataclass
@@ -56,6 +59,7 @@ class WasmInvocationHandle:
     invocation: WasmInvocation
     engine: Any | None = None
     store: Any | None = None
+    runtime_limits: dict[str, int] | None = None
     stop_requested: bool = False
     stop_reason: str | None = None
 
@@ -65,6 +69,118 @@ _wasm_invocation_ready_lock = asyncio.Lock()
 _wasm_invocation_handles: dict[str, WasmInvocationHandle] = {}
 _wasm_invocations_marked_stale = False
 _wasm_invocations_last_cleanup_at: datetime | None = None
+
+
+def wasm_runtime_limit_defaults() -> dict[str, int]:
+    return {field: int(getattr(settings, field)) for field in WASM_RUNTIME_LIMIT_FIELDS}
+
+
+def validate_wasm_runtime_limit_overrides(
+    limits: Mapping[str, Any] | None,
+    *,
+    strict: bool = True,
+) -> dict[str, int]:
+    if not limits:
+        return {}
+
+    validated: dict[str, int] = {}
+    for field, raw_value in limits.items():
+        if field not in WASM_RUNTIME_LIMIT_FIELDS:
+            if strict:
+                raise ValueError(f"Unknown WASM runtime limit field '{field}'.")
+            continue
+
+        value = _validate_wasm_runtime_limit_value(field, raw_value, strict=strict)
+        if value is None:
+            continue
+        validated[field] = value
+
+    return validated
+
+
+def _validate_wasm_runtime_limit_value(
+    field: str,
+    raw_value: Any,
+    *,
+    strict: bool,
+) -> int | None:
+    if raw_value is None or raw_value == "":
+        return None
+    if isinstance(raw_value, bool):
+        return _invalid_wasm_runtime_limit(field, strict, "must be an integer")
+    if isinstance(raw_value, str):
+        raw_value = raw_value.strip()
+        if raw_value == "":
+            return None
+        if not raw_value.isdecimal():
+            return _invalid_wasm_runtime_limit(field, strict, "must be an integer")
+    if isinstance(raw_value, float) and not raw_value.is_integer():
+        return _invalid_wasm_runtime_limit(field, strict, "must be an integer")
+
+    try:
+        value = int(raw_value)
+    except (TypeError, ValueError) as exc:
+        return _invalid_wasm_runtime_limit(
+            field,
+            strict,
+            "must be an integer",
+            exc=exc,
+        )
+    if value < 0:
+        return _invalid_wasm_runtime_limit(field, strict, "cannot be negative")
+    return value
+
+
+def _invalid_wasm_runtime_limit(
+    field: str,
+    strict: bool,
+    message: str,
+    *,
+    exc: Exception | None = None,
+) -> None:
+    if not strict:
+        return None
+    error = ValueError(f"WASM runtime limit '{field}' {message}.")
+    if exc:
+        raise error from exc
+    raise error
+
+
+def resolve_wasm_runtime_limits(
+    installed_extension: InstallableExtension | None = None,
+) -> dict[str, int]:
+    limits = wasm_runtime_limit_defaults()
+    if installed_extension:
+        limits.update(
+            validate_wasm_runtime_limit_overrides(
+                installed_extension.wasm_runtime_limits,
+                strict=False,
+            )
+        )
+    return limits
+
+
+async def get_wasm_runtime_limits_for_extension(ext_id: str) -> dict[str, int]:
+    installed_extension = await get_installed_extension(ext_id)
+    return resolve_wasm_runtime_limits(installed_extension)
+
+
+async def update_wasm_extension_runtime_limits(
+    ext_id: str,
+    limits: Mapping[str, Any] | None,
+) -> dict[str, int]:
+    installed_extension = await get_installed_extension(ext_id)
+    if not installed_extension:
+        raise ValueError(f"Extension '{ext_id}' is not installed.")
+    if not installed_extension.is_wasm:
+        raise ValueError(f"Extension '{ext_id}' is not a WASM extension.")
+
+    validated_limits = validate_wasm_runtime_limit_overrides(limits)
+    await update_installed_extension_wasm_runtime_limits(
+        ext_id=ext_id,
+        limits=validated_limits,
+    )
+    return validated_limits
 
 
 async def install_extension(
@@ -84,6 +200,8 @@ async def install_extension(
     installed_ext = await get_installed_extension(ext_info.id)
     if installed_ext and installed_ext.meta:
         ext_info.meta.payments = installed_ext.meta.payments
+    if installed_ext:
+        ext_info.wasm_runtime_limits = installed_ext.wasm_runtime_limits
 
     await check_extensions_limit(installed_ext)
 
@@ -162,8 +280,14 @@ async def start_wasm_invocation(
     checking_id: str | None = None,
     request_bytes: int | None = None,
     context: dict | None = None,
+    runtime_limits: dict[str, int] | None = None,
 ) -> WasmInvocation:
     await ensure_wasm_invocation_monitoring_ready()
+    _check_wasm_invocation_concurrency(
+        extension_id=extension_id,
+        user_id=user_id,
+        limits=runtime_limits,
+    )
 
     invocation = WasmInvocation(
         id=uuid4().hex,
@@ -184,7 +308,10 @@ async def start_wasm_invocation(
     await create_wasm_invocation(invocation)
 
     with _wasm_invocation_lock:
-        _wasm_invocation_handles[invocation.id] = WasmInvocationHandle(invocation)
+        _wasm_invocation_handles[invocation.id] = WasmInvocationHandle(
+            invocation,
+            runtime_limits=runtime_limits,
+        )
 
     return invocation
 
@@ -226,6 +353,8 @@ def record_wasm_invocation_host_call(
             invocation.storage_call_count += 1
         elif category == "wallet":
             invocation.wallet_call_count += 1
+
+        _check_wasm_host_call_limit(invocation, category, handle.runtime_limits)
 
 
 async def stop_wasm_invocation(
@@ -336,6 +465,84 @@ def get_current_wasm_invocations(
     return sorted(
         invocations, key=lambda invocation: invocation.started_at, reverse=True
     )
+
+
+def _check_wasm_invocation_concurrency(
+    *,
+    extension_id: str,
+    user_id: str | None,
+    limits: dict[str, int] | None,
+) -> None:
+    if not limits:
+        return
+
+    with _wasm_invocation_lock:
+        handles = list(_wasm_invocation_handles.values())
+        if _wasm_limit_exceeded(
+            limits["wasm_runtime_max_concurrent_invocations"],
+            len(handles) + 1,
+        ):
+            raise ValueError("WASM runtime has too many active invocations.")
+
+        extension_invocations = sum(
+            1 for handle in handles if handle.invocation.extension_id == extension_id
+        )
+        if _wasm_limit_exceeded(
+            limits["wasm_runtime_max_concurrent_invocations_per_extension"],
+            extension_invocations + 1,
+        ):
+            raise ValueError(
+                f"WASM extension '{extension_id}' has too many active invocations."
+            )
+
+        if not user_id:
+            return
+
+        user_invocations = sum(
+            1 for handle in handles if handle.invocation.user_id == user_id
+        )
+        if _wasm_limit_exceeded(
+            limits["wasm_runtime_max_concurrent_invocations_per_user"],
+            user_invocations + 1,
+        ):
+            raise ValueError("WASM user has too many active invocations.")
+
+
+def _check_wasm_host_call_limit(
+    invocation: WasmInvocation,
+    category: str,
+    limits: dict[str, int] | None,
+) -> None:
+    if not limits:
+        return
+
+    if _wasm_limit_exceeded(
+        limits["wasm_runtime_max_host_calls"],
+        invocation.host_call_count,
+    ):
+        raise ValueError("WASM host call limit exceeded.")
+
+    category_limits = {
+        "http": (
+            limits["wasm_runtime_max_http_calls"],
+            invocation.http_call_count,
+        ),
+        "storage": (
+            limits["wasm_runtime_max_storage_calls"],
+            invocation.storage_call_count,
+        ),
+        "wallet": (
+            limits["wasm_runtime_max_wallet_calls"],
+            invocation.wallet_call_count,
+        ),
+    }
+    category_limit = category_limits.get(category)
+    if category_limit and _wasm_limit_exceeded(*category_limit):
+        raise ValueError(f"WASM {category} host call limit exceeded.")
+
+
+def _wasm_limit_exceeded(limit: int, value: int) -> bool:
+    return limit > 0 and value > limit
 
 
 async def get_wasm_invocation_history(

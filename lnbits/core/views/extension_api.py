@@ -31,6 +31,8 @@ from lnbits.core.models.extensions import (
     UserExtensionInfo,
     WasmInvocation,
     WasmInvocationStats,
+    WasmRuntimeLimitsInfo,
+    WasmRuntimeLimitsUpdate,
     wasm_extension_icon_url,
 )
 from lnbits.core.models.users import Account, AccountId
@@ -44,8 +46,11 @@ from lnbits.core.services.extensions import (
     get_wasm_invocation_history,
     get_wasm_invocation_summary,
     install_extension,
+    resolve_wasm_runtime_limits,
     stop_wasm_invocation,
     uninstall_extension,
+    update_wasm_extension_runtime_limits,
+    validate_wasm_runtime_limit_overrides,
 )
 from lnbits.core.wasm_ext.api.permissions import validate_extension_permissions
 from lnbits.db import Page
@@ -184,6 +189,58 @@ async def api_get_wasm_invocation_stats(
 async def api_stop_wasm_invocation(invocation_id: str) -> SimpleStatus:
     await stop_wasm_invocation(invocation_id, reason="Stopped by admin.")
     return SimpleStatus(success=True, message="WASM invocation stop requested.")
+
+
+@extension_router.get(
+    "/wasm/runtime-limits/extensions",
+    dependencies=[Depends(check_admin)],
+)
+async def api_get_wasm_runtime_limit_extensions() -> list[WasmRuntimeLimitsInfo]:
+    installed_extensions = await get_installed_extensions()
+    return [
+        WasmRuntimeLimitsInfo(
+            id=extension.id,
+            name=extension.name,
+            active=extension.active,
+            wasm_runtime_limits=validate_wasm_runtime_limit_overrides(
+                extension.wasm_runtime_limits,
+                strict=False,
+            ),
+            effective_wasm_runtime_limits=resolve_wasm_runtime_limits(extension),
+        )
+        for extension in installed_extensions
+        if extension.is_wasm
+    ]
+
+
+@extension_router.put(
+    "/wasm/runtime-limits/{ext_id}",
+    dependencies=[Depends(check_admin)],
+)
+async def api_update_wasm_runtime_limits(
+    ext_id: str,
+    data: WasmRuntimeLimitsUpdate,
+) -> WasmRuntimeLimitsInfo:
+    try:
+        wasm_runtime_limits = await update_wasm_extension_runtime_limits(
+            ext_id, data.limits
+        )
+        extension = await get_installed_extension(ext_id)
+        if not extension:
+            raise ValueError(f"Extension '{ext_id}' is not installed.")
+        extension.wasm_runtime_limits = wasm_runtime_limits
+        return WasmRuntimeLimitsInfo(
+            id=extension.id,
+            name=extension.name,
+            active=extension.active,
+            wasm_runtime_limits=wasm_runtime_limits,
+            effective_wasm_runtime_limits=resolve_wasm_runtime_limits(extension),
+        )
+    except ValueError as exc:
+        raise HTTPException(
+            status_code=HTTPStatus.BAD_REQUEST,
+            detail=str(exc),
+        ) from exc
 
 
 @extension_router.get("/{ext_id}/details")

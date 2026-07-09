@@ -35,6 +35,9 @@ async def send_extension_api_request(
     user_id: str | None,
     access_token: str | None,
     request: ExtensionApiRequest,
+    *,
+    timeout_ms: int | None = None,
+    max_response_bytes: int | None = None,
 ) -> HttpResponse:
     if not user_id:
         raise PermissionError("Extension API requests require authentication.")
@@ -55,7 +58,7 @@ async def send_extension_api_request(
     try:
         async with httpx.AsyncClient(
             follow_redirects=False,
-            timeout=EXTENSION_API_TIMEOUT_SECONDS,
+            timeout=_timeout_seconds(timeout_ms, EXTENSION_API_TIMEOUT_SECONDS),
             trust_env=False,
         ) as client:
             async with client.stream(
@@ -64,7 +67,10 @@ async def send_extension_api_request(
                 headers={"Authorization": f"Bearer {access_token}"},
                 content=body,
             ) as response:
-                response_body = await _read_limited_response(response)
+                response_body = await _read_limited_response(
+                    response,
+                    max_response_bytes=max_response_bytes,
+                )
                 return HttpResponse(
                     status_code=response.status_code,
                     headers=_response_headers(dict(response.headers)),
@@ -177,15 +183,32 @@ def _extension_api_path(path: str) -> str:
     return urlunsplit(("", "", parts.path, parts.query, ""))
 
 
-async def _read_limited_response(response: httpx.Response) -> bytes:
+async def _read_limited_response(
+    response: httpx.Response,
+    *,
+    max_response_bytes: int | None = None,
+) -> bytes:
+    limit = (
+        EXTENSION_API_MAX_RESPONSE_BYTES
+        if max_response_bytes is None
+        else max_response_bytes
+    )
     chunks: list[bytes] = []
     size = 0
     async for chunk in response.aiter_bytes():
         size += len(chunk)
-        if size > EXTENSION_API_MAX_RESPONSE_BYTES:
+        if limit > 0 and size > limit:
             raise ValueError("Extension API response is too large.")
         chunks.append(chunk)
     return b"".join(chunks)
+
+
+def _timeout_seconds(timeout_ms: int | None, default: float) -> float | None:
+    if timeout_ms is None:
+        return default
+    if timeout_ms <= 0:
+        return None
+    return timeout_ms / 1000
 
 
 def _response_headers(headers: dict[str, str]) -> dict[str, str]:

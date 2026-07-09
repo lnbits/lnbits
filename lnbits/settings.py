@@ -83,7 +83,7 @@ class ExtensionsSettings(LNbitsSettings):
 
 
 class WasmRuntimeLimits(LNbitsSettings):
-    # 0 means no global limit. Extension config can only request narrower limits.
+    # 0 disables the limit. Installed WASM extensions may override these defaults.
     wasm_runtime_max_memory_bytes: int = Field(default=64 * 1024 * 1024, ge=0)
     wasm_runtime_max_execution_ms: int = Field(default=5_000, ge=0)
     wasm_runtime_max_fuel: int = Field(default=100_000_000, ge=0)
@@ -92,7 +92,7 @@ class WasmRuntimeLimits(LNbitsSettings):
     wasm_runtime_max_wasm_stack_bytes: int = Field(default=1024 * 1024, ge=0)
 
     wasm_runtime_max_table_elements: int = Field(default=10_000, ge=0)
-    wasm_runtime_max_instances: int = Field(default=1, ge=0)
+    wasm_runtime_max_instances: int = Field(default=8, ge=0)
     wasm_runtime_max_tables: int = Field(default=10, ge=0)
     wasm_runtime_max_memories: int = Field(default=1, ge=0)
 

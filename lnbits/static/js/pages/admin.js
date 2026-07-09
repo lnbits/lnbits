@@ -45,7 +45,7 @@ window.PageAdmin = {
   },
   methods: {
     adminTabFromRoute(route) {
-      if (route.path === '/admin/extensions/wasm/limits') {
+      if (route.path.startsWith('/admin/extensions/wasm/limits')) {
         return 'wasm-limit-config'
       }
       if (route.path.startsWith('/admin/extensions/wasm')) {

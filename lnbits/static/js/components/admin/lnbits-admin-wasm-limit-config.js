@@ -3,6 +3,11 @@ window.app.component('lnbits-admin-wasm-limit-config', {
   template: '#lnbits-admin-wasm-limit-config',
   data() {
     return {
+      selectedWasmExtensionId: null,
+      wasmExtensionLimitDraft: {},
+      wasmExtensionLimitsSaving: false,
+      wasmRuntimeLimitExtensions: [],
+      wasmRuntimeLimitExtensionsLoading: false,
       wasmLimitInfoDialog: {
         show: false,
         title: '',
@@ -186,7 +191,184 @@ window.app.component('lnbits-admin-wasm-limit-config', {
       ]
     }
   },
+  computed: {
+    adminKey() {
+      return this.g.user.wallets[0].adminkey
+    },
+    isExtensionLimitRoute() {
+      return this.$route.path.startsWith('/admin/extensions/wasm/limits/')
+    },
+    routeWasmExtensionId() {
+      return this.isExtensionLimitRoute ? this.$route.params.extId : null
+    },
+    backRoute() {
+      return this.isExtensionLimitRoute
+        ? '/admin/extensions/wasm/limits'
+        : '/admin#extensions'
+    },
+    backTooltip() {
+      return this.isExtensionLimitRoute
+        ? 'Wasm Limit Config'
+        : 'Extensions Settings'
+    },
+    pageDescription() {
+      if (this.isExtensionLimitRoute) {
+        return 'Customize limits for one installed WASM extension.'
+      }
+      return 'These values are global defaults. Use 0 to disable a global limit.'
+    },
+    wasmRuntimeLimitExtensionOptions() {
+      return this.wasmRuntimeLimitExtensions.map(extension => ({
+        label: `${extension.name || extension.id} (${extension.id})`,
+        value: extension.id
+      }))
+    },
+    selectedWasmRuntimeLimitExtension() {
+      return (
+        this.wasmRuntimeLimitExtensions.find(
+          extension => extension.id === this.selectedWasmExtensionId
+        ) || null
+      )
+    },
+    customWasmLimitCount() {
+      const extension = this.selectedWasmRuntimeLimitExtension
+      if (!extension || !extension.wasm_runtime_limits) {
+        return 0
+      }
+      return Object.keys(extension.wasm_runtime_limits).length
+    }
+  },
+  watch: {
+    selectedWasmExtensionId() {
+      this.loadSelectedWasmRuntimeLimitExtension()
+    },
+    routeWasmExtensionId() {
+      this.syncWasmExtensionLimitRoute()
+    }
+  },
+  created() {
+    this.fetchWasmRuntimeLimitExtensions()
+  },
   methods: {
+    async fetchWasmRuntimeLimitExtensions() {
+      this.wasmRuntimeLimitExtensionsLoading = true
+      try {
+        const {data} = await LNbits.api.request(
+          'GET',
+          '/api/v1/extension/wasm/runtime-limits/extensions',
+          this.adminKey
+        )
+        this.wasmRuntimeLimitExtensions = data || []
+        if (
+          this.selectedWasmExtensionId &&
+          !this.wasmRuntimeLimitExtensions.some(
+            extension => extension.id === this.selectedWasmExtensionId
+          )
+        ) {
+          this.selectedWasmExtensionId = null
+        }
+        this.syncWasmExtensionLimitRoute()
+      } catch (error) {
+        LNbits.utils.notifyApiError(error)
+      } finally {
+        this.wasmRuntimeLimitExtensionsLoading = false
+      }
+    },
+    syncWasmExtensionLimitRoute() {
+      this.selectedWasmExtensionId = this.routeWasmExtensionId
+      this.loadSelectedWasmRuntimeLimitExtension()
+    },
+    openWasmExtensionLimit(extensionId) {
+      this.$router.push(
+        `/admin/extensions/wasm/limits/${encodeURIComponent(extensionId)}`
+      )
+    },
+    loadSelectedWasmRuntimeLimitExtension() {
+      const extension = this.selectedWasmRuntimeLimitExtension
+      this.wasmExtensionLimitDraft = extension
+        ? {...(extension.wasm_runtime_limits || {})}
+        : {}
+    },
+    wasmExtensionLimitHint(field) {
+      const globalValue = this.formData[field.name]
+      return `Inherited global value: ${globalValue}. ${field.description}`
+    },
+    wasmExtensionLimitPlaceholder(field) {
+      const globalValue = this.formData[field.name]
+      return globalValue === undefined || globalValue === null
+        ? ''
+        : String(globalValue)
+    },
+    normalizedWasmExtensionLimitDraft() {
+      const limits = {}
+      this.wasmRuntimeLimitGroups.forEach(group => {
+        group.fields.forEach(field => {
+          const value = this.wasmExtensionLimitDraft[field.name]
+          const cleanValue = typeof value === 'string' ? value.trim() : value
+          if (
+            cleanValue === '' ||
+            cleanValue === null ||
+            cleanValue === undefined
+          ) {
+            return
+          }
+          const numericValue = Number(cleanValue)
+          if (
+            !Number.isFinite(numericValue) ||
+            !Number.isInteger(numericValue) ||
+            numericValue < 0
+          ) {
+            throw new Error(`${field.label} must be a non-negative integer.`)
+          }
+          limits[field.name] = numericValue
+        })
+      })
+      return limits
+    },
+    async clearWasmExtensionLimits() {
+      this.wasmExtensionLimitDraft = {}
+      await this.saveWasmExtensionLimits()
+    },
+    async saveWasmExtensionLimits() {
+      if (!this.selectedWasmExtensionId) {
+        return
+      }
+      this.wasmExtensionLimitsSaving = true
+      try {
+        const {data} = await LNbits.api.request(
+          'PUT',
+          `/api/v1/extension/wasm/runtime-limits/${encodeURIComponent(
+            this.selectedWasmExtensionId
+          )}`,
+          this.adminKey,
+          {
+            limits: this.normalizedWasmExtensionLimitDraft()
+          }
+        )
+        const index = this.wasmRuntimeLimitExtensions.findIndex(
+          extension => extension.id === data.id
+        )
+        if (index >= 0) {
+          this.wasmRuntimeLimitExtensions.splice(index, 1, data)
+        }
+        this.loadSelectedWasmRuntimeLimitExtension()
+        Quasar.Notify.create({
+          type: 'positive',
+          message: 'WASM extension limits saved.'
+        })
+      } catch (error) {
+        if (error instanceof Error && !error.response) {
+          Quasar.Notify.create({
+            type: 'negative',
+            message: error.message
+          })
+        } else {
+          LNbits.utils.notifyApiError(error)
+        }
+      } finally {
+        this.wasmExtensionLimitsSaving = false
+      }
+    },
     showWasmLimitInfo(field) {
       this.wasmLimitInfoDialog = {
         show: true,

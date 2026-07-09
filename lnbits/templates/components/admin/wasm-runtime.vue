@@ -4,14 +4,19 @@
       <div class="row items-center justify-between q-mb-md">
         <div class="row items-center q-gutter-sm">
           <q-btn
-            v-if="wasmExtensionId"
             flat
             dense
             round
             icon="arrow_back"
-            to="/admin/extensions/wasm"
+            :to="
+              wasmExtensionId ? '/admin/extensions/wasm' : '/admin#extensions'
+            "
           >
-            <q-tooltip>Global WASM Runtime</q-tooltip>
+            <q-tooltip
+              v-text="
+                wasmExtensionId ? 'Global WASM Runtime' : 'Extensions Settings'
+              "
+            ></q-tooltip>
           </q-btn>
           <div>
             <h6 class="q-my-none">WASM Runtime</h6>

@@ -1,3 +1,4 @@
+import json
 from datetime import datetime, timedelta, timezone
 
 from lnbits.core.db import db
@@ -15,6 +16,11 @@ async def create_installed_extension(
     conn: Connection | None = None,
 ) -> None:
     await (conn or db).insert("installed_extensions", ext)
+    await update_installed_extension_wasm_runtime_limits(
+        ext_id=ext.id,
+        limits=ext.wasm_runtime_limits,
+        conn=conn,
+    )
 
 
 async def update_installed_extension(
@@ -22,6 +28,11 @@ async def update_installed_extension(
     conn: Connection | None = None,
 ) -> None:
     await (conn or db).update("installed_extensions", ext)
+    await update_installed_extension_wasm_runtime_limits(
+        ext_id=ext.id,
+        limits=ext.wasm_runtime_limits,
+        conn=conn,
+    )
 
 
 async def update_installed_extension_state(
@@ -33,6 +44,33 @@ async def update_installed_extension_state(
         """,
         {"ext": ext_id, "active": active},
     )
+
+
+async def update_installed_extension_wasm_runtime_limits(
+    *, ext_id: str, limits: dict, conn: Connection | None = None
+) -> None:
+    if not await _has_installed_extension_wasm_runtime_limits_column(conn=conn):
+        return
+
+    await (conn or db).execute(
+        """
+        UPDATE installed_extensions
+        SET wasm_runtime_limits = :limits
+        WHERE id = :id
+        """,
+        {"id": ext_id, "limits": json.dumps(limits)},
+    )
+
+
+async def _has_installed_extension_wasm_runtime_limits_column(
+    conn: Connection | None = None,
+) -> bool:
+    row: dict | None = await (conn or db).fetchone(
+        "SELECT version FROM dbversions WHERE db = 'core'"
+    )
+    if not row:
+        return False
+    return int(row["version"] or 0) >= 48
 
 
 async def delete_installed_extension(
