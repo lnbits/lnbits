@@ -75,7 +75,10 @@
       <q-card>
         <!-- Mobile: Dropdown menu at top -->
         <div
-          v-if="$q.screen.lt.md && tab !== 'wasm-runtime'"
+          v-if="
+            $q.screen.lt.md &&
+            !['wasm-runtime', 'wasm-limit-config'].includes(tab)
+          "
           class="q-px-md q-pt-md"
         >
           <q-select
@@ -225,6 +228,9 @@
                   </q-tab-panel>
                   <q-tab-panel name="wasm-runtime">
                     <lnbits-admin-wasm-runtime :form-data="formData" />
+                  </q-tab-panel>
+                  <q-tab-panel name="wasm-limit-config">
+                    <lnbits-admin-wasm-limit-config :form-data="formData" />
                   </q-tab-panel>
                   <q-tab-panel name="notifications">
                     <lnbits-admin-notifications :form-data="formData" />

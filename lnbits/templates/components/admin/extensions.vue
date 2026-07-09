@@ -5,12 +5,21 @@
         <h6 class="q-my-none">
           <span v-text="$t('extensions')"></span>
         </h6>
+      </div>
+      <div class="row q-gutter-sm q-mb-md">
         <q-btn
           unelevated
           color="primary"
           icon="memory"
           label="WASM Runtime"
           to="/admin/extensions/wasm"
+        ></q-btn>
+        <q-btn
+          unelevated
+          color="primary"
+          icon="tune"
+          label="Wasm Limit Config"
+          to="/admin/extensions/wasm/limits"
         ></q-btn>
       </div>
       <div class="row q-col-gutter-md">

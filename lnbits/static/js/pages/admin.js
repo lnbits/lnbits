@@ -17,7 +17,7 @@ window.PageAdmin = {
   watch: {
     tab(tab) {
       if (
-        tab === 'wasm-runtime' &&
+        ['wasm-runtime', 'wasm-limit-config'].includes(tab) &&
         this.$route.path.startsWith('/admin/extensions/wasm')
       ) {
         return
@@ -45,6 +45,9 @@ window.PageAdmin = {
   },
   methods: {
     adminTabFromRoute(route) {
+      if (route.path === '/admin/extensions/wasm/limits') {
+        return 'wasm-limit-config'
+      }
       if (route.path.startsWith('/admin/extensions/wasm')) {
         return 'wasm-runtime'
       }
@@ -56,6 +59,9 @@ window.PageAdmin = {
     adminRouteForTab(tab) {
       if (tab === 'wasm-runtime') {
         return '/admin/extensions/wasm'
+      }
+      if (tab === 'wasm-limit-config') {
+        return '/admin/extensions/wasm/limits'
       }
       return `/admin#${tab}`
     },
