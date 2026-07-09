@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import time
+from collections.abc import Iterable
 from datetime import datetime
 from typing import Any
 
@@ -42,14 +43,26 @@ from .registry import extension_api_method
 
 
 class ExtensionAPIUtils:
-    def __init__(self) -> None:
-        self.currencies = ExtensionCurrencyUtils()
-        self.server = ExtensionServerUtils()
-        self.lightning = ExtensionLightningUtils()
+    def __init__(self, extension_id: str, permissions: Iterable[str]) -> None:
+        permission_set = set(permissions)
+        self.currencies = ExtensionCurrencyUtils(extension_id, permission_set)
+        self.server = ExtensionServerUtils(extension_id, permission_set)
+        self.lightning = ExtensionLightningUtils(extension_id, permission_set)
 
 
 class _ExtensionAPIUtilsGroup:
-    pass
+    def __init__(self, extension_id: str, permissions: Iterable[str]) -> None:
+        self.extension_id = extension_id
+        self.permissions = set(permissions)
+
+    def require_permission(self, permission: str | None) -> None:
+        if permission and permission not in self.permissions:
+            raise PermissionError(
+                f"Extension '{self.extension_id}' is missing permission '{permission}'."
+            )
+
+    def has_authenticated_context(self) -> bool:
+        return False
 
 
 class ExtensionCurrencyUtils(_ExtensionAPIUtilsGroup):
