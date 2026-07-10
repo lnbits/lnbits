@@ -6,22 +6,6 @@
           <span v-text="$t('extensions')"></span>
         </h6>
       </div>
-      <div class="row q-gutter-sm q-mb-md">
-        <q-btn
-          unelevated
-          color="primary"
-          icon="memory"
-          label="WASM Runtime"
-          to="/admin/extensions/wasm"
-        ></q-btn>
-        <q-btn
-          unelevated
-          color="primary"
-          icon="tune"
-          label="Wasm Limit Config"
-          to="/admin/extensions/wasm/limits"
-        ></q-btn>
-      </div>
       <div class="row q-col-gutter-md">
         <div class="col-12 q-mb-md">
           <p>
@@ -48,6 +32,27 @@
               text-color="white"
               ><span class="ellipsis" v-text="manifestUrl"></span
             ></q-chip>
+          </div>
+        </div>
+      </div>
+      <div class="row q-col-gutter-md">
+        <div class="col-12 q-mb-md">
+          <p>Wasm Extension</p>
+          <div class="row q-gutter-sm">
+            <q-btn
+              unelevated
+              color="primary"
+              icon="memory"
+              label="WASM Runtime"
+              to="/admin/extensions/wasm"
+            ></q-btn>
+            <q-btn
+              unelevated
+              color="primary"
+              icon="tune"
+              label="Wasm Limit Config"
+              to="/admin/extensions/wasm/limits"
+            ></q-btn>
           </div>
         </div>
       </div>

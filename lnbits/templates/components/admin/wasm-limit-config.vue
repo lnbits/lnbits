@@ -52,45 +52,53 @@
 
       <template v-if="!isExtensionLimitRoute">
         <div
-          v-for="group in wasmRuntimeLimitGroups"
+          v-for="(group, index) in wasmRuntimeLimitGroups"
           :key="group.title"
-          class="q-mb-lg"
+          class="q-mb-md"
         >
-          <div class="text-subtitle2 text-weight-medium q-mb-sm">
-            <span v-text="group.title"></span>
-          </div>
-          <div class="row q-col-gutter-md">
-            <div
-              v-for="field in group.fields"
-              :key="field.name"
-              class="col-12 col-md-6"
-            >
-              <q-input
-                filled
-                dense
-                type="number"
-                min="0"
-                v-model.number="formData[field.name]"
-                :label="field.label"
-                :hint="field.description"
+          <q-expansion-item
+            expand-separator
+            :default-opened="group.title === 'Execution'"
+            :label="group.title"
+            header-class="text-subtitle2 text-weight-medium"
+          >
+            <div class="row q-col-gutter-md q-pt-md">
+              <div
+                v-for="field in group.fields"
+                :key="field.name"
+                class="col-12 col-md-6"
               >
-                <template v-slot:append>
-                  <q-btn
-                    dense
-                    flat
-                    round
-                    icon="info"
-                    color="primary"
-                    @click.stop.prevent="showWasmLimitInfo(field)"
-                  >
-                    <q-tooltip max-width="360px">
-                      <span v-text="field.details"></span>
-                    </q-tooltip>
-                  </q-btn>
-                </template>
-              </q-input>
+                <q-input
+                  filled
+                  dense
+                  type="number"
+                  min="0"
+                  v-model.number="formData[field.name]"
+                  :label="field.label"
+                  :hint="field.description"
+                >
+                  <template v-slot:append>
+                    <q-btn
+                      dense
+                      flat
+                      round
+                      icon="info"
+                      color="primary"
+                      @click.stop.prevent="showWasmLimitInfo(field)"
+                    >
+                      <q-tooltip max-width="360px">
+                        <span v-text="field.details"></span>
+                      </q-tooltip>
+                    </q-btn>
+                  </template>
+                </q-input>
+              </div>
             </div>
-          </div>
+          </q-expansion-item>
+          <q-separator
+            v-if="index < wasmRuntimeLimitGroups.length - 1"
+            class="q-mt-md"
+          ></q-separator>
         </div>
       </template>
 
@@ -143,46 +151,54 @@
 
       <div v-if="isExtensionLimitRoute && selectedWasmRuntimeLimitExtension">
         <div
-          v-for="group in wasmRuntimeLimitGroups"
+          v-for="(group, index) in wasmRuntimeLimitGroups"
           :key="'extension-' + group.title"
-          class="q-mb-lg"
+          class="q-mb-md"
         >
-          <div class="text-subtitle2 text-weight-medium q-mb-sm">
-            <span v-text="group.title"></span>
-          </div>
-          <div class="row q-col-gutter-md">
-            <div
-              v-for="field in group.fields"
-              :key="'extension-' + field.name"
-              class="col-12 col-md-6"
-            >
-              <q-input
-                filled
-                dense
-                type="number"
-                min="0"
-                v-model="wasmExtensionLimitDraft[field.name]"
-                :label="field.label"
-                :hint="wasmExtensionLimitHint(field)"
-                :placeholder="wasmExtensionLimitPlaceholder(field)"
+          <q-expansion-item
+            expand-separator
+            :default-opened="group.title === 'Execution'"
+            :label="group.title"
+            header-class="text-subtitle2 text-weight-medium"
+          >
+            <div class="row q-col-gutter-md q-pt-md">
+              <div
+                v-for="field in group.fields"
+                :key="'extension-' + field.name"
+                class="col-12 col-md-6"
               >
-                <template v-slot:append>
-                  <q-btn
-                    dense
-                    flat
-                    round
-                    icon="info"
-                    color="primary"
-                    @click.stop.prevent="showWasmLimitInfo(field)"
-                  >
-                    <q-tooltip max-width="360px">
-                      <span v-text="field.details"></span>
-                    </q-tooltip>
-                  </q-btn>
-                </template>
-              </q-input>
+                <q-input
+                  filled
+                  dense
+                  type="number"
+                  min="0"
+                  v-model="wasmExtensionLimitDraft[field.name]"
+                  :label="field.label"
+                  :hint="wasmExtensionLimitHint(field)"
+                  :placeholder="wasmExtensionLimitPlaceholder(field)"
+                >
+                  <template v-slot:append>
+                    <q-btn
+                      dense
+                      flat
+                      round
+                      icon="info"
+                      color="primary"
+                      @click.stop.prevent="showWasmLimitInfo(field)"
+                    >
+                      <q-tooltip max-width="360px">
+                        <span v-text="field.details"></span>
+                      </q-tooltip>
+                    </q-btn>
+                  </template>
+                </q-input>
+              </div>
             </div>
-          </div>
+          </q-expansion-item>
+          <q-separator
+            v-if="index < wasmRuntimeLimitGroups.length - 1"
+            class="q-mt-md"
+          ></q-separator>
         </div>
 
         <div class="row justify-end q-gutter-sm q-mt-md">
