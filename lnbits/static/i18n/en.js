@@ -950,7 +950,8 @@ window.localisation.en = {
     'Allow unauthenticated access to the block explorer API endpoints.',
   electrum_compatible_server: 'Electrum compatible server',
   electrum_server_url: 'Electrum Server URL',
-  electrum_server_url_hint: 'Choose a public Electrum server or enter your own.',
+  electrum_server_url_hint:
+    'Choose a public Electrum server or enter your own.',
   electrum_server_url_custom: 'Custom Electrum Server URL',
   view_public_electrum_servers: 'View public Electrum servers',
   blockexplorer_network: 'Bitcoin Network',
