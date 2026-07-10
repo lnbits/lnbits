@@ -162,7 +162,7 @@ async def pay_offer(
             wallet_id=wallet.source_wallet_id,
             bolt11=offer,
             payment_hash=checking_id[:64],
-            amount_msat=0,
+            amount_msat=max_sat * 1000,
             memo=description or "BOLT12 offer payment",
             extra=extra,
             labels=labels,
@@ -1017,7 +1017,7 @@ async def _pay_offer(
             raise PaymentError(f"Payment failed: {message}", status="failed")
 
         if payment_response.success:
-            if payment_response.amount_msat:
+            if payment_response.amount_msat is not None:
                 payment.amount = -payment_response.amount_msat
             payment = await update_payment_success_status(
                 payment, payment_response, conn=conn
