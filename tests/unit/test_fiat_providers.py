@@ -1433,7 +1433,7 @@ def test_check_revolut_signature_multiple_v1_headers():
     check_revolut_signature(payload, sig_header, timestamp, secret)
 
 
-def test_check_revolut_signature_docs_vector():
+def test_check_revolut_signature_docs_vector(mocker: MockerFixture):
     payload = (
         b'{"data":{"id":"645a7696-22f3-aa47-9c74-cbae0449cc46",'
         b'"new_state":"completed","old_state":"pending",'
@@ -1445,9 +1445,12 @@ def test_check_revolut_signature_docs_vector():
     secret = "wsk_r59a4HfWVAKycbCaNO1RvgCJec02gRd8"
     sig = "v1=bca326fb378d0da7f7c490ad584a8106bab9723d8d9cdd0d50b4c5b3be3837c0"
 
-    check_revolut_signature(
-        payload, sig, timestamp, secret, tolerance_seconds=100000000
+    mocker.patch(
+        "lnbits.core.services.fiat_providers.time.time",
+        return_value=int(timestamp) / 1000,
     )
+
+    check_revolut_signature(payload, sig, timestamp, secret)
 
 
 @pytest.mark.anyio
