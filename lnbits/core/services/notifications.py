@@ -16,9 +16,9 @@ from lnbits.core.crud import (
     get_webpush_subscriptions_for_user,
     mark_webhook_sent,
 )
-from lnbits.core.db import core_app_extra
 from lnbits.core.crud.users import get_user
 from lnbits.core.crud.wallets import get_wallet
+from lnbits.core.db import core_app_extra
 from lnbits.core.models import Payment, Wallet
 from lnbits.core.models.notifications import (
     NOTIFICATION_TEMPLATES,
