@@ -73,7 +73,7 @@ class WasmExtensionConfig(_StrictWasmModel):
     extension_type: Literal["wasm"]
     wasm: WasmRuntimeConfig
     events: WasmEventsConfig = Field(
-        default_factory=lambda: WasmEventsConfig(onInvoicePaid=None)
+        default_factory=lambda: WasmEventsConfig.parse_obj({})
     )
     ui: WasmUIConfig | None = None
     sdk: WasmSDKConfig | None = None

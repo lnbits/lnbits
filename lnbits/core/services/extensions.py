@@ -137,7 +137,7 @@ def _invalid_wasm_runtime_limit(
     message: str,
     *,
     exc: Exception | None = None,
-) -> None:
+) -> int | None:
     if not strict:
         return None
     error = ValueError(f"WASM runtime limit '{field}' {message}.")

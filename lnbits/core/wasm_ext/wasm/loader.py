@@ -47,12 +47,12 @@ def load_wasm_extension_config(ext_id: str) -> WasmExtensionConfig | None:
 
 def load_wasm_extension(ext_id: str) -> WasmExtension:
     ext_dir = Path(settings.lnbits_extensions_path, "extensions", ext_id)
-    config = _load_json(ext_dir / "config.json")
-    if not config:
+    raw_config = _load_json(ext_dir / "config.json")
+    if not raw_config:
         raise FileNotFoundError(f"Missing WASM extension config for '{ext_id}'.")
-    if config.get("extension_type") != "wasm":
+    if raw_config.get("extension_type") != "wasm":
         raise ValueError(f"Extension '{ext_id}' is not a WASM extension.")
-    config = parse_wasm_extension_config(ext_id, config)
+    config = parse_wasm_extension_config(ext_id, raw_config)
 
     module_path = _extension_path(ext_dir, config.wasm.module)
     wit_path = _optional_extension_path(ext_dir, config.wasm.wit)
