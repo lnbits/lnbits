@@ -5,6 +5,14 @@ from typing import Annotated
 from fastapi import APIRouter, Depends, HTTPException, Request, WebSocket
 from pydantic.types import UUID4
 
+from lnbits.core.services.blockexplorer import (
+    address_event_to_response,
+    fetch_fee_estimates,
+    fetch_onchain_balance,
+    fetch_recent_blocks,
+    fetch_tip,
+    fetch_transaction,
+)
 from lnbits.decorators import check_access_token, check_user_exists
 from lnbits.settings import settings
 from lnbits.task_manager import (
@@ -15,16 +23,11 @@ from lnbits.task_manager import (
 )
 from lnbits.utils.electrum import (
     AddressResponse,
-    Balance,
     BlockHeader,
     BlockInfo,
-    ElectrumClient,
     ElectrumError,
     FeeResponse,
     Transaction,
-    network_from_name,
-    parse_block_header,
-    parse_raw_tx,
     scripthash_from_address,
 )
 
@@ -52,29 +55,13 @@ async def _check_api_access(
         await check_user_exists(r, access_token, usr)
 
 
-def _client() -> ElectrumClient:
-    return ElectrumClient(
-        settings.lnbits_blockexplorer_electrum_url,
-        network=network_from_name(settings.lnbits_blockexplorer_network),
-    )
-
-
 # ---- REST ----
 
 
 @blockexplorer_router.get("/blocks", dependencies=[Depends(_check_api_access)])
 async def api_blocks() -> list[BlockInfo]:
     try:
-        async with _client() as c:
-            tip = await c.get_tip()
-            start = max(0, tip.height - 4)
-            headers = await c.get_block_headers(start, tip.height - start + 1)
-        raw = bytes.fromhex(headers.hex)
-        blocks = [
-            parse_block_header(raw[i * 80 : (i + 1) * 80].hex(), start + i)
-            for i in range(headers.count)
-        ]
-        return list(reversed(blocks))
+        return await fetch_recent_blocks()
     except ElectrumError as e:
         raise HTTPException(HTTPStatus.SERVICE_UNAVAILABLE, detail=str(e)) from e
 
@@ -82,8 +69,7 @@ async def api_blocks() -> list[BlockInfo]:
 @blockexplorer_router.get("/tip", dependencies=[Depends(_check_api_access)])
 async def api_tip() -> BlockHeader:
     try:
-        async with _client() as c:
-            return await c.get_tip()
+        return await fetch_tip()
     except ElectrumError as e:
         raise HTTPException(HTTPStatus.SERVICE_UNAVAILABLE, detail=str(e)) from e
 
@@ -91,20 +77,7 @@ async def api_tip() -> BlockHeader:
 @blockexplorer_router.get("/fees", dependencies=[Depends(_check_api_access)])
 async def api_fees() -> FeeResponse:
     try:
-        async with _client() as c:
-            estimates_raw = await asyncio.gather(
-                c.estimate_fee(1),
-                c.estimate_fee(3),
-                c.estimate_fee(6),
-                c.estimate_fee(144),
-            )
-            histogram = await c.fee_histogram()
-        estimates = {
-            str(blocks): fee
-            for blocks, fee in zip([1, 3, 6, 144], estimates_raw, strict=False)
-            if fee >= 0
-        }
-        return FeeResponse(estimates=estimates, histogram=histogram)
+        return await fetch_fee_estimates()
     except ElectrumError as e:
         raise HTTPException(HTTPStatus.SERVICE_UNAVAILABLE, detail=str(e)) from e
 
@@ -112,9 +85,7 @@ async def api_fees() -> FeeResponse:
 @blockexplorer_router.get("/tx/{txid}", dependencies=[Depends(_check_api_access)])
 async def api_tx(txid: str) -> Transaction:
     try:
-        async with _client() as c:
-            raw_hex = await c.get_transaction(txid)
-        return parse_raw_tx(raw_hex, network=c.network)
+        return await fetch_transaction(txid)
     except ElectrumError as e:
         raise HTTPException(HTTPStatus.SERVICE_UNAVAILABLE, detail=str(e)) from e
 
@@ -124,27 +95,11 @@ async def api_tx(txid: str) -> Transaction:
 )
 async def api_address(address: str) -> AddressResponse:
     try:
-        scripthash = scripthash_from_address(address)
+        scripthash_from_address(address)
     except ValueError as e:
         raise HTTPException(HTTPStatus.BAD_REQUEST, detail=str(e)) from e
     try:
-        async with _client() as c:
-            balance_res, history_res = await asyncio.gather(
-                c.get_balance(scripthash),
-                c.get_history(scripthash),
-                return_exceptions=True,
-            )
-        if isinstance(balance_res, BaseException):
-            raise HTTPException(HTTPStatus.SERVICE_UNAVAILABLE, detail=str(balance_res))
-        history = [] if isinstance(history_res, BaseException) else history_res
-        history_error = (
-            str(history_res) if isinstance(history_res, BaseException) else None
-        )
-        return AddressResponse(
-            balance=balance_res, history=history, history_error=history_error
-        )
-    except HTTPException:
-        raise
+        return await fetch_onchain_balance(address)
     except ElectrumError as e:
         raise HTTPException(HTTPStatus.SERVICE_UNAVAILABLE, detail=str(e)) from e
 
@@ -167,14 +122,6 @@ async def ws_blocks(websocket: WebSocket) -> None:
         task_manager.unregister_ws_block_queue(queue)
 
 
-def _address_event_to_response(event: OnchainAddressEvent) -> AddressResponse:
-    return AddressResponse(
-        balance=Balance(confirmed=event.confirmed, unconfirmed=event.unconfirmed),
-        history=event.history,
-        history_error=event.history_error,
-    )
-
-
 @blockexplorer_router.websocket("/ws/address/{address}")
 async def ws_address(websocket: WebSocket, address: str) -> None:
     if not settings.lnbits_blockexplorer_enabled:
@@ -189,7 +136,7 @@ async def ws_address(websocket: WebSocket, address: str) -> None:
         await websocket.close(code=1008, reason=str(e))
         return
     try:
-        await relay_ws_queue(websocket, queue, serialize=_address_event_to_response)
+        await relay_ws_queue(websocket, queue, serialize=address_event_to_response)
     finally:
         task_manager.unregister_ws_address_queue(address, queue)
 
