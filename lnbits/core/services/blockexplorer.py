@@ -3,6 +3,7 @@ import asyncio
 from lnbits.settings import settings
 from lnbits.task_manager import OnchainAddressEvent
 from lnbits.utils.electrum import (
+    UTXO,
     AddressResponse,
     Balance,
     BlockHeader,
@@ -80,6 +81,12 @@ async def fetch_onchain_balance(onchain_address: str) -> AddressResponse:
     return AddressResponse(
         balance=balance_res, history=history, history_error=history_error
     )
+
+
+async def fetch_utxos(onchain_address: str) -> list[UTXO]:
+    scripthash = scripthash_from_address(onchain_address)
+    async with _client() as client:
+        return await client.listunspent(scripthash)
 
 
 def address_event_to_response(event: OnchainAddressEvent) -> AddressResponse:

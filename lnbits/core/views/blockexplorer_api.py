@@ -12,6 +12,7 @@ from lnbits.core.services.blockexplorer import (
     fetch_recent_blocks,
     fetch_tip,
     fetch_transaction,
+    fetch_utxos,
 )
 from lnbits.decorators import check_access_token, check_user_exists
 from lnbits.settings import settings
@@ -22,6 +23,7 @@ from lnbits.task_manager import (
     task_manager,
 )
 from lnbits.utils.electrum import (
+    UTXO,
     AddressResponse,
     BlockHeader,
     BlockInfo,
@@ -100,6 +102,18 @@ async def api_address(address: str) -> AddressResponse:
         raise HTTPException(HTTPStatus.BAD_REQUEST, detail=str(e)) from e
     try:
         return await fetch_onchain_balance(address)
+    except ElectrumError as e:
+        raise HTTPException(HTTPStatus.SERVICE_UNAVAILABLE, detail=str(e)) from e
+
+
+@blockexplorer_router.get("/utxos/{address}", dependencies=[Depends(_check_api_access)])
+async def api_utxos(address: str) -> list[UTXO]:
+    try:
+        scripthash_from_address(address)
+    except ValueError as e:
+        raise HTTPException(HTTPStatus.BAD_REQUEST, detail=str(e)) from e
+    try:
+        return await fetch_utxos(address)
     except ElectrumError as e:
         raise HTTPException(HTTPStatus.SERVICE_UNAVAILABLE, detail=str(e)) from e
 
