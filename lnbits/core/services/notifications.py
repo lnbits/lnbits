@@ -16,6 +16,7 @@ from lnbits.core.crud import (
     get_webpush_subscriptions_for_user,
     mark_webhook_sent,
 )
+from lnbits.core.db import core_app_extra
 from lnbits.core.crud.users import get_user
 from lnbits.core.crud.wallets import get_wallet
 from lnbits.core.models import Payment, Wallet
@@ -244,6 +245,7 @@ async def dispatch_payment_notification(payment: Payment) -> None:
     wallet = await get_wallet(payment.wallet_id)
     if wallet:
         await send_payment_notification(wallet, payment)
+    await core_app_extra.dispatch_extension_invoice_paid(payment)
 
 
 async def dispatch_webhook(payment: Payment):
