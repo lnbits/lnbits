@@ -83,6 +83,7 @@ async def invoke_wasm_extension_export(
         access_token=access_token,
         context=context,
         owner_id=owner_id,
+        wallet_id=wallet_id,
         invocation_id=invocation.id,
         runtime_limits=limits,
     )
