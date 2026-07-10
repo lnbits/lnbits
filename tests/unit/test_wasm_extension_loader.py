@@ -44,12 +44,13 @@ def test_load_wasm_extension_uses_canonical_extension_id(
     assert extension.id == ext_id
 
 
-def test_wasm_extension_config_rejects_unknown_fields():
+def test_wasm_extension_config_ignores_unknown_fields():
     config = _wasm_config("demoext")
     config["unexpected"] = True
 
-    with pytest.raises(ValueError, match="extra fields not permitted"):
-        parse_wasm_extension_config("demoext", config)
+    parsed = parse_wasm_extension_config("demoext", config)
+
+    assert not hasattr(parsed, "unexpected")
 
 
 def test_wasm_extension_config_rejects_coerced_scalar_types():
@@ -73,14 +74,18 @@ def test_wasm_extension_config_rejects_coerced_scalar_types():
         {"build": {"source": "dev", "command": "npm run build"}},
     ],
 )
-def test_wasm_extension_config_rejects_removed_extension_control_fields(
+def test_wasm_extension_config_ignores_removed_extension_control_fields(
     config_update: dict[str, Any],
 ):
     config = _wasm_config("demoext")
     config.update(config_update)
 
-    with pytest.raises(ValueError, match="extra fields not permitted"):
-        parse_wasm_extension_config("demoext", config)
+    parsed = parse_wasm_extension_config("demoext", config)
+
+    assert parsed.wasm.module == "extension.wasm"
+    assert not hasattr(parsed.wasm, "host_api")
+    assert not hasattr(parsed.wasm, "resource_limits")
+    assert not hasattr(parsed, "build")
 
 
 def test_wasm_extension_config_accepts_supported_optional_sections():
@@ -127,6 +132,17 @@ def test_wasm_extension_config_accepts_supported_optional_sections():
 
     assert parsed.events.on_invoice_paid == "on_invoice_paid"
     assert parsed.wasm.world == "lnbits-extension"
+
+
+def test_wasm_extension_config_ignores_unknown_permission_fields():
+    config = _wasm_config("demoext")
+    config["permissions"] = [
+        {"id": "utils.basic", "label": "Basic utilities", "unknown": True}
+    ]
+
+    parsed = parse_wasm_extension_config("demoext", config)
+
+    assert parsed.permissions == [ExtensionPermission(id="utils.basic")]
 
 
 def test_install_time_permission_validation_rejects_config_id_mismatch():

@@ -18,7 +18,7 @@ _EXTENSION_ID_RE = re.compile(r"^[A-Za-z0-9_-]+$")
 
 class _StrictWasmModel(BaseModel):
     class Config:
-        extra = "forbid"
+        extra = "ignore"
         allow_population_by_field_name = True
 
 

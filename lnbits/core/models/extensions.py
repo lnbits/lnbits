@@ -85,7 +85,7 @@ class ExtensionPermission(BaseModel):
     policies: list[Any] | None = None
 
     class Config:
-        extra = "forbid"
+        extra = "ignore"
 
     @staticmethod
     def list_from_config(config_json: Mapping[str, Any]) -> list[ExtensionPermission]:
