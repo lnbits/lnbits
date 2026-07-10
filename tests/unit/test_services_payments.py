@@ -197,8 +197,7 @@ async def test_update_wallet_balance_validates_credit_and_debit(
 
         settings.lnbits_wallet_limit_max_balance = 0
         queue_mock = mocker.patch(
-            "lnbits.tasks.internal_invoice_queue_put",
-            mocker.AsyncMock(),
+            "lnbits.task_manager.task_manager.internal_invoice_queue.put_nowait",
         )
 
         await update_wallet_balance(wallet, 5)
@@ -212,7 +211,8 @@ async def test_update_wallet_balance_validates_credit_and_debit(
     ]
     assert credit_payments
     assert credit_payments[0].status == PaymentState.SUCCESS
-    queue_mock.assert_awaited_once_with(credit_payments[0].checking_id)
+    queue_mock.assert_called_once()
+    assert queue_mock.call_args[0][0].checking_id == credit_payments[0].checking_id
 
 
 @pytest.mark.anyio

@@ -19,6 +19,7 @@ from lnbits.exceptions import InvoiceError, PaymentError, UnsupportedError
 from lnbits.fiat import get_fiat_provider
 from lnbits.helpers import check_callback_url
 from lnbits.settings import settings
+from lnbits.task_manager import task_manager
 from lnbits.utils.crypto import fake_privkey, random_secret_and_hash, verify_preimage
 from lnbits.utils.exchange_rates import fiat_amount_as_satoshis, satoshis_amount_as_fiat
 from lnbits.wallets import fake_wallet, get_funding_source
@@ -516,9 +517,7 @@ async def update_wallet_balance(
         )
         payment.status = PaymentState.SUCCESS
         await update_payment(payment, conn=conn)
-        from lnbits.tasks import internal_invoice_queue_put
-
-        await internal_invoice_queue_put(payment.checking_id)
+        task_manager.internal_invoice_queue.put_nowait(payment)
 
 
 async def check_wallet_limits(
@@ -789,10 +788,8 @@ async def _pay_internal_invoice(
     )  # notify the receiver
 
     # notify receiver asynchronously (extension listeners)
-    from lnbits.tasks import internal_invoice_queue
-
     logger.debug(f"enqueuing internal invoice {internal_payment.checking_id}")
-    await internal_invoice_queue.put(internal_payment.checking_id)
+    task_manager.internal_invoice_queue.put_nowait(internal_payment)
 
     return payment
 
@@ -829,16 +826,15 @@ async def _pay_external_invoice(
 
     fee_reserve_msat = fee_reserve(amount_msat, internal=False)
 
-    from lnbits.tasks import create_task
-
-    task = create_task(
-        _fundingsource_pay_invoice(checking_id, payment.bolt11, fee_reserve_msat)
+    task = task_manager.create_task(
+        _fundingsource_pay_invoice(checking_id, payment.bolt11, fee_reserve_msat),
+        f"fundingsource_pay_invoice_{checking_id}",
     )
 
     # make sure a hold invoice or deferred payment is not blocking the server
     wait_time = max(1, settings.lnbits_funding_source_pay_invoice_wait_seconds)
     try:
-        payment_response = await asyncio.wait_for(task, timeout=wait_time)
+        payment_response = await asyncio.wait_for(task.task, timeout=wait_time)
     except asyncio.TimeoutError:
         # return pending payment on timeout
         logger.debug(
@@ -1108,3 +1104,18 @@ async def update_invoice_from_paid_invoices_stream(checking_id: str) -> Payment 
     payment = await update_payment(payment)
 
     return payment
+
+
+async def fundingsource_invoice_producer() -> None:
+    """
+    will collect all invoices that come directly from the backend wallet.
+
+    Called registered in the app startup sequence and run by taskmanager.
+    """
+    funding_source = get_funding_source()
+    async for checking_id in funding_source.paid_invoices_stream():
+        logger.info(f"got a payment notification {checking_id}")
+        payment = await update_invoice_from_paid_invoices_stream(checking_id)
+        if payment:
+            logger.success(f"fundingsource invoice {checking_id} settled")
+            task_manager.invoice_queue.put_nowait(payment)

@@ -5,6 +5,7 @@ import pytest
 from pytest_mock.plugin import MockerFixture
 
 from lnbits.settings import Settings
+from lnbits.task_manager import task_manager
 from lnbits.utils.cache import Cache, Cached
 
 key = "foo"
@@ -13,11 +14,10 @@ value = "bar"
 
 @pytest.fixture
 async def cache():
-    cache = Cache(interval=0.1)
-
-    task = asyncio.create_task(cache.invalidate_forever())
+    cache = Cache()
+    task = task_manager.create_permanent_task(cache.invalidate_cache, interval=1)
     yield cache
-    task.cancel()
+    task_manager.cancel_task(task)
 
 
 @pytest.mark.anyio
@@ -31,13 +31,13 @@ async def test_cache_get_set(cache):
 @pytest.mark.anyio
 async def test_cache_expiry(cache):
     # gets expired by `get` call
-    cache.set(key, value, expiry=0.01)
-    await asyncio.sleep(0.02)
+    cache.set(key, value, expiry=1)
+    await asyncio.sleep(2)
     assert not cache.get(key)
 
     # gets expired by invalidation task
-    cache.set(key, value, expiry=0.1)
-    await asyncio.sleep(0.2)
+    cache.set(key, value, expiry=1)
+    await asyncio.sleep(2)
     assert key not in cache._values
     assert not cache.get(key)
 
@@ -94,23 +94,33 @@ async def test_cache_pop_expired_returns_default(cache):
 async def test_invalidate_forever_logs_and_recovers_from_errors(
     settings: Settings, mocker: MockerFixture
 ):
-    test_cache = Cache(interval=0)
-    logger_error = mocker.patch("lnbits.utils.cache.logger.error")
+    test_cache = Cache()
     original_running = settings.lnbits_running
     calls = 0
 
-    async def fake_sleep(_interval):
+    original_invalidate = test_cache.invalidate_cache
+
+    async def fake_invalidate():
         nonlocal calls
         calls += 1
         if calls == 1:
             raise RuntimeError("boom")
         settings.lnbits_running = False
+        await original_invalidate()
 
+    mocker.patch.object(test_cache, "invalidate_cache", side_effect=fake_invalidate)
+    mocker.patch("lnbits.task_manager.asyncio.sleep")
+    logger_error = mocker.patch("lnbits.task_manager.logger.error")
+
+    bg_task = None
     try:
         settings.lnbits_running = True
-        mocker.patch("lnbits.utils.cache.asyncio.sleep", side_effect=fake_sleep)
-        await test_cache.invalidate_forever()
+        bg_task = task_manager.create_permanent_task(test_cache.invalidate_cache)
+        await bg_task.task
     finally:
         settings.lnbits_running = original_running
+        if bg_task:
+            task_manager.cancel_task(bg_task)
 
-    logger_error.assert_called_once_with("Error invalidating cache")
+    assert logger_error.called
+    assert calls == 2
