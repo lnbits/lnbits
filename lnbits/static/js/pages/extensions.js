@@ -164,6 +164,11 @@ window.PageExtensions = {
           )
           extension.isAvailable = true
           extension.isInstalled = true
+          extension.isWasm =
+            response.data.is_wasm === true ||
+            response.data.isWasm === true ||
+            release.extension_type === 'wasm' ||
+            extension.isWasm === true
           extension.icon = response.data.icon || extension.icon
           extension.installedRelease = release
           this.toggleExtension(extension)
