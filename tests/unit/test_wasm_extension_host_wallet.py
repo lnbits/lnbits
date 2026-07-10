@@ -79,12 +79,22 @@ async def test_wasm_wallet_pay_invoice_allows_event_wallet_only(mocker):
         wallet_id="wallet1",
     )
     allowed = await api.wallet_pay_invoice(
-        PayInvoiceRequest(wallet_id="wallet1", payment_request="lnbc1invoice")
+        PayInvoiceRequest(
+            wallet_id="wallet1",
+            payment_request="lnbc1invoice",
+            max_sat=None,
+            description="",
+        )
     )
 
     assert allowed.ok is True
 
     with pytest.raises(PermissionError, match="authenticated user context"):
         await api.wallet_pay_invoice(
-            PayInvoiceRequest(wallet_id="wallet2", payment_request="lnbc1invoice")
+            PayInvoiceRequest(
+                wallet_id="wallet2",
+                payment_request="lnbc1invoice",
+                max_sat=None,
+                description="",
+            )
         )
