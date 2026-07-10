@@ -8,6 +8,8 @@ include('components/admin/users.vue') %} {%
 include('components/admin/site_customisation.vue') %} {%
 include('components/admin/audit.vue') %} {%
 include('components/admin/extensions.vue') %} {%
+include('components/admin/wasm-runtime.vue') %} {%
+include('components/admin/wasm-limit-config.vue') %} {%
 include('components/admin/assets-config.vue') %} {%
 include('components/admin/notifications.vue') %} {%
 include('components/admin/server.vue') %} {%

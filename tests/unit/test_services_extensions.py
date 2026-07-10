@@ -14,14 +14,21 @@ from lnbits.core.models.extensions import (
     InstallableExtension,
     ReleasePaymentInfo,
 )
+from lnbits.core.services import extensions as extension_services
 from lnbits.core.services.extensions import (
     activate_extension,
+    attach_wasm_invocation_runtime,
     deactivate_extension,
+    finish_wasm_invocation,
+    get_current_wasm_invocations,
     get_valid_extension,
     get_valid_extensions,
     install_extension,
+    record_wasm_invocation_host_call,
     start_extension_background_work,
+    start_wasm_invocation,
     stop_extension_background_work,
+    stop_wasm_invocation,
     uninstall_extension,
 )
 from lnbits.settings import Settings
@@ -217,6 +224,269 @@ async def test_stop_extension_background_work_handles_missing_and_async_stops(
 
     assert await stop_extension_background_work("demoext") is True
     assert called["stop"] is True
+
+
+@pytest.mark.anyio
+async def test_wasm_invocation_tracking_counts_and_stops(mocker: MockerFixture):
+    _reset_wasm_invocation_state()
+    mocker.patch(
+        "lnbits.core.services.extensions.create_wasm_invocation",
+        mocker.AsyncMock(),
+    )
+    update_mock = mocker.patch(
+        "lnbits.core.services.extensions.update_wasm_invocation",
+        mocker.AsyncMock(),
+    )
+    mocker.patch(
+        "lnbits.core.services.extensions.get_wasm_invocation",
+        mocker.AsyncMock(return_value=None),
+    )
+    mocker.patch(
+        "lnbits.core.services.extensions.mark_stale_wasm_invocations",
+        mocker.AsyncMock(),
+    )
+    mocker.patch(
+        "lnbits.core.services.extensions.delete_old_wasm_invocations",
+        mocker.AsyncMock(),
+    )
+
+    invocation = await start_wasm_invocation(
+        extension_id="demoext",
+        export_name="render",
+        trigger_type="http",
+        method="POST",
+        path="/api/v1/ext/demoext/run",
+        context={"origin": "https://example.com"},
+    )
+    store = SimpleNamespace(deadline=None)
+    store.set_epoch_deadline = lambda deadline: setattr(store, "deadline", deadline)
+    engine = SimpleNamespace(increments=0)
+
+    def increment_epoch():
+        engine.increments += 1
+
+    engine.increment_epoch = increment_epoch
+
+    attach_wasm_invocation_runtime(invocation.id, engine=engine, store=store)
+    record_wasm_invocation_host_call(invocation.id, "http.request")
+    record_wasm_invocation_host_call(invocation.id, "storage.get")
+
+    assert await stop_wasm_invocation(invocation.id, reason="test stop") is True
+    current = get_current_wasm_invocations()
+    assert current[0].status == "stopping"
+    assert store.deadline == 1
+    assert engine.increments == 1
+
+    await finish_wasm_invocation(invocation.id, status="failed")
+    assert update_mock.await_args is not None
+    saved = update_mock.await_args.args[0]
+    assert saved.status == "stopped"
+    assert saved.stop_reason == "test stop"
+    assert saved.host_call_count == 2
+    assert saved.http_call_count == 1
+    assert saved.storage_call_count == 1
+
+
+def _reset_wasm_invocation_state():
+    with extension_services._wasm_invocation_lock:
+        extension_services._wasm_invocation_handles.clear()
+        extension_services._wasm_invocations_marked_stale = False
+        extension_services._wasm_invocations_last_cleanup_at = None
+
+
+def test_wasm_runtime_limits_merge_sparse_extension_overrides(settings: Settings):
+    original_execution_ms = settings.wasm_runtime_max_execution_ms
+    original_memory_bytes = settings.wasm_runtime_max_memory_bytes
+    try:
+        settings.wasm_runtime_max_execution_ms = 5_000
+        settings.wasm_runtime_max_memory_bytes = 64 * 1024 * 1024
+        extension = InstallableExtension(
+            id="wasm_demo",
+            name="WASM Demo",
+            version="1.0.0",
+            wasm_runtime_limits={
+                "wasm_runtime_max_execution_ms": 20_000,
+                "wasm_runtime_max_fuel": 0,
+            },
+        )
+
+        limits = extension_services.resolve_wasm_runtime_limits(extension)
+
+        assert limits["wasm_runtime_max_execution_ms"] == 20_000
+        assert limits["wasm_runtime_max_fuel"] == 0
+        assert limits["wasm_runtime_max_memory_bytes"] == 64 * 1024 * 1024
+    finally:
+        settings.wasm_runtime_max_execution_ms = original_execution_ms
+        settings.wasm_runtime_max_memory_bytes = original_memory_bytes
+
+
+def test_wasm_runtime_limit_override_validation():
+    assert extension_services.validate_wasm_runtime_limit_overrides(
+        {
+            "wasm_runtime_max_execution_ms": "7000",
+            "wasm_runtime_max_fuel": 0,
+            "wasm_runtime_max_memory_bytes": "",
+        }
+    ) == {
+        "wasm_runtime_max_execution_ms": 7000,
+        "wasm_runtime_max_fuel": 0,
+    }
+
+    with pytest.raises(ValueError, match="Unknown WASM runtime limit field"):
+        extension_services.validate_wasm_runtime_limit_overrides({"unknown": 1})
+
+    with pytest.raises(ValueError, match="cannot be negative"):
+        extension_services.validate_wasm_runtime_limit_overrides(
+            {"wasm_runtime_max_execution_ms": -1}
+        )
+
+    with pytest.raises(ValueError, match="must be an integer"):
+        extension_services.validate_wasm_runtime_limit_overrides(
+            {"wasm_runtime_max_execution_ms": True}
+        )
+
+    with pytest.raises(ValueError, match="must be an integer"):
+        extension_services.validate_wasm_runtime_limit_overrides(
+            {"wasm_runtime_max_execution_ms": 1.5}
+        )
+
+
+@pytest.mark.anyio
+async def test_update_wasm_extension_runtime_limits_saves_sparse_overrides(
+    tmp_path,
+    settings: Settings,
+    mocker: MockerFixture,
+):
+    ext_id = "wasm_demo"
+    original_extensions_path = settings.lnbits_extensions_path
+    try:
+        settings.lnbits_extensions_path = str(tmp_path)
+        config_dir = tmp_path / "extensions" / ext_id
+        config_dir.mkdir(parents=True)
+        (config_dir / "config.json").write_text(
+            '{"extension_type": "wasm"}',
+            encoding="utf-8",
+        )
+        installed_extension = InstallableExtension(
+            id=ext_id,
+            name="WASM Demo",
+            version="1.0.0",
+        )
+        mocker.patch(
+            "lnbits.core.services.extensions.get_installed_extension",
+            mocker.AsyncMock(return_value=installed_extension),
+        )
+        update_mock = mocker.patch(
+            "lnbits.core.services.extensions."
+            "update_installed_extension_wasm_runtime_limits",
+            mocker.AsyncMock(),
+        )
+
+        saved_limits = await extension_services.update_wasm_extension_runtime_limits(
+            ext_id,
+            {
+                "wasm_runtime_max_execution_ms": "15000",
+                "wasm_runtime_max_fuel": 0,
+                "wasm_runtime_max_memory_bytes": "",
+            },
+        )
+    finally:
+        settings.lnbits_extensions_path = original_extensions_path
+
+    assert saved_limits == {
+        "wasm_runtime_max_execution_ms": 15000,
+        "wasm_runtime_max_fuel": 0,
+    }
+    update_mock.assert_awaited_once_with(ext_id=ext_id, limits=saved_limits)
+
+
+@pytest.mark.anyio
+async def test_wasm_invocation_concurrency_limits(mocker: MockerFixture):
+    _reset_wasm_invocation_state()
+    mocker.patch(
+        "lnbits.core.services.extensions.create_wasm_invocation",
+        mocker.AsyncMock(),
+    )
+    mocker.patch(
+        "lnbits.core.services.extensions.update_wasm_invocation",
+        mocker.AsyncMock(),
+    )
+    mocker.patch(
+        "lnbits.core.services.extensions.get_wasm_invocation",
+        mocker.AsyncMock(return_value=None),
+    )
+    mocker.patch(
+        "lnbits.core.services.extensions.mark_stale_wasm_invocations",
+        mocker.AsyncMock(),
+    )
+    mocker.patch(
+        "lnbits.core.services.extensions.delete_old_wasm_invocations",
+        mocker.AsyncMock(),
+    )
+    limits = extension_services.wasm_runtime_limit_defaults()
+    limits.update(
+        {
+            "wasm_runtime_max_concurrent_invocations": 1,
+            "wasm_runtime_max_concurrent_invocations_per_extension": 1,
+            "wasm_runtime_max_concurrent_invocations_per_user": 1,
+        }
+    )
+
+    invocation = await start_wasm_invocation(
+        extension_id="demoext",
+        export_name="render",
+        user_id="user-id",
+        runtime_limits=limits,
+    )
+
+    with pytest.raises(ValueError, match="too many active invocations"):
+        await start_wasm_invocation(
+            extension_id="demoext",
+            export_name="render",
+            user_id="user-id",
+            runtime_limits=limits,
+        )
+
+    await finish_wasm_invocation(invocation.id, status="completed")
+
+
+@pytest.mark.anyio
+async def test_wasm_invocation_host_call_limits(mocker: MockerFixture):
+    _reset_wasm_invocation_state()
+    mocker.patch(
+        "lnbits.core.services.extensions.create_wasm_invocation",
+        mocker.AsyncMock(),
+    )
+    mocker.patch(
+        "lnbits.core.services.extensions.update_wasm_invocation",
+        mocker.AsyncMock(),
+    )
+    mocker.patch(
+        "lnbits.core.services.extensions.get_wasm_invocation",
+        mocker.AsyncMock(return_value=None),
+    )
+    mocker.patch(
+        "lnbits.core.services.extensions.mark_stale_wasm_invocations",
+        mocker.AsyncMock(),
+    )
+    mocker.patch(
+        "lnbits.core.services.extensions.delete_old_wasm_invocations",
+        mocker.AsyncMock(),
+    )
+    limits = extension_services.wasm_runtime_limit_defaults()
+    limits["wasm_runtime_max_host_calls"] = 1
+
+    invocation = await start_wasm_invocation(
+        extension_id="demoext",
+        export_name="render",
+        runtime_limits=limits,
+    )
+    record_wasm_invocation_host_call(invocation.id, "http.request")
+
+    with pytest.raises(ValueError, match="host call limit"):
+        record_wasm_invocation_host_call(invocation.id, "storage.get")
+
+    await finish_wasm_invocation(invocation.id, status="failed")
 
 
 @pytest.mark.anyio

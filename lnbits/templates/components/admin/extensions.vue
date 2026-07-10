@@ -1,9 +1,11 @@
 <template id="lnbits-admin-extensions">
   <q-card-section class="q-pa-none">
     <div>
-      <h6 class="q-my-none">
-        <span v-text="$t('extensions')"></span>
-      </h6>
+      <div class="row items-center justify-between q-mb-md">
+        <h6 class="q-my-none">
+          <span v-text="$t('extensions')"></span>
+        </h6>
+      </div>
       <div class="row q-col-gutter-md">
         <div class="col-12 q-mb-md">
           <p>
@@ -30,6 +32,27 @@
               text-color="white"
               ><span class="ellipsis" v-text="manifestUrl"></span
             ></q-chip>
+          </div>
+        </div>
+      </div>
+      <div class="row q-col-gutter-md">
+        <div class="col-12 q-mb-md">
+          <p>Wasm Extension</p>
+          <div class="row q-gutter-sm">
+            <q-btn
+              unelevated
+              color="primary"
+              icon="memory"
+              label="WASM Runtime"
+              to="/admin/extensions/wasm"
+            ></q-btn>
+            <q-btn
+              unelevated
+              color="primary"
+              icon="tune"
+              label="Wasm Limit Config"
+              to="/admin/extensions/wasm/limits"
+            ></q-btn>
           </div>
         </div>
       </div>
@@ -124,6 +147,15 @@
               />
             </q-item-section>
           </q-item>
+          <q-input
+            class="q-mt-md"
+            filled
+            v-model.number="formData.lnbits_wasm_invocation_retention_days"
+            type="number"
+            min="0"
+            label="WASM invocation retention days"
+            hint="Set to 0 to disable automatic cleanup."
+          ></q-input>
           <br />
         </div>
         <div class="col-12 col-md-6">

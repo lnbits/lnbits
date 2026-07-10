@@ -18,6 +18,7 @@ from .extensions import (
     get_user_extensions,
     update_installed_extension,
     update_installed_extension_state,
+    update_installed_extension_wasm_runtime_limits,
     update_user_extension,
 )
 from .payments import (
@@ -156,6 +157,7 @@ __all__ = [
     "update_admin_settings",
     "update_installed_extension",
     "update_installed_extension_state",
+    "update_installed_extension_wasm_runtime_limits",
     "update_migration_version",
     "update_payment",
     "update_payment_checking_id",

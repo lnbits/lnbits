@@ -5,6 +5,11 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
+from lnbits.core.wasm_ext.wasm.config import (
+    WasmExtensionConfig,
+    WasmExtensionExport,
+    parse_wasm_extension_config,
+)
 from lnbits.settings import settings
 
 
@@ -17,13 +22,13 @@ class WasmExtension:
     module_path: Path
     wit_path: Path | None
     world: str
-    host_api: str
-    exports: list[dict[str, Any]]
-    config: dict[str, Any]
+    exports: list[WasmExtensionExport]
+    config: WasmExtensionConfig
 
 
 def is_wasm_extension_id(ext_id: str) -> bool:
-    config = load_wasm_extension_config(ext_id)
+    ext_dir = Path(settings.lnbits_extensions_path, "extensions", ext_id)
+    config = _load_json(ext_dir / "config.json")
     return bool(config and config.get("extension_type") == "wasm")
 
 
@@ -32,36 +37,38 @@ def is_wasm_extension_dir(ext_dir: Path) -> bool:
     return bool(config and config.get("extension_type") == "wasm")
 
 
-def load_wasm_extension_config(ext_id: str) -> dict[str, Any] | None:
+def load_wasm_extension_config(ext_id: str) -> WasmExtensionConfig | None:
     ext_dir = Path(settings.lnbits_extensions_path, "extensions", ext_id)
-    return _load_json(ext_dir / "config.json")
+    config = _load_json(ext_dir / "config.json")
+    if not config or config.get("extension_type") != "wasm":
+        return None
+    return parse_wasm_extension_config(ext_id, config)
 
 
 def load_wasm_extension(ext_id: str) -> WasmExtension:
     ext_dir = Path(settings.lnbits_extensions_path, "extensions", ext_id)
-    config = load_wasm_extension_config(ext_id)
-    if not config:
+    raw_config = _load_json(ext_dir / "config.json")
+    if not raw_config:
         raise FileNotFoundError(f"Missing WASM extension config for '{ext_id}'.")
-    if config.get("extension_type") != "wasm":
+    if raw_config.get("extension_type") != "wasm":
         raise ValueError(f"Extension '{ext_id}' is not a WASM extension.")
+    config = parse_wasm_extension_config(ext_id, raw_config)
 
-    wasm_config = config.get("wasm") or {}
-    module_path = _extension_path(ext_dir, wasm_config.get("module"))
-    wit_path = _optional_extension_path(ext_dir, wasm_config.get("wit"))
+    module_path = _extension_path(ext_dir, config.wasm.module)
+    wit_path = _optional_extension_path(ext_dir, config.wasm.wit)
     _check_wasm_module(module_path)
     if wit_path and not wit_path.is_file():
         raise FileNotFoundError(f"WIT file not found: {wit_path}")
 
     return WasmExtension(
-        id=config.get("id") or ext_id,
-        name=config.get("name") or ext_id,
-        version=config.get("version") or "0.0",
+        id=config.id,
+        name=config.name,
+        version=config.version,
         root_path=ext_dir,
         module_path=module_path,
         wit_path=wit_path,
-        world=wasm_config.get("world") or "",
-        host_api=wasm_config.get("host_api") or "lnbits.core.wasm_ext.ExtensionHostAPI",
-        exports=wasm_config.get("exports") or [],
+        world=config.wasm.world,
+        exports=config.wasm.exports,
         config=config,
     )
 

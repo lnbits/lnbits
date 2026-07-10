@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import Awaitable, Callable
+from pathlib import Path
 from typing import Any
 
 from pydantic import BaseModel
@@ -31,13 +32,28 @@ class WasmExtensionRegistry:
         self._extensions: dict[str, Any] = {}
 
     def register(self, extension: Any) -> None:
+        self.require_available(extension)
         self._extensions[extension.id] = extension
+
+    def require_available(self, extension: Any) -> None:
+        existing = self._extensions.get(extension.id)
+        if existing and not _same_wasm_extension_registration(existing, extension):
+            raise ValueError(
+                f"WASM extension id '{extension.id}' is already registered."
+            )
 
     def get(self, ext_id: str) -> Any | None:
         return self._extensions.get(ext_id)
 
     def list(self) -> list[Any]:
         return list(self._extensions.values())
+
+
+def _same_wasm_extension_registration(left: Any, right: Any) -> bool:
+    try:
+        return Path(left.root_path).resolve() == Path(right.root_path).resolve()
+    except (AttributeError, TypeError):
+        return left is right
 
 
 class ConversionData(BaseModel):

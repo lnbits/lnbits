@@ -60,6 +60,8 @@ class ExtensionHostAPI:
         access_token: str | None = None,
         context: str = "user",
         owner_id: str | None = None,
+        invocation_id: str | None = None,
+        runtime_limits: dict[str, int] | None = None,
     ) -> None:
         self.extension_id = extension_id
         self.permissions, self.permission_policies = self._permission_data(permissions)
@@ -67,6 +69,8 @@ class ExtensionHostAPI:
         self.access_token = access_token
         self.context = context
         self.owner_id = sha256s(user_id) if user_id else owner_id
+        self.invocation_id = invocation_id
+        self.runtime_limits = runtime_limits or {}
         from .utils import ExtensionAPIUtils
 
         self.utils = ExtensionAPIUtils(self.extension_id, self.permissions)
@@ -413,7 +417,15 @@ class ExtensionHostAPI:
         from ..client.http import send_extension_http_request
 
         policies = self.permission_policies.get("http.request") or []
-        return await send_extension_http_request(self.extension_id, policies, request)
+        return await send_extension_http_request(
+            self.extension_id,
+            policies,
+            request,
+            timeout_ms=self.runtime_limits.get("wasm_runtime_http_timeout_ms"),
+            max_response_bytes=self.runtime_limits.get(
+                "wasm_runtime_max_http_response_bytes"
+            ),
+        )
 
     @extension_api_method(
         method_id="extension.api.request",
@@ -434,6 +446,10 @@ class ExtensionHostAPI:
             self.user_id,
             self.access_token,
             request,
+            timeout_ms=self.runtime_limits.get("wasm_runtime_http_timeout_ms"),
+            max_response_bytes=self.runtime_limits.get(
+                "wasm_runtime_max_http_response_bytes"
+            ),
         )
 
     @extension_api_method(

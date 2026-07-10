@@ -37,13 +37,11 @@ from .security import (
 def register_wasm_extension_ui_routes(app: FastAPI, extension: WasmExtension) -> None:
     _add_wasm_extension_frame_config_route(app, extension)
 
-    for route_index, route_config in enumerate(extension.config.get("ui_routes") or []):
-        route_path = _wasm_extension_ui_route_path(extension, route_config.get("path"))
-        entrypoint = _wasm_extension_entrypoint(
-            extension, route_config.get("entrypoint")
-        )
+    for route_index, route_config in enumerate(extension.config.ui_routes):
+        route_path = _wasm_extension_ui_route_path(extension, route_config.path)
+        entrypoint = _wasm_extension_entrypoint(extension, route_config.entrypoint)
         frame_path = f"/ext-frame/{extension.id}/{route_index}"
-        auth = _wasm_extension_route_auth(extension, route_config.get("auth"))
+        auth = _wasm_extension_route_auth(extension, route_config.auth)
         _add_wasm_extension_frame_route(app, extension, frame_path, entrypoint)
         _add_wasm_extension_wrapper_route(
             app,
@@ -188,13 +186,13 @@ def _wasm_extension_bridge_api_routes(
     public: bool,
 ) -> list[dict[str, str]]:
     routes: list[dict[str, str]] = []
-    for route_config in extension.config.get("api_routes") or []:
-        auth = _wasm_extension_route_auth(extension, route_config.get("auth"))
+    for route_config in extension.config.api_routes:
+        auth = _wasm_extension_route_auth(extension, route_config.auth)
         if public and auth != "public":
             continue
-        method = _wasm_extension_api_method(extension, route_config.get("method"))
-        path = _wasm_extension_api_path(extension, route_config.get("path"))
-        _wasm_extension_api_export(extension, route_config.get("export"))
+        method = _wasm_extension_api_method(extension, route_config.method)
+        path = _wasm_extension_api_path(extension, route_config.path)
+        _wasm_extension_api_export(extension, route_config.export)
         routes.append(
             {
                 "method": method,
@@ -216,16 +214,16 @@ def _match_wasm_extension_ui_route(
     if not isinstance(path, str) or not path.startswith("/"):
         raise HTTPException(status_code=404, detail="Not found")
 
-    for route_index, route_config in enumerate(extension.config.get("ui_routes") or []):
-        route_path = _wasm_extension_ui_route_path(extension, route_config.get("path"))
+    for route_index, route_config in enumerate(extension.config.ui_routes):
+        route_path = _wasm_extension_ui_route_path(extension, route_config.path)
         route_params = _path_template_params(route_path, path)
         if route_params is None:
             continue
 
         return {
             "frame_path": f"/ext-frame/{extension.id}/{route_index}",
-            "auth": _wasm_extension_route_auth(extension, route_config.get("auth")),
-            "path_params": route_config.get("path_params") or {},
+            "auth": _wasm_extension_route_auth(extension, route_config.auth),
+            "path_params": route_config.path_params,
             "route_params": route_params,
         }
 

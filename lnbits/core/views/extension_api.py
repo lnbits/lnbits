@@ -29,6 +29,10 @@ from lnbits.core.models.extensions import (
     ReleasePaymentInfo,
     UserExtension,
     UserExtensionInfo,
+    WasmInvocation,
+    WasmInvocationStats,
+    WasmRuntimeLimitsInfo,
+    WasmRuntimeLimitsUpdate,
     wasm_extension_icon_url,
 )
 from lnbits.core.models.users import Account, AccountId
@@ -36,10 +40,17 @@ from lnbits.core.services import check_transaction_status, create_invoice
 from lnbits.core.services.extensions import (
     activate_extension,
     deactivate_extension,
+    get_current_wasm_invocations,
     get_valid_extension,
     get_valid_extensions,
+    get_wasm_invocation_history,
+    get_wasm_invocation_summary,
     install_extension,
+    resolve_wasm_runtime_limits,
+    stop_wasm_invocation,
     uninstall_extension,
+    update_wasm_extension_runtime_limits,
+    validate_wasm_runtime_limit_overrides,
 )
 from lnbits.core.wasm_ext.api.permissions import validate_extension_permissions
 from lnbits.db import Page
@@ -129,6 +140,106 @@ async def api_install_extension(data: CreateExtension):
         raise HTTPException(
             status_code=HTTPStatus.INTERNAL_SERVER_ERROR,
             detail=detail,
+        ) from exc
+
+
+@extension_router.get(
+    "/wasm/invocations/current",
+    dependencies=[Depends(check_admin)],
+)
+async def api_get_current_wasm_invocations(
+    extension_id: str | None = None,
+) -> list[WasmInvocation]:
+    return get_current_wasm_invocations(extension_id=extension_id)
+
+
+@extension_router.get(
+    "/wasm/invocations",
+    dependencies=[Depends(check_admin)],
+)
+async def api_get_wasm_invocations(
+    extension_id: str | None = None,
+    status: str | None = None,
+    limit: int = 100,
+    offset: int = 0,
+) -> list[WasmInvocation]:
+    return await get_wasm_invocation_history(
+        extension_id=extension_id,
+        status=status,
+        limit=limit,
+        offset=offset,
+    )
+
+
+@extension_router.get(
+    "/wasm/invocations/stats",
+    dependencies=[Depends(check_admin)],
+)
+async def api_get_wasm_invocation_stats(
+    extension_id: str | None = None,
+    hours: int = 24,
+) -> WasmInvocationStats:
+    return await get_wasm_invocation_summary(extension_id=extension_id, hours=hours)
+
+
+@extension_router.post(
+    "/wasm/invocations/{invocation_id}/stop",
+    dependencies=[Depends(check_admin)],
+)
+async def api_stop_wasm_invocation(invocation_id: str) -> SimpleStatus:
+    await stop_wasm_invocation(invocation_id, reason="Stopped by admin.")
+    return SimpleStatus(success=True, message="WASM invocation stop requested.")
+
+
+@extension_router.get(
+    "/wasm/runtime-limits/extensions",
+    dependencies=[Depends(check_admin)],
+)
+async def api_get_wasm_runtime_limit_extensions() -> list[WasmRuntimeLimitsInfo]:
+    installed_extensions = await get_installed_extensions()
+    return [
+        WasmRuntimeLimitsInfo(
+            id=extension.id,
+            name=extension.name,
+            active=extension.active,
+            wasm_runtime_limits=validate_wasm_runtime_limit_overrides(
+                extension.wasm_runtime_limits,
+                strict=False,
+            ),
+            effective_wasm_runtime_limits=resolve_wasm_runtime_limits(extension),
+        )
+        for extension in installed_extensions
+        if extension.is_wasm
+    ]
+
+
+@extension_router.put(
+    "/wasm/runtime-limits/{ext_id}",
+    dependencies=[Depends(check_admin)],
+)
+async def api_update_wasm_runtime_limits(
+    ext_id: str,
+    data: WasmRuntimeLimitsUpdate,
+) -> WasmRuntimeLimitsInfo:
+    try:
+        wasm_runtime_limits = await update_wasm_extension_runtime_limits(
+            ext_id, data.limits
+        )
+        extension = await get_installed_extension(ext_id)
+        if not extension:
+            raise ValueError(f"Extension '{ext_id}' is not installed.")
+        extension.wasm_runtime_limits = wasm_runtime_limits
+        return WasmRuntimeLimitsInfo(
+            id=extension.id,
+            name=extension.name,
+            active=extension.active,
+            wasm_runtime_limits=wasm_runtime_limits,
+            effective_wasm_runtime_limits=resolve_wasm_runtime_limits(extension),
+        )
+    except ValueError as exc:
+        raise HTTPException(
+            status_code=HTTPStatus.BAD_REQUEST,
+            detail=str(exc),
         ) from exc
 
 
