@@ -12,7 +12,7 @@ from lnbits.core.crud import update_migration_version
 from lnbits.core.db import db as core_db
 from lnbits.core.models import DbVersion
 from lnbits.core.models.extensions import InstallableExtension
-from lnbits.db import POSTGRES, SQLITE, Connection, Database
+from lnbits.db import POSTGRES, SQLITE, Compat, Connection, Database
 from lnbits.settings import settings
 
 _MIGRATION_FILE_RE = re.compile(r"^(\d+)_.*\.json$")
@@ -78,7 +78,6 @@ async def storage_set_row(
     clean_data = _data_to_db(table_schema, data, require_id=True)
     clean_data[OWNER_ID_FIELD] = owner_id
     columns = list(clean_data.keys())
-    placeholders = [f":{column}" for column in columns]
     updates = [
         f"{column} = excluded.{column}"
         for column in columns
@@ -91,15 +90,19 @@ async def storage_set_row(
         if updates
         else "DO NOTHING"
     )
-    query = f"""
-        INSERT INTO {_table_ref_for_schema(ext_id, table)}
-            ({", ".join(columns)})
-        VALUES
-            ({", ".join(placeholders)})
-        ON CONFLICT (id) {conflict_sql}
-    """  # noqa: S608
 
     async with Database(f"ext_{ext_id}").connect() as conn:
+        placeholders = [
+            _value_placeholder(conn, _fields_by_name(table_schema)[column], column)
+            for column in columns
+        ]
+        query = f"""
+            INSERT INTO {_table_ref_for_schema(ext_id, table)}
+                ({", ".join(columns)})
+            VALUES
+                ({", ".join(placeholders)})
+            ON CONFLICT (id) {conflict_sql}
+        """  # noqa: S608
         await conn.execute(query, clean_data)
 
 
@@ -117,27 +120,28 @@ async def storage_get_paginated_rows(
     offset: int,
 ) -> dict[str, Any]:
     table_schema = _load_table_schema(ext_id, table)
-    where_sql, values = _where_sql(table_schema, filters, search, search_fields)
-    where_sql = _append_owner_where_sql(where_sql)
-    values[OWNER_ID_FIELD] = owner_id
-    order_sql = _order_sql(table_schema, sort_by, descending)
-    count_values = dict(values)
-    values.update({"limit": min(limit, 1000), "offset": offset})
-
     table_ref = _table_ref_for_schema(ext_id, table)
-    rows_query = f"""
-        SELECT * FROM {table_ref}
-        {where_sql}
-        {order_sql}
-        LIMIT :limit
-        OFFSET :offset
-    """  # noqa: S608
-    count_query = f"""
-        SELECT COUNT(*) AS count FROM {table_ref}
-        {where_sql}
-    """  # noqa: S608
 
     async with Database(f"ext_{ext_id}").connect() as conn:
+        where_sql, values = _where_sql(
+            conn, table_schema, filters, search, search_fields
+        )
+        where_sql = _append_owner_where_sql(where_sql)
+        values[OWNER_ID_FIELD] = owner_id
+        order_sql = _order_sql(table_schema, sort_by, descending)
+        count_values = dict(values)
+        values.update({"limit": min(limit, 1000), "offset": offset})
+        rows_query = f"""
+            SELECT * FROM {table_ref}
+            {where_sql}
+            {order_sql}
+            LIMIT :limit
+            OFFSET :offset
+        """  # noqa: S608
+        count_query = f"""
+            SELECT COUNT(*) AS count FROM {table_ref}
+            {where_sql}
+        """  # noqa: S608
         rows = await conn.fetchall(rows_query, values)
         count_row = await conn.fetchone(count_query, count_values)
 
@@ -403,14 +407,25 @@ def _filters_to_db(
     }
 
 
+def _value_placeholder(db: Compat, field: dict[str, Any], key: str) -> str:
+    if field.get("type") == "datetime" and not field.get("list"):
+        return db.timestamp_placeholder(key)
+    return f":{key}"
+
+
 def _where_sql(
+    db: Compat,
     table_schema: dict[str, Any],
     filters: dict[str, Any],
     search: str | None,
     search_fields: list[str],
 ) -> tuple[str, dict[str, Any]]:
     clean_filters = _filters_to_db(table_schema, filters)
-    clauses = [f"{field} = :filter_{field}" for field in clean_filters]
+    fields = _fields_by_name(table_schema)
+    clauses = [
+        f"{field} = {_value_placeholder(db, fields[field], f'filter_{field}')}"
+        for field in clean_filters
+    ]
     values = {f"filter_{field}": value for field, value in clean_filters.items()}
 
     clean_search = search.strip().lower() if search else ""
