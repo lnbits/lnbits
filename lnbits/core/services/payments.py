@@ -1018,6 +1018,14 @@ async def _pay_offer(
 
         if payment_response.success:
             if payment_response.amount_msat is not None:
+                if payment_response.amount_msat > max_sat * 1000:
+                    payment.status = PaymentState.FAILED
+                    await update_payment(payment, conn=conn)
+                    raise PaymentError(
+                        f"BOLT12 offer actual amount {payment_response.amount_msat // 1000} sats "
+                        f"exceeds max_sat {max_sat} sats.",
+                        status="failed",
+                    )
                 payment.amount = -payment_response.amount_msat
             payment = await update_payment_success_status(
                 payment, payment_response, conn=conn
