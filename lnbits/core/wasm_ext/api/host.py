@@ -65,7 +65,6 @@ class ExtensionHostAPI:
         access_token: str | None = None,
         context: str = "user",
         owner_id: str | None = None,
-        wallet_id: str | None = None,
         invocation_id: str | None = None,
         runtime_limits: dict[str, int] | None = None,
     ) -> None:
@@ -75,7 +74,6 @@ class ExtensionHostAPI:
         self.access_token = access_token
         self.context = context
         self.owner_id = sha256s(user_id) if user_id else owner_id
-        self.wallet_id = wallet_id
         self.invocation_id = invocation_id
         self.runtime_limits = runtime_limits or {}
         from .utils import ExtensionAPIUtils
@@ -381,18 +379,14 @@ class ExtensionHostAPI:
         from lnbits.core.services.payments import pay_invoice
         from lnbits.exceptions import PaymentError
 
-        wallet = await get_wallet(request.wallet_id)
-        if wallet is None:
-            raise PermissionError("Paying invoices from this wallet is not allowed.")
-        if self.user_id:
-            if wallet.user != self.user_id:
-                raise PermissionError(
-                    "Paying invoices from this wallet is not allowed."
-                )
-        elif not (self.context == "event" and request.wallet_id == self.wallet_id):
+        if not self.user_id:
             raise PermissionError(
                 "Paying an invoice requires an authenticated user context."
             )
+
+        wallet = await get_wallet(request.wallet_id)
+        if wallet is None or wallet.user != self.user_id:
+            raise PermissionError("Paying invoices from this wallet is not allowed.")
 
         try:
             payment_request = request.payment_request
