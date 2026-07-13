@@ -7,6 +7,7 @@ window.PageWallet = {
         invoice: null,
         lnurlpay: null,
         lnurlauth: null,
+        sending: false,
         data: {
           request: '',
           amount: 0,
@@ -131,6 +132,7 @@ window.PageWallet = {
       this.parse.data.request = ''
       this.parse.data.comment = ''
       this.parse.data.internalMemo = null
+      this.parse.sending = false
       this.parse.data.paymentChecker = null
       this.parse.camera.show = false
     },
@@ -362,6 +364,9 @@ window.PageWallet = {
       this.parse.invoice = Object.freeze(cleanInvoice)
     },
     payInvoice() {
+      if (this.parse.sending) return
+
+      this.parse.sending = true
       const dismissPaymentMsg = Quasar.Notify.create({
         timeout: 0,
         message: this.$t('payment_processing')
@@ -374,6 +379,7 @@ window.PageWallet = {
           this.parse.data.internalMemo
         )
         .then(response => {
+          this.parse.sending = false
           dismissPaymentMsg()
           this.g.updatePayments = !this.g.updatePayments
           this.parse.show = false
@@ -391,13 +397,16 @@ window.PageWallet = {
           }
         })
         .catch(err => {
+          this.parse.sending = false
           dismissPaymentMsg()
           LNbits.utils.notifyApiError(err)
           this.g.updatePayments = !this.g.updatePayments
-          this.parse.show = false
         })
     },
     payLnurl() {
+      if (this.parse.sending) return
+
+      this.parse.sending = true
       LNbits.api
         .request('post', '/api/v1/payments/lnurl', this.g.wallet.adminkey, {
           res: this.parse.lnurlpay,
@@ -408,6 +417,7 @@ window.PageWallet = {
           internalMemo: this.parse.data.internalMemo
         })
         .then(response => {
+          this.parse.sending = false
           this.parse.show = false
           if (response.data.extra.success_action) {
             const action = JSON.parse(response.data.extra.success_action)
@@ -464,7 +474,10 @@ window.PageWallet = {
             }
           }
         })
-        .catch(LNbits.utils.notifyApiError)
+        .catch(err => {
+          this.parse.sending = false
+          LNbits.utils.notifyApiError(err)
+        })
     },
     authLnurl() {
       const dismissAuthMsg = Quasar.Notify.create({

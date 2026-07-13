@@ -116,6 +116,7 @@ window.localisation.en = {
   read: 'Read',
   write: 'Write',
   pay: 'Pay',
+  sending: 'Sending',
   memo: 'Memo',
   date: 'Date',
   path: 'Path',
