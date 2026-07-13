@@ -497,9 +497,8 @@ class NotificationsSettings(LNbitsSettings):
         )
 
     def is_email_notifications_configured(self) -> bool:
-        return (
-            self.lnbits_email_notifications_enabled
-            and bool(self.lnbits_email_notifications_email)
+        return self.lnbits_email_notifications_enabled and bool(
+            self.lnbits_email_notifications_email
         )
 
 
