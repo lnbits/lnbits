@@ -496,6 +496,12 @@ class NotificationsSettings(LNbitsSettings):
             and self.lnbits_telegram_notifications_access_token is not None
         )
 
+    def is_email_notifications_configured(self) -> bool:
+        return (
+            self.lnbits_email_notifications_enabled
+            and bool(self.lnbits_email_notifications_email)
+        )
+
 
 class FakeWalletFundingSource(LNbitsSettings):
     fake_wallet_secret: str = Field(default="ToTheMoon1")
@@ -1360,7 +1366,7 @@ class PublicSettings(BaseModel):
             extensionsReviewsUrl=settings.lnbits_extensions_reviews_url,
             extBuilder=settings.lnbits_extensions_builder_activate_non_admins,
             nostrConfigured=settings.is_nostr_notifications_configured(),
-            emailConfigured=settings.lnbits_email_notifications_enabled,
+            emailConfigured=settings.is_email_notifications_configured(),
             telegramConfigured=settings.is_telegram_notifications_configured(),
             walletFeaturedButtonLabel=settings.lnbits_wallet_featured_button_label,
             walletFeaturedButtonUrl=settings.lnbits_wallet_featured_button_url,
