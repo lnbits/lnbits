@@ -17,7 +17,7 @@ from lnbits.db import Connection, Filters
 from lnbits.decorators import check_user_extension_access
 from lnbits.exceptions import InvoiceError, PaymentError, UnsupportedError
 from lnbits.fiat import get_fiat_provider
-from lnbits.helpers import check_callback_url
+from lnbits.helpers import check_callback_url, daystart_timestamp
 from lnbits.settings import settings
 from lnbits.task_manager import task_manager
 from lnbits.utils.crypto import fake_privkey, random_secret_and_hash, verify_preimage
@@ -557,10 +557,9 @@ async def check_wallet_daily_withdraw_limit(
         raise ValueError("It is not allowed to spend funds from this server.")
 
     payments = await get_payments(
-        since=int(time.time()) - 60 * 60 * 24,
+        since=daystart_timestamp(),
         outgoing=True,
         wallet_id=wallet_id,
-        limit=1,
         conn=conn,
     )
     if len(payments) == 0:
