@@ -86,18 +86,21 @@ async def storage_set_row(
     conflict_sql = (
         "DO UPDATE SET "
         + ", ".join(updates)
-        + f" WHERE {OWNER_ID_FIELD} = :{OWNER_ID_FIELD}"
+        + f" WHERE storage_row.{OWNER_ID_FIELD} = :{OWNER_ID_FIELD}"
         if updates
         else "DO NOTHING"
     )
 
     async with Database(f"ext_{ext_id}").connect() as conn:
+        fields = _fields_by_name(table_schema)
         placeholders = [
-            _value_placeholder(conn, _fields_by_name(table_schema)[column], column)
+            f":{column}"
+            if column == OWNER_ID_FIELD
+            else _value_placeholder(conn, fields[column], column)
             for column in columns
         ]
         query = f"""
-            INSERT INTO {_table_ref_for_schema(ext_id, table)}
+            INSERT INTO {_table_ref_for_schema(ext_id, table)} AS storage_row
                 ({", ".join(columns)})
             VALUES
                 ({", ".join(placeholders)})
