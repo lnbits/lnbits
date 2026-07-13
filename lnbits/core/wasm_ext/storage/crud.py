@@ -94,9 +94,11 @@ async def storage_set_row(
     async with Database(f"ext_{ext_id}").connect() as conn:
         fields = _fields_by_name(table_schema)
         placeholders = [
-            f":{column}"
-            if column == OWNER_ID_FIELD
-            else _value_placeholder(conn, fields[column], column)
+            (
+                f":{column}"
+                if column == OWNER_ID_FIELD
+                else _value_placeholder(conn, fields[column], column)
+            )
             for column in columns
         ]
         query = f"""
