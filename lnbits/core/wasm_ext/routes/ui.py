@@ -17,6 +17,7 @@ from lnbits.decorators import (
 
 from ..wasm.loader import WasmExtension
 from .api import (
+    WasmRequestBodyTooLargeError,
     _has_route,
     _path_template_pattern,
     _read_json_object,
@@ -66,6 +67,8 @@ def _add_wasm_extension_frame_config_route(
     ) -> dict[str, Any]:
         try:
             body = await _read_json_object(request)
+        except WasmRequestBodyTooLargeError as exc:
+            raise HTTPException(status_code=413, detail=str(exc)) from exc
         except (TypeError, ValueError) as exc:
             raise HTTPException(status_code=400, detail=str(exc)) from exc
 
