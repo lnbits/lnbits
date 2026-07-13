@@ -158,10 +158,6 @@ async def api_update_user(
 async def api_users_delete_user(
     user_id: str, account: Account = Depends(check_admin)
 ) -> SimpleStatus:
-    wallets = await get_wallets(user_id, deleted=False)
-    for wallet in wallets:
-        await delete_wallet_by_id(wallet.id)
-
     if user_id == settings.super_user:
         raise HTTPException(
             status_code=HTTPStatus.BAD_REQUEST,
@@ -173,6 +169,11 @@ async def api_users_delete_user(
             status_code=HTTPStatus.BAD_REQUEST,
             detail="Only super_user can delete admin user.",
         )
+
+    wallets = await get_wallets(user_id, deleted=False)
+    for wallet in wallets:
+        await delete_wallet_by_id(wallet.id)
+
     await delete_account(user_id)
     return SimpleStatus(success=True, message="User deleted.")
 
