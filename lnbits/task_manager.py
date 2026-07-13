@@ -526,7 +526,7 @@ async def relay_ws_queue(
     Shared by the blockexplorer address/tx/block websocket endpoints.
     """
     try:
-        while True:
+        while settings.lnbits_running:
             recv_task = asyncio.create_task(websocket.receive())
             event_task = asyncio.create_task(queue.get())
             done, pending = await asyncio.wait(
