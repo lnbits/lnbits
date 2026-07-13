@@ -1445,10 +1445,14 @@ def test_check_revolut_signature_docs_vector(mocker: MockerFixture):
     secret = "wsk_r59a4HfWVAKycbCaNO1RvgCJec02gRd8"
     sig = "v1=bca326fb378d0da7f7c490ad584a8106bab9723d8d9cdd0d50b4c5b3be3837c0"
 
+    # This is a fixed vector straight from Revolut's docs, so its timestamp is
+    # necessarily in the past. Freeze time to it instead of growing
+    # tolerance_seconds indefinitely as real time marches on.
     mocker.patch(
         "lnbits.core.services.fiat_providers.time.time",
         return_value=int(timestamp) / 1000,
     )
+    check_revolut_signature(payload, sig, timestamp, secret)
 
     check_revolut_signature(payload, sig, timestamp, secret)
 
