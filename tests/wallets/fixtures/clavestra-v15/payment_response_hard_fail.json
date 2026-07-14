@@ -1,0 +1,7 @@
+{
+  "ok": false,
+  "checking_id": null,
+  "fee_msat": null,
+  "preimage": null,
+  "error_message": "invalid bolt11: bad checksum"
+}

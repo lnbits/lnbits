@@ -1,0 +1,8 @@
+{
+  "ok": true,
+  "checking_id": "abababababababababababababababababababababababababababababababab",
+  "payment_request": "lnBC1pExamplePP5qqqsyqcyq5rqwzqfqqqsyqcyq5rqwzqfqqqsyqcyq5rqwzqfq",
+  "error_message": null,
+  "preimage": null,
+  "fee_msat": null
+}
