@@ -1,6 +1,8 @@
 import json
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
+from types import SimpleNamespace
+from typing import cast
 from uuid import uuid4
 
 import pytest
@@ -8,6 +10,7 @@ from pytest_mock.plugin import MockerFixture
 
 from lnbits.core.crud import extensions as extension_crud
 from lnbits.core.crud import update_migration_version
+from lnbits.core.db import db as core_db
 from lnbits.core.migrations import (
     m010_create_installed_extensions_table,
     m046_add_permissions_to_installed_extensions,
@@ -15,6 +18,7 @@ from lnbits.core.migrations import (
     m048_add_wasm_runtime_limits_to_installed_extensions,
 )
 from lnbits.core.models.extensions import ExtensionPermission, WasmInvocation
+from lnbits.core.wasm_ext.storage import crud as storage_crud
 from lnbits.core.wasm_ext.storage.crud import (
     OWNER_ID_FIELD,
     migrate_wasm_extension_database,
@@ -24,7 +28,7 @@ from lnbits.core.wasm_ext.storage.crud import (
     storage_get_row,
     storage_set_row,
 )
-from lnbits.db import Database
+from lnbits.db import DB_TYPE, SQLITE, Compat, Connection, Database
 from lnbits.settings import Settings
 from tests.helpers import make_installable_extension
 
@@ -33,6 +37,9 @@ from tests.helpers import make_installable_extension
 async def test_core_wasm_migrations_create_persistent_columns(
     tmp_path: Path, settings: Settings
 ):
+    if DB_TYPE != SQLITE:
+        pytest.skip("temporary core databases are SQLite-only")
+
     db = _temporary_database(tmp_path, settings, "wasm_core_migrations")
 
     async with db.connect() as conn:
@@ -66,6 +73,7 @@ async def test_core_wasm_migrations_create_persistent_columns(
 
 @pytest.mark.anyio
 async def test_installed_extension_permissions_and_wasm_limits_round_trip(
+    app,
     tmp_path: Path,
     settings: Settings,
     mocker: MockerFixture,
@@ -95,6 +103,7 @@ async def test_installed_extension_permissions_and_wasm_limits_round_trip(
 
 @pytest.mark.anyio
 async def test_wasm_invocation_crud_stats_and_cleanup_are_isolated(
+    app,
     tmp_path: Path,
     settings: Settings,
     mocker: MockerFixture,
@@ -172,6 +181,39 @@ async def test_wasm_invocation_crud_stats_and_cleanup_are_isolated(
     assert stats.storage_call_count == 2
     assert deleted == 1
     assert [invocation.id for invocation in remaining_running] == [invocations[2].id]
+
+
+@pytest.mark.anyio
+async def test_wasm_datetime_queries_use_postgres_placeholders(
+    mocker: MockerFixture,
+):
+    db = mocker.Mock()
+    db.timestamp_placeholder.side_effect = lambda key: f"to_timestamp(:{key})"
+    db.fetchone = mocker.AsyncMock(return_value=None)
+    db.execute = mocker.AsyncMock(return_value=SimpleNamespace(rowcount=0))
+
+    field = {"name": "created_at", "type": "datetime"}
+    assert (
+        storage_crud._value_placeholder(cast(Compat, db), field, "created_at")
+        == "to_timestamp(:created_at)"
+    )
+    where_sql, _ = storage_crud._where_sql(
+        cast(Compat, db), {"fields": [field]}, {"created_at": 0}, None, []
+    )
+    assert "created_at = to_timestamp(:filter_created_at)" in where_sql
+
+    conn = cast(Connection, db)
+    await extension_crud.get_wasm_invocation_stats(
+        since=datetime.now(timezone.utc), conn=conn
+    )
+    await extension_crud.delete_old_wasm_invocations(1, conn=conn)
+    await extension_crud.mark_stale_wasm_invocations(conn=conn)
+
+    queries = [
+        db.fetchone.call_args.args[0],
+        *[c.args[0] for c in db.execute.call_args_list],
+    ]
+    assert all("to_timestamp(:" in query for query in queries)
 
 
 @pytest.mark.anyio
@@ -312,6 +354,9 @@ async def _temporary_core_crud_database(
     tmp_path: Path,
     settings: Settings,
 ) -> Database:
+    if DB_TYPE != SQLITE:
+        return core_db
+
     db = _temporary_database(tmp_path, settings, f"core_{uuid4().hex[:8]}")
     async with db.connect() as conn:
         await conn.execute("""

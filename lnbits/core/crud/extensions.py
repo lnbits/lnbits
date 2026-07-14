@@ -253,13 +253,14 @@ async def get_wasm_invocation_stats(
     since: datetime | None = None,
     conn: Connection | None = None,
 ) -> WasmInvocationStats:
+    database = conn or db
     where: list[str] = []
     values: dict = {}
     if extension_id:
         where.append("extension_id = :extension_id")
         values["extension_id"] = extension_id
     if since:
-        where.append("started_at >= :since")
+        where.append(f"started_at >= {database.timestamp_placeholder('since')}")
         values["since"] = since
 
     query = """
@@ -314,11 +315,13 @@ async def delete_old_wasm_invocations(
         return 0
 
     cutoff = datetime.now(timezone.utc) - timedelta(days=retention_days)
-    result = await (conn or db).execute(
-        """
+    database = conn or db
+    result = await database.execute(
+        f"""
         DELETE FROM wasm_invocations
-        WHERE status != 'running' AND started_at < :cutoff
-        """,
+        WHERE status != 'running'
+            AND started_at < {database.timestamp_placeholder("cutoff")}
+        """,  # noqa: S608
         {"cutoff": cutoff},
     )
     return int(result.rowcount or 0)
@@ -327,13 +330,14 @@ async def delete_old_wasm_invocations(
 async def mark_stale_wasm_invocations(
     conn: Connection | None = None,
 ) -> None:
-    await (conn or db).execute(
-        """
+    database = conn or db
+    await database.execute(
+        f"""
         UPDATE wasm_invocations
         SET status = 'abandoned',
-            finished_at = :finished_at,
+            finished_at = {database.timestamp_placeholder("finished_at")},
             stop_reason = 'Server restarted before invocation finished.'
         WHERE status = 'running'
-        """,
+        """,  # noqa: S608
         {"finished_at": datetime.now(timezone.utc)},
     )
