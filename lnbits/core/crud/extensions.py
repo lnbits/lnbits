@@ -316,11 +316,11 @@ async def delete_old_wasm_invocations(
 
     cutoff = datetime.now(timezone.utc) - timedelta(days=retention_days)
     database = conn or db
-    placeholder = database.timestamp_placeholder("cutoff")
     result = await database.execute(
         f"""
         DELETE FROM wasm_invocations
-        WHERE status != 'running' AND started_at < {placeholder}
+        WHERE status != 'running'
+            AND started_at < {database.timestamp_placeholder("cutoff")}
         """,  # noqa: S608
         {"cutoff": cutoff},
     )
@@ -331,12 +331,11 @@ async def mark_stale_wasm_invocations(
     conn: Connection | None = None,
 ) -> None:
     database = conn or db
-    placeholder = database.timestamp_placeholder("finished_at")
     await database.execute(
         f"""
         UPDATE wasm_invocations
         SET status = 'abandoned',
-            finished_at = {placeholder},
+            finished_at = {database.timestamp_placeholder("finished_at")},
             stop_reason = 'Server restarted before invocation finished.'
         WHERE status = 'running'
         """,  # noqa: S608
