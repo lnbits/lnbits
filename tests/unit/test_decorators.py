@@ -12,6 +12,7 @@ from lnbits.core.crud.users import delete_account
 from lnbits.core.models import User
 from lnbits.core.models.users import AccessTokenPayload
 from lnbits.decorators import (
+    _extension_id_from_request_path,
     access_token_payload,
     check_access_token,
     check_admin_ui,
@@ -225,3 +226,12 @@ async def test_check_extension_builder_requires_admin_when_disabled_for_users(
     admin_user = user_alan.copy(deep=True)
     admin_user.admin = True
     await check_extension_builder(admin_user)
+
+
+def test_extension_id_from_request_path_handles_wasm_routes():
+    assert _extension_id_from_request_path("/ext/wasm_demo") == "wasm_demo"
+    assert _extension_id_from_request_path("/ext/wasm_demo/page/1") == "wasm_demo"
+    assert (
+        _extension_id_from_request_path("/api/v1/ext/wasm_demo/invoices") == "wasm_demo"
+    )
+    assert _extension_id_from_request_path("/lnurlp/api/v1") == "lnurlp"

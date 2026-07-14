@@ -1,3 +1,6 @@
+import json
+import zipfile
+from datetime import datetime, timedelta, timezone
 from types import SimpleNamespace
 from uuid import uuid4
 
@@ -11,6 +14,7 @@ from lnbits.core.crud import (
 )
 from lnbits.core.models.extensions import (
     Extension,
+    ExtensionPermission,
     InstallableExtension,
     ReleasePaymentInfo,
 )
@@ -151,6 +155,59 @@ async def test_install_extension_updates_existing_upgrade_and_preserves_payments
 
 
 @pytest.mark.anyio
+async def test_install_wasm_extension_requires_permissions_and_skips_background_work(
+    tmp_path,
+    settings: Settings,
+    mocker: MockerFixture,
+):
+    ext_id = f"wasm_{uuid4().hex[:8]}"
+    ext_info = make_installable_extension(ext_id)
+    original_data_folder = settings.lnbits_data_folder
+    original_extensions_path = settings.lnbits_extensions_path
+    start_mock = mocker.patch(
+        "lnbits.core.services.extensions.start_extension_background_work",
+        mocker.AsyncMock(return_value=True),
+    )
+
+    try:
+        settings.lnbits_data_folder = str(tmp_path / "data")
+        settings.lnbits_extensions_path = str(tmp_path / "code")
+        _write_wasm_extension_archive(ext_info, _wasm_install_config(ext_id))
+
+        with pytest.raises(ValueError, match="requires permission approval"):
+            await install_extension(ext_info, skip_download=True)
+
+        granted_permissions = [
+            ExtensionPermission(
+                id="http.request",
+                policies=[{"host": "https://api.example.com"}],
+            )
+        ]
+        extension = await install_extension(
+            ext_info,
+            skip_download=True,
+            granted_permissions=granted_permissions,
+        )
+        stored = await get_installed_extension(ext_id)
+    finally:
+        await delete_installed_extension(ext_id=ext_id)
+        settings.lnbits_data_folder = original_data_folder
+        settings.lnbits_extensions_path = original_extensions_path
+
+    assert extension.code == ext_id
+    assert extension.is_wasm is True
+    assert stored is not None
+    assert stored.permissions == [
+        ExtensionPermission(
+            id="http.request",
+            description="Call example API.",
+            policies=[{"host": "https://api.example.com"}],
+        )
+    ]
+    start_mock.assert_not_awaited()
+
+
+@pytest.mark.anyio
 async def test_uninstall_activate_and_deactivate_extensions(
     tmp_path, settings: Settings, mocker: MockerFixture
 ):
@@ -202,6 +259,35 @@ async def test_uninstall_activate_and_deactivate_extensions(
     register_routes_mock.assert_called_once()
     assert stop_mock.await_count == 2
     assert start_mock.await_count == 1
+
+
+@pytest.mark.anyio
+async def test_wasm_invocation_monitoring_marks_stale_once_and_cleans_periodically(
+    settings: Settings,
+    mocker: MockerFixture,
+):
+    _reset_wasm_invocation_state()
+    now = datetime(2026, 1, 1, tzinfo=timezone.utc)
+    mark_stale_mock = mocker.patch(
+        "lnbits.core.services.extensions.mark_stale_wasm_invocations",
+        mocker.AsyncMock(),
+    )
+    cleanup_mock = mocker.patch(
+        "lnbits.core.services.extensions.delete_old_wasm_invocations",
+        mocker.AsyncMock(),
+    )
+    mocker.patch(
+        "lnbits.core.services.extensions._now",
+        side_effect=[now, now + timedelta(minutes=1), now + timedelta(hours=2)],
+    )
+
+    await extension_services.ensure_wasm_invocation_monitoring_ready()
+    await extension_services.ensure_wasm_invocation_monitoring_ready()
+    await extension_services.ensure_wasm_invocation_monitoring_ready()
+
+    mark_stale_mock.assert_awaited_once()
+    assert cleanup_mock.await_count == 2
+    cleanup_mock.assert_awaited_with(settings.lnbits_wasm_invocation_retention_days)
 
 
 @pytest.mark.anyio
@@ -287,11 +373,104 @@ async def test_wasm_invocation_tracking_counts_and_stops(mocker: MockerFixture):
     assert saved.storage_call_count == 1
 
 
+@pytest.mark.anyio
+async def test_wasm_invocation_context_and_error_message_are_sanitized(
+    mocker: MockerFixture,
+):
+    _reset_wasm_invocation_state()
+    create_mock = mocker.patch(
+        "lnbits.core.services.extensions.create_wasm_invocation",
+        mocker.AsyncMock(),
+    )
+    update_mock = mocker.patch(
+        "lnbits.core.services.extensions.update_wasm_invocation",
+        mocker.AsyncMock(),
+    )
+    mocker.patch(
+        "lnbits.core.services.extensions.get_wasm_invocation",
+        mocker.AsyncMock(return_value=None),
+    )
+    mocker.patch(
+        "lnbits.core.services.extensions.mark_stale_wasm_invocations",
+        mocker.AsyncMock(),
+    )
+    mocker.patch(
+        "lnbits.core.services.extensions.delete_old_wasm_invocations",
+        mocker.AsyncMock(),
+    )
+    long_key = "k" * 80
+    secret_hex = "a" * 64
+
+    invocation = await start_wasm_invocation(
+        extension_id="demoext",
+        export_name="render",
+        context={
+            long_key: "v" * 300,
+            "attempt": 2,
+            "enabled": True,
+            "nested": {"raw": "value"},
+            7: "ignored",
+        },
+    )
+    await finish_wasm_invocation(
+        invocation.id,
+        status="failed",
+        error_type="RuntimeError",
+        error_message=f"api_key=supersecret Bearer abc.def {secret_hex} " + ("x" * 600),
+    )
+
+    create_mock.assert_awaited_once()
+    created_invocation = create_mock.await_args.args[0]
+    assert created_invocation.context == {
+        "k" * 64: "v" * 256,
+        "attempt": 2,
+        "enabled": True,
+    }
+    update_mock.assert_awaited_once()
+    saved_invocation = update_mock.await_args.args[0]
+    assert saved_invocation.error_message is not None
+    assert "supersecret" not in saved_invocation.error_message
+    assert "abc.def" not in saved_invocation.error_message
+    assert secret_hex not in saved_invocation.error_message
+    assert "api_key=[redacted]" in saved_invocation.error_message
+    assert "Bearer [redacted]" in saved_invocation.error_message
+    assert "[redacted-hex]" in saved_invocation.error_message
+
+
 def _reset_wasm_invocation_state():
     with extension_services._wasm_invocation_lock:
         extension_services._wasm_invocation_handles.clear()
         extension_services._wasm_invocations_marked_stale = False
         extension_services._wasm_invocations_last_cleanup_at = None
+
+
+def _write_wasm_extension_archive(
+    ext_info: InstallableExtension,
+    config: dict,
+) -> None:
+    ext_info.zip_path.parent.mkdir(parents=True, exist_ok=True)
+    root = f"{ext_info.id}-{ext_info.version}"
+    with zipfile.ZipFile(ext_info.zip_path, "w") as archive:
+        archive.writestr(f"{root}/config.json", json.dumps(config))
+        archive.writestr(f"{root}/{config['wasm']['module']}", b"\0asm")
+
+
+def _wasm_install_config(ext_id: str) -> dict:
+    return {
+        "id": ext_id,
+        "name": f"WASM {ext_id}",
+        "short_description": "WASM extension",
+        "version": "1.0.0",
+        "extension_type": "wasm",
+        "wasm": {"module": "extension.wasm"},
+        "permissions": [
+            {
+                "id": "http.request",
+                "description": "Call example API.",
+                "policies": [{"host": "https://api.example.com"}],
+            }
+        ],
+    }
 
 
 def test_wasm_runtime_limits_merge_sparse_extension_overrides(settings: Settings):
@@ -487,6 +666,58 @@ async def test_wasm_invocation_host_call_limits(mocker: MockerFixture):
         record_wasm_invocation_host_call(invocation.id, "storage.get")
 
     await finish_wasm_invocation(invocation.id, status="failed")
+
+
+@pytest.mark.anyio
+async def test_wasm_invocation_host_call_category_limits_can_be_disabled(
+    mocker: MockerFixture,
+):
+    _reset_wasm_invocation_state()
+    mocker.patch(
+        "lnbits.core.services.extensions.create_wasm_invocation",
+        mocker.AsyncMock(),
+    )
+    mocker.patch(
+        "lnbits.core.services.extensions.update_wasm_invocation",
+        mocker.AsyncMock(),
+    )
+    mocker.patch(
+        "lnbits.core.services.extensions.get_wasm_invocation",
+        mocker.AsyncMock(return_value=None),
+    )
+    mocker.patch(
+        "lnbits.core.services.extensions.mark_stale_wasm_invocations",
+        mocker.AsyncMock(),
+    )
+    mocker.patch(
+        "lnbits.core.services.extensions.delete_old_wasm_invocations",
+        mocker.AsyncMock(),
+    )
+    limits = extension_services.wasm_runtime_limit_defaults()
+    limits["wasm_runtime_max_host_calls"] = 10
+    limits["wasm_runtime_max_http_calls"] = 1
+
+    invocation = await start_wasm_invocation(
+        extension_id="demoext",
+        export_name="render",
+        runtime_limits=limits,
+    )
+    record_wasm_invocation_host_call(invocation.id, "http.request")
+    with pytest.raises(ValueError, match="http host call limit"):
+        record_wasm_invocation_host_call(invocation.id, "extension.api.request")
+    await finish_wasm_invocation(invocation.id, status="failed")
+
+    limits["wasm_runtime_max_host_calls"] = 0
+    limits["wasm_runtime_max_http_calls"] = 0
+    unlimited_invocation = await start_wasm_invocation(
+        extension_id="demoext",
+        export_name="render",
+        runtime_limits=limits,
+    )
+    for _ in range(5):
+        record_wasm_invocation_host_call(unlimited_invocation.id, "http.request")
+
+    await finish_wasm_invocation(unlimited_invocation.id, status="completed")
 
 
 @pytest.mark.anyio
