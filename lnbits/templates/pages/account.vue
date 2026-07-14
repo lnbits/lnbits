@@ -890,36 +890,14 @@
                         </div>
                       </div>
                       <div
-                        v-if="selectedApiToken"
+                        v-if="selectedApiToken && selectedApiToken.expires_at"
                         class="row items-center q-mb-md q-gutter-sm"
                       >
-                        <span v-text="$t('expiry') + ':'"></span>
-                        <span
-                          v-text="
-                            selectedApiToken.expires_at
-                              ? utils.formatTimestamp(
-                                  selectedApiToken.expires_at
-                                )
-                              : 'Unknown'
-                          "
-                        ></span>
+                        <span v-text="expiryAt"></span>
                         <span v-text="$t('status') + ':'"></span>
                         <q-badge
-                          :color="
-                            selectedApiToken.expires_at &&
-                            selectedApiToken.expires_at * 1000 > Date.now()
-                              ? 'positive'
-                              : selectedApiToken.expires_at
-                                ? 'negative'
-                                : 'grey'
-                          "
-                          :label="
-                            selectedApiToken.expires_at
-                              ? selectedApiToken.expires_at * 1000 > Date.now()
-                                ? 'Active'
-                                : 'Expired'
-                              : 'Unknown'
-                          "
+                          :color="tokenStatus.badgeColor"
+                          :label="tokenStatus.status"
                         ></q-badge>
                       </div>
                       <div v-if="apiAcl.apiToken" class="row q-mb-md">

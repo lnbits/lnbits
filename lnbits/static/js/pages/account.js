@@ -222,6 +222,30 @@ window.PageAccount = {
       return this.selectedApiAcl.token_id_list.find(
         token => token.id === this.apiAcl.selectedTokenId
       )
+    },
+    expiryAt() {
+      if (this.selectedApiToken.expires_at) {
+        return `${this.$t('expiry')}: ${LNbits.utils.formatTimestamp(this.selectedApiToken.expires_at)}`
+      } else {
+        return ''
+      }
+    },
+    tokenStatus() {
+      if (this.selectedApiToken.expires_at) {
+        const now = new Date()
+        const expiresAt = new Date(this.selectedApiToken.expires_at * 1000)
+        let status = ''
+        let badgeColor = 'positive'
+        if (expiresAt < now) {
+          status = this.$t('acl_token_expired')
+          badgeColor = 'negative'
+        } else {
+          status = this.$t('acl_token_active')
+        }
+        return {status, badgeColor}
+      } else {
+        return ''
+      }
     }
   },
   methods: {
