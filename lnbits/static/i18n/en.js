@@ -487,6 +487,8 @@ window.localisation.en = {
   access_control_list_admin_warning:
     'This is an admin account. The generated tokens will have admin privileges.',
   new_api_acl: 'New Access Control List',
+  acl_token_active: 'Active',
+  acl_token_expired: 'Expired',
   api_token_id: 'Token Id',
   toggle_gradient: 'Toggle Gradient',
   gradient_background: 'Gradient Background',
