@@ -90,24 +90,20 @@ async def storage_set_row(
         if updates
         else "DO NOTHING"
     )
+    database = Database(f"ext_{ext_id}")
+    fields = _fields_by_name(table_schema)
+    placeholders = [
+        _value_placeholder(database, fields.get(column), column) for column in columns
+    ]
+    query = f"""
+        INSERT INTO {_table_ref_for_schema(ext_id, table)} AS storage_row
+            ({", ".join(columns)})
+        VALUES
+            ({", ".join(placeholders)})
+        ON CONFLICT (id) {conflict_sql}
+    """  # noqa: S608
 
-    async with Database(f"ext_{ext_id}").connect() as conn:
-        fields = _fields_by_name(table_schema)
-        placeholders = [
-            (
-                f":{column}"
-                if column == OWNER_ID_FIELD
-                else _value_placeholder(conn, fields[column], column)
-            )
-            for column in columns
-        ]
-        query = f"""
-            INSERT INTO {_table_ref_for_schema(ext_id, table)} AS storage_row
-                ({", ".join(columns)})
-            VALUES
-                ({", ".join(placeholders)})
-            ON CONFLICT (id) {conflict_sql}
-        """  # noqa: S608
+    async with database.connect() as conn:
         await conn.execute(query, clean_data)
 
 
@@ -125,28 +121,30 @@ async def storage_get_paginated_rows(
     offset: int,
 ) -> dict[str, Any]:
     table_schema = _load_table_schema(ext_id, table)
-    table_ref = _table_ref_for_schema(ext_id, table)
+    database = Database(f"ext_{ext_id}")
+    where_sql, values = _where_sql(
+        database, table_schema, filters, search, search_fields
+    )
+    where_sql = _append_owner_where_sql(where_sql)
+    values[OWNER_ID_FIELD] = owner_id
+    order_sql = _order_sql(table_schema, sort_by, descending)
+    count_values = dict(values)
+    values.update({"limit": min(limit, 1000), "offset": offset})
 
-    async with Database(f"ext_{ext_id}").connect() as conn:
-        where_sql, values = _where_sql(
-            conn, table_schema, filters, search, search_fields
-        )
-        where_sql = _append_owner_where_sql(where_sql)
-        values[OWNER_ID_FIELD] = owner_id
-        order_sql = _order_sql(table_schema, sort_by, descending)
-        count_values = dict(values)
-        values.update({"limit": min(limit, 1000), "offset": offset})
-        rows_query = f"""
-            SELECT * FROM {table_ref}
-            {where_sql}
-            {order_sql}
-            LIMIT :limit
-            OFFSET :offset
-        """  # noqa: S608
-        count_query = f"""
-            SELECT COUNT(*) AS count FROM {table_ref}
-            {where_sql}
-        """  # noqa: S608
+    table_ref = _table_ref_for_schema(ext_id, table)
+    rows_query = f"""
+        SELECT * FROM {table_ref}
+        {where_sql}
+        {order_sql}
+        LIMIT :limit
+        OFFSET :offset
+    """  # noqa: S608
+    count_query = f"""
+        SELECT COUNT(*) AS count FROM {table_ref}
+        {where_sql}
+    """  # noqa: S608
+
+    async with database.connect() as conn:
         rows = await conn.fetchall(rows_query, values)
         count_row = await conn.fetchone(count_query, count_values)
 
@@ -412,8 +410,8 @@ def _filters_to_db(
     }
 
 
-def _value_placeholder(db: Compat, field: dict[str, Any], key: str) -> str:
-    if field.get("type") == "datetime" and not field.get("list"):
+def _value_placeholder(db: Compat, field: dict[str, Any] | None, key: str) -> str:
+    if field and field.get("type") == "datetime" and not field.get("list"):
         return db.timestamp_placeholder(key)
     return f":{key}"
 
