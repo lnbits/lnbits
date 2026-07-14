@@ -4,7 +4,7 @@ window.app.component('lnbits-admin-blockexplorer', {
   data() {
     return {
       electrumServers: [
-        'ssl://fulcrum.lnbits.com:443',
+        'ssl://fulcrum.lnbits.com:50002',
         'ssl://mainnet.nunchuk.io:52002',
         'ssl://fulcrum.grey.pw:50002',
         'ssl://electrum2.bluewallet.io:443',
