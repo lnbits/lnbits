@@ -48,6 +48,54 @@ window.WasmExtensionComponent = {
           </q-card-actions>
         </q-card>
       </q-dialog>
+      <q-dialog v-model="backgroundPaymentPrompt.show" persistent>
+        <q-card style="width: min(560px, calc(100vw - 32px)); max-width: 560px">
+          <q-card-section>
+            <div class="text-h6">Background payments</div>
+          </q-card-section>
+          <q-card-section class="q-pt-none q-gutter-md">
+            <div>
+              {{ backgroundPaymentPrompt.extensionName }} wants permission to make
+              background payments from
+              <strong>{{ backgroundPaymentPrompt.walletName }}</strong>.
+            </div>
+            <q-banner dense rounded class="bg-warning text-dark">
+              This permission can move funds later without an active click.
+            </q-banner>
+            <q-input
+              v-model.number="backgroundPaymentPrompt.form.maxAmount"
+              type="number"
+              label="Max payment amount (sats)"
+              min="1"
+              dense
+              outlined
+            ></q-input>
+            <q-select
+              v-model="backgroundPaymentPrompt.form.destinationPolicy"
+              :options="backgroundPaymentDestinationOptions"
+              emit-value
+              map-options
+              label="Allowed destinations"
+              dense
+              outlined
+            ></q-select>
+          </q-card-section>
+          <q-card-actions align="right">
+            <q-btn
+              flat
+              color="negative"
+              label="Deny"
+              @click="resolveBackgroundPaymentPrompt(false)"
+            ></q-btn>
+            <q-btn
+              unelevated
+              color="primary"
+              label="Allow"
+              @click="resolveBackgroundPaymentPrompt(true)"
+            ></q-btn>
+          </q-card-actions>
+        </q-card>
+      </q-dialog>
     </div>
   `,
   data() {
@@ -68,6 +116,28 @@ window.WasmExtensionComponent = {
         resolve: null,
         show: false
       },
+      backgroundPaymentDestinationOptions: [
+        {
+          label: 'Only transfers to my wallets',
+          value: 'own_wallets_only'
+        },
+        {
+          label: 'Allow external payments',
+          value: 'external_allowed'
+        }
+      ],
+      backgroundPaymentPrompt: {
+        extensionName: '',
+        form: {
+          destinationPolicy: 'own_wallets_only',
+          maxAmount: 0
+        },
+        reject: null,
+        resolve: null,
+        show: false,
+        walletId: '',
+        walletName: ''
+      },
       error: '',
       extensionName: '',
       frameUrl: '',
@@ -84,6 +154,9 @@ window.WasmExtensionComponent = {
   unmounted() {
     window.removeEventListener('message', this.handleWindowMessage)
     this.rejectCameraPrompt('Camera scan cancelled.')
+    this.rejectBackgroundPaymentPrompt(
+      'Background payment permission cancelled.'
+    )
     this.closeBridgePort()
   },
   watch: {
@@ -119,6 +192,20 @@ window.WasmExtensionComponent = {
     cameraPromptStorageKey() {
       return `lnbits.ext.permissions.${this.bridge.extensionId}.ui.camera.scan_qr`
     },
+    emptyBackgroundPaymentPrompt() {
+      return {
+        extensionName: '',
+        form: {
+          destinationPolicy: 'own_wallets_only',
+          maxAmount: 0
+        },
+        reject: null,
+        resolve: null,
+        show: false,
+        walletId: '',
+        walletName: ''
+      }
+    },
     emptyCameraPrompt() {
       return {
         extensionName: '',
@@ -143,6 +230,9 @@ window.WasmExtensionComponent = {
       this.bridge = this.emptyBridge()
       this.allowedPaymentHashes.clear()
       this.rejectCameraPrompt('Camera scan cancelled.')
+      this.rejectBackgroundPaymentPrompt(
+        'Background payment permission cancelled.'
+      )
       this.closeBridgePort()
 
       try {
@@ -309,6 +399,120 @@ window.WasmExtensionComponent = {
 
         this.g.scanner = onScan
       })
+    },
+    requestBackgroundPaymentPermission(message) {
+      if (!this.hasBridgePermission('wallet.pay_invoice_background')) {
+        throw new Error('Extension is missing background payment permission.')
+      }
+      if (this.bridge.public) {
+        throw new Error('Public pages cannot request background payments.')
+      }
+      if (this.backgroundPaymentPrompt.show) {
+        throw new Error('Background payment prompt is already open.')
+      }
+
+      const grant = message.grant || {}
+      const walletId = String(grant.walletId || grant.wallet_id || '')
+      const wallet = (this.g?.user?.wallets || []).find(
+        wallet => wallet.id === walletId
+      )
+      if (!wallet) {
+        throw new Error('Selected wallet is not available.')
+      }
+      if (wallet.walletType === 'lightning-shared') {
+        throw new Error(
+          'Background payments are not allowed from shared wallets.'
+        )
+      }
+
+      return new Promise((resolve, reject) => {
+        this.backgroundPaymentPrompt = {
+          extensionName:
+            this.extensionName || this.bridge.extensionId || 'This extension',
+          form: {
+            destinationPolicy: this.backgroundPaymentDestinationPolicy(
+              grant.destinationPolicy || grant.destination_policy
+            ),
+            maxAmount: this.positiveInteger(
+              grant.maxAmount || grant.max_amount,
+              1000
+            )
+          },
+          reject,
+          resolve,
+          show: true,
+          walletId,
+          walletName: wallet.name || walletId
+        }
+      })
+    },
+    async resolveBackgroundPaymentPrompt(approved) {
+      const prompt = this.backgroundPaymentPrompt
+      if (!prompt.show) return
+
+      if (!approved) {
+        this.backgroundPaymentPrompt = this.emptyBackgroundPaymentPrompt()
+        prompt.reject?.(new Error('Background payment permission denied.'))
+        return
+      }
+
+      try {
+        const grant = {
+          wallet_id: prompt.walletId,
+          max_amount: this.positiveInteger(prompt.form.maxAmount, 0),
+          destination_policy: this.backgroundPaymentDestinationPolicy(
+            prompt.form.destinationPolicy
+          )
+        }
+        if (!grant.max_amount) {
+          throw new Error('Max payment amount must be greater than zero.')
+        }
+
+        const response = await fetch(
+          `/api/v1/extension/${encodeURIComponent(
+            this.bridge.extensionId
+          )}/permissions/background-payment`,
+          {
+            method: 'POST',
+            headers: {'content-type': 'application/json'},
+            credentials: 'same-origin',
+            body: JSON.stringify(grant)
+          }
+        )
+        const text = await response.text()
+        let data = {}
+        if (text) {
+          try {
+            data = JSON.parse(text)
+          } catch (_error) {
+            data = {detail: text}
+          }
+        }
+        if (!response.ok) {
+          throw new Error(data?.detail || 'Could not save permission.')
+        }
+
+        this.backgroundPaymentPrompt = this.emptyBackgroundPaymentPrompt()
+        prompt.resolve?.(data)
+      } catch (error) {
+        prompt.reject?.(error)
+        this.backgroundPaymentPrompt = this.emptyBackgroundPaymentPrompt()
+      }
+    },
+    rejectBackgroundPaymentPrompt(message) {
+      const reject = this.backgroundPaymentPrompt.reject
+      this.backgroundPaymentPrompt = this.emptyBackgroundPaymentPrompt()
+      reject?.(new Error(message))
+    },
+    positiveInteger(value, fallback) {
+      const number = Number(value)
+      if (!Number.isFinite(number) || number <= 0) return fallback
+      return Math.floor(number)
+    },
+    backgroundPaymentDestinationPolicy(value) {
+      return value === 'external_allowed'
+        ? 'external_allowed'
+        : 'own_wallets_only'
     },
     requireCameraScanApproval() {
       if (this.isCameraScanRemembered()) return Promise.resolve()
@@ -511,6 +715,14 @@ window.WasmExtensionComponent = {
           this.sendResponse(reply, message.id, {
             ok: true,
             data: await this.scanQrCode()
+          })
+          return
+        }
+
+        if (message.action === 'permissions.request_background_payment') {
+          this.sendResponse(reply, message.id, {
+            ok: true,
+            data: await this.requestBackgroundPaymentPermission(message)
           })
           return
         }

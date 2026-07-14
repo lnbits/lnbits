@@ -8,6 +8,7 @@ import shutil
 import zipfile
 from collections.abc import Mapping
 from datetime import datetime, timezone
+from enum import Enum
 from pathlib import Path, PurePosixPath
 from typing import Any
 
@@ -139,11 +140,38 @@ class UserExtensionInfo(BaseModel):
     payment_hash_to_enable: str | None = None
 
 
+class ExtensionBackgroundPaymentDestinationPolicy(str, Enum):
+    OWN_WALLETS_ONLY = "own_wallets_only"
+    EXTERNAL_ALLOWED = "external_allowed"
+
+
+class ExtensionBackgroundPaymentGrant(BaseModel):
+    wallet_id: str = Field(..., min_length=1, max_length=128)
+    enabled: bool = True
+    max_amount: int = Field(..., gt=0)
+    destination_policy: ExtensionBackgroundPaymentDestinationPolicy
+
+
+class ExtensionBackgroundPaymentGrantRequest(BaseModel):
+    wallet_id: str = Field(..., min_length=1, max_length=128)
+    max_amount: int = Field(..., gt=0)
+    destination_policy: ExtensionBackgroundPaymentDestinationPolicy
+
+    def to_grant(self) -> ExtensionBackgroundPaymentGrant:
+        return ExtensionBackgroundPaymentGrant(
+            wallet_id=self.wallet_id,
+            enabled=True,
+            max_amount=self.max_amount,
+            destination_policy=self.destination_policy,
+        )
+
+
 class UserExtension(BaseModel):
     user: str
     extension: str
     active: bool
     extra: UserExtensionInfo | None = None
+    permissions: dict = Field(default_factory=dict)
 
     @property
     def is_paid(self) -> bool:

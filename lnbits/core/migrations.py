@@ -883,3 +883,10 @@ async def m048_add_wasm_runtime_limits_to_installed_extensions(db: Connection):
         "ALTER TABLE installed_extensions "
         "ADD COLUMN wasm_runtime_limits TEXT DEFAULT '{}'"
     )
+
+
+async def m049_add_permissions_to_user_extensions(db: Connection):
+    """
+    Adds user-level extension permission grants.
+    """
+    await db.execute("ALTER TABLE extensions ADD COLUMN permissions TEXT DEFAULT '{}'")

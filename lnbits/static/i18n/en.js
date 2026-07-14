@@ -528,6 +528,8 @@ window.localisation.en = {
   extension_permission_risk_high: 'High risk',
   extension_permission_warning_wallet_pay_invoice:
     'Can spend funds from wallets available to your account.',
+  extension_permission_warning_wallet_pay_invoice_background:
+    'Can spend funds later from approved wallets without an active click.',
   extension_permission_warning_extension_api_request_write:
     'Can write data or trigger actions in approved extensions.',
   extension_permission_ext_storage_read: 'Read extension storage',
@@ -549,6 +551,8 @@ window.localisation.en = {
   extension_permission_wallet_balance_read: 'View wallet balances',
   extension_permission_wallet_list: 'List wallets',
   extension_permission_wallet_pay_invoice: 'Pay invoices',
+  extension_permission_wallet_pay_invoice_background:
+    'Make background payments',
   create_extension: 'Create Extension',
   release_details_error: 'Cannot get the release details.',
   pay_from_wallet: 'Pay from Wallet',

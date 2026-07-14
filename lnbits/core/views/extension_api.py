@@ -1,3 +1,4 @@
+import json
 import sys
 import traceback
 from http import HTTPStatus
@@ -9,7 +10,7 @@ from fastapi.requests import Request
 from loguru import logger
 
 from lnbits.core.crud.extensions import get_user_extensions
-from lnbits.core.crud.wallets import get_wallets_ids
+from lnbits.core.crud.wallets import get_wallet, get_wallets_ids
 from lnbits.core.db import db
 from lnbits.core.models import (
     SimpleStatus,
@@ -18,6 +19,7 @@ from lnbits.core.models.extensions import (
     CreateExtension,
     CreateExtensionReview,
     Extension,
+    ExtensionBackgroundPaymentGrantRequest,
     ExtensionConfig,
     ExtensionMeta,
     ExtensionRelease,
@@ -78,6 +80,8 @@ extension_router = APIRouter(
     tags=["Extension Managment"],
     prefix="/api/v1/extension",
 )
+
+WALLET_PAY_INVOICE_BACKGROUND_PERMISSION = "wallet.pay_invoice_background"
 
 
 @extension_router.post("", dependencies=[Depends(check_admin)])
@@ -364,6 +368,62 @@ async def api_disable_extension(
     user_ext.active = False
     await update_user_extension(user_ext)
     return SimpleStatus(success=True, message=f"Extension '{ext_id}' disabled.")
+
+
+@extension_router.post("/{ext_id}/permissions/background-payment")
+async def api_grant_background_payment_permission(
+    ext_id: str,
+    data: ExtensionBackgroundPaymentGrantRequest,
+    account_id: AccountId = Depends(check_account_id_exists),
+) -> dict:
+    installed_ext = await get_installed_extension(ext_id)
+    if not installed_ext or not installed_ext.active:
+        raise HTTPException(
+            HTTPStatus.NOT_FOUND, f"Extension '{ext_id}' is not active."
+        )
+
+    installed_permission_ids = {
+        permission.id for permission in installed_ext.permissions or []
+    }
+    if WALLET_PAY_INVOICE_BACKGROUND_PERMISSION not in installed_permission_ids:
+        raise HTTPException(
+            HTTPStatus.FORBIDDEN,
+            f"Extension '{ext_id}' cannot request background payments.",
+        )
+
+    user_ext = await get_user_extension(account_id.id, ext_id)
+    if not user_ext or not user_ext.active:
+        raise HTTPException(
+            HTTPStatus.FORBIDDEN,
+            f"Extension '{ext_id}' is not enabled for this user.",
+        )
+
+    wallet = await get_wallet(data.wallet_id)
+    if not wallet or wallet.user != account_id.id:
+        raise HTTPException(HTTPStatus.FORBIDDEN, "Not your wallet.")
+    if wallet.is_lightning_shared_wallet:
+        raise HTTPException(
+            HTTPStatus.BAD_REQUEST,
+            "Background payments are not allowed from shared wallets.",
+        )
+    if not wallet.can_send_payments:
+        raise HTTPException(
+            HTTPStatus.BAD_REQUEST,
+            "This wallet cannot send payments.",
+        )
+
+    grant = data.to_grant()
+    permissions = user_ext.permissions or {}
+    background_grants = [
+        existing
+        for existing in permissions.get(WALLET_PAY_INVOICE_BACKGROUND_PERMISSION, [])
+        if isinstance(existing, dict) and existing.get("wallet_id") != grant.wallet_id
+    ]
+    background_grants.append(json.loads(grant.json()))
+    permissions[WALLET_PAY_INVOICE_BACKGROUND_PERMISSION] = background_grants
+    user_ext.permissions = permissions
+    await update_user_extension(user_ext)
+    return {"permission": WALLET_PAY_INVOICE_BACKGROUND_PERMISSION, "grant": grant}
 
 
 @extension_router.put("/{ext_id}/activate", dependencies=[Depends(check_admin)])

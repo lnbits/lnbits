@@ -77,10 +77,16 @@
   }
 
   function permissionRiskForPermission(permission, extensions, translateFn) {
-    if (permission.id === 'wallet.pay_invoice') {
+    if (
+      ['wallet.pay_invoice', 'wallet.pay_invoice_background'].includes(
+        permission.id
+      )
+    ) {
       return highRisk(
         translateFn,
-        'extension_permission_warning_wallet_pay_invoice'
+        permission.id === 'wallet.pay_invoice_background'
+          ? 'extension_permission_warning_wallet_pay_invoice_background'
+          : 'extension_permission_warning_wallet_pay_invoice'
       )
     }
     if (permission.id === 'extension.api.request') {
@@ -124,6 +130,7 @@
   function permissionOrderIndex(permissionId) {
     const order = [
       'wallet.pay_invoice',
+      'wallet.pay_invoice_background',
       'wallet.list',
       'wallet.balance.read',
       'extension.api.request',

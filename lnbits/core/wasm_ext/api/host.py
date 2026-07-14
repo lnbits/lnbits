@@ -17,6 +17,11 @@ from ..storage.crud import (
     storage_get_row,
     storage_set_row,
 )
+from .background_payments import (
+    WALLET_PAY_INVOICE_BACKGROUND_PERMISSION,
+    background_payment_extra,
+    invoice_amount_msat,
+)
 from .models import (
     CreateInvoicePublicRequest,
     CreateInvoiceRequest,
@@ -367,7 +372,6 @@ class ExtensionHostAPI:
         host_name="pay_invoice",
         sdk_name="payInvoice",
         description="Pay a Lightning invoice from a wallet available to the user.",
-        required_permission="wallet.pay_invoice",
     )
     async def wallet_pay_invoice(
         self, request: PayInvoiceRequest
@@ -376,25 +380,43 @@ class ExtensionHostAPI:
         from lnbits.core.services.payments import pay_invoice
         from lnbits.exceptions import PaymentError
 
-        if not self.user_id:
-            raise PermissionError(
-                "Paying an invoice requires an authenticated user context."
-            )
-
         wallet = await get_wallet(request.wallet_id)
-        if wallet is None or wallet.user != self.user_id:
+        if wallet is None:
             raise PermissionError("Paying invoices from this wallet is not allowed.")
 
         try:
-            payment = await pay_invoice(
-                wallet_id=request.wallet_id,
-                payment_request=request.payment_request,
-                max_sat=request.max_sat,
-                extra={"tag": self.extension_id, **request.extra},
-                description=request.description,
-                tag=self.extension_id,
-            )
-        except (PaymentError, ValueError) as exc:
+            if self.user_id:
+                self.require_permission("wallet.pay_invoice")
+                if wallet.user != self.user_id:
+                    raise PermissionError(
+                        "Paying invoices from this wallet is not allowed."
+                    )
+                payment = await pay_invoice(
+                    wallet_id=request.wallet_id,
+                    payment_request=request.payment_request,
+                    max_sat=request.max_sat,
+                    extra={"tag": self.extension_id, **request.extra},
+                    description=request.description,
+                    tag=self.extension_id,
+                )
+            else:
+                self.require_permission(WALLET_PAY_INVOICE_BACKGROUND_PERMISSION)
+                amount_msat = invoice_amount_msat(request.payment_request)
+                extra = await background_payment_extra(
+                    extension_id=self.extension_id,
+                    wallet=wallet,
+                    payment_request=request.payment_request,
+                    amount_msat=amount_msat,
+                )
+                payment = await pay_invoice(
+                    wallet_id=request.wallet_id,
+                    payment_request=request.payment_request,
+                    max_sat=request.max_sat,
+                    extra={**request.extra, **extra},
+                    description=request.description,
+                    tag=self.extension_id,
+                )
+        except (PaymentError, PermissionError, ValueError) as exc:
             return PayInvoiceResponse(ok=False, error=str(exc))
 
         return _pay_invoice_response(payment)
@@ -406,7 +428,6 @@ class ExtensionHostAPI:
         host_name="pay_lnurl",
         sdk_name="payLnurl",
         description="Pay a Lightning Address or LNURL-pay request from a wallet.",
-        required_permission="wallet.pay_invoice",
     )
     async def wallet_pay_lnurl(self, request: PayLnurlRequest) -> PayInvoiceResponse:
         from lnurl import LnAddressError, LnurlResponseException
@@ -424,14 +445,18 @@ class ExtensionHostAPI:
             lnurl_payment_unit_for_core,
         )
 
-        if not self.user_id:
-            raise PermissionError("Paying an LNURL requires an authenticated user.")
-
         wallet = await get_wallet(request.wallet_id)
-        if wallet is None or wallet.user != self.user_id:
+        if wallet is None:
             raise PermissionError("Paying from this wallet is not allowed.")
 
         try:
+            if self.user_id:
+                self.require_permission("wallet.pay_invoice")
+                if wallet.user != self.user_id:
+                    raise PermissionError("Paying from this wallet is not allowed.")
+            else:
+                self.require_permission(WALLET_PAY_INVOICE_BACKGROUND_PERMISSION)
+
             unit = lnurl_payment_unit_for_core(request.currency)
             res, action = await fetch_lnurl_pay_request(
                 data=CreateLnurlPayment(
@@ -452,6 +477,20 @@ class ExtensionHostAPI:
                 extra["fiat_currency"] = unit
                 extra["fiat_amount"] = str(request.amount)
 
+            if not self.user_id:
+                amount_msat = invoice_amount_msat(str(action.pr))
+                extra = {
+                    **extra,
+                    **(
+                        await background_payment_extra(
+                            extension_id=self.extension_id,
+                            wallet=wallet,
+                            payment_request=str(action.pr),
+                            amount_msat=amount_msat,
+                        )
+                    ),
+                }
+
             payment = await pay_invoice(
                 wallet_id=request.wallet_id,
                 payment_request=str(action.pr),
@@ -464,6 +503,7 @@ class ExtensionHostAPI:
             LnAddressError,
             LnurlResponseException,
             PaymentError,
+            PermissionError,
             ValueError,
         ) as exc:
             return PayInvoiceResponse(ok=False, error=str(exc))

@@ -10,7 +10,11 @@ from pydantic import BaseModel
 from .models import ExtensionAPIMethod, ExtensionAPIMethodExport
 
 _EXTENSION_API_METHOD_ATTR = "__lnbits_extension_api_method__"
-_EXTENSION_RUNTIME_PERMISSION_IDS = {"ui.camera.scan_qr"}
+_EXTENSION_RUNTIME_PERMISSION_IDS = {
+    "ui.camera.scan_qr",
+    "wallet.pay_invoice",
+    "wallet.pay_invoice_background",
+}
 _RequestModel = TypeVar("_RequestModel", bound=BaseModel)
 _ResponseModel = TypeVar("_ResponseModel", bound=BaseModel)
 
