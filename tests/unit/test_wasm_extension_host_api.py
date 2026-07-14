@@ -166,6 +166,7 @@ async def test_host_api_pay_invoice_checks_wallet_owner_and_returns_payment_erro
         PayInvoiceRequest(
             wallet_id="wallet-1",
             payment_request="lnbc1demo",
+            max_sat=None,
             description="Demo",
             extra={"source": "test"},
         )
@@ -216,6 +217,7 @@ async def test_host_api_public_invoice_uses_granted_source_policy(
     assert response.payment_hash == "hash"
     storage_mock.assert_awaited_once_with("demoext", "tips", "tip-1")
     create_mock.assert_awaited_once()
+    assert create_mock.await_args is not None
     wallet_id, invoice = create_mock.await_args.args
     assert wallet_id == "wallet-1"
     assert invoice.extra == {
@@ -250,5 +252,6 @@ async def test_host_api_public_invoice_rejects_missing_source_wallet(
                 source_id="tip-1",
                 amount=21,
                 currency="sat",
+                memo="",
             )
         )

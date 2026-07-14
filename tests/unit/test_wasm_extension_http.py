@@ -1,5 +1,5 @@
 import ipaddress
-from types import SimpleNamespace
+from typing import cast
 
 import httpx
 import pytest
@@ -110,7 +110,7 @@ async def test_wasm_http_request_enforces_policies_and_response_bounds(
         await wasm_http.send_extension_http_request(
             "demoext",
             [{"host": "https://api.example.com"}],
-            HttpRequest(url="https://other.example.com/path"),
+            HttpRequest(url="https://other.example.com/path", body=None),
         )
 
 
@@ -136,7 +136,7 @@ async def test_wasm_http_request_rejects_oversized_bodies_and_responses(
 
     with pytest.raises(ValueError, match="response is too large"):
         await wasm_http._read_limited_response(
-            _FakeStreamResponse(chunks=[b"12345", b"67890"]),
+            cast(httpx.Response, _FakeStreamResponse(chunks=[b"12345", b"67890"])),
             max_response_bytes=8,
         )
 
@@ -154,7 +154,7 @@ async def test_wasm_http_request_hides_transport_errors(mocker: MockerFixture):
         await wasm_http.send_extension_http_request(
             "demoext",
             [{"host": "https://api.example.com"}],
-            HttpRequest(url="https://api.example.com/path"),
+            HttpRequest(url="https://api.example.com/path", body=None),
         )
 
 
@@ -205,7 +205,10 @@ class _FakeStreamResponse:
 
 class _FakeStreamError:
     async def __aenter__(self):
-        raise httpx.RequestError("network failed", request=SimpleNamespace())
+        raise httpx.RequestError(
+            "network failed",
+            request=httpx.Request("GET", "https://api.example.com"),
+        )
 
     async def __aexit__(self, *_args):
         return False

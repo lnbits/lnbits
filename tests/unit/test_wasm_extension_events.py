@@ -78,6 +78,7 @@ async def test_dispatch_wasm_invoice_paid_invokes_registered_event_export_with_o
 
     storage_mock.assert_awaited_once_with(ext_id, "tip_jars", "row-1")
     invoke_mock.assert_awaited_once()
+    assert invoke_mock.await_args is not None
     args = invoke_mock.await_args.args
     kwargs = invoke_mock.await_args.kwargs
     assert args[0] == ext_id

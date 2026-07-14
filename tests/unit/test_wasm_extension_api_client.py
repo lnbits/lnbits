@@ -1,4 +1,5 @@
 from types import SimpleNamespace
+from typing import cast
 
 import httpx
 import pytest
@@ -43,6 +44,7 @@ def test_wasm_extension_api_target_and_access_validation():
         extension_id="target",
         method="GET",
         path="/api/v1/demo",
+        body=None,
     )
     write_request = ExtensionApiRequest(
         extension_id="target",
@@ -127,6 +129,7 @@ async def test_wasm_extension_api_request_rejects_missing_auth_and_disabled_targ
         extension_id="target",
         method="GET",
         path="/api/v1/run",
+        body=None,
     )
     with pytest.raises(PermissionError, match="authentication"):
         await extension_client.send_extension_api_request(
@@ -204,7 +207,7 @@ async def test_wasm_extension_api_request_rejects_oversized_body_and_response(
 
     with pytest.raises(ValueError, match="response is too large"):
         await extension_client._read_limited_response(
-            _FakeStreamResponse(chunks=[b"12345", b"67890"]),
+            cast(httpx.Response, _FakeStreamResponse(chunks=[b"12345", b"67890"])),
             max_response_bytes=8,
         )
 
@@ -237,6 +240,7 @@ async def test_wasm_extension_api_request_hides_transport_errors(
                 extension_id="target",
                 method="GET",
                 path="/api/v1/run",
+                body=None,
             ),
         )
 
@@ -288,7 +292,10 @@ class _FakeStreamResponse:
 
 class _FakeStreamError:
     async def __aenter__(self):
-        raise httpx.RequestError("network failed", request=SimpleNamespace())
+        raise httpx.RequestError(
+            "network failed",
+            request=httpx.Request("GET", "http://127.0.0.1"),
+        )
 
     async def __aexit__(self, *_args):
         return False

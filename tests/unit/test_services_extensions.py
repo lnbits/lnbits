@@ -420,6 +420,7 @@ async def test_wasm_invocation_context_and_error_message_are_sanitized(
     )
 
     create_mock.assert_awaited_once()
+    assert create_mock.await_args is not None
     created_invocation = create_mock.await_args.args[0]
     assert created_invocation.context == {
         "k" * 64: "v" * 256,
@@ -427,6 +428,7 @@ async def test_wasm_invocation_context_and_error_message_are_sanitized(
         "enabled": True,
     }
     update_mock.assert_awaited_once()
+    assert update_mock.await_args is not None
     saved_invocation = update_mock.await_args.args[0]
     assert saved_invocation.error_message is not None
     assert "supersecret" not in saved_invocation.error_message
