@@ -76,8 +76,16 @@ async def storage_set_row(
 ) -> None:
     table_schema = _load_table_schema(ext_id, table)
     clean_data = _data_to_db(table_schema, data, require_id=True)
-    clean_data[OWNER_ID_FIELD] = owner_id
     columns = list(clean_data.keys())
+    database = Database(f"ext_{ext_id}")
+    fields = _fields_by_name(table_schema)
+    placeholders = [
+        _value_placeholder(database, fields[column], column) for column in columns
+    ]
+
+    clean_data[OWNER_ID_FIELD] = owner_id
+    columns.append(OWNER_ID_FIELD)
+    placeholders.append(f":{OWNER_ID_FIELD}")
     updates = [
         f"{column} = excluded.{column}"
         for column in columns
@@ -90,11 +98,6 @@ async def storage_set_row(
         if updates
         else "DO NOTHING"
     )
-    database = Database(f"ext_{ext_id}")
-    fields = _fields_by_name(table_schema)
-    placeholders = [
-        _value_placeholder(database, fields.get(column), column) for column in columns
-    ]
     query = f"""
         INSERT INTO {_table_ref_for_schema(ext_id, table)} AS storage_row
             ({", ".join(columns)})
@@ -410,8 +413,8 @@ def _filters_to_db(
     }
 
 
-def _value_placeholder(db: Compat, field: dict[str, Any] | None, key: str) -> str:
-    if field and field.get("type") == "datetime" and not field.get("list"):
+def _value_placeholder(db: Compat, field: dict[str, Any], key: str) -> str:
+    if field.get("type") == "datetime" and not field.get("list"):
         return db.timestamp_placeholder(key)
     return f":{key}"
 
