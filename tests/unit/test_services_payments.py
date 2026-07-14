@@ -27,6 +27,7 @@ from lnbits.core.services.payments import (
     check_pending_payments,
     check_time_limit_between_transactions,
     check_transaction_status,
+    check_wallet_daily_withdraw_limit,
     check_wallet_limits,
     create_payment_request,
     get_payments_daily_stats,
@@ -197,8 +198,7 @@ async def test_update_wallet_balance_validates_credit_and_debit(
 
         settings.lnbits_wallet_limit_max_balance = 0
         queue_mock = mocker.patch(
-            "lnbits.tasks.internal_invoice_queue_put",
-            mocker.AsyncMock(),
+            "lnbits.task_manager.task_manager.internal_invoice_queue.put_nowait",
         )
 
         await update_wallet_balance(wallet, 5)
@@ -212,7 +212,8 @@ async def test_update_wallet_balance_validates_credit_and_debit(
     ]
     assert credit_payments
     assert credit_payments[0].status == PaymentState.SUCCESS
-    queue_mock.assert_awaited_once_with(credit_payments[0].checking_id)
+    queue_mock.assert_called_once()
+    assert queue_mock.call_args[0][0].checking_id == credit_payments[0].checking_id
 
 
 @pytest.mark.anyio
@@ -246,6 +247,23 @@ async def test_check_wallet_limits_and_time_limit(
         assert await check_time_limit_between_transactions(other_wallet.id) is None
     finally:
         settings.lnbits_wallet_limit_secs_between_trans = original_limit
+
+
+@pytest.mark.anyio
+async def test_check_wallet_daily_limit_counts_all_daily_payments(settings: Settings):
+    wallet = await _create_wallet()
+    await _create_payment(wallet, amount_msat=-2_000, status=PaymentState.SUCCESS)
+    await _create_payment(wallet, amount_msat=-3_000, status=PaymentState.SUCCESS)
+
+    original_limit = settings.lnbits_wallet_limit_daily_max_withdraw
+    try:
+        settings.lnbits_wallet_limit_daily_max_withdraw = 5
+        with pytest.raises(
+            ValueError, match="Daily withdrawal limit of 5 sats reached."
+        ):
+            await check_wallet_daily_withdraw_limit(wallet.id, 1_000)
+    finally:
+        settings.lnbits_wallet_limit_daily_max_withdraw = original_limit
 
 
 @pytest.mark.anyio

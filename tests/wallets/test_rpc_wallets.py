@@ -1,4 +1,5 @@
 import importlib
+from typing import Any
 from unittest.mock import AsyncMock, Mock
 
 import pytest
@@ -80,7 +81,9 @@ def _check_calls(expected_calls):
         for func_call in func_calls:
             req = func_call["request_data"]
             args = req["args"] if "args" in req else {}
-            kwargs = _eval_dict(req["kwargs"]) if "kwargs" in req else {}
+            kwargs: dict[str, Any] = (
+                _eval_dict(req["kwargs"]) or {} if "kwargs" in req else {}
+            )
 
             if "klass" in req:
                 *rest, cls = req["klass"].split(".")
@@ -166,7 +169,7 @@ def _mock_field(field):
     return response
 
 
-def _eval_dict(data: dict | None) -> dict | None:
+def _eval_dict(data: dict | None) -> dict[str, Any] | None:
     fn_prefix = "__eval__:"
     if not data:
         return data
@@ -215,9 +218,9 @@ def _data_mock(data: dict) -> Mock:
 def _raise(error: dict | None):
     if not error:
         return Exception()
-    data = error["data"] if "data" in error else None
+    data: dict[str, Any] = error["data"] if "data" in error else {}
     if "module" not in error or "class" not in error:
-        return Exception(data)
+        return Exception(data or None)
 
     error_module = importlib.import_module(error["module"])
     error_class = getattr(error_module, error["class"])

@@ -37,12 +37,14 @@ def test_dict_to_settings_parses_known_values():
         {
             "lnbits_site_title": "Test Title",
             "lnbits_service_fee": 5,
+            "lnbits_default_burger_menu_background": False,
             "ignored_field": "ignored",
         }
     )
 
     assert parsed.lnbits_site_title == "Test Title"
     assert parsed.lnbits_service_fee == 5
+    assert parsed.lnbits_default_burger_menu_background is False
     assert not hasattr(parsed, "ignored_field")
 
 

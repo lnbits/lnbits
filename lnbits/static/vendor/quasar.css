@@ -43,8 +43,7 @@ summary {
 abbr[title] {
   border-bottom: none;
   text-decoration: underline;
-  -webkit-text-decoration: underline dotted;
-          text-decoration: underline dotted;
+  text-decoration: underline dotted;
 }
 
 /**
@@ -200,8 +199,7 @@ input[type=search]::-webkit-search-decoration {
 .material-symbols-outlined,
 .material-symbols-rounded,
 .material-symbols-sharp {
-  -webkit-user-select: none;
-          user-select: none;
+  user-select: none;
   cursor: inherit;
   font-size: inherit;
   display: inline-flex;
@@ -998,8 +996,7 @@ input[type=search]::-webkit-search-decoration {
   height: 1px;
 }
 .q-checkbox__bg, .q-checkbox__icon-container {
-  -webkit-user-select: none;
-          user-select: none;
+  user-select: none;
 }
 .q-checkbox__bg {
   top: 25%;
@@ -2212,8 +2209,7 @@ body.q-ios-padding .q-dialog__inner > div {
   width: 100%;
   min-width: 0;
   outline: 0 !important;
-  -webkit-user-select: auto;
-          user-select: auto;
+  user-select: auto;
 }
 .q-field__native:-webkit-autofill, .q-field__input:-webkit-autofill {
   -webkit-animation-name: q-autofill;
@@ -3039,8 +3035,7 @@ body.body--dark .q-knob--editable:focus:before {
   z-index: 2001;
   height: 100%;
   width: 15px;
-  -webkit-user-select: none;
-          user-select: none;
+  user-select: none;
 }
 
 .q-layout, .q-header, .q-footer, .q-page {
@@ -3297,8 +3292,7 @@ body.platform-ios .q-layout--containerized {
   height: 1px;
 }
 .q-radio__bg, .q-radio__icon-container {
-  -webkit-user-select: none;
-          user-select: none;
+  user-select: none;
 }
 .q-radio__bg {
   top: 25%;
@@ -3782,8 +3776,7 @@ body.platform-ios:not(.native-mobile) .q-dialog__inner--top .q-select__dialog--f
 .q-slide-item__content {
   background: inherit;
   transition: transform 0.2s ease-in;
-  -webkit-user-select: none;
-          user-select: none;
+  user-select: none;
   cursor: pointer;
 }
 
@@ -4156,8 +4149,7 @@ body.desktop .q-slider.q-slider--enabled .q-slider__track-container:hover .q-sli
 }
 .q-splitter__separator {
   background-color: rgba(0, 0, 0, 0.12);
-  -webkit-user-select: none;
-          user-select: none;
+  user-select: none;
   position: relative;
   z-index: 1;
 }
@@ -4246,8 +4238,7 @@ body.desktop .q-slider.q-slider--enabled .q-slider__track-container:hover .q-sli
   color: #000;
 }
 .q-stepper__tab--navigation {
-  -webkit-user-select: none;
-          user-select: none;
+  user-select: none;
   cursor: pointer;
 }
 .q-stepper__tab--active, .q-stepper__tab--done {
@@ -4479,8 +4470,7 @@ body.desktop .q-slider.q-slider--enabled .q-slider__track-container:hover .q-sli
 .q-table th {
   font-weight: 500;
   font-size: 12px;
-  -webkit-user-select: none;
-          user-select: none;
+  user-select: none;
 }
 .q-table th.sortable {
   cursor: pointer;
@@ -5484,8 +5474,7 @@ body.desktop .q-table > tbody > tr:not(.q-tr--no-hover):hover > td:not(.q-td--no
   width: 0.5em;
   height: 0.5em;
   transition: left 0.22s cubic-bezier(0.4, 0, 0.2, 1);
-  -webkit-user-select: none;
-          user-select: none;
+  user-select: none;
   z-index: 0;
 }
 .q-toggle__thumb:after {
@@ -10337,6 +10326,7 @@ body.body--dark .inset-shadow-down {
 .glossy {
   background-image: linear-gradient(to bottom, rgba(255, 255, 255, 0.3), rgba(255, 255, 255, 0) 50%, rgba(0, 0, 0, 0.12) 51%, rgba(0, 0, 0, 0.04)) !important;
 }
+
 .q-placeholder::placeholder {
   color: inherit;
   opacity: 0.7;
@@ -10368,8 +10358,7 @@ body.body--dark .inset-shadow-down {
   text-decoration: none;
 }
 .q-link--focusable:focus-visible {
-  -webkit-text-decoration: underline dashed currentColor 1px;
-          text-decoration: underline dashed currentColor 1px;
+  text-decoration: underline dashed currentColor 1px;
 }
 
 body.electron .q-electron-drag {
@@ -10386,8 +10375,7 @@ img.responsive {
 }
 
 .non-selectable {
-  -webkit-user-select: none !important;
-          user-select: none !important;
+  user-select: none !important;
 }
 
 .scroll,
@@ -11045,8 +11033,7 @@ body.q-ios-padding .fullscreen {
 }
 
 .q-touch {
-  -webkit-user-select: none;
-          user-select: none;
+  user-select: none;
   user-drag: none;
   -khtml-user-drag: none;
   -webkit-user-drag: none;

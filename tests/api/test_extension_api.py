@@ -1,3 +1,6 @@
+import json
+import zipfile
+from pathlib import Path
 from types import SimpleNamespace
 from uuid import uuid4
 
@@ -8,6 +11,7 @@ from starlette.requests import Request
 from lnbits.core.crud.db_versions import get_db_version, update_migration_version
 from lnbits.core.crud.extensions import (
     create_installed_extension,
+    delete_installed_extension,
     get_installed_extension,
     get_user_extension,
 )
@@ -19,11 +23,14 @@ from lnbits.core.models.extensions import (
     CreateExtensionReview,
     Extension,
     ExtensionConfig,
+    ExtensionPermission,
     ExtensionRelease,
     InstallableExtension,
     PayToEnableInfo,
     ReleasePaymentInfo,
     UserExtensionInfo,
+    WasmRuntimeLimitsUpdate,
+    wasm_extension_icon_url,
 )
 from lnbits.core.models.users import AccountId
 from lnbits.core.services.payments import create_wallet_invoice
@@ -35,9 +42,11 @@ from lnbits.core.views.extension_api import (
     api_enable_extension,
     api_extension_details,
     api_get_user_extensions,
+    api_get_wasm_runtime_limit_extensions,
     api_install_extension,
     api_uninstall_extension,
     api_update_pay_to_enable,
+    api_update_wasm_runtime_limits,
     create_extension_review,
     delete_extension_db,
     extensions,
@@ -160,6 +169,147 @@ async def test_extension_api_install_details_and_release_endpoints(mocker):
     )
     release_info = await get_extension_release("org", ext_id, "v1.0.0")
     assert release_info["is_version_compatible"] is True
+
+
+@pytest.mark.anyio
+async def test_extension_api_installs_wasm_with_granted_permissions(
+    tmp_path,
+    settings,
+    mocker,
+):
+    ext_id = f"wasm_{uuid4().hex[:8]}"
+    release = make_extension_release(ext_id)
+    granted_permissions = [
+        ExtensionPermission(
+            id="http.request",
+            policies=[{"host": "https://api.example.com"}],
+        )
+    ]
+    create_data = CreateExtension(
+        ext_id=ext_id,
+        archive=release.archive,
+        source_repo=release.source_repo,
+        version=release.version,
+        permissions=granted_permissions,
+    )
+    original_data_folder = settings.lnbits_data_folder
+    original_extensions_path = settings.lnbits_extensions_path
+    register_wasm_routes_mock = mocker.patch(
+        "lnbits.core.services.extensions.core_app_extra.register_new_wasm_ext_routes"
+    )
+    mocker.patch.object(
+        InstallableExtension,
+        "get_extension_release",
+        mocker.AsyncMock(return_value=release),
+    )
+    mocker.patch.object(
+        InstallableExtension,
+        "download_archive",
+        mocker.AsyncMock(),
+    )
+
+    try:
+        settings.lnbits_data_folder = str(tmp_path / "data")
+        settings.lnbits_extensions_path = str(tmp_path / "code")
+        _write_wasm_extension_archive(ext_id, release.version, settings)
+
+        installed = await api_install_extension(create_data)
+        stored = await get_installed_extension(ext_id)
+    finally:
+        await delete_installed_extension(ext_id=ext_id)
+        settings.lnbits_data_folder = original_data_folder
+        settings.lnbits_extensions_path = original_extensions_path
+
+    assert installed.code == ext_id
+    assert installed.is_wasm is True
+    assert stored is not None
+    assert stored.permissions == [
+        ExtensionPermission(
+            id="http.request",
+            description="Call example API.",
+            policies=[{"host": "https://api.example.com"}],
+        )
+    ]
+    register_wasm_routes_mock.assert_called_once_with(ext_id)
+
+
+@pytest.mark.anyio
+async def test_extension_api_wasm_runtime_limits_and_catalog_use_installed_metadata(
+    tmp_path,
+    settings,
+    mocker,
+):
+    ext_id = f"wasm_{uuid4().hex[:8]}"
+    py_ext_id = f"py_{uuid4().hex[:8]}"
+    granted_permissions = [
+        ExtensionPermission(
+            id="http.request",
+            description="Call example API.",
+            policies=[{"host": "https://api.example.com"}],
+        )
+    ]
+    original_extensions_path = settings.lnbits_extensions_path
+
+    try:
+        settings.lnbits_extensions_path = str(tmp_path)
+        _write_installed_wasm_config(ext_id, tmp_path)
+        await create_installed_extension(
+            InstallableExtension(
+                id=ext_id,
+                name="WASM Demo",
+                version="1.0.0",
+                active=True,
+                permissions=granted_permissions,
+                wasm_runtime_limits={"wasm_runtime_max_execution_ms": 1234},
+            )
+        )
+        await create_installed_extension(make_installable_extension(py_ext_id))
+
+        runtime_extensions = await api_get_wasm_runtime_limit_extensions()
+        wasm_info = next(info for info in runtime_extensions if info.id == ext_id)
+
+        updated_info = await api_update_wasm_runtime_limits(
+            ext_id,
+            WasmRuntimeLimitsUpdate(
+                limits={
+                    "wasm_runtime_max_execution_ms": "2345",
+                    "wasm_runtime_max_fuel": 0,
+                }
+            ),
+        )
+        stored = await get_installed_extension(ext_id)
+
+        mocker.patch.object(
+            InstallableExtension,
+            "get_installable_extensions",
+            mocker.AsyncMock(
+                return_value=[
+                    make_installable_extension(ext_id),
+                    make_installable_extension(py_ext_id),
+                ]
+            ),
+        )
+        catalog = await extensions(AccountId(id=uuid4().hex))
+    finally:
+        await delete_installed_extension(ext_id=ext_id)
+        await delete_installed_extension(ext_id=py_ext_id)
+        settings.lnbits_extensions_path = original_extensions_path
+
+    assert wasm_info.wasm_runtime_limits == {"wasm_runtime_max_execution_ms": 1234}
+    assert py_ext_id not in {info.id for info in runtime_extensions}
+    assert updated_info.wasm_runtime_limits == {
+        "wasm_runtime_max_execution_ms": 2345,
+        "wasm_runtime_max_fuel": 0,
+    }
+    assert stored is not None
+    assert stored.wasm_runtime_limits == updated_info.wasm_runtime_limits
+
+    catalog_item = next(item for item in catalog if item["id"] == ext_id)
+    assert catalog_item["isWasm"] is True
+    assert catalog_item["icon"] == wasm_extension_icon_url(ext_id)
+    assert catalog_item["permissions"] == [
+        dict(permission) for permission in granted_permissions
+    ]
 
 
 @pytest.mark.anyio
@@ -428,3 +578,40 @@ async def test_extension_api_review_endpoints(mocker):
         CreateExtensionReview(tag=ext_id, name="Alice", rating=900, comment="Great")
     )
     assert payment_request.payment_hash.startswith("hash_")
+
+
+def _write_wasm_extension_archive(ext_id: str, version: str, settings) -> None:
+    zip_path = Path(settings.lnbits_data_folder, "zips", f"{ext_id}.zip")
+    zip_path.parent.mkdir(parents=True, exist_ok=True)
+    config = _wasm_config(ext_id)
+    root = f"{ext_id}-{version}"
+    with zipfile.ZipFile(zip_path, "w") as archive:
+        archive.writestr(f"{root}/config.json", json.dumps(config))
+        archive.writestr(f"{root}/{config['wasm']['module']}", b"\0asm")
+
+
+def _write_installed_wasm_config(ext_id: str, extensions_path) -> None:
+    config_dir = extensions_path / "extensions" / ext_id
+    config_dir.mkdir(parents=True)
+    (config_dir / "config.json").write_text(
+        json.dumps(_wasm_config(ext_id)),
+        encoding="utf-8",
+    )
+
+
+def _wasm_config(ext_id: str) -> dict:
+    return {
+        "id": ext_id,
+        "name": "WASM Demo",
+        "short_description": "WASM extension",
+        "version": "1.0.0",
+        "extension_type": "wasm",
+        "wasm": {"module": "extension.wasm"},
+        "permissions": [
+            {
+                "id": "http.request",
+                "description": "Call example API.",
+                "policies": [{"host": "https://api.example.com"}],
+            }
+        ],
+    }

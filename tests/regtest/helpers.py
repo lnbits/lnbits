@@ -26,8 +26,6 @@ docker_bitcoin_cli = [
     "exec",
     "lnbits-bitcoind-1",
     "bitcoin-cli",
-    "-rpcuser=lnbits",
-    "-rpcpassword=lnbits",
     "-regtest",
 ]
 

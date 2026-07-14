@@ -16,6 +16,18 @@
         src: url("{{ static_url_for('static', 'fonts/material-icons-v50.woff2') }}")
           format('woff2');
       }
+
+      .wasm-extension-page,
+      .wasm-extension-frame {
+        height: calc(100vh - 56px);
+        min-height: calc(100vh - 56px);
+        width: 100%;
+      }
+
+      .wasm-extension-frame {
+        border: 0;
+        display: block;
+      }
     </style>
     <title>{% block title %}{{ SITE_TITLE }}{% endblock %}</title>
     <meta charset="utf-8" />
@@ -44,12 +56,14 @@
         <lnbits-drawer v-if="g.user && !g.isPublicPage"></lnbits-drawer>
         {% block page_container %}
         <q-page-container>
-          <q-page class="q-px-md q-py-lg" :class="{'q-px-lg': $q.screen.gt.xs}">
+          <q-page
+            :class="$route.path.startsWith('/ext/') ? 'q-pa-none' : ['q-px-md', 'q-py-lg', {'q-px-lg': $q.screen.gt.xs}]"
+          >
             <lnbits-wallet-new
-              v-if="g.user && !g.isPublicPage"
+              v-if="g.user && !g.isPublicPage && !$route.path.startsWith('/ext/')"
             ></lnbits-wallet-new>
             <lnbits-header-wallets
-              v-if="g.user && !g.isPublicPage"
+              v-if="g.user && !g.isPublicPage && !$route.path.startsWith('/ext/')"
             ></lnbits-header-wallets>
             <!-- block page content from static extensions -->
             <div

@@ -10,15 +10,16 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: ${{ github.head_ref }}
+          ref: ${{ github.event.pull_request.head.repo.full_name == github.repository && github.head_ref || github.event.pull_request.head.sha }}
       - uses: lnbits/lnbits/.github/actions/prepare@dev
         with:
           python-version: "3.10"
           node-version: "24.x"
           npm: true
-      - run: make bundle
-      - name: Commit and push bundle changes
+      - name: Build and commit bundle (same-repo PR)
+        if: github.event.pull_request.head.repo.full_name == github.repository
         run: |
+          make bundle
           git config user.name "alan"
           git config user.email "alan@lnbits.com"
           git add lnbits/static
@@ -27,3 +28,6 @@ jobs:
           fi
           git commit -m "chore: make bundle [skip ci]"
           git push
+      - name: Check bundle is up-to-date (fork PR)
+        if: github.event.pull_request.head.repo.full_name != github.repository
+        run: make checkbundle

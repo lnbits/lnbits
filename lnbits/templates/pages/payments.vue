@@ -136,7 +136,7 @@
         </q-card>
       </div>
       <div
-        v-show="chartData.showPaymentStatus"
+        v-show="chartData.showPaymentTags"
         class="col-lg-3 col-md-6 col-sm-12 text-center"
       >
         <q-card class="q-pt-sm">

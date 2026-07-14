@@ -372,3 +372,13 @@ def sha256s(value: str) -> str:
     Returns the hex as a string.
     """
     return hashlib.sha256(value.encode("utf-8")).hexdigest()
+
+
+def daystart_timestamp(dt: datetime | None = None) -> int:
+    """
+    Returns the timestamp of the start of the day for the given
+    datetime (or now in UTC if not provided).
+    """
+    dt = dt or datetime.now(timezone.utc)
+    day_start = dt.replace(hour=0, minute=0, second=0, microsecond=0)
+    return int(day_start.timestamp())

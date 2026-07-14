@@ -58,11 +58,15 @@ body.bg-image {
 }
 // transparent background for specific elements
 body.body--dark {
-  .q-card:not(.q-dialog .q-card, .lnbits__dialog-card, .q-dialog-plugin--dark),
+  .q-card:not(.q-dialog .q-card, .lnbits__dialog-card, .q-dialog-plugin--dark) {
+    --q-dark: #{color.adjust(#1d1d1d, $alpha: -0.7)};
+    background-color: var(--q-dark);
+  }
+
   .q-header,
   .q-drawer {
     --q-dark: #{color.adjust(#1d1d1d, $alpha: -0.7)};
     background-color: var(--q-dark);
-    backdrop-filter: blur(6px) brightness(0.8);
+    backdrop-filter: brightness(0.8);
   }
 }

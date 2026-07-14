@@ -4,9 +4,10 @@ from uuid import uuid4
 
 import pytest
 from fastapi import HTTPException
+from pydantic import ValidationError
 
-from lnbits.core.crud.payments import create_payment
-from lnbits.core.models import Account, CreateInvoice, PaymentState
+from lnbits.core.crud.payments import create_payment, get_payment, get_payments
+from lnbits.core.models import Account, CreateInvoice, PaymentFilters, PaymentState
 from lnbits.core.models.payments import CancelInvoice, CreatePayment, SettleInvoice
 from lnbits.core.models.users import AccountId
 from lnbits.core.models.wallets import KeyType, WalletTypeInfo
@@ -21,7 +22,7 @@ from lnbits.core.views.payment_api import (
     api_payments_settle,
     api_payments_wallets_stats,
 )
-from lnbits.db import Filters
+from lnbits.db import Filter, Filters
 from lnbits.wallets.base import InvoiceResponse
 
 ZERO_AMOUNT_INVOICE = (
@@ -92,6 +93,60 @@ async def test_payment_api_stats_and_all_paginated(admin_user):
 
 
 @pytest.mark.anyio
+async def test_payment_external_id_is_stored_and_validated():
+    user = await create_user_account(
+        Account(
+            id=uuid4().hex,
+            username=f"user_{uuid4().hex[:8]}",
+            email=f"user_{uuid4().hex[:8]}@lnbits.com",
+        )
+    )
+    wallet = user.wallets[0]
+
+    first_payment = await create_wallet_invoice(
+        wallet.id,
+        CreateInvoice(
+            out=False,
+            amount=21,
+            memo="external reference",
+            external_id="provider_payment_123",
+        ),
+    )
+    second_payment = await create_wallet_invoice(
+        wallet.id,
+        CreateInvoice(
+            out=False,
+            amount=22,
+            memo="external reference newest",
+            external_id="provider_payment_123",
+        ),
+    )
+
+    assert first_payment.external_id == "provider_payment_123"
+    assert second_payment.external_id == "provider_payment_123"
+    stored_payments = await get_payments(
+        wallet_id=wallet.id,
+        filters=Filters(
+            filters=[
+                Filter.parse_query(
+                    "external_id", ["provider_payment_123"], PaymentFilters
+                )
+            ],
+            model=PaymentFilters,
+            sortby="created_at",
+            direction="desc",
+        ),
+    )
+    assert [payment.checking_id for payment in stored_payments] == [
+        second_payment.checking_id,
+        first_payment.checking_id,
+    ]
+
+    with pytest.raises(ValidationError, match="Invalid external id"):
+        CreateInvoice(out=False, amount=21, external_id="provider payment 123")
+
+
+@pytest.mark.anyio
 async def test_payment_api_fee_reserve_and_hold_invoice_actions(mocker):
     user = await create_user_account(
         Account(
@@ -106,7 +161,7 @@ async def test_payment_api_fee_reserve_and_hold_invoice_actions(mocker):
         wallet.id, CreateInvoice(out=False, amount=42, memo="reserve")
     )
     reserve = await api_payments_fee_reserve(invoice.bolt11)
-    assert json.loads(reserve.body)["fee_reserve"] >= 0
+    assert json.loads(bytes(reserve.body))["fee_reserve"] >= 0
 
     with pytest.raises(HTTPException, match="Invoice has no amount."):
         await api_payments_fee_reserve(ZERO_AMOUNT_INVOICE)
@@ -161,6 +216,164 @@ async def test_payment_api_fee_reserve_and_hold_invoice_actions(mocker):
     )
     assert cancelled.failed is True
     cancel_mock.assert_awaited_once()
+
+
+@pytest.mark.anyio
+async def test_payment_extra_update_appends_new_keys(
+    client,
+    to_wallet,
+    adminkey_headers_to,
+):
+    payment_hash = uuid4().hex
+    checking_id = await _create_payment(
+        to_wallet.id,
+        amount_msat=1_000,
+        payment_hash=payment_hash,
+        tag="splitpayments",
+    )
+
+    response = await client.patch(
+        "/api/v1/payments/extra",
+        headers=adminkey_headers_to,
+        json={
+            "payment_hash": payment_hash,
+            "extra": {"child": "daughter", "compliance_note": "reviewed"},
+        },
+    )
+
+    assert response.status_code == 200
+    extra = response.json()["extra"]
+    assert extra["tag"] == "splitpayments"
+    assert extra["child"] == "daughter"
+    assert extra["compliance_note"] == "reviewed"
+
+    payment = await get_payment(checking_id)
+    assert payment.extra == extra
+
+
+@pytest.mark.anyio
+async def test_payment_extra_update_creates_extra_when_missing(
+    client,
+    to_wallet,
+    adminkey_headers_to,
+):
+    payment_hash = uuid4().hex
+    checking_id = await _create_payment(
+        to_wallet.id,
+        amount_msat=1_000,
+        payment_hash=payment_hash,
+    )
+
+    response = await client.patch(
+        "/api/v1/payments/extra",
+        headers=adminkey_headers_to,
+        json={"payment_hash": payment_hash, "extra": {"note": "reviewed"}},
+    )
+
+    assert response.status_code == 200
+    assert response.json()["extra"] == {"note": "reviewed"}
+
+    payment = await get_payment(checking_id)
+    assert payment.extra == {"note": "reviewed"}
+
+
+@pytest.mark.anyio
+async def test_payment_extra_update_rejects_existing_keys(
+    client,
+    to_wallet,
+    adminkey_headers_to,
+):
+    payment_hash = uuid4().hex
+    checking_id = await _create_payment(
+        to_wallet.id,
+        amount_msat=1_000,
+        payment_hash=payment_hash,
+        tag="original",
+    )
+
+    response = await client.patch(
+        "/api/v1/payments/extra",
+        headers=adminkey_headers_to,
+        json={"payment_hash": payment_hash, "extra": {"tag": "overwritten"}},
+    )
+
+    assert response.status_code == 400
+    assert response.json()["detail"] == "Extra keys already exist: tag."
+
+    payment = await get_payment(checking_id)
+    assert payment.extra == {"tag": "original"}
+
+
+@pytest.mark.anyio
+async def test_payment_extra_update_requires_admin_key(
+    client,
+    to_wallet,
+    inkey_headers_to,
+):
+    payment_hash = uuid4().hex
+    await _create_payment(
+        to_wallet.id,
+        amount_msat=1_000,
+        payment_hash=payment_hash,
+    )
+
+    response = await client.patch(
+        "/api/v1/payments/extra",
+        headers=inkey_headers_to,
+        json={"payment_hash": payment_hash, "extra": {"note": "invoice key"}},
+    )
+
+    assert response.status_code == 403
+    assert response.json()["detail"] == "Invalid adminkey."
+
+
+@pytest.mark.anyio
+async def test_payment_extra_update_is_wallet_scoped(
+    client,
+    from_wallet,
+    adminkey_headers_to,
+):
+    payment_hash = uuid4().hex
+    await _create_payment(
+        from_wallet.id,
+        amount_msat=1_000,
+        payment_hash=payment_hash,
+    )
+
+    response = await client.patch(
+        "/api/v1/payments/extra",
+        headers=adminkey_headers_to,
+        json={"payment_hash": payment_hash, "extra": {"note": "wrong wallet"}},
+    )
+
+    assert response.status_code == 404
+    assert response.json()["detail"] == "Payment does not exist."
+
+
+@pytest.mark.anyio
+async def test_payment_extra_update_requires_successful_payment(
+    client,
+    to_wallet,
+    adminkey_headers_to,
+):
+    payment_hash = uuid4().hex
+    await _create_payment(
+        to_wallet.id,
+        amount_msat=1_000,
+        payment_hash=payment_hash,
+        status=PaymentState.PENDING,
+    )
+
+    response = await client.patch(
+        "/api/v1/payments/extra",
+        headers=adminkey_headers_to,
+        json={"payment_hash": payment_hash, "extra": {"note": "too early"}},
+    )
+
+    assert response.status_code == 400
+    assert (
+        response.json()["detail"] == "Payment extra can only be updated after success."
+    )
 
 
 async def _create_payment(

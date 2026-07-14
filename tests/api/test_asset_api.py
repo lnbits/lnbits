@@ -13,14 +13,15 @@ async def test_asset_api_upload_list_update_and_delete(
     client: AsyncClient,
     user_headers_from: dict[str, str],
 ):
+    payload = get_png_bytes()
     upload = await client.post(
         "/api/v1/assets?public_asset=false",
         headers={"Authorization": user_headers_from["Authorization"]},
-        files={"file": ("note.txt", b"hello world", "text/plain")},
+        files={"file": ("note.png", payload, "image/png")},
     )
     assert upload.status_code == 200
     asset = upload.json()
-    assert asset["name"] == "note.txt"
+    assert asset["name"] == "note.png"
     assert asset["is_public"] is False
 
     page = await client.get("/api/v1/assets/paginated", headers=user_headers_from)
@@ -29,27 +30,30 @@ async def test_asset_api_upload_list_update_and_delete(
 
     info = await client.get(f"/api/v1/assets/{asset['id']}", headers=user_headers_from)
     assert info.status_code == 200
-    assert info.json()["name"] == "note.txt"
+    assert info.json()["name"] == "note.png"
 
     data = await client.get(
         f"/api/v1/assets/{asset['id']}/data", headers=user_headers_from
     )
     assert data.status_code == 200
-    assert data.content == b"hello world"
-    assert data.headers["content-disposition"] == 'inline; filename="note.txt"'
+    assert data.content == payload
+    assert data.headers["content-type"] == "image/png"
+    assert data.headers["content-disposition"] == 'inline; filename="note.png"'
+    assert data.headers["x-content-type-options"] == "nosniff"
+    assert data.headers["content-security-policy"].startswith("sandbox")
 
     updated = await client.put(
         f"/api/v1/assets/{asset['id']}",
         headers=user_headers_from,
-        json={"name": "renamed.txt", "is_public": True},
+        json={"name": "renamed.png", "is_public": True},
     )
     assert updated.status_code == 200
-    assert updated.json()["name"] == "renamed.txt"
+    assert updated.json()["name"] == "renamed.png"
     assert updated.json()["is_public"] is True
 
     public_data = await client.get(f"/api/v1/assets/{asset['id']}/data")
     assert public_data.status_code == 200
-    assert public_data.content == b"hello world"
+    assert public_data.content == payload
 
     deleted = await client.delete(
         f"/api/v1/assets/{asset['id']}", headers=user_headers_from
@@ -98,15 +102,51 @@ async def test_asset_api_enforces_visibility_and_supports_admin_updates(
     assert admin_updated.json()["is_public"] is True
     assert admin_updated.json()["name"] == "admin-visible.png"
 
+    image_data = await client.get(f"/api/v1/assets/{private_asset.id}/data")
+    assert image_data.status_code == 200
+    assert image_data.headers["content-type"] == "image/png"
+    assert image_data.headers["content-disposition"] == (
+        'inline; filename="admin-visible.png"'
+    )
+    assert image_data.headers["x-content-type-options"] == "nosniff"
+
     thumbnail = await client.get(f"/api/v1/assets/{private_asset.id}/thumbnail")
     assert thumbnail.status_code == 200
     assert thumbnail.content
     assert thumbnail.headers["content-type"] == "image/png"
+    assert thumbnail.headers["content-disposition"] == (
+        'inline; filename="admin-visible.png"'
+    )
+
+
+@pytest.mark.anyio
+async def test_asset_api_blocks_non_image_uploads(
+    client: AsyncClient,
+    user_headers_from: dict[str, str],
+):
+    payload = (
+        b'<?xml version="1.0"?>'
+        b'<xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform">'
+        b'<xsl:template match="/">'
+        b"<script>alert(1)</script>"
+        b"</xsl:template>"
+        b"</xsl:stylesheet>"
+    )
+
+    blocked = await client.post(
+        "/api/v1/assets",
+        headers={"Authorization": user_headers_from["Authorization"]},
+        files={"file": ("payload.xsl", payload, "text/xml")},
+    )
+
+    assert blocked.status_code == 400
+    assert blocked.json()["detail"] == "File type 'text/xml' not allowed."
 
 
 @pytest.mark.anyio
 async def test_asset_api_validates_uploads_and_missing_assets(
     client: AsyncClient,
+    to_user,
     user_headers_from: dict[str, str],
 ):
     invalid = await client.post(
@@ -116,6 +156,15 @@ async def test_asset_api_validates_uploads_and_missing_assets(
     )
     assert invalid.status_code == 400
     assert "not allowed" in invalid.json()["detail"]
+
+    fake_image_headers = await get_user_token_headers(client, to_user.id)
+    fake_image = await client.post(
+        "/api/v1/assets",
+        headers={"Authorization": fake_image_headers["Authorization"]},
+        files={"file": ("fake.png", b"<root></root>", "image/png")},
+    )
+    assert fake_image.status_code == 400
+    assert "does not match declared file type" in fake_image.json()["detail"]
 
     missing = await client.delete(
         f"/api/v1/assets/{uuid4().hex}",
@@ -128,7 +177,9 @@ async def test_asset_api_validates_uploads_and_missing_assets(
 
     stored = await create_user_asset(
         "missing-user-check",
-        make_upload_file(b"content", filename="content.txt", content_type="text/plain"),
+        make_upload_file(
+            get_png_bytes(), filename="content.png", content_type="image/png"
+        ),
         is_public=True,
     )
     fetched = await get_user_asset("missing-user-check", stored.id)

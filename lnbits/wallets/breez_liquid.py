@@ -18,7 +18,7 @@ else:
     from pathlib import Path
 
     from bolt11 import decode as bolt11_decode
-    from breez_sdk_liquid import (
+    from breez_sdk_liquid import (  # type: ignore[reportMissingImports]
         ConnectRequest,
         EventListener,
         GetInfoResponse,

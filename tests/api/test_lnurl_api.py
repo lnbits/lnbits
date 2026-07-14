@@ -1,3 +1,4 @@
+from typing import cast
 from uuid import uuid4
 
 import pytest
@@ -106,7 +107,7 @@ async def test_lnurl_api_auth_and_pay_flow(mocker):
         await api_perform_lnurlauth(auth_response, wallet_info)
 
     action_response = LnurlPayActionResponse(
-        pr=LightningInvoice(TEST_BOLT11),
+        pr=cast(LightningInvoice, LightningInvoice(TEST_BOLT11)),
         disposable=False,
         successAction=parse_obj_as(MessageAction, {"message": "paid"}),
     )

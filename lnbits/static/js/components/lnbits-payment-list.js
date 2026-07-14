@@ -360,18 +360,37 @@ window.app.component('lnbits-payment-list', {
     paymentTableRowKey(row) {
       return row.payment_hash + row.amount
     },
-    exportCSV(detailed = false) {
+    async exportCSV(detailed = false) {
       // status is important for export but it is not in paymentsTable
       // because it is manually added with payment detail link and icons
       // and would cause duplication in the list
       const pagination = this.paymentsTable.pagination
-      const query = {
-        sortby: pagination.sortBy ?? 'time',
-        direction: pagination.descending ? 'desc' : 'asc'
-      }
-      const params = new URLSearchParams(query)
-      LNbits.api.getPayments(this.wallet, params).then(response => {
-        let payments = response.data.data.map(this.mapPayment)
+      const maxPages = 100
+      const limit = 1000
+      let payments = []
+
+      this.paymentsCSV.loading = true
+      try {
+        for (let page = 0; page < maxPages; page++) {
+          const query = {
+            sortby: pagination.sortBy ?? 'time',
+            direction: pagination.descending ? 'desc' : 'asc',
+            limit,
+            offset: page * limit
+          }
+          const params = new URLSearchParams(query)
+          const response = await LNbits.api.getPayments(this.wallet, params)
+          const pagePayments = response.data.data || []
+          payments = payments.concat(pagePayments.map(this.mapPayment))
+
+          if (
+            pagePayments.length < limit ||
+            payments.length >= response.data.total
+          ) {
+            break
+          }
+        }
+
         let columns = this.paymentsCSV.columns
 
         if (detailed) {
@@ -400,7 +419,11 @@ window.app.component('lnbits-payment-list', {
           payments,
           this.wallet.name + '-payments'
         )
-      })
+      } catch (err) {
+        LNbits.utils.notifyApiError(err)
+      } finally {
+        this.paymentsCSV.loading = false
+      }
     },
     addFilterTag() {
       if (!this.exportTagName) return

@@ -1,4 +1,5 @@
-{% include('components/admin/funding.vue') %} {%
+{% include('components/admin/funding_seed_backup.vue') %} {%
+include('components/admin/funding.vue') %} {%
 include('components/admin/funding_sources.vue') %} {%
 include('components/admin/fiat_providers.vue') %} {%
 include('components/admin/exchange_providers.vue') %} {%
@@ -7,6 +8,8 @@ include('components/admin/users.vue') %} {%
 include('components/admin/site_customisation.vue') %} {%
 include('components/admin/audit.vue') %} {%
 include('components/admin/extensions.vue') %} {%
+include('components/admin/wasm-runtime.vue') %} {%
+include('components/admin/wasm-limit-config.vue') %} {%
 include('components/admin/assets-config.vue') %} {%
 include('components/admin/notifications.vue') %} {%
 include('components/admin/server.vue') %} {%
@@ -19,6 +22,7 @@ include('components/lnbits-header-wallets.vue') %} {%
 include('components/lnbits-drawer.vue') %} {%
 include('components/lnbits-home-logos.vue') %} {%
 include('components/lnbits-manage-extension-list.vue') %} {%
+include('components/lnbits-extension-permissions.vue') %} {%
 include('components/lnbits-manage-wallet-list.vue') %} {%
 include('components/lnbits-language-dropdown.vue') %} {%
 include('components/lnbits-payment-list.vue') %} {%
@@ -774,7 +778,13 @@ include('components/lnbits-error.vue') %}
           v-model="password"
           name="password"
           :label="$t('password') + ' *'"
-          type="password"
+          :type="showPwd ? 'text' : 'password'"
+          ><template v-slot:append>
+            <q-icon
+              :name="showPwd ? 'visibility' : 'visibility_off'"
+              class="cursor-pointer"
+              @click="showPwd = !showPwd"
+            /> </template
         ></q-input>
         <div class="row justify-end">
           <q-btn
@@ -803,16 +813,28 @@ include('components/lnbits-error.vue') %}
           filled
           v-model="password"
           :label="$t('password') + ' *'"
-          type="password"
+          :type="showPwd ? 'text' : 'password'"
           :rules="[val => !val || val.length >= 8 || $t('invalid_password')]"
+          ><template v-slot:append>
+            <q-icon
+              :name="showPwd ? 'visibility' : 'visibility_off'"
+              class="cursor-pointer"
+              @click="showPwd = !showPwd"
+            /> </template
         ></q-input>
         <q-input
           dense
           filled
           v-model="passwordRepeat"
           :label="$t('password_repeat') + ' *'"
-          type="password"
+          :type="showPwdRepeat ? 'text' : 'password'"
           :rules="[val => !val || val.length >= 8 || $t('invalid_password')]"
+          ><template v-slot:append>
+            <q-icon
+              :name="showPwdRepeat ? 'visibility' : 'visibility_off'"
+              class="cursor-pointer"
+              @click="showPwdRepeat = !showPwdRepeat"
+            /> </template
         ></q-input>
         <div
           v-if="confirmationMethodsCount > 1"
@@ -925,16 +947,28 @@ include('components/lnbits-error.vue') %}
           filled
           v-model="password"
           :label="$t('password') + ' *'"
-          type="password"
+          :type="showPwd ? 'text' : 'password'"
           :rules="[val => !val || val.length >= 8 || $t('invalid_password')]"
+          ><template v-slot:append>
+            <q-icon
+              :name="showPwd ? 'visibility' : 'visibility_off'"
+              class="cursor-pointer"
+              @click="showPwd = !showPwd"
+            /> </template
         ></q-input>
         <q-input
           dense
           filled
           v-model="passwordRepeat"
           :label="$t('password_repeat') + ' *'"
-          type="password"
+          :type="showPwdRepeat ? 'text' : 'password'"
           :rules="[val => !val || val.length >= 8 || $t('invalid_password')]"
+          ><template v-slot:append>
+            <q-icon
+              :name="showPwdRepeat ? 'visibility' : 'visibility_off'"
+              class="cursor-pointer"
+              @click="showPwdRepeat = !showPwdRepeat"
+            /> </template
         ></q-input>
         <div class="row justify-end">
           <q-btn

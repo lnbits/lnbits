@@ -189,6 +189,9 @@ admin_ui_checks = [Depends(check_admin), Depends(check_admin_ui)]
 @generic_router.get("/audit", dependencies=admin_ui_checks)
 @generic_router.get("/node", dependencies=admin_ui_checks)
 @generic_router.get("/admin", dependencies=admin_ui_checks)
+@generic_router.get("/admin/extensions/wasm", dependencies=admin_ui_checks)
+@generic_router.get("/admin/extensions/wasm/limits", dependencies=admin_ui_checks)
+@generic_router.get("/admin/extensions/wasm/{ext_id}", dependencies=admin_ui_checks)
 @generic_router.get(
     "/extensions/builder", dependencies=[Depends(check_extension_builder)]
 )
@@ -196,7 +199,9 @@ admin_ui_checks = [Depends(check_admin), Depends(check_admin_ui)]
     "/extensions/builder/preview", dependencies=[Depends(check_extension_builder)]
 )
 async def index(
-    request: Request, user: User = Depends(check_user_exists)
+    request: Request,
+    ext_id: str | None = None,
+    user: User = Depends(check_user_exists),
 ) -> HTMLResponse:
     return template_renderer().TemplateResponse(
         request,

@@ -85,6 +85,9 @@ window.app.component('lnbits-qrcode', {
         event.preventDefault()
         event.stopPropagation()
         return false
+      } else if (this.href && this.href.startsWith('http')) {
+        window.open(this.href, '_blank')
+        event.preventDefault()
       }
     },
     async writeNfcTag() {

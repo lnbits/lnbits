@@ -1,37 +1,10 @@
 /*!
- * vue-router v4.6.3
- * (c) 2025 Eduardo San Martin Morote
+ * vue-router v5.0.6
+ * (c) 2026 Eduardo San Martin Morote
  * @license MIT
  */
 var VueRouter = (function(exports, vue) {
 
-//#region rolldown:runtime
-	var __create = Object.create;
-	var __defProp = Object.defineProperty;
-	var __getOwnPropDesc = Object.getOwnPropertyDescriptor;
-	var __getOwnPropNames = Object.getOwnPropertyNames;
-	var __getProtoOf = Object.getPrototypeOf;
-	var __hasOwnProp = Object.prototype.hasOwnProperty;
-	var __commonJS = (cb, mod) => function() {
-		return mod || (0, cb[__getOwnPropNames(cb)[0]])((mod = { exports: {} }).exports, mod), mod.exports;
-	};
-	var __copyProps = (to, from, except, desc) => {
-		if (from && typeof from === "object" || typeof from === "function") for (var keys = __getOwnPropNames(from), i = 0, n = keys.length, key; i < n; i++) {
-			key = keys[i];
-			if (!__hasOwnProp.call(to, key) && key !== except) __defProp(to, key, {
-				get: ((k) => from[k]).bind(null, key),
-				enumerable: !(desc = __getOwnPropDesc(from, key)) || desc.enumerable
-			});
-		}
-		return to;
-	};
-	var __toESM = (mod, isNodeMode, target) => (target = mod != null ? __create(__getProtoOf(mod)) : {}, __copyProps(isNodeMode || !mod || !mod.__esModule ? __defProp(target, "default", {
-		value: mod,
-		enumerable: true
-	}) : target, mod));
-
-//#endregion
-vue = __toESM(vue);
 
 //#region src/utils/env.ts
 	const isBrowser = typeof document !== "undefined";
@@ -63,6 +36,8 @@ vue = __toESM(vue);
 	/**
 	* Typesafe alternative to Array.isArray
 	* https://github.com/microsoft/TypeScript/pull/48228
+	*
+	* @internal
 	*/
 	const isArray = Array.isArray;
 	function mergeOptions(defaults, partialOptions) {
@@ -188,7 +163,7 @@ vue = __toESM(vue);
 		if (text == null) return null;
 		try {
 			return decodeURIComponent("" + text);
-		} catch (err) {
+		} catch {
 			warn(`Error decoding "${text}". Using original value`);
 		}
 		return "" + text;
@@ -207,21 +182,21 @@ vue = __toESM(vue);
 	* paths. Must start with `/`. Defaults to `/`
 	* @returns a normalized history location
 	*/
-	function parseURL(parseQuery$1, location$1, currentLocation = "/") {
+	function parseURL(parseQuery, location, currentLocation = "/") {
 		let path, query = {}, searchString = "", hash = "";
-		const hashPos = location$1.indexOf("#");
-		let searchPos = location$1.indexOf("?");
+		const hashPos = location.indexOf("#");
+		let searchPos = location.indexOf("?");
 		searchPos = hashPos >= 0 && searchPos > hashPos ? -1 : searchPos;
 		if (searchPos >= 0) {
-			path = location$1.slice(0, searchPos);
-			searchString = location$1.slice(searchPos, hashPos > 0 ? hashPos : location$1.length);
-			query = parseQuery$1(searchString.slice(1));
+			path = location.slice(0, searchPos);
+			searchString = location.slice(searchPos, hashPos > 0 ? hashPos : location.length);
+			query = parseQuery(searchString.slice(1));
 		}
 		if (hashPos >= 0) {
-			path = path || location$1.slice(0, hashPos);
-			hash = location$1.slice(hashPos, location$1.length);
+			path = path || location.slice(0, hashPos);
+			hash = location.slice(hashPos, location.length);
 		}
-		path = resolveRelativePath(path != null ? path : location$1, currentLocation);
+		path = resolveRelativePath(path != null ? path : location, currentLocation);
 		return {
 			fullPath: path + searchString + hash,
 			path,
@@ -235,9 +210,9 @@ vue = __toESM(vue);
 	* @param stringifyQuery
 	* @param location
 	*/
-	function stringifyURL(stringifyQuery$1, location$1) {
-		const query = location$1.query ? stringifyQuery$1(location$1.query) : "";
-		return location$1.path + (query && "?") + query + (location$1.hash || "");
+	function stringifyURL(stringifyQuery, location) {
+		const query = location.query ? stringifyQuery(location.query) : "";
+		return location.path + (query && "?") + query + (location.hash || "");
 	}
 	/**
 	* Strips off the base from the beginning of a location.pathname in a non-case-sensitive way.
@@ -258,10 +233,10 @@ vue = __toESM(vue);
 	* @param a - first {@link RouteLocation}
 	* @param b - second {@link RouteLocation}
 	*/
-	function isSameRouteLocation(stringifyQuery$1, a, b) {
+	function isSameRouteLocation(stringifyQuery, a, b) {
 		const aLastIndex = a.matched.length - 1;
 		const bLastIndex = b.matched.length - 1;
-		return aLastIndex > -1 && aLastIndex === bLastIndex && isSameRouteRecord(a.matched[aLastIndex], b.matched[bLastIndex]) && isSameRouteLocationParams(a.params, b.params) && stringifyQuery$1(a.query) === stringifyQuery$1(b.query) && a.hash === b.hash;
+		return aLastIndex > -1 && aLastIndex === bLastIndex && isSameRouteRecord(a.matched[aLastIndex], b.matched[bLastIndex]) && isSameRouteLocationParams(a.params, b.params) && stringifyQuery(a.query) === stringifyQuery(b.query) && a.hash === b.hash;
 	}
 	/**
 	* Check if two `RouteRecords` are equal. Takes into account aliases: they are
@@ -275,11 +250,11 @@ vue = __toESM(vue);
 	}
 	function isSameRouteLocationParams(a, b) {
 		if (Object.keys(a).length !== Object.keys(b).length) return false;
-		for (const key in a) if (!isSameRouteLocationParamsValue(a[key], b[key])) return false;
+		for (var key in a) if (!isSameRouteLocationParamsValue(a[key], b[key])) return false;
 		return true;
 	}
 	function isSameRouteLocationParamsValue(a, b) {
-		return isArray(a) ? isEquivalentArray(a, b) : isArray(b) ? isEquivalentArray(b, a) : a === b;
+		return isArray(a) ? isEquivalentArray(a, b) : isArray(b) ? isEquivalentArray(b, a) : (a && a.valueOf()) === (b && b.valueOf());
 	}
 	/**
 	* Check if two arrays are the same or if an array with one single entry is the
@@ -349,16 +324,16 @@ vue = __toESM(vue);
 
 //#endregion
 //#region src/history/common.ts
-	let NavigationType = /* @__PURE__ */ function(NavigationType$1) {
-		NavigationType$1["pop"] = "pop";
-		NavigationType$1["push"] = "push";
-		return NavigationType$1;
+	let NavigationType = /* @__PURE__ */ function(NavigationType) {
+		NavigationType["pop"] = "pop";
+		NavigationType["push"] = "push";
+		return NavigationType;
 	}({});
-	let NavigationDirection = /* @__PURE__ */ function(NavigationDirection$1) {
-		NavigationDirection$1["back"] = "back";
-		NavigationDirection$1["forward"] = "forward";
-		NavigationDirection$1["unknown"] = "";
-		return NavigationDirection$1;
+	let NavigationDirection = /* @__PURE__ */ function(NavigationDirection) {
+		NavigationDirection["back"] = "back";
+		NavigationDirection["forward"] = "forward";
+		NavigationDirection["unknown"] = "";
+		return NavigationDirection;
 	}({});
 	/**
 	* Starting location for Histories
@@ -374,14 +349,14 @@ vue = __toESM(vue);
 		if (!base) if (isBrowser) {
 			const baseEl = document.querySelector("base");
 			base = baseEl && baseEl.getAttribute("href") || "/";
-			base = base.replace(/^\w+:\/\/[^\/]+/, "");
+			base = base.replace(/^\w+:\/\/[^/]+/, "");
 		} else base = "/";
 		if (base[0] !== "/" && base[0] !== "#") base = "/" + base;
 		return removeTrailingSlash(base);
 	}
 	const BEFORE_HASH_RE = /^[^#]+#/;
-	function createHref(base, location$1) {
-		return base.replace(BEFORE_HASH_RE, "#") + location$1;
+	function createHref(base, location) {
+		return base.replace(BEFORE_HASH_RE, "#") + location;
 	}
 
 //#endregion
@@ -432,7 +407,7 @@ vue = __toESM(vue);
 						warn(`The selector "${position.el}" should be passed as "el: document.querySelector('${position.el}')" because it starts with "#".`);
 						return;
 					}
-				} catch (err) {
+				} catch {
 					warn(`The selector "${position.el}" is invalid. If you are using an id selector, make sure to escape it. You can find more information about escaping characters in selectors at https://mathiasbynens.be/notes/css-escapes or use CSS.escape (https://developer.mozilla.org/en-US/docs/Web/API/CSS/escape).`);
 					return;
 				}
@@ -472,8 +447,8 @@ vue = __toESM(vue);
 	* @param base - The base path
 	* @param location - The window.location object
 	*/
-	function createCurrentLocation(base, location$1) {
-		const { pathname, search, hash } = location$1;
+	function createCurrentLocation(base, location) {
+		const { pathname, search, hash } = location;
 		const hashPos = base.indexOf("#");
 		if (hashPos > -1) {
 			let slicePos = hash.includes(base.slice(hashPos)) ? base.slice(hashPos).length : 1;
@@ -523,9 +498,9 @@ vue = __toESM(vue);
 		}
 		function beforeUnloadListener() {
 			if (document.visibilityState === "hidden") {
-				const { history: history$1 } = window;
-				if (!history$1.state) return;
-				history$1.replaceState(assign({}, history$1.state, { scroll: computeScrollPosition() }), "");
+				const { history } = window;
+				if (!history.state) return;
+				history.replaceState(assign({}, history.state, { scroll: computeScrollPosition() }), "");
 			}
 		}
 		function destroy() {
@@ -558,18 +533,18 @@ vue = __toESM(vue);
 		};
 	}
 	function useHistoryStateNavigation(base) {
-		const { history: history$1, location: location$1 } = window;
-		const currentLocation = { value: createCurrentLocation(base, location$1) };
-		const historyState = { value: history$1.state };
+		const { history, location } = window;
+		const currentLocation = { value: createCurrentLocation(base, location) };
+		const historyState = { value: history.state };
 		if (!historyState.value) changeLocation(currentLocation.value, {
 			back: null,
 			current: currentLocation.value,
 			forward: null,
-			position: history$1.length - 1,
+			position: history.length - 1,
 			replaced: true,
 			scroll: null
 		}, true);
-		function changeLocation(to, state, replace$1) {
+		function changeLocation(to, state, replace) {
 			/**
 			* if a base tag is provided, and we are on a normal domain, we have to
 			* respect the provided `base` attribute because pushState() will use it and
@@ -580,25 +555,25 @@ vue = __toESM(vue);
 			* base tag we can just use everything after the `#`.
 			*/
 			const hashIndex = base.indexOf("#");
-			const url = hashIndex > -1 ? (location$1.host && document.querySelector("base") ? base : base.slice(hashIndex)) + to : createBaseLocation() + base + to;
+			const url = hashIndex > -1 ? (location.host && document.querySelector("base") ? base : base.slice(hashIndex)) + to : createBaseLocation() + base + to;
 			try {
-				history$1[replace$1 ? "replaceState" : "pushState"](state, "", url);
+				history[replace ? "replaceState" : "pushState"](state, "", url);
 				historyState.value = state;
 			} catch (err) {
 				warn("Error with push/replace State", err);
-				location$1[replace$1 ? "replace" : "assign"](url);
+				location[replace ? "replace" : "assign"](url);
 			}
 		}
 		function replace(to, data) {
-			changeLocation(to, assign({}, history$1.state, buildState(historyState.value.back, to, historyState.value.forward, true), data, { position: historyState.value.position }), true);
+			changeLocation(to, assign({}, history.state, buildState(historyState.value.back, to, historyState.value.forward, true), data, { position: historyState.value.position }), true);
 			currentLocation.value = to;
 		}
 		function push(to, data) {
-			const currentState = assign({}, historyState.value, history$1.state, {
+			const currentState = assign({}, historyState.value, history.state, {
 				forward: to,
 				scroll: computeScrollPosition()
 			});
-			if (!history$1.state) warn("history.state seems to have been manually replaced without preserving the necessary values. Make sure to preserve existing history state if you are manually calling history.replaceState:\n\nhistory.replaceState(history.state, '', url)\n\nYou can find more information at https://router.vuejs.org/guide/migration/#Usage-of-history-state");
+			if (!history.state) warn("history.state seems to have been manually replaced without preserving the necessary values. Make sure to preserve existing history state if you are manually calling history.replaceState:\n\nhistory.replaceState(history.state, '', url)\n\nYou can find more information at https://router.vuejs.org/guide/migration/#Usage-of-history-state");
 			changeLocation(currentState.current, currentState, true);
 			changeLocation(to, assign({}, buildState(currentLocation.value, to, null), { position: currentState.position + 1 }, data), false);
 			currentLocation.value = to;
@@ -654,10 +629,10 @@ vue = __toESM(vue);
 		let queue = [[START, {}]];
 		let position = 0;
 		base = normalizeBase(base);
-		function setLocation(location$1, state = {}) {
+		function setLocation(location, state = {}) {
 			position++;
 			if (position !== queue.length) queue.splice(position);
-			queue.push([location$1, state]);
+			queue.push([location, state]);
 		}
 		function triggerListeners(to, from, { direction, delta }) {
 			const info = {
@@ -762,40 +737,40 @@ vue = __toESM(vue);
 	*
 	* @internal
 	*/
-	let ErrorTypes = /* @__PURE__ */ function(ErrorTypes$1) {
-		ErrorTypes$1[ErrorTypes$1["MATCHER_NOT_FOUND"] = 1] = "MATCHER_NOT_FOUND";
-		ErrorTypes$1[ErrorTypes$1["NAVIGATION_GUARD_REDIRECT"] = 2] = "NAVIGATION_GUARD_REDIRECT";
-		ErrorTypes$1[ErrorTypes$1["NAVIGATION_ABORTED"] = 4] = "NAVIGATION_ABORTED";
-		ErrorTypes$1[ErrorTypes$1["NAVIGATION_CANCELLED"] = 8] = "NAVIGATION_CANCELLED";
-		ErrorTypes$1[ErrorTypes$1["NAVIGATION_DUPLICATED"] = 16] = "NAVIGATION_DUPLICATED";
-		return ErrorTypes$1;
+	let ErrorTypes = /* @__PURE__ */ function(ErrorTypes) {
+		ErrorTypes[ErrorTypes["MATCHER_NOT_FOUND"] = 1] = "MATCHER_NOT_FOUND";
+		ErrorTypes[ErrorTypes["NAVIGATION_GUARD_REDIRECT"] = 2] = "NAVIGATION_GUARD_REDIRECT";
+		ErrorTypes[ErrorTypes["NAVIGATION_ABORTED"] = 4] = "NAVIGATION_ABORTED";
+		ErrorTypes[ErrorTypes["NAVIGATION_CANCELLED"] = 8] = "NAVIGATION_CANCELLED";
+		ErrorTypes[ErrorTypes["NAVIGATION_DUPLICATED"] = 16] = "NAVIGATION_DUPLICATED";
+		return ErrorTypes;
 	}({});
 	const NavigationFailureSymbol = Symbol("navigation failure");
 	/**
 	* Enumeration with all possible types for navigation failures. Can be passed to
 	* {@link isNavigationFailure} to check for specific failures.
 	*/
-	let NavigationFailureType = /* @__PURE__ */ function(NavigationFailureType$1) {
+	let NavigationFailureType = /* @__PURE__ */ function(NavigationFailureType) {
 		/**
 		* An aborted navigation is a navigation that failed because a navigation
 		* guard returned `false` or called `next(false)`
 		*/
-		NavigationFailureType$1[NavigationFailureType$1["aborted"] = 4] = "aborted";
+		NavigationFailureType[NavigationFailureType["aborted"] = 4] = "aborted";
 		/**
 		* A cancelled navigation is a navigation that failed because a more recent
 		* navigation finished started (not necessarily finished).
 		*/
-		NavigationFailureType$1[NavigationFailureType$1["cancelled"] = 8] = "cancelled";
+		NavigationFailureType[NavigationFailureType["cancelled"] = 8] = "cancelled";
 		/**
 		* A duplicated navigation is a navigation that failed because it was
 		* initiated while already being at the exact same location.
 		*/
-		NavigationFailureType$1[NavigationFailureType$1["duplicated"] = 16] = "duplicated";
-		return NavigationFailureType$1;
+		NavigationFailureType[NavigationFailureType["duplicated"] = 16] = "duplicated";
+		return NavigationFailureType;
 	}({});
 	const ErrorTypeMessages = {
-		[ErrorTypes.MATCHER_NOT_FOUND]({ location: location$1, currentLocation }) {
-			return `No match for\n ${JSON.stringify(location$1)}${currentLocation ? "\nwhile being at\n" + JSON.stringify(currentLocation) : ""}`;
+		[ErrorTypes.MATCHER_NOT_FOUND]({ location, currentLocation }) {
+			return `No match for\n ${JSON.stringify(location)}${currentLocation ? "\nwhile being at\n" + JSON.stringify(currentLocation) : ""}`;
 		},
 		[ErrorTypes.NAVIGATION_GUARD_REDIRECT]({ from, to }) {
 			return `Redirected from "${from.fullPath}" to "${stringifyRoute(to)}" via a navigation guard.`;
@@ -806,7 +781,7 @@ vue = __toESM(vue);
 		[ErrorTypes.NAVIGATION_CANCELLED]({ from, to }) {
 			return `Navigation cancelled from "${from.fullPath}" to "${to.fullPath}" with a new navigation.`;
 		},
-		[ErrorTypes.NAVIGATION_DUPLICATED]({ from, to }) {
+		[ErrorTypes.NAVIGATION_DUPLICATED]({ from, to: _to }) {
 			return `Avoided redundant navigation to current location: "${from.fullPath}".`;
 		}
 	};
@@ -833,26 +808,26 @@ vue = __toESM(vue);
 	function stringifyRoute(to) {
 		if (typeof to === "string") return to;
 		if (to.path != null) return to.path;
-		const location$1 = {};
-		for (const key of propertiesToLog) if (key in to) location$1[key] = to[key];
-		return JSON.stringify(location$1, null, 2);
+		const location = {};
+		for (const key of propertiesToLog) if (key in to) location[key] = to[key];
+		return JSON.stringify(location, null, 2);
 	}
 
 //#endregion
 //#region src/matcher/pathTokenizer.ts
-	let TokenType = /* @__PURE__ */ function(TokenType$1) {
-		TokenType$1[TokenType$1["Static"] = 0] = "Static";
-		TokenType$1[TokenType$1["Param"] = 1] = "Param";
-		TokenType$1[TokenType$1["Group"] = 2] = "Group";
-		return TokenType$1;
+	let TokenType = /* @__PURE__ */ function(TokenType) {
+		TokenType[TokenType["Static"] = 0] = "Static";
+		TokenType[TokenType["Param"] = 1] = "Param";
+		TokenType[TokenType["Group"] = 2] = "Group";
+		return TokenType;
 	}({});
-	var TokenizerState = /* @__PURE__ */ function(TokenizerState$1) {
-		TokenizerState$1[TokenizerState$1["Static"] = 0] = "Static";
-		TokenizerState$1[TokenizerState$1["Param"] = 1] = "Param";
-		TokenizerState$1[TokenizerState$1["ParamRegExp"] = 2] = "ParamRegExp";
-		TokenizerState$1[TokenizerState$1["ParamRegExpEnd"] = 3] = "ParamRegExpEnd";
-		TokenizerState$1[TokenizerState$1["EscapeNext"] = 4] = "EscapeNext";
-		return TokenizerState$1;
+	var TokenizerState = /* @__PURE__ */ function(TokenizerState) {
+		TokenizerState[TokenizerState["Static"] = 0] = "Static";
+		TokenizerState[TokenizerState["Param"] = 1] = "Param";
+		TokenizerState[TokenizerState["ParamRegExp"] = 2] = "ParamRegExp";
+		TokenizerState[TokenizerState["ParamRegExpEnd"] = 3] = "ParamRegExpEnd";
+		TokenizerState[TokenizerState["EscapeNext"] = 4] = "EscapeNext";
+		return TokenizerState;
 	}(TokenizerState || {});
 	const ROOT_TOKEN = {
 		type: TokenType.Static,
@@ -960,20 +935,20 @@ vue = __toESM(vue);
 		start: true,
 		end: true
 	};
-	var PathScore = /* @__PURE__ */ function(PathScore$1) {
-		PathScore$1[PathScore$1["_multiplier"] = 10] = "_multiplier";
-		PathScore$1[PathScore$1["Root"] = 90] = "Root";
-		PathScore$1[PathScore$1["Segment"] = 40] = "Segment";
-		PathScore$1[PathScore$1["SubSegment"] = 30] = "SubSegment";
-		PathScore$1[PathScore$1["Static"] = 40] = "Static";
-		PathScore$1[PathScore$1["Dynamic"] = 20] = "Dynamic";
-		PathScore$1[PathScore$1["BonusCustomRegExp"] = 10] = "BonusCustomRegExp";
-		PathScore$1[PathScore$1["BonusWildcard"] = -50] = "BonusWildcard";
-		PathScore$1[PathScore$1["BonusRepeatable"] = -20] = "BonusRepeatable";
-		PathScore$1[PathScore$1["BonusOptional"] = -8] = "BonusOptional";
-		PathScore$1[PathScore$1["BonusStrict"] = .7000000000000001] = "BonusStrict";
-		PathScore$1[PathScore$1["BonusCaseSensitive"] = .25] = "BonusCaseSensitive";
-		return PathScore$1;
+	var PathScore = /* @__PURE__ */ function(PathScore) {
+		PathScore[PathScore["_multiplier"] = 10] = "_multiplier";
+		PathScore[PathScore["Root"] = 90] = "Root";
+		PathScore[PathScore["Segment"] = 40] = "Segment";
+		PathScore[PathScore["SubSegment"] = 30] = "SubSegment";
+		PathScore[PathScore["Static"] = 40] = "Static";
+		PathScore[PathScore["Dynamic"] = 20] = "Dynamic";
+		PathScore[PathScore["BonusCustomRegExp"] = 10] = "BonusCustomRegExp";
+		PathScore[PathScore["BonusWildcard"] = -50] = "BonusWildcard";
+		PathScore[PathScore["BonusRepeatable"] = -20] = "BonusRepeatable";
+		PathScore[PathScore["BonusOptional"] = -8] = "BonusOptional";
+		PathScore[PathScore["BonusStrict"] = .7000000000000001] = "BonusStrict";
+		PathScore[PathScore["BonusCaseSensitive"] = .25] = "BonusCaseSensitive";
+		return PathScore;
 	}(PathScore || {});
 	const REGEX_CHARS_RE = /[.+*?^${}()[\]/\\]/g;
 	/**
@@ -1005,23 +980,23 @@ vue = __toESM(vue);
 						repeatable,
 						optional
 					});
-					const re$1 = regexp ? regexp : BASE_PARAM_PATTERN;
-					if (re$1 !== BASE_PARAM_PATTERN) {
+					const re = regexp ? regexp : BASE_PARAM_PATTERN;
+					if (re !== BASE_PARAM_PATTERN) {
 						subSegmentScore += PathScore.BonusCustomRegExp;
 						try {
-							`${re$1}`;
+							new RegExp(`(${re})`);
 						} catch (err) {
-							throw new Error(`Invalid custom RegExp for param "${value}" (${re$1}): ` + err.message);
+							throw new Error(`Invalid custom RegExp for param "${value}" (${re}): ` + err.message);
 						}
 					}
-					let subPattern = repeatable ? `((?:${re$1})(?:/(?:${re$1}))*)` : `(${re$1})`;
+					let subPattern = repeatable ? `((?:${re})(?:/(?:${re}))*)` : `(${re})`;
 					if (!tokenIndex) subPattern = optional && segment.length < 2 ? `(?:/${subPattern})` : "/" + subPattern;
 					if (optional) subPattern += "?";
 					pattern += subPattern;
 					subSegmentScore += PathScore.Dynamic;
 					if (optional) subSegmentScore += PathScore.BonusOptional;
 					if (repeatable) subSegmentScore += PathScore.BonusRepeatable;
-					if (re$1 === ".*") subSegmentScore += PathScore.BonusWildcard;
+					if (re === ".*") subSegmentScore += PathScore.BonusWildcard;
 				}
 				segmentScores.push(subSegmentScore);
 			}
@@ -1248,23 +1223,23 @@ vue = __toESM(vue);
 			matchers.splice(index, 0, matcher);
 			if (matcher.record.name && !isAliasRecord(matcher)) matcherMap.set(matcher.record.name, matcher);
 		}
-		function resolve(location$1, currentLocation) {
+		function resolve(location, currentLocation) {
 			let matcher;
 			let params = {};
 			let path;
 			let name;
-			if ("name" in location$1 && location$1.name) {
-				matcher = matcherMap.get(location$1.name);
-				if (!matcher) throw createRouterError(ErrorTypes.MATCHER_NOT_FOUND, { location: location$1 });
+			if ("name" in location && location.name) {
+				matcher = matcherMap.get(location.name);
+				if (!matcher) throw createRouterError(ErrorTypes.MATCHER_NOT_FOUND, { location });
 				{
-					const invalidParams = Object.keys(location$1.params || {}).filter((paramName) => !matcher.keys.find((k) => k.name === paramName));
+					const invalidParams = Object.keys(location.params || {}).filter((paramName) => !matcher.keys.find((k) => k.name === paramName));
 					if (invalidParams.length) warn(`Discarded invalid param(s) "${invalidParams.join("\", \"")}" when navigating. See https://github.com/vuejs/router/blob/main/packages/router/CHANGELOG.md#414-2022-08-22 for more details.`);
 				}
 				name = matcher.record.name;
-				params = assign(pickParams(currentLocation.params, matcher.keys.filter((k) => !k.optional).concat(matcher.parent ? matcher.parent.keys.filter((k) => k.optional) : []).map((k) => k.name)), location$1.params && pickParams(location$1.params, matcher.keys.map((k) => k.name)));
+				params = assign(pickParams(currentLocation.params, matcher.keys.filter((k) => !k.optional).concat(matcher.parent ? matcher.parent.keys.filter((k) => k.optional) : []).map((k) => k.name)), location.params && pickParams(location.params, matcher.keys.map((k) => k.name)));
 				path = matcher.stringify(params);
-			} else if (location$1.path != null) {
-				path = location$1.path;
+			} else if (location.path != null) {
+				path = location.path;
 				if (!path.startsWith("/")) warn(`The Matcher cannot resolve relative paths but received "${path}". Unless you directly called \`matcher.resolve("${path}")\`, this is probably a bug in vue-router. Please open an issue at https://github.com/vuejs/router/issues/new/choose.`);
 				matcher = matchers.find((m) => m.re.test(path));
 				if (matcher) {
@@ -1274,11 +1249,11 @@ vue = __toESM(vue);
 			} else {
 				matcher = currentLocation.name ? matcherMap.get(currentLocation.name) : matchers.find((m) => m.re.test(currentLocation.path));
 				if (!matcher) throw createRouterError(ErrorTypes.MATCHER_NOT_FOUND, {
-					location: location$1,
+					location,
 					currentLocation
 				});
 				name = matcher.record.name;
-				params = assign({}, currentLocation.params, location$1.params);
+				params = assign({}, currentLocation.params, location.params);
 				path = matcher.stringify(params);
 			}
 			const matched = [];
@@ -1396,7 +1371,7 @@ vue = __toESM(vue);
 	* @param parent - RouteRecordMatcher
 	*/
 	function checkChildMissingNameWithEmptyPath(mainNormalizedRecord, parent) {
-		if (parent && parent.record.name && !mainNormalizedRecord.name && !mainNormalizedRecord.path) warn(`The route named "${String(parent.record.name)}" has a child without a name and an empty path. Using that name won't render the empty path child so you probably want to move the name to the child instead. If this is intentional, add a name to the child route to remove the warning.`);
+		if (parent && parent.record.name && !mainNormalizedRecord.name && !mainNormalizedRecord.path && mainNormalizedRecord.children.length === 0) warn(`The route named "${String(parent.record.name)}" has a child without a name, an empty path, and no children. This is probably a mistake: using that name won't render the empty path child so you probably want to move the name to the child instead. If this is intentional, add a name to the child route to silence the warning.`);
 	}
 	function checkSameNameAsAncestor(record, parent) {
 		for (let ancestor = parent; ancestor; ancestor = ancestor.parent) if (ancestor.record.name === record.name) throw new Error(`A route named "${String(record.name)}" has been added as a ${parent === ancestor ? "child" : "descendant"} of a route with the same name. Route names must be unique and a nested route cannot use the same name as an ancestor.`);
@@ -1489,10 +1464,10 @@ vue = __toESM(vue);
 				if (value !== void 0) search += (search.length ? "&" : "") + key;
 				continue;
 			}
-			(isArray(value) ? value.map((v) => v && encodeQueryValue(v)) : [value && encodeQueryValue(value)]).forEach((value$1) => {
-				if (value$1 !== void 0) {
+			(isArray(value) ? value.map((v) => v && encodeQueryValue(v)) : [value && encodeQueryValue(value)]).forEach((value) => {
+				if (value !== void 0) {
 					search += (search.length ? "&" : "") + key;
-					if (value$1 != null) search += "=" + value$1;
+					if (value != null) search += "=" + value;
 				}
 			});
 		}
@@ -1580,16 +1555,25 @@ vue = __toESM(vue);
 
 //#endregion
 //#region src/navigationGuards.ts
-	function registerGuard(record, name, guard) {
+	function registerGuard(activeRecordRef, name, guard) {
+		const record = activeRecordRef.value;
+		if (!record) {
+			warn(`No active route record was found when calling \`${name === "updateGuards" ? "onBeforeRouteUpdate" : "onBeforeRouteLeave"}()\`. Make sure you call this function inside a component child of <router-view>. Maybe you called it inside of App.vue?`);
+			return;
+		}
+		let currentRecord = record;
 		const removeFromList = () => {
-			record[name].delete(guard);
+			currentRecord[name].delete(guard);
 		};
 		(0, vue.onUnmounted)(removeFromList);
 		(0, vue.onDeactivated)(removeFromList);
 		(0, vue.onActivated)(() => {
-			record[name].add(guard);
+			const newRecord = activeRecordRef.value;
+			if (!newRecord) warn("No active route record was found when reactivating component with navigation guard. This is likely a bug in vue-router. Please report it.");
+			if (newRecord) currentRecord = newRecord;
+			currentRecord[name].add(guard);
 		});
-		record[name].add(guard);
+		currentRecord[name].add(guard);
 	}
 	/**
 	* Add a navigation guard that triggers whenever the component for the current
@@ -1603,12 +1587,7 @@ vue = __toESM(vue);
 			warn("getCurrentInstance() returned null. onBeforeRouteLeave() must be called at the top of a setup function");
 			return;
 		}
-		const activeRecord = (0, vue.inject)(matchedRouteKey, {}).value;
-		if (!activeRecord) {
-			warn("No active route record was found when calling `onBeforeRouteLeave()`. Make sure you call this function inside a component child of <router-view>. Maybe you called it inside of App.vue?");
-			return;
-		}
-		registerGuard(activeRecord, "leaveGuards", leaveGuard);
+		registerGuard((0, vue.inject)(matchedRouteKey, {}), "leaveGuards", leaveGuard);
 	}
 	/**
 	* Add a navigation guard that triggers whenever the current location is about
@@ -1622,12 +1601,7 @@ vue = __toESM(vue);
 			warn("getCurrentInstance() returned null. onBeforeRouteUpdate() must be called at the top of a setup function");
 			return;
 		}
-		const activeRecord = (0, vue.inject)(matchedRouteKey, {}).value;
-		if (!activeRecord) {
-			warn("No active route record was found when calling `onBeforeRouteUpdate()`. Make sure you call this function inside a component child of <router-view>. Maybe you called it inside of App.vue?");
-			return;
-		}
-		registerGuard(activeRecord, "updateGuards", updateGuard);
+		registerGuard((0, vue.inject)(matchedRouteKey, {}), "updateGuards", updateGuard);
 	}
 	function guardToPromiseFn(guard, to, from, record, name, runWithContext = (fn) => fn()) {
 		const enterCallbackArray = record && (record.enterCallbacks[name] = record.enterCallbacks[name] || []);
@@ -1647,7 +1621,7 @@ vue = __toESM(vue);
 					resolve();
 				}
 			};
-			const guardReturn = runWithContext(() => guard.call(record && record.instances[name], to, from, canOnlyBeCalledOnce(next, to, from)));
+			const guardReturn = runWithContext(() => guard.call(record && record.instances[name], to, from, withDeprecationWarning(canOnlyBeCalledOnce(next, to, from))));
 			let guardCall = Promise.resolve(guardReturn);
 			if (guard.length < 3) guardCall = guardCall.then(next);
 			if (guard.length > 2) {
@@ -1669,6 +1643,23 @@ vue = __toESM(vue);
 			}
 			guardCall.catch((err) => reject(err));
 		});
+	}
+	/**
+	* Wraps the next callback to warn when it is used. Dev-only: when __DEV__ is
+	* false (production builds), this branch is dead code and is stripped from the
+	* bundle.
+	*
+	* @internal
+	*/
+	function withDeprecationWarning(next) {
+		let warned = false;
+		return function() {
+			if (!warned) {
+				warned = true;
+				warn("The `next()` callback in navigation guards is deprecated. Return the value instead of calling `next(value)`.");
+			}
+			return next.apply(this, arguments);
+		};
 	}
 	function canOnlyBeCalledOnce(next, to, from) {
 		let called = 0;
@@ -1897,7 +1888,7 @@ vue = __toESM(vue);
 			const outerValue = outer[key];
 			if (typeof innerValue === "string") {
 				if (innerValue !== outerValue) return false;
-			} else if (!isArray(outerValue) || outerValue.length !== innerValue.length || innerValue.some((value, i) => value !== outerValue[i])) return false;
+			} else if (!isArray(outerValue) || outerValue.length !== innerValue.length || innerValue.some((value, i) => value.valueOf() !== outerValue[i].valueOf())) return false;
 		}
 		return true;
 	}
@@ -1950,7 +1941,7 @@ vue = __toESM(vue);
 				viewRef.value,
 				matchedRouteRef.value,
 				props.name
-			], ([instance, to, name], [oldInstance, from, oldName]) => {
+			], ([instance, to, name], [oldInstance, from, _oldName]) => {
 				if (to) {
 					to.instances[name] = instance;
 					if (from && from !== to && instance && instance === oldInstance) {
@@ -2020,598 +2011,6 @@ Use slot props instead:
 	}
 
 //#endregion
-//#region ../../node_modules/.pnpm/@vue+devtools-api@6.6.4/node_modules/@vue/devtools-api/lib/cjs/env.js
-	var require_env = /* @__PURE__ */ __commonJS({ "../../node_modules/.pnpm/@vue+devtools-api@6.6.4/node_modules/@vue/devtools-api/lib/cjs/env.js": ((exports) => {
-		Object.defineProperty(exports, "__esModule", { value: true });
-		function getDevtoolsGlobalHook() {
-			return getTarget().__VUE_DEVTOOLS_GLOBAL_HOOK__;
-		}
-		exports.getDevtoolsGlobalHook = getDevtoolsGlobalHook;
-		function getTarget() {
-			return typeof navigator !== "undefined" && typeof window !== "undefined" ? window : typeof globalThis !== "undefined" ? globalThis : {};
-		}
-		exports.getTarget = getTarget;
-		exports.isProxyAvailable = typeof Proxy === "function";
-	}) });
-
-//#endregion
-//#region ../../node_modules/.pnpm/@vue+devtools-api@6.6.4/node_modules/@vue/devtools-api/lib/cjs/const.js
-	var require_const = /* @__PURE__ */ __commonJS({ "../../node_modules/.pnpm/@vue+devtools-api@6.6.4/node_modules/@vue/devtools-api/lib/cjs/const.js": ((exports) => {
-		Object.defineProperty(exports, "__esModule", { value: true });
-		exports.HOOK_SETUP = "devtools-plugin:setup";
-		exports.HOOK_PLUGIN_SETTINGS_SET = "plugin:settings:set";
-	}) });
-
-//#endregion
-//#region ../../node_modules/.pnpm/@vue+devtools-api@6.6.4/node_modules/@vue/devtools-api/lib/cjs/time.js
-	var require_time = /* @__PURE__ */ __commonJS({ "../../node_modules/.pnpm/@vue+devtools-api@6.6.4/node_modules/@vue/devtools-api/lib/cjs/time.js": ((exports) => {
-		Object.defineProperty(exports, "__esModule", { value: true });
-		let supported;
-		let perf;
-		function isPerformanceSupported() {
-			var _a;
-			if (supported !== void 0) return supported;
-			if (typeof window !== "undefined" && window.performance) {
-				supported = true;
-				perf = window.performance;
-			} else if (typeof globalThis !== "undefined" && ((_a = globalThis.perf_hooks) === null || _a === void 0 ? void 0 : _a.performance)) {
-				supported = true;
-				perf = globalThis.perf_hooks.performance;
-			} else supported = false;
-			return supported;
-		}
-		exports.isPerformanceSupported = isPerformanceSupported;
-		function now() {
-			return isPerformanceSupported() ? perf.now() : Date.now();
-		}
-		exports.now = now;
-	}) });
-
-//#endregion
-//#region ../../node_modules/.pnpm/@vue+devtools-api@6.6.4/node_modules/@vue/devtools-api/lib/cjs/proxy.js
-	var require_proxy = /* @__PURE__ */ __commonJS({ "../../node_modules/.pnpm/@vue+devtools-api@6.6.4/node_modules/@vue/devtools-api/lib/cjs/proxy.js": ((exports) => {
-		Object.defineProperty(exports, "__esModule", { value: true });
-		const const_js_1$1 = require_const();
-		const time_js_1 = require_time();
-		var ApiProxy = class {
-			constructor(plugin, hook) {
-				this.target = null;
-				this.targetQueue = [];
-				this.onQueue = [];
-				this.plugin = plugin;
-				this.hook = hook;
-				const defaultSettings = {};
-				if (plugin.settings) for (const id in plugin.settings) defaultSettings[id] = plugin.settings[id].defaultValue;
-				const localSettingsSaveId = `__vue-devtools-plugin-settings__${plugin.id}`;
-				let currentSettings = Object.assign({}, defaultSettings);
-				try {
-					const raw = localStorage.getItem(localSettingsSaveId);
-					const data = JSON.parse(raw);
-					Object.assign(currentSettings, data);
-				} catch (e) {}
-				this.fallbacks = {
-					getSettings() {
-						return currentSettings;
-					},
-					setSettings(value) {
-						try {
-							localStorage.setItem(localSettingsSaveId, JSON.stringify(value));
-						} catch (e) {}
-						currentSettings = value;
-					},
-					now() {
-						return (0, time_js_1.now)();
-					}
-				};
-				if (hook) hook.on(const_js_1$1.HOOK_PLUGIN_SETTINGS_SET, (pluginId, value) => {
-					if (pluginId === this.plugin.id) this.fallbacks.setSettings(value);
-				});
-				this.proxiedOn = new Proxy({}, { get: (_target, prop) => {
-					if (this.target) return this.target.on[prop];
-					else return (...args) => {
-						this.onQueue.push({
-							method: prop,
-							args
-						});
-					};
-				} });
-				this.proxiedTarget = new Proxy({}, { get: (_target, prop) => {
-					if (this.target) return this.target[prop];
-					else if (prop === "on") return this.proxiedOn;
-					else if (Object.keys(this.fallbacks).includes(prop)) return (...args) => {
-						this.targetQueue.push({
-							method: prop,
-							args,
-							resolve: () => {}
-						});
-						return this.fallbacks[prop](...args);
-					};
-					else return (...args) => {
-						return new Promise((resolve) => {
-							this.targetQueue.push({
-								method: prop,
-								args,
-								resolve
-							});
-						});
-					};
-				} });
-			}
-			async setRealTarget(target) {
-				this.target = target;
-				for (const item of this.onQueue) this.target.on[item.method](...item.args);
-				for (const item of this.targetQueue) item.resolve(await this.target[item.method](...item.args));
-			}
-		};
-		exports.ApiProxy = ApiProxy;
-	}) });
-
-//#endregion
-//#region ../../node_modules/.pnpm/@vue+devtools-api@6.6.4/node_modules/@vue/devtools-api/lib/cjs/api/api.js
-	var require_api$1 = /* @__PURE__ */ __commonJS({ "../../node_modules/.pnpm/@vue+devtools-api@6.6.4/node_modules/@vue/devtools-api/lib/cjs/api/api.js": ((exports) => {
-		Object.defineProperty(exports, "__esModule", { value: true });
-	}) });
-
-//#endregion
-//#region ../../node_modules/.pnpm/@vue+devtools-api@6.6.4/node_modules/@vue/devtools-api/lib/cjs/api/app.js
-	var require_app = /* @__PURE__ */ __commonJS({ "../../node_modules/.pnpm/@vue+devtools-api@6.6.4/node_modules/@vue/devtools-api/lib/cjs/api/app.js": ((exports) => {
-		Object.defineProperty(exports, "__esModule", { value: true });
-	}) });
-
-//#endregion
-//#region ../../node_modules/.pnpm/@vue+devtools-api@6.6.4/node_modules/@vue/devtools-api/lib/cjs/api/component.js
-	var require_component = /* @__PURE__ */ __commonJS({ "../../node_modules/.pnpm/@vue+devtools-api@6.6.4/node_modules/@vue/devtools-api/lib/cjs/api/component.js": ((exports) => {
-		Object.defineProperty(exports, "__esModule", { value: true });
-	}) });
-
-//#endregion
-//#region ../../node_modules/.pnpm/@vue+devtools-api@6.6.4/node_modules/@vue/devtools-api/lib/cjs/api/context.js
-	var require_context = /* @__PURE__ */ __commonJS({ "../../node_modules/.pnpm/@vue+devtools-api@6.6.4/node_modules/@vue/devtools-api/lib/cjs/api/context.js": ((exports) => {
-		Object.defineProperty(exports, "__esModule", { value: true });
-	}) });
-
-//#endregion
-//#region ../../node_modules/.pnpm/@vue+devtools-api@6.6.4/node_modules/@vue/devtools-api/lib/cjs/api/hooks.js
-	var require_hooks = /* @__PURE__ */ __commonJS({ "../../node_modules/.pnpm/@vue+devtools-api@6.6.4/node_modules/@vue/devtools-api/lib/cjs/api/hooks.js": ((exports) => {
-		Object.defineProperty(exports, "__esModule", { value: true });
-	}) });
-
-//#endregion
-//#region ../../node_modules/.pnpm/@vue+devtools-api@6.6.4/node_modules/@vue/devtools-api/lib/cjs/api/util.js
-	var require_util = /* @__PURE__ */ __commonJS({ "../../node_modules/.pnpm/@vue+devtools-api@6.6.4/node_modules/@vue/devtools-api/lib/cjs/api/util.js": ((exports) => {
-		Object.defineProperty(exports, "__esModule", { value: true });
-	}) });
-
-//#endregion
-//#region ../../node_modules/.pnpm/@vue+devtools-api@6.6.4/node_modules/@vue/devtools-api/lib/cjs/api/index.js
-	var require_api = /* @__PURE__ */ __commonJS({ "../../node_modules/.pnpm/@vue+devtools-api@6.6.4/node_modules/@vue/devtools-api/lib/cjs/api/index.js": ((exports) => {
-		var __createBinding$1 = exports && exports.__createBinding || (Object.create ? (function(o, m, k, k2) {
-			if (k2 === void 0) k2 = k;
-			var desc = Object.getOwnPropertyDescriptor(m, k);
-			if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) desc = {
-				enumerable: true,
-				get: function() {
-					return m[k];
-				}
-			};
-			Object.defineProperty(o, k2, desc);
-		}) : (function(o, m, k, k2) {
-			if (k2 === void 0) k2 = k;
-			o[k2] = m[k];
-		}));
-		var __exportStar$1 = exports && exports.__exportStar || function(m, exports$1) {
-			for (var p in m) if (p !== "default" && !Object.prototype.hasOwnProperty.call(exports$1, p)) __createBinding$1(exports$1, m, p);
-		};
-		Object.defineProperty(exports, "__esModule", { value: true });
-		__exportStar$1(require_api$1(), exports);
-		__exportStar$1(require_app(), exports);
-		__exportStar$1(require_component(), exports);
-		__exportStar$1(require_context(), exports);
-		__exportStar$1(require_hooks(), exports);
-		__exportStar$1(require_util(), exports);
-	}) });
-
-//#endregion
-//#region ../../node_modules/.pnpm/@vue+devtools-api@6.6.4/node_modules/@vue/devtools-api/lib/cjs/plugin.js
-	var require_plugin = /* @__PURE__ */ __commonJS({ "../../node_modules/.pnpm/@vue+devtools-api@6.6.4/node_modules/@vue/devtools-api/lib/cjs/plugin.js": ((exports) => {
-		Object.defineProperty(exports, "__esModule", { value: true });
-	}) });
-
-//#endregion
-//#region ../../node_modules/.pnpm/@vue+devtools-api@6.6.4/node_modules/@vue/devtools-api/lib/cjs/index.js
-	var require_cjs = /* @__PURE__ */ __commonJS({ "../../node_modules/.pnpm/@vue+devtools-api@6.6.4/node_modules/@vue/devtools-api/lib/cjs/index.js": ((exports) => {
-		var __createBinding = exports && exports.__createBinding || (Object.create ? (function(o, m, k, k2) {
-			if (k2 === void 0) k2 = k;
-			var desc = Object.getOwnPropertyDescriptor(m, k);
-			if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) desc = {
-				enumerable: true,
-				get: function() {
-					return m[k];
-				}
-			};
-			Object.defineProperty(o, k2, desc);
-		}) : (function(o, m, k, k2) {
-			if (k2 === void 0) k2 = k;
-			o[k2] = m[k];
-		}));
-		var __exportStar = exports && exports.__exportStar || function(m, exports$1) {
-			for (var p in m) if (p !== "default" && !Object.prototype.hasOwnProperty.call(exports$1, p)) __createBinding(exports$1, m, p);
-		};
-		Object.defineProperty(exports, "__esModule", { value: true });
-		exports.setupDevtoolsPlugin = void 0;
-		const env_js_1 = require_env();
-		const const_js_1 = require_const();
-		const proxy_js_1 = require_proxy();
-		__exportStar(require_api(), exports);
-		__exportStar(require_plugin(), exports);
-		__exportStar(require_time(), exports);
-		function setupDevtoolsPlugin$1(pluginDescriptor, setupFn) {
-			const descriptor = pluginDescriptor;
-			const target = (0, env_js_1.getTarget)();
-			const hook = (0, env_js_1.getDevtoolsGlobalHook)();
-			const enableProxy = env_js_1.isProxyAvailable && descriptor.enableEarlyProxy;
-			if (hook && (target.__VUE_DEVTOOLS_PLUGIN_API_AVAILABLE__ || !enableProxy)) hook.emit(const_js_1.HOOK_SETUP, pluginDescriptor, setupFn);
-			else {
-				const proxy = enableProxy ? new proxy_js_1.ApiProxy(descriptor, hook) : null;
-				(target.__VUE_DEVTOOLS_PLUGINS__ = target.__VUE_DEVTOOLS_PLUGINS__ || []).push({
-					pluginDescriptor: descriptor,
-					setupFn,
-					proxy
-				});
-				if (proxy) setupFn(proxy.proxiedTarget);
-			}
-		}
-		exports.setupDevtoolsPlugin = setupDevtoolsPlugin$1;
-	}) });
-
-//#endregion
-//#region src/devtools.ts
-	var import_cjs = /* @__PURE__ */ __toESM(require_cjs());
-	/**
-	* Copies a route location and removes any problematic properties that cannot be shown in devtools (e.g. Vue instances).
-	*
-	* @param routeLocation - routeLocation to format
-	* @param tooltip - optional tooltip
-	* @returns a copy of the routeLocation
-	*/
-	function formatRouteLocation(routeLocation, tooltip) {
-		const copy = assign({}, routeLocation, { matched: routeLocation.matched.map((matched) => omit(matched, [
-			"instances",
-			"children",
-			"aliasOf"
-		])) });
-		return { _custom: {
-			type: null,
-			readOnly: true,
-			display: routeLocation.fullPath,
-			tooltip,
-			value: copy
-		} };
-	}
-	function formatDisplay(display) {
-		return { _custom: { display } };
-	}
-	let routerId = 0;
-	function addDevtools(app, router, matcher) {
-		if (router.__hasDevtools) return;
-		router.__hasDevtools = true;
-		const id = routerId++;
-		(0, import_cjs.setupDevtoolsPlugin)({
-			id: "org.vuejs.router" + (id ? "." + id : ""),
-			label: "Vue Router",
-			packageName: "vue-router",
-			homepage: "https://router.vuejs.org",
-			logo: "https://router.vuejs.org/logo.png",
-			componentStateTypes: ["Routing"],
-			app
-		}, (api) => {
-			if (typeof api.now !== "function") warn("[Vue Router]: You seem to be using an outdated version of Vue Devtools. Are you still using the Beta release instead of the stable one? You can find the links at https://devtools.vuejs.org/guide/installation.html.");
-			api.on.inspectComponent((payload, ctx) => {
-				if (payload.instanceData) payload.instanceData.state.push({
-					type: "Routing",
-					key: "$route",
-					editable: false,
-					value: formatRouteLocation(router.currentRoute.value, "Current Route")
-				});
-			});
-			api.on.visitComponentTree(({ treeNode: node, componentInstance }) => {
-				if (componentInstance.__vrv_devtools) {
-					const info = componentInstance.__vrv_devtools;
-					node.tags.push({
-						label: (info.name ? `${info.name.toString()}: ` : "") + info.path,
-						textColor: 0,
-						tooltip: "This component is rendered by &lt;router-view&gt;",
-						backgroundColor: PINK_500
-					});
-				}
-				if (isArray(componentInstance.__vrl_devtools)) {
-					componentInstance.__devtoolsApi = api;
-					componentInstance.__vrl_devtools.forEach((devtoolsData) => {
-						let label = devtoolsData.route.path;
-						let backgroundColor = ORANGE_400;
-						let tooltip = "";
-						let textColor = 0;
-						if (devtoolsData.error) {
-							label = devtoolsData.error;
-							backgroundColor = RED_100;
-							textColor = RED_700;
-						} else if (devtoolsData.isExactActive) {
-							backgroundColor = LIME_500;
-							tooltip = "This is exactly active";
-						} else if (devtoolsData.isActive) {
-							backgroundColor = BLUE_600;
-							tooltip = "This link is active";
-						}
-						node.tags.push({
-							label,
-							textColor,
-							tooltip,
-							backgroundColor
-						});
-					});
-				}
-			});
-			(0, vue.watch)(router.currentRoute, () => {
-				refreshRoutesView();
-				api.notifyComponentUpdate();
-				api.sendInspectorTree(routerInspectorId);
-				api.sendInspectorState(routerInspectorId);
-			});
-			const navigationsLayerId = "router:navigations:" + id;
-			api.addTimelineLayer({
-				id: navigationsLayerId,
-				label: `Router${id ? " " + id : ""} Navigations`,
-				color: 4237508
-			});
-			router.onError((error, to) => {
-				api.addTimelineEvent({
-					layerId: navigationsLayerId,
-					event: {
-						title: "Error during Navigation",
-						subtitle: to.fullPath,
-						logType: "error",
-						time: api.now(),
-						data: { error },
-						groupId: to.meta.__navigationId
-					}
-				});
-			});
-			let navigationId = 0;
-			router.beforeEach((to, from) => {
-				const data = {
-					guard: formatDisplay("beforeEach"),
-					from: formatRouteLocation(from, "Current Location during this navigation"),
-					to: formatRouteLocation(to, "Target location")
-				};
-				Object.defineProperty(to.meta, "__navigationId", { value: navigationId++ });
-				api.addTimelineEvent({
-					layerId: navigationsLayerId,
-					event: {
-						time: api.now(),
-						title: "Start of navigation",
-						subtitle: to.fullPath,
-						data,
-						groupId: to.meta.__navigationId
-					}
-				});
-			});
-			router.afterEach((to, from, failure) => {
-				const data = { guard: formatDisplay("afterEach") };
-				if (failure) {
-					data.failure = { _custom: {
-						type: Error,
-						readOnly: true,
-						display: failure ? failure.message : "",
-						tooltip: "Navigation Failure",
-						value: failure
-					} };
-					data.status = formatDisplay("❌");
-				} else data.status = formatDisplay("✅");
-				data.from = formatRouteLocation(from, "Current Location during this navigation");
-				data.to = formatRouteLocation(to, "Target location");
-				api.addTimelineEvent({
-					layerId: navigationsLayerId,
-					event: {
-						title: "End of navigation",
-						subtitle: to.fullPath,
-						time: api.now(),
-						data,
-						logType: failure ? "warning" : "default",
-						groupId: to.meta.__navigationId
-					}
-				});
-			});
-			/**
-			* Inspector of Existing routes
-			*/
-			const routerInspectorId = "router-inspector:" + id;
-			api.addInspector({
-				id: routerInspectorId,
-				label: "Routes" + (id ? " " + id : ""),
-				icon: "book",
-				treeFilterPlaceholder: "Search routes"
-			});
-			function refreshRoutesView() {
-				if (!activeRoutesPayload) return;
-				const payload = activeRoutesPayload;
-				let routes = matcher.getRoutes().filter((route) => !route.parent || !route.parent.record.components);
-				routes.forEach(resetMatchStateOnRouteRecord);
-				if (payload.filter) routes = routes.filter((route) => isRouteMatching(route, payload.filter.toLowerCase()));
-				routes.forEach((route) => markRouteRecordActive(route, router.currentRoute.value));
-				payload.rootNodes = routes.map(formatRouteRecordForInspector);
-			}
-			let activeRoutesPayload;
-			api.on.getInspectorTree((payload) => {
-				activeRoutesPayload = payload;
-				if (payload.app === app && payload.inspectorId === routerInspectorId) refreshRoutesView();
-			});
-			/**
-			* Display information about the currently selected route record
-			*/
-			api.on.getInspectorState((payload) => {
-				if (payload.app === app && payload.inspectorId === routerInspectorId) {
-					const route = matcher.getRoutes().find((route$1) => route$1.record.__vd_id === payload.nodeId);
-					if (route) payload.state = { options: formatRouteRecordMatcherForStateInspector(route) };
-				}
-			});
-			api.sendInspectorTree(routerInspectorId);
-			api.sendInspectorState(routerInspectorId);
-		});
-	}
-	function modifierForKey(key) {
-		if (key.optional) return key.repeatable ? "*" : "?";
-		else return key.repeatable ? "+" : "";
-	}
-	function formatRouteRecordMatcherForStateInspector(route) {
-		const { record } = route;
-		const fields = [{
-			editable: false,
-			key: "path",
-			value: record.path
-		}];
-		if (record.name != null) fields.push({
-			editable: false,
-			key: "name",
-			value: record.name
-		});
-		fields.push({
-			editable: false,
-			key: "regexp",
-			value: route.re
-		});
-		if (route.keys.length) fields.push({
-			editable: false,
-			key: "keys",
-			value: { _custom: {
-				type: null,
-				readOnly: true,
-				display: route.keys.map((key) => `${key.name}${modifierForKey(key)}`).join(" "),
-				tooltip: "Param keys",
-				value: route.keys
-			} }
-		});
-		if (record.redirect != null) fields.push({
-			editable: false,
-			key: "redirect",
-			value: record.redirect
-		});
-		if (route.alias.length) fields.push({
-			editable: false,
-			key: "aliases",
-			value: route.alias.map((alias) => alias.record.path)
-		});
-		if (Object.keys(route.record.meta).length) fields.push({
-			editable: false,
-			key: "meta",
-			value: route.record.meta
-		});
-		fields.push({
-			key: "score",
-			editable: false,
-			value: { _custom: {
-				type: null,
-				readOnly: true,
-				display: route.score.map((score) => score.join(", ")).join(" | "),
-				tooltip: "Score used to sort routes",
-				value: route.score
-			} }
-		});
-		return fields;
-	}
-	/**
-	* Extracted from tailwind palette
-	*/
-	const PINK_500 = 15485081;
-	const BLUE_600 = 2450411;
-	const LIME_500 = 8702998;
-	const CYAN_400 = 2282478;
-	const ORANGE_400 = 16486972;
-	const DARK = 6710886;
-	const RED_100 = 16704226;
-	const RED_700 = 12131356;
-	function formatRouteRecordForInspector(route) {
-		const tags = [];
-		const { record } = route;
-		if (record.name != null) tags.push({
-			label: String(record.name),
-			textColor: 0,
-			backgroundColor: CYAN_400
-		});
-		if (record.aliasOf) tags.push({
-			label: "alias",
-			textColor: 0,
-			backgroundColor: ORANGE_400
-		});
-		if (route.__vd_match) tags.push({
-			label: "matches",
-			textColor: 0,
-			backgroundColor: PINK_500
-		});
-		if (route.__vd_exactActive) tags.push({
-			label: "exact",
-			textColor: 0,
-			backgroundColor: LIME_500
-		});
-		if (route.__vd_active) tags.push({
-			label: "active",
-			textColor: 0,
-			backgroundColor: BLUE_600
-		});
-		if (record.redirect) tags.push({
-			label: typeof record.redirect === "string" ? `redirect: ${record.redirect}` : "redirects",
-			textColor: 16777215,
-			backgroundColor: DARK
-		});
-		let id = record.__vd_id;
-		if (id == null) {
-			id = String(routeRecordId++);
-			record.__vd_id = id;
-		}
-		return {
-			id,
-			label: record.path,
-			tags,
-			children: route.children.map(formatRouteRecordForInspector)
-		};
-	}
-	let routeRecordId = 0;
-	const EXTRACT_REGEXP_RE = /^\/(.*)\/([a-z]*)$/;
-	function markRouteRecordActive(route, currentRoute) {
-		const isExactActive = currentRoute.matched.length && isSameRouteRecord(currentRoute.matched[currentRoute.matched.length - 1], route.record);
-		route.__vd_exactActive = route.__vd_active = isExactActive;
-		if (!isExactActive) route.__vd_active = currentRoute.matched.some((match) => isSameRouteRecord(match, route.record));
-		route.children.forEach((childRoute) => markRouteRecordActive(childRoute, currentRoute));
-	}
-	function resetMatchStateOnRouteRecord(route) {
-		route.__vd_match = false;
-		route.children.forEach(resetMatchStateOnRouteRecord);
-	}
-	function isRouteMatching(route, filter) {
-		const found = String(route.re).match(EXTRACT_REGEXP_RE);
-		route.__vd_match = false;
-		if (!found || found.length < 3) return false;
-		if (new RegExp(found[1].replace(/\$$/, ""), found[2]).test(filter)) {
-			route.children.forEach((child) => isRouteMatching(child, filter));
-			if (route.record.path !== "/" || filter === "/") {
-				route.__vd_match = route.re.test(filter);
-				return true;
-			}
-			return false;
-		}
-		const path = route.record.path.toLowerCase();
-		const decodedPath = decode(path);
-		if (!filter.startsWith("/") && (decodedPath.includes(filter) || path.includes(filter))) return true;
-		if (decodedPath.startsWith(filter) || path.startsWith(filter)) return true;
-		if (route.record.name && String(route.record.name).includes(filter)) return true;
-		return route.children.some((child) => isRouteMatching(child, filter));
-	}
-	function omit(obj, keys) {
-		const ret = {};
-		for (const key in obj) if (!keys.includes(key)) ret[key] = obj[key];
-		return ret;
-	}
-
-//#endregion
 //#region src/router.ts
 /**
 	* Creates a Router instance that can be used by a Vue app.
@@ -2658,15 +2057,14 @@ Use slot props instead:
 			currentLocation = assign({}, currentLocation || currentRoute.value);
 			if (typeof rawLocation === "string") {
 				const locationNormalized = parseURL(parseQuery$1, rawLocation, currentLocation.path);
-				const matchedRoute$1 = matcher.resolve({ path: locationNormalized.path }, currentLocation);
-				const href$1 = routerHistory.createHref(locationNormalized.fullPath);
-				if (href$1.startsWith("//")) warn(`Location "${rawLocation}" resolved to "${href$1}". A resolved location cannot start with multiple slashes.`);
-				else if (!matchedRoute$1.matched.length) warn(`No match found for location with path "${rawLocation}"`);
-				return assign(locationNormalized, matchedRoute$1, {
-					params: decodeParams(matchedRoute$1.params),
-					hash: decode(locationNormalized.hash),
+				const matchedRoute = matcher.resolve({ path: locationNormalized.path }, currentLocation);
+				const href = routerHistory.createHref(locationNormalized.fullPath);
+				if (href.startsWith("//")) warn(`Location "${rawLocation}" resolved to "${href}". A resolved location cannot start with multiple slashes.`);
+				else if (!matchedRoute.matched.length) warn(`No match found for location with path "${rawLocation}"`);
+				return assign(locationNormalized, matchedRoute, {
+					params: decodeParams(matchedRoute.params),
 					redirectedFrom: void 0,
-					href: href$1
+					href
 				});
 			}
 			if (!isRouteLocation(rawLocation)) {
@@ -2743,12 +2141,12 @@ Use slot props instead:
 			const from = currentRoute.value;
 			const data = to.state;
 			const force = to.force;
-			const replace$1 = to.replace === true;
+			const replace = to.replace === true;
 			const shouldRedirect = handleRedirectRecord(targetLocation, from);
 			if (shouldRedirect) return pushWithRedirect(assign(locationAsObject(shouldRedirect), {
 				state: typeof shouldRedirect === "object" ? assign({}, data, shouldRedirect.state) : data,
 				force,
-				replace: replace$1
+				replace
 			}), redirectedFrom || targetLocation);
 			const toLocation = targetLocation;
 			toLocation.redirectedFrom = redirectedFrom;
@@ -2760,21 +2158,21 @@ Use slot props instead:
 				});
 				handleScroll(from, from, true, false);
 			}
-			return (failure ? Promise.resolve(failure) : navigate(toLocation, from)).catch((error) => isNavigationFailure(error) ? isNavigationFailure(error, ErrorTypes.NAVIGATION_GUARD_REDIRECT) ? error : markAsReady(error) : triggerError(error, toLocation, from)).then((failure$1) => {
-				if (failure$1) {
-					if (isNavigationFailure(failure$1, ErrorTypes.NAVIGATION_GUARD_REDIRECT)) {
-						if (isSameRouteLocation(stringifyQuery$1, resolve(failure$1.to), toLocation) && redirectedFrom && (redirectedFrom._count = redirectedFrom._count ? redirectedFrom._count + 1 : 1) > 30) {
+			return (failure ? Promise.resolve(failure) : navigate(toLocation, from)).catch((error) => isNavigationFailure(error) ? isNavigationFailure(error, ErrorTypes.NAVIGATION_GUARD_REDIRECT) ? error : markAsReady(error) : triggerError(error, toLocation, from)).then((failure) => {
+				if (failure) {
+					if (isNavigationFailure(failure, ErrorTypes.NAVIGATION_GUARD_REDIRECT)) {
+						if (isSameRouteLocation(stringifyQuery$1, resolve(failure.to), toLocation) && redirectedFrom && (redirectedFrom._count = redirectedFrom._count ? redirectedFrom._count + 1 : 1) > 30) {
 							warn(`Detected a possibly infinite redirection in a navigation guard when going from "${from.fullPath}" to "${toLocation.fullPath}". Aborting to avoid a Stack Overflow.\n Are you always returning a new location within a navigation guard? That would lead to this error. Only return when redirecting or aborting, that should fix this. This might break in production if not fixed.`);
 							return Promise.reject(/* @__PURE__ */ new Error("Infinite redirect in navigation guard"));
 						}
-						return pushWithRedirect(assign({ replace: replace$1 }, locationAsObject(failure$1.to), {
-							state: typeof failure$1.to === "object" ? assign({}, data, failure$1.to.state) : data,
+						return pushWithRedirect(assign({ replace }, locationAsObject(failure.to), {
+							state: typeof failure.to === "object" ? assign({}, data, failure.to.state) : data,
 							force
 						}), redirectedFrom || toLocation);
 					}
-				} else failure$1 = finalizeNavigation(toLocation, from, true, replace$1, data);
-				triggerAfterEach(toLocation, from, failure$1);
-				return failure$1;
+				} else failure = finalizeNavigation(toLocation, from, true, replace, data);
+				triggerAfterEach(toLocation, from, failure);
+				return failure;
 			});
 		}
 		/**
@@ -2837,12 +2235,12 @@ Use slot props instead:
 		* - Changes the url if necessary
 		* - Calls the scrollBehavior
 		*/
-		function finalizeNavigation(toLocation, from, isPush, replace$1, data) {
+		function finalizeNavigation(toLocation, from, isPush, replace, data) {
 			const error = checkCanceledNavigation(toLocation, from);
 			if (error) return error;
 			const isFirstNavigation = from === START_LOCATION_NORMALIZED;
 			const state = !isBrowser ? {} : history.state;
-			if (isPush) if (replace$1 || isFirstNavigation) routerHistory.replace(toLocation.fullPath, assign({ scroll: isFirstNavigation && state && state.scroll }, data));
+			if (isPush) if (replace || isFirstNavigation) routerHistory.replace(toLocation.fullPath, assign({ scroll: isFirstNavigation && state && state.scroll }, data));
 			else routerHistory.push(toLocation.fullPath, data);
 			currentRoute.value = toLocation;
 			handleScroll(toLocation, from, isPush, isFirstNavigation);
@@ -2908,15 +2306,15 @@ Use slot props instead:
 		}
 		function isReady() {
 			if (ready && currentRoute.value !== START_LOCATION_NORMALIZED) return Promise.resolve();
-			return new Promise((resolve$1, reject) => {
-				readyHandlers.add([resolve$1, reject]);
+			return new Promise((resolve, reject) => {
+				readyHandlers.add([resolve, reject]);
 			});
 		}
 		function markAsReady(err) {
 			if (!ready) {
 				ready = !err;
 				setupListeners();
-				readyHandlers.list().forEach(([resolve$1, reject]) => err ? reject(err) : resolve$1());
+				readyHandlers.list().forEach(([resolve, reject]) => err ? reject(err) : resolve());
 				readyHandlers.reset();
 			}
 			return err;
@@ -2986,7 +2384,6 @@ Use slot props instead:
 					}
 					unmountApp();
 				};
-				if (isBrowser) addDevtools(app, router, matcher);
 			}
 		};
 		function runGuardQueue(guards) {
