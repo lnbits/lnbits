@@ -31,6 +31,7 @@ from .models import (
     NowResponse,
     PayInvoiceRequest,
     PayInvoiceResponse,
+    PayLnurlRequest,
     RandomIdRequest,
     RandomIdResponse,
     StorageDeleteRequest,
@@ -73,7 +74,11 @@ class ExtensionHostAPI:
         self.runtime_limits = runtime_limits or {}
         from .utils import ExtensionAPIUtils
 
-        self.utils = ExtensionAPIUtils(self.extension_id, self.permissions)
+        self.utils = ExtensionAPIUtils(
+            self.extension_id,
+            self.permissions,
+            authenticated=self.has_authenticated_context(),
+        )
 
     @extension_api_method(
         method_id="storage.get",
@@ -392,16 +397,73 @@ class ExtensionHostAPI:
         except (PaymentError, ValueError) as exc:
             return PayInvoiceResponse(ok=False, error=str(exc))
 
-        return PayInvoiceResponse(
-            ok=True,
-            checking_id=payment.checking_id,
-            payment_hash=payment.payment_hash,
-            status=payment.status,
-            amount_msat=abs(payment.amount),
-            fee_msat=abs(payment.fee),
-            pending=payment.pending,
-            success=payment.success,
+        return _pay_invoice_response(payment)
+
+    @extension_api_method(
+        method_id="wallet.pay_lnurl",
+        namespace="wallet",
+        name="Pay LNURL",
+        host_name="pay_lnurl",
+        sdk_name="payLnurl",
+        description="Pay a Lightning Address or LNURL-pay request from a wallet.",
+        required_permission="wallet.pay_invoice",
+    )
+    async def wallet_pay_lnurl(self, request: PayLnurlRequest) -> PayInvoiceResponse:
+        from lnurl import LnurlResponseException
+
+        from lnbits.core.crud.wallets import get_wallet
+        from lnbits.core.models.lnurl import CreateLnurlPayment
+        from lnbits.core.services.lnurl import fetch_lnurl_pay_request
+        from lnbits.core.services.payments import pay_invoice
+        from lnbits.exceptions import PaymentError
+
+        from .lnurl import (
+            lnurl_pay_response_text,
+            lnurl_payment_amount_for_core,
+            lnurl_payment_unit_for_core,
+            normalize_lnurl,
         )
+
+        if not self.user_id:
+            raise PermissionError("Paying an LNURL requires an authenticated user.")
+
+        wallet = await get_wallet(request.wallet_id)
+        if wallet is None or wallet.user != self.user_id:
+            raise PermissionError("Paying from this wallet is not allowed.")
+
+        try:
+            unit = lnurl_payment_unit_for_core(request.currency)
+            res, action = await fetch_lnurl_pay_request(
+                data=CreateLnurlPayment(
+                    lnurl=normalize_lnurl(request.lnurl),
+                    amount=lnurl_payment_amount_for_core(request.amount),
+                    unit=unit,
+                    comment=request.comment,
+                    internal_memo=request.description or None,
+                ),
+                wallet=None,
+            )
+            extra = {"tag": self.extension_id, **request.extra}
+            if action.successAction:
+                extra["success_action"] = action.successAction.json()
+            if request.comment:
+                extra["comment"] = request.comment
+            if unit != "sat":
+                extra["fiat_currency"] = unit
+                extra["fiat_amount"] = str(request.amount)
+
+            payment = await pay_invoice(
+                wallet_id=request.wallet_id,
+                payment_request=str(action.pr),
+                max_sat=request.max_sat,
+                extra=extra,
+                description=request.description or lnurl_pay_response_text(res),
+                tag=self.extension_id,
+            )
+        except (LnurlResponseException, PaymentError, ValueError) as exc:
+            return PayInvoiceResponse(ok=False, error=str(exc))
+
+        return _pay_invoice_response(payment)
 
     @extension_api_method(
         method_id="http.request",
@@ -596,3 +658,16 @@ class ExtensionHostAPI:
             f"owner_id={self.owner_id!r}"
             ")"
         )
+
+
+def _pay_invoice_response(payment: Any) -> PayInvoiceResponse:
+    return PayInvoiceResponse(
+        ok=True,
+        checking_id=payment.checking_id,
+        payment_hash=payment.payment_hash,
+        status=payment.status,
+        amount_msat=abs(payment.amount),
+        fee_msat=abs(payment.fee),
+        pending=payment.pending,
+        success=payment.success,
+    )

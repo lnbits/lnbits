@@ -181,6 +181,17 @@ class PayInvoiceRequest(BaseModel):
     extra: dict[str, str] = Field(default_factory=dict)
 
 
+class PayLnurlRequest(BaseModel):
+    wallet_id: str = Field(..., min_length=1, max_length=128)
+    lnurl: str = Field(..., min_length=1, max_length=2048)
+    amount: float = Field(..., gt=0)
+    currency: str = Field("sat", min_length=1, max_length=8)
+    comment: str | None = Field(None, max_length=512)
+    description: str = Field("", max_length=512)
+    max_sat: int | None = Field(None, gt=0)
+    extra: dict[str, str] = Field(default_factory=dict)
+
+
 class PayInvoiceResponse(BaseModel):
     ok: bool = True
     error: str | None = None
@@ -280,6 +291,22 @@ class SatsToFiatRequest(BaseModel):
 
 class SatsToFiatResponse(BaseModel):
     amount: float
+
+
+class LnurlResolveRequest(BaseModel):
+    lnurl: str = Field(..., min_length=1, max_length=2048)
+
+
+class LnurlResolveResponse(BaseModel):
+    lnurl: str
+    domain: str | None = None
+    description: str = ""
+    min_sendable_msat: int
+    max_sendable_msat: int
+    comment_allowed: int = 0
+    fixed: bool = False
+    image: str | None = None
+    metadata_json: str = "[]"
 
 
 class ServerHealthResponse(BaseModel):

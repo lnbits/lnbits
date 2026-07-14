@@ -5,6 +5,9 @@ from collections.abc import Iterable
 from datetime import datetime
 from typing import Any
 
+from lnurl import LnurlErrorResponse, LnurlPayResponse, LnurlResponseException
+from lnurl import handle as lnurl_handle
+
 from lnbits import bolt11
 from lnbits.settings import settings
 from lnbits.utils.crypto import random_secret_and_hash, verify_preimage
@@ -15,6 +18,12 @@ from lnbits.utils.exchange_rates import (
     satoshis_amount_as_fiat,
 )
 
+from .lnurl import (
+    lnurl_pay_response_int,
+    lnurl_pay_response_metadata_json,
+    lnurl_pay_response_text,
+    normalize_lnurl,
+)
 from .models import (
     Bolt11Request,
     CurrencyConvertRequest,
@@ -30,6 +39,8 @@ from .models import (
     InvoiceExpiryResponse,
     InvoiceMemoResponse,
     InvoicePaymentHashResponse,
+    LnurlResolveRequest,
+    LnurlResolveResponse,
     RandomSecretAndHashRequest,
     RandomSecretAndHashResponse,
     SatsToFiatRequest,
@@ -43,17 +54,39 @@ from .registry import extension_api_method
 
 
 class ExtensionAPIUtils:
-    def __init__(self, extension_id: str, permissions: Iterable[str]) -> None:
+    def __init__(
+        self,
+        extension_id: str,
+        permissions: Iterable[str],
+        *,
+        authenticated: bool = False,
+    ) -> None:
         permission_set = set(permissions)
-        self.currencies = ExtensionCurrencyUtils(extension_id, permission_set)
-        self.server = ExtensionServerUtils(extension_id, permission_set)
-        self.lightning = ExtensionLightningUtils(extension_id, permission_set)
+        self.currencies = ExtensionCurrencyUtils(
+            extension_id, permission_set, authenticated=authenticated
+        )
+        self.server = ExtensionServerUtils(
+            extension_id, permission_set, authenticated=authenticated
+        )
+        self.lightning = ExtensionLightningUtils(
+            extension_id, permission_set, authenticated=authenticated
+        )
+        self.lnurl = ExtensionLnurlUtils(
+            extension_id, permission_set, authenticated=authenticated
+        )
 
 
 class _ExtensionAPIUtilsGroup:
-    def __init__(self, extension_id: str, permissions: Iterable[str]) -> None:
+    def __init__(
+        self,
+        extension_id: str,
+        permissions: Iterable[str],
+        *,
+        authenticated: bool = False,
+    ) -> None:
         self.extension_id = extension_id
         self.permissions = set(permissions)
+        self.authenticated = authenticated
 
     def require_permission(self, permission: str | None) -> None:
         if permission and permission not in self.permissions:
@@ -62,7 +95,7 @@ class _ExtensionAPIUtilsGroup:
             )
 
     def has_authenticated_context(self) -> bool:
-        return False
+        return self.authenticated
 
 
 class ExtensionCurrencyUtils(_ExtensionAPIUtilsGroup):
@@ -190,6 +223,60 @@ class ExtensionServerUtils(_ExtensionAPIUtilsGroup):
         return ServerHealthResponse(
             server_time=int(time.time()),
             up_time=settings.lnbits_server_up_time,
+        )
+
+
+class ExtensionLnurlUtils(_ExtensionAPIUtilsGroup):
+    @extension_api_method(
+        method_id="utils.lnurl.resolve",
+        namespace="utils.lnurl",
+        name="Resolve LNURL-pay",
+        host_interface="utils-lnurl",
+        host_name="resolve",
+        sdk_name="resolve",
+        description="Resolve a Lightning Address or LNURL-pay request.",
+        required_permission="wallet.pay_invoice",
+        require_auth=True,
+    )
+    async def resolve(self, request: LnurlResolveRequest) -> LnurlResolveResponse:
+        normalized_lnurl = normalize_lnurl(request.lnurl)
+        response = await lnurl_handle(
+            normalized_lnurl,
+            user_agent=settings.user_agent,
+            timeout=5,
+        )
+        if isinstance(response, LnurlErrorResponse):
+            raise LnurlResponseException(response.reason)
+        if not isinstance(response, LnurlPayResponse):
+            raise LnurlResponseException(
+                "Invalid LNURL response. Expected LnurlPayResponse."
+            )
+
+        min_sendable_msat = lnurl_pay_response_int(
+            response, "min_sendable", "minSendable"
+        )
+        max_sendable_msat = lnurl_pay_response_int(
+            response, "max_sendable", "maxSendable"
+        )
+        image = getattr(response, "image", None)
+        return LnurlResolveResponse(
+            lnurl=normalized_lnurl,
+            domain=getattr(response, "domain", None),
+            description=lnurl_pay_response_text(response),
+            min_sendable_msat=min_sendable_msat,
+            max_sendable_msat=max_sendable_msat,
+            comment_allowed=lnurl_pay_response_int(
+                response, "comment_allowed", "commentAllowed"
+            ),
+            fixed=bool(
+                getattr(
+                    response,
+                    "fixed",
+                    min_sendable_msat == max_sendable_msat,
+                )
+            ),
+            image=str(image) if image is not None else None,
+            metadata_json=lnurl_pay_response_metadata_json(response),
         )
 
 
@@ -335,6 +422,7 @@ def extension_api_utils_method_classes() -> dict[str, type[_ExtensionAPIUtilsGro
     return {
         "utils.currencies": ExtensionCurrencyUtils,
         "utils.server": ExtensionServerUtils,
+        "utils.lnurl": ExtensionLnurlUtils,
         "utils.lightning": ExtensionLightningUtils,
     }
 
