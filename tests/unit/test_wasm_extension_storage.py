@@ -10,6 +10,7 @@ from pytest_mock.plugin import MockerFixture
 
 from lnbits.core.crud import extensions as extension_crud
 from lnbits.core.crud import update_migration_version
+from lnbits.core.db import db as core_db
 from lnbits.core.migrations import (
     m010_create_installed_extensions_table,
     m046_add_permissions_to_installed_extensions,
@@ -27,7 +28,7 @@ from lnbits.core.wasm_ext.storage.crud import (
     storage_get_row,
     storage_set_row,
 )
-from lnbits.db import Compat, Connection, Database
+from lnbits.db import DB_TYPE, SQLITE, Compat, Connection, Database
 from lnbits.settings import Settings
 from tests.helpers import make_installable_extension
 
@@ -36,6 +37,9 @@ from tests.helpers import make_installable_extension
 async def test_core_wasm_migrations_create_persistent_columns(
     tmp_path: Path, settings: Settings
 ):
+    if DB_TYPE != SQLITE:
+        pytest.skip("temporary core databases are SQLite-only")
+
     db = _temporary_database(tmp_path, settings, "wasm_core_migrations")
 
     async with db.connect() as conn:
@@ -69,6 +73,7 @@ async def test_core_wasm_migrations_create_persistent_columns(
 
 @pytest.mark.anyio
 async def test_installed_extension_permissions_and_wasm_limits_round_trip(
+    app,
     tmp_path: Path,
     settings: Settings,
     mocker: MockerFixture,
@@ -98,6 +103,7 @@ async def test_installed_extension_permissions_and_wasm_limits_round_trip(
 
 @pytest.mark.anyio
 async def test_wasm_invocation_crud_stats_and_cleanup_are_isolated(
+    app,
     tmp_path: Path,
     settings: Settings,
     mocker: MockerFixture,
@@ -348,6 +354,9 @@ async def _temporary_core_crud_database(
     tmp_path: Path,
     settings: Settings,
 ) -> Database:
+    if DB_TYPE != SQLITE:
+        return core_db
+
     db = _temporary_database(tmp_path, settings, f"core_{uuid4().hex[:8]}")
     async with db.connect() as conn:
         await conn.execute("""
