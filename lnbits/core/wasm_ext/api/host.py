@@ -409,7 +409,7 @@ class ExtensionHostAPI:
         required_permission="wallet.pay_invoice",
     )
     async def wallet_pay_lnurl(self, request: PayLnurlRequest) -> PayInvoiceResponse:
-        from lnurl import LnurlResponseException
+        from lnurl import LnAddressError, LnurlResponseException
 
         from lnbits.core.crud.wallets import get_wallet
         from lnbits.core.models.lnurl import CreateLnurlPayment
@@ -418,10 +418,10 @@ class ExtensionHostAPI:
         from lnbits.exceptions import PaymentError
 
         from .lnurl import (
+            lnurl_for_core,
             lnurl_pay_response_text,
             lnurl_payment_amount_for_core,
             lnurl_payment_unit_for_core,
-            normalize_lnurl,
         )
 
         if not self.user_id:
@@ -435,7 +435,7 @@ class ExtensionHostAPI:
             unit = lnurl_payment_unit_for_core(request.currency)
             res, action = await fetch_lnurl_pay_request(
                 data=CreateLnurlPayment(
-                    lnurl=normalize_lnurl(request.lnurl),
+                    lnurl=lnurl_for_core(request.lnurl),
                     amount=lnurl_payment_amount_for_core(request.amount),
                     unit=unit,
                     comment=request.comment,
@@ -460,7 +460,12 @@ class ExtensionHostAPI:
                 description=request.description or lnurl_pay_response_text(res),
                 tag=self.extension_id,
             )
-        except (LnurlResponseException, PaymentError, ValueError) as exc:
+        except (
+            LnAddressError,
+            LnurlResponseException,
+            PaymentError,
+            ValueError,
+        ) as exc:
             return PayInvoiceResponse(ok=False, error=str(exc))
 
         return _pay_invoice_response(payment)

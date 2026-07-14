@@ -3,6 +3,8 @@ from __future__ import annotations
 import json
 from typing import Any
 
+from lnurl import LnAddress, Lnurl
+
 
 def normalize_lnurl(value: str) -> str:
     normalized = value.strip()
@@ -13,6 +15,13 @@ def normalize_lnurl(value: str) -> str:
     if not normalized:
         raise ValueError("LNURL is required.")
     return normalized
+
+
+def lnurl_for_core(value: str) -> Lnurl | LnAddress:
+    normalized = normalize_lnurl(value)
+    if "@" in normalized:
+        return LnAddress(normalized)
+    return Lnurl(normalized)
 
 
 def lnurl_payment_amount_for_core(amount: float) -> int:
