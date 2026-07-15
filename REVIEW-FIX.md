@@ -22,8 +22,8 @@ regression tests are one atomic follow-up commit.
 black --check clavestra source/tests       -> pass
 ruff check clavestra source/tests          -> pass
 mypy clavestra source/tests                -> success, no issues
-pytest tests/wallets/test_clavestra.py -q  -> 40 passed
-pytest tests/wallets -q                    -> 306 passed, 20 skipped
+pytest tests/wallets/test_clavestra.py -q  -> 42 passed
+pytest tests/wallets -q                    -> 308 passed, 20 skipped
 gateway fixture byte comparison            -> all 10 fixtures identical
 git diff --check                           -> pass
 ```
@@ -49,7 +49,9 @@ or an HTTP rejection known to occur before dispatch returns failed.
 **Behavior preserved.** Gateway business failures remain visible to LNbits.
 Ambiguous outcomes deliberately reserve the LNbits balance until
 `GET /v1/ln/payment/{hash}` reports a terminal result. An invalid preimage is
-not propagated upward while the payment remains pending.
+not propagated upward while the payment remains pending; the same
+cryptographic check applies whenever either status endpoint supplies a
+preimage alongside `paid: true`.
 
 **Regression tests** in `tests/wallets/test_clavestra.py` cover dispatched,
 settled, in-flight, hard-fail, response-loss timeout, malformed response,

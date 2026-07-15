@@ -234,6 +234,35 @@ def _pending_payment(payment_hash: str, error_message: str) -> PaymentResponse:
     )
 
 
+def _validated_status(
+    checking_id: str,
+    parsed: PaymentStatusResponse,
+    *,
+    kind: str,
+) -> PaymentStatus:
+    # A status endpoint is authoritative about paid=true even when the backend
+    # cannot return a preimage. If it does return one, however, it must settle
+    # this exact hash; propagating contradictory proof would corrupt LNbits'
+    # durable payment state.
+    if (
+        parsed.paid is True
+        and parsed.preimage is not None
+        and not _preimage_settles(checking_id, parsed.preimage)
+    ):
+        log.error(
+            "Clavestra {} status returned a preimage that does not settle "
+            "checking_id={}",
+            kind,
+            checking_id,
+        )
+        return PaymentStatus(paid=None)
+    return PaymentStatus(
+        paid=parsed.paid,
+        fee_msat=parsed.fee_msat,
+        preimage=parsed.preimage,
+    )
+
+
 # ---------------------------------------------------------------------------
 # WebSocket settlement hint stream
 # ---------------------------------------------------------------------------
@@ -579,11 +608,7 @@ class ClavestraWallet(Wallet):
         except Exception as exc:
             log.warning("Clavestra invoice status parse failed: {}", exc)
             return PaymentStatus(paid=None)
-        return PaymentStatus(
-            paid=parsed.paid,
-            fee_msat=parsed.fee_msat,
-            preimage=parsed.preimage,
-        )
+        return _validated_status(checking_id, parsed, kind="invoice")
 
     async def get_payment_status(self, checking_id: str) -> PaymentStatus:
         try:
@@ -606,11 +631,7 @@ class ClavestraWallet(Wallet):
         except Exception as exc:
             log.warning("Clavestra payment status parse failed: {}", exc)
             return PaymentStatus(paid=None)
-        return PaymentStatus(
-            paid=parsed.paid,
-            fee_msat=parsed.fee_msat,
-            preimage=parsed.preimage,
-        )
+        return _validated_status(checking_id, parsed, kind="payment")
 
     async def _reconcile_pending_invoices(self) -> list[str]:
         settled: list[str] = []

@@ -507,11 +507,24 @@ async def test_invoice_and_payment_status_use_exact_fixtures(
     assert invoice.paid is None
 
     gateway.respond_fixture("payment_status_with_preimage.json")
-    payment = await wallet.get_payment_status("ab" * 32)
+    preimage = "cd" * 32
+    payment_hash = hashlib.sha256(bytes.fromhex(preimage)).hexdigest()
+    payment = await wallet.get_payment_status(payment_hash)
     assert payment.paid is True
     assert payment.fee_msat == 1234
-    assert payment.preimage == "cd" * 32
+    assert payment.preimage == preimage
     assert gateway.requests[-1].headers["authorization"] == "Bearer clv_admin_xxx"
+
+
+@pytest.mark.anyio
+@pytest.mark.parametrize("status_method", ["get_invoice_status", "get_payment_status"])
+async def test_status_with_mismatched_preimage_remains_pending(
+    status_method: str, gateway: GatewayMock, wallet
+):
+    gateway.respond_fixture("payment_status_with_preimage.json")
+    status = await getattr(wallet, status_method)("ab" * 32)
+    assert status.paid is None
+    assert status.preimage is None
 
 
 class FakeWebSocket:
