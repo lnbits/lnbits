@@ -664,7 +664,8 @@
             unelevated
             color="primary"
             @click="payInvoice"
-            :label="$t('pay')"
+            :disable="parse.sending"
+            :label="parse.sending ? $t('sending') + '...' : $t('pay')"
           ></q-btn>
           <q-btn
             v-close-popup
@@ -836,7 +837,13 @@
             </div>
           </div>
           <div class="row q-mt-lg">
-            <q-btn unelevated color="primary" type="submit">Send</q-btn>
+            <q-btn
+              unelevated
+              color="primary"
+              type="submit"
+              :disable="parse.sending"
+              :label="parse.sending ? $t('sending') + '...' : $t('send')"
+            ></q-btn>
             <q-btn
               :label="$t('cancel')"
               v-close-popup
