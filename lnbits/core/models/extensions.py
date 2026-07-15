@@ -11,6 +11,7 @@ from datetime import datetime, timezone
 from enum import Enum
 from pathlib import Path, PurePosixPath
 from typing import Any
+from uuid import uuid4
 
 import httpx
 from loguru import logger
@@ -146,6 +147,7 @@ class ExtensionBackgroundPaymentDestinationPolicy(str, Enum):
 
 
 class ExtensionBackgroundPaymentGrant(BaseModel):
+    id: StrictStr = Field(..., min_length=1, max_length=128)
     wallet_id: str = Field(..., min_length=1, max_length=128)
     enabled: bool = True
     max_amount: int = Field(..., gt=0)
@@ -157,8 +159,9 @@ class ExtensionBackgroundPaymentGrantRequest(BaseModel):
     max_amount: int = Field(..., gt=0)
     destination_policy: ExtensionBackgroundPaymentDestinationPolicy
 
-    def to_grant(self) -> ExtensionBackgroundPaymentGrant:
+    def to_grant(self, grant_id: str | None = None) -> ExtensionBackgroundPaymentGrant:
         return ExtensionBackgroundPaymentGrant(
+            id=grant_id or str(uuid4()),
             wallet_id=self.wallet_id,
             enabled=True,
             max_amount=self.max_amount,
@@ -167,6 +170,7 @@ class ExtensionBackgroundPaymentGrantRequest(BaseModel):
 
 
 class ExtensionWalletPaymentsWatchGrant(BaseModel):
+    id: StrictStr = Field(..., min_length=1, max_length=128)
     wallet_id: str = Field(..., min_length=1, max_length=128)
     enabled: bool = True
 
@@ -174,8 +178,11 @@ class ExtensionWalletPaymentsWatchGrant(BaseModel):
 class ExtensionWalletPaymentsWatchGrantRequest(BaseModel):
     wallet_id: str = Field(..., min_length=1, max_length=128)
 
-    def to_grant(self) -> ExtensionWalletPaymentsWatchGrant:
+    def to_grant(
+        self, grant_id: str | None = None
+    ) -> ExtensionWalletPaymentsWatchGrant:
         return ExtensionWalletPaymentsWatchGrant(
+            id=grant_id or str(uuid4()),
             wallet_id=self.wallet_id,
             enabled=True,
         )
@@ -198,6 +205,11 @@ class ExtensionPermissionCheckResult(BaseModel):
 
 class ExtensionPermissionCheckResponse(BaseModel):
     permissions: list[ExtensionPermissionCheckResult] = Field(default_factory=list)
+
+
+class ExtensionPermissionsResponse(BaseModel):
+    extension_permissions: list[ExtensionPermission] = Field(default_factory=list)
+    user_permissions: dict[str, list[dict[str, Any]]] = Field(default_factory=dict)
 
 
 class UserExtension(BaseModel):

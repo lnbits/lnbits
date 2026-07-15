@@ -16,6 +16,9 @@ from lnbits.core.views.extension_api import (
     _check_wallet_payments_watch_permission,
     _find_background_payment_grant,
     _find_wallet_payments_watch_grant,
+    _remove_user_permission_grant,
+    _safe_user_extension_permissions,
+    _user_permission_grant_id_for_wallet,
 )
 from lnbits.core.wasm_ext.api.permissions import validate_wasm_extension_permissions
 from lnbits.core.wasm_ext.wasm.events import _wasm_invoice_paid_owner_id
@@ -172,6 +175,7 @@ def test_background_payment_grant_lookup_and_policy_coverage():
     permissions = {
         WALLET_PAY_INVOICE_BACKGROUND_PERMISSION: [
             {
+                "id": "grant-1",
                 "wallet_id": "wallet-1",
                 "enabled": True,
                 "max_amount": 5000,
@@ -200,13 +204,77 @@ def test_background_payment_grant_lookup_and_policy_coverage():
 
 def test_wallet_payments_watch_grant_lookup_ignores_disabled_grant():
     permissions = {
-        WALLET_PAYMENTS_WATCH_PERMISSION: [{"wallet_id": "wallet-1", "enabled": False}]
+        WALLET_PAYMENTS_WATCH_PERMISSION: [
+            {"id": "grant-1", "wallet_id": "wallet-1", "enabled": False}
+        ]
     }
 
     grant = _find_wallet_payments_watch_grant(permissions, "wallet-1")
 
     assert grant
     assert grant.enabled is False
+
+
+def test_safe_user_extension_permissions_keeps_only_grants_with_ids():
+    permissions = {
+        WALLET_PAYMENTS_WATCH_PERMISSION: [
+            {"id": "grant-1", "wallet_id": "wallet-1", "enabled": True},
+            {"wallet_id": "wallet-2", "enabled": True},
+            "broken",
+        ],
+        "broken": "not-a-list",
+    }
+
+    safe_permissions = _safe_user_extension_permissions(permissions)
+
+    assert safe_permissions == {
+        WALLET_PAYMENTS_WATCH_PERMISSION: [
+            {"id": "grant-1", "wallet_id": "wallet-1", "enabled": True}
+        ]
+    }
+
+
+def test_user_permission_grant_id_for_wallet_returns_existing_grant_id():
+    permissions = {
+        WALLET_PAY_INVOICE_BACKGROUND_PERMISSION: [
+            {"id": "grant-1", "wallet_id": "wallet-1", "enabled": True}
+        ]
+    }
+
+    grant_id = _user_permission_grant_id_for_wallet(
+        permissions, WALLET_PAY_INVOICE_BACKGROUND_PERMISSION, "wallet-1"
+    )
+
+    assert grant_id == "grant-1"
+
+
+def test_remove_user_permission_grant_removes_only_matching_grant_id():
+    permissions = {
+        WALLET_PAY_INVOICE_BACKGROUND_PERMISSION: [
+            {"id": "grant-1", "wallet_id": "wallet-1", "enabled": True},
+            {"id": "grant-2", "wallet_id": "wallet-2", "enabled": True},
+        ],
+        WALLET_PAYMENTS_WATCH_PERMISSION: [{"id": "grant-3", "wallet_id": "wallet-1"}],
+    }
+
+    updated_permissions = _remove_user_permission_grant(permissions, "grant-1")
+
+    assert updated_permissions == {
+        WALLET_PAY_INVOICE_BACKGROUND_PERMISSION: [
+            {"id": "grant-2", "wallet_id": "wallet-2", "enabled": True}
+        ],
+        WALLET_PAYMENTS_WATCH_PERMISSION: [{"id": "grant-3", "wallet_id": "wallet-1"}],
+    }
+
+
+def test_remove_user_permission_grant_drops_empty_permission():
+    permissions = {
+        WALLET_PAYMENTS_WATCH_PERMISSION: [{"id": "grant-1", "wallet_id": "wallet-1"}]
+    }
+
+    updated_permissions = _remove_user_permission_grant(permissions, "grant-1")
+
+    assert updated_permissions == {}
 
 
 @pytest.mark.anyio
@@ -216,6 +284,7 @@ async def test_background_payment_check_reports_approved_grant(
     permissions = {
         WALLET_PAY_INVOICE_BACKGROUND_PERMISSION: [
             {
+                "id": "grant-1",
                 "wallet_id": "wallet-1",
                 "enabled": True,
                 "max_amount": 5000,
@@ -246,6 +315,7 @@ async def test_background_payment_check_reports_approved_grant(
 
     assert result.id == WALLET_PAY_INVOICE_BACKGROUND_PERMISSION
     assert result.approved is True
+    assert result.grant["id"] == "grant-1"
     assert result.grant["max_amount"] == 5000
 
 
@@ -266,7 +336,9 @@ async def test_wallet_payment_watch_check_returns_requested_unapproved_grant(
 
     assert result.id == WALLET_PAYMENTS_WATCH_PERMISSION
     assert result.approved is False
-    assert result.grant == {"wallet_id": "wallet-1", "enabled": True}
+    assert result.grant["wallet_id"] == "wallet-1"
+    assert result.grant["enabled"] is True
+    assert isinstance(result.grant["id"], str)
 
 
 @pytest.mark.anyio

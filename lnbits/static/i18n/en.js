@@ -520,6 +520,14 @@ window.localisation.en = {
   extension_cost: 'This release requires a payment of minimum {cost} sats.',
   extension_paid_sats: 'You have already paid {paid_sats} sats.',
   extension_permissions_title: 'Grant extension permissions',
+  extension_permissions_tab: 'Extension Permissions',
+  user_permissions_tab: 'My Grants',
+  extension_permissions_none: 'This extension has no install-time permissions.',
+  user_permissions_none:
+    'You have not granted any permissions for this extension.',
+  user_permissions_max_amount: 'Max payment amount',
+  user_permissions_destination_policy: 'Allowed destinations',
+  user_permissions_no_editable_settings: 'This grant has no editable settings.',
   extension_permissions_grant_install: 'Grant and install',
   extension_permissions_high_risk_warning:
     'This extension requests permissions that can move funds.',

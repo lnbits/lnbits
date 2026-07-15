@@ -27,6 +27,7 @@ from lnbits.core.models.extensions import (
     ExtensionPermissionCheckRequest,
     ExtensionPermissionCheckResponse,
     ExtensionPermissionCheckResult,
+    ExtensionPermissionsResponse,
     ExtensionRelease,
     ExtensionReview,
     ExtensionReviewPaymentRequest,
@@ -420,8 +421,14 @@ async def api_grant_background_payment_permission(
             "This wallet cannot send payments.",
         )
 
-    grant = data.to_grant()
     permissions = user_ext.permissions or {}
+    grant = data.to_grant(
+        _user_permission_grant_id_for_wallet(
+            permissions,
+            WALLET_PAY_INVOICE_BACKGROUND_PERMISSION,
+            data.wallet_id,
+        )
+    )
     background_grants = [
         existing
         for existing in permissions.get(WALLET_PAY_INVOICE_BACKGROUND_PERMISSION, [])
@@ -466,8 +473,14 @@ async def api_grant_wallet_payments_watch_permission(
     if not wallet or wallet.user != account_id.id:
         raise HTTPException(HTTPStatus.FORBIDDEN, "Not your wallet.")
 
-    grant = data.to_grant()
     permissions = user_ext.permissions or {}
+    grant = data.to_grant(
+        _user_permission_grant_id_for_wallet(
+            permissions,
+            WALLET_PAYMENTS_WATCH_PERMISSION,
+            data.wallet_id,
+        )
+    )
     watch_grants = [
         existing
         for existing in permissions.get(WALLET_PAYMENTS_WATCH_PERMISSION, [])
@@ -478,6 +491,43 @@ async def api_grant_wallet_payments_watch_permission(
     user_ext.permissions = permissions
     await update_user_extension(user_ext)
     return {"permission": WALLET_PAYMENTS_WATCH_PERMISSION, "grant": grant}
+
+
+@extension_router.get("/{ext_id}/permissions")
+async def api_get_extension_permissions(
+    ext_id: str,
+    account_id: AccountId = Depends(check_account_id_exists),
+) -> ExtensionPermissionsResponse:
+    installed_ext = await _require_active_wasm_extension(ext_id)
+    extension_permissions = validate_extension_permissions(
+        installed_ext.id, installed_ext.permissions, strict=False
+    )
+    user_ext = await get_user_extension(account_id.id, ext_id)
+    return ExtensionPermissionsResponse(
+        extension_permissions=extension_permissions,
+        user_permissions=_safe_user_extension_permissions(
+            user_ext.permissions if user_ext else {}
+        ),
+    )
+
+
+@extension_router.delete("/{ext_id}/permissions/user/{grant_id}")
+async def api_delete_user_extension_permission(
+    ext_id: str,
+    grant_id: str,
+    account_id: AccountId = Depends(check_account_id_exists),
+) -> SimpleStatus:
+    await _require_active_wasm_extension(ext_id)
+
+    user_ext = await get_user_extension(account_id.id, ext_id)
+    if not user_ext:
+        return SimpleStatus(success=True, message="Permission grant removed.")
+
+    user_ext.permissions = _remove_user_permission_grant(
+        user_ext.permissions or {}, grant_id
+    )
+    await update_user_extension(user_ext)
+    return SimpleStatus(success=True, message="Permission grant removed.")
 
 
 @extension_router.post("/{ext_id}/permissions/check")
@@ -953,6 +1003,67 @@ async def create_extension_review(
         resp.raise_for_status()
         payment_request = resp.json()
         return ExtensionReviewPaymentRequest(**payment_request)
+
+
+async def _require_active_wasm_extension(ext_id: str) -> InstallableExtension:
+    installed_ext = await get_installed_extension(ext_id)
+    if not installed_ext or not installed_ext.active:
+        raise HTTPException(
+            HTTPStatus.NOT_FOUND, f"Extension '{ext_id}' is not active."
+        )
+    if not installed_ext.is_wasm:
+        raise HTTPException(
+            HTTPStatus.BAD_REQUEST, f"Extension '{ext_id}' is not a WASM extension."
+        )
+    return installed_ext
+
+
+def _safe_user_extension_permissions(permissions: dict | None) -> dict:
+    safe_permissions: dict[str, list[dict]] = {}
+    for permission_id, grants in (permissions or {}).items():
+        if not isinstance(permission_id, str) or not isinstance(grants, list):
+            continue
+        safe_grants = [
+            grant
+            for grant in grants
+            if isinstance(grant, dict) and isinstance(grant.get("id"), str)
+        ]
+        if safe_grants:
+            safe_permissions[permission_id] = safe_grants
+    return safe_permissions
+
+
+def _user_permission_grant_id_for_wallet(
+    permissions: dict, permission_id: str, wallet_id: str
+) -> str | None:
+    grants = permissions.get(permission_id)
+    if not isinstance(grants, list):
+        return None
+
+    for grant in grants:
+        if not isinstance(grant, dict) or grant.get("wallet_id") != wallet_id:
+            continue
+        grant_id = grant.get("id")
+        return grant_id if isinstance(grant_id, str) and grant_id else None
+    return None
+
+
+def _remove_user_permission_grant(permissions: dict, grant_id: str) -> dict:
+    updated_permissions = dict(permissions or {})
+    for permission_id, grants in list(updated_permissions.items()):
+        if not isinstance(grants, list):
+            continue
+
+        remaining_grants = [
+            grant
+            for grant in grants
+            if not isinstance(grant, dict) or grant.get("id") != grant_id
+        ]
+        if remaining_grants:
+            updated_permissions[permission_id] = remaining_grants
+        else:
+            updated_permissions.pop(permission_id, None)
+    return updated_permissions
 
 
 async def _check_background_payment_permission(
