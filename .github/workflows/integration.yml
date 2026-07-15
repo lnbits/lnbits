@@ -1,0 +1,45 @@
+name: Extension Integration Tests
+
+on:
+  workflow_call:
+    inputs:
+      python-version:
+        description: "Python Version"
+        required: true
+        default: "3.10"
+        type: string
+
+jobs:
+  integration:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: ./.github/actions/prepare
+        with:
+          python-version: ${{ inputs.python-version }}
+          npm: "true"
+
+      - name: run Playwright integration tests
+        env:
+          EXTENSIONS_MANIFEST_URL: "https://raw.githubusercontent.com/lnbits/lnbits-extensions/main/extensions.json"
+          LNBITS_EXTENSIONS_DEFAULT_INSTALL: "watchonly,satspay,tipjar,tpos,lnurlp,withdraw"
+          LNBITS_BACKEND_WALLET_CLASS: FakeWallet
+          AUTH_HTTPS_ONLY: false
+        run: npm run test:integration
+
+      - name: print lnbits log
+        if: ${{ always() }}
+        run: |
+          sleep 1
+          cat tests/data/integration/logs/debug.log || true
+
+      - name: upload integration test results
+        uses: actions/upload-artifact@v4
+        if: ${{ always() }}
+        with:
+          name: extension-integration-test-results
+          path: |
+            playwright-report/integration/
+            test-results/
+            tests/data/integration/logs/

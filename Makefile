@@ -1,4 +1,4 @@
-.PHONY: test
+.PHONY: test test-integration
 
 all: format check
 
@@ -68,6 +68,9 @@ test-regtest:
 	DEBUG=true \
 	rm -rf ./tests/data \
 	uv run pytest tests/regtest
+
+test-integration:
+	npm run test:integration
 
 test-migration:
 	LNBITS_ADMIN_UI=True \

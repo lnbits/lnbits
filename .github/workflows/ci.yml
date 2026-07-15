@@ -85,15 +85,15 @@ jobs:
     secrets:
       CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
 
-  jmeter:
+  integration:
     needs: [ lint ]
     strategy:
       matrix:
         python-version: ["3.12"]
-    uses: ./.github/workflows/jmeter.yml
+    uses: ./.github/workflows/integration.yml
     with:
       python-version: ${{ matrix.python-version }}
 
   bundle:
-    needs: [ lint, test-api, test-wallets, test-unit, migration, openapi, regtest, jmeter ]
+    needs: [ lint, test-api, test-wallets, test-unit, migration, openapi, regtest, integration ]
     uses: ./.github/workflows/bundle.yml
