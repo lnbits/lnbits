@@ -531,7 +531,7 @@ def register_async_tasks() -> None:
     async def dispatch_extension_invoice_paid(payment) -> None:
         await dispatch_wasm_invoice_paid(payment)
 
-    core_app_extra.dispatch_extension_invoice_paid = dispatch_extension_invoice_paid
+    task_manager.register_invoice_listener(dispatch_extension_invoice_paid, "core")
 
     # server logs for websocket
     if settings.lnbits_admin_ui:
