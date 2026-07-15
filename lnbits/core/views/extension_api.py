@@ -19,13 +19,19 @@ from lnbits.core.models.extensions import (
     CreateExtension,
     CreateExtensionReview,
     Extension,
+    ExtensionBackgroundPaymentDestinationPolicy,
+    ExtensionBackgroundPaymentGrant,
     ExtensionBackgroundPaymentGrantRequest,
     ExtensionConfig,
     ExtensionMeta,
+    ExtensionPermissionCheckRequest,
+    ExtensionPermissionCheckResponse,
+    ExtensionPermissionCheckResult,
     ExtensionRelease,
     ExtensionReview,
     ExtensionReviewPaymentRequest,
     ExtensionReviewsStatus,
+    ExtensionWalletPaymentsWatchGrant,
     ExtensionWalletPaymentsWatchGrantRequest,
     InstallableExtension,
     PayToEnableInfo,
@@ -474,6 +480,62 @@ async def api_grant_wallet_payments_watch_permission(
     return {"permission": WALLET_PAYMENTS_WATCH_PERMISSION, "grant": grant}
 
 
+@extension_router.post("/{ext_id}/permissions/check")
+async def api_check_extension_permissions(
+    ext_id: str,
+    data: ExtensionPermissionCheckRequest,
+    account_id: AccountId = Depends(check_account_id_exists),
+) -> ExtensionPermissionCheckResponse:
+    installed_ext = await get_installed_extension(ext_id)
+    if not installed_ext or not installed_ext.active:
+        raise HTTPException(
+            HTTPStatus.NOT_FOUND, f"Extension '{ext_id}' is not active."
+        )
+
+    installed_permission_ids = {
+        permission.id for permission in installed_ext.permissions or []
+    }
+
+    user_ext = await get_user_extension(account_id.id, ext_id)
+    if not user_ext or not user_ext.active:
+        raise HTTPException(
+            HTTPStatus.FORBIDDEN,
+            f"Extension '{ext_id}' is not enabled for this user.",
+        )
+
+    results: list[ExtensionPermissionCheckResult] = []
+    for permission in data.permissions:
+        if permission.id not in installed_permission_ids:
+            raise HTTPException(
+                HTTPStatus.FORBIDDEN,
+                f"Extension '{ext_id}' cannot request '{permission.id}'.",
+            )
+        if permission.id == WALLET_PAY_INVOICE_BACKGROUND_PERMISSION:
+            results.append(
+                await _check_background_payment_permission(
+                    account_id.id,
+                    user_ext.permissions or {},
+                    permission.grant,
+                )
+            )
+            continue
+        if permission.id == WALLET_PAYMENTS_WATCH_PERMISSION:
+            results.append(
+                await _check_wallet_payments_watch_permission(
+                    account_id.id,
+                    user_ext.permissions or {},
+                    permission.grant,
+                )
+            )
+            continue
+        raise HTTPException(
+            HTTPStatus.BAD_REQUEST,
+            f"Unsupported permission check '{permission.id}'.",
+        )
+
+    return ExtensionPermissionCheckResponse(permissions=results)
+
+
 @extension_router.put("/{ext_id}/activate", dependencies=[Depends(check_admin)])
 async def api_activate_extension(ext_id: str) -> SimpleStatus:
     try:
@@ -891,3 +953,117 @@ async def create_extension_review(
         resp.raise_for_status()
         payment_request = resp.json()
         return ExtensionReviewPaymentRequest(**payment_request)
+
+
+async def _check_background_payment_permission(
+    account_id: str,
+    permissions: dict,
+    grant_data: dict,
+) -> ExtensionPermissionCheckResult:
+    try:
+        data = ExtensionBackgroundPaymentGrantRequest.parse_obj(grant_data)
+    except ValueError as exc:
+        raise HTTPException(HTTPStatus.BAD_REQUEST, str(exc)) from exc
+
+    wallet = await get_wallet(data.wallet_id)
+    if not wallet or wallet.user != account_id:
+        raise HTTPException(HTTPStatus.FORBIDDEN, "Not your wallet.")
+    if wallet.is_lightning_shared_wallet:
+        raise HTTPException(
+            HTTPStatus.BAD_REQUEST,
+            "Background payments are not allowed from shared wallets.",
+        )
+    if not wallet.can_send_payments:
+        raise HTTPException(
+            HTTPStatus.BAD_REQUEST,
+            "This wallet cannot send payments.",
+        )
+
+    requested_grant = data.to_grant()
+    existing_grant = _find_background_payment_grant(
+        permissions, requested_grant.wallet_id
+    )
+    covered = (
+        existing_grant is not None
+        and existing_grant.enabled
+        and existing_grant.max_amount >= requested_grant.max_amount
+        and _background_destination_policy_covers(
+            existing_grant.destination_policy, requested_grant.destination_policy
+        )
+    )
+    grant = existing_grant if covered and existing_grant else requested_grant
+    return ExtensionPermissionCheckResult(
+        id=WALLET_PAY_INVOICE_BACKGROUND_PERMISSION,
+        approved=covered,
+        grant=json.loads(grant.json()),
+    )
+
+
+async def _check_wallet_payments_watch_permission(
+    account_id: str,
+    permissions: dict,
+    grant_data: dict,
+) -> ExtensionPermissionCheckResult:
+    try:
+        data = ExtensionWalletPaymentsWatchGrantRequest.parse_obj(grant_data)
+    except ValueError as exc:
+        raise HTTPException(HTTPStatus.BAD_REQUEST, str(exc)) from exc
+
+    wallet = await get_wallet(data.wallet_id)
+    if not wallet or wallet.user != account_id:
+        raise HTTPException(HTTPStatus.FORBIDDEN, "Not your wallet.")
+
+    existing_grant = _find_wallet_payments_watch_grant(permissions, data.wallet_id)
+    covered = bool(existing_grant and existing_grant.enabled)
+    grant = existing_grant if covered and existing_grant else data.to_grant()
+    return ExtensionPermissionCheckResult(
+        id=WALLET_PAYMENTS_WATCH_PERMISSION,
+        approved=covered,
+        grant=json.loads(grant.json()),
+    )
+
+
+def _find_background_payment_grant(
+    permissions: dict, wallet_id: str
+) -> ExtensionBackgroundPaymentGrant | None:
+    grants = permissions.get(WALLET_PAY_INVOICE_BACKGROUND_PERMISSION)
+    if not isinstance(grants, list):
+        return None
+    for grant_data in grants:
+        if not isinstance(grant_data, dict):
+            continue
+        try:
+            grant = ExtensionBackgroundPaymentGrant.parse_obj(grant_data)
+        except ValueError:
+            continue
+        if grant.wallet_id == wallet_id:
+            return grant
+    return None
+
+
+def _find_wallet_payments_watch_grant(
+    permissions: dict, wallet_id: str
+) -> ExtensionWalletPaymentsWatchGrant | None:
+    grants = permissions.get(WALLET_PAYMENTS_WATCH_PERMISSION)
+    if not isinstance(grants, list):
+        return None
+    for grant_data in grants:
+        if not isinstance(grant_data, dict):
+            continue
+        try:
+            grant = ExtensionWalletPaymentsWatchGrant.parse_obj(grant_data)
+        except ValueError:
+            continue
+        if grant.wallet_id == wallet_id:
+            return grant
+    return None
+
+
+def _background_destination_policy_covers(
+    existing: ExtensionBackgroundPaymentDestinationPolicy,
+    requested: ExtensionBackgroundPaymentDestinationPolicy,
+) -> bool:
+    return (
+        existing == requested
+        or existing == ExtensionBackgroundPaymentDestinationPolicy.EXTERNAL_ALLOWED
+    )

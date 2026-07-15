@@ -181,6 +181,25 @@ class ExtensionWalletPaymentsWatchGrantRequest(BaseModel):
         )
 
 
+class ExtensionPermissionCheckItem(BaseModel):
+    id: StrictStr
+    grant: dict[str, Any] = Field(default_factory=dict)
+
+
+class ExtensionPermissionCheckRequest(BaseModel):
+    permissions: list[ExtensionPermissionCheckItem] = Field(default_factory=list)
+
+
+class ExtensionPermissionCheckResult(BaseModel):
+    id: StrictStr
+    approved: bool
+    grant: dict[str, Any] = Field(default_factory=dict)
+
+
+class ExtensionPermissionCheckResponse(BaseModel):
+    permissions: list[ExtensionPermissionCheckResult] = Field(default_factory=list)
+
+
 class UserExtension(BaseModel):
     user: str
     extension: str

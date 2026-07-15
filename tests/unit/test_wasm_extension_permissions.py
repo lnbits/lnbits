@@ -4,7 +4,19 @@ from typing import Any, cast
 import pytest
 from pytest_mock.plugin import MockerFixture
 
-from lnbits.core.models.extensions import ExtensionPermission
+from lnbits.core.models.extensions import (
+    ExtensionBackgroundPaymentDestinationPolicy,
+    ExtensionPermission,
+)
+from lnbits.core.views.extension_api import (
+    WALLET_PAY_INVOICE_BACKGROUND_PERMISSION,
+    WALLET_PAYMENTS_WATCH_PERMISSION,
+    _background_destination_policy_covers,
+    _check_background_payment_permission,
+    _check_wallet_payments_watch_permission,
+    _find_background_payment_grant,
+    _find_wallet_payments_watch_grant,
+)
 from lnbits.core.wasm_ext.api.permissions import validate_wasm_extension_permissions
 from lnbits.core.wasm_ext.wasm.events import _wasm_invoice_paid_owner_id
 from lnbits.core.wasm_ext.wasm.invoke import _active_installed_extension
@@ -154,6 +166,107 @@ def test_validate_wasm_permissions_allows_wallet_payments_watch_permission():
         [ExtensionPermission(id="wallet.payments.watch")],
         extension_config,
     ) == [ExtensionPermission(id="wallet.payments.watch")]
+
+
+def test_background_payment_grant_lookup_and_policy_coverage():
+    permissions = {
+        WALLET_PAY_INVOICE_BACKGROUND_PERMISSION: [
+            {
+                "wallet_id": "wallet-1",
+                "enabled": True,
+                "max_amount": 5000,
+                "destination_policy": "external_allowed",
+            }
+        ]
+    }
+
+    grant = _find_background_payment_grant(permissions, "wallet-1")
+
+    assert grant
+    assert grant.max_amount == 5000
+    assert _background_destination_policy_covers(
+        grant.destination_policy,
+        ExtensionBackgroundPaymentDestinationPolicy.OWN_WALLETS_ONLY,
+    )
+    assert _background_destination_policy_covers(
+        grant.destination_policy,
+        ExtensionBackgroundPaymentDestinationPolicy.EXTERNAL_ALLOWED,
+    )
+    assert not _background_destination_policy_covers(
+        ExtensionBackgroundPaymentDestinationPolicy.OWN_WALLETS_ONLY,
+        ExtensionBackgroundPaymentDestinationPolicy.EXTERNAL_ALLOWED,
+    )
+
+
+def test_wallet_payments_watch_grant_lookup_ignores_disabled_grant():
+    permissions = {
+        WALLET_PAYMENTS_WATCH_PERMISSION: [{"wallet_id": "wallet-1", "enabled": False}]
+    }
+
+    grant = _find_wallet_payments_watch_grant(permissions, "wallet-1")
+
+    assert grant
+    assert grant.enabled is False
+
+
+@pytest.mark.anyio
+async def test_background_payment_check_reports_approved_grant(
+    mocker: MockerFixture,
+):
+    permissions = {
+        WALLET_PAY_INVOICE_BACKGROUND_PERMISSION: [
+            {
+                "wallet_id": "wallet-1",
+                "enabled": True,
+                "max_amount": 5000,
+                "destination_policy": "external_allowed",
+            }
+        ]
+    }
+    mocker.patch(
+        "lnbits.core.views.extension_api.get_wallet",
+        mocker.AsyncMock(
+            return_value=SimpleNamespace(
+                user="user-1",
+                is_lightning_shared_wallet=False,
+                can_send_payments=True,
+            )
+        ),
+    )
+
+    result = await _check_background_payment_permission(
+        "user-1",
+        permissions,
+        {
+            "wallet_id": "wallet-1",
+            "max_amount": 1000,
+            "destination_policy": "own_wallets_only",
+        },
+    )
+
+    assert result.id == WALLET_PAY_INVOICE_BACKGROUND_PERMISSION
+    assert result.approved is True
+    assert result.grant["max_amount"] == 5000
+
+
+@pytest.mark.anyio
+async def test_wallet_payment_watch_check_returns_requested_unapproved_grant(
+    mocker: MockerFixture,
+):
+    mocker.patch(
+        "lnbits.core.views.extension_api.get_wallet",
+        mocker.AsyncMock(return_value=SimpleNamespace(user="user-1")),
+    )
+
+    result = await _check_wallet_payments_watch_permission(
+        "user-1",
+        {},
+        {"wallet_id": "wallet-1"},
+    )
+
+    assert result.id == WALLET_PAYMENTS_WATCH_PERMISSION
+    assert result.approved is False
+    assert result.grant == {"wallet_id": "wallet-1", "enabled": True}
 
 
 @pytest.mark.anyio

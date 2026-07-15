@@ -455,22 +455,99 @@ window.WasmExtensionComponent = {
         this.g.scanner = onScan
       })
     },
-    requestBackgroundPaymentPermission(message) {
+    async requestBackgroundPaymentPermission(message) {
+      const response = await this.requestExtensionPermissions({
+        permissions: [
+          {
+            id: 'wallet.pay_invoice_background',
+            grant: message?.grant || {}
+          }
+        ]
+      })
+      return response.permissions?.[0] || response
+    },
+    async requestWalletPaymentWatchPermission(message) {
+      const response = await this.requestExtensionPermissions({
+        permissions: [
+          {
+            id: 'wallet.payments.watch',
+            grant: message?.grant || {}
+          }
+        ]
+      })
+      return response.permissions?.[0] || response
+    },
+    async requestExtensionPermissions(message) {
+      if (this.bridge.public) {
+        throw new Error('Public pages cannot request permissions.')
+      }
+      const permissions = Array.isArray(message.permissions)
+        ? message.permissions
+        : []
+      if (!permissions.length) {
+        throw new Error('No permissions requested.')
+      }
+
+      const requestedPermissions = permissions.map(permission =>
+        this.normalizePermissionRequest(permission)
+      )
+      const checkResult = await this.checkExtensionPermissions(
+        requestedPermissions.map(permission => ({
+          id: permission.id,
+          grant: permission.grant
+        }))
+      )
+      const checks = Array.isArray(checkResult?.permissions)
+        ? checkResult.permissions
+        : []
+      const approvedLabels = []
+      const results = []
+
+      for (const [index, permission] of requestedPermissions.entries()) {
+        const check = checks[index] || {}
+        if (check.id && check.id !== permission.id) {
+          throw new Error('Permission check response did not match request.')
+        }
+
+        if (check.approved) {
+          approvedLabels.push(permission.label)
+          results.push({
+            id: permission.id,
+            approved: true,
+            grant: check.grant || permission.grant
+          })
+          continue
+        }
+
+        const granted = await this.promptExtensionPermission(permission)
+        results.push({
+          id: permission.id,
+          approved: true,
+          grant: granted?.grant || permission.grant
+        })
+      }
+
+      this.notifyApprovedPermissionUse(approvedLabels)
+      return {permissions: results}
+    },
+    normalizePermissionRequest(permission) {
+      const id = String(permission?.id || '')
+      const grant = permission?.grant || {}
+      if (id === 'wallet.pay_invoice_background') {
+        return this.normalizeBackgroundPaymentPermission(grant)
+      }
+      if (id === 'wallet.payments.watch') {
+        return this.normalizeWalletPaymentWatchPermission(grant)
+      }
+      throw new Error(`Unsupported permission request: ${id}.`)
+    },
+    normalizeBackgroundPaymentPermission(grant) {
       if (!this.hasBridgePermission('wallet.pay_invoice_background')) {
         throw new Error('Extension is missing background payment permission.')
       }
-      if (this.bridge.public) {
-        throw new Error('Public pages cannot request background payments.')
-      }
-      if (this.backgroundPaymentPrompt.show) {
-        throw new Error('Background payment prompt is already open.')
-      }
 
-      const grant = message.grant || {}
       const walletId = String(grant.walletId || grant.wallet_id || '')
-      const wallet = (this.g?.user?.wallets || []).find(
-        wallet => wallet.id === walletId
-      )
+      const wallet = this.walletById(walletId)
       if (!wallet) {
         throw new Error('Selected wallet is not available.')
       }
@@ -480,24 +557,85 @@ window.WasmExtensionComponent = {
         )
       }
 
+      const requestedGrant = {
+        wallet_id: walletId,
+        max_amount: this.positiveInteger(
+          grant.maxAmount || grant.max_amount,
+          1000
+        ),
+        destination_policy: this.backgroundPaymentDestinationPolicy(
+          grant.destinationPolicy || grant.destination_policy
+        )
+      }
+      if (!requestedGrant.max_amount) {
+        throw new Error('Max payment amount must be greater than zero.')
+      }
+
+      return {
+        id: 'wallet.pay_invoice_background',
+        grant: requestedGrant,
+        label: `Background payments from ${wallet.name || walletId}`,
+        wallet
+      }
+    },
+    normalizeWalletPaymentWatchPermission(grant) {
+      if (!this.hasBridgePermission('wallet.payments.watch')) {
+        throw new Error('Extension is missing wallet payment watch permission.')
+      }
+
+      const walletId = String(grant.walletId || grant.wallet_id || '')
+      const wallet = this.walletById(walletId)
+      if (!wallet) {
+        throw new Error('Selected wallet is not available.')
+      }
+
+      return {
+        id: 'wallet.payments.watch',
+        grant: {wallet_id: walletId},
+        label: `Watch wallet payments for ${wallet.name || walletId}`,
+        wallet
+      }
+    },
+    walletById(walletId) {
+      return (
+        (this.g?.user?.wallets || []).find(wallet => wallet.id === walletId) ||
+        null
+      )
+    },
+    async checkExtensionPermissions(permissions) {
+      return await this.postExtensionPermission(
+        'check',
+        {permissions},
+        'Could not check extension permissions.'
+      )
+    },
+    promptExtensionPermission(permission) {
+      if (permission.id === 'wallet.pay_invoice_background') {
+        return this.promptBackgroundPaymentPermission(permission)
+      }
+      if (permission.id === 'wallet.payments.watch') {
+        return this.promptWalletPaymentWatchPermission(permission)
+      }
+      throw new Error(`Unsupported permission request: ${permission.id}.`)
+    },
+    promptBackgroundPaymentPermission(permission) {
+      if (this.backgroundPaymentPrompt.show) {
+        throw new Error('Background payment prompt is already open.')
+      }
+
       return new Promise((resolve, reject) => {
         this.backgroundPaymentPrompt = {
           extensionName:
             this.extensionName || this.bridge.extensionId || 'This extension',
           form: {
-            destinationPolicy: this.backgroundPaymentDestinationPolicy(
-              grant.destinationPolicy || grant.destination_policy
-            ),
-            maxAmount: this.positiveInteger(
-              grant.maxAmount || grant.max_amount,
-              1000
-            )
+            destinationPolicy: permission.grant.destination_policy,
+            maxAmount: permission.grant.max_amount
           },
           reject,
           resolve,
           show: true,
-          walletId,
-          walletName: wallet.name || walletId
+          walletId: permission.grant.wallet_id,
+          walletName: permission.wallet.name || permission.grant.wallet_id
         }
       })
     },
@@ -523,29 +661,11 @@ window.WasmExtensionComponent = {
           throw new Error('Max payment amount must be greater than zero.')
         }
 
-        const response = await fetch(
-          `/api/v1/extension/${encodeURIComponent(
-            this.bridge.extensionId
-          )}/permissions/background-payment`,
-          {
-            method: 'POST',
-            headers: {'content-type': 'application/json'},
-            credentials: 'same-origin',
-            body: JSON.stringify(grant)
-          }
+        const data = await this.postExtensionPermission(
+          'background-payment',
+          grant,
+          'Could not save permission.'
         )
-        const text = await response.text()
-        let data = {}
-        if (text) {
-          try {
-            data = JSON.parse(text)
-          } catch (_error) {
-            data = {detail: text}
-          }
-        }
-        if (!response.ok) {
-          throw new Error(data?.detail || 'Could not save permission.')
-        }
 
         this.backgroundPaymentPrompt = this.emptyBackgroundPaymentPrompt()
         prompt.resolve?.(data)
@@ -559,26 +679,9 @@ window.WasmExtensionComponent = {
       this.backgroundPaymentPrompt = this.emptyBackgroundPaymentPrompt()
       reject?.(new Error(message))
     },
-    requestWalletPaymentWatchPermission(message) {
-      if (!this.hasBridgePermission('wallet.payments.watch')) {
-        throw new Error('Extension is missing wallet payment watch permission.')
-      }
-      if (this.bridge.public) {
-        throw new Error(
-          'Public pages cannot request wallet payment watch access.'
-        )
-      }
+    promptWalletPaymentWatchPermission(permission) {
       if (this.walletPaymentWatchPrompt.show) {
         throw new Error('Wallet payment watch prompt is already open.')
-      }
-
-      const grant = message.grant || {}
-      const walletId = String(grant.walletId || grant.wallet_id || '')
-      const wallet = (this.g?.user?.wallets || []).find(
-        wallet => wallet.id === walletId
-      )
-      if (!wallet) {
-        throw new Error('Selected wallet is not available.')
       }
 
       return new Promise((resolve, reject) => {
@@ -588,8 +691,8 @@ window.WasmExtensionComponent = {
           reject,
           resolve,
           show: true,
-          walletId,
-          walletName: wallet.name || walletId
+          walletId: permission.grant.wallet_id,
+          walletName: permission.wallet.name || permission.grant.wallet_id
         }
       })
     },
@@ -604,29 +707,11 @@ window.WasmExtensionComponent = {
       }
 
       try {
-        const response = await fetch(
-          `/api/v1/extension/${encodeURIComponent(
-            this.bridge.extensionId
-          )}/permissions/wallet-payments-watch`,
-          {
-            method: 'POST',
-            headers: {'content-type': 'application/json'},
-            credentials: 'same-origin',
-            body: JSON.stringify({wallet_id: prompt.walletId})
-          }
+        const data = await this.postExtensionPermission(
+          'wallet-payments-watch',
+          {wallet_id: prompt.walletId},
+          'Could not save permission.'
         )
-        const text = await response.text()
-        let data = {}
-        if (text) {
-          try {
-            data = JSON.parse(text)
-          } catch (_error) {
-            data = {detail: text}
-          }
-        }
-        if (!response.ok) {
-          throw new Error(data?.detail || 'Could not save permission.')
-        }
 
         this.walletPaymentWatchPrompt = this.emptyWalletPaymentWatchPrompt()
         prompt.resolve?.(data)
@@ -649,6 +734,40 @@ window.WasmExtensionComponent = {
       return value === 'external_allowed'
         ? 'external_allowed'
         : 'own_wallets_only'
+    },
+    async postExtensionPermission(path, body, fallbackMessage) {
+      const response = await fetch(
+        `/api/v1/extension/${encodeURIComponent(
+          this.bridge.extensionId
+        )}/permissions/${path}`,
+        {
+          method: 'POST',
+          headers: {'content-type': 'application/json'},
+          credentials: 'same-origin',
+          body: JSON.stringify(body)
+        }
+      )
+      const text = await response.text()
+      let data = {}
+      if (text) {
+        try {
+          data = JSON.parse(text)
+        } catch (_error) {
+          data = {detail: text}
+        }
+      }
+      if (!response.ok) {
+        throw new Error(data?.detail || fallbackMessage)
+      }
+      return data
+    },
+    notifyApprovedPermissionUse(permissions) {
+      const permissionList = permissions.filter(Boolean).join(', ')
+      if (!permissionList) return
+      this.notify({
+        level: 'info',
+        message: `Using approved permissions: ${permissionList}.`
+      })
     },
     requireCameraScanApproval() {
       if (this.isCameraScanRemembered()) return Promise.resolve()
@@ -851,6 +970,14 @@ window.WasmExtensionComponent = {
           this.sendResponse(reply, message.id, {
             ok: true,
             data: await this.scanQrCode()
+          })
+          return
+        }
+
+        if (message.action === 'permissions.request') {
+          this.sendResponse(reply, message.id, {
+            ok: true,
+            data: await this.requestExtensionPermissions(message)
           })
           return
         }
