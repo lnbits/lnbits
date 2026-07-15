@@ -2,7 +2,7 @@ import json
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from types import SimpleNamespace
-from typing import cast
+from typing import Any, cast
 from uuid import uuid4
 
 import pytest
@@ -433,7 +433,7 @@ def _write_storage_extension(settings: Settings, ext_id: str) -> Path:
     storage_dir = ext_dir / "storage"
     migrations_dir = storage_dir / "migrations"
     migrations_dir.mkdir(parents=True)
-    schema = {
+    schema: dict[str, Any] = {
         "tables": {
             "notes": {
                 "fields": [
