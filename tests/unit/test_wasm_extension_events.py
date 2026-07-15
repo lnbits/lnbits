@@ -145,7 +145,11 @@ async def test_dispatch_wasm_invoice_paid_invokes_wallet_watch_grant(
                     extension=ext_id,
                     permissions={
                         "wallet.payments.watch": [
-                            {"wallet_id": "wallet-1", "enabled": True}
+                            {
+                                "id": "grant-1",
+                                "wallet_id": "wallet-1",
+                                "enabled": True,
+                            }
                         ]
                     },
                 )
@@ -203,7 +207,11 @@ async def test_dispatch_wasm_invoice_paid_dedupes_tagged_wallet_watch_grant(
                     extension=ext_id,
                     permissions={
                         "wallet.payments.watch": [
-                            {"wallet_id": "wallet-1", "enabled": True}
+                            {
+                                "id": "grant-1",
+                                "wallet_id": "wallet-1",
+                                "enabled": True,
+                            }
                         ]
                     },
                 )
