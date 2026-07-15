@@ -11,10 +11,14 @@ from lnbits.helpers import sha256s
 
 from ..client.extensions import send_extension_api_request
 from ..storage.crud import (
+    OWNER_ID_FIELD,
+    storage_append_public_row,
+    storage_count_rows,
     storage_delete_row,
     storage_get_paginated_rows,
     storage_get_public_row,
     storage_get_row,
+    storage_get_row_owner_id,
     storage_set_row,
 )
 from .background_payments import (
@@ -39,6 +43,8 @@ from .models import (
     PayLnurlRequest,
     RandomIdRequest,
     RandomIdResponse,
+    StorageAppendPublicRequest,
+    StorageAppendPublicResponse,
     StorageDeleteRequest,
     StorageDeleteResponse,
     StorageGetRequest,
@@ -54,6 +60,7 @@ from .models import (
 from .registry import extension_api_method
 
 logger = logging.getLogger("lnbits.extensions")
+PUBLIC_APPEND_DEFAULT_MAX_ROWS_PER_SOURCE = 10_000
 
 
 class ExtensionHostAPI:
@@ -128,6 +135,45 @@ class ExtensionHostAPI:
         }
         # todo: check public fields filtering
         return StorageGetResponse(data_json=json.dumps(public_row))
+
+    @extension_api_method(
+        method_id="storage.append_public",
+        namespace="storage",
+        name="Append public storage row",
+        host_name="storage_append_public",
+        sdk_name="appendPublic",
+        description="Append one public row to an extension storage table.",
+        required_permission="ext.storage.append_public",
+        require_auth=False,
+    )
+    async def storage_append_public(
+        self, request: StorageAppendPublicRequest
+    ) -> StorageAppendPublicResponse:
+        policy, owner_id = await self._public_storage_append_policy(
+            request.table, request.source_id
+        )
+        data = dict(request.data)
+        self._validate_public_append_data(policy, data)
+
+        source_id_field = policy["source_id_field"]
+        current_rows = await storage_count_rows(
+            self.extension_id,
+            request.table,
+            {source_id_field: request.source_id},
+            owner_id=owner_id,
+        )
+        if current_rows >= policy["max_rows_per_source"]:
+            raise PermissionError(
+                f"Public storage append limit reached for '{request.table}'."
+            )
+
+        row_id = await storage_append_public_row(
+            self.extension_id,
+            request.table,
+            {**data, source_id_field: request.source_id},
+            owner_id,
+        )
+        return StorageAppendPublicResponse(id=row_id)
 
     @extension_api_method(
         method_id="storage.set",
@@ -651,6 +697,98 @@ class ExtensionHostAPI:
             return set(public_fields)
 
         raise PermissionError(f"Storage table '{table}' is not publicly readable.")
+
+    async def _public_storage_append_policy(
+        self, table: str, source_id: str
+    ) -> tuple[dict[str, Any], str]:
+        policies = self.permission_policies.get("ext.storage.append_public")
+        if not isinstance(policies, list) or not policies:
+            raise PermissionError(
+                "Public storage appends require policies for "
+                "'ext.storage.append_public'."
+            )
+
+        source_not_found = False
+        for raw_policy in policies:
+            policy = self._normalize_public_storage_append_policy(raw_policy)
+            if policy["table"] != table:
+                continue
+            owner_id = await storage_get_row_owner_id(
+                self.extension_id,
+                policy["source_table"],
+                source_id,
+            )
+            if not owner_id:
+                source_not_found = True
+                continue
+            return policy, owner_id
+
+        if source_not_found:
+            raise PermissionError("Public storage append source was not found.")
+        raise PermissionError(f"Storage table '{table}' is not publicly appendable.")
+
+    def _normalize_public_storage_append_policy(self, policy: Any) -> dict[str, Any]:
+        if not isinstance(policy, dict):
+            raise PermissionError("Public storage append policies must be objects.")
+
+        table = policy.get("table")
+        source_table = policy.get("source_table")
+        source_id_field = policy.get("source_id_field")
+        allowed_fields = policy.get("allowed_fields")
+        max_rows_per_source = policy.get(
+            "max_rows_per_source", PUBLIC_APPEND_DEFAULT_MAX_ROWS_PER_SOURCE
+        )
+
+        if not isinstance(table, str) or not table:
+            raise PermissionError("Public storage append requires a table policy.")
+        if not isinstance(source_table, str) or not source_table:
+            raise PermissionError(
+                "Public storage append requires a source table policy."
+            )
+        if not isinstance(source_id_field, str) or not source_id_field:
+            raise PermissionError(
+                "Public storage append requires a source ID field policy."
+            )
+        if source_id_field == "id":
+            raise PermissionError("Public storage append source field cannot be 'id'.")
+        if (
+            not isinstance(allowed_fields, list)
+            or not all(isinstance(field, str) and field for field in allowed_fields)
+            or "id" in allowed_fields
+            or OWNER_ID_FIELD in allowed_fields
+            or source_id_field in allowed_fields
+        ):
+            raise PermissionError(
+                "Public storage append requires valid allowed fields."
+            )
+        if (
+            isinstance(max_rows_per_source, bool)
+            or not isinstance(max_rows_per_source, int)
+            or max_rows_per_source <= 0
+        ):
+            raise PermissionError(
+                "Public storage append requires a positive row limit."
+            )
+
+        return {
+            "table": table,
+            "source_table": source_table,
+            "source_id_field": source_id_field,
+            "allowed_fields": set(allowed_fields),
+            "max_rows_per_source": max_rows_per_source,
+        }
+
+    def _validate_public_append_data(
+        self, policy: dict[str, Any], data: dict[str, Any]
+    ) -> None:
+        if not isinstance(data, dict):
+            raise PermissionError("Public storage append data must be an object.")
+        unknown_fields = sorted(set(data) - policy["allowed_fields"])
+        if unknown_fields:
+            raise PermissionError(
+                "Public storage append contains disallowed fields: "
+                + ", ".join(unknown_fields)
+            )
 
     def _public_invoice_wallet_sources(self) -> list[dict[str, str]]:
         policies = self.permission_policies.get("wallet.create_invoice_public")

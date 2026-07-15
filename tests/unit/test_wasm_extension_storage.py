@@ -22,6 +22,8 @@ from lnbits.core.wasm_ext.storage import crud as storage_crud
 from lnbits.core.wasm_ext.storage.crud import (
     OWNER_ID_FIELD,
     migrate_wasm_extension_database,
+    storage_append_public_row,
+    storage_count_rows,
     storage_delete_row,
     storage_get_paginated_rows,
     storage_get_public_row,
@@ -296,6 +298,59 @@ async def test_wasm_storage_migration_and_owner_scoped_crud(
 
 
 @pytest.mark.anyio
+async def test_wasm_storage_public_append_generates_id_and_counts_by_owner(
+    tmp_path: Path,
+    settings: Settings,
+):
+    ext_id = f"wasmstore_{uuid4().hex[:8]}"
+    original_extensions_path = settings.lnbits_extensions_path
+    original_data_folder = settings.lnbits_data_folder
+    try:
+        settings.lnbits_data_folder = str(tmp_path / "data")
+        settings.lnbits_extensions_path = str(tmp_path / "code")
+        Path(settings.lnbits_data_folder).mkdir(parents=True)
+        _write_storage_extension(settings, ext_id)
+
+        await migrate_wasm_extension_database(make_installable_extension(ext_id))
+        await storage_set_row(
+            ext_id,
+            "threads",
+            {"id": "thread-1", "title": "Support"},
+            "owner-1",
+        )
+        message_id = await storage_append_public_row(
+            ext_id,
+            "messages",
+            {"thread_id": "thread-1", "message": "Hello"},
+            "owner-1",
+        )
+        owner_count = await storage_count_rows(
+            ext_id,
+            "messages",
+            {"thread_id": "thread-1"},
+            owner_id="owner-1",
+        )
+        other_owner_count = await storage_count_rows(
+            ext_id,
+            "messages",
+            {"thread_id": "thread-1"},
+            owner_id="owner-2",
+        )
+        message = await storage_get_row(ext_id, "messages", message_id, "owner-1")
+    finally:
+        settings.lnbits_extensions_path = original_extensions_path
+        settings.lnbits_data_folder = original_data_folder
+
+    assert message_id
+    assert owner_count == 1
+    assert other_owner_count == 0
+    assert message is not None
+    assert message["id"] == message_id
+    assert message["thread_id"] == "thread-1"
+    assert message["message"] == "Hello"
+
+
+@pytest.mark.anyio
 async def test_wasm_storage_rejects_reserved_fields_and_invalid_identifiers(
     tmp_path: Path,
     settings: Settings,
@@ -389,7 +444,20 @@ def _write_storage_extension(settings: Settings, ext_id: str) -> Path:
                     {"name": "tags", "type": "string", "list": True},
                     {"name": "created_at", "type": "datetime"},
                 ]
-            }
+            },
+            "threads": {
+                "fields": [
+                    {"name": "id", "type": "string"},
+                    {"name": "title", "type": "string"},
+                ]
+            },
+            "messages": {
+                "fields": [
+                    {"name": "id", "type": "string"},
+                    {"name": "thread_id", "type": "string"},
+                    {"name": "message", "type": "string"},
+                ]
+            },
         }
     }
     migration = {
@@ -398,7 +466,17 @@ def _write_storage_extension(settings: Settings, ext_id: str) -> Path:
                 "op": "create_table",
                 "table": "notes",
                 "fields": schema["tables"]["notes"]["fields"],
-            }
+            },
+            {
+                "op": "create_table",
+                "table": "threads",
+                "fields": schema["tables"]["threads"]["fields"],
+            },
+            {
+                "op": "create_table",
+                "table": "messages",
+                "fields": schema["tables"]["messages"]["fields"],
+            },
         ]
     }
     (storage_dir / "schema.json").write_text(json.dumps(schema), encoding="utf-8")

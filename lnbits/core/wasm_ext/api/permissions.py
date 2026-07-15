@@ -10,11 +10,14 @@ from lnbits.core.wasm_ext.wasm.config import (
 )
 
 _POLICY_AWARE_PERMISSION_IDS = {
+    "ext.storage.append_public",
     "ext.storage.read_public",
     "extension.api.request",
     "http.request",
     "wallet.create_invoice_public",
 }
+_OWNER_ID_FIELD = "__lnbits_owner_id__"
+_PUBLIC_APPEND_DEFAULT_MAX_ROWS_PER_SOURCE = 10_000
 
 
 def validate_extension_permissions(
@@ -127,6 +130,10 @@ def _permission_grant_is_subset(
         return _http_request_grant_is_subset(requested.policies, granted.policies)
     if requested.id == "extension.api.request":
         return _extension_api_grant_is_subset(requested.policies, granted.policies)
+    if requested.id == "ext.storage.append_public":
+        return _public_storage_append_grant_is_subset(
+            requested.policies, granted.policies
+        )
     if requested.id == "ext.storage.read_public":
         return _public_storage_grant_is_subset(requested.policies, granted.policies)
     if requested.id == "wallet.create_invoice_public":
@@ -227,6 +234,64 @@ def _public_storage_tables(policies: list[Any] | None) -> dict[str, set[str]]:
         if fields:
             tables[table_name] = fields
     return tables
+
+
+def _public_storage_append_grant_is_subset(
+    requested_policies: list[Any] | None,
+    granted_policies: list[Any] | None,
+) -> bool:
+    requested_targets = _public_storage_append_targets(requested_policies)
+    granted_targets = _public_storage_append_targets(granted_policies)
+    for target, granted_policy in granted_targets.items():
+        requested_policy = requested_targets.get(target)
+        if requested_policy is None:
+            return False
+        if not granted_policy["allowed_fields"].issubset(
+            requested_policy["allowed_fields"]
+        ):
+            return False
+        if (
+            granted_policy["max_rows_per_source"]
+            > requested_policy["max_rows_per_source"]
+        ):
+            return False
+    return True
+
+
+def _public_storage_append_targets(policies: list[Any] | None) -> dict[Any, dict]:
+    targets: dict[Any, dict] = {}
+    for policy in _policy_list(policies):
+        if not isinstance(policy, dict):
+            continue
+        table = policy.get("table")
+        source_table = policy.get("source_table")
+        source_id_field = policy.get("source_id_field")
+        allowed_fields = policy.get("allowed_fields")
+        max_rows_per_source = policy.get(
+            "max_rows_per_source", _PUBLIC_APPEND_DEFAULT_MAX_ROWS_PER_SOURCE
+        )
+        if (
+            not isinstance(table, str)
+            or not table
+            or not isinstance(source_table, str)
+            or not source_table
+            or not isinstance(source_id_field, str)
+            or not source_id_field
+            or source_id_field == "id"
+            or not isinstance(allowed_fields, list)
+            or isinstance(max_rows_per_source, bool)
+            or not isinstance(max_rows_per_source, int)
+            or max_rows_per_source <= 0
+        ):
+            continue
+        fields = {field for field in allowed_fields if isinstance(field, str) and field}
+        if "id" in fields or _OWNER_ID_FIELD in fields or source_id_field in fields:
+            continue
+        targets[(table, source_table, source_id_field)] = {
+            "allowed_fields": fields,
+            "max_rows_per_source": max_rows_per_source,
+        }
+    return targets
 
 
 def _public_invoice_grant_is_subset(

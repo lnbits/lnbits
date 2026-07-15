@@ -67,6 +67,35 @@
             </ul>
           </li>
         </ul>
+        <div v-if="permission.appendPolicies.length" class="q-mt-sm">
+          <div
+            class="text-caption text-grey"
+            v-text="
+              $t('extension_permission_ext_storage_append_public_sources')
+            "
+          ></div>
+          <ul class="q-my-sm q-pl-md">
+            <li
+              v-for="policy of permission.appendPolicies"
+              :key="
+                policy.table +
+                ':' +
+                policy.sourceTable +
+                ':' +
+                policy.sourceIdField
+              "
+            >
+              <span v-text="publicAppendPolicySentence(policy)"></span>
+              <ul v-if="policy.allowedFields.length" class="q-pl-md">
+                <li
+                  v-for="field of policy.allowedFields"
+                  :key="policy.table + ':' + field"
+                  v-text="field"
+                ></li>
+              </ul>
+            </li>
+          </ul>
+        </div>
         <div v-if="permission.extensionAccess.length" class="q-mt-sm">
           <div
             class="text-caption text-grey"

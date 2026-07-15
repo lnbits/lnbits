@@ -102,6 +102,104 @@ def test_validate_wasm_permissions_stores_narrower_policy_grant():
     ]
 
 
+def test_validate_wasm_permissions_allows_narrower_public_append_grant():
+    ext_info = make_installable_extension("demoext")
+    extension_config = _wasm_config(
+        "demoext",
+        [
+            {
+                "id": "ext.storage.append_public",
+                "description": "Append public messages.",
+                "policies": [
+                    {
+                        "table": "messages",
+                        "source_table": "threads",
+                        "source_id_field": "thread_id",
+                        "allowed_fields": ["name", "message"],
+                        "max_rows_per_source": 100,
+                    }
+                ],
+            }
+        ],
+    )
+
+    permissions = validate_wasm_extension_permissions(
+        ext_info,
+        [
+            ExtensionPermission(
+                id="ext.storage.append_public",
+                policies=[
+                    {
+                        "table": "messages",
+                        "source_table": "threads",
+                        "source_id_field": "thread_id",
+                        "allowed_fields": ["message"],
+                        "max_rows_per_source": 50,
+                    }
+                ],
+            )
+        ],
+        extension_config,
+    )
+
+    assert permissions == [
+        ExtensionPermission(
+            id="ext.storage.append_public",
+            description="Append public messages.",
+            policies=[
+                {
+                    "table": "messages",
+                    "source_table": "threads",
+                    "source_id_field": "thread_id",
+                    "allowed_fields": ["message"],
+                    "max_rows_per_source": 50,
+                }
+            ],
+        )
+    ]
+
+
+def test_validate_wasm_permissions_rejects_broader_public_append_grant():
+    ext_info = make_installable_extension("demoext")
+    extension_config = _wasm_config(
+        "demoext",
+        [
+            {
+                "id": "ext.storage.append_public",
+                "policies": [
+                    {
+                        "table": "messages",
+                        "source_table": "threads",
+                        "source_id_field": "thread_id",
+                        "allowed_fields": ["message"],
+                        "max_rows_per_source": 100,
+                    }
+                ],
+            }
+        ],
+    )
+
+    with pytest.raises(ValueError, match="broader policies"):
+        validate_wasm_extension_permissions(
+            ext_info,
+            [
+                ExtensionPermission(
+                    id="ext.storage.append_public",
+                    policies=[
+                        {
+                            "table": "messages",
+                            "source_table": "threads",
+                            "source_id_field": "thread_id",
+                            "allowed_fields": ["message", "admin"],
+                            "max_rows_per_source": 101,
+                        }
+                    ],
+                )
+            ],
+            extension_config,
+        )
+
+
 def test_validate_wasm_permissions_rejects_broader_extension_api_access():
     ext_info = make_installable_extension("demoext")
     extension_config = _wasm_config(

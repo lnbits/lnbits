@@ -67,6 +67,23 @@ class StorageSetResponse(BaseModel):
     ok: bool = True
 
 
+class StorageAppendPublicRequest(BaseModel):
+    table: str = Field(..., min_length=1, max_length=128)
+    source_id: str = Field(..., min_length=1, max_length=512)
+    data: dict[str, Any] = Field(default_factory=dict)
+
+    @root_validator(pre=True)
+    def parse_data_json(cls, values: dict[str, Any]) -> dict[str, Any]:
+        data_json = values.get("data_json")
+        if data_json is not None and "data" not in values:
+            values["data"] = json.loads(data_json)
+        return values
+
+
+class StorageAppendPublicResponse(BaseModel):
+    id: str
+
+
 class StoragePaginatedRequest(BaseModel):
     table: str = Field(..., min_length=1, max_length=128)
     filters: dict[str, Any] = Field(default_factory=dict)

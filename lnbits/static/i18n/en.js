@@ -544,6 +544,10 @@ window.localisation.en = {
   extension_permission_warning_extension_api_request_write:
     'Can write data or trigger actions in approved extensions.',
   extension_permission_ext_storage_read: 'Read extension storage',
+  extension_permission_ext_storage_append_public:
+    'Append public extension storage',
+  extension_permission_ext_storage_append_public_sources:
+    'Allowed append targets',
   extension_permission_ext_storage_read_public: 'Read public extension storage',
   extension_permission_ext_storage_write: 'Write extension storage',
   extension_permission_ext_storage_read_write: 'Read & Write extension storage',

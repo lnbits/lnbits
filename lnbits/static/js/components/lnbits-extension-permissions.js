@@ -115,6 +115,7 @@
         'wallet.list',
         'wallet.balance.read',
         'wallet.create_invoice_public',
+        'ext.storage.append_public',
         'ext.storage.read_public'
       ].includes(permission.id)
     ) {
@@ -145,6 +146,7 @@
       'ext.storage.read',
       'ext.storage.write',
       'ext.storage.read_public',
+      'ext.storage.append_public',
       'wallet.create_invoice_public',
       'wallet.create_invoice',
       'utils.basic'
@@ -194,6 +196,37 @@
       .filter(Boolean)
   }
 
+  function publicAppendPolicies(permission) {
+    const policies = permission.policies
+    if (!Array.isArray(policies)) return []
+    return policies
+      .map(policy => {
+        if (!policy || typeof policy !== 'object') return null
+        const table = policy.table
+        const sourceTable = policy.source_table
+        const sourceIdField = policy.source_id_field
+        const allowedFields = Array.isArray(policy.allowed_fields)
+          ? policy.allowed_fields.filter(
+              field => typeof field === 'string' && field
+            )
+          : []
+        const maxRowsPerSource = Number.isInteger(policy.max_rows_per_source)
+          ? policy.max_rows_per_source
+          : 10000
+        if (typeof table !== 'string' || !table) return null
+        if (typeof sourceTable !== 'string' || !sourceTable) return null
+        if (typeof sourceIdField !== 'string' || !sourceIdField) return null
+        return {
+          table,
+          sourceTable,
+          sourceIdField,
+          allowedFields,
+          maxRowsPerSource
+        }
+      })
+      .filter(Boolean)
+  }
+
   function permissionDisplayItem(permissions, extensions, translateFn) {
     const permission = permissions[0]
     const isReadWriteStorage =
@@ -212,6 +245,7 @@
       badges: [],
       descriptions,
       fieldGroups: [],
+      appendPolicies: [],
       invoicePolicies: [],
       extensionAccess: [],
       httpHosts: []
@@ -242,6 +276,15 @@
 
     if (permission.id === 'wallet.create_invoice_public') {
       item.invoicePolicies = publicInvoicePolicies(permission)
+    }
+
+    if (permission.id === 'ext.storage.append_public') {
+      item.appendPolicies = publicAppendPolicies(permission)
+      item.badges = item.appendPolicies.map(policy => ({
+        key:
+          policy.table + ':' + policy.sourceTable + ':' + policy.sourceIdField,
+        label: policy.table
+      }))
     }
 
     return item
@@ -326,6 +369,9 @@
     methods: {
       publicInvoicePolicySentence(policy) {
         return `Invoices will be created using ${policy.walletField} from ${policy.table}.`
+      },
+      publicAppendPolicySentence(policy) {
+        return `${policy.table} rows can be appended for ${policy.sourceTable} using ${policy.sourceIdField}. Limit: ${policy.maxRowsPerSource} rows per source.`
       },
       permissionAccessLabel(access) {
         const key = `extension_permission_access_${access}`

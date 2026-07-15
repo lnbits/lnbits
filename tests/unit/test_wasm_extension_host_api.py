@@ -10,6 +10,7 @@ from lnbits.core.wasm_ext.api.models import (
     CreateInvoicePublicRequest,
     EmptyRequest,
     PayInvoiceRequest,
+    StorageAppendPublicRequest,
     StorageGetRequest,
     WalletBalanceRequest,
 )
@@ -75,6 +76,136 @@ async def test_host_api_storage_requires_owner_context_and_uses_user_hash(
         "1",
         sha256s("user-1"),
     )
+
+
+@pytest.mark.anyio
+async def test_host_api_public_append_uses_source_owner_and_allowed_fields(
+    mocker: MockerFixture,
+):
+    owner_mock = mocker.patch(
+        "lnbits.core.wasm_ext.api.host.storage_get_row_owner_id",
+        mocker.AsyncMock(return_value="owner-1"),
+    )
+    count_mock = mocker.patch(
+        "lnbits.core.wasm_ext.api.host.storage_count_rows",
+        mocker.AsyncMock(return_value=0),
+    )
+    append_mock = mocker.patch(
+        "lnbits.core.wasm_ext.api.host.storage_append_public_row",
+        mocker.AsyncMock(return_value="message-1"),
+    )
+    api = ExtensionHostAPI(
+        "demoext",
+        [
+            ExtensionPermission(
+                id="ext.storage.append_public",
+                policies=[
+                    {
+                        "table": "messages",
+                        "source_table": "threads",
+                        "source_id_field": "thread_id",
+                        "allowed_fields": ["name", "message"],
+                    }
+                ],
+            )
+        ],
+    )
+
+    response = await api.storage_append_public(
+        StorageAppendPublicRequest(
+            table="messages",
+            source_id="thread-1",
+            data={"name": "Alice", "message": "Hello"},
+        )
+    )
+
+    assert response.id == "message-1"
+    owner_mock.assert_awaited_once_with("demoext", "threads", "thread-1")
+    count_mock.assert_awaited_once_with(
+        "demoext",
+        "messages",
+        {"thread_id": "thread-1"},
+        owner_id="owner-1",
+    )
+    append_mock.assert_awaited_once_with(
+        "demoext",
+        "messages",
+        {"name": "Alice", "message": "Hello", "thread_id": "thread-1"},
+        "owner-1",
+    )
+
+
+@pytest.mark.anyio
+async def test_host_api_public_append_rejects_disallowed_fields(
+    mocker: MockerFixture,
+):
+    mocker.patch(
+        "lnbits.core.wasm_ext.api.host.storage_get_row_owner_id",
+        mocker.AsyncMock(return_value="owner-1"),
+    )
+    api = ExtensionHostAPI(
+        "demoext",
+        [
+            ExtensionPermission(
+                id="ext.storage.append_public",
+                policies=[
+                    {
+                        "table": "messages",
+                        "source_table": "threads",
+                        "source_id_field": "thread_id",
+                        "allowed_fields": ["message"],
+                    }
+                ],
+            )
+        ],
+    )
+
+    with pytest.raises(PermissionError, match="disallowed fields"):
+        await api.storage_append_public(
+            StorageAppendPublicRequest(
+                table="messages",
+                source_id="thread-1",
+                data={"message": "Hello", "admin": True},
+            )
+        )
+
+
+@pytest.mark.anyio
+async def test_host_api_public_append_enforces_row_limit(mocker: MockerFixture):
+    mocker.patch(
+        "lnbits.core.wasm_ext.api.host.storage_get_row_owner_id",
+        mocker.AsyncMock(return_value="owner-1"),
+    )
+    mocker.patch(
+        "lnbits.core.wasm_ext.api.host.storage_count_rows",
+        mocker.AsyncMock(return_value=1),
+    )
+    api = ExtensionHostAPI(
+        "demoext",
+        [
+            ExtensionPermission(
+                id="ext.storage.append_public",
+                policies=[
+                    {
+                        "table": "messages",
+                        "source_table": "threads",
+                        "source_id_field": "thread_id",
+                        "allowed_fields": ["message"],
+                        "max_rows_per_source": 1,
+                    }
+                ],
+            )
+        ],
+    )
+
+    with pytest.raises(PermissionError, match="limit reached"):
+        await api.storage_append_public(
+            StorageAppendPublicRequest(
+                table="messages",
+                source_id="thread-1",
+                data={"message": "Hello"},
+            )
+        )
 
 
 @pytest.mark.anyio
