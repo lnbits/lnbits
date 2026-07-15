@@ -60,6 +60,7 @@ class ExtensionsSettings(LNbitsSettings):
     lnbits_user_default_extensions: list[str] = Field(default=[])
     lnbits_extensions_deactivate_all: bool = Field(default=False)
     lnbits_extensions_builder_activate_non_admins: bool = Field(default=False)
+    lnbits_wasm_invocation_retention_days: int = Field(default=7, ge=0)
     lnbits_extensions_reviews_url: str = Field(
         default="https://demo.lnbits.com/paidreviews/api/v1/AdFzLjzuKFLsdk4Bcnff6r",
         description="""
@@ -79,6 +80,33 @@ class ExtensionsSettings(LNbitsSettings):
     @property
     def extension_builder_working_dir_path(self) -> Path:
         return Path(settings.lnbits_data_folder, "extensions_builder")
+
+
+class WasmRuntimeLimits(LNbitsSettings):
+    # 0 disables the limit. Installed WASM extensions may override these defaults.
+    wasm_runtime_max_memory_bytes: int = Field(default=64 * 1024 * 1024, ge=0)
+    wasm_runtime_max_execution_ms: int = Field(default=5_000, ge=0)
+    wasm_runtime_max_fuel: int = Field(default=100_000_000, ge=0)
+    wasm_runtime_max_response_bytes: int = Field(default=1024 * 1024, ge=0)
+    wasm_runtime_max_request_bytes: int = Field(default=1024 * 1024, ge=0)
+    wasm_runtime_max_wasm_stack_bytes: int = Field(default=1024 * 1024, ge=0)
+
+    wasm_runtime_max_table_elements: int = Field(default=10_000, ge=0)
+    wasm_runtime_max_instances: int = Field(default=8, ge=0)
+    wasm_runtime_max_tables: int = Field(default=10, ge=0)
+    wasm_runtime_max_memories: int = Field(default=1, ge=0)
+
+    wasm_runtime_max_concurrent_invocations: int = Field(default=16, ge=0)
+    wasm_runtime_max_concurrent_invocations_per_extension: int = Field(default=4, ge=0)
+    wasm_runtime_max_concurrent_invocations_per_user: int = Field(default=4, ge=0)
+
+    wasm_runtime_max_host_calls: int = Field(default=1_000, ge=0)
+    wasm_runtime_max_http_calls: int = Field(default=20, ge=0)
+    wasm_runtime_max_storage_calls: int = Field(default=100, ge=0)
+    wasm_runtime_max_wallet_calls: int = Field(default=20, ge=0)
+
+    wasm_runtime_http_timeout_ms: int = Field(default=5_000, ge=0)
+    wasm_runtime_max_http_response_bytes: int = Field(default=1024 * 1024, ge=0)
 
 
 class ExtensionsInstallSettings(LNbitsSettings):
@@ -494,6 +522,11 @@ class NotificationsSettings(LNbitsSettings):
         return (
             self.lnbits_telegram_notifications_enabled
             and self.lnbits_telegram_notifications_access_token is not None
+        )
+
+    def is_email_notifications_configured(self) -> bool:
+        return self.lnbits_email_notifications_enabled and bool(
+            self.lnbits_email_notifications_email
         )
 
 
@@ -1006,6 +1039,7 @@ class AuditSettings(LNbitsSettings):
 class EditableSettings(
     UsersSettings,
     ExtensionsSettings,
+    WasmRuntimeLimits,
     ThemesSettings,
     OpsSettings,
     AssetSettings,
@@ -1295,6 +1329,7 @@ class PublicSettings(BaseModel):
     extensions_reviews_url: str = Field(alias="extensionsReviewsUrl")
     ext_builder: bool = Field(alias="extBuilder")
     nostr_configured: bool = Field(alias="nostrConfigured")
+    email_configured: bool = Field(alias="emailConfigured")
     telegram_configured: bool = Field(alias="telegramConfigured")
     wallet_featured_button_label: str | None = Field(alias="walletFeaturedButtonLabel")
     wallet_featured_button_url: str | None = Field(alias="walletFeaturedButtonUrl")
@@ -1359,6 +1394,7 @@ class PublicSettings(BaseModel):
             extensionsReviewsUrl=settings.lnbits_extensions_reviews_url,
             extBuilder=settings.lnbits_extensions_builder_activate_non_admins,
             nostrConfigured=settings.is_nostr_notifications_configured(),
+            emailConfigured=settings.is_email_notifications_configured(),
             telegramConfigured=settings.is_telegram_notifications_configured(),
             walletFeaturedButtonLabel=settings.lnbits_wallet_featured_button_label,
             walletFeaturedButtonUrl=settings.lnbits_wallet_featured_button_url,

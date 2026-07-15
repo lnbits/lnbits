@@ -6,12 +6,16 @@ import json
 import os
 import shutil
 import zipfile
-from pathlib import Path
+from collections.abc import Mapping
+from datetime import datetime, timezone
+from enum import Enum
+from pathlib import Path, PurePosixPath
 from typing import Any
+from uuid import uuid4
 
 import httpx
 from loguru import logger
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, StrictStr
 
 from lnbits.helpers import (
     download_url,
@@ -77,6 +81,23 @@ class GitHubRepo(BaseModel):
     default_branch: str
 
 
+class ExtensionPermission(BaseModel):
+    id: StrictStr
+    description: StrictStr | None = None
+    policies: list[Any] | None = None
+
+    class Config:
+        extra = "ignore"
+
+    @staticmethod
+    def list_from_config(config_json: Mapping[str, Any]) -> list[ExtensionPermission]:
+        return [
+            ExtensionPermission.parse_obj(permission)
+            for permission in config_json.get("permissions") or []
+            if isinstance(permission, dict) and permission.get("id")
+        ]
+
+
 class ExtensionConfig(BaseModel):
     name: str
     short_description: str
@@ -84,6 +105,8 @@ class ExtensionConfig(BaseModel):
     warning: str | None = ""
     min_lnbits_version: str | None
     max_lnbits_version: str | None
+    extension_type: str | None = None
+    permissions: list[ExtensionPermission] = []
 
     def is_version_compatible(self) -> bool:
         return is_lnbits_version_ok(self.min_lnbits_version, self.max_lnbits_version)
@@ -118,11 +141,83 @@ class UserExtensionInfo(BaseModel):
     payment_hash_to_enable: str | None = None
 
 
+class ExtensionBackgroundPaymentDestinationPolicy(str, Enum):
+    OWN_WALLETS_ONLY = "own_wallets_only"
+    EXTERNAL_ALLOWED = "external_allowed"
+
+
+class ExtensionBackgroundPaymentGrant(BaseModel):
+    id: StrictStr = Field(..., min_length=1, max_length=128)
+    wallet_id: str = Field(..., min_length=1, max_length=128)
+    enabled: bool = True
+    max_amount: int = Field(..., gt=0)
+    destination_policy: ExtensionBackgroundPaymentDestinationPolicy
+
+
+class ExtensionBackgroundPaymentGrantRequest(BaseModel):
+    wallet_id: str = Field(..., min_length=1, max_length=128)
+    max_amount: int = Field(..., gt=0)
+    destination_policy: ExtensionBackgroundPaymentDestinationPolicy
+
+    def to_grant(self, grant_id: str | None = None) -> ExtensionBackgroundPaymentGrant:
+        return ExtensionBackgroundPaymentGrant(
+            id=grant_id or str(uuid4()),
+            wallet_id=self.wallet_id,
+            enabled=True,
+            max_amount=self.max_amount,
+            destination_policy=self.destination_policy,
+        )
+
+
+class ExtensionWalletPaymentsWatchGrant(BaseModel):
+    id: StrictStr = Field(..., min_length=1, max_length=128)
+    wallet_id: str = Field(..., min_length=1, max_length=128)
+    enabled: bool = True
+
+
+class ExtensionWalletPaymentsWatchGrantRequest(BaseModel):
+    wallet_id: str = Field(..., min_length=1, max_length=128)
+
+    def to_grant(
+        self, grant_id: str | None = None
+    ) -> ExtensionWalletPaymentsWatchGrant:
+        return ExtensionWalletPaymentsWatchGrant(
+            id=grant_id or str(uuid4()),
+            wallet_id=self.wallet_id,
+            enabled=True,
+        )
+
+
+class ExtensionPermissionCheckItem(BaseModel):
+    id: StrictStr
+    grant: dict[str, Any] = Field(default_factory=dict)
+
+
+class ExtensionPermissionCheckRequest(BaseModel):
+    permissions: list[ExtensionPermissionCheckItem] = Field(default_factory=list)
+
+
+class ExtensionPermissionCheckResult(BaseModel):
+    id: StrictStr
+    approved: bool
+    grant: dict[str, Any] = Field(default_factory=dict)
+
+
+class ExtensionPermissionCheckResponse(BaseModel):
+    permissions: list[ExtensionPermissionCheckResult] = Field(default_factory=list)
+
+
+class ExtensionPermissionsResponse(BaseModel):
+    extension_permissions: list[ExtensionPermission] = Field(default_factory=list)
+    user_permissions: dict[str, list[dict[str, Any]]] = Field(default_factory=dict)
+
+
 class UserExtension(BaseModel):
     user: str
     extension: str
     active: bool
     extra: UserExtensionInfo | None = None
+    permissions: dict = Field(default_factory=dict)
 
     @property
     def is_paid(self) -> bool:
@@ -144,6 +239,7 @@ class UserExtension(BaseModel):
 class Extension(BaseModel):
     code: str
     is_valid: bool
+    is_wasm: bool = False
     name: str | None = None
     short_description: str | None = None
     tile: str | None = None
@@ -160,6 +256,8 @@ class Extension(BaseModel):
 
     @property
     def is_upgrade_extension(self) -> bool:
+        if self.is_wasm:
+            return False
         return self.upgrade_hash != ""
 
     @classmethod
@@ -167,11 +265,69 @@ class Extension(BaseModel):
         return Extension(
             code=ext_info.id,
             is_valid=True,
+            is_wasm=ext_info.is_wasm,
             name=ext_info.name,
             short_description=ext_info.short_description,
-            tile=ext_info.icon,
+            tile=_extension_tile(ext_info),
             upgrade_hash=ext_info.hash if ext_info.ext_upgrade_dir.is_dir() else "",
         )
+
+
+class WasmInvocation(BaseModel):
+    id: str
+    extension_id: str
+    export_name: str
+    trigger_type: str = "unknown"
+    status: str = "running"
+    started_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    finished_at: datetime | None = None
+    duration_ms: int | None = None
+    user_id: str | None = None
+    wallet_id: str | None = None
+    request_id: str | None = None
+    method: str | None = None
+    path: str | None = None
+    event_type: str | None = None
+    payment_hash: str | None = None
+    checking_id: str | None = None
+    memory_peak_bytes: int | None = None
+    request_bytes: int | None = None
+    response_bytes: int | None = None
+    host_call_count: int = 0
+    http_call_count: int = 0
+    storage_call_count: int = 0
+    wallet_call_count: int = 0
+    error_type: str | None = None
+    error_message: str | None = None
+    stop_reason: str | None = None
+    context: dict = Field(default_factory=dict)
+
+
+class WasmInvocationStats(BaseModel):
+    total: int = 0
+    running: int = 0
+    completed: int = 0
+    failed: int = 0
+    stopped: int = 0
+    timeout: int = 0
+    avg_duration_ms: float = 0
+    max_duration_ms: int = 0
+    host_call_count: int = 0
+    http_call_count: int = 0
+    storage_call_count: int = 0
+    wallet_call_count: int = 0
+
+
+class WasmRuntimeLimitsUpdate(BaseModel):
+    limits: dict[str, Any] = Field(default_factory=dict)
+
+
+class WasmRuntimeLimitsInfo(BaseModel):
+    id: str
+    name: str
+    active: bool | None = False
+    wasm_runtime_limits: dict[str, int] = Field(default_factory=dict)
+    effective_wasm_runtime_limits: dict[str, int] = Field(default_factory=dict)
 
 
 class ExtensionRelease(BaseModel):
@@ -348,6 +504,8 @@ class InstallableExtension(BaseModel):
     icon: str | None = None
     stars: int = 0
     meta: ExtensionMeta | None = None
+    permissions: list[ExtensionPermission] = []
+    wasm_runtime_limits: dict = Field(default_factory=dict, no_database=True)
 
     @property
     def hash(self) -> str:
@@ -400,6 +558,18 @@ class InstallableExtension(BaseModel):
             return False
         return self.meta.pay_to_enable.required is True
 
+    @property
+    def is_wasm(self) -> bool:
+        config_path = Path(self.ext_dir, "config.json")
+        if not config_path.is_file():
+            return False
+        try:
+            with open(config_path, encoding="utf-8") as json_file:
+                config_json = json.load(json_file)
+        except Exception:
+            return False
+        return config_json.get("extension_type") == "wasm"
+
     async def download_archive(self):
         logger.info(f"Downloading extension {self.name} ({self.installed_version}).")
         ext_zip_file = self.zip_path
@@ -431,6 +601,22 @@ class InstallableExtension(BaseModel):
             if ext_zip_file.is_file():
                 os.remove(ext_zip_file)
             raise AssertionError("File hash missmatch. Will not install.")
+
+    def load_archive_config(self) -> dict[str, Any]:
+        if not self.zip_path.is_file():
+            return {}
+
+        try:
+            with zipfile.ZipFile(self.zip_path, "r") as archive:
+                config_name = _archive_config_name(archive.namelist())
+                if not config_name:
+                    return {}
+                with archive.open(config_name) as config_file:
+                    config = json.load(config_file)
+        except Exception as exc:
+            raise ValueError(f"Cannot read extension config for '{self.id}'.") from exc
+
+        return config if isinstance(config, dict) else {}
 
     def extract_archive(self):
         logger.info(f"Extracting extension {self.name} ({self.installed_version}).")
@@ -610,6 +796,7 @@ class InstallableExtension(BaseModel):
                     version=version,
                     short_description=config_json.get("short_description"),
                     icon=config_json.get("tile"),
+                    permissions=ExtensionPermission.list_from_config(config_json),
                     meta=ExtensionMeta(
                         installed_release=ExtensionRelease(
                             name=ext_id,
@@ -803,6 +990,7 @@ class CreateExtension(BaseModel):
     version: str
     cost_sats: int | None = 0
     payment_hash: str | None = None
+    permissions: list[ExtensionPermission] = []
 
 
 class ExtensionDetailsRequest(BaseModel):
@@ -855,3 +1043,21 @@ def icon_to_github_url(source_repo: str, path: str | None) -> str:
     _, _, *rest = path.split("/")
     tail = "/".join(rest)
     return f"https://github.com/{source_repo}/raw/main/{tail}"
+
+
+def wasm_extension_icon_url(ext_id: str) -> str:
+    return f"/ext-assets/{ext_id}/assets/icon.png"
+
+
+def _extension_tile(ext_info: InstallableExtension) -> str | None:
+    if ext_info.is_wasm:
+        return wasm_extension_icon_url(ext_info.id)
+    return ext_info.icon
+
+
+def _archive_config_name(names: list[str]) -> str | None:
+    for name in names:
+        path = PurePosixPath(name)
+        if len(path.parts) == 2 and path.name == "config.json":
+            return name
+    return None

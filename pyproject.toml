@@ -53,6 +53,7 @@ dependencies = [
     "greenlet~=3.3.0",
     "urllib3>=2.7.0",
     "pyinstrument>=5.1.2",
+    "wasmtime>=45.0.0",
 ]
 
 [project.scripts]

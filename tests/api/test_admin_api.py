@@ -83,7 +83,8 @@ async def test_admin_audit_monitor_and_test_email(
     )
     assert monitor.status_code == 200
     task_names = [t["name"] for t in monitor.json()]
-    assert any("invoice_listener" in name for name in task_names)
+    assert "core_invoice_listener" in task_names
+    assert "core_wasm_invoice_listener" in task_names
 
     test_email = await client.get(
         "/admin/api/v1/testemail",
