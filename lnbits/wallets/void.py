@@ -1,5 +1,3 @@
-from collections.abc import AsyncGenerator
-
 from loguru import logger
 
 from .base import (
@@ -40,6 +38,3 @@ class VoidWallet(Wallet):
 
     async def get_payment_status(self, *_, **__) -> PaymentStatus:
         return PaymentPendingStatus()
-
-    async def paid_invoices_stream(self) -> AsyncGenerator[str, None]:
-        yield ""
