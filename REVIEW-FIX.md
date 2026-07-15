@@ -22,8 +22,8 @@ regression tests are one atomic follow-up commit.
 black --check clavestra source/tests       -> pass
 ruff check clavestra source/tests          -> pass
 mypy clavestra source/tests                -> success, no issues
-pytest tests/wallets/test_clavestra.py -q  -> 39 passed
-pytest tests/wallets -q                    -> 305 passed, 20 skipped
+pytest tests/wallets/test_clavestra.py -q  -> 40 passed
+pytest tests/wallets -q                    -> 306 passed, 20 skipped
 gateway fixture byte comparison            -> all 10 fixtures identical
 git diff --check                           -> pass
 ```
@@ -39,18 +39,22 @@ git diff --check                           -> pass
 
 **Change.** `pay_invoice` decodes the submitted BOLT11 before POST and uses its
 signed payment hash as the durable `checking_id`. A successful gateway response
-must return the same identifier. Timeouts, transport errors, malformed bodies,
-hash mismatches, `ok:null`, and `ok:true` without a well-formed preimage return
+must return the same identifier, and terminal proof must satisfy
+`SHA256(preimage) == payment_hash`; a merely well-formed 32-byte value is not
+accepted. Timeouts, transport errors, malformed bodies, hash/preimage
+mismatches, `ok:null`, and `ok:true` without valid settlement proof return
 pending under that known hash. Only the gateway's explicit `ok:false` response
 or an HTTP rejection known to occur before dispatch returns failed.
 
 **Behavior preserved.** Gateway business failures remain visible to LNbits.
 Ambiguous outcomes deliberately reserve the LNbits balance until
-`GET /v1/ln/payment/{hash}` reports a terminal result.
+`GET /v1/ln/payment/{hash}` reports a terminal result. An invalid preimage is
+not propagated upward while the payment remains pending.
 
 **Regression tests** in `tests/wallets/test_clavestra.py` cover dispatched,
 settled, in-flight, hard-fail, response-loss timeout, malformed response,
-correlation mismatch, pre-dispatch rejection, and ambiguous 5xx behavior.
+correlation mismatch, cryptographically mismatched preimage, pre-dispatch
+rejection, and ambiguous 5xx behavior.
 
 ## [H-1] Match gateway v15 REST and RFC 9457 contracts
 

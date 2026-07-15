@@ -8,6 +8,7 @@ session-wide pytest-httpserver port fixture used by the other wallet tests.
 
 from __future__ import annotations
 
+import hashlib
 import json
 from collections.abc import Callable
 from pathlib import Path
@@ -365,6 +366,29 @@ async def test_dispatched_payment_stays_pending_with_bolt11_hash(
 
 @pytest.mark.anyio
 async def test_settled_payment_requires_matching_hash_and_preimage(
+    gateway: GatewayMock, wallet, monkeypatch: pytest.MonkeyPatch
+):
+    preimage = "cd" * 32
+    payment_hash = hashlib.sha256(bytes.fromhex(preimage)).hexdigest()
+    monkeypatch.setattr(
+        "lnbits.wallets.clavestra._decode_payment_hash", lambda _bolt11: payment_hash
+    )
+    payload = contract_fixture("payment_response_dispatched.json")
+    payload.update(
+        checking_id=payment_hash,
+        fee_msat=1234,
+        preimage=preimage,
+    )
+    gateway.respond_json(payload)
+    response = await wallet.pay_invoice(OUTBOUND_BOLT11, fee_limit_msat=2000)
+    assert response.ok is True
+    assert response.checking_id == payment_hash
+    assert response.fee_msat == 1234
+    assert response.preimage == preimage
+
+
+@pytest.mark.anyio
+async def test_well_formed_but_wrong_preimage_stays_pending(
     gateway: GatewayMock, wallet
 ):
     payload = contract_fixture("payment_response_dispatched.json")
@@ -374,11 +398,12 @@ async def test_settled_payment_requires_matching_hash_and_preimage(
         preimage="cd" * 32,
     )
     gateway.respond_json(payload)
+
     response = await wallet.pay_invoice(OUTBOUND_BOLT11, fee_limit_msat=2000)
-    assert response.ok is True
+    assert response.ok is None
     assert response.checking_id == OUTBOUND_PAYMENT_HASH
-    assert response.fee_msat == 1234
-    assert response.preimage == "cd" * 32
+    assert response.preimage is None
+    assert response.error_message == "gateway preimage does not match payment hash"
 
 
 @pytest.mark.anyio

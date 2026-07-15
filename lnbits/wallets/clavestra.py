@@ -14,6 +14,7 @@ strand an incoming payment.
 from __future__ import annotations
 
 import asyncio
+import hashlib
 import re
 import ssl
 from collections.abc import AsyncGenerator
@@ -212,6 +213,17 @@ def _decode_payment_hash(bolt11: str) -> str:
     if not _is_payment_hash(payment_hash):
         raise ValueError("BOLT11 does not contain a valid payment hash")
     return payment_hash
+
+
+def _preimage_settles(payment_hash: str, preimage: str | None) -> bool:
+    """Return true only for cryptographic settlement proof for this invoice."""
+    if not preimage or len(preimage) != 64:
+        return False
+    try:
+        preimage_bytes = bytes.fromhex(preimage)
+    except ValueError:
+        return False
+    return hashlib.sha256(preimage_bytes).hexdigest() == payment_hash
 
 
 def _pending_payment(payment_hash: str, error_message: str) -> PaymentResponse:
@@ -523,19 +535,29 @@ class ClavestraWallet(Wallet):
                 parsed.error_message or "gateway payment state unknown",
             )
 
-        # Gateway ok=true means dispatched. Only a well-formed preimage is
-        # terminal settlement evidence; otherwise keep LNbits pending and
-        # reconcile by hash.
-        settled = _is_payment_hash(parsed.preimage)
+        # Gateway ok=true means dispatched. Only a preimage whose SHA-256 is the
+        # BOLT11 payment hash is terminal settlement evidence; shape alone is
+        # insufficient. Otherwise keep LNbits pending and reconcile by hash.
+        settled = _preimage_settles(payment_hash, parsed.preimage)
+        if parsed.preimage and not settled:
+            log.error(
+                "Clavestra returned a preimage that does not settle payment_hash={}",
+                payment_hash,
+            )
         return PaymentResponse(
             ok=True if settled else None,
             checking_id=payment_hash,
             fee_msat=parsed.fee_msat,
-            preimage=parsed.preimage,
+            preimage=parsed.preimage if settled else None,
             error_message=(
                 parsed.error_message
                 if settled
-                else parsed.error_message or "payment dispatched; awaiting settlement"
+                else parsed.error_message
+                or (
+                    "gateway preimage does not match payment hash"
+                    if parsed.preimage
+                    else "payment dispatched; awaiting settlement"
+                )
             ),
         )
 
