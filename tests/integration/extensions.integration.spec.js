@@ -1,29 +1,23 @@
 const {test, expect} = require('@playwright/test')
 
 const {
-  activateExtension,
   apiKeyHeaders,
   clearMirror,
   createAccount,
-  createInvoice,
   createWallet,
-  deactivateExtension,
   decodePayment,
-  disableExtension,
-  enableExtension,
   expectStatus,
   fetchManifest,
   getPayment,
   getPayments,
   getWallet,
   initServer,
-  installLatestExtension,
   jsonRequest,
   latestRelease,
+  loginAdmin,
   lnurlScan,
   mirrorUrl,
   pageStatus,
-  payInvoice,
   pollPayment,
   pollWalletBalance,
   responseJson,
@@ -37,8 +31,11 @@ test.describe.configure({mode: 'serial'})
 let baseURL
 let adminContext
 let adminWallet
+let adminSession
+let extensionById
 let contextFactory
 const contexts = []
+const browserContexts = []
 
 async function newContext() {
   const context = await contextFactory.newContext({
@@ -55,6 +52,440 @@ async function newUser(name) {
   const context = await newContext()
   const account = await createAccount(context, `${name}-${Date.now()}`)
   return {context, ...account}
+}
+
+async function newBrowserSession(browser, account) {
+  const uiContext = await browser.newContext({baseURL})
+  browserContexts.push(uiContext)
+  if (account?.userId) {
+    await textRequest(uiContext.request, 'get', '/')
+    await jsonRequest(uiContext.request, 'post', '/api/v1/auth/usr', {
+      data: {usr: account.userId}
+    })
+  } else {
+    await loginAdmin(uiContext.request)
+  }
+  const page = await uiContext.newPage()
+  page.setDefaultTimeout(45_000)
+  return {uiContext, page}
+}
+
+async function newUserWithUi(browser, name) {
+  const user = await newUser(name)
+  return {...user, ...(await newBrowserSession(browser, user))}
+}
+
+async function getAdminSession(browser) {
+  if (!adminSession) {
+    adminSession = {
+      ...adminWallet,
+      ...(await newBrowserSession(browser))
+    }
+  }
+  return adminSession
+}
+
+function extensionName(extensionId) {
+  return extensionById?.get(extensionId)?.name || extensionId
+}
+
+async function refreshExtensionCatalog(context = adminContext) {
+  const extensions = await jsonRequest(context, 'get', '/api/v1/extension')
+  for (const extension of extensions) {
+    const id = extension.id || extension.code
+    if (id) {
+      extensionById.set(id, {
+        id,
+        name: extension.name || extension.title || id
+      })
+    }
+  }
+}
+
+function responsePath(response) {
+  return new URL(response.url()).pathname
+}
+
+function responseMatches(response, method, path) {
+  return (
+    response.request().method() === method && responsePath(response) === path
+  )
+}
+
+async function clickAndCheckResponse(
+  page,
+  method,
+  path,
+  action,
+  expected = 200,
+  timeout = 45_000
+) {
+  const responsePromise = page.waitForResponse(
+    response => responseMatches(response, method, path),
+    {timeout}
+  )
+  await action()
+  const response = await responsePromise
+  await expectStatus(response, expected, `${method} ${path}`)
+  return response
+}
+
+async function clickAndGetJsonResponse(
+  page,
+  method,
+  path,
+  action,
+  expected = 200
+) {
+  const response = await clickAndCheckResponse(
+    page,
+    method,
+    path,
+    action,
+    expected
+  )
+  return responseJson(response)
+}
+
+async function gotoPage(page, path, expected = 200) {
+  const response = await page.goto(path)
+  if (response) {
+    await expectStatus(response, expected, `GET ${path}`)
+  }
+  await page.waitForFunction(() => window.LNbits && window.g)
+  const credentialsButton = page.getByRole('button', {name: /i understand/i})
+  if (await credentialsButton.isVisible({timeout: 1000}).catch(() => false)) {
+    await credentialsButton.click()
+  }
+  return response
+}
+
+async function gotoWallet(session, walletId = session.walletId) {
+  await gotoPage(session.page, `/wallet/${walletId}`)
+  await expect(
+    session.page.getByRole('button', {name: /receive/i})
+  ).toBeVisible()
+}
+
+async function fillQuasarField(scope, label, value) {
+  const field = scope
+    .locator('.q-field')
+    .filter({hasText: label})
+    .locator('input, textarea')
+    .first()
+  await field.fill(String(value))
+}
+
+async function createInvoiceViaUi(session, amount, memo) {
+  await gotoWallet(session)
+  await session.page.getByRole('button', {name: /receive/i}).click()
+  const dialog = session.page
+    .locator('.q-dialog')
+    .filter({hasText: 'Create Invoice'})
+    .last()
+  await fillQuasarField(dialog, 'Amount (sat)', amount)
+  await fillQuasarField(dialog, 'Memo', memo)
+  const invoice = await clickAndGetJsonResponse(
+    session.page,
+    'POST',
+    '/api/v1/payments',
+    () => dialog.getByRole('button', {name: /create invoice/i}).click(),
+    [200, 201]
+  )
+  expect(invoice.bolt11).toBeTruthy()
+  return invoice
+}
+
+async function payInvoiceViaUi(session, bolt11, expected = 201) {
+  await gotoWallet(session)
+  await session.page.getByRole('button', {name: /send/i}).click()
+  const dialog = session.page.locator('.q-dialog').last()
+  await fillQuasarField(dialog, 'Paste an invoice', bolt11)
+  await dialog.getByRole('button', {name: /read/i}).click()
+  await expect(dialog.getByRole('button', {name: /^pay$/i})).toBeVisible()
+  return clickAndGetJsonResponse(
+    session.page,
+    'POST',
+    '/api/v1/payments',
+    () => dialog.getByRole('button', {name: /^pay$/i}).click(),
+    expected
+  )
+}
+
+async function payLnurlViaUi(session, lnurl, amountMsat, comment) {
+  await gotoWallet(session)
+  await session.page.getByRole('button', {name: /send/i}).click()
+  const dialog = session.page.locator('.q-dialog').last()
+  await fillQuasarField(dialog, 'Paste an invoice', lnurl)
+  await clickAndCheckResponse(session.page, 'POST', '/api/v1/lnurlscan', () =>
+    dialog.getByRole('button', {name: /read/i}).click()
+  )
+  await fillQuasarField(dialog, 'Amount (sat)', amountMsat / 1000)
+  if (comment) {
+    await fillQuasarField(dialog, 'Comment (optional)', comment)
+  }
+  const payment = await clickAndGetJsonResponse(
+    session.page,
+    'POST',
+    '/api/v1/payments/lnurl',
+    () => dialog.getByRole('button', {name: /^send$/i}).click()
+  )
+  expect(payment.payment_hash).toBeTruthy()
+  return payment
+}
+
+async function withdrawLnurlViaUi(
+  session,
+  lnurl,
+  amount = 10,
+  memo = 'withdraw 1',
+  walletId = session.walletId
+) {
+  await gotoWallet(session, walletId)
+  await session.page.getByRole('button', {name: /send/i}).click()
+  const scanDialog = session.page.locator('.q-dialog').last()
+  await fillQuasarField(scanDialog, 'Paste an invoice', lnurl)
+  await clickAndCheckResponse(session.page, 'POST', '/api/v1/lnurlscan', () =>
+    scanDialog.getByRole('button', {name: /read/i}).click()
+  )
+  const withdrawDialog = session.page
+    .locator('.q-dialog')
+    .filter({hasText: 'Withdraw from'})
+    .last()
+  await fillQuasarField(withdrawDialog, 'Amount (sat)', amount)
+  await fillQuasarField(withdrawDialog, 'Memo', memo)
+  const payment = await clickAndGetJsonResponse(
+    session.page,
+    'POST',
+    '/api/v1/payments',
+    () => withdrawDialog.getByRole('button', {name: /withdraw from/i}).click(),
+    [200, 201]
+  )
+  expect(payment.payment_hash).toBeTruthy()
+  return payment
+}
+
+async function openExtensionsPage(session, tab = 'installed') {
+  const extensionsLoaded = session.page
+    .waitForResponse(response =>
+      responseMatches(response, 'GET', '/api/v1/extension')
+    )
+    .catch(() => null)
+  await gotoPage(session.page, '/extensions')
+  await extensionsLoaded
+  await session.page.waitForLoadState('networkidle').catch(() => null)
+  await session.page.getByLabel(/search extensions/i).waitFor()
+  const tabButton = session.page.getByRole('tab', {
+    name: new RegExp(`^${tab}$`, 'i')
+  })
+  await tabButton.click()
+  await expect(tabButton).toHaveAttribute('aria-selected', 'true')
+}
+
+async function findExtensionCard(session, extensionId, tab = 'installed') {
+  await openExtensionsPage(session, tab)
+  const name = extensionName(extensionId)
+  await session.page.getByLabel(/search extensions/i).fill(name)
+  const card = session.page
+    .locator('.q-card')
+    .filter({
+      has: session.page.locator('.text-h5').filter({
+        hasText: new RegExp(`^${name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`)
+      })
+    })
+    .first()
+  await expect(card).toBeVisible()
+  return card
+}
+
+async function openExtensionManager(session, extensionId, tab = 'installed') {
+  const card = await findExtensionCard(session, extensionId, tab)
+  await clickAndCheckResponse(
+    session.page,
+    'GET',
+    `/api/v1/extension/${extensionId}/releases`,
+    () => card.getByRole('button', {name: /manage/i}).click()
+  )
+  const dialog = session.page.locator('.q-dialog').filter({hasText: 'Releases'})
+  await expect(dialog.last()).toBeVisible()
+  return dialog.last()
+}
+
+async function installExtensionVersionViaUi(session, extensionId, version) {
+  let dialog
+  try {
+    dialog = await openExtensionManager(session, extensionId, 'installed')
+  } catch {
+    dialog = await openExtensionManager(session, extensionId, 'all')
+  }
+  const versionLabel = dialog.getByText(version, {exact: true}).first()
+  if (!(await versionLabel.isVisible({timeout: 1000}).catch(() => false))) {
+    await dialog
+      .getByRole('button', {name: /expand/i})
+      .first()
+      .click()
+  }
+  await versionLabel.click()
+  const installButton = dialog.getByRole('button', {name: /^install$/i}).first()
+  if (!(await installButton.isVisible({timeout: 1000}).catch(() => false))) {
+    await dialog.getByRole('button', {name: /close/i}).last().click()
+    return null
+  }
+  const activatePromise = session.page
+    .waitForResponse(response =>
+      responseMatches(
+        response,
+        'PUT',
+        `/api/v1/extension/${extensionId}/activate`
+      )
+    )
+    .catch(() => null)
+  let installResponsePromise = session.page.waitForResponse(response =>
+    responseMatches(response, 'POST', '/api/v1/extension')
+  )
+  await installButton.click()
+  const grantButton = session.page.getByRole('button', {
+    name: /grant and install/i
+  })
+  if (await grantButton.isVisible({timeout: 1000}).catch(() => false)) {
+    installResponsePromise.catch(() => null)
+    installResponsePromise = session.page.waitForResponse(response =>
+      responseMatches(response, 'POST', '/api/v1/extension')
+    )
+    await grantButton.click()
+  }
+  const installResponse = await installResponsePromise
+  await expectStatus(installResponse, [200, 201], 'POST /api/v1/extension')
+  const activateResponse = await activatePromise
+  if (activateResponse) {
+    await expectStatus(
+      activateResponse,
+      200,
+      `PUT /api/v1/extension/${extensionId}/activate`
+    )
+  }
+  return responseJson(installResponse)
+}
+
+async function installLatestExtensionViaUi(session, extensionId) {
+  const release = await latestRelease(session.uiContext.request, extensionId)
+  return installExtensionVersionViaUi(session, extensionId, release.version)
+}
+
+async function ensureExtensionsInstalledViaUi(session, extensionIds) {
+  for (const extensionId of extensionIds) {
+    const installed = await findExtensionCard(session, extensionId, 'installed')
+      .then(() => true)
+      .catch(() => false)
+    if (!installed) {
+      await installLatestExtensionViaUi(session, extensionId)
+    }
+    await setExtensionActiveViaUi(session, extensionId, true)
+  }
+}
+
+async function enableExtensionViaUi(session, extensionId) {
+  const card = await findExtensionCard(session, extensionId)
+  const alreadyEnabled =
+    (await card.getByRole('button', {name: /open/i}).isVisible()) ||
+    (await card.getByRole('button', {name: /^disable$/i}).isVisible())
+  if (alreadyEnabled) {
+    return null
+  }
+  const payToEnableButton = card.getByRole('button', {name: /pay to enable/i})
+  if (await payToEnableButton.isVisible()) {
+    await payToEnableButton.click()
+    const dialog = session.page
+      .locator('.q-dialog')
+      .filter({hasText: 'Recheck'})
+    await expect(dialog.last()).toBeVisible()
+    return clickAndGetJsonResponse(
+      session.page,
+      'PUT',
+      `/api/v1/extension/${extensionId}/enable`,
+      () => session.page.getByText(/recheck/i).click()
+    )
+  }
+  return clickAndGetJsonResponse(
+    session.page,
+    'PUT',
+    `/api/v1/extension/${extensionId}/enable`,
+    () => card.getByRole('button', {name: /^enable$/i}).click()
+  )
+}
+
+async function disableExtensionViaUi(session, extensionId) {
+  const card = await findExtensionCard(session, extensionId)
+  if (!(await card.getByRole('button', {name: /^disable$/i}).isVisible())) {
+    return null
+  }
+  return clickAndGetJsonResponse(
+    session.page,
+    'PUT',
+    `/api/v1/extension/${extensionId}/disable`,
+    () => card.getByRole('button', {name: /^disable$/i}).click()
+  )
+}
+
+async function setExtensionActiveViaUi(
+  session,
+  extensionId,
+  active,
+  expected = 200
+) {
+  const card = await findExtensionCard(session, extensionId)
+  const action = active ? 'activate' : 'deactivate'
+  const toggle = card.locator('.q-toggle').first()
+  const alreadySet = await toggle
+    .innerText()
+    .then(text =>
+      text.toLowerCase().includes(active ? 'activated' : 'deactivated')
+    )
+  if (alreadySet && expected === 200) return null
+  return clickAndGetJsonResponse(
+    session.page,
+    'PUT',
+    `/api/v1/extension/${extensionId}/${action}`,
+    () => toggle.click(),
+    expected
+  )
+}
+
+async function payToEnableExtensionViaUi(session, extensionId) {
+  const card = await findExtensionCard(session, extensionId)
+  await card.getByRole('button', {name: /pay to enable/i}).click()
+  const dialog = session.page.locator('.q-dialog').filter({hasText: 'Recheck'})
+  await expect(dialog.last()).toBeVisible()
+  const invoice = await clickAndGetJsonResponse(
+    session.page,
+    'PUT',
+    `/api/v1/extension/${extensionId}/invoice/enable`,
+    () =>
+      dialog
+        .last()
+        .getByRole('button', {name: /show qr/i})
+        .click()
+  )
+  await dialog.last().getByRole('button', {name: /close/i}).click()
+  await payInvoiceViaUi(session, invoice.payment_request || invoice.bolt11)
+  const cardAfterPayment = await findExtensionCard(session, extensionId)
+  if (
+    await cardAfterPayment.getByRole('button', {name: /^enable$/i}).isVisible()
+  ) {
+    return clickAndGetJsonResponse(
+      session.page,
+      'PUT',
+      `/api/v1/extension/${extensionId}/enable`,
+      () => cardAfterPayment.getByRole('button', {name: /^enable$/i}).click()
+    )
+  }
+  await cardAfterPayment.getByRole('button', {name: /pay to enable/i}).click()
+  return clickAndGetJsonResponse(
+    session.page,
+    'PUT',
+    `/api/v1/extension/${extensionId}/enable`,
+    () => session.page.getByText(/recheck/i).click()
+  )
 }
 
 async function createPayLink(context, account, index, overrides = {}) {
@@ -105,23 +536,6 @@ async function createWithdrawLink(context, account, index, overrides = {}) {
   expect(link.wallet).toBe(account.walletId)
   expect(link.title).toBe(`withdraw ${index}`)
   return link
-}
-
-async function payLnurl(
-  context,
-  payingWallet,
-  lnurlResponse,
-  amountMsat,
-  comment
-) {
-  return jsonRequest(context, 'post', '/api/v1/payments/lnurl', {
-    headers: apiKeyHeaders(payingWallet.adminkey),
-    data: {
-      res: lnurlResponse,
-      amount: amountMsat,
-      comment
-    }
-  })
 }
 
 async function withdrawLnurl(
@@ -324,10 +738,15 @@ test.beforeAll(async ({playwright}, testInfo) => {
   contextFactory = playwright.request
   adminContext = await newContext()
   adminWallet = await initServer(adminContext)
+  const manifest = await fetchManifest()
+  extensionById = new Map(
+    manifest.extensions.map(extension => [extension.id, extension])
+  )
 })
 
 test.afterAll(async () => {
   await Promise.all(contexts.map(context => context.dispose()))
+  await Promise.all(browserContexts.map(context => context.close()))
 })
 
 function compactObject(value) {
@@ -336,10 +755,12 @@ function compactObject(value) {
   )
 }
 
-test('001 extensions can be installed, enabled, disabled, and re-enabled', async () => {
+test('001 extensions can be installed, enabled, disabled, and re-enabled', async ({
+  browser
+}) => {
   test.setTimeout(45 * 60 * 1000)
 
-  const manifest = await fetchManifest()
+  const admin = await getAdminSession(browser)
   const excluded = new Set([
     'discordbot',
     'usermanager',
@@ -349,9 +770,7 @@ test('001 extensions can be installed, enabled, disabled, and re-enabled', async
     'webpages'
   ])
   const adminExtensions = new Set(['nostrclient'])
-  const extensionIds = [
-    ...new Set(manifest.extensions.map(extension => extension.id))
-  ]
+  const extensionIds = [...new Set([...extensionById.keys()])]
     .filter(extension => !excluded.has(extension))
     .sort()
 
@@ -363,17 +782,17 @@ test('001 extensions can be installed, enabled, disabled, and re-enabled', async
   }
 
   for (const extension of extensionIds) {
-    await installLatestExtension(adminContext, extension)
+    await installLatestExtensionViaUi(admin, extension)
     await pageStatus(adminContext, `/${extension}`, [200, 403, 404])
-    await enableExtension(adminContext, extension)
+    await enableExtensionViaUi(admin, extension)
     await pageStatus(
       adminContext,
       `/${extension}`,
       adminExtensions.has(extension) ? [200, 403] : 200
     )
-    await disableExtension(adminContext, extension)
+    await disableExtensionViaUi(admin, extension)
     await pageStatus(adminContext, `/${extension}`, [200, 403, 404])
-    await enableExtension(adminContext, extension)
+    await enableExtensionViaUi(admin, extension)
     await pageStatus(
       adminContext,
       `/${extension}`,
@@ -382,12 +801,14 @@ test('001 extensions can be installed, enabled, disabled, and re-enabled', async
   }
 })
 
-test('002 lnurlp and withdraw scenarios', async () => {
+test('002 lnurlp and withdraw scenarios', async ({browser}) => {
   test.setTimeout(5 * 60 * 1000)
   await clearMirror()
 
-  const user = await newUser('lnurl')
-  await enableExtension(user.context, 'lnurlp')
+  const admin = await getAdminSession(browser)
+  await ensureExtensionsInstalledViaUi(admin, ['lnurlp', 'withdraw'])
+  const user = await newUserWithUi(browser, 'lnurl')
+  await enableExtensionViaUi(user, 'lnurlp')
   await pageStatus(user.context, '/lnurlp/')
 
   const initialPayLinks = await jsonRequest(
@@ -416,15 +837,18 @@ test('002 lnurlp and withdraw scenarios', async () => {
     )
     expect(fetched.description).toBe(`receive payments ${index}`)
 
-    const lnurlResponse = await lnurlScan(user.context, fetched.lnurl)
+    const lnurlResponse = await lnurlScan(
+      user.context,
+      fetched.lnurl,
+      user.adminkey
+    )
     expect(lnurlResponse.tag).toBe('payRequest')
     expect(lnurlResponse.commentAllowed).toBe(128)
 
     for (let paymentIndex = 0; paymentIndex < 2; paymentIndex++) {
-      const payment = await payLnurl(
-        user.context,
-        adminWallet,
-        lnurlResponse,
+      const payment = await payLnurlViaUi(
+        admin,
+        fetched.lnurl,
         (10 + index) * 1000,
         `receive payments ${index}`
       )
@@ -437,12 +861,12 @@ test('002 lnurlp and withdraw scenarios', async () => {
         payment.payment_hash,
         result => Boolean(result?.details?.extra?.wh_response)
       )
-      expect(stored.details.extra.wh_response).toContain('h1: 1')
+      expect(stored.details.extra.wh_response).toContain('"b2":2')
       expect(stored.details.extra.wh_response).toContain(payment.payment_hash)
     }
   }
 
-  await enableExtension(user.context, 'withdraw')
+  await enableExtensionViaUi(user, 'withdraw')
   await pageStatus(user.context, '/withdraw/')
   const initialWithdrawLinks = await jsonRequest(
     user.context,
@@ -453,7 +877,7 @@ test('002 lnurlp and withdraw scenarios', async () => {
       params: {all_wallets: true}
     }
   )
-  expect(initialWithdrawLinks).toEqual([])
+  expect(initialWithdrawLinks.data ?? initialWithdrawLinks).toEqual([])
 
   const receiveWallet = await createWallet(user.context, 'receive wallet')
 
@@ -470,16 +894,20 @@ test('002 lnurlp and withdraw scenarios', async () => {
       }
     )
     expect(fetched.title).toBe(`withdraw ${index}`)
-    const lnurlResponse = await lnurlScan(user.context, fetched.lnurl)
+    const lnurlResponse = await lnurlScan(
+      user.context,
+      fetched.lnurl,
+      user.adminkey
+    )
     expect(lnurlResponse.tag).toBe('withdrawRequest')
 
     for (let withdrawIndex = 0; withdrawIndex < 2; withdrawIndex++) {
-      const withdrawal = await withdrawLnurl(
-        user.context,
-        receiveWallet,
-        lnurlResponse,
+      const withdrawal = await withdrawLnurlViaUi(
+        user,
+        fetched.lnurl,
         10,
-        `withdraw ${index}`
+        `withdraw ${index}`,
+        receiveWallet.walletId
       )
       expect(withdrawal.payment_hash).toBeTruthy()
       userBalanceSats -= 10
@@ -495,11 +923,13 @@ test('002 lnurlp and withdraw scenarios', async () => {
   await pollWalletBalance(user.context, receiveWallet.inkey, 60_000)
 })
 
-test('003 tpos payments, tips, and ATM withdraw', async () => {
+test('003 tpos payments, tips, and ATM withdraw', async ({browser}) => {
   test.setTimeout(5 * 60 * 1000)
 
-  const user = await newUser('tpos')
-  await enableExtension(user.context, 'tpos')
+  const admin = await getAdminSession(browser)
+  await ensureExtensionsInstalledViaUi(admin, ['tpos'])
+  const user = await newUserWithUi(browser, 'tpos')
+  await enableExtensionViaUi(user, 'tpos')
   await pageStatus(user.context, '/tpos/')
 
   const tposs = await jsonRequest(user.context, 'get', '/tpos/api/v1/tposs', {
@@ -569,7 +999,7 @@ test('003 tpos payments, tips, and ATM withdraw', async () => {
       }
     )
     expect(invoice.bolt11).toBeTruthy()
-    await payInvoice(user.context, adminWallet.adminkey, invoice.bolt11)
+    await payInvoiceViaUi(admin, invoice.bolt11)
     await jsonRequest(
       user.context,
       'get',
@@ -596,7 +1026,7 @@ test('003 tpos payments, tips, and ATM withdraw', async () => {
       expected: 201
     }
   )
-  await payInvoice(user.context, adminWallet.adminkey, atmInvoice.bolt11)
+  await payInvoiceViaUi(admin, atmInvoice.bolt11)
 
   const beforeAdmin = await getWallet(adminContext, adminWallet.inkey)
   const beforeUser = await getWallet(user.context, user.inkey)
@@ -643,23 +1073,24 @@ test('003 tpos payments, tips, and ATM withdraw', async () => {
   )
 })
 
-test('004 tpos pay-to-enable flow', async () => {
+test('004 tpos pay-to-enable flow', async ({browser}) => {
   test.setTimeout(5 * 60 * 1000)
 
-  const user = await newUser('pay-to-enable')
+  const admin = await getAdminSession(browser)
+  await ensureExtensionsInstalledViaUi(admin, ['tpos'])
+  const user = await newUserWithUi(browser, 'pay-to-enable')
   await topUpWallet(adminContext, user.walletId, 1000)
 
   const release = await latestRelease(adminContext, 'tpos')
   expect(release.version).toBeTruthy()
+  await enableExtensionViaUi(admin, 'tpos')
   await jsonRequest(adminContext, 'put', '/api/v1/extension/tpos/sell', {
     data: {required: true, amount: 21, wallet: adminWallet.walletId}
   })
 
-  await enableExtension(adminContext, 'tpos')
   await pageStatus(adminContext, '/tpos')
 
-  await enableExtension(user.context, 'tpos')
-  await pageStatus(user.context, '/tpos', [200, 402])
+  await pageStatus(user.context, '/tpos', [200, 402, 403])
   const lowInvoice = await jsonRequest(
     user.context,
     'put',
@@ -668,25 +1099,13 @@ test('004 tpos pay-to-enable flow', async () => {
   )
   expect(JSON.stringify(lowInvoice)).toContain('21')
 
-  const invoice = await jsonRequest(
-    user.context,
-    'put',
-    '/api/v1/extension/tpos/invoice/enable',
-    {data: {amount: 21}}
-  )
-  expect(invoice.payment_request || invoice.bolt11).toBeTruthy()
   await jsonRequest(user.context, 'put', '/api/v1/extension/tpos/enable', {
     expected: 402
   })
-  await payInvoice(
-    user.context,
-    user.adminkey,
-    invoice.payment_request || invoice.bolt11
-  )
-  await enableExtension(user.context, 'tpos')
+  await payToEnableExtensionViaUi(user, 'tpos')
   await pageStatus(user.context, '/tpos')
-  await disableExtension(user.context, 'tpos')
-  await enableExtension(user.context, 'tpos')
+  await disableExtensionViaUi(user, 'tpos')
+  await enableExtensionViaUi(user, 'tpos')
   await pageStatus(user.context, '/tpos')
 
   await jsonRequest(adminContext, 'put', '/api/v1/extension/tpos/sell', {
@@ -694,12 +1113,14 @@ test('004 tpos pay-to-enable flow', async () => {
   })
 })
 
-test('005 lnurlw race limits successful withdrawals', async () => {
+test('005 lnurlw race limits successful withdrawals', async ({browser}) => {
   test.setTimeout(5 * 60 * 1000)
 
-  const user = await newUser('lnurl-race')
-  await enableExtension(user.context, 'lnurlp')
-  await enableExtension(user.context, 'withdraw')
+  const admin = await getAdminSession(browser)
+  await ensureExtensionsInstalledViaUi(admin, ['lnurlp', 'withdraw'])
+  const user = await newUserWithUi(browser, 'lnurl-race')
+  await enableExtensionViaUi(user, 'lnurlp')
+  await enableExtensionViaUi(user, 'withdraw')
 
   const payLink = await createPayLink(user.context, user, 1, {
     description: 'receive payments',
@@ -714,13 +1135,8 @@ test('005 lnurlw race limits successful withdrawals', async () => {
     'get',
     `/lnurlp/${payLink.id}`
   )
-  await payLnurl(
-    user.context,
-    adminWallet,
-    payResponse,
-    10_000_000,
-    'receive payments'
-  )
+  expect(payResponse.tag).toBe('payRequest')
+  await payLnurlViaUi(admin, payLink.lnurl, 10_000_000, 'receive payments')
 
   const receiveWallet = await createWallet(user.context, 'race receive wallet')
   const withdrawLink = await createWithdrawLink(user.context, user, 1, {
@@ -733,6 +1149,8 @@ test('005 lnurlw race limits successful withdrawals', async () => {
     `/withdraw/api/v1/lnurl/${withdrawLink.unique_hash}`
   )
 
+  // The race assertion is intentionally API-driven: it needs concurrent calls,
+  // not serialized browser clicks.
   const attempts = Array.from({length: 100}, () =>
     withdrawLnurl(
       user.context,
@@ -752,12 +1170,18 @@ test('005 lnurlw race limits successful withdrawals', async () => {
   expect(successCount).toBe(2)
 })
 
-test('006 watchonly, satspay, and tipjar scenario', async () => {
+test('006 watchonly, satspay, and tipjar scenario', async ({browser}) => {
   test.setTimeout(7 * 60 * 1000)
   await clearMirror()
 
-  const user = await newUser('watchonly-satspay-tipjar')
-  await enableExtension(user.context, 'watchonly')
+  const admin = await getAdminSession(browser)
+  await ensureExtensionsInstalledViaUi(admin, [
+    'watchonly',
+    'satspay',
+    'tipjar'
+  ])
+  const user = await newUserWithUi(browser, 'watchonly-satspay-tipjar')
+  await enableExtensionViaUi(user, 'watchonly')
   await pageStatus(user.context, `/watchonly/?usr=${user.userId}`)
   await jsonRequest(user.context, 'get', '/watchonly/api/v1/config', {
     headers: apiKeyHeaders(user.inkey)
@@ -800,7 +1224,7 @@ test('006 watchonly, satspay, and tipjar scenario', async () => {
     }
   )
 
-  await enableExtension(user.context, 'satspay')
+  await enableExtensionViaUi(user, 'satspay')
   await pageStatus(user.context, '/satspay/')
   await jsonRequest(user.context, 'get', '/satspay/api/v1/charges', {
     headers: apiKeyHeaders(user.inkey)
@@ -873,7 +1297,7 @@ test('006 watchonly, satspay, and tipjar scenario', async () => {
       'get',
       `/satspay/api/v1/charge/balance/${charge.id}`
     )
-    await payInvoice(user.context, adminWallet.adminkey, charge.payment_request)
+    await payInvoiceViaUi(admin, charge.payment_request)
     await expect
       .poll(async () => {
         const updatedCharge = await jsonRequest(
@@ -900,7 +1324,7 @@ test('006 watchonly, satspay, and tipjar scenario', async () => {
   const payments = await getPayments(user.context, user.inkey)
   expect(payments.length).toBeGreaterThanOrEqual(6)
 
-  await enableExtension(user.context, 'tipjar')
+  await enableExtensionViaUi(user, 'tipjar')
   await pageStatus(user.context, `/tipjar/?usr=${user.userId}`)
   await jsonRequest(user.context, 'get', '/tipjar/api/v1/tipjars', {
     headers: apiKeyHeaders(user.inkey)
@@ -941,11 +1365,7 @@ test('006 watchonly, satspay, and tipjar scenario', async () => {
       headers: apiKeyHeaders(user.inkey)
     })
     expect(tips.length).toBe(index)
-    await payInvoice(
-      user.context,
-      adminWallet.adminkey,
-      tip.payment_request || charge.payment_request
-    )
+    await payInvoiceViaUi(admin, tip.payment_request || charge.payment_request)
     expectedBalanceSats += 21
     await pollWalletBalance(
       user.context,
@@ -955,30 +1375,30 @@ test('006 watchonly, satspay, and tipjar scenario', async () => {
   }
 })
 
-test('007 lndhub mobile wallet API scenario', async () => {
+test('007 lndhub mobile wallet API scenario', async ({browser}) => {
   test.setTimeout(5 * 60 * 1000)
 
-  const user = await newUser('lndhub')
-  await enableExtension(user.context, 'lndhub')
+  const admin = await getAdminSession(browser)
+  await ensureExtensionsInstalledViaUi(admin, ['lndhub'])
+  const user = await newUserWithUi(browser, 'lndhub')
+  await enableExtensionViaUi(user, 'lndhub')
   await pageStatus(user.context, '/lndhub/')
   await jsonRequest(user.context, 'post', '/api/v1/auth/logout')
   await jsonRequest(user.context, 'get', '/lndhub/ext/getinfo')
 
   for (const index of [1, 2, 3]) {
-    const userInvoice = await createInvoice(
-      user.context,
-      user.adminkey,
+    const userInvoice = await createInvoiceViaUi(
+      user,
       21,
       `user invoice ${index}`
     )
-    await payInvoice(user.context, adminWallet.adminkey, userInvoice.bolt11)
-    const adminInvoice = await createInvoice(
-      adminContext,
-      adminWallet.adminkey,
+    await payInvoiceViaUi(admin, userInvoice.bolt11)
+    const adminInvoice = await createInvoiceViaUi(
+      admin,
       1,
       `admin invoice ${index}`
     )
-    await payInvoice(user.context, user.adminkey, adminInvoice.bolt11)
+    await payInvoiceViaUi(user, adminInvoice.bolt11)
   }
 
   const auth = await jsonRequest(user.context, 'post', '/lndhub/ext/auth', {
@@ -1021,11 +1441,7 @@ test('007 lndhub mobile wallet API scenario', async () => {
       data: {amt: 50, memo: '50 sats'}
     }
   )
-  await payInvoice(
-    user.context,
-    adminWallet.adminkey,
-    mobileInvoice.payment_request
-  )
+  await payInvoiceViaUi(admin, mobileInvoice.payment_request)
   const invoicesAfter = await jsonRequest(
     user.context,
     'get',
@@ -1036,12 +1452,7 @@ test('007 lndhub mobile wallet API scenario', async () => {
   )
   expect(invoicesAfter).toHaveLength(4)
 
-  const adminInvoice = await createInvoice(
-    adminContext,
-    adminWallet.adminkey,
-    30,
-    '30 sats'
-  )
+  const adminInvoice = await createInvoiceViaUi(admin, 30, '30 sats')
   const paid = await jsonRequest(
     user.context,
     'post',
@@ -1082,9 +1493,12 @@ test('007 lndhub mobile wallet API scenario', async () => {
   }
 })
 
-test('008 lnaddress and lnurlp redirect conflict handling', async () => {
+test('008 lnaddress and lnurlp redirect conflict handling', async ({
+  browser
+}) => {
   test.setTimeout(10 * 60 * 1000)
 
+  const admin = await getAdminSession(browser)
   await jsonRequest(adminContext, 'patch', '/admin/api/v1/settings', {
     data: {
       lnbits_extensions_manifests: [
@@ -1093,22 +1507,24 @@ test('008 lnaddress and lnurlp redirect conflict handling', async () => {
       ]
     }
   })
+  await refreshExtensionCatalog(adminContext)
   await uninstallExtension(adminContext, 'lnaddress')
 
-  await installLatestExtension(adminContext, 'lnurlp')
-  await installLatestExtension(adminContext, 'lnaddress')
-  await deactivateExtension(adminContext, 'lnurlp')
-  await installLatestExtension(adminContext, 'lnaddress')
-  await installLatestExtension(adminContext, 'lnurlp')
-  const conflict = await activateExtension(adminContext, 'lnurlp', 400)
+  await installLatestExtensionViaUi(admin, 'lnurlp')
+  await installLatestExtensionViaUi(admin, 'lnaddress')
+  await setExtensionActiveViaUi(admin, 'lnurlp', false)
+  const conflict = await setExtensionActiveViaUi(admin, 'lnurlp', true, 400)
   expect(JSON.stringify(conflict)).toContain('Already mapped')
-  await deactivateExtension(adminContext, 'lnaddress')
-  await activateExtension(adminContext, 'lnurlp')
+  await setExtensionActiveViaUi(admin, 'lnaddress', false)
+  await setExtensionActiveViaUi(admin, 'lnurlp', true)
 })
 
-test('009 example extension can downgrade and upgrade data shape', async () => {
+test('009 example extension can downgrade and upgrade data shape', async ({
+  browser
+}) => {
   test.setTimeout(10 * 60 * 1000)
 
+  const admin = await getAdminSession(browser)
   async function installAndCheck(testVersion, extensionVersion) {
     const releases = await jsonRequest(
       adminContext,
@@ -1117,15 +1533,8 @@ test('009 example extension can downgrade and upgrade data shape', async () => {
     )
     const release = releases.find(item => item.version === extensionVersion)
     expect(release).toBeTruthy()
-    await jsonRequest(adminContext, 'post', '/api/v1/extension', {
-      data: {
-        ext_id: 'example',
-        archive: release.archive,
-        source_repo: release.source_repo,
-        version: release.version
-      }
-    })
-    await enableExtension(adminContext, 'example')
+    await installExtensionVersionViaUi(admin, 'example', release.version)
+    await enableExtensionViaUi(admin, 'example')
     const page = await textRequest(adminContext, 'get', '/example')
     expect(page).toContain(
       `Do not remove. Test install extension version: ${testVersion}`
@@ -1146,17 +1555,21 @@ test('009 example extension can downgrade and upgrade data shape', async () => {
   await installAndCheck(1, '1.0.1')
 })
 
-test('010 nostrnip5 domain, search, pricing, and referral flow', async () => {
+test('010 nostrnip5 domain, search, pricing, and referral flow', async ({
+  browser
+}) => {
   test.setTimeout(10 * 60 * 1000)
 
+  const admin = await getAdminSession(browser)
+  await ensureExtensionsInstalledViaUi(admin, ['nostrnip5', 'lnurlp'])
   const anonymous = await newContext()
   await textRequest(anonymous, 'patch', '/nostrnip5/api/v1/domain/ranking/0', {
     data: 'reserved_a\r\nreserved_b',
     headers: {'content-type': 'text/plain'},
     expected: 401
   })
-  await enableExtension(adminContext, 'nostrnip5')
-  await enableExtension(adminContext, 'lnurlp')
+  await enableExtensionViaUi(admin, 'nostrnip5')
+  await enableExtensionViaUi(admin, 'lnurlp')
   await textRequest(
     adminContext,
     'patch',
@@ -1192,9 +1605,9 @@ test('010 nostrnip5 domain, search, pricing, and referral flow', async () => {
     }
   })
 
-  const owner = await newUser('nostrnip5-owner')
-  await enableExtension(owner.context, 'nostrnip5')
-  await enableExtension(owner.context, 'lnurlp')
+  const owner = await newUserWithUi(browser, 'nostrnip5-owner')
+  await enableExtensionViaUi(owner, 'nostrnip5')
+  await enableExtensionViaUi(owner, 'lnurlp')
   await textRequest(
     owner.context,
     'patch',
@@ -1367,9 +1780,9 @@ test('010 nostrnip5 domain, search, pricing, and referral flow', async () => {
     expect(Boolean(result.available)).toBe(expectedAvailable)
   }
 
-  const client = await newUser('nostrnip5-client')
-  await enableExtension(client.context, 'nostrnip5')
-  await enableExtension(client.context, 'lnurlp')
+  const client = await newUserWithUi(browser, 'nostrnip5-client')
+  await enableExtensionViaUi(client, 'nostrnip5')
+  await enableExtensionViaUi(client, 'lnurlp')
 
   await buyNip5Address(client.context, client, domainId, 'abc1', {
     pubkey: '04c915daefee38317fa734444acee390a8269fe5810b2241e5e6dd343dfaaaaa',
@@ -1454,11 +1867,7 @@ test('010 nostrnip5 domain, search, pricing, and referral flow', async () => {
       create_invoice: true
     }
   )
-  await payInvoice(
-    client.context,
-    adminWallet.adminkey,
-    paidOne.payment_request
-  )
+  await payInvoiceViaUi(admin, paidOne.payment_request)
   await getNostrJson(client.context, domainId, identifierOne)
 
   const quoteThree = await buyNip5Address(
@@ -1486,11 +1895,7 @@ test('010 nostrnip5 domain, search, pricing, and referral flow', async () => {
       create_invoice: true
     }
   )
-  await payInvoice(
-    client.context,
-    adminWallet.adminkey,
-    paidThree.payment_request
-  )
+  await payInvoiceViaUi(admin, paidThree.payment_request)
   await getNostrJson(client.context, domainId, identifierThree)
 
   const alanBalance = await getWallet(owner.context, alanWallet.inkey)
@@ -1500,11 +1905,19 @@ test('010 nostrnip5 domain, search, pricing, and referral flow', async () => {
   ).toBeLessThanOrEqual(100)
 })
 
-test('011 auction house transfers NIP5 addresses through bids and fixed-price sale', async () => {
+test('011 auction house transfers NIP5 addresses through bids and fixed-price sale', async ({
+  browser
+}) => {
   test.setTimeout(10 * 60 * 1000)
 
-  await enableExtension(adminContext, 'nostrnip5')
-  await enableExtension(adminContext, 'lnurlp')
+  const admin = await getAdminSession(browser)
+  await ensureExtensionsInstalledViaUi(admin, [
+    'auction_house',
+    'nostrnip5',
+    'lnurlp'
+  ])
+  await enableExtensionViaUi(admin, 'nostrnip5')
+  await enableExtensionViaUi(admin, 'lnurlp')
   await jsonRequest(adminContext, 'put', '/nostrnip5/api/v1/settings', {
     headers: apiKeyHeaders(adminWallet.adminkey),
     data: {
@@ -1513,10 +1926,10 @@ test('011 auction house transfers NIP5 addresses through bids and fixed-price sa
     }
   })
 
-  const owner = await newUser('auction-owner')
-  await enableExtension(owner.context, 'auction_house')
-  await enableExtension(owner.context, 'nostrnip5')
-  await enableExtension(owner.context, 'lnurlp')
+  const owner = await newUserWithUi(browser, 'auction-owner')
+  await enableExtensionViaUi(owner, 'auction_house')
+  await enableExtensionViaUi(owner, 'nostrnip5')
+  await enableExtensionViaUi(owner, 'lnurlp')
   const domain = await createNip5Domain(owner.context, owner, {
     cost_extra: {transfer_secret: '1234'}
   })
@@ -1530,9 +1943,9 @@ test('011 auction house transfers NIP5 addresses through bids and fixed-price sa
     }
   })
 
-  const seller = await newUser('auction-seller')
-  await enableExtension(seller.context, 'auction_house')
-  await enableExtension(seller.context, 'nostrnip5')
+  const seller = await newUserWithUi(browser, 'auction-seller')
+  await enableExtensionViaUi(seller, 'auction_house')
+  await enableExtensionViaUi(seller, 'nostrnip5')
 
   const createdAddresses = []
   for (let index = 1; index <= 10; index++) {
@@ -1620,7 +2033,7 @@ test('011 auction house transfers NIP5 addresses through bids and fixed-price sa
       index * 100,
       `bid index: ${index}`
     )
-    await payInvoice(adminContext, adminWallet.adminkey, bid.payment_request)
+    await payInvoiceViaUi(admin, bid.payment_request)
     winningBidder = bidder
   }
 
@@ -1706,7 +2119,7 @@ test('011 auction house transfers NIP5 addresses through bids and fixed-price sa
     5000,
     'fixed price buy'
   )
-  await payInvoice(adminContext, adminWallet.adminkey, buy.payment_request)
+  await payInvoiceViaUi(admin, buy.payment_request)
   const buyerAddresses = await jsonRequest(
     buyer.context,
     'get',

@@ -244,11 +244,14 @@ async function decodePayment(context, data) {
   })
 }
 
-async function lnurlScan(context, lnurl) {
+async function lnurlScan(context, lnurl, key) {
   return jsonRequest(
     context,
     'get',
-    `/api/v1/lnurlscan/${encodeURIComponent(lnurl)}`
+    `/api/v1/lnurlscan/${encodeURIComponent(lnurl)}`,
+    {
+      headers: apiKeyHeaders(key)
+    }
   )
 }
 
