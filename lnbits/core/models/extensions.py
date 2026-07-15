@@ -166,6 +166,21 @@ class ExtensionBackgroundPaymentGrantRequest(BaseModel):
         )
 
 
+class ExtensionWalletPaymentsWatchGrant(BaseModel):
+    wallet_id: str = Field(..., min_length=1, max_length=128)
+    enabled: bool = True
+
+
+class ExtensionWalletPaymentsWatchGrantRequest(BaseModel):
+    wallet_id: str = Field(..., min_length=1, max_length=128)
+
+    def to_grant(self) -> ExtensionWalletPaymentsWatchGrant:
+        return ExtensionWalletPaymentsWatchGrant(
+            wallet_id=self.wallet_id,
+            enabled=True,
+        )
+
+
 class UserExtension(BaseModel):
     user: str
     extension: str

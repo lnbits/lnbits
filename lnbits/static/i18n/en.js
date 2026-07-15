@@ -530,6 +530,8 @@ window.localisation.en = {
     'Can spend funds from wallets available to your account.',
   extension_permission_warning_wallet_pay_invoice_background:
     'Can spend funds later from approved wallets without an active click.',
+  extension_permission_warning_wallet_payments_watch:
+    'Can read payment metadata for approved wallets.',
   extension_permission_warning_extension_api_request_write:
     'Can write data or trigger actions in approved extensions.',
   extension_permission_ext_storage_read: 'Read extension storage',
@@ -544,7 +546,7 @@ window.localisation.en = {
   extension_permission_http_request_hosts: 'Allowed hosts',
   extension_permission_utils_basic: 'Use basic LNbits utilities',
   extension_permission_ui_camera_scan_qr: 'Scan QR codes',
-  extension_permission_payments_watch: 'Watch payments',
+  extension_permission_wallet_payments_watch: 'Watch wallet payments',
   extension_permission_wallet_create_invoice: 'Create invoices',
   extension_permission_wallet_create_invoice_public:
     'Create Lightning invoices from public pages',

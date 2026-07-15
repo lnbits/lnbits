@@ -26,6 +26,7 @@ from lnbits.core.models.extensions import (
     ExtensionReview,
     ExtensionReviewPaymentRequest,
     ExtensionReviewsStatus,
+    ExtensionWalletPaymentsWatchGrantRequest,
     InstallableExtension,
     PayToEnableInfo,
     ReleasePaymentInfo,
@@ -82,6 +83,7 @@ extension_router = APIRouter(
 )
 
 WALLET_PAY_INVOICE_BACKGROUND_PERMISSION = "wallet.pay_invoice_background"
+WALLET_PAYMENTS_WATCH_PERMISSION = "wallet.payments.watch"
 
 
 @extension_router.post("", dependencies=[Depends(check_admin)])
@@ -424,6 +426,52 @@ async def api_grant_background_payment_permission(
     user_ext.permissions = permissions
     await update_user_extension(user_ext)
     return {"permission": WALLET_PAY_INVOICE_BACKGROUND_PERMISSION, "grant": grant}
+
+
+@extension_router.post("/{ext_id}/permissions/wallet-payments-watch")
+async def api_grant_wallet_payments_watch_permission(
+    ext_id: str,
+    data: ExtensionWalletPaymentsWatchGrantRequest,
+    account_id: AccountId = Depends(check_account_id_exists),
+) -> dict:
+    installed_ext = await get_installed_extension(ext_id)
+    if not installed_ext or not installed_ext.active:
+        raise HTTPException(
+            HTTPStatus.NOT_FOUND, f"Extension '{ext_id}' is not active."
+        )
+
+    installed_permission_ids = {
+        permission.id for permission in installed_ext.permissions or []
+    }
+    if WALLET_PAYMENTS_WATCH_PERMISSION not in installed_permission_ids:
+        raise HTTPException(
+            HTTPStatus.FORBIDDEN,
+            f"Extension '{ext_id}' cannot request wallet payment watch access.",
+        )
+
+    user_ext = await get_user_extension(account_id.id, ext_id)
+    if not user_ext or not user_ext.active:
+        raise HTTPException(
+            HTTPStatus.FORBIDDEN,
+            f"Extension '{ext_id}' is not enabled for this user.",
+        )
+
+    wallet = await get_wallet(data.wallet_id)
+    if not wallet or wallet.user != account_id.id:
+        raise HTTPException(HTTPStatus.FORBIDDEN, "Not your wallet.")
+
+    grant = data.to_grant()
+    permissions = user_ext.permissions or {}
+    watch_grants = [
+        existing
+        for existing in permissions.get(WALLET_PAYMENTS_WATCH_PERMISSION, [])
+        if isinstance(existing, dict) and existing.get("wallet_id") != grant.wallet_id
+    ]
+    watch_grants.append(json.loads(grant.json()))
+    permissions[WALLET_PAYMENTS_WATCH_PERMISSION] = watch_grants
+    user_ext.permissions = permissions
+    await update_user_extension(user_ext)
+    return {"permission": WALLET_PAYMENTS_WATCH_PERMISSION, "grant": grant}
 
 
 @extension_router.put("/{ext_id}/activate", dependencies=[Depends(check_admin)])

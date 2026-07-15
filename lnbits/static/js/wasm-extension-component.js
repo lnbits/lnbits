@@ -96,6 +96,37 @@ window.WasmExtensionComponent = {
           </q-card-actions>
         </q-card>
       </q-dialog>
+      <q-dialog v-model="walletPaymentWatchPrompt.show" persistent>
+        <q-card style="width: min(520px, calc(100vw - 32px)); max-width: 520px">
+          <q-card-section>
+            <div class="text-h6">Watch wallet payments</div>
+          </q-card-section>
+          <q-card-section class="q-pt-none q-gutter-md">
+            <div>
+              {{ walletPaymentWatchPrompt.extensionName }} wants permission to receive
+              payment notifications for
+              <strong>{{ walletPaymentWatchPrompt.walletName }}</strong>.
+            </div>
+            <q-banner dense rounded class="bg-warning text-dark">
+              This permission exposes payment metadata for this wallet to the extension.
+            </q-banner>
+          </q-card-section>
+          <q-card-actions align="right">
+            <q-btn
+              flat
+              color="negative"
+              label="Deny"
+              @click="resolveWalletPaymentWatchPrompt(false)"
+            ></q-btn>
+            <q-btn
+              unelevated
+              color="primary"
+              label="Allow"
+              @click="resolveWalletPaymentWatchPrompt(true)"
+            ></q-btn>
+          </q-card-actions>
+        </q-card>
+      </q-dialog>
     </div>
   `,
   data() {
@@ -138,6 +169,14 @@ window.WasmExtensionComponent = {
         walletId: '',
         walletName: ''
       },
+      walletPaymentWatchPrompt: {
+        extensionName: '',
+        reject: null,
+        resolve: null,
+        show: false,
+        walletId: '',
+        walletName: ''
+      },
       error: '',
       extensionName: '',
       frameUrl: '',
@@ -156,6 +195,9 @@ window.WasmExtensionComponent = {
     this.rejectCameraPrompt('Camera scan cancelled.')
     this.rejectBackgroundPaymentPrompt(
       'Background payment permission cancelled.'
+    )
+    this.rejectWalletPaymentWatchPrompt(
+      'Wallet payment watch permission cancelled.'
     )
     this.closeBridgePort()
   },
@@ -214,6 +256,16 @@ window.WasmExtensionComponent = {
         show: false
       }
     },
+    emptyWalletPaymentWatchPrompt() {
+      return {
+        extensionName: '',
+        reject: null,
+        resolve: null,
+        show: false,
+        walletId: '',
+        walletName: ''
+      }
+    },
     plainValue(value) {
       try {
         return JSON.parse(JSON.stringify(value))
@@ -232,6 +284,9 @@ window.WasmExtensionComponent = {
       this.rejectCameraPrompt('Camera scan cancelled.')
       this.rejectBackgroundPaymentPrompt(
         'Background payment permission cancelled.'
+      )
+      this.rejectWalletPaymentWatchPrompt(
+        'Wallet payment watch permission cancelled.'
       )
       this.closeBridgePort()
 
@@ -504,6 +559,87 @@ window.WasmExtensionComponent = {
       this.backgroundPaymentPrompt = this.emptyBackgroundPaymentPrompt()
       reject?.(new Error(message))
     },
+    requestWalletPaymentWatchPermission(message) {
+      if (!this.hasBridgePermission('wallet.payments.watch')) {
+        throw new Error('Extension is missing wallet payment watch permission.')
+      }
+      if (this.bridge.public) {
+        throw new Error(
+          'Public pages cannot request wallet payment watch access.'
+        )
+      }
+      if (this.walletPaymentWatchPrompt.show) {
+        throw new Error('Wallet payment watch prompt is already open.')
+      }
+
+      const grant = message.grant || {}
+      const walletId = String(grant.walletId || grant.wallet_id || '')
+      const wallet = (this.g?.user?.wallets || []).find(
+        wallet => wallet.id === walletId
+      )
+      if (!wallet) {
+        throw new Error('Selected wallet is not available.')
+      }
+
+      return new Promise((resolve, reject) => {
+        this.walletPaymentWatchPrompt = {
+          extensionName:
+            this.extensionName || this.bridge.extensionId || 'This extension',
+          reject,
+          resolve,
+          show: true,
+          walletId,
+          walletName: wallet.name || walletId
+        }
+      })
+    },
+    async resolveWalletPaymentWatchPrompt(approved) {
+      const prompt = this.walletPaymentWatchPrompt
+      if (!prompt.show) return
+
+      if (!approved) {
+        this.walletPaymentWatchPrompt = this.emptyWalletPaymentWatchPrompt()
+        prompt.reject?.(new Error('Wallet payment watch permission denied.'))
+        return
+      }
+
+      try {
+        const response = await fetch(
+          `/api/v1/extension/${encodeURIComponent(
+            this.bridge.extensionId
+          )}/permissions/wallet-payments-watch`,
+          {
+            method: 'POST',
+            headers: {'content-type': 'application/json'},
+            credentials: 'same-origin',
+            body: JSON.stringify({wallet_id: prompt.walletId})
+          }
+        )
+        const text = await response.text()
+        let data = {}
+        if (text) {
+          try {
+            data = JSON.parse(text)
+          } catch (_error) {
+            data = {detail: text}
+          }
+        }
+        if (!response.ok) {
+          throw new Error(data?.detail || 'Could not save permission.')
+        }
+
+        this.walletPaymentWatchPrompt = this.emptyWalletPaymentWatchPrompt()
+        prompt.resolve?.(data)
+      } catch (error) {
+        prompt.reject?.(error)
+        this.walletPaymentWatchPrompt = this.emptyWalletPaymentWatchPrompt()
+      }
+    },
+    rejectWalletPaymentWatchPrompt(message) {
+      const reject = this.walletPaymentWatchPrompt.reject
+      this.walletPaymentWatchPrompt = this.emptyWalletPaymentWatchPrompt()
+      reject?.(new Error(message))
+    },
     positiveInteger(value, fallback) {
       const number = Number(value)
       if (!Number.isFinite(number) || number <= 0) return fallback
@@ -723,6 +859,14 @@ window.WasmExtensionComponent = {
           this.sendResponse(reply, message.id, {
             ok: true,
             data: await this.requestBackgroundPaymentPermission(message)
+          })
+          return
+        }
+
+        if (message.action === 'permissions.request_wallet_payment_watch') {
+          this.sendResponse(reply, message.id, {
+            ok: true,
+            data: await this.requestWalletPaymentWatchPermission(message)
           })
           return
         }

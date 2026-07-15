@@ -4,21 +4,53 @@ from typing import Any
 
 from loguru import logger
 
-from lnbits.core.crud.extensions import get_installed_extension
+from lnbits.core.crud.extensions import get_installed_extension, get_user_extensions
+from lnbits.core.crud.wallets import get_wallet
 from lnbits.core.db import core_app_extra
+from lnbits.core.models.extensions import ExtensionWalletPaymentsWatchGrant
 from lnbits.core.wasm_ext.storage.crud import storage_get_row_owner_id
 from lnbits.core.wasm_ext.wasm.invoke import invoke_wasm_extension_export
+from lnbits.helpers import sha256s
+
+WALLET_PAYMENTS_WATCH_PERMISSION = "wallet.payments.watch"
 
 
 async def dispatch_wasm_invoice_paid(payment: Any) -> None:
+    targets: dict[str, tuple[Any, str | None]] = {}
     extension_id = _payment_extension_id(payment)
-    if not extension_id:
-        return
+    if extension_id:
+        extension = core_app_extra.wasm_extension_registry.get(extension_id)
+        if extension:
+            targets[extension_id] = (
+                extension,
+                await _wasm_invoice_paid_owner_id(extension, payment),
+            )
 
-    extension = core_app_extra.wasm_extension_registry.get(extension_id)
-    if not extension:
-        return
+    wallet = await _payment_wallet(payment)
+    if wallet:
+        wallet_owner_id = sha256s(wallet.user)
+        for watch_extension_id in await _wallet_watch_extension_ids(
+            wallet.user, wallet.id
+        ):
+            extension = core_app_extra.wasm_extension_registry.get(watch_extension_id)
+            if not extension:
+                continue
+            if watch_extension_id in targets:
+                existing_extension, existing_owner_id = targets[watch_extension_id]
+                targets[watch_extension_id] = (
+                    existing_extension,
+                    existing_owner_id or wallet_owner_id,
+                )
+                continue
+            targets[watch_extension_id] = (extension, wallet_owner_id)
 
+    for extension, owner_id in targets.values():
+        await _dispatch_wasm_invoice_paid_to_extension(extension, payment, owner_id)
+
+
+async def _dispatch_wasm_invoice_paid_to_extension(
+    extension: Any, payment: Any, owner_id: str | None
+) -> None:
     export_name = _wasm_invoice_paid_export(extension.config)
     if not export_name:
         return
@@ -31,7 +63,6 @@ async def dispatch_wasm_invoice_paid(payment: Any) -> None:
         return
 
     try:
-        owner_id = await _wasm_invoice_paid_owner_id(extension, payment)
         await invoke_wasm_extension_export(
             extension.id,
             export_name,
@@ -49,6 +80,86 @@ async def dispatch_wasm_invoice_paid(payment: Any) -> None:
             f"WASM extension '{extension.id}' failed to handle paid invoice "
             f"'{payment.payment_hash}': {exc!s}"
         )
+
+
+async def _payment_wallet(payment: Any) -> Any | None:
+    wallet_id = getattr(payment, "wallet_id", None)
+    if not isinstance(wallet_id, str) or not wallet_id:
+        return None
+    try:
+        return await get_wallet(wallet_id)
+    except Exception as exc:
+        logger.warning(f"Could not fetch wallet '{wallet_id}' for WASM event: {exc!s}")
+        return None
+
+
+async def _wallet_watch_extension_ids(user_id: str, wallet_id: str) -> list[str]:
+    try:
+        user_extensions = await get_user_extensions(user_id)
+    except Exception as exc:
+        logger.warning(
+            f"Could not fetch extensions for wallet payment watch user "
+            f"'{user_id}': {exc!s}"
+        )
+        return []
+    extension_ids: list[str] = []
+
+    for user_extension in user_extensions:
+        if not user_extension.active:
+            continue
+        if not _has_wallet_watch_grant(user_extension, wallet_id):
+            continue
+        if not core_app_extra.wasm_extension_registry.get(user_extension.extension):
+            continue
+        try:
+            installed_extension = await get_installed_extension(
+                user_extension.extension
+            )
+        except Exception as exc:
+            logger.warning(
+                f"Could not fetch installed extension '{user_extension.extension}' "
+                f"for wallet payment watch: {exc!s}"
+            )
+            continue
+        if not installed_extension or not installed_extension.active:
+            continue
+        if not _extension_has_permission(
+            installed_extension, WALLET_PAYMENTS_WATCH_PERMISSION
+        ):
+            continue
+        extension_ids.append(user_extension.extension)
+
+    return extension_ids
+
+
+def _has_wallet_watch_grant(user_extension: Any, wallet_id: str) -> bool:
+    permissions = user_extension.permissions or {}
+    grants = permissions.get(WALLET_PAYMENTS_WATCH_PERMISSION)
+    if not isinstance(grants, list):
+        return False
+
+    for grant_data in grants:
+        if not isinstance(grant_data, dict):
+            continue
+        try:
+            grant = ExtensionWalletPaymentsWatchGrant.parse_obj(grant_data)
+        except ValueError:
+            continue
+        if grant.enabled and grant.wallet_id == wallet_id:
+            return True
+    return False
+
+
+def _extension_has_permission(extension: Any, permission_id: str) -> bool:
+    return any(
+        (
+            permission.get("id")
+            if isinstance(permission, dict)
+            else getattr(permission, "id", None)
+        )
+        == permission_id
+        for permission in (extension.permissions or [])
+    )
 
 
 def _payment_extension_id(payment: Any) -> str | None:

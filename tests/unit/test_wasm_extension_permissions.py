@@ -142,6 +142,20 @@ def test_validate_wasm_permissions_rejects_unrequested_permission_grant():
         )
 
 
+def test_validate_wasm_permissions_allows_wallet_payments_watch_permission():
+    ext_info = make_installable_extension("demoext")
+    extension_config = _wasm_config(
+        "demoext",
+        [{"id": "wallet.payments.watch"}],
+    )
+
+    assert validate_wasm_extension_permissions(
+        ext_info,
+        [ExtensionPermission(id="wallet.payments.watch")],
+        extension_config,
+    ) == [ExtensionPermission(id="wallet.payments.watch")]
+
+
 @pytest.mark.anyio
 async def test_invoice_paid_owner_lookup_uses_stored_granted_policies(
     mocker: MockerFixture,

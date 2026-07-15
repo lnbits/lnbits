@@ -14,6 +14,7 @@ _EXTENSION_RUNTIME_PERMISSION_IDS = {
     "ui.camera.scan_qr",
     "wallet.pay_invoice",
     "wallet.pay_invoice_background",
+    "wallet.payments.watch",
 }
 _RequestModel = TypeVar("_RequestModel", bound=BaseModel)
 _ResponseModel = TypeVar("_ResponseModel", bound=BaseModel)

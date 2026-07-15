@@ -28,12 +28,12 @@
     }
   }
 
-  function mediumRisk(translateFn) {
+  function mediumRisk(translateFn, warningKey) {
     return {
       level: 'medium',
       color: 'warning',
       label: translate(translateFn, 'extension_permission_risk_medium'),
-      warning: ''
+      warning: warningKey ? translate(translateFn, warningKey) : ''
     }
   }
 
@@ -104,13 +104,18 @@
     if (permission.id === 'http.request') {
       return mediumRisk(translateFn)
     }
+    if (permission.id === 'wallet.payments.watch') {
+      return mediumRisk(
+        translateFn,
+        'extension_permission_warning_wallet_payments_watch'
+      )
+    }
     if (
       [
         'wallet.list',
         'wallet.balance.read',
         'wallet.create_invoice_public',
-        'ext.storage.read_public',
-        'payments.watch'
+        'ext.storage.read_public'
       ].includes(permission.id)
     ) {
       return mediumRisk(translateFn)
@@ -131,6 +136,7 @@
     const order = [
       'wallet.pay_invoice',
       'wallet.pay_invoice_background',
+      'wallet.payments.watch',
       'wallet.list',
       'wallet.balance.read',
       'extension.api.request',
