@@ -2,6 +2,7 @@ import json
 
 import pytest
 
+from lnbits.core.models.extensions import ExtensionPermission
 from lnbits.db import (
     dict_to_model,
     dict_to_submodel,
@@ -103,3 +104,19 @@ async def test_helpers_dict_to_model_ignores_unknown_fields():
     model = dict_to_model({**test_dict, "ignored": "field"}, DbTestModel3)
 
     assert model == test_data
+
+
+@pytest.mark.anyio
+async def test_helpers_dict_to_model_handles_list_any_fields():
+    model = dict_to_model(
+        {
+            "id": "http.request",
+            "policies": '[{"host": "https://api.example.com"}]',
+        },
+        ExtensionPermission,
+    )
+
+    assert model == ExtensionPermission(
+        id="http.request",
+        policies=[{"host": "https://api.example.com"}],
+    )

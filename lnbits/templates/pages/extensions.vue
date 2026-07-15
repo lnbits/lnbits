@@ -314,7 +314,7 @@
                 flat
                 color="primary"
                 type="a"
-                :href="extension.id + '/'"
+                :href="extensionOpenUrl(extension)"
                 :label="$t('open')"
               ></q-btn>
               <q-btn
@@ -356,7 +356,7 @@
                 @click="showManageExtension(extension)"
                 flat
                 color="primary"
-                v-if="g.user.admin"
+                v-if="canShowManageExtensionButton(extension)"
                 :label="$t('manage')"
                 ><q-tooltip
                   ><span v-text="$t('manage_extension_details')"></span
@@ -455,8 +455,49 @@
     </q-card>
   </q-dialog>
 
-  <q-dialog v-model="showManageExtensionDialog" position="top">
-    <q-card v-if="selectedRelease" class="q-pa-lg lnbits__dialog-card">
+  <q-dialog
+    v-model="showManageExtensionDialog"
+    position="top"
+    @hide="onManageExtensionDialogHide"
+  >
+    <q-card v-if="permissionGrant.show" class="q-pa-md lnbits__dialog-card">
+      <q-card-section>
+        <div class="text-h6" v-text="$t('extension_permissions_title')"></div>
+        <q-banner
+          v-if="permissionGrantHasHighRisk()"
+          dense
+          class="bg-red-1 text-red-10 q-mt-md"
+        >
+          <template v-slot:avatar>
+            <q-icon name="warning" color="negative"></q-icon>
+          </template>
+          <span v-text="$t('extension_permissions_high_risk_warning')"></span>
+        </q-banner>
+      </q-card-section>
+
+      <lnbits-extension-permissions
+        class="q-mt-md"
+        :permissions="permissionGrant.permissions"
+        :extensions="extensions"
+      ></lnbits-extension-permissions>
+
+      <div class="row q-mt-lg">
+        <q-btn
+          flat
+          color="grey"
+          v-text="$t('cancel')"
+          @click="cancelExtensionPermissions"
+        ></q-btn>
+        <q-btn
+          flat
+          color="primary"
+          class="q-ml-auto"
+          v-text="$t('extension_permissions_grant_install')"
+          @click="grantExtensionPermissions"
+        ></q-btn>
+      </div>
+    </q-card>
+    <q-card v-else-if="selectedRelease" class="q-pa-lg lnbits__dialog-card">
       <q-card-section>
         <div v-if="selectedRelease.paymentRequest">
           <lnbits-qrcode
@@ -490,20 +531,43 @@
         </div>
       </div>
     </q-card>
-    <q-card v-else class="q-pa-lg lnbits__dialog-card">
+    <q-card
+      v-else
+      class="q-pa-lg lnbits__dialog-card"
+      style="width: min(95vw, 920px); max-width: 95vw"
+    >
       <q-tabs
         v-model="manageExtensionTab"
         active-color="primary"
         align="justify"
       >
         <q-tab
+          v-if="canShowAdminManageTabs()"
           name="releases"
           :label="$t('releases')"
           @update="val => (manageExtensionTab = val.name)"
         ></q-tab>
 
         <q-tab
-          v-if="selectedExtension && selectedExtension.isInstalled"
+          v-if="canManageExtensionPermissions()"
+          name="extension-permissions"
+          :label="$t('extension_permissions_tab')"
+          @update="val => (manageExtensionTab = val.name)"
+        ></q-tab>
+
+        <q-tab
+          v-if="canManageExtensionPermissions()"
+          name="user-permissions"
+          :label="$t('user_permissions_tab')"
+          @update="val => (manageExtensionTab = val.name)"
+        ></q-tab>
+
+        <q-tab
+          v-if="
+            canShowAdminManageTabs() &&
+            selectedExtension &&
+            selectedExtension.isInstalled
+          "
           name="sell"
           :label="$t('sell')"
           @update="val => (manageExtensionTab = val.name)"
@@ -513,7 +577,7 @@
       <div
         v-show="manageExtensionTab === 'releases'"
         class="col-12 col-md-5 q-gutter-y-md q-mt-md"
-        v-if="selectedExtensionRepos"
+        v-if="canShowAdminManageTabs() && selectedExtensionRepos"
       >
         <q-card
           flat
@@ -774,9 +838,147 @@
           ></q-btn>
         </div>
       </div>
-      <q-spinner-bars v-else color="primary" size="2.55em"></q-spinner-bars>
+      <q-spinner-bars
+        v-else-if="
+          canShowAdminManageTabs() && manageExtensionTab === 'releases'
+        "
+        color="primary"
+        size="2.55em"
+      ></q-spinner-bars>
       <div
-        v-if="selectedExtension"
+        v-if="canManageExtensionPermissions()"
+        v-show="manageExtensionTab === 'extension-permissions'"
+        class="col-12 col-md-5 q-gutter-y-md q-mt-md"
+      >
+        <q-spinner-bars
+          v-if="managedExtensionPermissions.loading"
+          color="primary"
+          size="2.55em"
+        ></q-spinner-bars>
+        <lnbits-extension-permissions
+          v-else-if="managedExtensionPermissions.extensionPermissions.length"
+          :permissions="managedExtensionPermissions.extensionPermissions"
+          :extensions="extensions"
+        ></lnbits-extension-permissions>
+        <q-banner v-else rounded class="bg-grey-2 text-grey-8">
+          <span v-text="$t('extension_permissions_none')"></span>
+        </q-banner>
+        <div class="row q-mt-lg">
+          <q-btn
+            v-close-popup
+            flat
+            color="grey"
+            class="q-ml-auto"
+            v-text="$t('close')"
+          ></q-btn>
+        </div>
+      </div>
+      <div
+        v-if="canManageExtensionPermissions()"
+        v-show="manageExtensionTab === 'user-permissions'"
+        class="col-12 col-md-5 q-gutter-y-md q-mt-md"
+      >
+        <q-spinner-bars
+          v-if="managedExtensionPermissions.loading"
+          color="primary"
+          size="2.55em"
+        ></q-spinner-bars>
+        <q-banner
+          v-else-if="!managedUserPermissionRows.length"
+          rounded
+          class="bg-grey-2 text-grey-8"
+        >
+          <span v-text="$t('user_permissions_none')"></span>
+        </q-banner>
+        <q-list v-else bordered separator>
+          <q-expansion-item
+            v-for="row in managedUserPermissionRows"
+            :key="row.key"
+          >
+            <template v-slot:header>
+              <q-item-section>
+                <q-item-label class="text-weight-medium">
+                  <span v-text="row.label"></span>
+                </q-item-label>
+                <q-item-label caption>
+                  <span v-text="userPermissionRowCaption(row)"></span>
+                </q-item-label>
+              </q-item-section>
+              <q-item-section side>
+                <q-btn
+                  flat
+                  dense
+                  round
+                  color="negative"
+                  icon="delete"
+                  :loading="managedExtensionPermissions.deletingKey === row.key"
+                  @click.stop="deleteUserPermissionGrant(row)"
+                >
+                  <q-tooltip>
+                    <span v-text="$t('delete')"></span>
+                  </q-tooltip>
+                </q-btn>
+              </q-item-section>
+            </template>
+            <div class="q-pa-md">
+              <div
+                v-if="isBackgroundPaymentPermission(row)"
+                class="row q-col-gutter-sm"
+              >
+                <div class="col-12 col-sm-5">
+                  <q-input
+                    dense
+                    outlined
+                    type="number"
+                    min="1"
+                    v-model.number="row.grant.max_amount"
+                    :label="$t('user_permissions_max_amount')"
+                    suffix="sat"
+                  ></q-input>
+                </div>
+                <div class="col-12 col-sm-7">
+                  <q-select
+                    dense
+                    outlined
+                    emit-value
+                    map-options
+                    v-model="row.grant.destination_policy"
+                    :options="backgroundPaymentDestinationOptions"
+                    :label="$t('user_permissions_destination_policy')"
+                  ></q-select>
+                </div>
+                <div class="col-12">
+                  <q-btn
+                    unelevated
+                    color="primary"
+                    icon="save"
+                    :loading="managedExtensionPermissions.savingKey === row.key"
+                    @click="saveUserPermissionGrant(row)"
+                  >
+                    <span v-text="$t('save')"></span>
+                  </q-btn>
+                </div>
+              </div>
+              <q-item-label v-else caption>
+                <span
+                  v-text="$t('user_permissions_no_editable_settings')"
+                ></span>
+              </q-item-label>
+            </div>
+          </q-expansion-item>
+        </q-list>
+        <div class="row q-mt-lg">
+          <q-btn
+            v-close-popup
+            flat
+            color="grey"
+            class="q-ml-auto"
+            v-text="$t('close')"
+          ></q-btn>
+        </div>
+      </div>
+      <div
+        v-if="canShowAdminManageTabs() && selectedExtension"
         v-show="manageExtensionTab === 'sell'"
         class="col-12 col-md-5 q-gutter-y-md q-mt-md"
       >

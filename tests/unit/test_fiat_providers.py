@@ -1454,6 +1454,8 @@ def test_check_revolut_signature_docs_vector(mocker: MockerFixture):
     )
     check_revolut_signature(payload, sig, timestamp, secret)
 
+    check_revolut_signature(payload, sig, timestamp, secret)
+
 
 @pytest.mark.anyio
 async def test_fiat_service_fee(settings: Settings):

@@ -48,6 +48,11 @@ from lnbits.core.tasks import (
     process_next_audit_entry,
     refresh_extension_cache,
 )
+from lnbits.core.wasm_ext.routes.register import register_wasm_extension
+from lnbits.core.wasm_ext.wasm.events import dispatch_wasm_invoice_paid
+from lnbits.core.wasm_ext.wasm.loader import (
+    is_wasm_extension_id,
+)
 from lnbits.exceptions import register_exception_handlers
 from lnbits.helpers import version_parse
 from lnbits.llms_txt import create_llms_txt_route
@@ -171,6 +176,7 @@ def create_app() -> FastAPI:
 
     # Allow registering new extensions routes without direct access to the `app` object
     core_app_extra.register_new_ext_routes = register_new_ext_routes(app)
+    core_app_extra.register_new_wasm_ext_routes = register_new_wasm_ext_routes(app)
     core_app_extra.register_new_ratelimiter = register_new_ratelimiter(app)
 
     # register static files
@@ -417,6 +423,13 @@ def register_new_ext_routes(app: FastAPI) -> Callable:
     return register_new_ext_routes_fn
 
 
+def register_new_wasm_ext_routes(app: FastAPI) -> Callable:
+    def register_new_wasm_ext_routes_fn(ext_id: str):
+        register_wasm_extension(app, ext_id)
+
+    return register_new_wasm_ext_routes_fn
+
+
 def register_new_ratelimiter(app: FastAPI) -> Callable:
     def register_new_ratelimiter_fn():
         limiter = Limiter(
@@ -470,10 +483,14 @@ async def check_and_register_extensions(app: FastAPI) -> None:
     await check_installed_extensions(app)
     for ext in await get_valid_extensions(False):
         try:
+            if is_wasm_extension_id(ext.code):
+                register_wasm_extension(app, ext.code)
+                continue
             register_ext_routes(app, ext)
             register_ext_tasks(ext)
         except Exception as exc:
             logger.error(f"Could not load extension `{ext.code}`: {exc!s}")
+            await update_installed_extension_state(ext_id=ext.code, active=False)
 
 
 def register_async_tasks() -> None:
@@ -510,6 +527,11 @@ def register_async_tasks() -> None:
     task_manager.create_permanent_task(fundingsource_invoice_producer)
     task_manager.create_permanent_task(process_next_notification)
     task_manager.create_permanent_task(process_next_audit_entry)
+
+    async def dispatch_extension_invoice_paid(payment) -> None:
+        await dispatch_wasm_invoice_paid(payment)
+
+    task_manager.register_invoice_listener(dispatch_extension_invoice_paid, "core_wasm")
 
     # server logs for websocket
     if settings.lnbits_admin_ui:

@@ -8,6 +8,8 @@ include('components/admin/users.vue') %} {%
 include('components/admin/site_customisation.vue') %} {%
 include('components/admin/audit.vue') %} {%
 include('components/admin/extensions.vue') %} {%
+include('components/admin/wasm-runtime.vue') %} {%
+include('components/admin/wasm-limit-config.vue') %} {%
 include('components/admin/assets-config.vue') %} {%
 include('components/admin/notifications.vue') %} {%
 include('components/admin/server.vue') %} {%
@@ -20,6 +22,7 @@ include('components/lnbits-header-wallets.vue') %} {%
 include('components/lnbits-drawer.vue') %} {%
 include('components/lnbits-home-logos.vue') %} {%
 include('components/lnbits-manage-extension-list.vue') %} {%
+include('components/lnbits-extension-permissions.vue') %} {%
 include('components/lnbits-manage-wallet-list.vue') %} {%
 include('components/lnbits-language-dropdown.vue') %} {%
 include('components/lnbits-payment-list.vue') %} {%
