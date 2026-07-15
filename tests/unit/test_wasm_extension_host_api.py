@@ -12,7 +12,9 @@ from lnbits.core.wasm_ext.api.models import (
     PayInvoiceRequest,
     StorageAppendPublicRequest,
     StorageGetRequest,
+    StoragePaginatedRequest,
     WalletBalanceRequest,
+    WebsocketPublishRequest,
 )
 from lnbits.exceptions import PaymentError
 from lnbits.helpers import sha256s
@@ -47,6 +49,128 @@ async def test_host_api_filters_public_storage_fields(mocker: MockerFixture):
         "title": "Tip jar",
     }
     storage_mock.assert_awaited_once_with("demoext", "tips", "tip-1")
+
+
+@pytest.mark.anyio
+async def test_host_api_filters_public_paginated_storage_rows(
+    mocker: MockerFixture,
+):
+    storage_mock = mocker.patch(
+        "lnbits.core.wasm_ext.api.host.storage_get_public_paginated_rows",
+        mocker.AsyncMock(
+            return_value={
+                "data": [
+                    {
+                        "id": "message-1",
+                        "thread_id": "thread-1",
+                        "message": "Hello",
+                        "admin_note": "secret",
+                    }
+                ],
+                "total": 1,
+            }
+        ),
+    )
+    api = ExtensionHostAPI(
+        "demoext",
+        [
+            ExtensionPermission(
+                id="ext.storage.read_public",
+                policies=[
+                    {
+                        "table_name": "messages",
+                        "public_fields": ["id", "thread_id", "message"],
+                    }
+                ],
+            )
+        ],
+    )
+
+    response = await api.storage_get_public_paginated(
+        StoragePaginatedRequest(
+            table="messages",
+            filters={"thread_id": "thread-1"},
+            search="hello",
+            search_fields=["message"],
+            sort_by="id",
+            descending=False,
+            limit=25,
+            offset=0,
+        )
+    )
+
+    assert json.loads(response.rows_json) == [
+        {"id": "message-1", "thread_id": "thread-1", "message": "Hello"}
+    ]
+    assert response.total == 1
+    storage_mock.assert_awaited_once()
+
+
+@pytest.mark.anyio
+async def test_host_api_public_paginated_storage_rejects_private_query_fields():
+    api = ExtensionHostAPI(
+        "demoext",
+        [
+            ExtensionPermission(
+                id="ext.storage.read_public",
+                policies=[
+                    {
+                        "table_name": "messages",
+                        "public_fields": ["id", "message"],
+                    }
+                ],
+            )
+        ],
+    )
+
+    with pytest.raises(PermissionError, match="non-public fields"):
+        await api.storage_get_public_paginated(
+            StoragePaginatedRequest(
+                table="messages",
+                filters={"admin_note": "secret"},
+                search=None,
+                search_fields=[],
+                sort_by=None,
+                descending=False,
+                limit=25,
+                offset=0,
+            )
+        )
+
+
+@pytest.mark.anyio
+async def test_host_api_websocket_publish_scopes_item_id(mocker: MockerFixture):
+    send_mock = mocker.patch(
+        "lnbits.core.services.websocket_manager.send",
+        mocker.AsyncMock(),
+    )
+    api = ExtensionHostAPI("demoext", ["websocket.publish"])
+
+    response = await api.websocket_publish(
+        WebsocketPublishRequest(
+            item_id="conversation:abc_123",
+            data={"message": "Hello"},
+        )
+    )
+
+    assert response.sent is True
+    send_mock.assert_awaited_once_with(
+        "ext:demoext:conversation:abc_123",
+        '{"message":"Hello"}',
+    )
+
+
+@pytest.mark.anyio
+async def test_host_api_websocket_publish_rejects_invalid_item_id():
+    api = ExtensionHostAPI("demoext", ["websocket.publish"])
+
+    with pytest.raises(ValueError, match="item ID"):
+        await api.websocket_publish(
+            WebsocketPublishRequest(
+                item_id="../other",
+                data={"message": "Hello"},
+            )
+        )
 
 
 @pytest.mark.anyio

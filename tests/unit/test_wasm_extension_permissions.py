@@ -269,6 +269,29 @@ def test_validate_wasm_permissions_allows_wallet_payments_watch_permission():
     ) == [ExtensionPermission(id="wallet.payments.watch")]
 
 
+def test_validate_wasm_permissions_allows_websocket_permissions():
+    ext_info = make_installable_extension("demoext")
+    extension_config = _wasm_config(
+        "demoext",
+        [
+            {"id": "websocket.publish"},
+            {"id": "websocket.subscribe"},
+        ],
+    )
+
+    assert validate_wasm_extension_permissions(
+        ext_info,
+        [
+            ExtensionPermission(id="websocket.publish"),
+            ExtensionPermission(id="websocket.subscribe"),
+        ],
+        extension_config,
+    ) == [
+        ExtensionPermission(id="websocket.publish"),
+        ExtensionPermission(id="websocket.subscribe"),
+    ]
+
+
 def test_background_payment_grant_lookup_and_policy_coverage():
     permissions = {
         WALLET_PAY_INVOICE_BACKGROUND_PERMISSION: [

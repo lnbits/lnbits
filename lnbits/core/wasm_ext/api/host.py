@@ -16,6 +16,7 @@ from ..storage.crud import (
     storage_count_rows,
     storage_delete_row,
     storage_get_paginated_rows,
+    storage_get_public_paginated_rows,
     storage_get_public_row,
     storage_get_row,
     storage_get_row_owner_id,
@@ -56,8 +57,11 @@ from .models import (
     UserWalletSummary,
     WalletBalanceRequest,
     WalletBalanceResponse,
+    WebsocketPublishRequest,
+    WebsocketPublishResponse,
 )
 from .registry import extension_api_method
+from .websockets import scoped_websocket_item_id
 
 logger = logging.getLogger("lnbits.extensions")
 PUBLIC_APPEND_DEFAULT_MAX_ROWS_PER_SOURCE = 10_000
@@ -225,6 +229,46 @@ class ExtensionHostAPI:
         )
 
     @extension_api_method(
+        method_id="storage.get_public_paginated",
+        namespace="storage",
+        name="Get paginated public storage rows",
+        host_name="storage_get_public_paginated",
+        sdk_name="getPublicPaginated",
+        description="Get filtered, searched, sorted, paginated public storage rows.",
+        required_permission="ext.storage.read_public",
+        require_auth=False,
+    )
+    async def storage_get_public_paginated(
+        self, request: StoragePaginatedRequest
+    ) -> StoragePaginatedResponse:
+        public_fields = self._public_storage_fields(request.table)
+        self._validate_public_storage_query_fields(request, public_fields)
+        page = await storage_get_public_paginated_rows(
+            self.extension_id,
+            request.table,
+            request.filters,
+            search=request.search,
+            search_fields=request.search_fields,
+            sort_by=request.sort_by,
+            descending=request.descending,
+            limit=request.limit,
+            offset=request.offset,
+        )
+        return StoragePaginatedResponse(
+            rows_json=json.dumps(
+                [
+                    {
+                        field_name: value
+                        for field_name, value in row.items()
+                        if field_name in public_fields
+                    }
+                    for row in page["data"]
+                ]
+            ),
+            total=page["total"],
+        )
+
+    @extension_api_method(
         method_id="storage.delete",
         namespace="storage",
         name="Delete storage row",
@@ -244,6 +288,25 @@ class ExtensionHostAPI:
             self._require_owner_id(),
         )
         return StorageDeleteResponse()
+
+    @extension_api_method(
+        method_id="websocket.publish",
+        namespace="websocket",
+        name="Publish websocket message",
+        host_name="websocket_publish",
+        sdk_name="publish",
+        description="Publish a JSON message on an extension-local websocket channel.",
+        required_permission="websocket.publish",
+        require_auth=False,
+    )
+    async def websocket_publish(
+        self, request: WebsocketPublishRequest
+    ) -> WebsocketPublishResponse:
+        from lnbits.core.services import websocket_manager
+
+        item_id = scoped_websocket_item_id(self.extension_id, request.item_id)
+        await websocket_manager.send(item_id, request.data_json)
+        return WebsocketPublishResponse()
 
     @extension_api_method(
         method_id="wallet.create_invoice",
@@ -697,6 +760,20 @@ class ExtensionHostAPI:
             return set(public_fields)
 
         raise PermissionError(f"Storage table '{table}' is not publicly readable.")
+
+    def _validate_public_storage_query_fields(
+        self, request: StoragePaginatedRequest, public_fields: set[str]
+    ) -> None:
+        query_fields = set(request.filters)
+        query_fields.update(request.search_fields)
+        if request.sort_by:
+            query_fields.add(request.sort_by)
+        private_fields = sorted(query_fields - public_fields)
+        if private_fields:
+            raise PermissionError(
+                "Public storage query uses non-public fields: "
+                + ", ".join(private_fields)
+            )
 
     async def _public_storage_append_policy(
         self, table: str, source_id: str

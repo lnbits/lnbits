@@ -14,7 +14,7 @@ def test_wasm_frontend_assets_are_registered_in_component_bundle():
     assert "js/components/admin/lnbits-admin-wasm-limit-config.js" in components
 
 
-def test_wasm_frontend_bridge_restricts_api_routes_and_payment_actions():
+def test_wasm_frontend_bridge_restricts_api_routes_and_realtime_actions():
     bridge = (ROOT / "lnbits/static/js/wasm-extension-component.js").read_text(
         encoding="utf-8"
     )
@@ -22,8 +22,15 @@ def test_wasm_frontend_bridge_restricts_api_routes_and_payment_actions():
     assert "allowedApiRoute(method, path)" in bridge
     assert "url.origin !== window.location.origin" in bridge
     assert "Extension API route is not allowed." in bridge
+    assert "extensionRoute(path)" in bridge
+    assert "Extension route must stay inside this extension." in bridge
     assert "message.action === 'payment.subscribe'" in bridge
     assert "message.action === 'payment.unsubscribe'" in bridge
+    assert "message.action === 'websocket.subscribe'" in bridge
+    assert "message.action === 'websocket.unsubscribe'" in bridge
+    assert "message.action === 'navigation.replace'" in bridge
+    assert "hasBridgePermission('websocket.subscribe')" in bridge
+    assert "ext:${this.bridge.extensionId}:${itemId}" in bridge
     assert "message.action === 'ui.scan_qr'" in bridge
 
 

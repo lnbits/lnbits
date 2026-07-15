@@ -110,6 +110,9 @@
         'extension_permission_warning_wallet_payments_watch'
       )
     }
+    if (['websocket.publish', 'websocket.subscribe'].includes(permission.id)) {
+      return mediumRisk(translateFn)
+    }
     if (
       [
         'wallet.list',
@@ -143,6 +146,9 @@
       'extension.api.request',
       'http.request',
       'ui.camera.scan_qr',
+      'websocket',
+      'websocket.publish',
+      'websocket.subscribe',
       'ext.storage.read',
       'ext.storage.write',
       'ext.storage.read_public',
@@ -233,14 +239,26 @@
       permissions.length === 2 &&
       permissions.some(permission => permission.id === 'ext.storage.read') &&
       permissions.some(permission => permission.id === 'ext.storage.write')
+    const isWebsocket =
+      permissions.every(permission =>
+        ['websocket.publish', 'websocket.subscribe'].includes(permission.id)
+      ) &&
+      permissions.some(permission => permission.id === 'websocket.publish') &&
+      permissions.some(permission => permission.id === 'websocket.subscribe')
     const descriptions = permissions
       .map(permission => permissionManifestDescription(permission))
       .filter(Boolean)
     const item = {
-      id: isReadWriteStorage ? 'ext.storage.read_write' : permission.id,
+      id: isReadWriteStorage
+        ? 'ext.storage.read_write'
+        : isWebsocket
+          ? 'websocket'
+          : permission.id,
       label: isReadWriteStorage
         ? translate(translateFn, 'extension_permission_ext_storage_read_write')
-        : permissionLabel(permission, translateFn),
+        : isWebsocket
+          ? translate(translateFn, 'extension_permission_websocket')
+          : permissionLabel(permission, translateFn),
       risk: permissionRisk(permissions, extensions, translateFn),
       badges: [],
       descriptions,
@@ -298,7 +316,11 @@
     const hasReadWriteStorage =
       permissionsById.has('ext.storage.read') &&
       permissionsById.has('ext.storage.write')
+    const hasWebsocket =
+      permissionsById.has('websocket.publish') &&
+      permissionsById.has('websocket.subscribe')
     let addedReadWriteStorage = false
+    let addedWebsocket = false
 
     return permissionList
       .map((permission, index) => {
@@ -314,6 +336,21 @@
             permissions: [
               permissionsById.get('ext.storage.read'),
               permissionsById.get('ext.storage.write')
+            ]
+          }
+        }
+        if (
+          hasWebsocket &&
+          ['websocket.publish', 'websocket.subscribe'].includes(permission.id)
+        ) {
+          if (addedWebsocket) return null
+          addedWebsocket = true
+          return {
+            index,
+            orderId: 'websocket',
+            permissions: [
+              permissionsById.get('websocket.publish'),
+              permissionsById.get('websocket.subscribe')
             ]
           }
         }

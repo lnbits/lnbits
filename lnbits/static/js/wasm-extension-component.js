@@ -183,7 +183,8 @@ window.WasmExtensionComponent = {
       handleWindowMessage: null,
       loading: false,
       loadId: 0,
-      paymentSubscriptions: new Map()
+      paymentSubscriptions: new Map(),
+      websocketSubscriptions: new Map()
     }
   },
   created() {
@@ -356,6 +357,29 @@ window.WasmExtensionComponent = {
           new RegExp(route.pattern).test(url.pathname)
         )
       })
+    },
+    extensionRoute(path) {
+      let url
+      try {
+        url = new URL(String(path || ''), window.location.origin)
+      } catch (_error) {
+        throw new Error('Invalid extension route.')
+      }
+      if (url.origin !== window.location.origin) {
+        throw new Error('Extension route must stay on this server.')
+      }
+
+      const basePath = `/ext/${encodeURIComponent(this.bridge.extensionId)}`
+      if (
+        url.pathname !== basePath &&
+        !url.pathname.startsWith(`${basePath}/`)
+      ) {
+        throw new Error('Extension route must stay inside this extension.')
+      }
+      return `${url.pathname}${url.search}${url.hash}`
+    },
+    replaceExtensionRoute(message) {
+      return this.$router.replace(this.extensionRoute(message.path))
     },
     async callApi(message) {
       const method = String(message.method || 'GET').toUpperCase()
@@ -844,6 +868,18 @@ window.WasmExtensionComponent = {
     isPaymentHash(value) {
       return typeof value === 'string' && /^[a-f0-9]{64}$/i.test(value)
     },
+    isWebsocketItemId(value) {
+      return (
+        typeof value === 'string' &&
+        /^[A-Za-z0-9][A-Za-z0-9:_-]{0,127}$/.test(value)
+      )
+    },
+    scopedWebsocketItemId(itemId) {
+      if (!this.isWebsocketItemId(itemId)) {
+        throw new Error('Invalid websocket item ID.')
+      }
+      return `ext:${this.bridge.extensionId}:${itemId}`
+    },
     websocketUrl(path) {
       const url = new URL(window.location.href)
       url.protocol = url.protocol === 'https:' ? 'wss:' : 'ws:'
@@ -874,8 +910,24 @@ window.WasmExtensionComponent = {
         this.closePaymentSubscription(subscriptionId)
       }
     },
+    closeWebsocketSubscription(subscriptionId) {
+      const subscription = this.websocketSubscriptions.get(subscriptionId)
+      if (!subscription) return
+      this.websocketSubscriptions.delete(subscriptionId)
+      try {
+        subscription.socket.close()
+      } catch (_error) {}
+    },
+    closeWebsocketSubscriptions() {
+      for (const subscriptionId of Array.from(
+        this.websocketSubscriptions.keys()
+      )) {
+        this.closeWebsocketSubscription(subscriptionId)
+      }
+    },
     closeBridgePort() {
       this.closePaymentSubscriptions()
+      this.closeWebsocketSubscriptions()
       this.bridgePort?.close()
       this.bridgePort = null
     },
@@ -937,6 +989,55 @@ window.WasmExtensionComponent = {
         this.paymentSubscriptions.delete(subscriptionId)
       })
     },
+    subscribeWebsocket(message) {
+      if (!this.hasBridgePermission('websocket.subscribe')) {
+        throw new Error('Extension is missing websocket subscribe permission.')
+      }
+
+      const subscriptionId = String(message.subscriptionId || '')
+      const itemId = String(message.itemId || '')
+
+      if (
+        !subscriptionId ||
+        subscriptionId.length > 128 ||
+        !this.isWebsocketItemId(itemId)
+      ) {
+        throw new Error('Invalid websocket subscription.')
+      }
+
+      this.closeWebsocketSubscription(subscriptionId)
+
+      const scopedItemId = this.scopedWebsocketItemId(itemId)
+      const socket = new WebSocket(
+        this.websocketUrl(`/api/v1/ws/${encodeURIComponent(scopedItemId)}`)
+      )
+      this.websocketSubscriptions.set(subscriptionId, {itemId, socket})
+
+      socket.addEventListener('message', event => {
+        let data = event.data
+        try {
+          data = JSON.parse(event.data)
+        } catch (_error) {}
+
+        this.sendBridgeEvent({
+          event: 'websocket.message',
+          subscriptionId,
+          itemId,
+          data
+        })
+      })
+      socket.addEventListener('error', () => {
+        this.sendBridgeEvent({
+          event: 'websocket.error',
+          subscriptionId,
+          itemId
+        })
+        this.closeWebsocketSubscription(subscriptionId)
+      })
+      socket.addEventListener('close', () => {
+        this.websocketSubscriptions.delete(subscriptionId)
+      })
+    },
     async handleBridgeRequest(message, reply) {
       if (!message || message.type !== 'lnbits-extension:request') return
 
@@ -959,6 +1060,15 @@ window.WasmExtensionComponent = {
 
         if (message.action === 'ui.notify') {
           this.notify(message)
+          this.sendResponse(reply, message.id, {
+            ok: true,
+            data: {ok: true}
+          })
+          return
+        }
+
+        if (message.action === 'navigation.replace') {
+          await this.replaceExtensionRoute(message)
           this.sendResponse(reply, message.id, {
             ok: true,
             data: {ok: true}
@@ -1009,6 +1119,24 @@ window.WasmExtensionComponent = {
 
         if (message.action === 'payment.unsubscribe') {
           this.closePaymentSubscription(String(message.subscriptionId || ''))
+          this.sendResponse(reply, message.id, {
+            ok: true,
+            data: {ok: true}
+          })
+          return
+        }
+
+        if (message.action === 'websocket.subscribe') {
+          this.subscribeWebsocket(message)
+          this.sendResponse(reply, message.id, {
+            ok: true,
+            data: {ok: true}
+          })
+          return
+        }
+
+        if (message.action === 'websocket.unsubscribe') {
+          this.closeWebsocketSubscription(String(message.subscriptionId || ''))
           this.sendResponse(reply, message.id, {
             ok: true,
             data: {ok: true}

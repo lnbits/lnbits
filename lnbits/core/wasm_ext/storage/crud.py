@@ -191,6 +191,50 @@ async def storage_get_paginated_rows(
     }
 
 
+async def storage_get_public_paginated_rows(
+    ext_id: str,
+    table: str,
+    filters: dict[str, Any],
+    *,
+    search: str | None,
+    search_fields: list[str],
+    sort_by: str | None,
+    descending: bool,
+    limit: int,
+    offset: int,
+) -> dict[str, Any]:
+    table_schema = _load_table_schema(ext_id, table)
+    database = Database(f"ext_{ext_id}")
+    where_sql, values = _where_sql(
+        database, table_schema, filters, search, search_fields
+    )
+    order_sql = _order_sql(table_schema, sort_by, descending)
+    count_values = dict(values)
+    values.update({"limit": min(limit, 1000), "offset": offset})
+
+    table_ref = _table_ref_for_schema(ext_id, table)
+    rows_query = f"""
+        SELECT * FROM {table_ref}
+        {where_sql}
+        {order_sql}
+        LIMIT :limit
+        OFFSET :offset
+    """  # noqa: S608
+    count_query = f"""
+        SELECT COUNT(*) AS count FROM {table_ref}
+        {where_sql}
+    """  # noqa: S608
+
+    async with database.connect() as conn:
+        rows = await conn.fetchall(rows_query, values)
+        count_row = await conn.fetchone(count_query, count_values)
+
+    return {
+        "data": [_row_from_db(table_schema, row) for row in rows],
+        "total": int(count_row["count"]) if count_row else 0,
+    }
+
+
 async def storage_delete_row(
     ext_id: str,
     table: str,
