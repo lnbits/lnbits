@@ -374,6 +374,13 @@ async def update_pending_payments(wallet_id: str):
 async def update_pending_payment(
     payment: Payment, conn: Connection | None = None
 ) -> Payment:
+    if payment.is_in and payment.is_expired:
+        payment.status = PaymentState.FAILED
+        payment.labels.append("expired")
+        await update_payment(payment, conn=conn)
+        logger.info(f"invoice {payment.checking_id} expired, marked as failed")
+        return payment
+
     status = await check_payment_status(payment)
     if status.failed:
         payment.status = PaymentState.FAILED

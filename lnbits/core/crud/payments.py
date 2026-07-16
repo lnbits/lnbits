@@ -238,32 +238,6 @@ async def get_payments_status_count() -> PaymentsStatusCount:
     )
 
 
-async def delete_expired_invoices(
-    conn: Connection | None = None,
-) -> None:
-    # first we delete all invoices older than one month
-
-    await (conn or db).execute(
-        # Timestamp placeholder is safe from SQL injection (not user input)
-        f"""
-        DELETE FROM apipayments
-        WHERE status = :status AND amount > 0
-        AND time < {db.timestamp_placeholder("delta")}
-        """,  # noqa: S608
-        {"status": f"{PaymentState.PENDING}", "delta": int(time() - 2592000)},
-    )
-    # then we delete all invoices whose expiry date is in the past
-    await (conn or db).execute(
-        # Timestamp placeholder is safe from SQL injection (not user input)
-        f"""
-        DELETE FROM apipayments
-        WHERE status = :status AND amount > 0
-        AND expiry < {db.timestamp_placeholder("now")}
-        """,  # noqa: S608
-        {"status": f"{PaymentState.PENDING}", "now": int(time())},
-    )
-
-
 async def create_payment(
     checking_id: str,
     data: CreatePayment,
