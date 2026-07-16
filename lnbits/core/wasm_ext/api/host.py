@@ -52,6 +52,7 @@ from .models import (
     StorageGetResponse,
     StoragePaginatedRequest,
     StoragePaginatedResponse,
+    StoragePublicPaginatedRequest,
     StorageSetRequest,
     StorageSetResponse,
     UserWalletSummary,
@@ -128,7 +129,7 @@ class ExtensionHostAPI:
     async def storage_get_public(
         self, request: StorageGetRequest
     ) -> StorageGetResponse:
-        public_fields = self._public_storage_fields(request.table)
+        public_fields = self._public_storage_policy(request.table)["public_fields"]
         row = await storage_get_public_row(self.extension_id, request.table, request.id)
         if not row:
             return StorageGetResponse()
@@ -239,14 +240,23 @@ class ExtensionHostAPI:
         require_auth=False,
     )
     async def storage_get_public_paginated(
-        self, request: StoragePaginatedRequest
+        self, request: StoragePublicPaginatedRequest
     ) -> StoragePaginatedResponse:
-        public_fields = self._public_storage_fields(request.table)
-        self._validate_public_storage_query_fields(request, public_fields)
+        policy = self._public_storage_policy(request.table)
+        public_fields = policy["public_fields"]
+        source_id_field = policy["source_id_field"]
+        if not isinstance(source_id_field, str) or not source_id_field:
+            raise PermissionError(
+                "Public paginated storage reads require a source ID field policy."
+            )
+
+        filters = self._public_storage_paginated_filters(
+            request, public_fields, source_id_field
+        )
         page = await storage_get_public_paginated_rows(
             self.extension_id,
             request.table,
-            request.filters,
+            filters,
             search=request.search,
             search_fields=request.search_fields,
             sort_by=request.sort_by,
@@ -737,7 +747,7 @@ class ExtensionHostAPI:
 
         return permission_ids, policies
 
-    def _public_storage_fields(self, table: str) -> set[str]:
+    def _public_storage_policy(self, table: str) -> dict[str, Any]:
         tables = self.permission_policies.get("ext.storage.read_public")
         if not isinstance(tables, list) or not tables:
             raise PermissionError(
@@ -757,23 +767,55 @@ class ExtensionHostAPI:
                 raise PermissionError(
                     f"Public storage table '{table}' has no valid public fields."
                 )
-            return set(public_fields)
+            source_id_field = table_policy.get("source_id_field")
+            if source_id_field is not None and (
+                not isinstance(source_id_field, str) or not source_id_field
+            ):
+                raise PermissionError(
+                    f"Public storage table '{table}' has no valid source ID field."
+                )
+            return {
+                "public_fields": set(public_fields),
+                "source_id_field": source_id_field,
+            }
 
         raise PermissionError(f"Storage table '{table}' is not publicly readable.")
 
     def _validate_public_storage_query_fields(
-        self, request: StoragePaginatedRequest, public_fields: set[str]
+        self,
+        request: StoragePaginatedRequest,
+        public_fields: set[str],
+        allowed_private_fields: set[str] | None = None,
     ) -> None:
+        allowed_private_fields = allowed_private_fields or set()
         query_fields = set(request.filters)
         query_fields.update(request.search_fields)
         if request.sort_by:
             query_fields.add(request.sort_by)
-        private_fields = sorted(query_fields - public_fields)
+        private_fields = sorted(query_fields - public_fields - allowed_private_fields)
         if private_fields:
             raise PermissionError(
                 "Public storage query uses non-public fields: "
                 + ", ".join(private_fields)
             )
+
+    def _public_storage_paginated_filters(
+        self,
+        request: StoragePublicPaginatedRequest,
+        public_fields: set[str],
+        source_id_field: str,
+    ) -> dict[str, Any]:
+        self._validate_public_storage_query_fields(
+            request, public_fields, {source_id_field}
+        )
+        filters = dict(request.filters)
+        requested_source_id = filters.get(source_id_field)
+        if requested_source_id is not None and requested_source_id != request.source_id:
+            raise PermissionError(
+                "Public storage source filter does not match source_id."
+            )
+        filters[source_id_field] = request.source_id
+        return filters
 
     async def _public_storage_append_policy(
         self, table: str, source_id: str

@@ -174,7 +174,12 @@
             : table.public_fields.filter(
                 field => typeof field === 'string' && field
               )
-        return tableName ? {table: tableName, fields} : null
+        const sourceIdField =
+          typeof table === 'string' ||
+          typeof table?.source_id_field !== 'string'
+            ? ''
+            : table.source_id_field
+        return tableName ? {table: tableName, fields, sourceIdField} : null
       })
       .filter(Boolean)
   }

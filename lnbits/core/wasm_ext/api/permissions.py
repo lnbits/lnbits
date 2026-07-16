@@ -210,29 +210,47 @@ def _public_storage_grant_is_subset(
 ) -> bool:
     requested_tables = _public_storage_tables(requested_policies)
     granted_tables = _public_storage_tables(granted_policies)
-    for table_name, granted_fields in granted_tables.items():
-        requested_fields = requested_tables.get(table_name)
-        if requested_fields is None or not granted_fields.issubset(requested_fields):
+    for table_name, granted_policy in granted_tables.items():
+        requested_policy = requested_tables.get(table_name)
+        if requested_policy is None:
+            return False
+        if not granted_policy["public_fields"].issubset(
+            requested_policy["public_fields"]
+        ):
+            return False
+        requested_source_id_field = requested_policy["source_id_field"]
+        if (
+            requested_source_id_field
+            and granted_policy["source_id_field"] != requested_source_id_field
+        ):
             return False
     return True
 
 
-def _public_storage_tables(policies: list[Any] | None) -> dict[str, set[str]]:
-    tables: dict[str, set[str]] = {}
+def _public_storage_tables(policies: list[Any] | None) -> dict[str, dict[str, Any]]:
+    tables: dict[str, dict[str, Any]] = {}
     for policy in _policy_list(policies):
         if not isinstance(policy, dict):
             continue
         table_name = policy.get("table_name")
         public_fields = policy.get("public_fields")
+        source_id_field = policy.get("source_id_field")
         if (
             not isinstance(table_name, str)
             or table_name in tables
             or not isinstance(public_fields, list)
+            or (
+                source_id_field is not None
+                and (not isinstance(source_id_field, str) or not source_id_field)
+            )
         ):
             continue
         fields = {field for field in public_fields if isinstance(field, str) and field}
         if fields:
-            tables[table_name] = fields
+            tables[table_name] = {
+                "public_fields": fields,
+                "source_id_field": source_id_field,
+            }
     return tables
 
 

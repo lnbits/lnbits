@@ -12,7 +12,7 @@ from lnbits.core.wasm_ext.api.models import (
     PayInvoiceRequest,
     StorageAppendPublicRequest,
     StorageGetRequest,
-    StoragePaginatedRequest,
+    StoragePublicPaginatedRequest,
     WalletBalanceRequest,
     WebsocketPublishRequest,
 )
@@ -79,6 +79,7 @@ async def test_host_api_filters_public_paginated_storage_rows(
                 policies=[
                     {
                         "table_name": "messages",
+                        "source_id_field": "thread_id",
                         "public_fields": ["id", "thread_id", "message"],
                     }
                 ],
@@ -87,15 +88,16 @@ async def test_host_api_filters_public_paginated_storage_rows(
     )
 
     response = await api.storage_get_public_paginated(
-        StoragePaginatedRequest(
+        StoragePublicPaginatedRequest(
             table="messages",
-            filters={"thread_id": "thread-1"},
+            filters={},
             search="hello",
             search_fields=["message"],
             sort_by="id",
             descending=False,
             limit=25,
             offset=0,
+            source_id="thread-1",
         )
     )
 
@@ -103,11 +105,55 @@ async def test_host_api_filters_public_paginated_storage_rows(
         {"id": "message-1", "thread_id": "thread-1", "message": "Hello"}
     ]
     assert response.total == 1
-    storage_mock.assert_awaited_once()
+    storage_mock.assert_awaited_once_with(
+        "demoext",
+        "messages",
+        {"thread_id": "thread-1"},
+        search="hello",
+        search_fields=["message"],
+        sort_by="id",
+        descending=False,
+        limit=25,
+        offset=0,
+    )
 
 
 @pytest.mark.anyio
 async def test_host_api_public_paginated_storage_rejects_private_query_fields():
+    api = ExtensionHostAPI(
+        "demoext",
+        [
+            ExtensionPermission(
+                id="ext.storage.read_public",
+                policies=[
+                    {
+                        "table_name": "messages",
+                        "source_id_field": "thread_id",
+                        "public_fields": ["id", "message"],
+                    }
+                ],
+            )
+        ],
+    )
+
+    with pytest.raises(PermissionError, match="non-public fields"):
+        await api.storage_get_public_paginated(
+            StoragePublicPaginatedRequest(
+                table="messages",
+                filters={"admin_note": "secret"},
+                search=None,
+                search_fields=[],
+                sort_by=None,
+                descending=False,
+                limit=25,
+                offset=0,
+                source_id="thread-1",
+            )
+        )
+
+
+@pytest.mark.anyio
+async def test_host_api_public_paginated_storage_requires_source_policy():
     api = ExtensionHostAPI(
         "demoext",
         [
@@ -123,17 +169,52 @@ async def test_host_api_public_paginated_storage_rejects_private_query_fields():
         ],
     )
 
-    with pytest.raises(PermissionError, match="non-public fields"):
+    with pytest.raises(PermissionError, match="source ID field policy"):
         await api.storage_get_public_paginated(
-            StoragePaginatedRequest(
+            StoragePublicPaginatedRequest(
                 table="messages",
-                filters={"admin_note": "secret"},
+                filters={},
                 search=None,
                 search_fields=[],
                 sort_by=None,
                 descending=False,
                 limit=25,
                 offset=0,
+                source_id="thread-1",
+            )
+        )
+
+
+@pytest.mark.anyio
+async def test_host_api_public_paginated_storage_rejects_conflicting_source_filter():
+    api = ExtensionHostAPI(
+        "demoext",
+        [
+            ExtensionPermission(
+                id="ext.storage.read_public",
+                policies=[
+                    {
+                        "table_name": "messages",
+                        "source_id_field": "thread_id",
+                        "public_fields": ["id", "message"],
+                    }
+                ],
+            )
+        ],
+    )
+
+    with pytest.raises(PermissionError, match="does not match source_id"):
+        await api.storage_get_public_paginated(
+            StoragePublicPaginatedRequest(
+                table="messages",
+                filters={"thread_id": "thread-2"},
+                search=None,
+                search_fields=[],
+                sort_by=None,
+                descending=False,
+                limit=25,
+                offset=0,
+                source_id="thread-1",
             )
         )
 

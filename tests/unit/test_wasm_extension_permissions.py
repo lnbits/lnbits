@@ -65,6 +65,7 @@ def test_validate_wasm_permissions_stores_narrower_policy_grant():
                 "policies": [
                     {
                         "table_name": "tip_jars",
+                        "source_id_field": "wallet_id",
                         "public_fields": ["id", "title", "description"],
                     }
                 ],
@@ -80,6 +81,7 @@ def test_validate_wasm_permissions_stores_narrower_policy_grant():
                 policies=[
                     {
                         "table_name": "tip_jars",
+                        "source_id_field": "wallet_id",
                         "public_fields": ["id", "title"],
                     }
                 ],
@@ -95,11 +97,48 @@ def test_validate_wasm_permissions_stores_narrower_policy_grant():
             policies=[
                 {
                     "table_name": "tip_jars",
+                    "source_id_field": "wallet_id",
                     "public_fields": ["id", "title"],
                 }
             ],
         )
     ]
+
+
+def test_validate_wasm_permissions_rejects_public_read_source_field_omission():
+    ext_info = make_installable_extension("demoext")
+    extension_config = _wasm_config(
+        "demoext",
+        [
+            {
+                "id": "ext.storage.read_public",
+                "policies": [
+                    {
+                        "table_name": "messages",
+                        "source_id_field": "conversation_id",
+                        "public_fields": ["id", "body"],
+                    }
+                ],
+            }
+        ],
+    )
+
+    with pytest.raises(ValueError, match="broader policies"):
+        validate_wasm_extension_permissions(
+            ext_info,
+            [
+                ExtensionPermission(
+                    id="ext.storage.read_public",
+                    policies=[
+                        {
+                            "table_name": "messages",
+                            "public_fields": ["id", "body"],
+                        }
+                    ],
+                )
+            ],
+            extension_config,
+        )
 
 
 def test_validate_wasm_permissions_allows_narrower_public_append_grant():

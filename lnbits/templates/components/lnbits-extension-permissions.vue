@@ -9,28 +9,31 @@
     >
       <template v-slot:header>
         <q-item-section>
-          <q-item-label class="text-weight-medium">
-            <span v-text="permission.label"></span>
-          </q-item-label>
-        </q-item-section>
-        <q-item-section
-          v-if="permission.risk.level !== 'low' || permission.badges.length"
-          side
-          top
-        >
-          <div class="row items-center justify-end q-gutter-xs">
-            <q-badge
-              v-for="badge of permission.badges"
-              :key="badge.key"
-              outline
-              color="primary"
-              v-text="badge.label"
-            ></q-badge>
-            <q-badge
-              v-if="permission.risk.level !== 'low'"
-              :color="permission.risk.color"
-              v-text="permission.risk.label"
-            ></q-badge>
+          <div class="row items-center q-col-gutter-x-md q-row-gutter-sm">
+            <q-item-label
+              class="text-weight-medium col-auto"
+              style="max-width: 100%"
+            >
+              <span v-text="permission.label"></span>
+            </q-item-label>
+            <div
+              v-if="permission.risk.level !== 'low' || permission.badges.length"
+              class="row items-center q-gutter-xs col-auto q-mb-xs"
+              style="max-width: 100%"
+            >
+              <q-badge
+                v-for="badge of permission.badges"
+                :key="badge.key"
+                outline
+                color="primary"
+                v-text="badge.label"
+              ></q-badge>
+              <q-badge
+                v-if="permission.risk.level !== 'low'"
+                :color="permission.risk.color"
+                v-text="permission.risk.label"
+              ></q-badge>
+            </div>
           </div>
         </q-item-section>
       </template>
@@ -57,7 +60,24 @@
         ></p>
         <ul v-if="permission.fieldGroups.length" class="q-my-sm q-pl-md">
           <li v-for="group of permission.fieldGroups" :key="group.table">
-            <span v-text="group.table"></span>
+            <div class="row items-center q-gutter-xs">
+              <span v-text="group.table"></span>
+              <template v-if="group.sourceIdField">
+                <q-badge
+                  color="warning"
+                  text-color="dark"
+                  v-text="group.sourceIdField"
+                ></q-badge>
+                <span
+                  class="text-caption text-grey"
+                  v-text="
+                    $t(
+                      'extension_permission_ext_storage_read_public_source_required'
+                    )
+                  "
+                ></span>
+              </template>
+            </div>
             <ul v-if="group.fields.length" class="q-pl-md">
               <li
                 v-for="field of group.fields"

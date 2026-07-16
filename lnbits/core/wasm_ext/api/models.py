@@ -109,6 +109,10 @@ class StoragePaginatedRequest(BaseModel):
         return values
 
 
+class StoragePublicPaginatedRequest(StoragePaginatedRequest):
+    source_id: str = Field(..., min_length=1, max_length=512)
+
+
 class StoragePaginatedResponse(BaseModel):
     rows_json: str = "[]"
     total: int = 0
