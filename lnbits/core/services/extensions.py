@@ -66,6 +66,7 @@ class WasmInvocationHandle:
 
 _wasm_invocation_lock = RLock()
 _wasm_invocation_ready_lock = asyncio.Lock()
+_wasm_invocation_creation_lock = asyncio.Lock()
 _wasm_invocation_handles: dict[str, WasmInvocationHandle] = {}
 _wasm_invocations_marked_stale = False
 _wasm_invocations_last_cleanup_at: datetime | None = None
@@ -287,37 +288,38 @@ async def start_wasm_invocation(
     runtime_limits: dict[str, int] | None = None,
 ) -> WasmInvocation:
     await ensure_wasm_invocation_monitoring_ready()
-    _check_wasm_invocation_concurrency(
-        extension_id=extension_id,
-        user_id=user_id,
-        limits=runtime_limits,
-    )
-
-    invocation = WasmInvocation(
-        id=uuid4().hex,
-        extension_id=extension_id,
-        export_name=export_name,
-        trigger_type=trigger_type,
-        user_id=user_id,
-        wallet_id=wallet_id,
-        request_id=request_id,
-        method=method,
-        path=path,
-        event_type=event_type,
-        payment_hash=payment_hash,
-        checking_id=checking_id,
-        request_bytes=request_bytes,
-        context=_safe_wasm_invocation_context(context or {}),
-    )
-    await create_wasm_invocation(invocation)
-
-    with _wasm_invocation_lock:
-        _wasm_invocation_handles[invocation.id] = WasmInvocationHandle(
-            invocation,
-            runtime_limits=runtime_limits,
+    async with _wasm_invocation_creation_lock:
+        _check_wasm_invocation_concurrency(
+            extension_id=extension_id,
+            user_id=user_id,
+            limits=runtime_limits,
         )
 
-    return invocation
+        invocation = WasmInvocation(
+            id=uuid4().hex,
+            extension_id=extension_id,
+            export_name=export_name,
+            trigger_type=trigger_type,
+            user_id=user_id,
+            wallet_id=wallet_id,
+            request_id=request_id,
+            method=method,
+            path=path,
+            event_type=event_type,
+            payment_hash=payment_hash,
+            checking_id=checking_id,
+            request_bytes=request_bytes,
+            context=_safe_wasm_invocation_context(context or {}),
+        )
+        await create_wasm_invocation(invocation)
+
+        with _wasm_invocation_lock:
+            _wasm_invocation_handles[invocation.id] = WasmInvocationHandle(
+                invocation,
+                runtime_limits=runtime_limits,
+            )
+
+        return invocation
 
 
 def attach_wasm_invocation_runtime(
