@@ -497,7 +497,7 @@ class Filter(BaseModel, Generic[TFilterModel]):
                 validated, errors = compare_field.validate(raw_value, {}, loc="none")
                 if errors:
                     raise ValidationError(errors=[errors], model=model)
-                values[f"{field}__{index}"] = validated
+                values[f"{field}__{i}_{index}"] = validated
         else:
             raise ValueError("Unknown filter field")
 
@@ -510,11 +510,12 @@ class Filter(BaseModel, Generic[TFilterModel]):
         for key in self.values.keys() if self.values else []:
             if self.model and self.model.__fields__[self.field].type_ == datetime:
                 placeholder = compat_timestamp_placeholder(key)
-                stmt.append(f"{prefix}{self.field} {self.op.as_sql} {placeholder}")
-            if self.op in {Operator.INCLUDE, Operator.EXCLUDE}:
-                stmt.append(f":{key}")
             else:
-                stmt.append(f"{prefix}{self.field} {self.op.as_sql} :{key}")
+                placeholder = f":{key}"
+            if self.op in {Operator.INCLUDE, Operator.EXCLUDE}:
+                stmt.append(placeholder)
+            else:
+                stmt.append(f"{prefix}{self.field} {self.op.as_sql} {placeholder}")
 
         if self.op in {Operator.INCLUDE, Operator.EXCLUDE}:
             statement = f"{prefix}{self.field} {self.op.as_sql} ({', '.join(stmt)})"
