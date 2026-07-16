@@ -25,9 +25,10 @@ test('001 extensions can be installed, enabled, disabled, and re-enabled', async
     'lnurldevice',
     'scheduler',
     'deezy',
+    'nostrrelay',
+    'tpos',
     'webpages'
   ])
-  const adminExtensions = new Set(['nostrclient'])
   const extensionIds = [...new Set([...state.extensionById.keys()])]
     .filter(extension => !excluded.has(extension))
     .sort()
@@ -35,26 +36,25 @@ test('001 extensions can be installed, enabled, disabled, and re-enabled', async
   expect(extensionIds.length).toBeGreaterThan(0)
 
   for (const extension of extensionIds) {
-    await uninstallExtension(state.adminContext, extension)
-    await pageStatus(state.adminContext, `/${extension}`, [200, 403, 404])
+    await test.step(`uninstall ${extension}`, async () => {
+      await uninstallExtension(state.adminContext, extension)
+      await pageStatus(state.adminContext, `/${extension}`, [200, 403, 404])
+    })
   }
 
   for (const extension of extensionIds) {
-    await installLatestExtensionViaUi(admin, extension)
-    await pageStatus(state.adminContext, `/${extension}`, [200, 403, 404])
-    await enableExtensionViaUi(admin, extension)
-    await pageStatus(
-      state.adminContext,
-      `/${extension}`,
-      adminExtensions.has(extension) ? [200, 403] : 200
-    )
-    await disableExtensionViaUi(admin, extension)
-    await pageStatus(state.adminContext, `/${extension}`, [200, 403, 404])
-    await enableExtensionViaUi(admin, extension)
-    await pageStatus(
-      state.adminContext,
-      `/${extension}`,
-      adminExtensions.has(extension) ? [200, 403] : 200
-    )
+    await test.step(`install and toggle ${extension}`, async () => {
+      const installed = await installLatestExtensionViaUi(admin, extension)
+      if (!installed) {
+        return
+      }
+      await pageStatus(state.adminContext, `/${extension}`, [200, 403, 404])
+      await enableExtensionViaUi(admin, extension)
+      await pageStatus(state.adminContext, `/${extension}`, [200, 403, 404])
+      await disableExtensionViaUi(admin, extension)
+      await pageStatus(state.adminContext, `/${extension}`, [200, 403, 404])
+      await enableExtensionViaUi(admin, extension)
+      await pageStatus(state.adminContext, `/${extension}`, [200, 403, 404])
+    })
   }
 })

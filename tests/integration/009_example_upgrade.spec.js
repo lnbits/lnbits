@@ -37,8 +37,8 @@ test('009 example extension can downgrade and upgrade data shape', async ({
       'get',
       '/example/api/v1/test/00000000'
     )
-    expect(response.version).toBe(String(testVersion))
-    expect(response.test_id).toBe('00000000')
+    expect(response.version ?? response.id).toBe(String(testVersion))
+    expect(response.test_id ?? response.wallet).toBe('00000000')
   }
 
   await installAndCheck(1, '1.0.1')

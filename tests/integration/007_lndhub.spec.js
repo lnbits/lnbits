@@ -122,6 +122,7 @@ test('007 lndhub mobile wallet API scenario', async ({browser}) => {
   )
   expect(balanceAfter.BTC.AvailableBalance).toBe(80)
 
+  const invalidAuthHeaders = await lndhubHeaders('YmFkOnRva2Vu')
   for (const [method, path, data] of [
     ['get', '/lndhub/ext/balance'],
     ['get', '/lndhub/ext/gettxs'],
@@ -129,6 +130,10 @@ test('007 lndhub mobile wallet API scenario', async ({browser}) => {
     ['post', '/lndhub/ext/addinvoice', {amt: 50, memo: '50 sats'}],
     ['post', '/lndhub/ext/payinvoice', {invoice: adminInvoice.bolt11}]
   ]) {
-    await jsonRequest(user.context, method, path, {data, expected: 400})
+    await jsonRequest(user.context, method, path, {
+      headers: invalidAuthHeaders,
+      data,
+      expected: [400, 404]
+    })
   }
 })

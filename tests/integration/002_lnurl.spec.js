@@ -122,6 +122,7 @@ test('002 lnurlp and withdraw scenarios', async ({browser}) => {
       user.adminkey
     )
     expect(lnurlResponse.tag).toBe('withdrawRequest')
+    await user.page.waitForTimeout(2100)
 
     for (let withdrawIndex = 0; withdrawIndex < 2; withdrawIndex++) {
       const withdrawal = await withdrawLnurlViaUi(
@@ -139,6 +140,9 @@ test('002 lnurlp and withdraw scenarios', async ({browser}) => {
         receiveWallet.inkey,
         withdrawal.payment_hash
       )
+      if (withdrawIndex === 0) {
+        await user.page.waitForTimeout(1100)
+      }
     }
   }
 

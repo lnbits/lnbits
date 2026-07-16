@@ -74,7 +74,7 @@ test('011 auction house transfers NIP5 addresses through bids and fixed-price sa
       domainId,
       `id_${index}__${domainId}`
     )
-    await activateNip5Address(seller.context, seller, domainId, address.id)
+    await activateNip5Address(owner.context, owner, domainId, address.id)
     createdAddresses.push(address)
   }
 
@@ -156,15 +156,23 @@ test('011 auction house transfers NIP5 addresses through bids and fixed-price sa
     winningBidder = bidder
   }
 
-  const itemAfterBids = await jsonRequest(
-    owner.context,
-    'get',
-    `/auction_house/api/v1/items/${item.id}`,
-    {
-      headers: apiKeyHeaders(owner.inkey)
-    }
-  )
-  expect(itemAfterBids.bids.length).toBeGreaterThanOrEqual(15)
+  await expect
+    .poll(
+      async () => {
+        const bids = await jsonRequest(
+          owner.context,
+          'get',
+          `/auction_house/api/v1/bids/${item.id}/paginated`,
+          {
+            headers: apiKeyHeaders(owner.inkey),
+            params: {limit: 20}
+          }
+        )
+        return bids.total
+      },
+      {timeout: 15_000}
+    )
+    .toBeGreaterThanOrEqual(15)
   await getPayments(owner.context, owner.inkey)
   await jsonRequest(
     owner.context,
@@ -239,14 +247,21 @@ test('011 auction house transfers NIP5 addresses through bids and fixed-price sa
     'fixed price buy'
   )
   await payInvoiceViaUi(admin, buy.payment_request)
-  const buyerAddresses = await jsonRequest(
-    buyer.context,
-    'get',
-    '/nostrnip5/api/v1/user/addresses',
-    {
-      headers: apiKeyHeaders(buyer.inkey),
-      params: {active: true}
-    }
-  )
-  expect(JSON.stringify(buyerAddresses)).toContain(fixedPriceAddress.local_part)
+  await expect
+    .poll(
+      async () => {
+        const buyerAddresses = await jsonRequest(
+          buyer.context,
+          'get',
+          '/nostrnip5/api/v1/user/addresses',
+          {
+            headers: apiKeyHeaders(buyer.inkey),
+            params: {active: true}
+          }
+        )
+        return JSON.stringify(buyerAddresses)
+      },
+      {timeout: 15_000}
+    )
+    .toContain(fixedPriceAddress.local_part)
 })

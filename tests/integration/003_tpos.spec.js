@@ -64,7 +64,6 @@ test('003 tpos payments, tips, and ATM withdraw', async ({browser}) => {
   const atm = await jsonRequest(user.context, 'post', '/tpos/api/v1/tposs', {
     headers: apiKeyHeaders(user.adminkey),
     data: {
-      withdraw_pin: 2222,
       withdraw_between: 1,
       name: 'Test ATM',
       wallet: user.walletId,
@@ -131,10 +130,10 @@ test('003 tpos payments, tips, and ATM withdraw', async ({browser}) => {
   const beforeUser = await getWallet(user.context, user.inkey)
   const atmPin = await jsonRequest(
     user.context,
-    'get',
-    `/tpos/api/v1/atm/${atm.id}/2222`,
+    'post',
+    `/tpos/api/v1/atm/${atm.id}/create`,
     {
-      headers: apiKeyHeaders(state.adminWallet.adminkey)
+      headers: apiKeyHeaders(user.adminkey)
     }
   )
   expect(atmPin.id).toBeTruthy()

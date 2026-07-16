@@ -13,6 +13,7 @@ const {
   newUserWithUi,
   getAdminSession,
   payInvoiceViaUi,
+  topUpWallet,
   ensureExtensionsInstalledViaUi,
   enableExtensionViaUi,
   createNip5Domain,
@@ -30,6 +31,7 @@ test('010 nostrnip5 domain, search, pricing, and referral flow', async ({
   test.setTimeout(10 * 60 * 1000)
 
   const admin = await getAdminSession(browser)
+  await topUpWallet(state.adminContext, state.adminWallet.walletId, 1_000_000)
   await ensureExtensionsInstalledViaUi(admin, ['nostrnip5', 'lnurlp'])
   const anonymous = await newContext()
   await textRequest(anonymous, 'patch', '/nostrnip5/api/v1/domain/ranking/0', {
@@ -307,7 +309,7 @@ test('010 nostrnip5 domain, search, pricing, and referral flow', async ({
         years,
         promo_code: promoCode,
         create_invoice: createInvoiceFlag,
-        expected: expectedStatus || 200
+        expected: expectedStatus ?? 201
       }
     )
     if (expectedPrice !== null) {
@@ -367,9 +369,14 @@ test('010 nostrnip5 domain, search, pricing, and referral flow', async ({
   await payInvoiceViaUi(admin, paidThree.payment_request)
   await getNostrJson(client.context, domainId, identifierThree)
 
-  const alanBalance = await getWallet(owner.context, alanWallet.inkey)
-  const refererBonus = Math.floor(paidThree.extra.price_in_sats / 5)
-  expect(
-    Math.abs(Math.floor(alanBalance.balance / 1000) - refererBonus)
-  ).toBeLessThanOrEqual(100)
+  const refererBonus = Math.floor(quoteThree.extra.price_in_sats / 5)
+  await expect
+    .poll(
+      async () => {
+        const alanBalance = await getWallet(owner.context, alanWallet.inkey)
+        return Math.abs(Math.floor(alanBalance.balance / 1000) - refererBonus)
+      },
+      {timeout: 15_000}
+    )
+    .toBeLessThanOrEqual(100)
 })

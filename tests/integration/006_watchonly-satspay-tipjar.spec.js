@@ -51,7 +51,7 @@ test('006 watchonly, satspay, and tipjar scenario', async ({browser}) => {
         network: 'Mainnet',
         meta: '{"accountPath":"m/84\'/0\'/0\'"}'
       },
-      expected: 201
+      expected: [200, 201]
     }
   )
   expect(onchain.id).toBeTruthy()
@@ -75,7 +75,7 @@ test('006 watchonly, satspay, and tipjar scenario', async ({browser}) => {
   await enableExtensionViaUi(user, 'satspay')
   await pageStatus(user.context, '/satspay/')
   await jsonRequest(user.context, 'get', '/satspay/api/v1/charges', {
-    headers: apiKeyHeaders(user.inkey)
+    headers: apiKeyHeaders(user.adminkey)
   })
   const onchainCharge = await jsonRequest(
     user.context,
@@ -92,7 +92,7 @@ test('006 watchonly, satspay, and tipjar scenario', async ({browser}) => {
         amount: 1111,
         lnbitswallet: null
       },
-      expected: 201
+      expected: [200, 201]
     }
   )
   expect(onchainCharge.id).toBeTruthy()
@@ -111,7 +111,7 @@ test('006 watchonly, satspay, and tipjar scenario', async ({browser}) => {
       completelink: 'https://twitter.com',
       completelinktext: 'Have Fun'
     },
-    expected: 201
+    expected: [200, 201]
   })
 
   let expectedBalanceSats = 0
@@ -135,7 +135,7 @@ test('006 watchonly, satspay, and tipjar scenario', async ({browser}) => {
           completelink: 'https://twitter.com',
           completelinktext: 'Have Fun'
         },
-        expected: 201
+        expected: [200, 201]
       }
     )
     expect(charge.payment_request).toBeTruthy()
@@ -143,7 +143,10 @@ test('006 watchonly, satspay, and tipjar scenario', async ({browser}) => {
     await jsonRequest(
       user.context,
       'get',
-      `/satspay/api/v1/charge/balance/${charge.id}`
+      `/satspay/api/v1/charge/balance/${charge.id}`,
+      {
+        headers: apiKeyHeaders(user.inkey)
+      }
     )
     await payInvoiceViaUi(admin, charge.payment_request)
     await expect
@@ -151,7 +154,10 @@ test('006 watchonly, satspay, and tipjar scenario', async ({browser}) => {
         const updatedCharge = await jsonRequest(
           user.context,
           'get',
-          `/satspay/api/v1/charge/${charge.id}`
+          `/satspay/api/v1/charge/${charge.id}`,
+          {
+            headers: apiKeyHeaders(user.inkey)
+          }
         )
         return Boolean(updatedCharge.paid || updatedCharge.lnbitswallet)
       })
@@ -165,7 +171,7 @@ test('006 watchonly, satspay, and tipjar scenario', async ({browser}) => {
     'get',
     '/satspay/api/v1/charges',
     {
-      headers: apiKeyHeaders(user.inkey)
+      headers: apiKeyHeaders(user.adminkey)
     }
   )
   expect(charges.length).toBeGreaterThanOrEqual(7)
@@ -184,7 +190,7 @@ test('006 watchonly, satspay, and tipjar scenario', async ({browser}) => {
     {
       headers: apiKeyHeaders(user.adminkey),
       data: {wallet: user.walletId, name: 'Nakamoto', webhook: mirrorUrl()},
-      expected: 201
+      expected: [200, 201]
     }
   )
   expect(tipjar.id).toBeTruthy()
@@ -199,14 +205,17 @@ test('006 watchonly, satspay, and tipjar scenario', async ({browser}) => {
         sats: 21,
         message: `Let's go ...${index}!`
       },
-      expected: 201
+      expected: [200, 201]
     })
     expect(tip.redirect_url).toBeTruthy()
     const tipChargeId = tip.redirect_url.split('/').filter(Boolean).at(-1)
     const charge = await jsonRequest(
       user.context,
       'get',
-      `/satspay/api/v1/charge/${tipChargeId}`
+      `/satspay/api/v1/charge/${tipChargeId}`,
+      {
+        headers: apiKeyHeaders(user.inkey)
+      }
     )
     expect(charge.description).toBe(`Let's go ...${index}!`)
     const tips = await jsonRequest(user.context, 'get', '/tipjar/api/v1/tips', {

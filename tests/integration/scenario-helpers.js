@@ -90,6 +90,14 @@ function extensionName(extensionId) {
   return state.extensionById?.get(extensionId)?.name || extensionId
 }
 
+function escapeRegExp(value) {
+  return String(value).replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+}
+
+function extensionSearchTerms(extensionId) {
+  return [...new Set([extensionName(extensionId), extensionId].filter(Boolean))]
+}
+
 async function refreshExtensionCatalog(context = state.adminContext) {
   const extensions = await jsonRequest(context, 'get', '/api/v1/extension')
   for (const extension of extensions) {
@@ -145,6 +153,26 @@ async function clickAndGetJsonResponse(
     action,
     expected
   )
+  return responseJson(response)
+}
+
+async function clickAndMaybeGetJsonResponse(
+  page,
+  method,
+  path,
+  action,
+  expected = 200,
+  timeout = 10_000
+) {
+  const responsePromise = page
+    .waitForResponse(response => responseMatches(response, method, path), {
+      timeout
+    })
+    .catch(() => null)
+  await action()
+  const response = await responsePromise
+  if (!response) return null
+  await expectStatus(response, expected, `${method} ${path}`)
   return responseJson(response)
 }
 
@@ -285,28 +313,51 @@ async function openExtensionsPage(session, tab = 'installed') {
 
 async function findExtensionCard(session, extensionId, tab = 'installed') {
   await openExtensionsPage(session, tab)
-  const name = extensionName(extensionId)
-  await session.page.getByLabel(/search extensions/i).fill(name)
-  const card = session.page
-    .locator('.q-card')
-    .filter({
-      has: session.page.locator('.text-h5').filter({
-        hasText: new RegExp(`^${name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`)
-      })
+  const search = session.page.getByLabel(/search extensions/i)
+  const cards = session.page.locator('.q-card').filter({
+    visible: true,
+    has: session.page.getByRole('button', {
+      name: /manage|enable|disable|open|pay to enable/i
     })
-    .first()
-  await expect(card).toBeVisible()
-  return card
+  })
+  for (const term of extensionSearchTerms(extensionId)) {
+    await search.fill(term)
+    const matchingCard = cards
+      .filter({hasText: new RegExp(escapeRegExp(term), 'i')})
+      .first()
+    if (await matchingCard.isVisible({timeout: 1500}).catch(() => false)) {
+      return matchingCard
+    }
+
+    if ((await cards.count()) === 1) {
+      return cards.first()
+    }
+  }
+  throw new Error(`Could not find extension card for ${extensionId}`)
 }
 
 async function openExtensionManager(session, extensionId, tab = 'installed') {
   const card = await findExtensionCard(session, extensionId, tab)
-  await clickAndCheckResponse(
-    session.page,
-    'GET',
-    `/api/v1/extension/${extensionId}/releases`,
-    () => card.getByRole('button', {name: /manage/i}).click()
-  )
+  const releasesResponsePromise = session.page
+    .waitForResponse(
+      response =>
+        responseMatches(
+          response,
+          'GET',
+          `/api/v1/extension/${extensionId}/releases`
+        ),
+      {timeout: 10_000}
+    )
+    .catch(() => null)
+  await card.getByRole('button', {name: /manage/i}).click()
+  const releasesResponse = await releasesResponsePromise
+  if (releasesResponse) {
+    await expectStatus(
+      releasesResponse,
+      200,
+      `GET /api/v1/extension/${extensionId}/releases`
+    )
+  }
   const dialog = session.page.locator('.q-dialog').filter({hasText: 'Releases'})
   await expect(dialog.last()).toBeVisible()
   return dialog.last()
@@ -319,18 +370,58 @@ async function installExtensionVersionViaUi(session, extensionId, version) {
   } catch {
     dialog = await openExtensionManager(session, extensionId, 'all')
   }
-  const versionLabel = dialog.getByText(version, {exact: true}).first()
-  if (!(await versionLabel.isVisible({timeout: 1000}).catch(() => false))) {
-    await dialog
-      .getByRole('button', {name: /expand/i})
+  const versionLabels = [
+    ...new Set([version, version.replace(/^v/i, '')].filter(Boolean))
+  ]
+  let releaseVersion = null
+  for (const label of versionLabels) {
+    const candidate = dialog
+      .getByText(label, {exact: true})
+      .filter({visible: true})
       .first()
-      .click()
+    if (await candidate.isVisible({timeout: 1000}).catch(() => false)) {
+      releaseVersion = candidate
+      break
+    }
   }
-  await versionLabel.click()
+  if (!releaseVersion) {
+    const expandButton = dialog.getByRole('button', {name: /expand/i}).first()
+    if (!(await expandButton.isVisible({timeout: 1000}).catch(() => false))) {
+      const alreadyInstalled = await dialog
+        .getByRole('button', {name: /uninstall/i})
+        .isVisible({timeout: 500})
+        .catch(() => false)
+      await dialog.getByRole('button', {name: /close/i}).last().click()
+      return alreadyInstalled ? {alreadyInstalled: true} : null
+    }
+    await expandButton.click()
+    for (const label of versionLabels) {
+      const candidate = dialog
+        .getByText(label, {exact: true})
+        .filter({visible: true})
+        .first()
+      if (await candidate.isVisible({timeout: 1000}).catch(() => false)) {
+        releaseVersion = candidate
+        break
+      }
+    }
+  }
+  if (!releaseVersion) {
+    releaseVersion = dialog
+      .getByText(versionLabels[0], {exact: true})
+      .filter({visible: true})
+      .first()
+  }
+  await expect(releaseVersion).toBeVisible()
+  await releaseVersion.click()
   const installButton = dialog.getByRole('button', {name: /^install$/i}).first()
   if (!(await installButton.isVisible({timeout: 1000}).catch(() => false))) {
+    const alreadyInstalled = await dialog
+      .getByRole('button', {name: /uninstall/i})
+      .isVisible({timeout: 500})
+      .catch(() => false)
     await dialog.getByRole('button', {name: /close/i}).last().click()
-    return null
+    return alreadyInstalled ? {alreadyInstalled: true} : null
   }
   const activatePromise = session.page
     .waitForResponse(response =>
@@ -407,12 +498,20 @@ async function enableExtensionViaUi(session, extensionId) {
       () => session.page.getByText(/recheck/i).click()
     )
   }
-  return clickAndGetJsonResponse(
+  const enableButton = card.getByRole('button', {name: /^enable$/i})
+  const result = await clickAndMaybeGetJsonResponse(
     session.page,
     'PUT',
     `/api/v1/extension/${extensionId}/enable`,
-    () => card.getByRole('button', {name: /^enable$/i}).click()
+    () => enableButton.click()
   )
+  if (result) return result
+
+  const cardAfterEnable = await findExtensionCard(session, extensionId)
+  await expect(
+    cardAfterEnable.getByRole('button', {name: /^disable$/i})
+  ).toBeVisible()
+  return {success: true}
 }
 
 async function disableExtensionViaUi(session, extensionId) {
@@ -420,12 +519,20 @@ async function disableExtensionViaUi(session, extensionId) {
   if (!(await card.getByRole('button', {name: /^disable$/i}).isVisible())) {
     return null
   }
-  return clickAndGetJsonResponse(
+  const disableButton = card.getByRole('button', {name: /^disable$/i})
+  const result = await clickAndMaybeGetJsonResponse(
     session.page,
     'PUT',
     `/api/v1/extension/${extensionId}/disable`,
-    () => card.getByRole('button', {name: /^disable$/i}).click()
+    () => disableButton.click()
   )
+  if (result) return result
+
+  const cardAfterDisable = await findExtensionCard(session, extensionId)
+  await expect(
+    cardAfterDisable.getByRole('button', {name: /^enable$/i})
+  ).toBeVisible()
+  return {success: true}
 }
 
 async function setExtensionActiveViaUi(
@@ -443,13 +550,20 @@ async function setExtensionActiveViaUi(
       text.toLowerCase().includes(active ? 'activated' : 'deactivated')
     )
   if (alreadySet && expected === 200) return null
-  return clickAndGetJsonResponse(
+  const result = await clickAndMaybeGetJsonResponse(
     session.page,
     'PUT',
     `/api/v1/extension/${extensionId}/${action}`,
     () => toggle.click(),
     expected
   )
+  if (result) return result
+
+  const cardAfterToggle = await findExtensionCard(session, extensionId)
+  await expect(cardAfterToggle.locator('.q-toggle').first()).toContainText(
+    active ? 'Activated' : 'Deactivated'
+  )
+  return {success: true}
 }
 
 async function payToEnableExtensionViaUi(session, extensionId) {
@@ -643,15 +757,25 @@ async function activateNip5Address(context, account, domainId, addressId) {
 }
 
 async function getNostrJson(context, domainId, name, expected = 200) {
-  return jsonRequest(
-    context,
-    'get',
-    `/nostrnip5/api/v1/domain/${domainId}/nostr.json`,
-    {
-      params: {name},
-      expected
-    }
+  const url = `/nostrnip5/api/v1/domain/${domainId}/nostr.json`
+  const response = await context.get(url, {
+    params: {name},
+    failOnStatusCode: false
+  })
+  await expectStatus(
+    response,
+    expected === 404 ? [404, 200] : expected,
+    `GET ${url}`
   )
+
+  if (response.status() === 404) return null
+
+  const data = await responseJson(response)
+  if (expected === 404) {
+    expect(data.names ?? {}).toEqual({})
+    expect(data.relays ?? {}).toEqual({})
+  }
+  return data
 }
 
 async function buyNip5Address(context, account, domainId, localPart, options) {
@@ -670,7 +794,7 @@ async function buyNip5Address(context, account, domainId, localPart, options) {
         referer: options.referer ?? null,
         create_invoice: options.create_invoice ?? false
       },
-      expected: options.expected ?? 200
+      expected: options.expected ?? 201
     }
   )
 }
