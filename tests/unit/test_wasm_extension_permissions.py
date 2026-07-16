@@ -20,7 +20,10 @@ from lnbits.core.views.extension_api import (
     _safe_user_extension_permissions,
     _user_permission_grant_id_for_wallet,
 )
-from lnbits.core.wasm_ext.api.permissions import validate_wasm_extension_permissions
+from lnbits.core.wasm_ext.api.permissions import (
+    PUBLIC_APPEND_MAX_ROWS_PER_SOURCE_LIMIT,
+    validate_wasm_extension_permissions,
+)
 from lnbits.core.wasm_ext.wasm.events import _wasm_invoice_paid_owner_id
 from lnbits.core.wasm_ext.wasm.invoke import _active_installed_extension
 from tests.helpers import make_installable_extension
@@ -236,6 +239,129 @@ def test_validate_wasm_permissions_rejects_broader_public_append_grant():
                 )
             ],
             extension_config,
+        )
+
+
+def test_validate_wasm_permissions_admin_can_raise_public_append_row_limit():
+    ext_info = make_installable_extension("demoext")
+    extension_config = _wasm_config(
+        "demoext",
+        [
+            {
+                "id": "ext.storage.append_public",
+                "description": "Append public messages.",
+                "policies": [
+                    {
+                        "table": "messages",
+                        "source_table": "threads",
+                        "source_id_field": "thread_id",
+                        "allowed_fields": ["message"],
+                        "max_rows_per_source": 100,
+                    }
+                ],
+            }
+        ],
+    )
+
+    permissions = validate_wasm_extension_permissions(
+        ext_info,
+        [
+            ExtensionPermission(
+                id="ext.storage.append_public",
+                policies=[
+                    {
+                        "table": "messages",
+                        "source_table": "threads",
+                        "source_id_field": "thread_id",
+                        "allowed_fields": ["message"],
+                        "max_rows_per_source": 500,
+                    }
+                ],
+            )
+        ],
+        extension_config,
+        allow_admin_policy_overrides=True,
+    )
+
+    assert permissions == [
+        ExtensionPermission(
+            id="ext.storage.append_public",
+            description="Append public messages.",
+            policies=[
+                {
+                    "table": "messages",
+                    "source_table": "threads",
+                    "source_id_field": "thread_id",
+                    "allowed_fields": ["message"],
+                    "max_rows_per_source": 500,
+                }
+            ],
+        )
+    ]
+
+
+def test_validate_wasm_permissions_admin_cannot_raise_public_append_fields_or_cap():
+    ext_info = make_installable_extension("demoext")
+    extension_config = _wasm_config(
+        "demoext",
+        [
+            {
+                "id": "ext.storage.append_public",
+                "policies": [
+                    {
+                        "table": "messages",
+                        "source_table": "threads",
+                        "source_id_field": "thread_id",
+                        "allowed_fields": ["message"],
+                        "max_rows_per_source": 100,
+                    }
+                ],
+            }
+        ],
+    )
+
+    with pytest.raises(ValueError, match="broader policies"):
+        validate_wasm_extension_permissions(
+            ext_info,
+            [
+                ExtensionPermission(
+                    id="ext.storage.append_public",
+                    policies=[
+                        {
+                            "table": "messages",
+                            "source_table": "threads",
+                            "source_id_field": "thread_id",
+                            "allowed_fields": ["message", "admin"],
+                            "max_rows_per_source": 500,
+                        }
+                    ],
+                )
+            ],
+            extension_config,
+            allow_admin_policy_overrides=True,
+        )
+
+    with pytest.raises(ValueError, match="broader policies"):
+        validate_wasm_extension_permissions(
+            ext_info,
+            [
+                ExtensionPermission(
+                    id="ext.storage.append_public",
+                    policies=[
+                        {
+                            "table": "messages",
+                            "source_table": "threads",
+                            "source_id_field": "thread_id",
+                            "allowed_fields": ["message"],
+                            "max_rows_per_source": (
+                                PUBLIC_APPEND_MAX_ROWS_PER_SOURCE_LIMIT + 1
+                            ),
+                        }
+                    ],
+                )
+            ],
+            extension_config,
+            allow_admin_policy_overrides=True,
         )
 
 

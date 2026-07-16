@@ -106,6 +106,22 @@
               "
             >
               <span v-text="publicAppendPolicySentence(policy)"></span>
+              <q-input
+                v-if="editableAppendPublicLimits"
+                v-model.number="policy.rawPolicy.max_rows_per_source"
+                type="number"
+                dense
+                outlined
+                class="q-mt-sm q-mb-sm"
+                style="max-width: 240px"
+                :min="1"
+                :max="maxRowsPerSourceLimit"
+                :label="
+                  $t(
+                    'extension_permission_ext_storage_append_public_max_rows_per_source'
+                  )
+                "
+              ></q-input>
               <ul v-if="policy.allowedFields.length" class="q-pl-md">
                 <li
                   v-for="field of policy.allowedFields"

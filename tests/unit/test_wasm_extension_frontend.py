@@ -38,6 +38,9 @@ def test_wasm_extension_install_ui_requests_permissions_before_install_paths():
     extensions_page = (ROOT / "lnbits/static/js/pages/extensions.js").read_text(
         encoding="utf-8"
     )
+    permissions_template = (
+        ROOT / "lnbits/templates/components/lnbits-extension-permissions.vue"
+    ).read_text(encoding="utf-8")
     wasm_bulk_update_skip_message = (
         "Skipping ${ext.id}; this extension update requires permission approval."
     )
@@ -46,6 +49,13 @@ def test_wasm_extension_install_ui_requests_permissions_before_install_paths():
     assert "permissions: grantedPermissions" in extensions_page
     assert "release.extension_type === 'wasm'" in extensions_page
     assert "this.selectedExtension?.isWasm === true" in extensions_page
+    assert "saveManagedExtensionPermissions()" in extensions_page
+    assert (
+        "`/api/v1/extension/${this.selectedExtension.id}/permissions`"
+        in extensions_page
+    )
+    assert "editableAppendPublicLimits" in permissions_template
+    assert "max_rows_per_source" in permissions_template
     assert wasm_bulk_update_skip_message in extensions_page
 
 

@@ -232,7 +232,8 @@
           sourceTable,
           sourceIdField,
           allowedFields,
-          maxRowsPerSource
+          maxRowsPerSource,
+          rawPolicy: policy
         }
       })
       .filter(Boolean)
@@ -397,6 +398,14 @@
       extensions: {
         type: Array,
         default: () => []
+      },
+      editableAppendPublicLimits: {
+        type: Boolean,
+        default: false
+      },
+      maxRowsPerSourceLimit: {
+        type: Number,
+        default: 1000000
       }
     },
     computed: {

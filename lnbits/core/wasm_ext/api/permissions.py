@@ -18,6 +18,7 @@ _POLICY_AWARE_PERMISSION_IDS = {
 }
 _OWNER_ID_FIELD = "__lnbits_owner_id__"
 _PUBLIC_APPEND_DEFAULT_MAX_ROWS_PER_SOURCE = 10_000
+PUBLIC_APPEND_MAX_ROWS_PER_SOURCE_LIMIT = 1_000_000
 
 
 def validate_extension_permissions(
@@ -50,6 +51,8 @@ def validate_wasm_extension_permissions(
     ext_info: InstallableExtension,
     granted_permissions: list[ExtensionPermission] | None,
     extension_config: dict[str, Any] | WasmExtensionConfig,
+    *,
+    allow_admin_policy_overrides: bool = False,
 ) -> list[ExtensionPermission]:
     if isinstance(extension_config, WasmExtensionConfig):
         config = extension_config
@@ -84,7 +87,11 @@ def validate_wasm_extension_permissions(
     effective_permissions: list[ExtensionPermission] = []
     for permission_id, granted_permission in granted_by_id.items():
         requested_permission = requested_by_id[permission_id]
-        if not _permission_grant_is_subset(requested_permission, granted_permission):
+        if not _permission_grant_is_subset(
+            requested_permission,
+            granted_permission,
+            allow_admin_policy_overrides=allow_admin_policy_overrides,
+        ):
             raise ValueError(
                 f"Extension '{ext_info.id}' was granted broader policies for "
                 f"permission '{permission_id}'."
@@ -121,6 +128,8 @@ def _permission_index(
 def _permission_grant_is_subset(
     requested: ExtensionPermission,
     granted: ExtensionPermission,
+    *,
+    allow_admin_policy_overrides: bool = False,
 ) -> bool:
     if requested.id != granted.id:
         return False
@@ -132,7 +141,9 @@ def _permission_grant_is_subset(
         return _extension_api_grant_is_subset(requested.policies, granted.policies)
     if requested.id == "ext.storage.append_public":
         return _public_storage_append_grant_is_subset(
-            requested.policies, granted.policies
+            requested.policies,
+            granted.policies,
+            allow_max_rows_per_source_override=allow_admin_policy_overrides,
         )
     if requested.id == "ext.storage.read_public":
         return _public_storage_grant_is_subset(requested.policies, granted.policies)
@@ -257,9 +268,13 @@ def _public_storage_tables(policies: list[Any] | None) -> dict[str, dict[str, An
 def _public_storage_append_grant_is_subset(
     requested_policies: list[Any] | None,
     granted_policies: list[Any] | None,
+    *,
+    allow_max_rows_per_source_override: bool = False,
 ) -> bool:
     requested_targets = _public_storage_append_targets(requested_policies)
     granted_targets = _public_storage_append_targets(granted_policies)
+    if len(granted_targets) != len(_policy_list(granted_policies)):
+        return False
     for target, granted_policy in granted_targets.items():
         requested_policy = requested_targets.get(target)
         if requested_policy is None:
@@ -271,6 +286,7 @@ def _public_storage_append_grant_is_subset(
         if (
             granted_policy["max_rows_per_source"]
             > requested_policy["max_rows_per_source"]
+            and not allow_max_rows_per_source_override
         ):
             return False
     return True
@@ -300,6 +316,7 @@ def _public_storage_append_targets(policies: list[Any] | None) -> dict[Any, dict
             or isinstance(max_rows_per_source, bool)
             or not isinstance(max_rows_per_source, int)
             or max_rows_per_source <= 0
+            or max_rows_per_source > PUBLIC_APPEND_MAX_ROWS_PER_SOURCE_LIMIT
         ):
             continue
         fields = {field for field in allowed_fields if isinstance(field, str) and field}

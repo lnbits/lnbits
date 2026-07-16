@@ -24,6 +24,7 @@ from lnbits.core.models.extensions import (
     Extension,
     ExtensionConfig,
     ExtensionPermission,
+    ExtensionPermissionsUpdate,
     ExtensionRelease,
     InstallableExtension,
     PayToEnableInfo,
@@ -45,6 +46,7 @@ from lnbits.core.views.extension_api import (
     api_get_wasm_runtime_limit_extensions,
     api_install_extension,
     api_uninstall_extension,
+    api_update_extension_permissions,
     api_update_pay_to_enable,
     api_update_wasm_runtime_limits,
     create_extension_review,
@@ -310,6 +312,91 @@ async def test_extension_api_wasm_runtime_limits_and_catalog_use_installed_metad
     assert catalog_item["permissions"] == [
         dict(permission) for permission in granted_permissions
     ]
+
+
+@pytest.mark.anyio
+async def test_extension_api_admin_updates_wasm_extension_permission_limits(
+    tmp_path,
+    settings,
+):
+    ext_id = f"wasm_{uuid4().hex[:8]}"
+    original_extensions_path = settings.lnbits_extensions_path
+    manifest_permissions = [
+        {
+            "id": "ext.storage.append_public",
+            "description": "Append public messages.",
+            "policies": [
+                {
+                    "table": "messages",
+                    "source_table": "conversations",
+                    "source_id_field": "conversation_id",
+                    "allowed_fields": ["body"],
+                    "max_rows_per_source": 100,
+                }
+            ],
+        }
+    ]
+    installed_permissions = [
+        ExtensionPermission.parse_obj(permission) for permission in manifest_permissions
+    ]
+    updated_permissions = [
+        ExtensionPermission(
+            id="ext.storage.append_public",
+            policies=[
+                {
+                    "table": "messages",
+                    "source_table": "conversations",
+                    "source_id_field": "conversation_id",
+                    "allowed_fields": ["body"],
+                    "max_rows_per_source": 1000,
+                }
+            ],
+        )
+    ]
+
+    try:
+        settings.lnbits_extensions_path = str(tmp_path)
+        _write_installed_wasm_config(
+            ext_id,
+            tmp_path,
+            permissions=manifest_permissions,
+        )
+        await create_installed_extension(
+            InstallableExtension(
+                id=ext_id,
+                name="WASM Demo",
+                version="1.0.0",
+                active=True,
+                permissions=installed_permissions,
+            )
+        )
+
+        response = await api_update_extension_permissions(
+            ext_id,
+            ExtensionPermissionsUpdate(permissions=updated_permissions),
+        )
+        stored = await get_installed_extension(ext_id)
+    finally:
+        await delete_installed_extension(ext_id=ext_id)
+        settings.lnbits_extensions_path = original_extensions_path
+
+    assert response.extension_permissions == [
+        ExtensionPermission(
+            id="ext.storage.append_public",
+            description="Append public messages.",
+            policies=[
+                {
+                    "table": "messages",
+                    "source_table": "conversations",
+                    "source_id_field": "conversation_id",
+                    "allowed_fields": ["body"],
+                    "max_rows_per_source": 1000,
+                }
+            ],
+        )
+    ]
+    assert stored is not None
+    assert stored.permissions == response.extension_permissions
 
 
 @pytest.mark.anyio
@@ -580,26 +667,35 @@ async def test_extension_api_review_endpoints(mocker):
     assert payment_request.payment_hash.startswith("hash_")
 
 
-def _write_wasm_extension_archive(ext_id: str, version: str, settings) -> None:
+def _write_wasm_extension_archive(
+    ext_id: str,
+    version: str,
+    settings,
+    permissions: list[dict] | None = None,
+) -> None:
     zip_path = Path(settings.lnbits_data_folder, "zips", f"{ext_id}.zip")
     zip_path.parent.mkdir(parents=True, exist_ok=True)
-    config = _wasm_config(ext_id)
+    config = _wasm_config(ext_id, permissions=permissions)
     root = f"{ext_id}-{version}"
     with zipfile.ZipFile(zip_path, "w") as archive:
         archive.writestr(f"{root}/config.json", json.dumps(config))
         archive.writestr(f"{root}/{config['wasm']['module']}", b"\0asm")
 
 
-def _write_installed_wasm_config(ext_id: str, extensions_path) -> None:
+def _write_installed_wasm_config(
+    ext_id: str,
+    extensions_path,
+    permissions: list[dict] | None = None,
+) -> None:
     config_dir = extensions_path / "extensions" / ext_id
     config_dir.mkdir(parents=True)
     (config_dir / "config.json").write_text(
-        json.dumps(_wasm_config(ext_id)),
+        json.dumps(_wasm_config(ext_id, permissions=permissions)),
         encoding="utf-8",
     )
 
 
-def _wasm_config(ext_id: str) -> dict:
+def _wasm_config(ext_id: str, permissions: list[dict] | None = None) -> dict:
     return {
         "id": ext_id,
         "name": "WASM Demo",
@@ -607,7 +703,8 @@ def _wasm_config(ext_id: str) -> dict:
         "version": "1.0.0",
         "extension_type": "wasm",
         "wasm": {"module": "extension.wasm"},
-        "permissions": [
+        "permissions": permissions
+        or [
             {
                 "id": "http.request",
                 "description": "Call example API.",

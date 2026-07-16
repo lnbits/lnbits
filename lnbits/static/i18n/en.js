@@ -548,6 +548,8 @@ window.localisation.en = {
     'Append public extension storage',
   extension_permission_ext_storage_append_public_sources:
     'Allowed append targets',
+  extension_permission_ext_storage_append_public_max_rows_per_source:
+    'Max rows per source',
   extension_permission_ext_storage_read_public: 'Read public extension storage',
   extension_permission_ext_storage_read_public_source_required:
     'required to read',

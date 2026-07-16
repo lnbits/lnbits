@@ -28,6 +28,7 @@ from lnbits.core.models.extensions import (
     ExtensionPermissionCheckResponse,
     ExtensionPermissionCheckResult,
     ExtensionPermissionsResponse,
+    ExtensionPermissionsUpdate,
     ExtensionRelease,
     ExtensionReview,
     ExtensionReviewPaymentRequest,
@@ -62,7 +63,10 @@ from lnbits.core.services.extensions import (
     update_wasm_extension_runtime_limits,
     validate_wasm_runtime_limit_overrides,
 )
-from lnbits.core.wasm_ext.api.permissions import validate_extension_permissions
+from lnbits.core.wasm_ext.api.permissions import (
+    validate_extension_permissions,
+    validate_wasm_extension_permissions,
+)
 from lnbits.db import Page
 from lnbits.decorators import (
     check_account_exists,
@@ -116,7 +120,9 @@ async def api_install_extension(data: CreateExtension):
 
     try:
         extension = await install_extension(
-            ext_info, granted_permissions=data.permissions
+            ext_info,
+            granted_permissions=data.permissions,
+            allow_admin_policy_overrides=True,
         )
 
     except Exception as exc:
@@ -508,6 +514,43 @@ async def api_get_extension_permissions(
         user_permissions=_safe_user_extension_permissions(
             user_ext.permissions if user_ext else {}
         ),
+    )
+
+
+@extension_router.put("/{ext_id}/permissions", dependencies=[Depends(check_admin)])
+async def api_update_extension_permissions(
+    ext_id: str,
+    data: ExtensionPermissionsUpdate,
+) -> ExtensionPermissionsResponse:
+    installed_ext = await get_installed_extension(ext_id)
+    if not installed_ext:
+        raise HTTPException(
+            HTTPStatus.NOT_FOUND, f"Extension '{ext_id}' is not installed."
+        )
+    if not installed_ext.is_wasm:
+        raise HTTPException(
+            HTTPStatus.BAD_REQUEST, f"Extension '{ext_id}' is not a WASM extension."
+        )
+
+    try:
+        extension_config = _load_installed_extension_config(installed_ext)
+        installed_ext.permissions = validate_wasm_extension_permissions(
+            installed_ext,
+            data.permissions,
+            extension_config,
+            allow_admin_policy_overrides=True,
+        )
+        await update_installed_extension(installed_ext)
+    except ValueError as exc:
+        raise HTTPException(
+            status_code=HTTPStatus.BAD_REQUEST,
+            detail=str(exc),
+        ) from exc
+
+    return ExtensionPermissionsResponse(
+        extension_permissions=validate_extension_permissions(
+            installed_ext.id, installed_ext.permissions, strict=False
+        )
     )
 
 
@@ -1003,6 +1046,20 @@ async def create_extension_review(
         resp.raise_for_status()
         payment_request = resp.json()
         return ExtensionReviewPaymentRequest(**payment_request)
+
+
+def _load_installed_extension_config(extension: InstallableExtension) -> dict:
+    config_path = extension.ext_dir / "config.json"
+    if not config_path.is_file():
+        raise ValueError(f"Extension '{extension.id}' config file is missing.")
+    try:
+        with open(config_path, encoding="utf-8") as config_file:
+            config = json.load(config_file)
+    except Exception as exc:
+        raise ValueError(f"Cannot read extension config for '{extension.id}'.") from exc
+    if not isinstance(config, dict):
+        raise ValueError(f"Extension '{extension.id}' config file is invalid.")
+    return config
 
 
 async def _require_active_wasm_extension(ext_id: str) -> InstallableExtension:
