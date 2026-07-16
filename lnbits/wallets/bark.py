@@ -1,16 +1,18 @@
+import asyncio
 import json
+from collections.abc import AsyncGenerator
 from typing import Any
-from urllib.parse import quote
+from urllib.parse import quote, urlencode, urlsplit, urlunsplit
 
 import httpx
 from bolt11 import decode as bolt11_decode
 from loguru import logger
+from websockets import connect
 
 from lnbits.helpers import normalize_endpoint
 from lnbits.settings import settings
 
 from .base import (
-    Feature,
     InvoiceResponse,
     PaymentFailedStatus,
     PaymentPendingStatus,
@@ -34,7 +36,6 @@ class BarkHTTPError(BarkError):
 
 class BarkWallet(Wallet):
     """https://second.tech/docs/barkd"""
-    features: list[Feature] = []
 
     def __init__(self):
         if not settings.bark_api_endpoint:
@@ -44,6 +45,17 @@ class BarkWallet(Wallet):
 
         super().__init__()
         self.endpoint = normalize_endpoint(settings.bark_api_endpoint)
+        parsed_endpoint = urlsplit(self.endpoint)
+        ws_scheme = "wss" if parsed_endpoint.scheme == "https" else "ws"
+        self.ws_endpoint = urlunsplit(
+            (
+                ws_scheme,
+                parsed_endpoint.netloc,
+                "/api/v1/notifications/ws",
+                "",
+                "",
+            )
+        )
         self.headers = {
             "Authorization": f"Bearer {settings.bark_api_token}",
             "Accept": "application/json",
@@ -105,7 +117,6 @@ class BarkWallet(Wallet):
             )
             payment_request = data["invoice"]
             checking_id = bolt11_decode(payment_request).payment_hash
-            self.pending_invoices.append(checking_id)
 
             return InvoiceResponse(
                 ok=True,
@@ -179,6 +190,80 @@ class BarkWallet(Wallet):
             logger.warning(exc)
 
         return PaymentPendingStatus()
+
+    async def paid_invoices_stream(self) -> AsyncGenerator[str, None]:
+        while settings.lnbits_running:
+            try:
+                async for checking_id in self._listen_paid_invoices():
+                    yield checking_id
+            except asyncio.CancelledError:
+                raise
+            except Exception as exc:
+                logger.warning(
+                    "Bark invoices stream unavailable "
+                    f"({type(exc).__name__}); retrying in 5 seconds."
+                )
+                await asyncio.sleep(5)
+
+    async def _listen_paid_invoices(self) -> AsyncGenerator[str, None]:
+        ticket = await self._request_json(
+            "GET", "/api/v1/notifications/ws/ticket", timeout=10
+        )
+        if not isinstance(ticket, str) or not ticket:
+            raise BarkError("Server error: 'invalid websocket ticket'")
+
+        ws_url = f"{self.ws_endpoint}?{urlencode({'ticket': ticket})}"
+        async with connect(ws_url) as ws:
+            logger.info("Connected to Bark invoices stream.")
+
+            while settings.lnbits_running:
+                notification = self._parse_notification(await ws.recv())
+                if not notification:
+                    continue
+                if notification.get("type") == "channel-lagging":
+                    logger.warning(
+                        "Bark invoice notifications were lost; pending payments "
+                        "will be reconciled by the scheduled check."
+                    )
+                    continue
+
+                checking_id = self._incoming_payment_hash(notification)
+                if checking_id:
+                    yield checking_id
+
+    def _parse_notification(self, message: str | bytes) -> dict[str, Any] | None:
+        try:
+            notification = json.loads(message)
+        except (json.JSONDecodeError, TypeError):
+            logger.warning("Invalid message from Bark invoices stream.")
+            return None
+        return notification if isinstance(notification, dict) else None
+
+    def _incoming_payment_hash(self, notification: dict[str, Any]) -> str | None:
+        if notification.get("type") not in {
+            "movement-created",
+            "movement-updated",
+        }:
+            return None
+
+        movement = notification.get("movement")
+        if not isinstance(movement, dict) or movement.get("status") != "successful":
+            return None
+
+        for destination in movement.get("received_on") or []:
+            if not isinstance(destination, dict):
+                continue
+            method = destination.get("destination")
+            if not isinstance(method, dict) or method.get("type") != "invoice":
+                continue
+            invoice = method.get("value")
+            if not isinstance(invoice, str):
+                continue
+            try:
+                return bolt11_decode(invoice).payment_hash
+            except Exception as exc:
+                logger.debug(f"Unable to decode Bark notification invoice: {exc}")
+        return None
 
     def _decode_invoice_for_payment(
         self, bolt11: str
