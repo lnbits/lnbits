@@ -64,6 +64,8 @@ class BarkWallet(Wallet):
         }
         self.client = httpx.AsyncClient(base_url=self.endpoint, headers=self.headers)
         self.pending_payments: dict[str, str] = {}
+        self.outgoing_payment_waiters: dict[str, asyncio.Future[PaymentStatus]] = {}
+        self.notified_paid_invoice: str | None = None
 
     async def cleanup(self):
         try:
@@ -148,12 +150,7 @@ class BarkWallet(Wallet):
         if fee_response:
             return fee_response
 
-        payment_response = await self._send_payment(bolt11, checking_id)
-        if payment_response:
-            return payment_response
-
-        self.pending_payments[checking_id] = bolt11
-        return await self._payment_response_from_status(checking_id)
+        return await self._send_payment(bolt11, checking_id)
 
     async def get_invoice_status(self, checking_id: str) -> PaymentStatus:
         try:
@@ -162,20 +159,21 @@ class BarkWallet(Wallet):
                 "GET", f"/api/v1/lightning/receives/{identifier}"
             )
         except BarkHTTPError as exc:
+            notification_status = self._consume_paid_invoice_notification(checking_id)
+            if notification_status:
+                return notification_status
             if exc.status_code == 404:
                 return PaymentFailedStatus()
             logger.warning(exc)
             return PaymentPendingStatus()
         except Exception as exc:
             logger.warning(exc)
+            notification_status = self._consume_paid_invoice_notification(checking_id)
+            if notification_status:
+                return notification_status
             return PaymentPendingStatus()
 
-        if data.get("finished_at"):
-            if data.get("preimage_revealed_at"):
-                return PaymentSuccessStatus(preimage=data.get("payment_preimage"))
-            return PaymentFailedStatus()
-
-        return PaymentPendingStatus()
+        return self._invoice_status_from_response(checking_id, data)
 
     async def get_payment_status(self, checking_id: str) -> PaymentStatus:
         try:
@@ -227,8 +225,10 @@ class BarkWallet(Wallet):
                     )
                     continue
 
+                self._notify_outgoing_payment(notification)
                 checking_id = self._incoming_payment_hash(notification)
                 if checking_id:
+                    self.notified_paid_invoice = checking_id
                     yield checking_id
 
     def _parse_notification(self, message: str | bytes) -> dict[str, Any] | None:
@@ -264,6 +264,33 @@ class BarkWallet(Wallet):
             except Exception as exc:
                 logger.debug(f"Unable to decode Bark notification invoice: {exc}")
         return None
+
+    def _consume_paid_invoice_notification(
+        self, checking_id: str, preimage: str | None = None
+    ) -> PaymentStatus | None:
+        if checking_id != self.notified_paid_invoice:
+            return None
+        self.notified_paid_invoice = None
+        return PaymentSuccessStatus(preimage=preimage)
+
+    def _invoice_status_from_response(
+        self, checking_id: str, data: Any
+    ) -> PaymentStatus:
+        preimage = data.get("payment_preimage") if isinstance(data, dict) else None
+        notification_status = self._consume_paid_invoice_notification(
+            checking_id, preimage
+        )
+        if notification_status:
+            return notification_status
+        if not isinstance(data, dict):
+            return PaymentPendingStatus()
+        if data.get("state") == "settled" or data.get("settled_at"):
+            return PaymentSuccessStatus(preimage=preimage)
+        if not data.get("finished_at"):
+            return PaymentPendingStatus()
+        if data.get("preimage_revealed_at"):
+            return PaymentSuccessStatus(preimage=preimage)
+        return PaymentFailedStatus()
 
     def _decode_invoice_for_payment(
         self, bolt11: str
@@ -319,7 +346,35 @@ class BarkWallet(Wallet):
             )
         return None
 
-    async def _send_payment(
+    async def _send_payment(self, bolt11: str, checking_id: str) -> PaymentResponse:
+        waiter = asyncio.get_running_loop().create_future()
+        self.outgoing_payment_waiters[checking_id] = waiter
+        try:
+            initiation_error = await self._initiate_payment(bolt11, checking_id)
+            if initiation_error is not None:
+                return initiation_error
+
+            self.pending_payments[checking_id] = bolt11
+            response = await self._payment_response_from_status(checking_id)
+            if not response.pending:
+                return response
+
+            wait_seconds = max(
+                0, settings.lnbits_funding_source_pay_invoice_wait_seconds - 1
+            )
+            if not wait_seconds:
+                return response
+            try:
+                status = await asyncio.wait_for(waiter, timeout=wait_seconds)
+            except TimeoutError:
+                return response
+            return self._payment_response(checking_id, status)
+        finally:
+            current_waiter = self.outgoing_payment_waiters.pop(checking_id, None)
+            if current_waiter and not current_waiter.done():
+                current_waiter.cancel()
+
+    async def _initiate_payment(
         self, bolt11: str, checking_id: str
     ) -> PaymentResponse | None:
         try:
@@ -329,45 +384,61 @@ class BarkWallet(Wallet):
                 timeout=40,
             )
             r.raise_for_status()
-            r.json()
+            data = r.json()
+            if not isinstance(data, dict) or not isinstance(data.get("message"), str):
+                return self._pending_payment_response(
+                    bolt11,
+                    checking_id,
+                    "Server error: 'invalid payment response'",
+                )
         except httpx.TimeoutException:
             message = f"Timeout connecting to {self.endpoint}. keep pending..."
             logger.warning(message)
-            self.pending_payments[checking_id] = bolt11
-            return PaymentResponse(
-                ok=None, checking_id=checking_id, error_message=message
-            )
+            return self._pending_payment_response(bolt11, checking_id, message)
         except httpx.HTTPStatusError as exc:
-            return PaymentResponse(
-                ok=False,
-                checking_id=checking_id,
-                error_message=self._http_error_message(exc.response),
-            )
+            if exc.response.is_client_error:
+                return PaymentResponse(
+                    ok=False,
+                    checking_id=checking_id,
+                    error_message=self._http_error_message(exc.response),
+                )
+            message = self._http_error_message(exc.response)
+            logger.warning(message)
+            return self._pending_payment_response(bolt11, checking_id, message)
         except httpx.RequestError as exc:
-            message = f"Unable to connect to {self.endpoint}."
+            message = f"Unable to connect to {self.endpoint}. keep pending..."
             logger.warning(message)
             logger.warning(exc)
-            return PaymentResponse(
-                ok=False, checking_id=checking_id, error_message=message
-            )
+            return self._pending_payment_response(bolt11, checking_id, message)
         except json.JSONDecodeError:
-            self.pending_payments[checking_id] = bolt11
-            return PaymentResponse(
-                ok=None,
-                checking_id=checking_id,
-                error_message="Server error: 'invalid json response'",
+            return self._pending_payment_response(
+                bolt11,
+                checking_id,
+                "Server error: 'invalid json response'",
             )
         except Exception as exc:
+            message = f"Unable to connect to {self.endpoint}. keep pending..."
             logger.warning(exc)
-            return PaymentResponse(
-                ok=None,
-                checking_id=checking_id,
-                error_message=f"Unable to connect to {self.endpoint}.",
-            )
+            return self._pending_payment_response(bolt11, checking_id, message)
         return None
+
+    def _pending_payment_response(
+        self, bolt11: str, checking_id: str, error_message: str
+    ) -> PaymentResponse:
+        self.pending_payments[checking_id] = bolt11
+        return PaymentResponse(
+            ok=None,
+            checking_id=checking_id,
+            error_message=error_message,
+        )
 
     async def _payment_response_from_status(self, checking_id: str) -> PaymentResponse:
         status = await self.get_payment_status(checking_id)
+        return self._payment_response(checking_id, status)
+
+    def _payment_response(
+        self, checking_id: str, status: PaymentStatus
+    ) -> PaymentResponse:
         if status.success:
             return PaymentResponse(
                 ok=True,
@@ -378,6 +449,40 @@ class BarkWallet(Wallet):
         if status.failed:
             return PaymentResponse(ok=False, checking_id=checking_id)
         return PaymentResponse(ok=None, checking_id=checking_id)
+
+    def _notify_outgoing_payment(self, notification: dict[str, Any]) -> None:
+        if notification.get("type") not in {
+            "movement-created",
+            "movement-updated",
+        }:
+            return
+
+        movement = notification.get("movement")
+        if not isinstance(movement, dict):
+            return
+        status = self._movement_to_payment_status(movement)
+        if status.pending:
+            return
+
+        for destination in movement.get("sent_to") or []:
+            if not isinstance(destination, dict):
+                continue
+            method = destination.get("destination")
+            if not isinstance(method, dict) or method.get("type") != "invoice":
+                continue
+            invoice = method.get("value")
+            if not isinstance(invoice, str):
+                continue
+            try:
+                checking_id = bolt11_decode(invoice).payment_hash
+            except Exception as exc:
+                logger.debug(f"Unable to decode Bark notification invoice: {exc}")
+                continue
+
+            waiter = self.outgoing_payment_waiters.get(checking_id)
+            if waiter and not waiter.done():
+                waiter.set_result(status)
+            return
 
     async def _request_json(self, method: str, path: str, **kwargs) -> Any:
         try:
