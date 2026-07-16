@@ -481,6 +481,10 @@
         :extensions="extensions"
         :editable-append-public-limits="g.user.admin === true"
         :max-rows-per-source-limit="extensionPermissionMaxRowsPerSourceLimit"
+        :editable-websocket-publish-limits="g.user.admin === true"
+        :max-messages-per-second-limit="
+          extensionPermissionMaxMessagesPerSecondLimit
+        "
       ></lnbits-extension-permissions>
 
       <div class="row q-mt-lg">
@@ -863,6 +867,10 @@
           :extensions="extensions"
           :editable-append-public-limits="g.user.admin === true"
           :max-rows-per-source-limit="extensionPermissionMaxRowsPerSourceLimit"
+          :editable-websocket-publish-limits="g.user.admin === true"
+          :max-messages-per-second-limit="
+            extensionPermissionMaxMessagesPerSecondLimit
+          "
         ></lnbits-extension-permissions>
         <q-banner v-else rounded class="bg-grey-2 text-grey-8">
           <span v-text="$t('extension_permissions_none')"></span>

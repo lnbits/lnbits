@@ -132,6 +132,38 @@
             </li>
           </ul>
         </div>
+        <div v-if="permission.websocketPublishPolicies.length" class="q-mt-sm">
+          <div
+            class="text-caption text-grey"
+            v-text="$t('extension_permission_websocket_publish_limits')"
+          ></div>
+          <div
+            v-for="(policy, index) of permission.websocketPublishPolicies"
+            :key="'websocket-publish:' + index"
+            class="q-mt-xs"
+          >
+            <span
+              class="text-caption"
+              v-text="websocketPublishPolicySentence(policy)"
+            ></span>
+            <q-input
+              v-if="editableWebsocketPublishLimits"
+              v-model.number="policy.rawPolicy.max_messages_per_second"
+              type="number"
+              dense
+              outlined
+              class="q-mt-sm q-mb-sm"
+              style="max-width: 240px"
+              :min="1"
+              :max="maxMessagesPerSecondLimit"
+              :label="
+                $t(
+                  'extension_permission_websocket_publish_max_messages_per_second'
+                )
+              "
+            ></q-input>
+          </div>
+        </div>
         <div v-if="permission.extensionAccess.length" class="q-mt-sm">
           <div
             class="text-caption text-grey"

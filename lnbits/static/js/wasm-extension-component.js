@@ -874,12 +874,6 @@ window.WasmExtensionComponent = {
         /^[A-Za-z0-9][A-Za-z0-9:_-]{0,127}$/.test(value)
       )
     },
-    scopedWebsocketItemId(itemId) {
-      if (!this.isWebsocketItemId(itemId)) {
-        throw new Error('Invalid websocket item ID.')
-      }
-      return `ext:${this.bridge.extensionId}:${itemId}`
-    },
     websocketUrl(path) {
       const url = new URL(window.location.href)
       url.protocol = url.protocol === 'https:' ? 'wss:' : 'ws:'
@@ -1007,9 +1001,12 @@ window.WasmExtensionComponent = {
 
       this.closeWebsocketSubscription(subscriptionId)
 
-      const scopedItemId = this.scopedWebsocketItemId(itemId)
       const socket = new WebSocket(
-        this.websocketUrl(`/api/v1/ws/${encodeURIComponent(scopedItemId)}`)
+        this.websocketUrl(
+          `/api/v1/ext/ws/${encodeURIComponent(
+            this.bridge.extensionId
+          )}/${encodeURIComponent(itemId)}`
+        )
       )
       this.websocketSubscriptions.set(subscriptionId, {itemId, socket})
 

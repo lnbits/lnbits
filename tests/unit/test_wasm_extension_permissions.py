@@ -24,6 +24,9 @@ from lnbits.core.wasm_ext.api.permissions import (
     PUBLIC_APPEND_MAX_ROWS_PER_SOURCE_LIMIT,
     validate_wasm_extension_permissions,
 )
+from lnbits.core.wasm_ext.api.websockets import (
+    WEBSOCKET_PUBLISH_MAX_MESSAGES_PER_SECOND_LIMIT,
+)
 from lnbits.core.wasm_ext.wasm.events import _wasm_invoice_paid_owner_id
 from lnbits.core.wasm_ext.wasm.invoke import _active_installed_extension
 from tests.helpers import make_installable_extension
@@ -439,7 +442,10 @@ def test_validate_wasm_permissions_allows_websocket_permissions():
     extension_config = _wasm_config(
         "demoext",
         [
-            {"id": "websocket.publish"},
+            {
+                "id": "websocket.publish",
+                "policies": [{"max_messages_per_second": 10}],
+            },
             {"id": "websocket.subscribe"},
         ],
     )
@@ -447,14 +453,128 @@ def test_validate_wasm_permissions_allows_websocket_permissions():
     assert validate_wasm_extension_permissions(
         ext_info,
         [
-            ExtensionPermission(id="websocket.publish"),
+            ExtensionPermission(
+                id="websocket.publish",
+                policies=[{"max_messages_per_second": 5}],
+            ),
             ExtensionPermission(id="websocket.subscribe"),
         ],
         extension_config,
     ) == [
-        ExtensionPermission(id="websocket.publish"),
+        ExtensionPermission(
+            id="websocket.publish",
+            policies=[{"max_messages_per_second": 5}],
+        ),
         ExtensionPermission(id="websocket.subscribe"),
     ]
+
+
+def test_validate_wasm_permissions_rejects_websocket_publish_without_policy():
+    ext_info = make_installable_extension("demoext")
+    extension_config = _wasm_config(
+        "demoext",
+        [{"id": "websocket.publish"}],
+    )
+
+    with pytest.raises(ValueError, match="invalid policies"):
+        validate_wasm_extension_permissions(
+            ext_info,
+            [ExtensionPermission(id="websocket.publish")],
+            extension_config,
+        )
+
+
+def test_validate_wasm_permissions_rejects_broader_websocket_publish_limit():
+    ext_info = make_installable_extension("demoext")
+    extension_config = _wasm_config(
+        "demoext",
+        [
+            {
+                "id": "websocket.publish",
+                "policies": [{"max_messages_per_second": 10}],
+            }
+        ],
+    )
+
+    with pytest.raises(ValueError, match="broader policies"):
+        validate_wasm_extension_permissions(
+            ext_info,
+            [
+                ExtensionPermission(
+                    id="websocket.publish",
+                    policies=[{"max_messages_per_second": 11}],
+                )
+            ],
+            extension_config,
+        )
+
+
+def test_validate_wasm_permissions_admin_can_raise_websocket_publish_limit():
+    ext_info = make_installable_extension("demoext")
+    extension_config = _wasm_config(
+        "demoext",
+        [
+            {
+                "id": "websocket.publish",
+                "policies": [{"max_messages_per_second": 10}],
+            }
+        ],
+    )
+
+    assert validate_wasm_extension_permissions(
+        ext_info,
+        [
+            ExtensionPermission(
+                id="websocket.publish",
+                policies=[{"max_messages_per_second": 20}],
+            )
+        ],
+        extension_config,
+        allow_admin_policy_overrides=True,
+    ) == [
+        ExtensionPermission(
+            id="websocket.publish",
+            policies=[{"max_messages_per_second": 20}],
+        )
+    ]
+
+
+def test_validate_wasm_permissions_rejects_websocket_publish_limit_over_cap():
+    ext_info = make_installable_extension("demoext")
+    extension_config = _wasm_config(
+        "demoext",
+        [
+            {
+                "id": "websocket.publish",
+                "policies": [
+                    {
+                        "max_messages_per_second": (
+                            WEBSOCKET_PUBLISH_MAX_MESSAGES_PER_SECOND_LIMIT + 1
+                        )
+                    }
+                ],
+            }
+        ],
+    )
+
+    with pytest.raises(ValueError, match="invalid policies"):
+        validate_wasm_extension_permissions(
+            ext_info,
+            [
+                ExtensionPermission(
+                    id="websocket.publish",
+                    policies=[
+                        {
+                            "max_messages_per_second": (
+                                WEBSOCKET_PUBLISH_MAX_MESSAGES_PER_SECOND_LIMIT + 1
+                            )
+                        }
+                    ],
+                )
+            ],
+            extension_config,
+            allow_admin_policy_overrides=True,
+        )
 
 
 def test_background_payment_grant_lookup_and_policy_coverage():

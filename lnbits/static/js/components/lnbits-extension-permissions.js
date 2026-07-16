@@ -239,6 +239,25 @@
       .filter(Boolean)
   }
 
+  function websocketPublishPolicies(permission) {
+    const policies = permission.policies
+    if (!Array.isArray(policies)) return []
+    return policies
+      .map(policy => {
+        if (!policy || typeof policy !== 'object') return null
+        const maxMessagesPerSecond = Number.isInteger(
+          policy.max_messages_per_second
+        )
+          ? policy.max_messages_per_second
+          : 0
+        return {
+          maxMessagesPerSecond,
+          rawPolicy: policy
+        }
+      })
+      .filter(Boolean)
+  }
+
   function permissionDisplayItem(permissions, extensions, translateFn) {
     const permission = permissions[0]
     const isReadWriteStorage =
@@ -270,6 +289,7 @@
       descriptions,
       fieldGroups: [],
       appendPolicies: [],
+      websocketPublishPolicies: [],
       invoicePolicies: [],
       extensionAccess: [],
       httpHosts: []
@@ -309,6 +329,15 @@
           policy.table + ':' + policy.sourceTable + ':' + policy.sourceIdField,
         label: policy.table
       }))
+    }
+
+    const websocketPublishPermission = permissions.find(
+      permission => permission.id === 'websocket.publish'
+    )
+    if (websocketPublishPermission) {
+      item.websocketPublishPolicies = websocketPublishPolicies(
+        websocketPublishPermission
+      )
     }
 
     return item
@@ -406,6 +435,14 @@
       maxRowsPerSourceLimit: {
         type: Number,
         default: 1000000
+      },
+      editableWebsocketPublishLimits: {
+        type: Boolean,
+        default: false
+      },
+      maxMessagesPerSecondLimit: {
+        type: Number,
+        default: 100
       }
     },
     computed: {
@@ -423,6 +460,9 @@
       },
       publicAppendPolicySentence(policy) {
         return `${policy.table} rows can be appended for ${policy.sourceTable} using ${policy.sourceIdField}. Limit: ${policy.maxRowsPerSource} rows per source.`
+      },
+      websocketPublishPolicySentence(policy) {
+        return `Limit: ${policy.maxMessagesPerSecond} messages per second.`
       },
       permissionAccessLabel(access) {
         const key = `extension_permission_access_${access}`

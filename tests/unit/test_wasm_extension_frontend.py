@@ -30,7 +30,8 @@ def test_wasm_frontend_bridge_restricts_api_routes_and_realtime_actions():
     assert "message.action === 'websocket.unsubscribe'" in bridge
     assert "message.action === 'navigation.replace'" in bridge
     assert "hasBridgePermission('websocket.subscribe')" in bridge
-    assert "ext:${this.bridge.extensionId}:${itemId}" in bridge
+    assert "/api/v1/ext/ws/${encodeURIComponent(" in bridge
+    assert "/api/v1/ws/${encodeURIComponent(paymentHash)}" in bridge
     assert "message.action === 'ui.scan_qr'" in bridge
 
 
@@ -56,6 +57,8 @@ def test_wasm_extension_install_ui_requests_permissions_before_install_paths():
     )
     assert "editableAppendPublicLimits" in permissions_template
     assert "max_rows_per_source" in permissions_template
+    assert "editableWebsocketPublishLimits" in permissions_template
+    assert "max_messages_per_second" in permissions_template
     assert wasm_bulk_update_skip_message in extensions_page
 
 

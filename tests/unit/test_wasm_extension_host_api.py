@@ -221,11 +221,19 @@ async def test_host_api_public_paginated_storage_rejects_conflicting_source_filt
 
 @pytest.mark.anyio
 async def test_host_api_websocket_publish_scopes_item_id(mocker: MockerFixture):
-    send_mock = mocker.patch(
-        "lnbits.core.services.websocket_manager.send",
+    publish_mock = mocker.patch(
+        "lnbits.core.wasm_ext.api.host.wasm_extension_websocket_hub.publish",
         mocker.AsyncMock(),
     )
-    api = ExtensionHostAPI("demoext", ["websocket.publish"])
+    api = ExtensionHostAPI(
+        "demoext",
+        [
+            {
+                "id": "websocket.publish",
+                "policies": [{"max_messages_per_second": 10}],
+            }
+        ],
+    )
 
     response = await api.websocket_publish(
         WebsocketPublishRequest(
@@ -235,20 +243,43 @@ async def test_host_api_websocket_publish_scopes_item_id(mocker: MockerFixture):
     )
 
     assert response.sent is True
-    send_mock.assert_awaited_once_with(
-        "ext:demoext:conversation:abc_123",
+    publish_mock.assert_awaited_once_with(
+        "demoext",
+        "conversation:abc_123",
         '{"message":"Hello"}',
+        max_messages_per_second=10,
     )
 
 
 @pytest.mark.anyio
 async def test_host_api_websocket_publish_rejects_invalid_item_id():
-    api = ExtensionHostAPI("demoext", ["websocket.publish"])
+    api = ExtensionHostAPI(
+        "demoext",
+        [
+            {
+                "id": "websocket.publish",
+                "policies": [{"max_messages_per_second": 10}],
+            }
+        ],
+    )
 
     with pytest.raises(ValueError, match="item ID"):
         await api.websocket_publish(
             WebsocketPublishRequest(
                 item_id="../other",
+                data={"message": "Hello"},
+            )
+        )
+
+
+@pytest.mark.anyio
+async def test_host_api_websocket_publish_requires_rate_policy():
+    api = ExtensionHostAPI("demoext", ["websocket.publish"])
+
+    with pytest.raises(PermissionError, match="max messages per second"):
+        await api.websocket_publish(
+            WebsocketPublishRequest(
+                item_id="conversation",
                 data={"message": "Hello"},
             )
         )

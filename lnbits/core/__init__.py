@@ -8,6 +8,7 @@ from .views.audit_api import audit_router
 from .views.auth_api import auth_router
 from .views.callback_api import callback_router
 from .views.extension_api import extension_router
+from .views.extension_websocket_api import extension_websocket_router
 from .views.extensions_builder_api import extension_builder_router
 from .views.fiat_api import fiat_router
 
@@ -33,6 +34,7 @@ def init_core_routers(app: FastAPI):
     app.include_router(admin_router)
     app.include_router(node_router)
     app.include_router(extension_router)
+    app.include_router(extension_websocket_router)
     app.include_router(extension_builder_router)
     app.include_router(super_node_router)
     app.include_router(public_node_router)

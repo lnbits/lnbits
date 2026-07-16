@@ -1,5 +1,6 @@
 const EXTENSION_PERMISSION_DEFAULT_MAX_ROWS_PER_SOURCE = 10000
 const EXTENSION_PERMISSION_MAX_ROWS_PER_SOURCE_LIMIT = 1000000
+const EXTENSION_PERMISSION_MAX_MESSAGES_PER_SECOND_LIMIT = 100
 
 window.PageExtensions = {
   template: '#page-extensions',
@@ -34,6 +35,8 @@ window.PageExtensions = {
       },
       extensionPermissionMaxRowsPerSourceLimit:
         EXTENSION_PERMISSION_MAX_ROWS_PER_SOURCE_LIMIT,
+      extensionPermissionMaxMessagesPerSecondLimit:
+        EXTENSION_PERMISSION_MAX_MESSAGES_PER_SECOND_LIMIT,
       managedExtensionPermissions: {
         loading: false,
         extensionPermissions: [],
@@ -527,6 +530,11 @@ window.PageExtensions = {
           EXTENSION_PERMISSION_DEFAULT_MAX_ROWS_PER_SOURCE
         )
       }
+      if (permissionId === 'websocket.publish') {
+        clonedPolicy.max_messages_per_second = Number(
+          clonedPolicy.max_messages_per_second
+        )
+      }
       return clonedPolicy
     },
     maxRowsPerSourceValue(value, fallback) {
@@ -539,7 +547,7 @@ window.PageExtensions = {
         permission => permission?.id === 'ext.storage.append_public'
       )
       if (!appendPermission || !Array.isArray(appendPermission.policies)) {
-        return ''
+        return this.websocketPublishLimitError(permissions)
       }
       for (const policy of appendPermission.policies) {
         if (!policy || typeof policy !== 'object') continue
@@ -550,6 +558,30 @@ window.PageExtensions = {
         if (number > EXTENSION_PERMISSION_MAX_ROWS_PER_SOURCE_LIMIT) {
           return `Max rows per source cannot exceed ${EXTENSION_PERMISSION_MAX_ROWS_PER_SOURCE_LIMIT}.`
         }
+      }
+      return this.websocketPublishLimitError(permissions)
+    },
+    websocketPublishLimitError(permissions) {
+      const publishPermission = (permissions || []).find(
+        permission => permission?.id === 'websocket.publish'
+      )
+      if (!publishPermission) return ''
+      if (
+        !Array.isArray(publishPermission.policies) ||
+        publishPermission.policies.length !== 1
+      ) {
+        return 'Websocket publish requires a max messages per second policy.'
+      }
+      const policy = publishPermission.policies[0]
+      if (!policy || typeof policy !== 'object') {
+        return 'Websocket publish requires a max messages per second policy.'
+      }
+      const number = Number(policy.max_messages_per_second)
+      if (!Number.isInteger(number) || number <= 0) {
+        return 'Max messages per second must be a positive integer.'
+      }
+      if (number > EXTENSION_PERMISSION_MAX_MESSAGES_PER_SECOND_LIMIT) {
+        return `Max messages per second cannot exceed ${EXTENSION_PERMISSION_MAX_MESSAGES_PER_SECOND_LIMIT}.`
       }
       return ''
     },
@@ -565,9 +597,10 @@ window.PageExtensions = {
     extensionPermissionsHaveEditableLimits(permissions) {
       return (permissions || []).some(
         permission =>
-          permission?.id === 'ext.storage.append_public' &&
-          Array.isArray(permission.policies) &&
-          permission.policies.length > 0
+          (permission?.id === 'ext.storage.append_public' &&
+            Array.isArray(permission.policies) &&
+            permission.policies.length > 0) ||
+          permission?.id === 'websocket.publish'
       )
     },
     async saveManagedExtensionPermissions() {

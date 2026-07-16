@@ -3,6 +3,9 @@ from typing import Any
 
 from lnbits.core.models.extensions import ExtensionPermission, InstallableExtension
 from lnbits.core.wasm_ext.api.registry import extension_api_permission_ids
+from lnbits.core.wasm_ext.api.websockets import (
+    WEBSOCKET_PUBLISH_MAX_MESSAGES_PER_SECOND_LIMIT,
+)
 from lnbits.core.wasm_ext.client.http import _request_origin
 from lnbits.core.wasm_ext.wasm.config import (
     WasmExtensionConfig,
@@ -15,6 +18,7 @@ _POLICY_AWARE_PERMISSION_IDS = {
     "extension.api.request",
     "http.request",
     "wallet.create_invoice_public",
+    "websocket.publish",
 }
 _OWNER_ID_FIELD = "__lnbits_owner_id__"
 _PUBLIC_APPEND_DEFAULT_MAX_ROWS_PER_SOURCE = 10_000
@@ -64,6 +68,7 @@ def validate_wasm_extension_permissions(
     requested_permissions = validate_extension_permissions(
         ext_info.id, config.permissions
     )
+    _validate_requested_permission_policies(ext_info.id, requested_permissions)
     if not requested_permissions:
         return []
 
@@ -149,7 +154,27 @@ def _permission_grant_is_subset(
         return _public_storage_grant_is_subset(requested.policies, granted.policies)
     if requested.id == "wallet.create_invoice_public":
         return _public_invoice_grant_is_subset(requested.policies, granted.policies)
+    if requested.id == "websocket.publish":
+        return _websocket_publish_grant_is_subset(
+            requested.policies,
+            granted.policies,
+            allow_max_messages_per_second_override=allow_admin_policy_overrides,
+        )
     return False
+
+
+def _validate_requested_permission_policies(
+    ext_id: str,
+    permissions: Iterable[ExtensionPermission],
+) -> None:
+    for permission in permissions:
+        if permission.id != "websocket.publish":
+            continue
+        if _websocket_publish_policy(permission.policies) is None:
+            raise ValueError(
+                f"Extension '{ext_id}' requests invalid policies for permission "
+                "'websocket.publish'."
+            )
 
 
 def _policy_list(policies: list[Any] | None) -> list[Any]:
@@ -348,3 +373,40 @@ def _public_invoice_sources(policies: list[Any] | None) -> set[tuple[str, str]]:
         if isinstance(table, str) and table and isinstance(wallet_field, str):
             sources.add((table, wallet_field))
     return sources
+
+
+def _websocket_publish_grant_is_subset(
+    requested_policies: list[Any] | None,
+    granted_policies: list[Any] | None,
+    *,
+    allow_max_messages_per_second_override: bool = False,
+) -> bool:
+    requested_policy = _websocket_publish_policy(requested_policies)
+    granted_policy = _websocket_publish_policy(granted_policies)
+    if requested_policy is None or granted_policy is None:
+        return False
+    if (
+        granted_policy["max_messages_per_second"]
+        > requested_policy["max_messages_per_second"]
+        and not allow_max_messages_per_second_override
+    ):
+        return False
+    return True
+
+
+def _websocket_publish_policy(policies: list[Any] | None) -> dict[str, int] | None:
+    policy_list = _policy_list(policies)
+    if len(policy_list) != 1:
+        return None
+    policy = policy_list[0]
+    if not isinstance(policy, dict):
+        return None
+    max_messages_per_second = policy.get("max_messages_per_second")
+    if (
+        isinstance(max_messages_per_second, bool)
+        or not isinstance(max_messages_per_second, int)
+        or max_messages_per_second <= 0
+        or max_messages_per_second > WEBSOCKET_PUBLISH_MAX_MESSAGES_PER_SECOND_LIMIT
+    ):
+        return None
+    return {"max_messages_per_second": max_messages_per_second}

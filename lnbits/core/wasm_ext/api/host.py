@@ -62,7 +62,7 @@ from .models import (
     WebsocketPublishResponse,
 )
 from .registry import extension_api_method
-from .websockets import scoped_websocket_item_id
+from .websockets import scoped_websocket_item_id, wasm_extension_websocket_hub
 
 logger = logging.getLogger("lnbits.extensions")
 PUBLIC_APPEND_DEFAULT_MAX_ROWS_PER_SOURCE = 10_000
@@ -312,10 +312,13 @@ class ExtensionHostAPI:
     async def websocket_publish(
         self, request: WebsocketPublishRequest
     ) -> WebsocketPublishResponse:
-        from lnbits.core.services import websocket_manager
-
-        item_id = scoped_websocket_item_id(self.extension_id, request.item_id)
-        await websocket_manager.send(item_id, request.data_json)
+        scoped_websocket_item_id(self.extension_id, request.item_id)
+        await wasm_extension_websocket_hub.publish(
+            self.extension_id,
+            request.item_id,
+            request.data_json,
+            max_messages_per_second=(self._websocket_publish_max_messages_per_second()),
+        )
         return WebsocketPublishResponse()
 
     @extension_api_method(
@@ -937,6 +940,28 @@ class ExtensionHostAPI:
                 "Public invoice creation requires at least one valid policy."
             )
         return sources
+
+    def _websocket_publish_max_messages_per_second(self) -> int:
+        policies = self.permission_policies.get("websocket.publish")
+        if not isinstance(policies, list) or len(policies) != 1:
+            raise PermissionError(
+                "Websocket publishing requires a max messages per second policy."
+            )
+        policy = policies[0]
+        if not isinstance(policy, dict):
+            raise PermissionError(
+                "Websocket publishing requires a max messages per second policy."
+            )
+        max_messages_per_second = policy.get("max_messages_per_second")
+        if (
+            isinstance(max_messages_per_second, bool)
+            or not isinstance(max_messages_per_second, int)
+            or max_messages_per_second <= 0
+        ):
+            raise PermissionError(
+                "Websocket publishing requires a valid max messages per second policy."
+            )
+        return max_messages_per_second
 
     def require_permission(self, permission: str | None) -> None:
         if permission and permission not in self.permissions:
