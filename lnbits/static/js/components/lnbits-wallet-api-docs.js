@@ -3,9 +3,7 @@ window.app.component('lnbits-wallet-api-docs', {
   methods: {
     copyAdminKey() {
       LNbits.utils
-        .confirmDialog(
-          `Anyone with this key can drain your entire wallet's funds. Do not share it unless you are ok with this.`
-        )
+        .confirmDialog(this.$t('admin_key_warning'))
         .onOk(() => LNbits.utils.copyText(this.g.wallet.adminkey))
     },
     resetKeys() {
