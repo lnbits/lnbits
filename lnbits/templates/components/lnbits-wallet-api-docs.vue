@@ -69,7 +69,7 @@
               <q-icon
                 name="content_copy"
                 class="cursor-pointer q-ml-sm"
-                @click="utils.copyText(g.wallet.adminkey)"
+                @click="copyAdminKey()"
               ></q-icon>
               <q-icon name="qr_code" class="cursor-pointer q-ml-sm">
                 <q-popup-proxy>

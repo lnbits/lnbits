@@ -1,6 +1,13 @@
 window.app.component('lnbits-wallet-api-docs', {
   template: '#lnbits-wallet-api-docs',
   methods: {
+    copyAdminKey() {
+      LNbits.utils
+        .confirmDialog(
+          `Anyone with this key can drain your entire wallet's funds. Do not share it unless you are ok with this.`
+        )
+        .onOk(() => LNbits.utils.copyText(this.g.wallet.adminkey))
+    },
     resetKeys() {
       LNbits.utils
         .confirmDialog('Are you sure you want to reset your API keys?')
