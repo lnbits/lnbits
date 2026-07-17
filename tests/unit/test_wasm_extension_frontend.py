@@ -46,6 +46,9 @@ def test_wasm_frontend_bridge_restricts_api_routes_and_realtime_actions():
     assert "message.action === 'navigation.open_new_tab'" in bridge
     assert "openNewTab(message)" in bridge
     assert "newTabUrl(rawUrl)" in bridge
+    assert "copyNewTabLink()" in bridge
+    assert "navigator.clipboard.writeText(prompt.url)" in bridge
+    assert 'label="Copy Link"' in bridge
     assert "window.open(prompt.url, '_blank', 'noopener,noreferrer')" in bridge
     assert "Only HTTP and HTTPS links can be opened." in bridge
     assert "This link is not on the same domain as this LNbits page." in bridge

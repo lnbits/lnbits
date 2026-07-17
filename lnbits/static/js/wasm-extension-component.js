@@ -160,6 +160,13 @@ window.WasmExtensionComponent = {
               @click="resolveNewTabPrompt(false)"
             ></q-btn>
             <q-btn
+              flat
+              color="primary"
+              icon="content_copy"
+              label="Copy Link"
+              @click="copyNewTabLink"
+            ></q-btn>
+            <q-btn
               unelevated
               color="primary"
               label="Open New Tab"
@@ -512,6 +519,23 @@ window.WasmExtensionComponent = {
       const reject = this.newTabPrompt.reject
       this.newTabPrompt = this.emptyNewTabPrompt()
       reject?.(new Error(message))
+    },
+    async copyNewTabLink() {
+      const prompt = this.newTabPrompt
+      if (!prompt.show || !prompt.url) return
+
+      try {
+        await navigator.clipboard.writeText(prompt.url)
+        this.notify({
+          level: 'positive',
+          message: 'Link copied.'
+        })
+      } catch (_error) {
+        this.notify({
+          level: 'negative',
+          message: 'Could not copy link.'
+        })
+      }
     },
     bridgeSessionStorageKey(rawKey) {
       const key = String(rawKey || '').trim()
