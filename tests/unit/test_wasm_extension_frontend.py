@@ -28,6 +28,8 @@ def test_wasm_frontend_bridge_restricts_api_routes_and_realtime_actions():
     assert "message.action === 'payment.unsubscribe'" in bridge
     assert "message.action === 'websocket.subscribe'" in bridge
     assert "message.action === 'websocket.unsubscribe'" in bridge
+    assert "message.action === 'websocket.send'" in bridge
+    assert "sendWebsocket(message)" in bridge
     assert "message.action === 'navigation.replace'" in bridge
     assert "hasBridgePermission('websocket.subscribe')" in bridge
     assert "/api/v1/ext/ws/${encodeURIComponent(" in bridge

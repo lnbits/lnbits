@@ -50,12 +50,18 @@ class WasmUIRouteConfig(_StrictWasmModel):
     path_params: dict[str, StrictStr] = Field(default_factory=dict)
 
 
+class WasmRouteOwnerContext(_StrictWasmModel):
+    table: StrictStr
+    id_param: StrictStr = Field(..., alias="idParam")
+
+
 class WasmAPIRouteConfig(_StrictWasmModel):
     method: Literal["DELETE", "GET", "PATCH", "POST", "PUT"]
     path: StrictStr
     export: StrictStr
     auth: Literal["public", "user"]
     path_params: dict[str, StrictStr] = Field(default_factory=dict)
+    owner_context: WasmRouteOwnerContext | None = Field(None, alias="ownerContext")
 
 
 class WasmEventsConfig(_StrictWasmModel):

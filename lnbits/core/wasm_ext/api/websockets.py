@@ -13,6 +13,8 @@ from lnbits.settings import settings
 _EXTENSION_ID_RE = re.compile(r"^[A-Za-z0-9_-]{1,128}$")
 _LOCAL_ITEM_ID_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9:_-]{0,127}$")
 WEBSOCKET_PUBLISH_MAX_MESSAGES_PER_SECOND_LIMIT = 100
+WEBSOCKET_CLIENT_MAX_MESSAGES_PER_SECOND = 60
+WEBSOCKET_CLIENT_MAX_MESSAGE_BYTES = 8192
 
 
 @dataclass
@@ -41,6 +43,7 @@ class WasmExtensionWebsocketHub:
     def __init__(self) -> None:
         self.active_connections: list[WasmExtensionWebsocketConnection] = []
         self.publish_timestamps: dict[tuple[str, str], deque[float]] = {}
+        self.client_timestamps: dict[int, deque[float]] = {}
 
     async def connect(
         self, extension_id: str, item_id: str, websocket: WebSocket
@@ -59,8 +62,18 @@ class WasmExtensionWebsocketHub:
     async def listen(self, conn: WasmExtensionWebsocketConnection) -> None:
         while settings.lnbits_running:
             try:
-                await conn.websocket.receive_text()
+                data = await conn.websocket.receive_text()
+                if len(data.encode()) > WEBSOCKET_CLIENT_MAX_MESSAGE_BYTES:
+                    await conn.websocket.close(code=1009)
+                    self.disconnect(conn)
+                    break
+                self._check_client_rate(conn)
+                await self._broadcast_client_message(conn, data)
             except WebSocketDisconnect:
+                self.disconnect(conn)
+                break
+            except WasmExtensionWebsocketRateLimitError:
+                await conn.websocket.close(code=1008)
                 self.disconnect(conn)
                 break
 
@@ -70,6 +83,7 @@ class WasmExtensionWebsocketHub:
             for active_conn in self.active_connections
             if active_conn.websocket != conn.websocket
         ]
+        self.client_timestamps.pop(id(conn.websocket), None)
         logger.debug(
             f"WASM websocket disconnected from {conn.extension_id}:{conn.item_id}"
         )
@@ -125,6 +139,26 @@ class WasmExtensionWebsocketHub:
                 "WASM websocket publish rate limit exceeded."
             )
         timestamps.append(now)
+
+    def _check_client_rate(self, conn: WasmExtensionWebsocketConnection) -> None:
+        now = time.monotonic()
+        key = id(conn.websocket)
+        timestamps = self.client_timestamps.setdefault(key, deque())
+        while timestamps and now - timestamps[0] >= 1:
+            timestamps.popleft()
+        if len(timestamps) >= WEBSOCKET_CLIENT_MAX_MESSAGES_PER_SECOND:
+            raise WasmExtensionWebsocketRateLimitError(
+                "WASM websocket client rate limit exceeded."
+            )
+        timestamps.append(now)
+
+    async def _broadcast_client_message(
+        self,
+        conn: WasmExtensionWebsocketConnection,
+        data: str,
+    ) -> None:
+        for active_conn in self.get_connections(conn.extension_id, conn.item_id):
+            await active_conn.websocket.send_text(data)
 
 
 wasm_extension_websocket_hub = WasmExtensionWebsocketHub()

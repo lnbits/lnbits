@@ -9,6 +9,7 @@ from fastapi import Depends, FastAPI, HTTPException, Request
 
 from lnbits.core.models import Account
 from lnbits.core.services.extensions import get_wasm_runtime_limits_for_extension
+from lnbits.core.wasm_ext.storage.crud import storage_get_row_owner_id
 from lnbits.decorators import check_access_token, check_account_exists
 from lnbits.settings import settings
 
@@ -58,12 +59,15 @@ def _add_wasm_extension_api_route(
                 path_params,
                 max_body_bytes=limits["wasm_runtime_max_request_bytes"],
             )
+            owner_id = await _wasm_route_owner_id(extension, route_config, payload)
             return await invoke_wasm_extension_export(
                 extension.id,
                 export_name,
                 payload.data,
                 user=account,
                 access_token=access_token,
+                context="event" if owner_id else "user",
+                owner_id=owner_id,
                 trigger_type="http",
                 method=request.method,
                 path=request.url.path,
@@ -119,6 +123,27 @@ async def _read_api_payload(
         )
         payload.update(body)
     return WasmRoutePayload(payload, request_bytes)
+
+
+async def _wasm_route_owner_id(
+    extension: WasmExtension,
+    route_config: WasmAPIRouteConfig,
+    payload: WasmRoutePayload,
+) -> str | None:
+    owner_context = route_config.owner_context
+    if not owner_context:
+        return None
+    source_id = payload.data.get(owner_context.id_param)
+    if not isinstance(source_id, str) or not source_id:
+        raise PermissionError("WASM owner-context route source is missing.")
+    owner_id = await storage_get_row_owner_id(
+        extension.id,
+        owner_context.table,
+        source_id,
+    )
+    if not owner_id:
+        raise PermissionError("WASM owner-context route source was not found.")
+    return owner_id
 
 
 async def _read_json_object(

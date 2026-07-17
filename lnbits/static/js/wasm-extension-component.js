@@ -1035,6 +1035,27 @@ window.WasmExtensionComponent = {
         this.websocketSubscriptions.delete(subscriptionId)
       })
     },
+    sendWebsocket(message) {
+      if (!this.hasBridgePermission('websocket.subscribe')) {
+        throw new Error('Extension is missing websocket subscribe permission.')
+      }
+
+      const subscriptionId = String(message.subscriptionId || '')
+      const subscription = this.websocketSubscriptions.get(subscriptionId)
+      if (!subscription) {
+        throw new Error('Unknown websocket subscription.')
+      }
+
+      if (subscription.socket.readyState !== WebSocket.OPEN) {
+        throw new Error('Websocket subscription is not open.')
+      }
+
+      const data =
+        typeof message.data === 'string'
+          ? message.data
+          : JSON.stringify(message.data ?? {})
+      subscription.socket.send(data)
+    },
     async handleBridgeRequest(message, reply) {
       if (!message || message.type !== 'lnbits-extension:request') return
 
@@ -1134,6 +1155,15 @@ window.WasmExtensionComponent = {
 
         if (message.action === 'websocket.unsubscribe') {
           this.closeWebsocketSubscription(String(message.subscriptionId || ''))
+          this.sendResponse(reply, message.id, {
+            ok: true,
+            data: {ok: true}
+          })
+          return
+        }
+
+        if (message.action === 'websocket.send') {
+          this.sendWebsocket(message)
           this.sendResponse(reply, message.id, {
             ok: true,
             data: {ok: true}

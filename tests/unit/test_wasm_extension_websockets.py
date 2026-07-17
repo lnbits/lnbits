@@ -1,7 +1,7 @@
 from typing import cast
 
 import pytest
-from fastapi import WebSocket
+from fastapi import WebSocket, WebSocketDisconnect
 
 from lnbits.core.wasm_ext.api.websockets import (
     WasmExtensionWebsocketHub,
@@ -10,15 +10,25 @@ from lnbits.core.wasm_ext.api.websockets import (
 
 
 class FakeWebSocket:
-    def __init__(self):
+    def __init__(self, received: list[str] | None = None):
         self.accepted = False
         self.sent: list[str] = []
+        self.closed: int | None = None
+        self.received = list(received or [])
 
     async def accept(self):
         self.accepted = True
 
     async def send_text(self, data: str):
         self.sent.append(data)
+
+    async def receive_text(self):
+        if self.received:
+            return self.received.pop(0)
+        raise WebSocketDisconnect()
+
+    async def close(self, code: int = 1000):
+        self.closed = code
 
 
 @pytest.mark.anyio
@@ -77,3 +87,18 @@ async def test_wasm_extension_websocket_hub_rate_limits_per_channel():
 
     assert websocket.sent == ['{"message":1}']
     assert other_websocket.sent == ['{"message":3}']
+
+
+@pytest.mark.anyio
+async def test_wasm_extension_websocket_hub_rebroadcasts_client_messages():
+    hub = WasmExtensionWebsocketHub()
+    sender = FakeWebSocket(received=['{"type":"input","paddle":0.5}'])
+    peer = FakeWebSocket()
+
+    conn = await hub.connect("demoext", "game-1", cast(WebSocket, sender))
+    await hub.connect("demoext", "game-1", cast(WebSocket, peer))
+
+    await hub.listen(conn)
+
+    assert sender.sent == ['{"type":"input","paddle":0.5}']
+    assert peer.sent == ['{"type":"input","paddle":0.5}']
