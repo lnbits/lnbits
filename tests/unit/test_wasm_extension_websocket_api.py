@@ -4,11 +4,11 @@ from unittest.mock import AsyncMock
 import pytest
 
 from lnbits.core.models.extensions import ExtensionPermission
-from lnbits.core.views.extension_websocket_api import extension_websocket_connect
+from lnbits.core.views.websocket_api import extension_websocket_connect
 
 
 @pytest.mark.anyio
-async def test_extension_websocket_api_delegates_installed_wasm_subscription(mocker):
+async def test_wasm_extension_websocket_delegates_installed_wasm_subscription(mocker):
     websocket = AsyncMock()
     conn = SimpleNamespace()
     installed_ext = SimpleNamespace(
@@ -17,17 +17,15 @@ async def test_extension_websocket_api_delegates_installed_wasm_subscription(moc
         permissions=[ExtensionPermission(id="websocket.subscribe")],
     )
     mocker.patch(
-        "lnbits.core.views.extension_websocket_api.get_installed_extension",
+        "lnbits.core.views.websocket_api.get_installed_extension",
         AsyncMock(return_value=installed_ext),
     )
     connect = mocker.patch(
-        "lnbits.core.views.extension_websocket_api."
-        "wasm_extension_websocket_hub.connect",
+        "lnbits.core.views.websocket_api.wasm_extension_websocket_hub.connect",
         AsyncMock(return_value=conn),
     )
     listen = mocker.patch(
-        "lnbits.core.views.extension_websocket_api."
-        "wasm_extension_websocket_hub.listen",
+        "lnbits.core.views.websocket_api.wasm_extension_websocket_hub.listen",
         AsyncMock(),
     )
 
@@ -39,11 +37,11 @@ async def test_extension_websocket_api_delegates_installed_wasm_subscription(moc
 
 
 @pytest.mark.anyio
-async def test_extension_websocket_api_rejects_missing_subscribe_permission(mocker):
+async def test_wasm_extension_websocket_rejects_missing_subscribe_permission(mocker):
     websocket = AsyncMock()
     installed_ext = SimpleNamespace(active=True, is_wasm=True, permissions=[])
     mocker.patch(
-        "lnbits.core.views.extension_websocket_api.get_installed_extension",
+        "lnbits.core.views.websocket_api.get_installed_extension",
         AsyncMock(return_value=installed_ext),
     )
 

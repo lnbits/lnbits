@@ -8,7 +8,6 @@ from .views.audit_api import audit_router
 from .views.auth_api import auth_router
 from .views.callback_api import callback_router
 from .views.extension_api import extension_router
-from .views.extension_websocket_api import extension_websocket_router
 from .views.extensions_builder_api import extension_builder_router
 from .views.fiat_api import fiat_router
 
@@ -21,7 +20,7 @@ from .views.tinyurl_api import tinyurl_router
 from .views.user_api import users_router
 from .views.wallet_api import wallet_router
 from .views.webpush_api import webpush_router
-from .views.websocket_api import websocket_router
+from .views.websocket_api import extension_websocket_router, websocket_router
 
 # backwards compatibility for extensions
 core_app = APIRouter(tags=["Core"])
