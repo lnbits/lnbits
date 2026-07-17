@@ -148,6 +148,22 @@ class PhoenixdWallet(Wallet):
             checking_id = data["paymentHash"]
             payment_request = data["serialized"]
             preimage = data.get("paymentPreimage", None)  # if available
+            # Phoenixd createinvoice omits paymentPreimage; fetch from incoming payment.
+            if not preimage:
+                try:
+                    r2 = await self.client.get(
+                        f"/payments/incoming/{checking_id}",
+                        timeout=40,
+                    )
+                    if not r2.is_error:
+                        incoming = r2.json()
+                        preimage = incoming.get("preimage") or None
+                except Exception as exc:
+                    logger.warning(
+                        "Phoenixd: could not fetch preimage for %s: %s",
+                        checking_id,
+                        exc,
+                    )
             return InvoiceResponse(
                 ok=True,
                 checking_id=checking_id,
