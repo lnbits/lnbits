@@ -90,7 +90,7 @@ async def test_wasm_extension_websocket_hub_rate_limits_per_channel():
 
 
 @pytest.mark.anyio
-async def test_wasm_extension_websocket_hub_rebroadcasts_client_messages():
+async def test_wasm_extension_websocket_hub_rebroadcasts_client_messages_to_peers():
     hub = WasmExtensionWebsocketHub()
     sender = FakeWebSocket(received=['{"type":"input","paddle":0.5}'])
     peer = FakeWebSocket()
@@ -100,5 +100,5 @@ async def test_wasm_extension_websocket_hub_rebroadcasts_client_messages():
 
     await hub.listen(conn)
 
-    assert sender.sent == ['{"type":"input","paddle":0.5}']
+    assert sender.sent == []
     assert peer.sent == ['{"type":"input","paddle":0.5}']

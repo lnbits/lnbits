@@ -158,6 +158,8 @@ class WasmExtensionWebsocketHub:
         data: str,
     ) -> None:
         for active_conn in self.get_connections(conn.extension_id, conn.item_id):
+            if active_conn.websocket == conn.websocket:
+                continue
             await active_conn.websocket.send_text(data)
 
 
