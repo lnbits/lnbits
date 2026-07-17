@@ -14,6 +14,18 @@ def test_wasm_frontend_assets_are_registered_in_component_bundle():
     assert "js/components/admin/lnbits-admin-wasm-limit-config.js" in components
 
 
+def test_wasm_extension_routes_keep_global_wallet_dialog_mounted():
+    base_template = (ROOT / "lnbits/templates/base.html").read_text(encoding="utf-8")
+    wallet_dialog_start = base_template.index("<lnbits-wallet-new")
+    wallet_dialog_end = base_template.index(
+        "></lnbits-wallet-new>", wallet_dialog_start
+    )
+    wallet_dialog = base_template[wallet_dialog_start:wallet_dialog_end]
+
+    assert 'v-if="g.user && !g.isPublicPage"' in wallet_dialog
+    assert "!$route.path.startsWith('/ext/')" not in wallet_dialog
+
+
 def test_wasm_frontend_bridge_restricts_api_routes_and_realtime_actions():
     bridge = (ROOT / "lnbits/static/js/wasm-extension-component.js").read_text(
         encoding="utf-8"
