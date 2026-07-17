@@ -10,6 +10,7 @@ from collections.abc import AsyncGenerator, Awaitable, Callable
 from typing import Any, cast
 from urllib.parse import parse_qs, unquote, urlparse
 
+from bolt11 import Bolt11Exception
 from bolt11 import decode as bolt11_decode
 from coincurve import PrivateKey, PublicKey
 from Cryptodome.Cipher import ChaCha20
@@ -243,7 +244,6 @@ class NWCWallet(Wallet):
                     "until": int(now),
                     "limit": limit,
                     "offset": offset,
-                    "type": "incoming",
                     "unpaid": unpaid,
                 },
             )
@@ -580,10 +580,18 @@ class NWCWallet(Wallet):
 
     async def pay_invoice(self, bolt11: str, fee_limit_msat: int) -> PaymentResponse:
         try:
-            resp = await self.conn.call("pay_invoice", {"invoice": bolt11})
-            preimage = resp.get("preimage", None)
             invoice_data = bolt11_decode(bolt11)
             payment_hash = invoice_data.payment_hash
+        except Bolt11Exception as exc:
+            logger.error("Error decoding invoice: " + str(exc))
+            return PaymentResponse(
+                ok=False,
+                checking_id=None,
+                error_message="Invalid invoice: " + str(exc),
+            )
+        try:
+            resp = await self.conn.call("pay_invoice", {"invoice": bolt11})
+            preimage = resp.get("preimage", None)
             # pay_invoice doesn't return payment data, so we need
             # to call lookup_invoice too (if supported)
             await self.conn.get_info()
@@ -594,9 +602,24 @@ class NWCWallet(Wallet):
                     ok=True, checking_id=payment_hash, preimage=preimage, fee_msat=0
                 )
 
+            # Cache the successful pay_invoice response so status checks
+            # can use it if lookup_invoice is not yet consistent.
+            self._cache_payment_data(
+                payment_hash,
+                {
+                    "payment_hash": payment_hash,
+                    "preimage": preimage,
+                    "settled_at": int(time.time()),
+                    "state": "settled",
+                    "amount": invoice_data.amount_msat,
+                    "fees_paid": resp.get("fees_paid", None),
+                    "type": "outgoing",
+                },
+            )
+
             try:
                 payment_data = await self.conn.call(
-                    "lookup_invoice", {"invoice": bolt11}
+                    "lookup_invoice", {"payment_hash": payment_hash}
                 )
                 settled = payment_data.get("settled_at", None) and payment_data.get(
                     "preimage", None
@@ -630,13 +653,15 @@ class NWCWallet(Wallet):
             failed = e.code in failure_codes
             return PaymentResponse(
                 ok=None if not failed else False,
+                checking_id=payment_hash,
                 error_message=e.message if failed else None,
             )
         except Exception as e:
             msg = "Error paying invoice: " + str(e)
             logger.error(msg)
-            # assume pending
-            return PaymentResponse(error_message=msg)
+            # assume pending so the core keeps the payment record
+            # and can settle it later via get_payment_status
+            return PaymentResponse(checking_id=payment_hash)
 
     async def _get_status_via_transactions(
         self, checking_id: str, unpaid_filters: list[bool]
@@ -698,10 +723,16 @@ class NWCWallet(Wallet):
             return status or PaymentStatus(None, fee_msat=None, preimage=None)
         except NWCError as e:
             logger.error("Error getting payment status: " + str(e))
-            failed = e.code == "NOT_FOUND"
-            return PaymentStatus(
-                None if not failed else False, fee_msat=None, preimage=None
-            )
+            if e.code == "NOT_FOUND":
+                # The NWC provider hasn't indexed the payment yet, but we may
+                # have cached a successful pay_invoice response with the
+                # preimage. Check the cache before declaring the payment
+                # failed.
+                cached = self._get_cached_payment_data(checking_id)
+                if cached and self._payment_data_is_settled(cached):
+                    return self._payment_data_to_status(cached)
+                return PaymentStatus(False, fee_msat=None, preimage=None)
+            return PaymentStatus(None, fee_msat=None, preimage=None)
         except Exception as e:
             logger.error("Error getting payment status: " + str(e))
             # assume pending (eg. exception due to network error)
