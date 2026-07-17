@@ -640,9 +640,7 @@ async def check_transaction_status(
 async def check_payment_status(payment: Payment) -> PaymentStatus:
     if payment.is_internal:
         if payment.success:
-            return PaymentSuccessStatus(
-                fee_msat=payment.fee, preimage=payment.preimage
-            )
+            return PaymentSuccessStatus(fee_msat=payment.fee, preimage=payment.preimage)
         if payment.failed:
             return PaymentFailedStatus()
         if payment.is_in and payment.fiat_provider:
