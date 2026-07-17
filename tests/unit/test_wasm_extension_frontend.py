@@ -49,6 +49,10 @@ def test_wasm_frontend_bridge_restricts_api_routes_and_realtime_actions():
     assert "window.open(prompt.url, '_blank', 'noopener,noreferrer')" in bridge
     assert "Only HTTP and HTTPS links can be opened." in bridge
     assert "This link is not on the same domain as this LNbits page." in bridge
+    assert "message.action === 'storage.session.get'" in bridge
+    assert "message.action === 'storage.session.set'" in bridge
+    assert "bridgeSessionStorageKey(rawKey)" in bridge
+    assert "lnbits.ext.session.${this.bridge.extensionId}.${key}" in bridge
     assert "hasBridgePermission('websocket.subscribe')" in bridge
     assert "/api/v1/ext/ws/${encodeURIComponent(" in bridge
     assert "/api/v1/ws/${encodeURIComponent(paymentHash)}" in bridge

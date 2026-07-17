@@ -513,6 +513,26 @@ window.WasmExtensionComponent = {
       this.newTabPrompt = this.emptyNewTabPrompt()
       reject?.(new Error(message))
     },
+    bridgeSessionStorageKey(rawKey) {
+      const key = String(rawKey || '').trim()
+      if (!key || key.length > 128 || !/^[A-Za-z0-9._:-]+$/.test(key)) {
+        throw new Error('Invalid extension session key.')
+      }
+      return `lnbits.ext.session.${this.bridge.extensionId}.${key}`
+    },
+    getBridgeSessionValue(message) {
+      const key = this.bridgeSessionStorageKey(message.key)
+      return {value: window.sessionStorage.getItem(key) || ''}
+    },
+    setBridgeSessionValue(message) {
+      const key = this.bridgeSessionStorageKey(message.key)
+      const value = String(message.value || '')
+      if (value.length > 4096) {
+        throw new Error('Extension session value is too large.')
+      }
+      window.sessionStorage.setItem(key, value)
+      return {ok: true}
+    },
     async callApi(message) {
       const method = String(message.method || 'GET').toUpperCase()
       const path = String(message.path || '')
@@ -1230,6 +1250,22 @@ window.WasmExtensionComponent = {
           this.sendResponse(reply, message.id, {
             ok: true,
             data: await this.openNewTab(message)
+          })
+          return
+        }
+
+        if (message.action === 'storage.session.get') {
+          this.sendResponse(reply, message.id, {
+            ok: true,
+            data: this.getBridgeSessionValue(message)
+          })
+          return
+        }
+
+        if (message.action === 'storage.session.set') {
+          this.sendResponse(reply, message.id, {
+            ok: true,
+            data: this.setBridgeSessionValue(message)
           })
           return
         }
