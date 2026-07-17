@@ -16,6 +16,7 @@ from lnbits.core.wasm_ext.routes.api import (
     _wasm_route_owner_id,
 )
 from lnbits.core.wasm_ext.routes.assets import (
+    WASM_EXTENSION_STATIC_MIME_TYPES,
     _reject_html_like_wasm_static_asset,
     _wasm_extension_core_asset_response,
 )
@@ -220,6 +221,7 @@ def test_wasm_static_core_assets_and_html_like_text_assets_are_guarded(tmp_path:
     response = _wasm_extension_core_asset_response("_lnbits/material-icons.css")
     assert response.headers["X-Content-Type-Options"] == "nosniff"
     assert response.headers["Cache-Control"] == "no-store"
+    assert WASM_EXTENSION_STATIC_MIME_TYPES[".ogg"] == "audio/ogg"
 
     for path in ["_lnbits/../bundle.min.css", "_lnbits/missing.css"]:
         with pytest.raises(HTTPException) as exc_info:
