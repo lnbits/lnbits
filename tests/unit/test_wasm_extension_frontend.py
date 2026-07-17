@@ -31,6 +31,12 @@ def test_wasm_frontend_bridge_restricts_api_routes_and_realtime_actions():
     assert "message.action === 'websocket.send'" in bridge
     assert "sendWebsocket(message)" in bridge
     assert "message.action === 'navigation.replace'" in bridge
+    assert "message.action === 'navigation.open_new_tab'" in bridge
+    assert "openNewTab(message)" in bridge
+    assert "newTabUrl(rawUrl)" in bridge
+    assert "window.open(prompt.url, '_blank', 'noopener,noreferrer')" in bridge
+    assert "Only HTTP and HTTPS links can be opened." in bridge
+    assert "This link is not on the same domain as this LNbits page." in bridge
     assert "hasBridgePermission('websocket.subscribe')" in bridge
     assert "/api/v1/ext/ws/${encodeURIComponent(" in bridge
     assert "/api/v1/ws/${encodeURIComponent(paymentHash)}" in bridge

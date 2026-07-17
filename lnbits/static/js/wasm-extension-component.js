@@ -127,6 +127,47 @@ window.WasmExtensionComponent = {
           </q-card-actions>
         </q-card>
       </q-dialog>
+      <q-dialog v-model="newTabPrompt.show" persistent>
+        <q-card style="width: min(560px, calc(100vw - 32px)); max-width: 560px">
+          <q-card-section>
+            <div class="text-h6">Open link</div>
+          </q-card-section>
+          <q-card-section class="q-pt-none q-gutter-md">
+            <div>
+              {{ newTabPrompt.extensionName }} wants to open this link in a new
+              tab.
+            </div>
+            <div
+              class="text-body1 text-weight-medium text-dark bg-grey-2 q-pa-sm rounded-borders"
+              style="word-break: break-all"
+            >
+              {{ newTabPrompt.url }}
+            </div>
+            <q-banner
+              v-if="newTabPrompt.external"
+              dense
+              rounded
+              class="bg-warning text-dark"
+            >
+              This link is not on the same domain as this LNbits page.
+            </q-banner>
+          </q-card-section>
+          <q-card-actions align="right">
+            <q-btn
+              flat
+              color="negative"
+              label="Cancel"
+              @click="resolveNewTabPrompt(false)"
+            ></q-btn>
+            <q-btn
+              unelevated
+              color="primary"
+              label="Open New Tab"
+              @click="resolveNewTabPrompt(true)"
+            ></q-btn>
+          </q-card-actions>
+        </q-card>
+      </q-dialog>
     </div>
   `,
   data() {
@@ -177,6 +218,14 @@ window.WasmExtensionComponent = {
         walletId: '',
         walletName: ''
       },
+      newTabPrompt: {
+        extensionName: '',
+        external: false,
+        reject: null,
+        resolve: null,
+        show: false,
+        url: ''
+      },
       error: '',
       extensionName: '',
       frameUrl: '',
@@ -200,6 +249,7 @@ window.WasmExtensionComponent = {
     this.rejectWalletPaymentWatchPrompt(
       'Wallet payment watch permission cancelled.'
     )
+    this.rejectNewTabPrompt('Open link cancelled.')
     this.closeBridgePort()
   },
   watch: {
@@ -267,6 +317,16 @@ window.WasmExtensionComponent = {
         walletName: ''
       }
     },
+    emptyNewTabPrompt() {
+      return {
+        extensionName: '',
+        external: false,
+        reject: null,
+        resolve: null,
+        show: false,
+        url: ''
+      }
+    },
     plainValue(value) {
       try {
         return JSON.parse(JSON.stringify(value))
@@ -289,6 +349,7 @@ window.WasmExtensionComponent = {
       this.rejectWalletPaymentWatchPrompt(
         'Wallet payment watch permission cancelled.'
       )
+      this.rejectNewTabPrompt('Open link cancelled.')
       this.closeBridgePort()
 
       try {
@@ -380,6 +441,77 @@ window.WasmExtensionComponent = {
     },
     replaceExtensionRoute(message) {
       return this.$router.replace(this.extensionRoute(message.path))
+    },
+    newTabUrl(rawUrl) {
+      const raw = String(rawUrl || '').trim()
+      if (!raw) {
+        throw new Error('Open link needs a URL.')
+      }
+
+      let url
+      try {
+        url = new URL(raw, window.location.href)
+      } catch (_error) {
+        throw new Error('Invalid open link URL.')
+      }
+
+      if (!['http:', 'https:'].includes(url.protocol)) {
+        throw new Error('Only HTTP and HTTPS links can be opened.')
+      }
+      if (url.username || url.password) {
+        throw new Error('Links with embedded credentials cannot be opened.')
+      }
+
+      return {
+        external: url.origin !== window.location.origin,
+        url: url.href
+      }
+    },
+    openNewTab(message) {
+      return this.promptNewTabOpen(this.newTabUrl(message.url || message.href))
+    },
+    promptNewTabOpen(link) {
+      if (this.newTabPrompt.show) {
+        throw new Error('Open link prompt is already open.')
+      }
+
+      return new Promise((resolve, reject) => {
+        this.newTabPrompt = {
+          extensionName:
+            this.extensionName || this.bridge.extensionId || 'This extension',
+          external: link.external,
+          reject,
+          resolve,
+          show: true,
+          url: link.url
+        }
+      })
+    },
+    resolveNewTabPrompt(approved) {
+      const prompt = this.newTabPrompt
+      if (!prompt.show) return
+      this.newTabPrompt = this.emptyNewTabPrompt()
+
+      if (!approved) {
+        prompt.reject?.(new Error('Open link denied by user.'))
+        return
+      }
+
+      try {
+        window.open(prompt.url, '_blank', 'noopener,noreferrer')
+        prompt.resolve?.({
+          external: prompt.external,
+          opened: true,
+          url: prompt.url
+        })
+      } catch (error) {
+        prompt.reject?.(error)
+      }
+    },
+    rejectNewTabPrompt(message) {
+      const reject = this.newTabPrompt.reject
+      this.newTabPrompt = this.emptyNewTabPrompt()
+      reject?.(new Error(message))
     },
     async callApi(message) {
       const method = String(message.method || 'GET').toUpperCase()
@@ -1090,6 +1222,14 @@ window.WasmExtensionComponent = {
           this.sendResponse(reply, message.id, {
             ok: true,
             data: {ok: true}
+          })
+          return
+        }
+
+        if (message.action === 'navigation.open_new_tab') {
+          this.sendResponse(reply, message.id, {
+            ok: true,
+            data: await this.openNewTab(message)
           })
           return
         }
