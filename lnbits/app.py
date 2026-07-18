@@ -1,5 +1,4 @@
 import asyncio
-import glob
 import importlib
 import os
 import shutil
@@ -297,9 +296,10 @@ async def check_installed_extension_files(ext: InstallableExtension) -> bool:
     if ext.has_installed_version:
         return True
 
-    zip_files = glob.glob(os.path.join(settings.lnbits_data_folder, "zips", "*.zip"))
-
-    if f"./{ext.zip_path!s}" not in zip_files:
+    # zip_path is absolute under LNBITS_DATA_FOLDER; comparing against a "./"-prefixed
+    # glob list never matched, so a present zip was treated as missing and deleted
+    # inside download_archive() before re-download — fatal when network/DNS is down.
+    if not ext.zip_path.is_file():
         await ext.download_archive()
     ext.extract_archive()
 
