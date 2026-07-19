@@ -197,7 +197,7 @@ uv run lnbits-cli encrypt macaroon
 
 ## LNPay
 
-For the invoice listener to work you must have a publicly accessible URL in your LNbits and set up [LNPay webhooks](https://dashboard.lnpay.co/webhook/) pointing to `<your LNbits host>/wallet/webhook` with the event **Wallet Receive** and no secret. Example: [https://mylnbits/wallet/webhook](`https://mylnbits/wallet/webhook).
+For the invoice listener to work you must have a publicly accessible URL in your LNbits and set up [LNPay webhooks](https://dashboard.lnpay.co/webhook/) pointing to `<your LNbits host>/wallet/webhook` with the event **Wallet Receive** and no secret. Example: `https://mylnbits.example/wallet/webhook`.
 
 **Required env vars**
 
