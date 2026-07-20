@@ -212,6 +212,10 @@ class ExtensionPermissionsResponse(BaseModel):
     user_permissions: dict[str, list[dict[str, Any]]] = Field(default_factory=dict)
 
 
+class ExtensionPermissionsUpdate(BaseModel):
+    permissions: list[ExtensionPermission] = Field(default_factory=list)
+
+
 class UserExtension(BaseModel):
     user: str
     extension: str

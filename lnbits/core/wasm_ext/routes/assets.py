@@ -54,6 +54,7 @@ WASM_EXTENSION_STATIC_MIME_TYPES = {
     ".jpeg": "image/jpeg",
     ".jpg": "image/jpeg",
     ".js": "text/javascript; charset=utf-8",
+    ".ogg": "audio/ogg",
     ".png": "image/png",
     ".webp": "image/webp",
     ".woff": "font/woff",

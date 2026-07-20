@@ -110,11 +110,15 @@
         'extension_permission_warning_wallet_payments_watch'
       )
     }
+    if (['websocket.publish', 'websocket.subscribe'].includes(permission.id)) {
+      return mediumRisk(translateFn)
+    }
     if (
       [
         'wallet.list',
         'wallet.balance.read',
         'wallet.create_invoice_public',
+        'ext.storage.append_public',
         'ext.storage.read_public'
       ].includes(permission.id)
     ) {
@@ -142,9 +146,13 @@
       'extension.api.request',
       'http.request',
       'ui.camera.scan_qr',
+      'websocket',
+      'websocket.publish',
+      'websocket.subscribe',
       'ext.storage.read',
       'ext.storage.write',
       'ext.storage.read_public',
+      'ext.storage.append_public',
       'wallet.create_invoice_public',
       'wallet.create_invoice',
       'utils.basic'
@@ -166,7 +174,12 @@
             : table.public_fields.filter(
                 field => typeof field === 'string' && field
               )
-        return tableName ? {table: tableName, fields} : null
+        const sourceIdField =
+          typeof table === 'string' ||
+          typeof table?.source_id_field !== 'string'
+            ? ''
+            : table.source_id_field
+        return tableName ? {table: tableName, fields, sourceIdField} : null
       })
       .filter(Boolean)
   }
@@ -194,24 +207,89 @@
       .filter(Boolean)
   }
 
+  function publicAppendPolicies(permission) {
+    const policies = permission.policies
+    if (!Array.isArray(policies)) return []
+    return policies
+      .map(policy => {
+        if (!policy || typeof policy !== 'object') return null
+        const table = policy.table
+        const sourceTable = policy.source_table
+        const sourceIdField = policy.source_id_field
+        const allowedFields = Array.isArray(policy.allowed_fields)
+          ? policy.allowed_fields.filter(
+              field => typeof field === 'string' && field
+            )
+          : []
+        const maxRowsPerSource = Number.isInteger(policy.max_rows_per_source)
+          ? policy.max_rows_per_source
+          : 10000
+        if (typeof table !== 'string' || !table) return null
+        if (typeof sourceTable !== 'string' || !sourceTable) return null
+        if (typeof sourceIdField !== 'string' || !sourceIdField) return null
+        return {
+          table,
+          sourceTable,
+          sourceIdField,
+          allowedFields,
+          maxRowsPerSource,
+          rawPolicy: policy
+        }
+      })
+      .filter(Boolean)
+  }
+
+  function websocketPublishPolicies(permission) {
+    const policies = permission.policies
+    if (!Array.isArray(policies)) return []
+    return policies
+      .map(policy => {
+        if (!policy || typeof policy !== 'object') return null
+        const maxMessagesPerSecond = Number.isInteger(
+          policy.max_messages_per_second
+        )
+          ? policy.max_messages_per_second
+          : 0
+        return {
+          maxMessagesPerSecond,
+          rawPolicy: policy
+        }
+      })
+      .filter(Boolean)
+  }
+
   function permissionDisplayItem(permissions, extensions, translateFn) {
     const permission = permissions[0]
     const isReadWriteStorage =
       permissions.length === 2 &&
       permissions.some(permission => permission.id === 'ext.storage.read') &&
       permissions.some(permission => permission.id === 'ext.storage.write')
+    const isWebsocket =
+      permissions.every(permission =>
+        ['websocket.publish', 'websocket.subscribe'].includes(permission.id)
+      ) &&
+      permissions.some(permission => permission.id === 'websocket.publish') &&
+      permissions.some(permission => permission.id === 'websocket.subscribe')
     const descriptions = permissions
       .map(permission => permissionManifestDescription(permission))
       .filter(Boolean)
     const item = {
-      id: isReadWriteStorage ? 'ext.storage.read_write' : permission.id,
+      id: isReadWriteStorage
+        ? 'ext.storage.read_write'
+        : isWebsocket
+          ? 'websocket'
+          : permission.id,
       label: isReadWriteStorage
         ? translate(translateFn, 'extension_permission_ext_storage_read_write')
-        : permissionLabel(permission, translateFn),
+        : isWebsocket
+          ? translate(translateFn, 'extension_permission_websocket')
+          : permissionLabel(permission, translateFn),
       risk: permissionRisk(permissions, extensions, translateFn),
       badges: [],
       descriptions,
       fieldGroups: [],
+      appendPolicies: [],
+      websocketPublishPolicies: [],
       invoicePolicies: [],
       extensionAccess: [],
       httpHosts: []
@@ -244,6 +322,24 @@
       item.invoicePolicies = publicInvoicePolicies(permission)
     }
 
+    if (permission.id === 'ext.storage.append_public') {
+      item.appendPolicies = publicAppendPolicies(permission)
+      item.badges = item.appendPolicies.map(policy => ({
+        key:
+          policy.table + ':' + policy.sourceTable + ':' + policy.sourceIdField,
+        label: policy.table
+      }))
+    }
+
+    const websocketPublishPermission = permissions.find(
+      permission => permission.id === 'websocket.publish'
+    )
+    if (websocketPublishPermission) {
+      item.websocketPublishPolicies = websocketPublishPolicies(
+        websocketPublishPermission
+      )
+    }
+
     return item
   }
 
@@ -255,7 +351,11 @@
     const hasReadWriteStorage =
       permissionsById.has('ext.storage.read') &&
       permissionsById.has('ext.storage.write')
+    const hasWebsocket =
+      permissionsById.has('websocket.publish') &&
+      permissionsById.has('websocket.subscribe')
     let addedReadWriteStorage = false
+    let addedWebsocket = false
 
     return permissionList
       .map((permission, index) => {
@@ -271,6 +371,21 @@
             permissions: [
               permissionsById.get('ext.storage.read'),
               permissionsById.get('ext.storage.write')
+            ]
+          }
+        }
+        if (
+          hasWebsocket &&
+          ['websocket.publish', 'websocket.subscribe'].includes(permission.id)
+        ) {
+          if (addedWebsocket) return null
+          addedWebsocket = true
+          return {
+            index,
+            orderId: 'websocket',
+            permissions: [
+              permissionsById.get('websocket.publish'),
+              permissionsById.get('websocket.subscribe')
             ]
           }
         }
@@ -312,6 +427,22 @@
       extensions: {
         type: Array,
         default: () => []
+      },
+      editableAppendPublicLimits: {
+        type: Boolean,
+        default: false
+      },
+      maxRowsPerSourceLimit: {
+        type: Number,
+        default: 1000000
+      },
+      editableWebsocketPublishLimits: {
+        type: Boolean,
+        default: false
+      },
+      maxMessagesPerSecondLimit: {
+        type: Number,
+        default: 100
       }
     },
     computed: {
@@ -326,6 +457,12 @@
     methods: {
       publicInvoicePolicySentence(policy) {
         return `Invoices will be created using ${policy.walletField} from ${policy.table}.`
+      },
+      publicAppendPolicySentence(policy) {
+        return `${policy.table} rows can be appended for ${policy.sourceTable} using ${policy.sourceIdField}. Limit: ${policy.maxRowsPerSource} rows per source.`
+      },
+      websocketPublishPolicySentence(policy) {
+        return `Limit: ${policy.maxMessagesPerSecond} messages per second.`
       },
       permissionAccessLabel(access) {
         const key = `extension_permission_access_${access}`

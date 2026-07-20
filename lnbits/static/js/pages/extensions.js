@@ -1,3 +1,7 @@
+const EXTENSION_PERMISSION_DEFAULT_MAX_ROWS_PER_SOURCE = 10000
+const EXTENSION_PERMISSION_MAX_ROWS_PER_SOURCE_LIMIT = 1000000
+const EXTENSION_PERMISSION_MAX_MESSAGES_PER_SECOND_LIMIT = 100
+
 window.PageExtensions = {
   template: '#page-extensions',
   data() {
@@ -29,10 +33,15 @@ window.PageExtensions = {
         permissions: [],
         resolve: null
       },
+      extensionPermissionMaxRowsPerSourceLimit:
+        EXTENSION_PERMISSION_MAX_ROWS_PER_SOURCE_LIMIT,
+      extensionPermissionMaxMessagesPerSecondLimit:
+        EXTENSION_PERMISSION_MAX_MESSAGES_PER_SECOND_LIMIT,
       managedExtensionPermissions: {
         loading: false,
         extensionPermissions: [],
         userPermissions: {},
+        savingExtensionPermissions: false,
         savingKey: '',
         deletingKey: ''
       },
@@ -466,6 +475,7 @@ window.PageExtensions = {
         loading: false,
         extensionPermissions: [],
         userPermissions: {},
+        savingExtensionPermissions: false,
         savingKey: '',
         deletingKey: ''
       }
@@ -479,7 +489,9 @@ window.PageExtensions = {
           `/api/v1/extension/${extension.id}/permissions`
         )
         this.managedExtensionPermissions.extensionPermissions =
-          data.extension_permissions || []
+          this.cloneEditableExtensionPermissions(
+            data.extension_permissions || []
+          )
         this.managedExtensionPermissions.userPermissions =
           this.cloneUserPermissions(data.user_permissions || {})
       } catch (error) {
@@ -487,6 +499,137 @@ window.PageExtensions = {
         LNbits.utils.notifyApiError(error)
       } finally {
         this.managedExtensionPermissions.loading = false
+      }
+    },
+    cloneEditableExtensionPermissions(permissions) {
+      return (permissions || [])
+        .filter(permission => permission && typeof permission === 'object')
+        .map(permission => ({
+          ...permission,
+          policies: Array.isArray(permission.policies)
+            ? permission.policies.map(policy =>
+                this.cloneEditablePermissionPolicy(permission.id, policy)
+              )
+            : permission.policies
+        }))
+    },
+    cloneEditablePermissionPolicy(permissionId, policy) {
+      if (!policy || typeof policy !== 'object' || Array.isArray(policy)) {
+        return policy
+      }
+      const clonedPolicy = Object.entries(policy).reduce(
+        (copy, [key, value]) => ({
+          ...copy,
+          [key]: Array.isArray(value) ? value.slice() : value
+        }),
+        {}
+      )
+      if (permissionId === 'ext.storage.append_public') {
+        clonedPolicy.max_rows_per_source = this.maxRowsPerSourceValue(
+          clonedPolicy.max_rows_per_source,
+          EXTENSION_PERMISSION_DEFAULT_MAX_ROWS_PER_SOURCE
+        )
+      }
+      if (permissionId === 'websocket.publish') {
+        clonedPolicy.max_messages_per_second = Number(
+          clonedPolicy.max_messages_per_second
+        )
+      }
+      return clonedPolicy
+    },
+    maxRowsPerSourceValue(value, fallback) {
+      const number = Number(value)
+      if (!Number.isInteger(number) || number <= 0) return fallback
+      return Math.min(number, EXTENSION_PERMISSION_MAX_ROWS_PER_SOURCE_LIMIT)
+    },
+    extensionPermissionLimitError(permissions) {
+      const appendPermission = (permissions || []).find(
+        permission => permission?.id === 'ext.storage.append_public'
+      )
+      if (!appendPermission || !Array.isArray(appendPermission.policies)) {
+        return this.websocketPublishLimitError(permissions)
+      }
+      for (const policy of appendPermission.policies) {
+        if (!policy || typeof policy !== 'object') continue
+        const number = Number(policy.max_rows_per_source)
+        if (!Number.isInteger(number) || number <= 0) {
+          return 'Max rows per source must be a positive integer.'
+        }
+        if (number > EXTENSION_PERMISSION_MAX_ROWS_PER_SOURCE_LIMIT) {
+          return `Max rows per source cannot exceed ${EXTENSION_PERMISSION_MAX_ROWS_PER_SOURCE_LIMIT}.`
+        }
+      }
+      return this.websocketPublishLimitError(permissions)
+    },
+    websocketPublishLimitError(permissions) {
+      const publishPermission = (permissions || []).find(
+        permission => permission?.id === 'websocket.publish'
+      )
+      if (!publishPermission) return ''
+      if (
+        !Array.isArray(publishPermission.policies) ||
+        publishPermission.policies.length !== 1
+      ) {
+        return 'Websocket publish requires a max messages per second policy.'
+      }
+      const policy = publishPermission.policies[0]
+      if (!policy || typeof policy !== 'object') {
+        return 'Websocket publish requires a max messages per second policy.'
+      }
+      const number = Number(policy.max_messages_per_second)
+      if (!Number.isInteger(number) || number <= 0) {
+        return 'Max messages per second must be a positive integer.'
+      }
+      if (number > EXTENSION_PERMISSION_MAX_MESSAGES_PER_SECOND_LIMIT) {
+        return `Max messages per second cannot exceed ${EXTENSION_PERMISSION_MAX_MESSAGES_PER_SECOND_LIMIT}.`
+      }
+      return ''
+    },
+    validateExtensionPermissionLimits(permissions) {
+      const error = this.extensionPermissionLimitError(permissions)
+      if (!error) return true
+      Quasar.Notify.create({
+        type: 'negative',
+        message: error
+      })
+      return false
+    },
+    extensionPermissionsHaveEditableLimits(permissions) {
+      return (permissions || []).some(
+        permission =>
+          (permission?.id === 'ext.storage.append_public' &&
+            Array.isArray(permission.policies) &&
+            permission.policies.length > 0) ||
+          permission?.id === 'websocket.publish'
+      )
+    },
+    async saveManagedExtensionPermissions() {
+      const permissions = this.managedExtensionPermissions.extensionPermissions
+      if (!this.validateExtensionPermissionLimits(permissions)) return
+
+      this.managedExtensionPermissions.savingExtensionPermissions = true
+      try {
+        const {data} = await LNbits.api.request(
+          'PUT',
+          `/api/v1/extension/${this.selectedExtension.id}/permissions`,
+          this.g.user.wallets[0].adminkey,
+          {
+            permissions: this.cloneEditableExtensionPermissions(permissions)
+          }
+        )
+        this.managedExtensionPermissions.extensionPermissions =
+          this.cloneEditableExtensionPermissions(
+            data.extension_permissions || []
+          )
+        Quasar.Notify.create({
+          type: 'positive',
+          message: 'Permission updated.'
+        })
+      } catch (error) {
+        console.warn(error)
+        LNbits.utils.notifyApiError(error)
+      } finally {
+        this.managedExtensionPermissions.savingExtensionPermissions = false
       }
     },
     cloneUserPermissions(userPermissions) {
@@ -937,14 +1080,23 @@ window.PageExtensions = {
         this.selectedRelease = null
         this.permissionGrant = {
           show: true,
-          permissions,
+          permissions: this.cloneEditableExtensionPermissions(permissions),
           resolve
         }
         this.showManageExtensionDialog = true
       })
     },
     grantExtensionPermissions() {
-      this.resolveExtensionPermissionDialog(this.permissionGrant.permissions)
+      if (
+        !this.validateExtensionPermissionLimits(
+          this.permissionGrant.permissions
+        )
+      ) {
+        return
+      }
+      this.resolveExtensionPermissionDialog(
+        this.cloneEditableExtensionPermissions(this.permissionGrant.permissions)
+      )
     },
     cancelExtensionPermissions() {
       this.resolveExtensionPermissionDialog(null)

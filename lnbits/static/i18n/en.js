@@ -544,7 +544,15 @@ window.localisation.en = {
   extension_permission_warning_extension_api_request_write:
     'Can write data or trigger actions in approved extensions.',
   extension_permission_ext_storage_read: 'Read extension storage',
+  extension_permission_ext_storage_append_public:
+    'Append public extension storage',
+  extension_permission_ext_storage_append_public_sources:
+    'Allowed append targets',
+  extension_permission_ext_storage_append_public_max_rows_per_source:
+    'Max rows per source',
   extension_permission_ext_storage_read_public: 'Read public extension storage',
+  extension_permission_ext_storage_read_public_source_required:
+    'required to read',
   extension_permission_ext_storage_write: 'Write extension storage',
   extension_permission_ext_storage_read_write: 'Read & Write extension storage',
   extension_permission_extension_api_request: 'Use other extensions',
@@ -555,6 +563,12 @@ window.localisation.en = {
   extension_permission_http_request_hosts: 'Allowed hosts',
   extension_permission_utils_basic: 'Use basic LNbits utilities',
   extension_permission_ui_camera_scan_qr: 'Scan QR codes',
+  extension_permission_websocket: 'Use extension websockets',
+  extension_permission_websocket_publish_limits: 'Publish limits',
+  extension_permission_websocket_publish_max_messages_per_second:
+    'Max messages per second',
+  extension_permission_websocket_publish: 'Publish websocket messages',
+  extension_permission_websocket_subscribe: 'Subscribe to websocket messages',
   extension_permission_wallet_payments_watch: 'Watch wallet payments',
   extension_permission_wallet_create_invoice: 'Create invoices',
   extension_permission_wallet_create_invoice_public:

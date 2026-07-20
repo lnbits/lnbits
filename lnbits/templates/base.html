@@ -60,7 +60,7 @@
             :class="$route.path.startsWith('/ext/') ? 'q-pa-none' : ['q-px-md', 'q-py-lg', {'q-px-lg': $q.screen.gt.xs}]"
           >
             <lnbits-wallet-new
-              v-if="g.user && !g.isPublicPage && !$route.path.startsWith('/ext/')"
+              v-if="g.user && !g.isPublicPage"
             ></lnbits-wallet-new>
             <lnbits-header-wallets
               v-if="g.user && !g.isPublicPage && !$route.path.startsWith('/ext/')"

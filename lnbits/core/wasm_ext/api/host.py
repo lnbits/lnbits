@@ -11,10 +11,15 @@ from lnbits.helpers import sha256s
 
 from ..client.extensions import send_extension_api_request
 from ..storage.crud import (
+    OWNER_ID_FIELD,
+    storage_append_public_row,
+    storage_count_rows,
     storage_delete_row,
     storage_get_paginated_rows,
+    storage_get_public_paginated_rows,
     storage_get_public_row,
     storage_get_row,
+    storage_get_row_owner_id,
     storage_set_row,
 )
 from .background_payments import (
@@ -39,21 +44,28 @@ from .models import (
     PayLnurlRequest,
     RandomIdRequest,
     RandomIdResponse,
+    StorageAppendPublicRequest,
+    StorageAppendPublicResponse,
     StorageDeleteRequest,
     StorageDeleteResponse,
     StorageGetRequest,
     StorageGetResponse,
     StoragePaginatedRequest,
     StoragePaginatedResponse,
+    StoragePublicPaginatedRequest,
     StorageSetRequest,
     StorageSetResponse,
     UserWalletSummary,
     WalletBalanceRequest,
     WalletBalanceResponse,
+    WebsocketPublishRequest,
+    WebsocketPublishResponse,
 )
 from .registry import extension_api_method
+from .websockets import scoped_websocket_item_id, wasm_extension_websocket_hub
 
 logger = logging.getLogger("lnbits.extensions")
+PUBLIC_APPEND_DEFAULT_MAX_ROWS_PER_SOURCE = 10_000
 
 
 class ExtensionHostAPI:
@@ -117,7 +129,7 @@ class ExtensionHostAPI:
     async def storage_get_public(
         self, request: StorageGetRequest
     ) -> StorageGetResponse:
-        public_fields = self._public_storage_fields(request.table)
+        public_fields = self._public_storage_policy(request.table)["public_fields"]
         row = await storage_get_public_row(self.extension_id, request.table, request.id)
         if not row:
             return StorageGetResponse()
@@ -128,6 +140,45 @@ class ExtensionHostAPI:
         }
         # todo: check public fields filtering
         return StorageGetResponse(data_json=json.dumps(public_row))
+
+    @extension_api_method(
+        method_id="storage.append_public",
+        namespace="storage",
+        name="Append public storage row",
+        host_name="storage_append_public",
+        sdk_name="appendPublic",
+        description="Append one public row to an extension storage table.",
+        required_permission="ext.storage.append_public",
+        require_auth=False,
+    )
+    async def storage_append_public(
+        self, request: StorageAppendPublicRequest
+    ) -> StorageAppendPublicResponse:
+        policy, owner_id = await self._public_storage_append_policy(
+            request.table, request.source_id
+        )
+        data = dict(request.data)
+        self._validate_public_append_data(policy, data)
+
+        source_id_field = policy["source_id_field"]
+        current_rows = await storage_count_rows(
+            self.extension_id,
+            request.table,
+            {source_id_field: request.source_id},
+            owner_id=owner_id,
+        )
+        if current_rows >= policy["max_rows_per_source"]:
+            raise PermissionError(
+                f"Public storage append limit reached for '{request.table}'."
+            )
+
+        row_id = await storage_append_public_row(
+            self.extension_id,
+            request.table,
+            {**data, source_id_field: request.source_id},
+            owner_id,
+        )
+        return StorageAppendPublicResponse(id=row_id)
 
     @extension_api_method(
         method_id="storage.set",
@@ -179,6 +230,55 @@ class ExtensionHostAPI:
         )
 
     @extension_api_method(
+        method_id="storage.get_public_paginated",
+        namespace="storage",
+        name="Get paginated public storage rows",
+        host_name="storage_get_public_paginated",
+        sdk_name="getPublicPaginated",
+        description="Get filtered, searched, sorted, paginated public storage rows.",
+        required_permission="ext.storage.read_public",
+        require_auth=False,
+    )
+    async def storage_get_public_paginated(
+        self, request: StoragePublicPaginatedRequest
+    ) -> StoragePaginatedResponse:
+        policy = self._public_storage_policy(request.table)
+        public_fields = policy["public_fields"]
+        source_id_field = policy["source_id_field"]
+        if not isinstance(source_id_field, str) or not source_id_field:
+            raise PermissionError(
+                "Public paginated storage reads require a source ID field policy."
+            )
+
+        filters = self._public_storage_paginated_filters(
+            request, public_fields, source_id_field
+        )
+        page = await storage_get_public_paginated_rows(
+            self.extension_id,
+            request.table,
+            filters,
+            search=request.search,
+            search_fields=request.search_fields,
+            sort_by=request.sort_by,
+            descending=request.descending,
+            limit=request.limit,
+            offset=request.offset,
+        )
+        return StoragePaginatedResponse(
+            rows_json=json.dumps(
+                [
+                    {
+                        field_name: value
+                        for field_name, value in row.items()
+                        if field_name in public_fields
+                    }
+                    for row in page["data"]
+                ]
+            ),
+            total=page["total"],
+        )
+
+    @extension_api_method(
         method_id="storage.delete",
         namespace="storage",
         name="Delete storage row",
@@ -198,6 +298,28 @@ class ExtensionHostAPI:
             self._require_owner_id(),
         )
         return StorageDeleteResponse()
+
+    @extension_api_method(
+        method_id="websocket.publish",
+        namespace="websocket",
+        name="Publish websocket message",
+        host_name="websocket_publish",
+        sdk_name="publish",
+        description="Publish a JSON message on an extension-local websocket channel.",
+        required_permission="websocket.publish",
+        require_auth=False,
+    )
+    async def websocket_publish(
+        self, request: WebsocketPublishRequest
+    ) -> WebsocketPublishResponse:
+        scoped_websocket_item_id(self.extension_id, request.item_id)
+        await wasm_extension_websocket_hub.publish(
+            self.extension_id,
+            request.item_id,
+            request.data_json,
+            max_messages_per_second=(self._websocket_publish_max_messages_per_second()),
+        )
+        return WebsocketPublishResponse()
 
     @extension_api_method(
         method_id="wallet.create_invoice",
@@ -628,7 +750,7 @@ class ExtensionHostAPI:
 
         return permission_ids, policies
 
-    def _public_storage_fields(self, table: str) -> set[str]:
+    def _public_storage_policy(self, table: str) -> dict[str, Any]:
         tables = self.permission_policies.get("ext.storage.read_public")
         if not isinstance(tables, list) or not tables:
             raise PermissionError(
@@ -648,9 +770,147 @@ class ExtensionHostAPI:
                 raise PermissionError(
                     f"Public storage table '{table}' has no valid public fields."
                 )
-            return set(public_fields)
+            source_id_field = table_policy.get("source_id_field")
+            if source_id_field is not None and (
+                not isinstance(source_id_field, str) or not source_id_field
+            ):
+                raise PermissionError(
+                    f"Public storage table '{table}' has no valid source ID field."
+                )
+            return {
+                "public_fields": set(public_fields),
+                "source_id_field": source_id_field,
+            }
 
         raise PermissionError(f"Storage table '{table}' is not publicly readable.")
+
+    def _validate_public_storage_query_fields(
+        self,
+        request: StoragePaginatedRequest,
+        public_fields: set[str],
+        allowed_private_fields: set[str] | None = None,
+    ) -> None:
+        allowed_private_fields = allowed_private_fields or set()
+        query_fields = set(request.filters)
+        query_fields.update(request.search_fields)
+        if request.sort_by:
+            query_fields.add(request.sort_by)
+        private_fields = sorted(query_fields - public_fields - allowed_private_fields)
+        if private_fields:
+            raise PermissionError(
+                "Public storage query uses non-public fields: "
+                + ", ".join(private_fields)
+            )
+
+    def _public_storage_paginated_filters(
+        self,
+        request: StoragePublicPaginatedRequest,
+        public_fields: set[str],
+        source_id_field: str,
+    ) -> dict[str, Any]:
+        self._validate_public_storage_query_fields(
+            request, public_fields, {source_id_field}
+        )
+        filters = dict(request.filters)
+        requested_source_id = filters.get(source_id_field)
+        if requested_source_id is not None and requested_source_id != request.source_id:
+            raise PermissionError(
+                "Public storage source filter does not match source_id."
+            )
+        filters[source_id_field] = request.source_id
+        return filters
+
+    async def _public_storage_append_policy(
+        self, table: str, source_id: str
+    ) -> tuple[dict[str, Any], str]:
+        policies = self.permission_policies.get("ext.storage.append_public")
+        if not isinstance(policies, list) or not policies:
+            raise PermissionError(
+                "Public storage appends require policies for "
+                "'ext.storage.append_public'."
+            )
+
+        source_not_found = False
+        for raw_policy in policies:
+            policy = self._normalize_public_storage_append_policy(raw_policy)
+            if policy["table"] != table:
+                continue
+            owner_id = await storage_get_row_owner_id(
+                self.extension_id,
+                policy["source_table"],
+                source_id,
+            )
+            if not owner_id:
+                source_not_found = True
+                continue
+            return policy, owner_id
+
+        if source_not_found:
+            raise PermissionError("Public storage append source was not found.")
+        raise PermissionError(f"Storage table '{table}' is not publicly appendable.")
+
+    def _normalize_public_storage_append_policy(self, policy: Any) -> dict[str, Any]:
+        if not isinstance(policy, dict):
+            raise PermissionError("Public storage append policies must be objects.")
+
+        table = policy.get("table")
+        source_table = policy.get("source_table")
+        source_id_field = policy.get("source_id_field")
+        allowed_fields = policy.get("allowed_fields")
+        max_rows_per_source = policy.get(
+            "max_rows_per_source", PUBLIC_APPEND_DEFAULT_MAX_ROWS_PER_SOURCE
+        )
+
+        if not isinstance(table, str) or not table:
+            raise PermissionError("Public storage append requires a table policy.")
+        if not isinstance(source_table, str) or not source_table:
+            raise PermissionError(
+                "Public storage append requires a source table policy."
+            )
+        if not isinstance(source_id_field, str) or not source_id_field:
+            raise PermissionError(
+                "Public storage append requires a source ID field policy."
+            )
+        if source_id_field == "id":
+            raise PermissionError("Public storage append source field cannot be 'id'.")
+        if (
+            not isinstance(allowed_fields, list)
+            or not all(isinstance(field, str) and field for field in allowed_fields)
+            or "id" in allowed_fields
+            or OWNER_ID_FIELD in allowed_fields
+            or source_id_field in allowed_fields
+        ):
+            raise PermissionError(
+                "Public storage append requires valid allowed fields."
+            )
+        if (
+            isinstance(max_rows_per_source, bool)
+            or not isinstance(max_rows_per_source, int)
+            or max_rows_per_source <= 0
+        ):
+            raise PermissionError(
+                "Public storage append requires a positive row limit."
+            )
+
+        return {
+            "table": table,
+            "source_table": source_table,
+            "source_id_field": source_id_field,
+            "allowed_fields": set(allowed_fields),
+            "max_rows_per_source": max_rows_per_source,
+        }
+
+    def _validate_public_append_data(
+        self, policy: dict[str, Any], data: dict[str, Any]
+    ) -> None:
+        if not isinstance(data, dict):
+            raise PermissionError("Public storage append data must be an object.")
+        unknown_fields = sorted(set(data) - policy["allowed_fields"])
+        if unknown_fields:
+            raise PermissionError(
+                "Public storage append contains disallowed fields: "
+                + ", ".join(unknown_fields)
+            )
 
     def _public_invoice_wallet_sources(self) -> list[dict[str, str]]:
         policies = self.permission_policies.get("wallet.create_invoice_public")
@@ -680,6 +940,28 @@ class ExtensionHostAPI:
                 "Public invoice creation requires at least one valid policy."
             )
         return sources
+
+    def _websocket_publish_max_messages_per_second(self) -> int:
+        policies = self.permission_policies.get("websocket.publish")
+        if not isinstance(policies, list) or len(policies) != 1:
+            raise PermissionError(
+                "Websocket publishing requires a max messages per second policy."
+            )
+        policy = policies[0]
+        if not isinstance(policy, dict):
+            raise PermissionError(
+                "Websocket publishing requires a max messages per second policy."
+            )
+        max_messages_per_second = policy.get("max_messages_per_second")
+        if (
+            isinstance(max_messages_per_second, bool)
+            or not isinstance(max_messages_per_second, int)
+            or max_messages_per_second <= 0
+        ):
+            raise PermissionError(
+                "Websocket publishing requires a valid max messages per second policy."
+            )
+        return max_messages_per_second
 
     def require_permission(self, permission: str | None) -> None:
         if permission and permission not in self.permissions:

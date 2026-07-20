@@ -9,11 +9,14 @@ from fastapi import HTTPException, Request
 
 from lnbits.core.wasm_ext.routes.api import (
     WasmRequestBodyTooLargeError,
+    WasmRoutePayload,
     _read_api_payload,
     _read_json_object_with_size,
     _wasm_extension_api_export,
+    _wasm_route_owner_id,
 )
 from lnbits.core.wasm_ext.routes.assets import (
+    WASM_EXTENSION_STATIC_MIME_TYPES,
     _reject_html_like_wasm_static_asset,
     _wasm_extension_core_asset_response,
 )
@@ -170,10 +173,55 @@ def test_wasm_ui_route_matching_and_bridge_public_api_filtering(tmp_path: Path):
     }
 
 
+@pytest.mark.anyio
+async def test_wasm_api_route_owner_context_uses_configured_storage_row(
+    tmp_path: Path, mocker
+):
+    extension = _wasm_extension(tmp_path)
+    route_config = parse_wasm_extension_config(
+        "demoext",
+        {
+            "id": "demoext",
+            "name": "Demo",
+            "short_description": "Demo extension",
+            "version": "1.0.0",
+            "extension_type": "wasm",
+            "wasm": {
+                "module": "extension.wasm",
+                "exports": [{"name": "finish", "visibility": "public"}],
+            },
+            "api_routes": [
+                {
+                    "method": "POST",
+                    "path": "/games/{game_id}/finish",
+                    "export": "finish",
+                    "auth": "public",
+                    "path_params": {"game_id": "gameId"},
+                    "ownerContext": {"table": "games", "idParam": "gameId"},
+                }
+            ],
+        },
+    ).api_routes[0]
+    owner_lookup = mocker.patch(
+        "lnbits.core.wasm_ext.routes.api.storage_get_row_owner_id",
+        mocker.AsyncMock(return_value="owner-1"),
+    )
+
+    owner_id = await _wasm_route_owner_id(
+        extension,
+        route_config,
+        WasmRoutePayload({"gameId": "game-1"}, request_bytes=10),
+    )
+
+    assert owner_id == "owner-1"
+    owner_lookup.assert_awaited_once_with("demoext", "games", "game-1")
+
+
 def test_wasm_static_core_assets_and_html_like_text_assets_are_guarded(tmp_path: Path):
     response = _wasm_extension_core_asset_response("_lnbits/material-icons.css")
     assert response.headers["X-Content-Type-Options"] == "nosniff"
     assert response.headers["Cache-Control"] == "no-store"
+    assert WASM_EXTENSION_STATIC_MIME_TYPES[".ogg"] == "audio/ogg"
 
     for path in ["_lnbits/../bundle.min.css", "_lnbits/missing.css"]:
         with pytest.raises(HTTPException) as exc_info:

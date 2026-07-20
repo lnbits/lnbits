@@ -20,7 +20,13 @@ from lnbits.core.views.extension_api import (
     _safe_user_extension_permissions,
     _user_permission_grant_id_for_wallet,
 )
-from lnbits.core.wasm_ext.api.permissions import validate_wasm_extension_permissions
+from lnbits.core.wasm_ext.api.permissions import (
+    PUBLIC_APPEND_MAX_ROWS_PER_SOURCE_LIMIT,
+    validate_wasm_extension_permissions,
+)
+from lnbits.core.wasm_ext.api.websockets import (
+    WEBSOCKET_PUBLISH_MAX_MESSAGES_PER_SECOND_LIMIT,
+)
 from lnbits.core.wasm_ext.wasm.events import _wasm_invoice_paid_owner_id
 from lnbits.core.wasm_ext.wasm.invoke import _active_installed_extension
 from tests.helpers import make_installable_extension
@@ -65,6 +71,7 @@ def test_validate_wasm_permissions_stores_narrower_policy_grant():
                 "policies": [
                     {
                         "table_name": "tip_jars",
+                        "source_id_field": "wallet_id",
                         "public_fields": ["id", "title", "description"],
                     }
                 ],
@@ -80,6 +87,7 @@ def test_validate_wasm_permissions_stores_narrower_policy_grant():
                 policies=[
                     {
                         "table_name": "tip_jars",
+                        "source_id_field": "wallet_id",
                         "public_fields": ["id", "title"],
                     }
                 ],
@@ -95,11 +103,269 @@ def test_validate_wasm_permissions_stores_narrower_policy_grant():
             policies=[
                 {
                     "table_name": "tip_jars",
+                    "source_id_field": "wallet_id",
                     "public_fields": ["id", "title"],
                 }
             ],
         )
     ]
+
+
+def test_validate_wasm_permissions_rejects_public_read_source_field_omission():
+    ext_info = make_installable_extension("demoext")
+    extension_config = _wasm_config(
+        "demoext",
+        [
+            {
+                "id": "ext.storage.read_public",
+                "policies": [
+                    {
+                        "table_name": "messages",
+                        "source_id_field": "conversation_id",
+                        "public_fields": ["id", "body"],
+                    }
+                ],
+            }
+        ],
+    )
+
+    with pytest.raises(ValueError, match="broader policies"):
+        validate_wasm_extension_permissions(
+            ext_info,
+            [
+                ExtensionPermission(
+                    id="ext.storage.read_public",
+                    policies=[
+                        {
+                            "table_name": "messages",
+                            "public_fields": ["id", "body"],
+                        }
+                    ],
+                )
+            ],
+            extension_config,
+        )
+
+
+def test_validate_wasm_permissions_allows_narrower_public_append_grant():
+    ext_info = make_installable_extension("demoext")
+    extension_config = _wasm_config(
+        "demoext",
+        [
+            {
+                "id": "ext.storage.append_public",
+                "description": "Append public messages.",
+                "policies": [
+                    {
+                        "table": "messages",
+                        "source_table": "threads",
+                        "source_id_field": "thread_id",
+                        "allowed_fields": ["name", "message"],
+                        "max_rows_per_source": 100,
+                    }
+                ],
+            }
+        ],
+    )
+
+    permissions = validate_wasm_extension_permissions(
+        ext_info,
+        [
+            ExtensionPermission(
+                id="ext.storage.append_public",
+                policies=[
+                    {
+                        "table": "messages",
+                        "source_table": "threads",
+                        "source_id_field": "thread_id",
+                        "allowed_fields": ["message"],
+                        "max_rows_per_source": 50,
+                    }
+                ],
+            )
+        ],
+        extension_config,
+    )
+
+    assert permissions == [
+        ExtensionPermission(
+            id="ext.storage.append_public",
+            description="Append public messages.",
+            policies=[
+                {
+                    "table": "messages",
+                    "source_table": "threads",
+                    "source_id_field": "thread_id",
+                    "allowed_fields": ["message"],
+                    "max_rows_per_source": 50,
+                }
+            ],
+        )
+    ]
+
+
+def test_validate_wasm_permissions_rejects_broader_public_append_grant():
+    ext_info = make_installable_extension("demoext")
+    extension_config = _wasm_config(
+        "demoext",
+        [
+            {
+                "id": "ext.storage.append_public",
+                "policies": [
+                    {
+                        "table": "messages",
+                        "source_table": "threads",
+                        "source_id_field": "thread_id",
+                        "allowed_fields": ["message"],
+                        "max_rows_per_source": 100,
+                    }
+                ],
+            }
+        ],
+    )
+
+    with pytest.raises(ValueError, match="broader policies"):
+        validate_wasm_extension_permissions(
+            ext_info,
+            [
+                ExtensionPermission(
+                    id="ext.storage.append_public",
+                    policies=[
+                        {
+                            "table": "messages",
+                            "source_table": "threads",
+                            "source_id_field": "thread_id",
+                            "allowed_fields": ["message", "admin"],
+                            "max_rows_per_source": 101,
+                        }
+                    ],
+                )
+            ],
+            extension_config,
+        )
+
+
+def test_validate_wasm_permissions_admin_can_raise_public_append_row_limit():
+    ext_info = make_installable_extension("demoext")
+    extension_config = _wasm_config(
+        "demoext",
+        [
+            {
+                "id": "ext.storage.append_public",
+                "description": "Append public messages.",
+                "policies": [
+                    {
+                        "table": "messages",
+                        "source_table": "threads",
+                        "source_id_field": "thread_id",
+                        "allowed_fields": ["message"],
+                        "max_rows_per_source": 100,
+                    }
+                ],
+            }
+        ],
+    )
+
+    permissions = validate_wasm_extension_permissions(
+        ext_info,
+        [
+            ExtensionPermission(
+                id="ext.storage.append_public",
+                policies=[
+                    {
+                        "table": "messages",
+                        "source_table": "threads",
+                        "source_id_field": "thread_id",
+                        "allowed_fields": ["message"],
+                        "max_rows_per_source": 500,
+                    }
+                ],
+            )
+        ],
+        extension_config,
+        allow_admin_policy_overrides=True,
+    )
+
+    assert permissions == [
+        ExtensionPermission(
+            id="ext.storage.append_public",
+            description="Append public messages.",
+            policies=[
+                {
+                    "table": "messages",
+                    "source_table": "threads",
+                    "source_id_field": "thread_id",
+                    "allowed_fields": ["message"],
+                    "max_rows_per_source": 500,
+                }
+            ],
+        )
+    ]
+
+
+def test_validate_wasm_permissions_admin_cannot_raise_public_append_fields_or_cap():
+    ext_info = make_installable_extension("demoext")
+    extension_config = _wasm_config(
+        "demoext",
+        [
+            {
+                "id": "ext.storage.append_public",
+                "policies": [
+                    {
+                        "table": "messages",
+                        "source_table": "threads",
+                        "source_id_field": "thread_id",
+                        "allowed_fields": ["message"],
+                        "max_rows_per_source": 100,
+                    }
+                ],
+            }
+        ],
+    )
+
+    with pytest.raises(ValueError, match="broader policies"):
+        validate_wasm_extension_permissions(
+            ext_info,
+            [
+                ExtensionPermission(
+                    id="ext.storage.append_public",
+                    policies=[
+                        {
+                            "table": "messages",
+                            "source_table": "threads",
+                            "source_id_field": "thread_id",
+                            "allowed_fields": ["message", "admin"],
+                            "max_rows_per_source": 500,
+                        }
+                    ],
+                )
+            ],
+            extension_config,
+            allow_admin_policy_overrides=True,
+        )
+
+    with pytest.raises(ValueError, match="broader policies"):
+        validate_wasm_extension_permissions(
+            ext_info,
+            [
+                ExtensionPermission(
+                    id="ext.storage.append_public",
+                    policies=[
+                        {
+                            "table": "messages",
+                            "source_table": "threads",
+                            "source_id_field": "thread_id",
+                            "allowed_fields": ["message"],
+                            "max_rows_per_source": (
+                                PUBLIC_APPEND_MAX_ROWS_PER_SOURCE_LIMIT + 1
+                            ),
+                        }
+                    ],
+                )
+            ],
+            extension_config,
+            allow_admin_policy_overrides=True,
+        )
 
 
 def test_validate_wasm_permissions_rejects_broader_extension_api_access():
@@ -169,6 +435,146 @@ def test_validate_wasm_permissions_allows_wallet_payments_watch_permission():
         [ExtensionPermission(id="wallet.payments.watch")],
         extension_config,
     ) == [ExtensionPermission(id="wallet.payments.watch")]
+
+
+def test_validate_wasm_permissions_allows_websocket_permissions():
+    ext_info = make_installable_extension("demoext")
+    extension_config = _wasm_config(
+        "demoext",
+        [
+            {
+                "id": "websocket.publish",
+                "policies": [{"max_messages_per_second": 10}],
+            },
+            {"id": "websocket.subscribe"},
+        ],
+    )
+
+    assert validate_wasm_extension_permissions(
+        ext_info,
+        [
+            ExtensionPermission(
+                id="websocket.publish",
+                policies=[{"max_messages_per_second": 5}],
+            ),
+            ExtensionPermission(id="websocket.subscribe"),
+        ],
+        extension_config,
+    ) == [
+        ExtensionPermission(
+            id="websocket.publish",
+            policies=[{"max_messages_per_second": 5}],
+        ),
+        ExtensionPermission(id="websocket.subscribe"),
+    ]
+
+
+def test_validate_wasm_permissions_rejects_websocket_publish_without_policy():
+    ext_info = make_installable_extension("demoext")
+    extension_config = _wasm_config(
+        "demoext",
+        [{"id": "websocket.publish"}],
+    )
+
+    with pytest.raises(ValueError, match="invalid policies"):
+        validate_wasm_extension_permissions(
+            ext_info,
+            [ExtensionPermission(id="websocket.publish")],
+            extension_config,
+        )
+
+
+def test_validate_wasm_permissions_rejects_broader_websocket_publish_limit():
+    ext_info = make_installable_extension("demoext")
+    extension_config = _wasm_config(
+        "demoext",
+        [
+            {
+                "id": "websocket.publish",
+                "policies": [{"max_messages_per_second": 10}],
+            }
+        ],
+    )
+
+    with pytest.raises(ValueError, match="broader policies"):
+        validate_wasm_extension_permissions(
+            ext_info,
+            [
+                ExtensionPermission(
+                    id="websocket.publish",
+                    policies=[{"max_messages_per_second": 11}],
+                )
+            ],
+            extension_config,
+        )
+
+
+def test_validate_wasm_permissions_admin_can_raise_websocket_publish_limit():
+    ext_info = make_installable_extension("demoext")
+    extension_config = _wasm_config(
+        "demoext",
+        [
+            {
+                "id": "websocket.publish",
+                "policies": [{"max_messages_per_second": 10}],
+            }
+        ],
+    )
+
+    assert validate_wasm_extension_permissions(
+        ext_info,
+        [
+            ExtensionPermission(
+                id="websocket.publish",
+                policies=[{"max_messages_per_second": 20}],
+            )
+        ],
+        extension_config,
+        allow_admin_policy_overrides=True,
+    ) == [
+        ExtensionPermission(
+            id="websocket.publish",
+            policies=[{"max_messages_per_second": 20}],
+        )
+    ]
+
+
+def test_validate_wasm_permissions_rejects_websocket_publish_limit_over_cap():
+    ext_info = make_installable_extension("demoext")
+    extension_config = _wasm_config(
+        "demoext",
+        [
+            {
+                "id": "websocket.publish",
+                "policies": [
+                    {
+                        "max_messages_per_second": (
+                            WEBSOCKET_PUBLISH_MAX_MESSAGES_PER_SECOND_LIMIT + 1
+                        )
+                    }
+                ],
+            }
+        ],
+    )
+
+    with pytest.raises(ValueError, match="invalid policies"):
+        validate_wasm_extension_permissions(
+            ext_info,
+            [
+                ExtensionPermission(
+                    id="websocket.publish",
+                    policies=[
+                        {
+                            "max_messages_per_second": (
+                                WEBSOCKET_PUBLISH_MAX_MESSAGES_PER_SECOND_LIMIT + 1
+                            )
+                        }
+                    ],
+                )
+            ],
+            extension_config,
+            allow_admin_policy_overrides=True,
+        )
 
 
 def test_background_payment_grant_lookup_and_policy_coverage():

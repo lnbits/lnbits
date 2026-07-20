@@ -67,6 +67,23 @@ class StorageSetResponse(BaseModel):
     ok: bool = True
 
 
+class StorageAppendPublicRequest(BaseModel):
+    table: str = Field(..., min_length=1, max_length=128)
+    source_id: str = Field(..., min_length=1, max_length=512)
+    data: dict[str, Any] = Field(default_factory=dict)
+
+    @root_validator(pre=True)
+    def parse_data_json(cls, values: dict[str, Any]) -> dict[str, Any]:
+        data_json = values.get("data_json")
+        if data_json is not None and "data" not in values:
+            values["data"] = json.loads(data_json)
+        return values
+
+
+class StorageAppendPublicResponse(BaseModel):
+    id: str
+
+
 class StoragePaginatedRequest(BaseModel):
     table: str = Field(..., min_length=1, max_length=128)
     filters: dict[str, Any] = Field(default_factory=dict)
@@ -92,9 +109,45 @@ class StoragePaginatedRequest(BaseModel):
         return values
 
 
+class StoragePublicPaginatedRequest(StoragePaginatedRequest):
+    source_id: str = Field(..., min_length=1, max_length=512)
+
+
 class StoragePaginatedResponse(BaseModel):
     rows_json: str = "[]"
     total: int = 0
+
+
+class WebsocketPublishRequest(BaseModel):
+    item_id: str = Field(..., min_length=1, max_length=128)
+    data: Any = Field(default_factory=dict)
+
+    @root_validator(pre=True)
+    def parse_data_json(cls, values: dict[str, Any]) -> dict[str, Any]:
+        data_json = values.get("data_json")
+        if data_json is not None and "data" not in values:
+            values["data"] = json.loads(data_json)
+        return values
+
+    @root_validator
+    def validate_data_size(cls, values: dict[str, Any]) -> dict[str, Any]:
+        data = values.get("data")
+        try:
+            encoded = json.dumps(data, separators=(",", ":"))
+        except TypeError as exc:
+            raise ValueError("websocket data must be JSON serializable.") from exc
+        if len(encoded.encode()) > 65536:
+            raise ValueError("websocket data must not exceed 65536 bytes.")
+        values["data"] = data
+        return values
+
+    @property
+    def data_json(self) -> str:
+        return json.dumps(self.data, separators=(",", ":"))
+
+
+class WebsocketPublishResponse(BaseModel):
+    sent: bool = True
 
 
 class StorageDeleteRequest(BaseModel):

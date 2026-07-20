@@ -35,22 +35,33 @@ self.addEventListener('fetch', event => {
   ) {
     // Open the cache
     event.respondWith(
-      caches.open(CURRENT_CACHE + getApiKey(event.request)).then(cache => {
-        // Go to the network first
-        return fetch(event.request)
-          .then(fetchedResponse => {
-            cache.put(event.request, fetchedResponse.clone())
+      caches
+        .open(CURRENT_CACHE + getApiKey(event.request))
+        .then(cache => {
+          // Go to the network first
+          return fetch(event.request)
+            .then(fetchedResponse => {
+              cache.put(event.request, fetchedResponse.clone()).catch(() => {})
 
-            return fetchedResponse
-          })
-          .catch(() => {
-            // If the network is unavailable, get
-            return cache.match(event.request.url)
-          })
-      })
+              return fetchedResponse
+            })
+            .catch(() => {
+              // If the network is unavailable, get
+              return cache.match(event.request).then(cachedResponse => {
+                return cachedResponse || offlineResponse()
+              })
+            })
+        })
+        .catch(() => fetch(event.request).catch(() => offlineResponse()))
     )
   }
 })
+
+const offlineResponse = () =>
+  new Response('', {
+    status: 503,
+    statusText: 'Service Unavailable'
+  })
 
 // Handle and show incoming push notifications
 self.addEventListener('push', function (event) {

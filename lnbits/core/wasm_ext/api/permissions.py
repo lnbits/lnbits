@@ -3,6 +3,9 @@ from typing import Any
 
 from lnbits.core.models.extensions import ExtensionPermission, InstallableExtension
 from lnbits.core.wasm_ext.api.registry import extension_api_permission_ids
+from lnbits.core.wasm_ext.api.websockets import (
+    WEBSOCKET_PUBLISH_MAX_MESSAGES_PER_SECOND_LIMIT,
+)
 from lnbits.core.wasm_ext.client.http import _request_origin
 from lnbits.core.wasm_ext.wasm.config import (
     WasmExtensionConfig,
@@ -10,11 +13,16 @@ from lnbits.core.wasm_ext.wasm.config import (
 )
 
 _POLICY_AWARE_PERMISSION_IDS = {
+    "ext.storage.append_public",
     "ext.storage.read_public",
     "extension.api.request",
     "http.request",
     "wallet.create_invoice_public",
+    "websocket.publish",
 }
+_OWNER_ID_FIELD = "__lnbits_owner_id__"
+_PUBLIC_APPEND_DEFAULT_MAX_ROWS_PER_SOURCE = 10_000
+PUBLIC_APPEND_MAX_ROWS_PER_SOURCE_LIMIT = 1_000_000
 
 
 def validate_extension_permissions(
@@ -47,6 +55,8 @@ def validate_wasm_extension_permissions(
     ext_info: InstallableExtension,
     granted_permissions: list[ExtensionPermission] | None,
     extension_config: dict[str, Any] | WasmExtensionConfig,
+    *,
+    allow_admin_policy_overrides: bool = False,
 ) -> list[ExtensionPermission]:
     if isinstance(extension_config, WasmExtensionConfig):
         config = extension_config
@@ -58,6 +68,7 @@ def validate_wasm_extension_permissions(
     requested_permissions = validate_extension_permissions(
         ext_info.id, config.permissions
     )
+    _validate_requested_permission_policies(ext_info.id, requested_permissions)
     if not requested_permissions:
         return []
 
@@ -81,7 +92,11 @@ def validate_wasm_extension_permissions(
     effective_permissions: list[ExtensionPermission] = []
     for permission_id, granted_permission in granted_by_id.items():
         requested_permission = requested_by_id[permission_id]
-        if not _permission_grant_is_subset(requested_permission, granted_permission):
+        if not _permission_grant_is_subset(
+            requested_permission,
+            granted_permission,
+            allow_admin_policy_overrides=allow_admin_policy_overrides,
+        ):
             raise ValueError(
                 f"Extension '{ext_info.id}' was granted broader policies for "
                 f"permission '{permission_id}'."
@@ -118,6 +133,8 @@ def _permission_index(
 def _permission_grant_is_subset(
     requested: ExtensionPermission,
     granted: ExtensionPermission,
+    *,
+    allow_admin_policy_overrides: bool = False,
 ) -> bool:
     if requested.id != granted.id:
         return False
@@ -127,11 +144,37 @@ def _permission_grant_is_subset(
         return _http_request_grant_is_subset(requested.policies, granted.policies)
     if requested.id == "extension.api.request":
         return _extension_api_grant_is_subset(requested.policies, granted.policies)
+    if requested.id == "ext.storage.append_public":
+        return _public_storage_append_grant_is_subset(
+            requested.policies,
+            granted.policies,
+            allow_max_rows_per_source_override=allow_admin_policy_overrides,
+        )
     if requested.id == "ext.storage.read_public":
         return _public_storage_grant_is_subset(requested.policies, granted.policies)
     if requested.id == "wallet.create_invoice_public":
         return _public_invoice_grant_is_subset(requested.policies, granted.policies)
+    if requested.id == "websocket.publish":
+        return _websocket_publish_grant_is_subset(
+            requested.policies,
+            granted.policies,
+            allow_max_messages_per_second_override=allow_admin_policy_overrides,
+        )
     return False
+
+
+def _validate_requested_permission_policies(
+    ext_id: str,
+    permissions: Iterable[ExtensionPermission],
+) -> None:
+    for permission in permissions:
+        if permission.id != "websocket.publish":
+            continue
+        if _websocket_publish_policy(permission.policies) is None:
+            raise ValueError(
+                f"Extension '{ext_id}' requests invalid policies for permission "
+                "'websocket.publish'."
+            )
 
 
 def _policy_list(policies: list[Any] | None) -> list[Any]:
@@ -203,30 +246,112 @@ def _public_storage_grant_is_subset(
 ) -> bool:
     requested_tables = _public_storage_tables(requested_policies)
     granted_tables = _public_storage_tables(granted_policies)
-    for table_name, granted_fields in granted_tables.items():
-        requested_fields = requested_tables.get(table_name)
-        if requested_fields is None or not granted_fields.issubset(requested_fields):
+    for table_name, granted_policy in granted_tables.items():
+        requested_policy = requested_tables.get(table_name)
+        if requested_policy is None:
+            return False
+        if not granted_policy["public_fields"].issubset(
+            requested_policy["public_fields"]
+        ):
+            return False
+        requested_source_id_field = requested_policy["source_id_field"]
+        if (
+            requested_source_id_field
+            and granted_policy["source_id_field"] != requested_source_id_field
+        ):
             return False
     return True
 
 
-def _public_storage_tables(policies: list[Any] | None) -> dict[str, set[str]]:
-    tables: dict[str, set[str]] = {}
+def _public_storage_tables(policies: list[Any] | None) -> dict[str, dict[str, Any]]:
+    tables: dict[str, dict[str, Any]] = {}
     for policy in _policy_list(policies):
         if not isinstance(policy, dict):
             continue
         table_name = policy.get("table_name")
         public_fields = policy.get("public_fields")
+        source_id_field = policy.get("source_id_field")
         if (
             not isinstance(table_name, str)
             or table_name in tables
             or not isinstance(public_fields, list)
+            or (
+                source_id_field is not None
+                and (not isinstance(source_id_field, str) or not source_id_field)
+            )
         ):
             continue
         fields = {field for field in public_fields if isinstance(field, str) and field}
         if fields:
-            tables[table_name] = fields
+            tables[table_name] = {
+                "public_fields": fields,
+                "source_id_field": source_id_field,
+            }
     return tables
+
+
+def _public_storage_append_grant_is_subset(
+    requested_policies: list[Any] | None,
+    granted_policies: list[Any] | None,
+    *,
+    allow_max_rows_per_source_override: bool = False,
+) -> bool:
+    requested_targets = _public_storage_append_targets(requested_policies)
+    granted_targets = _public_storage_append_targets(granted_policies)
+    if len(granted_targets) != len(_policy_list(granted_policies)):
+        return False
+    for target, granted_policy in granted_targets.items():
+        requested_policy = requested_targets.get(target)
+        if requested_policy is None:
+            return False
+        if not granted_policy["allowed_fields"].issubset(
+            requested_policy["allowed_fields"]
+        ):
+            return False
+        if (
+            granted_policy["max_rows_per_source"]
+            > requested_policy["max_rows_per_source"]
+            and not allow_max_rows_per_source_override
+        ):
+            return False
+    return True
+
+
+def _public_storage_append_targets(policies: list[Any] | None) -> dict[Any, dict]:
+    targets: dict[Any, dict] = {}
+    for policy in _policy_list(policies):
+        if not isinstance(policy, dict):
+            continue
+        table = policy.get("table")
+        source_table = policy.get("source_table")
+        source_id_field = policy.get("source_id_field")
+        allowed_fields = policy.get("allowed_fields")
+        max_rows_per_source = policy.get(
+            "max_rows_per_source", _PUBLIC_APPEND_DEFAULT_MAX_ROWS_PER_SOURCE
+        )
+        if (
+            not isinstance(table, str)
+            or not table
+            or not isinstance(source_table, str)
+            or not source_table
+            or not isinstance(source_id_field, str)
+            or not source_id_field
+            or source_id_field == "id"
+            or not isinstance(allowed_fields, list)
+            or isinstance(max_rows_per_source, bool)
+            or not isinstance(max_rows_per_source, int)
+            or max_rows_per_source <= 0
+            or max_rows_per_source > PUBLIC_APPEND_MAX_ROWS_PER_SOURCE_LIMIT
+        ):
+            continue
+        fields = {field for field in allowed_fields if isinstance(field, str) and field}
+        if "id" in fields or _OWNER_ID_FIELD in fields or source_id_field in fields:
+            continue
+        targets[(table, source_table, source_id_field)] = {
+            "allowed_fields": fields,
+            "max_rows_per_source": max_rows_per_source,
+        }
+    return targets
 
 
 def _public_invoice_grant_is_subset(
@@ -248,3 +373,40 @@ def _public_invoice_sources(policies: list[Any] | None) -> set[tuple[str, str]]:
         if isinstance(table, str) and table and isinstance(wallet_field, str):
             sources.add((table, wallet_field))
     return sources
+
+
+def _websocket_publish_grant_is_subset(
+    requested_policies: list[Any] | None,
+    granted_policies: list[Any] | None,
+    *,
+    allow_max_messages_per_second_override: bool = False,
+) -> bool:
+    requested_policy = _websocket_publish_policy(requested_policies)
+    granted_policy = _websocket_publish_policy(granted_policies)
+    if requested_policy is None or granted_policy is None:
+        return False
+    if (
+        granted_policy["max_messages_per_second"]
+        > requested_policy["max_messages_per_second"]
+        and not allow_max_messages_per_second_override
+    ):
+        return False
+    return True
+
+
+def _websocket_publish_policy(policies: list[Any] | None) -> dict[str, int] | None:
+    policy_list = _policy_list(policies)
+    if len(policy_list) != 1:
+        return None
+    policy = policy_list[0]
+    if not isinstance(policy, dict):
+        return None
+    max_messages_per_second = policy.get("max_messages_per_second")
+    if (
+        isinstance(max_messages_per_second, bool)
+        or not isinstance(max_messages_per_second, int)
+        or max_messages_per_second <= 0
+        or max_messages_per_second > WEBSOCKET_PUBLISH_MAX_MESSAGES_PER_SECOND_LIMIT
+    ):
+        return None
+    return {"max_messages_per_second": max_messages_per_second}

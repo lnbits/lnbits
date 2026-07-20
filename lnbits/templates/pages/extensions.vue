@@ -479,6 +479,12 @@
         class="q-mt-md"
         :permissions="permissionGrant.permissions"
         :extensions="extensions"
+        :editable-append-public-limits="g.user.admin === true"
+        :max-rows-per-source-limit="extensionPermissionMaxRowsPerSourceLimit"
+        :editable-websocket-publish-limits="g.user.admin === true"
+        :max-messages-per-second-limit="
+          extensionPermissionMaxMessagesPerSecondLimit
+        "
       ></lnbits-extension-permissions>
 
       <div class="row q-mt-lg">
@@ -859,6 +865,12 @@
           v-else-if="managedExtensionPermissions.extensionPermissions.length"
           :permissions="managedExtensionPermissions.extensionPermissions"
           :extensions="extensions"
+          :editable-append-public-limits="g.user.admin === true"
+          :max-rows-per-source-limit="extensionPermissionMaxRowsPerSourceLimit"
+          :editable-websocket-publish-limits="g.user.admin === true"
+          :max-messages-per-second-limit="
+            extensionPermissionMaxMessagesPerSecondLimit
+          "
         ></lnbits-extension-permissions>
         <q-banner v-else rounded class="bg-grey-2 text-grey-8">
           <span v-text="$t('extension_permissions_none')"></span>
@@ -868,8 +880,30 @@
             v-close-popup
             flat
             color="grey"
-            class="q-ml-auto"
+            :class="
+              g.user.admin === true &&
+              extensionPermissionsHaveEditableLimits(
+                managedExtensionPermissions.extensionPermissions
+              )
+                ? ''
+                : 'q-ml-auto'
+            "
             v-text="$t('close')"
+          ></q-btn>
+          <q-btn
+            v-if="
+              g.user.admin === true &&
+              extensionPermissionsHaveEditableLimits(
+                managedExtensionPermissions.extensionPermissions
+              )
+            "
+            flat
+            color="primary"
+            class="q-ml-auto"
+            :loading="managedExtensionPermissions.savingExtensionPermissions"
+            :disable="managedExtensionPermissions.loading"
+            v-text="$t('save')"
+            @click="saveManagedExtensionPermissions"
           ></q-btn>
         </div>
       </div>

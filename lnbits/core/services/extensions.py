@@ -187,6 +187,7 @@ async def install_extension(
     ext_info: InstallableExtension,
     skip_download: bool | None = False,
     granted_permissions: list[ExtensionPermission] | None = None,
+    allow_admin_policy_overrides: bool = False,
 ) -> Extension:
 
     ext_info.meta = ext_info.meta or ExtensionMeta()
@@ -210,7 +211,10 @@ async def install_extension(
 
     extension_config = ext_info.load_archive_config()
     ext_info.permissions = validate_wasm_extension_permissions(
-        ext_info, granted_permissions, extension_config
+        ext_info,
+        granted_permissions,
+        extension_config,
+        allow_admin_policy_overrides=allow_admin_policy_overrides,
     )
 
     ext_info.extract_archive()

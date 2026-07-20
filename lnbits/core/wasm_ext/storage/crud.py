@@ -5,6 +5,7 @@ import re
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
+from uuid import uuid4
 
 from loguru import logger
 
@@ -110,6 +111,39 @@ async def storage_set_row(
         await conn.execute(query, clean_data)
 
 
+async def storage_append_public_row(
+    ext_id: str,
+    table: str,
+    data: dict[str, Any],
+    owner_id: str,
+) -> str:
+    row_id = uuid4().hex
+    await storage_set_row(ext_id, table, {**data, "id": row_id}, owner_id)
+    return row_id
+
+
+async def storage_count_rows(
+    ext_id: str,
+    table: str,
+    filters: dict[str, Any],
+    *,
+    owner_id: str,
+) -> int:
+    table_schema = _load_table_schema(ext_id, table)
+    database = Database(f"ext_{ext_id}")
+    where_sql, values = _where_sql(database, table_schema, filters, None, [])
+    where_sql = _append_owner_where_sql(where_sql)
+    values[OWNER_ID_FIELD] = owner_id
+
+    query = f"""
+        SELECT COUNT(*) AS count FROM {_table_ref_for_schema(ext_id, table)}
+        {where_sql}
+    """  # noqa: S608
+    async with database.connect() as conn:
+        row = await conn.fetchone(query, values)
+    return int(row["count"]) if row else 0
+
+
 async def storage_get_paginated_rows(
     ext_id: str,
     table: str,
@@ -130,6 +164,50 @@ async def storage_get_paginated_rows(
     )
     where_sql = _append_owner_where_sql(where_sql)
     values[OWNER_ID_FIELD] = owner_id
+    order_sql = _order_sql(table_schema, sort_by, descending)
+    count_values = dict(values)
+    values.update({"limit": min(limit, 1000), "offset": offset})
+
+    table_ref = _table_ref_for_schema(ext_id, table)
+    rows_query = f"""
+        SELECT * FROM {table_ref}
+        {where_sql}
+        {order_sql}
+        LIMIT :limit
+        OFFSET :offset
+    """  # noqa: S608
+    count_query = f"""
+        SELECT COUNT(*) AS count FROM {table_ref}
+        {where_sql}
+    """  # noqa: S608
+
+    async with database.connect() as conn:
+        rows = await conn.fetchall(rows_query, values)
+        count_row = await conn.fetchone(count_query, count_values)
+
+    return {
+        "data": [_row_from_db(table_schema, row) for row in rows],
+        "total": int(count_row["count"]) if count_row else 0,
+    }
+
+
+async def storage_get_public_paginated_rows(
+    ext_id: str,
+    table: str,
+    filters: dict[str, Any],
+    *,
+    search: str | None,
+    search_fields: list[str],
+    sort_by: str | None,
+    descending: bool,
+    limit: int,
+    offset: int,
+) -> dict[str, Any]:
+    table_schema = _load_table_schema(ext_id, table)
+    database = Database(f"ext_{ext_id}")
+    where_sql, values = _where_sql(
+        database, table_schema, filters, search, search_fields
+    )
     order_sql = _order_sql(table_schema, sort_by, descending)
     count_values = dict(values)
     values.update({"limit": min(limit, 1000), "offset": offset})

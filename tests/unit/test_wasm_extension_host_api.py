@@ -10,8 +10,11 @@ from lnbits.core.wasm_ext.api.models import (
     CreateInvoicePublicRequest,
     EmptyRequest,
     PayInvoiceRequest,
+    StorageAppendPublicRequest,
     StorageGetRequest,
+    StoragePublicPaginatedRequest,
     WalletBalanceRequest,
+    WebsocketPublishRequest,
 )
 from lnbits.exceptions import PaymentError
 from lnbits.helpers import sha256s
@@ -49,6 +52,240 @@ async def test_host_api_filters_public_storage_fields(mocker: MockerFixture):
 
 
 @pytest.mark.anyio
+async def test_host_api_filters_public_paginated_storage_rows(
+    mocker: MockerFixture,
+):
+    storage_mock = mocker.patch(
+        "lnbits.core.wasm_ext.api.host.storage_get_public_paginated_rows",
+        mocker.AsyncMock(
+            return_value={
+                "data": [
+                    {
+                        "id": "message-1",
+                        "thread_id": "thread-1",
+                        "message": "Hello",
+                        "admin_note": "secret",
+                    }
+                ],
+                "total": 1,
+            }
+        ),
+    )
+    api = ExtensionHostAPI(
+        "demoext",
+        [
+            ExtensionPermission(
+                id="ext.storage.read_public",
+                policies=[
+                    {
+                        "table_name": "messages",
+                        "source_id_field": "thread_id",
+                        "public_fields": ["id", "thread_id", "message"],
+                    }
+                ],
+            )
+        ],
+    )
+
+    response = await api.storage_get_public_paginated(
+        StoragePublicPaginatedRequest(
+            table="messages",
+            filters={},
+            search="hello",
+            search_fields=["message"],
+            sort_by="id",
+            descending=False,
+            limit=25,
+            offset=0,
+            source_id="thread-1",
+        )
+    )
+
+    assert json.loads(response.rows_json) == [
+        {"id": "message-1", "thread_id": "thread-1", "message": "Hello"}
+    ]
+    assert response.total == 1
+    storage_mock.assert_awaited_once_with(
+        "demoext",
+        "messages",
+        {"thread_id": "thread-1"},
+        search="hello",
+        search_fields=["message"],
+        sort_by="id",
+        descending=False,
+        limit=25,
+        offset=0,
+    )
+
+
+@pytest.mark.anyio
+async def test_host_api_public_paginated_storage_rejects_private_query_fields():
+    api = ExtensionHostAPI(
+        "demoext",
+        [
+            ExtensionPermission(
+                id="ext.storage.read_public",
+                policies=[
+                    {
+                        "table_name": "messages",
+                        "source_id_field": "thread_id",
+                        "public_fields": ["id", "message"],
+                    }
+                ],
+            )
+        ],
+    )
+
+    with pytest.raises(PermissionError, match="non-public fields"):
+        await api.storage_get_public_paginated(
+            StoragePublicPaginatedRequest(
+                table="messages",
+                filters={"admin_note": "secret"},
+                search=None,
+                search_fields=[],
+                sort_by=None,
+                descending=False,
+                limit=25,
+                offset=0,
+                source_id="thread-1",
+            )
+        )
+
+
+@pytest.mark.anyio
+async def test_host_api_public_paginated_storage_requires_source_policy():
+    api = ExtensionHostAPI(
+        "demoext",
+        [
+            ExtensionPermission(
+                id="ext.storage.read_public",
+                policies=[
+                    {
+                        "table_name": "messages",
+                        "public_fields": ["id", "message"],
+                    }
+                ],
+            )
+        ],
+    )
+
+    with pytest.raises(PermissionError, match="source ID field policy"):
+        await api.storage_get_public_paginated(
+            StoragePublicPaginatedRequest(
+                table="messages",
+                filters={},
+                search=None,
+                search_fields=[],
+                sort_by=None,
+                descending=False,
+                limit=25,
+                offset=0,
+                source_id="thread-1",
+            )
+        )
+
+
+@pytest.mark.anyio
+async def test_host_api_public_paginated_storage_rejects_conflicting_source_filter():
+    api = ExtensionHostAPI(
+        "demoext",
+        [
+            ExtensionPermission(
+                id="ext.storage.read_public",
+                policies=[
+                    {
+                        "table_name": "messages",
+                        "source_id_field": "thread_id",
+                        "public_fields": ["id", "message"],
+                    }
+                ],
+            )
+        ],
+    )
+
+    with pytest.raises(PermissionError, match="does not match source_id"):
+        await api.storage_get_public_paginated(
+            StoragePublicPaginatedRequest(
+                table="messages",
+                filters={"thread_id": "thread-2"},
+                search=None,
+                search_fields=[],
+                sort_by=None,
+                descending=False,
+                limit=25,
+                offset=0,
+                source_id="thread-1",
+            )
+        )
+
+
+@pytest.mark.anyio
+async def test_host_api_websocket_publish_scopes_item_id(mocker: MockerFixture):
+    publish_mock = mocker.patch(
+        "lnbits.core.wasm_ext.api.host.wasm_extension_websocket_hub.publish",
+        mocker.AsyncMock(),
+    )
+    api = ExtensionHostAPI(
+        "demoext",
+        [
+            {
+                "id": "websocket.publish",
+                "policies": [{"max_messages_per_second": 10}],
+            }
+        ],
+    )
+
+    response = await api.websocket_publish(
+        WebsocketPublishRequest(
+            item_id="conversation:abc_123",
+            data={"message": "Hello"},
+        )
+    )
+
+    assert response.sent is True
+    publish_mock.assert_awaited_once_with(
+        "demoext",
+        "conversation:abc_123",
+        '{"message":"Hello"}',
+        max_messages_per_second=10,
+    )
+
+
+@pytest.mark.anyio
+async def test_host_api_websocket_publish_rejects_invalid_item_id():
+    api = ExtensionHostAPI(
+        "demoext",
+        [
+            {
+                "id": "websocket.publish",
+                "policies": [{"max_messages_per_second": 10}],
+            }
+        ],
+    )
+
+    with pytest.raises(ValueError, match="item ID"):
+        await api.websocket_publish(
+            WebsocketPublishRequest(
+                item_id="../other",
+                data={"message": "Hello"},
+            )
+        )
+
+
+@pytest.mark.anyio
+async def test_host_api_websocket_publish_requires_rate_policy():
+    api = ExtensionHostAPI("demoext", ["websocket.publish"])
+
+    with pytest.raises(PermissionError, match="max messages per second"):
+        await api.websocket_publish(
+            WebsocketPublishRequest(
+                item_id="conversation",
+                data={"message": "Hello"},
+            )
+        )
+
+
+@pytest.mark.anyio
 async def test_host_api_storage_requires_owner_context_and_uses_user_hash(
     mocker: MockerFixture,
 ):
@@ -75,6 +312,136 @@ async def test_host_api_storage_requires_owner_context_and_uses_user_hash(
         "1",
         sha256s("user-1"),
     )
+
+
+@pytest.mark.anyio
+async def test_host_api_public_append_uses_source_owner_and_allowed_fields(
+    mocker: MockerFixture,
+):
+    owner_mock = mocker.patch(
+        "lnbits.core.wasm_ext.api.host.storage_get_row_owner_id",
+        mocker.AsyncMock(return_value="owner-1"),
+    )
+    count_mock = mocker.patch(
+        "lnbits.core.wasm_ext.api.host.storage_count_rows",
+        mocker.AsyncMock(return_value=0),
+    )
+    append_mock = mocker.patch(
+        "lnbits.core.wasm_ext.api.host.storage_append_public_row",
+        mocker.AsyncMock(return_value="message-1"),
+    )
+    api = ExtensionHostAPI(
+        "demoext",
+        [
+            ExtensionPermission(
+                id="ext.storage.append_public",
+                policies=[
+                    {
+                        "table": "messages",
+                        "source_table": "threads",
+                        "source_id_field": "thread_id",
+                        "allowed_fields": ["name", "message"],
+                    }
+                ],
+            )
+        ],
+    )
+
+    response = await api.storage_append_public(
+        StorageAppendPublicRequest(
+            table="messages",
+            source_id="thread-1",
+            data={"name": "Alice", "message": "Hello"},
+        )
+    )
+
+    assert response.id == "message-1"
+    owner_mock.assert_awaited_once_with("demoext", "threads", "thread-1")
+    count_mock.assert_awaited_once_with(
+        "demoext",
+        "messages",
+        {"thread_id": "thread-1"},
+        owner_id="owner-1",
+    )
+    append_mock.assert_awaited_once_with(
+        "demoext",
+        "messages",
+        {"name": "Alice", "message": "Hello", "thread_id": "thread-1"},
+        "owner-1",
+    )
+
+
+@pytest.mark.anyio
+async def test_host_api_public_append_rejects_disallowed_fields(
+    mocker: MockerFixture,
+):
+    mocker.patch(
+        "lnbits.core.wasm_ext.api.host.storage_get_row_owner_id",
+        mocker.AsyncMock(return_value="owner-1"),
+    )
+    api = ExtensionHostAPI(
+        "demoext",
+        [
+            ExtensionPermission(
+                id="ext.storage.append_public",
+                policies=[
+                    {
+                        "table": "messages",
+                        "source_table": "threads",
+                        "source_id_field": "thread_id",
+                        "allowed_fields": ["message"],
+                    }
+                ],
+            )
+        ],
+    )
+
+    with pytest.raises(PermissionError, match="disallowed fields"):
+        await api.storage_append_public(
+            StorageAppendPublicRequest(
+                table="messages",
+                source_id="thread-1",
+                data={"message": "Hello", "admin": True},
+            )
+        )
+
+
+@pytest.mark.anyio
+async def test_host_api_public_append_enforces_row_limit(mocker: MockerFixture):
+    mocker.patch(
+        "lnbits.core.wasm_ext.api.host.storage_get_row_owner_id",
+        mocker.AsyncMock(return_value="owner-1"),
+    )
+    mocker.patch(
+        "lnbits.core.wasm_ext.api.host.storage_count_rows",
+        mocker.AsyncMock(return_value=1),
+    )
+    api = ExtensionHostAPI(
+        "demoext",
+        [
+            ExtensionPermission(
+                id="ext.storage.append_public",
+                policies=[
+                    {
+                        "table": "messages",
+                        "source_table": "threads",
+                        "source_id_field": "thread_id",
+                        "allowed_fields": ["message"],
+                        "max_rows_per_source": 1,
+                    }
+                ],
+            )
+        ],
+    )
+
+    with pytest.raises(PermissionError, match="limit reached"):
+        await api.storage_append_public(
+            StorageAppendPublicRequest(
+                table="messages",
+                source_id="thread-1",
+                data={"message": "Hello"},
+            )
+        )
 
 
 @pytest.mark.anyio
