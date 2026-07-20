@@ -71,6 +71,10 @@ window.localisation.pl = {
   view_swagger_docs: 'Dokumentacja Swagger API',
   api_docs: 'Dokumentacja API',
   api_keys_api_docs: 'Adres URL węzła, klucze API i dokumentacja API',
+  api_keys_warning:
+    'Te klucze należy przechowywać bezpiecznie; ich udostępnienie może grozić utratą środków.',
+  admin_key_warning:
+    'Twój klucz administratora zapewnia pełny dostęp do portfela, w tym możliwość wysyłania płatności. Nigdy go nie udostępniaj, chyba że całkowicie ufasz odbiorcy.',
   lnbits_version: 'Wersja LNbits',
   runs_on: 'Działa na',
   paste: 'Wklej',

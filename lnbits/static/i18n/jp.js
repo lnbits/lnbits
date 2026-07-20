@@ -69,6 +69,10 @@ window.localisation.jp = {
   view_swagger_docs: 'Swaggerドキュメントを表示',
   api_docs: 'APIドキュメント',
   api_keys_api_docs: 'ノードURL、APIキー、APIドキュメント',
+  api_keys_warning:
+    'これらのキーは安全に保管してください。共有すると資金を失うおそれがあります。',
+  admin_key_warning:
+    '管理者キーは、支払いの送信を含むウォレットへの完全なアクセスを許可します。受取人を完全に信頼している場合を除き、決して共有しないでください。',
   lnbits_version: 'LNbits バージョン',
   runs_on: 'で実行',
   paste: '貼り付け',
