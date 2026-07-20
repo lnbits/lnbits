@@ -132,6 +132,7 @@ def _add_wasm_extension_api_route(
         ),
         methods=[method],
         name=route_name,
+        tags=[_wasm_extension_api_tag(extension)],
         include_in_schema=True,
     )
     return True
@@ -367,6 +368,10 @@ def _prepare_wasm_extension_api_route(
 
 def _wasm_extension_api_route_name(ext_id: str, method: str, route_path: str) -> str:
     return f"{ext_id}:{method}:{route_path}"
+
+
+def _wasm_extension_api_tag(extension: WasmExtension) -> str:
+    return extension.name.strip() or extension.id
 
 
 def _snake_to_camel(value: str) -> str:

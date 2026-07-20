@@ -185,6 +185,12 @@ def test_wasm_api_routes_are_included_in_openapi(tmp_path: Path):
     schema = app.openapi()
     assert "/api/v1/ext/demoext/public/{item_id}" in schema["paths"]
     assert "/api/v1/ext/demoext/private/{item_id}" in schema["paths"]
+    assert schema["paths"]["/api/v1/ext/demoext/public/{item_id}"]["get"]["tags"] == [
+        "Demo"
+    ]
+    assert schema["paths"]["/api/v1/ext/demoext/private/{item_id}"]["post"]["tags"] == [
+        "Demo"
+    ]
 
 
 def test_wasm_api_routes_replace_same_extension_routes_on_upgrade(tmp_path: Path):
