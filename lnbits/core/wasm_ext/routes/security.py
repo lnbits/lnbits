@@ -53,7 +53,7 @@ def wasm_extension_frame_csp(request: Request, extension: WasmExtension) -> str:
         "base-uri 'none'; "
         "frame-src 'none'; "
         "worker-src 'none'; "
-        "media-src 'none'; "
+        f"media-src {extension_assets}; "
         "manifest-src 'none'; "
         "frame-ancestors 'self'"
     )

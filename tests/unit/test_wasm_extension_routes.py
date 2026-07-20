@@ -147,6 +147,7 @@ def test_wasm_frame_csp_is_locked_to_extension_assets(tmp_path: Path):
     assert "sandbox allow-scripts" in csp
     assert "default-src 'none'" in csp
     assert "connect-src 'none'" in csp
+    assert "media-src http://testserver/ext-assets/demoext/" in csp
     assert "frame-ancestors 'self'" in csp
     assert "http://testserver/ext-assets/demoext/" in csp
 
