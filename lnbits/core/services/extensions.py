@@ -66,8 +66,8 @@ class WasmInvocationHandle:
 
 _wasm_invocation_lock = RLock()
 _wasm_invocation_ready_lock = asyncio.Lock()
-_wasm_invocation_creation_lock = asyncio.Lock()
 _wasm_invocation_handles: dict[str, WasmInvocationHandle] = {}
+_wasm_pending_invocation_handles: dict[str, WasmInvocationHandle] = {}
 _wasm_invocations_marked_stale = False
 _wasm_invocations_last_cleanup_at: datetime | None = None
 
@@ -288,38 +288,51 @@ async def start_wasm_invocation(
     runtime_limits: dict[str, int] | None = None,
 ) -> WasmInvocation:
     await ensure_wasm_invocation_monitoring_ready()
-    async with _wasm_invocation_creation_lock:
-        _check_wasm_invocation_concurrency(
-            extension_id=extension_id,
-            user_id=user_id,
-            limits=runtime_limits,
+    _check_wasm_invocation_concurrency(
+        extension_id=extension_id,
+        user_id=user_id,
+        limits=runtime_limits,
+    )
+
+    invocation = WasmInvocation(
+        id=uuid4().hex,
+        extension_id=extension_id,
+        export_name=export_name,
+        trigger_type=trigger_type,
+        user_id=user_id,
+        wallet_id=wallet_id,
+        request_id=request_id,
+        method=method,
+        path=path,
+        event_type=event_type,
+        payment_hash=payment_hash,
+        checking_id=checking_id,
+        request_bytes=request_bytes,
+        context=_safe_wasm_invocation_context(context or {}),
+    )
+
+    with _wasm_invocation_lock:
+        _wasm_pending_invocation_handles[invocation.id] = WasmInvocationHandle(
+            invocation,
+            runtime_limits=runtime_limits,
         )
 
-        invocation = WasmInvocation(
-            id=uuid4().hex,
-            extension_id=extension_id,
-            export_name=export_name,
-            trigger_type=trigger_type,
-            user_id=user_id,
-            wallet_id=wallet_id,
-            request_id=request_id,
-            method=method,
-            path=path,
-            event_type=event_type,
-            payment_hash=payment_hash,
-            checking_id=checking_id,
-            request_bytes=request_bytes,
-            context=_safe_wasm_invocation_context(context or {}),
-        )
+    try:
         await create_wasm_invocation(invocation)
-
+    except BaseException:
         with _wasm_invocation_lock:
-            _wasm_invocation_handles[invocation.id] = WasmInvocationHandle(
-                invocation,
-                runtime_limits=runtime_limits,
-            )
+            _wasm_pending_invocation_handles.pop(invocation.id, None)
+        raise
 
-        return invocation
+    with _wasm_invocation_lock:
+        invk = _wasm_pending_invocation_handles.pop(invocation.id, None)
+        if invk is None:
+            raise RuntimeError(
+                f"WASM pending invocation orphaned for invocation ID '{invocation.id}'."
+            )
+        _wasm_invocation_handles[invocation.id] = invk
+
+    return invocation
 
 
 def attach_wasm_invocation_runtime(
@@ -370,7 +383,9 @@ async def stop_wasm_invocation(
 ) -> bool:
     interrupted = False
     with _wasm_invocation_lock:
-        handle = _wasm_invocation_handles.get(invocation_id)
+        handle = _wasm_invocation_handles.get(
+            invocation_id
+        ) or _wasm_pending_invocation_handles.get(invocation_id)
         if handle:
             handle.stop_requested = True
             handle.stop_reason = reason
@@ -396,6 +411,11 @@ async def stop_wasm_extension_invocations(
             for invocation_id, handle in _wasm_invocation_handles.items()
             if handle.invocation.extension_id == extension_id
         ]
+        invocation_ids.extend(
+            invocation_id
+            for invocation_id, handle in _wasm_pending_invocation_handles.items()
+            if handle.invocation.extension_id == extension_id
+        )
 
     for invocation_id in invocation_ids:
         await stop_wasm_invocation(invocation_id, reason=reason)
@@ -484,6 +504,7 @@ def _check_wasm_invocation_concurrency(
 
     with _wasm_invocation_lock:
         handles = list(_wasm_invocation_handles.values())
+        handles.extend(_wasm_pending_invocation_handles.values())
         if _wasm_limit_exceeded(
             limits["wasm_runtime_max_concurrent_invocations"],
             len(handles) + 1,
