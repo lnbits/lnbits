@@ -2,10 +2,12 @@ from __future__ import annotations
 
 import json
 import re
+from copy import deepcopy
 from dataclasses import dataclass
 from typing import Annotated, Any
 
 from fastapi import Depends, FastAPI, HTTPException, Request
+from loguru import logger
 
 from lnbits.core.models import Account
 from lnbits.core.services.extensions import get_wasm_runtime_limits_for_extension
@@ -37,6 +39,14 @@ class WasmAPIRouteRegistration:
     path_params: dict[str, str]
     auth: str
     route_name: str
+
+
+@dataclass(frozen=True)
+class WasmOpenAPIMetadata:
+    summary: str
+    description: str | None
+    operation_id: str
+    openapi_extra: dict[str, Any] | None
 
 
 def register_wasm_extension_api_routes(app: FastAPI, extension: WasmExtension) -> None:
@@ -72,6 +82,7 @@ def _add_wasm_extension_api_route(
     auth = route_registration.auth
     route_name = route_registration.route_name
     route_config = route_registration.route_config
+    openapi = _wasm_extension_api_openapi_metadata(extension, route_registration)
 
     if not _prepare_wasm_extension_api_route(app, route_path, method, route_name):
         return False
@@ -133,6 +144,10 @@ def _add_wasm_extension_api_route(
         methods=[method],
         name=route_name,
         tags=[_wasm_extension_api_tag(extension)],
+        summary=openapi.summary,
+        description=openapi.description,
+        operation_id=openapi.operation_id,
+        openapi_extra=openapi.openapi_extra,
         include_in_schema=True,
     )
     return True
@@ -372,6 +387,160 @@ def _wasm_extension_api_route_name(ext_id: str, method: str, route_path: str) ->
 
 def _wasm_extension_api_tag(extension: WasmExtension) -> str:
     return extension.name.strip() or extension.id
+
+
+def _wasm_extension_api_openapi_metadata(
+    extension: WasmExtension,
+    route_registration: WasmAPIRouteRegistration,
+) -> WasmOpenAPIMetadata:
+    operation = _load_wasm_extension_openapi_operation(
+        extension,
+        route_registration.route_config,
+    )
+    summary = _openapi_string(operation.pop("summary", None)) or (
+        f"{route_registration.method} {route_registration.route_config.path}"
+    )
+    description = _openapi_string(operation.pop("description", None))
+    operation_id = (
+        _openapi_string(operation.pop("operationId", None))
+        or _openapi_string(operation.pop("operation_id", None))
+        or _wasm_extension_default_operation_id(extension, route_registration)
+    )
+    operation.pop("tags", None)
+    return WasmOpenAPIMetadata(
+        summary=summary,
+        description=description,
+        operation_id=operation_id,
+        openapi_extra=operation or None,
+    )
+
+
+def _load_wasm_extension_openapi_operation(
+    extension: WasmExtension,
+    route_config: WasmAPIRouteConfig,
+) -> dict[str, Any]:
+    openapi_ref = route_config.openapi
+    if not openapi_ref:
+        return {}
+
+    try:
+        document_path, pointer = _wasm_openapi_ref_parts(openapi_ref)
+        document = _load_wasm_openapi_document(extension, document_path)
+        operation = _resolve_json_pointer(document, pointer)
+        if not isinstance(operation, dict):
+            raise TypeError("OpenAPI route fragment must resolve to an object.")
+        return _inline_wasm_openapi_refs(deepcopy(operation), document)
+    except Exception as exc:
+        logger.warning(
+            f"Ignoring OpenAPI metadata for WASM extension '{extension.id}' "
+            f"route '{route_config.path}': {exc}"
+        )
+        return {}
+
+
+def _wasm_openapi_ref_parts(openapi_ref: str) -> tuple[str, str]:
+    document_path, _, pointer = openapi_ref.partition("#")
+    if not document_path:
+        raise ValueError("OpenAPI metadata reference must include a JSON file path.")
+    return document_path, pointer
+
+
+def _load_wasm_openapi_document(
+    extension: WasmExtension,
+    document_path: str,
+) -> dict[str, Any]:
+    if "://" in document_path or document_path.startswith(("/", "\\")):
+        raise ValueError("OpenAPI metadata reference must be a local relative path.")
+    if not document_path.lower().endswith(".json"):
+        raise ValueError("OpenAPI metadata reference must point to a JSON file.")
+
+    extension_root = extension.root_path.resolve()
+    path = (extension_root / document_path).resolve()
+    if not path.is_relative_to(extension_root):
+        raise ValueError("OpenAPI metadata reference escapes the extension root.")
+    if not path.is_file():
+        raise FileNotFoundError(f"OpenAPI metadata file not found: {document_path}")
+
+    with path.open("r", encoding="utf-8") as openapi_file:
+        document = json.load(openapi_file)
+    if not isinstance(document, dict):
+        raise TypeError("OpenAPI metadata file must contain a JSON object.")
+    return document
+
+
+def _resolve_json_pointer(document: Any, pointer: str) -> Any:
+    if not pointer:
+        return document
+    if not pointer.startswith("/"):
+        raise ValueError("OpenAPI metadata reference must use a JSON pointer.")
+
+    value = document
+    for raw_token in pointer[1:].split("/"):
+        token = raw_token.replace("~1", "/").replace("~0", "~")
+        if isinstance(value, dict):
+            value = value[token]
+        elif isinstance(value, list):
+            value = value[int(token)]
+        else:
+            raise KeyError(token)
+    return value
+
+
+def _inline_wasm_openapi_refs(
+    value: Any,
+    document: dict[str, Any],
+    seen_refs: tuple[str, ...] = (),
+) -> Any:
+    if isinstance(value, list):
+        return [_inline_wasm_openapi_refs(item, document, seen_refs) for item in value]
+    if not isinstance(value, dict):
+        return value
+
+    ref = value.get("$ref")
+    if isinstance(ref, str) and ref.startswith("#/") and ref not in seen_refs:
+        try:
+            resolved = _inline_wasm_openapi_refs(
+                deepcopy(_resolve_json_pointer(document, ref[1:])),
+                document,
+                (*seen_refs, ref),
+            )
+        except Exception:
+            resolved = None
+
+        if resolved is not None:
+            overrides = {
+                key: _inline_wasm_openapi_refs(item, document, seen_refs)
+                for key, item in value.items()
+                if key != "$ref"
+            }
+            if isinstance(resolved, dict):
+                return {**resolved, **overrides}
+            if not overrides:
+                return resolved
+
+    return {
+        key: _inline_wasm_openapi_refs(item, document, seen_refs)
+        for key, item in value.items()
+    }
+
+
+def _openapi_string(value: Any) -> str | None:
+    if not isinstance(value, str):
+        return None
+    value = value.strip()
+    return value or None
+
+
+def _wasm_extension_default_operation_id(
+    extension: WasmExtension,
+    route_registration: WasmAPIRouteRegistration,
+) -> str:
+    value = (
+        f"{extension.id}_{route_registration.method}_"
+        f"{route_registration.route_config.path}"
+    )
+    value = re.sub(r"[^A-Za-z0-9]+", "_", value).strip("_").lower()
+    return value or f"{extension.id}_{route_registration.method.lower()}"
 
 
 def _snake_to_camel(value: str) -> str:

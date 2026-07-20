@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 from collections.abc import AsyncIterator
 from pathlib import Path
 from typing import cast
@@ -193,6 +194,107 @@ def test_wasm_api_routes_are_included_in_openapi(tmp_path: Path):
     ]
 
 
+def test_wasm_api_routes_load_openapi_operation_fragment(tmp_path: Path):
+    app = FastAPI()
+    openapi_dir = tmp_path / "wasm"
+    openapi_dir.mkdir()
+    (openapi_dir / "openapi.json").write_text(
+        json.dumps(
+            {
+                "schemas": {
+                    "DemoItem": {
+                        "type": "object",
+                        "required": ["id", "name"],
+                        "properties": {
+                            "id": {"type": "string"},
+                            "name": {"type": "string"},
+                        },
+                    }
+                },
+                "routes": {
+                    "list_demo_items": {
+                        "summary": "List demo items",
+                        "description": "Returns demo items.",
+                        "operationId": "demoext_list_demo_items",
+                        "tags": ["Ignored"],
+                        "responses": {
+                            "200": {
+                                "description": "Demo item list",
+                                "content": {
+                                    "application/json": {
+                                        "schema": {
+                                            "type": "object",
+                                            "properties": {
+                                                "items": {
+                                                    "type": "array",
+                                                    "items": {
+                                                        "$ref": "#/schemas/DemoItem"
+                                                    },
+                                                }
+                                            },
+                                        }
+                                    }
+                                },
+                            }
+                        },
+                    }
+                },
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    register_wasm_extension_api_routes(
+        app,
+        _wasm_extension(
+            tmp_path,
+            api_routes=[
+                {
+                    "method": "GET",
+                    "path": "/public/{item_id}",
+                    "export": "render",
+                    "auth": "public",
+                    "openapi": "wasm/openapi.json#/routes/list_demo_items",
+                }
+            ],
+        ),
+    )
+
+    operation = app.openapi()["paths"]["/api/v1/ext/demoext/public/{item_id}"]["get"]
+    item_schema = operation["responses"]["200"]["content"]["application/json"][
+        "schema"
+    ]["properties"]["items"]["items"]
+    assert operation["summary"] == "List demo items"
+    assert operation["description"] == "Returns demo items."
+    assert operation["operationId"] == "demoext_list_demo_items"
+    assert operation["tags"] == ["Demo"]
+    assert item_schema["properties"]["name"] == {"type": "string"}
+
+
+def test_wasm_api_routes_ignore_missing_openapi_fragment(tmp_path: Path):
+    app = FastAPI()
+
+    register_wasm_extension_api_routes(
+        app,
+        _wasm_extension(
+            tmp_path,
+            api_routes=[
+                {
+                    "method": "GET",
+                    "path": "/public/{item_id}",
+                    "export": "render",
+                    "auth": "public",
+                    "openapi": "wasm/missing.json#/routes/list_demo_items",
+                }
+            ],
+        ),
+    )
+
+    operation = app.openapi()["paths"]["/api/v1/ext/demoext/public/{item_id}"]["get"]
+    assert operation["summary"] == "GET /public/{item_id}"
+    assert operation["operationId"] == "demoext_get_public_item_id"
+
+
 def test_wasm_api_routes_replace_same_extension_routes_on_upgrade(tmp_path: Path):
     app = FastAPI()
     route_path = "/api/v1/ext/demoext/public/{item_id}"
@@ -342,7 +444,11 @@ class _FakeRequest:
             yield chunk
 
 
-def _wasm_extension(root_path: Path) -> WasmExtension:
+def _wasm_extension(
+    root_path: Path,
+    *,
+    api_routes: list[dict] | None = None,
+) -> WasmExtension:
     config = parse_wasm_extension_config(
         "demoext",
         {
@@ -366,7 +472,8 @@ def _wasm_extension(root_path: Path) -> WasmExtension:
                     "auth": "user",
                 }
             ],
-            "api_routes": [
+            "api_routes": api_routes
+            or [
                 {
                     "method": "GET",
                     "path": "/public/{item_id}",

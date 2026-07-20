@@ -62,6 +62,7 @@ class WasmAPIRouteConfig(_StrictWasmModel):
     auth: Literal["public", "user"]
     path_params: dict[str, StrictStr] = Field(default_factory=dict)
     owner_context: WasmRouteOwnerContext | None = Field(None, alias="ownerContext")
+    openapi: StrictStr | None = None
 
 
 class WasmEventsConfig(_StrictWasmModel):
