@@ -42,7 +42,7 @@ nav_order: 1
 
 The **Super User** is the owner-operator account of an LNbits instance. Think of it as your “break glass” operator with a few capabilities that are intentionally reserved for the person ultimately responsible for the server and the funding rails.
 
-The SU is created alongside the [Admin UI](./admin_ui.md) and is meant to keep enviroment operations pleasant in the UI while keeping the most sensitive knobs in trusted hands.
+The SU is created alongside the [Admin UI](./admin_ui.md) and is meant to keep environment operations pleasant in the UI while keeping the most sensitive knobs in trusted hands.
 
 **Key SU capabilities**
 
