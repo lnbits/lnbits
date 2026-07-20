@@ -5,7 +5,7 @@ from pathlib import Path
 from typing import cast
 
 import pytest
-from fastapi import HTTPException, Request
+from fastapi import FastAPI, HTTPException, Request
 
 from lnbits.core.wasm_ext.routes.api import (
     WasmRequestBodyTooLargeError,
@@ -14,6 +14,8 @@ from lnbits.core.wasm_ext.routes.api import (
     _read_json_object_with_size,
     _wasm_extension_api_export,
     _wasm_route_owner_id,
+    register_wasm_extension_api_routes,
+    unregister_wasm_extension_api_routes,
 )
 from lnbits.core.wasm_ext.routes.assets import (
     WASM_EXTENSION_STATIC_MIME_TYPES,
@@ -173,6 +175,80 @@ def test_wasm_ui_route_matching_and_bridge_public_api_filtering(tmp_path: Path):
     }
 
 
+def test_wasm_api_routes_are_included_in_openapi(tmp_path: Path):
+    app = FastAPI()
+    app.openapi_schema = {"stale": True}
+
+    register_wasm_extension_api_routes(app, _wasm_extension(tmp_path))
+
+    assert app.openapi_schema is None
+    schema = app.openapi()
+    assert "/api/v1/ext/demoext/public/{item_id}" in schema["paths"]
+    assert "/api/v1/ext/demoext/private/{item_id}" in schema["paths"]
+
+
+def test_wasm_api_routes_replace_same_extension_routes_on_upgrade(tmp_path: Path):
+    app = FastAPI()
+    route_path = "/api/v1/ext/demoext/public/{item_id}"
+
+    async def legacy_handler() -> dict[str, bool]:
+        return {"legacy": True}
+
+    app.add_api_route(
+        route_path,
+        legacy_handler,
+        methods=["GET"],
+        name=f"demoext:GET:{route_path}",
+        include_in_schema=False,
+    )
+    app.openapi_schema = {"stale": True}
+
+    register_wasm_extension_api_routes(app, _wasm_extension(tmp_path))
+
+    routes = _matching_routes(app, route_path, "GET")
+    assert len(routes) == 1
+    assert routes[0].endpoint != legacy_handler
+    assert routes[0].include_in_schema is True
+    assert app.openapi_schema is None
+    assert route_path in app.openapi()["paths"]
+
+
+def test_wasm_api_routes_remove_obsolete_routes_on_upgrade(tmp_path: Path):
+    app = FastAPI()
+    route_path = "/api/v1/ext/demoext/removed"
+
+    async def removed_handler() -> dict[str, bool]:
+        return {"removed": True}
+
+    app.add_api_route(
+        route_path,
+        removed_handler,
+        methods=["GET"],
+        name=f"demoext:GET:{route_path}",
+    )
+    app.openapi_schema = {"stale": True}
+
+    register_wasm_extension_api_routes(app, _wasm_extension(tmp_path))
+
+    assert _matching_routes(app, route_path, "GET") == []
+    assert app.openapi_schema is None
+    assert route_path not in app.openapi()["paths"]
+
+
+def test_wasm_api_routes_are_removed_from_openapi_on_uninstall(tmp_path: Path):
+    app = FastAPI()
+    route_path = "/api/v1/ext/demoext/public/{item_id}"
+
+    register_wasm_extension_api_routes(app, _wasm_extension(tmp_path))
+    assert route_path in app.openapi()["paths"]
+
+    assert unregister_wasm_extension_api_routes(app, "demoext") is True
+
+    assert app.openapi_schema is None
+    assert _matching_routes(app, route_path, "GET") == []
+    assert route_path not in app.openapi()["paths"]
+
+
 @pytest.mark.anyio
 async def test_wasm_api_route_owner_context_uses_configured_storage_row(
     tmp_path: Path, mocker
@@ -325,3 +401,12 @@ def _request_with_query(token: str) -> Request:
             "headers": [],
         }
     )
+
+
+def _matching_routes(app: FastAPI, route_path: str, method: str) -> list:
+    return [
+        route
+        for route in app.router.routes
+        if getattr(route, "path", None) == route_path
+        and method in (getattr(route, "methods", set()) or set())
+    ]

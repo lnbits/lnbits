@@ -14,6 +14,7 @@ def _do_nothing(*_):
 class CoreAppExtra:
     register_new_ext_routes: Callable = _do_nothing
     register_new_wasm_ext_routes: Callable = _do_nothing
+    unregister_wasm_ext_routes: Callable = _do_nothing
     register_new_ratelimiter: Callable
 
     def __init__(self) -> None:
@@ -37,6 +38,9 @@ class WasmExtensionRegistry:
 
     def get(self, ext_id: str) -> Any | None:
         return self._extensions.get(ext_id)
+
+    def unregister(self, ext_id: str) -> None:
+        self._extensions.pop(ext_id, None)
 
     def list(self) -> list[Any]:
         return list(self._extensions.values())

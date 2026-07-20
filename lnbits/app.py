@@ -48,7 +48,10 @@ from lnbits.core.tasks import (
     process_next_audit_entry,
     refresh_extension_cache,
 )
-from lnbits.core.wasm_ext.routes.register import register_wasm_extension
+from lnbits.core.wasm_ext.routes.register import (
+    register_wasm_extension,
+    unregister_wasm_extension,
+)
 from lnbits.core.wasm_ext.wasm.events import dispatch_wasm_invoice_paid
 from lnbits.core.wasm_ext.wasm.loader import (
     is_wasm_extension_id,
@@ -177,6 +180,7 @@ def create_app() -> FastAPI:
     # Allow registering new extensions routes without direct access to the `app` object
     core_app_extra.register_new_ext_routes = register_new_ext_routes(app)
     core_app_extra.register_new_wasm_ext_routes = register_new_wasm_ext_routes(app)
+    core_app_extra.unregister_wasm_ext_routes = unregister_wasm_ext_routes(app)
     core_app_extra.register_new_ratelimiter = register_new_ratelimiter(app)
 
     # register static files
@@ -428,6 +432,13 @@ def register_new_wasm_ext_routes(app: FastAPI) -> Callable:
         register_wasm_extension(app, ext_id)
 
     return register_new_wasm_ext_routes_fn
+
+
+def unregister_wasm_ext_routes(app: FastAPI) -> Callable:
+    def unregister_wasm_ext_routes_fn(ext_id: str):
+        unregister_wasm_extension(app, ext_id)
+
+    return unregister_wasm_ext_routes_fn
 
 
 def register_new_ratelimiter(app: FastAPI) -> Callable:

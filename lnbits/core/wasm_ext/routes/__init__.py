@@ -1,3 +1,3 @@
-from .register import register_wasm_extension
+from .register import register_wasm_extension, unregister_wasm_extension
 
-__all__ = ["register_wasm_extension"]
+__all__ = ["register_wasm_extension", "unregister_wasm_extension"]

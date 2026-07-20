@@ -28,24 +28,53 @@ class WasmRoutePayload:
     request_bytes: int | None
 
 
+@dataclass(frozen=True)
+class WasmAPIRouteRegistration:
+    route_config: WasmAPIRouteConfig
+    method: str
+    route_path: str
+    export_name: str
+    path_params: dict[str, str]
+    auth: str
+    route_name: str
+
+
 def register_wasm_extension_api_routes(app: FastAPI, extension: WasmExtension) -> None:
-    for route_config in extension.config.api_routes:
-        _add_wasm_extension_api_route(app, extension, route_config)
+    route_registrations = [
+        _wasm_extension_api_route_registration(extension, route_config)
+        for route_config in extension.config.api_routes
+    ]
+
+    openapi_schema_changed = _remove_wasm_extension_api_routes(app, extension.id)
+    for route_registration in route_registrations:
+        if _add_wasm_extension_api_route(app, extension, route_registration):
+            openapi_schema_changed = True
+    if openapi_schema_changed:
+        app.openapi_schema = None
+
+
+def unregister_wasm_extension_api_routes(app: FastAPI, ext_id: str) -> bool:
+    openapi_schema_changed = _remove_wasm_extension_api_routes(app, ext_id)
+    if openapi_schema_changed:
+        app.openapi_schema = None
+    return openapi_schema_changed
 
 
 def _add_wasm_extension_api_route(
     app: FastAPI,
     extension: WasmExtension,
-    route_config: WasmAPIRouteConfig,
-) -> None:
-    method = _wasm_extension_api_method(extension, route_config.method)
-    route_path = _wasm_extension_api_path(extension, route_config.path)
-    export_name = _wasm_extension_api_export(extension, route_config.export)
-    path_params = route_config.path_params
-    auth = _wasm_extension_route_auth(extension, route_config.auth)
+    route_registration: WasmAPIRouteRegistration,
+) -> bool:
+    method = route_registration.method
+    route_path = route_registration.route_path
+    export_name = route_registration.export_name
+    path_params = route_registration.path_params
+    auth = route_registration.auth
+    route_name = route_registration.route_name
+    route_config = route_registration.route_config
 
-    if _has_route(app, route_path, method):
-        return
+    if not _prepare_wasm_extension_api_route(app, route_path, method, route_name):
+        return False
 
     async def invoke_wasm_api_request(
         request: Request,
@@ -102,9 +131,10 @@ def _add_wasm_extension_api_route(
             else invoke_private_wasm_extension_export
         ),
         methods=[method],
-        name=f"{extension.id}:{method}:{route_path}",
-        include_in_schema=False,
+        name=route_name,
+        include_in_schema=True,
     )
+    return True
 
 
 async def _read_api_payload(
@@ -274,6 +304,69 @@ def _has_route(app: FastAPI, route_path: str, method: str) -> bool:
         if method in methods:
             return True
     return False
+
+
+def _wasm_extension_api_route_registration(
+    extension: WasmExtension,
+    route_config: WasmAPIRouteConfig,
+) -> WasmAPIRouteRegistration:
+    method = _wasm_extension_api_method(extension, route_config.method)
+    route_path = _wasm_extension_api_path(extension, route_config.path)
+    return WasmAPIRouteRegistration(
+        route_config=route_config,
+        method=method,
+        route_path=route_path,
+        export_name=_wasm_extension_api_export(extension, route_config.export),
+        path_params=route_config.path_params,
+        auth=_wasm_extension_route_auth(extension, route_config.auth),
+        route_name=_wasm_extension_api_route_name(extension.id, method, route_path),
+    )
+
+
+def _remove_wasm_extension_api_routes(app: FastAPI, ext_id: str) -> bool:
+    removed = False
+    for route in list(app.router.routes):
+        if not _is_wasm_extension_api_route(route, ext_id):
+            continue
+        app.router.routes.remove(route)
+        removed = True
+    return removed
+
+
+def _is_wasm_extension_api_route(route: Any, ext_id: str) -> bool:
+    route_name = getattr(route, "name", None)
+    if not isinstance(route_name, str) or not route_name.startswith(f"{ext_id}:"):
+        return False
+
+    route_path = getattr(route, "path", None)
+    if not isinstance(route_path, str):
+        return False
+
+    route_prefix = f"/api/v1/ext/{ext_id}"
+    return route_path == route_prefix or route_path.startswith(f"{route_prefix}/")
+
+
+def _prepare_wasm_extension_api_route(
+    app: FastAPI,
+    route_path: str,
+    method: str,
+    route_name: str,
+) -> bool:
+    for route in list(app.router.routes):
+        if getattr(route, "path", None) != route_path:
+            continue
+        methods = getattr(route, "methods", set()) or set()
+        if method not in methods:
+            continue
+        if getattr(route, "name", None) != route_name:
+            return False
+        app.router.routes.remove(route)
+        return True
+    return True
+
+
+def _wasm_extension_api_route_name(ext_id: str, method: str, route_path: str) -> str:
+    return f"{ext_id}:{method}:{route_path}"
 
 
 def _snake_to_camel(value: str) -> str:
