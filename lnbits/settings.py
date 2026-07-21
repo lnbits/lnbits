@@ -597,6 +597,7 @@ class LndGrpcFundingSource(LNbitsSettings):
     lnd_grpc_invoice_macaroon: str | None = Field(default=None)
     lnd_grpc_macaroon: str | None = Field(default=None)
     lnd_grpc_macaroon_encrypted: str | None = Field(default=None)
+    lnd_grpc_allow_self_payment: bool = Field(default=False)
 
 
 class LnPayFundingSource(LNbitsSettings):
