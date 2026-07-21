@@ -18,7 +18,7 @@ if TYPE_CHECKING:
 class Feature(Enum):
     nodemanager = "nodemanager"
     holdinvoice = "holdinvoice"
-    # bolt12 = "bolt12"
+    bolt12 = "bolt12"
 
 
 class StatusResponse(NamedTuple):
@@ -28,11 +28,10 @@ class StatusResponse(NamedTuple):
 
 class InvoiceResponse(NamedTuple):
     ok: bool
-    checking_id: str | None = None  # payment_hash, rpc_id
     payment_request: str | None = None
+    checking_id: str | None = None
+    payment_hash: str | None = None
     error_message: str | None = None
-    preimage: str | None = None
-    fee_msat: int | None = None
 
     @property
     def success(self) -> bool:
@@ -48,12 +47,12 @@ class InvoiceResponse(NamedTuple):
 
 
 class PaymentResponse(NamedTuple):
-    # when ok is None it means we don't know if this succeeded
     ok: bool | None = None
-    checking_id: str | None = None  # payment_hash, rcp_id
+    checking_id: str | None = None
     fee_msat: int | None = None
     preimage: str | None = None
     error_message: str | None = None
+    amount_msat: int | None = None
 
     @property
     def success(self) -> bool:
@@ -94,15 +93,15 @@ class PaymentStatus(NamedTuple):
 
 
 class PaymentSuccessStatus(PaymentStatus):
-    paid = True  # type: ignore[reportIncompatibleVariableOverride]
+    paid = True
 
 
 class PaymentFailedStatus(PaymentStatus):
-    paid = False  # type: ignore[reportIncompatibleVariableOverride]
+    paid = False
 
 
 class PaymentPendingStatus(PaymentStatus):
-    paid = None  # type: ignore[reportIncompatibleVariableOverride]
+    paid = None
 
 
 class Wallet(ABC):
@@ -141,6 +140,9 @@ class Wallet(ABC):
     ) -> Coroutine[None, None, PaymentResponse]:
         pass
 
+    async def pay_offer(self, offer: str, fee_limit_msat: int) -> PaymentResponse:
+        raise InvoiceError(message="BOLT12 offers are not supported by this wallet.", status="failed")
+
     @abstractmethod
     def get_invoice_status(
         self, checking_id: str
@@ -162,19 +164,13 @@ class Wallet(ABC):
         unhashed_description: bytes | None = None,
         **kwargs,
     ) -> InvoiceResponse:
-        raise InvoiceError(
-            message="Hold invoices are not supported by this wallet.", status="failed"
-        )
+        raise InvoiceError(message="Hold invoices are not supported by this wallet.", status="failed")
 
     async def settle_hold_invoice(self, preimage: str) -> InvoiceResponse:
-        raise InvoiceError(
-            message="Hold invoices are not supported by this wallet.", status="failed"
-        )
+        raise InvoiceError(message="Hold invoices are not supported by this wallet.", status="failed")
 
     async def cancel_hold_invoice(self, payment_hash: str) -> InvoiceResponse:
-        raise InvoiceError(
-            message="Hold invoices are not supported by this wallet.", status="failed"
-        )
+        raise InvoiceError(message="Hold invoices are not supported by this wallet.", status="failed")
 
     async def paid_invoices_stream(self) -> AsyncGenerator[str, None]:
         while settings.lnbits_running:

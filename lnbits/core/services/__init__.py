@@ -19,6 +19,7 @@ from .payments import (
     fee_reserve_total,
     get_payments_daily_stats,
     pay_invoice,
+    pay_offer,
     service_fee,
     settle_hold_invoice,
     update_pending_payment,

@@ -16,6 +16,7 @@ from lnbits.settings import settings
 from lnbits.utils.crypto import random_secret_and_hash
 
 from .base import (
+    Feature,
     InvoiceResponse,
     PaymentPendingStatus,
     PaymentResponse,
@@ -34,6 +35,8 @@ class UnknownError(Exception):
 
 
 class EclairWallet(Wallet):
+    features = [Feature.bolt12]
+
     def __init__(self):
         if not settings.eclair_url:
             raise ValueError("cannot initialize EclairWallet: missing eclair_url")
@@ -143,6 +146,49 @@ class EclairWallet(Wallet):
             return InvoiceResponse(
                 ok=False, error_message=f"Unable to connect to {self.url}."
             )
+
+    async def pay_offer(self, offer: str, fee_limit_msat: int) -> PaymentResponse:
+        """Pay a BOLT12 offer via Eclair payoffer."""
+        try:
+            r = await self.client.post(
+                "/payoffer",
+                data={"offer": offer, "blocking": True},
+                timeout=None,
+            )
+            r.raise_for_status()
+            data = r.json()
+
+            if "error" in data:
+                return PaymentResponse(error_message=str(data["error"]))
+            if r.is_error:
+                return PaymentResponse(error_message=r.text)
+
+            if data.get("type") == "payment-failed":
+                return PaymentResponse(ok=False, error_message="payment failed")
+
+            checking_id = data.get("paymentHash") or data.get("payment_hash")
+            preimage = data.get("paymentPreimage") or data.get("payment_preimage")
+            if not checking_id:
+                return PaymentResponse(
+                    error_message="Server error: 'missing paymentHash'"
+                )
+
+            payment_status: PaymentStatus = await self.get_payment_status(checking_id)
+            success = True if payment_status.success else None
+            return PaymentResponse(
+                ok=success,
+                checking_id=checking_id,
+                fee_msat=payment_status.fee_msat,
+                preimage=preimage,
+            )
+        except json.JSONDecodeError:
+            return PaymentResponse(
+                error_message="Server error: 'invalid json response'"
+            )
+        except Exception as exc:
+            logger.info(f"Failed to pay offer {offer[:24]}...")
+            logger.warning(exc)
+            return PaymentResponse(error_message=f"Unable to connect to {self.url}.")
 
     async def pay_invoice(self, bolt11: str, fee_limit_msat: int) -> PaymentResponse:
         try:
