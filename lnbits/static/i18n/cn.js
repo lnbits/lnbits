@@ -68,6 +68,9 @@ window.localisation.cn = {
   view_swagger_docs: '查看 LNbits Swagger API 文档',
   api_docs: 'API文档',
   api_keys_api_docs: '节点URL、API密钥和API文档',
+  api_keys_warning: '请妥善保管这些密钥，分享它们可能导致资金损失。',
+  admin_key_warning:
+    '您的管理员密钥可完全访问您的钱包，包括发送付款的权限。除非您完全信任接收者，否则切勿分享。',
   lnbits_version: 'LNbits版本',
   runs_on: '可运行在',
   paste: '粘贴',

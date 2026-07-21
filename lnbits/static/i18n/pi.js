@@ -72,6 +72,10 @@ window.localisation.pi = {
   view_swagger_docs: 'View LNbits Swagger API docs and learn the secrets',
   api_docs: 'API docs for the scallywags',
   api_keys_api_docs: 'Node URL, API keys and API docs',
+  api_keys_warning:
+    'Keep these keys safe, matey; sharing them could lose ye yer doubloons.',
+  admin_key_warning:
+    'Yer admin key gives full access to yer wallet, including sending payments. Never share it unless ye trust the recipient completely.',
   lnbits_version: 'LNbits version, arr!',
   runs_on: 'Runs on, matey',
   paste: 'Stow',

@@ -72,6 +72,10 @@ window.localisation.we = {
   view_swagger_docs: 'Gweld dogfennau API LNbits Swagger',
   api_docs: 'Dogfennau API',
   api_keys_api_docs: 'URL y nod, allweddi API a dogfennau API',
+  api_keys_warning:
+    "Dylid cadw'r allweddi hyn yn ddiogel; gall eu rhannu arwain at golli arian.",
+  admin_key_warning:
+    "Mae eich allwedd weinyddol yn rhoi mynediad llawn i'ch waled, gan gynnwys y gallu i anfon taliadau. Peidiwch byth â'i rhannu oni bai eich bod yn ymddiried yn llwyr yn y derbynnydd.",
   lnbits_version: 'Fersiwn LNbits',
   runs_on: 'Yn rhedeg ymlaen',
   paste: 'Gludo',

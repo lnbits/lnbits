@@ -73,6 +73,10 @@ window.localisation.nl = {
   view_swagger_docs: 'Bekijk LNbits Swagger API-documentatie',
   api_docs: 'API-documentatie',
   api_keys_api_docs: 'Node URL, API-sleutels en API-documentatie',
+  api_keys_warning:
+    'Bewaar deze sleutels veilig; het delen ervan kan leiden tot verlies van tegoeden.',
+  admin_key_warning:
+    'Je beheerderssleutel geeft volledige toegang tot je wallet, inclusief de mogelijkheid om betalingen te versturen. Deel deze nooit, tenzij je de ontvanger volledig vertrouwt.',
   lnbits_version: 'LNbits-versie',
   runs_on: 'Draait op',
   paste: 'Plakken',

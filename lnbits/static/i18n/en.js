@@ -98,6 +98,10 @@ window.localisation.en = {
   view_swagger_docs: 'View LNbits Swagger API docs',
   api_docs: 'API docs',
   api_keys_api_docs: 'Node URL, API keys and API docs',
+  api_keys_warning:
+    'These keys should be kept safe, sharing them could risk losing funds.',
+  admin_key_warning:
+    'Your admin key grants full access to your wallet, including the ability to send payments. Never share it unless you fully trust the recipient.',
   lnbits_version: 'LNbits version',
   runs_on: 'Runs on',
   paste: 'Paste',

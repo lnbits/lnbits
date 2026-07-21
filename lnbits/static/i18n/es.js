@@ -72,6 +72,10 @@ window.localisation.es = {
   view_swagger_docs: 'Ver documentación de API de LNbits Swagger',
   api_docs: 'Documentación de API',
   api_keys_api_docs: 'URL del nodo, claves de API y documentación de API',
+  api_keys_warning:
+    'Estas claves deben mantenerse seguras; compartirlas podría provocar la pérdida de fondos.',
+  admin_key_warning:
+    'Tu clave de administrador otorga acceso total a tu billetera, incluida la posibilidad de enviar pagos. Nunca la compartas a menos que confíes plenamente en el destinatario.',
   lnbits_version: 'Versión de LNbits',
   runs_on: 'Corre en',
   paste: 'Pegar',

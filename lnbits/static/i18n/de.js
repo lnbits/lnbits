@@ -72,6 +72,10 @@ window.localisation.de = {
   view_swagger_docs: 'LNbits Swagger API-Dokumentation',
   api_docs: 'API-Dokumentation',
   api_keys_api_docs: 'Knoten-URL, API-Schlüssel und API-Dokumentation',
+  api_keys_warning:
+    'Diese Schlüssel sollten sicher aufbewahrt werden; ihre Weitergabe kann zum Verlust von Guthaben führen.',
+  admin_key_warning:
+    'Dein Admin-Schlüssel gewährt vollen Zugriff auf deine Wallet, einschließlich der Möglichkeit, Zahlungen zu senden. Teile ihn niemals, es sei denn, du vertraust dem Empfänger vollständig.',
   lnbits_version: 'LNbits-Version',
   runs_on: 'Läuft auf',
   paste: 'Einfügen',
