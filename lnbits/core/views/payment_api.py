@@ -239,7 +239,7 @@ async def api_all_payments_paginated(
         specify at least the first four fields in the POST body: `out: false`,
         `amount`, `unit`, and `memo`. To pay an arbitrary invoice from the funds
         already in the authorized account, specify `out: true` and use the `bolt11`
-        field to supply the BOLT11 invoice or BOLT12 offer (`lno1...`) to be paid.
+        field to supply the BOLT11 invoice or BOLT12 offer (`lno1...`, optional `lightning:` URI) to be paid.
     """,
     status_code=HTTPStatus.CREATED,
     responses={
@@ -257,7 +257,7 @@ async def api_payments_create(
         if not invoice_data.bolt11:
             raise HTTPException(
                 status_code=HTTPStatus.BAD_REQUEST,
-                detail="Missing BOLT11 invoice",
+                detail="Missing BOLT11 invoice or BOLT12 offer",
             )
         payment = await pay_invoice(
             wallet_id=wallet_id,
