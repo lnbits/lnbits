@@ -418,9 +418,6 @@ async def get_wallet_payment_total_breakdown(
             SELECT tag,
                 CASE
                     WHEN fiat_provider IS NOT NULL
-                    OR checking_id LIKE 'fiat_%'
-                    OR extra LIKE '%"fiat_payment_request"%'
-                    OR extra LIKE '%"fiat_amount"%'
                     THEN true
                     ELSE false
                 END AS is_fiat,
