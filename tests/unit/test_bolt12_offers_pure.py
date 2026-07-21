@@ -62,3 +62,4 @@ def test_payments_routes_offers_via_normalize():
     assert "is_bolt12_offer" in payments
     assert "pay_offer" in payments
     assert "normalize_bolt12_string" in payments or "is_bolt12_offer" in payments
+    assert "fee_reserve(" in payments
