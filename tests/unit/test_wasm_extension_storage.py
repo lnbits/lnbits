@@ -42,22 +42,28 @@ async def test_core_wasm_migrations_create_persistent_columns(
     if DB_TYPE != SQLITE:
         pytest.skip("temporary core databases are SQLite-only")
 
-    db = _temporary_database(tmp_path, settings, "wasm_core_migrations")
+    original_data_folder = settings.lnbits_data_folder
+    try:
+        db = _temporary_database(tmp_path, settings, "wasm_core_migrations")
 
-    async with db.connect() as conn:
-        await m010_create_installed_extensions_table(conn)
-        await m046_add_permissions_to_installed_extensions(conn)
-        await m047_create_wasm_invocations_table(conn)
-        await m048_add_wasm_runtime_limits_to_installed_extensions(conn)
+        async with db.connect() as conn:
+            await m010_create_installed_extensions_table(conn)
+            await m046_add_permissions_to_installed_extensions(conn)
+            await m047_create_wasm_invocations_table(conn)
+            await m048_add_wasm_runtime_limits_to_installed_extensions(conn)
 
-        installed_columns = {
-            row["name"]
-            for row in await conn.fetchall("PRAGMA table_info(installed_extensions)")
-        }
-        invocation_columns = {
-            row["name"]
-            for row in await conn.fetchall("PRAGMA table_info(wasm_invocations)")
-        }
+            installed_columns = {
+                row["name"]
+                for row in await conn.fetchall(
+                    "PRAGMA table_info(installed_extensions)"
+                )
+            }
+            invocation_columns = {
+                row["name"]
+                for row in await conn.fetchall("PRAGMA table_info(wasm_invocations)")
+            }
+    finally:
+        settings.lnbits_data_folder = original_data_folder
 
     assert {"permissions", "wasm_runtime_limits"}.issubset(installed_columns)
     assert {
@@ -75,7 +81,6 @@ async def test_core_wasm_migrations_create_persistent_columns(
 
 @pytest.mark.anyio
 async def test_installed_extension_permissions_and_wasm_limits_round_trip(
-    app,
     tmp_path: Path,
     settings: Settings,
     mocker: MockerFixture,
@@ -105,7 +110,6 @@ async def test_installed_extension_permissions_and_wasm_limits_round_trip(
 
 @pytest.mark.anyio
 async def test_wasm_invocation_crud_stats_and_cleanup_are_isolated(
-    app,
     tmp_path: Path,
     settings: Settings,
     mocker: MockerFixture,
@@ -222,6 +226,7 @@ async def test_wasm_datetime_queries_use_postgres_placeholders(
 async def test_wasm_storage_migration_and_owner_scoped_crud(
     tmp_path: Path,
     settings: Settings,
+    mocker: MockerFixture,
 ):
     ext_id = f"wasmstore_{uuid4().hex[:8]}"
     original_extensions_path = settings.lnbits_extensions_path
@@ -230,6 +235,7 @@ async def test_wasm_storage_migration_and_owner_scoped_crud(
         settings.lnbits_data_folder = str(tmp_path / "data")
         settings.lnbits_extensions_path = str(tmp_path / "code")
         Path(settings.lnbits_data_folder).mkdir(parents=True)
+        await _patch_wasm_storage_core_db(tmp_path, settings, mocker)
         ext_dir = _write_storage_extension(settings, ext_id)
 
         await migrate_wasm_extension_database(make_installable_extension(ext_id))
@@ -301,6 +307,7 @@ async def test_wasm_storage_migration_and_owner_scoped_crud(
 async def test_wasm_storage_public_append_generates_id_and_counts_by_owner(
     tmp_path: Path,
     settings: Settings,
+    mocker: MockerFixture,
 ):
     ext_id = f"wasmstore_{uuid4().hex[:8]}"
     original_extensions_path = settings.lnbits_extensions_path
@@ -309,6 +316,7 @@ async def test_wasm_storage_public_append_generates_id_and_counts_by_owner(
         settings.lnbits_data_folder = str(tmp_path / "data")
         settings.lnbits_extensions_path = str(tmp_path / "code")
         Path(settings.lnbits_data_folder).mkdir(parents=True)
+        await _patch_wasm_storage_core_db(tmp_path, settings, mocker)
         _write_storage_extension(settings, ext_id)
 
         await migrate_wasm_extension_database(make_installable_extension(ext_id))
@@ -376,8 +384,7 @@ async def test_wasm_storage_rejects_reserved_fields_and_invalid_identifiers(
             )
 
         schema_path = (
-            Path(settings.lnbits_extensions_path)
-            / "extensions"
+            Path(settings.lnbits_wasm_extensions_path)
             / ext_id
             / "storage"
             / "schema.json"
@@ -428,8 +435,24 @@ async def _temporary_core_crud_database(
     return db
 
 
+async def _patch_wasm_storage_core_db(
+    tmp_path: Path,
+    settings: Settings,
+    mocker: MockerFixture,
+) -> None:
+    db = _temporary_database(tmp_path, settings, f"core_versions_{uuid4().hex[:8]}")
+    async with db.connect() as conn:
+        await conn.execute("""
+            CREATE TABLE dbversions (
+                db TEXT PRIMARY KEY,
+                version INT NOT NULL
+            )
+        """)
+    mocker.patch.object(storage_crud, "core_db", db)
+
+
 def _write_storage_extension(settings: Settings, ext_id: str) -> Path:
-    ext_dir = Path(settings.lnbits_extensions_path) / "extensions" / ext_id
+    ext_dir = Path(settings.lnbits_wasm_extensions_path) / ext_id
     storage_dir = ext_dir / "storage"
     migrations_dir = storage_dir / "migrations"
     migrations_dir.mkdir(parents=True)

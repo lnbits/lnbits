@@ -1,6 +1,7 @@
 import json
 import zipfile
 from datetime import datetime, timedelta, timezone
+from pathlib import Path
 from types import SimpleNamespace
 from uuid import uuid4
 
@@ -278,7 +279,7 @@ async def test_uninstall_wasm_extension_unregisters_live_routes(
     try:
         settings.lnbits_data_folder = str(tmp_path / "data")
         settings.lnbits_extensions_path = str(tmp_path / "code")
-        ext_dir = tmp_path / "code" / "extensions" / ext_id
+        ext_dir = Path(settings.lnbits_wasm_extensions_path) / ext_id
         ext_dir.mkdir(parents=True, exist_ok=True)
         (ext_dir / "config.json").write_text(
             json.dumps(_wasm_install_config(ext_id)),
@@ -579,9 +580,11 @@ async def test_update_wasm_extension_runtime_limits_saves_sparse_overrides(
 ):
     ext_id = "wasm_demo"
     original_extensions_path = settings.lnbits_extensions_path
+    original_data_folder = settings.lnbits_data_folder
     try:
+        settings.lnbits_data_folder = str(tmp_path / "data")
         settings.lnbits_extensions_path = str(tmp_path)
-        config_dir = tmp_path / "extensions" / ext_id
+        config_dir = Path(settings.lnbits_wasm_extensions_path) / ext_id
         config_dir.mkdir(parents=True)
         (config_dir / "config.json").write_text(
             '{"extension_type": "wasm"}',
@@ -611,6 +614,7 @@ async def test_update_wasm_extension_runtime_limits_saves_sparse_overrides(
             },
         )
     finally:
+        settings.lnbits_data_folder = original_data_folder
         settings.lnbits_extensions_path = original_extensions_path
 
     assert saved_limits == {
@@ -781,6 +785,50 @@ async def test_start_extension_background_work_handles_missing_and_sync_starts(
 
     assert await start_extension_background_work("demoext") is True
     assert called["start"] is True
+
+
+@pytest.mark.anyio
+async def test_wasm_installed_extension_never_imports_native_background_module(
+    tmp_path,
+    settings: Settings,
+    mocker: MockerFixture,
+):
+    ext_id = f"wasm_{uuid4().hex[:8]}"
+    ext_info = make_installable_extension(ext_id)
+    assert ext_info.meta and ext_info.meta.installed_release
+    ext_info.meta.installed_release.extension_type = "wasm"
+    original_data_folder = settings.lnbits_data_folder
+    original_extensions_path = settings.lnbits_extensions_path
+    import_module_mock = mocker.patch(
+        "lnbits.core.services.extensions.importlib.import_module"
+    )
+    mocker.patch.object(
+        extension_services,
+        "get_installed_extension",
+        mocker.AsyncMock(return_value=ext_info),
+    )
+
+    try:
+        settings.lnbits_data_folder = str(tmp_path / "data")
+        settings.lnbits_extensions_path = str(tmp_path / "code")
+        native_ext_dir = Path(settings.lnbits_extensions_path) / "extensions" / ext_id
+        native_ext_dir.mkdir(parents=True)
+        (native_ext_dir / "config.json").write_text(
+            json.dumps({"name": "Native Demo", "version": "1.0.0"}),
+            encoding="utf-8",
+        )
+        (native_ext_dir / "__init__.py").write_text(
+            "raise RuntimeError('imported')",
+            encoding="utf-8",
+        )
+
+        assert await start_extension_background_work(ext_id) is False
+        assert await stop_extension_background_work(ext_id) is True
+    finally:
+        settings.lnbits_data_folder = original_data_folder
+        settings.lnbits_extensions_path = original_extensions_path
+
+    import_module_mock.assert_not_called()
 
 
 @pytest.mark.anyio

@@ -57,10 +57,15 @@ def validate_wasm_extension_permissions(
     extension_config: dict[str, Any] | WasmExtensionConfig,
     *,
     allow_admin_policy_overrides: bool = False,
+    require_wasm: bool = False,
 ) -> list[ExtensionPermission]:
     if isinstance(extension_config, WasmExtensionConfig):
         config = extension_config
     elif extension_config.get("extension_type") != "wasm":
+        if require_wasm:
+            raise ValueError(
+                f"Extension '{ext_info.id}' archive is not a WASM extension."
+            )
         return []
     else:
         config = parse_wasm_extension_config(ext_info.id, extension_config)

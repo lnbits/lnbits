@@ -1,4 +1,6 @@
 import json
+import stat
+import zipfile
 from pathlib import Path
 from typing import Any
 
@@ -165,6 +167,76 @@ def test_install_time_permission_validation_rejects_config_id_mismatch():
         )
 
 
+def test_wasm_archive_config_rejects_multiple_top_level_directories(
+    tmp_path: Path,
+    settings: Settings,
+):
+    settings.lnbits_data_folder = str(tmp_path / "data")
+    ext_info = make_installable_extension("demoext")
+    with zipfile.ZipFile(ext_info.zip_path, "w") as archive:
+        archive.writestr("safe/config.json", json.dumps(_wasm_config("demoext")))
+        archive.writestr("safe/extension.wasm", b"\0asm")
+        archive.writestr("other/readme.txt", "extra top-level directory")
+
+    with pytest.raises(ValueError, match="one top-level directory"):
+        ext_info.load_wasm_archive_config()
+
+
+def test_wasm_archive_rejects_native_python_files(
+    tmp_path: Path,
+    settings: Settings,
+):
+    settings.lnbits_data_folder = str(tmp_path / "data")
+    settings.lnbits_extensions_path = str(tmp_path / "native")
+    ext_info = make_installable_extension("demoext")
+    _write_wasm_archive(
+        ext_info,
+        _wasm_config("demoext"),
+        extra_files={"demoext-1.0.0/__init__.py": "raise RuntimeError('imported')"},
+    )
+
+    with pytest.raises(ValueError, match="native Python file"):
+        ext_info.load_wasm_archive_config()
+
+    assert not ext_info.ext_dir.exists()
+    assert not ext_info.wasm_ext_dir.exists()
+
+
+def test_wasm_archive_rejects_symlinks(
+    tmp_path: Path,
+    settings: Settings,
+):
+    settings.lnbits_data_folder = str(tmp_path / "data")
+    ext_info = make_installable_extension("demoext")
+    root = "demoext-1.0.0"
+    symlink_info = zipfile.ZipInfo(f"{root}/linked")
+    symlink_info.external_attr = (stat.S_IFLNK | 0o777) << 16
+    with zipfile.ZipFile(ext_info.zip_path, "w") as archive:
+        archive.writestr(f"{root}/config.json", json.dumps(_wasm_config("demoext")))
+        archive.writestr(f"{root}/extension.wasm", b"\0asm")
+        archive.writestr(symlink_info, "extension.wasm")
+
+    with pytest.raises(ValueError, match="symlink"):
+        ext_info.load_wasm_archive_config()
+
+
+def test_extract_wasm_archive_publishes_to_wasm_root_only(
+    tmp_path: Path,
+    settings: Settings,
+):
+    settings.lnbits_data_folder = str(tmp_path / "data")
+    settings.lnbits_extensions_path = str(tmp_path / "native")
+    ext_info = make_installable_extension("demoext")
+    config = _wasm_config("demoext")
+    _write_wasm_archive(ext_info, config)
+
+    ext_info.extract_wasm_archive(ext_info.load_wasm_archive_config())
+
+    assert (ext_info.wasm_ext_dir / "config.json").is_file()
+    assert (ext_info.wasm_ext_dir / "extension.wasm").is_file()
+    assert not ext_info.ext_dir.exists()
+
+
 def test_wasm_extension_registry_rejects_same_id_from_different_root(tmp_path: Path):
     registry = WasmExtensionRegistry()
     first = _wasm_extension("demoext", tmp_path / "one")
@@ -185,8 +257,8 @@ def _write_wasm_extension(
     *,
     config_id: str | None,
 ) -> None:
-    settings.lnbits_extensions_path = str(tmp_path)
-    ext_dir = tmp_path / "extensions" / ext_id
+    settings.lnbits_data_folder = str(tmp_path / "data")
+    ext_dir = Path(settings.lnbits_wasm_extensions_path) / ext_id
     ext_dir.mkdir(parents=True)
     (ext_dir / "extension.wasm").write_bytes(b"\0asm")
     config = {
@@ -225,3 +297,17 @@ def _wasm_config(ext_id: str) -> dict[str, Any]:
         "extension_type": "wasm",
         "wasm": {"module": "extension.wasm"},
     }
+
+
+def _write_wasm_archive(
+    ext_info,
+    config: dict[str, Any],
+    *,
+    extra_files: dict[str, str | bytes] | None = None,
+) -> None:
+    root = f"{ext_info.id}-1.0.0"
+    with zipfile.ZipFile(ext_info.zip_path, "w") as archive:
+        archive.writestr(f"{root}/config.json", json.dumps(config))
+        archive.writestr(f"{root}/{config['wasm']['module']}", b"\0asm")
+        for path, content in (extra_files or {}).items():
+            archive.writestr(path, content)

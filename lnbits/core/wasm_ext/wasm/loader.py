@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import re
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
@@ -11,6 +12,8 @@ from lnbits.core.wasm_ext.wasm.config import (
     parse_wasm_extension_config,
 )
 from lnbits.settings import settings
+
+_EXTENSION_ID_RE = re.compile(r"^[A-Za-z0-9_-]+$")
 
 
 @dataclass(frozen=True)
@@ -27,7 +30,9 @@ class WasmExtension:
 
 
 def is_wasm_extension_id(ext_id: str) -> bool:
-    ext_dir = Path(settings.lnbits_extensions_path, "extensions", ext_id)
+    if not _EXTENSION_ID_RE.fullmatch(ext_id):
+        return False
+    ext_dir = wasm_extension_root_path(ext_id)
     config = _load_json(ext_dir / "config.json")
     return bool(config and config.get("extension_type") == "wasm")
 
@@ -38,7 +43,7 @@ def is_wasm_extension_dir(ext_dir: Path) -> bool:
 
 
 def load_wasm_extension_config(ext_id: str) -> WasmExtensionConfig | None:
-    ext_dir = Path(settings.lnbits_extensions_path, "extensions", ext_id)
+    ext_dir = wasm_extension_root_path(ext_id)
     config = _load_json(ext_dir / "config.json")
     if not config or config.get("extension_type") != "wasm":
         return None
@@ -46,7 +51,7 @@ def load_wasm_extension_config(ext_id: str) -> WasmExtensionConfig | None:
 
 
 def load_wasm_extension(ext_id: str) -> WasmExtension:
-    ext_dir = Path(settings.lnbits_extensions_path, "extensions", ext_id)
+    ext_dir = wasm_extension_root_path(ext_id)
     raw_config = _load_json(ext_dir / "config.json")
     if not raw_config:
         raise FileNotFoundError(f"Missing WASM extension config for '{ext_id}'.")
@@ -71,6 +76,12 @@ def load_wasm_extension(ext_id: str) -> WasmExtension:
         exports=config.wasm.exports,
         config=config,
     )
+
+
+def wasm_extension_root_path(ext_id: str) -> Path:
+    if not _EXTENSION_ID_RE.fullmatch(ext_id):
+        raise ValueError(f"Invalid WASM extension id '{ext_id}'.")
+    return Path(settings.lnbits_wasm_extensions_path, ext_id)
 
 
 def _load_json(path: Path) -> dict[str, Any] | None:

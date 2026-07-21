@@ -254,7 +254,7 @@ async def migrate_wasm_extension_database(
     ext: InstallableExtension,
     current_version: DbVersion | None = None,
 ) -> None:
-    migrations_dir = ext.ext_dir / "storage" / "migrations"
+    migrations_dir = ext.wasm_ext_dir / "storage" / "migrations"
     migration_files = _migration_files(migrations_dir)
     if not migration_files:
         logger.debug(f"No storage migrations for WASM extension '{ext.id}'.")
@@ -434,11 +434,7 @@ def _load_table_schema(ext_id: str, table: str) -> dict[str, Any]:
 
 def _load_storage_schema(ext_id: str) -> dict[str, Any]:
     schema_path = (
-        Path(settings.lnbits_extensions_path)
-        / "extensions"
-        / ext_id
-        / "storage"
-        / "schema.json"
+        Path(settings.lnbits_wasm_extensions_path) / ext_id / "storage" / "schema.json"
     )
     if not schema_path.is_file():
         raise ValueError(f"WASM extension '{ext_id}' has no storage schema.")

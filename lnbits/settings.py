@@ -1232,6 +1232,10 @@ class ReadOnlySettings(
     def lnbits_extensions_upgrade_path(self) -> str:
         return str(Path(self.lnbits_data_folder, "upgrades"))
 
+    @property
+    def lnbits_wasm_extensions_path(self) -> str:
+        return str(Path(self.lnbits_data_folder, "wasm_extensions"))
+
     @validator(
         "lnbits_allowed_funding_sources",
         pre=True,

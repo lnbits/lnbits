@@ -4,9 +4,12 @@ import asyncio
 import hashlib
 import json
 import os
+import re
 import shutil
+import stat
 import zipfile
 from collections.abc import Mapping
+from dataclasses import dataclass
 from datetime import datetime, timezone
 from enum import Enum
 from pathlib import Path, PurePosixPath
@@ -27,6 +30,21 @@ from lnbits.settings import settings
 from lnbits.task_manager import task_manager
 from lnbits.utils.cache import cache
 
+_EXTENSION_ID_RE = re.compile(r"^[A-Za-z0-9_-]+$")
+_PATH_TOKEN_RE = re.compile(r"^[A-Za-z0-9_.-]+$")
+_WASM_NATIVE_ARTIFACT_SUFFIXES = {
+    ".dll",
+    ".dylib",
+    ".exe",
+    ".py",
+    ".pyc",
+    ".pyd",
+    ".pyo",
+    ".so",
+}
+_WASM_NATIVE_ARTIFACT_FILENAMES = {"__init__.py"}
+_WASM_NATIVE_ARTIFACT_DIRS = {"__pycache__"}
+
 
 class ExplicitRelease(BaseModel):
     id: str
@@ -34,6 +52,7 @@ class ExplicitRelease(BaseModel):
     version: str
     archive: str
     hash: str
+    extension_type: str | None = None
     dependencies: list[str] = []
     repo: str | None
     icon: str | None
@@ -339,6 +358,7 @@ class ExtensionRelease(BaseModel):
     version: str
     archive: str
     source_repo: str
+    extension_type: str | None = None
     is_github_release: bool = False
     hash: str | None = None
     min_lnbits_version: str | None = None
@@ -411,6 +431,7 @@ class ExtensionRelease(BaseModel):
             name=e.name,
             version=e.version,
             archive=e.archive,
+            extension_type=e.extension_type,
             hash=e.hash,
             source_repo=source_repo,
             description=e.short_description,
@@ -449,6 +470,7 @@ class ExtensionRelease(BaseModel):
 
                 release.min_lnbits_version = config.min_lnbits_version
                 release.max_lnbits_version = config.max_lnbits_version
+                release.extension_type = config.extension_type
                 release.is_version_compatible = config.is_version_compatible()
 
                 release.icon = icon_to_github_url(f"{org}/{repo}", config.tile)
@@ -523,17 +545,30 @@ class InstallableExtension(BaseModel):
 
     @property
     def zip_path(self) -> Path:
+        ext_id = _extension_id_for_path(self.id)
         extensions_data_dir = Path(settings.lnbits_data_folder, "zips")
         Path(extensions_data_dir).mkdir(parents=True, exist_ok=True)
-        return Path(extensions_data_dir, f"{self.id}.zip")
+        return Path(extensions_data_dir, f"{ext_id}.zip")
 
     @property
     def ext_dir(self) -> Path:
-        return Path(settings.lnbits_extensions_path, "extensions", self.id)
+        return Path(
+            settings.lnbits_extensions_path,
+            "extensions",
+            _extension_id_for_path(self.id),
+        )
+
+    @property
+    def wasm_ext_dir(self) -> Path:
+        return Path(
+            settings.lnbits_wasm_extensions_path, _extension_id_for_path(self.id)
+        )
 
     @property
     def ext_upgrade_dir(self) -> Path:
-        return Path(settings.lnbits_extensions_upgrade_path, f"{self.id}-{self.hash}")
+        ext_id = _extension_id_for_path(self.id)
+        ext_hash = _path_token(self.hash, "extension archive hash")
+        return Path(settings.lnbits_extensions_upgrade_path, f"{ext_id}-{ext_hash}")
 
     @property
     def module_name(self) -> str:
@@ -546,6 +581,10 @@ class InstallableExtension(BaseModel):
 
     @property
     def has_installed_version(self) -> bool:
+        if self.expects_wasm:
+            return Path(self.wasm_ext_dir, "config.json").is_file()
+        if Path(self.wasm_ext_dir, "config.json").is_file():
+            return True
         if not self.ext_dir.is_dir():
             return False
         return Path(self.ext_dir, "config.json").is_file()
@@ -564,6 +603,16 @@ class InstallableExtension(BaseModel):
 
     @property
     def is_wasm(self) -> bool:
+        if self.expects_wasm:
+            return True
+        config_path = Path(self.wasm_ext_dir, "config.json")
+        if config_path.is_file():
+            try:
+                with open(config_path, encoding="utf-8") as json_file:
+                    config_json = json.load(json_file)
+            except Exception:
+                return False
+            return config_json.get("extension_type") == "wasm"
         config_path = Path(self.ext_dir, "config.json")
         if not config_path.is_file():
             return False
@@ -573,6 +622,14 @@ class InstallableExtension(BaseModel):
         except Exception:
             return False
         return config_json.get("extension_type") == "wasm"
+
+    @property
+    def expects_wasm(self) -> bool:
+        return bool(
+            self.meta
+            and self.meta.installed_release
+            and self.meta.installed_release.extension_type == "wasm"
+        )
 
     async def download_archive(self):
         logger.info(f"Downloading extension {self.name} ({self.installed_version}).")
@@ -622,6 +679,27 @@ class InstallableExtension(BaseModel):
 
         return config if isinstance(config, dict) else {}
 
+    def load_wasm_archive_config(self) -> dict[str, Any]:
+        if not self.zip_path.is_file():
+            raise ValueError(f"Missing WASM extension archive for '{self.id}'.")
+
+        try:
+            with zipfile.ZipFile(self.zip_path, "r") as archive:
+                layout = _wasm_archive_layout(archive.infolist())
+                with archive.open(layout.config_name) as config_file:
+                    config = json.load(config_file)
+        except Exception as exc:
+            if isinstance(exc, ValueError):
+                raise
+            raise ValueError(
+                f"Cannot read WASM extension config for '{self.id}'."
+            ) from exc
+
+        if not isinstance(config, dict):
+            raise ValueError(f"WASM extension '{self.id}' config file is invalid.")
+        _validate_wasm_archive_config(self.id, config)
+        return config
+
     def extract_archive(self):
         logger.info(f"Extracting extension {self.name} ({self.installed_version}).")
         Path(settings.lnbits_extensions_upgrade_path).mkdir(parents=True, exist_ok=True)
@@ -660,6 +738,52 @@ class InstallableExtension(BaseModel):
         shutil.copytree(Path(self.ext_upgrade_dir), Path(self.ext_dir))
         logger.info(f"Extension {self.name} ({self.installed_version}) extracted.")
 
+    def extract_wasm_archive(self, extension_config: dict[str, Any]) -> None:
+        logger.info(
+            f"Extracting WASM extension {self.name} ({self.installed_version})."
+        )
+        _validate_wasm_archive_config(self.id, extension_config)
+        tmp_dir = Path(
+            settings.lnbits_data_folder,
+            "wasm-unzip-temp",
+            _path_token(self.hash, "extension archive hash"),
+        )
+        package_dir = tmp_dir / "package"
+        shutil.rmtree(tmp_dir, True)
+        package_dir.mkdir(parents=True, exist_ok=True)
+
+        try:
+            with zipfile.ZipFile(self.zip_path, "r") as archive:
+                layout = _wasm_archive_layout(archive.infolist())
+                with archive.open(layout.config_name) as config_file:
+                    staged_config = json.load(config_file)
+                if staged_config != extension_config:
+                    raise ValueError(
+                        f"WASM extension '{self.id}' archive config changed."
+                    )
+                _extract_wasm_archive_to_stage(archive, layout, package_dir)
+
+            _validate_wasm_staged_package(self.id, extension_config, package_dir)
+            _publish_wasm_package(package_dir, self.wasm_ext_dir)
+            shutil.rmtree(self.ext_dir, True)
+        finally:
+            shutil.rmtree(tmp_dir, True)
+
+        self.name = extension_config.get("name")
+        self.short_description = extension_config.get("short_description")
+
+        if (
+            self.meta
+            and self.meta.installed_release
+            and self.meta.installed_release.is_github_release
+            and extension_config.get("tile")
+        ):
+            self.icon = icon_to_github_url(
+                self.meta.installed_release.source_repo, extension_config.get("tile")
+            )
+
+        logger.info(f"WASM extension {self.name} ({self.installed_version}) extracted.")
+
     def clean_extension_files(self):
         # remove downloaded archive
         if self.zip_path.is_file():
@@ -667,6 +791,7 @@ class InstallableExtension(BaseModel):
 
         # remove module from extensions
         shutil.rmtree(self.ext_dir, True)
+        shutil.rmtree(self.wasm_ext_dir, True)
 
         shutil.rmtree(self.ext_upgrade_dir, True)
 
@@ -749,6 +874,10 @@ class InstallableExtension(BaseModel):
                 github_release.organisation, github_release.repository
             )
             source_repo = f"{github_release.organisation}/{github_release.repository}"
+            latest_extension_release = ExtensionRelease.from_github_release(
+                source_repo, latest_release
+            )
+            latest_extension_release.extension_type = config.extension_type
             return InstallableExtension(
                 id=github_release.id,
                 name=config.name,
@@ -760,9 +889,7 @@ class InstallableExtension(BaseModel):
                     config.tile,
                 ),
                 meta=ExtensionMeta(
-                    latest_release=ExtensionRelease.from_github_release(
-                        source_repo, latest_release
-                    ),
+                    latest_release=latest_extension_release,
                 ),
             )
         except Exception as e:
@@ -791,6 +918,8 @@ class InstallableExtension(BaseModel):
                 return None
             with open(conf_path, "r+") as json_file:
                 config_json = json.load(json_file)
+                if config_json.get("extension_type") == "wasm":
+                    return None
                 version = config_json.get("version", "0.0")
 
                 return InstallableExtension(
@@ -1057,6 +1186,202 @@ def _extension_tile(ext_info: InstallableExtension) -> str | None:
     if ext_info.is_wasm:
         return wasm_extension_icon_url(ext_info.id)
     return ext_info.icon
+
+
+@dataclass(frozen=True)
+class _WasmArchiveLayout:
+    root: str
+    config_name: str
+
+
+def _extension_id_for_path(ext_id: str) -> str:
+    if not _EXTENSION_ID_RE.fullmatch(ext_id):
+        raise ValueError(f"Invalid extension id '{ext_id}'.")
+    return ext_id
+
+
+def _path_token(value: str, label: str) -> str:
+    if not _PATH_TOKEN_RE.fullmatch(value):
+        raise ValueError(f"Invalid {label}.")
+    return value
+
+
+def _wasm_archive_layout(infos: list[zipfile.ZipInfo]) -> _WasmArchiveLayout:
+    roots: set[str] = set()
+    config_names: list[str] = []
+    seen_names: set[str] = set()
+
+    for info in infos:
+        if info.is_dir():
+            directory_path = PurePosixPath(info.filename)
+            if len(directory_path.parts) == 1 and directory_path.parts[0] not in {
+                "",
+                ".",
+                "..",
+            }:
+                roots.add(directory_path.parts[0])
+                continue
+        path = _safe_wasm_archive_path(info.filename)
+        normalized_name = path.as_posix()
+        if normalized_name in seen_names:
+            raise ValueError(f"WASM extension archive contains duplicate path: {path}")
+        seen_names.add(normalized_name)
+
+        _reject_wasm_archive_member(info, path)
+        roots.add(path.parts[0])
+        if len(path.parts) == 2 and path.name == "config.json":
+            config_names.append(info.filename)
+        elif path.name == "config.json":
+            raise ValueError(
+                "WASM extension archive must contain exactly one top-level config.json."
+            )
+
+    if len(roots) != 1:
+        raise ValueError(
+            "WASM extension archive must contain exactly one top-level directory."
+        )
+    if len(config_names) != 1:
+        raise ValueError(
+            "WASM extension archive must contain exactly one top-level config.json."
+        )
+
+    return _WasmArchiveLayout(root=next(iter(roots)), config_name=config_names[0])
+
+
+def _safe_wasm_archive_path(name: str) -> PurePosixPath:
+    path = PurePosixPath(name)
+    if (
+        not name
+        or path.is_absolute()
+        or len(path.parts) < 2
+        or any(part in {"", ".", ".."} for part in path.parts)
+    ):
+        raise ValueError(f"WASM extension archive contains unsafe path: {name}")
+    return path
+
+
+def _reject_wasm_archive_member(info: zipfile.ZipInfo, path: PurePosixPath) -> None:
+    mode = info.external_attr >> 16
+    if stat.S_ISLNK(mode):
+        raise ValueError(f"WASM extension archive contains symlink: {path}")
+
+    lowered_parts = {part.lower() for part in path.parts}
+    if lowered_parts & _WASM_NATIVE_ARTIFACT_DIRS:
+        raise ValueError(f"WASM extension archive contains Python cache path: {path}")
+
+    name = path.name.lower()
+    if name in _WASM_NATIVE_ARTIFACT_FILENAMES:
+        raise ValueError(f"WASM extension archive contains native Python file: {path}")
+    if path.suffix.lower() in _WASM_NATIVE_ARTIFACT_SUFFIXES:
+        raise ValueError(f"WASM extension archive contains native artifact: {path}")
+
+    if _is_wasm_storage_migration_path(path) and path.suffix.lower() != ".json":
+        raise ValueError(
+            f"WASM extension storage migration must be a JSON file: {path}"
+        )
+
+
+def _is_wasm_storage_migration_path(path: PurePosixPath) -> bool:
+    return (
+        len(path.parts) >= 4
+        and path.parts[1] == "storage"
+        and path.parts[2] == "migrations"
+        and path.name != ""
+    )
+
+
+def _validate_wasm_archive_config(ext_id: str, config: dict[str, Any]) -> None:
+    _extension_id_for_path(ext_id)
+    if config.get("extension_type") != "wasm":
+        raise ValueError(f"Extension '{ext_id}' archive is not a WASM extension.")
+    config_id = config.get("id")
+    if not isinstance(config_id, str) or not config_id:
+        raise ValueError(f"WASM extension '{ext_id}' config must define id.")
+    if config_id != ext_id:
+        raise ValueError(
+            f"WASM extension id mismatch: installed as '{ext_id}' "
+            f"but config declares '{config_id}'."
+        )
+
+
+def _extract_wasm_archive_to_stage(
+    archive: zipfile.ZipFile,
+    layout: _WasmArchiveLayout,
+    package_dir: Path,
+) -> None:
+    for info in archive.infolist():
+        if info.is_dir():
+            continue
+        path = _safe_wasm_archive_path(info.filename)
+        if path.parts[0] != layout.root:
+            raise ValueError("WASM extension archive changed while extracting package.")
+        target = package_dir.joinpath(*path.parts[1:])
+        target.parent.mkdir(parents=True, exist_ok=True)
+        with archive.open(info) as source_file:
+            with target.open("wb") as target_file:
+                shutil.copyfileobj(source_file, target_file)
+
+
+def _validate_wasm_staged_package(
+    ext_id: str,
+    config: dict[str, Any],
+    package_dir: Path,
+) -> None:
+    root = package_dir.resolve()
+    for path in package_dir.rglob("*"):
+        if path.is_symlink():
+            raise ValueError(f"WASM extension '{ext_id}' contains symlink: {path}")
+
+    installed_config_path = package_dir / "config.json"
+    if not installed_config_path.is_file():
+        raise ValueError(f"WASM extension '{ext_id}' staged config is missing.")
+    with installed_config_path.open(encoding="utf-8") as config_file:
+        installed_config = json.load(config_file)
+    if installed_config != config:
+        raise ValueError(f"WASM extension '{ext_id}' staged config does not match.")
+
+    wasm_config = config.get("wasm")
+    module = wasm_config.get("module") if isinstance(wasm_config, dict) else None
+    if not isinstance(module, str) or not module:
+        raise ValueError(f"WASM extension '{ext_id}' config has no module path.")
+    module_path = (package_dir / module).resolve()
+    if root != module_path and root not in module_path.parents:
+        raise ValueError(f"WASM extension '{ext_id}' module escapes package root.")
+    if not module_path.is_file():
+        raise FileNotFoundError(f"WASM extension module not found: {module_path}")
+    with module_path.open("rb") as wasm_file:
+        if wasm_file.read(4) != b"\0asm":
+            raise ValueError(f"Invalid WASM module file: {module_path}")
+
+
+def _publish_wasm_package(package_dir: Path, target_dir: Path) -> None:
+    target_dir.parent.mkdir(parents=True, exist_ok=True)
+    token = uuid4().hex
+    replacement_dir = target_dir.parent / f".{target_dir.name}-{token}.new"
+    backup_dir = target_dir.parent / f".{target_dir.name}-{token}.old"
+    _remove_path(replacement_dir)
+    _remove_path(backup_dir)
+    shutil.copytree(package_dir, replacement_dir, symlinks=False)
+
+    try:
+        if target_dir.exists() or target_dir.is_symlink():
+            target_dir.replace(backup_dir)
+        replacement_dir.replace(target_dir)
+    except Exception:
+        _remove_path(target_dir)
+        if backup_dir.exists() or backup_dir.is_symlink():
+            backup_dir.replace(target_dir)
+        raise
+    finally:
+        _remove_path(replacement_dir)
+        _remove_path(backup_dir)
+
+
+def _remove_path(path: Path) -> None:
+    if path.is_symlink() or path.is_file():
+        path.unlink(missing_ok=True)
+    elif path.is_dir():
+        shutil.rmtree(path, True)
 
 
 def _archive_config_name(names: list[str]) -> str | None:

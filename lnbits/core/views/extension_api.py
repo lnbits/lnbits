@@ -1049,7 +1049,11 @@ async def create_extension_review(
 
 
 def _load_installed_extension_config(extension: InstallableExtension) -> dict:
-    config_path = extension.ext_dir / "config.json"
+    config_path = (
+        extension.wasm_ext_dir / "config.json"
+        if extension.is_wasm
+        else extension.ext_dir / "config.json"
+    )
     if not config_path.is_file():
         raise ValueError(f"Extension '{extension.id}' config file is missing.")
     try:

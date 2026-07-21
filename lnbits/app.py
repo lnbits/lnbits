@@ -53,9 +53,6 @@ from lnbits.core.wasm_ext.routes.register import (
     unregister_wasm_extension,
 )
 from lnbits.core.wasm_ext.wasm.events import dispatch_wasm_invoice_paid
-from lnbits.core.wasm_ext.wasm.loader import (
-    is_wasm_extension_id,
-)
 from lnbits.exceptions import register_exception_handlers
 from lnbits.helpers import version_parse
 from lnbits.llms_txt import create_llms_txt_route
@@ -374,7 +371,15 @@ async def check_installed_extension_files(ext: InstallableExtension) -> bool:
 
     if f"./{ext.zip_path!s}" not in zip_files:
         await ext.download_archive()
-    ext.extract_archive()
+    extension_config = ext.load_archive_config()
+    if ext.expects_wasm or extension_config.get("extension_type") == "wasm":
+        if ext.expects_wasm and extension_config.get("extension_type") != "wasm":
+            raise ValueError(
+                f"Extension '{ext.id}' release is WASM but archive is not WASM."
+            )
+        ext.extract_wasm_archive(ext.load_wasm_archive_config())
+    else:
+        ext.extract_archive()
 
     return False
 
@@ -494,7 +499,7 @@ async def check_and_register_extensions(app: FastAPI) -> None:
     await check_installed_extensions(app)
     for ext in await get_valid_extensions(False):
         try:
-            if is_wasm_extension_id(ext.code):
+            if ext.is_wasm:
                 register_wasm_extension(app, ext.code)
                 continue
             register_ext_routes(app, ext)

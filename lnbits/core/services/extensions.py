@@ -209,15 +209,11 @@ async def install_extension(
     if not skip_download:
         await ext_info.download_archive()
 
-    extension_config = ext_info.load_archive_config()
-    ext_info.permissions = validate_wasm_extension_permissions(
+    _extract_installable_extension_archive(
         ext_info,
         granted_permissions,
-        extension_config,
         allow_admin_policy_overrides=allow_admin_policy_overrides,
     )
-
-    ext_info.extract_archive()
 
     db_version = await get_db_version(ext_info.id)
     await migrate_extension_database(ext_info, db_version)
@@ -238,6 +234,60 @@ async def install_extension(
         await start_extension_background_work(ext_info.id)
 
     return extension
+
+
+def _extract_installable_extension_archive(
+    ext_info: InstallableExtension,
+    granted_permissions: list[ExtensionPermission] | None,
+    *,
+    allow_admin_policy_overrides: bool,
+) -> None:
+    extension_config = ext_info.load_archive_config()
+    archive_is_wasm = extension_config.get("extension_type") == "wasm"
+    if ext_info.expects_wasm and not archive_is_wasm:
+        raise ValueError(
+            f"Extension '{ext_info.id}' release is WASM but archive is not WASM."
+        )
+
+    if archive_is_wasm:
+        _extract_wasm_extension_archive(
+            ext_info,
+            granted_permissions,
+            allow_admin_policy_overrides=allow_admin_policy_overrides,
+        )
+        return
+
+    _extract_native_extension_archive(ext_info, granted_permissions)
+
+
+def _extract_wasm_extension_archive(
+    ext_info: InstallableExtension,
+    granted_permissions: list[ExtensionPermission] | None,
+    *,
+    allow_admin_policy_overrides: bool,
+) -> None:
+    extension_config = ext_info.load_wasm_archive_config()
+    ext_info.permissions = validate_wasm_extension_permissions(
+        ext_info,
+        granted_permissions,
+        extension_config,
+        allow_admin_policy_overrides=allow_admin_policy_overrides,
+        require_wasm=True,
+    )
+    ext_info.extract_wasm_archive(extension_config)
+
+
+def _extract_native_extension_archive(
+    ext_info: InstallableExtension,
+    granted_permissions: list[ExtensionPermission] | None,
+) -> None:
+    if granted_permissions:
+        raise ValueError(
+            f"Extension '{ext_info.id}' is not a WASM extension and cannot "
+            "receive WASM permissions."
+        )
+    ext_info.permissions = []
+    ext_info.extract_archive()
 
 
 async def check_extensions_limit(installed_ext: InstallableExtension | None = None):
@@ -661,7 +711,8 @@ async def activate_extension(ext: Extension):
 
 
 async def deactivate_extension(ext_id: str):
-    if is_wasm_extension_id(ext_id):
+    installed_ext = await get_installed_extension(ext_id)
+    if (installed_ext and installed_ext.is_wasm) or is_wasm_extension_id(ext_id):
         await stop_wasm_extension_invocations(ext_id, reason="Extension deactivated.")
     settings.deactivate_extension_paths(ext_id)
     await update_installed_extension_state(ext_id=ext_id, active=False)
@@ -673,7 +724,8 @@ async def stop_extension_background_work(ext_id: str) -> bool:
     Stop background work for extension (like asyncio.Tasks, WebSockets, etc).
     Extension must expose a `myextension_stop()` function if it is starting tasks.
     """
-    if is_wasm_extension_id(ext_id):
+    installed_ext = await get_installed_extension(ext_id)
+    if (installed_ext and installed_ext.is_wasm) or is_wasm_extension_id(ext_id):
         return True
 
     upgrade_hash = settings.extension_upgrade_hash(ext_id)
@@ -708,7 +760,8 @@ async def start_extension_background_work(ext_id: str) -> bool:
     Extension CAN expose a `myextension_start()` function if it is starting tasks.
     Extension MUST expose a `myextension_stop()` in that case.
     """
-    if is_wasm_extension_id(ext_id):
+    installed_ext = await get_installed_extension(ext_id)
+    if (installed_ext and installed_ext.is_wasm) or is_wasm_extension_id(ext_id):
         return False
 
     upgrade_hash = settings.extension_upgrade_hash(ext_id)
