@@ -158,6 +158,14 @@ async def pay_offer(
 
         _, extra = await calculate_fiat_amounts(max_sat, wallet, extra=extra)
 
+        fee_reserve_total_msat = fee_reserve_total(max_sat * 1000, internal=False)
+        if wallet.balance_msat < max_sat * 1000 + fee_reserve_total_msat:
+            raise PaymentError(
+                f"Insufficient balance to reserve max {max_sat} sats "
+                f"plus fees ({round(fee_reserve_total_msat/1000)} sats).",
+                status="failed",
+            )
+
         checking_id = f"offer_{hashlib.sha256(offer.encode()).hexdigest()[:64]}"
         create_payment_model = CreatePayment(
             wallet_id=wallet.source_wallet_id,
@@ -168,6 +176,7 @@ async def pay_offer(
             extra=extra,
             labels=labels,
             external_id=external_id,
+            fee=-abs(fee_reserve_total_msat),
         )
 
     async with db.reuse_conn(conn) if conn else db.connect() as new_conn:
@@ -1045,7 +1054,8 @@ async def _fundingsource_pay_offer(
 ) -> PaymentResponse:
     logger.debug(f"fundingsource: paying BOLT12 offer {checking_id}")
     funding_source = get_funding_source()
-    fee_limit_msat = max_sat * 1000
+    # Match BOLT11 pay path: pass fee *reserve*, not the full max amount as fee cap.
+    fee_limit_msat = fee_reserve(max_sat * 1000, internal=False)
     payment_response: PaymentResponse = await funding_source.pay_offer(
         offer, fee_limit_msat=fee_limit_msat
     )
