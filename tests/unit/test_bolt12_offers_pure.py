@@ -42,6 +42,7 @@ def test_shipped_backends_declare_pay_offer():
     for rel in (
         "lnbits/wallets/eclair.py",
         "lnbits/wallets/corelightning.py",
+        "lnbits/wallets/clnrest.py",
         "lnbits/wallets/phoenixd.py",
         "lnbits/wallets/base.py",
     ):
@@ -133,3 +134,11 @@ def test_pay_offer_requires_bolt12_feature():
     payments = (root / "lnbits/core/services/payments.py").read_text(encoding="utf-8")
     assert "Feature.bolt12" in payments
     assert "does not support BOLT12 offers" in payments
+
+
+def test_clnrest_advertises_bolt12_and_pay_offer():
+    root = Path(__file__).resolve().parents[2]
+    text = (root / "lnbits/wallets/clnrest.py").read_text(encoding="utf-8")
+    assert "Feature.bolt12" in text
+    assert "async def pay_offer" in text
+    assert "/v1/fetchinvoice" in text
