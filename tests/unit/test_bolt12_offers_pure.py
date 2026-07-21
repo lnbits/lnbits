@@ -71,6 +71,26 @@ def test_pay_offer_uses_negative_outgoing_amount():
     start = payments.find("async def pay_offer")
     end = payments.find("async def create_payment_request")
     chunk = payments[start:end]
-    assert "amount_msat=-(max_sat * 1000)" in chunk
-    assert "check_wallet_limits(wallet_id, max_sat * 1000" in chunk
+    # Explicit max_sat/amount reserves a negative outgoing debit.
+    assert "create_amount_msat = -(reserve_sat * 1000)" in chunk
+    assert "check_wallet_limits" in chunk
+    assert "ceiling_sat" in chunk
     assert "fee_reserve(" in payments[payments.find("_fundingsource_pay_offer") :]
+    # Success path must require backend amount and write negative debit.
+    pay_body = payments[payments.find("async def _pay_offer") :]
+    assert "payment.amount = -actual" in pay_body
+    assert "no amount" in pay_body or "amount_msat is None" in pay_body
+
+
+def test_payment_api_wires_amount_as_max_sat():
+    root = Path(__file__).resolve().parents[2]
+    api = (root / "lnbits/core/views/payment_api.py").read_text(encoding="utf-8")
+    assert "max_sat=max_sat" in api
+    assert "invoice_data.amount" in api
+
+
+def test_eclair_reads_sent_amount():
+    root = Path(__file__).resolve().parents[2]
+    eclair = (root / "lnbits/wallets/eclair.py").read_text(encoding="utf-8")
+    assert "_sent_amount_msat" in eclair
+    assert "recipientAmount" in eclair

@@ -270,8 +270,12 @@ class PhoenixdWallet(Wallet):
             checking_id = data["paymentHash"]
             fee_msat = -int(data.get("routingFeeSat", 0)) * 1000
             preimage = data.get("paymentPreimage")
-            amount_sat = data.get("amountSat")
-            amount_msat = int(amount_sat) * 1000 if amount_sat else None
+            amount_sat = (
+                data.get("recipientAmountSat")
+                or data.get("amountSat")
+                or data.get("sentAmountSat")
+            )
+            amount_msat = int(amount_sat) * 1000 if amount_sat is not None else None
             return PaymentResponse(
                 ok=True,
                 checking_id=checking_id,

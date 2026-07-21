@@ -175,7 +175,16 @@ class EclairWallet(Wallet):
 
             payment_status: PaymentStatus = await self.get_payment_status(checking_id)
             success = True if payment_status.success else None
-            amount_msat = getattr(payment_status, "amount_msat", None)
+            # Prefer amount from getsentinfo (recipientAmount/amount in msat).
+            amount_msat = await self._sent_amount_msat(checking_id)
+            if amount_msat is None:
+                for key in ("recipientAmount", "amount", "amountMsat", "amount_msat"):
+                    if key in data and data[key] is not None:
+                        try:
+                            amount_msat = int(data[key])
+                            break
+                        except (TypeError, ValueError):
+                            pass
             return PaymentResponse(
                 ok=success,
                 checking_id=checking_id,
@@ -256,6 +265,23 @@ class EclairWallet(Wallet):
             return PaymentStatus(statuses.get(data["status"]["type"]))
         except Exception:
             return PaymentPendingStatus()
+
+    async def _sent_amount_msat(self, checking_id: str) -> int | None:
+        """Read paid amount (msat) from Eclair getsentinfo, if present."""
+        try:
+            r = await self.client.post(
+                "/getsentinfo",
+                data={"paymentHash": checking_id},
+                timeout=40,
+            )
+            r.raise_for_status()
+            data = r.json()[-1]
+            for key in ("recipientAmount", "amount", "amountMsat", "amount_msat"):
+                if key in data and data[key] is not None:
+                    return int(data[key])
+        except Exception:
+            return None
+        return None
 
     async def get_payment_status(self, checking_id: str) -> PaymentStatus:
         try:

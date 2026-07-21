@@ -259,9 +259,14 @@ async def api_payments_create(
                 status_code=HTTPStatus.BAD_REQUEST,
                 detail="Missing BOLT11 invoice or BOLT12 offer",
             )
+        # Optional amount becomes max_sat for BOLT12 offers (and amountless paths).
+        max_sat = None
+        if invoice_data.amount is not None and invoice_data.unit == "sat":
+            max_sat = int(invoice_data.amount)
         payment = await pay_invoice(
             wallet_id=wallet_id,
             payment_request=invoice_data.bolt11,
+            max_sat=max_sat,
             extra=invoice_data.extra,
             labels=invoice_data.labels,
             external_id=invoice_data.external_id,
