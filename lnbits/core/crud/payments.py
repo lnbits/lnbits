@@ -16,6 +16,7 @@ from ..models import (
     PaymentFilters,
     PaymentHistoryPoint,
     PaymentsStatusCount,
+    PaymentTotalBreakdown,
     PaymentWalletStats,
 )
 
@@ -398,6 +399,41 @@ async def get_payment_count_stats(
         """,  # noqa: S608
         values=filters.values(),
         model=PaymentCountStat,
+    )
+
+    return data
+
+
+async def get_wallet_payment_total_breakdown(
+    wallet_id: str,
+    conn: Connection | None = None,
+) -> list[PaymentTotalBreakdown]:
+    wallet = await get_wallet(wallet_id, conn=conn)
+    if not wallet or not wallet.can_view_payments:
+        return []
+
+    values = {"wallet_id": wallet.source_wallet_id}
+    data = await (conn or db).fetchall(
+        query=f"""
+            SELECT tag,
+                CASE
+                    WHEN fiat_provider IS NOT NULL
+                    THEN true
+                    ELSE false
+                END AS is_fiat,
+                COUNT(*) AS payments_count,
+                SUM(amount - ABS(fee)) AS total
+            FROM apipayments
+            WHERE wallet_id = :wallet_id
+            AND (
+                status = '{PaymentState.SUCCESS}'
+                OR (amount < 0 AND status = '{PaymentState.PENDING}')
+            )
+            GROUP BY tag, is_fiat
+            ORDER BY tag
+        """,  # noqa: S608
+        values=values,
+        model=PaymentTotalBreakdown,
     )
 
     return data

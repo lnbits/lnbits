@@ -6,11 +6,16 @@ import pytest
 from fastapi import HTTPException
 from pydantic import ValidationError
 
-from lnbits.core.crud.payments import create_payment, get_payment, get_payments
+from lnbits.core.crud.payments import (
+    create_payment,
+    get_payment,
+    get_payments,
+    update_payment,
+)
 from lnbits.core.models import Account, CreateInvoice, PaymentFilters, PaymentState
 from lnbits.core.models.payments import CancelInvoice, CreatePayment, SettleInvoice
 from lnbits.core.models.users import AccountId
-from lnbits.core.models.wallets import KeyType, WalletTypeInfo
+from lnbits.core.models.wallets import BaseWalletTypeInfo, KeyType, WalletTypeInfo
 from lnbits.core.services.payments import create_wallet_invoice
 from lnbits.core.services.users import create_user_account
 from lnbits.core.views.payment_api import (
@@ -20,6 +25,7 @@ from lnbits.core.views.payment_api import (
     api_payments_daily_stats,
     api_payments_fee_reserve,
     api_payments_settle,
+    api_payments_total_breakdown,
     api_payments_wallets_stats,
 )
 from lnbits.db import Filter, Filters
@@ -144,6 +150,61 @@ async def test_payment_external_id_is_stored_and_validated():
 
     with pytest.raises(ValidationError, match="Invalid external id"):
         CreateInvoice(out=False, amount=21, external_id="provider payment 123")
+
+
+@pytest.mark.anyio
+async def test_payment_api_total_breakdown_groups_wallet_tags_and_fiat():
+    first_user = await create_user_account(
+        Account(
+            id=uuid4().hex,
+            username=f"user_{uuid4().hex[:8]}",
+            email=f"user_{uuid4().hex[:8]}@lnbits.com",
+        )
+    )
+    second_user = await create_user_account(
+        Account(
+            id=uuid4().hex,
+            username=f"user_{uuid4().hex[:8]}",
+            email=f"user_{uuid4().hex[:8]}@lnbits.com",
+        )
+    )
+    first_wallet = first_user.wallets[0]
+    second_wallet = second_user.wallets[0]
+
+    await _create_payment(first_wallet.id, amount_msat=2_000, tag="coffee")
+    await _create_payment(
+        first_wallet.id,
+        amount_msat=4_000,
+        tag="coffee",
+        fiat_provider="stripe",
+        extra={"fiat_payment_request": "https://stripe.test/session"},
+    )
+    await _create_payment(first_wallet.id, amount_msat=-1_000)
+    await _create_payment(second_wallet.id, amount_msat=8_000, tag="books")
+
+    breakdown = await api_payments_total_breakdown(
+        BaseWalletTypeInfo(key_type=KeyType.invoice, wallet=first_wallet)
+    )
+
+    assert any(
+        item.tag == "coffee"
+        and item.is_fiat is False
+        and item.total == 2_000
+        and item.payments_count == 1
+        for item in breakdown
+    )
+    assert any(
+        item.tag == "coffee"
+        and item.is_fiat is True
+        and item.total == 4_000
+        and item.payments_count == 1
+        for item in breakdown
+    )
+    assert any(
+        item.tag is None and item.is_fiat is False and item.total == -1_000
+        for item in breakdown
+    )
+    assert all(item.tag != "books" for item in breakdown)
 
 
 @pytest.mark.anyio
@@ -439,8 +500,13 @@ async def _create_payment(
     status: PaymentState = PaymentState.SUCCESS,
     payment_hash: str | None = None,
     tag: str | None = None,
+    fiat_provider: str | None = None,
+    extra: dict | None = None,
 ) -> str:
     checking_id = f"checking_{uuid4().hex[:8]}"
+    payment_extra = extra or {}
+    if tag:
+        payment_extra["tag"] = tag
     await create_payment(
         checking_id=checking_id,
         data=CreatePayment(
@@ -449,8 +515,12 @@ async def _create_payment(
             bolt11=f"bolt11_{checking_id}",
             amount_msat=amount_msat,
             memo=f"payment_{checking_id}",
-            extra={"tag": tag} if tag else {},
+            extra=payment_extra,
         ),
         status=status,
     )
+    if fiat_provider:
+        payment = await get_payment(checking_id)
+        payment.fiat_provider = fiat_provider
+        await update_payment(payment)
     return checking_id

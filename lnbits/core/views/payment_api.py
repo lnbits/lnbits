@@ -15,6 +15,7 @@ from lnurl import url_decode
 from lnbits import bolt11
 from lnbits.core.crud.payments import (
     get_payment_count_stats,
+    get_wallet_payment_total_breakdown,
     get_wallets_stats,
     update_payment,
 )
@@ -32,6 +33,7 @@ from lnbits.core.models import (
     PaymentDailyStats,
     PaymentFilters,
     PaymentHistoryPoint,
+    PaymentTotalBreakdown,
     PaymentWalletStats,
     SettleInvoice,
     SimpleStatus,
@@ -132,6 +134,17 @@ async def api_payments_counting_stats(
         for_user_id = account_id.id
 
     return await get_payment_count_stats(count_by, filters=filters, user_id=for_user_id)
+
+
+@payment_router.get(
+    "/stats/breakdown",
+    name="Get wallet payment total breakdown",
+    response_model=list[PaymentTotalBreakdown],
+)
+async def api_payments_total_breakdown(
+    key_info: BaseWalletTypeInfo = Depends(require_base_invoice_key),
+):
+    return await get_wallet_payment_total_breakdown(key_info.wallet.id)
 
 
 @payment_router.get(
