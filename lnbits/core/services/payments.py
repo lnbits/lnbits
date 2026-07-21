@@ -171,7 +171,8 @@ async def pay_offer(
             wallet_id=wallet.source_wallet_id,
             bolt11=offer,
             payment_hash=checking_id[:64],
-            amount_msat=max_sat * 1000,
+            # Outgoing payments are negative (same convention as BOLT11 pay_invoice).
+            amount_msat=-(max_sat * 1000),
             memo=description or "BOLT12 offer payment",
             extra=extra,
             labels=labels,
@@ -1029,18 +1030,21 @@ async def _pay_offer(
 
         if payment_response.success:
             if payment_response.amount_msat is not None:
-                if payment_response.amount_msat > max_sat * 1000:
+                actual = abs(payment_response.amount_msat)
+                if actual > max_sat * 1000:
                     payment.status = PaymentState.FAILED
                     await update_payment(payment, conn=conn)
                     raise PaymentError(
-                        f"BOLT12 offer actual amount {payment_response.amount_msat // 1000} sats "
+                        f"BOLT12 offer actual amount {actual // 1000} sats "
                         f"exceeds max_sat {max_sat} sats.",
                         status="failed",
                     )
-                payment.amount = -payment_response.amount_msat
+                # Debit the resolved amount (negative for outgoing).
+                payment.amount = -actual
             payment = await update_payment_success_status(
                 payment, payment_response, conn=conn
             )
+            # Persist amount after success status (success helper updates fee/preimage).
             payment = await update_payment(payment, conn=conn)
             await _send_payment_notification_in_background(wallet.id, payment, conn=conn)
             logger.success(f"payment successful {payment_response.checking_id}")

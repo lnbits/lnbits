@@ -175,11 +175,13 @@ class EclairWallet(Wallet):
 
             payment_status: PaymentStatus = await self.get_payment_status(checking_id)
             success = True if payment_status.success else None
+            amount_msat = getattr(payment_status, "amount_msat", None)
             return PaymentResponse(
                 ok=success,
                 checking_id=checking_id,
                 fee_msat=payment_status.fee_msat,
                 preimage=preimage,
+                amount_msat=amount_msat,
             )
         except json.JSONDecodeError:
             return PaymentResponse(
