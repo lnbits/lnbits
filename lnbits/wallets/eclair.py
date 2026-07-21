@@ -147,12 +147,22 @@ class EclairWallet(Wallet):
                 ok=False, error_message=f"Unable to connect to {self.url}."
             )
 
-    async def pay_offer(self, offer: str, fee_limit_msat: int) -> PaymentResponse:
+    async def pay_offer(
+        self,
+        offer: str,
+        fee_limit_msat: int,
+        amount_msat: int | None = None,
+    ) -> PaymentResponse:
         """Pay a BOLT12 offer via Eclair payoffer."""
         try:
+            body: dict = {"offer": offer, "blocking": True}
+            if amount_msat is not None and amount_msat > 0:
+                body["amountMsat"] = str(amount_msat)
+            if fee_limit_msat > 0:
+                body["maxFeeMsat"] = str(fee_limit_msat)
             r = await self.client.post(
                 "/payoffer",
-                data={"offer": offer, "blocking": True},
+                data=body,
                 timeout=None,
             )
             r.raise_for_status()
@@ -176,21 +186,19 @@ class EclairWallet(Wallet):
             payment_status: PaymentStatus = await self.get_payment_status(checking_id)
             success = True if payment_status.success else None
             # Prefer amount from getsentinfo (recipientAmount/amount in msat).
-            amount_msat = await self._sent_amount_msat(checking_id)
-            if amount_msat is None:
+            resolved_msat = await self._sent_amount_msat(checking_id)
+            if resolved_msat is None:
                 for key in ("recipientAmount", "amount", "amountMsat", "amount_msat"):
                     if key in data and data[key] is not None:
-                        try:
-                            amount_msat = int(data[key])
+                        resolved_msat = self._parse_msat(data[key])
+                        if resolved_msat is not None:
                             break
-                        except (TypeError, ValueError):
-                            pass
             return PaymentResponse(
                 ok=success,
                 checking_id=checking_id,
                 fee_msat=payment_status.fee_msat,
                 preimage=preimage,
-                amount_msat=amount_msat,
+                amount_msat=resolved_msat,
             )
         except json.JSONDecodeError:
             return PaymentResponse(
@@ -266,6 +274,27 @@ class EclairWallet(Wallet):
         except Exception:
             return PaymentPendingStatus()
 
+    @staticmethod
+    def _parse_msat(value) -> int | None:
+        """Parse Eclair amount fields (int, or strings like '1000 msat' / '1 sat')."""
+        if value is None:
+            return None
+        if isinstance(value, bool):
+            return None
+        if isinstance(value, int):
+            return value
+        if isinstance(value, float):
+            return int(value)
+        text = str(value).strip().lower().replace("_", "")
+        try:
+            if text.endswith("msat"):
+                return int(float(text[: -len("msat")].strip()))
+            if text.endswith("sat"):
+                return int(float(text[: -len("sat")].strip()) * 1000)
+            return int(float(text))
+        except (TypeError, ValueError):
+            return None
+
     async def _sent_amount_msat(self, checking_id: str) -> int | None:
         """Read paid amount (msat) from Eclair getsentinfo, if present."""
         try:
@@ -278,7 +307,9 @@ class EclairWallet(Wallet):
             data = r.json()[-1]
             for key in ("recipientAmount", "amount", "amountMsat", "amount_msat"):
                 if key in data and data[key] is not None:
-                    return int(data[key])
+                    parsed = self._parse_msat(data[key])
+                    if parsed is not None:
+                        return parsed
         except Exception:
             return None
         return None

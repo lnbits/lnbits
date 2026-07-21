@@ -233,13 +233,20 @@ class PhoenixdWallet(Wallet):
                 error_message=f"Unable to connect to {self.endpoint}."
             )
 
-    async def pay_offer(self, offer: str, fee_limit_msat: int) -> PaymentResponse:
+    async def pay_offer(
+        self,
+        offer: str,
+        fee_limit_msat: int,
+        amount_msat: int | None = None,
+    ) -> PaymentResponse:
         try:
+            data_body: dict = {"offer": offer}
+            # amountSat is required by Phoenixd for amount-less offers.
+            if amount_msat is not None and amount_msat > 0:
+                data_body["amountSat"] = str(amount_msat // 1000)
             r = await self.client.post(
                 "/payoffer",
-                data={
-                    "offer": offer,
-                },
+                data=data_body,
                 timeout=60,
             )
 
