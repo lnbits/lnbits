@@ -1,5 +1,6 @@
 from hashlib import sha256
 from http import HTTPStatus
+from secrets import token_hex
 
 from fastapi import (
     APIRouter,
@@ -301,7 +302,9 @@ async def api_update_payment_labels(
                 raise HTTPException(
                     HTTPStatus.BAD_REQUEST, f"Invalid label name: '{label_name}'."
                 )
-            account.extra.labels.append(UserLabel(name=label_name, color="#7f7f7f"))
+            account.extra.labels.append(
+                UserLabel(name=label_name, color=f"#{token_hex(3)}")
+            )
             user_label_names.append(label_name)
             updated_account = True
 
