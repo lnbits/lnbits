@@ -72,14 +72,16 @@ def test_pay_offer_uses_negative_outgoing_amount():
     end = payments.find("async def create_payment_request")
     chunk = payments[start:end]
     # Explicit max_sat/amount reserves a negative outgoing debit.
-    assert "create_amount_msat = -(reserve_sat * 1000)" in chunk
+    assert "create_amount_msat = -amount_msat_hint" in chunk
     assert "check_wallet_limits" in chunk
     assert "ceiling_sat" in chunk
+    assert "secrets.token_hex" in chunk  # unique provisional id per attempt
     assert "fee_reserve(" in payments[payments.find("_fundingsource_pay_offer") :]
     # Success path must require backend amount and write negative debit.
     pay_body = payments[payments.find("async def _pay_offer") :]
     assert "payment.amount = -actual" in pay_body
     assert "no amount" in pay_body or "amount_msat is None" in pay_body
+    assert "new_checking_id" in pay_body  # persist backend payment hash
 
 
 def test_payment_api_wires_amount_as_max_sat():
@@ -94,3 +96,32 @@ def test_eclair_reads_sent_amount():
     eclair = (root / "lnbits/wallets/eclair.py").read_text(encoding="utf-8")
     assert "_sent_amount_msat" in eclair
     assert "recipientAmount" in eclair
+    assert "_parse_msat" in eclair
+
+
+def test_invoice_response_keeps_upstream_fields():
+    """Regression: do not reorder/remove InvoiceResponse fields for bolt12 work."""
+    root = Path(__file__).resolve().parents[2]
+    base = (root / "lnbits/wallets/base.py").read_text(encoding="utf-8")
+    start = base.find("class InvoiceResponse")
+    end = base.find("class PaymentResponse")
+    chunk = base[start:end]
+    assert "checking_id" in chunk
+    assert "payment_request" in chunk
+    assert "preimage" in chunk
+    assert "fee_msat" in chunk
+    # Field order: checking_id before payment_request (upstream).
+    assert chunk.find("checking_id") < chunk.find("payment_request")
+
+
+def test_cln_pay_offer_uses_fetchinvoice():
+    root = Path(__file__).resolve().parents[2]
+    cln = (root / "lnbits/wallets/corelightning.py").read_text(encoding="utf-8")
+    start = cln.find("async def pay_offer")
+    end = cln.find("async def get_invoice_status", start)
+    chunk = cln[start:end]
+    assert "fetchinvoice" in chunk
+    assert '"bolt11": invoice' in chunk
+    # pay RPC must not take a top-level "offer" key (that is fetchinvoice only).
+    assert 'pay_payload: dict = {"offer"' not in chunk
+    assert 'payload = {"offer": offer}' not in chunk
