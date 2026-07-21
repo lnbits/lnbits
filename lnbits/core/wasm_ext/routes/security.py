@@ -39,7 +39,7 @@ def wasm_extension_frame_csp(request: Request, extension: WasmExtension) -> str:
     origin = str(request.base_url).rstrip("/")
     extension_assets = f"{origin}/ext-assets/{extension.id}/"
     return (
-        "sandbox allow-scripts; "
+        "sandbox allow-scripts allow-pointer-lock; "
         "default-src 'none'; "
         f"script-src {extension_assets}; "
         "script-src-attr 'none'; "

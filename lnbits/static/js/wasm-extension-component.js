@@ -14,8 +14,9 @@ window.WasmExtensionComponent = {
         class="wasm-extension-frame"
         :src="frameUrl"
         :title="extensionName || 'Extension'"
-        sandbox="allow-scripts"
-        allow="clipboard-write"
+        sandbox="allow-scripts allow-pointer-lock"
+        allow="clipboard-write; pointer-lock; fullscreen"
+        allowfullscreen
         referrerpolicy="no-referrer"
       ></iframe>
       <q-dialog v-model="cameraPrompt.show" persistent>
