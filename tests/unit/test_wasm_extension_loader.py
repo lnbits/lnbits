@@ -104,6 +104,7 @@ def test_wasm_extension_config_accepts_supported_optional_sections():
                     {"name": "on_invoice_paid", "visibility": "event"},
                 ],
             },
+            "openapi": "wasm/openapi.json",
             "events": {"onInvoicePaid": "on_invoice_paid"},
             "ui": {"entrypoint": "static/index.html", "sandbox": True},
             "sdk": {"frontend_js": "static/lnbits-extension-sdk.js"},
@@ -122,6 +123,7 @@ def test_wasm_extension_config_accepts_supported_optional_sections():
                     "export": "render",
                     "auth": "public",
                     "path_params": {"item_id": "str"},
+                    "openapi": "#/routes/render",
                 }
             ],
             "permissions": [{"id": "utils.basic", "description": "Basic utils"}],
@@ -132,6 +134,8 @@ def test_wasm_extension_config_accepts_supported_optional_sections():
 
     assert parsed.events.on_invoice_paid == "on_invoice_paid"
     assert parsed.wasm.world == "lnbits-extension"
+    assert parsed.openapi == "wasm/openapi.json"
+    assert parsed.api_routes[0].openapi == "#/routes/render"
 
 
 def test_wasm_extension_config_ignores_unknown_permission_fields():

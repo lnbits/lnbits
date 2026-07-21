@@ -112,7 +112,7 @@ class WasmExtensionWebsocketHub:
             max_messages_per_second=max_messages_per_second,
         )
         for conn in self.get_connections(extension_id, item_id):
-            await conn.websocket.send_text(data)
+            await self._send_to_connection(conn, data)
 
     def _check_publish_rate(
         self,
@@ -160,7 +160,17 @@ class WasmExtensionWebsocketHub:
         for active_conn in self.get_connections(conn.extension_id, conn.item_id):
             if active_conn.websocket == conn.websocket:
                 continue
-            await active_conn.websocket.send_text(data)
+            await self._send_to_connection(active_conn, data)
+
+    async def _send_to_connection(
+        self,
+        conn: WasmExtensionWebsocketConnection,
+        data: str,
+    ) -> None:
+        try:
+            await conn.websocket.send_text(data)
+        except (RuntimeError, WebSocketDisconnect):
+            self.disconnect(conn)
 
 
 wasm_extension_websocket_hub = WasmExtensionWebsocketHub()

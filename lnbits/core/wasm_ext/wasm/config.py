@@ -62,6 +62,7 @@ class WasmAPIRouteConfig(_StrictWasmModel):
     auth: Literal["public", "user"]
     path_params: dict[str, StrictStr] = Field(default_factory=dict)
     owner_context: WasmRouteOwnerContext | None = Field(None, alias="ownerContext")
+    openapi: StrictStr | None = None
 
 
 class WasmEventsConfig(_StrictWasmModel):
@@ -83,6 +84,7 @@ class WasmExtensionConfig(_StrictWasmModel):
     )
     ui: WasmUIConfig | None = None
     sdk: WasmSDKConfig | None = None
+    openapi: StrictStr | None = None
     ui_routes: list[WasmUIRouteConfig] = Field(default_factory=list)
     api_routes: list[WasmAPIRouteConfig] = Field(default_factory=list)
     permissions: list[ExtensionPermission] = Field(default_factory=list)

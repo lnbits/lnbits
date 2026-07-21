@@ -10,16 +10,23 @@ from lnbits.core.wasm_ext.api.websockets import (
 
 
 class FakeWebSocket:
-    def __init__(self, received: list[str] | None = None):
+    def __init__(
+        self,
+        received: list[str] | None = None,
+        send_error: Exception | None = None,
+    ):
         self.accepted = False
         self.sent: list[str] = []
         self.closed: int | None = None
         self.received = list(received or [])
+        self.send_error = send_error
 
     async def accept(self):
         self.accepted = True
 
     async def send_text(self, data: str):
+        if self.send_error:
+            raise self.send_error
         self.sent.append(data)
 
     async def receive_text(self):
@@ -53,6 +60,26 @@ async def test_wasm_extension_websocket_hub_publishes_to_matching_channel():
     assert matching.sent == ['{"message":"Hello"}']
     assert other_item.sent == []
     assert other_extension.sent == []
+
+
+@pytest.mark.anyio
+async def test_wasm_extension_websocket_hub_prunes_stale_publish_connections():
+    hub = WasmExtensionWebsocketHub()
+    stale = FakeWebSocket(send_error=RuntimeError("websocket closed"))
+    active = FakeWebSocket()
+
+    await hub.connect("demoext", "room-1", cast(WebSocket, stale))
+    await hub.connect("demoext", "room-1", cast(WebSocket, active))
+
+    await hub.publish(
+        "demoext",
+        "room-1",
+        '{"message":"Hello"}',
+        max_messages_per_second=10,
+    )
+
+    assert active.sent == ['{"message":"Hello"}']
+    assert hub.get_connections("demoext", "room-1")[0].websocket == active
 
 
 @pytest.mark.anyio

@@ -1,11 +1,12 @@
 from __future__ import annotations
 
+import json
 from collections.abc import AsyncIterator
 from pathlib import Path
 from typing import cast
 
 import pytest
-from fastapi import HTTPException, Request
+from fastapi import FastAPI, HTTPException, Request
 
 from lnbits.core.wasm_ext.routes.api import (
     WasmRequestBodyTooLargeError,
@@ -14,6 +15,8 @@ from lnbits.core.wasm_ext.routes.api import (
     _read_json_object_with_size,
     _wasm_extension_api_export,
     _wasm_route_owner_id,
+    register_wasm_extension_api_routes,
+    unregister_wasm_extension_api_routes,
 )
 from lnbits.core.wasm_ext.routes.assets import (
     WASM_EXTENSION_STATIC_MIME_TYPES,
@@ -29,6 +32,7 @@ from lnbits.core.wasm_ext.routes.ui import (
     _match_wasm_extension_ui_route,
     _wasm_extension_bridge_api_routes,
     _wasm_extension_entrypoint,
+    register_wasm_extension_ui_routes,
 )
 from lnbits.core.wasm_ext.wasm.config import parse_wasm_extension_config
 from lnbits.core.wasm_ext.wasm.loader import WasmExtension
@@ -173,6 +177,342 @@ def test_wasm_ui_route_matching_and_bridge_public_api_filtering(tmp_path: Path):
     }
 
 
+def test_wasm_api_routes_are_included_in_openapi(tmp_path: Path):
+    app = FastAPI()
+    app.openapi_schema = {"stale": True}
+
+    register_wasm_extension_api_routes(app, _wasm_extension(tmp_path))
+
+    assert app.openapi_schema is None
+    schema = app.openapi()
+    assert "/api/v1/ext/demoext/public/{item_id}" in schema["paths"]
+    assert "/api/v1/ext/demoext/private/{item_id}" in schema["paths"]
+    assert schema["paths"]["/api/v1/ext/demoext/public/{item_id}"]["get"]["tags"] == [
+        "Demo"
+    ]
+    assert schema["paths"]["/api/v1/ext/demoext/private/{item_id}"]["post"]["tags"] == [
+        "Demo"
+    ]
+
+
+def test_wasm_api_routes_load_openapi_operation_fragment(tmp_path: Path):
+    app = FastAPI()
+    openapi_dir = tmp_path / "wasm"
+    openapi_dir.mkdir()
+    (openapi_dir / "openapi.json").write_text(
+        json.dumps(
+            {
+                "schemas": {
+                    "DemoItem": {
+                        "type": "object",
+                        "required": ["id", "name"],
+                        "properties": {
+                            "id": {"type": "string"},
+                            "name": {"type": "string"},
+                        },
+                    }
+                },
+                "routes": {
+                    "list_demo_items": {
+                        "summary": "List demo items",
+                        "description": "Returns demo items.",
+                        "operationId": "demoext_list_demo_items",
+                        "tags": ["Ignored"],
+                        "responses": {
+                            "200": {
+                                "description": "Demo item list",
+                                "content": {
+                                    "application/json": {
+                                        "schema": {
+                                            "type": "object",
+                                            "properties": {
+                                                "items": {
+                                                    "type": "array",
+                                                    "items": {
+                                                        "$ref": "#/schemas/DemoItem"
+                                                    },
+                                                }
+                                            },
+                                        }
+                                    }
+                                },
+                            }
+                        },
+                    }
+                },
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    register_wasm_extension_api_routes(
+        app,
+        _wasm_extension(
+            tmp_path,
+            openapi="wasm/openapi.json",
+            extra_exports=[{"name": "list-demo-items", "visibility": "public"}],
+            api_routes=[
+                {
+                    "method": "GET",
+                    "path": "/public/{item_id}",
+                    "export": "list-demo-items",
+                    "auth": "public",
+                }
+            ],
+        ),
+    )
+
+    operation = app.openapi()["paths"]["/api/v1/ext/demoext/public/{item_id}"]["get"]
+    item_schema = operation["responses"]["200"]["content"]["application/json"][
+        "schema"
+    ]["properties"]["items"]["items"]
+    assert operation["summary"] == "List demo items"
+    assert operation["description"] == "Returns demo items."
+    assert operation["operationId"] == "demoext_list_demo_items"
+    assert operation["tags"] == ["Demo"]
+    assert item_schema["properties"]["name"] == {"type": "string"}
+
+
+def test_wasm_api_routes_allow_route_openapi_fragment_override(tmp_path: Path):
+    app = FastAPI()
+    openapi_dir = tmp_path / "wasm"
+    openapi_dir.mkdir()
+    (openapi_dir / "openapi.json").write_text(
+        json.dumps(
+            {
+                "routes": {
+                    "render": {
+                        "summary": "Default render docs",
+                        "operationId": "demoext_render",
+                    },
+                    "custom-render": {
+                        "summary": "Custom render docs",
+                        "operationId": "demoext_custom_render",
+                    },
+                }
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    register_wasm_extension_api_routes(
+        app,
+        _wasm_extension(
+            tmp_path,
+            openapi="wasm/openapi.json",
+            api_routes=[
+                {
+                    "method": "GET",
+                    "path": "/public/{item_id}",
+                    "export": "render",
+                    "auth": "public",
+                    "openapi": "#/routes/custom-render",
+                }
+            ],
+        ),
+    )
+
+    operation = app.openapi()["paths"]["/api/v1/ext/demoext/public/{item_id}"]["get"]
+    assert operation["summary"] == "Custom render docs"
+    assert operation["operationId"] == "demoext_custom_render"
+
+
+def test_wasm_api_routes_add_success_response_example_for_redoc(tmp_path: Path):
+    app = FastAPI()
+    openapi_dir = tmp_path / "wasm"
+    openapi_dir.mkdir()
+    (openapi_dir / "openapi.json").write_text(
+        json.dumps(
+            {
+                "schemas": {
+                    "DemoItem": {
+                        "type": "object",
+                        "properties": {
+                            "id": {"type": "string"},
+                            "count": {"type": "integer"},
+                        },
+                    },
+                    "DemoResponse": {
+                        "type": "object",
+                        "required": ["ok", "data"],
+                        "properties": {
+                            "ok": {"type": "boolean", "enum": [True]},
+                            "data": {
+                                "type": "object",
+                                "properties": {
+                                    "items": {
+                                        "type": "array",
+                                        "items": {"$ref": "#/schemas/DemoItem"},
+                                    }
+                                },
+                            },
+                        },
+                    },
+                    "ErrorResponse": {
+                        "type": "object",
+                        "required": ["ok", "error"],
+                        "properties": {
+                            "ok": {"type": "boolean", "enum": [False]},
+                            "error": {"type": "string"},
+                        },
+                    },
+                },
+                "routes": {
+                    "render": {
+                        "summary": "Render",
+                        "responses": {
+                            "200": {
+                                "description": "Success or extension-level error.",
+                                "content": {
+                                    "application/json": {
+                                        "schema": {
+                                            "oneOf": [
+                                                {"$ref": "#/schemas/DemoResponse"},
+                                                {"$ref": "#/schemas/ErrorResponse"},
+                                            ]
+                                        }
+                                    }
+                                },
+                            }
+                        },
+                    }
+                },
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    register_wasm_extension_api_routes(
+        app,
+        _wasm_extension(
+            tmp_path,
+            openapi="wasm/openapi.json",
+            api_routes=[
+                {
+                    "method": "GET",
+                    "path": "/public/{item_id}",
+                    "export": "render",
+                    "auth": "public",
+                }
+            ],
+        ),
+    )
+
+    json_content = app.openapi()["paths"]["/api/v1/ext/demoext/public/{item_id}"][
+        "get"
+    ]["responses"]["200"]["content"]["application/json"]
+    assert json_content["example"] == {
+        "ok": True,
+        "data": {"items": [{"id": "string", "count": 0}]},
+    }
+
+
+def test_wasm_api_routes_ignore_missing_openapi_fragment(tmp_path: Path):
+    app = FastAPI()
+
+    register_wasm_extension_api_routes(
+        app,
+        _wasm_extension(
+            tmp_path,
+            api_routes=[
+                {
+                    "method": "GET",
+                    "path": "/public/{item_id}",
+                    "export": "render",
+                    "auth": "public",
+                    "openapi": "wasm/missing.json#/routes/list_demo_items",
+                }
+            ],
+        ),
+    )
+
+    operation = app.openapi()["paths"]["/api/v1/ext/demoext/public/{item_id}"]["get"]
+    assert operation["summary"] == "GET /public/{item_id}"
+    assert operation["operationId"] == "demoext_get_public_item_id"
+
+
+def test_wasm_api_routes_replace_same_extension_routes_on_upgrade(tmp_path: Path):
+    app = FastAPI()
+    route_path = "/api/v1/ext/demoext/public/{item_id}"
+
+    async def legacy_handler() -> dict[str, bool]:
+        return {"legacy": True}
+
+    app.add_api_route(
+        route_path,
+        legacy_handler,
+        methods=["GET"],
+        name=f"demoext:GET:{route_path}",
+        include_in_schema=False,
+    )
+    app.openapi_schema = {"stale": True}
+
+    register_wasm_extension_api_routes(app, _wasm_extension(tmp_path))
+
+    routes = _matching_routes(app, route_path, "GET")
+    assert len(routes) == 1
+    assert routes[0].endpoint != legacy_handler
+    assert routes[0].include_in_schema is True
+    assert app.openapi_schema is None
+    assert route_path in app.openapi()["paths"]
+
+
+def test_wasm_api_routes_remove_obsolete_routes_on_upgrade(tmp_path: Path):
+    app = FastAPI()
+    route_path = "/api/v1/ext/demoext/removed"
+
+    async def removed_handler() -> dict[str, bool]:
+        return {"removed": True}
+
+    app.add_api_route(
+        route_path,
+        removed_handler,
+        methods=["GET"],
+        name=f"demoext:GET:{route_path}",
+    )
+    app.openapi_schema = {"stale": True}
+
+    register_wasm_extension_api_routes(app, _wasm_extension(tmp_path))
+
+    assert _matching_routes(app, route_path, "GET") == []
+    assert app.openapi_schema is None
+    assert route_path not in app.openapi()["paths"]
+
+
+def test_wasm_api_route_cleanup_preserves_ui_frame_config_route(tmp_path: Path):
+    app = FastAPI()
+    (tmp_path / "index.html").write_text("<html></html>", encoding="utf-8")
+    extension = _wasm_extension(tmp_path)
+    frame_config_path = "/api/v1/ext/demoext/_ui/frame"
+    api_route_path = "/api/v1/ext/demoext/public/{item_id}"
+
+    register_wasm_extension_ui_routes(app, extension)
+    assert _matching_routes(app, frame_config_path, "POST") != []
+
+    register_wasm_extension_api_routes(app, extension)
+
+    assert _matching_routes(app, frame_config_path, "POST") != []
+    assert _matching_routes(app, api_route_path, "GET") != []
+
+    assert unregister_wasm_extension_api_routes(app, "demoext") is True
+    assert _matching_routes(app, api_route_path, "GET") == []
+    assert _matching_routes(app, frame_config_path, "POST") != []
+
+
+def test_wasm_api_routes_are_removed_from_openapi_on_uninstall(tmp_path: Path):
+    app = FastAPI()
+    route_path = "/api/v1/ext/demoext/public/{item_id}"
+
+    register_wasm_extension_api_routes(app, _wasm_extension(tmp_path))
+    assert route_path in app.openapi()["paths"]
+
+    assert unregister_wasm_extension_api_routes(app, "demoext") is True
+
+    assert app.openapi_schema is None
+    assert _matching_routes(app, route_path, "GET") == []
+    assert route_path not in app.openapi()["paths"]
+
+
 @pytest.mark.anyio
 async def test_wasm_api_route_owner_context_uses_configured_storage_row(
     tmp_path: Path, mocker
@@ -260,46 +600,54 @@ class _FakeRequest:
             yield chunk
 
 
-def _wasm_extension(root_path: Path) -> WasmExtension:
-    config = parse_wasm_extension_config(
-        "demoext",
-        {
-            "id": "demoext",
-            "name": "Demo",
-            "short_description": "Demo extension",
-            "version": "1.0.0",
-            "extension_type": "wasm",
-            "wasm": {
-                "module": "extension.wasm",
-                "exports": [
-                    {"name": "render", "visibility": "public"},
-                    {"name": "private_render", "visibility": "authenticated"},
-                    {"name": "on_invoice_paid", "visibility": "event"},
-                ],
-            },
-            "ui_routes": [
-                {
-                    "path": "/demo/{item_id}",
-                    "entrypoint": "index.html",
-                    "auth": "user",
-                }
-            ],
-            "api_routes": [
-                {
-                    "method": "GET",
-                    "path": "/public/{item_id}",
-                    "export": "render",
-                    "auth": "public",
-                },
-                {
-                    "method": "POST",
-                    "path": "/private/{item_id}",
-                    "export": "private_render",
-                    "auth": "user",
-                },
+def _wasm_extension(
+    root_path: Path,
+    *,
+    api_routes: list[dict] | None = None,
+    openapi: str | None = None,
+    extra_exports: list[dict] | None = None,
+) -> WasmExtension:
+    extension_config = {
+        "id": "demoext",
+        "name": "Demo",
+        "short_description": "Demo extension",
+        "version": "1.0.0",
+        "extension_type": "wasm",
+        "wasm": {
+            "module": "extension.wasm",
+            "exports": [
+                {"name": "render", "visibility": "public"},
+                {"name": "private_render", "visibility": "authenticated"},
+                {"name": "on_invoice_paid", "visibility": "event"},
+                *(extra_exports or []),
             ],
         },
-    )
+        "ui_routes": [
+            {
+                "path": "/demo/{item_id}",
+                "entrypoint": "index.html",
+                "auth": "user",
+            }
+        ],
+        "api_routes": api_routes
+        or [
+            {
+                "method": "GET",
+                "path": "/public/{item_id}",
+                "export": "render",
+                "auth": "public",
+            },
+            {
+                "method": "POST",
+                "path": "/private/{item_id}",
+                "export": "private_render",
+                "auth": "user",
+            },
+        ],
+    }
+    if openapi:
+        extension_config["openapi"] = openapi
+    config = parse_wasm_extension_config("demoext", extension_config)
     return WasmExtension(
         id="demoext",
         name="Demo",
@@ -325,3 +673,12 @@ def _request_with_query(token: str) -> Request:
             "headers": [],
         }
     )
+
+
+def _matching_routes(app: FastAPI, route_path: str, method: str) -> list:
+    return [
+        route
+        for route in app.router.routes
+        if getattr(route, "path", None) == route_path
+        and method in (getattr(route, "methods", set()) or set())
+    ]

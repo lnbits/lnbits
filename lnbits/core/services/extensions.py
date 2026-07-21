@@ -639,6 +639,7 @@ def _now() -> datetime:
 
 async def uninstall_extension(ext_id: str):
     await stop_extension_background_work(ext_id)
+    core_app_extra.unregister_wasm_ext_routes(ext_id)
 
     settings.deactivate_extension_paths(ext_id)
 

@@ -262,6 +262,45 @@ async def test_uninstall_activate_and_deactivate_extensions(
 
 
 @pytest.mark.anyio
+async def test_uninstall_wasm_extension_unregisters_live_routes(
+    tmp_path, settings: Settings, mocker: MockerFixture
+):
+    ext_id = f"wasm_{uuid4().hex[:8]}"
+    ext_info = make_installable_extension(ext_id)
+    original_data_folder = settings.lnbits_data_folder
+    original_extensions_path = settings.lnbits_extensions_path
+    original_deactivated = set(settings.lnbits_deactivated_extensions)
+    unregister_routes_mock = mocker.patch(
+        "lnbits.core.services.extensions.core_app_extra.unregister_wasm_ext_routes"
+    )
+    clean_mock = mocker.patch.object(InstallableExtension, "clean_extension_files")
+
+    try:
+        settings.lnbits_data_folder = str(tmp_path / "data")
+        settings.lnbits_extensions_path = str(tmp_path / "code")
+        ext_dir = tmp_path / "code" / "extensions" / ext_id
+        ext_dir.mkdir(parents=True, exist_ok=True)
+        (ext_dir / "config.json").write_text(
+            json.dumps(_wasm_install_config(ext_id)),
+            encoding="utf-8",
+        )
+        await create_installed_extension(ext_info)
+
+        await uninstall_extension(ext_id)
+
+        assert await get_installed_extension(ext_id) is None
+        assert ext_id in settings.lnbits_deactivated_extensions
+    finally:
+        await delete_installed_extension(ext_id=ext_id)
+        settings.lnbits_data_folder = original_data_folder
+        settings.lnbits_extensions_path = original_extensions_path
+        settings.lnbits_deactivated_extensions = original_deactivated
+
+    unregister_routes_mock.assert_called_once_with(ext_id)
+    clean_mock.assert_called_once()
+
+
+@pytest.mark.anyio
 async def test_wasm_invocation_monitoring_marks_stale_once_and_cleans_periodically(
     settings: Settings,
     mocker: MockerFixture,
