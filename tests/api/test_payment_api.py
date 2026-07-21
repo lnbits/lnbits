@@ -411,8 +411,16 @@ async def test_api_update_payment_labels(
     user_labels = {label.name: label.color for label in account.extra.labels}
     assert "income" in user_labels
     assert "restaurant" in user_labels
-    assert user_labels["income"] is not None and user_labels["income"].startswith("#") and len(user_labels["income"]) == 7
-    assert user_labels["restaurant"] is not None and user_labels["restaurant"].startswith("#") and len(user_labels["restaurant"]) == 7
+    assert (
+        user_labels["income"] is not None
+        and user_labels["income"].startswith("#")
+        and len(user_labels["income"]) == 7
+    )
+    assert (
+        user_labels["restaurant"] is not None
+        and user_labels["restaurant"].startswith("#")
+        and len(user_labels["restaurant"]) == 7
+    )
 
     # 4. Check that invalid labels are rejected
     response = await client.put(
