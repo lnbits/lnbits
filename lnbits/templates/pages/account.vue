@@ -889,6 +889,17 @@
                           ></q-btn>
                         </div>
                       </div>
+                      <div
+                        v-if="selectedApiToken && selectedApiToken.expires_at"
+                        class="row items-center q-mb-md q-gutter-sm"
+                      >
+                        <span v-text="expiryAt"></span>
+                        <span v-text="$t('status') + ':'"></span>
+                        <q-badge
+                          :color="tokenStatus.badgeColor"
+                          :label="tokenStatus.status"
+                        ></q-badge>
+                      </div>
                       <div v-if="apiAcl.apiToken" class="row q-mb-md">
                         <div class="col-12">
                           <q-badge>

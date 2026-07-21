@@ -1745,10 +1745,14 @@ async def test_api_create_user_api_token_success(
     ), "Expiration time should be 60 minutes from now."
 
     token_id = payload["api_token_id"]
-    assert any(
-        token_id in [token.id for token in acl.token_id_list]
+    stored_token = next(
+        token
         for acl in acls.access_control_list
-    ), "API token should be part of at least one ACL."
+        for token in acl.token_id_list
+        if token.id == token_id
+    )
+    assert stored_token.expires_at is not None
+    assert abs(stored_token.expires_at - expiration_time) <= 1
 
 
 @pytest.mark.anyio

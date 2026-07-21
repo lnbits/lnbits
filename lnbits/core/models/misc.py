@@ -80,6 +80,7 @@ class SimpleStatus(BaseModel):
 class SimpleItem(BaseModel):
     id: str
     name: str
+    expires_at: int | None = None
 
 
 class DbVersion(BaseModel):
