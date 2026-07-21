@@ -33,7 +33,7 @@ from lnbits.wallets.base import (
     PaymentSuccessStatus,
 )
 
-from .offers import is_bolt12_offer
+from .offers import is_bolt12_offer, normalize_bolt12_string
 
 from ..crud import (
     check_internal,
@@ -76,7 +76,7 @@ async def pay_invoice(
     if is_bolt12_offer(payment_request):
         return await pay_offer(
             wallet_id=wallet_id,
-            offer=payment_request,
+            offer=normalize_bolt12_string(payment_request),
             max_sat=max_sat,
             extra=extra,
             description=description,

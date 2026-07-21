@@ -10,17 +10,38 @@ from loguru import logger
 
 BOLT12_OFFER_PREFIX = "lno1"
 BOLT12_INVOICE_PREFIX = "lni1"
-BOLT12_OFFER_REGEX = re.compile(r"^(lno1|lno)[a-zA-Z0-9]+$")
+# Bech32 HRP is case-insensitive; after normalize_bolt12_string, offers are lowercased.
+BOLT12_OFFER_REGEX = re.compile(r"^(lno1|lno)[a-z0-9]+$")
+
+
+def normalize_bolt12_string(data: str) -> str:
+    """Normalize user-pasted offer/invoice strings for detection.
+
+    - trim whitespace
+    - strip lightning: URI scheme (with optional //)
+    - drop query/fragment
+    - lowercase (bech32 is case-insensitive)
+    """
+    if not data:
+        return ""
+    text = data.strip()
+    lower = text.lower()
+    if lower.startswith("lightning:"):
+        text = text[len("lightning:") :]
+        if text.startswith("//"):
+            text = text[2:]
+        text = text.split("?", 1)[0].split("#", 1)[0].strip()
+    return text.lower()
 
 
 def is_bolt12_offer(data: str) -> bool:
     """Check if a string is a BOLT12 offer."""
-    return bool(BOLT12_OFFER_REGEX.match(data))
+    return bool(BOLT12_OFFER_REGEX.match(normalize_bolt12_string(data)))
 
 
 def is_bolt12_invoice(data: str) -> bool:
     """Check if a string is a BOLT12 invoice."""
-    return data.startswith(BOLT12_INVOICE_PREFIX)
+    return normalize_bolt12_string(data).startswith(BOLT12_INVOICE_PREFIX)
 
 
 def is_bolt12(data: str) -> bool:
@@ -38,5 +59,6 @@ async def resolve_offer(offer: str) -> str:
     For CLN and Phoenixd, the backend handles offer resolution internally.
     For backends that don't support offers, this will raise.
     """
-    logger.debug(f"Resolving BOLT12 offer: {offer[:20]}...")
-    return offer
+    normalized = normalize_bolt12_string(offer)
+    logger.debug(f"Resolving BOLT12 offer: {normalized[:20]}...")
+    return normalized
