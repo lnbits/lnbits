@@ -142,3 +142,12 @@ def test_clnrest_advertises_bolt12_and_pay_offer():
     assert "Feature.bolt12" in text
     assert "async def pay_offer" in text
     assert "/v1/fetchinvoice" in text
+
+
+def test_wallet_ui_accepts_bolt12_offers():
+    root = Path(__file__).resolve().parents[2]
+    wallet_js = (root / "lnbits/static/js/pages/wallet.js").read_text(encoding="utf-8")
+    assert "isBolt12Offer" in wallet_js
+    assert "startsWith('lno1')" in wallet_js or 'startsWith("lno1")' in wallet_js
+    assert "isOffer" in wallet_js
+    assert "BOLT12 offer" in wallet_js
