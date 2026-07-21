@@ -17,6 +17,7 @@ from lnbits.helpers import normalize_endpoint
 from lnbits.settings import settings
 
 from .base import (
+    Feature,
     InvoiceResponse,
     PaymentFailedStatus,
     PaymentPendingStatus,
@@ -30,6 +31,8 @@ from .base import (
 
 class PhoenixdWallet(Wallet):
     """https://phoenix.acinq.co/server/api"""
+
+    features = [Feature.bolt12]
 
     def __init__(self):
         if not settings.phoenixd_api_endpoint:

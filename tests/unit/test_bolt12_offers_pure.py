@@ -49,6 +49,13 @@ def test_shipped_backends_declare_pay_offer():
         assert "def pay_offer" in text, rel
 
 
+def test_phoenixd_and_eclair_advertise_bolt12_feature():
+    root = Path(__file__).resolve().parents[2]
+    for rel in ("lnbits/wallets/phoenixd.py", "lnbits/wallets/eclair.py"):
+        text = (root / rel).read_text(encoding="utf-8")
+        assert "Feature.bolt12" in text, rel
+
+
 def test_payments_routes_offers_via_normalize():
     root = Path(__file__).resolve().parents[2]
     payments = (root / "lnbits/core/services/payments.py").read_text(encoding="utf-8")
