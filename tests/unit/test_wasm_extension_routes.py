@@ -316,6 +316,96 @@ def test_wasm_api_routes_allow_route_openapi_fragment_override(tmp_path: Path):
     assert operation["operationId"] == "demoext_custom_render"
 
 
+def test_wasm_api_routes_add_success_response_example_for_redoc(tmp_path: Path):
+    app = FastAPI()
+    openapi_dir = tmp_path / "wasm"
+    openapi_dir.mkdir()
+    (openapi_dir / "openapi.json").write_text(
+        json.dumps(
+            {
+                "schemas": {
+                    "DemoItem": {
+                        "type": "object",
+                        "properties": {
+                            "id": {"type": "string"},
+                            "count": {"type": "integer"},
+                        },
+                    },
+                    "DemoResponse": {
+                        "type": "object",
+                        "required": ["ok", "data"],
+                        "properties": {
+                            "ok": {"type": "boolean", "enum": [True]},
+                            "data": {
+                                "type": "object",
+                                "properties": {
+                                    "items": {
+                                        "type": "array",
+                                        "items": {"$ref": "#/schemas/DemoItem"},
+                                    }
+                                },
+                            },
+                        },
+                    },
+                    "ErrorResponse": {
+                        "type": "object",
+                        "required": ["ok", "error"],
+                        "properties": {
+                            "ok": {"type": "boolean", "enum": [False]},
+                            "error": {"type": "string"},
+                        },
+                    },
+                },
+                "routes": {
+                    "render": {
+                        "summary": "Render",
+                        "responses": {
+                            "200": {
+                                "description": "Success or extension-level error.",
+                                "content": {
+                                    "application/json": {
+                                        "schema": {
+                                            "oneOf": [
+                                                {"$ref": "#/schemas/DemoResponse"},
+                                                {"$ref": "#/schemas/ErrorResponse"},
+                                            ]
+                                        }
+                                    }
+                                },
+                            }
+                        },
+                    }
+                },
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    register_wasm_extension_api_routes(
+        app,
+        _wasm_extension(
+            tmp_path,
+            openapi="wasm/openapi.json",
+            api_routes=[
+                {
+                    "method": "GET",
+                    "path": "/public/{item_id}",
+                    "export": "render",
+                    "auth": "public",
+                }
+            ],
+        ),
+    )
+
+    json_content = app.openapi()["paths"]["/api/v1/ext/demoext/public/{item_id}"][
+        "get"
+    ]["responses"]["200"]["content"]["application/json"]
+    assert json_content["example"] == {
+        "ok": True,
+        "data": {"items": [{"id": "string", "count": 0}]},
+    }
+
+
 def test_wasm_api_routes_ignore_missing_openapi_fragment(tmp_path: Path):
     app = FastAPI()
 

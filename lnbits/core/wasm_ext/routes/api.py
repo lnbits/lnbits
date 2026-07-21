@@ -49,6 +49,9 @@ class WasmOpenAPIMetadata:
     openapi_extra: dict[str, Any] | None
 
 
+_MISSING_OPENAPI_EXAMPLE = object()
+
+
 def register_wasm_extension_api_routes(app: FastAPI, extension: WasmExtension) -> None:
     route_registrations = [
         _wasm_extension_api_route_registration(extension, route_config)
@@ -407,6 +410,7 @@ def _wasm_extension_api_openapi_metadata(
         or _wasm_extension_default_operation_id(extension, route_registration)
     )
     operation.pop("tags", None)
+    _add_wasm_openapi_success_examples(operation)
     return WasmOpenAPIMetadata(
         summary=summary,
         description=description,
@@ -583,6 +587,120 @@ def _inline_wasm_openapi_refs(
         key: _inline_wasm_openapi_refs(item, document, seen_refs)
         for key, item in value.items()
     }
+
+
+def _add_wasm_openapi_success_examples(operation: dict[str, Any]) -> None:
+    responses = operation.get("responses")
+    if not isinstance(responses, dict):
+        return
+
+    for response in responses.values():
+        if not isinstance(response, dict):
+            continue
+        content = response.get("content")
+        if not isinstance(content, dict):
+            continue
+        json_content = content.get("application/json")
+        if not isinstance(json_content, dict):
+            continue
+        if "example" in json_content or "examples" in json_content:
+            continue
+
+        schema = json_content.get("schema")
+        example = _wasm_openapi_success_example(schema)
+        if example is not None:
+            json_content["example"] = example
+
+
+def _wasm_openapi_success_example(schema: Any) -> Any | None:
+    if not isinstance(schema, dict):
+        return None
+
+    for keyword in ("oneOf", "anyOf"):
+        variants = schema.get(keyword)
+        if not isinstance(variants, list):
+            continue
+        for variant in variants:
+            if _wasm_openapi_schema_has_ok_value(variant, True):
+                return _wasm_openapi_schema_example(variant)
+    return None
+
+
+def _wasm_openapi_schema_has_ok_value(schema: Any, ok_value: bool) -> bool:
+    if not isinstance(schema, dict):
+        return False
+    properties = schema.get("properties")
+    if isinstance(properties, dict):
+        ok_schema = properties.get("ok")
+        if isinstance(ok_schema, dict):
+            enum = ok_schema.get("enum")
+            return isinstance(enum, list) and ok_value in enum
+    all_of = schema.get("allOf")
+    return isinstance(all_of, list) and any(
+        _wasm_openapi_schema_has_ok_value(item, ok_value) for item in all_of
+    )
+
+
+def _wasm_openapi_schema_example(schema: Any) -> Any:
+    if not isinstance(schema, dict):
+        return None
+
+    explicit_example = _wasm_openapi_explicit_schema_example(schema)
+    if explicit_example is not _MISSING_OPENAPI_EXAMPLE:
+        return explicit_example
+
+    composed_example = _wasm_openapi_composed_schema_example(schema)
+    if composed_example is not _MISSING_OPENAPI_EXAMPLE:
+        return composed_example
+
+    return _wasm_openapi_type_schema_example(schema)
+
+
+def _wasm_openapi_explicit_schema_example(schema: dict[str, Any]) -> Any:
+    if "example" in schema:
+        return schema["example"]
+    enum = schema.get("enum")
+    if isinstance(enum, list) and enum:
+        return enum[0]
+    return _MISSING_OPENAPI_EXAMPLE
+
+
+def _wasm_openapi_composed_schema_example(schema: dict[str, Any]) -> Any:
+    all_of = schema.get("allOf")
+    if isinstance(all_of, list):
+        example: dict[str, Any] = {}
+        for item in all_of:
+            item_example = _wasm_openapi_schema_example(item)
+            if isinstance(item_example, dict):
+                example.update(item_example)
+        return example
+
+    for keyword in ("oneOf", "anyOf"):
+        variants = schema.get(keyword)
+        if isinstance(variants, list) and variants:
+            return _wasm_openapi_schema_example(variants[0])
+    return _MISSING_OPENAPI_EXAMPLE
+
+
+def _wasm_openapi_type_schema_example(schema: dict[str, Any]) -> Any:
+    schema_type = schema.get("type")
+    if schema_type == "object" or isinstance(schema.get("properties"), dict):
+        properties = schema.get("properties")
+        if not isinstance(properties, dict):
+            return {}
+        return {
+            name: _wasm_openapi_schema_example(property_schema)
+            for name, property_schema in properties.items()
+        }
+    if schema_type == "array":
+        return [_wasm_openapi_schema_example(schema.get("items"))]
+    if schema_type == "integer":
+        return 0
+    if schema_type == "number":
+        return 0
+    if schema_type == "boolean":
+        return True
+    return "string"
 
 
 def _openapi_string(value: Any) -> str | None:
