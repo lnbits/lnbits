@@ -376,6 +376,62 @@ async def test_payment_extra_update_requires_successful_payment(
     )
 
 
+@pytest.mark.anyio
+async def test_api_update_payment_labels(
+    client,
+    to_wallet,
+    adminkey_headers_to,
+):
+    payment_hash = uuid4().hex
+    checking_id = await _create_payment(
+        to_wallet.id,
+        amount_msat=1_000,
+        payment_hash=payment_hash,
+        status=PaymentState.SUCCESS,
+    )
+
+    # 1. Update labels with new valid labels
+    response = await client.put(
+        f"/api/v1/payments/{payment_hash}/labels",
+        headers=adminkey_headers_to,
+        json={"labels": ["income", "restaurant"]},
+    )
+    assert response.status_code == 200
+    assert response.json()["success"] is True
+
+    # 2. Check that the labels were updated on the payment
+    payment = await get_payment(checking_id)
+    assert payment.labels == ["income", "restaurant"]
+
+    # 3. Check that the new labels were auto-created in the user's account config
+    from lnbits.core.crud.users import get_account
+
+    account = await get_account(to_wallet.user)
+    assert account is not None
+    user_labels = {label.name: label.color for label in account.extra.labels}
+    assert "income" in user_labels
+    assert "restaurant" in user_labels
+    assert (
+        user_labels["income"] is not None
+        and user_labels["income"].startswith("#")
+        and len(user_labels["income"]) == 7
+    )
+    assert (
+        user_labels["restaurant"] is not None
+        and user_labels["restaurant"].startswith("#")
+        and len(user_labels["restaurant"]) == 7
+    )
+
+    # 4. Check that invalid labels are rejected
+    response = await client.put(
+        f"/api/v1/payments/{payment_hash}/labels",
+        headers=adminkey_headers_to,
+        json={"labels": ["invalid!label"]},
+    )
+    assert response.status_code == 400
+    assert "Invalid label name" in response.json()["detail"]
+
+
 async def _create_payment(
     wallet_id: str,
     *,
