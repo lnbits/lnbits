@@ -41,7 +41,7 @@ A backend wallet is selected and configured entirely through LNbits environment 
 | [CoreLightning REST](#corelightning-rest)       | [LNbits](#lnbits)                     | [Alby](#alby)                                     |
 | [Spark (Core Lightning)](#spark-core-lightning) | [LNPay](#lnpay)                       | [Boltz](#boltz)                                   |
 | [Spark L2](#spark-l2)                           | [ZBD](#zbd)                           | [Phoenixd](#phoenixd)                             |
-| [Cliche Wallet](#cliche-wallet)                 |                                       |                                                   |
+| [Cliche Wallet](#cliche-wallet)                 | [Bark](#bark)                         |                                                   |
 | [Breez SDK](#breez-sdk)                         | [Breez Liquid SDK](#breez-liquid-sdk) | [Nostr Wallet Connect](#nostr-wallet-connect-nwc) |
 | [Strike](#strike)                               | [Eclair (ACINQ)](#eclair-acinq)       | [LN.tips](#lntips)                                |
 | [Fake Wallet](#fake-wallet)                     |                                       |                                                   |
@@ -126,6 +126,22 @@ Old REST interface using [RTL c-lightning-REST](https://github.com/Ride-The-Ligh
 - `LNBITS_BACKEND_WALLET_CLASS`: `SparkWallet`
 - `SPARK_URL`: `http://10.147.17.230:9737/rpc`
 - `SPARK_TOKEN`: `secret_access_key`
+
+## Bark
+
+This connects LNbits to an external [barkd](https://second.tech/docs/barkd) REST daemon. Initialize the Bark wallet before starting LNbits using `bark create`, then run `barkd` separately, keep its data directory persistent, and set `BARK_API_TOKEN` to the auth token from `~/.bark/auth_token`.
+
+**Required env vars**
+
+- `LNBITS_BACKEND_WALLET_CLASS`: `BarkWallet`
+- `BARK_API_ENDPOINT`: `http://localhost:3000`
+- `BARK_API_TOKEN`: `auth_token`
+
+Bark fee estimates can be higher than LNbits' default minimum routing fee reserve. If small outgoing payments fail with an error like `fee of 20000 msat exceeds limit of 5000 msat`, raise the minimum reserve fee under **Settings → Funding** or set:
+
+```bash
+LNBITS_RESERVE_FEE_MIN=20000
+```
 
 ## Spark L2
 

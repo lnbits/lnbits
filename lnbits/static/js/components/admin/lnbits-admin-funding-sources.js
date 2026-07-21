@@ -162,6 +162,17 @@ window.app.component('lnbits-admin-funding-sources', {
           }
         ],
         [
+          'BarkWallet',
+          'Bark',
+          {
+            bark_api_endpoint: {
+              label: 'Endpoint',
+              value: 'http://localhost:3000'
+            },
+            bark_api_token: 'auth_token'
+          }
+        ],
+        [
           'BoltzWallet',
           'Boltz',
           {
