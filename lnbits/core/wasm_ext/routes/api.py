@@ -419,23 +419,84 @@ def _load_wasm_extension_openapi_operation(
     extension: WasmExtension,
     route_config: WasmAPIRouteConfig,
 ) -> dict[str, Any]:
-    openapi_ref = route_config.openapi
-    if not openapi_ref:
-        return {}
-
     try:
-        document_path, pointer = _wasm_openapi_ref_parts(openapi_ref)
-        document = _load_wasm_openapi_document(extension, document_path)
-        operation = _resolve_json_pointer(document, pointer)
-        if not isinstance(operation, dict):
-            raise TypeError("OpenAPI route fragment must resolve to an object.")
-        return _inline_wasm_openapi_refs(deepcopy(operation), document)
+        openapi_refs = _wasm_extension_openapi_refs(extension, route_config)
     except Exception as exc:
         logger.warning(
             f"Ignoring OpenAPI metadata for WASM extension '{extension.id}' "
             f"route '{route_config.path}': {exc}"
         )
         return {}
+    if not openapi_refs:
+        return {}
+
+    errors: list[Exception] = []
+    for openapi_ref in openapi_refs:
+        try:
+            document_path, pointer = _wasm_openapi_ref_parts(openapi_ref)
+            document = _load_wasm_openapi_document(extension, document_path)
+            operation = _resolve_json_pointer(document, pointer)
+            if not isinstance(operation, dict):
+                raise TypeError("OpenAPI route fragment must resolve to an object.")
+            return _inline_wasm_openapi_refs(deepcopy(operation), document)
+        except Exception as exc:
+            errors.append(exc)
+
+    logger.warning(
+        f"Ignoring OpenAPI metadata for WASM extension '{extension.id}' "
+        f"route '{route_config.path}': {errors[-1]}"
+    )
+    return {}
+
+
+def _wasm_extension_openapi_refs(
+    extension: WasmExtension,
+    route_config: WasmAPIRouteConfig,
+) -> list[str]:
+    if route_config.openapi:
+        return [
+            _wasm_openapi_resolved_ref(
+                extension.config.openapi,
+                route_config.openapi,
+            )
+        ]
+
+    document_path = extension.config.openapi
+    if not document_path:
+        return []
+
+    document_path = _wasm_openapi_document_path(document_path)
+    route_keys = [route_config.export, _wasm_openapi_route_key(route_config.export)]
+    return [
+        f"{document_path}#/routes/{_json_pointer_token(route_key)}"
+        for route_key in dict.fromkeys(route_keys)
+    ]
+
+
+def _wasm_openapi_resolved_ref(
+    base_ref: str | None,
+    route_ref: str,
+) -> str:
+    if not route_ref.startswith("#"):
+        return route_ref
+    if not base_ref:
+        raise ValueError("OpenAPI metadata reference must include a JSON file path.")
+    return f"{_wasm_openapi_document_path(base_ref)}{route_ref}"
+
+
+def _wasm_openapi_document_path(openapi_ref: str) -> str:
+    document_path, _, _ = openapi_ref.partition("#")
+    if not document_path:
+        raise ValueError("OpenAPI metadata reference must include a JSON file path.")
+    return document_path
+
+
+def _wasm_openapi_route_key(export_name: str) -> str:
+    return re.sub(r"[^A-Za-z0-9]+", "_", export_name).strip("_").lower()
+
+
+def _json_pointer_token(value: str) -> str:
+    return value.replace("~", "~0").replace("/", "~1")
 
 
 def _wasm_openapi_ref_parts(openapi_ref: str) -> tuple[str, str]:

@@ -84,6 +84,7 @@ class WasmExtensionConfig(_StrictWasmModel):
     )
     ui: WasmUIConfig | None = None
     sdk: WasmSDKConfig | None = None
+    openapi: StrictStr | None = None
     ui_routes: list[WasmUIRouteConfig] = Field(default_factory=list)
     api_routes: list[WasmAPIRouteConfig] = Field(default_factory=list)
     permissions: list[ExtensionPermission] = Field(default_factory=list)

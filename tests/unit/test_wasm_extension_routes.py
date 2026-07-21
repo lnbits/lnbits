@@ -248,13 +248,14 @@ def test_wasm_api_routes_load_openapi_operation_fragment(tmp_path: Path):
         app,
         _wasm_extension(
             tmp_path,
+            openapi="wasm/openapi.json",
+            extra_exports=[{"name": "list-demo-items", "visibility": "public"}],
             api_routes=[
                 {
                     "method": "GET",
                     "path": "/public/{item_id}",
-                    "export": "render",
+                    "export": "list-demo-items",
                     "auth": "public",
-                    "openapi": "wasm/openapi.json#/routes/list_demo_items",
                 }
             ],
         ),
@@ -269,6 +270,50 @@ def test_wasm_api_routes_load_openapi_operation_fragment(tmp_path: Path):
     assert operation["operationId"] == "demoext_list_demo_items"
     assert operation["tags"] == ["Demo"]
     assert item_schema["properties"]["name"] == {"type": "string"}
+
+
+def test_wasm_api_routes_allow_route_openapi_fragment_override(tmp_path: Path):
+    app = FastAPI()
+    openapi_dir = tmp_path / "wasm"
+    openapi_dir.mkdir()
+    (openapi_dir / "openapi.json").write_text(
+        json.dumps(
+            {
+                "routes": {
+                    "render": {
+                        "summary": "Default render docs",
+                        "operationId": "demoext_render",
+                    },
+                    "custom-render": {
+                        "summary": "Custom render docs",
+                        "operationId": "demoext_custom_render",
+                    },
+                }
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    register_wasm_extension_api_routes(
+        app,
+        _wasm_extension(
+            tmp_path,
+            openapi="wasm/openapi.json",
+            api_routes=[
+                {
+                    "method": "GET",
+                    "path": "/public/{item_id}",
+                    "export": "render",
+                    "auth": "public",
+                    "openapi": "#/routes/custom-render",
+                }
+            ],
+        ),
+    )
+
+    operation = app.openapi()["paths"]["/api/v1/ext/demoext/public/{item_id}"]["get"]
+    assert operation["summary"] == "Custom render docs"
+    assert operation["operationId"] == "demoext_custom_render"
 
 
 def test_wasm_api_routes_ignore_missing_openapi_fragment(tmp_path: Path):
@@ -448,47 +493,50 @@ def _wasm_extension(
     root_path: Path,
     *,
     api_routes: list[dict] | None = None,
+    openapi: str | None = None,
+    extra_exports: list[dict] | None = None,
 ) -> WasmExtension:
-    config = parse_wasm_extension_config(
-        "demoext",
-        {
-            "id": "demoext",
-            "name": "Demo",
-            "short_description": "Demo extension",
-            "version": "1.0.0",
-            "extension_type": "wasm",
-            "wasm": {
-                "module": "extension.wasm",
-                "exports": [
-                    {"name": "render", "visibility": "public"},
-                    {"name": "private_render", "visibility": "authenticated"},
-                    {"name": "on_invoice_paid", "visibility": "event"},
-                ],
-            },
-            "ui_routes": [
-                {
-                    "path": "/demo/{item_id}",
-                    "entrypoint": "index.html",
-                    "auth": "user",
-                }
-            ],
-            "api_routes": api_routes
-            or [
-                {
-                    "method": "GET",
-                    "path": "/public/{item_id}",
-                    "export": "render",
-                    "auth": "public",
-                },
-                {
-                    "method": "POST",
-                    "path": "/private/{item_id}",
-                    "export": "private_render",
-                    "auth": "user",
-                },
+    extension_config = {
+        "id": "demoext",
+        "name": "Demo",
+        "short_description": "Demo extension",
+        "version": "1.0.0",
+        "extension_type": "wasm",
+        "wasm": {
+            "module": "extension.wasm",
+            "exports": [
+                {"name": "render", "visibility": "public"},
+                {"name": "private_render", "visibility": "authenticated"},
+                {"name": "on_invoice_paid", "visibility": "event"},
+                *(extra_exports or []),
             ],
         },
-    )
+        "ui_routes": [
+            {
+                "path": "/demo/{item_id}",
+                "entrypoint": "index.html",
+                "auth": "user",
+            }
+        ],
+        "api_routes": api_routes
+        or [
+            {
+                "method": "GET",
+                "path": "/public/{item_id}",
+                "export": "render",
+                "auth": "public",
+            },
+            {
+                "method": "POST",
+                "path": "/private/{item_id}",
+                "export": "private_render",
+                "auth": "user",
+            },
+        ],
+    }
+    if openapi:
+        extension_config["openapi"] = openapi
+    config = parse_wasm_extension_config("demoext", extension_config)
     return WasmExtension(
         id="demoext",
         name="Demo",
