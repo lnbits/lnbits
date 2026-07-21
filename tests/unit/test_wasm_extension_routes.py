@@ -32,6 +32,7 @@ from lnbits.core.wasm_ext.routes.ui import (
     _match_wasm_extension_ui_route,
     _wasm_extension_bridge_api_routes,
     _wasm_extension_entrypoint,
+    register_wasm_extension_ui_routes,
 )
 from lnbits.core.wasm_ext.wasm.config import parse_wasm_extension_config
 from lnbits.core.wasm_ext.wasm.loader import WasmExtension
@@ -476,6 +477,26 @@ def test_wasm_api_routes_remove_obsolete_routes_on_upgrade(tmp_path: Path):
     assert _matching_routes(app, route_path, "GET") == []
     assert app.openapi_schema is None
     assert route_path not in app.openapi()["paths"]
+
+
+def test_wasm_api_route_cleanup_preserves_ui_frame_config_route(tmp_path: Path):
+    app = FastAPI()
+    (tmp_path / "index.html").write_text("<html></html>", encoding="utf-8")
+    extension = _wasm_extension(tmp_path)
+    frame_config_path = "/api/v1/ext/demoext/_ui/frame"
+    api_route_path = "/api/v1/ext/demoext/public/{item_id}"
+
+    register_wasm_extension_ui_routes(app, extension)
+    assert _matching_routes(app, frame_config_path, "POST") != []
+
+    register_wasm_extension_api_routes(app, extension)
+
+    assert _matching_routes(app, frame_config_path, "POST") != []
+    assert _matching_routes(app, api_route_path, "GET") != []
+
+    assert unregister_wasm_extension_api_routes(app, "demoext") is True
+    assert _matching_routes(app, api_route_path, "GET") == []
+    assert _matching_routes(app, frame_config_path, "POST") != []
 
 
 def test_wasm_api_routes_are_removed_from_openapi_on_uninstall(tmp_path: Path):

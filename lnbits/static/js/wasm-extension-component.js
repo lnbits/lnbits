@@ -1217,13 +1217,23 @@ window.WasmExtensionComponent = {
       }
 
       const subscriptionId = String(message.subscriptionId || '')
+      if (!subscriptionId) {
+        throw new Error('Invalid websocket subscription.')
+      }
+
       const subscription = this.websocketSubscriptions.get(subscriptionId)
       if (!subscription) {
-        throw new Error('Unknown websocket subscription.')
+        return
       }
 
       if (subscription.socket.readyState !== WebSocket.OPEN) {
-        throw new Error('Websocket subscription is not open.')
+        if (
+          subscription.socket.readyState === WebSocket.CLOSING ||
+          subscription.socket.readyState === WebSocket.CLOSED
+        ) {
+          this.closeWebsocketSubscription(subscriptionId)
+        }
+        return
       }
 
       const data =

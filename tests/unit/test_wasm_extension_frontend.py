@@ -42,6 +42,8 @@ def test_wasm_frontend_bridge_restricts_api_routes_and_realtime_actions():
     assert "message.action === 'websocket.unsubscribe'" in bridge
     assert "message.action === 'websocket.send'" in bridge
     assert "sendWebsocket(message)" in bridge
+    assert "Unknown websocket subscription." not in bridge
+    assert "if (!subscription) {\n        return\n      }" in bridge
     assert "message.action === 'navigation.replace'" in bridge
     assert "message.action === 'navigation.open_new_tab'" in bridge
     assert "openNewTab(message)" in bridge

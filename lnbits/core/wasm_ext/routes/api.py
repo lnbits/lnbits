@@ -18,6 +18,8 @@ from ..wasm.invoke import invoke_wasm_extension_export
 from ..wasm.loader import WasmExtension
 from .open_api import wasm_extension_api_openapi_metadata, wasm_extension_api_tag
 
+_WASM_EXTENSION_API_METHODS = {"GET", "POST", "PUT", "PATCH", "DELETE"}
+
 
 class WasmRequestBodyTooLargeError(ValueError):
     pass
@@ -284,7 +286,7 @@ def _wasm_extension_api_method(extension: WasmExtension, method: Any) -> str:
     if not isinstance(method, str):
         raise ValueError(f"Invalid API method for WASM extension '{extension.id}'.")
     method = method.upper()
-    if method not in {"GET", "POST", "PUT", "PATCH", "DELETE"}:
+    if method not in _WASM_EXTENSION_API_METHODS:
         raise ValueError(f"Unsupported API method for WASM extension '{extension.id}'.")
     return method
 
@@ -344,13 +346,21 @@ def _is_wasm_extension_api_route(route: Any, ext_id: str) -> bool:
     route_name = getattr(route, "name", None)
     if not isinstance(route_name, str) or not route_name.startswith(f"{ext_id}:"):
         return False
+    route_name_parts = route_name.split(":", 2)
+    if len(route_name_parts) != 3:
+        return False
+    _, route_method, named_route_path = route_name_parts
+    if route_method not in _WASM_EXTENSION_API_METHODS:
+        return False
 
     route_path = getattr(route, "path", None)
     if not isinstance(route_path, str):
         return False
 
     route_prefix = f"/api/v1/ext/{ext_id}"
-    return route_path == route_prefix or route_path.startswith(f"{route_prefix}/")
+    if route_path != route_prefix and not route_path.startswith(f"{route_prefix}/"):
+        return False
+    return named_route_path == route_path
 
 
 def _prepare_wasm_extension_api_route(
