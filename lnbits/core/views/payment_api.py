@@ -234,16 +234,16 @@ async def api_all_payments_paginated(
     "",
     summary="Create or pay an invoice",
     description="""
-        This endpoint can be used both to generate and pay a BOLT11 invoice.
+        This endpoint can be used to generate, pay a BOLT11 invoice, or pay a BOLT12 offer.
         To generate a new invoice for receiving funds into the authorized account,
         specify at least the first four fields in the POST body: `out: false`,
         `amount`, `unit`, and `memo`. To pay an arbitrary invoice from the funds
         already in the authorized account, specify `out: true` and use the `bolt11`
-        field to supply the BOLT11 invoice to be paid.
+        field to supply the BOLT11 invoice or BOLT12 offer (`lno1...`, optional `lightning:` URI) to be paid.
     """,
     status_code=HTTPStatus.CREATED,
     responses={
-        400: {"description": "Invalid BOLT11 string or missing fields."},
+        400: {"description": "Invalid BOLT11/BOLT12 string or missing fields."},
         401: {"description": "Invoice (or Admin) key required."},
         520: {"description": "Payment or Invoice error."},
     },
@@ -257,11 +257,16 @@ async def api_payments_create(
         if not invoice_data.bolt11:
             raise HTTPException(
                 status_code=HTTPStatus.BAD_REQUEST,
-                detail="Missing BOLT11 invoice",
+                detail="Missing BOLT11 invoice or BOLT12 offer",
             )
+        # Optional amount becomes max_sat for BOLT12 offers (and amountless paths).
+        max_sat = None
+        if invoice_data.amount is not None and invoice_data.unit == "sat":
+            max_sat = int(invoice_data.amount)
         payment = await pay_invoice(
             wallet_id=wallet_id,
             payment_request=invoice_data.bolt11,
+            max_sat=max_sat,
             extra=invoice_data.extra,
             labels=invoice_data.labels,
             external_id=invoice_data.external_id,

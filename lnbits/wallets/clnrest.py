@@ -18,6 +18,7 @@ from lnbits.settings import settings
 from lnbits.utils.crypto import random_secret_and_hash
 
 from .base import (
+    Feature,
     InvoiceResponse,
     PaymentPendingStatus,
     PaymentResponse,
@@ -29,6 +30,8 @@ from .base import (
 
 
 class CLNRestWallet(Wallet):
+    features = [Feature.bolt12]
+
     def __init__(self):
         if not settings.clnrest_url:
             raise ValueError("Cannot initialize CLNRestWallet: missing CLNREST_URL")
@@ -323,6 +326,99 @@ class CLNRestWallet(Wallet):
             logger.warning(exc)
             error_message = f"Unable to connect to {self.url}."
             return PaymentResponse(error_message=error_message)
+
+    async def pay_offer(
+        self,
+        offer: str,
+        fee_limit_msat: int,
+        amount_msat: int | None = None,
+    ) -> PaymentResponse:
+        """Pay a BOLT12 offer via CLN REST fetchinvoice + pay."""
+        if not settings.clnrest_pay_rune and not settings.clnrest_renepay_rune:
+            return PaymentResponse(
+                ok=False,
+                error_message="Unable to pay offer without a pay or renepay rune",
+            )
+
+        fetch_body: dict = {"offer": offer}
+        if amount_msat is not None and amount_msat > 0:
+            fetch_body["amount_msat"] = amount_msat
+
+        # Prefer pay rune for fetchinvoice; fall back to renepay rune headers.
+        if settings.clnrest_pay_rune:
+            fetch_headers = self.pay_headers
+        else:
+            fetch_headers = self.renepay_headers
+
+        try:
+            # Resolve offer to a payable invoice first (same as RPC path).
+            inv_r = await self.client.post(
+                "/v1/fetchinvoice",
+                json=fetch_body,
+                headers=fetch_headers,
+                timeout=None,
+            )
+            inv_r.raise_for_status()
+            inv_data = inv_r.json()
+            invoice = inv_data.get("invoice")
+            if not invoice:
+                return PaymentResponse(
+                    ok=False,
+                    error_message=inv_data.get("error", "fetchinvoice returned no invoice"),
+                )
+
+            data: dict = {
+                "label": _generate_label(),
+                "maxfee": fee_limit_msat,
+            }
+            if settings.clnrest_renepay_rune:
+                endpoint = "/v1/renepay"
+                headers = self.renepay_headers
+                data["invstring"] = invoice
+            else:
+                endpoint = "/v1/pay"
+                headers = self.pay_headers
+                data["bolt11"] = invoice
+
+            r = await self.client.post(
+                endpoint,
+                json=data,
+                headers=headers,
+                timeout=None,
+            )
+            r.raise_for_status()
+            pay_data = r.json()
+            if "payment_preimage" not in pay_data:
+                error_message = pay_data.get("error", "No payment preimage in response")
+                logger.warning(error_message)
+                return PaymentResponse(error_message=error_message)
+
+            amount_paid = int(pay_data.get("amount_msat") or 0)
+            amount_sent = int(pay_data.get("amount_sent_msat") or amount_paid)
+            return PaymentResponse(
+                ok=self.statuses.get(pay_data["status"]),
+                checking_id=pay_data["payment_hash"],
+                fee_msat=amount_sent - amount_paid,
+                preimage=pay_data["payment_preimage"],
+                amount_msat=amount_paid if amount_paid > 0 else None,
+            )
+        except httpx.HTTPStatusError as exc:
+            try:
+                err = exc.response.json()
+                error = err.get("error", {})
+                if isinstance(error, dict):
+                    error_message = error.get("message", "Unknown error")
+                else:
+                    error_message = str(error or err)
+                return PaymentResponse(ok=False, error_message=error_message)
+            except Exception:
+                return PaymentResponse(
+                    error_message=f"Error parsing response from {self.url}: {exc!s}"
+                )
+        except Exception as exc:
+            logger.info(f"Failed to pay offer {offer[:20]}...")
+            logger.warning(exc)
+            return PaymentResponse(error_message=f"Unable to connect to {self.url}.")
 
     async def get_invoice_status(self, checking_id: str) -> PaymentStatus:
         data: dict = {"payment_hash": checking_id}

@@ -71,6 +71,10 @@ window.PageWallet = {
         })
         return false
       }
+      // BOLT12 offers resolve amount on the backend; allow when wallet has balance.
+      if (this.parse.invoice.isOffer) {
+        return this.g.wallet.sat > 0
+      }
       return this.parse.invoice.sat <= this.g.wallet.sat
     },
     formattedAmount() {
@@ -272,6 +276,10 @@ window.PageWallet = {
         req.match(/[\w.+-~_]+@[\w.+-~_]/)
       )
     },
+    isBolt12Offer(req) {
+      const s = (req || '').trim().toLowerCase()
+      return s.startsWith('lno1') || s.startsWith('lni1')
+    },
     decodeRequest() {
       this.parse.show = true
       this.parse.data.request = this.parse.data.request.trim()
@@ -298,6 +306,21 @@ window.PageWallet = {
         if (this.parse.data.request.includes('&')) {
           this.parse.data.request = this.parse.data.request.split('&')[0]
         }
+      }
+
+      // BOLT12 offer / invoice (backend pay_offer path); skip bolt11 decoder.
+      if (this.isBolt12Offer(this.parse.data.request)) {
+        this.parse.invoice = Object.freeze({
+          msat: null,
+          sat: 0,
+          fsat: 'offer',
+          bolt11: this.parse.data.request,
+          description: 'BOLT12 offer',
+          hash: null,
+          isOffer: true,
+          expired: false
+        })
+        return
       }
 
       let invoice

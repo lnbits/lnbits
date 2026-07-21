@@ -35,7 +35,7 @@ class CoreLightningWallet(Wallet):
     """Core Lightning RPC implementation."""
 
     __node_cls__ = CoreLightningNode
-    features = [Feature.nodemanager]
+    features = [Feature.nodemanager, Feature.bolt12]
 
     async def cleanup(self):
         pass
@@ -202,6 +202,53 @@ class CoreLightningWallet(Wallet):
             )
         except Exception as exc:
             logger.info(f"Failed to pay invoice {bolt11}")
+            logger.warning(exc)
+            return PaymentResponse(error_message=f"Payment failed: '{exc}'.")
+
+    async def pay_offer(
+        self,
+        offer: str,
+        fee_limit_msat: int,
+        amount_msat: int | None = None,
+    ) -> PaymentResponse:
+        """Pay a BOLT12 offer via fetchinvoice + pay.
+
+        CLN ``pay`` expects a bolt11/bolt12 *invoice* (``bolt11``/``invstring``),
+        not a raw offer. Resolve the offer first, then pay the invoice.
+        """
+        try:
+            fetch_payload: dict = {"offer": offer}
+            if amount_msat is not None and amount_msat > 0:
+                fetch_payload["amount_msat"] = amount_msat
+            inv = await run_sync(lambda: self.ln.call("fetchinvoice", fetch_payload))
+            invoice = inv["invoice"]
+
+            pay_payload: dict = {"bolt11": invoice}
+            if fee_limit_msat > 0:
+                pay_payload["maxfee"] = fee_limit_msat
+            r = await run_sync(lambda: self.ln.call(self.pay, pay_payload))
+            fee_msat = -int(r["amount_sent_msat"] - r["amount_msat"])
+            return PaymentResponse(
+                True,
+                r["payment_hash"],
+                fee_msat,
+                r["payment_preimage"],
+                None,
+                amount_msat=int(r["amount_msat"]),
+            )
+        except RpcError as exc:
+            logger.warning(exc)
+            error_message = exc.error.get("message", str(exc.error))
+            return PaymentResponse(
+                ok=False, error_message=f"Payment failed: {error_message}"
+            )
+        except KeyError as exc:
+            logger.warning(exc)
+            return PaymentResponse(
+                error_message="Server error: 'missing required fields'"
+            )
+        except Exception as exc:
+            logger.info(f"Failed to pay offer {offer[:20]}...")
             logger.warning(exc)
             return PaymentResponse(error_message=f"Payment failed: '{exc}'.")
 

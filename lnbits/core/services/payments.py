@@ -1,4 +1,5 @@
 import asyncio
+import secrets
 import time
 from datetime import datetime, timedelta, timezone
 
@@ -24,6 +25,7 @@ from lnbits.utils.crypto import fake_privkey, random_secret_and_hash, verify_pre
 from lnbits.utils.exchange_rates import fiat_amount_as_satoshis, satoshis_amount_as_fiat
 from lnbits.wallets import fake_wallet, get_funding_source
 from lnbits.wallets.base import (
+    Feature,
     InvoiceResponse,
     PaymentFailedStatus,
     PaymentPendingStatus,
@@ -31,6 +33,8 @@ from lnbits.wallets.base import (
     PaymentStatus,
     PaymentSuccessStatus,
 )
+
+from .offers import is_bolt12_offer, normalize_bolt12_string
 
 from ..crud import (
     check_internal,
@@ -69,6 +73,20 @@ async def pay_invoice(
 ) -> Payment:
     if settings.lnbits_only_allow_incoming_payments:
         raise PaymentError("Only incoming payments allowed.", status="failed")
+
+    if is_bolt12_offer(payment_request):
+        return await pay_offer(
+            wallet_id=wallet_id,
+            offer=normalize_bolt12_string(payment_request),
+            max_sat=max_sat,
+            extra=extra,
+            description=description,
+            tag=tag,
+            labels=labels,
+            external_id=external_id,
+            conn=conn,
+        )
+
     invoice = _validate_payment_request(payment_request, max_sat)
 
     if not invoice.amount_msat:
@@ -106,6 +124,103 @@ async def pay_invoice(
             wallet.source_wallet_id, create_payment_model, conn=new_conn
         )
 
+        await _credit_service_fee_wallet(wallet, payment, conn=new_conn)
+
+    return payment
+
+
+async def pay_offer(
+    *,
+    wallet_id: str,
+    offer: str,
+    max_sat: int | None = None,
+    extra: dict | None = None,
+    description: str = "",
+    tag: str = "",
+    labels: list[str] | None = None,
+    external_id: str | None = None,
+    conn: Connection | None = None,
+) -> Payment:
+    async with db.reuse_conn(conn) if conn else db.connect() as new_conn:
+        wallet = await get_wallet(wallet_id, conn=new_conn)
+        if not wallet:
+            raise PaymentError(f"Could not fetch wallet '{wallet_id}'.", status="failed")
+
+        status = await check_user_extension_access(wallet.user, tag, conn=new_conn)
+        if not status.success:
+            raise PaymentError(status.message)
+
+        if not wallet.can_send_payments:
+            raise PaymentError("Wallet does not have permission to pay.", status="failed")
+
+        funding_source = get_funding_source()
+        if not funding_source.has_feature(Feature.bolt12):
+            raise PaymentError(
+                "Funding source does not support BOLT12 offers.",
+                status="failed",
+            )
+
+        # ceiling_sat is the hard cap for the resolved offer amount.
+        # reserve_sat is only set when the caller provided max_sat/amount so we do
+        # not lock the global default (10M sats) on every offer pay.
+        ceiling_sat = settings.lnbits_max_outgoing_payment_amount_sats
+        reserve_sat: int | None = None
+        if max_sat is not None:
+            reserve_sat = min(int(max_sat), ceiling_sat)
+            ceiling_sat = reserve_sat
+
+        limit_msat = (reserve_sat if reserve_sat is not None else ceiling_sat) * 1000
+        await check_wallet_limits(wallet_id, limit_msat, new_conn)
+
+        fiat_base = reserve_sat if reserve_sat is not None else 0
+        _, extra = await calculate_fiat_amounts(fiat_base, wallet, extra=extra)
+
+        # amount_msat_hint is passed to backends for amount-less offers.
+        amount_msat_hint: int | None = None
+        if reserve_sat is not None:
+            amount_msat_hint = reserve_sat * 1000
+            fee_reserve_total_msat = fee_reserve_total(amount_msat_hint, internal=False)
+            if wallet.balance_msat < amount_msat_hint + fee_reserve_total_msat:
+                raise PaymentError(
+                    f"Insufficient balance to reserve max {reserve_sat} sats "
+                    f"plus fees ({round(fee_reserve_total_msat/1000)} sats).",
+                    status="failed",
+                )
+            # Outgoing payments are negative (same convention as BOLT11 pay_invoice).
+            create_amount_msat = -amount_msat_hint
+            create_fee = -abs(fee_reserve_total_msat)
+        else:
+            # Fixed-amount offers resolve the amount in the backend. Keep a zero
+            # provisional row so we do not debit the global max; success path
+            # must write the resolved negative amount.
+            if wallet.balance_msat <= 0:
+                raise PaymentError("Insufficient balance.", status="failed")
+            create_amount_msat = 0
+            create_fee = 0
+
+        # Unique provisional id per attempt so reusable offers can be paid again.
+        provisional_hash = secrets.token_hex(32)
+        create_payment_model = CreatePayment(
+            wallet_id=wallet.source_wallet_id,
+            bolt11=offer,
+            payment_hash=provisional_hash,
+            amount_msat=create_amount_msat,
+            memo=description or "BOLT12 offer payment",
+            extra=extra,
+            labels=labels,
+            external_id=external_id,
+            fee=create_fee,
+        )
+
+    async with db.reuse_conn(conn) if conn else db.connect() as new_conn:
+        payment = await _pay_offer(
+            wallet.source_wallet_id,
+            create_payment_model,
+            offer,
+            ceiling_sat,
+            amount_msat_hint,
+            conn=new_conn,
+        )
         await _credit_service_fee_wallet(wallet, payment, conn=new_conn)
 
     return payment
@@ -894,6 +1009,130 @@ async def _fundingsource_pay_invoice(
         bolt11, fee_reserve_msat
     )
     logger.debug(f"backend: pay_invoice finished {checking_id}, {payment_response}")
+    return payment_response
+
+
+async def _pay_offer(
+    wallet_id: str,
+    create_payment_model: CreatePayment,
+    offer: str,
+    max_sat: int,
+    amount_msat: int | None = None,
+    conn: Connection | None = None,
+) -> Payment:
+    async with payment_lock:
+        if wallet_id not in wallets_payments_lock:
+            wallets_payments_lock[wallet_id] = asyncio.Lock()
+
+    async with wallets_payments_lock[wallet_id]:
+        wallet = await get_wallet(wallet_id, conn=conn)
+        if not wallet:
+            raise PaymentError(
+                f"Could not fetch wallet '{wallet_id}'.", status="failed"
+            )
+
+        checking_id = create_payment_model.payment_hash
+        old_payment = await get_standalone_payment(checking_id, conn=conn)
+        if old_payment:
+            return await _verify_external_payment(old_payment, conn)
+
+        payment = await create_payment(
+            checking_id=checking_id,
+            data=create_payment_model,
+            conn=conn,
+        )
+
+        from lnbits.tasks import create_task
+
+        task = create_task(
+            _fundingsource_pay_offer(checking_id, offer, max_sat, amount_msat)
+        )
+
+        wait_time = max(1, settings.lnbits_funding_source_pay_invoice_wait_seconds)
+        try:
+            payment_response = await asyncio.wait_for(task, timeout=wait_time)
+        except asyncio.TimeoutError:
+            logger.debug(
+                f"payment timeout after {wait_time}s, {checking_id} is still pending"
+            )
+            return payment
+
+        if (
+            payment_response.checking_id is None
+            or payment_response.ok is False
+        ):
+            payment.status = PaymentState.FAILED
+            await update_payment(payment, conn=conn)
+            message = payment_response.error_message or "without an error message."
+            raise PaymentError(f"Payment failed: {message}", status="failed")
+
+        # Persist backend payment hash so later status checks work.
+        if (
+            payment_response.checking_id
+            and payment_response.checking_id != payment.checking_id
+        ):
+            payment.payment_hash = payment_response.checking_id
+            payment = await update_payment(
+                payment,
+                new_checking_id=payment_response.checking_id,
+                conn=conn,
+            )
+
+        if payment_response.success:
+            if payment_response.amount_msat is None:
+                payment.status = PaymentState.FAILED
+                await update_payment(payment, conn=conn)
+                raise PaymentError(
+                    "BOLT12 offer payment succeeded on backend but no amount "
+                    "was returned; cannot debit wallet safely.",
+                    status="failed",
+                )
+            actual = abs(payment_response.amount_msat)
+            if actual <= 0:
+                payment.status = PaymentState.FAILED
+                await update_payment(payment, conn=conn)
+                raise PaymentError(
+                    "BOLT12 offer payment returned non-positive amount.",
+                    status="failed",
+                )
+            if actual > max_sat * 1000:
+                payment.status = PaymentState.FAILED
+                await update_payment(payment, conn=conn)
+                raise PaymentError(
+                    f"BOLT12 offer actual amount {actual // 1000} sats "
+                    f"exceeds max_sat {max_sat} sats.",
+                    status="failed",
+                )
+            # Debit the resolved amount (negative for outgoing).
+            payment.amount = -actual
+            payment = await update_payment_success_status(
+                payment, payment_response, conn=conn
+            )
+            # Persist amount after success status (success helper updates fee/preimage).
+            payment = await update_payment(payment, conn=conn)
+            await _send_payment_notification_in_background(wallet.id, payment, conn=conn)
+            logger.success(f"payment successful {payment_response.checking_id}")
+
+        return payment
+
+
+async def _fundingsource_pay_offer(
+    checking_id: str,
+    offer: str,
+    max_sat: int,
+    amount_msat: int | None = None,
+) -> PaymentResponse:
+    logger.debug(f"fundingsource: paying BOLT12 offer {checking_id}")
+    funding_source = get_funding_source()
+    # Prefer fee reserve of the intended amount; fall back to max_sat ceiling.
+    fee_base_msat = amount_msat if amount_msat and amount_msat > 0 else max_sat * 1000
+    fee_limit_msat = fee_reserve(fee_base_msat, internal=False)
+    payment_response: PaymentResponse = await funding_source.pay_offer(
+        offer,
+        fee_limit_msat=fee_limit_msat,
+        amount_msat=amount_msat,
+    )
+    logger.debug(f"backend: pay_offer finished {checking_id}, {payment_response}")
     return payment_response
 
 
