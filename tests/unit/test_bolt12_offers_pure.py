@@ -63,3 +63,14 @@ def test_payments_routes_offers_via_normalize():
     assert "pay_offer" in payments
     assert "normalize_bolt12_string" in payments or "is_bolt12_offer" in payments
     assert "fee_reserve(" in payments
+
+
+def test_pay_offer_uses_negative_outgoing_amount():
+    root = Path(__file__).resolve().parents[2]
+    payments = (root / "lnbits/core/services/payments.py").read_text(encoding="utf-8")
+    start = payments.find("async def pay_offer")
+    end = payments.find("async def create_payment_request")
+    chunk = payments[start:end]
+    assert "amount_msat=-(max_sat * 1000)" in chunk
+    assert "check_wallet_limits(wallet_id, max_sat * 1000" in chunk
+    assert "fee_reserve(" in payments[payments.find("_fundingsource_pay_offer") :]
