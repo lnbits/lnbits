@@ -25,6 +25,7 @@ from lnbits.utils.crypto import fake_privkey, random_secret_and_hash, verify_pre
 from lnbits.utils.exchange_rates import fiat_amount_as_satoshis, satoshis_amount_as_fiat
 from lnbits.wallets import fake_wallet, get_funding_source
 from lnbits.wallets.base import (
+    Feature,
     InvoiceResponse,
     PaymentFailedStatus,
     PaymentPendingStatus,
@@ -151,6 +152,13 @@ async def pay_offer(
 
         if not wallet.can_send_payments:
             raise PaymentError("Wallet does not have permission to pay.", status="failed")
+
+        funding_source = get_funding_source()
+        if not funding_source.has_feature(Feature.bolt12):
+            raise PaymentError(
+                "Funding source does not support BOLT12 offers.",
+                status="failed",
+            )
 
         # ceiling_sat is the hard cap for the resolved offer amount.
         # reserve_sat is only set when the caller provided max_sat/amount so we do

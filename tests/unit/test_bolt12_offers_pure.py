@@ -125,3 +125,11 @@ def test_cln_pay_offer_uses_fetchinvoice():
     # pay RPC must not take a top-level "offer" key (that is fetchinvoice only).
     assert 'pay_payload: dict = {"offer"' not in chunk
     assert 'payload = {"offer": offer}' not in chunk
+
+
+def test_pay_offer_requires_bolt12_feature():
+    """pay_offer should fail fast when funding source lacks Feature.bolt12."""
+    root = Path(__file__).resolve().parents[2]
+    payments = (root / "lnbits/core/services/payments.py").read_text(encoding="utf-8")
+    assert "Feature.bolt12" in payments
+    assert "does not support BOLT12 offers" in payments
