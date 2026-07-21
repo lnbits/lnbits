@@ -405,7 +405,7 @@ class NWCWallet(Wallet):
             await self._reconcile_pending_invoices(now)
 
         await self._run_fallback_lookups(now)
-        self._prune_payment_status_cache(self._cache_ids())
+        self._prune_payment_status_cache()
 
     def _payment_data_is_settled(self, payment_data: dict[str, Any]) -> bool:
         state = payment_data.get("state")
