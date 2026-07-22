@@ -8,10 +8,12 @@ from dataclasses import dataclass
 from typing import Any
 from urllib.request import Request, urlopen
 
-from playwright.sync_api import Frame, Page, expect
+from playwright.sync_api import Frame, Locator, Page, expect
 from playwright.sync_api import TimeoutError as PlaywrightTimeoutError
 
 from tests.e2e.helpers import LNbitsE2EServer
+
+_INSTALLABLE_EXTENSION_REFRESH_TASK = "refresh_installable_extensions_cache"
 
 
 @dataclass(frozen=True)
@@ -213,15 +215,60 @@ def install_extension(page: Page, extension: ExtensionUnderTest) -> None:
     state = extension_state(page, extension.ext_id)
     if state and state.get("isInstalled"):
         if not state.get("isActive"):
-            browser_json(
-                page,
-                "PUT",
-                f"/api/v1/extension/{extension.ext_id}/activate",
-            )
+            activate_installed_extension(page, extension)
             wait_for_installed_extension(page, extension.ext_id)
         return
 
-    browser_json(page, "POST", "/api/v1/extension", _install_payload(extension))
+    wait_for_installable_extension(page, extension)
+
+    page.goto("/extensions")
+    dismiss_disclaimer(page)
+    _select_extensions_tab(page, "All")
+    _filter_extensions(page, extension.name)
+    extension_card = _extension_card(page, extension)
+    expect(extension_card).to_be_visible(timeout=120_000)
+    extension_card.get_by_role(
+        "button", name=re.compile("^manage$", re.IGNORECASE)
+    ).click()
+
+    manage_dialog = _manage_extension_dialog(page)
+    expect(manage_dialog).to_be_visible(timeout=60_000)
+    expect(
+        manage_dialog.get_by_role("tab", name=re.compile("^releases$", re.IGNORECASE))
+    ).to_be_visible(timeout=60_000)
+
+    release = _latest_github_release(extension)
+    version = str(release["tag_name"])
+    repository_label = manage_dialog.get_by_text(extension.repository).first
+    expect(repository_label).to_be_visible(timeout=120_000)
+    repository_label.click()
+
+    release_label = manage_dialog.get_by_text(version).first
+    expect(release_label).to_be_visible(timeout=120_000)
+    release_label.click()
+
+    install_button = manage_dialog.get_by_role(
+        "button", name=re.compile("^install$", re.IGNORECASE)
+    ).first
+    expect(install_button).to_be_visible(timeout=120_000)
+    install_button.click()
+
+    grant_button = page.get_by_role(
+        "button", name=re.compile("^grant and install$", re.IGNORECASE)
+    )
+    try:
+        expect(page.get_by_text("Grant extension permissions")).to_be_visible(
+            timeout=10_000
+        )
+        for permission_text in extension.permission_texts:
+            expect(page.get_by_text(permission_text).first).to_be_visible(
+                timeout=60_000
+            )
+        expect(grant_button).to_be_enabled(timeout=60_000)
+        grant_button.click()
+    except PlaywrightTimeoutError:
+        pass
+
     wait_for_installed_extension(page, extension.ext_id)
     installed = extension_state(page, extension.ext_id)
     granted_permission_ids = {
@@ -229,23 +276,6 @@ def install_extension(page: Page, extension: ExtensionUnderTest) -> None:
     }
     for permission in _latest_release_config(extension).get("permissions") or []:
         assert permission.get("id") in granted_permission_ids
-
-
-def _install_payload(extension: ExtensionUnderTest) -> dict[str, Any]:
-    release = _latest_github_release(extension)
-    config = _latest_release_config(extension, release.get("tag_name"))
-    version = str(release["tag_name"])
-    archive = release.get("zipball_url") or (
-        f"https://api.github.com/repos/{extension.repository}/zipball/{version}"
-    )
-    return {
-        "ext_id": extension.ext_id,
-        "archive": archive,
-        "source_repo": extension.repository,
-        "version": version,
-        "cost_sats": 0,
-        "permissions": config.get("permissions") or [],
-    }
 
 
 def _latest_github_release(extension: ExtensionUnderTest) -> dict[str, Any]:
@@ -270,11 +300,9 @@ def _latest_release_config(
 
 def enable_extension(page: Page, extension: ExtensionUnderTest) -> None:
     page.goto("/extensions")
-    page.get_by_role("tab", name=re.compile("^installed$", re.IGNORECASE)).click()
-    page.locator(".q-field").filter(has_text="Search extensions").locator("input").fill(
-        extension.name
-    )
-    extension_card = page.locator(".q-card").filter(has_text=extension.name).first
+    _select_extensions_tab(page, "Installed")
+    _filter_extensions(page, extension.name)
+    extension_card = _extension_card(page, extension)
     expect(extension_card).to_be_visible(timeout=120_000)
     enable_button = extension_card.get_by_role(
         "button", name=re.compile("^enable$", re.IGNORECASE)
@@ -287,8 +315,57 @@ def enable_extension(page: Page, extension: ExtensionUnderTest) -> None:
     ).to_be_visible(timeout=60_000)
 
 
+def activate_installed_extension(page: Page, extension: ExtensionUnderTest) -> None:
+    page.goto("/extensions")
+    _select_extensions_tab(page, "Installed")
+    _filter_extensions(page, extension.name)
+    extension_card = _extension_card(page, extension)
+    expect(extension_card).to_be_visible(timeout=120_000)
+    inactive_toggle = extension_card.get_by_text(
+        re.compile("^deactivated$", re.IGNORECASE)
+    )
+    try:
+        inactive_toggle.click(timeout=5_000)
+    except PlaywrightTimeoutError:
+        return
+    expect(
+        page.get_by_text(
+            re.compile(f"Extension '{re.escape(extension.ext_id)}' activated!")
+        )
+    ).to_be_visible(timeout=60_000)
+
+
+def _extension_card(page: Page, extension: ExtensionUnderTest) -> Locator:
+    return page.locator(".q-card").filter(has_text=extension.name).first
+
+
+def _filter_extensions(page: Page, search_term: str) -> None:
+    page.locator(".q-field").filter(has_text="Search extensions").locator("input").fill(
+        search_term
+    )
+
+
+def _select_extensions_tab(page: Page, tab_name: str) -> None:
+    tab = page.get_by_role(
+        "tab", name=re.compile(f"^{re.escape(tab_name)}$", re.IGNORECASE)
+    )
+    expect(tab).to_be_visible(timeout=60_000)
+    for _ in range(3):
+        tab.click()
+        try:
+            expect(tab).to_have_attribute("aria-selected", "true", timeout=5_000)
+            return
+        except PlaywrightTimeoutError:
+            page.wait_for_timeout(500)
+    expect(tab).to_have_attribute("aria-selected", "true", timeout=60_000)
+
+
+def _manage_extension_dialog(page: Page) -> Locator:
+    return page.locator(".q-dialog").filter(has_text="Releases").last
+
+
 def wait_for_installable_extension(
-    page: Page, extension: ExtensionUnderTest, *, timeout: float = 180
+    page: Page, extension: ExtensionUnderTest, *, timeout: float = 360
 ) -> None:
     last_response = None
     last_error: Exception | None = None
@@ -297,6 +374,7 @@ def wait_for_installable_extension(
     while time.monotonic() < deadline:
         try:
             last_error = None
+            _wait_for_installable_extension_refresh(page, deadline)
             settings = browser_json(page, "GET", "/admin/api/v1/settings")
             extensions = browser_json(page, "GET", "/api/v1/extension/all")
             last_response = {
@@ -312,6 +390,7 @@ def wait_for_installable_extension(
                 item.get("id") == extension.ext_id for item in extensions
             ):
                 return
+            _wait_for_installable_extension_refresh(page, deadline)
         except Exception as exc:
             last_error = exc
         time.sleep(2)
@@ -320,6 +399,20 @@ def wait_for_installable_extension(
         f"{extension.name} extension did not become installable: "
         f"{last_response!r}. Last error: {last_error!r}"
     )
+
+
+def _wait_for_installable_extension_refresh(page: Page, deadline: float) -> None:
+    while time.monotonic() < deadline:
+        tasks = browser_json(page, "GET", "/admin/api/v1/monitor")
+        if not isinstance(tasks, list):
+            return
+        if not any(
+            isinstance(task, dict)
+            and task.get("name") == _INSTALLABLE_EXTENSION_REFRESH_TASK
+            for task in tasks
+        ):
+            return
+        time.sleep(2)
 
 
 def wait_for_installed_extension(

@@ -51,7 +51,7 @@ _UI_CHANGE_SCRIPT = """
 (() => {
   if (window.__lnbitsUiSnapshotInstalled) return
 
-  const visibleElements = new WeakSet()
+  const visibleElements = new WeakMap()
   let nextSnapshot = 0
   let scheduled = false
 
@@ -78,19 +78,44 @@ _UI_CHANGE_SCRIPT = """
     return rect.width > 0 && rect.height > 0
   }
 
-  const labelFor = element => (
+  const textFor = element => (
     element.getAttribute('aria-label') ||
     element.innerText ||
     element.textContent ||
     ''
   ).replace(/\\s+/g, ' ').trim().slice(0, 120)
 
-  const notify = (kind, element) => {
+  const labelFor = element => {
+    const headings = element.querySelectorAll([
+      '[role="heading"]',
+      'h1',
+      'h2',
+      'h3',
+      'h4',
+      'h5',
+      'h6',
+      '.text-h1',
+      '.text-h2',
+      '.text-h3',
+      '.text-h4',
+      '.text-h5',
+      '.text-h6'
+    ].join(', '))
+    for (const heading of headings) {
+      if (isVisible(heading)) {
+        const headingText = textFor(heading)
+        if (headingText) return headingText
+      }
+    }
+    return textFor(element)
+  }
+
+  const notify = (kind, element, label) => {
     const snapshotId = `${kind}-${Date.now()}-${++nextSnapshot}`
     const payload = {
       kind,
       snapshotId,
-      label: labelFor(element),
+      label,
       url: window.location.href
     }
     setTimeout(() => {
@@ -104,9 +129,10 @@ _UI_CHANGE_SCRIPT = """
     for (const group of groups) {
       for (const element of document.querySelectorAll(group.selector)) {
         if (isVisible(element)) {
-          if (!visibleElements.has(element)) {
-            visibleElements.add(element)
-            notify(group.kind, element)
+          const label = labelFor(element)
+          if (visibleElements.get(element) !== label) {
+            visibleElements.set(element, label)
+            notify(group.kind, element, label)
           }
         } else {
           visibleElements.delete(element)
@@ -268,8 +294,7 @@ class _E2EScreenshotRecorder:
     def __init__(self, page: Page, output_dir: Path) -> None:
         self.page = page
         self.output_dir = output_dir
-        self.url_index = 0
-        self.ui_index = 0
+        self.screenshot_index = 0
         self.last_queued_url = ""
         self.last_captured_url = ""
         self.last_queued_ui_snapshot = ""
@@ -368,10 +393,9 @@ class _E2EScreenshotRecorder:
         if url == self.last_captured_url:
             return
 
-        self.url_index += 1
         self.last_captured_url = url
         self.output_dir.mkdir(parents=True, exist_ok=True)
-        path = self.output_dir / f"url-{self.url_index:02d}-{_url_slug(url)}.png"
+        path = self._screenshot_path("url", _url_slug(url))
         try:
             self._wait_for_load_state("domcontentloaded", timeout=2_000)
         except PlaywrightError:
@@ -386,17 +410,20 @@ class _E2EScreenshotRecorder:
         if self.page.is_closed():
             return
 
-        self.ui_index += 1
         self.output_dir.mkdir(parents=True, exist_ok=True)
-        path = (
-            self.output_dir
-            / f"{snapshot['kind']}-{self.ui_index:02d}-{_ui_slug(snapshot)}.png"
-        )
+        path = self._screenshot_path(snapshot["kind"], _ui_slug(snapshot))
         try:
             self._wait_for_timeout(250)
             self._screenshot(path=path, full_page=True, timeout=5_000)
         except (OSError, PlaywrightError):
             pass
+
+    def _screenshot_path(self, kind: str, label: str) -> Path:
+        self.screenshot_index += 1
+        return (
+            self.output_dir
+            / f"screenshot-{self.screenshot_index:03d}-{kind}-{label}.png"
+        )
 
     def _patch_object_methods(self, target: Any) -> Any:
         if target is None or isinstance(

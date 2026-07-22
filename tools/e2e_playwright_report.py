@@ -413,11 +413,7 @@ def _screenshot_name(path: Path) -> str:
 
 
 def _screenshot_sort_key(path: Path) -> tuple[int, str]:
-    if path.name.startswith("url-"):
-        return (0, path.name)
-    if path.name.startswith(("dialog-", "toast-")):
-        return (1, path.name)
-    return (2, path.name)
+    return (path.stat().st_mtime_ns, path.name)
 
 
 if __name__ == "__main__":
