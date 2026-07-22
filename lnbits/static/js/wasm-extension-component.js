@@ -722,7 +722,10 @@ window.WasmExtensionComponent = {
           continue
         }
 
-        const granted = await this.promptExtensionPermission(permission)
+        const promptPermission = check.grant
+          ? {...permission, grant: check.grant}
+          : permission
+        const granted = await this.promptExtensionPermission(promptPermission)
         results.push({
           id: permission.id,
           approved: true,
