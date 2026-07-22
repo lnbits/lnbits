@@ -59,6 +59,24 @@ async def test_auth_api_logout_and_update_ui_customization(
 
 
 @pytest.mark.anyio
+async def test_auth_api_keycloak_login_without_user_id_redirects_to_provider(
+    http_client: AsyncClient, mocker
+):
+    provider = "keycloak"
+    login_sso = _FakeSSO()
+    mocker.patch("lnbits.core.views.auth_api._new_sso", return_value=login_sso)
+
+    response = await http_client.get(f"/api/v1/auth/{provider}")
+
+    assert response.status_code == 307
+    assert response.headers["location"] == "https://example.com/sso/login"
+    assert login_sso.redirect_uri == (
+        f"{http_client.base_url}/api/v1/auth/{provider}/token"
+    )
+    assert login_sso.state is None
+
+
+@pytest.mark.anyio
 async def test_auth_api_sso_login_and_callback(http_client: AsyncClient, mocker):
     user = await create_user_account(
         Account(

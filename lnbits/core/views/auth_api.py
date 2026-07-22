@@ -326,7 +326,7 @@ async def api_delete_user_api_token(
 async def login_with_sso_provider(
     request: Request,
     provider: str,
-    user_id: str | None,
+    user_id: str | None = None,
     auth_user_id: str | None = Depends(optional_user_id),
 ):
     provider_sso = _new_sso(provider)
