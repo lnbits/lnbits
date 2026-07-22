@@ -6,12 +6,12 @@ import socket
 import subprocess
 import sys
 import time
-from collections.abc import Iterator
+from collections.abc import Callable, Iterator
 from pathlib import Path
 from urllib.error import URLError
 
 import pytest
-from playwright.sync_api import Browser, Page, sync_playwright
+from playwright.sync_api import BrowserContext
 
 from tests.e2e.helpers import LNbitsE2EServer, request_json
 
@@ -76,29 +76,21 @@ def lnbits_e2e_server(
         _terminate_process_group(process)
 
 
-@pytest.fixture(scope="session")
-def browser() -> Iterator[Browser]:
-    with sync_playwright() as playwright:
-        browser = playwright.chromium.launch()
-        try:
-            yield browser
-        finally:
-            browser.close()
-
-
 @pytest.fixture
-def page(browser: Browser, lnbits_e2e_server: LNbitsE2EServer) -> Iterator[Page]:
-    context = browser.new_context(
+def context(
+    new_context: Callable[..., BrowserContext],
+    lnbits_e2e_server: LNbitsE2EServer,
+) -> Iterator[BrowserContext]:
+    context = new_context(
         base_url=lnbits_e2e_server.base_url,
         viewport={"width": 1280, "height": 900},
     )
     context.add_init_script(
         "window.localStorage.setItem('lnbits.disclaimerShown', 'true')"
     )
-    page = context.new_page()
-    page.set_default_timeout(60_000)
+    context.set_default_timeout(60_000)
     try:
-        yield page
+        yield context
     finally:
         context.close()
 
