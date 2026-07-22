@@ -43,7 +43,7 @@ def _find_artifacts() -> list[TestArtifacts]:
             TestArtifacts(
                 name=path.name,
                 path=path,
-                screenshots=sorted(path.glob("*.png")),
+                screenshots=sorted(path.glob("*.png"), key=_screenshot_sort_key),
                 traces=sorted(path.glob("*.zip")),
                 videos=sorted(path.glob("*.webm")),
             )
@@ -167,6 +167,10 @@ def _render_report(artifacts: list[TestArtifacts]) -> str:
     .screenshot {{
       display: block;
     }}
+    .screenshots {{
+      display: grid;
+      gap: 14px;
+    }}
     .screenshot img {{
       background: #0f172a;
       border: 1px solid var(--border);
@@ -175,7 +179,10 @@ def _render_report(artifacts: list[TestArtifacts]) -> str:
       max-width: 100%;
     }}
     .screenshot-links {{
+      color: var(--muted);
+      font-size: 13px;
       margin: 8px 0 0;
+      overflow-wrap: anywhere;
     }}
     .artifacts {{
       align-content: start;
@@ -239,7 +246,7 @@ def _render_report(artifacts: list[TestArtifacts]) -> str:
 
 def _render_artifact_card(artifact: TestArtifacts) -> str:
     status = escape(artifact.status)
-    screenshot = _render_screenshot(artifact)
+    screenshots = _render_screenshots(artifact)
     videos = "\n".join(_render_video(path) for path in artifact.videos)
     traces = "\n".join(_render_trace(path) for path in artifact.traces)
     if not videos:
@@ -255,7 +262,7 @@ def _render_artifact_card(artifact: TestArtifacts) -> str:
       </div>
       <div class="test-card__body">
         <div>
-          {screenshot}
+          {screenshots}
         </div>
         <div class="artifacts">
           <div>
@@ -272,17 +279,24 @@ def _render_artifact_card(artifact: TestArtifacts) -> str:
 """
 
 
-def _render_screenshot(artifact: TestArtifacts) -> str:
+def _render_screenshots(artifact: TestArtifacts) -> str:
     if not artifact.screenshots:
         return "<p>No screenshot artifact.</p>"
 
-    screenshot = artifact.screenshots[0]
+    screenshots = "\n".join(
+        _render_screenshot(artifact, screenshot) for screenshot in artifact.screenshots
+    )
+    return f'<div class="screenshots">{screenshots}</div>'
+
+
+def _render_screenshot(artifact: TestArtifacts, screenshot: Path) -> str:
     href = _href(screenshot)
     alt = escape(artifact.name)
     return (
         f'<a class="screenshot" href="{href}">'
         f'<img src="{href}" alt="{alt} screenshot"></a>'
         f'<p class="screenshot-links">'
+        f"{escape(screenshot.name)} · "
         f'<a class="artifact-link" href="{href}">Open PNG</a></p>'
     )
 
@@ -311,6 +325,12 @@ def _render_trace(path: Path) -> str:
 def _href(path: Path) -> str:
     relative = path.relative_to(REPORT_DIR)
     return "./" + "/".join(quote(part) for part in relative.parts)
+
+
+def _screenshot_sort_key(path: Path) -> tuple[int, str]:
+    if path.name.startswith("url-"):
+        return (0, path.name)
+    return (1, path.name)
 
 
 def _file_size(path: Path) -> str:
