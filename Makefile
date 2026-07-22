@@ -62,6 +62,13 @@ test-api:
 	DEBUG=true \
 	uv run pytest tests/api
 
+test-e2e:
+	uv run playwright install chromium
+	LNBITS_BACKEND_WALLET_CLASS="FakeWallet" \
+	PYTHONUNBUFFERED=1 \
+	DEBUG=true \
+	uv run pytest tests/e2e
+
 test-regtest:
 	LNBITS_DATA_FOLDER="./tests/data" \
 	PYTHONUNBUFFERED=1 \
