@@ -237,6 +237,44 @@ async def test_pay_invoice_rejects_when_probed_fee_exceeds_limit():
     assert "exceeds" in response.error_message
 
 
+@pytest.mark.parametrize(
+    ("probe_response", "expected_error"),
+    [
+        ({"errors": [{"message": "probe unavailable"}]}, "probe unavailable"),
+        (
+            {"data": {"lnInvoiceFeeProbe": {"errors": []}}},
+            "missing fee probe amount",
+        ),
+    ],
+)
+@pytest.mark.anyio
+async def test_pay_invoice_strict_probe_failure_rejects_without_sending(
+    probe_response, expected_error
+):
+    """Strict mode rejects malformed probe responses before sending."""
+    settings.blink_send_without_probe = False
+    calls = {"send": 0}
+
+    async def graphql(payload):
+        query = payload["query"]
+        if "lnInvoiceFeeProbe" in query:
+            return probe_response
+        if "lnInvoicePaymentSend" in query:
+            calls["send"] += 1
+            return {
+                "data": {"lnInvoicePaymentSend": {"status": "SUCCESS", "errors": []}}
+            }
+        return {"data": {}}
+
+    wallet = _make_blink_wallet_with_mock(graphql)
+    response = await wallet.pay_invoice(AMOUNT_BOLT11, fee_limit_msat=5000)
+
+    assert calls["send"] == 0
+    assert response.ok is False
+    assert response.error_message is not None
+    assert expected_error in response.error_message
+
+
 @pytest.mark.anyio
 async def test_pay_invoice_zero_amount_skips_probe_and_sends():
     """Zero-amount invoices cannot be probed and fall back to sending."""

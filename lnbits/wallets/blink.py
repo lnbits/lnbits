@@ -183,13 +183,22 @@ class BlinkWallet(Wallet):
         }
         data = {"query": q.fee_probe_query, "variables": {"input": probe_input}}
         response = await self._graphql_query(data)
-        result = response.get("data", {}).get("lnInvoiceFeeProbe", {})
+
+        errors = response.get("errors") or []
+        if len(errors) > 0:
+            return None, errors[0].get("message") or "Fee probe failed."
+
+        result = (response.get("data") or {}).get("lnInvoiceFeeProbe") or {}
 
         errors = result.get("errors") or []
         if len(errors) > 0:
-            return None, errors[0].get("message")
+            return None, errors[0].get("message") or "Fee probe failed."
 
-        return result.get("amount"), None
+        fee_sat = result.get("amount")
+        if fee_sat is None:
+            return None, "Server error: 'missing fee probe amount'"
+
+        return fee_sat, None
 
     async def pay_invoice(self, bolt11: str, fee_limit_msat: int) -> PaymentResponse:
         # https://dev.blink.sv/api/btc-ln-send
