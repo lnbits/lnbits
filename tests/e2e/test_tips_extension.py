@@ -85,7 +85,9 @@ def create_tip_jar(page: Page, jar_title: str) -> str:
 def create_public_tip_invoice(page: Page, public_url: str, tip_message: str) -> str:
     page.goto(public_url)
     frame = tips_frame(page)
-    expect(frame.get_by_text("Leave a Tip")).to_be_visible(timeout=60_000)
+    expect(frame.get_by_role("heading", name="Leave a Tip")).to_be_visible(
+        timeout=60_000
+    )
     frame.get_by_label("Name").fill("Playwright")
     frame.get_by_label("Message").fill(tip_message)
     frame.get_by_role("button", name="Create Invoice").click()
