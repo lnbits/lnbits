@@ -926,6 +926,7 @@ class InstallableExtension(BaseModel):
         extension_releases: list[ExtensionRelease] = []
         all_manifests = [
             *settings.lnbits_extensions_manifests,
+            *settings.lnbits_wasm_extensions_manifests,
             settings.lnbits_extensions_builder_manifest_url,
         ]
         for url in all_manifests:

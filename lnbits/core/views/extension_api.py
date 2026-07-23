@@ -925,6 +925,7 @@ async def extensions(account_id: AccountId = Depends(check_account_id_exists)):
     )
     installable_exts_ids = [e.id for e in installable_exts]
     installable_exts += [e for e in installed_exts if e.id not in installable_exts_ids]
+    installable_exts.sort(key=lambda e: e.id)
     installed_exts_by_id = {e.id: e for e in installed_exts}
 
     for e in installable_exts:

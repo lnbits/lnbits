@@ -17,6 +17,10 @@ from uuid import uuid4
 from loguru import logger
 from pydantic import BaseModel, BaseSettings, Extra, Field, validator
 
+DEFAULT_WASM_MANIFESTS = [
+    "https://raw.githubusercontent.com/lnbits/lnbits-extensions-wasm/refs/heads/main/extensions.json"
+]
+
 
 def list_parse_fallback(v: str):
     v = v.replace(" ", "")
@@ -73,6 +77,7 @@ class ExtensionsSettings(LNbitsSettings):
             "https://raw.githubusercontent.com/lnbits/lnbits-extensions/main/extensions.json"
         ]
     )
+    lnbits_wasm_extensions_manifests: list[str] = Field(default=DEFAULT_WASM_MANIFESTS)
     lnbits_extensions_builder_manifest_url: str = Field(
         default="https://raw.githubusercontent.com/lnbits/extension_builder_stub/refs/heads/main/manifest.json"
     )
@@ -1072,6 +1077,8 @@ class EditableSettings(
         "lnbits_allowed_users",
         "lnbits_theme_options",
         "lnbits_admin_extensions",
+        "lnbits_extensions_manifests",
+        "lnbits_wasm_extensions_manifests",
         pre=True,
     )
     @classmethod

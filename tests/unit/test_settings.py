@@ -4,6 +4,7 @@ import pytest
 from pytest_mock.plugin import MockerFixture
 
 from lnbits.settings import (
+    DEFAULT_WASM_MANIFESTS,
     AssetSettings,
     ExchangeRateProvider,
     InstalledExtensionsSettings,
@@ -186,6 +187,28 @@ def test_list_parse_fallback():
     assert list_parse_fallback("a, b, c") == ["a", "b", "c"]
     assert list_parse_fallback('["a", "b"]') == ["a", "b"]
     assert list_parse_fallback("") == []
+
+
+def test_settings_append_wasm_manifests_to_extension_manifests():
+    settings = Settings(
+        lnbits_extensions_manifests=["https://example.com/extensions.json"],
+        lnbits_wasm_extensions_manifests=[
+            *DEFAULT_WASM_MANIFESTS,
+            "https://example.com/extensions.json",
+        ],
+    )
+
+    assert settings.lnbits_extensions_manifests == [
+        "https://example.com/extensions.json",
+        *DEFAULT_WASM_MANIFESTS,
+    ]
+    assert settings.dict()["lnbits_extensions_manifests"] == [
+        "https://example.com/extensions.json"
+    ]
+    assert settings.dict()["lnbits_wasm_extensions_manifests"] == [
+        *DEFAULT_WASM_MANIFESTS,
+        "https://example.com/extensions.json",
+    ]
 
 
 def test_exchange_rate_provider_convert_ticker():

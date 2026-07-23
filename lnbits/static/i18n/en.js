@@ -166,6 +166,10 @@ window.localisation.en = {
   ext_sources_hint: 'Repositories from where the extensions can be downloaded',
   ext_sources_label:
     'Source URL (only use the official LNbits extension source, and sources you can trust)',
+  wasm_sources_hint:
+    'Repositories from where WASM extensions can be downloaded',
+  wasm_sources_label:
+    'WASM source URL (only use WASM extension sources you can trust)',
   warning: 'Warning',
   repository: 'Repository',
   confirm_continue: 'Are you sure you want to continue?',
