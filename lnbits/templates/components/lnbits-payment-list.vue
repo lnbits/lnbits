@@ -156,7 +156,7 @@
             </q-list>
           </q-menu>
           <q-tooltip>
-            <span v-text="$t('filter_payments')"></span>
+            <span v-text="$t('sort_by')"></span>
           </q-tooltip>
         </q-btn>
 
