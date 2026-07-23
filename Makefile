@@ -63,24 +63,8 @@ test-api:
 	uv run pytest tests/api
 
 test-e2e:
-	uv run playwright install chromium
-	rm -rf ./playwright-report
-	mkdir -p ./playwright-report
-	set +e; \
-	LNBITS_BACKEND_WALLET_CLASS="FakeWallet" \
-	PYTHONUNBUFFERED=1 \
-	DEBUG=true \
-	uv run pytest tests/e2e \
-		--screenshot=on \
-		--full-page-screenshot \
-		--tracing=on \
-		--video=on \
-		--output=playwright-report/test-results; \
-	status=$$?; \
-	uv run python tools/e2e_playwright_report.py; \
-	report_status=$$?; \
-	if [ $$status -ne 0 ]; then exit $$status; fi; \
-	exit $$report_status
+	npm exec playwright install chromium
+	npm run test:e2e
 
 test-regtest:
 	LNBITS_DATA_FOLDER="./tests/data" \
