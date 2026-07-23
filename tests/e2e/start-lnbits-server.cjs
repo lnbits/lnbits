@@ -12,7 +12,7 @@ const port = baseUrl.port || (baseUrl.protocol === 'https:' ? '443' : '80')
 const dataDir =
   process.env.LNBITS_E2E_DATA_FOLDER ??
   fs.mkdtempSync(path.join(os.tmpdir(), 'lnbits-e2e-'))
-const logDir = path.join(rootDir, 'test-results')
+const logDir = path.join(rootDir, 'test-reports', 'test-results')
 const logFile = path.join(logDir, 'lnbits-e2e-server.log')
 
 fs.mkdirSync(dataDir, {recursive: true})

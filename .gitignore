@@ -18,7 +18,6 @@ __pycache__
 .webassets-cache
 htmlcov
 test-reports
-playwright-report
 tests/data/*.sqlite3
 
 *.swo

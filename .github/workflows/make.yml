@@ -38,6 +38,5 @@ jobs:
         with:
           name: playwright-report
           path: |
-            playwright-report
-            test-results
+            test-reports
           if-no-files-found: ignore

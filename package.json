@@ -11,7 +11,7 @@
     "vendor_minify_js": "./node_modules/.bin/terser ./lnbits/static/bundle.js -o ./lnbits/static/bundle.min.js --compress --mangle",
     "vendor_minify_components": "./node_modules/.bin/terser ./lnbits/static/bundle-components.js -o ./lnbits/static/bundle-components.min.js --compress --mangle",
     "bundle": "npm run sass && npm run vendor_copy && npm run vendor_json && npm run vendor_bundle_css && npm run vendor_bundle_js && npm run vendor_bundle_components && npm run vendor_minify_css && npm run vendor_minify_js && npm run vendor_minify_components",
-    "test:e2e": "playwright test"
+    "test:e2e": "playwright test --config tests/e2e/playwright.config.ts"
   },
   "devDependencies": {
     "@playwright/test": "^1.61.0",

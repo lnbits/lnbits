@@ -1,15 +1,20 @@
 import {defineConfig} from '@playwright/test'
+import {resolve} from 'node:path'
 
 const appBaseUrl = process.env.LNBITS_E2E_BASE_URL ?? 'http://127.0.0.1:5009'
+const e2eDir = __dirname
 const isCi = Boolean(process.env.CI)
+const projectRoot = resolve(e2eDir, '../..')
+const reportRoot = resolve(projectRoot, 'test-reports')
 const configuredWorkers = Number.parseInt(
   process.env.PLAYWRIGHT_WORKERS ?? '',
   10
 )
 
 export default defineConfig({
-  testDir: './tests/e2e',
+  testDir: e2eDir,
   testMatch: '**/*.spec.ts',
+  outputDir: resolve(reportRoot, 'test-results'),
   timeout: 600_000,
   fullyParallel: false,
   forbidOnly: isCi,
@@ -22,8 +27,26 @@ export default defineConfig({
     timeout: 15_000
   },
   reporter: isCi
-    ? [['github'], ['html', {open: 'never'}]]
-    : [['list'], ['html', {open: 'never'}]],
+    ? [
+        ['github'],
+        [
+          'html',
+          {
+            open: 'never',
+            outputFolder: resolve(reportRoot, 'playwright-report')
+          }
+        ]
+      ]
+    : [
+        ['list'],
+        [
+          'html',
+          {
+            open: 'never',
+            outputFolder: resolve(reportRoot, 'playwright-report')
+          }
+        ]
+      ],
   use: {
     baseURL: appBaseUrl,
     browserName: 'chromium',
@@ -38,6 +61,7 @@ export default defineConfig({
   },
   webServer: {
     command: 'node ./tests/e2e/start-lnbits-server.cjs',
+    cwd: projectRoot,
     url: appBaseUrl,
     reuseExistingServer: false,
     timeout: 180_000
