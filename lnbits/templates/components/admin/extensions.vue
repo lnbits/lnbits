@@ -50,7 +50,7 @@
           </q-input>
           <div class="q-mb-md">
             <q-chip
-              v-for="manifestUrl in formData.wasm_manifests"
+              v-for="manifestUrl in formData.lnbits_wasm_extensions_manifests"
               :key="manifestUrl"
               removable
               @remove="removeWasmManifest(manifestUrl)"
