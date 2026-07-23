@@ -1,4 +1,5 @@
 import {randomUUID} from 'node:crypto'
+import {unlink} from 'node:fs/promises'
 
 import {test as base, expect, type Page, type TestInfo} from '@playwright/test'
 
@@ -16,7 +17,7 @@ const server: LNbitsE2EServer = {
 
 const detailedScreenshotStates = new WeakMap<
   TestInfo,
-  {screenshotIndex: number}
+  DetailedScreenshotState
 >()
 
 const DETAILED_SCREENSHOT_SCRIPT = `
@@ -184,10 +185,16 @@ export const test = base.extend<
     )
     const recorder = await installDetailedScreenshots(page, testInfo)
     page.setDefaultTimeout(60_000)
+    let failed = false
     try {
       await use(page)
+    } catch (error) {
+      failed = true
+      throw error
     } finally {
-      await recorder.finish()
+      await recorder.finish({
+        retain: failed || testInfo.status !== testInfo.expectedStatus
+      })
     }
   }
 })
@@ -366,7 +373,7 @@ export function randomHex(): string {
 }
 
 export type DetailedScreenshotHandle = {
-  finish(): Promise<void>
+  finish(options?: {retain?: boolean}): Promise<void>
 }
 
 export async function installDetailedScreenshots(
@@ -392,6 +399,17 @@ type DetailedScreenshotRequest = {
   url: string
 }
 
+type DetailedScreenshotCapture = {
+  name: string
+  path: string
+}
+
+type DetailedScreenshotState = {
+  captures: DetailedScreenshotCapture[]
+  finalized: boolean
+  screenshotIndex: number
+}
+
 class DetailedScreenshotRecorder {
   private readonly capturedUrlKeys = new Set<string>()
   private readonly page: Page
@@ -400,7 +418,7 @@ class DetailedScreenshotRecorder {
   private flushPromise?: Promise<void>
   private flushTimer?: ReturnType<typeof setTimeout>
   private lastQueuedKey = ''
-  private readonly state: {screenshotIndex: number}
+  private readonly state: DetailedScreenshotState
   private stopped = false
 
   constructor(page: Page, testInfo: TestInfo) {
@@ -428,7 +446,7 @@ class DetailedScreenshotRecorder {
     })
   }
 
-  async finish(): Promise<void> {
+  async finish(options: {retain?: boolean} = {}): Promise<void> {
     this.queue({
       kind: 'url',
       label: this.page.url(),
@@ -441,6 +459,9 @@ class DetailedScreenshotRecorder {
       this.flushTimer = undefined
     }
     await this.flush()
+    if (typeof options.retain === 'boolean') {
+      await finalizeDetailedScreenshots(this.testInfo, options.retain)
+    }
   }
 
   private requestFromPayload(
@@ -531,10 +552,7 @@ class DetailedScreenshotRecorder {
     try {
       await this.page.waitForTimeout(250)
       await this.page.screenshot({path, fullPage: true, timeout: 5_000})
-      await this.testInfo.attach(name, {
-        path,
-        contentType: 'image/png'
-      })
+      this.state.captures.push({name, path})
     } catch (_error) {}
   }
 
@@ -549,12 +567,43 @@ class DetailedScreenshotRecorder {
   }
 }
 
-function detailedScreenshotStateFor(testInfo: TestInfo): {
-  screenshotIndex: number
-} {
+async function finalizeDetailedScreenshots(
+  testInfo: TestInfo,
+  retain: boolean
+): Promise<void> {
+  const state = detailedScreenshotStateFor(testInfo)
+  if (state.finalized) return
+  state.finalized = true
+
+  if (retain) {
+    for (const capture of state.captures) {
+      await testInfo.attach(capture.name, {
+        path: capture.path,
+        contentType: 'image/png'
+      })
+    }
+    return
+  }
+
+  await Promise.all(
+    state.captures.map(async capture => {
+      try {
+        await unlink(capture.path)
+      } catch (_error) {}
+    })
+  )
+}
+
+function detailedScreenshotStateFor(
+  testInfo: TestInfo
+): DetailedScreenshotState {
   const existing = detailedScreenshotStates.get(testInfo)
   if (existing) return existing
-  const state = {screenshotIndex: 0}
+  const state = {
+    captures: [],
+    finalized: false,
+    screenshotIndex: 0
+  }
   detailedScreenshotStates.set(testInfo, state)
   return state
 }

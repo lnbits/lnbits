@@ -32,9 +32,9 @@ export default defineConfig({
       width: 1280,
       height: 900
     },
-    trace: isCi ? 'on-first-retry' : 'retain-on-failure',
-    screenshot: 'on',
-    video: 'retain-on-failure'
+    trace: 'off',
+    screenshot: 'only-on-failure',
+    video: 'off'
   },
   webServer: {
     command: 'node ./tests/e2e/start-lnbits-server.cjs',
