@@ -21,12 +21,14 @@ from lnbits.core.models import Account, CreateInvoice
 from lnbits.core.models.extensions import (
     CreateExtension,
     CreateExtensionReview,
+    ExplicitRelease,
     Extension,
     ExtensionConfig,
     ExtensionPermission,
     ExtensionPermissionsUpdate,
     ExtensionRelease,
     InstallableExtension,
+    Manifest,
     PayToEnableInfo,
     ReleasePaymentInfo,
     UserExtensionInfo,
@@ -171,6 +173,104 @@ async def test_extension_api_install_details_and_release_endpoints(mocker):
     )
     release_info = await get_extension_release("org", ext_id, "v1.0.0")
     assert release_info["is_version_compatible"] is True
+
+
+@pytest.mark.anyio
+async def test_explicit_wasm_release_loads_install_permissions(
+    settings,
+    mocker,
+):
+    ext_id = f"wasm_{uuid4().hex[:8]}"
+    non_wasm_ext_id = f"python_{uuid4().hex[:8]}"
+    manifest_url = "https://extensions.example/manifest.json"
+    details_link = f"https://extensions.example/{ext_id}/config.json"
+    explicit_release = ExplicitRelease(
+        id=ext_id,
+        name="Explicit WASM Extension",
+        version="1.0.0",
+        archive=f"https://extensions.example/{ext_id}.zip",
+        hash="archive-hash",
+        repo=f"https://github.com/example/{ext_id}",
+        icon=None,
+        short_description="Explicit WASM release",
+        min_lnbits_version="0.1.0",
+        max_lnbits_version=None,
+        html_url=None,
+        warning=None,
+        info_notification=None,
+        critical_notification=None,
+        details_link=details_link,
+        paid_features=None,
+        pay_link=None,
+        extension_type="wasm",
+    )
+    non_wasm_release = explicit_release.copy(
+        update={
+            "id": non_wasm_ext_id,
+            "name": "Explicit Python Extension",
+            "details_link": f"https://extensions.example/{non_wasm_ext_id}/config.json",
+            "extension_type": None,
+        }
+    )
+    config_permissions = [ExtensionPermission(id="wallet.list")]
+    config = ExtensionConfig(
+        name=ext_id,
+        short_description="Explicit WASM release",
+        min_lnbits_version="0.1.0",
+        max_lnbits_version=None,
+        extension_type="wasm",
+        permissions=config_permissions,
+    )
+
+    async def fetch_manifest(url):
+        if url == manifest_url:
+            return Manifest(extensions=[explicit_release, non_wasm_release])
+        return Manifest()
+
+    mocker.patch.object(settings, "lnbits_extensions_manifests", [manifest_url])
+    mocker.patch.object(
+        settings,
+        "lnbits_extensions_builder_manifest_url",
+        "https://extensions.example/builder.json",
+    )
+    mocker.patch.object(
+        InstallableExtension,
+        "fetch_manifest",
+        mocker.AsyncMock(side_effect=fetch_manifest),
+    )
+    fetch_config_mock = mocker.patch.object(
+        ExtensionConfig,
+        "fetch_release_config",
+        mocker.AsyncMock(return_value=config),
+    )
+
+    releases = await InstallableExtension.get_extension_releases(ext_id)
+
+    assert len(releases) == 1
+    assert releases[0].extension_type == "wasm"
+    assert releases[0].permissions == config_permissions
+    fetch_config_mock.assert_awaited_once_with(details_link)
+
+    fetch_config_mock.reset_mock()
+    non_wasm_releases = await InstallableExtension.get_extension_releases(
+        non_wasm_ext_id
+    )
+    assert len(non_wasm_releases) == 1
+    assert non_wasm_releases[0].extension_type is None
+    assert non_wasm_releases[0].permissions == []
+    fetch_config_mock.assert_not_awaited()
+
+    mocker.patch.object(
+        InstallableExtension,
+        "get_extension_releases",
+        mocker.AsyncMock(return_value=releases),
+    )
+    mocker.patch(
+        "lnbits.core.views.extension_api.get_installed_extension",
+        mocker.AsyncMock(return_value=None),
+    )
+    api_releases = await get_extension_releases(ext_id)
+    assert api_releases[0].permissions == config_permissions
 
 
 @pytest.mark.anyio
