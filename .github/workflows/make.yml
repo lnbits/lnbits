@@ -32,3 +32,12 @@ jobs:
           node-version: ${{ matrix.node-version }}
           npm: ${{ inputs.npm }}
       - run: make ${{ inputs.make }}
+      - name: Upload Playwright report
+        if: ${{ always() && inputs.make == 'test-e2e' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: |
+            playwright-report
+            test-results
+          if-no-files-found: ignore
