@@ -713,6 +713,10 @@ async def get_extension_releases(ext_id: str) -> list[ExtensionRelease]:
         extension_releases: list[ExtensionRelease] = (
             await InstallableExtension.get_extension_releases(ext_id)
         )
+        for release in extension_releases:
+            release.permissions = validate_extension_permissions(
+                ext_id, release.permissions
+            )
 
         installed_ext = await get_installed_extension(ext_id)
         if not installed_ext:
