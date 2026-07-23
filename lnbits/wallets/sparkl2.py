@@ -28,7 +28,9 @@ from .base import (
 
 
 class SparkSidecarError(Exception):
-    pass
+    def __init__(self, message: str, *, payment_submitted: bool | None = None) -> None:
+        super().__init__(message)
+        self.payment_submitted = payment_submitted
 
 
 class SparkL2Wallet(Wallet):
@@ -85,6 +87,16 @@ class SparkL2Wallet(Wallet):
             if status == "missing_mnemonic":
                 await self._check_sidecar_mnemonic()
                 return StatusResponse("Spark sidecar mnemonic not set", 0)
+            if status == "recovering":
+                incoming_sats = int(res.get("incoming_sats") or 0)
+                return StatusResponse(
+                    f"Spark wallet recovering; {incoming_sats} sats incoming.",
+                    0,
+                )
+            if status != "ready":
+                return StatusResponse(
+                    f"Spark sidecar is not ready: {status or 'unknown'}.", 0
+                )
 
             balance_msat = res.get("balance_msat")
             if balance_msat is not None:
@@ -142,21 +154,26 @@ class SparkL2Wallet(Wallet):
 
     async def pay_invoice(self, bolt11: str, fee_limit_msat: int) -> PaymentResponse:
         try:
+            payment_hash = bolt11_decode(bolt11).payment_hash
+        except Exception as exc:
+            logger.warning(exc)
+            return PaymentResponse(
+                ok=False,
+                error_message=f"Invalid BOLT11 invoice: {exc}",
+            )
+
+        try:
             max_fee_sats = (int(fee_limit_msat) + 999) // 1000
             logger.info(
                 f"Paying invoice via Spark sidecar with max fee {max_fee_sats} sats."
             )
 
-            payment_hash = None
-            try:
-                payment_hash = bolt11_decode(bolt11).payment_hash
-            except Exception as exc:
-                logger.warning(exc)
-                payment_hash = None
             payload = {
                 "bolt11": bolt11,
                 "max_fee_sats": max_fee_sats,
                 "payment_hash": payment_hash,
+                "wait_ms": settings.spark_l2_pay_wait_ms,
+                "poll_ms": settings.spark_l2_pay_poll_ms,
             }
             res = await self._request("POST", "/v1/payments", payload)
             checking_id = res.get("checking_id")
@@ -167,18 +184,49 @@ class SparkL2Wallet(Wallet):
                 )
             status = res.get("status")
             fee_msat = res.get("fee_msat")
+            preimage = res.get("preimage")
             ok = None
-            if status:
+            if preimage and self._preimage_matches_payment_hash(preimage, payment_hash):
+                ok = True
+            elif preimage:
+                logger.error(
+                    "Spark sidecar returned a preimage that does not match "
+                    "the payment hash."
+                )
+            elif status:
                 ok = self._map_payment_ok(status)
+            parsed_fee_msat = (
+                int(fee_msat)
+                if fee_msat is not None
+                else max_fee_sats * 1000 if ok is True else None
+            )
             return PaymentResponse(
                 ok=ok,
                 checking_id=checking_id,
-                fee_msat=int(fee_msat) if fee_msat is not None else None,
-                preimage=res.get("preimage"),
+                fee_msat=parsed_fee_msat,
+                preimage=preimage if ok is True else None,
             )
 
+        except SparkSidecarError as e:
+            logger.warning(e)
+            if e.payment_submitted is False:
+                return PaymentResponse(
+                    ok=False,
+                    checking_id=payment_hash,
+                    error_message=f"Spark payment not submitted: {e}",
+                )
+            return PaymentResponse(
+                ok=None,
+                checking_id=payment_hash,
+                error_message=f"Ambiguous Spark payment result: {e}",
+            )
         except Exception as e:
-            return PaymentResponse(ok=False, error_message=str(e))
+            logger.warning(e)
+            return PaymentResponse(
+                ok=None,
+                checking_id=payment_hash,
+                error_message=f"Ambiguous Spark payment result: {e}",
+            )
 
     async def get_invoice_status(self, checking_id: str) -> PaymentStatus:
         try:
@@ -197,12 +245,33 @@ class SparkL2Wallet(Wallet):
             status = res.get("status")
             fee_msat = res.get("fee_msat")
             preimage = res.get("preimage")
+            if preimage and self._preimage_matches_payment_hash(preimage, checking_id):
+                if fee_msat is None:
+                    logger.error(
+                        "Spark sidecar returned a successful payment without a fee."
+                    )
+                    return PaymentPendingStatus()
+                return PaymentSuccessStatus(
+                    fee_msat=int(fee_msat),
+                    preimage=preimage,
+                )
+            if preimage:
+                logger.error(
+                    "Spark sidecar returned a preimage that does not match "
+                    "the payment hash."
+                )
+                return PaymentPendingStatus()
             if not status:
                 return PaymentPendingStatus()
             mapped = self._map_payment_status(status)
             if mapped.success:
+                if fee_msat is None:
+                    logger.error(
+                        "Spark sidecar returned a successful payment without a fee."
+                    )
+                    return PaymentPendingStatus()
                 return PaymentSuccessStatus(
-                    fee_msat=int(fee_msat) if fee_msat is not None else None,
+                    fee_msat=int(fee_msat),
                     preimage=preimage,
                 )
             if mapped.failed:
@@ -246,8 +315,9 @@ class SparkL2Wallet(Wallet):
         self, method: str, path: str, json_data: dict[str, Any] | None = None
     ) -> dict[str, Any]:
         error_message = None
+        payment_submitted = None
         try:
-            r = await self.client.request(method, path, json=json_data, timeout=30)
+            r = await self.client.request(method, path, json=json_data)
             r.raise_for_status()
             j = r.json()
         except (httpx.RequestError, httpx.HTTPStatusError, json.JSONDecodeError) as exc:
@@ -256,17 +326,26 @@ class SparkL2Wallet(Wallet):
                     error_json = exc.response.json()
                     if "error" in error_json:
                         error_message = error_json["error"]
+                    submitted = error_json.get("payment_submitted")
+                    if isinstance(submitted, bool):
+                        payment_submitted = submitted
                 except Exception as json_exc:
                     logger.error(
                         f"Failed to parse Spark error response as JSON: {json_exc}"
                     )
             raise SparkSidecarError(
-                error_message or f"Spark sidecar request error: '{exc}'"
+                error_message or f"Spark sidecar request error: '{exc}'",
+                payment_submitted=payment_submitted,
             ) from exc
 
         if error_message or j.get("error"):
             raise SparkSidecarError(
-                error_message or f"Spark sidecar error: {j['error']}"
+                error_message or f"Spark sidecar error: {j['error']}",
+                payment_submitted=(
+                    j.get("payment_submitted")
+                    if isinstance(j.get("payment_submitted"), bool)
+                    else None
+                ),
             )
         return j
 
@@ -285,18 +364,8 @@ class SparkL2Wallet(Wallet):
             await asyncio.sleep(5)
 
     def _map_invoice_status(self, status: str) -> PaymentStatus:
-        success = {
-            "LIGHTNING_PAYMENT_RECEIVED",
-            "TRANSFER_COMPLETED",
-            "PAYMENT_PREIMAGE_RECOVERED",
-        }
-        failed = {
-            "TRANSFER_FAILED",
-            "PAYMENT_PREIMAGE_RECOVERING_FAILED",
-            "REFUND_SIGNING_FAILED",
-            "REFUND_SIGNING_COMMITMENTS_QUERYING_FAILED",
-            "TRANSFER_CREATION_FAILED",
-        }
+        success = {"TRANSFER_COMPLETED"}
+        failed = {"TRANSFER_FAILED"}
         if status in success:
             return PaymentSuccessStatus()
         if status in failed:
@@ -304,18 +373,8 @@ class SparkL2Wallet(Wallet):
         return PaymentPendingStatus()
 
     def _map_payment_status(self, status: str) -> PaymentStatus:
-        success = {
-            "LIGHTNING_PAYMENT_SUCCEEDED",
-            "TRANSFER_COMPLETED",
-            "PREIMAGE_PROVIDED",
-        }
-        failed = {
-            "LIGHTNING_PAYMENT_FAILED",
-            "TRANSFER_FAILED",
-            "PREIMAGE_PROVIDING_FAILED",
-            "USER_TRANSFER_VALIDATION_FAILED",
-            "USER_SWAP_RETURN_FAILED",
-        }
+        success = {"TRANSFER_COMPLETED"}
+        failed = {"TRANSFER_FAILED"}
         if status in success:
             return PaymentSuccessStatus()
         if status in failed:
@@ -329,6 +388,13 @@ class SparkL2Wallet(Wallet):
         if mapped.failed:
             return False
         return None
+
+    @staticmethod
+    def _preimage_matches_payment_hash(preimage: str, payment_hash: str) -> bool:
+        try:
+            return hashlib.sha256(bytes.fromhex(preimage)).hexdigest() == payment_hash
+        except (TypeError, ValueError):
+            return False
 
     async def _check_sidecar_mnemonic(self):
         if settings.spark_l2_mnemonic:
