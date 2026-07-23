@@ -14,6 +14,11 @@ const server: LNbitsE2EServer = {
   password: 'secret1234'
 }
 
+const detailedScreenshotStates = new WeakMap<
+  TestInfo,
+  {screenshotIndex: number}
+>()
+
 const DETAILED_SCREENSHOT_SCRIPT = `
 (() => {
   if (window.__lnbitsDetailedScreenshotsInstalled) return
@@ -177,8 +182,7 @@ export const test = base.extend<
     await page.addInitScript(
       "window.localStorage.setItem('lnbits.disclaimerShown', 'true')"
     )
-    const recorder = new DetailedScreenshotRecorder(page, testInfo)
-    await recorder.install()
+    const recorder = await installDetailedScreenshots(page, testInfo)
     page.setDefaultTimeout(60_000)
     try {
       await use(page)
@@ -361,6 +365,19 @@ export function randomHex(): string {
   return randomUUID().replace(/-/g, '').slice(0, 8)
 }
 
+export type DetailedScreenshotHandle = {
+  finish(): Promise<void>
+}
+
+export async function installDetailedScreenshots(
+  page: Page,
+  testInfo: TestInfo
+): Promise<DetailedScreenshotHandle> {
+  const recorder = new DetailedScreenshotRecorder(page, testInfo)
+  await recorder.install()
+  return recorder
+}
+
 type DetailedScreenshotPayload = {
   kind?: unknown
   label?: unknown
@@ -383,12 +400,13 @@ class DetailedScreenshotRecorder {
   private flushPromise?: Promise<void>
   private flushTimer?: ReturnType<typeof setTimeout>
   private lastQueuedKey = ''
-  private screenshotIndex = 0
+  private readonly state: {screenshotIndex: number}
   private stopped = false
 
   constructor(page: Page, testInfo: TestInfo) {
     this.page = page
     this.testInfo = testInfo
+    this.state = detailedScreenshotStateFor(testInfo)
   }
 
   async install(): Promise<void> {
@@ -521,14 +539,24 @@ class DetailedScreenshotRecorder {
   }
 
   private screenshotName(request: DetailedScreenshotRequest): string {
-    this.screenshotIndex += 1
+    this.state.screenshotIndex += 1
     return [
       'screenshot',
-      this.screenshotIndex.toString().padStart(3, '0'),
+      this.state.screenshotIndex.toString().padStart(3, '0'),
       request.kind,
       slugFor(request.kind === 'url' ? request.url : request.label)
     ].join('-')
   }
+}
+
+function detailedScreenshotStateFor(testInfo: TestInfo): {
+  screenshotIndex: number
+} {
+  const existing = detailedScreenshotStates.get(testInfo)
+  if (existing) return existing
+  const state = {screenshotIndex: 0}
+  detailedScreenshotStates.set(testInfo, state)
+  return state
 }
 
 function slugFor(value: string): string {
