@@ -66,10 +66,7 @@ jobs:
 
   test-e2e:
     needs: [ lint ]
-    uses: ./.github/workflows/make.yml
-    with:
-      make: test-e2e
-      npm: true
+    uses: ./.github/workflows/e2e.yml
 
   regtest:
     needs: [ lint ]

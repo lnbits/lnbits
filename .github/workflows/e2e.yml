@@ -1,0 +1,41 @@
+name: e2e
+
+on:
+  workflow_call:
+  workflow_dispatch:
+
+jobs:
+  test-e2e:
+    name: test-e2e (${{ matrix.name }})
+    runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: bigpayment
+            spec: tests/e2e/bigpayment.spec.ts
+          - name: paysplit
+            spec: tests/e2e/paysplit.spec.ts
+          - name: pingpong
+            spec: tests/e2e/pingpong.spec.ts
+          - name: tips
+            spec: tests/e2e/tips.spec.ts
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: lnbits/lnbits/.github/actions/prepare@dev
+        with:
+          python-version: "3.12"
+          node-version: "24.x"
+          npm: true
+      - name: Install Playwright browser
+        run: npm exec playwright install chromium
+      - name: Run ${{ matrix.name }} e2e tests
+        run: npm run test:e2e -- "${{ matrix.spec }}"
+      - name: Upload Playwright report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report-${{ matrix.name }}
+          path: test-reports
+          if-no-files-found: ignore
