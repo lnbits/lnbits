@@ -871,7 +871,14 @@ class InstallableExtension(BaseModel):
     ) -> list[InstallableExtension]:
         extension_list: list[InstallableExtension] = []
 
-        for url in settings.lnbits_extensions_manifests:
+        manifest_urls = dict.fromkeys(
+            [
+                *settings.lnbits_extensions_manifests,
+                *settings.lnbits_wasm_extensions_manifests,
+                *settings.lnbits_wasm_extensions_manifests,
+            ]
+        )
+        for url in manifest_urls:
             try:
                 manifest = await cls.fetch_manifest(url)
 

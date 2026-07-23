@@ -189,7 +189,7 @@ def test_list_parse_fallback():
     assert list_parse_fallback("") == []
 
 
-def test_settings_append_wasm_manifests_to_extension_manifests():
+def test_settings_keep_wasm_manifests_separate_from_extension_manifests():
     settings = Settings(
         lnbits_extensions_manifests=["https://example.com/extensions.json"],
         lnbits_wasm_extensions_manifests=[
@@ -199,8 +199,11 @@ def test_settings_append_wasm_manifests_to_extension_manifests():
     )
 
     assert settings.lnbits_extensions_manifests == [
-        "https://example.com/extensions.json",
+        "https://example.com/extensions.json"
+    ]
+    assert settings.lnbits_wasm_extensions_manifests == [
         *DEFAULT_WASM_MANIFESTS,
+        "https://example.com/extensions.json",
     ]
     assert settings.dict()["lnbits_extensions_manifests"] == [
         "https://example.com/extensions.json"
