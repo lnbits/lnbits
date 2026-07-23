@@ -221,6 +221,13 @@ async function completeFirstInstall(e2eServer: LNbitsE2EServer): Promise<void> {
         }
       )
       if (response.status === 200) return
+      if (
+        response.status === 403 &&
+        isRecord(response.body) &&
+        response.body.detail === 'This is not your first install'
+      ) {
+        return
+      }
       lastError = `${response.status}: ${JSON.stringify(response.body)}`
     } catch (error) {
       lastError = String(error)
