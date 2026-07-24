@@ -62,6 +62,10 @@ test-api:
 	DEBUG=true \
 	uv run pytest tests/api
 
+test-e2e:
+	npm exec playwright install chromium
+	npm run test:e2e
+
 test-regtest:
 	LNBITS_DATA_FOLDER="./tests/data" \
 	PYTHONUNBUFFERED=1 \
