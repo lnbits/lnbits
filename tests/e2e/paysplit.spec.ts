@@ -14,7 +14,7 @@ import {
   waitForWalletBalance
 } from './extension-helpers'
 import {LNURLPayServer} from './lnurl-helpers'
-import {LIVE_EXTENSIONS, PAYSPLIT} from './extensions'
+import {PAYSPLIT} from './extensions'
 
 test('install PaySplit and split incoming payment with fake wallet', async ({
   page,
@@ -26,9 +26,7 @@ test('install PaySplit and split incoming payment with fake wallet', async ({
   const payer = await createWallet(page, `PaySplit payer ${randomHex()}`)
   await fundWalletWithFakeBalance(page, payer.id, {amountSats: 250})
 
-  await installAndEnableExtension(page, PAYSPLIT, {
-    preloadExtensions: LIVE_EXTENSIONS
-  })
+  await installAndEnableExtension(page, PAYSPLIT)
   await grantWalletPaymentsWatchPermission(page, PAYSPLIT.extId, source.id)
   await grantBackgroundPaymentPermission(page, PAYSPLIT.extId, source.id, {
     maxAmountSats: 100

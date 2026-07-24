@@ -8,7 +8,7 @@ import {
   login,
   superuserWallet
 } from './extension-helpers'
-import {LIVE_EXTENSIONS, TIPS} from './extensions'
+import {TIPS} from './extensions'
 
 test('install Tips extension and pay tip with fake wallet', async ({
   page,
@@ -17,9 +17,7 @@ test('install Tips extension and pay tip with fake wallet', async ({
   await login(page, lnbitsServer)
   const wallet = await superuserWallet(page)
 
-  await installAndEnableExtension(page, TIPS, {
-    preloadExtensions: LIVE_EXTENSIONS
-  })
+  await installAndEnableExtension(page, TIPS)
   await fundWalletWithFakeBalance(page, wallet.id, {amountSats: 10_000})
 
   const jarTitle = `Playwright Tips ${randomHex()}`

@@ -21,7 +21,7 @@ import {
   waitForWalletBalance
 } from './extension-helpers'
 import {LNURLPayServer} from './lnurl-helpers'
-import {LIVE_EXTENSIONS, PINGPONG} from './extensions'
+import {PINGPONG} from './extensions'
 
 type GameInvoice = {
   gameId: string
@@ -64,9 +64,7 @@ test('install Ping Pong, play public game, and pay winner with fake wallet', asy
     amountSats: 100
   })
 
-  await installAndEnableExtension(page, PINGPONG, {
-    preloadExtensions: LIVE_EXTENSIONS
-  })
+  await installAndEnableExtension(page, PINGPONG)
   await grantBackgroundPaymentPermission(page, PINGPONG.extId, escrow.id, {
     maxAmountSats: 100
   })

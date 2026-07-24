@@ -13,10 +13,8 @@ const INSTALLABLE_EXTENSION_REFRESH_TASK =
 
 export type ExtensionUnderTest = {
   extId: string
-  manifestUrl: string
   name: string
   permissionTexts?: string[]
-  repository: string
 }
 
 export type E2EWallet = {
@@ -191,50 +189,10 @@ export function invoicePaymentRequest(
 
 export async function installAndEnableExtension(
   page: Page,
-  extension: ExtensionUnderTest,
-  {preloadExtensions = []}: {preloadExtensions?: ExtensionUnderTest[]} = {}
+  extension: ExtensionUnderTest
 ): Promise<void> {
-  await addExtensionManifests(page, [...preloadExtensions, extension])
   await installExtension(page, extension)
   await enableExtension(page, extension)
-}
-
-export async function addExtensionManifests(
-  page: Page,
-  extensions: ExtensionUnderTest[]
-): Promise<void> {
-  const uniqueExtensions = uniqueExtensionsById(extensions)
-  if (!uniqueExtensions.length) return
-
-  await page.goto('/admin#extensions')
-  await dismissDisclaimer(page)
-  const savedManifests = await savedManifestsFor(page)
-  const missingExtensions = uniqueExtensions.filter(
-    extension => !savedManifests.includes(extension.manifestUrl)
-  )
-
-  if (missingExtensions.length) {
-    const manifestInput = page
-      .locator('.q-field')
-      .filter({hasText: 'Source URL'})
-      .locator('input')
-      .first()
-    for (const extension of missingExtensions) {
-      await manifestInput.fill(extension.manifestUrl)
-      await manifestInput.press('Enter')
-      await expect(page.getByText(extension.manifestUrl)).toBeVisible()
-    }
-    const saveButton = page.getByRole('button', {name: /^save$/i})
-    await expect(saveButton).toBeEnabled()
-    await saveButton.click()
-    await expect(page.getByText(/Settings changed/i)).toBeVisible()
-  }
-
-  const savedAfterUpdate = await savedManifestsFor(page)
-  const missingUrls = uniqueExtensions
-    .filter(extension => !savedAfterUpdate.includes(extension.manifestUrl))
-    .map(extension => extension.manifestUrl)
-  expect(missingUrls).toEqual([])
 }
 
 export async function installExtension(
@@ -250,7 +208,8 @@ export async function installExtension(
     return
   }
 
-  await waitForInstallableExtension(page, extension)
+  const installable = await waitForInstallableExtension(page, extension)
+  const release = latestReleaseFor(installable)
 
   await page.goto('/extensions')
   await dismissDisclaimer(page)
@@ -268,9 +227,9 @@ export async function installExtension(
     timeout: 60_000
   })
 
-  const release = await latestGithubRelease(extension)
-  const version = String(release.tag_name)
-  const repositoryLabel = manageDialog.getByText(extension.repository).first()
+  const version = String(release.version)
+  const sourceRepo = String(release.source_repo)
+  const repositoryLabel = manageDialog.getByText(sourceRepo).first()
   await expect(repositoryLabel).toBeVisible({timeout: 120_000})
   await repositoryLabel.click()
 
@@ -305,7 +264,7 @@ export async function installExtension(
       ? installed.permissions.filter(isRecord).map(permission => permission.id)
       : []
   )
-  const latestConfig = await latestReleaseConfig(extension)
+  const latestConfig = await latestReleaseConfig(release)
   const permissions = Array.isArray(latestConfig.permissions)
     ? latestConfig.permissions.filter(isRecord)
     : []
@@ -361,7 +320,7 @@ export async function waitForInstallableExtension(
   page: Page,
   extension: ExtensionUnderTest,
   {timeout = 360_000}: {timeout?: number} = {}
-): Promise<void> {
+): Promise<Record<string, unknown>> {
   let lastResponse: unknown
   let lastError: unknown
   const deadline = Date.now() + timeout
@@ -370,26 +329,13 @@ export async function waitForInstallableExtension(
     try {
       lastError = undefined
       await waitForInstallableExtensionRefresh(page, deadline)
-      const settings = await browserJson(page, 'GET', '/admin/api/v1/settings')
       const extensions = await browserJson(page, 'GET', '/api/v1/extension/all')
-      lastResponse = {
-        manifests: isRecord(settings)
-          ? settings.lnbits_extensions_manifests
-          : undefined,
-        extensions
-      }
-      const manifests =
-        isRecord(settings) &&
-        Array.isArray(settings.lnbits_extensions_manifests)
-          ? settings.lnbits_extensions_manifests
-          : []
+      lastResponse = extensions
       const extensionList = Array.isArray(extensions) ? extensions : []
-      if (
-        manifests.includes(extension.manifestUrl) &&
-        extensionList.filter(isRecord).some(item => item.id === extension.extId)
-      ) {
-        return
-      }
+      const installable = extensionList
+        .filter(isRecord)
+        .find(item => item.id === extension.extId)
+      if (installable) return installable
       await waitForInstallableExtensionRefresh(page, deadline)
     } catch (error) {
       lastError = error
@@ -570,46 +516,33 @@ async function waitForInstallableExtensionRefresh(
   }
 }
 
-async function latestGithubRelease(
-  extension: ExtensionUnderTest
-): Promise<Record<string, unknown>> {
-  const release = await fetchJson(
-    `https://api.github.com/repos/${extension.repository}/releases/latest`
-  )
-  if (!isRecord(release) || !release.tag_name) {
+function latestReleaseFor(
+  installable: Record<string, unknown>
+): Record<string, unknown> {
+  const release = installable.latestRelease
+  if (
+    !isRecord(release) ||
+    typeof release.version !== 'string' ||
+    typeof release.source_repo !== 'string' ||
+    typeof release.details_link !== 'string'
+  ) {
     throw new Error(
-      `Invalid GitHub release response: ${JSON.stringify(release)}`
+      `Installable extension is missing release metadata: ${JSON.stringify(installable)}`
     )
   }
   return release
 }
 
 async function latestReleaseConfig(
-  extension: ExtensionUnderTest,
-  tagName?: string
+  release: Record<string, unknown>
 ): Promise<Record<string, unknown>> {
-  const tag = tagName ?? String((await latestGithubRelease(extension)).tag_name)
-  const config = await fetchJson(
-    `https://raw.githubusercontent.com/${extension.repository}/${tag}/config.json`
-  )
+  const config = await fetchJson(String(release.details_link))
   if (!isRecord(config)) {
     throw new Error(
       `Invalid extension config response: ${JSON.stringify(config)}`
     )
   }
   return config
-}
-
-async function savedManifestsFor(page: Page): Promise<string[]> {
-  const settings = await browserJson(page, 'GET', '/admin/api/v1/settings')
-  const manifests = isRecord(settings)
-    ? settings.lnbits_extensions_manifests
-    : undefined
-  return Array.isArray(manifests)
-    ? manifests.filter(
-        (manifest): manifest is string => typeof manifest === 'string'
-      )
-    : []
 }
 
 async function fetchJson(url: string): Promise<unknown> {
@@ -624,19 +557,6 @@ async function fetchJson(url: string): Promise<unknown> {
     throw new Error(`${url} failed with ${response.status}: ${text}`)
   }
   return text ? JSON.parse(text) : {}
-}
-
-function uniqueExtensionsById(
-  extensions: ExtensionUnderTest[]
-): ExtensionUnderTest[] {
-  const unique: ExtensionUnderTest[] = []
-  const seen = new Set<string>()
-  for (const extension of extensions) {
-    if (seen.has(extension.extId)) continue
-    unique.push(extension)
-    seen.add(extension.extId)
-  }
-  return unique
 }
 
 function walletFromResponse(wallet: unknown): E2EWallet {
