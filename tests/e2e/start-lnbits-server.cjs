@@ -43,7 +43,6 @@ const server = childProcess.spawn(
       LNBITS_BACKEND_WALLET_CLASS: 'FakeWallet',
       LNBITS_DATA_FOLDER: dataDir,
       LNBITS_ENABLE_LOG_TO_FILE: 'false',
-      LNBITS_EXTENSIONS_MANIFESTS: '[]',
       LNBITS_EXTENSIONS_PATH: dataDir,
       PORT: port,
       PYTHONUNBUFFERED: '1'

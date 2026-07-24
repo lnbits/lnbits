@@ -10,16 +10,14 @@ import {
   login,
   waitForWalletBalance
 } from './extension-helpers'
-import {BIGPAYMENT, LIVE_EXTENSIONS} from './extensions'
+import {BIGPAYMENT} from './extensions'
 
 test('install BigPayment and pay large invoice with fake wallet', async ({
   page,
   lnbitsServer
 }) => {
   await login(page, lnbitsServer)
-  await installAndEnableExtension(page, BIGPAYMENT, {
-    preloadExtensions: LIVE_EXTENSIONS
-  })
+  await installAndEnableExtension(page, BIGPAYMENT)
 
   const collector = await createWallet(
     page,

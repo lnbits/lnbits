@@ -47,6 +47,7 @@ class ExplicitRelease(BaseModel):
     details_link: str | None
     paid_features: str | None
     pay_link: str | None
+    extension_type: str | None = None
 
     def is_version_compatible(self):
         return is_lnbits_version_ok(self.min_lnbits_version, self.max_lnbits_version)
@@ -112,15 +113,19 @@ class ExtensionConfig(BaseModel):
         return is_lnbits_version_ok(self.min_lnbits_version, self.max_lnbits_version)
 
     @classmethod
+    async def fetch_release_config(cls, url: str) -> ExtensionConfig:
+        error_msg = "Cannot fetch extension release config"
+        config = await github_api_get(url, error_msg)
+        return ExtensionConfig.parse_obj(config)
+
+    @classmethod
     async def fetch_github_release_config(
         cls, org: str, repo: str, tag_name: str
     ) -> ExtensionConfig | None:
         config_url = (
             f"https://raw.githubusercontent.com/{org}/{repo}/{tag_name}/config.json"
         )
-        error_msg = "Cannot fetch GitHub extension config"
-        config = await github_api_get(config_url, error_msg)
-        return ExtensionConfig.parse_obj(config)
+        return await cls.fetch_release_config(config_url)
 
 
 class ReleasePaymentInfo(BaseModel):
@@ -350,12 +355,22 @@ class ExtensionRelease(BaseModel):
     repo: str | None = None
     icon: str | None = None
     details_link: str | None = None
+    extension_type: str | None = None
+    permissions: list[ExtensionPermission] = []
 
     paid_features: str | None = None
     pay_link: str | None = None
     cost_sats: int | None = None
     paid_sats: int | None = 0
     payment_hash: str | None = None
+
+    def apply_config(self, config: ExtensionConfig) -> None:
+        self.min_lnbits_version = config.min_lnbits_version
+        self.max_lnbits_version = config.max_lnbits_version
+        self.is_version_compatible = config.is_version_compatible()
+        self.warning = config.warning
+        self.extension_type = config.extension_type
+        self.permissions = config.permissions
 
     @property
     def archive_url(self) -> str:
@@ -420,6 +435,7 @@ class ExtensionRelease(BaseModel):
             warning=e.warning,
             html_url=e.html_url,
             details_link=e.details_link,
+            extension_type=e.extension_type,
             pay_link=e.pay_link,
             paid_features=e.paid_features,
             repo=e.repo,
@@ -447,10 +463,7 @@ class ExtensionRelease(BaseModel):
                 if not config:
                     continue
 
-                release.min_lnbits_version = config.min_lnbits_version
-                release.max_lnbits_version = config.max_lnbits_version
-                release.is_version_compatible = config.is_version_compatible()
-
+                release.apply_config(config)
                 release.icon = icon_to_github_url(f"{org}/{repo}", config.tile)
 
             return extension_releases
@@ -858,7 +871,14 @@ class InstallableExtension(BaseModel):
     ) -> list[InstallableExtension]:
         extension_list: list[InstallableExtension] = []
 
-        for url in settings.lnbits_extensions_manifests:
+        manifest_urls = dict.fromkeys(
+            [
+                *settings.lnbits_extensions_manifests,
+                *settings.lnbits_wasm_extensions_manifests,
+                *settings.lnbits_wasm_extensions_manifests,
+            ]
+        )
+        for url in manifest_urls:
             try:
                 manifest = await cls.fetch_manifest(url)
 
@@ -913,6 +933,7 @@ class InstallableExtension(BaseModel):
         extension_releases: list[ExtensionRelease] = []
         all_manifests = [
             *settings.lnbits_extensions_manifests,
+            *settings.lnbits_wasm_extensions_manifests,
             settings.lnbits_extensions_builder_manifest_url,
         ]
         for url in all_manifests:
@@ -930,6 +951,14 @@ class InstallableExtension(BaseModel):
                     if e.id != ext_id:
                         continue
                     explicit_release = ExtensionRelease.from_explicit_release(url, e)
+                    if (
+                        explicit_release.extension_type == "wasm"
+                        and explicit_release.details_link
+                    ):
+                        config = await ExtensionConfig.fetch_release_config(
+                            explicit_release.details_link
+                        )
+                        explicit_release.apply_config(config)
                     await explicit_release.check_payment_requirements()
                     extension_releases.append(explicit_release)
 

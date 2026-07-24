@@ -5,7 +5,7 @@ from httpx import AsyncClient
 
 from lnbits.core.crud.settings import get_settings_field, set_settings_field
 from lnbits.server import server_restart
-from lnbits.settings import Settings
+from lnbits.settings import DEFAULT_WASM_MANIFESTS, Settings
 
 
 @pytest.mark.anyio
@@ -23,6 +23,7 @@ async def test_admin_get_settings(client: AsyncClient, superuser_token: str):
     assert response.status_code == 200
     result = response.json()
     assert "super_user" not in result
+    assert result["lnbits_wasm_extensions_manifests"] == DEFAULT_WASM_MANIFESTS
 
 
 @pytest.mark.anyio

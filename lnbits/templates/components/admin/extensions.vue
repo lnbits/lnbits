@@ -38,6 +38,27 @@
       <div class="row q-col-gutter-md">
         <div class="col-12 q-mb-md">
           <p>Wasm Extension</p>
+          <q-input
+            class="q-mb-md"
+            filled
+            v-model="formAddWasmManifest"
+            type="text"
+            :label="$t('wasm_sources_label')"
+            :hint="$t('wasm_sources_hint')"
+          >
+            <q-btn @click="addWasmManifest" dense flat icon="add"></q-btn>
+          </q-input>
+          <div class="q-mb-md">
+            <q-chip
+              v-for="manifestUrl in formData.lnbits_wasm_extensions_manifests"
+              :key="manifestUrl"
+              removable
+              @remove="removeWasmManifest(manifestUrl)"
+              color="primary"
+              text-color="white"
+              ><span class="ellipsis" v-text="manifestUrl"></span
+            ></q-chip>
+          </div>
           <div class="row q-gutter-sm">
             <q-btn
               unelevated
