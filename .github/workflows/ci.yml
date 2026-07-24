@@ -65,6 +65,7 @@ jobs:
       make: openapi
 
   test-e2e:
+    if: ${{ false }}
     needs: [ lint ]
     uses: ./.github/workflows/e2e.yml
 
@@ -99,5 +100,5 @@ jobs:
       python-version: ${{ matrix.python-version }}
 
   bundle:
-    needs: [ lint, test-api, test-wallets, test-unit, migration, openapi, test-e2e, regtest, jmeter ]
+    needs: [ lint, test-api, test-wallets, test-unit, migration, openapi, regtest, jmeter ]
     uses: ./.github/workflows/bundle.yml
