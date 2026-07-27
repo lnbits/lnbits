@@ -28,7 +28,7 @@
     "moment": "^2.30.1",
     "nostr-tools": "^2.23.3",
     "qrcode.vue": "^3.9.0",
-    "quasar": "2.19.3",
+    "quasar": "2.22.0",
     "showdown": "^2.1.0",
     "underscore": "^1.13.8",
     "vue": "3.5.34",
