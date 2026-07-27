@@ -23,7 +23,9 @@ from lnbits.core.models.extensions import (
     CreateExtensionReview,
     ExplicitRelease,
     Extension,
+    ExtensionArchiveValidationError,
     ExtensionConfig,
+    ExtensionManifestType,
     ExtensionPermission,
     ExtensionPermissionsUpdate,
     ExtensionRelease,
@@ -176,6 +178,57 @@ async def test_extension_api_install_details_and_release_endpoints(mocker):
 
 
 @pytest.mark.anyio
+async def test_extension_api_archive_validation_failure_only_removes_zip(
+    tmp_path,
+    settings,
+    mocker,
+):
+    ext_id = f"ext_{uuid4().hex[:8]}"
+    release = make_extension_release(ext_id)
+    create_data = CreateExtension(
+        ext_id=ext_id,
+        archive=release.archive,
+        source_repo=release.source_repo,
+        version=release.version,
+    )
+    original_data_folder = settings.lnbits_data_folder
+    clean_python_mock = mocker.patch.object(
+        InstallableExtension, "clean_extension_files"
+    )
+    clean_wasm_mock = mocker.patch.object(
+        InstallableExtension, "clean_wasm_extension_files"
+    )
+    mocker.patch.object(
+        InstallableExtension,
+        "get_extension_release",
+        mocker.AsyncMock(return_value=release),
+    )
+    mocker.patch(
+        "lnbits.core.views.extension_api.install_extension",
+        mocker.AsyncMock(
+            side_effect=ExtensionArchiveValidationError("Invalid extension archive.")
+        ),
+    )
+
+    try:
+        settings.lnbits_data_folder = str(tmp_path / "data")
+        zip_path = Path(settings.lnbits_data_folder, "zips", f"{ext_id}.zip")
+        zip_path.parent.mkdir(parents=True)
+        zip_path.write_bytes(b"archive")
+
+        with pytest.raises(HTTPException) as exc:
+            await api_install_extension(create_data)
+    finally:
+        settings.lnbits_data_folder = original_data_folder
+
+    assert exc.value.status_code == 400
+    assert exc.value.detail == "Invalid extension archive."
+    assert not zip_path.exists()
+    clean_python_mock.assert_not_called()
+    clean_wasm_mock.assert_not_called()
+
+
+@pytest.mark.anyio
 async def test_explicit_wasm_release_loads_install_permissions(
     settings,
     mocker,
@@ -227,7 +280,8 @@ async def test_explicit_wasm_release_loads_install_permissions(
             return Manifest(extensions=[explicit_release, non_wasm_release])
         return Manifest()
 
-    mocker.patch.object(settings, "lnbits_extensions_manifests", [manifest_url])
+    mocker.patch.object(settings, "lnbits_extensions_manifests", [])
+    mocker.patch.object(settings, "lnbits_wasm_extensions_manifests", [manifest_url])
     mocker.patch.object(
         settings,
         "lnbits_extensions_builder_manifest_url",
@@ -248,6 +302,7 @@ async def test_explicit_wasm_release_loads_install_permissions(
 
     assert len(releases) == 1
     assert releases[0].extension_type == "wasm"
+    assert releases[0].manifest_type == ExtensionManifestType.WASM
     assert releases[0].permissions == config_permissions
     fetch_config_mock.assert_awaited_once_with(details_link)
 
@@ -257,6 +312,7 @@ async def test_explicit_wasm_release_loads_install_permissions(
     )
     assert len(non_wasm_releases) == 1
     assert non_wasm_releases[0].extension_type is None
+    assert non_wasm_releases[0].manifest_type == ExtensionManifestType.WASM
     assert non_wasm_releases[0].permissions == []
     fetch_config_mock.assert_not_awaited()
 

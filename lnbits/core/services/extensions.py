@@ -210,6 +210,7 @@ async def install_extension(
         await ext_info.download_archive()
 
     extension_config = ext_info.load_archive_config()
+    ext_info.validate_archive(extension_config)
     ext_info.permissions = validate_wasm_extension_permissions(
         ext_info,
         granted_permissions,

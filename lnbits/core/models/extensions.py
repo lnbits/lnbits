@@ -28,6 +28,10 @@ from lnbits.task_manager import task_manager
 from lnbits.utils.cache import cache
 
 
+class ExtensionArchiveValidationError(ValueError):
+    pass
+
+
 class ExplicitRelease(BaseModel):
     id: str
     name: str
@@ -64,6 +68,11 @@ class Manifest(BaseModel):
     repos: list[GitHubRelease] = []
     featured: list[str] = []
     categories: dict[str, list[str]] = {}
+
+
+class ExtensionManifestType(str, Enum):
+    PYTHON = "python"
+    WASM = "wasm"
 
 
 class GitHubRepoRelease(BaseModel):
@@ -356,6 +365,7 @@ class ExtensionRelease(BaseModel):
     icon: str | None = None
     details_link: str | None = None
     extension_type: str | None = None
+    manifest_type: ExtensionManifestType | None = Field(default=None, exclude=True)
     permissions: list[ExtensionPermission] = []
 
     paid_features: str | None = None
@@ -638,6 +648,41 @@ class InstallableExtension(BaseModel):
             raise ValueError(f"Cannot read extension config for '{self.id}'.") from exc
 
         return config if isinstance(config, dict) else {}
+
+    def validate_archive(self, config: Mapping[str, Any]) -> None:
+        release = self.meta.installed_release if self.meta else None
+        manifest_type = release.manifest_type if release else None
+        is_wasm = config.get("extension_type") == "wasm"
+
+        if manifest_type == ExtensionManifestType.PYTHON and is_wasm:
+            raise ExtensionArchiveValidationError(
+                f"Python extension manifest cannot install WASM extension '{self.id}'."
+            )
+        if manifest_type == ExtensionManifestType.WASM and not is_wasm:
+            raise ExtensionArchiveValidationError(
+                "WASM extension manifest requires extension_type 'wasm' "
+                f"for extension '{self.id}'."
+            )
+        if not is_wasm:
+            return
+
+        with zipfile.ZipFile(self.zip_path, "r") as archive:
+            python_file = next(
+                (
+                    item.filename
+                    for item in archive.infolist()
+                    if not item.is_dir()
+                    and PurePosixPath(item.filename).suffix.lower()
+                    in {".py", ".pyc", ".pyo", ".so", ".pyd"}
+                ),
+                None,
+            )
+
+        if python_file:
+            raise ExtensionArchiveValidationError(
+                f"WASM extension '{self.id}' contains forbidden Python file "
+                f"'{python_file}'."
+            )
 
     def extract_archive(self):
         logger.info(f"Extracting extension {self.name} ({self.installed_version}).")
@@ -947,14 +992,7 @@ class InstallableExtension(BaseModel):
     ) -> list[InstallableExtension]:
         extension_list: list[InstallableExtension] = []
 
-        manifest_urls = dict.fromkeys(
-            [
-                *settings.lnbits_extensions_manifests,
-                *settings.lnbits_wasm_extensions_manifests,
-                *settings.lnbits_wasm_extensions_manifests,
-            ]
-        )
-        for url in manifest_urls:
+        for url, manifest_type in _extension_manifest_sources():
             try:
                 manifest = await cls.fetch_manifest(url)
 
@@ -962,6 +1000,8 @@ class InstallableExtension(BaseModel):
                     ext = await InstallableExtension.from_github_release(r)
                     if not ext:
                         continue
+                    if ext.meta and ext.meta.latest_release:
+                        ext.meta.latest_release.manifest_type = manifest_type
                     existing_ext = next(
                         (ee for ee in extension_list if ee.id == r.id), None
                     )
@@ -981,6 +1021,7 @@ class InstallableExtension(BaseModel):
 
                 for e in manifest.extensions:
                     release = ExtensionRelease.from_explicit_release(url, e)
+                    release.manifest_type = manifest_type
                     existing_ext = next(
                         (ee for ee in extension_list if ee.id == e.id), None
                     )
@@ -1007,12 +1048,9 @@ class InstallableExtension(BaseModel):
     @classmethod
     async def get_extension_releases(cls, ext_id: str) -> list[ExtensionRelease]:
         extension_releases: list[ExtensionRelease] = []
-        all_manifests = [
-            *settings.lnbits_extensions_manifests,
-            *settings.lnbits_wasm_extensions_manifests,
-            settings.lnbits_extensions_builder_manifest_url,
-        ]
-        for url in all_manifests:
+        for url, manifest_type in _extension_manifest_sources(
+            include_builder=True, deduplicate=False
+        ):
             try:
                 manifest = await cls.fetch_manifest(url)
                 for r in manifest.repos:
@@ -1021,6 +1059,8 @@ class InstallableExtension(BaseModel):
                     repo_releases = await ExtensionRelease.get_github_releases(
                         r.organisation, r.repository
                     )
+                    for release in repo_releases:
+                        release.manifest_type = manifest_type
                     extension_releases += repo_releases
 
                 for e in manifest.extensions:
@@ -1035,6 +1075,7 @@ class InstallableExtension(BaseModel):
                             explicit_release.details_link
                         )
                         explicit_release.apply_config(config)
+                    explicit_release.manifest_type = manifest_type
                     await explicit_release.check_payment_requirements()
                     extension_releases.append(explicit_release)
 
@@ -1170,3 +1211,31 @@ def _archive_config_name(names: list[str]) -> str | None:
         if len(path.parts) == 2 and path.name == "config.json":
             return name
     return None
+
+
+def _extension_manifest_sources(
+    *, include_builder: bool = False, deduplicate: bool = True
+) -> list[tuple[str, ExtensionManifestType]]:
+    sources = [
+        *(
+            (url, ExtensionManifestType.PYTHON)
+            for url in settings.lnbits_extensions_manifests
+        ),
+        *(
+            (url, ExtensionManifestType.WASM)
+            for url in settings.lnbits_wasm_extensions_manifests
+        ),
+    ]
+    if include_builder:
+        sources.append(
+            (
+                settings.lnbits_extensions_builder_manifest_url,
+                ExtensionManifestType.PYTHON,
+            )
+        )
+    if not deduplicate:
+        return sources
+    unique_sources: dict[str, ExtensionManifestType] = {}
+    for url, manifest_type in sources:
+        unique_sources.setdefault(url, manifest_type)
+    return list(unique_sources.items())
