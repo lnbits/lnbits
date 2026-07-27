@@ -105,27 +105,48 @@ class ZBDWallet(Wallet):
 
     async def pay_invoice(self, bolt11: str, fee_limit_msat: int) -> PaymentResponse:
         # https://api.zebedee.io/v0/payments
-        r = await self.client.post(
-            "payments",
-            json={
-                "invoice": bolt11,
-                "description": "",
-                "amount": "",
-                "internalId": "",
-                "callbackUrl": "",
-            },
-            timeout=40,
-        )
+        try:
+            checking_id = bolt11_decode(bolt11).payment_hash
+        except Exception as exc:
+            return PaymentResponse(ok=False, error_message=str(exc))
+
+        try:
+            r = await self.client.post(
+                "payments",
+                json={
+                    "invoice": bolt11,
+                    "description": "",
+                    "amount": "",
+                    "internalId": "",
+                    "callbackUrl": "",
+                },
+                timeout=40,
+            )
+            data = r.json()
+        except Exception as exc:
+            logger.warning(exc)
+            return PaymentResponse(
+                checking_id=checking_id,
+                error_message=f"Unable to connect to {self.endpoint}.",
+            )
 
         if r.is_error:
-            error_message = r.json()["message"]
-            return PaymentResponse(ok=False, error_message=error_message)
+            error_message = data.get("message", r.text)
+            return PaymentResponse(
+                ok=False if r.is_client_error else None,
+                checking_id=checking_id,
+                error_message=error_message,
+            )
 
-        data = r.json()
-
-        checking_id = bolt11_decode(bolt11).payment_hash
-        fee_msat = -int(data["data"]["fee"])
-        preimage = data["data"]["preimage"]
+        try:
+            fee_msat = -int(data["data"]["fee"])
+            preimage = data["data"]["preimage"]
+        except (KeyError, TypeError, ValueError) as exc:
+            logger.warning(exc)
+            return PaymentResponse(
+                checking_id=checking_id,
+                error_message="Server error: 'missing required fields'",
+            )
 
         return PaymentResponse(
             ok=True, checking_id=checking_id, fee_msat=fee_msat, preimage=preimage

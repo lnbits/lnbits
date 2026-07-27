@@ -5,6 +5,7 @@ from collections.abc import AsyncGenerator
 from secrets import token_urlsafe
 
 import httpx
+from bolt11 import decode as bolt11_decode
 from loguru import logger
 
 from lnbits.helpers import normalize_endpoint
@@ -148,6 +149,11 @@ class SparkWallet(Wallet):
 
     async def pay_invoice(self, bolt11: str, fee_limit_msat: int) -> PaymentResponse:
         try:
+            checking_id = bolt11_decode(bolt11).payment_hash
+        except Exception as exc:
+            return PaymentResponse(ok=False, error_message=str(exc))
+
+        try:
             r = await self.pay(
                 bolt11=bolt11,
                 maxfee=fee_limit_msat,
@@ -156,7 +162,7 @@ class SparkWallet(Wallet):
             preimage = r["payment_preimage"]
             return PaymentResponse(
                 ok=True,
-                checking_id=r["payment_hash"],
+                checking_id=checking_id,
                 fee_msat=fee_msat,
                 preimage=preimage,
             )
@@ -164,27 +170,36 @@ class SparkWallet(Wallet):
         except (SparkError, UnknownError) as exc:
             listpays = await self.listpays(bolt11)
             if not listpays:
-                return PaymentResponse(ok=False, error_message=str(exc))
+                return PaymentResponse(
+                    checking_id=checking_id,
+                    error_message=str(exc),
+                )
 
             pays = listpays["pays"]
 
             if len(pays) == 0:
-                return PaymentResponse(ok=False, error_message=str(exc))
+                return PaymentResponse(
+                    checking_id=checking_id,
+                    error_message=str(exc),
+                )
 
             pay = pays[0]
-            payment_hash = pay["payment_hash"]
 
             if len(pays) > 1:
                 raise SparkError(
-                    f"listpays({payment_hash}) returned an unexpected response:"
+                    f"listpays({checking_id}) returned an unexpected response:"
                     f" {listpays}"
                 ) from exc
 
             if pay["status"] == "failed":
-                return PaymentResponse(ok=False, error_message=str(exc))
+                return PaymentResponse(
+                    ok=False,
+                    checking_id=checking_id,
+                    error_message=str(exc),
+                )
 
             if pay["status"] == "pending":
-                return PaymentResponse(ok=None, checking_id=payment_hash)
+                return PaymentResponse(ok=None, checking_id=checking_id)
 
             if pay["status"] == "complete":
                 r = pay
@@ -198,12 +213,15 @@ class SparkWallet(Wallet):
                 preimage = r["payment_preimage"]
                 return PaymentResponse(
                     ok=True,
-                    checking_id=r["payment_hash"],
+                    checking_id=checking_id,
                     fee_msat=fee_msat,
                     preimage=preimage,
                 )
             else:
-                return PaymentResponse(ok=False, error_message=str(exc))
+                return PaymentResponse(
+                    checking_id=checking_id,
+                    error_message=str(exc),
+                )
 
     async def get_invoice_status(self, checking_id: str) -> PaymentStatus:
         try:
@@ -235,7 +253,7 @@ class SparkWallet(Wallet):
             return PaymentPendingStatus()
 
         if not r["pays"]:
-            return PaymentFailedStatus()
+            return PaymentPendingStatus()
         if r["pays"][0]["payment_hash"] == checking_id:
             status = r["pays"][0]["status"]
             if status == "complete":

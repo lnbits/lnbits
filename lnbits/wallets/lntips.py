@@ -5,6 +5,8 @@ import time
 from collections.abc import AsyncGenerator
 
 import httpx
+from bolt11 import Bolt11Exception
+from bolt11 import decode as bolt11_decode
 from loguru import logger
 
 from lnbits.helpers import normalize_endpoint
@@ -103,26 +105,52 @@ class LnTipsWallet(Wallet):
         )
 
     async def pay_invoice(self, bolt11: str, fee_limit_msat: int) -> PaymentResponse:
-        r = await self.client.post(
-            "/api/v1/payinvoice",
-            json={"pay_req": bolt11},
-            timeout=None,
-        )
+        try:
+            checking_id = bolt11_decode(bolt11).payment_hash
+        except Bolt11Exception as exc:
+            return PaymentResponse(ok=False, error_message=str(exc))
+
+        try:
+            r = await self.client.post(
+                "/api/v1/payinvoice",
+                json={"pay_req": bolt11},
+                timeout=None,
+            )
+        except Exception as exc:
+            logger.warning(exc)
+            return PaymentResponse(
+                checking_id=checking_id,
+                error_message=f"Unable to connect to {self.endpoint}.",
+            )
+
         if r.is_error:
-            return PaymentResponse(ok=False, error_message=r.text)
+            return PaymentResponse(
+                ok=False if r.is_client_error else None,
+                checking_id=checking_id,
+                error_message=r.text,
+            )
 
-        if "error" in r.json():
-            try:
-                data = r.json()
+        try:
+            data = r.json()
+            if "error" in data:
                 error_message = data["error"]
-            except Exception:
-                error_message = r.text
-            return PaymentResponse(ok=False, error_message=error_message)
+                return PaymentResponse(
+                    ok=False,
+                    checking_id=checking_id,
+                    error_message=error_message,
+                )
 
-        data = r.json()["details"]
-        checking_id = data["payment_hash"]
-        fee_msat = -data["fee"]
-        preimage = data["preimage"]
+            details = data["details"]
+            details["payment_hash"]
+            fee_msat = -details["fee"]
+            preimage = details["preimage"]
+        except (json.JSONDecodeError, KeyError, TypeError) as exc:
+            logger.warning(exc)
+            return PaymentResponse(
+                checking_id=checking_id,
+                error_message="Server error: 'invalid payment response'",
+            )
+
         return PaymentResponse(
             ok=True, checking_id=checking_id, fee_msat=fee_msat, preimage=preimage
         )

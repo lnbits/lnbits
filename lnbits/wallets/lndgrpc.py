@@ -5,6 +5,8 @@ from hashlib import sha256
 from os import environ
 
 import grpc
+from bolt11 import Bolt11Exception
+from bolt11 import decode as bolt11_decode
 from loguru import logger
 
 from lnbits.helpers import normalize_endpoint
@@ -186,6 +188,11 @@ class LndWallet(Wallet):
         )
 
     async def pay_invoice(self, bolt11: str, fee_limit_msat: int) -> PaymentResponse:
+        try:
+            checking_id = bolt11_decode(bolt11).payment_hash
+        except Bolt11Exception as exc:
+            return PaymentResponse(ok=False, error_message=str(exc))
+
         # fee_limit_fixed = ln.FeeLimit(fixed=fee_limit_msat // 1000)
         req = SendPaymentRequest(
             payment_request=bolt11,
@@ -200,30 +207,32 @@ class LndWallet(Wallet):
             res: Payment = await self.router_rpc.SendPaymentV2(req).read()
         except Exception as exc:
             logger.warning(exc)
-            return PaymentResponse(error_message=str(exc))
+            return PaymentResponse(checking_id=checking_id, error_message=str(exc))
 
         if res.status == Payment.PaymentStatus.SUCCEEDED:
             return PaymentResponse(
                 ok=True,
-                checking_id=res.payment_hash,
+                checking_id=checking_id,
                 fee_msat=abs(res.fee_msat),
                 preimage=res.payment_preimage,
             )
         elif res.status == Payment.PaymentStatus.FAILED:
             error_message = PaymentFailureReason.Name(res.failure_reason)
             return PaymentResponse(
-                ok=False, error_message=f"Payment failed: {error_message}"
+                ok=False,
+                checking_id=checking_id,
+                error_message=f"Payment failed: {error_message}",
             )
         elif res.status == Payment.PaymentStatus.IN_FLIGHT:
             return PaymentResponse(
                 ok=None,
-                checking_id=res.payment_hash,
+                checking_id=checking_id,
                 error_message="Payment is IN_FLIGHT.",
             )
         else:
             return PaymentResponse(
                 ok=None,
-                checking_id=res.payment_hash,
+                checking_id=checking_id,
                 error_message="Payment is non-existant.",
             )
 

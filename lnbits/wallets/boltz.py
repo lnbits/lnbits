@@ -123,8 +123,14 @@ class BoltzWallet(Wallet):
             fee_msat=fee_msat,
         )
 
-    async def pay_invoice(self, bolt11: str, fee_limit_msat: int) -> PaymentResponse:
-
+    async def pay_invoice(  # noqa: C901
+        self, bolt11: str, fee_limit_msat: int
+    ) -> PaymentResponse:
+        try:
+            invoice = decode(bolt11)
+        except Exception as exc:
+            return PaymentResponse(ok=False, error_message=str(exc))
+        checking_id = invoice.payment_hash
         pair = boltzrpc_pb2.Pair(**{"from": boltzrpc_pb2.LBTC})
         try:
             pair_info: boltzrpc_pb2.PairInfo
@@ -132,18 +138,32 @@ class BoltzWallet(Wallet):
                 type=boltzrpc_pb2.SUBMARINE, pair=pair
             )
             pair_info = await self.rpc.GetPairInfo(pair_request, metadata=self.metadata)
-            invoice = decode(bolt11)
+        except AioRpcError as exc:
+            logger.warning(exc)
+            return PaymentResponse(
+                ok=False,
+                checking_id=checking_id,
+                error_message=exc.details(),
+            )
 
-            if not invoice.amount_msat:
-                raise ValueError("amountless invoice")
+        if not invoice.amount_msat:
+            return PaymentResponse(
+                ok=False,
+                checking_id=checking_id,
+                error_message="amountless invoice",
+            )
 
-            service_fee: float = invoice.amount_msat * pair_info.fees.percentage / 100
-            estimate = int(service_fee + pair_info.fees.miner_fees * 1000)
-            if estimate > fee_limit_msat:
-                error = f"fee of {estimate} msat exceeds limit of {fee_limit_msat} msat"
+        service_fee: float = invoice.amount_msat * pair_info.fees.percentage / 100
+        estimate = int(service_fee + pair_info.fees.miner_fees * 1000)
+        if estimate > fee_limit_msat:
+            error = f"fee of {estimate} msat exceeds limit of {fee_limit_msat} msat"
+            return PaymentResponse(
+                ok=False,
+                checking_id=checking_id,
+                error_message=error,
+            )
 
-                return PaymentResponse(ok=False, error_message=error)
-
+        try:
             request = boltzrpc_pb2.CreateSwapRequest(
                 invoice=bolt11,
                 pair=pair,
@@ -163,10 +183,13 @@ class BoltzWallet(Wallet):
                 logger.warning(
                     "Boltz invoice paid directly on liquid network using magic routing"
                 )
-                return PaymentResponse(ok=True, checking_id=invoice.payment_hash)
+                return PaymentResponse(ok=True, checking_id=checking_id)
         except AioRpcError as exc:
             logger.warning(exc)
-            return PaymentResponse(ok=False, error_message=exc.details())
+            return PaymentResponse(
+                checking_id=checking_id,
+                error_message=exc.details(),
+            )
 
         try:
             info_request = boltzrpc_pb2.GetSwapInfoRequest(id=response.id)
@@ -182,18 +205,26 @@ class BoltzWallet(Wallet):
                     )
                     return PaymentResponse(
                         ok=True,
-                        checking_id=invoice.payment_hash,
+                        checking_id=checking_id,
                         fee_msat=fee_msat,
                         preimage=info.swap.preimage,
                     )
                 elif info.swap.error != "":
-                    return PaymentResponse(ok=False, error_message=info.swap.error)
+                    return PaymentResponse(
+                        ok=False,
+                        checking_id=checking_id,
+                        error_message=info.swap.error,
+                    )
             return PaymentResponse(
-                ok=False, error_message="stream stopped unexpectedly"
+                checking_id=checking_id,
+                error_message="stream stopped unexpectedly",
             )
         except AioRpcError as exc:
             logger.warning(exc)
-            return PaymentResponse(ok=False, error_message=exc.details())
+            return PaymentResponse(
+                checking_id=checking_id,
+                error_message=exc.details(),
+            )
 
     async def get_invoice_status(self, checking_id: str) -> PaymentStatus:
         try:

@@ -4,6 +4,8 @@ import json
 from collections.abc import AsyncGenerator
 
 import httpx
+from bolt11 import Bolt11Exception
+from bolt11 import decode as bolt11_decode
 from loguru import logger
 
 from lnbits.helpers import normalize_endpoint
@@ -125,6 +127,11 @@ class AlbyWallet(Wallet):
 
     async def pay_invoice(self, bolt11: str, fee_limit_msat: int) -> PaymentResponse:
         try:
+            checking_id = bolt11_decode(bolt11).payment_hash
+        except Bolt11Exception as exc:
+            return PaymentResponse(ok=False, error_message=str(exc))
+
+        try:
             # https://api.getalby.com/payments/bolt11
             r = await self.client.post(
                 "/payments/bolt11",
@@ -136,9 +143,12 @@ class AlbyWallet(Wallet):
 
             if r.is_error:
                 error_message = data["message"] if "message" in data else r.text
-                return PaymentResponse(error_message=error_message)
+                return PaymentResponse(
+                    checking_id=checking_id,
+                    error_message=error_message,
+                )
 
-            checking_id = data["payment_hash"]
+            data["payment_hash"]
             # todo: confirm with bitkarrot that having the minus is fine
             # other funding sources return a positive fee value
             fee_msat = -data["fee"]
@@ -149,18 +159,21 @@ class AlbyWallet(Wallet):
         except KeyError as exc:
             logger.warning(exc)
             return PaymentResponse(
-                error_message="Server error: 'missing required fields'"
+                checking_id=checking_id,
+                error_message="Server error: 'missing required fields'",
             )
         except json.JSONDecodeError as exc:
             logger.warning(exc)
             return PaymentResponse(
-                error_message="Server error: 'invalid json response'"
+                checking_id=checking_id,
+                error_message="Server error: 'invalid json response'",
             )
         except Exception as exc:
             logger.info(f"Failed to pay invoice {bolt11}")
             logger.warning(exc)
             return PaymentResponse(
-                error_message=f"Unable to connect to {self.endpoint}."
+                checking_id=checking_id,
+                error_message=f"Unable to connect to {self.endpoint}.",
             )
 
     async def get_invoice_status(self, checking_id: str) -> PaymentStatus:

@@ -167,6 +167,10 @@ class BlinkWallet(Wallet):
     async def pay_invoice(self, bolt11: str, fee_limit_msat: int) -> PaymentResponse:
         # https://dev.blink.sv/api/btc-ln-send
         # Future: add check fee estimate is < fee_limit_msat before paying invoice
+        try:
+            checking_id = bolt11_lib.decode(bolt11).payment_hash
+        except Exception as exc:
+            return PaymentResponse(ok=False, error_message=str(exc))
 
         payment_variables = {
             "input": {
@@ -178,29 +182,38 @@ class BlinkWallet(Wallet):
         data = {"query": q.payment_query, "variables": payment_variables}
         try:
             response = await self._graphql_query(data)
-
-            errors = (
-                response.get("data", {})
-                .get("lnInvoicePaymentSend", {})
-                .get("errors", {})
-            )
-            if len(errors) > 0:
-                error_message = errors[0].get("message")
-                return PaymentResponse(ok=False, error_message=error_message)
-
-            checking_id = bolt11_lib.decode(bolt11).payment_hash
+            payment_data = response.get("data", {}).get("lnInvoicePaymentSend", {})
+            errors = payment_data.get("errors") or []
+            status = payment_data.get("status")
+            if status == "FAILURE":
+                return PaymentResponse(
+                    ok=False,
+                    checking_id=checking_id,
+                    error_message=errors[0].get("message") if errors else None,
+                )
 
             payment_status = await self.get_payment_status(checking_id)
             fee_msat = payment_status.fee_msat
             preimage = payment_status.preimage
+            if status == "SUCCESS" or payment_status.success:
+                ok = True
+            elif payment_status.failed:
+                ok = False
+            else:
+                ok = None
             return PaymentResponse(
-                ok=True, checking_id=checking_id, fee_msat=fee_msat, preimage=preimage
+                ok=ok,
+                checking_id=checking_id,
+                fee_msat=fee_msat,
+                preimage=preimage,
+                error_message=errors[0].get("message") if errors else None,
             )
         except Exception as exc:
             logger.info(f"Failed to pay invoice {bolt11}")
             logger.warning(exc)
             return PaymentResponse(
-                error_message=f"Unable to connect to {self.endpoint}."
+                checking_id=checking_id,
+                error_message=f"Unable to connect to {self.endpoint}.",
             )
 
     async def get_invoice_status(self, checking_id: str) -> PaymentStatus:

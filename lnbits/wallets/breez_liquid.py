@@ -173,7 +173,11 @@ else:
         async def pay_invoice(
             self, bolt11: str, fee_limit_msat: int
         ) -> PaymentResponse:
-            invoice_data = bolt11_decode(bolt11)
+            try:
+                invoice_data = bolt11_decode(bolt11)
+            except Exception as exc:
+                return PaymentResponse(ok=False, error_message=str(exc))
+            checking_id = invoice_data.payment_hash
 
             try:
                 prepare_req = PrepareSendRequest(destination=bolt11)
@@ -186,23 +190,33 @@ else:
                 if req.fees_sat and req.fees_sat > fee_limit_sat:
                     return PaymentResponse(
                         ok=False,
+                        checking_id=checking_id,
                         error_message=(
                             f"fee of {req.fees_sat} sat exceeds limit of "
                             f"{fee_limit_sat} sat"
                         ),
                     )
+            except Exception as exc:
+                logger.warning(exc)
+                return PaymentResponse(
+                    ok=False,
+                    checking_id=checking_id,
+                    error_message=f"Exception while preparing payment: {exc}",
+                )
 
+            try:
                 send_response = self.sdk_services.send_payment(
                     SendPaymentRequest(prepare_response=req)
                 )
-
             except Exception as exc:
                 logger.warning(exc)
-                return PaymentResponse(error_message=f"Exception while payment: {exc}")
+                return PaymentResponse(
+                    checking_id=checking_id,
+                    error_message=f"Exception while payment: {exc}",
+                )
 
             payment: Payment = send_response.payment
             logger.debug(f"pay invoice res: {payment}")
-            checking_id = invoice_data.payment_hash
 
             fees = req.fees_sat * 1000 if req.fees_sat and req.fees_sat > 0 else 0
 
@@ -211,7 +225,8 @@ else:
 
             if not isinstance(payment.details, PaymentDetails.LIGHTNING):
                 return PaymentResponse(
-                    error_message="lightning payment details are not available"
+                    checking_id=checking_id,
+                    error_message="lightning payment details are not available",
                 )
 
             return PaymentResponse(

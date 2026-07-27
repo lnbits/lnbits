@@ -46,6 +46,7 @@ class SparkL2Wallet(Wallet):
         self._sidecar_path = Path(settings.lnbits_data_folder, "light_spark")
 
         self.pending_invoices: list[str] = []
+        self.payment_ids: dict[str, str] = {}
 
         self.endpoint = "http://127.0.0.1:8765"
         self._api_key = uuid.uuid4().hex
@@ -142,29 +143,29 @@ class SparkL2Wallet(Wallet):
 
     async def pay_invoice(self, bolt11: str, fee_limit_msat: int) -> PaymentResponse:
         try:
+            payment_hash = bolt11_decode(bolt11).payment_hash
+        except Exception as exc:
+            return PaymentResponse(ok=False, error_message=str(exc))
+
+        try:
             max_fee_sats = (int(fee_limit_msat) + 999) // 1000
             logger.info(
                 f"Paying invoice via Spark sidecar with max fee {max_fee_sats} sats."
             )
 
-            payment_hash = None
-            try:
-                payment_hash = bolt11_decode(bolt11).payment_hash
-            except Exception as exc:
-                logger.warning(exc)
-                payment_hash = None
             payload = {
                 "bolt11": bolt11,
                 "max_fee_sats": max_fee_sats,
                 "payment_hash": payment_hash,
             }
             res = await self._request("POST", "/v1/payments", payload)
-            checking_id = res.get("checking_id")
-            if not checking_id:
+            provider_id = res.get("payment_hash") or res.get("checking_id")
+            if not provider_id:
                 return PaymentResponse(
-                    ok=False,
+                    checking_id=payment_hash,
                     error_message="Spark sidecar payment response missing checking_id.",
                 )
+            self.payment_ids[payment_hash] = provider_id
             status = res.get("status")
             fee_msat = res.get("fee_msat")
             ok = None
@@ -172,13 +173,16 @@ class SparkL2Wallet(Wallet):
                 ok = self._map_payment_ok(status)
             return PaymentResponse(
                 ok=ok,
-                checking_id=checking_id,
+                checking_id=payment_hash,
                 fee_msat=int(fee_msat) if fee_msat is not None else None,
                 preimage=res.get("preimage"),
             )
 
         except Exception as e:
-            return PaymentResponse(ok=False, error_message=str(e))
+            return PaymentResponse(
+                checking_id=payment_hash,
+                error_message=str(e),
+            )
 
     async def get_invoice_status(self, checking_id: str) -> PaymentStatus:
         try:
@@ -193,7 +197,8 @@ class SparkL2Wallet(Wallet):
 
     async def get_payment_status(self, checking_id: str) -> PaymentStatus:
         try:
-            res = await self._request("GET", f"/v1/payments/{checking_id}")
+            provider_id = self.payment_ids.get(checking_id, checking_id)
+            res = await self._request("GET", f"/v1/payments/{provider_id}")
             status = res.get("status")
             fee_msat = res.get("fee_msat")
             preimage = res.get("preimage")
@@ -201,11 +206,13 @@ class SparkL2Wallet(Wallet):
                 return PaymentPendingStatus()
             mapped = self._map_payment_status(status)
             if mapped.success:
+                self.payment_ids.pop(checking_id, None)
                 return PaymentSuccessStatus(
                     fee_msat=int(fee_msat) if fee_msat is not None else None,
                     preimage=preimage,
                 )
             if mapped.failed:
+                self.payment_ids.pop(checking_id, None)
                 return PaymentFailedStatus()
             return PaymentPendingStatus()
         except Exception as exc:

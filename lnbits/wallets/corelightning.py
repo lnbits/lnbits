@@ -152,15 +152,14 @@ class CoreLightningWallet(Wallet):
             invoice = bolt11_decode(bolt11)
         except Bolt11Exception as exc:
             return PaymentResponse(ok=False, error_message=str(exc))
+        checking_id = invoice.payment_hash
 
         try:
-            previous_payment = await self.get_payment_status(invoice.payment_hash)
-            if previous_payment.paid:
-                return PaymentResponse(ok=False, error_message="invoice already paid")
-
             if not invoice.amount_msat or invoice.amount_msat <= 0:
                 return PaymentResponse(
-                    ok=False, error_message="CLN 0 amount invoice not supported"
+                    ok=False,
+                    checking_id=checking_id,
+                    error_message="CLN 0 amount invoice not supported",
                 )
 
             # maxfee overrides both maxfeepercent and exemptfee defaults (and
@@ -178,7 +177,7 @@ class CoreLightningWallet(Wallet):
 
             fee_msat = -int(r["amount_sent_msat"] - r["amount_msat"])
             return PaymentResponse(
-                True, r["payment_hash"], fee_msat, r["payment_preimage"], None
+                True, checking_id, fee_msat, r["payment_preimage"], None
             )
         except RpcError as exc:
             logger.warning(exc)
@@ -187,23 +186,35 @@ class CoreLightningWallet(Wallet):
                 if error_code in self.pay_failure_error_codes:
                     error_message = exc.error.get("message", error_code)  # type: ignore
                     return PaymentResponse(
-                        ok=False, error_message=f"Payment failed: {error_message}"
+                        ok=False,
+                        checking_id=checking_id,
+                        error_message=f"Payment failed: {error_message}",
                     )
                 else:
                     error_message = f"Payment failed: {exc.error}"
-                    return PaymentResponse(error_message=error_message)
+                    return PaymentResponse(
+                        checking_id=checking_id,
+                        error_message=error_message,
+                    )
             except Exception:
                 error_message = f"RPC '{exc.method}' failed with '{exc.error}'."
-                return PaymentResponse(error_message=error_message)
+                return PaymentResponse(
+                    checking_id=checking_id,
+                    error_message=error_message,
+                )
         except KeyError as exc:
             logger.warning(exc)
             return PaymentResponse(
-                error_message="Server error: 'missing required fields'"
+                checking_id=checking_id,
+                error_message="Server error: 'missing required fields'",
             )
         except Exception as exc:
             logger.info(f"Failed to pay invoice {bolt11}")
             logger.warning(exc)
-            return PaymentResponse(error_message=f"Payment failed: '{exc}'.")
+            return PaymentResponse(
+                checking_id=checking_id,
+                error_message=f"Payment failed: '{exc}'.",
+            )
 
     async def get_invoice_status(self, checking_id: str) -> PaymentStatus:
         try:
@@ -239,7 +250,7 @@ class CoreLightningWallet(Wallet):
                 return PaymentPendingStatus()
             if not r["pays"]:
                 # no payment with this payment_hash is found
-                return PaymentFailedStatus()
+                return PaymentPendingStatus()
 
             payment_resp = r["pays"][-1]
 

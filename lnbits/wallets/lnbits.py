@@ -3,6 +3,8 @@ import json
 from collections.abc import AsyncGenerator
 
 import httpx
+from bolt11 import Bolt11Exception
+from bolt11 import decode as bolt11_decode
 from loguru import logger
 from websockets import connect
 
@@ -119,6 +121,11 @@ class LNbitsWallet(Wallet):
 
     async def pay_invoice(self, bolt11: str, fee_limit_msat: int) -> PaymentResponse:
         try:
+            checking_id = bolt11_decode(bolt11).payment_hash
+        except Bolt11Exception as exc:
+            return PaymentResponse(ok=False, error_message=str(exc))
+
+        try:
             r = await self.client.post(
                 url="/api/v1/payments",
                 json={"out": True, "bolt11": bolt11},
@@ -128,7 +135,7 @@ class LNbitsWallet(Wallet):
             r.raise_for_status()
             data = r.json()
 
-            checking_id = data["payment_hash"]
+            data["payment_hash"]
 
             # we do this to get the fee and preimage
             payment: PaymentStatus = await self.get_payment_status(checking_id)
@@ -147,25 +154,38 @@ class LNbitsWallet(Wallet):
                 data = exc.response.json()
                 error_message = f"Payment {data['status']}: {data['detail']}."
                 if data["status"] == "failed":
-                    return PaymentResponse(ok=False, error_message=error_message)
-                return PaymentResponse(error_message=error_message)
+                    return PaymentResponse(
+                        ok=False,
+                        checking_id=checking_id,
+                        error_message=error_message,
+                    )
+                return PaymentResponse(
+                    checking_id=checking_id,
+                    error_message=error_message,
+                )
             except Exception as exc:
                 error_message = f"Unable to connect to {self.endpoint}."
-                return PaymentResponse(error_message=error_message)
+                return PaymentResponse(
+                    checking_id=checking_id,
+                    error_message=error_message,
+                )
 
         except json.JSONDecodeError:
             return PaymentResponse(
-                error_message="Server error: 'invalid json response'"
+                checking_id=checking_id,
+                error_message="Server error: 'invalid json response'",
             )
         except KeyError:
             return PaymentResponse(
-                error_message="Server error: 'missing required fields'"
+                checking_id=checking_id,
+                error_message="Server error: 'missing required fields'",
             )
         except Exception as exc:
             logger.info(f"Failed to pay invoice {bolt11}")
             logger.warning(exc)
             return PaymentResponse(
-                error_message=f"Unable to connect to {self.endpoint}."
+                checking_id=checking_id,
+                error_message=f"Unable to connect to {self.endpoint}.",
             )
 
     async def get_invoice_status(self, checking_id: str) -> PaymentStatus:

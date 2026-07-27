@@ -255,15 +255,19 @@ class CLNRestWallet(Wallet):
             invoice = decode(bolt11)
         except Bolt11Exception as exc:
             return PaymentResponse(ok=False, error_message=str(exc))
+        checking_id = invoice.payment_hash
 
         if not invoice.amount_msat or invoice.amount_msat <= 0:
             return PaymentResponse(
-                ok=False, error_message="0 amount invoices are not allowed"
+                ok=False,
+                checking_id=checking_id,
+                error_message="0 amount invoices are not allowed",
             )
 
         if not settings.clnrest_pay_rune and not settings.clnrest_renepay_rune:
             return PaymentResponse(
                 ok=False,
+                checking_id=checking_id,
                 error_message="Unable to pay invoice without a pay or renepay rune",
             )
 
@@ -296,11 +300,16 @@ class CLNRestWallet(Wallet):
             if "payment_preimage" not in data:
                 error_message = data.get("error", "No payment preimage in response")
                 logger.warning(error_message)
-                return PaymentResponse(error_message=error_message)
+                failed = self.statuses.get(data.get("status")) is False
+                return PaymentResponse(
+                    ok=False if failed else None,
+                    checking_id=checking_id,
+                    error_message=error_message,
+                )
 
             return PaymentResponse(
                 ok=self.statuses.get(data["status"]),
-                checking_id=data["payment_hash"],
+                checking_id=checking_id,
                 fee_msat=data["amount_sent_msat"] - data["amount_msat"],
                 preimage=data["payment_preimage"],
             )
@@ -311,18 +320,31 @@ class CLNRestWallet(Wallet):
                 error_code = int(error.get("code", 0))
                 error_message = error.get("message", "Unknown error")
                 if error_code in self.pay_failure_error_codes:
-                    return PaymentResponse(ok=False, error_message=error_message)
+                    return PaymentResponse(
+                        ok=False,
+                        checking_id=checking_id,
+                        error_message=error_message,
+                    )
                 else:
-                    return PaymentResponse(error_message=error_message)
+                    return PaymentResponse(
+                        checking_id=checking_id,
+                        error_message=error_message,
+                    )
             except Exception:
                 error_message = f"Error parsing response from {self.url}: {exc!s}"
                 logger.warning(error_message)
-                return PaymentResponse(error_message=error_message)
+                return PaymentResponse(
+                    checking_id=checking_id,
+                    error_message=error_message,
+                )
         except Exception as exc:
             logger.info(f"Failed to pay invoice {bolt11}")
             logger.warning(exc)
             error_message = f"Unable to connect to {self.url}."
-            return PaymentResponse(error_message=error_message)
+            return PaymentResponse(
+                checking_id=checking_id,
+                error_message=error_message,
+            )
 
     async def get_invoice_status(self, checking_id: str) -> PaymentStatus:
         data: dict = {"payment_hash": checking_id}

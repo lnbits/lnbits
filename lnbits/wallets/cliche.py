@@ -3,6 +3,8 @@ import hashlib
 import json
 from collections.abc import AsyncGenerator
 
+from bolt11 import Bolt11Exception
+from bolt11 import decode as bolt11_decode
 from loguru import logger
 from websocket import create_connection
 
@@ -104,37 +106,37 @@ class ClicheWallet(Wallet):
         )
 
     async def pay_invoice(self, bolt11: str, fee_limit_msat: int) -> PaymentResponse:
+        try:
+            checking_id = bolt11_decode(bolt11).payment_hash
+        except Bolt11Exception as exc:
+            return PaymentResponse(ok=False, error_message=str(exc))
+
         ws = create_connection(self.endpoint)
         ws.send(f"pay-invoice --invoice {bolt11}")
-        checking_id, fee_msat, preimage, payment_ok = (
-            None,
-            None,
-            None,
-            None,
-        )
+        fee_msat, preimage, payment_ok = None, None, None
         for _ in range(2):
             r = ws.recv()
             data = json.loads(r)
-            checking_id, fee_msat, preimage, payment_ok = (
-                None,
-                None,
-                None,
-                None,
-            )
 
             if data.get("error") is not None:
                 error_message = data["error"].get("message")
-                return PaymentResponse(ok=False, error_message=error_message)
+                return PaymentResponse(
+                    ok=False,
+                    checking_id=checking_id,
+                    error_message=error_message,
+                )
 
             if data.get("method") == "payment_succeeded":
                 payment_ok = True
-                checking_id = data["params"]["payment_hash"]
                 fee_msat = data["params"]["fee_msatoshi"]
                 preimage = data["params"]["preimage"]
                 continue
 
             if data.get("result") is None:
-                return PaymentResponse(error_message="result is None")
+                return PaymentResponse(
+                    checking_id=checking_id,
+                    error_message="result is None",
+                )
 
         return PaymentResponse(
             ok=payment_ok, checking_id=checking_id, fee_msat=fee_msat, preimage=preimage

@@ -8,6 +8,8 @@ from pathlib import Path
 from typing import Any
 
 import httpx
+from bolt11 import Bolt11Exception
+from bolt11 import decode as bolt11_decode
 from embit.bip39 import mnemonic_is_valid
 from httpx import RequestError, TimeoutException
 from loguru import logger
@@ -192,6 +194,11 @@ class PhoenixdWallet(Wallet):
 
     async def pay_invoice(self, bolt11: str, fee_limit_msat: int) -> PaymentResponse:
         try:
+            checking_id = bolt11_decode(bolt11).payment_hash
+        except Bolt11Exception as exc:
+            return PaymentResponse(ok=False, error_message=str(exc))
+
+        try:
             r = await self.client.post(
                 "/payinvoice",
                 data={
@@ -206,17 +213,26 @@ class PhoenixdWallet(Wallet):
             # be safe and return pending on timeouts
             msg = f"Timeout connecting to {self.endpoint}. keep pending..."
             logger.warning(msg)
-            return PaymentResponse(ok=None, error_message=msg)
+            return PaymentResponse(
+                ok=None,
+                checking_id=checking_id,
+                error_message=msg,
+            )
         except RequestError as exc:
-            # RequestError is raised when the request never hit the destination server
             msg = f"Unable to connect to {self.endpoint}."
             logger.warning(msg)
             logger.warning(exc)
-            return PaymentResponse(ok=False, error_message=msg)
+            return PaymentResponse(
+                ok=None,
+                checking_id=checking_id,
+                error_message=msg,
+            )
         except Exception as exc:
             logger.warning(exc)
             return PaymentResponse(
-                ok=None, error_message=f"Unable to connect to {self.endpoint}."
+                ok=None,
+                checking_id=checking_id,
+                error_message=f"Unable to connect to {self.endpoint}.",
             )
 
         try:
@@ -224,9 +240,12 @@ class PhoenixdWallet(Wallet):
 
             if "routingFeeSat" not in data and ("reason" in data or "message" in data):
                 error_message = data.get("reason", data.get("message", "Unknown error"))
-                return PaymentResponse(error_message=error_message)
+                return PaymentResponse(
+                    checking_id=checking_id,
+                    error_message=error_message,
+                )
 
-            checking_id = data["paymentHash"]
+            data["paymentHash"]
             fee_msat = -int(data["routingFeeSat"]) * 1000
             preimage = data["paymentPreimage"]
             return PaymentResponse(
@@ -238,17 +257,20 @@ class PhoenixdWallet(Wallet):
 
         except json.JSONDecodeError:
             return PaymentResponse(
-                error_message="Server error: 'invalid json response'"
+                checking_id=checking_id,
+                error_message="Server error: 'invalid json response'",
             )
         except KeyError:
             return PaymentResponse(
-                error_message="Server error: 'missing required fields'"
+                checking_id=checking_id,
+                error_message="Server error: 'missing required fields'",
             )
         except Exception as exc:
             logger.info(f"Failed to pay invoice {bolt11}")
             logger.warning(exc)
             return PaymentResponse(
-                error_message=f"Unable to connect to {self.endpoint}."
+                checking_id=checking_id,
+                error_message=f"Unable to connect to {self.endpoint}.",
             )
 
     async def get_invoice_status(self, checking_id: str) -> PaymentStatus:

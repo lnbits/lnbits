@@ -702,7 +702,7 @@
           "expect": {
             "error_message": null,
             "success": true,
-            "checking_id": "c386d8e8d07342f2e39e189c8e6c57bb205bb373fe4e3a6f69404a8bb767b417",
+            "checking_id": "e35526a43d04e985594c0dfab848814f524b1c786598ec9a63beddb2d726ac96",
             "fee_msat": 50,
             "preimage": "0000000000000000000000000000000000000000000000000000000000000000"
           },
@@ -843,7 +843,7 @@
             "success": false,
             "pending": false,
             "failed": true,
-            "checking_id": null,
+            "checking_id": "e35526a43d04e985594c0dfab848814f524b1c786598ec9a63beddb2d726ac96",
             "fee_msat": null,
             "preimage": null
           },
@@ -1024,7 +1024,7 @@
             "success": false,
             "pending": true,
             "failed": false,
-            "checking_id": null,
+            "checking_id": "e35526a43d04e985594c0dfab848814f524b1c786598ec9a63beddb2d726ac96",
             "fee_msat": null,
             "preimage": null
           },
@@ -1112,7 +1112,7 @@
             "success": false,
             "pending": true,
             "failed": false,
-            "checking_id": null,
+            "checking_id": "e35526a43d04e985594c0dfab848814f524b1c786598ec9a63beddb2d726ac96",
             "fee_msat": null,
             "preimage": null
           },
@@ -1161,7 +1161,7 @@
             "success": false,
             "pending": true,
             "failed": false,
-            "checking_id": null,
+            "checking_id": "e35526a43d04e985594c0dfab848814f524b1c786598ec9a63beddb2d726ac96",
             "fee_msat": null,
             "preimage": null
           },

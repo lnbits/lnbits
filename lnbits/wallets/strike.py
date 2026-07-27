@@ -241,12 +241,20 @@ class StrikeWallet(Wallet):
             # 1) Create a payment quote
             quote_id, error = await self._create_payment_quote(bolt11)
             if error or not quote_id:
-                return PaymentResponse(ok=False, error_message=error or "Unknown error")
+                return PaymentResponse(
+                    ok=False,
+                    checking_id=payment_hash,
+                    error_message=error or "Unknown error",
+                )
 
             # 2) Execute the payment quote
+            self.pending_payments[payment_hash] = quote_id
             data, error = await self._execute_payment_quote(quote_id)
             if error or not data:
-                return PaymentResponse(ok=False, error_message=error or "Unknown error")
+                return PaymentResponse(
+                    checking_id=payment_hash,
+                    error_message=error or "Unknown error",
+                )
 
             state = data.get("state", "").upper()
             payment_id = data.get("paymentId")
@@ -256,6 +264,7 @@ class StrikeWallet(Wallet):
 
             # Handle successful payment
             if state in {"SUCCEEDED", "COMPLETED"}:
+                self.pending_payments.pop(payment_hash, None)
                 preimage = self._extract_preimage(data)
                 return PaymentResponse(
                     ok=True,
@@ -267,6 +276,7 @@ class StrikeWallet(Wallet):
             # Handle failed payment
             failed_states = {"CANCELED", "FAILED", "TIMED_OUT"}
             if state in failed_states:
+                self.pending_payments.pop(payment_hash, None)
                 logger.warning(
                     f"Strike payment {payment_id} failed with state: {state}"
                 )
@@ -275,9 +285,6 @@ class StrikeWallet(Wallet):
                     checking_id=payment_hash,
                     error_message=f"Payment {state.lower()}",
                 )
-
-            # Store mapping for later polling
-            self.pending_payments[payment_hash] = quote_id
 
             # Treat all other states as pending
             return PaymentResponse(ok=None, checking_id=payment_hash)
@@ -289,12 +296,17 @@ class StrikeWallet(Wallet):
                 f"body: {http_exc.response.text}"
             )
             return PaymentResponse(
-                ok=False,
+                ok=None,
+                checking_id=payment_hash,
                 error_message=f"Strike API error: {http_exc.response.status_code}",
             )
         except Exception as e:
             logger.warning(f"Strike payment exception: {e}", exc_info=True)
-            return PaymentResponse(ok=None, error_message=f"Error: {e!s}")
+            return PaymentResponse(
+                ok=None,
+                checking_id=payment_hash,
+                error_message=f"Error: {e!s}",
+            )
 
     async def get_invoice_status(self, checking_id: str) -> PaymentStatus:
         try:
@@ -341,25 +353,14 @@ class StrikeWallet(Wallet):
 
     async def get_payment_status(self, checking_id: str) -> PaymentStatus:
         quote_id = self.pending_payments.get(checking_id)
-
+        if not quote_id:
+            return PaymentPendingStatus()
         try:
-            # Attempt 1: Use quote_id if available (from in-memory store)
-            if quote_id:
-                status = await self._get_payment_status_by_quote_id(
-                    checking_id, quote_id
-                )
-                if status:
-                    return status
+            status = await self._get_payment_status_by_quote_id(checking_id, quote_id)
+            return status or PaymentPendingStatus()
         except Exception as e:
             logger.warning(e)
             logger.debug(f"Error while fetching payment by quote id {checking_id}.")
-
-        try:
-            # Attempt 2: Fallback - Use paymentId (checking_id) directly.
-            return await self._get_payment_status_by_checking_id(checking_id)
-        except Exception as e:
-            logger.warning(e)
-            logger.debug(f"Error while fetching payment {checking_id}.")
             return PaymentPendingStatus()
 
     async def get_invoices(
@@ -625,7 +626,7 @@ class StrikeWallet(Wallet):
         if state in {"SUCCEEDED", "COMPLETED"}:
             self.pending_payments.pop(checking_id, None)
             return PaymentSuccessStatus(fee_msat=fee_msat, preimage=preimage)
-        if state == "FAILED":
+        if state in {"CANCELED", "FAILED", "TIMED_OUT"}:
             self.pending_payments.pop(checking_id, None)
             return PaymentFailedStatus()
 

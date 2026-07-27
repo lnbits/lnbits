@@ -8,6 +8,8 @@ from decimal import Decimal
 from typing import Any
 
 import httpx
+from bolt11 import Bolt11Exception
+from bolt11 import decode as bolt11_decode
 from loguru import logger
 from websockets import connect
 
@@ -146,6 +148,11 @@ class EclairWallet(Wallet):
 
     async def pay_invoice(self, bolt11: str, fee_limit_msat: int) -> PaymentResponse:
         try:
+            checking_id = bolt11_decode(bolt11).payment_hash
+        except Bolt11Exception as exc:
+            return PaymentResponse(ok=False, error_message=str(exc))
+
+        try:
             r = await self.client.post(
                 "/payinvoice",
                 data={"invoice": bolt11, "blocking": True},
@@ -155,28 +162,39 @@ class EclairWallet(Wallet):
             data = r.json()
 
             if "error" in data:
-                return PaymentResponse(error_message=data["error"])
+                return PaymentResponse(
+                    checking_id=checking_id, error_message=data["error"]
+                )
             if r.is_error:
-                return PaymentResponse(error_message=r.text)
+                return PaymentResponse(checking_id=checking_id, error_message=r.text)
 
             if data["type"] == "payment-failed":
-                return PaymentResponse(ok=False, error_message="payment failed")
+                return PaymentResponse(
+                    ok=False,
+                    checking_id=checking_id,
+                    error_message="payment failed",
+                )
 
-            checking_id = data["paymentHash"]
+            data["paymentHash"]
             preimage = data["paymentPreimage"]
 
         except json.JSONDecodeError:
             return PaymentResponse(
-                error_message="Server error: 'invalid json response'"
+                checking_id=checking_id,
+                error_message="Server error: 'invalid json response'",
             )
         except KeyError:
             return PaymentResponse(
-                error_message="Server error: 'missing required fields'"
+                checking_id=checking_id,
+                error_message="Server error: 'missing required fields'",
             )
         except Exception as exc:
             logger.info(f"Failed to pay invoice {bolt11}")
             logger.warning(exc)
-            return PaymentResponse(error_message=f"Unable to connect to {self.url}.")
+            return PaymentResponse(
+                checking_id=checking_id,
+                error_message=f"Unable to connect to {self.url}.",
+            )
 
         payment_status: PaymentStatus = await self.get_payment_status(checking_id)
         success = True if payment_status.success else None
