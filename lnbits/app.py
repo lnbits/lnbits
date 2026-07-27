@@ -321,7 +321,7 @@ async def build_all_installed_extensions_list(  # noqa: C901
             ext_id = ext_dir.name
             if ext_id in settings.lnbits_installed_extensions_ids:
                 continue
-            ext_info = InstallableExtension.from_ext_dir(ext_id, ext_dir)
+            ext_info = InstallableExtension.from_wasm_ext_dir(ext_id)
             if not ext_info:
                 continue
 
@@ -341,12 +341,11 @@ async def build_all_installed_extensions_list(  # noqa: C901
             ext_id = ext_dir.name
             if ext_id in settings.lnbits_installed_extensions_ids:
                 continue
-            ext_info = InstallableExtension.from_ext_dir(ext_id, ext_dir)
+            ext_info = InstallableExtension.from_ext_dir(ext_id)
             if not ext_info:
                 continue
 
             installed_extensions.append(ext_info)
-            settings.lnbits_installed_extensions_ids.add(ext_id)
             await create_installed_extension(ext_info)
             current_version = await get_db_version(ext_id)
             await migrate_extension_database(ext_info, current_version)
@@ -390,14 +389,18 @@ async def build_all_installed_extensions_list(  # noqa: C901
 
 
 async def check_installed_extension_files(ext: InstallableExtension) -> bool:
-    if ext.has_installed_version:
+    if ext.is_wasm or ext.has_installed_version:
         return True
 
     zip_files = glob.glob(os.path.join(settings.lnbits_data_folder, "zips", "*.zip"))
 
     if f"./{ext.zip_path!s}" not in zip_files:
         await ext.download_archive()
-    ext.extract_archive()
+    archive_config = ext.load_archive_config()
+    if archive_config.get("extension_type") == "wasm":
+        ext.extract_wasm_archive()
+    else:
+        ext.extract_archive()
 
     return False
 

@@ -27,7 +27,8 @@ async def migrate_extension_database(
     if is_wasm_extension_id(ext.id):
         await migrate_wasm_extension_database(ext, current_version)
         return
-    await migrate_py_extension_database(ext, current_version)
+    else:
+        await migrate_py_extension_database(ext, current_version)
 
 
 async def migrate_py_extension_database(

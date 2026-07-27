@@ -1,7 +1,6 @@
 import json
 import zipfile
 from datetime import datetime, timedelta, timezone
-from pathlib import Path
 from types import SimpleNamespace
 from uuid import uuid4
 
@@ -177,7 +176,7 @@ async def test_install_wasm_extension_requires_permissions_and_skips_background_
         settings.lnbits_wasm_extensions_path = str(tmp_path / "wasm_extensions")
         _write_wasm_extension_archive(ext_info, _wasm_install_config(ext_id))
         wasm_ext_dir = settings.wasm_extensions_dir / ext_id
-        py_ext_dir = Path(settings.lnbits_extensions_path, "extensions", ext_id)
+        py_ext_dir = ext_info.ext_dir
         upgrade_dir = ext_info.ext_upgrade_dir
 
         with pytest.raises(ValueError, match="requires permission approval"):
@@ -284,7 +283,7 @@ async def test_uninstall_wasm_extension_unregisters_live_routes(
     unregister_routes_mock = mocker.patch(
         "lnbits.core.services.extensions.core_app_extra.unregister_wasm_ext_routes"
     )
-    clean_mock = mocker.patch.object(InstallableExtension, "clean_extension_files")
+    clean_mock = mocker.patch.object(InstallableExtension, "clean_wasm_extension_files")
 
     try:
         settings.lnbits_data_folder = str(tmp_path / "data")

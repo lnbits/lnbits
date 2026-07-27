@@ -217,7 +217,10 @@ async def install_extension(
         allow_admin_policy_overrides=allow_admin_policy_overrides,
     )
 
-    ext_info.extract_archive()
+    if extension_config.get("extension_type") == "wasm":
+        ext_info.extract_wasm_archive()
+    else:
+        ext_info.extract_archive()
 
     db_version = await get_db_version(ext_info.id)
     await migrate_extension_database(ext_info, db_version)
@@ -645,7 +648,10 @@ async def uninstall_extension(ext_id: str):
 
     extension = await get_installed_extension(ext_id)
     if extension:
-        extension.clean_extension_files()
+        if extension.is_wasm:
+            extension.clean_wasm_extension_files()
+        else:
+            extension.clean_extension_files()
     await delete_installed_extension(ext_id=ext_id)
 
 
