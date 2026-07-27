@@ -338,12 +338,6 @@ async def build_all_installed_extensions_list(  # noqa: C901
         try:
             if not ext_dir.is_dir():
                 continue
-            if is_wasm_extension_dir(ext_dir):
-                logger.warning(
-                    f"Ignoring WASM extension '{ext_dir.name}' in the regular "
-                    "extensions directory."
-                )
-                continue
             ext_id = ext_dir.name
             if ext_id in settings.lnbits_installed_extensions_ids:
                 continue
@@ -524,15 +518,6 @@ async def check_and_register_extensions(app: FastAPI) -> None:
     await check_installed_extensions(app)
     for ext in await get_valid_extensions(False):
         try:
-            legacy_wasm_dir = Path(
-                settings.lnbits_extensions_path, "extensions", ext.code
-            )
-            if not ext.is_wasm and is_wasm_extension_dir(legacy_wasm_dir):
-                logger.warning(
-                    f"Ignoring WASM extension '{ext.code}' in the regular "
-                    "extensions directory."
-                )
-                continue
             if is_wasm_extension_id(ext.code):
                 register_wasm_extension(app, ext.code)
                 continue

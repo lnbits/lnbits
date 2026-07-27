@@ -672,15 +672,12 @@ class InstallableExtension(BaseModel):
                 )
 
         if config_json.get("extension_type") == "wasm":
-            shutil.rmtree(self.py_ext_dir, True)
-            shutil.rmtree(self.ext_upgrade_dir, True)
             shutil.rmtree(self.wasm_ext_dir, True)
             shutil.copytree(extracted_dir, self.wasm_ext_dir)
         else:
             Path(settings.lnbits_extensions_upgrade_path).mkdir(
                 parents=True, exist_ok=True
             )
-            shutil.rmtree(self.wasm_ext_dir, True)
             shutil.rmtree(self.ext_upgrade_dir, True)
             shutil.copytree(extracted_dir, self.ext_upgrade_dir)
             shutil.rmtree(self.py_ext_dir, True)
@@ -694,9 +691,7 @@ class InstallableExtension(BaseModel):
         if self.zip_path.is_file():
             os.remove(self.zip_path)
 
-        shutil.rmtree(self.py_ext_dir, True)
-        shutil.rmtree(self.wasm_ext_dir, True)
-
+        shutil.rmtree(self.ext_dir, True)
         shutil.rmtree(self.ext_upgrade_dir, True)
 
     def check_release_updates(self, release: ExtensionRelease | None):
