@@ -19,6 +19,7 @@ from lnbits.core.models.extensions import (
     CreateExtension,
     CreateExtensionReview,
     Extension,
+    ExtensionArchiveValidationError,
     ExtensionBackgroundPaymentDestinationPolicy,
     ExtensionBackgroundPaymentGrant,
     ExtensionBackgroundPaymentGrantRequest,
@@ -129,14 +130,17 @@ async def api_install_extension(data: CreateExtension):
         logger.warning(exc)
         etype, _, tb = sys.exc_info()
         traceback.print_exception(etype, exc, tb)
-        try:
-            archive_config = ext_info.load_archive_config()
-        except ValueError:
-            archive_config = {}
-        if archive_config.get("extension_type") == "wasm":
-            ext_info.clean_wasm_extension_files()
+        if isinstance(exc, ExtensionArchiveValidationError):
+            ext_info.zip_path.unlink(missing_ok=True)
         else:
-            ext_info.clean_extension_files()
+            try:
+                archive_config = ext_info.load_archive_config()
+            except ValueError:
+                archive_config = {}
+            if archive_config.get("extension_type") == "wasm":
+                ext_info.clean_wasm_extension_files()
+            else:
+                ext_info.clean_extension_files()
         detail = (
             str(exc)
             if isinstance(exc, (AssertionError, ValueError))

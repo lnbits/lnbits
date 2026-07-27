@@ -14,6 +14,7 @@ from lnbits.core.crud import (
 )
 from lnbits.core.models.extensions import (
     Extension,
+    ExtensionManifestType,
     ExtensionPermission,
     InstallableExtension,
     ReleasePaymentInfo,
@@ -63,6 +64,9 @@ async def test_install_extension_creates_new_extension_and_starts_background_wor
 ):
     ext_id = f"ext_{uuid4().hex[:8]}"
     ext_info = make_installable_extension(ext_id)
+    assert ext_info.meta
+    assert ext_info.meta.installed_release
+    ext_info.meta.installed_release.manifest_type = ExtensionManifestType.PYTHON
     original_data_folder = settings.lnbits_data_folder
     original_extensions_path = settings.lnbits_extensions_path
     download_mock = mocker.patch.object(
@@ -162,6 +166,9 @@ async def test_install_wasm_extension_requires_permissions_and_skips_background_
 ):
     ext_id = f"wasm_{uuid4().hex[:8]}"
     ext_info = make_installable_extension(ext_id)
+    assert ext_info.meta
+    assert ext_info.meta.installed_release
+    ext_info.meta.installed_release.manifest_type = ExtensionManifestType.WASM
     original_data_folder = settings.lnbits_data_folder
     original_extensions_path = settings.lnbits_extensions_path
     original_wasm_extensions_path = settings.lnbits_wasm_extensions_path
@@ -214,6 +221,94 @@ async def test_install_wasm_extension_requires_permissions_and_skips_background_
     assert wasm_ext_dir.is_dir()
     assert not py_ext_dir.exists()
     assert not upgrade_dir.exists()
+
+
+@pytest.mark.parametrize(
+    ("manifest_type", "error"),
+    [
+        (
+            ExtensionManifestType.PYTHON,
+            "Python extension manifest cannot install WASM extension",
+        ),
+        (
+            ExtensionManifestType.WASM,
+            "WASM extension manifest requires extension_type 'wasm'",
+        ),
+    ],
+)
+@pytest.mark.anyio
+async def test_install_extension_rejects_archive_from_wrong_manifest_type(
+    tmp_path,
+    settings: Settings,
+    mocker: MockerFixture,
+    manifest_type: ExtensionManifestType,
+    error: str,
+):
+    ext_id = f"ext_{uuid4().hex[:8]}"
+    ext_info = make_installable_extension(ext_id)
+    assert ext_info.meta
+    assert ext_info.meta.installed_release
+    ext_info.meta.installed_release.manifest_type = manifest_type
+    original_data_folder = settings.lnbits_data_folder
+    mocker.patch(
+        "lnbits.core.services.extensions.get_installed_extension",
+        mocker.AsyncMock(return_value=None),
+    )
+    mocker.patch(
+        "lnbits.core.services.extensions.check_extensions_limit",
+        mocker.AsyncMock(),
+    )
+
+    try:
+        settings.lnbits_data_folder = str(tmp_path / "data")
+        config = (
+            _wasm_install_config(ext_id)
+            if manifest_type == ExtensionManifestType.PYTHON
+            else {"id": ext_id, "name": ext_id}
+        )
+        _write_extension_archive(ext_info, config)
+
+        with pytest.raises(ValueError, match=error):
+            await install_extension(ext_info, skip_download=True)
+    finally:
+        settings.lnbits_data_folder = original_data_folder
+
+
+@pytest.mark.parametrize("python_file", ["main.py", "cache.pyc", "legacy.PYO"])
+@pytest.mark.anyio
+async def test_install_wasm_extension_rejects_python_files(
+    tmp_path,
+    settings: Settings,
+    mocker: MockerFixture,
+    python_file: str,
+):
+    ext_id = f"wasm_{uuid4().hex[:8]}"
+    ext_info = make_installable_extension(ext_id)
+    assert ext_info.meta
+    assert ext_info.meta.installed_release
+    ext_info.meta.installed_release.manifest_type = ExtensionManifestType.WASM
+    original_data_folder = settings.lnbits_data_folder
+    mocker.patch(
+        "lnbits.core.services.extensions.get_installed_extension",
+        mocker.AsyncMock(return_value=None),
+    )
+    mocker.patch(
+        "lnbits.core.services.extensions.check_extensions_limit",
+        mocker.AsyncMock(),
+    )
+
+    try:
+        settings.lnbits_data_folder = str(tmp_path / "data")
+        _write_extension_archive(
+            ext_info,
+            _wasm_install_config(ext_id),
+            extra_files=[f"nested/{python_file}"],
+        )
+
+        with pytest.raises(ValueError, match="contains forbidden Python file"):
+            await install_extension(ext_info, skip_download=True)
+    finally:
+        settings.lnbits_data_folder = original_data_folder
 
 
 @pytest.mark.anyio
@@ -501,11 +596,25 @@ def _write_wasm_extension_archive(
     ext_info: InstallableExtension,
     config: dict,
 ) -> None:
+    _write_extension_archive(
+        ext_info,
+        config,
+        extra_files=[config["wasm"]["module"]],
+    )
+
+
+def _write_extension_archive(
+    ext_info: InstallableExtension,
+    config: dict,
+    *,
+    extra_files: list[str] | None = None,
+) -> None:
     ext_info.zip_path.parent.mkdir(parents=True, exist_ok=True)
     root = f"{ext_info.id}-{ext_info.version}"
     with zipfile.ZipFile(ext_info.zip_path, "w") as archive:
         archive.writestr(f"{root}/config.json", json.dumps(config))
-        archive.writestr(f"{root}/{config['wasm']['module']}", b"\0asm")
+        for filename in extra_files or []:
+            archive.writestr(f"{root}/{filename}", b"\0asm")
 
 
 def _wasm_install_config(ext_id: str) -> dict:
