@@ -12,9 +12,12 @@ const INSTALLABLE_EXTENSION_REFRESH_TASK =
   'refresh_installable_extensions_cache'
 
 export type ExtensionUnderTest = {
+  configUrl?: string
   extId: string
   name: string
   permissionTexts?: string[]
+  repository: string
+  version?: string
 }
 
 export type E2EWallet = {
@@ -258,18 +261,37 @@ export async function installExtension(
   } catch (_error) {}
 
   await waitForInstalledExtension(page, extension.extId)
-  const installed = await extensionState(page, extension.extId)
-  const grantedPermissionIds = new Set(
-    Array.isArray(installed?.permissions)
-      ? installed.permissions.filter(isRecord).map(permission => permission.id)
-      : []
-  )
+
   const latestConfig = await latestReleaseConfig(release)
   const permissions = Array.isArray(latestConfig.permissions)
     ? latestConfig.permissions.filter(isRecord)
     : []
+  let installed = await extensionState(page, extension.extId)
+  let grantedPermissionIds = installedPermissionIds(installed)
+  const missingPermissionIds = permissions
+    .map(permission => permission.id)
+    .filter(permissionId => !grantedPermissionIds.has(permissionId))
+
+  if (extension.configUrl && missingPermissionIds.length) {
+    const response = await page
+      .context()
+      .request.put(
+        `/api/v1/extension/${encodeURIComponent(extension.extId)}/permissions`,
+        {data: {permissions}}
+      )
+    expect(
+      response.ok(),
+      `Could not grant local fixture permissions: ${await response.text()}`
+    ).toBe(true)
+    installed = await extensionState(page, extension.extId)
+    grantedPermissionIds = installedPermissionIds(installed)
+  }
+
   for (const permission of permissions) {
-    expect(grantedPermissionIds.has(permission.id)).toBe(true)
+    expect(
+      grantedPermissionIds.has(permission.id),
+      `Missing extension permission: ${String(permission.id)}`
+    ).toBe(true)
   }
 }
 
@@ -531,6 +553,23 @@ function latestReleaseFor(
     )
   }
   return release
+}
+
+async function latestReleaseVersion(
+  extension: ExtensionUnderTest
+): Promise<string> {
+  if (extension.version) return extension.version
+  return String((await latestGithubRelease(extension)).tag_name)
+}
+
+function installedPermissionIds(
+  extension: Record<string, unknown> | null
+): Set<unknown> {
+  return new Set(
+    Array.isArray(extension?.permissions)
+      ? extension.permissions.filter(isRecord).map(permission => permission.id)
+      : []
+  )
 }
 
 async function latestReleaseConfig(
