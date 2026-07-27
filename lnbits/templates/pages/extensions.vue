@@ -682,12 +682,27 @@
                           (release.requiresPayment && release.paid_sats)
                         "
                       >
-                        <q-btn
+                        <div
                           v-if="!release.isInstalled"
-                          @click="installExtension(release)"
-                          color="primary unelevated mt-lg pt-lg"
-                          :label="$t('install')"
-                        ></q-btn>
+                          class="row items-center q-gutter-sm"
+                        >
+                          <q-btn
+                            @click="installExtension(release)"
+                            color="primary unelevated mt-lg pt-lg"
+                            :label="$t('install')"
+                          ></q-btn>
+                          <div
+                            v-if="release.extension_type !== 'wasm'"
+                            class="text-caption text-primary"
+                          >
+                            <q-icon name="info" class="q-mr-xs"></q-icon>
+                            <span
+                              v-text="
+                                'Python extensions have full server access. Trust the source.'
+                              "
+                            ></span>
+                          </div>
+                        </div>
                       </div>
 
                       <div v-if="release.requiresPayment && !release.paid_sats">

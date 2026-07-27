@@ -91,6 +91,19 @@ def test_wasm_extension_install_ui_requests_permissions_before_install_paths():
     assert wasm_bulk_update_skip_message in extensions_page
 
 
+def test_extension_install_ui_warns_only_for_python_releases():
+    extensions_template = (ROOT / "lnbits/templates/pages/extensions.vue").read_text(
+        encoding="utf-8"
+    )
+
+    assert "release.extension_type !== 'wasm'" in extensions_template
+    assert (
+        "'Python extensions have full server access. Trust the source.'"
+        in extensions_template
+    )
+    assert '<q-icon name="info"' in extensions_template
+
+
 def test_wasm_admin_frontend_calls_runtime_limit_and_invocation_endpoints():
     runtime = (
         ROOT / "lnbits/static/js/components/admin/lnbits-admin-wasm-runtime.js"
