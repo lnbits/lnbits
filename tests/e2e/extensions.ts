@@ -6,14 +6,11 @@ const extensionFixtureUrl =
 export const SUPPORTCHAT: ExtensionUnderTest = {
   extId: 'supportchat',
   name: 'Support Chat',
-  manifestUrl: `${extensionFixtureUrl}/manifest.json`,
-  repository: `${extensionFixtureUrl}/manifest.json`,
   configUrl: `${extensionFixtureUrl}/config.json`,
-  version: '0.2.0',
   permissionTexts: [
     'Read public extension storage',
     'Append public extension storage',
-    'Publish websocket messages'
+    'Use extension websockets'
   ]
 }
 

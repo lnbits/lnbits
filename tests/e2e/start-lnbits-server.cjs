@@ -24,6 +24,12 @@ fs.mkdirSync(dataDir, {recursive: true})
 fs.mkdirSync(logDir, {recursive: true})
 
 const supportchatFixture = createSupportchatFixture(extensionFixtureUrl)
+const wasmExtensionManifests = [
+  ...(supportchatFixture
+    ? [new URL('/manifest.json', extensionFixtureUrl).toString()]
+    : []),
+  'https://raw.githubusercontent.com/lnbits/lnbits-extensions-wasm/refs/heads/main/extensions.json'
+]
 const extensionFixtureServer = supportchatFixture
   ? http.createServer((request, response) => {
       const pathname = new URL(request.url ?? '/', extensionFixtureUrl).pathname
@@ -71,6 +77,7 @@ const server = childProcess.spawn(
       LNBITS_DATA_FOLDER: dataDir,
       LNBITS_ENABLE_LOG_TO_FILE: 'false',
       LNBITS_EXTENSIONS_PATH: dataDir,
+      LNBITS_WASM_EXTENSIONS_MANIFESTS: JSON.stringify(wasmExtensionManifests),
       PORT: port,
       PYTHONUNBUFFERED: '1'
     },

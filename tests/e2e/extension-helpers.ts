@@ -16,8 +16,6 @@ export type ExtensionUnderTest = {
   extId: string
   name: string
   permissionTexts?: string[]
-  repository: string
-  version?: string
 }
 
 export type E2EWallet = {
@@ -246,22 +244,34 @@ export async function installExtension(
   await expect(installButton).toBeVisible({timeout: 120_000})
   await installButton.click()
 
-  const grantButton = page.getByRole('button', {name: /^grant and install$/i})
+  const permissionsDialog = page
+    .locator('.q-dialog')
+    .filter({hasText: 'Grant extension permissions'})
+    .last()
+  let hasPermissionsDialog = false
   try {
-    await expect(page.getByText('Grant extension permissions')).toBeVisible({
+    await expect(permissionsDialog).toBeVisible({
       timeout: 10_000
     })
+    hasPermissionsDialog = true
+  } catch (_error) {}
+
+  if (hasPermissionsDialog) {
     for (const permissionText of extension.permissionTexts ?? []) {
-      await expect(page.getByText(permissionText).first()).toBeVisible({
+      await expect(
+        permissionsDialog.getByText(permissionText).first()
+      ).toBeVisible({
         timeout: 60_000
       })
     }
+    const grantButton = permissionsDialog.getByRole('button', {
+      name: /^grant and install$/i
+    })
     await expect(grantButton).toBeEnabled({timeout: 60_000})
     await grantButton.click()
-  } catch (_error) {}
+  }
 
   await waitForInstalledExtension(page, extension.extId)
-
   const latestConfig = await latestReleaseConfig(release)
   const permissions = Array.isArray(latestConfig.permissions)
     ? latestConfig.permissions.filter(isRecord)
@@ -299,18 +309,24 @@ export async function enableExtension(
   page: Page,
   extension: ExtensionUnderTest
 ): Promise<void> {
-  await page.goto('/extensions')
-  await selectExtensionsTab(page, 'Installed')
-  await filterExtensions(page, extension.name)
+  if (await userExtensionEnabled(page, extension.extId)) return
+
+  await page.goto(`/extensions#${encodeURIComponent(extension.extId)}`)
+  await dismissDisclaimer(page)
   const extensionCard = extensionCardFor(page, extension)
   await expect(extensionCard).toBeVisible({timeout: 120_000})
   const enableButton = extensionCard.getByRole('button', {name: /^enable$/i})
-  if (await enableButton.isVisible()) {
-    await enableButton.click()
-    await expect(page.getByText('Extension enabled!')).toBeVisible({
-      timeout: 60_000
-    })
-  }
+  await expect(enableButton).toBeVisible({timeout: 60_000})
+  await enableButton.click()
+  await expect(page.getByText('Extension enabled!')).toBeVisible({
+    timeout: 60_000
+  })
+  await waitForResult(
+    `${extension.extId} extension to be enabled for the user`,
+    async () =>
+      (await userExtensionEnabled(page, extension.extId)) ? true : null,
+    {timeout: 60_000, interval: 1_000}
+  )
   await expect(extensionCard.getByRole('link', {name: /^open$/i})).toBeVisible({
     timeout: 60_000
   })
@@ -400,6 +416,21 @@ export async function extensionState(
       .filter(isRecord)
       .find(extension => extension.id === extensionId) ?? null
   )
+}
+
+async function userExtensionEnabled(
+  page: Page,
+  extensionId: string
+): Promise<boolean> {
+  const extensions = await browserJson(page, 'GET', '/api/v1/extension')
+  if (!Array.isArray(extensions)) {
+    throw new Error(
+      `User extensions response is not a list: ${JSON.stringify(extensions)}`
+    )
+  }
+  return extensions
+    .filter(isRecord)
+    .some(extension => extension.code === extensionId)
 }
 
 export async function grantBackgroundPaymentPermission(
@@ -553,13 +584,6 @@ function latestReleaseFor(
     )
   }
   return release
-}
-
-async function latestReleaseVersion(
-  extension: ExtensionUnderTest
-): Promise<string> {
-  if (extension.version) return extension.version
-  return String((await latestGithubRelease(extension)).tag_name)
 }
 
 function installedPermissionIds(

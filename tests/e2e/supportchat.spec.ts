@@ -110,6 +110,11 @@ test('install Support Chat and run the visitor-to-agent support workflow', async
     await expect(
       adminFrame.getByText('The checkout spinner never finishes.')
     ).toBeVisible()
+    await expect(
+      adminFrame
+        .locator('.sc-message--theirs')
+        .filter({hasText: 'The checkout spinner never finishes.'})
+    ).toHaveCSS('justify-content', 'flex-end')
 
     const cannedForm = adminFrame.locator('#canned-reply-form')
     await cannedForm.locator('[name="title"]').fill('Investigating')
@@ -164,6 +169,16 @@ test('install Support Chat and run the visitor-to-agent support workflow', async
       visitorFrame.getByText('Thanks — we are investigating this now.')
     ).toBeVisible({timeout: 60_000})
     await expect(
+      adminFrame
+        .locator('.sc-message--mine')
+        .filter({hasText: 'Thanks — we are investigating this now.'})
+    ).toHaveCSS('justify-content', 'flex-start')
+    await expect(
+      visitorFrame
+        .locator('.sc-message--theirs')
+        .filter({hasText: 'Thanks — we are investigating this now.'})
+    ).toHaveCSS('justify-content', 'flex-end')
+    await expect(
       visitorFrame.getByText('Only agents should see this diagnostic note.')
     ).toHaveCount(0)
 
@@ -177,7 +192,18 @@ test('install Support Chat and run the visitor-to-agent support workflow', async
     ).toBeVisible({timeout: 60_000})
     await expect(adminFrame.getByTestId('unread-count')).toHaveText('1')
 
+    const ticketResolved = page.waitForResponse(
+      response =>
+        response.request().method() === 'POST' &&
+        response.url().includes('/api/v1/ext/supportchat/conversations/') &&
+        response.url().endsWith('/resolve')
+    )
     await adminFrame.getByRole('button', {name: 'Resolve'}).click()
+    const ticketResolvedResponse = await ticketResolved
+    expect(
+      ticketResolvedResponse.ok(),
+      `Could not resolve ticket: ${await ticketResolvedResponse.text()}`
+    ).toBe(true)
     await expect(visitorFrame.getByText('resolved').first()).toBeVisible({
       timeout: 60_000
     })
@@ -195,11 +221,17 @@ test('install Support Chat and run the visitor-to-agent support workflow', async
         response.url().includes('/api/v1/ext/supportchat/conversations/')
     )
     await adminFrame.getByRole('button', {name: 'Save ticket'}).click()
-    await ticketReopened
+    const ticketReopenedResponse = await ticketReopened
+    expect(
+      ticketReopenedResponse.ok(),
+      `Could not reopen ticket: ${await ticketReopenedResponse.text()}`
+    ).toBe(true)
     await expect(adminFrame.locator('main.sc-shell')).toHaveAttribute(
       'data-loading',
       ''
     )
+    await visitorPage.reload()
+    visitorFrame = await extensionFrame(visitorPage, 'Support Chat')
     await expect(visitorFrame.getByText('open').first()).toBeVisible({
       timeout: 60_000
     })
