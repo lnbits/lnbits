@@ -334,7 +334,9 @@ async def build_all_installed_extensions_list(  # noqa: C901
         except Exception as e:
             logger.warning(e)
 
-    for ext_dir in Path(settings.lnbits_extensions_path, "extensions").iterdir():
+    ext_dir_path = Path(settings.lnbits_extensions_path, "extensions")
+    existing_ext_dirs = ext_dir_path.iterdir() if ext_dir_path.is_dir() else []
+    for ext_dir in existing_ext_dirs:
         try:
             if not ext_dir.is_dir():
                 continue
