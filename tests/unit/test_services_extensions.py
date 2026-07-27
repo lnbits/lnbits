@@ -274,7 +274,10 @@ async def test_install_extension_rejects_archive_from_wrong_manifest_type(
         settings.lnbits_data_folder = original_data_folder
 
 
-@pytest.mark.parametrize("python_file", ["main.py", "cache.pyc", "legacy.PYO"])
+@pytest.mark.parametrize(
+    "python_file",
+    ["main.py", "cache.pyc", "legacy.PYO", "native.so", "native.PYD"],
+)
 @pytest.mark.anyio
 async def test_install_wasm_extension_rejects_python_files(
     tmp_path,

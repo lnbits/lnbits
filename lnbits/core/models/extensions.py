@@ -673,7 +673,7 @@ class InstallableExtension(BaseModel):
                     for item in archive.infolist()
                     if not item.is_dir()
                     and PurePosixPath(item.filename).suffix.lower()
-                    in {".py", ".pyc", ".pyo"}
+                    in {".py", ".pyc", ".pyo", ".so", ".pyd"}
                 ),
                 None,
             )
