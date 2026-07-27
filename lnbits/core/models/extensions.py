@@ -545,6 +545,10 @@ class InstallableExtension(BaseModel):
         return Path(settings.lnbits_extensions_path, "extensions", self.id)
 
     @property
+    def wasm_ext_dir(self) -> Path:
+        return Path(settings.wasm_extensions_dir, self.id)
+
+    @property
     def ext_upgrade_dir(self) -> Path:
         return Path(settings.lnbits_extensions_upgrade_path, f"{self.id}-{self.hash}")
 
@@ -577,7 +581,7 @@ class InstallableExtension(BaseModel):
 
     @property
     def is_wasm(self) -> bool:
-        config_path = Path(self.ext_dir, "config.json")
+        config_path = Path(self.wasm_ext_dir, "config.json")
         if not config_path.is_file():
             return False
         try:
@@ -673,6 +677,37 @@ class InstallableExtension(BaseModel):
         shutil.copytree(Path(self.ext_upgrade_dir), Path(self.ext_dir))
         logger.info(f"Extension {self.name} ({self.installed_version}) extracted.")
 
+    def extract_wasm_archive(self):
+        logger.info(f"Extracting extension {self.name} ({self.installed_version}).")
+
+        tmp_dir = Path(settings.lnbits_data_folder, "unzip-temp", self.hash)
+        shutil.rmtree(tmp_dir, True)
+        with zipfile.ZipFile(self.zip_path, "r") as zip_ref:
+            zip_ref.extractall(tmp_dir)
+        generated_dir_name = os.listdir(tmp_dir)[0]
+        extracted_dir = Path(tmp_dir, generated_dir_name)
+
+        with open(Path(extracted_dir, "config.json"), "r+") as json_file:
+            config_json = json.load(json_file)
+
+            self.name = config_json.get("name")
+            self.short_description = config_json.get("short_description")
+
+            if (
+                self.meta
+                and self.meta.installed_release
+                and self.meta.installed_release.is_github_release
+                and config_json.get("tile")
+            ):
+                self.icon = icon_to_github_url(
+                    self.meta.installed_release.source_repo, config_json.get("tile")
+                )
+
+        shutil.rmtree(self.wasm_ext_dir, True)
+        shutil.copytree(extracted_dir, self.wasm_ext_dir)
+        shutil.rmtree(tmp_dir, True)
+        logger.info(f"Extension {self.name} ({self.installed_version}) extracted.")
+
     def clean_extension_files(self):
         # remove downloaded archive
         if self.zip_path.is_file():
@@ -682,6 +717,12 @@ class InstallableExtension(BaseModel):
         shutil.rmtree(self.ext_dir, True)
 
         shutil.rmtree(self.ext_upgrade_dir, True)
+
+    def clean_wasm_extension_files(self):
+        if self.zip_path.is_file():
+            os.remove(self.zip_path)
+
+        shutil.rmtree(self.wasm_ext_dir, True)
 
     def check_release_updates(self, release: ExtensionRelease | None):
         self._check_latest_version(release)
@@ -800,6 +841,41 @@ class InstallableExtension(BaseModel):
             conf_path = Path(
                 settings.lnbits_extensions_path, "extensions", ext_id, "config.json"
             )
+            if not conf_path.is_file():
+                return None
+            with open(conf_path, "r+") as json_file:
+                config_json = json.load(json_file)
+                version = config_json.get("version", "0.0")
+
+                return InstallableExtension(
+                    id=ext_id,
+                    name=config_json.get("name", ext_id),
+                    active=True,
+                    version=version,
+                    short_description=config_json.get("short_description"),
+                    icon=config_json.get("tile"),
+                    permissions=ExtensionPermission.list_from_config(config_json),
+                    meta=ExtensionMeta(
+                        installed_release=ExtensionRelease(
+                            name=ext_id,
+                            version=version,
+                            archive=f"{conf_path}",
+                            source_repo=f"{conf_path}",
+                            min_lnbits_version=config_json.get("min_lnbits_version"),
+                            max_lnbits_version=config_json.get("max_lnbits_version"),
+                        )
+                    ),
+                )
+
+        except Exception as e:
+            logger.warning(e)
+
+        return None
+
+    @classmethod
+    def from_wasm_ext_dir(cls, ext_id: str) -> InstallableExtension | None:
+        try:
+            conf_path = Path(settings.wasm_extensions_dir, ext_id, "config.json")
             if not conf_path.is_file():
                 return None
             with open(conf_path, "r+") as json_file:

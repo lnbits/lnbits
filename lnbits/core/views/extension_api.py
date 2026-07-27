@@ -129,7 +129,14 @@ async def api_install_extension(data: CreateExtension):
         logger.warning(exc)
         etype, _, tb = sys.exc_info()
         traceback.print_exception(etype, exc, tb)
-        ext_info.clean_extension_files()
+        try:
+            archive_config = ext_info.load_archive_config()
+        except ValueError:
+            archive_config = {}
+        if archive_config.get("extension_type") == "wasm":
+            ext_info.clean_wasm_extension_files()
+        else:
+            ext_info.clean_extension_files()
         detail = (
             str(exc)
             if isinstance(exc, (AssertionError, ValueError))
@@ -1054,7 +1061,8 @@ async def create_extension_review(
 
 
 def _load_installed_extension_config(extension: InstallableExtension) -> dict:
-    config_path = extension.ext_dir / "config.json"
+    ext_dir = extension.wasm_ext_dir if extension.is_wasm else extension.ext_dir
+    config_path = ext_dir / "config.json"
     if not config_path.is_file():
         raise ValueError(f"Extension '{extension.id}' config file is missing.")
     try:

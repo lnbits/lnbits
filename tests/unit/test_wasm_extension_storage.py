@@ -225,10 +225,12 @@ async def test_wasm_storage_migration_and_owner_scoped_crud(
 ):
     ext_id = f"wasmstore_{uuid4().hex[:8]}"
     original_extensions_path = settings.lnbits_extensions_path
+    original_wasm_extensions_path = settings.lnbits_wasm_extensions_path
     original_data_folder = settings.lnbits_data_folder
     try:
         settings.lnbits_data_folder = str(tmp_path / "data")
         settings.lnbits_extensions_path = str(tmp_path / "code")
+        settings.lnbits_wasm_extensions_path = str(tmp_path / "wasm_extensions")
         Path(settings.lnbits_data_folder).mkdir(parents=True)
         ext_dir = _write_storage_extension(settings, ext_id)
 
@@ -281,6 +283,7 @@ async def test_wasm_storage_migration_and_owner_scoped_crud(
         deleted = await storage_get_row(ext_id, "notes", "note-1", "owner-1")
     finally:
         settings.lnbits_extensions_path = original_extensions_path
+        settings.lnbits_wasm_extensions_path = original_wasm_extensions_path
         settings.lnbits_data_folder = original_data_folder
 
     assert ext_dir.is_dir()
@@ -304,10 +307,12 @@ async def test_wasm_storage_public_append_generates_id_and_counts_by_owner(
 ):
     ext_id = f"wasmstore_{uuid4().hex[:8]}"
     original_extensions_path = settings.lnbits_extensions_path
+    original_wasm_extensions_path = settings.lnbits_wasm_extensions_path
     original_data_folder = settings.lnbits_data_folder
     try:
         settings.lnbits_data_folder = str(tmp_path / "data")
         settings.lnbits_extensions_path = str(tmp_path / "code")
+        settings.lnbits_wasm_extensions_path = str(tmp_path / "wasm_extensions")
         Path(settings.lnbits_data_folder).mkdir(parents=True)
         _write_storage_extension(settings, ext_id)
 
@@ -339,6 +344,7 @@ async def test_wasm_storage_public_append_generates_id_and_counts_by_owner(
         message = await storage_get_row(ext_id, "messages", message_id, "owner-1")
     finally:
         settings.lnbits_extensions_path = original_extensions_path
+        settings.lnbits_wasm_extensions_path = original_wasm_extensions_path
         settings.lnbits_data_folder = original_data_folder
 
     assert message_id
@@ -357,10 +363,12 @@ async def test_wasm_storage_rejects_reserved_fields_and_invalid_identifiers(
 ):
     ext_id = f"wasmstore_{uuid4().hex[:8]}"
     original_extensions_path = settings.lnbits_extensions_path
+    original_wasm_extensions_path = settings.lnbits_wasm_extensions_path
     original_data_folder = settings.lnbits_data_folder
     try:
         settings.lnbits_data_folder = str(tmp_path / "data")
         settings.lnbits_extensions_path = str(tmp_path / "code")
+        settings.lnbits_wasm_extensions_path = str(tmp_path / "wasm_extensions")
         Path(settings.lnbits_data_folder).mkdir(parents=True)
         _write_storage_extension(settings, ext_id)
 
@@ -375,13 +383,7 @@ async def test_wasm_storage_rejects_reserved_fields_and_invalid_identifiers(
                 "owner-1",
             )
 
-        schema_path = (
-            Path(settings.lnbits_extensions_path)
-            / "extensions"
-            / ext_id
-            / "storage"
-            / "schema.json"
-        )
+        schema_path = settings.wasm_extensions_dir / ext_id / "storage" / "schema.json"
         schema = json.loads(schema_path.read_text(encoding="utf-8"))
         schema["tables"]["notes"]["fields"].append(
             {"name": OWNER_ID_FIELD, "type": "string"}
@@ -392,6 +394,7 @@ async def test_wasm_storage_rejects_reserved_fields_and_invalid_identifiers(
             await storage_get_row(ext_id, "notes", "note-1", "owner-1")
     finally:
         settings.lnbits_extensions_path = original_extensions_path
+        settings.lnbits_wasm_extensions_path = original_wasm_extensions_path
         settings.lnbits_data_folder = original_data_folder
 
 
@@ -429,7 +432,7 @@ async def _temporary_core_crud_database(
 
 
 def _write_storage_extension(settings: Settings, ext_id: str) -> Path:
-    ext_dir = Path(settings.lnbits_extensions_path) / "extensions" / ext_id
+    ext_dir = settings.wasm_extensions_dir / ext_id
     storage_dir = ext_dir / "storage"
     migrations_dir = storage_dir / "migrations"
     migrations_dir.mkdir(parents=True)

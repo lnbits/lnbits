@@ -296,6 +296,7 @@ async def test_extension_api_installs_wasm_with_granted_permissions(
     )
     original_data_folder = settings.lnbits_data_folder
     original_extensions_path = settings.lnbits_extensions_path
+    original_wasm_extensions_path = settings.lnbits_wasm_extensions_path
     register_wasm_routes_mock = mocker.patch(
         "lnbits.core.services.extensions.core_app_extra.register_new_wasm_ext_routes"
     )
@@ -313,6 +314,7 @@ async def test_extension_api_installs_wasm_with_granted_permissions(
     try:
         settings.lnbits_data_folder = str(tmp_path / "data")
         settings.lnbits_extensions_path = str(tmp_path / "code")
+        settings.lnbits_wasm_extensions_path = str(tmp_path / "wasm_extensions")
         _write_wasm_extension_archive(ext_id, release.version, settings)
 
         installed = await api_install_extension(create_data)
@@ -321,6 +323,7 @@ async def test_extension_api_installs_wasm_with_granted_permissions(
         await delete_installed_extension(ext_id=ext_id)
         settings.lnbits_data_folder = original_data_folder
         settings.lnbits_extensions_path = original_extensions_path
+        settings.lnbits_wasm_extensions_path = original_wasm_extensions_path
 
     assert installed.code == ext_id
     assert installed.is_wasm is True
@@ -351,10 +354,12 @@ async def test_extension_api_wasm_runtime_limits_and_catalog_use_installed_metad
         )
     ]
     original_extensions_path = settings.lnbits_extensions_path
+    original_wasm_extensions_path = settings.lnbits_wasm_extensions_path
 
     try:
         settings.lnbits_extensions_path = str(tmp_path)
-        _write_installed_wasm_config(ext_id, tmp_path)
+        settings.lnbits_wasm_extensions_path = str(tmp_path / "wasm_extensions")
+        _write_installed_wasm_config(ext_id, settings.wasm_extensions_dir)
         await create_installed_extension(
             InstallableExtension(
                 id=ext_id,
@@ -396,6 +401,7 @@ async def test_extension_api_wasm_runtime_limits_and_catalog_use_installed_metad
         await delete_installed_extension(ext_id=ext_id)
         await delete_installed_extension(ext_id=py_ext_id)
         settings.lnbits_extensions_path = original_extensions_path
+        settings.lnbits_wasm_extensions_path = original_wasm_extensions_path
 
     assert wasm_info.wasm_runtime_limits == {"wasm_runtime_max_execution_ms": 1234}
     assert py_ext_id not in {info.id for info in runtime_extensions}
@@ -421,6 +427,7 @@ async def test_extension_api_admin_updates_wasm_extension_permission_limits(
 ):
     ext_id = f"wasm_{uuid4().hex[:8]}"
     original_extensions_path = settings.lnbits_extensions_path
+    original_wasm_extensions_path = settings.lnbits_wasm_extensions_path
     manifest_permissions = [
         {
             "id": "ext.storage.append_public",
@@ -456,9 +463,10 @@ async def test_extension_api_admin_updates_wasm_extension_permission_limits(
 
     try:
         settings.lnbits_extensions_path = str(tmp_path)
+        settings.lnbits_wasm_extensions_path = str(tmp_path / "wasm_extensions")
         _write_installed_wasm_config(
             ext_id,
-            tmp_path,
+            settings.wasm_extensions_dir,
             permissions=manifest_permissions,
         )
         await create_installed_extension(
@@ -479,6 +487,7 @@ async def test_extension_api_admin_updates_wasm_extension_permission_limits(
     finally:
         await delete_installed_extension(ext_id=ext_id)
         settings.lnbits_extensions_path = original_extensions_path
+        settings.lnbits_wasm_extensions_path = original_wasm_extensions_path
 
     assert response.extension_permissions == [
         ExtensionPermission(
@@ -784,10 +793,10 @@ def _write_wasm_extension_archive(
 
 def _write_installed_wasm_config(
     ext_id: str,
-    extensions_path,
+    wasm_extensions_path,
     permissions: list[dict] | None = None,
 ) -> None:
-    config_dir = extensions_path / "extensions" / ext_id
+    config_dir = wasm_extensions_path / ext_id
     config_dir.mkdir(parents=True)
     (config_dir / "config.json").write_text(
         json.dumps(_wasm_config(ext_id, permissions=permissions)),

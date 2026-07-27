@@ -54,6 +54,7 @@ from lnbits.core.wasm_ext.routes.register import (
 )
 from lnbits.core.wasm_ext.wasm.events import dispatch_wasm_invoice_paid
 from lnbits.core.wasm_ext.wasm.loader import (
+    is_wasm_extension_dir,
     is_wasm_extension_id,
 )
 from lnbits.exceptions import register_exception_handlers
@@ -312,7 +313,30 @@ async def build_all_installed_extensions_list(  # noqa: C901
     installed_extensions = await get_installed_extensions()
     settings.lnbits_installed_extensions_ids = {e.id for e in installed_extensions}
 
-    for ext_dir in Path(settings.lnbits_extensions_path, "extensions").iterdir():
+    settings.wasm_extensions_dir.mkdir(parents=True, exist_ok=True)
+    for ext_dir in settings.wasm_extensions_dir.iterdir():
+        try:
+            if not ext_dir.is_dir() or not is_wasm_extension_dir(ext_dir):
+                continue
+            ext_id = ext_dir.name
+            if ext_id in settings.lnbits_installed_extensions_ids:
+                continue
+            ext_info = InstallableExtension.from_wasm_ext_dir(ext_id)
+            if not ext_info:
+                continue
+
+            installed_extensions.append(ext_info)
+            settings.lnbits_installed_extensions_ids.add(ext_id)
+            await create_installed_extension(ext_info)
+            current_version = await get_db_version(ext_id)
+            await migrate_extension_database(ext_info, current_version)
+
+        except Exception as e:
+            logger.warning(e)
+
+    ext_dir_path = Path(settings.lnbits_extensions_path, "extensions")
+    existing_ext_dirs = ext_dir_path.iterdir() if ext_dir_path.is_dir() else []
+    for ext_dir in existing_ext_dirs:
         try:
             if not ext_dir.is_dir():
                 continue
@@ -367,14 +391,18 @@ async def build_all_installed_extensions_list(  # noqa: C901
 
 
 async def check_installed_extension_files(ext: InstallableExtension) -> bool:
-    if ext.has_installed_version:
+    if ext.is_wasm or ext.has_installed_version:
         return True
 
     zip_files = glob.glob(os.path.join(settings.lnbits_data_folder, "zips", "*.zip"))
 
     if f"./{ext.zip_path!s}" not in zip_files:
         await ext.download_archive()
-    ext.extract_archive()
+    archive_config = ext.load_archive_config()
+    if archive_config.get("extension_type") == "wasm":
+        ext.extract_wasm_archive()
+    else:
+        ext.extract_archive()
 
     return False
 
@@ -415,6 +443,7 @@ def register_custom_extensions_path():
     extensions_dir = Path(settings.lnbits_extensions_path, "extensions")
     Path(extensions_dir).mkdir(parents=True, exist_ok=True)
     sys.path.append(str(extensions_dir))
+    settings.wasm_extensions_dir.mkdir(parents=True, exist_ok=True)
 
 
 def register_new_ext_routes(app: FastAPI) -> Callable:

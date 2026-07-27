@@ -49,6 +49,7 @@ def main(
     Path(settings.lnbits_extensions_path, "extensions").mkdir(
         parents=True, exist_ok=True
     )
+    settings.wasm_extensions_dir.mkdir(parents=True, exist_ok=True)
 
     set_cli_settings(host=host, port=port, forwarded_allow_ips=forwarded_allow_ips)
 

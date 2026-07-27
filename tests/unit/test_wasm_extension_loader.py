@@ -8,7 +8,10 @@ from lnbits.core.models.extensions import ExtensionPermission
 from lnbits.core.models.misc import WasmExtensionRegistry
 from lnbits.core.wasm_ext.api.permissions import validate_wasm_extension_permissions
 from lnbits.core.wasm_ext.wasm.config import parse_wasm_extension_config
-from lnbits.core.wasm_ext.wasm.loader import WasmExtension, load_wasm_extension
+from lnbits.core.wasm_ext.wasm.loader import (
+    WasmExtension,
+    load_wasm_extension,
+)
 from lnbits.settings import Settings
 from tests.helpers import make_installable_extension
 
@@ -185,8 +188,8 @@ def _write_wasm_extension(
     *,
     config_id: str | None,
 ) -> None:
-    settings.lnbits_extensions_path = str(tmp_path)
-    ext_dir = tmp_path / "extensions" / ext_id
+    settings.lnbits_wasm_extensions_path = str(tmp_path / "wasm_extensions")
+    ext_dir = settings.wasm_extensions_dir / ext_id
     ext_dir.mkdir(parents=True)
     (ext_dir / "extension.wasm").write_bytes(b"\0asm")
     config = {

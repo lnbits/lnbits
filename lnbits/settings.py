@@ -1161,6 +1161,32 @@ class EnvSettings(LNbitsSettings):
 class PersistenceSettings(LNbitsSettings):
     lnbits_data_folder: str = Field(default="./data")
     lnbits_database_url: str | None = Field(default=None)
+    lnbits_wasm_extensions_path: str = Field(default="")
+
+    @validator("lnbits_wasm_extensions_path", pre=True, always=True)
+    @classmethod
+    def validate_wasm_extensions_path(cls, value, values) -> str:
+        if value:
+            return str(value)
+        return str(Path(values.get("lnbits_data_folder", "./data"), "wasm_extensions"))
+
+    @property
+    def wasm_extensions_dir(self) -> Path:
+        wasm_dir = Path(self.lnbits_wasm_extensions_path)
+        importable_dirs = (
+            Path(getattr(self, "lnbits_extensions_path", "lnbits"), "extensions"),
+            Path(self.lnbits_data_folder, "upgrades"),
+        )
+        resolved_wasm_dir = wasm_dir.resolve()
+        if any(
+            resolved_dir == resolved_wasm_dir
+            or resolved_dir in resolved_wasm_dir.parents
+            for resolved_dir in (path.resolve() for path in importable_dirs)
+        ):
+            raise ValueError(
+                "WASM extensions path must be outside importable extension directories."
+            )
+        return wasm_dir
 
 
 class SuperUserSettings(LNbitsSettings):

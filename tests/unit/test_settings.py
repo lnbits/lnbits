@@ -1,3 +1,4 @@
+from pathlib import Path
 from typing import Any
 
 import pytest
@@ -212,6 +213,40 @@ def test_settings_keep_wasm_manifests_separate_from_extension_manifests():
         *DEFAULT_WASM_MANIFESTS,
         "https://example.com/extensions.json",
     ]
+
+
+def test_wasm_extensions_directory_defaults_to_data_folder_and_is_configurable(
+    tmp_path: Path,
+):
+    data_folder = tmp_path / "data"
+    default_settings = Settings(
+        lnbits_data_folder=str(data_folder),
+        lnbits_wasm_extensions_path="",
+    )
+    custom_path = tmp_path / "custom-wasm"
+    custom_settings = Settings(
+        lnbits_data_folder=str(data_folder),
+        lnbits_wasm_extensions_path=str(custom_path),
+    )
+
+    assert default_settings.wasm_extensions_dir == data_folder / "wasm_extensions"
+    assert default_settings.lnbits_wasm_extensions_path == str(
+        data_folder / "wasm_extensions"
+    )
+    assert custom_settings.wasm_extensions_dir == custom_path
+
+
+def test_wasm_extensions_directory_must_not_be_importable(tmp_path: Path):
+    settings = Settings(
+        lnbits_data_folder=str(tmp_path / "data"),
+        lnbits_extensions_path=str(tmp_path / "code"),
+        lnbits_wasm_extensions_path=str(
+            tmp_path / "code" / "extensions" / "wasm_extensions"
+        ),
+    )
+
+    with pytest.raises(ValueError, match="outside importable extension directories"):
+        _ = settings.wasm_extensions_dir
 
 
 def test_exchange_rate_provider_convert_ticker():

@@ -164,6 +164,7 @@ async def test_install_wasm_extension_requires_permissions_and_skips_background_
     ext_info = make_installable_extension(ext_id)
     original_data_folder = settings.lnbits_data_folder
     original_extensions_path = settings.lnbits_extensions_path
+    original_wasm_extensions_path = settings.lnbits_wasm_extensions_path
     start_mock = mocker.patch(
         "lnbits.core.services.extensions.start_extension_background_work",
         mocker.AsyncMock(return_value=True),
@@ -172,7 +173,11 @@ async def test_install_wasm_extension_requires_permissions_and_skips_background_
     try:
         settings.lnbits_data_folder = str(tmp_path / "data")
         settings.lnbits_extensions_path = str(tmp_path / "code")
+        settings.lnbits_wasm_extensions_path = str(tmp_path / "wasm_extensions")
         _write_wasm_extension_archive(ext_info, _wasm_install_config(ext_id))
+        wasm_ext_dir = settings.wasm_extensions_dir / ext_id
+        py_ext_dir = ext_info.ext_dir
+        upgrade_dir = ext_info.ext_upgrade_dir
 
         with pytest.raises(ValueError, match="requires permission approval"):
             await install_extension(ext_info, skip_download=True)
@@ -193,6 +198,7 @@ async def test_install_wasm_extension_requires_permissions_and_skips_background_
         await delete_installed_extension(ext_id=ext_id)
         settings.lnbits_data_folder = original_data_folder
         settings.lnbits_extensions_path = original_extensions_path
+        settings.lnbits_wasm_extensions_path = original_wasm_extensions_path
 
     assert extension.code == ext_id
     assert extension.is_wasm is True
@@ -205,6 +211,9 @@ async def test_install_wasm_extension_requires_permissions_and_skips_background_
         )
     ]
     start_mock.assert_not_awaited()
+    assert wasm_ext_dir.is_dir()
+    assert not py_ext_dir.exists()
+    assert not upgrade_dir.exists()
 
 
 @pytest.mark.anyio
@@ -269,16 +278,18 @@ async def test_uninstall_wasm_extension_unregisters_live_routes(
     ext_info = make_installable_extension(ext_id)
     original_data_folder = settings.lnbits_data_folder
     original_extensions_path = settings.lnbits_extensions_path
+    original_wasm_extensions_path = settings.lnbits_wasm_extensions_path
     original_deactivated = set(settings.lnbits_deactivated_extensions)
     unregister_routes_mock = mocker.patch(
         "lnbits.core.services.extensions.core_app_extra.unregister_wasm_ext_routes"
     )
-    clean_mock = mocker.patch.object(InstallableExtension, "clean_extension_files")
+    clean_mock = mocker.patch.object(InstallableExtension, "clean_wasm_extension_files")
 
     try:
         settings.lnbits_data_folder = str(tmp_path / "data")
         settings.lnbits_extensions_path = str(tmp_path / "code")
-        ext_dir = tmp_path / "code" / "extensions" / ext_id
+        settings.lnbits_wasm_extensions_path = str(tmp_path / "wasm_extensions")
+        ext_dir = settings.wasm_extensions_dir / ext_id
         ext_dir.mkdir(parents=True, exist_ok=True)
         (ext_dir / "config.json").write_text(
             json.dumps(_wasm_install_config(ext_id)),
@@ -294,6 +305,7 @@ async def test_uninstall_wasm_extension_unregisters_live_routes(
         await delete_installed_extension(ext_id=ext_id)
         settings.lnbits_data_folder = original_data_folder
         settings.lnbits_extensions_path = original_extensions_path
+        settings.lnbits_wasm_extensions_path = original_wasm_extensions_path
         settings.lnbits_deactivated_extensions = original_deactivated
 
     unregister_routes_mock.assert_called_once_with(ext_id)
@@ -579,9 +591,11 @@ async def test_update_wasm_extension_runtime_limits_saves_sparse_overrides(
 ):
     ext_id = "wasm_demo"
     original_extensions_path = settings.lnbits_extensions_path
+    original_wasm_extensions_path = settings.lnbits_wasm_extensions_path
     try:
         settings.lnbits_extensions_path = str(tmp_path)
-        config_dir = tmp_path / "extensions" / ext_id
+        settings.lnbits_wasm_extensions_path = str(tmp_path / "wasm_extensions")
+        config_dir = settings.wasm_extensions_dir / ext_id
         config_dir.mkdir(parents=True)
         (config_dir / "config.json").write_text(
             '{"extension_type": "wasm"}',
@@ -612,6 +626,7 @@ async def test_update_wasm_extension_runtime_limits_saves_sparse_overrides(
         )
     finally:
         settings.lnbits_extensions_path = original_extensions_path
+        settings.lnbits_wasm_extensions_path = original_wasm_extensions_path
 
     assert saved_limits == {
         "wasm_runtime_max_execution_ms": 15000,
