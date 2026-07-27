@@ -1,7 +1,11 @@
 import pytest
 from pytest_mock.plugin import MockerFixture
 
-from lnbits.core.models.extensions import InstallableExtension, Manifest
+from lnbits.core.models.extensions import (
+    ExtensionManifestType,
+    InstallableExtension,
+    Manifest,
+)
 from lnbits.settings import Settings
 
 
@@ -42,6 +46,9 @@ async def test_get_installable_extensions_loads_wasm_manifests(
     extensions = await InstallableExtension._get_installable_extensions()
 
     assert [extension.id for extension in extensions] == ["tips"]
+    assert extensions[0].meta
+    assert extensions[0].meta.latest_release
+    assert extensions[0].meta.latest_release.manifest_type == ExtensionManifestType.WASM
     assert [call.args[0] for call in fetch_manifest.await_args_list] == [
         regular_manifest_url,
         wasm_manifest_url,
