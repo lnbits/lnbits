@@ -658,6 +658,7 @@ window.WasmExtensionComponent = {
     },
     async requestBackgroundPaymentPermission(message) {
       const response = await this.requestExtensionPermissions({
+        forcePrompt: message?.forcePrompt === true,
         permissions: [
           {
             id: 'wallet.pay_invoice_background',
@@ -688,6 +689,7 @@ window.WasmExtensionComponent = {
       if (!permissions.length) {
         throw new Error('No permissions requested.')
       }
+      const forcePrompt = message.forcePrompt === true
 
       const requestedPermissions = permissions.map(permission =>
         this.normalizePermissionRequest(permission)
@@ -710,7 +712,7 @@ window.WasmExtensionComponent = {
           throw new Error('Permission check response did not match request.')
         }
 
-        if (check.approved) {
+        if (check.approved && !forcePrompt) {
           approvedLabels.push(permission.label)
           results.push({
             id: permission.id,
@@ -720,7 +722,10 @@ window.WasmExtensionComponent = {
           continue
         }
 
-        const granted = await this.promptExtensionPermission(permission)
+        const promptPermission = check.grant
+          ? {...permission, grant: check.grant}
+          : permission
+        const granted = await this.promptExtensionPermission(promptPermission)
         results.push({
           id: permission.id,
           approved: true,
