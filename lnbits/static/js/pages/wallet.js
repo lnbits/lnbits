@@ -724,7 +724,7 @@ window.PageWallet = {
       const dismissPaymentMsg = Quasar.Notify.create({
         timeout: 0,
         spinner: true,
-        message: this.$t('processing_payment')
+        message: this.$t('payment_processing')
       })
 
       LNbits.api
