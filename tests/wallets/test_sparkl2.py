@@ -33,7 +33,7 @@ async def test_status_returns_stable_available_balance(mocker: MockerFixture):
 
 
 @pytest.mark.anyio
-async def test_status_rejects_recovering_balance(mocker: MockerFixture):
+async def test_status_accepts_recovering_balance_as_zero(mocker: MockerFixture):
     wallet = object.__new__(SparkL2Wallet)
     mocker.patch.object(
         wallet,
@@ -51,7 +51,7 @@ async def test_status_rejects_recovering_balance(mocker: MockerFixture):
 
     status = await wallet.status()
 
-    assert status.error_message == "Spark wallet recovering; 658672 sats incoming."
+    assert status.error_message is None
     assert status.balance_msat == 0
 
 
@@ -207,20 +207,20 @@ async def test_pay_invoice_rejects_invalid_bolt11_before_sidecar(
     request.assert_not_awaited()
 
 
-def test_payment_status_waits_for_transfer_settlement():
+def test_payment_status_accepts_spark_success_states():
     wallet = object.__new__(SparkL2Wallet)
 
-    assert wallet._map_payment_status("LIGHTNING_PAYMENT_SUCCEEDED").pending
-    assert wallet._map_payment_status("PREIMAGE_PROVIDED").pending
+    assert wallet._map_payment_status("LIGHTNING_PAYMENT_SUCCEEDED").success
+    assert wallet._map_payment_status("PREIMAGE_PROVIDED").success
     assert wallet._map_payment_status("TRANSFER_COMPLETED").success
     assert wallet._map_payment_status("TRANSFER_FAILED").failed
 
 
-def test_invoice_status_waits_for_transfer_settlement():
+def test_invoice_status_accepts_spark_receive_success_states():
     wallet = object.__new__(SparkL2Wallet)
 
-    assert wallet._map_invoice_status("LIGHTNING_PAYMENT_RECEIVED").pending
-    assert wallet._map_invoice_status("PAYMENT_PREIMAGE_RECOVERED").pending
+    assert wallet._map_invoice_status("LIGHTNING_PAYMENT_RECEIVED").success
+    assert wallet._map_invoice_status("PAYMENT_PREIMAGE_RECOVERED").success
     assert wallet._map_invoice_status("TRANSFER_COMPLETED").success
     assert wallet._map_invoice_status("TRANSFER_FAILED").failed
 

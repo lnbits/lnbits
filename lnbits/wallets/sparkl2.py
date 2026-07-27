@@ -88,11 +88,7 @@ class SparkL2Wallet(Wallet):
                 await self._check_sidecar_mnemonic()
                 return StatusResponse("Spark sidecar mnemonic not set", 0)
             if status == "recovering":
-                incoming_sats = int(res.get("incoming_sats") or 0)
-                return StatusResponse(
-                    f"Spark wallet recovering; {incoming_sats} sats incoming.",
-                    0,
-                )
+                return StatusResponse(None, 0)
             if status != "ready":
                 return StatusResponse(
                     f"Spark sidecar is not ready: {status or 'unknown'}.", 0
@@ -247,7 +243,7 @@ class SparkL2Wallet(Wallet):
             preimage = res.get("preimage")
             if preimage and self._preimage_matches_payment_hash(preimage, checking_id):
                 if fee_msat is None:
-                    logger.error(
+                    logger.warning(
                         "Spark sidecar returned a successful payment without a fee."
                     )
                     return PaymentPendingStatus()
@@ -266,7 +262,7 @@ class SparkL2Wallet(Wallet):
             mapped = self._map_payment_status(status)
             if mapped.success:
                 if fee_msat is None:
-                    logger.error(
+                    logger.warning(
                         "Spark sidecar returned a successful payment without a fee."
                     )
                     return PaymentPendingStatus()
@@ -364,8 +360,18 @@ class SparkL2Wallet(Wallet):
             await asyncio.sleep(5)
 
     def _map_invoice_status(self, status: str) -> PaymentStatus:
-        success = {"TRANSFER_COMPLETED"}
-        failed = {"TRANSFER_FAILED"}
+        success = {
+            "LIGHTNING_PAYMENT_RECEIVED",
+            "TRANSFER_COMPLETED",
+            "PAYMENT_PREIMAGE_RECOVERED",
+        }
+        failed = {
+            "TRANSFER_FAILED",
+            "PAYMENT_PREIMAGE_RECOVERING_FAILED",
+            "REFUND_SIGNING_FAILED",
+            "REFUND_SIGNING_COMMITMENTS_QUERYING_FAILED",
+            "TRANSFER_CREATION_FAILED",
+        }
         if status in success:
             return PaymentSuccessStatus()
         if status in failed:
@@ -373,8 +379,18 @@ class SparkL2Wallet(Wallet):
         return PaymentPendingStatus()
 
     def _map_payment_status(self, status: str) -> PaymentStatus:
-        success = {"TRANSFER_COMPLETED"}
-        failed = {"TRANSFER_FAILED"}
+        success = {
+            "LIGHTNING_PAYMENT_SUCCEEDED",
+            "TRANSFER_COMPLETED",
+            "PREIMAGE_PROVIDED",
+        }
+        failed = {
+            "LIGHTNING_PAYMENT_FAILED",
+            "TRANSFER_FAILED",
+            "PREIMAGE_PROVIDING_FAILED",
+            "USER_TRANSFER_VALIDATION_FAILED",
+            "USER_SWAP_RETURN_FAILED",
+        }
         if status in success:
             return PaymentSuccessStatus()
         if status in failed:
