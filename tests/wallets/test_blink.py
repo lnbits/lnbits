@@ -1,4 +1,5 @@
 import os
+from typing import cast
 
 import pytest
 from loguru import logger
@@ -29,7 +30,7 @@ logger.info(f"settings.blink_api_endpoint: {settings.blink_api_endpoint}")
 logger.info(f"settings.blink_token: {settings.blink_token}")
 
 set_funding_source()
-funding_source = get_funding_source()
+funding_source = cast(BlinkWallet, get_funding_source())
 assert isinstance(funding_source, BlinkWallet)
 
 

@@ -72,6 +72,10 @@ window.localisation.cs = {
   view_swagger_docs: 'Zobrazit LNbits Swagger API dokumentaci',
   api_docs: 'API dokumentace',
   api_keys_api_docs: 'Adresa uzlu, API klíče a API dokumentace',
+  api_keys_warning:
+    'Tyto klíče uchovávejte v bezpečí, jejich sdílení může vést ke ztrátě prostředků.',
+  admin_key_warning:
+    'Váš administrátorský klíč poskytuje plný přístup k peněžence včetně možnosti odesílat platby. Nikdy jej nesdílejte, pokud příjemci plně nedůvěřujete.',
   lnbits_version: 'Verze LNbits',
   runs_on: 'Běží na',
   paste: 'Vložit',

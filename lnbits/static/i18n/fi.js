@@ -81,6 +81,10 @@ window.localisation.fi = {
   view_swagger_docs: 'Näytä LNbits Swagger API-dokumentit',
   api_docs: 'API-dokumentaatio',
   api_keys_api_docs: 'Solmun URL, API-avaimet ja -dokumentaatio',
+  api_keys_warning:
+    'Pidä nämä avaimet turvassa, sillä niiden jakaminen voi johtaa varojen menetykseen.',
+  admin_key_warning:
+    'Ylläpitäjäavaimesi antaa täyden pääsyn lompakkoosi, myös maksujen lähettämiseen. Älä koskaan jaa sitä, ellet täysin luota vastaanottajaan.',
   lnbits_version: 'LNbits versio',
   runs_on: 'Mukana menossa',
   paste: 'Liitä',

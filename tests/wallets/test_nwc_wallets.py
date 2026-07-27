@@ -1,3 +1,4 @@
+import asyncio
 import base64
 import hashlib
 import json
@@ -12,7 +13,7 @@ from Cryptodome.Util.Padding import pad, unpad
 from websockets import ServerConnection
 from websockets import serve as ws_serve
 
-from lnbits.wallets.nwc import NWCWallet
+from lnbits.wallets.nwc import NWCConnection, NWCWallet
 from tests.wallets.helpers import (
     WalletTest,
     build_test_id,
@@ -99,6 +100,8 @@ async def handle(  # noqa: C901
                     event,
                 )
                 await websocket.send(json.dumps(["EVENT", sub_id, event]))
+            elif 23195 in kinds:
+                assert sub_filter["authors"] == [mock_settings["service_public_key"]]
         elif msg[0] == "EVENT":
             event = msg[1]
             decrypted_content = decrypt_content(
@@ -175,6 +178,129 @@ async def run(data: WalletTest):
             await check_assertions(wallet, data)
             nwcwallet = cast(NWCWallet, wallet)
             await nwcwallet.cleanup()
+
+
+@pytest.mark.anyio
+async def test_nwc_rejects_event_from_unexpected_pubkey(mocker):
+    async def _noop(*args, **kwargs):
+        return None
+
+    mocker.patch("lnbits.wallets.nwc.NWCConnection._connect_to_relay", new=_noop)
+    mocker.patch("lnbits.wallets.nwc.NWCConnection._handle_timeouts", new=_noop)
+
+    service_private_key = PrivateKey()
+    service_public_key = service_private_key.public_key.format().hex()[2:]
+    attacker_private_key = PrivateKey()
+    attacker_public_key = attacker_private_key.public_key.format().hex()[2:]
+    account_private_key = PrivateKey()
+
+    conn = NWCConnection(
+        service_public_key,
+        account_private_key.secret.hex(),
+        "ws://127.0.0.1:8555",
+    )
+    try:
+        event = {
+            "kind": 23195,
+            "content": "{}",
+            "created_at": int(time.time()),
+            "tags": [["e", "request-event-id"]],
+        }
+        sign_event(attacker_public_key, attacker_private_key.secret.hex(), event)
+
+        with pytest.raises(Exception, match="Invalid event signature"):
+            await conn._on_event_message(["EVENT", "subid", event])
+    finally:
+        await conn.close()
+
+
+@pytest.mark.anyio
+async def test_nwc_marks_pending_invoice_settled_only_once():
+    wallet = NWCWallet.__new__(NWCWallet)
+    wallet.pending_invoice_details = {"checking-id": {"checking_id": "checking-id"}}
+    wallet.pending_invoices = ["checking-id"]
+    wallet.paid_invoices_queue = asyncio.Queue(0)
+
+    wallet._mark_invoice_settled("checking-id", source="notification")
+    wallet._mark_invoice_settled("checking-id", source="notification")
+
+    assert wallet.paid_invoices_queue.qsize() == 1
+    assert await wallet.paid_invoices_queue.get() == "checking-id"
+
+
+@pytest.mark.anyio
+async def test_nwc_registers_notification_subscriptions(mocker):
+    async def _noop(*args, **kwargs):
+        return None
+
+    mocker.patch("lnbits.wallets.nwc.NWCConnection._connect_to_relay", new=_noop)
+    mocker.patch("lnbits.wallets.nwc.NWCConnection._handle_timeouts", new=_noop)
+
+    service_private_key = PrivateKey()
+    service_public_key = service_private_key.public_key.format().hex()[2:]
+    account_private_key = PrivateKey()
+
+    conn = NWCConnection(
+        service_public_key,
+        account_private_key.secret.hex(),
+        "ws://127.0.0.1:8555",
+    )
+    send_mock = mocker.patch.object(conn, "_send", mocker.AsyncMock())
+
+    try:
+        await conn._subscribe_to_notifications()
+
+        assert len(conn.notification_subscription_ids) == 2
+        assert len(conn.subscriptions) == 2
+        assert set(conn.subscriptions.keys()) == conn.notification_subscription_ids
+        assert all(
+            subscription["method"] == "notification_sub"
+            and subscription["event_id"] == subscription["sub_id"]
+            for subscription in conn.subscriptions.values()
+        )
+        assert send_mock.await_count == 2
+    finally:
+        await conn.close()
+
+
+@pytest.mark.anyio
+async def test_nwc_spreads_fallback_lookups_with_cooldown(mocker):
+    def _schedule_next_lookup(
+        invoice: dict[str, object], now: float | None = None
+    ) -> None:
+        assert now is not None
+        invoice["next_lookup_at"] = now + 1
+
+    wallet = NWCWallet.__new__(NWCWallet)
+    wallet.shutdown = False
+    wallet.pending_invoices = ["checking-1", "checking-2"]
+    wallet.pending_invoice_details = {
+        "checking-1": {
+            "checking_id": "checking-1",
+            "next_lookup_at": 0.0,
+            "lookup_attempts": 0,
+        },
+        "checking-2": {
+            "checking_id": "checking-2",
+            "next_lookup_at": 0.0,
+            "lookup_attempts": 0,
+        },
+    }
+    wallet.pending_invoices_lookup_cooldown = 1.0
+    wallet._is_shutting_down = lambda: False
+    wallet._payment_data_is_settled = lambda payment_data: False
+    wallet._cache_payment_data = lambda *args, **kwargs: None
+    wallet._schedule_next_lookup = _schedule_next_lookup
+    wallet.conn = mocker.Mock()
+    wallet.conn.get_info = mocker.AsyncMock()
+    wallet.conn.supports_method = mocker.Mock(return_value=True)
+    wallet.conn.call = mocker.AsyncMock(return_value={"settled_at": None})
+    sleep_mock = mocker.patch("lnbits.wallets.nwc.asyncio.sleep", mocker.AsyncMock())
+
+    await wallet._run_fallback_lookups(100.0)
+
+    assert wallet.conn.call.await_count == 2
+    sleep_mock.assert_awaited_once_with(1.0)
 
 
 @pytest.mark.anyio

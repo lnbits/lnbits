@@ -29,6 +29,10 @@ window.g = Vue.reactive({
     SETTINGS.defaultCardGradient
   ),
   cardShadowChoice: localStore('lnbits.cardShadow', SETTINGS.defaultCardShadow),
+  burgerMenuChoice: localStore(
+    'lnbits.burgerMenu',
+    SETTINGS.defaultBurgerMenuBackground
+  ),
   reactionChoice: localStore('lnbits.reactions', SETTINGS.defaultReaction),
   bgimageChoice: localStore(
     'lnbits.backgroundImage',

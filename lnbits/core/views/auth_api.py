@@ -36,6 +36,7 @@ from lnbits.decorators import (
     check_account_exists,
     check_admin,
     check_user_exists,
+    optional_user_id,
 )
 from lnbits.helpers import (
     create_access_token,
@@ -294,7 +295,10 @@ async def api_create_user_api_token(
         account.username, api_token_id, data.expiration_time_minutes
     )
 
-    acl.token_id_list.append(SimpleItem(id=api_token_id, name=data.token_name))
+    expires_at = int(time()) + data.expiration_time_minutes * 60
+    acl.token_id_list.append(
+        SimpleItem(id=api_token_id, name=data.token_name, expires_at=expires_at)
+    )
     await update_user_access_control_list(acls)
     return ApiTokenResponse(id=api_token_id, api_token=api_token)
 
@@ -320,7 +324,10 @@ async def api_delete_user_api_token(
 
 @auth_router.get("/{provider}", description="SSO Provider")
 async def login_with_sso_provider(
-    request: Request, provider: str, user_id: str | None = None
+    request: Request,
+    provider: str,
+    user_id: str | None = None,
+    auth_user_id: str | None = Depends(optional_user_id),
 ):
     provider_sso = _new_sso(provider)
     if not provider_sso:
@@ -328,6 +335,8 @@ async def login_with_sso_provider(
             HTTPStatus.FORBIDDEN,
             f"Login by '{provider}' not allowed.",
         )
+    if user_id and user_id != auth_user_id:
+        raise HTTPException(HTTPStatus.FORBIDDEN, "User ID mismatch.")
 
     provider_sso.redirect_uri = str(request.base_url) + f"api/v1/auth/{provider}/token"
     with provider_sso:
@@ -348,7 +357,11 @@ async def handle_oauth_token(request: Request, provider: str) -> RedirectRespons
         userinfo = await provider_sso.verify_and_process(request)
         if not userinfo:
             raise HTTPException(HTTPStatus.UNAUTHORIZED, "Invalid user info.")
-        user_id = decrypt_internal_message(provider_sso.state)
+        if provider_sso.state is None or provider_sso.state == "null":
+            user_id = None
+        else:
+            user_id = decrypt_internal_message(provider_sso.state)
+
     request.session.pop("user", None)
     return await _handle_sso_login(userinfo, user_id)
 

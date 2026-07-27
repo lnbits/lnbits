@@ -1,0 +1,474 @@
+;(function () {
+  function translate(translateFn, key) {
+    return translateFn ? translateFn(key) : key
+  }
+
+  function permissionI18nKey(permission) {
+    return `extension_permission_${permission.id.replace(/[^A-Za-z0-9]/g, '_')}`
+  }
+
+  function permissionLabel(permission, translateFn) {
+    const key = permissionI18nKey(permission)
+    const label = translate(translateFn, key)
+    return label === key ? permission.id : label
+  }
+
+  function permissionManifestDescription(permission) {
+    return typeof permission.description === 'string'
+      ? permission.description
+      : ''
+  }
+
+  function lowRisk(translateFn) {
+    return {
+      level: 'low',
+      color: 'grey-6',
+      label: translate(translateFn, 'extension_permission_risk_low'),
+      warning: ''
+    }
+  }
+
+  function mediumRisk(translateFn, warningKey) {
+    return {
+      level: 'medium',
+      color: 'warning',
+      label: translate(translateFn, 'extension_permission_risk_medium'),
+      warning: warningKey ? translate(translateFn, warningKey) : ''
+    }
+  }
+
+  function highRisk(translateFn, warningKey) {
+    return {
+      level: 'high',
+      color: 'negative',
+      label: translate(translateFn, 'extension_permission_risk_high'),
+      warning: translate(translateFn, warningKey)
+    }
+  }
+
+  function extensionDisplayName(extensions, extensionId) {
+    const extension = (extensions || []).find(
+      extension => extension.id === extensionId
+    )
+    return extension?.name || extensionId
+  }
+
+  function extensionApiPermissionTargets(permission, extensions) {
+    const extensionPolicies = permission.policies
+    if (!Array.isArray(extensionPolicies)) return []
+    return extensionPolicies
+      .map(extension => {
+        const extensionId =
+          typeof extension === 'string' ? extension : extension?.id
+        if (!extensionId) return null
+        const access =
+          typeof extension === 'string'
+            ? ['read']
+            : Array.isArray(extension.access) && extension.access.length
+              ? extension.access
+              : ['read']
+        return {
+          id: extensionId,
+          name: extensionDisplayName(extensions, extensionId),
+          access
+        }
+      })
+      .filter(Boolean)
+  }
+
+  function permissionRiskForPermission(permission, extensions, translateFn) {
+    if (
+      ['wallet.pay_invoice', 'wallet.pay_invoice_background'].includes(
+        permission.id
+      )
+    ) {
+      return highRisk(
+        translateFn,
+        permission.id === 'wallet.pay_invoice_background'
+          ? 'extension_permission_warning_wallet_pay_invoice_background'
+          : 'extension_permission_warning_wallet_pay_invoice'
+      )
+    }
+    if (permission.id === 'extension.api.request') {
+      const hasWriteAccess = extensionApiPermissionTargets(
+        permission,
+        extensions
+      ).some(target => target.access.includes('write'))
+      return hasWriteAccess
+        ? highRisk(
+            translateFn,
+            'extension_permission_warning_extension_api_request_write'
+          )
+        : mediumRisk(translateFn)
+    }
+    if (permission.id === 'http.request') {
+      return mediumRisk(translateFn)
+    }
+    if (permission.id === 'wallet.payments.watch') {
+      return mediumRisk(
+        translateFn,
+        'extension_permission_warning_wallet_payments_watch'
+      )
+    }
+    if (['websocket.publish', 'websocket.subscribe'].includes(permission.id)) {
+      return mediumRisk(translateFn)
+    }
+    if (
+      [
+        'wallet.list',
+        'wallet.balance.read',
+        'wallet.create_invoice_public',
+        'ext.storage.append_public',
+        'ext.storage.read_public'
+      ].includes(permission.id)
+    ) {
+      return mediumRisk(translateFn)
+    }
+    return lowRisk(translateFn)
+  }
+
+  function permissionRisk(permissions, extensions, translateFn) {
+    const risks = permissions.map(permission =>
+      permissionRiskForPermission(permission, extensions, translateFn)
+    )
+    const highestRisk = risks.find(risk => risk.level === 'high')
+    if (highestRisk) return highestRisk
+    return risks.find(risk => risk.level === 'medium') || lowRisk(translateFn)
+  }
+
+  function permissionOrderIndex(permissionId) {
+    const order = [
+      'wallet.pay_invoice',
+      'wallet.pay_invoice_background',
+      'wallet.payments.watch',
+      'wallet.list',
+      'wallet.balance.read',
+      'extension.api.request',
+      'http.request',
+      'ui.camera.scan_qr',
+      'websocket',
+      'websocket.publish',
+      'websocket.subscribe',
+      'ext.storage.read',
+      'ext.storage.write',
+      'ext.storage.read_public',
+      'ext.storage.append_public',
+      'wallet.create_invoice_public',
+      'wallet.create_invoice',
+      'utils.basic'
+    ]
+    const index = order.indexOf(permissionId)
+    return index === -1 ? order.length : index
+  }
+
+  function publicStorageFieldGroups(permission) {
+    const tables = permission.policies
+    if (!Array.isArray(tables)) return []
+    return tables
+      .map(table => {
+        const tableName =
+          typeof table === 'string' ? table : table?.table_name || ''
+        const fields =
+          typeof table === 'string' || !Array.isArray(table?.public_fields)
+            ? []
+            : table.public_fields.filter(
+                field => typeof field === 'string' && field
+              )
+        const sourceIdField =
+          typeof table === 'string' ||
+          typeof table?.source_id_field !== 'string'
+            ? ''
+            : table.source_id_field
+        return tableName ? {table: tableName, fields, sourceIdField} : null
+      })
+      .filter(Boolean)
+  }
+
+  function httpRequestPermissionHosts(permission) {
+    const hosts = permission.policies
+    if (!Array.isArray(hosts)) return []
+    return hosts
+      .map(host => (typeof host === 'string' ? host : host?.host || ''))
+      .filter(host => typeof host === 'string' && host)
+  }
+
+  function publicInvoicePolicies(permission) {
+    const policies = permission.policies
+    if (!Array.isArray(policies)) return []
+    return policies
+      .map(policy => {
+        if (!policy || typeof policy !== 'object') return null
+        const table = policy.table
+        const walletField = policy.wallet_field
+        if (typeof table !== 'string' || !table) return null
+        if (typeof walletField !== 'string' || !walletField) return null
+        return {table, walletField}
+      })
+      .filter(Boolean)
+  }
+
+  function publicAppendPolicies(permission) {
+    const policies = permission.policies
+    if (!Array.isArray(policies)) return []
+    return policies
+      .map(policy => {
+        if (!policy || typeof policy !== 'object') return null
+        const table = policy.table
+        const sourceTable = policy.source_table
+        const sourceIdField = policy.source_id_field
+        const allowedFields = Array.isArray(policy.allowed_fields)
+          ? policy.allowed_fields.filter(
+              field => typeof field === 'string' && field
+            )
+          : []
+        const maxRowsPerSource = Number.isInteger(policy.max_rows_per_source)
+          ? policy.max_rows_per_source
+          : 10000
+        if (typeof table !== 'string' || !table) return null
+        if (typeof sourceTable !== 'string' || !sourceTable) return null
+        if (typeof sourceIdField !== 'string' || !sourceIdField) return null
+        return {
+          table,
+          sourceTable,
+          sourceIdField,
+          allowedFields,
+          maxRowsPerSource,
+          rawPolicy: policy
+        }
+      })
+      .filter(Boolean)
+  }
+
+  function websocketPublishPolicies(permission) {
+    const policies = permission.policies
+    if (!Array.isArray(policies)) return []
+    return policies
+      .map(policy => {
+        if (!policy || typeof policy !== 'object') return null
+        const maxMessagesPerSecond = Number.isInteger(
+          policy.max_messages_per_second
+        )
+          ? policy.max_messages_per_second
+          : 0
+        return {
+          maxMessagesPerSecond,
+          rawPolicy: policy
+        }
+      })
+      .filter(Boolean)
+  }
+
+  function permissionDisplayItem(permissions, extensions, translateFn) {
+    const permission = permissions[0]
+    const isReadWriteStorage =
+      permissions.length === 2 &&
+      permissions.some(permission => permission.id === 'ext.storage.read') &&
+      permissions.some(permission => permission.id === 'ext.storage.write')
+    const isWebsocket =
+      permissions.every(permission =>
+        ['websocket.publish', 'websocket.subscribe'].includes(permission.id)
+      ) &&
+      permissions.some(permission => permission.id === 'websocket.publish') &&
+      permissions.some(permission => permission.id === 'websocket.subscribe')
+    const descriptions = permissions
+      .map(permission => permissionManifestDescription(permission))
+      .filter(Boolean)
+    const item = {
+      id: isReadWriteStorage
+        ? 'ext.storage.read_write'
+        : isWebsocket
+          ? 'websocket'
+          : permission.id,
+      label: isReadWriteStorage
+        ? translate(translateFn, 'extension_permission_ext_storage_read_write')
+        : isWebsocket
+          ? translate(translateFn, 'extension_permission_websocket')
+          : permissionLabel(permission, translateFn),
+      risk: permissionRisk(permissions, extensions, translateFn),
+      badges: [],
+      descriptions,
+      fieldGroups: [],
+      appendPolicies: [],
+      websocketPublishPolicies: [],
+      invoicePolicies: [],
+      extensionAccess: [],
+      httpHosts: []
+    }
+
+    if (permission.id === 'ext.storage.read_public') {
+      item.fieldGroups = publicStorageFieldGroups(permission)
+      item.badges = item.fieldGroups.map(group => ({
+        key: group.table,
+        label: group.table
+      }))
+    }
+
+    if (permission.id === 'extension.api.request') {
+      item.extensionAccess = extensionApiPermissionTargets(
+        permission,
+        extensions
+      )
+      item.badges = item.extensionAccess.map(target => ({
+        key: target.id,
+        label: target.name
+      }))
+    }
+
+    if (permission.id === 'http.request') {
+      item.httpHosts = httpRequestPermissionHosts(permission)
+    }
+
+    if (permission.id === 'wallet.create_invoice_public') {
+      item.invoicePolicies = publicInvoicePolicies(permission)
+    }
+
+    if (permission.id === 'ext.storage.append_public') {
+      item.appendPolicies = publicAppendPolicies(permission)
+      item.badges = item.appendPolicies.map(policy => ({
+        key:
+          policy.table + ':' + policy.sourceTable + ':' + policy.sourceIdField,
+        label: policy.table
+      }))
+    }
+
+    const websocketPublishPermission = permissions.find(
+      permission => permission.id === 'websocket.publish'
+    )
+    if (websocketPublishPermission) {
+      item.websocketPublishPolicies = websocketPublishPolicies(
+        websocketPublishPermission
+      )
+    }
+
+    return item
+  }
+
+  function displayItems({permissions, extensions, translate}) {
+    const permissionList = permissions || []
+    const permissionsById = new Map(
+      permissionList.map(permission => [permission.id, permission])
+    )
+    const hasReadWriteStorage =
+      permissionsById.has('ext.storage.read') &&
+      permissionsById.has('ext.storage.write')
+    const hasWebsocket =
+      permissionsById.has('websocket.publish') &&
+      permissionsById.has('websocket.subscribe')
+    let addedReadWriteStorage = false
+    let addedWebsocket = false
+
+    return permissionList
+      .map((permission, index) => {
+        if (
+          hasReadWriteStorage &&
+          ['ext.storage.read', 'ext.storage.write'].includes(permission.id)
+        ) {
+          if (addedReadWriteStorage) return null
+          addedReadWriteStorage = true
+          return {
+            index,
+            orderId: 'ext.storage.read',
+            permissions: [
+              permissionsById.get('ext.storage.read'),
+              permissionsById.get('ext.storage.write')
+            ]
+          }
+        }
+        if (
+          hasWebsocket &&
+          ['websocket.publish', 'websocket.subscribe'].includes(permission.id)
+        ) {
+          if (addedWebsocket) return null
+          addedWebsocket = true
+          return {
+            index,
+            orderId: 'websocket',
+            permissions: [
+              permissionsById.get('websocket.publish'),
+              permissionsById.get('websocket.subscribe')
+            ]
+          }
+        }
+        return {
+          index,
+          orderId: permission.id,
+          permissions: [permission]
+        }
+      })
+      .filter(Boolean)
+      .sort((left, right) => {
+        const leftOrder = permissionOrderIndex(left.orderId)
+        const rightOrder = permissionOrderIndex(right.orderId)
+        return leftOrder === rightOrder
+          ? left.index - right.index
+          : leftOrder - rightOrder
+      })
+      .map(group =>
+        permissionDisplayItem(group.permissions, extensions || [], translate)
+      )
+  }
+
+  window.LNbitsExtensionPermissions = {
+    displayItems,
+    hasHighRisk({permissions, extensions, translate}) {
+      return displayItems({permissions, extensions, translate}).some(
+        permission => permission.risk.level === 'high'
+      )
+    }
+  }
+
+  window.app.component('lnbits-extension-permissions', {
+    template: '#lnbits-extension-permissions',
+    props: {
+      permissions: {
+        type: Array,
+        default: () => []
+      },
+      extensions: {
+        type: Array,
+        default: () => []
+      },
+      editableAppendPublicLimits: {
+        type: Boolean,
+        default: false
+      },
+      maxRowsPerSourceLimit: {
+        type: Number,
+        default: 1000000
+      },
+      editableWebsocketPublishLimits: {
+        type: Boolean,
+        default: false
+      },
+      maxMessagesPerSecondLimit: {
+        type: Number,
+        default: 100
+      }
+    },
+    computed: {
+      displayItems() {
+        return window.LNbitsExtensionPermissions.displayItems({
+          permissions: this.permissions,
+          extensions: this.extensions,
+          translate: key => this.$t(key)
+        })
+      }
+    },
+    methods: {
+      publicInvoicePolicySentence(policy) {
+        return `Invoices will be created using ${policy.walletField} from ${policy.table}.`
+      },
+      publicAppendPolicySentence(policy) {
+        return `${policy.table} rows can be appended for ${policy.sourceTable} using ${policy.sourceIdField}. Limit: ${policy.maxRowsPerSource} rows per source.`
+      },
+      websocketPublishPolicySentence(policy) {
+        return `Limit: ${policy.maxMessagesPerSecond} messages per second.`
+      },
+      permissionAccessLabel(access) {
+        const key = `extension_permission_access_${access}`
+        const label = this.$t(key)
+        return label === key ? access : label
+      }
+    }
+  })
+})()

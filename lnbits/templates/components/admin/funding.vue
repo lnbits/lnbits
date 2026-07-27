@@ -301,5 +301,11 @@
         </div>
       </div>
     </div>
+    <lnbits-admin-funding-seed-backup
+      :active="active"
+      :is-super-user="isSuperUser"
+      :form-data="formData"
+      :settings="settings"
+    ></lnbits-admin-funding-seed-backup>
   </q-card-section>
 </template>

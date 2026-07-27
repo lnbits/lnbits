@@ -95,6 +95,10 @@ class FiatSubscriptionPaymentOptions(BaseModel):
         description="Unique ID that can be used to identify the subscription request."
         "If not provided, one will be generated.",
     )
+    customer_email: str | None = Field(
+        default=None,
+        description="The customer email to use for the subscription.",
+    )
     tag: str | None = Field(
         default=None,
         description="Payments created by the recurring subscription"
@@ -127,15 +131,15 @@ class FiatSubscriptionResponse(BaseModel):
 
 
 class FiatPaymentSuccessStatus(FiatPaymentStatus):
-    paid = True
+    paid = True  # type: ignore[reportIncompatibleVariableOverride]
 
 
 class FiatPaymentFailedStatus(FiatPaymentStatus):
-    paid = False
+    paid = False  # type: ignore[reportIncompatibleVariableOverride]
 
 
 class FiatPaymentPendingStatus(FiatPaymentStatus):
-    paid = None
+    paid = None  # type: ignore[reportIncompatibleVariableOverride]
 
 
 class FiatProvider(ABC):

@@ -98,6 +98,10 @@ window.localisation.en = {
   view_swagger_docs: 'View LNbits Swagger API docs',
   api_docs: 'API docs',
   api_keys_api_docs: 'Node URL, API keys and API docs',
+  api_keys_warning:
+    'These keys should be kept safe, sharing them could risk losing funds.',
+  admin_key_warning:
+    'Your admin key grants full access to your wallet, including the ability to send payments. Never share it unless you fully trust the recipient.',
   lnbits_version: 'LNbits version',
   runs_on: 'Runs on',
   paste: 'Paste',
@@ -116,6 +120,7 @@ window.localisation.en = {
   read: 'Read',
   write: 'Write',
   pay: 'Pay',
+  sending: 'Sending',
   memo: 'Memo',
   date: 'Date',
   path: 'Path',
@@ -161,6 +166,10 @@ window.localisation.en = {
   ext_sources_hint: 'Repositories from where the extensions can be downloaded',
   ext_sources_label:
     'Source URL (only use the official LNbits extension source, and sources you can trust)',
+  wasm_sources_hint:
+    'Repositories from where WASM extensions can be downloaded',
+  wasm_sources_label:
+    'WASM source URL (only use WASM extension sources you can trust)',
   warning: 'Warning',
   repository: 'Repository',
   confirm_continue: 'Are you sure you want to continue?',
@@ -184,6 +193,7 @@ window.localisation.en = {
   release_notes: 'Release Notes',
   activate_extension_details: 'Make extension available/unavailable for users',
   featured: 'Featured',
+  categories: 'Categories',
   all: 'All',
   only_admins_can_install: '(Only admin accounts can install extensions)',
   only_admins_can_create_extensions:
@@ -267,6 +277,15 @@ window.localisation.en = {
   webhook_events_list: 'The following events must be supported by the webhook:',
   webhook_stripe_description:
     'One the stripe side you must configure a webhook with a URL that points to your LNbits server.',
+  webhook_square_description:
+    'On the Square side configure a webhook pointing to this exact LNbits URL.',
+  square_webhook_url_hint:
+    'Must exactly match the Square notification URL. LNbits requires the /api/v1/callback/square path.',
+  access_token: 'Access Token',
+  location_id: 'Location ID',
+  square_location_id_hint:
+    'Square location ID to create payment links for. Use the endpoint to select sandbox or production.',
+  api_version: 'API Version',
   payment_proof: 'Payment Proof',
   update: 'Update',
   update_available: 'Update {version} available!',
@@ -472,6 +491,8 @@ window.localisation.en = {
   access_control_list_admin_warning:
     'This is an admin account. The generated tokens will have admin privileges.',
   new_api_acl: 'New Access Control List',
+  acl_token_active: 'Active',
+  acl_token_expired: 'Expired',
   api_token_id: 'Token Id',
   toggle_gradient: 'Toggle Gradient',
   gradient_background: 'Gradient Background',
@@ -481,6 +502,8 @@ window.localisation.en = {
   toggle_card_gradient: 'Toggle gradient on cards',
   card_shadow: 'Card Shadow',
   toggle_card_shadow: 'Toggle shadow on cards',
+  burger_menu_background: 'Burger Menu Background',
+  toggle_burger_menu_background: 'Toggle burger menu background',
   language: 'Language',
   assets: 'Assets',
   max_asset_size_mb: 'Max Asset Size (MB)',
@@ -507,6 +530,64 @@ window.localisation.en = {
   admin_settings: 'Admin Settings',
   extension_cost: 'This release requires a payment of minimum {cost} sats.',
   extension_paid_sats: 'You have already paid {paid_sats} sats.',
+  extension_permissions_title: 'Grant extension permissions',
+  extension_permissions_tab: 'Extension Permissions',
+  user_permissions_tab: 'My Grants',
+  extension_permissions_none: 'This extension has no install-time permissions.',
+  user_permissions_none:
+    'You have not granted any permissions for this extension.',
+  user_permissions_max_amount: 'Max payment amount',
+  user_permissions_destination_policy: 'Allowed destinations',
+  user_permissions_no_editable_settings: 'This grant has no editable settings.',
+  extension_permissions_grant_install: 'Grant and install',
+  extension_permissions_high_risk_warning:
+    'This extension requests permissions that can move funds.',
+  extension_permission_risk_low: 'Low risk',
+  extension_permission_risk_medium: 'Medium risk',
+  extension_permission_risk_high: 'High risk',
+  extension_permission_warning_wallet_pay_invoice:
+    'Can spend funds from wallets available to your account.',
+  extension_permission_warning_wallet_pay_invoice_background:
+    'Can spend funds later from approved wallets without an active click.',
+  extension_permission_warning_wallet_payments_watch:
+    'Can read payment metadata for approved wallets.',
+  extension_permission_warning_extension_api_request_write:
+    'Can write data or trigger actions in approved extensions.',
+  extension_permission_ext_storage_read: 'Read extension storage',
+  extension_permission_ext_storage_append_public:
+    'Append public extension storage',
+  extension_permission_ext_storage_append_public_sources:
+    'Allowed append targets',
+  extension_permission_ext_storage_append_public_max_rows_per_source:
+    'Max rows per source',
+  extension_permission_ext_storage_read_public: 'Read public extension storage',
+  extension_permission_ext_storage_read_public_source_required:
+    'required to read',
+  extension_permission_ext_storage_write: 'Write extension storage',
+  extension_permission_ext_storage_read_write: 'Read & Write extension storage',
+  extension_permission_extension_api_request: 'Use other extensions',
+  extension_permission_extension_api_request_extensions: 'Allowed extensions',
+  extension_permission_access_read: 'Read',
+  extension_permission_access_write: 'Write',
+  extension_permission_http_request: 'Connect to external websites',
+  extension_permission_http_request_hosts: 'Allowed hosts',
+  extension_permission_utils_basic: 'Use basic LNbits utilities',
+  extension_permission_ui_camera_scan_qr: 'Scan QR codes',
+  extension_permission_websocket: 'Use extension websockets',
+  extension_permission_websocket_publish_limits: 'Publish limits',
+  extension_permission_websocket_publish_max_messages_per_second:
+    'Max messages per second',
+  extension_permission_websocket_publish: 'Publish websocket messages',
+  extension_permission_websocket_subscribe: 'Subscribe to websocket messages',
+  extension_permission_wallet_payments_watch: 'Watch wallet payments',
+  extension_permission_wallet_create_invoice: 'Create invoices',
+  extension_permission_wallet_create_invoice_public:
+    'Create Lightning invoices from public pages',
+  extension_permission_wallet_balance_read: 'View wallet balances',
+  extension_permission_wallet_list: 'List wallets',
+  extension_permission_wallet_pay_invoice: 'Pay invoices',
+  extension_permission_wallet_pay_invoice_background:
+    'Make background payments',
   create_extension: 'Create Extension',
   release_details_error: 'Cannot get the release details.',
   pay_from_wallet: 'Pay from Wallet',
@@ -805,6 +886,8 @@ window.localisation.en = {
   webhook_id_hint: 'PayPal webhook ID used to verify incoming events.',
   webhook_paypal_description:
     'On the PayPal side configure a webhook pointing to your LNbits server.',
+  square_webhook_signature_key_hint:
+    'Square webhook signature key used to verify incoming events.',
   callback_success_url: 'Callback Success URL',
   callback_success_url_hint:
     'The user will be redirected to this URL after the payment is successful',

@@ -323,6 +323,20 @@ window._lnbitsUtils = {
     converter.setOption('simpleLineBreaks', true)
     return converter.makeHtml(text)
   },
+  _extI18nDirs: new Set(),
+  _extI18nLoaded: {},
+  loadExtI18n(dir, locale) {
+    this._extI18nDirs.add(dir)
+    const loaded = (this._extI18nLoaded[dir] ??= {})
+    if (loaded[locale]) return loaded[locale]
+    loaded[locale] = this.loadScript(`${dir}/${locale}.js`).catch(() => {
+      if (locale !== 'en') {
+        loaded['en'] ??= this.loadScript(`${dir}/en.js`).catch(() => {})
+        return loaded['en']
+      }
+    })
+    return loaded[locale]
+  },
   async decryptLnurlPayAES(success_action, preimage) {
     let keyb = new Uint8Array(
       preimage.match(/[\da-f]{2}/gi).map(h => parseInt(h, 16))
@@ -351,5 +365,27 @@ window._lnbitsUtils = {
         let decoder = new TextDecoder('utf-8')
         return decoder.decode(valueb)
       })
+  },
+  validateBrowsableUrl(urlString, allowLoopback = false) {
+    const url = new URL(urlString)
+    if (url.protocol !== 'http:' && url.protocol !== 'https:') {
+      throw new Error('Invalid protocol')
+    }
+    if (!allowLoopback) {
+      const host = url.hostname
+      if (
+        host === 'localhost' ||
+        host === '[::1]' ||
+        host === '::1' ||
+        host.startsWith('127.') ||
+        host.startsWith('::ffff:127.')
+      ) {
+        throw new Error('Loopback addresses are not allowed')
+      }
+    }
+  },
+  openUrlInNewTab(urlString, allowLoopback = false) {
+    this.validateBrowsableUrl(urlString, allowLoopback)
+    window.open(urlString, '_blank', 'noopener,noreferrer')
   }
 }

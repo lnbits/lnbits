@@ -41,7 +41,8 @@ window.app.component('lnbits-language-dropdown', {
         {value: 'cs', label: 'Česky', display: '🇨🇿 CS'},
         {value: 'sk', label: 'Slovensky', display: '🇸🇰 SK'},
         {value: 'kr', label: '한국어', display: '🇰🇷 KR'},
-        {value: 'fi', label: 'Suomi', display: '🇫🇮 FI'}
+        {value: 'fi', label: 'Suomi', display: '🇫🇮 FI'},
+        {value: 'fo', label: 'Føroyskt', display: '🇫🇴 FO'}
       ]
     }
   }

@@ -1,16 +1,17 @@
 function eventReaction(amount) {
   localUrl = ''
-  reaction = localStorage.getItem('lnbits.reactions')
-  if (!reaction || reaction === 'None') {
+  const reaction =
+    Quasar.LocalStorage.getItem('lnbits.reactions') || SETTINGS.defaultReaction
+  if (!reaction || reaction.toLowerCase() === 'none') {
     return
   }
+
   try {
     if (amount < 0) {
       return
     }
-    reaction = localStorage.getItem('lnbits.reactions')
-    if (reaction) {
-      window[reaction.split('|')[1]]()
+    if (typeof window[reaction] === 'function') {
+      window[reaction]()
     }
   } catch (e) {
     console.log(e)

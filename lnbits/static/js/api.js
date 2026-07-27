@@ -175,6 +175,9 @@ window._lnbitsApi = {
       wallet.inkey
     )
   },
+  getPaymentTotalBreakdown(wallet) {
+    return this.request('get', '/api/v1/payments/stats/breakdown', wallet.inkey)
+  },
   getPayment(wallet, paymentHash) {
     return this.request('get', '/api/v1/payments/' + paymentHash, wallet.inkey)
   },

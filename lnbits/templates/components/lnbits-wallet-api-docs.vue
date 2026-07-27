@@ -6,6 +6,12 @@
     :content-inset-level="0.5"
   >
     <q-card-section>
+      <q-banner
+        dense
+        rounded
+        class="bg-warning text-black q-mb-md"
+        v-text="$t('api_keys_warning')"
+      ></q-banner>
       <q-list>
         <q-item dense class="q-pa-none">
           <q-item-section>
@@ -66,7 +72,7 @@
               <q-icon
                 name="content_copy"
                 class="cursor-pointer q-ml-sm"
-                @click="utils.copyText(g.wallet.adminkey)"
+                @click="copyAdminKey()"
               ></q-icon>
               <q-icon name="qr_code" class="cursor-pointer q-ml-sm">
                 <q-popup-proxy>

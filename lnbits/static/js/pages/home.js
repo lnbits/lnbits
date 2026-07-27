@@ -21,7 +21,7 @@ window.PageHome = {
       return (
         this.lnurl !== '' &&
         this.g.settings.allowRegister &&
-        'user-id-only' in this.g.settings.authMethods
+        this.g.settings.authMethods.includes('user-id-only')
       )
     },
     formatDescription() {

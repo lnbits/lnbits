@@ -15,6 +15,8 @@ from lnbits.core.crud import (
 from lnbits.core.db import db as core_db
 from lnbits.core.models import DbVersion
 from lnbits.core.models.extensions import InstallableExtension
+from lnbits.core.wasm_ext.storage.crud import migrate_wasm_extension_database
+from lnbits.core.wasm_ext.wasm.loader import is_wasm_extension_id
 from lnbits.db import COCKROACH, POSTGRES, SQLITE, Connection
 from lnbits.settings import settings
 
@@ -22,7 +24,16 @@ from lnbits.settings import settings
 async def migrate_extension_database(
     ext: InstallableExtension, current_version: DbVersion | None = None
 ):
+    if is_wasm_extension_id(ext.id):
+        await migrate_wasm_extension_database(ext, current_version)
+        return
+    else:
+        await migrate_py_extension_database(ext, current_version)
 
+
+async def migrate_py_extension_database(
+    ext: InstallableExtension, current_version: DbVersion | None = None
+):
     try:
         ext_migrations = importlib.import_module(f"{ext.module_name}.migrations")
         ext_db = importlib.import_module(ext.module_name).db

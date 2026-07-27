@@ -1,5 +1,5 @@
 window.app.component('lnbits-admin-funding', {
-  props: ['is-super-user', 'form-data', 'settings'],
+  props: ['active', 'is-super-user', 'form-data', 'settings'],
   template: '#lnbits-admin-funding',
   data() {
     return {

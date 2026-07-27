@@ -7,6 +7,7 @@ window.PageWallet = {
         invoice: null,
         lnurlpay: null,
         lnurlauth: null,
+        sending: false,
         data: {
           request: '',
           amount: 0,
@@ -48,6 +49,13 @@ window.PageWallet = {
       hasNfc: false,
       nfcReaderAbortController: null,
       formattedFiatAmount: 0,
+      totalBreakdown: {
+        show: false,
+        loading: false,
+        rows: [],
+        selectedTypes: ['bitcoin', 'fiat'],
+        selectedTags: []
+      },
       paymentFilter: {
         'status[ne]': 'failed'
       },
@@ -84,9 +92,116 @@ window.PageWallet = {
     },
     formattedSatAmount() {
       return LNbits.utils.formatMsat(this.receive.amountMsat) + ' sat'
+    },
+    totalBreakdownTags() {
+      const tags = this.totalBreakdown.rows.map(row => row.tag || null)
+      return [...new Set(tags)].sort((a, b) =>
+        this.totalBreakdownTagLabel(a).localeCompare(
+          this.totalBreakdownTagLabel(b)
+        )
+      )
+    },
+    hasFiatTotalBreakdown() {
+      return this.totalBreakdown.rows.some(row => row.is_fiat)
+    },
+    selectedTotalBreakdownRows() {
+      return this.totalBreakdown.rows.filter(row => {
+        const type = row.is_fiat ? 'fiat' : 'bitcoin'
+        return (
+          this.totalBreakdown.selectedTypes.includes(type) &&
+          this.totalBreakdown.selectedTags.includes(
+            this.totalBreakdownTagKey(row.tag)
+          )
+        )
+      })
+    },
+    selectedTotalBreakdownMsat() {
+      return this.selectedTotalBreakdownRows.reduce(
+        (total, row) => total + row.total,
+        0
+      )
+    },
+    selectedTotalBreakdownSat() {
+      return Math.round(this.selectedTotalBreakdownMsat / 1000)
+    },
+    selectedTotalBreakdownCount() {
+      return this.selectedTotalBreakdownRows.reduce(
+        (total, row) => total + row.payments_count,
+        0
+      )
+    },
+    formattedTotalBreakdown() {
+      return this.utils.formatBalance(
+        this.selectedTotalBreakdownSat,
+        this.g.denomination
+      )
+    },
+    formattedTotalBreakdownFiat() {
+      if (!this.g.fiatTracking) return null
+      const amount =
+        (this.selectedTotalBreakdownSat / 100000000) * this.g.exchangeRate
+      return LNbits.utils.formatCurrency(amount, this.g.wallet.currency)
+    },
+    primaryTotalBreakdownValue() {
+      if (this.g.isFiatPriority && this.g.fiatTracking) {
+        return this.formattedTotalBreakdownFiat || this.formattedTotalBreakdown
+      }
+      return this.formattedTotalBreakdown
+    },
+    secondaryTotalBreakdownValue() {
+      if (!this.g.fiatTracking) return null
+      if (this.g.isFiatPriority) {
+        return this.formattedTotalBreakdown
+      }
+      return this.formattedTotalBreakdownFiat
     }
   },
   methods: {
+    showWalletTotalBreakdown() {
+      this.totalBreakdown.show = true
+      if (!this.totalBreakdown.rows.length) {
+        this.fetchTotalBreakdown()
+      }
+    },
+    fetchTotalBreakdown() {
+      this.totalBreakdown.loading = true
+      LNbits.api
+        .getPaymentTotalBreakdown(this.g.wallet)
+        .then(response => {
+          this.totalBreakdown.rows = response.data
+          this.totalBreakdown.selectedTypes = ['bitcoin', 'fiat']
+          this.totalBreakdown.selectedTags = this.totalBreakdownTags.map(
+            this.totalBreakdownTagKey
+          )
+          this.totalBreakdown.loading = false
+        })
+        .catch(err => {
+          this.totalBreakdown.loading = false
+          LNbits.utils.notifyApiError(err)
+        })
+    },
+    totalBreakdownTagLabel(tag) {
+      return tag || 'No tag'
+    },
+    totalBreakdownTagKey(tag) {
+      return tag || '__untagged__'
+    },
+    totalBreakdownTagCount(tag) {
+      return this.totalBreakdown.rows
+        .filter(row => (row.tag || null) === tag)
+        .reduce((total, row) => total + row.payments_count, 0)
+    },
+    totalBreakdownTagMsat(tag) {
+      return this.totalBreakdown.rows
+        .filter(row => (row.tag || null) === tag)
+        .reduce((total, row) => total + row.total, 0)
+    },
+    formatTotalBreakdownMsat(msat) {
+      return this.utils.formatBalance(
+        Math.round(msat / 1000),
+        this.g.denomination
+      )
+    },
     handleSendLnurl(lnurl) {
       this.parse.data.request = lnurl
       this.parse.show = true
@@ -131,6 +246,7 @@ window.PageWallet = {
       this.parse.data.request = ''
       this.parse.data.comment = ''
       this.parse.data.internalMemo = null
+      this.parse.sending = false
       this.parse.data.paymentChecker = null
       this.parse.camera.show = false
     },
@@ -223,6 +339,12 @@ window.PageWallet = {
           if (data.tag === 'payRequest') {
             this.parse.lnurlpay = Object.freeze(data)
             this.parse.data.amount = data.minSendable / 1000
+            this.receive.units = [
+              'sats',
+              ...(this.g.allowedCurrencies.length > 0
+                ? this.g.allowedCurrencies
+                : this.g.currencies)
+            ]
           } else if (data.tag === 'login') {
             this.parse.lnurlauth = Object.freeze(data)
           } else if (data.tag === 'withdrawRequest') {
@@ -356,6 +478,9 @@ window.PageWallet = {
       this.parse.invoice = Object.freeze(cleanInvoice)
     },
     payInvoice() {
+      if (this.parse.sending) return
+
+      this.parse.sending = true
       const dismissPaymentMsg = Quasar.Notify.create({
         timeout: 0,
         message: this.$t('payment_processing')
@@ -368,6 +493,7 @@ window.PageWallet = {
           this.parse.data.internalMemo
         )
         .then(response => {
+          this.parse.sending = false
           dismissPaymentMsg()
           this.g.updatePayments = !this.g.updatePayments
           this.parse.show = false
@@ -385,13 +511,16 @@ window.PageWallet = {
           }
         })
         .catch(err => {
+          this.parse.sending = false
           dismissPaymentMsg()
           LNbits.utils.notifyApiError(err)
           this.g.updatePayments = !this.g.updatePayments
-          this.parse.show = false
         })
     },
     payLnurl() {
+      if (this.parse.sending) return
+
+      this.parse.sending = true
       LNbits.api
         .request('post', '/api/v1/payments/lnurl', this.g.wallet.adminkey, {
           res: this.parse.lnurlpay,
@@ -402,18 +531,26 @@ window.PageWallet = {
           internalMemo: this.parse.data.internalMemo
         })
         .then(response => {
+          this.parse.sending = false
           this.parse.show = false
           if (response.data.extra.success_action) {
             const action = JSON.parse(response.data.extra.success_action)
             switch (action.tag) {
               case 'url':
                 Quasar.Notify.create({
-                  message: `<a target="_blank" style="color: inherit" href="${action.url}">${action.url}</a>`,
+                  message: action.url,
                   caption: action.description,
-                  html: true,
+                  html: false,
                   type: 'positive',
                   timeout: 0,
-                  closeBtn: true
+                  closeBtn: true,
+                  actions: [
+                    {
+                      label: 'Open link',
+                      color: 'white',
+                      handler: () => this.utils.openUrlInNewTab(action.url)
+                    }
+                  ]
                 })
                 break
               case 'message':
@@ -425,19 +562,36 @@ window.PageWallet = {
                 })
                 break
               case 'aes':
-                this.utils.decryptLnurlPayAES(action, response.data.preimage)
-                Quasar.Notify.create({
-                  message: value,
-                  caption: extra.success_action.description,
-                  html: true,
-                  type: 'positive',
-                  timeout: 0,
-                  closeBtn: true
-                })
+                this.utils
+                  .decryptLnurlPayAES(action, response.data.preimage)
+                  .then(value => {
+                    Quasar.Notify.create({
+                      message: value,
+                      caption: action.description,
+                      html: false,
+                      type: 'positive',
+                      timeout: 0,
+                      closeBtn: true
+                    })
+                  })
+                  .catch(error => {
+                    Quasar.Notify.create({
+                      message: action.description || 'Payment successful.',
+                      caption: 'Could not decrypt success action.',
+                      html: false,
+                      type: 'warning',
+                      timeout: 0,
+                      closeBtn: true
+                    })
+                  })
+                break
             }
           }
         })
-        .catch(LNbits.utils.notifyApiError)
+        .catch(err => {
+          this.parse.sending = false
+          LNbits.utils.notifyApiError(err)
+        })
     },
     authLnurl() {
       const dismissAuthMsg = Quasar.Notify.create({

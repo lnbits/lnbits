@@ -98,6 +98,24 @@ class PhoenixdWallet(Wallet):
             logger.warning(exc)
             return StatusResponse(f"Unable to connect to {self.endpoint}.", 0)
 
+    async def _incoming_preimage(self, payment_hash: str) -> str | None:
+        """Fetch preimage from Phoenixd incoming payment (createinvoice omits it)."""
+        try:
+            r = await self.client.get(
+                f"/payments/incoming/{payment_hash}",
+                timeout=40,
+            )
+            if r.is_error:
+                return None
+            return r.json().get("preimage") or None
+        except Exception as exc:
+            logger.warning(
+                "Phoenixd: could not fetch preimage for %s: %s",
+                payment_hash,
+                exc,
+            )
+            return None
+
     async def create_invoice(
         self,
         amount: int,
@@ -117,11 +135,12 @@ class PhoenixdWallet(Wallet):
             # PhoenixD description limited to 128 characters
             if description_hash:
                 data["descriptionHash"] = description_hash.hex()
+            elif unhashed_description:
+                data["descriptionHash"] = hashlib.sha256(
+                    unhashed_description
+                ).hexdigest()
             else:
-                desc = memo
-                if desc is None and unhashed_description:
-                    desc = unhashed_description.decode()
-                desc = desc or ""
+                desc = memo or ""
                 if len(desc) > 128:
                     data["descriptionHash"] = hashlib.sha256(desc.encode()).hexdigest()
                 else:
@@ -146,7 +165,10 @@ class PhoenixdWallet(Wallet):
 
             checking_id = data["paymentHash"]
             payment_request = data["serialized"]
-            preimage = data.get("paymentPreimage", None)  # if available
+            # Phoenixd createinvoice often omits paymentPreimage.
+            preimage = data.get("paymentPreimage") or await self._incoming_preimage(
+                checking_id
+            )
             return InvoiceResponse(
                 ok=True,
                 checking_id=checking_id,

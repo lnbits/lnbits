@@ -69,6 +69,10 @@ window.localisation.sk = {
   view_swagger_docs: 'Zobraziť LNbits Swagger API dokumentáciu',
   api_docs: 'API dokumentácia',
   api_keys_api_docs: 'Adresa uzla, API kľúče a API dokumentácia',
+  api_keys_warning:
+    'Tieto kľúče uchovávajte v bezpečí, ich zdieľanie môže viesť k strate prostriedkov.',
+  admin_key_warning:
+    'Váš administrátorský kľúč poskytuje úplný prístup k peňaženke vrátane možnosti odosielať platby. Nikdy ho nezdieľajte, pokiaľ príjemcovi úplne nedôverujete.',
   lnbits_version: 'Verzia LNbits',
   runs_on: 'Beží na',
   paste: 'Vložiť',

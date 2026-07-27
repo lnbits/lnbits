@@ -118,7 +118,7 @@ class LndWallet(Wallet):
 
         cert = open(cert_path, "rb").read()
         creds = grpc.ssl_channel_credentials(cert)
-        auth_creds = grpc.metadata_call_credentials(self.metadata_callback)
+        auth_creds = grpc.metadata_call_credentials(self.metadata_callback)  # type: ignore[reportArgumentType]
         composite_creds = grpc.composite_channel_credentials(creds, auth_creds)
         channel = grpc.aio.secure_channel(
             f"{self.endpoint}:{self.port}", composite_creds
@@ -192,6 +192,9 @@ class LndWallet(Wallet):
             fee_limit_msat=fee_limit_msat,
             timeout_seconds=30,
             no_inflight_updates=True,
+            max_parts=16,
+            time_pref=0.9,
+            allow_self_payment=settings.lnd_grpc_allow_self_payment,
         )
         try:
             res: Payment = await self.router_rpc.SendPaymentV2(req).read()

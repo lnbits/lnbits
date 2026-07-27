@@ -71,6 +71,10 @@ window.localisation.kr = {
   view_swagger_docs: 'LNbits Swagger API 문서를 봅니다',
   api_docs: 'API 문서',
   api_keys_api_docs: '노드 URL, API 키와 API 문서',
+  api_keys_warning:
+    '이 키는 안전하게 보관해야 하며, 공유하면 자금을 잃을 위험이 있습니다.',
+  admin_key_warning:
+    '관리자 키는 결제 전송을 포함하여 지갑에 대한 모든 권한을 부여합니다. 수신자를 완전히 신뢰하는 경우가 아니라면 절대 공유하지 마세요.',
   lnbits_version: 'LNbits 버전',
   runs_on: 'Runs on',
   paste: '붙여넣기',

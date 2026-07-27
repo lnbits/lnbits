@@ -1,12 +1,7 @@
 from __future__ import annotations
 
-import asyncio
 from time import time
 from typing import Any, NamedTuple
-
-from loguru import logger
-
-from lnbits.settings import settings
 
 
 class Cached(NamedTuple):
@@ -22,8 +17,7 @@ class Cache:
     Small caching utility providing simple get/set interface (very much like redis)
     """
 
-    def __init__(self, interval: float = 10) -> None:
-        self.interval = interval
+    def __init__(self) -> None:
         self._values: dict[Any, Cached] = {}
 
     def value(self, key: str) -> Cached | None:
@@ -59,16 +53,11 @@ class Cache:
             self.set(key, value, expiry=expiry)
             return value
 
-    async def invalidate_forever(self):
-        while settings.lnbits_running:
-            try:
-                await asyncio.sleep(self.interval)
-                ts = time()
-                expired = [k for k, v in self._values.items() if v.expiry < ts]
-                for k in expired:
-                    self._values.pop(k)
-            except Exception:
-                logger.error("Error invalidating cache")
+    async def invalidate_cache(self):
+        ts = time()
+        expired = [k for k, v in self._values.items() if v.expiry < ts]
+        for k in expired:
+            self._values.pop(k)
 
 
 cache = Cache()

@@ -6,13 +6,16 @@ import json
 import os
 import shutil
 import zipfile
-from asyncio.tasks import create_task
-from pathlib import Path
+from collections.abc import Mapping
+from datetime import datetime, timezone
+from enum import Enum
+from pathlib import Path, PurePosixPath
 from typing import Any
+from uuid import uuid4
 
 import httpx
 from loguru import logger
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, StrictStr
 
 from lnbits.helpers import (
     download_url,
@@ -21,6 +24,7 @@ from lnbits.helpers import (
     version_parse,
 )
 from lnbits.settings import settings
+from lnbits.task_manager import task_manager
 from lnbits.utils.cache import cache
 
 
@@ -43,6 +47,7 @@ class ExplicitRelease(BaseModel):
     details_link: str | None
     paid_features: str | None
     pay_link: str | None
+    extension_type: str | None = None
 
     def is_version_compatible(self):
         return is_lnbits_version_ok(self.min_lnbits_version, self.max_lnbits_version)
@@ -55,9 +60,10 @@ class GitHubRelease(BaseModel):
 
 
 class Manifest(BaseModel):
-    featured: list[str] = []
     extensions: list[ExplicitRelease] = []
     repos: list[GitHubRelease] = []
+    featured: list[str] = []
+    categories: dict[str, list[str]] = {}
 
 
 class GitHubRepoRelease(BaseModel):
@@ -76,6 +82,23 @@ class GitHubRepo(BaseModel):
     default_branch: str
 
 
+class ExtensionPermission(BaseModel):
+    id: StrictStr
+    description: StrictStr | None = None
+    policies: list[Any] | None = None
+
+    class Config:
+        extra = "ignore"
+
+    @staticmethod
+    def list_from_config(config_json: Mapping[str, Any]) -> list[ExtensionPermission]:
+        return [
+            ExtensionPermission.parse_obj(permission)
+            for permission in config_json.get("permissions") or []
+            if isinstance(permission, dict) and permission.get("id")
+        ]
+
+
 class ExtensionConfig(BaseModel):
     name: str
     short_description: str
@@ -83,9 +106,17 @@ class ExtensionConfig(BaseModel):
     warning: str | None = ""
     min_lnbits_version: str | None
     max_lnbits_version: str | None
+    extension_type: str | None = None
+    permissions: list[ExtensionPermission] = []
 
     def is_version_compatible(self) -> bool:
         return is_lnbits_version_ok(self.min_lnbits_version, self.max_lnbits_version)
+
+    @classmethod
+    async def fetch_release_config(cls, url: str) -> ExtensionConfig:
+        error_msg = "Cannot fetch extension release config"
+        config = await github_api_get(url, error_msg)
+        return ExtensionConfig.parse_obj(config)
 
     @classmethod
     async def fetch_github_release_config(
@@ -94,9 +125,7 @@ class ExtensionConfig(BaseModel):
         config_url = (
             f"https://raw.githubusercontent.com/{org}/{repo}/{tag_name}/config.json"
         )
-        error_msg = "Cannot fetch GitHub extension config"
-        config = await github_api_get(config_url, error_msg)
-        return ExtensionConfig.parse_obj(config)
+        return await cls.fetch_release_config(config_url)
 
 
 class ReleasePaymentInfo(BaseModel):
@@ -117,11 +146,87 @@ class UserExtensionInfo(BaseModel):
     payment_hash_to_enable: str | None = None
 
 
+class ExtensionBackgroundPaymentDestinationPolicy(str, Enum):
+    OWN_WALLETS_ONLY = "own_wallets_only"
+    EXTERNAL_ALLOWED = "external_allowed"
+
+
+class ExtensionBackgroundPaymentGrant(BaseModel):
+    id: StrictStr = Field(..., min_length=1, max_length=128)
+    wallet_id: str = Field(..., min_length=1, max_length=128)
+    enabled: bool = True
+    max_amount: int = Field(..., gt=0)
+    destination_policy: ExtensionBackgroundPaymentDestinationPolicy
+
+
+class ExtensionBackgroundPaymentGrantRequest(BaseModel):
+    wallet_id: str = Field(..., min_length=1, max_length=128)
+    max_amount: int = Field(..., gt=0)
+    destination_policy: ExtensionBackgroundPaymentDestinationPolicy
+
+    def to_grant(self, grant_id: str | None = None) -> ExtensionBackgroundPaymentGrant:
+        return ExtensionBackgroundPaymentGrant(
+            id=grant_id or str(uuid4()),
+            wallet_id=self.wallet_id,
+            enabled=True,
+            max_amount=self.max_amount,
+            destination_policy=self.destination_policy,
+        )
+
+
+class ExtensionWalletPaymentsWatchGrant(BaseModel):
+    id: StrictStr = Field(..., min_length=1, max_length=128)
+    wallet_id: str = Field(..., min_length=1, max_length=128)
+    enabled: bool = True
+
+
+class ExtensionWalletPaymentsWatchGrantRequest(BaseModel):
+    wallet_id: str = Field(..., min_length=1, max_length=128)
+
+    def to_grant(
+        self, grant_id: str | None = None
+    ) -> ExtensionWalletPaymentsWatchGrant:
+        return ExtensionWalletPaymentsWatchGrant(
+            id=grant_id or str(uuid4()),
+            wallet_id=self.wallet_id,
+            enabled=True,
+        )
+
+
+class ExtensionPermissionCheckItem(BaseModel):
+    id: StrictStr
+    grant: dict[str, Any] = Field(default_factory=dict)
+
+
+class ExtensionPermissionCheckRequest(BaseModel):
+    permissions: list[ExtensionPermissionCheckItem] = Field(default_factory=list)
+
+
+class ExtensionPermissionCheckResult(BaseModel):
+    id: StrictStr
+    approved: bool
+    grant: dict[str, Any] = Field(default_factory=dict)
+
+
+class ExtensionPermissionCheckResponse(BaseModel):
+    permissions: list[ExtensionPermissionCheckResult] = Field(default_factory=list)
+
+
+class ExtensionPermissionsResponse(BaseModel):
+    extension_permissions: list[ExtensionPermission] = Field(default_factory=list)
+    user_permissions: dict[str, list[dict[str, Any]]] = Field(default_factory=dict)
+
+
+class ExtensionPermissionsUpdate(BaseModel):
+    permissions: list[ExtensionPermission] = Field(default_factory=list)
+
+
 class UserExtension(BaseModel):
     user: str
     extension: str
     active: bool
     extra: UserExtensionInfo | None = None
+    permissions: dict = Field(default_factory=dict)
 
     @property
     def is_paid(self) -> bool:
@@ -143,6 +248,7 @@ class UserExtension(BaseModel):
 class Extension(BaseModel):
     code: str
     is_valid: bool
+    is_wasm: bool = False
     name: str | None = None
     short_description: str | None = None
     tile: str | None = None
@@ -159,6 +265,8 @@ class Extension(BaseModel):
 
     @property
     def is_upgrade_extension(self) -> bool:
+        if self.is_wasm:
+            return False
         return self.upgrade_hash != ""
 
     @classmethod
@@ -166,11 +274,69 @@ class Extension(BaseModel):
         return Extension(
             code=ext_info.id,
             is_valid=True,
+            is_wasm=ext_info.is_wasm,
             name=ext_info.name,
             short_description=ext_info.short_description,
-            tile=ext_info.icon,
+            tile=_extension_tile(ext_info),
             upgrade_hash=ext_info.hash if ext_info.ext_upgrade_dir.is_dir() else "",
         )
+
+
+class WasmInvocation(BaseModel):
+    id: str
+    extension_id: str
+    export_name: str
+    trigger_type: str = "unknown"
+    status: str = "running"
+    started_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    finished_at: datetime | None = None
+    duration_ms: int | None = None
+    user_id: str | None = None
+    wallet_id: str | None = None
+    request_id: str | None = None
+    method: str | None = None
+    path: str | None = None
+    event_type: str | None = None
+    payment_hash: str | None = None
+    checking_id: str | None = None
+    memory_peak_bytes: int | None = None
+    request_bytes: int | None = None
+    response_bytes: int | None = None
+    host_call_count: int = 0
+    http_call_count: int = 0
+    storage_call_count: int = 0
+    wallet_call_count: int = 0
+    error_type: str | None = None
+    error_message: str | None = None
+    stop_reason: str | None = None
+    context: dict = Field(default_factory=dict)
+
+
+class WasmInvocationStats(BaseModel):
+    total: int = 0
+    running: int = 0
+    completed: int = 0
+    failed: int = 0
+    stopped: int = 0
+    timeout: int = 0
+    avg_duration_ms: float = 0
+    max_duration_ms: int = 0
+    host_call_count: int = 0
+    http_call_count: int = 0
+    storage_call_count: int = 0
+    wallet_call_count: int = 0
+
+
+class WasmRuntimeLimitsUpdate(BaseModel):
+    limits: dict[str, Any] = Field(default_factory=dict)
+
+
+class WasmRuntimeLimitsInfo(BaseModel):
+    id: str
+    name: str
+    active: bool | None = False
+    wasm_runtime_limits: dict[str, int] = Field(default_factory=dict)
+    effective_wasm_runtime_limits: dict[str, int] = Field(default_factory=dict)
 
 
 class ExtensionRelease(BaseModel):
@@ -189,12 +355,22 @@ class ExtensionRelease(BaseModel):
     repo: str | None = None
     icon: str | None = None
     details_link: str | None = None
+    extension_type: str | None = None
+    permissions: list[ExtensionPermission] = []
 
     paid_features: str | None = None
     pay_link: str | None = None
     cost_sats: int | None = None
     paid_sats: int | None = 0
     payment_hash: str | None = None
+
+    def apply_config(self, config: ExtensionConfig) -> None:
+        self.min_lnbits_version = config.min_lnbits_version
+        self.max_lnbits_version = config.max_lnbits_version
+        self.is_version_compatible = config.is_version_compatible()
+        self.warning = config.warning
+        self.extension_type = config.extension_type
+        self.permissions = config.permissions
 
     @property
     def archive_url(self) -> str:
@@ -259,6 +435,7 @@ class ExtensionRelease(BaseModel):
             warning=e.warning,
             html_url=e.html_url,
             details_link=e.details_link,
+            extension_type=e.extension_type,
             pay_link=e.pay_link,
             paid_features=e.paid_features,
             repo=e.repo,
@@ -286,10 +463,7 @@ class ExtensionRelease(BaseModel):
                 if not config:
                     continue
 
-                release.min_lnbits_version = config.min_lnbits_version
-                release.max_lnbits_version = config.max_lnbits_version
-                release.is_version_compatible = config.is_version_compatible()
-
+                release.apply_config(config)
                 release.icon = icon_to_github_url(f"{org}/{repo}", config.tile)
 
             return extension_releases
@@ -308,7 +482,6 @@ class ExtensionRelease(BaseModel):
 
     @classmethod
     async def fetch_release_details(cls, details_link: str) -> dict | None:
-
         try:
             async with httpx.AsyncClient() as client:
                 resp = await client.get(details_link)
@@ -333,6 +506,7 @@ class ExtensionMeta(BaseModel):
     dependencies: list[str] = []
     archive: str | None = None
     featured: bool = False
+    categories: list[str] = []
     paid_features: str | None = None
     has_paid_release: bool = False
     has_free_release: bool = False
@@ -347,6 +521,8 @@ class InstallableExtension(BaseModel):
     icon: str | None = None
     stars: int = 0
     meta: ExtensionMeta | None = None
+    permissions: list[ExtensionPermission] = []
+    wasm_runtime_limits: dict = Field(default_factory=dict, no_database=True)
 
     @property
     def hash(self) -> str:
@@ -367,6 +543,10 @@ class InstallableExtension(BaseModel):
     @property
     def ext_dir(self) -> Path:
         return Path(settings.lnbits_extensions_path, "extensions", self.id)
+
+    @property
+    def wasm_ext_dir(self) -> Path:
+        return Path(settings.wasm_extensions_dir, self.id)
 
     @property
     def ext_upgrade_dir(self) -> Path:
@@ -399,6 +579,18 @@ class InstallableExtension(BaseModel):
             return False
         return self.meta.pay_to_enable.required is True
 
+    @property
+    def is_wasm(self) -> bool:
+        config_path = Path(self.wasm_ext_dir, "config.json")
+        if not config_path.is_file():
+            return False
+        try:
+            with open(config_path, encoding="utf-8") as json_file:
+                config_json = json.load(json_file)
+        except Exception:
+            return False
+        return config_json.get("extension_type") == "wasm"
+
     async def download_archive(self):
         logger.info(f"Downloading extension {self.name} ({self.installed_version}).")
         ext_zip_file = self.zip_path
@@ -430,6 +622,22 @@ class InstallableExtension(BaseModel):
             if ext_zip_file.is_file():
                 os.remove(ext_zip_file)
             raise AssertionError("File hash missmatch. Will not install.")
+
+    def load_archive_config(self) -> dict[str, Any]:
+        if not self.zip_path.is_file():
+            return {}
+
+        try:
+            with zipfile.ZipFile(self.zip_path, "r") as archive:
+                config_name = _archive_config_name(archive.namelist())
+                if not config_name:
+                    return {}
+                with archive.open(config_name) as config_file:
+                    config = json.load(config_file)
+        except Exception as exc:
+            raise ValueError(f"Cannot read extension config for '{self.id}'.") from exc
+
+        return config if isinstance(config, dict) else {}
 
     def extract_archive(self):
         logger.info(f"Extracting extension {self.name} ({self.installed_version}).")
@@ -469,6 +677,37 @@ class InstallableExtension(BaseModel):
         shutil.copytree(Path(self.ext_upgrade_dir), Path(self.ext_dir))
         logger.info(f"Extension {self.name} ({self.installed_version}) extracted.")
 
+    def extract_wasm_archive(self):
+        logger.info(f"Extracting extension {self.name} ({self.installed_version}).")
+
+        tmp_dir = Path(settings.lnbits_data_folder, "unzip-temp", self.hash)
+        shutil.rmtree(tmp_dir, True)
+        with zipfile.ZipFile(self.zip_path, "r") as zip_ref:
+            zip_ref.extractall(tmp_dir)
+        generated_dir_name = os.listdir(tmp_dir)[0]
+        extracted_dir = Path(tmp_dir, generated_dir_name)
+
+        with open(Path(extracted_dir, "config.json"), "r+") as json_file:
+            config_json = json.load(json_file)
+
+            self.name = config_json.get("name")
+            self.short_description = config_json.get("short_description")
+
+            if (
+                self.meta
+                and self.meta.installed_release
+                and self.meta.installed_release.is_github_release
+                and config_json.get("tile")
+            ):
+                self.icon = icon_to_github_url(
+                    self.meta.installed_release.source_repo, config_json.get("tile")
+                )
+
+        shutil.rmtree(self.wasm_ext_dir, True)
+        shutil.copytree(extracted_dir, self.wasm_ext_dir)
+        shutil.rmtree(tmp_dir, True)
+        logger.info(f"Extension {self.name} ({self.installed_version}) extracted.")
+
     def clean_extension_files(self):
         # remove downloaded archive
         if self.zip_path.is_file():
@@ -478,6 +717,12 @@ class InstallableExtension(BaseModel):
         shutil.rmtree(self.ext_dir, True)
 
         shutil.rmtree(self.ext_upgrade_dir, True)
+
+    def clean_wasm_extension_files(self):
+        if self.zip_path.is_file():
+            os.remove(self.zip_path)
+
+        shutil.rmtree(self.wasm_ext_dir, True)
 
     def check_release_updates(self, release: ExtensionRelease | None):
         self._check_latest_version(release)
@@ -609,6 +854,42 @@ class InstallableExtension(BaseModel):
                     version=version,
                     short_description=config_json.get("short_description"),
                     icon=config_json.get("tile"),
+                    permissions=ExtensionPermission.list_from_config(config_json),
+                    meta=ExtensionMeta(
+                        installed_release=ExtensionRelease(
+                            name=ext_id,
+                            version=version,
+                            archive=f"{conf_path}",
+                            source_repo=f"{conf_path}",
+                            min_lnbits_version=config_json.get("min_lnbits_version"),
+                            max_lnbits_version=config_json.get("max_lnbits_version"),
+                        )
+                    ),
+                )
+
+        except Exception as e:
+            logger.warning(e)
+
+        return None
+
+    @classmethod
+    def from_wasm_ext_dir(cls, ext_id: str) -> InstallableExtension | None:
+        try:
+            conf_path = Path(settings.wasm_extensions_dir, ext_id, "config.json")
+            if not conf_path.is_file():
+                return None
+            with open(conf_path, "r+") as json_file:
+                config_json = json.load(json_file)
+                version = config_json.get("version", "0.0")
+
+                return InstallableExtension(
+                    id=ext_id,
+                    name=config_json.get("name", ext_id),
+                    active=True,
+                    version=version,
+                    short_description=config_json.get("short_description"),
+                    icon=config_json.get("tile"),
+                    permissions=ExtensionPermission.list_from_config(config_json),
                     meta=ExtensionMeta(
                         installed_release=ExtensionRelease(
                             name=ext_id,
@@ -641,7 +922,10 @@ class InstallableExtension(BaseModel):
 
         if cache_value.older_than(10 * 60) or post_refresh_cache:
             # refresh cache in background if older than 10 minutes or requested
-            create_task(cls._refresh_installable_extensions_cache())
+            task_manager.create_task(
+                cls._refresh_installable_extensions_cache(),
+                "refresh_installable_extensions_cache",
+            )
 
         extension_list = cache_value.value  # type: ignore
         return extension_list
@@ -663,7 +947,14 @@ class InstallableExtension(BaseModel):
     ) -> list[InstallableExtension]:
         extension_list: list[InstallableExtension] = []
 
-        for url in settings.lnbits_extensions_manifests:
+        manifest_urls = dict.fromkeys(
+            [
+                *settings.lnbits_extensions_manifests,
+                *settings.lnbits_wasm_extensions_manifests,
+                *settings.lnbits_wasm_extensions_manifests,
+            ]
+        )
+        for url in manifest_urls:
             try:
                 manifest = await cls.fetch_manifest(url)
 
@@ -680,6 +971,11 @@ class InstallableExtension(BaseModel):
 
                     meta = ext.meta or ExtensionMeta()
                     meta.featured = ext.id in manifest.featured
+                    meta.categories = [
+                        category
+                        for category, ext_ids in manifest.categories.items()
+                        if ext.id in ext_ids
+                    ]
                     ext.meta = meta
                     extension_list += [ext]
 
@@ -695,6 +991,11 @@ class InstallableExtension(BaseModel):
                     ext.check_release_updates(release)
                     meta = ext.meta or ExtensionMeta()
                     meta.featured = ext.id in manifest.featured
+                    meta.categories = [
+                        category
+                        for category, ext_ids in manifest.categories.items()
+                        if ext.id in ext_ids
+                    ]
                     ext.meta = meta
                     extension_list += [ext]
             except Exception as e:
@@ -708,6 +1009,7 @@ class InstallableExtension(BaseModel):
         extension_releases: list[ExtensionRelease] = []
         all_manifests = [
             *settings.lnbits_extensions_manifests,
+            *settings.lnbits_wasm_extensions_manifests,
             settings.lnbits_extensions_builder_manifest_url,
         ]
         for url in all_manifests:
@@ -725,6 +1027,14 @@ class InstallableExtension(BaseModel):
                     if e.id != ext_id:
                         continue
                     explicit_release = ExtensionRelease.from_explicit_release(url, e)
+                    if (
+                        explicit_release.extension_type == "wasm"
+                        and explicit_release.details_link
+                    ):
+                        config = await ExtensionConfig.fetch_release_config(
+                            explicit_release.details_link
+                        )
+                        explicit_release.apply_config(config)
                     await explicit_release.check_payment_requirements()
                     extension_releases.append(explicit_release)
 
@@ -789,6 +1099,7 @@ class CreateExtension(BaseModel):
     version: str
     cost_sats: int | None = 0
     payment_hash: str | None = None
+    permissions: list[ExtensionPermission] = []
 
 
 class ExtensionDetailsRequest(BaseModel):
@@ -841,3 +1152,21 @@ def icon_to_github_url(source_repo: str, path: str | None) -> str:
     _, _, *rest = path.split("/")
     tail = "/".join(rest)
     return f"https://github.com/{source_repo}/raw/main/{tail}"
+
+
+def wasm_extension_icon_url(ext_id: str) -> str:
+    return f"/ext-assets/{ext_id}/assets/icon.png"
+
+
+def _extension_tile(ext_info: InstallableExtension) -> str | None:
+    if ext_info.is_wasm:
+        return wasm_extension_icon_url(ext_info.id)
+    return ext_info.icon
+
+
+def _archive_config_name(names: list[str]) -> str | None:
+    for name in names:
+        path = PurePosixPath(name)
+        if len(path.parts) == 2 and path.name == "config.json":
+            return name
+    return None

@@ -1,7 +1,11 @@
+from pathlib import Path
+from typing import Any
+
 import pytest
 from pytest_mock.plugin import MockerFixture
 
 from lnbits.settings import (
+    DEFAULT_WASM_MANIFESTS,
     AssetSettings,
     ExchangeRateProvider,
     InstalledExtensionsSettings,
@@ -14,22 +18,22 @@ from lnbits.settings import (
     set_cli_settings,
 )
 
-lnurlp_redirect_path = {
+lnurlp_redirect_path: dict[str, Any] = {
     "from_path": "/.well-known/lnurlp",
     "redirect_to_path": "/api/v1/well-known",
 }
-lnurlp_redirect_path_with_headers = {
+lnurlp_redirect_path_with_headers: dict[str, Any] = {
     "from_path": "/.well-known/lnurlp",
     "redirect_to_path": "/api/v1/well-known",
     "header_filters": {"accept": "application/nostr+json"},
 }
 
-lnaddress_redirect_path = {
+lnaddress_redirect_path: dict[str, Any] = {
     "from_path": "/.well-known/lnurlp",
     "redirect_to_path": "/api/v1/well-known",
 }
 
-nostrrelay_redirect_path = {
+nostrrelay_redirect_path: dict[str, Any] = {
     "from_path": "/",
     "redirect_to_path": "/api/v1/relay-info",
     "header_filters": {"accept": "application/nostr+json"},
@@ -186,6 +190,65 @@ def test_list_parse_fallback():
     assert list_parse_fallback("") == []
 
 
+def test_settings_keep_wasm_manifests_separate_from_extension_manifests():
+    settings = Settings(
+        lnbits_extensions_manifests=["https://example.com/extensions.json"],
+        lnbits_wasm_extensions_manifests=[
+            *DEFAULT_WASM_MANIFESTS,
+            "https://example.com/extensions.json",
+        ],
+    )
+
+    assert settings.lnbits_extensions_manifests == [
+        "https://example.com/extensions.json"
+    ]
+    assert settings.lnbits_wasm_extensions_manifests == [
+        *DEFAULT_WASM_MANIFESTS,
+        "https://example.com/extensions.json",
+    ]
+    assert settings.dict()["lnbits_extensions_manifests"] == [
+        "https://example.com/extensions.json"
+    ]
+    assert settings.dict()["lnbits_wasm_extensions_manifests"] == [
+        *DEFAULT_WASM_MANIFESTS,
+        "https://example.com/extensions.json",
+    ]
+
+
+def test_wasm_extensions_directory_defaults_to_data_folder_and_is_configurable(
+    tmp_path: Path,
+):
+    data_folder = tmp_path / "data"
+    default_settings = Settings(
+        lnbits_data_folder=str(data_folder),
+        lnbits_wasm_extensions_path="",
+    )
+    custom_path = tmp_path / "custom-wasm"
+    custom_settings = Settings(
+        lnbits_data_folder=str(data_folder),
+        lnbits_wasm_extensions_path=str(custom_path),
+    )
+
+    assert default_settings.wasm_extensions_dir == data_folder / "wasm_extensions"
+    assert default_settings.lnbits_wasm_extensions_path == str(
+        data_folder / "wasm_extensions"
+    )
+    assert custom_settings.wasm_extensions_dir == custom_path
+
+
+def test_wasm_extensions_directory_must_not_be_importable(tmp_path: Path):
+    settings = Settings(
+        lnbits_data_folder=str(tmp_path / "data"),
+        lnbits_extensions_path=str(tmp_path / "code"),
+        lnbits_wasm_extensions_path=str(
+            tmp_path / "code" / "extensions" / "wasm_extensions"
+        ),
+    )
+
+    with pytest.raises(ValueError, match="outside importable extension directories"):
+        _ = settings.wasm_extensions_dir
+
+
 def test_exchange_rate_provider_convert_ticker():
     provider = ExchangeRateProvider(
         name="Provider",
@@ -230,6 +293,14 @@ def test_installed_extensions_settings_activate_and_deactivate_paths():
 
     assert "lnurlp" in installed.lnbits_deactivated_extensions
     assert installed.find_extension_redirect("/.well-known/lnurlp", []) is None
+
+
+def test_public_settings_include_burger_menu_background(settings: Settings):
+    settings.lnbits_default_burger_menu_background = False
+
+    public_settings = PublicSettings.from_settings(settings)
+
+    assert public_settings.default_burger_menu_background is False
 
 
 def test_installed_extensions_settings_detects_conflicting_redirects():

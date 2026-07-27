@@ -18,6 +18,7 @@ if TYPE_CHECKING:
 class Feature(Enum):
     nodemanager = "nodemanager"
     holdinvoice = "holdinvoice"
+    descriptionhash = "descriptionhash"
     # bolt12 = "bolt12"
 
 
@@ -94,15 +95,15 @@ class PaymentStatus(NamedTuple):
 
 
 class PaymentSuccessStatus(PaymentStatus):
-    paid = True
+    paid = True  # type: ignore[reportIncompatibleVariableOverride]
 
 
 class PaymentFailedStatus(PaymentStatus):
-    paid = False
+    paid = False  # type: ignore[reportIncompatibleVariableOverride]
 
 
 class PaymentPendingStatus(PaymentStatus):
-    paid = None
+    paid = None  # type: ignore[reportIncompatibleVariableOverride]
 
 
 class Wallet(ABC):

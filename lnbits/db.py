@@ -35,7 +35,7 @@ if settings.lnbits_database_url:
     else:
         if not database_uri.startswith("postgres://"):
             raise ValueError(
-                "Please use the 'postgres://...' " "format for the database URL."
+                "Please use the 'postgres://...' format for the database URL."
             )
         DB_TYPE = POSTGRES
 
@@ -497,7 +497,7 @@ class Filter(BaseModel, Generic[TFilterModel]):
                 validated, errors = compare_field.validate(raw_value, {}, loc="none")
                 if errors:
                     raise ValidationError(errors=[errors], model=model)
-                values[f"{field}__{index}"] = validated
+                values[f"{field}__{i}_{index}"] = validated
         else:
             raise ValueError("Unknown filter field")
 
@@ -510,11 +510,12 @@ class Filter(BaseModel, Generic[TFilterModel]):
         for key in self.values.keys() if self.values else []:
             if self.model and self.model.__fields__[self.field].type_ == datetime:
                 placeholder = compat_timestamp_placeholder(key)
-                stmt.append(f"{prefix}{self.field} {self.op.as_sql} {placeholder}")
-            if self.op in {Operator.INCLUDE, Operator.EXCLUDE}:
-                stmt.append(f":{key}")
             else:
-                stmt.append(f"{prefix}{self.field} {self.op.as_sql} :{key}")
+                placeholder = f":{key}"
+            if self.op in {Operator.INCLUDE, Operator.EXCLUDE}:
+                stmt.append(placeholder)
+            else:
+                stmt.append(f"{prefix}{self.field} {self.op.as_sql} {placeholder}")
 
         if self.op in {Operator.INCLUDE, Operator.EXCLUDE}:
             statement = f"{prefix}{self.field} {self.op.as_sql} ({', '.join(stmt)})"
@@ -560,7 +561,9 @@ class Filters(BaseModel, Generic[TFilterModel]):
 
     def pagination(self) -> str:
         stmt = ""
-        self.limit = self.limit or 10
+        if self.limit == 0:
+            self.limit = 1000
+        self.limit = 10 if self.limit is None else self.limit
         stmt += f"LIMIT {min(1000, self.limit)} "
         if self.offset:
             stmt += f"OFFSET {self.offset}"
@@ -723,20 +726,20 @@ def dict_to_model(_row: dict, model: type[TModel]) -> TModel:  # noqa: C901
         if get_origin(outertype_) is list:
             _items = _safe_load_json(value) if isinstance(value, str) else value
             _dict[key] = [
-                dict_to_submodel(type_, v) if issubclass(type_, BaseModel) else v
+                dict_to_submodel(type_, v) if _is_subclass(type_, BaseModel) else v
                 for v in _items
             ]
             continue
-        if issubclass(type_, bool):
+        if _is_subclass(type_, bool):
             _dict[key] = bool(value)
             continue
-        if issubclass(type_, datetime):
+        if _is_subclass(type_, datetime):
             if DB_TYPE == SQLITE:
                 _dict[key] = datetime.fromtimestamp(value, timezone.utc)
             else:
                 _dict[key] = value.replace(tzinfo=timezone.utc)
             continue
-        if issubclass(type_, BaseModel):
+        if _is_subclass(type_, BaseModel):
             _dict[key] = dict_to_submodel(type_, value)
             continue
         # TODO: remove this when all sub models are migrated to Pydantic
@@ -759,6 +762,13 @@ def _safe_load_json(value: str) -> dict:
         # DB is corrupted if it gets here
         logger.error(f"Failed to decode JSON: '{value}'")
         return {}
+
+
+def _is_subclass(type_: Any, class_or_tuple: type | tuple[type, ...]) -> bool:
+    try:
+        return issubclass(type_, class_or_tuple)
+    except TypeError:
+        return False
 
 
 def _valid_sql_name(name: str) -> bool:

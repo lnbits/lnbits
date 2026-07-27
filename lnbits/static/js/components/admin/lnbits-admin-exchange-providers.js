@@ -62,12 +62,6 @@ window.app.component('lnbits-admin-exchange-providers', {
   mounted() {
     this.getExchangeRateHistory()
   },
-  created() {
-    const hash = window.location.hash.replace('#', '')
-    if (hash === 'exchange_providers') {
-      this.showExchangeProvidersTab(hash)
-    }
-  },
   methods: {
     getDefaultSetting(fieldName) {
       LNbits.api.getDefaultSetting(fieldName).then(response => {
@@ -127,18 +121,21 @@ window.app.component('lnbits-admin-exchange-providers', {
       this.exchangeData.showTickerConversion = true
     },
     initExchangeChart(data) {
+      if (this.exchangeRatesChart) {
+        this.exchangeRatesChart.destroy()
+        this.exchangeRatesChart = null
+      }
       const xValues = data.map(d =>
         this.utils.formatTimestamp(d.timestamp, 'HH:mm')
       )
-      const exchanges = [
-        ...this.formData.lnbits_exchange_rate_providers,
-        {name: 'LNbits'}
-      ]
+      const exchanges = this.formData.lnbits_price_aggregator_enabled
+        ? [{name: 'Aggregator'}]
+        : [...this.formData.lnbits_exchange_rate_providers, {name: 'LNbits'}]
       const datasets = exchanges.map(exchange => ({
         label: exchange.name,
         data: data.map(d => d.rates[exchange.name]),
         pointStyle: true,
-        borderWidth: exchange.name === 'LNbits' ? 4 : 1,
+        borderWidth: exchange.name === 'LNbits' ? 4 : 2,
         tension: 0.4
       }))
       this.exchangeRatesChart = new Chart(
@@ -148,7 +145,11 @@ window.app.component('lnbits-admin-exchange-providers', {
           options: {
             plugins: {
               legend: {
-                display: false
+                display: true
+              },
+              title: {
+                display: true,
+                text: 'Bitcoin Price History'
               }
             }
           },

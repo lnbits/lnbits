@@ -1,6 +1,7 @@
 import asyncio
 import hashlib
 import json
+import secrets
 import uuid
 from collections.abc import AsyncGenerator
 from pathlib import Path
@@ -8,7 +9,6 @@ from typing import Any, cast
 
 import httpx
 from bolt11 import decode as bolt11_decode
-from coincurve.keys import PrivateKey
 from embit.bip39 import mnemonic_from_bytes, mnemonic_is_valid
 from loguru import logger
 
@@ -340,7 +340,7 @@ class SparkL2Wallet(Wallet):
             return
 
         logger.info("SPARK_L2_MNEMONIC is not set, one will be generated for you.")
-        mnemonic = mnemonic_from_bytes(PrivateKey().secret)
+        mnemonic = mnemonic_from_bytes(secrets.token_bytes(16))
         await self._set_sidecar_mnemonic(mnemonic)
 
     async def _set_sidecar_mnemonic(self, mnemonic: str):

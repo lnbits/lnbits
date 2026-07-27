@@ -7,19 +7,11 @@ on:
         description: 'The tag name for the release'
         required: true
         type: string
-      upload_url:
-        description: 'The upload URL for the release'
-        required: true
-        type: string
 
   workflow_dispatch:
     inputs:
       tag_name:
         description: 'The tag name for the release'
-        required: true
-        type: string
-      upload_url:
-        description: 'The upload URL for the release'
         required: true
         type: string
 
@@ -113,11 +105,6 @@ jobs:
         shell: bash
 
       - name: Upload Linux Release Asset
-        uses: actions/upload-release-asset@v1
-        with:
-          upload_url: ${{ inputs.upload_url }}
-          asset_path: ${{ env.APPIMAGE_NAME }}
-          asset_name: ${{ env.APPIMAGE_NAME }}
-          asset_content_type: application/octet-stream
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: gh release upload "${{ inputs.tag_name }}" "${{ env.APPIMAGE_NAME }}" --clobber

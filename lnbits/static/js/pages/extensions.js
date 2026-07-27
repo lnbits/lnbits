@@ -1,3 +1,7 @@
+const EXTENSION_PERMISSION_DEFAULT_MAX_ROWS_PER_SOURCE = 10000
+const EXTENSION_PERMISSION_MAX_ROWS_PER_SOURCE_LIMIT = 1000000
+const EXTENSION_PERMISSION_MAX_MESSAGES_PER_SECOND_LIMIT = 100
+
 window.PageExtensions = {
   template: '#page-extensions',
   data() {
@@ -10,6 +14,7 @@ window.PageExtensions = {
       tab: 'installed',
       manageExtensionTab: 'releases',
       filteredExtensions: [],
+      categories: new Set(),
       updatableExtensions: [],
       showUninstallDialog: false,
       showManageExtensionDialog: false,
@@ -23,6 +28,33 @@ window.PageExtensions = {
       selectedExtensionDetails: null,
       selectedExtensionRepos: null,
       selectedRelease: null,
+      permissionGrant: {
+        show: false,
+        permissions: [],
+        resolve: null
+      },
+      extensionPermissionMaxRowsPerSourceLimit:
+        EXTENSION_PERMISSION_MAX_ROWS_PER_SOURCE_LIMIT,
+      extensionPermissionMaxMessagesPerSecondLimit:
+        EXTENSION_PERMISSION_MAX_MESSAGES_PER_SECOND_LIMIT,
+      managedExtensionPermissions: {
+        loading: false,
+        extensionPermissions: [],
+        userPermissions: {},
+        savingExtensionPermissions: false,
+        savingKey: '',
+        deletingKey: ''
+      },
+      backgroundPaymentDestinationOptions: [
+        {
+          label: 'Only transfers to my wallets',
+          value: 'own_wallets_only'
+        },
+        {
+          label: 'Allow external payments',
+          value: 'external_allowed'
+        }
+      ],
       uninstallAndDropDb: false,
       maxStars: 5,
       paylinkWebsocket: null,
@@ -92,6 +124,32 @@ window.PageExtensions = {
       this.filterExtensions(this.searchTerm, val)
     }
   },
+  computed: {
+    managedUserPermissionRows() {
+      const rows = []
+      const userPermissions =
+        this.managedExtensionPermissions.userPermissions || {}
+      Object.entries(userPermissions).forEach(([permissionId, grants]) => {
+        if (!Array.isArray(grants)) return
+        grants.forEach(grant => {
+          if (!grant || typeof grant !== 'object') return
+          const grantId = String(grant.id || '')
+          const walletId = String(grant.wallet_id || '')
+          if (!grantId || !walletId) return
+          rows.push({
+            key: grantId,
+            permissionId,
+            label: this.permissionLabelById(permissionId),
+            grantId,
+            walletId,
+            walletName: this.walletName(walletId),
+            grant
+          })
+        })
+      })
+      return rows
+    }
+  },
   methods: {
     filterExtensions(term, tab) {
       // Filter the extensions list
@@ -106,6 +164,10 @@ window.PageExtensions = {
         }
       }
 
+      const isCategoryTab = !['installed', 'all', 'featured'].includes(tab)
+      const isInSelectedCategory = extension =>
+        extension.categories?.includes(tab) ?? false
+
       this.filteredExtensions = this.extensions
         .filter(e => (tab === 'all' ? !e.isInstalled : true))
         .filter(e => (tab === 'installed' ? e.isInstalled : true))
@@ -113,6 +175,7 @@ window.PageExtensions = {
           tab === 'installed' ? (e.isActive ? true : !!this.g.user.admin) : true
         )
         .filter(e => (tab === 'featured' ? e.isFeatured : true))
+        .filter(e => (isCategoryTab ? isInSelectedCategory(e) : true))
         .filter(extensionNameContains(term))
         .map(e => ({
           ...e,
@@ -126,6 +189,12 @@ window.PageExtensions = {
       // the install logic has been triggered one way or another
       this.unsubscribeFromPaylinkWs()
 
+      const grantedPermissions =
+        await this.resolveExtensionPermissionGrant(release)
+      if (grantedPermissions === null) {
+        return
+      }
+
       this.selectedExtension.inProgress = true
       this.showManageExtensionDialog = false
       release.payment_hash =
@@ -137,7 +206,8 @@ window.PageExtensions = {
           archive: release.archive,
           source_repo: release.source_repo,
           payment_hash: release.payment_hash,
-          version: release.version
+          version: release.version,
+          permissions: grantedPermissions
         })
         .then(response => {
           this.selectedExtension.inProgress = false
@@ -146,6 +216,12 @@ window.PageExtensions = {
           )
           extension.isAvailable = true
           extension.isInstalled = true
+          extension.isWasm =
+            response.data.is_wasm === true ||
+            response.data.isWasm === true ||
+            release.extension_type === 'wasm' ||
+            extension.isWasm === true
+          extension.icon = response.data.icon || extension.icon
           extension.installedRelease = release
           this.toggleExtension(extension)
           extension.inProgress = false
@@ -333,8 +409,18 @@ window.PageExtensions = {
       this.selectedExtension = extension
       this.selectedRelease = null
       this.selectedExtensionRepos = null
-      this.manageExtensionTab = 'releases'
+      this.resetManagedExtensionPermissions()
+      this.manageExtensionTab = this.g.user.admin
+        ? 'releases'
+        : 'extension-permissions'
       this.showManageExtensionDialog = true
+      if (this.canManageExtensionPermissions(extension)) {
+        this.loadManagedExtensionPermissions(extension)
+      }
+
+      if (!this.g.user.admin) {
+        return
+      }
 
       try {
         const {data} = await LNbits.api.request(
@@ -372,6 +458,195 @@ window.PageExtensions = {
         extension.inProgress = false
       }
     },
+    canShowManageExtensionButton(extension) {
+      return (
+        this.g.user.admin ||
+        (extension?.isWasm === true && extension?.isInstalled === true)
+      )
+    },
+    canManageExtensionPermissions(extension = this.selectedExtension) {
+      return extension?.isWasm === true && extension?.isInstalled === true
+    },
+    canShowAdminManageTabs() {
+      return this.g.user.admin === true
+    },
+    resetManagedExtensionPermissions() {
+      this.managedExtensionPermissions = {
+        loading: false,
+        extensionPermissions: [],
+        userPermissions: {},
+        savingExtensionPermissions: false,
+        savingKey: '',
+        deletingKey: ''
+      }
+    },
+    async loadManagedExtensionPermissions(extension = this.selectedExtension) {
+      if (!this.canManageExtensionPermissions(extension)) return
+      this.managedExtensionPermissions.loading = true
+      try {
+        const {data} = await LNbits.api.request(
+          'GET',
+          `/api/v1/extension/${extension.id}/permissions`
+        )
+        this.managedExtensionPermissions.extensionPermissions =
+          this.cloneEditableExtensionPermissions(
+            data.extension_permissions || []
+          )
+        this.managedExtensionPermissions.userPermissions =
+          this.cloneUserPermissions(data.user_permissions || {})
+      } catch (error) {
+        console.warn(error)
+        LNbits.utils.notifyApiError(error)
+      } finally {
+        this.managedExtensionPermissions.loading = false
+      }
+    },
+    cloneEditableExtensionPermissions(permissions) {
+      return (permissions || [])
+        .filter(permission => permission && typeof permission === 'object')
+        .map(permission => ({
+          ...permission,
+          policies: Array.isArray(permission.policies)
+            ? permission.policies.map(policy =>
+                this.cloneEditablePermissionPolicy(permission.id, policy)
+              )
+            : permission.policies
+        }))
+    },
+    cloneEditablePermissionPolicy(permissionId, policy) {
+      if (!policy || typeof policy !== 'object' || Array.isArray(policy)) {
+        return policy
+      }
+      const clonedPolicy = Object.entries(policy).reduce(
+        (copy, [key, value]) => ({
+          ...copy,
+          [key]: Array.isArray(value) ? value.slice() : value
+        }),
+        {}
+      )
+      if (permissionId === 'ext.storage.append_public') {
+        clonedPolicy.max_rows_per_source = this.maxRowsPerSourceValue(
+          clonedPolicy.max_rows_per_source,
+          EXTENSION_PERMISSION_DEFAULT_MAX_ROWS_PER_SOURCE
+        )
+      }
+      if (permissionId === 'websocket.publish') {
+        clonedPolicy.max_messages_per_second = Number(
+          clonedPolicy.max_messages_per_second
+        )
+      }
+      return clonedPolicy
+    },
+    maxRowsPerSourceValue(value, fallback) {
+      const number = Number(value)
+      if (!Number.isInteger(number) || number <= 0) return fallback
+      return Math.min(number, EXTENSION_PERMISSION_MAX_ROWS_PER_SOURCE_LIMIT)
+    },
+    extensionPermissionLimitError(permissions) {
+      const appendPermission = (permissions || []).find(
+        permission => permission?.id === 'ext.storage.append_public'
+      )
+      if (!appendPermission || !Array.isArray(appendPermission.policies)) {
+        return this.websocketPublishLimitError(permissions)
+      }
+      for (const policy of appendPermission.policies) {
+        if (!policy || typeof policy !== 'object') continue
+        const number = Number(policy.max_rows_per_source)
+        if (!Number.isInteger(number) || number <= 0) {
+          return 'Max rows per source must be a positive integer.'
+        }
+        if (number > EXTENSION_PERMISSION_MAX_ROWS_PER_SOURCE_LIMIT) {
+          return `Max rows per source cannot exceed ${EXTENSION_PERMISSION_MAX_ROWS_PER_SOURCE_LIMIT}.`
+        }
+      }
+      return this.websocketPublishLimitError(permissions)
+    },
+    websocketPublishLimitError(permissions) {
+      const publishPermission = (permissions || []).find(
+        permission => permission?.id === 'websocket.publish'
+      )
+      if (!publishPermission) return ''
+      if (
+        !Array.isArray(publishPermission.policies) ||
+        publishPermission.policies.length !== 1
+      ) {
+        return 'Websocket publish requires a max messages per second policy.'
+      }
+      const policy = publishPermission.policies[0]
+      if (!policy || typeof policy !== 'object') {
+        return 'Websocket publish requires a max messages per second policy.'
+      }
+      const number = Number(policy.max_messages_per_second)
+      if (!Number.isInteger(number) || number <= 0) {
+        return 'Max messages per second must be a positive integer.'
+      }
+      if (number > EXTENSION_PERMISSION_MAX_MESSAGES_PER_SECOND_LIMIT) {
+        return `Max messages per second cannot exceed ${EXTENSION_PERMISSION_MAX_MESSAGES_PER_SECOND_LIMIT}.`
+      }
+      return ''
+    },
+    validateExtensionPermissionLimits(permissions) {
+      const error = this.extensionPermissionLimitError(permissions)
+      if (!error) return true
+      Quasar.Notify.create({
+        type: 'negative',
+        message: error
+      })
+      return false
+    },
+    extensionPermissionsHaveEditableLimits(permissions) {
+      return (permissions || []).some(
+        permission =>
+          (permission?.id === 'ext.storage.append_public' &&
+            Array.isArray(permission.policies) &&
+            permission.policies.length > 0) ||
+          permission?.id === 'websocket.publish'
+      )
+    },
+    async saveManagedExtensionPermissions() {
+      const permissions = this.managedExtensionPermissions.extensionPermissions
+      if (!this.validateExtensionPermissionLimits(permissions)) return
+
+      this.managedExtensionPermissions.savingExtensionPermissions = true
+      try {
+        const {data} = await LNbits.api.request(
+          'PUT',
+          `/api/v1/extension/${this.selectedExtension.id}/permissions`,
+          this.g.user.wallets[0].adminkey,
+          {
+            permissions: this.cloneEditableExtensionPermissions(permissions)
+          }
+        )
+        this.managedExtensionPermissions.extensionPermissions =
+          this.cloneEditableExtensionPermissions(
+            data.extension_permissions || []
+          )
+        Quasar.Notify.create({
+          type: 'positive',
+          message: 'Permission updated.'
+        })
+      } catch (error) {
+        console.warn(error)
+        LNbits.utils.notifyApiError(error)
+      } finally {
+        this.managedExtensionPermissions.savingExtensionPermissions = false
+      }
+    },
+    cloneUserPermissions(userPermissions) {
+      const permissions = {}
+      Object.entries(userPermissions || {}).forEach(
+        ([permissionId, grants]) => {
+          if (!Array.isArray(grants)) return
+          permissions[permissionId] = grants
+            .filter(grant => grant && typeof grant === 'object')
+            .map(grant => ({
+              ...grant,
+              _original: {...grant}
+            }))
+        }
+      )
+      return permissions
+    },
 
     async showExtensionDetails(extId, detailsLink) {
       if (!detailsLink) {
@@ -400,6 +675,10 @@ window.PageExtensions = {
     },
     async payAndInstall(release) {
       try {
+        if ((await this.resolveExtensionPermissionGrant(release)) === null) {
+          return
+        }
+
         this.selectedExtension.inProgress = true
         this.showManageExtensionDialog = false
         const paymentInfo = await this.requestPaymentForInstall(
@@ -445,6 +724,10 @@ window.PageExtensions = {
       }
     },
     async showInstallQRCode(release) {
+      if ((await this.resolveExtensionPermissionGrant(release)) === null) {
+        return
+      }
+
       this.selectedRelease = release
 
       try {
@@ -607,6 +890,138 @@ window.PageExtensions = {
 
       return ''
     },
+    extensionOpenUrl(extension) {
+      return extension.isWasm ? `/ext/${extension.id}` : `/${extension.id}`
+    },
+    permissionLabelById(permissionId) {
+      const key = `extension_permission_${String(permissionId).replace(
+        /[^A-Za-z0-9]/g,
+        '_'
+      )}`
+      const label = this.$t(key)
+      return label === key ? permissionId : label
+    },
+    walletName(walletId) {
+      const wallet = (this.g.user.wallets || []).find(
+        wallet => wallet.id === walletId
+      )
+      return wallet ? wallet.name || wallet.id : walletId
+    },
+    userPermissionRowCaption(row) {
+      return `${row.walletName} (${row.walletId.slice(0, 8)}...)`
+    },
+    isBackgroundPaymentPermission(row) {
+      return row.permissionId === 'wallet.pay_invoice_background'
+    },
+    userPermissionGrantPayload(row) {
+      return {
+        wallet_id: row.walletId,
+        max_amount: this.positiveInteger(row.grant.max_amount, 0),
+        destination_policy: this.backgroundPaymentDestinationPolicy(
+          row.grant.destination_policy
+        )
+      }
+    },
+    positiveInteger(value, fallback) {
+      const number = Number(value)
+      if (!Number.isFinite(number) || number <= 0) return fallback
+      return Math.floor(number)
+    },
+    backgroundPaymentDestinationPolicy(value) {
+      return value === 'external_allowed'
+        ? 'external_allowed'
+        : 'own_wallets_only'
+    },
+    backgroundPaymentGrantIncreased(row, payload) {
+      const original = row.grant._original || {}
+      const originalAmount = this.positiveInteger(original.max_amount, 0)
+      const originalPolicy = this.backgroundPaymentDestinationPolicy(
+        original.destination_policy
+      )
+      return (
+        payload.max_amount > originalAmount ||
+        (originalPolicy === 'own_wallets_only' &&
+          payload.destination_policy === 'external_allowed')
+      )
+    },
+    confirmUserPermissionIncrease() {
+      return new Promise(resolve => {
+        let resolved = false
+        const finish = value => {
+          if (resolved) return
+          resolved = true
+          resolve(value)
+        }
+        LNbits.utils
+          .confirmDialog(
+            'This increases what the extension can do with this wallet. Continue?'
+          )
+          .onOk(() => finish(true))
+          .onCancel(() => finish(false))
+          .onDismiss(() => finish(false))
+      })
+    },
+    async saveUserPermissionGrant(row) {
+      if (!this.isBackgroundPaymentPermission(row)) return
+      const payload = this.userPermissionGrantPayload(row)
+      if (!payload.max_amount) {
+        Quasar.Notify.create({
+          type: 'negative',
+          message: 'Max payment amount must be greater than zero.'
+        })
+        return
+      }
+      if (
+        this.backgroundPaymentGrantIncreased(row, payload) &&
+        !(await this.confirmUserPermissionIncrease())
+      ) {
+        return
+      }
+
+      this.managedExtensionPermissions.savingKey = row.key
+      try {
+        await LNbits.api.request(
+          'POST',
+          `/api/v1/extension/${this.selectedExtension.id}/permissions/background-payment`,
+          null,
+          payload
+        )
+        Quasar.Notify.create({
+          type: 'positive',
+          message: 'Permission updated.'
+        })
+        await this.loadManagedExtensionPermissions()
+      } catch (error) {
+        console.warn(error)
+        LNbits.utils.notifyApiError(error)
+      } finally {
+        this.managedExtensionPermissions.savingKey = ''
+      }
+    },
+    deleteUserPermissionGrant(row) {
+      LNbits.utils
+        .confirmDialog('Remove this permission grant?')
+        .onOk(async () => {
+          this.managedExtensionPermissions.deletingKey = row.key
+          try {
+            const grantId = encodeURIComponent(row.grantId)
+            await LNbits.api.request(
+              'DELETE',
+              `/api/v1/extension/${this.selectedExtension.id}/permissions/user/${grantId}`
+            )
+            Quasar.Notify.create({
+              type: 'positive',
+              message: 'Permission removed.'
+            })
+            await this.loadManagedExtensionPermissions()
+          } catch (error) {
+            console.warn(error)
+            LNbits.utils.notifyApiError(error)
+          } finally {
+            this.managedExtensionPermissions.deletingKey = ''
+          }
+        })
+    },
     async getGitHubReleaseDetails(release) {
       if (!release.is_github_release || release.loaded) {
         return
@@ -622,6 +1037,8 @@ window.PageExtensions = {
         release.is_version_compatible = data.is_version_compatible
         release.min_lnbits_version = data.min_lnbits_version
         release.warning = data.warning
+        release.extension_type = data.extension_type
+        release.permissions = data.permissions || []
       } catch (error) {
         console.warn(error)
         release.error = error
@@ -629,6 +1046,84 @@ window.PageExtensions = {
       } finally {
         release.inProgress = false
       }
+    },
+    async resolveExtensionPermissionGrant(release) {
+      const permissions = this.extensionPermissionsForRelease(release)
+      if (
+        !this.releaseRequiresPermissionGrant(release) ||
+        !permissions.length
+      ) {
+        return []
+      }
+      if (release.grantedPermissions) {
+        return release.grantedPermissions
+      }
+      const grantedPermissions =
+        await this.confirmExtensionPermissions(permissions)
+      if (!grantedPermissions) {
+        return null
+      }
+      release.grantedPermissions = grantedPermissions
+      return grantedPermissions
+    },
+    extensionPermissionsForRelease(release) {
+      return release.permissions || this.selectedExtension?.permissions || []
+    },
+    releaseRequiresPermissionGrant(release) {
+      return (
+        release.extension_type === 'wasm' ||
+        this.selectedExtension?.isWasm === true
+      )
+    },
+    confirmExtensionPermissions(permissions) {
+      return new Promise(resolve => {
+        this.selectedRelease = null
+        this.permissionGrant = {
+          show: true,
+          permissions: this.cloneEditableExtensionPermissions(permissions),
+          resolve
+        }
+        this.showManageExtensionDialog = true
+      })
+    },
+    grantExtensionPermissions() {
+      if (
+        !this.validateExtensionPermissionLimits(
+          this.permissionGrant.permissions
+        )
+      ) {
+        return
+      }
+      this.resolveExtensionPermissionDialog(
+        this.cloneEditableExtensionPermissions(this.permissionGrant.permissions)
+      )
+    },
+    cancelExtensionPermissions() {
+      this.resolveExtensionPermissionDialog(null)
+    },
+    onManageExtensionDialogHide() {
+      if (this.permissionGrant.show) {
+        this.resolveExtensionPermissionDialog(null)
+      }
+    },
+    resolveExtensionPermissionDialog(grantedPermissions) {
+      const resolve = this.permissionGrant.resolve
+      this.permissionGrant = {
+        show: false,
+        permissions: [],
+        resolve: null
+      }
+      this.showManageExtensionDialog = false
+      if (resolve) {
+        resolve(grantedPermissions)
+      }
+    },
+    permissionGrantHasHighRisk() {
+      return window.LNbitsExtensionPermissions.hasHighRisk({
+        permissions: this.permissionGrant.permissions,
+        extensions: this.extensions,
+        translate: key => this.$t(key)
+      })
     },
     async selectAllUpdatableExtensionss() {
       this.updatableExtensions.forEach(e => (e.selectedForUpdate = true))
@@ -638,6 +1133,13 @@ window.PageExtensions = {
       for (const ext of this.updatableExtensions) {
         try {
           if (!ext.selectedForUpdate) {
+            continue
+          }
+          if (ext.isWasm) {
+            Quasar.Notify.create({
+              type: 'warning',
+              message: `Skipping ${ext.id}; this extension update requires permission approval.`
+            })
             continue
           }
           ext.inProgress = true
@@ -832,6 +1334,9 @@ window.PageExtensions = {
     async fetchAllExtensions() {
       try {
         const {data} = await LNbits.api.request('GET', `/api/v1/extension/all`)
+        data.forEach(ext => {
+          ext.categories?.forEach(category => this.categories.add(category))
+        })
         return data
       } catch (error) {
         console.warn(error)

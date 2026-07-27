@@ -17,6 +17,10 @@ from uuid import uuid4
 from loguru import logger
 from pydantic import BaseModel, BaseSettings, Extra, Field, validator
 
+DEFAULT_WASM_MANIFESTS = [
+    "https://raw.githubusercontent.com/lnbits/lnbits-extensions-wasm/refs/heads/main/extensions.json"
+]
+
 
 def list_parse_fallback(v: str):
     v = v.replace(" ", "")
@@ -60,6 +64,7 @@ class ExtensionsSettings(LNbitsSettings):
     lnbits_user_default_extensions: list[str] = Field(default=[])
     lnbits_extensions_deactivate_all: bool = Field(default=False)
     lnbits_extensions_builder_activate_non_admins: bool = Field(default=False)
+    lnbits_wasm_invocation_retention_days: int = Field(default=7, ge=0)
     lnbits_extensions_reviews_url: str = Field(
         default="https://demo.lnbits.com/paidreviews/api/v1/AdFzLjzuKFLsdk4Bcnff6r",
         description="""
@@ -72,6 +77,7 @@ class ExtensionsSettings(LNbitsSettings):
             "https://raw.githubusercontent.com/lnbits/lnbits-extensions/main/extensions.json"
         ]
     )
+    lnbits_wasm_extensions_manifests: list[str] = Field(default=DEFAULT_WASM_MANIFESTS)
     lnbits_extensions_builder_manifest_url: str = Field(
         default="https://raw.githubusercontent.com/lnbits/extension_builder_stub/refs/heads/main/manifest.json"
     )
@@ -79,6 +85,33 @@ class ExtensionsSettings(LNbitsSettings):
     @property
     def extension_builder_working_dir_path(self) -> Path:
         return Path(settings.lnbits_data_folder, "extensions_builder")
+
+
+class WasmRuntimeLimits(LNbitsSettings):
+    # 0 disables the limit. Installed WASM extensions may override these defaults.
+    wasm_runtime_max_memory_bytes: int = Field(default=64 * 1024 * 1024, ge=0)
+    wasm_runtime_max_execution_ms: int = Field(default=5_000, ge=0)
+    wasm_runtime_max_fuel: int = Field(default=100_000_000, ge=0)
+    wasm_runtime_max_response_bytes: int = Field(default=1024 * 1024, ge=0)
+    wasm_runtime_max_request_bytes: int = Field(default=1024 * 1024, ge=0)
+    wasm_runtime_max_wasm_stack_bytes: int = Field(default=1024 * 1024, ge=0)
+
+    wasm_runtime_max_table_elements: int = Field(default=10_000, ge=0)
+    wasm_runtime_max_instances: int = Field(default=8, ge=0)
+    wasm_runtime_max_tables: int = Field(default=10, ge=0)
+    wasm_runtime_max_memories: int = Field(default=1, ge=0)
+
+    wasm_runtime_max_concurrent_invocations: int = Field(default=16, ge=0)
+    wasm_runtime_max_concurrent_invocations_per_extension: int = Field(default=4, ge=0)
+    wasm_runtime_max_concurrent_invocations_per_user: int = Field(default=4, ge=0)
+
+    wasm_runtime_max_host_calls: int = Field(default=1_000, ge=0)
+    wasm_runtime_max_http_calls: int = Field(default=20, ge=0)
+    wasm_runtime_max_storage_calls: int = Field(default=100, ge=0)
+    wasm_runtime_max_wallet_calls: int = Field(default=20, ge=0)
+
+    wasm_runtime_http_timeout_ms: int = Field(default=5_000, ge=0)
+    wasm_runtime_max_http_response_bytes: int = Field(default=1024 * 1024, ge=0)
 
 
 class ExtensionsInstallSettings(LNbitsSettings):
@@ -300,6 +333,7 @@ class ThemesSettings(LNbitsSettings):
     lnbits_default_card_rounded: bool = Field(default=True)
     lnbits_default_card_gradient: bool = Field(default=True)
     lnbits_default_card_shadow: bool = Field(default=False)
+    lnbits_default_burger_menu_background: bool = Field(default=True)
 
 
 class OpsSettings(LNbitsSettings):
@@ -323,11 +357,6 @@ class AssetSettings(LNbitsSettings):
             "heic",
             "heif",
             "heics",
-            "text/plain",
-            "text/json",
-            "text/xml",
-            "application/json",
-            "application/pdf",
         ]
     )
     lnbits_asset_thumbnail_width: int = Field(default=128, ge=0)
@@ -363,9 +392,11 @@ class FeeSettings(LNbitsSettings):
 
 
 class ExchangeProvidersSettings(LNbitsSettings):
-    lnbits_exchange_rate_cache_seconds: int = Field(default=30, ge=0)
+    lnbits_exchange_rate_cache_seconds: int = Field(default=60, ge=0)
     lnbits_exchange_history_size: int = Field(default=60, ge=0)
     lnbits_exchange_history_refresh_interval_seconds: int = Field(default=300, ge=0)
+    lnbits_price_aggregator_enabled: bool = Field(default=True)
+    lnbits_price_aggregator_url: str = Field(default="https://price.lnbits.com")
 
     lnbits_exchange_rate_providers: list[ExchangeRateProvider] = Field(
         default=[
@@ -498,6 +529,11 @@ class NotificationsSettings(LNbitsSettings):
             and self.lnbits_telegram_notifications_access_token is not None
         )
 
+    def is_email_notifications_configured(self) -> bool:
+        return self.lnbits_email_notifications_enabled and bool(
+            self.lnbits_email_notifications_email
+        )
+
 
 class FakeWalletFundingSource(LNbitsSettings):
     fake_wallet_secret: str = Field(default="ToTheMoon1")
@@ -566,6 +602,7 @@ class LndGrpcFundingSource(LNbitsSettings):
     lnd_grpc_invoice_macaroon: str | None = Field(default=None)
     lnd_grpc_macaroon: str | None = Field(default=None)
     lnd_grpc_macaroon_encrypted: str | None = Field(default=None)
+    lnd_grpc_allow_self_payment: bool = Field(default=False)
 
 
 class LnPayFundingSource(LNbitsSettings):
@@ -591,6 +628,7 @@ class PhoenixdFundingSource(LNbitsSettings):
     phoenixd_api_password: str | None = Field(default=None)
     phoenixd_data_dir: str | None = Field(default=None)
     phoenixd_mnemonic: str | None = Field(default=None)
+    phoenixd_mnemonic_backup_confirmed: bool = Field(default=False)
 
 
 class AlbyFundingSource(LNbitsSettings):
@@ -610,11 +648,17 @@ class SparkFundingSource(LNbitsSettings):
     spark_token: str | None = Field(default=None)
 
 
+class BarkFundingSource(LNbitsSettings):
+    bark_api_endpoint: str | None = Field(default="http://localhost:3000")
+    bark_api_token: str | None = Field(default=None)
+
+
 class SparkL2FundingSource(LNbitsSettings):
     spark_l2_network: str = Field(default="MAINNET")
     spark_l2_external_endpoint: str | None = Field(default="http://localhost:8765")
     spark_l2_external_api_key: str | None = Field(default=None)
     spark_l2_mnemonic: str | None = Field(default=None)
+    spark_l2_mnemonic_backup_confirmed: bool = Field(default=False)
     spark_l2_pay_wait_ms: int = Field(default=4000, ge=0)
     spark_l2_pay_poll_ms: int = Field(default=500, ge=0)
     spark_l2_stream_keepalive_ms: int = Field(default=15000, ge=0)
@@ -652,6 +696,7 @@ class BoltzFundingSource(LNbitsSettings):
     boltz_client_password: str = Field(default="")
     boltz_client_cert: str | None = Field(default=None)
     boltz_mnemonic: str | None = Field(default=None)
+    boltz_mnemonic_backup_confirmed: bool = Field(default=False)
 
 
 class StrikeFundingSource(LNbitsSettings):
@@ -703,6 +748,35 @@ class PayPalFiatProvider(LNbitsSettings):
     paypal_limits: FiatProviderLimits = Field(default_factory=FiatProviderLimits)
 
 
+class SquareFiatProvider(LNbitsSettings):
+    square_enabled: bool = Field(default=False)
+    square_api_endpoint: str = Field(default="https://connect.squareup.com")
+    square_access_token: str | None = Field(default=None)
+    square_location_id: str | None = Field(default=None)
+    square_api_version: str = Field(default="2026-01-22")
+    square_payment_success_url: str = Field(default="https://lnbits.com")
+    square_payment_webhook_url: str = Field(
+        default="https://your-lnbits-domain-here.com/api/v1/callback/square"
+    )
+    square_webhook_signature_key: str | None = Field(default=None)
+
+    square_limits: FiatProviderLimits = Field(default_factory=FiatProviderLimits)
+
+
+class RevolutFiatProvider(LNbitsSettings):
+    revolut_enabled: bool = Field(default=False)
+    revolut_api_endpoint: str = Field(default="https://merchant.revolut.com")
+    revolut_api_secret_key: str | None = Field(default=None)
+    revolut_api_version: str = Field(default="2026-04-20")
+    revolut_payment_success_url: str = Field(default="https://lnbits.com")
+    revolut_payment_webhook_url: str = Field(
+        default="https://your-lnbits-domain-here.com/api/v1/callback/revolut"
+    )
+    revolut_webhook_signing_secret: str | None = Field(default=None)
+
+    revolut_limits: FiatProviderLimits = Field(default_factory=FiatProviderLimits)
+
+
 class LightningSettings(LNbitsSettings):
     lightning_invoice_expiry: int = Field(default=3600, gt=0)
 
@@ -725,6 +799,7 @@ class FundingSourcesSettings(
     PhoenixdFundingSource,
     OpenNodeFundingSource,
     SparkFundingSource,
+    BarkFundingSource,
     SparkL2FundingSource,
     LnTipsFundingSource,
     NWCFundingSource,
@@ -740,7 +815,12 @@ class FundingSourcesSettings(
     funding_source_max_retries: int = Field(default=4, ge=0)
 
 
-class FiatProvidersSettings(StripeFiatProvider, PayPalFiatProvider):
+class FiatProvidersSettings(
+    StripeFiatProvider,
+    PayPalFiatProvider,
+    SquareFiatProvider,
+    RevolutFiatProvider,
+):
     def is_fiat_provider_enabled(self, provider: str | None) -> bool:
         """
         Checks if a specific fiat provider is enabled.
@@ -751,6 +831,10 @@ class FiatProvidersSettings(StripeFiatProvider, PayPalFiatProvider):
             return self.stripe_enabled
         if provider == "paypal":
             return self.paypal_enabled
+        if provider == "square":
+            return self.square_enabled
+        if provider == "revolut":
+            return self.revolut_enabled
         return False
 
     def get_fiat_providers_for_user(self, user_id: str) -> list[str]:
@@ -769,6 +853,18 @@ class FiatProvidersSettings(StripeFiatProvider, PayPalFiatProvider):
             or user_id in self.paypal_limits.allowed_users
         ):
             allowed_providers.append("paypal")
+
+        if self.square_enabled and (
+            not self.square_limits.allowed_users
+            or user_id in self.square_limits.allowed_users
+        ):
+            allowed_providers.append("square")
+
+        if self.revolut_enabled and (
+            not self.revolut_limits.allowed_users
+            or user_id in self.revolut_limits.allowed_users
+        ):
+            allowed_providers.append("revolut")
 
         return allowed_providers
 
@@ -955,6 +1051,7 @@ class AuditSettings(LNbitsSettings):
 class EditableSettings(
     UsersSettings,
     ExtensionsSettings,
+    WasmRuntimeLimits,
     ThemesSettings,
     OpsSettings,
     AssetSettings,
@@ -980,6 +1077,8 @@ class EditableSettings(
         "lnbits_allowed_users",
         "lnbits_theme_options",
         "lnbits_admin_extensions",
+        "lnbits_extensions_manifests",
+        "lnbits_wasm_extensions_manifests",
         pre=True,
     )
     @classmethod
@@ -1001,7 +1100,7 @@ class EditableSettings(
 
 
 class UpdateSettings(EditableSettings):
-    class Config:
+    class Config(EditableSettings.Config):
         extra = Extra.forbid
 
 
@@ -1009,6 +1108,7 @@ class EnvSettings(LNbitsSettings):
     debug: bool = Field(default=False)
     debug_database: bool = Field(default=False)
     bundle_assets: bool = Field(default=True)
+    profiler: bool = Field(default=False)
     # When enabled, auth cookies require HTTPS and SSO will reject insecure HTTP.
     auth_https_only: bool = Field(default=True)
     host: str = Field(default="127.0.0.1")
@@ -1025,11 +1125,12 @@ class EnvSettings(LNbitsSettings):
     log_rotation: str = Field(default="100 MB")
     log_retention: str = Field(default="3 months")
     first_install_token: str | None = Field(default=None)
-
     cleanup_wallets_days: int = Field(default=90, ge=0)
     funding_source_max_retries: int = Field(default=4, ge=0)
     lnbits_max_users: int = Field(default=0, ge=0)
     lnbits_max_extensions: int = Field(default=0, ge=0)
+    task_heart_beat_verbose: bool = Field(default=False)
+    task_heart_beat_interval: int = Field(default=30)
 
     @property
     def has_default_extension_path(self) -> bool:
@@ -1060,12 +1161,39 @@ class EnvSettings(LNbitsSettings):
 class PersistenceSettings(LNbitsSettings):
     lnbits_data_folder: str = Field(default="./data")
     lnbits_database_url: str | None = Field(default=None)
+    lnbits_wasm_extensions_path: str = Field(default="")
+
+    @validator("lnbits_wasm_extensions_path", pre=True, always=True)
+    @classmethod
+    def validate_wasm_extensions_path(cls, value, values) -> str:
+        if value:
+            return str(value)
+        return str(Path(values.get("lnbits_data_folder", "./data"), "wasm_extensions"))
+
+    @property
+    def wasm_extensions_dir(self) -> Path:
+        wasm_dir = Path(self.lnbits_wasm_extensions_path)
+        importable_dirs = (
+            Path(getattr(self, "lnbits_extensions_path", "lnbits"), "extensions"),
+            Path(self.lnbits_data_folder, "upgrades"),
+        )
+        resolved_wasm_dir = wasm_dir.resolve()
+        if any(
+            resolved_dir == resolved_wasm_dir
+            or resolved_dir in resolved_wasm_dir.parents
+            for resolved_dir in (path.resolve() for path in importable_dirs)
+        ):
+            raise ValueError(
+                "WASM extensions path must be outside importable extension directories."
+            )
+        return wasm_dir
 
 
 class SuperUserSettings(LNbitsSettings):
     lnbits_allowed_funding_sources: list[str] = Field(
         default=[
             "AlbyWallet",
+            "BarkWallet",
             "BoltzWallet",
             "BlinkWallet",
             "BreezSdkWallet",
@@ -1151,11 +1279,11 @@ class ReadOnlySettings(
 
 
 class Settings(EditableSettings, ReadOnlySettings, TransientSettings, BaseSettings):
-    class Config:
+    class Config(EditableSettings.Config, BaseSettings.Config):  # type: ignore[misc]
         env_file = ".env"
         env_file_encoding = "utf-8"
         case_sensitive = False
-        json_loads = list_parse_fallback
+        json_loads = list_parse_fallback  # type: ignore[assignment]
 
     def is_user_allowed(self, user_id: str) -> bool:
         return (
@@ -1235,12 +1363,14 @@ class PublicSettings(BaseModel):
     default_card_rounded: bool = Field(alias="defaultCardRounded")
     default_card_gradient: bool = Field(alias="defaultCardGradient")
     default_card_shadow: bool = Field(alias="defaultCardShadow")
+    default_burger_menu_background: bool = Field(alias="defaultBurgerMenuBackground")
     denomination: str | None = Field()
     extensions: list[str] = Field()
     allowed_currencies: list[str] = Field(alias="allowedCurrencies")
     extensions_reviews_url: str = Field(alias="extensionsReviewsUrl")
     ext_builder: bool = Field(alias="extBuilder")
     nostr_configured: bool = Field(alias="nostrConfigured")
+    email_configured: bool = Field(alias="emailConfigured")
     telegram_configured: bool = Field(alias="telegramConfigured")
     wallet_featured_button_label: str | None = Field(alias="walletFeaturedButtonLabel")
     wallet_featured_button_url: str | None = Field(alias="walletFeaturedButtonUrl")
@@ -1298,12 +1428,14 @@ class PublicSettings(BaseModel):
             defaultCardRounded=settings.lnbits_default_card_rounded,
             defaultCardGradient=settings.lnbits_default_card_gradient,
             defaultCardShadow=settings.lnbits_default_card_shadow,
+            defaultBurgerMenuBackground=settings.lnbits_default_burger_menu_background,
             denomination=settings.lnbits_denomination,
             extensions=list(settings.lnbits_installed_extensions_ids),
             allowedCurrencies=settings.lnbits_allowed_currencies,
             extensionsReviewsUrl=settings.lnbits_extensions_reviews_url,
             extBuilder=settings.lnbits_extensions_builder_activate_non_admins,
             nostrConfigured=settings.is_nostr_notifications_configured(),
+            emailConfigured=settings.is_email_notifications_configured(),
             telegramConfigured=settings.is_telegram_notifications_configured(),
             walletFeaturedButtonLabel=settings.lnbits_wallet_featured_button_label,
             walletFeaturedButtonUrl=settings.lnbits_wallet_featured_button_url,

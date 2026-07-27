@@ -603,6 +603,30 @@
 
                   <div class="row q-mb-md">
                     <div class="col-4">
+                      <span v-text="$t('burger_menu_background')"></span>
+                    </div>
+                    <div class="col-8">
+                      <q-toggle
+                        dense
+                        flat
+                        round
+                        icon="menu_open"
+                        v-model="g.burgerMenuChoice"
+                        @update:model-value="
+                          siteCustomisationChanged({burgerMenuChoice: $event})
+                        "
+                      >
+                        <q-tooltip
+                          ><span
+                            v-text="$t('toggle_burger_menu_background')"
+                          ></span
+                        ></q-tooltip>
+                      </q-toggle>
+                    </div>
+                  </div>
+
+                  <div class="row q-mb-md">
+                    <div class="col-4">
                       <span v-text="$t('toggle_darkmode')"></span>
                     </div>
                     <div class="col-8">
@@ -864,6 +888,17 @@
                             class="float-right"
                           ></q-btn>
                         </div>
+                      </div>
+                      <div
+                        v-if="selectedApiToken && selectedApiToken.expires_at"
+                        class="row items-center q-mb-md q-gutter-sm"
+                      >
+                        <span v-text="expiryAt"></span>
+                        <span v-text="$t('status') + ':'"></span>
+                        <q-badge
+                          :color="tokenStatus.badgeColor"
+                          :label="tokenStatus.status"
+                        ></q-badge>
                       </div>
                       <div v-if="apiAcl.apiToken" class="row q-mb-md">
                         <div class="col-12">
