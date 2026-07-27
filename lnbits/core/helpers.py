@@ -16,7 +16,10 @@ from lnbits.core.db import db as core_db
 from lnbits.core.models import DbVersion
 from lnbits.core.models.extensions import InstallableExtension
 from lnbits.core.wasm_ext.storage.crud import migrate_wasm_extension_database
-from lnbits.core.wasm_ext.wasm.loader import is_wasm_extension_id
+from lnbits.core.wasm_ext.wasm.loader import (
+    is_wasm_extension_dir,
+    is_wasm_extension_id,
+)
 from lnbits.db import COCKROACH, POSTGRES, SQLITE, Connection
 from lnbits.settings import settings
 
@@ -27,8 +30,12 @@ async def migrate_extension_database(
     if is_wasm_extension_id(ext.id):
         await migrate_wasm_extension_database(ext, current_version)
         return
-    else:
-        await migrate_py_extension_database(ext, current_version)
+    if is_wasm_extension_dir(ext.py_ext_dir):
+        logger.warning(
+            f"Ignoring WASM extension '{ext.id}' in the regular extensions directory."
+        )
+        return
+    await migrate_py_extension_database(ext, current_version)
 
 
 async def migrate_py_extension_database(

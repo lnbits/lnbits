@@ -8,7 +8,11 @@ from lnbits.core.models.extensions import ExtensionPermission
 from lnbits.core.models.misc import WasmExtensionRegistry
 from lnbits.core.wasm_ext.api.permissions import validate_wasm_extension_permissions
 from lnbits.core.wasm_ext.wasm.config import parse_wasm_extension_config
-from lnbits.core.wasm_ext.wasm.loader import WasmExtension, load_wasm_extension
+from lnbits.core.wasm_ext.wasm.loader import (
+    WasmExtension,
+    is_wasm_extension_id,
+    load_wasm_extension,
+)
 from lnbits.settings import Settings
 from tests.helpers import make_installable_extension
 
@@ -42,6 +46,25 @@ def test_load_wasm_extension_uses_canonical_extension_id(
     extension = load_wasm_extension(ext_id)
 
     assert extension.id == ext_id
+
+
+def test_wasm_extension_loader_ignores_regular_extensions_directory(
+    tmp_path: Path, settings: Settings
+):
+    ext_id = "demoext"
+    settings.lnbits_extensions_path = str(tmp_path / "code")
+    settings.lnbits_wasm_extensions_path = str(tmp_path / "wasm_extensions")
+    ext_dir = Path(settings.lnbits_extensions_path, "extensions", ext_id)
+    ext_dir.mkdir(parents=True)
+    (ext_dir / "extension.wasm").write_bytes(b"\0asm")
+    (ext_dir / "config.json").write_text(
+        json.dumps(_wasm_config(ext_id)),
+        encoding="utf-8",
+    )
+
+    assert is_wasm_extension_id(ext_id) is False
+    with pytest.raises(FileNotFoundError, match="Missing WASM extension config"):
+        load_wasm_extension(ext_id)
 
 
 def test_wasm_extension_config_ignores_unknown_fields():
@@ -185,8 +208,8 @@ def _write_wasm_extension(
     *,
     config_id: str | None,
 ) -> None:
-    settings.lnbits_extensions_path = str(tmp_path)
-    ext_dir = tmp_path / "extensions" / ext_id
+    settings.lnbits_wasm_extensions_path = str(tmp_path / "wasm_extensions")
+    ext_dir = settings.wasm_extensions_dir / ext_id
     ext_dir.mkdir(parents=True)
     (ext_dir / "extension.wasm").write_bytes(b"\0asm")
     config = {
