@@ -23,6 +23,7 @@ from lnbits.core.wasm_ext.routes.assets import (
     _reject_html_like_wasm_static_asset,
     _wasm_extension_core_asset_response,
 )
+from lnbits.core.wasm_ext.routes.register import _format_wasm_extension_size
 from lnbits.core.wasm_ext.routes.security import (
     consume_wasm_extension_frame_token,
     wasm_extension_frame_csp,
@@ -36,6 +37,18 @@ from lnbits.core.wasm_ext.routes.ui import (
 )
 from lnbits.core.wasm_ext.wasm.config import parse_wasm_extension_config
 from lnbits.core.wasm_ext.wasm.loader import WasmExtension
+
+
+@pytest.mark.parametrize(
+    ("size_bytes", "formatted_size"),
+    [
+        (128_235, "128.24 KB"),
+        (1_000_000, "1.00 MB"),
+        (12_823_598, "12.82 MB"),
+    ],
+)
+def test_format_wasm_extension_size(size_bytes: int, formatted_size: str):
+    assert _format_wasm_extension_size(size_bytes) == formatted_size
 
 
 @pytest.mark.anyio
