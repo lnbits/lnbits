@@ -104,6 +104,31 @@ def test_extension_install_ui_warns_only_for_python_releases():
     assert '<q-icon name="info"' in extensions_template
 
 
+def test_extension_details_render_in_isolated_frame():
+    extensions_page = (ROOT / "lnbits/static/js/pages/extensions.js").read_text(
+        encoding="utf-8"
+    )
+    extensions_template = (ROOT / "lnbits/templates/pages/extensions.vue").read_text(
+        encoding="utf-8"
+    )
+
+    assert 'v-html="selectedExtensionDetails.description_md"' not in extensions_template
+    assert ':srcdoc="selectedExtensionDetailsDescription"' in extensions_template
+    assert (
+        'sandbox="allow-popups allow-popups-to-escape-sandbox"' in extensions_template
+    )
+    assert 'referrerpolicy="no-referrer"' in extensions_template
+
+    assert "\"default-src 'none'\"" in extensions_page
+    assert "\"script-src 'none'\"" in extensions_page
+    assert "\"script-src-attr 'none'\"" in extensions_page
+    assert "attributeName === 'xlink:href'" in extensions_page
+    assert "['http:', 'https:'].includes(url.protocol)" in extensions_page
+    assert "link.setAttribute('target', '_blank')" in extensions_page
+    assert "link.setAttribute('rel', 'noopener noreferrer')" in extensions_page
+    assert "title: 'Open external link?'" not in extensions_page
+
+
 def test_wasm_admin_frontend_calls_runtime_limit_and_invocation_endpoints():
     runtime = (
         ROOT / "lnbits/static/js/components/admin/lnbits-admin-wasm-runtime.js"
