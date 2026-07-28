@@ -3,7 +3,6 @@ import json
 import re
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
-from random import SystemRandom
 from typing import Any
 from urllib import request
 from urllib.parse import urlparse
@@ -14,6 +13,7 @@ from fastapi.routing import APIRoute
 from loguru import logger
 from packaging import version
 from pydantic.schema import field_schema
+from random_username.generate import generate_username  # type: ignore[import-untyped]
 from starlette.templating import Jinja2Templates
 
 from lnbits.settings import settings
@@ -22,69 +22,9 @@ from lnbits.utils.exchange_rates import currencies
 
 from .db import FilterModel
 
-_RANDOM = SystemRandom()
-
-_PARTICIPLES = [
-    "asking",
-    "blazing",
-    "bouncing",
-    "charging",
-    "climbing",
-    "dancing",
-    "drifting",
-    "flying",
-    "glowing",
-    "hopping",
-    "jumping",
-    "laughing",
-    "leaping",
-    "racing",
-    "rising",
-    "running",
-    "shining",
-    "singing",
-    "skipping",
-    "sparking",
-    "spinning",
-    "sprinting",
-    "twirling",
-    "wandering",
-    "zipping",
-]
-
-_NOUNS = [
-    "anchor",
-    "beacon",
-    "bolt",
-    "comet",
-    "ember",
-    "falcon",
-    "flash",
-    "garden",
-    "harbor",
-    "lantern",
-    "market",
-    "meadow",
-    "meteor",
-    "orbit",
-    "phoenix",
-    "rabbit",
-    "rocket",
-    "signal",
-    "spark",
-    "summit",
-    "thunder",
-    "wallet",
-    "wave",
-    "zephyr",
-]
-
 
 def _generate_local_part() -> str:
-    participle = _RANDOM.choice(_PARTICIPLES)
-    noun = _RANDOM.choice(_NOUNS)
-    suffix = _RANDOM.randint(0, 999)
-    return f"{participle}.{noun}.{suffix:03d}"
+    return generate_username(1)[0].lower()
 
 
 def get_db_vendor_name():

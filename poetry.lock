@@ -3955,6 +3955,18 @@ files = [
 ]
 
 [[package]]
+name = "random-username"
+version = "1.0.2"
+description = "Randomly generate compelling usernames."
+optional = false
+python-versions = "*"
+groups = ["main"]
+files = [
+    {file = "random-username-1.0.2.tar.gz", hash = "sha256:5fdc0604b5d1bdfe4acf4cd7491a9de1caf41bbdd890f646b434e09ae2a1b7ce"},
+    {file = "random_username-1.0.2-py3-none-any.whl", hash = "sha256:2536feb63fecde7e01ede4a541aadb6f0b58794a7ab327ca5369d2a4b7664c06"},
+]
+
+[[package]]
 name = "referencing"
 version = "0.36.2"
 description = "JSON Referencing + Python"
@@ -5184,4 +5196,4 @@ migration = ["psycopg2-binary"]
 [metadata]
 lock-version = "2.1"
 python-versions = ">=3.10,<3.13"
-content-hash = "b167368cde275d9b12ea2c352a9ca2558da1aa9476ada0795cfd4f45d2ca72bc"
+content-hash = "e41fd327115a1614f2e7b5dae7d7077e30f1cb723e1880a88132ec38df2b4b1a"

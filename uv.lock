@@ -1324,6 +1324,7 @@ dependencies = [
     { name = "python-dotenv" },
     { name = "python-multipart" },
     { name = "pywebpush" },
+    { name = "random-username" },
     { name = "shortuuid" },
     { name = "slowapi" },
     { name = "sqlalchemy" },
@@ -1414,6 +1415,7 @@ requires-dist = [
     { name = "python-dotenv", specifier = "~=1.2.1" },
     { name = "python-multipart", specifier = "~=0.0.22" },
     { name = "pywebpush", specifier = "~=2.2.0" },
+    { name = "random-username", specifier = "~=1.0.2" },
     { name = "shortuuid", specifier = "~=1.0.13" },
     { name = "slowapi", specifier = "~=0.1.9" },
     { name = "sqlalchemy", specifier = "~=1.4.54" },
@@ -2390,6 +2392,15 @@ wheels = [
     { url = "https://files.pythonhosted.org/packages/74/93/7baea19427dcfbe1e5a372d81473250b379f04b1bd3c4c5ff825e2327202/pyyaml-6.0.3-cp312-cp312-win32.whl", hash = "sha256:96b533f0e99f6579b3d4d4995707cf36df9100d67e0c8303a0c55b27b5f99bc5", size = 137658, upload-time = "2025-09-25T21:32:20.209Z" },
     { url = "https://files.pythonhosted.org/packages/86/bf/899e81e4cce32febab4fb42bb97dcdf66bc135272882d1987881a4b519e9/pyyaml-6.0.3-cp312-cp312-win_amd64.whl", hash = "sha256:5fcd34e47f6e0b794d17de1b4ff496c00986e1c83f7ab2fb8fcfe9616ff7477b", size = 154003, upload-time = "2025-09-25T21:32:21.167Z" },
     { url = "https://files.pythonhosted.org/packages/1a/08/67bd04656199bbb51dbed1439b7f27601dfb576fb864099c7ef0c3e55531/pyyaml-6.0.3-cp312-cp312-win_arm64.whl", hash = "sha256:64386e5e707d03a7e172c0701abfb7e10f0fb753ee1d773128192742712a98fd", size = 140344, upload-time = "2025-09-25T21:32:22.617Z" },
+]
+
+[[package]]
+name = "random-username"
+version = "1.0.2"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/be/84/7004e0038707827e7ebe91a09e0f46483e36134de3b20bc0d5cf864a4caa/random-username-1.0.2.tar.gz", hash = "sha256:5fdc0604b5d1bdfe4acf4cd7491a9de1caf41bbdd890f646b434e09ae2a1b7ce", size = 3805, upload-time = "2019-01-11T22:57:45.038Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/92/d8/0f96b9bdea0683884b0ff2d8663b2580e2bad4418848540d1a12e1fd1d7b/random_username-1.0.2-py3-none-any.whl", hash = "sha256:2536feb63fecde7e01ede4a541aadb6f0b58794a7ab327ca5369d2a4b7664c06", size = 6673, upload-time = "2019-01-11T22:57:43.656Z" },
 ]
 
 [[package]]
