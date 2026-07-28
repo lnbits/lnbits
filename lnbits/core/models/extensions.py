@@ -124,7 +124,7 @@ class ExtensionConfig(BaseModel):
     @classmethod
     async def fetch_release_config(cls, url: str) -> ExtensionConfig:
         error_msg = "Cannot fetch extension release config"
-        config = await github_api_get(url, error_msg)
+        config = await extension_metadata_get(url, error_msg)
         return ExtensionConfig.parse_obj(config)
 
     @classmethod
@@ -134,7 +134,9 @@ class ExtensionConfig(BaseModel):
         config_url = (
             f"https://raw.githubusercontent.com/{org}/{repo}/{tag_name}/config.json"
         )
-        return await cls.fetch_release_config(config_url)
+        error_msg = "Cannot fetch extension release config"
+        config = await github_api_get(config_url, error_msg)
+        return ExtensionConfig.parse_obj(config)
 
 
 class ReleasePaymentInfo(BaseModel):
@@ -1129,7 +1131,7 @@ class InstallableExtension(BaseModel):
     @classmethod
     async def fetch_manifest(cls, url) -> Manifest:
         error_msg = "Cannot fetch extensions manifest"
-        manifest = await github_api_get(url, error_msg)
+        manifest = await extension_metadata_get(url, error_msg)
         return Manifest.parse_obj(manifest)
 
 
@@ -1174,12 +1176,36 @@ class ExtensionReview(BaseModel):
     rating: int = Field(default=0, ge=0, le=1000)
     comment: str | None = Field(default=None)
 
+async def extension_metadata_get(url: str, error_msg: str | None) -> Any:
+    try:
+        parsed_url = httpx.URL(url)
+    except Exception as exc:
+        raise ValueError("Invalid extension metadata URL") from exc
+    if parsed_url.userinfo:
+        raise ValueError("Extension metadata URLs must not contain credentials")
+    if _is_github_token_url(url):
+        return await github_api_get(url, error_msg)
+    return await unauthenticated_json_get(url, error_msg)
+
+
+async def unauthenticated_json_get(url: str, error_msg: str | None) -> Any:
+    headers = {"User-Agent": settings.user_agent}
+    async with httpx.AsyncClient(headers=headers, follow_redirects=False) as client:
+        resp = await client.get(url)
+        if resp.status_code != 200:
+            logger.warning(f"{error_msg} ({url}): {resp.text}")
+        resp.raise_for_status()
+        return resp.json()
+
 
 async def github_api_get(url: str, error_msg: str | None) -> Any:
+    if not _is_github_token_url(url):
+        raise ValueError("Refusing GitHub authentication for an untrusted origin")
+
     headers = {"User-Agent": settings.user_agent}
     if settings.lnbits_ext_github_token:
         headers["Authorization"] = f"Bearer {settings.lnbits_ext_github_token}"
-    async with httpx.AsyncClient(headers=headers) as client:
+    async with httpx.AsyncClient(headers=headers, follow_redirects=False) as client:
         resp = await client.get(url)
         if resp.status_code != 200:
             logger.warning(f"{error_msg} ({url}): {resp.text}")
@@ -1239,3 +1265,19 @@ def _extension_manifest_sources(
     for url, manifest_type in sources:
         unique_sources.setdefault(url, manifest_type)
     return list(unique_sources.items())
+
+
+_GITHUB_TOKEN_HOSTS = frozenset({"api.github.com", "raw.githubusercontent.com"})
+
+
+def _is_github_token_url(url: str) -> bool:
+    try:
+        parsed_url = httpx.URL(url)
+    except Exception:
+        return False
+    return (
+        parsed_url.scheme == "https"
+        and parsed_url.host in _GITHUB_TOKEN_HOSTS
+        and parsed_url.port is None
+        and not parsed_url.userinfo
+    )
