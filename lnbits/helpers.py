@@ -3,6 +3,7 @@ import json
 import re
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
+from random import SystemRandom
 from typing import Any
 from urllib import request
 from urllib.parse import urlparse
@@ -20,6 +21,70 @@ from lnbits.utils.crypto import AESCipher
 from lnbits.utils.exchange_rates import currencies
 
 from .db import FilterModel
+
+_RANDOM = SystemRandom()
+
+_PARTICIPLES = [
+    "asking",
+    "blazing",
+    "bouncing",
+    "charging",
+    "climbing",
+    "dancing",
+    "drifting",
+    "flying",
+    "glowing",
+    "hopping",
+    "jumping",
+    "laughing",
+    "leaping",
+    "racing",
+    "rising",
+    "running",
+    "shining",
+    "singing",
+    "skipping",
+    "sparking",
+    "spinning",
+    "sprinting",
+    "twirling",
+    "wandering",
+    "zipping",
+]
+
+_NOUNS = [
+    "anchor",
+    "beacon",
+    "bolt",
+    "comet",
+    "ember",
+    "falcon",
+    "flash",
+    "garden",
+    "harbor",
+    "lantern",
+    "market",
+    "meadow",
+    "meteor",
+    "orbit",
+    "phoenix",
+    "rabbit",
+    "rocket",
+    "signal",
+    "spark",
+    "summit",
+    "thunder",
+    "wallet",
+    "wave",
+    "zephyr",
+]
+
+
+def _generate_local_part() -> str:
+    participle = _RANDOM.choice(_PARTICIPLES)
+    noun = _RANDOM.choice(_NOUNS)
+    suffix = _RANDOM.randint(0, 999)
+    return f"{participle}.{noun}.{suffix:03d}"
 
 
 def get_db_vendor_name():

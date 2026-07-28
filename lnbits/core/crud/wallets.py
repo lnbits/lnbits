@@ -1,5 +1,4 @@
 from datetime import datetime, timezone
-from random import SystemRandom
 from time import time
 from typing import Any
 from uuid import uuid4
@@ -9,68 +8,13 @@ from sqlalchemy.exc import OperationalError
 from lnbits.core.db import db
 from lnbits.core.models.wallets import BaseWallet, WalletsFilters, WalletType
 from lnbits.db import Connection, Database, Filters, Page
+from lnbits.helpers import _generate_local_part
 from lnbits.settings import settings
 from lnbits.utils.cache import cache
 
 from ..models import Wallet
 
-_RANDOM = SystemRandom()
 _LEGACY_LNURLP_DB = Database("ext_lnurlp")
-
-_PARTICIPLES = [
-    "asking",
-    "blazing",
-    "bouncing",
-    "charging",
-    "climbing",
-    "dancing",
-    "drifting",
-    "flying",
-    "glowing",
-    "hopping",
-    "jumping",
-    "laughing",
-    "leaping",
-    "racing",
-    "rising",
-    "running",
-    "shining",
-    "singing",
-    "skipping",
-    "sparking",
-    "spinning",
-    "sprinting",
-    "twirling",
-    "wandering",
-    "zipping",
-]
-
-_NOUNS = [
-    "anchor",
-    "beacon",
-    "bolt",
-    "comet",
-    "ember",
-    "falcon",
-    "flash",
-    "garden",
-    "harbor",
-    "lantern",
-    "market",
-    "meadow",
-    "meteor",
-    "orbit",
-    "phoenix",
-    "rabbit",
-    "rocket",
-    "signal",
-    "spark",
-    "summit",
-    "thunder",
-    "wallet",
-    "wave",
-    "zephyr",
-]
 
 
 async def create_wallet(
@@ -300,13 +244,6 @@ async def wallet_lightning_address_exists(
         {"lightning_address": local_part},
     )
     return bool(row)
-
-
-def _generate_local_part() -> str:
-    participle = _RANDOM.choice(_PARTICIPLES)
-    noun = _RANDOM.choice(_NOUNS)
-    suffix = _RANDOM.randint(0, 999)
-    return f"{participle}.{noun}.{suffix:03d}"
 
 
 async def legacy_lnurlp_address_exists(local_part: str) -> bool:
