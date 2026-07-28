@@ -43,8 +43,36 @@ from lnbits.wallets.base import (
     InvoiceResponse,
     PaymentFailedStatus,
     PaymentPendingStatus,
+    PaymentResponse,
+    PaymentStatus,
     PaymentSuccessStatus,
 )
+
+
+@pytest.mark.parametrize(
+    ("value", "expected"),
+    [
+        (True, (True, False, False)),
+        (None, (False, True, False)),
+        (False, (False, False, True)),
+    ],
+)
+def test_payment_response_states_are_mutually_exclusive(value, expected):
+    response = PaymentResponse(ok=value)
+    assert (response.success, response.pending, response.failed) == expected
+
+
+@pytest.mark.parametrize(
+    ("value", "expected"),
+    [
+        (True, (True, False, False)),
+        (None, (False, True, False)),
+        (False, (False, True, True)),
+    ],
+)
+def test_payment_status_properties(value, expected):
+    status = PaymentStatus(paid=value)
+    assert (status.success, status.pending, status.failed) == expected
 
 
 @pytest.mark.anyio

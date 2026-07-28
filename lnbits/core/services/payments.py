@@ -848,8 +848,13 @@ async def _pay_external_invoice(
         )
         return payment
 
+    # IMPORTANT PAYMENT RULES!
+    # True -> success
+    # False-> failed
+    # None -> pending (any additional ambigous payments MUST be set as pending)
+
     # payment failed
-    if payment_response.ok is False:
+    if payment_response.failed:
         payment.status = PaymentState.FAILED
         await update_payment(payment, conn=conn)
         message = payment_response.error_message or "without an error message."
@@ -858,18 +863,30 @@ async def _pay_external_invoice(
     # payment successful
     elif payment_response.success:
         payment = await update_payment_success_status(
-            payment, payment_response, conn=conn
+            payment,
+            payment_response,
+            conn=conn,
+            new_checking_id=payment_response.checking_id,
         )
 
         await _send_payment_notification_in_background(wallet.id, payment, conn=conn)
-        logger.success(f"payment successful {payment_response.checking_id}")
-        payment.checking_id = payment_response.checking_id
+        logger.success(f"payment successful {payment.checking_id}")
 
-    # payment ambiguous
+    # payment pending
     else:
-        payment_response.checking_id = checking_id
-        payment.status = PaymentState.PENDING
-        await update_payment(payment, conn=conn)
+        if (
+            payment_response.checking_id
+            and payment_response.checking_id != payment.checking_id
+        ):
+            payment = await update_payment(
+                payment,
+                new_checking_id=payment_response.checking_id,
+                conn=conn,
+            )
+        logger.warning(
+            f"payment status unknown {payment.checking_id}: "
+            f"{payment_response.error_message or 'no error message'}"
+        )
 
     return payment
 
@@ -878,13 +895,16 @@ async def update_payment_success_status(
     payment: Payment,
     status: PaymentStatus,
     conn: Connection | None = None,
+    new_checking_id: str | None = None,
 ) -> Payment:
     if status.success:
         service_fee_msat = service_fee(payment.amount, internal=False)
         payment.status = PaymentState.SUCCESS
         payment.fee = -(abs(status.fee_msat or 0) + abs(service_fee_msat))
         payment.preimage = payment.preimage or status.preimage
-        payment = await update_payment(payment, conn=conn)
+        payment = await update_payment(
+            payment, new_checking_id=new_checking_id, conn=conn
+        )
     return payment
 
 
