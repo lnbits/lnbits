@@ -1,7 +1,5 @@
 import json
 import re
-from random import SystemRandom
-from typing import Any
 
 from fastapi import Query, Request
 from lnurl import (
@@ -14,118 +12,22 @@ from lnurl import (
     MilliSatoshi,
 )
 from pydantic import parse_obj_as
-from sqlalchemy.exc import OperationalError
 
 from lnbits.core.crud.wallets import (
+    generate_lightning_address_local_part,
     get_wallet_by_lightning_address,
-    wallet_lightning_address_exists,
+    legacy_lnurlp_address_exists,
     wallet_lightning_address_exists_for_other_wallet,
 )
 from lnbits.core.db import db
 from lnbits.core.models.wallets import Wallet
-from lnbits.db import Connection, Database
+from lnbits.db import Connection
 from lnbits.exceptions import PaymentError
 from lnbits.settings import settings
 
 MAX_SENDABLE_MSAT = 2_100_000_000_000_000_000
 COMMENT_ALLOWED = 799
 LIGHTNING_ADDRESS_REGEX = re.compile(r"^[a-z0-9_.-]{1,210}$")
-_RANDOM = SystemRandom()
-_LEGACY_LNURLP_DB = Database("ext_lnurlp")
-
-_PARTICIPLES = [
-    "asking",
-    "blazing",
-    "bouncing",
-    "charging",
-    "climbing",
-    "dancing",
-    "drifting",
-    "flying",
-    "glowing",
-    "hopping",
-    "jumping",
-    "laughing",
-    "leaping",
-    "racing",
-    "rising",
-    "running",
-    "shining",
-    "singing",
-    "skipping",
-    "sparking",
-    "spinning",
-    "sprinting",
-    "twirling",
-    "wandering",
-    "zipping",
-]
-
-_NOUNS = [
-    "anchor",
-    "beacon",
-    "bolt",
-    "comet",
-    "ember",
-    "falcon",
-    "flash",
-    "garden",
-    "harbor",
-    "lantern",
-    "market",
-    "meadow",
-    "meteor",
-    "orbit",
-    "phoenix",
-    "rabbit",
-    "rocket",
-    "signal",
-    "spark",
-    "summit",
-    "thunder",
-    "wallet",
-    "wave",
-    "zephyr",
-]
-
-
-def _generate_local_part() -> str:
-    participle = _RANDOM.choice(_PARTICIPLES)
-    noun = _RANDOM.choice(_NOUNS)
-    suffix = _RANDOM.randint(0, 999)
-    return f"{participle}.{noun}.{suffix:03d}"
-
-
-async def legacy_lnurlp_address_exists(local_part: str) -> bool:
-    try:
-        row: Any = await _LEGACY_LNURLP_DB.fetchone(
-            """
-            SELECT 1 FROM lnurlp.pay_links
-            WHERE username = :username
-            LIMIT 1
-            """,
-            {"username": local_part},
-        )
-        return row is not None
-    except OperationalError:
-        return False
-    except Exception:
-        return False
-
-
-async def generate_lightning_address_local_part(
-    conn: Connection | None = None,
-) -> str:
-    for _ in range(100):
-        local_part = _generate_local_part()
-        if await wallet_lightning_address_exists(local_part, conn):
-            continue
-        if await legacy_lnurlp_address_exists(local_part):
-            continue
-        return local_part
-    raise ValueError("Could not generate a unique wallet lightning address.")
-
-
 def normalize_lightning_address_local_part(local_part: str) -> str:
     return local_part.strip().lower()
 

@@ -123,8 +123,10 @@ class ExtensionsRedirectMiddleware:
 
         username = path_parts[2].lower()
         base_username = username.partition("+")[0]
-        from lnbits.core.crud.wallets import get_wallet_by_lightning_address
-        from lnbits.core.services.lightning_address import legacy_lnurlp_address_exists
+        from lnbits.core.crud.wallets import (
+            get_wallet_by_lightning_address,
+            legacy_lnurlp_address_exists,
+        )
 
         if await legacy_lnurlp_address_exists(username):
             return False
