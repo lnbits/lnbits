@@ -1282,7 +1282,15 @@
 
         <div class="row">
           <div class="col-sm-12 col-md-8 q-pr-sm">
-            <div v-html="selectedExtensionDetails.description_md"></div>
+            <iframe
+              ref="extensionDescriptionFrame"
+              :srcdoc="selectedExtensionDetailsDescription"
+              title="Extension description"
+              sandbox="allow-popups allow-popups-to-escape-sandbox"
+              referrerpolicy="no-referrer"
+              loading="lazy"
+              style="width: 100%; min-height: 480px; border: 0"
+            ></iframe>
           </div>
           <div class="col-sm-12 col-md-4 q-pl-sm">
             <lnbits-extension-rating
