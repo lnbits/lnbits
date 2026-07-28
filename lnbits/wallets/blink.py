@@ -179,14 +179,15 @@ class BlinkWallet(Wallet):
         try:
             response = await self._graphql_query(data)
 
-            errors = (
-                response.get("data", {})
-                .get("lnInvoicePaymentSend", {})
-                .get("errors", {})
-            )
+            payment_result = response.get("data", {}).get("lnInvoicePaymentSend", {})
+            errors = payment_result.get("errors", {})
             if len(errors) > 0:
                 error_message = errors[0].get("message")
-                return PaymentResponse(ok=False, error_message=error_message)
+                status = payment_result.get("status")
+                return PaymentResponse(
+                    ok=False if status in {"FAILURE", "FAILED"} else None,
+                    error_message=error_message,
+                )
 
             checking_id = bolt11_lib.decode(bolt11).payment_hash
 
@@ -194,7 +195,10 @@ class BlinkWallet(Wallet):
             fee_msat = payment_status.fee_msat
             preimage = payment_status.preimage
             return PaymentResponse(
-                ok=True, checking_id=checking_id, fee_msat=fee_msat, preimage=preimage
+                ok=payment_status.paid,
+                checking_id=checking_id,
+                fee_msat=fee_msat,
+                preimage=preimage,
             )
         except Exception as exc:
             logger.info(f"Failed to pay invoice {bolt11}")

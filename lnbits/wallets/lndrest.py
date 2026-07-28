@@ -201,7 +201,7 @@ class LndRestWallet(Wallet):
         elif status == "IN_FLIGHT":
             return PaymentResponse(ok=None, checking_id=checking_id)
         return PaymentResponse(
-            ok=False,
+            ok=None,
             checking_id=checking_id,
             error_message="Server error: 'unknown payment status returned'",
         )

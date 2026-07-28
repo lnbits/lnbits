@@ -162,7 +162,10 @@ class SparkWallet(Wallet):
             )
 
         except (SparkError, UnknownError) as exc:
-            listpays = await self.listpays(bolt11)
+            try:
+                listpays = await self.listpays(bolt11)
+            except (SparkError, UnknownError):
+                return PaymentResponse(error_message=str(exc))
             if not listpays:
                 return PaymentResponse(ok=False, error_message=str(exc))
 
@@ -175,10 +178,12 @@ class SparkWallet(Wallet):
             payment_hash = pay["payment_hash"]
 
             if len(pays) > 1:
-                raise SparkError(
-                    f"listpays({payment_hash}) returned an unexpected response:"
-                    f" {listpays}"
-                ) from exc
+                return PaymentResponse(
+                    error_message=(
+                        f"listpays({payment_hash}) returned an unexpected response:"
+                        f" {listpays}"
+                    )
+                )
 
             if pay["status"] == "failed":
                 return PaymentResponse(ok=False, error_message=str(exc))
@@ -203,7 +208,7 @@ class SparkWallet(Wallet):
                     preimage=preimage,
                 )
             else:
-                return PaymentResponse(ok=False, error_message=str(exc))
+                return PaymentResponse(error_message=str(exc))
 
     async def get_invoice_status(self, checking_id: str) -> PaymentStatus:
         try:
@@ -249,7 +254,8 @@ class SparkWallet(Wallet):
             if status == "failed":
                 return PaymentFailedStatus()
             return PaymentPendingStatus()
-        raise KeyError("supplied an invalid checking_id")
+        logger.warning(f"supplied an invalid checking_id: {checking_id}")
+        return PaymentPendingStatus()
 
     async def paid_invoices_stream(self) -> AsyncGenerator[str, None]:
         url = f"/stream?access-key={self.token}"

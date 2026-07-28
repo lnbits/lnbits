@@ -166,7 +166,7 @@ class BoltzWallet(Wallet):
                 return PaymentResponse(ok=True, checking_id=invoice.payment_hash)
         except AioRpcError as exc:
             logger.warning(exc)
-            return PaymentResponse(ok=False, error_message=exc.details())
+            return PaymentResponse(error_message=exc.details())
 
         try:
             info_request = boltzrpc_pb2.GetSwapInfoRequest(id=response.id)
@@ -188,12 +188,10 @@ class BoltzWallet(Wallet):
                     )
                 elif info.swap.error != "":
                     return PaymentResponse(ok=False, error_message=info.swap.error)
-            return PaymentResponse(
-                ok=False, error_message="stream stopped unexpectedly"
-            )
+            return PaymentResponse(error_message="stream stopped unexpectedly")
         except AioRpcError as exc:
             logger.warning(exc)
-            return PaymentResponse(ok=False, error_message=exc.details())
+            return PaymentResponse(error_message=exc.details())
 
     async def get_invoice_status(self, checking_id: str) -> PaymentStatus:
         try:
@@ -217,10 +215,14 @@ class BoltzWallet(Wallet):
                 fee_msat=fee_msat,
                 preimage=swap.preimage,
             )
-        elif swap.state == boltzrpc_pb2.SwapState.PENDING:
-            return PaymentPendingStatus()
-
-        return PaymentFailedStatus()
+        if swap.state in {
+            boltzrpc_pb2.SwapState.ERROR,
+            boltzrpc_pb2.SwapState.SERVER_ERROR,
+            boltzrpc_pb2.SwapState.REFUNDED,
+            boltzrpc_pb2.SwapState.ABANDONED,
+        }:
+            return PaymentFailedStatus()
+        return PaymentPendingStatus()
 
     async def get_payment_status(self, checking_id: str) -> PaymentStatus:
         try:
@@ -231,7 +233,7 @@ class BoltzWallet(Wallet):
                 metadata=self.metadata,
             )
             swap = response.swap
-        except AioRpcError as exc:
+        except (AioRpcError, ValueError) as exc:
             logger.warning(exc)
             return PaymentPendingStatus()
         if swap.state == boltzrpc_pb2.SwapState.SUCCESSFUL:
@@ -243,10 +245,14 @@ class BoltzWallet(Wallet):
                 fee_msat=fee_msat,
                 preimage=swap.preimage,
             )
-        elif swap.state == boltzrpc_pb2.SwapState.PENDING:
-            return PaymentPendingStatus()
-
-        return PaymentFailedStatus()
+        if swap.state in {
+            boltzrpc_pb2.SwapState.ERROR,
+            boltzrpc_pb2.SwapState.SERVER_ERROR,
+            boltzrpc_pb2.SwapState.REFUNDED,
+            boltzrpc_pb2.SwapState.ABANDONED,
+        }:
+            return PaymentFailedStatus()
+        return PaymentPendingStatus()
 
     async def paid_invoices_stream(self) -> AsyncGenerator[str, None]:
         while settings.lnbits_running:

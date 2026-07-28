@@ -100,24 +100,29 @@ class OpenNodeWallet(Wallet):
         )
 
     async def pay_invoice(self, bolt11: str, fee_limit_msat: int) -> PaymentResponse:
-        r = await self.client.post(
-            "/v2/withdrawals",
-            json={"type": "ln", "address": bolt11},
-            timeout=None,
-        )
+        try:
+            r = await self.client.post(
+                "/v2/withdrawals",
+                json={"type": "ln", "address": bolt11},
+                timeout=None,
+            )
 
-        if r.is_error:
-            error_message = r.json()["message"]
-            logger.warning(error_message)
-            return PaymentResponse(ok=None, error_message=error_message)
+            if r.is_error:
+                error_message = r.json().get("message", r.text)
+                logger.warning(error_message)
+                return PaymentResponse(ok=None, error_message=error_message)
 
-        data = r.json()["data"]
-        checking_id = data["id"]
-        fee_msat = -data["fee"] * 1000
-        # pending
-        if data["status"] != "paid":
-            return PaymentResponse(ok=None, checking_id=checking_id, fee_msat=fee_msat)
-        return PaymentResponse(ok=True, checking_id=checking_id, fee_msat=fee_msat)
+            data = r.json()["data"]
+            checking_id = data["id"]
+            fee_msat = -data["fee"] * 1000
+            if data["status"] != "paid":
+                return PaymentResponse(
+                    ok=None, checking_id=checking_id, fee_msat=fee_msat
+                )
+            return PaymentResponse(ok=True, checking_id=checking_id, fee_msat=fee_msat)
+        except Exception as exc:
+            logger.warning(exc)
+            return PaymentResponse(error_message="Invalid OpenNode payment response.")
 
     async def get_invoice_status(self, checking_id: str) -> PaymentStatus:
         r = await self.client.get(f"/v1/charge/{checking_id}")
@@ -128,21 +133,25 @@ class OpenNodeWallet(Wallet):
         return PaymentStatus(statuses[data.get("status")])
 
     async def get_payment_status(self, checking_id: str) -> PaymentStatus:
-        r = await self.client.get(f"/v1/withdrawal/{checking_id}")
+        try:
+            r = await self.client.get(f"/v1/withdrawal/{checking_id}")
+            if r.is_error:
+                return PaymentPendingStatus()
 
-        if r.is_error:
+            data = r.json()["data"]
+            statuses = {
+                "initial": None,
+                "pending": None,
+                "confirmed": True,
+                "error": None,
+                "failed": False,
+            }
+            fee = data.get("fee")
+            fee_msat = -fee * 1000 if fee is not None else None
+            return PaymentStatus(statuses.get(data.get("status")), fee_msat)
+        except Exception as exc:
+            logger.warning(exc)
             return PaymentPendingStatus()
-
-        data = r.json()["data"]
-        statuses = {
-            "initial": None,
-            "pending": None,
-            "confirmed": True,
-            "error": None,
-            "failed": False,
-        }
-        fee_msat = -data.get("fee") * 1000
-        return PaymentStatus(statuses[data.get("status")], fee_msat)
 
     async def paid_invoices_stream(self) -> AsyncGenerator[str, None]:
         self.queue: asyncio.Queue = asyncio.Queue(0)

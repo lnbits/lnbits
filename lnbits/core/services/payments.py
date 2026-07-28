@@ -851,7 +851,7 @@ async def _pay_external_invoice(
     # IMPORTANT PAYMENT RULES!
     # True -> success
     # False-> failed
-    # None -> pending (any additional ambigous payments MUST be set as pending)
+    # None -> pending (any ambigous payment responses MUST be set as pending)
 
     # payment failed
     if payment_response.failed:

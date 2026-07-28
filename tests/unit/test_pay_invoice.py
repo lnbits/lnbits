@@ -379,18 +379,23 @@ async def test_retry_failed_invoice(
 
 
 @pytest.mark.anyio
+@pytest.mark.parametrize("returns_checking_id", [True, False])
 async def test_pay_external_invoice_pending(
     from_wallet: Wallet,
     mocker: MockerFixture,
     external_funding_source: FakeWallet,
     settings: Settings,
+    returns_checking_id: bool,
 ):
     settings.lnbits_reserve_fee_min = 1000  # msats
     invoice_amount = 2103
     external_invoice = await external_funding_source.create_invoice(invoice_amount)
     assert external_invoice.payment_request
     assert external_invoice.checking_id
-    backend_checking_id = f"backend_{external_invoice.checking_id}"
+    backend_checking_id = (
+        f"backend_{external_invoice.checking_id}" if returns_checking_id else None
+    )
+    expected_checking_id = backend_checking_id or external_invoice.checking_id
 
     payment_reponse_pending = PaymentResponse(ok=None, checking_id=backend_checking_id)
     mocker.patch(
@@ -416,9 +421,9 @@ async def test_pay_external_invoice_pending(
     _payment = await get_standalone_payment(payment.payment_hash)
     assert _payment
     assert _payment.status == PaymentState.PENDING.value
-    assert _payment.checking_id == backend_checking_id
+    assert _payment.checking_id == expected_checking_id
     assert _payment.payment_hash == external_invoice.checking_id
-    assert payment.checking_id == backend_checking_id
+    assert payment.checking_id == expected_checking_id
     assert _payment.amount == -2103_000
     assert _payment.bolt11 == external_invoice.payment_request
 

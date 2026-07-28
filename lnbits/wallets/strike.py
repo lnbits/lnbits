@@ -243,10 +243,14 @@ class StrikeWallet(Wallet):
             if error or not quote_id:
                 return PaymentResponse(ok=False, error_message=error or "Unknown error")
 
+            # Keep the quote id before execution so an ambiguous execute response can
+            # still be reconciled while this process is running.
+            self.pending_payments[payment_hash] = quote_id
+
             # 2) Execute the payment quote
             data, error = await self._execute_payment_quote(quote_id)
             if error or not data:
-                return PaymentResponse(ok=False, error_message=error or "Unknown error")
+                return PaymentResponse(error_message=error or "Unknown error")
 
             state = data.get("state", "").upper()
             payment_id = data.get("paymentId")
@@ -276,9 +280,6 @@ class StrikeWallet(Wallet):
                     error_message=f"Payment {state.lower()}",
                 )
 
-            # Store mapping for later polling
-            self.pending_payments[payment_hash] = quote_id
-
             # Treat all other states as pending
             return PaymentResponse(ok=None, checking_id=payment_hash)
 
@@ -289,7 +290,6 @@ class StrikeWallet(Wallet):
                 f"body: {http_exc.response.text}"
             )
             return PaymentResponse(
-                ok=False,
                 error_message=f"Strike API error: {http_exc.response.status_code}",
             )
         except Exception as e:
@@ -625,7 +625,7 @@ class StrikeWallet(Wallet):
         if state in {"SUCCEEDED", "COMPLETED"}:
             self.pending_payments.pop(checking_id, None)
             return PaymentSuccessStatus(fee_msat=fee_msat, preimage=preimage)
-        if state == "FAILED":
+        if state in {"CANCELED", "FAILED", "TIMED_OUT"}:
             self.pending_payments.pop(checking_id, None)
             return PaymentFailedStatus()
 
@@ -667,7 +667,7 @@ class StrikeWallet(Wallet):
             if state in {"SUCCEEDED", "COMPLETED"}:
                 self.pending_payments.pop(checking_id, None)
                 return PaymentSuccessStatus(fee_msat=fee_msat, preimage=preimage)
-            if state == "FAILED":
+            if state in {"CANCELED", "FAILED", "TIMED_OUT"}:
                 self.pending_payments.pop(checking_id, None)
                 return PaymentFailedStatus()
 
@@ -693,10 +693,10 @@ class StrikeWallet(Wallet):
                                 continue
                             logger.warning(
                                 f"Payment '{checking_id}' not a valid Strike payment. "
-                                f"Marked as failed. Response: {r_payment.text}"
+                                "Keeping pending because it may be the invoice payment "
+                                f"hash fallback. Response: {r_payment.text}"
                             )
-                            self.pending_payments.pop(checking_id, None)
-                            return PaymentFailedStatus()
+                            return PaymentPendingStatus()
             except Exception as e:
                 logger.warning(e)
 

@@ -105,28 +105,41 @@ class ZBDWallet(Wallet):
 
     async def pay_invoice(self, bolt11: str, fee_limit_msat: int) -> PaymentResponse:
         # https://api.zebedee.io/v0/payments
-        r = await self.client.post(
-            "payments",
-            json={
-                "invoice": bolt11,
-                "description": "",
-                "amount": "",
-                "internalId": "",
-                "callbackUrl": "",
-            },
-            timeout=40,
-        )
+        try:
+            r = await self.client.post(
+                "payments",
+                json={
+                    "invoice": bolt11,
+                    "description": "",
+                    "amount": "",
+                    "internalId": "",
+                    "callbackUrl": "",
+                },
+                timeout=40,
+            )
+        except Exception as exc:
+            logger.warning(exc)
+            return PaymentResponse(error_message="Unable to query ZBD.")
 
         if r.is_error:
-            error_message = r.json()["message"]
-            return PaymentResponse(ok=False, error_message=error_message)
+            try:
+                error_message = r.json().get("message", r.text)
+            except Exception:
+                error_message = r.text
+            return PaymentResponse(
+                ok=False if r.is_client_error else None,
+                error_message=error_message,
+            )
 
-        data = r.json()
+        try:
+            data = r.json()
+            fee_msat = -int(data["data"]["fee"])
+            preimage = data["data"]["preimage"]
+        except Exception as exc:
+            logger.warning(exc)
+            return PaymentResponse(error_message="Invalid ZBD payment response.")
 
         checking_id = bolt11_decode(bolt11).payment_hash
-        fee_msat = -int(data["data"]["fee"])
-        preimage = data["data"]["preimage"]
-
         return PaymentResponse(
             ok=True, checking_id=checking_id, fee_msat=fee_msat, preimage=preimage
         )
@@ -147,11 +160,20 @@ class ZBDWallet(Wallet):
         return PaymentStatus(paid=statuses[data.get("status")])
 
     async def get_payment_status(self, checking_id: str) -> PaymentStatus:
-        r = await self.client.get(f"payments/{checking_id}")
+        try:
+            r = await self.client.get(f"payments/{checking_id}")
+        except Exception as exc:
+            logger.warning(exc)
+            return PaymentPendingStatus()
+
         if r.is_error:
             return PaymentPendingStatus()
 
-        data = r.json()["data"]
+        try:
+            data = r.json()["data"]
+        except Exception as exc:
+            logger.warning(exc)
+            return PaymentPendingStatus()
 
         statuses = {
             "initial": None,
@@ -161,8 +183,7 @@ class ZBDWallet(Wallet):
             "expired": False,
             "failed": False,
         }
-
-        return PaymentStatus(paid=statuses[data.get("status")])
+        return PaymentStatus(paid=statuses.get(data.get("status")))
 
     async def paid_invoices_stream(self) -> AsyncGenerator[str, None]:
         self.queue: asyncio.Queue = asyncio.Queue(0)

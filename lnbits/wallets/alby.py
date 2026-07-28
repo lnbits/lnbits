@@ -185,7 +185,7 @@ class AlbyWallet(Wallet):
             #  - https://api.getalby.com/invoices/incoming
             #  - https://api.getalby.com/invoices/outgoing
             return PaymentStatus(
-                statuses[data.get("state")], fee_msat=None, preimage=None
+                statuses.get(data.get("state")), fee_msat=None, preimage=None
             )
         except Exception as e:
             logger.error(f"Error getting invoice status: {e}")

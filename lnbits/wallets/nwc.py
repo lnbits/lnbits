@@ -625,8 +625,6 @@ class NWCWallet(Wallet):
                 "QUOTA_EXCEEDED",
                 "RESTRICTED",
                 "UNAUTHORIZED",
-                "INTERNAL",
-                "OTHER",
                 "PAYMENT_FAILED",
             ]
             failed = e.code in failure_codes
