@@ -30,6 +30,10 @@ async def create_wallet(
         inkey=uuid4().hex,
         currency=settings.lnbits_default_accounting_currency or "USD",
     )
+    if settings.lnbits_enable_wallet_lightning_addresses and wallet.is_lightning_wallet:
+        from ..services.lightning_address import generate_lightning_address_local_part
+
+        wallet.lightning_address = await generate_lightning_address_local_part(conn)
 
     await (conn or db).insert("wallets", wallet)
     return wallet
@@ -123,11 +127,16 @@ async def get_standalone_wallet(
             """
     if deleted is not None:
         query += " AND deleted = :deleted "
-    return await (conn or db).fetchone(
+    wallet = await (conn or db).fetchone(
         query,
         {"wallet": wallet_id, "deleted": deleted},
         Wallet,
     )
+    if not wallet:
+        return None
+    from ..services.lightning_address import ensure_wallet_lightning_address
+
+    return await ensure_wallet_lightning_address(wallet, conn)
 
 
 async def get_wallet(

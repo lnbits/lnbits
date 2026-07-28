@@ -69,6 +69,118 @@
       </div>
 
       <q-separator class="q-mb-lg q-mt-sm"></q-separator>
+      <h6 class="q-my-none q-mb-sm" v-text="$t('lightning_addresses')"></h6>
+      <div class="row q-col-gutter-md">
+        <div class="col-12 col-md-6 q-mt-sm">
+          <q-item tag="label" v-ripple>
+            <q-item-section>
+              <q-item-label
+                v-text="$t('enable_lightning_address')"
+              ></q-item-label>
+              <q-item-label
+                caption
+                v-text="$t('enable_lightning_address_for_all_wallets')"
+              ></q-item-label>
+            </q-item-section>
+            <q-item-section avatar>
+              <q-toggle
+                size="md"
+                v-model="formData.lnbits_enable_wallet_lightning_addresses"
+                checked-icon="check"
+                color="green"
+                unchecked-icon="clear"
+              />
+            </q-item-section>
+          </q-item>
+        </div>
+        <div
+          v-if="formData.lnbits_enable_wallet_lightning_addresses"
+          class="col-12 col-md-6 q-mt-sm"
+        >
+          <q-item tag="label" v-ripple>
+            <q-item-section>
+              <q-item-label
+                v-text="$t('allow_users_specify_lightning_addresses')"
+              ></q-item-label>
+              <q-item-label
+                caption
+                v-text="
+                  $t('allow_wallet_owners_set_custom_lightning_addresses')
+                "
+              ></q-item-label>
+            </q-item-section>
+            <q-item-section avatar>
+              <q-toggle
+                size="md"
+                v-model="
+                  formData.lnbits_allow_custom_wallet_lightning_addresses
+                "
+                checked-icon="check"
+                color="green"
+                unchecked-icon="clear"
+              />
+            </q-item-section>
+          </q-item>
+        </div>
+        <div
+          v-if="formData.lnbits_enable_wallet_lightning_addresses"
+          class="col-12 col-md-6 q-mt-sm"
+        >
+          <div>
+            <q-item tag="label" v-ripple>
+              <q-item-section>
+                <q-item-label
+                  v-text="$t('charge_for_lightning_addresses')"
+                ></q-item-label>
+                <q-item-label
+                  caption
+                  v-text="$t('charge_users_set_change_lightning_address')"
+                ></q-item-label>
+                <q-item-label
+                  caption
+                  v-text="$t('service_fee_wallet_id_must_be_set')"
+                ></q-item-label>
+              </q-item-section>
+              <q-item-section avatar>
+                <q-toggle
+                  size="md"
+                  v-model="formData.lnbits_charge_wallet_lightning_addresses"
+                  checked-icon="check"
+                  color="green"
+                  unchecked-icon="clear"
+                />
+              </q-item-section>
+            </q-item>
+          </div>
+          <q-input
+            v-if="formData.lnbits_charge_wallet_lightning_addresses"
+            class="q-mt-sm"
+            filled
+            dense
+            type="number"
+            min="0"
+            v-model.number="formData.lnbits_wallet_lightning_address_price_sats"
+            :label="$t('lightning_address_price')"
+            suffix="sats"
+          ></q-input>
+        </div>
+        <div
+          v-if="formData.lnbits_enable_wallet_lightning_addresses"
+          class="col-12 col-md-6 q-mt-sm"
+        >
+          <q-input
+            filled
+            dense
+            type="textarea"
+            autogrow
+            v-model="lightningAddressBlacklistText"
+            :label="$t('lightning_address_blacklist')"
+            :hint="$t('lightning_address_blacklist_instructions')"
+          ></q-input>
+        </div>
+      </div>
+
+      <q-separator class="q-mb-lg q-mt-md"></q-separator>
       <h6 class="q-my-none q-mb-sm">
         <span v-text="$t('wallet_limiter')"></span>
       </h6>

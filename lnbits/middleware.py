@@ -104,10 +104,42 @@ class ExtensionsRedirectMiddleware:
 
         req_headers = scope["headers"] if "headers" in scope else []
         redirect = settings.find_extension_redirect(scope["path"], req_headers)
+        if redirect and await self._core_lnaddress_should_handle(
+            scope["path"], redirect.ext_id
+        ):
+            redirect = None
         if redirect:
             scope["path"] = redirect.new_path_from(scope["path"])
 
         await self.app(scope, receive, send)
+
+    async def _core_lnaddress_should_handle(self, path: str, ext_id: str) -> bool:
+        if ext_id != "lnurlp":
+            return False
+
+        path_parts = [p for p in path.split("/") if p]
+        if len(path_parts) != 3 or path_parts[:2] != [".well-known", "lnurlp"]:
+            return False
+
+        username = path_parts[2].lower()
+        base_username = username.partition("+")[0]
+        try:
+            from lnbits.extensions.lnurlp.crud import get_pay_link_by_username
+
+            if await get_pay_link_by_username(username):
+                return False
+            if base_username != username and await get_pay_link_by_username(
+                base_username
+            ):
+                return False
+        except Exception:
+            return False
+
+        from lnbits.core.services.lightning_address import (
+            get_wallet_by_lightning_address,
+        )
+
+        return await get_wallet_by_lightning_address(base_username) is not None
 
 
 class AuditMiddleware(BaseHTTPMiddleware):

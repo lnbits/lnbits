@@ -5,6 +5,8 @@ from fastapi import (
     APIRouter,
     Depends,
     HTTPException,
+    Query,
+    Request,
 )
 from lnurl import (
     LnurlAuthResponse,
@@ -30,8 +32,32 @@ from lnbits.helpers import check_callback_url
 from lnbits.settings import settings
 
 from ..services import fetch_lnurl_pay_request, pay_invoice
+from ..services.lightning_address import (
+    wallet_lightning_address_callback,
+    wallet_lightning_address_response,
+)
 
 lnurl_router = APIRouter(tags=["LNURL"])
+
+
+@lnurl_router.get(
+    "/.well-known/lnurlp/{username}",
+    name="lnurl.api_wallet_lightning_address_response",
+)
+async def api_wallet_lightning_address_response(
+    username: str, request: Request
+) -> LnurlPayResponse | LnurlErrorResponse:
+    return await wallet_lightning_address_response(username, request)
+
+
+@lnurl_router.get(
+    "/api/v1/lnurl/wallet/{username}/cb",
+    name="lnurl.api_wallet_lightning_address_callback",
+)
+async def api_wallet_lightning_address_callback(
+    username: str, request: Request, amount: int = Query(...)
+) -> LnurlErrorResponse | Any:
+    return await wallet_lightning_address_callback(username, request, amount)
 
 
 async def _handle(lnurl: str) -> LnurlResponseModel:

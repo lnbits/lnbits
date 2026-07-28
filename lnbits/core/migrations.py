@@ -890,3 +890,15 @@ async def m049_add_permissions_to_user_extensions(db: Connection):
     Adds user-level extension permission grants.
     """
     await db.execute("ALTER TABLE extensions ADD COLUMN permissions TEXT DEFAULT '{}'")
+
+
+async def m050_add_lightning_address_to_wallets(db: Connection):
+    """
+    Adds a LUD-16 lightning address local-part to wallets.
+    """
+    await db.execute("ALTER TABLE wallets ADD COLUMN lightning_address TEXT")
+    logger.debug("Creating index idx_wallets_lightning_address...")
+    await db.execute("""
+        CREATE UNIQUE INDEX IF NOT EXISTS idx_wallets_lightning_address
+        ON wallets (lightning_address);
+        """)

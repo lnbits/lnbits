@@ -22,6 +22,7 @@ from lnbits.core.models.wallets import (
     WalletSharePermission,
     WalletType,
 )
+from lnbits.core.services.lightning_address import set_wallet_lightning_address
 from lnbits.core.services.wallets import (
     create_lightning_shared_wallet,
     delete_wallet_share,
@@ -38,6 +39,7 @@ from lnbits.decorators import (
     require_invoice_key,
 )
 from lnbits.helpers import generate_filter_params_openapi
+from lnbits.settings import settings
 
 from ..crud import (
     delete_wallet,
@@ -164,6 +166,7 @@ async def api_update_wallet(
     color: str | None = Body(None),
     currency: str | None = Body(None),
     pinned: bool | None = Body(None),
+    lightning_address: str | None = Body(None),
     key_info: WalletTypeInfo = Depends(require_admin_key),
 ) -> Wallet:
     wallet = await get_wallet(key_info.wallet.id)
@@ -174,6 +177,19 @@ async def api_update_wallet(
     wallet.extra.color = color or wallet.extra.color
     wallet.extra.pinned = pinned if pinned is not None else wallet.extra.pinned
     wallet.currency = currency if currency is not None else wallet.currency
+
+    if lightning_address is not None:
+        if not settings.lnbits_allow_custom_wallet_lightning_addresses:
+            raise HTTPException(
+                status_code=HTTPStatus.FORBIDDEN,
+                detail="Users cannot specify Lightning Addresses.",
+            )
+        wallet = await set_wallet_lightning_address(
+            wallet=wallet,
+            local_part=lightning_address,
+            charge=True,
+        )
+        return wallet
 
     await update_wallet(wallet)
     return wallet
