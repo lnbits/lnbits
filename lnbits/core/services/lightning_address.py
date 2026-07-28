@@ -16,6 +16,11 @@ from lnurl import (
 from pydantic import parse_obj_as
 from sqlalchemy.exc import OperationalError
 
+from lnbits.core.crud.wallets import (
+    get_wallet_by_lightning_address,
+    wallet_lightning_address_exists,
+    wallet_lightning_address_exists_for_other_wallet,
+)
 from lnbits.core.db import db
 from lnbits.core.models.wallets import Wallet
 from lnbits.db import Connection, Database
@@ -91,31 +96,6 @@ def _generate_local_part() -> str:
     return f"{participle}.{noun}.{suffix:03d}"
 
 
-async def _core_address_exists(local_part: str, conn: Connection | None = None) -> bool:
-    row: Any = await (conn or db).fetchone(
-        """
-        SELECT id FROM wallets
-        WHERE lightning_address = :lightning_address
-        """,
-        {"lightning_address": local_part},
-    )
-    return bool(row)
-
-
-async def _core_address_exists_for_other_wallet(
-    local_part: str, wallet_id: str, conn: Connection | None = None
-) -> bool:
-    row: Any = await (conn or db).fetchone(
-        """
-        SELECT id FROM wallets
-        WHERE lightning_address = :lightning_address
-            AND id != :wallet_id
-        """,
-        {"lightning_address": local_part, "wallet_id": wallet_id},
-    )
-    return bool(row)
-
-
 async def legacy_lnurlp_address_exists(local_part: str) -> bool:
     try:
         row: Any = await _LEGACY_LNURLP_DB.fetchone(
@@ -138,7 +118,7 @@ async def generate_lightning_address_local_part(
 ) -> str:
     for _ in range(100):
         local_part = _generate_local_part()
-        if await _core_address_exists(local_part, conn):
+        if await wallet_lightning_address_exists(local_part, conn):
             continue
         if await legacy_lnurlp_address_exists(local_part):
             continue
@@ -187,7 +167,9 @@ async def validate_lightning_address_local_part(
         )
     if not allow_blacklisted and _uses_blacklisted_word(local_part):
         raise ValueError("Lightning Address contains a reserved word.")
-    if await _core_address_exists_for_other_wallet(local_part, wallet.id, conn):
+    if await wallet_lightning_address_exists_for_other_wallet(
+        local_part, wallet.id, conn
+    ):
         raise ValueError("Lightning Address is already taken.")
     if await legacy_lnurlp_address_exists(local_part):
         raise ValueError("Lightning Address is already taken.")
@@ -286,23 +268,6 @@ async def ensure_wallet_lightning_address(
     wallet.lightning_address = await generate_lightning_address_local_part(conn)
     await (conn or db).update("wallets", wallet)
     return wallet
-
-
-async def get_wallet_by_lightning_address(local_part: str) -> Wallet | None:
-    return await db.fetchone(
-        """
-        SELECT wallets.*, COALESCE((
-            SELECT balance FROM balances WHERE wallet_id = wallets.id
-        ), 0) AS balance_msat FROM wallets
-        INNER JOIN accounts ON wallets.user = accounts.id
-        WHERE lightning_address = :lightning_address
-            AND wallet_type = 'lightning'
-            AND deleted = false
-            AND accounts.activated = true
-        """,
-        {"lightning_address": local_part.lower()},
-        Wallet,
-    )
 
 
 def lightning_address_for_request(request: Request, local_part: str) -> str:
