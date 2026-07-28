@@ -1176,6 +1176,7 @@ class ExtensionReview(BaseModel):
     rating: int = Field(default=0, ge=0, le=1000)
     comment: str | None = Field(default=None)
 
+
 async def extension_metadata_get(url: str, error_msg: str | None) -> Any:
     try:
         parsed_url = httpx.URL(url)
