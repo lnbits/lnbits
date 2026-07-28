@@ -1,4 +1,5 @@
 import json
+import re
 from types import SimpleNamespace
 from typing import cast
 from uuid import uuid4
@@ -96,12 +97,7 @@ async def test_wallet_lightning_address_generation_settings(to_user, settings):
     settings.lnbits_enable_wallet_lightning_addresses = True
     wallet = await create_wallet(user_id=to_user.id)
     assert wallet.lightning_address
-    parts = wallet.lightning_address.split(".")
-    assert len(parts) == 3
-    assert parts[0].islower()
-    assert parts[1].islower()
-    assert parts[2].isdigit()
-    assert len(parts[2]) == 3
+    assert re.fullmatch(r"[a-z]+[a-z]+[0-9]", wallet.lightning_address)
 
     settings.lnbits_enable_wallet_lightning_addresses = False
     disabled_wallet = await create_wallet(user_id=to_user.id)
