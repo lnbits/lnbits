@@ -28,6 +28,8 @@ from lnbits.settings import settings
 MAX_SENDABLE_MSAT = 2_100_000_000_000_000_000
 COMMENT_ALLOWED = 799
 LIGHTNING_ADDRESS_REGEX = re.compile(r"^[a-z0-9_.-]{1,210}$")
+
+
 def normalize_lightning_address_local_part(local_part: str) -> str:
     return local_part.strip().lower()
 
