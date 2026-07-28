@@ -850,15 +850,23 @@ async def _pay_external_invoice(
 
     # payment failed
     if (
-        payment_response.checking_id is None
-        or payment_response.ok is False
-        or payment_response.checking_id != checking_id
+        payment_response.ok is False
     ):
         payment.status = PaymentState.FAILED
         await update_payment(payment, conn=conn)
         message = payment_response.error_message or "without an error message."
         raise PaymentError(f"Payment failed: {message}", status="failed")
 
+    # payment ambiguous
+    if (
+        payment_response.ok is None
+        or payment_response.checking_id is None
+    ):
+        payment_response.checking_id = checking_id
+        payment.status = PaymentState.PENDING
+        await update_payment(payment, conn=conn)
+    
+    # payment successful
     if payment_response.success:
         payment = await update_payment_success_status(
             payment, payment_response, conn=conn
@@ -866,8 +874,8 @@ async def _pay_external_invoice(
 
         await _send_payment_notification_in_background(wallet.id, payment, conn=conn)
         logger.success(f"payment successful {payment_response.checking_id}")
+        payment.checking_id = payment_response.checking_id
 
-    payment.checking_id = payment_response.checking_id
     return payment
 
 
