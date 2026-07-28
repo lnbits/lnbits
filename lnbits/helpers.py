@@ -310,12 +310,7 @@ def get_api_routes(routes: list) -> dict[str, str]:
 
 def path_segments(path: str) -> list[str]:
     path = path.strip("/")
-    segments = path.split("/")
-    if len(segments) < 2:
-        return segments
-    if segments[0] == "upgrades":
-        return segments[2:]
-    return segments[0:]
+    return path.split("/")
 
 
 def normalize_path(path: str | None) -> str:

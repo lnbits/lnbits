@@ -78,6 +78,9 @@ async def test_install_extension_creates_new_extension_and_starts_background_wor
         mocker.AsyncMock(return_value=True),
     )
     mocker.patch(
+        "lnbits.core.services.extensions.core_app_extra.register_new_ext_routes"
+    )
+    mocker.patch(
         "lnbits.core.services.extensions.get_db_version",
         mocker.AsyncMock(return_value=0),
     )
@@ -91,6 +94,7 @@ async def test_install_extension_creates_new_extension_and_starts_background_wor
         settings.lnbits_extensions_path = str(tmp_path / "code")
 
         extension = await install_extension(ext_info)
+        await activate_extension(extension)  # starts background task
         stored = await get_installed_extension(ext_id)
     finally:
         await delete_installed_extension(ext_id=ext_id)
@@ -127,6 +131,9 @@ async def test_install_extension_updates_existing_upgrade_and_preserves_payments
         mocker.AsyncMock(return_value=True),
     )
     mocker.patch(
+        "lnbits.core.services.extensions.core_app_extra.register_new_ext_routes"
+    )
+    mocker.patch(
         "lnbits.core.services.extensions.get_db_version",
         mocker.AsyncMock(return_value=1),
     )
@@ -139,9 +146,8 @@ async def test_install_extension_updates_existing_upgrade_and_preserves_payments
         settings.lnbits_data_folder = str(tmp_path / "data")
         settings.lnbits_extensions_path = str(tmp_path / "code")
         await create_installed_extension(existing_ext)
-        updated_ext.ext_upgrade_dir.mkdir(parents=True, exist_ok=True)
-
         extension = await install_extension(updated_ext, skip_download=True)
+        await activate_extension(extension)  # starts background task
         stored = await get_installed_extension(ext_id)
     finally:
         await delete_installed_extension(ext_id=ext_id)
@@ -149,7 +155,6 @@ async def test_install_extension_updates_existing_upgrade_and_preserves_payments
         settings.lnbits_extensions_path = original_extensions_path
 
     assert extension.code == ext_id
-    assert extension.is_upgrade_extension is True
     assert stored is not None
     assert stored.meta is not None
     assert stored.meta.payments == [existing_payment]

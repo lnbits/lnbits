@@ -424,7 +424,6 @@ def register_custom_extensions_path():
     upgrades_dir = settings.lnbits_extensions_upgrade_path
     shutil.rmtree(upgrades_dir, True)
     Path(upgrades_dir).mkdir(parents=True, exist_ok=True)
-    sys.path.append(str(upgrades_dir))
 
     if settings.has_default_extension_path:
         return
@@ -494,9 +493,53 @@ def register_ext_tasks(ext: Extension) -> None:
 
 def register_ext_routes(app: FastAPI, ext: Extension) -> None:
     """Register FastAPI routes for extension."""
-    ext_module = importlib.import_module(ext.module_name)
+    module_name = ext.module_name
+    # Clear all cached sub-modules so a fresh import picks up new files from ext_dir.
+    # A simple reload() would reuse cached sub-modules (e.g. views_api) and serve
+    # stale code even after the extension files have been replaced on disk.
+    stale = [
+        k for k in sys.modules if k == module_name or k.startswith(f"{module_name}.")
+    ]
+    for k in stale:
+        del sys.modules[k]
+    if stale:
+        # Pydantic v1 keeps a global _FUNCS set of validator qualnames to detect
+        # duplicates. Clear the extension's entries so reimport doesn't raise
+        # "duplicate validator" errors for validators with the same qualname.
+        try:
+            import pydantic.class_validators as _pydantic_cv
+
+            _pydantic_cv._FUNCS = {
+                f for f in _pydantic_cv._FUNCS if not f.startswith(f"{module_name}.")
+            }
+        except (ImportError, AttributeError):
+            pass
+    ext_module = importlib.import_module(module_name)
 
     ext_route = getattr(ext_module, f"{ext.code}_ext")
+
+    ext_redirects = (
+        getattr(ext_module, f"{ext.code}_redirect_paths")
+        if hasattr(ext_module, f"{ext.code}_redirect_paths")
+        else []
+    )
+
+    settings.activate_extension_paths(ext.code, ext_redirects)
+
+    # Remove existing routes for this extension before re-registering so that
+    # an upgraded extension replaces the old one at the same paths (no prefix).
+    ext_prefix = f"/{ext.code}"
+    app.router.routes = [
+        r
+        for r in app.router.routes
+        if not (
+            getattr(r, "path", "") == ext_prefix
+            or getattr(r, "path", "").startswith(f"{ext_prefix}/")
+        )
+    ]
+    # Invalidate FastAPI's cached OpenAPI schema so the next /openapi.json
+    # request reflects the updated routes.
+    app.openapi_schema = None
 
     if hasattr(ext_module, f"{ext.code}_static_files"):
         ext_statics = getattr(ext_module, f"{ext.code}_static_files")
@@ -506,17 +549,8 @@ def register_ext_routes(app: FastAPI, ext: Extension) -> None:
             )
             app.mount(s["path"], StaticFiles(directory=static_dir), s["name"])
 
-    ext_redirects = (
-        getattr(ext_module, f"{ext.code}_redirect_paths")
-        if hasattr(ext_module, f"{ext.code}_redirect_paths")
-        else []
-    )
-
-    settings.activate_extension_paths(ext.code, ext.upgrade_hash, ext_redirects)
-
     logger.trace(f"Adding route for extension {ext_module}.")
-    prefix = f"/upgrades/{ext.upgrade_hash}" if ext.upgrade_hash != "" else ""
-    app.include_router(router=ext_route, prefix=prefix)
+    app.include_router(router=ext_route)
 
 
 async def check_and_register_extensions(app: FastAPI) -> None:

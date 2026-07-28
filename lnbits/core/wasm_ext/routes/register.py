@@ -30,7 +30,7 @@ def register_wasm_extension(app: FastAPI, ext_id: str) -> WasmExtension:
 
     core_app_extra.wasm_extension_registry.register(loaded)
 
-    settings.activate_extension_paths(ext_id, "", [])
+    settings.activate_extension_paths(ext_id, [])
     module_size = _format_wasm_extension_size(loaded.module_path.stat().st_size)
     load_seconds = perf_counter() - load_started_at
     logger.info(
