@@ -72,7 +72,9 @@
               {% block page %}{% endblock %}
             </div>
             <!-- vue router-view -->
-            <router-view :key="$route.path"></router-view>
+            <router-view
+              :key="$route.meta.stableKey ? $route.matched[0]?.path : $route.path"
+            ></router-view>
           </q-page>
         </q-page-container>
         {% endblock %}

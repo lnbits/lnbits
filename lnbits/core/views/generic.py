@@ -186,6 +186,7 @@ admin_ui_checks = [Depends(check_admin), Depends(check_admin_ui)]
 @generic_router.get("/account")
 @generic_router.get("/extensions")
 @generic_router.get("/blockexplorer")
+@generic_router.get("/blockexplorer/{resource_type}/{resource}")
 @generic_router.get("/users", dependencies=admin_ui_checks)
 @generic_router.get("/audit", dependencies=admin_ui_checks)
 @generic_router.get("/node", dependencies=admin_ui_checks)

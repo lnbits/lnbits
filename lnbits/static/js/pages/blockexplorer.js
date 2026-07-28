@@ -38,13 +38,62 @@ window.PageBlockExplorer = {
     await Promise.all([this.loadTip(), this.loadFees(), this.loadBlocks()])
     this._blockWsActive = true
     this._connectBlocksWs()
+    this._loadFromRoute()
   },
   beforeUnmount() {
     this._blockWsActive = false
     if (this._blockWs) this._blockWs.close()
     if (this._searchWs) this._searchWs.close()
   },
+  watch: {
+    $route(to) {
+      this._loadFromRoute(to)
+    },
+    blockDialog(val) {
+      if (!val && this.$route.params.type === 'block') {
+        this.$router.push('/blockexplorer')
+      }
+    }
+  },
   methods: {
+    _loadFromRoute(route) {
+      route = route || this.$route
+      const {type, id} = route.params
+      if (type === 'tx') {
+        this.query = id
+        this._fetchTx(id)
+      } else if (type === 'address') {
+        this.query = id
+        this._fetchAddress(id)
+      } else if (type === 'block') {
+        this._openBlockByHeight(id)
+      } else {
+        this._resetResults()
+        this.blockDialog = false
+      }
+    },
+    _openBlockByHeight(height) {
+      const h = parseInt(height, 10)
+      const block =
+        this.formattedBlocks.find(b => b.height === h) ||
+        this.blocks.find(b => b.height === h)
+      if (block) {
+        this.selectedBlock = block
+        this.blockDialog = true
+      } else {
+        this.selectedBlock = null
+        this.blockDialog = false
+      }
+    },
+    _resetResults() {
+      this.txResult = null
+      this.txStatus = null
+      this.addressResult = null
+      if (this._searchWs) {
+        this._searchWs.close()
+        this._searchWs = null
+      }
+    },
     _wsUrl(path) {
       const proto = window.location.protocol === 'https:' ? 'wss:' : 'ws:'
       return `${proto}//${window.location.host}/blockexplorer/api/v1${path}`
@@ -93,8 +142,7 @@ window.PageBlockExplorer = {
       return d.toFixed(0)
     },
     openBlock(b) {
-      this.selectedBlock = b
-      this.blockDialog = true
+      this.$router.push(`/blockexplorer/block/${b.height}`)
     },
     async loadBlocks() {
       try {
@@ -120,33 +168,30 @@ window.PageBlockExplorer = {
       } catch (_) {}
     },
     clearResult() {
-      this.txResult = null
-      this.txStatus = null
-      this.addressResult = null
       this.query = ''
-      if (this._searchWs) {
-        this._searchWs.close()
-        this._searchWs = null
+      if (this.$route.path !== '/blockexplorer') {
+        this.$router.push('/blockexplorer')
+      } else {
+        this._resetResults()
       }
     },
-    async search() {
+    search() {
       const q = this.query.trim()
       if (!q) return
-      this.txResult = null
-      this.txStatus = null
-      this.addressResult = null
-      this.loading = true
-      try {
-        if (/^[0-9a-fA-F]{64}$/.test(q)) {
-          await this.loadTx(q)
-        } else {
-          await this.loadAddress(q)
-        }
-      } finally {
-        this.loading = false
+      if (/^[0-9a-fA-F]{64}$/.test(q)) {
+        this.loadTx(q)
+      } else {
+        this.loadAddress(q)
       }
     },
-    async loadTx(txid) {
+    loadTx(txid) {
+      this.$router.push(`/blockexplorer/tx/${txid}`)
+    },
+    loadAddress(address) {
+      this.$router.push(`/blockexplorer/address/${address}`)
+    },
+    async _fetchTx(txid) {
+      this.loading = true
       try {
         const r = await LNbits.api.request(
           'GET',
@@ -155,15 +200,17 @@ window.PageBlockExplorer = {
         this.txResult = r.data
         this.txStatus = null
         this.addressResult = null
-        this.query = txid
         this._connectSearchWs(`/ws/tx/${txid}`, data => {
           if (!data.error) this.txStatus = data
         })
       } catch (e) {
         LNbits.utils.notifyApiError(e)
+      } finally {
+        this.loading = false
       }
     },
-    async loadAddress(address) {
+    async _fetchAddress(address) {
+      this.loading = true
       try {
         const r = await LNbits.api.request(
           'GET',
@@ -173,12 +220,13 @@ window.PageBlockExplorer = {
         this.txResult = null
         this.txStatus = null
         this.currentAddress = address
-        this.query = address
         this._connectSearchWs(`/ws/address/${address}`, data => {
           if (!data.error) this.addressResult = data
         })
       } catch (e) {
         LNbits.utils.notifyApiError(e)
+      } finally {
+        this.loading = false
       }
     }
   }
