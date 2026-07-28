@@ -18,7 +18,7 @@ from sqlalchemy.exc import OperationalError
 
 from lnbits.core.db import db
 from lnbits.core.models.wallets import Wallet
-from lnbits.db import Connection
+from lnbits.db import Connection, Database
 from lnbits.exceptions import PaymentError
 from lnbits.settings import settings
 
@@ -26,6 +26,7 @@ MAX_SENDABLE_MSAT = 2_100_000_000_000_000_000
 COMMENT_ALLOWED = 799
 LIGHTNING_ADDRESS_REGEX = re.compile(r"^[a-z0-9_.-]{1,210}$")
 _RANDOM = SystemRandom()
+_LEGACY_LNURLP_DB = Database("ext_lnurlp")
 
 _PARTICIPLES = [
     "asking",
@@ -115,11 +116,17 @@ async def _core_address_exists_for_other_wallet(
     return bool(row)
 
 
-async def _pay_links_address_exists(local_part: str) -> bool:
+async def legacy_lnurlp_address_exists(local_part: str) -> bool:
     try:
-        from lnbits.extensions.lnurlp.crud import get_pay_link_by_username
-
-        return await get_pay_link_by_username(local_part) is not None
+        row: Any = await _LEGACY_LNURLP_DB.fetchone(
+            """
+            SELECT 1 FROM lnurlp.pay_links
+            WHERE username = :username
+            LIMIT 1
+            """,
+            {"username": local_part},
+        )
+        return row is not None
     except OperationalError:
         return False
     except Exception:
@@ -133,7 +140,7 @@ async def generate_lightning_address_local_part(
         local_part = _generate_local_part()
         if await _core_address_exists(local_part, conn):
             continue
-        if await _pay_links_address_exists(local_part):
+        if await legacy_lnurlp_address_exists(local_part):
             continue
         return local_part
     raise ValueError("Could not generate a unique wallet lightning address.")
@@ -182,7 +189,7 @@ async def validate_lightning_address_local_part(
         raise ValueError("Lightning Address contains a reserved word.")
     if await _core_address_exists_for_other_wallet(local_part, wallet.id, conn):
         raise ValueError("Lightning Address is already taken.")
-    if await _pay_links_address_exists(local_part):
+    if await legacy_lnurlp_address_exists(local_part):
         raise ValueError("Lightning Address is already taken.")
     return local_part
 

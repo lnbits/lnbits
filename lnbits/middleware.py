@@ -123,21 +123,17 @@ class ExtensionsRedirectMiddleware:
 
         username = path_parts[2].lower()
         base_username = username.partition("+")[0]
-        try:
-            from lnbits.extensions.lnurlp.crud import get_pay_link_by_username
-
-            if await get_pay_link_by_username(username):
-                return False
-            if base_username != username and await get_pay_link_by_username(
-                base_username
-            ):
-                return False
-        except Exception:
-            return False
-
         from lnbits.core.services.lightning_address import (
             get_wallet_by_lightning_address,
+            legacy_lnurlp_address_exists,
         )
+
+        if await legacy_lnurlp_address_exists(username):
+            return False
+        if base_username != username and await legacy_lnurlp_address_exists(
+            base_username
+        ):
+            return False
 
         return await get_wallet_by_lightning_address(base_username) is not None
 

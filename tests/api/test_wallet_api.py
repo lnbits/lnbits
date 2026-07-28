@@ -208,7 +208,7 @@ async def test_wallet_api_custom_lightning_address_owner_rules(
     assert invalid.status_code == 400
 
     mocker.patch(
-        "lnbits.core.services.lightning_address._pay_links_address_exists",
+        "lnbits.core.services.lightning_address.legacy_lnurlp_address_exists",
         mocker.AsyncMock(return_value=True),
     )
     conflict = await http_client.patch(
@@ -219,7 +219,7 @@ async def test_wallet_api_custom_lightning_address_owner_rules(
     assert conflict.status_code == 400
 
     mocker.patch(
-        "lnbits.core.services.lightning_address._pay_links_address_exists",
+        "lnbits.core.services.lightning_address.legacy_lnurlp_address_exists",
         mocker.AsyncMock(return_value=False),
     )
     updated = await http_client.patch(
