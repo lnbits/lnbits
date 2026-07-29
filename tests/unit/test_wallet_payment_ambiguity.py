@@ -1,6 +1,7 @@
 from types import SimpleNamespace
 from typing import Any, cast
 
+import grpc
 import httpx
 import pytest
 from pytest_mock.plugin import MockerFixture
@@ -9,6 +10,8 @@ from lnbits.wallets.base import PaymentPendingStatus
 from lnbits.wallets.blink import BlinkWallet
 from lnbits.wallets.boltz import BoltzWallet
 from lnbits.wallets.boltz_grpc_files import boltzrpc_pb2
+from lnbits.wallets.lnd_grpc_files.lightning_pb2 import Payment as LndPayment
+from lnbits.wallets.lndgrpc import LndWallet
 from lnbits.wallets.lndrest import LndRestWallet
 from lnbits.wallets.lnpay import LNPayWallet
 from lnbits.wallets.nwc import NWCError, NWCWallet
@@ -64,6 +67,70 @@ async def test_lndrest_unknown_payment_state_is_pending(
                         "fee_msat": "0",
                     }
                 },
+            )
+        )
+    )
+
+    response = await wallet.pay_invoice("bolt11", 1_000)
+
+    assert response.ok is None
+    assert response.checking_id == "payment-hash"
+
+
+@pytest.mark.anyio
+@pytest.mark.parametrize(
+    ("code", "details", "expected"),
+    [
+        (
+            grpc.StatusCode.UNKNOWN,
+            "invoice not for current active network 'regtest'",
+            False,
+        ),
+        (grpc.StatusCode.UNKNOWN, "invoice expired", False),
+        (grpc.StatusCode.INVALID_ARGUMENT, "invalid payment request", False),
+        (grpc.StatusCode.PERMISSION_DENIED, "permission denied", False),
+        (grpc.StatusCode.UNAUTHENTICATED, "invalid macaroon", False),
+        (grpc.StatusCode.UNAVAILABLE, "transport is closing", None),
+        (grpc.StatusCode.DEADLINE_EXCEEDED, "deadline exceeded", None),
+        (grpc.StatusCode.ALREADY_EXISTS, "payment is in flight", None),
+        (grpc.StatusCode.UNKNOWN, "payment stream interrupted", None),
+    ],
+)
+async def test_lndgrpc_only_pre_dispatch_rpc_errors_are_failed(
+    mocker: MockerFixture,
+    settings,
+    code: grpc.StatusCode,
+    details: str,
+    expected: bool | None,
+):
+    settings.lnd_grpc_allow_self_payment = False
+    metadata = grpc.aio.Metadata()
+    error = grpc.aio.AioRpcError(code, metadata, metadata, details=details)
+    wallet = object.__new__(LndWallet)
+    cast(Any, wallet).router_rpc = SimpleNamespace(
+        SendPaymentV2=mocker.Mock(
+            return_value=SimpleNamespace(read=mocker.AsyncMock(side_effect=error))
+        )
+    )
+
+    response = await wallet.pay_invoice("bolt11", 1_000)
+
+    assert response.ok is expected
+
+
+@pytest.mark.anyio
+async def test_lndgrpc_in_flight_payment_is_pending(mocker: MockerFixture, settings):
+    settings.lnd_grpc_allow_self_payment = False
+    wallet = object.__new__(LndWallet)
+    cast(Any, wallet).router_rpc = SimpleNamespace(
+        SendPaymentV2=mocker.Mock(
+            return_value=SimpleNamespace(
+                read=mocker.AsyncMock(
+                    return_value=SimpleNamespace(
+                        status=LndPayment.PaymentStatus.IN_FLIGHT,
+                        payment_hash="payment-hash",
+                    )
+                )
             )
         )
     )
