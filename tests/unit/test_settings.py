@@ -41,13 +41,22 @@ nostrrelay_redirect_path: dict[str, Any] = {
 }
 
 
-@pytest.mark.parametrize("mode", ["core_first", "extension_first", "extension_only"])
+@pytest.mark.parametrize(
+    ("mode", "creation_allowed"),
+    [
+        ("core_first", True),
+        ("extension_first", True),
+        ("extension_only", False),
+    ],
+)
 def test_ln_address_mode(
     mode: Literal["core_first", "extension_first", "extension_only"],
+    creation_allowed: bool,
 ):
     users_settings = UsersSettings(lnbits_ln_address_mode=mode)
 
     assert users_settings.lnbits_ln_address_mode == mode
+    assert users_settings.ln_address_creation_allowed is creation_allowed
 
 
 def test_ln_address_mode_defaults_to_extension_first():

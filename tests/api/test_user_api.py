@@ -96,7 +96,7 @@ async def test_user_api_superuser_sets_wallet_lightning_address(
     )
     wallet = user.wallets[0]
 
-    settings.lnbits_enable_wallet_lightning_addresses = True
+    settings.lnbits_ln_address_mode = "core_first"
     settings.lnbits_wallet_lightning_address_blacklist = ["admin"]
     settings.lnbits_charge_wallet_lightning_addresses = True
     settings.lnbits_wallet_lightning_address_price_sats = 1_000
