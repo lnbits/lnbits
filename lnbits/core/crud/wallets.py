@@ -138,9 +138,14 @@ async def get_standalone_wallet(
     )
     if not wallet:
         return None
-    from ..services.lightning_address import ensure_wallet_lightning_address
+    if deleted is True:
+        return wallet
 
-    return await ensure_wallet_lightning_address(wallet, conn)
+    if not wallet.lightning_address and settings.ln_address_creation_allowed:
+        wallet.lightning_address = await generate_lightning_address_local_part(conn)
+        await update_wallet(wallet, conn)
+
+    return wallet
 
 
 async def get_wallet(
@@ -256,8 +261,6 @@ async def generate_lightning_address_local_part(
     for _ in range(100):
         local_part = generate_ln_address()
         if await get_wallet_id_by_ln_address(local_part, conn):
-            continue
-        if await legacy_lnurlp_address_exists(local_part):
             continue
         return local_part
     raise ValueError("Could not generate a unique wallet lightning address.")
