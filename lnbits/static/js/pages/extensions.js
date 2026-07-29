@@ -26,6 +26,7 @@ window.PageExtensions = {
       selectedExtension: null,
       selectedImage: null,
       selectedExtensionDetails: null,
+      selectedExtensionDetailsDescription: '',
       selectedExtensionRepos: null,
       selectedRelease: null,
       permissionGrant: {
@@ -656,6 +657,7 @@ window.PageExtensions = {
       this.selectedExtension =
         this.extensions.find(ext => ext.id === extId) || this.selectedExtension
       this.selectedExtensionDetails = null
+      this.selectedExtensionDetailsDescription = ''
       this.showExtensionDetailsDialog = true
       this.slide = 0
       this.fullscreen = false
@@ -667,11 +669,88 @@ window.PageExtensions = {
         )
 
         this.selectedExtensionDetails = data
-        this.selectedExtensionDetails.description_md =
-          LNbits.utils.convertMarkdown(data.description_md)
+        this.selectedExtensionDetailsDescription =
+          this.extensionDescriptionDocument(data.description_md)
       } catch (error) {
         console.warn(error)
       }
+    },
+    extensionDescriptionDocument(markdown) {
+      const source = typeof markdown === 'string' ? markdown : ''
+      const rendered = LNbits.utils.convertMarkdown(source)
+      const parsed = new DOMParser().parseFromString(rendered, 'text/html')
+
+      parsed.body
+        .querySelectorAll(
+          'applet, base, embed, form, frame, iframe, link, meta, object, portal, script'
+        )
+        .forEach(element => element.remove())
+      parsed.body.querySelectorAll('*').forEach(element => {
+        for (const attribute of [...element.attributes]) {
+          const attributeName = attribute.name.toLowerCase()
+          if (
+            attributeName.startsWith('on') ||
+            attributeName === 'srcdoc' ||
+            attributeName === 'xlink:href'
+          ) {
+            element.removeAttribute(attribute.name)
+          }
+        }
+      })
+      parsed.body.querySelectorAll('a[href], area[href]').forEach(link => {
+        try {
+          const url = new URL(link.getAttribute('href'), window.location.origin)
+          if (
+            !['http:', 'https:'].includes(url.protocol) ||
+            url.username ||
+            url.password
+          ) {
+            link.removeAttribute('href')
+            return
+          }
+          link.setAttribute('href', url.href)
+          link.setAttribute('target', '_blank')
+          link.setAttribute('rel', 'noopener noreferrer')
+        } catch (_error) {
+          link.removeAttribute('href')
+        }
+      })
+
+      const csp = [
+        "default-src 'none'",
+        'img-src https: data:',
+        "style-src 'unsafe-inline'",
+        "script-src 'none'",
+        "script-src-attr 'none'",
+        "base-uri 'none'",
+        "form-action 'none'",
+        "frame-src 'none'",
+        "object-src 'none'"
+      ].join('; ')
+      const styles = `
+        :root { color-scheme: light dark; font-family: Roboto, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
+        body { margin: 0; color: CanvasText; background: Canvas; line-height: 1.5; overflow-wrap: anywhere; }
+        img { max-width: 100%; height: auto; }
+        pre { overflow: auto; padding: 0.75rem; background: color-mix(in srgb, CanvasText 8%, Canvas); }
+        code { font-family: ui-monospace, SFMono-Regular, Consolas, monospace; }
+        table { display: block; max-width: 100%; overflow-x: auto; border-collapse: collapse; }
+        th, td { padding: 0.35rem 0.6rem; border: 1px solid color-mix(in srgb, CanvasText 20%, Canvas); }
+        a[href] { color: LinkText; cursor: pointer; }
+      `
+
+      return `<!doctype html>
+        <html>
+          <head>
+            <meta charset="utf-8">
+            <meta http-equiv="Content-Security-Policy" content="${csp}">
+            <meta name="referrer" content="no-referrer">
+            <meta name="viewport" content="width=device-width, initial-scale=1">
+            <style>${styles}</style>
+          </head>
+          <body>
+            ${parsed.body.innerHTML}
+          </body>
+        </html>`
     },
     async payAndInstall(release) {
       try {
