@@ -73,6 +73,7 @@ async def pay_invoice(
     tag: str = "",
     labels: list[str] | None = None,
     external_id: str | None = None,
+    webhook: str | None = None,
     conn: Connection | None = None,
 ) -> Payment:
     if settings.lnbits_only_allow_incoming_payments:
@@ -94,6 +95,7 @@ async def pay_invoice(
         tag=tag,
         labels=labels,
         external_id=external_id,
+        webhook=webhook,
         conn=conn,
     )
 
@@ -108,6 +110,7 @@ async def pay_offer(
     tag: str = "",
     labels: list[str] | None = None,
     external_id: str | None = None,
+    webhook: str | None = None,
     conn: Connection | None = None,
 ) -> Payment:
     """
@@ -136,6 +139,7 @@ async def pay_offer(
         tag=tag,
         labels=labels,
         external_id=external_id,
+        webhook=webhook,
         conn=conn,
     )
 
@@ -1386,6 +1390,7 @@ async def _pay_from_wallet(
     tag: str = "",
     labels: list[str] | None = None,
     external_id: str | None = None,
+    webhook: str | None = None,
     conn: Connection | None = None,
 ) -> Payment:
     async with db.reuse_conn(conn) if conn else db.connect() as new_conn:
@@ -1410,6 +1415,7 @@ async def _pay_from_wallet(
             extra=extra,
             labels=labels,
             external_id=external_id,
+            webhook=webhook,
         )
 
     async with db.reuse_conn(conn) if conn else db.connect() as new_conn:

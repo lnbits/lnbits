@@ -267,6 +267,8 @@ async def api_all_payments_paginated(
         `payment_request` to supply the BOLT11 invoice or BOLT12 offer (`lno1…`,
         optional `lightning:` URI). Paying a BOLT12 offer requires `amount` in
         `sat`. For offers, `memo` is sent to the recipient as a payer note.
+        The optional `webhook` field is honoured in both directions: LNbits POSTs
+        the payment to that URL once the payment reaches `success`.
     """,
     status_code=HTTPStatus.CREATED,
     responses={
@@ -303,6 +305,7 @@ async def api_payments_create(
                 memo=invoice_data.memo,
                 labels=invoice_data.labels,
                 external_id=invoice_data.external_id,
+                webhook=invoice_data.webhook,
             )
         payment = await pay_invoice(
             wallet_id=wallet_id,
@@ -311,6 +314,7 @@ async def api_payments_create(
             description=invoice_data.memo or "",
             labels=invoice_data.labels,
             external_id=invoice_data.external_id,
+            webhook=invoice_data.webhook,
         )
         return payment
 

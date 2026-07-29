@@ -439,6 +439,47 @@ async def test_pay_invoice_rejects_conflicting_payment_requests(
     pay_offer.assert_not_awaited()
 
 
+# check POST /api/v1/payments: the webhook is kept on an outgoing payment
+@pytest.mark.anyio
+@pytest.mark.parametrize("request_field", ["bolt11", "payment_request"])
+@pytest.mark.parametrize("is_offer", [False, True])
+async def test_pay_invoice_with_webhook(
+    client,
+    inkey_headers_to,
+    adminkey_headers_from,
+    mocker: MockerFixture,
+    request_field,
+    is_offer,
+):
+    mocker.patch(
+        "lnbits.core.services.notifications.dispatch_webhook",
+        AsyncMock(return_value=None),
+    )
+
+    if is_offer:
+        payment_request = BOLT12_OFFER
+    else:
+        invoice_data = await get_random_invoice_data()
+        create_response = await client.post(
+            "/api/v1/payments", json=invoice_data, headers=inkey_headers_to
+        )
+        assert create_response.status_code < 300
+        payment_request = create_response.json()["bolt11"]
+
+    webhook_url = "http://test.404.lnbits.com"
+    data = {
+        "out": True,
+        request_field: payment_request,
+        "amount": 21,
+        "webhook": webhook_url,
+    }
+    response = await client.post(
+        "/api/v1/payments", json=data, headers=adminkey_headers_from
+    )
+    assert response.status_code < 300
+    assert response.json()["webhook"] == webhook_url
+
+
 # check GET /api/v1/payments/<hash>: payment status
 @pytest.mark.anyio
 async def test_check_payment_without_key(client, invoice: Payment):
