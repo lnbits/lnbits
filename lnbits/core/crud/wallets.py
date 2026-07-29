@@ -233,19 +233,6 @@ async def get_wallets_count():
     return row.get("count", 0)
 
 
-async def wallet_lightning_address_exists(
-    local_part: str, conn: Connection | None = None
-) -> bool:
-    row: Any = await (conn or db).fetchone(
-        """
-        SELECT id FROM wallets
-        WHERE lightning_address = :lightning_address
-        """,
-        {"lightning_address": local_part},
-    )
-    return bool(row)
-
-
 async def legacy_lnurlp_address_exists(local_part: str) -> bool:
     try:
         row: Any = await _LEGACY_LNURLP_DB.fetchone(
@@ -268,7 +255,7 @@ async def generate_lightning_address_local_part(
 ) -> str:
     for _ in range(100):
         local_part = generate_ln_address()
-        if await wallet_lightning_address_exists(local_part, conn):
+        if await get_wallet_id_by_ln_address(local_part, conn):
             continue
         if await legacy_lnurlp_address_exists(local_part):
             continue
@@ -276,35 +263,17 @@ async def generate_lightning_address_local_part(
     raise ValueError("Could not generate a unique wallet lightning address.")
 
 
-async def wallet_lightning_address_exists_for_other_wallet(
-    local_part: str, wallet_id: str, conn: Connection | None = None
-) -> bool:
-    row: Any = await (conn or db).fetchone(
+async def get_wallet_id_by_ln_address(
+    local_part: str, conn: Connection | None = None
+) -> str | None:
+    row: dict = await (conn or db).fetchone(
         """
         SELECT id FROM wallets
         WHERE lightning_address = :lightning_address
-            AND id != :wallet_id
-        """,
-        {"lightning_address": local_part, "wallet_id": wallet_id},
-    )
-    return bool(row)
-
-
-async def get_wallet_by_lightning_address(local_part: str) -> Wallet | None:
-    return await db.fetchone(
-        """
-        SELECT wallets.*, COALESCE((
-            SELECT balance FROM balances WHERE wallet_id = wallets.id
-        ), 0) AS balance_msat FROM wallets
-        INNER JOIN accounts ON wallets.user = accounts.id
-        WHERE lightning_address = :lightning_address
-            AND wallet_type = 'lightning'
-            AND deleted = false
-            AND accounts.activated = true
         """,
         {"lightning_address": local_part.lower()},
-        Wallet,
     )
+    return row["id"] if row else None
 
 
 async def get_wallet_for_key(

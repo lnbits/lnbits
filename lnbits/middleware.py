@@ -124,7 +124,7 @@ class ExtensionsRedirectMiddleware:
         username = path_parts[2].lower()
         base_username = username.partition("+")[0]
         from lnbits.core.crud.wallets import (
-            get_wallet_by_lightning_address,
+            get_wallet_id_by_ln_address,
             legacy_lnurlp_address_exists,
         )
 
@@ -135,7 +135,7 @@ class ExtensionsRedirectMiddleware:
         ):
             return False
 
-        return await get_wallet_by_lightning_address(base_username) is not None
+        return await get_wallet_id_by_ln_address(base_username) is not None
 
 
 class AuditMiddleware(BaseHTTPMiddleware):
