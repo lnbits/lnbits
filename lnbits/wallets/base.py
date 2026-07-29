@@ -16,10 +16,11 @@ if TYPE_CHECKING:
 
 
 def payment_request_was_rejected(status_code: int) -> bool:
-    """Return whether an HTTP response proves the payment was not dispatched."""
-    # Do not treat every 4xx response as terminal. In particular, timeouts,
-    # conflicts and rate limits can be returned after a request was accepted.
-    return status_code in {400, 401, 403, 404, 405, 422}
+    """Return whether HTTP rejected the request before payment dispatch."""
+    # Generic 400 and 422 responses are provider-specific. They can report an
+    # existing payment, so adapters must not treat them as terminal based only
+    # on the status code. Timeouts, conflicts and rate limits are also ambiguous.
+    return status_code in {401, 403, 404, 405}
 
 
 class Feature(Enum):

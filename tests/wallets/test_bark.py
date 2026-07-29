@@ -246,8 +246,18 @@ async def test_send_payment_keeps_transport_errors_pending(
 @pytest.mark.anyio
 @pytest.mark.parametrize(
     ("status_code", "expected_ok"),
-    [(400, False), (500, None)],
-    ids=["client-error", "server-error"],
+    [
+        (400, None),
+        (401, False),
+        (403, False),
+        (404, False),
+        (405, False),
+        (408, None),
+        (409, None),
+        (422, None),
+        (429, None),
+        (500, None),
+    ],
 )
 async def test_send_payment_maps_http_errors(
     bark_wallet: BarkWallet,

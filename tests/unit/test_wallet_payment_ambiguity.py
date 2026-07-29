@@ -17,6 +17,7 @@ from lnbits.wallets.lnd_grpc_files.lightning_pb2 import Payment as LndPayment
 from lnbits.wallets.lndgrpc import LndWallet
 from lnbits.wallets.lndrest import LndRestWallet
 from lnbits.wallets.lnpay import LNPayWallet
+from lnbits.wallets.lntips import LnTipsWallet
 from lnbits.wallets.nwc import NWCError, NWCWallet
 from lnbits.wallets.opennode import OpenNodeWallet
 from lnbits.wallets.phoenixd import PhoenixdWallet
@@ -32,16 +33,35 @@ def _response(status_code: int, **kwargs) -> httpx.Response:
 
 
 @pytest.mark.anyio
-async def test_alby_definite_http_rejection_is_failed(mocker: MockerFixture):
+@pytest.mark.parametrize(
+    ("status_code", "expected"),
+    [
+        (400, None),
+        (401, False),
+        (403, False),
+        (404, False),
+        (405, False),
+        (408, None),
+        (409, None),
+        (422, None),
+        (429, None),
+        (500, None),
+    ],
+)
+async def test_alby_only_treats_definite_http_rejection_as_failed(
+    mocker: MockerFixture, status_code: int, expected: bool | None
+):
     wallet = object.__new__(AlbyWallet)
     wallet.endpoint = "https://wallet.test"
     cast(Any, wallet).client = SimpleNamespace(
-        post=mocker.AsyncMock(return_value=_response(404, text="Not Found"))
+        post=mocker.AsyncMock(
+            return_value=_response(status_code, json={"message": "error"})
+        )
     )
 
     response = await wallet.pay_invoice("bolt11", 1_000)
 
-    assert response.ok is False
+    assert response.ok is expected
 
 
 @pytest.mark.anyio
@@ -163,7 +183,18 @@ async def test_lndgrpc_in_flight_payment_is_pending(mocker: MockerFixture, setti
 @pytest.mark.anyio
 @pytest.mark.parametrize(
     ("status_code", "expected"),
-    [(400, False), (408, None), (409, None), (429, None), (500, None)],
+    [
+        (400, None),
+        (401, False),
+        (403, False),
+        (404, False),
+        (405, False),
+        (408, None),
+        (409, None),
+        (422, None),
+        (429, None),
+        (500, None),
+    ],
 )
 async def test_lnpay_only_treats_client_rejection_as_failed(
     mocker: MockerFixture, status_code: int, expected: bool | None
@@ -192,6 +223,31 @@ async def test_lnpay_malformed_payment_response_is_pending(mocker: MockerFixture
     response = await wallet.pay_invoice("bolt11", 1_000)
 
     assert response.ok is None
+
+
+@pytest.mark.anyio
+@pytest.mark.parametrize("wallet_class", [LnTipsWallet, OpenNodeWallet, ZBDWallet])
+@pytest.mark.parametrize(
+    ("status_code", "expected"),
+    [(400, None), (401, False), (422, None)],
+)
+async def test_http_wallets_only_fail_definite_request_rejections(
+    mocker: MockerFixture,
+    wallet_class: type[LnTipsWallet | OpenNodeWallet | ZBDWallet],
+    status_code: int,
+    expected: bool | None,
+):
+    wallet = object.__new__(wallet_class)
+    wallet.endpoint = "https://wallet.test"
+    cast(Any, wallet).client = SimpleNamespace(
+        post=mocker.AsyncMock(
+            return_value=_response(status_code, json={"message": "error"})
+        )
+    )
+
+    response = await wallet.pay_invoice("bolt11", 1_000)
+
+    assert response.ok is expected
 
 
 @pytest.mark.anyio
