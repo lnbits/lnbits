@@ -580,6 +580,66 @@ async def test_boltz_only_pre_dispatch_create_swap_errors_are_failed(
 
 
 @pytest.mark.anyio
+@pytest.mark.parametrize(
+    ("state", "expected"),
+    [
+        (boltzrpc_pb2.ERROR, False),
+        (boltzrpc_pb2.PENDING, None),
+        (boltzrpc_pb2.SUCCESSFUL, True),
+    ],
+)
+async def test_boltz_resolves_ambiguous_create_swap_error_from_backend_state(
+    mocker: MockerFixture,
+    state: int,
+    expected: bool | None,
+):
+    metadata = grpc.aio.Metadata()
+    error = grpc.aio.AioRpcError(
+        grpc.StatusCode.UNKNOWN,
+        metadata,
+        metadata,
+        details='sendrawtransaction RPC error: {"message":"txn-mempool-conflict"}',
+    )
+    payment_hash = "00" * 32
+    wallet = object.__new__(BoltzWallet)
+    wallet.metadata = None
+    wallet.wallet_id = 1
+    cast(Any, wallet).rpc = SimpleNamespace(
+        GetPairInfo=mocker.AsyncMock(
+            return_value=SimpleNamespace(
+                fees=SimpleNamespace(percentage=0, miner_fees=0)
+            )
+        ),
+        CreateSwap=mocker.AsyncMock(side_effect=error),
+        GetSwapInfo=mocker.AsyncMock(
+            return_value=SimpleNamespace(
+                swap=SimpleNamespace(
+                    state=state,
+                    service_fee=1,
+                    onchain_fee=2,
+                    status="swap status",
+                    preimage="preimage",
+                )
+            )
+        ),
+    )
+    mocker.patch(
+        "lnbits.wallets.boltz.decode",
+        return_value=SimpleNamespace(
+            amount_msat=1_000,
+            payment_hash=payment_hash,
+        ),
+    )
+
+    response = await wallet.pay_invoice("bolt11", 1_000)
+
+    assert response.ok is expected
+    assert response.checking_id == payment_hash
+    assert response.fee_msat == (3_000 if expected is True else None)
+    assert response.preimage == ("preimage" if expected is True else None)
+
+
+@pytest.mark.anyio
 async def test_boltz_error_text_without_terminal_state_is_pending(
     mocker: MockerFixture,
 ):

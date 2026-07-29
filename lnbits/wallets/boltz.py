@@ -172,12 +172,7 @@ class BoltzWallet(Wallet):
                 )
                 return PaymentResponse(ok=True, checking_id=invoice.payment_hash)
         except AioRpcError as exc:
-            logger.warning(exc)
-            return PaymentResponse(
-                ok=False if _is_pre_dispatch_create_swap_error(exc) else None,
-                checking_id=invoice.payment_hash,
-                error_message=exc.details(),
-            )
+            return await self._resolve_create_swap_error(invoice, exc)
         except Exception as exc:
             logger.warning(exc)
             return PaymentResponse(
@@ -218,6 +213,27 @@ class BoltzWallet(Wallet):
         except AioRpcError as exc:
             logger.warning(exc)
             return PaymentResponse(error_message=exc.details())
+
+    async def _resolve_create_swap_error(
+        self, invoice: Bolt11, exc: AioRpcError
+    ) -> PaymentResponse:
+        logger.warning(exc)
+        if _is_pre_dispatch_create_swap_error(exc):
+            status: PaymentStatus = PaymentFailedStatus()
+        else:
+            try:
+                status = await self.get_payment_status(invoice.payment_hash)
+            except Exception as status_exc:
+                logger.warning(status_exc)
+                status = PaymentPendingStatus()
+
+        return PaymentResponse(
+            ok=status.paid,
+            checking_id=invoice.payment_hash,
+            fee_msat=status.fee_msat,
+            preimage=status.preimage,
+            error_message=exc.details(),
+        )
 
     async def _prepare_payment(
         self, bolt11: str, fee_limit_msat: int
