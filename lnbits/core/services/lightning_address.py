@@ -131,7 +131,7 @@ async def set_wallet_lightning_address(
     charge: bool = False,
     conn: Connection | None = None,
 ) -> Wallet:
-    if not settings.lnbits_enable_wallet_lightning_addresses:
+    if not settings.ln_address_creation_allowed:
         raise ValueError("Wallet Lightning Addresses are disabled.")
     if not wallet.is_lightning_wallet or wallet.deleted:
         raise ValueError("Lightning Address can only be set for active wallets.")
@@ -161,7 +161,7 @@ async def ensure_wallet_lightning_address(
 ) -> Wallet:
     if (
         wallet.lightning_address
-        or not settings.lnbits_enable_wallet_lightning_addresses
+        or not settings.ln_address_creation_allowed
         or not wallet.is_lightning_wallet
         or wallet.deleted
     ):

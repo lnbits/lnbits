@@ -83,18 +83,22 @@
               ></q-item-label>
             </q-item-section>
             <q-item-section avatar>
-              <q-toggle
-                size="md"
-                v-model="formData.lnbits_enable_wallet_lightning_addresses"
-                checked-icon="check"
-                color="green"
-                unchecked-icon="clear"
-              />
+              <q-select
+                filled
+                v-model="formData.lnbits_ln_address_mode"
+                :hint="$t('ln_address_mode_hint')"
+                :label="$t('ln_address_mode')"
+                :options="[
+                  {label: $t('core_first'), value: 'core_first'},
+                  {label: $t('extension_first'), value: 'extension_first'},
+                  {label: $t('extension_only'), value: 'extension_only'}
+                ]"
+              ></q-select>
             </q-item-section>
           </q-item>
         </div>
         <div
-          v-if="formData.lnbits_enable_wallet_lightning_addresses"
+          v-if="formData.lnbits_ln_address_mode != 'extension_only'"
           class="col-12 col-md-6 q-mt-sm"
         >
           <q-item tag="label" v-ripple>
@@ -123,7 +127,7 @@
           </q-item>
         </div>
         <div
-          v-if="formData.lnbits_enable_wallet_lightning_addresses"
+          v-if="formData.lnbits_ln_address_mode != 'extension_only'"
           class="col-12 col-md-6 q-mt-sm"
         >
           <div>
@@ -165,7 +169,7 @@
           ></q-input>
         </div>
         <div
-          v-if="formData.lnbits_enable_wallet_lightning_addresses"
+          v-if="formData.lnbits_ln_address_mode != 'extension_only'"
           class="col-12 col-md-6 q-mt-sm"
         >
           <q-input

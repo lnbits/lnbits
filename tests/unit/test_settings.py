@@ -1,5 +1,5 @@
 from pathlib import Path
-from typing import Any
+from typing import Any, Literal
 
 import pytest
 from pytest_mock.plugin import MockerFixture
@@ -14,6 +14,7 @@ from lnbits.settings import (
     RedirectPath,
     SecuritySettings,
     Settings,
+    UsersSettings,
     list_parse_fallback,
     set_cli_settings,
 )
@@ -38,6 +39,24 @@ nostrrelay_redirect_path: dict[str, Any] = {
     "redirect_to_path": "/api/v1/relay-info",
     "header_filters": {"accept": "application/nostr+json"},
 }
+
+
+@pytest.mark.parametrize("mode", ["core_first", "extension_first", "extension_only"])
+def test_ln_address_mode(
+    mode: Literal["core_first", "extension_first", "extension_only"],
+):
+    users_settings = UsersSettings(lnbits_ln_address_mode=mode)
+
+    assert users_settings.lnbits_ln_address_mode == mode
+
+
+def test_ln_address_mode_defaults_to_extension_first():
+    assert UsersSettings().lnbits_ln_address_mode == "extension_first"
+
+
+def test_ln_address_mode_rejects_invalid_value():
+    with pytest.raises(ValueError):
+        UsersSettings.parse_obj({"lnbits_ln_address_mode": "invalid"})
 
 
 @pytest.fixture()
