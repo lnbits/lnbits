@@ -3,7 +3,6 @@ import hashlib
 from collections.abc import AsyncGenerator
 
 import httpx
-from bolt11 import decode as bolt11_decode
 from loguru import logger
 
 from lnbits.helpers import normalize_endpoint
@@ -16,6 +15,7 @@ from .base import (
     PaymentStatus,
     StatusResponse,
     Wallet,
+    payment_request_was_rejected,
 )
 
 
@@ -127,21 +127,40 @@ class ZBDWallet(Wallet):
             except Exception:
                 error_message = r.text
             return PaymentResponse(
-                ok=False if r.is_client_error else None,
+                ok=False if payment_request_was_rejected(r.status_code) else None,
                 error_message=error_message,
             )
 
         try:
-            data = r.json()
-            fee_msat = -int(data["data"]["fee"])
-            preimage = data["data"]["preimage"]
+            data = r.json()["data"]
+            checking_id = data.get("id")
+            fee = data.get("fee")
+            fee_msat = -int(fee) if fee is not None else None
+            preimage = data.get("preimage")
+            status = str(data.get("status", "")).lower()
         except Exception as exc:
             logger.warning(exc)
             return PaymentResponse(error_message="Invalid ZBD payment response.")
 
-        checking_id = bolt11_decode(bolt11).payment_hash
+        if status == "completed":
+            return PaymentResponse(
+                ok=True,
+                checking_id=checking_id,
+                fee_msat=fee_msat,
+                preimage=preimage,
+            )
+        if status in {"failed", "expired"}:
+            return PaymentResponse(
+                ok=False,
+                checking_id=checking_id,
+                fee_msat=fee_msat,
+                error_message=data.get("errorMessage"),
+            )
         return PaymentResponse(
-            ok=True, checking_id=checking_id, fee_msat=fee_msat, preimage=preimage
+            ok=None,
+            checking_id=checking_id,
+            fee_msat=fee_msat,
+            error_message=data.get("errorMessage"),
         )
 
     async def get_invoice_status(self, checking_id: str) -> PaymentStatus:

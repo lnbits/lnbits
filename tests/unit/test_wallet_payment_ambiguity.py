@@ -6,6 +6,9 @@ import httpx
 import pytest
 from pytest_mock.plugin import MockerFixture
 
+import lnbits.wallets.breez as breez_wallet_module
+import lnbits.wallets.breez_liquid as breez_liquid_wallet_module
+from lnbits.wallets.alby import AlbyWallet
 from lnbits.wallets.base import PaymentPendingStatus
 from lnbits.wallets.blink import BlinkWallet
 from lnbits.wallets.boltz import BoltzWallet
@@ -15,14 +18,30 @@ from lnbits.wallets.lndgrpc import LndWallet
 from lnbits.wallets.lndrest import LndRestWallet
 from lnbits.wallets.lnpay import LNPayWallet
 from lnbits.wallets.nwc import NWCError, NWCWallet
+from lnbits.wallets.opennode import OpenNodeWallet
 from lnbits.wallets.phoenixd import PhoenixdWallet
+from lnbits.wallets.spark import SparkWallet
 from lnbits.wallets.sparkl2 import SparkL2Wallet
 from lnbits.wallets.strike import StrikeWallet
+from lnbits.wallets.zbd import ZBDWallet
 
 
 def _response(status_code: int, **kwargs) -> httpx.Response:
     request = httpx.Request("POST", "https://wallet.test/pay")
     return httpx.Response(status_code, request=request, **kwargs)
+
+
+@pytest.mark.anyio
+async def test_alby_definite_http_rejection_is_failed(mocker: MockerFixture):
+    wallet = object.__new__(AlbyWallet)
+    wallet.endpoint = "https://wallet.test"
+    cast(Any, wallet).client = SimpleNamespace(
+        post=mocker.AsyncMock(return_value=_response(404, text="Not Found"))
+    )
+
+    response = await wallet.pay_invoice("bolt11", 1_000)
+
+    assert response.ok is False
 
 
 @pytest.mark.anyio
@@ -144,7 +163,7 @@ async def test_lndgrpc_in_flight_payment_is_pending(mocker: MockerFixture, setti
 @pytest.mark.anyio
 @pytest.mark.parametrize(
     ("status_code", "expected"),
-    [(400, False), (500, None)],
+    [(400, False), (408, None), (409, None), (429, None), (500, None)],
 )
 async def test_lnpay_only_treats_client_rejection_as_failed(
     mocker: MockerFixture, status_code: int, expected: bool | None
@@ -173,6 +192,67 @@ async def test_lnpay_malformed_payment_response_is_pending(mocker: MockerFixture
     response = await wallet.pay_invoice("bolt11", 1_000)
 
     assert response.ok is None
+
+
+@pytest.mark.anyio
+async def test_breez_immediate_failed_state_is_failed(mocker: MockerFixture, settings):
+    settings.breez_use_trampoline = False
+    breez_wallet = cast(Any, breez_wallet_module)
+    wallet = object.__new__(breez_wallet.BreezSdkWallet)
+    mocker.patch(
+        "lnbits.wallets.breez.bolt11_decode",
+        return_value=SimpleNamespace(payment_hash="payment-hash"),
+    )
+    cast(Any, wallet).sdk_services = SimpleNamespace(
+        send_payment=mocker.Mock(
+            return_value=SimpleNamespace(
+                payment=SimpleNamespace(status=breez_wallet.BreezPaymentStatus.FAILED)
+            )
+        )
+    )
+
+    response = await cast(Any, wallet).pay_invoice("bolt11", 1_000)
+
+    assert response.ok is False
+    assert response.checking_id == "payment-hash"
+
+
+@pytest.mark.anyio
+async def test_breez_liquid_timed_out_outgoing_payment_is_failed(
+    mocker: MockerFixture,
+):
+    breez_liquid_wallet = cast(Any, breez_liquid_wallet_module)
+    wallet = object.__new__(breez_liquid_wallet.BreezLiquidSdkWallet)
+    cast(Any, wallet).sdk_services = SimpleNamespace(
+        get_payment=mocker.Mock(
+            return_value=SimpleNamespace(
+                payment_type=breez_liquid_wallet.PaymentType.SEND,
+                status=breez_liquid_wallet.PaymentState.TIMED_OUT,
+            )
+        )
+    )
+
+    status = await cast(Any, wallet).get_payment_status("payment-hash")
+
+    assert status.paid is False
+
+
+@pytest.mark.anyio
+async def test_breez_liquid_prepare_error_is_failed(mocker: MockerFixture):
+    breez_liquid_wallet = cast(Any, breez_liquid_wallet_module)
+    wallet = object.__new__(breez_liquid_wallet.BreezLiquidSdkWallet)
+    mocker.patch(
+        "lnbits.wallets.breez_liquid.bolt11_decode",
+        return_value=SimpleNamespace(payment_hash="payment-hash"),
+    )
+    cast(Any, wallet).sdk_services = SimpleNamespace(
+        prepare_send_payment=mocker.Mock(side_effect=RuntimeError("cannot prepare"))
+    )
+
+    response = await cast(Any, wallet).pay_invoice("bolt11", 1_000)
+
+    assert response.ok is False
+    assert response.checking_id == "payment-hash"
 
 
 @pytest.mark.anyio
@@ -222,6 +302,28 @@ async def test_spark_sidecar_missing_checking_id_is_pending(mocker: MockerFixtur
 
 @pytest.mark.anyio
 @pytest.mark.parametrize(
+    ("provider_status", "expected"),
+    [("unpaid", None), ("expired", False), ("paid", True)],
+)
+async def test_spark_invoice_uses_exact_terminal_status(
+    mocker: MockerFixture,
+    provider_status: str,
+    expected: bool | None,
+):
+    wallet = object.__new__(SparkWallet)
+    mocker.patch.object(
+        wallet,
+        "listinvoices",
+        return_value={"invoices": [{"status": provider_status}]},
+    )
+
+    status = await wallet.get_invoice_status("invoice-id")
+
+    assert status.paid is expected
+
+
+@pytest.mark.anyio
+@pytest.mark.parametrize(
     ("state", "expected"),
     [
         (boltzrpc_pb2.SwapState.ERROR, False),
@@ -242,6 +344,130 @@ async def test_boltz_only_known_terminal_swap_state_is_failed(
     status = await wallet.get_payment_status("00" * 32)
 
     assert status.paid is expected
+
+
+@pytest.mark.anyio
+async def test_boltz_error_text_without_terminal_state_is_pending(
+    mocker: MockerFixture,
+):
+    async def swap_updates():
+        yield SimpleNamespace(
+            swap=SimpleNamespace(state=999, error="unrecognized transient error")
+        )
+
+    wallet = object.__new__(BoltzWallet)
+    wallet.metadata = None
+    wallet.wallet_id = 1
+    cast(Any, wallet).rpc = SimpleNamespace(
+        GetPairInfo=mocker.AsyncMock(
+            return_value=SimpleNamespace(
+                fees=SimpleNamespace(percentage=0, miner_fees=0)
+            )
+        ),
+        CreateSwap=mocker.AsyncMock(return_value=SimpleNamespace(id="swap-id")),
+        GetSwapInfoStream=mocker.Mock(return_value=swap_updates()),
+    )
+    mocker.patch(
+        "lnbits.wallets.boltz.decode",
+        return_value=SimpleNamespace(
+            amount_msat=1_000,
+            payment_hash="payment-hash",
+        ),
+    )
+
+    response = await wallet.pay_invoice("bolt11", 1_000)
+
+    assert response.ok is None
+
+
+@pytest.mark.anyio
+async def test_opennode_terminal_error_status_is_failed(mocker: MockerFixture):
+    wallet = object.__new__(OpenNodeWallet)
+    cast(Any, wallet).client = SimpleNamespace(
+        get=mocker.AsyncMock(
+            return_value=_response(
+                200,
+                json={"data": {"status": "error", "fee": 1}},
+            )
+        )
+    )
+
+    status = await wallet.get_payment_status("withdrawal-id")
+
+    assert status.paid is False
+
+
+@pytest.mark.anyio
+async def test_opennode_terminal_status_does_not_require_provider_id(
+    mocker: MockerFixture,
+):
+    wallet = object.__new__(OpenNodeWallet)
+    cast(Any, wallet).client = SimpleNamespace(
+        post=mocker.AsyncMock(
+            return_value=_response(
+                200,
+                json={"data": {"status": "failed"}},
+            )
+        )
+    )
+
+    response = await wallet.pay_invoice("bolt11", 1_000)
+
+    assert response.ok is False
+    assert response.checking_id is None
+
+
+@pytest.mark.anyio
+@pytest.mark.parametrize(
+    ("provider_status", "expected"),
+    [("processing", None), ("completed", True), ("failed", False)],
+)
+async def test_zbd_preserves_provider_id_and_exact_status(
+    mocker: MockerFixture,
+    provider_status: str,
+    expected: bool | None,
+):
+    wallet = object.__new__(ZBDWallet)
+    cast(Any, wallet).client = SimpleNamespace(
+        post=mocker.AsyncMock(
+            return_value=_response(
+                200,
+                json={
+                    "data": {
+                        "id": "zbd-payment-id",
+                        "status": provider_status,
+                        "fee": "10",
+                        "preimage": "preimage",
+                    }
+                },
+            )
+        )
+    )
+
+    response = await wallet.pay_invoice("bolt11", 1_000)
+
+    assert response.ok is expected
+    assert response.checking_id == "zbd-payment-id"
+
+
+@pytest.mark.anyio
+async def test_zbd_terminal_status_does_not_require_provider_id(
+    mocker: MockerFixture,
+):
+    wallet = object.__new__(ZBDWallet)
+    cast(Any, wallet).client = SimpleNamespace(
+        post=mocker.AsyncMock(
+            return_value=_response(
+                200,
+                json={"data": {"status": "failed"}},
+            )
+        )
+    )
+
+    response = await wallet.pay_invoice("bolt11", 1_000)
+
+    assert response.ok is False
+    assert response.checking_id is None
 
 
 @pytest.mark.anyio
@@ -270,3 +496,74 @@ async def test_strike_invalid_fallback_identifier_is_pending(mocker: MockerFixtu
     status = await wallet._get_payment_status_by_checking_id("payment-hash")
 
     assert status.paid is None
+
+
+@pytest.mark.anyio
+async def test_strike_ambiguous_execution_uses_payment_hash_fallback(
+    mocker: MockerFixture,
+):
+    wallet = object.__new__(StrikeWallet)
+    wallet.pending_payments = {}
+    mocker.patch(
+        "lnbits.wallets.strike.bolt11_decode",
+        return_value=SimpleNamespace(payment_hash="payment-hash"),
+    )
+    mocker.patch.object(
+        wallet,
+        "_create_payment_quote",
+        return_value=("quote-id", None),
+    )
+    mocker.patch.object(
+        wallet,
+        "_execute_payment_quote",
+        return_value=(None, "request timed out"),
+    )
+
+    response = await wallet.pay_invoice("bolt11", 1_000)
+
+    assert response.ok is None
+    assert response.checking_id is None
+
+
+@pytest.mark.anyio
+async def test_strike_terminal_state_does_not_require_payment_id(
+    mocker: MockerFixture,
+):
+    wallet = object.__new__(StrikeWallet)
+    wallet.pending_payments = {}
+    mocker.patch(
+        "lnbits.wallets.strike.bolt11_decode",
+        return_value=SimpleNamespace(payment_hash="payment-hash"),
+    )
+    mocker.patch.object(
+        wallet,
+        "_create_payment_quote",
+        return_value=("quote-id", None),
+    )
+    mocker.patch.object(
+        wallet,
+        "_execute_payment_quote",
+        return_value=({"state": "FAILED"}, None),
+    )
+
+    response = await wallet.pay_invoice("bolt11", 1_000)
+
+    assert response.ok is False
+    assert response.checking_id == "payment-hash"
+
+
+@pytest.mark.anyio
+async def test_strike_persisted_payment_hash_not_found_stays_pending(
+    mocker: MockerFixture,
+):
+    wallet = object.__new__(StrikeWallet)
+    wallet.pending_payments = {}
+    cast(Any, wallet)._get = mocker.AsyncMock(
+        return_value=_response(404, text="Not Found")
+    )
+
+    payment_hash = "ab" * 32
+    status = await wallet.get_payment_status(payment_hash)
+
+    assert status.paid is None
+    cast(Any, wallet)._get.assert_awaited_once_with(f"/payments/{payment_hash}")

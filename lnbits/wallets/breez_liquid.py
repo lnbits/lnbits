@@ -173,29 +173,44 @@ else:
         async def pay_invoice(
             self, bolt11: str, fee_limit_msat: int
         ) -> PaymentResponse:
-            invoice_data = bolt11_decode(bolt11)
+            try:
+                invoice_data = bolt11_decode(bolt11)
+            except Exception as exc:
+                logger.warning(exc)
+                return PaymentResponse(
+                    ok=False,
+                    error_message=f"invalid bolt11 invoice: {exc}",
+                )
 
             try:
                 prepare_req = PrepareSendRequest(destination=bolt11)
                 req = self.sdk_services.prepare_send_payment(prepare_req)
-
-                fee_limit_sat = settings.breez_liquid_fee_offset_sat + int(
-                    fee_limit_msat / 1000
+            except Exception as exc:
+                logger.warning(exc)
+                return PaymentResponse(
+                    ok=False,
+                    checking_id=invoice_data.payment_hash,
+                    error_message=f"unable to prepare payment: {exc}",
                 )
 
-                if req.fees_sat and req.fees_sat > fee_limit_sat:
-                    return PaymentResponse(
-                        ok=False,
-                        error_message=(
-                            f"fee of {req.fees_sat} sat exceeds limit of "
-                            f"{fee_limit_sat} sat"
-                        ),
-                    )
+            fee_limit_sat = settings.breez_liquid_fee_offset_sat + int(
+                fee_limit_msat / 1000
+            )
 
+            if req.fees_sat and req.fees_sat > fee_limit_sat:
+                return PaymentResponse(
+                    ok=False,
+                    checking_id=invoice_data.payment_hash,
+                    error_message=(
+                        f"fee of {req.fees_sat} sat exceeds limit of "
+                        f"{fee_limit_sat} sat"
+                    ),
+                )
+
+            try:
                 send_response = self.sdk_services.send_payment(
                     SendPaymentRequest(prepare_response=req)
                 )
-
             except Exception as exc:
                 logger.warning(exc)
                 return PaymentResponse(error_message=f"Exception while payment: {exc}")
@@ -205,6 +220,14 @@ else:
             checking_id = invoice_data.payment_hash
 
             fees = req.fees_sat * 1000 if req.fees_sat and req.fees_sat > 0 else 0
+
+            if payment.status in {PaymentState.FAILED, PaymentState.TIMED_OUT}:
+                return PaymentResponse(
+                    ok=False,
+                    checking_id=checking_id,
+                    fee_msat=fees,
+                    error_message=f"payment {payment.status!s}",
+                )
 
             if payment.status != PaymentState.COMPLETE:
                 return await self._wait_for_outgoing_payment(checking_id, fees, 10)
@@ -262,7 +285,10 @@ else:
                         fee_msat=int(payment.fees_sat * 1000),
                         preimage=payment.details.preimage,
                     )
-                if payment.status == PaymentState.FAILED:
+                if payment.status in {
+                    PaymentState.FAILED,
+                    PaymentState.TIMED_OUT,
+                }:
                     return PaymentFailedStatus()
                 return PaymentPendingStatus()
             except Exception as exc:

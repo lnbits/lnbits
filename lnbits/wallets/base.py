@@ -15,6 +15,13 @@ if TYPE_CHECKING:
     from lnbits.nodes.base import Node
 
 
+def payment_request_was_rejected(status_code: int) -> bool:
+    """Return whether an HTTP response proves the payment was not dispatched."""
+    # Do not treat every 4xx response as terminal. In particular, timeouts,
+    # conflicts and rate limits can be returned after a request was accepted.
+    return status_code in {400, 401, 403, 404, 405, 422}
+
+
 class Feature(Enum):
     nodemanager = "nodemanager"
     holdinvoice = "holdinvoice"

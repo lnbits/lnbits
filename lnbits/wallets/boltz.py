@@ -2,6 +2,7 @@ import asyncio
 from collections.abc import AsyncGenerator
 
 from bolt11.decode import decode
+from bolt11.types import Bolt11
 from grpc.aio import AioRpcError
 from loguru import logger
 
@@ -124,26 +125,12 @@ class BoltzWallet(Wallet):
         )
 
     async def pay_invoice(self, bolt11: str, fee_limit_msat: int) -> PaymentResponse:
+        prepared = await self._prepare_payment(bolt11, fee_limit_msat)
+        if isinstance(prepared, PaymentResponse):
+            return prepared
+        pair, invoice = prepared
 
-        pair = boltzrpc_pb2.Pair(**{"from": boltzrpc_pb2.LBTC})
         try:
-            pair_info: boltzrpc_pb2.PairInfo
-            pair_request = boltzrpc_pb2.GetPairInfoRequest(
-                type=boltzrpc_pb2.SUBMARINE, pair=pair
-            )
-            pair_info = await self.rpc.GetPairInfo(pair_request, metadata=self.metadata)
-            invoice = decode(bolt11)
-
-            if not invoice.amount_msat:
-                raise ValueError("amountless invoice")
-
-            service_fee: float = invoice.amount_msat * pair_info.fees.percentage / 100
-            estimate = int(service_fee + pair_info.fees.miner_fees * 1000)
-            if estimate > fee_limit_msat:
-                error = f"fee of {estimate} msat exceeds limit of {fee_limit_msat} msat"
-
-                return PaymentResponse(ok=False, error_message=error)
-
             request = boltzrpc_pb2.CreateSwapRequest(
                 invoice=bolt11,
                 pair=pair,
@@ -166,7 +153,16 @@ class BoltzWallet(Wallet):
                 return PaymentResponse(ok=True, checking_id=invoice.payment_hash)
         except AioRpcError as exc:
             logger.warning(exc)
-            return PaymentResponse(error_message=exc.details())
+            return PaymentResponse(
+                checking_id=invoice.payment_hash,
+                error_message=exc.details(),
+            )
+        except Exception as exc:
+            logger.warning(exc)
+            return PaymentResponse(
+                checking_id=invoice.payment_hash,
+                error_message=str(exc),
+            )
 
         try:
             info_request = boltzrpc_pb2.GetSwapInfoRequest(id=response.id)
@@ -186,12 +182,66 @@ class BoltzWallet(Wallet):
                         fee_msat=fee_msat,
                         preimage=info.swap.preimage,
                     )
-                elif info.swap.error != "":
-                    return PaymentResponse(ok=False, error_message=info.swap.error)
+                if info.swap.state in {
+                    boltzrpc_pb2.ERROR,
+                    boltzrpc_pb2.SERVER_ERROR,
+                    boltzrpc_pb2.REFUNDED,
+                    boltzrpc_pb2.ABANDONED,
+                }:
+                    return PaymentResponse(
+                        ok=False,
+                        checking_id=invoice.payment_hash,
+                        error_message=info.swap.error or "swap failed",
+                    )
             return PaymentResponse(error_message="stream stopped unexpectedly")
         except AioRpcError as exc:
             logger.warning(exc)
             return PaymentResponse(error_message=exc.details())
+
+    async def _prepare_payment(
+        self, bolt11: str, fee_limit_msat: int
+    ) -> tuple[boltzrpc_pb2.Pair, Bolt11] | PaymentResponse:
+        pair = boltzrpc_pb2.Pair(**{"from": boltzrpc_pb2.LBTC})
+        try:
+            invoice = decode(bolt11)
+        except Exception as exc:
+            logger.warning(exc)
+            return PaymentResponse(
+                ok=False,
+                error_message=f"invalid bolt11 invoice: {exc}",
+            )
+
+        if not invoice.amount_msat:
+            return PaymentResponse(
+                ok=False,
+                checking_id=invoice.payment_hash,
+                error_message="amountless invoice",
+            )
+
+        try:
+            pair_info: boltzrpc_pb2.PairInfo
+            pair_request = boltzrpc_pb2.GetPairInfoRequest(
+                type=boltzrpc_pb2.SUBMARINE, pair=pair
+            )
+            pair_info = await self.rpc.GetPairInfo(pair_request, metadata=self.metadata)
+        except Exception as exc:
+            logger.warning(exc)
+            return PaymentResponse(
+                ok=False,
+                checking_id=invoice.payment_hash,
+                error_message=f"unable to get swap terms: {exc}",
+            )
+
+        service_fee: float = invoice.amount_msat * pair_info.fees.percentage / 100
+        estimate = int(service_fee + pair_info.fees.miner_fees * 1000)
+        if estimate > fee_limit_msat:
+            error = f"fee of {estimate} msat exceeds limit of {fee_limit_msat} msat"
+            return PaymentResponse(
+                ok=False,
+                checking_id=invoice.payment_hash,
+                error_message=error,
+            )
+        return pair, invoice
 
     async def get_invoice_status(self, checking_id: str) -> PaymentStatus:
         try:

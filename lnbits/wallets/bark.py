@@ -21,6 +21,7 @@ from .base import (
     PaymentSuccessStatus,
     StatusResponse,
     Wallet,
+    payment_request_was_rejected,
 )
 
 
@@ -396,7 +397,7 @@ class BarkWallet(Wallet):
             logger.warning(message)
             return self._pending_payment_response(bolt11, checking_id, message)
         except httpx.HTTPStatusError as exc:
-            if exc.response.is_client_error:
+            if payment_request_was_rejected(exc.response.status_code):
                 return PaymentResponse(
                     ok=False,
                     checking_id=checking_id,

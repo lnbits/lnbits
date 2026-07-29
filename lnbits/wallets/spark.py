@@ -167,9 +167,11 @@ class SparkWallet(Wallet):
             except (SparkError, UnknownError):
                 return PaymentResponse(error_message=str(exc))
             if not listpays:
-                return PaymentResponse(ok=False, error_message=str(exc))
+                return PaymentResponse(error_message=str(exc))
 
-            pays = listpays["pays"]
+            pays = listpays.get("pays")
+            if not isinstance(pays, list):
+                return PaymentResponse(error_message=str(exc))
 
             if len(pays) == 0:
                 return PaymentResponse(ok=False, error_message=str(exc))
@@ -219,10 +221,12 @@ class SparkWallet(Wallet):
         if not r or not r.get("invoices"):
             return PaymentPendingStatus()
 
-        if r["invoices"][0]["status"] == "paid":
+        status = r["invoices"][0]["status"]
+        if status == "paid":
             return PaymentSuccessStatus()
-        else:
+        if status == "expired":
             return PaymentFailedStatus()
+        return PaymentPendingStatus()
 
     async def get_payment_status(self, checking_id: str) -> PaymentStatus:
         # check if it's 32 bytes hex

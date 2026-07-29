@@ -15,6 +15,7 @@ from .base import (
     PaymentStatus,
     StatusResponse,
     Wallet,
+    payment_request_was_rejected,
 )
 
 
@@ -122,7 +123,7 @@ class LNPayWallet(Wallet):
 
         if r.is_error:
             return PaymentResponse(
-                ok=False if r.is_client_error else None,
+                ok=False if payment_request_was_rejected(r.status_code) else None,
                 error_message=data.get("message", r.text),
             )
 

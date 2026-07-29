@@ -15,6 +15,7 @@ from .base import (
     PaymentStatus,
     StatusResponse,
     Wallet,
+    payment_request_was_rejected,
 )
 
 
@@ -110,16 +111,25 @@ class OpenNodeWallet(Wallet):
             if r.is_error:
                 error_message = r.json().get("message", r.text)
                 logger.warning(error_message)
-                return PaymentResponse(ok=None, error_message=error_message)
+                return PaymentResponse(
+                    ok=(False if payment_request_was_rejected(r.status_code) else None),
+                    error_message=error_message,
+                )
 
             data = r.json()["data"]
-            checking_id = data["id"]
-            fee_msat = -data["fee"] * 1000
-            if data["status"] != "paid":
+            checking_id = data.get("id")
+            fee = data.get("fee")
+            fee_msat = -fee * 1000 if fee is not None else None
+            status = str(data.get("status", "")).lower()
+            if status in {"paid", "confirmed"}:
                 return PaymentResponse(
-                    ok=None, checking_id=checking_id, fee_msat=fee_msat
+                    ok=True, checking_id=checking_id, fee_msat=fee_msat
                 )
-            return PaymentResponse(ok=True, checking_id=checking_id, fee_msat=fee_msat)
+            if status in {"error", "failed"}:
+                return PaymentResponse(
+                    ok=False, checking_id=checking_id, fee_msat=fee_msat
+                )
+            return PaymentResponse(ok=None, checking_id=checking_id, fee_msat=fee_msat)
         except Exception as exc:
             logger.warning(exc)
             return PaymentResponse(error_message="Invalid OpenNode payment response.")
@@ -143,7 +153,7 @@ class OpenNodeWallet(Wallet):
                 "initial": None,
                 "pending": None,
                 "confirmed": True,
-                "error": None,
+                "error": False,
                 "failed": False,
             }
             fee = data.get("fee")
