@@ -520,6 +520,91 @@ async def test_pay_external_invoice_success(
 
 
 @pytest.mark.anyio
+async def test_pay_external_invoice_with_webhook(
+    from_wallet: Wallet, mocker: MockerFixture, external_funding_source: FakeWallet
+):
+    invoice_amount = 2105
+    external_invoice = await external_funding_source.create_invoice(invoice_amount)
+    assert external_invoice.payment_request
+    assert external_invoice.checking_id
+
+    preimage = "0000000000000000000000000000000000000000000000000000000000002105"
+    mocker.patch(
+        "lnbits.wallets.FakeWallet.pay_invoice",
+        AsyncMock(
+            return_value=PaymentResponse(
+                ok=True, checking_id=external_invoice.checking_id, preimage=preimage
+            )
+        ),
+    )
+    dispatch_webhook_mock = mocker.patch(
+        "lnbits.core.services.notifications.dispatch_webhook",
+        AsyncMock(return_value=None),
+    )
+
+    webhook_url = "http://test.404.lnbits.com"
+    payment = await pay_invoice(
+        wallet_id=from_wallet.id,
+        payment_request=external_invoice.payment_request,
+        webhook=webhook_url,
+    )
+
+    _payment = await get_standalone_payment(payment.payment_hash)
+    assert _payment
+    assert _payment.status == PaymentState.SUCCESS.value
+    assert _payment.amount == -invoice_amount * 1000
+    assert _payment.webhook == webhook_url, "Webhook is stored on the outgoing payment."
+
+    await asyncio.sleep(1)
+
+    assert (
+        dispatch_webhook_mock.call_count == 1
+    ), "Webhook dispatched for the outgoing payment."
+    dispatched_payment = dispatch_webhook_mock.call_args_list[0][0][0]
+    assert dispatched_payment.payment_hash == payment.payment_hash
+    assert dispatched_payment.amount < 0, "Dispatched payment is the outgoing one."
+    assert dispatched_payment.webhook == webhook_url
+
+
+@pytest.mark.anyio
+async def test_pay_external_invoice_without_webhook_does_not_dispatch(
+    from_wallet: Wallet, mocker: MockerFixture, external_funding_source: FakeWallet
+):
+    invoice_amount = 2106
+    external_invoice = await external_funding_source.create_invoice(invoice_amount)
+    assert external_invoice.payment_request
+    assert external_invoice.checking_id
+
+    preimage = "0000000000000000000000000000000000000000000000000000000000002106"
+    mocker.patch(
+        "lnbits.wallets.FakeWallet.pay_invoice",
+        AsyncMock(
+            return_value=PaymentResponse(
+                ok=True, checking_id=external_invoice.checking_id, preimage=preimage
+            )
+        ),
+    )
+    dispatch_webhook_mock = mocker.patch(
+        "lnbits.core.services.notifications.dispatch_webhook",
+        AsyncMock(return_value=None),
+    )
+
+    payment = await pay_invoice(
+        wallet_id=from_wallet.id,
+        payment_request=external_invoice.payment_request,
+    )
+
+    _payment = await get_standalone_payment(payment.payment_hash)
+    assert _payment
+    assert _payment.status == PaymentState.SUCCESS.value
+    assert _payment.webhook is None
+
+    await asyncio.sleep(1)
+
+    assert dispatch_webhook_mock.call_count == 0, "No webhook, no dispatch."
+
+
+@pytest.mark.anyio
 async def test_retry_pay_success(
     from_wallet: Wallet, mocker: MockerFixture, external_funding_source: FakeWallet
 ):

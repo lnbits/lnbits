@@ -256,6 +256,8 @@ async def api_all_payments_paginated(
         `amount`, `unit`, and `memo`. To pay an arbitrary invoice from the funds
         already in the authorized account, specify `out: true` and use the `bolt11`
         field to supply the BOLT11 invoice to be paid.
+        The optional `webhook` field is honoured in both directions: LNbits POSTs
+        the payment to that URL once the payment reaches `success`.
     """,
     status_code=HTTPStatus.CREATED,
     responses={
@@ -281,6 +283,7 @@ async def api_payments_create(
             extra=invoice_data.extra,
             labels=invoice_data.labels,
             external_id=invoice_data.external_id,
+            webhook=invoice_data.webhook,
         )
         return payment
 
