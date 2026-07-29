@@ -104,7 +104,7 @@ class ExtensionsRedirectMiddleware:
 
         req_headers = scope["headers"] if "headers" in scope else []
         redirect = settings.find_extension_redirect(scope["path"], req_headers)
-        if redirect:
+        if redirect and not redirect.is_duplicate_well_known():
             scope["path"] = redirect.new_path_from(scope["path"])
 
         await self.app(scope, receive, send)

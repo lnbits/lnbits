@@ -140,6 +140,9 @@ class RedirectPath(BaseModel):
     redirect_to_path: str
     header_filters: dict = {}
 
+    def is_duplicate_well_known(self) -> bool:
+        return self.from_path in ["/.well-known/lnurlp"]
+
     def in_conflict(self, other: RedirectPath) -> bool:
         if self.ext_id == other.ext_id:
             return False
