@@ -65,6 +65,7 @@ window.localisation.en = {
   wallets: 'Wallets',
   exclude_wallets: 'Exclude Wallets',
   add_wallet: 'Add wallet',
+  add_field: 'Add field',
   reject_wallet: 'Reject wallet',
   add_new_wallet: 'Add a new wallet',
   pin_wallet: 'Pin wallet',
