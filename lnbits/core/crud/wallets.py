@@ -8,7 +8,7 @@ from sqlalchemy.exc import OperationalError
 from lnbits.core.db import db
 from lnbits.core.models.wallets import BaseWallet, WalletsFilters, WalletType
 from lnbits.db import Connection, Database, Filters, Page
-from lnbits.helpers import _generate_local_part
+from lnbits.helpers import generate_ln_address
 from lnbits.settings import settings
 from lnbits.utils.cache import cache
 
@@ -267,7 +267,7 @@ async def generate_lightning_address_local_part(
     conn: Connection | None = None,
 ) -> str:
     for _ in range(100):
-        local_part = _generate_local_part()
+        local_part = generate_ln_address()
         if await wallet_lightning_address_exists(local_part, conn):
             continue
         if await legacy_lnurlp_address_exists(local_part):

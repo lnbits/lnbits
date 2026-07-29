@@ -23,7 +23,7 @@ from lnbits.utils.exchange_rates import currencies
 from .db import FilterModel
 
 
-def _generate_local_part() -> str:
+def generate_ln_address() -> str:
     return generate_username(1)[0].lower()
 
 
