@@ -3,6 +3,7 @@ from collections.abc import AsyncGenerator
 
 from bolt11.decode import decode
 from bolt11.types import Bolt11
+from grpc import StatusCode
 from grpc.aio import AioRpcError
 from loguru import logger
 
@@ -22,6 +23,25 @@ from .base import (
     StatusResponse,
     Wallet,
 )
+
+_PRE_DISPATCH_CREATE_SWAP_ERROR_CODES = {
+    StatusCode.INVALID_ARGUMENT,
+    StatusCode.PERMISSION_DENIED,
+    StatusCode.UNAUTHENTICATED,
+}
+_PRE_DISPATCH_CREATE_SWAP_ERROR_MESSAGES = (
+    "boltz error: could not find route to pay invoice",
+)
+
+
+def _is_pre_dispatch_create_swap_error(exc: AioRpcError) -> bool:
+    if exc.code() in _PRE_DISPATCH_CREATE_SWAP_ERROR_CODES:
+        return True
+
+    details = (exc.details() or "").lower()
+    return any(
+        message in details for message in _PRE_DISPATCH_CREATE_SWAP_ERROR_MESSAGES
+    )
 
 
 class BoltzWallet(Wallet):
@@ -154,6 +174,7 @@ class BoltzWallet(Wallet):
         except AioRpcError as exc:
             logger.warning(exc)
             return PaymentResponse(
+                ok=False if _is_pre_dispatch_create_swap_error(exc) else None,
                 checking_id=invoice.payment_hash,
                 error_message=exc.details(),
             )

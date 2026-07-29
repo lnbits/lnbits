@@ -4,6 +4,7 @@ from typing import Any, cast
 import grpc
 import httpx
 import pytest
+from pyln.client import RpcError
 from pytest_mock.plugin import MockerFixture
 
 import lnbits.wallets.breez as breez_wallet_module
@@ -13,6 +14,7 @@ from lnbits.wallets.base import PaymentPendingStatus
 from lnbits.wallets.blink import BlinkWallet
 from lnbits.wallets.boltz import BoltzWallet
 from lnbits.wallets.boltz_grpc_files import boltzrpc_pb2
+from lnbits.wallets.corelightning import CoreLightningWallet
 from lnbits.wallets.eclair import EclairWallet
 from lnbits.wallets.lnd_grpc_files.lightning_pb2 import Payment as LndPayment
 from lnbits.wallets.lndgrpc import LndWallet
@@ -152,6 +154,44 @@ async def test_lndrest_unknown_payment_state_is_pending(
 
 @pytest.mark.anyio
 @pytest.mark.parametrize(
+    ("error", "expected"),
+    [
+        (
+            {
+                "code": 2,
+                "message": "invoice not for current active network 'regtest'",
+            },
+            False,
+        ),
+        ({"code": 2, "message": "invoice expired"}, False),
+        ({"code": 3, "message": "invalid payment request"}, False),
+        ({"code": 2, "message": "payment stream interrupted"}, None),
+        ({"code": 14, "message": "transport unavailable"}, None),
+    ],
+)
+async def test_lndrest_only_pre_dispatch_rpc_errors_are_failed(
+    mocker: MockerFixture,
+    settings,
+    error: dict,
+    expected: bool | None,
+):
+    settings.lnd_rest_allow_self_payment = False
+    wallet = object.__new__(LndRestWallet)
+    wallet.endpoint = "https://wallet.test"
+    cast(Any, wallet).client = SimpleNamespace(
+        post=mocker.AsyncMock(
+            return_value=_response(500, json={"error": error}),
+        )
+    )
+
+    response = await wallet.pay_invoice("bolt11", 1_000)
+
+    assert response.ok is expected
+    assert response.error_message == error["message"]
+
+
+@pytest.mark.anyio
+@pytest.mark.parametrize(
     ("code", "details", "expected"),
     [
         (
@@ -212,6 +252,58 @@ async def test_lndgrpc_in_flight_payment_is_pending(mocker: MockerFixture, setti
 
     assert response.ok is None
     assert response.checking_id == "payment-hash"
+
+
+@pytest.mark.anyio
+@pytest.mark.parametrize(
+    ("error", "expected"),
+    [
+        (
+            {
+                "code": 0,
+                "message": "destination is not reachable",
+                "attempts": [{"status": "failed"}],
+            },
+            False,
+        ),
+        (
+            {
+                "code": 0,
+                "message": "payment is still running",
+                "attempts": [{"status": "pending"}],
+            },
+            None,
+        ),
+        ({"code": 0, "message": "unclassified RPC error"}, None),
+        ({"code": 205, "message": "unable to find a route"}, False),
+    ],
+)
+async def test_corelightning_only_terminal_rpc_errors_are_failed(
+    mocker: MockerFixture,
+    error: dict,
+    expected: bool | None,
+):
+    wallet = object.__new__(CoreLightningWallet)
+    wallet.pay = "pay"
+    wallet.pay_failure_error_codes = [-32602, 201, 203, 205, 206, 207, 210]
+    cast(Any, wallet).ln = SimpleNamespace(
+        call=mocker.Mock(side_effect=RpcError("pay", {}, cast(Any, error)))
+    )
+    mocker.patch(
+        "lnbits.wallets.corelightning.bolt11_decode",
+        return_value=SimpleNamespace(
+            payment_hash="payment-hash",
+            amount_msat=1_000,
+            description="",
+        ),
+    )
+    mocker.patch.object(
+        wallet, "get_payment_status", return_value=PaymentPendingStatus()
+    )
+
+    response = await wallet.pay_invoice("bolt11", 1_000)
+
+    assert response.ok is expected
 
 
 @pytest.mark.anyio
@@ -434,6 +526,57 @@ async def test_boltz_only_known_terminal_swap_state_is_failed(
     status = await wallet.get_payment_status("00" * 32)
 
     assert status.paid is expected
+
+
+@pytest.mark.anyio
+@pytest.mark.parametrize(
+    ("code", "details", "expected"),
+    [
+        (
+            grpc.StatusCode.INVALID_ARGUMENT,
+            "invalid invoice or lnurl: invalid HRP",
+            False,
+        ),
+        (
+            grpc.StatusCode.UNKNOWN,
+            "boltz error: could not find route to pay invoice",
+            False,
+        ),
+        (grpc.StatusCode.UNKNOWN, "payment response interrupted", None),
+        (grpc.StatusCode.ALREADY_EXISTS, "swap already exists", None),
+    ],
+)
+async def test_boltz_only_pre_dispatch_create_swap_errors_are_failed(
+    mocker: MockerFixture,
+    code: grpc.StatusCode,
+    details: str,
+    expected: bool | None,
+):
+    metadata = grpc.aio.Metadata()
+    error = grpc.aio.AioRpcError(code, metadata, metadata, details=details)
+    wallet = object.__new__(BoltzWallet)
+    wallet.metadata = None
+    wallet.wallet_id = 1
+    cast(Any, wallet).rpc = SimpleNamespace(
+        GetPairInfo=mocker.AsyncMock(
+            return_value=SimpleNamespace(
+                fees=SimpleNamespace(percentage=0, miner_fees=0)
+            )
+        ),
+        CreateSwap=mocker.AsyncMock(side_effect=error),
+    )
+    mocker.patch(
+        "lnbits.wallets.boltz.decode",
+        return_value=SimpleNamespace(
+            amount_msat=1_000,
+            payment_hash="payment-hash",
+        ),
+    )
+
+    response = await wallet.pay_invoice("bolt11", 1_000)
+
+    assert response.ok is expected
+    assert response.checking_id == "payment-hash"
 
 
 @pytest.mark.anyio
