@@ -93,16 +93,36 @@ migration:
 	uv run python tools/conv.py
 
 openapi:
+	@OPENAPI_SPEC_FILE=$$(mktemp); \
+	OPENAPI_DATA_DIR=$$(mktemp -d); \
 	LNBITS_ADMIN_UI=False \
 	LNBITS_BACKEND_WALLET_CLASS="FakeWallet" \
-	LNBITS_DATA_FOLDER="./tests/data" \
+	LNBITS_DATA_FOLDER="$$OPENAPI_DATA_DIR" \
+	LNBITS_EXTENSIONS_DEFAULT_INSTALL='[]' \
+	LNBITS_EXTENSIONS_DEACTIVATE_ALL=true \
 	PYTHONUNBUFFERED=1 \
+	DEBUG=false \
 	HOST=0.0.0.0 \
 	PORT=5003 \
-	uv run lnbits &
-	sleep 15
-	curl -s http://0.0.0.0:5003/openapi.json | uv run openapi-spec-validator --errors=all -
-	# kill -9 %1
+	uv run lnbits & \
+	OPENAPI_SERVER_PID=$$!; \
+	trap 'kill "$$OPENAPI_SERVER_PID" 2>/dev/null || true; wait "$$OPENAPI_SERVER_PID" 2>/dev/null || true; rm -f "$$OPENAPI_SPEC_FILE"; rm -rf "$$OPENAPI_DATA_DIR"' EXIT; \
+	OPENAPI_ATTEMPT=0; \
+	while [ "$$OPENAPI_ATTEMPT" -lt 60 ]; do \
+		if curl --fail --silent --max-time 2 --output "$$OPENAPI_SPEC_FILE" \
+			http://127.0.0.1:5003/openapi.json; then \
+			uv run openapi-spec-validator --errors=all "$$OPENAPI_SPEC_FILE"; \
+			exit $$?; \
+		fi; \
+		if ! kill -0 "$$OPENAPI_SERVER_PID" 2>/dev/null; then \
+			echo "LNbits exited before serving the OpenAPI schema." >&2; \
+			exit 1; \
+		fi; \
+		OPENAPI_ATTEMPT=$$((OPENAPI_ATTEMPT + 1)); \
+		sleep 1; \
+	done; \
+	echo "LNbits did not serve the OpenAPI schema within 60 seconds." >&2; \
+	exit 1
 
 bak:
 	# LNBITS_DATABASE_URL=postgres://postgres:postgres@0.0.0.0:5432/postgres
