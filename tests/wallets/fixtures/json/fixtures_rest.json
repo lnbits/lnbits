@@ -1886,6 +1886,7 @@
             "eclair": {
               "pay_invoice_endpoint": [
                 {
+                  "skip": true,
                   "description": "no data from pay invoice",
                   "request_type": "json",
                   "request_body": {

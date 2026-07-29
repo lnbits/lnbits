@@ -13,6 +13,7 @@ from lnbits.wallets.base import PaymentPendingStatus
 from lnbits.wallets.blink import BlinkWallet
 from lnbits.wallets.boltz import BoltzWallet
 from lnbits.wallets.boltz_grpc_files import boltzrpc_pb2
+from lnbits.wallets.eclair import EclairWallet
 from lnbits.wallets.lnd_grpc_files.lightning_pb2 import Payment as LndPayment
 from lnbits.wallets.lndgrpc import LndWallet
 from lnbits.wallets.lndrest import LndRestWallet
@@ -86,6 +87,39 @@ async def test_blink_keeps_unconfirmed_payment_pending(mocker: MockerFixture):
 
     assert response.ok is None
     assert response.checking_id == "payment-hash"
+
+
+@pytest.mark.anyio
+@pytest.mark.parametrize(
+    ("status_code", "expected"),
+    [
+        (400, False),
+        (401, False),
+        (403, False),
+        (404, False),
+        (405, False),
+        (408, None),
+        (409, None),
+        (422, None),
+        (429, None),
+        (500, None),
+    ],
+)
+async def test_eclair_only_treats_request_rejections_as_failed(
+    mocker: MockerFixture, status_code: int, expected: bool | None
+):
+    wallet = object.__new__(EclairWallet)
+    wallet.url = "https://wallet.test"
+    cast(Any, wallet).client = SimpleNamespace(
+        post=mocker.AsyncMock(
+            return_value=_response(status_code, json={"error": "invoice has expired"})
+        )
+    )
+
+    response = await wallet.pay_invoice("bolt11", 1_000)
+
+    assert response.ok is expected
+    assert response.error_message == "invoice has expired"
 
 
 @pytest.mark.anyio
