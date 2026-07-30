@@ -46,6 +46,7 @@ class FunctionTest(BaseModel):
     description: str
     call_params: dict
     expect: dict
+    expect_by_funding_source: dict[str, dict] = {}
     mocks: dict[str, list[dict[str, TestMock]]]
 
 
@@ -76,11 +77,20 @@ class WalletTest(BaseModel):
         fn,
         test,
     ) -> list["WalletTest"]:
+        test_data = {
+            key: value
+            for key, value in test.items()
+            if key != "expect_by_funding_source"
+        }
+        expect_by_funding_source = test.get("expect_by_funding_source", {})
+        if fs.name in expect_by_funding_source:
+            test_data["expect"] = expect_by_funding_source[fs.name]
+
         t = WalletTest(
             **{
                 "funding_source": fs,
                 "function": fn_name,
-                **test,
+                **test_data,
                 "mocks": [],
                 "skip": fs.skip,
             }
