@@ -14,6 +14,7 @@ from lnurl import (
 from pydantic import parse_obj_as
 
 from lnbits.core.crud.wallets import (
+    get_wallet,
     get_wallet_id_by_ln_address,
     legacy_lnurlp_address_exists,
 )
@@ -130,6 +131,7 @@ async def set_wallet_lightning_address(
     charge: bool = False,
     conn: Connection | None = None,
 ) -> Wallet:
+    # todo: recheck
     if not settings.ln_address_creation_allowed:
         raise ValueError("Wallet Lightning Addresses are disabled.")
     if not wallet.is_lightning_wallet or wallet.deleted:
@@ -149,8 +151,6 @@ async def set_wallet_lightning_address(
 
     wallet.lightning_address = local_part
     await (conn or db).update("wallets", wallet)
-
-    from lnbits.core.crud.wallets import get_wallet
 
     return await get_wallet(wallet.id, conn=conn) or wallet
 

@@ -283,7 +283,6 @@ async def api_users_create_user_wallet(
 
 @users_router.put(
     "/user/{user_id}/wallet/{wallet}/lightning-address",
-    dependencies=[Depends(check_super_user)],
     name="Set wallet Lightning Address",
 )
 async def api_users_set_wallet_lightning_address(
