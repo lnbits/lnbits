@@ -340,7 +340,6 @@ async def test_send_nostr_notification_selects_nip17_and_nip17b(
         "pubkey",
         "hello",
         ["wss://recipient"],
-        ["wss://recipient"],
     )
 
 

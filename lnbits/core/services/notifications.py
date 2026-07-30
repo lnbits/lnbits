@@ -217,7 +217,6 @@ async def send_nostr_notification(
             user_pubkey,
             message,
             relays,
-            relays,
         )
     raise ValueError(f"Unsupported Nostr DM type: {dm_type}")
 

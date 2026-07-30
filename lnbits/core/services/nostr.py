@@ -25,11 +25,14 @@ from websocket import WebSocket, WebSocketTimeoutException, create_connection
 
 from lnbits.core.helpers import is_valid_url
 from lnbits.utils.nostr import (
+    is_ws_url,
     normalize_public_key,
     validate_identifier,
     validate_pub_key,
 )
 
+MAX_NOSTR_RELAYS = 20
+MAX_NOSTR_RELAY_MESSAGE_SIZE = 64_000
 NIP17_GIFT_WRAP_KIND = 1059
 NIP17_SEAL_KIND = 13
 NIP17_MESSAGE_KIND = 14
@@ -104,12 +107,11 @@ async def send_nostr_nip17b_dm(
     group_pubkey_hex: str,
     message: str,
     relays: list[str],
-    ticket_relays: list[str],
 ) -> dict:
     ticket = await fetch_latest_nostr_group_ticket(
         from_private_key_hex,
         group_pubkey_hex,
-        ticket_relays,
+        relays,
     )
     keys = Keys.parse(from_private_key_hex)
     epoch_pubkey = PublicKey.parse(ticket.epoch_pubkey)
@@ -179,10 +181,10 @@ def _select_latest_nostr_group_ticket(
             f"NIP-17B epoch {highest_epoch} has conflicting epoch private keys."
         )
 
-    return sorted(
+    return min(
         current_tickets,
         key=lambda ticket: (-ticket.invited_at, ticket.event_id),
-    )[0]
+    )
 
 
 def _decrypt_nostr_group_ticket(
@@ -194,44 +196,41 @@ def _decrypt_nostr_group_ticket(
         raise ValueError("Event is not a NIP-59 gift wrap.")
     if not wrapped_event.verify():
         raise ValueError("Gift wrap signature is invalid.")
+    tags = [tag.as_vec() for tag in wrapped_event.tags().to_vec()]
+    recipient_tags = [tag for tag in tags if tag and tag[0] == "p"]
+    member_pubkey = member_keys.public_key().to_hex()
+    if (
+        len(recipient_tags) != 1
+        or len(recipient_tags[0]) < 2
+        or recipient_tags[0][1] != member_pubkey
+    ):
+        raise ValueError("Gift wrap is not addressed to this member.")
 
     decrypted = nip44_decrypt(
         member_keys.secret_key(),
         wrapped_event.author(),
         wrapped_event.content(),
     )
-    ticket_event = _unwrap_nostr_group_ticket_event(
-        decrypted,
-        member_keys,
-        group_pubkey,
-    )
+    ticket_event = Event.from_json(decrypted)
+    if ticket_event.kind().as_u16() == NIP17_SEAL_KIND:
+        if not ticket_event.verify():
+            raise ValueError("Ticket seal signature is invalid.")
+        if not ticket_event.tags().is_empty():
+            raise ValueError("Ticket seal tags must be empty.")
+        if ticket_event.author().to_hex() != group_pubkey:
+            raise ValueError("Ticket seal was not signed by the group identity.")
+        ticket_event = Event.from_json(
+            nip44_decrypt(
+                member_keys.secret_key(),
+                ticket_event.author(),
+                ticket_event.content(),
+            )
+        )
     return _parse_nostr_group_ticket_event(
         ticket_event,
         member_keys,
         group_pubkey,
     )
-
-
-def _unwrap_nostr_group_ticket_event(
-    decrypted: str,
-    member_keys: Keys,
-    group_pubkey: str,
-) -> Event:
-    wrapped_content = json.loads(decrypted)
-    if wrapped_content.get("kind") == NIP17_SEAL_KIND:
-        seal = Event.from_json(json.dumps(wrapped_content))
-        if not seal.verify():
-            raise ValueError("Ticket seal signature is invalid.")
-        if not seal.tags().is_empty():
-            raise ValueError("Ticket seal tags must be empty.")
-        if seal.author().to_hex() != group_pubkey:
-            raise ValueError("Ticket seal was not signed by the group identity.")
-        decrypted = nip44_decrypt(
-            member_keys.secret_key(),
-            seal.author(),
-            seal.content(),
-        )
-    return Event.from_json(decrypted)
 
 
 def _parse_nostr_group_ticket_event(
@@ -255,8 +254,12 @@ def _parse_nostr_group_ticket_event(
         raise ValueError("Epoch ticket is addressed to a different member.")
     if len(epoch_tags) != 1 or len(epoch_tags[0]) != 2:
         raise ValueError("Epoch ticket must contain exactly one epoch tag.")
-    if not epoch_tags[0][1].isdecimal():
+    epoch_value = epoch_tags[0][1]
+    if not epoch_value.isascii() or not epoch_value.isdecimal():
         raise ValueError("Epoch ticket number is invalid.")
+    epoch = int(epoch_value)
+    if epoch_value != str(epoch):
+        raise ValueError("Epoch ticket number is not canonically encoded.")
 
     epoch_private_key = ticket_event.content()
     if len(epoch_private_key) != 64 or epoch_private_key.lower() != epoch_private_key:
@@ -265,7 +268,7 @@ def _parse_nostr_group_ticket_event(
 
     return NostrGroupTicket(
         group_pubkey=group_pubkey,
-        epoch=int(epoch_tags[0][1]),
+        epoch=epoch,
         epoch_private_key=epoch_private_key,
         invited_at=ticket_event.created_at().as_secs(),
         invitation_proof=ticket_event.signature(),
@@ -336,9 +339,10 @@ def _fetch_events_from_relay(
     ws = create_connection(relay, timeout=timeout)
     events: list[Event] = []
     deadline = time.monotonic() + timeout
+    max_events = filter_data.get("limit", 200)
     try:
         ws.send(json.dumps(["REQ", subscription_id, filter_data]))
-        while time.monotonic() < deadline:
+        while time.monotonic() < deadline and len(events) < max_events:
             ws.settimeout(max(0.1, deadline - time.monotonic()))
             try:
                 raw_message = ws.recv()
@@ -346,6 +350,8 @@ def _fetch_events_from_relay(
                 break
             if isinstance(raw_message, bytes):
                 raw_message = raw_message.decode()
+            if len(raw_message) > MAX_NOSTR_RELAY_MESSAGE_SIZE:
+                continue
             message = json.loads(raw_message)
             if not isinstance(message, list) or len(message) < 2:
                 continue
@@ -409,8 +415,10 @@ async def _send_event_to_relays(
 
 def _parse_relay_urls(relays: list[str]) -> list[str]:
     relay_urls: list[str] = []
-    for relay in dict.fromkeys(relays):
-        if relay.startswith(("ws://", "wss://")) and is_valid_url(relay):
+    for relay in relays[:MAX_NOSTR_RELAYS]:
+        if isinstance(relay, str) and is_ws_url(relay):
+            if relay in relay_urls:
+                continue
             relay_urls.append(relay)
         else:
             logger.warning(f"Ignoring invalid Nostr relay '{relay}'.")
@@ -437,7 +445,9 @@ async def fetch_nip5_details(identifier: str) -> tuple[str, list[str]]:
         pubkey = data["names"][identifier]
         pubkey = validate_pub_key(pubkey)
 
-        relays = data["relays"].get(pubkey, []) if "relays" in data else []
+        relay_map = data.get("relays", {})
+        relays = relay_map.get(pubkey, []) if isinstance(relay_map, dict) else []
+        relays = _parse_relay_urls(relays) if isinstance(relays, list) else []
 
         return pubkey, relays
 

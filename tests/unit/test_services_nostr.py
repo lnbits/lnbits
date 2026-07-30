@@ -16,7 +16,6 @@ from pytest_mock.plugin import MockerFixture
 
 from lnbits.core.services.nostr import (
     NostrGroupTicket,
-    _decrypt_nostr_group_ticket,
     _fetch_events_from_relay,
     _select_latest_nostr_group_ticket,
     _send_event_to_relays,
@@ -235,13 +234,12 @@ async def test_send_nostr_nip17b_dm_uses_epoch_ticket(
         group.public_key().to_hex(),
         "hello group",
         ["wss://group"],
-        ["wss://tickets"],
     )
 
     fetch_mock.assert_awaited_once_with(
         member.secret_key().to_hex(),
         group.public_key().to_hex(),
-        ["wss://tickets"],
+        ["wss://group"],
     )
     gift = send_mock.await_args.args[0]
     unwrapped = await UnwrappedGift.from_gift_wrap(
@@ -262,8 +260,9 @@ async def test_send_nostr_nip17b_dm_uses_epoch_ticket(
 
 
 @pytest.mark.anyio
+@pytest.mark.parametrize("sealed", [False, True])
 async def test_fetch_latest_nostr_group_ticket_uses_direct_relay_events(
-    mocker: MockerFixture,
+    mocker: MockerFixture, sealed: bool
 ):
     member = Keys.generate()
     group = Keys.generate()
@@ -278,14 +277,28 @@ async def test_fetch_latest_nostr_group_ticket_uses_direct_relay_events(
         )
         .sign_with_keys(group)
     )
-    encrypted_ticket = nip44_encrypt(
-        group.secret_key(),
-        member.public_key(),
-        ticket.as_json(),
-        Nip44Version.V2,
-    )
-    seal = EventBuilder(Kind(13), encrypted_ticket).sign_with_keys(group)
-    gift = gift_wrap_from_seal(member.public_key(), seal)
+    if sealed:
+        encrypted_ticket = nip44_encrypt(
+            group.secret_key(),
+            member.public_key(),
+            ticket.as_json(),
+            Nip44Version.V2,
+        )
+        seal = EventBuilder(Kind(13), encrypted_ticket).sign_with_keys(group)
+        gift = gift_wrap_from_seal(member.public_key(), seal)
+    else:
+        wrapper = Keys.generate()
+        encrypted_ticket = nip44_encrypt(
+            wrapper.secret_key(),
+            member.public_key(),
+            ticket.as_json(),
+            Nip44Version.V2,
+        )
+        gift = (
+            EventBuilder(Kind(1059), encrypted_ticket)
+            .tags([Tag.parse(["p", member.public_key().to_hex()])])
+            .sign_with_keys(wrapper)
+        )
     fetch_mock = mocker.patch(
         "lnbits.core.services.nostr._fetch_events_from_relays",
         mocker.AsyncMock(return_value=[gift]),
@@ -306,6 +319,12 @@ async def test_fetch_latest_nostr_group_ticket_uses_direct_relay_events(
         },
     )
     assert parsed.epoch_private_key == epoch.secret_key().to_hex()
+    assert parsed.group_pubkey == group.public_key().to_hex()
+    assert parsed.epoch == 3
+    assert parsed.epoch_pubkey == epoch.public_key().to_hex()
+    assert parsed.invited_at == ticket.created_at().as_secs()
+    assert parsed.invitation_proof == ticket.signature()
+    assert parsed.event_id == ticket.id().to_hex()
 
 
 def test_fetch_events_from_relay_uses_nostr_subscription(mocker: MockerFixture):
@@ -363,44 +382,6 @@ async def test_send_event_to_relays_uses_direct_websockets(
     assert json.loads(second.sent[0]) == expected
     assert first.closed is True
     assert second.closed is True
-
-
-def test_decrypt_nostr_group_ticket():
-    member = Keys.generate()
-    group = Keys.generate()
-    epoch = Keys.generate()
-    ticket = (
-        EventBuilder(Kind(1014), epoch.secret_key().to_hex())
-        .tags(
-            [
-                Tag.parse(["p", member.public_key().to_hex()]),
-                Tag.parse(["epoch", "3"]),
-            ]
-        )
-        .sign_with_keys(group)
-    )
-    encrypted_ticket = nip44_encrypt(
-        group.secret_key(),
-        member.public_key(),
-        ticket.as_json(),
-        Nip44Version.V2,
-    )
-    seal = EventBuilder(Kind(13), encrypted_ticket).sign_with_keys(group)
-    gift = gift_wrap_from_seal(member.public_key(), seal)
-
-    parsed = _decrypt_nostr_group_ticket(
-        gift,
-        member,
-        group.public_key().to_hex(),
-    )
-
-    assert parsed.group_pubkey == group.public_key().to_hex()
-    assert parsed.epoch == 3
-    assert parsed.epoch_private_key == epoch.secret_key().to_hex()
-    assert parsed.epoch_pubkey == epoch.public_key().to_hex()
-    assert parsed.invited_at == ticket.created_at().as_secs()
-    assert parsed.invitation_proof == ticket.signature()
-    assert json.loads(ticket.as_json())["id"] == parsed.event_id
 
 
 def test_select_latest_nostr_group_ticket():
