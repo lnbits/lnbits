@@ -28,6 +28,7 @@ from lnbits.core.models.wallets import (
     WalletShareStatus,
 )
 from lnbits.core.services.notifications import (
+    _fetch_configured_nostr_notification_relays,
     dispatch_webhook,
     enqueue_admin_notification,
     enqueue_user_notification,
@@ -186,6 +187,7 @@ async def test_send_notification_in_background_schedules_notification(
         ["admin@example.com"],
         "hello",
         "settings_update",
+        None,
     )
 
     create_task_mock.assert_called_once()
@@ -195,6 +197,7 @@ async def test_send_notification_in_background_schedules_notification(
         ["admin@example.com"],
         "hello",
         "settings_update",
+        None,
     )
     assert len(scheduled) == 1
 
@@ -257,9 +260,23 @@ async def test_send_nostr_notifications_and_single_notification(
 
     assert result == ["ok-1", "ok-2"]
     assert send_mock.await_count == 3
+    send_mock.reset_mock(side_effect=True)
+    send_mock.side_effect = None
 
-    fetch_mock = mocker.patch(
-        "lnbits.core.services.notifications.fetch_nip5_details",
+    result = await send_nostr_notifications(
+        ["both"],
+        "hello",
+        ["nip04", "nip17"],
+    )
+
+    assert result == ["both"]
+    assert [call.args for call in send_mock.await_args_list] == [
+        ("both", "hello", "nip04"),
+        ("both", "hello", "nip17"),
+    ]
+
+    resolve_mock = mocker.patch(
+        "lnbits.core.services.notifications.resolve_nostr_recipient",
         mocker.AsyncMock(return_value=("pubkey", ["wss://relay"])),
     )
     normalize_mock = mocker.patch(
@@ -273,7 +290,7 @@ async def test_send_nostr_notifications_and_single_notification(
 
     await send_nostr_notification("alice@example.com", "hello")
 
-    fetch_mock.assert_awaited_once_with("alice@example.com")
+    resolve_mock.assert_awaited_once_with("alice@example.com")
     normalize_mock.assert_called_once()
     dm_mock.assert_awaited_once_with(
         "server-private-key",
@@ -281,6 +298,123 @@ async def test_send_nostr_notifications_and_single_notification(
         "hello",
         ["wss://relay"],
     )
+
+
+@pytest.mark.anyio
+async def test_send_nostr_notification_selects_nip17_and_nip17b(
+    settings: Settings, mocker: MockerFixture
+):
+    original_dm_types = list(settings.lnbits_nostr_notifications_dm_types)
+    try:
+        settings.lnbits_nostr_notifications_dm_types = ["nip17", "nip17b"]
+        mocker.patch(
+            "lnbits.core.services.notifications.resolve_nostr_recipient",
+            mocker.AsyncMock(return_value=("pubkey", ["wss://recipient"])),
+        )
+        mocker.patch(
+            "lnbits.core.services.notifications.normalize_private_key",
+            return_value="server-private-key",
+        )
+        nip17_mock = mocker.patch(
+            "lnbits.core.services.notifications.send_nostr_nip17_dm",
+            mocker.AsyncMock(),
+        )
+        nip17b_mock = mocker.patch(
+            "lnbits.core.services.notifications.send_nostr_nip17b_dm",
+            mocker.AsyncMock(),
+        )
+
+        await send_nostr_notification("alice@example.com", "hello", "nip17")
+        await send_nostr_notification("group@example.com", "hello", "nip17b")
+    finally:
+        settings.lnbits_nostr_notifications_dm_types = original_dm_types
+
+    nip17_mock.assert_awaited_once_with(
+        "server-private-key",
+        "pubkey",
+        "hello",
+        ["wss://recipient"],
+    )
+    nip17b_mock.assert_awaited_once_with(
+        "server-private-key",
+        "pubkey",
+        "hello",
+        ["wss://recipient"],
+        ["wss://recipient"],
+    )
+
+
+@pytest.mark.anyio
+async def test_bare_nostr_pubkey_uses_configured_nip5_relays(
+    settings: Settings, mocker: MockerFixture
+):
+    original_identifiers = list(settings.lnbits_nostr_notifications_identifiers)
+    try:
+        settings.lnbits_nostr_notifications_identifiers = [
+            "alice@example.com",
+            "bare-pubkey",
+            "bob@example.com",
+        ]
+        fetch_mock = mocker.patch(
+            "lnbits.core.services.notifications.fetch_nip5_details",
+            mocker.AsyncMock(
+                side_effect=[
+                    ("alice-pubkey", ["wss://one", "wss://shared"]),
+                    ("bob-pubkey", ["wss://shared", "wss://two"]),
+                ]
+            ),
+        )
+
+        relays = await _fetch_configured_nostr_notification_relays()
+    finally:
+        settings.lnbits_nostr_notifications_identifiers = original_identifiers
+
+    assert relays == ["wss://one", "wss://shared", "wss://two"]
+    assert [call.args[0] for call in fetch_mock.await_args_list] == [
+        "alice@example.com",
+        "bob@example.com",
+    ]
+
+    fallback_mock = mocker.patch(
+        "lnbits.core.services.notifications._fetch_configured_nostr_notification_relays",
+        mocker.AsyncMock(return_value=relays),
+    )
+    resolve_mock = mocker.patch(
+        "lnbits.core.services.notifications.resolve_nostr_recipient",
+        mocker.AsyncMock(return_value=("recipient-pubkey", relays)),
+    )
+    mocker.patch(
+        "lnbits.core.services.notifications.normalize_private_key",
+        return_value="server-private-key",
+    )
+    dm_mock = mocker.patch(
+        "lnbits.core.services.notifications.send_nostr_dm",
+        mocker.AsyncMock(),
+    )
+
+    await send_nostr_notification("f" * 64, "hello")
+
+    fallback_mock.assert_awaited_once_with()
+    resolve_mock.assert_awaited_once_with("f" * 64, relays)
+    dm_mock.assert_awaited_once_with(
+        "server-private-key",
+        "recipient-pubkey",
+        "hello",
+        relays,
+    )
+
+
+@pytest.mark.anyio
+async def test_send_nostr_notification_rejects_disallowed_dm_type(
+    settings: Settings,
+):
+    original_dm_types = list(settings.lnbits_nostr_notifications_dm_types)
+    try:
+        settings.lnbits_nostr_notifications_dm_types = []
+        with pytest.raises(ValueError, match="nip17 notifications are not allowed"):
+            await send_nostr_notification("alice@example.com", "hello", "nip17")
+    finally:
+        settings.lnbits_nostr_notifications_dm_types = original_dm_types
 
 
 @pytest.mark.anyio

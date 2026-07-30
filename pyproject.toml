@@ -148,6 +148,7 @@ module = [
   "ecdsa.*",
   "pyngrok.*",
   "pynostr.*",
+  "nostr_sdk.*",
   "pyln.client.*",
   "py_vapid.*",
   "pywebpush.*",

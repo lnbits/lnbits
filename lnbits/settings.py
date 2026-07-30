@@ -11,7 +11,7 @@ from enum import Enum
 from os import path
 from pathlib import Path
 from time import gmtime, strftime, time
-from typing import Any
+from typing import Any, Literal
 from uuid import uuid4
 
 from loguru import logger
@@ -480,6 +480,16 @@ class NotificationsSettings(LNbitsSettings):
     lnbits_nostr_notifications_enabled: bool = Field(default=False)
     lnbits_nostr_notifications_private_key: str = Field(default="")
     lnbits_nostr_notifications_identifiers: list[str] = Field(default=[])
+    lnbits_nostr_notifications_dm_types: list[Literal["nip17", "nip17b"]] = Field(
+        default=[]
+    )
+
+    @validator("lnbits_nostr_notifications_dm_types", pre=True)
+    @classmethod
+    def validate_nostr_notification_dm_types(cls, val):
+        dm_types = cls.validate_list(val or [])
+        return [dm_type for dm_type in dm_types if dm_type != "nip04"]
+
     lnbits_telegram_notifications_enabled: bool = Field(default=False)
     lnbits_telegram_notifications_access_token: str = Field(default="")
     lnbits_telegram_notifications_chat_id: str = Field(default="")

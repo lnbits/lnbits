@@ -4,6 +4,7 @@ from typing import Any
 import pytest
 from pytest_mock.plugin import MockerFixture
 
+from lnbits.db import dict_to_model
 from lnbits.settings import (
     DEFAULT_WASM_MANIFESTS,
     AssetSettings,
@@ -14,6 +15,7 @@ from lnbits.settings import (
     RedirectPath,
     SecuritySettings,
     Settings,
+    SuperSettings,
     list_parse_fallback,
     set_cli_settings,
 )
@@ -360,7 +362,17 @@ def test_asset_security_and_notification_helpers(
     assert security_settings.is_wallet_max_balance_exceeded(101) is True
     assert security_settings.is_wallet_max_balance_exceeded(100) is False
     assert notification_settings.is_nostr_notifications_configured() is True
+    assert notification_settings.lnbits_nostr_notifications_dm_types == []
     assert notification_settings.is_telegram_notifications_configured() is True
+
+    legacy_super_settings = dict_to_model(
+        {
+            "super_user": "admin",
+            "lnbits_nostr_notifications_dm_types": '["nip04", "nip17"]',
+        },
+        SuperSettings,
+    )
+    assert legacy_super_settings.lnbits_nostr_notifications_dm_types == ["nip17"]
 
 
 def test_public_settings_from_settings(settings: Settings):

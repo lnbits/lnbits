@@ -4,6 +4,10 @@ window.app.component('lnbits-admin-notifications', {
   data() {
     return {
       nostrNotificationIdentifier: '',
+      nostrDmTypeOptions: [
+        {label: 'NIP-17', value: 'nip17'},
+        {label: 'NIP-17B', value: 'nip17b'}
+      ],
       emailNotificationAddress: ''
     }
   },

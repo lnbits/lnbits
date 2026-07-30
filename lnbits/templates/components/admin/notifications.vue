@@ -95,6 +95,24 @@
               ><span v-text="identifier"></span></q-tooltip
           ></q-chip>
         </div>
+        <q-item>
+          <q-item-section>
+            <q-item-label
+              v-text="$t('notifications_nostr_dm_types')"
+            ></q-item-label>
+            <q-item-label
+              caption
+              v-text="$t('notifications_nostr_dm_types_desc')"
+            ></q-item-label>
+            <q-option-group
+              v-model="formData.lnbits_nostr_notifications_dm_types"
+              :options="nostrDmTypeOptions"
+              type="checkbox"
+              inline
+              color="primary"
+            ></q-option-group>
+          </q-item-section>
+        </q-item>
       </div>
 
       <div class="col-sm-12 col-md-6">
