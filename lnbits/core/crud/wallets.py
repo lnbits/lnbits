@@ -4,14 +4,12 @@ from uuid import uuid4
 
 from lnbits.core.db import db
 from lnbits.core.models.wallets import BaseWallet, WalletsFilters, WalletType
-from lnbits.db import Connection, Database, Filters, Page
+from lnbits.db import Connection, Filters, Page
 from lnbits.helpers import generate_ln_address
 from lnbits.settings import settings
 from lnbits.utils.cache import cache
 
 from ..models import Wallet
-
-_LEGACY_LNURLP_DB = Database("ext_lnurlp")
 
 
 async def create_wallet(
