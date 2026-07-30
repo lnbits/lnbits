@@ -85,13 +85,15 @@
             <q-item-section avatar>
               <q-select
                 filled
+                emit-value
+                map-options
                 v-model="formData.lnbits_ln_address_mode"
                 :hint="$t('ln_address_mode_hint')"
                 :label="$t('ln_address_mode')"
                 :options="[
-                  {label: $t('core_first'), value: 'core_first'},
-                  {label: $t('extension_first'), value: 'extension_first'},
-                  {label: $t('extension_only'), value: 'extension_only'}
+                  {label: $t('ln_address_core_first'), value: 'core_first'},
+                  {label: $t('ln_address_extension_first'), value: 'extension_first'},
+                  {label: $t('ln_address_extension_only'), value: 'extension_only'}
                 ]"
               ></q-select>
             </q-item-section>
