@@ -92,8 +92,14 @@
                 :label="$t('ln_address_mode')"
                 :options="[
                   {label: $t('ln_address_core_first'), value: 'core_first'},
-                  {label: $t('ln_address_extension_first'), value: 'extension_first'},
-                  {label: $t('ln_address_extension_only'), value: 'extension_only'}
+                  {
+                    label: $t('ln_address_extension_first'),
+                    value: 'extension_first'
+                  },
+                  {
+                    label: $t('ln_address_extension_only'),
+                    value: 'extension_only'
+                  }
                 ]"
               ></q-select>
             </q-item-section>

@@ -170,7 +170,7 @@ async def test_wallet_api_paginated_update_reset_and_store_paylinks(
 
 @pytest.mark.anyio
 async def test_wallet_api_custom_lightning_address_owner_rules(
-    http_client: AsyncClient, mocker
+    http_client: AsyncClient,
 ):
     user = await create_user_account(
         Account(
@@ -207,10 +207,17 @@ async def test_wallet_api_custom_lightning_address_owner_rules(
     )
     assert invalid.status_code == 400
 
-    mocker.patch(
-        "lnbits.core.services.lightning_address.legacy_lnurlp_address_exists",
-        mocker.AsyncMock(return_value=True),
+    existing_wallet = await create_wallet(
+        user_id=user.id,
+        wallet_name="existing lightning address",
     )
+    existing = await http_client.patch(
+        "/api/v1/wallet",
+        headers=_admin_headers(existing_wallet.adminkey),
+        json={"lightning_address": "pay.link"},
+    )
+    assert existing.status_code == 200
+
     conflict = await http_client.patch(
         "/api/v1/wallet",
         headers=headers,
@@ -218,10 +225,6 @@ async def test_wallet_api_custom_lightning_address_owner_rules(
     )
     assert conflict.status_code == 400
 
-    mocker.patch(
-        "lnbits.core.services.lightning_address.legacy_lnurlp_address_exists",
-        mocker.AsyncMock(return_value=False),
-    )
     updated = await http_client.patch(
         "/api/v1/wallet",
         headers=headers,
