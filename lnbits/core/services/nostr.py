@@ -215,17 +215,28 @@ def _decrypt_nostr_group_ticket(
     if ticket_event.kind().as_u16() == NIP17_SEAL_KIND:
         if not ticket_event.verify():
             raise ValueError("Ticket seal signature is invalid.")
-        if not ticket_event.tags().is_empty():
-            raise ValueError("Ticket seal tags must be empty.")
         if ticket_event.author().to_hex() != group_pubkey:
             raise ValueError("Ticket seal was not signed by the group identity.")
-        ticket_event = Event.from_json(
-            nip44_decrypt(
-                member_keys.secret_key(),
-                ticket_event.author(),
-                ticket_event.content(),
-            )
+        seal_tags = [tag.as_vec() for tag in ticket_event.tags().to_vec()]
+        if seal_tags and (
+            len(seal_tags) != 1
+            or len(seal_tags[0]) != 2
+            or seal_tags[0][0] != "invitation_proof"
+        ):
+            raise ValueError("Ticket seal tags are invalid.")
+        decrypted_ticket = nip44_decrypt(
+            member_keys.secret_key(),
+            ticket_event.author(),
+            ticket_event.content(),
         )
+        if seal_tags:
+            # Some clients carry an unsigned ticket's signature on its seal.
+            ticket_data = json.loads(decrypted_ticket)
+            if not isinstance(ticket_data, dict) or "sig" in ticket_data:
+                raise ValueError("Ticket seal does not contain an unsigned ticket.")
+            ticket_data["sig"] = seal_tags[0][1]
+            decrypted_ticket = json.dumps(ticket_data)
+        ticket_event = Event.from_json(decrypted_ticket)
     return _parse_nostr_group_ticket_event(
         ticket_event,
         member_keys,

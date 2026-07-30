@@ -260,9 +260,9 @@ async def test_send_nostr_nip17b_dm_uses_epoch_ticket(
 
 
 @pytest.mark.anyio
-@pytest.mark.parametrize("sealed", [False, True])
-async def test_fetch_latest_nostr_group_ticket_uses_direct_relay_events(
-    mocker: MockerFixture, sealed: bool
+@pytest.mark.parametrize("ticket_format", ["direct", "sealed", "proof"])
+async def test_fetch_latest_nostr_group_ticket_supports_ticket_formats(
+    mocker: MockerFixture, ticket_format: str
 ):
     member = Keys.generate()
     group = Keys.generate()
@@ -277,14 +277,22 @@ async def test_fetch_latest_nostr_group_ticket_uses_direct_relay_events(
         )
         .sign_with_keys(group)
     )
-    if sealed:
+    if ticket_format != "direct":
+        ticket_data = json.loads(ticket.as_json())
+        if ticket_format == "proof":
+            ticket_data.pop("sig")
         encrypted_ticket = nip44_encrypt(
             group.secret_key(),
             member.public_key(),
-            ticket.as_json(),
+            json.dumps(ticket_data),
             Nip44Version.V2,
         )
-        seal = EventBuilder(Kind(13), encrypted_ticket).sign_with_keys(group)
+        seal_builder = EventBuilder(Kind(13), encrypted_ticket)
+        if ticket_format == "proof":
+            seal_builder = seal_builder.tags(
+                [Tag.parse(["invitation_proof", ticket.signature()])]
+            )
+        seal = seal_builder.sign_with_keys(group)
         gift = gift_wrap_from_seal(member.public_key(), seal)
     else:
         wrapper = Keys.generate()
