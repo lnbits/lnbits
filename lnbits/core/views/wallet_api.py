@@ -178,12 +178,13 @@ async def api_update_wallet(
     wallet.extra.pinned = pinned if pinned is not None else wallet.extra.pinned
     wallet.currency = currency if currency is not None else wallet.currency
 
-    if lightning_address is not None:
+    if lightning_address and lightning_address != wallet.lightning_address:
         if not settings.lnbits_allow_custom_wallet_lightning_addresses:
             raise HTTPException(
                 status_code=HTTPStatus.FORBIDDEN,
                 detail="Users cannot specify Lightning Addresses.",
             )
+        # too much logic here
         wallet = await set_wallet_lightning_address(
             wallet=wallet,
             local_part=lightning_address,

@@ -14,10 +14,9 @@ from lnurl import (
 from pydantic import parse_obj_as
 
 from lnbits.core.crud.wallets import (
-    generate_lightning_address_local_part,
-    get_wallet_by_lightning_address,
+    get_wallet,
+    get_wallet_id_by_ln_address,
     legacy_lnurlp_address_exists,
-    wallet_lightning_address_exists_for_other_wallet,
 )
 from lnbits.core.db import db
 from lnbits.core.models.wallets import Wallet
@@ -71,9 +70,8 @@ async def validate_lightning_address_local_part(
         )
     if not allow_blacklisted and _uses_blacklisted_word(local_part):
         raise ValueError("Lightning Address contains a reserved word.")
-    if await wallet_lightning_address_exists_for_other_wallet(
-        local_part, wallet.id, conn
-    ):
+    existing_wallet_id = await get_wallet_id_by_ln_address(local_part)
+    if existing_wallet_id and existing_wallet_id != wallet.id:
         raise ValueError("Lightning Address is already taken.")
     if await legacy_lnurlp_address_exists(local_part):
         raise ValueError("Lightning Address is already taken.")
@@ -133,7 +131,8 @@ async def set_wallet_lightning_address(
     charge: bool = False,
     conn: Connection | None = None,
 ) -> Wallet:
-    if not settings.lnbits_enable_wallet_lightning_addresses:
+    # todo: recheck
+    if not settings.ln_address_creation_allowed:
         raise ValueError("Wallet Lightning Addresses are disabled.")
     if not wallet.is_lightning_wallet or wallet.deleted:
         raise ValueError("Lightning Address can only be set for active wallets.")
@@ -153,25 +152,7 @@ async def set_wallet_lightning_address(
     wallet.lightning_address = local_part
     await (conn or db).update("wallets", wallet)
 
-    from lnbits.core.crud.wallets import get_wallet
-
     return await get_wallet(wallet.id, conn=conn) or wallet
-
-
-async def ensure_wallet_lightning_address(
-    wallet: Wallet, conn: Connection | None = None
-) -> Wallet:
-    if (
-        wallet.lightning_address
-        or not settings.lnbits_enable_wallet_lightning_addresses
-        or not wallet.is_lightning_wallet
-        or wallet.deleted
-    ):
-        return wallet
-
-    wallet.lightning_address = await generate_lightning_address_local_part(conn)
-    await (conn or db).update("wallets", wallet)
-    return wallet
 
 
 def lightning_address_for_request(request: Request, local_part: str) -> str:
@@ -199,11 +180,11 @@ async def wallet_lightning_address_response(
     username: str, request: Request
 ) -> LnurlPayResponse | LnurlErrorResponse:
     local_part, tag = _split_tagged_local_part(username)
-    wallet = await get_wallet_by_lightning_address(local_part)
-    if not wallet or not wallet.lightning_address:
+    wallet_id = await get_wallet_id_by_ln_address(local_part)
+    if not wallet_id:
         return LnurlErrorResponse(reason="Lightning address not found.")
 
-    tagged_local_part = wallet.lightning_address
+    tagged_local_part = local_part
     if tag:
         tagged_local_part = f"{tagged_local_part}+{tag}"
 
@@ -227,8 +208,8 @@ async def wallet_lightning_address_callback(
     amount: int = Query(...),
 ) -> LnurlErrorResponse | LnurlPayActionResponse:
     local_part, tag = _split_tagged_local_part(username)
-    wallet = await get_wallet_by_lightning_address(local_part)
-    if not wallet or not wallet.lightning_address:
+    wallet_id = await get_wallet_id_by_ln_address(local_part)
+    if not wallet_id:
         return LnurlErrorResponse(reason="Lightning address not found.")
 
     if amount < 1000:
@@ -247,7 +228,7 @@ async def wallet_lightning_address_callback(
             )
         )
 
-    tagged_local_part = wallet.lightning_address
+    tagged_local_part = local_part
     if tag:
         tagged_local_part = f"{tagged_local_part}+{tag}"
     identifier = lightning_address_for_request(request, tagged_local_part)
@@ -264,7 +245,7 @@ async def wallet_lightning_address_callback(
 
     metadata = LnurlPayMetadata(json.dumps(_metadata(identifier, tag)))
     payment = await create_invoice(
-        wallet_id=wallet.id,
+        wallet_id=wallet_id,
         amount=int(amount / 1000),
         memo=f"Payment to {identifier}",
         unhashed_description=metadata.encode(),

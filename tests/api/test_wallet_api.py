@@ -182,7 +182,7 @@ async def test_wallet_api_custom_lightning_address_owner_rules(
     wallet = user.wallets[0]
     headers = _admin_headers(wallet.adminkey)
 
-    settings.lnbits_enable_wallet_lightning_addresses = True
+    settings.lnbits_ln_address_mode = "core_first"
     settings.lnbits_allow_custom_wallet_lightning_addresses = False
     disabled = await http_client.patch(
         "/api/v1/wallet",
@@ -253,7 +253,7 @@ async def test_wallet_api_custom_lightning_address_charges_fee(
     fee_wallet = fee_user.wallets[0]
     await update_wallet_balance(wallet=wallet, amount=2_000)
 
-    settings.lnbits_enable_wallet_lightning_addresses = True
+    settings.lnbits_ln_address_mode = "core_first"
     settings.lnbits_allow_custom_wallet_lightning_addresses = True
     settings.lnbits_charge_wallet_lightning_addresses = True
     settings.lnbits_wallet_lightning_address_price_sats = 1_000

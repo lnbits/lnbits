@@ -47,7 +47,7 @@ TEST_BOLT11 = (
 async def test_wallet_lightning_address_lookup_and_callback(
     client, to_user, settings, mocker
 ):
-    settings.lnbits_enable_wallet_lightning_addresses = True
+    settings.lnbits_ln_address_mode = "core_first"
     wallet = await create_wallet(user_id=to_user.id, wallet_name="ln address")
     assert wallet.lightning_address
 
@@ -94,16 +94,16 @@ async def test_wallet_lightning_address_lookup_and_callback(
 
 @pytest.mark.anyio
 async def test_wallet_lightning_address_generation_settings(to_user, settings):
-    settings.lnbits_enable_wallet_lightning_addresses = True
+    settings.lnbits_ln_address_mode = "core_first"
     wallet = await create_wallet(user_id=to_user.id)
     assert wallet.lightning_address
     assert re.fullmatch(r"[a-z]+[a-z]+[0-9]", wallet.lightning_address)
 
-    settings.lnbits_enable_wallet_lightning_addresses = False
+    settings.lnbits_ln_address_mode = "extension_only"
     disabled_wallet = await create_wallet(user_id=to_user.id)
     assert disabled_wallet.lightning_address is None
 
-    settings.lnbits_enable_wallet_lightning_addresses = True
+    settings.lnbits_ln_address_mode = "core_first"
     backfilled = await get_wallet(disabled_wallet.id)
     assert backfilled
     assert backfilled.lightning_address
@@ -113,7 +113,7 @@ async def test_wallet_lightning_address_generation_settings(to_user, settings):
 async def test_wallet_lightning_address_callback_validates_comment(
     to_user, settings, mocker
 ):
-    settings.lnbits_enable_wallet_lightning_addresses = True
+    settings.lnbits_ln_address_mode = "core_first"
     wallet = await create_wallet(user_id=to_user.id)
     assert wallet.lightning_address
     request = mocker.Mock()

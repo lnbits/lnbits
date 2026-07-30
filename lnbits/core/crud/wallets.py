@@ -8,7 +8,7 @@ from sqlalchemy.exc import OperationalError
 from lnbits.core.db import db
 from lnbits.core.models.wallets import BaseWallet, WalletsFilters, WalletType
 from lnbits.db import Connection, Database, Filters, Page
-from lnbits.helpers import _generate_local_part
+from lnbits.helpers import generate_ln_address
 from lnbits.settings import settings
 from lnbits.utils.cache import cache
 
@@ -36,7 +36,7 @@ async def create_wallet(
         inkey=uuid4().hex,
         currency=settings.lnbits_default_accounting_currency or "USD",
     )
-    if settings.lnbits_enable_wallet_lightning_addresses and wallet.is_lightning_wallet:
+    if settings.ln_address_creation_allowed and wallet.is_lightning_wallet:
         wallet.lightning_address = await generate_lightning_address_local_part(conn)
 
     await (conn or db).insert("wallets", wallet)
@@ -138,9 +138,14 @@ async def get_standalone_wallet(
     )
     if not wallet:
         return None
-    from ..services.lightning_address import ensure_wallet_lightning_address
+    if deleted is True:
+        return wallet
 
-    return await ensure_wallet_lightning_address(wallet, conn)
+    if not wallet.lightning_address and settings.ln_address_creation_allowed:
+        wallet.lightning_address = await generate_lightning_address_local_part(conn)
+        await update_wallet(wallet, conn)
+
+    return wallet
 
 
 async def get_wallet(
@@ -233,19 +238,6 @@ async def get_wallets_count():
     return row.get("count", 0)
 
 
-async def wallet_lightning_address_exists(
-    local_part: str, conn: Connection | None = None
-) -> bool:
-    row: Any = await (conn or db).fetchone(
-        """
-        SELECT id FROM wallets
-        WHERE lightning_address = :lightning_address
-        """,
-        {"lightning_address": local_part},
-    )
-    return bool(row)
-
-
 async def legacy_lnurlp_address_exists(local_part: str) -> bool:
     try:
         row: Any = await _LEGACY_LNURLP_DB.fetchone(
@@ -267,44 +259,24 @@ async def generate_lightning_address_local_part(
     conn: Connection | None = None,
 ) -> str:
     for _ in range(100):
-        local_part = _generate_local_part()
-        if await wallet_lightning_address_exists(local_part, conn):
-            continue
-        if await legacy_lnurlp_address_exists(local_part):
+        local_part = generate_ln_address()
+        if await get_wallet_id_by_ln_address(local_part, conn):
             continue
         return local_part
     raise ValueError("Could not generate a unique wallet lightning address.")
 
 
-async def wallet_lightning_address_exists_for_other_wallet(
-    local_part: str, wallet_id: str, conn: Connection | None = None
-) -> bool:
-    row: Any = await (conn or db).fetchone(
+async def get_wallet_id_by_ln_address(
+    local_part: str, conn: Connection | None = None
+) -> str | None:
+    row: dict = await (conn or db).fetchone(
         """
         SELECT id FROM wallets
         WHERE lightning_address = :lightning_address
-            AND id != :wallet_id
-        """,
-        {"lightning_address": local_part, "wallet_id": wallet_id},
-    )
-    return bool(row)
-
-
-async def get_wallet_by_lightning_address(local_part: str) -> Wallet | None:
-    return await db.fetchone(
-        """
-        SELECT wallets.*, COALESCE((
-            SELECT balance FROM balances WHERE wallet_id = wallets.id
-        ), 0) AS balance_msat FROM wallets
-        INNER JOIN accounts ON wallets.user = accounts.id
-        WHERE lightning_address = :lightning_address
-            AND wallet_type = 'lightning'
-            AND deleted = false
-            AND accounts.activated = true
         """,
         {"lightning_address": local_part.lower()},
-        Wallet,
     )
+    return row["id"] if row else None
 
 
 async def get_wallet_for_key(

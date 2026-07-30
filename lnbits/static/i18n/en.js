@@ -919,6 +919,9 @@ window.localisation.en = {
   lightning_addresses: 'Lightning Addresses',
   lightning_address_price: 'Lightning Address price',
   enable_lightning_address: 'Enable Lightning Addresses',
+  ln_address_core_first: 'Core First',
+  ln_address_extension_first: 'Extension First',
+  ln_address_extension_only: 'Extension Only',
   enable_lightning_address_for_all_wallets:
     'Enable Lightning Addresses for all LNbits wallets',
   allow_users_specify_lightning_addresses:

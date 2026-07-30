@@ -11,7 +11,7 @@ from enum import Enum
 from os import path
 from pathlib import Path
 from time import gmtime, strftime, time
-from typing import Any
+from typing import Any, Literal
 from uuid import uuid4
 
 from loguru import logger
@@ -45,7 +45,10 @@ class UsersSettings(LNbitsSettings):
     lnbits_admin_users: list[str] = Field(default=[])
     lnbits_allowed_users: list[str] = Field(default=[])
     lnbits_allow_new_accounts: bool = Field(default=True)
-    lnbits_enable_wallet_lightning_addresses: bool = Field(default=True)
+
+    lnbits_ln_address_mode: Literal[
+        "core_first", "extension_first", "extension_only"
+    ] = Field(default="extension_first")
     lnbits_allow_custom_wallet_lightning_addresses: bool = Field(default=False)
     lnbits_charge_wallet_lightning_addresses: bool = Field(default=False)
     lnbits_wallet_lightning_address_price_sats: int = Field(default=1000, ge=0)
@@ -64,6 +67,10 @@ class UsersSettings(LNbitsSettings):
     @property
     def new_accounts_allowed(self) -> bool:
         return self.lnbits_allow_new_accounts and len(self.lnbits_allowed_users) == 0
+
+    @property
+    def ln_address_creation_allowed(self) -> bool:
+        return self.lnbits_ln_address_mode != "extension_only"
 
 
 class ExtensionsSettings(LNbitsSettings):
@@ -132,6 +139,9 @@ class RedirectPath(BaseModel):
     from_path: str
     redirect_to_path: str
     header_filters: dict = {}
+
+    def is_duplicate_well_known(self) -> bool:
+        return self.from_path in ["/.well-known/lnurlp"]
 
     def in_conflict(self, other: RedirectPath) -> bool:
         if self.ext_id == other.ext_id:
@@ -1447,9 +1457,7 @@ class PublicSettings(BaseModel):
             walletFeaturedButtonLabel=settings.lnbits_wallet_featured_button_label,
             walletFeaturedButtonUrl=settings.lnbits_wallet_featured_button_url,
             walletFeaturedButtonIcon=settings.lnbits_wallet_featured_button_icon,
-            enableWalletLightningAddresses=(
-                settings.lnbits_enable_wallet_lightning_addresses
-            ),
+            enableWalletLightningAddresses=settings.ln_address_creation_allowed,
             allowCustomWalletLightningAddresses=(
                 settings.lnbits_allow_custom_wallet_lightning_addresses
             ),
