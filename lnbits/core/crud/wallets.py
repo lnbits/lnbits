@@ -1,20 +1,15 @@
 from datetime import datetime, timezone
 from time import time
-from typing import Any
 from uuid import uuid4
-
-from sqlalchemy.exc import OperationalError
 
 from lnbits.core.db import db
 from lnbits.core.models.wallets import BaseWallet, WalletsFilters, WalletType
-from lnbits.db import Connection, Database, Filters, Page
+from lnbits.db import Connection, Filters, Page
 from lnbits.helpers import generate_ln_address
 from lnbits.settings import settings
 from lnbits.utils.cache import cache
 
 from ..models import Wallet
-
-_LEGACY_LNURLP_DB = Database("ext_lnurlp")
 
 
 async def create_wallet(
@@ -236,23 +231,6 @@ async def get_wallets_count():
     result = await db.execute("SELECT COUNT(*) as count FROM wallets")
     row = result.mappings().first()
     return row.get("count", 0)
-
-
-async def legacy_lnurlp_address_exists(local_part: str) -> bool:
-    try:
-        row: Any = await _LEGACY_LNURLP_DB.fetchone(
-            """
-            SELECT 1 FROM lnurlp.pay_links
-            WHERE username = :username
-            LIMIT 1
-            """,
-            {"username": local_part},
-        )
-        return row is not None
-    except OperationalError:
-        return False
-    except Exception:
-        return False
 
 
 async def generate_lightning_address_local_part(

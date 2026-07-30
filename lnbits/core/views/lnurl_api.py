@@ -23,7 +23,6 @@ from lnurl.models import LnurlResponseModel
 from loguru import logger
 from pydantic import ValidationError
 
-from lnbits.core.crud.wallets import get_wallet_id_by_ln_address
 from lnbits.core.models import Payment
 from lnbits.core.models.lnurl import CreateLnurlPayment, LnurlScan
 from lnbits.decorators import (
@@ -63,10 +62,7 @@ async def api_wallet_lightning_address_response(
             reason="Lightning addresses are not supported on this instance."
         )
 
-    if await get_wallet_id_by_ln_address(username):
-        return await wallet_lightning_address_response(username, request)
-
-    return LnurlErrorResponse(reason="Lightning Address not found.")
+    return await wallet_lightning_address_response(username, request)
 
 
 @lnurl_router.get(
