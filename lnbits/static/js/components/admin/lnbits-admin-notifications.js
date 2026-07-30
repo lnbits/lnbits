@@ -4,6 +4,7 @@ window.app.component('lnbits-admin-notifications', {
   data() {
     return {
       nostrNotificationIdentifier: '',
+      nostrNotificationRelay: '',
       nostrDmTypeOptions: [
         {label: 'NIP-17', value: 'nip17'},
         {label: 'NIP-17B', value: 'nip17b'}
@@ -50,6 +51,20 @@ window.app.component('lnbits-admin-notifications', {
       const identifiers = this.formData.lnbits_nostr_notifications_identifiers
       this.formData.lnbits_nostr_notifications_identifiers = identifiers.filter(
         m => m !== identifer
+      )
+    },
+    addNostrNotificationRelay() {
+      const relay = this.nostrNotificationRelay.trim()
+      const relays = this.formData.lnbits_nostr_notifications_relays || []
+      if (relay && !relays.includes(relay)) {
+        this.formData.lnbits_nostr_notifications_relays = [...relays, relay]
+        this.nostrNotificationRelay = ''
+      }
+    },
+    removeNostrNotificationRelay(relay) {
+      const relays = this.formData.lnbits_nostr_notifications_relays || []
+      this.formData.lnbits_nostr_notifications_relays = relays.filter(
+        item => item !== relay
       )
     },
     addEmailNotificationAddress() {

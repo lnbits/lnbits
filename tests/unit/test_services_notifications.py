@@ -28,7 +28,6 @@ from lnbits.core.models.wallets import (
     WalletShareStatus,
 )
 from lnbits.core.services.notifications import (
-    _fetch_configured_nostr_notification_relays,
     dispatch_webhook,
     enqueue_admin_notification,
     enqueue_user_notification,
@@ -249,7 +248,7 @@ async def test_send_notification_uses_available_channels_and_swallows_exceptions
 
 @pytest.mark.anyio
 async def test_send_nostr_notifications_and_single_notification(
-    mocker: MockerFixture,
+    settings: Settings, mocker: MockerFixture
 ):
     send_mock = mocker.patch(
         "lnbits.core.services.notifications.send_nostr_notification",
@@ -277,7 +276,7 @@ async def test_send_nostr_notifications_and_single_notification(
 
     resolve_mock = mocker.patch(
         "lnbits.core.services.notifications.resolve_nostr_recipient",
-        mocker.AsyncMock(return_value=("pubkey", ["wss://relay"])),
+        mocker.AsyncMock(return_value=("pubkey", [])),
     )
     normalize_mock = mocker.patch(
         "lnbits.core.services.notifications.normalize_private_key",
@@ -288,7 +287,12 @@ async def test_send_nostr_notifications_and_single_notification(
         mocker.AsyncMock(),
     )
 
-    await send_nostr_notification("alice@example.com", "hello")
+    original_relays = list(settings.lnbits_nostr_notifications_relays)
+    try:
+        settings.lnbits_nostr_notifications_relays = ["wss://fallback"]
+        await send_nostr_notification("alice@example.com", "hello")
+    finally:
+        settings.lnbits_nostr_notifications_relays = original_relays
 
     resolve_mock.assert_awaited_once_with("alice@example.com")
     normalize_mock.assert_called_once()
@@ -296,7 +300,7 @@ async def test_send_nostr_notifications_and_single_notification(
         "server-private-key",
         "pubkey",
         "hello",
-        ["wss://relay"],
+        ["wss://fallback"],
     )
 
 
@@ -305,9 +309,11 @@ async def test_send_nostr_notification_selects_nip17_and_nip17b(
     settings: Settings, mocker: MockerFixture
 ):
     original_dm_types = list(settings.lnbits_nostr_notifications_dm_types)
+    original_relays = list(settings.lnbits_nostr_notifications_relays)
     try:
         settings.lnbits_nostr_notifications_dm_types = ["nip17", "nip17b"]
-        mocker.patch(
+        settings.lnbits_nostr_notifications_relays = ["wss://fallback"]
+        resolve_mock = mocker.patch(
             "lnbits.core.services.notifications.resolve_nostr_recipient",
             mocker.AsyncMock(return_value=("pubkey", ["wss://recipient"])),
         )
@@ -328,6 +334,7 @@ async def test_send_nostr_notification_selects_nip17_and_nip17b(
         await send_nostr_notification("group@example.com", "hello", "nip17b")
     finally:
         settings.lnbits_nostr_notifications_dm_types = original_dm_types
+        settings.lnbits_nostr_notifications_relays = original_relays
 
     nip17_mock.assert_awaited_once_with(
         "server-private-key",
@@ -341,65 +348,46 @@ async def test_send_nostr_notification_selects_nip17_and_nip17b(
         "hello",
         ["wss://recipient"],
     )
+    assert [call.args[0] for call in resolve_mock.await_args_list] == [
+        "alice@example.com",
+        "group@example.com",
+    ]
 
 
 @pytest.mark.anyio
-async def test_bare_nostr_pubkey_uses_configured_nip5_relays(
+async def test_bare_nostr_pubkey_uses_fallback_relays(
     settings: Settings, mocker: MockerFixture
 ):
-    original_identifiers = list(settings.lnbits_nostr_notifications_identifiers)
+    original_relays = list(settings.lnbits_nostr_notifications_relays)
     try:
-        settings.lnbits_nostr_notifications_identifiers = [
-            "alice@example.com",
-            "bare-pubkey",
-            "bob@example.com",
+        settings.lnbits_nostr_notifications_relays = [
+            "invalid",
+            "wss://fallback",
+            "wss://fallback",
         ]
-        fetch_mock = mocker.patch(
-            "lnbits.core.services.notifications.fetch_nip5_details",
-            mocker.AsyncMock(
-                side_effect=[
-                    ("alice-pubkey", ["wss://one", "wss://shared"]),
-                    ("bob-pubkey", ["wss://shared", "wss://two"]),
-                ]
-            ),
+        resolve_mock = mocker.patch(
+            "lnbits.core.services.notifications.resolve_nostr_recipient",
+            mocker.AsyncMock(return_value=("recipient-pubkey", ["wss://fallback"])),
+        )
+        mocker.patch(
+            "lnbits.core.services.notifications.normalize_private_key",
+            return_value="server-private-key",
+        )
+        dm_mock = mocker.patch(
+            "lnbits.core.services.notifications.send_nostr_dm",
+            mocker.AsyncMock(),
         )
 
-        relays = await _fetch_configured_nostr_notification_relays()
+        await send_nostr_notification("f" * 64, "hello")
     finally:
-        settings.lnbits_nostr_notifications_identifiers = original_identifiers
+        settings.lnbits_nostr_notifications_relays = original_relays
 
-    assert relays == ["wss://one", "wss://shared", "wss://two"]
-    assert [call.args[0] for call in fetch_mock.await_args_list] == [
-        "alice@example.com",
-        "bob@example.com",
-    ]
-
-    fallback_mock = mocker.patch(
-        "lnbits.core.services.notifications._fetch_configured_nostr_notification_relays",
-        mocker.AsyncMock(return_value=relays),
-    )
-    resolve_mock = mocker.patch(
-        "lnbits.core.services.notifications.resolve_nostr_recipient",
-        mocker.AsyncMock(return_value=("recipient-pubkey", relays)),
-    )
-    mocker.patch(
-        "lnbits.core.services.notifications.normalize_private_key",
-        return_value="server-private-key",
-    )
-    dm_mock = mocker.patch(
-        "lnbits.core.services.notifications.send_nostr_dm",
-        mocker.AsyncMock(),
-    )
-
-    await send_nostr_notification("f" * 64, "hello")
-
-    fallback_mock.assert_awaited_once_with()
-    resolve_mock.assert_awaited_once_with("f" * 64, relays)
+    resolve_mock.assert_awaited_once_with("f" * 64, ["wss://fallback"])
     dm_mock.assert_awaited_once_with(
         "server-private-key",
         "recipient-pubkey",
         "hello",
-        relays,
+        ["wss://fallback"],
     )
 
 

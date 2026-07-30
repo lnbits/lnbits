@@ -363,6 +363,7 @@ def test_asset_security_and_notification_helpers(
     assert security_settings.is_wallet_max_balance_exceeded(100) is False
     assert notification_settings.is_nostr_notifications_configured() is True
     assert notification_settings.lnbits_nostr_notifications_dm_types == []
+    assert notification_settings.lnbits_nostr_notifications_relays == []
     assert notification_settings.is_telegram_notifications_configured() is True
 
     legacy_super_settings = dict_to_model(

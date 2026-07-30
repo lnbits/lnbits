@@ -314,6 +314,9 @@ window.localisation.en = {
   notifications_nostr_dm_types: 'Other Direct Message Types Allowed',
   notifications_nostr_dm_types_desc:
     'Allow extensions to explicitly send notifications using these protocols.',
+  notifications_nostr_relays: 'Fallback Nostr Relays',
+  notifications_nostr_relays_desc:
+    'Relays used when no relay list is returned by NIP-05.',
 
   notifications_telegram_config: 'Telegram Configuration',
   notifications_enable_telegram: 'Enable Telegram',

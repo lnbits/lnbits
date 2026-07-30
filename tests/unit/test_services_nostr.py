@@ -195,14 +195,16 @@ async def test_send_nostr_nip17_dm_builds_gift_wrap(
     assert result["kind"] == 1059
     assert result["tags"] == [["p", receiver.public_key().to_hex()]]
     send_mock.assert_awaited_once()
-    gift = send_mock.await_args.args[0]
+    send_call = send_mock.await_args
+    assert send_call
+    gift = send_call.args[0]
     unwrapped = await UnwrappedGift.from_gift_wrap(
         NostrSigner.keys(receiver),
         gift,
     )
     assert unwrapped.rumor().content() == "hello"
     assert unwrapped.sender().to_hex() == sender.public_key().to_hex()
-    assert send_mock.await_args.args[1] == ["wss://relay"]
+    assert send_call.args[1] == ["wss://relay"]
 
 
 @pytest.mark.anyio
@@ -241,7 +243,9 @@ async def test_send_nostr_nip17b_dm_uses_epoch_ticket(
         group.public_key().to_hex(),
         ["wss://group"],
     )
-    gift = send_mock.await_args.args[0]
+    send_call = send_mock.await_args
+    assert send_call
+    gift = send_call.args[0]
     unwrapped = await UnwrappedGift.from_gift_wrap(
         NostrSigner.keys(epoch),
         gift,
@@ -256,7 +260,7 @@ async def test_send_nostr_nip17b_dm_uses_epoch_ticket(
         ["invitation_proof", "f" * 128],
     ]
     assert unwrapped.sender().to_hex() == member.public_key().to_hex()
-    assert send_mock.await_args.args[1] == ["wss://group"]
+    assert send_call.args[1] == ["wss://group"]
 
 
 @pytest.mark.anyio

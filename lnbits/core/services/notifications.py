@@ -27,7 +27,6 @@ from lnbits.core.models.notifications import (
 )
 from lnbits.core.models.users import UserNotifications
 from lnbits.core.services.nostr import (
-    fetch_nip5_details,
     resolve_nostr_recipient,
     send_nostr_dm,
     send_nostr_nip17_dm,
@@ -36,7 +35,7 @@ from lnbits.core.services.nostr import (
 from lnbits.core.services.websockets import websocket_manager
 from lnbits.helpers import check_callback_url, is_valid_email_address
 from lnbits.settings import settings
-from lnbits.utils.nostr import normalize_private_key
+from lnbits.utils.nostr import is_ws_url, normalize_private_key
 
 notifications_queue: asyncio.Queue[NotificationMessage] = asyncio.Queue()
 NostrDmType = Literal["nip04", "nip17", "nip17b"]
@@ -185,8 +184,9 @@ async def send_nostr_notification(
 
     if "@" in identifier:
         user_pubkey, relays = await resolve_nostr_recipient(identifier)
+        relays = relays or _configured_nostr_notification_relays()
     else:
-        fallback_relays = await _fetch_configured_nostr_notification_relays()
+        fallback_relays = _configured_nostr_notification_relays()
         user_pubkey, relays = await resolve_nostr_recipient(
             identifier,
             fallback_relays,
@@ -221,33 +221,9 @@ async def send_nostr_notification(
     raise ValueError(f"Unsupported Nostr DM type: {dm_type}")
 
 
-async def _fetch_configured_nostr_notification_relays() -> list[str]:
-    identifiers = list(
-        dict.fromkeys(
-            identifier
-            for identifier in settings.lnbits_nostr_notifications_identifiers
-            if "@" in identifier
-        )
-    )
-    if not identifiers:
-        return []
-
-    results = await asyncio.gather(
-        *(fetch_nip5_details(identifier) for identifier in identifiers),
-        return_exceptions=True,
-    )
-    relays: list[str] = []
-    for identifier, result in zip(identifiers, results, strict=True):
-        if isinstance(result, BaseException):
-            if isinstance(result, asyncio.CancelledError):
-                raise result
-            logger.warning(
-                f"Error fetching fallback Nostr relays from {identifier}: {result}"
-            )
-            continue
-        _, identifier_relays = result
-        relays.extend(identifier_relays)
-    return list(dict.fromkeys(relays))
+def _configured_nostr_notification_relays() -> list[str]:
+    relays = settings.lnbits_nostr_notifications_relays
+    return list(dict.fromkeys(relay for relay in relays if is_ws_url(relay)))
 
 
 async def send_telegram_notification(chat_id: str, message: str) -> dict:

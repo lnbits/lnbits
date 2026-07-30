@@ -480,6 +480,7 @@ class NotificationsSettings(LNbitsSettings):
     lnbits_nostr_notifications_enabled: bool = Field(default=False)
     lnbits_nostr_notifications_private_key: str = Field(default="")
     lnbits_nostr_notifications_identifiers: list[str] = Field(default=[])
+    lnbits_nostr_notifications_relays: list[str] = Field(default=[])
     lnbits_nostr_notifications_dm_types: list[Literal["nip17", "nip17b"]] = Field(
         default=[]
     )
