@@ -5,6 +5,7 @@ from asyncio.tasks import create_task
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from http import HTTPStatus
+from typing import Literal
 
 import httpx
 from loguru import logger
@@ -25,13 +26,19 @@ from lnbits.core.models.notifications import (
     NotificationType,
 )
 from lnbits.core.models.users import UserNotifications
-from lnbits.core.services.nostr import fetch_nip5_details, send_nostr_dm
+from lnbits.core.services.nostr import (
+    resolve_nostr_recipient,
+    send_nostr_dm,
+    send_nostr_nip17_dm,
+    send_nostr_nip17b_dm,
+)
 from lnbits.core.services.websockets import websocket_manager
 from lnbits.helpers import check_callback_url, is_valid_email_address
 from lnbits.settings import settings
-from lnbits.utils.nostr import normalize_private_key
+from lnbits.utils.nostr import is_ws_url, normalize_private_key
 
 notifications_queue: asyncio.Queue[NotificationMessage] = asyncio.Queue()
+NostrDmType = Literal["nip04", "nip17", "nip17b"]
 
 
 def enqueue_admin_notification(message_type: NotificationType, values: dict) -> None:
@@ -112,6 +119,7 @@ async def send_notification(
     email_addresses: list[str] | None,
     message: str,
     message_type: str | None = None,
+    nostr_dm_types: list[NostrDmType] | None = None,
 ) -> None:
     try:
         if telegram_chat_id and settings.is_telegram_notifications_configured():
@@ -122,8 +130,15 @@ async def send_notification(
 
     try:
         if nostr_identifiers and settings.is_nostr_notifications_configured():
-            await send_nostr_notifications(nostr_identifiers, message)
-            logger.debug(f"Sent nostr notification: {message_type}")
+            sent_identifiers = await send_nostr_notifications(
+                nostr_identifiers,
+                message,
+                nostr_dm_types,
+            )
+            if sent_identifiers:
+                logger.debug(f"Sent nostr notification: {message_type}")
+            else:
+                logger.warning(f"Nostr notification was not sent: {message_type}")
     except Exception as e:
         logger.error(f"Error sending nostr notification {message_type}: {e}")
     try:
@@ -134,30 +149,81 @@ async def send_notification(
         logger.error(f"Error sending email notification {message_type}: {e}")
 
 
-async def send_nostr_notifications(identifiers: list[str], message: str) -> list[str]:
+async def send_nostr_notifications(
+    identifiers: list[str],
+    message: str,
+    dm_types: list[NostrDmType] | None = None,
+) -> list[str]:
+    selected_dm_types: list[NostrDmType] = ["nip04"] if dm_types is None else dm_types
     success_sent: list[str] = []
     for identifier in identifiers:
-        try:
-            await send_nostr_notification(identifier, message)
+        sent = False
+        for dm_type in selected_dm_types:
+            try:
+                await send_nostr_notification(identifier, message, dm_type)
+                sent = True
+            except Exception as e:
+                logger.warning(
+                    f"Error notifying identifier {identifier} via {dm_type}: {e}"
+                )
+        if sent:
             success_sent.append(identifier)
-        except Exception as e:
-            logger.warning(f"Error notifying identifier {identifier}: {e}")
     return success_sent
 
 
-async def send_nostr_notification(identifier: str, message: str):
-    nip5 = await fetch_nip5_details(identifier)
-    user_pubkey = nip5[0]
-    relays = nip5[1]
+async def send_nostr_notification(
+    identifier: str,
+    message: str,
+    dm_type: NostrDmType = "nip04",
+):
+    if (
+        dm_type != "nip04"
+        and dm_type not in settings.lnbits_nostr_notifications_dm_types
+    ):
+        raise ValueError(f"Nostr {dm_type} notifications are not allowed")
+
+    if "@" in identifier:
+        user_pubkey, relays = await resolve_nostr_recipient(identifier)
+        relays = relays or _configured_nostr_notification_relays()
+    else:
+        fallback_relays = _configured_nostr_notification_relays()
+        user_pubkey, relays = await resolve_nostr_recipient(
+            identifier,
+            fallback_relays,
+        )
+    if not relays:
+        raise ValueError(f"No Nostr relays found for identifier {identifier}")
+
     server_private_key = normalize_private_key(
         settings.lnbits_nostr_notifications_private_key
     )
-    await send_nostr_dm(
-        server_private_key,
-        user_pubkey,
-        message,
-        relays,
-    )
+    if dm_type == "nip04":
+        return await send_nostr_dm(
+            server_private_key,
+            user_pubkey,
+            message,
+            relays,
+        )
+    if dm_type == "nip17":
+        return await send_nostr_nip17_dm(
+            server_private_key,
+            user_pubkey,
+            message,
+            relays,
+        )
+    if dm_type == "nip17b":
+        return await send_nostr_nip17b_dm(
+            server_private_key,
+            user_pubkey,
+            message,
+            relays,
+        )
+    raise ValueError(f"Unsupported Nostr DM type: {dm_type}")
+
+
+def _configured_nostr_notification_relays() -> list[str]:
+    relays = settings.lnbits_nostr_notifications_relays
+    return list(dict.fromkeys(relay for relay in relays if is_ws_url(relay)))
 
 
 async def send_telegram_notification(chat_id: str, message: str) -> dict:
@@ -317,6 +383,7 @@ async def send_notification_in_background(
     email_addresses: list[str] | None,
     message: str,
     message_type: str | None = None,
+    nostr_dm_types: list[NostrDmType] | None = None,
 ):
     try:
         create_task(
@@ -326,6 +393,7 @@ async def send_notification_in_background(
                 email_addresses,
                 message,
                 message_type,
+                nostr_dm_types,
             )
         )
     except Exception as e:

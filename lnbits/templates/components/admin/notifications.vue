@@ -95,6 +95,64 @@
               ><span v-text="identifier"></span></q-tooltip
           ></q-chip>
         </div>
+        <q-item>
+          <q-item-section>
+            <q-item-label
+              v-text="$t('notifications_nostr_dm_types')"
+            ></q-item-label>
+            <q-item-label
+              caption
+              v-text="$t('notifications_nostr_dm_types_desc')"
+            ></q-item-label>
+            <q-option-group
+              v-model="formData.lnbits_nostr_notifications_dm_types"
+              :options="nostrDmTypeOptions"
+              type="checkbox"
+              inline
+              color="primary"
+            ></q-option-group>
+          </q-item-section>
+        </q-item>
+        <q-item tag="label" v-ripple>
+          <q-item-section>
+            <q-item-label
+              v-text="$t('notifications_nostr_relays')"
+            ></q-item-label>
+            <q-item-label
+              caption
+              v-text="$t('notifications_nostr_relays_desc')"
+            ></q-item-label>
+          </q-item-section>
+          <q-item-section>
+            <q-input
+              filled
+              v-model="nostrNotificationRelay"
+              placeholder="wss://relay.example.com"
+              @keydown.enter="addNostrNotificationRelay"
+            >
+              <q-btn
+                @click="addNostrNotificationRelay()"
+                dense
+                flat
+                icon="add"
+              ></q-btn>
+            </q-input>
+          </q-item-section>
+        </q-item>
+        <div>
+          <q-chip
+            v-for="relay in formData.lnbits_nostr_notifications_relays"
+            :key="relay"
+            removable
+            @remove="removeNostrNotificationRelay(relay)"
+            color="primary"
+            text-color="white"
+            class="ellipsis"
+            :label="relay"
+            ><q-tooltip v-if="relay" anchor="top middle" self="bottom middle"
+              ><span v-text="relay"></span></q-tooltip
+          ></q-chip>
+        </div>
       </div>
 
       <div class="col-sm-12 col-md-6">
