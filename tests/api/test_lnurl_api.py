@@ -75,7 +75,7 @@ async def test_wallet_lightning_address_lookup_and_callback(
     )
 
     create_invoice_mock = mocker.patch(
-        "lnbits.core.services.payments.create_invoice",
+        "lnbits.core.services.lightning_address.create_invoice",
         mocker.AsyncMock(return_value=SimpleNamespace(bolt11=TEST_BOLT11)),
     )
     callback = tagged_data["callback"].split("testserver")[-1]
