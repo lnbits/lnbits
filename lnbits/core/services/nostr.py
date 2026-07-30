@@ -1,26 +1,27 @@
 import asyncio
 import json
+import secrets
+import time
 from dataclasses import dataclass
-from datetime import timedelta
 
 import httpx
 from loguru import logger
 from nostr_sdk import (
-    Client,
     Event,
     EventBuilder,
-    Filter,
     Keys,
     Kind,
-    NostrSigner,
+    Nip44Version,
     PublicKey,
-    RelayUrl,
     Tag,
-    gift_wrap,
+    Timestamp,
+    UnsignedEvent,
+    gift_wrap_from_seal,
     nip44_decrypt,
+    nip44_encrypt,
 )
 from pynostr.encrypted_dm import EncryptedDirectMessage
-from websocket import WebSocket, create_connection
+from websocket import WebSocket, WebSocketTimeoutException, create_connection
 
 from lnbits.core.helpers import is_valid_url
 from lnbits.utils.nostr import (
@@ -91,11 +92,10 @@ async def send_nostr_nip17_dm(
     relays: list[str],
 ) -> dict:
     keys = Keys.parse(from_private_key_hex)
-    signer = NostrSigner.keys(keys)
     receiver = PublicKey.parse(to_pubkey_hex)
     rumor = EventBuilder.private_msg_rumor(receiver, message).build(keys.public_key())
-    gift = await gift_wrap(signer, receiver, rumor)
-    await _send_event_to_relays(signer, gift, relays)
+    gift = _gift_wrap_with_keys(keys, receiver, rumor)
+    await _send_event_to_relays(gift, relays)
     return json.loads(gift.as_json())
 
 
@@ -112,7 +112,6 @@ async def send_nostr_nip17b_dm(
         ticket_relays,
     )
     keys = Keys.parse(from_private_key_hex)
-    signer = NostrSigner.keys(keys)
     epoch_pubkey = PublicKey.parse(ticket.epoch_pubkey)
     tags = [
         Tag.parse(["p", ticket.epoch_pubkey]),
@@ -126,8 +125,8 @@ async def send_nostr_nip17b_dm(
         .tags(tags)
         .build(keys.public_key())
     )
-    gift = await gift_wrap(signer, epoch_pubkey, rumor)
-    await _send_event_to_relays(signer, gift, relays)
+    gift = _gift_wrap_with_keys(keys, epoch_pubkey, rumor)
+    await _send_event_to_relays(gift, relays)
     return json.loads(gift.as_json())
 
 
@@ -138,29 +137,21 @@ async def fetch_latest_nostr_group_ticket(
 ) -> NostrGroupTicket:
     keys = Keys.parse(private_key_hex)
     group_pubkey = PublicKey.parse(group_pubkey_hex).to_hex()
-    signer = NostrSigner.keys(keys)
     relay_urls = _parse_relay_urls(relays)
     if not relay_urls:
         raise ValueError("No relays configured for NIP-17B ticket discovery.")
 
-    client = Client(signer)
-    try:
-        for relay_url in relay_urls:
-            await client.add_relay(relay_url)
-        await client.connect()
-        events = await client.fetch_events_from(
-            relay_urls,
-            Filter()
-            .kind(Kind(NIP17_GIFT_WRAP_KIND))
-            .pubkey(keys.public_key())
-            .limit(200),
-            timedelta(seconds=5),
-        )
-    finally:
-        await client.disconnect()
+    events = await _fetch_events_from_relays(
+        relay_urls,
+        {
+            "kinds": [NIP17_GIFT_WRAP_KIND],
+            "#p": [keys.public_key().to_hex()],
+            "limit": 200,
+        },
+    )
 
     tickets: list[NostrGroupTicket] = []
-    for wrapped_event in events.to_vec():
+    for wrapped_event in events:
         try:
             ticket = _decrypt_nostr_group_ticket(
                 wrapped_event,
@@ -282,8 +273,114 @@ def _parse_nostr_group_ticket_event(
     )
 
 
+def _gift_wrap_with_keys(
+    sender_keys: Keys,
+    receiver: PublicKey,
+    rumor: UnsignedEvent,
+) -> Event:
+    encrypted_rumor = nip44_encrypt(
+        sender_keys.secret_key(),
+        receiver,
+        rumor.as_json(),
+        Nip44Version.V2,
+    )
+    random_past = secrets.randbelow(172_801)
+    created_at = Timestamp.from_secs(max(0, Timestamp.now().as_secs() - random_past))
+    seal = (
+        EventBuilder(Kind(NIP17_SEAL_KIND), encrypted_rumor)
+        .custom_created_at(created_at)
+        .sign_with_keys(sender_keys)
+    )
+    return gift_wrap_from_seal(receiver, seal)
+
+
+async def _fetch_events_from_relays(
+    relays: list[str],
+    filter_data: dict,
+    timeout: float = 5,
+) -> list[Event]:
+    results = await asyncio.gather(
+        *(
+            asyncio.to_thread(
+                _fetch_events_from_relay,
+                relay,
+                filter_data,
+                timeout,
+            )
+            for relay in relays
+        ),
+        return_exceptions=True,
+    )
+    events: dict[str, Event] = {}
+    connected = False
+    for relay, result in zip(relays, results, strict=True):
+        if isinstance(result, BaseException):
+            if isinstance(result, asyncio.CancelledError):
+                raise result
+            logger.warning(f"Error fetching Nostr events from relay {relay}: {result}")
+            continue
+        connected = True
+        for event in result:
+            events[event.id().to_hex()] = event
+    if not connected:
+        raise ConnectionError("Failed to connect to any Nostr ticket relay.")
+    return list(events.values())
+
+
+def _fetch_events_from_relay(
+    relay: str,
+    filter_data: dict,
+    timeout: float,
+) -> list[Event]:
+    subscription_id = secrets.token_hex(8)
+    ws = create_connection(relay, timeout=timeout)
+    events: list[Event] = []
+    deadline = time.monotonic() + timeout
+    try:
+        ws.send(json.dumps(["REQ", subscription_id, filter_data]))
+        while time.monotonic() < deadline:
+            ws.settimeout(max(0.1, deadline - time.monotonic()))
+            try:
+                raw_message = ws.recv()
+            except WebSocketTimeoutException:
+                break
+            if isinstance(raw_message, bytes):
+                raw_message = raw_message.decode()
+            message = json.loads(raw_message)
+            if not isinstance(message, list) or len(message) < 2:
+                continue
+            if message[0] == "EOSE" and message[1] == subscription_id:
+                break
+            if (
+                message[0] == "EVENT"
+                and message[1] == subscription_id
+                and len(message) == 3
+            ):
+                events.append(Event.from_json(json.dumps(message[2])))
+    finally:
+        try:
+            ws.send(json.dumps(["CLOSE", subscription_id]))
+        except Exception as exc:
+            logger.debug(f"Failed to close Nostr subscription: {exc}")
+        try:
+            ws.close()
+        except Exception as exc:
+            logger.debug(f"Failed to close Nostr relay connection: {exc}")
+    return events
+
+
+def _publish_event_to_relay(relay: str, event: Event) -> None:
+    ws = create_connection(relay, timeout=5)
+    try:
+        ws.send(json.dumps(["EVENT", json.loads(event.as_json())]))
+    finally:
+        try:
+            ws.close()
+        except Exception as exc:
+            logger.debug(f"Failed to close Nostr relay connection: {exc}")
+
+
 async def _send_event_to_relays(
-    signer: NostrSigner,
     event: Event,
     relays: list[str],
 ) -> None:
@@ -291,23 +388,32 @@ async def _send_event_to_relays(
     if not relay_urls:
         raise ValueError("No Nostr relays found for recipient.")
 
-    client = Client(signer)
-    try:
-        for relay_url in relay_urls:
-            await client.add_relay(relay_url)
-        await client.connect()
-        await client.send_event_to(relay_urls, event)
-    finally:
-        await client.disconnect()
+    results = await asyncio.gather(
+        *(
+            asyncio.to_thread(_publish_event_to_relay, relay_url, event)
+            for relay_url in relay_urls
+        ),
+        return_exceptions=True,
+    )
+    sent = False
+    for relay_url, result in zip(relay_urls, results, strict=True):
+        if isinstance(result, BaseException):
+            if isinstance(result, asyncio.CancelledError):
+                raise result
+            logger.warning(f"Error sending notification to relay {relay_url}: {result}")
+            continue
+        sent = True
+    if not sent:
+        raise ConnectionError("Failed to send Nostr event to any recipient relay.")
 
 
-def _parse_relay_urls(relays: list[str]) -> list[RelayUrl]:
-    relay_urls: list[RelayUrl] = []
+def _parse_relay_urls(relays: list[str]) -> list[str]:
+    relay_urls: list[str] = []
     for relay in dict.fromkeys(relays):
-        try:
-            relay_urls.append(RelayUrl.parse(relay))
-        except Exception as exc:
-            logger.warning(f"Ignoring invalid Nostr relay '{relay}': {exc}")
+        if relay.startswith(("ws://", "wss://")) and is_valid_url(relay):
+            relay_urls.append(relay)
+        else:
+            logger.warning(f"Ignoring invalid Nostr relay '{relay}'.")
     return relay_urls
 
 

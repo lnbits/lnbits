@@ -17,7 +17,10 @@ from pytest_mock.plugin import MockerFixture
 from lnbits.core.services.nostr import (
     NostrGroupTicket,
     _decrypt_nostr_group_ticket,
+    _fetch_events_from_relay,
     _select_latest_nostr_group_ticket,
+    _send_event_to_relays,
+    fetch_latest_nostr_group_ticket,
     fetch_nip5_details,
     resolve_nostr_recipient,
     send_nostr_dm,
@@ -27,12 +30,20 @@ from lnbits.core.services.nostr import (
 
 
 class FakeWebSocket:
-    def __init__(self):
+    def __init__(self, messages: list[str] | None = None):
         self.sent: list[str] = []
         self.closed = False
+        self.messages = list(messages or [])
+        self.timeout: float | None = None
 
     def send(self, message: str):
         self.sent.append(message)
+
+    def recv(self):
+        return self.messages.pop(0)
+
+    def settimeout(self, timeout: float):
+        self.timeout = timeout
 
     def close(self):
         self.closed = True
@@ -185,7 +196,14 @@ async def test_send_nostr_nip17_dm_builds_gift_wrap(
     assert result["kind"] == 1059
     assert result["tags"] == [["p", receiver.public_key().to_hex()]]
     send_mock.assert_awaited_once()
-    assert send_mock.await_args.args[2] == ["wss://relay"]
+    gift = send_mock.await_args.args[0]
+    unwrapped = await UnwrappedGift.from_gift_wrap(
+        NostrSigner.keys(receiver),
+        gift,
+    )
+    assert unwrapped.rumor().content() == "hello"
+    assert unwrapped.sender().to_hex() == sender.public_key().to_hex()
+    assert send_mock.await_args.args[1] == ["wss://relay"]
 
 
 @pytest.mark.anyio
@@ -225,7 +243,7 @@ async def test_send_nostr_nip17b_dm_uses_epoch_ticket(
         group.public_key().to_hex(),
         ["wss://tickets"],
     )
-    gift = send_mock.await_args.args[1]
+    gift = send_mock.await_args.args[0]
     unwrapped = await UnwrappedGift.from_gift_wrap(
         NostrSigner.keys(epoch),
         gift,
@@ -240,7 +258,111 @@ async def test_send_nostr_nip17b_dm_uses_epoch_ticket(
         ["invitation_proof", "f" * 128],
     ]
     assert unwrapped.sender().to_hex() == member.public_key().to_hex()
-    assert send_mock.await_args.args[2] == ["wss://group"]
+    assert send_mock.await_args.args[1] == ["wss://group"]
+
+
+@pytest.mark.anyio
+async def test_fetch_latest_nostr_group_ticket_uses_direct_relay_events(
+    mocker: MockerFixture,
+):
+    member = Keys.generate()
+    group = Keys.generate()
+    epoch = Keys.generate()
+    ticket = (
+        EventBuilder(Kind(1014), epoch.secret_key().to_hex())
+        .tags(
+            [
+                Tag.parse(["p", member.public_key().to_hex()]),
+                Tag.parse(["epoch", "3"]),
+            ]
+        )
+        .sign_with_keys(group)
+    )
+    encrypted_ticket = nip44_encrypt(
+        group.secret_key(),
+        member.public_key(),
+        ticket.as_json(),
+        Nip44Version.V2,
+    )
+    seal = EventBuilder(Kind(13), encrypted_ticket).sign_with_keys(group)
+    gift = gift_wrap_from_seal(member.public_key(), seal)
+    fetch_mock = mocker.patch(
+        "lnbits.core.services.nostr._fetch_events_from_relays",
+        mocker.AsyncMock(return_value=[gift]),
+    )
+
+    parsed = await fetch_latest_nostr_group_ticket(
+        member.secret_key().to_hex(),
+        group.public_key().to_hex(),
+        ["wss://relay"],
+    )
+
+    fetch_mock.assert_awaited_once_with(
+        ["wss://relay"],
+        {
+            "kinds": [1059],
+            "#p": [member.public_key().to_hex()],
+            "limit": 200,
+        },
+    )
+    assert parsed.epoch_private_key == epoch.secret_key().to_hex()
+
+
+def test_fetch_events_from_relay_uses_nostr_subscription(mocker: MockerFixture):
+    event = EventBuilder(Kind(1059), "gift").sign_with_keys(Keys.generate())
+    websocket = FakeWebSocket(
+        [
+            json.dumps(["EVENT", "subscription", json.loads(event.as_json())]),
+            json.dumps(["EOSE", "subscription"]),
+        ]
+    )
+    mocker.patch(
+        "lnbits.core.services.nostr.create_connection",
+        return_value=websocket,
+    )
+    mocker.patch(
+        "lnbits.core.services.nostr.secrets.token_hex",
+        return_value="subscription",
+    )
+
+    events = _fetch_events_from_relay(
+        "wss://relay",
+        {"kinds": [1059]},
+        5,
+    )
+
+    assert [item.id().to_hex() for item in events] == [event.id().to_hex()]
+    assert json.loads(websocket.sent[0]) == [
+        "REQ",
+        "subscription",
+        {"kinds": [1059]},
+    ]
+    assert json.loads(websocket.sent[1]) == ["CLOSE", "subscription"]
+    assert websocket.closed is True
+
+
+@pytest.mark.anyio
+async def test_send_event_to_relays_uses_direct_websockets(
+    mocker: MockerFixture,
+):
+    event = EventBuilder(Kind(1059), "gift").sign_with_keys(Keys.generate())
+    first = FakeWebSocket()
+    second = FakeWebSocket()
+    mocker.patch(
+        "lnbits.core.services.nostr.create_connection",
+        side_effect=[first, second],
+    )
+
+    await _send_event_to_relays(
+        event,
+        ["wss://one", "wss://two"],
+    )
+
+    expected = ["EVENT", json.loads(event.as_json())]
+    assert json.loads(first.sent[0]) == expected
+    assert json.loads(second.sent[0]) == expected
+    assert first.closed is True
+    assert second.closed is True
 
 
 def test_decrypt_nostr_group_ticket():
