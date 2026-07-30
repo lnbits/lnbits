@@ -74,12 +74,10 @@
         <div class="col-12 col-md-6 q-mt-sm">
           <q-item tag="label" v-ripple>
             <q-item-section>
-              <q-item-label
-                v-text="$t('enable_lightning_address')"
-              ></q-item-label>
+              <q-item-label v-text="$t('ln_address_mode')"></q-item-label>
               <q-item-label
                 caption
-                v-text="$t('enable_lightning_address_for_all_wallets')"
+                v-text="$t('ln_address_mode_hint')"
               ></q-item-label>
             </q-item-section>
             <q-item-section avatar>
@@ -88,7 +86,6 @@
                 emit-value
                 map-options
                 v-model="formData.lnbits_ln_address_mode"
-                :hint="$t('ln_address_mode_hint')"
                 :label="$t('ln_address_mode')"
                 :options="[
                   {label: $t('ln_address_core_first'), value: 'core_first'},

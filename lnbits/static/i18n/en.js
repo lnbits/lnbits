@@ -919,9 +919,12 @@ window.localisation.en = {
   lightning_addresses: 'Lightning Addresses',
   lightning_address_price: 'Lightning Address price',
   enable_lightning_address: 'Enable Lightning Addresses',
-  ln_address_core_first: 'Core First',
-  ln_address_extension_first: 'Extension First',
-  ln_address_extension_only: 'Extension Only',
+  ln_address_mode: 'Lightning Address Resolution Mode',
+  ln_address_core_first: 'Resolve from LNbits Core first',
+  ln_address_extension_first: 'Resolve from Pay Links extension first',
+  ln_address_extension_only: 'Resolve from Pay Links extension only',
+  ln_address_mode_hint:
+    'Choose how LNbits should resolve Lightning Addresses. Using both LNbits Core and the Pay Links extension will have a small impact on performance.',
   enable_lightning_address_for_all_wallets:
     'Enable Lightning Addresses for all LNbits wallets',
   allow_users_specify_lightning_addresses:
