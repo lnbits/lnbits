@@ -55,7 +55,7 @@ async def api_wallet_lightning_address_response(
         redirect = settings.find_extension_redirect(request.url.path, req_headers)
         if redirect:
             resp = await _check_extension_well_known(redirect, request)
-            if resp:
+            if resp and resp.ok:
                 return resp
 
     if settings.lnbits_ln_address_mode == "extension_only":
