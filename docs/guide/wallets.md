@@ -41,7 +41,6 @@ A backend wallet is selected and configured entirely through LNbits environment 
 | [CoreLightning REST](#corelightning-rest)       | [LNbits](#lnbits)                     | [Alby](#alby)                                     |
 | [Spark (Core Lightning)](#spark-core-lightning) | [LNPay](#lnpay)                       | [Boltz](#boltz)                                   |
 | [Spark L2](#spark-l2)                           | [ZBD](#zbd)                           | [Phoenixd](#phoenixd)                             |
-| [Cliche Wallet](#cliche-wallet)                 | [Bark](#bark)                         |                                                   |
 | [Breez SDK](#breez-sdk)                         | [Breez Liquid SDK](#breez-liquid-sdk) | [Nostr Wallet Connect](#nostr-wallet-connect-nwc) |
 | [Strike](#strike)                               | [Eclair (ACINQ)](#eclair-acinq)       | [LN.tips](#lntips)                                |
 | [Fake Wallet](#fake-wallet)                     |                                       |                                                   |
@@ -362,12 +361,6 @@ Fees apply for each submarine swap. You may need to increase the reserve fee und
 
 - `LNBITS_RESERVE_FEE_MIN`: `...`
 - `LNBITS_RESERVE_FEE_PERCENT`: `...`
-
-## Cliche Wallet
-
-**Required env vars**
-
-- `CLICHE_ENDPOINT`: `ws://127.0.0.1:12000`
 
 ## Nostr Wallet Connect (NWC)
 
