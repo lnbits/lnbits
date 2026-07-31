@@ -275,6 +275,9 @@ class CreateInvoice(BaseModel):
     labels: list[str] = []
     external_id: str | None = Query(default=None, max_length=256)
 
+    def is_fiat_subscription(self) -> bool:
+        return (self.extra or {}).get("fiat_method") == "subscription"
+
     @validator("payment_hash")
     def check_hex(cls, v):
         if v:

@@ -118,6 +118,8 @@ async def create_payment_request(
     Create a lightning invoice or a fiat payment request.
     """
     if invoice_data.fiat_provider:
+        if invoice_data.is_fiat_subscription():
+            raise ValueError("Cannot create direct fiat subscription payments.")
         return await create_fiat_invoice(wallet_id, invoice_data)
 
     return await create_wallet_invoice(wallet_id, invoice_data)

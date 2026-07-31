@@ -234,6 +234,40 @@ async def test_create_fiat_invoice(
 
 
 @pytest.mark.anyio
+async def test_create_fiat_subscription_invoice_rejected(
+    client, inkey_headers_to, mocker: MockerFixture
+):
+    fiat_mock = mocker.patch(
+        "lnbits.core.services.payments.create_fiat_invoice",
+        AsyncMock(),
+    )
+
+    response = await client.post(
+        "/api/v1/payments",
+        headers=inkey_headers_to,
+        json={
+            "unit": "USD",
+            "out": False,
+            "amount": 2100,
+            "fiat_provider": "stripe",
+            "extra": {
+                "fiat_method": "subscription",
+                "subscription": {
+                    "checking_id": "fiat_stripe_cs_paid_session",
+                    "payment_request": "",
+                },
+            },
+        },
+    )
+
+    assert response.status_code == 400
+    assert response.json()["detail"] == (
+        "Cannot create direct fiat subscription payments."
+    )
+    fiat_mock.assert_not_awaited()
+
+
+@pytest.mark.anyio
 @pytest.mark.parametrize("currency", ("msat", "RRR"))
 async def test_create_invoice_validates_used_currency(
     currency, client, inkey_headers_to

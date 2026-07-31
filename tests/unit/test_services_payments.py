@@ -76,6 +76,39 @@ async def test_create_payment_request_routes_by_invoice_type(mocker: MockerFixtu
 
 
 @pytest.mark.anyio
+@pytest.mark.parametrize("fiat_provider", ("stripe", "square", "paypal"))
+async def test_create_payment_request_rejects_fiat_subscription(
+    fiat_provider: str, mocker: MockerFixture
+):
+    fiat_mock = mocker.patch(
+        "lnbits.core.services.payments.create_fiat_invoice",
+        mocker.AsyncMock(),
+    )
+
+    with pytest.raises(
+        ValueError,
+        match="Cannot create direct fiat subscription payments.",
+    ):
+        await create_payment_request(
+            "wallet-1",
+            CreateInvoice(
+                unit="USD",
+                amount=2100,
+                fiat_provider=fiat_provider,
+                extra={
+                    "fiat_method": "subscription",
+                    "subscription": {
+                        "checking_id": "fiat_stripe_cs_paid_session",
+                        "payment_request": "",
+                    },
+                },
+            ),
+        )
+
+    fiat_mock.assert_not_awaited()
+
+
+@pytest.mark.anyio
 async def test_update_pending_payment_and_bulk_pending_updates(mocker: MockerFixture):
     wallet = await _create_wallet()
     failed_id = await _create_payment(wallet)
