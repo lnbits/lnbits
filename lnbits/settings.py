@@ -620,6 +620,10 @@ class BlinkFundingSource(LNbitsSettings):
     blink_api_endpoint: str | None = Field(default="https://api.blink.sv/graphql")
     blink_ws_endpoint: str | None = Field(default="wss://ws.blink.sv/graphql")
     blink_token: str | None = Field(default=None)
+    # If probing fails or is unsupported by the destination (e.g. fedimints),
+    # send the payment anyway. Blink reserves its max fee and reconciles any
+    # excess separately. If disabled, payments that cannot be probed will fail.
+    blink_send_without_probe: bool = Field(default=True)
 
 
 class ZBDFundingSource(LNbitsSettings):

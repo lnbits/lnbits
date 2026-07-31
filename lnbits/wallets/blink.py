@@ -164,9 +164,82 @@ class BlinkWallet(Wallet):
                 ok=False, error_message=f"Unable to connect to {self.endpoint}."
             )
 
+    async def _fee_probe(self, bolt11: str) -> tuple[int | None, str | None]:
+        """
+        Probe the route for the fee of an amount lightning invoice.
+
+        Probing caches the route on the Blink backend so that the subsequent
+        payment settles with the exact fee instead of Blink's max fee reserve.
+        Only invoices that carry an amount can be probed here, since the
+        pay_invoice interface does not provide a separate amount for
+        zero-amount invoices.
+
+        Returns a tuple of (fee_sat, error_message). On success the fee in
+        satoshis is returned; on failure an error message is returned.
+        """
+        probe_input = {
+            "paymentRequest": bolt11,
+            "walletId": self.wallet_id,
+        }
+        data = {"query": q.fee_probe_query, "variables": {"input": probe_input}}
+        response = await self._graphql_query(data)
+
+        errors = response.get("errors") or []
+        if len(errors) > 0:
+            return None, errors[0].get("message") or "Fee probe failed."
+
+        result = (response.get("data") or {}).get("lnInvoiceFeeProbe") or {}
+
+        errors = result.get("errors") or []
+        if len(errors) > 0:
+            return None, errors[0].get("message") or "Fee probe failed."
+
+        fee_sat = result.get("amount")
+        if fee_sat is None:
+            return None, "Server error: 'missing fee probe amount'"
+
+        return fee_sat, None
+
     async def pay_invoice(self, bolt11: str, fee_limit_msat: int) -> PaymentResponse:
         # https://dev.blink.sv/api/btc-ln-send
-        # Future: add check fee estimate is < fee_limit_msat before paying invoice
+
+        invoice = bolt11_lib.decode(bolt11)
+
+        # Only amount invoices can be probed: lnInvoiceFeeProbe takes no amount,
+        # and zero-amount invoices have no amount to probe with (pay_invoice
+        # does not receive a separate amount). Zero-amount invoices skip the
+        # probe and fall back to the send-without-probe behaviour.
+        try:
+            if invoice.amount_msat:
+                fee_sat, probe_error = await self._fee_probe(bolt11)
+                if probe_error is not None:
+                    if not settings.blink_send_without_probe:
+                        logger.info(f"Fee probe failed for invoice {bolt11}")
+                        return PaymentResponse(ok=False, error_message=probe_error)
+                    logger.warning(
+                        f"Fee probe failed ('{probe_error}'), "
+                        "sending payment without probe."
+                    )
+                elif fee_sat is not None and fee_sat * 1000 > fee_limit_msat:
+                    error_message = (
+                        f"fee of {fee_sat * 1000} msat exceeds "
+                        f"limit of {fee_limit_msat} msat"
+                    )
+                    return PaymentResponse(ok=False, error_message=error_message)
+            elif not settings.blink_send_without_probe:
+                logger.info(f"Cannot probe zero-amount invoice {bolt11}")
+                return PaymentResponse(
+                    ok=False,
+                    error_message="Cannot probe fee for zero-amount invoice.",
+                )
+        except Exception as exc:
+            if not settings.blink_send_without_probe:
+                logger.info(f"Failed to probe fee for invoice {bolt11}")
+                logger.warning(exc)
+                return PaymentResponse(
+                    ok=False, error_message=f"Unable to connect to {self.endpoint}."
+                )
+            logger.warning(f"Fee probe errored ('{exc}'), sending without probe.")
 
         payment_variables = {
             "input": {
@@ -189,7 +262,7 @@ class BlinkWallet(Wallet):
                     error_message=error_message,
                 )
 
-            checking_id = bolt11_lib.decode(bolt11).payment_hash
+            checking_id = invoice.payment_hash
 
             payment_status = await self.get_payment_status(checking_id)
             fee_msat = payment_status.fee_msat
@@ -369,6 +442,7 @@ class BlinkGrafqlQueries(BaseModel):
     balance_query: str
     invoice_query: str
     payment_query: str
+    fee_probe_query: str
     status_query: str
     wallet_query: str
     tx_query: str
@@ -413,6 +487,16 @@ q = BlinkGrafqlQueries(
               message
               path
               code
+            }
+          }
+        }
+        """,
+    fee_probe_query="""
+        mutation LnInvoiceFeeProbe($input: LnInvoiceFeeProbeInput!) {
+          lnInvoiceFeeProbe(input: $input) {
+            amount
+            errors {
+              message
             }
           }
         }
