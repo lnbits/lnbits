@@ -5,6 +5,7 @@ from uuid import uuid4
 from lnbits.core.db import db
 from lnbits.core.models.wallets import BaseWallet, WalletsFilters, WalletType
 from lnbits.db import Connection, Filters, Page
+from lnbits.helpers import generate_ln_address
 from lnbits.settings import settings
 from lnbits.utils.cache import cache
 
@@ -30,6 +31,8 @@ async def create_wallet(
         inkey=uuid4().hex,
         currency=settings.lnbits_default_accounting_currency or "USD",
     )
+    if settings.ln_address_creation_allowed and wallet.is_lightning_wallet:
+        wallet.lightning_address = await generate_lightning_address_local_part(conn)
 
     await (conn or db).insert("wallets", wallet)
     return wallet
@@ -123,11 +126,21 @@ async def get_standalone_wallet(
             """
     if deleted is not None:
         query += " AND deleted = :deleted "
-    return await (conn or db).fetchone(
+    wallet = await (conn or db).fetchone(
         query,
         {"wallet": wallet_id, "deleted": deleted},
         Wallet,
     )
+    if not wallet:
+        return None
+    if deleted is True:
+        return wallet
+
+    if not wallet.lightning_address and settings.ln_address_creation_allowed:
+        wallet.lightning_address = await generate_lightning_address_local_part(conn)
+        await update_wallet(wallet, conn)
+
+    return wallet
 
 
 async def get_wallet(
@@ -218,6 +231,30 @@ async def get_wallets_count():
     result = await db.execute("SELECT COUNT(*) as count FROM wallets")
     row = result.mappings().first()
     return row.get("count", 0)
+
+
+async def generate_lightning_address_local_part(
+    conn: Connection | None = None,
+) -> str:
+    for _ in range(100):
+        local_part = generate_ln_address()
+        if await get_wallet_id_by_ln_address(local_part, conn):
+            continue
+        return local_part
+    raise ValueError("Could not generate a unique wallet lightning address.")
+
+
+async def get_wallet_id_by_ln_address(
+    local_part: str, conn: Connection | None = None
+) -> str | None:
+    row: dict = await (conn or db).fetchone(
+        """
+        SELECT id FROM wallets
+        WHERE lightning_address = :lightning_address
+        """,
+        {"lightning_address": local_part.lower()},
+    )
+    return row["id"] if row else None
 
 
 async def get_wallet_for_key(

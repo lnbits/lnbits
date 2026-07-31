@@ -107,7 +107,7 @@
         </div>
         <div class="col-12 col-md-6">
           <p>
-            <span v-text="$t('miscellaneous')"></span>
+            <span v-text="$t('miscellanous')"></span>
           </p>
           <q-item tag="label" v-ripple>
             <q-item-section>

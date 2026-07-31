@@ -13,6 +13,7 @@ from fastapi.routing import APIRoute
 from loguru import logger
 from packaging import version
 from pydantic.schema import field_schema
+from random_username.generate import generate_username  # type: ignore[import-untyped]
 from starlette.templating import Jinja2Templates
 
 from lnbits.settings import settings
@@ -20,6 +21,10 @@ from lnbits.utils.crypto import AESCipher
 from lnbits.utils.exchange_rates import currencies
 
 from .db import FilterModel
+
+
+def generate_ln_address() -> str:
+    return generate_username(1)[0].lower()
 
 
 def get_db_vendor_name():

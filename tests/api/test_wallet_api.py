@@ -5,7 +5,9 @@ from httpx import AsyncClient
 
 from lnbits.core.crud.wallets import create_wallet, get_wallet
 from lnbits.core.models.users import Account
+from lnbits.core.services import update_wallet_balance
 from lnbits.core.services.users import create_user_account
+from lnbits.settings import settings
 
 
 @pytest.mark.anyio
@@ -164,6 +166,127 @@ async def test_wallet_api_paginated_update_reset_and_store_paylinks(
     assert updated.json()["extra"]["icon"] == "bolt"
     assert updated.json()["extra"]["color"] == "amber"
     assert updated.json()["extra"]["pinned"] is True
+
+
+@pytest.mark.anyio
+async def test_wallet_api_custom_lightning_address_owner_rules(
+    http_client: AsyncClient,
+):
+    user = await create_user_account(
+        Account(
+            id=uuid4().hex,
+            username=f"user_{uuid4().hex[:8]}",
+            email=f"user_{uuid4().hex[:8]}@lnbits.com",
+        )
+    )
+    wallet = user.wallets[0]
+    headers = _admin_headers(wallet.adminkey)
+
+    settings.lnbits_ln_address_mode = "core_first"
+    settings.lnbits_allow_custom_wallet_lightning_addresses = False
+    disabled = await http_client.patch(
+        "/api/v1/wallet",
+        headers=headers,
+        json={"lightning_address": "custom.name"},
+    )
+    assert disabled.status_code == 403
+
+    settings.lnbits_allow_custom_wallet_lightning_addresses = True
+    settings.lnbits_wallet_lightning_address_blacklist = ["admin"]
+    blacklisted = await http_client.patch(
+        "/api/v1/wallet",
+        headers=headers,
+        json={"lightning_address": "admin"},
+    )
+    assert blacklisted.status_code == 400
+
+    invalid = await http_client.patch(
+        "/api/v1/wallet",
+        headers=headers,
+        json={"lightning_address": "custom+tag"},
+    )
+    assert invalid.status_code == 400
+
+    existing_wallet = await create_wallet(
+        user_id=user.id,
+        wallet_name="existing lightning address",
+    )
+    existing = await http_client.patch(
+        "/api/v1/wallet",
+        headers=_admin_headers(existing_wallet.adminkey),
+        json={"lightning_address": "pay.link"},
+    )
+    assert existing.status_code == 200
+
+    conflict = await http_client.patch(
+        "/api/v1/wallet",
+        headers=headers,
+        json={"lightning_address": "pay.link"},
+    )
+    assert conflict.status_code == 400
+
+    updated = await http_client.patch(
+        "/api/v1/wallet",
+        headers=headers,
+        json={"lightning_address": "custom.name"},
+    )
+    assert updated.status_code == 200
+    assert updated.json()["lightning_address"] == "custom.name"
+
+
+@pytest.mark.anyio
+async def test_wallet_api_custom_lightning_address_charges_fee(
+    http_client: AsyncClient,
+):
+    user = await create_user_account(
+        Account(
+            id=uuid4().hex,
+            username=f"user_{uuid4().hex[:8]}",
+            email=f"user_{uuid4().hex[:8]}@lnbits.com",
+        )
+    )
+    fee_user = await create_user_account(
+        Account(
+            id=uuid4().hex,
+            username=f"fees_{uuid4().hex[:8]}",
+            email=f"fees_{uuid4().hex[:8]}@lnbits.com",
+        )
+    )
+    wallet = user.wallets[0]
+    fee_wallet = fee_user.wallets[0]
+    await update_wallet_balance(wallet=wallet, amount=2_000)
+
+    settings.lnbits_ln_address_mode = "core_first"
+    settings.lnbits_allow_custom_wallet_lightning_addresses = True
+    settings.lnbits_charge_wallet_lightning_addresses = True
+    settings.lnbits_wallet_lightning_address_price_sats = 1_000
+    settings.lnbits_service_fee_wallet = fee_wallet.id
+
+    updated = await http_client.patch(
+        "/api/v1/wallet",
+        headers=_admin_headers(wallet.adminkey),
+        json={"lightning_address": "paid.name"},
+    )
+    assert updated.status_code == 200
+    assert updated.json()["lightning_address"] == "paid.name"
+
+    charged_wallet = await get_wallet(wallet.id)
+    credited_wallet = await get_wallet(fee_wallet.id)
+    assert charged_wallet
+    assert credited_wallet
+    assert charged_wallet.balance == 1_000
+    assert credited_wallet.balance == 1_000
+
+    settings.lnbits_service_fee_wallet = None
+    missing_fee_wallet = await http_client.patch(
+        "/api/v1/wallet",
+        headers=_admin_headers(wallet.adminkey),
+        json={"lightning_address": "paid.other"},
+    )
+    assert missing_fee_wallet.status_code == 400
+    assert missing_fee_wallet.json()["detail"] == (
+        "Lightning Address fee wallet is not configured."
+    )
 
 
 @pytest.mark.anyio

@@ -84,6 +84,45 @@ async def test_user_api_get_wallets_and_delete_all_wallets(
 
 
 @pytest.mark.anyio
+async def test_user_api_superuser_sets_wallet_lightning_address(
+    http_client: AsyncClient, superuser_token: str
+):
+    user = await create_user_account(
+        Account(
+            id=uuid4().hex,
+            username=f"user_{uuid4().hex[:8]}",
+            email=f"user_{uuid4().hex[:8]}@lnbits.com",
+        )
+    )
+    wallet = user.wallets[0]
+
+    settings.lnbits_ln_address_mode = "core_first"
+    settings.lnbits_wallet_lightning_address_blacklist = ["admin"]
+    settings.lnbits_charge_wallet_lightning_addresses = True
+    settings.lnbits_wallet_lightning_address_price_sats = 1_000
+    settings.lnbits_service_fee_wallet = None
+
+    unauthorized = await http_client.put(
+        f"/users/api/v1/user/{user.id}/wallet/{wallet.id}/lightning-address",
+        json={"lightning_address": "admin"},
+    )
+    assert unauthorized.status_code == 401
+
+    response = await http_client.put(
+        f"/users/api/v1/user/{user.id}/wallet/{wallet.id}/lightning-address",
+        headers={"Authorization": f"Bearer {superuser_token}"},
+        json={"lightning_address": "admin"},
+    )
+    assert response.status_code == 200
+    assert response.json()["lightning_address"] == "admin"
+
+    updated_wallet = await get_wallet(wallet.id)
+    assert updated_wallet
+    assert updated_wallet.lightning_address == "admin"
+    assert updated_wallet.balance == 0
+
+
+@pytest.mark.anyio
 async def test_user_api_create_wallet_validates_currency():
     user = await create_user_account(
         Account(
