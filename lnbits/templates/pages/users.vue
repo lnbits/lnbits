@@ -111,6 +111,18 @@
 
                   <q-btn
                     round
+                    v-if="g.user.super_user && !props.row.deleted"
+                    icon="alternate_email"
+                    size="sm"
+                    color="accent"
+                    class="q-ml-xs"
+                    @click="showLightningAddressDialog(props.row)"
+                  >
+                    <q-tooltip v-text="$t('set_lightning_address')"></q-tooltip>
+                  </q-btn>
+
+                  <q-btn
+                    round
                     icon="delete"
                     size="sm"
                     color="negative"
@@ -201,6 +213,39 @@
             </template>
           </q-table>
         </q-card>
+        <q-dialog v-model="lightningAddressDialog.show">
+          <q-card class="q-pa-md lnbits__dialog-card">
+            <q-card-section>
+              <div class="text-h6" v-text="$t('lightning_address')"></div>
+              <div
+                v-if="lightningAddressDialog.wallet"
+                class="text-caption q-mt-xs"
+              >
+                <span v-text="lightningAddressDialog.wallet.name"></span>
+                <span> · </span>
+                <span v-text="lightningAddressDialog.wallet.id"></span>
+              </div>
+            </q-card-section>
+            <q-card-section>
+              <q-input
+                filled
+                dense
+                v-model.trim="lightningAddressDialog.lightningAddress"
+                :label="$t('lightning_address')"
+                :suffix="lightningAddressSuffix"
+              ></q-input>
+            </q-card-section>
+            <q-card-actions align="right">
+              <q-btn flat :label="$t('cancel')" v-close-popup></q-btn>
+              <q-btn
+                color="primary"
+                :label="$t('save')"
+                :disable="!lightningAddressDialog.lightningAddress"
+                @click="saveLightningAddress"
+              ></q-btn>
+            </q-card-actions>
+          </q-card>
+        </q-dialog>
       </div>
       <div v-if="activeUser.show" class="row">
         <div class="col-12 col-md-6">

@@ -157,6 +157,60 @@
                 </div>
               </div>
             </q-card-section>
+            <q-card-section
+              v-if="
+                g.settings.enableWalletLightningAddresses &&
+                (g.wallet.lightningAddressFull || canEditLightningAddress)
+              "
+            >
+              <div class="row">
+                <div :class="canEditLightningAddress ? 'col-8' : 'col-10'">
+                  <q-input
+                    v-if="canEditLightningAddress"
+                    filled
+                    dense
+                    v-model.trim="lightningAddressInput"
+                    :label="$t('lightning_address')"
+                    :suffix="lightningAddressSuffix"
+                    :hint="lightningAddressFeeHint"
+                  >
+                  </q-input>
+                  <q-input
+                    v-else
+                    filled
+                    readonly
+                    dense
+                    :model-value="g.wallet.lightningAddressFull"
+                    :label="$t('lightning_address')"
+                  >
+                  </q-input>
+                </div>
+                <div v-if="canEditLightningAddress" class="col-2 q-pl-sm">
+                  <q-btn
+                    dense
+                    color="primary"
+                    class="q-mt-xs full-width"
+                    :disable="
+                      !lightningAddressInput || !lightningAddressChanged
+                    "
+                    label="Save"
+                    @click="saveLightningAddress"
+                  ></q-btn>
+                </div>
+                <div class="col-2">
+                  <q-btn
+                    flat
+                    round
+                    icon="content_copy"
+                    class="float-right q-mt-xs"
+                    :disable="!g.wallet.lightningAddressFull"
+                    @click="utils.copyText(g.wallet.lightningAddressFull)"
+                  >
+                    <q-tooltip v-text="$t('copy')"></q-tooltip>
+                  </q-btn>
+                </div>
+              </div>
+            </q-card-section>
             <q-card-section>
               <div class="row">
                 <div class="col-6">
