@@ -82,24 +82,6 @@ def bytes_to_hex(b: bytes) -> str:
 # error when we communicate with the lnd rpc server.
 environ["GRPC_SSL_CIPHER_SUITES"] = "HIGH+ECDSA"
 
-_PRE_DISPATCH_PAYMENT_ERROR_CODES = {
-    grpc.StatusCode.INVALID_ARGUMENT,
-    grpc.StatusCode.PERMISSION_DENIED,
-    grpc.StatusCode.UNAUTHENTICATED,
-}
-_PRE_DISPATCH_PAYMENT_ERROR_MESSAGES = (
-    "invoice not for current active network",
-    "invoice expired",
-)
-
-
-def _is_pre_dispatch_payment_error(exc: grpc.aio.AioRpcError) -> bool:
-    if exc.code() in _PRE_DISPATCH_PAYMENT_ERROR_CODES:
-        return True
-
-    details = (exc.details() or "").lower()
-    return any(message in details for message in _PRE_DISPATCH_PAYMENT_ERROR_MESSAGES)
-
 
 class LndWallet(Wallet):
     rpc: LightningStub
@@ -402,3 +384,22 @@ class LndWallet(Wallet):
             )
         # If we reach here, the invoice was successfully canceled and payment failed
         return InvoiceResponse(True, checking_id=payment_hash)
+
+
+_PRE_DISPATCH_PAYMENT_ERROR_CODES = {
+    grpc.StatusCode.INVALID_ARGUMENT,
+    grpc.StatusCode.PERMISSION_DENIED,
+    grpc.StatusCode.UNAUTHENTICATED,
+}
+_PRE_DISPATCH_PAYMENT_ERROR_MESSAGES = (
+    "invoice not for current active network",
+    "invoice expired",
+)
+
+
+def _is_pre_dispatch_payment_error(exc: grpc.aio.AioRpcError) -> bool:
+    if exc.code() in _PRE_DISPATCH_PAYMENT_ERROR_CODES:
+        return True
+
+    details = (exc.details() or "").lower()
+    return any(message in details for message in _PRE_DISPATCH_PAYMENT_ERROR_MESSAGES)

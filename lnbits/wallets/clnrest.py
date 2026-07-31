@@ -380,10 +380,11 @@ class CLNRestWallet(Wallet):
 
             pay = pays_list[-1]
 
-            if pay["status"] == "complete":
+            status = pay.get("status")
+            if status == "complete":
                 fee_msat = pay["amount_sent_msat"] - pay["amount_msat"]
                 return PaymentSuccessStatus(fee_msat=fee_msat, preimage=pay["preimage"])
-            if pay["status"] == "failed":
+            if status == "failed":
                 return PaymentFailedStatus()
 
         except Exception as exc:

@@ -278,8 +278,7 @@ class StrikeWallet(Wallet):
                 )
 
             # Handle failed payment
-            failed_states = {"CANCELED", "FAILED", "TIMED_OUT"}
-            if state in failed_states:
+            if state == "FAILED":
                 logger.warning(
                     f"Strike payment {payment_id} failed with state: {state}"
                 )
@@ -633,7 +632,7 @@ class StrikeWallet(Wallet):
         if state in {"SUCCEEDED", "COMPLETED"}:
             self.pending_payments.pop(checking_id, None)
             return PaymentSuccessStatus(fee_msat=fee_msat, preimage=preimage)
-        if state in {"CANCELED", "FAILED", "TIMED_OUT"}:
+        if state == "FAILED":
             self.pending_payments.pop(checking_id, None)
             return PaymentFailedStatus()
 
@@ -675,7 +674,7 @@ class StrikeWallet(Wallet):
             if state in {"SUCCEEDED", "COMPLETED"}:
                 self.pending_payments.pop(checking_id, None)
                 return PaymentSuccessStatus(fee_msat=fee_msat, preimage=preimage)
-            if state in {"CANCELED", "FAILED", "TIMED_OUT"}:
+            if state == "FAILED":
                 self.pending_payments.pop(checking_id, None)
                 return PaymentFailedStatus()
 
@@ -719,8 +718,10 @@ class StrikeWallet(Wallet):
                         "be a legacy invoice payment hash. Keeping pending."
                     )
                     return PaymentPendingStatus()
-                except ValueError:
-                    pass
+                except ValueError as exc:
+                    logger.warning(
+                        f"Payment identifier '{checking_id}' is not valid hex: {exc}"
+                    )
             logger.warning(f"Payment {checking_id} not found. Marking as failed.")
             self.pending_payments.pop(checking_id, None)
             return PaymentFailedStatus()

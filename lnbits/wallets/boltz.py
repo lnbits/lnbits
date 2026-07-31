@@ -24,25 +24,6 @@ from .base import (
     Wallet,
 )
 
-_PRE_DISPATCH_CREATE_SWAP_ERROR_CODES = {
-    StatusCode.INVALID_ARGUMENT,
-    StatusCode.PERMISSION_DENIED,
-    StatusCode.UNAUTHENTICATED,
-}
-_PRE_DISPATCH_CREATE_SWAP_ERROR_MESSAGES = (
-    "boltz error: could not find route to pay invoice",
-)
-
-
-def _is_pre_dispatch_create_swap_error(exc: AioRpcError) -> bool:
-    if exc.code() in _PRE_DISPATCH_CREATE_SWAP_ERROR_CODES:
-        return True
-
-    details = (exc.details() or "").lower()
-    return any(
-        message in details for message in _PRE_DISPATCH_CREATE_SWAP_ERROR_MESSAGES
-    )
-
 
 class BoltzWallet(Wallet):
     """
@@ -445,3 +426,23 @@ class BoltzWallet(Wallet):
 
         except Exception as e:
             logger.error(f"❌ Failed to create Boltz wallet: {e}")
+
+
+_PRE_DISPATCH_CREATE_SWAP_ERROR_CODES = {
+    StatusCode.INVALID_ARGUMENT,
+    StatusCode.PERMISSION_DENIED,
+    StatusCode.UNAUTHENTICATED,
+}
+_PRE_DISPATCH_CREATE_SWAP_ERROR_MESSAGES = (
+    "boltz error: could not find route to pay invoice",
+)
+
+
+def _is_pre_dispatch_create_swap_error(exc: AioRpcError) -> bool:
+    if exc.code() in _PRE_DISPATCH_CREATE_SWAP_ERROR_CODES:
+        return True
+
+    details = (exc.details() or "").lower()
+    return any(
+        message in details for message in _PRE_DISPATCH_CREATE_SWAP_ERROR_MESSAGES
+    )

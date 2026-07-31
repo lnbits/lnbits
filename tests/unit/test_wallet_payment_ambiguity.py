@@ -846,6 +846,34 @@ async def test_strike_terminal_state_does_not_require_payment_id(
 
 
 @pytest.mark.anyio
+@pytest.mark.parametrize("state", ["CANCELED", "TIMED_OUT", "UNKNOWN"])
+async def test_strike_undocumented_payment_state_is_pending(
+    mocker: MockerFixture, state: str
+):
+    wallet = object.__new__(StrikeWallet)
+    wallet.pending_payments = {}
+    mocker.patch(
+        "lnbits.wallets.strike.bolt11_decode",
+        return_value=SimpleNamespace(payment_hash="payment-hash"),
+    )
+    mocker.patch.object(
+        wallet,
+        "_create_payment_quote",
+        return_value=("quote-id", None),
+    )
+    mocker.patch.object(
+        wallet,
+        "_execute_payment_quote",
+        return_value=({"state": state, "paymentId": "payment-id"}, None),
+    )
+
+    response = await wallet.pay_invoice("bolt11", 1_000)
+
+    assert response.ok is None
+    assert response.checking_id == "payment-id"
+
+
+@pytest.mark.anyio
 async def test_strike_persisted_payment_hash_not_found_stays_pending(
     mocker: MockerFixture,
 ):
