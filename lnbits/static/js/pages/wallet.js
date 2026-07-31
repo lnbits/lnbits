@@ -631,14 +631,19 @@ window.PageWallet = {
       LNbits.api
         .request('PATCH', '/api/v1/wallet', this.g.wallet.adminkey, data)
         .then(response => {
-          this.g.wallet = {...this.g.wallet, ...response.data}
+          const walletData = {...response.data}
+          if (walletData.lightning_address) {
+            walletData.lightningAddress = walletData.lightning_address
+            walletData.lightningAddressFull = `${walletData.lightning_address}@${window.location.host}`
+          }
+          this.g.wallet = {...this.g.wallet, ...walletData}
           const walletIndex = this.g.user.wallets.findIndex(
             wallet => wallet.id === response.data.id
           )
           if (walletIndex !== -1) {
             this.g.user.wallets[walletIndex] = {
               ...this.g.user.wallets[walletIndex],
-              ...response.data
+              ...walletData
             }
           }
           Quasar.Notify.create({

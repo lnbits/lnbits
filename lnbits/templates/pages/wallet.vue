@@ -596,6 +596,34 @@
         :value="'LIGHTNING:' + receive.paymentReq.toUpperCase()"
       >
       </lnbits-qrcode>
+      <div
+        v-if="
+          !receive.fiatPaymentReq &&
+          g.settings.enableWalletLightningAddresses &&
+          g.wallet.lightningAddressFull
+        "
+        class="q-mt-md"
+      >
+        <q-input
+          filled
+          readonly
+          dense
+          :model-value="g.wallet.lightningAddressFull"
+          :label="$t('lightning_address')"
+        >
+          <template v-slot:append>
+            <q-btn
+              flat
+              round
+              dense
+              icon="content_copy"
+              @click="utils.copyText(g.wallet.lightningAddressFull)"
+            >
+              <q-tooltip v-text="$t('copy')"></q-tooltip>
+            </q-btn>
+          </template>
+        </q-input>
+      </div>
       <div class="text-center">
         <h3 class="q-my-md">
           <span v-text="formattedAmount"></span>

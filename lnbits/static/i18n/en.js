@@ -44,7 +44,8 @@ window.localisation.en = {
   reset_defaults_tooltip: 'Delete all settings and reset to defaults.',
   download_backup: 'Download database backup',
   name_your_wallet: 'Name your {name} wallet',
-  paste_invoice_label: 'Paste an invoice, payment request or lnurl code *',
+  paste_invoice_label:
+    'Paste an invoice, payment request, Lightning Address or LNURL*',
   lnbits_description:
     'Easy to set up and lightweight, LNbits can run on any Lightning Network funding source and even LNbits itself! You can run LNbits for yourself, or easily offer a custodian solution for others. Each wallet has its own API keys and there is no limit to the number of wallets you can make. Being able to partition funds makes LNbits a useful tool for money management and as a development tool. Extensions add extra functionality to LNbits so you can experiment with a range of cutting-edge technologies on the lightning network. We have made developing extensions as easy as possible, and as a free and open-source project, we encourage people to develop and submit their own.',
   export_to_phone: 'Export to Phone with QR Code',
@@ -913,5 +914,30 @@ window.localisation.en = {
   payment_labels_updated: 'Payment labels updated',
   color: 'Color',
   sort: 'Sort',
-  sort_by: 'Sort by'
+  sort_by: 'Sort by',
+  lightning_address: 'Lightning Address',
+  lightning_addresses: 'Lightning Addresses',
+  lightning_address_price: 'Lightning Address price',
+  enable_lightning_address: 'Enable Lightning Addresses',
+  ln_address_mode: 'Lightning Address Resolution Mode',
+  ln_address_core_first: 'Resolve from LNbits Core first',
+  ln_address_extension_first: 'Resolve from Pay Links extension first',
+  ln_address_extension_only: 'Resolve from Pay Links extension only',
+  ln_address_mode_hint:
+    'Choose how LNbits should resolve Lightning Addresses. Using both LNbits Core and the Pay Links extension will have a small impact on performance.',
+  enable_lightning_address_for_all_wallets:
+    'Enable Lightning Addresses for all LNbits wallets',
+  allow_users_specify_lightning_addresses:
+    'Allow users to specify Lightning Addresses',
+  allow_wallet_owners_set_custom_lightning_addresses:
+    'Allow wallet owners to set custom Lightning Addresses',
+  charge_for_lightning_addresses: 'Charge for Lightning Addresses',
+  charge_users_set_change_lightning_address:
+    'Charge users when they set or change a Lightning Address.',
+  service_fee_wallet_id_must_be_set:
+    'Service Fee Wallet ID must be set in the Service Fees section below for this to work.',
+  lightning_address_blacklist: 'Lightning Address blacklist',
+  lightning_address_blacklist_instructions:
+    'Newline separated reserved words. Users cannot choose a Lightning Address that matches any of these words.',
+  set_lightning_address: 'Set Lightning Address'
 }

@@ -41,6 +41,7 @@ from lnbits.core.services import (
     update_user_extensions,
     update_wallet_balance,
 )
+from lnbits.core.services.lightning_address import set_wallet_lightning_address
 from lnbits.db import Filters, Page
 from lnbits.decorators import check_admin, check_super_user, parse_filters
 from lnbits.helpers import (
@@ -278,6 +279,34 @@ async def api_users_create_user_wallet(
         await update_wallet(wallet)
 
     return wallet
+
+
+@users_router.put(
+    "/user/{user_id}/wallet/{wallet}/lightning-address",
+    name="Set wallet Lightning Address",
+)
+async def api_users_set_wallet_lightning_address(
+    user_id: str,
+    wallet: str,
+    lightning_address: str = Body(..., embed=True),
+) -> Wallet:
+    wal = await get_wallet(wallet)
+    if not wal:
+        raise HTTPException(
+            status_code=HTTPStatus.NOT_FOUND,
+            detail="Wallet does not exist.",
+        )
+    if user_id != wal.user:
+        raise HTTPException(
+            status_code=HTTPStatus.FORBIDDEN,
+            detail="Wallet does not belong to user.",
+        )
+    return await set_wallet_lightning_address(
+        wallet=wal,
+        local_part=lightning_address,
+        allow_blacklisted=True,
+        charge=False,
+    )
 
 
 @users_router.put(

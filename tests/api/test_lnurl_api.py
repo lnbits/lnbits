@@ -1,3 +1,6 @@
+import json
+import re
+from types import SimpleNamespace
 from typing import cast
 from uuid import uuid4
 
@@ -16,9 +19,11 @@ from lnurl.models import MessageAction
 from lnurl.types import CallbackUrl, LightningInvoice
 from pydantic import parse_obj_as
 
+from lnbits.core.crud.wallets import create_wallet, get_wallet
 from lnbits.core.models import Account, CreateInvoice
 from lnbits.core.models.lnurl import CreateLnurlPayment, LnurlScan
 from lnbits.core.models.wallets import KeyType, WalletTypeInfo
+from lnbits.core.services.lightning_address import wallet_lightning_address_callback
 from lnbits.core.services.payments import create_wallet_invoice
 from lnbits.core.services.users import create_user_account
 from lnbits.core.views.lnurl_api import (
@@ -36,6 +41,90 @@ TEST_BOLT11 = (
     "73aym6ynrdl9nkzqnag49vt3sjjn8qdfq5cr6ha0vrdz5c5r3v4aghndly0hplmv"
     "6hjxepwp93cq398l3s"
 )
+
+
+@pytest.mark.anyio
+async def test_wallet_lightning_address_lookup_and_callback(
+    client, to_user, settings, mocker
+):
+    settings.lnbits_ln_address_mode = "core_first"
+    wallet = await create_wallet(user_id=to_user.id, wallet_name="ln address")
+    assert wallet.lightning_address
+
+    response = await client.get(f"/.well-known/lnurlp/{wallet.lightning_address}")
+    assert response.status_code == 200
+    data = response.json()
+    metadata = data["metadata"]
+    assert data["minSendable"] == 1000
+    assert data["maxSendable"] == 2_100_000_000_000_000_000
+    assert data["commentAllowed"] == 799
+    assert f"{wallet.lightning_address}@" in metadata
+    assert "text/identifier" in metadata
+
+    tagged_response = await client.get(
+        f"/.well-known/lnurlp/{wallet.lightning_address}+market"
+    )
+    assert tagged_response.status_code == 200
+    tagged_data = tagged_response.json()
+    tagged_metadata = json.loads(tagged_data["metadata"])
+    assert ["text/tag", "market"] in tagged_metadata
+    assert any(
+        entry[0] == "text/identifier"
+        and entry[1].startswith(f"{wallet.lightning_address}+market@")
+        for entry in tagged_metadata
+    )
+
+    create_invoice_mock = mocker.patch(
+        "lnbits.core.services.lightning_address.create_invoice",
+        mocker.AsyncMock(return_value=SimpleNamespace(bolt11=TEST_BOLT11)),
+    )
+    callback = tagged_data["callback"].split("testserver")[-1]
+    callback_response = await client.get(f"{callback}?amount=21000&comment=hello")
+    assert callback_response.status_code == 200
+    assert callback_response.json()["pr"] == TEST_BOLT11
+    create_invoice_mock.assert_awaited_once()
+    kwargs = create_invoice_mock.await_args.kwargs
+    assert kwargs["wallet_id"] == wallet.id
+    assert kwargs["amount"] == 21
+    assert kwargs["extra"]["tag"] == "wallet_lightning_address"
+    assert kwargs["extra"]["comment"] == "hello"
+    assert kwargs["extra"]["lnaddress"].startswith(f"{wallet.lightning_address}+")
+    assert kwargs["extra"]["lnaddress_tag"] == "market"
+
+
+@pytest.mark.anyio
+async def test_wallet_lightning_address_generation_settings(to_user, settings):
+    settings.lnbits_ln_address_mode = "core_first"
+    wallet = await create_wallet(user_id=to_user.id)
+    assert wallet.lightning_address
+    assert re.fullmatch(r"[a-z]+[a-z]+[0-9]", wallet.lightning_address)
+
+    settings.lnbits_ln_address_mode = "extension_only"
+    disabled_wallet = await create_wallet(user_id=to_user.id)
+    assert disabled_wallet.lightning_address is None
+
+    settings.lnbits_ln_address_mode = "core_first"
+    backfilled = await get_wallet(disabled_wallet.id)
+    assert backfilled
+    assert backfilled.lightning_address
+
+
+@pytest.mark.anyio
+async def test_wallet_lightning_address_callback_validates_comment(
+    to_user, settings, mocker
+):
+    settings.lnbits_ln_address_mode = "core_first"
+    wallet = await create_wallet(user_id=to_user.id)
+    assert wallet.lightning_address
+    request = mocker.Mock()
+    request.url.netloc = "example.com"
+    request.query_params.get.return_value = "x" * 800
+
+    result = await wallet_lightning_address_callback(
+        wallet.lightning_address, request, amount=1000
+    )
+    assert isinstance(result, LnurlErrorResponse)
+    assert "can only accept 799" in result.reason
 
 
 @pytest.mark.anyio

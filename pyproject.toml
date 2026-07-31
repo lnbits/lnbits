@@ -54,6 +54,7 @@ dependencies = [
     "urllib3>=2.7.0",
     "pyinstrument>=5.1.2",
     "wasmtime>=45.0.0",
+    "random-username~=1.0.2",
 ]
 
 [project.scripts]
