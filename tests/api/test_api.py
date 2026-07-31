@@ -262,7 +262,7 @@ async def test_create_fiat_subscription_invoice_rejected(
 
     assert response.status_code == 400
     assert response.json()["detail"] == (
-        "Subscription fiat payments can only be created by provider callbacks."
+        "Cannot create direct fiat subscription payments."
     )
     fiat_mock.assert_not_awaited()
 

@@ -87,7 +87,7 @@ async def test_create_payment_request_rejects_fiat_subscription(
 
     with pytest.raises(
         ValueError,
-        match="Subscription fiat payments can only be created by provider callbacks.",
+        match="Cannot create direct fiat subscription payments.",
     ):
         await create_payment_request(
             "wallet-1",
