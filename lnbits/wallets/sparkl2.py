@@ -162,7 +162,6 @@ class SparkL2Wallet(Wallet):
             checking_id = res.get("checking_id")
             if not checking_id:
                 return PaymentResponse(
-                    ok=False,
                     error_message="Spark sidecar payment response missing checking_id.",
                 )
             status = res.get("status")
@@ -178,7 +177,7 @@ class SparkL2Wallet(Wallet):
             )
 
         except Exception as e:
-            return PaymentResponse(ok=False, error_message=str(e))
+            return PaymentResponse(error_message=str(e))
 
     async def get_invoice_status(self, checking_id: str) -> PaymentStatus:
         try:

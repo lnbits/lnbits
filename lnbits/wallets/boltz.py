@@ -2,6 +2,8 @@ import asyncio
 from collections.abc import AsyncGenerator
 
 from bolt11.decode import decode
+from bolt11.types import Bolt11
+from grpc import StatusCode
 from grpc.aio import AioRpcError
 from loguru import logger
 
@@ -124,26 +126,12 @@ class BoltzWallet(Wallet):
         )
 
     async def pay_invoice(self, bolt11: str, fee_limit_msat: int) -> PaymentResponse:
+        prepared = await self._prepare_payment(bolt11, fee_limit_msat)
+        if isinstance(prepared, PaymentResponse):
+            return prepared
+        pair, invoice = prepared
 
-        pair = boltzrpc_pb2.Pair(**{"from": boltzrpc_pb2.LBTC})
         try:
-            pair_info: boltzrpc_pb2.PairInfo
-            pair_request = boltzrpc_pb2.GetPairInfoRequest(
-                type=boltzrpc_pb2.SUBMARINE, pair=pair
-            )
-            pair_info = await self.rpc.GetPairInfo(pair_request, metadata=self.metadata)
-            invoice = decode(bolt11)
-
-            if not invoice.amount_msat:
-                raise ValueError("amountless invoice")
-
-            service_fee: float = invoice.amount_msat * pair_info.fees.percentage / 100
-            estimate = int(service_fee + pair_info.fees.miner_fees * 1000)
-            if estimate > fee_limit_msat:
-                error = f"fee of {estimate} msat exceeds limit of {fee_limit_msat} msat"
-
-                return PaymentResponse(ok=False, error_message=error)
-
             request = boltzrpc_pb2.CreateSwapRequest(
                 invoice=bolt11,
                 pair=pair,
@@ -165,8 +153,13 @@ class BoltzWallet(Wallet):
                 )
                 return PaymentResponse(ok=True, checking_id=invoice.payment_hash)
         except AioRpcError as exc:
+            return await self._resolve_create_swap_error(invoice, exc)
+        except Exception as exc:
             logger.warning(exc)
-            return PaymentResponse(ok=False, error_message=exc.details())
+            return PaymentResponse(
+                checking_id=invoice.payment_hash,
+                error_message=str(exc),
+            )
 
         try:
             info_request = boltzrpc_pb2.GetSwapInfoRequest(id=response.id)
@@ -186,14 +179,87 @@ class BoltzWallet(Wallet):
                         fee_msat=fee_msat,
                         preimage=info.swap.preimage,
                     )
-                elif info.swap.error != "":
-                    return PaymentResponse(ok=False, error_message=info.swap.error)
-            return PaymentResponse(
-                ok=False, error_message="stream stopped unexpectedly"
-            )
+                if info.swap.state in {
+                    boltzrpc_pb2.ERROR,
+                    boltzrpc_pb2.SERVER_ERROR,
+                    boltzrpc_pb2.REFUNDED,
+                    boltzrpc_pb2.ABANDONED,
+                }:
+                    return PaymentResponse(
+                        ok=False,
+                        checking_id=invoice.payment_hash,
+                        error_message=info.swap.error or "swap failed",
+                    )
+            return PaymentResponse(error_message="stream stopped unexpectedly")
         except AioRpcError as exc:
             logger.warning(exc)
-            return PaymentResponse(ok=False, error_message=exc.details())
+            return PaymentResponse(error_message=exc.details())
+
+    async def _resolve_create_swap_error(
+        self, invoice: Bolt11, exc: AioRpcError
+    ) -> PaymentResponse:
+        logger.warning(exc)
+        if _is_pre_dispatch_create_swap_error(exc):
+            status: PaymentStatus = PaymentFailedStatus()
+        else:
+            try:
+                status = await self.get_payment_status(invoice.payment_hash)
+            except Exception as status_exc:
+                logger.warning(status_exc)
+                status = PaymentPendingStatus()
+
+        return PaymentResponse(
+            ok=status.paid,
+            checking_id=invoice.payment_hash,
+            fee_msat=status.fee_msat,
+            preimage=status.preimage,
+            error_message=exc.details(),
+        )
+
+    async def _prepare_payment(
+        self, bolt11: str, fee_limit_msat: int
+    ) -> tuple[boltzrpc_pb2.Pair, Bolt11] | PaymentResponse:
+        pair = boltzrpc_pb2.Pair(**{"from": boltzrpc_pb2.LBTC})
+        try:
+            invoice = decode(bolt11)
+        except Exception as exc:
+            logger.warning(exc)
+            return PaymentResponse(
+                ok=False,
+                error_message=f"invalid bolt11 invoice: {exc}",
+            )
+
+        if not invoice.amount_msat:
+            return PaymentResponse(
+                ok=False,
+                checking_id=invoice.payment_hash,
+                error_message="amountless invoice",
+            )
+
+        try:
+            pair_info: boltzrpc_pb2.PairInfo
+            pair_request = boltzrpc_pb2.GetPairInfoRequest(
+                type=boltzrpc_pb2.SUBMARINE, pair=pair
+            )
+            pair_info = await self.rpc.GetPairInfo(pair_request, metadata=self.metadata)
+        except Exception as exc:
+            logger.warning(exc)
+            return PaymentResponse(
+                ok=False,
+                checking_id=invoice.payment_hash,
+                error_message=f"unable to get swap terms: {exc}",
+            )
+
+        service_fee: float = invoice.amount_msat * pair_info.fees.percentage / 100
+        estimate = int(service_fee + pair_info.fees.miner_fees * 1000)
+        if estimate > fee_limit_msat:
+            error = f"fee of {estimate} msat exceeds limit of {fee_limit_msat} msat"
+            return PaymentResponse(
+                ok=False,
+                checking_id=invoice.payment_hash,
+                error_message=error,
+            )
+        return pair, invoice
 
     async def get_invoice_status(self, checking_id: str) -> PaymentStatus:
         try:
@@ -217,10 +283,14 @@ class BoltzWallet(Wallet):
                 fee_msat=fee_msat,
                 preimage=swap.preimage,
             )
-        elif swap.state == boltzrpc_pb2.SwapState.PENDING:
-            return PaymentPendingStatus()
-
-        return PaymentFailedStatus()
+        if swap.state in {
+            boltzrpc_pb2.SwapState.ERROR,
+            boltzrpc_pb2.SwapState.SERVER_ERROR,
+            boltzrpc_pb2.SwapState.REFUNDED,
+            boltzrpc_pb2.SwapState.ABANDONED,
+        }:
+            return PaymentFailedStatus()
+        return PaymentPendingStatus()
 
     async def get_payment_status(self, checking_id: str) -> PaymentStatus:
         try:
@@ -231,7 +301,7 @@ class BoltzWallet(Wallet):
                 metadata=self.metadata,
             )
             swap = response.swap
-        except AioRpcError as exc:
+        except (AioRpcError, ValueError) as exc:
             logger.warning(exc)
             return PaymentPendingStatus()
         if swap.state == boltzrpc_pb2.SwapState.SUCCESSFUL:
@@ -243,10 +313,14 @@ class BoltzWallet(Wallet):
                 fee_msat=fee_msat,
                 preimage=swap.preimage,
             )
-        elif swap.state == boltzrpc_pb2.SwapState.PENDING:
-            return PaymentPendingStatus()
-
-        return PaymentFailedStatus()
+        if swap.state in {
+            boltzrpc_pb2.SwapState.ERROR,
+            boltzrpc_pb2.SwapState.SERVER_ERROR,
+            boltzrpc_pb2.SwapState.REFUNDED,
+            boltzrpc_pb2.SwapState.ABANDONED,
+        }:
+            return PaymentFailedStatus()
+        return PaymentPendingStatus()
 
     async def paid_invoices_stream(self) -> AsyncGenerator[str, None]:
         while settings.lnbits_running:
@@ -352,3 +426,23 @@ class BoltzWallet(Wallet):
 
         except Exception as e:
             logger.error(f"❌ Failed to create Boltz wallet: {e}")
+
+
+_PRE_DISPATCH_CREATE_SWAP_ERROR_CODES = {
+    StatusCode.INVALID_ARGUMENT,
+    StatusCode.PERMISSION_DENIED,
+    StatusCode.UNAUTHENTICATED,
+}
+_PRE_DISPATCH_CREATE_SWAP_ERROR_MESSAGES = (
+    "boltz error: could not find route to pay invoice",
+)
+
+
+def _is_pre_dispatch_create_swap_error(exc: AioRpcError) -> bool:
+    if exc.code() in _PRE_DISPATCH_CREATE_SWAP_ERROR_CODES:
+        return True
+
+    details = (exc.details() or "").lower()
+    return any(
+        message in details for message in _PRE_DISPATCH_CREATE_SWAP_ERROR_MESSAGES
+    )

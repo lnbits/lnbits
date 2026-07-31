@@ -237,50 +237,59 @@ class StrikeWallet(Wallet):
                 ok=False, error_message=f"Invalid invoice: {decode_exc!s}"
             )
 
+        # Creating a quote cannot make the payment. Any failure before the execute
+        # request is therefore a definite failure of this payment attempt.
         try:
-            # 1) Create a payment quote
             quote_id, error = await self._create_payment_quote(bolt11)
             if error or not quote_id:
                 return PaymentResponse(ok=False, error_message=error or "Unknown error")
+        except Exception as exc:
+            logger.warning(f"Strike quote creation exception: {exc}", exc_info=True)
+            return PaymentResponse(
+                ok=False,
+                error_message=f"Failed to create payment quote: {exc!s}",
+            )
 
-            # 2) Execute the payment quote
+        try:
+            # Keep the quote id while this process is running. Strike only documents
+            # payment status lookup by payment id, which an ambiguous execute request
+            # may not return.
+            self.pending_payments[payment_hash] = quote_id
+
             data, error = await self._execute_payment_quote(quote_id)
             if error or not data:
-                return PaymentResponse(ok=False, error_message=error or "Unknown error")
+                return PaymentResponse(error_message=error or "Unknown error")
 
             state = data.get("state", "").upper()
             payment_id = data.get("paymentId")
+            checking_id = payment_id or payment_hash
 
             # Parse fee
-            fee_msat = self._parse_payment_fee(data, payment_id or "")
+            fee_msat = self._parse_payment_fee(data, checking_id)
 
             # Handle successful payment
             if state in {"SUCCEEDED", "COMPLETED"}:
                 preimage = self._extract_preimage(data)
                 return PaymentResponse(
                     ok=True,
-                    checking_id=payment_hash,
+                    checking_id=checking_id,
                     fee_msat=fee_msat,
                     preimage=preimage,
                 )
 
             # Handle failed payment
-            failed_states = {"CANCELED", "FAILED", "TIMED_OUT"}
-            if state in failed_states:
+            if state == "FAILED":
                 logger.warning(
                     f"Strike payment {payment_id} failed with state: {state}"
                 )
                 return PaymentResponse(
                     ok=False,
-                    checking_id=payment_hash,
+                    checking_id=checking_id,
                     error_message=f"Payment {state.lower()}",
                 )
 
-            # Store mapping for later polling
-            self.pending_payments[payment_hash] = quote_id
-
             # Treat all other states as pending
-            return PaymentResponse(ok=None, checking_id=payment_hash)
+            return PaymentResponse(ok=None, checking_id=payment_id)
 
         except httpx.HTTPStatusError as http_exc:
             logger.warning(f"Strike HTTP error during payment: {http_exc}")
@@ -289,7 +298,6 @@ class StrikeWallet(Wallet):
                 f"body: {http_exc.response.text}"
             )
             return PaymentResponse(
-                ok=False,
                 error_message=f"Strike API error: {http_exc.response.status_code}",
             )
         except Exception as e:
@@ -343,7 +351,8 @@ class StrikeWallet(Wallet):
         quote_id = self.pending_payments.get(checking_id)
 
         try:
-            # Attempt 1: Use quote_id if available (from in-memory store)
+            # A quote id can only be associated with an invoice hash while this
+            # process is running. Persisted payment ids are checked below.
             if quote_id:
                 status = await self._get_payment_status_by_quote_id(
                     checking_id, quote_id
@@ -527,10 +536,8 @@ class StrikeWallet(Wallet):
             return None, error_msg
 
         data = e.json() if e.content else {}
-        payment_id = data.get("paymentId")
-        if not payment_id:
+        if not data.get("paymentId"):
             logger.warning(f"Strike: missing paymentId in response: {data}")
-            return None, "Strike: missing paymentId in response"
 
         return data, None
 
@@ -629,7 +636,7 @@ class StrikeWallet(Wallet):
             self.pending_payments.pop(checking_id, None)
             return PaymentFailedStatus()
 
-        return None
+        return PaymentPendingStatus()
 
     async def _get_payment_status_by_checking_id(  # noqa: C901
         self, checking_id: str
@@ -693,16 +700,28 @@ class StrikeWallet(Wallet):
                                 continue
                             logger.warning(
                                 f"Payment '{checking_id}' not a valid Strike payment. "
-                                f"Marked as failed. Response: {r_payment.text}"
+                                "Keeping pending because it may be the invoice payment "
+                                f"hash fallback. Response: {r_payment.text}"
                             )
-                            self.pending_payments.pop(checking_id, None)
-                            return PaymentFailedStatus()
+                            return PaymentPendingStatus()
             except Exception as e:
                 logger.warning(e)
 
             return PaymentPendingStatus()
 
         if r_payment.status_code == 404:
+            if len(checking_id) == 64:
+                try:
+                    bytes.fromhex(checking_id)
+                    logger.warning(
+                        f"Payment '{checking_id}' not found, but the identifier may "
+                        "be a legacy invoice payment hash. Keeping pending."
+                    )
+                    return PaymentPendingStatus()
+                except ValueError as exc:
+                    logger.warning(
+                        f"Payment identifier '{checking_id}' is not valid hex: {exc}"
+                    )
             logger.warning(f"Payment {checking_id} not found. Marking as failed.")
             self.pending_payments.pop(checking_id, None)
             return PaymentFailedStatus()

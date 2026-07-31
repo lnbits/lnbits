@@ -240,6 +240,12 @@ else:
                     logger.info(ex)
                 return PaymentResponse(error_message=f"exception while payment {exc!s}")
 
+            if payment.status == BreezPaymentStatus.FAILED:
+                return PaymentResponse(
+                    ok=False,
+                    checking_id=invoice.payment_hash,
+                    error_message="payment failed",
+                )
             if payment.status != BreezPaymentStatus.COMPLETE:
                 return PaymentResponse(ok=None, error_message="payment is pending")
 

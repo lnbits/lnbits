@@ -208,11 +208,11 @@ class PhoenixdWallet(Wallet):
             logger.warning(msg)
             return PaymentResponse(ok=None, error_message=msg)
         except RequestError as exc:
-            # RequestError is raised when the request never hit the destination server
+            # RequestError can also be raised after the server received the request.
             msg = f"Unable to connect to {self.endpoint}."
             logger.warning(msg)
             logger.warning(exc)
-            return PaymentResponse(ok=False, error_message=msg)
+            return PaymentResponse(ok=None, error_message=msg)
         except Exception as exc:
             logger.warning(exc)
             return PaymentResponse(

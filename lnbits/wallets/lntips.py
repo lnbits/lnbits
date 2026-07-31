@@ -17,6 +17,7 @@ from .base import (
     PaymentStatus,
     StatusResponse,
     Wallet,
+    payment_request_was_rejected,
 )
 
 
@@ -103,26 +104,43 @@ class LnTipsWallet(Wallet):
         )
 
     async def pay_invoice(self, bolt11: str, fee_limit_msat: int) -> PaymentResponse:
-        r = await self.client.post(
-            "/api/v1/payinvoice",
-            json={"pay_req": bolt11},
-            timeout=None,
-        )
+        try:
+            r = await self.client.post(
+                "/api/v1/payinvoice",
+                json={"pay_req": bolt11},
+                timeout=None,
+            )
+        except Exception as exc:
+            logger.warning(exc)
+            return PaymentResponse(
+                error_message=f"Unable to connect to {self.endpoint}."
+            )
         if r.is_error:
-            return PaymentResponse(ok=False, error_message=r.text)
+            return PaymentResponse(
+                ok=False if payment_request_was_rejected(r.status_code) else None,
+                error_message=r.text,
+            )
 
-        if "error" in r.json():
-            try:
-                data = r.json()
-                error_message = data["error"]
-            except Exception:
-                error_message = r.text
-            return PaymentResponse(ok=False, error_message=error_message)
+        try:
+            response = r.json()
+        except json.JSONDecodeError:
+            return PaymentResponse(
+                error_message="Server error: 'invalid json response'"
+            )
 
-        data = r.json()["details"]
-        checking_id = data["payment_hash"]
-        fee_msat = -data["fee"]
-        preimage = data["preimage"]
+        if "error" in response:
+            error_message = response.get("error") or r.text
+            return PaymentResponse(error_message=error_message)
+
+        try:
+            data = response["details"]
+            checking_id = data["payment_hash"]
+            fee_msat = -data["fee"]
+            preimage = data["preimage"]
+        except (KeyError, TypeError):
+            return PaymentResponse(
+                error_message="Server error: 'missing required fields'"
+            )
         return PaymentResponse(
             ok=True, checking_id=checking_id, fee_msat=fee_msat, preimage=preimage
         )

@@ -38,7 +38,9 @@
       "wallet_class": "LNbitsWallet",
       "settings": {
         "lnbits_endpoint": "http://127.0.0.1:8555",
+        "lnbits_key": null,
         "lnbits_admin_key": "f171ba022a764e679eef950b21fb1c04",
+        "lnbits_invoice_key": null,
         "user_agent": "LNbits/Tests"
       }
     },
@@ -1830,6 +1832,26 @@
             "checking_id": null,
             "fee_msat": null,
             "preimage": null
+          },
+          "expect_by_funding_source": {
+            "alby": {
+              "error_message": "Not Found",
+              "success": false,
+              "pending": false,
+              "failed": true,
+              "checking_id": null,
+              "fee_msat": null,
+              "preimage": null
+            },
+            "eclair": {
+              "error_message": "Unable to connect to http://127.0.0.1:8555.",
+              "success": false,
+              "pending": false,
+              "failed": true,
+              "checking_id": null,
+              "fee_msat": null,
+              "preimage": null
+            }
           },
           "mocks": {
             "corelightningrest": {

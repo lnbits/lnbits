@@ -3,7 +3,6 @@ import hashlib
 from collections.abc import AsyncGenerator
 
 import httpx
-from bolt11 import decode as bolt11_decode
 from loguru import logger
 
 from lnbits.helpers import normalize_endpoint
@@ -16,6 +15,7 @@ from .base import (
     PaymentStatus,
     StatusResponse,
     Wallet,
+    payment_request_was_rejected,
 )
 
 
@@ -105,30 +105,62 @@ class ZBDWallet(Wallet):
 
     async def pay_invoice(self, bolt11: str, fee_limit_msat: int) -> PaymentResponse:
         # https://api.zebedee.io/v0/payments
-        r = await self.client.post(
-            "payments",
-            json={
-                "invoice": bolt11,
-                "description": "",
-                "amount": "",
-                "internalId": "",
-                "callbackUrl": "",
-            },
-            timeout=40,
-        )
+        try:
+            r = await self.client.post(
+                "payments",
+                json={
+                    "invoice": bolt11,
+                    "description": "",
+                    "amount": "",
+                    "internalId": "",
+                    "callbackUrl": "",
+                },
+                timeout=40,
+            )
+        except Exception as exc:
+            logger.warning(exc)
+            return PaymentResponse(error_message="Unable to query ZBD.")
 
         if r.is_error:
-            error_message = r.json()["message"]
-            return PaymentResponse(ok=False, error_message=error_message)
+            try:
+                error_message = r.json().get("message", r.text)
+            except Exception:
+                error_message = r.text
+            return PaymentResponse(
+                ok=False if payment_request_was_rejected(r.status_code) else None,
+                error_message=error_message,
+            )
 
-        data = r.json()
+        try:
+            data = r.json()["data"]
+            checking_id = data.get("id")
+            fee = data.get("fee")
+            fee_msat = -int(fee) if fee is not None else None
+            preimage = data.get("preimage")
+            status = str(data.get("status", "")).lower()
+        except Exception as exc:
+            logger.warning(exc)
+            return PaymentResponse(error_message="Invalid ZBD payment response.")
 
-        checking_id = bolt11_decode(bolt11).payment_hash
-        fee_msat = -int(data["data"]["fee"])
-        preimage = data["data"]["preimage"]
-
+        if status == "completed":
+            return PaymentResponse(
+                ok=True,
+                checking_id=checking_id,
+                fee_msat=fee_msat,
+                preimage=preimage,
+            )
+        if status in {"failed", "expired"}:
+            return PaymentResponse(
+                ok=False,
+                checking_id=checking_id,
+                fee_msat=fee_msat,
+                error_message=data.get("errorMessage"),
+            )
         return PaymentResponse(
-            ok=True, checking_id=checking_id, fee_msat=fee_msat, preimage=preimage
+            ok=None,
+            checking_id=checking_id,
+            fee_msat=fee_msat,
+            error_message=data.get("errorMessage"),
         )
 
     async def get_invoice_status(self, checking_id: str) -> PaymentStatus:
@@ -147,11 +179,20 @@ class ZBDWallet(Wallet):
         return PaymentStatus(paid=statuses[data.get("status")])
 
     async def get_payment_status(self, checking_id: str) -> PaymentStatus:
-        r = await self.client.get(f"payments/{checking_id}")
+        try:
+            r = await self.client.get(f"payments/{checking_id}")
+        except Exception as exc:
+            logger.warning(exc)
+            return PaymentPendingStatus()
+
         if r.is_error:
             return PaymentPendingStatus()
 
-        data = r.json()["data"]
+        try:
+            data = r.json()["data"]
+        except Exception as exc:
+            logger.warning(exc)
+            return PaymentPendingStatus()
 
         statuses = {
             "initial": None,
@@ -161,8 +202,7 @@ class ZBDWallet(Wallet):
             "expired": False,
             "failed": False,
         }
-
-        return PaymentStatus(paid=statuses[data.get("status")])
+        return PaymentStatus(paid=statuses.get(data.get("status")))
 
     async def paid_invoices_stream(self) -> AsyncGenerator[str, None]:
         self.queue: asyncio.Queue = asyncio.Queue(0)
