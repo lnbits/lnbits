@@ -940,7 +940,7 @@ window.localisation.en = {
   lightning_address_blacklist: 'Lightning Address blacklist',
   lightning_address_blacklist_instructions:
     'Newline separated reserved words. Users cannot choose a Lightning Address that matches any of these words.',
-  set_lightning_address: 'Set Lightning Address'
+  set_lightning_address: 'Set Lightning Address',
   block_explorer: 'Block Explorer',
   enable_block_explorer: 'Enable Block Explorer',
   block_explorer_desc:
