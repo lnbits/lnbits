@@ -129,6 +129,8 @@
       "js/components/admin/lnbits-admin-site-customisation.js",
       "js/components/admin/lnbits-admin-assets-config.js",
       "js/components/admin/lnbits-admin-audit.js",
+      "js/components/admin/lnbits-admin-blockexplorer.js",
+      "js/pages/blockexplorer.js",
       "js/components/lnbits-wallet-charts.js",
       "js/components/lnbits-wallet-api-docs.js",
       "js/components/lnbits-wallet-icon.js",

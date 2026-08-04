@@ -67,6 +67,12 @@ const routes = [
     component: PageNodePublic
   },
   {
+    path: '/blockexplorer/:type(tx|address|block)?/:id?',
+    name: 'BlockExplorer',
+    component: PageBlockExplorer,
+    meta: {stableKey: true}
+  },
+  {
     path: '/payments',
     name: 'Payments',
     component: PagePayments

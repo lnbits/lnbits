@@ -898,6 +898,16 @@ class NodeUISettings(LNbitsSettings):
     lnbits_node_ui_transactions: bool = Field(default=False)
 
 
+class BlockExplorerSettings(LNbitsSettings):
+    lnbits_blockexplorer_enabled: bool = Field(default=False)
+    lnbits_blockexplorer_public_api: bool = Field(default=False)
+    lnbits_blockexplorer_electrum_url: str = Field(
+        default="ssl://electrum.blockstream.info:50002"
+    )
+    # one of: main, test, regtest, signet (see embit.networks.NETWORKS)
+    lnbits_blockexplorer_network: str = Field(default="main")
+
+
 class AuthMethods(Enum):
     user_id_only = "user-id-only"
     username_and_password = "username-password"  # noqa: S105
@@ -1072,6 +1082,7 @@ class EditableSettings(
     LightningSettings,
     WebPushSettings,
     NodeUISettings,
+    BlockExplorerSettings,
     AuditSettings,
     AuthSettings,
     NostrAuthSettings,
@@ -1352,6 +1363,7 @@ class PublicSettings(BaseModel):
     webpush_pubkey: str | None = Field(alias="webpushPubkey")
     show_extensions: bool = Field(alias="showExtensions")
     show_audit: bool = Field(alias="showAudit")
+    show_block_explorer: bool = Field(alias="showBlockExplorer")
     show_admin: bool = Field(alias="showAdmin")
     ad_space: list[list[str]] = Field(alias="adSpace")
     ad_space_title: str = Field(alias="adSpaceTitle")
@@ -1432,6 +1444,7 @@ class PublicSettings(BaseModel):
             webpushPubkey=settings.lnbits_webpush_pubkey,
             showExtensions=not settings.lnbits_extensions_deactivate_all,
             showAudit=settings.lnbits_audit_enabled,
+            showBlockExplorer=settings.lnbits_blockexplorer_enabled,
             showAdmin=settings.lnbits_admin_ui,
             customImage=settings.lnbits_custom_image,
             customBadge=settings.lnbits_custom_badge,

@@ -94,7 +94,8 @@
               {value: 'notifications', label: $t('notifications')},
               {value: 'audit', label: $t('audit')},
               {value: 'assets-config', label: $t('assets')},
-              {value: 'site_customisation', label: $t('site_customisation')}
+              {value: 'site_customisation', label: $t('site_customisation')},
+              {value: 'blockexplorer', label: $t('block_explorer')}
             ]"
             option-value="value"
             option-label="label"
@@ -189,6 +190,13 @@
                 ><q-tooltip v-if="!$q.screen.gt.sm"
                   ><span v-text="$t('site_customisation')"></span></q-tooltip
               ></q-tab>
+              <q-tab
+                name="blockexplorer"
+                icon="travel_explore"
+                :label="$q.screen.gt.sm ? $t('block_explorer') : null"
+                ><q-tooltip v-if="!$q.screen.gt.sm"
+                  ><span v-text="$t('block_explorer')"></span></q-tooltip
+              ></q-tab>
             </q-tabs>
           </template>
 
@@ -246,6 +254,9 @@
                   </q-tab-panel>
                   <q-tab-panel name="assets-config">
                     <lnbits-admin-assets-config :form-data="formData" />
+                  </q-tab-panel>
+                  <q-tab-panel name="blockexplorer">
+                    <lnbits-admin-blockexplorer :form-data="formData" />
                   </q-tab-panel>
                 </q-tab-panels>
               </q-scroll-area>

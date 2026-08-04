@@ -196,5 +196,14 @@ window._lnbitsApi = {
     return LNbits.api
       .request('GET', `/admin/api/v1/settings/default?field_name=${fieldName}`)
       .catch(LNbits.utils.notifyApiError)
+  },
+  getBlockexplorerAddress(address) {
+    return this.request('get', `/blockexplorer/api/v1/address/${address}`)
+  },
+  getBlockexplorerTransaction(txid) {
+    return this.request('get', `/blockexplorer/api/v1/tx/${txid}`)
+  },
+  getBlockexplorerUtxos(address) {
+    return this.request('get', `/blockexplorer/api/v1/utxos/${address}`)
   }
 }
