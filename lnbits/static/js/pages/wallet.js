@@ -761,18 +761,22 @@ window.PageWallet = {
   },
   created() {
     const urlParams = new URLSearchParams(window.location.search)
-    if (urlParams.has('lightning') || urlParams.has('lnurl')) {
-      this.parse.data.request =
-        urlParams.get('lightning') || urlParams.get('lnurl')
-      this.decodeRequest()
-      this.parse.show = true
-    }
     const wallet = this.g.user.wallets.find(w => w.id === this.$route.params.id)
     if (wallet) {
       this.g.wallet = wallet
       this.g.lastActiveWallet = wallet.id
       this.$q.localStorage.setItem('lnbits.lastActiveWallet', wallet.id)
-      this.$router.replace(`/wallet/${wallet.id}`)
+      // the dialog needs the wallet, and a dialog opened while this navigation
+      // is still in flight gets torn down by it, so handle the payment request
+      // only once the url rewrite has settled
+      this.$router.replace(`/wallet/${wallet.id}`).then(() => {
+        if (urlParams.has('lightning') || urlParams.has('lnurl')) {
+          this.parse.data.request =
+            urlParams.get('lightning') || urlParams.get('lnurl')
+          this.decodeRequest()
+          this.parse.show = true
+        }
+      })
     } else {
       this.g.errorCode = 404
       this.g.errorMessage = 'Wallet not found.'
