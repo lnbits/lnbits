@@ -80,6 +80,34 @@ window.PageWallet = {
       }
       return this.parse.invoice.sat <= this.g.wallet.sat
     },
+    lnurlpayInfo() {
+      // parse.lnurlpay is posted back to the api verbatim when paying, and the
+      // model there forbids unknown fields, so the details the dialog shows are
+      // derived here instead of being mixed into it
+      const data = this.parse.lnurlpay
+      if (!data) return {}
+      const info = {
+        domain: data.callback.split('/')[2],
+        fixed: data.minSendable === data.maxSendable
+      }
+      try {
+        JSON.parse(data.metadata).forEach(([kind, value]) => {
+          if (kind === 'text/plain') {
+            info.description = value
+          } else if (
+            kind === 'image/png;base64' ||
+            kind === 'image/jpeg;base64'
+          ) {
+            info.image = `data:${kind},${value}`
+          } else if (kind === 'text/identifier' || kind === 'text/email') {
+            info.targetUser = value
+          }
+        })
+      } catch {
+        // malformed metadata only costs the extra detail shown in the dialog
+      }
+      return info
+    },
     formattedAmount() {
       if (this.receive.unit != 'sat' || !this.g.isSatsDenomination) {
         return LNbits.utils.formatCurrency(
