@@ -3,13 +3,13 @@
 ## Supported Versions
 
 Security fixes are provided for the current released version of LNbits and the
-`main` branch. Older releases and release candidates are not supported unless a
+`dev` branch. Older releases and release candidates are not supported unless a
 maintainer explicitly states otherwise.
 
 | Version            | Supported |
 | ------------------ | --------- |
 | Current release    | Yes       |
-| `main` branch      | Yes       |
+| `dev` branch       | Yes       |
 | Older releases     | No        |
 | Release candidates | No        |
 
