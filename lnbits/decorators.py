@@ -562,3 +562,11 @@ async def check_first_install():
             status_code=HTTPStatus.BAD_REQUEST,
             detail="Super user account has already been configured.",
         )
+
+
+def check_blockexplorer_public() -> None:
+    if not settings.lnbits_blockexplorer_public_api:
+        raise HTTPException(
+            status_code=HTTPStatus.NOT_FOUND,
+            detail="Block explorer public API is disabled.",
+        )

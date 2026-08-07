@@ -43,6 +43,22 @@
             ></q-item-label>
           </q-item-section>
         </q-item>
+        <div
+          v-if="formData.lnbits_blockexplorer_public_api"
+          class="q-pl-lg q-mt-xs"
+        >
+          <q-btn
+            type="a"
+            href="/blockexplorer"
+            target="_blank"
+            rel="noopener noreferrer"
+            icon="open_in_new"
+            :label="$t('view_public_block_explorer')"
+            color="primary"
+            flat
+            dense
+          ></q-btn>
+        </div>
       </div>
     </div>
     <q-separator class="q-mb-lg q-mt-sm"></q-separator>
@@ -77,13 +93,17 @@
         ></q-select>
       </div>
       <div class="col-12">
-        <a
+        <q-btn
+          type="a"
           href="https://1209k.com/bitcoin-eye/ele.php?chain=btc"
           target="_blank"
           rel="noopener noreferrer"
-        >
-          <span v-text="$t('view_public_electrum_servers')"></span>
-        </a>
+          icon="open_in_new"
+          :label="$t('view_public_electrum_servers')"
+          color="primary"
+          flat
+          dense
+        ></q-btn>
       </div>
     </div>
   </q-card-section>
