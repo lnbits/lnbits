@@ -73,6 +73,10 @@ window.localisation.nl = {
   view_swagger_docs: 'Bekijk LNbits Swagger API-documentatie',
   api_docs: 'API-documentatie',
   api_keys_api_docs: 'Node URL, API-sleutels en API-documentatie',
+  api_keys_warning:
+    'Bewaar deze sleutels veilig; het delen ervan kan leiden tot verlies van tegoeden.',
+  admin_key_warning:
+    'Je beheerderssleutel geeft volledige toegang tot je wallet, inclusief de mogelijkheid om betalingen te versturen. Deel deze nooit, tenzij je de ontvanger volledig vertrouwt.',
   lnbits_version: 'LNbits-versie',
   runs_on: 'Draait op',
   paste: 'Plakken',
@@ -450,5 +454,48 @@ window.localisation.nl = {
   http_request_methods: 'HTTP-aanvraagmethoden',
   http_response_codes: 'HTTP-responscodes',
   request_details: 'Aanvraagdetails',
-  http_request_details: 'HTTP-verzoekdetails'
+  http_request_details: 'HTTP-verzoekdetails',
+  block_explorer: 'Block Explorer',
+  enable_block_explorer: 'Block Explorer inschakelen',
+  block_explorer_desc:
+    'Laat gebruikers Bitcoin-transacties en -adressen verkennen via Electrum.',
+  blockexplorer_public_api: 'Publieke API-toegang',
+  blockexplorer_public_api_desc:
+    'Niet-geauthenticeerde toegang tot de block explorer API-eindpunten toestaan.',
+  electrum_server_url: 'Electrum-server-URL',
+  electrum_server_url_hint:
+    'bijv. ssl://electrum.blockstream.info:50002 of tcp://localhost:50001',
+  blockexplorer_search_label: 'Zoeken op TXID of adres',
+  blockexplorer_search_hint:
+    '64-karakter hex = transactie  ·  alles anders = Bitcoin-adres',
+  recent_blocks: 'Recente blokken',
+  chain_tip: 'Kettingtop',
+  block_height: 'Blokhoogte',
+  block_fee: 'blokvergoeding',
+  fee_estimates: 'Vergoedingsschattingen',
+  confirmed_balance: 'Bevestigd saldo',
+  unconfirmed_balance: 'Onbevestigd saldo',
+  transaction_history: 'Transactiegeschiedenis',
+  coinbase: 'Coinbase',
+  inputs: 'Invoer',
+  outputs: 'Uitvoer',
+  confirmations: 'Bevestigingen',
+  confirmed: 'Bevestigd',
+  unconfirmed: 'Onbevestigd',
+  history_unavailable:
+    'Transactiegeschiedenis niet beschikbaar (adres heeft te veel transacties)',
+  address: 'Adres',
+  block_number: 'Blok #{height}',
+  block_diff: 'moeil. {value}',
+  block_hash: 'Hash',
+  previous_block: 'Vorig blok',
+  merkle_root: 'Merkle-wortel',
+  version: 'Versie',
+  bits: 'Bits',
+  difficulty: 'Moeilijkheid',
+  nonce: 'Nonce',
+  txid: 'TXID',
+  vsize: 'Virtuele grootte',
+  weight: 'Gewicht',
+  n_block_fee: '{n}-blok vergoeding'
 }

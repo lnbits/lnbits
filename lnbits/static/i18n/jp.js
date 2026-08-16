@@ -69,6 +69,10 @@ window.localisation.jp = {
   view_swagger_docs: 'Swaggerドキュメントを表示',
   api_docs: 'APIドキュメント',
   api_keys_api_docs: 'ノードURL、APIキー、APIドキュメント',
+  api_keys_warning:
+    'これらのキーは安全に保管してください。共有すると資金を失うおそれがあります。',
+  admin_key_warning:
+    '管理者キーは、支払いの送信を含むウォレットへの完全なアクセスを許可します。受取人を完全に信頼している場合を除き、決して共有しないでください。',
   lnbits_version: 'LNbits バージョン',
   runs_on: 'で実行',
   paste: '貼り付け',
@@ -440,5 +444,48 @@ window.localisation.jp = {
   http_request_methods: 'HTTPリクエストメソッド',
   http_response_codes: 'HTTPレスポンスコード',
   request_details: 'リクエストの詳細',
-  http_request_details: 'HTTPリクエストの詳細'
+  http_request_details: 'HTTPリクエストの詳細',
+  block_explorer: 'ブロックエクスプローラー',
+  enable_block_explorer: 'ブロックエクスプローラーを有効化',
+  block_explorer_desc:
+    'Electrumを介してビットコインのトランザクションとアドレスを探索できます。',
+  blockexplorer_public_api: 'パブリックAPIアクセス',
+  blockexplorer_public_api_desc:
+    'ブロックエクスプローラーAPIエンドポイントへの非認証アクセスを許可します。',
+  electrum_server_url: 'ElectrumサーバーURL',
+  electrum_server_url_hint:
+    '例: ssl://electrum.blockstream.info:50002 または tcp://localhost:50001',
+  blockexplorer_search_label: 'TXIDまたはアドレスで検索',
+  blockexplorer_search_hint:
+    '64文字の16進数 = トランザクション  ·  それ以外 = ビットコインアドレス',
+  recent_blocks: '最新ブロック',
+  chain_tip: 'チェーン先端',
+  block_height: 'ブロック高さ',
+  block_fee: 'ブロック手数料',
+  fee_estimates: '手数料見積もり',
+  confirmed_balance: '確認済み残高',
+  unconfirmed_balance: '未確認残高',
+  transaction_history: 'トランザクション履歴',
+  coinbase: 'コインベース',
+  inputs: 'インプット',
+  outputs: 'アウトプット',
+  confirmations: '確認数',
+  confirmed: '確認済み',
+  unconfirmed: '未確認',
+  history_unavailable:
+    'トランザクション履歴が取得できません（アドレスのトランザクションが多すぎます）',
+  address: 'アドレス',
+  block_number: 'ブロック #{height}',
+  block_diff: 'diff {value}',
+  block_hash: 'ハッシュ',
+  previous_block: '前のブロック',
+  merkle_root: 'マークルルート',
+  version: 'バージョン',
+  bits: 'Bits',
+  difficulty: '難易度',
+  nonce: 'Nonce',
+  txid: 'TXID',
+  vsize: '仮想サイズ',
+  weight: '重量',
+  n_block_fee: '{n}ブロック手数料'
 }

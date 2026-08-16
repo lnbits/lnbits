@@ -22,6 +22,7 @@ from .base import (
     PaymentStatus,
     StatusResponse,
     Wallet,
+    payment_request_was_rejected,
 )
 
 
@@ -165,6 +166,24 @@ class EclairWallet(Wallet):
             checking_id = data["paymentHash"]
             preimage = data["paymentPreimage"]
 
+        except httpx.HTTPStatusError as exc:
+            error_message = f"Unable to connect to {self.url}."
+            try:
+                error_data = exc.response.json()
+                if isinstance(error_data, dict) and error_data.get("error"):
+                    error_message = str(error_data["error"])
+            except json.JSONDecodeError:
+                pass
+
+            # Eclair uses HTTP 400 for invoice and form validation failures,
+            # which happen before it dispatches the payment.
+            rejected = exc.response.status_code == 400 or payment_request_was_rejected(
+                exc.response.status_code
+            )
+            return PaymentResponse(
+                ok=False if rejected else None,
+                error_message=error_message,
+            )
         except json.JSONDecodeError:
             return PaymentResponse(
                 error_message="Server error: 'invalid json response'"

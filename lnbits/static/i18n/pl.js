@@ -71,6 +71,10 @@ window.localisation.pl = {
   view_swagger_docs: 'Dokumentacja Swagger API',
   api_docs: 'Dokumentacja API',
   api_keys_api_docs: 'Adres URL węzła, klucze API i dokumentacja API',
+  api_keys_warning:
+    'Te klucze należy przechowywać bezpiecznie; ich udostępnienie może grozić utratą środków.',
+  admin_key_warning:
+    'Twój klucz administratora zapewnia pełny dostęp do portfela, w tym możliwość wysyłania płatności. Nigdy go nie udostępniaj, chyba że całkowicie ufasz odbiorcy.',
   lnbits_version: 'Wersja LNbits',
   runs_on: 'Działa na',
   paste: 'Wklej',
@@ -444,5 +448,48 @@ window.localisation.pl = {
   http_request_methods: 'Metody żądań HTTP',
   http_response_codes: 'Kody Odpowiedzi HTTP',
   request_details: 'Szczegóły żądania',
-  http_request_details: 'Szczegóły żądania HTTP'
+  http_request_details: 'Szczegóły żądania HTTP',
+  block_explorer: 'Przeglądarka bloków',
+  enable_block_explorer: 'Włącz przeglądarkę bloków',
+  block_explorer_desc:
+    'Umożliwia użytkownikom przeglądanie transakcji i adresów Bitcoin przez Electrum.',
+  blockexplorer_public_api: 'Publiczny dostęp do API',
+  blockexplorer_public_api_desc:
+    'Zezwól na nieuwierzytelniony dostęp do punktów końcowych API przeglądarki bloków.',
+  electrum_server_url: 'URL serwera Electrum',
+  electrum_server_url_hint:
+    'np. ssl://electrum.blockstream.info:50002 lub tcp://localhost:50001',
+  blockexplorer_search_label: 'Szukaj po TXID lub adresie',
+  blockexplorer_search_hint:
+    '64-znakowy hex = transakcja  ·  cokolwiek innego = adres Bitcoin',
+  recent_blocks: 'Ostatnie bloki',
+  chain_tip: 'Wierzchołek łańcucha',
+  block_height: 'Wysokość bloku',
+  block_fee: 'opłata bloku',
+  fee_estimates: 'Szacunki opłat',
+  confirmed_balance: 'Potwierdzony saldo',
+  unconfirmed_balance: 'Niepotwierdzony saldo',
+  transaction_history: 'Historia transakcji',
+  coinbase: 'Coinbase',
+  inputs: 'Wejścia',
+  outputs: 'Wyjścia',
+  confirmations: 'Potwierdzenia',
+  confirmed: 'Potwierdzone',
+  unconfirmed: 'Niepotwierdzone',
+  history_unavailable:
+    'Historia transakcji niedostępna (adres ma zbyt wiele transakcji)',
+  address: 'Adres',
+  block_number: 'Blok #{height}',
+  block_diff: 'trud. {value}',
+  block_hash: 'Hash',
+  previous_block: 'Poprzedni blok',
+  merkle_root: 'Korzeń Merkle',
+  version: 'Wersja',
+  bits: 'Bity',
+  difficulty: 'Trudność',
+  nonce: 'Nonce',
+  txid: 'TXID',
+  vsize: 'Rozmiar wirtualny',
+  weight: 'Waga',
+  n_block_fee: 'opłata {n} bloków'
 }

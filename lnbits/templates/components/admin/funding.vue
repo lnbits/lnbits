@@ -79,7 +79,7 @@
         <lnbits-admin-funding-sources
           :form-data="formData"
           :allowed-funding-sources="settings.lnbits_allowed_funding_sources"
-        />
+        ></lnbits-admin-funding-sources>
         <div class="row q-col-gutter-md q-my-md">
           <div class="col-12 col-sm-8">
             <q-item tag="div">
@@ -301,5 +301,11 @@
         </div>
       </div>
     </div>
+    <lnbits-admin-funding-seed-backup
+      :active="active"
+      :is-super-user="isSuperUser"
+      :form-data="formData"
+      :settings="settings"
+    ></lnbits-admin-funding-seed-backup>
   </q-card-section>
 </template>

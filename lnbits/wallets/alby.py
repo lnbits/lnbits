@@ -16,6 +16,7 @@ from .base import (
     PaymentStatus,
     StatusResponse,
     Wallet,
+    payment_request_was_rejected,
 )
 
 
@@ -146,6 +147,21 @@ class AlbyWallet(Wallet):
             return PaymentResponse(
                 ok=True, checking_id=checking_id, fee_msat=fee_msat, preimage=preimage
             )
+        except httpx.HTTPStatusError as exc:
+            logger.warning(exc)
+            rejected = payment_request_was_rejected(exc.response.status_code)
+            try:
+                response_message = exc.response.json().get("message", exc.response.text)
+            except Exception:
+                response_message = exc.response.text
+            return PaymentResponse(
+                ok=False if rejected else None,
+                error_message=(
+                    response_message
+                    if rejected
+                    else f"Unable to connect to {self.endpoint}."
+                ),
+            )
         except KeyError as exc:
             logger.warning(exc)
             return PaymentResponse(
@@ -185,7 +201,7 @@ class AlbyWallet(Wallet):
             #  - https://api.getalby.com/invoices/incoming
             #  - https://api.getalby.com/invoices/outgoing
             return PaymentStatus(
-                statuses[data.get("state")], fee_msat=None, preimage=None
+                statuses.get(data.get("state")), fee_msat=None, preimage=None
             )
         except Exception as e:
             logger.error(f"Error getting invoice status: {e}")

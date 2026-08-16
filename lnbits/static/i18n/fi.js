@@ -81,6 +81,10 @@ window.localisation.fi = {
   view_swagger_docs: 'Näytä LNbits Swagger API-dokumentit',
   api_docs: 'API-dokumentaatio',
   api_keys_api_docs: 'Solmun URL, API-avaimet ja -dokumentaatio',
+  api_keys_warning:
+    'Pidä nämä avaimet turvassa, sillä niiden jakaminen voi johtaa varojen menetykseen.',
+  admin_key_warning:
+    'Ylläpitäjäavaimesi antaa täyden pääsyn lompakkoosi, myös maksujen lähettämiseen. Älä koskaan jaa sitä, ellet täysin luota vastaanottajaan.',
   lnbits_version: 'LNbits versio',
   runs_on: 'Mukana menossa',
   paste: 'Liitä',
@@ -647,5 +651,48 @@ window.localisation.fi = {
     'On the PayPal side configure a webhook pointing to your LNbits server.',
   callback_success_url: 'Callback Success URL',
   callback_success_url_hint:
-    'The user will be redirected to this URL after the payment is successful'
+    'The user will be redirected to this URL after the payment is successful',
+  block_explorer: 'Lohkoselain',
+  enable_block_explorer: 'Ota lohkoselain käyttöön',
+  block_explorer_desc:
+    'Salli käyttäjien tutkia Bitcoin-transaktioita ja -osoitteita Electrumin kautta.',
+  blockexplorer_public_api: 'Julkinen API-pääsy',
+  blockexplorer_public_api_desc:
+    'Salli todentamaton pääsy lohkoselain API-päätteisiin.',
+  electrum_server_url: 'Electrum-palvelimen URL',
+  electrum_server_url_hint:
+    'esim. ssl://electrum.blockstream.info:50002 tai tcp://localhost:50001',
+  blockexplorer_search_label: 'Hae TXID:llä tai osoitteella',
+  blockexplorer_search_hint:
+    '64 merkin heksa = transaktio  ·  muu = Bitcoin-osoite',
+  recent_blocks: 'Viimeisimmät lohkot',
+  chain_tip: 'Ketjun kärki',
+  block_height: 'Lohkokorkeus',
+  block_fee: 'lohkomaksu',
+  fee_estimates: 'Maksuarviot',
+  confirmed_balance: 'Vahvistettu saldo',
+  unconfirmed_balance: 'Vahvistamaton saldo',
+  transaction_history: 'Tapahtumahistoria',
+  coinbase: 'Coinbase',
+  inputs: 'Syötteet',
+  outputs: 'Tulosteet',
+  confirmations: 'Vahvistukset',
+  confirmed: 'Vahvistettu',
+  unconfirmed: 'Vahvistamaton',
+  history_unavailable:
+    'Tapahtumahistoria ei saatavilla (osoitteella on liikaa tapahtumia)',
+  address: 'Osoite',
+  block_number: 'Lohko #{height}',
+  block_diff: 'vaikeus {value}',
+  block_hash: 'Hash',
+  previous_block: 'Edellinen lohko',
+  merkle_root: 'Merkle-juuri',
+  version: 'Versio',
+  bits: 'Bitit',
+  difficulty: 'Vaikeus',
+  nonce: 'Nonce',
+  txid: 'TXID',
+  vsize: 'Virtuaalikoko',
+  weight: 'Paino',
+  n_block_fee: '{n} lohkon maksu'
 }

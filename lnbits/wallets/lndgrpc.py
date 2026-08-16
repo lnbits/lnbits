@@ -194,12 +194,19 @@ class LndWallet(Wallet):
             no_inflight_updates=True,
             max_parts=16,
             time_pref=0.9,
+            allow_self_payment=settings.lnd_grpc_allow_self_payment,
         )
         try:
             res: Payment = await self.router_rpc.SendPaymentV2(req).read()
+        except grpc.aio.AioRpcError as exc:
+            logger.warning(exc)
+            return PaymentResponse(
+                ok=False if _is_pre_dispatch_payment_error(exc) else None,
+                error_message=exc.details() or str(exc),
+            )
         except Exception as exc:
             logger.warning(exc)
-            return PaymentResponse(error_message=str(exc))
+            return PaymentResponse(ok=None, error_message=str(exc))
 
         if res.status == Payment.PaymentStatus.SUCCEEDED:
             return PaymentResponse(
@@ -377,3 +384,22 @@ class LndWallet(Wallet):
             )
         # If we reach here, the invoice was successfully canceled and payment failed
         return InvoiceResponse(True, checking_id=payment_hash)
+
+
+_PRE_DISPATCH_PAYMENT_ERROR_CODES = {
+    grpc.StatusCode.INVALID_ARGUMENT,
+    grpc.StatusCode.PERMISSION_DENIED,
+    grpc.StatusCode.UNAUTHENTICATED,
+}
+_PRE_DISPATCH_PAYMENT_ERROR_MESSAGES = (
+    "invoice not for current active network",
+    "invoice expired",
+)
+
+
+def _is_pre_dispatch_payment_error(exc: grpc.aio.AioRpcError) -> bool:
+    if exc.code() in _PRE_DISPATCH_PAYMENT_ERROR_CODES:
+        return True
+
+    details = (exc.details() or "").lower()
+    return any(message in details for message in _PRE_DISPATCH_PAYMENT_ERROR_MESSAGES)

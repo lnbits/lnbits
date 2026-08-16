@@ -64,6 +64,11 @@ jobs:
     with:
       make: openapi
 
+  test-e2e:
+    if: ${{ false }}
+    needs: [ lint ]
+    uses: ./.github/workflows/e2e.yml
+
   regtest:
     needs: [ lint ]
     uses: ./.github/workflows/regtest.yml

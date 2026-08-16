@@ -1,9 +1,11 @@
 <template id="lnbits-admin-extensions">
   <q-card-section class="q-pa-none">
     <div>
-      <h6 class="q-my-none">
-        <span v-text="$t('extensions')"></span>
-      </h6>
+      <div class="row items-center justify-between q-mb-md">
+        <h6 class="q-my-none">
+          <span v-text="$t('extensions')"></span>
+        </h6>
+      </div>
       <div class="row q-col-gutter-md">
         <div class="col-12 q-mb-md">
           <p>
@@ -30,6 +32,48 @@
               text-color="white"
               ><span class="ellipsis" v-text="manifestUrl"></span
             ></q-chip>
+          </div>
+        </div>
+      </div>
+      <div class="row q-col-gutter-md">
+        <div class="col-12 q-mb-md">
+          <p>Wasm Extension</p>
+          <q-input
+            class="q-mb-md"
+            filled
+            v-model="formAddWasmManifest"
+            type="text"
+            :label="$t('wasm_sources_label')"
+            :hint="$t('wasm_sources_hint')"
+          >
+            <q-btn @click="addWasmManifest" dense flat icon="add"></q-btn>
+          </q-input>
+          <div class="q-mb-md">
+            <q-chip
+              v-for="manifestUrl in formData.lnbits_wasm_extensions_manifests"
+              :key="manifestUrl"
+              removable
+              @remove="removeWasmManifest(manifestUrl)"
+              color="primary"
+              text-color="white"
+              ><span class="ellipsis" v-text="manifestUrl"></span
+            ></q-chip>
+          </div>
+          <div class="row q-gutter-sm">
+            <q-btn
+              unelevated
+              color="primary"
+              icon="memory"
+              label="WASM Runtime"
+              to="/admin/extensions/wasm"
+            ></q-btn>
+            <q-btn
+              unelevated
+              color="primary"
+              icon="tune"
+              label="Wasm Limit Config"
+              to="/admin/extensions/wasm/limits"
+            ></q-btn>
           </div>
         </div>
       </div>
@@ -63,7 +107,7 @@
         </div>
         <div class="col-12 col-md-6">
           <p>
-            <span v-text="$t('miscellaneous')"></span>
+            <span v-text="$t('miscellanous')"></span>
           </p>
           <q-item tag="label" v-ripple>
             <q-item-section>
@@ -124,6 +168,15 @@
               />
             </q-item-section>
           </q-item>
+          <q-input
+            class="q-mt-md"
+            filled
+            v-model.number="formData.lnbits_wasm_invocation_retention_days"
+            type="number"
+            min="0"
+            label="WASM invocation retention days"
+            hint="Set to 0 to disable automatic cleanup."
+          ></q-input>
           <br />
         </div>
         <div class="col-12 col-md-6">

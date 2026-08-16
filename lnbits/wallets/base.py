@@ -15,9 +15,18 @@ if TYPE_CHECKING:
     from lnbits.nodes.base import Node
 
 
+def payment_request_was_rejected(status_code: int) -> bool:
+    """Return whether HTTP rejected the request before payment dispatch."""
+    # Generic 400 and 422 responses are provider-specific. They can report an
+    # existing payment, so adapters must not treat them as terminal based only
+    # on the status code. Timeouts, conflicts and rate limits are also ambiguous.
+    return status_code in {401, 403, 404, 405}
+
+
 class Feature(Enum):
     nodemanager = "nodemanager"
     holdinvoice = "holdinvoice"
+    descriptionhash = "descriptionhash"
     # bolt12 = "bolt12"
 
 

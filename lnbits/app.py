@@ -23,30 +23,44 @@ from lnbits.core.crud import (
     get_installed_extensions,
     update_installed_extension_state,
 )
+from lnbits.core.crud.audit import delete_expired_audit_entries
 from lnbits.core.crud.extensions import create_installed_extension
 from lnbits.core.helpers import migrate_extension_database
 from lnbits.core.models.notifications import NotificationType
 from lnbits.core.services.extensions import deactivate_extension, get_valid_extensions
-from lnbits.core.services.notifications import enqueue_admin_notification
-from lnbits.core.services.payments import check_pending_payments
+from lnbits.core.services.funding_source import (
+    check_balance_delta_changed,
+    check_server_balance_against_node,
+)
+from lnbits.core.services.notifications import (
+    dispatch_payment_notification,
+    enqueue_admin_notification,
+    process_next_notification,
+)
+from lnbits.core.services.payments import (
+    check_pending_payments,
+    fundingsource_invoice_producer,
+)
 from lnbits.core.tasks import (
     audit_queue,
     collect_exchange_rates_data,
-    purge_audit_data,
-    run_by_the_minute_tasks,
-    wait_for_audit_data,
-    wait_for_paid_invoices,
-    wait_notification_messages,
+    notify_server_status,
+    process_next_audit_entry,
+    refresh_extension_cache,
+)
+from lnbits.core.wasm_ext.routes.register import (
+    register_wasm_extension,
+    unregister_wasm_extension,
+)
+from lnbits.core.wasm_ext.wasm.events import dispatch_wasm_invoice_paid
+from lnbits.core.wasm_ext.wasm.loader import (
+    is_wasm_extension_dir,
+    is_wasm_extension_id,
 )
 from lnbits.exceptions import register_exception_handlers
 from lnbits.helpers import version_parse
 from lnbits.llms_txt import create_llms_txt_route
 from lnbits.settings import settings
-from lnbits.tasks import (
-    cancel_all_tasks,
-    create_permanent_task,
-    register_invoice_listener,
-)
 from lnbits.utils.cache import cache
 from lnbits.utils.logger import (
     configure_logger,
@@ -69,7 +83,7 @@ from .middleware import (
     add_profiler_middleware,
     add_ratelimit_middleware,
 )
-from .tasks import internal_invoice_listener, invoice_listener, run_interval
+from .task_manager import task_manager
 
 
 async def startup(app: FastAPI):
@@ -133,7 +147,7 @@ async def shutdown():
     settings.lnbits_running = False
 
     # shutdown event
-    cancel_all_tasks()
+    task_manager.cancel_all_tasks()
 
     # wait a bit to allow them to finish, so that cleanup can run without problems
     await asyncio.sleep(0.1)
@@ -166,6 +180,8 @@ def create_app() -> FastAPI:
 
     # Allow registering new extensions routes without direct access to the `app` object
     core_app_extra.register_new_ext_routes = register_new_ext_routes(app)
+    core_app_extra.register_new_wasm_ext_routes = register_new_wasm_ext_routes(app)
+    core_app_extra.unregister_wasm_ext_routes = unregister_wasm_ext_routes(app)
     core_app_extra.register_new_ratelimiter = register_new_ratelimiter(app)
 
     # register static files
@@ -297,7 +313,30 @@ async def build_all_installed_extensions_list(  # noqa: C901
     installed_extensions = await get_installed_extensions()
     settings.lnbits_installed_extensions_ids = {e.id for e in installed_extensions}
 
-    for ext_dir in Path(settings.lnbits_extensions_path, "extensions").iterdir():
+    settings.wasm_extensions_dir.mkdir(parents=True, exist_ok=True)
+    for ext_dir in settings.wasm_extensions_dir.iterdir():
+        try:
+            if not ext_dir.is_dir() or not is_wasm_extension_dir(ext_dir):
+                continue
+            ext_id = ext_dir.name
+            if ext_id in settings.lnbits_installed_extensions_ids:
+                continue
+            ext_info = InstallableExtension.from_wasm_ext_dir(ext_id)
+            if not ext_info:
+                continue
+
+            installed_extensions.append(ext_info)
+            settings.lnbits_installed_extensions_ids.add(ext_id)
+            await create_installed_extension(ext_info)
+            current_version = await get_db_version(ext_id)
+            await migrate_extension_database(ext_info, current_version)
+
+        except Exception as e:
+            logger.warning(e)
+
+    ext_dir_path = Path(settings.lnbits_extensions_path, "extensions")
+    existing_ext_dirs = ext_dir_path.iterdir() if ext_dir_path.is_dir() else []
+    for ext_dir in existing_ext_dirs:
         try:
             if not ext_dir.is_dir():
                 continue
@@ -352,14 +391,18 @@ async def build_all_installed_extensions_list(  # noqa: C901
 
 
 async def check_installed_extension_files(ext: InstallableExtension) -> bool:
-    if ext.has_installed_version:
+    if ext.is_wasm or ext.has_installed_version:
         return True
 
     zip_files = glob.glob(os.path.join(settings.lnbits_data_folder, "zips", "*.zip"))
 
     if f"./{ext.zip_path!s}" not in zip_files:
         await ext.download_archive()
-    ext.extract_archive()
+    archive_config = ext.load_archive_config()
+    if archive_config.get("extension_type") == "wasm":
+        ext.extract_wasm_archive()
+    else:
+        ext.extract_archive()
 
     return False
 
@@ -381,7 +424,6 @@ def register_custom_extensions_path():
     upgrades_dir = settings.lnbits_extensions_upgrade_path
     shutil.rmtree(upgrades_dir, True)
     Path(upgrades_dir).mkdir(parents=True, exist_ok=True)
-    sys.path.append(str(upgrades_dir))
 
     if settings.has_default_extension_path:
         return
@@ -400,6 +442,7 @@ def register_custom_extensions_path():
     extensions_dir = Path(settings.lnbits_extensions_path, "extensions")
     Path(extensions_dir).mkdir(parents=True, exist_ok=True)
     sys.path.append(str(extensions_dir))
+    settings.wasm_extensions_dir.mkdir(parents=True, exist_ok=True)
 
 
 def register_new_ext_routes(app: FastAPI) -> Callable:
@@ -410,6 +453,20 @@ def register_new_ext_routes(app: FastAPI) -> Callable:
         register_ext_routes(app, ext)
 
     return register_new_ext_routes_fn
+
+
+def register_new_wasm_ext_routes(app: FastAPI) -> Callable:
+    def register_new_wasm_ext_routes_fn(ext_id: str):
+        register_wasm_extension(app, ext_id)
+
+    return register_new_wasm_ext_routes_fn
+
+
+def unregister_wasm_ext_routes(app: FastAPI) -> Callable:
+    def unregister_wasm_ext_routes_fn(ext_id: str):
+        unregister_wasm_extension(app, ext_id)
+
+    return unregister_wasm_ext_routes_fn
 
 
 def register_new_ratelimiter(app: FastAPI) -> Callable:
@@ -436,9 +493,53 @@ def register_ext_tasks(ext: Extension) -> None:
 
 def register_ext_routes(app: FastAPI, ext: Extension) -> None:
     """Register FastAPI routes for extension."""
-    ext_module = importlib.import_module(ext.module_name)
+    module_name = ext.module_name
+    # Clear all cached sub-modules so a fresh import picks up new files from ext_dir.
+    # A simple reload() would reuse cached sub-modules (e.g. views_api) and serve
+    # stale code even after the extension files have been replaced on disk.
+    stale = [
+        k for k in sys.modules if k == module_name or k.startswith(f"{module_name}.")
+    ]
+    for k in stale:
+        del sys.modules[k]
+    if stale:
+        # Pydantic v1 keeps a global _FUNCS set of validator qualnames to detect
+        # duplicates. Clear the extension's entries so reimport doesn't raise
+        # "duplicate validator" errors for validators with the same qualname.
+        try:
+            import pydantic.class_validators as _pydantic_cv
+
+            _pydantic_cv._FUNCS = {
+                f for f in _pydantic_cv._FUNCS if not f.startswith(f"{module_name}.")
+            }
+        except (ImportError, AttributeError):
+            pass
+    ext_module = importlib.import_module(module_name)
 
     ext_route = getattr(ext_module, f"{ext.code}_ext")
+
+    ext_redirects = (
+        getattr(ext_module, f"{ext.code}_redirect_paths")
+        if hasattr(ext_module, f"{ext.code}_redirect_paths")
+        else []
+    )
+
+    settings.activate_extension_paths(ext.code, ext_redirects)
+
+    # Remove existing routes for this extension before re-registering so that
+    # an upgraded extension replaces the old one at the same paths (no prefix).
+    ext_prefix = f"/{ext.code}"
+    app.router.routes = [
+        r
+        for r in app.router.routes
+        if not (
+            getattr(r, "path", "") == ext_prefix
+            or getattr(r, "path", "").startswith(f"{ext_prefix}/")
+        )
+    ]
+    # Invalidate FastAPI's cached OpenAPI schema so the next /openapi.json
+    # request reflects the updated routes.
+    app.openapi_schema = None
 
     if hasattr(ext_module, f"{ext.code}_static_files"):
         ext_statics = getattr(ext_module, f"{ext.code}_static_files")
@@ -448,54 +549,66 @@ def register_ext_routes(app: FastAPI, ext: Extension) -> None:
             )
             app.mount(s["path"], StaticFiles(directory=static_dir), s["name"])
 
-    ext_redirects = (
-        getattr(ext_module, f"{ext.code}_redirect_paths")
-        if hasattr(ext_module, f"{ext.code}_redirect_paths")
-        else []
-    )
-
-    settings.activate_extension_paths(ext.code, ext.upgrade_hash, ext_redirects)
-
     logger.trace(f"Adding route for extension {ext_module}.")
-    prefix = f"/upgrades/{ext.upgrade_hash}" if ext.upgrade_hash != "" else ""
-    app.include_router(router=ext_route, prefix=prefix)
+    app.include_router(router=ext_route)
 
 
 async def check_and_register_extensions(app: FastAPI) -> None:
     await check_installed_extensions(app)
     for ext in await get_valid_extensions(False):
         try:
+            if is_wasm_extension_id(ext.code):
+                register_wasm_extension(app, ext.code)
+                continue
             register_ext_routes(app, ext)
             register_ext_tasks(ext)
         except Exception as exc:
             logger.error(f"Could not load extension `{ext.code}`: {exc!s}")
+            await update_installed_extension_state(ext_id=ext.code, active=False)
 
 
 def register_async_tasks() -> None:
+    task_manager.init()
 
-    create_permanent_task(wait_for_audit_data)
-    create_permanent_task(wait_notification_messages)
+    # listen to all incoming payments and dispatch payment notifications
+    # note: should be the first in task list for a bit quicker notifications
+    task_manager.register_invoice_listener(dispatch_payment_notification, "core")
 
-    create_permanent_task(
-        run_interval(
-            settings.lnbits_funding_source_pending_interval_seconds,
-            check_pending_payments,
-        )
+    # periodic tasks
+    task_manager.create_permanent_task(cache.invalidate_cache, interval=10)
+    task_manager.create_permanent_task(delete_expired_audit_entries, interval=60 * 60)
+    task_manager.create_permanent_task(
+        check_pending_payments,
+        interval=settings.lnbits_funding_source_pending_interval_seconds,
     )
-    create_permanent_task(invoice_listener)
-    create_permanent_task(internal_invoice_listener)
-    create_permanent_task(cache.invalidate_forever)
+    task_manager.create_permanent_task(
+        collect_exchange_rates_data,
+        interval=max(60, settings.lnbits_exchange_history_refresh_interval_seconds),
+    )
+    task_manager.create_permanent_task(check_balance_delta_changed, interval=60)
+    task_manager.create_permanent_task(
+        check_server_balance_against_node,
+        interval=60 * settings.lnbits_watchdog_interval_minutes,
+    )
+    task_manager.create_permanent_task(
+        notify_server_status,
+        interval=60 * 60 * settings.lnbits_notification_server_status_hours,
+    )
+    task_manager.create_permanent_task(refresh_extension_cache, interval=60)
 
-    # core invoice listener
-    invoice_queue: asyncio.Queue = asyncio.Queue()
-    register_invoice_listener(invoice_queue, "core")
-    create_permanent_task(lambda: wait_for_paid_invoices(invoice_queue))
+    # permanent tasks run in a loop, will be restarted if they fail
+    task_manager.create_permanent_task(fundingsource_invoice_producer)
+    task_manager.create_permanent_task(process_next_notification)
+    task_manager.create_permanent_task(process_next_audit_entry)
 
-    create_permanent_task(run_by_the_minute_tasks)
-    create_permanent_task(purge_audit_data)
-    create_permanent_task(collect_exchange_rates_data)
+    async def dispatch_extension_invoice_paid(payment) -> None:
+        await dispatch_wasm_invoice_paid(payment)
+
+    task_manager.register_invoice_listener(dispatch_extension_invoice_paid, "core_wasm")
 
     # server logs for websocket
     if settings.lnbits_admin_ui:
         server_log_task = initialize_server_websocket_logger()
-        create_permanent_task(server_log_task)
+        task_manager.create_permanent_task(
+            server_log_task, name="server_websocket_logger"
+        )

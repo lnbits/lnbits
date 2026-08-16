@@ -42,7 +42,7 @@ nav_order: 1
 
 The **Super User** is the owner-operator account of an LNbits instance. Think of it as your “break glass” operator with a few capabilities that are intentionally reserved for the person ultimately responsible for the server and the funding rails.
 
-The SU is created alongside the [Admin UI](./admin_ui.md) and is meant to keep enviroment operations pleasant in the UI while keeping the most sensitive knobs in trusted hands.
+The SU is created alongside the [Admin UI](./admin_ui.md) and is meant to keep environment operations pleasant in the UI while keeping the most sensitive knobs in trusted hands.
 
 **Key SU capabilities**
 
@@ -117,7 +117,7 @@ These are practical tips for running a safe and friendly instance.
 - **[Admin UI](./admin_ui.md)** — Manage server settings in the browser instead of editing `.env` or using the CLI for routine tasks.
 - **[User Roles](./user_roles.md)** — Overview of roles and what they can do.
 - **[Funding sources](./funding-sources-table.md)** — Available options and how to enable and configure them.
-- **[Install LNBits](./installation.md)** — Choose your prefared way to install LNBits.
+- **[Install LNbits](./installation.md)** — Choose your preferred way to install LNbits.
 
 ## Powered by LNbits
 

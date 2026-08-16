@@ -108,7 +108,11 @@ window.app.component('lnbits-admin-funding-sources', {
             lnd_grpc_macaroon: 'GRPC Macaroon',
             lnd_grpc_invoice_macaroon: 'GRPC Invoice Macaroon',
             lnd_grpc_admin_macaroon: 'GRPC Admin Macaroon',
-            lnd_grpc_macaroon_encrypted: 'Encrypted Macaroon'
+            lnd_grpc_macaroon_encrypted: 'Encrypted Macaroon',
+            lnd_grpc_allow_self_payment: {
+              advanced: true,
+              label: 'Allow Self Payment'
+            }
           }
         ],
         [
@@ -150,7 +154,12 @@ window.app.component('lnbits-admin-funding-sources', {
           {
             blink_api_endpoint: 'Endpoint',
             blink_ws_endpoint: 'WebSocket',
-            blink_token: 'Key'
+            blink_token: 'Key',
+            blink_send_without_probe: {
+              advanced: true,
+              label: 'Send payment if fee probe fails',
+              hint: 'If enabled (default), payments to destinations that cannot be probed (e.g. fedimints) are still sent. If disabled, such payments fail.'
+            }
           }
         ],
         [
@@ -159,6 +168,17 @@ window.app.component('lnbits-admin-funding-sources', {
           {
             alby_api_endpoint: 'Endpoint',
             alby_access_token: 'Key'
+          }
+        ],
+        [
+          'BarkWallet',
+          'Bark',
+          {
+            bark_api_endpoint: {
+              label: 'Endpoint',
+              value: 'http://localhost:3000'
+            },
+            bark_api_token: 'auth_token'
           }
         ],
         [

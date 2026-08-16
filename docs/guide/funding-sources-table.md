@@ -71,8 +71,8 @@ Spark L2 uses a local Node.js sidecar to expose an HTTP API that LNbits can use 
 ## Additional Guides
 
 - **[Admin UI](./admin_ui.md)** — Manage server settings via a clean UI (avoid editing `.env` by hand).
-- **[User Roles](./User_Roles.md)** — Quick Overview of existing Roles in LNBits.
-- **[Funding sources](./funding-sources_table.md)** — What’s available and how to enable/configure each.
+- **[User Roles](./user_roles.md)** — Quick Overview of existing Roles in LNBits.
+- **[Backend Wallets](./wallets.md)** — Explore options to fund your LNbits instance.
 
 ## Powered by LNbits
 

@@ -29,6 +29,11 @@ window.PageUsers = {
         data: {},
         show: false
       },
+      lightningAddressDialog: {
+        wallet: null,
+        lightningAddress: '',
+        show: false
+      },
       walletTable: {
         columns: [
           {
@@ -172,6 +177,11 @@ window.PageUsers = {
   },
   created() {
     this.fetchUsers()
+  },
+  computed: {
+    lightningAddressSuffix() {
+      return `@${window.location.host}`
+    }
   },
 
   methods: {
@@ -347,6 +357,35 @@ window.PageUsers = {
     copyWalletLink(walletId) {
       const url = `${window.location.origin}/wallet?usr=${this.activeWallet.userId}&wal=${walletId}`
       this.utils.copyText(url)
+    },
+    showLightningAddressDialog(wallet) {
+      this.lightningAddressDialog.wallet = wallet
+      this.lightningAddressDialog.lightningAddress =
+        wallet.lightning_address || ''
+      this.lightningAddressDialog.show = true
+    },
+    saveLightningAddress() {
+      const wallet = this.lightningAddressDialog.wallet
+      if (!wallet) return
+      LNbits.api
+        .request(
+          'PUT',
+          `/users/api/v1/user/${wallet.user}/wallet/${wallet.id}/lightning-address`,
+          null,
+          {
+            lightning_address: this.lightningAddressDialog.lightningAddress
+          }
+        )
+        .then(response => {
+          Object.assign(wallet, response.data)
+          this.lightningAddressDialog.show = false
+          Quasar.Notify.create({
+            type: 'positive',
+            message: this.$t('lightning_address_updated'),
+            icon: null
+          })
+        })
+        .catch(LNbits.utils.notifyApiError)
     },
     fetchUsers(props) {
       this.relaxFilterForFields(['username', 'email'])

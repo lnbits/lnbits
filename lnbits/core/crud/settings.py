@@ -8,9 +8,16 @@ from lnbits.db import dict_to_model
 from lnbits.settings import (
     AdminSettings,
     EditableSettings,
+    FundingSourcesSettings,
     SettingsField,
     SuperSettings,
     settings,
+)
+
+RESET_PRESERVED_SETTINGS = (
+    "lnbits_webpush_pubkey",
+    "lnbits_webpush_privkey",
+    *FundingSourcesSettings.__fields__,
 )
 
 
@@ -69,16 +76,14 @@ async def delete_admin_settings(tag: str | None = "core") -> None:
 
 
 async def reset_core_settings() -> None:
-    await db.execute(
-        """
-        DELETE FROM system_settings WHERE tag = 'core'
-        AND id NOT IN (
-            'super_user',
-            'lnbits_webpush_pubkey',
-            'lnbits_webpush_privkey'
-        )
-        """,
-    )
+    core_settings = await get_settings_by_tag("core") or {}
+    super_user = await get_settings_field("super_user")
+    await delete_admin_settings()
+    if super_user:
+        await set_settings_field("super_user", super_user.value)
+    for field in RESET_PRESERVED_SETTINGS:
+        if field in core_settings:
+            await set_settings_field(field, core_settings[field])
 
 
 async def create_admin_settings(super_user: str, new_settings: dict) -> SuperSettings:

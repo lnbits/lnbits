@@ -221,6 +221,13 @@ class PaymentWalletStats(BaseModel):
     balance: float = 0
 
 
+class PaymentTotalBreakdown(BaseModel):
+    tag: str | None = None
+    is_fiat: bool = False
+    payments_count: int = 0
+    total: int = 0
+
+
 class PaymentDailyStats(BaseModel):
     date: datetime
     balance: float = 0
@@ -267,6 +274,9 @@ class CreateInvoice(BaseModel):
     fiat_provider: str | None = None
     labels: list[str] = []
     external_id: str | None = Query(default=None, max_length=256)
+
+    def is_fiat_subscription(self) -> bool:
+        return (self.extra or {}).get("fiat_method") == "subscription"
 
     @validator("payment_hash")
     def check_hex(cls, v):

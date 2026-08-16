@@ -16,6 +16,7 @@ from ..models import (
     PaymentFilters,
     PaymentHistoryPoint,
     PaymentsStatusCount,
+    PaymentTotalBreakdown,
     PaymentWalletStats,
 )
 
@@ -238,32 +239,6 @@ async def get_payments_status_count() -> PaymentsStatusCount:
     )
 
 
-async def delete_expired_invoices(
-    conn: Connection | None = None,
-) -> None:
-    # first we delete all invoices older than one month
-
-    await (conn or db).execute(
-        # Timestamp placeholder is safe from SQL injection (not user input)
-        f"""
-        DELETE FROM apipayments
-        WHERE status = :status AND amount > 0
-        AND time < {db.timestamp_placeholder("delta")}
-        """,  # noqa: S608
-        {"status": f"{PaymentState.PENDING}", "delta": int(time() - 2592000)},
-    )
-    # then we delete all invoices whose expiry date is in the past
-    await (conn or db).execute(
-        # Timestamp placeholder is safe from SQL injection (not user input)
-        f"""
-        DELETE FROM apipayments
-        WHERE status = :status AND amount > 0
-        AND expiry < {db.timestamp_placeholder("now")}
-        """,  # noqa: S608
-        {"status": f"{PaymentState.PENDING}", "now": int(time())},
-    )
-
-
 async def create_payment(
     checking_id: str,
     data: CreatePayment,
@@ -424,6 +399,41 @@ async def get_payment_count_stats(
         """,  # noqa: S608
         values=filters.values(),
         model=PaymentCountStat,
+    )
+
+    return data
+
+
+async def get_wallet_payment_total_breakdown(
+    wallet_id: str,
+    conn: Connection | None = None,
+) -> list[PaymentTotalBreakdown]:
+    wallet = await get_wallet(wallet_id, conn=conn)
+    if not wallet or not wallet.can_view_payments:
+        return []
+
+    values = {"wallet_id": wallet.source_wallet_id}
+    data = await (conn or db).fetchall(
+        query=f"""
+            SELECT tag,
+                CASE
+                    WHEN fiat_provider IS NOT NULL
+                    THEN true
+                    ELSE false
+                END AS is_fiat,
+                COUNT(*) AS payments_count,
+                SUM(amount - ABS(fee)) AS total
+            FROM apipayments
+            WHERE wallet_id = :wallet_id
+            AND (
+                status = '{PaymentState.SUCCESS}'
+                OR (amount < 0 AND status = '{PaymentState.PENDING}')
+            )
+            GROUP BY tag, is_fiat
+            ORDER BY tag
+        """,  # noqa: S608
+        values=values,
+        model=PaymentTotalBreakdown,
     )
 
     return data

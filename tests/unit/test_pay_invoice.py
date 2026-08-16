@@ -12,15 +12,12 @@ from lnbits.core.crud import create_wallet, get_standalone_payment, get_wallet
 from lnbits.core.crud.payments import get_payment, get_payments_paginated
 from lnbits.core.models import PaymentState, Wallet
 from lnbits.core.services import create_invoice, create_user_account, pay_invoice
-from lnbits.core.services.payments import update_wallet_balance
+from lnbits.core.services.payments import (
+    update_wallet_balance,
+)
 from lnbits.exceptions import InvoiceError, PaymentError
 from lnbits.settings import Settings
-from lnbits.tasks import (
-    create_task,
-    internal_invoice_listener,
-    internal_invoice_queue,
-    wait_for_paid_invoices,
-)
+from lnbits.task_manager import task_manager
 from lnbits.wallets.base import PaymentResponse
 from lnbits.wallets.fake import FakeWallet
 
@@ -237,24 +234,30 @@ async def test_notification_for_internal_payment(
     test_name = "test_notification_for_internal_payment"
 
     # Drain stale items left by session-scoped fixtures (e.g. update_wallet_balance)
-    while not internal_invoice_queue.empty():
+    while not task_manager.internal_invoice_queue.empty():
         try:
-            internal_invoice_queue.get_nowait()
+            task_manager.internal_invoice_queue.get_nowait()
         except asyncio.QueueEmpty:
             break
 
     on_paid_mock = mocker.AsyncMock()
-    create_task(internal_invoice_listener())
-    create_task(wait_for_paid_invoices(test_name, on_paid_mock)())
+    # create_task(internal_invoice_listener())
+
+    task_manager.register_invoice_listener(on_paid_mock, test_name)
+
     payment = await create_invoice(
         wallet_id=to_wallet.id,
         amount=123,
         memo=test_name,
         webhook="http://test.404.lnbits.com",
     )
-    await pay_invoice(
+    paid_payment = await pay_invoice(
         wallet_id=to_wallet.id, payment_request=payment.bolt11, extra={"tag": "lnurlp"}
     )
+    assert paid_payment.status == PaymentState.SUCCESS.value
+    assert paid_payment.bolt11 == payment.bolt11
+    assert paid_payment.amount == -123_000
+
     await asyncio.sleep(1)
 
     assert on_paid_mock.call_count == 1
@@ -264,6 +267,8 @@ async def test_notification_for_internal_payment(
     assert _payment.status == PaymentState.SUCCESS.value
     assert _payment.bolt11 == payment.bolt11
     assert _payment.amount == 123_000
+    assert _payment.checking_id == payment.checking_id
+
     updated_payment = await get_payment(_payment.checking_id)
     assert (
         updated_payment.webhook_status is not None
@@ -281,6 +286,10 @@ async def test_pay_failed(
     mocker.patch(
         "lnbits.wallets.FakeWallet.pay_invoice",
         AsyncMock(return_value=payment_reponse_failed),
+    )
+    mocker.patch(
+        "lnbits.core.services.payments.get_funding_source",
+        return_value=external_funding_source,
     )
 
     external_invoice = await external_funding_source.create_invoice(2101)
@@ -370,24 +379,32 @@ async def test_retry_failed_invoice(
 
 
 @pytest.mark.anyio
+@pytest.mark.parametrize("returns_checking_id", [True, False])
 async def test_pay_external_invoice_pending(
     from_wallet: Wallet,
     mocker: MockerFixture,
     external_funding_source: FakeWallet,
     settings: Settings,
+    returns_checking_id: bool,
 ):
     settings.lnbits_reserve_fee_min = 1000  # msats
     invoice_amount = 2103
     external_invoice = await external_funding_source.create_invoice(invoice_amount)
     assert external_invoice.payment_request
     assert external_invoice.checking_id
-
-    payment_reponse_pending = PaymentResponse(
-        ok=None, checking_id=external_invoice.checking_id
+    backend_checking_id = (
+        f"backend_{external_invoice.checking_id}" if returns_checking_id else None
     )
+    expected_checking_id = backend_checking_id or external_invoice.checking_id
+
+    payment_reponse_pending = PaymentResponse(ok=None, checking_id=backend_checking_id)
     mocker.patch(
         "lnbits.wallets.FakeWallet.pay_invoice",
         AsyncMock(return_value=payment_reponse_pending),
+    )
+    mocker.patch(
+        "lnbits.core.services.payments.get_funding_source",
+        return_value=external_funding_source,
     )
     ws_notification = mocker.patch(
         "lnbits.core.services.payments.send_payment_notification_in_background",
@@ -404,7 +421,9 @@ async def test_pay_external_invoice_pending(
     _payment = await get_standalone_payment(payment.payment_hash)
     assert _payment
     assert _payment.status == PaymentState.PENDING.value
-    assert _payment.checking_id == payment.payment_hash
+    assert _payment.checking_id == expected_checking_id
+    assert _payment.payment_hash == external_invoice.checking_id
+    assert payment.checking_id == expected_checking_id
     assert _payment.amount == -2103_000
     assert _payment.bolt11 == external_invoice.payment_request
 
@@ -560,36 +579,43 @@ async def test_retry_pay_success(
 
 
 @pytest.mark.anyio
-async def test_pay_external_invoice_success_bad_checking_id(
+async def test_pay_external_invoice_success_with_backend_checking_id(
     from_wallet: Wallet, mocker: MockerFixture, external_funding_source: FakeWallet
 ):
     invoice_amount = 2108
     external_invoice = await external_funding_source.create_invoice(invoice_amount)
     assert external_invoice.payment_request
     assert external_invoice.checking_id
-    bad_checking_id = f"bad_{external_invoice.checking_id}"
+    backend_checking_id = f"backend_{external_invoice.checking_id}"
 
     preimage = "0000000000000000000000000000000000000000000000000000000000002108"
     payment_reponse_success = PaymentResponse(
-        ok=True, checking_id=bad_checking_id, preimage=preimage
+        ok=True, checking_id=backend_checking_id, preimage=preimage
     )
     mocker.patch(
         "lnbits.wallets.FakeWallet.pay_invoice",
         AsyncMock(return_value=payment_reponse_success),
     )
+    mocker.patch(
+        "lnbits.core.services.payments.get_funding_source",
+        return_value=external_funding_source,
+    )
 
-    with pytest.raises(PaymentError):
-        await pay_invoice(
-            wallet_id=from_wallet.id,
-            payment_request=external_invoice.payment_request,
-        )
+    payment = await pay_invoice(
+        wallet_id=from_wallet.id,
+        payment_request=external_invoice.payment_request,
+    )
 
-    payment = await get_standalone_payment(bad_checking_id)
-    assert payment is None, "Payment should not be created with bad checking_id"
+    stored_payment = await get_standalone_payment(external_invoice.checking_id)
+    assert stored_payment
+    assert stored_payment.status == PaymentState.SUCCESS.value
+    assert stored_payment.checking_id == backend_checking_id
+    assert stored_payment.payment_hash == external_invoice.checking_id
+    assert payment.checking_id == backend_checking_id
 
 
 @pytest.mark.anyio
-async def test_no_checking_id(
+async def test_pay_external_invoice_success_without_checking_id(
     from_wallet: Wallet, mocker: MockerFixture, external_funding_source: FakeWallet
 ):
     invoice_amount = 2110
@@ -598,29 +624,33 @@ async def test_no_checking_id(
     assert external_invoice.checking_id
 
     preimage = "0000000000000000000000000000000000000000000000000000000000002110"
-    payment_reponse_pending = PaymentResponse(
+    payment_response_success = PaymentResponse(
         ok=True, checking_id=None, preimage=preimage
     )
     mocker.patch(
         "lnbits.wallets.FakeWallet.pay_invoice",
-        AsyncMock(return_value=payment_reponse_pending),
+        AsyncMock(return_value=payment_response_success),
+    )
+    mocker.patch(
+        "lnbits.core.services.payments.get_funding_source",
+        return_value=external_funding_source,
     )
 
-    with pytest.raises(PaymentError):
-        await pay_invoice(
-            wallet_id=from_wallet.id,
-            payment_request=external_invoice.payment_request,
-        )
+    returned_payment = await pay_invoice(
+        wallet_id=from_wallet.id,
+        payment_request=external_invoice.payment_request,
+    )
 
     payment = await get_standalone_payment(external_invoice.checking_id)
 
     assert payment
-    assert payment.status == PaymentState.FAILED.value
+    assert payment.status == PaymentState.SUCCESS.value
 
     assert payment.checking_id == external_invoice.checking_id
     assert payment.payment_hash == external_invoice.checking_id
     assert payment.amount == -2110_000
-    assert payment.preimage is None
+    assert payment.preimage == preimage
+    assert returned_payment.checking_id == external_invoice.checking_id
 
 
 @pytest.mark.anyio

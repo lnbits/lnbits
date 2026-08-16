@@ -126,6 +126,7 @@ class Wallet(BaseWallet):
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     currency: str | None = None
+    lightning_address: str | None = None
     balance_msat: int = Field(default=0, no_database=True)
     extra: WalletExtra = WalletExtra()
     stored_paylinks: StoredPayLinks = StoredPayLinks()
@@ -150,6 +151,7 @@ class Wallet(BaseWallet):
 
         if len(self.share_permissions):
             self.currency = shared_wallet.currency
+            self.lightning_address = shared_wallet.lightning_address
             self.balance_msat = shared_wallet.balance_msat
 
             self.stored_paylinks = shared_wallet.stored_paylinks
@@ -240,10 +242,18 @@ class BaseWalletTypeInfo:
 
 
 class WalletsFilters(FilterModel):
-    __search_fields__ = ["id", "name", "currency"]
+    __search_fields__ = ["id", "name", "currency", "lightning_address"]
 
-    __sort_fields__ = ["id", "name", "currency", "created_at", "updated_at"]
+    __sort_fields__ = [
+        "id",
+        "name",
+        "currency",
+        "lightning_address",
+        "created_at",
+        "updated_at",
+    ]
 
     id: str | None
     name: str | None
     currency: str | None
+    lightning_address: str | None

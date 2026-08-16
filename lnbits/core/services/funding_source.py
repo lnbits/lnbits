@@ -66,6 +66,8 @@ async def check_server_balance_against_node():
 
 
 async def check_balance_delta_changed():
+    if settings.notification_balance_delta_threshold_sats <= 0:
+        return
     status = await get_balance_delta()
     if settings.latest_balance_delta_sats is None:
         settings.latest_balance_delta_sats = status.delta_sats

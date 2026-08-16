@@ -1,4 +1,5 @@
-{% include('components/admin/funding.vue') %} {%
+{% include('components/admin/funding_seed_backup.vue') %} {%
+include('components/admin/funding.vue') %} {%
 include('components/admin/funding_sources.vue') %} {%
 include('components/admin/fiat_providers.vue') %} {%
 include('components/admin/exchange_providers.vue') %} {%
@@ -7,9 +8,12 @@ include('components/admin/users.vue') %} {%
 include('components/admin/site_customisation.vue') %} {%
 include('components/admin/audit.vue') %} {%
 include('components/admin/extensions.vue') %} {%
+include('components/admin/wasm-runtime.vue') %} {%
+include('components/admin/wasm-limit-config.vue') %} {%
 include('components/admin/assets-config.vue') %} {%
 include('components/admin/notifications.vue') %} {%
 include('components/admin/server.vue') %} {%
+include('components/admin/blockexplorer.vue') %} {%
 include('components/lnbits-qrcode.vue') %} {%
 include('components/lnbits-qrcode-scanner.vue') %} {%
 include('components/lnbits-disclaimer.vue') %} {%
@@ -19,6 +23,7 @@ include('components/lnbits-header-wallets.vue') %} {%
 include('components/lnbits-drawer.vue') %} {%
 include('components/lnbits-home-logos.vue') %} {%
 include('components/lnbits-manage-extension-list.vue') %} {%
+include('components/lnbits-extension-permissions.vue') %} {%
 include('components/lnbits-manage-wallet-list.vue') %} {%
 include('components/lnbits-language-dropdown.vue') %} {%
 include('components/lnbits-payment-list.vue') %} {%
@@ -93,6 +98,21 @@ include('components/lnbits-error.vue') %}
           <q-item-label lines="1" v-text="$t('api_watch')"></q-item-label>
         </q-item-section>
         <q-item-section side v-show="isActive('/audit')">
+          <q-icon name="chevron_right" color="grey-5" size="md"></q-icon>
+        </q-item-section>
+      </q-item>
+      <q-item v-if="g.settings.showBlockExplorer" to="/blockexplorer">
+        <q-item-section side>
+          <q-icon
+            name="travel_explore"
+            :color="isActive('/blockexplorer') ? 'primary' : 'grey-5'"
+            size="md"
+          ></q-icon>
+        </q-item-section>
+        <q-item-section>
+          <q-item-label lines="1" v-text="$t('block_explorer')"></q-item-label>
+        </q-item-section>
+        <q-item-section side v-show="isActive('/blockexplorer')">
           <q-icon name="chevron_right" color="grey-5" size="md"></q-icon>
         </q-item-section>
       </q-item>

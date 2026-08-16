@@ -27,6 +27,7 @@ from lnbits.core.services.payments import (
     check_pending_payments,
     check_time_limit_between_transactions,
     check_transaction_status,
+    check_wallet_daily_withdraw_limit,
     check_wallet_limits,
     create_payment_request,
     get_payments_daily_stats,
@@ -42,8 +43,36 @@ from lnbits.wallets.base import (
     InvoiceResponse,
     PaymentFailedStatus,
     PaymentPendingStatus,
+    PaymentResponse,
+    PaymentStatus,
     PaymentSuccessStatus,
 )
+
+
+@pytest.mark.parametrize(
+    ("value", "expected"),
+    [
+        (True, (True, False, False)),
+        (None, (False, True, False)),
+        (False, (False, False, True)),
+    ],
+)
+def test_payment_response_states_are_mutually_exclusive(value, expected):
+    response = PaymentResponse(ok=value)
+    assert (response.success, response.pending, response.failed) == expected
+
+
+@pytest.mark.parametrize(
+    ("value", "expected"),
+    [
+        (True, (True, False, False)),
+        (None, (False, True, False)),
+        (False, (False, True, True)),
+    ],
+)
+def test_payment_status_properties(value, expected):
+    status = PaymentStatus(paid=value)
+    assert (status.success, status.pending, status.failed) == expected
 
 
 @pytest.mark.anyio
@@ -72,6 +101,39 @@ async def test_create_payment_request_routes_by_invoice_type(mocker: MockerFixtu
     )
     wallet_mock.assert_awaited_once()
     fiat_mock.assert_awaited_once()
+
+
+@pytest.mark.anyio
+@pytest.mark.parametrize("fiat_provider", ("stripe", "square", "paypal"))
+async def test_create_payment_request_rejects_fiat_subscription(
+    fiat_provider: str, mocker: MockerFixture
+):
+    fiat_mock = mocker.patch(
+        "lnbits.core.services.payments.create_fiat_invoice",
+        mocker.AsyncMock(),
+    )
+
+    with pytest.raises(
+        ValueError,
+        match="Cannot create direct fiat subscription payments.",
+    ):
+        await create_payment_request(
+            "wallet-1",
+            CreateInvoice(
+                unit="USD",
+                amount=2100,
+                fiat_provider=fiat_provider,
+                extra={
+                    "fiat_method": "subscription",
+                    "subscription": {
+                        "checking_id": "fiat_stripe_cs_paid_session",
+                        "payment_request": "",
+                    },
+                },
+            ),
+        )
+
+    fiat_mock.assert_not_awaited()
 
 
 @pytest.mark.anyio
@@ -108,6 +170,36 @@ async def test_update_pending_payment_and_bulk_pending_updates(mocker: MockerFix
         (await get_payment(bulk_success_id)).status,
     }
     assert bulk_statuses == {PaymentState.FAILED, PaymentState.SUCCESS}
+
+
+@pytest.mark.anyio
+async def test_update_pending_payment_marks_expired_incoming_invoice_failed(
+    app,
+    mocker: MockerFixture,
+):
+    wallet = await _create_wallet()
+    checking_id = await _create_payment(
+        wallet,
+        expiry=datetime.now(timezone.utc) - timedelta(seconds=1),
+        labels=["test"],
+    )
+    payment = await get_payment(checking_id)
+    check_status_mock = mocker.patch(
+        "lnbits.core.services.payments.check_payment_status",
+        mocker.AsyncMock(
+            side_effect=AssertionError("expired invoices should not be checked")
+        ),
+    )
+
+    updated_payment = await update_pending_payment(payment)
+
+    assert updated_payment.status == PaymentState.FAILED
+    assert updated_payment.labels == ["test", "expired"]
+    check_status_mock.assert_not_awaited()
+
+    stored_payment = await get_payment(checking_id)
+    assert stored_payment.status == PaymentState.FAILED
+    assert stored_payment.labels == ["test", "expired"]
 
 
 @pytest.mark.anyio
@@ -197,8 +289,7 @@ async def test_update_wallet_balance_validates_credit_and_debit(
 
         settings.lnbits_wallet_limit_max_balance = 0
         queue_mock = mocker.patch(
-            "lnbits.tasks.internal_invoice_queue_put",
-            mocker.AsyncMock(),
+            "lnbits.task_manager.task_manager.internal_invoice_queue.put_nowait",
         )
 
         await update_wallet_balance(wallet, 5)
@@ -212,7 +303,8 @@ async def test_update_wallet_balance_validates_credit_and_debit(
     ]
     assert credit_payments
     assert credit_payments[0].status == PaymentState.SUCCESS
-    queue_mock.assert_awaited_once_with(credit_payments[0].checking_id)
+    queue_mock.assert_called_once()
+    assert queue_mock.call_args[0][0].checking_id == credit_payments[0].checking_id
 
 
 @pytest.mark.anyio
@@ -246,6 +338,23 @@ async def test_check_wallet_limits_and_time_limit(
         assert await check_time_limit_between_transactions(other_wallet.id) is None
     finally:
         settings.lnbits_wallet_limit_secs_between_trans = original_limit
+
+
+@pytest.mark.anyio
+async def test_check_wallet_daily_limit_counts_all_daily_payments(settings: Settings):
+    wallet = await _create_wallet()
+    await _create_payment(wallet, amount_msat=-2_000, status=PaymentState.SUCCESS)
+    await _create_payment(wallet, amount_msat=-3_000, status=PaymentState.SUCCESS)
+
+    original_limit = settings.lnbits_wallet_limit_daily_max_withdraw
+    try:
+        settings.lnbits_wallet_limit_daily_max_withdraw = 5
+        with pytest.raises(
+            ValueError, match="Daily withdrawal limit of 5 sats reached."
+        ):
+            await check_wallet_daily_withdraw_limit(wallet.id, 1_000)
+    finally:
+        settings.lnbits_wallet_limit_daily_max_withdraw = original_limit
 
 
 @pytest.mark.anyio
@@ -433,6 +542,8 @@ async def _create_payment(
     payment_hash: str | None = None,
     fee: int = 0,
     time: datetime | None = None,
+    expiry: datetime | None = None,
+    labels: list[str] | None = None,
 ) -> str:
     checking_id = checking_id or f"checking_{uuid4().hex[:8]}"
     payment_hash = payment_hash or uuid4().hex
@@ -444,7 +555,9 @@ async def _create_payment(
             bolt11=f"bolt11-{checking_id}",
             amount_msat=amount_msat,
             memo="memo",
+            expiry=expiry,
             fee=fee,
+            labels=labels,
         ),
         status=status,
     )

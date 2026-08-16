@@ -15,6 +15,7 @@ from .base import (
     PaymentStatus,
     StatusResponse,
     Wallet,
+    payment_request_was_rejected,
 )
 
 
@@ -105,43 +106,57 @@ class LNPayWallet(Wallet):
         )
 
     async def pay_invoice(self, bolt11: str, fee_limit_msat: int) -> PaymentResponse:
-        r = await self.client.post(
-            f"/wallet/{self.wallet_key}/withdraw",
-            json={"payment_request": bolt11},
-            timeout=None,
-        )
+        try:
+            r = await self.client.post(
+                f"/wallet/{self.wallet_key}/withdraw",
+                json={"payment_request": bolt11},
+                timeout=None,
+            )
+        except Exception as exc:
+            logger.warning(exc)
+            return PaymentResponse(error_message="Unable to connect to LNPay.")
 
         try:
             data = r.json()
         except Exception:
-            return PaymentResponse(ok=False, error_message="Got invalid JSON.")
+            return PaymentResponse(error_message="Got invalid JSON.")
 
         if r.is_error:
-            return PaymentResponse(ok=False, error_message=data["message"])
+            return PaymentResponse(
+                ok=False if payment_request_was_rejected(r.status_code) else None,
+                error_message=data.get("message", r.text),
+            )
 
-        checking_id = data["lnTx"]["id"]
-        fee_msat = 0
-        preimage = data["lnTx"]["payment_preimage"]
+        try:
+            checking_id = data["lnTx"]["id"]
+            preimage = data["lnTx"]["payment_preimage"]
+        except (KeyError, TypeError):
+            return PaymentResponse(
+                error_message="LNPay response is missing required payment fields."
+            )
         return PaymentResponse(
-            ok=True, checking_id=checking_id, fee_msat=fee_msat, preimage=preimage
+            ok=True, checking_id=checking_id, fee_msat=0, preimage=preimage
         )
 
     async def get_invoice_status(self, checking_id: str) -> PaymentStatus:
         return await self.get_payment_status(checking_id)
 
     async def get_payment_status(self, checking_id: str) -> PaymentStatus:
-        r = await self.client.get(
-            url=f"/lntx/{checking_id}",
-        )
+        try:
+            r = await self.client.get(
+                url=f"/lntx/{checking_id}",
+            )
+            if r.is_error:
+                return PaymentPendingStatus()
 
-        if r.is_error:
+            data = r.json()
+            paid = {0: None, 1: True, -1: False}.get(data.get("settled"))
+            return PaymentStatus(
+                paid, data.get("fee_msat"), data.get("payment_preimage")
+            )
+        except Exception as exc:
+            logger.warning(exc)
             return PaymentPendingStatus()
-
-        data = r.json()
-        preimage = data["payment_preimage"]
-        fee_msat = data["fee_msat"]
-        statuses = {0: None, 1: True, -1: False}
-        return PaymentStatus(statuses[data["settled"]], fee_msat, preimage)
 
     async def paid_invoices_stream(self) -> AsyncGenerator[str, None]:
         self.queue: asyncio.Queue = asyncio.Queue(0)

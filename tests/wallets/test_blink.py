@@ -8,9 +8,9 @@ import pytest
 from loguru import logger
 
 from lnbits.settings import settings
-from lnbits.wallets import get_funding_source, set_funding_source
+from lnbits.wallets import BlinkWallet, get_funding_source, set_funding_source
 from lnbits.wallets.base import PaymentStatus
-from lnbits.wallets.blink import BlinkWallet, TokenBucket
+from lnbits.wallets.blink import TokenBucket
 
 settings.lnbits_backend_wallet_class = "BlinkWallet"
 settings.blink_token = "mock"
@@ -153,6 +153,7 @@ async def test_get_payment_status(payhash):
         logger.info(f"test_get_payment_status: payment_status: {payment_status.paid}")
     else:
         assert True, "BLINK_TOKEN is not set. Skipping test using mock api"
+
 
 
 # ── Unit tests for internal components (no API needed) ──────────────
@@ -361,3 +362,154 @@ class TestConcurrentRequestCoalescing:
 
         assert all(r.paid is True for r in results)
         assert fetch_count == 1
+
+
+# Reproducible bolt11 invoices (fixed timestamp, long expiry) used to test the
+# fee probing logic in pay_invoice without hitting the live Blink API.
+# amount invoice: 1000 sat (1_000_000 msat)
+AMOUNT_BOLT11 = (
+    "lnbc10u1pj48ugqpp5qqqsyqcyq5rqwzqfqqqsyqcyq5rqwzqfqqqsyqcyq5rqwzqfqypqsp5"
+    "zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zygsdq8w3jhxaqxq8zals8squ"
+    "qsakyemlpj9guae3a9havssjcjewgr24hedxkq6t978jk99srrxx9azy6k0cs66a757cfdc43"
+    "vkfhmlexyzdqtytzzteh2n4qngapgpesavte"
+)
+# zero-amount (amountless) invoice
+ZERO_BOLT11 = (
+    "lnbc1pj48ugqpp5qqqsyqcyq5rqwzqfqqqsyqcyq5rqwzqfqqqsyqcyq5rqwzqfqypqsp5zyg"
+    "3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zygsdq8w3jhxaqxq8zals8sq3c00"
+    "hc6end9u8pafqge29y690e2x0kztq0l9z4dfd2yg8au9xuwxz9a2hy2hn2jqzq2mpy43tx9td"
+    "wxcy6yuc9ghuqkzj3kruh4tpcgp7n84qu"
+)
+
+
+def _make_blink_wallet_with_mock(graphql_side_effect):
+    """Build a BlinkWallet with a mocked GraphQL layer for pay_invoice tests."""
+    settings.blink_api_endpoint = "https://api.blink.sv/graphql"
+    settings.blink_ws_endpoint = "wss://ws.blink.sv/graphql"
+    settings.blink_token = settings.blink_token or "mock"
+    wallet = BlinkWallet()
+    wallet._wallet_id = "mock_wallet_id"
+    wallet._graphql_query = graphql_side_effect  # type: ignore[method-assign]
+    wallet.get_payment_status = AsyncMock(  # type: ignore[method-assign]
+        return_value=PaymentStatus(paid=True, fee_msat=1000, preimage="preimage")
+    )
+    return wallet
+
+
+@pytest.mark.anyio
+async def test_pay_invoice_amount_invoice_probes_and_sends():
+    """Amount invoices are probed via lnInvoiceFeeProbe then sent."""
+    calls = {"probe": 0, "send": 0}
+
+    async def graphql(payload):
+        query = payload["query"]
+        if "lnInvoiceFeeProbe" in query:
+            calls["probe"] += 1
+            return {"data": {"lnInvoiceFeeProbe": {"amount": 1, "errors": []}}}
+        if "lnNoAmountInvoiceFeeProbe" in query:
+            raise AssertionError("must not probe amount invoice as no-amount")
+        if "lnInvoicePaymentSend" in query:
+            calls["send"] += 1
+            return {
+                "data": {"lnInvoicePaymentSend": {"status": "SUCCESS", "errors": []}}
+            }
+        return {"data": {}}
+
+    wallet = _make_blink_wallet_with_mock(graphql)
+    response = await wallet.pay_invoice(AMOUNT_BOLT11, fee_limit_msat=5000)
+
+    assert calls["probe"] == 1
+    assert calls["send"] == 1
+    assert response.ok is True
+    assert response.fee_msat == 1000
+
+
+@pytest.mark.anyio
+async def test_pay_invoice_rejects_when_probed_fee_exceeds_limit():
+    """A probed fee above the fee limit rejects the payment before sending."""
+    calls = {"send": 0}
+
+    async def graphql(payload):
+        query = payload["query"]
+        if "lnInvoiceFeeProbe" in query:
+            # 1 sat = 1000 msat, above the 500 msat limit below
+            return {"data": {"lnInvoiceFeeProbe": {"amount": 1, "errors": []}}}
+        if "lnInvoicePaymentSend" in query:
+            calls["send"] += 1
+            return {
+                "data": {"lnInvoicePaymentSend": {"status": "SUCCESS", "errors": []}}
+            }
+        return {"data": {}}
+
+    wallet = _make_blink_wallet_with_mock(graphql)
+    response = await wallet.pay_invoice(AMOUNT_BOLT11, fee_limit_msat=500)
+
+    assert calls["send"] == 0
+    assert response.ok is False
+    assert response.error_message is not None
+    assert "exceeds" in response.error_message
+
+
+@pytest.mark.parametrize(
+    ("probe_response", "expected_error"),
+    [
+        ({"errors": [{"message": "probe unavailable"}]}, "probe unavailable"),
+        (
+            {"data": {"lnInvoiceFeeProbe": {"errors": []}}},
+            "missing fee probe amount",
+        ),
+    ],
+)
+@pytest.mark.anyio
+async def test_pay_invoice_strict_probe_failure_rejects_without_sending(
+    probe_response, expected_error
+):
+    """Strict mode rejects malformed probe responses before sending."""
+    settings.blink_send_without_probe = False
+    calls = {"send": 0}
+
+    async def graphql(payload):
+        query = payload["query"]
+        if "lnInvoiceFeeProbe" in query:
+            return probe_response
+        if "lnInvoicePaymentSend" in query:
+            calls["send"] += 1
+            return {
+                "data": {"lnInvoicePaymentSend": {"status": "SUCCESS", "errors": []}}
+            }
+        return {"data": {}}
+
+    wallet = _make_blink_wallet_with_mock(graphql)
+    response = await wallet.pay_invoice(AMOUNT_BOLT11, fee_limit_msat=5000)
+
+    assert calls["send"] == 0
+    assert response.ok is False
+    assert response.error_message is not None
+    assert expected_error in response.error_message
+
+
+@pytest.mark.anyio
+async def test_pay_invoice_zero_amount_skips_probe_and_sends():
+    """Zero-amount invoices cannot be probed and fall back to sending."""
+    settings.blink_send_without_probe = True
+    calls = {"probe": 0, "send": 0}
+
+    async def graphql(payload):
+        query = payload["query"]
+        if "FeeProbe" in query:
+            calls["probe"] += 1
+            raise AssertionError("zero-amount invoices must not be probed")
+        if "lnInvoicePaymentSend" in query:
+            calls["send"] += 1
+            return {
+                "data": {"lnInvoicePaymentSend": {"status": "SUCCESS", "errors": []}}
+            }
+        return {"data": {}}
+
+    wallet = _make_blink_wallet_with_mock(graphql)
+    response = await wallet.pay_invoice(ZERO_BOLT11, fee_limit_msat=5000)
+
+    assert calls["probe"] == 0
+    assert calls["send"] == 1
+    assert response.ok is True
+

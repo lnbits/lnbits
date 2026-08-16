@@ -1,6 +1,7 @@
 import asyncio
 import hashlib
 import json
+import secrets
 import uuid
 from collections.abc import AsyncGenerator
 from pathlib import Path
@@ -8,7 +9,6 @@ from typing import Any, cast
 
 import httpx
 from bolt11 import decode as bolt11_decode
-from coincurve.keys import PrivateKey
 from embit.bip39 import mnemonic_from_bytes, mnemonic_is_valid
 from loguru import logger
 
@@ -159,10 +159,9 @@ class SparkL2Wallet(Wallet):
                 "payment_hash": payment_hash,
             }
             res = await self._request("POST", "/v1/payments", payload)
-            checking_id = payment_hash or res.get("checking_id")
+            checking_id = res.get("checking_id")
             if not checking_id:
                 return PaymentResponse(
-                    ok=False,
                     error_message="Spark sidecar payment response missing checking_id.",
                 )
             status = res.get("status")
@@ -178,7 +177,7 @@ class SparkL2Wallet(Wallet):
             )
 
         except Exception as e:
-            return PaymentResponse(ok=False, error_message=str(e))
+            return PaymentResponse(error_message=str(e))
 
     async def get_invoice_status(self, checking_id: str) -> PaymentStatus:
         try:
@@ -340,7 +339,7 @@ class SparkL2Wallet(Wallet):
             return
 
         logger.info("SPARK_L2_MNEMONIC is not set, one will be generated for you.")
-        mnemonic = mnemonic_from_bytes(PrivateKey().secret)
+        mnemonic = mnemonic_from_bytes(secrets.token_bytes(16))
         await self._set_sidecar_mnemonic(mnemonic)
 
     async def _set_sidecar_mnemonic(self, mnemonic: str):

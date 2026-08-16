@@ -72,6 +72,10 @@ window.localisation.pi = {
   view_swagger_docs: 'View LNbits Swagger API docs and learn the secrets',
   api_docs: 'API docs for the scallywags',
   api_keys_api_docs: 'Node URL, API keys and API docs',
+  api_keys_warning:
+    'Keep these keys safe, matey; sharing them could lose ye yer doubloons.',
+  admin_key_warning:
+    'Yer admin key gives full access to yer wallet, including sending payments. Never share it unless ye trust the recipient completely.',
   lnbits_version: 'LNbits version, arr!',
   runs_on: 'Runs on, matey',
   paste: 'Stow',
@@ -441,5 +445,48 @@ window.localisation.pi = {
   http_request_methods: 'HTTP Request Methods',
   http_response_codes: 'HTTP Response Codes',
   request_details: 'Request Details',
-  http_request_details: 'HTTP Request Details'
+  http_request_details: 'HTTP Request Details',
+  block_explorer: 'Treasure Map',
+  enable_block_explorer: 'Hoist the Treasure Map',
+  block_explorer_desc:
+    "Let scallywags spy on Bitcoin doubloons an' addresses via Electrum.",
+  blockexplorer_public_api: 'Open Seas API',
+  blockexplorer_public_api_desc:
+    'Allow any landlubber access to the block explorer API ports.',
+  electrum_server_url: 'Electrum Port URL',
+  electrum_server_url_hint:
+    'e.g. ssl://electrum.blockstream.info:50002 or tcp://localhost:50001',
+  blockexplorer_search_label: 'Search by TXID or Port',
+  blockexplorer_search_hint:
+    '64-char hex = plunder  ·  anything else = Bitcoin port',
+  recent_blocks: 'Recent Plunder',
+  chain_tip: "Tip o' the Anchor Chain",
+  block_height: 'Plunder Height',
+  block_fee: 'plunder fee',
+  fee_estimates: 'Booty Estimates',
+  confirmed_balance: 'Confirmed Booty',
+  unconfirmed_balance: 'Unconfirmed Booty',
+  transaction_history: 'Plunder History',
+  coinbase: 'Coinbase',
+  inputs: 'Inbound Plunder',
+  outputs: 'Outbound Plunder',
+  confirmations: 'Confirmations, arr',
+  confirmed: 'Confirmed, arr',
+  unconfirmed: 'Unconfirmed, arr',
+  history_unavailable:
+    'Plunder history lost at sea (too many transactions, matey!)',
+  address: 'Port',
+  block_number: 'Block #{height}',
+  block_diff: 'diff {value}',
+  block_hash: 'Hash',
+  previous_block: 'Previous Plunder Block',
+  merkle_root: 'Merkle Root',
+  version: 'Version',
+  bits: 'Bits',
+  difficulty: 'Difficulty',
+  nonce: 'Nonce',
+  txid: 'TXID',
+  vsize: 'Virtual Size',
+  weight: 'Weight',
+  n_block_fee: '{n}-block booty'
 }

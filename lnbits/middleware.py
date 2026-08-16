@@ -51,14 +51,6 @@ class InstalledExtensionMiddleware:
             await self.app(scope, receive, send)
             return
 
-        # re-route all trafic if the extension has been upgraded
-        if top_path in settings.lnbits_upgraded_extensions:
-            upgrade_path = (
-                f"""{settings.lnbits_upgraded_extensions[top_path]}/{top_path}"""
-            )
-            tail = "/".join(rest)
-            scope["path"] = f"/upgrades/{upgrade_path}/{tail}"
-
         await self.app(scope, receive, send)
 
     def _response_by_accepted_type(
@@ -112,7 +104,7 @@ class ExtensionsRedirectMiddleware:
 
         req_headers = scope["headers"] if "headers" in scope else []
         redirect = settings.find_extension_redirect(scope["path"], req_headers)
-        if redirect:
+        if redirect and not redirect.is_duplicate_well_known():
             scope["path"] = redirect.new_path_from(scope["path"])
 
         await self.app(scope, receive, send)

@@ -31,6 +31,21 @@ async def run_sync(func) -> Any:
     return await loop.run_in_executor(None, func)
 
 
+def _all_payment_attempts_failed(error: object) -> bool:
+    if not isinstance(error, dict):
+        return False
+
+    attempts = error.get("attempts")
+    return (
+        isinstance(attempts, list)
+        and bool(attempts)
+        and all(
+            isinstance(attempt, dict) and attempt.get("status") == "failed"
+            for attempt in attempts
+        )
+    )
+
+
 class CoreLightningWallet(Wallet):
     """Core Lightning RPC implementation."""
 
@@ -184,7 +199,9 @@ class CoreLightningWallet(Wallet):
             logger.warning(exc)
             try:
                 error_code = exc.error.get("code")  # type: ignore
-                if error_code in self.pay_failure_error_codes:
+                if error_code in self.pay_failure_error_codes or (
+                    _all_payment_attempts_failed(exc.error)
+                ):
                     error_message = exc.error.get("message", error_code)  # type: ignore
                     return PaymentResponse(
                         ok=False, error_message=f"Payment failed: {error_message}"

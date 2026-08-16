@@ -31,7 +31,8 @@ window.app.component('lnbits-admin-site-customisation', {
         'confettiBothSides',
         'confettiFireworks',
         'confettiStars',
-        'confettiTop'
+        'confettiTop',
+        'lightningStrike'
       ],
       globalBorderOptions: [
         'retro-border',

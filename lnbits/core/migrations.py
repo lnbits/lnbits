@@ -815,3 +815,90 @@ async def m045_add_external_id_to_payments(db: Connection):
         CREATE INDEX IF NOT EXISTS idx_payments_external_id
         ON apipayments (external_id);
         """)
+
+
+async def m046_add_permissions_to_installed_extensions(db: Connection):
+    """
+    Adds granted permissions to installed extensions.
+    """
+    await db.execute(
+        "ALTER TABLE installed_extensions ADD COLUMN permissions TEXT DEFAULT '[]'"
+    )
+
+
+async def m047_create_wasm_invocations_table(db: Connection):
+    """
+    Tracks WASM extension invocations for runtime monitoring and controls.
+    """
+    await db.execute(f"""
+        CREATE TABLE IF NOT EXISTS wasm_invocations (
+            id TEXT PRIMARY KEY,
+            extension_id TEXT NOT NULL,
+            export_name TEXT NOT NULL,
+            trigger_type TEXT NOT NULL DEFAULT 'unknown',
+            status TEXT NOT NULL DEFAULT 'running',
+            started_at TIMESTAMP NOT NULL DEFAULT {db.timestamp_now},
+            finished_at TIMESTAMP,
+            duration_ms INT,
+            user_id TEXT,
+            wallet_id TEXT,
+            request_id TEXT,
+            method TEXT,
+            path TEXT,
+            event_type TEXT,
+            payment_hash TEXT,
+            checking_id TEXT,
+            memory_peak_bytes INT,
+            request_bytes INT,
+            response_bytes INT,
+            host_call_count INT NOT NULL DEFAULT 0,
+            http_call_count INT NOT NULL DEFAULT 0,
+            storage_call_count INT NOT NULL DEFAULT 0,
+            wallet_call_count INT NOT NULL DEFAULT 0,
+            error_type TEXT,
+            error_message TEXT,
+            stop_reason TEXT,
+            "context" TEXT NOT NULL DEFAULT '{{}}'
+        );
+        """)
+    await db.execute("""
+        CREATE INDEX IF NOT EXISTS idx_wasm_invocations_extension_started
+        ON wasm_invocations (extension_id, started_at);
+        """)
+    await db.execute("""
+        CREATE INDEX IF NOT EXISTS idx_wasm_invocations_status
+        ON wasm_invocations (status);
+        """)
+    await db.execute("""
+        CREATE INDEX IF NOT EXISTS idx_wasm_invocations_started
+        ON wasm_invocations (started_at);
+        """)
+
+
+async def m048_add_wasm_runtime_limits_to_installed_extensions(db: Connection):
+    """
+    Adds per-extension WASM runtime limit overrides.
+    """
+    await db.execute(
+        "ALTER TABLE installed_extensions "
+        "ADD COLUMN wasm_runtime_limits TEXT DEFAULT '{}'"
+    )
+
+
+async def m049_add_permissions_to_user_extensions(db: Connection):
+    """
+    Adds user-level extension permission grants.
+    """
+    await db.execute("ALTER TABLE extensions ADD COLUMN permissions TEXT DEFAULT '{}'")
+
+
+async def m050_add_lightning_address_to_wallets(db: Connection):
+    """
+    Adds a LUD-16 lightning address local-part to wallets.
+    """
+    await db.execute("ALTER TABLE wallets ADD COLUMN lightning_address TEXT")
+    logger.debug("Creating index idx_wallets_lightning_address...")
+    await db.execute("""
+        CREATE UNIQUE INDEX IF NOT EXISTS idx_wallets_lightning_address
+        ON wallets (lightning_address);
+        """)

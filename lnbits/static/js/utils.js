@@ -365,5 +365,27 @@ window._lnbitsUtils = {
         let decoder = new TextDecoder('utf-8')
         return decoder.decode(valueb)
       })
+  },
+  validateBrowsableUrl(urlString, allowLoopback = false) {
+    const url = new URL(urlString)
+    if (url.protocol !== 'http:' && url.protocol !== 'https:') {
+      throw new Error('Invalid protocol')
+    }
+    if (!allowLoopback) {
+      const host = url.hostname
+      if (
+        host === 'localhost' ||
+        host === '[::1]' ||
+        host === '::1' ||
+        host.startsWith('127.') ||
+        host.startsWith('::ffff:127.')
+      ) {
+        throw new Error('Loopback addresses are not allowed')
+      }
+    }
+  },
+  openUrlInNewTab(urlString, allowLoopback = false) {
+    this.validateBrowsableUrl(urlString, allowLoopback)
+    window.open(urlString, '_blank', 'noopener,noreferrer')
   }
 }

@@ -1,3 +1,10 @@
+from .blockexplorer import (
+    fetch_fee_estimates,
+    fetch_onchain_balance,
+    fetch_recent_blocks,
+    fetch_tip,
+    fetch_transaction,
+)
 from .fiat_providers import check_fiat_status
 from .funding_source import (
     get_balance_delta,
@@ -56,7 +63,12 @@ __all__ = [
     "enqueue_admin_notification",
     "fee_reserve",
     "fee_reserve_total",
+    "fetch_fee_estimates",
     "fetch_lnurl_pay_request",
+    "fetch_onchain_balance",
+    "fetch_recent_blocks",
+    "fetch_tip",
+    "fetch_transaction",
     "get_balance_delta",
     "get_payments_daily_stats",
     "get_pr_from_lnurl",

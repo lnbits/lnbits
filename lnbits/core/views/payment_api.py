@@ -1,5 +1,6 @@
 from hashlib import sha256
 from http import HTTPStatus
+from secrets import token_hex
 
 from fastapi import (
     APIRouter,
@@ -14,6 +15,7 @@ from lnurl import url_decode
 from lnbits import bolt11
 from lnbits.core.crud.payments import (
     get_payment_count_stats,
+    get_wallet_payment_total_breakdown,
     get_wallets_stats,
     update_payment,
 )
@@ -31,14 +33,16 @@ from lnbits.core.models import (
     PaymentDailyStats,
     PaymentFilters,
     PaymentHistoryPoint,
+    PaymentTotalBreakdown,
     PaymentWalletStats,
     SettleInvoice,
     SimpleStatus,
     UpdatePaymentExtra,
 )
 from lnbits.core.models.payments import UpdatePaymentLabels
-from lnbits.core.models.users import AccountId
+from lnbits.core.models.users import AccountId, UserLabel
 from lnbits.core.models.wallets import BaseWalletTypeInfo
+from lnbits.core.services.users import update_user_account
 from lnbits.db import Filters, Page
 from lnbits.decorators import (
     WalletTypeInfo,
@@ -51,6 +55,7 @@ from lnbits.decorators import (
 from lnbits.helpers import (
     filter_dict_keys,
     generate_filter_params_openapi,
+    is_valid_label,
 )
 from lnbits.wallets.base import InvoiceResponse
 
@@ -129,6 +134,17 @@ async def api_payments_counting_stats(
         for_user_id = account_id.id
 
     return await get_payment_count_stats(count_by, filters=filters, user_id=for_user_id)
+
+
+@payment_router.get(
+    "/stats/breakdown",
+    name="Get wallet payment total breakdown",
+    response_model=list[PaymentTotalBreakdown],
+)
+async def api_payments_total_breakdown(
+    key_info: BaseWalletTypeInfo = Depends(require_base_invoice_key),
+):
+    return await get_wallet_payment_total_breakdown(key_info.wallet.id)
 
 
 @payment_router.get(
@@ -291,9 +307,24 @@ async def api_update_payment_labels(
     if not account:
         raise HTTPException(HTTPStatus.NOT_FOUND, "Account does not exist.")
 
-    # only keep labels that belong to the user
     user_label_names = [label.name for label in account.extra.labels]
-    payment.labels = [label for label in data.labels if label in user_label_names]
+    updated_account = False
+    for label_name in data.labels:
+        if label_name not in user_label_names:
+            if not is_valid_label(label_name):
+                raise HTTPException(
+                    HTTPStatus.BAD_REQUEST, f"Invalid label name: '{label_name}'."
+                )
+            account.extra.labels.append(
+                UserLabel(name=label_name, color=f"#{token_hex(3)}")
+            )
+            user_label_names.append(label_name)
+            updated_account = True
+
+    if updated_account:
+        await update_user_account(account)
+
+    payment.labels = data.labels
     await update_payment(payment)
     return SimpleStatus(success=True, message="Payment labels updated.")
 

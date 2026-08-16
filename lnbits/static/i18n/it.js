@@ -73,6 +73,10 @@ window.localisation.it = {
   view_swagger_docs: "Visualizza i documentazione dell'API Swagger di LNbits",
   api_docs: "Documentazione dell'API",
   api_keys_api_docs: 'URL del nodo, chiavi API e documentazione API',
+  api_keys_warning:
+    'Queste chiavi devono essere conservate al sicuro; condividerle potrebbe causare la perdita di fondi.',
+  admin_key_warning:
+    'La tua chiave di amministratore concede accesso completo al tuo portafoglio, inclusa la possibilità di inviare pagamenti. Non condividerla mai, a meno che tu non ti fidi completamente del destinatario.',
   lnbits_version: 'Versione di LNbits',
   runs_on: 'Esegue su',
   paste: 'Incolla',
@@ -450,5 +454,48 @@ window.localisation.it = {
   http_request_methods: 'Metodi di richiesta HTTP',
   http_response_codes: 'Codici di risposta HTTP',
   request_details: 'Dettagli della richiesta',
-  http_request_details: 'Dettagli della richiesta HTTP'
+  http_request_details: 'Dettagli della richiesta HTTP',
+  block_explorer: 'Block Explorer',
+  enable_block_explorer: 'Abilita Block Explorer',
+  block_explorer_desc:
+    'Consenti agli utenti di esplorare transazioni e indirizzi Bitcoin tramite Electrum.',
+  blockexplorer_public_api: 'Accesso API pubblico',
+  blockexplorer_public_api_desc:
+    "Consenti accesso non autenticato agli endpoint API dell'esploratore di blocchi.",
+  electrum_server_url: 'URL server Electrum',
+  electrum_server_url_hint:
+    'es. ssl://electrum.blockstream.info:50002 o tcp://localhost:50001',
+  blockexplorer_search_label: 'Cerca per TXID o indirizzo',
+  blockexplorer_search_hint:
+    'Hex 64 caratteri = transazione  ·  altro = indirizzo Bitcoin',
+  recent_blocks: 'Blocchi recenti',
+  chain_tip: 'Punta della catena',
+  block_height: 'Altezza blocco',
+  block_fee: 'commissione blocco',
+  fee_estimates: 'Stime delle commissioni',
+  confirmed_balance: 'Saldo confermato',
+  unconfirmed_balance: 'Saldo non confermato',
+  transaction_history: 'Storico transazioni',
+  coinbase: 'Coinbase',
+  inputs: 'Input',
+  outputs: 'Output',
+  confirmations: 'Conferme',
+  confirmed: 'Confermato',
+  unconfirmed: 'Non confermato',
+  history_unavailable:
+    "Storico transazioni non disponibile (l'indirizzo ha troppe transazioni)",
+  address: 'Indirizzo',
+  block_number: 'Blocco #{height}',
+  block_diff: 'diff {value}',
+  block_hash: 'Hash',
+  previous_block: 'Blocco precedente',
+  merkle_root: 'Radice di Merkle',
+  version: 'Versione',
+  bits: 'Bit',
+  difficulty: 'Difficoltà',
+  nonce: 'Nonce',
+  txid: 'TXID',
+  vsize: 'Dimensione virtuale',
+  weight: 'Peso',
+  n_block_fee: 'commissione {n} blocchi'
 }

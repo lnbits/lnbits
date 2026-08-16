@@ -44,7 +44,8 @@ window.localisation.en = {
   reset_defaults_tooltip: 'Delete all settings and reset to defaults.',
   download_backup: 'Download database backup',
   name_your_wallet: 'Name your {name} wallet',
-  paste_invoice_label: 'Paste an invoice, payment request or lnurl code *',
+  paste_invoice_label:
+    'Paste an invoice, payment request, Lightning Address or LNURL*',
   lnbits_description:
     'Easy to set up and lightweight, LNbits can run on any Lightning Network funding source and even LNbits itself! You can run LNbits for yourself, or easily offer a custodian solution for others. Each wallet has its own API keys and there is no limit to the number of wallets you can make. Being able to partition funds makes LNbits a useful tool for money management and as a development tool. Extensions add extra functionality to LNbits so you can experiment with a range of cutting-edge technologies on the lightning network. We have made developing extensions as easy as possible, and as a free and open-source project, we encourage people to develop and submit their own.',
   export_to_phone: 'Export to Phone with QR Code',
@@ -64,6 +65,7 @@ window.localisation.en = {
   wallets: 'Wallets',
   exclude_wallets: 'Exclude Wallets',
   add_wallet: 'Add wallet',
+  add_field: 'Add field',
   reject_wallet: 'Reject wallet',
   add_new_wallet: 'Add a new wallet',
   pin_wallet: 'Pin wallet',
@@ -98,6 +100,10 @@ window.localisation.en = {
   view_swagger_docs: 'View LNbits Swagger API docs',
   api_docs: 'API docs',
   api_keys_api_docs: 'Node URL, API keys and API docs',
+  api_keys_warning:
+    'These keys should be kept safe, sharing them could risk losing funds.',
+  admin_key_warning:
+    'Your admin key grants full access to your wallet, including the ability to send payments. Never share it unless you fully trust the recipient.',
   lnbits_version: 'LNbits version',
   runs_on: 'Runs on',
   paste: 'Paste',
@@ -116,6 +122,7 @@ window.localisation.en = {
   read: 'Read',
   write: 'Write',
   pay: 'Pay',
+  sending: 'Sending',
   memo: 'Memo',
   date: 'Date',
   path: 'Path',
@@ -161,6 +168,10 @@ window.localisation.en = {
   ext_sources_hint: 'Repositories from where the extensions can be downloaded',
   ext_sources_label:
     'Source URL (only use the official LNbits extension source, and sources you can trust)',
+  wasm_sources_hint:
+    'Repositories from where WASM extensions can be downloaded',
+  wasm_sources_label:
+    'WASM source URL (only use WASM extension sources you can trust)',
   warning: 'Warning',
   repository: 'Repository',
   confirm_continue: 'Are you sure you want to continue?',
@@ -482,6 +493,8 @@ window.localisation.en = {
   access_control_list_admin_warning:
     'This is an admin account. The generated tokens will have admin privileges.',
   new_api_acl: 'New Access Control List',
+  acl_token_active: 'Active',
+  acl_token_expired: 'Expired',
   api_token_id: 'Token Id',
   toggle_gradient: 'Toggle Gradient',
   gradient_background: 'Gradient Background',
@@ -519,6 +532,64 @@ window.localisation.en = {
   admin_settings: 'Admin Settings',
   extension_cost: 'This release requires a payment of minimum {cost} sats.',
   extension_paid_sats: 'You have already paid {paid_sats} sats.',
+  extension_permissions_title: 'Grant extension permissions',
+  extension_permissions_tab: 'Extension Permissions',
+  user_permissions_tab: 'My Grants',
+  extension_permissions_none: 'This extension has no install-time permissions.',
+  user_permissions_none:
+    'You have not granted any permissions for this extension.',
+  user_permissions_max_amount: 'Max payment amount',
+  user_permissions_destination_policy: 'Allowed destinations',
+  user_permissions_no_editable_settings: 'This grant has no editable settings.',
+  extension_permissions_grant_install: 'Grant and install',
+  extension_permissions_high_risk_warning:
+    'This extension requests permissions that can move funds.',
+  extension_permission_risk_low: 'Low risk',
+  extension_permission_risk_medium: 'Medium risk',
+  extension_permission_risk_high: 'High risk',
+  extension_permission_warning_wallet_pay_invoice:
+    'Can spend funds from wallets available to your account.',
+  extension_permission_warning_wallet_pay_invoice_background:
+    'Can spend funds later from approved wallets without an active click.',
+  extension_permission_warning_wallet_payments_watch:
+    'Can read payment metadata for approved wallets.',
+  extension_permission_warning_extension_api_request_write:
+    'Can write data or trigger actions in approved extensions.',
+  extension_permission_ext_storage_read: 'Read extension storage',
+  extension_permission_ext_storage_append_public:
+    'Append public extension storage',
+  extension_permission_ext_storage_append_public_sources:
+    'Allowed append targets',
+  extension_permission_ext_storage_append_public_max_rows_per_source:
+    'Max rows per source',
+  extension_permission_ext_storage_read_public: 'Read public extension storage',
+  extension_permission_ext_storage_read_public_source_required:
+    'required to read',
+  extension_permission_ext_storage_write: 'Write extension storage',
+  extension_permission_ext_storage_read_write: 'Read & Write extension storage',
+  extension_permission_extension_api_request: 'Use other extensions',
+  extension_permission_extension_api_request_extensions: 'Allowed extensions',
+  extension_permission_access_read: 'Read',
+  extension_permission_access_write: 'Write',
+  extension_permission_http_request: 'Connect to external websites',
+  extension_permission_http_request_hosts: 'Allowed hosts',
+  extension_permission_utils_basic: 'Use basic LNbits utilities',
+  extension_permission_ui_camera_scan_qr: 'Scan QR codes',
+  extension_permission_websocket: 'Use extension websockets',
+  extension_permission_websocket_publish_limits: 'Publish limits',
+  extension_permission_websocket_publish_max_messages_per_second:
+    'Max messages per second',
+  extension_permission_websocket_publish: 'Publish websocket messages',
+  extension_permission_websocket_subscribe: 'Subscribe to websocket messages',
+  extension_permission_wallet_payments_watch: 'Watch wallet payments',
+  extension_permission_wallet_create_invoice: 'Create invoices',
+  extension_permission_wallet_create_invoice_public:
+    'Create Lightning invoices from public pages',
+  extension_permission_wallet_balance_read: 'View wallet balances',
+  extension_permission_wallet_list: 'List wallets',
+  extension_permission_wallet_pay_invoice: 'Pay invoices',
+  extension_permission_wallet_pay_invoice_background:
+    'Make background payments',
   create_extension: 'Create Extension',
   release_details_error: 'Cannot get the release details.',
   pay_from_wallet: 'Pay from Wallet',
@@ -687,7 +758,10 @@ window.localisation.en = {
   service_fees: 'Service Fees',
   service_fee: 'Service Fee',
   service_fee_label: 'Service Fee Charged Per Transaction',
+  service_fee_hint: 'Fee charged per transaction (%)',
+  service_fee_max: 'Maximum Service Fee (sats)',
   service_fee_max_label: 'Maximum Service Fee Limit',
+  service_fee_max_hint: 'Maximum service fee to charge in (sats)',
   fee_wallet_label: 'Service Fee Wallet ID',
   fee_wallet_hint: 'The ID of the wallet to which to send service funds',
   disable_fee: 'Disable Service Fees for Internal Payments',
@@ -841,5 +915,80 @@ window.localisation.en = {
   payment_labels_updated: 'Payment labels updated',
   color: 'Color',
   sort: 'Sort',
-  sort_by: 'Sort by'
+  sort_by: 'Sort by',
+  lightning_address: 'Lightning Address',
+  lightning_addresses: 'Lightning Addresses',
+  lightning_address_price: 'Lightning Address price',
+  enable_lightning_address: 'Enable Lightning Addresses',
+  ln_address_mode: 'Lightning Address Resolution Mode',
+  ln_address_core_first: 'Resolve from LNbits Core first',
+  ln_address_extension_first: 'Resolve from Pay Links extension first',
+  ln_address_extension_only: 'Resolve from Pay Links extension only',
+  ln_address_mode_hint:
+    'Choose how LNbits should resolve Lightning Addresses. Using both LNbits Core and the Pay Links extension will have a small impact on performance.',
+  enable_lightning_address_for_all_wallets:
+    'Enable Lightning Addresses for all LNbits wallets',
+  allow_users_specify_lightning_addresses:
+    'Allow users to specify Lightning Addresses',
+  allow_wallet_owners_set_custom_lightning_addresses:
+    'Allow wallet owners to set custom Lightning Addresses',
+  charge_for_lightning_addresses: 'Charge for Lightning Addresses',
+  charge_users_set_change_lightning_address:
+    'Charge users when they set or change a Lightning Address.',
+  service_fee_wallet_id_must_be_set:
+    'Service Fee Wallet ID must be set in the Service Fees section below for this to work.',
+  lightning_address_blacklist: 'Lightning Address blacklist',
+  lightning_address_blacklist_instructions:
+    'Newline separated reserved words. Users cannot choose a Lightning Address that matches any of these words.',
+  set_lightning_address: 'Set Lightning Address',
+  block_explorer: 'Block Explorer',
+  enable_block_explorer: 'Enable Block Explorer',
+  block_explorer_desc:
+    'Allow users to explore Bitcoin transactions and addresses via Electrum.',
+  blockexplorer_public_api: 'Public API Access',
+  blockexplorer_public_api_desc:
+    'Allow unauthenticated access to the block explorer API endpoints.',
+  electrum_compatible_server: 'Electrum compatible server',
+  electrum_server_url: 'Electrum Server URL',
+  electrum_server_url_hint:
+    'Choose a public Electrum server or enter your own.',
+  electrum_server_url_custom: 'Custom Electrum Server URL',
+  view_public_electrum_servers: 'View public Electrum servers',
+  blockexplorer_network: 'Bitcoin Network',
+  blockexplorer_network_hint:
+    'The network the Electrum server is connected to, used to render addresses correctly.',
+  blockexplorer_search_label: 'Search by TXID or Address',
+  blockexplorer_search_hint:
+    '64-char hex = transaction  ·  anything else = Bitcoin address',
+  recent_blocks: 'Recent Blocks',
+  chain_tip: 'Chain Tip',
+  block_height: 'Block Height',
+  block_fee: 'block fee',
+  fee_estimates: 'Fee Estimates',
+  confirmed_balance: 'Confirmed Balance',
+  unconfirmed_balance: 'Unconfirmed Balance',
+  transaction_history: 'Transaction History',
+  coinbase: 'Coinbase',
+  inputs: 'Inputs',
+  outputs: 'Outputs',
+  confirmations: 'Confirmations',
+  confirmed: 'Confirmed',
+  unconfirmed: 'Unconfirmed',
+  no_transactions: 'No transactions found',
+  history_unavailable:
+    'Transaction history unavailable (address has too many transactions)',
+  address: 'Address',
+  block_number: 'Block #{height}',
+  block_diff: 'diff {value}',
+  block_hash: 'Hash',
+  previous_block: 'Previous Block',
+  merkle_root: 'Merkle Root',
+  version: 'Version',
+  bits: 'Bits',
+  difficulty: 'Difficulty',
+  nonce: 'Nonce',
+  txid: 'TXID',
+  vsize: 'Virtual Size',
+  weight: 'Weight',
+  n_block_fee: '{n}-block fee'
 }

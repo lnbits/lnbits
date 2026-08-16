@@ -47,6 +47,7 @@ window.LNbits = {
         adminkey: data.adminkey,
         inkey: data.inkey,
         currency: data.currency,
+        lightningAddress: data.lightning_address,
         extra: data.extra,
         canReceivePayments: true,
         canSendPayments: true
@@ -59,6 +60,9 @@ window.LNbits = {
         newWallet.canSendPayments = perms.includes('send-payments')
       }
       newWallet.url = `/wallet?&wal=${data.id}`
+      newWallet.lightningAddressFull = newWallet.lightningAddress
+        ? `${newWallet.lightningAddress}@${window.location.host}`
+        : null
       newWallet.storedPaylinks = data.stored_paylinks.links
       return newWallet
     }

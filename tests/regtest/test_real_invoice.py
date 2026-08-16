@@ -13,10 +13,13 @@ from lnbits.core.services import (
     fee_reserve_total,
     get_balance_delta,
 )
-from lnbits.core.services.payments import pay_invoice, update_wallet_balance
+from lnbits.core.services.payments import (
+    pay_invoice,
+    update_wallet_balance,
+)
 from lnbits.core.services.users import create_user_account
 from lnbits.exceptions import PaymentError
-from lnbits.tasks import create_task, wait_for_paid_invoices
+from lnbits.task_manager import task_manager
 from lnbits.wallets import get_funding_source
 
 from ..helpers import is_fake, is_regtest
@@ -160,12 +163,11 @@ async def test_create_real_invoice(
     assert not payment_status["paid"]
 
     on_paid_mock = mocker.AsyncMock()
-    create_task(wait_for_paid_invoices("test_create_invoice", on_paid_mock)())
+    task_manager.register_invoice_listener(on_paid_mock, "test_create_invoice")
 
     pay_real_invoice(invoice["bolt11"])
 
     await asyncio.sleep(1)
-
     assert on_paid_mock.call_count == 1
     payment = on_paid_mock.call_args_list[0][0][0]
 
@@ -393,12 +395,11 @@ async def test_receive_real_invoice_set_pending_and_check_state(
     assert not payment_status["paid"]
 
     on_paid_mock = mocker.AsyncMock()
-    create_task(wait_for_paid_invoices("test_create_invoice", on_paid_mock)())
+    task_manager.register_invoice_listener(on_paid_mock, "test_create_invoice")
 
     pay_real_invoice(invoice["bolt11"])
 
     await asyncio.sleep(1)
-
     assert on_paid_mock.call_count == 1
     payment = on_paid_mock.call_args_list[0][0][0]
 
@@ -411,6 +412,8 @@ async def test_receive_real_invoice_set_pending_and_check_state(
     assert response.status_code < 300
     payment_status = response.json()
     assert payment_status["paid"]
+
+    assert payment
 
     # set the incoming invoice to pending
     payment.status = PaymentState.PENDING

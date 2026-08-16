@@ -26,6 +26,42 @@ from .base import (
 )
 from .macaroon import load_macaroon
 
+_PRE_DISPATCH_PAYMENT_ERROR_CODES = {3, 7, 16}
+_PRE_DISPATCH_PAYMENT_ERROR_MESSAGES = (
+    "invoice not for current active network",
+    "invoice expired",
+)
+
+
+def _is_pre_dispatch_payment_error(code: int | None, message: str) -> bool:
+    # LND's REST gateway uses the numeric gRPC status codes. UNKNOWN (2)
+    # is ambiguous unless LND returned one of its request-validation errors.
+    if code in _PRE_DISPATCH_PAYMENT_ERROR_CODES:
+        return True
+
+    message = message.lower()
+    return any(error in message for error in _PRE_DISPATCH_PAYMENT_ERROR_MESSAGES)
+
+
+def _payment_response_from_http_error(
+    exc: httpx.HTTPStatusError, endpoint: str
+) -> PaymentResponse:
+    try:
+        error = exc.response.json()["error"]
+        error_code = error.get("code")
+        error_message = str(error.get("message") or exc)
+    except (json.JSONDecodeError, KeyError, TypeError, AttributeError):
+        error_code = None
+        error_message = f"Unable to connect to {endpoint}."
+
+    logger.warning(f"LndRestWallet pay_invoice POST error: {error_message}.")
+    return PaymentResponse(
+        ok=(
+            False if _is_pre_dispatch_payment_error(error_code, error_message) else None
+        ),
+        error_message=error_message,
+    )
+
 
 class LndRestWallet(Wallet):
     """https://api.lightning.community/#lnd-rest-api-reference"""
@@ -162,6 +198,8 @@ class LndRestWallet(Wallet):
             )
             r.raise_for_status()
             data = r.json()
+        except httpx.HTTPStatusError as exc:
+            return _payment_response_from_http_error(exc, self.endpoint)
         except json.JSONDecodeError:
             return PaymentResponse(
                 error_message="Server error: 'invalid json response'"
@@ -201,7 +239,7 @@ class LndRestWallet(Wallet):
         elif status == "IN_FLIGHT":
             return PaymentResponse(ok=None, checking_id=checking_id)
         return PaymentResponse(
-            ok=False,
+            ok=None,
             checking_id=checking_id,
             error_message="Server error: 'unknown payment status returned'",
         )

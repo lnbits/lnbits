@@ -1,12 +1,46 @@
 window.app.component('lnbits-wallet-extra', {
   template: '#lnbits-wallet-extra',
   props: ['chartConfig'],
+  data() {
+    return {
+      lightningAddressInput: ''
+    }
+  },
   computed: {
     exportUrl() {
       return `${window.location.origin}/wallet?usr=${this.g.user.id}&wal=${this.g.wallet.id}`
+    },
+    canEditLightningAddress() {
+      return (
+        this.g.settings.enableWalletLightningAddresses &&
+        this.g.settings.allowCustomWalletLightningAddresses &&
+        this.g.wallet.walletType === 'lightning'
+      )
+    },
+    lightningAddressSuffix() {
+      return `@${window.location.host}`
+    },
+    lightningAddressChanged() {
+      return (
+        this.lightningAddressInput !== (this.g.wallet.lightningAddress || '')
+      )
+    },
+    lightningAddressFeeHint() {
+      if (!this.g.settings.chargeWalletLightningAddresses) return ''
+      return `Fee: ${this.g.settings.walletLightningAddressPriceSats} sats`
     }
   },
+  watch: {
+    'g.wallet.id': 'resetLightningAddressInput',
+    'g.wallet.lightningAddress': 'resetLightningAddressInput'
+  },
   methods: {
+    resetLightningAddressInput() {
+      this.lightningAddressInput = this.g.wallet.lightningAddress || ''
+    },
+    saveLightningAddress() {
+      this.updateWallet({lightning_address: this.lightningAddressInput})
+    },
     handleSendLnurl(lnurl) {
       this.$emit('send-lnurl', lnurl)
     },
@@ -80,6 +114,7 @@ window.app.component('lnbits-wallet-extra', {
     }
   },
   created() {
+    this.resetLightningAddressInput()
     if (this.g.wallet.currency !== '' && this.g.isSatsDenomination) {
       this.g.fiatTracking = true
       this.updateFiatBalance()

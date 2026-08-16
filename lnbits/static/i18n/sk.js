@@ -69,6 +69,10 @@ window.localisation.sk = {
   view_swagger_docs: 'Zobraziť LNbits Swagger API dokumentáciu',
   api_docs: 'API dokumentácia',
   api_keys_api_docs: 'Adresa uzla, API kľúče a API dokumentácia',
+  api_keys_warning:
+    'Tieto kľúče uchovávajte v bezpečí, ich zdieľanie môže viesť k strate prostriedkov.',
+  admin_key_warning:
+    'Váš administrátorský kľúč poskytuje úplný prístup k peňaženke vrátane možnosti odosielať platby. Nikdy ho nezdieľajte, pokiaľ príjemcovi úplne nedôverujete.',
   lnbits_version: 'Verzia LNbits',
   runs_on: 'Beží na',
   paste: 'Vložiť',
@@ -444,5 +448,48 @@ window.localisation.sk = {
   http_request_methods: 'Metódy HTTP žiadostí',
   http_response_codes: 'Kódy odpovedí HTTP',
   request_details: 'Podrobnosti žiadosti',
-  http_request_details: 'Podrobnosti požiadavky HTTP'
+  http_request_details: 'Podrobnosti požiadavky HTTP',
+  block_explorer: 'Prehliadač blokov',
+  enable_block_explorer: 'Povoliť prehliadač blokov',
+  block_explorer_desc:
+    'Umožňuje používateľom prehliadať bitcoinové transakcie a adresy cez Electrum.',
+  blockexplorer_public_api: 'Verejný prístup k API',
+  blockexplorer_public_api_desc:
+    'Povoliť neoverený prístup k API koncovým bodom prieskumníka blokov.',
+  electrum_server_url: 'URL Electrum servera',
+  electrum_server_url_hint:
+    'napr. ssl://electrum.blockstream.info:50002 alebo tcp://localhost:50001',
+  blockexplorer_search_label: 'Hľadať podľa TXID alebo adresy',
+  blockexplorer_search_hint:
+    '64-znakový hex = transakcia  ·  čokoľvek iné = bitcoinová adresa',
+  recent_blocks: 'Nedávne bloky',
+  chain_tip: 'Vrchol reťaze',
+  block_height: 'Výška bloku',
+  block_fee: 'poplatok bloku',
+  fee_estimates: 'Odhady poplatkov',
+  confirmed_balance: 'Potvrdený zostatok',
+  unconfirmed_balance: 'Nepotvrdený zostatok',
+  transaction_history: 'História transakcií',
+  coinbase: 'Coinbase',
+  inputs: 'Vstupy',
+  outputs: 'Výstupy',
+  confirmations: 'Potvrdenia',
+  confirmed: 'Potvrdené',
+  unconfirmed: 'Nepotvrdené',
+  history_unavailable:
+    'História transakcií nedostupná (adresa má príliš veľa transakcií)',
+  address: 'Adresa',
+  block_number: 'Blok #{height}',
+  block_diff: 'obth. {value}',
+  block_hash: 'Hash',
+  previous_block: 'Predchádzajúci blok',
+  merkle_root: 'Merkle koreň',
+  version: 'Verzia',
+  bits: 'Bity',
+  difficulty: 'Obťažnosť',
+  nonce: 'Nonce',
+  txid: 'TXID',
+  vsize: 'Virtuálna veľkosť',
+  weight: 'Váha',
+  n_block_fee: 'poplatok {n} blokov'
 }

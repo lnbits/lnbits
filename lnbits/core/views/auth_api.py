@@ -295,7 +295,10 @@ async def api_create_user_api_token(
         account.username, api_token_id, data.expiration_time_minutes
     )
 
-    acl.token_id_list.append(SimpleItem(id=api_token_id, name=data.token_name))
+    expires_at = int(time()) + data.expiration_time_minutes * 60
+    acl.token_id_list.append(
+        SimpleItem(id=api_token_id, name=data.token_name, expires_at=expires_at)
+    )
     await update_user_access_control_list(acls)
     return ApiTokenResponse(id=api_token_id, api_token=api_token)
 
@@ -323,7 +326,7 @@ async def api_delete_user_api_token(
 async def login_with_sso_provider(
     request: Request,
     provider: str,
-    user_id: str | None,
+    user_id: str | None = None,
     auth_user_id: str | None = Depends(optional_user_id),
 ):
     provider_sso = _new_sso(provider)

@@ -1,6 +1,5 @@
 import asyncio
 import importlib
-import sys
 import time
 from functools import wraps
 from getpass import getpass
@@ -376,10 +375,6 @@ async def extensions_update(  # noqa: C901
 
     if not await _can_run_operation(url):
         return
-
-    upgrades_dir = settings.lnbits_extensions_upgrade_path
-    Path(upgrades_dir).mkdir(parents=True, exist_ok=True)
-    sys.path.append(str(upgrades_dir))
 
     if extension:
         await update_extension(extension, repo_index, source_repo, url, admin_user)
