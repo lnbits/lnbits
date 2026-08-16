@@ -86,6 +86,7 @@ class NWCWallet(Wallet):
             nwc_data["relay"],
             notification_handler=self._handle_notification,
         )
+        self.pending_invoices: list[str] = []
         self.pending_invoice_details: dict[str, dict[str, Any]] = {}
         self.payment_status_cache: dict[str, dict[str, Any]] = {}
         self.payment_status_cache_pending_ttl = 30
