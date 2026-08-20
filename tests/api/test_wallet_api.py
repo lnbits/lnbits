@@ -309,5 +309,44 @@ async def test_wallet_api_shared_wallet_requires_source_id(http_client: AsyncCli
     )
 
 
+@pytest.mark.anyio
+async def test_wallet_api_reset_webhook_secret(http_client: AsyncClient):
+    user = await create_user_account(
+        Account(
+            id=uuid4().hex,
+            username=f"user_{uuid4().hex[:8]}",
+            email=f"user_{uuid4().hex[:8]}@lnbits.com",
+        )
+    )
+    wallet = user.wallets[0]
+    original_secret = wallet.webhook_secret
+    assert original_secret  # new wallets get a secret on creation
+
+    reset = await http_client.put(
+        f"/api/v1/wallet/webhook-secret/reset/{wallet.id}?usr={user.id}"
+    )
+    assert reset.status_code == 200
+    new_secret = reset.json()["webhook_secret"]
+    assert new_secret != original_secret
+
+    # the new secret is persisted
+    refreshed = await get_wallet(wallet.id)
+    assert refreshed
+    assert refreshed.webhook_secret == new_secret
+
+    # another user cannot reset this wallet's secret
+    other = await create_user_account(
+        Account(
+            id=uuid4().hex,
+            username=f"other_{uuid4().hex[:8]}",
+            email=f"other_{uuid4().hex[:8]}@lnbits.com",
+        )
+    )
+    forbidden = await http_client.put(
+        f"/api/v1/wallet/webhook-secret/reset/{wallet.id}?usr={other.id}"
+    )
+    assert forbidden.status_code == 404
+
+
 def _admin_headers(adminkey: str) -> dict[str, str]:
     return {"X-Api-Key": adminkey, "Content-type": "application/json"}

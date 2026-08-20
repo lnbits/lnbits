@@ -46,6 +46,7 @@ window.LNbits = {
         sharedWalletId: data.shared_wallet_id,
         adminkey: data.adminkey,
         inkey: data.inkey,
+        webhook_secret: data.webhook_secret,
         currency: data.currency,
         lightningAddress: data.lightning_address,
         extra: data.extra,

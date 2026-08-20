@@ -902,3 +902,12 @@ async def m050_add_lightning_address_to_wallets(db: Connection):
         CREATE UNIQUE INDEX IF NOT EXISTS idx_wallets_lightning_address
         ON wallets (lightning_address);
         """)
+
+
+async def m051_add_webhook_secret_to_wallets(db: Connection):
+    """
+    Adds a per-wallet webhook_secret column.
+    Used to sign outgoing webhook payloads so receivers can verify authenticity.
+    Existing wallets get a secret on first reveal/regenerate via the wallet UI.
+    """
+    await db.execute("ALTER TABLE wallets ADD COLUMN webhook_secret TEXT")

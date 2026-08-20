@@ -39,6 +39,42 @@ window.app.component('lnbits-wallet-api-docs', {
               LNbits.utils.notifyApiError(err)
             })
         })
+    },
+    resetWebhookSecret() {
+      LNbits.utils
+        .confirmDialog(
+          'Are you sure you want to reset your webhook signing secret? ' +
+            'Receivers verifying webhook signatures will need the new secret.'
+        )
+        .onOk(() => {
+          LNbits.api
+            .resetWebhookSecret(this.g.wallet)
+            .then(response => {
+              const {id, webhook_secret} = response
+              this.g.wallet = {
+                ...this.g.wallet,
+                webhook_secret
+              }
+              const walletIndex = this.g.user.wallets.findIndex(
+                wallet => wallet.id === id
+              )
+              if (walletIndex !== -1) {
+                this.g.user.wallets[walletIndex] = {
+                  ...this.g.user.wallets[walletIndex],
+                  webhook_secret
+                }
+              }
+              this.webhookSecretHidden = false
+              Quasar.Notify.create({
+                timeout: 3500,
+                type: 'positive',
+                message: 'Webhook signing secret reset!'
+              })
+            })
+            .catch(err => {
+              LNbits.utils.notifyApiError(err)
+            })
+        })
     }
   },
   data() {
@@ -46,7 +82,8 @@ window.app.component('lnbits-wallet-api-docs', {
       origin: window.location.origin,
       inkeyHidden: true,
       adminkeyHidden: true,
-      walletIdHidden: true
+      walletIdHidden: true,
+      webhookSecretHidden: true
     }
   }
 })

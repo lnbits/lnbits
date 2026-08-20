@@ -501,7 +501,7 @@ async def test_send_payment_notification_fans_out_to_shared_wallet_and_webhook(
     ]
     chat_mock.assert_awaited_once_with(wallet, payment)
     push_mock.assert_awaited_once_with(wallet, payment)
-    dispatch_mock.assert_awaited_once_with(payment)
+    dispatch_mock.assert_awaited_once_with(payment, wallet)
 
 
 @pytest.mark.anyio
