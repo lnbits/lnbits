@@ -4,6 +4,10 @@
 @use 'cards';
 @use 'home';
 
+a {
+  color: unset;
+}
+
 [v-cloak] {
   display: none;
 }
