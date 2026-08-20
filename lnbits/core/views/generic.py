@@ -16,6 +16,7 @@ from lnbits.core.services import create_invoice, create_user_account
 from lnbits.decorators import (
     check_admin,
     check_admin_ui,
+    check_blockexplorer_public,
     check_extension_builder,
     check_first_install,
     check_user_exists,
@@ -185,8 +186,6 @@ admin_ui_checks = [Depends(check_admin), Depends(check_admin_ui)]
 @generic_router.get("/wallets")
 @generic_router.get("/account")
 @generic_router.get("/extensions")
-@generic_router.get("/blockexplorer")
-@generic_router.get("/blockexplorer/{resource_type}/{resource}")
 @generic_router.get("/users", dependencies=admin_ui_checks)
 @generic_router.get("/audit", dependencies=admin_ui_checks)
 @generic_router.get("/node", dependencies=admin_ui_checks)
@@ -217,6 +216,13 @@ async def index(
 @generic_router.get("/")
 @generic_router.get("/node/public")
 @generic_router.get("/first_install", dependencies=[Depends(check_first_install)])
+@generic_router.get(
+    "/blockexplorer", dependencies=[Depends(check_blockexplorer_public)]
+)
+@generic_router.get(
+    "/blockexplorer/{resource_type}/{resource}",
+    dependencies=[Depends(check_blockexplorer_public)],
+)
 async def index_public(request: Request) -> HTMLResponse:
     return template_renderer().TemplateResponse(request, "base.html", {"public": True})
 

@@ -948,6 +948,7 @@ window.localisation.en = {
   blockexplorer_public_api: 'Public API Access',
   blockexplorer_public_api_desc:
     'Allow unauthenticated access to the block explorer API endpoints.',
+  view_public_block_explorer: 'View public block explorer page',
   electrum_compatible_server: 'Electrum compatible server',
   electrum_server_url: 'Electrum Server URL',
   electrum_server_url_hint:
