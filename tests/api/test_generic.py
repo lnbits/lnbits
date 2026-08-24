@@ -1,12 +1,60 @@
+import ipaddress
+import json
+from unittest.mock import AsyncMock
+
 import pytest
+from lnurl import url_encode
+from pytest_mock.plugin import MockerFixture
 
 from lnbits.core.models.users import User
+from lnbits.settings import Settings
 
 
 @pytest.mark.anyio
 async def test_core_views_generic(client):
     response = await client.get("/")
     assert response.status_code == 200, f"{response.url} {response.status_code}"
+
+
+@pytest.mark.anyio
+async def test_lnurlwallet_rejects_private_callback(
+    http_client, settings: Settings, mocker: MockerFixture
+):
+    async def resolve(host: str, _port: int | None):
+        address = "169.254.169.254" if host == "metadata.example" else "93.184.216.34"
+        return [ipaddress.ip_address(address)]
+
+    mocker.patch(
+        "lnbits.core.services.lnurl._resolve_lnurl_host",
+        AsyncMock(side_effect=resolve),
+    )
+    send = mocker.patch(
+        "lnbits.core.services.lnurl._send_lnurl_request",
+        AsyncMock(
+            return_value=(
+                200,
+                {},
+                json.dumps(
+                    {
+                        "tag": "withdrawRequest",
+                        "callback": "https://metadata.example/callback",
+                        "k1": "test-k1",
+                        "minWithdrawable": 1000,
+                        "maxWithdrawable": 1000,
+                    }
+                ).encode(),
+            )
+        ),
+    )
+
+    response = await http_client.get(
+        "/lnurlwallet",
+        params={"lightning": url_encode("https://safe.example/lnurl")},
+    )
+
+    assert response.status_code == 400
+    assert response.json() == {"detail": "LNURL request target is not allowed."}
+    send.assert_awaited_once()
 
 
 # check GET /wallet: wrong user, expect 400
