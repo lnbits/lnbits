@@ -937,7 +937,6 @@ class AuthSettings(LNbitsSettings):
     auth_all_methods: list[str] = [a.value for a in AuthMethods]
     auth_allowed_methods: list[str] = Field(
         default=[
-            AuthMethods.user_id_only.value,
             AuthMethods.username_and_password.value,
         ]
     )

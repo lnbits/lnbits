@@ -407,7 +407,9 @@ async def test_check_pending_payment_does_not_expose_preimage(
 ):
     # create an unpaid invoice (FakeWallet stores a valid preimage at creation)
     data = await get_random_invoice_data()
-    response = await client.post("/api/v1/payments", json=data, headers=inkey_headers_to)
+    response = await client.post(
+        "/api/v1/payments", json=data, headers=inkey_headers_to
+    )
     assert response.status_code == 201
     unpaid = response.json()
     payment_hash = unpaid["payment_hash"]

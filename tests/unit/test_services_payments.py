@@ -3,7 +3,7 @@ from types import SimpleNamespace
 from uuid import uuid4
 
 import pytest
-from lnurl import LnurlSuccessResponse
+from lnurl import LnurlSuccessResponse, LnurlWithdrawResponse
 from pytest_mock.plugin import MockerFixture
 
 from lnbits.core.crud import (
@@ -152,13 +152,15 @@ async def test_lnurl_withdraw_success_keeps_invoice_pending(mocker: MockerFixtur
         CreateInvoice(
             amount=1,
             out=False,
-            lnurl_withdraw={
-                "tag": "withdrawRequest",
-                "callback": "https://example.com/callback",
-                "k1": "randomk1value",
-                "minWithdrawable": 1000,
-                "maxWithdrawable": 1_500_000,
-            },
+            lnurl_withdraw=LnurlWithdrawResponse.parse_obj(
+                {
+                    "tag": "withdrawRequest",
+                    "callback": "https://example.com/callback",
+                    "k1": "randomk1value",
+                    "minWithdrawable": 1000,
+                    "maxWithdrawable": 1_500_000,
+                }
+            ),
         ),
     )
 
