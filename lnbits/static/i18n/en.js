@@ -407,6 +407,13 @@ window.localisation.en = {
   enter_callback_url_rule: 'Enter URL rule as regex and hit enter',
   callback_url_rule_hint:
     'Callback URLs (like LNURL one) will be validated against these rules. At leat one rule must match. No rule means all URLs are allowed.',
+  lnurl: 'LNURL',
+  lnurl_redirect_url_rules: 'LNURL Redirect URL Rules',
+  lnurl_redirect_url_rule_hint:
+    'Redirects are denied unless their destination origin matches one of these rules. No rules means redirects are disabled.',
+  lnurl_allow_private_ips: 'Allow private IP addresses for LNURL requests',
+  lnurl_allow_private_ips_hint:
+    'Development only. Allows LNURL requests to localhost and private network addresses.',
   wallet_limiter: 'Wallet Limiter',
   wallet_config: 'Wallet Config',
   wallet_charts: 'Wallet Charts',

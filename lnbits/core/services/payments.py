@@ -6,7 +6,6 @@ from bolt11 import Bolt11, MilliSatoshi, Tags
 from bolt11 import decode as bolt11_decode
 from bolt11 import encode as bolt11_encode
 from lnurl import LnurlErrorResponse, LnurlSuccessResponse
-from lnurl import execute_withdraw as lnurl_withdraw
 from loguru import logger
 
 from lnbits.core.crud.payments import get_daily_stats
@@ -49,6 +48,7 @@ from ..models import (
     Wallet,
 )
 from .fiat_providers import check_fiat_status
+from .lnurl import execute_withdraw as lnurl_withdraw
 from .notifications import send_payment_notification_in_background
 
 payment_lock = asyncio.Lock()

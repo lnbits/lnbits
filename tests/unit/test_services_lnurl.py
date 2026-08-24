@@ -1,6 +1,8 @@
+import ipaddress
 from typing import cast
 from uuid import uuid4
 
+import httpx
 import pytest
 from bolt11.types import MilliSatoshi
 from lnurl import (
@@ -19,12 +21,15 @@ from lnbits.core.crud import create_account, create_wallet, get_wallet
 from lnbits.core.models import Account
 from lnbits.core.models.lnurl import CreateLnurlPayment
 from lnbits.core.models.wallets import Wallet
+from lnbits.core.services import lnurl as lnurl_service
 from lnbits.core.services.lnurl import (
+    _get,
+    _store_paylink,
     fetch_lnurl_pay_request,
     get_pr_from_lnurl,
     perform_withdraw,
-    store_paylink,
 )
+from lnbits.settings import Settings
 from tests.helpers import make_lnurl_pay_response
 
 TEST_BOLT11 = (
@@ -34,6 +39,169 @@ TEST_BOLT11 = (
     "73aym6ynrdl9nkzqnag49vt3sjjn8qdfq5cr6ha0vrdz5c5r3v4aghndly0hplmv"
     "6hjxepwp93cq398l3s"
 )
+
+
+@pytest.mark.anyio
+async def test_lnurl_requests_reject_private_ips_by_default(
+    settings: Settings, mocker: MockerFixture
+):
+    settings.lnbits_lnurl_allow_private_ips = False
+
+    with pytest.raises(LnurlResponseException, match="target is not allowed"):
+        await lnurl_service._validate_lnurl_request_url(
+            httpx.URL("https://169.254.169.254/latest/meta-data/"), tor_socks=None
+        )
+
+    mocker.patch(
+        "lnbits.core.services.lnurl._resolve_lnurl_host",
+        mocker.AsyncMock(return_value=[ipaddress.ip_address("10.0.0.1")]),
+    )
+    with pytest.raises(LnurlResponseException, match="target is not allowed"):
+        await lnurl_service._validate_lnurl_request_url(
+            httpx.URL("https://metadata.internal/"), tor_socks=None
+        )
+
+    settings.lnbits_lnurl_allow_private_ips = True
+    addresses, proxy = await lnurl_service._validate_lnurl_request_url(
+        httpx.URL("http://127.0.0.1:8080/lnurl"), tor_socks=None
+    )
+    assert addresses == [ipaddress.ip_address("127.0.0.1")]
+    assert proxy is None
+
+
+@pytest.mark.anyio
+async def test_lnurl_redirects_are_denied_by_default(
+    settings: Settings, mocker: MockerFixture
+):
+    settings.lnbits_lnurl_redirect_url_rules = []
+    mocker.patch(
+        "lnbits.core.services.lnurl._resolve_lnurl_host",
+        mocker.AsyncMock(return_value=[ipaddress.ip_address("93.184.216.34")]),
+    )
+    send = mocker.patch(
+        "lnbits.core.services.lnurl._send_lnurl_request",
+        mocker.AsyncMock(
+            return_value=(
+                302,
+                {"location": "https://pay.example/lnurl"},
+                b"",
+            )
+        ),
+    )
+
+    with pytest.raises(LnurlResponseException, match="redirect was not allowed"):
+        await lnurl_service._request_lnurl_json(
+            "https://start.example/lnurl",
+            user_agent=None,
+            timeout=None,
+            tor_socks=None,
+            params=None,
+        )
+    send.assert_awaited_once()
+
+
+@pytest.mark.anyio
+async def test_lnurl_redirect_target_is_revalidated(
+    settings: Settings, mocker: MockerFixture
+):
+    settings.lnbits_lnurl_redirect_url_rules = [r"http://169\.254\.169\.254"]
+    mocker.patch(
+        "lnbits.core.services.lnurl._resolve_lnurl_host",
+        mocker.AsyncMock(return_value=[ipaddress.ip_address("93.184.216.34")]),
+    )
+    send = mocker.patch(
+        "lnbits.core.services.lnurl._send_lnurl_request",
+        mocker.AsyncMock(
+            return_value=(
+                302,
+                {"location": "http://169.254.169.254/latest/meta-data/"},
+                b"",
+            )
+        ),
+    )
+
+    with pytest.raises(LnurlResponseException, match="target is not allowed"):
+        await lnurl_service._request_lnurl_json(
+            "https://start.example/lnurl",
+            user_agent=None,
+            timeout=None,
+            tor_socks=None,
+            params=None,
+        )
+    send.assert_awaited_once()
+
+
+@pytest.mark.anyio
+async def test_lnurl_allowed_redirect_is_followed(
+    settings: Settings, mocker: MockerFixture
+):
+    settings.lnbits_lnurl_redirect_url_rules = [r"https://pay\.example"]
+    resolve = mocker.patch(
+        "lnbits.core.services.lnurl._resolve_lnurl_host",
+        mocker.AsyncMock(return_value=[ipaddress.ip_address("93.184.216.34")]),
+    )
+    send = mocker.patch(
+        "lnbits.core.services.lnurl._send_lnurl_request",
+        mocker.AsyncMock(
+            side_effect=[
+                (302, {"location": "https://pay.example/lnurl"}, b""),
+                (200, {}, b'{"status":"OK"}'),
+            ]
+        ),
+    )
+
+    data = await lnurl_service._request_lnurl_json(
+        "https://start.example/lnurl",
+        user_agent=None,
+        timeout=None,
+        tor_socks=None,
+        params=None,
+    )
+
+    assert data == {"status": "OK"}
+    assert resolve.await_count == 2
+    assert send.await_count == 2
+
+
+@pytest.mark.anyio
+async def test_lnurl_invalid_response_does_not_leak_body(
+    mocker: MockerFixture,
+):
+    mocker.patch(
+        "lnbits.core.services.lnurl._resolve_lnurl_host",
+        mocker.AsyncMock(return_value=[ipaddress.ip_address("93.184.216.34")]),
+    )
+    mocker.patch(
+        "lnbits.core.services.lnurl._send_lnurl_request",
+        mocker.AsyncMock(return_value=(200, {}, b'{"secret":"internal-proof"}')),
+    )
+
+    with pytest.raises(LnurlResponseException) as exc_info:
+        await _get("https://safe.example/lnurl")
+    assert str(exc_info.value) == "Invalid LNURL response."
+    assert "internal-proof" not in str(exc_info.value)
+
+
+@pytest.mark.anyio
+async def test_lnurl_requests_are_pinned_to_validated_ip(mocker: MockerFixture):
+    client = _FakeAsyncClient(
+        _FakeStreamResponse(status_code=200, chunks=[b'{"status":"OK"}'])
+    )
+    mocker.patch("lnbits.core.services.lnurl.httpx.AsyncClient", client.factory)
+
+    status_code, _, body = await lnurl_service._send_lnurl_request(
+        httpx.URL("https://pay.example:8443/lnurl"),
+        addresses=[ipaddress.ip_address("93.184.216.34")],
+        proxy=None,
+        user_agent="test-agent",
+        timeout=5,
+    )
+
+    assert status_code == 200
+    assert body == b'{"status":"OK"}'
+    assert client.stream_kwargs["url"] == httpx.URL("https://93.184.216.34:8443/lnurl")
+    assert client.stream_kwargs["headers"]["Host"] == "pay.example:8443"
+    assert client.stream_kwargs["extensions"] == {"sni_hostname": "pay.example"}
 
 
 @pytest.mark.anyio
@@ -85,7 +253,7 @@ async def test_get_pr_from_lnurl_success_and_error(mocker: MockerFixture):
         mocker.AsyncMock(return_value=pay_response),
     )
     mocker.patch(
-        "lnbits.core.services.lnurl.execute_pay_request",
+        "lnbits.core.services.lnurl._execute_pay_request",
         mocker.AsyncMock(
             return_value=LnurlPayActionResponse(
                 pr=cast(LightningInvoice, LightningInvoice(TEST_BOLT11))
@@ -116,11 +284,11 @@ async def test_fetch_lnurl_pay_request_converts_currency_and_stores_paylink(
         mocker.AsyncMock(return_value=100),
     )
     execute_mock = mocker.patch(
-        "lnbits.core.services.lnurl.execute_pay_request",
+        "lnbits.core.services.lnurl._execute_pay_request",
         mocker.AsyncMock(return_value=action_response),
     )
     store_paylink_mock = mocker.patch(
-        "lnbits.core.services.lnurl.store_paylink",
+        "lnbits.core.services.lnurl._store_paylink",
         mocker.AsyncMock(),
     )
     wallet = _make_wallet()
@@ -149,7 +317,7 @@ async def test_store_paylink_appends_and_updates_existing():
         pr=cast(LightningInvoice, LightningInvoice(TEST_BOLT11)), disposable=False
     )
 
-    await store_paylink(
+    await _store_paylink(
         pay_response, action_response, wallet, LnAddress("alice@example.com")
     )
     stored_wallet = await get_wallet(wallet.id)
@@ -159,7 +327,7 @@ async def test_store_paylink_appends_and_updates_existing():
     assert stored_wallet.stored_paylinks.links[0].lnurl == "alice@example.com"
 
     first_used = stored_wallet.stored_paylinks.links[0].last_used
-    await store_paylink(
+    await _store_paylink(
         pay_response, action_response, wallet, LnAddress("alice@example.com")
     )
     stored_wallet = await get_wallet(wallet.id)
@@ -183,3 +351,46 @@ async def _create_wallet() -> Wallet:
     user_id = uuid4().hex
     await create_account(Account(id=user_id, username=f"user_{user_id[:8]}"))
     return await create_wallet(user_id=user_id, wallet_name="Wallet")
+
+
+class _FakeAsyncClient:
+    def __init__(self, response):
+        self.response = response
+        self.kwargs = {}
+        self.stream_kwargs = {}
+
+    def factory(self, **kwargs):
+        self.kwargs = kwargs
+        return self
+
+    async def __aenter__(self):
+        return self
+
+    async def __aexit__(self, *_args):
+        return False
+
+    def stream(self, method, url, **kwargs):
+        self.stream_kwargs = {"method": method, "url": url, **kwargs}
+        return self.response
+
+
+class _FakeStreamResponse:
+    def __init__(
+        self,
+        *,
+        status_code: int,
+        chunks: list[bytes],
+    ):
+        self.status_code = status_code
+        self.headers: dict[str, str] = {}
+        self._chunks = chunks
+
+    async def __aenter__(self):
+        return self
+
+    async def __aexit__(self, *_args):
+        return False
+
+    async def aiter_bytes(self):
+        for chunk in self._chunks:
+            yield chunk

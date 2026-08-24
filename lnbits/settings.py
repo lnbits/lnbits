@@ -472,6 +472,8 @@ class SecuritySettings(LNbitsSettings):
     lnbits_callback_url_rules: list[str] = Field(
         default=["https?://([a-zA-Z0-9.-]+\\.[a-zA-Z]{2,})(:\\d+)?"]
     )
+    lnbits_lnurl_redirect_url_rules: list[str] = Field(default=[])
+    lnbits_lnurl_allow_private_ips: bool = Field(default=False)
 
     lnbits_wallet_limit_max_balance: int = Field(default=0, ge=0)
     lnbits_wallet_limit_daily_max_withdraw: int = Field(default=0, ge=0)
