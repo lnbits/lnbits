@@ -5,7 +5,6 @@ from datetime import datetime, timedelta, timezone
 from bolt11 import Bolt11, MilliSatoshi, Tags
 from bolt11 import decode as bolt11_decode
 from bolt11 import encode as bolt11_encode
-from lnurl import LnurlErrorResponse, LnurlSuccessResponse
 from loguru import logger
 
 from lnbits.core.crud.payments import get_daily_stats
@@ -234,17 +233,13 @@ async def create_wallet_invoice(wallet_id: str, data: CreateInvoice) -> Payment:
     if data.lnurl_withdraw:
         try:
             check_callback_url(data.lnurl_withdraw.callback)
-            res = await lnurl_withdraw(
+            await lnurl_withdraw(
                 data.lnurl_withdraw,
                 payment.bolt11,
                 user_agent=settings.user_agent,
                 timeout=10,
             )
-            if isinstance(res, LnurlErrorResponse):
-                payment.extra["lnurl_response"] = res.reason
-                payment.status = PaymentState.FAILED
-            elif isinstance(res, LnurlSuccessResponse):
-                payment.extra["lnurl_response"] = True
+            payment.extra["lnurl_response"] = True
         except Exception as exc:
             payment.extra["lnurl_response"] = str(exc)
             payment.status = PaymentState.FAILED

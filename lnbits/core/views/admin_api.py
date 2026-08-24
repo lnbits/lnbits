@@ -30,39 +30,6 @@ admin_router = APIRouter(tags=["Admin UI"], prefix="/admin")
 file_upload = File(...)
 
 
-def _build_pg_dump_command(
-    parsed_url: ParseResult, dump_filename: str | Path
-) -> list[str]:
-    try:
-        hostname = parsed_url.hostname
-        port = parsed_url.port
-    except ValueError as exc:
-        raise ValueError("Invalid PostgreSQL database URL.") from exc
-
-    database = parsed_url.path.removeprefix("/")
-    if (
-        parsed_url.scheme != "postgres"
-        or not hostname
-        or not parsed_url.username
-        or not database
-    ):
-        raise ValueError("Invalid PostgreSQL database URL.")
-
-    command = ["pg_dump", f"--host={hostname}"]
-    if port is not None:
-        command.append(f"--port={port}")
-    command.extend(
-        [
-            f"--dbname={database}",
-            f"--username={parsed_url.username}",
-            "--no-password",
-            "--format=c",
-            f"--file={dump_filename}",
-        ]
-    )
-    return command
-
-
 @admin_router.get(
     "/api/v1/audit",
     name="Audit",
@@ -197,3 +164,36 @@ async def api_download_backup() -> FileResponse:
     return FileResponse(
         path=f"{last_filename}.zip", filename=filename, media_type="application/zip"
     )
+
+
+def _build_pg_dump_command(
+    parsed_url: ParseResult, dump_filename: str | Path
+) -> list[str]:
+    try:
+        hostname = parsed_url.hostname
+        port = parsed_url.port
+    except ValueError as exc:
+        raise ValueError("Invalid PostgreSQL database URL.") from exc
+
+    database = parsed_url.path.removeprefix("/")
+    if (
+        parsed_url.scheme != "postgres"
+        or not hostname
+        or not parsed_url.username
+        or not database
+    ):
+        raise ValueError("Invalid PostgreSQL database URL.")
+
+    command = ["pg_dump", f"--host={hostname}"]
+    if port is not None:
+        command.append(f"--port={port}")
+    command.extend(
+        [
+            f"--dbname={database}",
+            f"--username={parsed_url.username}",
+            "--no-password",
+            "--format=c",
+            f"--file={dump_filename}",
+        ]
+    )
+    return command
