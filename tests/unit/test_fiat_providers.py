@@ -4,6 +4,7 @@ import json
 import time
 from base64 import b64encode
 from unittest.mock import AsyncMock
+from urllib.parse import parse_qs
 
 import pytest
 from pytest_mock.plugin import MockerFixture
@@ -35,6 +36,7 @@ from lnbits.fiat.base import (
 )
 from lnbits.fiat.revolut import REVOLUT_WEBHOOK_EVENTS, RevolutWallet
 from lnbits.fiat.square import SquareWallet
+from lnbits.fiat.stripe import StripeWallet
 from lnbits.settings import Settings
 from tests.helpers import get_random_string
 
@@ -364,6 +366,120 @@ async def test_create_wallet_fiat_invoice_success(
     status = await check_payment_status(payment)
     assert status.paid is True
     assert status.success is True
+
+
+@pytest.mark.anyio
+async def test_stripe_wallet_uses_currency_minor_units(settings: Settings):
+    settings.stripe_api_endpoint = "https://api.stripe.com"
+    settings.stripe_api_secret_key = "stripe-secret"
+
+    wallet = StripeWallet()
+    client = MockHTTPClient(
+        [
+            MockHTTPResponse(json_data={"id": "cs_usd", "url": "https://usd"}),
+            MockHTTPResponse(json_data={"id": "cs_kwd", "url": "https://kwd"}),
+            MockHTTPResponse(json_data={"id": "cs_jpy", "url": "https://jpy"}),
+            MockHTTPResponse(
+                json_data={"id": "pi_kwd", "client_secret": "pi_kwd_secret"}
+            ),
+            MockHTTPResponse(json_data={"id": "cs_other", "url": "https://other"}),
+        ]
+    )
+    wallet.client = client  # type: ignore[assignment]
+
+    await wallet.create_invoice(1.23, "hash_usd", "USD")
+    await wallet.create_invoice(
+        1.234,
+        "hash_kwd",
+        "KWD",
+        extra={
+            "checkout": {"metadata": {"lnbits_amount": "1", "lnbits_currency": "USD"}}
+        },
+    )
+    await wallet.create_invoice(123, "hash_jpy", "JPY")
+    await wallet.create_invoice(
+        1.234, "hash_terminal", "KWD", extra={"fiat_method": "terminal"}
+    )
+
+    checkout_amounts = [
+        parse_qs(client.calls[i][1]["content"])[
+            "line_items[0][price_data][unit_amount]"
+        ][0]
+        for i in range(3)
+    ]
+    assert checkout_amounts == ["123", "1234", "123"]
+    kwd_metadata = parse_qs(client.calls[1][1]["content"])
+    assert kwd_metadata["metadata[lnbits_amount]"] == ["1.234"]
+    assert kwd_metadata["metadata[lnbits_currency]"] == ["KWD"]
+    assert client.calls[3][1]["data"]["amount"] == "1234"
+    assert client.calls[3][1]["data"]["metadata[lnbits_amount]"] == "1.234"
+    assert client.calls[3][1]["data"]["metadata[lnbits_currency]"] == "KWD"
+
+    other = await wallet.create_invoice(1.23, "hash_other", "XYZ")
+    excessive_precision = await wallet.create_invoice(1.2345, "hash_precision", "KWD")
+    other_data = parse_qs(client.calls[4][1]["content"])
+    assert other.success is True
+    assert other_data["line_items[0][price_data][unit_amount]"] == ["123"]
+    assert excessive_precision.failed is True
+    assert len(client.calls) == 5
+
+
+@pytest.mark.anyio
+async def test_stripe_wallet_verifies_settled_amount_and_currency(
+    settings: Settings,
+):
+    settings.stripe_api_endpoint = "https://api.stripe.com"
+    settings.stripe_api_secret_key = "stripe-secret"
+
+    paid_session = {
+        "id": "cs_kwd",
+        "payment_status": "paid",
+        "amount_total": 100_000,
+        "currency": "kwd",
+    }
+    wallet = StripeWallet()
+    wallet.client = MockHTTPClient(  # type: ignore[assignment]
+        [
+            MockHTTPResponse(
+                json_data={
+                    **paid_session,
+                    "metadata": {
+                        "lnbits_amount": "100",
+                        "lnbits_currency": "KWD",
+                    },
+                }
+            ),
+            MockHTTPResponse(
+                json_data={
+                    **paid_session,
+                    "metadata": {
+                        "lnbits_amount": "10",
+                        "lnbits_currency": "KWD",
+                    },
+                }
+            ),
+            MockHTTPResponse(
+                json_data={
+                    **paid_session,
+                    "metadata": {
+                        "lnbits_amount": "100",
+                        "lnbits_currency": "USD",
+                    },
+                }
+            ),
+            MockHTTPResponse(json_data={**paid_session, "metadata": {}}),
+        ]
+    )
+
+    matching = await wallet.get_invoice_status("cs_kwd")
+    wrong_amount = await wallet.get_invoice_status("cs_kwd")
+    wrong_currency = await wallet.get_invoice_status("cs_kwd")
+    missing_expected = await wallet.get_invoice_status("cs_kwd")
+
+    assert matching.success is True
+    assert wrong_amount.pending is True
+    assert wrong_currency.pending is True
+    assert missing_expected.pending is True
 
 
 @pytest.mark.anyio
