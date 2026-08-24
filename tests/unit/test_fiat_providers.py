@@ -34,6 +34,7 @@ from lnbits.fiat.base import (
     FiatStatusResponse,
     FiatSubscriptionPaymentOptions,
 )
+from lnbits.fiat.paypal import PayPalWallet
 from lnbits.fiat.revolut import REVOLUT_WEBHOOK_EVENTS, RevolutWallet
 from lnbits.fiat.square import SquareWallet
 from lnbits.fiat.stripe import StripeWallet
@@ -480,6 +481,80 @@ async def test_stripe_wallet_verifies_settled_amount_and_currency(
     assert wrong_amount.pending is True
     assert wrong_currency.pending is True
     assert missing_expected.pending is True
+
+
+@pytest.mark.anyio
+async def test_paypal_wallet_captures_approved_order(
+    settings: Settings, mocker: MockerFixture
+):
+    wallet, client = await _mock_paypal_wallet(
+        settings,
+        mocker,
+        [
+            MockHTTPResponse(json_data={"status": "APPROVED"}),
+            MockHTTPResponse(json_data=_paypal_order("COMPLETED")),
+        ],
+    )
+
+    status = await wallet.get_invoice_status("fiat_paypal_ORDER123")
+
+    assert status.success is True
+    assert [call[0] for call in client.calls] == [
+        "/v2/checkout/orders/ORDER123",
+        "/v2/checkout/orders/ORDER123/capture",
+    ]
+    assert client.calls[1][1]["json"] == {}
+    assert client.calls[1][1]["headers"]["PayPal-Request-Id"] == ("capture-ORDER123")
+
+
+@pytest.mark.anyio
+async def test_paypal_wallet_does_not_credit_pending_capture(
+    settings: Settings, mocker: MockerFixture
+):
+    wallet, _ = await _mock_paypal_wallet(
+        settings,
+        mocker,
+        [
+            MockHTTPResponse(json_data={"status": "APPROVED"}),
+            MockHTTPResponse(json_data=_paypal_order("PENDING")),
+        ],
+    )
+
+    status = await wallet.get_invoice_status("fiat_paypal_ORDER123")
+
+    assert status.pending is True
+
+
+@pytest.mark.anyio
+async def test_paypal_wallet_requires_capture_for_completed_order(
+    settings: Settings, mocker: MockerFixture
+):
+    wallet, client = await _mock_paypal_wallet(
+        settings,
+        mocker,
+        [MockHTTPResponse(json_data={"status": "COMPLETED"})],
+    )
+
+    status = await wallet.get_invoice_status("fiat_paypal_ORDER123")
+
+    assert status.pending is True
+    assert len(client.calls) == 1
+
+
+@pytest.mark.anyio
+async def test_paypal_wallet_subscription_status_is_unchanged(
+    settings: Settings, mocker: MockerFixture
+):
+    wallet, client = await _mock_paypal_wallet(
+        settings,
+        mocker,
+        [MockHTTPResponse(json_data={"status": "COMPLETED"})],
+    )
+
+    status = await wallet.get_invoice_status("fiat_paypal_subscription_CAPTURE123")
+
+    assert status.success is True
+    assert client.calls[0][0] == "v2/payments/captures/CAPTURE123"
 
 
 @pytest.mark.anyio
@@ -2030,3 +2105,29 @@ async def test_test_connection_reports_provider_status(mocker: MockerFixture):
     success_status = await fiat_provider_connection("stripe")
     assert success_status.success is True
     assert success_status.message == "Connection test successful. Balance: 21.0."
+
+
+async def _mock_paypal_wallet(
+    settings: Settings,
+    mocker: MockerFixture,
+    responses: list[MockHTTPResponse],
+) -> tuple[PayPalWallet, MockHTTPClient]:
+    mocker.patch.object(
+        settings, "paypal_api_endpoint", "https://api-m.sandbox.paypal.com"
+    )
+    mocker.patch.object(settings, "paypal_client_id", "client-id")
+    mocker.patch.object(settings, "paypal_client_secret", "client-secret")
+    wallet = PayPalWallet()
+    await wallet.client.aclose()
+    client = MockHTTPClient(responses)
+    wallet.client = client  # type: ignore[assignment]
+    wallet._access_token = "access-token"
+    wallet._token_expires_at = time.time() + 300
+    return wallet, client
+
+
+def _paypal_order(capture_status: str) -> dict:
+    return {
+        "status": "COMPLETED",
+        "purchase_units": [{"payments": {"captures": [{"status": capture_status}]}}],
+    }
