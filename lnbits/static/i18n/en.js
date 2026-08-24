@@ -403,10 +403,15 @@ window.localisation.en = {
   allow_access_hint: 'Allow access by IP (will override blocked IPs)',
   enter_ip: 'Enter an IP address and press enter',
   rate_limiter: 'Rate Limiter',
+  callback: 'Callback',
   callback_url_rules: 'Callback URL Rules',
   enter_callback_url_rule: 'Enter URL rule as regex and hit enter',
   callback_url_rule_hint:
-    'Callback URLs (like LNURL one) will be validated against these rules. At leat one rule must match. No rule means all URLs are allowed.',
+    'Callback URL origins are validated against these rules. At least one rule must match. No rules allow any valid origin; private targets still require the private-IP option.',
+  callback_allow_private_ips:
+    'Allow private IP addresses for callback requests',
+  callback_allow_private_ips_hint:
+    'Development only. Allows callbacks to localhost and private network addresses.',
   lnurl: 'LNURL',
   lnurl_redirect_url_rules: 'LNURL Redirect URL Rules',
   lnurl_redirect_url_rule_hint:

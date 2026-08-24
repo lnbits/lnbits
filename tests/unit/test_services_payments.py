@@ -170,6 +170,27 @@ async def test_lnurl_withdraw_success_keeps_invoice_pending(mocker: MockerFixtur
 
 
 @pytest.mark.anyio
+async def test_webhook_is_validated_before_invoice_creation(mocker: MockerFixture):
+    wallet = await _create_wallet()
+    create_invoice_mock = mocker.patch(
+        "lnbits.core.services.payments.create_invoice",
+        mocker.AsyncMock(),
+    )
+
+    with pytest.raises(ValueError, match="Callback URL is not allowed"):
+        await create_wallet_invoice(
+            wallet.id,
+            CreateInvoice(
+                amount=1,
+                out=False,
+                webhook=("http://ok.example.com@169.254.169.254/latest/meta-data/"),
+            ),
+        )
+
+    create_invoice_mock.assert_not_awaited()
+
+
+@pytest.mark.anyio
 async def test_update_pending_payment_and_bulk_pending_updates(mocker: MockerFixture):
     wallet = await _create_wallet()
     failed_id = await _create_payment(wallet)

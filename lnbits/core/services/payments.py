@@ -188,6 +188,9 @@ async def create_fiat_invoice(
 
 
 async def create_wallet_invoice(wallet_id: str, data: CreateInvoice) -> Payment:
+    if data.webhook:
+        check_callback_url(data.webhook)
+
     description_hash = None
     unhashed_description = None
     memo = data.memo or settings.lnbits_site_title

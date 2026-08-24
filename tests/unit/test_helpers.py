@@ -42,29 +42,29 @@ def test_check_callback_url_not_allowed(settings: Settings):
     settings.lnbits_callback_url_rules = [
         "https?://([a-zA-Z0-9.-]+\\.[a-zA-Z]{2,})(:\\d+)?"
     ]
-    with pytest.raises(ValueError, match="Callback not allowed. URL: xx. Netloc: ."):
+    with pytest.raises(ValueError, match="Callback URL is not allowed"):
         check_callback_url("xx")
 
     with pytest.raises(
         ValueError,
-        match="Callback not allowed. URL: http://localhost:3000/callback. "
-        "Netloc: localhost:3000. Please check your admin settings.",
+        match="Callback URL origin 'http://localhost:3000' is not allowed",
     ):
         check_callback_url("http://localhost:3000/callback")
 
     with pytest.raises(
         ValueError,
-        match="Callback not allowed. URL: https://localhost:3000/callback. "
-        "Netloc: localhost:3000. Please check your admin settings.",
+        match="Callback URL origin 'https://localhost:3000' is not allowed",
     ):
         check_callback_url("https://localhost:3000/callback")
 
     with pytest.raises(
         ValueError,
-        match="Callback not allowed. URL: http://192.168.2.2:3000/callback. "
-        "Netloc: 192.168.2.2:3000. Please check your admin settings.",
+        match="Callback URL origin 'http://192.168.2.2:3000' is not allowed",
     ):
         check_callback_url("http://192.168.2.2:3000/callback")
+
+    with pytest.raises(ValueError, match="Callback URL is not allowed"):
+        check_callback_url("http://ok.example.com@169.254.169.254/latest/meta-data/")
 
 
 @pytest.mark.anyio
@@ -73,13 +73,15 @@ def test_check_callback_url_no_rules(settings: Settings):
         "https?://([a-zA-Z0-9.-]+\\.[a-zA-Z]{2,})(:\\d+)?"
     ]
     settings.lnbits_callback_url_rules.append(".*")
-    check_callback_url("xyz")
+    check_callback_url("http://localhost/callback")
 
 
 @pytest.mark.anyio
 def test_check_callback_url_allow_all(settings: Settings):
     settings.lnbits_callback_url_rules = []
-    check_callback_url("xyz")
+    check_callback_url("http://localhost/callback")
+    with pytest.raises(ValueError, match="Callback URL is not allowed"):
+        check_callback_url("xyz")
 
 
 @pytest.mark.anyio
@@ -98,8 +100,7 @@ def test_check_callback_url_allowed(settings: Settings):
 def test_check_callback_url_multiple_rules(settings: Settings):
     with pytest.raises(
         ValueError,
-        match="Callback not allowed. URL: http://localhost:3000/callback. "
-        "Netloc: localhost:3000. Please check your admin settings.",
+        match="Callback URL origin 'http://localhost:3000' is not allowed",
     ):
         check_callback_url("http://localhost:3000/callback")
 
@@ -108,8 +109,7 @@ def test_check_callback_url_multiple_rules(settings: Settings):
 
     with pytest.raises(
         ValueError,
-        match="Callback not allowed. URL: https://localhost:3000/callback. "
-        "Netloc: localhost:3000. Please check your admin settings.",
+        match="Callback URL origin 'https://localhost:3000' is not allowed",
     ):
         check_callback_url("https://localhost:3000/callback")
 

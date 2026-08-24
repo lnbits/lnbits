@@ -472,6 +472,7 @@ class SecuritySettings(LNbitsSettings):
     lnbits_callback_url_rules: list[str] = Field(
         default=["https?://([a-zA-Z0-9.-]+\\.[a-zA-Z]{2,})(:\\d+)?"]
     )
+    lnbits_callback_allow_private_ips: bool = Field(default=False)
     lnbits_lnurl_redirect_url_rules: list[str] = Field(default=[])
     lnbits_lnurl_allow_private_ips: bool = Field(default=False)
 
