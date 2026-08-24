@@ -235,6 +235,34 @@ async def test_create_fiat_invoice(
 
 
 @pytest.mark.anyio
+async def test_create_fiat_invoice_with_lnurl_withdraw_rejected(
+    client, inkey_headers_to
+):
+    response = await client.post(
+        "/api/v1/payments",
+        headers=inkey_headers_to,
+        json={
+            "unit": "USD",
+            "out": False,
+            "amount": 1,
+            "fiat_provider": "stripe",
+            "lnurl_withdraw": {
+                "tag": "withdrawRequest",
+                "callback": "https://example.com/callback",
+                "k1": "randomk1value",
+                "minWithdrawable": 1000,
+                "maxWithdrawable": 1_500_000,
+            },
+        },
+    )
+
+    assert response.status_code == 400
+    assert response.json()["detail"] == (
+        "Fiat provider cannot be combined with LNURL withdraw."
+    )
+
+
+@pytest.mark.anyio
 async def test_create_fiat_subscription_invoice_rejected(
     client, inkey_headers_to, mocker: MockerFixture
 ):

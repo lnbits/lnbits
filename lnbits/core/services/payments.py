@@ -131,6 +131,8 @@ async def create_fiat_invoice(
     fiat_provider_name = invoice_data.fiat_provider
     if not fiat_provider_name:
         raise ValueError("Fiat provider is required for fiat invoices.")
+    if invoice_data.lnurl_withdraw:
+        raise ValueError("Fiat provider cannot be combined with LNURL withdraw.")
     if not settings.is_fiat_provider_enabled(fiat_provider_name):
         raise ValueError(
             f"Fiat provider '{fiat_provider_name}' is not enabled.",
@@ -237,13 +239,12 @@ async def create_wallet_invoice(wallet_id: str, data: CreateInvoice) -> Payment:
             )
             if isinstance(res, LnurlErrorResponse):
                 payment.extra["lnurl_response"] = res.reason
-                payment.status = "failed"
+                payment.status = PaymentState.FAILED
             elif isinstance(res, LnurlSuccessResponse):
                 payment.extra["lnurl_response"] = True
-                payment.status = "success"
         except Exception as exc:
             payment.extra["lnurl_response"] = str(exc)
-            payment.status = "failed"
+            payment.status = PaymentState.FAILED
         # updating to payment here would run into a race condition
         # with the payment listeners and they will overwrite each other
 
