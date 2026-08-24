@@ -1,9 +1,10 @@
 import os
 import time
 from http import HTTPStatus
+from pathlib import Path
 from shutil import make_archive
 from subprocess import Popen
-from urllib.parse import urlparse
+from urllib.parse import ParseResult, urlparse
 
 from fastapi import APIRouter, Depends, File
 from fastapi.responses import FileResponse
@@ -27,6 +28,39 @@ from ..crud import get_admin_settings, reset_core_settings, update_admin_setting
 
 admin_router = APIRouter(tags=["Admin UI"], prefix="/admin")
 file_upload = File(...)
+
+
+def _build_pg_dump_command(
+    parsed_url: ParseResult, dump_filename: str | Path
+) -> list[str]:
+    try:
+        hostname = parsed_url.hostname
+        port = parsed_url.port
+    except ValueError as exc:
+        raise ValueError("Invalid PostgreSQL database URL.") from exc
+
+    database = parsed_url.path.removeprefix("/")
+    if (
+        parsed_url.scheme != "postgres"
+        or not hostname
+        or not parsed_url.username
+        or not database
+    ):
+        raise ValueError("Invalid PostgreSQL database URL.")
+
+    command = ["pg_dump", f"--host={hostname}"]
+    if port is not None:
+        command.append(f"--port={port}")
+    command.extend(
+        [
+            f"--dbname={database}",
+            f"--username={parsed_url.username}",
+            "--no-password",
+            "--format=c",
+            f"--file={dump_filename}",
+        ]
+    )
+    return command
 
 
 @admin_router.get(
@@ -141,30 +175,24 @@ async def api_download_backup() -> FileResponse:
     last_filename = "lnbits-backup"
     filename = f"lnbits-backup-{int(time.time())}.zip"
     db_url = settings.lnbits_database_url
-    pg_backup_filename = f"{settings.lnbits_data_folder}/lnbits-database.dmp"
+    pg_backup_filename = Path(settings.lnbits_data_folder) / "lnbits-database.dmp"
     is_pg = db_url and db_url.startswith("postgres://")
 
     if is_pg and db_url:
         p = urlparse(db_url)
-        command = (
-            f"pg_dump --host={p.hostname} "
-            f"--dbname={p.path.replace('/', '')} "
-            f"--username={p.username} "
-            "--no-password "
-            "--format=c "
-            f"--file={pg_backup_filename}"
-        )
-        proc = Popen(
-            command, shell=True, env={**os.environ, "PGPASSWORD": p.password or ""}
-        )
-        proc.wait()
-
-    make_archive(last_filename, "zip", settings.lnbits_data_folder)
-
-    # cleanup pg_dump file
-    if is_pg:
-        proc = Popen(f"rm {pg_backup_filename}", shell=True)
-        proc.wait()
+        command = _build_pg_dump_command(p, pg_backup_filename)
+        try:
+            proc = Popen(
+                command,
+                shell=False,
+                env={**os.environ, "PGPASSWORD": p.password or ""},
+            )
+            proc.wait()
+            make_archive(last_filename, "zip", settings.lnbits_data_folder)
+        finally:
+            pg_backup_filename.unlink(missing_ok=True)
+    else:
+        make_archive(last_filename, "zip", settings.lnbits_data_folder)
 
     return FileResponse(
         path=f"{last_filename}.zip", filename=filename, media_type="application/zip"
