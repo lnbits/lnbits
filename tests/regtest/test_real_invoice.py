@@ -38,24 +38,6 @@ async def get_node_balance_sats():
     return balance.node_balance_sats
 
 
-async def _wait_for_invoice_state(
-    payment_hash: str, expected_state: str, timeout: float = 30
-) -> None:
-    loop = asyncio.get_running_loop()
-    deadline = loop.time() + timeout
-    state = None
-    while loop.time() < deadline:
-        invoice = await asyncio.to_thread(lookup_invoice, payment_hash)
-        state = invoice.get("state")
-        if state == expected_state:
-            return
-        await asyncio.sleep(0.1)
-    raise AssertionError(
-        f"Invoice did not reach state '{expected_state}' within {timeout}s. "
-        f"Last state: '{state}'."
-    )
-
-
 @pytest.mark.anyio
 @pytest.mark.skipif(is_fake, reason="this only works in regtest")
 async def test_pay_real_invoice(
@@ -473,3 +455,21 @@ async def test_check_fee_reserve(client, adminkey_headers_from):
     assert response.status_code < 300
     fee_reserve = response.json()
     assert fee_reserve["fee_reserve"] == fee_reserve_total(1000_000)
+
+
+async def _wait_for_invoice_state(
+    payment_hash: str, expected_state: str, timeout: float = 30
+) -> None:
+    loop = asyncio.get_running_loop()
+    deadline = loop.time() + timeout
+    state = None
+    while loop.time() < deadline:
+        invoice = await asyncio.to_thread(lookup_invoice, payment_hash)
+        state = invoice.get("state")
+        if state == expected_state:
+            return
+        await asyncio.sleep(0.1)
+    raise AssertionError(
+        f"Invoice did not reach state '{expected_state}' within {timeout}s. "
+        f"Last state: '{state}'."
+    )
