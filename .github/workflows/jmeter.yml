@@ -54,7 +54,7 @@ jobs:
         run: |
           # catch up time for lnbits
           sleep 1
-          cat data/logs/debug.log
+          cat data/logs/lnbits.log
 
       - name: upload jmeter test results
         uses: actions/upload-artifact@v4
