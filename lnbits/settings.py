@@ -551,10 +551,6 @@ class LNbitsFundingSource(LNbitsSettings):
     lnbits_invoice_key: str | None = Field(default=None)
 
 
-class ClicheFundingSource(LNbitsSettings):
-    cliche_endpoint: str | None = Field(default=None)
-
-
 class CLNRestFundingSource(LNbitsSettings):
     clnrest_url: str | None = Field(default=None)
     clnrest_ca: str | None = Field(default=None)
@@ -792,7 +788,6 @@ class LightningSettings(LNbitsSettings):
 class FundingSourcesSettings(
     FakeWalletFundingSource,
     LNbitsFundingSource,
-    ClicheFundingSource,
     CLNRestFundingSource,
     CoreLightningFundingSource,
     CoreLightningRestFundingSource,
