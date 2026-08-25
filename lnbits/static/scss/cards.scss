@@ -75,7 +75,7 @@ body.no-burger-background {
   .q-drawer {
     background-color: transparent !important;
     background-image: none !important;
-    backdrop-filter: none !important;
+    backdrop-filter: brightness(0.8) blur(8px) !important;
     box-shadow: none !important;
   }
 }

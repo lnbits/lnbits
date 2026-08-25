@@ -220,7 +220,7 @@ body.body--dark .q-header,
 body.body--dark .q-drawer {
   --q-dark: rgba(29, 29, 29, 0.3);
   background-color: var(--q-dark);
-  backdrop-filter: brightness(0.8);
+  backdrop-filter: brightness(0.8) blur(8px);
 }
 
 body.rounded-ui .q-card,
@@ -401,7 +401,7 @@ body.card-shadow.body--dark .q-card:not(.q-dialog .q-card, .lnbits__dialog-card,
 body.no-burger-background .q-drawer {
   background-color: transparent !important;
   background-image: none !important;
-  backdrop-filter: none !important;
+  backdrop-filter: brightness(0.8) blur(8px) !important;
   box-shadow: none !important;
 }
 
