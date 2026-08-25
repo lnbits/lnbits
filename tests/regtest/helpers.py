@@ -2,7 +2,7 @@ import hashlib
 import json
 import os
 import time
-from subprocess import PIPE, Popen, TimeoutExpired
+from subprocess import PIPE, CalledProcessError, Popen, TimeoutExpired
 
 from loguru import logger
 
@@ -79,6 +79,13 @@ def run_cmd(cmd: list) -> str:
         output, error = process_communication(process.communicate(timeout=timeout))
         took = time.time() - now
         logger.debug(f"ran command output: {output}, error: {error}, took: {took}s")
+        if process.returncode:
+            raise CalledProcessError(
+                process.returncode,
+                cmd,
+                output=output,
+                stderr=error,
+            )
         return output
     except TimeoutExpired:
         process.kill()
@@ -103,6 +110,12 @@ def get_hold_invoice(sats: int) -> tuple[str, dict]:
     cmd.extend(["addholdinvoice", preimage_hash, str(sats)])
     json = run_cmd_json(cmd)
     return preimage.hex(), json
+
+
+def lookup_invoice(payment_hash: str) -> dict:
+    cmd = docker_lightning_cli.copy()
+    cmd.extend(["lookupinvoice", payment_hash])
+    return run_cmd_json(cmd)
 
 
 def settle_invoice(preimage: str) -> str:

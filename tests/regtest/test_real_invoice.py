@@ -26,6 +26,7 @@ from ..helpers import is_fake, is_regtest
 from .helpers import (
     cancel_invoice,
     get_real_invoice,
+    lookup_invoice,
     mine_blocks_liquid,
     pay_real_invoice,
     settle_invoice,
@@ -35,6 +36,24 @@ from .helpers import (
 async def get_node_balance_sats():
     balance = await get_balance_delta()
     return balance.node_balance_sats
+
+
+async def _wait_for_invoice_state(
+    payment_hash: str, expected_state: str, timeout: float = 30
+) -> None:
+    loop = asyncio.get_running_loop()
+    deadline = loop.time() + timeout
+    state = None
+    while loop.time() < deadline:
+        invoice = await asyncio.to_thread(lookup_invoice, payment_hash)
+        state = invoice.get("state")
+        if state == expected_state:
+            return
+        await asyncio.sleep(0.1)
+    raise AssertionError(
+        f"Invoice did not reach state '{expected_state}' within {timeout}s. "
+        f"Last state: '{state}'."
+    )
 
 
 @pytest.mark.anyio
@@ -276,14 +295,14 @@ async def test_pay_hold_invoice_check_pending(
             headers=adminkey_headers_from,
         )
     )
-    await asyncio.sleep(3)
     # get payment hash from the invoice
     invoice_obj = bolt11.decode(invoice["payment_request"])
+    await _wait_for_invoice_state(invoice_obj.payment_hash, "ACCEPTED")
     settle_invoice(preimage)
     payment_db = await get_standalone_payment(invoice_obj.payment_hash)
     assert payment_db
     response = await task
-    assert response.status_code < 300
+    assert response.status_code < 300, response.text
 
     # check if paid
     await asyncio.sleep(1)
