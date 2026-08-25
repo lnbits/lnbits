@@ -47,7 +47,9 @@ async def test_lnurl_requests_reject_private_ips_by_default(
 ):
     settings.lnbits_lnurl_allow_private_ips = False
 
-    with pytest.raises(LnurlResponseException, match="target is not allowed"):
+    with pytest.raises(
+        LnurlResponseException, match="resolves to a private or non-global IP address"
+    ):
         await lnurl_service._validate_lnurl_request_url(
             httpx.URL("https://169.254.169.254/latest/meta-data/"), tor_socks=None
         )
@@ -56,17 +58,47 @@ async def test_lnurl_requests_reject_private_ips_by_default(
         "lnbits.core.services.lnurl._resolve_lnurl_host",
         mocker.AsyncMock(return_value=[ipaddress.ip_address("10.0.0.1")]),
     )
-    with pytest.raises(LnurlResponseException, match="target is not allowed"):
+    with pytest.raises(
+        LnurlResponseException, match="resolves to a private or non-global IP address"
+    ):
         await lnurl_service._validate_lnurl_request_url(
             httpx.URL("https://metadata.internal/"), tor_socks=None
         )
 
     settings.lnbits_lnurl_allow_private_ips = True
+    with pytest.raises(LnurlResponseException, match="not allowed over HTTP"):
+        await lnurl_service._validate_lnurl_request_url(
+            httpx.URL("http://93.184.216.34/lnurl"), tor_socks=None
+        )
+
     addresses, proxy = await lnurl_service._validate_lnurl_request_url(
         httpx.URL("http://127.0.0.1:8080/lnurl"), tor_socks=None
     )
     assert addresses == [ipaddress.ip_address("127.0.0.1")]
     assert proxy is None
+
+
+@pytest.mark.anyio
+@pytest.mark.parametrize(
+    ("url", "message"),
+    [
+        (
+            "https://user:password@example.com/lnurl",
+            "LNURL request URL must not include credentials.",
+        ),
+        ("https:///lnurl", "LNURL request target hostname is missing."),
+        ("https://example.com:99999/lnurl", "LNURL request target port is invalid."),
+        (
+            "ftp://example.com/lnurl",
+            "LNURL request URL scheme must be HTTP or HTTPS.",
+        ),
+    ],
+)
+async def test_lnurl_request_validation_errors_identify_cause(url: str, message: str):
+    with pytest.raises(LnurlResponseException) as exc_info:
+        await lnurl_service._validate_lnurl_request_url(httpx.URL(url), tor_socks=None)
+
+    assert str(exc_info.value) == message
 
 
 @pytest.mark.anyio
@@ -120,7 +152,7 @@ async def test_lnurl_redirect_target_is_revalidated(
         ),
     )
 
-    with pytest.raises(LnurlResponseException, match="target is not allowed"):
+    with pytest.raises(LnurlResponseException, match="not allowed over HTTP"):
         await lnurl_service._request_lnurl_json(
             "https://start.example/lnurl",
             user_agent=None,

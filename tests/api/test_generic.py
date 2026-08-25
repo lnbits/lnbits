@@ -53,7 +53,11 @@ async def test_lnurlwallet_rejects_private_callback(
     )
 
     assert response.status_code == 400
-    assert response.json() == {"detail": "LNURL request target is not allowed."}
+    assert response.json() == {
+        "detail": (
+            "LNURL request target resolves to a private or non-global IP address."
+        )
+    }
     send.assert_awaited_once()
 
 

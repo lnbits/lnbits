@@ -423,17 +423,19 @@ async def _validate_lnurl_request_url(
     url: httpx.URL, *, tor_socks: str | None
 ) -> tuple[list[ipaddress.IPv4Address | ipaddress.IPv6Address], str | None]:
     parsed = urlparse(str(url))
-    if parsed.username or parsed.password or not parsed.hostname:
-        raise LnurlResponseException("LNURL request target is not allowed.")
+    if parsed.username or parsed.password:
+        raise LnurlResponseException("LNURL request URL must not include credentials.")
+    if not parsed.hostname:
+        raise LnurlResponseException("LNURL request target hostname is missing.")
     try:
         port = parsed.port
     except ValueError as exc:
-        raise LnurlResponseException("LNURL request target is not allowed.") from exc
+        raise LnurlResponseException("LNURL request target port is invalid.") from exc
 
     host = parsed.hostname.lower().rstrip(".")
     is_onion = host.endswith(".onion")
     if parsed.scheme not in {"http", "https"}:
-        raise LnurlResponseException("LNURL request target is not allowed.")
+        raise LnurlResponseException("LNURL request URL scheme must be HTTP or HTTPS.")
     if is_onion:
         return [], tor_socks or LNURL_TOR_SOCKS
 
@@ -448,11 +450,13 @@ async def _validate_lnurl_request_url(
         not settings.lnbits_lnurl_allow_private_ips
         or any(address.is_global for address in addresses)
     ):
-        raise LnurlResponseException("LNURL request target is not allowed.")
+        raise LnurlResponseException("LNURL request target is not allowed over HTTP.")
     if not settings.lnbits_lnurl_allow_private_ips and any(
         not address.is_global for address in addresses
     ):
-        raise LnurlResponseException("LNURL request target is not allowed.")
+        raise LnurlResponseException(
+            "LNURL request target resolves to a private or non-global IP address."
+        )
     return addresses, None
 
 
