@@ -29,9 +29,11 @@ from lnbits.core.models.users import (
     UserLabel,
 )
 from lnbits.core.services.users import create_user_account
+from lnbits.core.views import auth_api
 from lnbits.core.views.user_api import api_users_reset_password
 from lnbits.helpers import create_access_token
 from lnbits.settings import AuthMethods, Settings
+from lnbits.utils.cache import cache
 from lnbits.utils.nostr import hex_to_npub, sign_event
 
 nostr_event = {
@@ -206,6 +208,104 @@ async def test_login_alan_password_nok(user_alan: User, http_client: AsyncClient
 
     assert response.status_code == 401, "User does not exist"
     assert response.json().get("detail") == "Invalid credentials."
+
+
+@pytest.mark.anyio
+async def test_login_throttles_by_account_and_resets_after_success(
+    user_alan: User, http_client: AsyncClient
+):
+    assert user_alan.username
+    assert user_alan.email
+    throttle_key = auth_api._login_failure_cache_key(user_alan.username, user_alan.id)
+    cache.pop(throttle_key)
+
+    try:
+        identifiers = [user_alan.username, user_alan.email] * 3
+        for identifier in identifiers[: auth_api.LOGIN_FAILURE_LIMIT]:
+            response = await http_client.post(
+                "/api/v1/auth",
+                json={"username": identifier, "password": "wrongpassword"},
+            )
+            assert response.status_code == 401
+
+        response = await http_client.post(
+            "/api/v1/auth",
+            json={"username": user_alan.email, "password": "secret1234"},
+        )
+        assert response.status_code == 429
+        assert response.json()["detail"] == "Too many login attempts. Try again later."
+
+        blocked_state = cache.get(throttle_key)
+        assert blocked_state is not None
+
+        response = await http_client.post(
+            "/api/v1/auth",
+            json={"username": user_alan.username, "password": "wrongpassword"},
+        )
+        assert response.status_code == 429
+        assert cache.get(throttle_key) == blocked_state
+
+        cache.set(
+            throttle_key,
+            auth_api.LoginFailureState(
+                failures=blocked_state.failures,
+                blocked_until=time.time() - 1,
+            ),
+            expiry=auth_api.LOGIN_FAILURE_WINDOW_SECONDS,
+        )
+        response = await http_client.post(
+            "/api/v1/auth",
+            json={"username": user_alan.username, "password": "wrongpassword"},
+        )
+        assert response.status_code == 401
+
+        next_state = cache.get(throttle_key)
+        assert next_state is not None
+        assert next_state.failures == auth_api.LOGIN_FAILURE_LIMIT + 1
+        assert 115 <= next_state.blocked_until - time.time() <= 120
+
+        cache.set(
+            throttle_key,
+            auth_api.LoginFailureState(
+                failures=next_state.failures,
+                blocked_until=time.time() - 1,
+            ),
+            expiry=auth_api.LOGIN_FAILURE_WINDOW_SECONDS,
+        )
+        response = await http_client.post(
+            "/api/v1/auth",
+            json={"username": user_alan.email, "password": "secret1234"},
+        )
+        assert response.status_code == 200
+        assert cache.get(throttle_key) is None
+    finally:
+        cache.pop(throttle_key)
+
+
+@pytest.mark.anyio
+async def test_login_throttles_unknown_identifier(http_client: AsyncClient):
+    identifier = f"missing_{uuid4().hex}"
+    throttle_key = auth_api._login_failure_cache_key(identifier, None)
+    cache.pop(throttle_key)
+
+    try:
+        for attempt in range(auth_api.LOGIN_FAILURE_LIMIT):
+            response = await http_client.post(
+                "/api/v1/auth",
+                json={
+                    "username": identifier.upper() if attempt % 2 else identifier,
+                    "password": "wrongpassword",
+                },
+            )
+            assert response.status_code == 401
+
+        response = await http_client.post(
+            "/api/v1/auth",
+            json={"username": identifier, "password": "wrongpassword"},
+        )
+        assert response.status_code == 429
+    finally:
+        cache.pop(throttle_key)
 
 
 @pytest.mark.anyio

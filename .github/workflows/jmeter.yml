@@ -23,6 +23,7 @@ jobs:
         env:
           LNBITS_ADMIN_UI: true
           AUTH_HTTPS_ONLY: false
+          AUTH_ALLOWED_METHODS: "user-id-only,username-password"
           LNBITS_EXTENSIONS_DEFAULT_INSTALL: "watchonly, satspay, tipjar, tpos, lnurlp, withdraw"
           LNBITS_BACKEND_WALLET_CLASS: FakeWallet
         run: |
@@ -53,7 +54,7 @@ jobs:
         run: |
           # catch up time for lnbits
           sleep 1
-          cat data/logs/debug.log
+          cat data/logs/lnbits.log
 
       - name: upload jmeter test results
         uses: actions/upload-artifact@v4

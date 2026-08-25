@@ -376,15 +376,15 @@
         </div>
 
         <div class="col-12 col-md-12">
-          <p v-text="$t('callback_url_rules')"></p>
+          <p v-text="$t('callback')"></p>
           <div class="row q-col-gutter-md">
-            <div class="col-12">
+            <div class="col-12 col-md-6">
               <q-input
                 filled
                 v-model="formCallbackUrlRule"
                 @keydown.enter="addCallbackUrlRule"
                 type="text"
-                :label="$t('enter_callback_url_rule')"
+                :label="$t('callback_url_rules')"
                 :hint="$t('callback_url_rule_hint')"
               >
                 <q-btn
@@ -407,6 +407,86 @@
                 ></q-chip>
               </div>
               <br />
+            </div>
+            <div class="col-12 col-md-6">
+              <q-item tag="label" v-ripple>
+                <q-item-section>
+                  <q-item-label
+                    v-text="$t('callback_allow_private_ips')"
+                  ></q-item-label>
+                  <q-item-label
+                    caption
+                    v-text="$t('callback_allow_private_ips_hint')"
+                  ></q-item-label>
+                </q-item-section>
+                <q-item-section avatar>
+                  <q-toggle
+                    size="md"
+                    v-model="formData.lnbits_callback_allow_private_ips"
+                    checked-icon="check"
+                    color="green"
+                    unchecked-icon="clear"
+                  />
+                </q-item-section>
+              </q-item>
+            </div>
+          </div>
+        </div>
+
+        <div class="col-12 col-md-12">
+          <p v-text="$t('lnurl')"></p>
+          <div class="row q-col-gutter-md">
+            <div class="col-12 col-md-6">
+              <q-input
+                filled
+                v-model="formLnurlRedirectUrlRule"
+                @keydown.enter="addLnurlRedirectUrlRule"
+                type="text"
+                :label="$t('lnurl_redirect_url_rules')"
+                :hint="$t('lnurl_redirect_url_rule_hint')"
+              >
+                <q-btn
+                  @click="addLnurlRedirectUrlRule"
+                  dense
+                  flat
+                  icon="add"
+                ></q-btn>
+              </q-input>
+              <div>
+                <q-chip
+                  v-for="rule in formData.lnbits_lnurl_redirect_url_rules"
+                  :key="rule"
+                  removable
+                  @remove="removeLnurlRedirectUrlRule(rule)"
+                  color="primary"
+                  text-color="white"
+                  :label="rule"
+                  class="ellipsis"
+                ></q-chip>
+              </div>
+              <br />
+            </div>
+            <div class="col-12 col-md-6">
+              <q-item tag="label" v-ripple>
+                <q-item-section>
+                  <q-item-label
+                    v-text="$t('lnurl_allow_private_ips')"
+                  ></q-item-label>
+                  <q-item-label
+                    caption
+                    v-text="$t('lnurl_allow_private_ips_hint')"
+                  ></q-item-label>
+                </q-item-section>
+                <q-item-section avatar>
+                  <q-toggle
+                    size="md"
+                    v-model="formData.lnbits_lnurl_allow_private_ips"
+                    checked-icon="check"
+                    color="green"
+                    unchecked-icon="clear"
+                  />
+                </q-item-section>
+              </q-item>
             </div>
           </div>
         </div>

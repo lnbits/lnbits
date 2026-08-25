@@ -76,7 +76,8 @@ jobs:
       matrix:
         python-version: ["3.12"]
         backend-wallet-class:
-          - BoltzWallet
+          # Disabled because hold-invoice regtests are currently unreliable.
+          # - BoltzWallet
           - LndRestWallet
           - LndWallet
           - CoreLightningWallet

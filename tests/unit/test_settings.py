@@ -387,6 +387,9 @@ def test_asset_security_and_notification_helpers(
     assert asset_settings.is_unlimited_assets_user("random-user") is False
     assert security_settings.is_wallet_max_balance_exceeded(101) is True
     assert security_settings.is_wallet_max_balance_exceeded(100) is False
+    assert security_settings.lnbits_callback_allow_private_ips is False
+    assert security_settings.lnbits_lnurl_redirect_url_rules == []
+    assert security_settings.lnbits_lnurl_allow_private_ips is False
     assert notification_settings.is_nostr_notifications_configured() is True
     assert notification_settings.is_telegram_notifications_configured() is True
 

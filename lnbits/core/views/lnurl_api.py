@@ -17,8 +17,6 @@ from lnurl import (
     LnurlResponseException,
     LnurlWithdrawResponse,
 )
-from lnurl import execute_login as lnurlauth
-from lnurl import handle as lnurl_handle
 from lnurl.models import LnurlResponseModel
 from loguru import logger
 from pydantic import ValidationError
@@ -38,6 +36,8 @@ from ..services.lightning_address import (
     wallet_lightning_address_callback,
     wallet_lightning_address_response,
 )
+from ..services.lnurl import execute_login as lnurlauth
+from ..services.lnurl import handle as lnurl_handle
 
 lnurl_router = APIRouter(tags=["LNURL"])
 

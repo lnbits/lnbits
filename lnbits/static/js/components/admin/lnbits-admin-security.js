@@ -8,7 +8,8 @@ window.app.component('lnbits-admin-security', {
       serverlogEnabled: false,
       nostrAcceptedUrl: '',
       formAllowedIPs: '',
-      formCallbackUrlRule: ''
+      formCallbackUrlRule: '',
+      formLnurlRedirectUrlRule: ''
     }
   },
   created() {},
@@ -68,6 +69,27 @@ window.app.component('lnbits-admin-security', {
       const allowedCallbacks = this.formData.lnbits_callback_url_rules
       this.formData.lnbits_callback_url_rules = allowedCallbacks.filter(
         a => a !== allowedCallback
+      )
+    },
+    addLnurlRedirectUrlRule() {
+      const redirectRule = this.formLnurlRedirectUrlRule.trim()
+      const redirectRules = this.formData.lnbits_lnurl_redirect_url_rules
+      if (
+        redirectRule &&
+        redirectRule.length &&
+        !redirectRules.includes(redirectRule)
+      ) {
+        this.formData.lnbits_lnurl_redirect_url_rules = [
+          ...redirectRules,
+          redirectRule
+        ]
+        this.formLnurlRedirectUrlRule = ''
+      }
+    },
+    removeLnurlRedirectUrlRule(redirectRule) {
+      const redirectRules = this.formData.lnbits_lnurl_redirect_url_rules
+      this.formData.lnbits_lnurl_redirect_url_rules = redirectRules.filter(
+        rule => rule !== redirectRule
       )
     },
     addNostrUrl() {
