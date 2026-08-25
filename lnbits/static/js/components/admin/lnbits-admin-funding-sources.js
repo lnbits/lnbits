@@ -154,7 +154,12 @@ window.app.component('lnbits-admin-funding-sources', {
           {
             blink_api_endpoint: 'Endpoint',
             blink_ws_endpoint: 'WebSocket',
-            blink_token: 'Key'
+            blink_token: 'Key',
+            blink_send_without_probe: {
+              advanced: true,
+              label: 'Send payment if fee probe fails',
+              hint: 'If enabled (default), payments to destinations that cannot be probed (e.g. fedimints) are still sent. If disabled, such payments fail.'
+            }
           }
         ],
         [

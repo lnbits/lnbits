@@ -6,6 +6,7 @@ from .views.api import api_router
 from .views.asset_api import asset_router
 from .views.audit_api import audit_router
 from .views.auth_api import auth_router
+from .views.blockexplorer_api import blockexplorer_router
 from .views.callback_api import callback_router
 from .views.extension_api import extension_router
 from .views.extensions_builder_api import extension_builder_router
@@ -49,6 +50,7 @@ def init_core_routers(app: FastAPI):
     app.include_router(asset_router)
     app.include_router(fiat_router)
     app.include_router(lnurl_router)
+    app.include_router(blockexplorer_router)
 
 
 __all__ = ["core_app", "core_app_extra", "db"]

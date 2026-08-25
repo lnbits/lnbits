@@ -1,3 +1,4 @@
+import asyncio
 import hashlib
 from json import JSONDecodeError
 from unittest.mock import AsyncMock, Mock
@@ -369,6 +370,73 @@ async def test_check_payment_with_key(client, invoice: Payment, inkey_headers_fr
     assert invoice
     # with key, that's why with "details"
     assert "details" in response.json()
+
+
+# check GET /api/v1/payments/<hash>: preimage of an unpaid invoice must not leak
+@pytest.mark.anyio
+async def test_check_pending_payment_does_not_expose_preimage(
+    client, inkey_headers_from, inkey_headers_to, adminkey_headers_from
+):
+    # create an unpaid invoice (FakeWallet stores a valid preimage at creation)
+    data = await get_random_invoice_data()
+    response = await client.post("/api/v1/payments", json=data, headers=inkey_headers_to)
+    assert response.status_code == 201
+    unpaid = response.json()
+    payment_hash = unpaid["payment_hash"]
+
+    # unauthenticated request must not return the preimage
+    response = await client.get(f"/api/v1/payments/{payment_hash}")
+    assert response.status_code < 300
+    assert response.json()["paid"] is False
+    assert response.json()["preimage"] is None
+
+    # same for an invalid key
+    response = await client.get(
+        f"/api/v1/payments/{payment_hash}", headers={"X-Api-Key": "invalid_key"}
+    )
+    assert response.json()["paid"] is False
+    assert response.json()["preimage"] is None
+
+    # a valid key of a different (non-owning) wallet scopes the lookup
+    # to that wallet and therefore yields 404, leaking nothing at all
+    response = await client.get(
+        f"/api/v1/payments/{payment_hash}", headers=inkey_headers_from
+    )
+    assert response.status_code == 404
+
+    # expired unpaid invoices must not leak the preimage either
+    expiry_data = await get_random_invoice_data()
+    expiry_data["expiry"] = 1
+    response = await client.post(
+        "/api/v1/payments", json=expiry_data, headers=inkey_headers_to
+    )
+    assert response.status_code == 201
+    expired_hash = response.json()["payment_hash"]
+    await asyncio.sleep(2)
+    response = await client.get(f"/api/v1/payments/{expired_hash}")
+    assert response.json()["paid"] is False
+    assert response.json()["preimage"] is None
+
+    # after payment the preimage is exposed again as proof of payment
+    response = await client.post(
+        "/api/v1/payments",
+        json={"out": True, "bolt11": unpaid["bolt11"]},
+        headers=adminkey_headers_from,
+    )
+    assert response.status_code < 300
+    # internal payments settle asynchronously, give the listener a moment
+    preimage = None
+    paid = False
+    for _ in range(10):
+        response = await client.get(f"/api/v1/payments/{payment_hash}")
+        paid = response.json()["paid"]
+        preimage = response.json()["preimage"]
+        if paid:
+            break
+        await asyncio.sleep(0.5)
+    assert paid is True
+    assert preimage is not None
+    assert hashlib.sha256(bytes.fromhex(preimage)).hexdigest() == payment_hash
 
 
 # check POST /api/v1/payments: payment with wrong key type

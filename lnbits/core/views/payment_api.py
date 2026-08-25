@@ -405,6 +405,8 @@ async def api_payment(payment_hash, x_api_key: str | None = Header(None)):
         payment = await update_pending_payment(payment)
     except Exception:
         if wallet and wallet.id == payment.wallet_id:
+            # do not expose the preimage of unpaid payments
+            payment.preimage = None
             return {"paid": False, "details": payment}
         return {"paid": False}
 
@@ -412,10 +414,15 @@ async def api_payment(payment_hash, x_api_key: str | None = Header(None)):
         return {
             "paid": payment.success,
             "status": f"{payment.status!s}",
-            "preimage": payment.preimage,
+            # only expose the preimage once the payment is actually successful
+            "preimage": payment.preimage if payment.success else None,
             "details": payment,
         }
-    return {"paid": payment.success, "preimage": payment.preimage}
+    return {
+        "paid": payment.success,
+        # only expose the preimage once the payment is actually successful
+        "preimage": payment.preimage if payment.success else None,
+    }
 
 
 @payment_router.post("/decode", status_code=HTTPStatus.OK)

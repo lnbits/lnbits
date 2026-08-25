@@ -240,10 +240,10 @@ body[data-theme=classic].card-gradient .q-drawer {
 body[data-theme=classic].card-gradient.body--dark .q-card:not(.q-dialog .q-card,
 .lnbits__dialog-card,
 .q-dialog-plugin--dark) {
-  background-image: linear-gradient(135deg, rgb(38.6192771084, 42.356626506, 64.7807228916), rgba(103, 58, 183, 0.07));
+  background-image: linear-gradient(135deg, rgb(15.1448145523%, 16.6104417671%, 25.4042050555%), rgba(103, 58, 183, 0.07));
 }
 body[data-theme=classic].card-gradient.body--dark .q-drawer {
-  background-image: linear-gradient(165deg, rgb(36.7144578313, 40.2674698795, 61.5855421687), rgba(103, 58, 183, 0.05));
+  background-image: linear-gradient(165deg, rgb(14.3978266005%, 15.7911646586%, 24.1511930073%), rgba(103, 58, 183, 0.05));
 }
 
 body[data-theme=bitcoin].card-gradient .q-card:not(.q-dialog .q-card,
@@ -258,10 +258,10 @@ body[data-theme=bitcoin].card-gradient .q-drawer {
 body[data-theme=bitcoin].card-gradient.body--dark .q-card:not(.q-dialog .q-card,
 .lnbits__dialog-card,
 .q-dialog-plugin--dark) {
-  background-image: linear-gradient(135deg, rgb(54.18, 49.364, 71.036), rgba(234, 97, 29, 0.07));
+  background-image: linear-gradient(135deg, rgb(21.2470588235%, 19.3584313725%, 27.857254902%), rgba(234, 97, 29, 0.07));
 }
 body[data-theme=bitcoin].card-gradient.body--dark .q-drawer {
-  background-image: linear-gradient(165deg, rgb(51.885, 47.273, 68.027), rgba(234, 97, 29, 0.05));
+  background-image: linear-gradient(165deg, rgb(20.3470588235%, 18.5384313725%, 26.677254902%), rgba(234, 97, 29, 0.05));
 }
 
 body[data-theme=freedom].card-gradient .q-card:not(.q-dialog .q-card,
@@ -276,10 +276,10 @@ body[data-theme=freedom].card-gradient .q-drawer {
 body[data-theme=freedom].card-gradient.body--dark .q-card:not(.q-dialog .q-card,
 .lnbits__dialog-card,
 .q-dialog-plugin--dark) {
-  background-image: linear-gradient(135deg, rgb(82.2051282051, 55.1948717949, 63.4153846154), rgba(226, 33, 86, 0.07));
+  background-image: linear-gradient(135deg, rgb(32.2373051785%, 21.6450477627%, 24.8687782805%), rgba(226, 33, 86, 0.07));
 }
 body[data-theme=freedom].card-gradient.body--dark .q-drawer {
-  background-image: linear-gradient(165deg, rgb(79.1538461538, 53.1461538462, 61.0615384615), rgba(226, 33, 86, 0.05));
+  background-image: linear-gradient(165deg, rgb(31.0407239819%, 20.8416289593%, 23.9457013575%), rgba(226, 33, 86, 0.05));
 }
 
 body[data-theme=cyber].card-gradient .q-card:not(.q-dialog .q-card,
@@ -294,10 +294,10 @@ body[data-theme=cyber].card-gradient .q-drawer {
 body[data-theme=cyber].card-gradient.body--dark .q-card:not(.q-dialog .q-card,
 .lnbits__dialog-card,
 .q-dialog-plugin--dark) {
-  background-image: linear-gradient(135deg, rgb(10.2, 10.2, 10.2), rgba(124, 179, 66, 0.07));
+  background-image: linear-gradient(135deg, rgb(4%, 4%, 4%), rgba(124, 179, 66, 0.07));
 }
 body[data-theme=cyber].card-gradient.body--dark .q-drawer {
-  background-image: linear-gradient(165deg, rgb(7.65, 7.65, 7.65), rgba(124, 179, 66, 0.05));
+  background-image: linear-gradient(165deg, rgb(3%, 3%, 3%), rgba(124, 179, 66, 0.05));
 }
 
 body[data-theme=mint].card-gradient .q-card:not(.q-dialog .q-card,
@@ -312,10 +312,10 @@ body[data-theme=mint].card-gradient .q-drawer {
 body[data-theme=mint].card-gradient.body--dark .q-card:not(.q-dialog .q-card,
 .lnbits__dialog-card,
 .q-dialog-plugin--dark) {
-  background-image: linear-gradient(135deg, rgb(38.6192771084, 64.7807228916, 53.5686746988), rgba(58, 183, 125, 0.07));
+  background-image: linear-gradient(135deg, rgb(15.1448145523%, 25.4042050555%, 21.0073234113%), rgba(58, 183, 125, 0.07));
 }
 body[data-theme=mint].card-gradient.body--dark .q-drawer {
-  background-image: linear-gradient(165deg, rgb(36.7144578313, 61.5855421687, 50.9265060241), rgba(58, 183, 125, 0.05));
+  background-image: linear-gradient(165deg, rgb(14.3978266005%, 24.1511930073%, 19.971178833%), rgba(58, 183, 125, 0.05));
 }
 
 body[data-theme=autumn].card-gradient .q-card:not(.q-dialog .q-card,
@@ -330,10 +330,10 @@ body[data-theme=autumn].card-gradient .q-drawer {
 body[data-theme=autumn].card-gradient.body--dark .q-card:not(.q-dialog .q-card,
 .lnbits__dialog-card,
 .q-dialog-plugin--dark) {
-  background-image: linear-gradient(135deg, rgb(64.7807228916, 51.0771084337, 38.6192771084), rgba(183, 118, 58, 0.07));
+  background-image: linear-gradient(135deg, rgb(25.4042050555%, 20.0302386015%, 15.1448145523%), rgba(183, 118, 58, 0.07));
 }
 body[data-theme=autumn].card-gradient.body--dark .q-drawer {
-  background-image: linear-gradient(165deg, rgb(61.5855421687, 48.5578313253, 36.7144578313), rgba(183, 118, 58, 0.05));
+  background-image: linear-gradient(165deg, rgb(24.1511930073%, 19.0422867942%, 14.3978266005%), rgba(183, 118, 58, 0.05));
 }
 
 body[data-theme=flamingo].card-gradient .q-card:not(.q-dialog .q-card,
@@ -348,10 +348,10 @@ body[data-theme=flamingo].card-gradient .q-drawer {
 body[data-theme=flamingo].card-gradient.body--dark .q-card:not(.q-dialog .q-card,
 .lnbits__dialog-card,
 .q-dialog-plugin--dark) {
-  background-image: linear-gradient(135deg, rgb(66.176, 4.224, 66.176), rgba(255, 0, 255, 0.07));
+  background-image: linear-gradient(135deg, rgb(25.951372549%, 1.6564705882%, 25.951372549%), rgba(255, 0, 255, 0.07));
 }
 body[data-theme=flamingo].card-gradient.body--dark .q-drawer {
-  background-image: linear-gradient(165deg, rgb(61.382, 3.918, 61.382), rgba(255, 0, 255, 0.05));
+  background-image: linear-gradient(165deg, rgb(24.071372549%, 1.5364705882%, 24.071372549%), rgba(255, 0, 255, 0.05));
 }
 
 body[data-theme=monochrome].card-gradient .q-card:not(.q-dialog .q-card,
@@ -366,10 +366,10 @@ body[data-theme=monochrome].card-gradient .q-drawer {
 body[data-theme=monochrome].card-gradient.body--dark .q-card:not(.q-dialog .q-card,
 .lnbits__dialog-card,
 .q-dialog-plugin--dark) {
-  background-image: linear-gradient(135deg, rgb(10.2, 10.2, 10.2), rgba(73, 73, 73, 0.07));
+  background-image: linear-gradient(135deg, rgb(4%, 4%, 4%), rgba(73, 73, 73, 0.07));
 }
 body[data-theme=monochrome].card-gradient.body--dark .q-drawer {
-  background-image: linear-gradient(165deg, rgb(7.65, 7.65, 7.65), rgba(73, 73, 73, 0.05));
+  background-image: linear-gradient(165deg, rgb(3%, 3%, 3%), rgba(73, 73, 73, 0.05));
 }
 
 body[data-theme=salvador].card-gradient .q-card:not(.q-dialog .q-card,
@@ -384,10 +384,10 @@ body[data-theme=salvador].card-gradient .q-drawer {
 body[data-theme=salvador].card-gradient.body--dark .q-card:not(.q-dialog .q-card,
 .lnbits__dialog-card,
 .q-dialog-plugin--dark) {
-  background-image: linear-gradient(135deg, rgb(43.9888888889, 64.2, 84.4111111111), rgba(25, 118, 210, 0.07));
+  background-image: linear-gradient(135deg, rgb(17.2505446623%, 25.1764705882%, 33.1023965142%), rgba(25, 118, 210, 0.07));
 }
 body[data-theme=salvador].card-gradient.body--dark .q-drawer {
-  background-image: linear-gradient(165deg, rgb(42.2416666667, 61.65, 81.0583333333), rgba(25, 118, 210, 0.05));
+  background-image: linear-gradient(165deg, rgb(16.5653594771%, 24.1764705882%, 31.7875816993%), rgba(25, 118, 210, 0.05));
 }
 
 body.card-shadow .q-card:not(.q-dialog .q-card, .lnbits__dialog-card, .q-dialog-plugin--dark) {
@@ -450,6 +450,10 @@ body.no-burger-background .q-drawer {
   to {
     transform: translateX(calc(-100% - var(--gap)));
   }
+}
+
+a {
+  color: unset;
 }
 
 [v-cloak] {

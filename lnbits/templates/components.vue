@@ -13,6 +13,7 @@ include('components/admin/wasm-limit-config.vue') %} {%
 include('components/admin/assets-config.vue') %} {%
 include('components/admin/notifications.vue') %} {%
 include('components/admin/server.vue') %} {%
+include('components/admin/blockexplorer.vue') %} {%
 include('components/lnbits-qrcode.vue') %} {%
 include('components/lnbits-qrcode-scanner.vue') %} {%
 include('components/lnbits-disclaimer.vue') %} {%
@@ -97,6 +98,21 @@ include('components/lnbits-error.vue') %}
           <q-item-label lines="1" v-text="$t('api_watch')"></q-item-label>
         </q-item-section>
         <q-item-section side v-show="isActive('/audit')">
+          <q-icon name="chevron_right" color="grey-5" size="md"></q-icon>
+        </q-item-section>
+      </q-item>
+      <q-item v-if="g.settings.showBlockExplorer" to="/blockexplorer">
+        <q-item-section side>
+          <q-icon
+            name="travel_explore"
+            :color="isActive('/blockexplorer') ? 'primary' : 'grey-5'"
+            size="md"
+          ></q-icon>
+        </q-item-section>
+        <q-item-section>
+          <q-item-label lines="1" v-text="$t('block_explorer')"></q-item-label>
+        </q-item-section>
+        <q-item-section side v-show="isActive('/blockexplorer')">
           <q-icon name="chevron_right" color="grey-5" size="md"></q-icon>
         </q-item-section>
       </q-item>

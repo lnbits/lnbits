@@ -940,5 +940,56 @@ window.localisation.en = {
   lightning_address_blacklist: 'Lightning Address blacklist',
   lightning_address_blacklist_instructions:
     'Newline separated reserved words. Users cannot choose a Lightning Address that matches any of these words.',
-  set_lightning_address: 'Set Lightning Address'
+  set_lightning_address: 'Set Lightning Address',
+  block_explorer: 'Block Explorer',
+  enable_block_explorer: 'Enable Block Explorer',
+  block_explorer_desc:
+    'Allow users to explore Bitcoin transactions and addresses via Electrum.',
+  blockexplorer_public_api: 'Public API Access',
+  blockexplorer_public_api_desc:
+    'Allow unauthenticated access to the block explorer API endpoints.',
+  view_public_block_explorer: 'View public block explorer page',
+  electrum_compatible_server: 'Electrum compatible server',
+  electrum_server_url: 'Electrum Server URL',
+  electrum_server_url_hint:
+    'Choose a public Electrum server or enter your own.',
+  electrum_server_url_custom: 'Custom Electrum Server URL',
+  view_public_electrum_servers: 'View public Electrum servers',
+  blockexplorer_network: 'Bitcoin Network',
+  blockexplorer_network_hint:
+    'The network the Electrum server is connected to, used to render addresses correctly.',
+  blockexplorer_search_label: 'Search by TXID or Address',
+  blockexplorer_search_hint:
+    '64-char hex = transaction  ·  anything else = Bitcoin address',
+  recent_blocks: 'Recent Blocks',
+  chain_tip: 'Chain Tip',
+  block_height: 'Block Height',
+  block_fee: 'block fee',
+  fee_estimates: 'Fee Estimates',
+  confirmed_balance: 'Confirmed Balance',
+  unconfirmed_balance: 'Unconfirmed Balance',
+  transaction_history: 'Transaction History',
+  coinbase: 'Coinbase',
+  inputs: 'Inputs',
+  outputs: 'Outputs',
+  confirmations: 'Confirmations',
+  confirmed: 'Confirmed',
+  unconfirmed: 'Unconfirmed',
+  no_transactions: 'No transactions found',
+  history_unavailable:
+    'Transaction history unavailable (address has too many transactions)',
+  address: 'Address',
+  block_number: 'Block #{height}',
+  block_diff: 'diff {value}',
+  block_hash: 'Hash',
+  previous_block: 'Previous Block',
+  merkle_root: 'Merkle Root',
+  version: 'Version',
+  bits: 'Bits',
+  difficulty: 'Difficulty',
+  nonce: 'Nonce',
+  txid: 'TXID',
+  vsize: 'Virtual Size',
+  weight: 'Weight',
+  n_block_fee: '{n}-block fee'
 }
