@@ -39,6 +39,16 @@ docker_elements_cli = [
     "-chain=liquidregtest",
 ]
 
+docker_boltz_cli = [
+    "docker",
+    "exec",
+    "lnbits-boltz-client-1",
+    "boltzcli",
+    "--host",
+    "boltz-client",
+    "--no-macaroons",
+]
+
 
 docker_lightning_unconnected_cli = [
     "docker",
@@ -158,6 +168,30 @@ def mine_blocks_liquid(blocks: int = 1) -> str:
     cmd = docker_elements_cli.copy()
     cmd.extend(["-generate", str(blocks)])
     return run_cmd(cmd)
+
+
+def sync_boltz_liquid_chain(timeout: float = 15) -> None:
+    mine_blocks_liquid()
+
+    cmd = docker_elements_cli.copy()
+    cmd.append("getblockcount")
+    target_height = int(run_cmd(cmd))
+
+    deadline = time.time() + timeout
+    height = 0
+    while time.time() < deadline:
+        cmd = docker_boltz_cli.copy()
+        cmd.append("getinfo")
+        info = run_cmd_json(cmd)
+        height = int(info["blockHeights"]["liquid"])
+        if height >= target_height:
+            return
+        time.sleep(0.25)
+
+    raise AssertionError(
+        f"Boltz did not sync to Liquid block {target_height} within {timeout}s. "
+        f"Last block: {height}."
+    )
 
 
 def get_unconnected_node_uri() -> str:

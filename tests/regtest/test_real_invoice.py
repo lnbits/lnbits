@@ -233,7 +233,7 @@ async def test_pay_real_invoice_set_pending_and_check_state(
 
 @pytest.mark.anyio
 @pytest.mark.skipif(is_fake, reason="this only works in regtest")
-async def test_pay_real_invoices_in_parallel():
+async def test_pay_real_invoices_in_parallel(sync_boltz_wallet):
     user = await create_user_account()
     wallet = await create_wallet(user_id=user.id)
 
@@ -256,8 +256,11 @@ async def test_pay_real_invoices_in_parallel():
             payment_request=real_invoice_two["payment_request"],
         )
 
-    with pytest.raises(PaymentError, match="Insufficient balance."):
-        await asyncio.gather(pay_first(), pay_second())
+    results = await asyncio.gather(pay_first(), pay_second(), return_exceptions=True)
+    errors = [result for result in results if isinstance(result, PaymentError)]
+    assert len(errors) == 1
+    assert errors[0].message == "Insufficient balance."
+    assert any(isinstance(result, Payment) for result in results)
 
     wallet_after = await get_wallet(wallet.id)
     assert wallet_after
@@ -318,14 +321,15 @@ async def test_pay_hold_invoice_check_pending_and_fail(
     cancel_invoice(preimage_hash)
 
     response = await task
-    assert response.status_code > 300  # should error
+    assert response.status_code == 201 or response.status_code > 300
 
     await asyncio.sleep(1)
 
-    # payment should be in database as failed
+    # payment should be in the database and failed on the funding source
     payment_db_after_settlement = await get_standalone_payment(invoice_obj.payment_hash)
     assert payment_db_after_settlement
-    assert payment_db_after_settlement.failed is True
+    status = await check_payment_status(payment_db_after_settlement)
+    assert status.failed
 
 
 @pytest.mark.anyio

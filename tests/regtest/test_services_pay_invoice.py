@@ -20,10 +20,10 @@ async def test_services_pay_invoice(to_wallet, real_invoice):
     )
     assert payment
     assert payment.memo == description
-    if not is_boltz_wallet:
-        assert payment.status == PaymentState.SUCCESS
+    if payment.status == PaymentState.SUCCESS:
         assert payment.preimage
     else:
+        assert is_boltz_wallet
         assert payment.status == PaymentState.PENDING
 
 
