@@ -17,7 +17,7 @@
       <span v-text="$t('authentication')"></span>
     </h6>
     <div class="row q-col-gutter-sm q-mb-md">
-      <div class="col-12 col-md-6">
+      <div class="col-12 col-md-4">
         <q-input
           filled
           v-model="formData.auth_token_expire_minutes"
@@ -27,7 +27,7 @@
         >
         </q-input>
       </div>
-      <div class="col-12 col-md-6">
+      <div class="col-12 col-md-4">
         <q-input
           filled
           v-model="formData.auth_authentication_cache_minutes"
@@ -37,7 +37,17 @@
         >
         </q-input>
       </div>
-      <div class="col-12 col-md-6">
+      <div class="col-12 col-md-4">
+        <q-input
+          filled
+          v-model="formData.auth_credetials_update_threshold"
+          type="number"
+          label="Credentials update threshold (seconds)"
+          hint="Maximum authentication age allowed when updating credentials"
+        >
+        </q-input>
+      </div>
+      <div class="col-12 col-md-12">
         <q-select
           filled
           v-model="formData.auth_allowed_methods"
