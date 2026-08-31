@@ -11,6 +11,7 @@ from coincurve import PrivateKey
 from httpx import AsyncClient
 
 from lnbits.core.crud.users import (
+    delete_account,
     get_user_access_control_lists,
     update_user_access_control_list,
 )
@@ -19,6 +20,7 @@ from lnbits.core.models.misc import SimpleItem
 from lnbits.core.models.users import (
     AccessControlList,
     Account,
+    AccountId,
     ApiTokenRequest,
     DeleteTokenRequest,
     EndpointAccess,
@@ -31,7 +33,7 @@ from lnbits.core.models.users import (
 from lnbits.core.services.users import create_user_account
 from lnbits.core.views import auth_api
 from lnbits.core.views.user_api import api_users_reset_password
-from lnbits.helpers import create_access_token
+from lnbits.helpers import create_access_token, sha256s
 from lnbits.settings import AuthMethods, Settings
 from lnbits.utils.cache import cache
 from lnbits.utils.nostr import hex_to_npub, sign_event
@@ -1856,6 +1858,50 @@ async def test_api_create_user_api_token_success(
 
 
 @pytest.mark.anyio
+async def test_api_create_user_api_token_invalid_password(http_client: AsyncClient):
+    # Register a new user
+    tiny_id = shortuuid.uuid()[:8]
+    response = await http_client.post(
+        "/api/v1/auth/register",
+        json={
+            "username": f"u21.{tiny_id}",
+            "password": "secret1234",
+            "password_repeat": "secret1234",
+            "email": f"u21.{tiny_id}@lnbits.com",
+        },
+    )
+    assert response.status_code == 200, "User created."
+    access_token = response.json().get("access_token")
+    assert access_token is not None
+
+    # Create a new ACL
+    acl_data = UpdateAccessControlList(
+        password="secret1234", id="", name="Test ACL", endpoints=[]
+    )
+    response = await http_client.put(
+        "/api/v1/auth/acl",
+        headers={"Authorization": f"Bearer {access_token}"},
+        json=acl_data.dict(),
+    )
+    assert response.status_code == 200, "ACL created."
+    acl_id = response.json()["access_control_list"][0]["id"]
+
+    # Create API token with invalid password
+    token_request = ApiTokenRequest(
+        acl_id=acl_id,
+        token_name="Test Token",
+        expiration_time_minutes=60,
+        password="wrongpassword",
+    )
+    response = await http_client.post(
+        "/api/v1/auth/acl/token",
+        headers={"Authorization": f"Bearer {access_token}"},
+        json=token_request.dict(),
+    )
+    assert response.status_code == 401, "Invalid credentials."
+
+
+@pytest.mark.anyio
 async def test_acl_api_token_access(user_alan: User, http_client: AsyncClient):
     user_acls = await get_user_access_control_lists(user_alan.id)
     acl = AccessControlList(id=uuid4().hex, name="Test ACL", endpoints=[])
@@ -1932,47 +1978,118 @@ async def test_acl_api_token_access(user_alan: User, http_client: AsyncClient):
 
 
 @pytest.mark.anyio
-async def test_api_create_user_api_token_invalid_password(http_client: AsyncClient):
-    # Register a new user
-    tiny_id = shortuuid.uuid()[:8]
-    response = await http_client.post(
-        "/api/v1/auth/register",
-        json={
-            "username": f"u21.{tiny_id}",
-            "password": "secret1234",
-            "password_repeat": "secret1234",
-            "email": f"u21.{tiny_id}@lnbits.com",
-        },
-    )
-    assert response.status_code == 200, "User created."
-    access_token = response.json().get("access_token")
-    assert access_token is not None
+async def test_cached_acl_api_token_access_is_revalidated(
+    http_client: AsyncClient, settings: Settings
+):
+    assert settings.auth_authentication_cache_minutes > 0
 
-    # Create a new ACL
-    acl_data = UpdateAccessControlList(
-        password="secret1234", id="", name="Test ACL", endpoints=[]
+    username = f"ct{uuid4().hex[:8]}"
+    account = Account(
+        id=uuid4().hex,
+        username=username,
+        email=f"{username}@lnbits.com",
     )
-    response = await http_client.put(
-        "/api/v1/auth/acl",
-        headers={"Authorization": f"Bearer {access_token}"},
-        json=acl_data.dict(),
-    )
-    assert response.status_code == 200, "ACL created."
-    acl_id = response.json()["access_control_list"][0]["id"]
+    account.hash_password("secret1234")
+    user = await create_user_account(account)
 
-    # Create API token with invalid password
-    token_request = ApiTokenRequest(
-        acl_id=acl_id,
-        token_name="Test Token",
-        expiration_time_minutes=60,
-        password="wrongpassword",
+    user_acls = await get_user_access_control_lists(user.id)
+    acl = AccessControlList(
+        id=uuid4().hex,
+        name="Cached Token ACL",
+        endpoints=[EndpointAccess(path="/api/v1/status", name="Status", read=True)],
     )
-    response = await http_client.post(
-        "/api/v1/auth/acl/token",
-        headers={"Authorization": f"Bearer {access_token}"},
-        json=token_request.dict(),
-    )
-    assert response.status_code == 401, "Invalid credentials."
+    user_acls.access_control_list = [acl]
+
+    cache_keys: list[str] = []
+    try:
+        api_token_id = uuid4().hex
+        api_token = create_access_token(
+            data=AccessTokenPayload(
+                sub=username,
+                api_token_id=api_token_id,
+                auth_time=int(time.time()),
+            ).dict(),
+            token_expire_minutes=10,
+        )
+        acl.token_id_list.append(SimpleItem(id=api_token_id, name="Status Token"))
+        await update_user_access_control_list(user_acls)
+
+        headers = {"Authorization": f"Bearer {api_token}"}
+        cache_keys.append(f"auth:access_token:{sha256s(api_token)}")
+
+        response = await http_client.get("/api/v1/wallet/paginated", headers=headers)
+        assert response.status_code == 403
+        assert response.json()["detail"] == "Path not allowed."
+
+        response = await http_client.get("/api/v1/status", headers=headers)
+        assert response.status_code == 200
+
+        response = await http_client.get("/api/v1/wallet/paginated", headers=headers)
+        assert response.status_code == 403
+        assert response.json()["detail"] == "Path not allowed."
+
+        acl.delete_token_by_id(api_token_id)
+        await update_user_access_control_list(user_acls)
+        response = await http_client.get("/api/v1/status", headers=headers)
+        assert response.status_code == 403
+        assert response.json()["detail"] == "Invalid token id."
+
+        api_token_id = uuid4().hex
+        api_token = create_access_token(
+            data=AccessTokenPayload(
+                sub=username,
+                api_token_id=api_token_id,
+                auth_time=int(time.time()),
+            ).dict(),
+            token_expire_minutes=10,
+        )
+        acl.endpoints = [
+            EndpointAccess(path="/api/v1/wallet", name="Wallets", read=True)
+        ]
+        acl.token_id_list = [SimpleItem(id=api_token_id, name="Read-only Token")]
+        await update_user_access_control_list(user_acls)
+
+        headers = {"Authorization": f"Bearer {api_token}"}
+        cache_keys.append(f"auth:access_token:{sha256s(api_token)}")
+        response = await http_client.get("/api/v1/wallet/paginated", headers=headers)
+        assert response.status_code == 200
+
+        response = await http_client.delete(
+            f"/api/v1/wallet/{uuid4().hex}", headers=headers
+        )
+        assert response.status_code == 403
+        assert response.json()["detail"] == "Method not allowed."
+
+        expired_token_id = uuid4().hex
+        expired_token = jwt.encode(
+            {
+                "sub": username,
+                "api_token_id": expired_token_id,
+                "auth_time": int(time.time()),
+                "exp": int(time.time()) - 1,
+            },
+            settings.auth_secret_key,
+            "HS256",
+        )
+        expired_cache_key = f"auth:access_token:{sha256s(expired_token)}"
+        cache_keys.append(expired_cache_key)
+        cache.set(
+            expired_cache_key,
+            AccountId(id=user.id),
+            expiry=settings.auth_authentication_cache_minutes * 60,
+        )
+
+        response = await http_client.get(
+            "/api/v1/status",
+            headers={"Authorization": f"Bearer {expired_token}"},
+        )
+        assert response.status_code == 401
+        assert response.json()["detail"] == "Session expired."
+    finally:
+        for cache_key in cache_keys:
+            cache.pop(cache_key)
+        cache.pop(f"auth:user:cache_key:{sha256s(user.id)}")
+        await delete_account(user.id)
 
 
 @pytest.mark.anyio

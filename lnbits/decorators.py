@@ -248,6 +248,15 @@ async def check_account_id_exists(
         if cache_key and settings.auth_authentication_cache_minutes > 0:
             account_id = cache.get(cache_key)
             if account_id:
+                payload = _decode_access_token(access_token) if access_token else None
+                if payload and payload.api_token_id:
+                    await _check_account_api_access(
+                        account_id.id,
+                        payload.api_token_id,
+                        r["path"],
+                        r["method"],
+                        conn=conn,
+                    )
                 r.scope["user_id"] = account_id.id
                 await _check_user_access(r, account_id.id, conn=conn)
                 return account_id
@@ -469,11 +478,14 @@ def _extension_id_from_request_path(path: str) -> str:
 async def _get_account_from_token(
     access_token: str, path: str, method: str, conn: Connection | None = None
 ) -> Account | None:
+    payload = _decode_access_token(access_token)
+    return await _get_account_from_jwt_payload(payload, path, method, conn=conn)
+
+
+def _decode_access_token(access_token: str) -> AccessTokenPayload:
     try:
         payload: dict = jwt.decode(access_token, settings.auth_secret_key, ["HS256"])
-        return await _get_account_from_jwt_payload(
-            AccessTokenPayload(**payload), path, method, conn=conn
-        )
+        return AccessTokenPayload(**payload)
 
     except jwt.ExpiredSignatureError as exc:
         raise HTTPException(
