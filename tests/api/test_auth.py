@@ -1858,6 +1858,50 @@ async def test_api_create_user_api_token_success(
 
 
 @pytest.mark.anyio
+async def test_api_create_user_api_token_invalid_password(http_client: AsyncClient):
+    # Register a new user
+    tiny_id = shortuuid.uuid()[:8]
+    response = await http_client.post(
+        "/api/v1/auth/register",
+        json={
+            "username": f"u21.{tiny_id}",
+            "password": "secret1234",
+            "password_repeat": "secret1234",
+            "email": f"u21.{tiny_id}@lnbits.com",
+        },
+    )
+    assert response.status_code == 200, "User created."
+    access_token = response.json().get("access_token")
+    assert access_token is not None
+
+    # Create a new ACL
+    acl_data = UpdateAccessControlList(
+        password="secret1234", id="", name="Test ACL", endpoints=[]
+    )
+    response = await http_client.put(
+        "/api/v1/auth/acl",
+        headers={"Authorization": f"Bearer {access_token}"},
+        json=acl_data.dict(),
+    )
+    assert response.status_code == 200, "ACL created."
+    acl_id = response.json()["access_control_list"][0]["id"]
+
+    # Create API token with invalid password
+    token_request = ApiTokenRequest(
+        acl_id=acl_id,
+        token_name="Test Token",
+        expiration_time_minutes=60,
+        password="wrongpassword",
+    )
+    response = await http_client.post(
+        "/api/v1/auth/acl/token",
+        headers={"Authorization": f"Bearer {access_token}"},
+        json=token_request.dict(),
+    )
+    assert response.status_code == 401, "Invalid credentials."
+
+
+@pytest.mark.anyio
 async def test_acl_api_token_access(user_alan: User, http_client: AsyncClient):
     user_acls = await get_user_access_control_lists(user_alan.id)
     acl = AccessControlList(id=uuid4().hex, name="Test ACL", endpoints=[])
@@ -2046,50 +2090,6 @@ async def test_cached_acl_api_token_access_is_revalidated(
             cache.pop(cache_key)
         cache.pop(f"auth:user:cache_key:{sha256s(user.id)}")
         await delete_account(user.id)
-
-
-@pytest.mark.anyio
-async def test_api_create_user_api_token_invalid_password(http_client: AsyncClient):
-    # Register a new user
-    tiny_id = shortuuid.uuid()[:8]
-    response = await http_client.post(
-        "/api/v1/auth/register",
-        json={
-            "username": f"u21.{tiny_id}",
-            "password": "secret1234",
-            "password_repeat": "secret1234",
-            "email": f"u21.{tiny_id}@lnbits.com",
-        },
-    )
-    assert response.status_code == 200, "User created."
-    access_token = response.json().get("access_token")
-    assert access_token is not None
-
-    # Create a new ACL
-    acl_data = UpdateAccessControlList(
-        password="secret1234", id="", name="Test ACL", endpoints=[]
-    )
-    response = await http_client.put(
-        "/api/v1/auth/acl",
-        headers={"Authorization": f"Bearer {access_token}"},
-        json=acl_data.dict(),
-    )
-    assert response.status_code == 200, "ACL created."
-    acl_id = response.json()["access_control_list"][0]["id"]
-
-    # Create API token with invalid password
-    token_request = ApiTokenRequest(
-        acl_id=acl_id,
-        token_name="Test Token",
-        expiration_time_minutes=60,
-        password="wrongpassword",
-    )
-    response = await http_client.post(
-        "/api/v1/auth/acl/token",
-        headers={"Authorization": f"Bearer {access_token}"},
-        json=token_request.dict(),
-    )
-    assert response.status_code == 401, "Invalid credentials."
 
 
 @pytest.mark.anyio
