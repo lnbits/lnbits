@@ -248,16 +248,15 @@ async def check_account_id_exists(
         if cache_key and settings.auth_authentication_cache_minutes > 0:
             account_id = cache.get(cache_key)
             if account_id:
-                if access_token:
-                    payload = _decode_access_token(access_token)
-                    if payload.api_token_id:
-                        await _check_account_api_access(
-                            account_id.id,
-                            payload.api_token_id,
-                            r["path"],
-                            r["method"],
-                            conn=conn,
-                        )
+                payload = _decode_access_token(access_token) if access_token else None
+                if payload and payload.api_token_id:
+                    await _check_account_api_access(
+                        account_id.id,
+                        payload.api_token_id,
+                        r["path"],
+                        r["method"],
+                        conn=conn,
+                    )
                 r.scope["user_id"] = account_id.id
                 await _check_user_access(r, account_id.id, conn=conn)
                 return account_id
