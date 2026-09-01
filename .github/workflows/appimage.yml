@@ -127,7 +127,8 @@ jobs:
           trap 'kill -- -"$LNBITS_PID" 2>/dev/null || true; rm -rf "$SMOKE_DIR"' EXIT
 
           for _ in $(seq 1 60); do
-            if curl --fail --silent http://127.0.0.1:5001/ | grep -q '<title>LNbits</title>'; then
+            if curl --fail --silent --output /dev/null http://127.0.0.1:5001/ && \
+              curl --fail --silent --output /dev/null http://127.0.0.1:5001/static/bundle.min.js; then
               exit 0
             fi
             if ! kill -0 "$LNBITS_PID" 2>/dev/null; then
@@ -137,7 +138,7 @@ jobs:
             sleep 1
           done
 
-          echo "Packaged LNbits did not serve the homepage within 60 seconds." >&2
+          echo "Packaged LNbits did not serve the homepage and bundled assets within 60 seconds." >&2
           exit 1
         shell: bash
 
