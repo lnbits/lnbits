@@ -23,11 +23,18 @@ jobs:
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
+          ref: ${{ inputs.tag_name }}
 
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: "3.12"
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "24.x"
+          cache: npm
 
       - name: Install system deps and uv
         run: |
@@ -45,26 +52,35 @@ jobs:
             .venv
           key: ${{ runner.os }}-uv-${{ hashFiles('uv.lock', 'pyproject.toml') }}
 
-      - name: Prepare packaging & clone LNbits
+      - name: Verify frontend assets
         run: |
-          mv .github/packaging packaging
-          mkdir -p packaging/linux/AppDir/usr
-          git clone https://github.com/lnbits/lnbits.git packaging/linux/AppDir/usr/lnbits
+          npm ci
+          npm run bundle
+          git diff --exit-code -- lnbits/static
         shell: bash
 
       - name: Build LNbits binary (uv + PyInstaller)
         run: |
-          cd packaging/linux/AppDir/usr/lnbits
-          uv sync --all-extras --no-dev
+          uv sync --locked --all-extras --no-dev --no-editable
           uv pip install pyinstaller
-          uv run pyinstaller \
+          export DEBUG=false
+          WASMTIME_LIB="$(.venv/bin/python -c \
+            'from pathlib import Path; import wasmtime; print(next(Path(wasmtime.__file__).parent.glob("linux-*/*.so")))')"
+          WASMTIME_PLATFORM="$(basename "$(dirname "$WASMTIME_LIB")")"
+          .venv/bin/pyinstaller \
+            --clean \
+            --noconfirm \
             --onefile \
             --name lnbits \
+            --specpath build \
             --hidden-import=embit \
             --hidden-import=bitstring.bitstore_bitarray \
+            --add-binary "$WASMTIME_LIB:wasmtime/$WASMTIME_PLATFORM" \
             --collect-all embit \
             --collect-all bitstring \
             --collect-all bitarray \
+            --collect-all coincurve \
+            --collect-all wasmtime \
             --collect-all lnbits \
             --collect-all sqlalchemy \
             --collect-all breez_sdk \
@@ -72,21 +88,60 @@ jobs:
             --collect-all breez_sdk_liquid \
             --collect-binaries breez_sdk_liquid \
             --collect-all aiosqlite \
-            --hidden-import=passlib.handlers.bcrypt \
-            "$(uv run which lnbits)"
+            .venv/bin/lnbits
+        shell: bash
 
-          cd ../../../../..
+      - name: Stage AppDir
+        run: |
+          mkdir -p packaging/linux
+          cp -a .github/packaging/linux/AppDir packaging/linux/AppDir
+          mkdir -p packaging/linux/AppDir/usr/lnbits
+          git archive HEAD | tar -x -C packaging/linux/AppDir/usr/lnbits
+          mkdir -p packaging/linux/AppDir/usr/lnbits/dist
+          install -m 755 dist/lnbits packaging/linux/AppDir/usr/lnbits/dist/lnbits
           chmod +x packaging/linux/AppDir/AppRun
           chmod +x packaging/linux/AppDir/lnbits.desktop
-          chmod +x packaging/linux/AppDir/usr/lnbits/dist/lnbits
 
           # keep AppDir slim
           find packaging/linux/AppDir/usr/lnbits -mindepth 1 -maxdepth 1 \
               ! -name 'dist' \
               ! -name 'lnbits' \
               -exec rm -rf {} +
+        shell: bash
 
-          # Build AppImage
+      - name: Smoke test packaged binary and assets
+        run: |
+          SMOKE_DIR="$(mktemp -d)"
+          PACKAGE_DIR="$GITHUB_WORKSPACE/packaging/linux/AppDir/usr/lnbits"
+          export DEBUG=false
+          export BUNDLE_ASSETS=true
+          export LNBITS_DATA_FOLDER="$SMOKE_DIR/data"
+          export LNBITS_EXTENSIONS_PATH="$SMOKE_DIR"
+          export LNBITS_EXTENSIONS_DEFAULT_INSTALL='[]'
+          export LNBITS_ADMIN_UI=false
+          export LNBITS_BACKEND_WALLET_CLASS=FakeWallet
+          cd "$PACKAGE_DIR"
+          setsid ./dist/lnbits --host 127.0.0.1 --port 5001 &
+          LNBITS_PID=$!
+          trap 'kill -- -"$LNBITS_PID" 2>/dev/null || true; rm -rf "$SMOKE_DIR"' EXIT
+
+          for _ in $(seq 1 60); do
+            if curl --fail --silent http://127.0.0.1:5001/ | grep -q '<title>LNbits</title>'; then
+              exit 0
+            fi
+            if ! kill -0 "$LNBITS_PID" 2>/dev/null; then
+              echo "Packaged LNbits exited before serving the homepage." >&2
+              exit 1
+            fi
+            sleep 1
+          done
+
+          echo "Packaged LNbits did not serve the homepage within 60 seconds." >&2
+          exit 1
+        shell: bash
+
+      - name: Build AppImage
+        run: |
           wget https://github.com/AppImage/AppImageKit/releases/download/continuous/appimagetool-x86_64.AppImage
           chmod +x appimagetool-x86_64.AppImage
           TAG_NAME=${{ inputs.tag_name }}
