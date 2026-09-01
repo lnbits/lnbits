@@ -81,6 +81,8 @@ jobs:
             --collect-all bitstring \
             --collect-all bitarray \
             --collect-all coincurve \
+            --collect-data pyinstrument \
+            --collect-data random_username \
             --collect-all wasmtime \
             --collect-all lnbits \
             --collect-all sqlalchemy \
@@ -90,6 +92,26 @@ jobs:
             --collect-binaries breez_sdk_liquid \
             --collect-all aiosqlite \
             .venv/bin/lnbits
+        shell: bash
+
+      - name: Verify packaged dependency data
+        run: |
+          ARCHIVE_LIST="$(mktemp)"
+          trap 'rm -f "$ARCHIVE_LIST"' EXIT
+          .venv/bin/pyi-archive_viewer -l dist/lnbits > "$ARCHIVE_LIST"
+
+          for ASSET in \
+            certifi/cacert.pem \
+            grpc/_cython/_credentials/roots.pem \
+            pyinstrument/renderers/html_resources/app.css \
+            pyinstrument/renderers/html_resources/app.js \
+            random_username/data/adjectives.txt \
+            random_username/data/nouns.txt; do
+            grep --fixed-strings --quiet "'$ASSET'" "$ARCHIVE_LIST" || {
+              echo "Missing packaged dependency data: $ASSET" >&2
+              exit 1
+            }
+          done
         shell: bash
 
       - name: Stage AppDir
@@ -116,10 +138,10 @@ jobs:
           PACKAGE_DIR="$GITHUB_WORKSPACE/packaging/linux/AppDir/usr/lnbits"
           export DEBUG=false
           export BUNDLE_ASSETS=true
+          export PROFILER=true
           export LNBITS_DATA_FOLDER="$SMOKE_DIR/data"
           export LNBITS_EXTENSIONS_PATH="$SMOKE_DIR"
           export LNBITS_EXTENSIONS_DEFAULT_INSTALL='[]'
-          export LNBITS_ADMIN_UI=false
           export LNBITS_BACKEND_WALLET_CLASS=FakeWallet
           cd "$PACKAGE_DIR"
           setsid ./dist/lnbits --host 127.0.0.1 --port 5001 &
@@ -128,7 +150,8 @@ jobs:
 
           for _ in $(seq 1 60); do
             if curl --fail --silent --output /dev/null http://127.0.0.1:5001/ && \
-              curl --fail --silent --output /dev/null http://127.0.0.1:5001/static/bundle.min.js; then
+              curl --fail --silent --output /dev/null http://127.0.0.1:5001/static/bundle.min.js && \
+              curl --fail --silent --output /dev/null 'http://127.0.0.1:5001/?profiler=1'; then
               exit 0
             fi
             if ! kill -0 "$LNBITS_PID" 2>/dev/null; then
@@ -159,6 +182,42 @@ jobs:
           ldd --version | head -n1 || true
           echo "Symbols needed by lnbits:"
           strings "$APPIMAGE_NAME" | grep -o 'GLIBC_[0-9.]*' | sort -u || true
+        shell: bash
+
+      - name: Smoke test final AppImage
+        run: |
+          SMOKE_DIR="$(mktemp -d)"
+          export HOME="$SMOKE_DIR/home"
+          export APPIMAGE_EXTRACT_AND_RUN=1
+          export DEBUG=false
+          export BUNDLE_ASSETS=true
+          export PROFILER=true
+          export LNBITS_DATA_FOLDER="$SMOKE_DIR/data"
+          export LNBITS_EXTENSIONS_PATH="$SMOKE_DIR/extensions"
+          export LNBITS_EXTENSIONS_DEFAULT_INSTALL='[]'
+          export LNBITS_BACKEND_WALLET_CLASS=FakeWallet
+          mkdir -p "$HOME" "$SMOKE_DIR/launch"
+          cd "$SMOKE_DIR/launch"
+          setsid "$GITHUB_WORKSPACE/${{ env.APPIMAGE_NAME }}" \
+            --host 127.0.0.1 --port 5002 &
+          LNBITS_PID=$!
+          trap 'kill -- -"$LNBITS_PID" 2>/dev/null || true; rm -rf "$SMOKE_DIR"' EXIT
+
+          for _ in $(seq 1 60); do
+            if curl --fail --silent --output /dev/null http://127.0.0.1:5002/ && \
+              curl --fail --silent --output /dev/null http://127.0.0.1:5002/static/bundle.min.js && \
+              curl --fail --silent --output /dev/null 'http://127.0.0.1:5002/?profiler=1'; then
+              exit 0
+            fi
+            if ! kill -0 "$LNBITS_PID" 2>/dev/null; then
+              echo "AppImage exited before serving the homepage and bundled assets." >&2
+              exit 1
+            fi
+            sleep 1
+          done
+
+          echo "AppImage did not serve the homepage and bundled assets within 60 seconds." >&2
+          exit 1
         shell: bash
 
       - name: Upload Linux Release Asset
