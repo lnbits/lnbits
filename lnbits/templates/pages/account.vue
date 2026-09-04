@@ -530,6 +530,17 @@
               >
                 <template v-slot:append>
                   <q-btn
+                    v-if="g.bgimageChoice"
+                    dense
+                    flat
+                    round
+                    icon="clear"
+                    :aria-label="$t('clear')"
+                    @click="siteCustomisationChanged({bgimageChoice: ''})"
+                  >
+                    <q-tooltip v-text="$t('clear')"></q-tooltip>
+                  </q-btn>
+                  <q-btn
                     dense
                     flat
                     round
@@ -973,6 +984,21 @@
                     </div>
                   </div>
 
+                  <div class="row items-center justify-between q-mb-md">
+                    <q-btn
+                      @click="askPasswordAndRunFunction('updateApiACLs')"
+                      :label="$t('update')"
+                      filled
+                      color="primary"
+                    ></q-btn>
+                    <q-btn
+                      @click="askPasswordAndRunFunction('deleteApiACL')"
+                      :label="$t('delete')"
+                      icon="delete"
+                      color="negative"
+                    ></q-btn>
+                  </div>
+
                   <q-table
                     row-key="path"
                     :rows="selectedApiAcl.endpoints"
@@ -1024,27 +1050,6 @@
                     </template>
                   </q-table>
                   <q-separator></q-separator>
-                </div>
-
-                <div v-if="selectedApiAcl.id" class="row q-mt-md">
-                  <div class="col-sm-12 col-md-6">
-                    <q-btn
-                      @click="askPasswordAndRunFunction('updateApiACLs')"
-                      :label="$t('update')"
-                      filled
-                      color="primary"
-                    ></q-btn>
-                  </div>
-                  <div class="col-sm-12 col-md-6">
-                    <q-btn
-                      @click="askPasswordAndRunFunction('deleteApiACL')"
-                      :label="$t('delete')"
-                      icon="delete"
-                      color="negative"
-                      class="float-right"
-                    >
-                    </q-btn>
-                  </div>
                 </div>
               </q-card-section>
             </q-tab-panel>
