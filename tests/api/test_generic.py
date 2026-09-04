@@ -32,9 +32,7 @@ async def test_blockexplorer_refresh_preserves_authenticated_shell(
 
 
 @pytest.mark.anyio
-async def test_public_blockexplorer_has_separate_route(
-    http_client, settings: Settings
-):
+async def test_public_blockexplorer_has_separate_route(http_client, settings: Settings):
     settings.lnbits_blockexplorer_enabled = True
     settings.lnbits_blockexplorer_public_api = True
 
