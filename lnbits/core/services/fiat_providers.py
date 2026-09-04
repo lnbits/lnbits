@@ -40,6 +40,10 @@ async def handle_fiat_payment_confirmation(
 async def check_fiat_status(payment: Payment) -> FiatPaymentStatus:
     if not payment.is_internal:
         return FiatPaymentPendingStatus()
+    if payment.fiat_provider:
+        wallet = await get_wallet(payment.wallet_id)
+        if not wallet or not wallet.is_fiat_wallet:
+            raise ValueError("Fiat payments can only be credited to fiat wallets.")
     if payment.success:
         return FiatPaymentSuccessStatus()
     if payment.failed:

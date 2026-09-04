@@ -219,15 +219,23 @@ window.PageWallet = {
       this.receive.data.memo = null
       this.receive.data.internalMemo = null
       this.receive.data.payment_hash = null
-      this.receive.units = [
-        'sat',
-        ...(this.g.allowedCurrencies.length > 0
-          ? this.g.allowedCurrencies
-          : this.g.currencies)
-      ]
-      this.receive.unit = this.g.isFiatPriority
-        ? this.g.wallet.currency || 'sat'
-        : 'sat'
+      const isFiatWallet = this.g.wallet.walletType === 'fiat'
+      this.receive.units = isFiatWallet
+        ? [this.g.wallet.currency]
+        : [
+            'sat',
+            ...(this.g.allowedCurrencies.length > 0
+              ? this.g.allowedCurrencies
+              : this.g.currencies)
+          ]
+      this.receive.unit = isFiatWallet
+        ? this.g.wallet.currency
+        : this.g.isFiatPriority
+          ? this.g.wallet.currency || 'sat'
+          : 'sat'
+      this.receive.fiatProvider = isFiatWallet
+        ? this.g.user.fiat_providers?.[0] || ''
+        : ''
       this.receive.minMax = [0, 2100000000000000]
       this.receive.lnurl = null
     },
@@ -260,7 +268,7 @@ window.PageWallet = {
     },
     createInvoice() {
       this.receive.status = 'loading'
-      if (!this.g.isSatsDenomination) {
+      if (!this.g.isSatsDenomination && this.g.wallet.walletType !== 'fiat') {
         this.receive.data.amount = this.receive.data.amount * 100
       }
 
@@ -761,13 +769,16 @@ window.PageWallet = {
   },
   created() {
     const urlParams = new URLSearchParams(window.location.search)
-    if (urlParams.has('lightning') || urlParams.has('lnurl')) {
+    const wallet = this.g.user.wallets.find(w => w.id === this.$route.params.id)
+    if (
+      wallet?.walletType !== 'fiat' &&
+      (urlParams.has('lightning') || urlParams.has('lnurl'))
+    ) {
       this.parse.data.request =
         urlParams.get('lightning') || urlParams.get('lnurl')
       this.decodeRequest()
       this.parse.show = true
     }
-    const wallet = this.g.user.wallets.find(w => w.id === this.$route.params.id)
     if (wallet) {
       this.g.wallet = wallet
       this.g.lastActiveWallet = wallet.id
@@ -809,7 +820,11 @@ window.PageWallet = {
       }
     },
     'g.isFiatPriority'() {
-      this.receive.unit = this.g.isFiatPriority ? this.g.wallet.currency : 'sat'
+      if (this.g.wallet.walletType !== 'fiat') {
+        this.receive.unit = this.g.isFiatPriority
+          ? this.g.wallet.currency
+          : 'sat'
+      }
     },
     'g.fiatBalance'() {
       this.formattedFiatAmount = LNbits.utils.formatCurrency(

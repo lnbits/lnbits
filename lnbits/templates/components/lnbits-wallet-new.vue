@@ -33,7 +33,7 @@
           dense
         ></q-select>
         <q-input
-          v-if="isLightning"
+          v-if="!isLightningShared"
           dense
           v-model="wallet.name"
           :label="$t('wallet_name')"
@@ -41,6 +41,18 @@
           @keyup.enter="submitAddWallet()"
           class="q-mt-md"
         ></q-input>
+        <q-select
+          v-if="isFiat"
+          v-model="wallet.currency"
+          :options="
+            g.allowedCurrencies.length ? g.allowedCurrencies : g.currencies
+          "
+          :label="$t('currency')"
+          filled
+          dense
+          options-dense
+          class="q-mt-md"
+        ></q-select>
         <q-select
           v-if="isLightningShared"
           v-model="wallet.sharedWalletId"

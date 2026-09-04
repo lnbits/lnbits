@@ -102,6 +102,9 @@ async def create_subscription(
         f"Subscription ID '{data.subscription_id}'."
     )
 
+    if not key_type.wallet.is_fiat_wallet:
+        raise HTTPException(400, "Fiat subscriptions require a fiat wallet.")
+
     fiat_provider = await get_fiat_provider(provider)
     if not fiat_provider:
         raise HTTPException(404, "Fiat provider not found")

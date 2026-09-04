@@ -17,11 +17,8 @@ from lnbits.core.models import CreateWallet, KeyType, Wallet, WalletTypeInfo
 from lnbits.core.models.lnurl import StoredPayLink, StoredPayLinks
 from lnbits.core.models.misc import SimpleStatus
 from lnbits.core.models.users import Account, AccountId
-from lnbits.core.models.wallets import (
-    WalletsFilters,
-    WalletSharePermission,
-    WalletType,
-)
+from lnbits.core.models.wallet_types import WalletType, wallet_type_capabilities
+from lnbits.core.models.wallets import WalletsFilters, WalletSharePermission
 from lnbits.core.services.lightning_address import set_wallet_lightning_address
 from lnbits.core.services.wallets import (
     create_lightning_shared_wallet,
@@ -55,6 +52,8 @@ async def api_wallet(key_info: WalletTypeInfo = Depends(require_invoice_key)):
     res = {
         "name": key_info.wallet.name,
         "balance": key_info.wallet.balance_msat,
+        "wallet_type": key_info.wallet.wallet_type,
+        "currency": key_info.wallet.currency,
     }
     if key_info.key_type == KeyType.admin:
         res["id"] = key_info.wallet.id
@@ -215,10 +214,11 @@ async def api_create_wallet(
     data: CreateWallet, account_id: AccountId = Depends(check_account_id_exists)
 ) -> Wallet:
 
-    if data.wallet_type not in list(WalletType):
+    capabilities = wallet_type_capabilities(data.wallet_type)
+    if not capabilities.creatable and data.wallet_type != WalletType.LIGHTNING_SHARED:
         raise HTTPException(
             HTTPStatus.BAD_REQUEST,
-            f"Wallet type {data.wallet_type} does not exist.",
+            f"Wallet type '{data.wallet_type.value}' is not available yet.",
         )
 
     if data.wallet_type == WalletType.LIGHTNING_SHARED:
@@ -232,5 +232,9 @@ async def api_create_wallet(
             source_wallet_id=data.shared_wallet_id,
         )
 
-    # default WalletType.LIGHTNING:
-    return await create_wallet(user_id=account_id.id, wallet_name=data.name)
+    return await create_wallet(
+        user_id=account_id.id,
+        wallet_name=data.name,
+        wallet_type=data.wallet_type,
+        currency=data.currency if data.wallet_type == WalletType.FIAT else None,
+    )

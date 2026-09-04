@@ -245,6 +245,11 @@ async def create_payment(
     status: PaymentState = PaymentState.PENDING,
     conn: Connection | None = None,
 ) -> Payment:
+    if data.amount_msat < 0:
+        wallet = await get_wallet(data.wallet_id, conn=conn)
+        if wallet and not wallet.can_send_payments:
+            raise ValueError("Wallet does not have permission to spend funds.")
+
     # we don't allow the creation of the same invoice twice
     # note: this can be removed if the db uniqueness constraints are set appropriately
     previous_payment = await get_standalone_payment(checking_id, conn=conn)
@@ -269,6 +274,7 @@ async def create_payment(
         extra=extra,
         labels=data.labels or [],
         external_id=data.external_id,
+        fiat_provider=data.fiat_provider,
     )
 
     await (conn or db).insert("apipayments", payment)

@@ -509,6 +509,7 @@ async def _create_revolut_subscription_payment(
             memo=memo,
             extra=extra,
             internal=True,
+            fiat_provider="revolut",
             external_id=subscription_id,
         ),
     )

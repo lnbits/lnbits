@@ -2,7 +2,9 @@ import pytest
 from httpx import AsyncClient
 from pytest_mock.plugin import MockerFixture
 
+from lnbits.core.crud.wallets import create_wallet
 from lnbits.core.models.misc import SimpleStatus
+from lnbits.core.models.wallet_types import WalletType
 from lnbits.fiat.base import FiatSubscriptionResponse
 from lnbits.fiat.revolut import REVOLUT_WEBHOOK_EVENTS
 from lnbits.settings import Settings
@@ -31,10 +33,16 @@ class FakeStripeWallet:
 async def test_fiat_api_test_provider_and_subscription_lifecycle(
     client: AsyncClient,
     superuser_token: str,
-    adminkey_headers_from: dict[str, str],
     from_wallet,
     mocker: MockerFixture,
 ):
+    fiat_wallet = await create_wallet(
+        user_id=from_wallet.user, wallet_type=WalletType.FIAT
+    )
+    fiat_headers = {
+        "X-Api-Key": fiat_wallet.adminkey,
+        "Content-type": "application/json",
+    }
     test_connection = mocker.patch(
         "lnbits.core.views.fiat_api.test_connection",
         mocker.AsyncMock(return_value=SimpleStatus(success=True, message="ok")),
@@ -63,9 +71,23 @@ async def test_fiat_api_test_provider_and_subscription_lifecycle(
         mocker.AsyncMock(return_value=provider),
     )
 
+    lightning_subscription = await client.post(
+        "/api/v1/fiat/stripe/subscription",
+        headers={"X-Api-Key": from_wallet.adminkey},
+        json={
+            "subscription_id": "sub-1",
+            "quantity": 2,
+            "payment_options": {"wallet_id": from_wallet.id},
+        },
+    )
+    assert lightning_subscription.status_code == 400
+    assert lightning_subscription.json()["detail"] == (
+        "Fiat subscriptions require a fiat wallet."
+    )
+
     mismatch = await client.post(
         "/api/v1/fiat/stripe/subscription",
-        headers=adminkey_headers_from,
+        headers=fiat_headers,
         json={
             "subscription_id": "sub-1",
             "quantity": 2,
@@ -76,25 +98,25 @@ async def test_fiat_api_test_provider_and_subscription_lifecycle(
 
     created = await client.post(
         "/api/v1/fiat/stripe/subscription",
-        headers=adminkey_headers_from,
+        headers=fiat_headers,
         json={
             "subscription_id": "sub-1",
             "quantity": 2,
-            "payment_options": {"memo": "hello", "wallet_id": from_wallet.id},
+            "payment_options": {"memo": "hello", "wallet_id": fiat_wallet.id},
         },
     )
     assert created.status_code == 200
     assert created.json()["checkout_session_url"] == "https://stripe.example/checkout"
     provider.create_subscription.assert_awaited_once()
     assert provider.create_subscription.await_args is not None
-    assert provider.create_subscription.await_args.args[2].wallet_id == from_wallet.id
+    assert provider.create_subscription.await_args.args[2].wallet_id == fiat_wallet.id
 
     cancelled = await client.delete(
         "/api/v1/fiat/stripe/subscription/sub-1",
-        headers=adminkey_headers_from,
+        headers=fiat_headers,
     )
     assert cancelled.status_code == 200
-    provider.cancel_subscription.assert_awaited_once_with("sub-1", from_wallet.id)
+    provider.cancel_subscription.assert_awaited_once_with("sub-1", fiat_wallet.id)
     assert get_provider.await_count == 3
 
 

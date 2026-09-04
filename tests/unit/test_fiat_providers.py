@@ -14,6 +14,7 @@ from lnbits.core.crud.users import get_user
 from lnbits.core.crud.wallets import create_wallet
 from lnbits.core.models.payments import CreateInvoice, Payment, PaymentState
 from lnbits.core.models.users import User
+from lnbits.core.models.wallet_types import WalletType
 from lnbits.core.models.wallets import Wallet
 from lnbits.core.services import check_payment_status, payments
 from lnbits.core.services.fiat_providers import (
@@ -28,6 +29,7 @@ from lnbits.core.services.fiat_providers import (
     test_connection as fiat_provider_connection,
 )
 from lnbits.core.services.users import create_user_account
+from lnbits.exceptions import PaymentError
 from lnbits.fiat.base import (
     FiatInvoiceResponse,
     FiatPaymentStatus,
@@ -122,6 +124,12 @@ def fiat_provider_test_settings(settings: Settings):
     settings.revolut_payment_webhook_url = original_revolut_payment_webhook_url
     settings.revolut_webhook_signing_secret = original_revolut_webhook_signing_secret
     settings.revolut_limits = original_revolut_limits
+
+
+@pytest.fixture
+async def fiat_wallet() -> Wallet:
+    user = await create_user_account()
+    return await create_wallet(user_id=user.id, wallet_type=WalletType.FIAT)
 
 
 @pytest.mark.anyio
@@ -222,7 +230,7 @@ async def test_create_wallet_fiat_invoice_allowed_users(
 
 @pytest.mark.anyio
 async def test_create_wallet_fiat_invoice_fiat_limits_fail(
-    to_wallet: Wallet, settings: Settings, mocker: MockerFixture
+    fiat_wallet: Wallet, settings: Settings, mocker: MockerFixture
 ):
 
     settings.stripe_enabled = True
@@ -238,13 +246,13 @@ async def test_create_wallet_fiat_invoice_fiat_limits_fail(
         AsyncMock(return_value=1000),  # 1 BTC = 100 000 USD, so 1 USD = 1000 sats
     )
     with pytest.raises(ValueError, match="Maximum amount is 105 sats for 'stripe'."):
-        await payments.create_fiat_invoice(to_wallet.id, invoice_data)
+        await payments.create_fiat_invoice(fiat_wallet.id, invoice_data)
 
     settings.stripe_limits.service_min_amount_sats = 1001
     settings.stripe_limits.service_max_amount_sats = 10000
 
     with pytest.raises(ValueError, match="Minimum amount is 1001 sats for 'stripe'."):
-        await payments.create_fiat_invoice(to_wallet.id, invoice_data)
+        await payments.create_fiat_invoice(fiat_wallet.id, invoice_data)
 
     settings.stripe_limits.service_min_amount_sats = 10
     settings.stripe_limits.service_max_amount_sats = 10000
@@ -253,22 +261,22 @@ async def test_create_wallet_fiat_invoice_fiat_limits_fail(
     with pytest.raises(
         ValueError, match="Fiat provider 'stripe' service fee wallet missing."
     ):
-        await payments.create_fiat_invoice(to_wallet.id, invoice_data)
+        await payments.create_fiat_invoice(fiat_wallet.id, invoice_data)
 
     settings.stripe_limits.service_fee_wallet_id = "not_a_real_wallet_id"
 
     with pytest.raises(
         ValueError, match="Fiat provider 'stripe' service fee wallet not found."
     ):
-        await payments.create_fiat_invoice(to_wallet.id, invoice_data)
+        await payments.create_fiat_invoice(fiat_wallet.id, invoice_data)
 
-    settings.stripe_limits.service_fee_wallet_id = to_wallet.id
+    settings.stripe_limits.service_fee_wallet_id = fiat_wallet.id
     settings.stripe_limits.service_faucet_wallet_id = "not_a_real_wallet_id"
 
     with pytest.raises(
         ValueError, match="Fiat provider 'stripe' faucet wallet not found."
     ):
-        await payments.create_fiat_invoice(to_wallet.id, invoice_data)
+        await payments.create_fiat_invoice(fiat_wallet.id, invoice_data)
 
     user = await create_user_account()
     wallet = await create_wallet(user_id=user.id)
@@ -277,7 +285,7 @@ async def test_create_wallet_fiat_invoice_fiat_limits_fail(
     with pytest.raises(
         ValueError, match="The amount exceeds the 'stripe'faucet wallet balance."
     ):
-        await payments.create_fiat_invoice(to_wallet.id, invoice_data)
+        await payments.create_fiat_invoice(fiat_wallet.id, invoice_data)
 
 
 @pytest.mark.anyio
@@ -305,7 +313,7 @@ async def test_create_wallet_fiat_provider_fails(
     )
 
     user = await create_user_account()
-    wallet = await create_wallet(user_id=user.id)
+    wallet = await create_wallet(user_id=user.id, wallet_type=WalletType.FIAT)
     with pytest.raises(ValueError, match="Cannot create payment request for 'stripe'."):
         await payments.create_fiat_invoice(wallet.id, invoice_data)
 
@@ -318,7 +326,7 @@ async def test_create_wallet_fiat_provider_fails(
 
 @pytest.mark.anyio
 async def test_create_wallet_fiat_invoice_success(
-    to_wallet: Wallet, settings: Settings, mocker: MockerFixture
+    fiat_wallet: Wallet, settings: Settings, mocker: MockerFixture
 ):
     settings.stripe_enabled = True
     settings.stripe_api_secret_key = "mock_sk_test_4eC39HqLyjWDarjtT1zdp7dc"
@@ -343,7 +351,7 @@ async def test_create_wallet_fiat_invoice_success(
         "lnbits.utils.exchange_rates.get_fiat_rate_satoshis",
         AsyncMock(return_value=1000),  # 1 BTC = 100 000 USD, so 1 USD = 1000 sats
     )
-    payment = await payments.create_fiat_invoice(to_wallet.id, invoice_data)
+    payment = await payments.create_fiat_invoice(fiat_wallet.id, invoice_data)
     assert payment.status == PaymentState.PENDING
     assert payment.amount == 1000_000
     assert payment.fiat_provider == "stripe"
@@ -354,6 +362,16 @@ async def test_create_wallet_fiat_invoice_success(
     )
     assert payment.checking_id.startswith("fiat_stripe_")
     assert payment.fee <= 0
+
+    payer = (await create_user_account()).wallets[0]
+    await payments.update_wallet_balance(wallet=payer, amount=2000)
+    with pytest.raises(
+        PaymentError, match="Fiat payment requests cannot be paid as Lightning"
+    ):
+        await payments.pay_invoice(
+            wallet_id=payer.id,
+            payment_request=payment.bolt11,
+        )
 
     status = await check_payment_status(payment)
     assert status.success is False
@@ -559,7 +577,7 @@ async def test_paypal_wallet_subscription_status_is_unchanged(
 
 @pytest.mark.anyio
 async def test_create_wallet_square_fiat_invoice_success(
-    to_wallet: Wallet, settings: Settings, mocker: MockerFixture
+    fiat_wallet: Wallet, settings: Settings, mocker: MockerFixture
 ):
     settings.square_enabled = True
     settings.square_access_token = "square-token"
@@ -585,7 +603,7 @@ async def test_create_wallet_square_fiat_invoice_success(
         "lnbits.utils.exchange_rates.get_fiat_rate_satoshis",
         AsyncMock(return_value=1000),
     )
-    payment = await payments.create_fiat_invoice(to_wallet.id, invoice_data)
+    payment = await payments.create_fiat_invoice(fiat_wallet.id, invoice_data)
     assert payment.status == PaymentState.PENDING
     assert payment.fiat_provider == "square"
     assert payment.extra.get("fiat_checking_id") == fiat_mock_response.checking_id
@@ -928,7 +946,7 @@ async def test_square_wallet_get_invoice_status(settings: Settings):
 
 @pytest.mark.anyio
 async def test_create_wallet_revolut_fiat_invoice_success(
-    to_wallet: Wallet, settings: Settings, mocker: MockerFixture
+    fiat_wallet: Wallet, settings: Settings, mocker: MockerFixture
 ):
     settings.revolut_enabled = True
     settings.revolut_api_secret_key = "revolut-secret"
@@ -953,7 +971,7 @@ async def test_create_wallet_revolut_fiat_invoice_success(
         "lnbits.utils.exchange_rates.get_fiat_rate_satoshis",
         AsyncMock(return_value=1000),
     )
-    payment = await payments.create_fiat_invoice(to_wallet.id, invoice_data)
+    payment = await payments.create_fiat_invoice(fiat_wallet.id, invoice_data)
     assert payment.status == PaymentState.PENDING
     assert payment.fiat_provider == "revolut"
     assert payment.extra.get("fiat_checking_id") == fiat_mock_response.checking_id
@@ -1682,7 +1700,7 @@ async def test_fiat_service_fee(settings: Settings):
 
 @pytest.mark.anyio
 async def test_handle_fiat_payment_confirmation(
-    to_wallet: Wallet, settings: Settings, mocker: MockerFixture
+    fiat_wallet: Wallet, settings: Settings, mocker: MockerFixture
 ):
     user = await create_user_account()
     service_fee_wallet = await create_wallet(user_id=user.id)
@@ -1716,7 +1734,7 @@ async def test_handle_fiat_payment_confirmation(
         "lnbits.utils.exchange_rates.get_fiat_rate_satoshis",
         AsyncMock(return_value=10000),  # 1 BTC = 100 000 USD, so 1 USD = 1000 sats
     )
-    payment = await payments.create_fiat_invoice(to_wallet.id, invoice_data)
+    payment = await payments.create_fiat_invoice(fiat_wallet.id, invoice_data)
     assert payment.status == PaymentState.PENDING
     assert payment.amount == 10_000_000
 
@@ -1874,11 +1892,13 @@ def _make_stripe_sig_header(payload, secret, timestamp=None):
 
 
 @pytest.mark.anyio
-async def test_check_fiat_status_handles_internal_states(mocker: MockerFixture):
+async def test_check_fiat_status_handles_internal_states(
+    fiat_wallet: Wallet, mocker: MockerFixture
+):
     pending_payment = Payment(
         checking_id="external_payment",
         payment_hash="hash_pending",
-        wallet_id="wallet_id",
+        wallet_id=fiat_wallet.id,
         amount=1000,
         fee=0,
         bolt11="bolt11",
@@ -1887,7 +1907,7 @@ async def test_check_fiat_status_handles_internal_states(mocker: MockerFixture):
     success_payment = Payment(
         checking_id="fiat_success",
         payment_hash="hash_success",
-        wallet_id="wallet_id",
+        wallet_id=fiat_wallet.id,
         amount=1000,
         fee=0,
         bolt11="bolt11",
@@ -1897,7 +1917,7 @@ async def test_check_fiat_status_handles_internal_states(mocker: MockerFixture):
     failed_payment = Payment(
         checking_id="fiat_failed",
         payment_hash="hash_failed",
-        wallet_id="wallet_id",
+        wallet_id=fiat_wallet.id,
         amount=1000,
         fee=0,
         bolt11="bolt11",
@@ -1923,7 +1943,7 @@ async def test_check_fiat_status_handles_internal_states(mocker: MockerFixture):
         Payment(
             checking_id="fiat_pending",
             payment_hash="hash_queue",
-            wallet_id="wallet_id",
+            wallet_id=fiat_wallet.id,
             amount=1000,
             fee=0,
             bolt11="bolt11",
@@ -1941,7 +1961,7 @@ async def test_check_fiat_status_handles_internal_states(mocker: MockerFixture):
         Payment(
             checking_id="fiat_pending_skip",
             payment_hash="hash_skip",
-            wallet_id="wallet_id",
+            wallet_id=fiat_wallet.id,
             amount=1000,
             fee=0,
             bolt11="bolt11",
@@ -1955,7 +1975,7 @@ async def test_check_fiat_status_handles_internal_states(mocker: MockerFixture):
 
 @pytest.mark.anyio
 async def test_check_fiat_status_persists_successful_payment(
-    to_wallet: Wallet, settings: Settings, mocker: MockerFixture
+    fiat_wallet: Wallet, settings: Settings, mocker: MockerFixture
 ):
     settings.stripe_enabled = True
     settings.stripe_api_secret_key = "mock_sk_test_4eC39HqLyjWDarjtT1zdp7dc"
@@ -1980,7 +2000,7 @@ async def test_check_fiat_status_persists_successful_payment(
         "lnbits.utils.exchange_rates.get_fiat_rate_satoshis",
         AsyncMock(return_value=1000),
     )
-    payment = await payments.create_fiat_invoice(to_wallet.id, invoice_data)
+    payment = await payments.create_fiat_invoice(fiat_wallet.id, invoice_data)
     assert payment.status == PaymentState.PENDING
 
     mocker.patch(
