@@ -92,6 +92,7 @@
               </q-item-section>
               <q-item-section>
                 <q-input
+                  dense
                   filled
                   v-model="formData.funding_source_max_retries"
                   type="number"
@@ -122,6 +123,7 @@
             </sup>
           </p>
           <q-input
+            dense
             type="number"
             filled
             v-model="formData.lnbits_reserve_fee_min"
@@ -140,6 +142,7 @@
             </sup>
           </p>
           <q-input
+            dense
             type="number"
             filled
             name="lnbits_reserve_fee_percent"
@@ -159,6 +162,7 @@
         <div class="col-12 col-md-4">
           <p><span v-text="$t('invoice_expiry')"></span></p>
           <q-input
+            dense
             filled
             v-model.number="formData.lightning_invoice_expiry"
             type="number"
@@ -178,6 +182,7 @@
             </sup>
           </p>
           <q-input
+            dense
             type="number"
             filled
             name="lnbits_funding_source_pay_invoice_wait_seconds"
@@ -199,6 +204,7 @@
             </sup>
           </p>
           <q-input
+            dense
             type="number"
             filled
             name="lnbits_funding_source_pending_interval_seconds"
@@ -271,6 +277,7 @@
               </q-item-section>
               <q-item-section>
                 <q-input
+                  dense
                   filled
                   v-model="formData.lnbits_watchdog_interval_minutes"
                   type="number"
@@ -290,6 +297,7 @@
               </q-item-section>
               <q-item-section>
                 <q-input
+                  dense
                   filled
                   v-model="formData.lnbits_watchdog_delta"
                   :suffix="$t('sats')"

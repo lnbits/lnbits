@@ -127,6 +127,7 @@
         class="q-pa-md"
       >
         <q-select
+          dense
           v-model="tab"
           :options="settingsNavigationItems"
           option-value="value"

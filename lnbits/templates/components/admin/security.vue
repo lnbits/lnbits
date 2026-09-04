@@ -6,6 +6,7 @@
     <div class="row">
       <div class="col-12 col-md-6">
         <q-input
+          dense
           filled
           v-model.number="formData.lnbits_baseurl"
           :label="$t('base_url_label')"
@@ -19,6 +20,7 @@
     <div class="row q-col-gutter-lg q-mb-md">
       <div class="col-12 col-md-4">
         <q-input
+          dense
           filled
           v-model="formData.auth_token_expire_minutes"
           type="number"
@@ -30,6 +32,7 @@
       </div>
       <div class="col-12 col-md-4">
         <q-input
+          dense
           filled
           v-model="formData.auth_authentication_cache_minutes"
           type="number"
@@ -41,6 +44,7 @@
       </div>
       <div class="col-12 col-md-4">
         <q-input
+          dense
           filled
           v-model="formData.auth_credetials_update_threshold"
           type="number"
@@ -52,6 +56,7 @@
       </div>
       <div class="col-12 col-md-12">
         <q-select
+          dense
           filled
           v-model="formData.auth_allowed_methods"
           multiple
@@ -76,6 +81,7 @@
     <div class="row">
       <div class="col-12">
         <q-input
+          dense
           class="q-mb-sm"
           filled
           v-model="nostrAcceptedUrl"
@@ -111,6 +117,7 @@
     <div class="row">
       <div class="col-12 col-md-6 q-pr-sm">
         <q-input
+          dense
           filled
           v-model="formData.google_client_id"
           :label="$t('auth_google_ci_label')"
@@ -120,6 +127,7 @@
       </div>
       <div class="col-12 col-md-6">
         <q-input
+          dense
           filled
           v-model="formData.google_client_secret"
           type="password"
@@ -140,6 +148,7 @@
     <div class="row">
       <div class="col-12 col-md-6 q-pr-sm">
         <q-input
+          dense
           filled
           v-model="formData.github_client_id"
           :label="$t('auth_gh_client_id_label')"
@@ -149,6 +158,7 @@
       </div>
       <div class="col-12 col-md-6">
         <q-input
+          dense
           filled
           v-model="formData.github_client_secret"
           type="password"
@@ -169,6 +179,7 @@
     <div class="row q-col-gutter-lg">
       <div class="col-12 col-md-4">
         <q-input
+          dense
           filled
           v-model="formData.keycloak_discovery_url"
           :label="$t('auth_keycloak_label')"
@@ -177,6 +188,7 @@
       </div>
       <div class="col-12 col-md-4">
         <q-input
+          dense
           filled
           v-model="formData.keycloak_client_id"
           :label="$t('auth_keycloak_ci_label')"
@@ -186,6 +198,7 @@
       </div>
       <div class="col-12 col-md-4">
         <q-input
+          dense
           filled
           v-model="formData.keycloak_client_secret"
           type="password"
@@ -196,6 +209,7 @@
       </div>
       <div class="col-12 col-md-4">
         <q-input
+          dense
           filled
           v-model="formData.keycloak_client_custom_org"
           :label="$t('auth_keycloak_custom_org_label')"
@@ -204,6 +218,7 @@
       </div>
       <div class="col-12 col-md-8">
         <q-input
+          dense
           filled
           v-model="formData.keycloak_client_custom_icon"
           :label="$t('auth_keycloak_custom_icon_label')"
@@ -222,6 +237,7 @@
     <div class="row q-col-gutter-lg">
       <div class="col-12 col-md-4">
         <q-input
+          dense
           filled
           v-model="formData.oidc_discovery_url"
           :label="$t('auth_oidc_label')"
@@ -230,6 +246,7 @@
       </div>
       <div class="col-12 col-md-4">
         <q-input
+          dense
           filled
           v-model="formData.oidc_client_id"
           :label="$t('auth_oidc_ci_label')"
@@ -239,6 +256,7 @@
       </div>
       <div class="col-12 col-md-4">
         <q-input
+          dense
           filled
           v-model="formData.oidc_client_secret"
           type="password"
@@ -249,6 +267,7 @@
       </div>
       <div class="col-12 col-md-4">
         <q-input
+          dense
           filled
           v-model="formData.oidc_client_custom_org"
           :label="$t('auth_oidc_custom_org_label')"
@@ -257,6 +276,7 @@
       </div>
       <div class="col-12 col-md-8">
         <q-input
+          dense
           filled
           v-model="formData.oidc_client_custom_icon"
           :label="$t('auth_oidc_custom_icon_label')"
@@ -309,6 +329,7 @@
           <div class="row q-col-gutter-lg">
             <div class="col-12 col-md-6">
               <q-input
+                dense
                 filled
                 v-model="formBlockedIPs"
                 @keydown.enter="addBlockedIPs"
@@ -339,6 +360,7 @@
             </div>
             <div class="col-12 col-md-6">
               <q-input
+                dense
                 filled
                 v-model="formAllowedIPs"
                 @keydown.enter="addAllowedIPs"
@@ -375,6 +397,7 @@
           <div class="row q-col-gutter-lg">
             <div class="col-12 col-md-6">
               <q-input
+                dense
                 filled
                 type="number"
                 v-model.number="formData.lnbits_rate_limit_no"
@@ -384,6 +407,7 @@
             </div>
             <div class="col-12 col-md-6">
               <q-select
+                dense
                 filled
                 :options="[
                   {label: $t('second'), value: 'second'},
@@ -404,6 +428,7 @@
           <div class="row q-col-gutter-lg">
             <div class="col-12 col-md-6">
               <q-input
+                dense
                 filled
                 v-model="formCallbackUrlRule"
                 @keydown.enter="addCallbackUrlRule"
@@ -462,6 +487,7 @@
           <div class="row q-col-gutter-lg">
             <div class="col-12 col-md-6">
               <q-input
+                dense
                 filled
                 v-model="formLnurlRedirectUrlRule"
                 @keydown.enter="addLnurlRedirectUrlRule"

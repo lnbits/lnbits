@@ -8,6 +8,7 @@
       <div class="col-12 col-md-6 q-pr-sm">
         <p><span v-text="$t('admin_users')"></span></p>
         <q-input
+          dense
           filled
           v-model="formAddAdmin"
           @keydown.enter="addAdminUser"
@@ -34,6 +35,7 @@
       <div class="col-12 col-md-6">
         <p><span v-text="$t('allowed_users')"></span></p>
         <q-input
+          dense
           filled
           v-model="formAddUser"
           @keydown.enter="addAllowedUser"
@@ -151,6 +153,7 @@
                 <div class="col-12 col-md-6 q-pr-sm">
                   <p><span v-text="$t('reusable_activation_code')"></span></p>
                   <q-input
+                    dense
                     filled
                     v-model="formData.lnbits_register_reusable_activation_code"
                     :type="showReusableActivationCode ? 'text' : 'password'"
@@ -187,6 +190,7 @@
                 <div class="col-12 col-md-6">
                   <p><span v-text="$t('one_time_activation_code')"></span></p>
                   <q-input
+                    dense
                     filled
                     v-model="formAddActivationCode"
                     @keydown.enter="addOneTimeActivationCode"

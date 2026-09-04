@@ -24,6 +24,7 @@
       </div>
       <div class="col-md-6 col-sm-12">
         <q-input
+          dense
           filled
           v-model="formData.lnbits_audit_retention_days"
           type="number"
@@ -136,6 +137,7 @@
     <div class="row q-mb-lg">
       <div class="col-md-6 col-sm-12 q-pr-sm">
         <q-select
+          dense
           filled
           v-model="formData.lnbits_audit_http_methods"
           multiple
@@ -154,6 +156,7 @@
       </div>
       <div class="col-md-6 col-sm-12 q-pr-sm">
         <q-input
+          dense
           class="q-mb-md"
           filled
           v-model="formAddIncludeResponseCode"
@@ -182,6 +185,7 @@
     <div class="row">
       <div class="col-md-6 col-sm-12 q-pr-sm">
         <q-input
+          dense
           class="q-mb-md"
           filled
           v-model="formAddIncludePath"
@@ -208,6 +212,7 @@
       </div>
       <div class="col-md-6 col-sm-12">
         <q-input
+          dense
           class="q-mb-md"
           filled
           v-model="formAddExcludePath"

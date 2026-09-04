@@ -89,6 +89,7 @@
     <div class="row q-col-gutter-md">
       <div class="col-12 col-md-4">
         <q-select
+          dense
           filled
           v-model="electrumServerPreset"
           :options="electrumServerOptions"
@@ -98,6 +99,7 @@
       </div>
       <div class="col-12 col-md-4" v-if="electrumServerPreset === 'Custom'">
         <q-input
+          dense
           filled
           v-model="formData.lnbits_blockexplorer_electrum_url"
           :label="$t('electrum_server_url_custom')"
@@ -106,6 +108,7 @@
       </div>
       <div class="col-12 col-md-4">
         <q-select
+          dense
           filled
           v-model="formData.lnbits_blockexplorer_network"
           :options="['main', 'test', 'regtest', 'signet']"

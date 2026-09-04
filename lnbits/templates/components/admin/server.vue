@@ -8,6 +8,7 @@
     <div class="row q-col-gutter-lg">
       <div class="col-12 col-md-6">
         <q-select
+          dense
           filled
           v-model="formData.lnbits_allowed_currencies"
           multiple
@@ -19,6 +20,7 @@
       </div>
       <div class="col-12 col-md-6">
         <q-select
+          dense
           filled
           v-model="formData.lnbits_default_accounting_currency"
           clearable
@@ -47,6 +49,7 @@
     <div class="row q-col-gutter-lg">
       <div class="col-12 col-md-6">
         <q-input
+          dense
           filled
           type="number"
           v-model.number="formData.lnbits_max_outgoing_payment_amount_sats"
@@ -59,6 +62,7 @@
       </div>
       <div class="col-12 col-md-6">
         <q-input
+          dense
           filled
           type="number"
           v-model.number="formData.lnbits_max_incoming_payment_amount_sats"
@@ -81,6 +85,7 @@
       <q-card-section class="row q-col-gutter-lg">
         <div class="col-12">
           <q-select
+            dense
             filled
             emit-value
             map-options
@@ -158,6 +163,7 @@
             </q-item-section>
           </q-item>
           <q-input
+            dense
             v-if="formData.lnbits_charge_wallet_lightning_addresses"
             class="q-mt-sm"
             filled
@@ -173,6 +179,7 @@
           class="col-12"
         >
           <q-input
+            dense
             filled
             type="textarea"
             autogrow
@@ -198,6 +205,7 @@
     <div class="row q-col-gutter-lg">
       <div class="col-12 col-md-4">
         <q-input
+          dense
           filled
           type="number"
           min="0"
@@ -209,6 +217,7 @@
       </div>
       <div class="col-12 col-md-4">
         <q-input
+          dense
           filled
           type="number"
           min="0"
@@ -220,6 +229,7 @@
       </div>
       <div class="col-12 col-md-4">
         <q-input
+          dense
           filled
           type="number"
           min="0"
@@ -265,6 +275,7 @@
       <q-card-section class="row q-col-gutter-lg">
         <div class="col-12 col-md-6">
           <q-input
+            dense
             filled
             type="number"
             v-model.number="formData.lnbits_service_fee"
@@ -276,6 +287,7 @@
         </div>
         <div class="col-12 col-md-6">
           <q-input
+            dense
             filled
             type="number"
             v-model.number="formData.lnbits_service_fee_max"
@@ -286,6 +298,7 @@
         </div>
         <div class="col-12 col-md-6">
           <q-input
+            dense
             filled
             v-model="formData.lnbits_service_fee_wallet"
             :label="$t('fee_wallet_label')"

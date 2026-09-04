@@ -48,6 +48,7 @@
           </q-item-section>
           <q-item-section>
             <q-input
+              dense
               :type="hideInputToggle ? 'password' : 'text'"
               autocomplete="off"
               filled
@@ -68,6 +69,7 @@
           </q-item-section>
           <q-item-section>
             <q-input
+              dense
               filled
               v-model="nostrNotificationIdentifier"
               @keydown.enter="addNostrNotificationIdentifier"
@@ -137,6 +139,7 @@
           </q-item-section>
           <q-item-section>
             <q-input
+              dense
               :type="hideInputToggle ? 'password' : 'text'"
               autocomplete="off"
               filled
@@ -154,6 +157,7 @@
           </q-item-section>
           <q-item-section>
             <q-input
+              dense
               filled
               v-model="formData.lnbits_telegram_notifications_chat_id"
             />
@@ -203,6 +207,7 @@
               </q-item-section>
               <q-item-section>
                 <q-input
+                  dense
                   type="email"
                   autocomplete="off"
                   filled
@@ -222,6 +227,7 @@
               </q-item-section>
               <q-item-section>
                 <q-input
+                  dense
                   type="text"
                   autocomplete="off"
                   filled
@@ -241,6 +247,7 @@
               </q-item-section>
               <q-item-section>
                 <q-input
+                  dense
                   :type="hideInputToggle ? 'password' : 'text'"
                   autocomplete="off"
                   filled
@@ -271,6 +278,7 @@
               </q-item-section>
               <q-item-section>
                 <q-input
+                  dense
                   filled
                   v-model="emailNotificationAddress"
                   @keydown.enter="addEmailNotificationAddress"
@@ -307,6 +315,7 @@
               </q-item-section>
               <q-item-section>
                 <q-input
+                  dense
                   type="number"
                   filled
                   v-model="formData.lnbits_email_notifications_port"
@@ -325,6 +334,7 @@
               </q-item-section>
               <q-item-section>
                 <q-input
+                  dense
                   type="text"
                   filled
                   v-model="formData.lnbits_email_notifications_server"
@@ -420,6 +430,7 @@
 
           <q-item-section avatar>
             <q-input
+              dense
               class="flow-right"
               type="number"
               min="0"
@@ -466,6 +477,7 @@
 
           <q-item-section avatar>
             <q-input
+              dense
               class="flow-right"
               type="number"
               min="0"
@@ -490,6 +502,7 @@
 
           <q-item-section avatar>
             <q-input
+              dense
               class="flow-right"
               type="number"
               min="0"
@@ -516,6 +529,7 @@
 
           <q-item-section avatar>
             <q-input
+              dense
               class="flow-right"
               type="number"
               min="0"

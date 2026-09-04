@@ -4,6 +4,7 @@
     <div class="row q-col-gutter-md">
       <div class="col-12 col-md-3">
         <q-input
+          dense
           filled
           type="number"
           v-model.number="formData.lnbits_max_asset_size_mb"
@@ -17,6 +18,7 @@
 
       <div class="col-12 col-md-9">
         <q-input
+          dense
           filled
           v-model.number="newAllowedAssetMimeType"
           @keydown.enter="addAllowedAssetMimeType()"
@@ -54,6 +56,7 @@
     <div class="row q-col-gutter-md q-my-lg">
       <div class="col-12 col-md-4">
         <q-input
+          dense
           filled
           type="number"
           v-model.number="formData.lnbits_asset_thumbnail_width"
@@ -66,6 +69,7 @@
       </div>
       <div class="col-12 col-md-4">
         <q-input
+          dense
           filled
           type="number"
           v-model.number="formData.lnbits_asset_thumbnail_height"
@@ -78,6 +82,7 @@
       </div>
       <div class="col-12 col-md-4">
         <q-input
+          dense
           filled
           v-model.number="formData.lnbits_asset_thumbnail_format"
           :label="$t('thumbnail_format')"
@@ -90,6 +95,7 @@
     <div class="row q-col-gutter-md">
       <div class="col-12 col-md-3">
         <q-input
+          dense
           filled
           type="number"
           v-model.number="formData.lnbits_max_assets_per_user"
@@ -101,6 +107,7 @@
       </div>
       <div class="col-12 col-md-9">
         <q-input
+          dense
           filled
           v-model="newNoLimitUser"
           @keydown.enter="addNewNoLimitUser()"

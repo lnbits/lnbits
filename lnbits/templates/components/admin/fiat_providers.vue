@@ -39,12 +39,14 @@
               <q-expansion-item :label="$t('api_stripe')" default-opened>
                 <q-card-section class="q-pa-md">
                   <q-input
+                    dense
                     filled
                     type="text"
                     v-model="formData.stripe_api_endpoint"
                     :label="$t('endpoint')"
                   ></q-input>
                   <q-input
+                    dense
                     filled
                     class="q-mt-md"
                     :type="hideInputToggle ? 'password' : 'text'"
@@ -53,6 +55,7 @@
                     :label="$t('secret_key')"
                   ></q-input>
                   <q-input
+                    dense
                     filled
                     class="q-mt-md"
                     type="text"
@@ -84,6 +87,7 @@
                   <div class="row items-center q-gutter-sm q-mt-md">
                     <div class="col">
                       <q-input
+                        dense
                         filled
                         type="text"
                         disable
@@ -108,6 +112,7 @@
                     </div>
                   </div>
                   <q-input
+                    dense
                     filled
                     class="q-mt-md"
                     :type="hideInputToggle ? 'password' : 'text'"
@@ -136,6 +141,7 @@
                   <div class="row">
                     <div class="col-md-4 col-sm-12">
                       <q-input
+                        dense
                         filled
                         class="q-ma-sm"
                         type="number"
@@ -148,6 +154,7 @@
                     </div>
                     <div class="col-md-4 col-sm-12">
                       <q-input
+                        dense
                         filled
                         class="q-ma-sm"
                         type="number"
@@ -160,6 +167,7 @@
                     </div>
                     <div class="col-md-4 col-sm-12">
                       <q-input
+                        dense
                         filled
                         class="q-ma-sm"
                         type="text"
@@ -177,6 +185,7 @@
                   <div class="row">
                     <div class="col-md-4 col-sm-12">
                       <q-input
+                        dense
                         filled
                         class="q-ma-sm"
                         type="number"
@@ -190,6 +199,7 @@
                     </div>
                     <div class="col-md-4 col-sm-12">
                       <q-input
+                        dense
                         filled
                         class="q-ma-sm"
                         type="number"
@@ -203,6 +213,7 @@
                     </div>
                     <div class="col-md-4 col-sm-12">
                       <q-input
+                        dense
                         filled
                         class="q-ma-sm"
                         v-model="
@@ -264,6 +275,7 @@
               <q-expansion-item :label="$t('allowed_users')">
                 <q-card-section>
                   <q-input
+                    dense
                     filled
                     v-model="formAddStripeUser"
                     @keydown.enter="addStripeAllowedUser"
@@ -328,12 +340,14 @@
               <q-expansion-item :label="$t('api')" default-opened>
                 <q-card-section class="q-pa-md">
                   <q-input
+                    dense
                     filled
                     type="text"
                     v-model="formData.paypal_api_endpoint"
                     :label="$t('endpoint')"
                   ></q-input>
                   <q-input
+                    dense
                     filled
                     class="q-mt-md"
                     :type="hideInputToggle ? 'password' : 'text'"
@@ -342,6 +356,7 @@
                     :label="$t('client_id')"
                   ></q-input>
                   <q-input
+                    dense
                     filled
                     class="q-mt-md"
                     :type="hideInputToggle ? 'password' : 'text'"
@@ -350,6 +365,7 @@
                     :label="$t('secret_key')"
                   ></q-input>
                   <q-input
+                    dense
                     filled
                     class="q-mt-md"
                     type="text"
@@ -381,6 +397,7 @@
                   <div class="row items-center q-gutter-sm q-mt-md">
                     <div class="col">
                       <q-input
+                        dense
                         filled
                         type="text"
                         disable
@@ -405,6 +422,7 @@
                     </div>
                   </div>
                   <q-input
+                    dense
                     filled
                     class="q-mt-md"
                     :type="hideInputToggle ? 'password' : 'text'"
@@ -429,6 +447,7 @@
                   <div class="row">
                     <div class="col-md-4 col-sm-12">
                       <q-input
+                        dense
                         filled
                         class="q-ma-sm"
                         type="number"
@@ -442,6 +461,7 @@
                     </div>
                     <div class="col-md-4 col-sm-12">
                       <q-input
+                        dense
                         filled
                         class="q-ma-sm"
                         type="number"
@@ -455,6 +475,7 @@
                     </div>
                     <div class="col-md-4 col-sm-12">
                       <q-input
+                        dense
                         filled
                         class="q-ma-sm"
                         type="text"
@@ -472,6 +493,7 @@
                   <div class="row">
                     <div class="col-md-4 col-sm-12">
                       <q-input
+                        dense
                         filled
                         class="q-ma-sm"
                         type="number"
@@ -485,6 +507,7 @@
                     </div>
                     <div class="col-md-4 col-sm-12">
                       <q-input
+                        dense
                         filled
                         class="q-ma-sm"
                         type="number"
@@ -498,6 +521,7 @@
                     </div>
                     <div class="col-md-4 col-sm-12">
                       <q-input
+                        dense
                         filled
                         class="q-ma-sm"
                         v-model="
@@ -559,6 +583,7 @@
               <q-expansion-item :label="$t('allowed_users')">
                 <q-card-section>
                   <q-input
+                    dense
                     filled
                     v-model="formAddPaypalUser"
                     @keydown.enter="addPaypalAllowedUser"
@@ -625,12 +650,14 @@
               <q-expansion-item :label="$t('api')" default-opened>
                 <q-card-section class="q-pa-md">
                   <q-input
+                    dense
                     filled
                     type="text"
                     v-model="formData.square_api_endpoint"
                     :label="$t('endpoint')"
                   ></q-input>
                   <q-input
+                    dense
                     filled
                     class="q-mt-md"
                     :type="hideInputToggle ? 'password' : 'text'"
@@ -639,6 +666,7 @@
                     :label="$t('access_token')"
                   ></q-input>
                   <q-input
+                    dense
                     filled
                     class="q-mt-md"
                     type="text"
@@ -647,6 +675,7 @@
                     :hint="$t('square_location_id_hint')"
                   ></q-input>
                   <q-input
+                    dense
                     filled
                     class="q-mt-md"
                     type="text"
@@ -654,6 +683,7 @@
                     :label="$t('api_version')"
                   ></q-input>
                   <q-input
+                    dense
                     filled
                     class="q-mt-md"
                     type="text"
@@ -685,6 +715,7 @@
                   <div class="row items-center q-gutter-sm q-mt-md">
                     <div class="col">
                       <q-input
+                        dense
                         filled
                         type="text"
                         v-model="formData.square_payment_webhook_url"
@@ -709,6 +740,7 @@
                     </div>
                   </div>
                   <q-input
+                    dense
                     filled
                     class="q-mt-md"
                     :type="hideInputToggle ? 'password' : 'text'"
@@ -732,6 +764,7 @@
                   <div class="row">
                     <div class="col-md-4 col-sm-12">
                       <q-input
+                        dense
                         filled
                         class="q-ma-sm"
                         type="number"
@@ -745,6 +778,7 @@
                     </div>
                     <div class="col-md-4 col-sm-12">
                       <q-input
+                        dense
                         filled
                         class="q-ma-sm"
                         type="number"
@@ -758,6 +792,7 @@
                     </div>
                     <div class="col-md-4 col-sm-12">
                       <q-input
+                        dense
                         filled
                         class="q-ma-sm"
                         type="text"
@@ -775,6 +810,7 @@
                   <div class="row">
                     <div class="col-md-4 col-sm-12">
                       <q-input
+                        dense
                         filled
                         class="q-ma-sm"
                         type="number"
@@ -788,6 +824,7 @@
                     </div>
                     <div class="col-md-4 col-sm-12">
                       <q-input
+                        dense
                         filled
                         class="q-ma-sm"
                         type="number"
@@ -801,6 +838,7 @@
                     </div>
                     <div class="col-md-4 col-sm-12">
                       <q-input
+                        dense
                         filled
                         class="q-ma-sm"
                         v-model="
@@ -862,6 +900,7 @@
               <q-expansion-item :label="$t('allowed_users')">
                 <q-card-section>
                   <q-input
+                    dense
                     filled
                     v-model="formAddSquareUser"
                     @keydown.enter="addSquareAllowedUser"
@@ -924,12 +963,14 @@
               <q-expansion-item :label="$t('api')" default-opened>
                 <q-card-section class="q-pa-md">
                   <q-input
+                    dense
                     filled
                     type="text"
                     v-model="formData.revolut_api_endpoint"
                     :label="$t('endpoint')"
                   ></q-input>
                   <q-input
+                    dense
                     filled
                     class="q-mt-md"
                     :type="hideInputToggle ? 'password' : 'text'"
@@ -938,6 +979,7 @@
                     label="API secret key"
                   ></q-input>
                   <q-input
+                    dense
                     filled
                     class="q-mt-md"
                     type="text"
@@ -945,6 +987,7 @@
                     :label="$t('api_version')"
                   ></q-input>
                   <q-input
+                    dense
                     filled
                     class="q-mt-md"
                     type="text"
@@ -980,6 +1023,7 @@
                   <div class="row items-center q-gutter-sm q-mt-md">
                     <div class="col">
                       <q-input
+                        dense
                         filled
                         type="text"
                         disable
@@ -1043,6 +1087,7 @@
                   <div class="row">
                     <div class="col-md-4 col-sm-12">
                       <q-input
+                        dense
                         filled
                         class="q-ma-sm"
                         type="number"
@@ -1056,6 +1101,7 @@
                     </div>
                     <div class="col-md-4 col-sm-12">
                       <q-input
+                        dense
                         filled
                         class="q-ma-sm"
                         type="number"
@@ -1069,6 +1115,7 @@
                     </div>
                     <div class="col-md-4 col-sm-12">
                       <q-input
+                        dense
                         filled
                         class="q-ma-sm"
                         type="text"
@@ -1087,6 +1134,7 @@
                   <div class="row">
                     <div class="col-md-4 col-sm-12">
                       <q-input
+                        dense
                         filled
                         class="q-ma-sm"
                         type="number"
@@ -1102,6 +1150,7 @@
                     </div>
                     <div class="col-md-4 col-sm-12">
                       <q-input
+                        dense
                         filled
                         class="q-ma-sm"
                         type="number"
@@ -1117,6 +1166,7 @@
                     </div>
                     <div class="col-md-4 col-sm-12">
                       <q-input
+                        dense
                         filled
                         class="q-ma-sm"
                         v-model="
@@ -1134,6 +1184,7 @@
               <q-expansion-item :label="$t('allowed_users')">
                 <q-card-section>
                   <q-input
+                    dense
                     filled
                     v-model="formAddRevolutUser"
                     @keydown.enter="addRevolutAllowedUser"

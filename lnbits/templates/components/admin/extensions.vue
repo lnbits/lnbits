@@ -9,6 +9,7 @@
       <div class="row q-col-gutter-md">
         <div class="col-12 q-mb-md">
           <q-input
+            dense
             class="q-mb-md"
             filled
             v-model="formAddExtensionsManifest"
@@ -37,6 +38,7 @@
       <div class="row q-col-gutter-md">
         <div class="col-12 q-mb-md">
           <q-input
+            dense
             class="q-mb-md"
             filled
             v-model="formAddWasmManifest"
@@ -83,6 +85,7 @@
             <span v-text="$t('admin_extensions')"></span>
           </p>
           <q-select
+            dense
             filled
             v-model="formData.lnbits_admin_extensions"
             multiple
@@ -97,6 +100,7 @@
             <span v-text="$t('user_default_extensions')"></span>
           </p>
           <q-select
+            dense
             filled
             v-model="formData.lnbits_user_default_extensions"
             multiple
@@ -173,6 +177,7 @@
             </q-item-section>
           </q-item>
           <q-input
+            dense
             class="q-mt-md"
             filled
             v-model.number="formData.lnbits_wasm_invocation_retention_days"
@@ -188,6 +193,7 @@
             <span v-text="$t('extension_builder_manifest_url')"></span>
           </p>
           <q-input
+            dense
             filled
             v-model="formData.lnbits_extensions_builder_manifest_url"
             :label="$t('extension_builder_manifest_url')"
@@ -199,6 +205,7 @@
             <span v-text="$t('reviews_url')"></span>
           </p>
           <q-input
+            dense
             filled
             v-model="formData.lnbits_extensions_reviews_url"
             :label="$t('reviews_url_label')"

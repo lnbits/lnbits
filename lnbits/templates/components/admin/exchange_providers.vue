@@ -18,6 +18,7 @@
       </div>
       <div class="col-12 col-md-4">
         <q-input
+          dense
           class="q-mb-md"
           filled
           v-model="formData.lnbits_exchange_history_refresh_interval_seconds"
@@ -28,6 +29,7 @@
         >
         </q-input>
         <q-input
+          dense
           filled
           v-model="formData.lnbits_exchange_history_size"
           type="number"
@@ -63,6 +65,7 @@
       </div>
       <div class="col-12 col-md-7">
         <q-input
+          dense
           filled
           hide-bottom-space
           v-model="formData.lnbits_price_aggregator_url"
@@ -225,6 +228,7 @@
     <div class="row">
       <div class="col-md-4 col-sm-12">
         <q-input
+          dense
           filled
           v-model="formData.lnbits_exchange_rate_cache_seconds"
           type="number"

@@ -4,6 +4,7 @@
     <div class="row q-col-gutter-md q-mb-md">
       <div class="col-12 col-md-6">
         <q-select
+          dense
           filled
           v-model="formData.lnbits_theme_options"
           multiple
@@ -14,6 +15,7 @@
       </div>
       <div class="col-12 col-md-6">
         <q-select
+          dense
           filled
           v-model="formData.lnbits_default_theme"
           :options="lnbits_theme_options"
@@ -23,6 +25,7 @@
       </div>
       <div class="col-12 col-md-4">
         <q-select
+          dense
           filled
           v-model="formData.lnbits_default_border"
           :options="globalBorderOptions"
@@ -32,6 +35,7 @@
       </div>
       <div class="col-12 col-md-4">
         <q-select
+          dense
           filled
           v-model="formData.lnbits_default_reaction"
           :options="reactionOptions"
@@ -41,6 +45,7 @@
       </div>
       <div class="col-12 col-md-4">
         <q-input
+          dense
           filled
           type="text"
           v-model="formData.lnbits_default_bgimage"
@@ -124,6 +129,7 @@
     <div class="row q-col-gutter-md q-mb-md">
       <div class="col-12 col-md-6">
         <q-input
+          dense
           filled
           type="text"
           v-model="formData.lnbits_site_title"
@@ -134,6 +140,7 @@
       </div>
       <div class="col-12 col-md-6">
         <q-input
+          dense
           filled
           type="text"
           v-model="formData.lnbits_site_tagline"
@@ -142,6 +149,7 @@
       </div>
       <div class="col-12">
         <q-input
+          dense
           v-model="formData.lnbits_site_description"
           filled
           type="textarea"
@@ -151,6 +159,7 @@
       </div>
       <div class="col-12 col-md-6 col-lg-4">
         <q-input
+          dense
           filled
           type="text"
           v-model="formData.lnbits_custom_logo"
@@ -160,6 +169,7 @@
       </div>
       <div class="col-12 col-md-6 col-lg-4">
         <q-input
+          dense
           filled
           type="text"
           v-model="formData.lnbits_qr_logo"
@@ -169,6 +179,7 @@
       </div>
       <div class="col-12 col-md-6 col-lg-4">
         <q-input
+          dense
           filled
           type="text"
           v-model="formData.lnbits_apple_touch_icon"
@@ -198,6 +209,7 @@
       </div>
       <div class="col-12 col-md-6">
         <q-input
+          dense
           filled
           type="text"
           tip="Custom Badge"
@@ -207,6 +219,7 @@
       </div>
       <div class="col-12 col-md-6">
         <q-select
+          dense
           filled
           v-model="formData.lnbits_custom_badge_color"
           :options="colors"
@@ -215,6 +228,7 @@
       </div>
       <div class="col-12">
         <q-input
+          dense
           filled
           type="text"
           tip="Custom Image"
@@ -230,6 +244,7 @@
     <div class="row q-col-gutter-md q-mb-md">
       <div class="col-12 col-md-6 col-lg-3">
         <q-input
+          dense
           filled
           type="text"
           v-model="formData.lnbits_default_wallet_name"
@@ -238,6 +253,7 @@
       </div>
       <div class="col-12 col-md-6 col-lg-3">
         <q-input
+          dense
           filled
           type="text"
           v-model="formData.lnbits_wallet_featured_button_label"
@@ -247,6 +263,7 @@
       </div>
       <div class="col-12 col-md-6 col-lg-3">
         <q-input
+          dense
           filled
           type="text"
           v-model="formData.lnbits_wallet_featured_button_url"
@@ -256,6 +273,7 @@
       </div>
       <div class="col-12 col-md-6 col-lg-3">
         <q-input
+          dense
           filled
           type="text"
           v-model="formData.lnbits_wallet_featured_button_icon"
@@ -284,6 +302,7 @@
         </div>
         <div class="col-12 col-md-6">
           <q-input
+            dense
             filled
             type="text"
             v-model="formData.lnbits_ad_space_title"
@@ -293,6 +312,7 @@
         </div>
         <div class="col-12 col-md-6">
           <q-input
+            dense
             filled
             v-model="formData.lnbits_ad_space"
             type="text"
