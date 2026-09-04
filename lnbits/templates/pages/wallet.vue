@@ -159,6 +159,7 @@
                 icon="file_download"
               ></q-btn>
               <q-btn
+                v-if="g.wallet.walletType !== 'fiat'"
                 unelevated
                 color="primary"
                 class="q-mr-md"
@@ -168,7 +169,7 @@
                 icon="file_upload"
               ></q-btn>
               <q-btn
-                v-if="g.hasCamera"
+                v-if="g.hasCamera && g.wallet.walletType !== 'fiat'"
                 unelevated
                 icon="qr_code_scanner"
                 color="secondary"
@@ -355,7 +356,7 @@
           <b v-text="receive.lnurl.domain"></b> is requesting an invoice:
         </p>
         <q-input
-          v-if="!g.isSatsDenomination"
+          v-if="!g.isSatsDenomination && g.wallet.walletType !== 'fiat'"
           filled
           dense
           v-model="receive.data.amount"
@@ -381,7 +382,7 @@
             </div>
             <div class="col-2">
               <q-btn
-                v-if="g.fiatTracking"
+                v-if="g.fiatTracking && g.wallet.walletType !== 'fiat'"
                 @click="g.isFiatPriority = !g.isFiatPriority"
                 class="float-right"
                 color="primary"
@@ -406,7 +407,9 @@
           ></q-input>
         </div>
         <q-input
-          v-if="g.settings.hasHoldinvoice"
+          v-if="
+            g.settings.hasHoldinvoice && g.wallet.walletType === 'lightning'
+          "
           filled
           dense
           v-model="receive.data.payment_hash"
@@ -451,30 +454,22 @@
               class="cursor-pointer"
             /> </template
         ></q-input>
-        <div v-if="g.user.fiat_providers?.length" class="q-mt-md">
+        <q-banner
+          v-if="
+            g.wallet.walletType === 'fiat' && !g.user.fiat_providers?.length
+          "
+          class="bg-warning text-dark q-mt-md"
+        >
+          No fiat payment provider is available for this account.
+        </q-banner>
+        <div
+          v-if="g.wallet.walletType === 'fiat' && g.user.fiat_providers?.length"
+          class="q-mt-md"
+        >
           <q-list bordered dense class="rounded-borders">
             <q-item-label dense header>
               <span v-text="$t('select_payment_provider')"></span>
             </q-item-label>
-            <q-separator></q-separator>
-            <q-item
-              :active="!receive.fiatProvider"
-              @click="receive.fiatProvider = ''"
-              active-class="bg-teal-1 text-grey-8 text-weight-bold"
-              clickable
-              v-ripple
-            >
-              <q-item-section avatar>
-                <q-avatar square>
-                  <q-img src="/static/images/logos/lnbits.png"></q-img>
-                </q-avatar>
-              </q-item-section>
-              <q-item-section>
-                <span
-                  v-text="$t('pay_with', {provider: 'Lightning Network'})"
-                ></span>
-              </q-item-section>
-            </q-item>
             <q-separator></q-separator>
             <q-item
               v-if="g.user.fiat_providers?.includes('stripe')"
@@ -556,7 +551,11 @@
           <q-btn
             unelevated
             color="primary"
-            :disable="receive.data.amount == null || receive.data.amount <= 0"
+            :disable="
+              receive.data.amount == null ||
+              receive.data.amount <= 0 ||
+              (g.wallet.walletType === 'fiat' && !receive.fiatProvider)
+            "
             type="submit"
           >
             <span
@@ -1072,15 +1071,23 @@
       <q-tab
         icon="file_download"
         @click="showReceiveDialog"
+        :disable="!g.wallet.canReceivePayments"
         :label="$t('receive')"
       >
       </q-tab>
 
-      <q-tab @click="showParseDialog" icon="file_upload" :label="$t('send')">
+      <q-tab
+        v-if="g.wallet.walletType !== 'fiat'"
+        @click="showParseDialog"
+        icon="file_upload"
+        :disable="!g.wallet.canSendPayments"
+        :label="$t('send')"
+      >
       </q-tab>
     </q-tabs>
 
     <q-btn
+      v-if="g.hasCamera && g.wallet.walletType !== 'fiat'"
       @click="g.scanner = decodeQR"
       round
       unelevated

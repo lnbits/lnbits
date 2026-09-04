@@ -49,8 +49,8 @@ window.LNbits = {
         currency: data.currency,
         lightningAddress: data.lightning_address,
         extra: data.extra,
-        canReceivePayments: true,
-        canSendPayments: true
+        canReceivePayments: ['lightning', 'fiat'].includes(data.wallet_type),
+        canSendPayments: data.wallet_type === 'lightning'
       }
       newWallet.msat = data.balance_msat
       newWallet.sat = Math.floor(data.balance_msat / 1000)

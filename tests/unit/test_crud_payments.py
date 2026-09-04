@@ -8,8 +8,9 @@ from lnbits.core.crud import (
     get_payments_paginated,
     update_payment,
 )
-from lnbits.core.crud.payments import get_standalone_payment
-from lnbits.core.models import PaymentFilters, PaymentState
+from lnbits.core.crud.payments import create_payment, get_standalone_payment
+from lnbits.core.models import CreatePayment, PaymentFilters, PaymentState
+from lnbits.core.models.wallet_types import WalletType
 from lnbits.core.services import (
     create_invoice,
     create_user_account,
@@ -25,6 +26,26 @@ async def update_payments(payments):
     await update_payment(payments[1])
     payments[2].status = PaymentState.PENDING
     await update_payment(payments[2])
+
+
+@pytest.mark.anyio
+async def test_crud_rejects_outgoing_payment_for_fiat_wallet(app):
+    user = await create_user_account()
+    wallet = await create_wallet(user_id=user.id, wallet_type=WalletType.FIAT)
+
+    with pytest.raises(
+        ValueError, match="Wallet does not have permission to spend funds"
+    ):
+        await create_payment(
+            checking_id="fiat_outgoing",
+            data=CreatePayment(
+                wallet_id=wallet.id,
+                payment_hash="ab" * 32,
+                bolt11="fiat-wallet-cannot-send",
+                amount_msat=-1000,
+                memo="blocked outgoing payment",
+            ),
+        )
 
 
 @pytest.mark.anyio

@@ -5,8 +5,11 @@ from httpx import AsyncClient
 
 from lnbits.core.crud.wallets import create_wallet, get_wallet
 from lnbits.core.models.users import Account
+from lnbits.core.models.wallet_types import WalletType
 from lnbits.core.services import update_wallet_balance
+from lnbits.core.services.payments import create_invoice, pay_invoice
 from lnbits.core.services.users import create_user_account
+from lnbits.exceptions import InvoiceError, PaymentError
 from lnbits.settings import settings
 
 
@@ -307,6 +310,102 @@ async def test_wallet_api_shared_wallet_requires_source_id(http_client: AsyncCli
     assert (
         response.json()["detail"] == "Shared wallet ID is required for shared wallets."
     )
+
+
+@pytest.mark.anyio
+async def test_wallet_api_creates_fiat_wallet_and_rejects_placeholders(
+    http_client: AsyncClient,
+):
+    user = await create_user_account(
+        Account(
+            id=uuid4().hex,
+            username=f"typed_{uuid4().hex[:8]}",
+            email=f"typed_{uuid4().hex[:8]}@lnbits.com",
+        )
+    )
+
+    default_response = await http_client.post(
+        f"/api/v1/wallet?usr={user.id}",
+        json={"name": "Default Lightning"},
+    )
+    assert default_response.status_code == 200
+    assert default_response.json()["wallet_type"] == WalletType.LIGHTNING.value
+
+    response = await http_client.post(
+        f"/api/v1/wallet?usr={user.id}",
+        json={"name": "Euros", "wallet_type": "fiat", "currency": "eur"},
+    )
+    assert response.status_code == 200
+    data = response.json()
+    assert data["wallet_type"] == WalletType.FIAT.value
+    assert data["currency"] == "EUR"
+    assert data["lightning_address"] is None
+    assert data["extra"]["icon"] == "credit_card"
+
+    wallet = await get_wallet(data["id"])
+    assert wallet
+    assert wallet.can_receive_payments is True
+    assert wallet.can_send_payments is False
+    await update_wallet_balance(wallet, 10)
+    with pytest.raises(
+        ValueError, match="Wallet does not have permission to spend funds"
+    ):
+        await update_wallet_balance(wallet, -1)
+
+    for wallet_type in (WalletType.ONCHAIN, WalletType.LIQUID):
+        unavailable = await http_client.post(
+            f"/api/v1/wallet?usr={user.id}",
+            json={"name": wallet_type.value, "wallet_type": wallet_type.value},
+        )
+        assert unavailable.status_code == 400
+        assert unavailable.json()["detail"] == (
+            f"Wallet type '{wallet_type.value}' is not available yet."
+        )
+
+
+@pytest.mark.anyio
+async def test_wallet_payment_types_are_isolated():
+    user = await create_user_account()
+    lightning_wallet = user.wallets[0]
+    fiat_wallet = await create_wallet(
+        user_id=user.id, wallet_type=WalletType.FIAT, currency="USD"
+    )
+
+    with pytest.raises(
+        InvoiceError, match="Fiat payments cannot be received by a lightning wallet"
+    ):
+        await create_invoice(
+            wallet_id=lightning_wallet.id,
+            amount=1,
+            currency="USD",
+            memo="fiat",
+            internal=True,
+            fiat_provider="stripe",
+        )
+
+    with pytest.raises(
+        InvoiceError, match="Lightning payments cannot be received by a fiat wallet"
+    ):
+        await create_invoice(
+            wallet_id=fiat_wallet.id,
+            amount=1,
+            memo="lightning",
+            internal=True,
+        )
+
+    lightning_invoice = await create_invoice(
+        wallet_id=lightning_wallet.id,
+        amount=1,
+        memo="lightning",
+        internal=True,
+    )
+    with pytest.raises(
+        PaymentError, match="Wallet does not have permission to pay invoices"
+    ):
+        await pay_invoice(
+            wallet_id=fiat_wallet.id,
+            payment_request=lightning_invoice.bolt11,
+        )
 
 
 def _admin_headers(adminkey: str) -> dict[str, str]:

@@ -2,14 +2,25 @@ window.app.component('lnbits-wallet-new', {
   template: '#lnbits-wallet-new',
   data() {
     return {
-      walletTypes: [{label: 'Lightning Wallet', value: 'lightning'}],
-      wallet: {name: '', sharedWalletId: ''},
+      walletTypes: [
+        {label: 'Lightning Wallet', value: 'lightning'},
+        {label: 'Fiat Wallet', value: 'fiat'}
+      ],
+      wallet: {name: '', currency: '', sharedWalletId: ''},
       showNewWalletDialog: false
     }
   },
   watch: {
     'g.newWalletType'(val) {
       if (val === null) return
+      if (val === 'fiat' && !this.wallet.currency) {
+        const currencies = this.g.allowedCurrencies.length
+          ? this.g.allowedCurrencies
+          : this.g.currencies
+        this.wallet.currency = currencies.includes('USD')
+          ? 'USD'
+          : currencies[0]
+      }
       this.showNewWalletDialog = true
     },
     showNewWalletDialog(val) {
@@ -18,11 +29,11 @@ window.app.component('lnbits-wallet-new', {
     }
   },
   computed: {
-    isLightning() {
-      return this.g.newWalletType === 'lightning'
-    },
     isLightningShared() {
       return this.g.newWalletType === 'lightning-shared'
+    },
+    isFiat() {
+      return this.g.newWalletType === 'fiat'
     },
     inviteWalletOptions() {
       return (this.g.user?.extra?.wallet_invite_requests || []).map(i => ({
@@ -35,7 +46,7 @@ window.app.component('lnbits-wallet-new', {
     reset() {
       this.showNewWalletDialog = false
       this.g.newWalletType = null
-      this.wallet = {name: '', sharedWalletId: ''}
+      this.wallet = {name: '', currency: '', sharedWalletId: ''}
     },
     async submitRejectWalletInvitation() {
       try {
@@ -69,7 +80,7 @@ window.app.component('lnbits-wallet-new', {
     },
     submitAddWallet() {
       const data = this.wallet
-      if (this.g.newWalletType === 'lightning' && !data.name) {
+      if (this.g.newWalletType !== 'lightning-shared' && !data.name) {
         this.$q.notify({
           message: 'Please enter a name for the wallet',
           color: 'warning'
@@ -83,9 +94,17 @@ window.app.component('lnbits-wallet-new', {
         })
         return
       }
+      if (this.isFiat && !data.currency) {
+        this.$q.notify({
+          message: 'Please select a currency for the wallet',
+          color: 'warning'
+        })
+        return
+      }
       LNbits.api
         .createWallet(data.name, this.g.newWalletType, {
-          shared_wallet_id: data.sharedWalletId
+          shared_wallet_id: data.sharedWalletId,
+          currency: this.isFiat ? data.currency : undefined
         })
         .then(res => {
           this.$q.notify({

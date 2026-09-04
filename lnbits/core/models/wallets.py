@@ -4,11 +4,14 @@ from dataclasses import dataclass
 from datetime import datetime, timezone
 from enum import Enum
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, validator
 
 from lnbits.core.models.lnurl import StoredPayLinks
 from lnbits.db import FilterModel
 from lnbits.settings import settings
+from lnbits.utils.exchange_rates import allowed_currencies
+
+from .wallet_types import WalletType, wallet_type_capabilities
 
 
 class WalletInfo(BaseModel):
@@ -17,11 +20,6 @@ class WalletInfo(BaseModel):
     adminkey: str
     inkey: str
     balance_msat: int
-
-
-class WalletType(Enum):
-    LIGHTNING = "lightning"
-    LIGHTNING_SHARED = "lightning-shared"
 
 
 class WalletPermission(Enum):
@@ -165,8 +163,14 @@ class Wallet(BaseWallet):
         return []
 
     def has_permission(self, permission: WalletPermission) -> bool:
-        if self.is_lightning_wallet:
-            return True
+        capabilities = wallet_type_capabilities(self.type)
+        if not self.is_lightning_shared_wallet:
+            if permission == WalletPermission.VIEW_PAYMENTS:
+                return True
+            if permission == WalletPermission.RECEIVE_PAYMENTS:
+                return capabilities.receives
+            if permission == WalletPermission.SEND_PAYMENTS:
+                return capabilities.sends
         if self.is_lightning_shared_wallet:
             return permission in self.share_permissions
 
@@ -207,6 +211,35 @@ class Wallet(BaseWallet):
     def is_lightning_shared_wallet(self) -> bool:
         return self.wallet_type == WalletType.LIGHTNING_SHARED.value
 
+    @property
+    def is_fiat_wallet(self) -> bool:
+        return self.wallet_type == WalletType.FIAT.value
+
+    @property
+    def is_onchain_wallet(self) -> bool:
+        return self.wallet_type == WalletType.ONCHAIN.value
+
+    @property
+    def is_liquid_wallet(self) -> bool:
+        return self.wallet_type == WalletType.LIQUID.value
+
+    @property
+    def type(self) -> WalletType:
+        return WalletType(self.wallet_type)
+
+    def supports_payment_type(self, payment_type: WalletType) -> bool:
+        if self.is_lightning_shared_wallet:
+            return payment_type == WalletType.LIGHTNING
+        return self.type == payment_type
+
+    @property
+    def can_be_shared(self) -> bool:
+        return wallet_type_capabilities(self.type).shareable
+
+    @property
+    def supports_lightning_address(self) -> bool:
+        return wallet_type_capabilities(self.type).lightning_address
+
     def _validate_data(self):
         if self.is_lightning_shared_wallet:
             if not self.shared_wallet_id:
@@ -217,6 +250,16 @@ class CreateWallet(BaseModel):
     name: str | None = None
     wallet_type: WalletType = WalletType.LIGHTNING
     shared_wallet_id: str | None = None
+    currency: str | None = None
+
+    @validator("currency")
+    def validate_currency(cls, currency: str | None) -> str | None:
+        if currency is None:
+            return None
+        currency = currency.upper()
+        if currency not in allowed_currencies():
+            raise ValueError("The provided currency is not supported")
+        return currency
 
 
 class KeyType(Enum):

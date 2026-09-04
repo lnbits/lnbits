@@ -61,6 +61,7 @@ class CreatePayment(BaseModel):
     fee: int = 0
     labels: list[str] | None = None
     external_id: str | None = None
+    fiat_provider: str | None = None
 
     @validator("external_id")
     def validate_external_id(cls, external_id):

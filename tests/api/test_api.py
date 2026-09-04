@@ -10,8 +10,10 @@ import shortuuid
 from pytest_mock.plugin import MockerFixture
 
 from lnbits import bolt11
+from lnbits.core.crud.wallets import create_wallet
 from lnbits.core.models import CreateInvoice, Payment
 from lnbits.core.models.users import Account, UserExtra, UserLabel
+from lnbits.core.models.wallet_types import WalletType
 from lnbits.core.services.users import create_user_account
 from lnbits.core.views.payment_api import api_payment
 from lnbits.fiat.base import FiatInvoiceResponse
@@ -183,8 +185,15 @@ async def test_create_invoice_fiat_amount(client, inkey_headers_to):
 
 @pytest.mark.anyio
 async def test_create_fiat_invoice(
-    client, inkey_headers_to, settings: Settings, mocker: MockerFixture
+    client, to_wallet, settings: Settings, mocker: MockerFixture
 ):
+    fiat_wallet = await create_wallet(
+        user_id=to_wallet.user, wallet_type=WalletType.FIAT, currency="EUR"
+    )
+    fiat_headers = {
+        "X-Api-Key": fiat_wallet.inkey,
+        "Content-type": "application/json",
+    }
     data = await get_random_invoice_data()
     data["unit"] = "EUR"
     data["fiat_provider"] = "stripe"
@@ -207,9 +216,7 @@ async def test_create_fiat_invoice(
         "lnbits.utils.exchange_rates.get_fiat_rate_satoshis",
         AsyncMock(return_value=1000),  # 1 BTC = 100 000 EUR, so 1 EUR = 1000 sats
     )
-    response = await client.post(
-        "/api/v1/payments", json=data, headers=inkey_headers_to
-    )
+    response = await client.post("/api/v1/payments", json=data, headers=fiat_headers)
     assert response.status_code == 201
     invoice = response.json()
     decode = bolt11.decode(invoice["bolt11"])
@@ -221,7 +228,7 @@ async def test_create_fiat_invoice(
     assert invoice["extra"]["fiat_payment_request"] == fiat_payment_request
 
     response = await client.get(
-        f"/api/v1/payments/{decode.payment_hash}", headers=inkey_headers_to
+        f"/api/v1/payments/{decode.payment_hash}", headers=fiat_headers
     )
     assert response.is_success
     data = response.json()

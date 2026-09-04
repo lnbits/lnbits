@@ -26,7 +26,7 @@ from lnbits.helpers import sha256s
 async def invite_to_wallet(
     source_wallet: Wallet, data: WalletSharePermission
 ) -> WalletSharePermission:
-    if not source_wallet.is_lightning_wallet:
+    if not source_wallet.can_be_shared:
         raise ValueError("Only lightning wallets can be shared.")
     if not data.username:
         raise ValueError("Username or email missing.")
@@ -77,7 +77,7 @@ async def reject_wallet_invitation(invited_user_id: str, share_request_id: str):
 async def update_wallet_share_permissions(
     source_wallet: Wallet, data: WalletSharePermission
 ) -> WalletSharePermission:
-    if not source_wallet.is_lightning_wallet:
+    if not source_wallet.can_be_shared:
         raise ValueError("Only lightning wallets can be shared.")
     if not data.shared_with_wallet_id:
         raise ValueError("Wallet ID missing.")
@@ -103,7 +103,7 @@ async def update_wallet_share_permissions(
 
 
 async def delete_wallet_share(source_wallet: Wallet, request_id: str) -> SimpleStatus:
-    if not source_wallet.is_lightning_wallet:
+    if not source_wallet.can_be_shared:
         raise ValueError("Source wallet is not a lightning wallet.")
 
     share = source_wallet.extra.find_share_by_id(request_id)
@@ -155,7 +155,7 @@ async def create_lightning_shared_wallet(
     if not source_wallet:
         raise ValueError("Shared wallet does not exist.")
 
-    if not source_wallet.is_lightning_wallet:
+    if not source_wallet.can_be_shared:
         raise ValueError("Shared wallet is not a lightning wallet.")
 
     if source_wallet.user == user_id:
