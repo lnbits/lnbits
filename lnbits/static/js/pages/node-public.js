@@ -39,7 +39,6 @@ window.PageNodePublic = {
   },
   created() {
     this.getInfo()
-    this.get1MLStats()
   },
   methods: {
     formatMsat(msat) {
@@ -54,6 +53,7 @@ window.PageNodePublic = {
           this.info = response.data
           this.channel_stats = response.data.channel_stats
           this.enabled = true
+          if (!this.info.managed_channels) this.get1MLStats()
         })
         .catch(() => {
           this.info = {}
