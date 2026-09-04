@@ -43,13 +43,34 @@
             ></q-item-label>
           </q-item-section>
         </q-item>
+        <q-item tag="label" v-ripple>
+          <q-item-section avatar>
+            <q-toggle
+              size="md"
+              v-model="formData.lnbits_blockexplorer_in_user_menu"
+              :disable="!formData.lnbits_blockexplorer_public_api"
+              checked-icon="check"
+              color="green"
+              unchecked-icon="clear"
+            />
+          </q-item-section>
+          <q-item-section>
+            <q-item-label
+              v-text="$t('blockexplorer_in_user_menu')"
+            ></q-item-label>
+            <q-item-label
+              caption
+              v-text="$t('blockexplorer_in_user_menu_desc')"
+            ></q-item-label>
+          </q-item-section>
+        </q-item>
         <div
           v-if="formData.lnbits_blockexplorer_public_api"
           class="q-pl-lg q-mt-xs"
         >
           <q-btn
             type="a"
-            href="/blockexplorer"
+            href="/blockexplorer/public"
             target="_blank"
             rel="noopener noreferrer"
             icon="open_in_new"
@@ -61,7 +82,7 @@
         </div>
       </div>
     </div>
-    <q-separator class="q-mb-lg q-mt-sm"></q-separator>
+    <q-separator class="q-mb-lg q-mt-md"></q-separator>
     <h6 class="q-my-none q-mb-sm">
       <span v-text="$t('electrum_compatible_server')"></span>
     </h6>

@@ -102,7 +102,9 @@
     </div>
   </q-card-section>
   <div v-if="formData.lnbits_require_user_activation" class="row">
-    <div class="col">
+    <div class="col-12">
+      <q-separator class="q-mb-lg q-mt-md"></q-separator>
+      <h6 class="q-my-none q-mb-sm">Account Activation</h6>
       <q-list bordered class="rounded-borders">
         <q-expansion-item header-class="text-primary text-bold">
           <template v-slot:header>
@@ -152,6 +154,7 @@
                     filled
                     v-model="formData.lnbits_register_reusable_activation_code"
                     :type="showReusableActivationCode ? 'text' : 'password'"
+                    autocomplete="off"
                     :label="$t('reusable_activation_code_label')"
                     :hint="$t('reusable_activation_code_hint')"
                   >

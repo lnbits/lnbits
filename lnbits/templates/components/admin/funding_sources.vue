@@ -49,6 +49,7 @@
               filled
               class="q-mt-sm"
               :type="hideInput ? 'password' : 'text'"
+              autocomplete="off"
               :label="prop.label"
               :hint="prop.hint"
               :value="prop.value"
@@ -107,6 +108,7 @@
                 filled
                 class="q-mt-sm"
                 :type="hideInput ? 'password' : 'text'"
+                autocomplete="off"
                 :label="prop.label"
                 :hint="prop.hint"
                 :readonly="prop.readonly || false"

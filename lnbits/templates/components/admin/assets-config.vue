@@ -8,6 +8,7 @@
           type="number"
           v-model.number="formData.lnbits_max_asset_size_mb"
           :label="$t('max_asset_size_mb')"
+          suffix="MB"
           step="0.1"
           min="0"
           :hint="$t('max_asset_size_mb_desc')"
@@ -48,7 +49,7 @@
         </div>
       </div>
     </div>
-    <q-separator class="q-mb-lg q-mt-sm"></q-separator>
+    <q-separator class="q-mb-lg q-mt-md"></q-separator>
     <h6 class="q-my-none q-mb-sm">Thumbnails</h6>
     <div class="row q-col-gutter-md q-my-lg">
       <div class="col-12 col-md-4">
@@ -57,6 +58,7 @@
           type="number"
           v-model.number="formData.lnbits_asset_thumbnail_width"
           :label="$t('thumbnail_width')"
+          suffix="px"
           step="1"
           min="0"
           :hint="$t('thumbnail_width_desc')"
@@ -68,6 +70,7 @@
           type="number"
           v-model.number="formData.lnbits_asset_thumbnail_height"
           :label="$t('thumbnail_height')"
+          suffix="px"
           step="1"
           min="0"
           :hint="$t('thumbnail_height_desc')"
@@ -82,7 +85,7 @@
         ></q-input>
       </div>
     </div>
-    <q-separator class="q-mb-lg q-mt-sm"></q-separator>
+    <q-separator class="q-mb-lg q-mt-md"></q-separator>
     <h6 class="q-my-none q-mb-sm">Users</h6>
     <div class="row q-col-gutter-md">
       <div class="col-12 col-md-3">
@@ -125,9 +128,5 @@
         </div>
       </div>
     </div>
-  </q-card-section>
-  <q-card-section>
-    <!-- for spacing -->
-    <br />
   </q-card-section>
 </template>

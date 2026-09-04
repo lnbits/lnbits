@@ -1,6 +1,9 @@
 <template id="lnbits-admin-audit">
   <q-card-section class="q-pa-none">
-    <h6 class="q-my-none q-mb-sm">Audit</h6>
+    <h6
+      class="q-my-none q-mb-sm"
+      v-text="`${$t('api_watch')} ${$t('settings')}`"
+    ></h6>
     <div class="row q-mb-lg">
       <div class="col-md-6 col-sm-12 q-pr-sm">
         <q-item tag="label" v-ripple>
@@ -25,13 +28,15 @@
           v-model="formData.lnbits_audit_retention_days"
           type="number"
           label="Retention days"
+          :suffix="$t('days')"
           hint="Number of days to keep the audit entry."
         >
         </q-input>
       </div>
     </div>
-    <q-separator class="q-mb-lg q-mt-sm"></q-separator>
-    <div class="row">
+    <q-separator class="q-mb-lg q-mt-md"></q-separator>
+    <h6 class="q-my-none q-mb-sm">Recorded Request Data</h6>
+    <div class="row q-mb-md">
       <div class="col-md-6 col-sm-12 q-pr-sm">
         <q-item tag="label" v-ripple>
           <q-item-section avatar>
@@ -126,7 +131,8 @@
         </q-item>
       </div>
     </div>
-    <q-separator class="q-mb-xl q-mt-sm"></q-separator>
+    <q-separator class="q-mb-lg q-mt-md"></q-separator>
+    <h6 class="q-my-none q-mb-sm">Audit Filters</h6>
     <div class="row q-mb-lg">
       <div class="col-md-6 col-sm-12 q-pr-sm">
         <q-select

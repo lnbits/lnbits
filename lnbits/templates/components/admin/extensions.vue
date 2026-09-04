@@ -2,15 +2,12 @@
   <q-card-section class="q-pa-none">
     <div>
       <div class="row items-center justify-between q-mb-md">
-        <h6 class="q-my-none">
-          <span v-text="$t('extensions')"></span>
+        <h6 class="q-my-none q-mb-sm">
+          <span v-text="$t('extension_sources')"></span>
         </h6>
       </div>
       <div class="row q-col-gutter-md">
         <div class="col-12 q-mb-md">
-          <p>
-            <span v-text="$t('extension_sources')"></span>
-          </p>
           <q-input
             class="q-mb-md"
             filled
@@ -35,9 +32,10 @@
           </div>
         </div>
       </div>
+      <q-separator class="q-mb-lg q-mt-md"></q-separator>
+      <h6 class="q-my-none q-mb-sm">WASM Extensions</h6>
       <div class="row q-col-gutter-md">
         <div class="col-12 q-mb-md">
-          <p>Wasm Extension</p>
           <q-input
             class="q-mb-md"
             filled
@@ -77,6 +75,8 @@
           </div>
         </div>
       </div>
+      <q-separator class="q-mb-lg q-mt-md"></q-separator>
+      <h6 class="q-my-none q-mb-sm">Access and Defaults</h6>
       <div class="row q-col-gutter-md">
         <div class="col-12 col-md-6">
           <p>
@@ -104,6 +104,10 @@
             :hint="$t('user_default_extensions_hint')"
             :options="g.extensions"
           ></q-select>
+        </div>
+        <div class="col-12">
+          <q-separator class="q-mb-lg q-mt-md"></q-separator>
+          <h6 class="q-my-none q-mb-sm">Advanced</h6>
         </div>
         <div class="col-12 col-md-6">
           <p>
@@ -174,10 +178,10 @@
             v-model.number="formData.lnbits_wasm_invocation_retention_days"
             type="number"
             min="0"
-            label="WASM invocation retention days"
+            label="WASM invocation retention"
+            :suffix="$t('days')"
             hint="Set to 0 to disable automatic cleanup."
           ></q-input>
-          <br />
         </div>
         <div class="col-12 col-md-6">
           <p>

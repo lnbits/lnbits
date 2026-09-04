@@ -1,9 +1,8 @@
 <template id="lnbits-admin-funding">
   <q-card-section class="q-pa-none">
-    <h6 class="q-my-none">
+    <h6 class="q-my-none q-mb-sm">
       <span v-text="$t('wallets_management')"></span>
     </h6>
-    <br />
     <div>
       <div class="row">
         <div class="col">
@@ -47,7 +46,6 @@
               "
             ></li>
           </ul>
-          <br />
         </div>
         <div class="col">
           <div v-if="g.settings.hasNodemanager">
@@ -63,7 +61,6 @@
               :label="$t('toggle_public_node_ui')"
               v-model="formData.lnbits_public_node_ui"
             ></q-toggle>
-            <br />
             <q-toggle
               v-if="formData.lnbits_node_ui"
               :label="$t('toggle_transactions_node_ui')"
@@ -76,6 +73,7 @@
         </div>
       </div>
       <div v-if="isSuperUser">
+        <q-separator class="q-mb-lg q-mt-md"></q-separator>
         <lnbits-admin-funding-sources
           :form-data="formData"
           :allowed-funding-sources="settings.lnbits_allowed_funding_sources"
@@ -103,9 +101,10 @@
           </div>
         </div>
       </div>
-      <div class="row q-col-gutter-md q-mt-lg">
+      <q-separator class="q-mb-lg q-mt-md"></q-separator>
+      <div class="row q-col-gutter-md">
         <div class="col-12">
-          <h6 class="q-my-none">
+          <h6 class="q-my-none q-mb-sm">
             <span v-text="$t('routing_fee_reserve_calculations')"></span>
           </h6>
           <p class="q-mt-sm q-mb-none">
@@ -150,9 +149,10 @@
           ></q-input>
         </div>
       </div>
-      <div class="row q-col-gutter-md q-mt-sm">
+      <q-separator class="q-mb-lg q-mt-md"></q-separator>
+      <div class="row q-col-gutter-md">
         <div class="col-12">
-          <h6 class="q-my-none">
+          <h6 class="q-my-none q-mb-sm">
             <span v-text="$t('payment_timeouts')"></span>
           </h6>
         </div>
@@ -205,101 +205,101 @@
             v-model="formData.lnbits_funding_source_pending_interval_seconds"
             :label="$t('payment_pending_interval')"
             :hint="$t('payment_pending_interval_desc')"
+            :suffix="$t('seconds')"
             step="1"
             min="0"
           ></q-input>
         </div>
       </div>
-      <q-separator></q-separator>
-      <h6 class="q-mt-lg q-mb-sm">
-        <p v-text="$t('watchdog')"></p>
-      </h6>
-      <div class="row q-col-gutter-md">
-        <div class="col-12">
-          <p v-text="$t('watchdog_introduction')"></p>
-        </div>
-      </div>
-      <div class="row q-col-gutter-md">
-        <div class="col-12 col-md-6">
-          <q-item tag="label" v-ripple>
-            <q-item-section>
-              <q-item-label v-text="$t('enable_watchdog')"></q-item-label>
-              <q-item-label
-                caption
-                v-text="$t('enable_watchdog_desc')"
-              ></q-item-label>
-            </q-item-section>
-            <q-item-section avatar>
-              <q-toggle
-                size="md"
-                v-model="formData.lnbits_watchdog_switch_to_voidwallet"
-                checked-icon="check"
-                color="green"
-                unchecked-icon="clear"
-              />
-            </q-item-section>
-          </q-item>
-        </div>
-        <div class="col-12 col-md-6">
-          <q-item tag="label" v-ripple>
-            <q-item-section>
-              <q-item-label
-                v-text="$t('notification_watchdog_limit')"
-              ></q-item-label>
-              <q-item-label
-                caption
-                v-text="$t('notification_watchdog_limit_desc')"
-              ></q-item-label>
-            </q-item-section>
-            <q-item-section avatar>
-              <q-toggle
-                size="md"
-                v-model="formData.lnbits_notification_watchdog"
-                checked-icon="check"
-                color="green"
-                unchecked-icon="clear"
-              />
-            </q-item-section>
-          </q-item>
-        </div>
-        <div class="col-12 col-md-6">
-          <q-item tag="label" v-ripple>
-            <q-item-section>
-              <q-item-label v-text="$t('watchdog_interval')"></q-item-label>
-              <q-item-label
-                caption
-                v-text="$t('watchdog_interval_desc')"
-              ></q-item-label>
-            </q-item-section>
-            <q-item-section>
-              <q-input
-                filled
-                v-model="formData.lnbits_watchdog_interval_minutes"
-                type="number"
-              />
-            </q-item-section>
-          </q-item>
-        </div>
-        <div class="col-12 col-md-6">
-          <q-item tag="label" v-ripple>
-            <q-item-section>
-              <q-item-label v-text="$t('watchdog_delta')"></q-item-label>
-              <q-item-label
-                caption
-                v-text="$t('watchdog_delta_desc')"
-              ></q-item-label>
-            </q-item-section>
-            <q-item-section>
-              <q-input
-                filled
-                v-model="formData.lnbits_watchdog_delta"
-                :suffix="$t('sats')"
-                type="number"
-              />
-            </q-item-section>
-          </q-item>
-        </div>
-      </div>
+      <q-separator class="q-mb-lg q-mt-md"></q-separator>
+      <q-expansion-item
+        icon="health_and_safety"
+        :label="$t('watchdog')"
+        :caption="`${$t('advanced')} · ${$t('watchdog_introduction')}`"
+      >
+        <q-card-section class="row q-col-gutter-lg">
+          <div class="col-12 col-md-6">
+            <q-item tag="label" v-ripple>
+              <q-item-section>
+                <q-item-label v-text="$t('enable_watchdog')"></q-item-label>
+                <q-item-label
+                  caption
+                  v-text="$t('enable_watchdog_desc')"
+                ></q-item-label>
+              </q-item-section>
+              <q-item-section avatar>
+                <q-toggle
+                  size="md"
+                  v-model="formData.lnbits_watchdog_switch_to_voidwallet"
+                  checked-icon="check"
+                  color="green"
+                  unchecked-icon="clear"
+                />
+              </q-item-section>
+            </q-item>
+          </div>
+          <div class="col-12 col-md-6">
+            <q-item tag="label" v-ripple>
+              <q-item-section>
+                <q-item-label
+                  v-text="$t('notification_watchdog_limit')"
+                ></q-item-label>
+                <q-item-label
+                  caption
+                  v-text="$t('notification_watchdog_limit_desc')"
+                ></q-item-label>
+              </q-item-section>
+              <q-item-section avatar>
+                <q-toggle
+                  size="md"
+                  v-model="formData.lnbits_notification_watchdog"
+                  checked-icon="check"
+                  color="green"
+                  unchecked-icon="clear"
+                />
+              </q-item-section>
+            </q-item>
+          </div>
+          <div class="col-12 col-md-6">
+            <q-item tag="label" v-ripple>
+              <q-item-section>
+                <q-item-label v-text="$t('watchdog_interval')"></q-item-label>
+                <q-item-label
+                  caption
+                  v-text="$t('watchdog_interval_desc')"
+                ></q-item-label>
+              </q-item-section>
+              <q-item-section>
+                <q-input
+                  filled
+                  v-model="formData.lnbits_watchdog_interval_minutes"
+                  type="number"
+                  :suffix="$t('minutes')"
+                />
+              </q-item-section>
+            </q-item>
+          </div>
+          <div class="col-12 col-md-6">
+            <q-item tag="label" v-ripple>
+              <q-item-section>
+                <q-item-label v-text="$t('watchdog_delta')"></q-item-label>
+                <q-item-label
+                  caption
+                  v-text="$t('watchdog_delta_desc')"
+                ></q-item-label>
+              </q-item-section>
+              <q-item-section>
+                <q-input
+                  filled
+                  v-model="formData.lnbits_watchdog_delta"
+                  :suffix="$t('sats')"
+                  type="number"
+                />
+              </q-item-section>
+            </q-item>
+          </div>
+        </q-card-section>
+      </q-expansion-item>
     </div>
     <lnbits-admin-funding-seed-backup
       :active="active"

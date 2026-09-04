@@ -1,298 +1,282 @@
 <template id="lnbits-admin-exchange-providers">
-  <h6 class="q-my-none q-mb-xs">LNbits Price Aggregator</h6>
-  <p class="q-mb-md text-caption text-grey">
-    A privacy-friendly, open-source Bitcoin price aggregator maintained by the
-    LNbits team. Aggregates prices from multiple exchanges and returns a median,
-    no API keys required.
-    <a href="https://price.lnbits.com" target="_blank" rel="noopener"
-      >price.lnbits.com</a
-    >
-    &mdash;
-    <a
-      href="https://github.com/lnbits/lnbits-price-aggregator"
-      target="_blank"
-      rel="noopener"
-      >GitHub</a
-    >
-  </p>
+  <q-card-section class="q-pa-none">
+    <h6 class="q-my-none q-mb-sm">Bitcoin Price History</h6>
 
-  <div class="row q-mb-md items-start">
-    <div class="col-auto q-mr-md q-mt-sm">
-      <q-toggle
-        v-model="formData.lnbits_price_aggregator_enabled"
-        @update:model-value="formData.touch = null"
-        label="Use Price Aggregator"
-      >
-      </q-toggle>
-    </div>
-    <div class="col-12 col-md-7">
-      <q-input
-        filled
-        v-model="formData.lnbits_price_aggregator_url"
-        type="text"
-        label="Price Aggregator URL"
-        hint="Fetch BTC price from this aggregator instead of individual providers below."
-        :disable="!formData.lnbits_price_aggregator_enabled"
-        @update:model-value="formData.touch = null"
-      >
-      </q-input>
-    </div>
-  </div>
-
-  <q-separator class="q-my-md"></q-separator>
-  <h6 class="q-my-none q-mb-sm">Bitcoin Price History</h6>
-
-  <div class="row">
-    <div class="col-12 col-md-8">
-      <div class="q-pa-sm">
-        <canvas
-          style="
-            width: 100% !important;
-            height: auto !important;
-            min-height: 350px;
-            max-height: 50vh;
-          "
-          ref="exchangeRatesChart"
-        ></canvas>
+    <div class="row">
+      <div class="col-12 col-md-8">
+        <div class="q-pa-sm">
+          <canvas
+            style="
+              width: 100% !important;
+              height: auto !important;
+              min-height: 350px;
+              max-height: 50vh;
+            "
+            ref="exchangeRatesChart"
+          ></canvas>
+        </div>
+      </div>
+      <div class="col-12 col-md-4">
+        <q-input
+          class="q-mb-md"
+          filled
+          v-model="formData.lnbits_exchange_history_refresh_interval_seconds"
+          type="number"
+          label="Refresh interval"
+          :suffix="$t('seconds')"
+          hint="How often should the exchange rates be fetched. Set to zero to disable."
+        >
+        </q-input>
+        <q-input
+          filled
+          v-model="formData.lnbits_exchange_history_size"
+          type="number"
+          label="History Size"
+          hint="How many data points should be kept in memory."
+        >
+        </q-input>
+        <ul>
+          <li>
+            <code>Refresh Interval</code> and <code> History Size </code>are for
+            historical purposes only.
+          </li>
+          <li>These two settings do not affect the live price computation.</li>
+          <li>
+            Chart currency:
+            <strong
+              ><span
+                v-text="formData.lnbits_default_accounting_currency || 'USD'"
+              ></span
+            ></strong>
+          </li>
+        </ul>
       </div>
     </div>
-    <div class="col-12 col-md-4">
-      <q-input
-        class="q-mb-md"
-        filled
-        v-model="formData.lnbits_exchange_history_refresh_interval_seconds"
-        type="number"
-        label="Refresh Interval (seconds)"
-        hint="How often should the exchange rates be fetched. Set to zero to disable."
-      >
-      </q-input>
-      <q-input
-        filled
-        v-model="formData.lnbits_exchange_history_size"
-        type="number"
-        label="History Size"
-        hint="How many data points should be kept in memory."
-      >
-      </q-input>
-      <ul>
-        <li>
-          <code>Refresh Interval</code> and <code> History Size </code>are for
-          historical purposes only.
-        </li>
-        <li>These two settings do not affect the live price computation.</li>
-        <li>
-          Chart currency:
-          <strong
-            ><span
-              v-text="formData.lnbits_default_accounting_currency || 'USD'"
-            ></span
-          ></strong>
-        </li>
-      </ul>
-    </div>
-  </div>
 
-  <q-separator class="q-my-md"></q-separator>
-  <h6 class="q-my-none q-mb-sm">
-    <span v-text="$t('exchange_providers')"></span>
-  </h6>
-
-  <div class="row q-mt-md">
-    <div class="col-6">
-      <q-btn
-        @click="addExchangeProvider()"
-        label="Add Exchange Provider"
-        color="primary"
-        class="q-mb-md"
-        :disable="formData.lnbits_price_aggregator_enabled"
-      >
-      </q-btn>
+    <div class="row q-col-gutter-md items-center q-my-md">
+      <div class="col-12 col-md-auto">
+        <q-toggle
+          v-model="formData.lnbits_price_aggregator_enabled"
+          @update:model-value="formData.touch = null"
+          label="Use Price Aggregator"
+        ></q-toggle>
+      </div>
+      <div class="col-12 col-md-7">
+        <q-input
+          filled
+          hide-bottom-space
+          v-model="formData.lnbits_price_aggregator_url"
+          type="url"
+          label="Price Aggregator URL"
+          :disable="!formData.lnbits_price_aggregator_enabled"
+          @update:model-value="formData.touch = null"
+        ></q-input>
+      </div>
     </div>
-    <div class="col-6">
-      <q-btn
-        @click="getDefaultSetting('lnbits_exchange_rate_providers')"
-        flat
-        :label="$t('reset_defaults')"
-        color="primary"
-        class="float-right"
-        :disable="formData.lnbits_price_aggregator_enabled"
-      >
-      </q-btn>
-    </div>
-  </div>
 
-  <div
-    class="overflow-auto"
-    :style="
-      formData.lnbits_price_aggregator_enabled
-        ? 'opacity:0.4;pointer-events:none'
-        : ''
-    "
-  >
-    <q-table
-      row-key="name"
-      :rows="formData.lnbits_exchange_rate_providers"
-      :columns="exchangesTable.columns"
-      v-model:pagination="exchangesTable.pagination"
-      :grid="$q.screen.xs"
-      :dense="$q.screen.lt.md"
+    <q-separator class="q-mb-lg q-mt-md"></q-separator>
+    <h6 class="q-my-none q-mb-sm">
+      <span v-text="$t('exchange_providers')"></span>
+    </h6>
+
+    <div class="row q-mt-md">
+      <div class="col-6">
+        <q-btn
+          @click="addExchangeProvider()"
+          label="Add Exchange Provider"
+          color="primary"
+          class="q-mb-md"
+          :disable="formData.lnbits_price_aggregator_enabled"
+        >
+        </q-btn>
+      </div>
+      <div class="col-6">
+        <q-btn
+          @click="getDefaultSetting('lnbits_exchange_rate_providers')"
+          flat
+          :label="$t('reset_defaults')"
+          color="primary"
+          class="float-right"
+          :disable="formData.lnbits_price_aggregator_enabled"
+        >
+        </q-btn>
+      </div>
+    </div>
+
+    <div
+      class="overflow-auto"
+      :style="
+        formData.lnbits_price_aggregator_enabled
+          ? 'opacity:0.4;pointer-events:none'
+          : ''
+      "
     >
-      <template v-slot:header="props">
-        <q-tr :props="props">
-          <q-th auto-width></q-th>
-          <q-th v-for="col in props.cols" :key="col.name" :props="props">
-            <span v-text="col.label"></span>
-          </q-th>
-        </q-tr>
-      </template>
-      <template v-slot:body="props">
-        <q-tr :props="props">
-          <q-td>
-            <q-btn
-              @click="removeExchangeProvider(props.row)"
-              round
-              icon="delete"
-              size="sm"
-              color="negative"
-              class="q-ml-xs"
-            >
-            </q-btn>
-          </q-td>
-          <q-td>
-            <q-input
-              dense
-              filled
-              v-model="props.row.name"
-              @update:model-value="formData.touch = null"
-              type="text"
-            >
-            </q-input>
-          </q-td>
-          <q-td full-width>
-            <q-input
-              dense
-              filled
-              v-model="props.row.api_url"
-              @update:model-value="formData.touch = null"
-              type="text"
-            >
-            </q-input
-          ></q-td>
-          <q-td>
-            <q-input
-              dense
-              filled
-              v-model="props.row.path"
-              @update:model-value="formData.touch = null"
-              type="text"
-            >
-            </q-input>
-          </q-td>
-          <q-td>
+      <q-table
+        row-key="name"
+        :rows="formData.lnbits_exchange_rate_providers"
+        :columns="exchangesTable.columns"
+        v-model:pagination="exchangesTable.pagination"
+        :grid="$q.screen.xs"
+        :dense="$q.screen.lt.md"
+      >
+        <template v-slot:header="props">
+          <q-tr :props="props">
+            <q-th auto-width></q-th>
+            <q-th v-for="col in props.cols" :key="col.name" :props="props">
+              <span v-text="col.label"></span>
+            </q-th>
+          </q-tr>
+        </template>
+        <template v-slot:body="props">
+          <q-tr :props="props">
+            <q-td>
+              <q-btn
+                @click="removeExchangeProvider(props.row)"
+                round
+                icon="delete"
+                size="sm"
+                color="negative"
+                class="q-ml-xs"
+              >
+              </q-btn>
+            </q-td>
+            <q-td>
+              <q-input
+                dense
+                filled
+                v-model="props.row.name"
+                @update:model-value="formData.touch = null"
+                type="text"
+              >
+              </q-input>
+            </q-td>
+            <q-td full-width>
+              <q-input
+                dense
+                filled
+                v-model="props.row.api_url"
+                @update:model-value="formData.touch = null"
+                type="text"
+              >
+              </q-input
+            ></q-td>
+            <q-td>
+              <q-input
+                dense
+                filled
+                v-model="props.row.path"
+                @update:model-value="formData.touch = null"
+                type="text"
+              >
+              </q-input>
+            </q-td>
+            <q-td>
+              <q-select
+                filled
+                dense
+                v-model="props.row.exclude_to"
+                @update:model-value="formData.touch = null"
+                multiple
+                :options="currencies"
+              ></q-select>
+            </q-td>
+            <q-td>
+              <q-btn
+                @click="showTickerConversionDialog(props.row)"
+                round
+                icon="add"
+                size="sm"
+                color="gray"
+                class="q-ml-xs"
+              >
+              </q-btn>
+              <q-chip
+                v-for="(ticker, index) in props.row.ticker_conversion"
+                :key="ticker"
+                removable
+                dense
+                filled
+                @remove="removeExchangeTickerConversion(props.row, ticker)"
+                color="primary"
+                text-color="white"
+                :label="ticker"
+                class="ellipsis"
+              >
+              </q-chip>
+            </q-td>
+          </q-tr>
+        </template>
+      </q-table>
+    </div>
+    <ul>
+      <li>
+        <code>API URL</code> and <code>JSON Path</code> fields can use the
+        <code>{to}</code> and <code>{TO}</code> placeholders for the code of the
+        currency
+      </li>
+      <li>
+        <code>{TO}</code> is the uppercase code and <code>{to}</code> is the
+        lowercase code
+      </li>
+    </ul>
+
+    <q-separator class="q-mb-lg q-mt-md"></q-separator>
+    <h6 class="q-my-none q-mb-sm">Exchange Rate Cache</h6>
+    <div class="row">
+      <div class="col-md-4 col-sm-12">
+        <q-input
+          filled
+          v-model="formData.lnbits_exchange_rate_cache_seconds"
+          type="number"
+          label="Exchange rate cache (seconds)"
+          hint="For how many seconds should the exchange rate be cached."
+        >
+        </q-input>
+      </div>
+      <div class="col-md-8 col-sm-12"></div>
+    </div>
+
+    <q-dialog v-model="exchangeData.showTickerConversion" position="top">
+      <q-card class="q-pa-md q-pt-md lnbits__dialog-card">
+        <div class="q-mb-md">
+          <strong v-text="$t('create_ticker_converter')"></strong>
+        </div>
+        <div class="row">
+          <div class="col-12 q-mb-md">
             <q-select
               filled
               dense
-              v-model="props.row.exclude_to"
-              @update:model-value="formData.touch = null"
-              multiple
+              v-model="exchangeData.convertFromTicker"
+              label="From Currency"
               :options="currencies"
             ></q-select>
-          </q-td>
-          <q-td>
-            <q-btn
-              @click="showTickerConversionDialog(props.row)"
-              round
-              icon="add"
-              size="sm"
-              color="gray"
-              class="q-ml-xs"
-            >
-            </q-btn>
-            <q-chip
-              v-for="(ticker, index) in props.row.ticker_conversion"
-              :key="ticker"
-              removable
+          </div>
+          <div class="col-12">
+            <q-input
+              v-model="exchangeData.convertToTicker"
               dense
               filled
-              @remove="removeExchangeTickerConversion(props.row, ticker)"
-              color="primary"
-              text-color="white"
-              :label="ticker"
-              class="ellipsis"
+              label="New Ticker"
+              hint="This ticker will be used for the exchange API calls."
             >
-            </q-chip>
-          </q-td>
-        </q-tr>
-      </template>
-    </q-table>
-  </div>
-  <ul>
-    <li>
-      <code>API URL</code> and <code>JSON Path</code> fields can use the
-      <code>{to}</code> and <code>{TO}</code> placeholders for the code of the
-      currency
-    </li>
-    <li>
-      <code>{TO}</code> is the uppercase code and <code>{to}</code> is the
-      lowercase code
-    </li>
-  </ul>
-
-  <q-separator class="q-ma-md"></q-separator>
-  <div class="row">
-    <div class="col-md-4 col-sm-12">
-      <q-input
-        filled
-        v-model="formData.lnbits_exchange_rate_cache_seconds"
-        type="number"
-        label="Exchange rate cache (seconds)"
-        hint="For how many seconds should the exchange rate be cached."
-      >
-      </q-input>
-    </div>
-    <div class="col-md-8 col-sm-12"></div>
-  </div>
-
-  <q-dialog v-model="exchangeData.showTickerConversion" position="top">
-    <q-card class="q-pa-md q-pt-md lnbits__dialog-card">
-      <div class="q-mb-md">
-        <strong v-text="$t('create_ticker_converter')"></strong>
-      </div>
-      <div class="row">
-        <div class="col-12 q-mb-md">
-          <q-select
-            filled
-            dense
-            v-model="exchangeData.convertFromTicker"
-            label="From Currency"
-            :options="currencies"
-          ></q-select>
+            </q-input>
+          </div>
         </div>
-        <div class="col-12">
-          <q-input
-            v-model="exchangeData.convertToTicker"
-            dense
-            filled
-            label="New Ticker"
-            hint="This ticker will be used for the exchange API calls."
-          >
-          </q-input>
+        <div class="row q-mt-lg">
+          <q-btn
+            @click="addExchangeTickerConversion()"
+            label="Add Ticker Conversion"
+            color="primary"
+          ></q-btn>
+          <q-btn
+            v-close-popup
+            flat
+            color="grey"
+            class="q-ml-auto"
+            v-text="$t('close')"
+          ></q-btn>
         </div>
-      </div>
-      <div class="row q-mt-lg">
-        <q-btn
-          @click="addExchangeTickerConversion()"
-          label="Add Ticker Conversion"
-          color="primary"
-        ></q-btn>
-        <q-btn
-          v-close-popup
-          flat
-          color="grey"
-          class="q-ml-auto"
-          v-text="$t('close')"
-        ></q-btn>
-      </div>
-    </q-card>
-  </q-dialog>
+      </q-card>
+    </q-dialog>
+  </q-card-section>
 </template>
