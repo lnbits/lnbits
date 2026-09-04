@@ -23,7 +23,7 @@ def test_homepage_renders_node_template_with_client_bindings(settings, bundle_as
     )
 
     assert response.status_code == 200
-    html = response.body.decode()
+    html = bytes(response.body).decode()
     assert 'id="page-node"' in html
     # Jinja must leave these values for Vue to evaluate in the browser.
     assert "phoenixd.version ||" in html
