@@ -363,7 +363,7 @@ async def api_users_delete_all_user_wallet(user_id: str) -> SimpleStatus:
 async def api_users_delete_user_wallet(
     user_id: str, wallet: str, account: Account = Depends(check_admin)
 ) -> SimpleStatus:
-    wal = await get_wallet(wallet)
+    wal = await get_wallet(wallet, deleted=None)
     if not wal:
         raise HTTPException(
             status_code=HTTPStatus.NOT_FOUND,
