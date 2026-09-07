@@ -243,6 +243,7 @@ class PayLnurlRequest(BaseModel):
     description: str = Field("", max_length=512)
     max_sat: int | None = Field(None, gt=0)
     extra: dict[str, str] = Field(default_factory=dict)
+    fetch_only: bool = False
 
 
 class PayInvoiceResponse(BaseModel):
@@ -255,6 +256,7 @@ class PayInvoiceResponse(BaseModel):
     fee_msat: int = 0
     pending: bool = False
     success: bool = False
+    payment_request: str | None = None
 
 
 class HttpRequest(BaseModel):
