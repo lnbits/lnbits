@@ -30,6 +30,7 @@ dependencies = [
     "protobuf~=6.33.5",
     "pyln-client~=25.12.0",
     "pywebpush~=2.2.0",
+    "cryptography>=50.0.0",
     "slowapi~=0.1.9",
     "websocket-client~=1.9.0",
     "pycryptodomex~=3.23.0",
