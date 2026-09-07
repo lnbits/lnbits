@@ -29,7 +29,7 @@ from lnbits.core.models import (
     User,
     WalletTypeInfo,
 )
-from lnbits.core.models.users import AccountId
+from lnbits.core.models.users import AccountId, EndpointAccess
 from lnbits.core.models.wallets import BaseWallet, BaseWalletTypeInfo
 from lnbits.db import Connection, Filter, Filters, TFilterModel
 from lnbits.helpers import normalize_path, path_segments, sha256s
@@ -359,6 +359,34 @@ async def access_token_payload(
     return AccessTokenPayload(**payload)
 
 
+async def optional_acl_token_payload(
+    access_token: Annotated[str | None, Depends(check_access_token)],
+) -> AccessTokenPayload | None:
+    if not access_token:
+        return None
+    payload = _decode_access_token(access_token)
+    return payload if payload.api_token_id else None
+
+
+async def check_api_write_access(
+    request: Request,
+    account_id: Annotated[AccountId, Depends(check_account_id_exists)],
+    acl_token: Annotated[
+        AccessTokenPayload | None, Depends(optional_acl_token_payload)
+    ],
+) -> bool:
+    """Check current endpoint write access, including unrestricted authentication."""
+    if not acl_token or not acl_token.api_token_id:
+        return True
+    endpoint = await _check_account_api_access(
+        account_id.id,
+        acl_token.api_token_id,
+        request["path"],
+        request["method"],
+    )
+    return endpoint.write
+
+
 async def check_admin(
     account: Annotated[Account, Depends(check_account_exists)],
 ) -> Account:
@@ -520,7 +548,7 @@ async def _get_account_from_jwt_payload(
 
 async def _check_account_api_access(
     user_id: str, token_id: str, path: str, method: str, conn: Connection | None = None
-):
+) -> EndpointAccess:
     segments = path.split("/")
     if len(segments) < 3:
         raise HTTPException(HTTPStatus.FORBIDDEN, "Not an API endpoint.")
@@ -536,6 +564,7 @@ async def _check_account_api_access(
         raise HTTPException(HTTPStatus.FORBIDDEN, "Path not allowed.")
     if not endpoint.supports_method(method):
         raise HTTPException(HTTPStatus.FORBIDDEN, "Method not allowed.")
+    return endpoint
 
 
 def url_for_interceptor(original_method):
@@ -577,8 +606,25 @@ async def check_first_install():
 
 
 def check_blockexplorer_public() -> None:
-    if not settings.lnbits_blockexplorer_public_api:
+    if (
+        not settings.lnbits_blockexplorer_enabled
+        or not settings.lnbits_blockexplorer_public_api
+    ):
         raise HTTPException(
             status_code=HTTPStatus.NOT_FOUND,
-            detail="Block explorer public API is disabled.",
+            detail="Public block explorer is disabled.",
         )
+
+
+async def check_blockexplorer_access(
+    r: Request,
+    access_token: Annotated[str | None, Depends(check_access_token)],
+    usr: UUID4 | None = None,
+) -> User:
+    if not settings.lnbits_blockexplorer_enabled:
+        raise HTTPException(
+            status_code=HTTPStatus.NOT_FOUND,
+            detail="Block explorer is disabled.",
+        )
+
+    return await check_user_exists(r, access_token, usr)

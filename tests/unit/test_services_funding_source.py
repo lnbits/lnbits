@@ -87,6 +87,27 @@ async def test_get_balance_delta(mocker: MockerFixture):
 
 
 @pytest.mark.anyio
+async def test_get_balance_delta_rejects_funding_source_error(
+    mocker: MockerFixture,
+):
+    funding_source = SimpleNamespace(
+        status=mocker.AsyncMock(
+            return_value=SimpleNamespace(
+                balance_msat=0,
+                error_message="timed out",
+            )
+        )
+    )
+    mocker.patch(
+        "lnbits.core.services.funding_source.get_funding_source",
+        return_value=funding_source,
+    )
+
+    with pytest.raises(RuntimeError, match="Funding source status unavailable"):
+        await get_balance_delta()
+
+
+@pytest.mark.anyio
 async def test_check_server_balance_against_node_notifies_and_switches(
     settings: Settings, mocker: MockerFixture
 ):
