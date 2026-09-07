@@ -155,7 +155,6 @@ async def test_get_payment_status(payhash):
         assert True, "BLINK_TOKEN is not set. Skipping test using mock api"
 
 
-
 # ── Unit tests for internal components (no API needed) ──────────────
 
 
@@ -316,6 +315,7 @@ class TestPayInvoiceDecodeFix:
     async def test_pay_invoice_returns_pending_on_api_error(self):
         w = MagicMock(spec=BlinkWallet)
         w.pay_invoice = BlinkWallet.pay_invoice.__get__(w)
+        w._send_payment = BlinkWallet._send_payment.__get__(w)
         w._graphql_query = AsyncMock(side_effect=Exception("Connection failed"))
         w.get_payment_status = AsyncMock()
         w.wallet_id = "test_wallet"
@@ -512,4 +512,3 @@ async def test_pay_invoice_zero_amount_skips_probe_and_sends():
     assert calls["probe"] == 0
     assert calls["send"] == 1
     assert response.ok is True
-
