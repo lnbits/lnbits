@@ -367,7 +367,7 @@ class AssetSettings(LNbitsSettings):
     lnbits_asset_thumbnail_height: int = Field(default=128, ge=0)
     lnbits_asset_thumbnail_format: str = Field(default="png")
 
-    lnbits_max_assets_per_user: int = Field(default=1, ge=0)
+    lnbits_max_assets_per_user: int = Field(default=10, ge=0)
     lnbits_assets_no_limit_users: list[str] = Field(default=[])
 
     def is_unlimited_assets_user(self, user_id: str) -> bool:
@@ -904,6 +904,7 @@ class NodeUISettings(LNbitsSettings):
 class BlockExplorerSettings(LNbitsSettings):
     lnbits_blockexplorer_enabled: bool = Field(default=False)
     lnbits_blockexplorer_public_api: bool = Field(default=False)
+    lnbits_blockexplorer_in_user_menu: bool = Field(default=False)
     lnbits_blockexplorer_electrum_url: str = Field(
         default="ssl://electrum.blockstream.info:50002"
     )
@@ -1366,6 +1367,8 @@ class PublicSettings(BaseModel):
     show_extensions: bool = Field(alias="showExtensions")
     show_audit: bool = Field(alias="showAudit")
     show_block_explorer: bool = Field(alias="showBlockExplorer")
+    block_explorer_public: bool = Field(alias="blockExplorerPublic")
+    block_explorer_in_user_menu: bool = Field(alias="blockExplorerInUserMenu")
     show_admin: bool = Field(alias="showAdmin")
     ad_space: list[list[str]] = Field(alias="adSpace")
     ad_space_title: str = Field(alias="adSpaceTitle")
@@ -1447,6 +1450,8 @@ class PublicSettings(BaseModel):
             showExtensions=not settings.lnbits_extensions_deactivate_all,
             showAudit=settings.lnbits_audit_enabled,
             showBlockExplorer=settings.lnbits_blockexplorer_enabled,
+            blockExplorerPublic=settings.lnbits_blockexplorer_public_api,
+            blockExplorerInUserMenu=settings.lnbits_blockexplorer_in_user_menu,
             showAdmin=settings.lnbits_admin_ui,
             customImage=settings.lnbits_custom_image,
             customBadge=settings.lnbits_custom_badge,
