@@ -19,7 +19,7 @@ pkgs.nixosTest {
   };
   testScript = { nodes, ... }: ''
     start_all()
-    lnbits.wait_for_open_port(${toString nodes.lnbits.config.services.lnbits.port})
+    lnbits.wait_for_open_port(${toString nodes.lnbits.services.lnbits.port})
     client.wait_for_unit("multi-user.target")
     with subtest("Check that the lnbits webserver can be reached."):
         output = client.succeed(

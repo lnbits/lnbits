@@ -3,6 +3,7 @@ from types import SimpleNamespace
 from uuid import uuid4
 
 import pytest
+from lnurl import LnurlSuccessResponse, LnurlWithdrawResponse
 from pytest_mock.plugin import MockerFixture
 
 from lnbits.core.crud import (
@@ -30,6 +31,7 @@ from lnbits.core.services.payments import (
     check_wallet_daily_withdraw_limit,
     check_wallet_limits,
     create_payment_request,
+    create_wallet_invoice,
     get_payments_daily_stats,
     settle_hold_invoice,
     update_pending_payment,
@@ -134,6 +136,58 @@ async def test_create_payment_request_rejects_fiat_subscription(
         )
 
     fiat_mock.assert_not_awaited()
+
+
+@pytest.mark.anyio
+async def test_lnurl_withdraw_success_keeps_invoice_pending(mocker: MockerFixture):
+    wallet = await _create_wallet()
+    withdraw_mock = mocker.patch(
+        "lnbits.core.services.payments.lnurl_withdraw",
+        mocker.AsyncMock(return_value=LnurlSuccessResponse()),
+    )
+    mocker.patch("lnbits.core.services.payments.check_callback_url")
+
+    payment = await create_wallet_invoice(
+        wallet.id,
+        CreateInvoice(
+            amount=1,
+            out=False,
+            lnurl_withdraw=LnurlWithdrawResponse.parse_obj(
+                {
+                    "tag": "withdrawRequest",
+                    "callback": "https://example.com/callback",
+                    "k1": "randomk1value",
+                    "minWithdrawable": 1000,
+                    "maxWithdrawable": 1_500_000,
+                }
+            ),
+        ),
+    )
+
+    assert payment.status == PaymentState.PENDING
+    assert payment.extra["lnurl_response"] is True
+    withdraw_mock.assert_awaited_once()
+
+
+@pytest.mark.anyio
+async def test_webhook_is_validated_before_invoice_creation(mocker: MockerFixture):
+    wallet = await _create_wallet()
+    create_invoice_mock = mocker.patch(
+        "lnbits.core.services.payments.create_invoice",
+        mocker.AsyncMock(),
+    )
+
+    with pytest.raises(ValueError, match="Callback URL is not allowed"):
+        await create_wallet_invoice(
+            wallet.id,
+            CreateInvoice(
+                amount=1,
+                out=False,
+                webhook=("http://ok.example.com@169.254.169.254/latest/meta-data/"),
+            ),
+        )
+
+    create_invoice_mock.assert_not_awaited()
 
 
 @pytest.mark.anyio

@@ -1,7 +1,8 @@
 import asyncio
 import hashlib
-from json import JSONDecodeError
-from unittest.mock import AsyncMock, Mock
+import ipaddress
+import json
+from unittest.mock import AsyncMock
 from uuid import uuid4
 
 import pytest
@@ -232,6 +233,34 @@ async def test_create_fiat_invoice(
     assert invoice["amount"] == 10_000_000
     assert invoice["extra"]["fiat_checking_id"]
     assert invoice["extra"]["fiat_payment_request"] == fiat_payment_request
+
+
+@pytest.mark.anyio
+async def test_create_fiat_invoice_with_lnurl_withdraw_rejected(
+    client, inkey_headers_to
+):
+    response = await client.post(
+        "/api/v1/payments",
+        headers=inkey_headers_to,
+        json={
+            "unit": "USD",
+            "out": False,
+            "amount": 1,
+            "fiat_provider": "stripe",
+            "lnurl_withdraw": {
+                "tag": "withdrawRequest",
+                "callback": "https://example.com/callback",
+                "k1": "randomk1value",
+                "minWithdrawable": 1000,
+                "maxWithdrawable": 1_500_000,
+            },
+        },
+    )
+
+    assert response.status_code == 400
+    assert response.json()["detail"] == (
+        "Fiat provider cannot be combined with LNURL withdraw."
+    )
 
 
 @pytest.mark.anyio
@@ -737,7 +766,7 @@ async def test_fiat_tracking(client, adminkey_headers_from, settings: Settings):
             "error_loading_lnurl",
             None,
             {
-                "detail": "Error loading callback request",
+                "detail": "LNURL request failed.",
             },
         ),
         # LNURL response with error status
@@ -776,7 +805,7 @@ async def test_fiat_tracking(client, adminkey_headers_from, settings: Settings):
             },
             "error_loading_callback",
             {
-                "detail": "Error loading callback request",
+                "detail": "LNURL request failed.",
             },
         ),
         # Callback response with error status
@@ -801,7 +830,7 @@ async def test_fiat_tracking(client, adminkey_headers_from, settings: Settings):
             "exception_in_lnurl_response_json",
             None,
             {
-                "detail": "Invalid JSON response from https://example.com/lnurl",
+                "detail": "Invalid LNURL response.",
             },
         ),
     ],
@@ -821,76 +850,34 @@ async def test_api_payment_pay_with_nfc(
     )
     lnurl = "lnurlw://example.com/lnurl"
 
-    # Create a mock for httpx.AsyncClient
-    mock_async_client = AsyncMock()
-    mock_async_client.__aenter__.return_value = mock_async_client
-
-    # Mock the get method
-    async def mock_get(url, *_, **__):
-        if url == "https://example.com/lnurl":
+    async def mock_send(url, *_, **__):
+        if url.path == "/lnurl":
             if lnurl_response_data == "error_loading_lnurl":
-                response = Mock()
-                response.is_error = True
-                response.status_code = 500
-                response.raise_for_status.side_effect = Exception(
-                    "Error loading callback request"
-                )
-                return response
+                return 500, {}, b""
             elif lnurl_response_data == "exception_in_lnurl_response_json":
-                response = Mock()
-                response.is_error = False
-                response.json.side_effect = JSONDecodeError(
-                    doc="Simulated exception", pos=0, msg="JSONDecodeError"
-                )
-                return response
+                return 200, {}, b"invalid json"
             elif isinstance(lnurl_response_data, dict):
-                response = Mock()
-                response.is_error = False
-                response.json.return_value = lnurl_response_data
-                return response
+                return 200, {}, json.dumps(lnurl_response_data).encode()
             else:
-                # Handle unexpected data
-                response = Mock()
-                response.is_error = True
-                response.status_code = 500
-                response.raise_for_status.side_effect = Exception(
-                    "Error loading callback request"
-                )
-                return response
-        elif url == "https://example.com/callback":
+                return 500, {}, b""
+        elif url.path == "/callback":
             if callback_response_data == "error_loading_callback":
-                response = Mock()
-                response.is_error = True
-                response.status_code = 500
-                response.raise_for_status.side_effect = Exception(
-                    "Error loading callback request"
-                )
-                return response
+                return 500, {}, b""
             elif isinstance(callback_response_data, dict):
-                response = Mock()
-                response.is_error = False
-                response.json.return_value = callback_response_data
-                return response
+                return 200, {}, json.dumps(callback_response_data).encode()
             else:
-                # Handle cases where callback is not called
-                response = Mock()
-                response.is_error = True
-                response.raise_for_status.side_effect = Exception(
-                    "Error loading callback request"
-                )
-                return response
+                return 500, {}, b""
         else:
-            response = Mock()
-            response.is_error = True
-            response.raise_for_status.side_effect = Exception(
-                "Error loading callback request"
-            )
-            return response
+            return 500, {}, b""
 
-    mock_async_client.get.side_effect = mock_get
-
-    # Mock httpx.AsyncClient to return our mock_async_client
-    mocker.patch("httpx.AsyncClient", return_value=mock_async_client)
+    mocker.patch(
+        "lnbits.core.services.lnurl._resolve_lnurl_host",
+        AsyncMock(return_value=[ipaddress.ip_address("93.184.216.34")]),
+    )
+    mocker.patch(
+        "lnbits.core.services.lnurl._send_lnurl_request",
+        AsyncMock(side_effect=mock_send),
+    )
 
     response = await client.post(
         f"/api/v1/payments/{payment_request}/pay-with-nfc",
