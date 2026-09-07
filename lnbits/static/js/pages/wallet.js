@@ -80,6 +80,34 @@ window.PageWallet = {
       }
       return this.parse.invoice.sat <= this.g.wallet.sat
     },
+    lnurlpayInfo() {
+      // parse.lnurlpay is posted back to the api verbatim when paying, and the
+      // model there forbids unknown fields, so the details the dialog shows are
+      // derived here instead of being mixed into it
+      const data = this.parse.lnurlpay
+      if (!data) return {}
+      const info = {
+        domain: data.callback.split('/')[2],
+        fixed: data.minSendable === data.maxSendable
+      }
+      try {
+        JSON.parse(data.metadata).forEach(([kind, value]) => {
+          if (kind === 'text/plain') {
+            info.description = value
+          } else if (
+            kind === 'image/png;base64' ||
+            kind === 'image/jpeg;base64'
+          ) {
+            info.image = `data:${kind},${value}`
+          } else if (kind === 'text/identifier' || kind === 'text/email') {
+            info.targetUser = value
+          }
+        })
+      } catch {
+        // malformed metadata only costs the extra detail shown in the dialog
+      }
+      return info
+    },
     formattedAmount() {
       if (this.receive.unit != 'sat' || !this.g.isSatsDenomination) {
         return LNbits.utils.formatCurrency(
@@ -761,18 +789,22 @@ window.PageWallet = {
   },
   created() {
     const urlParams = new URLSearchParams(window.location.search)
-    if (urlParams.has('lightning') || urlParams.has('lnurl')) {
-      this.parse.data.request =
-        urlParams.get('lightning') || urlParams.get('lnurl')
-      this.decodeRequest()
-      this.parse.show = true
-    }
     const wallet = this.g.user.wallets.find(w => w.id === this.$route.params.id)
     if (wallet) {
       this.g.wallet = wallet
       this.g.lastActiveWallet = wallet.id
       this.$q.localStorage.setItem('lnbits.lastActiveWallet', wallet.id)
-      this.$router.replace(`/wallet/${wallet.id}`)
+      // the dialog needs the wallet, and a dialog opened while this navigation
+      // is still in flight gets torn down by it, so handle the payment request
+      // only once the url rewrite has settled
+      this.$router.replace(`/wallet/${wallet.id}`).then(() => {
+        if (urlParams.has('lightning') || urlParams.has('lnurl')) {
+          this.parse.data.request =
+            urlParams.get('lightning') || urlParams.get('lnurl')
+          this.decodeRequest()
+          this.parse.show = true
+        }
+      })
     } else {
       this.g.errorCode = 404
       this.g.errorMessage = 'Wallet not found.'

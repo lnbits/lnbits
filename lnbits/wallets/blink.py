@@ -315,6 +315,9 @@ class BlinkWallet(Wallet):
                 )
             logger.warning(f"Fee probe errored ('{exc}'), sending without probe.")
 
+        return await self._send_payment(bolt11, payment_hash)
+
+    async def _send_payment(self, bolt11: str, payment_hash: str) -> PaymentResponse:
         payment_variables = {
             "input": {
                 "paymentRequest": bolt11,
