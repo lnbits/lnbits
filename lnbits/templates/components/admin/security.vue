@@ -6,49 +6,57 @@
     <div class="row">
       <div class="col-12 col-md-6">
         <q-input
+          dense
           filled
           v-model.number="formData.lnbits_baseurl"
           :label="$t('base_url_label')"
         ></q-input>
-        <br />
       </div>
     </div>
+    <q-separator class="q-mb-lg q-mt-md"></q-separator>
     <h6 class="q-my-none q-mb-sm">
       <span v-text="$t('authentication')"></span>
     </h6>
-    <div class="row q-col-gutter-sm q-mb-md">
+    <div class="row q-col-gutter-lg q-mb-md">
       <div class="col-12 col-md-4">
         <q-input
+          dense
           filled
           v-model="formData.auth_token_expire_minutes"
           type="number"
           :label="$t('auth_token_expiry_label')"
           :hint="$t('auth_token_expiry_hint')"
+          :suffix="$t('minutes')"
         >
         </q-input>
       </div>
       <div class="col-12 col-md-4">
         <q-input
+          dense
           filled
           v-model="formData.auth_authentication_cache_minutes"
           type="number"
           :label="$t('auth_authentication_cache_label')"
           :hint="$t('auth_authentication_cache_hint')"
+          :suffix="$t('minutes')"
         >
         </q-input>
       </div>
       <div class="col-12 col-md-4">
         <q-input
+          dense
           filled
           v-model="formData.auth_credetials_update_threshold"
           type="number"
-          label="Credentials update threshold (seconds)"
+          label="Credentials update threshold"
+          :suffix="$t('seconds')"
           hint="Maximum authentication age allowed when updating credentials"
         >
         </q-input>
       </div>
       <div class="col-12 col-md-12">
         <q-select
+          dense
           filled
           v-model="formData.auth_allowed_methods"
           multiple
@@ -65,13 +73,15 @@
   </q-card-section>
   <q-card-section
     v-if="formData.auth_allowed_methods?.includes('nostr-auth-nip98')"
-    class="q-pl-xl"
+    class="q-pa-none"
   >
-    <strong class="q-my-none q-mb-sm">Nostr Auth</strong>
+    <q-separator class="q-mb-lg q-mt-md"></q-separator>
+    <h6 class="q-my-none q-mb-sm">Nostr Auth</h6>
 
     <div class="row">
       <div class="col-12">
         <q-input
+          dense
           class="q-mb-sm"
           filled
           v-model="nostrAcceptedUrl"
@@ -99,13 +109,15 @@
   </q-card-section>
   <q-card-section
     v-if="formData.auth_allowed_methods?.includes('google-auth')"
-    class="q-pl-xl"
+    class="q-pa-none"
   >
-    <strong class="q-my-none q-mb-sm">Google Auth</strong>
+    <q-separator class="q-mb-lg q-mt-md"></q-separator>
+    <h6 class="q-my-none q-mb-sm">Google Auth</h6>
 
     <div class="row">
       <div class="col-12 col-md-6 q-pr-sm">
         <q-input
+          dense
           filled
           v-model="formData.google_client_id"
           :label="$t('auth_google_ci_label')"
@@ -115,9 +127,11 @@
       </div>
       <div class="col-12 col-md-6">
         <q-input
+          dense
           filled
           v-model="formData.google_client_secret"
           type="password"
+          autocomplete="off"
           :label="$t('auth_google_cs_label')"
         >
         </q-input>
@@ -126,13 +140,15 @@
   </q-card-section>
   <q-card-section
     v-if="formData.auth_allowed_methods?.includes('github-auth')"
-    class="q-pl-xl"
+    class="q-pa-none"
   >
-    <strong class="q-my-none q-mb-sm">GitHub Auth</strong>
+    <q-separator class="q-mb-lg q-mt-md"></q-separator>
+    <h6 class="q-my-none q-mb-sm">GitHub Auth</h6>
 
     <div class="row">
       <div class="col-12 col-md-6 q-pr-sm">
         <q-input
+          dense
           filled
           v-model="formData.github_client_id"
           :label="$t('auth_gh_client_id_label')"
@@ -142,9 +158,11 @@
       </div>
       <div class="col-12 col-md-6">
         <q-input
+          dense
           filled
           v-model="formData.github_client_secret"
           type="password"
+          autocomplete="off"
           :label="$t('auth_gh_client_secret_label')"
         >
         </q-input>
@@ -153,13 +171,15 @@
   </q-card-section>
   <q-card-section
     v-if="formData.auth_allowed_methods?.includes('keycloak-auth')"
-    class="q-pl-xl"
+    class="q-pa-none"
   >
-    <strong class="q-my-none q-mb-sm">Keycloak Auth</strong>
+    <q-separator class="q-mb-lg q-mt-md"></q-separator>
+    <h6 class="q-my-none q-mb-sm">Keycloak Auth</h6>
 
-    <div class="row q-col-gutter-sm q-col-gutter-y-md">
+    <div class="row q-col-gutter-lg">
       <div class="col-12 col-md-4">
         <q-input
+          dense
           filled
           v-model="formData.keycloak_discovery_url"
           :label="$t('auth_keycloak_label')"
@@ -168,6 +188,7 @@
       </div>
       <div class="col-12 col-md-4">
         <q-input
+          dense
           filled
           v-model="formData.keycloak_client_id"
           :label="$t('auth_keycloak_ci_label')"
@@ -177,15 +198,18 @@
       </div>
       <div class="col-12 col-md-4">
         <q-input
+          dense
           filled
           v-model="formData.keycloak_client_secret"
           type="password"
+          autocomplete="off"
           :label="$t('auth_keycloak_cs_label')"
         >
         </q-input>
       </div>
       <div class="col-12 col-md-4">
         <q-input
+          dense
           filled
           v-model="formData.keycloak_client_custom_org"
           :label="$t('auth_keycloak_custom_org_label')"
@@ -194,6 +218,7 @@
       </div>
       <div class="col-12 col-md-8">
         <q-input
+          dense
           filled
           v-model="formData.keycloak_client_custom_icon"
           :label="$t('auth_keycloak_custom_icon_label')"
@@ -204,13 +229,15 @@
   </q-card-section>
   <q-card-section
     v-if="formData.auth_allowed_methods?.includes('oidc-auth')"
-    class="q-pl-xl"
+    class="q-pa-none"
   >
-    <strong class="q-my-none q-mb-sm">OIDC Auth</strong>
+    <q-separator class="q-mb-lg q-mt-md"></q-separator>
+    <h6 class="q-my-none q-mb-sm">OIDC Auth</h6>
 
-    <div class="row q-col-gutter-sm q-col-gutter-y-md">
+    <div class="row q-col-gutter-lg">
       <div class="col-12 col-md-4">
         <q-input
+          dense
           filled
           v-model="formData.oidc_discovery_url"
           :label="$t('auth_oidc_label')"
@@ -219,6 +246,7 @@
       </div>
       <div class="col-12 col-md-4">
         <q-input
+          dense
           filled
           v-model="formData.oidc_client_id"
           :label="$t('auth_oidc_ci_label')"
@@ -228,15 +256,18 @@
       </div>
       <div class="col-12 col-md-4">
         <q-input
+          dense
           filled
           v-model="formData.oidc_client_secret"
           type="password"
+          autocomplete="off"
           :label="$t('auth_oidc_cs_label')"
         >
         </q-input>
       </div>
       <div class="col-12 col-md-4">
         <q-input
+          dense
           filled
           v-model="formData.oidc_client_custom_org"
           :label="$t('auth_oidc_custom_org_label')"
@@ -245,6 +276,7 @@
       </div>
       <div class="col-12 col-md-8">
         <q-input
+          dense
           filled
           v-model="formData.oidc_client_custom_icon"
           :label="$t('auth_oidc_custom_icon_label')"
@@ -253,11 +285,13 @@
       </div>
     </div>
   </q-card-section>
-  <q-separator></q-separator>
-  <q-card-section class="q-pa-none">
-    <br />
-    <h6 class="q-my-none" v-text="$t('security_tools')"></h6>
-    <div>
+  <q-separator class="q-mb-lg q-mt-md"></q-separator>
+  <q-expansion-item
+    icon="shield"
+    :label="$t('security_tools')"
+    :caption="`${$t('advanced')} · ${$t('security_tools_desc')}`"
+  >
+    <q-card-section>
       <div class="row">
         <div v-if="serverlogEnabled" class="column" style="width: 100%">
           <div
@@ -289,12 +323,13 @@
         ></q-btn>
       </div>
       <br />
-      <div class="row q-col-gutter-md">
+      <div class="row q-col-gutter-lg">
         <div class="col-12 col-md-12">
           <p v-text="$t('ip_blocker')"></p>
-          <div class="row q-col-gutter-md">
+          <div class="row q-col-gutter-lg">
             <div class="col-12 col-md-6">
               <q-input
+                dense
                 filled
                 v-model="formBlockedIPs"
                 @keydown.enter="addBlockedIPs"
@@ -325,6 +360,7 @@
             </div>
             <div class="col-12 col-md-6">
               <q-input
+                dense
                 filled
                 v-model="formAllowedIPs"
                 @keydown.enter="addAllowedIPs"
@@ -358,9 +394,10 @@
 
         <div class="col-12 col-md-12">
           <p v-text="$t('rate_limiter')"></p>
-          <div class="row q-col-gutter-md">
+          <div class="row q-col-gutter-lg">
             <div class="col-12 col-md-6">
               <q-input
+                dense
                 filled
                 type="number"
                 v-model.number="formData.lnbits_rate_limit_no"
@@ -370,6 +407,7 @@
             </div>
             <div class="col-12 col-md-6">
               <q-select
+                dense
                 filled
                 :options="[
                   {label: $t('second'), value: 'second'},
@@ -387,9 +425,10 @@
 
         <div class="col-12 col-md-12">
           <p v-text="$t('callback')"></p>
-          <div class="row q-col-gutter-md">
+          <div class="row q-col-gutter-lg">
             <div class="col-12 col-md-6">
               <q-input
+                dense
                 filled
                 v-model="formCallbackUrlRule"
                 @keydown.enter="addCallbackUrlRule"
@@ -445,9 +484,10 @@
 
         <div class="col-12 col-md-12">
           <p v-text="$t('lnurl')"></p>
-          <div class="row q-col-gutter-md">
+          <div class="row q-col-gutter-lg">
             <div class="col-12 col-md-6">
               <q-input
+                dense
                 filled
                 v-model="formLnurlRedirectUrlRule"
                 @keydown.enter="addLnurlRedirectUrlRule"
@@ -501,6 +541,6 @@
           </div>
         </div>
       </div>
-    </div>
-  </q-card-section>
+    </q-card-section>
+  </q-expansion-item>
 </template>

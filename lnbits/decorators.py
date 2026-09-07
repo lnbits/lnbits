@@ -577,8 +577,25 @@ async def check_first_install():
 
 
 def check_blockexplorer_public() -> None:
-    if not settings.lnbits_blockexplorer_public_api:
+    if (
+        not settings.lnbits_blockexplorer_enabled
+        or not settings.lnbits_blockexplorer_public_api
+    ):
         raise HTTPException(
             status_code=HTTPStatus.NOT_FOUND,
-            detail="Block explorer public API is disabled.",
+            detail="Public block explorer is disabled.",
         )
+
+
+async def check_blockexplorer_access(
+    r: Request,
+    access_token: Annotated[str | None, Depends(check_access_token)],
+    usr: UUID4 | None = None,
+) -> User:
+    if not settings.lnbits_blockexplorer_enabled:
+        raise HTTPException(
+            status_code=HTTPStatus.NOT_FOUND,
+            detail="Block explorer is disabled.",
+        )
+
+    return await check_user_exists(r, access_token, usr)

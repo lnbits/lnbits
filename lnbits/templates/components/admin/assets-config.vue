@@ -4,10 +4,12 @@
     <div class="row q-col-gutter-md">
       <div class="col-12 col-md-3">
         <q-input
+          dense
           filled
           type="number"
           v-model.number="formData.lnbits_max_asset_size_mb"
           :label="$t('max_asset_size_mb')"
+          suffix="MB"
           step="0.1"
           min="0"
           :hint="$t('max_asset_size_mb_desc')"
@@ -16,6 +18,7 @@
 
       <div class="col-12 col-md-9">
         <q-input
+          dense
           filled
           v-model.number="newAllowedAssetMimeType"
           @keydown.enter="addAllowedAssetMimeType()"
@@ -48,15 +51,17 @@
         </div>
       </div>
     </div>
-    <q-separator class="q-mb-lg q-mt-sm"></q-separator>
+    <q-separator class="q-mb-lg q-mt-md"></q-separator>
     <h6 class="q-my-none q-mb-sm">Thumbnails</h6>
     <div class="row q-col-gutter-md q-my-lg">
       <div class="col-12 col-md-4">
         <q-input
+          dense
           filled
           type="number"
           v-model.number="formData.lnbits_asset_thumbnail_width"
           :label="$t('thumbnail_width')"
+          suffix="px"
           step="1"
           min="0"
           :hint="$t('thumbnail_width_desc')"
@@ -64,10 +69,12 @@
       </div>
       <div class="col-12 col-md-4">
         <q-input
+          dense
           filled
           type="number"
           v-model.number="formData.lnbits_asset_thumbnail_height"
           :label="$t('thumbnail_height')"
+          suffix="px"
           step="1"
           min="0"
           :hint="$t('thumbnail_height_desc')"
@@ -75,6 +82,7 @@
       </div>
       <div class="col-12 col-md-4">
         <q-input
+          dense
           filled
           v-model.number="formData.lnbits_asset_thumbnail_format"
           :label="$t('thumbnail_format')"
@@ -82,11 +90,12 @@
         ></q-input>
       </div>
     </div>
-    <q-separator class="q-mb-lg q-mt-sm"></q-separator>
+    <q-separator class="q-mb-lg q-mt-md"></q-separator>
     <h6 class="q-my-none q-mb-sm">Users</h6>
     <div class="row q-col-gutter-md">
       <div class="col-12 col-md-3">
         <q-input
+          dense
           filled
           type="number"
           v-model.number="formData.lnbits_max_assets_per_user"
@@ -98,6 +107,7 @@
       </div>
       <div class="col-12 col-md-9">
         <q-input
+          dense
           filled
           v-model="newNoLimitUser"
           @keydown.enter="addNewNoLimitUser()"
@@ -125,9 +135,5 @@
         </div>
       </div>
     </div>
-  </q-card-section>
-  <q-card-section>
-    <!-- for spacing -->
-    <br />
   </q-card-section>
 </template>

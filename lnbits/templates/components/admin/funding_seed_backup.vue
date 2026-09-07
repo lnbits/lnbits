@@ -109,6 +109,7 @@
             :key="word.index"
           >
             <q-input
+              dense
               v-model.trim="dialog.answers[word.index]"
               filled
               :label="`Word ${word.index + 1}`"
