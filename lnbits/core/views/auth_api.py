@@ -36,6 +36,7 @@ from lnbits.decorators import (
     access_token_payload,
     check_account_exists,
     check_admin,
+    check_api_write_access,
     check_user_exists,
     optional_user_id,
 )
@@ -128,7 +129,11 @@ def _record_login_failure(cache_key: str) -> None:
 
 
 @auth_router.get("", description="Get the authenticated user")
-async def get_auth_user(user: User = Depends(check_user_exists)) -> User:
+async def get_auth_user(
+    user: User = Depends(check_user_exists),
+    can_write: bool = Depends(check_api_write_access),
+) -> User:
+    user.wallets = [wallet.copy_with_keys(keep=can_write) for wallet in user.wallets]
     return user
 
 
