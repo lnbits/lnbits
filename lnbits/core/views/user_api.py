@@ -86,7 +86,7 @@ async def api_get_user(
     user = await get_user(user_id, active_only=False)
     if not user:
         raise HTTPException(HTTPStatus.NOT_FOUND, "User not found.")
-    user.wallets = [wallet.with_wallet_keys(keep=can_write) for wallet in user.wallets]
+    user.wallets = [wallet.copy_with_keys(keep=can_write) for wallet in user.wallets]
     return user
 
 
@@ -275,7 +275,7 @@ async def api_users_get_user_wallet(
     can_write: bool = Depends(check_api_write_access),
 ) -> list[Wallet]:
     wallets = await get_wallets(user_id, deleted=None)
-    return [wallet.with_wallet_keys(keep=can_write) for wallet in wallets]
+    return [wallet.copy_with_keys(keep=can_write) for wallet in wallets]
 
 
 @users_router.post("/user/{user_id}/wallet", name="Create a new wallet for user")

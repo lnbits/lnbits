@@ -137,7 +137,7 @@ class Wallet(BaseWallet):
         super().__init__(**data)
         self._validate_data()
 
-    def with_wallet_keys(self, keep: bool = True) -> Wallet:
+    def copy_with_keys(self, keep: bool = True) -> Wallet:
         """Return a wallet copy, masking its credentials when keep is False."""
         wallet = self.copy()
         if not keep:

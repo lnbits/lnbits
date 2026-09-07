@@ -80,7 +80,7 @@ async def api_wallets_paginated(
         filters=filters,
     )
 
-    page.data = [wallet.with_wallet_keys(keep=can_write) for wallet in page.data]
+    page.data = [wallet.copy_with_keys(keep=can_write) for wallet in page.data]
     return page
 
 

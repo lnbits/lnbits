@@ -6,7 +6,7 @@ from lnbits.core.models import Wallet
 
 
 @pytest.mark.parametrize("keep", [None, True, False])
-def test_with_wallet_keys(keep: bool | None):
+def test_copy_with_keys(keep: bool | None):
     wallet = Wallet(
         id="wallet-id",
         user="user-id",
@@ -17,9 +17,7 @@ def test_with_wallet_keys(keep: bool | None):
     original = json.loads(wallet.json())
 
     result = (
-        wallet.with_wallet_keys()
-        if keep is None
-        else wallet.with_wallet_keys(keep=keep)
+        wallet.copy_with_keys() if keep is None else wallet.copy_with_keys(keep=keep)
     )
 
     assert isinstance(result, Wallet)

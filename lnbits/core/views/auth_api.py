@@ -133,7 +133,7 @@ async def get_auth_user(
     user: User = Depends(check_user_exists),
     can_write: bool = Depends(check_api_write_access),
 ) -> User:
-    user.wallets = [wallet.with_wallet_keys(keep=can_write) for wallet in user.wallets]
+    user.wallets = [wallet.copy_with_keys(keep=can_write) for wallet in user.wallets]
     return user
 
 

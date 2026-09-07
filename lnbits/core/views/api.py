@@ -76,7 +76,7 @@ async def api_wallets(
     user: User = Depends(check_user_exists),
     can_write: bool = Depends(check_api_write_access),
 ) -> list[Wallet]:
-    return [wallet.with_wallet_keys(keep=can_write) for wallet in user.wallets]
+    return [wallet.copy_with_keys(keep=can_write) for wallet in user.wallets]
 
 
 @api_router.post("/api/v1/account")
