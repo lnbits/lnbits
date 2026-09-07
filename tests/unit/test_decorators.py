@@ -1,3 +1,4 @@
+import json
 from uuid import uuid4
 
 import jwt
@@ -5,12 +6,14 @@ import pytest
 import shortuuid
 from fastapi import Request
 from fastapi.exceptions import HTTPException
+from fastapi.responses import JSONResponse
 from httpx import AsyncClient
 from pydantic.types import UUID4
+from pytest_mock import MockerFixture
 
 from lnbits.core.crud.users import delete_account
-from lnbits.core.models import User
-from lnbits.core.models.users import AccessTokenPayload
+from lnbits.core.models import User, Wallet
+from lnbits.core.models.users import AccessTokenPayload, EndpointAccess
 from lnbits.decorators import (
     _extension_id_from_request_path,
     access_token_payload,
@@ -19,6 +22,8 @@ from lnbits.decorators import (
     check_extension_builder,
     check_first_install,
     check_user_exists,
+    omit_wallet_keys,
+    optional_acl_token_payload,
     optional_user_id,
 )
 from lnbits.helpers import create_access_token
@@ -167,6 +172,76 @@ async def test_access_token_payload_success_and_missing(settings: Settings):
 
     with pytest.raises(HTTPException, match="Missing access token."):
         await access_token_payload(None)
+
+
+@pytest.mark.anyio
+async def test_optional_acl_token_payload_distinguishes_session_tokens():
+    assert await optional_acl_token_payload(None) is None
+    session_token = create_access_token({"sub": "alice"})
+    assert await optional_acl_token_payload(session_token) is None
+
+    acl_token = create_access_token({"sub": "alice", "api_token_id": "acl-token"})
+    payload = await optional_acl_token_payload(acl_token)
+    assert payload
+    assert payload.api_token_id == "acl-token"
+
+    with pytest.raises(HTTPException, match="Invalid access token."):
+        await optional_acl_token_payload("invalid_token")
+
+
+@pytest.mark.anyio
+@pytest.mark.parametrize("write", [None, False, True])
+async def test_omit_wallet_keys_from_single_wallet(
+    mocker: MockerFixture, write: bool | None
+):
+    wallet = Wallet(
+        id="wallet-id",
+        user="user-id",
+        name="Wallet",
+        adminkey="admin-key",
+        inkey="invoice-key",
+    )
+    original = wallet.dict()
+    check_access = mocker.patch(
+        "lnbits.decorators._check_account_api_access",
+        return_value=EndpointAccess(
+            path="/api/v1/wallet", name="Wallet", read=True, write=bool(write)
+        ),
+    )
+
+    @omit_wallet_keys
+    async def endpoint(request: Request, acl_token: AccessTokenPayload | None):
+        return wallet
+
+    request = Request(
+        {
+            "type": "http",
+            "path": "/api/v1/wallet",
+            "method": "GET",
+            "user_id": wallet.user,
+        }
+    )
+    acl_token = (
+        AccessTokenPayload(sub="alice", api_token_id="acl-token")
+        if write is not None
+        else None
+    )
+    result = await endpoint(request=request, acl_token=acl_token)
+    if write is False:
+        assert isinstance(result, JSONResponse)
+        data = json.loads(bytes(result.body))
+        assert "adminkey" not in data
+        assert "inkey" not in data
+        assert data["id"] == wallet.id
+    else:
+        assert result is wallet
+    assert wallet.dict() == original
+    if write is None:
+        check_access.assert_not_called()
+    else:
+        check_access.assert_awaited_once_with(
+            wallet.user, "acl-token", "/api/v1/wallet", "GET"
+        )
 
 
 @pytest.mark.anyio

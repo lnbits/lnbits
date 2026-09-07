@@ -37,6 +37,8 @@ from lnbits.decorators import (
     check_account_exists,
     check_admin,
     check_user_exists,
+    omit_wallet_keys,
+    optional_acl_token_payload,
     optional_user_id,
 )
 from lnbits.helpers import (
@@ -128,7 +130,12 @@ def _record_login_failure(cache_key: str) -> None:
 
 
 @auth_router.get("", description="Get the authenticated user")
-async def get_auth_user(user: User = Depends(check_user_exists)) -> User:
+@omit_wallet_keys
+async def get_auth_user(
+    request: Request,
+    user: User = Depends(check_user_exists),
+    acl_token: AccessTokenPayload | None = Depends(optional_acl_token_payload),
+) -> User:
     return user
 
 

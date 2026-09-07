@@ -6,6 +6,7 @@ from fastapi import (
     Body,
     Depends,
     HTTPException,
+    Request,
 )
 
 from lnbits.core.crud.wallets import (
@@ -16,7 +17,7 @@ from lnbits.core.crud.wallets import (
 from lnbits.core.models import CreateWallet, KeyType, Wallet, WalletTypeInfo
 from lnbits.core.models.lnurl import StoredPayLink, StoredPayLinks
 from lnbits.core.models.misc import SimpleStatus
-from lnbits.core.models.users import Account, AccountId
+from lnbits.core.models.users import AccessTokenPayload, Account, AccountId
 from lnbits.core.models.wallets import (
     WalletsFilters,
     WalletSharePermission,
@@ -34,6 +35,8 @@ from lnbits.db import Filters, Page
 from lnbits.decorators import (
     check_account_exists,
     check_account_id_exists,
+    omit_wallet_keys,
+    optional_acl_token_payload,
     parse_filters,
     require_admin_key,
     require_invoice_key,
@@ -69,9 +72,12 @@ async def api_wallet(key_info: WalletTypeInfo = Depends(require_invoice_key)):
     response_model=Page[Wallet],
     openapi_extra=generate_filter_params_openapi(WalletsFilters),
 )
+@omit_wallet_keys
 async def api_wallets_paginated(
+    request: Request,
     account_id: AccountId = Depends(check_account_id_exists),
     filters: Filters = Depends(parse_filters(WalletsFilters)),
+    acl_token: AccessTokenPayload | None = Depends(optional_acl_token_payload),
 ):
     page = await get_wallets_paginated(
         user_id=account_id.id,

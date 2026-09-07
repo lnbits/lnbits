@@ -4,7 +4,7 @@ from time import time
 from typing import Any
 
 import pyqrcode
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Request
 from fastapi.responses import StreamingResponse
 
 from lnbits.core.models import (
@@ -13,11 +13,13 @@ from lnbits.core.models import (
     User,
     Wallet,
 )
-from lnbits.core.models.users import AccountId
+from lnbits.core.models.users import AccessTokenPayload, AccountId
 from lnbits.decorators import (
     check_account_exists,
     check_account_id_exists,
     check_user_exists,
+    omit_wallet_keys,
+    optional_acl_token_payload,
 )
 from lnbits.settings import settings
 from lnbits.utils.exchange_rates import (
@@ -71,7 +73,12 @@ async def health_check(
     name="Wallets",
     description="Get basic info for all of user's wallets.",
 )
-async def api_wallets(user: User = Depends(check_user_exists)) -> list[Wallet]:
+@omit_wallet_keys
+async def api_wallets(
+    request: Request,
+    user: User = Depends(check_user_exists),
+    acl_token: AccessTokenPayload | None = Depends(optional_acl_token_payload),
+) -> list[Wallet]:
     return user.wallets
 
 

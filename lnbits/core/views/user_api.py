@@ -5,7 +5,7 @@ from http import HTTPStatus
 from uuid import uuid4
 
 import shortuuid
-from fastapi import APIRouter, Body, Depends
+from fastapi import APIRouter, Body, Depends, Request
 from fastapi.exceptions import HTTPException
 
 from lnbits.core.crud import (
@@ -33,7 +33,7 @@ from lnbits.core.models import (
     Wallet,
 )
 from lnbits.core.models.notifications import NotificationType
-from lnbits.core.models.users import Account
+from lnbits.core.models.users import AccessTokenPayload, Account
 from lnbits.core.services import (
     create_user_account_no_ckeck,
     enqueue_admin_notification,
@@ -43,7 +43,13 @@ from lnbits.core.services import (
 )
 from lnbits.core.services.lightning_address import set_wallet_lightning_address
 from lnbits.db import Filters, Page
-from lnbits.decorators import check_admin, check_super_user, parse_filters
+from lnbits.decorators import (
+    check_admin,
+    check_super_user,
+    omit_wallet_keys,
+    optional_acl_token_payload,
+    parse_filters,
+)
 from lnbits.helpers import (
     encrypt_internal_message,
     generate_filter_params_openapi,
@@ -74,7 +80,12 @@ async def api_get_users(
     name="Get user",
     summary="Get user by Id",
 )
-async def api_get_user(user_id: str) -> User:
+@omit_wallet_keys
+async def api_get_user(
+    request: Request,
+    user_id: str,
+    acl_token: AccessTokenPayload | None = Depends(optional_acl_token_payload),
+) -> User:
     user = await get_user(user_id, active_only=False)
     if not user:
         raise HTTPException(HTTPStatus.NOT_FOUND, "User not found.")
@@ -261,7 +272,12 @@ async def api_users_toggle_activated(
 
 
 @users_router.get("/user/{user_id}/wallet", name="Get wallets for user")
-async def api_users_get_user_wallet(user_id: str) -> list[Wallet]:
+@omit_wallet_keys
+async def api_users_get_user_wallet(
+    request: Request,
+    user_id: str,
+    acl_token: AccessTokenPayload | None = Depends(optional_acl_token_payload),
+) -> list[Wallet]:
     return await get_wallets(user_id, deleted=None)
 
 
