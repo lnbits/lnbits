@@ -1217,7 +1217,6 @@ class SuperUserSettings(LNbitsSettings):
         default=[
             "AlbyWallet",
             "BarkWallet",
-            "BoltzWallet",
             "BlinkWallet",
             "BreezSdkWallet",
             "BreezLiquidSdkWallet",
@@ -1240,6 +1239,12 @@ class SuperUserSettings(LNbitsSettings):
             "StrikeWallet",
         ]
     )
+
+    @validator("lnbits_allowed_funding_sources")
+    @classmethod
+    def exclude_suspended_funding_sources(cls, sources: list[str]) -> list[str]:
+        # Also hide Boltz in the frontend when explicitly allowed by config.
+        return [source for source in sources if source != "BoltzWallet"]
 
 
 class TransientSettings(InstalledExtensionsSettings, ExchangeHistorySettings):

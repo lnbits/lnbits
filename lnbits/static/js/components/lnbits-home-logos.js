@@ -78,11 +78,7 @@ window.app.component('lnbits-home-logos', {
           lightSrc: '/static/images/phoenixdl.png',
           darkSrc: '/static/images/phoenixd.png'
         },
-        {
-          href: 'https://boltz.exchange/',
-          lightSrc: '/static/images/boltzl.svg',
-          darkSrc: '/static/images/boltz.svg'
-        },
+        // Boltz is temporarily hidden while its swap service is suspended.
         {
           href: 'https://www.blink.sv/',
           lightSrc: '/static/images/blink_logol.png',

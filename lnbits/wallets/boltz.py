@@ -24,6 +24,9 @@ from .base import (
     Wallet,
 )
 
+# Re-enable when the public Boltz swap service resumes.
+BOLTZ_DISABLED = True
+
 
 class BoltzWallet(Wallet):
     """
@@ -36,6 +39,11 @@ class BoltzWallet(Wallet):
         logger.warning("Cleaning up BoltzWallet...")
 
     def __init__(self):
+        if BOLTZ_DISABLED:
+            raise RuntimeError(
+                "BoltzWallet is temporarily disabled because the Boltz swap service "
+                "is suspended. Configure another funding source."
+            )
         if not settings.boltz_client_endpoint:
             raise ValueError(
                 "cannot initialize BoltzWallet: missing boltz_client_endpoint"
