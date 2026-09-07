@@ -10,6 +10,9 @@ resolution-markers = [
 exclude-newer = "0001-01-01T00:00:00Z" # This has no effect and is included for backwards compatibility when using relative exclude-newer values.
 exclude-newer-span = "P1W"
 
+[manifest]
+constraints = [{ name = "pyln-proto", specifier = "==26.4.1" }]
+
 [[package]]
 name = "aiohappyeyeballs"
 version = "2.7.1"
@@ -640,38 +643,6 @@ wheels = [
 ]
 
 [[package]]
-name = "coincurve-cp314-fix"
-version = "22.0.1"
-source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/bd/f9/e9d3c502369933915d3e72d596a1ddf81b3d5ae986f5bd65bc5ada52e6b9/coincurve_cp314_fix-22.0.1.tar.gz", hash = "sha256:b68397f902a73ba15ab5652fae712f6ba85625e382026be2a5c5e698845a79f4", size = 129346, upload-time = "2026-07-17T14:49:10.202Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/af/ca/ec5e2c4ba1df02844e1087e58636ecc78a096fa7e7dfd85cab286c0c1c31/coincurve_cp314_fix-22.0.1-cp310-cp310-macosx_10_15_x86_64.whl", hash = "sha256:9fec35946bfe7784e92aaa656b298b3b67f0a093f52c7970496dde4621bbe6c0", size = 1388687, upload-time = "2026-07-17T14:48:04.925Z" },
-    { url = "https://files.pythonhosted.org/packages/a2/01/5c0435325516a6d7ce2958e90e4d050652d105465a187ff8e983a1271370/coincurve_cp314_fix-22.0.1-cp310-cp310-macosx_11_0_arm64.whl", hash = "sha256:f5f4abc2e639a4007ca212b7029ea9fc549dc1e1207348f1c8729e34b6e0a94c", size = 1383962, upload-time = "2026-07-17T14:48:06.636Z" },
-    { url = "https://files.pythonhosted.org/packages/4c/93/d9ea4c7955a1f67740e492adca7d8ffdb7b9434c2ddc9628e578d37552bb/coincurve_cp314_fix-22.0.1-cp310-cp310-manylinux2014_aarch64.manylinux_2_17_aarch64.manylinux_2_28_aarch64.whl", hash = "sha256:e2dc1deb3cec48571fa05064fa8dad3488a0d63e3f16fa731c7815f3f204a2cb", size = 1371893, upload-time = "2026-07-17T14:48:08.247Z" },
-    { url = "https://files.pythonhosted.org/packages/d6/0c/eec3262ad43b0f40203656d1a1e52377d603a47f76de6352dd15659285bc/coincurve_cp314_fix-22.0.1-cp310-cp310-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl", hash = "sha256:d5b60d06533f4820023a4e91679c2181ccc29a23193d55fc51e6d55874186b67", size = 1370994, upload-time = "2026-07-17T14:48:09.9Z" },
-    { url = "https://files.pythonhosted.org/packages/36/9c/733843a2423ec759ccdd78338dba53f9bb9093f011ea8b31feab07e510cc/coincurve_cp314_fix-22.0.1-cp310-cp310-musllinux_1_2_aarch64.whl", hash = "sha256:01428e65cfac5bedbeb7a6c1e146970d8aa8a384a7dc39f0c45c38350c6960cc", size = 1377492, upload-time = "2026-07-17T14:48:11.756Z" },
-    { url = "https://files.pythonhosted.org/packages/33/e1/6c8bca371a395b32ddd86b2bcbae146789984b0bdf329524f6e85a73846e/coincurve_cp314_fix-22.0.1-cp310-cp310-musllinux_1_2_x86_64.whl", hash = "sha256:b787b23c80501e1af903bfe4f89a07c51ccc02e2333913e152f4e4c2cdbf644f", size = 1374123, upload-time = "2026-07-17T14:48:13.33Z" },
-    { url = "https://files.pythonhosted.org/packages/d7/52/e9a7a1c82d615e9f4060ac77509bae9d95e1c9a4ad24941abca9f356d091/coincurve_cp314_fix-22.0.1-cp310-cp310-win_amd64.whl", hash = "sha256:6b02bca3564e795a945c0a2a7f575d3af7d6e3c0e84133c610ca84cf0b824d21", size = 1329759, upload-time = "2026-07-17T14:48:14.845Z" },
-    { url = "https://files.pythonhosted.org/packages/5f/55/c858d0ce0a2a3ec590463838af052492680debae92ca38b071ee459f351c/coincurve_cp314_fix-22.0.1-cp310-cp310-win_arm64.whl", hash = "sha256:c2a0afd16f410f0b9932cc2123ba1adceca8676cffd649c4a5c1fe344d3a55df", size = 1320063, upload-time = "2026-07-17T14:48:16.294Z" },
-    { url = "https://files.pythonhosted.org/packages/74/d9/6e191269f241861ed25ce193bb1d24e8758eb83276a0bc28d7f929704d45/coincurve_cp314_fix-22.0.1-cp311-cp311-macosx_10_15_x86_64.whl", hash = "sha256:c7beead9480fc1e47b3727172af2279f1043bacc68f1a7226af7687bd893058e", size = 1388699, upload-time = "2026-07-17T14:48:18.13Z" },
-    { url = "https://files.pythonhosted.org/packages/d3/1e/a330eba734c262182bd7d35595c1e4b72a32cced388b649ab826b8b93d47/coincurve_cp314_fix-22.0.1-cp311-cp311-macosx_11_0_arm64.whl", hash = "sha256:a3a710296ef735bb96434a152101bcdef9bdabbec291305eb0e6cc864935e7db", size = 1383919, upload-time = "2026-07-17T14:48:19.759Z" },
-    { url = "https://files.pythonhosted.org/packages/52/ef/fa17567e5044fdbe958534191b31e461affc2019df6e21f6644981bc2cb1/coincurve_cp314_fix-22.0.1-cp311-cp311-manylinux2014_aarch64.manylinux_2_17_aarch64.manylinux_2_28_aarch64.whl", hash = "sha256:d8bb83a3ea92906d5fe1623c3554c4973c0b51cb7f3a5e10dae549eec9b1b1eb", size = 1371952, upload-time = "2026-07-17T14:48:21.412Z" },
-    { url = "https://files.pythonhosted.org/packages/5c/d1/b6cbf61dcbb11b053891d593d82fb976e5cc44092fef09d0787c8edb7071/coincurve_cp314_fix-22.0.1-cp311-cp311-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl", hash = "sha256:c9d88f8faf7156fddad08dbd032671d6bb2427a262fc57e81be5fc4f9d1357aa", size = 1370118, upload-time = "2026-07-17T14:48:23.358Z" },
-    { url = "https://files.pythonhosted.org/packages/99/f5/8d629287c7c2e7b9efca2cab3cfa95a02c2312881551b39875cb81671edc/coincurve_cp314_fix-22.0.1-cp311-cp311-musllinux_1_2_aarch64.whl", hash = "sha256:8a41bd1c4012d8ff480a3972cc9300400530edb8e7f0d16617e0f241fe0b72d2", size = 1377513, upload-time = "2026-07-17T14:48:24.923Z" },
-    { url = "https://files.pythonhosted.org/packages/d6/ca/8aac5adcd9616dd73095a2c4a707b30bc31674fae8522de44992309d34df/coincurve_cp314_fix-22.0.1-cp311-cp311-musllinux_1_2_x86_64.whl", hash = "sha256:b9083d1e5042866a1e28e91e9d5c8fdcf51629dd2a273f6b405059e7c95945fb", size = 1373226, upload-time = "2026-07-17T14:48:26.512Z" },
-    { url = "https://files.pythonhosted.org/packages/dd/98/1b4f2f26d6980bdd17a8f2864832f9dff895b032a49234b51389ab58596d/coincurve_cp314_fix-22.0.1-cp311-cp311-win_amd64.whl", hash = "sha256:918b4ad4d1e4f4cf38c11aa39b9d842418987f898caccc6114b45aa081ae2c90", size = 1329815, upload-time = "2026-07-17T14:48:27.899Z" },
-    { url = "https://files.pythonhosted.org/packages/4a/e1/21f17125e8b9160dd5f6db3f92da6e18b1f4cdececfc3a154f023a7f9ad7/coincurve_cp314_fix-22.0.1-cp311-cp311-win_arm64.whl", hash = "sha256:ab926906a2718de26a3e23955103e41e39cb316e5cbb68489405d4a2bc2011c3", size = 1320212, upload-time = "2026-07-17T14:48:29.473Z" },
-    { url = "https://files.pythonhosted.org/packages/4a/32/24fef91a512c51b57b5980207bdf4974ab6e998aefde3c50abb565b4f346/coincurve_cp314_fix-22.0.1-cp312-cp312-macosx_10_15_x86_64.whl", hash = "sha256:b077081c058338aaab7fe634275da0248fe59b469be9ec2bfa598e6e328fc5d1", size = 1389725, upload-time = "2026-07-17T14:48:31.19Z" },
-    { url = "https://files.pythonhosted.org/packages/a6/7a/24b3079bee4bd2f081865e28a08eb13b909470c7d8ce3a8c4ac9aae80727/coincurve_cp314_fix-22.0.1-cp312-cp312-macosx_11_0_arm64.whl", hash = "sha256:0ed7e6c3434333ecc17b00834f17effa5f48fc89b3e130d19157e3b18e0bd149", size = 1384501, upload-time = "2026-07-17T14:48:32.942Z" },
-    { url = "https://files.pythonhosted.org/packages/41/26/7a4fbaff523784b9339f247a315056f99439fe671705d92bd9df01612e59/coincurve_cp314_fix-22.0.1-cp312-cp312-manylinux2014_aarch64.manylinux_2_17_aarch64.manylinux_2_28_aarch64.whl", hash = "sha256:b72535b8303d45bfc47bb27e7b1b898cfba11ddb9ca6db9e528f0e23360da5f3", size = 1375639, upload-time = "2026-07-17T14:48:34.777Z" },
-    { url = "https://files.pythonhosted.org/packages/82/2e/c6f93f5bbbe6c050f5425b9e1ebb1fc8a28e3074b4ebe6542c91be186e27/coincurve_cp314_fix-22.0.1-cp312-cp312-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl", hash = "sha256:9a56ec57a1ce4116db6281703c5c64d35a9fbcb4ed2ab65ac38109c412afb3b6", size = 1374117, upload-time = "2026-07-17T14:48:37.179Z" },
-    { url = "https://files.pythonhosted.org/packages/a8/f0/911d0295ed3a199c7a4eb43d2f8ffff1d1dcca39f2128fe5fc7f1fe52c17/coincurve_cp314_fix-22.0.1-cp312-cp312-musllinux_1_2_aarch64.whl", hash = "sha256:0501e49a206b5ab4105f65daeb338dcf3559bd7d5392a03afc3f31db83f661fc", size = 1381644, upload-time = "2026-07-17T14:48:39.018Z" },
-    { url = "https://files.pythonhosted.org/packages/be/68/b3ecefd5edccd3202f24c0cfb696aff0756e6095db9f7c67da78aff57f27/coincurve_cp314_fix-22.0.1-cp312-cp312-musllinux_1_2_x86_64.whl", hash = "sha256:7a5d93127fea898e53882ac106535fbc39ff4f2a26e9c5f23e1efae716bcf6a6", size = 1377529, upload-time = "2026-07-17T14:48:40.608Z" },
-    { url = "https://files.pythonhosted.org/packages/57/54/be427f7e8b037b14b94eb97e22fab08b8d41535075dd1b1d7a668fc1d4dc/coincurve_cp314_fix-22.0.1-cp312-cp312-win_amd64.whl", hash = "sha256:07fcc0a4b6c86566462c9918f6c68303e3699820c4df595daef9a8d131584f29", size = 1330618, upload-time = "2026-07-17T14:48:42.12Z" },
-    { url = "https://files.pythonhosted.org/packages/c4/0b/1833d9b75a8d0dabba52db6a4e665cd0bf24401c513a062f82c8fc4f56a2/coincurve_cp314_fix-22.0.1-cp312-cp312-win_arm64.whl", hash = "sha256:f7b282d27d234b96e064e6bf061d56a4148a4e4fb14f0309fdcc555206892ab6", size = 1320184, upload-time = "2026-07-17T14:48:43.588Z" },
-]
-
-[[package]]
 name = "colorama"
 version = "0.4.6"
 source = { registry = "https://pypi.org/simple" }
@@ -845,7 +816,7 @@ name = "exceptiongroup"
 version = "1.3.1"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "typing-extensions" },
+    { name = "typing-extensions", marker = "python_full_version < '3.11'" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/50/79/66800aadf48771f6b62f7eb014e352e5d06856655206165d775e675a02c9/exceptiongroup-1.3.1.tar.gz", hash = "sha256:8b412432c6055b0b7d14c310000ae93352ed6754f70fa8f7c34141f91c4e3219", size = 30371, upload-time = "2025-11-21T23:01:54.787Z" }
 wheels = [
@@ -2218,18 +2189,18 @@ wheels = [
 
 [[package]]
 name = "pyln-proto"
-version = "26.6.6"
+version = "26.4.1"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "base58" },
     { name = "bitstring" },
-    { name = "coincurve-cp314-fix" },
+    { name = "coincurve" },
     { name = "cryptography" },
     { name = "pysocks" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/a8/97/219900f708391678165461e6b519c6272edb5966b2e20c62856e9c1f736a/pyln_proto-26.6.6.tar.gz", hash = "sha256:b6d424eb22d33de9fc21e4216502759e34a62eaf460a47cc45dbbb208096db8a", size = 44879, upload-time = "2026-07-20T12:40:07.68Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/8c/4b/c8d676ad84d6066553b203668c0e36f45cfae0a4d7140eb88aed6d65b38b/pyln_proto-26.4.1.tar.gz", hash = "sha256:d73f261bacc06a6a613dcece05fc429699b740a4673f24dffb7c41bd3542d589", size = 44864, upload-time = "2026-04-24T04:53:10.196Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/2c/18/ed5d323f55350b175e5f8bbed7b0c8acb988eb48ee37dd5b44d9e7a41799/pyln_proto-26.6.6-py3-none-any.whl", hash = "sha256:b7b12769e2c37e6d1ce7c2063bbab67f5959e411459ff089d0dbc14109778e03", size = 31833, upload-time = "2026-07-20T12:40:06.677Z" },
+    { url = "https://files.pythonhosted.org/packages/a3/f1/6541b6cd8a017d3505fcb49885d3f01b8e6bb09e40db18e686edb9edeb99/pyln_proto-26.4.1-py3-none-any.whl", hash = "sha256:b5d10d5e69cf3debd9b289e2ffa49713fca6c349a71cb0eaf9e733024f15b3da", size = 31833, upload-time = "2026-04-24T04:53:08.686Z" },
 ]
 
 [[package]]

@@ -92,6 +92,8 @@ dev = [
 
 [tool.uv]
 exclude-newer = "1 week"
+# Newer pyln-proto releases pull in a fork that collides with coincurve.
+constraint-dependencies = ["pyln-proto==26.4.1"]
 
 [tool.poetry]
 packages = [
