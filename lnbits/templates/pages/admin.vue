@@ -127,17 +127,21 @@
         class="q-pa-md"
       >
         <q-select
-          dense
           v-model="tab"
           :options="settingsNavigationItems"
           option-value="value"
           option-label="label"
           emit-value
           map-options
-          outlined
+          filled
+          label-color="white"
+          bg-color="primary"
           :label="$t('admin_settings')"
+          class="mobile-tab"
         >
-          <template v-slot:prepend><q-icon name="tune"></q-icon></template>
+          <template v-slot:prepend
+            ><q-icon name="tune" color="white"></q-icon
+          ></template>
         </q-select>
       </div>
 
@@ -247,3 +251,12 @@
     </q-card>
   </div>
 </template>
+<style scoped>
+.mobile-tab .q-field__native > span {
+  color: white !important;
+}
+
+.mobile-tab .q-select__dropdown-icon {
+  color: white !important;
+}
+</style>
