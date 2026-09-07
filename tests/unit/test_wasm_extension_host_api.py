@@ -10,6 +10,7 @@ from lnbits.core.wasm_ext.api.models import (
     CreateInvoicePublicRequest,
     EmptyRequest,
     PayInvoiceRequest,
+    PayLnurlRequest,
     StorageAppendPublicRequest,
     StorageGetRequest,
     StoragePublicPaginatedRequest,
@@ -632,6 +633,54 @@ async def test_host_api_background_pay_invoice_uses_background_grant_metadata(
         "background_permission": "wallet.pay_invoice_background",
         "background_wallet_id": "wallet-1",
     }
+
+
+@pytest.mark.anyio
+async def test_host_api_can_fetch_lnurl_invoice_without_paying(
+    mocker: MockerFixture,
+):
+    mocker.patch(
+        "lnbits.core.crud.wallets.get_wallet",
+        mocker.AsyncMock(return_value=SimpleNamespace(id="wallet-1", user="user-1")),
+    )
+    mocker.patch(
+        "lnbits.core.services.lnurl.fetch_lnurl_pay_request",
+        mocker.AsyncMock(
+            return_value=(
+                SimpleNamespace(),
+                SimpleNamespace(pr="lnbc210n1demo", successAction=None),
+            )
+        ),
+    )
+    mocker.patch(
+        "lnbits.core.wasm_ext.api.host.invoice_amount_msat", return_value=21_000
+    )
+    background_extra_mock = mocker.patch(
+        "lnbits.core.wasm_ext.api.host.background_payment_extra",
+        mocker.AsyncMock(return_value={"tag": "demoext"}),
+    )
+    pay_mock = mocker.patch("lnbits.core.services.payments.pay_invoice")
+    api = ExtensionHostAPI(
+        "demoext", ["wallet.pay_invoice_background"], context="event"
+    )
+
+    response = await api.wallet_pay_lnurl(
+        PayLnurlRequest(
+            wallet_id="wallet-1",
+            lnurl="winner@example.com",
+            amount=21,
+            currency="sat",
+            comment=None,
+            description="",
+            max_sat=21,
+            fetch_only=True,
+        )
+    )
+
+    assert response.ok is True
+    assert response.payment_request == "lnbc210n1demo"
+    background_extra_mock.assert_awaited_once()
+    pay_mock.assert_not_called()
 
 
 @pytest.mark.anyio
