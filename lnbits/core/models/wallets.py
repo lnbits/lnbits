@@ -137,6 +137,14 @@ class Wallet(BaseWallet):
         super().__init__(**data)
         self._validate_data()
 
+    def with_wallet_keys(self, keep: bool = True) -> Wallet:
+        """Return this wallet, removing its credentials when keep is False."""
+        if not keep:
+            for key in ("adminkey", "inkey"):
+                if hasattr(self, key):
+                    delattr(self, key)
+        return self
+
     def mirror_shared_wallet(
         self,
         shared_wallet: Wallet,

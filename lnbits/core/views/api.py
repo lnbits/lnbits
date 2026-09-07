@@ -4,8 +4,9 @@ from time import time
 from typing import Any
 
 import pyqrcode
-from fastapi import APIRouter, Depends, Request
-from fastapi.responses import StreamingResponse
+from fastapi import APIRouter, Depends
+from fastapi.encoders import jsonable_encoder
+from fastapi.responses import JSONResponse, StreamingResponse
 
 from lnbits.core.models import (
     ConversionData,
@@ -13,13 +14,12 @@ from lnbits.core.models import (
     User,
     Wallet,
 )
-from lnbits.core.models.users import AccessTokenPayload, AccountId
+from lnbits.core.models.users import AccountId
 from lnbits.decorators import (
     check_account_exists,
     check_account_id_exists,
+    check_api_write_access,
     check_user_exists,
-    omit_wallet_keys,
-    optional_acl_token_payload,
 )
 from lnbits.settings import settings
 from lnbits.utils.exchange_rates import (
@@ -72,14 +72,14 @@ async def health_check(
     "/api/v1/wallets",
     name="Wallets",
     description="Get basic info for all of user's wallets.",
+    response_model=list[Wallet],
 )
-@omit_wallet_keys
 async def api_wallets(
-    request: Request,
     user: User = Depends(check_user_exists),
-    acl_token: AccessTokenPayload | None = Depends(optional_acl_token_payload),
-) -> list[Wallet]:
-    return user.wallets
+    can_write: bool = Depends(check_api_write_access),
+) -> JSONResponse:
+    wallets = [wallet.with_wallet_keys(keep=can_write) for wallet in user.wallets]
+    return JSONResponse(jsonable_encoder(wallets))
 
 
 @api_router.post("/api/v1/account")

@@ -1,13 +1,10 @@
-from functools import wraps
 from http import HTTPStatus
 from typing import Annotated, Literal
 
 import jwt
 from fastapi import Cookie, Depends, Query, Request, Security
-from fastapi.encoders import jsonable_encoder
 from fastapi.exceptions import HTTPException
 from fastapi.openapi.models import APIKey, APIKeyIn, SecuritySchemeType
-from fastapi.responses import JSONResponse
 from fastapi.security import APIKeyHeader, APIKeyQuery, HTTPBearer, OAuth2PasswordBearer
 from fastapi.security.base import SecurityBase
 from loguru import logger
@@ -30,12 +27,11 @@ from lnbits.core.models import (
     KeyType,
     SimpleStatus,
     User,
-    Wallet,
     WalletTypeInfo,
 )
 from lnbits.core.models.users import AccountId, EndpointAccess
 from lnbits.core.models.wallets import BaseWallet, BaseWalletTypeInfo
-from lnbits.db import Connection, Filter, Filters, Page, TFilterModel
+from lnbits.db import Connection, Filter, Filters, TFilterModel
 from lnbits.helpers import normalize_path, path_segments, sha256s
 from lnbits.settings import AuthMethods, settings
 from lnbits.utils.cache import cache
@@ -372,44 +368,23 @@ async def optional_acl_token_payload(
     return payload if payload.api_token_id else None
 
 
-def omit_wallet_keys(func):
-    """Decorate authenticated routes accepting `request` and `acl_token`.
-
-    Wallet credentials are returned only for unrestricted authentication or ACL
-    tokens with write access to the current endpoint group.
-    """
-
-    @wraps(func)
-    async def wrapper(request: Request, acl_token: AccessTokenPayload | None, **kwargs):
-        omit_keys = False
-        if acl_token and acl_token.api_token_id:
-            endpoint = await _check_account_api_access(
-                request.scope["user_id"],
-                acl_token.api_token_id,
-                request["path"],
-                request["method"],
-            )
-            omit_keys = not endpoint.write
-
-        result = await func(request=request, acl_token=acl_token, **kwargs)
-        if not omit_keys:
-            return result
-
-        keys = {"adminkey", "inkey"}
-        if isinstance(result, User):
-            exclude = {"wallets": {"__all__": keys}}
-        elif isinstance(result, Page):
-            exclude = {"data": {"__all__": keys}}
-        elif isinstance(result, (Wallet, list)):
-            return JSONResponse(jsonable_encoder(result, exclude=keys))
-        else:
-            raise TypeError("Unsupported wallet response type.")
-
-        # Return JSON directly so response validation cannot restore wallet keys
-        # or reject their omission from the internal Wallet model.
-        return JSONResponse(jsonable_encoder(result, exclude=exclude))
-
-    return wrapper
+async def check_api_write_access(
+    request: Request,
+    account_id: Annotated[AccountId, Depends(check_account_id_exists)],
+    acl_token: Annotated[
+        AccessTokenPayload | None, Depends(optional_acl_token_payload)
+    ],
+) -> bool:
+    """Check current endpoint write access, including unrestricted authentication."""
+    if not acl_token or not acl_token.api_token_id:
+        return True
+    endpoint = await _check_account_api_access(
+        account_id.id,
+        acl_token.api_token_id,
+        request["path"],
+        request["method"],
+    )
+    return endpoint.write
 
 
 async def check_admin(

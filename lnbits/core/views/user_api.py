@@ -5,8 +5,10 @@ from http import HTTPStatus
 from uuid import uuid4
 
 import shortuuid
-from fastapi import APIRouter, Body, Depends, Request
+from fastapi import APIRouter, Body, Depends
+from fastapi.encoders import jsonable_encoder
 from fastapi.exceptions import HTTPException
+from fastapi.responses import JSONResponse
 
 from lnbits.core.crud import (
     create_wallet,
@@ -33,7 +35,7 @@ from lnbits.core.models import (
     Wallet,
 )
 from lnbits.core.models.notifications import NotificationType
-from lnbits.core.models.users import AccessTokenPayload, Account
+from lnbits.core.models.users import Account
 from lnbits.core.services import (
     create_user_account_no_ckeck,
     enqueue_admin_notification,
@@ -45,9 +47,8 @@ from lnbits.core.services.lightning_address import set_wallet_lightning_address
 from lnbits.db import Filters, Page
 from lnbits.decorators import (
     check_admin,
+    check_api_write_access,
     check_super_user,
-    omit_wallet_keys,
-    optional_acl_token_payload,
     parse_filters,
 )
 from lnbits.helpers import (
@@ -79,17 +80,18 @@ async def api_get_users(
     "/user/{user_id}",
     name="Get user",
     summary="Get user by Id",
+    response_model=User,
 )
-@omit_wallet_keys
 async def api_get_user(
-    request: Request,
     user_id: str,
-    acl_token: AccessTokenPayload | None = Depends(optional_acl_token_payload),
-) -> User:
+    can_write: bool = Depends(check_api_write_access),
+) -> JSONResponse:
     user = await get_user(user_id, active_only=False)
     if not user:
         raise HTTPException(HTTPStatus.NOT_FOUND, "User not found.")
-    return user
+    for wallet in user.wallets:
+        wallet.with_wallet_keys(keep=can_write)
+    return JSONResponse(jsonable_encoder(user))
 
 
 @users_router.post("/user", name="Create user")
@@ -271,14 +273,17 @@ async def api_users_toggle_activated(
     )
 
 
-@users_router.get("/user/{user_id}/wallet", name="Get wallets for user")
-@omit_wallet_keys
+@users_router.get(
+    "/user/{user_id}/wallet", name="Get wallets for user", response_model=list[Wallet]
+)
 async def api_users_get_user_wallet(
-    request: Request,
     user_id: str,
-    acl_token: AccessTokenPayload | None = Depends(optional_acl_token_payload),
-) -> list[Wallet]:
-    return await get_wallets(user_id, deleted=None)
+    can_write: bool = Depends(check_api_write_access),
+) -> JSONResponse:
+    wallets = await get_wallets(user_id, deleted=None)
+    for wallet in wallets:
+        wallet.with_wallet_keys(keep=can_write)
+    return JSONResponse(jsonable_encoder(wallets))
 
 
 @users_router.post("/user/{user_id}/wallet", name="Create a new wallet for user")

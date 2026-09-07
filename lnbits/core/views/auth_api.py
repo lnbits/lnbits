@@ -9,6 +9,7 @@ from typing import Annotated
 from uuid import uuid4
 
 from fastapi import APIRouter, Cookie, Depends, HTTPException, Request
+from fastapi.encoders import jsonable_encoder
 from fastapi.responses import JSONResponse, RedirectResponse
 from fastapi_sso.sso.base import OpenID, SSOBase
 from loguru import logger
@@ -36,9 +37,8 @@ from lnbits.decorators import (
     access_token_payload,
     check_account_exists,
     check_admin,
+    check_api_write_access,
     check_user_exists,
-    omit_wallet_keys,
-    optional_acl_token_payload,
     optional_user_id,
 )
 from lnbits.helpers import (
@@ -129,14 +129,14 @@ def _record_login_failure(cache_key: str) -> None:
     )
 
 
-@auth_router.get("", description="Get the authenticated user")
-@omit_wallet_keys
+@auth_router.get("", description="Get the authenticated user", response_model=User)
 async def get_auth_user(
-    request: Request,
     user: User = Depends(check_user_exists),
-    acl_token: AccessTokenPayload | None = Depends(optional_acl_token_payload),
-) -> User:
-    return user
+    can_write: bool = Depends(check_api_write_access),
+) -> JSONResponse:
+    for wallet in user.wallets:
+        wallet.with_wallet_keys(keep=can_write)
+    return JSONResponse(jsonable_encoder(user))
 
 
 @auth_router.post("", description="Login via the username and password")

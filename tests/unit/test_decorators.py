@@ -1,4 +1,3 @@
-import json
 from uuid import uuid4
 
 import jwt
@@ -6,23 +5,22 @@ import pytest
 import shortuuid
 from fastapi import Request
 from fastapi.exceptions import HTTPException
-from fastapi.responses import JSONResponse
 from httpx import AsyncClient
 from pydantic.types import UUID4
 from pytest_mock import MockerFixture
 
 from lnbits.core.crud.users import delete_account
-from lnbits.core.models import User, Wallet
-from lnbits.core.models.users import AccessTokenPayload, EndpointAccess
+from lnbits.core.models import User
+from lnbits.core.models.users import AccessTokenPayload, AccountId, EndpointAccess
 from lnbits.decorators import (
     _extension_id_from_request_path,
     access_token_payload,
     check_access_token,
     check_admin_ui,
+    check_api_write_access,
     check_extension_builder,
     check_first_install,
     check_user_exists,
-    omit_wallet_keys,
     optional_acl_token_payload,
     optional_user_id,
 )
@@ -191,17 +189,7 @@ async def test_optional_acl_token_payload_distinguishes_session_tokens():
 
 @pytest.mark.anyio
 @pytest.mark.parametrize("write", [None, False, True])
-async def test_omit_wallet_keys_from_single_wallet(
-    mocker: MockerFixture, write: bool | None
-):
-    wallet = Wallet(
-        id="wallet-id",
-        user="user-id",
-        name="Wallet",
-        adminkey="admin-key",
-        inkey="invoice-key",
-    )
-    original = wallet.dict()
+async def test_check_api_write_access(mocker: MockerFixture, write: bool | None):
     check_access = mocker.patch(
         "lnbits.decorators._check_account_api_access",
         return_value=EndpointAccess(
@@ -209,16 +197,11 @@ async def test_omit_wallet_keys_from_single_wallet(
         ),
     )
 
-    @omit_wallet_keys
-    async def endpoint(request: Request, acl_token: AccessTokenPayload | None):
-        return wallet
-
     request = Request(
         {
             "type": "http",
             "path": "/api/v1/wallet",
             "method": "GET",
-            "user_id": wallet.user,
         }
     )
     acl_token = (
@@ -226,21 +209,15 @@ async def test_omit_wallet_keys_from_single_wallet(
         if write is not None
         else None
     )
-    result = await endpoint(request=request, acl_token=acl_token)
-    if write is False:
-        assert isinstance(result, JSONResponse)
-        data = json.loads(bytes(result.body))
-        assert "adminkey" not in data
-        assert "inkey" not in data
-        assert data["id"] == wallet.id
-    else:
-        assert result is wallet
-    assert wallet.dict() == original
+    result = await check_api_write_access(
+        request, account_id=AccountId(id="user-id"), acl_token=acl_token
+    )
+    assert result is (write is not False)
     if write is None:
         check_access.assert_not_called()
     else:
         check_access.assert_awaited_once_with(
-            wallet.user, "acl-token", "/api/v1/wallet", "GET"
+            "user-id", "acl-token", "/api/v1/wallet", "GET"
         )
 
 
