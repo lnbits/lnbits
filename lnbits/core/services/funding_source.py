@@ -20,6 +20,8 @@ async def switch_to_voidwallet() -> None:
 async def get_balance_delta() -> BalanceDelta:
     funding_source = get_funding_source()
     status = await funding_source.status()
+    if status.error_message:
+        raise RuntimeError(f"Funding source status unavailable: {status.error_message}")
     lnbits_balance = await get_total_balance()
     return BalanceDelta(
         lnbits_balance_sats=int(lnbits_balance) // 1000,
