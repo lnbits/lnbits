@@ -1459,7 +1459,7 @@ requires-dist = [
     { name = "pydantic", specifier = "~=1.10.26" },
     { name = "pyinstrument", specifier = ">=5.1.2" },
     { name = "pyjwt", specifier = "~=2.12.0" },
-    { name = "pyln-client", specifier = "~=25.12.0" },
+    { name = "pyln-client", specifier = "==25.12.0" },
     { name = "pynostr", specifier = "~=0.7.0" },
     { name = "pyqrcode", specifier = "~=1.2.1" },
     { name = "python-crontab", specifier = "~=3.3.0" },
@@ -2205,15 +2205,15 @@ wheels = [
 
 [[package]]
 name = "pyln-client"
-version = "25.12.1"
+version = "25.12"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "pyln-bolt7" },
     { name = "pyln-proto" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/75/b1/28c46889cf1822f89a5d23644aa08806cedd17c2553afee2d72c4e101c62/pyln_client-25.12.1.tar.gz", hash = "sha256:4e92d18ce79879b891355d4a9bb79117466e98e12b83c1b5f321fc3e77039d5b", size = 92116, upload-time = "2026-01-15T00:04:15.621Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/35/c3/6375d73950df8cda594ca7ee1069f63a817190b08ea8cb57c9ce65019664/pyln_client-25.12.tar.gz", hash = "sha256:9a0435436dea7ce471e096aac9c4e3ede704c305b862b0a3b5e410279b54d8d6", size = 92109, upload-time = "2025-12-04T00:25:55.808Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/41/51/fb302f67a8e62eaa49d869b489cad61dac66fda9a3fd737ac56422b1b920/pyln_client-25.12.1-py3-none-any.whl", hash = "sha256:cb8c42bf4b432a3a2ec0b1ee94b96f5ad91fee1ddd0289930d55c988ab801293", size = 37633, upload-time = "2026-01-15T00:04:14.386Z" },
+    { url = "https://files.pythonhosted.org/packages/04/e7/76f13dc3174b58f91aecf7890efc174ef12721dc015601a200ac40044356/pyln_client-25.12-py3-none-any.whl", hash = "sha256:9e4ff323acb71cbc4522d160dd931599f59a4c167076db016ec5d63e6a002f86", size = 37618, upload-time = "2025-12-04T00:25:54.365Z" },
 ]
 
 [[package]]
