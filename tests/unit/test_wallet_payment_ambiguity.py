@@ -449,6 +449,10 @@ async def test_nwc_only_explicit_payment_failure_is_failed(
     cast(Any, wallet).conn = SimpleNamespace(
         call=mocker.AsyncMock(side_effect=NWCError(code, "error"))
     )
+    mocker.patch(
+        "lnbits.wallets.nwc.bolt11_decode",
+        return_value=SimpleNamespace(payment_hash="payment-hash"),
+    )
 
     response = await wallet.pay_invoice("bolt11", 1_000)
 
