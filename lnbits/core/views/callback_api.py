@@ -28,6 +28,7 @@ from lnbits.fiat import get_fiat_provider
 from lnbits.fiat.base import FiatSubscriptionPaymentOptions
 from lnbits.fiat.revolut import RevolutWallet
 from lnbits.fiat.square import SquareWallet
+from lnbits.fiat.stripe import StripeWallet
 from lnbits.settings import settings
 
 callback_router = APIRouter(prefix="/api/v1/callback", tags=["callback"])
@@ -197,7 +198,7 @@ async def _handle_stripe_subscription_invoice_paid(event: dict):
         wallet_id=payment_options.wallet_id,
         invoice_data=CreateInvoice(
             unit=currency,
-            amount=amount_paid / 100,  # convert cents to dollars
+            amount=StripeWallet.minor_units_to_amount(amount_paid, currency),
             memo=memo,
             extra=extra,
             fiat_provider="stripe",

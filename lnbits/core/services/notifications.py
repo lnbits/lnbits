@@ -1,10 +1,13 @@
 import asyncio
+import ipaddress
 import json
 import smtplib
+import socket
 from asyncio.tasks import create_task
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from http import HTTPStatus
+from urllib.parse import urlparse
 
 import httpx
 from loguru import logger
@@ -255,26 +258,22 @@ async def dispatch_webhook(payment: Payment):
     if not payment.webhook:
         return await mark_webhook_sent(payment.payment_hash, "-1")
 
-    headers = {"User-Agent": settings.user_agent}
-    async with httpx.AsyncClient(headers=headers) as client:
-        try:
-            check_callback_url(payment.webhook)
-        except ValueError as exc:
-            await mark_webhook_sent(payment.payment_hash, "-1")
-            logger.warning(f"Invalid webhook URL {payment.webhook}: {exc!s}")
-        try:
-            r = await client.post(payment.webhook, json=payment.json(), timeout=40)
-            r.raise_for_status()
-            await mark_webhook_sent(payment.payment_hash, str(r.status_code))
-        except httpx.HTTPStatusError as exc:
-            await mark_webhook_sent(payment.payment_hash, str(exc.response.status_code))
-            logger.warning(
-                f"webhook returned a bad status_code: {exc.response.status_code} "
-                f"while requesting {exc.request.url!r}."
-            )
-        except httpx.RequestError:
-            await mark_webhook_sent(payment.payment_hash, "-1")
-            logger.warning(f"Could not send webhook to {payment.webhook}")
+    try:
+        check_callback_url(payment.webhook)
+        status_code = await _post_webhook(payment)
+        await mark_webhook_sent(payment.payment_hash, str(status_code))
+    except ValueError as exc:
+        await mark_webhook_sent(payment.payment_hash, "-1")
+        logger.warning(f"Invalid webhook URL: {exc!s}")
+    except httpx.HTTPStatusError as exc:
+        await mark_webhook_sent(payment.payment_hash, str(exc.response.status_code))
+        logger.warning(
+            f"webhook returned a bad status_code: {exc.response.status_code} "
+            f"while requesting {exc.request.url!r}."
+        )
+    except httpx.RequestError:
+        await mark_webhook_sent(payment.payment_hash, "-1")
+        logger.warning("Could not send webhook.")
 
 
 async def send_payment_notification(wallet: Wallet, payment: Payment):
@@ -463,3 +462,65 @@ def _notification_message_to_text(
         text = meesage_value
     text = f"""[{settings.lnbits_site_title}]\n{text}"""
     return message_type, text
+
+
+async def _post_webhook(payment: Payment) -> int:
+    if not payment.webhook:
+        raise ValueError("Webhook URL is missing.")
+
+    url = httpx.URL(payment.webhook)
+    parsed = urlparse(str(url))
+    if not parsed.hostname:
+        raise ValueError("Webhook URL host is missing.")
+
+    addresses = await _resolve_webhook_host(parsed.hostname, parsed.port)
+    if not settings.lnbits_callback_allow_private_ips and any(
+        not address.is_global for address in addresses
+    ):
+        raise ValueError("Webhook target IP address is not allowed.")
+
+    request_url = url.copy_with(host=str(addresses[0]))
+    headers = {
+        "Host": parsed.netloc,
+        "User-Agent": settings.user_agent,
+    }
+    async with httpx.AsyncClient(
+        follow_redirects=False,
+        trust_env=False,
+    ) as client:
+        response = await client.post(
+            request_url,
+            headers=headers,
+            extensions={"sni_hostname": parsed.hostname},
+            json=payment.json(),
+            timeout=40,
+        )
+        response.raise_for_status()
+        return response.status_code
+
+
+async def _resolve_webhook_host(
+    host: str, port: int | None
+) -> list[ipaddress.IPv4Address | ipaddress.IPv6Address]:
+    try:
+        return [ipaddress.ip_address(host)]
+    except ValueError:
+        pass
+
+    def resolve() -> list[ipaddress.IPv4Address | ipaddress.IPv6Address]:
+        try:
+            infos = socket.getaddrinfo(host, port, type=socket.SOCK_STREAM)
+        except socket.gaierror as exc:
+            raise ValueError("Webhook target could not be resolved.") from exc
+
+        addresses: list[ipaddress.IPv4Address | ipaddress.IPv6Address] = []
+        for info in infos:
+            address = ipaddress.ip_address(info[4][0])
+            if address not in addresses:
+                addresses.append(address)
+        return addresses
+
+    addresses = await asyncio.to_thread(resolve)
+    if not addresses:
+        raise ValueError("Webhook target could not be resolved.")
+    return addresses

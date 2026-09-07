@@ -1,4 +1,4 @@
-/*! Axios v1.18.0 Copyright (c) 2026 Matt Zabriskie and contributors */
+/*! Axios v1.19.0 Copyright (c) 2026 Matt Zabriskie and contributors */
 (function (global, factory) {
   typeof exports === 'object' && typeof module !== 'undefined' ? module.exports = factory() :
   typeof define === 'function' && define.amd ? define(factory) :
@@ -825,6 +825,7 @@
    * @returns {boolean} True if value is a FileList, otherwise false
    */
   var isFileList = kindOfTest('FileList');
+  var isSet = kindOfTest('Set');
 
   /**
    * Determine if a value is a Stream
@@ -1354,11 +1355,29 @@
         if (!('toJSON' in source)) {
           // add-on descent / delete-on-ascent: preserves path semantics, so DAG nodes serialise at every occurrence (see #7230).
           visited.add(source);
-          var target = isArray(source) ? [] : {};
-          forEach(source, function (value, key) {
-            var reducedValue = _visit(value);
-            !isUndefined(reducedValue) && (target[key] = reducedValue);
-          });
+          var target;
+          if (isSet(source)) {
+            target = [];
+            var _iterator2 = _createForOfIteratorHelper(source),
+              _step;
+            try {
+              for (_iterator2.s(); !(_step = _iterator2.n()).done;) {
+                var value = _step.value;
+                var reducedValue = _visit(value);
+                !isUndefined(reducedValue) && target.push(reducedValue);
+              }
+            } catch (err) {
+              _iterator2.e(err);
+            } finally {
+              _iterator2.f();
+            }
+          } else {
+            target = isArray(source) ? [] : {};
+            forEach(source, function (value, key) {
+              var reducedValue = _visit(value);
+              !isUndefined(reducedValue) && (target[key] = reducedValue);
+            });
+          }
           visited["delete"](source);
           return target;
         }
@@ -1539,17 +1558,18 @@
       i = line.indexOf(':');
       key = line.substring(0, i).trim().toLowerCase();
       val = line.substring(i + 1).trim();
-      if (!key || parsed[key] && ignoreDuplicateOf[key]) {
+      var hasKey = utils$1.hasOwnProp(parsed, key);
+      if (!key || hasKey && utils$1.hasOwnProp(ignoreDuplicateOf, key)) {
         return;
       }
       if (key === 'set-cookie') {
-        if (parsed[key]) {
+        if (hasKey) {
           parsed[key].push(val);
         } else {
           parsed[key] = [val];
         }
       } else {
-        parsed[key] = parsed[key] ? parsed[key] + ', ' + val : val;
+        parsed[key] = hasKey ? parsed[key] + ', ' + val : val;
       }
     });
     return parsed;
@@ -1620,6 +1640,90 @@
       tokens[match[1]] = match[2];
     }
     return tokens;
+  }
+  var parameterNameRE = /^[!#$%&'*+\-.^_`|~0-9A-Za-z]+$/;
+  function trimOWS(value) {
+    var start = 0;
+    var end = value.length;
+    while (start < end) {
+      var code = value.charCodeAt(start);
+      if (code !== 0x09 && code !== 0x20) {
+        break;
+      }
+      start += 1;
+    }
+    while (end > start) {
+      var _code = value.charCodeAt(end - 1);
+      if (_code !== 0x09 && _code !== 0x20) {
+        break;
+      }
+      end -= 1;
+    }
+    return start === 0 && end === value.length ? value : value.slice(start, end);
+  }
+  function decodeQuotedString(value) {
+    var last = value.length - 1;
+    if (last < 1 || value.charCodeAt(0) !== 0x22 || value.charCodeAt(last) !== 0x22) {
+      return value;
+    }
+    var decoded = '';
+    for (var i = 1; i < last; i++) {
+      var code = value.charCodeAt(i);
+      if (code === 0x22) {
+        return value;
+      }
+      if (code === 0x5c) {
+        i += 1;
+        if (i >= last) {
+          return value;
+        }
+      }
+      decoded += value[i];
+    }
+    return decoded;
+  }
+  function _parseParameters(value) {
+    var parameters = Object.create(null);
+    var str = String(value);
+    var start = 0;
+    var quoted = false;
+    var escaped = false;
+    function parseParameter(end) {
+      var part = trimOWS(str.slice(start, end));
+      var equals = part.indexOf('=');
+      if (equals < 1) {
+        return;
+      }
+      var name = trimOWS(part.slice(0, equals));
+      if (!parameterNameRE.test(name)) {
+        return;
+      }
+      var normalizedName = name.toLowerCase();
+      if (normalizedName === '__proto__' || normalizedName === 'constructor' || normalizedName === 'prototype') {
+        return;
+      }
+      var parameterValue = trimOWS(part.slice(equals + 1));
+      parameters[normalizedName] = decodeQuotedString(parameterValue);
+    }
+    for (var i = 0; i < str.length; i++) {
+      var code = str.charCodeAt(i);
+      if (quoted) {
+        if (escaped) {
+          escaped = false;
+        } else if (code === 0x5c) {
+          escaped = true;
+        } else if (code === 0x22) {
+          quoted = false;
+        }
+      } else if (code === 0x22) {
+        quoted = true;
+      } else if (code === 0x2c || code === 0x3b) {
+        parseParameter(i);
+        start = i + 1;
+      }
+    }
+    parseParameter(str.length);
+    return parameters;
   }
   var isValidHeaderName = function isValidHeaderName(str) {
     return /^[-_a-zA-Z0-9^`|~,!#$%&'*+.]+$/.test(str.trim());
@@ -1845,7 +1949,8 @@
     }, {
       key: "getSetCookie",
       value: function getSetCookie() {
-        return this.get('set-cookie') || [];
+        var value = this.get('set-cookie');
+        return utils$1.isArray(value) ? value : value == null || value === false ? [] : [value];
       }
     }, {
       key: Symbol.toStringTag,
@@ -1856,6 +1961,11 @@
       key: "from",
       value: function from(thing) {
         return thing instanceof this ? thing : new this(thing);
+      }
+    }, {
+      key: "parseParameters",
+      value: function parseParameters(value) {
+        return _parseParameters(value);
       }
     }, {
       key: "concat",
@@ -1967,6 +2077,23 @@
     };
     return _visit(config);
   }
+  function stringifySafely$1(value) {
+    try {
+      return String(value);
+    } catch (err) {
+      return '';
+    }
+  }
+  function aggregateErrorMessage(error) {
+    var message = error.errors.map(function (entry) {
+      try {
+        return entry && entry.message ? stringifySafely$1(entry.message) : stringifySafely$1(entry);
+      } catch (err) {
+        return '';
+      }
+    }).filter(Boolean).join('; ');
+    return message || error.name || 'AggregateError';
+  }
   var AxiosError = /*#__PURE__*/function (_Error) {
     /**
      * Create an Error with the specified message, config, error code, request and response.
@@ -2039,8 +2166,27 @@
     }], [{
       key: "from",
       value: function from(error, code, config, request, response, customProps) {
-        var axiosError = new AxiosError(error.message, code || error.code, config, request, response);
-        axiosError.cause = error;
+        // `AggregateError` (thrown by Node on dual-stack/Happy-Eyeballs connection
+        // failures) has an empty `message`; its detail lives in `errors[]`. Without
+        // this, the wrapped error surfaces with a blank message (see #6721).
+        var message = error.message;
+        if (!message && utils$1.isArray(error.errors) && error.errors.length) {
+          message = aggregateErrorMessage(error);
+        }
+        var axiosError = new AxiosError(message, code || error.code, config, request, response);
+        // Match native `Error` `cause` semantics: non-enumerable. The wrapped
+        // error often carries circular internals (sockets, requests, agents), so
+        // an enumerable `cause` makes structured loggers (pino/winston) and any
+        // own-property walk throw "Converting circular structure to JSON".
+        // Regression from #6982; see #7205. `__proto__: null` mirrors the
+        // `message` descriptor below (prototype-pollution-safe descriptor).
+        Object.defineProperty(axiosError, 'cause', {
+          __proto__: null,
+          value: error,
+          writable: true,
+          enumerable: false,
+          configurable: true
+        });
         axiosError.name = error.name;
 
         // Preserve status from the original error if not already set from response
@@ -2192,7 +2338,10 @@
         throw new AxiosError('Blob is not supported. Use a Buffer instead.');
       }
       if (utils$1.isArrayBuffer(value) || utils$1.isTypedArray(value)) {
-        return useBlob && typeof Blob === 'function' ? new Blob([value]) : Buffer.from(value);
+        if (useBlob && typeof _Blob === 'function') {
+          return new _Blob([value]);
+        }
+        throw new AxiosError('Blob is not supported. Use a Buffer instead.', AxiosError.ERR_NOT_SUPPORT);
       }
       return value;
     }
@@ -2325,8 +2474,9 @@
     this._pairs.push([name, value]);
   };
   prototype.toString = function toString(encoder) {
+    var _this = this;
     var _encode = encoder ? function (value) {
-      return encoder.call(this, value, encode$1);
+      return encoder.call(_this, value, encode$1);
     } : encode$1;
     return this._pairs.map(function each(pair) {
       return _encode(pair[0]) + '=' + _encode(pair[1]);
@@ -2358,6 +2508,7 @@
     if (!params) {
       return url;
     }
+    url = url || '';
     var _options = utils$1.isFunction(options) ? {
       serialize: options
     } : options;
@@ -2561,12 +2712,18 @@
    * @returns An array of strings.
    */
   function parsePropPath(name) {
-    // foo[x][y][z]
-    // foo.x.y.z
-    // foo-x-y-z
-    // foo x y z
+    // foo[x][y][z] -> ['foo', 'x', 'y', 'z']
+    // foo.x.y.z    -> ['foo', 'x', 'y', 'z']
+    // A path is split on `.` and on `[...]` groups. A segment — whether written
+    // in dot notation or captured inside brackets — may contain any character
+    // except `.`, `[` and `]`, so a key like `user-name` or `user name` is kept
+    // literal instead of being split (#5402). `.`, `[` and `]` keep their existing
+    // meaning, e.g. `foo[bar.baz]` -> ['foo', 'bar', 'baz'] and `[]` is an array push.
+    // Excluding `[` from the bracket group also makes the match fail fast at the
+    // next `[`, so a malformed name cannot rescan to the end of the string from
+    // every unmatched `[` — parsing stays linear in the length of the name.
     var path = [];
-    var pattern = /\w+|\[(\w*)]/g;
+    var pattern = /[^.[\]]+|\[([^.[\]]*)]/g;
     var match;
     while ((match = pattern.exec(name)) !== null) {
       throwIfDepthExceeded(path.length);
@@ -2923,7 +3080,7 @@
       }
       var rawLoaded = e.loaded;
       var total = e.lengthComputable ? e.total : undefined;
-      var loaded = total != null ? Math.min(rawLoaded, total) : rawLoaded;
+      var loaded = Math.max(0, total != null ? Math.min(rawLoaded, total) : rawLoaded);
       var progressBytes = Math.max(0, loaded - bytesNotified);
       var rate = _speedometer(progressBytes);
       bytesNotified = Math.max(bytesNotified, loaded);
@@ -2951,11 +3108,12 @@
     }, throttled[1]];
   };
   var asyncDecorator = function asyncDecorator(fn) {
+    var scheduler = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : utils$1.asap;
     return function () {
       for (var _len = arguments.length, args = new Array(_len), _key = 0; _key < _len; _key++) {
         args[_key] = arguments[_key];
       }
-      return utils$1.asap(function () {
+      return scheduler(function () {
         return fn.apply(void 0, args);
       });
     };
@@ -3005,7 +3163,11 @@
         var cookie = cookies[i].replace(/^\s+/, '');
         var eq = cookie.indexOf('=');
         if (eq !== -1 && cookie.slice(0, eq) === name) {
-          return decodeURIComponent(cookie.slice(eq + 1));
+          try {
+            return decodeURIComponent(cookie.slice(eq + 1));
+          } catch (e) {
+            return cookie.slice(eq + 1);
+          }
         }
       }
       return null;
@@ -3049,7 +3211,14 @@
    * @returns {string} The combined URL
    */
   function combineURLs(baseURL, relativeURL) {
-    return relativeURL ? baseURL.replace(/\/?\/$/, '') + '/' + relativeURL.replace(/^\/+/, '') : baseURL;
+    if (!relativeURL) {
+      return baseURL;
+    }
+    var end = baseURL.length;
+    while (end > 0 && baseURL.charCodeAt(end - 1) === 47) {
+      end--;
+    }
+    return baseURL.slice(0, end) + '/' + relativeURL.replace(/^\/+/, '');
   }
 
   var malformedHttpProtocol = /^https?:(?!\/\/)/i;
@@ -3064,9 +3233,40 @@
   function normalizeURLForProtocolCheck(url) {
     return stripLeadingC0ControlOrSpace(url).replace(httpProtocolControlCharacters, '');
   }
+
+  // Redact the parts of a URL that can carry secrets before it is embedded in an
+  // error message. AxiosError.toJSON() serializes `message` verbatim and errors
+  // are commonly logged, while the opt-in `config.redact` model only cleans
+  // config keys — it cannot reach the message. Redact only the genuinely
+  // sensitive substrings — userinfo (credentials), query parameter values and
+  // fragment contents — with the same REDACTED marker the config redaction uses,
+  // while keeping the scheme, host, path and parameter names so the offending
+  // request stays accurately identifiable.
+  function redactFragment(fragment) {
+    if (!fragment) {
+      return fragment;
+    }
+    return fragment.replace(/(^|&)([^=&]*=)?[^&]+/g, function (match, separator) {
+      var parameterName = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : '';
+      return "".concat(separator).concat(parameterName).concat(REDACTED);
+    });
+  }
+  function redactSensitiveURLParts(url) {
+    var redactedURL = url.replace(/^(https?:\/{0,2})[^/?#]*@/i, "$1".concat(REDACTED, "@"));
+    var fragmentIndex = redactedURL.indexOf('#');
+    var urlWithoutFragment = fragmentIndex === -1 ? redactedURL : redactedURL.slice(0, fragmentIndex);
+    var redactedURLWithoutFragment = urlWithoutFragment.replace(/([?&][^=&#]*=)[^&#]*/g, "$1".concat(REDACTED));
+    if (fragmentIndex === -1) {
+      return redactedURLWithoutFragment;
+    }
+    return "".concat(redactedURLWithoutFragment, "#").concat(redactFragment(redactedURL.slice(fragmentIndex + 1)));
+  }
   function assertValidHttpProtocolURL(url, config) {
-    if (typeof url === 'string' && malformedHttpProtocol.test(normalizeURLForProtocolCheck(url))) {
-      throw new AxiosError('Invalid URL: missing "//" after protocol', AxiosError.ERR_INVALID_URL, config);
+    if (typeof url === 'string') {
+      var normalizedURL = normalizeURLForProtocolCheck(url);
+      if (malformedHttpProtocol.test(normalizedURL)) {
+        throw new AxiosError("Invalid URL ".concat(JSON.stringify(redactSensitiveURLParts(normalizedURL)), ": missing \"//\" after protocol"), AxiosError.ERR_INVALID_URL, config);
+      }
     }
   }
 
@@ -3093,6 +3293,14 @@
   var headersToObject = function headersToObject(thing) {
     return thing instanceof AxiosHeaders ? _objectSpread2({}, thing) : thing;
   };
+  var ownEnumerableKeys = function ownEnumerableKeys(thing) {
+    if (Object.getOwnPropertySymbols && Object.getOwnPropertyDescriptor) {
+      return Object.keys(thing).concat(Object.getOwnPropertySymbols(thing).filter(function (symbol) {
+        return Object.getOwnPropertyDescriptor(thing, symbol).enumerable;
+      }));
+    }
+    return Object.keys(thing);
+  };
 
   /**
    * Config-specific merge-function which creates a new config-object
@@ -3105,6 +3313,7 @@
    */
   function mergeConfig(config1, config2) {
     // eslint-disable-next-line no-param-reassign
+    config1 = config1 || {};
     config2 = config2 || {};
 
     // Use a null-prototype object so that downstream reads such as `config.auth`
@@ -3216,7 +3425,7 @@
         return mergeDeepProperties(headersToObject(a), headersToObject(b), prop, true);
       }
     };
-    utils$1.forEach(Object.keys(_objectSpread2(_objectSpread2({}, config1), config2)), function computeConfigValue(prop) {
+    utils$1.forEach(ownEnumerableKeys(_objectSpread2(_objectSpread2({}, config1), config2)), function computeConfigValue(prop) {
       if (prop === '__proto__' || prop === 'constructor' || prop === 'prototype') return;
       var merge = utils$1.hasOwnProp(mergeMap, prop) ? mergeMap[prop] : mergeDeepProperties;
       var a = utils$1.hasOwnProp(config1, prop) ? config1[prop] : undefined;
@@ -3235,12 +3444,24 @@
   }
 
   var FORM_DATA_CONTENT_HEADERS = ['content-type', 'content-length'];
+
+  /**
+   * Apply the headers generated by a FormData implementation to the request headers,
+   * honoring the `formDataHeaderPolicy` option: with 'content-only', copy only the
+   * content-* headers; otherwise merge all of them.
+   *
+   * @param {AxiosHeaders} headers - the request headers to mutate
+   * @param {Object | null | undefined} formHeaders - headers produced by the FormData implementation
+   * @param {String} [policy] - the resolved `formDataHeaderPolicy` config value
+   *
+   * @returns {void}
+   */
   function setFormDataHeaders(headers, formHeaders, policy) {
     if (policy !== 'content-only') {
       headers.set(formHeaders);
       return;
     }
-    Object.entries(formHeaders).forEach(function (_ref) {
+    Object.entries(formHeaders || {}).forEach(function (_ref) {
       var _ref2 = _slicedToArray(_ref, 2),
         key = _ref2[0],
         val = _ref2[1];
@@ -3287,7 +3508,11 @@
     if (auth) {
       var username = utils$1.getSafeProp(auth, 'username') || '';
       var password = utils$1.getSafeProp(auth, 'password') || '';
-      headers.set('Authorization', 'Basic ' + btoa(username + ':' + (password ? encodeUTF8$1(password) : '')));
+      try {
+        headers.set('Authorization', 'Basic ' + btoa(username + ':' + (password ? encodeUTF8$1(password) : '')));
+      } catch (e) {
+        throw AxiosError.from(e, AxiosError.ERR_BAD_OPTION_VALUE, config);
+      }
     }
     if (utils$1.isFormData(data)) {
       if (platform.hasStandardBrowserEnv || platform.hasStandardBrowserWebWorkerEnv || utils$1.isReactNative(data)) {
@@ -3492,6 +3717,7 @@
       var protocol = parseProtocol(_config.url);
       if (protocol && !platform.protocols.includes(protocol)) {
         reject(new AxiosError('Unsupported protocol ' + protocol + ':', AxiosError.ERR_BAD_REQUEST, config));
+        done();
         return;
       }
 
@@ -3531,7 +3757,16 @@
       signals = null;
     };
     signals.forEach(function (signal) {
-      return signal.addEventListener('abort', onabort);
+      if (aborted) {
+        return;
+      }
+      if (signal.aborted) {
+        onabort.call(signal);
+        return;
+      }
+      signal.addEventListener('abort', onabort, {
+        once: true
+      });
     });
     var signal = controller.signal;
     signal.unsubscribe = function () {
@@ -3744,13 +3979,11 @@
   };
 
   /**
-   * Estimate decoded byte length of a data:// URL *without* allocating large buffers.
-   * - For base64: compute exact decoded size using length and padding;
-   *               handle %XX at the character-count level (no string allocation).
-   * - For non-base64: compute the exact percent-decoded UTF-8 byte length.
-   *
-   * @param {string} url
-   * @returns {number}
+   * Estimate data: URL byte lengths *without* allocating large buffers.
+   * - Fetch percent-decodes a base64 body before decoding it.
+   * - Node's Buffer.from(body, 'base64') sizes its backing allocation from the
+   *   raw body, including ignored characters and content after padding.
+   * - Non-base64 data is percent-decoded and then encoded as UTF-8.
    */
   var isHexDigit = function isHexDigit(charCode) {
     return charCode >= 48 && charCode <= 57 || charCode >= 65 && charCode <= 70 || charCode >= 97 && charCode <= 102;
@@ -3758,7 +3991,80 @@
   var isPercentEncodedByte = function isPercentEncodedByte(str, i, len) {
     return i + 2 < len && isHexDigit(str.charCodeAt(i + 1)) && isHexDigit(str.charCodeAt(i + 2));
   };
-  function estimateDataURLDecodedBytes(url) {
+  var hexValue = function hexValue(charCode) {
+    return charCode <= 57 ? charCode - 48 : (charCode & 0xdf) - 55;
+  };
+  var isBase64Char = function isBase64Char(charCode) {
+    return charCode >= 65 && charCode <= 90 ||
+    // A-Z
+    charCode >= 97 && charCode <= 122 ||
+    // a-z
+    charCode >= 48 && charCode <= 57 ||
+    // 0-9
+    charCode === 43 ||
+    // +
+    charCode === 47 ||
+    // /
+    charCode === 45 ||
+    // - (base64url)
+    charCode === 95;
+  }; // _ (base64url)
+
+  var isBase64Whitespace = function isBase64Whitespace(charCode) {
+    return charCode === 9 || charCode === 10 || charCode === 12 || charCode === 13 || charCode === 32;
+  };
+  var base64Bytes = function base64Bytes(significant) {
+    var groups = Math.floor(significant / 4);
+    var remainder = significant % 4;
+    return groups * 3 + (remainder === 2 ? 1 : remainder === 3 ? 2 : 0);
+  };
+
+  // Buffer.byteLength(body, 'base64') uses the raw string length as an allocation
+  // upper bound even when Buffer.from later ignores characters or stops at '='.
+  var estimateBase64BufferAllocation = function estimateBase64BufferAllocation(body) {
+    var len = body.length;
+    var padding = 0;
+    if (len > 0 && body.charCodeAt(len - 1) === 61 /* '=' */) {
+      padding++;
+      if (len > 1 && body.charCodeAt(len - 2) === 61 /* '=' */) {
+        padding++;
+      }
+    }
+    return Math.floor((len - padding) * 3 / 4);
+  };
+  var estimatePercentDecodedBase64Bytes = function estimatePercentDecodedBase64Bytes(body) {
+    var len = body.length;
+    var significant = 0;
+    var padding = 0;
+    var invalid = false;
+    for (var i = 0; i < len; i++) {
+      var code = body.charCodeAt(i);
+      if (code === 37 /* '%' */ && isPercentEncodedByte(body, i, len)) {
+        code = hexValue(body.charCodeAt(i + 1)) * 16 + hexValue(body.charCodeAt(i + 2));
+        i += 2;
+      }
+      if (isBase64Whitespace(code)) {
+        continue;
+      }
+      if (code === 61 /* '=' */) {
+        padding++;
+        continue;
+      }
+      if (!isBase64Char(code) || padding > 0) {
+        invalid = true;
+        continue;
+      }
+      significant++;
+    }
+
+    // Fetch rejects malformed forgiving-base64 input. Returning the raw-size
+    // allocation bound keeps that invalid input from becoming a pre-check bypass.
+    if (invalid || padding > 2 || padding > 0 && (significant + padding) % 4 !== 0 || significant % 4 === 1) {
+      return estimateBase64BufferAllocation(body);
+    }
+    return base64Bytes(significant);
+  };
+  var estimateDataURLBytes = function estimateDataURLBytes(url, estimateBase64) {
     if (!url || typeof url !== 'string') return 0;
     if (!url.startsWith('data:')) return 0;
     var comma = url.indexOf(',');
@@ -3767,49 +4073,7 @@
     var body = url.slice(comma + 1);
     var isBase64 = /;base64/i.test(meta);
     if (isBase64) {
-      var effectiveLen = body.length;
-      var len = body.length; // cache length
-
-      for (var i = 0; i < len; i++) {
-        if (body.charCodeAt(i) === 37 /* '%' */ && i + 2 < len) {
-          var a = body.charCodeAt(i + 1);
-          var b = body.charCodeAt(i + 2);
-          var isHex = isHexDigit(a) && isHexDigit(b);
-          if (isHex) {
-            effectiveLen -= 2;
-            i += 2;
-          }
-        }
-      }
-      var pad = 0;
-      var idx = len - 1;
-      var tailIsPct3D = function tailIsPct3D(j) {
-        return j >= 2 && body.charCodeAt(j - 2) === 37 &&
-        // '%'
-        body.charCodeAt(j - 1) === 51 && (
-        // '3'
-        body.charCodeAt(j) === 68 || body.charCodeAt(j) === 100);
-      }; // 'D' or 'd'
-
-      if (idx >= 0) {
-        if (body.charCodeAt(idx) === 61 /* '=' */) {
-          pad++;
-          idx--;
-        } else if (tailIsPct3D(idx)) {
-          pad++;
-          idx -= 3;
-        }
-      }
-      if (pad === 1 && idx >= 0) {
-        if (body.charCodeAt(idx) === 61 /* '=' */) {
-          pad++;
-        } else if (tailIsPct3D(idx)) {
-          pad++;
-        }
-      }
-      var groups = Math.floor(effectiveLen / 4);
-      var _bytes = groups * 3 - (pad || 0);
-      return _bytes > 0 ? _bytes : 0;
+      return estimateBase64(body);
     }
 
     // Compute UTF-8 byte length directly from UTF-16 code units without allocating
@@ -3817,20 +4081,20 @@
     // Valid %XX triplets count as one decoded byte; this matches the bytes that
     // decodeURIComponent(body) would produce before Buffer re-encodes the string.
     var bytes = 0;
-    for (var _i = 0, _len = body.length; _i < _len; _i++) {
-      var c = body.charCodeAt(_i);
-      if (c === 37 /* '%' */ && isPercentEncodedByte(body, _i, _len)) {
+    for (var i = 0, len = body.length; i < len; i++) {
+      var c = body.charCodeAt(i);
+      if (c === 37 /* '%' */ && isPercentEncodedByte(body, i, len)) {
         bytes += 1;
-        _i += 2;
+        i += 2;
       } else if (c < 0x80) {
         bytes += 1;
       } else if (c < 0x800) {
         bytes += 2;
-      } else if (c >= 0xd800 && c <= 0xdbff && _i + 1 < _len) {
-        var next = body.charCodeAt(_i + 1);
+      } else if (c >= 0xd800 && c <= 0xdbff && i + 1 < len) {
+        var next = body.charCodeAt(i + 1);
         if (next >= 0xdc00 && next <= 0xdfff) {
           bytes += 4;
-          _i++;
+          i++;
         } else {
           bytes += 3;
         }
@@ -3839,9 +4103,21 @@
       }
     }
     return bytes;
+  };
+
+  /**
+   * Estimate the percent-decoded payload size used by Fetch data: URLs.
+   *
+   * @param {string} url
+   * @returns {number}
+   */
+  function estimateDataURLDecodedBytes(url) {
+    // Fetch removes URL fragments before processing a data: URL.
+    var fragmentIndex = typeof url === 'string' ? url.indexOf('#') : -1;
+    return estimateDataURLBytes(fragmentIndex === -1 ? url : url.slice(0, fragmentIndex), estimatePercentDecodedBase64Bytes);
   }
 
-  var VERSION = "1.18.0";
+  var VERSION = "1.19.0";
 
   var DEFAULT_CHUNK_SIZE = 64 * 1024;
   var isFunction = utils$1.isFunction;
@@ -4045,7 +4321,7 @@
     }();
     return /*#__PURE__*/function () {
       var _ref4 = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee4(config) {
-        var _resolveConfig, url, method, data, signal, cancelToken, timeout, onDownloadProgress, onUploadProgress, responseType, headers, _resolveConfig$withCr, withCredentials, fetchOptions, maxContentLength, maxBodyLength, hasMaxContentLength, hasMaxBodyLength, own, _fetch, composedSignal, request, unsubscribe, requestContentLength, pendingBodyError, maxBodyLengthError, auth, configAuth, username, password, parsedURL, urlUsername, urlPassword, estimated, outboundLength, mustEnforceStreamBody, trackRequestStream, _request, contentTypeHeader, _ref5, _ref6, onProgress, flush, isCredentialsSupported, contentType, resolvedOptions, response, responseHeaders, declaredLength, isStreamResponse, options, responseContentLength, _ref7, _ref8, _onProgress, _flush, bytesRead, onChunkProgress, responseData, materializedSize, canceledError, _t3, _t4;
+        var _resolveConfig, url, method, data, signal, cancelToken, timeout, onDownloadProgress, onUploadProgress, responseType, headers, _resolveConfig$withCr, withCredentials, fetchOptions, maxContentLength, maxBodyLength, hasMaxContentLength, hasMaxBodyLength, own, _fetch, composedSignal, request, unsubscribe, requestContentLength, pendingBodyError, maxBodyLengthError, auth, configAuth, username, password, parsedURL, urlUsername, urlPassword, estimated, outboundLength, mustEnforceStreamBody, trackRequestStream, _request, contentTypeHeader, _ref5, _ref6, onProgress, flush, isCredentialsSupported, contentType, resolvedOptions, response, responseHeaders, declaredLength, isStreamResponse, options, responseContentLength, _ref7, _ref8, _onProgress, _flush, bytesRead, onChunkProgress, responseData, materializedSize, canceledError, networkError, _t3, _t4;
         return _regenerator().w(function (_context4) {
           while (1) switch (_context4.p = _context4.n) {
             case 0:
@@ -4317,7 +4593,17 @@
               canceledError = composedSignal.reason;
               canceledError.config = config;
               request && (canceledError.request = request);
-              _t4 !== canceledError && (canceledError.cause = _t4);
+              if (_t4 !== canceledError) {
+                // Non-enumerable to match native Error `cause` semantics so loggers
+                // don't recurse into circular fetch internals (see #7205).
+                Object.defineProperty(canceledError, 'cause', {
+                  __proto__: null,
+                  value: _t4,
+                  writable: true,
+                  enumerable: false,
+                  configurable: true
+                });
+              }
               throw canceledError;
             case 17:
               if (!pendingBodyError) {
@@ -4338,9 +4624,16 @@
                 _context4.n = 20;
                 break;
               }
-              throw Object.assign(new AxiosError('Network Error', AxiosError.ERR_NETWORK, config, request, _t4 && _t4.response), {
-                cause: _t4.cause || _t4
+              networkError = new AxiosError('Network Error', AxiosError.ERR_NETWORK, config, request, _t4 && _t4.response); // Non-enumerable to match native Error `cause` semantics so loggers
+              // don't recurse into circular fetch internals (see #7205).
+              Object.defineProperty(networkError, 'cause', {
+                __proto__: null,
+                value: _t4.cause || _t4,
+                writable: true,
+                enumerable: false,
+                configurable: true
               });
+              throw networkError;
             case 20:
               throw AxiosError.from(_t4, _t4 && _t4.code, config, request, _t4 && _t4.response);
             case 21:
@@ -4472,7 +4765,7 @@
         return "adapter ".concat(id, " ") + (state === false ? 'is not supported by the environment' : 'is not available in the build');
       });
       var s = length ? reasons.length > 1 ? 'since :\n' + reasons.map(renderReason).join('\n') : ' ' + renderReason(reasons[0]) : 'as no adapter specified';
-      throw new AxiosError("There is no suitable adapter to dispatch the request " + s, 'ERR_NOT_SUPPORT');
+      throw new AxiosError("There is no suitable adapter to dispatch the request " + s, AxiosError.ERR_NOT_SUPPORT);
     }
     return adapter;
   }
@@ -4615,7 +4908,7 @@
    */
 
   function assertOptions(options, schema, allowUnknown) {
-    if (_typeof(options) !== 'object') {
+    if (_typeof(options) !== 'object' || options === null) {
       throw new AxiosError('options must be an object', AxiosError.ERR_BAD_OPTION_VALUE);
     }
     var keys = Object.keys(options);
@@ -4728,6 +5021,7 @@
     }, {
       key: "_request",
       value: function _request(configOrUrl, config) {
+        var _this = this;
         /*eslint no-param-reassign:0*/
         // Allow for axios('example/url'[, config]) a la fetch API
         if (typeof configOrUrl === 'string') {
@@ -4825,16 +5119,31 @@
           var onFulfilled = requestInterceptorChain[i++];
           var onRejected = requestInterceptorChain[i++];
           try {
-            newConfig = onFulfilled(newConfig);
+            newConfig = onFulfilled ? onFulfilled(newConfig) : newConfig;
           } catch (error) {
-            onRejected.call(this, error);
+            if (!onRejected) {
+              promise = Promise.reject(error);
+              break;
+            }
+            try {
+              var rejectedResult = onRejected.call(this, error);
+              if (utils$1.isThenable(rejectedResult)) {
+                promise = Promise.resolve(rejectedResult).then(function () {
+                  return dispatchRequest.call(_this, newConfig);
+                });
+              }
+            } catch (rejectedError) {
+              promise = Promise.reject(rejectedError);
+            }
             break;
           }
         }
-        try {
-          promise = dispatchRequest.call(this, newConfig);
-        } catch (error) {
-          return Promise.reject(error);
+        if (!promise) {
+          try {
+            promise = dispatchRequest.call(this, newConfig);
+          } catch (error) {
+            promise = Promise.reject(error);
+          }
         }
         i = 0;
         len = responseInterceptorChain.length;
@@ -5114,6 +5423,7 @@
     LoopDetected: 508,
     NotExtended: 510,
     NetworkAuthenticationRequired: 511,
+    WebServerReturnsAnUnknownError: 520,
     WebServerIsDown: 521,
     ConnectionTimedOut: 522,
     OriginIsUnreachable: 523,
@@ -5197,4 +5507,3 @@
   return axios;
 
 }));
-//# sourceMappingURL=axios.js.map

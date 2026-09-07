@@ -320,10 +320,14 @@ def test_installed_extensions_settings_activate_and_deactivate_paths():
 
 def test_public_settings_include_burger_menu_background(settings: Settings):
     settings.lnbits_default_burger_menu_background = False
+    settings.lnbits_blockexplorer_public_api = True
+    settings.lnbits_blockexplorer_in_user_menu = True
 
     public_settings = PublicSettings.from_settings(settings)
 
     assert public_settings.default_burger_menu_background is False
+    assert public_settings.block_explorer_public is True
+    assert public_settings.block_explorer_in_user_menu is True
 
 
 def test_installed_extensions_settings_detects_conflicting_redirects():
@@ -387,6 +391,9 @@ def test_asset_security_and_notification_helpers(
     assert asset_settings.is_unlimited_assets_user("random-user") is False
     assert security_settings.is_wallet_max_balance_exceeded(101) is True
     assert security_settings.is_wallet_max_balance_exceeded(100) is False
+    assert security_settings.lnbits_callback_allow_private_ips is False
+    assert security_settings.lnbits_lnurl_redirect_url_rules == []
+    assert security_settings.lnbits_lnurl_allow_private_ips is False
     assert notification_settings.is_nostr_notifications_configured() is True
     assert notification_settings.is_telegram_notifications_configured() is True
 

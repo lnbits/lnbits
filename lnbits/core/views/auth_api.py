@@ -2,6 +2,7 @@ import base64
 import importlib
 import json
 from collections.abc import Callable
+from dataclasses import dataclass
 from http import HTTPStatus
 from time import time
 from typing import Annotated
@@ -35,6 +36,7 @@ from lnbits.decorators import (
     access_token_payload,
     check_account_exists,
     check_admin,
+    check_api_write_access,
     check_user_exists,
     optional_user_id,
 )
@@ -45,8 +47,10 @@ from lnbits.helpers import (
     get_api_routes,
     is_valid_email_address,
     is_valid_username,
+    sha256s,
 )
 from lnbits.settings import AuthMethods, settings
+from lnbits.utils.cache import cache
 from lnbits.utils.nostr import normalize_public_key, verify_event
 
 from ..crud import (
@@ -76,9 +80,60 @@ from ..models import (
 
 auth_router = APIRouter(prefix="/api/v1/auth", tags=["Auth"])
 
+LOGIN_FAILURE_LIMIT = 5
+LOGIN_FAILURE_WINDOW_SECONDS = 15 * 60
+LOGIN_INITIAL_COOLDOWN_SECONDS = 60
+LOGIN_MAX_COOLDOWN_SECONDS = 15 * 60
+
+
+@dataclass(frozen=True)
+class LoginFailureState:
+    failures: int
+    blocked_until: float
+
+
+def _login_failure_cache_key(identifier: str, account_id: str | None) -> str:
+    # Bound attacker-controlled identifiers while keeping real account buckets separate.
+    unknown_bucket = sha256s(f"{settings.auth_secret_key}:{identifier.lower()}")[:2]
+    identity = account_id or f"unknown:{unknown_bucket}"
+    return f"auth:login_failures:{identity}"
+
+
+def _check_login_throttle(cache_key: str) -> None:
+    state: LoginFailureState | None = cache.get(cache_key)
+    if not state or state.blocked_until <= time():
+        return
+
+    raise HTTPException(
+        HTTPStatus.TOO_MANY_REQUESTS,
+        "Too many login attempts. Try again later.",
+    )
+
+
+def _record_login_failure(cache_key: str) -> None:
+    previous: LoginFailureState | None = cache.get(cache_key)
+    failures = (previous.failures if previous else 0) + 1
+    blocked_until = 0.0
+    if failures >= LOGIN_FAILURE_LIMIT:
+        cooldown = min(
+            LOGIN_INITIAL_COOLDOWN_SECONDS * 2 ** (failures - LOGIN_FAILURE_LIMIT),
+            LOGIN_MAX_COOLDOWN_SECONDS,
+        )
+        blocked_until = time() + cooldown
+
+    cache.set(
+        cache_key,
+        LoginFailureState(failures=failures, blocked_until=blocked_until),
+        expiry=LOGIN_FAILURE_WINDOW_SECONDS,
+    )
+
 
 @auth_router.get("", description="Get the authenticated user")
-async def get_auth_user(user: User = Depends(check_user_exists)) -> User:
+async def get_auth_user(
+    user: User = Depends(check_user_exists),
+    can_write: bool = Depends(check_api_write_access),
+) -> User:
+    user.wallets = [wallet.copy_with_keys(keep=can_write) for wallet in user.wallets]
     return user
 
 
@@ -89,9 +144,15 @@ async def login(data: LoginUsernamePassword) -> JSONResponse:
             HTTPStatus.FORBIDDEN, "Login by 'Username and Password' not allowed."
         )
     account = await get_account_by_username_or_email(data.username)
+    throttle_key = _login_failure_cache_key(
+        data.username, account.id if account else None
+    )
+    _check_login_throttle(throttle_key)
     if not account or not account.verify_password(data.password):
+        _record_login_failure(throttle_key)
         raise HTTPException(HTTPStatus.UNAUTHORIZED, "Invalid credentials.")
 
+    cache.pop(throttle_key)
     return _auth_success_response(account.username, account.id, account.email)
 
 

@@ -17,6 +17,7 @@ from lnbits.core.models.users import AccountId
 from lnbits.decorators import (
     check_account_exists,
     check_account_id_exists,
+    check_api_write_access,
     check_user_exists,
 )
 from lnbits.settings import settings
@@ -71,8 +72,11 @@ async def health_check(
     name="Wallets",
     description="Get basic info for all of user's wallets.",
 )
-async def api_wallets(user: User = Depends(check_user_exists)) -> list[Wallet]:
-    return user.wallets
+async def api_wallets(
+    user: User = Depends(check_user_exists),
+    can_write: bool = Depends(check_api_write_access),
+) -> list[Wallet]:
+    return [wallet.copy_with_keys(keep=can_write) for wallet in user.wallets]
 
 
 @api_router.post("/api/v1/account")

@@ -1,6 +1,8 @@
+import asyncio
 import hashlib
-from json import JSONDecodeError
-from unittest.mock import AsyncMock, Mock
+import ipaddress
+import json
+from unittest.mock import AsyncMock
 from uuid import uuid4
 
 import pytest
@@ -234,6 +236,34 @@ async def test_create_fiat_invoice(
 
 
 @pytest.mark.anyio
+async def test_create_fiat_invoice_with_lnurl_withdraw_rejected(
+    client, inkey_headers_to
+):
+    response = await client.post(
+        "/api/v1/payments",
+        headers=inkey_headers_to,
+        json={
+            "unit": "USD",
+            "out": False,
+            "amount": 1,
+            "fiat_provider": "stripe",
+            "lnurl_withdraw": {
+                "tag": "withdrawRequest",
+                "callback": "https://example.com/callback",
+                "k1": "randomk1value",
+                "minWithdrawable": 1000,
+                "maxWithdrawable": 1_500_000,
+            },
+        },
+    )
+
+    assert response.status_code == 400
+    assert response.json()["detail"] == (
+        "Fiat provider cannot be combined with LNURL withdraw."
+    )
+
+
+@pytest.mark.anyio
 async def test_create_fiat_subscription_invoice_rejected(
     client, inkey_headers_to, mocker: MockerFixture
 ):
@@ -369,6 +399,75 @@ async def test_check_payment_with_key(client, invoice: Payment, inkey_headers_fr
     assert invoice
     # with key, that's why with "details"
     assert "details" in response.json()
+
+
+# check GET /api/v1/payments/<hash>: preimage of an unpaid invoice must not leak
+@pytest.mark.anyio
+async def test_check_pending_payment_does_not_expose_preimage(
+    client, inkey_headers_from, inkey_headers_to, adminkey_headers_from
+):
+    # create an unpaid invoice (FakeWallet stores a valid preimage at creation)
+    data = await get_random_invoice_data()
+    response = await client.post(
+        "/api/v1/payments", json=data, headers=inkey_headers_to
+    )
+    assert response.status_code == 201
+    unpaid = response.json()
+    payment_hash = unpaid["payment_hash"]
+
+    # unauthenticated request must not return the preimage
+    response = await client.get(f"/api/v1/payments/{payment_hash}")
+    assert response.status_code < 300
+    assert response.json()["paid"] is False
+    assert response.json()["preimage"] is None
+
+    # same for an invalid key
+    response = await client.get(
+        f"/api/v1/payments/{payment_hash}", headers={"X-Api-Key": "invalid_key"}
+    )
+    assert response.json()["paid"] is False
+    assert response.json()["preimage"] is None
+
+    # a valid key of a different (non-owning) wallet scopes the lookup
+    # to that wallet and therefore yields 404, leaking nothing at all
+    response = await client.get(
+        f"/api/v1/payments/{payment_hash}", headers=inkey_headers_from
+    )
+    assert response.status_code == 404
+
+    # expired unpaid invoices must not leak the preimage either
+    expiry_data = await get_random_invoice_data()
+    expiry_data["expiry"] = 1
+    response = await client.post(
+        "/api/v1/payments", json=expiry_data, headers=inkey_headers_to
+    )
+    assert response.status_code == 201
+    expired_hash = response.json()["payment_hash"]
+    await asyncio.sleep(2)
+    response = await client.get(f"/api/v1/payments/{expired_hash}")
+    assert response.json()["paid"] is False
+    assert response.json()["preimage"] is None
+
+    # after payment the preimage is exposed again as proof of payment
+    response = await client.post(
+        "/api/v1/payments",
+        json={"out": True, "bolt11": unpaid["bolt11"]},
+        headers=adminkey_headers_from,
+    )
+    assert response.status_code < 300
+    # internal payments settle asynchronously, give the listener a moment
+    preimage = None
+    paid = False
+    for _ in range(10):
+        response = await client.get(f"/api/v1/payments/{payment_hash}")
+        paid = response.json()["paid"]
+        preimage = response.json()["preimage"]
+        if paid:
+            break
+        await asyncio.sleep(0.5)
+    assert paid is True
+    assert preimage is not None
+    assert hashlib.sha256(bytes.fromhex(preimage)).hexdigest() == payment_hash
 
 
 # check POST /api/v1/payments: payment with wrong key type
@@ -667,7 +766,7 @@ async def test_fiat_tracking(client, adminkey_headers_from, settings: Settings):
             "error_loading_lnurl",
             None,
             {
-                "detail": "Error loading callback request",
+                "detail": "LNURL request failed.",
             },
         ),
         # LNURL response with error status
@@ -706,7 +805,7 @@ async def test_fiat_tracking(client, adminkey_headers_from, settings: Settings):
             },
             "error_loading_callback",
             {
-                "detail": "Error loading callback request",
+                "detail": "LNURL request failed.",
             },
         ),
         # Callback response with error status
@@ -731,7 +830,7 @@ async def test_fiat_tracking(client, adminkey_headers_from, settings: Settings):
             "exception_in_lnurl_response_json",
             None,
             {
-                "detail": "Invalid JSON response from https://example.com/lnurl",
+                "detail": "Invalid LNURL response.",
             },
         ),
     ],
@@ -751,76 +850,34 @@ async def test_api_payment_pay_with_nfc(
     )
     lnurl = "lnurlw://example.com/lnurl"
 
-    # Create a mock for httpx.AsyncClient
-    mock_async_client = AsyncMock()
-    mock_async_client.__aenter__.return_value = mock_async_client
-
-    # Mock the get method
-    async def mock_get(url, *_, **__):
-        if url == "https://example.com/lnurl":
+    async def mock_send(url, *_, **__):
+        if url.path == "/lnurl":
             if lnurl_response_data == "error_loading_lnurl":
-                response = Mock()
-                response.is_error = True
-                response.status_code = 500
-                response.raise_for_status.side_effect = Exception(
-                    "Error loading callback request"
-                )
-                return response
+                return 500, {}, b""
             elif lnurl_response_data == "exception_in_lnurl_response_json":
-                response = Mock()
-                response.is_error = False
-                response.json.side_effect = JSONDecodeError(
-                    doc="Simulated exception", pos=0, msg="JSONDecodeError"
-                )
-                return response
+                return 200, {}, b"invalid json"
             elif isinstance(lnurl_response_data, dict):
-                response = Mock()
-                response.is_error = False
-                response.json.return_value = lnurl_response_data
-                return response
+                return 200, {}, json.dumps(lnurl_response_data).encode()
             else:
-                # Handle unexpected data
-                response = Mock()
-                response.is_error = True
-                response.status_code = 500
-                response.raise_for_status.side_effect = Exception(
-                    "Error loading callback request"
-                )
-                return response
-        elif url == "https://example.com/callback":
+                return 500, {}, b""
+        elif url.path == "/callback":
             if callback_response_data == "error_loading_callback":
-                response = Mock()
-                response.is_error = True
-                response.status_code = 500
-                response.raise_for_status.side_effect = Exception(
-                    "Error loading callback request"
-                )
-                return response
+                return 500, {}, b""
             elif isinstance(callback_response_data, dict):
-                response = Mock()
-                response.is_error = False
-                response.json.return_value = callback_response_data
-                return response
+                return 200, {}, json.dumps(callback_response_data).encode()
             else:
-                # Handle cases where callback is not called
-                response = Mock()
-                response.is_error = True
-                response.raise_for_status.side_effect = Exception(
-                    "Error loading callback request"
-                )
-                return response
+                return 500, {}, b""
         else:
-            response = Mock()
-            response.is_error = True
-            response.raise_for_status.side_effect = Exception(
-                "Error loading callback request"
-            )
-            return response
+            return 500, {}, b""
 
-    mock_async_client.get.side_effect = mock_get
-
-    # Mock httpx.AsyncClient to return our mock_async_client
-    mocker.patch("httpx.AsyncClient", return_value=mock_async_client)
+    mocker.patch(
+        "lnbits.core.services.lnurl._resolve_lnurl_host",
+        AsyncMock(return_value=[ipaddress.ip_address("93.184.216.34")]),
+    )
+    mocker.patch(
+        "lnbits.core.services.lnurl._send_lnurl_request",
+        AsyncMock(side_effect=mock_send),
+    )
 
     response = await client.post(
         f"/api/v1/payments/{payment_request}/pay-with-nfc",

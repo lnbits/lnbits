@@ -394,8 +394,8 @@ async def test_callback_api_handles_subscription_flows_and_validation(
             "data": {
                 "object": {
                     "id": "invoice_1",
-                    "currency": "usd",
-                    "amount_paid": 500,
+                    "currency": "kwd",
+                    "amount_paid": 5000,
                     "hosted_invoice_url": "https://stripe.example/invoice",
                     "customer_email": "alice@example.com",
                     "lines": {"data": [{"description": "Gold Plan"}]},
@@ -417,6 +417,9 @@ async def test_callback_api_handles_subscription_flows_and_validation(
     )
     create_fiat_invoice_mock.assert_awaited()
     fiat_status_mock.assert_awaited()
+    stripe_call = create_fiat_invoice_mock.await_args.kwargs
+    assert stripe_call["invoice_data"].unit == "KWD"
+    assert stripe_call["invoice_data"].amount == 5
 
     await handle_paypal_event(
         {

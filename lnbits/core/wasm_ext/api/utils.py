@@ -6,9 +6,9 @@ from datetime import datetime
 from typing import Any
 
 from lnurl import LnurlErrorResponse, LnurlPayResponse, LnurlResponseException
-from lnurl import handle as lnurl_handle
 
 from lnbits import bolt11
+from lnbits.core.services.lnurl import handle as lnurl_handle
 from lnbits.settings import settings
 from lnbits.utils.crypto import random_secret_and_hash, verify_preimage
 from lnbits.utils.exchange_rates import (

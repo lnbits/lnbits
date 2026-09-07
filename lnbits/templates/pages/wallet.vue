@@ -873,8 +873,9 @@
       </div>
       <div v-else-if="parse.lnurlpay">
         <q-form @submit="payLnurl" class="q-gutter-md">
-          <p v-if="parse.lnurlpay.fixed" class="q-my-none text-h6">
-            <b v-text="parse.lnurlpay.domain"></b> is requesting
+          <p v-if="lnurlpayInfo.fixed" class="q-my-none text-h6">
+            <b v-text="lnurlpayInfo.targetUser || lnurlpayInfo.domain"></b> is
+            requesting
             <span v-text="msatoshiFormat(parse.lnurlpay.maxSendable)"></span>
             <span v-text="denomination"></span>
             <span v-if="parse.lnurlpay.commentAllowed > 0">
@@ -884,7 +885,7 @@
             </span>
           </p>
           <p v-else class="q-my-none text-h6 text-center">
-            <b v-text="parse.lnurlpay.targetUser || parse.lnurlpay.domain"></b>
+            <b v-text="lnurlpayInfo.targetUser || lnurlpayInfo.domain"></b>
             is requesting <br />
             between
             <b v-text="msatoshiFormat(parse.lnurlpay.minSendable)"></b> and
@@ -900,10 +901,10 @@
           <div class="row">
             <p
               class="col text-justify text-italic"
-              v-text="parse.lnurlpay.description"
+              v-text="lnurlpayInfo.description"
             ></p>
-            <p class="col-4 q-pl-md" v-if="parse.lnurlpay.image">
-              <q-img :src="parse.lnurlpay.image"></q-img>
+            <p class="col-4 q-pl-md" v-if="lnurlpayInfo.image">
+              <q-img :src="lnurlpayInfo.image"></q-img>
             </p>
           </div>
           <div class="row">
@@ -911,7 +912,7 @@
               <q-select
                 filled
                 dense
-                v-if="!parse.lnurlpay.fixed"
+                v-if="!lnurlpayInfo.fixed"
                 v-model="parse.data.unit"
                 type="text"
                 :label="$t('unit')"
@@ -930,7 +931,7 @@
                 reverse-fill-mask
                 :min="parse.lnurlpay.minSendable / 1000"
                 :max="parse.lnurlpay.maxSendable / 1000"
-                :readonly="parse.lnurlpay && parse.lnurlpay.fixed"
+                :readonly="lnurlpayInfo.fixed"
               ></q-input>
             </div>
             <div class="col-8 q-pl-md" v-if="parse.lnurlpay.commentAllowed > 0">

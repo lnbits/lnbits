@@ -42,6 +42,7 @@ var NostrTools = (() => {
     nip18: () => nip18_exports,
     nip19: () => nip19_exports,
     nip21: () => nip21_exports,
+    nip22: () => nip22_exports,
     nip25: () => nip25_exports,
     nip27: () => nip27_exports,
     nip28: () => nip28_exports,
@@ -710,7 +711,7 @@ var NostrTools = (() => {
         return n;
       if (FpLegendre(Fp, n) !== 1)
         throw new Error("Cannot find square root");
-      let M = S;
+      let M2 = S;
       let c = Fp.mul(Fp.ONE, cc);
       let t = Fp.pow(n, Q);
       let R = Fp.pow(n, Q1div2);
@@ -722,12 +723,12 @@ var NostrTools = (() => {
         while (!Fp.eql(t_tmp, Fp.ONE)) {
           i2++;
           t_tmp = Fp.sqr(t_tmp);
-          if (i2 === M)
+          if (i2 === M2)
             throw new Error("Cannot find square root");
         }
-        const exponent = _1n2 << BigInt(M - i2 - 1);
+        const exponent = _1n2 << BigInt(M2 - i2 - 1);
         const b = Fp.pow(c, exponent);
-        M = i2;
+        M2 = i2;
         c = Fp.sqr(b);
         t = Fp.mul(t, c);
         R = Fp.mul(R, b);
@@ -2227,44 +2228,6 @@ var NostrTools = (() => {
     };
   })();
 
-  // core.ts
-  var verifiedSymbol = Symbol("verified");
-  var isRecord = (obj) => obj instanceof Object;
-  function validateEvent(event) {
-    if (!isRecord(event))
-      return false;
-    if (typeof event.kind !== "number")
-      return false;
-    if (typeof event.content !== "string")
-      return false;
-    if (typeof event.created_at !== "number")
-      return false;
-    if (typeof event.pubkey !== "string")
-      return false;
-    if (!event.pubkey.match(/^[a-f0-9]{64}$/))
-      return false;
-    if (!Array.isArray(event.tags))
-      return false;
-    for (let i2 = 0; i2 < event.tags.length; i2++) {
-      let tag = event.tags[i2];
-      if (!Array.isArray(tag))
-        return false;
-      for (let j = 0; j < tag.length; j++) {
-        if (typeof tag[j] !== "string")
-          return false;
-      }
-    }
-    return true;
-  }
-  function sortEvents(events) {
-    return events.sort((a, b) => {
-      if (a.created_at !== b.created_at) {
-        return b.created_at - a.created_at;
-      }
-      return a.id.localeCompare(b.id);
-    });
-  }
-
   // utils.ts
   var utils_exports = {};
   __export(utils_exports, {
@@ -2273,6 +2236,7 @@ var NostrTools = (() => {
     hexToBytes: () => hexToBytes,
     insertEventIntoAscendingList: () => insertEventIntoAscendingList,
     insertEventIntoDescendingList: () => insertEventIntoDescendingList,
+    isHex32: () => isHex32,
     mergeReverseSortedLists: () => mergeReverseSortedLists,
     normalizeURL: () => normalizeURL,
     utf8Decoder: () => utf8Decoder,
@@ -2394,6 +2358,53 @@ var NostrTools = (() => {
     }
     return result;
   }
+  function isHex32(input) {
+    for (let i2 = 0; i2 < 64; i2++) {
+      let cc = input.charCodeAt(i2);
+      if (isNaN(cc) || cc < 48 || cc > 102 || cc > 57 && cc < 97) {
+        return false;
+      }
+    }
+    return true;
+  }
+
+  // core.ts
+  var verifiedSymbol = Symbol("verified");
+  var isRecord = (obj) => obj instanceof Object;
+  function validateEvent(event) {
+    if (!isRecord(event))
+      return false;
+    if (typeof event.kind !== "number")
+      return false;
+    if (typeof event.content !== "string")
+      return false;
+    if (typeof event.created_at !== "number")
+      return false;
+    if (typeof event.pubkey !== "string")
+      return false;
+    if (!isHex32(event.pubkey))
+      return false;
+    if (!Array.isArray(event.tags))
+      return false;
+    for (let i2 = 0; i2 < event.tags.length; i2++) {
+      let tag = event.tags[i2];
+      if (!Array.isArray(tag))
+        return false;
+      for (let j = 0; j < tag.length; j++) {
+        if (typeof tag[j] !== "string")
+          return false;
+      }
+    }
+    return true;
+  }
+  function sortEvents(events) {
+    return events.sort((a, b) => {
+      if (a.created_at !== b.created_at) {
+        return b.created_at - a.created_at;
+      }
+      return a.id.localeCompare(b.id);
+    });
+  }
 
   // pure.ts
   var JS = class {
@@ -2447,39 +2458,62 @@ var NostrTools = (() => {
   // kinds.ts
   var kinds_exports = {};
   __export(kinds_exports, {
+    AIEmbeddings: () => AIEmbeddings,
+    AppCurationSet: () => AppCurationSet,
     Application: () => Application,
+    AuthoredPodcasts: () => AuthoredPodcasts,
     BadgeAward: () => BadgeAward,
     BadgeDefinition: () => BadgeDefinition,
+    Bid: () => Bid,
+    BidConfirmation: () => BidConfirmation,
+    BlobsAuth: () => BlobsAuth,
     BlockedRelaysList: () => BlockedRelaysList,
     BlossomServerList: () => BlossomServerList,
     BookmarkList: () => BookmarkList,
     Bookmarksets: () => Bookmarksets,
     Calendar: () => Calendar,
     CalendarEventRSVP: () => CalendarEventRSVP,
+    CashuMintAnnouncement: () => CashuMintAnnouncement,
+    CashuWalletEvent: () => CashuWalletEvent,
+    CashuWalletHistory: () => CashuWalletHistory,
+    CashuWalletTokens: () => CashuWalletTokens,
     ChannelCreation: () => ChannelCreation,
     ChannelHideMessage: () => ChannelHideMessage,
     ChannelMessage: () => ChannelMessage,
     ChannelMetadata: () => ChannelMetadata,
     ChannelMuteUser: () => ChannelMuteUser,
     ChatMessage: () => ChatMessage,
+    Chess: () => Chess,
     ClassifiedListing: () => ClassifiedListing,
     ClientAuth: () => ClientAuth,
+    CodeSnippet: () => CodeSnippet,
+    CoinjoinPool: () => CoinjoinPool,
     Comment: () => Comment,
     CommunitiesList: () => CommunitiesList,
     CommunityDefinition: () => CommunityDefinition,
     CommunityPostApproval: () => CommunityPostApproval,
+    ConferenceEvent: () => ConferenceEvent,
     Contacts: () => Contacts,
     CreateOrUpdateProduct: () => CreateOrUpdateProduct,
     CreateOrUpdateStall: () => CreateOrUpdateStall,
+    CuratedVideoSets: () => CuratedVideoSets,
     Curationsets: () => Curationsets,
     Date: () => Date2,
+    DecoupledEncryptionKeyDistribution: () => DecoupledEncryptionKeyDistribution,
+    DecoupledKeyAnnouncement: () => DecoupledKeyAnnouncement,
+    DecoupledKeyClientAnnouncement: () => DecoupledKeyClientAnnouncement,
     DirectMessageRelaysList: () => DirectMessageRelaysList,
     DraftClassifiedListing: () => DraftClassifiedListing,
+    DraftEvent: () => DraftEvent,
     DraftLong: () => DraftLong,
     Emojisets: () => Emojisets,
     EncryptedDirectMessage: () => EncryptedDirectMessage,
     EventDeletion: () => EventDeletion,
+    FavoriteFollowSets: () => FavoriteFollowSets,
+    FavoritePodcasts: () => FavoritePodcasts,
     FavoriteRelays: () => FavoriteRelays,
+    FedimintAnnouncement: () => FedimintAnnouncement,
+    Feed: () => Feed,
     FileMessage: () => FileMessage,
     FileMetadata: () => FileMetadata,
     FileServerPreference: () => FileServerPreference,
@@ -2487,55 +2521,129 @@ var NostrTools = (() => {
     ForumThread: () => ForumThread,
     GenericRepost: () => GenericRepost,
     Genericlists: () => Genericlists,
+    GeocacheListing: () => GeocacheListing,
+    GeocacheLog: () => GeocacheLog,
+    GeocacheLogEntry: () => GeocacheLogEntry,
+    GeocacheProofOfFind: () => GeocacheProofOfFind,
     GiftWrap: () => GiftWrap,
+    GitPullRequest: () => GitPullRequest,
+    GitPullRequestUpdate: () => GitPullRequestUpdate,
+    GoodWikiAuthorList: () => GoodWikiAuthorList,
+    GoodWikiRelayList: () => GoodWikiRelayList,
     GroupMetadata: () => GroupMetadata,
     HTTPAuth: () => HTTPAuth,
     Handlerinformation: () => Handlerinformation,
     Handlerrecommendation: () => Handlerrecommendation,
     Highlights: () => Highlights,
+    InteractiveRoom: () => InteractiveRoom,
     InterestsList: () => InterestsList,
     Interestsets: () => Interestsets,
+    Issue: () => Issue,
     JobFeedback: () => JobFeedback,
     JobRequest: () => JobRequest,
     JobResult: () => JobResult,
     Label: () => Label,
+    LegacyNsiteFile: () => LegacyNsiteFile,
     LightningPubRPC: () => LightningPubRPC,
+    LinkSet: () => LinkSet,
     LiveChatMessage: () => LiveChatMessage,
     LiveEvent: () => LiveEvent,
     LongFormArticle: () => LongFormArticle,
+    MarketplaceUI: () => MarketplaceUI,
+    MediaFollows: () => MediaFollows,
+    MediaStarterPacks: () => MediaStarterPacks,
+    MergeRequests: () => MergeRequests,
     Metadata: () => Metadata,
+    ModularArticleContent: () => ModularArticleContent,
+    ModularArticleHeader: () => ModularArticleHeader,
+    MuteSets: () => MuteSets,
     Mutelist: () => Mutelist,
     NWCWalletInfo: () => NWCWalletInfo,
     NWCWalletRequest: () => NWCWalletRequest,
     NWCWalletResponse: () => NWCWalletResponse,
     NormalVideo: () => NormalVideo,
     NostrConnect: () => NostrConnect,
+    NsiteNamed: () => NsiteNamed,
+    NsiteRoot: () => NsiteRoot,
+    NutZap: () => NutZap,
+    NutZapInfo: () => NutZapInfo,
     OpenTimestamps: () => OpenTimestamps,
+    Patch: () => Patch,
+    PeerToPeerOrderEvents: () => PeerToPeerOrderEvents,
     Photo: () => Photo,
     Pinlist: () => Pinlist,
+    PodcastEpisode: () => PodcastEpisode,
+    PodcastMetadata: () => PodcastMetadata,
     Poll: () => Poll,
     PollResponse: () => PollResponse,
     PrivateDirectMessage: () => PrivateDirectMessage,
+    PrivateEventRelayList: () => PrivateEventRelayList,
     ProblemTracker: () => ProblemTracker,
+    ProductSoldAsAuction: () => ProductSoldAsAuction,
     ProfileBadges: () => ProfileBadges,
+    ProxyAnnouncement: () => ProxyAnnouncement,
     PublicChatsList: () => PublicChatsList,
+    PublicMessage: () => PublicMessage,
     Reaction: () => Reaction,
+    ReactionToWebsite: () => ReactionToWebsite,
     RecommendRelay: () => RecommendRelay,
+    Redirects: () => Redirects,
+    RelayDiscovery: () => RelayDiscovery,
     RelayList: () => RelayList,
+    RelayMonitorAnnouncement: () => RelayMonitorAnnouncement,
     RelayReview: () => RelayReview,
+    RelayReviews: () => RelayReviews,
     Relaysets: () => Relaysets,
+    ReleaseArtifactSets: () => ReleaseArtifactSets,
+    Reply: () => Reply,
     Report: () => Report,
     Reporting: () => Reporting,
+    RepositoryAnnouncement: () => RepositoryAnnouncement,
+    RepositoryState: () => RepositoryState,
     Repost: () => Repost,
+    ReservedCashuWalletTokens: () => ReservedCashuWalletTokens,
+    RoomPresence: () => RoomPresence,
+    Scroll: () => Scroll,
     Seal: () => Seal,
     SearchRelaysList: () => SearchRelaysList,
     ShortTextNote: () => ShortTextNote,
     ShortVideo: () => ShortVideo,
+    SimpleGroupAdmins: () => SimpleGroupAdmins,
+    SimpleGroupCreateGroup: () => SimpleGroupCreateGroup,
+    SimpleGroupCreateInvite: () => SimpleGroupCreateInvite,
+    SimpleGroupDeleteEvent: () => SimpleGroupDeleteEvent,
+    SimpleGroupDeleteGroup: () => SimpleGroupDeleteGroup,
+    SimpleGroupEditMetadata: () => SimpleGroupEditMetadata,
+    SimpleGroupJoinRequest: () => SimpleGroupJoinRequest,
+    SimpleGroupLeaveRequest: () => SimpleGroupLeaveRequest,
+    SimpleGroupList: () => SimpleGroupList,
+    SimpleGroupLiveKitParticipants: () => SimpleGroupLiveKitParticipants,
+    SimpleGroupMembers: () => SimpleGroupMembers,
+    SimpleGroupPutUser: () => SimpleGroupPutUser,
+    SimpleGroupRemoveUser: () => SimpleGroupRemoveUser,
+    SimpleGroupReply: () => SimpleGroupReply,
+    SimpleGroupRoles: () => SimpleGroupRoles,
+    SimpleGroupThreadedReply: () => SimpleGroupThreadedReply,
+    SlideSet: () => SlideSet,
+    SoftwareApplication: () => SoftwareApplication,
+    StarterPacks: () => StarterPacks,
+    StatusApplied: () => StatusApplied,
+    StatusClosed: () => StatusClosed,
+    StatusDraft: () => StatusDraft,
+    StatusOpen: () => StatusOpen,
+    TidalLogin: () => TidalLogin,
     Time: () => Time,
+    Torrent: () => Torrent,
+    TorrentComment: () => TorrentComment,
+    TransportMethodAnnouncement: () => TransportMethodAnnouncement,
     UserEmojiList: () => UserEmojiList,
+    UserGraspList: () => UserGraspList,
     UserStatuses: () => UserStatuses,
+    VideoViewEvent: () => VideoViewEvent,
     Voice: () => Voice,
     VoiceComment: () => VoiceComment,
+    WebBookmarks: () => WebBookmarks,
+    WikiArticle: () => WikiArticle,
     Zap: () => Zap,
     ZapGoal: () => ZapGoal,
     ZapRequest: () => ZapRequest,
@@ -2583,40 +2691,83 @@ var NostrTools = (() => {
   var Reaction = 7;
   var BadgeAward = 8;
   var ChatMessage = 9;
+  var SimpleGroupThreadedReply = 10;
   var ForumThread = 11;
+  var SimpleGroupReply = 12;
   var Seal = 13;
   var PrivateDirectMessage = 14;
   var FileMessage = 15;
   var GenericRepost = 16;
+  var ReactionToWebsite = 17;
   var Photo = 20;
   var NormalVideo = 21;
   var ShortVideo = 22;
+  var PublicMessage = 24;
   var ChannelCreation = 40;
   var ChannelMetadata = 41;
   var ChannelMessage = 42;
   var ChannelHideMessage = 43;
   var ChannelMuteUser = 44;
+  var PodcastEpisode = 54;
+  var Chess = 64;
+  var MergeRequests = 818;
+  var PollResponse = 1018;
+  var Bid = 1021;
+  var BidConfirmation = 1022;
   var OpenTimestamps = 1040;
   var GiftWrap = 1059;
-  var Poll = 1068;
   var FileMetadata = 1063;
+  var Poll = 1068;
   var Comment = 1111;
-  var LiveChatMessage = 1311;
   var Voice = 1222;
+  var Scroll = 1227;
   var VoiceComment = 1244;
+  var LiveChatMessage = 1311;
+  var CodeSnippet = 1337;
+  var Patch = 1617;
+  var GitPullRequest = 1618;
+  var GitPullRequestUpdate = 1619;
+  var Issue = 1621;
+  var Reply = 1622;
+  var StatusOpen = 1630;
+  var StatusApplied = 1631;
+  var StatusClosed = 1632;
+  var StatusDraft = 1633;
   var ProblemTracker = 1971;
   var Report = 1984;
   var Reporting = 1984;
   var Label = 1985;
+  var RelayReviews = 1986;
+  var AIEmbeddings = 1987;
+  var Torrent = 2003;
+  var TorrentComment = 2004;
+  var CoinjoinPool = 2022;
+  var DecoupledKeyClientAnnouncement = 4454;
+  var DecoupledEncryptionKeyDistribution = 4455;
   var CommunityPostApproval = 4550;
   var JobRequest = 5999;
   var JobResult = 6999;
   var JobFeedback = 7e3;
+  var ReservedCashuWalletTokens = 7374;
+  var CashuWalletTokens = 7375;
+  var CashuWalletHistory = 7376;
+  var GeocacheLog = 7516;
+  var GeocacheProofOfFind = 7517;
+  var SimpleGroupPutUser = 9e3;
+  var SimpleGroupRemoveUser = 9001;
+  var SimpleGroupEditMetadata = 9002;
+  var SimpleGroupDeleteEvent = 9005;
+  var SimpleGroupCreateGroup = 9007;
+  var SimpleGroupDeleteGroup = 9008;
+  var SimpleGroupCreateInvite = 9009;
+  var SimpleGroupJoinRequest = 9021;
+  var SimpleGroupLeaveRequest = 9022;
   var ZapGoal = 9041;
+  var NutZap = 9321;
+  var TidalLogin = 9467;
   var ZapRequest = 9734;
   var Zap = 9735;
   var Highlights = 9802;
-  var PollResponse = 1018;
   var Mutelist = 1e4;
   var Pinlist = 10001;
   var RelayList = 10002;
@@ -2625,37 +2776,75 @@ var NostrTools = (() => {
   var PublicChatsList = 10005;
   var BlockedRelaysList = 10006;
   var SearchRelaysList = 10007;
+  var SimpleGroupList = 10009;
   var FavoriteRelays = 10012;
+  var PrivateEventRelayList = 10013;
   var InterestsList = 10015;
+  var NutZapInfo = 10019;
+  var MediaFollows = 10020;
+  var FavoriteFollowSets = 10021;
   var UserEmojiList = 10030;
+  var DecoupledKeyAnnouncement = 10044;
   var DirectMessageRelaysList = 10050;
-  var FileServerPreference = 10096;
+  var FavoritePodcasts = 10054;
   var BlossomServerList = 10063;
+  var FileServerPreference = 10096;
+  var GoodWikiAuthorList = 10101;
+  var GoodWikiRelayList = 10102;
+  var PodcastMetadata = 10154;
+  var AuthoredPodcasts = 10164;
+  var RelayMonitorAnnouncement = 10166;
+  var RoomPresence = 10312;
+  var UserGraspList = 10317;
+  var ProxyAnnouncement = 10377;
+  var TransportMethodAnnouncement = 11111;
   var NWCWalletInfo = 13194;
+  var NsiteRoot = 15128;
+  var CashuWalletEvent = 17375;
   var LightningPubRPC = 21e3;
   var ClientAuth = 22242;
   var NWCWalletRequest = 23194;
   var NWCWalletResponse = 23195;
   var NostrConnect = 24133;
+  var BlobsAuth = 24242;
   var HTTPAuth = 27235;
   var Followsets = 3e4;
   var Genericlists = 30001;
   var Relaysets = 30002;
   var Bookmarksets = 30003;
   var Curationsets = 30004;
+  var CuratedVideoSets = 30005;
+  var MuteSets = 30007;
   var ProfileBadges = 30008;
   var BadgeDefinition = 30009;
   var Interestsets = 30015;
   var CreateOrUpdateStall = 30017;
   var CreateOrUpdateProduct = 30018;
+  var MarketplaceUI = 30019;
+  var ProductSoldAsAuction = 30020;
   var LongFormArticle = 30023;
   var DraftLong = 30024;
   var Emojisets = 30030;
+  var ModularArticleHeader = 30040;
+  var ModularArticleContent = 30041;
+  var ReleaseArtifactSets = 30063;
   var Application = 30078;
+  var RelayDiscovery = 30166;
+  var AppCurationSet = 30267;
   var LiveEvent = 30311;
+  var InteractiveRoom = 30312;
+  var ConferenceEvent = 30313;
   var UserStatuses = 30315;
+  var SlideSet = 30388;
   var ClassifiedListing = 30402;
   var DraftClassifiedListing = 30403;
+  var RepositoryAnnouncement = 30617;
+  var RepositoryState = 30618;
+  var WikiArticle = 30818;
+  var Redirects = 30819;
+  var DraftEvent = 31234;
+  var LinkSet = 31388;
+  var Feed = 31890;
   var Date2 = 31922;
   var Time = 31923;
   var Calendar = 31924;
@@ -2663,8 +2852,24 @@ var NostrTools = (() => {
   var RelayReview = 31987;
   var Handlerrecommendation = 31989;
   var Handlerinformation = 31990;
+  var SoftwareApplication = 32267;
+  var LegacyNsiteFile = 34128;
+  var VideoViewEvent = 34237;
   var CommunityDefinition = 34550;
+  var NsiteNamed = 35128;
+  var GeocacheListing = 37515;
+  var GeocacheLogEntry = 37516;
+  var CashuMintAnnouncement = 38172;
+  var FedimintAnnouncement = 38173;
+  var PeerToPeerOrderEvents = 38383;
   var GroupMetadata = 39e3;
+  var SimpleGroupAdmins = 39001;
+  var SimpleGroupMembers = 39002;
+  var SimpleGroupRoles = 39003;
+  var SimpleGroupLiveKitParticipants = 39004;
+  var StarterPacks = 39089;
+  var MediaStarterPacks = 39092;
+  var WebBookmarks = 39701;
 
   // filter.ts
   function matchFilter(filter, event) {
@@ -2826,12 +3031,14 @@ var NostrTools = (() => {
     openSubs = /* @__PURE__ */ new Map();
     enablePing;
     enableReconnect;
+    idleTimeout = 0;
     idleSince = Date.now();
     ongoingOperations = 0;
     reconnectTimeoutHandle;
     pingIntervalHandle;
     reconnectAttempts = 0;
     skipReconnection = false;
+    idleTimeoutHandle;
     connectionPromise;
     openCountRequests = /* @__PURE__ */ new Map();
     openEventPublishes = /* @__PURE__ */ new Map();
@@ -2847,6 +3054,8 @@ var NostrTools = (() => {
       this._WebSocket = opts.websocketImplementation || WebSocket;
       this.enablePing = opts.enablePing;
       this.enableReconnect = opts.enableReconnect || false;
+      if (opts.idleTimeout)
+        this.idleTimeout = opts.idleTimeout;
     }
     static async connect(url, opts) {
       const relay = new AbstractRelay(url, opts);
@@ -2870,6 +3079,22 @@ var NostrTools = (() => {
     get connected() {
       return this._connected;
     }
+    clearIdleTimeout() {
+      if (this.idleTimeoutHandle) {
+        clearTimeout(this.idleTimeoutHandle);
+        this.idleTimeoutHandle = void 0;
+      }
+    }
+    scheduleIdleClose() {
+      this.clearIdleTimeout();
+      if (this.idleTimeout > 0) {
+        this.idleTimeoutHandle = setTimeout(() => {
+          if (this.ongoingOperations === 0 && this.idleSince) {
+            this.close();
+          }
+        }, this.idleTimeout);
+      }
+    }
     async reconnect() {
       const backoff = this.resubscribeBackoff[Math.min(this.reconnectAttempts, this.resubscribeBackoff.length - 1)];
       this.reconnectAttempts++;
@@ -2881,6 +3106,11 @@ var NostrTools = (() => {
       }, backoff);
     }
     handleHardClose(reason) {
+      if (this.ws) {
+        this.ws.onopen = null;
+        this.ws.onerror = null;
+        this.ws.onclose = null;
+      }
       if (this.pingIntervalHandle) {
         clearInterval(this.pingIntervalHandle);
         this.pingIntervalHandle = void 0;
@@ -2888,6 +3118,7 @@ var NostrTools = (() => {
       this._connected = false;
       this.connectionPromise = void 0;
       this.idleSince = void 0;
+      this.clearIdleTimeout();
       if (this.enableReconnect && !this.skipReconnection) {
         this.reconnect();
       } else {
@@ -2907,8 +3138,9 @@ var NostrTools = (() => {
           connectionTimeoutHandle = setTimeout(() => {
             reject("connection timed out");
             this.connectionPromise = void 0;
-            this.skipReconnection = true;
-            this.onclose?.();
+            if (this.reconnectAttempts === 0) {
+              this.skipReconnection = true;
+            }
             this.handleHardClose("relay connection timed out");
           }, opts.timeout);
         }
@@ -2951,8 +3183,9 @@ var NostrTools = (() => {
           clearTimeout(connectionTimeoutHandle);
           reject("connection failed");
           this.connectionPromise = void 0;
-          this.skipReconnection = true;
-          this.onclose?.();
+          if (this.reconnectAttempts === 0) {
+            this.skipReconnection = true;
+          }
           this.handleHardClose("relay connection failed");
         };
         this.ws.onclose = (ev) => {
@@ -3041,6 +3274,7 @@ var NostrTools = (() => {
     }
     async publish(event) {
       this.idleSince = void 0;
+      this.clearIdleTimeout();
       this.ongoingOperations++;
       const ret = new Promise((resolve, reject) => {
         const timeout = setTimeout(() => {
@@ -3052,24 +3286,46 @@ var NostrTools = (() => {
         }, this.publishTimeout);
         this.openEventPublishes.set(event.id, { resolve, reject, timeout });
       });
-      this.send('["EVENT",' + JSON.stringify(event) + "]");
+      try {
+        await this.send('["EVENT",' + JSON.stringify(event) + "]");
+      } catch (err) {
+        const ep = this.openEventPublishes.get(event.id);
+        if (ep) {
+          ep.reject(err);
+          this.openEventPublishes.delete(event.id);
+        }
+      }
       this.ongoingOperations--;
-      if (this.ongoingOperations === 0)
+      if (this.ongoingOperations === 0) {
         this.idleSince = Date.now();
+        this.scheduleIdleClose();
+      }
       return ret;
     }
     async count(filters, params) {
+      return (await this.countWithHLL(filters, params)).count;
+    }
+    async countWithHLL(filters, params) {
       this.serial++;
       const id = params?.id || "count:" + this.serial;
       const ret = new Promise((resolve, reject) => {
         this.openCountRequests.set(id, { resolve, reject });
       });
-      this.send('["COUNT","' + id + '",' + JSON.stringify(filters).substring(1));
+      try {
+        await this.send('["COUNT","' + id + '",' + JSON.stringify(filters).substring(1));
+      } catch (err) {
+        const cr = this.openCountRequests.get(id);
+        if (cr) {
+          cr.reject(err);
+          this.openCountRequests.delete(id);
+        }
+      }
       return ret;
     }
     subscribe(filters, params) {
       if (params.label !== "<forced-ping>") {
         this.idleSince = void 0;
+        this.clearIdleTimeout();
         this.ongoingOperations++;
       }
       const sub = this.prepareSubscription(filters, params);
@@ -3098,10 +3354,17 @@ var NostrTools = (() => {
       }
       this.closeAllSubscriptions("relay connection closed by us");
       this._connected = false;
+      this.connectionPromise = void 0;
       this.idleSince = void 0;
+      this.clearIdleTimeout();
       this.onclose?.();
-      if (this.ws?.readyState === this._WebSocket.OPEN) {
-        this.ws?.close();
+      if (this.ws) {
+        this.ws.onopen = null;
+        this.ws.onerror = null;
+        this.ws.onclose = null;
+        if (this.ws.readyState !== this._WebSocket.CLOSING && this.ws.readyState !== this._WebSocket.CLOSED) {
+          this.ws.close();
+        }
       }
     }
     _onmessage(ev) {
@@ -3128,7 +3391,7 @@ var NostrTools = (() => {
           case "EVENT": {
             const so = this.openSubs.get(data[1]);
             const event = data[2];
-            if (this.verifyEvent(event) && matchFilters(so.filters, event)) {
+            if (matchFilters(so.filters, event) && this.verifyEvent(event, this.url)) {
               so.onevent(event);
             } else {
               so.oninvalidevent?.(event);
@@ -3142,7 +3405,7 @@ var NostrTools = (() => {
             const payload = data[2];
             const cr = this.openCountRequests.get(id);
             if (cr) {
-              cr.resolve(payload.count);
+              cr.resolve(payload);
               this.openCountRequests.delete(id);
             }
             return;
@@ -3172,8 +3435,14 @@ var NostrTools = (() => {
           case "CLOSED": {
             const id = data[1];
             const so = this.openSubs.get(id);
-            if (!so)
+            if (!so) {
+              const cr = this.openCountRequests.get(id);
+              if (cr) {
+                cr.reject(new Error(data[2]));
+                this.openCountRequests.delete(id);
+              }
               return;
+            }
             so.closed = true;
             so.close(data[2]);
             return;
@@ -3185,7 +3454,11 @@ var NostrTools = (() => {
           case "AUTH": {
             this.challenge = data[1];
             if (this.onauth) {
-              this.auth(this.onauth);
+              this.auth(this.onauth).catch((err) => {
+                if (!(err instanceof SendingOnClosedConnection)) {
+                  throw err;
+                }
+              });
             }
             return;
           }
@@ -3266,8 +3539,10 @@ var NostrTools = (() => {
       }
       this.relay.openSubs.delete(this.id);
       this.relay.ongoingOperations--;
-      if (this.relay.ongoingOperations === 0)
+      if (this.relay.ongoingOperations === 0) {
         this.relay.idleSince = Date.now();
+        this.relay.scheduleIdleClose();
+      }
       this.onclose?.(reason);
     }
   };
@@ -3289,11 +3564,60 @@ var NostrTools = (() => {
     }
   };
 
-  // helpers.ts
-  var alwaysTrue = (t) => {
-    t[verifiedSymbol] = true;
-    return true;
-  };
+  // nip45.ts
+  var M = 256;
+  var HLL_HEX_LENGTH = M * 2;
+  var utf8Encoder2 = new TextEncoder();
+  function getCountManyFilter(target, directive) {
+    switch (directive) {
+      case "reactions":
+        return { "#e": [target], kinds: [7] };
+      case "reposts":
+        return { "#e": [target], kinds: [6] };
+      case "quotes":
+        return { "#q": [target], kinds: [1, 1111] };
+      case "replies":
+        return { "#e": [target], kinds: [1] };
+      case "comments":
+        return { "#E": [target], kinds: [1111] };
+      case "followers":
+        return { "#p": [target], kinds: [3] };
+    }
+  }
+  function newHll() {
+    return new Uint8Array(M);
+  }
+  function hllDecode(hex2) {
+    if (hex2.length !== HLL_HEX_LENGTH || !/^[0-9a-f]+$/.test(hex2))
+      return void 0;
+    const registers = new Uint8Array(M);
+    for (let i2 = 0; i2 < M; i2++) {
+      registers[i2] = parseInt(hex2.slice(i2 * 2, i2 * 2 + 2), 16);
+    }
+    return registers;
+  }
+  function hllEncode(registers) {
+    if (registers.length !== M)
+      throw new Error(`invalid number of registers ${registers.length}`);
+    let hex2 = "";
+    for (let i2 = 0; i2 < M; i2++) {
+      hex2 += registers[i2].toString(16).padStart(2, "0");
+    }
+    return hex2;
+  }
+  function mergeHll(target, source) {
+    if (target.length === 0)
+      target = newHll();
+    if (target.length !== M)
+      throw new Error(`invalid number of registers ${target.length}`);
+    if (source.length !== M)
+      throw new Error(`invalid number of registers ${source.length}`);
+    for (let i2 = 0; i2 < M; i2++) {
+      if (source[i2] > target[i2])
+        target[i2] = source[i2];
+    }
+    return target;
+  }
 
   // abstract-pool.ts
   var AbstractSimplePool = class {
@@ -3303,8 +3627,8 @@ var NostrTools = (() => {
     verifyEvent;
     enablePing;
     enableReconnect;
+    idleTimeout = 2e4;
     automaticallyAuth;
-    trustedRelayURLs = /* @__PURE__ */ new Set();
     onRelayConnectionFailure;
     onRelayConnectionSuccess;
     allowConnectingToRelay;
@@ -3315,6 +3639,8 @@ var NostrTools = (() => {
       this._WebSocket = opts.websocketImplementation;
       this.enablePing = opts.enablePing;
       this.enableReconnect = opts.enableReconnect || false;
+      if (opts.idleTimeout)
+        this.idleTimeout = opts.idleTimeout;
       this.automaticallyAuth = opts.automaticallyAuth;
       this.onRelayConnectionFailure = opts.onRelayConnectionFailure;
       this.onRelayConnectionSuccess = opts.onRelayConnectionSuccess;
@@ -3326,10 +3652,11 @@ var NostrTools = (() => {
       let relay = this.relays.get(url);
       if (!relay) {
         relay = new AbstractRelay(url, {
-          verifyEvent: this.trustedRelayURLs.has(url) ? alwaysTrue : this.verifyEvent,
+          verifyEvent: this.verifyEvent,
           websocketImplementation: this._WebSocket,
           enablePing: this.enablePing,
-          enableReconnect: this.enableReconnect
+          enableReconnect: this.enableReconnect,
+          idleTimeout: this.idleTimeout
         });
         relay.onclose = () => {
           this.relays.delete(url);
@@ -3409,11 +3736,11 @@ var NostrTools = (() => {
         }
       };
       const closesReceived = [];
-      let handleClose = (i2, reason) => {
+      let handleClose = (i2, url, reason) => {
         if (closesReceived[i2])
           return;
         handleEose(i2);
-        closesReceived[i2] = reason;
+        closesReceived[i2] = { url, reason };
         if (closesReceived.filter((a) => a).length === groupedRequests.length) {
           params.onclose?.(closesReceived);
           handleClose = () => {
@@ -3431,7 +3758,7 @@ var NostrTools = (() => {
       const allOpened = Promise.all(
         groupedRequests.map(async ({ url, filters }, i2) => {
           if (this.allowConnectingToRelay?.(url, ["read", filters]) === false) {
-            handleClose(i2, "connection skipped by allowConnectingToRelay");
+            handleClose(i2, url, "connection skipped by allowConnectingToRelay");
             return;
           }
           let relay;
@@ -3442,7 +3769,7 @@ var NostrTools = (() => {
             });
           } catch (err) {
             this.onRelayConnectionFailure?.(url);
-            handleClose(i2, err?.message || String(err));
+            handleClose(i2, url, err?.message || String(err));
             return;
           }
           this.onRelayConnectionSuccess?.(url);
@@ -3456,17 +3783,17 @@ var NostrTools = (() => {
                     ...params,
                     oneose: () => handleEose(i2),
                     onclose: (reason2) => {
-                      handleClose(i2, reason2);
+                      handleClose(i2, url, reason2);
                     },
                     alreadyHaveEvent: localAlreadyHaveEventHandler,
                     eoseTimeout: params.maxWait,
                     abort: params.abort
                   });
                 }).catch((err) => {
-                  handleClose(i2, `auth was required and attempted, but failed with: ${err}`);
+                  handleClose(i2, url, `auth was required and attempted, but failed with: ${err}`);
                 });
               } else {
-                handleClose(i2, reason);
+                handleClose(i2, url, reason);
               }
             },
             alreadyHaveEvent: localAlreadyHaveEventHandler,
@@ -3494,7 +3821,7 @@ var NostrTools = (() => {
           if (subcloser)
             subcloser.close(reason);
           else
-            params.onclose?.(relays.map((_) => reason));
+            params.onclose?.(relays.map((url) => ({ url, reason })));
         }
       });
       return subcloser;
@@ -3521,6 +3848,48 @@ var NostrTools = (() => {
       const events = await this.querySync(relays, filter, params);
       events.sort((a, b) => b.created_at - a.created_at);
       return events[0] || null;
+    }
+    async countMany(relays, target, directive, params) {
+      const filter = getCountManyFilter(target, directive);
+      const urls = [];
+      for (let i2 = 0; i2 < relays.length; i2++) {
+        const url = normalizeURL(relays[i2]);
+        if (urls.indexOf(url) === -1)
+          urls.push(url);
+      }
+      const responses = await Promise.all(
+        urls.map(async (url) => {
+          if (this.allowConnectingToRelay?.(url, ["read", [filter]]) === false)
+            return null;
+          let relay;
+          try {
+            relay = await this.ensureRelay(url, {
+              connectionTimeout: this.maxWaitForConnection < (params?.maxWait || 0) ? Math.max(params.maxWait * 0.8, params.maxWait - 1e3) : this.maxWaitForConnection,
+              abort: params?.abort
+            });
+          } catch (err) {
+            this.onRelayConnectionFailure?.(url);
+            return null;
+          }
+          this.onRelayConnectionSuccess?.(url);
+          return relay.countWithHLL([filter], { id: params?.id }).catch(() => null);
+        })
+      );
+      let count = 0;
+      let hll;
+      for (const response of responses) {
+        if (!response)
+          continue;
+        if (response.count > count)
+          count = response.count;
+        if (!response.hll || response.hll.length !== 512)
+          continue;
+        const registers = hllDecode(response.hll);
+        if (!registers)
+          continue;
+        hll = mergeHll(hll || new Uint8Array(0), registers);
+      }
+      return hll ? { count, hll: hllEncode(hll) } : { count };
     }
     publish(relays, event, params) {
       return relays.map(normalizeURL).map(async (url, i2, arr) => {
@@ -4117,6 +4486,8 @@ var NostrTools = (() => {
     let result = {};
     let rest = data;
     while (rest.length > 0) {
+      if (rest.length < 2)
+        throw new Error("not enough data to read TLV");
       let t = rest[0];
       let l = rest[1];
       let v = rest.slice(2, 2 + l);
@@ -4878,12 +5249,12 @@ var NostrTools = (() => {
     let maybeRoot;
     for (let i2 = event.tags.length - 1; i2 >= 0; i2--) {
       const tag = event.tags[i2];
-      if (tag[0] === "e" && tag[1]) {
+      if (tag[0] === "e" && tag[1] && isHex32(tag[1])) {
         const [_, eTagEventId, eTagRelayUrl, eTagMarker, eTagAuthor] = tag;
         const eventPointer = {
           id: eTagEventId,
           relays: eTagRelayUrl ? [eTagRelayUrl] : [],
-          author: eTagAuthor
+          author: eTagAuthor && isHex32(eTagAuthor) ? eTagAuthor : void 0
         };
         if (eTagMarker === "root") {
           result.root = eventPointer;
@@ -4905,14 +5276,14 @@ var NostrTools = (() => {
         result.mentions.push(eventPointer);
         continue;
       }
-      if (tag[0] === "q" && tag[1]) {
+      if (tag[0] === "q" && tag[1] && isHex32(tag[1])) {
         const [_, eTagEventId, eTagRelayUrl] = tag;
         result.quotes.push({
           id: eTagEventId,
           relays: eTagRelayUrl ? [eTagRelayUrl] : []
         });
       }
-      if (tag[0] === "p" && tag[1]) {
+      if (tag[0] === "p" && tag[1] && isHex32(tag[1])) {
         result.profiles.push({
           pubkey: tag[1],
           relays: tag[2] ? [tag[2]] : []
@@ -5704,7 +6075,8 @@ var NostrTools = (() => {
 
   // nip44.ts
   var minPlaintextSize = 1;
-  var maxPlaintextSize = 65535;
+  var maxPlaintextSize = 4294967295;
+  var extendedPrefixThreshold = 65536;
   function getConversationKey(privkeyA, pubkeyB) {
     const sharedX = secp256k1.getSharedSecret(privkeyA, hexToBytes("02" + pubkeyB)).subarray(1, 33);
     return extract(sha256, sharedX, utf8Encoder.encode("nip44-v2"));
@@ -5722,28 +6094,49 @@ var NostrTools = (() => {
       throw new Error("expected positive integer");
     if (len <= 32)
       return 32;
-    const nextPower = 1 << Math.floor(Math.log2(len - 1)) + 1;
+    const nextPower = 2 ** (Math.floor(Math.log2(len - 1)) + 1);
     const chunk = nextPower <= 256 ? 32 : nextPower / 8;
     return chunk * (Math.floor((len - 1) / chunk) + 1);
   }
   function writeU16BE(num2) {
-    if (!Number.isSafeInteger(num2) || num2 < minPlaintextSize || num2 > maxPlaintextSize)
+    if (!Number.isSafeInteger(num2) || num2 < minPlaintextSize || num2 > 65535)
       throw new Error("invalid plaintext size: must be between 1 and 65535 bytes");
     const arr = new Uint8Array(2);
     new DataView(arr.buffer).setUint16(0, num2, false);
     return arr;
   }
+  function writeU32BE(num2) {
+    if (!Number.isSafeInteger(num2) || num2 < extendedPrefixThreshold || num2 > maxPlaintextSize)
+      throw new Error("invalid plaintext size: must be between 65536 and 4294967295 bytes");
+    const arr = new Uint8Array(4);
+    new DataView(arr.buffer).setUint32(0, num2, false);
+    return arr;
+  }
   function pad(plaintext) {
     const unpadded = utf8Encoder.encode(plaintext);
     const unpaddedLen = unpadded.length;
-    const prefix = writeU16BE(unpaddedLen);
+    if (unpaddedLen < minPlaintextSize || unpaddedLen > maxPlaintextSize)
+      throw new Error("invalid plaintext size: must be between 1 and 4294967295 bytes");
+    const prefix = unpaddedLen >= extendedPrefixThreshold ? concatBytes(new Uint8Array([0, 0]), writeU32BE(unpaddedLen)) : writeU16BE(unpaddedLen);
     const suffix = new Uint8Array(calcPaddedLen(unpaddedLen) - unpaddedLen);
     return concatBytes(prefix, unpadded, suffix);
   }
   function unpad(padded) {
-    const unpaddedLen = new DataView(padded.buffer).getUint16(0);
-    const unpadded = padded.subarray(2, 2 + unpaddedLen);
-    if (unpaddedLen < minPlaintextSize || unpaddedLen > maxPlaintextSize || unpadded.length !== unpaddedLen || padded.length !== 2 + calcPaddedLen(unpaddedLen))
+    const dv = new DataView(padded.buffer, padded.byteOffset, padded.byteLength);
+    const firstTwo = dv.getUint16(0);
+    let unpaddedLen;
+    let prefixLen;
+    if (firstTwo === 0) {
+      unpaddedLen = dv.getUint32(2);
+      if (unpaddedLen < extendedPrefixThreshold)
+        throw new Error("invalid padding");
+      prefixLen = 6;
+    } else {
+      unpaddedLen = firstTwo;
+      prefixLen = 2;
+    }
+    const unpadded = padded.subarray(prefixLen, prefixLen + unpaddedLen);
+    if (unpaddedLen < minPlaintextSize || unpaddedLen > maxPlaintextSize || unpadded.length !== unpaddedLen || padded.length !== prefixLen + calcPaddedLen(unpaddedLen))
       throw new Error("invalid padding");
     return utf8Decoder.decode(unpadded);
   }
@@ -5757,7 +6150,7 @@ var NostrTools = (() => {
     if (typeof payload !== "string")
       throw new Error("payload must be a valid string");
     const plen = payload.length;
-    if (plen < 132 || plen > 87472)
+    if (plen < 132)
       throw new Error("invalid payload length: " + plen);
     if (payload[0] === "#")
       throw new Error("unknown encryption version");
@@ -5768,7 +6161,7 @@ var NostrTools = (() => {
       throw new Error("invalid base64: " + error.message);
     }
     const dlen = data.length;
-    if (dlen < 99 || dlen > 65603)
+    if (dlen < 99)
       throw new Error("invalid data length: " + dlen);
     const vers = data[0];
     if (vers !== 2)
@@ -5798,7 +6191,9 @@ var NostrTools = (() => {
   var v2 = {
     utils: {
       getConversationKey,
-      calcPaddedLen
+      calcPaddedLen,
+      pad,
+      unpad
     },
     encrypt: encrypt3,
     decrypt: decrypt3
@@ -6003,6 +6398,146 @@ var NostrTools = (() => {
     };
   }
 
+  // nip22.ts
+  var nip22_exports = {};
+  __export(nip22_exports, {
+    parse: () => parse3
+  });
+  function parseKind(kind) {
+    if (!kind)
+      return void 0;
+    return /^\d+$/.test(kind) ? parseInt(kind, 10) : kind;
+  }
+  function parseAddressPointer(value, relayUrl) {
+    const idx = value.indexOf(":");
+    const idx2 = value.indexOf(":", idx + 1);
+    if (idx === -1 || idx2 === -1)
+      return void 0;
+    const kind = parseInt(value.slice(0, idx), 10);
+    if (Number.isNaN(kind))
+      return void 0;
+    const pubkey = value.slice(idx + 1, idx2);
+    if (!isHex32(pubkey))
+      return void 0;
+    return {
+      kind,
+      pubkey,
+      identifier: value.slice(idx2 + 1),
+      relays: relayUrl ? [relayUrl] : []
+    };
+  }
+  function parsePointer(tag) {
+    switch (tag[0]) {
+      case "E":
+      case "e":
+        if (!tag[1] || !isHex32(tag[1]))
+          return void 0;
+        return {
+          id: tag[1],
+          relays: tag[2] ? [tag[2]] : [],
+          author: tag[3] && isHex32(tag[3]) ? tag[3] : void 0
+        };
+      case "A":
+      case "a":
+        if (!tag[1])
+          return void 0;
+        return parseAddressPointer(tag[1], tag[2]);
+      case "I":
+      case "i":
+        if (!tag[1])
+          return void 0;
+        return {
+          value: tag[1],
+          hint: tag[2]
+        };
+    }
+  }
+  function parseQuote(tag) {
+    if (!tag[1])
+      return void 0;
+    if (tag[1].includes(":")) {
+      return parseAddressPointer(tag[1], tag[2]);
+    }
+    if (!isHex32(tag[1]))
+      return void 0;
+    return {
+      id: tag[1],
+      relays: tag[2] ? [tag[2]] : [],
+      author: tag[3] && isHex32(tag[3]) ? tag[3] : void 0
+    };
+  }
+  function choosePointer(candidates) {
+    return candidates.findLast((candidate) => candidate.tagName === "A" || candidate.tagName === "a")?.pointer || candidates.findLast((candidate) => candidate.tagName === "I" || candidate.tagName === "i")?.pointer || candidates.findLast((candidate) => candidate.tagName === "E" || candidate.tagName === "e")?.pointer;
+  }
+  function inheritRelayHints(pointer, profiles) {
+    if (!pointer || !("id" in pointer) || !pointer.author)
+      return;
+    const author = profiles.find((profile) => profile.pubkey === pointer.author);
+    if (!author || !author.relays)
+      return;
+    if (!pointer.relays) {
+      pointer.relays = [];
+    }
+    author.relays.forEach((url) => {
+      if (pointer.relays.indexOf(url) === -1)
+        pointer.relays.push(url);
+    });
+    author.relays = pointer.relays;
+  }
+  function parse3(event) {
+    const result = {
+      root: void 0,
+      rootKind: void 0,
+      reply: void 0,
+      replyKind: void 0,
+      mentions: [],
+      quotes: [],
+      profiles: []
+    };
+    const rootCandidates = [];
+    const replyCandidates = [];
+    for (const tag of event.tags) {
+      if ((tag[0] === "E" || tag[0] === "A" || tag[0] === "I") && tag[1]) {
+        const pointer = parsePointer(tag);
+        if (pointer)
+          rootCandidates.push({ tagName: tag[0], pointer });
+        continue;
+      }
+      if ((tag[0] === "e" || tag[0] === "a" || tag[0] === "i") && tag[1]) {
+        const pointer = parsePointer(tag);
+        if (pointer)
+          replyCandidates.push({ tagName: tag[0], pointer });
+        continue;
+      }
+      if (tag[0] === "K") {
+        result.rootKind = parseKind(tag[1]);
+        continue;
+      }
+      if (tag[0] === "k") {
+        result.replyKind = parseKind(tag[1]);
+        continue;
+      }
+      if (tag[0] === "q") {
+        const pointer = parseQuote(tag);
+        if (pointer)
+          result.quotes.push(pointer);
+        continue;
+      }
+      if ((tag[0] === "P" || tag[0] === "p") && tag[1] && isHex32(tag[1])) {
+        result.profiles.push({
+          pubkey: tag[1],
+          relays: tag[2] ? [tag[2]] : []
+        });
+      }
+    }
+    result.root = choosePointer(rootCandidates);
+    result.reply = choosePointer(replyCandidates);
+    inheritRelayHints(result.root, result.profiles);
+    inheritRelayHints(result.reply, result.profiles);
+    result.quotes.forEach((pointer) => inheritRelayHints(pointer, result.profiles));
+    return result;
+  }
+
   // nip25.ts
   var nip25_exports = {};
   __export(nip25_exports, {
@@ -6050,12 +6585,12 @@ var NostrTools = (() => {
   // nip27.ts
   var nip27_exports = {};
   __export(nip27_exports, {
-    parse: () => parse3
+    parse: () => parse4
   });
   var noCharacter = /\W/m;
   var noURLCharacter = /[^\w\/] |[^\w\/]$|$|,| /m;
   var MAX_HASHTAG_LENGTH = 42;
-  function* parse3(content) {
+  function* parse4(content) {
     let emojis = [];
     if (typeof content !== "string") {
       for (let i2 = 0; i2 < content.tags.length; i2++) {
@@ -6366,12 +6901,12 @@ var NostrTools = (() => {
   function parseConnectionString(connectionString) {
     const { host, pathname, searchParams } = new URL(connectionString);
     const pubkey = pathname || host;
-    const relay = searchParams.get("relay");
+    const relays = searchParams.getAll("relay");
     const secret = searchParams.get("secret");
-    if (!pubkey || !relay || !secret) {
+    if (!pubkey || relays.length === 0 || !secret) {
       throw new Error("invalid connection string");
     }
-    return { pubkey, relay, secret };
+    return { pubkey, relay: relays[0], relays, secret };
   }
   async function makeNwcRequestEvent(pubkey, secretKey, invoice) {
     const content = {
@@ -6488,10 +7023,10 @@ var NostrTools = (() => {
     let p = zapRequest.tags.find(([t, v]) => t === "p" && v);
     if (!p)
       return "Zap request doesn't have a 'p' tag.";
-    if (!p[1].match(/^[a-f0-9]{64}$/))
+    if (!isHex32(p[1]))
       return "Zap request 'p' tag is not valid hex.";
     let e = zapRequest.tags.find(([t, v]) => t === "e" && v);
-    if (e && !e[1].match(/^[a-f0-9]{64}$/))
+    if (e && !isHex32(e[1]))
       return "Zap request 'e' tag is not valid hex.";
     let relays = zapRequest.tags.find(([t, v]) => t === "relays" && v);
     if (!relays)
