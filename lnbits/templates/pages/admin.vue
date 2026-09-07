@@ -81,7 +81,15 @@
               @click="updateSettings"
               :loading="isSaving"
               :disabled="!checkChanges"
-            ></q-btn>
+            >
+              <q-badge
+                v-if="checkChanges"
+                color="red"
+                rounded
+                floating
+                style="padding: 6px; border-radius: 6px"
+              />
+            </q-btn>
             <q-btn
               v-if="isSuperUser"
               :label="$t('restart')"
@@ -93,6 +101,13 @@
               <q-tooltip v-if="needsRestart">
                 <span v-text="$t('restart_tooltip')"></span>
               </q-tooltip>
+              <q-badge
+                v-if="needsRestart"
+                color="red"
+                rounded
+                floating
+                style="padding: 6px; border-radius: 6px"
+              />
             </q-btn>
             <q-space></q-space>
             <q-btn
