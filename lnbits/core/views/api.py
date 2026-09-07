@@ -5,8 +5,7 @@ from typing import Any
 
 import pyqrcode
 from fastapi import APIRouter, Depends
-from fastapi.encoders import jsonable_encoder
-from fastapi.responses import JSONResponse, StreamingResponse
+from fastapi.responses import StreamingResponse
 
 from lnbits.core.models import (
     ConversionData,
@@ -72,14 +71,12 @@ async def health_check(
     "/api/v1/wallets",
     name="Wallets",
     description="Get basic info for all of user's wallets.",
-    response_model=list[Wallet],
 )
 async def api_wallets(
     user: User = Depends(check_user_exists),
     can_write: bool = Depends(check_api_write_access),
-) -> JSONResponse:
-    wallets = [wallet.with_wallet_keys(keep=can_write) for wallet in user.wallets]
-    return JSONResponse(jsonable_encoder(wallets))
+) -> list[Wallet]:
+    return [wallet.with_wallet_keys(keep=can_write) for wallet in user.wallets]
 
 
 @api_router.post("/api/v1/account")

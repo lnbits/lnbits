@@ -9,7 +9,6 @@ from typing import Annotated
 from uuid import uuid4
 
 from fastapi import APIRouter, Cookie, Depends, HTTPException, Request
-from fastapi.encoders import jsonable_encoder
 from fastapi.responses import JSONResponse, RedirectResponse
 from fastapi_sso.sso.base import OpenID, SSOBase
 from loguru import logger
@@ -129,14 +128,13 @@ def _record_login_failure(cache_key: str) -> None:
     )
 
 
-@auth_router.get("", description="Get the authenticated user", response_model=User)
+@auth_router.get("", description="Get the authenticated user")
 async def get_auth_user(
     user: User = Depends(check_user_exists),
     can_write: bool = Depends(check_api_write_access),
-) -> JSONResponse:
-    for wallet in user.wallets:
-        wallet.with_wallet_keys(keep=can_write)
-    return JSONResponse(jsonable_encoder(user))
+) -> User:
+    user.wallets = [wallet.with_wallet_keys(keep=can_write) for wallet in user.wallets]
+    return user
 
 
 @auth_router.post("", description="Login via the username and password")

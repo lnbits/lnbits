@@ -138,12 +138,12 @@ class Wallet(BaseWallet):
         self._validate_data()
 
     def with_wallet_keys(self, keep: bool = True) -> Wallet:
-        """Return this wallet, removing its credentials when keep is False."""
+        """Return a wallet copy, masking its credentials when keep is False."""
+        wallet = self.copy()
         if not keep:
-            for key in ("adminkey", "inkey"):
-                if hasattr(self, key):
-                    delattr(self, key)
-        return self
+            wallet.adminkey = "*" * 32
+            wallet.inkey = "*" * 32
+        return wallet
 
     def mirror_shared_wallet(
         self,

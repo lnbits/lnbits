@@ -6,9 +6,7 @@ from uuid import uuid4
 
 import shortuuid
 from fastapi import APIRouter, Body, Depends
-from fastapi.encoders import jsonable_encoder
 from fastapi.exceptions import HTTPException
-from fastapi.responses import JSONResponse
 
 from lnbits.core.crud import (
     create_wallet,
@@ -80,18 +78,16 @@ async def api_get_users(
     "/user/{user_id}",
     name="Get user",
     summary="Get user by Id",
-    response_model=User,
 )
 async def api_get_user(
     user_id: str,
     can_write: bool = Depends(check_api_write_access),
-) -> JSONResponse:
+) -> User:
     user = await get_user(user_id, active_only=False)
     if not user:
         raise HTTPException(HTTPStatus.NOT_FOUND, "User not found.")
-    for wallet in user.wallets:
-        wallet.with_wallet_keys(keep=can_write)
-    return JSONResponse(jsonable_encoder(user))
+    user.wallets = [wallet.with_wallet_keys(keep=can_write) for wallet in user.wallets]
+    return user
 
 
 @users_router.post("/user", name="Create user")
@@ -273,17 +269,13 @@ async def api_users_toggle_activated(
     )
 
 
-@users_router.get(
-    "/user/{user_id}/wallet", name="Get wallets for user", response_model=list[Wallet]
-)
+@users_router.get("/user/{user_id}/wallet", name="Get wallets for user")
 async def api_users_get_user_wallet(
     user_id: str,
     can_write: bool = Depends(check_api_write_access),
-) -> JSONResponse:
+) -> list[Wallet]:
     wallets = await get_wallets(user_id, deleted=None)
-    for wallet in wallets:
-        wallet.with_wallet_keys(keep=can_write)
-    return JSONResponse(jsonable_encoder(wallets))
+    return [wallet.with_wallet_keys(keep=can_write) for wallet in wallets]
 
 
 @users_router.post("/user/{user_id}/wallet", name="Create a new wallet for user")

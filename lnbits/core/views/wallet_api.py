@@ -7,8 +7,6 @@ from fastapi import (
     Depends,
     HTTPException,
 )
-from fastapi.encoders import jsonable_encoder
-from fastapi.responses import JSONResponse
 
 from lnbits.core.crud.wallets import (
     clear_wallet_cache,
@@ -76,15 +74,14 @@ async def api_wallets_paginated(
     account_id: AccountId = Depends(check_account_id_exists),
     filters: Filters = Depends(parse_filters(WalletsFilters)),
     can_write: bool = Depends(check_api_write_access),
-) -> JSONResponse:
+):
     page = await get_wallets_paginated(
         user_id=account_id.id,
         filters=filters,
     )
 
-    for wallet in page.data:
-        wallet.with_wallet_keys(keep=can_write)
-    return JSONResponse(jsonable_encoder(page))
+    page.data = [wallet.with_wallet_keys(keep=can_write) for wallet in page.data]
+    return page
 
 
 @wallet_router.put("/share/invite")

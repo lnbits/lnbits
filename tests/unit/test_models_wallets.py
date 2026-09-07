@@ -22,14 +22,11 @@ def test_with_wallet_keys(keep: bool | None):
         else wallet.with_wallet_keys(keep=keep)
     )
 
-    assert result is wallet
+    assert isinstance(result, Wallet)
+    assert result is not wallet
+    assert json.loads(wallet.json()) == original
     expected = original
     if keep is False:
-        expected = {k: v for k, v in original.items() if k not in {"adminkey", "inkey"}}
-        assert not hasattr(wallet, "adminkey")
-        assert not hasattr(wallet, "inkey")
-        assert wallet.with_wallet_keys(keep=False) is wallet
-    else:
-        assert wallet.adminkey == original["adminkey"]
-        assert wallet.inkey == original["inkey"]
-    assert json.loads(wallet.json()) == expected
+        expected = {**original, "adminkey": "*" * 32, "inkey": "*" * 32}
+    assert json.loads(result.json()) == expected
+    assert Wallet(**result.dict()) == result

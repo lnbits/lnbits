@@ -125,7 +125,9 @@ async def test_wallet_keys_require_current_endpoint_write_access(
             expected = originals[wallet["id"]]
             if not write:
                 expected = {
-                    k: v for k, v in expected.items() if k not in {"adminkey", "inkey"}
+                    **expected,
+                    "adminkey": "*" * 32,
+                    "inkey": "*" * 32,
                 }
             assert wallet == expected
 
