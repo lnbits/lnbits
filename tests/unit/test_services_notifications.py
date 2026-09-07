@@ -1,4 +1,5 @@
 import asyncio
+import ipaddress
 from http import HTTPStatus
 from types import SimpleNamespace
 from unittest.mock import MagicMock
@@ -419,10 +420,13 @@ async def test_dispatch_webhook_marks_missing_invalid_and_failed_requests(
     )
 
     await dispatch_webhook(invalid_payment)
-    assert (await get_payment(invalid_payment.checking_id)).webhook_status in {
-        "-1",
-        "200",
-    }
+    assert (await get_payment(invalid_payment.checking_id)).webhook_status == "-1"
+    assert invalid_client.posts == []
+
+    mocker.patch(
+        "lnbits.core.services.notifications._resolve_webhook_host",
+        mocker.AsyncMock(return_value=[ipaddress.ip_address("93.184.216.34")]),
+    )
 
     error_payment = await _create_payment(wallet, webhook="https://error.example")
     assert error_payment.webhook is not None
@@ -457,6 +461,91 @@ async def test_dispatch_webhook_marks_missing_invalid_and_failed_requests(
 
     await dispatch_webhook(request_payment)
     assert (await get_payment(request_payment.checking_id)).webhook_status == "-1"
+
+
+@pytest.mark.anyio
+async def test_dispatch_webhook_blocks_private_targets(
+    settings: Settings, mocker: MockerFixture
+):
+    settings.lnbits_callback_url_rules = []
+    wallet = await _create_wallet()
+    response = httpx.Response(
+        200,
+        request=httpx.Request("POST", "http://169.254.169.254/metadata"),
+    )
+    client = MockHTTPClient(post_response=response)
+    mocker.patch(
+        "lnbits.core.services.notifications.httpx.AsyncClient",
+        return_value=client,
+    )
+
+    direct_payment = await _create_payment(
+        wallet, webhook="http://169.254.169.254/metadata"
+    )
+    await dispatch_webhook(direct_payment)
+
+    assert (await get_payment(direct_payment.checking_id)).webhook_status == "-1"
+    assert client.posts == []
+
+    resolver = mocker.patch(
+        "lnbits.core.services.notifications._resolve_webhook_host",
+        mocker.AsyncMock(
+            return_value=[
+                ipaddress.ip_address("93.184.216.34"),
+                ipaddress.ip_address("10.0.0.1"),
+            ]
+        ),
+    )
+    dns_payment = await _create_payment(
+        wallet, webhook="https://attacker.example/internal"
+    )
+    await dispatch_webhook(dns_payment)
+
+    assert (await get_payment(dns_payment.checking_id)).webhook_status == "-1"
+    assert client.posts == []
+
+    settings.lnbits_callback_allow_private_ips = True
+    resolver.return_value = [ipaddress.ip_address("10.0.0.1")]
+    allowed_payment = await _create_payment(
+        wallet, webhook="https://attacker.example/internal"
+    )
+    await dispatch_webhook(allowed_payment)
+
+    assert (await get_payment(allowed_payment.checking_id)).webhook_status == "200"
+    assert str(client.posts[0][0]) == "https://10.0.0.1/internal"
+
+
+@pytest.mark.anyio
+async def test_dispatch_webhook_pins_allowed_target(
+    settings: Settings, mocker: MockerFixture
+):
+    settings.lnbits_callback_url_rules = []
+    wallet = await _create_wallet()
+    payment = await _create_payment(
+        wallet, webhook="https://callback.example:8443/paid"
+    )
+    client = MockHTTPClient(
+        post_response=httpx.Response(
+            200,
+            request=httpx.Request("POST", "https://93.184.216.34:8443/paid"),
+        )
+    )
+    mocker.patch(
+        "lnbits.core.services.notifications._resolve_webhook_host",
+        mocker.AsyncMock(return_value=[ipaddress.ip_address("93.184.216.34")]),
+    )
+    client_factory = mocker.patch(
+        "lnbits.core.services.notifications.httpx.AsyncClient",
+        return_value=client,
+    )
+
+    await dispatch_webhook(payment)
+
+    assert (await get_payment(payment.checking_id)).webhook_status == "200"
+    assert str(client.posts[0][0]) == "https://93.184.216.34:8443/paid"
+    assert client.posts[0][1]["headers"]["Host"] == "callback.example:8443"
+    assert client.posts[0][1]["extensions"] == {"sni_hostname": "callback.example"}
+    client_factory.assert_called_once_with(follow_redirects=False, trust_env=False)
 
 
 @pytest.mark.anyio

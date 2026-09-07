@@ -10,10 +10,12 @@
       ></q-btn>
     </h6>
 
-    <q-separator class="q-mt-md q-mb-sm"></q-separator>
     <div class="row q-col-gutter-md">
-      <div class="col-sm-12 col-md-6">
-        <strong v-text="$t('notifications_nostr_config')"></strong>
+      <div class="col-12 col-md-6">
+        <h6
+          class="q-my-none q-mb-sm"
+          v-text="$t('notifications_nostr_config')"
+        ></h6>
         <q-item tag="label" v-ripple>
           <q-item-section>
             <q-item-label
@@ -46,7 +48,9 @@
           </q-item-section>
           <q-item-section>
             <q-input
+              dense
               :type="hideInputToggle ? 'password' : 'text'"
+              autocomplete="off"
               filled
               v-model="formData.lnbits_nostr_notifications_private_key"
             />
@@ -65,6 +69,7 @@
           </q-item-section>
           <q-item-section>
             <q-input
+              dense
               filled
               v-model="nostrNotificationIdentifier"
               @keydown.enter="addNostrNotificationIdentifier"
@@ -97,8 +102,11 @@
         </div>
       </div>
 
-      <div class="col-sm-12 col-md-6">
-        <strong v-text="$t('notifications_telegram_config')"></strong>
+      <div class="col-12 col-md-6">
+        <h6
+          class="q-my-none q-mb-sm"
+          v-text="$t('notifications_telegram_config')"
+        ></h6>
         <q-item tag="label" v-ripple>
           <q-item-section>
             <q-item-label
@@ -131,7 +139,9 @@
           </q-item-section>
           <q-item-section>
             <q-input
+              dense
               :type="hideInputToggle ? 'password' : 'text'"
+              autocomplete="off"
               filled
               v-model="formData.lnbits_telegram_notifications_access_token"
             />
@@ -147,17 +157,21 @@
           </q-item-section>
           <q-item-section>
             <q-input
+              dense
               filled
               v-model="formData.lnbits_telegram_notifications_chat_id"
             />
           </q-item-section>
         </q-item>
       </div>
-      <div class="col-sm-12">
-        <q-separator></q-separator>
+      <div class="col-12">
+        <q-separator class="q-mb-lg q-mt-md"></q-separator>
       </div>
       <div class="col-12">
-        <strong v-text="$t('notifications_email_config')"></strong>
+        <h6
+          class="q-my-none q-mb-sm"
+          v-text="$t('notifications_email_config')"
+        ></h6>
         <q-item tag="label" v-ripple>
           <q-item-section>
             <q-item-label
@@ -193,7 +207,9 @@
               </q-item-section>
               <q-item-section>
                 <q-input
-                  :type="hideInputToggle ? 'password' : 'text'"
+                  dense
+                  type="email"
+                  autocomplete="off"
                   filled
                   v-model="formData.lnbits_email_notifications_email"
                 />
@@ -211,7 +227,9 @@
               </q-item-section>
               <q-item-section>
                 <q-input
-                  :type="hideInputToggle ? 'password' : 'text'"
+                  dense
+                  type="text"
+                  autocomplete="off"
                   filled
                   v-model="formData.lnbits_email_notifications_username"
                 />
@@ -229,7 +247,9 @@
               </q-item-section>
               <q-item-section>
                 <q-input
+                  dense
                   :type="hideInputToggle ? 'password' : 'text'"
+                  autocomplete="off"
                   filled
                   v-model="formData.lnbits_email_notifications_password"
                 />
@@ -258,6 +278,7 @@
               </q-item-section>
               <q-item-section>
                 <q-input
+                  dense
                   filled
                   v-model="emailNotificationAddress"
                   @keydown.enter="addEmailNotificationAddress"
@@ -294,7 +315,8 @@
               </q-item-section>
               <q-item-section>
                 <q-input
-                  :type="hideInputToggle ? 'password' : 'text'"
+                  dense
+                  type="number"
                   filled
                   v-model="formData.lnbits_email_notifications_port"
                 />
@@ -312,7 +334,8 @@
               </q-item-section>
               <q-item-section>
                 <q-input
-                  :type="hideInputToggle ? 'password' : 'text'"
+                  dense
+                  type="text"
                   filled
                   v-model="formData.lnbits_email_notifications_server"
                 />
@@ -322,8 +345,8 @@
         </div>
       </div>
     </div>
-    <q-separator> </q-separator>
-    <h6 class="q-mb-sm">
+    <q-separator class="q-mb-lg q-mt-md"></q-separator>
+    <h6 class="q-my-none q-mb-sm">
       <span v-text="$t('notifications')"></span>
     </h6>
     <div class="row q-col-gutter-md">
@@ -407,11 +430,13 @@
 
           <q-item-section avatar>
             <q-input
+              dense
               class="flow-right"
               type="number"
               min="0"
               filled
               v-model="formData.notification_balance_delta_threshold_sats"
+              :suffix="$t('sats')"
             />
           </q-item-section>
         </q-item>
@@ -452,11 +477,13 @@
 
           <q-item-section avatar>
             <q-input
+              dense
               class="flow-right"
               type="number"
               min="0"
               filled
               v-model="formData.lnbits_notification_server_status_hours"
+              :suffix="$t('hours')"
             />
           </q-item-section>
         </q-item>
@@ -475,6 +502,7 @@
 
           <q-item-section avatar>
             <q-input
+              dense
               class="flow-right"
               type="number"
               min="0"
@@ -482,6 +510,7 @@
               v-model="
                 formData.lnbits_notification_incoming_payment_amount_sats
               "
+              :suffix="$t('sats')"
             />
           </q-item-section>
         </q-item>
@@ -500,6 +529,7 @@
 
           <q-item-section avatar>
             <q-input
+              dense
               class="flow-right"
               type="number"
               min="0"
@@ -507,6 +537,7 @@
               v-model="
                 formData.lnbits_notification_outgoing_payment_amount_sats
               "
+              :suffix="$t('sats')"
             />
           </q-item-section>
         </q-item>

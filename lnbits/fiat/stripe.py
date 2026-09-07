@@ -3,6 +3,7 @@ import json
 import uuid
 from collections.abc import AsyncGenerator
 from datetime import datetime, timedelta, timezone
+from decimal import Decimal
 from typing import Any, Literal
 from urllib.parse import urlencode
 
@@ -27,6 +28,26 @@ from .base import (
 )
 
 FiatMethod = Literal["checkout", "terminal", "subscription"]
+
+STRIPE_ZERO_DECIMAL_CURRENCIES = {
+    "BIF",
+    "CLP",
+    "DJF",
+    "GNF",
+    "JPY",
+    "KMF",
+    "KRW",
+    "MGA",
+    "PYG",
+    "RWF",
+    "VND",
+    "VUV",
+    "XAF",
+    "XOF",
+    "XPF",
+}
+STRIPE_THREE_DECIMAL_CURRENCIES = {"BHD", "JOD", "KWD", "OMR", "TND"}
+STRIPE_WHOLE_UNIT_CURRENCIES = {"ISK", "UGX"}
 
 
 class StripeTerminalOptions(BaseModel):
@@ -124,18 +145,21 @@ class StripeWallet(FiatProvider):
         extra: dict[str, Any] | None = None,
         **kwargs,
     ) -> FiatInvoiceResponse:
-        amount_cents = int(amount * 100)
         opts = self._parse_create_opts(extra or {})
         if not opts:
             return FiatInvoiceResponse(ok=False, error_message="Invalid Stripe options")
+        try:
+            amount_minor = self.amount_to_minor_units(amount, currency)
+        except ValueError as exc:
+            return FiatInvoiceResponse(ok=False, error_message=str(exc))
 
         if opts.fiat_method == "checkout":
             return await self._create_checkout_invoice(
-                amount_cents, currency, payment_hash, memo, opts.checkout
+                amount_minor, amount, currency, payment_hash, memo, opts.checkout
             )
         if opts.fiat_method == "terminal":
             return await self._create_terminal_invoice(
-                amount_cents, currency, payment_hash, opts.terminal
+                amount_minor, amount, currency, payment_hash, opts.terminal
             )
 
         if opts.fiat_method == "subscription":
@@ -260,20 +284,38 @@ class StripeWallet(FiatProvider):
             if stripe_id.startswith("cs_"):
                 r = await self.client.get(f"/v1/checkout/sessions/{stripe_id}")
                 r.raise_for_status()
-                return self._status_from_checkout_session(r.json())
+                data = r.json()
+                status = self._status_from_checkout_session(data)
+                amount_field = "amount_total"
+                verify_amount = True
 
-            if stripe_id.startswith("pi_"):
+            elif stripe_id.startswith("pi_"):
                 r = await self.client.get(f"/v1/payment_intents/{stripe_id}")
                 r.raise_for_status()
-                return self._status_from_payment_intent(r.json())
+                data = r.json()
+                status = self._status_from_payment_intent(data)
+                amount_field = "amount_received"
+                verify_amount = True
 
-            if stripe_id.startswith("in_"):
+            elif stripe_id.startswith("in_"):
                 r = await self.client.get(f"/v1/invoices/{stripe_id}")
                 r.raise_for_status()
-                return self._status_from_invoice(r.json())
+                data = r.json()
+                status = self._status_from_invoice(data)
+                amount_field = "amount_paid"
+                verify_amount = False
 
-            logger.debug(f"Unknown Stripe id prefix: {checking_id}")
-            return FiatPaymentPendingStatus()
+            else:
+                logger.debug(f"Unknown Stripe id prefix: {checking_id}")
+                return FiatPaymentPendingStatus()
+
+            if (
+                status.success
+                and verify_amount
+                and not self._amount_matches(data, amount_field)
+            ):
+                return FiatPaymentPendingStatus()
+            return status
 
         except Exception as exc:
             logger.debug(f"Error getting invoice status: {exc}")
@@ -307,7 +349,8 @@ class StripeWallet(FiatProvider):
 
     async def _create_checkout_invoice(
         self,
-        amount_cents: int,
+        amount_minor: int,
+        amount: float | str,
         currency: str,
         payment_hash: str,
         memo: str | None,
@@ -321,17 +364,22 @@ class StripeWallet(FiatProvider):
         )
         line_item_name = co.line_item_name or memo or "LNbits Invoice"
 
+        metadata = {
+            **co.metadata,
+            "payment_hash": payment_hash,
+            "alan_action": "invoice",
+            "lnbits_amount": str(amount),
+            "lnbits_currency": currency.upper(),
+        }
         form_data: list[tuple[str, str]] = [
             ("mode", "payment"),
             ("success_url", success_url),
-            ("metadata[payment_hash]", payment_hash),
-            ("metadata[alan_action]", "invoice"),
             ("line_items[0][price_data][currency]", currency.lower()),
             ("line_items[0][price_data][product_data][name]", line_item_name),
-            ("line_items[0][price_data][unit_amount]", str(amount_cents)),
+            ("line_items[0][price_data][unit_amount]", str(amount_minor)),
             ("line_items[0][quantity]", "1"),
         ]
-        form_data += self._encode_metadata("metadata", co.metadata)
+        form_data += self._encode_metadata("metadata", metadata)
 
         try:
             r = await self.client.post(
@@ -361,21 +409,27 @@ class StripeWallet(FiatProvider):
 
     async def _create_terminal_invoice(
         self,
-        amount_cents: int,
+        amount_minor: int,
+        amount: float | str,
         currency: str,
         payment_hash: str,
         opts: StripeTerminalOptions | None = None,
     ) -> FiatInvoiceResponse:
         term = opts or StripeTerminalOptions()
+        metadata = {
+            **term.metadata,
+            "payment_hash": payment_hash,
+            "source": "lnbits",
+            "lnbits_amount": str(amount),
+            "lnbits_currency": currency.upper(),
+        }
         data: dict[str, str] = {
-            "amount": str(amount_cents),
+            "amount": str(amount_minor),
             "currency": currency.lower(),
             "payment_method_types[]": "card_present",
             "capture_method": term.capture_method,
-            "metadata[payment_hash]": payment_hash,
-            "metadata[source]": "lnbits",
         }
-        for k, v in (term.metadata or {}).items():
+        for k, v in metadata.items():
             data[f"metadata[{k}]"] = str(v)
 
         try:
@@ -478,6 +532,73 @@ class StripeWallet(FiatProvider):
             return FiatPaymentFailedStatus()
 
         return FiatPaymentPendingStatus()
+
+    @classmethod
+    def amount_to_minor_units(cls, amount: float | str, currency: str) -> int:
+        normalized_currency = currency.upper()
+        exponent = cls.currency_exponent(normalized_currency)
+        decimal_amount = Decimal(str(amount))
+        if not decimal_amount.is_finite() or decimal_amount <= 0:
+            raise ValueError("Stripe amount must be a positive finite number.")
+        if (
+            normalized_currency in STRIPE_WHOLE_UNIT_CURRENCIES
+            and decimal_amount != decimal_amount.to_integral_value()
+        ):
+            raise ValueError(
+                f"Stripe does not support fractional {normalized_currency} amounts."
+            )
+
+        amount_minor = decimal_amount * (Decimal(10) ** exponent)
+        if amount_minor != amount_minor.to_integral_value():
+            raise ValueError(
+                f"Stripe {normalized_currency} amounts support at most "
+                f"{exponent} decimal places."
+            )
+        return int(amount_minor)
+
+    @classmethod
+    def minor_units_to_amount(cls, amount: int, currency: str) -> float:
+        scale = Decimal(10) ** cls.currency_exponent(currency)
+        return float(Decimal(amount) / scale)
+
+    @classmethod
+    def currency_exponent(cls, currency: str) -> int:
+        normalized_currency = currency.upper()
+        if normalized_currency in STRIPE_ZERO_DECIMAL_CURRENCIES:
+            return 0
+        if normalized_currency in STRIPE_THREE_DECIMAL_CURRENCIES:
+            return 3
+        return 2
+
+    @classmethod
+    def _amount_matches(
+        cls,
+        data: dict,
+        amount_field: str,
+    ) -> bool:
+        metadata = data.get("metadata") or {}
+        expected_amount = metadata.get("lnbits_amount")
+        expected_currency = metadata.get("lnbits_currency")
+        if expected_amount is None or not expected_currency:
+            logger.warning("Stripe payment is missing LNbits amount metadata.")
+            return False
+
+        actual_amount = data.get(amount_field)
+        actual_currency = data.get("currency")
+        if actual_amount is None or not actual_currency:
+            logger.warning("Stripe payment response is missing amount or currency.")
+            return False
+
+        expected_amount_minor = cls.amount_to_minor_units(
+            expected_amount, expected_currency
+        )
+        matches = (
+            int(actual_amount) == expected_amount_minor
+            and str(actual_currency).upper() == expected_currency.upper()
+        )
+        if not matches:
+            logger.warning("Stripe payment amount or currency does not match invoice.")
+        return matches
 
     def _build_headers_form(self) -> dict[str, str]:
         return {**self.headers, "Content-Type": "application/x-www-form-urlencoded"}

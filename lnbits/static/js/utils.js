@@ -321,7 +321,7 @@ window._lnbitsUtils = {
     const converter = new showdown.Converter()
     converter.setFlavor('github')
     converter.setOption('simpleLineBreaks', true)
-    return converter.makeHtml(text)
+    return DOMPurify.sanitize(converter.makeHtml(text))
   },
   _extI18nDirs: new Set(),
   _extI18nLoaded: {},

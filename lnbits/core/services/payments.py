@@ -5,8 +5,6 @@ from datetime import datetime, timedelta, timezone
 from bolt11 import Bolt11, MilliSatoshi, Tags
 from bolt11 import decode as bolt11_decode
 from bolt11 import encode as bolt11_encode
-from lnurl import LnurlErrorResponse, LnurlSuccessResponse
-from lnurl import execute_withdraw as lnurl_withdraw
 from loguru import logger
 
 from lnbits.core.crud.payments import get_daily_stats
@@ -49,6 +47,7 @@ from ..models import (
     Wallet,
 )
 from .fiat_providers import check_fiat_status
+from .lnurl import execute_withdraw as lnurl_withdraw
 from .notifications import send_payment_notification_in_background
 
 payment_lock = asyncio.Lock()
@@ -131,6 +130,8 @@ async def create_fiat_invoice(
     fiat_provider_name = invoice_data.fiat_provider
     if not fiat_provider_name:
         raise ValueError("Fiat provider is required for fiat invoices.")
+    if invoice_data.lnurl_withdraw:
+        raise ValueError("Fiat provider cannot be combined with LNURL withdraw.")
     if not settings.is_fiat_provider_enabled(fiat_provider_name):
         raise ValueError(
             f"Fiat provider '{fiat_provider_name}' is not enabled.",
@@ -186,6 +187,9 @@ async def create_fiat_invoice(
 
 
 async def create_wallet_invoice(wallet_id: str, data: CreateInvoice) -> Payment:
+    if data.webhook:
+        check_callback_url(data.webhook)
+
     description_hash = None
     unhashed_description = None
     memo = data.memo or settings.lnbits_site_title
@@ -229,21 +233,16 @@ async def create_wallet_invoice(wallet_id: str, data: CreateInvoice) -> Payment:
     if data.lnurl_withdraw:
         try:
             check_callback_url(data.lnurl_withdraw.callback)
-            res = await lnurl_withdraw(
+            await lnurl_withdraw(
                 data.lnurl_withdraw,
                 payment.bolt11,
                 user_agent=settings.user_agent,
                 timeout=10,
             )
-            if isinstance(res, LnurlErrorResponse):
-                payment.extra["lnurl_response"] = res.reason
-                payment.status = "failed"
-            elif isinstance(res, LnurlSuccessResponse):
-                payment.extra["lnurl_response"] = True
-                payment.status = "success"
+            payment.extra["lnurl_response"] = True
         except Exception as exc:
             payment.extra["lnurl_response"] = str(exc)
-            payment.status = "failed"
+            payment.status = PaymentState.FAILED
         # updating to payment here would run into a race condition
         # with the payment listeners and they will overwrite each other
 

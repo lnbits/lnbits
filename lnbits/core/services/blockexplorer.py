@@ -8,6 +8,8 @@ from lnbits.utils.electrum import (
     Balance,
     BlockHeader,
     BlockInfo,
+    BlockTransaction,
+    BlockTransactions,
     ElectrumClient,
     FeeResponse,
     Transaction,
@@ -64,6 +66,32 @@ async def fetch_transaction(txid: str) -> Transaction:
     async with _client() as c:
         raw_hex = await c.get_transaction(txid)
     return parse_raw_tx(raw_hex, network=c.network)
+
+
+async def fetch_block_transactions(
+    height: int, offset: int = 0, limit: int = 12
+) -> BlockTransactions:
+    positions = range(offset, offset + limit + 1)
+    async with _client() as client:
+        results = await asyncio.gather(
+            *(client.get_tx_id_from_pos(height, position) for position in positions),
+            return_exceptions=True,
+        )
+
+    if results and isinstance(results[0], BaseException):
+        raise results[0]
+
+    transactions: list[BlockTransaction] = []
+    for position, result in zip(positions, results, strict=False):
+        if isinstance(result, BaseException) or not isinstance(result, str):
+            break
+        transactions.append(BlockTransaction(position=position, txid=result))
+
+    return BlockTransactions(
+        transactions=transactions[:limit],
+        offset=offset,
+        has_more=len(transactions) > limit,
+    )
 
 
 async def fetch_onchain_balance(onchain_address: str) -> AddressResponse:

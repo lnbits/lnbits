@@ -1,21 +1,23 @@
 from hashlib import sha256
 from http import HTTPStatus
 from pathlib import Path
-from urllib.parse import urlencode, urlparse
+from urllib.parse import urlparse
 
-import httpx
 from fastapi import Depends, Request
 from fastapi.exceptions import HTTPException
 from fastapi.responses import FileResponse, HTMLResponse, RedirectResponse
 from fastapi.routing import APIRouter
-from lnurl import url_decode
+from lnurl import LnurlException, LnurlWithdrawResponse, url_decode
 
 from lnbits.core.helpers import to_valid_user_id
 from lnbits.core.models import User
 from lnbits.core.services import create_invoice, create_user_account
+from lnbits.core.services.lnurl import execute_withdraw, handle
 from lnbits.decorators import (
     check_admin,
     check_admin_ui,
+    check_blockexplorer_access,
+    check_blockexplorer_public,
     check_extension_builder,
     check_first_install,
     check_user_exists,
@@ -185,8 +187,6 @@ admin_ui_checks = [Depends(check_admin), Depends(check_admin_ui)]
 @generic_router.get("/wallets")
 @generic_router.get("/account")
 @generic_router.get("/extensions")
-@generic_router.get("/blockexplorer")
-@generic_router.get("/blockexplorer/{resource_type}/{resource}")
 @generic_router.get("/users", dependencies=admin_ui_checks)
 @generic_router.get("/audit", dependencies=admin_ui_checks)
 @generic_router.get("/node", dependencies=admin_ui_checks)
@@ -221,6 +221,28 @@ async def index_public(request: Request) -> HTMLResponse:
     return template_renderer().TemplateResponse(request, "base.html", {"public": True})
 
 
+@generic_router.get("/blockexplorer")
+@generic_router.get("/blockexplorer/{resource_type}/{resource}")
+async def index_blockexplorer(
+    request: Request,
+    user: User = Depends(check_blockexplorer_access),
+) -> HTMLResponse:
+    return template_renderer().TemplateResponse(
+        request, "base.html", {"user": user.json()}
+    )
+
+
+@generic_router.get(
+    "/blockexplorer/public", dependencies=[Depends(check_blockexplorer_public)]
+)
+@generic_router.get(
+    "/blockexplorer/public/{resource_type}/{resource}",
+    dependencies=[Depends(check_blockexplorer_public)],
+)
+async def index_blockexplorer_public(request: Request) -> HTMLResponse:
+    return template_renderer().TemplateResponse(request, "base.html", {"public": True})
+
+
 @generic_router.get("/uuidv4/{hex_value}")
 async def hex_to_uuid4(hex_value: str):
     try:
@@ -246,35 +268,44 @@ async def lnurlwallet(request: Request, lightning: str = ""):
         return {"status": "ERROR", "reason": "New accounts are not allowed."}
 
     lnurl = url_decode(lightning)
-
-    async with httpx.AsyncClient() as client:
+    try:
         check_callback_url(lnurl)
-        res1 = await client.get(lnurl, timeout=2)
-        res1.raise_for_status()
-        data1 = res1.json()
-        if data1.get("tag") != "withdrawRequest":
+        withdraw = await handle(lnurl, user_agent=settings.user_agent, timeout=2)
+        if not isinstance(withdraw, LnurlWithdrawResponse):
             raise HTTPException(
                 status_code=HTTPStatus.BAD_REQUEST,
                 detail="Invalid lnurl. Expected tag=withdrawRequest",
             )
-        if not data1.get("maxWithdrawable"):
+        if not withdraw.maxWithdrawable:
             raise HTTPException(
                 status_code=HTTPStatus.BAD_REQUEST,
                 detail="Invalid lnurl. Expected maxWithdrawable",
             )
-        account = await create_user_account()
-        wallet = account.wallets[0]
-        payment = await create_invoice(
-            wallet_id=wallet.id,
-            amount=data1.get("maxWithdrawable") / 1000,
-            memo=data1.get("defaultDescription", "lnurl wallet withdraw"),
-        )
-        url = data1.get("callback")
-        params = {"k1": data1.get("k1"), "pr": payment.bolt11}
-        callback = url + ("&" if urlparse(url).query else "?") + urlencode(params)
+        check_callback_url(withdraw.callback)
+    except (LnurlException, ValueError) as exc:
+        raise HTTPException(
+            status_code=HTTPStatus.BAD_REQUEST, detail=str(exc)
+        ) from exc
 
-        res2 = await client.get(callback, timeout=5)
-        res2.raise_for_status()
+    account = await create_user_account()
+    wallet = account.wallets[0]
+    payment = await create_invoice(
+        wallet_id=wallet.id,
+        amount=withdraw.maxWithdrawable / 1000,
+        memo=withdraw.defaultDescription or "lnurl wallet withdraw",
+    )
+
+    try:
+        await execute_withdraw(
+            withdraw,
+            payment.bolt11,
+            user_agent=settings.user_agent,
+            timeout=5,
+        )
+    except LnurlException as exc:
+        raise HTTPException(
+            status_code=HTTPStatus.BAD_REQUEST, detail=str(exc)
+        ) from exc
 
     return RedirectResponse(
         f"/wallet?usr={account.id}&wal={wallet.id}",

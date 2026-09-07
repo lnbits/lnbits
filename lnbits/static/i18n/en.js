@@ -32,6 +32,18 @@ window.localisation.en = {
   image_library: 'Image Library',
   save: 'Save',
   save_tooltip: 'Save your changes',
+  advanced: 'Advanced',
+  admin_settings: 'Instance settings',
+  admin_settings_description:
+    'Configure payments, access, integrations, and appearance for this LNbits instance.',
+  search_settings: 'Search settings…',
+  no_settings_found: 'No matching settings found',
+  unsaved_changes: 'Unsaved changes',
+  all_changes_saved: 'All changes saved',
+  settings_money: 'Money',
+  settings_access: 'Access',
+  settings_system: 'System',
+  settings_appearance: 'Appearance',
   must_save: 'You have unsaved changes',
   credit_debit: 'Credit / Debit',
   credit_hint: 'Press Enter to credit/debit wallet (negative values allowed)',
@@ -403,18 +415,38 @@ window.localisation.en = {
   allow_access_hint: 'Allow access by IP (will override blocked IPs)',
   enter_ip: 'Enter an IP address and press enter',
   rate_limiter: 'Rate Limiter',
+  callback: 'Callback',
   callback_url_rules: 'Callback URL Rules',
   enter_callback_url_rule: 'Enter URL rule as regex and hit enter',
   callback_url_rule_hint:
-    'Callback URLs (like LNURL one) will be validated against these rules. At leat one rule must match. No rule means all URLs are allowed.',
-  wallet_limiter: 'Wallet Limiter',
+    'Callback URL origins are validated against these rules. At least one rule must match. No rules allow any valid origin; private targets still require the private-IP option.',
+  callback_allow_private_ips:
+    'Allow private IP addresses for callback requests',
+  callback_allow_private_ips_hint:
+    'Development only. Allows callbacks to localhost and private network addresses.',
+  lnurl: 'LNURL',
+  lnurl_redirect_url_rules: 'LNURL Redirect URL Rules',
+  lnurl_redirect_url_rule_hint:
+    'Redirects are denied unless their destination origin matches one of these rules. No rules means redirects are disabled.',
+  lnurl_allow_private_ips: 'Allow private IP addresses for LNURL requests',
+  lnurl_allow_private_ips_hint:
+    'Development only. Allows LNURL requests to localhost and private network addresses.',
+  wallet_limiter: 'Wallet limits',
+  wallet_limiter_desc:
+    'Global balance, withdrawal, and transaction limits for every wallet.',
+  wallet_limiter_warning:
+    'These limits apply to every wallet and can prevent outgoing payments.',
   wallet_config: 'Wallet Config',
   wallet_charts: 'Wallet Charts',
-  wallet_limit_max_withdraw_per_day:
-    'Max daily wallet withdrawal in sats (0 for no limit, -1 to block withdrawal)',
-  wallet_max_ballance: 'Wallet max balance in sats (0 to disable)',
-  wallet_limit_secs_between_trans:
-    'Min secs between transactions per wallet (0 to disable)',
+  wallet_limit_max_withdraw_per_day: 'Maximum daily withdrawal',
+  wallet_max_ballance: 'Maximum wallet balance',
+  wallet_limit_secs_between_trans: 'Minimum time between payments',
+  zero_disables_limit: 'Enter 0 for no limit.',
+  payment_permissions: 'Payment permissions',
+  send_and_receive: 'Send and receive',
+  receive_only: 'Receive only',
+  payment_permissions_desc:
+    'Receive-only mode disables outgoing payments for every wallet.',
   only_incoming_payments_allowed: 'Allow incoming payments only',
   disable_outgoing_payments: 'Disable outgoing payments',
   number_of_requests: 'Number of requests to allow',
@@ -439,6 +471,8 @@ window.localisation.en = {
   login_to_account: 'Login to your account',
   create_account: 'Create account',
   account_settings: 'Account Settings',
+  account_settings_description:
+    'Manage your profile, identity, and account credentials.',
   signin_with_oauth: 'Login with',
   signin_with_oauth_or: 'or Login with',
   signin_with_nostr: 'Continue with Nostr',
@@ -472,6 +506,12 @@ window.localisation.en = {
   picture: 'Picture',
   user_picture_desc:
     'URL to an image to use as profile picture. You can upload it as an asset.',
+  account_notifications_description:
+    'Choose where account and payment notifications are delivered.',
+  account_assets_description:
+    'Upload and manage images and other assets owned by your account.',
+  account_labels_description:
+    'Create reusable labels for organising wallets and payments.',
   verify_email: 'Verify email with',
   account: 'Account',
   update_account: 'Update Account',
@@ -479,17 +519,23 @@ window.localisation.en = {
   auth_provider: 'Auth Provider',
   external_id: 'External ID',
   my_account: 'My Account',
+  my_account_description:
+    'Manage your profile, notifications, appearance, access, and personal data.',
   existing_account_question: 'Already have an account?',
   background_image: 'Background Image',
   back: 'Back',
   logout: 'Logout',
   look_and_feel: 'Look and Feel',
+  look_and_feel_description:
+    'Choose your language, theme, background, and interface preferences.',
   endpoint: 'Endpoint',
   api: 'API',
   api_stripe: 'API',
   api_token: 'API Token',
   api_tokens: 'API Tokens',
   access_control_list: 'Access Control List',
+  access_control_list_description:
+    'Create restricted API tokens and control their endpoint permissions.',
   access_control_list_admin_warning:
     'This is an admin account. The generated tokens will have admin privileges.',
   new_api_acl: 'New Access Control List',
@@ -687,6 +733,7 @@ window.localisation.en = {
   routing_fee_reserve_calculations_desc:
     'LNbits sets aside a “reserve amount” for each payment to cover routing fees. The maximum routing fee passed to the funding source is whichever is higher: the <strong>minimum routing fee reserve</strong> or the <strong>routing fee reserve percentage</strong>.',
   millisats: 'millisats',
+  sats: 'sats',
   fee_reserve: 'Minimum Routing Fee Reserve',
   fee_reserve_percent: 'Routing Fee Reserve Percentage',
   fee_reserve_min_hint:
@@ -696,6 +743,9 @@ window.localisation.en = {
   payment_timeouts: 'Payment Timeouts',
   payment_wait_time: 'Payment Wait Time',
   seconds: 'seconds',
+  minutes: 'minutes',
+  hours: 'hours',
+  days: 'days',
   payment_pending_interval: 'Check payment interval (sec)',
   payment_pending_interval_desc: 'Interval to check pending payments',
   payment_pending_interval_tooltip:
@@ -707,9 +757,9 @@ window.localisation.en = {
   server_management: 'Server Management',
   base_url_label: 'Base URL of the server',
   authentication: 'Authentication',
-  auth_token_expiry_label: 'Token expiry (minutes)',
+  auth_token_expiry_label: 'Token expiry',
   auth_token_expiry_hint: 'Time in minutes until the token expires',
-  auth_authentication_cache_label: 'Cache time (minutes)',
+  auth_authentication_cache_label: 'Authentication cache time',
   auth_authentication_cache_hint:
     'Time in minutes to cache successful authentication (0 to disable)',
   auth_allowed_methods_label: 'Allowed authorization methods',
@@ -739,7 +789,11 @@ window.localisation.en = {
   auth_oidc_custom_org_label:
     'OIDC Custom Organization Name (e.g., Zitadel, Authentik)',
   auth_oidc_custom_icon_label: 'OIDC Custom Icon (URL)',
-  currency_settings: 'Currency Settings',
+  security_tools_desc:
+    'Advanced request filtering, rate limiting, callbacks, and server diagnostics.',
+  currency_settings: 'Currency',
+  currency_settings_desc:
+    'Choose which fiat currencies are available and the accounting default.',
   allowed_currencies: 'Allowed Currencies',
   allowed_currencies_hint:
     'Set the allowed fiat currencies for the exchange features',
@@ -749,13 +803,18 @@ window.localisation.en = {
   min_incoming_payment_amount: 'Min Incoming Payment Amount',
   min_incoming_payment_amount_desc:
     'Minimum amount allowed for generating an invoice',
-  max_incoming_payment_amount: 'Maximum Incoming Payment Amount',
-  max_incoming_payment_amount_desc:
-    'Maximum amount allowed when generating an invoice',
-  max_outgoing_payment_amount: 'Maximum Outgoing Payment Amount',
-  max_outgoing_payment_amount_desc:
-    'Maximum amount allowed when making a payment',
-  service_fees: 'Service Fees',
+  payment_limits: 'Payment limits',
+  payment_limits_desc: 'Set the largest payment wallets can send or receive.',
+  payment_limits_warning:
+    'These limits apply globally and may reject payments or invoices.',
+  max_incoming_payment_amount: 'Maximum incoming payment',
+  max_incoming_payment_amount_desc: 'Largest invoice a wallet can create.',
+  max_outgoing_payment_amount: 'Maximum outgoing payment',
+  max_outgoing_payment_amount_desc: 'Largest payment a wallet can send.',
+  lightning_addresses_desc:
+    'Control address resolution, custom wallet addresses, and reserved names.',
+  service_fees: 'Service fees',
+  service_fees_desc: 'Charge a percentage fee on outgoing transactions.',
   service_fee: 'Service Fee',
   service_fee_label: 'Service Fee Charged Per Transaction',
   service_fee_hint: 'Fee charged per transaction (%)',
@@ -765,6 +824,8 @@ window.localisation.en = {
   fee_wallet_label: 'Service Fee Wallet ID',
   fee_wallet_hint: 'The ID of the wallet to which to send service funds',
   disable_fee: 'Disable Service Fees for Internal Payments',
+  disable_fee_desc:
+    'Do not charge fees when both wallets are on this instance.',
   ui_management: 'UI Management',
   ui_site_title: 'Site Title',
   ui_changing_remove_lnbits_elements:
@@ -948,6 +1009,11 @@ window.localisation.en = {
   blockexplorer_public_api: 'Public API Access',
   blockexplorer_public_api_desc:
     'Allow unauthenticated access to the block explorer API endpoints.',
+  blockexplorer_in_user_menu: 'Add to user menus',
+  blockexplorer_in_user_menu_desc:
+    'Show Block Explorer in the navigation menu for regular users.',
+  view_public_block_explorer: 'View public block explorer page',
+  public_page: 'Public Page',
   electrum_compatible_server: 'Electrum compatible server',
   electrum_server_url: 'Electrum Server URL',
   electrum_server_url_hint:
@@ -961,6 +1027,22 @@ window.localisation.en = {
   blockexplorer_search_hint:
     '64-char hex = transaction  ·  anything else = Bitcoin address',
   recent_blocks: 'Recent Blocks',
+  latest: 'Latest',
+  projected_blocks: 'Projected',
+  next_block: 'Next block',
+  projected_block: 'Block {number}',
+  projected_block_desc: 'Projected from the Electrum mempool fee histogram',
+  block_intervals: 'Block Intervals',
+  block_intervals_desc: 'Time between the most recent blocks',
+  block_interval_short: '{minutes} min interval',
+  minutes_short: '{value} min average',
+  observed_block_time: 'Observed block time',
+  target_block_time: '10 minute target',
+  mempool_fee_distribution: 'Mempool Fee Distribution',
+  mempool_fee_distribution_desc: 'Queued transaction size by fee rate',
+  mempool_virtual_size: 'Mempool virtual size',
+  virtual_size_mb: 'Virtual size (MvB)',
+  fee_rate_axis: 'Fee rate (sat/vB)',
   chain_tip: 'Chain Tip',
   block_height: 'Block Height',
   block_fee: 'block fee',
@@ -968,6 +1050,7 @@ window.localisation.en = {
   confirmed_balance: 'Confirmed Balance',
   unconfirmed_balance: 'Unconfirmed Balance',
   transaction_history: 'Transaction History',
+  pagination_range: '{start}–{end} of {total}',
   coinbase: 'Coinbase',
   inputs: 'Inputs',
   outputs: 'Outputs',
@@ -987,6 +1070,11 @@ window.localisation.en = {
   bits: 'Bits',
   difficulty: 'Difficulty',
   nonce: 'Nonce',
+  block_transactions_unavailable:
+    'Transaction listing is not supported by the configured Electrum server.',
+  transaction_position: 'Transaction {position}',
+  previous_page: 'Previous',
+  next_page: 'Next',
   txid: 'TXID',
   vsize: 'Virtual Size',
   weight: 'Weight',

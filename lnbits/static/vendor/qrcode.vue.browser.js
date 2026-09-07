@@ -1,5 +1,5 @@
 /*!
- * qrcode.vue v3.9.0
+ * qrcode.vue v3.10.0
  * A Vue.js component to generate QRCode. Both support Vue 2 and Vue 3
  * © 2017-PRESENT @scopewu(https://github.com/scopewu)
  * MIT License.
@@ -910,11 +910,10 @@ var qrcodegen;
 var QR = qrcodegen;
 
 var _uid = 0;
-function getUid() {
-    if (typeof vue.useId === 'function') {
-        return "".concat(vue.useId(), "-").concat(_uid++);
-    }
-    return "vue-".concat(Math.random().toString(36).slice(2), "-").concat(_uid++);
+function getUid(id) {
+    if (id)
+        return id;
+    return "v-".concat(_uid++);
 }
 var defaultErrorCorrectLevel = 'L';
 var DEFAULT_QR_SIZE = 100;
@@ -1074,6 +1073,14 @@ function useQRCode(props) {
     });
     return { margin: margin, numCells: numCells, cells: cells, fgPath: fgPath, imageProps: imageProps, imageBorderProps: imageBorderProps };
 }
+function downloadDataURLAsFile(data, filename) {
+    var link = document.createElement('a');
+    link.download = filename;
+    link.href = data;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+}
 var QRCodeProps = {
     value: {
         type: String,
@@ -1099,40 +1106,38 @@ var QRCodeProps = {
     },
     margin: {
         type: Number,
-        required: false,
         default: DEFAULT_MARGIN,
+        validator: function (m) { return m >= 0; },
     },
     imageSettings: {
         type: Object,
-        required: false,
         default: function () { return ({}); },
     },
     gradient: {
         type: Boolean,
-        required: false,
         default: false,
     },
     gradientType: {
         type: String,
-        required: false,
         default: 'linear',
         validator: function (t) { return ['linear', 'radial'].indexOf(t) > -1; },
     },
     gradientStartColor: {
         type: String,
-        required: false,
         default: '#000',
     },
     gradientEndColor: {
         type: String,
-        required: false,
         default: '#fff',
     },
     radius: {
         type: Number,
-        required: false,
         default: 0,
         validator: function (r) { return !isNaN(r) && r >= 0 && r <= 0.5; },
+    },
+    id: {
+        type: String,
+        required: false,
     },
 };
 var QRCodeVueProps = __assign(__assign({}, QRCodeProps), { renderAs: {
@@ -1144,9 +1149,10 @@ var QRCodeVueProps = __assign(__assign({}, QRCodeProps), { renderAs: {
 var QrcodeSvg = vue.defineComponent({
     name: 'QRCodeSvg',
     props: QRCodeProps,
-    setup: function (props) {
+    setup: function (props, ctx) {
         var _a = useQRCode(props), numCells = _a.numCells, fgPath = _a.fgPath, imageProps = _a.imageProps, imageBorderProps = _a.imageBorderProps;
-        var uid = getUid();
+        var svgEl = vue.ref();
+        var uid = getUid(props.id);
         var qrGradientId = "qrcode.vue-gradient-".concat(uid);
         var qrLogoClipPathId = "qrcode.vue-logo-clip-path-".concat(uid);
         var gradientVNode = vue.computed(function () {
@@ -1194,15 +1200,32 @@ var QrcodeSvg = vue.defineComponent({
                 }),
             ]);
         });
+        var getSvgDataURL = function (svg) { return 'data:image/svg+xml;charset=utf-8,' +
+            encodeURIComponent('<?xml version="1.0" standalone="no"?>' + new XMLSerializer().serializeToString(svg)); };
+        ctx.expose({
+            toDataURL: function () {
+                var svg = svgEl.value;
+                if (!svg)
+                    return;
+                return getSvgDataURL(svg);
+            },
+            download: function (filename) {
+                if (filename === void 0) { filename = 'qrcode.svg'; }
+                var svg = svgEl.value;
+                if (!svg)
+                    return;
+                downloadDataURLAsFile(getSvgDataURL(svg), filename);
+            },
+        });
         return function () { return vue.h('svg', {
+            ref: svgEl,
             width: props.size,
             height: props.size,
             xmlns: 'http://www.w3.org/2000/svg',
             viewBox: "0 0 ".concat(numCells.value, " ").concat(numCells.value),
             role: 'img',
-            'aria-label': props.value,
         }, [
-            vue.h('defs', {}, [gradientVNode.value, clipPathVNode.value]),
+            vue.h('defs', {}, [gradientVNode.value, clipPathVNode.value].filter(Boolean)),
             vue.h('rect', {
                 width: '100%',
                 height: '100%',
@@ -1221,7 +1244,7 @@ var QrcodeSvg = vue.defineComponent({
                 rx: imageBorderProps.value.borderRadius,
                 ry: imageBorderProps.value.borderRadius,
             }),
-            props.imageSettings.src && imageProps.value && vue.h('image', __assign(__assign({ href: props.imageSettings.src }, imageProps.value), (imageProps.value.borderRadius > 0 ? { 'clip-path': "url(#".concat(qrLogoClipPathId, ")") } : {}))),
+            props.imageSettings.src && imageProps.value && vue.h('image', __assign({ href: props.imageSettings.src, crossorigin: props.imageSettings.crossOrigin, 'clip-path': imageProps.value.borderRadius > 0 ? "url(#".concat(qrLogoClipPathId, ")") : void 0 }, imageProps.value)),
         ]); };
     },
 });
@@ -1307,12 +1330,23 @@ var QrcodeCanvas = vue.defineComponent({
             }
         };
         vue.onMounted(generate);
-        vue.watchEffect(generate);
+        vue.watchEffect(generate, { flush: 'post' });
+        ctx.expose({
+            toDataURL: function (type, quality) { var _a; return (_a = canvasEl.value) === null || _a === void 0 ? void 0 : _a.toDataURL(type, quality); },
+            download: function (filename) {
+                if (filename === void 0) { filename = 'qrcode.png'; }
+                var canvas = canvasEl.value;
+                if (!canvas)
+                    return;
+                downloadDataURLAsFile(canvas.toDataURL('image/png'), filename);
+            },
+        });
         return function () { return vue.h(vue.Fragment, [
-            vue.h('canvas', __assign(__assign({}, ctx.attrs), { ref: canvasEl, role: 'img', 'aria-label': props.value, style: __assign(__assign({}, ctx.attrs.style), { width: "".concat(props.size, "px"), height: "".concat(props.size, "px") }) })),
+            vue.h('canvas', __assign(__assign({}, ctx.attrs), { ref: canvasEl, role: 'img', style: __assign(__assign({}, ctx.attrs.style), { width: "".concat(props.size, "px"), height: "".concat(props.size, "px") }) })),
             props.imageSettings.src && vue.h('img', {
                 ref: imageEl,
                 src: props.imageSettings.src,
+                crossorigin: props.imageSettings.crossOrigin,
                 style: { display: 'none' },
                 onLoad: generate,
             })
@@ -1322,8 +1356,14 @@ var QrcodeCanvas = vue.defineComponent({
 var QrcodeVue = vue.defineComponent({
     name: 'Qrcode',
     props: QRCodeVueProps,
-    setup: function (props) {
+    setup: function (props, ctx) {
+        var childRef = vue.ref();
+        ctx.expose({
+            toDataURL: function (type, quality) { var _a, _b; return (_b = (_a = childRef.value) === null || _a === void 0 ? void 0 : _a.toDataURL) === null || _b === void 0 ? void 0 : _b.call(_a, type, quality); },
+            download: function (filename) { var _a, _b; return (_b = (_a = childRef.value) === null || _a === void 0 ? void 0 : _a.download) === null || _b === void 0 ? void 0 : _b.call(_a, filename); },
+        });
         return function () { return vue.h(props.renderAs === 'svg' ? QrcodeSvg : QrcodeCanvas, {
+            ref: childRef,
             value: props.value,
             size: props.size,
             margin: props.margin,
@@ -1336,6 +1376,7 @@ var QrcodeVue = vue.defineComponent({
             gradientStartColor: props.gradientStartColor,
             gradientEndColor: props.gradientEndColor,
             radius: props.radius,
+            id: props.id,
         }); };
     },
 });

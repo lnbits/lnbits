@@ -2,7 +2,7 @@ import hashlib
 import json
 import os
 import time
-from subprocess import PIPE, Popen, TimeoutExpired
+from subprocess import PIPE, CalledProcessError, Popen, TimeoutExpired
 
 from loguru import logger
 
@@ -37,6 +37,16 @@ docker_elements_cli = [
     "elements-cli",
     "-rpcport=18884",
     "-chain=liquidregtest",
+]
+
+docker_boltz_cli = [
+    "docker",
+    "exec",
+    "lnbits-boltz-client-1",
+    "boltzcli",
+    "--host",
+    "boltz-client",
+    "--no-macaroons",
 ]
 
 
@@ -79,6 +89,13 @@ def run_cmd(cmd: list) -> str:
         output, error = process_communication(process.communicate(timeout=timeout))
         took = time.time() - now
         logger.debug(f"ran command output: {output}, error: {error}, took: {took}s")
+        if process.returncode:
+            raise CalledProcessError(
+                process.returncode,
+                cmd,
+                output=output,
+                stderr=error,
+            )
         return output
     except TimeoutExpired:
         process.kill()
@@ -103,6 +120,12 @@ def get_hold_invoice(sats: int) -> tuple[str, dict]:
     cmd.extend(["addholdinvoice", preimage_hash, str(sats)])
     json = run_cmd_json(cmd)
     return preimage.hex(), json
+
+
+def lookup_invoice(payment_hash: str) -> dict:
+    cmd = docker_lightning_cli.copy()
+    cmd.extend(["lookupinvoice", payment_hash])
+    return run_cmd_json(cmd)
 
 
 def settle_invoice(preimage: str) -> str:
@@ -145,6 +168,30 @@ def mine_blocks_liquid(blocks: int = 1) -> str:
     cmd = docker_elements_cli.copy()
     cmd.extend(["-generate", str(blocks)])
     return run_cmd(cmd)
+
+
+def sync_boltz_liquid_chain(timeout: float = 15) -> None:
+    mine_blocks_liquid()
+
+    cmd = docker_elements_cli.copy()
+    cmd.append("getblockcount")
+    target_height = int(run_cmd(cmd))
+
+    deadline = time.time() + timeout
+    height = 0
+    while time.time() < deadline:
+        cmd = docker_boltz_cli.copy()
+        cmd.append("getinfo")
+        info = run_cmd_json(cmd)
+        height = int(info["blockHeights"]["liquid"])
+        if height >= target_height:
+            return
+        time.sleep(0.25)
+
+    raise AssertionError(
+        f"Boltz did not sync to Liquid block {target_height} within {timeout}s. "
+        f"Last block: {height}."
+    )
 
 
 def get_unconnected_node_uri() -> str:

@@ -277,7 +277,19 @@ class PayPalWallet(FiatProvider):
                     f"/v2/checkout/orders/{paypal_id}", headers=self._auth_headers()
                 )
                 r.raise_for_status()
-                return self._status_from_order(r.json())
+                order = r.json()
+                if (order.get("status") or "").upper() == "APPROVED":
+                    r = await self.client.post(
+                        f"/v2/checkout/orders/{paypal_id}/capture",
+                        json={},
+                        headers={
+                            **self._auth_headers(),
+                            "PayPal-Request-Id": f"capture-{paypal_id}",
+                        },
+                    )
+                    r.raise_for_status()
+                    order = r.json()
+                return self._status_from_order(order)
         except Exception as exc:
             logger.debug(f"Error getting PayPal order status: {exc}")
             return FiatPaymentPendingStatus()
@@ -296,9 +308,24 @@ class PayPalWallet(FiatProvider):
 
     def _status_from_order(self, order: dict[str, Any]) -> FiatPaymentStatus:
         status = (order.get("status") or "").upper()
-        if status in ["COMPLETED", "APPROVED"]:
-            return FiatPaymentSuccessStatus()
         if status in ["VOIDED", "CANCELLED", "CANCELED"]:
+            return FiatPaymentFailedStatus()
+        if status != "COMPLETED":
+            return FiatPaymentPendingStatus()
+
+        captures = [
+            capture
+            for purchase_unit in order.get("purchase_units") or []
+            for capture in (purchase_unit.get("payments") or {}).get("captures") or []
+        ]
+        if captures and all(
+            (capture.get("status") or "").upper() == "COMPLETED" for capture in captures
+        ):
+            return FiatPaymentSuccessStatus()
+        if any(
+            (capture.get("status") or "").upper() in ["DECLINED", "FAILED"]
+            for capture in captures
+        ):
             return FiatPaymentFailedStatus()
         return FiatPaymentPendingStatus()
 
