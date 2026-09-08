@@ -405,7 +405,7 @@ async def api_update_balance(data: UpdateBalance) -> SimpleStatus:
     wallet = await get_wallet(data.id)
     if not wallet:
         raise HTTPException(HTTPStatus.NOT_FOUND, "Wallet not found.")
-    memo = data.memo or ("Credit" if data.amount > 0 else "Debit")
+    memo = (data.memo or "").strip() or ("Credit" if data.amount > 0 else "Debit")
     await update_wallet_balance(wallet=wallet, amount=int(data.amount), memo=memo)
     enqueue_admin_notification(
         NotificationType.balance_update,
@@ -413,7 +413,7 @@ async def api_update_balance(data: UpdateBalance) -> SimpleStatus:
             "amount": int(data.amount),
             "wallet_id": wallet.id,
             "wallet_name": wallet.name,
-            "balance": wallet.balance,
+            "balance": wallet.balance + int(data.amount),
             "memo": memo,
         },
     )
