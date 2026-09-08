@@ -530,6 +530,7 @@ include('components/lnbits-error.vue') %}
       :offset="[0, 8]"
       transition-show="jump-down"
       transition-hide="jump-up"
+      @hide="memo = ''"
     >
       <q-input
         filled
@@ -545,7 +546,7 @@ include('components/lnbits-error.vue') %}
         :label="$t('credit_memo_label')"
         v-model="memo"
         dense
-        maxlength="640"
+        maxlength="639"
         class="q-mt-sm"
         @keyup.enter="updateBalance(scope)"
       ></q-input>
@@ -556,6 +557,7 @@ include('components/lnbits-error.vue') %}
         :color="parseInt(scope.value) < 0 ? 'negative' : 'primary'"
         :label="parseInt(scope.value) < 0 ? $t('debit') : $t('credit')"
         :disable="!parseInt(scope.value)"
+        :loading="updating"
         @click="updateBalance(scope)"
       ></q-btn>
     </q-popup-edit>
@@ -579,6 +581,7 @@ include('components/lnbits-error.vue') %}
       :offset="[0, 8]"
       transition-show="jump-down"
       transition-hide="jump-up"
+      @hide="memo = ''"
     >
       <q-input
         filled
@@ -594,7 +597,7 @@ include('components/lnbits-error.vue') %}
         :label="$t('credit_memo_label')"
         v-model="memo"
         dense
-        maxlength="640"
+        maxlength="639"
         class="q-mt-sm"
         @keyup.enter="updateBalance(scope)"
       ></q-input>
@@ -605,6 +608,7 @@ include('components/lnbits-error.vue') %}
         :color="parseInt(scope.value) < 0 ? 'negative' : 'primary'"
         :label="parseInt(scope.value) < 0 ? $t('debit') : $t('credit')"
         :disable="!parseInt(scope.value)"
+        :loading="updating"
         @click="updateBalance(scope)"
       ></q-btn>
     </q-popup-edit>
