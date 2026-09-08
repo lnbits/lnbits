@@ -49,9 +49,13 @@ async def test_pay_invoice_rejects_payment_request_hash_mismatch(
     pay_via_node.assert_not_called()
 
 
-def test_map_tx_status_parses_msat_fee_and_preimage(amboss_wallet: AmbossWallet):
+def test_map_tx_status_parses_fractional_sat_fee_and_preimage(
+    amboss_wallet: AmbossWallet,
+):
+    # LND's fee_msat isn't always a multiple of 1000, so the sats fee rails
+    # stores can be a fractional string (e.g. "1.234"); int() on that raises.
     status = amboss_wallet._map_tx_status(
-        {"status": "COMPLETED", "fee": "1234", "preimage": "deadbeef"}
+        {"status": "COMPLETED", "fee": "1.234", "preimage": "deadbeef"}
     )
 
     assert status.paid is True

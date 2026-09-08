@@ -491,10 +491,11 @@ class AmbossWallet(Wallet):
         status = tx.get("status")
         if status == "COMPLETED":
             fee = tx.get("fee")
-            # `fee` is the routing fee only, in msat, matching what a
-            # SUCCEEDED /v2/router/send response reports directly — never the
-            # platform's bps volume fee, which is billed separately.
-            fee_msat = abs(int(fee)) if fee is not None else None
+            # `fee` is the routing fee only, in sats, serialized from a Decimal
+            # column (never includes the platform's bps volume fee, which is
+            # billed separately). LND's fee_msat isn't always a multiple of
+            # 1000, so this can be a fractional-sat string — int() would raise.
+            fee_msat = round(abs(float(fee)) * 1000) if fee is not None else None
             return PaymentSuccessStatus(fee_msat=fee_msat, preimage=tx.get("preimage"))
         if status in ("FAILED", "EXPIRED"):
             return PaymentFailedStatus()
