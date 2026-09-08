@@ -3,7 +3,7 @@ from types import SimpleNamespace
 import pytest
 
 from lnbits.wallets import amboss as amboss_module
-from lnbits.wallets.amboss import AmbossWallet
+from lnbits.wallets.amboss import AmbossWallet, _self_check
 
 
 @pytest.fixture
@@ -11,6 +11,26 @@ def amboss_wallet(settings):
     settings.amboss_service_api_key = "test-key"
     settings.amboss_wallet_id = "test-wallet-id"
     return AmbossWallet()
+
+
+def test_self_check():
+    # Only wired up under `python -m lnbits.wallets.amboss` otherwise — this
+    # is what actually proves the ported crypto in CI.
+    _self_check()
+
+
+@pytest.mark.anyio
+async def test_pay_invoice_pre_dispatch_error_is_terminal(
+    amboss_wallet: AmbossWallet, mocker
+):
+    # Nothing reaches rails on a bad bolt11 — must be ok=False, not pending.
+    mocker.patch.object(amboss_module, "bolt11_decode", side_effect=ValueError("bad"))
+    gql = mocker.patch.object(amboss_wallet, "_gql")
+
+    result = await amboss_wallet.pay_invoice("not-a-bolt11", fee_limit_msat=1000)
+
+    assert result.ok is False
+    gql.assert_not_called()
 
 
 @pytest.mark.anyio

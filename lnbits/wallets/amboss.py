@@ -4,14 +4,17 @@ Talks to the Amboss Payments GraphQL API (rails) so every invoice and payment is
 recorded in the Amboss transaction ledger. Sending is non-custodial: the node's
 admin macaroon is fetched encrypted, decrypted in-process with the team password
 (Argon2id + NIP-44 v2 — mirroring the @ambosstech/payments TS SDK), and the
-payment is executed directly against the node's LND REST endpoint.
+payment is executed directly against the node's LND (or litd) REST endpoint.
 
-`checking_id` is the Amboss transaction id, so status polling reads the ledger
-(`transaction.find_one`) rather than the node.
+`checking_id` is the Amboss transaction id for receives, but the bolt11
+payment_hash for sends (lnbits requires pay_invoice to echo that hash back).
+Status polling reads the ledger (`transaction.find_one`) by whichever of the
+two the caller passed in.
 """
 
 from __future__ import annotations
 
+import asyncio
 import base64
 import hashlib
 import hmac
@@ -112,6 +115,19 @@ def _normalize_macaroon_hex(value: str) -> str:
     return base64.b64decode(stripped).hex()
 
 
+def _pick_rest_socket(sockets: dict) -> str | None:
+    """Prefer litd's REST port over lnd's, mirroring the SDK's selectSendNode
+    order. litd exposes lnd's own REST gateway transparently, so the same
+    request shape works against either socket."""
+    litd = sockets.get("litd")
+    if litd and litd.get("rest"):
+        return litd["rest"]
+    lnd = sockets.get("lnd")
+    if lnd and lnd.get("rest"):
+        return lnd["rest"]
+    return None
+
+
 # --- GraphQL documents (only the fields this wallet uses) ----------------------
 
 _TX_FIELDS = "id status payment_hash payment_request fee preimage amount_sats"
@@ -133,7 +149,7 @@ query($id: String!) {{
 
 _GET_WALLET_BALANCE = """
 query($id: String!) {
-  payment { wallet { find_one(id: $id) { id balance { balance } } } }
+  payment { wallet { find_one(id: $id) { id balance { balance } asset { type } } } }
 }"""
 
 _GET_SEND_CONTEXT = """
@@ -177,6 +193,10 @@ class AmbossWallet(Wallet):
             )
         if not settings.amboss_wallet_id:
             raise ValueError("cannot initialize AmbossWallet: missing amboss_wallet_id")
+        if not settings.amboss_api_endpoint:
+            raise ValueError(
+                "cannot initialize AmbossWallet: missing amboss_api_endpoint"
+            )
 
         self.wallet_id = settings.amboss_wallet_id
         self.team_password = settings.amboss_team_password
@@ -187,6 +207,12 @@ class AmbossWallet(Wallet):
         # repeat sends skip the ~3s GetSendContext + Argon2 + node-permissions
         # decrypt. If the node or macaroon rotates, restart to pick up the change.
         self._send_cache: tuple[str, bool, dict | None, str | None] | None = None
+        # Guards first-fill of _send_cache so concurrent first sends don't each
+        # redo the GraphQL round-trip and the two Argon2id derivations.
+        self._send_context_lock = asyncio.Lock()
+        # Wallet asset type never changes; check once and cache the result so
+        # create_invoice() doesn't pay for an extra round-trip on every call.
+        self._asset_verified = False
 
         self.client = httpx.AsyncClient(
             base_url=self.endpoint,
@@ -224,12 +250,26 @@ class AmbossWallet(Wallet):
         try:
             data = await self._gql(_GET_WALLET_BALANCE, {"id": self.wallet_id})
             wallet = data["payment"]["wallet"]["find_one"]
+            if wallet["asset"]["type"] != "BASE_ASSET":
+                raise ValueError("AmbossWallet only supports BASE_ASSET (BTC) wallets")
+            self._asset_verified = True
             # balance is in the wallet asset's base unit. This wallet only
             # supports BASE_ASSET (BTC) wallets, so that unit is sats.
             return StatusResponse(None, int(wallet["balance"]["balance"]) * 1000)
         except Exception as exc:
             logger.warning(exc)
             return StatusResponse(f"Unable to connect to {self.endpoint}.", 0)
+
+    async def _ensure_base_asset(self) -> None:
+        """Confirm the wallet is BASE_ASSET (BTC), not a Taproot Asset wallet.
+        create_invoice() must check this itself — it never calls status()."""
+        if self._asset_verified:
+            return
+        data = await self._gql(_GET_WALLET_BALANCE, {"id": self.wallet_id})
+        wallet = data["payment"]["wallet"]["find_one"]
+        if wallet["asset"]["type"] != "BASE_ASSET":
+            raise ValueError("AmbossWallet only supports BASE_ASSET (BTC) wallets")
+        self._asset_verified = True
 
     async def create_invoice(
         self,
@@ -239,6 +279,12 @@ class AmbossWallet(Wallet):
         unhashed_description: bytes | None = None,
         **kwargs,
     ) -> InvoiceResponse:
+        try:
+            await self._ensure_base_asset()
+        except Exception as exc:
+            logger.warning(exc)
+            return InvoiceResponse(ok=False, error_message=str(exc))
+
         _input: dict[str, Any] = {"wallet_id": self.wallet_id, "amount": str(amount)}
         # `description` is just a label stored on the transaction row, so it's
         # sent unconditionally. `bolt11.description_hash` is a separate, wire-
@@ -295,10 +341,20 @@ class AmbossWallet(Wallet):
                 send_input["metadata"] = json.dumps(
                     {"amb_sandbox_behavior": "complete"}
                 )
+        except Exception as exc:
+            # Nothing has reached rails yet: bad bolt11, missing/wrong team
+            # password, no LND/litd REST endpoint, a non-BASE_ASSET wallet,
+            # etc. are all provably terminal — never leave these pending.
+            logger.warning(f"AmbossWallet send error (pre-dispatch): {exc}")
+            return PaymentResponse(ok=False, error_message=str(exc))
+
+        try:
             tx = (await self._gql(_CREATE_SEND, {"input": send_input}))["payment"][
                 "transaction"
             ]["create_send"]
         except Exception as exc:
+            # create_send may have applied server-side before the error
+            # surfaced (e.g. a timeout) — genuinely ambiguous, leave pending.
             logger.warning(f"AmbossWallet send error: {exc}")
             return PaymentResponse(error_message=str(exc))
 
@@ -352,25 +408,38 @@ class AmbossWallet(Wallet):
         if self._send_cache is not None:
             return self._send_cache
 
-        payment = (await self._gql(_GET_SEND_CONTEXT, {"id": self.wallet_id}))[
-            "payment"
-        ]
-        # payment.id is the team id — the Argon2 salt for macaroon decryption.
-        team_id = payment["id"]
-        is_sandbox = payment["wallet"]["find_one"]["environment"]["type"] == "SANDBOX"
+        async with self._send_context_lock:
+            if self._send_cache is not None:
+                return self._send_cache
 
-        node = macaroon_hex = None
-        if not is_sandbox:
-            if not self.team_password:
-                raise ValueError("amboss_team_password required to send")
-            node, macaroon_hex = await self._resolve_node(team_id)
+            payment = (await self._gql(_GET_SEND_CONTEXT, {"id": self.wallet_id}))[
+                "payment"
+            ]
+            # payment.id is the team id — the Argon2 salt for macaroon decryption.
+            team_id = payment["id"]
+            is_sandbox = (
+                payment["wallet"]["find_one"]["environment"]["type"] == "SANDBOX"
+            )
 
-        self._send_cache = (team_id, is_sandbox, node, macaroon_hex)
-        return self._send_cache
+            node = macaroon_hex = None
+            if not is_sandbox:
+                if not self.team_password:
+                    raise ValueError("amboss_team_password required to send")
+                if len(self.team_password) < 8:
+                    # The team password is also the salt for the second Argon2id
+                    # step, which rejects salts under 8 bytes.
+                    raise ValueError(
+                        "amboss_team_password must be at least 8 characters"
+                    )
+                node, macaroon_hex = await self._resolve_node(team_id)
+
+            self._send_cache = (team_id, is_sandbox, node, macaroon_hex)
+            return self._send_cache
 
     async def _resolve_node(self, team_id: str) -> tuple[dict, str]:
-        master_key, master_password_hash = create_master_password_hash(
-            self.team_password, team_id
+        # Argon2id at 64 MiB is CPU-heavy enough to stall the event loop.
+        master_key, master_password_hash = await asyncio.to_thread(
+            create_master_password_hash, self.team_password, team_id
         )
         wallet = (
             await self._gql(
@@ -384,15 +453,11 @@ class AmbossWallet(Wallet):
 
         perms = wallet["node_permissions"]
         node = next(
-            (
-                n
-                for n in perms["nodes"]
-                if n["sockets"].get("lnd") and n["sockets"]["lnd"]["rest"]
-            ),
+            (n for n in perms["nodes"] if _pick_rest_socket(n["sockets"])),
             None,
         )
         if not node:
-            raise ValueError("no LND REST endpoint available for this wallet")
+            raise ValueError("no LND/litd REST endpoint available for this wallet")
 
         symmetric_key = nip44_decrypt(perms["encrypted_symmetric_key"], master_key)
         macaroon = nip44_decrypt(node["encrypted_macaroon"], symmetric_key)
@@ -406,7 +471,15 @@ class AmbossWallet(Wallet):
         fee_limit_msat: int,
         checking_id: str,
     ) -> PaymentResponse:
-        rest_host = node["sockets"]["lnd"]["rest"]
+        rest_host = _pick_rest_socket(node["sockets"])
+        if not rest_host or not rest_host.lower().startswith("https://"):
+            # Never send the admin macaroon over a socket we can't confirm is
+            # TLS — plaintext http would leak it.
+            return PaymentResponse(
+                ok=False,
+                checking_id=checking_id,
+                error_message="no TLS REST endpoint available for this node",
+            )
         tls_cert = node.get("tls_cert")
         verify: Any = ssl.create_default_context(cadata=tls_cert) if tls_cert else True
 
