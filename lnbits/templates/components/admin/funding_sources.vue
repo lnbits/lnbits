@@ -23,12 +23,13 @@
           :hint="$t('funding_source_info')"
           :options="sortedAllowedFundingSources"
           :option-label="item => getFundingSourceLabel(item)"
+          :option-disable="item => isFundingSourceBlocked(item)"
         ></q-select>
       </div>
     </div>
     <q-list
       class="q-mt-md"
-      v-for="(fund, idx) in allowedFundingSources"
+      v-for="(fund, idx) in visibleFundingSources"
       :key="idx"
     >
       <div
@@ -37,6 +38,14 @@
           fund === formData.lnbits_backend_wallet_class
         "
       >
+        <q-banner
+          v-if="isFundingSourceBlocked(fund)"
+          class="bg-warning text-black q-mb-md"
+          rounded
+        >
+          This funding source is disabled. You can still back up or clear its
+          saved settings. Select another funding source to resume payments.
+        </q-banner>
         <div
           class="row"
           v-for="([key, prop], i) in Object.entries(

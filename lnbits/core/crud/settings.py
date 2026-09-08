@@ -42,6 +42,7 @@ async def get_admin_settings(is_super_user: bool = False) -> AdminSettings | Non
     admin_settings = AdminSettings(
         is_super_user=is_super_user,
         lnbits_allowed_funding_sources=settings.lnbits_allowed_funding_sources,
+        lnbits_blocked_funding_sources=settings.lnbits_blocked_funding_sources,
         **row_dict,
     )
     return admin_settings

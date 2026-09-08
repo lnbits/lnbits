@@ -38,6 +38,11 @@ from .zbd import ZBDWallet
 
 def set_funding_source(class_name: str | None = None) -> None:
     backend_wallet_class = class_name or settings.lnbits_backend_wallet_class
+    if backend_wallet_class in settings.lnbits_blocked_funding_sources:
+        raise RuntimeError(
+            f"{backend_wallet_class} is disabled by LNBITS_BLOCKED_FUNDING_SOURCES. "
+            "Configure another funding source."
+        )
     funding_source_constructor = getattr(wallets_module, backend_wallet_class)
     global funding_source
     funding_source = funding_source_constructor()

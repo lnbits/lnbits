@@ -1,7 +1,10 @@
 window.app.component('lnbits-admin-funding-sources', {
   template: '#lnbits-admin-funding-sources',
-  props: ['form-data', 'allowed-funding-sources'],
+  props: ['form-data', 'allowed-funding-sources', 'blocked-funding-sources'],
   methods: {
+    isFundingSourceBlocked(item) {
+      return (this.blockedFundingSources || []).includes(item)
+    },
     getFundingSourceLabel(item) {
       const fundingSource = this.rawFundingSources.find(
         fundingSource => fundingSource[0] === item
@@ -29,7 +32,15 @@ window.app.component('lnbits-admin-funding-sources', {
       return new Map(tmp)
     },
     sortedAllowedFundingSources() {
-      return this.allowedFundingSources.sort()
+      return [...this.allowedFundingSources].sort()
+    },
+    visibleFundingSources() {
+      return [
+        ...new Set([
+          ...this.allowedFundingSources,
+          this.formData.lnbits_backend_wallet_class
+        ])
+      ]
     }
   },
   data() {
