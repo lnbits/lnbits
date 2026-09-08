@@ -629,6 +629,17 @@ class BlinkFundingSource(LNbitsSettings):
     blink_send_without_probe: bool = Field(default=True)
 
 
+class AmbossFundingSource(LNbitsSettings):
+    amboss_api_endpoint: str | None = Field(default="https://rails.amboss.tech/graphql")
+    amboss_service_api_key: str | None = Field(default=None)
+    amboss_wallet_id: str | None = Field(default=None)
+    amboss_team_password: str | None = Field(default=None)
+    # Sandbox wallets can be told to auto-settle received invoices via the
+    # `amb_sandbox_behavior` metadata key (rails ignores it for LIVE wallets).
+    amboss_sandbox: bool = Field(default=False)
+    amboss_sandbox_auto_complete: bool = Field(default=False)
+
+
 class ZBDFundingSource(LNbitsSettings):
     zbd_api_endpoint: str | None = Field(default="https://api.zebedee.io/v0/")
     zbd_api_key: str | None = Field(default=None)
@@ -805,6 +816,7 @@ class FundingSourcesSettings(
     LnPayFundingSource,
     BlinkFundingSource,
     AlbyFundingSource,
+    AmbossFundingSource,
     BoltzFundingSource,
     ZBDFundingSource,
     PhoenixdFundingSource,
@@ -1216,6 +1228,7 @@ class SuperUserSettings(LNbitsSettings):
     lnbits_allowed_funding_sources: list[str] = Field(
         default=[
             "AlbyWallet",
+            "AmbossWallet",
             "BarkWallet",
             "BoltzWallet",
             "BlinkWallet",
