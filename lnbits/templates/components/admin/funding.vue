@@ -77,6 +77,7 @@
         <lnbits-admin-funding-sources
           :form-data="formData"
           :allowed-funding-sources="settings.lnbits_allowed_funding_sources"
+          :blocked-funding-sources="settings.lnbits_blocked_funding_sources"
         ></lnbits-admin-funding-sources>
         <div class="row q-col-gutter-md q-my-md">
           <div class="col-12 col-sm-8">

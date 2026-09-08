@@ -15,7 +15,9 @@ async def test_admin_get_settings_permission_denied(client, from_user):
 
 
 @pytest.mark.anyio
-async def test_admin_get_settings(client: AsyncClient, superuser_token: str):
+async def test_admin_get_settings(
+    client: AsyncClient, superuser_token: str, settings: Settings
+):
     response = await client.get(
         "/admin/api/v1/settings",
         headers={"Authorization": f"Bearer {superuser_token}"},
@@ -23,6 +25,10 @@ async def test_admin_get_settings(client: AsyncClient, superuser_token: str):
     assert response.status_code == 200
     result = response.json()
     assert "super_user" not in result
+    assert (
+        result["lnbits_blocked_funding_sources"]
+        == settings.lnbits_blocked_funding_sources
+    )
     assert result["lnbits_wasm_extensions_manifests"] == DEFAULT_WASM_MANIFESTS
 
 

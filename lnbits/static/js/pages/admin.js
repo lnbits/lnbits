@@ -298,6 +298,7 @@ window.PageAdmin = {
       const data = _.omit(this.formData, [
         'is_super_user',
         'lnbits_allowed_funding_sources',
+        'lnbits_blocked_funding_sources',
         'touch'
       ])
       this.isSaving = true
