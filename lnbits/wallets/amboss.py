@@ -548,6 +548,10 @@ class AmbossWallet(Wallet):
     async def get_payment_status(self, checking_id: str) -> PaymentStatus:
         # Payment checking_id is the bolt11 payment_hash — look it up in the
         # ledger by hash (never via the node, which is used only for paying).
+        # Deliberate: rails is this wallet's sole source of truth for payment
+        # outcome, even for sends this instance dispatched itself. The node's
+        # own /v2/router/send response is best-effort (core's pay_invoice
+        # wait window is usually shorter than that call), never authoritative.
         try:
             tx = (await self._gql(_FIND_BY_PAYMENT_HASH, {"hash": checking_id}))[
                 "payment"
