@@ -41,6 +41,9 @@ dev:
 docker:
 	docker build -t lnbits/lnbits .
 
+test-desktop:
+	uv run python -m unittest discover -s .github/packaging -v
+
 test-wallets:
 	LNBITS_DATA_FOLDER="./tests/data" \
 	LNBITS_BACKEND_WALLET_CLASS="FakeWallet" \
