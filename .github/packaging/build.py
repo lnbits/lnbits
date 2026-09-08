@@ -41,10 +41,11 @@ for library in Path(wasmtime.__file__).parent.glob("*/*"):
     if library.suffix in (".so", ".dll", ".dylib"):
         args += ["--add-binary", f"{library}:wasmtime/{library.parent.name}"]
 if sys.platform == "win32":
+    icon = Path(__file__).resolve().parent / "linux/AppDir/lnbits.png"
     args += [
         "--hide-console",
         "hide-early",
-        "--icon=.github/packaging/linux/AppDir/lnbits.png",
+        f"--icon={icon}",
     ]
 for package in packages:
     args += ["--collect-all", package]
