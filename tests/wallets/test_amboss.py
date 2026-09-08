@@ -7,6 +7,7 @@ from pytest_httpserver import HTTPServer
 from lnbits.wallets import amboss as amboss_module
 from lnbits.wallets.amboss import (
     _BASE_ASSET_ONLY,
+    AmbossApiError,
     AmbossWallet,
     _pick_rest_socket,
     _self_check,
@@ -196,12 +197,14 @@ async def test_resolve_node_skips_plaintext_node_for_a_later_https_one(
     # through _resolve_node's next(...), i.e. that an unusable node does not
     # end the search and take a usable later node down with it.
     amboss_wallet.team_password = "CorrectHorseBatteryStaple"
-    # Same encrypted_macaroon on both, so the only thing that can distinguish
-    # them is the socket scheme. Differing values here would let a mutation that
-    # keys off the macaroon instead of the socket pass unnoticed.
+    # These two differ on exactly one axis: the scheme. Same macaroon, same
+    # socket kind. Vary anything else and a predicate keyed off that other axis
+    # — the macaroon, or "is it litd" — passes while ignoring the scheme, which
+    # is the one property this policy exists to enforce. litd-over-lnd
+    # preference is pinned by the _pick_rest_socket tests above instead.
     plaintext = {
         "encrypted_macaroon": "enc-mac",
-        "sockets": {"lnd": {"rest": "http://a"}},
+        "sockets": {"litd": {"rest": "http://a"}},
     }
     usable = {
         "encrypted_macaroon": "enc-mac",
@@ -230,7 +233,7 @@ async def test_resolve_node_rejects_a_wallet_with_only_plaintext_nodes(
     amboss_wallet.team_password = "CorrectHorseBatteryStaple"
     plaintext = {
         "encrypted_macaroon": "enc-mac",
-        "sockets": {"lnd": {"rest": "http://a"}},
+        "sockets": {"litd": {"rest": "http://a"}},
     }
     mocker.patch.object(
         amboss_module,
@@ -301,6 +304,36 @@ async def test_pay_via_node_returns_in_band_when_socket_is_unusable(
 
 
 @pytest.mark.anyio
+async def test_status_reports_a_graphql_error_as_itself(
+    http_wallet: AmbossWallet, gql_server: HTTPServer
+):
+    # The likeliest real cases: a mistyped wallet id or a dead API key. The
+    # endpoint answered, so "Unable to connect" would send an admin to DNS.
+    _expect_gql(gql_server, {"errors": [{"message": "wallet not found"}]})
+
+    status = await http_wallet.status()
+
+    assert status.error_message == "Amboss API error: wallet not found"
+    assert status.balance_msat == 0
+
+
+@pytest.mark.anyio
+async def test_status_reports_a_throttle_as_itself(
+    http_wallet: AmbossWallet, gql_server: HTTPServer
+):
+    # Rate limiting is the other common one, and it arrives as a status code
+    # rather than a GraphQL errors array.
+    gql_server.expect_request(uri=_GQL_URI, method="POST").respond_with_json(
+        {"message": "Too Many Requests"}, status=429
+    )
+
+    status = await http_wallet.status()
+
+    assert status.error_message == "Amboss API error: HTTP 429"
+    assert status.balance_msat == 0
+
+
+@pytest.mark.anyio
 async def test_status_reports_missing_asset_type_as_itself(
     http_wallet: AmbossWallet, gql_server: HTTPServer
 ):
@@ -354,7 +387,7 @@ async def test_gql_raises_the_graphql_error_message(
     # what propagates — a bare failure would also happen without this handling.
     _expect_gql(gql_server, {"errors": [{"message": "wallet not found"}]})
 
-    with pytest.raises(ValueError, match="wallet not found"):
+    with pytest.raises(AmbossApiError, match="wallet not found"):
         await http_wallet._gql("query { x }", {})
 
 

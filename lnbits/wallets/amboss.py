@@ -134,6 +134,15 @@ def _pick_rest_socket(sockets: dict) -> str | None:
 
 _BASE_ASSET_ONLY = "AmbossWallet only supports BASE_ASSET (BTC) wallets"
 
+
+class AmbossApiError(Exception):
+    """Raised when rails answered but with an error instead of usable data.
+
+    Distinct from httpx's transport errors so callers can tell "the endpoint
+    told us no" apart from "the endpoint never answered".
+    """
+
+
 # --- GraphQL documents (only the fields this wallet uses) ----------------------
 
 _TX_FIELDS = "id status payment_hash payment_request fee preimage"
@@ -240,21 +249,30 @@ class AmbossWallet(Wallet):
             logger.warning(f"Error closing wallet connection: {exc}")
 
     async def _gql(self, query: str, variables: dict) -> dict:
+        # httpx.RequestError propagates untouched: those never reached rails and
+        # are the only genuine connectivity failures. Everything below means the
+        # endpoint answered, so it raises AmbossApiError — a wrong wallet id, a
+        # dead API key or a 429 must not be reported as an unreachable host.
         r = await self.client.post(
             "", json={"query": query, "variables": variables}, timeout=40
         )
-        # GraphQL errors (including schema-validation failures) come back as a
-        # JSON `errors` array even on HTTP 400 — surface that before falling
-        # back to raise_for_status, otherwise the real reason is lost.
         try:
             body = r.json()
-        except ValueError:
-            r.raise_for_status()
-            raise
+        except ValueError as exc:
+            raise AmbossApiError(
+                f"HTTP {r.status_code} with an unreadable body"
+            ) from exc
+        # GraphQL errors (including schema-validation failures) come back as a
+        # JSON `errors` array even on HTTP 400 — surface that before the status
+        # code, otherwise the real reason is lost.
         if body.get("errors"):
-            raise ValueError(str(body["errors"][0].get("message", body["errors"])))
-        r.raise_for_status()
-        return body["data"]
+            raise AmbossApiError(str(body["errors"][0].get("message", body["errors"])))
+        if r.is_error:
+            raise AmbossApiError(f"HTTP {r.status_code}")
+        data = body.get("data")
+        if data is None:
+            raise AmbossApiError("response contained no data")
+        return data
 
     async def status(self) -> StatusResponse:
         # Only the request itself is allowed to report a connection problem.
@@ -262,6 +280,9 @@ class AmbossWallet(Wallet):
         # drift never sends an admin off debugging an endpoint that answered.
         try:
             data = await self._gql(_GET_WALLET_BALANCE, {"id": self.wallet_id})
+        except AmbossApiError as exc:
+            logger.warning(f"AmbossWallet status error: {exc}")
+            return StatusResponse(f"Amboss API error: {exc}", 0)
         except Exception as exc:
             logger.warning(exc)
             return StatusResponse(f"Unable to connect to {self.endpoint}.", 0)
