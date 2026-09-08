@@ -5,7 +5,12 @@ import pytest
 from pytest_httpserver import HTTPServer
 
 from lnbits.wallets import amboss as amboss_module
-from lnbits.wallets.amboss import AmbossWallet, _self_check
+from lnbits.wallets.amboss import (
+    _BASE_ASSET_ONLY,
+    AmbossWallet,
+    _pick_rest_socket,
+    _self_check,
+)
 
 
 @pytest.fixture
@@ -100,6 +105,10 @@ async def test_pay_invoice_rejects_payment_request_hash_mismatch(
     # we submitted must never be paid.
     echoed = SimpleNamespace(payment_hash="b" * 64, amount_msat=1000)
     mocker.patch.object(amboss_module, "bolt11_decode", side_effect=[submitted, echoed])
+    # Pre-satisfy the asset check: it shares the `_gql` mock below, which is
+    # shaped as a create_send response, so leaving it unset makes pay_invoice
+    # fail on a KeyError before it ever reaches the guard under test.
+    amboss_wallet._asset_verified = True
     mocker.patch.object(
         amboss_wallet,
         "_send_context",
@@ -124,6 +133,9 @@ async def test_pay_invoice_rejects_payment_request_hash_mismatch(
     result = await amboss_wallet.pay_invoice("bolt11-string", fee_limit_msat=1000)
 
     assert result.ok is False
+    assert (
+        result.error_message == "payment_request does not match the submitted invoice"
+    )
     pay_via_node.assert_not_called()
 
 
@@ -141,6 +153,48 @@ def test_map_tx_status_parses_fractional_sat_fee_and_preimage(
     assert status.preimage == "deadbeef"
 
 
+def test_pick_rest_socket_prefers_litd():
+    sockets = {"lnd": {"rest": "https://lnd:8080"}, "litd": {"rest": "https://litd:80"}}
+
+    assert _pick_rest_socket(sockets) == "https://litd:80"
+
+
+def test_pick_rest_socket_skips_plaintext_litd_for_usable_lnd():
+    # The macaroon travels on this socket, so a plaintext litd endpoint must not
+    # win — and must not hide the https lnd socket on the same node either.
+    sockets = {"lnd": {"rest": "https://lnd:8080"}, "litd": {"rest": "http://litd:80"}}
+
+    assert _pick_rest_socket(sockets) == "https://lnd:8080"
+
+
+def test_pick_rest_socket_rejects_plaintext_only_node():
+    assert _pick_rest_socket({"lnd": {"rest": "http://lnd:8080"}}) is None
+    assert _pick_rest_socket({"litd": None, "lnd": None}) is None
+
+
+@pytest.mark.anyio
+async def test_send_context_rejects_password_that_strips_below_argon2_salt(
+    amboss_wallet: AmbossWallet, mocker
+):
+    # Eight characters, but the KDF salts with the stripped string, so Argon2id
+    # would reject it as a 2-byte salt. A trailing newline from an env file is
+    # the realistic case.
+    amboss_wallet.team_password = "ab      "
+    mocker.patch.object(
+        amboss_wallet,
+        "_gql",
+        return_value={
+            "payment": {
+                "id": "team-id",
+                "wallet": {"find_one": {"environment": {"type": "PRODUCTION"}}},
+            }
+        },
+    )
+
+    with pytest.raises(ValueError, match="at least 8 characters"):
+        await amboss_wallet._send_context()
+
+
 @pytest.mark.anyio
 async def test_status_maps_sats_balance_to_msat(
     http_wallet: AmbossWallet, gql_server: HTTPServer
@@ -151,6 +205,20 @@ async def test_status_maps_sats_balance_to_msat(
 
     assert status.error_message is None
     assert status.balance_msat == 55000
+
+
+@pytest.mark.anyio
+async def test_status_reports_wrong_asset_as_itself_not_a_connection_error(
+    http_wallet: AmbossWallet, gql_server: HTTPServer
+):
+    # Folding this into "Unable to connect to ..." sends an admin debugging DNS
+    # for what is really a misconfigured wallet.
+    _expect_gql(gql_server, _wallet_data(asset_type="TAPROOT_ASSET"))
+
+    status = await http_wallet.status()
+
+    assert status.error_message == _BASE_ASSET_ONLY
+    assert status.balance_msat == 0
 
 
 @pytest.mark.anyio
@@ -193,6 +261,9 @@ async def test_create_invoice_rejects_taproot_asset_wallet(
 
     assert invoice.ok is False
     assert invoice.checking_id is None
+    assert invoice.error_message == _BASE_ASSET_ONLY
+    # Short-circuited: only the asset query went out, never create_receive.
+    assert len(gql_server.log) == 1
 
 
 @pytest.mark.anyio
@@ -244,6 +315,8 @@ async def test_pay_invoice_rejects_taproot_asset_wallet(
     result = await http_wallet.pay_invoice(_BOLT11, fee_limit_msat=1000)
 
     assert result.ok is False
+    assert result.error_message == _BASE_ASSET_ONLY
+    assert len(gql_server.log) == 1
 
 
 @pytest.mark.anyio
@@ -290,3 +363,5 @@ async def test_get_payment_status_pending_while_tx_not_yet_in_ledger(
     status = await http_wallet.get_payment_status("00" * 32)
 
     assert status.paid is None
+    # Guards against an always-pending stub: the lookup really was attempted.
+    assert len(gql_server.log) == 1

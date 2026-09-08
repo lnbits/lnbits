@@ -7,9 +7,9 @@ admin macaroon is fetched encrypted, decrypted in-process with the team password
 payment is executed directly against the node's LND (or litd) REST endpoint.
 
 `checking_id` is the Amboss transaction id for receives, but the bolt11
-payment_hash for sends (lnbits requires pay_invoice to echo that hash back).
-Status polling reads the ledger (`transaction.find_one`) by whichever of the
-two the caller passed in.
+payment_hash for sends, which is what core keys outgoing payments by. Status
+polling reads the ledger (`transaction.find_one`) by whichever of the two the
+caller passed in.
 """
 
 from __future__ import annotations
@@ -115,17 +115,24 @@ def _normalize_macaroon_hex(value: str) -> str:
 
 
 def _pick_rest_socket(sockets: dict) -> str | None:
-    """Prefer litd's REST port over lnd's, mirroring the SDK's selectSendNode
-    order. litd exposes lnd's own REST gateway transparently, so the same
-    request shape works against either socket."""
-    litd = sockets.get("litd")
-    if litd and litd.get("rest"):
-        return litd["rest"]
-    lnd = sockets.get("lnd")
-    if lnd and lnd.get("rest"):
-        return lnd["rest"]
+    """Pick a usable REST socket, preferring litd over lnd as the SDK's
+    selectSendNode does — litd exposes lnd's own REST gateway, so the same
+    request shape works against either.
+
+    Only https sockets qualify: the admin macaroon travels on this connection,
+    so a plaintext socket is not a candidate. Selection and validation live
+    together deliberately — if they disagree, a plaintext litd socket can mask
+    a usable https lnd socket on the same node.
+    """
+    for kind in ("litd", "lnd"):
+        socket = sockets.get(kind) or {}
+        rest = socket.get("rest")
+        if rest and rest.lower().startswith("https://"):
+            return rest
     return None
 
+
+_BASE_ASSET_ONLY = "AmbossWallet only supports BASE_ASSET (BTC) wallets"
 
 # --- GraphQL documents (only the fields this wallet uses) ----------------------
 
@@ -253,25 +260,33 @@ class AmbossWallet(Wallet):
         try:
             data = await self._gql(_GET_WALLET_BALANCE, {"id": self.wallet_id})
             wallet = data["payment"]["wallet"]["find_one"]
-            if wallet["asset"]["type"] != "BASE_ASSET":
-                raise ValueError("AmbossWallet only supports BASE_ASSET (BTC) wallets")
-            self._asset_verified = True
-            # balance is in the wallet asset's base unit. This wallet only
-            # supports BASE_ASSET (BTC) wallets, so that unit is sats.
-            return StatusResponse(None, int(wallet["balance"]["balance"]) * 1000)
+            asset_type = wallet["asset"]["type"]
+            balance_sats = int(wallet["balance"]["balance"])
         except Exception as exc:
             logger.warning(exc)
             return StatusResponse(f"Unable to connect to {self.endpoint}.", 0)
 
+        if asset_type != "BASE_ASSET":
+            # Reported separately: folding this into the message above sends an
+            # admin off debugging DNS for what is a misconfigured wallet.
+            logger.warning(f"{_BASE_ASSET_ONLY} (wallet asset: {asset_type})")
+            return StatusResponse(_BASE_ASSET_ONLY, 0)
+
+        self._asset_verified = True
+        # balance is in the wallet asset's base unit, which is sats for
+        # BASE_ASSET wallets — the only kind this wallet supports.
+        return StatusResponse(None, balance_sats * 1000)
+
     async def _ensure_base_asset(self) -> None:
         """Confirm the wallet is BASE_ASSET (BTC), not a Taproot Asset wallet.
-        create_invoice() must check this itself — it never calls status()."""
+        create_invoice() and pay_invoice() must check this themselves — neither
+        calls status()."""
         if self._asset_verified:
             return
         data = await self._gql(_GET_WALLET_BALANCE, {"id": self.wallet_id})
         wallet = data["payment"]["wallet"]["find_one"]
         if wallet["asset"]["type"] != "BASE_ASSET":
-            raise ValueError("AmbossWallet only supports BASE_ASSET (BTC) wallets")
+            raise ValueError(_BASE_ASSET_ONLY)
         self._asset_verified = True
 
     async def create_invoice(
@@ -430,9 +445,10 @@ class AmbossWallet(Wallet):
             if not is_sandbox:
                 if not self.team_password:
                     raise ValueError("amboss_team_password required to send")
-                if len(self.team_password) < 8:
-                    # The team password is also the salt for the second Argon2id
-                    # step, which rejects salts under 8 bytes.
+                # Measured after stripping, because that is the string the KDF
+                # salts with — a password padded to 8 by a trailing newline
+                # from an env file would otherwise still die inside Argon2id.
+                if len(self.team_password.strip()) < 8:
                     raise ValueError(
                         "amboss_team_password must be at least 8 characters"
                     )
@@ -453,8 +469,10 @@ class AmbossWallet(Wallet):
             )
         )["payment"]["wallet"]["find_one"]
 
+        # pay_invoice already checked this via _ensure_base_asset; kept because
+        # the field is free here and this is the last stop before a real send.
         if wallet["asset"]["type"] != "BASE_ASSET":
-            raise ValueError("AmbossWallet only supports BASE_ASSET (BTC) wallets")
+            raise ValueError(_BASE_ASSET_ONLY)
 
         perms = wallet["node_permissions"]
         node = next(
@@ -462,7 +480,9 @@ class AmbossWallet(Wallet):
             None,
         )
         if not node:
-            raise ValueError("no LND/litd REST endpoint available for this wallet")
+            raise ValueError(
+                "no https LND/litd REST endpoint available for this wallet"
+            )
 
         symmetric_key = nip44_decrypt(perms["encrypted_symmetric_key"], master_key)
         macaroon = nip44_decrypt(node["encrypted_macaroon"], symmetric_key)
@@ -476,15 +496,10 @@ class AmbossWallet(Wallet):
         fee_limit_msat: int,
         checking_id: str,
     ) -> PaymentResponse:
+        # _resolve_node only returns nodes with an https socket, so this cannot
+        # be None; asserting keeps the type narrow without a second policy.
         rest_host = _pick_rest_socket(node["sockets"])
-        if not rest_host or not rest_host.lower().startswith("https://"):
-            # Never send the admin macaroon over a socket we can't confirm is
-            # TLS — plaintext http would leak it.
-            return PaymentResponse(
-                ok=False,
-                checking_id=checking_id,
-                error_message="no TLS REST endpoint available for this node",
-            )
+        assert rest_host is not None
         tls_cert = node.get("tls_cert")
         verify: Any = ssl.create_default_context(cadata=tls_cert) if tls_cert else True
 
