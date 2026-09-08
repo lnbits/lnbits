@@ -15,6 +15,7 @@ from __future__ import annotations
 import base64
 import hashlib
 import hmac
+import json
 import ssl
 from collections.abc import AsyncGenerator
 from typing import Any
@@ -179,6 +180,8 @@ class AmbossWallet(Wallet):
         self.wallet_id = settings.amboss_wallet_id
         self.team_password = settings.amboss_team_password
         self.endpoint = settings.amboss_api_endpoint
+        self.sandbox = settings.amboss_sandbox
+        self.sandbox_auto_complete = settings.amboss_sandbox_auto_complete
         # Static per wallet: (team_id, is_sandbox, node, macaroon_hex). Cached so
         # repeat sends skip the ~3s GetSendContext + Argon2 + node-permissions
         # decrypt. If the node or macaroon rotates, restart to pick up the change.
@@ -241,6 +244,9 @@ class AmbossWallet(Wallet):
             _input["description"] = memo
         if kwargs.get("expiry"):
             _input["expires_in_seconds"] = int(kwargs["expiry"])
+        if self.sandbox and self.sandbox_auto_complete:
+            # rails only acts on this for SANDBOX wallets; harmless otherwise.
+            _input["metadata"] = json.dumps({"amb_sandbox_behavior": "complete"})
 
         try:
             data = await self._gql(_CREATE_RECEIVE, {"input": _input})
@@ -260,17 +266,18 @@ class AmbossWallet(Wallet):
     async def pay_invoice(self, bolt11: str, fee_limit_msat: int) -> PaymentResponse:
         try:
             _team_id, is_sandbox, node, macaroon_hex = await self._send_context()
-            tx = (
-                await self._gql(
-                    _CREATE_SEND,
-                    {
-                        "input": {
-                            "wallet_id": self.wallet_id,
-                            "request": {"bolt11": bolt11},
-                        }
-                    },
+            send_input: dict[str, Any] = {
+                "wallet_id": self.wallet_id,
+                "request": {"bolt11": bolt11},
+            }
+            if self.sandbox and self.sandbox_auto_complete:
+                # rails only acts on this for SANDBOX wallets; harmless otherwise.
+                send_input["metadata"] = json.dumps(
+                    {"amb_sandbox_behavior": "complete"}
                 )
-            )["payment"]["transaction"]["create_send"]
+            tx = (await self._gql(_CREATE_SEND, {"input": send_input}))["payment"][
+                "transaction"
+            ]["create_send"]
         except Exception as exc:
             logger.warning(f"AmbossWallet send error: {exc}")
             return PaymentResponse(error_message=str(exc))

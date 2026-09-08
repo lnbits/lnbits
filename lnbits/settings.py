@@ -634,6 +634,10 @@ class AmbossFundingSource(LNbitsSettings):
     amboss_service_api_key: str | None = Field(default=None)
     amboss_wallet_id: str | None = Field(default=None)
     amboss_team_password: str | None = Field(default=None)
+    # Sandbox wallets can be told to auto-settle received invoices via the
+    # `amb_sandbox_behavior` metadata key (rails ignores it for LIVE wallets).
+    amboss_sandbox: bool = Field(default=False)
+    amboss_sandbox_auto_complete: bool = Field(default=False)
 
 
 class ZBDFundingSource(LNbitsSettings):
