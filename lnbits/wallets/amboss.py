@@ -20,7 +20,6 @@ import hashlib
 import hmac
 import json
 import ssl
-from collections.abc import AsyncGenerator
 from typing import Any
 
 import httpx
@@ -183,7 +182,11 @@ query($hash: String!) {{
 
 
 class AmbossWallet(Wallet):
-    """https://github.com/AmbossTech/sdk/tree/main/packages/payments"""
+    """https://github.com/AmbossTech/sdk/tree/main/packages/payments
+
+    There is no push channel for settled invoices, so `paid_invoices_stream` is
+    left to the base class's 5s poll over `pending_invoices`.
+    """
 
     def __init__(self):
         super().__init__()
@@ -294,15 +297,12 @@ class AmbossWallet(Wallet):
         # this transaction's stored description.
         if memo:
             _input["description"] = memo
-        hash_hex = (
-            description_hash.hex()
-            if description_hash
-            else hashlib.sha256(unhashed_description).hexdigest()
-            if unhashed_description
-            else None
-        )
-        if hash_hex:
-            _input["bolt11"] = {"description_hash": hash_hex}
+        if description_hash:
+            _input["bolt11"] = {"description_hash": description_hash.hex()}
+        elif unhashed_description:
+            _input["bolt11"] = {
+                "description_hash": hashlib.sha256(unhashed_description).hexdigest()
+            }
         if kwargs.get("expiry"):
             _input["expires_in_seconds"] = int(kwargs["expiry"])
         if self.sandbox and self.sandbox_auto_complete:
@@ -577,11 +577,6 @@ class AmbossWallet(Wallet):
         if status in ("FAILED", "EXPIRED"):
             return PaymentFailedStatus()
         return PaymentPendingStatus()
-
-    async def paid_invoices_stream(self) -> AsyncGenerator[str, None]:
-        # No push channel in the SDK; inherit the base 5s poll over pending_invoices.
-        async for checking_id in super().paid_invoices_stream():
-            yield checking_id
 
 
 def _self_check() -> None:
