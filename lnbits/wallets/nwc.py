@@ -10,6 +10,7 @@ from collections.abc import AsyncGenerator, Awaitable, Callable
 from typing import Any, cast
 from urllib.parse import parse_qs, unquote, urlparse
 
+from bolt11 import Bolt11Exception
 from bolt11 import decode as bolt11_decode
 from coincurve import PrivateKey, PublicKey
 from Cryptodome.Cipher import ChaCha20
@@ -85,6 +86,7 @@ class NWCWallet(Wallet):
             nwc_data["relay"],
             notification_handler=self._handle_notification,
         )
+        self.pending_invoices: list[str] = []
         self.pending_invoice_details: dict[str, dict[str, Any]] = {}
         self.payment_status_cache: dict[str, dict[str, Any]] = {}
         self.payment_status_cache_pending_ttl = 30
@@ -243,7 +245,6 @@ class NWCWallet(Wallet):
                     "until": int(now),
                     "limit": limit,
                     "offset": offset,
-                    "type": "incoming",
                     "unpaid": unpaid,
                 },
             )
@@ -405,7 +406,7 @@ class NWCWallet(Wallet):
             await self._reconcile_pending_invoices(now)
 
         await self._run_fallback_lookups(now)
-        self._prune_payment_status_cache(self._cache_ids())
+        self._prune_payment_status_cache()
 
     def _payment_data_is_settled(self, payment_data: dict[str, Any]) -> bool:
         state = payment_data.get("state")
@@ -430,11 +431,25 @@ class NWCWallet(Wallet):
     def _payment_data_to_status(self, payment_data: dict[str, Any]) -> PaymentStatus:
         fee_msat = payment_data.get("fees_paid", None)
         preimage = payment_data.get("preimage", None)
+        if self._payment_data_needs_fees(payment_data):
+            # The core finalizes missing fees as zero and stops checking success.
+            return PaymentStatus(None, fee_msat=None, preimage=preimage)
         if self._payment_data_is_settled(payment_data):
             return PaymentStatus(True, fee_msat=fee_msat, preimage=preimage)
         if self._payment_data_is_failed(payment_data):
             return PaymentStatus(False, fee_msat=fee_msat, preimage=preimage)
         return PaymentStatus(None, fee_msat=fee_msat, preimage=preimage)
+
+    def _payment_data_needs_fees(self, payment_data: dict[str, Any]) -> bool:
+        return (
+            payment_data.get("type") == "outgoing"
+            and self._payment_data_is_settled(payment_data)
+            and payment_data.get("fees_paid") is None
+            and (
+                self.conn.supports_method("lookup_invoice")
+                or self.conn.supports_method("list_transactions")
+            )
+        )
 
     def _cache_payment_data(
         self,
@@ -443,6 +458,24 @@ class NWCWallet(Wallet):
         cached_at: float | None = None,
     ) -> None:
         cached_at = cached_at or time.time()
+        cached = self._get_cached_payment_data(checking_id)
+        if (
+            cached
+            and cached.get("type") == "outgoing"
+            and self._payment_data_is_settled(cached)
+        ):
+            # Delayed lookups must not overwrite proof of settlement. Enrich it
+            # with fees and other details once the provider catches up.
+            if not self._payment_data_is_settled(payment_data):
+                return
+            payment_data = {
+                **cached,
+                **{
+                    key: value
+                    for key, value in payment_data.items()
+                    if value is not None
+                },
+            }
         ttl = (
             self.payment_status_cache_terminal_ttl
             if self._payment_data_is_settled(payment_data)
@@ -580,42 +613,43 @@ class NWCWallet(Wallet):
 
     async def pay_invoice(self, bolt11: str, fee_limit_msat: int) -> PaymentResponse:
         try:
-            resp = await self.conn.call("pay_invoice", {"invoice": bolt11})
-            preimage = resp.get("preimage", None)
             invoice_data = bolt11_decode(bolt11)
             payment_hash = invoice_data.payment_hash
-            # pay_invoice doesn't return payment data, so we need
-            # to call lookup_invoice too (if supported)
-            await self.conn.get_info()
-
-            if not self.conn.supports_method("lookup_invoice"):
-                # if not supported, we assume it succeeded
-                return PaymentResponse(
-                    ok=True, checking_id=payment_hash, preimage=preimage, fee_msat=0
-                )
-
-            try:
-                payment_data = await self.conn.call(
-                    "lookup_invoice", {"invoice": bolt11}
-                )
-                settled = payment_data.get("settled_at", None) and payment_data.get(
-                    "preimage", None
-                )
-                if not settled:
-                    return PaymentResponse(checking_id=payment_hash)
-                else:
-                    fee_msat = payment_data.get("fees_paid", None)
-                    return PaymentResponse(
-                        ok=True,
-                        checking_id=payment_hash,
-                        fee_msat=fee_msat,
-                        preimage=preimage,
-                    )
-            except Exception:
-                # Workaround: some nwc service providers might not store the invoice
-                # right away, so this call may raise an exception.
-                # We will assume the payment is pending anyway
+        except Bolt11Exception as exc:
+            logger.error("Error decoding invoice: " + str(exc))
+            return PaymentResponse(
+                ok=False,
+                checking_id=None,
+                error_message="Invalid invoice: " + str(exc),
+            )
+        try:
+            resp = await self.conn.call("pay_invoice", {"invoice": bolt11})
+            preimage = resp.get("preimage", None)
+            if not preimage:
                 return PaymentResponse(checking_id=payment_hash)
+
+            # Cache the successful pay_invoice response so status checks
+            # can use it if lookup_invoice is not yet consistent.
+            self._cache_payment_data(
+                payment_hash,
+                {
+                    "payment_hash": payment_hash,
+                    "preimage": preimage,
+                    "settled_at": int(time.time()),
+                    "state": "settled",
+                    "amount": invoice_data.amount_msat,
+                    "fees_paid": resp.get("fees_paid", None),
+                    "type": "outgoing",
+                },
+            )
+
+            status = await self.get_payment_status(payment_hash)
+            return PaymentResponse(
+                ok=status.paid,
+                checking_id=payment_hash,
+                fee_msat=(status.fee_msat or 0) if status.success else None,
+                preimage=status.preimage,
+            )
         except NWCError as e:
             logger.error("Error paying invoice: " + str(e))
             failure_codes = [
@@ -630,13 +664,15 @@ class NWCWallet(Wallet):
             failed = e.code in failure_codes
             return PaymentResponse(
                 ok=None if not failed else False,
+                checking_id=payment_hash,
                 error_message=e.message if failed else None,
             )
         except Exception as e:
             msg = "Error paying invoice: " + str(e)
             logger.error(msg)
-            # assume pending
-            return PaymentResponse(error_message=msg)
+            # assume pending so the core keeps the payment record
+            # and can settle it later via get_payment_status
+            return PaymentResponse(checking_id=payment_hash)
 
     async def _get_status_via_transactions(
         self, checking_id: str, unpaid_filters: list[bool]
@@ -644,7 +680,7 @@ class NWCWallet(Wallet):
         keep_ids = self._cache_ids(checking_id)
         self._prune_payment_status_cache()
         payment_data = self._get_cached_payment_data(checking_id)
-        if payment_data:
+        if payment_data and not self._payment_data_needs_fees(payment_data):
             return self._payment_data_to_status(payment_data)
 
         if self.conn.supports_method("list_transactions"):
@@ -664,7 +700,7 @@ class NWCWallet(Wallet):
                     unpaid=unpaid,
                 )
                 payment_data = self._get_cached_payment_data(checking_id)
-                if payment_data:
+                if payment_data and not self._payment_data_needs_fees(payment_data):
                     return self._payment_data_to_status(payment_data)
 
         if self.conn.supports_method("lookup_invoice"):
@@ -672,6 +708,7 @@ class NWCWallet(Wallet):
                 "lookup_invoice", {"payment_hash": checking_id}
             )
             self._cache_payment_data(checking_id, payment_data)
+            payment_data = self._get_cached_payment_data(checking_id) or payment_data
             return self._payment_data_to_status(payment_data)
 
         return None
@@ -698,14 +735,14 @@ class NWCWallet(Wallet):
             return status or PaymentStatus(None, fee_msat=None, preimage=None)
         except NWCError as e:
             logger.error("Error getting payment status: " + str(e))
-            failed = e.code == "NOT_FOUND"
-            return PaymentStatus(
-                None if not failed else False, fee_msat=None, preimage=None
-            )
         except Exception as e:
             logger.error("Error getting payment status: " + str(e))
-            # assume pending (eg. exception due to network error)
-            return PaymentStatus(None, fee_msat=None, preimage=None)
+        # NOT_FOUND can mean the payment has not been indexed yet, including
+        # when the pay_invoice response was lost. Only explicit failure is final.
+        cached = self._get_cached_payment_data(checking_id)
+        if cached and self._payment_data_is_settled(cached):
+            return self._payment_data_to_status(cached)
+        return PaymentStatus(None, fee_msat=None, preimage=None)
 
     async def paid_invoices_stream(self) -> AsyncGenerator[str, None]:
         while not self._is_shutting_down():
