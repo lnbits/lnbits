@@ -386,6 +386,7 @@ class AccessTokenPayload(BaseModel):
 class UpdateBalance(BaseModel):
     id: str
     amount: int
+    memo: str | None = Field(default=None, max_length=640)
 
 
 class ApiTokenRequest(BaseModel):
