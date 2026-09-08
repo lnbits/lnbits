@@ -345,6 +345,7 @@ window.app.component('lnbits-dynamic-chips', {
 window.app.component('lnbits-update-balance', {
   template: '#lnbits-update-balance',
   props: ['wallet_id', 'small_btn'],
+  emits: ['credit-value'],
   computed: {
     admin() {
       return this.g.user?.super_user === true
@@ -353,13 +354,16 @@ window.app.component('lnbits-update-balance', {
   data() {
     return {
       credit: null,
-      memo: ''
+      memo: '',
+      updating: false
     }
   },
   methods: {
     updateBalance(scope) {
       const credit = parseInt(scope.value)
       if (!credit) return
+      if (this.updating) return
+      this.updating = true
       LNbits.api
         .updateBalance(credit, this.wallet_id, this.memo.trim() || null)
         .then(res => {
@@ -380,6 +384,9 @@ window.app.component('lnbits-update-balance', {
           scope.set()
         })
         .catch(LNbits.utils.notifyApiError)
+        .finally(() => {
+          this.updating = false
+        })
     }
   }
 })
