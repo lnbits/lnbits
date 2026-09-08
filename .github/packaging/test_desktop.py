@@ -35,6 +35,7 @@ class DesktopTests(unittest.TestCase):
     def test_redirected_terminal(self):
         with (
             patch("desktop.sys.platform", "linux"),
+            patch("desktop.os.O_NOCTTY", 256, create=True),
             patch("desktop.sys.stdin", None),
             patch("desktop.sys.stdout", None),
             patch("desktop.sys.stderr", None),
@@ -45,6 +46,7 @@ class DesktopTests(unittest.TestCase):
             close.assert_called_once_with(42)
         with (
             patch("desktop.sys.platform", "linux"),
+            patch("desktop.os.O_NOCTTY", 256, create=True),
             patch("desktop.sys.stdin", None),
             patch("desktop.sys.stdout", None),
             patch("desktop.sys.stderr", None),
@@ -78,6 +80,7 @@ class DesktopTests(unittest.TestCase):
         with (
             patch("desktop.sys.argv", ["lnbits"]),
             patch.dict(os.environ, {}, clear=True),
+            patch("desktop.default_folder", return_value=Path("test-data")),
             patch("desktop.should_show_gui", return_value=False),
             patch("desktop.mp.freeze_support"),
             patch("desktop.configuration", return_value={}) as configure,
@@ -88,6 +91,18 @@ class DesktopTests(unittest.TestCase):
             with self.assertRaises(SystemExit):
                 desktop.main()
             self.assertFalse(configure.call_args.args[3])
+
+    def test_explicit_storage_base_does_not_require_home(self):
+        for platform, variable, suffix in (
+            ("win32", "LOCALAPPDATA", "LNbits"),
+            ("linux", "XDG_DATA_HOME", "lnbits-desktop"),
+        ):
+            with (
+                patch("desktop.sys.platform", platform),
+                patch.dict(os.environ, {variable: "storage"}, clear=True),
+                patch("desktop.Path.home", side_effect=RuntimeError("No home")),
+            ):
+                self.assertEqual(desktop.default_folder(), Path("storage") / suffix)
 
     def test_worker_ctrl_c_exits_cleanly(self):
         with (

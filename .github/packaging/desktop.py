@@ -17,9 +17,9 @@ from pathlib import Path
 
 def default_folder():
     if sys.platform == "win32":
-        return Path(os.environ.get("LOCALAPPDATA", Path.home())) / "LNbits"
+        return Path(os.environ.get("LOCALAPPDATA") or Path.home()) / "LNbits"
     return (
-        Path(os.environ.get("XDG_DATA_HOME", Path.home() / ".local/share"))
+        Path(os.environ.get("XDG_DATA_HOME") or Path.home() / ".local/share")
         / "lnbits-desktop"
     )
 
