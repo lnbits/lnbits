@@ -21,6 +21,7 @@ from collections.abc import AsyncGenerator
 from typing import Any
 
 import httpx
+from bolt11 import decode as bolt11_decode
 from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives.ciphers import Cipher, algorithms
 from cryptography.hazmat.primitives.kdf.argon2 import Argon2id
@@ -113,7 +114,7 @@ def _normalize_macaroon_hex(value: str) -> str:
 
 # --- GraphQL documents (only the fields this wallet uses) ----------------------
 
-_TX_FIELDS = "id status payment_hash payment_request fee amount_sats"
+_TX_FIELDS = "id status payment_hash payment_request fee preimage amount_sats"
 
 _CREATE_RECEIVE = f"""
 mutation($input: CreateReceiveTransactionInput!) {{
@@ -279,10 +280,15 @@ class AmbossWallet(Wallet):
 
     async def pay_invoice(self, bolt11: str, fee_limit_msat: int) -> PaymentResponse:
         try:
+            decoded = bolt11_decode(bolt11)
             _team_id, is_sandbox, node, macaroon_hex = await self._send_context()
             send_input: dict[str, Any] = {
                 "wallet_id": self.wallet_id,
                 "request": {"bolt11": bolt11},
+                # payment_hash doubles as a free, deterministic dedup key: a
+                # retried pay_invoice() call for the same invoice lands on the
+                # same rails transaction instead of creating a second send.
+                "idempotency_key": decoded.payment_hash,
             }
             if self.sandbox and self.sandbox_auto_complete:
                 # rails only acts on this for SANDBOX wallets; harmless otherwise.
@@ -306,6 +312,35 @@ class AmbossWallet(Wallet):
 
         assert node is not None and macaroon_hex is not None  # set in non-sandbox path
         payment_request = tx.get("payment_request") or bolt11
+        # rails is a closed-source, third-party API from lnbits' perspective —
+        # never pay whatever payment_request it hands back without checking it
+        # against the invoice we actually submitted. A hash/amount mismatch
+        # here means the node is about to pay something we didn't ask for.
+        try:
+            resolved = bolt11_decode(payment_request)
+        except Exception as exc:
+            logger.warning(
+                f"AmbossWallet send error: undecodable payment_request: {exc}"
+            )
+            return PaymentResponse(
+                ok=False,
+                checking_id=checking_id,
+                error_message="invalid payment_request",
+            )
+        if (
+            resolved.payment_hash != decoded.payment_hash
+            or resolved.amount_msat != decoded.amount_msat
+        ):
+            logger.warning(
+                "AmbossWallet send error: payment_request does not match submitted "
+                "invoice (hash/amount mismatch)"
+            )
+            return PaymentResponse(
+                ok=False,
+                checking_id=checking_id,
+                error_message="payment_request does not match the submitted invoice",
+            )
+
         return await self._pay_via_node(
             node, macaroon_hex, payment_request, fee_limit_msat, checking_id
         )
@@ -375,10 +410,11 @@ class AmbossWallet(Wallet):
         tls_cert = node.get("tls_cert")
         verify: Any = ssl.create_default_context(cadata=tls_cert) if tls_cert else True
 
+        node_timeout_seconds = 30
         req = {
             "payment_request": payment_request,
             "fee_limit_msat": fee_limit_msat,
-            "timeout_seconds": 30,
+            "timeout_seconds": node_timeout_seconds,
             "no_inflight_updates": True,
         }
         try:
@@ -387,10 +423,23 @@ class AmbossWallet(Wallet):
                 headers={"Grpc-Metadata-macaroon": macaroon_hex},
                 verify=verify,
             ) as node_client:
-                r = await node_client.post("/v2/router/send", json=req, timeout=None)
+                # A few seconds above the node's own timeout_seconds so LND
+                # itself times out the payment attempt before httpx gives up.
+                r = await node_client.post(
+                    "/v2/router/send",
+                    json=req,
+                    timeout=node_timeout_seconds + 5,
+                )
                 r.raise_for_status()
                 data = r.json()
         except Exception as exc:
+            if isinstance(exc, httpx.HTTPStatusError) and exc.response.status_code in (
+                401,
+                403,
+            ):
+                # Macaroon likely rotated; drop the cache so the next send
+                # re-resolves node permissions instead of reusing a stale one.
+                self._send_cache = None
             logger.warning(f"AmbossWallet node pay error: {exc}")
             # Payment may still be in flight on the node; leave it pending.
             return PaymentResponse(ok=None, checking_id=checking_id)
@@ -442,9 +491,11 @@ class AmbossWallet(Wallet):
         status = tx.get("status")
         if status == "COMPLETED":
             fee = tx.get("fee")
-            return PaymentSuccessStatus(
-                fee_msat=abs(int(fee)) * 1000 if fee is not None else None
-            )
+            # `fee` is the routing fee only, in msat, matching what a
+            # SUCCEEDED /v2/router/send response reports directly — never the
+            # platform's bps volume fee, which is billed separately.
+            fee_msat = abs(int(fee)) if fee is not None else None
+            return PaymentSuccessStatus(fee_msat=fee_msat, preimage=tx.get("preimage"))
         if status in ("FAILED", "EXPIRED"):
             return PaymentFailedStatus()
         return PaymentPendingStatus()
