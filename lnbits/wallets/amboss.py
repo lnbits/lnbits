@@ -261,7 +261,6 @@ class AmbossWallet(Wallet):
             data = await self._gql(_GET_WALLET_BALANCE, {"id": self.wallet_id})
             wallet = data["payment"]["wallet"]["find_one"]
             asset_type = wallet["asset"]["type"]
-            balance_sats = int(wallet["balance"]["balance"])
         except Exception as exc:
             logger.warning(exc)
             return StatusResponse(f"Unable to connect to {self.endpoint}.", 0)
@@ -271,6 +270,14 @@ class AmbossWallet(Wallet):
             # admin off debugging DNS for what is a misconfigured wallet.
             logger.warning(f"{_BASE_ASSET_ONLY} (wallet asset: {asset_type})")
             return StatusResponse(_BASE_ASSET_ONLY, 0)
+
+        # Parsed after the connection handler above, so an unparsable balance
+        # reports itself instead of masquerading as an unreachable endpoint.
+        try:
+            balance_sats = int(wallet["balance"]["balance"])
+        except (KeyError, TypeError, ValueError) as exc:
+            logger.warning(f"AmbossWallet: unusable balance in response: {exc}")
+            return StatusResponse("wallet response has no usable balance", 0)
 
         self._asset_verified = True
         # balance is in the wallet asset's base unit, which is sats for
@@ -496,10 +503,19 @@ class AmbossWallet(Wallet):
         fee_limit_msat: int,
         checking_id: str,
     ) -> PaymentResponse:
-        # _resolve_node only returns nodes with an https socket, so this cannot
-        # be None; asserting keeps the type narrow without a second policy.
+        # _resolve_node only hands over nodes that have an https socket, so this
+        # is unreachable today. It stays in band rather than asserting: this
+        # call sits outside pay_invoice's try blocks, so a raise would escape to
+        # core, which renders AssertionError as a 400 and never runs the failed
+        # branch — stranding the payment PENDING. Nothing has been sent to the
+        # node at this point, so ok=False is the truthful answer.
         rest_host = _pick_rest_socket(node["sockets"])
-        assert rest_host is not None
+        if rest_host is None:
+            return PaymentResponse(
+                ok=False,
+                checking_id=checking_id,
+                error_message="no https REST endpoint available for this node",
+            )
         tls_cert = node.get("tls_cert")
         verify: Any = ssl.create_default_context(cadata=tls_cert) if tls_cert else True
 

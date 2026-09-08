@@ -172,6 +172,67 @@ def test_pick_rest_socket_rejects_plaintext_only_node():
     assert _pick_rest_socket({"litd": None, "lnd": None}) is None
 
 
+def _node_permissions(*nodes: dict) -> dict:
+    return {
+        "payment": {
+            "wallet": {
+                "find_one": {
+                    "asset": {"type": "BASE_ASSET"},
+                    "node_permissions": {
+                        "encrypted_symmetric_key": "enc-sym",
+                        "nodes": list(nodes),
+                    },
+                }
+            }
+        }
+    }
+
+
+@pytest.mark.anyio
+async def test_resolve_node_skips_plaintext_node_for_a_later_https_one(
+    amboss_wallet: AmbossWallet, mocker
+):
+    # The socket predicate is unit-tested above; this covers the composition
+    # through _resolve_node's next(...), i.e. that an unusable node does not
+    # end the search and take a usable later node down with it.
+    amboss_wallet.team_password = "CorrectHorseBatteryStaple"
+    plaintext = {"encrypted_macaroon": "no", "sockets": {"lnd": {"rest": "http://a"}}}
+    usable = {"encrypted_macaroon": "yes", "sockets": {"litd": {"rest": "https://b"}}}
+    mocker.patch.object(
+        amboss_module,
+        "create_master_password_hash",
+        return_value=("master-key", "password-hash"),
+    )
+    mocker.patch.object(
+        amboss_wallet, "_gql", return_value=_node_permissions(plaintext, usable)
+    )
+    mocker.patch.object(amboss_module, "nip44_decrypt", side_effect=["sym-key", "00ff"])
+
+    node, macaroon_hex = await amboss_wallet._resolve_node("team-id")
+
+    assert node is usable
+    assert macaroon_hex == "00ff"
+
+
+@pytest.mark.anyio
+async def test_resolve_node_rejects_a_wallet_with_only_plaintext_nodes(
+    amboss_wallet: AmbossWallet, mocker
+):
+    amboss_wallet.team_password = "CorrectHorseBatteryStaple"
+    plaintext = {"encrypted_macaroon": "no", "sockets": {"lnd": {"rest": "http://a"}}}
+    mocker.patch.object(
+        amboss_module,
+        "create_master_password_hash",
+        return_value=("master-key", "password-hash"),
+    )
+    mocker.patch.object(
+        amboss_wallet, "_gql", return_value=_node_permissions(plaintext)
+    )
+
+    with pytest.raises(ValueError, match="no https"):
+        await amboss_wallet._resolve_node("team-id")
+
+
 @pytest.mark.anyio
 async def test_send_context_rejects_password_that_strips_below_argon2_salt(
     amboss_wallet: AmbossWallet, mocker
@@ -205,6 +266,41 @@ async def test_status_maps_sats_balance_to_msat(
 
     assert status.error_message is None
     assert status.balance_msat == 55000
+
+
+@pytest.mark.anyio
+async def test_pay_via_node_returns_in_band_when_socket_is_unusable(
+    amboss_wallet: AmbossWallet,
+):
+    # Unreachable via _resolve_node, but it must stay a response rather than a
+    # raise: _pay_via_node is called outside pay_invoice's try blocks, so an
+    # escaping error would reach core as a 400 and strand the payment PENDING.
+    result = await amboss_wallet._pay_via_node(
+        node={"sockets": {"lnd": {"rest": "http://plaintext"}}},
+        macaroon_hex="00ff",
+        payment_request=_BOLT11,
+        fee_limit_msat=1000,
+        checking_id="a" * 64,
+    )
+
+    # Nothing was sent to the node, so this is terminal, not pending.
+    assert result.ok is False
+    assert result.checking_id == "a" * 64
+
+
+@pytest.mark.anyio
+async def test_status_reports_unusable_balance_as_itself(
+    http_wallet: AmbossWallet, gql_server: HTTPServer
+):
+    # A balance that will not parse is not a connectivity problem either.
+    broken = _wallet_data()
+    broken["data"]["payment"]["wallet"]["find_one"]["balance"] = {"balance": "abc"}
+    _expect_gql(gql_server, broken)
+
+    status = await http_wallet.status()
+
+    assert status.error_message == "wallet response has no usable balance"
+    assert status.balance_msat == 0
 
 
 @pytest.mark.anyio
