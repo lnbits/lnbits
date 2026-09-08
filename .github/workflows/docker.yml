@@ -30,17 +30,11 @@ jobs:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
 
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
-
-      - name: Cache Docker layers
-        uses: actions/cache@v4
-        id: cache
-        with:
-          path: /tmp/.buildx-cache
-          key: ${{ runner.os }}-buildx-${{ github.sha }}
-          restore-keys: |
-            ${{ runner.os }}-buildx-
 
       - name: Build and push
         uses: docker/build-push-action@v5
@@ -49,8 +43,8 @@ jobs:
             push: true
             tags: ${{ secrets.DOCKER_USERNAME }}/lnbits:${{ inputs.tag }}
             platforms: linux/amd64,linux/arm64
-            cache-from: type=local,src=/tmp/.buildx-cache
-            cache-to: type=local,dest=/tmp/.buildx-cache
+            cache-from: type=gha,scope=lnbits
+            cache-to: type=gha,mode=max,scope=lnbits
 
       - name: Build and push boltz
         uses: docker/build-push-action@v5
@@ -59,8 +53,8 @@ jobs:
             push: true
             tags: ${{ secrets.DOCKER_USERNAME }}/lnbits-boltz:${{ inputs.tag }}
             platforms: linux/amd64,linux/arm64
-            cache-from: type=local,src=/tmp/.buildx-cache
-            cache-to: type=local,dest=/tmp/.buildx-cache
+            cache-from: type=gha,scope=lnbits-boltz
+            cache-to: type=gha,mode=max,scope=lnbits-boltz
             build-args: LNBITS_TAG=${{ inputs.tag }}
 
       - name: Build and push sparkl2
@@ -70,6 +64,6 @@ jobs:
             push: true
             tags: ${{ secrets.DOCKER_USERNAME }}/lnbits-sparkl2:${{ inputs.tag }}
             platforms: linux/amd64,linux/arm64
-            cache-from: type=local,src=/tmp/.buildx-cache
-            cache-to: type=local,dest=/tmp/.buildx-cache
+            cache-from: type=gha,scope=lnbits-sparkl2
+            cache-to: type=gha,mode=max,scope=lnbits-sparkl2
             build-args: LNBITS_TAG=${{ inputs.tag }}
