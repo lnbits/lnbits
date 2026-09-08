@@ -257,22 +257,26 @@ class AmbossWallet(Wallet):
         return body["data"]
 
     async def status(self) -> StatusResponse:
+        # Only the request itself is allowed to report a connection problem.
+        # Everything read out of the response below reports itself, so schema
+        # drift never sends an admin off debugging an endpoint that answered.
         try:
             data = await self._gql(_GET_WALLET_BALANCE, {"id": self.wallet_id})
-            wallet = data["payment"]["wallet"]["find_one"]
-            asset_type = wallet["asset"]["type"]
         except Exception as exc:
             logger.warning(exc)
             return StatusResponse(f"Unable to connect to {self.endpoint}.", 0)
 
+        try:
+            wallet = data["payment"]["wallet"]["find_one"]
+            asset_type = wallet["asset"]["type"]
+        except (KeyError, TypeError) as exc:
+            logger.warning(f"AmbossWallet: no asset type in response: {exc}")
+            return StatusResponse("wallet response has no asset type", 0)
+
         if asset_type != "BASE_ASSET":
-            # Reported separately: folding this into the message above sends an
-            # admin off debugging DNS for what is a misconfigured wallet.
             logger.warning(f"{_BASE_ASSET_ONLY} (wallet asset: {asset_type})")
             return StatusResponse(_BASE_ASSET_ONLY, 0)
 
-        # Parsed after the connection handler above, so an unparsable balance
-        # reports itself instead of masquerading as an unreachable endpoint.
         try:
             balance_sats = int(wallet["balance"]["balance"])
         except (KeyError, TypeError, ValueError) as exc:

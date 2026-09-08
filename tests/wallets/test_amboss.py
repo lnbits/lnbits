@@ -196,8 +196,17 @@ async def test_resolve_node_skips_plaintext_node_for_a_later_https_one(
     # through _resolve_node's next(...), i.e. that an unusable node does not
     # end the search and take a usable later node down with it.
     amboss_wallet.team_password = "CorrectHorseBatteryStaple"
-    plaintext = {"encrypted_macaroon": "no", "sockets": {"lnd": {"rest": "http://a"}}}
-    usable = {"encrypted_macaroon": "yes", "sockets": {"litd": {"rest": "https://b"}}}
+    # Same encrypted_macaroon on both, so the only thing that can distinguish
+    # them is the socket scheme. Differing values here would let a mutation that
+    # keys off the macaroon instead of the socket pass unnoticed.
+    plaintext = {
+        "encrypted_macaroon": "enc-mac",
+        "sockets": {"lnd": {"rest": "http://a"}},
+    }
+    usable = {
+        "encrypted_macaroon": "enc-mac",
+        "sockets": {"litd": {"rest": "https://b"}},
+    }
     mocker.patch.object(
         amboss_module,
         "create_master_password_hash",
@@ -219,7 +228,10 @@ async def test_resolve_node_rejects_a_wallet_with_only_plaintext_nodes(
     amboss_wallet: AmbossWallet, mocker
 ):
     amboss_wallet.team_password = "CorrectHorseBatteryStaple"
-    plaintext = {"encrypted_macaroon": "no", "sockets": {"lnd": {"rest": "http://a"}}}
+    plaintext = {
+        "encrypted_macaroon": "enc-mac",
+        "sockets": {"lnd": {"rest": "http://a"}},
+    }
     mocker.patch.object(
         amboss_module,
         "create_master_password_hash",
@@ -286,6 +298,22 @@ async def test_pay_via_node_returns_in_band_when_socket_is_unusable(
     # Nothing was sent to the node, so this is terminal, not pending.
     assert result.ok is False
     assert result.checking_id == "a" * 64
+
+
+@pytest.mark.anyio
+async def test_status_reports_missing_asset_type_as_itself(
+    http_wallet: AmbossWallet, gql_server: HTTPServer
+):
+    # Schema drift on `asset` is not a connectivity problem: the endpoint
+    # answered. Same rule as the balance below it.
+    drifted = _wallet_data()
+    del drifted["data"]["payment"]["wallet"]["find_one"]["asset"]
+    _expect_gql(gql_server, drifted)
+
+    status = await http_wallet.status()
+
+    assert status.error_message == "wallet response has no asset type"
+    assert status.balance_msat == 0
 
 
 @pytest.mark.anyio
