@@ -476,7 +476,7 @@ async def update_wallet_balance(
     if amount == 0:
         raise ValueError("Amount cannot be 0.")
 
-    memo = memo or ("Credit" if amount > 0 else "Debit")
+    memo = (memo or "").strip() or ("Credit" if amount > 0 else "Debit")
 
     # negative balance change
     if amount < 0:

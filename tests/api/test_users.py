@@ -791,9 +791,20 @@ async def test_update_balance_memo(http_client: AsyncClient, superuser_token):
 async def test_update_balance_memo_too_long(
     http_client: AsyncClient, superuser_token, from_wallet
 ):
+    # bolt11 descriptions are limited to 639 bytes: reject 640 chars
+    # and multibyte memos that exceed 639 bytes at fewer characters
+    for memo in ["x" * 640, "é" * 320]:
+        response = await http_client.put(
+            "/users/api/v1/balance",
+            json={"id": from_wallet.id, "amount": 10, "memo": memo},
+            headers={"Authorization": f"Bearer {superuser_token}"},
+        )
+        assert response.status_code == 400, memo[:10]
+
+    # 639 bytes is the maximum and must succeed
     response = await http_client.put(
         "/users/api/v1/balance",
-        json={"id": from_wallet.id, "amount": 10, "memo": "x" * 641},
+        json={"id": from_wallet.id, "amount": 10, "memo": "x" * 639},
         headers={"Authorization": f"Bearer {superuser_token}"},
     )
-    assert response.status_code == 400
+    assert response.status_code == 200
