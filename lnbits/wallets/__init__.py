@@ -34,6 +34,7 @@ from .sparkl2 import SparkL2Wallet
 from .strike import StrikeWallet
 from .void import VoidWallet
 from .zbd import ZBDWallet
+from .fakeark import ArkFakeWallet
 
 
 def set_funding_source(class_name: str | None = None) -> None:
@@ -83,4 +84,5 @@ __all__ = [
     "StrikeWallet",
     "VoidWallet",
     "ZBDWallet",
+    "ArkFakeWallet",
 ]
