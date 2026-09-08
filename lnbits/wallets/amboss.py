@@ -129,7 +129,7 @@ def _pick_rest_socket(sockets: dict) -> str | None:
 
 # --- GraphQL documents (only the fields this wallet uses) ----------------------
 
-_TX_FIELDS = "id status payment_hash payment_request fee preimage amount_sats"
+_TX_FIELDS = "id status payment_hash payment_request fee preimage"
 
 _CREATE_RECEIVE = f"""
 mutation($input: CreateReceiveTransactionInput!) {{
@@ -327,6 +327,9 @@ class AmbossWallet(Wallet):
     async def pay_invoice(self, bolt11: str, fee_limit_msat: int) -> PaymentResponse:
         try:
             decoded = bolt11_decode(bolt11)
+            # Sandbox wallets never reach _resolve_node, so this is the only
+            # asset check on their send path.
+            await self._ensure_base_asset()
             _team_id, is_sandbox, node, macaroon_hex = await self._send_context()
             send_input: dict[str, Any] = {
                 "wallet_id": self.wallet_id,
@@ -358,9 +361,11 @@ class AmbossWallet(Wallet):
             logger.warning(f"AmbossWallet send error: {exc}")
             return PaymentResponse(error_message=str(exc))
 
-        # lnbits keys outgoing payments by the bolt11 payment_hash and fails the
-        # payment unless pay_invoice returns the same checking_id, so use the
-        # hash create_send recorded (equals the bolt11 hash), not the tx id.
+        # Core already keys the payment by the bolt11 payment_hash and only
+        # rewrites checking_id when a funding source hands back a different
+        # one, so return the hash create_send recorded (equal to the bolt11
+        # hash) rather than the rails tx id — get_payment_status resolves sends
+        # by hash anyway.
         checking_id = (tx.get("payment_hash") or "").lower()
         if is_sandbox:
             # No node to pay; backend settles asynchronously — poll the ledger.
@@ -585,7 +590,8 @@ def _self_check() -> None:
     Run: python -m lnbits.wallets.amboss
 
     Fixtures below were generated offline by the SDK's own libraries
-    (@noble/hashes argon2id, nostr-tools nip44) — see scripts/amboss-fixture.
+    (@noble/hashes `argon2id`, nostr-tools `nip44.v2.decrypt`), so they encode
+    that implementation's output rather than this one's.
     They pin the full send-path crypto: argon2 key derivation (both steps, with
     the trim/lower + hex-string-as-password encoding) and the two-step NIP-44
     decrypt chain (masterKey -> symmetricKey -> macaroon).

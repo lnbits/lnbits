@@ -40,6 +40,15 @@ def http_wallet(settings, gql_server: HTTPServer):
 # `_gql` posts to "", which httpx resolves against the base_url as a directory.
 _GQL_URI = "/graphql/"
 
+# A decodable bolt11, so pay_invoice gets past bolt11_decode.
+_BOLT11 = (
+    "lnbc5550n1pnq9jg3sp52rvwstvjcypjsaenzdh0h30jazvzsf8aaye0julprtth9kysxtuspp5e5s3"
+    "z7felv4t9zrcc6wpn7ehvjl5yzewanzl5crljdl3jgeffyhqdq2f38xy6t5wvxqzjccqpjrzjq0yzeq"
+    "76ney45hmjlnlpvu0nakzy2g35hqh0dujq8ujdpr2e42pf2rrs6vqpgcsqqqqqqqqqqqqqqeqqyg9qx"
+    "pqysgqwftcx89k5pp28435pgxfl2vx3ksemzxccppw2j9yjn0ngr6ed7wj8ztc0d5kmt2mvzdlcgrlu"
+    "dhz7jncd5l5l9w820hc4clpwhtqj3gq62g66n"
+)
+
 
 def _expect_gql(server: HTTPServer, response: dict, ordered: bool = False):
     expect = server.expect_ordered_request if ordered else server.expect_request
@@ -184,6 +193,57 @@ async def test_create_invoice_rejects_taproot_asset_wallet(
 
     assert invoice.ok is False
     assert invoice.checking_id is None
+
+
+@pytest.mark.anyio
+async def test_pay_invoice_rejects_taproot_asset_wallet(
+    http_wallet: AmbossWallet, gql_server: HTTPServer
+):
+    # Sandbox wallets never reach _resolve_node, so pay_invoice has to do its
+    # own asset check.
+    # The first response deliberately answers *both* the asset query and the
+    # send-context query, and the second is a successful create_send: without
+    # the guard the send goes through and returns pending, so this test can
+    # only pass if the asset check runs first and short-circuits.
+    _expect_gql(
+        gql_server,
+        {
+            "data": {
+                "payment": {
+                    "id": "team-id",
+                    "wallet": {
+                        "find_one": {
+                            "id": "test-wallet-id",
+                            "balance": {"balance": 55},
+                            "asset": {"type": "TAPROOT_ASSET"},
+                            "environment": {"type": "SANDBOX"},
+                        }
+                    },
+                }
+            }
+        },
+        ordered=True,
+    )
+    _expect_gql(
+        gql_server,
+        {
+            "data": {
+                "payment": {
+                    "transaction": {
+                        "create_send": {
+                            "payment_hash": "a" * 64,
+                            "payment_request": _BOLT11,
+                        }
+                    }
+                }
+            }
+        },
+        ordered=True,
+    )
+
+    result = await http_wallet.pay_invoice(_BOLT11, fee_limit_msat=1000)
+
+    assert result.ok is False
 
 
 @pytest.mark.anyio
