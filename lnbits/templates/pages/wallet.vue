@@ -52,7 +52,7 @@
                       <lnbits-update-balance
                         v-if="$q.screen.lt.lg"
                         :wallet_id="g.wallet.id"
-                        :callback="updateBalanceCallback"
+                        @credit-value="handleBalanceUpdate"
                         :small_btn="true"
                       ></lnbits-update-balance>
                     </div>
@@ -96,7 +96,7 @@
                       <lnbits-update-balance
                         v-if="$q.screen.lt.lg"
                         :wallet_id="g.wallet.id"
-                        :callback="updateBalanceCallback"
+                        @credit-value="handleBalanceUpdate"
                         :small_btn="true"
                       ></lnbits-update-balance>
                     </div>
@@ -197,7 +197,7 @@
               <lnbits-update-balance
                 v-if="$q.screen.gt.md"
                 :wallet_id="this.g.wallet.id"
-                :callback="updateBalanceCallback"
+                @credit-value="handleBalanceUpdate"
                 :small_btn="false"
               ></lnbits-update-balance>
             </div>

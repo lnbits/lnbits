@@ -470,10 +470,13 @@ def service_fee_fiat(amount_msat: int, fiat_provider_name: str) -> int:
 async def update_wallet_balance(
     wallet: Wallet,
     amount: int,
+    memo: str | None = None,
     conn: Connection | None = None,
 ):
     if amount == 0:
         raise ValueError("Amount cannot be 0.")
+
+    memo = (memo or "").strip() or ("Credit" if amount > 0 else "Debit")
 
     # negative balance change
     if amount < 0:
@@ -489,7 +492,7 @@ async def update_wallet_balance(
                     {
                         "payment_hash": payment_hash,
                         "payment_secret": payment_secret,
-                        "description": "Admin debit",
+                        "description": memo,
                     }
                 ),
             )
@@ -502,7 +505,8 @@ async def update_wallet_balance(
                     bolt11=bolt11,
                     payment_hash=payment_hash,
                     amount_msat=amount * 1000,
-                    memo="Admin debit",
+                    memo=memo,
+                    extra={"tag": "admin"},
                 ),
                 status=PaymentState.SUCCESS,
                 conn=conn,
@@ -519,7 +523,8 @@ async def update_wallet_balance(
         payment = await create_invoice(
             wallet_id=wallet.source_wallet_id,
             amount=amount,
-            memo="Admin credit",
+            memo=memo,
+            extra={"tag": "admin"},
             internal=True,
             conn=conn,
         )

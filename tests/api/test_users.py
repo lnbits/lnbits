@@ -6,10 +6,12 @@ import pytest
 import shortuuid
 from httpx import AsyncClient
 
+from lnbits.core.crud.payments import get_payments
 from lnbits.core.crud.wallets import get_wallets
 from lnbits.core.models import AccessTokenPayload, Payment
 from lnbits.core.models.users import Account, User
 from lnbits.core.services.users import create_user_account
+from lnbits.db import Filters
 from lnbits.settings import Settings
 from lnbits.utils.nostr import generate_keypair, hex_to_npub
 
@@ -736,3 +738,73 @@ async def test_user_activation(
         headers={"x-Api-Key": wallet.inkey},
     )
     assert response.status_code == 201
+
+
+@pytest.mark.anyio
+async def test_update_balance_memo(http_client: AsyncClient, superuser_token):
+    # Create a user with a wallet
+    tiny_id = shortuuid.uuid()[:8]
+    user_resp = await http_client.post(
+        "/users/api/v1/user",
+        json={"username": f"memouser_{tiny_id}"},
+        headers={"Authorization": f"Bearer {superuser_token}"},
+    )
+    assert user_resp.status_code == 200
+    user_id = user_resp.json()["id"]
+
+    wallet_resp = await http_client.post(
+        f"/users/api/v1/user/{user_id}/wallet",
+        json={"name": "Memo Test Wallet"},
+        headers={"Authorization": f"Bearer {superuser_token}"},
+    )
+    assert wallet_resp.status_code == 200
+    wallet_id = wallet_resp.json()["id"]
+
+    # Credit and debit, with and without a custom memo
+    for amount, memo in [
+        (100, None),
+        (500, "Promotional credit"),
+        (-50, "Refund order #123"),
+        (-25, None),
+    ]:
+        data: dict[str, Any] = {"id": wallet_id, "amount": amount}
+        if memo:
+            data["memo"] = memo
+        response = await http_client.put(
+            "/users/api/v1/balance",
+            json=data,
+            headers={"Authorization": f"Bearer {superuser_token}"},
+        )
+        assert response.status_code == 200, response.text
+        assert response.json()["success"] is True
+
+    payments = await get_payments(wallet_id=wallet_id, filters=Filters(limit=100))
+    memos = [payment.memo for payment in payments]
+    assert memos.count("Credit") == 1
+    assert memos.count("Promotional credit") == 1
+    assert memos.count("Refund order #123") == 1
+    assert memos.count("Debit") == 1
+    assert all(payment.extra.get("tag") == "admin" for payment in payments)
+
+
+@pytest.mark.anyio
+async def test_update_balance_memo_too_long(
+    http_client: AsyncClient, superuser_token, from_wallet
+):
+    # bolt11 descriptions are limited to 639 bytes: reject 640 chars
+    # and multibyte memos that exceed 639 bytes at fewer characters
+    for memo in ["x" * 640, "é" * 320]:
+        response = await http_client.put(
+            "/users/api/v1/balance",
+            json={"id": from_wallet.id, "amount": 10, "memo": memo},
+            headers={"Authorization": f"Bearer {superuser_token}"},
+        )
+        assert response.status_code == 400, memo[:10]
+
+    # 639 bytes is the maximum and must succeed
+    response = await http_client.put(
+        "/users/api/v1/balance",
+        json={"id": from_wallet.id, "amount": 10, "memo": "x" * 639},
+        headers={"Authorization": f"Bearer {superuser_token}"},
+    )
+    assert response.status_code == 200
