@@ -220,7 +220,9 @@ async def test_resolve_node_skips_plaintext_node_for_a_later_https_one(
     )
     mocker.patch.object(amboss_module, "nip44_decrypt", side_effect=["sym-key", "00ff"])
 
-    node, macaroon_hex = await amboss_wallet._resolve_node("team-id")
+    node, macaroon_hex = await amboss_wallet._resolve_node(
+        "team-id", amboss_wallet.team_password
+    )
 
     assert node is usable
     assert macaroon_hex == "00ff"
@@ -245,7 +247,7 @@ async def test_resolve_node_rejects_a_wallet_with_only_plaintext_nodes(
     )
 
     with pytest.raises(ValueError, match="no https"):
-        await amboss_wallet._resolve_node("team-id")
+        await amboss_wallet._resolve_node("team-id", amboss_wallet.team_password)
 
 
 @pytest.mark.anyio

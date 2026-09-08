@@ -484,15 +484,17 @@ class AmbossWallet(Wallet):
                     raise ValueError(
                         "amboss_team_password must be at least 8 characters"
                     )
-                node, macaroon_hex = await self._resolve_node(team_id)
+                node, macaroon_hex = await self._resolve_node(
+                    team_id, self.team_password
+                )
 
             self._send_cache = (team_id, is_sandbox, node, macaroon_hex)
             return self._send_cache
 
-    async def _resolve_node(self, team_id: str) -> tuple[dict, str]:
+    async def _resolve_node(self, team_id: str, team_password: str) -> tuple[dict, str]:
         # Argon2id at 64 MiB is CPU-heavy enough to stall the event loop.
         master_key, master_password_hash = await asyncio.to_thread(
-            create_master_password_hash, self.team_password, team_id
+            create_master_password_hash, team_password, team_id
         )
         wallet = (
             await self._gql(
