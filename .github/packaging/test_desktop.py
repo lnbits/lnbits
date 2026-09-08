@@ -12,6 +12,92 @@ import desktop
 
 
 class DesktopTests(unittest.TestCase):
+    def test_gui_only_for_desktop_launch(self):
+        with (
+            patch("desktop.sys.platform", "linux"),
+            patch("desktop.sys.argv", ["lnbits"]),
+            patch.dict(os.environ, {"DISPLAY": ":97"}, clear=True),
+            patch("desktop.launched_from_terminal", return_value=True),
+        ):
+            self.assertFalse(desktop.should_show_gui())
+        with (
+            patch("desktop.sys.platform", "linux"),
+            patch("desktop.sys.argv", ["lnbits"]),
+            patch.dict(os.environ, {"DISPLAY": ":97"}, clear=True),
+            patch("desktop.launched_from_terminal", return_value=False),
+        ):
+            self.assertTrue(desktop.should_show_gui())
+            with patch("desktop.sys.argv", ["lnbits", "--headless"]):
+                self.assertFalse(desktop.should_show_gui())
+            with patch.dict(os.environ, {}, clear=True):
+                self.assertFalse(desktop.should_show_gui())
+
+    def test_redirected_terminal(self):
+        with (
+            patch("desktop.sys.platform", "linux"),
+            patch("desktop.sys.stdin", None),
+            patch("desktop.sys.stdout", None),
+            patch("desktop.sys.stderr", None),
+            patch("desktop.os.open", return_value=42),
+            patch("desktop.os.close") as close,
+        ):
+            self.assertTrue(desktop.launched_from_terminal())
+            close.assert_called_once_with(42)
+        with (
+            patch("desktop.sys.platform", "linux"),
+            patch("desktop.sys.stdin", None),
+            patch("desktop.sys.stdout", None),
+            patch("desktop.sys.stderr", None),
+            patch("desktop.os.open", side_effect=OSError),
+        ):
+            self.assertFalse(desktop.launched_from_terminal())
+
+    def test_windows_console_ownership(self):
+        for processes, expected in (
+            ([], False),
+            ([10, 11], False),
+            ([10, 11, 12], True),
+        ):
+
+            def get_processes(buffer, size, processes=processes):
+                for index, pid in enumerate(processes[:size]):
+                    buffer[index] = pid
+                return len(processes)
+
+            kernel32 = Mock()
+            kernel32.GetConsoleProcessList.side_effect = get_processes
+            with (
+                patch("ctypes.WinDLL", return_value=kernel32, create=True),
+                patch("desktop.sys.frozen", True, create=True),
+                patch("desktop.os.getpid", return_value=11),
+                patch("desktop.os.getppid", return_value=10),
+            ):
+                self.assertEqual(desktop.windows_terminal(), expected)
+
+    def test_desktop_defaults_do_not_require_https(self):
+        with (
+            patch("desktop.sys.argv", ["lnbits"]),
+            patch.dict(os.environ, {}, clear=True),
+            patch("desktop.should_show_gui", return_value=False),
+            patch("desktop.mp.freeze_support"),
+            patch("desktop.configuration", return_value={}) as configure,
+            patch("desktop.signal.signal"),
+            patch("desktop.Server") as server,
+        ):
+            server.return_value.poll.return_value = 0
+            with self.assertRaises(SystemExit):
+                desktop.main()
+            self.assertFalse(configure.call_args.args[3])
+
+    def test_worker_ctrl_c_exits_cleanly(self):
+        with (
+            tempfile.TemporaryDirectory() as folder,
+            patch.dict(os.environ, {}, clear=True),
+            patch("desktop.os.chdir"),
+            patch("desktop.run_server", side_effect=KeyboardInterrupt),
+        ):
+            desktop.worker({"LNBITS_DATA_FOLDER": folder}, Mock(), Mock())
+
     def test_configuration(self):
         with (
             tempfile.TemporaryDirectory() as folder,

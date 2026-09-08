@@ -40,6 +40,8 @@ jobs:
           cache: npm
       - name: Verify frontend assets
         shell: bash
+        env:
+          npm_config_script_shell: bash
         run: |
           npm ci
           npm run bundle

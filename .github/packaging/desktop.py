@@ -69,6 +69,9 @@ def worker(environment, stop, ready):
     ):
         try:
             run_server(environment, stop, ready)
+        except KeyboardInterrupt:
+            # Uvicorn re-raises Ctrl+C after completing its shutdown handlers.
+            pass
         except Exception:
             traceback.print_exc(file=log)
             sys.exit(1)
@@ -339,6 +342,55 @@ def gui():  # noqa: C901 - UI callbacks share the window and server lifecycle.
                 time.sleep(0.1)
 
 
+def windows_terminal():
+    import ctypes
+    from ctypes import wintypes
+
+    # A onefile build has both a bootloader parent and a Python child. A console
+    # containing only those processes was created by double-clicking the app.
+    kernel32 = ctypes.WinDLL("kernel32", use_last_error=True)
+    get_processes = kernel32.GetConsoleProcessList
+    get_processes.argtypes = [ctypes.POINTER(wintypes.DWORD), wintypes.DWORD]
+    get_processes.restype = wintypes.DWORD
+    processes = (wintypes.DWORD * 1)()
+    count = get_processes(processes, 1)
+    if not count:
+        return False
+    processes = (wintypes.DWORD * count)()
+    count = get_processes(processes, len(processes))
+    if count > len(processes):
+        return True
+    own = {os.getpid()}
+    if getattr(sys, "frozen", False):
+        own.add(os.getppid())
+    return any(pid not in own for pid in processes[:count])
+
+
+def launched_from_terminal():
+    if sys.platform == "win32":
+        return windows_terminal()
+    if any(
+        stream is not None and stream.isatty()
+        for stream in (sys.stdin, sys.stdout, sys.stderr)
+    ):
+        return True
+    # Keep redirected/piped terminal launches headless too.
+    try:
+        descriptor = os.open("/dev/tty", os.O_RDONLY | os.O_NOCTTY)
+    except OSError:
+        return False
+    os.close(descriptor)
+    return True
+
+
+def should_show_gui():
+    if len(sys.argv) != 1 or launched_from_terminal():
+        return False
+    return sys.platform == "win32" or bool(
+        os.environ.get("DISPLAY") or os.environ.get("WAYLAND_DISPLAY")
+    )
+
+
 def main():
     mp.freeze_support()
     parser = argparse.ArgumentParser(description="LNbits desktop launcher")
@@ -349,7 +401,7 @@ def main():
     parser.add_argument("--host", default=os.environ.get("HOST", "127.0.0.1"))
     parser.add_argument("--port", default=os.environ.get("PORT", "5000"))
     args = parser.parse_args()
-    if not args.headless and len(sys.argv) == 1:
+    if not args.headless and should_show_gui():
         gui()
         return
     env = configuration(

@@ -41,7 +41,11 @@ for library in Path(wasmtime.__file__).parent.glob("*/*"):
     if library.suffix in (".so", ".dll", ".dylib"):
         args += ["--add-binary", f"{library}:wasmtime/{library.parent.name}"]
 if sys.platform == "win32":
-    args += ["--noconsole", "--icon=.github/packaging/linux/AppDir/lnbits.png"]
+    args += [
+        "--hide-console",
+        "hide-early",
+        "--icon=.github/packaging/linux/AppDir/lnbits.png",
+    ]
 for package in packages:
     args += ["--collect-all", package]
 for package in ("breez_sdk", "breez_sdk_liquid"):
