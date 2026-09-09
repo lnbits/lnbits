@@ -117,6 +117,12 @@ window.app.component('lnbits-payment-list', {
             align: 'right',
             label: 'Fiat Amount',
             field: row => row.extra.wallet_fiat_amount
+          },
+          {
+            name: 'comment',
+            align: 'left',
+            label: 'Comment',
+            field: row => row.extra.comment
           }
         ],
         preimage: null,

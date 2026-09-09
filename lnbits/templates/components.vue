@@ -40,6 +40,21 @@ include('components/lnbits-error.vue') %}
 <template id="lnbits-manage">
   <q-list v-if="g.user" dense class="lnbits-drawer__q-list">
     <q-item-label header v-text="$t('manage')"></q-item-label>
+    <q-item to="/account">
+      <q-item-section side>
+        <q-icon
+          name="person"
+          :color="isActive('/account') ? 'primary' : 'grey-5'"
+          size="md"
+        ></q-icon>
+      </q-item-section>
+      <q-item-section>
+        <q-item-label lines="1" v-text="$t('my_account')"></q-item-label>
+      </q-item-section>
+      <q-item-section side v-show="isActive('/account')">
+        <q-icon name="chevron_right" color="grey-5" size="md"></q-icon>
+      </q-item-section>
+    </q-item>
     <div v-if="g.user.admin">
       <q-item v-if="g.settings.showAdmin" to="/admin">
         <q-item-section side>
@@ -101,22 +116,30 @@ include('components/lnbits-error.vue') %}
           <q-icon name="chevron_right" color="grey-5" size="md"></q-icon>
         </q-item-section>
       </q-item>
-      <q-item v-if="g.settings.showBlockExplorer" to="/blockexplorer">
-        <q-item-section side>
-          <q-icon
-            name="travel_explore"
-            :color="isActive('/blockexplorer') ? 'primary' : 'grey-5'"
-            size="md"
-          ></q-icon>
-        </q-item-section>
-        <q-item-section>
-          <q-item-label lines="1" v-text="$t('block_explorer')"></q-item-label>
-        </q-item-section>
-        <q-item-section side v-show="isActive('/blockexplorer')">
-          <q-icon name="chevron_right" color="grey-5" size="md"></q-icon>
-        </q-item-section>
-      </q-item>
     </div>
+    <q-item
+      v-if="
+        g.settings.showBlockExplorer &&
+        (g.user.admin ||
+          (g.settings.blockExplorerPublic &&
+            g.settings.blockExplorerInUserMenu))
+      "
+      to="/blockexplorer"
+    >
+      <q-item-section side>
+        <q-icon
+          name="travel_explore"
+          :color="isActive('/blockexplorer') ? 'primary' : 'grey-5'"
+          size="md"
+        ></q-icon>
+      </q-item-section>
+      <q-item-section>
+        <q-item-label lines="1" v-text="$t('block_explorer')"></q-item-label>
+      </q-item-section>
+      <q-item-section side v-show="isActive('/blockexplorer')">
+        <q-icon name="chevron_right" color="grey-5" size="md"></q-icon>
+      </q-item-section>
+    </q-item>
     <q-item to="/payments">
       <q-item-section side>
         <q-icon

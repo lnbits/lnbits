@@ -43,7 +43,12 @@ from lnbits.core.services import (
 )
 from lnbits.core.services.lightning_address import set_wallet_lightning_address
 from lnbits.db import Filters, Page
-from lnbits.decorators import check_admin, check_super_user, parse_filters
+from lnbits.decorators import (
+    check_admin,
+    check_api_write_access,
+    check_super_user,
+    parse_filters,
+)
 from lnbits.helpers import (
     encrypt_internal_message,
     generate_filter_params_openapi,
@@ -74,10 +79,14 @@ async def api_get_users(
     name="Get user",
     summary="Get user by Id",
 )
-async def api_get_user(user_id: str) -> User:
+async def api_get_user(
+    user_id: str,
+    can_write: bool = Depends(check_api_write_access),
+) -> User:
     user = await get_user(user_id, active_only=False)
     if not user:
         raise HTTPException(HTTPStatus.NOT_FOUND, "User not found.")
+    user.wallets = [wallet.copy_with_keys(keep=can_write) for wallet in user.wallets]
     return user
 
 
@@ -261,8 +270,12 @@ async def api_users_toggle_activated(
 
 
 @users_router.get("/user/{user_id}/wallet", name="Get wallets for user")
-async def api_users_get_user_wallet(user_id: str) -> list[Wallet]:
-    return await get_wallets(user_id, deleted=None)
+async def api_users_get_user_wallet(
+    user_id: str,
+    can_write: bool = Depends(check_api_write_access),
+) -> list[Wallet]:
+    wallets = await get_wallets(user_id, deleted=None)
+    return [wallet.copy_with_keys(keep=can_write) for wallet in wallets]
 
 
 @users_router.post("/user/{user_id}/wallet", name="Create a new wallet for user")

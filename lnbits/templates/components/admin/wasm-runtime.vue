@@ -70,6 +70,7 @@
           </q-card>
         </div>
       </div>
+      <q-separator class="q-mb-lg q-mt-md"></q-separator>
       <q-table
         class="q-mb-lg"
         dense
@@ -161,6 +162,7 @@
           </q-td>
         </template>
       </q-table>
+      <q-separator class="q-mb-lg q-mt-md"></q-separator>
       <q-table
         dense
         flat

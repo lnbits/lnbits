@@ -38,20 +38,20 @@
           # the wheel matching the Nix host instead of accepting that wheel.
           wasmtimeWheel = {
             x86_64-linux = pkgs.fetchurl {
-              url = "https://files.pythonhosted.org/packages/d7/8c/e9019a28e908214031310aefd78e4755221d02303190b54b2c85cb69573e/wasmtime-45.0.0-py3-none-manylinux1_x86_64.whl";
-              hash = "sha256-XRQW7G2ozYfCni6esHQ1jJGDnC//lx/kKMiSHqrmjnM=";
+              url = "https://files.pythonhosted.org/packages/a2/92/e144fcf578fc394678c24b042efe45f3b0614acdb87ea95d8b839b208842/wasmtime-48.0.0-py3-none-manylinux1_x86_64.whl";
+              hash = "sha256-WFRNU5BT3/e9TPMMQNelQIYtaDATwN+mukagY/W2gvc=";
             };
             aarch64-linux = pkgs.fetchurl {
-              url = "https://files.pythonhosted.org/packages/42/56/ed5f492bd553a31c8e28d621f8256f2c7b1a133b28f73525d96ca355891a/wasmtime-45.0.0-py3-none-manylinux2014_aarch64.whl";
-              hash = "sha256-pJn2qw7rtw3Kg9akkEt0PNEi8yKvOr6GrwitdTUz2UY=";
+              url = "https://files.pythonhosted.org/packages/1c/c3/a957b226979daaeb09ec024562e9aac05e475a954537e6f150eb60bca84d/wasmtime-48.0.0-py3-none-manylinux2014_aarch64.whl";
+              hash = "sha256-JvzjYT/vvimijp1lncozJugAWThY5XWMrQhuuAKzt2Y=";
             };
             x86_64-darwin = pkgs.fetchurl {
-              url = "https://files.pythonhosted.org/packages/75/76/7d0e440ca03a717a97889dbb7b68f952c20ed4ffd3f59addf9553579e1d5/wasmtime-45.0.0-py3-none-macosx_10_13_x86_64.whl";
-              hash = "sha256-NXmw7G0AF1DWbscImq7uLASPiDKMgnQ+FfCZrwGwz4Q=";
+              url = "https://files.pythonhosted.org/packages/89/93/911434c6c4406e6979b6cb67ba889c85633ff8d92eb0cb569fec6e2a43f7/wasmtime-48.0.0-py3-none-macosx_10_13_x86_64.whl";
+              hash = "sha256-UOHqgaO+xTfQDgdnIt/cSJeKVuokYZ2BU6ofdbEXlrk=";
             };
             aarch64-darwin = pkgs.fetchurl {
-              url = "https://files.pythonhosted.org/packages/5b/0b/a81b5daf5adea482ecb68d9615f6a348486ab4d8e980a915d4420e57ee4d/wasmtime-45.0.0-py3-none-macosx_11_0_arm64.whl";
-              hash = "sha256-MdEPJcMwzrz7Nk6aNXEj3u7JbEFyX/K7qRtwVYfzipM=";
+              url = "https://files.pythonhosted.org/packages/dc/a6/91c9c19ed7f8e164f4db6405d872c9397be9f53e4f325d0adcd5e67598f4/wasmtime-48.0.0-py3-none-macosx_11_0_arm64.whl";
+              hash = "sha256-6mmImjxRcC6dpfX0QQJ8qTT3dY+JJqTtFnsNaHfwkug=";
             };
           }.${system};
 
@@ -59,12 +59,12 @@
           # with the pinned Darwin platform, despite them being in uv.lock.
           nostrSdkDarwinWheel = {
             x86_64-darwin = pkgs.fetchurl {
-              url = "https://files.pythonhosted.org/packages/ed/66/81057ec283cb6bcc5df27c1d58a0a7996afa4fb96c0c9a4570ae50190f9a/nostr_sdk-0.44.2-cp39-abi3-macosx_11_0_x86_64.whl";
-              hash = "sha256-ZehceSlfTiWOUnaoK1Ljb/s/XPWcLHxKlZlw7ZMDz28=";
+              url = "https://files.pythonhosted.org/packages/9a/a8/3defda5f31dc639d5003c6b96389407637a7a0355e9aa14aceb0feac60db/nostr_sdk-0.44.8-cp39-abi3-macosx_11_0_x86_64.whl";
+              hash = "sha256-7xppz1T7yGR9Wnt6Hnek0MgXYe766hMjxT2BUjl0xIg=";
             };
             aarch64-darwin = pkgs.fetchurl {
-              url = "https://files.pythonhosted.org/packages/35/ea/cd40b12352a5cba810116641959a7054f83d5f48d16e5e47614992b9ba64/nostr_sdk-0.44.2-cp39-abi3-macosx_11_0_arm64.whl";
-              hash = "sha256-GEB1aJUx40CFvB5xti86lk3y1K6xWiX5RVfhWkKUxYQ=";
+              url = "https://files.pythonhosted.org/packages/6b/59/df089c9ca3f683c3245c6aeb55b76e8933ebb33168b6436c29da24f1040b/nostr_sdk-0.44.8-cp39-abi3-macosx_11_0_arm64.whl";
+              hash = "sha256-14FSbaCVUKjKexGr8O4nC9pT+r4ZGiq/yIUd0fP0I1w=";
             };
           };
 
@@ -117,7 +117,7 @@
           } // lib.optionalAttrs pkgs.stdenv.isDarwin {
             "nostr-sdk" = final.stdenv.mkDerivation {
               pname = "nostr-sdk";
-              version = "0.44.2";
+              version = "0.44.8";
               src = nostrSdkDarwinWheel.${system};
               dontStrip = true;
               nativeBuildInputs = [ final.pyprojectWheelHook ];

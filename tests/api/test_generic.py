@@ -17,6 +17,34 @@ async def test_core_views_generic(client):
 
 
 @pytest.mark.anyio
+async def test_blockexplorer_refresh_preserves_authenticated_shell(
+    http_client, settings: Settings, superuser_token: str
+):
+    settings.lnbits_blockexplorer_enabled = True
+    settings.lnbits_blockexplorer_public_api = True
+    http_client.cookies.set("cookie_access_token", superuser_token)
+
+    response = await http_client.get("/blockexplorer")
+
+    assert response.status_code == 200
+    assert "window.g.isPublicPage = false" in response.text
+    assert "window.g.user =" in response.text
+
+
+@pytest.mark.anyio
+async def test_public_blockexplorer_has_separate_route(http_client, settings: Settings):
+    settings.lnbits_blockexplorer_enabled = True
+    settings.lnbits_blockexplorer_public_api = True
+
+    backend_response = await http_client.get("/blockexplorer")
+    public_response = await http_client.get("/blockexplorer/public")
+
+    assert backend_response.status_code == 401
+    assert public_response.status_code == 200
+    assert "window.g.isPublicPage = false" not in public_response.text
+
+
+@pytest.mark.anyio
 async def test_lnurlwallet_rejects_private_callback(
     http_client, settings: Settings, mocker: MockerFixture
 ):

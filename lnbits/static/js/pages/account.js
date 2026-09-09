@@ -216,6 +216,52 @@ window.PageAccount = {
     }
   },
   computed: {
+    accountNavigationItems() {
+      return [
+        {
+          value: 'user',
+          label: this.$t('account_settings'),
+          description: this.$t('account_settings_description'),
+          icon: 'person'
+        },
+        {
+          value: 'notifications',
+          label: this.$t('notifications'),
+          description: this.$t('account_notifications_description'),
+          icon: 'notifications'
+        },
+        {
+          value: 'theme',
+          label: this.$t('look_and_feel'),
+          description: this.$t('look_and_feel_description'),
+          icon: 'palette'
+        },
+        {
+          value: 'api_acls',
+          label: this.$t('access_control_list'),
+          description: this.$t('access_control_list_description'),
+          icon: 'lock'
+        },
+        {
+          value: 'assets',
+          label: this.$t('assets'),
+          description: this.$t('account_assets_description'),
+          icon: 'perm_media'
+        },
+        {
+          value: 'labels',
+          label: this.$t('labels'),
+          description: this.$t('account_labels_description'),
+          icon: 'local_offer'
+        }
+      ]
+    },
+    activeAccountSection() {
+      return (
+        this.accountNavigationItems.find(item => item.value === this.tab) ||
+        this.accountNavigationItems[0]
+      )
+    },
     isUserTouched() {
       return !_.isEqual(this.g.user, this.untouchedUser)
     },
@@ -342,6 +388,12 @@ window.PageAccount = {
         pubkey: this.g.user.pubkey,
         newPassword: null,
         newPasswordRepeat: null
+      }
+    },
+    selectAccountSection(section) {
+      this.tab = section
+      if (section === 'user') {
+        this.credentialsData.show = false
       }
     },
     newApiAclDialog() {

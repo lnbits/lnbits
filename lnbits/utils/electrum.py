@@ -220,6 +220,17 @@ class BlockInfo(BaseModel):
     merkle_root: str
 
 
+class BlockTransaction(BaseModel):
+    position: int
+    txid: str
+
+
+class BlockTransactions(BaseModel):
+    transactions: list[BlockTransaction]
+    offset: int
+    has_more: bool
+
+
 def parse_block_header(header_hex: str, height: int) -> BlockInfo:
     """Parse an 80-byte block header hex string into a BlockInfo model."""
     data = bytes.fromhex(header_hex)

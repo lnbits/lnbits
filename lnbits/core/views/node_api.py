@@ -1,8 +1,9 @@
 from http import HTTPStatus
+from typing import Literal
 
 import httpx
-from fastapi import APIRouter, Body, Depends, HTTPException
-from pydantic import BaseModel
+from fastapi import APIRouter, Body, Depends, HTTPException, Query
+from pydantic import BaseModel, Field, validator
 
 from lnbits.decorators import check_admin, check_super_user, parse_filters
 from lnbits.settings import settings
@@ -22,6 +23,7 @@ from ...nodes.base import (
     NodePeerInfo,
     PublicNodeInfo,
 )
+from ...nodes.phoenixd import PhoenixdNode, PhoenixdStatus
 from ...utils.cache import cache
 
 
@@ -89,6 +91,113 @@ async def api_get_info(
     node: Node = Depends(require_node),
 ) -> NodeInfoResponse | None:
     return await node.get_info()
+
+
+def require_phoenixd(node: Node = Depends(require_node)) -> PhoenixdNode:
+    if not isinstance(node, PhoenixdNode):
+        raise HTTPException(501, "Active backend is not Phoenixd")
+    return node
+
+
+@node_router.get("/phoenixd/status")
+async def api_phoenixd_status(
+    node: PhoenixdNode = Depends(require_phoenixd),
+) -> PhoenixdStatus:
+    return await node.get_status()
+
+
+@node_router.get("/phoenixd/liquidity-fees")
+async def api_phoenixd_liquidity_fees(
+    amount_sat: int = Query(gt=0, le=2_100_000_000_000_000),
+    node: PhoenixdNode = Depends(require_phoenixd),
+) -> dict[str, int]:
+    return await node.estimate_liquidity(amount_sat)
+
+
+@node_router.get("/phoenixd/receive/{kind}")
+async def api_phoenixd_receive(
+    kind: Literal["swapin", "offer", "lnaddress"],
+    node: PhoenixdNode = Depends(require_phoenixd),
+) -> dict[str, str]:
+    return {"value": await node.receive_address(kind)}
+
+
+class PhoenixdFeeRequest(BaseModel):
+    fee_rate: int = Field(gt=0, le=1_000_000)
+
+    @validator("fee_rate", pre=True)
+    def validate_fee_rate(cls, value):
+        if type(value) is not int:
+            raise ValueError("Fee rate must be a whole number of sat/vB")
+        return value
+
+
+class PhoenixdSendRequest(PhoenixdFeeRequest):
+    address: str = Field(min_length=14, max_length=128)
+    amount_sat: int = Field(gt=0, le=2_100_000_000_000_000)
+
+    @validator("amount_sat", pre=True)
+    def validate_amount(cls, value):
+        if type(value) is not int:
+            raise ValueError("Amount must be a whole number of sats")
+        return value
+
+
+class PhoenixdCloseRequest(PhoenixdFeeRequest):
+    address: str = Field(min_length=14, max_length=128)
+    channel_id: str = Field(regex=r"^[0-9a-fA-F]{64}$")
+
+
+@super_node_router.post("/phoenixd/close")
+async def api_phoenixd_close(
+    data: PhoenixdCloseRequest,
+    node: PhoenixdNode = Depends(require_phoenixd),
+) -> dict[str, str]:
+    return {
+        "txid": await node.transact(
+            "close",
+            {
+                "channelId": data.channel_id,
+                "address": data.address,
+                "feerateSatByte": data.fee_rate,
+            },
+        )
+    }
+
+
+@super_node_router.post("/phoenixd/send")
+async def api_phoenixd_send(
+    data: PhoenixdSendRequest,
+    node: PhoenixdNode = Depends(require_phoenixd),
+) -> dict[str, str]:
+    return {
+        "txid": await node.transact(
+            "send",
+            {
+                "amountSat": data.amount_sat,
+                "address": data.address,
+                "feerateSatByte": data.fee_rate,
+            },
+        )
+    }
+
+
+@super_node_router.post("/phoenixd/bump")
+async def api_phoenixd_bump(
+    data: PhoenixdFeeRequest,
+    node: PhoenixdNode = Depends(require_phoenixd),
+) -> dict[str, str]:
+    return {"txid": await node.transact("bump", {"feerateSatByte": data.fee_rate})}
+
+
+@super_node_router.post("/phoenixd/export")
+async def api_phoenixd_export(
+    node: PhoenixdNode = Depends(require_phoenixd),
+) -> dict[str, str]:
+    if not settings.lnbits_node_ui_transactions:
+        raise HTTPException(503, "Enable node transactions in the Admin UI first.")
+    await node.export_history()
+    return {"message": "CSV saved in the exports directory of your Phoenixd daemon."}
 
 
 @node_router.get("/channels")
@@ -209,6 +318,8 @@ class NodeRank(BaseModel):
     response_model=NodeRank | None,
 )
 async def api_get_1ml_stats(node: Node = Depends(require_node)) -> NodeRank | None:
+    if isinstance(node, PhoenixdNode):
+        return None
     node_id = await node.get_id()
     headers = {"User-Agent": settings.user_agent}
     async with httpx.AsyncClient(headers=headers) as client:

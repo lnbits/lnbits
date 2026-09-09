@@ -119,17 +119,6 @@
               </q-item-label>
             </q-item-section>
           </q-item>
-          <q-item to="/account#theme" clickable v-close-popup>
-            <q-item-section>
-              <q-item-label>
-                <q-icon
-                  class="q-mr-sm"
-                  :name="$q.dark.isActive ? 'dark_mode' : 'light_mode'"
-                ></q-icon>
-                <span v-text="$t('theme')"></span>
-              </q-item-label>
-            </q-item-section>
-          </q-item>
           <q-separator></q-separator>
           <q-item clickable v-close-popup @click="utils.logout">
             <q-item-section>

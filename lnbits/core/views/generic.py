@@ -16,6 +16,7 @@ from lnbits.core.services.lnurl import execute_withdraw, handle
 from lnbits.decorators import (
     check_admin,
     check_admin_ui,
+    check_blockexplorer_access,
     check_blockexplorer_public,
     check_extension_builder,
     check_first_install,
@@ -216,14 +217,29 @@ async def index(
 @generic_router.get("/")
 @generic_router.get("/node/public")
 @generic_router.get("/first_install", dependencies=[Depends(check_first_install)])
+async def index_public(request: Request) -> HTMLResponse:
+    return template_renderer().TemplateResponse(request, "base.html", {"public": True})
+
+
+@generic_router.get("/blockexplorer")
+@generic_router.get("/blockexplorer/{resource_type}/{resource}")
+async def index_blockexplorer(
+    request: Request,
+    user: User = Depends(check_blockexplorer_access),
+) -> HTMLResponse:
+    return template_renderer().TemplateResponse(
+        request, "base.html", {"user": user.json()}
+    )
+
+
 @generic_router.get(
-    "/blockexplorer", dependencies=[Depends(check_blockexplorer_public)]
+    "/blockexplorer/public", dependencies=[Depends(check_blockexplorer_public)]
 )
 @generic_router.get(
-    "/blockexplorer/{resource_type}/{resource}",
+    "/blockexplorer/public/{resource_type}/{resource}",
     dependencies=[Depends(check_blockexplorer_public)],
 )
-async def index_public(request: Request) -> HTMLResponse:
+async def index_blockexplorer_public(request: Request) -> HTMLResponse:
     return template_renderer().TemplateResponse(request, "base.html", {"public": True})
 
 
