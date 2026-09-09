@@ -3554,14 +3554,14 @@ files = [
 
 [[package]]
 name = "pyln-client"
-version = "25.12.1"
+version = "25.12"
 description = "Client library and plugin library for Core Lightning"
 optional = false
 python-versions = "<4.0,>=3.9"
 groups = ["main"]
 files = [
-    {file = "pyln_client-25.12.1-py3-none-any.whl", hash = "sha256:cb8c42bf4b432a3a2ec0b1ee94b96f5ad91fee1ddd0289930d55c988ab801293"},
-    {file = "pyln_client-25.12.1.tar.gz", hash = "sha256:4e92d18ce79879b891355d4a9bb79117466e98e12b83c1b5f321fc3e77039d5b"},
+    {file = "pyln_client-25.12-py3-none-any.whl", hash = "sha256:9e4ff323acb71cbc4522d160dd931599f59a4c167076db016ec5d63e6a002f86"},
+    {file = "pyln_client-25.12.tar.gz", hash = "sha256:9a0435436dea7ce471e096aac9c4e3ede704c305b862b0a3b5e410279b54d8d6"},
 ]
 
 [package.dependencies]
@@ -5196,4 +5196,4 @@ migration = ["psycopg2-binary"]
 [metadata]
 lock-version = "2.1"
 python-versions = ">=3.10,<3.13"
-content-hash = "e41fd327115a1614f2e7b5dae7d7077e30f1cb723e1880a88132ec38df2b4b1a"
+content-hash = "05e72d5bfef039729b3f7046b23d2aefa38660a22f259ebdc9dbb61acd996371"

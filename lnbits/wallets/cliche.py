@@ -44,7 +44,7 @@ class ClicheWallet(Wallet):
             data = json.loads(r)
         except Exception:
             return StatusResponse(
-                f"Failed to connect to {self.endpoint}, got: '{r[:200]}...'", 0
+                f"Failed to connect to {self.endpoint}, got: {r[:200]!r}...", 0
             )
 
         return StatusResponse(None, data["result"]["wallets"][0]["balance"])
