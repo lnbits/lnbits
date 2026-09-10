@@ -615,6 +615,54 @@ async def test_delete_and_undelete_wallet(http_client: AsyncClient, superuser_to
 
 
 @pytest.mark.anyio
+async def test_delete_wallet_twice_removes_it(
+    http_client: AsyncClient, superuser_token
+):
+    tiny_id = shortuuid.uuid()[:8]
+    user_resp = await http_client.post(
+        "/users/api/v1/user",
+        json={
+            "username": f"walletuser_{tiny_id}",
+            "password": "secret1234",
+            "password_repeat": "secret1234",
+            "email": f"walletuser_{tiny_id}@lnbits.com",
+        },
+        headers={"Authorization": f"Bearer {superuser_token}"},
+    )
+    assert user_resp.status_code == 200
+    user_id = user_resp.json()["id"]
+
+    wallet_resp = await http_client.post(
+        f"/users/api/v1/user/{user_id}/wallet",
+        json={"name": "Test Wallet"},
+        headers={"Authorization": f"Bearer {superuser_token}"},
+    )
+    assert wallet_resp.status_code == 200
+    wallet_id = wallet_resp.json()["id"]
+
+    # first delete is a soft delete
+    delete_resp = await http_client.delete(
+        f"/users/api/v1/user/{user_id}/wallet/{wallet_id}",
+        headers={"Authorization": f"Bearer {superuser_token}"},
+    )
+    assert delete_resp.status_code == 200
+    wallets = await get_wallets(user_id=user_id, deleted=True)
+    assert any(w.id == wallet_id for w in wallets)
+
+    # second delete removes the wallet
+    delete_resp = await http_client.delete(
+        f"/users/api/v1/user/{user_id}/wallet/{wallet_id}",
+        headers={"Authorization": f"Bearer {superuser_token}"},
+    )
+    assert delete_resp.status_code == 200
+    assert delete_resp.json()["success"] is True
+    wallets = await get_wallets(user_id=user_id, deleted=True)
+    assert not any(w.id == wallet_id for w in wallets)
+    wallets = await get_wallets(user_id=user_id, deleted=False)
+    assert not any(w.id == wallet_id for w in wallets)
+
+
+@pytest.mark.anyio
 async def test_user_activation(
     http_client: AsyncClient, invoice: Payment, settings: Settings, superuser_token: str
 ):
