@@ -118,9 +118,7 @@ async def test_square_cancellation_keeps_verified_receipt_ownership_after_deleti
         external_id="SUB123",
         extra={"fiat_method": "subscription"},
     )
-    query = mocker.patch(
-        "lnbits.core.db.db.fetchall", AsyncMock(return_value=[receipt])
-    )
+    query = mocker.patch.object(db, "fetchall", AsyncMock(return_value=[receipt]))
     result = await wallet.cancel_subscription("SUB123", "wallet_1")
     assert result.ok
     assert query.call_args.args[1] == {"wallet_id": "wallet_1"}
@@ -143,7 +141,7 @@ async def test_square_checkout_external_id_is_not_ownership_evidence(mocker):
         fiat_provider="square",
         external_id="SOMEONE_ELSES_SUBSCRIPTION",
     )
-    mocker.patch("lnbits.core.db.db.fetchall", AsyncMock(return_value=[receipt]))
+    mocker.patch.object(db, "fetchall", AsyncMock(return_value=[receipt]))
     result = await wallet.cancel_subscription("SOMEONE_ELSES_SUBSCRIPTION", "wallet_1")
     assert not result.ok and client.calls == []
 
@@ -915,7 +913,7 @@ async def test_square_wallet_cancel_subscription_rejects_unknown_owner(
     client = MockHTTPClient([MockHTTPResponse(json_data={"subscription": {}})])
     wallet.client = client  # type: ignore[assignment]
 
-    mocker.patch("lnbits.core.db.db.fetchall", AsyncMock(return_value=[]))
+    mocker.patch.object(db, "fetchall", AsyncMock(return_value=[]))
     response = await wallet.cancel_subscription("SUBSCRIPTION123", "wallet_1")
 
     assert response.ok is False
@@ -946,9 +944,8 @@ async def test_square_wallet_cancel_subscription_by_request_id(
         status=PaymentState.SUCCESS,
         external_id="SUBSCRIPTION123",
     )
-    get_payments_mock = mocker.patch(
-        "lnbits.core.db.db.fetchall",
-        AsyncMock(return_value=[payment]),
+    get_payments_mock = mocker.patch.object(
+        db, "fetchall", AsyncMock(return_value=[payment])
     )
 
     response = await wallet.cancel_subscription("REQUEST123", "wallet_1")
