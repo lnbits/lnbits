@@ -790,11 +790,8 @@ async def _pay_internal_invoice(
     await _send_payment_notification_in_background(
         wallet.id, payment, conn=conn
     )  # notify the sender
-    await _send_payment_notification_in_background(
-        internal_payment.wallet_id, internal_payment, conn=conn
-    )  # notify the receiver
 
-    # notify receiver asynchronously (extension listeners)
+    # notify receiver asynchronously (core and extension listeners)
     logger.debug(f"enqueuing internal invoice {internal_payment.checking_id}")
     task_manager.internal_invoice_queue.put_nowait(internal_payment)
 
