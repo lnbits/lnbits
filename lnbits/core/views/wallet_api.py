@@ -174,6 +174,11 @@ async def api_update_wallet(
     wallet = await get_wallet(key_info.wallet.id)
     if not wallet:
         raise HTTPException(status_code=HTTPStatus.NOT_FOUND, detail="Wallet not found")
+    if wallet.is_fiat_wallet and currency is not None and currency != wallet.currency:
+        raise HTTPException(
+            status_code=HTTPStatus.BAD_REQUEST,
+            detail="Fiat wallet currency cannot be changed after creation.",
+        )
     wallet.name = name or wallet.name
     wallet.extra.icon = icon or wallet.extra.icon
     wallet.extra.color = color or wallet.extra.color

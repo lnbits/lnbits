@@ -3,7 +3,9 @@ from uuid import uuid4
 import pytest
 from httpx import AsyncClient
 
+from lnbits.core.crud.payments import create_payment
 from lnbits.core.crud.wallets import create_wallet, get_wallet
+from lnbits.core.models import CreatePayment, PaymentState
 from lnbits.core.models.users import Account
 from lnbits.core.models.wallet_types import WalletType
 from lnbits.core.services import update_wallet_balance
@@ -449,6 +451,86 @@ async def test_superuser_can_create_fiat_wallet_without_enabling_user_access(
         )
         assert invoice.status_code == 400
         assert "not available for this user" in invoice.text
+
+
+@pytest.mark.anyio
+@pytest.mark.parametrize("wallet_type", ["fiat", "receive-only"])
+@pytest.mark.parametrize("has_receipt", [False, True])
+async def test_fiat_wallet_currency_is_fixed_at_creation(
+    http_client: AsyncClient, wallet_type: str, has_receipt: bool
+):
+    from lnbits.core.db import db
+
+    user = await create_user_account()
+    wallet = await create_wallet(
+        user_id=user.id,
+        wallet_type=WalletType.FIAT,
+        currency="GBP",
+        wallet_name="Original",
+    )
+    if wallet_type == "receive-only":
+        await db.execute(
+            "UPDATE wallets SET wallet_type = :type WHERE id = :id",
+            {"type": wallet_type, "id": wallet.id},
+        )
+    if has_receipt:
+        await create_payment(
+            checking_id=f"internal_cash_{uuid4().hex}",
+            data=CreatePayment(
+                wallet_id=wallet.id,
+                payment_hash=uuid4().hex,
+                bolt11="",
+                amount_msat=1000,
+                memo="GBP receipt",
+                extra={"wallet_fiat_currency": "GBP", "wallet_fiat_amount": "5"},
+            ),
+            status=PaymentState.SUCCESS,
+        )
+
+    headers = _admin_headers(wallet.adminkey)
+    for currency in ("USD", "", "invalid"):
+        response = await http_client.patch(
+            "/api/v1/wallet",
+            headers=headers,
+            json={"currency": currency, "name": "Rejected change"},
+        )
+        assert response.status_code == 400
+        assert response.json()["detail"] == (
+            "Fiat wallet currency cannot be changed after creation."
+        )
+        stored = await get_wallet(wallet.id)
+        assert stored and stored.currency == "GBP" and stored.name == "Original"
+
+    # Omitting currency, explicit null, or the unchanged currency must still allow
+    # ordinary settings updates, including requests that send the whole form.
+    for fields in ({}, {"currency": None}, {"currency": "GBP"}):
+        response = await http_client.patch(
+            "/api/v1/wallet",
+            headers=headers,
+            json={**fields, "name": "Renamed", "icon": "payments", "pinned": True},
+        )
+        assert response.status_code == 200
+        assert response.json()["currency"] == "GBP"
+        stored = await get_wallet(wallet.id)
+        assert stored and stored.currency == "GBP" and stored.name == "Renamed"
+        assert stored.extra.icon == "payments" and stored.extra.pinned
+
+
+@pytest.mark.anyio
+async def test_lightning_wallet_accounting_currency_remains_editable(
+    http_client: AsyncClient,
+):
+    user = await create_user_account()
+    wallet = user.wallets[0]
+    for currency in ("GBP", "USD", ""):
+        response = await http_client.patch(
+            "/api/v1/wallet",
+            headers=_admin_headers(wallet.adminkey),
+            json={"currency": currency},
+        )
+        assert response.status_code == 200
+        stored = await get_wallet(wallet.id)
+        assert stored and stored.currency == currency
 
 
 @pytest.mark.anyio
