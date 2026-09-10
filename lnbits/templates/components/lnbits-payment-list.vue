@@ -358,41 +358,62 @@
               </q-badge>
             </template>
           </q-td>
-          <q-td
-            v-if="!g.isSatsDenomination"
-            auto-width
-            key="amount"
-            :props="props"
-            class="col1"
-            v-text="
-              parseFloat(String(props.row.fsat).replaceAll(',', '')) / 100
-            "
-          >
-          </q-td>
-          <q-td class="col2" auto-width key="amount" v-else :props="props">
-            <span v-text="props.row.fsat"></span>
-            <br />
-            <i v-if="props.row.extra.wallet_fiat_currency">
+          <q-td auto-width key="amount" :props="props">
+            <template v-if="wallet.walletType === 'fiat'">
               <span
                 v-text="
                   formatCurrency(
-                    props.row.extra.wallet_fiat_amount,
-                    props.row.extra.wallet_fiat_currency
-                  )
-                "
-              ></span>
-              <br />
-            </i>
-            <i v-if="props.row.extra.fiat_currency">
-              <span
-                v-text="
-                  formatCurrency(
-                    props.row.extra.fiat_amount,
                     props.row.extra.fiat_currency
+                      ? props.row.extra.fiat_amount
+                      : props.row.extra.wallet_fiat_amount,
+                    props.row.extra.fiat_currency ||
+                      props.row.extra.wallet_fiat_currency
                   )
                 "
               ></span>
-            </i>
+              <q-btn
+                flat
+                round
+                dense
+                icon="delete"
+                color="negative"
+                @click.stop="deleteFiatPayment(props.row)"
+              >
+                <q-tooltip>Delete transaction</q-tooltip>
+              </q-btn>
+            </template>
+            <span
+              v-else-if="!g.isSatsDenomination"
+              class="col1"
+              v-text="
+                parseFloat(String(props.row.fsat).replaceAll(',', '')) / 100
+              "
+            ></span>
+            <template v-else>
+              <span v-text="props.row.fsat"></span>
+              <br />
+              <i v-if="props.row.extra.wallet_fiat_currency">
+                <span
+                  v-text="
+                    formatCurrency(
+                      props.row.extra.wallet_fiat_amount,
+                      props.row.extra.wallet_fiat_currency
+                    )
+                  "
+                ></span>
+                <br />
+              </i>
+              <i v-if="props.row.extra.fiat_currency">
+                <span
+                  v-text="
+                    formatCurrency(
+                      props.row.extra.fiat_amount,
+                      props.row.extra.fiat_currency
+                    )
+                  "
+                ></span>
+              </i>
+            </template>
           </q-td>
           <q-dialog v-model="props.expand" :props="props" position="top">
             <q-card class="q-pa-sm q-pt-xl lnbits__dialog-card">

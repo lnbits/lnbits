@@ -16,12 +16,12 @@ from lnbits.core.services.fiat_providers import (
     check_revolut_signature,
     check_square_signature,
     check_stripe_signature,
+    handle_fiat_payment_confirmation,
     verify_paypal_webhook,
 )
 from lnbits.core.services.payments import (
     create_fiat_invoice,
     create_wallet_invoice,
-    service_fee_fiat,
 )
 from lnbits.db import Filter, Filters
 from lnbits.fiat import get_fiat_provider
@@ -196,6 +196,7 @@ async def _handle_stripe_subscription_invoice_paid(event: dict):
 
     payment = await create_fiat_invoice(
         wallet_id=payment_options.wallet_id,
+        verified_subscription=True,
         invoice_data=CreateInvoice(
             unit=currency,
             amount=StripeWallet.minor_units_to_amount(amount_paid, currency),
@@ -205,7 +206,7 @@ async def _handle_stripe_subscription_invoice_paid(event: dict):
         ),
     )
 
-    await check_fiat_status(payment)
+    await handle_fiat_payment_confirmation(payment)
 
 
 async def _get_stripe_subscription_payment_options(
@@ -283,6 +284,7 @@ async def _handle_paypal_subscription_payment(resource: dict):
 
     payment = await create_fiat_invoice(
         wallet_id=payment_options.wallet_id,
+        verified_subscription=True,
         invoice_data=CreateInvoice(
             unit=currency,
             amount=float(total),
@@ -292,7 +294,7 @@ async def _handle_paypal_subscription_payment(resource: dict):
         ),
     )
 
-    await check_fiat_status(payment)
+    await handle_fiat_payment_confirmation(payment)
 
 
 def _paypal_extract_payment_hash(resource: dict) -> str | None:
@@ -481,10 +483,6 @@ async def _handle_revolut_subscription_order_paid(order_id: str):
         return
 
     subscription = await fiat_provider.get_subscription(subscription_id)
-    if subscription.get("state") != "active":
-        logger.warning(f"Revolut subscription is not active: '{subscription_id}'.")
-        return
-
     await _handle_revolut_subscription(
         subscription, fiat_provider, order_id=order_id, order=order
     )
@@ -513,7 +511,7 @@ async def _create_revolut_subscription_payment(
             external_id=subscription_id,
         ),
     )
-    payment.fee = -abs(service_fee_fiat(payment.msat, "revolut"))
+    payment.fee = 0
     payment.fiat_provider = "revolut"
     payment.extra["fiat_checking_id"] = f"order_{order_id}"
     payment.extra["fiat_payment_request"] = payment_request
@@ -626,7 +624,7 @@ async def _handle_square_subscription_payment(
         ):
             existing_payment.external_id = square_subscription_id
             await update_payment(existing_payment)
-        await check_fiat_status(existing_payment)
+        await handle_fiat_payment_confirmation(existing_payment)
         return
 
     square_subscription_id = square_subscription_id or (
@@ -645,6 +643,7 @@ async def _handle_square_subscription_payment(
 
     lnbits_payment = await create_fiat_invoice(
         wallet_id=wallet_id,
+        verified_subscription=True,
         invoice_data=CreateInvoice(
             unit=currency,
             amount=amount / 100,
@@ -655,7 +654,7 @@ async def _handle_square_subscription_payment(
         ),
     )
 
-    await check_fiat_status(lnbits_payment)
+    await handle_fiat_payment_confirmation(lnbits_payment)
 
 
 def _square_payment_options_from_payment(

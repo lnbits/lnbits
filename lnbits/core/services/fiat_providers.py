@@ -8,8 +8,12 @@ import httpx
 from loguru import logger
 
 from lnbits.core.crud import get_wallet
-from lnbits.core.crud.payments import create_payment, update_payment
-from lnbits.core.models import CreatePayment, Payment, PaymentState
+from lnbits.core.crud.payments import (
+    get_standalone_payment,
+    settle_fiat_payment,
+    update_payment,
+)
+from lnbits.core.models import Payment, PaymentState
 from lnbits.core.models.misc import SimpleStatus
 from lnbits.db import Connection
 from lnbits.fiat import get_fiat_provider
@@ -26,48 +30,73 @@ from lnbits.task_manager import task_manager
 async def handle_fiat_payment_confirmation(
     payment: Payment, conn: Connection | None = None
 ):
-    try:
-        await _credit_fiat_service_fee_wallet(payment, conn=conn)
-    except Exception as e:
-        logger.warning(e)
+    """Confirm a verified receipt once, without Lightning fees or faucet transfers."""
+    settled = await settle_fiat_payment(payment, conn=conn)
+    if settled:
+        payment.status = settled.status
+        payment.fee = 0
+        task_manager.internal_invoice_queue.put_nowait(settled)
+    else:
+        current = await get_standalone_payment(
+            payment.checking_id, wallet_id=payment.wallet_id, conn=conn
+        )
+        if current:
+            payment.status = current.status
+            payment.fee = current.fee
 
-    try:
-        await _debit_fiat_service_faucet_wallet(payment, conn=conn)
-    except Exception as e:
-        logger.warning(e)
 
-
-async def check_fiat_status(payment: Payment) -> FiatPaymentStatus:
+async def check_fiat_status(  # noqa: C901
+    payment: Payment, conn: Connection | None = None
+) -> FiatPaymentStatus:
     if not payment.is_internal:
         return FiatPaymentPendingStatus()
+    current = await get_standalone_payment(
+        payment.checking_id, wallet_id=payment.wallet_id, conn=conn
+    )
+    if not current:
+        return FiatPaymentFailedStatus()
+    payment.status = current.status
     if payment.fiat_provider:
-        wallet = await get_wallet(payment.wallet_id)
+        wallet = await get_wallet(payment.wallet_id, conn=conn)
         if not wallet or not wallet.is_fiat_wallet:
             raise ValueError("Fiat payments can only be credited to fiat wallets.")
-    if payment.success:
-        return FiatPaymentSuccessStatus()
-    if payment.failed:
-        return FiatPaymentFailedStatus()
-
-    if not payment.fiat_provider:
+    terminal_status = {
+        PaymentState.SUCCESS.value: FiatPaymentSuccessStatus,
+        PaymentState.FAILED.value: FiatPaymentFailedStatus,
+        PaymentState.DELETED.value: FiatPaymentFailedStatus,
+    }.get(current.status)
+    if terminal_status:
+        return terminal_status()
+    checking_id = current.extra.get("fiat_checking_id")
+    if not current.fiat_provider or not checking_id:
         return FiatPaymentPendingStatus()
-
-    checking_id = payment.extra.get("fiat_checking_id")
-    if not checking_id:
-        return FiatPaymentPendingStatus()
-
-    fiat_provider = await get_fiat_provider(payment.fiat_provider)
+    fiat_provider = await get_fiat_provider(current.fiat_provider)
     if not fiat_provider:
         return FiatPaymentPendingStatus()
     fiat_status = await fiat_provider.get_invoice_status(checking_id)
-
     if fiat_status.success:
-        payment.status = PaymentState.SUCCESS.value
-        await update_payment(payment)
-        await handle_fiat_payment_confirmation(payment)
-        task_manager.internal_invoice_queue.put_nowait(payment)
-
+        await handle_fiat_payment_confirmation(payment, conn=conn)
+        if not payment.success:
+            return FiatPaymentFailedStatus()
+    elif fiat_status.failed:
+        return await _record_fiat_failure(payment, current, conn)
     return fiat_status
+
+
+async def _record_fiat_failure(
+    payment: Payment, current: Payment, conn: Connection | None
+) -> FiatPaymentStatus:
+    current.status = PaymentState.FAILED
+    await update_payment(current, conn=conn)
+    # A concurrent successful confirmation or deletion takes precedence.
+    stored = await get_standalone_payment(
+        payment.checking_id, wallet_id=payment.wallet_id, conn=conn
+    )
+    if stored:
+        payment.status = stored.status
+        if stored.success:
+            return FiatPaymentSuccessStatus()
+    return FiatPaymentFailedStatus()
 
 
 def check_stripe_signature(
@@ -267,83 +296,4 @@ async def test_connection(provider: str) -> SimpleStatus:
     return SimpleStatus(
         success=True,
         message="Connection test successful." f" Balance: {status.balance}.",
-    )
-
-
-async def _credit_fiat_service_fee_wallet(
-    payment: Payment, conn: Connection | None = None
-):
-    fiat_provider_name = payment.fiat_provider
-    if not fiat_provider_name:
-        return
-    if payment.fee == 0:
-        return
-
-    limits = settings.get_fiat_provider_limits(fiat_provider_name)
-    if not limits:
-        return
-
-    if not limits.service_fee_wallet_id:
-        return
-
-    memo = (
-        f"Service fee for fiat payment of "
-        f"{abs(payment.sat)} sats. "
-        f"Provider: {fiat_provider_name}. "
-        f"Wallet: '{payment.wallet_id}'."
-    )
-    create_payment_model = CreatePayment(
-        wallet_id=limits.service_fee_wallet_id,
-        bolt11=payment.bolt11,
-        payment_hash=payment.payment_hash,
-        amount_msat=abs(payment.fee),
-        memo=memo,
-    )
-    await create_payment(
-        checking_id=f"service_fee_{payment.payment_hash}",
-        data=create_payment_model,
-        status=PaymentState.SUCCESS,
-        conn=conn,
-    )
-
-
-async def _debit_fiat_service_faucet_wallet(
-    payment: Payment, conn: Connection | None = None
-):
-    fiat_provider_name = payment.fiat_provider
-    if not fiat_provider_name:
-        return
-
-    limits = settings.get_fiat_provider_limits(fiat_provider_name)
-    if not limits:
-        return
-
-    if not limits.service_faucet_wallet_id:
-        return
-
-    faucet_wallet = await get_wallet(limits.service_faucet_wallet_id, conn=conn)
-    if not faucet_wallet:
-        raise ValueError(
-            f"Fiat provider '{fiat_provider_name}' faucet wallet not found."
-        )
-
-    memo = (
-        f"Faucet payment of {abs(payment.sat)} sats. "
-        f"Provider: {fiat_provider_name}. "
-        f"Wallet: '{payment.wallet_id}'."
-    )
-    create_payment_model = CreatePayment(
-        wallet_id=limits.service_faucet_wallet_id,
-        bolt11=payment.bolt11,
-        payment_hash=payment.payment_hash,
-        amount_msat=-abs(payment.amount),
-        memo=memo,
-        extra=payment.extra,
-    )
-    await create_payment(
-        checking_id=f"internal_fiat_{fiat_provider_name}_"
-        f"faucet_{payment.payment_hash}",
-        data=create_payment_model,
-        status=PaymentState.SUCCESS,
-        conn=conn,
     )

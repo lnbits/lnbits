@@ -102,6 +102,25 @@
         </q-item>
       </div>
     </div>
+    <q-item tag="label" v-ripple class="q-mt-sm">
+      <q-item-section>
+        <q-item-label>Allow fiat wallets</q-item-label>
+        <q-item-label caption>
+          Allow users to create fiat wallets to record cash without a fiat
+          provider. These wallets are also available when a fiat provider is
+          enabled for the user. Superusers can always create fiat wallets.
+        </q-item-label>
+      </q-item-section>
+      <q-item-section avatar>
+        <q-toggle
+          size="md"
+          v-model="formData.lnbits_allow_fiat_wallets"
+          checked-icon="check"
+          color="green"
+          unchecked-icon="clear"
+        />
+      </q-item-section>
+    </q-item>
   </q-card-section>
   <div v-if="formData.lnbits_require_user_activation" class="row">
     <div class="col-12">

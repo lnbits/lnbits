@@ -4,16 +4,43 @@ from fastapi import APIRouter, Depends, HTTPException
 from loguru import logger
 from pydantic import BaseModel
 
+from lnbits.core.crud.payments import delete_fiat_payment, get_standalone_payment
 from lnbits.core.crud.settings import set_settings_field
+from lnbits.core.models import Payment
 from lnbits.core.models.misc import SimpleStatus
+from lnbits.core.models.payments import CreateCashPayment
 from lnbits.core.models.wallets import WalletTypeInfo
 from lnbits.core.services import update_cached_settings
 from lnbits.core.services.fiat_providers import test_connection
+from lnbits.core.services.fiat_wallets import validate_cash_payment
 from lnbits.decorators import check_admin, require_admin_key
 from lnbits.fiat import RevolutWallet, StripeWallet, get_fiat_provider
 from lnbits.fiat.base import CreateFiatSubscription, FiatSubscriptionResponse
+from lnbits.settings import settings
 
 fiat_router = APIRouter(tags=["Fiat API"], prefix="/api/v1/fiat")
+
+
+@fiat_router.post("/cash", response_model=Payment)
+async def api_validate_cash_payment(
+    data: CreateCashPayment,
+    key_info: WalletTypeInfo = Depends(require_admin_key),
+) -> Payment:
+    return await validate_cash_payment(key_info.wallet, data)
+
+
+@fiat_router.delete("/payments/{payment_hash}", response_model=SimpleStatus)
+async def api_delete_fiat_payment(
+    payment_hash: str,
+    key_info: WalletTypeInfo = Depends(require_admin_key),
+) -> SimpleStatus:
+    if not key_info.wallet.is_fiat_wallet:
+        raise HTTPException(403, "Only fiat wallet transactions can be deleted.")
+    payment = await get_standalone_payment(payment_hash, wallet_id=key_info.wallet.id)
+    if not payment:
+        raise HTTPException(404, "Payment not found.")
+    await delete_fiat_payment(key_info.wallet.id, payment_hash)
+    return SimpleStatus(success=True, message="Fiat transaction deleted.")
 
 
 class RevolutCreateWebhook(BaseModel):
@@ -104,6 +131,9 @@ async def create_subscription(
 
     if not key_type.wallet.is_fiat_wallet:
         raise HTTPException(400, "Fiat subscriptions require a fiat wallet.")
+
+    if provider not in settings.get_fiat_providers_for_user(key_type.wallet.user):
+        raise HTTPException(403, "Fiat provider is not available for this user.")
 
     fiat_provider = await get_fiat_provider(provider)
     if not fiat_provider:

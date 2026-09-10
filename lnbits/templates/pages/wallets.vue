@@ -94,10 +94,12 @@
                     <h6 class="q-my-none ellipsis full-width">
                       <strong
                         v-text="
-                          utils.formatBalance(
-                            props.row.balance_msat / 1000,
-                            g.denomination
-                          )
+                          props.row.wallet_type === 'fiat'
+                            ? 'Fiat · Receive only'
+                            : utils.formatBalance(
+                                props.row.balance_msat / 1000,
+                                g.denomination
+                              )
                         "
                       ></strong>
                     </h6>

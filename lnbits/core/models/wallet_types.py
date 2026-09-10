@@ -3,7 +3,7 @@ from enum import Enum
 
 
 class WalletType(str, Enum):
-    """The settlement network used by a wallet.
+    """The payment capabilities and settlement type of a wallet.
 
     ``LIGHTNING_SHARED`` is retained as an internal compatibility type for wallet
     sharing. New wallet types should be registered in ``WALLET_TYPE_CAPABILITIES``
@@ -12,9 +12,16 @@ class WalletType(str, Enum):
 
     LIGHTNING = "lightning"
     FIAT = "fiat"
+    RECEIVE_ONLY = "fiat"  # Compatibility with the receive-only development name.
     ONCHAIN = "onchain"
     LIQUID = "liquid"
     LIGHTNING_SHARED = "lightning-shared"
+
+    @classmethod
+    def _missing_(cls, value):
+        if value == "receive-only":
+            return cls.FIAT
+        return None
 
 
 @dataclass(frozen=True)

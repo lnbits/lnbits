@@ -349,6 +349,14 @@ async def api_update_payment_extra(
             HTTPStatus.BAD_REQUEST, "Payment extra can only be updated after success."
         )
 
+    if key_type.wallet.is_fiat_wallet and any(
+        key.startswith(("fiat_", "wallet_fiat_", "wallet_btc_")) or key == "btc_rate"
+        for key in data.extra
+    ):
+        raise HTTPException(
+            HTTPStatus.BAD_REQUEST, "Recorded fiat payment amounts cannot be changed."
+        )
+
     duplicate_keys = sorted(set(payment.extra).intersection(data.extra))
     if duplicate_keys:
         raise HTTPException(

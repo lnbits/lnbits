@@ -31,7 +31,25 @@
           :label="$t('wallet_type')"
           v-model="g.newWalletType"
           dense
-        ></q-select>
+        >
+          <template v-slot:option="scope">
+            <q-item v-bind="scope.itemProps">
+              <q-item-section>
+                <q-item-label v-text="scope.opt.label"></q-item-label>
+                <q-item-label
+                  v-if="scope.opt.description"
+                  caption
+                  v-text="scope.opt.description"
+                ></q-item-label>
+              </q-item-section>
+            </q-item>
+          </template>
+        </q-select>
+        <div
+          v-if="walletTypeDescription"
+          class="text-caption text-grey q-mt-xs"
+          v-text="walletTypeDescription"
+        ></div>
         <q-input
           v-if="!isLightningShared"
           dense

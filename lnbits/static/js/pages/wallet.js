@@ -35,6 +35,7 @@ window.PageWallet = {
         units: [],
         unit: 'sat',
         fiatProvider: '',
+        cashRequestId: null,
         data: {
           amount: null,
           memo: '',
@@ -52,6 +53,7 @@ window.PageWallet = {
       totalBreakdown: {
         show: false,
         loading: false,
+        error: false,
         rows: [],
         selectedTypes: ['bitcoin', 'fiat'],
         selectedTags: []
@@ -69,6 +71,9 @@ window.PageWallet = {
     }
   },
   computed: {
+    fiatWalletTotal() {
+      return this.formatRecordedFiatTotals(this.totalBreakdown.rows)
+    },
     canPay() {
       if (!this.parse.invoice) return false
       if (this.parse.invoice.expired) {
@@ -171,12 +176,16 @@ window.PageWallet = {
       return LNbits.utils.formatCurrency(amount, this.g.wallet.currency)
     },
     primaryTotalBreakdownValue() {
+      if (this.g.wallet.walletType === 'fiat') {
+        return this.formatRecordedFiatTotals(this.selectedTotalBreakdownRows)
+      }
       if (this.g.isFiatPriority && this.g.fiatTracking) {
         return this.formattedTotalBreakdownFiat || this.formattedTotalBreakdown
       }
       return this.formattedTotalBreakdown
     },
     secondaryTotalBreakdownValue() {
+      if (this.g.wallet.walletType === 'fiat') return null
       if (!this.g.fiatTracking) return null
       if (this.g.isFiatPriority) {
         return this.formattedTotalBreakdown
@@ -185,6 +194,47 @@ window.PageWallet = {
     }
   },
   methods: {
+    formatRecordedFiatTotals(rows) {
+      const totals = {}
+      rows.forEach(row => {
+        Object.entries(row.fiat_totals || {}).forEach(([currency, amount]) => {
+          totals[currency] = (totals[currency] || 0) + amount
+        })
+      })
+      if (!Object.keys(totals).length)
+        totals[this.g.wallet.currency || 'USD'] = 0
+      return Object.entries(totals)
+        .map(([currency, amount]) =>
+          LNbits.utils.formatCurrency(amount, currency)
+        )
+        .join(' · ')
+    },
+    validateCash() {
+      LNbits.utils
+        .confirmDialog('Confirm that you have received this cash payment?')
+        .onOk(async () => {
+          this.receive.status = 'loading'
+          try {
+            await LNbits.api.request(
+              'POST',
+              '/api/v1/fiat/cash',
+              this.g.wallet.adminkey,
+              {
+                request_id: this.receive.cashRequestId,
+                amount: this.receive.data.amount,
+                unit: this.receive.unit,
+                memo: this.receive.data.memo || 'Cash payment'
+              }
+            )
+            this.receive.show = false
+            this.g.updatePayments = !this.g.updatePayments
+            this.$q.notify({type: 'positive', message: 'Cash payment recorded'})
+          } catch (err) {
+            this.receive.status = 'pending'
+            LNbits.utils.notifyApiError(err)
+          }
+        })
+    },
     showWalletTotalBreakdown() {
       this.totalBreakdown.show = true
       if (!this.totalBreakdown.rows.length) {
@@ -193,9 +243,12 @@ window.PageWallet = {
     },
     fetchTotalBreakdown() {
       this.totalBreakdown.loading = true
+      this.totalBreakdown.error = false
+      const walletId = this.g.wallet.id
       LNbits.api
         .getPaymentTotalBreakdown(this.g.wallet)
         .then(response => {
+          if (this.g.wallet.id !== walletId) return
           this.totalBreakdown.rows = response.data
           this.totalBreakdown.selectedTypes = ['bitcoin', 'fiat']
           this.totalBreakdown.selectedTags = this.totalBreakdownTags.map(
@@ -204,7 +257,9 @@ window.PageWallet = {
           this.totalBreakdown.loading = false
         })
         .catch(err => {
+          if (this.g.wallet.id !== walletId) return
           this.totalBreakdown.loading = false
+          this.totalBreakdown.error = true
           LNbits.utils.notifyApiError(err)
         })
     },
@@ -261,9 +316,16 @@ window.PageWallet = {
         : this.g.isFiatPriority
           ? this.g.wallet.currency || 'sat'
           : 'sat'
-      this.receive.fiatProvider = isFiatWallet
-        ? this.g.user.fiat_providers?.[0] || ''
-        : ''
+      this.receive.fiatProvider = isFiatWallet ? 'cash' : ''
+      if (isFiatWallet) {
+        const bytes = crypto.getRandomValues(new Uint8Array(16))
+        bytes[6] = (bytes[6] & 15) | 64
+        bytes[8] = (bytes[8] & 63) | 128
+        const hex = Array.from(bytes, byte =>
+          byte.toString(16).padStart(2, '0')
+        ).join('')
+        this.receive.cashRequestId = `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`
+      }
       this.receive.minMax = [0, 2100000000000000]
       this.receive.lnurl = null
     },
@@ -295,6 +357,13 @@ window.PageWallet = {
       this.g.wallet.sat = this.g.wallet.sat + value
     },
     createInvoice() {
+      if (
+        this.g.wallet.walletType === 'fiat' &&
+        this.receive.fiatProvider === 'cash'
+      ) {
+        this.validateCash()
+        return
+      }
       this.receive.status = 'loading'
       if (!this.g.isSatsDenomination && this.g.wallet.walletType !== 'fiat') {
         this.receive.data.amount = this.receive.data.amount * 100
@@ -809,6 +878,7 @@ window.PageWallet = {
     }
     if (wallet) {
       this.g.wallet = wallet
+      if (wallet.walletType === 'fiat') this.fetchTotalBreakdown()
       this.g.lastActiveWallet = wallet.id
       this.$q.localStorage.setItem('lnbits.lastActiveWallet', wallet.id)
       // the dialog needs the wallet, and a dialog opened while this navigation
@@ -834,6 +904,10 @@ window.PageWallet = {
     },
     'g.updatePayments'() {
       this.parse.show = false
+      if (this.g.wallet.walletType === 'fiat') {
+        this.fetchTotalBreakdown()
+        return
+      }
       if (
         this.g.wallet.currency &&
         this.$q.localStorage.getItem(
@@ -848,6 +922,11 @@ window.PageWallet = {
       }
     },
     'g.wallet'() {
+      if (this.g.wallet.walletType === 'fiat') {
+        this.totalBreakdown.rows = []
+        this.fetchTotalBreakdown()
+        return
+      }
       if (this.g.wallet.currency) {
         this.g.fiatTracking = true
         this.g.fiatBalance =
@@ -871,6 +950,7 @@ window.PageWallet = {
       )
     },
     'g.exchangeRate'() {
+      if (this.g.wallet.walletType === 'fiat') return
       if (this.g.fiatTracking && this.g.wallet.currency) {
         this.g.fiatBalance =
           (this.g.exchangeRate / 100000000) * this.g.wallet.sat

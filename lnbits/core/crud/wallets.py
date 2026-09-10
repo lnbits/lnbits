@@ -177,7 +177,9 @@ async def get_wallets(
             """
     if deleted is not None:
         query += " AND deleted = :deleted "
-    if wallet_type is not None:
+    if wallet_type == WalletType.FIAT:
+        query += " AND wallet_type IN ('fiat', 'receive-only') "
+    elif wallet_type is not None:
         query += " AND wallet_type = :wallet_type "
     wallets = await (conn or db).fetchall(
         query,
@@ -340,7 +342,11 @@ async def get_source_wallets(
 
 
 async def get_total_balance(conn: Connection | None = None):
-    result = await (conn or db).execute("SELECT SUM(balance) as balance FROM balances")
+    result = await (conn or db).execute("""
+        SELECT SUM(balance) as balance FROM balances
+        JOIN wallets ON wallets.id = balances.wallet_id
+        WHERE wallets.wallet_type NOT IN ('fiat', 'receive-only')
+        """)
     row = result.mappings().first()
     return row.get("balance", 0) or 0
 

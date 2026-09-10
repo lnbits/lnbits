@@ -82,6 +82,7 @@ window.app.component('lnbits-wallet-extra', {
         })
     },
     updateFiatBalance() {
+      if (this.g.wallet.walletType === 'fiat') return
       // set rate from local storage to avoid clunky api calls
       if (
         this.$q.localStorage.getItem(

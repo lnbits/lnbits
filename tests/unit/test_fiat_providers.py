@@ -11,7 +11,8 @@ from pytest_mock.plugin import MockerFixture
 
 from lnbits.core.crud.payments import get_payment, get_payments
 from lnbits.core.crud.users import get_user
-from lnbits.core.crud.wallets import create_wallet
+from lnbits.core.crud.wallets import create_wallet, get_wallet
+from lnbits.core.db import db
 from lnbits.core.models.payments import CreateInvoice, Payment, PaymentState
 from lnbits.core.models.users import User
 from lnbits.core.models.wallet_types import WalletType
@@ -77,6 +78,76 @@ class MockHTTPClient:
         return self._responses.pop(0)
 
 
+@pytest.mark.anyio
+@pytest.mark.parametrize("owner", ["wallet_1", "someone_else", None])
+async def test_paypal_cancellation_checks_provider_ownership(owner, mocker):
+    # Verify using provider metadata even before the first receipt exists locally.
+    wallet = object.__new__(PayPalWallet)
+    client = MockHTTPClient(
+        [
+            MockHTTPResponse({"custom_id": json.dumps([owner, None, "request"])}),
+            MockHTTPResponse({}),
+        ]
+    )
+    mocker.patch.object(wallet, "client", client, create=True)
+    mocker.patch.object(wallet, "_ensure_access_token", AsyncMock())
+    mocker.patch.object(wallet, "_auth_headers", return_value={})
+    result = await wallet.cancel_subscription("SUB123", "wallet_1")
+    assert result.ok is (owner == "wallet_1")
+    assert len(client.calls) == (2 if owner == "wallet_1" else 1)
+    assert client.calls[0][0] == "/v1/billing/subscriptions/SUB123"
+
+
+@pytest.mark.anyio
+@pytest.mark.parametrize("status", [PaymentState.SUCCESS, PaymentState.DELETED])
+async def test_square_cancellation_keeps_verified_receipt_ownership_after_deletion(
+    status, mocker
+):
+    wallet = object.__new__(SquareWallet)
+    client = MockHTTPClient([MockHTTPResponse({})])
+    mocker.patch.object(wallet, "client", client, create=True)
+    receipt = Payment(
+        wallet_id="wallet_1",
+        checking_id="fiat_square_payment_paid",
+        payment_hash="hash",
+        amount=1000,
+        fee=0,
+        bolt11="",
+        status=status,
+        fiat_provider="square",
+        external_id="SUB123",
+        extra={"fiat_method": "subscription"},
+    )
+    query = mocker.patch(
+        "lnbits.core.db.db.fetchall", AsyncMock(return_value=[receipt])
+    )
+    result = await wallet.cancel_subscription("SUB123", "wallet_1")
+    assert result.ok
+    assert query.call_args.args[1] == {"wallet_id": "wallet_1"}
+    assert client.calls[0][0] == "/v2/subscriptions/SUB123/cancel"
+
+
+@pytest.mark.anyio
+async def test_square_checkout_external_id_is_not_ownership_evidence(mocker):
+    wallet = object.__new__(SquareWallet)
+    client = MockHTTPClient([])
+    mocker.patch.object(wallet, "client", client, create=True)
+    receipt = Payment(
+        wallet_id="wallet_1",
+        checking_id="fiat_square_checkout",
+        payment_hash="hash",
+        amount=1000,
+        fee=0,
+        bolt11="",
+        status=PaymentState.SUCCESS,
+        fiat_provider="square",
+        external_id="SOMEONE_ELSES_SUBSCRIPTION",
+    )
+    mocker.patch("lnbits.core.db.db.fetchall", AsyncMock(return_value=[receipt]))
+    result = await wallet.cancel_subscription("SOMEONE_ELSES_SUBSCRIPTION", "wallet_1")
+    assert not result.ok and client.calls == []
+
+
 @pytest.fixture(autouse=True)
 def fiat_provider_test_settings(settings: Settings):
     original_lnbits_running = settings.lnbits_running
@@ -127,7 +198,7 @@ def fiat_provider_test_settings(settings: Settings):
 
 
 @pytest.fixture
-async def fiat_wallet() -> Wallet:
+async def fiat_wallet(client) -> Wallet:
     user = await create_user_account()
     return await create_wallet(user_id=user.id, wallet_type=WalletType.FIAT)
 
@@ -229,63 +300,33 @@ async def test_create_wallet_fiat_invoice_allowed_users(
 
 
 @pytest.mark.anyio
-async def test_create_wallet_fiat_invoice_fiat_limits_fail(
+async def test_create_wallet_fiat_invoice_ignores_lightning_limits(
     fiat_wallet: Wallet, settings: Settings, mocker: MockerFixture
 ):
-
     settings.stripe_enabled = True
-    settings.stripe_limits.service_min_amount_sats = 0
+    settings.stripe_limits.allowed_users = []
+    settings.stripe_limits.service_min_amount_sats = 1001
     settings.stripe_limits.service_max_amount_sats = 105
-    settings.stripe_limits.service_faucet_wallet_id = None
+    settings.lnbits_max_incoming_payment_amount_sats = 1
+    settings.lnbits_wallet_limit_max_balance = 1
+    mocker.patch(
+        "lnbits.utils.exchange_rates.get_fiat_rate_satoshis",
+        AsyncMock(return_value=1000),
+    )
+    provider = mocker.Mock()
+    provider.create_invoice = AsyncMock(
+        return_value=FiatInvoiceResponse(ok=True, checking_id="no_limits_receipt")
+    )
+    mocker.patch(
+        "lnbits.core.services.payments.get_fiat_provider",
+        AsyncMock(return_value=provider),
+    )
     invoice_data = CreateInvoice(
         unit="USD", amount=1.0, memo="Test", fiat_provider="stripe"
     )
-
-    mocker.patch(
-        "lnbits.utils.exchange_rates.get_fiat_rate_satoshis",
-        AsyncMock(return_value=1000),  # 1 BTC = 100 000 USD, so 1 USD = 1000 sats
-    )
-    with pytest.raises(ValueError, match="Maximum amount is 105 sats for 'stripe'."):
-        await payments.create_fiat_invoice(fiat_wallet.id, invoice_data)
-
-    settings.stripe_limits.service_min_amount_sats = 1001
-    settings.stripe_limits.service_max_amount_sats = 10000
-
-    with pytest.raises(ValueError, match="Minimum amount is 1001 sats for 'stripe'."):
-        await payments.create_fiat_invoice(fiat_wallet.id, invoice_data)
-
-    settings.stripe_limits.service_min_amount_sats = 10
-    settings.stripe_limits.service_max_amount_sats = 10000
-    settings.stripe_limits.service_max_fee_sats = 100
-
-    with pytest.raises(
-        ValueError, match="Fiat provider 'stripe' service fee wallet missing."
-    ):
-        await payments.create_fiat_invoice(fiat_wallet.id, invoice_data)
-
-    settings.stripe_limits.service_fee_wallet_id = "not_a_real_wallet_id"
-
-    with pytest.raises(
-        ValueError, match="Fiat provider 'stripe' service fee wallet not found."
-    ):
-        await payments.create_fiat_invoice(fiat_wallet.id, invoice_data)
-
-    settings.stripe_limits.service_fee_wallet_id = fiat_wallet.id
-    settings.stripe_limits.service_faucet_wallet_id = "not_a_real_wallet_id"
-
-    with pytest.raises(
-        ValueError, match="Fiat provider 'stripe' faucet wallet not found."
-    ):
-        await payments.create_fiat_invoice(fiat_wallet.id, invoice_data)
-
-    user = await create_user_account()
-    wallet = await create_wallet(user_id=user.id)
-    settings.stripe_limits.service_faucet_wallet_id = wallet.id
-
-    with pytest.raises(
-        ValueError, match="The amount exceeds the 'stripe'faucet wallet balance."
-    ):
-        await payments.create_fiat_invoice(fiat_wallet.id, invoice_data)
+    payment = await payments.create_fiat_invoice(fiat_wallet.id, invoice_data)
+    assert payment.pending and payment.fee == 0
+    provider.create_invoice.assert_awaited_once()
 
 
 @pytest.mark.anyio
@@ -862,7 +903,9 @@ async def test_square_wallet_create_subscription_invoice(settings: Settings):
 
 
 @pytest.mark.anyio
-async def test_square_wallet_cancel_subscription(settings: Settings):
+async def test_square_wallet_cancel_subscription_rejects_unknown_owner(
+    settings: Settings, mocker: MockerFixture
+):
     settings.square_api_endpoint = "https://connect.squareupsandbox.com"
     settings.square_access_token = "square-token"
     settings.square_location_id = "LOC123"
@@ -872,10 +915,11 @@ async def test_square_wallet_cancel_subscription(settings: Settings):
     client = MockHTTPClient([MockHTTPResponse(json_data={"subscription": {}})])
     wallet.client = client  # type: ignore[assignment]
 
+    mocker.patch("lnbits.core.db.db.fetchall", AsyncMock(return_value=[]))
     response = await wallet.cancel_subscription("SUBSCRIPTION123", "wallet_1")
 
-    assert response.ok is True
-    assert client.calls[0][0] == "/v2/subscriptions/SUBSCRIPTION123/cancel"
+    assert response.ok is False
+    assert client.calls == []
 
 
 @pytest.mark.anyio
@@ -898,19 +942,20 @@ async def test_square_wallet_cancel_subscription_by_request_id(
         fee=0,
         bolt11="lnbc1square",
         fiat_provider="square",
-        extra={"subscription_request_id": "REQUEST123"},
+        extra={"subscription_request_id": "REQUEST123", "fiat_method": "subscription"},
+        status=PaymentState.SUCCESS,
         external_id="SUBSCRIPTION123",
     )
     get_payments_mock = mocker.patch(
-        "lnbits.core.crud.payments.get_payments",
-        AsyncMock(side_effect=[[], [payment]]),
+        "lnbits.core.db.db.fetchall",
+        AsyncMock(return_value=[payment]),
     )
 
     response = await wallet.cancel_subscription("REQUEST123", "wallet_1")
 
     assert response.ok is True
     assert client.calls[0][0] == "/v2/subscriptions/SUBSCRIPTION123/cancel"
-    assert get_payments_mock.await_count == 2
+    assert get_payments_mock.await_count == 1
 
 
 @pytest.mark.anyio
@@ -1684,18 +1729,18 @@ async def test_fiat_service_fee(settings: Settings):
     settings.stripe_limits.service_max_fee_sats = 5
     settings.stripe_limits.service_fee_percent = 20
     fee = payments.service_fee_fiat(amount_msats, "stripe")
-    assert fee == 5000
+    assert fee == 0
 
     fee = payments.service_fee_fiat(-amount_msats, "stripe")
-    assert fee == 5000
+    assert fee == 0
 
     settings.stripe_limits.service_max_fee_sats = 5
     settings.stripe_limits.service_fee_percent = 3
     fee = payments.service_fee_fiat(amount_msats, "stripe")
-    assert fee == 3000
+    assert fee == 0
 
     fee = payments.service_fee_fiat(-amount_msats, "stripe")
-    assert fee == 3000
+    assert fee == 0
 
 
 @pytest.mark.anyio
@@ -1741,35 +1786,12 @@ async def test_handle_fiat_payment_confirmation(
     await handle_fiat_payment_confirmation(payment)
     # await asyncio.sleep(1)  # Simulate async delay
 
-    service_fee_payments = await get_payments(wallet_id=service_fee_wallet.id)
-    assert len(service_fee_payments) == 1
-    assert service_fee_payments[0].amount == 2_000_000
-    assert service_fee_payments[0].fee == 0
-    assert service_fee_payments[0].status == PaymentState.SUCCESS
-    assert service_fee_payments[0].fiat_provider is None
-
-    faucet_wallet_payments = await get_payments(wallet_id=faucet_wallet.id)
-
-    # Background tasks may create more payments, so we check for at least 2
-    # One for the service fee, one for the top-up)
-    assert len(faucet_wallet_payments) >= 2
-    faucet_payment = next(
-        (p for p in faucet_wallet_payments if p.payment_hash == payment.payment_hash),
-        None,
-    )
-    assert faucet_payment
-    assert faucet_payment.amount == -10_000_000
-    assert faucet_payment.fee == 0
-    assert faucet_payment.status == PaymentState.SUCCESS
-    assert faucet_payment.fiat_provider is None
-    assert (
-        faucet_payment.extra.get("fiat_checking_id") == fiat_mock_response.checking_id
-    )
-    assert (
-        faucet_payment.extra.get("fiat_payment_request")
-        == fiat_mock_response.payment_request
-    )
-    assert faucet_payment.checking_id.startswith("internal_fiat_stripe_")
+    assert payment.fee == 0
+    assert payment.success
+    assert await get_payments(wallet_id=service_fee_wallet.id) == []
+    funded_wallet = await get_wallet(faucet_wallet.id)
+    assert funded_wallet
+    assert funded_wallet.balance == 100_000_000
 
 
 @pytest.mark.parametrize("payload", [b'{"id": "evt_test"}', b"{}", b""])
@@ -1925,6 +1947,9 @@ async def test_check_fiat_status_handles_internal_states(
         fiat_provider="stripe",
     )
 
+    await db.insert("apipayments", success_payment)
+    await db.insert("apipayments", failed_payment)
+
     assert (await check_fiat_status(pending_payment)).pending is True
     assert (await check_fiat_status(success_payment)).success is True
     assert (await check_fiat_status(failed_payment)).failed is True
@@ -1939,37 +1964,26 @@ async def test_check_fiat_status_handles_internal_states(
         "lnbits.task_manager.task_manager.internal_invoice_queue.put_nowait"
     )
 
-    success_status = await check_fiat_status(
-        Payment(
-            checking_id="fiat_pending",
-            payment_hash="hash_queue",
-            wallet_id=fiat_wallet.id,
-            amount=1000,
-            fee=0,
-            bolt11="bolt11",
-            status=PaymentState.PENDING,
-            fiat_provider="stripe",
-            extra={"fiat_checking_id": "stripe_checking_id"},
-        )
+    pending_receipt = Payment(
+        checking_id="fiat_pending",
+        payment_hash="hash_queue",
+        wallet_id=fiat_wallet.id,
+        amount=1000,
+        fee=0,
+        bolt11="bolt11",
+        status=PaymentState.PENDING,
+        fiat_provider="stripe",
+        extra={"fiat_checking_id": "stripe_checking_id"},
     )
+    await db.insert("apipayments", pending_receipt)
+    success_status = await check_fiat_status(pending_receipt)
 
     assert success_status.success is True
     queue_put.assert_called_once()
     assert queue_put.call_args[0][0].checking_id == "fiat_pending"
 
-    await check_fiat_status(
-        Payment(
-            checking_id="fiat_pending_skip",
-            payment_hash="hash_skip",
-            wallet_id=fiat_wallet.id,
-            amount=1000,
-            fee=0,
-            bolt11="bolt11",
-            status=PaymentState.SUCCESS,
-            fiat_provider="stripe",
-            extra={"fiat_checking_id": "stripe_checking_id"},
-        )
-    )
+    await check_fiat_status(pending_receipt)
+
     assert queue_put.call_count == 1
 
 
@@ -2017,7 +2031,9 @@ async def test_check_fiat_status_persists_successful_payment(
     assert payment.status == PaymentState.SUCCESS
     updated_payment = await get_payment(payment.checking_id)
     assert updated_payment.status == PaymentState.SUCCESS
-    queue_put.assert_called_once_with(payment)
+    queue_put.assert_called_once()
+    assert queue_put.call_args.args[0].checking_id == payment.checking_id
+    assert queue_put.call_args.args[0].success
 
 
 @pytest.mark.anyio

@@ -238,7 +238,6 @@ async def test_callback_api_handles_revolut_subscription_event(
         "lnbits.core.views.callback_api.create_wallet_invoice",
         mocker.AsyncMock(return_value=payment),
     )
-    mocker.patch("lnbits.core.views.callback_api.service_fee_fiat", return_value=2)
     update_payment_mock = mocker.patch(
         "lnbits.core.views.callback_api.update_payment", mocker.AsyncMock()
     )
@@ -323,7 +322,6 @@ async def test_callback_api_handles_revolut_subscription_order_event(
         "lnbits.core.views.callback_api.create_wallet_invoice",
         mocker.AsyncMock(return_value=payment),
     )
-    mocker.patch("lnbits.core.views.callback_api.service_fee_fiat", return_value=2)
     update_payment_mock = mocker.patch(
         "lnbits.core.views.callback_api.update_payment", mocker.AsyncMock()
     )
@@ -354,7 +352,7 @@ async def test_callback_api_handles_revolut_subscription_order_event(
     assert invoice.extra["fiat_method"] == "subscription"
     assert invoice.extra["subscription"]["checking_id"] == "order_ORDER_SUB_1"
     assert payment.fiat_provider == "revolut"
-    assert payment.fee == -2
+    assert payment.fee == 0
     assert payment.extra["fiat_checking_id"] == "order_ORDER_SUB_1"
     assert payment.checking_id == "fiat_revolut_order_ORDER_SUB_1"
     update_payment_mock.assert_awaited_once_with(
@@ -384,7 +382,8 @@ async def test_callback_api_handles_subscription_flows_and_validation(
         mocker.AsyncMock(return_value=payment),
     )
     fiat_status_mock = mocker.patch(
-        "lnbits.core.views.callback_api.check_fiat_status", mocker.AsyncMock()
+        "lnbits.core.views.callback_api.handle_fiat_payment_confirmation",
+        mocker.AsyncMock(),
     )
 
     await handle_stripe_event(
@@ -418,6 +417,7 @@ async def test_callback_api_handles_subscription_flows_and_validation(
     create_fiat_invoice_mock.assert_awaited()
     fiat_status_mock.assert_awaited()
     stripe_call = create_fiat_invoice_mock.await_args.kwargs
+    assert stripe_call["verified_subscription"] is True
     assert stripe_call["invoice_data"].unit == "KWD"
     assert stripe_call["invoice_data"].amount == 5
 
@@ -596,7 +596,8 @@ async def test_square_invoice_payment_updates_existing_subscription_external_id(
         mocker.AsyncMock(),
     )
     fiat_status_mock = mocker.patch(
-        "lnbits.core.views.callback_api.check_fiat_status", mocker.AsyncMock()
+        "lnbits.core.views.callback_api.handle_fiat_payment_confirmation",
+        mocker.AsyncMock(),
     )
 
     await handle_square_event(

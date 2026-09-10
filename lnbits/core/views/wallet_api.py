@@ -218,6 +218,15 @@ async def api_create_wallet(
 ) -> Wallet:
 
     capabilities = wallet_type_capabilities(data.wallet_type)
+    if data.wallet_type == WalletType.FIAT and not (
+        settings.is_super_user(account_id.id)
+        or settings.lnbits_allow_fiat_wallets
+        or settings.get_fiat_providers_for_user(account_id.id)
+    ):
+        raise HTTPException(
+            HTTPStatus.BAD_REQUEST,
+            "Fiat wallets are not enabled for this account.",
+        )
     if not capabilities.creatable and data.wallet_type != WalletType.LIGHTNING_SHARED:
         raise HTTPException(
             HTTPStatus.BAD_REQUEST,

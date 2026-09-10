@@ -45,6 +45,7 @@ class UsersSettings(LNbitsSettings):
     lnbits_admin_users: list[str] = Field(default=[])
     lnbits_allowed_users: list[str] = Field(default=[])
     lnbits_allow_new_accounts: bool = Field(default=True)
+    lnbits_allow_fiat_wallets: bool = Field(default=False)
 
     lnbits_ln_address_mode: Literal[
         "core_first", "extension_first", "extension_only"
@@ -1345,6 +1346,7 @@ class PublicSettings(BaseModel):
     """
 
     allow_register: bool = Field(alias="allowRegister")
+    allow_fiat_wallets: bool = Field(alias="allowFiatWallets")
     qr_logo: str = Field(alias="qrLogo")
     site_title: str = Field(alias="siteTitle")
     site_tagline: str = Field(alias="siteTagline")
@@ -1428,6 +1430,7 @@ class PublicSettings(BaseModel):
             adSpaceTitle=settings.lnbits_ad_space_title,
             showAdSpace=settings.lnbits_ad_space_enabled and len(ads) > 0,
             allowRegister=settings.new_accounts_allowed,
+            allowFiatWallets=settings.lnbits_allow_fiat_wallets,
             qrLogo=settings.lnbits_qr_logo,
             siteDescription=settings.lnbits_site_description,
             siteTitle=settings.lnbits_site_title,

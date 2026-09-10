@@ -902,3 +902,10 @@ async def m050_add_lightning_address_to_wallets(db: Connection):
         CREATE UNIQUE INDEX IF NOT EXISTS idx_wallets_lightning_address
         ON wallets (lightning_address);
         """)
+
+
+async def m051_fiat_notification_outbox(db: Connection):
+    """Retired: preserve this version for databases that applied the former outbox.
+
+    Notification replay is disabled. Any existing outbox table is left unused.
+    """

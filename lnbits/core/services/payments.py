@@ -6,6 +6,7 @@ from bolt11 import Bolt11, MilliSatoshi, Tags
 from bolt11 import decode as bolt11_decode
 from bolt11 import encode as bolt11_encode
 from loguru import logger
+from sqlalchemy.exc import IntegrityError
 
 from lnbits.core.crud.payments import get_daily_stats
 from lnbits.core.db import db
@@ -125,15 +126,33 @@ async def create_payment_request(
     return await create_wallet_invoice(wallet_id, invoice_data)
 
 
-async def create_fiat_invoice(
-    wallet_id: str, invoice_data: CreateInvoice, conn: Connection | None = None
+def _fiat_subscription_checking_id(
+    provider: str | None, extra: dict | None
+) -> str | None:
+    if not provider or not extra or extra.get("fiat_method") != "subscription":
+        return None
+    receipt_id = (extra.get("subscription") or {}).get("checking_id")
+    if not receipt_id:
+        raise ValueError("Fiat subscription receipt ID is required.")
+    prefix = "subscription_" if provider == "paypal" else ""
+    return f"fiat_{provider}_{prefix}{receipt_id}"
+
+
+async def create_fiat_invoice(  # noqa: C901
+    wallet_id: str,
+    invoice_data: CreateInvoice,
+    conn: Connection | None = None,
+    *,
+    verified_subscription: bool = False,
 ) -> Payment:
     fiat_provider_name = invoice_data.fiat_provider
     if not fiat_provider_name:
         raise ValueError("Fiat provider is required for fiat invoices.")
     if invoice_data.lnurl_withdraw:
         raise ValueError("Fiat provider cannot be combined with LNURL withdraw.")
-    if not settings.is_fiat_provider_enabled(fiat_provider_name):
+    if not verified_subscription and not settings.is_fiat_provider_enabled(
+        fiat_provider_name
+    ):
         raise ValueError(
             f"Fiat provider '{fiat_provider_name}' is not enabled.",
         )
@@ -141,20 +160,42 @@ async def create_fiat_invoice(
     if invoice_data.unit == "sat":
         raise ValueError("Fiat provider cannot be used with satoshis.")
     wallet = await _get_fiat_wallet(wallet_id, conn)
+    if (
+        not verified_subscription
+        and fiat_provider_name not in settings.get_fiat_providers_for_user(wallet.user)
+    ):
+        raise ValueError("Fiat provider is not available for this user.")
+    subscription_id = _fiat_subscription_checking_id(
+        fiat_provider_name, invoice_data.extra
+    )
+    if verified_subscription and not subscription_id:
+        raise ValueError("Verified subscription receipt ID is required.")
+    if subscription_id:
+        existing = await get_standalone_payment(
+            subscription_id, wallet_id=wallet_id, conn=conn
+        )
+        if existing:
+            return existing
     wallet_currency = wallet.currency or settings.lnbits_default_accounting_currency
-    if wallet_currency and invoice_data.unit.upper() != wallet_currency.upper():
+    if (
+        not verified_subscription
+        and wallet_currency
+        and invoice_data.unit.upper() != wallet_currency.upper()
+    ):
         raise ValueError(
             f"Fiat wallet currency is {wallet_currency.upper()}, "
             f"not {invoice_data.unit.upper()}."
         )
-    amount_sat = await fiat_amount_as_satoshis(invoice_data.amount, invoice_data.unit)
-    await _check_fiat_invoice_limits(amount_sat, fiat_provider_name, conn)
-
     invoice_data.internal = True  # use FakeWallet for fiat invoices
     if not invoice_data.memo:
         invoice_data.memo = settings.lnbits_site_title + f" ({fiat_provider_name})"
 
     internal_payment = await create_wallet_invoice(wallet_id, invoice_data)
+
+    if verified_subscription:
+        # This is a receipt from an authenticated provider callback, not a request
+        # to initiate another charge. Its provider identity is persisted already.
+        return internal_payment
 
     fiat_provider = await get_fiat_provider(fiat_provider_name)
     if not fiat_provider:
@@ -176,9 +217,7 @@ async def create_fiat_invoice(
             f"Cannot create payment request for '{fiat_provider_name}'.",
         )
 
-    internal_payment.fee = -abs(
-        service_fee_fiat(internal_payment.msat, fiat_provider_name)
-    )
+    internal_payment.fee = 0
 
     internal_payment.fiat_provider = fiat_provider_name
     internal_payment.extra["fiat_checking_id"] = fiat_invoice.checking_id
@@ -258,7 +297,7 @@ async def create_wallet_invoice(wallet_id: str, data: CreateInvoice) -> Payment:
     return payment
 
 
-async def create_invoice(
+async def create_invoice(  # noqa: C901
     *,
     wallet_id: str,
     amount: float,
@@ -295,11 +334,33 @@ async def create_invoice(
         WalletType.FIAT if fiat_provider else WalletType.LIGHTNING
     )
     if not user_wallet.supports_payment_type(payment_type):
+        payment_type_label = "Fiat" if fiat_provider else payment_type.value.title()
         raise InvoiceError(
-            f"{payment_type.value.title()} payments cannot be received by a "
+            f"{payment_type_label} payments cannot be received by a "
             f"{user_wallet.wallet_type} wallet.",
             status="failed",
         )
+
+    if user_wallet.is_fiat_wallet:
+        extra = dict(extra or {})
+        # Only provider responses (or trusted subscription callbacks below) may
+        # attach a receipt ID that can be used to confirm this payment.
+        extra.pop("fiat_checking_id", None)
+        extra.pop("fiat_payment_request", None)
+    subscription_id = _fiat_subscription_checking_id(fiat_provider, extra)
+    if subscription_id:
+        existing = await get_standalone_payment(
+            subscription_id, wallet_id=wallet_id, conn=conn
+        )
+        if existing:
+            return existing
+        # Persist the provider identity immediately so retries also recover a crash
+        # between creating the record and confirming it.
+        extra = dict(extra or {})
+        receipt_id = extra["subscription"]["checking_id"]
+        prefix = "subscription_" if fiat_provider == "paypal" else ""
+        extra["fiat_checking_id"] = f"{prefix}{receipt_id}"
+        extra["fiat_payment_request"] = extra["subscription"].get("payment_request", "")
 
     invoice_memo = None if description_hash else memo[:640]
 
@@ -310,13 +371,16 @@ async def create_invoice(
         amount, user_wallet, currency, extra
     )
 
-    if amount_sat > settings.lnbits_max_incoming_payment_amount_sats:
+    if (
+        not user_wallet.is_fiat_wallet
+        and amount_sat > settings.lnbits_max_incoming_payment_amount_sats
+    ):
         raise InvoiceError(
             f"Invoice amount {amount_sat} sats is too high. Max allowed: "
             f"{settings.lnbits_max_incoming_payment_amount_sats} sats.",
             status="failed",
         )
-    if settings.is_wallet_max_balance_exceeded(
+    if not user_wallet.is_fiat_wallet and settings.is_wallet_max_balance_exceeded(
         user_wallet.balance_msat / 1000 + amount_sat
     ):
         raise InvoiceError(
@@ -369,17 +433,26 @@ async def create_invoice(
         extra=extra,
         extension=extension,
         webhook=webhook,
-        fee=invoice_response.fee_msat or 0,
+        fee=0 if user_wallet.is_fiat_wallet else invoice_response.fee_msat or 0,
         labels=labels,
         external_id=external_id,
         fiat_provider=fiat_provider,
     )
 
-    payment = await create_payment(
-        checking_id=invoice_response.checking_id,
-        data=create_payment_model,
-        conn=conn,
-    )
+    try:
+        payment = await create_payment(
+            checking_id=subscription_id or invoice_response.checking_id,
+            data=create_payment_model,
+            conn=conn,
+        )
+    except (IntegrityError, ValueError):
+        if subscription_id:
+            existing = await get_standalone_payment(
+                subscription_id, wallet_id=wallet_id, conn=conn
+            )
+            if existing:
+                return existing
+        raise
 
     return payment
 
@@ -397,6 +470,9 @@ async def update_pending_payments(wallet_id: str):
 async def update_pending_payment(
     payment: Payment, conn: Connection | None = None
 ) -> Payment:
+    if payment.is_internal and payment.fiat_provider:
+        await check_fiat_status(payment, conn=conn)
+        return await get_standalone_payment(payment.checking_id, conn=conn) or payment
     if payment.is_in and payment.is_expired:
         payment.status = PaymentState.FAILED
         payment.labels.append("expired")
@@ -470,23 +546,8 @@ def service_fee(amount_msat: int, internal: bool = False) -> int:
 
 
 def service_fee_fiat(amount_msat: int, fiat_provider_name: str) -> int:
-    """
-    Calculate the service fee for a fiat provider based on the amount in msat.
-    Return the fee in msat.
-    """
-    limits = settings.get_fiat_provider_limits(fiat_provider_name)
-    if not limits:
-        return 0
-    amount_msat = abs(amount_msat)
-    fee_max = limits.service_max_fee_sats * 1000
-    if not limits.service_fee_wallet_id:
-        return 0
-
-    fee_percentage = int(amount_msat / 100 * limits.service_fee_percent)
-    if fee_max > 0 and fee_percentage > fee_max:
-        return fee_max
-    else:
-        return fee_percentage
+    """Compatibility helper: fiat receipts never generate Lightning fees."""
+    return 0
 
 
 async def update_wallet_balance(
@@ -622,7 +683,7 @@ async def calculate_fiat_amounts(
     fiat_amounts: dict = extra or {}
     if currency and currency != "sat":
         amount_sat = await fiat_amount_as_satoshis(amount, currency)
-        if currency != wallet_currency:
+        if currency != wallet_currency or wallet.is_fiat_wallet:
             fiat_amounts["fiat_currency"] = currency
             fiat_amounts["fiat_amount"] = round(amount, ndigits=3)
             fiat_amounts["fiat_rate"] = amount_sat / amount
@@ -781,7 +842,8 @@ async def _pay_internal_invoice(
     if not internal_invoice:
         raise PaymentError("Internal payment not found.", status="failed")
 
-    if internal_invoice.fiat_provider:
+    recipient = await get_wallet(internal_invoice.wallet_id, conn=conn)
+    if internal_invoice.fiat_provider or (recipient and recipient.is_fiat_wallet):
         raise PaymentError(
             "Fiat payment requests cannot be paid as Lightning invoices.",
             status="failed",
@@ -1050,57 +1112,14 @@ async def _credit_service_fee_wallet(
     )
 
 
-async def _check_fiat_invoice_limits(
-    amount_sat: int, fiat_provider_name: str, conn: Connection | None = None
-):
-    limits = settings.get_fiat_provider_limits(fiat_provider_name)
-    if not limits:
-        raise ValueError(
-            f"Fiat provider '{fiat_provider_name}' does not have limits configured.",
-        )
-
-    min_amount_sat = limits.service_min_amount_sats
-    if min_amount_sat and (amount_sat < min_amount_sat):
-        raise ValueError(
-            f"Minimum amount is {min_amount_sat} " f"sats for '{fiat_provider_name}'.",
-        )
-    max_amount_sats = limits.service_max_amount_sats
-    if max_amount_sats and (amount_sat > max_amount_sats):
-        raise ValueError(
-            f"Maximum amount is {max_amount_sats} " f"sats for '{fiat_provider_name}'.",
-        )
-
-    if limits.service_max_fee_sats > 0 or limits.service_fee_percent > 0:
-        if not limits.service_fee_wallet_id:
-            raise ValueError(
-                f"Fiat provider '{fiat_provider_name}' service fee wallet missing.",
-            )
-        fees_wallet = await get_wallet(limits.service_fee_wallet_id, conn=conn)
-        if not fees_wallet:
-            raise ValueError(
-                f"Fiat provider '{fiat_provider_name}' service fee wallet not found.",
-            )
-
-    if limits.service_faucet_wallet_id:
-        faucet_wallet = await get_wallet(limits.service_faucet_wallet_id, conn=conn)
-        if not faucet_wallet:
-            raise ValueError(
-                f"Fiat provider '{fiat_provider_name}' faucet wallet not found.",
-            )
-        if faucet_wallet.balance < amount_sat:
-            raise ValueError(
-                f"The amount exceeds the '{fiat_provider_name}'"
-                "faucet wallet balance.",
-            )
-
-
 async def _get_fiat_wallet(wallet_id: str, conn: Connection | None = None) -> Wallet:
     wallet = await get_wallet(wallet_id, conn=conn)
     if not wallet:
         raise InvoiceError(f"Could not fetch wallet '{wallet_id}'.", status="failed")
     if not wallet.supports_payment_type(WalletType.FIAT):
         raise InvoiceError(
-            "Fiat payments can only be received by fiat wallets.", status="failed"
+            "Fiat payments can only be received by fiat wallets.",
+            status="failed",
         )
     return wallet
 

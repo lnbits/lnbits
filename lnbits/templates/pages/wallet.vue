@@ -3,7 +3,17 @@
     <div class="col-12 col-md-7 q-gutter-y-md wallet-wrapper">
       <q-card class="wallet-card">
         <q-card-section>
-          <div class="row q-gutter-sm">
+          <div v-if="g.wallet.walletType === 'fiat'" class="q-mb-md">
+            <div
+              class="text-h3 cursor-pointer q-my-md"
+              @click="showWalletTotalBreakdown"
+            >
+              <span v-if="totalBreakdown.loading">Loading…</span>
+              <span v-else-if="totalBreakdown.error">Total unavailable</span>
+              <span v-else v-text="fiatWalletTotal"></span>
+            </div>
+          </div>
+          <div v-else class="row q-gutter-sm">
             <div v-if="g.fiatTracking" class="col-auto">
               <q-btn
                 @click="g.isFiatPriority = !g.isFiatPriority"
@@ -233,6 +243,7 @@
         </q-card-section>
       </q-card>
       <lnbits-wallet-charts
+        v-if="g.wallet.walletType !== 'fiat'"
         :payment-filter="paymentFilter"
         :chart-config="chartConfig"
       ></lnbits-wallet-charts>
@@ -274,7 +285,10 @@
 
         <q-inner-loading :showing="totalBreakdown.loading"></q-inner-loading>
 
-        <div v-if="hasFiatTotalBreakdown" class="q-mb-md">
+        <div
+          v-if="hasFiatTotalBreakdown && g.wallet.walletType !== 'fiat'"
+          class="q-mb-md"
+        >
           <q-checkbox
             v-model="totalBreakdown.selectedTypes"
             val="bitcoin"
@@ -320,6 +334,17 @@
               </q-item-section>
               <q-item-section side>
                 <span
+                  v-if="g.wallet.walletType === 'fiat'"
+                  v-text="
+                    formatRecordedFiatTotals(
+                      totalBreakdown.rows.filter(
+                        row => (row.tag || null) === tag
+                      )
+                    )
+                  "
+                ></span>
+                <span
+                  v-else
                   v-text="formatTotalBreakdownMsat(totalBreakdownTagMsat(tag))"
                 ></span>
               </q-item-section>
@@ -454,23 +479,27 @@
               class="cursor-pointer"
             /> </template
         ></q-input>
-        <q-banner
-          v-if="
-            g.wallet.walletType === 'fiat' && !g.user.fiat_providers?.length
-          "
-          class="bg-warning text-dark q-mt-md"
-        >
-          No fiat payment provider is available for this account.
-        </q-banner>
-        <div
-          v-if="g.wallet.walletType === 'fiat' && g.user.fiat_providers?.length"
-          class="q-mt-md"
-        >
+        <div v-if="g.wallet.walletType === 'fiat'" class="q-mt-md">
           <q-list bordered dense class="rounded-borders">
-            <q-item-label dense header>
+            <q-item
+              clickable
+              :active="receive.fiatProvider === 'cash'"
+              @click="receive.fiatProvider = 'cash'"
+            >
+              <q-item-section avatar
+                ><q-icon name="payments"></q-icon
+              ></q-item-section>
+              <q-item-section>
+                <q-item-label>Cash</q-item-label>
+                <q-item-label caption
+                  >Record cash you have received</q-item-label
+                >
+              </q-item-section>
+            </q-item>
+            <q-item-label v-if="g.user.fiat_providers?.length" dense header>
               <span v-text="$t('select_payment_provider')"></span>
             </q-item-label>
-            <q-separator></q-separator>
+            <q-separator v-if="g.user.fiat_providers?.length"></q-separator>
             <q-item
               v-if="g.user.fiat_providers?.includes('stripe')"
               :active="receive.fiatProvider === 'stripe'"
@@ -562,6 +591,13 @@
               v-if="receive.lnurl"
               v-text="`${$t('withdraw_from')} ${receive.lnurl.domain}`"
             ></span>
+            <span
+              v-else-if="
+                g.wallet.walletType === 'fiat' &&
+                receive.fiatProvider === 'cash'
+              "
+              >Cash validated</span
+            >
             <span v-else v-text="$t('create_invoice')"></span>
           </q-btn>
           <q-btn

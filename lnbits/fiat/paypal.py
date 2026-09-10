@@ -245,6 +245,20 @@ class PayPalWallet(FiatProvider):
         )
         try:
             await self._ensure_access_token()
+            subscription = await self.client.get(
+                f"/v1/billing/subscriptions/{subscription_id}",
+                headers=self._auth_headers(),
+            )
+            subscription.raise_for_status()
+            metadata = json.loads(subscription.json().get("custom_id") or "null")
+            if (
+                not isinstance(metadata, list)
+                or not metadata
+                or metadata[0] != correlation_id
+            ):
+                return FiatSubscriptionResponse(
+                    ok=False, error_message="Subscription not found."
+                )
             r = await self.client.post(
                 f"/v1/billing/subscriptions/{subscription_id}/cancel",
                 json={"reason": f"Cancelled by {correlation_id}"},

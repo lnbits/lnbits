@@ -1,8 +1,10 @@
 from __future__ import annotations
 
 from datetime import datetime, timezone
+from decimal import Decimal
 from enum import Enum
 from typing import Literal
+from uuid import UUID
 
 from fastapi import Query
 from lnurl import LnurlWithdrawResponse
@@ -24,9 +26,24 @@ class PaymentState(str, Enum):
     PENDING = "pending"
     SUCCESS = "success"
     FAILED = "failed"
+    DELETED = "deleted"
 
     def __str__(self) -> str:
         return self.value
+
+
+class CreateCashPayment(BaseModel):
+    request_id: UUID
+    amount: Decimal = Field(gt=0, max_digits=18, decimal_places=8)
+    unit: str
+    memo: str = Field(default="Cash payment", max_length=640)
+
+    @validator("unit")
+    def validate_unit(cls, unit: str) -> str:
+        unit = unit.upper()
+        if unit not in allowed_currencies():
+            raise ValueError("The provided currency is not supported")
+        return unit
 
 
 class PaymentExtra(BaseModel):
@@ -227,6 +244,7 @@ class PaymentTotalBreakdown(BaseModel):
     is_fiat: bool = False
     payments_count: int = 0
     total: int = 0
+    fiat_totals: dict[str, float] = Field(default_factory=dict)
 
 
 class PaymentDailyStats(BaseModel):

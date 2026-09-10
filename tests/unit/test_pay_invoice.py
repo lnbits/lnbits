@@ -232,6 +232,7 @@ async def test_notification_for_internal_payment(
     to_wallet: Wallet, mocker: MockerFixture
 ):
     test_name = "test_notification_for_internal_payment"
+    mocker.patch("lnbits.core.services.notifications._post_webhook", return_value=404)
 
     # Drain stale items left by session-scoped fixtures (e.g. update_wallet_balance)
     while not task_manager.internal_invoice_queue.empty():

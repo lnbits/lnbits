@@ -51,6 +51,22 @@ window.app.component('lnbits-payment-details', {
   template: '#lnbits-payment-details',
   props: ['payment'],
   computed: {
+    isFiatReceipt() {
+      return (
+        !!this.payment.fiat_provider ||
+        this.payment.extra?.fiat_method === 'cash'
+      )
+    },
+    recordedFiatAmount() {
+      const extra = this.payment.extra || {}
+      const currency = extra.fiat_currency || extra.wallet_fiat_currency
+      const amount = extra.fiat_currency
+        ? extra.fiat_amount
+        : extra.wallet_fiat_amount
+      return currency && amount != null
+        ? LNbits.utils.formatCurrency(amount, currency)
+        : 'Amount not recorded'
+    },
     hasPreimage() {
       return (
         this.payment.preimage &&

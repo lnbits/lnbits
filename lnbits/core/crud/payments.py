@@ -1,4 +1,5 @@
 from datetime import datetime, timezone
+from decimal import Decimal, InvalidOperation
 from time import time
 from typing import Any
 
@@ -129,7 +130,7 @@ async def get_payments_paginated(  # noqa: C901
     values: dict[str, Any] = {
         "time": since,
     }
-    clause: list[str] = []
+    clause: list[str] = ["status != 'deleted'"]
 
     if since is not None:
         clause.append(f"time > {db.timestamp_placeholder('time')}")
@@ -289,7 +290,7 @@ async def update_payment_checking_id(
         f"""
             UPDATE apipayments
             SET checking_id = :new_id, updated_at = {db.timestamp_placeholder("now")}
-            WHERE checking_id = :old_id
+            WHERE checking_id = :old_id AND status != 'deleted'
         """,  # noqa: S608
         {
             "new_id": new_checking_id,
@@ -306,7 +307,13 @@ async def update_payment(
 ) -> Payment:
     payment.updated_at = datetime.now(timezone.utc)
     await (conn or db).update(
-        "apipayments", payment, "WHERE checking_id = :checking_id"
+        "apipayments",
+        payment,
+        """WHERE checking_id = :checking_id AND status != 'deleted'
+        AND (status = 'pending' OR status = :status OR NOT EXISTS (
+            SELECT 1 FROM wallets WHERE wallets.id = apipayments.wallet_id
+            AND wallet_type IN ('fiat', 'receive-only')
+        ))""",
     )
     if new_checking_id and new_checking_id != payment.checking_id:
         await update_payment_checking_id(payment.checking_id, new_checking_id, conn)
@@ -418,6 +425,9 @@ async def get_wallet_payment_total_breakdown(
     if not wallet or not wallet.can_view_payments:
         return []
 
+    if wallet.is_fiat_wallet:
+        return await get_fiat_payment_total_breakdown(wallet.id, conn=conn)
+
     values = {"wallet_id": wallet.source_wallet_id}
     data = await (conn or db).fetchall(
         query=f"""
@@ -443,6 +453,88 @@ async def get_wallet_payment_total_breakdown(
     )
 
     return data
+
+
+async def get_fiat_payment_total_breakdown(
+    wallet_id: str, conn: Connection | None = None
+) -> list[PaymentTotalBreakdown]:
+    payments = await (conn or db).fetchall(
+        "SELECT * FROM apipayments WHERE wallet_id = :wallet_id AND status = 'success'",
+        {"wallet_id": wallet_id},
+        Payment,
+    )
+    groups: dict[str | None, PaymentTotalBreakdown] = {}
+    amounts: dict[tuple[str | None, str], Decimal] = {}
+    for payment in payments:
+        row = groups.setdefault(
+            payment.tag, PaymentTotalBreakdown(tag=payment.tag, is_fiat=True)
+        )
+        row.payments_count += 1
+        row.total += payment.amount
+        extra = payment.extra
+        currency = extra.get("fiat_currency") or extra.get("wallet_fiat_currency")
+        value = (
+            extra.get("fiat_amount")
+            if extra.get("fiat_currency")
+            else extra.get("wallet_fiat_amount")
+        )
+        if not currency or value is None:
+            continue
+        try:
+            amount = Decimal(str(value))
+        except InvalidOperation:
+            continue
+        if not amount.is_finite():
+            continue
+        key = (payment.tag, str(currency).upper())
+        amounts[key] = amounts.get(key, Decimal(0)) + amount
+    for (tag, currency), amount in amounts.items():
+        groups[tag].fiat_totals[currency] = float(amount)
+    return list(groups.values())
+
+
+async def settle_fiat_payment(
+    payment: Payment, conn: Connection | None = None
+) -> Payment | None:
+    """Only the caller winning the pending-to-success transition publishes an event."""
+    if conn is None:
+        async with db.connect() as connection:
+            return await settle_fiat_payment(payment, conn=connection)
+    settled = await conn.fetchone(
+        f"""
+        UPDATE apipayments SET status = 'success', fee = 0,
+            updated_at = {db.timestamp_placeholder('now')}
+        WHERE checking_id = :checking_id AND wallet_id = :wallet_id
+            AND status = 'pending' AND amount > 0
+            AND EXISTS (
+                SELECT 1 FROM wallets WHERE id = :wallet_id
+                AND deleted = false AND wallet_type IN ('fiat', 'receive-only')
+            )
+        RETURNING *
+        """,  # noqa: S608
+        {
+            "checking_id": payment.checking_id,
+            "wallet_id": payment.wallet_id,
+            "now": int(time()),
+        },
+        Payment,
+    )
+    await conn.conn.commit()
+    return settled
+
+
+async def delete_fiat_payment(wallet_id: str, payment_hash: str) -> None:
+    # Keep a tombstone so delayed/replayed provider callbacks cannot recreate receipts.
+    await db.execute(
+        f"""
+        UPDATE apipayments SET status = 'deleted',
+            updated_at = {db.timestamp_placeholder('now')}
+        WHERE wallet_id = :wallet_id AND payment_hash = :payment_hash
+          AND EXISTS (SELECT 1 FROM wallets WHERE id = :wallet_id
+                      AND wallet_type IN ('fiat', 'receive-only'))
+        """,  # noqa: S608
+        {"wallet_id": wallet_id, "payment_hash": payment_hash, "now": int(time())},
+    )
 
 
 async def get_daily_stats(

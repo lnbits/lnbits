@@ -86,7 +86,11 @@
           <div class="row items-center q-pt-sm">
             <h6 class="q-my-none ellipsis full-width">
               <strong
-                v-text="utils.formatBalance(wallet.sat, g.denomination)"
+                v-text="
+                  wallet.walletType === 'fiat'
+                    ? 'Fiat · Receive only'
+                    : utils.formatBalance(wallet.sat, g.denomination)
+                "
               ></strong>
             </h6>
           </div>

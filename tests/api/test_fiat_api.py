@@ -7,7 +7,7 @@ from lnbits.core.models.misc import SimpleStatus
 from lnbits.core.models.wallet_types import WalletType
 from lnbits.fiat.base import FiatSubscriptionResponse
 from lnbits.fiat.revolut import REVOLUT_WEBHOOK_EVENTS
-from lnbits.settings import Settings
+from lnbits.settings import Settings, settings
 
 
 class _UnsetSecret:
@@ -36,6 +36,8 @@ async def test_fiat_api_test_provider_and_subscription_lifecycle(
     from_wallet,
     mocker: MockerFixture,
 ):
+    settings.stripe_enabled = True
+    settings.stripe_limits.allowed_users = []
     fiat_wallet = await create_wallet(
         user_id=from_wallet.user, wallet_type=WalletType.FIAT
     )

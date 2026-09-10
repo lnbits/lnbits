@@ -164,7 +164,8 @@ window.PageAdmin = {
           this.$t('user_management'),
           this.$t('admin_users'),
           this.$t('allowed_users'),
-          this.$t('allow_creation_user')
+          this.$t('allow_creation_user'),
+          'Allow fiat wallets'
         ],
         extensions: [
           this.$t('extension_sources'),

@@ -313,9 +313,12 @@ async def test_wallet_api_shared_wallet_requires_source_id(http_client: AsyncCli
 
 
 @pytest.mark.anyio
+@pytest.mark.parametrize("wallet_type", ["receive-only", "fiat"])
 async def test_wallet_api_creates_fiat_wallet_and_rejects_placeholders(
     http_client: AsyncClient,
+    wallet_type: str,
 ):
+    settings.lnbits_allow_fiat_wallets = True
     user = await create_user_account(
         Account(
             id=uuid4().hex,
@@ -333,7 +336,7 @@ async def test_wallet_api_creates_fiat_wallet_and_rejects_placeholders(
 
     response = await http_client.post(
         f"/api/v1/wallet?usr={user.id}",
-        json={"name": "Euros", "wallet_type": "fiat", "currency": "eur"},
+        json={"name": "Euros", "wallet_type": wallet_type, "currency": "eur"},
     )
     assert response.status_code == 200
     data = response.json()
@@ -352,15 +355,120 @@ async def test_wallet_api_creates_fiat_wallet_and_rejects_placeholders(
     ):
         await update_wallet_balance(wallet, -1)
 
-    for wallet_type in (WalletType.ONCHAIN, WalletType.LIQUID):
+    for placeholder_type in (WalletType.ONCHAIN, WalletType.LIQUID):
         unavailable = await http_client.post(
             f"/api/v1/wallet?usr={user.id}",
-            json={"name": wallet_type.value, "wallet_type": wallet_type.value},
+            json={
+                "name": placeholder_type.value,
+                "wallet_type": placeholder_type.value,
+            },
         )
         assert unavailable.status_code == 400
         assert unavailable.json()["detail"] == (
-            f"Wallet type '{wallet_type.value}' is not available yet."
+            f"Wallet type '{placeholder_type.value}' is not available yet."
         )
+
+
+@pytest.mark.anyio
+@pytest.mark.parametrize("wallet_type", ["receive-only", "fiat"])
+@pytest.mark.parametrize(
+    "enabled,provider_enabled,provider_allowed,expected_status",
+    [
+        (False, False, True, 400),
+        (True, False, True, 200),
+        (False, True, True, 200),
+        (True, True, True, 200),
+        (False, True, False, 400),
+        (True, True, False, 200),
+    ],
+)
+async def test_fiat_wallet_availability(
+    http_client: AsyncClient,
+    wallet_type: str,
+    enabled: bool,
+    provider_enabled: bool,
+    provider_allowed: bool,
+    expected_status: int,
+):
+    user = await create_user_account()
+    settings.lnbits_allow_fiat_wallets = enabled
+    settings.stripe_enabled = provider_enabled
+    settings.paypal_enabled = False
+    settings.square_enabled = False
+    settings.revolut_enabled = False
+    settings.stripe_limits.allowed_users = [] if provider_allowed else [uuid4().hex]
+
+    response = await http_client.post(
+        f"/api/v1/wallet?usr={user.id}",
+        json={"name": "Receive only", "wallet_type": wallet_type},
+    )
+    assert response.status_code == expected_status
+    assert settings.to_public().allow_fiat_wallets is enabled
+    if expected_status == 400:
+        assert response.json()["detail"] == (
+            "Fiat wallets are not enabled for this account."
+        )
+    else:
+        wallet = await get_wallet(response.json()["id"])
+        assert wallet
+        # Turning creation off does not change an existing wallet's permissions.
+        settings.lnbits_allow_fiat_wallets = False
+        settings.stripe_enabled = False
+        assert wallet.can_receive_payments
+        assert not wallet.can_send_payments
+
+
+@pytest.mark.anyio
+@pytest.mark.parametrize("provider_enabled", [False, True])
+async def test_superuser_can_create_fiat_wallet_without_enabling_user_access(
+    http_client: AsyncClient, superuser_token: str, provider_enabled: bool
+):
+    settings.lnbits_allow_fiat_wallets = False
+    settings.stripe_enabled = provider_enabled
+    settings.paypal_enabled = False
+    settings.square_enabled = False
+    settings.revolut_enabled = False
+    settings.stripe_limits.allowed_users = [uuid4().hex]
+
+    response = await http_client.post(
+        "/api/v1/wallet",
+        headers={"Authorization": f"Bearer {superuser_token}"},
+        json={"name": "Superuser cash", "wallet_type": "fiat", "currency": "USD"},
+    )
+    assert response.status_code == 200
+    wallet = await get_wallet(response.json()["id"])
+    assert wallet and wallet.is_fiat_wallet
+    assert not wallet.can_send_payments
+    assert not settings.lnbits_allow_fiat_wallets
+
+    if provider_enabled:
+        invoice = await http_client.post(
+            "/api/v1/payments",
+            headers={"X-Api-Key": wallet.adminkey},
+            json={"out": False, "amount": 5, "unit": "USD", "fiat_provider": "stripe"},
+        )
+        assert invoice.status_code == 400
+        assert "not available for this user" in invoice.text
+
+
+@pytest.mark.anyio
+async def test_development_wallet_alias_remains_fiat():
+    from lnbits.core.db import db
+
+    user = await create_user_account()
+    wallet = await create_wallet(user_id=user.id, wallet_type=WalletType.FIAT)
+    await db.execute(
+        "UPDATE wallets SET wallet_type = 'receive-only' WHERE id = :id",
+        {"id": wallet.id},
+    )
+
+    restored = await get_wallet(wallet.id)
+    assert restored
+    assert restored.wallet_type == "fiat"
+    assert restored.is_fiat_wallet
+    assert restored.is_receive_only_wallet
+    assert restored.can_receive_payments
+    assert not restored.can_send_payments
 
 
 @pytest.mark.anyio
@@ -384,7 +492,8 @@ async def test_wallet_payment_types_are_isolated():
         )
 
     with pytest.raises(
-        InvoiceError, match="Lightning payments cannot be received by a fiat wallet"
+        InvoiceError,
+        match="Lightning payments cannot be received by a fiat wallet",
     ):
         await create_invoice(
             wallet_id=fiat_wallet.id,

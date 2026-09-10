@@ -30,7 +30,11 @@
         ></q-item-label>
         <q-item-label class="q-my-none ellipsis full-width" caption>
           <strong
-            v-text="utils.formatBalance(walletRec.sat, g.denomination)"
+            v-text="
+              walletRec.walletType === 'fiat'
+                ? 'Fiat · Receive only'
+                : utils.formatBalance(walletRec.sat, g.denomination)
+            "
           ></strong>
         </q-item-label>
       </q-item-section>

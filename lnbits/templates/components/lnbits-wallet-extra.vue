@@ -116,7 +116,9 @@
                 <div class="col-2"></div>
               </div>
             </q-card-section>
-            <q-card-section v-if="g.isSatsDenomination">
+            <q-card-section
+              v-if="g.isSatsDenomination && g.wallet.walletType !== 'fiat'"
+            >
               <div class="row">
                 <div class="col-6">
                   <q-select

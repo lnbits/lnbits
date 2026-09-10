@@ -115,6 +115,11 @@ class BaseWallet(BaseModel):
     adminkey: str
     inkey: str
 
+    @validator("wallet_type", pre=True)
+    def normalize_wallet_type(cls, wallet_type: str) -> str:
+        # Accept wallets created with the receive-only development name.
+        return WalletType.FIAT.value if wallet_type == "receive-only" else wallet_type
+
 
 class Wallet(BaseWallet):
     name: str
@@ -222,6 +227,11 @@ class Wallet(BaseWallet):
     @property
     def is_fiat_wallet(self) -> bool:
         return self.wallet_type == WalletType.FIAT.value
+
+    @property
+    def is_receive_only_wallet(self) -> bool:
+        """Compatibility with the receive-only development name."""
+        return self.is_fiat_wallet
 
     @property
     def is_onchain_wallet(self) -> bool:

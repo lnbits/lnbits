@@ -197,13 +197,18 @@ include('components/lnbits-error.vue') %}
     <q-item>
       <q-item-section>
         <q-item-label v-text="$t('amount')"></q-item-label>
-        <q-item-label caption>
+        <q-item-label
+          v-if="isFiatReceipt"
+          caption
+          v-text="recordedFiatAmount"
+        ></q-item-label>
+        <q-item-label v-else caption>
           <span v-text="(payment.amount / 1000).toFixed(3)"></span>
           <span v-text="g.denomination"></span>
         </q-item-label>
       </q-item-section>
     </q-item>
-    <q-item>
+    <q-item v-if="!isFiatReceipt">
       <q-item-section>
         <q-item-label v-text="$t('fee')"></q-item-label>
         <q-item-label caption>
@@ -237,7 +242,7 @@ include('components/lnbits-error.vue') %}
         </q-tooltip>
       </q-item-section>
     </q-item>
-    <q-item>
+    <q-item v-if="!isFiatReceipt && payment.bolt11">
       <q-item-section>
         <q-item-label v-text="$t('Invoice')"></q-item-label>
         <q-item-label
@@ -283,7 +288,7 @@ include('components/lnbits-error.vue') %}
         </q-item-label>
       </q-item-section>
     </q-item>
-    <q-item v-if="payment.preimage">
+    <q-item v-if="payment.preimage && !isFiatReceipt">
       <q-item-section>
         <q-item-label v-text="$t('payment_proof')"></q-item-label>
         <q-item-label
