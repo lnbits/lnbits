@@ -1218,7 +1218,7 @@ class SuperUserSettings(LNbitsSettings):
         default=[
             "AlbyWallet",
             "BarkWallet",
-            "BoltzWallet",
+            # BoltzWallet is temporarily excluded.
             "BlinkWallet",
             "BreezSdkWallet",
             "BreezLiquidSdkWallet",
