@@ -320,10 +320,14 @@ def test_installed_extensions_settings_activate_and_deactivate_paths():
 
 def test_public_settings_include_burger_menu_background(settings: Settings):
     settings.lnbits_default_burger_menu_background = False
+    settings.lnbits_blockexplorer_public_api = True
+    settings.lnbits_blockexplorer_in_user_menu = True
 
     public_settings = PublicSettings.from_settings(settings)
 
     assert public_settings.default_burger_menu_background is False
+    assert public_settings.block_explorer_public is True
+    assert public_settings.block_explorer_in_user_menu is True
 
 
 def test_installed_extensions_settings_detects_conflicting_redirects():

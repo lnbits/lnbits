@@ -17,6 +17,7 @@
           <small><span v-text="$t('requires_server_restart')"></span></small>
         </p>
         <q-select
+          dense
           filled
           v-model="formData.lnbits_backend_wallet_class"
           :hint="$t('funding_source_info')"
@@ -45,10 +46,12 @@
         >
           <div class="col-12">
             <q-input
+              dense
               v-model="formData[key]"
               filled
               class="q-mt-sm"
               :type="hideInput ? 'password' : 'text'"
+              autocomplete="off"
               :label="prop.label"
               :hint="prop.hint"
               :value="prop.value"
@@ -103,10 +106,12 @@
           >
             <div class="col-12">
               <q-input
+                dense
                 v-model="formData[key]"
                 filled
                 class="q-mt-sm"
                 :type="hideInput ? 'password' : 'text'"
+                autocomplete="off"
                 :label="prop.label"
                 :hint="prop.hint"
                 :readonly="prop.readonly || false"

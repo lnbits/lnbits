@@ -3,6 +3,7 @@ import base64
 import hashlib
 import json
 import time
+from types import SimpleNamespace
 from typing import cast
 
 import pytest
@@ -13,7 +14,7 @@ from Cryptodome.Util.Padding import pad, unpad
 from websockets import ServerConnection
 from websockets import serve as ws_serve
 
-from lnbits.wallets.nwc import NWCConnection, NWCWallet
+from lnbits.wallets.nwc import NWCConnection, NWCError, NWCWallet
 from tests.wallets.helpers import (
     WalletTest,
     build_test_id,
@@ -301,6 +302,198 @@ async def test_nwc_spreads_fallback_lookups_with_cooldown(mocker):
 
     assert wallet.conn.call.await_count == 2
     sleep_mock.assert_awaited_once_with(1.0)
+
+
+@pytest.fixture
+def nwc_payment_wallet(mocker):
+    conn = mocker.Mock(spec=NWCConnection)
+    conn.get_info = mocker.AsyncMock(return_value={})
+    conn.call = mocker.AsyncMock()
+    conn.supports_method.side_effect = lambda method: method == "lookup_invoice"
+    mocker.patch("lnbits.wallets.nwc.NWCConnection", return_value=conn)
+    mocker.patch(
+        "lnbits.wallets.nwc.parse_nwc",
+        return_value={"pubkey": "pubkey", "secret": "secret", "relay": "relay"},
+    )
+    mocker.patch(
+        "lnbits.wallets.nwc.bolt11_decode",
+        return_value=SimpleNamespace(payment_hash="payment-hash", amount_msat=1000),
+    )
+    return NWCWallet()
+
+
+@pytest.mark.anyio
+@pytest.mark.parametrize("fee_msat", [0, 123])
+@pytest.mark.parametrize(
+    "delayed_lookup",
+    [
+        NWCError("NOT_FOUND", "Not indexed yet"),
+        {"type": "outgoing", "state": "pending", "fees_paid": 0},
+        {"type": "outgoing", "state": "settled", "preimage": "01" * 32},
+    ],
+)
+async def test_nwc_waits_for_payment_fees(nwc_payment_wallet, delayed_lookup, fee_msat):
+    wallet = nwc_payment_wallet
+    preimage = "01" * 32
+    wallet.conn.call.side_effect = [
+        {"preimage": preimage},
+        delayed_lookup,
+        delayed_lookup,
+        {"type": "outgoing", "state": "settled", "fees_paid": fee_msat},
+    ]
+
+    response = await wallet.pay_invoice("bolt11", 1000)
+    assert response.ok is None
+    assert response.checking_id == "payment-hash"
+
+    status = await wallet.get_payment_status("payment-hash")
+    assert status.paid is None
+    assert status.preimage == preimage
+
+    status = await wallet.get_payment_status("payment-hash")
+    assert status.paid is True
+    assert status.fee_msat == fee_msat
+    assert status.preimage == preimage
+
+
+@pytest.mark.anyio
+@pytest.mark.parametrize("preimage", [None, ""])
+async def test_nwc_missing_preimage_stays_pending(nwc_payment_wallet, preimage):
+    wallet = nwc_payment_wallet
+    wallet.conn.call.side_effect = [
+        {"preimage": preimage},
+        {"type": "outgoing", "state": "pending"},
+    ]
+
+    response = await wallet.pay_invoice("bolt11", 1000)
+
+    assert response.ok is None
+    assert response.checking_id == "payment-hash"
+    assert wallet._get_cached_payment_data("payment-hash") is None
+    status = await wallet.get_payment_status("payment-hash")
+    assert status.paid is None
+
+
+@pytest.mark.anyio
+@pytest.mark.parametrize(
+    "error",
+    [
+        TimeoutError("Payment response lost"),
+        NWCError("INTERNAL", "Payment response lost"),
+        NWCError("OTHER", "Payment response lost"),
+    ],
+)
+async def test_nwc_reconciles_payment_after_lost_response(nwc_payment_wallet, error):
+    wallet = nwc_payment_wallet
+    wallet.conn.call.side_effect = [
+        error,
+        NWCError("NOT_FOUND", "Not indexed yet"),
+        {
+            "type": "outgoing",
+            "state": "settled",
+            "fees_paid": 123,
+            "preimage": "01" * 32,
+        },
+    ]
+
+    response = await wallet.pay_invoice("bolt11", 1000)
+    assert response.ok is None
+    assert response.checking_id == "payment-hash"
+    status = await wallet.get_payment_status("payment-hash")
+    assert status.paid is None
+    status = await wallet.get_payment_status("payment-hash")
+    assert status.paid is True
+    assert status.fee_msat == 123
+
+
+@pytest.mark.anyio
+async def test_nwc_reconciles_explicit_payment_failure(nwc_payment_wallet):
+    wallet = nwc_payment_wallet
+    wallet.conn.call.side_effect = [
+        TimeoutError("Payment response lost"),
+        {"type": "outgoing", "state": "failed"},
+    ]
+
+    response = await wallet.pay_invoice("bolt11", 1000)
+    assert response.ok is None
+    status = await wallet.get_payment_status("payment-hash")
+    assert status.paid is False
+
+
+@pytest.mark.anyio
+@pytest.mark.parametrize("fee_msat", [0, 123])
+async def test_nwc_uses_payment_response_with_fees(nwc_payment_wallet, fee_msat):
+    wallet = nwc_payment_wallet
+    preimage = "01" * 32
+    wallet.conn.call.side_effect = [
+        {"preimage": preimage, "fees_paid": fee_msat},
+        NWCError("NOT_FOUND", "Not indexed yet"),
+    ]
+
+    response = await wallet.pay_invoice("bolt11", 1000)
+    status = await wallet.get_payment_status("payment-hash")
+
+    assert response.ok is True
+    assert response.fee_msat == fee_msat
+    assert status.paid is True
+    assert status.fee_msat == fee_msat
+    assert status.preimage == preimage
+
+
+@pytest.mark.anyio
+@pytest.mark.parametrize("preimage", [None, "01" * 32])
+async def test_nwc_pay_only_provider_requires_preimage(nwc_payment_wallet, preimage):
+    wallet = nwc_payment_wallet
+    wallet.conn.supports_method.side_effect = lambda method: False
+    wallet.conn.call.return_value = {"preimage": preimage}
+
+    response = await wallet.pay_invoice("bolt11", 1000)
+
+    assert response.ok is (True if preimage else None)
+    assert response.checking_id == "payment-hash"
+    if preimage:
+        assert response.fee_msat == 0
+
+
+@pytest.mark.anyio
+async def test_nwc_reconciles_fees_via_transactions(nwc_payment_wallet):
+    wallet = nwc_payment_wallet
+    wallet.conn.supports_method.side_effect = (
+        lambda method: method == "list_transactions"
+    )
+    wallet.transactions_refresh_interval = 0
+    wallet.conn.call.side_effect = [
+        {"preimage": "01" * 32},
+        {"transactions": []},
+        {
+            "transactions": [
+                {
+                    "payment_hash": "payment-hash",
+                    "type": "outgoing",
+                    "state": "settled",
+                    "fees_paid": 123,
+                }
+            ]
+        },
+    ]
+
+    response = await wallet.pay_invoice("bolt11", 1000)
+    assert response.ok is None
+    status = await wallet.get_payment_status("payment-hash")
+    assert status.paid is True
+    assert status.fee_msat == 123
+    assert status.preimage == "01" * 32
+    assert wallet.conn.call.call_args.args[0] == "list_transactions"
+
+
+@pytest.mark.anyio
+async def test_nwc_incoming_settlement_does_not_wait_for_fees(nwc_payment_wallet):
+    wallet = nwc_payment_wallet
+    wallet.conn.call.return_value = {"type": "incoming", "state": "settled"}
+
+    status = await wallet.get_invoice_status("payment-hash")
+
+    assert status.paid is True
 
 
 @pytest.mark.anyio

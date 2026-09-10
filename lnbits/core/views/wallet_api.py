@@ -34,6 +34,7 @@ from lnbits.db import Filters, Page
 from lnbits.decorators import (
     check_account_exists,
     check_account_id_exists,
+    check_api_write_access,
     parse_filters,
     require_admin_key,
     require_invoice_key,
@@ -72,12 +73,14 @@ async def api_wallet(key_info: WalletTypeInfo = Depends(require_invoice_key)):
 async def api_wallets_paginated(
     account_id: AccountId = Depends(check_account_id_exists),
     filters: Filters = Depends(parse_filters(WalletsFilters)),
+    can_write: bool = Depends(check_api_write_access),
 ):
     page = await get_wallets_paginated(
         user_id=account_id.id,
         filters=filters,
     )
 
+    page.data = [wallet.copy_with_keys(keep=can_write) for wallet in page.data]
     return page
 
 

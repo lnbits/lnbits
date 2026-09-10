@@ -2,16 +2,14 @@
   <q-card-section class="q-pa-none">
     <div>
       <div class="row items-center justify-between q-mb-md">
-        <h6 class="q-my-none">
-          <span v-text="$t('extensions')"></span>
+        <h6 class="q-my-none q-mb-sm">
+          <span v-text="$t('extension_sources')"></span>
         </h6>
       </div>
       <div class="row q-col-gutter-md">
         <div class="col-12 q-mb-md">
-          <p>
-            <span v-text="$t('extension_sources')"></span>
-          </p>
           <q-input
+            dense
             class="q-mb-md"
             filled
             v-model="formAddExtensionsManifest"
@@ -35,10 +33,12 @@
           </div>
         </div>
       </div>
+      <q-separator class="q-mb-lg q-mt-md"></q-separator>
+      <h6 class="q-my-none q-mb-sm">WASM Extensions</h6>
       <div class="row q-col-gutter-md">
         <div class="col-12 q-mb-md">
-          <p>Wasm Extension</p>
           <q-input
+            dense
             class="q-mb-md"
             filled
             v-model="formAddWasmManifest"
@@ -77,12 +77,15 @@
           </div>
         </div>
       </div>
+      <q-separator class="q-mb-lg q-mt-md"></q-separator>
+      <h6 class="q-my-none q-mb-sm">Access and Defaults</h6>
       <div class="row q-col-gutter-md">
         <div class="col-12 col-md-6">
           <p>
             <span v-text="$t('admin_extensions')"></span>
           </p>
           <q-select
+            dense
             filled
             v-model="formData.lnbits_admin_extensions"
             multiple
@@ -97,6 +100,7 @@
             <span v-text="$t('user_default_extensions')"></span>
           </p>
           <q-select
+            dense
             filled
             v-model="formData.lnbits_user_default_extensions"
             multiple
@@ -104,6 +108,10 @@
             :hint="$t('user_default_extensions_hint')"
             :options="g.extensions"
           ></q-select>
+        </div>
+        <div class="col-12">
+          <q-separator class="q-mb-lg q-mt-md"></q-separator>
+          <h6 class="q-my-none q-mb-sm">Advanced</h6>
         </div>
         <div class="col-12 col-md-6">
           <p>
@@ -169,21 +177,23 @@
             </q-item-section>
           </q-item>
           <q-input
+            dense
             class="q-mt-md"
             filled
             v-model.number="formData.lnbits_wasm_invocation_retention_days"
             type="number"
             min="0"
-            label="WASM invocation retention days"
+            label="WASM invocation retention"
+            :suffix="$t('days')"
             hint="Set to 0 to disable automatic cleanup."
           ></q-input>
-          <br />
         </div>
         <div class="col-12 col-md-6">
           <p>
             <span v-text="$t('extension_builder_manifest_url')"></span>
           </p>
           <q-input
+            dense
             filled
             v-model="formData.lnbits_extensions_builder_manifest_url"
             :label="$t('extension_builder_manifest_url')"
@@ -195,6 +205,7 @@
             <span v-text="$t('reviews_url')"></span>
           </p>
           <q-input
+            dense
             filled
             v-model="formData.lnbits_extensions_reviews_url"
             :label="$t('reviews_url_label')"

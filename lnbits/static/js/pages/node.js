@@ -13,6 +13,13 @@ window.PageNode = {
       tab: 'dashboard',
       payments: 1000,
       info: {},
+      phoenixd: {capabilities: []},
+      phoenixdAmount: 2000000,
+      phoenixdEstimate: null,
+      phoenixdReceive: '',
+      phoenixdResult: '',
+      phoenixdDialog: {show: false, operation: '', data: {}},
+      phoenixdBusy: false,
       channel_stats: {},
 
       channels: {
@@ -165,7 +172,6 @@ window.PageNode = {
   },
   created() {
     this.getInfo()
-    this.get1MLStats()
   },
   watch: {
     tab(val) {
@@ -174,11 +180,17 @@ window.PageNode = {
         this.getInvoices()
       } else if (val === 'channels' && !this.channels.data.length) {
         this.getChannels()
-        this.getPeers()
+        if (!this.managedChannels) this.getPeers()
       }
     }
   },
   computed: {
+    managedChannels() {
+      return this.info.managed_channels === true
+    },
+    canManage() {
+      return this.g.user?.super_user === true
+    },
     checkChanges() {
       return !_.isEqual(this.settings, this.formData)
     },
@@ -202,6 +214,76 @@ window.PageNode = {
     }
   },
   methods: {
+    hasPhoenixdCapability(capability) {
+      return this.phoenixd.capabilities.includes(capability)
+    },
+    getPhoenixdStatus() {
+      return this.nodeApi('GET', '/phoenixd/status')
+        .then(response => {
+          this.phoenixd = response.data
+        })
+        .catch(() => {})
+    },
+    estimatePhoenixdLiquidity() {
+      this.phoenixdEstimate = null
+      return this.nodeApi('GET', '/phoenixd/liquidity-fees', {
+        query: {amount_sat: this.phoenixdAmount}
+      })
+        .then(response => {
+          this.phoenixdEstimate = response.data
+        })
+        .catch(() => {})
+    },
+    getPhoenixdReceive(kind) {
+      this.phoenixdReceive = ''
+      return this.nodeApi('GET', `/phoenixd/receive/${kind}`)
+        .then(response => {
+          this.phoenixdReceive = response.data.value
+        })
+        .catch(() => {})
+    },
+    showPhoenixdDialog(operation, data = {}) {
+      this.phoenixdDialog = {show: true, operation, data: {...data}}
+      this.phoenixdResult = ''
+    },
+    submitPhoenixd() {
+      const {operation, data} = this.phoenixdDialog
+      const descriptions = {
+        close: `Close channel ${data.channel_id} and send its remaining balance to ${data.address} at ${data.fee_rate} sat/vB?`,
+        send: `Withdraw ${data.amount_sat} sats to ${data.address} at ${data.fee_rate} sat/vB?`,
+        bump: `Spend node funds to bump the funding transaction fee to a target of ${data.fee_rate} sat/vB?`
+      }
+      LNbits.utils
+        .confirmDialog(
+          descriptions[operation] +
+            ' This spends funds backing LNbits wallets and cannot be undone.'
+        )
+        .onOk(async () => {
+          this.phoenixdBusy = true
+          try {
+            const response = await this.nodeApi(
+              'POST',
+              `/phoenixd/${operation}`,
+              {data}
+            )
+            this.phoenixdResult = response.data.txid
+            this.phoenixdDialog.show = false
+            await this.getInfo()
+            await this.getChannels()
+          } catch (_) {
+            // nodeApi displays the error; keep the entered data for review.
+          } finally {
+            this.phoenixdBusy = false
+          }
+        })
+    },
+    exportPhoenixdHistory() {
+      this.nodeApi('POST', '/phoenixd/export')
+        .then(response => {
+          Quasar.Notify.create({message: response.data.message})
+        })
+        .catch(() => {})
+    },
     formatMsat(msat) {
       return LNbits.utils.formatMsat(msat)
     },
@@ -211,6 +293,7 @@ window.PageNode = {
         .request(method, `/node/api/v1${url}?${params}`, {}, options?.data)
         .catch(error => {
           LNbits.utils.notifyApiError(error)
+          throw error
         })
     },
     getChannel(channel_id) {
@@ -227,8 +310,15 @@ window.PageNode = {
     getInfo() {
       return this.nodeApi('GET', '/info')
         .then(response => {
+          const wasManaged = this.managedChannels
           this.info = response.data
           this.channel_stats = response.data.channel_stats
+          if (this.managedChannels) {
+            this.getPhoenixdStatus()
+            if (!wasManaged) this.stateFilters = null
+          } else {
+            this.get1MLStats()
+          }
         })
         .catch(() => {
           this.info = {}
@@ -320,6 +410,10 @@ window.PageNode = {
         })
     },
     showCloseChannelDialog(channel) {
+      if (this.managedChannels) {
+        this.showPhoenixdDialog('close', {channel_id: channel.id})
+        return
+      }
       this.closeChannelDialog.show = true
       this.closeChannelDialog.data = {
         force: false,

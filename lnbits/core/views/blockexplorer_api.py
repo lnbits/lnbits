@@ -2,11 +2,12 @@ import asyncio
 from http import HTTPStatus
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, HTTPException, Request, WebSocket
+from fastapi import APIRouter, Depends, HTTPException, Query, Request, WebSocket
 from pydantic.types import UUID4
 
 from lnbits.core.services.blockexplorer import (
     address_event_to_response,
+    fetch_block_transactions,
     fetch_fee_estimates,
     fetch_onchain_balance,
     fetch_recent_blocks,
@@ -27,6 +28,7 @@ from lnbits.utils.electrum import (
     AddressResponse,
     BlockHeader,
     BlockInfo,
+    BlockTransactions,
     ElectrumError,
     FeeResponse,
     Transaction,
@@ -63,7 +65,7 @@ async def _check_api_access(
 @blockexplorer_router.get("/blocks", dependencies=[Depends(_check_api_access)])
 async def api_blocks() -> list[BlockInfo]:
     try:
-        return await fetch_recent_blocks()
+        return await fetch_recent_blocks(count=10)
     except ElectrumError as e:
         raise HTTPException(HTTPStatus.SERVICE_UNAVAILABLE, detail=str(e)) from e
 
@@ -80,6 +82,20 @@ async def api_tip() -> BlockHeader:
 async def api_fees() -> FeeResponse:
     try:
         return await fetch_fee_estimates()
+    except ElectrumError as e:
+        raise HTTPException(HTTPStatus.SERVICE_UNAVAILABLE, detail=str(e)) from e
+
+
+@blockexplorer_router.get(
+    "/block/{height}/transactions", dependencies=[Depends(_check_api_access)]
+)
+async def api_block_transactions(
+    height: int,
+    offset: int = Query(default=0, ge=0),
+    limit: int = Query(default=12, ge=1, le=25),
+) -> BlockTransactions:
+    try:
+        return await fetch_block_transactions(height, offset, limit)
     except ElectrumError as e:
         raise HTTPException(HTTPStatus.SERVICE_UNAVAILABLE, detail=str(e)) from e
 

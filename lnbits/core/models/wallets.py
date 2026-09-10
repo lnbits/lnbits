@@ -137,6 +137,14 @@ class Wallet(BaseWallet):
         super().__init__(**data)
         self._validate_data()
 
+    def copy_with_keys(self, keep: bool = True) -> Wallet:
+        """Return a wallet copy, masking its credentials when keep is False."""
+        wallet = self.copy()
+        if not keep:
+            wallet.adminkey = "*" * 32
+            wallet.inkey = "*" * 32
+        return wallet
+
     def mirror_shared_wallet(
         self,
         shared_wallet: Wallet,

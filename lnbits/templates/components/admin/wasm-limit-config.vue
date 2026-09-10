@@ -57,7 +57,6 @@
           class="q-mb-md"
         >
           <q-expansion-item
-            expand-separator
             :default-opened="group.title === 'Execution'"
             :label="group.title"
             header-class="text-subtitle2 text-weight-medium"
@@ -97,7 +96,7 @@
           </q-expansion-item>
           <q-separator
             v-if="index < wasmRuntimeLimitGroups.length - 1"
-            class="q-mt-md"
+            class="q-mb-lg q-mt-md"
           ></q-separator>
         </div>
       </template>
@@ -156,7 +155,6 @@
           class="q-mb-md"
         >
           <q-expansion-item
-            expand-separator
             :default-opened="group.title === 'Execution'"
             :label="group.title"
             header-class="text-subtitle2 text-weight-medium"
@@ -197,7 +195,7 @@
           </q-expansion-item>
           <q-separator
             v-if="index < wasmRuntimeLimitGroups.length - 1"
-            class="q-mt-md"
+            class="q-mb-lg q-mt-md"
           ></q-separator>
         </div>
 

@@ -54,6 +54,8 @@ class NodeChannel(BaseModel):
     color: str | None = None
     fee_ppm: int | None = None
     fee_base_msat: int | None = None
+    funding_txid: str | None = None
+    backend_state: str | None = None
 
 
 class ChannelStats(BaseModel):
@@ -105,10 +107,11 @@ class PublicNodeInfo(BaseModel):
     backend_name: str
     alias: str
     color: str
-    num_peers: int
-    blockheight: int
+    num_peers: int | None
+    blockheight: int | None
     channel_stats: ChannelStats
     addresses: list[str]
+    managed_channels: bool = False
 
 
 class NodeInfoResponse(PublicNodeInfo):
@@ -126,7 +129,9 @@ class NodePayment(BaseModel):
     time: int
     bolt11: str | None = None
     preimage: str | None
-    payment_hash: str
+    payment_hash: str | None
+    payment_id: str | None = None
+    txid: str | None = None
     expiry: float | None = None
     destination: NodePeerInfo | None = None
 

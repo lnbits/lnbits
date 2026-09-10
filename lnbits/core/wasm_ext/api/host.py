@@ -613,6 +613,9 @@ class ExtensionHostAPI:
                     ),
                 }
 
+            if request.fetch_only:
+                return PayInvoiceResponse(payment_request=str(action.pr))
+
             payment = await pay_invoice(
                 wallet_id=request.wallet_id,
                 payment_request=str(action.pr),

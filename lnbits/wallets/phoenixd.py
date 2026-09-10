@@ -14,9 +14,11 @@ from loguru import logger
 from websockets import connect
 
 from lnbits.helpers import normalize_endpoint
+from lnbits.nodes.phoenixd import PhoenixdNode
 from lnbits.settings import settings
 
 from .base import (
+    Feature,
     InvoiceResponse,
     PaymentFailedStatus,
     PaymentPendingStatus,
@@ -30,6 +32,9 @@ from .base import (
 
 class PhoenixdWallet(Wallet):
     """https://phoenix.acinq.co/server/api"""
+
+    __node_cls__ = PhoenixdNode
+    features = [Feature.nodemanager]
 
     def __init__(self):
         if not settings.phoenixd_api_endpoint:

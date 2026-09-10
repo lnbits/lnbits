@@ -1,10 +1,90 @@
 <template id="page-node">
+  <q-dialog v-model="phoenixdDialog.show" :persistent="phoenixdBusy">
+    <q-card class="q-pa-lg lnbits__dialog-card">
+      <q-form @submit="submitPhoenixd" class="q-gutter-md">
+        <div class="text-h6">
+          <span
+            v-text="
+              {
+                close: 'Close managed channel',
+                send: 'Withdraw onchain',
+                bump: 'Bump funding fee'
+              }[phoenixdDialog.operation]
+            "
+          ></span>
+        </div>
+        <p>
+          Fees and withdrawals spend funds backing LNbits wallets. Channel
+          closure removes its liquidity. Check your liabilities before
+          continuing.
+        </p>
+        <div v-if="phoenixdDialog.operation === 'close'" class="text-wrap">
+          Channel: <span v-text="phoenixdDialog.data.channel_id"></span>
+        </div>
+        <q-input
+          v-if="phoenixdDialog.operation !== 'bump'"
+          v-model.trim="phoenixdDialog.data.address"
+          filled
+          label="Destination Bitcoin address"
+          :rules="[v => !!v || 'Enter an address']"
+        ></q-input>
+        <q-input
+          v-if="phoenixdDialog.operation === 'send'"
+          v-model.number="phoenixdDialog.data.amount_sat"
+          filled
+          type="number"
+          min="1"
+          step="1"
+          label="Amount (sats)"
+          :rules="[
+            v =>
+              (Number.isInteger(v) && v > 0) || 'Enter a positive whole number'
+          ]"
+        ></q-input>
+        <q-input
+          v-model.number="phoenixdDialog.data.fee_rate"
+          filled
+          type="number"
+          min="1"
+          step="1"
+          label="Target fee rate (sat/vB)"
+          :rules="[
+            v =>
+              (Number.isInteger(v) && v > 0) || 'Enter a positive whole number'
+          ]"
+        ></q-input>
+        <div class="row q-gutter-sm">
+          <q-btn
+            type="submit"
+            color="primary"
+            label="Review and confirm"
+            :loading="phoenixdBusy"
+          ></q-btn>
+          <q-btn
+            flat
+            v-close-popup
+            label="Cancel"
+            :disable="phoenixdBusy"
+          ></q-btn>
+        </div>
+      </q-form>
+    </q-card>
+  </q-dialog>
+
   <q-dialog v-model="nodeInfoDialog.show" position="top">
     <lnbits-node-qrcode :info="nodeInfoDialog.data"></lnbits-node-qrcode>
   </q-dialog>
   <div class="row q-col-gutter-md justify-center">
     <div class="col q-gutter-y-md">
       <q-card>
+        <q-banner v-if="phoenixdResult" class="text-wrap">
+          Transaction ID: <span v-text="phoenixdResult"></span>
+          <q-btn
+            flat
+            icon="content_copy"
+            @click="utils.copyText(phoenixdResult)"
+          ></q-btn>
+        </q-banner>
         <div class="q-pa-md">
           <div class="q-gutter-y-md">
             <q-tabs v-model="tab" active-color="primary" align="justify">
@@ -31,6 +111,182 @@
             <q-tab-panel name="dashboard">
               <q-card-section class="q-pa-none">
                 <lnbits-node-info :info="this.info"></lnbits-node-info>
+                <q-card v-if="managedChannels" flat bordered class="q-mt-sm">
+                  <q-card-section class="q-pa-sm">
+                    <div class="row items-center q-gutter-x-sm">
+                      <div class="text-subtitle2">Phoenixd management</div>
+                      <q-icon name="info_outline" size="16px" class="text-grey">
+                        <q-tooltip style="max-width: 320px">
+                          ACINQ manages channel opening, resizing and peers
+                          automatically. Routing fees and force-close cannot be
+                          configured through Phoenixd's API.
+                        </q-tooltip>
+                      </q-icon>
+                      <q-space></q-space>
+                      <q-btn
+                        flat
+                        round
+                        dense
+                        size="sm"
+                        icon="refresh"
+                        aria-label="Refresh Phoenixd"
+                        @click="getInfo"
+                      >
+                        <q-tooltip>Refresh</q-tooltip>
+                      </q-btn>
+                    </div>
+                    <p
+                      v-if="phoenixd.version && !phoenixd.capabilities.length"
+                      class="text-caption q-my-xs"
+                    >
+                      Management controls require a recognised Phoenixd version
+                      of 0.7.3 or later.
+                    </p>
+                    <div
+                      class="row items-center q-col-gutter-x-md text-caption"
+                    >
+                      <div>
+                        Version
+                        <span v-text="phoenixd.version || 'Unknown'"></span>
+                      </div>
+                      <div v-text="phoenixd.chain"></div>
+                      <div>
+                        Block
+                        <span v-text="phoenixd.blockheight ?? 'Unknown'"></span>
+                      </div>
+                      <div>
+                        Fee credit:
+                        <span v-text="phoenixd.fee_credit_sat"></span> sats
+                        <q-tooltip
+                          >Credit for future liquidity fees, separate from
+                          spendable balance.</q-tooltip
+                        >
+                      </div>
+                    </div>
+                    <div v-if="phoenixd.swap_in" class="text-caption q-mt-xs">
+                      Swap-in:
+                      <span
+                        v-text="phoenixd.swap_in.unconfirmedBalanceSat"
+                      ></span>
+                      sats unconfirmed ·
+                      <span
+                        v-text="phoenixd.swap_in.weaklyConfirmedBalanceSat"
+                      ></span>
+                      sats confirming ·
+                      <span
+                        v-text="phoenixd.swap_in.deeplyConfirmedBalanceSat"
+                      ></span>
+                      sats ready
+                      <q-tooltip
+                        >Confirming deposits are awaiting swap-in confirmations;
+                        ready deposits are deeply confirmed.</q-tooltip
+                      >
+                    </div>
+                    <div class="row items-center q-gutter-xs q-mt-xs">
+                      <q-btn
+                        v-if="hasPhoenixdCapability('offer')"
+                        outline
+                        size="sm"
+                        label="BOLT12 receive offer"
+                        @click="getPhoenixdReceive('offer')"
+                      ></q-btn>
+                      <q-btn
+                        v-if="hasPhoenixdCapability('lnaddress')"
+                        outline
+                        size="sm"
+                        label="Lightning address"
+                        @click="getPhoenixdReceive('lnaddress')"
+                      ></q-btn>
+                      <q-btn
+                        v-if="hasPhoenixdCapability('swapin')"
+                        outline
+                        size="sm"
+                        label="Onchain deposit address"
+                        @click="getPhoenixdReceive('swapin')"
+                      ></q-btn>
+                      <q-space class="gt-xs"></q-space>
+                      <q-btn
+                        v-if="canManage && hasPhoenixdCapability('send')"
+                        flat
+                        size="sm"
+                        label="Withdraw onchain (splice-out)"
+                        @click="showPhoenixdDialog('send')"
+                      ></q-btn>
+                      <q-btn
+                        v-if="canManage && hasPhoenixdCapability('bump')"
+                        flat
+                        size="sm"
+                        label="Bump funding fee"
+                        @click="showPhoenixdDialog('bump')"
+                      ></q-btn>
+                    </div>
+                    <div
+                      v-if="phoenixdReceive"
+                      class="text-wrap text-caption q-mt-sm"
+                    >
+                      <span v-text="phoenixdReceive"></span>
+                      <q-btn
+                        flat
+                        round
+                        dense
+                        size="sm"
+                        icon="content_copy"
+                        aria-label="Copy receive address"
+                        @click="utils.copyText(phoenixdReceive)"
+                      ></q-btn>
+                    </div>
+                  </q-card-section>
+                  <q-expansion-item
+                    v-if="hasPhoenixdCapability('estimate')"
+                    dense
+                    dense-toggle
+                    icon="calculate"
+                    label="Liquidity fee estimate"
+                    header-class="text-caption"
+                  >
+                    <q-form @submit="estimatePhoenixdLiquidity" class="q-pa-sm">
+                      <div class="row items-start q-col-gutter-sm">
+                        <div class="col-12 col-sm-6" style="max-width: 360px">
+                          <q-input
+                            dense
+                            outlined
+                            hide-bottom-space
+                            v-model.number="phoenixdAmount"
+                            type="number"
+                            min="1"
+                            step="1"
+                            label="Inbound liquidity (sats)"
+                            :rules="[
+                              v =>
+                                (Number.isInteger(v) && v > 0) ||
+                                'Enter a positive whole number'
+                            ]"
+                          ></q-input>
+                        </div>
+                        <div class="col-auto">
+                          <q-btn
+                            type="submit"
+                            outline
+                            size="sm"
+                            label="Estimate liquidity fees"
+                          ></q-btn>
+                        </div>
+                      </div>
+                      <div v-if="phoenixdEstimate" class="text-caption q-mt-sm">
+                        Mining:
+                        <span v-text="phoenixdEstimate.miningFeeSat"></span>
+                        sats · Service:
+                        <span v-text="phoenixdEstimate.serviceFeeSat"></span>
+                        sats
+                      </div>
+                      <div class="text-caption text-grey q-mt-sm">
+                        Estimate only; this does not purchase liquidity.
+                        Automatic liquidity is configured in phoenix.conf.
+                      </div>
+                    </q-form>
+                  </q-expansion-item>
+                </q-card>
+
                 <div class="row q-col-gutter-lg q-mt-sm">
                   <div class="col-12 col-md-8 q-gutter-y-md">
                     <div class="row q-col-gutter-md q-pb-lg">
@@ -47,27 +303,39 @@
                         />
                       </div>
 
-                      <div class="col-12 col-md-6 col-xl-4 q-gutter-y-md">
+                      <div
+                        v-if="!managedChannels"
+                        class="col-12 col-md-6 col-xl-4 q-gutter-y-md"
+                      >
                         <lnbits-stat
                           title="Fees collected"
                           :msat="this.info.fees?.total_msat"
                         />
                       </div>
 
-                      <div class="col-12 col-md-6 col-xl-4 q-gutter-y-md">
+                      <div
+                        v-if="!managedChannels"
+                        class="col-12 col-md-6 col-xl-4 q-gutter-y-md"
+                      >
                         <lnbits-stat
                           title="Onchain Balance"
                           :btc="this.info.onchain_balance_sat / 100000000"
                         />
                       </div>
 
-                      <div class="col-12 col-md-6 col-xl-4 q-gutter-y-md">
+                      <div
+                        v-if="!managedChannels"
+                        class="col-12 col-md-6 col-xl-4 q-gutter-y-md"
+                      >
                         <lnbits-stat
                           title="Onchain Confirmed"
                           :btc="this.info.onchain_confirmed_sat / 100000000"
                         />
                       </div>
-                      <div class="col-12 col-md-6 col-xl-4 q-gutter-y-md">
+                      <div
+                        v-if="!managedChannels"
+                        class="col-12 col-md-6 col-xl-4 q-gutter-y-md"
+                      >
                         <lnbits-stat
                           title="Peers"
                           :amount="this.info.num_peers"
@@ -94,7 +362,10 @@
                     </div>
                   </div>
                   <div class="column col-12 col-md-4 q-gutter-y-md">
-                    <lnbits-node-ranks :ranks="this.ranks"></lnbits-node-ranks>
+                    <lnbits-node-ranks
+                      v-if="!info.managed_channels"
+                      :ranks="this.ranks"
+                    ></lnbits-node-ranks>
                     <lnbits-channel-stats
                       :stats="this.channel_stats"
                     ></lnbits-channel-stats>
@@ -297,6 +568,7 @@
                             color="primary"
                             size="md"
                             class="col-auto"
+                            v-if="!managedChannels"
                             @click="showOpenChannelDialog()"
                           >
                             Open channel
@@ -340,7 +612,10 @@
                                       @click="utils.copyText(props.row.peer_id)"
                                     ></q-btn>
                                   </div>
-                                  <div class="text-caption col-grow">
+                                  <div
+                                    v-if="!managedChannels"
+                                    class="text-caption col-grow"
+                                  >
                                     <span>Fees</span>
                                     <q-btn
                                       size="xs"
@@ -383,6 +658,28 @@
                                       "
                                     ></q-btn>
                                   </div>
+                                  <div
+                                    v-if="props.row.funding_txid"
+                                    class="text-caption"
+                                  >
+                                    Funding transaction
+                                    <q-btn
+                                      flat
+                                      dense
+                                      size="xs"
+                                      icon="content_copy"
+                                      @click="
+                                        utils.copyText(props.row.funding_txid)
+                                      "
+                                    ></q-btn>
+                                  </div>
+                                  <span
+                                    v-if="props.row.backend_state"
+                                    class="text-caption"
+                                    ><span
+                                      v-text="props.row.backend_state"
+                                    ></span
+                                  ></span>
                                   <q-badge
                                     rounded
                                     :color="
@@ -398,7 +695,15 @@
                                   >
                                   </q-badge>
                                   <q-btn
-                                    :disable="props.row.state !== 'active'"
+                                    v-if="
+                                      !managedChannels ||
+                                      (canManage &&
+                                        hasPhoenixdCapability('close'))
+                                    "
+                                    :disable="
+                                      props.row.state !== 'active' ||
+                                      (managedChannels && !props.row.id)
+                                    "
                                     flat
                                     dense
                                     size="md"
@@ -419,7 +724,7 @@
                       </q-card-section>
                     </q-card>
                   </div>
-                  <div class="col-12 col-xl-6">
+                  <div v-if="!managedChannels" class="col-12 col-xl-6">
                     <q-card class="full-height">
                       <q-card-section class="column q-gutter-y-sm">
                         <div
@@ -514,6 +819,18 @@
               </q-card-section>
             </q-tab-panel>
             <q-tab-panel name="transactions">
+              <div v-if="managedChannels" class="q-mb-md">
+                <p>
+                  Phoenixd payment and liquidity history. More pages become
+                  available as you browse.
+                </p>
+                <q-btn
+                  v-if="canManage && hasPhoenixdCapability('export')"
+                  outline
+                  label="Export CSV on Phoenixd server"
+                  @click="exportPhoenixdHistory"
+                ></q-btn>
+              </div>
               <q-card-section class="q-pa-none">
                 <q-dialog
                   v-model="transactionDetailsDialog.show"
@@ -535,7 +852,10 @@
                           ></q-icon>
                           <span v-text="$t('payment_received')"></span>
                         </div>
-                        <div class="row q-my-md">
+                        <div
+                          v-if="transactionDetailsDialog.data.payment_hash"
+                          class="row q-my-md"
+                        >
                           <div class="col-3">
                             <b v-text="$t('payment_hash')"></b>:
                           </div>
@@ -584,6 +904,31 @@
                               />
                             </div>
                           </div>
+                        </div>
+                        <div
+                          v-if="transactionDetailsDialog.data.txid"
+                          class="text-wrap"
+                        >
+                          Transaction ID:
+                          <span
+                            v-text="transactionDetailsDialog.data.txid"
+                          ></span>
+                          <q-btn
+                            flat
+                            icon="content_copy"
+                            @click="
+                              utils.copyText(transactionDetailsDialog.data.txid)
+                            "
+                          ></q-btn>
+                        </div>
+                        <div
+                          v-if="transactionDetailsDialog.data.payment_id"
+                          class="text-wrap"
+                        >
+                          Payment ID:
+                          <span
+                            v-text="transactionDetailsDialog.data.payment_id"
+                          ></span>
                         </div>
                         <div
                           v-if="transactionDetailsDialog.data.bolt11"
@@ -642,6 +987,9 @@
                           :rows="paymentsTable.data"
                           :columns="paymentsTable.columns"
                           v-model:pagination="paymentsTable.pagination"
+                          :rows-per-page-options="
+                            managedChannels ? [10, 25, 50, 100] : undefined
+                          "
                           row-key="payment_hash"
                           no-data-label="No transactions made yet"
                           :filter="paymentsTable.filter"
@@ -845,6 +1193,9 @@
                           :rows="invoiceTable.data"
                           :columns="invoiceTable.columns"
                           v-model:pagination="invoiceTable.pagination"
+                          :rows-per-page-options="
+                            managedChannels ? [10, 25, 50, 100] : undefined
+                          "
                           no-data-label="No transactions made yet"
                           :filter="invoiceTable.filter"
                           @request="getInvoices"
@@ -947,7 +1298,11 @@
           </div>
 
           <div class="col-12 col-md-6 q-gutter-y-md">
-            <lnbits-stat title="Peers" :amount="this.info.num_peers" />
+            <lnbits-stat
+              v-if="!info.managed_channels"
+              title="Peers"
+              :amount="this.info.num_peers"
+            />
           </div>
           <div class="col-12 col-md-6 q-gutter-y-md">
             <lnbits-stat
@@ -976,7 +1331,10 @@
         </div>
       </div>
       <div class="column col-12 col-md-4 q-gutter-y-md">
-        <lnbits-node-ranks :ranks="this.ranks"></lnbits-node-ranks>
+        <lnbits-node-ranks
+          v-if="!info.managed_channels"
+          :ranks="this.ranks"
+        ></lnbits-node-ranks>
         <lnbits-channel-stats
           :stats="this.channel_stats"
         ></lnbits-channel-stats>
