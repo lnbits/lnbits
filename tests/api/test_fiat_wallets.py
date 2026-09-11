@@ -11,6 +11,7 @@ from lnbits.core.crud.payments import (
     get_payments,
     get_standalone_payment,
     get_wallet_payment_total_breakdown,
+    settle_fiat_payment,
     update_payment,
 )
 from lnbits.core.crud.wallets import (
@@ -20,6 +21,7 @@ from lnbits.core.crud.wallets import (
     get_wallets,
 )
 from lnbits.core.db import db
+from lnbits.core.migrations import m053_integer_fiat_amounts
 from lnbits.core.models import CreatePayment, PaymentState, Wallet
 from lnbits.core.models.payments import CreateInvoice
 from lnbits.core.models.wallet_types import WalletType
@@ -256,7 +258,12 @@ async def test_fiat_totals_use_original_amounts_and_include_all_pages(
             ),
             status=PaymentState.SUCCESS,
         )
-    for status in (PaymentState.SUCCESS, PaymentState.PENDING, PaymentState.DELETED):
+    for status in (
+        PaymentState.SUCCESS,
+        PaymentState.PENDING,
+        PaymentState.FAILED,
+        PaymentState.DELETED,
+    ):
         await create_payment(
             checking_id=f"fiat_stripe_{uuid4().hex}",
             data=CreatePayment(
@@ -278,12 +285,151 @@ async def test_fiat_totals_use_original_amounts_and_include_all_pages(
     assert len(totals) == 1
     assert totals[0].payments_count == 1002
     assert totals[0].fiat_totals == {"USD": 10.01, "EUR": 3.45}
+    # Backfill spans multiple batches and also handles pending/deleted receipts.
+    await db.execute(
+        """UPDATE apipayments SET fiat_amount = NULL, fiat_currency = NULL,
+        fiat_precision = NULL WHERE wallet_id = :id""",
+        {"id": cash_wallet.id},
+    )
+    async with db.connect() as conn:
+        await m053_integer_fiat_amounts(conn)
+    assert await get_wallet_payment_total_breakdown(cash_wallet.id) == totals
+    rows: list[dict] = await db.fetchall(
+        "SELECT * FROM fiat_balances WHERE wallet_id = :id", {"id": cash_wallet.id}
+    )
+    assert len(rows) == 2  # The database returns totals, not 1,002 payment records.
     rate.assert_not_awaited()
+
+
+async def test_fiat_integer_columns_follow_payment_updates(cash_wallet: Wallet):
+    payment = await create_payment(
+        checking_id=f"internal_cash_{uuid4().hex}",
+        data=CreatePayment(
+            wallet_id=cash_wallet.id,
+            payment_hash=uuid4().hex,
+            bolt11="",
+            amount_msat=1000,
+            memo="Pending receipt",
+            extra={"wallet_fiat_currency": "USD", "wallet_fiat_amount": "12.3400"},
+        ),
+    )
+    assert (payment.fiat_currency, payment.fiat_amount, payment.fiat_precision) == (
+        "USD",
+        1234,
+        2,
+    )
+    payment.extra["wallet_fiat_amount"] = "15.006"
+    await update_payment(payment)
+    settled = await settle_fiat_payment(payment)
+    assert settled
+    payment = settled
+    assert (payment.fiat_amount, payment.fiat_precision) == (15006, 3)
+
+    # The stored integer fields are derived from the recorded metadata on writes.
+    payment.fiat_amount = 1
+    payment.fiat_precision = 0
+    payment.fiat_currency = "EUR"
+    await update_payment(payment)
+    totals = await get_wallet_payment_total_breakdown(cash_wallet.id)
+    assert totals[0].fiat_totals == {"USD": 15.006}
+
+
+async def test_fiat_balance_view_precision_and_wallet_isolation(
+    cash_wallet: Wallet, from_wallet: Wallet
+):
+    assert await get_wallet_payment_total_breakdown(cash_wallet.id) == []
+    entries = [
+        (None, "usd", "0.1"),
+        (None, "USD", "0.2"),
+        (None, "USD", "0.02"),
+        ("pos", "JPY", "1000"),
+        ("pos", "KWD", "1.234"),
+        ("large", "USD", "90071992547409.91"),
+        ("large", "USD", "0.01"),
+        ("tiny", "USD", "1E-8"),
+    ]
+    batch = uuid4().hex
+    for tag, currency, amount in entries:
+        await create_payment(
+            checking_id=f"internal_cash_{batch}_{uuid4().hex}",
+            data=CreatePayment(
+                wallet_id=cash_wallet.id,
+                payment_hash=uuid4().hex,
+                bolt11="",
+                amount_msat=1000,
+                memo="Historical receipt",
+                extra={
+                    "tag": tag,
+                    "wallet_fiat_currency": currency,
+                    "wallet_fiat_amount": amount,
+                },
+            ),
+            status=PaymentState.SUCCESS,
+        )
+    rows: list[dict] = await db.fetchall(
+        "SELECT * FROM fiat_balances WHERE wallet_id = :id", {"id": cash_wallet.id}
+    )
+    assert {
+        (r["tag"], r["currency"], r["fiat_precision"]): r["fiat_total"] for r in rows
+    } == {
+        (None, "USD", 1): 3,
+        (None, "USD", 2): 2,
+        ("pos", "JPY", 0): 1000,
+        ("pos", "KWD", 3): 1234,
+        ("large", "USD", 2): 9007199254740992,
+        ("tiny", "USD", 8): 1,
+    }
+    assert sum(r["payments_count"] for r in rows) == len(entries)
+    totals = await get_wallet_payment_total_breakdown(cash_wallet.id)
+    assert {row.tag: row.fiat_totals for row in totals} == {
+        None: {"USD": 0.32},
+        "pos": {"JPY": 1000, "KWD": 1.234},
+        "large": {"USD": 90071992547409.92},
+        "tiny": {"USD": 0.00000001},
+    }
+
+    # Historical fiat metadata in a Lightning wallet must not enter this view.
+    await db.execute(
+        "UPDATE apipayments SET wallet_id = :other WHERE wallet_id = :id",
+        {"id": cash_wallet.id, "other": from_wallet.id},
+    )
+    try:
+        assert await get_wallet_payment_total_breakdown(cash_wallet.id) == []
+        assert not await db.fetchall(
+            "SELECT * FROM fiat_balances WHERE wallet_id = :id",
+            {"id": from_wallet.id},
+        )
+    finally:
+        await db.execute(
+            """UPDATE apipayments SET wallet_id = :id
+            WHERE wallet_id = :other AND checking_id LIKE :batch""",
+            {
+                "id": cash_wallet.id,
+                "other": from_wallet.id,
+                "batch": f"internal_cash_{batch}_%",
+            },
+        )
+
+    await db.execute(
+        "UPDATE wallets SET deleted = true WHERE id = :id", {"id": cash_wallet.id}
+    )
+    assert not await db.fetchall(
+        "SELECT * FROM fiat_balances WHERE wallet_id = :id", {"id": cash_wallet.id}
+    )
 
 
 @pytest.mark.parametrize(
     "extra",
-    [None, "not-json", "[]", '{"fiat_currency":"USD","fiat_amount":"NaN"}'],
+    [
+        None,
+        "not-json",
+        "[]",
+        "null",
+        '{"fiat_currency":"USD","fiat_amount":"NaN"}',
+        '{"fiat_currency":"USD","fiat_amount":"Infinity"}',
+        '{"fiat_currency":"USD","fiat_amount":true}',
+        '{"fiat_currency":"USD","fiat_amount":{}}',
+    ],
 )
 async def test_fiat_totals_skip_unusable_metadata(cash_wallet: Wallet, extra):
     payment = await create_payment(
@@ -301,6 +447,8 @@ async def test_fiat_totals_skip_unusable_metadata(cash_wallet: Wallet, extra):
         "UPDATE apipayments SET extra = :extra WHERE checking_id = :checking_id",
         {"extra": extra, "checking_id": payment.checking_id},
     )
+    async with db.connect() as conn:
+        await m053_integer_fiat_amounts(conn)
 
     totals = await get_wallet_payment_total_breakdown(cash_wallet.id)
 

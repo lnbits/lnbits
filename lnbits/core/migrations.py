@@ -1,12 +1,14 @@
 import json
 from time import time
-from typing import Any
+from typing import Any, cast
 
 from loguru import logger
+from sqlalchemy import inspect, text
+from sqlalchemy.engine.reflection import Inspector
 from sqlalchemy.exc import OperationalError
 
 from lnbits import bolt11
-from lnbits.db import Connection
+from lnbits.db import SQLITE, Connection
 
 
 async def m000_create_migrations_table(db: Connection):
@@ -909,3 +911,86 @@ async def m051_fiat_notification_outbox(db: Connection):
 
     Notification replay is disabled. Any existing outbox table is left unused.
     """
+
+
+async def m052_fiat_balances_view(db: Connection):
+    """Retired custom-function view; m053 also upgrades databases that applied it."""
+
+
+async def m053_integer_fiat_amounts(db: Connection):
+    """Backfill exact integer amounts and use a native SUM view on every database."""
+    from lnbits.core.models.payments import fiat_amount_fields
+
+    await db.execute("DROP VIEW IF EXISTS fiat_balances")
+    if db.type != SQLITE:
+        await db.execute("DROP FUNCTION IF EXISTS lnbits_fiat_metadata(TEXT)")
+
+    columns = await db.conn.run_sync(
+        lambda conn: {
+            column["name"]
+            for column in cast(Inspector, inspect(conn)).get_columns("apipayments")
+        }
+    )
+    for column, column_type in (
+        ("fiat_currency", "TEXT"),
+        ("fiat_amount", db.big_int),
+        ("fiat_precision", "INTEGER"),
+    ):
+        if column not in columns:
+            await db.execute(
+                f"ALTER TABLE apipayments ADD COLUMN {column} {column_type}"
+            )
+
+    last_wallet, last_checking_id = "", ""
+    while True:
+        payments: list[dict] = await db.fetchall(
+            """SELECT p.wallet_id, p.checking_id, p.extra FROM apipayments p
+            JOIN wallets w ON w.id = p.wallet_id
+            WHERE w.wallet_type IN ('fiat', 'receive-only')
+              AND (p.wallet_id, p.checking_id) > (:wallet_id, :checking_id)
+            ORDER BY p.wallet_id, p.checking_id LIMIT 1000""",
+            {"wallet_id": last_wallet, "checking_id": last_checking_id},
+        )
+        if not payments:
+            break
+        updates = []
+        for payment in payments:
+            try:
+                extra = json.loads(payment["extra"] or "{}")
+            except json.JSONDecodeError:
+                extra = {}
+            currency, amount, precision = fiat_amount_fields(
+                extra if isinstance(extra, dict) else {}
+            )
+            updates.append(
+                {
+                    "wallet_id": payment["wallet_id"],
+                    "checking_id": payment["checking_id"],
+                    "currency": currency,
+                    "amount": amount,
+                    "precision": precision,
+                }
+            )
+        # Persist one batch at a time, avoiding a commit for every historical receipt.
+        await db.conn.execute(
+            text("""UPDATE apipayments
+                SET fiat_currency = :currency, fiat_amount = :amount,
+                    fiat_precision = :precision
+                WHERE wallet_id = :wallet_id AND checking_id = :checking_id"""),
+            updates,
+        )
+        await db.conn.commit()
+        last_wallet = payments[-1]["wallet_id"]
+        last_checking_id = payments[-1]["checking_id"]
+
+    await db.execute("""
+        CREATE VIEW fiat_balances AS
+        SELECT p.wallet_id, p.tag, p.fiat_currency AS currency, p.fiat_precision,
+               COUNT(*) AS payments_count, SUM(p.amount) AS total,
+               SUM(p.fiat_amount) AS fiat_total
+        FROM apipayments p
+        JOIN wallets w ON w.id = p.wallet_id
+        WHERE p.status = 'success' AND w.deleted = false
+          AND w.wallet_type IN ('fiat', 'receive-only')
+        GROUP BY p.wallet_id, p.tag, p.fiat_currency, p.fiat_precision
+    """)
