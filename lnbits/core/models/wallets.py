@@ -21,6 +21,7 @@ class WalletInfo(BaseModel):
 
 class WalletType(Enum):
     LIGHTNING = "lightning"
+    FIAT = "fiat"
     LIGHTNING_SHARED = "lightning-shared"
 
 
@@ -173,6 +174,11 @@ class Wallet(BaseWallet):
         return []
 
     def has_permission(self, permission: WalletPermission) -> bool:
+        if self.wallet_type == WalletType.FIAT.value:
+            return permission in (
+                WalletPermission.VIEW_PAYMENTS,
+                WalletPermission.RECEIVE_PAYMENTS,
+            )
         if self.is_lightning_wallet:
             return True
         if self.is_lightning_shared_wallet:
@@ -205,6 +211,8 @@ class Wallet(BaseWallet):
 
     @property
     def withdrawable_balance(self) -> int:
+        if self.wallet_type == WalletType.FIAT.value:
+            return 0
         return self.balance_msat - settings.fee_reserve(self.balance_msat)
 
     @property
