@@ -401,14 +401,16 @@ def should_show_gui():
 def main():
     mp.freeze_support()
     parser = argparse.ArgumentParser(description="LNbits desktop launcher")
-    parser.add_argument(
+    mode = parser.add_mutually_exclusive_group()
+    mode.add_argument("--gui", action="store_true", help="Open the desktop window")
+    mode.add_argument(
         "--headless", action="store_true", help="Run without the desktop window"
     )
     parser.add_argument("--stop-file", help="Headless mode: stop when this file exists")
     parser.add_argument("--host", default=os.environ.get("HOST", "127.0.0.1"))
     parser.add_argument("--port", default=os.environ.get("PORT", "5000"))
     args = parser.parse_args()
-    if not args.headless and should_show_gui():
+    if args.gui or (not args.headless and should_show_gui()):
         gui()
         return
     env = configuration(

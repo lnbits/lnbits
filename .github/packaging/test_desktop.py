@@ -13,6 +13,32 @@ import desktop
 
 
 class DesktopTests(unittest.TestCase):
+    def test_gui_flag_bypasses_terminal_detection(self):
+        with (
+            patch("desktop.sys.argv", ["lnbits", "--gui"]),
+            patch("desktop.mp.freeze_support"),
+            patch("desktop.should_show_gui", side_effect=AssertionError),
+            patch("desktop.gui") as gui,
+            patch("desktop.Server") as server,
+        ):
+            desktop.main()
+            gui.assert_called_once_with()
+            server.assert_not_called()
+
+    def test_gui_and_headless_are_mutually_exclusive(self):
+        with (
+            patch("desktop.sys.argv", ["lnbits", "--gui", "--headless"]),
+            patch("desktop.mp.freeze_support"),
+            patch("desktop.sys.stderr"),
+            patch("desktop.gui") as gui,
+            patch("desktop.Server") as server,
+        ):
+            with self.assertRaises(SystemExit) as error:
+                desktop.main()
+            self.assertEqual(error.exception.code, 2)
+            gui.assert_not_called()
+            server.assert_not_called()
+
     def test_gui_only_for_desktop_launch(self):
         with (
             patch("desktop.sys.platform", "linux"),
