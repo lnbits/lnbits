@@ -3,7 +3,7 @@ from time import time
 from uuid import uuid4
 
 from lnbits.core.db import db
-from lnbits.core.models.wallet_types import WalletType, wallet_type_capabilities
+from lnbits.core.models.wallet_types import WalletType
 from lnbits.core.models.wallets import BaseWallet, WalletsFilters
 from lnbits.db import Connection, Filters, Page
 from lnbits.helpers import generate_ln_address
@@ -22,8 +22,8 @@ async def create_wallet(
     conn: Connection | None = None,
     currency: str | None = None,
 ) -> Wallet:
+    wallet_type = WalletType(wallet_type)
     wallet_id = uuid4().hex
-    capabilities = wallet_type_capabilities(wallet_type)
     wallet = Wallet(
         id=wallet_id,
         name=wallet_name or settings.lnbits_default_wallet_name,
@@ -33,9 +33,9 @@ async def create_wallet(
         adminkey=uuid4().hex,
         inkey=uuid4().hex,
         currency=currency or settings.lnbits_default_accounting_currency or "USD",
-        extra={"icon": capabilities.default_icon},
+        extra={"icon": "credit_card" if wallet_type == WalletType.FIAT else "flash_on"},
     )
-    if settings.ln_address_creation_allowed and wallet.supports_lightning_address:
+    if settings.ln_address_creation_allowed and wallet.is_lightning_wallet:
         wallet.lightning_address = await generate_lightning_address_local_part(conn)
 
     await (conn or db).insert("wallets", wallet)
@@ -141,7 +141,7 @@ async def get_standalone_wallet(
         return wallet
 
     if (
-        wallet.supports_lightning_address
+        wallet.is_lightning_wallet
         and not wallet.lightning_address
         and settings.ln_address_creation_allowed
     ):

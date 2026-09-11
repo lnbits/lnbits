@@ -32,17 +32,14 @@ async def handle_fiat_payment_confirmation(
 ):
     """Confirm a verified receipt once, without Lightning fees or faucet transfers."""
     settled = await settle_fiat_payment(payment, conn=conn)
+    current = settled or await get_standalone_payment(
+        payment.checking_id, wallet_id=payment.wallet_id, conn=conn
+    )
+    if current:
+        payment.status = current.status
+        payment.fee = current.fee
     if settled:
-        payment.status = settled.status
-        payment.fee = 0
         task_manager.internal_invoice_queue.put_nowait(settled)
-    else:
-        current = await get_standalone_payment(
-            payment.checking_id, wallet_id=payment.wallet_id, conn=conn
-        )
-        if current:
-            payment.status = current.status
-            payment.fee = current.fee
 
 
 async def check_fiat_status(  # noqa: C901

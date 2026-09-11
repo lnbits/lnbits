@@ -17,7 +17,7 @@ from lnbits.core.models import CreateWallet, KeyType, Wallet, WalletTypeInfo
 from lnbits.core.models.lnurl import StoredPayLink, StoredPayLinks
 from lnbits.core.models.misc import SimpleStatus
 from lnbits.core.models.users import Account, AccountId
-from lnbits.core.models.wallet_types import WalletType, wallet_type_capabilities
+from lnbits.core.models.wallet_types import WalletType
 from lnbits.core.models.wallets import WalletsFilters, WalletSharePermission
 from lnbits.core.services.lightning_address import set_wallet_lightning_address
 from lnbits.core.services.wallets import (
@@ -222,7 +222,6 @@ async def api_create_wallet(
     data: CreateWallet, account_id: AccountId = Depends(check_account_id_exists)
 ) -> Wallet:
 
-    capabilities = wallet_type_capabilities(data.wallet_type)
     if data.wallet_type == WalletType.FIAT and not (
         settings.is_super_user(account_id.id)
         or settings.lnbits_allow_fiat_wallets
@@ -232,7 +231,11 @@ async def api_create_wallet(
             HTTPStatus.BAD_REQUEST,
             "Fiat wallets are not enabled for this account.",
         )
-    if not capabilities.creatable and data.wallet_type != WalletType.LIGHTNING_SHARED:
+    if data.wallet_type not in (
+        WalletType.LIGHTNING,
+        WalletType.FIAT,
+        WalletType.LIGHTNING_SHARED,
+    ):
         raise HTTPException(
             HTTPStatus.BAD_REQUEST,
             f"Wallet type '{data.wallet_type.value}' is not available yet.",

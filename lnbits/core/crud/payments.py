@@ -1,3 +1,4 @@
+import json
 from datetime import datetime, timezone
 from decimal import Decimal, InvalidOperation
 from time import time
@@ -458,20 +459,25 @@ async def get_wallet_payment_total_breakdown(
 async def get_fiat_payment_total_breakdown(
     wallet_id: str, conn: Connection | None = None
 ) -> list[PaymentTotalBreakdown]:
-    payments = await (conn or db).fetchall(
-        "SELECT * FROM apipayments WHERE wallet_id = :wallet_id AND status = 'success'",
+    payments: list[dict] = await (conn or db).fetchall(
+        """SELECT tag, amount, extra FROM apipayments
+        WHERE wallet_id = :wallet_id AND status = 'success'""",
         {"wallet_id": wallet_id},
-        Payment,
     )
     groups: dict[str | None, PaymentTotalBreakdown] = {}
     amounts: dict[tuple[str | None, str], Decimal] = {}
     for payment in payments:
         row = groups.setdefault(
-            payment.tag, PaymentTotalBreakdown(tag=payment.tag, is_fiat=True)
+            payment["tag"], PaymentTotalBreakdown(tag=payment["tag"], is_fiat=True)
         )
         row.payments_count += 1
-        row.total += payment.amount
-        extra = payment.extra
+        row.total += payment["amount"]
+        try:
+            extra = json.loads(payment["extra"] or "{}")
+        except json.JSONDecodeError:
+            continue
+        if not isinstance(extra, dict):
+            continue
         currency = extra.get("fiat_currency") or extra.get("wallet_fiat_currency")
         value = (
             extra.get("fiat_amount")
@@ -486,7 +492,7 @@ async def get_fiat_payment_total_breakdown(
             continue
         if not amount.is_finite():
             continue
-        key = (payment.tag, str(currency).upper())
+        key = (payment["tag"], str(currency).upper())
         amounts[key] = amounts.get(key, Decimal(0)) + amount
     for (tag, currency), amount in amounts.items():
         groups[tag].fiat_totals[currency] = float(amount)

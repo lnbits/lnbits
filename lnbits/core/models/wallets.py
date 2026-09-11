@@ -11,7 +11,7 @@ from lnbits.db import FilterModel
 from lnbits.settings import settings
 from lnbits.utils.exchange_rates import allowed_currencies
 
-from .wallet_types import WalletType, wallet_type_capabilities
+from .wallet_types import WalletType
 
 
 class WalletInfo(BaseModel):
@@ -176,18 +176,17 @@ class Wallet(BaseWallet):
         return []
 
     def has_permission(self, permission: WalletPermission) -> bool:
-        capabilities = wallet_type_capabilities(self.type)
-        if not self.is_lightning_shared_wallet:
-            if permission == WalletPermission.VIEW_PAYMENTS:
-                return True
-            if permission == WalletPermission.RECEIVE_PAYMENTS:
-                return capabilities.receives
-            if permission == WalletPermission.SEND_PAYMENTS:
-                return capabilities.sends
-        if self.is_lightning_shared_wallet:
+        wallet_type = self.type
+        if wallet_type == WalletType.LIGHTNING_SHARED:
             return permission in self.share_permissions
-
-        return False
+        if permission == WalletPermission.VIEW_PAYMENTS:
+            return True
+        if permission == WalletPermission.RECEIVE_PAYMENTS:
+            return wallet_type in (WalletType.LIGHTNING, WalletType.FIAT)
+        return (
+            permission == WalletPermission.SEND_PAYMENTS
+            and wallet_type == WalletType.LIGHTNING
+        )
 
     @property
     def source_wallet_id(self) -> str:
@@ -234,14 +233,6 @@ class Wallet(BaseWallet):
         return self.is_fiat_wallet
 
     @property
-    def is_onchain_wallet(self) -> bool:
-        return self.wallet_type == WalletType.ONCHAIN.value
-
-    @property
-    def is_liquid_wallet(self) -> bool:
-        return self.wallet_type == WalletType.LIQUID.value
-
-    @property
     def type(self) -> WalletType:
         return WalletType(self.wallet_type)
 
@@ -249,14 +240,6 @@ class Wallet(BaseWallet):
         if self.is_lightning_shared_wallet:
             return payment_type == WalletType.LIGHTNING
         return self.type == payment_type
-
-    @property
-    def can_be_shared(self) -> bool:
-        return wallet_type_capabilities(self.type).shareable
-
-    @property
-    def supports_lightning_address(self) -> bool:
-        return wallet_type_capabilities(self.type).lightning_address
 
     def _validate_data(self):
         if self.is_lightning_shared_wallet:

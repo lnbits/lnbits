@@ -281,6 +281,35 @@ async def test_fiat_totals_use_original_amounts_and_include_all_pages(
     rate.assert_not_awaited()
 
 
+@pytest.mark.parametrize(
+    "extra",
+    [None, "not-json", "[]", '{"fiat_currency":"USD","fiat_amount":"NaN"}'],
+)
+async def test_fiat_totals_skip_unusable_metadata(cash_wallet: Wallet, extra):
+    payment = await create_payment(
+        checking_id=f"internal_cash_{uuid4().hex}",
+        data=CreatePayment(
+            wallet_id=cash_wallet.id,
+            payment_hash=uuid4().hex,
+            bolt11="",
+            amount_msat=1000,
+            memo="Historical receipt",
+        ),
+        status=PaymentState.SUCCESS,
+    )
+    await db.execute(
+        "UPDATE apipayments SET extra = :extra WHERE checking_id = :checking_id",
+        {"extra": extra, "checking_id": payment.checking_id},
+    )
+
+    totals = await get_wallet_payment_total_breakdown(cash_wallet.id)
+
+    assert len(totals) == 1
+    assert totals[0].payments_count == 1
+    assert totals[0].total == 1000
+    assert totals[0].fiat_totals == {}
+
+
 async def test_development_alias_is_filtered_and_excluded_from_lightning_balance(
     cash_wallet: Wallet,
 ):
