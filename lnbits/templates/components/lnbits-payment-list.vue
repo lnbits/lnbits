@@ -371,16 +371,6 @@
                   )
                 "
               ></span>
-              <q-btn
-                flat
-                round
-                dense
-                icon="delete"
-                color="negative"
-                @click.stop="deleteFiatPayment(props.row)"
-              >
-                <q-tooltip>Delete transaction</q-tooltip>
-              </q-btn>
             </template>
             <span
               v-else-if="!g.isSatsDenomination"

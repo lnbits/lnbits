@@ -155,24 +155,6 @@ window.app.component('lnbits-payment-list', {
     }
   },
   methods: {
-    deleteFiatPayment(payment) {
-      LNbits.utils
-        .confirmDialog(
-          'Are you sure you want to delete this fiat transaction? It will be removed from your totals. This does not refund the payment.'
-        )
-        .onOk(async () => {
-          try {
-            await LNbits.api.request(
-              'DELETE',
-              `/api/v1/fiat/payments/${payment.payment_hash}`,
-              this.wallet.adminkey
-            )
-            this.g.updatePayments = !this.g.updatePayments
-          } catch (err) {
-            LNbits.utils.notifyApiError(err)
-          }
-        })
-    },
     mapPayment(data) {
       const obj = {
         checking_id: data.checking_id,

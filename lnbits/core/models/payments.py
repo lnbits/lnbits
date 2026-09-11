@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from datetime import datetime, timezone
-from decimal import Decimal, InvalidOperation
+from decimal import Decimal
 from enum import Enum
 from typing import Literal
 from uuid import UUID
@@ -44,39 +44,6 @@ class CreateCashPayment(BaseModel):
         if unit not in allowed_currencies():
             raise ValueError("The provided currency is not supported")
         return unit
-
-
-def fiat_amount_fields(extra: dict) -> tuple[str | None, int | None, int | None]:
-    """Represent the original fiat amount as an integer and decimal precision."""
-    currency = extra.get("fiat_currency") or extra.get("wallet_fiat_currency")
-    value = extra.get(
-        "fiat_amount" if extra.get("fiat_currency") else "wallet_fiat_amount"
-    )
-    if not currency or value is None:
-        return None, None, None
-    try:
-        amount = Decimal(str(value))
-    except InvalidOperation:
-        return None, None, None
-    if not amount.is_finite():
-        return None, None, None
-    currency = str(currency).upper()
-    if not amount:
-        return currency, 0, 0
-
-    sign, digits, exponent = amount.as_tuple()
-    assert isinstance(exponent, int)
-    # Remove redundant decimal zeroes without rounding through a Decimal context.
-    while exponent < 0 and digits[-1] == 0:
-        digits = digits[:-1]
-        exponent += 1
-    if len(digits) + max(exponent, 0) > 19 or exponent < -(2**31 - 1):
-        raise ValueError("Fiat amount cannot be represented as a database integer.")
-    units = int("".join(map(str, digits))) * 10 ** max(exponent, 0)
-    units = -units if sign else units
-    if not -(2**63) <= units < 2**63:
-        raise ValueError("Fiat amount cannot be represented as a database integer.")
-    return currency, units, max(-exponent, 0)
 
 
 class PaymentExtra(BaseModel):
@@ -141,10 +108,6 @@ class Payment(BaseModel):
     labels: list[str] = []
     extra: dict = {}
     external_id: str | None = None
-    fiat_currency: str | None = None
-    # Original fiat value = fiat_amount * 10 ** -fiat_precision.
-    fiat_amount: int | None = None
-    fiat_precision: int | None = None
 
     @validator("external_id")
     def validate_external_id(cls, external_id):

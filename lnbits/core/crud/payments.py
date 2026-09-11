@@ -1,12 +1,12 @@
+import json
 from datetime import datetime, timezone
-from decimal import Decimal
+from decimal import Decimal, InvalidOperation
 from time import time
 from typing import Any
 
 from lnbits.core.crud.wallets import get_total_balance, get_wallet, get_wallets_ids
 from lnbits.core.db import db
 from lnbits.core.models import PaymentState
-from lnbits.core.models.payments import fiat_amount_fields
 from lnbits.db import Connection, DateTrunc, Filters, Page
 
 from ..models import (
@@ -258,7 +258,6 @@ async def create_payment(
     if previous_payment is not None:
         raise ValueError("Payment already exists")
     extra = data.extra or {}
-    fiat_currency, fiat_amount, fiat_precision = fiat_amount_fields(extra)
 
     payment = Payment(
         checking_id=checking_id,
@@ -278,9 +277,6 @@ async def create_payment(
         labels=data.labels or [],
         external_id=data.external_id,
         fiat_provider=data.fiat_provider,
-        fiat_currency=fiat_currency,
-        fiat_amount=fiat_amount,
-        fiat_precision=fiat_precision,
     )
 
     await (conn or db).insert("apipayments", payment)
@@ -311,9 +307,6 @@ async def update_payment(
     conn: Connection | None = None,
 ) -> Payment:
     payment.updated_at = datetime.now(timezone.utc)
-    payment.fiat_currency, payment.fiat_amount, payment.fiat_precision = (
-        fiat_amount_fields(payment.extra)
-    )
     await (conn or db).update(
         "apipayments",
         payment,
@@ -466,23 +459,41 @@ async def get_wallet_payment_total_breakdown(
 async def get_fiat_payment_total_breakdown(
     wallet_id: str, conn: Connection | None = None
 ) -> list[PaymentTotalBreakdown]:
-    totals: list[dict] = await (conn or db).fetchall(
-        """SELECT tag, currency, fiat_precision, payments_count, total, fiat_total
-        FROM fiat_balances WHERE wallet_id = :wallet_id""",
+    payments: list[dict] = await (conn or db).fetchall(
+        """SELECT tag, amount, extra FROM apipayments
+        WHERE wallet_id = :wallet_id AND status = 'success'""",
         {"wallet_id": wallet_id},
     )
     groups: dict[str | None, PaymentTotalBreakdown] = {}
     amounts: dict[tuple[str | None, str], Decimal] = {}
-    for total in totals:
+    for payment in payments:
         row = groups.setdefault(
-            total["tag"], PaymentTotalBreakdown(tag=total["tag"], is_fiat=True)
+            payment["tag"], PaymentTotalBreakdown(tag=payment["tag"], is_fiat=True)
         )
-        row.payments_count += total["payments_count"]
-        row.total += total["total"]
-        if total["currency"] and total["fiat_total"] is not None:
-            key = (total["tag"], total["currency"])
-            amount = Decimal(total["fiat_total"]).scaleb(-total["fiat_precision"])
-            amounts[key] = amounts.get(key, Decimal(0)) + amount
+        row.payments_count += 1
+        row.total += payment["amount"]
+        try:
+            extra = json.loads(payment["extra"] or "{}")
+        except json.JSONDecodeError:
+            continue
+        if not isinstance(extra, dict):
+            continue
+        currency = extra.get("fiat_currency") or extra.get("wallet_fiat_currency")
+        value = (
+            extra.get("fiat_amount")
+            if extra.get("fiat_currency")
+            else extra.get("wallet_fiat_amount")
+        )
+        if not currency or value is None:
+            continue
+        try:
+            amount = Decimal(str(value))
+        except InvalidOperation:
+            continue
+        if not amount.is_finite():
+            continue
+        key = (payment["tag"], str(currency).upper())
+        amounts[key] = amounts.get(key, Decimal(0)) + amount
     for (tag, currency), amount in amounts.items():
         groups[tag].fiat_totals[currency] = float(amount)
     return list(groups.values())
@@ -516,20 +527,6 @@ async def settle_fiat_payment(
     )
     await conn.conn.commit()
     return settled
-
-
-async def delete_fiat_payment(wallet_id: str, payment_hash: str) -> None:
-    # Keep a tombstone so delayed/replayed provider callbacks cannot recreate receipts.
-    await db.execute(
-        f"""
-        UPDATE apipayments SET status = 'deleted',
-            updated_at = {db.timestamp_placeholder('now')}
-        WHERE wallet_id = :wallet_id AND payment_hash = :payment_hash
-          AND EXISTS (SELECT 1 FROM wallets WHERE id = :wallet_id
-                      AND wallet_type IN ('fiat', 'receive-only'))
-        """,  # noqa: S608
-        {"wallet_id": wallet_id, "payment_hash": payment_hash, "now": int(time())},
-    )
 
 
 async def get_daily_stats(

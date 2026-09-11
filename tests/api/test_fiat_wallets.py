@@ -7,11 +7,9 @@ from pytest_mock import MockerFixture
 
 from lnbits.core.crud.payments import (
     create_payment,
-    delete_fiat_payment,
     get_payments,
     get_standalone_payment,
     get_wallet_payment_total_breakdown,
-    settle_fiat_payment,
     update_payment,
 )
 from lnbits.core.crud.wallets import (
@@ -21,7 +19,6 @@ from lnbits.core.crud.wallets import (
     get_wallets,
 )
 from lnbits.core.db import db
-from lnbits.core.migrations import m053_integer_fiat_amounts
 from lnbits.core.models import CreatePayment, PaymentState, Wallet
 from lnbits.core.models.payments import CreateInvoice
 from lnbits.core.models.wallet_types import WalletType
@@ -117,8 +114,8 @@ async def test_cash_receipt_rejects_invalid_amounts(
     assert response.status_code == 400
 
 
-async def test_cash_receipt_deletion_is_scoped_and_cannot_be_replayed(
-    client: AsyncClient, cash_wallet: Wallet, from_wallet: Wallet, mocker: MockerFixture
+async def test_legacy_deleted_cash_receipt_cannot_be_replayed(
+    client: AsyncClient, cash_wallet: Wallet, mocker: MockerFixture
 ):
     mocker.patch(
         "lnbits.core.services.fiat_wallets.fiat_amount_as_satoshis",
@@ -129,22 +126,13 @@ async def test_cash_receipt_deletion_is_scoped_and_cannot_be_replayed(
     response = await client.post("/api/v1/fiat/cash", json=data, headers=headers)
     assert response.status_code == 200
     receipt = response.json()
-    url = f"/api/v1/fiat/payments/{receipt['payment_hash']}"
-    other_wallet = await create_wallet(
-        user_id=from_wallet.user, wallet_type=WalletType.FIAT
-    )
-    for key, status in (
-        (cash_wallet.inkey, 403),
-        (from_wallet.adminkey, 403),
-        (other_wallet.adminkey, 404),
-    ):
-        result = await client.delete(url, headers={"X-Api-Key": key})
-        assert result.status_code == status
-
     stale = await get_standalone_payment(receipt["payment_hash"])
     assert stale
-    assert (await client.delete(url, headers=headers)).status_code == 200
-    assert (await client.delete(url, headers=headers)).status_code == 200
+    # Earlier development versions allowed deletion. Keep those tombstones intact.
+    await db.execute(
+        "UPDATE apipayments SET status = 'deleted' WHERE wallet_id = :wallet_id",
+        {"wallet_id": cash_wallet.id},
+    )
     await update_payment(stale)
     assert await get_payments(wallet_id=cash_wallet.id) == []
     assert await get_wallet_payment_total_breakdown(cash_wallet.id) == []
@@ -231,7 +219,10 @@ async def test_fiat_confirmations_are_atomic_and_deletion_wins_retries(
     current = await get_standalone_payment(payment.checking_id)
     assert current and current.success and current.fee == 0
 
-    await delete_fiat_payment(cash_wallet.id, payment.payment_hash)
+    await db.execute(
+        "UPDATE apipayments SET status = 'deleted' WHERE wallet_id = :wallet_id",
+        {"wallet_id": cash_wallet.id},
+    )
     assert (await check_fiat_status(payment)).failed
     provider.get_invoice_status.assert_awaited()
     assert provider.get_invoice_status.await_count == 2
@@ -285,56 +276,10 @@ async def test_fiat_totals_use_original_amounts_and_include_all_pages(
     assert len(totals) == 1
     assert totals[0].payments_count == 1002
     assert totals[0].fiat_totals == {"USD": 10.01, "EUR": 3.45}
-    # Backfill spans multiple batches and also handles pending/deleted receipts.
-    await db.execute(
-        """UPDATE apipayments SET fiat_amount = NULL, fiat_currency = NULL,
-        fiat_precision = NULL WHERE wallet_id = :id""",
-        {"id": cash_wallet.id},
-    )
-    async with db.connect() as conn:
-        await m053_integer_fiat_amounts(conn)
-    assert await get_wallet_payment_total_breakdown(cash_wallet.id) == totals
-    rows: list[dict] = await db.fetchall(
-        "SELECT * FROM fiat_balances WHERE wallet_id = :id", {"id": cash_wallet.id}
-    )
-    assert len(rows) == 2  # The database returns totals, not 1,002 payment records.
     rate.assert_not_awaited()
 
 
-async def test_fiat_integer_columns_follow_payment_updates(cash_wallet: Wallet):
-    payment = await create_payment(
-        checking_id=f"internal_cash_{uuid4().hex}",
-        data=CreatePayment(
-            wallet_id=cash_wallet.id,
-            payment_hash=uuid4().hex,
-            bolt11="",
-            amount_msat=1000,
-            memo="Pending receipt",
-            extra={"wallet_fiat_currency": "USD", "wallet_fiat_amount": "12.3400"},
-        ),
-    )
-    assert (payment.fiat_currency, payment.fiat_amount, payment.fiat_precision) == (
-        "USD",
-        1234,
-        2,
-    )
-    payment.extra["wallet_fiat_amount"] = "15.006"
-    await update_payment(payment)
-    settled = await settle_fiat_payment(payment)
-    assert settled
-    payment = settled
-    assert (payment.fiat_amount, payment.fiat_precision) == (15006, 3)
-
-    # The stored integer fields are derived from the recorded metadata on writes.
-    payment.fiat_amount = 1
-    payment.fiat_precision = 0
-    payment.fiat_currency = "EUR"
-    await update_payment(payment)
-    totals = await get_wallet_payment_total_breakdown(cash_wallet.id)
-    assert totals[0].fiat_totals == {"USD": 15.006}
-
-
-async def test_fiat_balance_view_precision_and_wallet_isolation(
+async def test_fiat_totals_preserve_precision_and_wallet_isolation(
     cash_wallet: Wallet, from_wallet: Wallet
 ):
     assert await get_wallet_payment_total_breakdown(cash_wallet.id) == []
@@ -366,20 +311,6 @@ async def test_fiat_balance_view_precision_and_wallet_isolation(
             ),
             status=PaymentState.SUCCESS,
         )
-    rows: list[dict] = await db.fetchall(
-        "SELECT * FROM fiat_balances WHERE wallet_id = :id", {"id": cash_wallet.id}
-    )
-    assert {
-        (r["tag"], r["currency"], r["fiat_precision"]): r["fiat_total"] for r in rows
-    } == {
-        (None, "USD", 1): 3,
-        (None, "USD", 2): 2,
-        ("pos", "JPY", 0): 1000,
-        ("pos", "KWD", 3): 1234,
-        ("large", "USD", 2): 9007199254740992,
-        ("tiny", "USD", 8): 1,
-    }
-    assert sum(r["payments_count"] for r in rows) == len(entries)
     totals = await get_wallet_payment_total_breakdown(cash_wallet.id)
     assert {row.tag: row.fiat_totals for row in totals} == {
         None: {"USD": 0.32},
@@ -388,17 +319,13 @@ async def test_fiat_balance_view_precision_and_wallet_isolation(
         "tiny": {"USD": 0.00000001},
     }
 
-    # Historical fiat metadata in a Lightning wallet must not enter this view.
+    # Moving a receipt to a Lightning wallet removes it from this wallet's totals.
     await db.execute(
         "UPDATE apipayments SET wallet_id = :other WHERE wallet_id = :id",
         {"id": cash_wallet.id, "other": from_wallet.id},
     )
     try:
         assert await get_wallet_payment_total_breakdown(cash_wallet.id) == []
-        assert not await db.fetchall(
-            "SELECT * FROM fiat_balances WHERE wallet_id = :id",
-            {"id": from_wallet.id},
-        )
     finally:
         await db.execute(
             """UPDATE apipayments SET wallet_id = :id
@@ -413,9 +340,7 @@ async def test_fiat_balance_view_precision_and_wallet_isolation(
     await db.execute(
         "UPDATE wallets SET deleted = true WHERE id = :id", {"id": cash_wallet.id}
     )
-    assert not await db.fetchall(
-        "SELECT * FROM fiat_balances WHERE wallet_id = :id", {"id": cash_wallet.id}
-    )
+    assert await get_wallet_payment_total_breakdown(cash_wallet.id) == []
 
 
 @pytest.mark.parametrize(
@@ -447,8 +372,6 @@ async def test_fiat_totals_skip_unusable_metadata(cash_wallet: Wallet, extra):
         "UPDATE apipayments SET extra = :extra WHERE checking_id = :checking_id",
         {"extra": extra, "checking_id": payment.checking_id},
     )
-    async with db.connect() as conn:
-        await m053_integer_fiat_amounts(conn)
 
     totals = await get_wallet_payment_total_breakdown(cash_wallet.id)
 
@@ -528,7 +451,10 @@ async def test_subscription_receipt_creation_is_retry_safe(
     assert len({receipt.checking_id for receipt in receipts}) == 1
     assert len(await get_payments(wallet_id=cash_wallet.id)) == 1
     assert receipts[0].extra["fiat_checking_id"] == provider_id
-    await delete_fiat_payment(cash_wallet.id, receipts[0].payment_hash)
+    await db.execute(
+        "UPDATE apipayments SET status = 'deleted' WHERE wallet_id = :wallet_id",
+        {"wallet_id": cash_wallet.id},
+    )
     rate.side_effect = RuntimeError("FX unavailable")
     replay = await create_fiat_invoice(cash_wallet.id, invoice)
     assert replay.status == PaymentState.DELETED
