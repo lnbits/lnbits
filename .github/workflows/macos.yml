@@ -1,0 +1,111 @@
+name: Build LNbits macOS DMG
+
+on:
+  push:
+    branches:
+      - "**"
+    paths:
+      - ".github/packaging/**"
+      - ".github/workflows/macos.yml"
+      - "pyproject.toml"
+      - "uv.lock"
+  workflow_call:
+    inputs:
+      tag_name:
+        required: true
+        type: string
+  workflow_dispatch:
+    inputs:
+      tag_name:
+        description: Release tag (leave empty to build this branch as an artifact)
+        required: false
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runner: macos-15
+            arch: arm64
+          - runner: macos-15-intel
+            arch: x86_64
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.tag_name || github.ref }}
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - uses: astral-sh/setup-uv@v6
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24.x"
+          cache: npm
+      - name: Verify frontend assets
+        run: |
+          npm ci
+          npm run bundle
+          ./node_modules/.bin/prettier -w ./lnbits/static/vendor.json
+          git diff --exit-code -- lnbits/static
+      - name: Build application
+        run: |
+          uv sync --locked --no-dev --no-editable
+          uv pip install pyinstaller==6.22.2
+          uv run --no-sync python .github/packaging/build.py
+      - name: Test launcher window and shutdown
+        run: uv run --no-sync python -m unittest discover -s .github/packaging -v
+      - name: Verify native architecture and packaged data
+        env:
+          EXPECTED_ARCH: ${{ matrix.arch }}
+        run: |
+          test "$(lipo -archs dist/LNbits.app/Contents/MacOS/LNbits)" = "$EXPECTED_ARCH"
+          test -f dist/LNbits.app/Contents/Resources/certifi/cacert.pem
+          test -f dist/LNbits.app/Contents/Resources/random_username/data/nouns.txt
+          test -f dist/LNbits.app/Contents/Resources/pyinstrument/renderers/html_resources/app.js
+          codesign --verify --deep --strict dist/LNbits.app
+      - name: Build and verify DMG
+        run: uv run --no-sync python .github/packaging/macos/dmg.py
+      - name: Test application from read-only disk image
+        run: |
+          MOUNT_DIR="$(mktemp -d)"
+          hdiutil attach dist/*.dmg -mountpoint "$MOUNT_DIR" -nobrowse -readonly
+          trap 'hdiutil detach "$MOUNT_DIR"; rmdir "$MOUNT_DIR"' EXIT
+          test -L "$MOUNT_DIR/Applications"
+          codesign --verify --deep --strict "$MOUNT_DIR/LNbits.app"
+          uv run --no-sync python .github/packaging/smoke_sidecars.py "$MOUNT_DIR/LNbits.app/Contents/Frameworks/sidecars"
+          uv run --no-sync python .github/packaging/smoke.py "$MOUNT_DIR/LNbits.app/Contents/MacOS/LNbits"
+      - name: Record signing status
+        run: echo 'DMGs are ad-hoc signed, without Apple Developer ID or notarization. See the included Read me.txt for first-launch instructions.' >> "$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: LNbits-macOS-${{ matrix.arch }}
+          path: |
+            dist/*.dmg
+            dist/*.dmg.sha256
+          if-no-files-found: error
+
+  upload:
+    if: inputs.tag_name != ''
+    needs: build
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: LNbits-macOS-*
+          merge-multiple: true
+          path: dist
+      - name: Attach DMGs and checksums to release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_REPO: ${{ github.repository }}
+          TAG_NAME: ${{ inputs.tag_name }}
+        run: gh release upload "$TAG_NAME" dist/*.dmg dist/*.dmg.sha256 --clobber

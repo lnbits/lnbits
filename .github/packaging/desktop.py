@@ -14,17 +14,30 @@ import traceback
 import webbrowser
 from pathlib import Path
 
+from funding import PROVIDERS, Funding, load_profile, protect_settings
+
 
 def default_folder():
     if sys.platform == "win32":
         return Path(os.environ.get("LOCALAPPDATA") or Path.home()) / "LNbits"
+    if sys.platform == "darwin":
+        return Path.home() / "Library" / "Application Support" / "LNbits"
     return (
         Path(os.environ.get("XDG_DATA_HOME") or Path.home() / ".local/share")
         / "lnbits-desktop"
     )
 
 
-def configuration(host, port, folder, https_only, admin_ui):
+def configuration(
+    host,
+    port,
+    folder,
+    https_only,
+    admin_ui,
+    funding_source=None,
+    funding_port=None,
+    phoenix_terms=False,
+):
     host = host.strip()
     if not host or "://" in host or "/" in host:
         raise ValueError("Enter a host name or IP address, without http:// or a path.")
@@ -38,6 +51,19 @@ def configuration(host, port, folder, https_only, admin_ui):
         raise ValueError("Choose a data folder.")
     root = Path(folder).expanduser().resolve()
     root.mkdir(parents=True, exist_ok=True)
+    profile = load_profile(root)
+    funding_source = funding_source or profile.get("provider", "none")
+    if funding_source not in ("none", *PROVIDERS):
+        raise ValueError("Unknown funding source.")
+    funding_port = int(
+        funding_port
+        or profile.get("port")
+        or (9740 if funding_source == "phoenixd" else 8765)
+    )
+    if funding_source != "none" and (
+        not 1 <= funding_port <= 65535 or funding_port == port
+    ):
+        raise ValueError("Choose a different, valid port for the funding source.")
     return {
         "HOST": host,
         "PORT": str(port),
@@ -45,6 +71,9 @@ def configuration(host, port, folder, https_only, admin_ui):
         "LNBITS_EXTENSIONS_PATH": os.environ.get("LNBITS_EXTENSIONS_PATH", str(root)),
         "AUTH_HTTPS_ONLY": str(https_only).lower(),
         "LNBITS_ADMIN_UI": str(admin_ui).lower(),
+        "LNBITS_DESKTOP_FUNDING": funding_source,
+        "LNBITS_DESKTOP_FUNDING_PORT": str(funding_port),
+        "LNBITS_DESKTOP_PHOENIX_TERMS": str(phoenix_terms).lower(),
     }
 
 
@@ -75,6 +104,7 @@ def worker(environment, stop, ready):
         contextlib.redirect_stderr(log),
     ):
         try:
+            protect_settings(environment)
             run_server(environment, stop, ready)
         except KeyboardInterrupt:
             # Uvicorn re-raises Ctrl+C after completing its shutdown handlers.
@@ -108,6 +138,15 @@ def run_server(environment, stop, ready):
         async def monitor():
             while not server.should_exit:
                 if server.started:
+                    if environment.get("LNBITS_DESKTOP_FUNDING", "none") in PROVIDERS:
+                        from lnbits.wallets import get_funding_source
+
+                        if (
+                            type(get_funding_source()).__name__
+                            != environment["LNBITS_BACKEND_WALLET_CLASS"]
+                        ):
+                            server.should_exit = True
+                            return
                     ready.set()
                 if stop.is_set() or server_restart.is_set():
                     server.should_exit = True
@@ -136,6 +175,8 @@ class Server:
         self.process = None
         self.stopping_at = None
         self.started_at = None
+        self.funding = None
+        self.error = None
 
     def start(self):
         # Fail before launching if another service is using the requested address.
@@ -147,6 +188,16 @@ class Server:
         ):
             pass
         self.ready.clear()
+        self.started_at = time.monotonic()
+        if self.environment.get("LNBITS_DESKTOP_FUNDING", "none") in PROVIDERS:
+            if self.funding is None:
+                self.funding = Funding(self.environment)
+                self.funding.start()
+            if not self.funding.ready.is_set():
+                return
+        self._start_worker()
+
+    def _start_worker(self):
         self.process = self.context.Process(
             target=worker, args=(self.environment, self.stop_event, self.ready)
         )
@@ -159,8 +210,19 @@ class Server:
             self.stop_event.set()
 
     def poll(self):
+        if self.funding and self.stopping_at is None:
+            if self.funding.error or self.funding.poll() is not None:
+                self.error = (
+                    self.funding.error
+                    or "The funding daemon stopped. See its log in the data folder."
+                )
+                self.stop()
+            elif self.process is None and self.funding.ready.is_set():
+                self._start_worker()
         if self.process is None:
-            return 0
+            if self.funding and self.stopping_at is None:
+                return None
+            return self._finish(1 if self.error else 0)
         if self.process.is_alive():
             if (
                 not self.ready.is_set()
@@ -179,6 +241,14 @@ class Server:
         if code == 75 and self.stopping_at is None:
             self.start()
             return None
+        return self._finish(1 if self.error else code)
+
+    def _finish(self, code):
+        if self.funding:
+            self.funding.stop()
+            if self.funding.poll() is None:
+                return None
+            self.funding.close()
         return code
 
 
@@ -252,9 +322,59 @@ def gui():  # noqa: C901 - UI callbacks share the window and server lifecycle.
     ttk.Label(
         frame, text="Allow the administrator to configure LNbits in the browser."
     ).grid(row=10, columnspan=3, sticky="w", pady=(4, 16))
+    funding_frame = ttk.LabelFrame(frame, text="Bundled funding source", padding=8)
+    funding_frame.grid(row=11, columnspan=3, sticky="ew")
+    funding_choices = {"Neither (use LNbits settings)": "none", "Spark L2": "spark"}
+    if sys.platform != "win32":
+        funding_choices["Phoenixd"] = "phoenixd"
+    funding_choice = tk.StringVar(value=next(iter(funding_choices)))
+    funding_port = tk.StringVar(value="8765")
+    funding_select = ttk.Combobox(
+        funding_frame,
+        textvariable=funding_choice,
+        values=list(funding_choices),
+        state="readonly",
+    )
+    funding_select.grid(row=0, column=0, sticky="w")
+    ttk.Label(funding_frame, text="Port").grid(row=0, column=1, padx=8)
+    funding_entry = ttk.Entry(funding_frame, textvariable=funding_port, width=8)
+    funding_entry.grid(row=0, column=2)
+    ttk.Label(
+        funding_frame,
+        text=(
+            "Runs locally with LNbits. Back up your data folder, including "
+            "funding/<provider>/seed.dat."
+        ),
+        wraplength=560,
+    ).grid(row=1, columnspan=3, sticky="w", pady=(6, 0))
+
+    def load_funding(*_):
+        try:
+            profile = load_profile(fields["LNBITS_DATA_FOLDER"].get())
+            label = next(
+                (
+                    label
+                    for label, name in funding_choices.items()
+                    if name == profile.get("provider")
+                ),
+                next(iter(funding_choices)),
+            )
+            funding_choice.set(label)
+            funding_port.set(str(profile.get("port", 8765)))
+        except (OSError, ValueError):
+            pass  # The launch validation reports an unreadable profile.
+
+    def select_funding(*_):
+        funding_port.set(
+            "9740" if funding_choices[funding_choice.get()] == "phoenixd" else "8765"
+        )
+
+    funding_select.bind("<<ComboboxSelected>>", select_funding)
+    fields["LNBITS_DATA_FOLDER"].trace_add("write", load_funding)
+    load_funding()
     status = tk.StringVar(value="Choose your settings, then launch.")
     ttk.Label(frame, textvariable=status, wraplength=560).grid(
-        row=11, columnspan=3, sticky="w", pady=8
+        row=12, columnspan=3, sticky="w", pady=8
     )
     server = None
     closing = False
@@ -282,7 +402,8 @@ def gui():  # noqa: C901 - UI callbacks share the window and server lifecycle.
                 root.destroy()
                 return
             status.set(
-                f"LNbits stopped (exit {code}). "
+                server.error
+                or f"LNbits stopped (exit {code}). "
                 "See logs/desktop.log in your data folder."
             )
             launch.configure(text="Close", command=close)
@@ -294,7 +415,11 @@ def gui():  # noqa: C901 - UI callbacks share the window and server lifecycle.
         elif not closing:
             open_browser.configure(state="disabled")
             status.set(
-                "Starting LNbits…"
+                (
+                    "Starting funding source…"
+                    if server.funding and not server.funding.ready.is_set()
+                    else "Starting LNbits…"
+                )
                 if server.stopping_at is None
                 else "Startup timed out; stopping LNbits…"
             )
@@ -303,25 +428,54 @@ def gui():  # noqa: C901 - UI callbacks share the window and server lifecycle.
     def start():
         nonlocal server
         try:
+            provider = funding_choices[funding_choice.get()]
+            accepted = False
+            if provider == "phoenixd" and not load_profile(
+                fields["LNBITS_DATA_FOLDER"].get()
+            ).get("phoenix_terms"):
+                accepted = messagebox.askokcancel(
+                    "Phoenixd first setup",
+                    "Back up your funding seed and never run another Phoenix instance "
+                    "with the same seed.\n\n"
+                    "Phoenixd purchases incoming liquidity automatically. Mining and "
+                    "service fees apply; small incoming payments may become "
+                    "non-refundable fee credit.\n\n"
+                    "Details: https://phoenix.acinq.co/server/auto-liquidity\n\n"
+                    "Continue with these terms?",
+                    parent=root,
+                )
+                if not accepted:
+                    return
             env = configuration(
                 *(fields[key].get() for key in ("HOST", "PORT", "LNBITS_DATA_FOLDER")),
                 https.get(),
                 admin.get(),
+                provider,
+                funding_port.get(),
+                accepted,
             )
             server = Server(env)
             server.start()
-        except (ValueError, OSError):
+        except (ValueError, OSError) as exc:
+            if server and server.funding:
+                server.funding.close()
             server = None
             messagebox.showerror(
                 "Cannot launch LNbits",
-                "Check the host, port and folder. The address may already be in use "
-                "or the folder may not be writable.",
+                (
+                    str(exc)
+                    if isinstance(exc, ValueError)
+                    else "Check the ports and data folder. "
+                    "Another instance may already be running."
+                ),
                 parent=root,
             )
             return
         for child in frame.winfo_children():
             if isinstance(child, (ttk.Entry, ttk.Checkbutton, ttk.Button)):
                 child.configure(state="disabled")
+        funding_select.configure(state="disabled")
+        funding_entry.configure(state="disabled")
         launch.configure(text="Stop LNbits", command=close, state="normal")
         status.set("Starting LNbits…")
         poll()
@@ -334,16 +488,18 @@ def gui():  # noqa: C901 - UI callbacks share the window and server lifecycle.
             webbrowser.open(f"http://{host}:{server.environment['PORT']}")
 
     launch = ttk.Button(frame, text="Launch LNbits", command=start)
-    launch.grid(row=12, column=0, columnspan=2, sticky="w", pady=(12, 0))
+    launch.grid(row=13, column=0, columnspan=2, sticky="w", pady=(12, 0))
     open_browser = ttk.Button(
         frame, text="Open in browser", command=open_url, state="disabled"
     )
-    open_browser.grid(row=12, column=2, pady=(12, 0))
+    open_browser.grid(row=13, column=2, pady=(12, 0))
     root.protocol("WM_DELETE_WINDOW", close)
+    if sys.platform == "darwin":
+        root.createcommand("tk::mac::Quit", close)
     try:
         root.mainloop()
     finally:
-        if server and server.process:
+        if server and (server.process or server.funding):
             server.stop()
             while server.poll() is None:
                 time.sleep(0.1)
@@ -393,7 +549,7 @@ def launched_from_terminal():
 def should_show_gui():
     if len(sys.argv) != 1 or launched_from_terminal():
         return False
-    return sys.platform == "win32" or bool(
+    return sys.platform in ("win32", "darwin") or bool(
         os.environ.get("DISPLAY") or os.environ.get("WAYLAND_DISPLAY")
     )
 
@@ -409,6 +565,19 @@ def main():
     parser.add_argument("--stop-file", help="Headless mode: stop when this file exists")
     parser.add_argument("--host", default=os.environ.get("HOST", "127.0.0.1"))
     parser.add_argument("--port", default=os.environ.get("PORT", "5000"))
+    parser.add_argument(
+        "--funding-source",
+        choices=("none", *PROVIDERS),
+        help="Start a bundled funding daemon (defaults to the saved selection)",
+    )
+    parser.add_argument(
+        "--funding-port", type=int, help="Local port for the bundled daemon"
+    )
+    parser.add_argument(
+        "--accept-phoenixd-terms",
+        action="store_true",
+        help="Acknowledge Phoenixd backup and automatic liquidity terms on first setup",
+    )
     args = parser.parse_args()
     if args.gui or (not args.headless and should_show_gui()):
         gui()
@@ -419,15 +588,25 @@ def main():
         os.environ.get("LNBITS_DATA_FOLDER", str(default_folder())),
         os.environ.get("AUTH_HTTPS_ONLY", "false").lower() == "true",
         os.environ.get("LNBITS_ADMIN_UI", "true").lower() == "true",
+        args.funding_source,
+        args.funding_port,
+        args.accept_phoenixd_terms,
     )
     server = Server(env)
     signal.signal(signal.SIGTERM, lambda *_: server.stop())
     signal.signal(signal.SIGINT, lambda *_: server.stop())
-    server.start()
-    while (code := server.poll()) is None:
-        if args.stop_file and Path(args.stop_file).exists():
-            server.stop()
-        time.sleep(0.1)
+    try:
+        server.start()
+        while (code := server.poll()) is None:
+            if args.stop_file and Path(args.stop_file).exists():
+                server.stop()
+            time.sleep(0.1)
+    finally:
+        server.stop()
+        while server.poll() is None:
+            time.sleep(0.1)
+    if server.error:
+        print(server.error, file=sys.stderr)
     sys.exit(code)
 
 
