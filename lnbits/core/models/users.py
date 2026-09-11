@@ -5,7 +5,7 @@ from uuid import UUID
 
 from bcrypt import checkpw, gensalt, hashpw
 from fastapi import Query
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, validator
 
 from lnbits.core.models.misc import SimpleItem
 from lnbits.db import FilterModel
@@ -385,6 +385,14 @@ class AccessTokenPayload(BaseModel):
 class UpdateBalance(BaseModel):
     id: str
     amount: int
+    memo: str | None = Field(default=None, max_length=639)
+
+    @validator("memo")
+    def memo_max_bytes(cls, value: str | None) -> str | None:
+        # bolt11 invoice descriptions are limited to 639 bytes
+        if value and len(value.encode("utf-8")) > 639:
+            raise ValueError("Memo cannot be longer than 639 bytes.")
+        return value
 
 
 class ApiTokenRequest(BaseModel):
