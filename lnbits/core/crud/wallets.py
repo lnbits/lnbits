@@ -31,6 +31,8 @@ async def create_wallet(
         inkey=uuid4().hex,
         currency=settings.lnbits_default_accounting_currency or "USD",
     )
+    if wallet_type == WalletType.FIAT:
+        wallet.extra.icon = "credit_card"
     if settings.ln_address_creation_allowed and wallet.is_lightning_wallet:
         wallet.lightning_address = await generate_lightning_address_local_part(conn)
 
