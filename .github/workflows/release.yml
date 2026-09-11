@@ -6,6 +6,10 @@ on:
       - "v[0-9]+.[0-9]+.[0-9]+"
       - "[0-9]+.[0-9]+.[0-9]+"
 
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
 permissions:
   contents: write
 
@@ -15,12 +19,24 @@ jobs:
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
+      - name: Verify tag matches package version
+        env:
+          RELEASE_TAG: ${{ github.ref_name }}
+        run: |
+          python - <<'PYTHON'
+          import os
+          import tomllib
+          from pathlib import Path
+          version = tomllib.loads(Path("pyproject.toml").read_text())["project"]["version"]
+          tag = os.environ["RELEASE_TAG"].removeprefix("v")
+          assert tag.replace("-rc", "rc") == version.replace("-rc", "rc"), "Tag and package version differ"
+          PYTHON
       - name: Create github release
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           tag: ${{ github.ref_name }}
         run: |
-          gh release create "$tag" --generate-notes --draft
+          gh release view "$tag" >/dev/null 2>&1 || gh release create "$tag" --verify-tag --generate-notes --draft
 
   docker:
     if: github.repository == 'lnbits/lnbits'
@@ -53,6 +69,7 @@ jobs:
       DOCKER_PASSWORD: ${{ secrets.DOCKER_PASSWORD }}
 
   pypi:
+    needs: [ release ]
     if: github.repository == 'lnbits/lnbits'
     runs-on: ubuntu-24.04
     steps:
@@ -73,5 +90,11 @@ jobs:
   appimage:
     needs: [ release ]
     uses: ./.github/workflows/appimage.yml
+    with:
+      tag_name: ${{ github.ref_name }}
+
+  windows:
+    needs: [ release ]
+    uses: ./.github/workflows/windows.yml
     with:
       tag_name: ${{ github.ref_name }}

@@ -15,9 +15,13 @@ on:
         required: true
         type: string
 
+permissions:
+  contents: write
+
 jobs:
   build-linux-package:
     runs-on: ubuntu-22.04
+    timeout-minutes: 30
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -36,21 +40,13 @@ jobs:
           node-version: "24.x"
           cache: npm
 
-      - name: Install system deps and uv
+      - name: Install system dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y libfuse2
-          curl -LsSf https://astral.sh/uv/install.sh | sh
-          echo "$HOME/.local/bin" >> $GITHUB_PATH
+          sudo apt-get install -y libfuse2 python3-tk xvfb
         shell: bash
 
-      - name: Cache uv and venv
-        uses: actions/cache@v4
-        with:
-          path: |
-            ~/.cache/uv
-            .venv
-          key: ${{ runner.os }}-uv-${{ hashFiles('uv.lock', 'pyproject.toml') }}
+      - uses: astral-sh/setup-uv@v6
 
       - name: Verify frontend assets
         run: |
@@ -63,36 +59,12 @@ jobs:
       - name: Build LNbits binary (uv + PyInstaller)
         run: |
           uv sync --locked --all-extras --no-dev --no-editable
-          uv pip install pyinstaller
-          export DEBUG=false
-          WASMTIME_LIB="$(.venv/bin/python -c \
-            'from pathlib import Path; import wasmtime; print(next(Path(wasmtime.__file__).parent.glob("linux-*/*.so")))')"
-          WASMTIME_PLATFORM="$(basename "$(dirname "$WASMTIME_LIB")")"
-          .venv/bin/pyinstaller \
-            --clean \
-            --noconfirm \
-            --onefile \
-            --name lnbits \
-            --specpath build \
-            --hidden-import=embit \
-            --hidden-import=bitstring.bitstore_bitarray \
-            --add-binary "$WASMTIME_LIB:wasmtime/$WASMTIME_PLATFORM" \
-            --collect-all embit \
-            --collect-all bitstring \
-            --collect-all bitarray \
-            --collect-all coincurve \
-            --collect-data pyinstrument \
-            --collect-data random_username \
-            --collect-all wasmtime \
-            --collect-all lnbits \
-            --collect-all sqlalchemy \
-            --collect-all breez_sdk \
-            --collect-binaries breez_sdk \
-            --collect-all breez_sdk_liquid \
-            --collect-binaries breez_sdk_liquid \
-            --collect-all aiosqlite \
-            .venv/bin/lnbits
+          uv pip install pyinstaller==6.22.2
+          uv run --no-sync python .github/packaging/build.py
         shell: bash
+
+      - name: Test launcher window and shutdown
+        run: xvfb-run -a uv run --no-sync python -m unittest discover -s .github/packaging -v
 
       - name: Verify packaged dependency data
         run: |
@@ -119,108 +91,35 @@ jobs:
           mkdir -p packaging/linux
           cp -a .github/packaging/linux/AppDir packaging/linux/AppDir
           mkdir -p packaging/linux/AppDir/usr/lnbits
-          git archive HEAD | tar -x -C packaging/linux/AppDir/usr/lnbits
           mkdir -p packaging/linux/AppDir/usr/lnbits/dist
           install -m 755 dist/lnbits packaging/linux/AppDir/usr/lnbits/dist/lnbits
           chmod +x packaging/linux/AppDir/AppRun
           chmod +x packaging/linux/AppDir/lnbits.desktop
 
-          # keep AppDir slim
-          find packaging/linux/AppDir/usr/lnbits -mindepth 1 -maxdepth 1 \
-              ! -name 'dist' \
-              ! -name 'lnbits' \
-              -exec rm -rf {} +
         shell: bash
 
-      - name: Smoke test packaged binary and assets
-        run: |
-          SMOKE_DIR="$(mktemp -d)"
-          PACKAGE_DIR="$GITHUB_WORKSPACE/packaging/linux/AppDir/usr/lnbits"
-          export DEBUG=false
-          export BUNDLE_ASSETS=true
-          export PROFILER=true
-          export LNBITS_DATA_FOLDER="$SMOKE_DIR/data"
-          export LNBITS_EXTENSIONS_PATH="$SMOKE_DIR"
-          export LNBITS_EXTENSIONS_DEFAULT_INSTALL='[]'
-          export LNBITS_BACKEND_WALLET_CLASS=FakeWallet
-          cd "$PACKAGE_DIR"
-          setsid ./dist/lnbits --host 127.0.0.1 --port 5001 &
-          LNBITS_PID=$!
-          trap 'kill -- -"$LNBITS_PID" 2>/dev/null || true; rm -rf "$SMOKE_DIR"' EXIT
-
-          for _ in $(seq 1 60); do
-            if curl --fail --silent --output /dev/null http://127.0.0.1:5001/ && \
-              curl --fail --silent --output /dev/null http://127.0.0.1:5001/static/bundle.min.js && \
-              curl --fail --silent --output /dev/null 'http://127.0.0.1:5001/?profiler=1'; then
-              exit 0
-            fi
-            if ! kill -0 "$LNBITS_PID" 2>/dev/null; then
-              echo "Packaged LNbits exited before serving the homepage." >&2
-              exit 1
-            fi
-            sleep 1
-          done
-
-          echo "Packaged LNbits did not serve the homepage and bundled assets within 60 seconds." >&2
-          exit 1
-        shell: bash
+      - name: Smoke test packaged binary, assets and shutdown
+        run: uv run --no-sync python .github/packaging/smoke.py dist/lnbits
 
       - name: Build AppImage
+        env:
+          TAG_NAME: ${{ inputs.tag_name }}
         run: |
           wget https://github.com/AppImage/AppImageKit/releases/download/continuous/appimagetool-x86_64.AppImage
           chmod +x appimagetool-x86_64.AppImage
-          TAG_NAME=${{ inputs.tag_name }}
           APPIMAGE_NAME="LNbits-${TAG_NAME}.AppImage"
           ./appimagetool-x86_64.AppImage \
-            --updateinformation "gh-releases-zsync|lnbits|lnbits|latest|*.AppImage.zsync" \
             packaging/linux/AppDir "$APPIMAGE_NAME"
           chmod +x "$APPIMAGE_NAME"
-          echo "APPIMAGE_NAME=$APPIMAGE_NAME" >> $GITHUB_ENV
+          echo "APPIMAGE_NAME=$APPIMAGE_NAME" >> "$GITHUB_ENV"
 
-          # 🔎 quick audit: show glibc versions referenced by the binary
-          echo "Runner glibc:"
-          ldd --version | head -n1 || true
-          echo "Symbols needed by lnbits:"
-          strings "$APPIMAGE_NAME" | grep -o 'GLIBC_[0-9.]*' | sort -u || true
         shell: bash
 
-      - name: Smoke test final AppImage
-        run: |
-          SMOKE_DIR="$(mktemp -d)"
-          export HOME="$SMOKE_DIR/home"
-          export APPIMAGE_EXTRACT_AND_RUN=1
-          export DEBUG=false
-          export BUNDLE_ASSETS=true
-          export PROFILER=true
-          export LNBITS_DATA_FOLDER="$SMOKE_DIR/data"
-          export LNBITS_EXTENSIONS_PATH="$SMOKE_DIR/extensions"
-          export LNBITS_EXTENSIONS_DEFAULT_INSTALL='[]'
-          export LNBITS_BACKEND_WALLET_CLASS=FakeWallet
-          mkdir -p "$HOME" "$SMOKE_DIR/launch"
-          cd "$SMOKE_DIR/launch"
-          setsid "$GITHUB_WORKSPACE/${{ env.APPIMAGE_NAME }}" \
-            --host 127.0.0.1 --port 5002 &
-          LNBITS_PID=$!
-          trap 'kill -- -"$LNBITS_PID" 2>/dev/null || true; rm -rf "$SMOKE_DIR"' EXIT
-
-          for _ in $(seq 1 60); do
-            if curl --fail --silent --output /dev/null http://127.0.0.1:5002/ && \
-              curl --fail --silent --output /dev/null http://127.0.0.1:5002/static/bundle.min.js && \
-              curl --fail --silent --output /dev/null 'http://127.0.0.1:5002/?profiler=1'; then
-              exit 0
-            fi
-            if ! kill -0 "$LNBITS_PID" 2>/dev/null; then
-              echo "AppImage exited before serving the homepage and bundled assets." >&2
-              exit 1
-            fi
-            sleep 1
-          done
-
-          echo "AppImage did not serve the homepage and bundled assets within 60 seconds." >&2
-          exit 1
-        shell: bash
+      - name: Smoke test final AppImage and shutdown
+        run: uv run --no-sync python .github/packaging/smoke.py "$APPIMAGE_NAME"
 
       - name: Upload Linux Release Asset
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: gh release upload "${{ inputs.tag_name }}" "${{ env.APPIMAGE_NAME }}" --clobber
+          TAG_NAME: ${{ inputs.tag_name }}
+        run: gh release upload "$TAG_NAME" "$APPIMAGE_NAME" --clobber
