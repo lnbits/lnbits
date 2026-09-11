@@ -5,6 +5,7 @@ from typing import Any
 from lnbits.core.crud.wallets import get_total_balance, get_wallet, get_wallets_ids
 from lnbits.core.db import db
 from lnbits.core.models import PaymentState
+from lnbits.core.models.wallets import WalletType
 from lnbits.db import Connection, DateTrunc, Filters, Page
 
 from ..models import (
@@ -245,6 +246,11 @@ async def create_payment(
     status: PaymentState = PaymentState.PENDING,
     conn: Connection | None = None,
 ) -> Payment:
+    if data.amount_msat < 0:
+        wallet = await get_wallet(data.wallet_id, conn=conn)
+        if wallet and not wallet.can_send_payments:
+            raise ValueError("Wallet does not have permission to spend funds.")
+
     # we don't allow the creation of the same invoice twice
     # note: this can be removed if the db uniqueness constraints are set appropriately
     previous_payment = await get_standalone_payment(checking_id, conn=conn)
@@ -412,12 +418,15 @@ async def get_wallet_payment_total_breakdown(
     if not wallet or not wallet.can_view_payments:
         return []
 
-    values = {"wallet_id": wallet.source_wallet_id}
+    values = {
+        "wallet_id": wallet.source_wallet_id,
+        "is_fiat_wallet": wallet.wallet_type == WalletType.FIAT.value,
+    }
     data = await (conn or db).fetchall(
         query=f"""
             SELECT tag,
                 CASE
-                    WHEN fiat_provider IS NOT NULL
+                    WHEN :is_fiat_wallet OR fiat_provider IS NOT NULL
                     THEN true
                     ELSE false
                 END AS is_fiat,

@@ -30,10 +30,27 @@
           map-options
           :label="$t('wallet_type')"
           v-model="g.newWalletType"
+          :hint="
+            walletTypes.find(type => type.value === g.newWalletType)
+              ?.description
+          "
           dense
-        ></q-select>
+        >
+          <template v-slot:option="scope">
+            <q-item v-bind="scope.itemProps">
+              <q-item-section>
+                <q-item-label v-text="scope.opt.label"></q-item-label>
+                <q-item-label
+                  v-if="scope.opt.description"
+                  caption
+                  v-text="scope.opt.description"
+                ></q-item-label>
+              </q-item-section>
+            </q-item>
+          </template>
+        </q-select>
         <q-input
-          v-if="isLightning"
+          v-if="!isLightningShared"
           dense
           v-model="wallet.name"
           :label="$t('wallet_name')"

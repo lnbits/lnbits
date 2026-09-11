@@ -290,6 +290,7 @@ class User(BaseModel):
     admin: bool = False
     super_user: bool = False
     fiat_providers: list[str] = []
+    can_create_fiat_wallet: bool = False
     has_password: bool = False
     extra: UserExtra = UserExtra()
     ui_customization: dict = Field(default_factory=dict)

@@ -14,6 +14,7 @@ from lnbits.core.db import db
 from lnbits.core.models import UserAcls
 from lnbits.db import Connection, Filters, Page
 from lnbits.helpers import sha256s
+from lnbits.settings import settings
 from lnbits.utils.cache import cache
 
 from ..models import (
@@ -92,6 +93,7 @@ async def get_accounts(
             accounts.activated,
             SUM(COALESCE((
                 SELECT balance FROM balances WHERE wallet_id = wallets.id
+                AND wallets.wallet_type != 'fiat'
             ), 0)) as balance_msat,
             SUM((
                 SELECT COUNT(*) FROM apipayments WHERE wallet_id = wallets.id
@@ -255,6 +257,7 @@ async def get_user_from_account(
         admin=account.is_admin,
         super_user=account.is_super_user,
         fiat_providers=account.fiat_providers,
+        can_create_fiat_wallet=settings.can_create_fiat_wallet(account.id),
         has_password=account.password_hash is not None,
         ui_customization=account.ui_customization or {},
     )

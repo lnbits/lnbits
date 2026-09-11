@@ -314,6 +314,12 @@ window.PageAdmin = {
             this.formData.lnbits_backend_wallet_class
           this.settings = this.formData
           this.formData = _.clone(this.settings)
+          LNbits.api
+            .getAuthUser()
+            .then(res => {
+              this.g.user = LNbits.map.user(res.data)
+            })
+            .catch(LNbits.utils.notifyApiError)
           Quasar.Notify.create({
             type: 'positive',
             message: `Success! Settings changed! ${
