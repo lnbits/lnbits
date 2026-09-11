@@ -18,6 +18,16 @@ Wallets, settings, extensions and logs are stored separately from the app,
 by default in ~/Library/Application Support/LNbits. The launcher lets you
 choose another data folder. Keep that folder backed up.
 
+Bundled funding
+Choose Spark L2, Phoenixd or Neither in the launcher. First setup of a bundled
+funding source requires a new data folder. The app starts the selected daemon
+and configures LNbits automatically. The funding seed persists in
+funding/spark/seed.dat (24 words) or funding/phoenixd/seed.dat (12 words).
+Back up the entire data folder and keep a private offline seed backup.
+Never run another Phoenix instance with the same seed. Phoenixd first setup
+asks you to acknowledge its automatic liquidity fees and fee-credit terms.
+Closing the launcher stops both LNbits and its funding daemon.
+
 To update, stop LNbits and quit the app before replacing it in Applications.
 Replacing or removing the app does not remove your data folder.
 Keep the launcher open while using LNbits. Stop LNbits or quit the launcher

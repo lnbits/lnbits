@@ -48,12 +48,16 @@ jobs:
           ./node_modules/.bin/prettier -w ./lnbits/static/vendor.json
           git diff --exit-code -- lnbits/static
       - name: Build executable
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
         run: |
           uv sync --locked --no-dev --no-editable
           uv pip install pyinstaller==6.22.2
           uv run --no-sync python .github/packaging/build.py
       - name: Test launcher window and shutdown
         run: uv run --no-sync python -m unittest discover -s .github/packaging -v
+      - name: Test bundled funding runtimes
+        run: uv run --no-sync python .github/packaging/smoke_sidecars.py dist/lnbits.exe
       - name: Test executable startup, assets and shutdown
         run: uv run --no-sync python .github/packaging/smoke.py dist/lnbits.exe
       - uses: actions/upload-artifact@v4

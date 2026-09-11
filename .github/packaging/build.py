@@ -7,8 +7,11 @@ import sys
 from pathlib import Path
 
 import wasmtime
+from prepare_sidecars import main as prepare_sidecars
+from PyInstaller.depend.bindepend import get_imports
 
 os.environ["DEBUG"] = "false"
+prepare_sidecars()
 
 packages = [
     "embit",
@@ -36,6 +39,30 @@ args = [
     "--collect-data=pyinstrument",
     "--collect-data=random_username",
 ]
+# Keep external executables as binaries so macOS signs them with the app.
+sidecars = Path("build/sidecars").resolve()
+for resource in sidecars.iterdir():
+    kind = (
+        "--add-binary"
+        if resource.name in ("node", "node.exe", "phoenixd")
+        else "--add-data"
+    )
+    destination = "sidecars/spark" if resource.is_dir() else "sidecars"
+    args += [kind, f"{resource}:{destination}"]
+    if sys.platform == "linux" and resource.name in ("node", "phoenixd"):
+        # Phoenixd still needs libcrypt.so.1; newer distros need it bundled.
+        for name, path in get_imports(str(resource)):
+            if name in (
+                "libcrypt.so.1",
+                "libz.so.1",
+                "libgcc_s.so.1",
+                "libstdc++.so.6",
+            ):
+                if path is None:
+                    raise RuntimeError(
+                        f"Install {name} before building bundled funding"
+                    )
+                args += ["--add-binary", f"{path}:sidecars/lib"]
 # Wasmtime opens its native library by package-relative path via ctypes.
 for library in Path(wasmtime.__file__).parent.glob("*/*"):
     if library.suffix in (".so", ".dll", ".dylib"):

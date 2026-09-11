@@ -43,7 +43,7 @@ jobs:
       - name: Install system dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y libfuse2 python3-tk xvfb
+          sudo apt-get install -y libfuse2 libcrypt1 python3-tk xvfb
         shell: bash
 
       - uses: astral-sh/setup-uv@v6
@@ -57,6 +57,8 @@ jobs:
         shell: bash
 
       - name: Build LNbits binary (uv + PyInstaller)
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
         run: |
           uv sync --locked --all-extras --no-dev --no-editable
           uv pip install pyinstaller==6.22.2
@@ -65,6 +67,9 @@ jobs:
 
       - name: Test launcher window and shutdown
         run: xvfb-run -a uv run --no-sync python -m unittest discover -s .github/packaging -v
+
+      - name: Test bundled funding runtimes
+        run: uv run --no-sync python .github/packaging/smoke_sidecars.py dist/lnbits
 
       - name: Verify packaged dependency data
         run: |

@@ -1,0 +1,21 @@
+{
+  "phoenixd": {
+    "version": "0.9.0",
+    "sha256": {
+      "linux-x64": "d9e54b93813f1771b072c96c5ae968ffb5b052f2ca1c42762b66e2cb80362a0f",
+      "linux-arm64": "c806f0d8058a487284173536accba9041176f8217f8c84ce59b6e97d04a88b31",
+      "macos-x64": "c6699426e7d29f6f9e8f96a3d7f9d3aab68b3142e08346532dae45a17412824e",
+      "macos-arm64": "350c87c90cdf91d2cfa509ee48fd3d71267021303d4359a5eeada1694dea9b9a"
+    }
+  },
+  "node": {
+    "version": "24.21.0",
+    "sha256": {
+      "linux-x64": "fd8e59d5a511510f6a298afb548f18c7d2b1be404d8b4a27d94fbe49f56cb2d6",
+      "linux-arm64": "6ad1325edbdb5649c379b75a237147a666c95d4f9ae8d340fef2d1575d289ad2",
+      "darwin-x64": "1462cb3b3046b815cf8ea436d3da450ec1a9f11dac7e5a46b0ada5305d7e8097",
+      "darwin-arm64": "bed7eea5325e1108f32ce5228ddd6a5f0f08a499ee42aa7442aea583702f6057",
+      "win-x64": "158f7685b44de51f6c0df1d153526cbcd3e1bc739a8dfc607721cef75de9e541"
+    }
+  }
+}

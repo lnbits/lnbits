@@ -21,7 +21,7 @@ download quarantine or every user's macOS configuration.
 
 ## Build locally
 
-On a Mac with Python 3.12 (including Tk), uv and the Xcode command-line tools,
+On a Mac with Python 3.12 (including Tk), Node/npm, uv and the Xcode command-line tools,
 from the repository root:
 
 ```sh
@@ -34,6 +34,9 @@ uv run --no-sync python .github/packaging/macos/dmg.py
 
 Build on each target architecture. A universal app would additionally require
 universal builds of every native dependency. Linux cannot build this macOS app.
+
+The app includes Spark L2 and Phoenixd. See the shared
+[funding documentation](../README.md) for pins, persistence and verification.
 
 ## Signing status
 

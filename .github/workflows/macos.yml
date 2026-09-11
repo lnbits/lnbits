@@ -55,6 +55,8 @@ jobs:
           ./node_modules/.bin/prettier -w ./lnbits/static/vendor.json
           git diff --exit-code -- lnbits/static
       - name: Build application
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
         run: |
           uv sync --locked --no-dev --no-editable
           uv pip install pyinstaller==6.22.2
@@ -79,6 +81,7 @@ jobs:
           trap 'hdiutil detach "$MOUNT_DIR"; rmdir "$MOUNT_DIR"' EXIT
           test -L "$MOUNT_DIR/Applications"
           codesign --verify --deep --strict "$MOUNT_DIR/LNbits.app"
+          uv run --no-sync python .github/packaging/smoke_sidecars.py "$MOUNT_DIR/LNbits.app/Contents/Frameworks/sidecars"
           uv run --no-sync python .github/packaging/smoke.py "$MOUNT_DIR/LNbits.app/Contents/MacOS/LNbits"
       - name: Record signing status
         run: echo 'DMGs are ad-hoc signed, without Apple Developer ID or notarization. See the included Read me.txt for first-launch instructions.' >> "$GITHUB_STEP_SUMMARY"
