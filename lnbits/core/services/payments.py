@@ -11,6 +11,7 @@ from lnbits.core.crud.payments import get_daily_stats
 from lnbits.core.db import db
 from lnbits.core.models import PaymentDailyStats, PaymentFilters
 from lnbits.core.models.payments import CreateInvoice
+from lnbits.core.models.wallets import WalletType
 from lnbits.db import Connection, Filters
 from lnbits.decorators import check_user_extension_access
 from lnbits.exceptions import InvoiceError, PaymentError, UnsupportedError
@@ -136,6 +137,14 @@ async def create_fiat_invoice(
         raise ValueError(
             f"Fiat provider '{fiat_provider_name}' is not enabled.",
         )
+
+    wallet = await get_wallet(wallet_id, conn=conn)
+    if (
+        wallet
+        and wallet.wallet_type == WalletType.FIAT.value
+        and fiat_provider_name not in settings.get_fiat_providers_for_user(wallet.user)
+    ):
+        raise ValueError("Fiat provider is not available for this user.")
 
     if invoice_data.unit == "sat":
         raise ValueError("Fiat provider cannot be used with satoshis.")
@@ -280,6 +289,11 @@ async def create_invoice(
             status="failed",
         )
 
+    if user_wallet.wallet_type == WalletType.FIAT.value and not internal:
+        raise InvoiceError(
+            "Fiat wallets only accept cash or fiat provider payments.", status="failed"
+        )
+
     invoice_memo = None if description_hash else memo[:640]
 
     # use the fake wallet if the invoice is for internal use only
@@ -354,7 +368,11 @@ async def create_invoice(
     )
 
     payment = await create_payment(
-        checking_id=invoice_response.checking_id,
+        checking_id=(
+            f"internal_{invoice_response.checking_id}"
+            if internal and user_wallet.wallet_type == WalletType.FIAT.value
+            else invoice_response.checking_id
+        ),
         data=create_payment_model,
         conn=conn,
     )

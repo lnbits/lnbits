@@ -2,18 +2,57 @@ from http import HTTPStatus
 
 from fastapi import APIRouter, Depends, HTTPException
 from loguru import logger
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
+from lnbits.core.crud.payments import update_payment
 from lnbits.core.crud.settings import set_settings_field
 from lnbits.core.models.misc import SimpleStatus
-from lnbits.core.models.wallets import WalletTypeInfo
+from lnbits.core.models.payments import CreateInvoice, Payment, PaymentState
+from lnbits.core.models.wallets import WalletType, WalletTypeInfo
 from lnbits.core.services import update_cached_settings
 from lnbits.core.services.fiat_providers import test_connection
+from lnbits.core.services.payments import create_wallet_invoice
 from lnbits.decorators import check_admin, require_admin_key
 from lnbits.fiat import RevolutWallet, StripeWallet, get_fiat_provider
 from lnbits.fiat.base import CreateFiatSubscription, FiatSubscriptionResponse
+from lnbits.task_manager import task_manager
 
 fiat_router = APIRouter(tags=["Fiat API"], prefix="/api/v1/fiat")
+
+
+class CreateCashPayment(BaseModel):
+    amount: float = Field(gt=0, allow_inf_nan=False)
+    unit: str
+    memo: str | None = Field(None, max_length=640)
+    internal_memo: str | None = Field(None, max_length=512)
+
+    class Config:
+        extra = "forbid"
+
+
+@fiat_router.post("/cash", status_code=HTTPStatus.CREATED)
+async def api_validate_cash_payment(
+    data: CreateCashPayment,
+    key_type: WalletTypeInfo = Depends(require_admin_key),
+) -> Payment:
+    if key_type.wallet.wallet_type != WalletType.FIAT.value or data.unit == "sat":
+        raise HTTPException(
+            HTTPStatus.BAD_REQUEST, "Cash requires a fiat wallet and currency."
+        )
+    payment = await create_wallet_invoice(
+        key_type.wallet.id,
+        CreateInvoice(
+            amount=data.amount,
+            unit=data.unit,
+            memo=data.memo,
+            internal=True,
+            extra={"fiat_method": "cash", "internal_memo": data.internal_memo},
+        ),
+    )
+    payment.status = PaymentState.SUCCESS
+    await update_payment(payment)
+    task_manager.internal_invoice_queue.put_nowait(payment)
+    return payment
 
 
 class RevolutCreateWebhook(BaseModel):

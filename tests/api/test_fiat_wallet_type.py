@@ -6,12 +6,10 @@ import pytest
 from lnbits.core.crud.payments import (
     create_payment,
     get_payments,
-    update_payment,
-    update_payment_checking_id,
 )
 from lnbits.core.crud.users import get_user
 from lnbits.core.crud.wallets import create_wallet, get_wallet
-from lnbits.core.models import CreatePayment, PaymentState
+from lnbits.core.models import CreatePayment, Payment
 from lnbits.core.models.payments import CreateInvoice
 from lnbits.core.models.wallets import WalletType
 from lnbits.core.services.fiat_providers import check_fiat_status
@@ -20,7 +18,7 @@ from lnbits.core.services.payments import (
     create_wallet_invoice,
     pay_invoice,
 )
-from lnbits.exceptions import PaymentError
+from lnbits.exceptions import InvoiceError, PaymentError
 from lnbits.fiat.base import FiatInvoiceResponse, FiatPaymentStatus
 from lnbits.settings import Settings
 from lnbits.wallets.fake import FakeWallet
@@ -110,19 +108,18 @@ async def test_fiat_wallet_receives_but_cannot_spend(
                 mocker.AsyncMock(return_value=provider),
             )
         data.fiat_provider = "stripe"
-    receipt = await create_payment_request(wallet.id, data)
-    if method == "cash":
-        # Match the existing TPoS cash invoice flow.
-        checking_id = f"internal_cash_{receipt.payment_hash}"
-        await update_payment_checking_id(receipt.checking_id, checking_id)
-        receipt.checking_id = checking_id
-    assert receipt.is_internal
-    if method == "stripe":
+        receipt = await create_payment_request(wallet.id, data)
         assert (await check_fiat_status(receipt)).success
     else:
-        # Existing extension settlement updates the internal payment record.
-        receipt.status = PaymentState.SUCCESS
-        await update_payment(receipt)
+        response = await client.post(
+            "/api/v1/fiat/cash",
+            headers={"X-Api-Key": wallet.adminkey},
+            json={"amount": 5, "unit": "USD", "memo": "Receipt"},
+        )
+        assert response.status_code == 201
+        receipt = Payment.parse_obj(response.json())
+        assert receipt.success
+    assert receipt.is_internal
     wallet = await get_wallet(wallet.id)
     assert wallet
     assert wallet.balance_msat > 0
@@ -200,6 +197,117 @@ async def test_fiat_wallet_receives_but_cannot_spend(
         json={"wallet_type": "lightning-shared", "shared_wallet_id": wallet.id},
     )
     assert shared.status_code == 400
+
+
+async def test_cash_validation_creates_and_settles_with_owner_admin_key(
+    client, from_wallet, mocker
+):
+    wallet = await create_wallet(user_id=from_wallet.user, wallet_type=WalletType.FIAT)
+    mocker.patch(
+        "lnbits.utils.exchange_rates.get_fiat_rate_satoshis",
+        mocker.AsyncMock(return_value=1000),
+    )
+    backend = mocker.patch("lnbits.core.services.payments.get_funding_source")
+    notify = mocker.patch(
+        "lnbits.core.views.fiat_api.task_manager.internal_invoice_queue.put_nowait"
+    )
+    data = {"amount": 12.34, "unit": "GBP", "internal_memo": "Till receipt"}
+    for key in (None, wallet.inkey, from_wallet.adminkey):
+        response = await client.post(
+            "/api/v1/fiat/cash", headers={"X-Api-Key": key} if key else {}, json=data
+        )
+        assert response.status_code in (400, 401, 403)
+    assert not await get_payments(wallet_id=wallet.id)
+    notify.assert_not_called()
+
+    response = await client.post(
+        "/api/v1/fiat/cash", headers={"X-Api-Key": wallet.adminkey}, json=data
+    )
+    assert response.status_code == 201
+    receipt = Payment.parse_obj(response.json())
+    assert receipt.success and receipt.is_internal and receipt.fee == 0
+    assert receipt.extra["fiat_method"] == "cash"
+    assert receipt.extra["fiat_amount"] == 12.34
+    assert receipt.extra["fiat_currency"] == "GBP"
+    assert receipt.extra["internal_memo"] == "Till receipt"
+    backend.assert_not_called()
+    notify.assert_called_once()
+    assert notify.call_args.args[0].success
+    payments = await get_payments(wallet_id=wallet.id)
+    assert len(payments) == 1 and payments[0].success
+    current = await get_wallet(wallet.id)
+    assert current and current.balance_msat == receipt.amount
+    assert current.withdrawable_balance == 0
+
+
+@pytest.mark.parametrize(
+    "invalid",
+    [
+        {"amount": 0},
+        {"amount": -1},
+        {"unit": "sat"},
+        {"unit": "INVALID"},
+        {"fiat_provider": "stripe"},
+        {"wallet_id": "another-wallet"},
+        {"payment_hash": "00" * 32},
+    ],
+)
+async def test_cash_validation_rejects_invalid_requests(client, from_wallet, invalid):
+    wallet = await create_wallet(user_id=from_wallet.user, wallet_type=WalletType.FIAT)
+    response = await client.post(
+        "/api/v1/fiat/cash",
+        headers={"X-Api-Key": wallet.adminkey},
+        json={"amount": 5, "unit": "USD", **invalid},
+    )
+    assert response.status_code in (400, 422)
+    assert not await get_payments(wallet_id=wallet.id)
+
+
+@pytest.mark.parametrize(
+    "options",
+    [
+        {},
+        {"extra": {"fiat_method": "cash"}, "unit": "sat"},
+        {"extra": {"fiat_method": "cash"}, "payment_hash": "00" * 32},
+    ],
+)
+async def test_fiat_wallet_rejects_lightning_receiving(client, from_wallet, options):
+    wallet = await create_wallet(user_id=from_wallet.user, wallet_type=WalletType.FIAT)
+    response = await client.post(
+        "/api/v1/payments",
+        headers={"X-Api-Key": wallet.inkey},
+        json={"out": False, "amount": 5, "unit": "USD", **options},
+    )
+    assert response.status_code == 520
+    assert not await get_payments(wallet_id=wallet.id)
+
+
+async def test_fiat_wallet_rejects_direct_lightning_invoice(from_wallet, mocker):
+    wallet = await create_wallet(user_id=from_wallet.user, wallet_type=WalletType.FIAT)
+    backend = mocker.patch("lnbits.core.services.payments.get_funding_source")
+    with pytest.raises(InvoiceError, match="only accept cash or fiat provider"):
+        await create_wallet_invoice(wallet.id, CreateInvoice(amount=5, memo="Blocked"))
+    backend.assert_not_called()
+    assert not await get_payments(wallet_id=wallet.id)
+
+
+async def test_fiat_provider_allowlist_applies_to_existing_wallet(
+    client, from_wallet, settings, mocker
+):
+    wallet = await create_wallet(user_id=from_wallet.user, wallet_type=WalletType.FIAT)
+    settings.lnbits_allow_fiat_wallets = True
+    settings.stripe_enabled = True
+    settings.stripe_limits.allowed_users = [uuid4().hex]
+    provider = mocker.patch("lnbits.core.services.payments.get_fiat_provider")
+    response = await client.post(
+        "/api/v1/payments",
+        headers={"X-Api-Key": wallet.inkey},
+        json={"out": False, "amount": 5, "unit": "USD", "fiat_provider": "stripe"},
+    )
+    assert response.status_code == 400
+    assert "not available" in response.text
+    provider.assert_not_called()
+    assert not await get_payments(wallet_id=wallet.id)
 
 
 @pytest.mark.parametrize("value,expected", [("true", True), ("false", False)])
