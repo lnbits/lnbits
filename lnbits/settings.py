@@ -832,6 +832,13 @@ class FiatProvidersSettings(
     SquareFiatProvider,
     RevolutFiatProvider,
 ):
+    lnbits_allow_fiat_wallets: bool = False
+
+    def can_create_fiat_wallet(self, user_id: str) -> bool:
+        return self.lnbits_allow_fiat_wallets or bool(
+            self.get_fiat_providers_for_user(user_id)
+        )
+
     def is_fiat_provider_enabled(self, provider: str | None) -> bool:
         """
         Checks if a specific fiat provider is enabled.

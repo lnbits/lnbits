@@ -31,6 +31,8 @@ async def create_wallet(
         inkey=uuid4().hex,
         currency=settings.lnbits_default_accounting_currency or "USD",
     )
+    if wallet_type == WalletType.FIAT:
+        wallet.extra.icon = "credit_card"
     if settings.ln_address_creation_allowed and wallet.is_lightning_wallet:
         wallet.lightning_address = await generate_lightning_address_local_part(conn)
 
@@ -136,7 +138,11 @@ async def get_standalone_wallet(
     if deleted is True:
         return wallet
 
-    if not wallet.lightning_address and settings.ln_address_creation_allowed:
+    if (
+        wallet.is_lightning_wallet
+        and not wallet.lightning_address
+        and settings.ln_address_creation_allowed
+    ):
         wallet.lightning_address = await generate_lightning_address_local_part(conn)
         await update_wallet(wallet, conn)
 
@@ -332,7 +338,11 @@ async def get_source_wallets(
 
 
 async def get_total_balance(conn: Connection | None = None):
-    result = await (conn or db).execute("SELECT SUM(balance) as balance FROM balances")
+    result = await (conn or db).execute("""
+        SELECT SUM(balance) as balance FROM balances
+        JOIN wallets ON wallets.id = balances.wallet_id
+        WHERE wallets.wallet_type != 'fiat'
+        """)
     row = result.mappings().first()
     return row.get("balance", 0) or 0
 

@@ -235,5 +235,13 @@ async def api_create_wallet(
             source_wallet_id=data.shared_wallet_id,
         )
 
-    # default WalletType.LIGHTNING:
-    return await create_wallet(user_id=account_id.id, wallet_name=data.name)
+    if data.wallet_type == WalletType.FIAT and not settings.can_create_fiat_wallet(
+        account_id.id
+    ):
+        raise HTTPException(
+            HTTPStatus.FORBIDDEN, "Fiat wallets are not enabled for this user."
+        )
+
+    return await create_wallet(
+        user_id=account_id.id, wallet_name=data.name, wallet_type=data.wallet_type
+    )
