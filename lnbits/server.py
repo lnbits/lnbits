@@ -1,4 +1,5 @@
 import multiprocessing as mp
+import sys
 import time
 from pathlib import Path
 
@@ -56,7 +57,7 @@ def main(
     while True:
         config = uvicorn.Config(
             "lnbits.__main__:app",
-            loop="uvloop",
+            loop="asyncio" if sys.platform == "win32" else "uvloop",
             port=port,
             host=host,
             forwarded_allow_ips=forwarded_allow_ips,
