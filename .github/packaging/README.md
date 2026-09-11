@@ -58,7 +58,7 @@ The terms flag is needed only for Phoenixd's first headless setup. Omit
 ## Build and verification
 
 `build.py` prepares runtimes before invoking PyInstaller. `sidecars/pins.json`
-pins Node 24.21.0, Phoenixd 0.9.0 and Spark sidecar v0.1.4 with SHA-256 checksums.
+pins Node 24.21.0, Phoenixd 0.9.0 and Spark sidecar v0.1.5 with SHA-256 checksums.
 Spark is downloaded at its fixed release commit; its tag and revision appear
 in the build log and are included in the bundled `sidecars/pins.json`.
 Downloads occur at build time only. A failed download or checksum mismatch fails
