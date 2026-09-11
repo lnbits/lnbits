@@ -6,11 +6,18 @@ import pytest
 from lnbits.core.crud.payments import (
     create_payment,
     get_payments,
+    get_wallet_payment_total_breakdown,
 )
-from lnbits.core.crud.users import get_user
-from lnbits.core.crud.wallets import create_wallet, get_wallet
-from lnbits.core.models import CreatePayment, Payment
+from lnbits.core.crud.users import create_account, get_accounts, get_user
+from lnbits.core.crud.wallets import (
+    create_wallet,
+    delete_wallet,
+    get_total_balance,
+    get_wallet,
+)
+from lnbits.core.models import CreatePayment, Payment, PaymentState
 from lnbits.core.models.payments import CreateInvoice
+from lnbits.core.models.users import Account, AccountFilters
 from lnbits.core.models.wallets import WalletType
 from lnbits.core.services.fiat_providers import check_fiat_status
 from lnbits.core.services.payments import (
@@ -18,6 +25,7 @@ from lnbits.core.services.payments import (
     create_wallet_invoice,
     pay_invoice,
 )
+from lnbits.db import Filter, Filters
 from lnbits.exceptions import InvoiceError, PaymentError
 from lnbits.fiat.base import FiatInvoiceResponse, FiatPaymentStatus
 from lnbits.settings import Settings
@@ -78,6 +86,7 @@ async def test_fiat_wallet_receives_but_cannot_spend(
     client, from_wallet, settings, mocker, method
 ):
     wallet = await create_wallet(user_id=from_wallet.user, wallet_type=WalletType.FIAT)
+    initial_total = await get_total_balance()
     mocker.patch(
         "lnbits.utils.exchange_rates.get_fiat_rate_satoshis",
         mocker.AsyncMock(return_value=1000),
@@ -125,6 +134,9 @@ async def test_fiat_wallet_receives_but_cannot_spend(
     assert wallet.balance_msat > 0
     assert wallet.withdrawable_balance == 0
     assert len(await get_payments(wallet_id=wallet.id)) == 1
+    assert await get_total_balance() == initial_total
+    breakdown = await get_wallet_payment_total_breakdown(wallet.id)
+    assert len(breakdown) == 1 and breakdown[0].is_fiat
 
     # Disabling creation must not turn an existing fiat wallet into a spendable one.
     settings.lnbits_allow_fiat_wallets = False
@@ -308,6 +320,61 @@ async def test_fiat_provider_allowlist_applies_to_existing_wallet(
     assert "not available" in response.text
     provider.assert_not_called()
     assert not await get_payments(wallet_id=wallet.id)
+
+
+async def test_fiat_balances_excluded_from_user_and_server_totals(client, mocker):
+    account = Account(id=uuid4().hex)
+    await create_account(account)
+    lightning = await create_wallet(user_id=account.id)
+    fiat = await create_wallet(user_id=account.id, wallet_type=WalletType.FIAT)
+    filters = Filters(
+        model=AccountFilters,
+        filters=[Filter.parse_query("id", [account.id], AccountFilters)],
+    )
+    initial_total = await get_total_balance()
+    await create_payment(
+        checking_id=f"internal_{uuid4().hex}",
+        data=CreatePayment(
+            wallet_id=lightning.id,
+            payment_hash=uuid4().hex,
+            bolt11="",
+            amount_msat=10000,
+            memo="Lightning balance",
+        ),
+        status=PaymentState.SUCCESS,
+    )
+    mocker.patch(
+        "lnbits.utils.exchange_rates.get_fiat_rate_satoshis",
+        mocker.AsyncMock(return_value=1000),
+    )
+    response = await client.post(
+        "/api/v1/fiat/cash",
+        headers={"X-Api-Key": fiat.adminkey},
+        json={"amount": 5, "unit": "USD"},
+    )
+    assert response.status_code == 201
+    cash = Payment.parse_obj(response.json())
+    assert cash.is_internal and cash.success
+    assert await get_total_balance() == initial_total + 10000
+    accounts = await get_accounts(filters=filters)
+    assert accounts.total == 1
+    assert accounts.data[0].balance_msat == 10000
+    assert accounts.data[0].wallet_count == 2
+    assert accounts.data[0].transaction_count == 2
+    fiat_wallet = await get_wallet(fiat.id)
+    assert fiat_wallet and fiat_wallet.balance_msat == cash.amount
+    breakdown = await get_wallet_payment_total_breakdown(fiat.id)
+    assert len(breakdown) == 1 and breakdown[0].is_fiat
+    lightning_breakdown = await get_wallet_payment_total_breakdown(lightning.id)
+    assert len(lightning_breakdown) == 1 and not lightning_breakdown[0].is_fiat
+
+    # A user with only an active fiat balance has a zero Lightning balance.
+    await delete_wallet(account.id, lightning.id)
+    assert await get_total_balance() == initial_total
+    accounts = await get_accounts(filters=filters)
+    assert accounts.data[0].balance_msat == 0
+    assert accounts.data[0].wallet_count == 2
+    assert accounts.data[0].transaction_count == 2
 
 
 @pytest.mark.parametrize("value,expected", [("true", True), ("false", False)])

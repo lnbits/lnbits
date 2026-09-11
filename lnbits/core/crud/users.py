@@ -93,6 +93,7 @@ async def get_accounts(
             accounts.activated,
             SUM(COALESCE((
                 SELECT balance FROM balances WHERE wallet_id = wallets.id
+                AND wallets.wallet_type != 'fiat'
             ), 0)) as balance_msat,
             SUM((
                 SELECT COUNT(*) FROM apipayments WHERE wallet_id = wallets.id

@@ -368,11 +368,7 @@ async def create_invoice(
     )
 
     payment = await create_payment(
-        checking_id=(
-            f"internal_{invoice_response.checking_id}"
-            if internal and user_wallet.wallet_type == WalletType.FIAT.value
-            else invoice_response.checking_id
-        ),
+        checking_id=invoice_response.checking_id,
         data=create_payment_model,
         conn=conn,
     )

@@ -336,7 +336,11 @@ async def get_source_wallets(
 
 
 async def get_total_balance(conn: Connection | None = None):
-    result = await (conn or db).execute("SELECT SUM(balance) as balance FROM balances")
+    result = await (conn or db).execute("""
+        SELECT SUM(balance) as balance FROM balances
+        JOIN wallets ON wallets.id = balances.wallet_id
+        WHERE wallets.wallet_type != 'fiat'
+        """)
     row = result.mappings().first()
     return row.get("balance", 0) or 0
 

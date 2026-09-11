@@ -50,7 +50,7 @@ async def api_validate_cash_payment(
         ),
     )
     payment.status = PaymentState.SUCCESS
-    await update_payment(payment)
+    await update_payment(payment, new_checking_id=f"internal_{payment.checking_id}")
     task_manager.internal_invoice_queue.put_nowait(payment)
     return payment
 

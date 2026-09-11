@@ -5,6 +5,7 @@ from typing import Any
 from lnbits.core.crud.wallets import get_total_balance, get_wallet, get_wallets_ids
 from lnbits.core.db import db
 from lnbits.core.models import PaymentState
+from lnbits.core.models.wallets import WalletType
 from lnbits.db import Connection, DateTrunc, Filters, Page
 
 from ..models import (
@@ -417,12 +418,15 @@ async def get_wallet_payment_total_breakdown(
     if not wallet or not wallet.can_view_payments:
         return []
 
-    values = {"wallet_id": wallet.source_wallet_id}
+    values = {
+        "wallet_id": wallet.source_wallet_id,
+        "is_fiat_wallet": wallet.wallet_type == WalletType.FIAT.value,
+    }
     data = await (conn or db).fetchall(
         query=f"""
             SELECT tag,
                 CASE
-                    WHEN fiat_provider IS NOT NULL
+                    WHEN :is_fiat_wallet OR fiat_provider IS NOT NULL
                     THEN true
                     ELSE false
                 END AS is_fiat,
