@@ -18,6 +18,8 @@ from pathlib import Path
 def default_folder():
     if sys.platform == "win32":
         return Path(os.environ.get("LOCALAPPDATA") or Path.home()) / "LNbits"
+    if sys.platform == "darwin":
+        return Path.home() / "Library" / "Application Support" / "LNbits"
     return (
         Path(os.environ.get("XDG_DATA_HOME") or Path.home() / ".local/share")
         / "lnbits-desktop"
@@ -340,6 +342,8 @@ def gui():  # noqa: C901 - UI callbacks share the window and server lifecycle.
     )
     open_browser.grid(row=12, column=2, pady=(12, 0))
     root.protocol("WM_DELETE_WINDOW", close)
+    if sys.platform == "darwin":
+        root.createcommand("tk::mac::Quit", close)
     try:
         root.mainloop()
     finally:
@@ -393,7 +397,7 @@ def launched_from_terminal():
 def should_show_gui():
     if len(sys.argv) != 1 or launched_from_terminal():
         return False
-    return sys.platform == "win32" or bool(
+    return sys.platform in ("win32", "darwin") or bool(
         os.environ.get("DISPLAY") or os.environ.get("WAYLAND_DISPLAY")
     )
 

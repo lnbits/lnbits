@@ -1,0 +1,34 @@
+LNbits for macOS
+
+Requires macOS 15 or later. Use the arm64 download for Apple Silicon
+(M-series) Macs and the x86_64 download for Intel Macs.
+
+Installation
+Drag LNbits.app to Applications, eject this disk image, and open LNbits
+from Applications. Choose your settings, click Launch LNbits, then
+Open in browser. Python and Node.js do not need to be installed.
+
+These builds are not Apple Developer ID signed or notarized. macOS may
+block the first launch. If you trust the download, attempt to open it,
+then use System Settings > Privacy & Security > Open Anyway and confirm.
+You do not need to disable Gatekeeper or System Integrity Protection.
+
+Data and updates
+Wallets, settings, extensions and logs are stored separately from the app,
+by default in ~/Library/Application Support/LNbits. The launcher lets you
+choose another data folder. Keep that folder backed up.
+
+To update, stop LNbits and quit the app before replacing it in Applications.
+Replacing or removing the app does not remove your data folder.
+Keep the launcher open while using LNbits. Stop LNbits or quit the launcher
+to shut down its server.
+
+Terminal usage
+/Applications/LNbits.app/Contents/MacOS/LNbits --headless --port 5001
+/Applications/LNbits.app/Contents/MacOS/LNbits --gui
+
+Logs are in the selected data folder under logs/desktop.log.
+Custom SSL_CERT_FILE or SSL_CERT_DIR environment settings are respected.
+
+Project: https://lnbits.com
+Source: https://github.com/lnbits/lnbits

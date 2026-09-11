@@ -26,9 +26,9 @@ args = [
     "PyInstaller",
     "--clean",
     "--noconfirm",
-    "--onefile",
+    "--onedir" if sys.platform == "darwin" else "--onefile",
     "--name",
-    "lnbits",
+    "LNbits" if sys.platform == "darwin" else "lnbits",
     "--specpath",
     "build",
     "--hidden-import=embit",
@@ -47,6 +47,16 @@ if sys.platform == "win32":
         "hide-early",
         f"--icon={icon}",
     ]
+if sys.platform == "darwin":
+    args += [
+        "--windowed",
+        "--osx-bundle-identifier=com.lnbits.desktop",
+        f"--icon={Path(__file__).resolve().parent / 'linux/AppDir/lnbits.png'}",
+    ]
+    if identity := os.environ.get("MACOS_CODESIGN_IDENTITY"):
+        args += ["--codesign-identity", identity]
+    if entitlements := os.environ.get("MACOS_ENTITLEMENTS_FILE"):
+        args += ["--osx-entitlements-file", entitlements]
 for package in packages:
     args += ["--collect-all", package]
 for package in ("breez_sdk", "breez_sdk_liquid"):
