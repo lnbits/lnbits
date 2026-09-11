@@ -2,7 +2,6 @@ window.app.component('lnbits-wallet-new', {
   template: '#lnbits-wallet-new',
   data() {
     return {
-      walletTypes: [{label: 'Lightning Wallet', value: 'lightning'}],
       wallet: {name: '', sharedWalletId: ''},
       showNewWalletDialog: false
     }
@@ -18,8 +17,29 @@ window.app.component('lnbits-wallet-new', {
     }
   },
   computed: {
-    isLightning() {
-      return this.g.newWalletType === 'lightning'
+    walletTypes() {
+      const types = [
+        {
+          label: 'Lightning',
+          value: 'lightning',
+          description: 'Send and receive Lightning payments'
+        }
+      ]
+      if (this.g.user?.canCreateFiatWallet) {
+        types.push({
+          label: 'Fiat',
+          value: 'fiat',
+          description: 'Receive only (for use with fiat)'
+        })
+      }
+      const invites = this.g.user?.extra?.wallet_invite_requests?.length
+      if (invites) {
+        types.push({
+          label: `Lightning Wallet (Share Invite: ${invites})`,
+          value: 'lightning-shared'
+        })
+      }
+      return types
     },
     isLightningShared() {
       return this.g.newWalletType === 'lightning-shared'
@@ -69,7 +89,7 @@ window.app.component('lnbits-wallet-new', {
     },
     submitAddWallet() {
       const data = this.wallet
-      if (this.g.newWalletType === 'lightning' && !data.name) {
+      if (!this.isLightningShared && !data.name) {
         this.$q.notify({
           message: 'Please enter a name for the wallet',
           color: 'warning'
@@ -98,14 +118,6 @@ window.app.component('lnbits-wallet-new', {
           this.$router.push(`/wallet/${res.data.id}`)
         })
         .catch(LNbits.utils.notifyApiError)
-    }
-  },
-  created() {
-    if (this.g.user?.extra?.wallet_invite_requests?.length) {
-      this.walletTypes.push({
-        label: `Lightning Wallet (Share Invite: ${this.g.user.extra.wallet_invite_requests.length})`,
-        value: 'lightning-shared'
-      })
     }
   }
 })

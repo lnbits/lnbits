@@ -159,6 +159,7 @@
                 icon="file_download"
               ></q-btn>
               <q-btn
+                v-if="g.wallet.walletType !== 'fiat'"
                 unelevated
                 color="primary"
                 class="q-mr-md"
@@ -168,7 +169,7 @@
                 icon="file_upload"
               ></q-btn>
               <q-btn
-                v-if="g.hasCamera"
+                v-if="g.hasCamera && g.wallet.walletType !== 'fiat'"
                 unelevated
                 icon="qr_code_scanner"
                 color="secondary"
@@ -806,10 +807,11 @@
         </q-list>
         <div v-if="canPay" class="row q-mt-lg">
           <q-btn
+            v-if="g.wallet.walletType !== 'fiat'"
             unelevated
             color="primary"
             @click="payInvoice"
-            :disable="parse.sending"
+            :disable="parse.sending || !g.wallet.canSendPayments"
             :label="parse.sending ? $t('sending') + '...' : $t('pay')"
           ></q-btn>
           <q-btn
@@ -856,6 +858,7 @@
           </p>
           <div class="row q-mt-lg">
             <q-btn
+              v-if="g.wallet.walletType !== 'fiat'"
               unelevated
               color="primary"
               type="submit"
@@ -984,10 +987,11 @@
           </div>
           <div class="row q-mt-lg">
             <q-btn
+              v-if="g.wallet.walletType !== 'fiat'"
               unelevated
               color="primary"
               type="submit"
-              :disable="parse.sending"
+              :disable="parse.sending || !g.wallet.canSendPayments"
               :label="parse.sending ? $t('sending') + '...' : $t('send')"
             ></q-btn>
             <q-btn
@@ -1077,11 +1081,18 @@
       >
       </q-tab>
 
-      <q-tab @click="showParseDialog" icon="file_upload" :label="$t('send')">
+      <q-tab
+        v-if="g.wallet.walletType !== 'fiat'"
+        @click="showParseDialog"
+        icon="file_upload"
+        :label="$t('send')"
+        :disable="!g.wallet.canSendPayments"
+      >
       </q-tab>
     </q-tabs>
 
     <q-btn
+      v-if="g.wallet.walletType !== 'fiat'"
       @click="g.scanner = decodeQR"
       round
       unelevated
