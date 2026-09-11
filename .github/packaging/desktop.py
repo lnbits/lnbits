@@ -55,6 +55,13 @@ def browser_host(host):
 def worker(environment, stop, ready):
     os.environ.update(environment)
     os.environ.setdefault("DEBUG", "false")
+    # Frozen Python's OpenSSL paths may not exist on the host system.
+    if getattr(sys, "frozen", False) and not (
+        "SSL_CERT_FILE" in os.environ or "SSL_CERT_DIR" in os.environ
+    ):
+        import certifi
+
+        os.environ["SSL_CERT_FILE"] = certifi.where()
     # Core templates and static files are resolved relative to the package root.
     package = importlib.util.find_spec("lnbits")
     if package is None or package.origin is None:

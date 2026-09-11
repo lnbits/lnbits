@@ -2,6 +2,7 @@
 
 import os
 import socket
+import ssl
 import tempfile
 import time
 import unittest
@@ -112,6 +113,43 @@ class DesktopTests(unittest.TestCase):
             patch("desktop.run_server", side_effect=KeyboardInterrupt),
         ):
             desktop.worker({"LNBITS_DATA_FOLDER": folder}, Mock(), Mock())
+
+    def test_packaged_worker_loads_trusted_certificates(self):
+        import certifi
+
+        def check_certificates(*_):
+            self.assertEqual(os.environ["SSL_CERT_FILE"], certifi.where())
+            context = ssl.create_default_context()
+            self.assertGreater(context.cert_store_stats()["x509_ca"], 0)
+            self.assertEqual(context.verify_mode, ssl.CERT_REQUIRED)
+            self.assertTrue(context.check_hostname)
+
+        with (
+            tempfile.TemporaryDirectory() as folder,
+            patch.dict(os.environ, {}, clear=True),
+            patch("desktop.sys.frozen", True, create=True),
+            patch("desktop.os.chdir"),
+            patch("desktop.run_server", side_effect=check_certificates),
+        ):
+            desktop.worker({"LNBITS_DATA_FOLDER": folder}, Mock(), Mock())
+
+    def test_worker_preserves_certificate_configuration(self):
+        for frozen, certificates in (
+            (False, {}),
+            (True, {"SSL_CERT_FILE": "/custom/ca.pem"}),
+            (True, {"SSL_CERT_DIR": "/custom/certs"}),
+        ):
+            with (
+                self.subTest(frozen=frozen, certificates=certificates),
+                tempfile.TemporaryDirectory() as folder,
+                patch.dict(os.environ, certificates, clear=True),
+                patch("desktop.sys.frozen", frozen, create=True),
+                patch("desktop.os.chdir"),
+                patch("desktop.run_server"),
+            ):
+                desktop.worker({"LNBITS_DATA_FOLDER": folder}, Mock(), Mock())
+                for name in ("SSL_CERT_FILE", "SSL_CERT_DIR"):
+                    self.assertEqual(os.environ.get(name), certificates.get(name))
 
     def test_configuration(self):
         with (
