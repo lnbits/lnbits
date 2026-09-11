@@ -1,8 +1,8 @@
 {
   "spark": {
-    "release": "v0.1.4",
-    "revision": "a5a316d7aa1057c2f21620a45b64a06e52bd15a3",
-    "sha256": "5e80a4fcab863365498fa98122964a77ed5bd8dff8ca2eb379706664e386bab3"
+    "release": "v0.1.5",
+    "revision": "dbfed1fd9cb72f0a589d7479022f2cbb209b5924",
+    "sha256": "e6720e4a5ad2ee7746403ab766ccbb6d97ae5dd3d0f9f364f7c56064b9583730"
   },
   "phoenixd": {
     "version": "0.9.0",
