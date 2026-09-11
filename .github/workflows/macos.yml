@@ -55,8 +55,6 @@ jobs:
           ./node_modules/.bin/prettier -w ./lnbits/static/vendor.json
           git diff --exit-code -- lnbits/static
       - name: Build application
-        env:
-          GITHUB_TOKEN: ${{ github.token }}
         run: |
           uv sync --locked --no-dev --no-editable
           uv pip install pyinstaller==6.22.2

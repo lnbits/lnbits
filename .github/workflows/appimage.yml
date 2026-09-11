@@ -57,8 +57,6 @@ jobs:
         shell: bash
 
       - name: Build LNbits binary (uv + PyInstaller)
-        env:
-          GITHUB_TOKEN: ${{ github.token }}
         run: |
           uv sync --locked --all-extras --no-dev --no-editable
           uv pip install pyinstaller==6.22.2

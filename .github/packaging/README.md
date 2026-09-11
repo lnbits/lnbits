@@ -58,12 +58,12 @@ The terms flag is needed only for Phoenixd's first headless setup. Omit
 ## Build and verification
 
 `build.py` prepares runtimes before invoking PyInstaller. `sidecars/pins.json`
-pins Node 24.21.0 and Phoenixd 0.9.0 with SHA-256 checksums. Each build resolves
-Spark's latest published stable GitHub release to a commit and downloads that
-revision. Its release tag and revision appear in the build log; the tag, revision
-and downloaded archive's SHA-256 are recorded in the bundled `sidecars/pins.json`.
-Downloads occur at build time only. Drafts and prereleases are excluded; a
-missing release or failed download fails the build without falling back to a branch.
+pins Node 24.21.0, Phoenixd 0.9.0 and Spark sidecar v0.1.4 with SHA-256 checksums.
+Spark is downloaded at its fixed release commit; its tag and revision appear
+in the build log and are included in the bundled `sidecars/pins.json`.
+Downloads occur at build time only. A failed download or checksum mismatch fails
+the build without falling back to a branch or a newer release. Update the Spark
+release, revision and checksum together when deliberately upgrading it.
 Builds require npm; Linux builds also require `libcrypt.so.1`, zlib and the C++
 runtime, which are bundled separately for the daemons. Build on the target OS
 and architecture using the release workflows.
@@ -72,8 +72,7 @@ Spark uses the selected release's own manifest and lockfile with `npm ci`.
 An npm audit fails the build on high or critical production dependency advisories;
 dependency fixes should be published in a new Spark release. Mobile-only SDK
 libraries are excluded; runtime JS/WASM and dependency licenses are retained.
-Phoenixd's Apache license is included separately. CI supplies `GITHUB_TOKEN`
-for release metadata requests; local builds can use the public API without it.
+Phoenixd's Apache license is included separately.
 
 `make test-desktop` covers launcher controls, persistence, ownership, readiness,
 settings precedence, restart and shutdown. `smoke_sidecars.py` tests native

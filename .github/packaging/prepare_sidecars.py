@@ -2,14 +2,12 @@
 
 import hashlib
 import json
-import os
 import platform
 import shutil
 import subprocess
 import sys
 import tarfile
 import tempfile
-import urllib.parse
 import urllib.request
 import zipfile
 from pathlib import Path
@@ -27,43 +25,24 @@ def download(url, digest, destination):
         while block := response.read(1024 * 1024):
             checksum.update(block)
             stream.write(block)
-    if digest is not None and checksum.hexdigest() != digest:
+    if checksum.hexdigest() != digest:
         raise RuntimeError(f"Checksum mismatch for {destination.name}")
     return checksum.hexdigest()
 
 
-def github_json(path):
-    headers = {
-        "User-Agent": "LNbits-packaging",
-        "Accept": "application/vnd.github+json",
-    }
-    if token := os.environ.get("GITHUB_TOKEN"):
-        headers["Authorization"] = f"Bearer {token}"
-    request = urllib.request.Request(
-        f"https://api.github.com/repos/lnbits/spark_sidecar/{path}", headers=headers
-    )
-    with urllib.request.urlopen(request, timeout=60) as response:  # noqa: S310
-        return json.load(response)
-
-
-def download_spark(staging):
-    release = github_json("releases/latest")
-    tag = release["tag_name"]
-    revision = github_json(f"commits/{urllib.parse.quote(tag, safe='')}")["sha"]
+def download_spark(staging, pin):
+    tag = pin["release"]
+    revision = pin["revision"]
     print(f"Spark sidecar release: {tag} ({revision})", flush=True)
     archive = staging / "spark.tar.gz"
-    digest = download(
+    download(
         f"https://api.github.com/repos/lnbits/spark_sidecar/tarball/{revision}",
-        None,
+        pin["sha256"],
         archive,
     )
     extracted = staging / "spark"
     extracted.mkdir()
-    return unpack(archive, extracted), {
-        "release": tag,
-        "revision": revision,
-        "sha256": digest,
-    }
+    return unpack(archive, extracted)
 
 
 def unpack(archive, destination):
@@ -110,7 +89,7 @@ def main():
         )
         shutil.copy2(node / "LICENSE", output / "NODE-LICENSE.txt")
 
-        source, pins["spark"] = download_spark(staging)
+        source = download_spark(staging, pins["spark"])
         spark = output / "spark"
         spark.mkdir()
         for filename in (
