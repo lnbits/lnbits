@@ -1,0 +1,83 @@
+name: Build LNbits Windows executable
+
+on:
+  push:
+    paths:
+      - ".github/packaging/**"
+      - ".github/workflows/windows.yml"
+      - "pyproject.toml"
+      - "uv.lock"
+  workflow_call:
+    inputs:
+      tag_name:
+        required: true
+        type: string
+  workflow_dispatch:
+    inputs:
+      tag_name:
+        description: Release tag (leave empty to build this branch as an artifact)
+        required: false
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: windows-2022
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.tag_name || github.ref }}
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - uses: astral-sh/setup-uv@v6
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24.x"
+          cache: npm
+      - name: Verify frontend assets
+        shell: bash
+        env:
+          npm_config_script_shell: bash
+        run: |
+          npm ci
+          npm run bundle
+          ./node_modules/.bin/prettier -w ./lnbits/static/vendor.json
+          git diff --exit-code -- lnbits/static
+      - name: Build executable
+        run: |
+          uv sync --locked --no-dev --no-editable
+          uv pip install pyinstaller==6.22.2
+          uv run --no-sync python .github/packaging/build.py
+      - name: Test launcher window and shutdown
+        run: uv run --no-sync python -m unittest discover -s .github/packaging -v
+      - name: Test executable startup, assets and shutdown
+        run: uv run --no-sync python .github/packaging/smoke.py dist/lnbits.exe
+      - uses: actions/upload-artifact@v4
+        with:
+          name: LNbits-Windows-x86_64
+          path: dist/lnbits.exe
+          if-no-files-found: error
+
+  upload:
+    if: inputs.tag_name != ''
+    needs: build
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: LNbits-Windows-x86_64
+          path: dist
+      - name: Attach executable to release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_REPO: ${{ github.repository }}
+          TAG_NAME: ${{ inputs.tag_name }}
+        run: |
+          cp dist/lnbits.exe "dist/LNbits-${TAG_NAME}-Windows-x86_64.exe"
+          gh release upload "$TAG_NAME" "dist/LNbits-${TAG_NAME}-Windows-x86_64.exe" --clobber

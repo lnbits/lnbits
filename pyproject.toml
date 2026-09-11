@@ -23,7 +23,7 @@ dependencies = [
     "sqlalchemy~=1.4.54",
     "aiosqlite~=0.22.1",
     "asyncpg~=0.31.0",
-    "uvloop~=0.22.1",
+    "uvloop~=0.22.1; sys_platform != 'win32'",
     "websockets~=15.0.1",
     "loguru~=0.7.3",
     "grpcio~=1.76.0",
