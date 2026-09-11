@@ -476,6 +476,43 @@ async def test_phoenix_request_error_is_pending(mocker: MockerFixture):
 
 
 @pytest.mark.anyio
+@pytest.mark.parametrize(
+    ("status", "expected_ok", "expected_error"),
+    [
+        ("LIGHTNING_PAYMENT_FAILED", False, "Lightning fee exceeds the limit"),
+        ("UNKNOWN", None, None),
+        ("LIGHTNING_PAYMENT_SUCCEEDED", True, None),
+    ],
+)
+async def test_spark_sidecar_preserves_explicit_failure_reason(
+    mocker: MockerFixture,
+    status: str,
+    expected_ok: bool | None,
+    expected_error: str | None,
+):
+    wallet = object.__new__(SparkL2Wallet)
+    mocker.patch(
+        "lnbits.wallets.sparkl2.bolt11_decode",
+        return_value=SimpleNamespace(payment_hash="payment-hash"),
+    )
+    mocker.patch.object(
+        wallet,
+        "_request",
+        return_value={
+            "checking_id": "payment-hash",
+            "status": status,
+            "error_message": "Lightning fee exceeds the limit",
+        },
+    )
+
+    response = await wallet.pay_invoice("bolt11", 2_000)
+
+    assert response.ok is expected_ok
+    assert response.error_message == expected_error
+    assert response.checking_id == "payment-hash"
+
+
+@pytest.mark.anyio
 async def test_spark_sidecar_missing_checking_id_is_pending(mocker: MockerFixture):
     wallet = object.__new__(SparkL2Wallet)
     mocker.patch.object(wallet, "_request", return_value={"status": "PENDING"})

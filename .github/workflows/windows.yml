@@ -54,6 +54,8 @@ jobs:
           uv run --no-sync python .github/packaging/build.py
       - name: Test launcher window and shutdown
         run: uv run --no-sync python -m unittest discover -s .github/packaging -v
+      - name: Test bundled funding runtimes
+        run: uv run --no-sync python .github/packaging/smoke_sidecars.py dist/lnbits.exe
       - name: Test executable startup, assets and shutdown
         run: uv run --no-sync python .github/packaging/smoke.py dist/lnbits.exe
       - uses: actions/upload-artifact@v4
