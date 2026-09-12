@@ -26,7 +26,7 @@ from lnbits.core.crud.audit import delete_expired_audit_entries
 from lnbits.core.crud.extensions import create_installed_extension
 from lnbits.core.helpers import migrate_extension_database
 from lnbits.core.models.notifications import NotificationType
-from lnbits.core.services.extensions import deactivate_extension, get_valid_extensions
+from lnbits.core.services.extensions import get_valid_extensions
 from lnbits.core.services.funding_source import (
     check_balance_delta_changed,
     check_server_balance_against_node,
@@ -291,10 +291,13 @@ async def check_installed_extensions(app: FastAPI):
                     f"{ext.id} ({ext.installed_version})"
                 )
         except Exception as e:
-            logger.warning(e)
-            await deactivate_extension(ext.id)
+            # Soft-fail: keep the extension's existing state rather than
+            # permanently deactivating it. The zip and extension dir are
+            # preserved so a later startup with network may succeed.
+            # See issue #4070.
             logger.warning(
-                f"Failed to re-install extension: {ext.id} ({ext.installed_version})"
+                f"Failed to re-install extension: "
+                f"{ext.id} ({ext.installed_version}): {e}"
             )
 
     logger.info(f"Installed Extensions ({len(installed_extensions)}):")
