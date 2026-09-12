@@ -592,8 +592,11 @@ class InstallableExtension(BaseModel):
     async def download_archive(self):
         logger.info(f"Downloading extension {self.name} ({self.installed_version}).")
         ext_zip_file = self.zip_path
-        if ext_zip_file.is_file():
-            os.remove(ext_zip_file)
+
+        # Download to a temp file first so a failed/remote fetch does not
+        # destroy an existing valid zip — fatal on Docker recreate when
+        # DNS is not yet ready. See issue #4070.
+        tmp_zip_file = ext_zip_file.with_name(ext_zip_file.name + ".tmp")
         try:
             if not self.meta or not self.meta.installed_release:
                 raise ValueError("No installed release.")
@@ -601,25 +604,27 @@ class InstallableExtension(BaseModel):
             self._restore_payment_info()
 
             await asyncio.to_thread(
-                download_url, self.meta.installed_release.archive_url, ext_zip_file
+                download_url, self.meta.installed_release.archive_url, tmp_zip_file
             )
 
+            archive_hash = file_hash(tmp_zip_file)
+            if (
+                self.meta
+                and self.meta.installed_release.hash
+                and self.meta.installed_release.hash != archive_hash
+            ):
+                tmp_zip_file.unlink(missing_ok=True)
+                raise AssertionError("File hash mismatch. Will not install.")
+
+            os.replace(tmp_zip_file, ext_zip_file)
             self._remember_payment_info()
 
+        except AssertionError:
+            raise
         except Exception as exc:
+            tmp_zip_file.unlink(missing_ok=True)
             logger.warning(exc)
             raise AssertionError("Cannot fetch extension archive file") from exc
-
-        archive_hash = file_hash(ext_zip_file)
-        if (
-            self.meta
-            and self.meta.installed_release.hash
-            and self.meta.installed_release.hash != archive_hash
-        ):
-            # remove downloaded archive
-            if ext_zip_file.is_file():
-                os.remove(ext_zip_file)
-            raise AssertionError("File hash missmatch. Will not install.")
 
     def load_archive_config(self) -> dict[str, Any]:
         if not self.zip_path.is_file():
