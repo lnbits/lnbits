@@ -5,6 +5,8 @@ import os
 import ssl
 import uuid
 from collections.abc import AsyncGenerator
+from hashlib import sha256
+from typing import Any
 from urllib.parse import urlparse
 
 import httpx
@@ -15,7 +17,7 @@ from loguru import logger
 from lnbits.exceptions import UnsupportedError
 from lnbits.helpers import normalize_endpoint
 from lnbits.settings import settings
-from lnbits.utils.crypto import random_secret_and_hash
+from lnbits.utils.crypto import random_secret_and_hash, verify_preimage
 
 from .base import (
     InvoiceResponse,
@@ -30,19 +32,43 @@ from .base import (
 
 
 class CLNRestWallet(Wallet):
+    """
+    Core Lightning REST wallet backend.
+
+    This implementation addresses:
+
+    - Core Lightning msat response compatibility
+    - description-hash invoices
+    - preimage verification
+    - correct waitanyinvoice semantics
+    - listener bootstrap to prevent historical payment replay
+    - payment reconciliation/idempotency
+    - ambiguous "already paid" responses
+    - improved CLN REST error reporting
+    - safer TLS handling
+    - current Core Lightning pay/renepay behavior
+
+    LNbits internal payments are handled by LNbits core before pay_invoice()
+    reaches the funding source.
+    """
+
     def __init__(self):
+        super().__init__()
+
         if not settings.clnrest_url:
             raise ValueError("Cannot initialize CLNRestWallet: missing CLNREST_URL")
 
         if not settings.clnrest_readonly_rune:
             raise ValueError(
-                "cannot initialize CLNRestWallet: " "missing clnrest_readonly_rune"
+                "Cannot initialize CLNRestWallet: missing CLNREST_READONLY_RUNE"
             )
 
         self.url = normalize_endpoint(settings.clnrest_url)
 
         if not settings.clnrest_nodeid:
-            logger.info("missing CLNREST_NODEID, but this is only needed for v23.08")
+            logger.info(
+                "missing CLNREST_NODEID, but this is only needed for CLN v23.08"
+            )
 
         self.base_headers = {
             "accept": "application/json",
@@ -53,66 +79,75 @@ class CLNRestWallet(Wallet):
         if settings.clnrest_nodeid is not None:
             self.base_headers["nodeid"] = settings.clnrest_nodeid
 
-        # Ensure the readonly rune is set
-        if settings.clnrest_readonly_rune is not None:
-            self.readonly_headers = {
-                **self.base_headers,
-                "rune": settings.clnrest_readonly_rune,
-            }
-        else:
-            logger.warning(
-                "Readonly rune 'CLNREST_READONLY_RUNE' is required but not set."
-            )
+        self.readonly_headers = {
+            **self.base_headers,
+            "rune": settings.clnrest_readonly_rune,
+        }
 
-        if settings.clnrest_invoice_rune is not None:
-            self.invoice_headers = {
+        self.invoice_headers = (
+            {
                 **self.base_headers,
                 "rune": settings.clnrest_invoice_rune,
             }
-        else:
-            logger.warning(
-                "Will be unable to create any invoices without "
-                "setting 'CLNREST_INVOICE_RUNE[:4]'"
-            )
+            if settings.clnrest_invoice_rune
+            else None
+        )
 
-        if settings.clnrest_pay_rune is not None:
-            self.pay_headers = {**self.base_headers, "rune": settings.clnrest_pay_rune}
-        else:
-            logger.warning(
-                "Will be unable to call pay endpoint without setting 'CLNREST_PAY_RUNE'"
-            )
+        self.pay_headers = (
+            {
+                **self.base_headers,
+                "rune": settings.clnrest_pay_rune,
+            }
+            if settings.clnrest_pay_rune
+            else None
+        )
 
-        if settings.clnrest_renepay_rune is not None:
-            self.renepay_headers = {
+        self.renepay_headers = (
+            {
                 **self.base_headers,
                 "rune": settings.clnrest_renepay_rune,
             }
-        else:
+            if settings.clnrest_renepay_rune
+            else None
+        )
+
+        if not self.invoice_headers:
             logger.warning(
-                "Will be unable to call renepay endpoint without "
-                "setting 'CLNREST_RENEPAY_RUNE'"
+                "Will be unable to create invoices without "
+                "setting CLNREST_INVOICE_RUNE"
             )
 
-        # https://docs.corelightning.org/reference/lightning-pay
-        # -32602: Invalid bolt11: Prefix bc is not for regtest
-        # -1: Catchall nonspecific error.
-        ## 201: Already paid
-        # 203: Permanent failure at destination.
-        # 205: Unable to find a route.
-        # 206: Route too expensive.
-        # 207: Invoice expired.
-        # 210: Payment timed out without a payment in progress.
-        # 401: Unauthorized. Probably a rune issue
+        if not self.pay_headers:
+            logger.warning(
+                "CLNREST_PAY_RUNE is not configured. "
+                "Will use renepay only if CLNREST_RENEPAY_RUNE is configured."
+            )
 
-        self.pay_failure_error_codes = [-32602, 203, 205, 206, 207, 210, 401]
-        self.client = self._create_client()
-        self.last_pay_index = settings.clnrest_last_pay_index
-        self.statuses = {
-            "paid": True,
-            "complete": True,
-            "failed": False,
-            "pending": None,
+        if self.renepay_headers:
+            logger.warning(
+                "CLNREST_RENEPAY_RUNE is configured. Core Lightning renepay "
+                "is deprecated; pay will be preferred when available."
+            )
+
+        # Error 201 ("Already paid") is deliberately excluded because it must
+        # be reconciled with listpays before LNbits decides the final state.
+        self.pay_failure_error_codes = {
+            -32602,
+            203,
+            205,
+            206,
+            207,
+            210,
+            401,
         }
+
+        self.client = self._create_client()
+
+        # A non-zero value is treated as an explicitly configured cursor.
+        # Otherwise the listener bootstraps to the current highest pay_index
+        # to prevent replaying historical paid invoices at startup.
+        self.last_pay_index = int(settings.clnrest_last_pay_index or 0)
+        self._listener_bootstrapped = False
 
     async def cleanup(self):
         try:
@@ -124,52 +159,49 @@ class CLNRestWallet(Wallet):
         try:
             logger.debug("REQUEST to /v1/listfunds")
 
-            r = await self.client.post(
-                "/v1/listfunds", timeout=15, headers=self.readonly_headers
-            )
-            r.raise_for_status()
-
-            response_data = r.json()
-
-            if not response_data:
-                logger.warning("Received empty response data")
-                return StatusResponse("no data", 0)
-
-            channels = response_data.get("channels", [])
-            total_our_amount_msat = sum(
-                channel.get("our_amount_msat", 0) for channel in channels
+            data = await self._rpc(
+                "listfunds",
+                headers=self.readonly_headers,
+                timeout=15.0,
             )
 
-            return StatusResponse(None, total_our_amount_msat)
+            channels = data.get("channels", [])
+            balance_msat = sum(
+                _msat_to_int(channel.get("our_amount_msat")) for channel in channels
+            )
+
+            return StatusResponse(None, balance_msat)
+
+        except httpx.ConnectTimeout as exc:
+            logger.warning(f"CLN REST connect timeout: {exc}")
+            return StatusResponse("Timed out connecting to CLN REST", 0)
+
+        except httpx.ReadTimeout as exc:
+            logger.warning(f"CLN REST read timeout: {exc}")
+            return StatusResponse("CLN REST did not answer in time", 0)
+
+        except httpx.ConnectError as exc:
+            logger.warning(f"CLN REST connect error: {exc}")
+            return StatusResponse("Cannot connect to CLN REST listener", 0)
+
+        except httpx.HTTPStatusError as exc:
+            error_message = self._format_http_error(exc)
+            logger.warning(error_message)
+            return StatusResponse(error_message, 0)
 
         except json.JSONDecodeError as exc:
             logger.warning(f"JSON decode error: {exc!s}")
-            return StatusResponse(f"Failed to decode JSON response from {self.url}", 0)
-
-        except httpx.ReadTimeout:
-            logger.warning(
-                "Timeout error: The server did not respond in time. This can happen if "
-                "the server is running HTTPS but the client is using HTTP."
-            )
             return StatusResponse(
-                "Unable to connect to 'v1/listfunds' due to timeout", 0
+                f"Failed to decode JSON response from {self.url}",
+                0,
             )
 
-        except (httpx.ConnectError, httpx.RequestError) as exc:
-            logger.warning(f"Connection error: {exc}")
-            return StatusResponse("Unable to connect to 'v1/listfunds'", 0)
-
-        except httpx.HTTPStatusError as exc:
-            logger.warning(
-                f"HTTP error: {exc.response.status_code} {exc.response.reason_phrase} "
-                f"while accessing {exc.request.url}"
-            )
-            return StatusResponse(
-                f"Failed with HTTP {exc.response.status_code} on 'v1/listfunds'", 0
-            )
         except Exception as exc:
-            logger.warning(exc)
-            return StatusResponse(f"Unable to connect to {self.url}.", 0)
+            logger.warning(f"CLN REST status error: {exc}")
+            return StatusResponse(
+                f"Unable to connect to {self.url}: {exc}",
+                0,
+            )
 
     async def create_invoice(
         self,
@@ -179,71 +211,162 @@ class CLNRestWallet(Wallet):
         unhashed_description: bytes | None = None,
         **kwargs,
     ) -> InvoiceResponse:
-
-        if not settings.clnrest_invoice_rune:
+        if not self.invoice_headers:
             return InvoiceResponse(
-                ok=False, error_message="Unable to invoice without an invoice rune"
+                ok=False,
+                error_message="Unable to invoice without an invoice rune",
             )
 
-        data: dict = {
-            "amount_msat": int(amount * 1000),
-            "description": memo,
-            "label": _generate_label(),
-        }
-
-        if description_hash and not unhashed_description:
-            raise UnsupportedError(
-                "'description_hash' unsupported by CoreLightningRest, "
-                "provide 'unhashed_description'"
+        if amount <= 0:
+            return InvoiceResponse(
+                ok=False,
+                error_message="Invoice amount must be greater than zero",
             )
-
-        if unhashed_description:
-            data["description"] = unhashed_description.decode()
-
-        if kwargs.get("expiry"):
-            data["expiry"] = kwargs["expiry"]
-
-        if kwargs.get("preimage"):
-            data["preimage"] = kwargs["preimage"]
-        else:
-            preimage, _ = random_secret_and_hash()
-            data["preimage"] = preimage
 
         try:
-            r = await self.client.post(
-                "/v1/invoice",
-                json=data,
+            data, preimage = self._build_invoice_payload(
+                amount,
+                memo,
+                description_hash,
+                unhashed_description,
+                **kwargs,
+            )
+
+            response_data = await self._rpc(
+                "invoice",
+                payload=data,
                 headers=self.invoice_headers,
             )
-            r.raise_for_status()
-            response_data = r.json()
 
-            if "error" in response_data:
-                error_message = response_data["error"]
-                logger.debug(f"Error creating invoice: {error_message}")
-                return InvoiceResponse(ok=False, error_message=error_message)
-
-            if "payment_hash" not in response_data or "bolt11" not in response_data:
-                return InvoiceResponse(
-                    ok=False, error_message="Server error: 'missing required fields'"
-                )
-            return InvoiceResponse(
-                ok=True,
-                checking_id=response_data["payment_hash"],
-                payment_request=response_data["bolt11"],
-                preimage=data["preimage"],
+            return self._invoice_response_from_rpc(
+                response_data,
+                preimage,
             )
 
-        except json.JSONDecodeError as exc:
-            logger.warning(exc)
+        except httpx.HTTPStatusError as exc:
+            error_message = self._format_http_error(exc)
+            logger.warning(f"Error creating invoice: {error_message}")
             return InvoiceResponse(
-                ok=False, error_message="Server error: 'invalid json response'"
+                ok=False,
+                error_message=error_message,
             )
+
+        except (UnicodeDecodeError, ValueError, UnsupportedError) as exc:
+            logger.warning(f"Invalid invoice parameters: {exc}")
+            return InvoiceResponse(
+                ok=False,
+                error_message=str(exc),
+            )
+
         except Exception as exc:
-            logger.warning(f"Unable to connect to {self.url}: {exc}")
+            logger.warning(f"Error creating invoice: {exc}")
             return InvoiceResponse(
-                ok=False, error_message=f"Unable to connect to {self.url}."
+                ok=False,
+                error_message=str(exc),
             )
+
+    def _build_invoice_payload(
+        self,
+        amount: int,
+        memo: str | None,
+        description_hash: bytes | None,
+        unhashed_description: bytes | None,
+        **kwargs,
+    ) -> tuple[dict[str, Any], str]:
+        if description_hash and not unhashed_description:
+            raise UnsupportedError(
+                "'description_hash' requires 'unhashed_description' "
+                "for Core Lightning"
+            )
+
+        preimage = (
+            str(kwargs["preimage"])
+            if kwargs.get("preimage")
+            else random_secret_and_hash()[0]
+        )
+
+        data: dict[str, Any] = {
+            "amount_msat": int(amount * 1000),
+            "label": _generate_label(),
+            "preimage": preimage,
+        }
+
+        self._set_invoice_description(
+            data,
+            memo,
+            description_hash,
+            unhashed_description,
+        )
+
+        if kwargs.get("expiry") is not None:
+            data["expiry"] = int(kwargs["expiry"])
+
+        return data, preimage
+
+    def _set_invoice_description(
+        self,
+        data: dict[str, Any],
+        memo: str | None,
+        description_hash: bytes | None,
+        unhashed_description: bytes | None,
+    ) -> None:
+        if not unhashed_description:
+            data["description"] = memo or ""
+            return
+
+        description = unhashed_description.decode("utf-8")
+
+        self._validate_description_hash(
+            description_hash,
+            unhashed_description,
+        )
+
+        data["description"] = description
+        data["deschashonly"] = True
+
+    @staticmethod
+    def _validate_description_hash(
+        description_hash: bytes | None,
+        unhashed_description: bytes,
+    ) -> None:
+        if not description_hash:
+            return
+
+        calculated_hash = sha256(unhashed_description).digest()
+
+        if calculated_hash != description_hash:
+            raise ValueError("description_hash does not match unhashed_description")
+
+    @staticmethod
+    def _invoice_response_from_rpc(
+        response_data: dict[str, Any],
+        preimage: str,
+    ) -> InvoiceResponse:
+        payment_hash = response_data.get("payment_hash")
+        bolt11 = response_data.get("bolt11")
+
+        if not payment_hash or not bolt11:
+            logger.warning("CLN invoice response missing payment_hash or bolt11")
+            return InvoiceResponse(
+                ok=False,
+                error_message="Server error: missing required invoice fields",
+            )
+
+        if not _preimage_matches(preimage, payment_hash):
+            logger.error("CLN invoice payment_hash does not match requested preimage")
+            return InvoiceResponse(
+                ok=False,
+                error_message=(
+                    "Server error: invoice preimage does not match payment_hash"
+                ),
+            )
+
+        return InvoiceResponse(
+            ok=True,
+            checking_id=payment_hash,
+            payment_request=bolt11,
+            preimage=preimage,
+        )
 
     async def pay_invoice(
         self,
@@ -251,251 +374,922 @@ class CLNRestWallet(Wallet):
         fee_limit_msat: int,
         **_,
     ) -> PaymentResponse:
-
         try:
             invoice = decode(bolt11)
         except Bolt11Exception as exc:
-            return PaymentResponse(ok=False, error_message=str(exc))
+            return PaymentResponse(
+                ok=False,
+                error_message=str(exc),
+            )
 
         if not invoice.amount_msat or invoice.amount_msat <= 0:
             return PaymentResponse(
-                ok=False, error_message="0 amount invoices are not allowed"
+                ok=False,
+                error_message="0 amount invoices are not allowed",
             )
 
-        if not settings.clnrest_pay_rune and not settings.clnrest_renepay_rune:
+        payment_hash = invoice.payment_hash
+
+        if not self.pay_headers and not self.renepay_headers:
             return PaymentResponse(
                 ok=False,
-                error_message="Unable to pay invoice without a pay or renepay rune",
+                checking_id=payment_hash,
+                error_message=("Unable to pay invoice without a pay or renepay rune"),
             )
 
-        data = {
-            "label": _generate_label(),
-            "description": invoice.description,
-            "maxfee": fee_limit_msat,
-        }
+        existing = await self._preflight_payment(payment_hash)
 
-        if settings.clnrest_renepay_rune:
-            endpoint = "/v1/renepay"
-            headers = self.renepay_headers
-            data["invstring"] = bolt11
-        else:
-            endpoint = "/v1/pay"
-            headers = self.pay_headers
-            data["bolt11"] = bolt11
+        if existing:
+            return existing
+
+        method, headers, data = self._build_payment_call(
+            bolt11,
+            invoice.description,
+            fee_limit_msat,
+        )
 
         try:
-            r = await self.client.post(
-                endpoint,
-                json=data,
+            response_data = await self._rpc(
+                method,
+                payload=data,
                 headers=headers,
                 timeout=None,
             )
 
-            r.raise_for_status()
-            data = r.json()
-
-            if "payment_preimage" not in data:
-                error_message = data.get("error", "No payment preimage in response")
-                logger.warning(error_message)
-                return PaymentResponse(error_message=error_message)
-
-            return PaymentResponse(
-                ok=self.statuses.get(data["status"]),
-                checking_id=data["payment_hash"],
-                fee_msat=data["amount_sent_msat"] - data["amount_msat"],
-                preimage=data["payment_preimage"],
-            )
         except httpx.HTTPStatusError as exc:
-            try:
-                data = exc.response.json()
-                error = data.get("error", {})
-                error_code = int(error.get("code", 0))
-                error_message = error.get("message", "Unknown error")
-                if error_code in self.pay_failure_error_codes:
-                    return PaymentResponse(ok=False, error_message=error_message)
-                else:
-                    return PaymentResponse(error_message=error_message)
-            except Exception:
-                error_message = f"Error parsing response from {self.url}: {exc!s}"
-                logger.warning(error_message)
-                return PaymentResponse(error_message=error_message)
+            error = self._parse_rpc_http_error(exc)
+            return await self._reconcile_payment_error(
+                payment_hash,
+                error,
+            )
+
         except Exception as exc:
-            logger.info(f"Failed to pay invoice {bolt11}")
-            logger.warning(exc)
-            error_message = f"Unable to connect to {self.url}."
-            return PaymentResponse(error_message=error_message)
+            logger.warning(
+                f"Failed to pay invoice {payment_hash} using {method}: {exc}"
+            )
+            return await self._reconcile_payment_response(
+                payment_hash,
+                fallback_error=str(exc),
+            )
 
-    async def get_invoice_status(self, checking_id: str) -> PaymentStatus:
-        data: dict = {"payment_hash": checking_id}
+        return await self._handle_payment_result(
+            response_data,
+            payment_hash,
+            method,
+        )
 
+    async def _preflight_payment(
+        self,
+        payment_hash: str,
+    ) -> PaymentResponse | None:
         try:
-            r = await self.client.post(
-                "/v1/listinvoices",
-                json=data,
+            found, status = await self._get_listpays_status(payment_hash)
+        except Exception as exc:
+            logger.debug(f"Could not preflight listpays for {payment_hash}: {exc}")
+            return None
+
+        if not found:
+            return None
+
+        if status.success:
+            return PaymentResponse(
+                ok=True,
+                checking_id=payment_hash,
+                fee_msat=status.fee_msat,
+                preimage=status.preimage,
+            )
+
+        if status.paid is None:
+            return PaymentResponse(
+                ok=None,
+                checking_id=payment_hash,
+                fee_msat=status.fee_msat,
+                preimage=status.preimage,
+            )
+
+        return None
+
+    def _build_payment_call(
+        self,
+        bolt11: str,
+        description: str | None,
+        fee_limit_msat: int,
+    ) -> tuple[str, dict[str, str], dict[str, Any]]:
+        label = _generate_label()
+
+        if self.pay_headers:
+            method = "pay"
+            headers = self.pay_headers
+            data: dict[str, Any] = {
+                "bolt11": bolt11,
+                "label": label,
+                "maxfee": int(fee_limit_msat),
+            }
+        else:
+            assert self.renepay_headers
+
+            method = "renepay"
+            headers = self.renepay_headers
+            data = {
+                "invstring": bolt11,
+                "label": label,
+                "maxfee": int(fee_limit_msat),
+            }
+
+        if description:
+            data["description"] = description
+
+        return method, headers, data
+
+    async def _handle_payment_result(
+        self,
+        response_data: dict[str, Any],
+        payment_hash: str,
+        method: str,
+    ) -> PaymentResponse:
+        response_hash = response_data.get("payment_hash") or payment_hash
+        status = response_data.get("status")
+
+        if status == "complete":
+            return await self._handle_complete_payment(
+                response_data,
+                response_hash,
+                method,
+            )
+
+        if status == "pending":
+            return PaymentResponse(
+                ok=None,
+                checking_id=response_hash,
+                fee_msat=_payment_fee_msat(response_data),
+            )
+
+        error = (
+            self._extract_error_message(response_data)
+            or f"Unexpected Core Lightning payment status: {status!r}"
+        )
+
+        return await self._reconcile_payment_response(
+            response_hash,
+            fallback_error=error,
+        )
+
+    async def _handle_complete_payment(
+        self,
+        response_data: dict[str, Any],
+        payment_hash: str,
+        method: str,
+    ) -> PaymentResponse:
+        preimage = response_data.get("payment_preimage") or response_data.get(
+            "preimage"
+        )
+
+        if not preimage:
+            return await self._reconcile_payment_response(
+                payment_hash,
+                fallback_error=(f"{method} returned complete without a preimage"),
+            )
+
+        if not _preimage_matches(preimage, payment_hash):
+            logger.error(f"{method} returned an invalid preimage/payment_hash pair")
+            return PaymentResponse(
+                ok=None,
+                checking_id=payment_hash,
+                error_message=("Core Lightning returned an invalid payment preimage"),
+            )
+
+        return PaymentResponse(
+            ok=True,
+            checking_id=payment_hash,
+            fee_msat=_payment_fee_msat(response_data),
+            preimage=preimage,
+        )
+
+    async def _reconcile_payment_error(
+        self,
+        payment_hash: str,
+        error: dict[str, Any],
+    ) -> PaymentResponse:
+        reconciled = await self._reconcile_payment_response(
+            payment_hash,
+            fallback_error=error["message"],
+        )
+
+        if reconciled.success or reconciled.pending:
+            return reconciled
+
+        if error["terminal"]:
+            return PaymentResponse(
+                ok=False,
+                checking_id=payment_hash,
+                error_message=error["message"],
+            )
+
+        return PaymentResponse(
+            ok=None,
+            checking_id=payment_hash,
+            error_message=error["message"],
+        )
+
+    async def get_invoice_status(
+        self,
+        checking_id: str,
+    ) -> PaymentStatus:
+        try:
+            data = await self._rpc(
+                "listinvoices",
+                payload={"payment_hash": checking_id},
                 headers=self.readonly_headers,
             )
-            r.raise_for_status()
-            data = r.json()
-            if r.is_error or "error" in data or data.get("invoices") is None:
-                logger.warning(f"error in cln response '{checking_id}'")
+
+            invoices = data.get("invoices") or []
+
+            if not invoices:
+                logger.debug(f"No CLN invoice found for payment hash {checking_id}")
                 return PaymentPendingStatus()
-            status = self.statuses.get(data["invoices"][0]["status"])
-            fee_msat = data["invoices"][0].get("amount_received_msat", 0) - data[
-                "invoices"
-            ][0].get("amount_msat", 0)
-            return PaymentStatus(
-                paid=status,
-                preimage=data["invoices"][0].get("preimage"),
-                fee_msat=fee_msat,
+
+            return self._invoice_status_from_rpc(
+                checking_id,
+                invoices[0],
             )
+
         except Exception as exc:
-            logger.warning(f"Error getting invoice status: {exc}")
+            logger.warning(f"Error getting invoice status for {checking_id}: {exc}")
             return PaymentPendingStatus()
 
-    async def get_payment_status(self, checking_id: str) -> PaymentStatus:
-        try:
-            data: dict = {"payment_hash": checking_id}
-            r = await self.client.post(
-                "/v1/listpays",
-                json=data,
-                headers=self.readonly_headers,
+    @staticmethod
+    def _invoice_status_from_rpc(
+        checking_id: str,
+        invoice: dict[str, Any],
+    ) -> PaymentStatus:
+        status = invoice.get("status")
+
+        if status == "paid":
+            return _paid_invoice_status(
+                checking_id,
+                invoice,
             )
-            r.raise_for_status()
-            data = r.json()
 
-            if r.is_error or "error" in data:
-                logger.warning(f"API response error: {data}")
-                return PaymentPendingStatus()
-
-            pays_list = data.get("pays", [])
-            if not pays_list:
-                logger.warning(f"No payments found for payment hash {checking_id}.")
-                return PaymentPendingStatus()
-
-            if len(pays_list) != 1:
-                logger.warning(
-                    f"Expected one payment status, but found {len(pays_list)}"
-                )
-                return PaymentPendingStatus()
-
-            pay = pays_list[-1]
-
-            status = pay.get("status")
-            if status == "complete":
-                fee_msat = pay["amount_sent_msat"] - pay["amount_msat"]
-                return PaymentSuccessStatus(fee_msat=fee_msat, preimage=pay["preimage"])
-            if status == "failed":
-                return PaymentFailedStatus()
-
-        except Exception as exc:
-            logger.warning(f"Error getting payment status: {exc}")
+        if status in {"expired", "failed"}:
+            return PaymentFailedStatus()
 
         return PaymentPendingStatus()
 
-    async def paid_invoices_stream(self) -> AsyncGenerator[str, None]:
+    async def get_payment_status(
+        self,
+        checking_id: str,
+    ) -> PaymentStatus:
+        try:
+            found, status = await self._get_listpays_status(checking_id)
+
+            if not found:
+                return PaymentPendingStatus()
+
+            return status
+
+        except Exception as exc:
+            logger.warning(f"Error getting payment status for {checking_id}: {exc}")
+            return PaymentPendingStatus()
+
+    async def paid_invoices_stream(
+        self,
+    ) -> AsyncGenerator[str, None]:
+        """
+        Emit only newly paid CLN invoices.
+
+        When no explicit last_pay_index is configured, startup bootstraps to
+        the highest existing paid pay_index before calling waitanyinvoice.
+        """
+
         while settings.lnbits_running:
             try:
-                waitanyinvoice_timeout = None
-                request_timeout = httpx.Timeout(
-                    connect=5.0, read=waitanyinvoice_timeout, write=60.0, pool=60.0
-                )
-                data: dict = {
-                    "lastpay_index": self.last_pay_index,
-                    "timeout": waitanyinvoice_timeout,
-                }
-                url = "/v1/waitanyinvoice"
-                async with self.client.stream(
-                    "POST",
-                    url,
-                    json=data,
-                    headers=self.readonly_headers,
-                    timeout=request_timeout,
-                ) as r:
-                    async for line in r.aiter_lines():
-                        inv = json.loads(line)
-                        if "error" in inv and "message" in inv["error"]:
-                            logger.warning("Error in paid_invoices_stream:", inv)
-                            raise Exception(inv["error"]["message"])
-                        try:
-                            paid = inv["status"] == "paid"
-                            self.last_pay_index = inv["pay_index"]
-                            if not paid:
-                                continue
-                        except Exception as exc:
-                            logger.warning(exc)
-                            continue
-                        logger.debug(f"paid invoice: {inv}")
+                if not self._listener_bootstrapped:
+                    await self._bootstrap_listener_index()
 
-                        if "payment_hash" in inv:
-                            payment_hash_from_waitanyinvoice = inv["payment_hash"]
-                            yield payment_hash_from_waitanyinvoice
+                invoice = await self._rpc(
+                    "waitanyinvoice",
+                    payload={
+                        "lastpay_index": self.last_pay_index,
+                    },
+                    headers=self.readonly_headers,
+                    timeout=None,
+                )
+
+                event = self._parse_paid_invoice_event(invoice)
+
+                if not event:
+                    continue
+
+                payment_hash, pay_index = event
+
+                # Advance before yielding so a downstream failure does not
+                # immediately replay the same invoice in this process.
+                self.last_pay_index = pay_index
+
+                logger.debug(
+                    "new paid CLN invoice: "
+                    f"payment_hash={payment_hash}, pay_index={pay_index}"
+                )
+
+                yield payment_hash
+
+            except asyncio.CancelledError:
+                raise
 
             except Exception as exc:
                 logger.debug(
-                    f"lost connection to corelightning-rest invoices stream: '{exc}', "
-                    "reconnecting..."
+                    "lost connection to corelightning-rest invoice listener: "
+                    f"'{exc}', reconnecting..."
                 )
-                await asyncio.sleep(0.02)
+
+                await asyncio.sleep(1.0)
+
+    def _parse_paid_invoice_event(
+        self,
+        invoice: dict[str, Any],
+    ) -> tuple[str, int] | None:
+        if invoice.get("status") != "paid":
+            return None
+
+        payment_hash = invoice.get("payment_hash")
+        pay_index = invoice.get("pay_index")
+
+        if not payment_hash or pay_index is None:
+            logger.warning("waitanyinvoice returned an incomplete paid invoice event")
+            return None
+
+        normalized_index = _normalize_pay_index(pay_index)
+
+        if normalized_index is None:
+            return None
+
+        if normalized_index <= self.last_pay_index:
+            logger.warning(
+                "Ignoring stale CLN invoice event "
+                f"pay_index={normalized_index}, "
+                f"last_pay_index={self.last_pay_index}"
+            )
+            return None
+
+        if not _event_preimage_is_valid(
+            invoice,
+            payment_hash,
+        ):
+            return None
+
+        return payment_hash, normalized_index
+
+    async def _bootstrap_listener_index(self) -> None:
+        if self._listener_bootstrapped:
+            return
+
+        if self.last_pay_index > 0:
+            logger.info(
+                "Using configured CLN waitanyinvoice cursor "
+                f"pay_index={self.last_pay_index}"
+            )
+            self._listener_bootstrapped = True
+            return
+
+        logger.info("Bootstrapping CLN invoice listener to current pay_index")
+
+        data = await self._fetch_bootstrap_invoices()
+
+        self.last_pay_index = _highest_paid_pay_index(data.get("invoices") or [])
+        self._listener_bootstrapped = True
+
+        logger.info(
+            "CLN invoice listener bootstrapped at "
+            f"pay_index={self.last_pay_index}; "
+            "historical paid invoices will not be replayed"
+        )
+
+    async def _fetch_bootstrap_invoices(
+        self,
+    ) -> dict[str, Any]:
+        try:
+            return await self._rpc(
+                "listinvoices",
+                headers=self.readonly_headers,
+                timeout=30.0,
+            )
+
+        except asyncio.CancelledError:
+            raise
+
+        except Exception as exc:
+            logger.warning(f"Unable to bootstrap CLN invoice listener safely: {exc}")
+            raise
+
+    async def _get_listpays_status(
+        self,
+        checking_id: str,
+    ) -> tuple[bool, PaymentStatus]:
+        data = await self._rpc(
+            "listpays",
+            payload={"payment_hash": checking_id},
+            headers=self.readonly_headers,
+        )
+
+        pays = data.get("pays") or []
+
+        if not pays:
+            return False, PaymentPendingStatus()
+
+        pay = _select_best_pay(pays)
+
+        return True, _payment_status_from_pay(
+            checking_id,
+            pay,
+        )
+
+    async def _reconcile_payment_response(
+        self,
+        payment_hash: str,
+        fallback_error: str,
+    ) -> PaymentResponse:
+        try:
+            found, status = await self._get_listpays_status(payment_hash)
+        except Exception as exc:
+            logger.warning(f"Could not reconcile payment {payment_hash}: {exc}")
+            return PaymentResponse(
+                ok=None,
+                checking_id=payment_hash,
+                error_message=fallback_error,
+            )
+
+        if not found:
+            return PaymentResponse(
+                ok=None,
+                checking_id=payment_hash,
+                error_message=fallback_error,
+            )
+
+        if status.success:
+            return PaymentResponse(
+                ok=True,
+                checking_id=payment_hash,
+                fee_msat=status.fee_msat,
+                preimage=status.preimage,
+            )
+
+        if status.failed:
+            return PaymentResponse(
+                ok=False,
+                checking_id=payment_hash,
+                error_message=fallback_error,
+            )
+
+        return PaymentResponse(
+            ok=None,
+            checking_id=payment_hash,
+            fee_msat=status.fee_msat,
+            preimage=status.preimage,
+            error_message=fallback_error,
+        )
+
+    async def _rpc(
+        self,
+        method: str,
+        payload: dict[str, Any] | None = None,
+        headers: dict[str, str] | None = None,
+        timeout: float | None = 30.0,
+    ) -> dict[str, Any]:
+        response = await self.client.post(
+            f"/v1/{method}",
+            json=payload or {},
+            headers=headers,
+            timeout=timeout,
+        )
+
+        parsed_body = self._decode_response_json(
+            response,
+        )
+
+        if response.is_error:
+            message = (
+                self._extract_error_message(parsed_body)
+                if isinstance(parsed_body, dict)
+                else None
+            )
+
+            raise httpx.HTTPStatusError(
+                message or f"CLN REST returned HTTP {response.status_code}",
+                request=response.request,
+                response=response,
+            )
+
+        if parsed_body is None:
+            raise json.JSONDecodeError(
+                f"Invalid JSON response from CLN REST {method}",
+                response.text,
+                0,
+            )
+
+        if not isinstance(parsed_body, dict):
+            raise ValueError(
+                f"Unexpected CLN response type for {method}: " f"{type(parsed_body)!r}"
+            )
+
+        self._raise_for_rpc_error(
+            method,
+            parsed_body,
+        )
+
+        return parsed_body
+
+    @staticmethod
+    def _decode_response_json(
+        response: httpx.Response,
+    ) -> Any:
+        try:
+            return response.json()
+        except json.JSONDecodeError:
+            return None
+
+    def _raise_for_rpc_error(
+        self,
+        method: str,
+        data: dict[str, Any],
+    ) -> None:
+        if "error" in data:
+            message = (
+                self._extract_error_message(data)
+                or f"Core Lightning RPC '{method}' returned an error"
+            )
+            raise ValueError(message)
+
+        if data.get("code") is not None and data.get("message"):
+            raise ValueError(str(data["message"]))
+
+    def _format_http_error(
+        self,
+        exc: httpx.HTTPStatusError,
+    ) -> str:
+        message = f"CLN REST HTTP {exc.response.status_code}"
+
+        try:
+            data = exc.response.json()
+            extracted = self._extract_error_message(data)
+
+            if extracted:
+                return f"{message}: {extracted}"
+
+        except (
+            json.JSONDecodeError,
+            TypeError,
+            ValueError,
+        ) as parse_exc:
+            logger.debug(f"Could not parse CLN REST error body: {parse_exc}")
+
+        body = exc.response.text.strip()
+
+        if body:
+            return f"{message}: {body}"
+
+        return message
+
+    def _parse_rpc_http_error(
+        self,
+        exc: httpx.HTTPStatusError,
+    ) -> dict[str, Any]:
+        message = self._format_http_error(exc)
+        code = self._extract_rpc_error_code(exc)
+
+        return {
+            "message": message,
+            "code": code,
+            "terminal": code in self.pay_failure_error_codes,
+        }
+
+    @staticmethod
+    def _extract_rpc_error_code(
+        exc: httpx.HTTPStatusError,
+    ) -> int | None:
+        try:
+            data = exc.response.json()
+            error = data.get("error")
+
+            raw_code = (
+                error.get("code") if isinstance(error, dict) else data.get("code")
+            )
+
+            if raw_code is None:
+                return None
+
+            return int(raw_code)
+
+        except (
+            json.JSONDecodeError,
+            TypeError,
+            ValueError,
+        ) as parse_exc:
+            logger.debug(f"Could not parse CLN RPC error code: {parse_exc}")
+            return None
+
+    @staticmethod
+    def _extract_error_message(
+        data: dict[str, Any] | None,
+    ) -> str | None:
+        if not data:
+            return None
+
+        error = data.get("error")
+
+        if isinstance(error, dict):
+            message = error.get("message")
+
+            if message:
+                return str(message)
+
+            return str(error)
+
+        if isinstance(error, str):
+            return error
+
+        message = data.get("message")
+
+        if message:
+            return str(message)
+
+        detail = data.get("detail")
+
+        if detail:
+            return str(detail)
+
+        return None
 
     def _create_client(self) -> httpx.AsyncClient:
-        """Create an HTTP client with specified headers and SSL configuration."""
-
         parsed_url = urlparse(self.url)
 
-        # Validate the URL scheme
         if parsed_url.scheme == "http":
-            if parsed_url.hostname in ("localhost", "127.0.0.1", "::1"):
-                logger.warning("Not using SSL for connection to CLNRestWallet")
-            else:
-                raise ValueError(
-                    "Insecure HTTP connections are only allowed for localhost or "
-                    "equivalent IP addresses. Set CLNREST_URL to https:// for external "
-                    "connections or use localhost."
-                )
-            return httpx.AsyncClient(base_url=self.url)
+            return self._create_http_client(
+                parsed_url.hostname,
+            )
 
         if parsed_url.scheme == "https":
-            logger.info(f"Using SSL to connect to {self.url}")
+            return self._create_https_client()
 
-            # Check for CA certificate
-            if not settings.clnrest_ca:
-                logger.warning(
-                    "No CA certificate provided for CLNRestWallet. "
-                    "This setup requires a CA certificate for server authentication "
-                    "and trust. Set CLNREST_CA to the CA certificate file path or the "
-                    "contents of the certificate."
-                )
-                raise ValueError("CA certificate is required for secure communication.")
+        raise ValueError("CLNREST_URL must start with http:// or https://")
 
-            logger.info(f"CA Certificate provided: {settings.clnrest_ca}")
+    def _create_http_client(
+        self,
+        hostname: str | None,
+    ) -> httpx.AsyncClient:
+        if hostname not in {
+            "localhost",
+            "127.0.0.1",
+            "::1",
+        }:
+            raise ValueError(
+                "Insecure HTTP connections are only allowed for localhost "
+                "or equivalent loopback IP addresses. Set CLNREST_URL to "
+                "https:// for external connections."
+            )
 
-            # Create an SSL context and load the CA certificate
-            ssl_context = ssl.create_default_context(ssl.Purpose.SERVER_AUTH)
+        logger.warning("Not using TLS for local CLNRestWallet connection")
 
-            # Load CA certificate
-            if os.path.isfile(settings.clnrest_ca):
-                logger.info(f"Using CA certificate file: {settings.clnrest_ca}")
-                ssl_context.load_verify_locations(cafile=settings.clnrest_ca)
-            else:
-                logger.info("Using CA certificate from PEM string: ")
-                ca_content = settings.clnrest_ca.replace("\\n", "\n")
-                logger.info(ca_content)
-                ssl_context.load_verify_locations(cadata=ca_content)
+        return httpx.AsyncClient(
+            base_url=self.url,
+        )
 
-            # Optional: Disable hostname checking if necessary
-            # especially for ip addresses
-            ssl_context.check_hostname = False
+    def _create_https_client(self) -> httpx.AsyncClient:
+        logger.info(f"Using TLS to connect to {self.url}")
 
-            # Create the HTTP client without a client certificate
-            client = httpx.AsyncClient(base_url=self.url, verify=ssl_context)
+        if not settings.clnrest_ca:
+            raise ValueError("CLNREST_CA is required for an HTTPS CLN REST connection")
 
-            return client
+        ssl_context = ssl.create_default_context(ssl.Purpose.SERVER_AUTH)
 
-        else:
-            raise ValueError("CLNREST_URL must start with http:// or https://")
+        self._load_ca_certificate(
+            ssl_context,
+            settings.clnrest_ca,
+        )
+
+        # Certificate-chain verification remains enabled. Hostname matching is
+        # disabled for compatibility with common localhost/IP CLN deployments.
+        ssl_context.check_hostname = False
+
+        return httpx.AsyncClient(
+            base_url=self.url,
+            verify=ssl_context,
+        )
+
+    @staticmethod
+    def _load_ca_certificate(
+        ssl_context: ssl.SSLContext,
+        ca_setting: str,
+    ) -> None:
+        if os.path.isfile(ca_setting):
+            logger.info(f"Using CLN REST CA file: {ca_setting}")
+            ssl_context.load_verify_locations(
+                cafile=ca_setting,
+            )
+            return
+
+        logger.info("Using CLN REST CA certificate from configured PEM content")
+
+        ssl_context.load_verify_locations(
+            cadata=ca_setting.replace("\\n", "\n"),
+        )
+
+
+def _paid_invoice_status(
+    checking_id: str,
+    invoice: dict[str, Any],
+) -> PaymentStatus:
+    preimage = invoice.get("payment_preimage") or invoice.get("preimage")
+
+    if not preimage:
+        logger.error(f"Paid CLN invoice {checking_id} has no preimage")
+        return PaymentPendingStatus()
+
+    if not _preimage_matches(
+        preimage,
+        checking_id,
+    ):
+        logger.error(f"Paid CLN invoice {checking_id} returned an invalid preimage")
+        return PaymentPendingStatus()
+
+    fee_msat = _msat_to_int(invoice.get("amount_received_msat")) - _msat_to_int(
+        invoice.get("amount_msat")
+    )
+
+    return PaymentSuccessStatus(
+        fee_msat=fee_msat,
+        preimage=preimage,
+    )
+
+
+def _payment_status_from_pay(
+    checking_id: str,
+    pay: dict[str, Any],
+) -> PaymentStatus:
+    status = pay.get("status")
+
+    if status == "complete":
+        return _completed_payment_status(
+            checking_id,
+            pay,
+        )
+
+    if status == "failed":
+        return PaymentFailedStatus()
+
+    return PaymentPendingStatus(
+        fee_msat=_payment_fee_msat(pay),
+    )
+
+
+def _completed_payment_status(
+    checking_id: str,
+    pay: dict[str, Any],
+) -> PaymentStatus:
+    preimage = pay.get("preimage") or pay.get("payment_preimage")
+
+    if not preimage:
+        logger.error(f"Completed payment {checking_id} has no preimage")
+        return PaymentPendingStatus()
+
+    if not _preimage_matches(
+        preimage,
+        checking_id,
+    ):
+        logger.error(f"Completed payment {checking_id} has an invalid preimage")
+        return PaymentPendingStatus()
+
+    return PaymentSuccessStatus(
+        fee_msat=_payment_fee_msat(pay),
+        preimage=preimage,
+    )
+
+
+def _preimage_matches(
+    preimage: str,
+    payment_hash: str,
+) -> bool:
+    try:
+        return verify_preimage(
+            preimage,
+            payment_hash,
+        )
+    except (TypeError, ValueError):
+        return False
+
+
+def _normalize_pay_index(
+    value: Any,
+) -> int | None:
+    try:
+        return int(value)
+    except (TypeError, ValueError):
+        logger.warning(f"Invalid Core Lightning pay_index: {value!r}")
+        return None
+
+
+def _highest_paid_pay_index(
+    invoices: list[dict[str, Any]],
+) -> int:
+    indexes = [
+        normalized
+        for invoice in invoices
+        if invoice.get("status") == "paid"
+        if invoice.get("pay_index") is not None
+        if (normalized := _normalize_pay_index(invoice.get("pay_index"))) is not None
+    ]
+
+    return max(
+        indexes,
+        default=0,
+    )
+
+
+def _event_preimage_is_valid(
+    invoice: dict[str, Any],
+    payment_hash: str,
+) -> bool:
+    preimage = invoice.get("payment_preimage") or invoice.get("preimage")
+
+    if not preimage:
+        return True
+
+    if _preimage_matches(
+        preimage,
+        payment_hash,
+    ):
+        return True
+
+    logger.error(
+        "waitanyinvoice returned invalid preimage " f"for payment_hash={payment_hash}"
+    )
+
+    return False
+
+
+def _msat_to_int(
+    value: Any,
+) -> int:
+    if value is None:
+        return 0
+
+    if isinstance(
+        value,
+        (int, float),
+    ):
+        return int(value)
+
+    if isinstance(value, str):
+        amount = value.strip()
+
+        if amount.endswith("msat"):
+            amount = amount[:-4]
+
+        return int(amount)
+
+    if isinstance(value, dict):
+        if "msat" in value:
+            return _msat_to_int(value["msat"])
+
+        if "amount_msat" in value:
+            return _msat_to_int(value["amount_msat"])
+
+    raise TypeError(f"Unsupported Core Lightning msat value: {value!r}")
+
+
+def _payment_fee_msat(
+    payment: dict[str, Any],
+) -> int | None:
+    amount_sent = payment.get("amount_sent_msat")
+    amount = payment.get("amount_msat")
+
+    if amount_sent is None or amount is None:
+        return None
+
+    return _msat_to_int(amount_sent) - _msat_to_int(amount)
+
+
+def _select_best_pay(
+    pays: list[dict[str, Any]],
+) -> dict[str, Any]:
+    complete = [payment for payment in pays if payment.get("status") == "complete"]
+
+    if complete:
+        return complete[-1]
+
+    pending = [payment for payment in pays if payment.get("status") == "pending"]
+
+    if pending:
+        return pending[-1]
+
+    failed = [payment for payment in pays if payment.get("status") == "failed"]
+
+    if failed:
+        return failed[-1]
+
+    return pays[-1]
 
 
 def _generate_label() -> str:
-    """Generate a unique label for the invoice."""
     random_uuid = base64.urlsafe_b64encode(uuid.uuid4().bytes).rstrip(b"=").decode()
+
     return f"LNbits_{random_uuid}"
