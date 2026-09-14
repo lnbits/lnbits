@@ -334,6 +334,8 @@ async def test_update_wallet_balance_validates_credit_and_debit(
     assert debit_payment is not None
     assert debit_payment.amount == -10_000
     assert debit_payment.status == PaymentState.SUCCESS
+    assert debit_payment.memo == "Debit"
+    assert debit_payment.extra["tag"] == "admin"
 
     original_max_balance = settings.lnbits_wallet_limit_max_balance
     try:
@@ -350,13 +352,12 @@ async def test_update_wallet_balance_validates_credit_and_debit(
     finally:
         settings.lnbits_wallet_limit_max_balance = original_max_balance
 
-    credit_payments = [
-        payment
-        for payment in await get_payments(wallet_id=wallet.id, incoming=True)
-        if payment.memo == "Admin credit"
-    ]
-    assert credit_payments
+    credit_payments = await get_payments(wallet_id=wallet.id, incoming=True)
+    assert len(credit_payments) == 1
+    assert credit_payments[0].amount == 5_000
     assert credit_payments[0].status == PaymentState.SUCCESS
+    assert credit_payments[0].memo == "Credit"
+    assert credit_payments[0].extra["tag"] == "admin"
     queue_mock.assert_called_once()
     assert queue_mock.call_args[0][0].checking_id == credit_payments[0].checking_id
 
