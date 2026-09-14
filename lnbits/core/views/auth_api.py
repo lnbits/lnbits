@@ -503,12 +503,13 @@ async def update_password(
     _validate_auth_timeout(payload.auth_time)
     if data.user_id != account.id:
         raise ValueError("Invalid user ID.")
-    if (
-        data.username
-        and account.username != data.username
-        and await get_account_by_username(data.username)
-    ):
-        raise HTTPException(HTTPStatus.BAD_REQUEST, "Username already exists.")
+    if data.password != data.password_repeat:
+        raise HTTPException(HTTPStatus.BAD_REQUEST, "Passwords do not match.")
+    if account.username != data.username:
+        if not is_valid_username(data.username):
+            raise HTTPException(HTTPStatus.BAD_REQUEST, "Invalid username.")
+        if await get_account_by_username(data.username):
+            raise HTTPException(HTTPStatus.BAD_REQUEST, "Username already exists.")
 
     # old accounts do not have a password
     if account.password_hash:
@@ -608,6 +609,11 @@ async def first_install(data: UpdateSuperuserPassword) -> JSONResponse:
             raise HTTPException(HTTPStatus.UNAUTHORIZED, "Missing first_install_token.")
         if settings.first_install_token != data.first_install_token:
             raise HTTPException(HTTPStatus.UNAUTHORIZED, "Invalid first_install_token.")
+
+    if data.password != data.password_repeat:
+        raise HTTPException(HTTPStatus.BAD_REQUEST, "Passwords do not match.")
+    if not is_valid_username(data.username):
+        raise HTTPException(HTTPStatus.BAD_REQUEST, "Invalid username.")
 
     account = await get_account_by_username(data.username, False)
     if account:
