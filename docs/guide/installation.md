@@ -21,6 +21,7 @@ nav_order: 1
 ## Table of contents
 
 - [Option 1: AppImage (Linux)](#option-1-appimage-linux)
+- [macOS app (DMG)](#macos-app-dmg)
 - [Option 2: UV (recommended for developers)](#option-2-uv-recommended-for-developers)
 - [Option 2a (Legacy): Poetry — Replaced by UV](#option-2a-legacy-poetry--replaced-by-uv)
 - [Option 3: Install script (Debian/Ubuntu)](#option-3-install-script-debianubuntu)
@@ -60,6 +61,26 @@ LNBITS_ADMIN_UI=true HOST=0.0.0.0 PORT=5000 AUTH_HTTPS_ONLY=false ./LNbits-lates
 > **Next steps**
 > Install complete → **[Running LNbits](#run-the-server)**
 > Update LNBits → **[Update LNbits (all methods)](#update-lnbits-all-methods)**
+
+## macOS app (DMG)
+
+Requires **macOS 15 or later**. Download the `macOS-arm64.dmg` asset for an
+Apple Silicon (M-series) Mac, or `macOS-x86_64.dmg` for an Intel Mac, from
+[releases](https://github.com/lnbits/lnbits/releases).
+
+1. Open the DMG and drag **LNbits** into **Applications**.
+2. Eject the disk image and open LNbits from Applications.
+3. Choose the port and data folder, click **Launch LNbits**, then **Open in browser**.
+
+The current builds are not Apple Developer ID signed or notarized. If macOS
+blocks the first launch and you trust the download, use **System Settings →
+Privacy & Security → Open Anyway** after attempting to open it.
+See [Apple's first-launch instructions](https://support.apple.com/en-gb/102445).
+
+Data is stored in `~/Library/Application Support/LNbits` by default, with logs
+under `logs/desktop.log`. Back up the data folder. To update, stop LNbits and
+quit the launcher before replacing the app in Applications; your data is kept
+separately. Keep the launcher open while using LNbits.
 
 ## Option 2: UV (recommended for developers)
 
