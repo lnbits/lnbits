@@ -245,13 +245,6 @@ window.app.component('lnbits-admin-funding-sources', {
           }
         ],
         [
-          'ClicheWallet',
-          'Cliche (NBD)',
-          {
-            cliche_endpoint: 'Endpoint'
-          }
-        ],
-        [
           'SparkWallet',
           'Spark',
           {
