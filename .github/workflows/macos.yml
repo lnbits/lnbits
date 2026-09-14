@@ -56,7 +56,10 @@ jobs:
           git diff --exit-code -- lnbits/static
       - name: Build application
         run: |
-          uv sync --locked --no-dev --no-editable
+          # Intel builds cryptography from source; avoid sharing Python's libssl.
+          uv cache clean cryptography
+          OPENSSL_STATIC=1 OPENSSL_DIR="$(brew --prefix openssl@3)" \
+            uv sync --locked --no-dev --no-editable --reinstall-package cryptography
           uv pip install pyinstaller==6.22.2
           uv run --no-sync python .github/packaging/build.py
       - name: Test launcher window and shutdown

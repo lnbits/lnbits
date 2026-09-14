@@ -21,11 +21,13 @@ download quarantine or every user's macOS configuration.
 
 ## Build locally
 
-On a Mac with Python 3.12 (including Tk), Node/npm, uv and the Xcode command-line tools,
-from the repository root:
+On a Mac with Python 3.12 (including Tk), Node/npm, uv, Rust, Homebrew's `openssl@3`
+and the Xcode command-line tools, from the repository root:
 
 ```sh
-uv sync --locked --no-dev --no-editable
+uv cache clean cryptography
+OPENSSL_STATIC=1 OPENSSL_DIR="$(brew --prefix openssl@3)" \
+  uv sync --locked --no-dev --no-editable --reinstall-package cryptography
 uv pip install pyinstaller==6.22.2
 uv run --no-sync python .github/packaging/build.py
 uv run --no-sync python -m unittest discover -s .github/packaging -v
@@ -34,6 +36,13 @@ uv run --no-sync python .github/packaging/macos/dmg.py
 
 Build on each target architecture. A universal app would additionally require
 universal builds of every native dependency. Linux cannot build this macOS app.
+
+The locked `cryptography` version has no Intel macOS wheel, so uv builds it from
+source there. Use static OpenSSL linking to prevent PyInstaller from substituting
+Python's bundled `libssl.3.dylib`, which can lack symbols required by cryptography.
+Clear the package's cache before reinstalling to discard earlier dynamic builds.
+`build.py` rejects cryptography bindings that still depend on shared OpenSSL.
+See [cryptography's macOS build instructions](https://cryptography.io/en/latest/installation/#building-cryptography-on-macos).
 
 The app includes Spark L2 and Phoenixd. See the shared
 [funding documentation](../README.md) for pins, persistence and verification.
