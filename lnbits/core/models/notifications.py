@@ -43,6 +43,7 @@ NOTIFICATION_TEMPLATES = {
     """,
     "balance_update": """*WALLET CREDIT/DEBIT*
         Wallet `{wallet_name}` balance updated with `{amount}` sats.
+        *Memo*: `{memo}`
         *Current balance*: `{balance}` sats.
         *Wallet ID*: `{wallet_id}`
         """,

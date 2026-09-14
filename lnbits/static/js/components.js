@@ -345,6 +345,7 @@ window.app.component('lnbits-dynamic-chips', {
 window.app.component('lnbits-update-balance', {
   template: '#lnbits-update-balance',
   props: ['wallet_id', 'small_btn'],
+  emits: ['credit-value'],
   computed: {
     admin() {
       return this.g.user?.super_user === true
@@ -352,18 +353,24 @@ window.app.component('lnbits-update-balance', {
   },
   data() {
     return {
-      credit: 0
+      credit: null,
+      memo: '',
+      updating: false
     }
   },
   methods: {
     updateBalance(scope) {
+      const credit = parseInt(scope.value)
+      if (!credit) return
+      if (this.updating) return
+      this.updating = true
       LNbits.api
-        .updateBalance(scope.value, this.wallet_id)
+        .updateBalance(credit, this.wallet_id, this.memo.trim() || null)
         .then(res => {
           if (res.data.success !== true) {
             throw new Error(res.data)
           }
-          credit = parseInt(scope.value)
+          this.$emit('credit-value', credit)
           Quasar.Notify.create({
             type: 'positive',
             message: this.$t('credit_ok', {
@@ -371,11 +378,15 @@ window.app.component('lnbits-update-balance', {
             }),
             icon: null
           })
-          this.credit = 0
-          scope.value = 0
+          this.credit = null
+          this.memo = ''
+          scope.value = null
           scope.set()
         })
         .catch(LNbits.utils.notifyApiError)
+        .finally(() => {
+          this.updating = false
+        })
     }
   }
 })
