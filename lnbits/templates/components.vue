@@ -520,19 +520,46 @@ include('components/lnbits-error.vue') %}
     size="sm"
     icon="add"
   >
-    <q-popup-edit class="text-white" v-slot="scope" v-model="credit">
+    <q-popup-edit
+      class="text-white"
+      v-slot="scope"
+      v-model="credit"
+      :cover="false"
+      anchor="bottom left"
+      self="top left"
+      :offset="[0, 8]"
+      transition-show="jump-down"
+      transition-hide="jump-up"
+      @hide="memo = ''"
+    >
       <q-input
         filled
         :label="$t('credit_label', {denomination: g.denomination})"
         v-model="scope.value"
+        type="number"
         dense
         autofocus
         @keyup.enter="updateBalance(scope)"
-      >
-        <template v-slot:append>
-          <q-icon name="edit" />
-        </template>
-      </q-input>
+      ></q-input>
+      <q-input
+        filled
+        :label="$t('credit_memo_label')"
+        v-model="memo"
+        dense
+        maxlength="639"
+        class="q-mt-sm"
+        @keyup.enter="updateBalance(scope)"
+      ></q-input>
+      <q-btn
+        unelevated
+        dense
+        class="full-width q-mt-sm"
+        :color="parseInt(scope.value) < 0 ? 'negative' : 'primary'"
+        :label="parseInt(scope.value) < 0 ? $t('debit') : $t('credit')"
+        :disable="!parseInt(scope.value)"
+        :loading="updating"
+        @click="updateBalance(scope)"
+      ></q-btn>
     </q-popup-edit>
     <q-tooltip v-text="$t('credit_hint')"></q-tooltip>
   </q-btn>
@@ -544,7 +571,18 @@ include('components/lnbits-error.vue') %}
     class="float-right q-mt-sm"
     size="sm"
   >
-    <q-popup-edit class="text-white" v-slot="scope" v-model="credit">
+    <q-popup-edit
+      class="text-white"
+      v-slot="scope"
+      v-model="credit"
+      :cover="false"
+      anchor="bottom left"
+      self="top left"
+      :offset="[0, 8]"
+      transition-show="jump-down"
+      transition-hide="jump-up"
+      @hide="memo = ''"
+    >
       <q-input
         filled
         :label="$t('credit_label', {denomination: g.denomination})"
@@ -553,11 +591,26 @@ include('components/lnbits-error.vue') %}
         dense
         autofocus
         @keyup.enter="updateBalance(scope)"
-      >
-        <template v-slot:append>
-          <q-icon name="edit" />
-        </template>
-      </q-input>
+      ></q-input>
+      <q-input
+        filled
+        :label="$t('credit_memo_label')"
+        v-model="memo"
+        dense
+        maxlength="639"
+        class="q-mt-sm"
+        @keyup.enter="updateBalance(scope)"
+      ></q-input>
+      <q-btn
+        unelevated
+        dense
+        class="full-width q-mt-sm"
+        :color="parseInt(scope.value) < 0 ? 'negative' : 'primary'"
+        :label="parseInt(scope.value) < 0 ? $t('debit') : $t('credit')"
+        :disable="!parseInt(scope.value)"
+        :loading="updating"
+        @click="updateBalance(scope)"
+      ></q-btn>
     </q-popup-edit>
     <q-tooltip v-text="$t('credit_hint')"></q-tooltip>
   </q-btn>
