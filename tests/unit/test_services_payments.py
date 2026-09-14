@@ -301,17 +301,31 @@ async def test_check_pending_payments_skips_voidwallet_and_updates_recent_items(
 
 
 @pytest.mark.anyio
+@pytest.mark.parametrize(
+    ("memo", "expected_credit_memo", "expected_debit_memo"),
+    [
+        (None, "Credit", "Debit"),
+        ("", "Credit", "Debit"),
+        (" \t\n ", "Credit", "Debit"),
+        ("Balance adjustment", "Balance adjustment", "Balance adjustment"),
+        ("  Balance adjustment  ", "Balance adjustment", "Balance adjustment"),
+    ],
+)
 async def test_update_wallet_balance_validates_credit_and_debit(
-    settings: Settings, mocker: MockerFixture
+    settings: Settings,
+    mocker: MockerFixture,
+    memo: str | None,
+    expected_credit_memo: str,
+    expected_debit_memo: str,
 ):
     wallet = await _create_wallet()
     wallet.balance_msat = 20_000
 
     with pytest.raises(ValueError, match="Amount cannot be 0."):
-        await update_wallet_balance(wallet, 0)
+        await update_wallet_balance(wallet, 0, memo=memo)
 
     with pytest.raises(ValueError, match="can not go into negative balance"):
-        await update_wallet_balance(wallet, -30)
+        await update_wallet_balance(wallet, -30, memo=memo)
 
     payment_secret = (uuid4().hex * 2)[:64]
     payment_hash = (uuid4().hex * 2)[:64]
@@ -323,32 +337,34 @@ async def test_update_wallet_balance_validates_credit_and_debit(
         "lnbits.core.services.payments.fake_privkey",
         return_value="privkey",
     )
-    mocker.patch(
+    bolt11_encode_mock = mocker.patch(
         "lnbits.core.services.payments.bolt11_encode",
         return_value="encoded-bolt11",
     )
 
-    await update_wallet_balance(wallet, -10)
+    await update_wallet_balance(wallet, -10, memo=memo)
 
     debit_payment = await get_payment("internal_" + payment_hash)
     assert debit_payment is not None
     assert debit_payment.amount == -10_000
     assert debit_payment.status == PaymentState.SUCCESS
-    assert debit_payment.memo == "Debit"
+    assert debit_payment.memo == expected_debit_memo
     assert debit_payment.extra["tag"] == "admin"
+    bolt11_encode_mock.assert_called_once()
+    assert bolt11_encode_mock.call_args[0][0].description == expected_debit_memo
 
     original_max_balance = settings.lnbits_wallet_limit_max_balance
     try:
         settings.lnbits_wallet_limit_max_balance = 21
         with pytest.raises(ValueError, match="amount exceeds maximum balance"):
-            await update_wallet_balance(wallet, 5)
+            await update_wallet_balance(wallet, 5, memo=memo)
 
         settings.lnbits_wallet_limit_max_balance = 0
         queue_mock = mocker.patch(
             "lnbits.task_manager.task_manager.internal_invoice_queue.put_nowait",
         )
 
-        await update_wallet_balance(wallet, 5)
+        await update_wallet_balance(wallet, 5, memo=memo)
     finally:
         settings.lnbits_wallet_limit_max_balance = original_max_balance
 
@@ -356,7 +372,7 @@ async def test_update_wallet_balance_validates_credit_and_debit(
     assert len(credit_payments) == 1
     assert credit_payments[0].amount == 5_000
     assert credit_payments[0].status == PaymentState.SUCCESS
-    assert credit_payments[0].memo == "Credit"
+    assert credit_payments[0].memo == expected_credit_memo
     assert credit_payments[0].extra["tag"] == "admin"
     queue_mock.assert_called_once()
     assert queue_mock.call_args[0][0].checking_id == credit_payments[0].checking_id
