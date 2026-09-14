@@ -677,7 +677,23 @@
   <q-dialog v-model="parse.show" @hide="closeParseDialog" position="top">
     <q-card class="q-pa-lg q-pt-xl lnbits__dialog-card">
       <div v-if="parse.invoice">
-        <div class="column content-center text-center q-mb-md">
+        <div
+          v-if="parse.invoice.isBolt12Offer"
+          class="column content-center text-center q-mb-md"
+        >
+          <h6 class="q-my-none" v-text="$t('bolt12_offer')"></h6>
+          <q-input
+            filled
+            dense
+            class="q-mt-md full-width"
+            v-model.number="parse.data.amount"
+            type="number"
+            min="1"
+            :label="$t('amount_sats')"
+            :hint="$t('bolt12_offer_amount_hint')"
+          ></q-input>
+        </div>
+        <div v-else class="column content-center text-center q-mb-md">
           <div v-if="!g.isFiatPriority">
             <h4 class="q-my-none text-bold">
               <span
@@ -722,7 +738,11 @@
           </div>
         </div>
         <q-separator></q-separator>
-        <h6 class="text-center" v-text="parse.invoice.description"></h6>
+        <h6
+          v-if="!parse.invoice.isBolt12Offer"
+          class="text-center"
+          v-text="parse.invoice.description"
+        ></h6>
         <q-input
           autogrow
           filled
@@ -744,7 +764,7 @@
         <q-list separator bordered dense class="q-mb-md">
           <q-expansion-item expand-separator icon="info" label="Details">
             <q-list separator>
-              <q-item>
+              <q-item v-if="parse.invoice.createdDate">
                 <q-item-section>
                   <q-item-label v-text="$t('created')"></q-item-label>
                   <q-item-label
@@ -760,7 +780,7 @@
                   ></q-item-label>
                 </q-item-section>
               </q-item>
-              <q-item>
+              <q-item v-if="parse.invoice.expireDate">
                 <q-item-section>
                   <q-item-label v-text="$t('expire_date')"></q-item-label>
                   <q-item-label
@@ -775,7 +795,7 @@
                   ></q-item-label>
                 </q-item-section>
               </q-item>
-              <q-item>
+              <q-item v-if="parse.invoice.hash">
                 <q-item-section>
                   <q-item-label v-text="$t('payment_hash')"></q-item-label>
                   <q-item-label
