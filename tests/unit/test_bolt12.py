@@ -64,7 +64,7 @@ def test_looks_like_offer_is_fail_closed_prefix():
 
 
 @pytest.mark.anyio
-async def test_pay_invoice_rejects_malformed_offer(to_wallet):
+async def test_pay_invoice_rejects_malformed_offer(app, to_wallet):
     with pytest.raises(PaymentError, match="Invalid BOLT12 offer"):
         await pay_invoice(
             wallet_id=to_wallet.id,
@@ -74,7 +74,7 @@ async def test_pay_invoice_rejects_malformed_offer(to_wallet):
 
 
 @pytest.mark.anyio
-async def test_pay_invoice_requires_offer_amount(to_wallet):
+async def test_pay_invoice_requires_offer_amount(app, to_wallet):
     with pytest.raises(PaymentError, match="Amount is required to pay a BOLT12 offer"):
         await pay_invoice(
             wallet_id=to_wallet.id,
@@ -83,7 +83,7 @@ async def test_pay_invoice_requires_offer_amount(to_wallet):
 
 
 @pytest.mark.anyio
-async def test_pay_invoice_rejects_zero_offer_amount(to_wallet):
+async def test_pay_invoice_rejects_zero_offer_amount(app, to_wallet):
     with pytest.raises(PaymentError, match="Amount is required to pay a BOLT12 offer"):
         await pay_invoice(
             wallet_id=to_wallet.id,
@@ -93,7 +93,9 @@ async def test_pay_invoice_rejects_zero_offer_amount(to_wallet):
 
 
 @pytest.mark.anyio
-async def test_pay_invoice_enforces_offer_amount_ceiling(to_wallet, settings: Settings):
+async def test_pay_invoice_enforces_offer_amount_ceiling(
+    app, to_wallet, settings: Settings
+):
     settings.lnbits_max_outgoing_payment_amount_sats = 100
     with pytest.raises(PaymentError, match="too high"):
         await pay_invoice(
@@ -104,7 +106,9 @@ async def test_pay_invoice_enforces_offer_amount_ceiling(to_wallet, settings: Se
 
 
 @pytest.mark.anyio
-async def test_pay_invoice_rejects_offer_without_bolt12_feature(to_wallet, monkeypatch):
+async def test_pay_invoice_rejects_offer_without_bolt12_feature(
+    app, to_wallet, monkeypatch
+):
     monkeypatch.setattr(FakeWallet, "features", None)
     with pytest.raises(
         PaymentError, match="Funding source does not support BOLT12 offers"
@@ -117,7 +121,7 @@ async def test_pay_invoice_rejects_offer_without_bolt12_feature(to_wallet, monke
 
 
 @pytest.mark.anyio
-async def test_pay_offer_debits_wallet_and_is_reusable():
+async def test_pay_offer_debits_wallet_and_is_reusable(app):
     user = await create_user_account()
     wallet = await create_wallet(user_id=user.id)
     await update_wallet_balance(wallet, 1000)
