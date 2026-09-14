@@ -84,6 +84,10 @@ window.PageWallet = {
         })
         return false
       }
+      if (this.parse.invoice.isBolt12Offer) {
+        const amount = Number(this.parse.data.amount)
+        return amount > 0 && amount <= this.g.wallet.sat
+      }
       return this.parse.invoice.sat <= this.g.wallet.sat
     },
     lnurlpayInfo() {
@@ -293,6 +297,7 @@ window.PageWallet = {
         window.isSecureContext && navigator.clipboard?.readText !== undefined
       this.parse.data.request = ''
       this.parse.data.comment = ''
+      this.parse.data.amount = 0
       this.parse.data.internalMemo = null
       this.parse.sending = false
       this.parse.data.paymentChecker = null
@@ -456,12 +461,19 @@ window.PageWallet = {
         req.match(/[\w.+-~_]+@[\w.+-~_]/)
       )
     },
+    isBolt12Offer(req) {
+      const text = (req || '').trim().toLowerCase()
+      return text.startsWith('lno1')
+    },
     decodeRequest() {
       this.parse.show = true
       this.parse.data.request = this.parse.data.request.trim()
       const req = this.parse.data.request.toLowerCase()
       if (req.startsWith('lightning:')) {
         this.parse.data.request = this.parse.data.request.slice(10)
+        if (this.parse.data.request.startsWith('//')) {
+          this.parse.data.request = this.parse.data.request.slice(2)
+        }
       } else if (req.startsWith('lnurl:')) {
         this.parse.data.request = this.parse.data.request.slice(6)
       } else if (req.includes('lightning=lnurl1')) {
@@ -471,6 +483,26 @@ window.PageWallet = {
       }
       if (this.isLnurl(this.parse.data.request)) {
         this.lnurlScan()
+        return
+      }
+
+      if (this.isBolt12Offer(this.parse.data.request)) {
+        const offer = this.parse.data.request
+          .trim()
+          .toLowerCase()
+          .split('?')[0]
+          .split('#')[0]
+        this.parse.data.request = offer
+        this.parse.invoice = Object.freeze({
+          msat: null,
+          sat: 0,
+          fsat: 'offer',
+          bolt11: offer,
+          description: this.$t('bolt12_offer'),
+          hash: null,
+          isBolt12Offer: true,
+          expired: false
+        })
         return
       }
 
@@ -556,11 +588,15 @@ window.PageWallet = {
         message: this.$t('payment_processing')
       })
 
+      const amount = this.parse.invoice.isBolt12Offer
+        ? this.parse.data.amount
+        : null
       LNbits.api
         .payInvoice(
           this.g.wallet,
           this.parse.data.request,
-          this.parse.data.internalMemo
+          this.parse.data.internalMemo,
+          amount
         )
         .then(response => {
           this.parse.sending = false

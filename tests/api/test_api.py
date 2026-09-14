@@ -627,6 +627,46 @@ async def test_decode_invoice(client, invoice: Payment):
     assert response.json()["payment_hash"] == invoice.payment_hash
 
 
+@pytest.mark.anyio
+async def test_decode_bolt12_offer(client):
+    offer = "lno1qgsqvgnwgcg35z6ee2h3yczraddm72xrfua9uve2rlrm9deu7xyfzrcgq9qh"
+    response = await client.post(
+        "/api/v1/payments/decode",
+        json={"data": "lightning:" + offer.upper()},
+    )
+    assert response.status_code == 200
+    assert response.json() == {"type": "bolt12_offer", "offer": offer}
+
+    bad = await client.post(
+        "/api/v1/payments/decode",
+        json={"data": "lno1!!!"},
+    )
+    assert bad.status_code == 400
+    assert "Invalid BOLT12 offer" in bad.json()["message"]
+
+
+@pytest.mark.anyio
+async def test_pay_bolt12_offer(client, adminkey_headers_to):
+    offer = "lno1qgsqvgnwgcg35z6ee2h3yczraddm72xrfua9uve2rlrm9deu7xyfzrcgq9qh"
+    missing_amount = await client.post(
+        "/api/v1/payments",
+        json={"out": True, "bolt11": offer},
+        headers=adminkey_headers_to,
+    )
+    assert missing_amount.status_code >= 400
+
+    paid = await client.post(
+        "/api/v1/payments",
+        json={"out": True, "bolt11": offer, "amount": 21, "unit": "sat"},
+        headers=adminkey_headers_to,
+    )
+    assert paid.status_code < 300
+    body = paid.json()
+    assert body["status"] == "success"
+    assert body["amount"] == -21_000
+    assert body["extra"]["bolt12"] is True
+
+
 # check api_payment() internal function call (NOT API): payment status
 @pytest.mark.anyio
 async def test_api_payment_without_key(invoice: Payment):
