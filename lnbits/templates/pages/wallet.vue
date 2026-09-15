@@ -853,9 +853,13 @@
             v-if="g.wallet.walletType !== 'fiat'"
             unelevated
             color="primary"
+            type="button"
             @click="payInvoice"
+            :loading="parse.sending"
             :disable="
-              parse.sending || !g.wallet.canSendPayments || bolt12AmountMissing
+              parse.sending ||
+              !g.wallet.canSendPayments ||
+              (parse.invoice.isBolt12Offer && !(Number(parse.data.amount) > 0))
             "
             :label="parse.sending ? $t('sending') + '...' : $t('pay')"
           ></q-btn>
