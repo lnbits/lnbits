@@ -19,6 +19,7 @@ from lnbits.settings import settings
 from lnbits.utils.crypto import fake_privkey
 
 from .base import (
+    Feature,
     InvoiceResponse,
     PaymentFailedStatus,
     PaymentPendingStatus,
@@ -31,6 +32,7 @@ from .base import (
 
 
 class FakeWallet(Wallet):
+    features = [Feature.bolt12]
 
     def __init__(self) -> None:
         self.queue: asyncio.Queue = asyncio.Queue(0)
@@ -122,6 +124,37 @@ class FakeWallet(Wallet):
             return PaymentResponse(
                 ok=False, error_message="Only internal invoices can be used!"
             )
+
+    async def pay_offer(
+        self,
+        offer: str,
+        fee_limit_msat: int,
+        amount_msat: int | None = None,
+    ) -> PaymentResponse:
+        from lnbits.exceptions import PaymentError
+        from lnbits.utils.bolt12 import parse_bolt12_offer
+
+        try:
+            parse_bolt12_offer(offer)
+        except PaymentError as exc:
+            return PaymentResponse(ok=False, error_message=str(exc.message))
+
+        if not amount_msat or amount_msat <= 0:
+            return PaymentResponse(
+                ok=False, error_message="Amount is required to pay a BOLT12 offer."
+            )
+
+        _ = fee_limit_msat
+        preimage = urandom(32)
+        checking_id = sha256(preimage).hexdigest()
+        self.payment_secrets[checking_id] = preimage.hex()
+        self.paid_invoices.add(checking_id)
+        return PaymentResponse(
+            ok=True,
+            checking_id=checking_id,
+            fee_msat=0,
+            preimage=preimage.hex(),
+        )
 
     async def get_invoice_status(self, checking_id: str) -> PaymentStatus:
         if checking_id in self.paid_invoices:

@@ -34,7 +34,7 @@ class PhoenixdWallet(Wallet):
     """https://phoenix.acinq.co/server/api"""
 
     __node_cls__ = PhoenixdNode
-    features = [Feature.nodemanager]
+    features = [Feature.nodemanager, Feature.bolt12]
 
     def __init__(self):
         if not settings.phoenixd_api_endpoint:
@@ -251,6 +251,68 @@ class PhoenixdWallet(Wallet):
             )
         except Exception as exc:
             logger.info(f"Failed to pay invoice {bolt11}")
+            logger.warning(exc)
+            return PaymentResponse(
+                error_message=f"Unable to connect to {self.endpoint}."
+            )
+
+    async def pay_offer(
+        self,
+        offer: str,
+        fee_limit_msat: int,
+        amount_msat: int | None = None,
+    ) -> PaymentResponse:
+        _ = fee_limit_msat
+        try:
+            data_body: dict[str, Any] = {"offer": offer}
+            if amount_msat is not None and amount_msat > 0:
+                data_body["amountSat"] = str(amount_msat // 1000)
+            r = await self.client.post(
+                "/payoffer",
+                data=data_body,
+                timeout=60,
+            )
+            r.raise_for_status()
+        except TimeoutException:
+            msg = f"Timeout connecting to {self.endpoint}. keep pending..."
+            logger.warning(msg)
+            return PaymentResponse(ok=None, error_message=msg)
+        except RequestError as exc:
+            msg = f"Unable to connect to {self.endpoint}."
+            logger.warning(msg)
+            logger.warning(exc)
+            return PaymentResponse(ok=None, error_message=msg)
+        except Exception as exc:
+            logger.warning(exc)
+            return PaymentResponse(
+                ok=None, error_message=f"Unable to connect to {self.endpoint}."
+            )
+
+        try:
+            data = r.json()
+            if "paymentHash" not in data and ("reason" in data or "message" in data):
+                error_message = data.get("reason", data.get("message", "Unknown error"))
+                return PaymentResponse(ok=False, error_message=error_message)
+
+            checking_id = data["paymentHash"]
+            fee_msat = -int(data.get("routingFeeSat", 0)) * 1000
+            preimage = data.get("paymentPreimage")
+            return PaymentResponse(
+                ok=True,
+                checking_id=checking_id,
+                fee_msat=fee_msat,
+                preimage=preimage,
+            )
+        except json.JSONDecodeError:
+            return PaymentResponse(
+                error_message="Server error: 'invalid json response'"
+            )
+        except KeyError:
+            return PaymentResponse(
+                error_message="Server error: 'missing required fields'"
+            )
+        except Exception as exc:
+            logger.info(f"Failed to pay offer {offer[:24]}...")
             logger.warning(exc)
             return PaymentResponse(
                 error_message=f"Unable to connect to {self.endpoint}."

@@ -50,7 +50,7 @@ class CoreLightningWallet(Wallet):
     """Core Lightning RPC implementation."""
 
     __node_cls__ = CoreLightningNode
-    features = [Feature.nodemanager]
+    features = [Feature.nodemanager, Feature.bolt12]
 
     async def cleanup(self):
         pass
@@ -219,6 +219,61 @@ class CoreLightningWallet(Wallet):
             )
         except Exception as exc:
             logger.info(f"Failed to pay invoice {bolt11}")
+            logger.warning(exc)
+            return PaymentResponse(error_message=f"Payment failed: '{exc}'.")
+
+    async def pay_offer(
+        self,
+        offer: str,
+        fee_limit_msat: int,
+        amount_msat: int | None = None,
+    ) -> PaymentResponse:
+        """Resolve a BOLT12 offer with fetchinvoice, then pay the invoice.
+
+        CLN ``pay`` accepts a bolt11/bolt12 *invoice*, not a raw offer.
+        """
+        try:
+            fetch_payload: dict = {"offer": offer}
+            if amount_msat is not None and amount_msat > 0:
+                fetch_payload["amount_msat"] = amount_msat
+            fetched = await run_sync(
+                lambda: self.ln.call("fetchinvoice", fetch_payload)
+            )
+            invoice = fetched.get("invoice")
+            if not invoice:
+                return PaymentResponse(
+                    ok=False, error_message="fetchinvoice returned no invoice"
+                )
+
+            pay_payload: dict = {"bolt11": invoice, "maxfee": fee_limit_msat}
+            paid = await run_sync(lambda: self.ln.call(self.pay, pay_payload))
+            fee_msat = -int(paid["amount_sent_msat"] - paid["amount_msat"])
+            return PaymentResponse(
+                True, paid["payment_hash"], fee_msat, paid["payment_preimage"], None
+            )
+        except RpcError as exc:
+            logger.warning(exc)
+            try:
+                error_code = exc.error.get("code")  # type: ignore
+                if error_code in self.pay_failure_error_codes or (
+                    _all_payment_attempts_failed(exc.error)
+                ):
+                    error_message = exc.error.get("message", error_code)  # type: ignore
+                    return PaymentResponse(
+                        ok=False, error_message=f"Payment failed: {error_message}"
+                    )
+                error_message = f"Payment failed: {exc.error}"
+                return PaymentResponse(error_message=error_message)
+            except Exception:
+                error_message = f"RPC '{exc.method}' failed with '{exc.error}'."
+                return PaymentResponse(error_message=error_message)
+        except KeyError as exc:
+            logger.warning(exc)
+            return PaymentResponse(
+                error_message="Server error: 'missing required fields'"
+            )
+        except Exception as exc:
+            logger.info(f"Failed to pay offer {offer[:24]}...")
             logger.warning(exc)
             return PaymentResponse(error_message=f"Payment failed: '{exc}'.")
 
