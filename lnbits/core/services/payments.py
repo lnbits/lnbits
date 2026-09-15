@@ -1,5 +1,6 @@
 import asyncio
 import time
+from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
 
 from bolt11 import Bolt11, MilliSatoshi, Tags
@@ -72,27 +73,12 @@ async def pay_invoice(
     if settings.lnbits_only_allow_incoming_payments:
         raise PaymentError("Only incoming payments allowed.", status="failed")
 
-    is_offer = looks_like_bolt12_offer(payment_request)
-    if is_offer:
-        payment_request, amount_msat = _validate_offer_payment_request(
-            payment_request, max_sat
-        )
-        _, payment_hash = random_secret_and_hash()
-        expiry: datetime | None = None
-        memo = "BOLT12 offer"
-        extra = {**(extra or {}), "bolt12": True}
-    else:
-        invoice = _validate_payment_request(payment_request, max_sat)
-
-        if not invoice.amount_msat:
-            raise ValueError("Missig invoice amount.")
-        amount_msat = invoice.amount_msat
-        payment_hash = invoice.payment_hash
-        expiry = invoice.expiry_date
-        memo = invoice.description or ""
+    prepared = _prepare_payment_request(payment_request, max_sat, extra)
 
     async with db.reuse_conn(conn) if conn else db.connect() as new_conn:
-        wallet = await _check_wallet_for_payment(wallet_id, tag, amount_msat, new_conn)
+        wallet = await _check_wallet_for_payment(
+            wallet_id, tag, prepared.amount_msat, new_conn
+        )
 
         if not wallet.can_send_payments:
             raise PaymentError(
@@ -100,18 +86,22 @@ async def pay_invoice(
                 status="failed",
             )
 
-        if not is_offer and await is_internal_status_success(payment_hash, new_conn):
+        if not prepared.is_offer and await is_internal_status_success(
+            prepared.payment_hash, new_conn
+        ):
             raise PaymentError("Internal invoice already paid.", status="failed")
 
-        _, extra = await calculate_fiat_amounts(amount_msat / 1000, wallet, extra=extra)
+        _, extra = await calculate_fiat_amounts(
+            prepared.amount_msat / 1000, wallet, extra=prepared.extra
+        )
 
         create_payment_model = CreatePayment(
             wallet_id=wallet.source_wallet_id,
-            bolt11=payment_request,
-            payment_hash=payment_hash,
-            amount_msat=-amount_msat,
-            expiry=expiry,
-            memo=description or memo,
+            bolt11=prepared.payment_request,
+            payment_hash=prepared.payment_hash,
+            amount_msat=-prepared.amount_msat,
+            expiry=prepared.expiry,
+            memo=description or prepared.memo,
             extra=extra,
             labels=labels,
             external_id=external_id,
@@ -1263,3 +1253,47 @@ async def fundingsource_invoice_producer() -> None:
         if payment:
             logger.success(f"fundingsource invoice {checking_id} settled")
             task_manager.invoice_queue.put_nowait(payment)
+
+
+@dataclass
+class _PreparedPayment:
+    is_offer: bool
+    payment_request: str
+    amount_msat: int
+    payment_hash: str
+    expiry: datetime | None
+    memo: str
+    extra: dict | None
+
+
+def _prepare_payment_request(
+    payment_request: str, max_sat: int | None, extra: dict | None
+) -> _PreparedPayment:
+    is_offer = looks_like_bolt12_offer(payment_request)
+    if is_offer:
+        payment_request, amount_msat = _validate_offer_payment_request(
+            payment_request, max_sat
+        )
+        _, payment_hash = random_secret_and_hash()
+        expiry: datetime | None = None
+        memo = "BOLT12 offer"
+        extra = {**(extra or {}), "bolt12": True}
+    else:
+        invoice = _validate_payment_request(payment_request, max_sat)
+
+        if not invoice.amount_msat:
+            raise ValueError("Missig invoice amount.")
+        amount_msat = invoice.amount_msat
+        payment_hash = invoice.payment_hash
+        expiry = invoice.expiry_date
+        memo = invoice.description or ""
+
+    return _PreparedPayment(
+        is_offer=is_offer,
+        payment_request=payment_request,
+        amount_msat=amount_msat,
+        payment_hash=payment_hash,
+        expiry=expiry,
+        memo=memo,
+        extra=extra,
+    )
