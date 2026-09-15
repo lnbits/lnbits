@@ -59,6 +59,14 @@
           class="q-mt-md"
         ></q-input>
         <q-select
+          v-if="g.newWalletType === 'fiat'"
+          v-model="wallet.currency"
+          :label="$t('currency')"
+          :options="fiatCurrencyOptions"
+          dense
+          class="q-mt-md"
+        ></q-select>
+        <q-select
           v-if="isLightningShared"
           v-model="wallet.sharedWalletId"
           :label="$t('shared_wallet_id')"
