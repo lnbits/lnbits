@@ -148,22 +148,6 @@ class EclairWallet(Wallet):
                 ok=False, error_message=f"Unable to connect to {self.url}."
             )
 
-    def _http_payment_error(self, exc: httpx.HTTPStatusError) -> PaymentResponse:
-        error_message = f"Unable to connect to {self.url}."
-        try:
-            error_data = exc.response.json()
-            if isinstance(error_data, dict) and error_data.get("error"):
-                error_message = str(error_data["error"])
-        except json.JSONDecodeError:
-            pass
-        rejected = exc.response.status_code == 400 or payment_request_was_rejected(
-            exc.response.status_code
-        )
-        return PaymentResponse(
-            ok=False if rejected else None,
-            error_message=error_message,
-        )
-
     async def pay_offer(
         self,
         offer: str,
@@ -330,3 +314,19 @@ class EclairWallet(Wallet):
                     "retrying in 5 seconds"
                 )
                 await asyncio.sleep(5)
+
+    def _http_payment_error(self, exc: httpx.HTTPStatusError) -> PaymentResponse:
+        error_message = f"Unable to connect to {self.url}."
+        try:
+            error_data = exc.response.json()
+            if isinstance(error_data, dict) and error_data.get("error"):
+                error_message = str(error_data["error"])
+        except json.JSONDecodeError:
+            pass
+        rejected = exc.response.status_code == 400 or payment_request_was_rejected(
+            exc.response.status_code
+        )
+        return PaymentResponse(
+            ok=False if rejected else None,
+            error_message=error_message,
+        )

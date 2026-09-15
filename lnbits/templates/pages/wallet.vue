@@ -854,7 +854,9 @@
             unelevated
             color="primary"
             @click="payInvoice"
-            :disable="parse.sending || !g.wallet.canSendPayments"
+            :disable="
+              parse.sending || !g.wallet.canSendPayments || bolt12AmountMissing
+            "
             :label="parse.sending ? $t('sending') + '...' : $t('pay')"
           ></q-btn>
           <q-btn

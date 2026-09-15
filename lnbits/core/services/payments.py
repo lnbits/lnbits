@@ -143,6 +143,13 @@ async def pay_offer(
 
     Amount must be supplied as ``max_sat`` (sats). The existing external
     payment path is reused for locks, fee reserve, timeout, and status.
+
+    Offers are not invoices: they have no payment hash until the backend
+    fetches and pays one. ``CreatePayment.payment_hash`` is therefore a
+    unique placeholder (not derived from the offer) so a reusable offer
+    can be paid more than once without ``get_standalone_payment`` treating
+    the second attempt as a duplicate. After the backend pays, ``checking_id``
+    is updated to the real hash from ``PaymentResponse``.
     """
     if settings.lnbits_only_allow_incoming_payments:
         raise PaymentError("Only incoming payments allowed.", status="failed")
@@ -152,7 +159,8 @@ async def pay_offer(
     funding_source = get_funding_source()
     if not funding_source.has_feature(Feature.bolt12):
         raise PaymentError(
-            "Funding source does not support BOLT12 offers.",
+            "Funding source does not support BOLT12 offers. "
+            "Use CoreLightning, CLNRest, Phoenixd, Eclair, or LNbits.",
             status="failed",
         )
 
@@ -186,6 +194,8 @@ async def pay_offer(
         _, extra_data = await calculate_fiat_amounts(
             amount_sat, wallet, extra=extra_data
         )
+        # Unique per attempt: offers have no hash until paid, and hashing
+        # the offer would collide on reusable offers (duplicate detection).
         _, payment_hash = random_secret_and_hash()
 
         create_payment_model = CreatePayment(
