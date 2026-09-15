@@ -591,7 +591,12 @@ window.PageWallet = {
     },
     payInvoice() {
       if (this.parse.sending) return
-      if (this.bolt12AmountMissing) return
+      if (
+        this.parse.invoice?.isBolt12Offer &&
+        !(Number(this.parse.data.amount) > 0)
+      ) {
+        return
+      }
 
       this.parse.sending = true
       const dismissPaymentMsg = Quasar.Notify.create({

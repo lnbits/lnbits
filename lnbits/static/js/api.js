@@ -49,7 +49,7 @@ window._lnbitsApi = {
         internal_memo: String(internalMemo)
       }
     }
-    if (amount) {
+    if (amount != null && amount !== '') {
       data.amount = amount
       data.unit = 'sat'
     }
