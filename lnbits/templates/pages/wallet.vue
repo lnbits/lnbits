@@ -850,17 +850,20 @@
         </q-list>
         <div v-if="canPay" class="row q-mt-lg">
           <q-btn
-            v-if="g.wallet.walletType !== 'fiat'"
+            v-if="g.wallet.walletType !== 'fiat' && bolt12AmountMissing"
+            unelevated
+            color="primary"
+            disable
+            :label="$t('pay')"
+          ></q-btn>
+          <q-btn
+            v-else-if="g.wallet.walletType !== 'fiat'"
             unelevated
             color="primary"
             type="button"
             @click="payInvoice"
             :loading="parse.sending"
-            :disable="
-              parse.sending ||
-              !g.wallet.canSendPayments ||
-              (parse.invoice.isBolt12Offer && !(Number(parse.data.amount) > 0))
-            "
+            :disable="parse.sending || !g.wallet.canSendPayments"
             :label="parse.sending ? $t('sending') + '...' : $t('pay')"
           ></q-btn>
           <q-btn
