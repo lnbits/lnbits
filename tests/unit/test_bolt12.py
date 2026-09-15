@@ -4,7 +4,7 @@ import pytest
 
 from lnbits.core.crud import create_wallet, get_standalone_payment, get_wallet
 from lnbits.core.models import PaymentState
-from lnbits.core.services import create_user_account, pay_invoice
+from lnbits.core.services import create_user_account, pay_invoice, pay_offer
 from lnbits.core.services.bolt12 import (
     is_bolt12_offer,
     looks_like_bolt12_offer,
@@ -121,29 +121,42 @@ async def test_pay_invoice_rejects_offer_without_bolt12_feature(
 
 
 @pytest.mark.anyio
-async def test_pay_offer_debits_wallet_and_is_reusable(app):
+@pytest.mark.parametrize(
+    "pay_method, request_field",
+    [(pay_invoice, "payment_request"), (pay_offer, "offer")],
+)
+async def test_pay_offer_debits_wallet_and_is_reusable(app, pay_method, request_field):
     user = await create_user_account()
     wallet = await create_wallet(user_id=user.id)
     await update_wallet_balance(wallet, 1000)
 
-    first = await pay_invoice(
+    extra = {"custom": "preserved"}
+    first = await pay_method(
         wallet_id=wallet.id,
-        payment_request=VALID_OFFER,
+        **{request_field: VALID_OFFER},
         max_sat=21,
         description="first offer pay",
+        extra=extra,
+        labels=["offer"],
+        external_id="first-offer-pay",
     )
     assert first.status == PaymentState.SUCCESS.value
     assert first.amount == -21_000
     assert first.bolt11 == VALID_OFFER
     assert first.extra.get("bolt12") is True
+    assert extra == {"custom": "preserved"}
     assert first.checking_id != first.bolt11
     stored = await get_standalone_payment(first.checking_id)
     assert stored
     assert stored.success
+    assert stored.memo == "first offer pay"
+    assert stored.extra["custom"] == "preserved"
+    assert stored.labels == ["offer"]
+    assert stored.external_id == "first-offer-pay"
 
-    second = await pay_invoice(
+    second = await pay_method(
         wallet_id=wallet.id,
-        payment_request="lightning:" + VALID_OFFER.upper(),
+        **{request_field: "lightning:" + VALID_OFFER.upper()},
         max_sat=7,
     )
     assert second.status == PaymentState.SUCCESS.value
@@ -154,6 +167,13 @@ async def test_pay_offer_debits_wallet_and_is_reusable(app):
     after = await get_wallet(wallet.id)
     assert after
     assert after.balance == 1000 - 21 - 7
+
+
+@pytest.mark.anyio
+@pytest.mark.parametrize("offer", [BOLT11, "lno1!!!"])
+async def test_pay_offer_rejects_invalid_offer(app, to_wallet, offer):
+    with pytest.raises(PaymentError, match="Invalid BOLT12 offer"):
+        await pay_offer(wallet_id=to_wallet.id, offer=offer, max_sat=21)
 
 
 def test_fake_wallet_advertises_bolt12():

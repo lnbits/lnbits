@@ -72,26 +72,26 @@ async def pay_invoice(
     if settings.lnbits_only_allow_incoming_payments:
         raise PaymentError("Only incoming payments allowed.", status="failed")
 
-    if looks_like_bolt12_offer(payment_request):
-        return await pay_offer(
-            wallet_id=wallet_id,
-            offer=payment_request,
-            max_sat=max_sat,
-            extra=extra,
-            description=description,
-            tag=tag,
-            labels=labels,
-            external_id=external_id,
-            conn=conn,
+    is_offer = looks_like_bolt12_offer(payment_request)
+    if is_offer:
+        payment_request, amount_msat = _validate_offer_payment_request(
+            payment_request, max_sat
         )
+        _, payment_hash = random_secret_and_hash()
+        expiry: datetime | None = None
+        memo = "BOLT12 offer"
+        extra = {**(extra or {}), "bolt12": True}
+    else:
+        invoice = _validate_payment_request(payment_request, max_sat)
 
-    invoice = _validate_payment_request(payment_request, max_sat)
-
-    if not invoice.amount_msat:
-        raise ValueError("Missig invoice amount.")
+        if not invoice.amount_msat:
+            raise ValueError("Missig invoice amount.")
+        amount_msat = invoice.amount_msat
+        payment_hash = invoice.payment_hash
+        expiry = invoice.expiry_date
+        memo = invoice.description or ""
 
     async with db.reuse_conn(conn) if conn else db.connect() as new_conn:
-        amount_msat = invoice.amount_msat
         wallet = await _check_wallet_for_payment(wallet_id, tag, amount_msat, new_conn)
 
         if not wallet.can_send_payments:
@@ -100,7 +100,7 @@ async def pay_invoice(
                 status="failed",
             )
 
-        if await is_internal_status_success(invoice.payment_hash, new_conn):
+        if not is_offer and await is_internal_status_success(payment_hash, new_conn):
             raise PaymentError("Internal invoice already paid.", status="failed")
 
         _, extra = await calculate_fiat_amounts(amount_msat / 1000, wallet, extra=extra)
@@ -108,10 +108,10 @@ async def pay_invoice(
         create_payment_model = CreatePayment(
             wallet_id=wallet.source_wallet_id,
             bolt11=payment_request,
-            payment_hash=invoice.payment_hash,
+            payment_hash=payment_hash,
             amount_msat=-amount_msat,
-            expiry=invoice.expiry_date,
-            memo=description or invoice.description or "",
+            expiry=expiry,
+            memo=description or memo,
             extra=extra,
             labels=labels,
             external_id=external_id,
@@ -147,65 +147,17 @@ async def pay_offer(
     if settings.lnbits_only_allow_incoming_payments:
         raise PaymentError("Only incoming payments allowed.", status="failed")
 
-    offer = parse_bolt12_offer(offer)
-
-    funding_source = get_funding_source()
-    if not funding_source.has_feature(Feature.bolt12):
-        raise PaymentError(
-            "Funding source does not support BOLT12 offers.",
-            status="failed",
-        )
-
-    if max_sat is None or max_sat <= 0:
-        raise PaymentError(
-            "Amount is required to pay a BOLT12 offer.",
-            status="failed",
-        )
-
-    ceiling = settings.lnbits_max_outgoing_payment_amount_sats
-    amount_sat = int(max_sat)
-    if amount_sat > ceiling:
-        raise PaymentError(
-            f"Offer amount {amount_sat} sats is too high. "
-            f"Max allowed: {ceiling} sats.",
-            status="failed",
-        )
-
-    amount_msat = amount_sat * 1000
-
-    async with db.reuse_conn(conn) if conn else db.connect() as new_conn:
-        wallet = await _check_wallet_for_payment(wallet_id, tag, amount_msat, new_conn)
-        if not wallet.can_send_payments:
-            raise PaymentError(
-                "Wallet does not have permission to pay invoices.",
-                status="failed",
-            )
-
-        extra_data = dict(extra or {})
-        extra_data["bolt12"] = True
-        _, extra_data = await calculate_fiat_amounts(
-            amount_sat, wallet, extra=extra_data
-        )
-        _, payment_hash = random_secret_and_hash()
-
-        create_payment_model = CreatePayment(
-            wallet_id=wallet.source_wallet_id,
-            bolt11=offer,
-            payment_hash=payment_hash,
-            amount_msat=-amount_msat,
-            memo=description or "BOLT12 offer",
-            extra=extra_data,
-            labels=labels,
-            external_id=external_id,
-        )
-
-    async with db.reuse_conn(conn) if conn else db.connect() as new_conn:
-        payment = await _pay_invoice(
-            wallet.source_wallet_id, create_payment_model, conn=new_conn
-        )
-        await _credit_service_fee_wallet(wallet, payment, conn=new_conn)
-
-    return payment
+    return await pay_invoice(
+        wallet_id=wallet_id,
+        payment_request=parse_bolt12_offer(offer),
+        max_sat=max_sat,
+        extra=extra,
+        description=description,
+        tag=tag,
+        labels=labels,
+        external_id=external_id,
+        conn=conn,
+    )
 
 
 async def create_payment_request(
@@ -1099,6 +1051,35 @@ async def _check_wallet_for_payment(
 
     await check_wallet_limits(wallet_id, amount_msat, conn)
     return wallet
+
+
+def _validate_offer_payment_request(
+    offer: str, amount_sat: int | None
+) -> tuple[str, int]:
+    offer = parse_bolt12_offer(offer)
+
+    if not get_funding_source().has_feature(Feature.bolt12):
+        raise PaymentError(
+            "Funding source does not support BOLT12 offers.",
+            status="failed",
+        )
+
+    if amount_sat is None or amount_sat <= 0:
+        raise PaymentError(
+            "Amount is required to pay a BOLT12 offer.",
+            status="failed",
+        )
+
+    ceiling = settings.lnbits_max_outgoing_payment_amount_sats
+    amount_sat = int(amount_sat)
+    if amount_sat > ceiling:
+        raise PaymentError(
+            f"Offer amount {amount_sat} sats is too high. "
+            f"Max allowed: {ceiling} sats.",
+            status="failed",
+        )
+
+    return offer, amount_sat * 1000
 
 
 def _validate_payment_request(
