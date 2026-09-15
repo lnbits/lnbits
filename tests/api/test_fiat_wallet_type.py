@@ -1,3 +1,4 @@
+import asyncio
 from types import SimpleNamespace
 from uuid import uuid4
 
@@ -12,6 +13,7 @@ from lnbits.core.crud.users import create_account, get_accounts, get_user
 from lnbits.core.crud.wallets import (
     create_wallet,
     delete_wallet,
+    get_or_create_fiat_wallet,
     get_total_balance,
     get_wallet,
 )
@@ -61,9 +63,31 @@ async def test_fiat_wallet_creation_availability(
     assert user.can_create_fiat_wallet is available
     assert (provider in user.fiat_providers) is (enabled and allowed)
 
+    currency_by_case = {
+        (False, True, True): {
+            "stripe": "EUR",
+            "paypal": "GBP",
+            "square": "JPY",
+            "revolut": "CAD",
+        },
+        (True, False, False): {
+            "stripe": "CHF",
+            "paypal": "CNY",
+            "square": "AUD",
+            "revolut": "NZD",
+        },
+        (True, True, False): {
+            "stripe": "SEK",
+            "paypal": "NOK",
+            "square": "DKK",
+            "revolut": "PLN",
+        },
+    }
+    currency = currency_by_case.get((flag, enabled, allowed), {}).get(provider, "USD")
+
     response = await client.post(
         f"/api/v1/wallet?usr={from_wallet.user}",
-        json={"name": "Receipts", "wallet_type": "fiat"},
+        json={"name": "Receipts", "wallet_type": "fiat", "currency": currency},
     )
     assert response.status_code == (200 if available else 403)
     if available:
@@ -85,7 +109,11 @@ async def test_fiat_wallet_creation_availability(
 async def test_fiat_wallet_receives_but_cannot_spend(
     client, from_wallet, settings, mocker, method
 ):
-    wallet = await create_wallet(user_id=from_wallet.user, wallet_type=WalletType.FIAT)
+    wallet = await create_wallet(
+        user_id=from_wallet.user,
+        wallet_type=WalletType.FIAT,
+        currency={"cash": "GBP", "stripe": "USD"}[method],
+    )
     initial_total = await get_total_balance()
     mocker.patch(
         "lnbits.utils.exchange_rates.get_fiat_rate_satoshis",
@@ -214,7 +242,9 @@ async def test_fiat_wallet_receives_but_cannot_spend(
 async def test_cash_validation_creates_and_settles_with_owner_admin_key(
     client, from_wallet, mocker
 ):
-    wallet = await create_wallet(user_id=from_wallet.user, wallet_type=WalletType.FIAT)
+    wallet = await create_wallet(
+        user_id=from_wallet.user, wallet_type=WalletType.FIAT, currency="AUD"
+    )
     mocker.patch(
         "lnbits.utils.exchange_rates.get_fiat_rate_satoshis",
         mocker.AsyncMock(return_value=1000),
@@ -253,19 +283,23 @@ async def test_cash_validation_creates_and_settles_with_owner_admin_key(
 
 
 @pytest.mark.parametrize(
-    "invalid",
+    "invalid,currency",
     [
-        {"amount": 0},
-        {"amount": -1},
-        {"unit": "sat"},
-        {"unit": "INVALID"},
-        {"fiat_provider": "stripe"},
-        {"wallet_id": "another-wallet"},
-        {"payment_hash": "00" * 32},
+        ({"amount": 0}, "CAD"),
+        ({"amount": -1}, "CHF"),
+        ({"unit": "sat"}, "DKK"),
+        ({"unit": "INVALID"}, "EUR"),
+        ({"fiat_provider": "stripe"}, "GBP"),
+        ({"wallet_id": "another-wallet"}, "JPY"),
+        ({"payment_hash": "00" * 32}, "NOK"),
     ],
 )
-async def test_cash_validation_rejects_invalid_requests(client, from_wallet, invalid):
-    wallet = await create_wallet(user_id=from_wallet.user, wallet_type=WalletType.FIAT)
+async def test_cash_validation_rejects_invalid_requests(
+    client, from_wallet, invalid, currency
+):
+    wallet = await create_wallet(
+        user_id=from_wallet.user, wallet_type=WalletType.FIAT, currency=currency
+    )
     response = await client.post(
         "/api/v1/fiat/cash",
         headers={"X-Api-Key": wallet.adminkey},
@@ -276,15 +310,22 @@ async def test_cash_validation_rejects_invalid_requests(client, from_wallet, inv
 
 
 @pytest.mark.parametrize(
-    "options",
+    "options,currency",
     [
-        {},
-        {"extra": {"fiat_method": "cash"}, "unit": "sat"},
-        {"extra": {"fiat_method": "cash"}, "payment_hash": "00" * 32},
+        ({}, "PLN"),
+        ({"extra": {"fiat_method": "cash"}, "unit": "sat"}, "SEK"),
+        (
+            {"extra": {"fiat_method": "cash"}, "payment_hash": "00" * 32},
+            "ZAR",
+        ),
     ],
 )
-async def test_fiat_wallet_rejects_lightning_receiving(client, from_wallet, options):
-    wallet = await create_wallet(user_id=from_wallet.user, wallet_type=WalletType.FIAT)
+async def test_fiat_wallet_rejects_lightning_receiving(
+    client, from_wallet, options, currency
+):
+    wallet = await create_wallet(
+        user_id=from_wallet.user, wallet_type=WalletType.FIAT, currency=currency
+    )
     response = await client.post(
         "/api/v1/payments",
         headers={"X-Api-Key": wallet.inkey},
@@ -295,7 +336,9 @@ async def test_fiat_wallet_rejects_lightning_receiving(client, from_wallet, opti
 
 
 async def test_fiat_wallet_rejects_direct_lightning_invoice(from_wallet, mocker):
-    wallet = await create_wallet(user_id=from_wallet.user, wallet_type=WalletType.FIAT)
+    wallet = await create_wallet(
+        user_id=from_wallet.user, wallet_type=WalletType.FIAT, currency="ZMW"
+    )
     backend = mocker.patch("lnbits.core.services.payments.get_funding_source")
     with pytest.raises(InvoiceError, match="only accept cash or fiat provider"):
         await create_wallet_invoice(wallet.id, CreateInvoice(amount=5, memo="Blocked"))
@@ -306,7 +349,9 @@ async def test_fiat_wallet_rejects_direct_lightning_invoice(from_wallet, mocker)
 async def test_fiat_provider_allowlist_applies_to_existing_wallet(
     client, from_wallet, settings, mocker
 ):
-    wallet = await create_wallet(user_id=from_wallet.user, wallet_type=WalletType.FIAT)
+    wallet = await create_wallet(
+        user_id=from_wallet.user, wallet_type=WalletType.FIAT, currency="XAF"
+    )
     settings.lnbits_allow_fiat_wallets = True
     settings.stripe_enabled = True
     settings.stripe_limits.allowed_users = [uuid4().hex]
@@ -326,7 +371,9 @@ async def test_fiat_balances_excluded_from_user_and_server_totals(client, mocker
     account = Account(id=uuid4().hex)
     await create_account(account)
     lightning = await create_wallet(user_id=account.id)
-    fiat = await create_wallet(user_id=account.id, wallet_type=WalletType.FIAT)
+    fiat = await create_wallet(
+        user_id=account.id, wallet_type=WalletType.FIAT, currency="USD"
+    )
     filters = Filters(
         model=AccountFilters,
         filters=[Filter.parse_query("id", [account.id], AccountFilters)],
@@ -381,3 +428,96 @@ async def test_fiat_balances_excluded_from_user_and_server_totals(client, mocker
 def test_fiat_wallet_environment_flag(monkeypatch, value, expected):
     monkeypatch.setenv("LNBITS_ALLOW_FIAT_WALLETS", value)
     assert Settings().lnbits_allow_fiat_wallets is expected
+
+
+async def test_fiat_wallet_currency_creation_and_uniqueness(client, settings):
+    settings.lnbits_allow_fiat_wallets = True
+    account = Account(id=uuid4().hex)
+    await create_account(account)
+    url = f"/api/v1/wallet?usr={account.id}"
+
+    created = await client.post(
+        url,
+        json={"name": "Euro receipts", "wallet_type": "fiat", "currency": " eur "},
+    )
+    assert created.status_code == 200
+    assert created.json()["currency"] == "EUR"
+
+    duplicate = await client.post(
+        url,
+        json={"name": "Another euro wallet", "wallet_type": "fiat", "currency": "EUR"},
+    )
+    assert duplicate.status_code == 409
+
+    different = await client.post(
+        url,
+        json={"name": "US dollar receipts", "wallet_type": "fiat", "currency": "USD"},
+    )
+    assert different.status_code == 200
+
+    duplicate_update = await client.patch(
+        "/api/v1/wallet",
+        headers={"X-Api-Key": created.json()["adminkey"]},
+        json={"currency": "USD"},
+    )
+    assert duplicate_update.status_code == 409
+
+    changed = await client.patch(
+        "/api/v1/wallet",
+        headers={"X-Api-Key": created.json()["adminkey"]},
+        json={"currency": "GBP"},
+    )
+    assert changed.status_code == 200
+    assert changed.json()["currency"] == "GBP"
+
+    lightning_one = await client.post(
+        url, json={"name": "Lightning one", "currency": "USD"}
+    )
+    lightning_two = await client.post(
+        url, json={"name": "Lightning two", "currency": "USD"}
+    )
+    assert lightning_one.status_code == 200
+    assert lightning_two.status_code == 200
+
+
+async def test_fiat_wallet_creation_uses_default_currency(client, settings):
+    settings.lnbits_allow_fiat_wallets = True
+    settings.lnbits_default_accounting_currency = "JPY"
+    account = Account(id=uuid4().hex)
+    await create_account(account)
+
+    response = await client.post(
+        f"/api/v1/wallet?usr={account.id}",
+        json={"name": "Default fiat", "wallet_type": "fiat"},
+    )
+    assert response.status_code == 200
+    assert response.json()["currency"] == "JPY"
+
+
+@pytest.mark.parametrize("currency", ["sat", "sats", "invalid"])
+async def test_fiat_wallet_rejects_non_fiat_currency(client, settings, currency):
+    settings.lnbits_allow_fiat_wallets = True
+    account = Account(id=uuid4().hex)
+    await create_account(account)
+
+    response = await client.post(
+        f"/api/v1/wallet?usr={account.id}",
+        json={"name": "Invalid fiat", "wallet_type": "fiat", "currency": currency},
+    )
+    assert response.status_code == 400
+
+
+async def test_get_or_create_fiat_wallet_is_idempotent(settings):
+    account = Account(id=uuid4().hex)
+    await create_account(account)
+
+    wallets = await asyncio.gather(
+        *(
+            get_or_create_fiat_wallet(
+                user_id=account.id, currency="eur", wallet_name="First"
+            )
+            for _ in range(2)
+        )
+    )
+    assert wallets[0].id == wallets[1].id
+    assert wallets[0].currency == "EUR"
