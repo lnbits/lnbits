@@ -73,11 +73,11 @@ async def pay_invoice(
     if settings.lnbits_only_allow_incoming_payments:
         raise PaymentError("Only incoming payments allowed.", status="failed")
 
-    prepared = _prepare_payment_request(payment_request, max_sat, extra)
+    pr = _prepare_payment_request(payment_request, max_sat, extra)
 
     async with db.reuse_conn(conn) if conn else db.connect() as new_conn:
         wallet = await _check_wallet_for_payment(
-            wallet_id, tag, prepared.amount_msat, new_conn
+            wallet_id, tag, pr.amount_msat, new_conn
         )
 
         if not wallet.can_send_payments:
@@ -86,22 +86,22 @@ async def pay_invoice(
                 status="failed",
             )
 
-        if not prepared.is_offer and await is_internal_status_success(
-            prepared.payment_hash, new_conn
+        if not pr.is_offer and await is_internal_status_success(
+            pr.payment_hash, new_conn
         ):
             raise PaymentError("Internal invoice already paid.", status="failed")
 
         _, extra = await calculate_fiat_amounts(
-            prepared.amount_msat / 1000, wallet, extra=prepared.extra
+            pr.amount_msat / 1000, wallet, extra=pr.extra
         )
 
         create_payment_model = CreatePayment(
             wallet_id=wallet.source_wallet_id,
-            bolt11=prepared.payment_request,
-            payment_hash=prepared.payment_hash,
-            amount_msat=-prepared.amount_msat,
-            expiry=prepared.expiry,
-            memo=description or prepared.memo,
+            bolt11=pr.payment_request,
+            payment_hash=pr.payment_hash,
+            amount_msat=-pr.amount_msat,
+            expiry=pr.expiry,
+            memo=description or pr.memo,
             extra=extra,
             labels=labels,
             external_id=external_id,
