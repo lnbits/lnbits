@@ -184,10 +184,9 @@ async def api_update_wallet(
     if currency is not None:
         if wallet.wallet_type == WalletType.FIAT.value:
             try:
-                normalized_currency = normalize_fiat_currency(currency)
+                wallet.currency = normalize_fiat_currency(currency)
             except ValueError as exc:
                 raise HTTPException(HTTPStatus.BAD_REQUEST, str(exc)) from exc
-            wallet.currency = normalized_currency
         else:
             wallet.currency = currency
 

@@ -7,7 +7,7 @@ from sqlalchemy.exc import OperationalError
 
 from lnbits import bolt11
 from lnbits.db import Connection
-from lnbits.utils.exchange_rates import normalize_fiat_currency
+from lnbits.utils.exchange_rates import currencies
 
 
 async def m000_create_migrations_table(db: Connection):
@@ -906,48 +906,34 @@ async def m050_add_lightning_address_to_wallets(db: Connection):
 
 
 async def m051_unique_active_fiat_wallet_currency(db: Connection):
-    wallets = await db.fetchall("""
-        SELECT id, "user", currency
+    wallets: list[dict] = await db.fetchall("""
+        SELECT id, "user", currency, deleted
         FROM wallets
-        WHERE wallet_type = 'fiat' AND deleted = false
+        WHERE wallet_type = 'fiat'
         """)
     changes: list[tuple[str, str]] = []
-    seen: dict[tuple[str, str], str] = {}
-    invalid: list[str] = []
-    duplicates: list[str] = []
+    seen: set[tuple[str, str]] = set()
 
     for wallet in wallets:
         raw_currency = wallet["currency"]
-        if not isinstance(raw_currency, str) or not raw_currency.strip():
-            invalid.append(wallet["id"])
-            continue
-        try:
-            currency = normalize_fiat_currency(raw_currency, validate_allowed=False)
-        except ValueError:
-            invalid.append(f"{wallet['id']} ({raw_currency})")
-            continue
-
-        key = (wallet["user"], currency)
-        if key in seen:
-            duplicates.append(
-                f"{wallet['user']}:{currency} ({seen[key]}, {wallet['id']})"
+        currency = (raw_currency or "").strip().upper()
+        if currency in {"SAT", "SATS"} or currency not in currencies:
+            raise ValueError(
+                f"Invalid Fiat currency for wallet {wallet['id']}; "
+                "resolve it on the previous release before upgrading."
             )
-        else:
-            seen[key] = wallet["id"]
+
+        if not wallet["deleted"]:
+            key = (wallet["user"], currency)
+            if key in seen:
+                raise ValueError(
+                    f"Duplicate active Fiat wallets for user {wallet['user']} "
+                    f"and currency {currency}; resolve them on the previous "
+                    "release before upgrading."
+                )
+            seen.add(key)
         if currency != raw_currency:
             changes.append((wallet["id"], currency))
-
-    if invalid or duplicates:
-        details = []
-        if invalid:
-            details.append(f"invalid wallets: {', '.join(invalid)}")
-        if duplicates:
-            details.append(f"duplicates: {', '.join(duplicates)}")
-        raise ValueError(
-            "Cannot create the active Fiat wallet currency index; resolve "
-            + "; ".join(details)
-            + "."
-        )
 
     for wallet_id, currency in changes:
         await db.execute(

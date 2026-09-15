@@ -2,19 +2,20 @@ window.app.component('lnbits-wallet-new', {
   template: '#lnbits-wallet-new',
   data() {
     return {
-      wallet: {
-        name: '',
-        sharedWalletId: '',
-        currency: (
-          window.g.settings.defaultAccountingCurrency || 'USD'
-        ).toUpperCase()
-      },
+      wallet: {name: '', sharedWalletId: '', currency: ''},
       showNewWalletDialog: false
     }
   },
   watch: {
     'g.newWalletType'(val) {
       if (val === null) return
+      if (val === 'fiat') {
+        this.wallet.currency = (
+          this.g.settings.defaultAccountingCurrency || 'USD'
+        )
+          .trim()
+          .toUpperCase()
+      }
       this.showNewWalletDialog = true
     },
     showNewWalletDialog(val) {
@@ -50,9 +51,6 @@ window.app.component('lnbits-wallet-new', {
     isLightningShared() {
       return this.g.newWalletType === 'lightning-shared'
     },
-    defaultFiatCurrency() {
-      return (this.g.settings.defaultAccountingCurrency || 'USD').toUpperCase()
-    },
     fiatCurrencyOptions() {
       return this.g.allowedCurrencies.length > 0
         ? this.g.allowedCurrencies
@@ -69,11 +67,7 @@ window.app.component('lnbits-wallet-new', {
     reset() {
       this.showNewWalletDialog = false
       this.g.newWalletType = null
-      this.wallet = {
-        name: '',
-        sharedWalletId: '',
-        currency: this.defaultFiatCurrency
-      }
+      this.wallet = {name: '', sharedWalletId: '', currency: ''}
     },
     async submitRejectWalletInvitation() {
       try {

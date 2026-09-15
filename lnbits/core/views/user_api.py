@@ -7,6 +7,7 @@ from uuid import uuid4
 import shortuuid
 from fastapi import APIRouter, Body, Depends
 from fastapi.exceptions import HTTPException
+from sqlalchemy.exc import IntegrityError
 
 from lnbits.core.crud import (
     create_wallet,
@@ -339,7 +340,13 @@ async def api_users_undelete_user_wallet(user_id: str, wallet: str) -> SimpleSta
             detail="Wallet does not belong to user.",
         )
     if wal.deleted:
-        await delete_wallet(user_id=user_id, wallet_id=wallet, deleted=False)
+        try:
+            await delete_wallet(user_id=user_id, wallet_id=wallet, deleted=False)
+        except IntegrityError as exc:
+            raise HTTPException(
+                HTTPStatus.CONFLICT,
+                "A Fiat wallet for this currency already exists.",
+            ) from exc
         return SimpleStatus(success=True, message="Wallet undeleted.")
 
     return SimpleStatus(success=True, message="Wallet is already active.")

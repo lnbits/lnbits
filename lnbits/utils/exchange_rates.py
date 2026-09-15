@@ -187,9 +187,7 @@ def allowed_currencies() -> list[str]:
     return list(currencies.keys())
 
 
-def normalize_fiat_currency(
-    currency: str | None = None, *, validate_allowed: bool = True
-) -> str:
+def normalize_fiat_currency(currency: str | None = None) -> str:
     requested = (
         currency
         if currency is not None
@@ -198,9 +196,7 @@ def normalize_fiat_currency(
     normalized = requested.strip().upper()
     if normalized in {"SAT", "SATS"}:
         raise ValueError("Fiat wallet currencies cannot be sats.")
-    if normalized not in currencies or (
-        validate_allowed and normalized not in allowed_currencies()
-    ):
+    if normalized not in currencies or normalized not in allowed_currencies():
         raise ValueError(f"Currency '{requested}' not allowed.")
     return normalized
 
