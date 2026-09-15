@@ -4,7 +4,7 @@ import pytest
 
 from lnbits.core.crud import create_wallet, get_standalone_payment, get_wallet
 from lnbits.core.models import PaymentState
-from lnbits.core.services import create_user_account, pay_invoice, pay_offer
+from lnbits.core.services import create_user_account, pay_invoice
 from lnbits.core.services.bolt12 import (
     is_bolt12_offer,
     looks_like_bolt12_offer,
@@ -121,19 +121,15 @@ async def test_pay_invoice_rejects_offer_without_bolt12_feature(
 
 
 @pytest.mark.anyio
-@pytest.mark.parametrize(
-    "pay_method, request_field",
-    [(pay_invoice, "payment_request"), (pay_offer, "offer")],
-)
-async def test_pay_offer_debits_wallet_and_is_reusable(app, pay_method, request_field):
+async def test_pay_offer_debits_wallet_and_is_reusable(app):
     user = await create_user_account()
     wallet = await create_wallet(user_id=user.id)
     await update_wallet_balance(wallet, 1000)
 
     extra = {"custom": "preserved"}
-    first = await pay_method(
+    first = await pay_invoice(
         wallet_id=wallet.id,
-        **{request_field: VALID_OFFER},
+        payment_request=VALID_OFFER,
         max_sat=21,
         description="first offer pay",
         extra=extra,
@@ -154,9 +150,9 @@ async def test_pay_offer_debits_wallet_and_is_reusable(app, pay_method, request_
     assert stored.labels == ["offer"]
     assert stored.external_id == "first-offer-pay"
 
-    second = await pay_method(
+    second = await pay_invoice(
         wallet_id=wallet.id,
-        **{request_field: "lightning:" + VALID_OFFER.upper()},
+        payment_request="lightning:" + VALID_OFFER.upper(),
         max_sat=7,
     )
     assert second.status == PaymentState.SUCCESS.value
@@ -167,13 +163,6 @@ async def test_pay_offer_debits_wallet_and_is_reusable(app, pay_method, request_
     after = await get_wallet(wallet.id)
     assert after
     assert after.balance == 1000 - 21 - 7
-
-
-@pytest.mark.anyio
-@pytest.mark.parametrize("offer", [BOLT11, "lno1!!!"])
-async def test_pay_offer_rejects_invalid_offer(app, to_wallet, offer):
-    with pytest.raises(PaymentError, match="Invalid BOLT12 offer"):
-        await pay_offer(wallet_id=to_wallet.id, offer=offer, max_sat=21)
 
 
 def test_fake_wallet_advertises_bolt12():

@@ -117,39 +117,6 @@ async def pay_invoice(
     return payment
 
 
-async def pay_offer(
-    *,
-    wallet_id: str,
-    offer: str,
-    max_sat: int | None = None,
-    extra: dict | None = None,
-    description: str = "",
-    tag: str = "",
-    labels: list[str] | None = None,
-    external_id: str | None = None,
-    conn: Connection | None = None,
-) -> Payment:
-    """Pay a BOLT12 offer via the funding source ``pay_offer`` method.
-
-    Amount must be supplied as ``max_sat`` (sats). The existing external
-    payment path is reused for locks, fee reserve, timeout, and status.
-    """
-    if settings.lnbits_only_allow_incoming_payments:
-        raise PaymentError("Only incoming payments allowed.", status="failed")
-
-    return await pay_invoice(
-        wallet_id=wallet_id,
-        payment_request=parse_bolt12_offer(offer),
-        max_sat=max_sat,
-        extra=extra,
-        description=description,
-        tag=tag,
-        labels=labels,
-        external_id=external_id,
-        conn=conn,
-    )
-
-
 async def create_payment_request(
     wallet_id: str, invoice_data: CreateInvoice
 ) -> Payment:
