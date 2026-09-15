@@ -855,18 +855,9 @@ async def _pay_external_invoice(
 
     fee_reserve_msat = fee_reserve(amount_msat, internal=False)
 
-    if looks_like_bolt12_offer(payment.bolt11):
-        task = task_manager.create_task(
-            _fundingsource_pay_offer(
-                checking_id, payment.bolt11, fee_reserve_msat, abs(amount_msat)
-            ),
-            f"fundingsource_pay_offer_{checking_id}",
-        )
-    else:
-        task = task_manager.create_task(
-            _fundingsource_pay_invoice(checking_id, payment.bolt11, fee_reserve_msat),
-            f"fundingsource_pay_invoice_{checking_id}",
-        )
+    task = _funding_source_pay(
+        checking_id, amount_msat, payment.bolt11, fee_reserve_msat
+    )
 
     # make sure a hold invoice or deferred payment is not blocking the server
     wait_time = max(1, settings.lnbits_funding_source_pay_invoice_wait_seconds)
@@ -937,6 +928,24 @@ async def update_payment_success_status(
             payment, new_checking_id=new_checking_id, conn=conn
         )
     return payment
+
+
+def _funding_source_pay(
+    checking_id: str, amount_msat: int, payment_request: str, fee_reserve_msat: int
+):
+    if looks_like_bolt12_offer(payment_request):
+        task = task_manager.create_task(
+            _fundingsource_pay_offer(
+                checking_id, payment_request, fee_reserve_msat, abs(amount_msat)
+            ),
+            f"fundingsource_pay_offer_{checking_id}",
+        )
+    else:
+        task = task_manager.create_task(
+            _fundingsource_pay_invoice(checking_id, payment_request, fee_reserve_msat),
+            f"fundingsource_pay_invoice_{checking_id}",
+        )
+    return task
 
 
 async def _fundingsource_pay_invoice(
