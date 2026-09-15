@@ -112,12 +112,14 @@ async def test_pay_invoice_rejects_offer_without_bolt12_feature(
     monkeypatch.setattr(FakeWallet, "features", None)
     with pytest.raises(
         PaymentError, match="Funding source does not support BOLT12 offers"
-    ):
+    ) as excinfo:
         await pay_invoice(
             wallet_id=to_wallet.id,
             payment_request=VALID_OFFER,
             max_sat=21,
         )
+    assert "Phoenixd" in excinfo.value.message
+    assert "LNbits" in excinfo.value.message
 
 
 @pytest.mark.anyio
@@ -137,6 +139,8 @@ async def test_pay_offer_debits_wallet_and_is_reusable(app):
     assert first.bolt11 == VALID_OFFER
     assert first.extra.get("bolt12") is True
     assert first.checking_id != first.bolt11
+    assert first.payment_hash != VALID_OFFER
+    assert len(first.payment_hash) == 64
     stored = await get_standalone_payment(first.checking_id)
     assert stored
     assert stored.success

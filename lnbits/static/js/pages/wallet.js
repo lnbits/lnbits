@@ -75,6 +75,13 @@ window.PageWallet = {
     isCashPayment() {
       return this.isFiatWallet && this.receive.fiatProvider === 'cash'
     },
+    bolt12AmountMissing() {
+      return !!(
+        this.parse.invoice &&
+        this.parse.invoice.isBolt12Offer &&
+        !(Number(this.parse.data.amount) > 0)
+      )
+    },
     canPay() {
       if (!this.parse.invoice) return false
       if (this.parse.invoice.expired) {
@@ -85,8 +92,10 @@ window.PageWallet = {
         return false
       }
       if (this.parse.invoice.isBolt12Offer) {
-        const amount = Number(this.parse.data.amount)
-        return amount > 0 && amount <= this.g.wallet.sat
+        if (this.bolt12AmountMissing) {
+          return true
+        }
+        return Number(this.parse.data.amount) <= this.g.wallet.sat
       }
       return this.parse.invoice.sat <= this.g.wallet.sat
     },
@@ -493,6 +502,7 @@ window.PageWallet = {
           .split('?')[0]
           .split('#')[0]
         this.parse.data.request = offer
+        this.parse.data.amount = 0
         this.parse.invoice = Object.freeze({
           msat: null,
           sat: 0,
@@ -581,6 +591,7 @@ window.PageWallet = {
     },
     payInvoice() {
       if (this.parse.sending) return
+      if (this.bolt12AmountMissing) return
 
       this.parse.sending = true
       const dismissPaymentMsg = Quasar.Notify.create({

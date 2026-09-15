@@ -1,5 +1,6 @@
 """Funding-source pay_offer wiring for BOLT12 (lnbits#2581)."""
 
+import json
 from unittest.mock import Mock
 
 import httpx
@@ -9,6 +10,7 @@ from lnbits.wallets.base import Feature, PaymentResponse
 from lnbits.wallets.clnrest import CLNRestWallet
 from lnbits.wallets.corelightning import CoreLightningWallet
 from lnbits.wallets.eclair import EclairWallet
+from lnbits.wallets.lnbits import LNbitsWallet
 from lnbits.wallets.phoenixd import PhoenixdWallet
 
 VALID_OFFER = "lno1qgsqvgnwgcg35z6ee2h3yczraddm72xrfua9uve2rlrm9deu7xyfzrcgq9qh"
@@ -159,11 +161,77 @@ async def test_eclair_pay_offer_posts_payoffer():
         await wallet.client.aclose()
 
 
+@pytest.mark.anyio
+async def test_lnbits_pay_offer_posts_payments():
+    requests: list[httpx.Request] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        requests.append(request)
+        if request.url.path == "/api/v1/payments" and request.method == "POST":
+            return httpx.Response(
+                201,
+                json={
+                    "checking_id": "33" * 32,
+                    "payment_hash": "44" * 32,
+                    "status": "success",
+                    "paid": True,
+                    "preimage": "55" * 32,
+                    "details": {"fee": -1000},
+                },
+            )
+        if request.url.path.startswith("/api/v1/payments/"):
+            return httpx.Response(
+                200,
+                json={
+                    "paid": True,
+                    "status": "success",
+                    "preimage": "55" * 32,
+                    "details": {"fee": -1000},
+                },
+            )
+        return httpx.Response(404)
+
+    wallet = object.__new__(LNbitsWallet)
+    wallet.endpoint = "http://lnbits.test"
+    wallet.client = httpx.AsyncClient(
+        base_url=wallet.endpoint,
+        transport=httpx.MockTransport(handler),
+    )
+    try:
+        response = await wallet.pay_offer(
+            VALID_OFFER, fee_limit_msat=0, amount_msat=21000
+        )
+        assert response.ok is True
+        assert response.checking_id == "33" * 32
+        assert requests[0].url.path == "/api/v1/payments"
+        body = json.loads(requests[0].content.decode())
+        assert body["out"] is True
+        assert body["bolt11"] == VALID_OFFER
+        assert body["amount"] == 21
+        assert body["unit"] == "sat"
+    finally:
+        await wallet.client.aclose()
+
+
+@pytest.mark.anyio
+async def test_lnbits_pay_offer_requires_amount():
+    wallet = object.__new__(LNbitsWallet)
+    wallet.endpoint = "http://lnbits.test"
+    wallet.client = httpx.AsyncClient(base_url=wallet.endpoint)
+    try:
+        response = await wallet.pay_offer(VALID_OFFER, fee_limit_msat=0)
+        assert response.ok is False
+        assert response.error_message == "Amount is required to pay a BOLT12 offer."
+    finally:
+        await wallet.client.aclose()
+
+
 def test_supported_wallets_advertise_bolt12():
     assert Feature.bolt12 in (CoreLightningWallet.features or [])
     assert Feature.bolt12 in (CLNRestWallet.features or [])
     assert Feature.bolt12 in (PhoenixdWallet.features or [])
     assert Feature.bolt12 in (EclairWallet.features or [])
+    assert Feature.bolt12 in (LNbitsWallet.features or [])
 
 
 @pytest.mark.anyio
