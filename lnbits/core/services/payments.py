@@ -20,6 +20,7 @@ from lnbits.fiat import get_fiat_provider
 from lnbits.helpers import check_callback_url, daystart_timestamp
 from lnbits.settings import settings
 from lnbits.task_manager import task_manager
+from lnbits.utils.bolt12 import looks_like_bolt12_offer, parse_bolt12_offer
 from lnbits.utils.crypto import fake_privkey, random_secret_and_hash, verify_preimage
 from lnbits.utils.exchange_rates import fiat_amount_as_satoshis, satoshis_amount_as_fiat
 from lnbits.wallets import fake_wallet, get_funding_source
@@ -49,7 +50,6 @@ from ..models import (
     PaymentState,
     Wallet,
 )
-from .bolt12 import looks_like_bolt12_offer, parse_bolt12_offer
 from .fiat_providers import check_fiat_status
 from .lnurl import execute_withdraw as lnurl_withdraw
 from .notifications import send_payment_notification_in_background

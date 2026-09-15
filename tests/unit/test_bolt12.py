@@ -5,14 +5,14 @@ import pytest
 from lnbits.core.crud import create_wallet, get_standalone_payment, get_wallet
 from lnbits.core.models import PaymentState
 from lnbits.core.services import create_user_account, pay_invoice
-from lnbits.core.services.bolt12 import (
+from lnbits.core.services.payments import update_wallet_balance
+from lnbits.exceptions import PaymentError
+from lnbits.settings import Settings
+from lnbits.utils.bolt12 import (
     is_bolt12_offer,
     looks_like_bolt12_offer,
     parse_bolt12_offer,
 )
-from lnbits.core.services.payments import update_wallet_balance
-from lnbits.exceptions import PaymentError
-from lnbits.settings import Settings
 from lnbits.wallets.base import Feature
 from lnbits.wallets.fake import FakeWallet
 

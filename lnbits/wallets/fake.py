@@ -131,8 +131,8 @@ class FakeWallet(Wallet):
         fee_limit_msat: int,
         amount_msat: int | None = None,
     ) -> PaymentResponse:
-        from lnbits.core.services.bolt12 import parse_bolt12_offer
         from lnbits.exceptions import PaymentError
+        from lnbits.utils.bolt12 import parse_bolt12_offer
 
         try:
             parse_bolt12_offer(offer)

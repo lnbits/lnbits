@@ -58,6 +58,7 @@ from lnbits.helpers import (
     generate_filter_params_openapi,
     is_valid_label,
 )
+from lnbits.utils.bolt12 import looks_like_bolt12_offer, parse_bolt12_offer
 from lnbits.wallets.base import InvoiceResponse
 
 from ..crud import (
@@ -78,7 +79,6 @@ from ..services import (
     settle_hold_invoice,
     update_pending_payment,
 )
-from ..services.bolt12 import looks_like_bolt12_offer, parse_bolt12_offer
 
 payment_router = APIRouter(prefix="/api/v1/payments", tags=["Payments"])
 
