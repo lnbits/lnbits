@@ -2,13 +2,20 @@ window.app.component('lnbits-wallet-new', {
   template: '#lnbits-wallet-new',
   data() {
     return {
-      wallet: {name: '', sharedWalletId: ''},
+      wallet: {name: '', sharedWalletId: '', currency: ''},
       showNewWalletDialog: false
     }
   },
   watch: {
     'g.newWalletType'(val) {
       if (val === null) return
+      if (val === 'fiat') {
+        this.wallet.currency = (
+          this.g.settings.defaultAccountingCurrency || 'USD'
+        )
+          .trim()
+          .toUpperCase()
+      }
       this.showNewWalletDialog = true
     },
     showNewWalletDialog(val) {
@@ -44,6 +51,11 @@ window.app.component('lnbits-wallet-new', {
     isLightningShared() {
       return this.g.newWalletType === 'lightning-shared'
     },
+    fiatCurrencyOptions() {
+      return this.g.allowedCurrencies.length > 0
+        ? this.g.allowedCurrencies
+        : this.g.currencies
+    },
     inviteWalletOptions() {
       return (this.g.user?.extra?.wallet_invite_requests || []).map(i => ({
         label: `${i.to_wallet_name} (from ${i.from_user_name})`,
@@ -55,7 +67,7 @@ window.app.component('lnbits-wallet-new', {
     reset() {
       this.showNewWalletDialog = false
       this.g.newWalletType = null
-      this.wallet = {name: '', sharedWalletId: ''}
+      this.wallet = {name: '', sharedWalletId: '', currency: ''}
     },
     async submitRejectWalletInvitation() {
       try {
@@ -103,10 +115,19 @@ window.app.component('lnbits-wallet-new', {
         })
         return
       }
-      LNbits.api
-        .createWallet(data.name, this.g.newWalletType, {
-          shared_wallet_id: data.sharedWalletId
+      if (this.g.newWalletType === 'fiat' && !data.currency) {
+        this.$q.notify({
+          message: 'Please select a currency for the wallet',
+          color: 'warning'
         })
+        return
+      }
+      const options = {shared_wallet_id: data.sharedWalletId}
+      if (this.g.newWalletType === 'fiat') {
+        options.currency = data.currency
+      }
+      LNbits.api
+        .createWallet(data.name, this.g.newWalletType, options)
         .then(res => {
           this.$q.notify({
             message: 'Wallet created successfully',

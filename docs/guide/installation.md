@@ -32,6 +32,7 @@ nav_order: 1
 - [Using LNbits](#using-lnbits)
 - [Additional guides](#additional-guides)
   - [Update LNbits (all methods)](#update-lnbits-all-methods)
+  - [Fiat wallet upgrade conflicts](#fiat-wallet-upgrade-conflicts)
   - [SQLite → PostgreSQL migration](#sqlite--postgresql-migration)
   - [LNbits as a systemd service](#lnbits-as-a-systemd-service)
   - [Reverse proxy with automatic HTTPS (Caddy)](#reverse-proxy-with-automatic-https-caddy)
@@ -658,6 +659,36 @@ fly ssh console
 ```
 
 </details>
+
+## Fiat wallet upgrade conflicts
+
+Recent versions enforce one active Fiat wallet per user and currency. Before
+upgrading from the Fiat-wallet release candidate, stop LNbits and back up the
+database. On the previous release, find each user with multiple active Fiat
+wallets for the same currency, choose the wallet that should remain active,
+and soft-delete the others through the admin UI or API. Do not merge balances,
+change currencies, or permanently delete records automatically; preserve
+payment history and check funded wallets and integrations before retiring one.
+
+Use the previous release's database console to identify conflicts:
+
+```sql
+SELECT "user", UPPER(TRIM(currency)) AS currency, COUNT(*)
+FROM wallets
+WHERE wallet_type = 'fiat' AND deleted = false
+GROUP BY "user", UPPER(TRIM(currency))
+HAVING COUNT(*) > 1;
+```
+
+List the wallet IDs for each reported user/currency, choose the survivor, and
+soft-delete every other ID with the admin wallet-delete action. Repeat until
+the query returns no rows.
+
+Start the previous release again if the new version stops during migration.
+Resolve every reported duplicate (and invalid Fiat currency), verify the
+backup, then retry the upgrade. The migration refuses to create the index
+until conflicts are resolved, so an installation blocked during startup can
+recover by rolling back to the previous release and following the same steps.
 
 ## SQLite → PostgreSQL migration
 

@@ -13,6 +13,7 @@ from lnbits.utils.exchange_rates import (
     fiat_amount_as_satoshis,
     get_fiat_rate_and_price_satoshis,
     get_fiat_rate_satoshis,
+    normalize_fiat_currency,
     satoshis_amount_as_fiat,
 )
 
@@ -192,6 +193,19 @@ def test_allowed_currencies_respects_allow_list(settings: Settings):
         assert allowed_currencies() == ["EUR", "USD"]
     finally:
         settings.lnbits_allowed_currencies = original_allowed_currencies
+
+
+def test_normalize_fiat_currency_uses_default_and_rejects_sats(settings: Settings):
+    original_default = settings.lnbits_default_accounting_currency
+    try:
+        settings.lnbits_default_accounting_currency = "eur"
+        assert normalize_fiat_currency() == "EUR"
+        assert normalize_fiat_currency(" jpy ") == "JPY"
+
+        with pytest.raises(ValueError, match="cannot be sats"):
+            normalize_fiat_currency("sats")
+    finally:
+        settings.lnbits_default_accounting_currency = original_default
 
 
 @pytest.mark.anyio

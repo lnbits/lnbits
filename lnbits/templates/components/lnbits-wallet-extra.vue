@@ -125,7 +125,7 @@
                     v-model="g.wallet.currency"
                     @change="updateWallet({currency: g.wallet.currency})"
                     type="text"
-                    :disable="g.fiatTracking"
+                    :disable="g.fiatTracking && g.wallet.walletType !== 'fiat'"
                     :options="
                       g.allowedCurrencies.length > 0
                         ? g.allowedCurrencies
@@ -140,6 +140,7 @@
                     color="primary"
                     class="q-mt-xs full-width"
                     @click="handleFiatTracking()"
+                    v-if="g.wallet.walletType !== 'fiat'"
                     :disable="g.wallet.currency == ''"
                     :label="g.fiatTracking ? 'Remove' : 'Add'"
                   ></q-btn>

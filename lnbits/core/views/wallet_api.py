@@ -7,6 +7,7 @@ from fastapi import (
     Depends,
     HTTPException,
 )
+from sqlalchemy.exc import IntegrityError
 
 from lnbits.core.crud.wallets import (
     clear_wallet_cache,
@@ -41,6 +42,7 @@ from lnbits.decorators import (
 )
 from lnbits.helpers import generate_filter_params_openapi
 from lnbits.settings import settings
+from lnbits.utils.exchange_rates import normalize_fiat_currency
 
 from ..crud import (
     delete_wallet,
@@ -179,7 +181,14 @@ async def api_update_wallet(
     wallet.extra.icon = icon or wallet.extra.icon
     wallet.extra.color = color or wallet.extra.color
     wallet.extra.pinned = pinned if pinned is not None else wallet.extra.pinned
-    wallet.currency = currency if currency is not None else wallet.currency
+    if currency is not None:
+        if wallet.wallet_type == WalletType.FIAT.value:
+            try:
+                wallet.currency = normalize_fiat_currency(currency)
+            except ValueError as exc:
+                raise HTTPException(HTTPStatus.BAD_REQUEST, str(exc)) from exc
+        else:
+            wallet.currency = currency
 
     if lightning_address and lightning_address != wallet.lightning_address:
         if not settings.lnbits_allow_custom_wallet_lightning_addresses:
@@ -195,7 +204,15 @@ async def api_update_wallet(
         )
         return wallet
 
-    await update_wallet(wallet)
+    try:
+        await update_wallet(wallet)
+    except IntegrityError as exc:
+        if wallet.wallet_type == WalletType.FIAT.value:
+            raise HTTPException(
+                HTTPStatus.CONFLICT,
+                "A Fiat wallet for this currency already exists.",
+            ) from exc
+        raise
     return wallet
 
 
@@ -242,6 +259,19 @@ async def api_create_wallet(
             HTTPStatus.FORBIDDEN, "Fiat wallets are not enabled for this user."
         )
 
-    return await create_wallet(
-        user_id=account_id.id, wallet_name=data.name, wallet_type=data.wallet_type
-    )
+    try:
+        return await create_wallet(
+            user_id=account_id.id,
+            wallet_name=data.name,
+            wallet_type=data.wallet_type,
+            currency=data.currency,
+        )
+    except ValueError as exc:
+        raise HTTPException(HTTPStatus.BAD_REQUEST, str(exc)) from exc
+    except IntegrityError as exc:
+        if data.wallet_type == WalletType.FIAT:
+            raise HTTPException(
+                HTTPStatus.CONFLICT,
+                "A Fiat wallet for this currency already exists.",
+            ) from exc
+        raise

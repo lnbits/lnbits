@@ -7,6 +7,7 @@ from sqlalchemy.exc import OperationalError
 
 from lnbits import bolt11
 from lnbits.db import Connection
+from lnbits.utils.exchange_rates import currencies
 
 
 async def m000_create_migrations_table(db: Connection):
@@ -901,4 +902,47 @@ async def m050_add_lightning_address_to_wallets(db: Connection):
     await db.execute("""
         CREATE UNIQUE INDEX IF NOT EXISTS idx_wallets_lightning_address
         ON wallets (lightning_address);
+        """)
+
+
+async def m051_unique_active_fiat_wallet_currency(db: Connection):
+    wallets: list[dict] = await db.fetchall("""
+        SELECT id, "user", currency, deleted
+        FROM wallets
+        WHERE wallet_type = 'fiat'
+        """)
+    changes: list[tuple[str, str]] = []
+    seen: set[tuple[str, str]] = set()
+
+    for wallet in wallets:
+        raw_currency = wallet["currency"]
+        currency = (raw_currency or "").strip().upper()
+        if currency in {"SAT", "SATS"} or currency not in currencies:
+            raise ValueError(
+                f"Invalid Fiat currency for wallet {wallet['id']}; "
+                "resolve it on the previous release before upgrading."
+            )
+
+        if not wallet["deleted"]:
+            key = (wallet["user"], currency)
+            if key in seen:
+                raise ValueError(
+                    f"Duplicate active Fiat wallets for user {wallet['user']} "
+                    f"and currency {currency}; resolve them on the previous "
+                    "release before upgrading."
+                )
+            seen.add(key)
+        if currency != raw_currency:
+            changes.append((wallet["id"], currency))
+
+    for wallet_id, currency in changes:
+        await db.execute(
+            "UPDATE wallets SET currency = :currency WHERE id = :wallet_id",
+            {"wallet_id": wallet_id, "currency": currency},
+        )
+
+    await db.execute("""
+        CREATE UNIQUE INDEX IF NOT EXISTS idx_wallets_fiat_user_currency
+        ON wallets ("user", currency)
+        WHERE wallet_type = 'fiat' AND deleted = false;
         """)

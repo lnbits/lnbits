@@ -7,9 +7,16 @@ import shortuuid
 from httpx import AsyncClient
 
 from lnbits.core.crud.payments import get_payments
-from lnbits.core.crud.wallets import get_wallets
+from lnbits.core.crud.users import create_account
+from lnbits.core.crud.wallets import (
+    create_wallet,
+    delete_wallet,
+    get_wallet,
+    get_wallets,
+)
 from lnbits.core.models import AccessTokenPayload, Payment
 from lnbits.core.models.users import Account, User
+from lnbits.core.models.wallets import WalletType
 from lnbits.core.services.users import create_user_account
 from lnbits.db import Filters
 from lnbits.settings import Settings
@@ -614,6 +621,40 @@ async def test_delete_and_undelete_wallet(http_client: AsyncClient, superuser_to
     undeleted_wallet = next((w for w in wallets if w.id == wallet_id), None)
     assert undeleted_wallet is not None
     assert undeleted_wallet.deleted is False
+
+
+@pytest.mark.anyio
+async def test_undelete_fiat_wallet_conflict_keeps_wallet_deleted(
+    http_client: AsyncClient, superuser_token, settings
+):
+    account = Account(id=uuid4().hex)
+    await create_account(account)
+    deleted_wallet = await create_wallet(
+        user_id=account.id, wallet_type=WalletType.FIAT, currency="USD"
+    )
+    await delete_wallet(account.id, deleted_wallet.id)
+    active_wallet = await create_wallet(
+        user_id=account.id, wallet_type=WalletType.FIAT, currency="USD"
+    )
+    settings.lnbits_allowed_currencies = ["EUR"]
+
+    response = await http_client.put(
+        f"/users/api/v1/user/{account.id}/wallet/{deleted_wallet.id}/undelete",
+        headers={"Authorization": f"Bearer {superuser_token}"},
+    )
+
+    assert response.status_code == 409
+    wallet = await get_wallet(deleted_wallet.id, deleted=True)
+    assert wallet and wallet.deleted
+
+    await delete_wallet(account.id, active_wallet.id)
+    response = await http_client.put(
+        f"/users/api/v1/user/{account.id}/wallet/{deleted_wallet.id}/undelete",
+        headers={"Authorization": f"Bearer {superuser_token}"},
+    )
+    assert response.status_code == 200
+    wallet = await get_wallet(deleted_wallet.id)
+    assert wallet and not wallet.deleted and wallet.currency == "USD"
 
 
 @pytest.mark.anyio

@@ -404,12 +404,14 @@ def test_public_settings_from_settings(settings: Settings):
     original_ad_space_enabled = settings.lnbits_ad_space_enabled
     original_installed_extensions = settings.lnbits_installed_extensions_ids
     original_first_install_token = settings.first_install_token
+    original_default_accounting_currency = settings.lnbits_default_accounting_currency
     try:
         settings.lnbits_site_title = "Test LNbits"
         settings.lnbits_ad_space = "https://example.com;/banner.png;/thumb.png"
         settings.lnbits_ad_space_enabled = True
         settings.lnbits_installed_extensions_ids = {"ext_a"}
         settings.first_install_token = "token"
+        settings.lnbits_default_accounting_currency = "EUR"
 
         public = PublicSettings.from_settings(settings)
 
@@ -418,12 +420,16 @@ def test_public_settings_from_settings(settings: Settings):
         assert public.ad_space == [["https://example.com", "/banner.png", "/thumb.png"]]
         assert set(public.extensions) == {"ext_a"}
         assert public.has_first_install_token is True
+        assert public.default_accounting_currency == "EUR"
     finally:
         settings.lnbits_site_title = original_site_title
         settings.lnbits_ad_space = original_ad_space
         settings.lnbits_ad_space_enabled = original_ad_space_enabled
         settings.lnbits_installed_extensions_ids = original_installed_extensions
         settings.first_install_token = original_first_install_token
+        settings.lnbits_default_accounting_currency = (
+            original_default_accounting_currency
+        )
 
 
 def test_set_cli_settings_updates_runtime_settings(settings: Settings):
