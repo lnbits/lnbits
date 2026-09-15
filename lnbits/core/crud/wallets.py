@@ -2,12 +2,15 @@ from datetime import datetime, timezone
 from time import time
 from uuid import uuid4
 
+from sqlalchemy.exc import IntegrityError
+
 from lnbits.core.db import db
 from lnbits.core.models.wallets import BaseWallet, WalletsFilters, WalletType
 from lnbits.db import Connection, Filters, Page
 from lnbits.helpers import generate_ln_address
 from lnbits.settings import settings
 from lnbits.utils.cache import cache
+from lnbits.utils.exchange_rates import normalize_fiat_currency
 
 from ..models import Wallet
 
@@ -17,10 +20,18 @@ async def create_wallet(
     user_id: str,
     wallet_name: str | None = None,
     wallet_type: WalletType = WalletType.LIGHTNING,
+    currency: str | None = None,
     shared_wallet_id: str | None = None,
     conn: Connection | None = None,
 ) -> Wallet:
     wallet_id = uuid4().hex
+    wallet_currency = (
+        currency
+        if currency is not None
+        else settings.lnbits_default_accounting_currency or "USD"
+    )
+    if wallet_type == WalletType.FIAT:
+        wallet_currency = normalize_fiat_currency(wallet_currency)
     wallet = Wallet(
         id=wallet_id,
         name=wallet_name or settings.lnbits_default_wallet_name,
@@ -29,7 +40,7 @@ async def create_wallet(
         user=user_id,
         adminkey=uuid4().hex,
         inkey=uuid4().hex,
-        currency=settings.lnbits_default_accounting_currency or "USD",
+        currency=wallet_currency,
     )
     if wallet_type == WalletType.FIAT:
         wallet.extra.icon = "credit_card"
@@ -38,6 +49,61 @@ async def create_wallet(
 
     await (conn or db).insert("wallets", wallet)
     return wallet
+
+
+async def get_fiat_wallet(
+    *,
+    user_id: str,
+    currency: str,
+    deleted: bool | None = False,
+    conn: Connection | None = None,
+) -> Wallet | None:
+    query = """
+        SELECT *, COALESCE((
+            SELECT balance FROM balances WHERE wallet_id = wallets.id
+        ), 0) AS balance_msat
+        FROM wallets
+        WHERE "user" = :user
+          AND wallet_type = :wallet_type
+          AND currency = :currency
+    """
+    if deleted is not None:
+        query += " AND deleted = :deleted "
+    return await (conn or db).fetchone(
+        query,
+        {
+            "user": user_id,
+            "wallet_type": WalletType.FIAT.value,
+            "currency": currency,
+            "deleted": deleted,
+        },
+        Wallet,
+    )
+
+
+async def get_or_create_fiat_wallet(
+    *,
+    user_id: str,
+    currency: str | None = None,
+    wallet_name: str | None = None,
+) -> Wallet:
+    normalized_currency = normalize_fiat_currency(currency)
+    wallet = await get_fiat_wallet(user_id=user_id, currency=normalized_currency)
+    if wallet:
+        return wallet
+
+    try:
+        return await create_wallet(
+            user_id=user_id,
+            wallet_name=wallet_name,
+            wallet_type=WalletType.FIAT,
+            currency=normalized_currency,
+        )
+    except IntegrityError:
+        wallet = await get_fiat_wallet(user_id=user_id, currency=normalized_currency)
+        if wallet:
+            return wallet
+        raise
 
 
 async def update_wallet(

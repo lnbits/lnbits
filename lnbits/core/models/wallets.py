@@ -232,6 +232,7 @@ class Wallet(BaseWallet):
 class CreateWallet(BaseModel):
     name: str | None = None
     wallet_type: WalletType = WalletType.LIGHTNING
+    currency: str | None = None
     shared_wallet_id: str | None = None
 
 
