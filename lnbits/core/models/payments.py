@@ -7,7 +7,7 @@ from typing import Literal
 from fastapi import Query
 from lnurl import LnurlWithdrawResponse
 from loguru import logger
-from pydantic import BaseModel, Field, validator
+from pydantic import BaseModel, Field, root_validator, validator
 
 from lnbits.db import FilterModel
 from lnbits.fiat.base import (
@@ -280,7 +280,14 @@ class CreateInvoice(BaseModel):
     extra: dict | None = None
     extension: str | None = None
     webhook: str | None = None
-    bolt11: str | None = None
+    payment_request: str | None = Field(
+        default=None, description="The BOLT11 invoice or BOLT12 offer to pay."
+    )
+    bolt11: str | None = Field(
+        default=None,
+        description="Legacy input. Use payment_request instead.",
+        deprecated=True,
+    )
     lnurl_withdraw: LnurlWithdrawResponse | None = None
     fiat_provider: str | None = None
     labels: list[str] = []
@@ -305,6 +312,16 @@ class CreateInvoice(BaseModel):
     @validator("external_id")
     def validate_external_id(cls, external_id):
         return _validate_external_id(external_id)
+
+    @root_validator(pre=True)
+    def _normalize_payment_request(cls, values: dict) -> dict:
+        payment_request = values.get("payment_request")
+        bolt11 = values.get("bolt11")
+        if payment_request and bolt11 and payment_request != bolt11:
+            raise ValueError("payment_request and bolt11 must match.")
+        if not payment_request and bolt11:
+            values["payment_request"] = bolt11
+        return values
 
 
 class PaymentsStatusCount(BaseModel):

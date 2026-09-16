@@ -258,9 +258,11 @@ async def api_all_payments_paginated(
         To generate a new invoice for receiving funds into the authorized account,
         specify at least the first four fields in the POST body: `out: false`,
         `amount`, `unit`, and `memo`. To pay an arbitrary invoice from the funds
-        already in the authorized account, specify `out: true` and use the `bolt11`
-        field to supply the BOLT11 invoice or BOLT12 offer (`lno1…`, optional
-        `lightning:` URI). Paying a BOLT12 offer requires `amount` in `sat`.
+        already in the authorized account, specify `out: true` and use
+        `payment_request` to supply the BOLT11 invoice or BOLT12 offer (`lno1…`,
+        optional `lightning:` URI). Paying a BOLT12 offer requires `amount` in
+        `sat`. The legacy `bolt11` field is still accepted. If both fields are
+        supplied with non-empty values, they must match.
     """,
     status_code=HTTPStatus.CREATED,
     responses={
@@ -275,12 +277,12 @@ async def api_payments_create(
 ) -> Payment:
     wallet_id = key_info.wallet.id
     if invoice_data.out is True and key_info.key_type == KeyType.admin:
-        if not invoice_data.bolt11:
+        if not invoice_data.payment_request:
             raise HTTPException(
                 status_code=HTTPStatus.BAD_REQUEST,
                 detail="Missing BOLT11 invoice or BOLT12 offer",
             )
-        if looks_like_bolt12_offer(invoice_data.bolt11):
+        if looks_like_bolt12_offer(invoice_data.payment_request):
             if invoice_data.unit != "sat":
                 raise HTTPException(
                     status_code=HTTPStatus.BAD_REQUEST,
@@ -291,7 +293,7 @@ async def api_payments_create(
                 amount_sat = int(invoice_data.amount)
             return await pay_offer(
                 wallet_id=wallet_id,
-                offer=invoice_data.bolt11,
+                offer=invoice_data.payment_request,
                 amount_sat=amount_sat,
                 extra=invoice_data.extra,
                 description=invoice_data.memo or "",
@@ -300,7 +302,7 @@ async def api_payments_create(
             )
         payment = await pay_invoice(
             wallet_id=wallet_id,
-            payment_request=invoice_data.bolt11,
+            payment_request=invoice_data.payment_request,
             extra=invoice_data.extra,
             description=invoice_data.memo or "",
             labels=invoice_data.labels,

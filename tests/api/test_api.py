@@ -371,6 +371,61 @@ async def test_pay_invoice(
     # assert payment.payment_hash == invoice["payment_hash"]
 
 
+@pytest.mark.anyio
+@pytest.mark.parametrize("include_legacy", [False, True])
+async def test_pay_invoice_with_payment_request(
+    client, inkey_headers_to, adminkey_headers_from, include_legacy
+):
+    created = await client.post(
+        "/api/v1/payments",
+        json={"out": False, "amount": 21, "memo": "payment_request test"},
+        headers=inkey_headers_to,
+    )
+    assert created.status_code == 201
+    invoice = created.json()
+    data = {"out": True, "payment_request": invoice["bolt11"]}
+    if include_legacy:
+        data["bolt11"] = invoice["bolt11"]
+
+    response = await client.post(
+        "/api/v1/payments", json=data, headers=adminkey_headers_from
+    )
+
+    assert response.status_code == 201
+    assert response.json()["status"] == "success"
+    assert response.json()["payment_hash"] == invoice["payment_hash"]
+    assert response.json()["amount"] == -21_000
+
+
+@pytest.mark.anyio
+async def test_pay_invoice_rejects_conflicting_payment_requests(
+    client, adminkey_headers_from, mocker
+):
+    pay_invoice = mocker.patch(
+        "lnbits.core.views.payment_api.pay_invoice", new_callable=AsyncMock
+    )
+    pay_offer = mocker.patch(
+        "lnbits.core.views.payment_api.pay_offer", new_callable=AsyncMock
+    )
+    response = await client.post(
+        "/api/v1/payments",
+        json={
+            "out": True,
+            "payment_request": "lno1offer",
+            "bolt11": "lnbc1invoice",
+            "amount": 21,
+        },
+        headers=adminkey_headers_from,
+    )
+
+    assert response.status_code == 400
+    assert response.json()["detail"][0]["msg"] == (
+        "payment_request and bolt11 must match."
+    )
+    pay_invoice.assert_not_awaited()
+    pay_offer.assert_not_awaited()
+
+
 # check GET /api/v1/payments/<hash>: payment status
 @pytest.mark.anyio
 async def test_check_payment_without_key(client, invoice: Payment):
@@ -646,18 +701,22 @@ async def test_decode_bolt12_offer(client):
 
 
 @pytest.mark.anyio
-async def test_pay_bolt12_offer(client, adminkey_headers_to):
+@pytest.mark.parametrize(
+    "fields", [("payment_request",), ("bolt11",), ("payment_request", "bolt11")]
+)
+async def test_pay_bolt12_offer(client, adminkey_headers_to, fields):
     offer = "lno1qgsqvgnwgcg35z6ee2h3yczraddm72xrfua9uve2rlrm9deu7xyfzrcgq9qh"
+    data = {"out": True, **dict.fromkeys(fields, offer)}
     missing_amount = await client.post(
         "/api/v1/payments",
-        json={"out": True, "bolt11": offer},
+        json=data,
         headers=adminkey_headers_to,
     )
     assert missing_amount.status_code >= 400
 
     paid = await client.post(
         "/api/v1/payments",
-        json={"out": True, "bolt11": offer, "amount": 21, "unit": "sat"},
+        json={**data, "amount": 21, "unit": "sat"},
         headers=adminkey_headers_to,
     )
     assert paid.status_code < 300

@@ -231,7 +231,7 @@
           <h5 class="text-caption q-mt-sm q-mb-none">
             Body (application/json)
           </h5>
-          <code>{"out": true, "bolt11": &lt;string&gt;}</code>
+          <code>{"out": true, "payment_request": &lt;string&gt;}</code>
           <h5 class="text-caption q-mt-sm q-mb-none">
             Returns 201 CREATED (application/json)
           </h5>
@@ -239,7 +239,7 @@
           <h5 class="text-caption q-mt-sm q-mb-none">Curl example</h5>
           <code
             >curl -X POST <span v-text="baseUrl"></span>api/v1/payments -d
-            '{"out": true, "bolt11": &lt;string&gt;}' -H "X-Api-Key:
+            '{"out": true, "payment_request": &lt;string&gt;}' -H "X-Api-Key:
             <i
               v-text="adminkeyHidden ? '****************' : g.wallet.adminkey"
             ></i
