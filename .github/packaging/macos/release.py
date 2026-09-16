@@ -11,7 +11,13 @@ if __package__ in (None, ""):
     sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from macos import dmg
-from macos.common import ReleaseError, Runner, validate_credentials
+from macos.common import (
+    ReleaseError,
+    Runner,
+    cleanup_on_exit,
+    error_message,
+    validate_credentials,
+)
 from macos.credentials import Session, cleanup, load_credentials
 from macos.signing import notarize, sign, sign_app, staple, verify_app
 from macos.verify import verify_image
@@ -105,7 +111,7 @@ def release(runner, session, *, signed, credentials, arch, skip_build=False):
     output = None
     session.begin()
     try:
-        try:
+        with cleanup_on_exit(session.cleanup, runner):
             output = dmg.output_path()
             output.unlink(missing_ok=True)
             output.with_suffix(".dmg.sha256").unlink(missing_ok=True)
@@ -154,8 +160,6 @@ def release(runner, session, *, signed, credentials, arch, skip_build=False):
                 arch,
                 credentials["APPLE_TEAM_ID"] if signed else None,
             )
-        finally:
-            session.cleanup()
         # Cleanup is a publication gate too; never leave a successful checksum
         # beside a failed release. Re-read the completed image to verify it.
         dmg.write_checksum(output)
@@ -237,12 +241,7 @@ def main(argv=None):
         )
     except Exception as exc:
         # No unredacted exception repr, traceback or credential-bearing argv.
-        message = (
-            str(exc)
-            if isinstance(exc, ReleaseError)
-            else f"Release operation failed ({type(exc).__name__})"
-        )
-        print(runner.redact(message), file=sys.stderr)
+        print(runner.redact(error_message(exc)), file=sys.stderr)
         raise SystemExit(1) from None
 
 

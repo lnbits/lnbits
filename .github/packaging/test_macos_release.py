@@ -178,6 +178,7 @@ class SessionTests(unittest.TestCase):
     def setUp(self):
         self.folder = Path(self.enterContext(tempfile.TemporaryDirectory()))
         self.runner = Mock()
+        self.runner.redact.side_effect = Runner(DUMMY).redact
         self.original = [
             "/Users/test/Library/Keychains/login.keychain-db",
             "/Library/Keychains/System.keychain",
@@ -303,6 +304,49 @@ class SessionTests(unittest.TestCase):
         self.assertFalse(mount.exists())
         self.assertIsNone(self.session.state["mount"])
         self.session.cleanup()
+
+    def test_recovery_detaches_a_mount_reported_under_its_resolved_path(self):
+        real = self.folder.resolve() / "private"
+        mount = real / "mount"
+        mount.mkdir(parents=True)
+        (mount / "LNbits.app").mkdir()
+        alias = self.folder / "alias"
+        alias.symlink_to(real, target_is_directory=True)
+        self.session.state["mount"] = str(alias / "mount")
+        self.session.save()
+        mounted = {"images": [{"system-entities": [{"mount-point": str(mount)}]}]}
+
+        def tool(operation, *args, **kwargs):
+            if operation == "Inspect mounted images":
+                return result(plistlib.dumps(mounted).decode())
+            if operation == "Detach final DMG":
+                self.assertEqual(Path(args[-1]), mount)
+                (mount / "LNbits.app").rmdir()
+            return result()
+
+        self.runner.run.side_effect = tool
+        credentials.cleanup(self.session.path, self.runner)
+        self.assertFalse(mount.exists())
+        self.assertFalse(self.session.path.exists())
+        self.assertIn(
+            "Detach final DMG",
+            [call.args[0] for call in self.runner.run.call_args_list],
+        )
+
+    def test_cleanup_reports_sanitized_tool_errors_and_retains_recovery_state(self):
+        with (
+            patch.object(
+                self.session,
+                "detach",
+                autospec=True,
+                side_effect=ReleaseError("Detach final DMG: busy " + DUMMY["APPLE_ID"]),
+            ),
+            self.assertRaises(ReleaseError) as caught,
+        ):
+            self.session.cleanup()
+        self.assertIn("Detach final DMG: busy", str(caught.exception))
+        self.assertNotIn(DUMMY["APPLE_ID"], str(caught.exception))
+        self.assertTrue(self.session.path.exists())
 
 
 class SigningTests(unittest.TestCase):
@@ -648,6 +692,32 @@ class PipelineTests(unittest.TestCase):
         self.notarize.assert_not_called()
         self.assertTrue(self.output.with_suffix(".dmg.sha256").exists())
 
+    def test_verification_error_survives_cleanup_failure_without_a_checksum(self):
+        original = ReleaseError("Wrong native architecture: spark/native.bare")
+        with (
+            patch("macos.release.verify_image", side_effect=original),
+            patch.object(
+                self.session,
+                "cleanup",
+                side_effect=ReleaseError("Detach final DMG: " + DUMMY["P12_PASSWORD"]),
+            ),
+            patch("sys.stderr", new_callable=io.StringIO) as errors,
+            self.assertRaises(ReleaseError) as caught,
+        ):
+            release.release(
+                self.runner,
+                self.session,
+                signed=False,
+                credentials={},
+                arch="arm64",
+                skip_build=True,
+            )
+        self.assertIs(caught.exception, original)
+        self.assertIn("Detach final DMG", errors.getvalue())
+        self.assertNotIn(DUMMY["P12_PASSWORD"], errors.getvalue())
+        self.assertFalse(self.output.exists())
+        self.assertFalse(self.output.with_suffix(".dmg.sha256").exists())
+
     def test_image_creation_copies_without_metadata_changes_or_resigning(self):
         original = self.app / "Contents/Info.plist"
         before = original.read_bytes()
@@ -704,6 +774,36 @@ class PipelineTests(unittest.TestCase):
 
 
 class DeliverableTests(unittest.TestCase):
+    def test_gatekeeper_error_survives_detach_failure(self):
+        with tempfile.TemporaryDirectory() as directory:
+            mount = Path(directory) / "mount"
+            mount.mkdir()
+            (mount / "Applications").symlink_to("/Applications")
+            session = Mock(state={})
+            session.detach.side_effect = ReleaseError("Detach final DMG: busy")
+            runner = Runner(DUMMY)
+            original = ReleaseError("Assess app Gatekeeper: rejected")
+
+            def run(operation, *args, **kwargs):
+                if operation == "Assess app Gatekeeper":
+                    raise original
+                return result()
+
+            runner.run = Mock(side_effect=run)
+            with (
+                patch("macos.verify.tempfile.mkdtemp", return_value=str(mount)),
+                patch("macos.verify.verify_code"),
+                patch("macos.verify.verify_app"),
+                patch("sys.stderr", new_callable=io.StringIO) as errors,
+                self.assertRaises(ReleaseError) as caught,
+            ):
+                verify.verify_image(
+                    runner, session, Path("final.dmg"), "arm64", "ABCDEFGHIJ"
+                )
+            self.assertIs(caught.exception, original)
+            self.assertIn("Detach final DMG: busy", errors.getvalue())
+            session.detach.assert_called_once()
+
     def test_mount_is_read_only_and_always_detached_on_smoke_failure(self):
         with tempfile.TemporaryDirectory() as directory:
             mount = Path(directory) / "mount"

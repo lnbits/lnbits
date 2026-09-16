@@ -9,7 +9,12 @@ import stat
 import tempfile
 from pathlib import Path
 
-from macos.common import CREDENTIAL_NAMES, ReleaseError, validate_credentials
+from macos.common import (
+    CREDENTIAL_NAMES,
+    ReleaseError,
+    error_message,
+    validate_credentials,
+)
 
 PROFILE = "lnbits-notarization"
 
@@ -213,9 +218,11 @@ class Session:
         for action in (self.detach, self.restore_search_list, self.delete_keychain):
             try:
                 action()
-            except Exception:
+            except Exception as error:
                 # Continue every cleanup operation; retain state for recovery.
-                errors.append(action.__name__)
+                errors.append(
+                    f"{action.__name__}: {self.runner.redact(error_message(error))}"
+                )
         if errors:
             raise ReleaseError("Cleanup failed: " + ", ".join(errors))
         if self.state["directory"] and Path(self.state["directory"]).exists():
@@ -265,6 +272,8 @@ class Session:
         mount = self.state["mount"]
         if not mount:
             return
+        # hdiutil reports /private/var even when tempfile used its /var alias.
+        mount = Path(mount).resolve()
         # An attach failure can still leave a mounted device. Query actual state.
         import plistlib
 
@@ -272,14 +281,15 @@ class Session:
             "Inspect mounted images", "/usr/bin/hdiutil", "info", "-plist"
         )
         mounted = any(
-            entity.get("mount-point") == mount
+            Path(entity["mount-point"]).resolve() == mount
             for item in plistlib.loads(result.stdout.encode()).get("images", [])
             for entity in item.get("system-entities", [])
+            if entity.get("mount-point")
         )
         if mounted:
             self.runner.run("Detach final DMG", "/usr/bin/hdiutil", "detach", mount)
-        if Path(mount).exists():
-            Path(mount).rmdir()
+        if mount.exists():
+            mount.rmdir()
         self.state["mount"] = None
         self.save()
 

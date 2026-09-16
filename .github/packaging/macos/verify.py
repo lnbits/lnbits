@@ -6,7 +6,7 @@ import sys
 import tempfile
 from pathlib import Path
 
-from macos.common import ReleaseError
+from macos.common import ReleaseError, cleanup_on_exit
 from macos.signing import native_files, verify_app, verify_code
 
 PACKAGING = Path(__file__).resolve().parents[1]
@@ -54,7 +54,10 @@ def verify_architecture(runner, app, arch):
             "Verify native architecture", "/usr/bin/lipo", "-archs", path
         )
         if arch not in result.stdout.split():
-            raise ReleaseError(f"Wrong native architecture: {path.relative_to(app)}")
+            raise ReleaseError(
+                f"Wrong native architecture: {path.relative_to(app)} "
+                f"(expected {arch}; found {result.stdout.strip() or 'none'})"
+            )
         if path == app / "Contents/MacOS/LNbits" and result.stdout.strip() != arch:
             raise ReleaseError("Launcher must contain exactly the native architecture")
 
@@ -79,10 +82,10 @@ def verify_image(runner, session, output, arch, team=None):
             "--verbose=2",
             output,
         )
-    mount = Path(tempfile.mkdtemp(prefix="lnbits-verify-"))
+    mount = Path(tempfile.mkdtemp(prefix="lnbits-verify-")).resolve()
     session.state["mount"] = str(mount)
     session.save()
-    try:
+    with cleanup_on_exit(session.detach, runner):
         runner.run(
             "Mount final DMG read-only",
             "/usr/bin/hdiutil",
@@ -147,5 +150,3 @@ def verify_image(runner, session, output, arch, team=None):
             app / "Contents/MacOS/LNbits",
             timeout=240,
         )
-    finally:
-        session.detach()

@@ -137,6 +137,8 @@ final mounted image. It does not submit anything to Apple. Merely setting
 `macos/release.py` implements both local and CI release operations:
 
 1. Build the app, preserving dependency checks, then finalize all metadata.
+   Spark dependency prebuilds are filtered to the target Mac architecture before
+   packaging, removing other architectures and mobile/other-platform binaries.
 2. Decode the P12 inside a unique mode-0700 temporary directory, create/unlock a
    temporary keychain, import the identity, remove the P12, and set the
    `apple-tool:,apple:,codesign:` key partition list for unattended signing.
@@ -181,6 +183,11 @@ Do not run concurrent local builds using the same checkout. CI uses a journal in
 `RUNNER_TEMP` and an `always()` cleanup step **before** artifact upload. The journal
 is retained if cleanup fails, so recovery can be retried. For a custom journal,
 pass `--state /path/to/state.json` to both the build and cleanup commands.
+Verification mount paths are resolved before comparison with `hdiutil`, including
+the `/var` and `/private/var` aliases. If verification and cleanup both fail, the
+original verification error is preserved and sanitized cleanup diagnostics are
+reported separately. Fixes that change bundled content require rebuilding the app;
+`--skip-build` reuses the existing contents.
 
 ## Entitlements
 

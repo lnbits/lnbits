@@ -1,9 +1,11 @@
 """Sanitized subprocess boundary shared by macOS build and release tools."""
 
 import base64
+import contextlib
 import json
 import os
 import subprocess
+import sys
 import urllib.parse
 
 CREDENTIAL_NAMES = (
@@ -18,6 +20,31 @@ CREDENTIAL_NAMES = (
 
 class ReleaseError(Exception):
     """A safe, actionable release failure (never includes a command line)."""
+
+
+def error_message(error):
+    if isinstance(error, ReleaseError):
+        return str(error)
+    return f"Release operation failed ({type(error).__name__})"
+
+
+@contextlib.contextmanager
+def cleanup_on_exit(action, runner):
+    try:
+        yield
+    except BaseException:
+        try:
+            action()
+        except Exception as error:
+            # Keep the original failing operation; report secondary failures too.
+            print(
+                runner.redact(f"Cleanup also failed: {error_message(error)}"),
+                file=sys.stderr,
+            )
+        raise
+    else:
+        # Cleanup alone must still fail the release and prevent publication.
+        action()
 
 
 def clean_environment(environment):

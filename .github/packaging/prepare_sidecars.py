@@ -55,6 +55,20 @@ def unpack(archive, destination):
     return next(destination.iterdir())
 
 
+def prune_prebuilds(node_modules, system, arch):
+    if system != "darwin":
+        return
+    # npm packages include other Macs and mobile platforms even with --omit=dev.
+    # Filter before PyInstaller collects these directories as application data.
+    for prebuilds in node_modules.rglob("prebuilds"):
+        for variant in prebuilds.iterdir():
+            if not variant.is_dir():
+                continue
+            platform_name, _, architectures = variant.name.partition("-")
+            if platform_name != "darwin" or arch not in architectures.split("+"):
+                shutil.rmtree(variant)
+
+
 def main():
     here = Path(__file__).resolve().parent
     pins = json.loads((here / "sidecars/pins.json").read_text())
@@ -114,6 +128,7 @@ def main():
         for directory in ("android", "ios"):
             shutil.rmtree(sdk / directory, ignore_errors=True)
         shutil.rmtree(spark / "node_modules/.bin", ignore_errors=True)
+        prune_prebuilds(spark / "node_modules", system, arch)
 
         if system != "win":
             version = pins["phoenixd"]["version"]
