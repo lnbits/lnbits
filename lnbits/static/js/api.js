@@ -39,10 +39,10 @@ window._lnbitsApi = {
     }
     return this.request('post', '/api/v1/payments', wallet.inkey, data)
   },
-  payInvoice(wallet, bolt11, internalMemo = null, amount = null) {
+  payInvoice(wallet, paymentRequest, internalMemo = null, amount = null) {
     const data = {
       out: true,
-      bolt11: bolt11
+      payment_request: paymentRequest
     }
     if (internalMemo) {
       data.extra = {
