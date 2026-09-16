@@ -46,6 +46,7 @@ from ..models import (
     CreatePayment,
     Payment,
     PaymentState,
+    ValidatedPaymentRequest,
     Wallet,
 )
 from .bolt12 import looks_like_bolt12_offer, parse_bolt12_offer
@@ -72,19 +73,6 @@ async def pay_invoice(
     if settings.lnbits_only_allow_incoming_payments:
         raise PaymentError("Only incoming payments allowed.", status="failed")
 
-    if looks_like_bolt12_offer(payment_request):
-        return await pay_offer(
-            wallet_id=wallet_id,
-            offer=payment_request,
-            max_sat=max_sat,
-            extra=extra,
-            description=description,
-            tag=tag,
-            labels=labels,
-            external_id=external_id,
-            conn=conn,
-        )
-
     invoice = _validate_payment_request(payment_request, max_sat)
 
     if not invoice.amount_msat:
@@ -107,7 +95,7 @@ async def pay_invoice(
 
         create_payment_model = CreatePayment(
             wallet_id=wallet.source_wallet_id,
-            bolt11=payment_request,
+            bolt11=invoice.payment_request,
             payment_hash=invoice.payment_hash,
             amount_msat=-amount_msat,
             expiry=invoice.expiry_date,
@@ -154,32 +142,8 @@ async def pay_offer(
     if settings.lnbits_only_allow_incoming_payments:
         raise PaymentError("Only incoming payments allowed.", status="failed")
 
-    offer = parse_bolt12_offer(offer)
-
-    funding_source = get_funding_source()
-    if not funding_source.has_feature(Feature.bolt12):
-        raise PaymentError(
-            "Funding source does not support BOLT12 offers. "
-            "Use CoreLightning, CLNRest, Phoenixd, Eclair, or LNbits.",
-            status="failed",
-        )
-
-    if max_sat is None or max_sat <= 0:
-        raise PaymentError(
-            "Amount is required to pay a BOLT12 offer.",
-            status="failed",
-        )
-
-    ceiling = settings.lnbits_max_outgoing_payment_amount_sats
-    amount_sat = int(max_sat)
-    if amount_sat > ceiling:
-        raise PaymentError(
-            f"Offer amount {amount_sat} sats is too high. "
-            f"Max allowed: {ceiling} sats.",
-            status="failed",
-        )
-
-    amount_msat = amount_sat * 1000
+    pr = _validate_offer_payment_request(offer, max_sat)
+    amount_msat = pr.amount_msat
 
     async with db.reuse_conn(conn) if conn else db.connect() as new_conn:
         wallet = await _check_wallet_for_payment(wallet_id, tag, amount_msat, new_conn)
@@ -192,18 +156,16 @@ async def pay_offer(
         extra_data = dict(extra or {})
         extra_data["bolt12"] = True
         _, extra_data = await calculate_fiat_amounts(
-            amount_sat, wallet, extra=extra_data
+            amount_msat // 1000, wallet, extra=extra_data
         )
-        # Unique per attempt: offers have no hash until paid, and hashing
-        # the offer would collide on reusable offers (duplicate detection).
-        _, payment_hash = random_secret_and_hash()
 
         create_payment_model = CreatePayment(
             wallet_id=wallet.source_wallet_id,
-            bolt11=offer,
-            payment_hash=payment_hash,
+            bolt11=pr.payment_request,
+            payment_hash=pr.payment_hash,
             amount_msat=-amount_msat,
-            memo=description or "BOLT12 offer",
+            expiry=pr.expiry_date,
+            memo=description or pr.description,
             extra=extra_data,
             labels=labels,
             external_id=external_id,
@@ -1113,7 +1075,7 @@ async def _check_wallet_for_payment(
 
 def _validate_payment_request(
     payment_request: str, max_sat: int | None = None
-) -> Bolt11:
+) -> ValidatedPaymentRequest:
     try:
         invoice = bolt11_decode(payment_request)
     except Exception as exc:
@@ -1131,7 +1093,14 @@ def _validate_payment_request(
             status="failed",
         )
 
-    return invoice
+    return ValidatedPaymentRequest(
+        payment_request=payment_request,
+        amount_msat=invoice.amount_msat,
+        payment_hash=invoice.payment_hash,
+        expiry_date=invoice.expiry_date,
+        description=invoice.description or "",
+        is_offer=False,
+    )
 
 
 async def _credit_service_fee_wallet(
@@ -1292,3 +1261,44 @@ async def fundingsource_invoice_producer() -> None:
         if payment:
             logger.success(f"fundingsource invoice {checking_id} settled")
             task_manager.invoice_queue.put_nowait(payment)
+
+
+def _validate_offer_payment_request(
+    offer: str, amount_sat: int | None
+) -> ValidatedPaymentRequest:
+    offer = parse_bolt12_offer(offer)
+
+    funding_source = get_funding_source()
+    if not funding_source.has_feature(Feature.bolt12):
+        raise PaymentError(
+            "Funding source does not support BOLT12 offers. "
+            "Use CoreLightning, CLNRest, Phoenixd, Eclair, or LNbits.",
+            status="failed",
+        )
+
+    if amount_sat is None or amount_sat <= 0:
+        raise PaymentError(
+            "Amount is required to pay a BOLT12 offer.",
+            status="failed",
+        )
+
+    ceiling = settings.lnbits_max_outgoing_payment_amount_sats
+    amount_sat = int(amount_sat)
+    if amount_sat > ceiling:
+        raise PaymentError(
+            f"Offer amount {amount_sat} sats is too high. "
+            f"Max allowed: {ceiling} sats.",
+            status="failed",
+        )
+
+    # Unique per attempt: offers have no hash until paid, and hashing
+    # the offer would collide on reusable offers (duplicate detection).
+    _, payment_hash = random_secret_and_hash()
+    return ValidatedPaymentRequest(
+        payment_request=offer,
+        amount_msat=amount_sat * 1000,
+        payment_hash=payment_hash,
+        expiry_date=None,
+        description="BOLT12 offer",
+        is_offer=True,
+    )

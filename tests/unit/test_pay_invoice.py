@@ -10,9 +10,10 @@ from pytest_mock.plugin import MockerFixture
 
 from lnbits.core.crud import create_wallet, get_standalone_payment, get_wallet
 from lnbits.core.crud.payments import get_payment, get_payments_paginated
-from lnbits.core.models import PaymentState, Wallet
+from lnbits.core.models import PaymentState, ValidatedPaymentRequest, Wallet
 from lnbits.core.services import create_invoice, create_user_account, pay_invoice
 from lnbits.core.services.payments import (
+    _validate_payment_request,
     update_wallet_balance,
 )
 from lnbits.exceptions import InvoiceError, PaymentError
@@ -20,6 +21,23 @@ from lnbits.settings import Settings
 from lnbits.task_manager import task_manager
 from lnbits.wallets.base import PaymentResponse
 from lnbits.wallets.fake import FakeWallet
+
+
+@pytest.mark.anyio
+async def test_validate_invoice_payment_request(to_wallet: Wallet):
+    payment = await create_invoice(
+        wallet_id=to_wallet.id, amount=21, memo="Validated invoice", expiry=120
+    )
+
+    pr = _validate_payment_request(payment.bolt11, max_sat=21)
+
+    assert isinstance(pr, ValidatedPaymentRequest)
+    assert pr.is_offer is False
+    assert pr.payment_request == payment.bolt11
+    assert pr.amount_msat == 21_000
+    assert pr.payment_hash == payment.payment_hash
+    assert pr.expiry_date == payment.expiry
+    assert pr.description == "Validated invoice"
 
 
 @pytest.mark.anyio
