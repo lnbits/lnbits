@@ -100,7 +100,7 @@ async def test_pay_invoice_rejects_offer(app, to_wallet):
 @pytest.mark.anyio
 async def test_pay_offer_rejects_invoice(app, to_wallet):
     with pytest.raises(PaymentError, match="Invalid BOLT12 offer"):
-        await pay_offer(wallet_id=to_wallet.id, offer=BOLT11, max_sat=21)
+        await pay_offer(wallet_id=to_wallet.id, offer=BOLT11, amount_sat=21)
 
 
 @pytest.mark.anyio
@@ -109,7 +109,7 @@ async def test_pay_offer_rejects_malformed_offer(app, to_wallet):
         await pay_offer(
             wallet_id=to_wallet.id,
             offer="lno1!!!not-bech32",
-            max_sat=21,
+            amount_sat=21,
         )
 
 
@@ -128,7 +128,7 @@ async def test_pay_offer_rejects_zero_amount(app, to_wallet):
         await pay_offer(
             wallet_id=to_wallet.id,
             offer=VALID_OFFER,
-            max_sat=0,
+            amount_sat=0,
         )
 
 
@@ -139,7 +139,7 @@ async def test_pay_offer_enforces_amount_ceiling(app, to_wallet, settings: Setti
         await pay_offer(
             wallet_id=to_wallet.id,
             offer=VALID_OFFER,
-            max_sat=200,
+            amount_sat=200,
         )
 
 
@@ -152,7 +152,7 @@ async def test_pay_offer_rejects_without_bolt12_feature(app, to_wallet, monkeypa
         await pay_offer(
             wallet_id=to_wallet.id,
             offer=VALID_OFFER,
-            max_sat=21,
+            amount_sat=21,
         )
     assert "Phoenixd" in excinfo.value.message
     assert "LNbits" in excinfo.value.message
@@ -167,7 +167,7 @@ async def test_pay_offer_debits_wallet_and_is_reusable(app):
     first = await pay_offer(
         wallet_id=wallet.id,
         offer=VALID_OFFER,
-        max_sat=21,
+        amount_sat=21,
         description="first offer pay",
     )
     assert first.status == PaymentState.SUCCESS.value
@@ -184,7 +184,7 @@ async def test_pay_offer_debits_wallet_and_is_reusable(app):
     second = await pay_offer(
         wallet_id=wallet.id,
         offer="lightning:" + VALID_OFFER.upper(),
-        max_sat=7,
+        amount_sat=7,
     )
     assert second.status == PaymentState.SUCCESS.value
     assert second.amount == -7_000

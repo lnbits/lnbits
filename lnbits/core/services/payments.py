@@ -119,7 +119,7 @@ async def pay_offer(
     *,
     wallet_id: str,
     offer: str,
-    max_sat: int | None = None,
+    amount_sat: int | None = None,
     extra: dict | None = None,
     description: str = "",
     tag: str = "",
@@ -129,7 +129,7 @@ async def pay_offer(
 ) -> Payment:
     """Pay a BOLT12 offer via the funding source ``pay_offer`` method.
 
-    Amount must be supplied as ``max_sat`` (sats). The existing external
+    Amount must be supplied as ``amount_sat`` (sats). The existing external
     payment path is reused for locks, fee reserve, timeout, and status.
 
     Offers are not invoices: they have no payment hash until the backend
@@ -142,7 +142,7 @@ async def pay_offer(
     if settings.lnbits_only_allow_incoming_payments:
         raise PaymentError("Only incoming payments allowed.", status="failed")
 
-    pr = _validate_offer_payment_request(offer, max_sat)
+    pr = _validate_offer_payment_request(offer, amount_sat)
     amount_msat = pr.amount_msat
 
     async with db.reuse_conn(conn) if conn else db.connect() as new_conn:

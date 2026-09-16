@@ -286,13 +286,13 @@ async def api_payments_create(
                     status_code=HTTPStatus.BAD_REQUEST,
                     detail="BOLT12 offer amount must use unit 'sat'.",
                 )
-            max_sat = None
+            amount_sat = None
             if invoice_data.amount is not None:
-                max_sat = int(invoice_data.amount)
+                amount_sat = int(invoice_data.amount)
             return await pay_offer(
                 wallet_id=wallet_id,
                 offer=invoice_data.bolt11,
-                max_sat=max_sat,
+                amount_sat=amount_sat,
                 extra=invoice_data.extra,
                 description=invoice_data.memo or "",
                 labels=invoice_data.labels,
