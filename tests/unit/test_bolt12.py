@@ -3,14 +3,18 @@
 import pytest
 
 from lnbits.core.crud import create_wallet, get_standalone_payment, get_wallet
-from lnbits.core.models import PaymentState
-from lnbits.core.services import create_user_account, pay_invoice
+from lnbits.core.models import PaymentState, ValidatedPaymentRequest
+from lnbits.core.services import create_user_account, pay_invoice, pay_offer
 from lnbits.core.services.bolt12 import (
     is_bolt12_offer,
     looks_like_bolt12_offer,
     parse_bolt12_offer,
 )
-from lnbits.core.services.payments import update_wallet_balance
+from lnbits.core.services.payments import (
+    _validate_offer_payment_request,
+    _validate_payment_request,
+    update_wallet_balance,
+)
 from lnbits.exceptions import PaymentError
 from lnbits.settings import Settings
 from lnbits.wallets.base import Feature
@@ -64,59 +68,91 @@ def test_looks_like_offer_is_fail_closed_prefix():
 
 
 @pytest.mark.anyio
-async def test_pay_invoice_rejects_malformed_offer(app, to_wallet):
+async def test_validate_offer_payment_request(app):
+    pr = _validate_offer_payment_request(
+        "lightning:" + VALID_OFFER.upper(), amount_sat=21
+    )
+    second = _validate_offer_payment_request(VALID_OFFER, amount_sat=21)
+
+    assert isinstance(pr, ValidatedPaymentRequest)
+    assert pr.is_offer is True
+    assert pr.payment_request == VALID_OFFER
+    assert pr.amount_msat == 21_000
+    assert pr.expiry_date is None
+    assert pr.description == "BOLT12 offer"
+    assert len(pr.payment_hash) == 64
+    assert pr.payment_hash != second.payment_hash
+
+
+def test_validate_payment_request_rejects_offer():
+    with pytest.raises(PaymentError, match="Bolt11 decoding failed"):
+        _validate_payment_request(VALID_OFFER, max_sat=21)
+
+
+@pytest.mark.anyio
+async def test_pay_invoice_rejects_offer(app, to_wallet):
+    with pytest.raises(PaymentError, match="Bolt11 decoding failed"):
+        await pay_invoice(
+            wallet_id=to_wallet.id, payment_request=VALID_OFFER, max_sat=21
+        )
+
+
+@pytest.mark.anyio
+async def test_pay_offer_rejects_invoice(app, to_wallet):
     with pytest.raises(PaymentError, match="Invalid BOLT12 offer"):
-        await pay_invoice(
+        await pay_offer(wallet_id=to_wallet.id, offer=BOLT11, amount_sat=21)
+
+
+@pytest.mark.anyio
+async def test_pay_offer_rejects_malformed_offer(app, to_wallet):
+    with pytest.raises(PaymentError, match="Invalid BOLT12 offer"):
+        await pay_offer(
             wallet_id=to_wallet.id,
-            payment_request="lno1!!!not-bech32",
-            max_sat=21,
+            offer="lno1!!!not-bech32",
+            amount_sat=21,
         )
 
 
 @pytest.mark.anyio
-async def test_pay_invoice_requires_offer_amount(app, to_wallet):
+async def test_pay_offer_requires_amount(app, to_wallet):
     with pytest.raises(PaymentError, match="Amount is required to pay a BOLT12 offer"):
-        await pay_invoice(
+        await pay_offer(
             wallet_id=to_wallet.id,
-            payment_request=VALID_OFFER,
+            offer=VALID_OFFER,
         )
 
 
 @pytest.mark.anyio
-async def test_pay_invoice_rejects_zero_offer_amount(app, to_wallet):
+async def test_pay_offer_rejects_zero_amount(app, to_wallet):
     with pytest.raises(PaymentError, match="Amount is required to pay a BOLT12 offer"):
-        await pay_invoice(
+        await pay_offer(
             wallet_id=to_wallet.id,
-            payment_request=VALID_OFFER,
-            max_sat=0,
+            offer=VALID_OFFER,
+            amount_sat=0,
         )
 
 
 @pytest.mark.anyio
-async def test_pay_invoice_enforces_offer_amount_ceiling(
-    app, to_wallet, settings: Settings
-):
+async def test_pay_offer_enforces_amount_ceiling(app, to_wallet, settings: Settings):
     settings.lnbits_max_outgoing_payment_amount_sats = 100
     with pytest.raises(PaymentError, match="too high"):
-        await pay_invoice(
+        await pay_offer(
             wallet_id=to_wallet.id,
-            payment_request=VALID_OFFER,
-            max_sat=200,
+            offer=VALID_OFFER,
+            amount_sat=200,
         )
 
 
 @pytest.mark.anyio
-async def test_pay_invoice_rejects_offer_without_bolt12_feature(
-    app, to_wallet, monkeypatch
-):
+async def test_pay_offer_rejects_without_bolt12_feature(app, to_wallet, monkeypatch):
     monkeypatch.setattr(FakeWallet, "features", None)
     with pytest.raises(
         PaymentError, match="Funding source does not support BOLT12 offers"
     ) as excinfo:
-        await pay_invoice(
+        await pay_offer(
             wallet_id=to_wallet.id,
-            payment_request=VALID_OFFER,
-            max_sat=21,
+            offer=VALID_OFFER,
+            amount_sat=21,
         )
     assert "Phoenixd" in excinfo.value.message
     assert "LNbits" in excinfo.value.message
@@ -128,11 +164,15 @@ async def test_pay_offer_debits_wallet_and_is_reusable(app):
     wallet = await create_wallet(user_id=user.id)
     await update_wallet_balance(wallet, 1000)
 
-    first = await pay_invoice(
+    extra = {"reference": "order-1"}
+    first = await pay_offer(
         wallet_id=wallet.id,
-        payment_request=VALID_OFFER,
-        max_sat=21,
+        offer=VALID_OFFER,
+        amount_sat=21,
+        extra=extra,
         description="first offer pay",
+        labels=["offers"],
+        external_id="offer-order-1",
     )
     assert first.status == PaymentState.SUCCESS.value
     assert first.amount == -21_000
@@ -144,11 +184,16 @@ async def test_pay_offer_debits_wallet_and_is_reusable(app):
     stored = await get_standalone_payment(first.checking_id)
     assert stored
     assert stored.success
+    assert stored.memo == "first offer pay"
+    assert stored.extra["reference"] == "order-1"
+    assert stored.labels == ["offers"]
+    assert stored.external_id == "offer-order-1"
+    assert extra == {"reference": "order-1"}
 
-    second = await pay_invoice(
+    second = await pay_offer(
         wallet_id=wallet.id,
-        payment_request="lightning:" + VALID_OFFER.upper(),
-        max_sat=7,
+        offer="lightning:" + VALID_OFFER.upper(),
+        amount_sat=7,
     )
     assert second.status == PaymentState.SUCCESS.value
     assert second.amount == -7_000

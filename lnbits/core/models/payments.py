@@ -47,6 +47,17 @@ class PayInvoice(BaseModel):
     extra: dict | None = {}
 
 
+class ValidatedPaymentRequest(BaseModel):
+    """Validated payment data; offer payment hashes are provisional."""
+
+    payment_request: str
+    amount_msat: int
+    payment_hash: str
+    expiry_date: datetime | None
+    description: str
+    is_offer: bool
+
+
 class CreatePayment(BaseModel):
     wallet_id: str
     payment_hash: str
