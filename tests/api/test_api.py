@@ -657,7 +657,16 @@ async def test_pay_bolt12_offer(client, adminkey_headers_to):
 
     paid = await client.post(
         "/api/v1/payments",
-        json={"out": True, "bolt11": offer, "amount": 21, "unit": "sat"},
+        json={
+            "out": True,
+            "bolt11": "lightning:" + offer.upper(),
+            "amount": 21,
+            "unit": "sat",
+            "memo": "Offer payment",
+            "extra": {"custom": "preserved"},
+            "labels": ["offer"],
+            "external_id": "api-offer-pay",
+        },
         headers=adminkey_headers_to,
     )
     assert paid.status_code < 300
@@ -665,6 +674,11 @@ async def test_pay_bolt12_offer(client, adminkey_headers_to):
     assert body["status"] == "success"
     assert body["amount"] == -21_000
     assert body["extra"]["bolt12"] is True
+    assert body["bolt11"] == offer
+    assert body["memo"] == "Offer payment"
+    assert body["extra"]["custom"] == "preserved"
+    assert body["labels"] == ["offer"]
+    assert body["external_id"] == "api-offer-pay"
 
 
 # check api_payment() internal function call (NOT API): payment status

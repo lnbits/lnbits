@@ -4,7 +4,7 @@ import pytest
 
 from lnbits.core.crud import create_wallet, get_standalone_payment, get_wallet
 from lnbits.core.models import PaymentState
-from lnbits.core.services import create_user_account, pay_invoice
+from lnbits.core.services import create_user_account, pay_invoice, pay_offer
 from lnbits.core.services.payments import update_wallet_balance
 from lnbits.exceptions import PaymentError
 from lnbits.settings import Settings
@@ -64,59 +64,55 @@ def test_looks_like_offer_is_fail_closed_prefix():
 
 
 @pytest.mark.anyio
-async def test_pay_invoice_rejects_malformed_offer(app, to_wallet):
+async def test_pay_offer_rejects_malformed_offer(app, to_wallet):
     with pytest.raises(PaymentError, match="Invalid BOLT12 offer"):
-        await pay_invoice(
+        await pay_offer(
             wallet_id=to_wallet.id,
-            payment_request="lno1!!!not-bech32",
-            max_sat=21,
+            offer="lno1!!!not-bech32",
+            amount_sat=21,
         )
 
 
 @pytest.mark.anyio
-async def test_pay_invoice_requires_offer_amount(app, to_wallet):
+async def test_pay_offer_requires_amount(app, to_wallet):
     with pytest.raises(PaymentError, match="Amount is required to pay a BOLT12 offer"):
-        await pay_invoice(
+        await pay_offer(
             wallet_id=to_wallet.id,
-            payment_request=VALID_OFFER,
+            offer=VALID_OFFER,
         )
 
 
 @pytest.mark.anyio
-async def test_pay_invoice_rejects_zero_offer_amount(app, to_wallet):
+async def test_pay_offer_rejects_zero_amount(app, to_wallet):
     with pytest.raises(PaymentError, match="Amount is required to pay a BOLT12 offer"):
-        await pay_invoice(
+        await pay_offer(
             wallet_id=to_wallet.id,
-            payment_request=VALID_OFFER,
-            max_sat=0,
+            offer=VALID_OFFER,
+            amount_sat=0,
         )
 
 
 @pytest.mark.anyio
-async def test_pay_invoice_enforces_offer_amount_ceiling(
-    app, to_wallet, settings: Settings
-):
+async def test_pay_offer_enforces_amount_ceiling(app, to_wallet, settings: Settings):
     settings.lnbits_max_outgoing_payment_amount_sats = 100
     with pytest.raises(PaymentError, match="too high"):
-        await pay_invoice(
+        await pay_offer(
             wallet_id=to_wallet.id,
-            payment_request=VALID_OFFER,
-            max_sat=200,
+            offer=VALID_OFFER,
+            amount_sat=200,
         )
 
 
 @pytest.mark.anyio
-async def test_pay_invoice_rejects_offer_without_bolt12_feature(
-    app, to_wallet, monkeypatch
-):
+async def test_pay_offer_requires_bolt12_feature(app, to_wallet, monkeypatch):
     monkeypatch.setattr(FakeWallet, "features", None)
     with pytest.raises(
         PaymentError, match="Funding source does not support BOLT12 offers"
     ):
-        await pay_invoice(
+        await pay_offer(
             wallet_id=to_wallet.id,
-            payment_request=VALID_OFFER,
-            max_sat=21,
+            offer=VALID_OFFER,
+            amount_sat=21,
         )
 
 
@@ -127,10 +123,10 @@ async def test_pay_offer_debits_wallet_and_is_reusable(app):
     await update_wallet_balance(wallet, 1000)
 
     extra = {"custom": "preserved"}
-    first = await pay_invoice(
+    first = await pay_offer(
         wallet_id=wallet.id,
-        payment_request=VALID_OFFER,
-        max_sat=21,
+        offer=VALID_OFFER,
+        amount_sat=21,
         description="first offer pay",
         extra=extra,
         labels=["offer"],
@@ -150,10 +146,10 @@ async def test_pay_offer_debits_wallet_and_is_reusable(app):
     assert stored.labels == ["offer"]
     assert stored.external_id == "first-offer-pay"
 
-    second = await pay_invoice(
+    second = await pay_offer(
         wallet_id=wallet.id,
-        payment_request="lightning:" + VALID_OFFER.upper(),
-        max_sat=7,
+        offer="lightning:" + VALID_OFFER.upper(),
+        amount_sat=7,
     )
     assert second.status == PaymentState.SUCCESS.value
     assert second.amount == -7_000
@@ -163,6 +159,45 @@ async def test_pay_offer_debits_wallet_and_is_reusable(app):
     after = await get_wallet(wallet.id)
     assert after
     assert after.balance == 1000 - 21 - 7
+
+
+@pytest.mark.anyio
+async def test_pay_invoice_rejects_offer(app, to_wallet):
+    with pytest.raises(PaymentError, match="Bolt11 decoding failed"):
+        await pay_invoice(
+            wallet_id=to_wallet.id, payment_request=VALID_OFFER, max_sat=21
+        )
+
+
+@pytest.mark.anyio
+async def test_pay_offer_rejects_invoice(app, to_wallet):
+    with pytest.raises(PaymentError, match="Invalid BOLT12 offer"):
+        await pay_offer(wallet_id=to_wallet.id, offer=BOLT11, amount_sat=21)
+
+
+@pytest.mark.anyio
+@pytest.mark.parametrize(
+    "pay_method, request_field",
+    [(pay_invoice, "payment_request"), (pay_offer, "offer")],
+)
+async def test_payment_entry_points_reject_outgoing_when_disabled(
+    app, to_wallet, settings: Settings, pay_method, request_field
+):
+    settings.lnbits_only_allow_incoming_payments = True
+    with pytest.raises(PaymentError, match="Only incoming payments allowed"):
+        await pay_method(wallet_id=to_wallet.id, **{request_field: "invalid"})
+
+
+@pytest.mark.anyio
+async def test_pay_offer_checks_wallet_balance(app):
+    user = await create_user_account()
+    wallet = await create_wallet(user_id=user.id)
+    with pytest.raises(PaymentError, match="Insufficient balance"):
+        await pay_offer(wallet_id=wallet.id, offer=VALID_OFFER, amount_sat=21)
+
+    after = await get_wallet(wallet.id)
+    assert after
+    assert after.balance == 0
 
 
 def test_fake_wallet_advertises_bolt12():
