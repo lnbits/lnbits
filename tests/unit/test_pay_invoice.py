@@ -10,6 +10,7 @@ from pytest_mock.plugin import MockerFixture
 
 from lnbits.core.crud import create_wallet, get_standalone_payment, get_wallet
 from lnbits.core.crud.payments import get_payment, get_payments_paginated
+from lnbits.core.db import db
 from lnbits.core.models import PaymentState, ValidatedPaymentRequest, Wallet
 from lnbits.core.services import create_invoice, create_user_account, pay_invoice
 from lnbits.core.services.payments import (
@@ -129,6 +130,32 @@ async def test_pay_twice(to_wallet: Wallet):
             wallet_id=to_wallet.id,
             payment_request=payment.bolt11,
         )
+
+
+@pytest.mark.anyio
+async def test_pay_invoice_reuses_connection(to_wallet: Wallet):
+    invoice = await create_invoice(wallet_id=to_wallet.id, amount=3, memo="Reuse conn")
+
+    async with db.connect() as conn:
+        payment = await asyncio.wait_for(
+            pay_invoice(
+                wallet_id=to_wallet.id,
+                payment_request=invoice.bolt11,
+                conn=conn,
+            ),
+            timeout=5,
+        )
+        assert payment.success
+
+        with pytest.raises(PaymentError, match="Internal invoice already paid."):
+            await asyncio.wait_for(
+                pay_invoice(
+                    wallet_id=to_wallet.id,
+                    payment_request=invoice.bolt11,
+                    conn=conn,
+                ),
+                timeout=5,
+            )
 
 
 @pytest.mark.anyio

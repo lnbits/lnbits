@@ -78,6 +78,9 @@ async def pay_invoice(
     if not invoice.amount_msat:
         raise ValueError("Missig invoice amount.")
 
+    if await is_internal_status_success(invoice.payment_hash, conn):
+        raise PaymentError("Internal invoice already paid.", status="failed")
+
     return await _pay_from_wallet(
         wallet_id=wallet_id,
         pr=invoice,
@@ -102,22 +105,16 @@ async def pay_offer(
     external_id: str | None = None,
     conn: Connection | None = None,
 ) -> Payment:
-    """Pay a BOLT12 offer via the funding source ``pay_offer`` method.
-
-    Amount must be supplied as ``amount_sat`` (sats). The existing external
-    payment path is reused for locks, fee reserve, timeout, and status.
-
+    """
     Offers are not invoices: they have no payment hash until the backend
-    fetches and pays one. ``CreatePayment.payment_hash`` is therefore a
-    unique placeholder (not derived from the offer) so a reusable offer
-    can be paid more than once without ``get_standalone_payment`` treating
-    the second attempt as a duplicate. After the backend pays, ``checking_id``
-    is updated to the real hash from ``PaymentResponse``.
+    fetches and pays one.
     """
     if settings.lnbits_only_allow_incoming_payments:
         raise PaymentError("Only incoming payments allowed.", status="failed")
 
     pr = _validate_offer_payment_request(offer, amount_sat)
+    extra = dict(extra or {})
+    extra["bolt12"] = True
     return await _pay_from_wallet(
         wallet_id=wallet_id,
         pr=pr,
@@ -1274,12 +1271,6 @@ async def _pay_from_wallet(
                 "Wallet does not have permission to pay invoices.",
                 status="failed",
             )
-
-        if pr.is_offer:
-            extra = dict(extra or {})
-            extra["bolt12"] = True
-        elif await is_internal_status_success(pr.payment_hash, new_conn):
-            raise PaymentError("Internal invoice already paid.", status="failed")
 
         _, extra = await calculate_fiat_amounts(amount_msat / 1000, wallet, extra=extra)
 
