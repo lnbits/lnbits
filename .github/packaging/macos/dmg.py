@@ -1,82 +1,90 @@
-"""Create a versioned, verified DMG from the PyInstaller app on macOS."""
+"""Finalize metadata before signing; image creation never edits the staged app."""
 
 import hashlib
-import os
 import platform
 import plistlib
 import shutil
-import subprocess
 import sys
 import tempfile
 from pathlib import Path
 
 import tomllib
-from packaging.version import Version
 
 
-def run(*args):
-    subprocess.run(args, check=True)  # noqa: S603
+def output_path():
+    from packaging.version import Version
 
-
-def main():
-    if sys.platform != "darwin":
-        raise SystemExit("Build the DMG on macOS.")
     version = Version(
         tomllib.loads(Path("pyproject.toml").read_text())["project"]["version"]
     )
-    output = Path("dist", f"LNbits-v{version}-macOS-{platform.machine()}.dmg").resolve()
-    identity = os.environ.get("MACOS_CODESIGN_IDENTITY") or "-"
+    return Path("dist", f"LNbits-v{version}-macOS-{platform.machine()}.dmg").resolve()
+
+
+def finalize_app(app):
+    from packaging.version import Version
+
+    version = Version(
+        tomllib.loads(Path("pyproject.toml").read_text())["project"]["version"]
+    )
+    plist = app / "Contents/Info.plist"
+    info = plistlib.loads(plist.read_bytes())
+    info.update(
+        CFBundleIdentifier="com.lnbits.desktop",
+        CFBundleDisplayName="LNbits",
+        CFBundleShortVersionString=version.base_version,
+        CFBundleVersion=version.base_version,
+        LSMinimumSystemVersion="15.0",
+        LSApplicationCategoryType="public.app-category.finance",
+        NSHighResolutionCapable=True,
+    )
+    plist.write_bytes(plistlib.dumps(info))
+
+
+def create(app, output, runner, *, signed):
     with tempfile.TemporaryDirectory(prefix="lnbits-dmg-") as directory:
         staging = Path(directory)
-        app = staging / "LNbits.app"
-        shutil.copytree("dist/LNbits.app", app, symlinks=True)
-        plist = app / "Contents/Info.plist"
-        with plist.open("rb") as stream:
-            info = plistlib.load(stream)
-        info.update(
-            CFBundleDisplayName="LNbits",
-            CFBundleShortVersionString=version.base_version,
-            CFBundleVersion=version.base_version,
-            LSMinimumSystemVersion="15.0",
-            LSApplicationCategoryType="public.app-category.finance",
-            NSHighResolutionCapable=True,
-        )
-        with plist.open("wb") as stream:
-            plistlib.dump(info, stream)
-        # Updating Info.plist invalidates the outer bundle signature. Nested
-        # binaries retain the signatures applied by PyInstaller during the build.
-        signing = ["/usr/bin/codesign", "--force", "--sign", identity]
-        if identity != "-":
-            signing += ["--options", "runtime", "--timestamp"]
-        if entitlements := os.environ.get("MACOS_ENTITLEMENTS_FILE"):
-            signing += ["--entitlements", entitlements]
-        run(*signing, str(app))
-        run("/usr/bin/codesign", "--verify", "--deep", "--strict", str(app))
+        # ditto preserves the stapled ticket, resource forks, xattrs and symlinks.
+        runner.run("Copy finalized app", "/usr/bin/ditto", app, staging / "LNbits.app")
         (staging / "Applications").symlink_to("/Applications")
-        run(
+        instructions = "Read me.txt" if signed else "Read me unsigned.txt"
+        shutil.copyfile(Path(__file__).with_name(instructions), staging / "Read me.txt")
+        runner.run(
+            "Create DMG",
             "/usr/bin/hdiutil",
             "create",
             "-volname",
             "LNbits",
             "-srcfolder",
-            str(staging),
+            staging,
             "-fs",
             "HFS+",
             "-format",
             "UDZO",
             "-ov",
-            str(output),
+            output,
+            timeout=600,
         )
-    run("/usr/bin/hdiutil", "verify", str(output))
+
+
+def checksum(output):
     digest = hashlib.sha256()
     with output.open("rb") as stream:
         for block in iter(lambda: stream.read(1024 * 1024), b""):
             digest.update(block)
-    output.with_suffix(".dmg.sha256").write_text(
-        f"{digest.hexdigest()}  {output.name}\n", encoding="utf-8"
-    )
-    print(output)
+    return f"{digest.hexdigest()}  {output.name}\n"
+
+
+def write_checksum(output):
+    path = output.with_suffix(".dmg.sha256")
+    path.write_text(checksum(output), encoding="utf-8")
+    if path.read_text(encoding="utf-8") != checksum(output):
+        path.unlink()
+        raise RuntimeError("Final DMG checksum verification failed")
 
 
 if __name__ == "__main__":
-    main()
+    # Keep the old unsigned command, routed through the single verification path.
+    sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+    from macos.release import main
+
+    main(["--unsigned", "--skip-build"])

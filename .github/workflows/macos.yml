@@ -7,6 +7,7 @@ on:
     paths:
       - ".github/packaging/**"
       - ".github/workflows/macos.yml"
+      - "Makefile"
       - "pyproject.toml"
       - "uv.lock"
   workflow_call:
@@ -14,12 +15,33 @@ on:
       tag_name:
         required: true
         type: string
+      signed:
+        description: Require Developer ID signing and notarization
+        default: true
+        type: boolean
+    secrets:
+      BUILD_CERTIFICATE_BASE64:
+        required: true
+      P12_PASSWORD:
+        required: true
+      KEYCHAIN_PASSWORD:
+        required: true
+      APPLE_ID:
+        required: true
+      APPLE_TEAM_ID:
+        required: true
+      APPLE_APP_SPECIFIC_PASSWORD:
+        required: true
   workflow_dispatch:
     inputs:
       tag_name:
-        description: Release tag (leave empty to build this branch as an artifact)
+        description: Release tag (leave empty for an artifact-only build)
         required: false
         type: string
+      signed:
+        description: Sign and notarize artifacts (always required with a release tag)
+        default: false
+        type: boolean
 
 permissions:
   contents: read
@@ -35,11 +57,15 @@ jobs:
           - runner: macos-15-intel
             arch: x86_64
     runs-on: ${{ matrix.runner }}
-    timeout-minutes: 40
+    timeout-minutes: 120
+    env:
+      SIGNED_BUILD: ${{ inputs.signed || inputs.tag_name != '' }}
     steps:
       - uses: actions/checkout@v4
         with:
           ref: ${{ inputs.tag_name || github.ref }}
+      - name: Initialize release recovery path
+        run: echo "MACOS_RELEASE_STATE=$RUNNER_TEMP/lnbits-release.json" >> "$GITHUB_ENV"
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
@@ -48,60 +74,38 @@ jobs:
         with:
           node-version: "24.x"
           cache: npm
-      - name: Verify frontend assets
-        run: |
-          npm ci
-          npm run bundle
-          ./node_modules/.bin/prettier -w ./lnbits/static/vendor.json
-          git diff --exit-code -- lnbits/static
-      - name: Build application
-        run: |
-          # Intel builds cryptography from source; avoid sharing Python's libssl.
-          uv cache clean cryptography
-          OPENSSL_STATIC=1 OPENSSL_DIR="$(brew --prefix openssl@3)" \
-            uv sync --locked --no-dev --no-editable --reinstall-package cryptography
-          uv pip install pyinstaller==6.22.2
-          uv run --no-sync python .github/packaging/build.py
-      - name: Test launcher window and shutdown
-        run: uv run --no-sync python -m unittest discover -s .github/packaging -v
-      - name: Verify native architecture and packaged data
+      - name: Verify native runner
         env:
           EXPECTED_ARCH: ${{ matrix.arch }}
-        run: |
-          test "$(lipo -archs dist/LNbits.app/Contents/MacOS/LNbits)" = "$EXPECTED_ARCH"
-          test -f dist/LNbits.app/Contents/Resources/certifi/cacert.pem
-          test -f dist/LNbits.app/Contents/Resources/random_username/data/nouns.txt
-          test -f dist/LNbits.app/Contents/Resources/pyinstrument/renderers/html_resources/app.js
-          codesign --verify --deep --strict dist/LNbits.app
-      - name: Build and verify DMG
-        run: uv run --no-sync python .github/packaging/macos/dmg.py
-      - name: Test application from read-only disk image
-        run: |
-          MOUNT_DIR="$(mktemp -d)"
-          hdiutil attach dist/*.dmg -mountpoint "$MOUNT_DIR" -nobrowse -readonly
-          cleanup() {
-            status=$?
-            # macOS can briefly keep the volume busy after the tests exit.
-            for attempt in 1 2 3 4 5; do
-              if hdiutil detach "$MOUNT_DIR"; then
-                rmdir "$MOUNT_DIR"
-                return "$status"
-              fi
-              echo "Disk image detach attempt $attempt/5 failed; waiting before retry."
-              sleep 2
-            done
-            # This is a read-only test image and the smoke tests have finished.
-            hdiutil detach -force "$MOUNT_DIR"
-            rmdir "$MOUNT_DIR"
-            return "$status"
-          }
-          trap cleanup EXIT
-          test -L "$MOUNT_DIR/Applications"
-          codesign --verify --deep --strict "$MOUNT_DIR/LNbits.app"
-          uv run --no-sync python .github/packaging/smoke_sidecars.py "$MOUNT_DIR/LNbits.app/Contents/Frameworks/sidecars"
-          uv run --no-sync python .github/packaging/smoke.py "$MOUNT_DIR/LNbits.app/Contents/MacOS/LNbits"
+        run: test "$(uname -m)" = "$EXPECTED_ARCH"
+      - name: Prepare dependencies and verify frontend assets
+        run: python3 .github/packaging/macos/release.py --prepare-only
+      - name: Test launcher and packaging
+        run: uv run --no-sync python -m unittest discover -s .github/packaging -v
+      - name: Build signed and notarized release artifacts
+        if: env.SIGNED_BUILD == 'true'
+        env:
+          BUILD_CERTIFICATE_BASE64: ${{ secrets.BUILD_CERTIFICATE_BASE64 }}
+          P12_PASSWORD: ${{ secrets.P12_PASSWORD }}
+          KEYCHAIN_PASSWORD: ${{ secrets.KEYCHAIN_PASSWORD }}
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
+        run: uv run --no-sync python .github/packaging/macos/release.py --ci --prepared
+      - name: Build ad-hoc development artifacts
+        if: env.SIGNED_BUILD != 'true'
+        run: uv run --no-sync python .github/packaging/macos/release.py --unsigned --prepared
+      # Runs before upload: any cleanup failure keeps both artifacts unpublished.
+      - name: Always clean temporary keychain and mounted image
+        if: always()
+        run: python3 .github/packaging/macos/release.py --cleanup
       - name: Record signing status
-        run: echo 'DMGs are ad-hoc signed, without Apple Developer ID or notarization.' >> "$GITHUB_STEP_SUMMARY"
+        run: |
+          if [ "$SIGNED_BUILD" = true ]; then
+            echo 'Developer ID signed; app and DMG independently notarized, stapled and verified. Final read-only image smoke checks and checksum verification passed.' >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo 'Development artifacts are ad-hoc signed and are not notarized. See the included Read me.txt for first-launch instructions.' >> "$GITHUB_STEP_SUMMARY"
+          fi
       - uses: actions/upload-artifact@v4
         with:
           name: LNbits-macOS-${{ matrix.arch }}
@@ -122,9 +126,11 @@ jobs:
           pattern: LNbits-macOS-*
           merge-multiple: true
           path: dist
-      - name: Attach DMGs and checksums to release
+      - name: Attach signed DMGs and checksums to release
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GH_REPO: ${{ github.repository }}
           TAG_NAME: ${{ inputs.tag_name }}
-        run: gh release upload "$TAG_NAME" dist/*.dmg dist/*.dmg.sha256 --clobber
+        run: |
+          (cd dist && shasum -a 256 -c ./*.dmg.sha256)
+          gh release upload "$TAG_NAME" dist/*.dmg dist/*.dmg.sha256 --clobber
