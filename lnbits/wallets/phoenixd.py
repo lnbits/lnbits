@@ -196,14 +196,26 @@ class PhoenixdWallet(Wallet):
             )
 
     async def pay_invoice(self, bolt11: str, fee_limit_msat: int) -> PaymentResponse:
+        is_offer = isinstance(bolt11, str) and bolt11.startswith("lno1")
         try:
-            r = await self.client.post(
-                "/payinvoice",
-                data={
-                    "invoice": bolt11,
-                },
-                timeout=40,
-            )
+            if is_offer:
+                # BOLT12 offers use the phoenixd payments API with a receive field.
+                r = await self.client.post(
+                    "/v1/payments",
+                    json={
+                        "receive": bolt11,
+                        "amountSat": max(1, fee_limit_msat // 1000),
+                    },
+                    timeout=40,
+                )
+            else:
+                r = await self.client.post(
+                    "/payinvoice",
+                    data={
+                        "invoice": bolt11,
+                    },
+                    timeout=40,
+                )
 
             r.raise_for_status()
 

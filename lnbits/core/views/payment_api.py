@@ -73,6 +73,7 @@ from ..services import (
     fee_reserve_total,
     get_payments_daily_stats,
     pay_invoice,
+    pay_offer,
     perform_withdraw,
     settle_hold_invoice,
     update_pending_payment,
@@ -270,6 +271,22 @@ async def api_payments_create(
 ) -> Payment:
     wallet_id = key_info.wallet.id
     if invoice_data.out is True and key_info.key_type == KeyType.admin:
+        if invoice_data.lno:
+            if not invoice_data.lno.startswith("lno1"):
+                raise HTTPException(
+                    status_code=HTTPStatus.BAD_REQUEST,
+                    detail="Invalid BOLT12 offer",
+                )
+            payment = await pay_offer(
+                wallet_id=wallet_id,
+                offer=invoice_data.lno,
+                amount_sat=int(invoice_data.amount) if invoice_data.amount else None,
+                description=invoice_data.memo or "",
+                extra=invoice_data.extra,
+                labels=invoice_data.labels,
+                external_id=invoice_data.external_id,
+            )
+            return payment
         if not invoice_data.bolt11:
             raise HTTPException(
                 status_code=HTTPStatus.BAD_REQUEST,

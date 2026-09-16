@@ -270,6 +270,7 @@ class CreateInvoice(BaseModel):
     extension: str | None = None
     webhook: str | None = None
     bolt11: str | None = None
+    lno: str | None = None
     lnurl_withdraw: LnurlWithdrawResponse | None = None
     fiat_provider: str | None = None
     labels: list[str] = []

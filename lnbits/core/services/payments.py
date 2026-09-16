@@ -111,6 +111,66 @@ async def pay_invoice(
     return payment
 
 
+async def pay_offer(
+    *,
+    wallet_id: str,
+    offer: str,
+    amount_sat: int | None = None,
+    extra: dict | None = None,
+    description: str = "",
+    tag: str = "",
+    labels: list[str] | None = None,
+    external_id: str | None = None,
+    conn: Connection | None = None,
+) -> Payment:
+    """
+    Pay a BOLT12 offer (lno1...). Mirrors pay_invoice so callers can use
+    the exact same flow for offers. Funding source must support offers
+    (Phoenixd, CLN) — others will fail with UnsupportedError.
+    """
+    if not offer.startswith("lno1"):
+        raise PaymentError("Invalid BOLT12 offer format.", status="failed")
+    if not amount_sat or amount_sat <= 0:
+        raise PaymentError("Amount is required for BOLT12 offers.", status="failed")
+    if settings.lnbits_only_allow_incoming_payments:
+        raise PaymentError("Only incoming payments allowed.", status="failed")
+
+    amount_msat = amount_sat * 1000
+
+    async with db.reuse_conn(conn) if conn else db.connect() as new_conn:
+        wallet = await _check_wallet_for_payment(wallet_id, tag, amount_msat, new_conn)
+        if not wallet.can_send_payments:
+            raise PaymentError(
+                "Wallet does not have permission to pay invoices.",
+                status="failed",
+            )
+
+        _, extra = await calculate_fiat_amounts(amount_msat / 1000, wallet, extra=extra)
+
+        # Offers have no invoice payment_hash; derive a deterministic one so the
+        # payment row is addressable for status checks.
+        _, payment_hash = random_secret_and_hash()
+        create_payment_model = CreatePayment(
+            wallet_id=wallet.source_wallet_id,
+            bolt11=offer,
+            payment_hash=payment_hash,
+            amount_msat=-amount_msat,
+            memo=description or "BOLT12 offer",
+            extra=extra,
+            labels=labels,
+            external_id=external_id,
+        )
+
+    async with db.reuse_conn(conn) if conn else db.connect() as new_conn:
+        payment = await _pay_invoice(
+            wallet.source_wallet_id, create_payment_model, conn=new_conn
+        )
+
+        await _credit_service_fee_wallet(wallet, payment, conn=new_conn)
+
+    return payment
+
+
 async def create_payment_request(
     wallet_id: str, invoice_data: CreateInvoice
 ) -> Payment:
