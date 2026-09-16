@@ -74,6 +74,7 @@ from ..services import (
     fee_reserve_total,
     get_payments_daily_stats,
     pay_invoice,
+    pay_offer,
     perform_withdraw,
     settle_hold_invoice,
     update_pending_payment,
@@ -279,19 +280,27 @@ async def api_payments_create(
                 status_code=HTTPStatus.BAD_REQUEST,
                 detail="Missing BOLT11 invoice or BOLT12 offer",
             )
-        max_sat = None
         if looks_like_bolt12_offer(invoice_data.bolt11):
             if invoice_data.unit != "sat":
                 raise HTTPException(
                     status_code=HTTPStatus.BAD_REQUEST,
                     detail="BOLT12 offer amount must use unit 'sat'.",
                 )
+            amount_sat = None
             if invoice_data.amount is not None:
-                max_sat = int(invoice_data.amount)
+                amount_sat = int(invoice_data.amount)
+            return await pay_offer(
+                wallet_id=wallet_id,
+                offer=invoice_data.bolt11,
+                amount_sat=amount_sat,
+                extra=invoice_data.extra,
+                description=invoice_data.memo or "",
+                labels=invoice_data.labels,
+                external_id=invoice_data.external_id,
+            )
         payment = await pay_invoice(
             wallet_id=wallet_id,
             payment_request=invoice_data.bolt11,
-            max_sat=max_sat,
             extra=invoice_data.extra,
             description=invoice_data.memo or "",
             labels=invoice_data.labels,

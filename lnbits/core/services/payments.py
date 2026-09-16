@@ -46,6 +46,7 @@ from ..models import (
     CreatePayment,
     Payment,
     PaymentState,
+    ValidatedPaymentRequest,
     Wallet,
 )
 from .bolt12 import looks_like_bolt12_offer, parse_bolt12_offer
@@ -72,66 +73,31 @@ async def pay_invoice(
     if settings.lnbits_only_allow_incoming_payments:
         raise PaymentError("Only incoming payments allowed.", status="failed")
 
-    if looks_like_bolt12_offer(payment_request):
-        return await pay_offer(
-            wallet_id=wallet_id,
-            offer=payment_request,
-            max_sat=max_sat,
-            extra=extra,
-            description=description,
-            tag=tag,
-            labels=labels,
-            external_id=external_id,
-            conn=conn,
-        )
-
     invoice = _validate_payment_request(payment_request, max_sat)
 
     if not invoice.amount_msat:
         raise ValueError("Missig invoice amount.")
 
-    async with db.reuse_conn(conn) if conn else db.connect() as new_conn:
-        amount_msat = invoice.amount_msat
-        wallet = await _check_wallet_for_payment(wallet_id, tag, amount_msat, new_conn)
+    if await is_internal_status_success(invoice.payment_hash, conn):
+        raise PaymentError("Internal invoice already paid.", status="failed")
 
-        if not wallet.can_send_payments:
-            raise PaymentError(
-                "Wallet does not have permission to pay invoices.",
-                status="failed",
-            )
-
-        if await is_internal_status_success(invoice.payment_hash, new_conn):
-            raise PaymentError("Internal invoice already paid.", status="failed")
-
-        _, extra = await calculate_fiat_amounts(amount_msat / 1000, wallet, extra=extra)
-
-        create_payment_model = CreatePayment(
-            wallet_id=wallet.source_wallet_id,
-            bolt11=payment_request,
-            payment_hash=invoice.payment_hash,
-            amount_msat=-amount_msat,
-            expiry=invoice.expiry_date,
-            memo=description or invoice.description or "",
-            extra=extra,
-            labels=labels,
-            external_id=external_id,
-        )
-
-    async with db.reuse_conn(conn) if conn else db.connect() as new_conn:
-        payment = await _pay_invoice(
-            wallet.source_wallet_id, create_payment_model, conn=new_conn
-        )
-
-        await _credit_service_fee_wallet(wallet, payment, conn=new_conn)
-
-    return payment
+    return await _pay_from_wallet(
+        wallet_id=wallet_id,
+        pr=invoice,
+        extra=extra,
+        description=description,
+        tag=tag,
+        labels=labels,
+        external_id=external_id,
+        conn=conn,
+    )
 
 
 async def pay_offer(
     *,
     wallet_id: str,
     offer: str,
-    max_sat: int | None = None,
+    amount_sat: int | None = None,
     extra: dict | None = None,
     description: str = "",
     tag: str = "",
@@ -139,83 +105,26 @@ async def pay_offer(
     external_id: str | None = None,
     conn: Connection | None = None,
 ) -> Payment:
-    """Pay a BOLT12 offer via the funding source ``pay_offer`` method.
-
-    Amount must be supplied as ``max_sat`` (sats). The existing external
-    payment path is reused for locks, fee reserve, timeout, and status.
-
+    """
     Offers are not invoices: they have no payment hash until the backend
-    fetches and pays one. ``CreatePayment.payment_hash`` is therefore a
-    unique placeholder (not derived from the offer) so a reusable offer
-    can be paid more than once without ``get_standalone_payment`` treating
-    the second attempt as a duplicate. After the backend pays, ``checking_id``
-    is updated to the real hash from ``PaymentResponse``.
+    fetches and pays one.
     """
     if settings.lnbits_only_allow_incoming_payments:
         raise PaymentError("Only incoming payments allowed.", status="failed")
 
-    offer = parse_bolt12_offer(offer)
-
-    funding_source = get_funding_source()
-    if not funding_source.has_feature(Feature.bolt12):
-        raise PaymentError(
-            "Funding source does not support BOLT12 offers. "
-            "Use CoreLightning, CLNRest, Phoenixd, Eclair, or LNbits.",
-            status="failed",
-        )
-
-    if max_sat is None or max_sat <= 0:
-        raise PaymentError(
-            "Amount is required to pay a BOLT12 offer.",
-            status="failed",
-        )
-
-    ceiling = settings.lnbits_max_outgoing_payment_amount_sats
-    amount_sat = int(max_sat)
-    if amount_sat > ceiling:
-        raise PaymentError(
-            f"Offer amount {amount_sat} sats is too high. "
-            f"Max allowed: {ceiling} sats.",
-            status="failed",
-        )
-
-    amount_msat = amount_sat * 1000
-
-    async with db.reuse_conn(conn) if conn else db.connect() as new_conn:
-        wallet = await _check_wallet_for_payment(wallet_id, tag, amount_msat, new_conn)
-        if not wallet.can_send_payments:
-            raise PaymentError(
-                "Wallet does not have permission to pay invoices.",
-                status="failed",
-            )
-
-        extra_data = dict(extra or {})
-        extra_data["bolt12"] = True
-        _, extra_data = await calculate_fiat_amounts(
-            amount_sat, wallet, extra=extra_data
-        )
-        # Unique per attempt: offers have no hash until paid, and hashing
-        # the offer would collide on reusable offers (duplicate detection).
-        _, payment_hash = random_secret_and_hash()
-
-        create_payment_model = CreatePayment(
-            wallet_id=wallet.source_wallet_id,
-            bolt11=offer,
-            payment_hash=payment_hash,
-            amount_msat=-amount_msat,
-            memo=description or "BOLT12 offer",
-            extra=extra_data,
-            labels=labels,
-            external_id=external_id,
-        )
-
-    async with db.reuse_conn(conn) if conn else db.connect() as new_conn:
-        payment = await _pay_invoice(
-            wallet.source_wallet_id, create_payment_model, conn=new_conn
-        )
-        await _credit_service_fee_wallet(wallet, payment, conn=new_conn)
-
-    return payment
+    pr = _validate_offer_payment_request(offer, amount_sat)
+    extra = dict(extra or {})
+    extra["bolt12"] = True
+    return await _pay_from_wallet(
+        wallet_id=wallet_id,
+        pr=pr,
+        extra=extra,
+        description=description,
+        tag=tag,
+        labels=labels,
+        external_id=external_id,
+        conn=conn,
+    )
 
 
 async def create_payment_request(
@@ -1113,7 +1022,7 @@ async def _check_wallet_for_payment(
 
 def _validate_payment_request(
     payment_request: str, max_sat: int | None = None
-) -> Bolt11:
+) -> ValidatedPaymentRequest:
     try:
         invoice = bolt11_decode(payment_request)
     except Exception as exc:
@@ -1131,7 +1040,14 @@ def _validate_payment_request(
             status="failed",
         )
 
-    return invoice
+    return ValidatedPaymentRequest(
+        payment_request=payment_request,
+        amount_msat=invoice.amount_msat,
+        payment_hash=invoice.payment_hash,
+        expiry_date=invoice.expiry_date,
+        description=invoice.description or "",
+        is_offer=False,
+    )
 
 
 async def _credit_service_fee_wallet(
@@ -1292,3 +1208,88 @@ async def fundingsource_invoice_producer() -> None:
         if payment:
             logger.success(f"fundingsource invoice {checking_id} settled")
             task_manager.invoice_queue.put_nowait(payment)
+
+
+def _validate_offer_payment_request(
+    offer: str, amount_sat: int | None
+) -> ValidatedPaymentRequest:
+    offer = parse_bolt12_offer(offer)
+
+    funding_source = get_funding_source()
+    if not funding_source.has_feature(Feature.bolt12):
+        raise PaymentError(
+            "Funding source does not support BOLT12 offers. "
+            "Use CoreLightning, CLNRest, Phoenixd, Eclair, or LNbits.",
+            status="failed",
+        )
+
+    if amount_sat is None or amount_sat <= 0:
+        raise PaymentError(
+            "Amount is required to pay a BOLT12 offer.",
+            status="failed",
+        )
+
+    ceiling = settings.lnbits_max_outgoing_payment_amount_sats
+    amount_sat = int(amount_sat)
+    if amount_sat > ceiling:
+        raise PaymentError(
+            f"Offer amount {amount_sat} sats is too high. "
+            f"Max allowed: {ceiling} sats.",
+            status="failed",
+        )
+
+    # Unique per attempt: offers have no hash until paid, and hashing
+    # the offer would collide on reusable offers (duplicate detection).
+    _, payment_hash = random_secret_and_hash()
+    return ValidatedPaymentRequest(
+        payment_request=offer,
+        amount_msat=amount_sat * 1000,
+        payment_hash=payment_hash,
+        expiry_date=None,
+        description="BOLT12 offer",
+        is_offer=True,
+    )
+
+
+async def _pay_from_wallet(
+    *,
+    wallet_id: str,
+    pr: ValidatedPaymentRequest,
+    extra: dict | None = None,
+    description: str = "",
+    tag: str = "",
+    labels: list[str] | None = None,
+    external_id: str | None = None,
+    conn: Connection | None = None,
+) -> Payment:
+    async with db.reuse_conn(conn) if conn else db.connect() as new_conn:
+        amount_msat = pr.amount_msat
+        wallet = await _check_wallet_for_payment(wallet_id, tag, amount_msat, new_conn)
+
+        if not wallet.can_send_payments:
+            raise PaymentError(
+                "Wallet does not have permission to pay invoices.",
+                status="failed",
+            )
+
+        _, extra = await calculate_fiat_amounts(amount_msat / 1000, wallet, extra=extra)
+
+        create_payment_model = CreatePayment(
+            wallet_id=wallet.source_wallet_id,
+            bolt11=pr.payment_request,
+            payment_hash=pr.payment_hash,
+            amount_msat=-amount_msat,
+            expiry=pr.expiry_date,
+            memo=description or pr.description,
+            extra=extra,
+            labels=labels,
+            external_id=external_id,
+        )
+
+    async with db.reuse_conn(conn) if conn else db.connect() as new_conn:
+        payment = await _pay_invoice(
+            wallet.source_wallet_id, create_payment_model, conn=new_conn
+        )
+        await _credit_service_fee_wallet(wallet, payment, conn=new_conn)
+
+    return payment
