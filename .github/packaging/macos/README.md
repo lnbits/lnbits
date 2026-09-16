@@ -25,6 +25,19 @@ Program membership, a valid Developer ID Application certificate **with its
 private key**, and access to Apple's authentication, timestamp, and notarization
 services. Native dependency downloads and npm audit also require network access.
 
+Homebrew installs Tk separately from Python. If importing `tkinter` fails with
+`ModuleNotFoundError: No module named '_tkinter'`, install the matching package:
+
+```sh
+brew install python-tk@3.12
+python3 -c 'import sys, tkinter; print(sys.executable); print(tkinter.TkVersion)'
+```
+
+Make sure `python3` selects that Homebrew Python 3.12. Installing a package named
+`tkinter` with pip does not provide this native Python module. Preparation checks
+Tk before installing dependencies, asks `uv` to use the checked interpreter, and
+checks Tk again inside the project environment before packaging.
+
 The command prepares locked dependencies and frontend assets, preserving the
 fork's static OpenSSL check. Intel's locked cryptography release is built from
 source. We clear its uv cache and reinstall with `OPENSSL_STATIC=1` and Homebrew's

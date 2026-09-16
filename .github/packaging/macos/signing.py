@@ -93,7 +93,8 @@ def verify_code(runner, path, team, *, app=False, runtime=True, entitlements=Non
     args = ["/usr/bin/codesign", "--verify", "--strict", "--all-architectures"]
     if app:
         args += ["--deep"]
-    args += ["-R", requirement(team, app=app), path]
+    # Without the leading '=', codesign treats the requirement as a file path.
+    args += ["-R", "=" + requirement(team, app=app), path]
     runner.run("Verify Developer ID signature", *args)
     details = runner.run(
         "Inspect signature", "/usr/bin/codesign", "--display", "--verbose=4", path

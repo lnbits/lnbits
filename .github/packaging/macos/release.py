@@ -17,10 +17,24 @@ from macos.signing import notarize, sign, sign_app, staple, verify_app
 from macos.verify import verify_image
 
 
-def prepare(runner):
-    runner.run(
-        "Check Python/Tk", sys.executable, "-c", "import tkinter; import tomllib"
+def check_python_tk(runner, *python):
+    result = runner.run(
+        "Check Python/Tk",
+        *python,
+        "-c",
+        "import tkinter; import tomllib; tkinter.Tcl().eval('info patchlevel')",
+        check=False,
     )
+    if result.returncode:
+        raise ReleaseError(
+            "Check Python/Tk: the selected Python needs working Tk support. "
+            "For Homebrew Python 3.12, run `brew install python-tk@3.12`, "
+            "then retry the build using that Python."
+        )
+
+
+def prepare(runner):
+    check_python_tk(runner, sys.executable)
     runner.run("Install locked frontend dependencies", "npm", "ci", timeout=900)
     runner.run("Build frontend assets", "npm", "run", "bundle", timeout=300)
     runner.run(
@@ -40,6 +54,8 @@ def prepare(runner):
         "Install locked Python dependencies",
         "uv",
         "sync",
+        "--python",
+        sys.executable,
         "--locked",
         "--no-dev",
         "--no-editable",
@@ -48,6 +64,7 @@ def prepare(runner):
         env={"OPENSSL_STATIC": "1", "OPENSSL_DIR": openssl},
         timeout=1800,
     )
+    check_python_tk(runner, "uv", "run", "--no-sync", "python")
     runner.run(
         "Install existing PyInstaller pin",
         "uv",

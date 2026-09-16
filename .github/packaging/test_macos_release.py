@@ -9,6 +9,7 @@ import os
 import plistlib
 import shutil
 import subprocess
+import sys
 import tempfile
 import unittest
 from pathlib import Path
@@ -33,6 +34,35 @@ SUBMISSION = "12345678-1234-1234-1234-123456789abc"
 
 def result(stdout="", stderr="", returncode=0):
     return SimpleNamespace(stdout=stdout, stderr=stderr, returncode=returncode)
+
+
+class PythonPrerequisiteTests(unittest.TestCase):
+    def test_missing_tk_fails_before_dependency_installation_with_repair_command(self):
+        runner = Mock()
+        runner.run.return_value = result(
+            stderr="ModuleNotFoundError: No module named '_tkinter'", returncode=1
+        )
+        with self.assertRaisesRegex(ReleaseError, "brew install python-tk@3.12"):
+            release.prepare(runner)
+        self.assertEqual(runner.run.call_count, 1)
+
+    def test_dependency_environment_uses_the_checked_python_and_checks_tk_again(self):
+        runner = Mock()
+        runner.run.return_value = result("/opt/homebrew/opt/openssl@3")
+        with patch("macos.release.sys.executable", "/path/to/python3.12"):
+            release.prepare(runner)
+        calls = runner.run.call_args_list
+        self.assertEqual(calls[0].args[:2], ("Check Python/Tk", "/path/to/python3.12"))
+        sync = next(
+            call
+            for call in calls
+            if call.args[0] == "Install locked Python dependencies"
+        )
+        self.assertEqual(
+            sync.args[sync.args.index("--python") + 1], "/path/to/python3.12"
+        )
+        checks = [call for call in calls if call.args[0] == "Check Python/Tk"]
+        self.assertEqual(checks[1].args[1:5], ("uv", "run", "--no-sync", "python"))
 
 
 class CredentialTests(unittest.TestCase):
@@ -276,6 +306,52 @@ class SessionTests(unittest.TestCase):
 
 
 class SigningTests(unittest.TestCase):
+    def verification_requirement(self, *, app, runtime):
+        runner = Mock()
+        runner.run.side_effect = [
+            result(),
+            result(
+                stderr="TeamIdentifier=ABCDEFGHIJ\nTimestamp=Sep 16, 2026\n"
+                "flags=0x10000(runtime)\n"
+            ),
+            result(),
+        ]
+        signing.verify_code(
+            runner, Path("code"), "ABCDEFGHIJ", app=app, runtime=runtime
+        )
+        command = runner.run.call_args_list[0].args
+        return command[command.index("-R") + 1]
+
+    def test_verification_uses_inline_requirements_for_native_code_app_and_dmg(self):
+        for app, runtime in ((False, True), (True, True), (False, False)):
+            with self.subTest(app=app, runtime=runtime):
+                argument = self.verification_requirement(app=app, runtime=runtime)
+                self.assertTrue(argument.startswith("=anchor apple generic"))
+                self.assertIn(
+                    "certificate leaf[field.1.2.840.113635.100.6.1.13]", argument
+                )
+                self.assertIn('certificate leaf[subject.OU] = "ABCDEFGHIJ"', argument)
+                self.assertEqual('identifier "com.lnbits.desktop"' in argument, app)
+
+    @unittest.skipUnless(
+        sys.platform == "darwin", "Requires Apple's requirement parser"
+    )
+    def test_actual_verification_arguments_compile_with_apple_requirement_parser(self):
+        with tempfile.TemporaryDirectory() as directory:
+            output = Path(directory) / "requirement.bin"
+            for app, runtime in ((False, True), (True, True), (False, False)):
+                with self.subTest(app=app, runtime=runtime):
+                    argument = self.verification_requirement(app=app, runtime=runtime)
+                    Runner(DUMMY).run(
+                        "Compile verification requirement",
+                        "/usr/bin/csreq",
+                        "-r",
+                        argument,
+                        "-b",
+                        output,
+                    )
+                    self.assertGreater(output.stat().st_size, 0)
+
     def test_native_data_is_signed_inside_out_with_scoped_entitlements(self):
         with tempfile.TemporaryDirectory() as directory:
             app = Path(directory) / "LNbits.app"
