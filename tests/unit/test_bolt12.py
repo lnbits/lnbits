@@ -164,11 +164,15 @@ async def test_pay_offer_debits_wallet_and_is_reusable(app):
     wallet = await create_wallet(user_id=user.id)
     await update_wallet_balance(wallet, 1000)
 
+    extra = {"reference": "order-1"}
     first = await pay_offer(
         wallet_id=wallet.id,
         offer=VALID_OFFER,
         amount_sat=21,
+        extra=extra,
         description="first offer pay",
+        labels=["offers"],
+        external_id="offer-order-1",
     )
     assert first.status == PaymentState.SUCCESS.value
     assert first.amount == -21_000
@@ -180,6 +184,11 @@ async def test_pay_offer_debits_wallet_and_is_reusable(app):
     stored = await get_standalone_payment(first.checking_id)
     assert stored
     assert stored.success
+    assert stored.memo == "first offer pay"
+    assert stored.extra["reference"] == "order-1"
+    assert stored.labels == ["offers"]
+    assert stored.external_id == "offer-order-1"
+    assert extra == {"reference": "order-1"}
 
     second = await pay_offer(
         wallet_id=wallet.id,

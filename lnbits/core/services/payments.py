@@ -78,41 +78,16 @@ async def pay_invoice(
     if not invoice.amount_msat:
         raise ValueError("Missig invoice amount.")
 
-    async with db.reuse_conn(conn) if conn else db.connect() as new_conn:
-        amount_msat = invoice.amount_msat
-        wallet = await _check_wallet_for_payment(wallet_id, tag, amount_msat, new_conn)
-
-        if not wallet.can_send_payments:
-            raise PaymentError(
-                "Wallet does not have permission to pay invoices.",
-                status="failed",
-            )
-
-        if await is_internal_status_success(invoice.payment_hash, new_conn):
-            raise PaymentError("Internal invoice already paid.", status="failed")
-
-        _, extra = await calculate_fiat_amounts(amount_msat / 1000, wallet, extra=extra)
-
-        create_payment_model = CreatePayment(
-            wallet_id=wallet.source_wallet_id,
-            bolt11=invoice.payment_request,
-            payment_hash=invoice.payment_hash,
-            amount_msat=-amount_msat,
-            expiry=invoice.expiry_date,
-            memo=description or invoice.description or "",
-            extra=extra,
-            labels=labels,
-            external_id=external_id,
-        )
-
-    async with db.reuse_conn(conn) if conn else db.connect() as new_conn:
-        payment = await _pay_invoice(
-            wallet.source_wallet_id, create_payment_model, conn=new_conn
-        )
-
-        await _credit_service_fee_wallet(wallet, payment, conn=new_conn)
-
-    return payment
+    return await _pay_from_wallet(
+        wallet_id=wallet_id,
+        pr=invoice,
+        extra=extra,
+        description=description,
+        tag=tag,
+        labels=labels,
+        external_id=external_id,
+        conn=conn,
+    )
 
 
 async def pay_offer(
@@ -143,41 +118,16 @@ async def pay_offer(
         raise PaymentError("Only incoming payments allowed.", status="failed")
 
     pr = _validate_offer_payment_request(offer, amount_sat)
-    amount_msat = pr.amount_msat
-
-    async with db.reuse_conn(conn) if conn else db.connect() as new_conn:
-        wallet = await _check_wallet_for_payment(wallet_id, tag, amount_msat, new_conn)
-        if not wallet.can_send_payments:
-            raise PaymentError(
-                "Wallet does not have permission to pay invoices.",
-                status="failed",
-            )
-
-        extra_data = dict(extra or {})
-        extra_data["bolt12"] = True
-        _, extra_data = await calculate_fiat_amounts(
-            amount_msat // 1000, wallet, extra=extra_data
-        )
-
-        create_payment_model = CreatePayment(
-            wallet_id=wallet.source_wallet_id,
-            bolt11=pr.payment_request,
-            payment_hash=pr.payment_hash,
-            amount_msat=-amount_msat,
-            expiry=pr.expiry_date,
-            memo=description or pr.description,
-            extra=extra_data,
-            labels=labels,
-            external_id=external_id,
-        )
-
-    async with db.reuse_conn(conn) if conn else db.connect() as new_conn:
-        payment = await _pay_invoice(
-            wallet.source_wallet_id, create_payment_model, conn=new_conn
-        )
-        await _credit_service_fee_wallet(wallet, payment, conn=new_conn)
-
-    return payment
+    return await _pay_from_wallet(
+        wallet_id=wallet_id,
+        pr=pr,
+        extra=extra,
+        description=description,
+        tag=tag,
+        labels=labels,
+        external_id=external_id,
+        conn=conn,
+    )
 
 
 async def create_payment_request(
@@ -1302,3 +1252,53 @@ def _validate_offer_payment_request(
         description="BOLT12 offer",
         is_offer=True,
     )
+
+
+async def _pay_from_wallet(
+    *,
+    wallet_id: str,
+    pr: ValidatedPaymentRequest,
+    extra: dict | None = None,
+    description: str = "",
+    tag: str = "",
+    labels: list[str] | None = None,
+    external_id: str | None = None,
+    conn: Connection | None = None,
+) -> Payment:
+    async with db.reuse_conn(conn) if conn else db.connect() as new_conn:
+        amount_msat = pr.amount_msat
+        wallet = await _check_wallet_for_payment(wallet_id, tag, amount_msat, new_conn)
+
+        if not wallet.can_send_payments:
+            raise PaymentError(
+                "Wallet does not have permission to pay invoices.",
+                status="failed",
+            )
+
+        if pr.is_offer:
+            extra = dict(extra or {})
+            extra["bolt12"] = True
+        elif await is_internal_status_success(pr.payment_hash, new_conn):
+            raise PaymentError("Internal invoice already paid.", status="failed")
+
+        _, extra = await calculate_fiat_amounts(amount_msat / 1000, wallet, extra=extra)
+
+        create_payment_model = CreatePayment(
+            wallet_id=wallet.source_wallet_id,
+            bolt11=pr.payment_request,
+            payment_hash=pr.payment_hash,
+            amount_msat=-amount_msat,
+            expiry=pr.expiry_date,
+            memo=description or pr.description,
+            extra=extra,
+            labels=labels,
+            external_id=external_id,
+        )
+
+    async with db.reuse_conn(conn) if conn else db.connect() as new_conn:
+        payment = await _pay_invoice(
+            wallet.source_wallet_id, create_payment_model, conn=new_conn
+        )
+        await _credit_service_fee_wallet(wallet, payment, conn=new_conn)
+
+    return payment
