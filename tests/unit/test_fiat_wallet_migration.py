@@ -12,7 +12,6 @@ async def test_fiat_wallet_migration_rejects_conflicts_before_updates(conflict):
     engine = create_async_engine("sqlite+aiosqlite://")
     try:
         async with engine.connect() as connection:
-            assert connection is not None
             db = Connection(connection, SQLITE, "test", None)
             await db.execute("""
                 CREATE TABLE wallets (
@@ -46,7 +45,6 @@ async def test_fiat_wallet_migration_normalizes_deleted_wallets_and_enforces_uni
     engine = create_async_engine("sqlite+aiosqlite://")
     try:
         async with engine.connect() as connection:
-            assert connection is not None
             db = Connection(connection, SQLITE, "test", None)
             await db.execute("""
                 CREATE TABLE wallets (

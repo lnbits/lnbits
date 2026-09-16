@@ -196,16 +196,12 @@ def test_allowed_currencies_respects_allow_list(settings: Settings):
 
 
 def test_normalize_fiat_currency_uses_default_and_rejects_sats(settings: Settings):
-    original_default = settings.lnbits_default_accounting_currency
-    try:
-        settings.lnbits_default_accounting_currency = "eur"
-        assert normalize_fiat_currency() == "EUR"
-        assert normalize_fiat_currency(" jpy ") == "JPY"
+    settings.lnbits_default_accounting_currency = "eur"
+    assert normalize_fiat_currency() == "EUR"
+    assert normalize_fiat_currency(" jpy ") == "JPY"
 
-        with pytest.raises(ValueError, match="cannot be sats"):
-            normalize_fiat_currency("sats")
-    finally:
-        settings.lnbits_default_accounting_currency = original_default
+    with pytest.raises(ValueError, match="cannot be sats"):
+        normalize_fiat_currency("sats")
 
 
 @pytest.mark.anyio
