@@ -90,6 +90,8 @@ if sys.platform == "win32":
 if sys.platform == "darwin":
     args += [
         "--windowed",
+        "--additional-hooks-dir",
+        str(Path(__file__).resolve().parent / "macos/hooks"),
         "--osx-bundle-identifier=com.lnbits.desktop",
         f"--icon={Path(__file__).resolve().parent / 'linux/AppDir/lnbits.png'}",
     ]
@@ -98,6 +100,10 @@ if sys.platform == "darwin":
     if entitlements := os.environ.get("MACOS_ENTITLEMENTS_FILE"):
         args += ["--osx-entitlements-file", entitlements]
 for package in packages:
+    if sys.platform == "darwin" and package == "embit":
+        # The macOS hook selects embit's native prebuild; --collect-all would
+        # independently re-add every other platform's library to the app.
+        continue
     args += ["--collect-all", package]
 for package in ("breez_sdk", "breez_sdk_liquid"):
     if importlib.util.find_spec(package):

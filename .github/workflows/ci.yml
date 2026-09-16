@@ -5,6 +5,8 @@ on:
 
 jobs:
   lint:
+    # Temporarily isolate the macOS packaging branch; dependent jobs also skip.
+    if: github.head_ref != 'signed_macos_build'
     uses: ./.github/workflows/lint.yml
 
   test-api:

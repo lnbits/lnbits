@@ -74,10 +74,17 @@ jobs:
         with:
           node-version: "24.x"
           cache: npm
-      - name: Verify native runner
+      - name: Verify native runner and report build environment
         env:
           EXPECTED_ARCH: ${{ matrix.arch }}
-        run: test "$(uname -m)" = "$EXPECTED_ARCH"
+        run: |
+          test "$(uname -m)" = "$EXPECTED_ARCH"
+          sw_vers
+          uname -m
+          python3 --version
+          uv --version
+          xcodebuild -version
+          df -h . "$RUNNER_TEMP"
       - name: Prepare dependencies and verify frontend assets
         run: python3 .github/packaging/macos/release.py --prepare-only
       - name: Test launcher and packaging

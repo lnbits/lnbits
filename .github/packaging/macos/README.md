@@ -139,6 +139,9 @@ final mounted image. It does not submit anything to Apple. Merely setting
 1. Build the app, preserving dependency checks, then finalize all metadata.
    Spark dependency prebuilds are filtered to the target Mac architecture before
    packaging, removing other architectures and mobile/other-platform binaries.
+   The macOS PyInstaller hook likewise selects embit's matching libsecp256k1
+   prebuild as a binary. Check required data and every native architecture before
+   signing or submitting anything to Apple; repeat these checks on the final image.
 2. Decode the P12 inside a unique mode-0700 temporary directory, create/unlock a
    temporary keychain, import the identity, remove the P12, and set the
    `apple-tool:,apple:,codesign:` key partition list for unattended signing.
@@ -157,7 +160,10 @@ final mounted image. It does not submit anything to Apple. Merely setting
    at most 30 minutes for JSON status exactly `Accepted`. Staple and validate the
    app ticket. The ZIP is removed; the app is never modified or re-signed again.
 5. Copy that stapled app with `ditto` (preserving tickets, xattrs and symlinks) into
-   the final DMG, sign the DMG, submit it once separately, require `Accepted`, then
+   an uncompressed temporary HFS+ image with Spotlight indexing disabled, then
+   convert it to the final compressed UDZO DMG. Each image operation has a
+   20-minute timeout, elapsed-time progress, and sanitized `hdiutil` diagnostics.
+   Only the final compressed DMG is signed and submitted to Apple. Require `Accepted`, then
    staple and validate the DMG. There are **two submissions**, one for the app ZIP
    and one for the final image. The DMG is not rebuilt after notarization.
 6. Verify final image integrity, signature, ticket and Gatekeeper assessment.
@@ -255,6 +261,16 @@ notarization, final-image smoke checks, checksum generation, and cleanup.
 - **Gatekeeper or smoke failure:** check the exact image on the matching native
   architecture; do not disable Gatekeeper or broaden entitlements without finding
   the failing executable/runtime requirement.
+- **DMG creation timeout:** the log distinguishes image creation from compression
+  and reports staging size and available disk space. Long operations print a
+  heartbeat every 30 seconds and retain sanitized tool output on failure. A timeout
+  stops the tool's process group and fails the build; it never uploads a partial image.
+
+While debugging this work, automatic non-macOS CI is skipped for the
+`signed_macos_build` branch and PRs from it (the main CI chain, Windows, CodeQL,
+and Nix). Other branches and stable/RC release tags keep their existing behavior.
+Remove the temporary job conditions in those workflows when this branch is ready
+for the full CI suite.
 
 Run `make test-desktop` for mocked Apple-tool tests, identity validation,
 notarization/signing order, failure and cleanup gates, checksum generation,

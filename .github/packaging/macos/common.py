@@ -4,8 +4,11 @@ import base64
 import contextlib
 import json
 import os
+import signal
 import subprocess
 import sys
+import tempfile
+import time
 import urllib.parse
 
 CREDENTIAL_NAMES = (
@@ -79,22 +82,27 @@ class Runner:
         # No ANSI/control sequences in CI diagnostics.
         return "".join(c for c in text if c in "\n\t" or c.isprintable())
 
-    def run(self, operation, *args, timeout=300, env=None, check=True):
-        print(f"macOS: {operation}", flush=True)
+    def run(
+        self, operation, *args, timeout=300, env=None, check=True, log_output=False
+    ):
+        print(self.redact(f"macOS: {operation}"), flush=True)
         environment = dict(self.environment, **(env or {}))
         # Sanitize using credentials inherited by this process, even if a caller
         # supplied a different environment for the child.
         try:
-            result = subprocess.run(  # noqa: S603
-                [str(arg) for arg in args],
-                env=clean_environment(environment),
-                stdin=subprocess.DEVNULL,
-                capture_output=True,
-                text=True,
-                errors="replace",
-                timeout=timeout,
-                check=False,
-            )
+            if log_output:
+                result = self.run_logged(operation, args, timeout, environment)
+            else:
+                result = subprocess.run(  # noqa: S603
+                    [str(arg) for arg in args],
+                    env=clean_environment(environment),
+                    stdin=subprocess.DEVNULL,
+                    capture_output=True,
+                    text=True,
+                    errors="replace",
+                    timeout=timeout,
+                    check=False,
+                )
         except subprocess.TimeoutExpired as exc:
             diagnostic = self.redact(exc.stdout or "") + self.redact(exc.stderr or "")
             raise ReleaseError(
@@ -108,6 +116,64 @@ class Runner:
                 f"{operation}: exit {result.returncode}. {diagnostic[-6000:]}"
             ) from None
         return result
+
+    def run_logged(self, operation, args, timeout, environment):
+        """Heartbeat long builds; redact complete output without logging arguments."""
+        started = time.monotonic()
+        command = [str(arg) for arg in args]
+        # A private temporary file avoids pipes held open by tool subprocesses.
+        with tempfile.TemporaryFile() as log:
+            with subprocess.Popen(  # noqa: S603
+                command,
+                env=clean_environment(environment),
+                stdin=subprocess.DEVNULL,
+                stdout=log,
+                stderr=subprocess.STDOUT,
+                start_new_session=os.name == "posix",
+            ) as process:
+                try:
+                    while True:
+                        remaining = timeout - (time.monotonic() - started)
+                        if remaining <= 0:
+                            raise subprocess.TimeoutExpired(command, timeout)
+                        try:
+                            process.wait(timeout=min(30, remaining))
+                            break
+                        except subprocess.TimeoutExpired:
+                            elapsed = time.monotonic() - started
+                            print(
+                                self.redact(
+                                    f"macOS: {operation}: running for {elapsed:.0f}s "
+                                    f"(limit {timeout}s)"
+                                ),
+                                flush=True,
+                            )
+                except BaseException as error:
+                    # Stop this tool's process group, never unrelated disk helpers.
+                    try:
+                        if os.name == "posix":
+                            os.killpg(process.pid, signal.SIGKILL)
+                        else:
+                            process.kill()
+                    except ProcessLookupError:
+                        pass
+                    process.wait(timeout=10)
+                    if isinstance(error, subprocess.TimeoutExpired):
+                        log.seek(0)
+                        error.output = log.read()
+                    raise
+                log.seek(0)
+                output = log.read().decode(errors="replace")
+        elapsed = time.monotonic() - started
+        print(
+            self.redact(
+                f"macOS: {operation}: exit {process.returncode} after {elapsed:.1f}s"
+            ),
+            flush=True,
+        )
+        if output:
+            print(self.redact(output)[-12000:], flush=True)
+        return subprocess.CompletedProcess(command, process.returncode, output, "")
 
 
 def validate_credentials(values):

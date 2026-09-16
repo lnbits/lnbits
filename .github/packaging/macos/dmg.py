@@ -42,14 +42,31 @@ def finalize_app(app):
 
 def create(app, output, runner, *, signed):
     with tempfile.TemporaryDirectory(prefix="lnbits-dmg-") as directory:
-        staging = Path(directory)
+        workspace = Path(directory)
+        staging = workspace / "contents"
+        staging.mkdir()
+        uncompressed = workspace / "uncompressed.dmg"
         # ditto preserves the stapled ticket, resource forks, xattrs and symlinks.
         runner.run("Copy finalized app", "/usr/bin/ditto", app, staging / "LNbits.app")
         (staging / "Applications").symlink_to("/Applications")
         instructions = "Read me.txt" if signed else "Read me unsigned.txt"
         shutil.copyfile(Path(__file__).with_name(instructions), staging / "Read me.txt")
         runner.run(
-            "Create DMG",
+            "Inspect DMG staging size", "/usr/bin/du", "-sh", staging, log_output=True
+        )
+        runner.run(
+            "Inspect DMG free space",
+            "/bin/df",
+            "-h",
+            workspace,
+            output.parent,
+            log_output=True,
+        )
+        # Separate filesystem creation from compression on slower Intel runners.
+        # The intermediate image is outside the source folder and is never signed
+        # or notarized. Conversion finishes before the final DMG release sequence.
+        runner.run(
+            "Create uncompressed DMG",
             "/usr/bin/hdiutil",
             "create",
             "-volname",
@@ -59,10 +76,31 @@ def create(app, output, runner, *, signed):
             "-fs",
             "HFS+",
             "-format",
-            "UDZO",
+            "UDRW",
+            "-nospotlight",
+            "-verbose",
+            "-puppetstrings",
             "-ov",
+            uncompressed,
+            timeout=1200,
+            log_output=True,
+        )
+        runner.run(
+            "Compress final DMG",
+            "/usr/bin/hdiutil",
+            "convert",
+            uncompressed,
+            "-format",
+            "UDZO",
+            "-tasks",
+            "2",
+            "-verbose",
+            "-puppetstrings",
+            "-ov",
+            "-o",
             output,
-            timeout=600,
+            timeout=1200,
+            log_output=True,
         )
 
 

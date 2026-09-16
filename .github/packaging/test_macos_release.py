@@ -14,7 +14,7 @@ import tempfile
 import unittest
 from pathlib import Path
 from types import SimpleNamespace
-from unittest.mock import Mock, patch
+from unittest.mock import MagicMock, Mock, patch
 
 from macos import credentials, dmg, release, signing, verify
 from macos.common import CREDENTIAL_NAMES, ReleaseError, Runner, validate_credentials
@@ -66,6 +66,64 @@ class PythonPrerequisiteTests(unittest.TestCase):
 
 
 class CredentialTests(unittest.TestCase):
+    def test_logged_tool_output_is_redacted_without_arguments_or_child_credentials(
+        self,
+    ):
+        program = (
+            "import os, sys; "
+            f"assert not set({list(CREDENTIAL_NAMES)!r}).intersection(os.environ); "
+            "print(sys.argv[1]); print(sys.argv[2], file=sys.stderr)"
+        )
+        with (
+            patch.dict(os.environ, DUMMY),
+            patch("sys.stdout", new_callable=io.StringIO) as output,
+        ):
+            Runner(DUMMY).run(
+                "Log dummy tool",
+                sys.executable,
+                "-c",
+                program,
+                DUMMY["P12_PASSWORD"],
+                DUMMY["APPLE_ID"],
+                log_output=True,
+            )
+        self.assertIn("exit 0 after", output.getvalue())
+        self.assertIn("[REDACTED]", output.getvalue())
+        self.assertNotIn(program, output.getvalue())
+        for value in DUMMY.values():
+            self.assertNotIn(value, output.getvalue())
+
+    def test_logged_timeout_reports_progress_and_stops_its_tool_group(self):
+        process = MagicMock(pid=12345)
+        process.__enter__.return_value = process
+        process.wait.side_effect = [subprocess.TimeoutExpired(["dummy"], 2), None]
+
+        def launch(*args, **kwargs):
+            kwargs["stdout"].write(
+                ("disk helper stalled " + DUMMY["APPLE_ID"]).encode()
+            )
+            kwargs["stdout"].flush()
+            return process
+
+        with (
+            patch("macos.common.subprocess.Popen", side_effect=launch),
+            patch("macos.common.time.monotonic", side_effect=[0, 0, 1, 2]),
+            patch("macos.common.os.killpg", create=True) as kill,
+            patch("sys.stdout", new_callable=io.StringIO) as output,
+            self.assertRaises(ReleaseError) as caught,
+        ):
+            Runner(DUMMY).run(
+                "Create DMG", "dummy", DUMMY["P12_PASSWORD"], timeout=2, log_output=True
+            )
+        self.assertIn("running for 1s", output.getvalue())
+        self.assertIn("disk helper stalled [REDACTED]", str(caught.exception))
+        self.assertNotIn(DUMMY["APPLE_ID"], str(caught.exception))
+        self.assertNotIn(DUMMY["P12_PASSWORD"], str(caught.exception))
+        if os.name == "posix":
+            kill.assert_called_once_with(process.pid, release.signal.SIGKILL)
+        else:
+            process.kill.assert_called_once()
+
     def test_each_credential_is_required_and_certificate_is_base64(self):
         self.assertEqual(validate_credentials(DUMMY), b"dummy certificate")
         for name in CREDENTIAL_NAMES:
@@ -570,7 +628,7 @@ class PipelineTests(unittest.TestCase):
             return result()
 
         self.runner.run = Mock(side_effect=run)
-        for name in ("sign_app", "verify_app", "verify_image"):
+        for name in ("bundled_data", "sign_app", "verify_app", "verify_image"):
             self.enterContext(
                 patch(
                     "macos.release." + name,
@@ -621,6 +679,7 @@ class PipelineTests(unittest.TestCase):
         self.assertEqual(
             self.events,
             [
+                "bundled_data",
                 "sign_app",
                 "verify_app",
                 "Archive signed app",
@@ -646,6 +705,7 @@ class PipelineTests(unittest.TestCase):
 
     def test_failure_at_every_gate_cleans_and_removes_artifacts(self):
         for target in (
+            "bundled_data",
             "sign_app",
             "verify_app",
             "notarize",
@@ -692,6 +752,28 @@ class PipelineTests(unittest.TestCase):
         self.notarize.assert_not_called()
         self.assertTrue(self.output.with_suffix(".dmg.sha256").exists())
 
+    def test_wrong_architecture_fails_before_signing_or_notarization(self):
+        with (
+            patch(
+                "macos.release.bundled_data",
+                side_effect=ReleaseError("Wrong native architecture"),
+            ),
+            patch("macos.release.sign_app") as sign_app,
+            self.assertRaisesRegex(ReleaseError, "Wrong native architecture"),
+        ):
+            release.release(
+                self.runner,
+                self.session,
+                signed=True,
+                credentials=DUMMY,
+                arch="arm64",
+                skip_build=True,
+            )
+        sign_app.assert_not_called()
+        self.session.setup.assert_not_called()
+        self.notarize.assert_not_called()
+        self.assertFalse(self.output.exists())
+
     def test_verification_error_survives_cleanup_failure_without_a_checksum(self):
         original = ReleaseError("Wrong native architecture: spark/native.bare")
         with (
@@ -727,8 +809,11 @@ class PipelineTests(unittest.TestCase):
             self.assertNotIn("codesign", " ".join(str(arg) for arg in args))
             if operation == "Copy finalized app":
                 shutil.copytree(args[-2], args[-1])
-            if operation == "Create DMG":
+            if operation == "Create uncompressed DMG":
                 staging = Path(args[args.index("-srcfolder") + 1])
+                self.assertNotIn(staging, Path(args[-1]).parents)
+                self.assertEqual(args[args.index("-format") + 1], "UDRW")
+                self.assertIn("-nospotlight", args)
                 self.assertEqual(
                     (staging / "LNbits.app/Contents/Info.plist").read_bytes(), before
                 )
@@ -740,6 +825,35 @@ class PipelineTests(unittest.TestCase):
         self.runner.run.side_effect = run
         actual_create(self.app, self.output, self.runner, signed=True)
         self.assertEqual(original.read_bytes(), before)
+        operations = [call.args[0] for call in self.runner.run.call_args_list]
+        self.assertLess(
+            operations.index("Create uncompressed DMG"),
+            operations.index("Compress final DMG"),
+        )
+        conversion = self.runner.run.call_args_list[-1]
+        self.assertEqual(conversion.args[conversion.args.index("-format") + 1], "UDZO")
+        self.assertEqual(conversion.args[-1], self.output)
+        self.assertTrue(conversion.kwargs["log_output"])
+
+    def test_image_creation_timeout_removes_intermediate_and_skips_conversion(self):
+        intermediate = []
+
+        def run(operation, *args, **kwargs):
+            if operation == "Copy finalized app":
+                shutil.copytree(args[-2], args[-1])
+            if operation == "Create uncompressed DMG":
+                intermediate.append(Path(args[-1]))
+                intermediate[0].touch()
+                raise ReleaseError("Create uncompressed DMG: timed out")
+
+        self.runner.run.side_effect = run
+        with self.assertRaisesRegex(ReleaseError, "timed out"):
+            CREATE_DMG(self.app, self.output, self.runner, signed=True)
+        self.assertFalse(intermediate[0].parent.exists())
+        self.assertNotIn(
+            "Compress final DMG",
+            [call.args[0] for call in self.runner.run.call_args_list],
+        )
 
     def test_second_submission_failure_never_staples_or_checksums_dmg(self):
         original = self.notarize.side_effect
@@ -858,7 +972,10 @@ class DeliverableTests(unittest.TestCase):
             runner.run.return_value = result("arm64 x86_64")
             verify.verify_architecture(runner, app, "arm64")
             runner.run.assert_called_with(
-                "Verify native architecture", "/usr/bin/lipo", "-archs", native
+                f"Verify native architecture: {native.relative_to(app)}",
+                "/usr/bin/lipo",
+                "-archs",
+                native,
             )
 
 

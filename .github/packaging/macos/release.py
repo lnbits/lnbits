@@ -20,7 +20,7 @@ from macos.common import (
 )
 from macos.credentials import Session, cleanup, load_credentials
 from macos.signing import notarize, sign, sign_app, staple, verify_app
-from macos.verify import verify_image
+from macos.verify import bundled_data, verify_image
 
 
 def check_python_tk(runner, *python):
@@ -90,6 +90,7 @@ def build_application(runner):
         "python",
         ".github/packaging/build.py",
         timeout=1800,
+        log_output=True,
     )
     # PyInstaller may warn about native data it did not sign. No release is
     # accepted until our independent recursive signing and verification passes.
@@ -119,6 +120,8 @@ def release(runner, session, *, signed, credentials, arch, skip_build=False):
                 build_application(runner)
             app = Path("dist/LNbits.app").resolve()
             dmg.finalize_app(app)
+            # Catch packaging errors before signing, Apple submissions or DMG work.
+            bundled_data(runner, app, arch)
             if signed:
                 identity = session.setup(credentials)
                 configured = os.environ.get("MACOS_CODESIGN_IDENTITY")

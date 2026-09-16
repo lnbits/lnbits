@@ -50,9 +50,8 @@ def bundled_data(runner, app, arch):
 
 def verify_architecture(runner, app, arch):
     for path in native_files(app):
-        result = runner.run(
-            "Verify native architecture", "/usr/bin/lipo", "-archs", path
-        )
+        operation = f"Verify native architecture: {path.relative_to(app)}"
+        result = runner.run(operation, "/usr/bin/lipo", "-archs", path)
         if arch not in result.stdout.split():
             raise ReleaseError(
                 f"Wrong native architecture: {path.relative_to(app)} "
