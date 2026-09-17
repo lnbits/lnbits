@@ -267,15 +267,15 @@ lnbits-lightning-init(){
 
   # CLN can exchange BOLT12 invoice requests with a directly connected peer.
   connect_clightning_node 1 3 > /dev/null
-  docker exec lnbits-eclair-1 curl -fsS -u :lnbits -X POST http://localhost:8080/connect \
-    -F uri="$(lightning-cli-sim 3 getinfo | jq -r '.id')@lnbits-clightning-3-1:9735" > /dev/null
 
   # Eclair routes onion messages over the channel graph.
+  eclair_pubkey=$(get-eclair-pubkey)
+  lightning-cli-sim 3 connect "$eclair_pubkey@lnbits-eclair-1:9735" || exit 1
   echo "open channel from cln-3 to eclair-1 for BOLT12 offers"
-  lightning-cli-sim 3 -k fundchannel id="$(get-eclair-pubkey)" \
-    amount=$channel_size push_msat=$balance_size_msat > /dev/null
+  lightning-cli-sim 3 -k fundchannel id="$eclair_pubkey" \
+    amount=$channel_size push_msat=$balance_size_msat || exit 1
   bitcoin-cli-sim -generate $channel_confirms > /dev/null
-  wait-for-clightning-channel 3
+  wait-for-clightning-channel 3 3
 
   lnbits-lightning-sync
 
@@ -306,8 +306,9 @@ wait-for-lnd-sync(){
 wait-for-clightning-channel(){
   while true; do
     pending=$(lightning-cli-sim $1 getinfo | jq -r '.num_pending_channels | length')
-    echo "cln-$1 pendingchannels: $pending"
-    if [[ "$pending" == "0" ]]; then
+    active=$(lightning-cli-sim $1 getinfo | jq -r '.num_active_channels')
+    echo "cln-$1 pendingchannels: $pending, activechannels: $active"
+    if [[ "$pending" == "0" && "$active" -ge "${2:-0}" ]]; then
       if [[ "$(lightning-cli-sim $1 getinfo 2>&1 | jq -r '.warning_bitcoind_sync' 2> /dev/null)" == "null" ]]; then
         if [[ "$(lightning-cli-sim $1 getinfo 2>&1 | jq -r '.warning_lightningd_sync' 2> /dev/null)" == "null" ]]; then
           break
