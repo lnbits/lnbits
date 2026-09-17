@@ -274,6 +274,7 @@ async def test_fake_pay_offer_rejects_note_before_payment():
         VALID_OFFER, fee_limit_msat=50, amount_msat=21000, payer_note=PAYER_NOTE
     )
     assert response.ok is False
+    assert response.error_message
     assert "Payer notes are not supported" in response.error_message
 
 
