@@ -79,7 +79,23 @@ jobs:
         run: |
           MOUNT_DIR="$(mktemp -d)"
           hdiutil attach dist/*.dmg -mountpoint "$MOUNT_DIR" -nobrowse -readonly
-          trap 'hdiutil detach "$MOUNT_DIR"; rmdir "$MOUNT_DIR"' EXIT
+          cleanup() {
+            status=$?
+            # macOS can briefly keep the volume busy after the tests exit.
+            for attempt in 1 2 3 4 5; do
+              if hdiutil detach "$MOUNT_DIR"; then
+                rmdir "$MOUNT_DIR"
+                return "$status"
+              fi
+              echo "Disk image detach attempt $attempt/5 failed; waiting before retry."
+              sleep 2
+            done
+            # This is a read-only test image and the smoke tests have finished.
+            hdiutil detach -force "$MOUNT_DIR"
+            rmdir "$MOUNT_DIR"
+            return "$status"
+          }
+          trap cleanup EXIT
           test -L "$MOUNT_DIR/Applications"
           codesign --verify --deep --strict "$MOUNT_DIR/LNbits.app"
           uv run --no-sync python .github/packaging/smoke_sidecars.py "$MOUNT_DIR/LNbits.app/Contents/Frameworks/sidecars"
