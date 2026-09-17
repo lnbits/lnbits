@@ -54,6 +54,7 @@ async def test_corelightning_pay_offer_fetchinvoice_then_pay(monkeypatch, payer_
     )
     assert response.ok is True
     assert response.checking_id == "ab" * 32
+    assert response.payment_request == "lni1resolvedinvoice"
     assert response.preimage == "cd" * 32
     assert response.fee_msat == -100
     assert calls[0][0] == "fetchinvoice"
@@ -110,6 +111,7 @@ async def test_phoenixd_pay_offer_posts_payoffer(payer_note):
             VALID_OFFER, fee_limit_msat=0, amount_msat=5000, payer_note=payer_note
         )
         assert response.ok is True
+        assert response.payment_request is None
         assert response.checking_id == "ef" * 32
         assert response.fee_msat == -1000
         assert requests[0].url.path == "/payoffer"
@@ -124,7 +126,8 @@ async def test_phoenixd_pay_offer_posts_payoffer(payer_note):
 
 @pytest.mark.anyio
 @pytest.mark.parametrize("payer_note", [None, "", PAYER_NOTE])
-async def test_eclair_pay_offer_posts_payoffer(payer_note):
+@pytest.mark.parametrize("invoice", [None, "lni1resolvedinvoice"])
+async def test_eclair_pay_offer_posts_payoffer(payer_note, invoice):
     requests: list[httpx.Request] = []
 
     def handler(request: httpx.Request) -> httpx.Response:
@@ -143,11 +146,12 @@ async def test_eclair_pay_offer_posts_payoffer(payer_note):
                 200,
                 json=[
                     {
+                        "invoice": {"serialized": invoice} if invoice else None,
                         "status": {
                             "type": "sent",
                             "feesPaid": 12,
                             "paymentPreimage": "22" * 32,
-                        }
+                        },
                     }
                 ],
             )
@@ -164,7 +168,11 @@ async def test_eclair_pay_offer_posts_payoffer(payer_note):
             VALID_OFFER, fee_limit_msat=99, amount_msat=21000, payer_note=payer_note
         )
         assert response.ok is True
+        assert response.payment_request == invoice
         assert response.checking_id == "11" * 32
+        assert response.checking_id is not None
+        status = await wallet.get_payment_status(response.checking_id)
+        assert status.payment_request == invoice
         assert response.fee_msat == -12
         assert requests[0].url.path == "/payoffer"
         assert parse_qs(requests[0].content.decode()) == {
@@ -179,7 +187,9 @@ async def test_eclair_pay_offer_posts_payoffer(payer_note):
 
 @pytest.mark.anyio
 @pytest.mark.parametrize("payer_note", [None, "", PAYER_NOTE])
-async def test_lnbits_pay_offer_posts_payments(payer_note):
+@pytest.mark.parametrize("invoice", [None, "lni1resolvedinvoice"])
+@pytest.mark.parametrize("status_has_invoice", [False, True])
+async def test_lnbits_pay_offer_posts_payments(payer_note, invoice, status_has_invoice):
     requests: list[httpx.Request] = []
 
     def handler(request: httpx.Request) -> httpx.Response:
@@ -188,6 +198,7 @@ async def test_lnbits_pay_offer_posts_payments(payer_note):
             return httpx.Response(
                 201,
                 json={
+                    "bolt11": invoice,
                     "checking_id": "33" * 32,
                     "payment_hash": "44" * 32,
                     "status": "success",
@@ -203,7 +214,10 @@ async def test_lnbits_pay_offer_posts_payments(payer_note):
                     "paid": True,
                     "status": "success",
                     "preimage": "55" * 32,
-                    "details": {"fee": -1000},
+                    "details": {
+                        "fee": -1000,
+                        **({"bolt11": invoice} if status_has_invoice else {}),
+                    },
                 },
             )
         return httpx.Response(404)
@@ -219,7 +233,11 @@ async def test_lnbits_pay_offer_posts_payments(payer_note):
             VALID_OFFER, fee_limit_msat=0, amount_msat=21000, payer_note=payer_note
         )
         assert response.ok is True
+        assert response.payment_request == invoice
         assert response.checking_id == "33" * 32
+        assert response.checking_id is not None
+        status = await wallet.get_payment_status(response.checking_id)
+        assert status.payment_request == (invoice if status_has_invoice else None)
         assert requests[0].url.path == "/api/v1/payments"
         body = json.loads(requests[0].content.decode())
         assert body == {
@@ -276,6 +294,7 @@ async def test_fake_pay_offer_accepts_note(payer_note):
     assert response.ok is True
     assert response.checking_id
     assert response.preimage
+    assert response.payment_request is None
     assert wallet.payment_secrets[response.checking_id] == response.preimage
     assert response.checking_id in wallet.paid_invoices
 
@@ -319,6 +338,7 @@ async def test_clnrest_pay_offer_payloads(monkeypatch, settings, payer_note, ren
         )
     assert response.ok is True
     assert response.checking_id == "ab" * 32
+    assert response.payment_request == "lni1resolvedinvoice"
     assert response.preimage == "cd" * 32
     assert response.fee_msat == 50
     assert len(requests) == 2
@@ -336,3 +356,44 @@ async def test_clnrest_pay_offer_payloads(monkeypatch, settings, payer_note, ren
     }
     for request in requests:
         assert request.headers["rune"] == ("renepay-rune" if renepay else "pay-rune")
+
+
+@pytest.mark.anyio
+@pytest.mark.parametrize("invoice", [None, "lni1resolvedinvoice"])
+@pytest.mark.parametrize("wallet_class", [CoreLightningWallet, CLNRestWallet])
+async def test_cln_offer_status_invoice(wallet_class, invoice):
+    checking_id = "ab" * 32
+    data = {
+        "pays": [
+            {
+                "payment_hash": checking_id,
+                "status": "complete",
+                "amount_msat": 21000,
+                "amount_sent_msat": 21050,
+                "preimage": "cd" * 32,
+                **({"bolt12": invoice} if invoice else {}),
+            }
+        ]
+    }
+    wallet = object.__new__(wallet_class)
+    if isinstance(wallet, CoreLightningWallet):
+        wallet.ln = Mock()
+        wallet.ln.listpays.return_value = data
+        status = await wallet.get_payment_status(checking_id)
+    else:
+        wallet.readonly_headers = {"rune": "readonly"}
+
+        def handler(request):
+            assert request.url.path == "/v1/listpays"
+            assert json.loads(request.content) == {"payment_hash": checking_id}
+            return httpx.Response(200, json=data)
+
+        async with httpx.AsyncClient(
+            base_url="http://clnrest.test", transport=httpx.MockTransport(handler)
+        ) as wallet.client:
+            status = await wallet.get_payment_status(checking_id)
+    assert status.success
+    assert status.payment_request == invoice
+    assert status.fee_msat is not None
+    assert abs(status.fee_msat) == 50
+    assert status.preimage == "cd" * 32

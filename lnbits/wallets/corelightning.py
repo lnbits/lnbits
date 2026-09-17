@@ -252,7 +252,11 @@ class CoreLightningWallet(Wallet):
             paid = await run_sync(lambda: self.ln.call(self.pay, pay_payload))
             fee_msat = -int(paid["amount_sent_msat"] - paid["amount_msat"])
             return PaymentResponse(
-                True, paid["payment_hash"], fee_msat, paid["payment_preimage"], None
+                True,
+                paid["payment_hash"],
+                fee_msat,
+                paid["payment_preimage"],
+                payment_request=invoice,
             )
         except RpcError as exc:
             logger.warning(exc)
@@ -326,7 +330,9 @@ class CoreLightningWallet(Wallet):
                     )
 
                     return PaymentSuccessStatus(
-                        fee_msat=fee_msat, preimage=payment_resp["preimage"]
+                        fee_msat=fee_msat,
+                        preimage=payment_resp["preimage"],
+                        payment_request=payment_resp.get("bolt12"),
                     )
                 elif status == "failed":
                     return PaymentFailedStatus()
