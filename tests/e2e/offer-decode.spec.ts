@@ -33,9 +33,9 @@ test('offer metadata prefills sats and keeps the description separate from the p
   await page.getByRole('button', {name: /^read$/i}).click()
   const amountInput = page.locator('.q-dialog input[type="number"]')
   await expect(amountInput).toHaveValue('10')
-  await expect(
-    page.locator('.q-dialog h6', {hasText: 'Test vectors'})
-  ).toBeVisible()
+  await expect(page.getByLabel('Description', {exact: true})).toHaveValue(
+    'Test vectors'
+  )
   await expect(page.getByLabel('Memo (optional)', {exact: true})).toHaveValue(
     ''
   )
@@ -76,11 +76,11 @@ test('offer metadata prefills sats and keeps the description separate from the p
     await expect(page.getByLabel('Memo (optional)', {exact: true})).toHaveValue(
       ''
     )
-    const description = page.locator('.q-dialog h6', {hasText: 'Test vectors'})
+    const description = page.getByLabel('Description', {exact: true})
     if (offer === minimalOffer) {
       await expect(description).toBeHidden()
     } else {
-      await expect(description).toBeVisible()
+      await expect(description).toHaveValue('Test vectors')
     }
     await amountInput.fill('21')
     await expect(page.getByRole('button', {name: /^pay$/i})).toBeEnabled()
@@ -140,7 +140,5 @@ test('a late offer decode cannot replace a newly opened payment form', async ({
   await expect(page.locator('.q-dialog textarea')).toHaveValue(minimalOffer)
   await page.getByRole('button', {name: /^read$/i}).click()
   await expect(page.locator('.q-dialog input[type="number"]')).toHaveValue('0')
-  await expect(
-    page.locator('.q-dialog h6', {hasText: 'Test vectors'})
-  ).toBeHidden()
+  await expect(page.getByLabel('Description', {exact: true})).toBeHidden()
 })

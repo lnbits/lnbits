@@ -25,9 +25,9 @@ test('offer memo becomes a payer note or falls back to the offer description', a
   const noteInput = page.getByLabel('Memo (optional)', {exact: true})
   const note = '  Thank you ☕ & = +\n' + 'long note '.repeat(30) + '  '
   await expect(noteInput).toBeVisible()
-  await expect(
-    page.locator('.q-dialog h6', {hasText: 'Test vectors'})
-  ).toBeVisible()
+  await expect(page.getByLabel('Description', {exact: true})).toHaveValue(
+    'Test vectors'
+  )
   await expect(noteInput).toHaveValue('')
   await noteInput.fill(note)
   await page.locator('.q-dialog input[type="number"]').fill('21')
