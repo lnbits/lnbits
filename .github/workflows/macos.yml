@@ -1,6 +1,8 @@
 name: Build LNbits macOS DMG
 
 on:
+  # Temporary: build signed artifacts for PR testing before release-only CI.
+  pull_request:
   workflow_call:
     inputs:
       tag_name:
@@ -31,6 +33,8 @@ permissions:
 
 jobs:
   build:
+    # Fork PRs do not receive the Apple signing secrets.
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
     strategy:
       fail-fast: false
       matrix:

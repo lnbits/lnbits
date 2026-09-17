@@ -32,8 +32,11 @@ class BuildTests(unittest.TestCase):
                             "PyInstaller.depend.bindepend": bindepend,
                         },
                     ),
-                    patch("prepare_sidecars.main"),
-                    patch("pathlib.Path.iterdir", return_value=iter(())),
+                    patch("prepare_sidecars.main") as prepare,
+                    patch(
+                        "pathlib.Path.iterdir",
+                        return_value=iter([Path(folder) / "node"]),
+                    ),
                     patch("sys.platform", system),
                     patch.dict("os.environ"),
                     patch(
@@ -44,6 +47,8 @@ class BuildTests(unittest.TestCase):
                 ):
                     runpy.run_path(str(BUILD))
                 command = run.call_args.args[0]
+                prepare.assert_called_once_with()
+                self.assertIn(f"{Path(folder) / 'node'}:sidecars", command)
                 collections = [
                     command[i + 1]
                     for i, item in enumerate(command)

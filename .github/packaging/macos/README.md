@@ -229,11 +229,13 @@ and exercise the native Phoenixd executable; failures stop publication.
 ## GitHub Actions
 
 `macos.yml` retains `macos-15` (arm64) and `macos-15-intel` (x86_64). Automatic builds
-run only through the stable and RC release workflows; branch pushes and pull
-requests do not trigger macOS builds. Every CI build, including manual runs,
-requires Developer ID signing and notarization. There is no unsigned CI option.
-All six GitHub Actions secrets must be configured; missing or invalid credentials
-fail the build.
+run through the stable and RC release workflows. Temporarily, same-repository pull
+requests also build signed artifacts for testing, without attaching them to a
+release. Fork PRs are skipped because they do not receive the Apple secrets.
+Remove the `pull_request` trigger when returning to release-only automatic builds.
+Every CI build, including manual runs, requires Developer ID signing and
+notarization. There is no unsigned CI option. All six GitHub Actions secrets must
+be configured; missing or invalid credentials fail the build.
 
 For a manual `workflow_dispatch`, leave the release tag empty for signed, notarized
 **artifact-only** builds. Supplying a release tag also attaches the verified assets

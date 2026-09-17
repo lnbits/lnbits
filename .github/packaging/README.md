@@ -1,8 +1,8 @@
 # Desktop funding sources
 
-The macOS launcher offers **Neither**, **Spark L2**, and **Phoenixd**.
-This selective port leaves Linux and Windows packaging unchanged. Choose an unused daemon port, then launch LNbits. Neither starts
-LNbits using its normal funding settings. Spark/Phoenixd start locally, wait for
+The desktop launcher offers **Neither** and **Spark L2** on all platforms, plus
+**Phoenixd** on macOS and Linux. Choose an unused daemon port, then launch LNbits.
+Neither starts LNbits using its normal funding settings. Spark/Phoenixd start locally, wait for
 an authenticated wallet API response, and configure the existing LNbits backend.
 Python, Node.js and the daemons do not need to be installed by the user.
 An internet connection is needed for either funding service.

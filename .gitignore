@@ -64,6 +64,5 @@ dist
 .idea
 .venv
 
-# macOS packaging and private release credentials
-/build/
+# Private macOS release credentials
 .env.macos-release
