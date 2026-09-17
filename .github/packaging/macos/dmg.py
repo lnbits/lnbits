@@ -53,9 +53,6 @@ def main():
         run(*signing, str(app))
         run("/usr/bin/codesign", "--verify", "--deep", "--strict", str(app))
         (staging / "Applications").symlink_to("/Applications")
-        shutil.copyfile(
-            Path(__file__).with_name("Read me.txt"), staging / "Read me.txt"
-        )
         run(
             "/usr/bin/hdiutil",
             "create",

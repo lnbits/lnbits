@@ -21,8 +21,7 @@ if sys.platform == "darwin":
         if Path(name).name.startswith(("libssl.", "libcrypto.")):
             raise RuntimeError(
                 "macOS packaging requires cryptography with static OpenSSL. "
-                "Clear its uv cache and reinstall with OPENSSL_STATIC=1; "
-                "see .github/packaging/macos/README.md."
+                "Clear its uv cache and reinstall with OPENSSL_STATIC=1."
             )
 prepare_sidecars()
 

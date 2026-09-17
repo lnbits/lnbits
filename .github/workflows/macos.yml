@@ -101,7 +101,7 @@ jobs:
           uv run --no-sync python .github/packaging/smoke_sidecars.py "$MOUNT_DIR/LNbits.app/Contents/Frameworks/sidecars"
           uv run --no-sync python .github/packaging/smoke.py "$MOUNT_DIR/LNbits.app/Contents/MacOS/LNbits"
       - name: Record signing status
-        run: echo 'DMGs are ad-hoc signed, without Apple Developer ID or notarization. See the included Read me.txt for first-launch instructions.' >> "$GITHUB_STEP_SUMMARY"
+        run: echo 'DMGs are ad-hoc signed, without Apple Developer ID or notarization.' >> "$GITHUB_STEP_SUMMARY"
       - uses: actions/upload-artifact@v4
         with:
           name: LNbits-macOS-${{ matrix.arch }}
