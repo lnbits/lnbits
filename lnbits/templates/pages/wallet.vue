@@ -748,7 +748,7 @@
         </div>
         <q-separator></q-separator>
         <h6
-          v-if="!parse.invoice.isBolt12Offer"
+          v-if="parse.invoice.description"
           class="text-center"
           v-text="parse.invoice.description"
         ></h6>
@@ -1075,6 +1075,7 @@
             filled
             dense
             v-model.trim="parse.data.request"
+            :readonly="parse.decoding"
             type="textarea"
             :label="$t('paste_invoice_label')"
             ref="textArea"
@@ -1085,6 +1086,7 @@
               unelevated
               color="primary"
               :disable="parse.data.request == ''"
+              :loading="parse.decoding"
               type="submit"
               :label="$t('read')"
             ></q-btn>
@@ -1092,7 +1094,7 @@
               name="content_paste"
               color="grey"
               class="q-mt-xs q-ml-sm q-mr-auto"
-              v-if="parse.copy.show"
+              v-if="parse.copy.show && !parse.decoding"
               @click="pasteToTextArea"
             >
               <q-tooltip>

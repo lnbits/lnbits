@@ -8,6 +8,8 @@ window.PageWallet = {
         lnurlpay: null,
         lnurlauth: null,
         sending: false,
+        decoding: false,
+        decodeId: 0,
         data: {
           request: '',
           amount: 0,
@@ -315,6 +317,8 @@ window.PageWallet = {
       this.parse.camera.show = false
     },
     closeParseDialog() {
+      this.parse.decodeId++
+      this.parse.decoding = false
       setTimeout(() => {
         clearInterval(this.parse.paymentChecker)
       }, 10000)
@@ -476,7 +480,8 @@ window.PageWallet = {
       const text = (req || '').trim().toLowerCase()
       return text.startsWith('lno1')
     },
-    decodeRequest() {
+    async decodeRequest() {
+      if (this.parse.decoding) return
       this.parse.show = true
       this.parse.data.request = this.parse.data.request.trim()
       const req = this.parse.data.request.toLowerCase()
@@ -498,23 +503,51 @@ window.PageWallet = {
       }
 
       if (this.isBolt12Offer(this.parse.data.request)) {
-        const offer = this.parse.data.request
-          .trim()
-          .toLowerCase()
-          .split('?')[0]
-          .split('#')[0]
+        const offer = this.parse.data.request.trim().split('?')[0].split('#')[0]
         this.parse.data.request = offer
         this.parse.data.amount = 0
-        this.parse.invoice = Object.freeze({
-          msat: null,
-          sat: 0,
-          fsat: 'offer',
-          bolt11: offer,
-          description: this.$t('bolt12_offer'),
-          hash: null,
-          isBolt12Offer: true,
-          expired: false
-        })
+        this.parse.invoice = null
+        this.parse.decoding = true
+        const decodeId = ++this.parse.decodeId
+        try {
+          const {data} = await LNbits.api.request(
+            'post',
+            '/api/v1/payments/decode',
+            null,
+            {data: offer}
+          )
+          if (decodeId !== this.parse.decodeId || !this.parse.show) return
+          // Offer payments currently accept whole sats only. Never round an
+          // amount or interpret a foreign currency's minor units as sats.
+          const amount =
+            data.currency == null &&
+            Number.isSafeInteger(data.amount) &&
+            data.amount > 0 &&
+            data.amount % 1000 === 0
+              ? data.amount / 1000
+              : 0
+          this.parse.data.request = data.offer
+          this.parse.data.amount = amount
+          this.parse.invoice = Object.freeze({
+            msat: data.currency == null ? data.amount : null,
+            sat: amount,
+            fsat: 'offer',
+            bolt11: data.offer,
+            description: data.description,
+            hash: null,
+            isBolt12Offer: true,
+            expired: false
+          })
+        } catch (error) {
+          if (decodeId === this.parse.decodeId && this.parse.show) {
+            Quasar.Notify.create({
+              type: 'warning',
+              message: error.response?.data?.message || error.message
+            })
+          }
+        } finally {
+          if (decodeId === this.parse.decodeId) this.parse.decoding = false
+        }
         return
       }
 

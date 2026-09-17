@@ -58,7 +58,7 @@ from lnbits.helpers import (
     generate_filter_params_openapi,
     is_valid_label,
 )
-from lnbits.utils.bolt12 import looks_like_bolt12_offer, parse_bolt12_offer
+from lnbits.utils.bolt12 import decode_bolt12_offer, looks_like_bolt12_offer
 from lnbits.wallets.base import InvoiceResponse
 
 from ..crud import (
@@ -461,8 +461,8 @@ async def api_payments_decode(data: DecodePayment) -> JSONResponse:
             url = str(url_decode(payment_str))
             return JSONResponse({"domain": url})
         if looks_like_bolt12_offer(payment_str):
-            offer = parse_bolt12_offer(payment_str)
-            return JSONResponse({"type": "bolt12_offer", "offer": offer})
+            offer = decode_bolt12_offer(payment_str)
+            return JSONResponse({"type": "bolt12_offer", **offer.dict()})
         invoice = bolt11.decode(payment_str)
         filtered_data = filter_dict_keys(invoice.data, data.filter_fields)
         return JSONResponse(filtered_data)
