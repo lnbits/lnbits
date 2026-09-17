@@ -333,6 +333,7 @@ class CLNRestWallet(Wallet):
         offer: str,
         fee_limit_msat: int,
         amount_msat: int | None = None,
+        payer_note: str | None = None,
     ) -> PaymentResponse:
         """Pay a BOLT12 offer via CLN REST fetchinvoice + pay."""
         if not settings.clnrest_pay_rune and not settings.clnrest_renepay_rune:
@@ -341,7 +342,10 @@ class CLNRestWallet(Wallet):
                 error_message="Unable to pay offer without a pay or renepay rune",
             )
 
-        fetch_body: dict = {"offer": offer}
+        fetch_body: dict = {
+            "offer": offer,
+            **({"payer_note": payer_note} if payer_note else {}),
+        }
         if amount_msat is not None and amount_msat > 0:
             fetch_body["amount_msat"] = amount_msat
 

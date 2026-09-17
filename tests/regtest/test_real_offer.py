@@ -20,6 +20,15 @@ pytestmark = [
 
 
 @pytest.mark.parametrize(
+    "memos",
+    [
+        (None, None),
+        ("", ""),
+        ("  Thanks for the coffee! ☕ First payment.  ", "Second payment — merci! ⚡"),
+    ],
+    ids=["omitted-memo", "empty-memo", "payer-note"],
+)
+@pytest.mark.parametrize(
     ("real_offer", "amounts"),
     [(100, (100, 100)), (None, (100, 200))],
     indirect=["real_offer"],
@@ -29,6 +38,7 @@ async def test_pay_real_offer(
     client,
     real_offer,
     amounts,
+    memos,
     from_wallet,
     adminkey_headers_from,
     inkey_headers_from,
@@ -42,15 +52,19 @@ async def test_pay_real_offer(
     checking_ids: set[str] = set()
 
     # Offers are reusable: each payment must settle a separate invoice.
-    for amount in amounts:
+    for amount, memo in zip(amounts, memos, strict=True):
+        request = {
+            "out": True,
+            "payment_request": real_offer["bolt12"],
+            "amount": amount,
+            "unit": "sat",
+            "extra": {"internal_memo": "Private regtest memo"},
+        }
+        if memo is not None:
+            request["memo"] = memo
         response = await client.post(
             "/api/v1/payments",
-            json={
-                "out": True,
-                "payment_request": real_offer["bolt12"],
-                "amount": amount,
-                "unit": "sat",
-            },
+            json=request,
             headers=adminkey_headers_from,
         )
         assert response.status_code < 300, response.text
@@ -70,6 +84,18 @@ async def test_pay_real_offer(
         assert stored and stored.success
         assert stored.checking_id == payment.checking_id
         assert stored.preimage == payment.preimage
+        for result in (payment, stored):
+            assert result.memo == (memo or real_offer["description"])
+            assert result.extra["internal_memo"] == "Private regtest memo"
+            if memo:
+                assert result.extra["payer_note"] == memo
+                assert (
+                    result.extra["bolt12_offer_description"]
+                    == real_offer["description"]
+                )
+            else:
+                assert "payer_note" not in result.extra
+                assert "bolt12_offer_description" not in result.extra
 
         status_response = await client.get(
             f"/api/v1/payments/{payment.payment_hash}", headers=inkey_headers_from
@@ -95,6 +121,14 @@ async def test_pay_real_offer(
         invoice = invoices[payment.checking_id]
         assert invoice["amount_received_msat"] == amount * 1000
         assert invoice["payment_preimage"] == payment.preimage
+        assert invoice["description"] == real_offer["description"]
+        # Eclair accepts the memo locally but cannot transmit a payer note.
+        expected_payer_note = (
+            None
+            if funding_source.__class__.__name__ == "EclairWallet"
+            else memo or None
+        )
+        assert invoice.get("invreq_payer_note") == expected_payer_note
 
         wallet_after = await get_wallet(from_wallet.id)
         assert wallet_after
