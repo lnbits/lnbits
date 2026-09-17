@@ -175,7 +175,6 @@ async def test_pay_offer_debits_wallet_and_is_reusable(app):
         offer=VALID_OFFER,
         amount_sat=21,
         extra=extra,
-        description="first offer pay",
         labels=["offers"],
         external_id="offer-order-1",
     )
@@ -189,7 +188,7 @@ async def test_pay_offer_debits_wallet_and_is_reusable(app):
     stored = await get_standalone_payment(first.checking_id)
     assert stored
     assert stored.success
-    assert stored.memo == "first offer pay"
+    assert stored.memo == "BOLT12 offer"
     assert stored.extra["reference"] == "order-1"
     assert stored.labels == ["offers"]
     assert stored.external_id == "offer-order-1"
@@ -265,8 +264,8 @@ def test_offer_description_rejects_invalid_padding():
 
 
 @pytest.mark.anyio
-@pytest.mark.parametrize("payer_note", [None, "", "  ", "  Thanks ☕\n" * 100])
-async def test_pay_offer_memo_and_description(app, monkeypatch, payer_note):
+@pytest.mark.parametrize("memo", [None, "", "  ", "  Thanks ☕\n" * 100])
+async def test_pay_offer_memo_and_description(app, monkeypatch, memo):
     user = await create_user_account()
     wallet = await create_wallet(user_id=user.id)
     await update_wallet_balance(wallet, 1000)
@@ -284,7 +283,7 @@ async def test_pay_offer_memo_and_description(app, monkeypatch, payer_note):
         wallet_id=wallet.id,
         offer=BOLT12_OFFER_WITH_DESCRIPTION,
         amount_sat=21,
-        payer_note=payer_note,
+        memo=memo,
         extra=extra,
     )
 
@@ -292,14 +291,14 @@ async def test_pay_offer_memo_and_description(app, monkeypatch, payer_note):
         BOLT12_OFFER_WITH_DESCRIPTION,
         fee_limit_msat=20000,
         amount_msat=21000,
-        payer_note=payer_note or None,
+        payer_note=memo or None,
     )
     stored = await get_standalone_payment(payment.checking_id)
     assert stored and stored.success
-    assert stored.memo == (payer_note or "Test vectors")
+    assert stored.memo == (memo or "Test vectors")
     assert stored.extra["internal_memo"] == "Private memo"
-    if payer_note:
-        assert stored.extra["payer_note"] == payer_note
+    if memo:
+        assert stored.extra["payer_note"] == memo
         assert stored.extra["bolt12_offer_description"] == "Test vectors"
     else:
         assert "payer_note" not in stored.extra
@@ -318,7 +317,7 @@ async def test_pay_offer_unsupported_note_preserves_balance(app):
             wallet_id=wallet.id,
             offer=BOLT12_OFFER_WITH_DESCRIPTION,
             amount_sat=21,
-            payer_note="For the recipient",
+            memo="For the recipient",
         )
     after = await get_wallet(wallet.id)
     assert after and after.balance == 1000

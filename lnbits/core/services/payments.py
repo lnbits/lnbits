@@ -102,9 +102,8 @@ async def pay_offer(
     wallet_id: str,
     offer: str,
     amount_sat: int | None = None,
-    payer_note: str | None = None,
+    memo: str | None = None,
     extra: dict | None = None,
-    description: str = "",
     tag: str = "",
     labels: list[str] | None = None,
     external_id: str | None = None,
@@ -120,9 +119,9 @@ async def pay_offer(
     pr = _validate_offer_payment_request(offer, amount_sat)
     extra = dict(extra or {})
     extra["bolt12"] = True
-    # Only an explicit payer note is sent to the recipient.
-    if payer_note:
-        extra["payer_note"] = payer_note
+    # Only an explicit memo is sent as a payer note.
+    if memo:
+        extra["payer_note"] = memo
         extra["bolt12_offer_description"] = pr.description
     else:
         extra.pop("payer_note", None)
@@ -131,7 +130,7 @@ async def pay_offer(
         wallet_id=wallet_id,
         pr=pr,
         extra=extra,
-        description=payer_note or description or pr.description or "BOLT12 offer",
+        description=memo or pr.description or "BOLT12 offer",
         tag=tag,
         labels=labels,
         external_id=external_id,

@@ -298,7 +298,7 @@ async def api_payments_create(
                 offer=invoice_data.payment_request,
                 amount_sat=amount_sat,
                 extra=invoice_data.extra,
-                payer_note=invoice_data.memo,
+                memo=invoice_data.memo,
                 labels=invoice_data.labels,
                 external_id=invoice_data.external_id,
             )
