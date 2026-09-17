@@ -130,9 +130,16 @@ class FakeWallet(Wallet):
         offer: str,
         fee_limit_msat: int,
         amount_msat: int | None = None,
+        payer_note: str | None = None,
     ) -> PaymentResponse:
         from lnbits.exceptions import PaymentError
         from lnbits.utils.bolt12 import parse_bolt12_offer
+
+        if payer_note:
+            return PaymentResponse(
+                ok=False,
+                error_message="Payer notes are not supported by FakeWallet.",
+            )
 
         try:
             parse_bolt12_offer(offer)

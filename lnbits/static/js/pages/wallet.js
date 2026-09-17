@@ -12,6 +12,7 @@ window.PageWallet = {
           request: '',
           amount: 0,
           comment: '',
+          memo: '',
           internalMemo: null,
           unit: 'sat'
         },
@@ -308,6 +309,7 @@ window.PageWallet = {
       this.parse.data.comment = ''
       this.parse.data.amount = 0
       this.parse.data.internalMemo = null
+      this.parse.data.memo = ''
       this.parse.sending = false
       this.parse.data.paymentChecker = null
       this.parse.camera.show = false
@@ -612,7 +614,8 @@ window.PageWallet = {
           this.g.wallet,
           this.parse.data.request,
           this.parse.data.internalMemo,
-          amount
+          amount,
+          this.parse.invoice.isBolt12Offer ? this.parse.data.memo : null
         )
         .then(response => {
           this.parse.sending = false

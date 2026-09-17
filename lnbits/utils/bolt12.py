@@ -1,13 +1,15 @@
 """BOLT12 offer detection and fail-closed validation.
 
-Offers are bech32 strings with HRP ``lno``. This module only identifies and
-normalizes an offer string; invoice fetch and payment stay on the funding
-source (see ``Wallet.pay_offer``).
+Offers use the bech32 alphabet with HRP ``lno``, without a checksum. This module
+normalizes offers and reads their description; invoice fetch and payment stay
+on the funding source (see ``Wallet.pay_offer``).
 """
 
 from __future__ import annotations
 
 import re
+
+from bech32 import CHARSET, convertbits
 
 from lnbits.exceptions import PaymentError
 
@@ -15,7 +17,7 @@ from lnbits.exceptions import PaymentError
 _BECH32_DATA_RE = re.compile(r"^[ac-hj-np-z02-9]+$")
 _BOLT12_PRETTY_PLUS = re.compile(r"\+\s*")
 
-# HRP + separator + 6-character checksum is the theoretical minimum.
+# Basic sanity check; semantic offer validation stays on the funding source.
 _MIN_OFFER_LEN = 10
 
 
@@ -70,3 +72,48 @@ def is_bolt12_offer(value: str) -> bool:
     except PaymentError:
         return False
     return True
+
+
+def get_bolt12_offer_description(value: str) -> str | None:
+    """Read offer_description (TLV type 10), checking encoding and TLV boundaries."""
+    offer = parse_bolt12_offer(value)
+    decoded = convertbits([CHARSET.index(char) for char in offer[4:]], 5, 8, False)
+    if decoded is None:
+        raise PaymentError("Invalid BOLT12 offer encoding.", status="failed")
+
+    data = bytes(decoded)
+    offset = 0
+    previous_type = -1
+    description = None
+    try:
+        while offset < len(data):
+            field_type, offset = _read_bigsize(data, offset)
+            length, offset = _read_bigsize(data, offset)
+            end = offset + length
+            if field_type <= previous_type or end > len(data):
+                raise ValueError("Invalid TLV record")
+            if field_type == 10:
+                description = data[offset:end].decode("utf-8")
+            previous_type = field_type
+            offset = end
+    except ValueError as exc:
+        raise PaymentError("Invalid BOLT12 offer data.", status="failed") from exc
+    return description
+
+
+def _read_bigsize(data: bytes, offset: int) -> tuple[int, int]:
+    if offset >= len(data):
+        raise ValueError("Missing BigSize value")
+    prefix = data[offset]
+    offset += 1
+    if prefix < 253:
+        return prefix, offset
+
+    size = 1 << (prefix - 252)
+    end = offset + size
+    if end > len(data):
+        raise ValueError("Truncated BigSize value")
+    value = int.from_bytes(data[offset:end], "big")
+    if value < {253: 253, 254: 0x10000, 255: 0x100000000}[prefix]:
+        raise ValueError("Non-canonical BigSize value")
+    return value, end

@@ -1,6 +1,9 @@
 """BOLT12 offer detection and send path (lnbits#2581)."""
 
+from unittest.mock import AsyncMock
+
 import pytest
+from bech32 import CHARSET, convertbits
 
 from lnbits.core.crud import create_wallet, get_standalone_payment, get_wallet
 from lnbits.core.models import PaymentState, ValidatedPaymentRequest
@@ -13,15 +16,17 @@ from lnbits.core.services.payments import (
 from lnbits.exceptions import PaymentError
 from lnbits.settings import Settings
 from lnbits.utils.bolt12 import (
+    get_bolt12_offer_description,
     is_bolt12_offer,
     looks_like_bolt12_offer,
     parse_bolt12_offer,
 )
-from lnbits.wallets.base import Feature
+from lnbits.utils.crypto import random_secret_and_hash
+from lnbits.wallets.base import Feature, PaymentResponse
 from lnbits.wallets.fake import FakeWallet
+from tests.helpers import BOLT12_OFFER, BOLT12_OFFER_WITH_DESCRIPTION
 
-# Charset-valid offer (not a live invoice; FakeWallet accepts the shape).
-VALID_OFFER = "lno1qgsqvgnwgcg35z6ee2h3yczraddm72xrfua9uve2rlrm9deu7xyfzrcgq9qh"
+VALID_OFFER = BOLT12_OFFER
 
 BOLT11 = (
     "lnbc1pvjluezpp5qqqsyqcyq5rqwzqfqqqsyqcyq5rqwzqfqqqsyqcyq5rqwzqfqypq"
@@ -79,7 +84,7 @@ async def test_validate_offer_payment_request(app):
     assert pr.payment_request == VALID_OFFER
     assert pr.amount_msat == 21_000
     assert pr.expiry_date is None
-    assert pr.description == "BOLT12 offer"
+    assert pr.description == ""
     assert len(pr.payment_hash) == 64
     assert pr.payment_hash != second.payment_hash
 
@@ -207,3 +212,119 @@ async def test_pay_offer_debits_wallet_and_is_reusable(app):
 
 def test_fake_wallet_advertises_bolt12():
     assert Feature.bolt12 in (FakeWallet.features or [])
+
+
+def test_offer_description_from_spec_vectors():
+    assert get_bolt12_offer_description(BOLT12_OFFER) is None
+    assert get_bolt12_offer_description(BOLT12_OFFER_WITH_DESCRIPTION) == "Test vectors"
+    assert (
+        get_bolt12_offer_description(
+            "lightning:" + BOLT12_OFFER_WITH_DESCRIPTION.upper()
+        )
+        == "Test vectors"
+    )
+
+
+def test_offer_description_preserves_utf8_and_extended_length():
+    description = "  Café ☕\n" * 100
+    value = description.encode("utf-8")
+    offer = _encode_offer(b"\x0a\xfd" + len(value).to_bytes(2, "big") + value)
+    assert get_bolt12_offer_description(offer) == description
+
+
+@pytest.mark.parametrize(
+    "field_type",
+    [b"\xfd\x01\x01", b"\xfe\x00\x01\x00\x00", b"\xff\x00\x00\x00\x01\x00\x00\x00\x00"],
+)
+def test_offer_description_skips_unknown_fields(field_type):
+    offer = _encode_offer(b"\x0a\x01a" + field_type + b"\x03abc")
+    assert get_bolt12_offer_description(offer) == "a"
+
+
+@pytest.mark.parametrize(
+    "payload",
+    [
+        b"\x0a\x05abc",  # Truncated description.
+        b"\x0a\x02\xff\xff",  # Invalid UTF-8.
+        b"\x0a\x01a\x0a\x01b",  # Duplicate description.
+        b"\x0a\x01a\x08\x00",  # Out-of-order fields.
+        b"\x0a\xfd\x00",  # Truncated BigSize length.
+        b"\x0a\xfd\x00\x01a",  # Non-canonical BigSize length.
+        b"\x0a\x03abc\x16",  # Incomplete record after description.
+        b"\x0a\xff\xff\xff\xff\xff\xff\xff\xff\xff",  # Oversized length.
+    ],
+)
+def test_offer_description_rejects_malformed_tlv(payload):
+    with pytest.raises(PaymentError, match="Invalid BOLT12 offer"):
+        get_bolt12_offer_description(_encode_offer(payload))
+
+
+def test_offer_description_rejects_invalid_padding():
+    with pytest.raises(PaymentError, match="Invalid BOLT12 offer encoding"):
+        get_bolt12_offer_description(BOLT12_OFFER + "p")
+
+
+@pytest.mark.anyio
+@pytest.mark.parametrize("payer_note", [None, "", "  ", "  Thanks ☕\n" * 100])
+async def test_pay_offer_memo_and_description(app, monkeypatch, payer_note):
+    user = await create_user_account()
+    wallet = await create_wallet(user_id=user.id)
+    await update_wallet_balance(wallet, 1000)
+    preimage, payment_hash = random_secret_and_hash()
+    backend = AsyncMock(return_value=PaymentResponse(True, payment_hash, 0, preimage))
+    monkeypatch.setattr(FakeWallet, "pay_offer", backend)
+    extra = {
+        "internal_memo": "Private memo",
+        "payer_note": "Old note",
+        "bolt12_offer_description": "Old description",
+    }
+    original_extra = dict(extra)
+
+    payment = await pay_offer(
+        wallet_id=wallet.id,
+        offer=BOLT12_OFFER_WITH_DESCRIPTION,
+        amount_sat=21,
+        payer_note=payer_note,
+        extra=extra,
+    )
+
+    backend.assert_awaited_once_with(
+        BOLT12_OFFER_WITH_DESCRIPTION,
+        fee_limit_msat=20000,
+        amount_msat=21000,
+        payer_note=payer_note or None,
+    )
+    stored = await get_standalone_payment(payment.checking_id)
+    assert stored and stored.success
+    assert stored.memo == (payer_note or "Test vectors")
+    assert stored.extra["internal_memo"] == "Private memo"
+    if payer_note:
+        assert stored.extra["payer_note"] == payer_note
+        assert stored.extra["bolt12_offer_description"] == "Test vectors"
+    else:
+        assert "payer_note" not in stored.extra
+        assert "bolt12_offer_description" not in stored.extra
+    assert extra == original_extra
+
+
+@pytest.mark.anyio
+async def test_pay_offer_unsupported_note_preserves_balance(app):
+    user = await create_user_account()
+    wallet = await create_wallet(user_id=user.id)
+    await update_wallet_balance(wallet, 1000)
+
+    with pytest.raises(PaymentError, match="Payer notes are not supported"):
+        await pay_offer(
+            wallet_id=wallet.id,
+            offer=BOLT12_OFFER_WITH_DESCRIPTION,
+            amount_sat=21,
+            payer_note="For the recipient",
+        )
+    after = await get_wallet(wallet.id)
+    assert after and after.balance == 1000
+
+
+def _encode_offer(payload: bytes) -> str:
+    encoded = convertbits(payload, 8, 5)
+    assert encoded is not None
+    return "lno1" + "".join(CHARSET[value] for value in encoded)

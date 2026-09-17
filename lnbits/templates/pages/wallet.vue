@@ -692,6 +692,15 @@
             :label="$t('amount_sats')"
             :hint="$t('bolt12_offer_amount_hint')"
           ></q-input>
+          <q-input
+            filled
+            dense
+            class="q-mt-md full-width"
+            v-model="parse.data.memo"
+            type="textarea"
+            :label="$t('memo_optional')"
+            :hint="$t('bolt12_offer_memo_hint')"
+          ></q-input>
         </div>
         <div v-else class="column content-center text-center q-mb-md">
           <div v-if="!g.isFiatPriority">

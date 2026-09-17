@@ -227,6 +227,7 @@ class CoreLightningWallet(Wallet):
         offer: str,
         fee_limit_msat: int,
         amount_msat: int | None = None,
+        payer_note: str | None = None,
     ) -> PaymentResponse:
         """Resolve a BOLT12 offer with fetchinvoice, then pay the invoice.
 
@@ -236,6 +237,8 @@ class CoreLightningWallet(Wallet):
             fetch_payload: dict = {"offer": offer}
             if amount_msat is not None and amount_msat > 0:
                 fetch_payload["amount_msat"] = amount_msat
+            if payer_note:
+                fetch_payload["payer_note"] = payer_note
             fetched = await run_sync(
                 lambda: self.ln.call("fetchinvoice", fetch_payload)
             )
