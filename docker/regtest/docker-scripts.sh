@@ -267,13 +267,14 @@ lnbits-lightning-init(){
 
   # CLN can exchange BOLT12 invoice requests with a directly connected peer.
   connect_clightning_node 1 3 > /dev/null
+  docker exec lnbits-eclair-1 curl -fsS -u :lnbits -X POST http://localhost:8080/connect \
+    -F uri="$(lightning-cli-sim 3 getinfo | jq -r '.id')@lnbits-clightning-3-1:9735" > /dev/null
 
   # Eclair routes onion messages over the channel graph.
-  eclair_pubkey=$(get-eclair-pubkey)
-  lightning-cli-sim 3 connect "$eclair_pubkey@lnbits-eclair-1:9735" || exit 1
+  # Fix the fee rate so fresh regtest estimates stay within Eclair's limits.
   echo "open channel from cln-3 to eclair-1 for BOLT12 offers"
-  lightning-cli-sim 3 -k fundchannel id="$eclair_pubkey" \
-    amount=$channel_size push_msat=$balance_size_msat || exit 1
+  lightning-cli-sim 3 -k fundchannel id="$(get-eclair-pubkey)" \
+    amount=$channel_size push_msat=$balance_size_msat feerate=2500perkw || exit 1
   bitcoin-cli-sim -generate $channel_confirms > /dev/null
   wait-for-clightning-channel 3 3
 
