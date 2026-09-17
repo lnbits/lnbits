@@ -16,6 +16,7 @@ from lnbits.core.services.payments import (
 from lnbits.exceptions import PaymentError
 from lnbits.settings import Settings
 from lnbits.utils.bolt12 import (
+    decode_bolt12_offer,
     get_bolt12_offer_description,
     is_bolt12_offer,
     looks_like_bolt12_offer,
@@ -24,7 +25,11 @@ from lnbits.utils.bolt12 import (
 from lnbits.utils.crypto import random_secret_and_hash
 from lnbits.wallets.base import Feature, PaymentResponse
 from lnbits.wallets.fake import FakeWallet
-from tests.helpers import BOLT12_OFFER, BOLT12_OFFER_WITH_DESCRIPTION
+from tests.helpers import (
+    BOLT12_OFFER,
+    BOLT12_OFFER_WITH_AMOUNT,
+    BOLT12_OFFER_WITH_DESCRIPTION,
+)
 
 VALID_OFFER = BOLT12_OFFER
 
@@ -224,6 +229,55 @@ def test_offer_description_from_spec_vectors():
     )
 
 
+@pytest.mark.parametrize(
+    "offer,amount,description",
+    [
+        (BOLT12_OFFER, None, None),
+        (BOLT12_OFFER_WITH_DESCRIPTION, None, "Test vectors"),
+        (BOLT12_OFFER_WITH_AMOUNT, 10_000, "Test vectors"),
+    ],
+)
+def test_decode_offer_from_spec_vectors(offer, amount, description):
+    decoded = decode_bolt12_offer("lightning:" + offer.upper())
+    assert decoded.offer == offer
+    assert decoded.amount == amount
+    assert decoded.currency is None
+    assert decoded.description == description
+
+
+def test_decode_offer_preserves_currency_minor_units():
+    offer = _encode_offer(b"\x06\x03USD\x08\x02\x09\xc4\x0a\x04Book")
+    decoded = decode_bolt12_offer(offer)
+    assert decoded.amount == 2500  # USD cents, not millisatoshis.
+    assert decoded.currency == "USD"
+    assert decoded.description == "Book"
+
+
+@pytest.mark.parametrize("amount", [1, 1500, 2**53 + 1, 2**64 - 1])
+def test_decode_offer_preserves_amount_precision(amount):
+    value = amount.to_bytes((amount.bit_length() + 7) // 8, "big")
+    offer = _encode_offer(b"\x08" + bytes([len(value)]) + value + b"\x0a\x01a")
+    assert decode_bolt12_offer(offer).amount == amount
+
+
+@pytest.mark.parametrize(
+    "payload",
+    [
+        b"\x08\x00",  # Zero amount.
+        b"\x08\x01\x00",  # Non-canonical zero.
+        b"\x08\x02\x00\x01",  # Leading zero.
+        b"\x08\x09" + b"\xff" * 9,  # Larger than tu64.
+        b"\x06\x00",  # Empty currency.
+        b"\x06\x02US",  # Not a three-letter code.
+        b"\x06\x03usd",  # Currency codes are uppercase.
+        b"\x06\x03\xff\xff\xff",  # Invalid UTF-8.
+    ],
+)
+def test_decode_offer_rejects_invalid_metadata(payload):
+    with pytest.raises(PaymentError, match="Invalid BOLT12 offer"):
+        decode_bolt12_offer(_encode_offer(payload + b"\x0a\x01a"))
+
+
 def test_offer_description_preserves_utf8_and_extended_length():
     description = "  Café ☕\n" * 100
     value = description.encode("utf-8")
@@ -307,7 +361,13 @@ async def test_pay_offer_memo_and_description(app, monkeypatch, memo):
 
 
 @pytest.mark.anyio
-async def test_pay_offer_unsupported_note_preserves_balance(app):
+async def test_pay_offer_unsupported_note_preserves_balance(app, monkeypatch):
+    backend = AsyncMock(
+        return_value=PaymentResponse(
+            ok=False, error_message="Payer notes are not supported by this backend."
+        )
+    )
+    monkeypatch.setattr(FakeWallet, "pay_offer", backend)
     user = await create_user_account()
     wallet = await create_wallet(user_id=user.id)
     await update_wallet_balance(wallet, 1000)

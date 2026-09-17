@@ -267,25 +267,17 @@ async def test_base_wallet_pay_offer_is_unsupported(payer_note):
 
 
 @pytest.mark.anyio
-async def test_fake_pay_offer_rejects_note_before_payment():
-    wallet = object.__new__(FakeWallet)
-    # No client or wallet state: rejection must happen before any payment work.
-    response = await wallet.pay_offer(
-        VALID_OFFER, fee_limit_msat=50, amount_msat=21000, payer_note=PAYER_NOTE
-    )
-    assert response.ok is False
-    assert response.error_message
-    assert "Payer notes are not supported" in response.error_message
-
-
-@pytest.mark.anyio
-@pytest.mark.parametrize("payer_note", [None, ""])
-async def test_fake_pay_offer_accepts_empty_note(payer_note):
+@pytest.mark.parametrize("payer_note", [None, "", PAYER_NOTE])
+async def test_fake_pay_offer_accepts_note(payer_note):
     wallet = FakeWallet()
     response = await wallet.pay_offer(
         VALID_OFFER, fee_limit_msat=50, amount_msat=21000, payer_note=payer_note
     )
     assert response.ok is True
+    assert response.checking_id
+    assert response.preimage
+    assert wallet.payment_secrets[response.checking_id] == response.preimage
+    assert response.checking_id in wallet.paid_invoices
 
 
 @pytest.mark.anyio

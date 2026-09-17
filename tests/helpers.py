@@ -36,6 +36,14 @@ BOLT12_OFFER_WITH_DESCRIPTION = (
     "lno1pgx9getnwss8vetrw3hhyuckyypwa3eyt44h6txtxquqh7lz5"
     "djge4afgfjn7k4rgrkuag0jsd5xvxg"
 )
+BOLT12_OFFER_WITH_AMOUNT = (
+    "lno1pqpzwyq2p32x2um5ypmx2cm5dae8x93pqthvwfzadd7jejes8q9lhc4rvjxd"
+    "022zv5l44g6qah82ru5rdpnpj"
+)
+BOLT12_OFFER_WITH_CURRENCY = (
+    "lno1qcp4256ypqpzwyq2p32x2um5ypmx2cm5dae8x93pqthvwfzadd7jejes8q9lhc4rvjxd"
+    "022zv5l44g6qah82ru5rdpnpj"
+)
 
 
 class DbTestModel(BaseModel):

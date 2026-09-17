@@ -25,20 +25,22 @@ test('offer memo becomes a payer note or falls back to the offer description', a
   const noteInput = page.getByLabel('Memo (optional)', {exact: true})
   const note = '  Thank you ☕ & = +\n' + 'long note '.repeat(30) + '  '
   await expect(noteInput).toBeVisible()
+  await expect(page.locator('.q-dialog h6', {hasText: 'Test vectors'})).toBeVisible()
+  await expect(noteInput).toHaveValue('')
   await noteInput.fill(note)
   await page.locator('.q-dialog input[type="number"]').fill('21')
   await page
     .getByLabel('Internal memo (optional)', {exact: true})
     .fill('Private memo')
 
-  const rejectedResponse = page.waitForResponse(
+  const memoResponse = page.waitForResponse(
     response =>
       response.url().endsWith('/api/v1/payments') &&
       response.request().method() === 'POST'
   )
   await page.getByRole('button', {name: /^pay$/i}).click()
-  const rejected = await rejectedResponse
-  expect(rejected.request().postDataJSON()).toEqual({
+  const paidWithMemo = await memoResponse
+  expect(paidWithMemo.request().postDataJSON()).toEqual({
     out: true,
     payment_request: offer,
     amount: 21,
@@ -46,12 +48,15 @@ test('offer memo becomes a payer note or falls back to the offer description', a
     extra: {internal_memo: 'Private memo'},
     memo: note
   })
-  expect(rejected.status()).toBe(520)
-  expect((await rejected.json()).detail).toContain(
-    'Payer notes are not supported by FakeWallet'
-  )
+  expect(paidWithMemo.status()).toBe(201)
+  const memoPayment = await paidWithMemo.json()
+  expect(memoPayment.status).toBe('success')
+  expect(memoPayment.memo).toBe(note)
+  expect(memoPayment.extra.payer_note).toBe(note)
+  expect(memoPayment.extra.bolt12_offer_description).toBe('Test vectors')
+  expect(memoPayment.extra.internal_memo).toBe('Private memo')
 
-  // Empty notes retain the existing fake offer payment flow.
+  // Empty notes fall back to the offer description without sending a payer note.
   await expect(noteInput).toBeHidden()
   await page.getByRole('button', {name: /^send$/i}).click()
   await page.locator('.q-dialog textarea').fill(offer)

@@ -23,6 +23,8 @@ from lnbits.wallets.fake import FakeWallet
 
 from ..helpers import (
     BOLT12_OFFER,
+    BOLT12_OFFER_WITH_AMOUNT,
+    BOLT12_OFFER_WITH_CURRENCY,
     BOLT12_OFFER_WITH_DESCRIPTION,
     get_random_invoice_data,
     get_random_string,
@@ -694,18 +696,36 @@ async def test_decode_invoice(client, invoice: Payment):
 
 
 @pytest.mark.anyio
-async def test_decode_bolt12_offer(client):
-    offer = BOLT12_OFFER
+@pytest.mark.parametrize(
+    "offer,amount,currency,description",
+    [
+        (BOLT12_OFFER, None, None, None),
+        (BOLT12_OFFER_WITH_DESCRIPTION, None, None, "Test vectors"),
+        (BOLT12_OFFER_WITH_AMOUNT, 10_000, None, "Test vectors"),
+        (BOLT12_OFFER_WITH_CURRENCY, 10_000, "USD", "Test vectors"),
+    ],
+)
+async def test_decode_bolt12_offer(client, offer, amount, currency, description):
     response = await client.post(
         "/api/v1/payments/decode",
         json={"data": "lightning:" + offer.upper()},
     )
     assert response.status_code == 200
-    assert response.json() == {"type": "bolt12_offer", "offer": offer}
+    assert response.json() == {
+        "type": "bolt12_offer",
+        "offer": offer,
+        "amount": amount,
+        "currency": currency,
+        "description": description,
+    }
 
+
+@pytest.mark.anyio
+@pytest.mark.parametrize("offer", ["lno1!!!", BOLT12_OFFER + "p"])
+async def test_decode_bolt12_offer_rejects_invalid_encoding(client, offer):
     bad = await client.post(
         "/api/v1/payments/decode",
-        json={"data": "lno1!!!"},
+        json={"data": offer},
     )
     assert bad.status_code == 400
     assert "Invalid BOLT12 offer" in bad.json()["message"]
@@ -783,7 +803,15 @@ async def test_pay_bolt12_offer_memo(
 
 
 @pytest.mark.anyio
-async def test_pay_bolt12_offer_unsupported_memo(client, adminkey_headers_to):
+async def test_pay_bolt12_offer_unsupported_memo(
+    client, adminkey_headers_to, monkeypatch
+):
+    backend = AsyncMock(
+        return_value=PaymentResponse(
+            ok=False, error_message="Payer notes are not supported by this backend."
+        )
+    )
+    monkeypatch.setattr(FakeWallet, "pay_offer", backend)
     response = await client.post(
         "/api/v1/payments",
         json={
