@@ -63,6 +63,15 @@ BOLT12 offer tests run with `CoreLightningWallet`, `EclairWallet`, and
 offers. Eclair 0.11.0 requires Bitcoin Core 27.2 or later; this stack uses 28.1.
 The CLN node 3–Eclair channel lets Eclair route BOLT12 invoice requests.
 
+The tests cover fixed and amountless offers, repeated payments, and supplied,
+empty, or omitted memos. They verify stored metadata and payer-note delivery to
+CLN node 3. Eclair payments still succeed with a supplied memo, which stays local
+because its API cannot transmit payer notes.
+
+Payer-note cases use single-line Unicode text with surrounding spaces. CLN 24.11
+copies JSON escape sequences into the note, so multiline notes do not arrive
+unchanged; these happy-flow tests do not cover that backend limitation.
+
 After starting the stack and configuring the funding source, run from the
 repository root:
 
