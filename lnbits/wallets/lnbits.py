@@ -212,6 +212,7 @@ class LNbitsWallet(Wallet):
                 checking_id=checking_id,
                 fee_msat=payment.fee_msat,
                 preimage=payment.preimage,
+                payment_request=payment.payment_request or data.get("bolt11"),
             )
 
         except httpx.HTTPStatusError as exc:
@@ -274,7 +275,9 @@ class LNbitsWallet(Wallet):
                 return PaymentPendingStatus()
 
             return PaymentSuccessStatus(
-                fee_msat=data["details"]["fee"], preimage=data["preimage"]
+                fee_msat=data["details"]["fee"],
+                preimage=data["preimage"],
+                payment_request=data["details"].get("bolt11"),
             )
         except Exception:
             return PaymentPendingStatus()

@@ -119,6 +119,11 @@ async def test_pay_real_offer(
         }
         assert set(invoices) == checking_ids
         invoice = invoices[payment.checking_id]
+        assert payment.bolt11 == invoice["bolt12"]
+        assert payment.payment_request == invoice["bolt12"]
+        assert stored.bolt11 == invoice["bolt12"]
+        assert backend_status.payment_request == invoice["bolt12"]
+        assert stored.extra["bolt12_offer"] == real_offer["bolt12"]
         assert invoice["amount_received_msat"] == amount * 1000
         assert invoice["payment_preimage"] == payment.preimage
         assert invoice["description"] == real_offer["description"]

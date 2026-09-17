@@ -5,12 +5,19 @@ from unittest.mock import AsyncMock
 import pytest
 from bech32 import CHARSET, convertbits
 
-from lnbits.core.crud import create_wallet, get_standalone_payment, get_wallet
+from lnbits.core.crud import (
+    create_wallet,
+    get_standalone_payment,
+    get_wallet,
+    update_payment,
+)
 from lnbits.core.models import PaymentState, ValidatedPaymentRequest
 from lnbits.core.services import create_user_account, pay_invoice, pay_offer
 from lnbits.core.services.payments import (
     _validate_offer_payment_request,
     _validate_payment_request,
+    update_payment_success_status,
+    update_pending_payment,
     update_wallet_balance,
 )
 from lnbits.exceptions import PaymentError
@@ -23,7 +30,7 @@ from lnbits.utils.bolt12 import (
     parse_bolt12_offer,
 )
 from lnbits.utils.crypto import random_secret_and_hash
-from lnbits.wallets.base import Feature, PaymentResponse
+from lnbits.wallets.base import Feature, PaymentResponse, PaymentSuccessStatus
 from lnbits.wallets.fake import FakeWallet
 from tests.helpers import (
     BOLT12_OFFER,
@@ -195,6 +202,7 @@ async def test_pay_offer_debits_wallet_and_is_reusable(app):
     assert stored.success
     assert stored.memo == "BOLT12 offer"
     assert stored.extra["reference"] == "order-1"
+    assert stored.extra["bolt12_offer"] == VALID_OFFER
     assert stored.labels == ["offers"]
     assert stored.external_id == "offer-order-1"
     assert extra == {"reference": "order-1"}
@@ -319,12 +327,17 @@ def test_offer_description_rejects_invalid_padding():
 
 @pytest.mark.anyio
 @pytest.mark.parametrize("memo", [None, "", "  ", "  Thanks ☕\n" * 100])
-async def test_pay_offer_memo_and_description(app, monkeypatch, memo):
+@pytest.mark.parametrize("invoice", [None, "", VALID_OFFER, "lni1resolvedinvoice"])
+async def test_pay_offer_memo_and_description(app, monkeypatch, memo, invoice):
     user = await create_user_account()
     wallet = await create_wallet(user_id=user.id)
     await update_wallet_balance(wallet, 1000)
     preimage, payment_hash = random_secret_and_hash()
-    backend = AsyncMock(return_value=PaymentResponse(True, payment_hash, 0, preimage))
+    backend = AsyncMock(
+        return_value=PaymentResponse(
+            True, payment_hash, 0, preimage, payment_request=invoice
+        )
+    )
     monkeypatch.setattr(FakeWallet, "pay_offer", backend)
     extra = {
         "internal_memo": "Private memo",
@@ -349,6 +362,14 @@ async def test_pay_offer_memo_and_description(app, monkeypatch, memo):
     )
     stored = await get_standalone_payment(payment.checking_id)
     assert stored and stored.success
+    assert stored.bolt11 == (
+        invoice
+        if invoice and invoice.startswith("lni1")
+        else BOLT12_OFFER_WITH_DESCRIPTION
+    )
+    assert payment.bolt11 == stored.bolt11
+    assert payment.payment_request == stored.bolt11
+    assert stored.extra["bolt12_offer"] == BOLT12_OFFER_WITH_DESCRIPTION
     assert stored.memo == (memo or "Test vectors")
     assert stored.extra["internal_memo"] == "Private memo"
     if memo:
@@ -381,6 +402,90 @@ async def test_pay_offer_unsupported_note_preserves_balance(app, monkeypatch):
         )
     after = await get_wallet(wallet.id)
     assert after and after.balance == 1000
+
+
+@pytest.mark.anyio
+@pytest.mark.parametrize("initial_invoice", [None, "lni1resolvedinvoice"])
+@pytest.mark.parametrize("status_invoice", [None, "lni1resolvedinvoice"])
+@pytest.mark.parametrize("legacy", [False, True])
+async def test_pending_offer_resolves_invoice(
+    app, monkeypatch, initial_invoice, status_invoice, legacy
+):
+    user = await create_user_account()
+    wallet = await create_wallet(user_id=user.id)
+    await update_wallet_balance(wallet, 1000)
+    preimage, payment_hash = random_secret_and_hash()
+    monkeypatch.setattr(
+        FakeWallet,
+        "pay_offer",
+        AsyncMock(
+            return_value=PaymentResponse(
+                checking_id=payment_hash, payment_request=initial_invoice
+            )
+        ),
+    )
+    payment = await pay_offer(wallet_id=wallet.id, offer=VALID_OFFER, amount_sat=21)
+    stored = await get_standalone_payment(payment.checking_id)
+    assert stored and stored.pending
+    assert stored.bolt11 == (initial_invoice or VALID_OFFER)
+    assert stored.payment_request == stored.bolt11
+    if legacy and not initial_invoice:
+        stored.extra.pop("bolt12_offer")
+        await update_payment(stored)
+    status = AsyncMock(
+        return_value=PaymentSuccessStatus(
+            fee_msat=12, preimage=preimage, payment_request=status_invoice
+        )
+    )
+    monkeypatch.setattr(FakeWallet, "get_payment_status", status)
+    result = await update_pending_payment(stored)
+    status.assert_awaited_once_with(payment_hash)
+    stored = await get_standalone_payment(payment_hash)
+    assert stored and stored.success
+    assert stored.bolt11 == (initial_invoice or status_invoice or VALID_OFFER)
+    assert result.payment_request == stored.bolt11
+    assert stored.preimage == preimage
+    assert stored.fee == -12
+    if initial_invoice or status_invoice or not legacy:
+        assert stored.extra["bolt12_offer"] == VALID_OFFER
+
+
+@pytest.mark.anyio
+async def test_reusable_offer_stores_separate_invoices(app, monkeypatch):
+    user = await create_user_account()
+    wallet = await create_wallet(user_id=user.id)
+    await update_wallet_balance(wallet, 1000)
+    for invoice in ("lni1firstinvoice", "lni1secondinvoice"):
+        preimage, payment_hash = random_secret_and_hash()
+        monkeypatch.setattr(
+            FakeWallet,
+            "pay_offer",
+            AsyncMock(
+                return_value=PaymentResponse(
+                    True, payment_hash, 0, preimage, payment_request=invoice
+                )
+            ),
+        )
+        payment = await pay_offer(wallet_id=wallet.id, offer=VALID_OFFER, amount_sat=21)
+        stored = await get_standalone_payment(payment.checking_id)
+        assert stored and stored.success
+        assert stored.bolt11 == invoice
+        assert stored.extra["bolt12_offer"] == VALID_OFFER
+
+
+@pytest.mark.anyio
+async def test_success_status_does_not_replace_bolt11(app):
+    user = await create_user_account()
+    wallet = await create_wallet(user_id=user.id)
+    await update_wallet_balance(wallet, 1000)
+    payment = await pay_offer(wallet_id=wallet.id, offer=VALID_OFFER, amount_sat=21)
+    # Exercise the common updater with an existing BOLT11 request.
+    payment.bolt11 = BOLT11
+    await update_payment_success_status(
+        payment, PaymentSuccessStatus(payment_request="lni1unrelatedinvoice")
+    )
+    stored = await get_standalone_payment(payment.checking_id)
+    assert stored and stored.bolt11 == BOLT11
 
 
 def _encode_offer(payload: bytes) -> str:
