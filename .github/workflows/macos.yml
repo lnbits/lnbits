@@ -1,15 +1,6 @@
 name: Build LNbits macOS DMG
 
 on:
-  push:
-    branches:
-      - "**"
-    paths:
-      - ".github/packaging/**"
-      - ".github/workflows/macos.yml"
-      - "Makefile"
-      - "pyproject.toml"
-      - "uv.lock"
   workflow_call:
     inputs:
       tag_name:

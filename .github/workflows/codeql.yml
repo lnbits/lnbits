@@ -10,8 +10,6 @@ on:
 
 jobs:
   analyze:
-    # Temporarily isolate the macOS packaging branch and its PR.
-    if: github.head_ref != 'signed_macos_build' && github.ref_name != 'signed_macos_build'
     runs-on: ubuntu-24.04
     steps:
       - name: Checkout repository

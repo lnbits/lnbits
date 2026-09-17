@@ -228,10 +228,12 @@ and exercise the native Phoenixd executable; failures stop publication.
 
 ## GitHub Actions
 
-`macos.yml` retains `macos-15` (arm64) and `macos-15-intel` (x86_64). Every CI build,
-including branch pushes, manual runs, and stable/RC releases, requires Developer ID
-signing and notarization. There is no unsigned CI option. All six GitHub Actions
-secrets must be configured; missing or invalid credentials fail the build.
+`macos.yml` retains `macos-15` (arm64) and `macos-15-intel` (x86_64). Automatic builds
+run only through the stable and RC release workflows; branch pushes and pull
+requests do not trigger macOS builds. Every CI build, including manual runs,
+requires Developer ID signing and notarization. There is no unsigned CI option.
+All six GitHub Actions secrets must be configured; missing or invalid credentials
+fail the build.
 
 For a manual `workflow_dispatch`, leave the release tag empty for signed, notarized
 **artifact-only** builds. Supplying a release tag also attaches the verified assets
@@ -267,12 +269,6 @@ notarization, final-image smoke checks, checksum generation, and cleanup.
   and reports staging size and available disk space. Long operations print a
   heartbeat every 30 seconds and retain sanitized tool output on failure. A timeout
   stops the tool's process group and fails the build; it never uploads a partial image.
-
-While debugging this work, automatic non-macOS CI is skipped for the
-`signed_macos_build` branch and PRs from it (the main CI chain, Windows, CodeQL,
-and Nix). Other branches and stable/RC release tags keep their existing behavior.
-Remove the temporary job conditions in those workflows when this branch is ready
-for the full CI suite.
 
 Run `make test-desktop` for mocked Apple-tool tests, identity validation,
 notarization/signing order, failure and cleanup gates, checksum generation,
