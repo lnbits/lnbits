@@ -3,6 +3,7 @@
 import os
 import socket
 import ssl
+import sys
 import tempfile
 import time
 import unittest
@@ -13,6 +14,24 @@ import desktop
 
 
 class DesktopTests(unittest.TestCase):
+    def test_macos_finder_launch_and_data_folder(self):
+        with (
+            patch("desktop.sys.platform", "darwin"),
+            patch("desktop.sys.argv", ["LNbits"]),
+            patch.dict(os.environ, {}, clear=True),
+            patch("desktop.launched_from_terminal", return_value=False),
+            patch("desktop.Path.home", return_value=Path("/Users/test")),
+        ):
+            self.assertTrue(desktop.should_show_gui())
+            self.assertEqual(
+                desktop.default_folder(),
+                Path("/Users/test/Library/Application Support/LNbits"),
+            )
+            with patch("desktop.launched_from_terminal", return_value=True):
+                self.assertFalse(desktop.should_show_gui())
+            with patch("desktop.sys.argv", ["LNbits", "--headless"]):
+                self.assertFalse(desktop.should_show_gui())
+
     def test_gui_flag_bypasses_terminal_detection(self):
         with (
             patch("desktop.sys.argv", ["lnbits", "--gui"]),
@@ -272,7 +291,11 @@ class DesktopTests(unittest.TestCase):
                     launched = True
                 elif str(browser.cget("state")) == "normal":
                     ready = True
-                    root.tk.call(root.protocol("WM_DELETE_WINDOW"))
+                    root.tk.call(
+                        "tk::mac::Quit"
+                        if sys.platform == "darwin"
+                        else root.protocol("WM_DELETE_WINDOW")
+                    )
                     return
                 elif time.monotonic() > deadline:
                     timed_out = True
