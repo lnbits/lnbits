@@ -271,10 +271,9 @@ lnbits-lightning-init(){
     -F uri="$(lightning-cli-sim 3 getinfo | jq -r '.id')@lnbits-clightning-3-1:9735" > /dev/null
 
   # Eclair routes onion messages over the channel graph.
-  # Fix the fee rate so fresh regtest estimates stay within Eclair's limits.
   echo "open channel from cln-3 to eclair-1 for BOLT12 offers"
   lightning-cli-sim 3 -k fundchannel id="$(get-eclair-pubkey)" \
-    amount=$channel_size push_msat=$balance_size_msat feerate=2500perkw || exit 1
+    amount=$channel_size push_msat=$balance_size_msat || exit 1
   bitcoin-cli-sim -generate $channel_confirms > /dev/null
   wait-for-clightning-channel 3 3
 
