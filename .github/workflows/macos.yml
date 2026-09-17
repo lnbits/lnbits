@@ -15,10 +15,6 @@ on:
       tag_name:
         required: true
         type: string
-      signed:
-        description: Require Developer ID signing and notarization
-        default: true
-        type: boolean
     secrets:
       BUILD_CERTIFICATE_BASE64:
         required: true
@@ -38,10 +34,6 @@ on:
         description: Release tag (leave empty for an artifact-only build)
         required: false
         type: string
-      signed:
-        description: Sign and notarize artifacts (always required with a release tag)
-        default: false
-        type: boolean
 
 permissions:
   contents: read
@@ -58,8 +50,6 @@ jobs:
             arch: x86_64
     runs-on: ${{ matrix.runner }}
     timeout-minutes: 120
-    env:
-      SIGNED_BUILD: ${{ inputs.signed || inputs.tag_name != '' }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -90,7 +80,6 @@ jobs:
       - name: Test launcher and packaging
         run: uv run --no-sync python -m unittest discover -s .github/packaging -v
       - name: Build signed and notarized release artifacts
-        if: env.SIGNED_BUILD == 'true'
         env:
           BUILD_CERTIFICATE_BASE64: ${{ secrets.BUILD_CERTIFICATE_BASE64 }}
           P12_PASSWORD: ${{ secrets.P12_PASSWORD }}
@@ -99,20 +88,13 @@ jobs:
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
           APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
         run: uv run --no-sync python .github/packaging/macos/release.py --ci --prepared
-      - name: Build ad-hoc development artifacts
-        if: env.SIGNED_BUILD != 'true'
-        run: uv run --no-sync python .github/packaging/macos/release.py --unsigned --prepared
       # Runs before upload: any cleanup failure keeps both artifacts unpublished.
       - name: Always clean temporary keychain and mounted image
         if: always()
         run: python3 .github/packaging/macos/release.py --cleanup
       - name: Record signing status
         run: |
-          if [ "$SIGNED_BUILD" = true ]; then
-            echo 'Developer ID signed; app and DMG independently notarized, stapled and verified. Final read-only image smoke checks and checksum verification passed.' >> "$GITHUB_STEP_SUMMARY"
-          else
-            echo 'Development artifacts are ad-hoc signed and are not notarized. See the included Read me.txt for first-launch instructions.' >> "$GITHUB_STEP_SUMMARY"
-          fi
+          echo 'Developer ID signed; app and DMG independently notarized, stapled and verified. Final read-only image smoke checks and checksum verification passed.' >> "$GITHUB_STEP_SUMMARY"
       - uses: actions/upload-artifact@v4
         with:
           name: LNbits-macOS-${{ matrix.arch }}

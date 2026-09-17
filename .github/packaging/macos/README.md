@@ -228,17 +228,19 @@ and exercise the native Phoenixd executable; failures stop publication.
 
 ## GitHub Actions
 
-`macos.yml` retains `macos-15` (arm64) and `macos-15-intel` (x86_64). Ordinary branch
-pushes build ad-hoc artifacts without secrets. Manual `workflow_dispatch` accepts
-`signed: true` with an empty tag for signed, notarized **artifact-only** builds.
-A nonempty release tag always forces the signed path regardless of the checkbox.
-The stable and RC callers explicitly pass all six secrets and `signed: true`.
-Missing credentials never fall back to ad-hoc signing. Other platform jobs and
-release triggers are unchanged.
+`macos.yml` retains `macos-15` (arm64) and `macos-15-intel` (x86_64). Every CI build,
+including branch pushes, manual runs, and stable/RC releases, requires Developer ID
+signing and notarization. There is no unsigned CI option. All six GitHub Actions
+secrets must be configured; missing or invalid credentials fail the build.
+
+For a manual `workflow_dispatch`, leave the release tag empty for signed, notarized
+**artifact-only** builds. Supplying a release tag also attaches the verified assets
+to that release. The stable and RC callers explicitly pass all six secrets.
+Unsigned development builds remain available locally through `make build-macos`.
 
 Credentials are scoped to the signed build step. Dependency preparation and
-launcher/packaging tests run separately without them. Both modes call the same
-implementation as the local commands. Upload requires successful signing,
+launcher/packaging tests run separately without them. CI calls the same release
+implementation as `make build-macos-release`. Upload requires successful signing,
 notarization, final-image smoke checks, checksum generation, and cleanup.
 
 ## Troubleshooting and release validation
