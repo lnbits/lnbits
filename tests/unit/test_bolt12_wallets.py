@@ -123,7 +123,7 @@ async def test_phoenixd_pay_offer_posts_payoffer(payer_note):
 
 
 @pytest.mark.anyio
-@pytest.mark.parametrize("payer_note", [None, ""])
+@pytest.mark.parametrize("payer_note", [None, "", PAYER_NOTE])
 async def test_eclair_pay_offer_posts_payoffer(payer_note):
     requests: list[httpx.Request] = []
 
@@ -267,9 +267,8 @@ async def test_base_wallet_pay_offer_is_unsupported(payer_note):
 
 
 @pytest.mark.anyio
-@pytest.mark.parametrize("wallet_class", [EclairWallet, FakeWallet])
-async def test_pay_offer_rejects_unsupported_note_before_payment(wallet_class):
-    wallet = object.__new__(wallet_class)
+async def test_fake_pay_offer_rejects_note_before_payment():
+    wallet = object.__new__(FakeWallet)
     # No client or wallet state: rejection must happen before any payment work.
     response = await wallet.pay_offer(
         VALID_OFFER, fee_limit_msat=50, amount_msat=21000, payer_note=PAYER_NOTE
