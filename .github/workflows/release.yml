@@ -98,3 +98,9 @@ jobs:
     uses: ./.github/workflows/windows.yml
     with:
       tag_name: ${{ github.ref_name }}
+
+  macos:
+    needs: [ release ]
+    uses: ./.github/workflows/macos.yml
+    with:
+      tag_name: ${{ github.ref_name }}

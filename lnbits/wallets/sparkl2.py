@@ -174,6 +174,7 @@ class SparkL2Wallet(Wallet):
                 checking_id=checking_id,
                 fee_msat=int(fee_msat) if fee_msat is not None else None,
                 preimage=res.get("preimage"),
+                error_message=res.get("error_message") if ok is False else None,
             )
 
         except Exception as e:
