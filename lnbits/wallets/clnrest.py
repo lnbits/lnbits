@@ -2,6 +2,7 @@ import asyncio
 import base64
 import json
 import os
+import re
 import ssl
 import uuid
 from collections.abc import AsyncGenerator
@@ -11,11 +12,11 @@ import httpx
 from bolt11 import Bolt11Exception
 from bolt11.decode import decode
 from loguru import logger
+from pyln.client import Millisatoshi
 
 from lnbits.exceptions import UnsupportedError
 from lnbits.helpers import normalize_endpoint
 from lnbits.settings import settings
-from lnbits.utils.bolt12 import is_bolt12_invoice_amount_valid
 from lnbits.utils.crypto import random_secret_and_hash
 
 from .base import (
@@ -372,7 +373,9 @@ class CLNRestWallet(Wallet):
                     ),
                 )
 
-            if not is_bolt12_invoice_amount_valid(inv_data.get("changes"), amount_msat):
+            if not _is_bolt12_invoice_amount_valid(
+                inv_data.get("changes"), amount_msat
+            ):
                 return PaymentResponse(
                     ok=False,
                     error_message=(
@@ -613,3 +616,25 @@ def _generate_label() -> str:
     """Generate a unique label for the invoice."""
     random_uuid = base64.urlsafe_b64encode(uuid.uuid4().bytes).rstrip(b"=").decode()
     return f"LNbits_{random_uuid}"
+
+
+def _is_bolt12_invoice_amount_valid(changes: object, amount_msat: int | None) -> bool:
+    """Check CLN's fetchinvoice amount report against the authorized amount.
+
+    With an explicit amount_msat, CLN reports the invoice amount in changes
+    whenever it differs from that request. An empty changes object confirms
+    the requested amount; an absent or malformed report cannot confirm it.
+    """
+    if type(amount_msat) is not int or amount_msat <= 0:
+        return False
+    if not isinstance(changes, dict):
+        return False
+
+    invoice_amount = changes.get("amount_msat", amount_msat)
+    if isinstance(invoice_amount, Millisatoshi):
+        invoice_amount = int(invoice_amount)
+    elif isinstance(invoice_amount, str) and re.fullmatch(
+        r"[0-9]{1,20}msat", invoice_amount
+    ):
+        invoice_amount = int(invoice_amount[:-4])
+    return type(invoice_amount) is int and invoice_amount == amount_msat

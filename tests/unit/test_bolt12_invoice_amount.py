@@ -10,16 +10,28 @@ from pyln.client import Millisatoshi
 from lnbits.core.crud import create_wallet, get_wallet
 from lnbits.core.services import create_user_account, pay_offer, update_wallet_balance
 from lnbits.exceptions import PaymentError
-from lnbits.utils.bolt12 import is_bolt12_invoice_amount_valid
 from lnbits.utils.crypto import random_secret_and_hash
 from lnbits.wallets.clnrest import CLNRestWallet
+from lnbits.wallets.clnrest import (
+    _is_bolt12_invoice_amount_valid as clnrest_invoice_amount_valid,
+)
 from lnbits.wallets.corelightning import CoreLightningWallet
+from lnbits.wallets.corelightning import (
+    _is_bolt12_invoice_amount_valid as cln_invoice_amount_valid,
+)
 from tests.helpers import BOLT12_OFFER
 
 
+@pytest.fixture(params=[cln_invoice_amount_valid, clnrest_invoice_amount_valid])
+def invoice_amount_valid(request):
+    return request.param
+
+
 @pytest.mark.parametrize("amount_msat", [None, 0, -1, True, 21000.5])
-def test_invoice_amount_requires_explicit_positive_integer(amount_msat):
-    assert not is_bolt12_invoice_amount_valid({}, amount_msat)
+def test_invoice_amount_requires_explicit_positive_integer(
+    invoice_amount_valid, amount_msat
+):
+    assert not invoice_amount_valid({}, amount_msat)
 
 
 @pytest.fixture(params=["cln", "clnrest", "clnrest-renepay"])
@@ -131,7 +143,7 @@ async def test_matching_invoice_amount_can_be_paid(cln_offer_backend, changes):
 
 
 @pytest.mark.parametrize("amount", [21000, 20000, 1_000_000])
-def test_pyln_millisatoshi_amount(amount):
-    assert is_bolt12_invoice_amount_valid(
-        {"amount_msat": Millisatoshi(amount)}, 21000
-    ) is (amount == 21000)
+def test_pyln_millisatoshi_amount(invoice_amount_valid, amount):
+    assert invoice_amount_valid({"amount_msat": Millisatoshi(amount)}, 21000) is (
+        amount == 21000
+    )
