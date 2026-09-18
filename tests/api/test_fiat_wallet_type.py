@@ -81,6 +81,67 @@ async def test_fiat_wallet_creation_availability(
     assert lightning.json()["wallet_type"] == "lightning"
 
 
+async def test_fiat_wallet_creation_currency(client, from_wallet, settings):
+    settings.lnbits_allow_fiat_wallets = True
+    settings.lnbits_allowed_currencies = ["EUR"]
+    response = await client.post(
+        f"/api/v1/wallet?usr={from_wallet.user}",
+        json={"name": "EUR receipts", "wallet_type": "fiat", "currency": "eur"},
+    )
+    assert response.status_code == 200
+    assert response.json()["currency"] == "EUR"
+    wallet = await get_wallet(response.json()["id"])
+    assert wallet and wallet.currency == "EUR"
+
+    for currency in ("", "unknown", "USD"):
+        response = await client.post(
+            f"/api/v1/wallet?usr={from_wallet.user}",
+            json={"wallet_type": "fiat", "currency": currency},
+        )
+        assert response.status_code == 400
+
+
+async def test_fiat_wallet_creation_currency_defaults(client, from_wallet, settings):
+    settings.lnbits_allow_fiat_wallets = True
+    for configured, expected in (("GBP", "GBP"), (None, "USD")):
+        settings.lnbits_default_accounting_currency = configured
+        for currency_data in ({}, {"currency": None}):
+            response = await client.post(
+                f"/api/v1/wallet?usr={from_wallet.user}",
+                json={"wallet_type": "fiat", **currency_data},
+            )
+            assert response.status_code == 200
+            wallet = await get_wallet(response.json()["id"])
+            assert wallet and wallet.currency == expected
+
+
+async def test_direct_fiat_currency_and_non_fiat_ignores_currency(
+    client, from_wallet, settings
+):
+    settings.lnbits_default_accounting_currency = "GBP"
+    wallet = await create_wallet(
+        user_id=from_wallet.user,
+        wallet_type=WalletType.FIAT,
+        currency="eur",
+    )
+    wallet = await get_wallet(wallet.id)
+    assert wallet and wallet.currency == "EUR"
+    with pytest.raises(ValueError, match="not supported"):
+        await create_wallet(
+            user_id=from_wallet.user,
+            wallet_type=WalletType.FIAT,
+            currency="",
+        )
+
+    response = await client.post(
+        f"/api/v1/wallet?usr={from_wallet.user}",
+        json={"currency": "unknown"},
+    )
+    assert response.status_code == 200
+    assert response.json()["wallet_type"] == "lightning"
+    assert response.json()["currency"] == "GBP"
+
+
 @pytest.mark.parametrize("method", ["cash", "stripe"])
 async def test_fiat_wallet_receives_but_cannot_spend(
     client, from_wallet, settings, mocker, method
