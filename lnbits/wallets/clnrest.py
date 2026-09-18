@@ -2,6 +2,7 @@ import asyncio
 import base64
 import json
 import os
+import re
 import ssl
 import uuid
 from collections.abc import AsyncGenerator
@@ -11,6 +12,7 @@ import httpx
 from bolt11 import Bolt11Exception
 from bolt11.decode import decode
 from loguru import logger
+from pyln.client import Millisatoshi
 
 from lnbits.exceptions import UnsupportedError
 from lnbits.helpers import normalize_endpoint
@@ -371,6 +373,17 @@ class CLNRestWallet(Wallet):
                     ),
                 )
 
+            if not _is_bolt12_invoice_amount_valid(
+                inv_data.get("changes"), amount_msat
+            ):
+                return PaymentResponse(
+                    ok=False,
+                    error_message=(
+                        "Unable to verify resolved BOLT12 invoice amount "
+                        "matches the authorized amount."
+                    ),
+                )
+
             data: dict = {
                 "label": _generate_label(),
                 "maxfee": fee_limit_msat,
@@ -405,18 +418,7 @@ class CLNRestWallet(Wallet):
                 payment_request=invoice,
             )
         except httpx.HTTPStatusError as exc:
-            try:
-                err = exc.response.json()
-                error = err.get("error", {})
-                if isinstance(error, dict):
-                    error_message = error.get("message", "Unknown error")
-                else:
-                    error_message = str(error or err)
-                return PaymentResponse(ok=False, error_message=error_message)
-            except Exception:
-                return PaymentResponse(
-                    error_message=f"Error parsing response from {self.url}: {exc!s}"
-                )
+            return self._handle_offer_http_error(exc)
         except Exception as exc:
             logger.info(f"Failed to pay offer {offer[:24]}...")
             logger.warning(exc)
@@ -595,8 +597,44 @@ class CLNRestWallet(Wallet):
         else:
             raise ValueError("CLNREST_URL must start with http:// or https://")
 
+    def _handle_offer_http_error(self, exc: httpx.HTTPStatusError) -> PaymentResponse:
+        try:
+            err = exc.response.json()
+            error = err.get("error", {})
+            if isinstance(error, dict):
+                error_message = error.get("message", "Unknown error")
+            else:
+                error_message = str(error or err)
+            return PaymentResponse(ok=False, error_message=error_message)
+        except Exception:
+            return PaymentResponse(
+                error_message=f"Error parsing response from {self.url}: {exc!s}"
+            )
+
 
 def _generate_label() -> str:
     """Generate a unique label for the invoice."""
     random_uuid = base64.urlsafe_b64encode(uuid.uuid4().bytes).rstrip(b"=").decode()
     return f"LNbits_{random_uuid}"
+
+
+def _is_bolt12_invoice_amount_valid(changes: object, amount_msat: int | None) -> bool:
+    """Check CLN's fetchinvoice amount report against the authorized amount.
+
+    With an explicit amount_msat, CLN reports the invoice amount in changes
+    whenever it differs from that request. An empty changes object confirms
+    the requested amount; an absent or malformed report cannot confirm it.
+    """
+    if type(amount_msat) is not int or amount_msat <= 0:
+        return False
+    if not isinstance(changes, dict):
+        return False
+
+    invoice_amount = changes.get("amount_msat", amount_msat)
+    if isinstance(invoice_amount, Millisatoshi):
+        invoice_amount = int(invoice_amount)
+    elif isinstance(invoice_amount, str) and re.fullmatch(
+        r"[0-9]{1,20}msat", invoice_amount
+    ):
+        invoice_amount = int(invoice_amount[:-4])
+    return type(invoice_amount) is int and invoice_amount == amount_msat
