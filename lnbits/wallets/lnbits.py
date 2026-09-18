@@ -176,6 +176,7 @@ class LNbitsWallet(Wallet):
         offer: str,
         fee_limit_msat: int,
         amount_msat: int | None = None,
+        payer_note: str | None = None,
     ) -> PaymentResponse:
         _ = fee_limit_msat
         if amount_msat is None or amount_msat <= 0:
@@ -184,14 +185,17 @@ class LNbitsWallet(Wallet):
                 error_message="Amount is required to pay a BOLT12 offer.",
             )
         try:
+            body: dict = {
+                "out": True,
+                "bolt11": offer,
+                "amount": amount_msat // 1000,
+                "unit": "sat",
+            }
+            if payer_note:
+                body["memo"] = payer_note
             r = await self.client.post(
                 url="/api/v1/payments",
-                json={
-                    "out": True,
-                    "bolt11": offer,
-                    "amount": amount_msat // 1000,
-                    "unit": "sat",
-                },
+                json=body,
                 timeout=None,
             )
 

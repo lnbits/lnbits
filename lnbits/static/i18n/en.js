@@ -63,6 +63,10 @@ window.localisation.en = {
     'Paste an invoice, BOLT12 offer, payment request, Lightning Address or LNURL*',
   bolt12_offer: 'BOLT12 offer',
   bolt12_offer_amount_hint: 'Amount to send to this offer',
+  bolt12_offer_memo_hint: 'Payer note sent to the recipient',
+  bolt12_offer_internal_memo_hint:
+    "This memo is not shown to the receiver but it's stored in the payment for your reference.",
+  memo_optional: 'Memo (optional)',
   lnbits_description:
     'Easy to set up and lightweight, LNbits can run on any Lightning Network funding source and even LNbits itself! You can run LNbits for yourself, or easily offer a custodian solution for others. Each wallet has its own API keys and there is no limit to the number of wallets you can make. Being able to partition funds makes LNbits a useful tool for money management and as a development tool. Extensions add extra functionality to LNbits so you can experiment with a range of cutting-edge technologies on the lightning network. We have made developing extensions as easy as possible, and as a free and open-source project, we encourage people to develop and submit their own.',
   export_to_phone: 'Export to Phone with QR Code',

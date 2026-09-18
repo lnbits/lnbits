@@ -10,14 +10,22 @@ import shortuuid
 from pytest_mock.plugin import MockerFixture
 
 from lnbits import bolt11
+from lnbits.core.crud.payments import get_standalone_payment
 from lnbits.core.models import CreateInvoice, Payment
 from lnbits.core.models.users import Account, UserExtra, UserLabel
 from lnbits.core.services.users import create_user_account
 from lnbits.core.views.payment_api import api_payment
 from lnbits.fiat.base import FiatInvoiceResponse
 from lnbits.settings import Settings
+from lnbits.utils.crypto import random_secret_and_hash
+from lnbits.wallets.base import PaymentResponse
+from lnbits.wallets.fake import FakeWallet
 
 from ..helpers import (
+    BOLT12_OFFER,
+    BOLT12_OFFER_WITH_AMOUNT,
+    BOLT12_OFFER_WITH_CURRENCY,
+    BOLT12_OFFER_WITH_DESCRIPTION,
     get_random_invoice_data,
     get_random_string,
 )
@@ -373,8 +381,9 @@ async def test_pay_invoice(
 
 @pytest.mark.anyio
 @pytest.mark.parametrize("include_legacy", [False, True])
+@pytest.mark.parametrize("memo", [None, "BOLT11 memo"])
 async def test_pay_invoice_with_payment_request(
-    client, inkey_headers_to, adminkey_headers_from, include_legacy
+    client, inkey_headers_to, adminkey_headers_from, include_legacy, memo
 ):
     created = await client.post(
         "/api/v1/payments",
@@ -386,6 +395,8 @@ async def test_pay_invoice_with_payment_request(
     data = {"out": True, "payment_request": invoice["bolt11"]}
     if include_legacy:
         data["bolt11"] = invoice["bolt11"]
+    if memo is not None:
+        data["memo"] = memo
 
     response = await client.post(
         "/api/v1/payments", json=data, headers=adminkey_headers_from
@@ -395,6 +406,8 @@ async def test_pay_invoice_with_payment_request(
     assert response.json()["status"] == "success"
     assert response.json()["payment_hash"] == invoice["payment_hash"]
     assert response.json()["amount"] == -21_000
+    assert response.json()["memo"] == (memo or "payment_request test")
+    assert "payer_note" not in response.json()["extra"]
 
 
 @pytest.mark.anyio
@@ -683,18 +696,36 @@ async def test_decode_invoice(client, invoice: Payment):
 
 
 @pytest.mark.anyio
-async def test_decode_bolt12_offer(client):
-    offer = "lno1qgsqvgnwgcg35z6ee2h3yczraddm72xrfua9uve2rlrm9deu7xyfzrcgq9qh"
+@pytest.mark.parametrize(
+    "offer,amount,currency,description",
+    [
+        (BOLT12_OFFER, None, None, None),
+        (BOLT12_OFFER_WITH_DESCRIPTION, None, None, "Test vectors"),
+        (BOLT12_OFFER_WITH_AMOUNT, 10_000, None, "Test vectors"),
+        (BOLT12_OFFER_WITH_CURRENCY, 10_000, "USD", "Test vectors"),
+    ],
+)
+async def test_decode_bolt12_offer(client, offer, amount, currency, description):
     response = await client.post(
         "/api/v1/payments/decode",
         json={"data": "lightning:" + offer.upper()},
     )
     assert response.status_code == 200
-    assert response.json() == {"type": "bolt12_offer", "offer": offer}
+    assert response.json() == {
+        "type": "bolt12_offer",
+        "offer": offer,
+        "amount": amount,
+        "currency": currency,
+        "description": description,
+    }
 
+
+@pytest.mark.anyio
+@pytest.mark.parametrize("offer", ["lno1!!!", BOLT12_OFFER + "p"])
+async def test_decode_bolt12_offer_rejects_invalid_encoding(client, offer):
     bad = await client.post(
         "/api/v1/payments/decode",
-        json={"data": "lno1!!!"},
+        json={"data": offer},
     )
     assert bad.status_code == 400
     assert "Invalid BOLT12 offer" in bad.json()["message"]
@@ -705,7 +736,7 @@ async def test_decode_bolt12_offer(client):
     "fields", [("payment_request",), ("bolt11",), ("payment_request", "bolt11")]
 )
 async def test_pay_bolt12_offer(client, adminkey_headers_to, fields):
-    offer = "lno1qgsqvgnwgcg35z6ee2h3yczraddm72xrfua9uve2rlrm9deu7xyfzrcgq9qh"
+    offer = BOLT12_OFFER
     data = {"out": True, **dict.fromkeys(fields, offer)}
     missing_amount = await client.post(
         "/api/v1/payments",
@@ -724,6 +755,96 @@ async def test_pay_bolt12_offer(client, adminkey_headers_to, fields):
     assert body["status"] == "success"
     assert body["amount"] == -21_000
     assert body["extra"]["bolt12"] is True
+    assert body["memo"] == "BOLT12 offer"
+
+
+@pytest.mark.anyio
+@pytest.mark.parametrize(
+    "memo",
+    [None, "", "  Thanks ☕ & = +\n" * 20, pytest.param("x" * 640, id="max-length")],
+)
+@pytest.mark.parametrize("request_field", ["payment_request", "bolt11"])
+async def test_pay_bolt12_offer_memo(
+    client, adminkey_headers_to, monkeypatch, memo, request_field
+):
+    preimage, payment_hash = random_secret_and_hash()
+    backend = AsyncMock(return_value=PaymentResponse(True, payment_hash, 0, preimage))
+    monkeypatch.setattr(FakeWallet, "pay_offer", backend)
+    data = {
+        "out": True,
+        request_field: BOLT12_OFFER_WITH_DESCRIPTION,
+        "amount": 21,
+        "unit": "sat",
+        "extra": {"internal_memo": "Private memo"},
+    }
+    if memo is not None:
+        data["memo"] = memo
+
+    response = await client.post(
+        "/api/v1/payments", json=data, headers=adminkey_headers_to
+    )
+    assert response.status_code == 201, response.text
+    backend.assert_awaited_once_with(
+        BOLT12_OFFER_WITH_DESCRIPTION,
+        fee_limit_msat=20000,
+        amount_msat=21000,
+        payer_note=memo or None,
+    )
+    payment = await get_standalone_payment(response.json()["checking_id"])
+    assert payment and payment.success
+    assert payment.memo == (memo or "Test vectors")
+    assert payment.extra["internal_memo"] == "Private memo"
+    if memo:
+        assert payment.extra["payer_note"] == memo
+        assert payment.extra["bolt12_offer_description"] == "Test vectors"
+    else:
+        assert "payer_note" not in payment.extra
+        assert "bolt12_offer_description" not in payment.extra
+
+
+@pytest.mark.anyio
+async def test_pay_bolt12_offer_unsupported_memo(
+    client, adminkey_headers_to, monkeypatch
+):
+    backend = AsyncMock(
+        return_value=PaymentResponse(
+            ok=False, error_message="Payer notes are not supported by this backend."
+        )
+    )
+    monkeypatch.setattr(FakeWallet, "pay_offer", backend)
+    response = await client.post(
+        "/api/v1/payments",
+        json={
+            "out": True,
+            "payment_request": BOLT12_OFFER_WITH_DESCRIPTION,
+            "amount": 21,
+            "memo": "For the recipient",
+        },
+        headers=adminkey_headers_to,
+    )
+    assert response.status_code == 520, response.text
+    assert "Payer notes are not supported" in response.json()["detail"]
+
+
+@pytest.mark.anyio
+async def test_pay_bolt12_offer_memo_length_limit(
+    client, adminkey_headers_to, monkeypatch
+):
+    backend = AsyncMock()
+    monkeypatch.setattr(FakeWallet, "pay_offer", backend)
+    response = await client.post(
+        "/api/v1/payments",
+        json={
+            "out": True,
+            "payment_request": BOLT12_OFFER_WITH_DESCRIPTION,
+            "amount": 21,
+            "memo": "x" * 641,
+        },
+        headers=adminkey_headers_to,
+    )
+    assert response.status_code == 400, response.text
+    assert response.json()["detail"][0]["loc"] == ["body", "memo"]
+    backend.assert_not_awaited()
 
 
 # check api_payment() internal function call (NOT API): payment status
