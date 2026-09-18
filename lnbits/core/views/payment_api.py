@@ -58,7 +58,7 @@ from lnbits.helpers import (
     generate_filter_params_openapi,
     is_valid_label,
 )
-from lnbits.utils.bolt12 import looks_like_bolt12_offer, parse_bolt12_offer
+from lnbits.utils.bolt12 import decode_bolt12_offer, looks_like_bolt12_offer
 from lnbits.wallets.base import InvoiceResponse
 
 from ..crud import (
@@ -261,8 +261,7 @@ async def api_all_payments_paginated(
         already in the authorized account, specify `out: true` and use
         `payment_request` to supply the BOLT11 invoice or BOLT12 offer (`lno1…`,
         optional `lightning:` URI). Paying a BOLT12 offer requires `amount` in
-        `sat`. The legacy `bolt11` field is still accepted. If both fields are
-        supplied with non-empty values, they must match.
+        `sat`. For offers, `memo` is sent to the recipient as a payer note.
     """,
     status_code=HTTPStatus.CREATED,
     responses={
@@ -296,7 +295,7 @@ async def api_payments_create(
                 offer=invoice_data.payment_request,
                 amount_sat=amount_sat,
                 extra=invoice_data.extra,
-                description=invoice_data.memo or "",
+                memo=invoice_data.memo,
                 labels=invoice_data.labels,
                 external_id=invoice_data.external_id,
             )
@@ -459,8 +458,8 @@ async def api_payments_decode(data: DecodePayment) -> JSONResponse:
             url = str(url_decode(payment_str))
             return JSONResponse({"domain": url})
         if looks_like_bolt12_offer(payment_str):
-            offer = parse_bolt12_offer(payment_str)
-            return JSONResponse({"type": "bolt12_offer", "offer": offer})
+            offer = decode_bolt12_offer(payment_str)
+            return JSONResponse({"type": "bolt12_offer", **offer.dict()})
         invoice = bolt11.decode(payment_str)
         filtered_data = filter_dict_keys(invoice.data, data.filter_fields)
         return JSONResponse(filtered_data)

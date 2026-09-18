@@ -158,14 +158,16 @@ def get_real_invoice(sats: int) -> dict:
 
 def get_real_offer(sats: int | None) -> dict:
     amount = f"{sats}sat" if sats is not None else "any"
-    return run_cmd_json(
+    description = f"regtest-{uuid4().hex}"
+    offer = run_cmd_json(
         [
             *docker_offer_cli,
             "offer",
             f"amount={amount}",
-            f"description=regtest-{uuid4().hex}",
+            f"description={description}",
         ]
     )
+    return {**offer, "description": description}
 
 
 def lookup_offer_invoices(offer_id: str) -> dict:
