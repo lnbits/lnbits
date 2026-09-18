@@ -4,10 +4,12 @@ from http import HTTPStatus
 from pathlib import Path
 from shutil import make_archive
 from subprocess import Popen
-from urllib.parse import ParseResult, urlparse
+from typing import cast
 
 from fastapi import APIRouter, Depends, File
 from fastapi.responses import FileResponse
+from sqlalchemy.engine import URL, make_url
+from sqlalchemy.exc import ArgumentError
 
 from lnbits.core.models.notifications import NotificationType
 from lnbits.core.models.users import Account
@@ -146,15 +148,20 @@ async def api_download_backup() -> FileResponse:
     is_pg = db_url and db_url.startswith("postgres://")
 
     if is_pg and db_url:
-        p = urlparse(db_url)
-        command = _build_pg_dump_command(p, pg_backup_filename)
+        env = _build_pg_dump_env(db_url)
         try:
             proc = Popen(
-                command,
+                [
+                    "pg_dump",
+                    "--no-password",
+                    "--format=c",
+                    f"--file={pg_backup_filename}",
+                ],
                 shell=False,
-                env={**os.environ, "PGPASSWORD": p.password or ""},
+                env=env,
             )
-            proc.wait()
+            if proc.wait() != 0:
+                raise ValueError("PostgreSQL database backup failed.")
             make_archive(last_filename, "zip", settings.lnbits_data_folder)
         finally:
             pg_backup_filename.unlink(missing_ok=True)
@@ -166,34 +173,27 @@ async def api_download_backup() -> FileResponse:
     )
 
 
-def _build_pg_dump_command(
-    parsed_url: ParseResult, dump_filename: str | Path
-) -> list[str]:
+def _build_pg_dump_env(database_url: str) -> dict[str, str]:
     try:
-        hostname = parsed_url.hostname
-        port = parsed_url.port
-    except ValueError as exc:
+        url = cast(URL, make_url(database_url))
+    except (ArgumentError, ValueError) as exc:
         raise ValueError("Invalid PostgreSQL database URL.") from exc
-
-    database = parsed_url.path.removeprefix("/")
-    if (
-        parsed_url.scheme != "postgres"
-        or not hostname
-        or not parsed_url.username
-        or not database
-    ):
+    if url.drivername != "postgres":
         raise ValueError("Invalid PostgreSQL database URL.")
 
-    command = ["pg_dump", f"--host={hostname}"]
-    if port is not None:
-        command.append(f"--port={port}")
-    command.extend(
-        [
-            f"--dbname={database}",
-            f"--username={parsed_url.username}",
-            "--no-password",
-            "--format=c",
-            f"--file={dump_filename}",
-        ]
-    )
-    return command
+    # Match the connection arguments used by SQLAlchemy's asyncpg dialect.
+    parameters = url.translate_connect_args(username="user")
+    parameters.update(url.query)
+    env = os.environ.copy()
+    for parameter, variable in {
+        "host": "PGHOST",
+        "port": "PGPORT",
+        "user": "PGUSER",
+        "password": "PGPASSWORD",
+        "database": "PGDATABASE",
+        "ssl": "PGSSLMODE",
+    }.items():
+        value = parameters.get(parameter)
+        if value is not None:
+            env[variable] = ",".join(value) if isinstance(value, tuple) else str(value)
+    return env
