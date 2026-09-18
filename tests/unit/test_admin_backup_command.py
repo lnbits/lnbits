@@ -1,53 +1,125 @@
 from pathlib import Path
-from urllib.parse import urlparse
+from zipfile import ZipFile
 
 import pytest
 
 from lnbits.core.views.admin_api import (
-    _build_pg_dump_command,
+    _build_pg_dump_env,
     api_download_backup,
 )
 from lnbits.settings import Settings
 
 
-def test_build_pg_dump_command_keeps_metacharacters_in_argv(tmp_path: Path):
-    dump_filename = tmp_path / "lnbits-database.dmp"
+@pytest.mark.parametrize(
+    "database_url, expected",
+    [
+        (
+            "postgres://user;id:password@db.example;id:5433/lnbits;id",
+            {
+                "PGHOST": "db.example;id",
+                "PGPORT": "5433",
+                "PGUSER": "user;id",
+                "PGPASSWORD": "password",
+                "PGDATABASE": "lnbits;id",
+            },
+        ),
+        ("postgres:///lnbits", {"PGDATABASE": "lnbits"}),
+        (
+            "postgres://localhost/lnbits",
+            {"PGHOST": "localhost", "PGDATABASE": "lnbits"},
+        ),
+        ("postgres://user@/lnbits", {"PGUSER": "user", "PGDATABASE": "lnbits"}),
+        ("postgres://user@localhost/", {"PGHOST": "localhost", "PGUSER": "user"}),
+        (
+            "postgres://user:p#?word@localhost/lnbits",
+            {
+                "PGHOST": "localhost",
+                "PGUSER": "user",
+                "PGPASSWORD": "p#?word",
+                "PGDATABASE": "lnbits",
+            },
+        ),
+        (
+            "postgres://user%40domain:p%40ss%23%3F%25@localhost/lnbits",
+            {
+                "PGHOST": "localhost",
+                "PGUSER": "user@domain",
+                "PGPASSWORD": "p@ss#?%",
+                "PGDATABASE": "lnbits",
+            },
+        ),
+        (
+            "postgres://user:password@[::1]:5433/lnbits",
+            {
+                "PGHOST": "::1",
+                "PGPORT": "5433",
+                "PGUSER": "user",
+                "PGPASSWORD": "password",
+                "PGDATABASE": "lnbits",
+            },
+        ),
+        (
+            "postgres://user:password@localhost/lnbits?host=%2Fvar%2Frun%2Fpostgresql&port=5433&user=other&password=new%23%3F&database=otherdb&ssl=require&prepared_statement_cache_size=0",
+            {
+                "PGHOST": "/var/run/postgresql",
+                "PGPORT": "5433",
+                "PGUSER": "other",
+                "PGPASSWORD": "new#?",
+                "PGDATABASE": "otherdb",
+                "PGSSLMODE": "require",
+            },
+        ),
+        (
+            "postgres:///host=other user=other",
+            {"PGDATABASE": "host=other user=other"},
+        ),
+    ],
+)
+def test_build_pg_dump_env(database_url, expected, monkeypatch):
+    variables = ("PGHOST", "PGPORT", "PGUSER", "PGPASSWORD", "PGDATABASE", "PGSSLMODE")
+    for variable in variables:
+        monkeypatch.delenv(variable, raising=False)
 
-    command = _build_pg_dump_command(
-        urlparse("postgres://user;id:password@db.example;id:5433/lnbits;id"),
-        dump_filename,
-    )
+    env = _build_pg_dump_env(database_url)
 
-    assert command == [
-        "pg_dump",
-        "--host=db.example;id",
-        "--port=5433",
-        "--dbname=lnbits;id",
-        "--username=user;id",
-        "--no-password",
-        "--format=c",
-        f"--file={dump_filename}",
-    ]
+    assert {key: env[key] for key in variables if key in env} == expected
+
+
+def test_build_pg_dump_env_preserves_defaults(monkeypatch):
+    defaults = {
+        "PGHOST": "/var/run/postgresql",
+        "PGPORT": "5433",
+        "PGUSER": "lnbits",
+        "PGPASSWORD": "secret",
+        "PGDATABASE": "lnbits",
+        "PGSSLMODE": "verify-full",
+        "PGSSLROOTCERT": "/path/to/root.crt",
+    }
+    for variable, value in defaults.items():
+        monkeypatch.setenv(variable, value)
+
+    env = _build_pg_dump_env("postgres://")
+
+    assert {key: env[key] for key in defaults} == defaults
 
 
 @pytest.mark.parametrize(
     "database_url",
     [
-        "postgres://localhost/lnbits",
-        "postgres://user@/lnbits",
-        "postgres://user@localhost/",
         "postgres://user@localhost:not-a-port/lnbits",
         "sqlite://user@localhost/lnbits",
+        "not a URL",
     ],
 )
-def test_build_pg_dump_command_rejects_invalid_url(database_url: str):
+def test_build_pg_dump_env_rejects_invalid_url(database_url: str):
     with pytest.raises(ValueError, match="Invalid PostgreSQL database URL"):
-        _build_pg_dump_command(urlparse(database_url), "backup.dmp")
+        _build_pg_dump_env(database_url)
 
 
 @pytest.mark.anyio
+@pytest.mark.parametrize("returncode", [0, 1])
 async def test_postgres_backup_does_not_use_shell(
-    mocker, settings: Settings, tmp_path: Path
+    mocker, settings: Settings, tmp_path: Path, returncode: int
 ):
     data_folder = tmp_path / "data"
     data_folder.mkdir()
@@ -56,7 +128,7 @@ async def test_postgres_backup_does_not_use_shell(
     original_database_url = settings.lnbits_database_url
     original_data_folder = settings.lnbits_data_folder
     process = mocker.Mock()
-    process.wait.return_value = 0
+    process.wait.return_value = returncode
     popen = mocker.patch("lnbits.core.views.admin_api.Popen", return_value=process)
     make_archive = mocker.patch("lnbits.core.views.admin_api.make_archive")
 
@@ -66,17 +138,47 @@ async def test_postgres_backup_does_not_use_shell(
         )
         settings.lnbits_data_folder = str(data_folder)
 
-        await api_download_backup()
+        if returncode:
+            with pytest.raises(ValueError, match="PostgreSQL database backup failed"):
+                await api_download_backup()
+        else:
+            await api_download_backup()
     finally:
         settings.lnbits_database_url = original_database_url
         settings.lnbits_data_folder = original_data_folder
 
     command = popen.call_args.args[0]
-    assert isinstance(command, list)
-    assert "--username=user;id" in command
-    assert "--dbname=lnbits;id" in command
+    assert command == [
+        "pg_dump",
+        "--no-password",
+        "--format=c",
+        f"--file={dump_filename}",
+    ]
     assert popen.call_args.kwargs["shell"] is False
-    assert popen.call_args.kwargs["env"]["PGPASSWORD"] == "secret"
+    env = popen.call_args.kwargs["env"]
+    assert env["PGPASSWORD"] == "secret"
+    assert env["PGUSER"] == "user;id"
+    assert env["PGDATABASE"] == "lnbits;id"
     assert "secret" not in command
-    make_archive.assert_called_once_with("lnbits-backup", "zip", str(data_folder))
+    if returncode:
+        make_archive.assert_not_called()
+    else:
+        make_archive.assert_called_once_with("lnbits-backup", "zip", str(data_folder))
     assert not dump_filename.exists()
+
+
+@pytest.mark.anyio
+async def test_sqlite_backup(mocker, monkeypatch, settings: Settings, tmp_path: Path):
+    data_folder = tmp_path / "data"
+    data_folder.mkdir()
+    (data_folder / "database.sqlite3").write_bytes(b"database contents")
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setattr(settings, "lnbits_database_url", None)
+    monkeypatch.setattr(settings, "lnbits_data_folder", str(data_folder))
+    popen = mocker.patch("lnbits.core.views.admin_api.Popen")
+
+    response = await api_download_backup()
+
+    popen.assert_not_called()
+    with ZipFile(response.path) as archive:
+        assert archive.read("database.sqlite3") == b"database contents"
