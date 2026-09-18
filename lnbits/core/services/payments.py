@@ -953,7 +953,7 @@ async def _pay_external_invoice(
 
 async def update_payment_success_status(
     payment: Payment,
-    status: PaymentStatus | PaymentResponse,
+    status: PaymentStatus,
     conn: Connection | None = None,
     new_checking_id: str | None = None,
 ) -> Payment:
