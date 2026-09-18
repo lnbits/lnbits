@@ -105,8 +105,6 @@ async def pay_invoice(
             wallet.source_wallet_id, create_payment_model, conn=new_conn
         )
 
-        await _credit_service_fee_wallet(wallet, payment, conn=new_conn)
-
     return payment
 
 
@@ -798,6 +796,10 @@ async def _pay_internal_invoice(
     logger.debug(f"enqueuing internal invoice {internal_payment.checking_id}")
     task_manager.internal_invoice_queue.put_nowait(internal_payment)
 
+    # internal payments are settled immediately, so the fee is earned here.
+    # external payments are credited from `update_payment_success_status`.
+    await _credit_service_fee_wallet(wallet, payment, conn=conn)
+
     return payment
 
 
@@ -906,6 +908,12 @@ async def update_payment_success_status(
         payment = await update_payment(
             payment, new_checking_id=new_checking_id, conn=conn
         )
+        # the service fee is only earned once the payment actually settles.
+        # crediting it earlier leaks fees for payments that end up failing.
+        if payment.is_out:
+            wallet = await get_wallet(payment.wallet_id, conn=conn)
+            if wallet:
+                await _credit_service_fee_wallet(wallet, payment, conn=conn)
     return payment
 
 
@@ -998,6 +1006,12 @@ async def _credit_service_fee_wallet(
     if not settings.lnbits_service_fee_wallet or not service_fee_msat:
         return
 
+    # a payment can be confirmed successful more than once (eg. the pending
+    # check racing with an explicit status lookup), so never charge it twice
+    checking_id = f"service_fee_{payment.payment_hash}"
+    if await get_standalone_payment(checking_id, conn=conn):
+        return
+
     memo = f"""
         Service fee for payment of {abs(payment.sat)} sats.
         Wallet: '{wallet.name}' ({wallet.source_wallet_id})."""
@@ -1010,7 +1024,7 @@ async def _credit_service_fee_wallet(
         memo=memo,
     )
     await create_payment(
-        checking_id=f"service_fee_{payment.payment_hash}",
+        checking_id=checking_id,
         data=create_payment_model,
         status=PaymentState.SUCCESS,
         conn=conn,
