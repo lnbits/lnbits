@@ -262,9 +262,6 @@ async def api_all_payments_paginated(
         `payment_request` to supply the BOLT11 invoice or BOLT12 offer (`lno1…`,
         optional `lightning:` URI). Paying a BOLT12 offer requires `amount` in
         `sat`. For offers, `memo` is sent to the recipient as a payer note.
-        If omitted or empty, the offer description becomes the payment memo
-        and no payer note is sent. The legacy `bolt11` field is still accepted.
-        If both fields are supplied with non-empty values, they must match.
     """,
     status_code=HTTPStatus.CREATED,
     responses={
