@@ -28,7 +28,7 @@ async def test_corelightning_pay_offer_fetchinvoice_then_pay(monkeypatch, payer_
     def call(method, payload):
         calls.append((method, payload))
         if method == "fetchinvoice":
-            return {"invoice": "lni1resolvedinvoice"}
+            return {"invoice": "lni1resolvedinvoice", "changes": {}}
         if method == "pay":
             return {
                 "payment_hash": "ab" * 32,
@@ -313,7 +313,9 @@ async def test_clnrest_pay_offer_payloads(monkeypatch, settings, payer_note, ren
     def handler(request):
         requests.append(request)
         if request.url.path == "/v1/fetchinvoice":
-            return httpx.Response(200, json={"invoice": "lni1resolvedinvoice"})
+            return httpx.Response(
+                200, json={"invoice": "lni1resolvedinvoice", "changes": {}}
+            )
         return httpx.Response(
             200,
             json={
