@@ -329,7 +329,7 @@ class CLNRestWallet(Wallet):
             error_message = f"Unable to connect to {self.url}."
             return PaymentResponse(error_message=error_message)
 
-    async def pay_offer(  # noqa: C901
+    async def pay_offer(
         self,
         offer: str,
         fee_limit_msat: int,
@@ -415,18 +415,7 @@ class CLNRestWallet(Wallet):
                 payment_request=invoice,
             )
         except httpx.HTTPStatusError as exc:
-            try:
-                err = exc.response.json()
-                error = err.get("error", {})
-                if isinstance(error, dict):
-                    error_message = error.get("message", "Unknown error")
-                else:
-                    error_message = str(error or err)
-                return PaymentResponse(ok=False, error_message=error_message)
-            except Exception:
-                return PaymentResponse(
-                    error_message=f"Error parsing response from {self.url}: {exc!s}"
-                )
+            return self._handle_offer_http_error(exc)
         except Exception as exc:
             logger.info(f"Failed to pay offer {offer[:24]}...")
             logger.warning(exc)
@@ -604,6 +593,20 @@ class CLNRestWallet(Wallet):
 
         else:
             raise ValueError("CLNREST_URL must start with http:// or https://")
+
+    def _handle_offer_http_error(self, exc: httpx.HTTPStatusError) -> PaymentResponse:
+        try:
+            err = exc.response.json()
+            error = err.get("error", {})
+            if isinstance(error, dict):
+                error_message = error.get("message", "Unknown error")
+            else:
+                error_message = str(error or err)
+            return PaymentResponse(ok=False, error_message=error_message)
+        except Exception:
+            return PaymentResponse(
+                error_message=f"Error parsing response from {self.url}: {exc!s}"
+            )
 
 
 def _generate_label() -> str:
