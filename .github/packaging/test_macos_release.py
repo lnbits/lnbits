@@ -136,6 +136,7 @@ class CredentialTests(unittest.TestCase):
             with self.assertRaises(ReleaseError):
                 validate_credentials(dict(DUMMY, **{key: value}))
 
+    @unittest.skipUnless(os.name == "posix", "Requires POSIX file permissions")
     def test_local_file_is_explicit_private_and_never_shell_evaluated(self):
         with tempfile.TemporaryDirectory() as directory:
             path = Path(directory) / ".env.macos-release"
@@ -267,9 +268,11 @@ class SessionTests(unittest.TestCase):
     def test_keychain_import_partition_list_and_cleanup(self):
         self.assertEqual(self.session.setup(DUMMY), IDENTITY)
         private = Path(self.session.state["directory"])
-        self.assertEqual(private.stat().st_mode & 0o777, 0o700)
+        # Windows chmod only controls the read-only flag, not POSIX permissions.
+        if os.name == "posix":
+            self.assertEqual(private.stat().st_mode & 0o777, 0o700)
+            self.assertEqual(self.session.path.stat().st_mode & 0o777, 0o600)
         self.assertFalse((private / "certificate.p12").exists())
-        self.assertEqual(self.session.path.stat().st_mode & 0o777, 0o600)
         state = self.session.path.read_text()
         self.assertTrue(all(value not in state for value in DUMMY.values()))
         calls = self.runner.run.call_args_list
