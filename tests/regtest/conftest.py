@@ -1,12 +1,20 @@
+import asyncio
+
 import pytest
 
 from .helpers import (
     get_hold_invoice,
     get_real_invoice,
     get_real_invoice_noroute,
+    get_real_offer,
     is_boltz_wallet,
     sync_boltz_liquid_chain,
 )
+
+
+@pytest.fixture
+async def real_offer(request):
+    return await asyncio.to_thread(get_real_offer, request.param)
 
 
 @pytest.fixture

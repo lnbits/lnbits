@@ -19,10 +19,16 @@ from lnbits.fiat import get_fiat_provider
 from lnbits.helpers import check_callback_url, daystart_timestamp
 from lnbits.settings import settings
 from lnbits.task_manager import task_manager
+from lnbits.utils.bolt12 import (
+    get_bolt12_offer_description,
+    looks_like_bolt12_offer,
+    parse_bolt12_offer,
+)
 from lnbits.utils.crypto import fake_privkey, random_secret_and_hash, verify_preimage
 from lnbits.utils.exchange_rates import fiat_amount_as_satoshis, satoshis_amount_as_fiat
 from lnbits.wallets import fake_wallet, get_funding_source
 from lnbits.wallets.base import (
+    Feature,
     InvoiceResponse,
     PaymentFailedStatus,
     PaymentPendingStatus,
@@ -45,6 +51,7 @@ from ..models import (
     CreatePayment,
     Payment,
     PaymentState,
+    ValidatedPaymentRequest,
     Wallet,
 )
 from .fiat_providers import check_fiat_status
@@ -69,46 +76,67 @@ async def pay_invoice(
 ) -> Payment:
     if settings.lnbits_only_allow_incoming_payments:
         raise PaymentError("Only incoming payments allowed.", status="failed")
+
     invoice = _validate_payment_request(payment_request, max_sat)
 
     if not invoice.amount_msat:
         raise ValueError("Missig invoice amount.")
 
-    async with db.reuse_conn(conn) if conn else db.connect() as new_conn:
-        amount_msat = invoice.amount_msat
-        wallet = await _check_wallet_for_payment(wallet_id, tag, amount_msat, new_conn)
+    if await is_internal_status_success(invoice.payment_hash, conn):
+        raise PaymentError("Internal invoice already paid.", status="failed")
 
-        if not wallet.can_send_payments:
-            raise PaymentError(
-                "Wallet does not have permission to pay invoices.",
-                status="failed",
-            )
+    return await _pay_from_wallet(
+        wallet_id=wallet_id,
+        pr=invoice,
+        extra=extra,
+        description=description,
+        tag=tag,
+        labels=labels,
+        external_id=external_id,
+        conn=conn,
+    )
 
-        if await is_internal_status_success(invoice.payment_hash, new_conn):
-            raise PaymentError("Internal invoice already paid.", status="failed")
 
-        _, extra = await calculate_fiat_amounts(amount_msat / 1000, wallet, extra=extra)
+async def pay_offer(
+    *,
+    wallet_id: str,
+    offer: str,
+    amount_sat: int | None = None,
+    memo: str | None = None,
+    extra: dict | None = None,
+    tag: str = "",
+    labels: list[str] | None = None,
+    external_id: str | None = None,
+    conn: Connection | None = None,
+) -> Payment:
+    """
+    Offers are not invoices: they have no payment hash until the backend
+    fetches and pays one.
+    """
+    if settings.lnbits_only_allow_incoming_payments:
+        raise PaymentError("Only incoming payments allowed.", status="failed")
 
-        create_payment_model = CreatePayment(
-            wallet_id=wallet.source_wallet_id,
-            bolt11=payment_request,
-            payment_hash=invoice.payment_hash,
-            amount_msat=-amount_msat,
-            expiry=invoice.expiry_date,
-            memo=description or invoice.description or "",
-            extra=extra,
-            labels=labels,
-            external_id=external_id,
-        )
-
-    async with db.reuse_conn(conn) if conn else db.connect() as new_conn:
-        payment = await _pay_invoice(
-            wallet.source_wallet_id, create_payment_model, conn=new_conn
-        )
-
-        await _credit_service_fee_wallet(wallet, payment, conn=new_conn)
-
-    return payment
+    pr = _validate_offer_payment_request(offer, amount_sat)
+    extra = dict(extra or {})
+    extra["bolt12"] = True
+    extra["bolt12_offer"] = pr.payment_request
+    # Only an explicit memo is sent as a payer note.
+    if memo:
+        extra["payer_note"] = memo
+        extra["bolt12_offer_description"] = pr.description
+    else:
+        extra.pop("payer_note", None)
+        extra.pop("bolt12_offer_description", None)
+    return await _pay_from_wallet(
+        wallet_id=wallet_id,
+        pr=pr,
+        extra=extra,
+        description=memo or pr.description or "BOLT12 offer",
+        tag=tag,
+        labels=labels,
+        external_id=external_id,
+        conn=conn,
+    )
 
 
 async def create_payment_request(
@@ -658,6 +686,9 @@ async def check_transaction_status(
 
 
 async def check_payment_status(payment: Payment) -> PaymentStatus:
+    # An offer has no backend reference until the funding source returns one.
+    if payment.is_out and payment.checking_id.startswith("temp_offer_"):
+        return PaymentPendingStatus()
     if payment.is_internal:
         if payment.success:
             return PaymentSuccessStatus(fee_msat=payment.fee, preimage=payment.preimage)
@@ -823,6 +854,8 @@ async def _pay_external_invoice(
     conn: Connection | None = None,
 ) -> Payment:
     checking_id = create_payment_model.payment_hash
+    if looks_like_bolt12_offer(create_payment_model.bolt11):
+        checking_id = f"temp_offer_{checking_id}"
     amount_msat = create_payment_model.amount_msat
 
     fee_reserve_total_msat = fee_reserve_total(amount_msat, internal=False)
@@ -849,10 +882,22 @@ async def _pay_external_invoice(
 
     fee_reserve_msat = fee_reserve(amount_msat, internal=False)
 
-    task = task_manager.create_task(
-        _fundingsource_pay_invoice(checking_id, payment.bolt11, fee_reserve_msat),
-        f"fundingsource_pay_invoice_{checking_id}",
-    )
+    if looks_like_bolt12_offer(payment.bolt11):
+        task = task_manager.create_task(
+            _fundingsource_pay_offer(
+                checking_id,
+                payment.bolt11,
+                fee_reserve_msat,
+                abs(amount_msat),
+                payer_note=payment.extra.get("payer_note"),
+            ),
+            f"fundingsource_pay_offer_{checking_id}",
+        )
+    else:
+        task = task_manager.create_task(
+            _fundingsource_pay_invoice(checking_id, payment.bolt11, fee_reserve_msat),
+            f"fundingsource_pay_invoice_{checking_id}",
+        )
 
     # make sure a hold invoice or deferred payment is not blocking the server
     wait_time = max(1, settings.lnbits_funding_source_pay_invoice_wait_seconds)
@@ -891,7 +936,10 @@ async def _pay_external_invoice(
 
     # payment pending
     else:
-        if (
+        invoice_updated = _set_resolved_offer_invoice(
+            payment, payment_response.payment_request
+        )
+        if invoice_updated or (
             payment_response.checking_id
             and payment_response.checking_id != payment.checking_id
         ):
@@ -919,6 +967,7 @@ async def update_payment_success_status(
         payment.status = PaymentState.SUCCESS
         payment.fee = -(abs(status.fee_msat or 0) + abs(service_fee_msat))
         payment.preimage = payment.preimage or status.preimage
+        _set_resolved_offer_invoice(payment, status.payment_request)
         payment = await update_payment(
             payment, new_checking_id=new_checking_id, conn=conn
         )
@@ -934,6 +983,25 @@ async def _fundingsource_pay_invoice(
         bolt11, fee_reserve_msat
     )
     logger.debug(f"backend: pay_invoice finished {checking_id}, {payment_response}")
+    return payment_response
+
+
+async def _fundingsource_pay_offer(
+    checking_id: str,
+    offer: str,
+    fee_reserve_msat: int,
+    amount_msat: int,
+    payer_note: str | None = None,
+) -> PaymentResponse:
+    logger.debug(f"fundingsource: paying BOLT12 offer {checking_id}")
+    funding_source = get_funding_source()
+    payment_response: PaymentResponse = await funding_source.pay_offer(
+        offer,
+        fee_limit_msat=fee_reserve_msat,
+        amount_msat=amount_msat,
+        payer_note=payer_note,
+    )
+    logger.debug(f"backend: pay_offer finished {checking_id}, {payment_response}")
     return payment_response
 
 
@@ -986,7 +1054,7 @@ async def _check_wallet_for_payment(
 
 def _validate_payment_request(
     payment_request: str, max_sat: int | None = None
-) -> Bolt11:
+) -> ValidatedPaymentRequest:
     try:
         invoice = bolt11_decode(payment_request)
     except Exception as exc:
@@ -1004,7 +1072,14 @@ def _validate_payment_request(
             status="failed",
         )
 
-    return invoice
+    return ValidatedPaymentRequest(
+        payment_request=payment_request,
+        amount_msat=invoice.amount_msat,
+        payment_hash=invoice.payment_hash,
+        expiry_date=invoice.expiry_date,
+        description=invoice.description or "",
+        is_offer=False,
+    )
 
 
 async def _credit_service_fee_wallet(
@@ -1165,3 +1240,102 @@ async def fundingsource_invoice_producer() -> None:
         if payment:
             logger.success(f"fundingsource invoice {checking_id} settled")
             task_manager.invoice_queue.put_nowait(payment)
+
+
+def _validate_offer_payment_request(
+    offer: str, amount_sat: int | None
+) -> ValidatedPaymentRequest:
+    offer = parse_bolt12_offer(offer)
+
+    funding_source = get_funding_source()
+    if not funding_source.has_feature(Feature.bolt12):
+        raise PaymentError(
+            "Funding source does not support BOLT12 offers. "
+            "Use CoreLightning, CLNRest, Phoenixd, Eclair, or LNbits.",
+            status="failed",
+        )
+
+    if amount_sat is None or amount_sat <= 0:
+        raise PaymentError(
+            "Amount is required to pay a BOLT12 offer.",
+            status="failed",
+        )
+
+    ceiling = settings.lnbits_max_outgoing_payment_amount_sats
+    amount_sat = int(amount_sat)
+    if amount_sat > ceiling:
+        raise PaymentError(
+            f"Offer amount {amount_sat} sats is too high. "
+            f"Max allowed: {ceiling} sats.",
+            status="failed",
+        )
+
+    # Unique per attempt: offers have no hash until paid, and hashing
+    # the offer would collide on reusable offers (duplicate detection).
+    _, payment_hash = random_secret_and_hash()
+    return ValidatedPaymentRequest(
+        payment_request=offer,
+        amount_msat=amount_sat * 1000,
+        payment_hash=payment_hash,
+        expiry_date=None,
+        description=get_bolt12_offer_description(offer) or "",
+        is_offer=True,
+    )
+
+
+async def _pay_from_wallet(
+    *,
+    wallet_id: str,
+    pr: ValidatedPaymentRequest,
+    extra: dict | None = None,
+    description: str = "",
+    tag: str = "",
+    labels: list[str] | None = None,
+    external_id: str | None = None,
+    conn: Connection | None = None,
+) -> Payment:
+    async with db.reuse_conn(conn) if conn else db.connect() as new_conn:
+        amount_msat = pr.amount_msat
+        wallet = await _check_wallet_for_payment(wallet_id, tag, amount_msat, new_conn)
+
+        if not wallet.can_send_payments:
+            raise PaymentError(
+                "Wallet does not have permission to pay invoices.",
+                status="failed",
+            )
+
+        _, extra = await calculate_fiat_amounts(amount_msat / 1000, wallet, extra=extra)
+
+        create_payment_model = CreatePayment(
+            wallet_id=wallet.source_wallet_id,
+            bolt11=pr.payment_request,
+            payment_hash=pr.payment_hash,
+            amount_msat=-amount_msat,
+            expiry=pr.expiry_date,
+            memo=description or pr.description,
+            extra=extra,
+            labels=labels,
+            external_id=external_id,
+        )
+
+    async with db.reuse_conn(conn) if conn else db.connect() as new_conn:
+        payment = await _pay_invoice(
+            wallet.source_wallet_id, create_payment_model, conn=new_conn
+        )
+        await _credit_service_fee_wallet(wallet, payment, conn=new_conn)
+
+    return payment
+
+
+def _set_resolved_offer_invoice(payment: Payment, payment_request: str | None) -> bool:
+    if (
+        payment.is_in
+        or not looks_like_bolt12_offer(payment.bolt11)
+        or not payment_request
+        or not payment_request.lower().startswith("lni1")
+    ):
+        return False
+    payment.extra = {**payment.extra, "bolt12_offer": payment.bolt11}
+    payment.bolt11 = payment_request
+    payment.payment_request = payment_request
+    return True

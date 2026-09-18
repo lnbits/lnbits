@@ -16,6 +16,7 @@ from lnbits.settings import settings
 from lnbits.utils.crypto import random_secret_and_hash
 
 from .base import (
+    Feature,
     InvoiceResponse,
     PaymentPendingStatus,
     PaymentResponse,
@@ -35,6 +36,8 @@ class UnknownError(Exception):
 
 
 class EclairWallet(Wallet):
+    features = [Feature.bolt12]
+
     def __init__(self):
         if not settings.eclair_url:
             raise ValueError("cannot initialize EclairWallet: missing eclair_url")
@@ -145,6 +148,55 @@ class EclairWallet(Wallet):
                 ok=False, error_message=f"Unable to connect to {self.url}."
             )
 
+    async def pay_offer(
+        self,
+        offer: str,
+        fee_limit_msat: int,
+        amount_msat: int | None = None,
+        payer_note: str | None = None,
+    ) -> PaymentResponse:
+        # Eclair's payoffer API has no payer-note parameter.
+        _ = payer_note
+        try:
+            body: dict[str, Any] = {"offer": offer, "blocking": True}
+            if amount_msat is not None and amount_msat > 0:
+                body["amountMsat"] = str(amount_msat)
+            if fee_limit_msat > 0:
+                body["maxFeeMsat"] = str(fee_limit_msat)
+            r = await self.client.post("/payoffer", data=body, timeout=None)
+            r.raise_for_status()
+            data = r.json()
+        except httpx.HTTPStatusError as exc:
+            return self._http_payment_error(exc)
+        except json.JSONDecodeError:
+            return PaymentResponse(
+                error_message="Server error: 'invalid json response'"
+            )
+        except Exception as exc:
+            logger.info(f"Failed to pay offer {offer[:24]}...")
+            logger.warning(exc)
+            return PaymentResponse(error_message=f"Unable to connect to {self.url}.")
+
+        if "error" in data:
+            return PaymentResponse(error_message=str(data["error"]))
+        if data.get("type") == "payment-failed":
+            return PaymentResponse(ok=False, error_message="payment failed")
+
+        checking_id = data.get("paymentHash") or data.get("payment_hash")
+        preimage = data.get("paymentPreimage") or data.get("payment_preimage")
+        if not checking_id:
+            return PaymentResponse(error_message="Server error: 'missing paymentHash'")
+
+        payment_status: PaymentStatus = await self.get_payment_status(checking_id)
+        success = True if payment_status.success else None
+        return PaymentResponse(
+            ok=success,
+            checking_id=checking_id,
+            fee_msat=payment_status.fee_msat,
+            preimage=preimage,
+            payment_request=payment_status.payment_request,
+        )
+
     async def pay_invoice(self, bolt11: str, fee_limit_msat: int) -> PaymentResponse:
         try:
             r = await self.client.post(
@@ -167,23 +219,8 @@ class EclairWallet(Wallet):
             preimage = data["paymentPreimage"]
 
         except httpx.HTTPStatusError as exc:
-            error_message = f"Unable to connect to {self.url}."
-            try:
-                error_data = exc.response.json()
-                if isinstance(error_data, dict) and error_data.get("error"):
-                    error_message = str(error_data["error"])
-            except json.JSONDecodeError:
-                pass
-
-            # Eclair uses HTTP 400 for invoice and form validation failures,
-            # which happen before it dispatches the payment.
-            rejected = exc.response.status_code == 400 or payment_request_was_rejected(
-                exc.response.status_code
-            )
-            return PaymentResponse(
-                ok=False if rejected else None,
-                error_message=error_message,
-            )
+            # HTTP 400 is used for invoice/form validation before dispatch.
+            return self._http_payment_error(exc)
         except json.JSONDecodeError:
             return PaymentResponse(
                 error_message="Server error: 'invalid json response'"
@@ -254,7 +291,10 @@ class EclairWallet(Wallet):
                 "pending": None,
             }
             return PaymentStatus(
-                statuses.get(data["status"]["type"]), fee_msat, preimage
+                statuses.get(data["status"]["type"]),
+                fee_msat,
+                preimage,
+                payment_request=(data.get("invoice") or {}).get("serialized"),
             )
         except Exception:
             return PaymentPendingStatus()
@@ -281,3 +321,19 @@ class EclairWallet(Wallet):
                     "retrying in 5 seconds"
                 )
                 await asyncio.sleep(5)
+
+    def _http_payment_error(self, exc: httpx.HTTPStatusError) -> PaymentResponse:
+        error_message = f"Unable to connect to {self.url}."
+        try:
+            error_data = exc.response.json()
+            if isinstance(error_data, dict) and error_data.get("error"):
+                error_message = str(error_data["error"])
+        except json.JSONDecodeError:
+            pass
+        rejected = exc.response.status_code == 400 or payment_request_was_rejected(
+            exc.response.status_code
+        )
+        return PaymentResponse(
+            ok=False if rejected else None,
+            error_message=error_message,
+        )

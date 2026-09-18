@@ -1,4 +1,5 @@
 import asyncio
+import re
 from collections.abc import AsyncGenerator
 from secrets import token_urlsafe
 from typing import Any
@@ -6,7 +7,7 @@ from typing import Any
 from bolt11.decode import decode as bolt11_decode
 from bolt11.exceptions import Bolt11Exception
 from loguru import logger
-from pyln.client import LightningRpc, RpcError
+from pyln.client import LightningRpc, Millisatoshi, RpcError
 
 from lnbits.exceptions import UnsupportedError
 from lnbits.nodes.cln import CoreLightningNode
@@ -50,7 +51,7 @@ class CoreLightningWallet(Wallet):
     """Core Lightning RPC implementation."""
 
     __node_cls__ = CoreLightningNode
-    features = [Feature.nodemanager]
+    features = [Feature.nodemanager, Feature.bolt12]
 
     async def cleanup(self):
         pass
@@ -222,6 +223,77 @@ class CoreLightningWallet(Wallet):
             logger.warning(exc)
             return PaymentResponse(error_message=f"Payment failed: '{exc}'.")
 
+    async def pay_offer(
+        self,
+        offer: str,
+        fee_limit_msat: int,
+        amount_msat: int | None = None,
+        payer_note: str | None = None,
+    ) -> PaymentResponse:
+        """Resolve a BOLT12 offer with fetchinvoice, then pay the invoice.
+
+        CLN ``pay`` accepts a bolt11/bolt12 *invoice*, not a raw offer.
+        """
+        try:
+            fetch_payload: dict = {"offer": offer}
+            if amount_msat is not None and amount_msat > 0:
+                fetch_payload["amount_msat"] = amount_msat
+            if payer_note:
+                fetch_payload["payer_note"] = payer_note
+            fetched = await run_sync(
+                lambda: self.ln.call("fetchinvoice", fetch_payload)
+            )
+            invoice = fetched.get("invoice")
+            if not invoice:
+                return PaymentResponse(
+                    ok=False, error_message="fetchinvoice returned no invoice"
+                )
+
+            if not _is_bolt12_invoice_amount_valid(fetched.get("changes"), amount_msat):
+                return PaymentResponse(
+                    ok=False,
+                    error_message=(
+                        "Unable to verify resolved BOLT12 invoice amount "
+                        "matches the authorized amount."
+                    ),
+                )
+
+            pay_payload: dict = {"bolt11": invoice, "maxfee": fee_limit_msat}
+            paid = await run_sync(lambda: self.ln.call(self.pay, pay_payload))
+            fee_msat = -int(paid["amount_sent_msat"] - paid["amount_msat"])
+            return PaymentResponse(
+                True,
+                paid["payment_hash"],
+                fee_msat,
+                paid["payment_preimage"],
+                payment_request=invoice,
+            )
+        except RpcError as exc:
+            logger.warning(exc)
+            try:
+                error_code = exc.error.get("code")  # type: ignore
+                if error_code in self.pay_failure_error_codes or (
+                    _all_payment_attempts_failed(exc.error)
+                ):
+                    error_message = exc.error.get("message", error_code)  # type: ignore
+                    return PaymentResponse(
+                        ok=False, error_message=f"Payment failed: {error_message}"
+                    )
+                error_message = f"Payment failed: {exc.error}"
+                return PaymentResponse(error_message=error_message)
+            except Exception:
+                error_message = f"RPC '{exc.method}' failed with '{exc.error}'."
+                return PaymentResponse(error_message=error_message)
+        except KeyError as exc:
+            logger.warning(exc)
+            return PaymentResponse(
+                error_message="Server error: 'missing required fields'"
+            )
+        except Exception as exc:
+            logger.info(f"Failed to pay offer {offer[:24]}...")
+            logger.warning(exc)
+            return PaymentResponse(error_message=f"Payment failed: '{exc}'.")
+
     async def get_invoice_status(self, checking_id: str) -> PaymentStatus:
         try:
             r: dict = self.ln.listinvoices(payment_hash=checking_id)  # type: ignore
@@ -268,7 +340,9 @@ class CoreLightningWallet(Wallet):
                     )
 
                     return PaymentSuccessStatus(
-                        fee_msat=fee_msat, preimage=payment_resp["preimage"]
+                        fee_msat=fee_msat,
+                        preimage=payment_resp["preimage"],
+                        payment_request=payment_resp.get("bolt12"),
                     )
                 elif status == "failed":
                     return PaymentFailedStatus()
@@ -300,3 +374,25 @@ class CoreLightningWallet(Wallet):
                     "retrying in 5 seconds"
                 )
                 await asyncio.sleep(5)
+
+
+def _is_bolt12_invoice_amount_valid(changes: object, amount_msat: int | None) -> bool:
+    """Check CLN's fetchinvoice amount report against the authorized amount.
+
+    With an explicit amount_msat, CLN reports the invoice amount in changes
+    whenever it differs from that request. An empty changes object confirms
+    the requested amount; an absent or malformed report cannot confirm it.
+    """
+    if type(amount_msat) is not int or amount_msat <= 0:
+        return False
+    if not isinstance(changes, dict):
+        return False
+
+    invoice_amount = changes.get("amount_msat", amount_msat)
+    if isinstance(invoice_amount, Millisatoshi):
+        invoice_amount = int(invoice_amount)
+    elif isinstance(invoice_amount, str) and re.fullmatch(
+        r"[0-9]{1,20}msat", invoice_amount
+    ):
+        invoice_amount = int(invoice_amount[:-4])
+    return type(invoice_amount) is int and invoice_amount == amount_msat
