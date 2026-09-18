@@ -29,7 +29,8 @@ jobs:
 
     services:
       postgres:
-        image: postgres:latest
+        # Keep this major version in sync with the client installed below.
+        image: postgres:18
         env:
           POSTGRES_USER: lnbits
           POSTGRES_PASSWORD: lnbits
@@ -44,6 +45,15 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
+
+      - name: Install PostgreSQL 18 client
+        if: ${{ inputs.db-url != '' }}
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends postgresql-common ca-certificates
+          sudo /usr/share/postgresql-common/pgdg/apt.postgresql.org.sh -y
+          sudo apt-get install -y --no-install-recommends postgresql-client-18
+          echo "/usr/lib/postgresql/18/bin" >> "$GITHUB_PATH"
 
       - uses: ./.github/actions/prepare
         with:
