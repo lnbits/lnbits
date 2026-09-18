@@ -194,6 +194,7 @@ class EclairWallet(Wallet):
             checking_id=checking_id,
             fee_msat=payment_status.fee_msat,
             preimage=preimage,
+            payment_request=payment_status.payment_request,
         )
 
     async def pay_invoice(self, bolt11: str, fee_limit_msat: int) -> PaymentResponse:
@@ -290,7 +291,10 @@ class EclairWallet(Wallet):
                 "pending": None,
             }
             return PaymentStatus(
-                statuses.get(data["status"]["type"]), fee_msat, preimage
+                statuses.get(data["status"]["type"]),
+                fee_msat,
+                preimage,
+                payment_request=(data.get("invoice") or {}).get("serialized"),
             )
         except Exception:
             return PaymentPendingStatus()

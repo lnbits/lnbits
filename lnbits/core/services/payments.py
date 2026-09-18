@@ -119,6 +119,7 @@ async def pay_offer(
     pr = _validate_offer_payment_request(offer, amount_sat)
     extra = dict(extra or {})
     extra["bolt12"] = True
+    extra["bolt12_offer"] = pr.payment_request
     # Only an explicit memo is sent as a payer note.
     if memo:
         extra["payer_note"] = memo
@@ -930,7 +931,10 @@ async def _pay_external_invoice(
 
     # payment pending
     else:
-        if (
+        invoice_updated = _set_resolved_offer_invoice(
+            payment, payment_response.payment_request
+        )
+        if invoice_updated or (
             payment_response.checking_id
             and payment_response.checking_id != payment.checking_id
         ):
@@ -958,6 +962,7 @@ async def update_payment_success_status(
         payment.status = PaymentState.SUCCESS
         payment.fee = -(abs(status.fee_msat or 0) + abs(service_fee_msat))
         payment.preimage = payment.preimage or status.preimage
+        _set_resolved_offer_invoice(payment, status.payment_request)
         payment = await update_payment(
             payment, new_checking_id=new_checking_id, conn=conn
         )
@@ -1315,3 +1320,17 @@ async def _pay_from_wallet(
         await _credit_service_fee_wallet(wallet, payment, conn=new_conn)
 
     return payment
+
+
+def _set_resolved_offer_invoice(payment: Payment, payment_request: str | None) -> bool:
+    if (
+        payment.is_in
+        or not looks_like_bolt12_offer(payment.bolt11)
+        or not payment_request
+        or not payment_request.lower().startswith("lni1")
+    ):
+        return False
+    payment.extra = {**payment.extra, "bolt12_offer": payment.bolt11}
+    payment.bolt11 = payment_request
+    payment.payment_request = payment_request
+    return True
