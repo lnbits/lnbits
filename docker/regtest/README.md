@@ -4,9 +4,10 @@
 
 - lnd-1: for locally testing your current lnbits
 - lnd-2: used for boltz backend
-- lnd-3: used for lnbits inside docker
-- cln-1: for locally testing your current lnbits
+- lnd-3: used for LND funding-source tests
+- cln-1: for locally testing your current lnbits and backing lnbits inside docker
 - cln-2: used for clightning-REST
+- cln-3: receives BOLT12 offer payments
 - eclair-1: for locally testing your current lnbits
 
 # Installing regtest
@@ -56,6 +57,18 @@ make dev
 ```
 
 # testing
+
+BOLT12 offer tests run with `CoreLightningWallet`, `EclairWallet`, and
+`LNbitsWallet`. The remote LNbits container uses CLN, and CLN node 3 issues the
+offers. Eclair 0.11.0 requires Bitcoin Core 27.2 or later; this stack uses 28.1.
+The CLN node 3–Eclair channel lets Eclair route BOLT12 invoice requests.
+
+After starting the stack and configuring the funding source, run from the
+repository root:
+
+```sh
+PYTEST_ADDOPTS="-k test_pay_real_offer" make test-regtest
+```
 
 ```sh
 chmod +x ./start-regtest
