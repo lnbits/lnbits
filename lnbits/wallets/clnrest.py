@@ -384,6 +384,15 @@ class CLNRestWallet(Wallet):
                     ),
                 )
 
+        except Exception as exc:
+            logger.info(f"Failed to fetch invoice for offer {offer[:24]}...")
+            logger.warning(exc)
+            return PaymentResponse(
+                ok=False,
+                error_message=f"Unable to fetch invoice from {self.url}.",
+            )
+
+        try:
             data: dict = {
                 "label": _generate_label(),
                 "maxfee": fee_limit_msat,
@@ -598,14 +607,22 @@ class CLNRestWallet(Wallet):
             raise ValueError("CLNREST_URL must start with http:// or https://")
 
     def _handle_offer_http_error(self, exc: httpx.HTTPStatusError) -> PaymentResponse:
+        # After dispatch, HTTP errors alone cannot prove that no funds were sent.
+        ok = None
         try:
             err = exc.response.json()
             error = err.get("error", {})
             if isinstance(error, dict):
                 error_message = error.get("message", "Unknown error")
+                error_code = error.get("code")
+                if (
+                    type(error_code) is int
+                    and error_code in self.pay_failure_error_codes
+                ):
+                    ok = False
             else:
                 error_message = str(error or err)
-            return PaymentResponse(ok=False, error_message=error_message)
+            return PaymentResponse(ok=ok, error_message=error_message)
         except Exception:
             return PaymentResponse(
                 error_message=f"Error parsing response from {self.url}: {exc!s}"
