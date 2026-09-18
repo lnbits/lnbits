@@ -402,6 +402,7 @@ class CLNRestWallet(Wallet):
                 checking_id=pay_data["payment_hash"],
                 fee_msat=pay_data["amount_sent_msat"] - pay_data["amount_msat"],
                 preimage=pay_data["payment_preimage"],
+                payment_request=invoice,
             )
         except httpx.HTTPStatusError as exc:
             try:
@@ -479,7 +480,11 @@ class CLNRestWallet(Wallet):
             status = pay.get("status")
             if status == "complete":
                 fee_msat = pay["amount_sent_msat"] - pay["amount_msat"]
-                return PaymentSuccessStatus(fee_msat=fee_msat, preimage=pay["preimage"])
+                return PaymentSuccessStatus(
+                    fee_msat=fee_msat,
+                    preimage=pay["preimage"],
+                    payment_request=pay.get("bolt12"),
+                )
             if status == "failed":
                 return PaymentFailedStatus()
 

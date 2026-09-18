@@ -768,7 +768,11 @@ async def test_pay_bolt12_offer_memo(
     client, adminkey_headers_to, monkeypatch, memo, request_field
 ):
     preimage, payment_hash = random_secret_and_hash()
-    backend = AsyncMock(return_value=PaymentResponse(True, payment_hash, 0, preimage))
+    backend = AsyncMock(
+        return_value=PaymentResponse(
+            True, payment_hash, 0, preimage, payment_request="lni1resolvedinvoice"
+        )
+    )
     monkeypatch.setattr(FakeWallet, "pay_offer", backend)
     data = {
         "out": True,
@@ -792,6 +796,11 @@ async def test_pay_bolt12_offer_memo(
     )
     payment = await get_standalone_payment(response.json()["checking_id"])
     assert payment and payment.success
+    assert payment.bolt11 == "lni1resolvedinvoice"
+    assert payment.payment_request == "lni1resolvedinvoice"
+    assert response.json()["bolt11"] == "lni1resolvedinvoice"
+    assert response.json()["payment_request"] == "lni1resolvedinvoice"
+    assert payment.extra["bolt12_offer"] == BOLT12_OFFER_WITH_DESCRIPTION
     assert payment.memo == (memo or "Test vectors")
     assert payment.extra["internal_memo"] == "Private memo"
     if memo:
