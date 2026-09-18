@@ -19,7 +19,11 @@ from lnbits.fiat import get_fiat_provider
 from lnbits.helpers import check_callback_url, daystart_timestamp
 from lnbits.settings import settings
 from lnbits.task_manager import task_manager
-from lnbits.utils.bolt12 import looks_like_bolt12_offer, parse_bolt12_offer
+from lnbits.utils.bolt12 import (
+    get_bolt12_offer_description,
+    looks_like_bolt12_offer,
+    parse_bolt12_offer,
+)
 from lnbits.utils.crypto import fake_privkey, random_secret_and_hash, verify_preimage
 from lnbits.utils.exchange_rates import fiat_amount_as_satoshis, satoshis_amount_as_fiat
 from lnbits.wallets import fake_wallet, get_funding_source
@@ -98,8 +102,8 @@ async def pay_offer(
     wallet_id: str,
     offer: str,
     amount_sat: int | None = None,
+    memo: str | None = None,
     extra: dict | None = None,
-    description: str = "",
     tag: str = "",
     labels: list[str] | None = None,
     external_id: str | None = None,
@@ -115,11 +119,18 @@ async def pay_offer(
     pr = _validate_offer_payment_request(offer, amount_sat)
     extra = dict(extra or {})
     extra["bolt12"] = True
+    # Only an explicit memo is sent as a payer note.
+    if memo:
+        extra["payer_note"] = memo
+        extra["bolt12_offer_description"] = pr.description
+    else:
+        extra.pop("payer_note", None)
+        extra.pop("bolt12_offer_description", None)
     return await _pay_from_wallet(
         wallet_id=wallet_id,
         pr=pr,
         extra=extra,
-        description=description,
+        description=memo or pr.description or "BOLT12 offer",
         tag=tag,
         labels=labels,
         external_id=external_id,
@@ -868,7 +879,11 @@ async def _pay_external_invoice(
     if looks_like_bolt12_offer(payment.bolt11):
         task = task_manager.create_task(
             _fundingsource_pay_offer(
-                checking_id, payment.bolt11, fee_reserve_msat, abs(amount_msat)
+                checking_id,
+                payment.bolt11,
+                fee_reserve_msat,
+                abs(amount_msat),
+                payer_note=payment.extra.get("payer_note"),
             ),
             f"fundingsource_pay_offer_{checking_id}",
         )
@@ -962,12 +977,19 @@ async def _fundingsource_pay_invoice(
 
 
 async def _fundingsource_pay_offer(
-    checking_id: str, offer: str, fee_reserve_msat: int, amount_msat: int
+    checking_id: str,
+    offer: str,
+    fee_reserve_msat: int,
+    amount_msat: int,
+    payer_note: str | None = None,
 ) -> PaymentResponse:
     logger.debug(f"fundingsource: paying BOLT12 offer {checking_id}")
     funding_source = get_funding_source()
     payment_response: PaymentResponse = await funding_source.pay_offer(
-        offer, fee_limit_msat=fee_reserve_msat, amount_msat=amount_msat
+        offer,
+        fee_limit_msat=fee_reserve_msat,
+        amount_msat=amount_msat,
+        payer_note=payer_note,
     )
     logger.debug(f"backend: pay_offer finished {checking_id}, {payment_response}")
     return payment_response
@@ -1246,7 +1268,7 @@ def _validate_offer_payment_request(
         amount_msat=amount_sat * 1000,
         payment_hash=payment_hash,
         expiry_date=None,
-        description="BOLT12 offer",
+        description=get_bolt12_offer_description(offer) or "",
         is_offer=True,
     )
 

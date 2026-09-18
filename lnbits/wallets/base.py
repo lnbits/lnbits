@@ -155,8 +155,9 @@ class Wallet(ABC):
         offer: str,
         fee_limit_msat: int,
         amount_msat: int | None = None,
+        payer_note: str | None = None,
     ) -> PaymentResponse:
-        _ = (offer, fee_limit_msat, amount_msat)
+        _ = (offer, fee_limit_msat, amount_msat, payer_note)
         return PaymentResponse(
             ok=False,
             error_message="BOLT12 offers are not supported by this wallet.",

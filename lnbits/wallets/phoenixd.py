@@ -261,12 +261,15 @@ class PhoenixdWallet(Wallet):
         offer: str,
         fee_limit_msat: int,
         amount_msat: int | None = None,
+        payer_note: str | None = None,
     ) -> PaymentResponse:
         _ = fee_limit_msat
         try:
             data_body: dict[str, Any] = {"offer": offer}
             if amount_msat is not None and amount_msat > 0:
                 data_body["amountSat"] = str(amount_msat // 1000)
+            if payer_note:
+                data_body["message"] = payer_note
             r = await self.client.post(
                 "/payoffer",
                 data=data_body,

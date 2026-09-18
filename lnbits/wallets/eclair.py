@@ -153,7 +153,10 @@ class EclairWallet(Wallet):
         offer: str,
         fee_limit_msat: int,
         amount_msat: int | None = None,
+        payer_note: str | None = None,
     ) -> PaymentResponse:
+        # Eclair's payoffer API has no payer-note parameter.
+        _ = payer_note
         try:
             body: dict[str, Any] = {"offer": offer, "blocking": True}
             if amount_msat is not None and amount_msat > 0:
