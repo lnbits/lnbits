@@ -686,6 +686,9 @@ async def check_transaction_status(
 
 
 async def check_payment_status(payment: Payment) -> PaymentStatus:
+    # An offer has no backend reference until the funding source returns one.
+    if payment.is_out and payment.checking_id.startswith("temp_offer_"):
+        return PaymentPendingStatus()
     if payment.is_internal:
         if payment.success:
             return PaymentSuccessStatus(fee_msat=payment.fee, preimage=payment.preimage)
@@ -851,6 +854,8 @@ async def _pay_external_invoice(
     conn: Connection | None = None,
 ) -> Payment:
     checking_id = create_payment_model.payment_hash
+    if looks_like_bolt12_offer(create_payment_model.bolt11):
+        checking_id = f"temp_offer_{checking_id}"
     amount_msat = create_payment_model.amount_msat
 
     fee_reserve_total_msat = fee_reserve_total(amount_msat, internal=False)
