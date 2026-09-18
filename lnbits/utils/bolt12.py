@@ -11,6 +11,7 @@ import re
 
 from bech32 import CHARSET, convertbits
 from pydantic import BaseModel
+from pyln.client import Millisatoshi
 
 from lnbits.exceptions import PaymentError
 
@@ -122,6 +123,28 @@ def decode_bolt12_offer(value: str) -> DecodedBolt12Offer:
     except ValueError as exc:
         raise PaymentError("Invalid BOLT12 offer data.", status="failed") from exc
     return result
+
+
+def is_bolt12_invoice_amount_valid(changes: object, amount_msat: int | None) -> bool:
+    """Check CLN's fetchinvoice amount report against the authorized amount.
+
+    With an explicit amount_msat, CLN reports the invoice amount in changes
+    whenever it differs from that request. An empty changes object confirms
+    the requested amount; an absent or malformed report cannot confirm it.
+    """
+    if type(amount_msat) is not int or amount_msat <= 0:
+        return False
+    if not isinstance(changes, dict):
+        return False
+
+    invoice_amount = changes.get("amount_msat", amount_msat)
+    if isinstance(invoice_amount, Millisatoshi):
+        invoice_amount = int(invoice_amount)
+    elif isinstance(invoice_amount, str) and re.fullmatch(
+        r"[0-9]{1,20}msat", invoice_amount
+    ):
+        invoice_amount = int(invoice_amount[:-4])
+    return type(invoice_amount) is int and invoice_amount == amount_msat
 
 
 def _read_bigsize(data: bytes, offset: int) -> tuple[int, int]:

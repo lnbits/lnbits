@@ -15,6 +15,7 @@ from loguru import logger
 from lnbits.exceptions import UnsupportedError
 from lnbits.helpers import normalize_endpoint
 from lnbits.settings import settings
+from lnbits.utils.bolt12 import is_bolt12_invoice_amount_valid
 from lnbits.utils.crypto import random_secret_and_hash
 
 from .base import (
@@ -328,7 +329,7 @@ class CLNRestWallet(Wallet):
             error_message = f"Unable to connect to {self.url}."
             return PaymentResponse(error_message=error_message)
 
-    async def pay_offer(
+    async def pay_offer(  # noqa: C901
         self,
         offer: str,
         fee_limit_msat: int,
@@ -368,6 +369,15 @@ class CLNRestWallet(Wallet):
                     ok=False,
                     error_message=inv_data.get(
                         "error", "fetchinvoice returned no invoice"
+                    ),
+                )
+
+            if not is_bolt12_invoice_amount_valid(inv_data.get("changes"), amount_msat):
+                return PaymentResponse(
+                    ok=False,
+                    error_message=(
+                        "Unable to verify resolved BOLT12 invoice amount "
+                        "matches the authorized amount."
                     ),
                 )
 

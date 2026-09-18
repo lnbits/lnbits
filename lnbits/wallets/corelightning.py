@@ -11,6 +11,7 @@ from pyln.client import LightningRpc, RpcError
 from lnbits.exceptions import UnsupportedError
 from lnbits.nodes.cln import CoreLightningNode
 from lnbits.settings import settings
+from lnbits.utils.bolt12 import is_bolt12_invoice_amount_valid
 from lnbits.utils.crypto import random_secret_and_hash
 
 from .base import (
@@ -246,6 +247,15 @@ class CoreLightningWallet(Wallet):
             if not invoice:
                 return PaymentResponse(
                     ok=False, error_message="fetchinvoice returned no invoice"
+                )
+
+            if not is_bolt12_invoice_amount_valid(fetched.get("changes"), amount_msat):
+                return PaymentResponse(
+                    ok=False,
+                    error_message=(
+                        "Unable to verify resolved BOLT12 invoice amount "
+                        "matches the authorized amount."
+                    ),
                 )
 
             pay_payload: dict = {"bolt11": invoice, "maxfee": fee_limit_msat}
