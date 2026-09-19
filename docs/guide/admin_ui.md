@@ -43,6 +43,37 @@ For a complete reference of legacy variables consult **[.env.example](../../.env
 > [!NOTE]
 > See **[Super User](./super_user.md)** for the role and permission differences compared to Admin Users.
 
+## Onchain payments and key recovery
+
+The super user can enable server-managed Bitcoin wallets in the Watchonly
+extension from **Settings → Payments → Onchain payments**:
+
+1. Select **Generate encryption key**.
+2. Download the key backup, store it securely, and confirm the backup.
+3. Enable **Allow onchain payments** and select **Save**.
+
+LNbits saves the generated key in `.onchain_key` inside `LNBITS_DATA_FOLDER` with
+owner-only file permissions. No environment variable or launch flag is required.
+The same key must be retained across restarts. All workers must share this key.
+The key encrypts server wallet recovery phrases; it is excluded from ordinary
+settings responses. Disabling the toggle stops server wallet creation and signing,
+while keeping wallet recovery available. Hardware/watch-only wallets are unaffected.
+
+**Download backup** includes the generated key along with the data folder. Treat
+that archive as wallet recovery material. Keep a separate key recovery file as
+well, particularly when backing up only the database. Restore the database and
+data folder together; if the key file is missing, upload the original
+`lnbits-onchain-key.json` using **Restore an encryption key** in Payments settings.
+LNbits checks the key against the database and refuses a different key. Resetting
+settings preserves the key and its backup record.
+
+Deployments using a secret manager can optionally set `LNBITS_ONCHAIN_MASTER_KEY`
+in the environment or `.env` (base64-encoded, 32 random bytes). The earlier
+`WATCHONLY_MASTER_KEY` name is also supported. Back up and confirm that key through
+the same UI before enabling server wallets. Environment variables are not included
+in the full data-folder backup, so retain the separate key recovery file. Never
+replace a key that is already used by wallets.
+
 ## First run and Super User ID
 
 On first start with the Admin UI enabled you will be prompted to generate a Super User.

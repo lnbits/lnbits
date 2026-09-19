@@ -15,7 +15,7 @@ from typing import Any, Literal
 from uuid import uuid4
 
 from loguru import logger
-from pydantic import BaseModel, BaseSettings, Extra, Field, validator
+from pydantic import BaseModel, BaseSettings, Extra, Field, SecretStr, validator
 
 DEFAULT_WASM_MANIFESTS = [
     "https://raw.githubusercontent.com/lnbits/lnbits-extensions-wasm/refs/heads/main/extensions.json"
@@ -465,6 +465,7 @@ class ExchangeProvidersSettings(LNbitsSettings):
 
 
 class SecuritySettings(LNbitsSettings):
+    lnbits_allow_onchain_payments: bool = Field(default=False)
     lnbits_rate_limit_no: int = Field(default=200, ge=0)
     lnbits_rate_limit_unit: str = Field(default="minute")
     lnbits_allowed_ips: list[str] = Field(default=[])
@@ -1130,6 +1131,11 @@ class UpdateSettings(EditableSettings):
 
 
 class EnvSettings(LNbitsSettings):
+    lnbits_onchain_master_key: SecretStr | None = Field(
+        default=None,
+        env=["LNBITS_ONCHAIN_MASTER_KEY", "WATCHONLY_MASTER_KEY"],
+        exclude=True,
+    )
     debug: bool = Field(default=False)
     debug_database: bool = Field(default=False)
     bundle_assets: bool = Field(default=True)

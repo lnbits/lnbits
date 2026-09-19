@@ -1,5 +1,179 @@
 <template id="lnbits-admin-server">
   <q-card-section class="q-pa-none">
+    <h6 class="q-my-none q-mb-sm">Onchain payments</h6>
+    <q-item tag="label" class="q-px-none">
+      <q-item-section>
+        <q-item-label>Allow onchain payments</q-item-label>
+        <q-item-label caption>
+          Allow users to create and send from server-managed Bitcoin wallets in
+          Watchonly. Hardware and watch-only wallets remain available. Turning
+          this off keeps existing wallets and recovery backups.
+        </q-item-label>
+      </q-item-section>
+      <q-item-section avatar>
+        <q-toggle
+          v-model="formData.lnbits_allow_onchain_payments"
+          :disable="
+            !isSuperUser ||
+            (!formData.lnbits_allow_onchain_payments &&
+              !onchain?.backup_confirmed)
+          "
+          checked-icon="check"
+          unchecked-icon="clear"
+          color="primary"
+          aria-label="Allow onchain payments"
+        ></q-toggle>
+      </q-item-section>
+    </q-item>
+    <div v-if="!isSuperUser" class="text-caption text-grey q-mb-md">
+      The super user manages onchain payments and encryption key backups.
+    </div>
+    <div v-else class="q-mt-sm q-mb-lg">
+      <q-banner
+        v-if="onchainError"
+        class="bg-negative text-white rounded-borders"
+      >
+        <span v-text="onchainError"></span>
+        <template v-slot:action
+          ><q-btn flat label="Retry" @click="loadOnchainStatus"></q-btn
+        ></template>
+      </q-banner>
+      <q-linear-progress v-else-if="!onchain" indeterminate></q-linear-progress>
+      <template v-else>
+        <div class="row items-center q-gutter-sm q-mb-sm">
+          <q-icon
+            :name="onchain.configured ? 'lock' : 'key'"
+            :color="onchain.configured ? 'positive' : 'warning'"
+          ></q-icon>
+          <span
+            v-text="
+              onchain.configured
+                ? onchain.backup_confirmed
+                  ? 'Encryption key backed up'
+                  : 'Back up your encryption key to continue'
+                : 'Set up your encryption key'
+            "
+          ></span>
+        </div>
+        <p class="text-caption text-grey">
+          LNbits encrypts server wallet recovery phrases with this key. Generate
+          it once, then keep a recovery copy somewhere safe. Setup and backup
+          actions take effect immediately; use Save to apply the payment toggle.
+        </p>
+        <q-banner
+          v-if="onchain.error && onchain.fingerprint"
+          class="q-mb-md rounded-borders bg-warning text-black"
+        >
+          <span v-text="onchain.error"></span>
+        </q-banner>
+        <div class="row q-gutter-sm">
+          <q-btn
+            v-if="!onchain.configured && !onchain.fingerprint"
+            color="primary"
+            unelevated
+            label="Generate encryption key"
+            icon="key"
+            :loading="onchainBusy"
+            @click="setupOnchain"
+          ></q-btn>
+          <q-btn
+            v-if="onchain.configured"
+            outline
+            color="primary"
+            label="Back up encryption key"
+            icon="download"
+            :disable="onchainBusy"
+            @click="openOnchainBackup"
+          ></q-btn>
+        </div>
+        <q-expansion-item
+          v-if="!onchain.configured"
+          label="Restore an encryption key"
+          icon="restore"
+          class="q-mt-md"
+        >
+          <q-card-section class="q-px-none">
+            <p class="text-caption">
+              Restoring an instance? Restore its database and upload its
+              original key backup. Existing keys cannot be replaced.
+            </p>
+            <q-file
+              filled
+              dense
+              v-model="restoreFile"
+              accept=".json,application/json"
+              label="Encryption key backup"
+              :max-file-size="4096"
+              :disable="onchainBusy"
+            ></q-file>
+            <q-btn
+              class="q-mt-sm"
+              outline
+              color="primary"
+              label="Restore key"
+              :disable="!restoreFile"
+              :loading="onchainBusy"
+              @click="restoreOnchain"
+            ></q-btn>
+          </q-card-section>
+        </q-expansion-item>
+        <div v-if="onchain.configured" class="text-caption text-grey q-mt-sm">
+          <span v-if="onchain.source === 'file'"
+            >Stored in the LNbits data folder and included in Download
+            backup.</span
+          >
+          <span v-else
+            >Supplied by the server environment. Keep a separate key backup;
+            database backups do not include environment variables.</span
+          >
+        </div>
+      </template>
+    </div>
+    <q-dialog v-model="backupDialog" :persistent="onchainBusy">
+      <q-card style="width: 520px; max-width: 95vw">
+        <q-card-section>
+          <div class="text-h6">Back up your onchain encryption key</div>
+          <p class="q-mt-md">
+            Keep this file in a secure place, separately from your database
+            backup. Anyone with both can recover the server wallets.
+          </p>
+          <p>
+            If this key is lost, LNbits cannot unlock its server wallets. Users
+            can still recover with their own wallet recovery phrases.
+          </p>
+          <q-btn
+            color="primary"
+            unelevated
+            icon="download"
+            label="Download key backup"
+            :loading="onchainBusy"
+            @click="downloadOnchainBackup"
+          ></q-btn>
+          <q-checkbox
+            class="q-mt-md"
+            v-model="backupSaved"
+            :disable="!backupDownloaded"
+            label="I have stored this key backup somewhere safe"
+          ></q-checkbox>
+        </q-card-section>
+        <q-card-actions align="right">
+          <q-btn
+            flat
+            label="Close"
+            v-close-popup
+            :disable="onchainBusy"
+          ></q-btn>
+          <q-btn
+            color="primary"
+            label="Confirm backup"
+            :disable="!backupDownloaded || !backupSaved"
+            :loading="onchainBusy"
+            @click="confirmOnchainBackup"
+          ></q-btn>
+        </q-card-actions>
+      </q-card>
+    </q-dialog>
+    <q-separator class="q-mb-lg q-mt-md"></q-separator>
     <h6 class="q-my-none q-mb-sm" v-text="$t('currency_settings')"></h6>
     <div
       class="text-caption text-grey q-mb-md"

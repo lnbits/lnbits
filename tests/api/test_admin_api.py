@@ -188,3 +188,69 @@ async def test_admin_delete_settings_requires_superuser(
     assert spark_l2_confirmed and spark_l2_confirmed.value is True
 
     server_restart.clear()
+
+
+@pytest.mark.anyio
+@pytest.mark.parametrize(
+    "method,path",
+    [("GET", ""), ("POST", ""), ("POST", "/backup"), ("POST", "/confirm")],
+)
+async def test_onchain_key_requires_superuser(client, from_user, method, path):
+    response = await client.request(
+        method, f"/admin/api/v1/onchain/key{path}", params={"usr": from_user.id}
+    )
+    assert response.status_code == 403
+
+
+@pytest.mark.anyio
+async def test_onchain_key_survives_settings_reset(
+    client, superuser_token, settings, tmp_path, monkeypatch
+):
+    from lnbits.core.crud.settings import reset_core_settings
+    from lnbits.core.db import db
+    from lnbits.core.services.onchain import KEY_RECORD, key_path
+
+    original = await get_settings_field(KEY_RECORD)
+    monkeypatch.setattr(settings, "lnbits_data_folder", str(tmp_path))
+    monkeypatch.setattr(settings, "lnbits_onchain_master_key", None)
+    monkeypatch.delenv("WATCHONLY_MASTER_KEY", raising=False)
+    headers = {"Authorization": f"Bearer {superuser_token}"}
+    try:
+        await db.execute(
+            "DELETE FROM system_settings WHERE id = :id AND tag = 'core'",
+            {"id": KEY_RECORD},
+        )
+        created = await client.post("/admin/api/v1/onchain/key", headers=headers)
+        assert created.status_code == 200
+        backup = await client.post("/admin/api/v1/onchain/key/backup", headers=headers)
+        assert backup.status_code == 200
+        saved_key = key_path().read_text()
+        confirmed = await client.post(
+            "/admin/api/v1/onchain/key/confirm",
+            headers={
+                **headers,
+                "X-Onchain-Key-Fingerprint": backup.json()["fingerprint"],
+            },
+        )
+        assert confirmed.status_code == 200
+        enabled = await client.patch(
+            "/admin/api/v1/settings",
+            headers=headers,
+            json={"lnbits_allow_onchain_payments": True},
+        )
+        assert enabled.status_code == 200
+        assert settings.lnbits_allow_onchain_payments
+        normal_settings = await client.get("/admin/api/v1/settings", headers=headers)
+        assert backup.json()["key"] not in normal_settings.text
+        await reset_core_settings()
+        assert key_path().read_text() == saved_key
+        status = await client.get("/admin/api/v1/onchain/key", headers=headers)
+        assert status.json()["backup_confirmed"]
+        assert status.json()["fingerprint"] == backup.json()["fingerprint"]
+    finally:
+        await db.execute(
+            "DELETE FROM system_settings WHERE id = :id AND tag = 'core'",
+            {"id": KEY_RECORD},
+        )
+        if original:
+            await set_settings_field(KEY_RECORD, original.value)
