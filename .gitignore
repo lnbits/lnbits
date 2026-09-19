@@ -63,3 +63,6 @@ dist
 # jetbrains
 .idea
 .venv
+
+# Private macOS release credentials
+.env.macos-release
