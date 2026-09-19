@@ -205,9 +205,15 @@ entitlement lists:
   runtime publishes compiled WebAssembly code using ordinary `mmap` and
   `mprotect(PROT_EXEC)`, without `MAP_JIT`; `allow-jit` alone does not cover that
   path. See the [Wasmtime v45 implementation](https://github.com/bytecodealliance/wasmtime/blob/v45.0.0/crates/wasmtime/src/runtime/vm/sys/unix/mmap.rs).
-- **Node executable:** `com.apple.security.cs.allow-jit`. The pinned Node/V8
-  allocator uses `MAP_JIT` for executable allocations on Darwin, including Intel.
-  See the [pinned V8 allocator](https://github.com/nodejs/node/blob/v24.21.0/deps/v8/src/base/platform/platform-posix.cc).
+- **Node executable:** `com.apple.security.cs.allow-jit` on both architectures,
+  plus `com.apple.security.cs.allow-unsigned-executable-memory` on **x86_64 only**.
+  The pinned Node 24.21.0 crashes during V8 code-range initialization on Intel
+  macOS 26.6.2 with `allow-jit` alone (`OS::SetPermissions`, `SIGTRAP`). A controlled
+  comparison of hardened, ad-hoc-signed copies reproduced the crash with only
+  `allow-jit` and passed JavaScript execution when the unsigned-memory exception
+  was added. This exception is scoped to Intel Node; arm64 retains `allow-jit`
+  alone. See [Apple's unsigned executable memory entitlement](https://developer.apple.com/documentation/bundleresources/entitlements/com.apple.security.cs.allow-unsigned-executable-memory)
+  and the [pinned Node entitlement list](https://github.com/nodejs/node/blob/v24.21.0/tools/osx-entitlements.plist).
   All shipped native add-ons are re-signed by the same team, so loading them does
   not require disabling library validation.
 - **Phoenixd, Python/Tk libraries, extensions and other native libraries:** no
@@ -224,7 +230,12 @@ fingerprint. Credential-based selection remains authoritative.
 
 These choices must still be confirmed in real Developer ID builds on **both**
 architectures. The mounted smoke checks execute Wasmtime-generated code and Node
-and exercise the native Phoenixd executable; failures stop publication.
+and exercise the native Phoenixd executable; failures stop publication. The Node
+probe evaluates JavaScript before starting Spark, because `node --version` does
+not initialize V8 and can succeed with broken JIT permissions. It clears inherited
+`NODE_OPTIONS` so `--jitless` cannot hide the failure. Both Spark and Phoenixd are
+launched through the bundled Node supervisor. Validate a downloaded signed build
+on a physical Intel Mac, including macOS 26, as well as the macOS 15 CI runners.
 
 ## GitHub Actions
 

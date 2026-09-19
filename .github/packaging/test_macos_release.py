@@ -530,6 +530,48 @@ class SigningTests(unittest.TestCase):
         with self.assertRaisesRegex(ReleaseError, "entitlements"):
             signing.verify_code(runner, Path("code"), "ABCDEFGHIJ")
 
+    def test_node_memory_entitlements_are_scoped_and_verified_per_architecture(self):
+        app = Path("LNbits.app")
+        node = app / "Contents/Frameworks/sidecars/node"
+        native = app / "Contents/Resources/sidecars/spark/native.node"
+        phoenixd = app / "Contents/Frameworks/sidecars/phoenixd"
+        policies = {
+            "arm64": {"com.apple.security.cs.allow-jit": True},
+            "x86_64": {
+                "com.apple.security.cs.allow-jit": True,
+                "com.apple.security.cs.allow-unsigned-executable-memory": True,
+            },
+        }
+        for arch, expected in policies.items():
+            with self.subTest(arch=arch):
+                runner = Mock()
+                with patch(
+                    "macos.signing.code_targets", return_value=[node, native, phoenixd]
+                ):
+                    signing.sign_app(runner, app, IDENTITY, "temp.keychain-db", arch)
+                node_call, *other_calls = runner.run.call_args_list
+                entitlements = Path(
+                    node_call.args[node_call.args.index("--entitlements") + 1]
+                )
+                self.assertEqual(plistlib.loads(entitlements.read_bytes()), expected)
+                for call in other_calls:
+                    self.assertNotIn("--entitlements", call.args)
+                for actual in policies.values():
+                    runner.run.side_effect = [
+                        result(),
+                        result(
+                            stderr="TeamIdentifier=ABCDEFGHIJ\nTimestamp=Sep 18, 2026\n"
+                            "flags=0x10000(runtime)\n"
+                        ),
+                        result(plistlib.dumps(actual).decode()),
+                    ]
+                    with patch("macos.signing.code_targets", return_value=[node]):
+                        if actual == expected:
+                            signing.verify_app(runner, app, "ABCDEFGHIJ", arch)
+                        else:
+                            with self.assertRaisesRegex(ReleaseError, "entitlements"):
+                                signing.verify_app(runner, app, "ABCDEFGHIJ", arch)
+
     def test_notarization_accepts_only_exact_accepted_and_reports_id(self):
         for status in ("Accepted", "Invalid", "In Progress", "accepted", None):
             with self.subTest(status=status):

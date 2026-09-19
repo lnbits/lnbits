@@ -64,7 +64,11 @@ def entitlement_file(path, app, arch):
             return candidate
         return default
     if path.name == "node":
-        return ENTITLEMENTS / "node.plist"
+        # The pinned Intel Node needs this extra exception for V8 code-range
+        # initialization under hardened runtime; allow-jit alone can SIGTRAP.
+        return ENTITLEMENTS / (
+            "node-x86_64.plist" if arch == "x86_64" else "node.plist"
+        )
     return None
 
 
