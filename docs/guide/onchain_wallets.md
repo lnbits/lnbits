@@ -2,9 +2,13 @@
 
 Choose **Onchain** in **Add wallet**, then select Mainnet, Testnet4 or Testnet3.
 Each LNbits onchain wallet holds one Bitcoin wallet on one network.
-The network badge appears next to **Onchain wallet**. Use **Set up wallet** to
+The network badge appears in the wallet card header. Use **Set up wallet** to
 configure it; to use another Bitcoin wallet, create another LNbits onchain wallet
 from the sidebar. This limit is also enforced by the API and database.
+
+The standard wallet card shows the Bitcoin wallet details and device connection
+buttons beneath the wallet name, with a settings cog on the right. **Advanced** remains
+expandable, followed by the usual wallet configuration and tools.
 
 Add a server wallet, import a public descriptor/account key, or connect a supported
 hardware wallet. Trezor and the existing serial hardware signing flows are
@@ -58,7 +62,7 @@ APIs are available from the standard wallet tools.
 
 ## Explorer and installation
 
-Choose the provider under **Wallet tools → Settings → Block explorer**. LNbits'
+Choose the provider using the settings cog beside the device buttons, then **Block explorer**. LNbits'
 built-in block explorer is the default when enabled for the wallet's Bitcoin
 network. Wallet operations reuse the shared service behind the block explorer API,
 including history, coins, fees, signing inputs and broadcasts; its public API need

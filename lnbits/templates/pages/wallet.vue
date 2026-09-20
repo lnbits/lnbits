@@ -2,13 +2,11 @@
   <lnbits-onchain-wallet
     v-if="g.wallet?.walletType === 'onchain'"
     :key="g.wallet.id"
+    :chart-config="chartConfig"
+    @update-wallet="updateWallet"
     @synced="$refs.onchainCharts?.changeCharts()"
   >
     <template #wallet-tools>
-      <lnbits-wallet-extra
-        @update-wallet="updateWallet"
-        :chart-config="chartConfig"
-      ></lnbits-wallet-extra>
       <lnbits-wallet-charts
         ref="onchainCharts"
         :payment-filter="onchainPaymentFilter"

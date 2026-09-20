@@ -26,6 +26,8 @@ import './components/serial-port-config.js'
 export default {
   name: 'OnchainWallet',
   template: '#page-onchain',
+  props: ['chartConfig'],
+  emits: ['synced', 'update-wallet', 'update:addresses'],
   data() {
     return {
       scan: {
