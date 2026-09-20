@@ -3,6 +3,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from enum import Enum
+from typing import Literal
 
 from pydantic import BaseModel, Field
 
@@ -22,6 +23,7 @@ class WalletInfo(BaseModel):
 class WalletType(Enum):
     LIGHTNING = "lightning"
     FIAT = "fiat"
+    ONCHAIN = "onchain"
     LIGHTNING_SHARED = "lightning-shared"
 
 
@@ -174,6 +176,8 @@ class Wallet(BaseWallet):
         return []
 
     def has_permission(self, permission: WalletPermission) -> bool:
+        if self.is_onchain_wallet:
+            return permission == WalletPermission.VIEW_PAYMENTS
         if self.wallet_type == WalletType.FIAT.value:
             return permission in (
                 WalletPermission.VIEW_PAYMENTS,
@@ -211,9 +215,13 @@ class Wallet(BaseWallet):
 
     @property
     def withdrawable_balance(self) -> int:
-        if self.wallet_type == WalletType.FIAT.value:
+        if self.wallet_type in (WalletType.FIAT.value, WalletType.ONCHAIN.value):
             return 0
         return self.balance_msat - settings.fee_reserve(self.balance_msat)
+
+    @property
+    def is_onchain_wallet(self) -> bool:
+        return self.wallet_type == WalletType.ONCHAIN.value
 
     @property
     def is_lightning_wallet(self) -> bool:
@@ -230,6 +238,7 @@ class Wallet(BaseWallet):
 
 
 class CreateWallet(BaseModel):
+    onchain_network: Literal["Mainnet", "Testnet", "Testnet4"] = "Mainnet"
     name: str | None = None
     wallet_type: WalletType = WalletType.LIGHTNING
     shared_wallet_id: str | None = None

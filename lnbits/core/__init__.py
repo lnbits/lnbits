@@ -29,6 +29,9 @@ core_app = APIRouter(tags=["Core"])
 
 
 def init_core_routers(app: FastAPI):
+    from lnbits.onchain.router import onchain_router
+
+    app.include_router(onchain_router)
     app.include_router(core_app)
     app.include_router(generic_router)
     app.include_router(two_factor_router)

@@ -28,7 +28,8 @@ DEFAULT_NETWORK = NETWORKS["main"]
 def network_from_name(name: str) -> dict:
     """Look up an embit network dict (see embit.networks.NETWORKS) by name."""
     try:
-        return NETWORKS[name]
+        # Testnet4 uses the same address/key encodings as Testnet3.
+        return NETWORKS["test" if name == "test4" else name]
     except KeyError as exc:
         raise ValueError(
             f"Unknown network {name!r}, expected one of {list(NETWORKS)}"
