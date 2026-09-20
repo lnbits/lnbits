@@ -35,10 +35,13 @@
       <q-separator></q-separator>
       <q-list>
         <lnbits-wallet-paylinks
+          v-if="g.wallet.walletType !== 'onchain'"
           @send-lnurl="handleSendLnurl"
         ></lnbits-wallet-paylinks>
         <q-separator></q-separator>
-        <lnbits-wallet-share></lnbits-wallet-share>
+        <lnbits-wallet-share
+          v-if="g.wallet.walletType !== 'onchain'"
+        ></lnbits-wallet-share>
         <q-separator></q-separator>
         <q-expansion-item
           group="extras"
@@ -46,7 +49,7 @@
           :label="$t('access_wallet_on_mobile')"
         >
           <q-card>
-            <q-card-section>
+            <q-card-section v-if="g.wallet.walletType !== 'onchain'">
               You can connect to this wallet from a mobile app:
               <ul>
                 <li>

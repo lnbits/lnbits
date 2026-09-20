@@ -16,3 +16,7 @@
 flake.lock
 
 .venv
+
+# Third-party Bitcoin hardware signing libraries.
+**/lnbits/onchain/static/js/crypto/*
+**/lnbits/onchain/static/js/lib/*

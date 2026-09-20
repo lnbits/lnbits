@@ -49,6 +49,7 @@ async def test_generate_persist_confirm_and_disable(key_store, settings):
         await onchain.require_onchain_payments()
     with pytest.raises(ValueError, match="does not match"):
         await onchain.confirm_onchain_key_backup("wrong")
+    assert status.fingerprint
     await onchain.confirm_onchain_key_backup(status.fingerprint)
     await onchain.require_onchain_payments()
     settings.lnbits_allow_onchain_payments = False
@@ -61,6 +62,7 @@ async def test_generate_persist_confirm_and_disable(key_store, settings):
 async def test_lost_key_requires_original_backup(key_store):
     status = await onchain.setup_onchain_key()
     encoded = base64.b64encode(onchain.read_onchain_key()).decode()
+    assert status.fingerprint
     await onchain.confirm_onchain_key_backup(status.fingerprint)
     onchain.key_path().unlink()
     assert not (await onchain.onchain_key_status()).configured
@@ -110,7 +112,8 @@ def test_env_file_key_loading(tmp_path, monkeypatch):
     encoded = base64.b64encode(bytes(range(32))).decode()
     env = tmp_path / ".env"
     env.write_text(f"LNBITS_ONCHAIN_MASTER_KEY={encoded}\n")
-    loaded = Settings(_env_file=env)
+    loaded = Settings(_env_file=env)  # pyright: ignore[reportCallIssue]
+    assert loaded.lnbits_onchain_master_key
     assert loaded.lnbits_onchain_master_key.get_secret_value() == encoded
     assert encoded not in loaded.json()
 

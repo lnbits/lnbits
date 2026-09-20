@@ -5,6 +5,21 @@
     :label="$t('api_keys_api_docs')"
     :content-inset-level="0.5"
   >
+    <q-card-section v-if="g.wallet.walletType === 'onchain'">
+      <p>
+        Use the read key to list Bitcoin accounts, addresses and cached
+        activity. The admin key can sign payments and export server wallet
+        recovery phrases.
+      </p>
+      <p>
+        <code>GET /onchain/api/v1/state</code><br /><code
+          >GET /onchain/api/v1/wallet</code
+        ><br /><code>POST /onchain/api/v1/sync</code>
+      </p>
+      <a href="/docs#/Onchain" target="_blank" rel="noopener noreferrer"
+        >Onchain API documentation</a
+      >
+    </q-card-section>
     <q-card-section>
       <q-banner
         dense
@@ -158,7 +173,7 @@
     </q-expansion-item>
 
     <q-expansion-item
-      v-if="!g.settings.hideApi"
+      v-if="!g.settings.hideApi && g.wallet.walletType !== 'onchain'"
       group="api"
       dense
       expand-separator
@@ -203,7 +218,7 @@
       </q-card>
     </q-expansion-item>
     <q-expansion-item
-      v-if="!g.settings.hideApi"
+      v-if="!g.settings.hideApi && g.wallet.walletType !== 'onchain'"
       group="api"
       dense
       expand-separator
@@ -250,7 +265,7 @@
     </q-expansion-item>
 
     <q-expansion-item
-      v-if="!g.settings.hideApi"
+      v-if="!g.settings.hideApi && g.wallet.walletType !== 'onchain'"
       group="api"
       dense
       expand-separator
@@ -279,7 +294,7 @@
       </q-card>
     </q-expansion-item>
     <q-expansion-item
-      v-if="!g.settings.hideApi"
+      v-if="!g.settings.hideApi && g.wallet.walletType !== 'onchain'"
       group="api"
       dense
       expand-separator

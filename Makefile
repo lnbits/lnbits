@@ -159,3 +159,11 @@ install-pre-commit-hook:
 
 pre-commit:
 	uv run pre-commit run --all-files
+
+# Deterministic core onchain UI and hardware protocol regressions.
+test-onchain-ui:
+	node --test tests/onchain/*.test.cjs
+
+# Requires a local Chrome/Chromium executable or Playwright browser install.
+test-onchain-browser:
+	node tests/e2e/onchain-wallet.cjs

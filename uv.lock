@@ -1310,7 +1310,7 @@ wheels = [
 
 [[package]]
 name = "lnbits"
-version = "1.6.2-rc1"
+version = "1.6.2rc1"
 source = { editable = "." }
 dependencies = [
     { name = "aiosqlite" },
@@ -1356,6 +1356,7 @@ dependencies = [
     { name = "urllib3" },
     { name = "uvicorn" },
     { name = "uvloop", marker = "sys_platform != 'win32'" },
+    { name = "wallycore" },
     { name = "wasmtime" },
     { name = "websocket-client" },
     { name = "websockets" },
@@ -1368,7 +1369,6 @@ breez = [
 ]
 liquid = [
     { name = "boltz-client" },
-    { name = "wallycore" },
 ]
 migration = [
     { name = "psycopg2-binary" },
@@ -1447,7 +1447,7 @@ requires-dist = [
     { name = "urllib3", specifier = ">=2.7.0" },
     { name = "uvicorn", specifier = "~=0.40.0" },
     { name = "uvloop", marker = "sys_platform != 'win32'", specifier = "~=0.22.1" },
-    { name = "wallycore", marker = "extra == 'liquid'", specifier = "~=1.5.1" },
+    { name = "wallycore", specifier = "~=1.5.1" },
     { name = "wasmtime", specifier = ">=45.0.0" },
     { name = "websocket-client", specifier = "~=1.9.0" },
     { name = "websockets", specifier = "~=15.0.1" },

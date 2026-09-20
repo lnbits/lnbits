@@ -911,7 +911,7 @@ class BlockExplorerSettings(LNbitsSettings):
     lnbits_blockexplorer_electrum_url: str = Field(
         default="ssl://electrum.blockstream.info:50002"
     )
-    # one of: main, test, regtest, signet (see embit.networks.NETWORKS)
+    # one of: main, test, test4, regtest, signet
     lnbits_blockexplorer_network: str = Field(default="main")
 
 

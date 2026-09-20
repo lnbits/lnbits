@@ -46,7 +46,7 @@ For a complete reference of legacy variables consult **[.env.example](../../.env
 ## Onchain payments and key recovery
 
 The super user can enable server-managed Bitcoin wallets in the Watchonly
-extension from **Settings → Payments → Onchain payments**:
+extension and core onchain wallets from **Settings → Payments → Onchain payments**:
 
 1. Select **Generate encryption key**.
 2. Download the key backup, store it securely, and confirm the backup.

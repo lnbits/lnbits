@@ -246,8 +246,10 @@ async def create_payment(
     status: PaymentState = PaymentState.PENDING,
     conn: Connection | None = None,
 ) -> Payment:
+    wallet = await get_wallet(data.wallet_id, conn=conn)
+    if wallet and wallet.is_onchain_wallet:
+        raise ValueError("Onchain transactions cannot enter the Lightning ledger.")
     if data.amount_msat < 0:
-        wallet = await get_wallet(data.wallet_id, conn=conn)
         if wallet and not wallet.can_send_payments:
             raise ValueError("Wallet does not have permission to spend funds.")
 

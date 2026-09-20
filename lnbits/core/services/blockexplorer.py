@@ -1,4 +1,9 @@
 import asyncio
+import math
+import re
+
+from embit.transaction import Transaction as EmbitTransaction
+from starlette.concurrency import run_in_threadpool
 
 from lnbits.settings import settings
 from lnbits.task_manager import OnchainAddressEvent
@@ -123,3 +128,148 @@ def address_event_to_response(event: OnchainAddressEvent) -> AddressResponse:
         history=event.history,
         history_error=event.history_error,
     )
+
+
+_WALLET_TXID = re.compile(r"^[0-9a-f]{64}$")
+
+
+class BlockExplorerWalletSession:
+    """One explorer connection for complete wallet scans and payment operations."""
+
+    def __init__(self) -> None:
+        self.client = _client()
+        self.transactions: dict[str, EmbitTransaction] = {}
+        self.blocks: dict[int, dict] = {}
+
+    async def __aenter__(self):
+        await self.client.__aenter__()
+        return self
+
+    async def __aexit__(self, *args):
+        await self.client.__aexit__(*args)
+
+    async def raw_transaction(self, txid: str) -> str:
+        return await self.client.get_transaction(txid)
+
+    async def _transaction(self, txid: str) -> EmbitTransaction:
+        if not _WALLET_TXID.fullmatch(txid):
+            raise ValueError("Invalid transaction ID")
+        if txid not in self.transactions:
+            raw = await self.raw_transaction(txid)
+            if len(raw) > 8_000_000:
+                raise ValueError("Transaction too large")
+            tx = await run_in_threadpool(EmbitTransaction.parse, bytes.fromhex(raw))
+            if tx.txid().hex() != txid:
+                raise ValueError("Transaction ID mismatch")
+            if len(self.transactions) >= 10000:
+                self.transactions.clear()
+            self.transactions[txid] = tx
+        return self.transactions[txid]
+
+    def _outputs(self, tx: EmbitTransaction) -> list[dict]:
+        outputs = []
+        for output in tx.vout:
+            try:
+                address = output.script_pubkey.address(self.client.network)
+            except ValueError:
+                address = None
+            outputs.append(
+                {
+                    "value": output.value,
+                    "scriptpubkey": output.script_pubkey.data.hex(),
+                    "scriptpubkey_address": address,
+                }
+            )
+        return outputs
+
+    async def _status(self, height: int) -> dict:
+        if height <= 0:
+            return {"confirmed": False}
+        if height not in self.blocks:
+            header = await self.client.get_block_header(height)
+            if not isinstance(header, str):
+                raise ValueError("Invalid block header")
+            block = parse_block_header(header, height)
+            self.blocks[height] = {
+                "confirmed": True,
+                "block_height": height,
+                "block_time": block.timestamp,
+                "block_hash": block.hash,
+            }
+        return self.blocks[height].copy()
+
+    async def history(self, address: str) -> list[dict]:
+        history = await self.client.get_history(scripthash_from_address(address))
+        if len(history) > 25000:
+            raise ValueError("Explorer history limit reached")
+        transactions = []
+        for entry in history:
+            tx = await self._transaction(entry.tx_hash)
+            vin = []
+            for inp in tx.vin:
+                coinbase = inp.txid == bytes(32) and inp.vout == 0xFFFFFFFF
+                prevout = None
+                if not coinbase:
+                    previous = await self._transaction(inp.txid.hex())
+                    prevout = self._outputs(previous)[inp.vout]
+                vin.append(
+                    {
+                        "txid": inp.txid.hex(),
+                        "vout": inp.vout,
+                        "prevout": prevout,
+                        "is_coinbase": coinbase,
+                        "sequence": inp.sequence,
+                    }
+                )
+            vout = self._outputs(tx)
+            fee = (
+                0
+                if any(i["is_coinbase"] for i in vin)
+                else (
+                    sum(i["prevout"]["value"] for i in vin)
+                    - sum(o["value"] for o in vout)
+                )
+            )
+            if fee < 0:
+                raise ValueError("Invalid transaction fee")
+            transactions.append(
+                {
+                    "txid": entry.tx_hash,
+                    "vin": vin,
+                    "vout": vout,
+                    "fee": fee,
+                    "status": await self._status(entry.height),
+                }
+            )
+        return transactions
+
+    async def utxos(self, address: str) -> list[dict]:
+        coins = await self.client.listunspent(scripthash_from_address(address))
+        return [
+            {
+                "txid": coin.tx_hash,
+                "vout": coin.tx_pos,
+                "value": coin.value,
+                "status": await self._status(coin.height),
+            }
+            for coin in coins
+        ]
+
+    async def fees(self) -> dict:
+        rates = await asyncio.gather(
+            *(self.client.estimate_fee(blocks) for blocks in (1, 3, 6, 144))
+        )
+        # Electrum returns BTC/kB; the send form expects integer sat/vB.
+        fees = [max(1, math.ceil(rate * 100000)) if rate > 0 else 1 for rate in rates]
+        fees = [max(fees[i:]) for i in range(len(fees))]
+        return dict(
+            zip(
+                ("fastestFee", "halfHourFee", "hourFee", "economyFee"),
+                fees,
+                strict=True,
+            ),
+            minimumFee=1,
+        )
+
+    async def broadcast(self, raw: str) -> str:
+        return await self.client.broadcast(raw)
