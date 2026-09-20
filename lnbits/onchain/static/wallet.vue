@@ -386,68 +386,82 @@
       </div>
     </div>
     <div class="col-12 col-md-5 q-gutter-y-md">
-      <onchain-wallet-list
-        v-if="config.isLoaded"
-        ref="walletList"
-        :adminkey="g.wallet.adminkey"
-        :inkey="g.wallet.inkey"
-        :sats-denominated="config.sats_denominated"
-        :network="config.network"
-        :addresses="addresses"
-        :serial-signer-ref="signerDevice"
-        :busy="showPayment"
-        @accounts-update="updateAccounts"
-        @new-receive-address="showAddressDetailsWithConfirmation"
-        @create-hot="$refs.hotWallet.openCreate()"
-        @backup-wallet="$refs.hotWallet.openBackup($event)"
-      ></onchain-wallet-list>
-      <onchain-hot-wallet
-        ref="hotWallet"
-        :adminkey="g.wallet.adminkey"
-        :network="config.network"
-        @wallet-created="hotWalletCreated"
-        @backup-done="$refs.walletList.refreshWalletAccounts()"
-      ></onchain-hot-wallet>
-      <onchain-wallet-config
-        :total="selectedBalance"
-        v-model:config-data="config"
-        :adminkey="g.wallet.adminkey"
-        :busy="showPayment"
+      <lnbits-wallet-extra
+        :chart-config="chartConfig"
+        @update-wallet="$emit('update-wallet', $event)"
       >
-        <template v-slot:trezor
-          ><onchain-trezor-signer
-            ref="trezorSigner"
-            :network="config.network"
-            @signed:tx="updateSignedTx"
-            @device:connected="handleDeviceConnected"
-          ></onchain-trezor-signer
-        ></template>
-        <template v-slot:serial
-          ><onchain-serial-signer
-            ref="serialSigner"
-            :network="config.network"
+        <template #wallet-type-header>
+          <q-separator></q-separator>
+          <onchain-wallet-list
+            v-if="config.isLoaded"
+            ref="walletList"
+            :adminkey="g.wallet.adminkey"
+            :inkey="g.wallet.inkey"
             :sats-denominated="config.sats_denominated"
-            @signed:psbt="updateSignedPsbt"
-            @device:connected="handleDeviceConnected"
-          ></onchain-serial-signer
-        ></template>
-      </onchain-wallet-config>
-      <q-expansion-item v-if="selectedWallet" label="Advanced" icon="tune">
-        <q-card
-          ><q-card-section
-            ><q-btn
-              flat
-              label="Import signed PSBT"
-              :disable="showPayment"
-              @click="openImportPsbt"
-            ></q-btn>
-            <p class="text-caption q-mb-none">
-              Review a transaction signed by an offline wallet before
-              broadcasting.
-            </p></q-card-section
-          ></q-card
-        >
-      </q-expansion-item>
+            :network="config.network"
+            :addresses="addresses"
+            :serial-signer-ref="signerDevice"
+            :busy="showPayment"
+            @accounts-update="updateAccounts"
+            @new-receive-address="showAddressDetailsWithConfirmation"
+            @create-hot="$refs.hotWallet.openCreate()"
+            @backup-wallet="$refs.hotWallet.openBackup($event)"
+          ></onchain-wallet-list>
+          <onchain-hot-wallet
+            ref="hotWallet"
+            :adminkey="g.wallet.adminkey"
+            :network="config.network"
+            @wallet-created="hotWalletCreated"
+            @backup-done="$refs.walletList.refreshWalletAccounts()"
+          ></onchain-hot-wallet>
+          <onchain-wallet-config
+            :total="selectedBalance"
+            v-model:config-data="config"
+            :adminkey="g.wallet.adminkey"
+            :busy="showPayment"
+          >
+            <template v-slot:trezor
+              ><onchain-trezor-signer
+                ref="trezorSigner"
+                :network="config.network"
+                @signed:tx="updateSignedTx"
+                @device:connected="handleDeviceConnected"
+              ></onchain-trezor-signer
+            ></template>
+            <template v-slot:serial
+              ><onchain-serial-signer
+                ref="serialSigner"
+                :network="config.network"
+                :sats-denominated="config.sats_denominated"
+                @signed:psbt="updateSignedPsbt"
+                @device:connected="handleDeviceConnected"
+              ></onchain-serial-signer
+            ></template>
+          </onchain-wallet-config>
+        </template>
+        <template #wallet-type-tools>
+          <q-expansion-item
+            v-if="selectedWallet"
+            group="extras"
+            label="Advanced"
+            icon="tune"
+          >
+            <q-card-section
+              ><q-btn
+                flat
+                label="Import signed PSBT"
+                :disable="showPayment"
+                @click="openImportPsbt"
+              ></q-btn>
+              <p class="text-caption q-mb-none">
+                Review a transaction signed by an offline wallet before
+                broadcasting.
+              </p></q-card-section
+            >
+          </q-expansion-item>
+          <q-separator v-if="selectedWallet"></q-separator>
+        </template>
+      </lnbits-wallet-extra>
       <slot name="wallet-tools"></slot>
     </div>
     <q-dialog v-model="showAddress" position="top">
@@ -605,30 +619,24 @@
       >Could not load onchain settings.<template v-slot:action
         ><q-btn flat label="Retry" @click="getConfig"></q-btn></template
     ></q-banner>
-    <q-card>
-      <q-card-section>
-        <div class="row items-center">
-          <h2 class="text-subtitle1 col q-my-none">Wallet tools</h2>
-          <q-btn
-            flat
-            round
-            icon="settings"
-            aria-label="Onchain settings"
-            :disable="busy"
-            @click="openSettings"
-          ></q-btn>
-        </div>
-        <q-separator class="q-my-md"></q-separator>
-        <div class="text-subtitle2 q-mb-sm">Hardware wallets</div>
-        <p class="text-caption">
-          Connect Trezor or a supported serial device to import accounts, verify
-          addresses and sign payments.
-        </p>
-        <div class="row items-center q-gutter-sm">
+    <q-card-section class="q-pt-xs">
+      <div class="row items-center no-wrap">
+        <div class="col row items-center q-gutter-sm">
           <slot name="trezor"></slot><slot name="serial"></slot>
         </div>
-      </q-card-section>
-    </q-card>
+        <q-btn
+          flat
+          round
+          dense
+          class="q-ml-sm"
+          icon="settings"
+          aria-label="Onchain settings"
+          :disable="busy"
+          @click="openSettings"
+          ><q-tooltip>Blockchain settings</q-tooltip></q-btn
+        >
+      </div>
+    </q-card-section>
 
     <q-dialog v-model="show" position="top">
       <q-card class="q-pa-lg q-pt-xl lnbits__dialog-card">
@@ -865,15 +873,7 @@
 </template>
 
 <template id="onchain-wallet-list">
-  <q-card>
-    <q-card-section class="row items-center"
-      ><div class="col row items-center q-gutter-sm">
-        <h2 class="text-subtitle1 q-my-none">Onchain wallet</h2>
-        <q-badge outline :color="network === 'Mainnet' ? 'primary' : 'orange'">
-          {{ network === 'Testnet' ? 'Testnet3' : network }}
-        </q-badge>
-      </div></q-card-section
-    >
+  <div class="q-pt-sm">
     <q-linear-progress v-if="loading" indeterminate></q-linear-progress>
     <q-banner v-if="fetchError"
       >Could not load wallet.<template v-slot:action
@@ -897,7 +897,14 @@
           ></q-icon
         ></q-item-section>
         <q-item-section
-          ><q-item-label>{{ wallet.title }}</q-item-label
+          ><q-item-label class="row items-center q-gutter-x-sm">
+            <span>{{ wallet.title }}</span>
+            <q-badge
+              outline
+              :color="network === 'Mainnet' ? 'primary' : 'orange'"
+            >
+              {{ network === 'Testnet' ? 'Testnet3' : network }}
+            </q-badge></q-item-label
           ><q-item-label caption>{{
             wallet.wallet_kind === 'hot'
               ? 'Server wallet'
@@ -947,9 +954,16 @@
       v-if="!walletAccounts.length && !loading && !fetchError"
       class="q-px-md q-pb-lg text-caption"
     >
+      <q-badge
+        class="q-mr-sm"
+        outline
+        :color="network === 'Mainnet' ? 'primary' : 'orange'"
+      >
+        {{ network === 'Testnet' ? 'Testnet3' : network }}
+      </q-badge>
       Set up a server, hardware or watch-only wallet to get started.
     </div>
-  </q-card>
+  </div>
   <q-dialog v-model="showSetup">
     <q-card class="lnbits__dialog-card q-pa-md">
       <q-card-section

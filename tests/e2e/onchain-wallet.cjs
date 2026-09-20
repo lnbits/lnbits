@@ -66,7 +66,7 @@ async function main() {
             )
           )
           .join('') +
-        '<div id="app" class="q-pa-md"><page-onchain ref="page" @synced="onSynced"><template #wallet-tools><lnbits-wallet-extra :chart-config="chartConfig"></lnbits-wallet-extra><lnbits-wallet-charts ref="charts" :chart-config="chartConfig" :payment-filter="onchainPaymentFilter" api-url="/onchain/api/v1/stats/daily" api-key="read-test"></lnbits-wallet-charts></template></page-onchain></div>'
+        '<div id="app" class="q-pa-md"><page-onchain ref="page" :chart-config="chartConfig" @update-wallet="walletUpdates.push($event)" @synced="onSynced"><template #wallet-tools><lnbits-wallet-charts ref="charts" :chart-config="chartConfig" :payment-filter="onchainPaymentFilter" api-url="/onchain/api/v1/stats/daily" api-key="read-test"></lnbits-wallet-charts></template></page-onchain></div>'
     )
     for (const script of [
       'vue/dist/vue.global.js',
@@ -83,7 +83,7 @@ async function main() {
       content:
         "@font-face {font-family: 'Material Icons'; src: url(data:font/woff2;base64," +
         readFileSync(
-          root + '/lnbits/static/fonts/material-icons-v50.woff2'
+          root + '/lnbits/static/fonts/material-icons-v145.woff2'
         ).toString('base64') +
         ") format('woff2')} .material-icons {font-family: 'Material Icons'; font-weight: normal; font-style: normal; letter-spacing: normal; text-transform: none; white-space: nowrap; word-wrap: normal; direction: ltr; -webkit-font-feature-settings: 'liga'; -webkit-font-smoothing: antialiased;}"
     })
@@ -257,7 +257,8 @@ async function main() {
             showBalanceInOutChart: true,
             showPaymentInOutChart: true
           },
-          syncEvents: 0
+          syncEvents: 0,
+          walletUpdates: []
         }),
         methods: {
           onSynced() {
@@ -345,10 +346,15 @@ async function main() {
       app.component('page-onchain', definition)
       window.vm = app.mount('#app')
     })
-    await page
+    const walletCard = page.locator('.wallet-extra')
+    await walletCard
       .getByRole('button', {name: 'Serial device', exact: true})
-      .first()
       .waitFor()
+    assert.equal(await walletCard.count(), 1)
+    await walletCard
+      .getByRole('button', {name: 'Connect Trezor', exact: true})
+      .waitFor()
+    await walletCard.getByRole('button', {name: 'Onchain settings'}).waitFor()
     // Settings must remain usable throughout a background scan.
     await page.evaluate(() => {
       vm.$refs.page.liveUpdates.stop()
@@ -368,6 +374,15 @@ async function main() {
       .getByRole('option', {name: 'LNbits block explorer', exact: true})
       .click()
     await page.getByRole('button', {name: 'update', exact: true}).click()
+    await walletCard.getByText('wallet config', {exact: true}).click()
+    await walletCard.getByLabel('Name', {exact: true}).fill('Renamed bitcoin')
+    await walletCard
+      .getByRole('button', {name: 'update name', exact: true})
+      .click()
+    assert.deepEqual(await page.evaluate(() => vm.walletUpdates), [
+      {name: 'Renamed bitcoin'}
+    ])
+    await walletCard.getByText('wallet config', {exact: true}).click()
     await page.getByRole('button', {name: 'Set up wallet', exact: true}).click()
     await page.getByText('Server wallet', {exact: true}).click()
     await page.getByLabel('Wallet name', {exact: true}).fill('Everyday bitcoin')
@@ -439,6 +454,7 @@ async function main() {
       .getByRole('heading', {name: 'Back up Everyday bitcoin'})
       .waitFor({state: 'hidden'})
     await page.setViewportSize({width: 1280, height: 1000})
+    await walletCard.getByText('Testnet4', {exact: true}).waitFor()
     assert.equal(
       await page.getByRole('button', {name: 'Send', exact: true}).isDisabled(),
       true
@@ -676,6 +692,16 @@ async function main() {
         })
         assert.equal(overflow, false, `Page overflow at ${width}px`)
       }
+      await page.clock.runFor(500)
+      await walletCard.screenshot({path: `/tmp/onchain-tools-${width}.png`})
+      assert.equal(
+        await page.evaluate(
+          () => document.documentElement.scrollWidth > innerWidth
+        ),
+        false,
+        `Wallet header tools overflow at ${width}px`
+      )
+      await page.clock.runFor(500)
     }
     await page.evaluate(async () => {
       const p = vm.$refs.page
