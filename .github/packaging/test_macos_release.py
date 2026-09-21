@@ -258,10 +258,13 @@ class BuildModeTests(unittest.TestCase):
                 self.assertFalse(self.pipeline.call_args.kwargs["signed"])
                 self.assertEqual(output.read_text(), "existing=value\nsigned=false\n")
 
-    def test_local_missing_or_empty_file_builds_unsigned(self):
-        path = self.folder / ".env.macos-release"
+    def test_local_missing_file_builds_unsigned(self):
         release.main(["--prepared"])
         self.assertFalse(self.pipeline.call_args.kwargs["signed"])
+
+    @unittest.skipUnless(os.name == "posix", "Requires POSIX file permissions")
+    def test_local_empty_file_builds_unsigned(self):
+        path = self.folder / ".env.macos-release"
         path.write_text("# No signing credentials\nAPPLE_ID=\n")
         path.chmod(0o600)
         release.main(["--prepared"])
