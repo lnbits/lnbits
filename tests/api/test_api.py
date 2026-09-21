@@ -756,6 +756,9 @@ async def test_pay_bolt12_offer(client, adminkey_headers_to, fields):
     assert body["amount"] == -21_000
     assert body["extra"]["bolt12"] is True
     assert body["memo"] == "BOLT12 offer"
+    assert body["bolt11"].startswith("lni1")
+    assert body["payment_request"] == body["bolt11"]
+    assert body["extra"]["bolt12_offer"] == BOLT12_OFFER
 
 
 @pytest.mark.anyio

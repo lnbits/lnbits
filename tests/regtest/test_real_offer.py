@@ -45,7 +45,7 @@ async def test_pay_real_offer(
     settings: Settings,
 ):
     # Allow invoice negotiation and settlement to finish in the success path.
-    settings.lnbits_funding_source_pay_invoice_wait_seconds = 60
+    settings.lnbits_funding_source_pay_offer_wait_seconds = 60
     wallet_before = await get_wallet(from_wallet.id)
     assert wallet_before
     total_debit_msat = 0
