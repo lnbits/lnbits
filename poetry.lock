@@ -4745,10 +4745,9 @@ typing-extensions = {version = ">=4.13.2", markers = "python_version < \"3.11\""
 name = "wallycore"
 version = "1.5.2"
 description = "libwally Bitcoin library"
-optional = true
+optional = false
 python-versions = "*"
 groups = ["main"]
-markers = "extra == \"liquid\""
 files = [
     {file = "wallycore-1.5.2-cp310-cp310-macosx_10_9_universal2.whl", hash = "sha256:9978acdb2fec4e2dc1588237a497a4b44d39cec413babb7e2b36031423e70334"},
     {file = "wallycore-1.5.2-cp310-cp310-macosx_10_9_x86_64.whl", hash = "sha256:21547e736cc0c3778df5a25e42dcc44923b255bf6a85d0c39cc7822a2eaf9192"},
@@ -5191,10 +5190,10 @@ propcache = ">=0.2.1"
 
 [extras]
 breez = ["breez-sdk", "breez-sdk-liquid"]
-liquid = ["boltz-client", "wallycore"]
+liquid = ["boltz-client"]
 migration = ["psycopg2-binary"]
 
 [metadata]
 lock-version = "2.1"
 python-versions = ">=3.10,<3.13"
-content-hash = "2bb0f262d91bc11ec1c143b6a8b58019a06bf9657b4b7c63fe0015336386df67"
+content-hash = "bb7ad49aead0588be0117c2340321442eb86031a5d0d70c17170816b060ca0f9"
