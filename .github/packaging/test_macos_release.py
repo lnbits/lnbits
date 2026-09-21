@@ -215,9 +215,9 @@ class CredentialTests(unittest.TestCase):
         text = runner.redact(inherited + " " + DUMMY["APPLE_APP_SPECIFIC_PASSWORD"])
         self.assertEqual(text, "[REDACTED] [REDACTED]")
 
-    def test_missing_ci_credentials_fail_before_build_or_apple_tools(self):
+    def test_partial_ci_credentials_fail_before_build_or_apple_tools(self):
         with (
-            patch.dict(os.environ, {}, clear=True),
+            patch.dict(os.environ, {"APPLE_ID": DUMMY["APPLE_ID"]}, clear=True),
             patch("macos.release.sys.platform", "darwin"),
             patch("macos.release.platform.machine", return_value="arm64"),
             patch("macos.release.signal.signal"),
@@ -231,6 +231,61 @@ class CredentialTests(unittest.TestCase):
         self.assertIn("Missing release credentials", error.getvalue())
         prepare.assert_not_called()
         pipeline.assert_not_called()
+
+
+class BuildModeTests(unittest.TestCase):
+    def setUp(self):
+        self.folder = Path(self.enterContext(tempfile.TemporaryDirectory()))
+        self.enterContext(contextlib.chdir(self.folder))
+        self.enterContext(patch.dict(os.environ, {}, clear=True))
+        self.enterContext(patch("macos.release.sys.platform", "darwin"))
+        self.enterContext(patch("macos.release.platform.machine", return_value="arm64"))
+        self.enterContext(patch("macos.release.signal.signal"))
+        self.enterContext(patch("macos.release.Runner.run", return_value=result()))
+        self.pipeline = self.enterContext(patch("macos.release.release"))
+
+    def test_ci_without_credentials_builds_unsigned_and_reports_status(self):
+        for values in (
+            {},
+            dict.fromkeys(CREDENTIAL_NAMES, ""),
+            dict.fromkeys(CREDENTIAL_NAMES, " \t"),
+        ):
+            with self.subTest(values=values), patch.dict(os.environ, values):
+                output = self.folder / "github-output"
+                output.write_text("existing=value\n")
+                with patch.dict(os.environ, {"GITHUB_OUTPUT": str(output)}):
+                    release.main(["--ci", "--prepared"])
+                self.assertFalse(self.pipeline.call_args.kwargs["signed"])
+                self.assertEqual(output.read_text(), "existing=value\nsigned=false\n")
+
+    def test_local_missing_or_empty_file_builds_unsigned(self):
+        path = self.folder / ".env.macos-release"
+        release.main(["--prepared"])
+        self.assertFalse(self.pipeline.call_args.kwargs["signed"])
+        path.write_text("# No signing credentials\nAPPLE_ID=\n")
+        path.chmod(0o600)
+        release.main(["--prepared"])
+        self.assertFalse(self.pipeline.call_args.kwargs["signed"])
+
+    def test_ci_with_credentials_keeps_signed_build_and_reports_status(self):
+        output = self.folder / "github-output"
+        with patch.dict(os.environ, dict(DUMMY, GITHUB_OUTPUT=str(output))):
+            release.main(["--ci", "--prepared"])
+        self.assertTrue(self.pipeline.call_args.kwargs["signed"])
+        self.assertEqual(self.pipeline.call_args.kwargs["credentials"], DUMMY)
+        self.assertEqual(output.read_text(), "signed=true\n")
+
+    def test_explicit_unsigned_ignores_local_credentials(self):
+        with patch("macos.release.load_credentials") as load:
+            release.main(["--unsigned", "--prepared"])
+        load.assert_not_called()
+        self.assertFalse(self.pipeline.call_args.kwargs["signed"])
+
+    def test_broken_credentials_symlink_does_not_fall_back(self):
+        Path(".env.macos-release").symlink_to(self.folder / "missing")
+        with self.assertRaises(SystemExit):
+            release.main(["--prepared"])
+        self.pipeline.assert_not_called()
 
 
 class SessionTests(unittest.TestCase):

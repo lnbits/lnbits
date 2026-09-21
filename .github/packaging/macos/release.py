@@ -180,6 +180,12 @@ def interrupted(signum, _frame):
     raise ReleaseError(f"Release interrupted by signal {signum}; cleaning up")
 
 
+def report_ci_signing_status(ci, signed):
+    if ci and os.environ.get("GITHUB_OUTPUT"):
+        with Path(os.environ["GITHUB_OUTPUT"]).open("a") as output:
+            output.write(f"signed={str(signed).lower()}\n")
+
+
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
     mode = parser.add_mutually_exclusive_group()
@@ -215,10 +221,15 @@ def main(argv=None):
             cleanup(args.state, runner)
             return
         credentials = {}
+        signed = False
         if not args.unsigned and not args.prepare_only:
             credentials = load_credentials(None if args.ci else args.env_file)
             runner = Runner(credentials)
-            validate_credentials(credentials)
+            signed = any(value.strip() for value in credentials.values())
+            if signed:
+                validate_credentials(credentials)
+            else:
+                print("No Apple release credentials; building an unsigned DMG.")
         translated = runner.run(
             "Check native architecture",
             "/usr/sbin/sysctl",
@@ -237,11 +248,12 @@ def main(argv=None):
         release(
             runner,
             Session(args.state, runner),
-            signed=not args.unsigned,
+            signed=signed,
             credentials=credentials,
             arch=platform.machine(),
             skip_build=args.skip_build,
         )
+        report_ci_signing_status(args.ci, signed)
     except Exception as exc:
         # No unredacted exception repr, traceback or credential-bearing argv.
         print(runner.redact(error_message(exc)), file=sys.stderr)

@@ -23,6 +23,8 @@ def load_credentials(env_file=None):
     if env_file is None:
         return {name: os.environ.get(name, "") for name in CREDENTIAL_NAMES}
     path = Path(env_file)
+    if not path.exists() and not path.is_symlink():
+        return {}
     if path.is_symlink() or not path.is_file():
         raise ReleaseError("Expected a regular .env.macos-release file")
     if stat.S_IMODE(path.stat().st_mode) != 0o600:

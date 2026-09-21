@@ -115,6 +115,11 @@ After configuring `.env.macos-release`, build a signed release artifact:
 make build-macos-release
 ```
 
+If `.env.macos-release` is absent or contains no non-empty credentials, this
+command automatically builds an unsigned DMG with an ad-hoc signed app. Partial
+or invalid credentials still fail the build. `make build-macos` always selects
+the unsigned path, even when credentials are configured.
+
 Both commands build the current Mac's native architecture and produce
 `dist/LNbits-v<VERSION>-macOS-<ARCH>.dmg` and `.dmg.sha256`. Version normalization
 is unchanged: for example, `1.6.2-rc1` becomes `1.6.2rc1` in the filename and
@@ -240,23 +245,27 @@ on a physical Intel Mac, including macOS 26, as well as the macOS 15 CI runners.
 ## GitHub Actions
 
 `macos.yml` retains `macos-15` (arm64) and `macos-15-intel` (x86_64). Automatic builds
-run through the stable and RC release workflows. Temporarily, same-repository pull
-requests also build signed artifacts for testing, without attaching them to a
-release. Fork PRs are skipped because they do not receive the Apple secrets.
+run through the stable and RC release workflows. Temporarily, pull requests also
+build artifacts for testing, without attaching them to a release. Fork PRs build
+unsigned DMGs because they do not receive the Apple secrets.
 Remove the `pull_request` trigger when returning to release-only automatic builds.
-Every CI build, including manual runs, requires Developer ID signing and
-notarization. There is no unsigned CI option. All six GitHub Actions secrets must
-be configured; missing or invalid credentials fail the build.
+CI builds, including manual runs, use Developer ID signing and notarization when
+all six GitHub Actions secrets are configured. When all six are absent or empty,
+the builder automatically produces an unsigned DMG with an ad-hoc signed app and
+the unsigned instructions. Partial or invalid credentials fail the build, as do
+signing or notarization errors; these failures never trigger an unsigned retry.
+The workflow summary reports the resulting signing status.
 
-For a manual `workflow_dispatch`, leave the release tag empty for signed, notarized
+For a manual `workflow_dispatch`, leave the release tag empty for
 **artifact-only** builds. Supplying a release tag also attaches the verified assets
 to that release. The stable and RC callers explicitly pass all six secrets.
 Unsigned development builds remain available locally through `make build-macos`.
 
-Credentials are scoped to the signed build step. Dependency preparation and
+Credentials are scoped to the build step. Dependency preparation and
 launcher/packaging tests run separately without them. CI calls the same release
-implementation as `make build-macos-release`. Upload requires successful signing,
-notarization, final-image smoke checks, checksum generation, and cleanup.
+implementation as `make build-macos-release`. Upload requires final-image smoke
+checks, checksum generation, and cleanup, plus successful signing and notarization
+when credentials are supplied.
 
 ## Troubleshooting and release validation
 

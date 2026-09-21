@@ -1,7 +1,7 @@
 name: Build LNbits macOS DMG
 
 on:
-  # Temporary: build signed artifacts for PR testing before release-only CI.
+  # Temporary: build artifacts for PR testing before release-only CI.
   pull_request:
   workflow_call:
     inputs:
@@ -10,17 +10,17 @@ on:
         type: string
     secrets:
       BUILD_CERTIFICATE_BASE64:
-        required: true
+        required: false
       P12_PASSWORD:
-        required: true
+        required: false
       KEYCHAIN_PASSWORD:
-        required: true
+        required: false
       APPLE_ID:
-        required: true
+        required: false
       APPLE_TEAM_ID:
-        required: true
+        required: false
       APPLE_APP_SPECIFIC_PASSWORD:
-        required: true
+        required: false
   workflow_dispatch:
     inputs:
       tag_name:
@@ -33,8 +33,6 @@ permissions:
 
 jobs:
   build:
-    # Fork PRs do not receive the Apple signing secrets.
-    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
     strategy:
       fail-fast: false
       matrix:
@@ -74,7 +72,8 @@ jobs:
         run: python3 .github/packaging/macos/release.py --prepare-only
       - name: Test launcher and packaging
         run: uv run --no-sync python -m unittest discover -s .github/packaging -v
-      - name: Build signed and notarized release artifacts
+      - name: Build release artifacts
+        id: release
         env:
           BUILD_CERTIFICATE_BASE64: ${{ secrets.BUILD_CERTIFICATE_BASE64 }}
           P12_PASSWORD: ${{ secrets.P12_PASSWORD }}
@@ -88,8 +87,15 @@ jobs:
         if: always()
         run: python3 .github/packaging/macos/release.py --cleanup
       - name: Record signing status
+        env:
+          SIGNED: ${{ steps.release.outputs.signed }}
         run: |
-          echo 'Developer ID signed; app and DMG independently notarized, stapled and verified. Final read-only image smoke checks and checksum verification passed.' >> "$GITHUB_STEP_SUMMARY"
+          if [ "$SIGNED" = "true" ]; then
+            echo 'Developer ID signed; app and DMG independently notarized, stapled and verified.' >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo 'Unsigned DMG (ad-hoc signed app); no Apple release credentials supplied. Not notarized.' >> "$GITHUB_STEP_SUMMARY"
+          fi
+          echo 'Final read-only image smoke checks and checksum verification passed.' >> "$GITHUB_STEP_SUMMARY"
       - uses: actions/upload-artifact@v4
         with:
           name: LNbits-macOS-${{ matrix.arch }}
@@ -110,7 +116,7 @@ jobs:
           pattern: LNbits-macOS-*
           merge-multiple: true
           path: dist
-      - name: Attach signed DMGs and checksums to release
+      - name: Attach DMGs and checksums to release
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GH_REPO: ${{ github.repository }}
