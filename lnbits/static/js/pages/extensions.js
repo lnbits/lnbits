@@ -808,6 +808,7 @@ window.PageExtensions = {
       }
 
       this.selectedRelease = release
+      this.showManageExtensionDialog = true
 
       try {
         const data = await this.requestPaymentForInstall(
