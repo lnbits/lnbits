@@ -32,6 +32,7 @@ from lnbits.core.services.payments import (
     check_wallet_limits,
     create_payment_request,
     create_wallet_invoice,
+    fail_expired_incoming_invoices,
     get_payments_daily_stats,
     settle_hold_invoice,
     update_pending_payment,
@@ -250,6 +251,74 @@ async def test_update_pending_payment_marks_expired_incoming_invoice_failed(
     assert updated_payment.status == PaymentState.FAILED
     assert updated_payment.labels == ["test", "expired"]
     check_status_mock.assert_not_awaited()
+
+    stored_payment = await get_payment(checking_id)
+    assert stored_payment.status == PaymentState.FAILED
+    assert stored_payment.labels == ["test", "expired"]
+
+
+@pytest.mark.anyio
+async def test_fail_expired_incoming_invoices_drains_backlog_without_wallet_calls(
+    app,
+    mocker: MockerFixture,
+):
+    wallet = await _create_wallet()
+    expired_ids = [
+        await _create_payment(
+            wallet,
+            expiry=datetime.now(timezone.utc) - timedelta(seconds=1),
+            labels=["test"],
+        )
+        for _ in range(3)
+    ]
+    live_id = await _create_payment(
+        wallet,
+        expiry=datetime.now(timezone.utc) + timedelta(hours=1),
+    )
+    expired_outgoing_id = await _create_payment(
+        wallet,
+        amount_msat=-2_000,
+        expiry=datetime.now(timezone.utc) - timedelta(seconds=1),
+    )
+    check_status_mock = mocker.patch(
+        "lnbits.core.services.payments.check_payment_status",
+        mocker.AsyncMock(
+            side_effect=AssertionError("expired invoices should not be checked")
+        ),
+    )
+
+    failed = await fail_expired_incoming_invoices()
+
+    assert failed == len(expired_ids)
+    for checking_id in expired_ids:
+        payment = await get_payment(checking_id)
+        assert payment.status == PaymentState.FAILED
+        assert payment.labels == ["test", "expired"]
+    assert (await get_payment(live_id)).status == PaymentState.PENDING
+    assert (await get_payment(expired_outgoing_id)).status == PaymentState.PENDING
+    check_status_mock.assert_not_awaited()
+
+
+@pytest.mark.anyio
+async def test_check_pending_payments_drains_expired_invoices_on_voidwallet(
+    app,
+    mocker: MockerFixture,
+):
+    class VoidWallet:
+        pass
+
+    wallet = await _create_wallet()
+    checking_id = await _create_payment(
+        wallet,
+        expiry=datetime.now(timezone.utc) - timedelta(seconds=1),
+        labels=["test"],
+    )
+    mocker.patch(
+        "lnbits.core.services.payments.get_funding_source",
+        return_value=VoidWallet(),
+    )
+
+    await check_pending_payments()
 
     stored_payment = await get_payment(checking_id)
     assert stored_payment.status == PaymentState.FAILED

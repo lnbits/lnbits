@@ -433,12 +433,56 @@ async def update_pending_payment(
     return payment
 
 
+async def fail_expired_incoming_invoices() -> int:
+    """
+    LOCAL PATCH: fail incoming invoices that are past their expiry and still
+    pending, in one unbounded DB-only pass.
+
+    Pure DB work: an invoice past its expiry can never be paid, so no backend
+    call is needed. Without this the rows are only resolved when the
+    pending-payment sweep happens to reach them, and that sweep inspects a
+    single page (10 rows) per run -- so a backlog of expired invoices never
+    drains and every later run keeps offering them to the funding source. It
+    also runs while the funding source is a VoidWallet placeholder.
+
+    Returns the number of rows failed.
+    """
+    now = int(time.time())
+    rows = await db.fetchall(
+        """
+        SELECT checking_id
+        FROM apipayments
+        WHERE status = 'pending'
+          AND amount > 0
+          AND expiry IS NOT NULL
+          AND expiry < :now
+        ORDER BY time
+        """,
+        {"now": now},
+    )
+    failed = 0
+    for row in rows:
+        payment = await get_standalone_payment(row["checking_id"])
+        if not payment or payment.status != PaymentState.PENDING:
+            continue
+        await update_pending_payment(payment)
+        if payment.status == PaymentState.FAILED:
+            failed += 1
+    if failed > 0:
+        logger.info(f"Task: failed {failed} expired incoming invoices")
+    return failed
+
+
 async def check_pending_payments():
     """
     check_pending_payments is called during startup to check for pending payments with
     the backend and also to delete expired invoices. Incoming payments will be
     checked only once, outgoing pending payments will be checked regularly.
     """
+    # LOCAL PATCH: resolve expired incoming invoices first, independently of the
+    # backend (so it also happens on VoidWallet, and is not limited to one page).
+    await fail_expired_incoming_invoices()
+
     funding_source = get_funding_source()
     if funding_source.__class__.__name__ == "VoidWallet":
         logger.warning("Task: skipping pending check for VoidWallet")
