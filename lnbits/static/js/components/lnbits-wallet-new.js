@@ -2,7 +2,7 @@ window.app.component('lnbits-wallet-new', {
   template: '#lnbits-wallet-new',
   data() {
     return {
-      wallet: {name: '', sharedWalletId: ''},
+      wallet: {name: '', sharedWalletId: '', network: 'Mainnet'},
       showNewWalletDialog: false
     }
   },
@@ -23,6 +23,12 @@ window.app.component('lnbits-wallet-new', {
           label: 'Lightning',
           value: 'lightning',
           description: 'Send and receive Lightning payments'
+        },
+        {
+          label: 'Onchain',
+          value: 'onchain',
+          description:
+            'Bitcoin with a server wallet, hardware wallet or watch-only account'
         }
       ]
       if (this.g.user?.canCreateFiatWallet) {
@@ -55,7 +61,7 @@ window.app.component('lnbits-wallet-new', {
     reset() {
       this.showNewWalletDialog = false
       this.g.newWalletType = null
-      this.wallet = {name: '', sharedWalletId: ''}
+      this.wallet = {name: '', sharedWalletId: '', network: 'Mainnet'}
     },
     async submitRejectWalletInvitation() {
       try {
@@ -105,7 +111,8 @@ window.app.component('lnbits-wallet-new', {
       }
       LNbits.api
         .createWallet(data.name, this.g.newWalletType, {
-          shared_wallet_id: data.sharedWalletId
+          shared_wallet_id: data.sharedWalletId,
+          onchain_network: data.network
         })
         .then(res => {
           this.$q.notify({

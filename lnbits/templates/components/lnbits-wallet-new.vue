@@ -49,6 +49,21 @@
             </q-item>
           </template>
         </q-select>
+        <q-select
+          v-if="g.newWalletType === 'onchain'"
+          v-model="wallet.network"
+          :options="[
+            {label: 'Mainnet', value: 'Mainnet'},
+            {label: 'Testnet4', value: 'Testnet4'},
+            {label: 'Testnet3', value: 'Testnet'}
+          ]"
+          emit-value
+          map-options
+          label="Bitcoin network"
+          dense
+          class="q-mt-md"
+          hint="Each LNbits onchain wallet uses one Bitcoin network."
+        ></q-select>
         <q-input
           v-if="!isLightningShared"
           dense

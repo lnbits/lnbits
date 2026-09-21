@@ -31,22 +31,27 @@
         </div>
       </div>
     </q-card-section>
+    <slot name="wallet-type-header"></slot>
     <q-card-section class="q-pa-none">
       <q-separator></q-separator>
       <q-list>
+        <slot name="wallet-type-tools"></slot>
         <lnbits-wallet-paylinks
+          v-if="g.wallet.walletType !== 'onchain'"
           @send-lnurl="handleSendLnurl"
         ></lnbits-wallet-paylinks>
-        <q-separator></q-separator>
-        <lnbits-wallet-share></lnbits-wallet-share>
-        <q-separator></q-separator>
+        <q-separator v-if="g.wallet.walletType !== 'onchain'"></q-separator>
+        <lnbits-wallet-share
+          v-if="g.wallet.walletType !== 'onchain'"
+        ></lnbits-wallet-share>
+        <q-separator v-if="g.wallet.walletType !== 'onchain'"></q-separator>
         <q-expansion-item
           group="extras"
           icon="phone_android"
           :label="$t('access_wallet_on_mobile')"
         >
           <q-card>
-            <q-card-section>
+            <q-card-section v-if="g.wallet.walletType !== 'onchain'">
               You can connect to this wallet from a mobile app:
               <ul>
                 <li>

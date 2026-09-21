@@ -902,3 +902,78 @@ async def m050_add_lightning_address_to_wallets(db: Connection):
         CREATE UNIQUE INDEX IF NOT EXISTS idx_wallets_lightning_address
         ON wallets (lightning_address);
         """)
+
+
+async def m051_core_onchain_wallets(db: Connection):
+    """Separate Bitcoin accounting from Lightning's apipayments ledger."""
+    await db.execute(f"""
+        CREATE TABLE IF NOT EXISTS onchain_accounts (
+            id TEXT PRIMARY KEY,
+            wallet_id TEXT NOT NULL REFERENCES wallets(id),
+            masterpub TEXT NOT NULL,
+            fingerprint TEXT NOT NULL,
+            title TEXT NOT NULL,
+            address_no INTEGER NOT NULL DEFAULT -1,
+            balance {db.big_int} NOT NULL DEFAULT 0,
+            type TEXT,
+            network TEXT NOT NULL,
+            meta TEXT NOT NULL DEFAULT '{{}}',
+            wallet_kind TEXT NOT NULL DEFAULT 'watch',
+            backup_confirmed BOOLEAN NOT NULL DEFAULT false,
+            UNIQUE(wallet_id, network, masterpub)
+        )
+    """)
+    await db.execute(f"""
+        CREATE TABLE IF NOT EXISTS onchain_addresses (
+            id TEXT PRIMARY KEY,
+            wallet TEXT NOT NULL REFERENCES onchain_accounts(id),
+            address TEXT NOT NULL,
+            amount {db.big_int} NOT NULL DEFAULT 0,
+            branch_index INTEGER NOT NULL,
+            address_index INTEGER NOT NULL,
+            note TEXT,
+            has_activity BOOLEAN NOT NULL DEFAULT false,
+            UNIQUE(wallet, branch_index, address_index)
+        )
+    """)
+    await db.execute("""
+        CREATE TABLE IF NOT EXISTS onchain_config (
+            wallet_id TEXT PRIMARY KEY REFERENCES wallets(id),
+            json_data TEXT NOT NULL
+        )
+    """)
+    await db.execute("""
+        CREATE TABLE IF NOT EXISTS onchain_keys (
+            wallet TEXT PRIMARY KEY REFERENCES onchain_accounts(id),
+            encrypted_seed TEXT NOT NULL
+        )
+    """)
+    await db.execute(f"""
+        CREATE TABLE IF NOT EXISTS onchain_snapshots (
+            address_id TEXT PRIMARY KEY REFERENCES onchain_addresses(id),
+            transactions TEXT NOT NULL DEFAULT '[]',
+            utxos TEXT NOT NULL DEFAULT '[]',
+            checked_at {db.big_int} NOT NULL DEFAULT 0
+        )
+    """)
+    await db.execute("""
+        CREATE TABLE IF NOT EXISTS onchain_sync (
+            wallet_id TEXT PRIMARY KEY REFERENCES wallets(id),
+            lease_until BIGINT NOT NULL DEFAULT 0,
+            checked_at BIGINT NOT NULL DEFAULT 0,
+            error TEXT
+        )
+    """)
+
+
+async def m052_ensure_core_onchain_tables(db: Connection):
+    """Repair databases already marked version 51 without the onchain schema."""
+    await m051_core_onchain_wallets(db)
+
+
+async def m053_one_onchain_account_per_wallet(db: Connection):
+    """Each core onchain wallet holds exactly one configured Bitcoin wallet."""
+    await db.execute("""
+        CREATE UNIQUE INDEX IF NOT EXISTS idx_onchain_accounts_wallet_id
+        ON onchain_accounts (wallet_id)
+    """)

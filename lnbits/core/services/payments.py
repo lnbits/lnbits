@@ -487,6 +487,8 @@ async def update_wallet_balance(
     memo: str | None = None,
     conn: Connection | None = None,
 ):
+    if wallet.is_onchain_wallet:
+        raise ValueError("Onchain balances are determined by the blockchain.")
     if amount == 0:
         raise ValueError("Amount cannot be 0.")
 

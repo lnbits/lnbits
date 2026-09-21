@@ -1,5 +1,26 @@
 <template id="page-wallet">
-  <div v-if="g.wallet" class="row q-col-gutter-md" style="margin-bottom: 6rem">
+  <lnbits-onchain-wallet
+    v-if="g.wallet?.walletType === 'onchain'"
+    :key="g.wallet.id"
+    :chart-config="chartConfig"
+    @update-wallet="updateWallet"
+    @synced="$refs.onchainCharts?.changeCharts()"
+  >
+    <template #wallet-tools>
+      <lnbits-wallet-charts
+        ref="onchainCharts"
+        :payment-filter="onchainPaymentFilter"
+        :chart-config="chartConfig"
+        api-url="/onchain/api/v1/stats/daily"
+        :api-key="g.wallet.inkey"
+      ></lnbits-wallet-charts>
+    </template>
+  </lnbits-onchain-wallet>
+  <div
+    v-else-if="g.wallet"
+    class="row q-col-gutter-md"
+    style="margin-bottom: 6rem"
+  >
     <div class="col-12 col-md-7 q-gutter-y-md wallet-wrapper">
       <q-card class="wallet-card">
         <q-card-section>

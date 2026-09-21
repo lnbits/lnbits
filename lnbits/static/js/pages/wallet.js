@@ -1,7 +1,25 @@
 window.PageWallet = {
   template: '#page-wallet',
+  components: {
+    'lnbits-onchain-wallet': Vue.defineAsyncComponent(async () => {
+      if (!document.getElementById('page-onchain')) {
+        const response = await fetch('/onchain/static/wallet.vue')
+        if (!response.ok) throw new Error('Unable to load the onchain wallet')
+        const templates = document.createElement('div')
+        templates.innerHTML = await response.text()
+        document.body.appendChild(templates)
+      }
+      await Promise.all([
+        LNbits.utils.loadScript('/onchain/static/js/crypto/noble-secp256k1.js'),
+        LNbits.utils.loadScript('/onchain/static/js/crypto/aes.js'),
+        LNbits.utils.loadScript('/onchain/static/i18n/en.js')
+      ])
+      return (await import('/onchain/static/wallet.js')).default
+    })
+  },
   data() {
     return {
+      onchainPaymentFilter: {},
       parse: {
         show: false,
         invoice: null,
@@ -840,7 +858,10 @@ window.PageWallet = {
       // is still in flight gets torn down by it, so handle the payment request
       // only once the url rewrite has settled
       this.$router.replace(`/wallet/${wallet.id}`).then(() => {
-        if (urlParams.has('lightning') || urlParams.has('lnurl')) {
+        if (
+          wallet.walletType !== 'onchain' &&
+          (urlParams.has('lightning') || urlParams.has('lnurl'))
+        ) {
           this.parse.data.request =
             urlParams.get('lightning') || urlParams.get('lnurl')
           this.decodeRequest()
