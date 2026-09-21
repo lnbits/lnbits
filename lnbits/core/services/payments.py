@@ -883,6 +883,7 @@ async def _pay_external_invoice(
     fee_reserve_msat = fee_reserve(amount_msat, internal=False)
 
     if looks_like_bolt12_offer(payment.bolt11):
+        wait_time = settings.lnbits_funding_source_pay_offer_wait_seconds
         task = task_manager.create_task(
             _fundingsource_pay_offer(
                 checking_id,
@@ -894,13 +895,14 @@ async def _pay_external_invoice(
             f"fundingsource_pay_offer_{checking_id}",
         )
     else:
+        wait_time = settings.lnbits_funding_source_pay_invoice_wait_seconds
         task = task_manager.create_task(
             _fundingsource_pay_invoice(checking_id, payment.bolt11, fee_reserve_msat),
             f"fundingsource_pay_invoice_{checking_id}",
         )
 
     # make sure a hold invoice or deferred payment is not blocking the server
-    wait_time = max(1, settings.lnbits_funding_source_pay_invoice_wait_seconds)
+    wait_time = max(1, wait_time)
     try:
         payment_response = await asyncio.wait_for(task.task, timeout=wait_time)
     except asyncio.TimeoutError:

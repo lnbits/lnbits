@@ -133,10 +133,10 @@ class FakeWallet(Wallet):
         payer_note: str | None = None,
     ) -> PaymentResponse:
         from lnbits.exceptions import PaymentError
-        from lnbits.utils.bolt12 import parse_bolt12_offer
+        from lnbits.utils.bolt12 import _create_fake_bolt12_invoice, decode_bolt12_offer
 
         try:
-            parse_bolt12_offer(offer)
+            decoded_offer = decode_bolt12_offer(offer)
         except PaymentError as exc:
             return PaymentResponse(ok=False, error_message=str(exc.message))
 
@@ -148,6 +148,13 @@ class FakeWallet(Wallet):
         _ = fee_limit_msat
         preimage = urandom(32)
         checking_id = sha256(preimage).hexdigest()
+        invoice = _create_fake_bolt12_invoice(
+            self.privkey,
+            checking_id,
+            amount_msat,
+            decoded_offer.description or "BOLT12 offer",
+            payer_note,
+        )
         self.payment_secrets[checking_id] = preimage.hex()
         self.paid_invoices.add(checking_id)
         return PaymentResponse(
@@ -155,6 +162,7 @@ class FakeWallet(Wallet):
             checking_id=checking_id,
             fee_msat=0,
             preimage=preimage.hex(),
+            payment_request=invoice,
         )
 
     async def get_invoice_status(self, checking_id: str) -> PaymentStatus:

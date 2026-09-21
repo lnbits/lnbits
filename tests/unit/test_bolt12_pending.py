@@ -33,7 +33,7 @@ async def offer_wallet(app):
 async def test_bolt12_lost_response_does_not_refund(
     offer_wallet, client, settings, monkeypatch, timeout
 ):
-    settings.lnbits_funding_source_pay_invoice_wait_seconds = 1
+    settings.lnbits_funding_source_pay_offer_wait_seconds = 1
     settled = asyncio.Event()
 
     async def pay(*args, **kwargs):

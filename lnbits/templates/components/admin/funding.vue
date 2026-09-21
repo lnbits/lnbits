@@ -159,7 +159,7 @@
             <span v-text="$t('payment_timeouts')"></span>
           </h6>
         </div>
-        <div class="col-12 col-md-4">
+        <div class="col-12 col-md-6">
           <p><span v-text="$t('invoice_expiry')"></span></p>
           <q-input
             dense
@@ -171,9 +171,9 @@
           >
           </q-input>
         </div>
-        <div class="col-12 col-md-4">
+        <div class="col-12 col-md-6">
           <p>
-            <span v-text="$t('payment_wait_time')"></span>
+            <span v-text="$t('payment_wait_time') + ' (BOLT11)'"></span>
             <sup>
               <q-icon name="info" size="16px" class="q-ml-xs"></q-icon>
               <q-tooltip max-width="300px">
@@ -193,7 +193,25 @@
             min="0"
           ></q-input>
         </div>
-        <div class="col-12 col-md-4">
+        <div class="col-12 col-md-6">
+          <p>
+            <span v-text="$t('payment_wait_time') + ' (BOLT12)'"></span>
+          </p>
+          <q-input
+            dense
+            type="number"
+            filled
+            name="lnbits_funding_source_pay_offer_wait_seconds"
+            v-model.number="
+              formData.lnbits_funding_source_pay_offer_wait_seconds
+            "
+            hint="Wait time before marking a BOLT12 offer payment as pending. Default: 20s."
+            :suffix="$t('seconds')"
+            step="1"
+            min="0"
+          ></q-input>
+        </div>
+        <div class="col-12 col-md-6">
           <p>
             <span v-text="$t('payment_pending_interval')"></span>
             <sup>

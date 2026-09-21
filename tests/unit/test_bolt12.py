@@ -192,7 +192,8 @@ async def test_pay_offer_debits_wallet_and_is_reusable(app):
     )
     assert first.status == PaymentState.SUCCESS.value
     assert first.amount == -21_000
-    assert first.bolt11 == VALID_OFFER
+    assert first.bolt11.startswith("lni1")
+    assert first.payment_request == first.bolt11
     assert first.extra.get("bolt12") is True
     assert first.checking_id != first.bolt11
     assert first.payment_hash != VALID_OFFER
@@ -200,6 +201,7 @@ async def test_pay_offer_debits_wallet_and_is_reusable(app):
     stored = await get_standalone_payment(first.checking_id)
     assert stored
     assert stored.success
+    assert stored.bolt11 == first.bolt11
     assert stored.memo == "BOLT12 offer"
     assert stored.extra["reference"] == "order-1"
     assert stored.extra["bolt12_offer"] == VALID_OFFER
@@ -216,6 +218,8 @@ async def test_pay_offer_debits_wallet_and_is_reusable(app):
     assert second.amount == -7_000
     assert second.checking_id != first.checking_id
     assert second.payment_hash != first.payment_hash
+    assert second.bolt11.startswith("lni1")
+    assert second.bolt11 != first.bolt11
 
     after = await get_wallet(wallet.id)
     assert after

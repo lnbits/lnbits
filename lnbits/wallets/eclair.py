@@ -158,11 +158,16 @@ class EclairWallet(Wallet):
         # Eclair's payoffer API has no payer-note parameter.
         _ = payer_note
         try:
-            body: dict[str, Any] = {"offer": offer, "blocking": True}
+            # Eclair uses the larger of its flat and proportional fee limits.
+            # Round down to whole sats to stay within the reserved millisatoshis.
+            body: dict[str, Any] = {
+                "offer": offer,
+                "blocking": True,
+                "maxFeeFlatSat": str(fee_limit_msat // 1000),
+                "maxFeePct": "0",
+            }
             if amount_msat is not None and amount_msat > 0:
                 body["amountMsat"] = str(amount_msat)
-            if fee_limit_msat > 0:
-                body["maxFeeMsat"] = str(fee_limit_msat)
             r = await self.client.post("/payoffer", data=body, timeout=None)
             r.raise_for_status()
             data = r.json()

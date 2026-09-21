@@ -14,6 +14,7 @@ from lnbits.wallets.eclair import EclairWallet
 from lnbits.wallets.fake import FakeWallet
 from lnbits.wallets.lnbits import LNbitsWallet
 from lnbits.wallets.phoenixd import PhoenixdWallet
+from tests.helpers import BOLT12_OFFER
 
 PAYER_NOTE = "  Merci ☕ & = +\n" + "long note " * 100 + "  "
 
@@ -165,7 +166,7 @@ async def test_eclair_pay_offer_posts_payoffer(payer_note, invoice):
     )
     try:
         response = await wallet.pay_offer(
-            VALID_OFFER, fee_limit_msat=99, amount_msat=21000, payer_note=payer_note
+            VALID_OFFER, fee_limit_msat=2000, amount_msat=21000, payer_note=payer_note
         )
         assert response.ok is True
         assert response.payment_request == invoice
@@ -179,7 +180,8 @@ async def test_eclair_pay_offer_posts_payoffer(payer_note, invoice):
             "offer": [VALID_OFFER],
             "blocking": ["true"],
             "amountMsat": ["21000"],
-            "maxFeeMsat": ["99"],
+            "maxFeeFlatSat": ["2"],
+            "maxFeePct": ["0"],
         }
     finally:
         await wallet.client.aclose()
@@ -289,12 +291,12 @@ async def test_base_wallet_pay_offer_is_unsupported(payer_note):
 async def test_fake_pay_offer_accepts_note(payer_note):
     wallet = FakeWallet()
     response = await wallet.pay_offer(
-        VALID_OFFER, fee_limit_msat=50, amount_msat=21000, payer_note=payer_note
+        BOLT12_OFFER, fee_limit_msat=50, amount_msat=21000, payer_note=payer_note
     )
     assert response.ok is True
     assert response.checking_id
     assert response.preimage
-    assert response.payment_request is None
+    assert response.payment_request and response.payment_request.startswith("lni1")
     assert wallet.payment_secrets[response.checking_id] == response.preimage
     assert response.checking_id in wallet.paid_invoices
 
