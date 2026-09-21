@@ -165,7 +165,7 @@ async def test_eclair_pay_offer_posts_payoffer(payer_note, invoice):
     )
     try:
         response = await wallet.pay_offer(
-            VALID_OFFER, fee_limit_msat=99, amount_msat=21000, payer_note=payer_note
+            VALID_OFFER, fee_limit_msat=2000, amount_msat=21000, payer_note=payer_note
         )
         assert response.ok is True
         assert response.payment_request == invoice
@@ -179,7 +179,8 @@ async def test_eclair_pay_offer_posts_payoffer(payer_note, invoice):
             "offer": [VALID_OFFER],
             "blocking": ["true"],
             "amountMsat": ["21000"],
-            "maxFeeMsat": ["99"],
+            "maxFeeFlatSat": ["2"],
+            "maxFeePct": ["0"],
         }
     finally:
         await wallet.client.aclose()
