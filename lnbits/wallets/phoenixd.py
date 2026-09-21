@@ -293,7 +293,8 @@ class PhoenixdWallet(Wallet):
 
         try:
             data = r.json()
-            if "paymentHash" not in data and ("reason" in data or "message" in data):
+            # Failed payments can include the hash of the attempted payment.
+            if "reason" in data or "message" in data:
                 error_message = data.get("reason", data.get("message", "Unknown error"))
                 return PaymentResponse(ok=False, error_message=error_message)
 
@@ -301,7 +302,11 @@ class PhoenixdWallet(Wallet):
             fee_msat = -int(data.get("routingFeeSat", 0)) * 1000
             preimage = data.get("paymentPreimage")
             return PaymentResponse(
-                ok=True,
+                ok=(
+                    True
+                    if checking_id and preimage and "routingFeeSat" in data
+                    else None
+                ),
                 checking_id=checking_id,
                 fee_msat=fee_msat,
                 preimage=preimage,
