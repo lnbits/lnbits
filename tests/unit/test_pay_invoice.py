@@ -10,17 +10,22 @@ from pytest_mock.plugin import MockerFixture
 
 from lnbits.core.crud import create_wallet, get_standalone_payment, get_wallet
 from lnbits.core.crud.payments import get_payment, get_payments_paginated
-from lnbits.core.db import db
-from lnbits.core.models import PaymentState, ValidatedPaymentRequest, Wallet
+from lnbits.core.crud.wallets import delete_wallet
+from lnbits.core.models import Payment, PaymentState, Wallet
 from lnbits.core.services import create_invoice, create_user_account, pay_invoice
 from lnbits.core.services.payments import (
-    _validate_payment_request,
+    update_pending_payment,
     update_wallet_balance,
 )
 from lnbits.exceptions import InvoiceError, PaymentError
 from lnbits.settings import Settings
 from lnbits.task_manager import task_manager
-from lnbits.wallets.base import PaymentResponse
+from lnbits.wallets.base import (
+    PaymentFailedStatus,
+    PaymentPendingStatus,
+    PaymentResponse,
+    PaymentSuccessStatus,
+)
 from lnbits.wallets.fake import FakeWallet
 
 
@@ -746,6 +751,249 @@ async def test_service_fee(
     assert service_fee_payment.amount == 422_400
     assert service_fee_payment.bolt11 == external_invoice.payment_request
     assert service_fee_payment.preimage is None
+
+
+@pytest.fixture
+async def service_fee_wallets(
+    from_wallet: Wallet,
+    settings: Settings,
+    mocker: MockerFixture,
+    external_funding_source: FakeWallet,
+) -> tuple[Wallet, Wallet]:
+    payer = await create_wallet(user_id=from_wallet.user)
+    fee_wallet = await create_wallet(user_id=from_wallet.user)
+    mocker.patch(
+        "lnbits.core.services.payments.get_funding_source",
+        return_value=external_funding_source,
+    )
+    mocker.patch(
+        "lnbits.core.services.payments.send_payment_notification_in_background"
+    )
+    await update_wallet_balance(payer, 10_000)
+    settings.lnbits_service_fee_wallet = fee_wallet.id
+    settings.lnbits_service_fee = 1
+    settings.lnbits_service_fee_max = 0
+    return payer, fee_wallet
+
+
+@pytest.fixture
+async def pending_service_fee_payment(
+    service_fee_wallets: tuple[Wallet, Wallet],
+    external_funding_source: FakeWallet,
+    mocker: MockerFixture,
+) -> Payment:
+    payer, _ = service_fee_wallets
+    invoice = await external_funding_source.create_invoice(1_000)
+    assert invoice.payment_request
+    mocker.patch.object(
+        external_funding_source,
+        "pay_invoice",
+        AsyncMock(
+            return_value=PaymentResponse(
+                ok=None, checking_id=f"backend_{invoice.checking_id}"
+            )
+        ),
+    )
+    payment = await pay_invoice(
+        wallet_id=payer.id, payment_request=invoice.payment_request
+    )
+    assert payment.pending
+    assert await get_standalone_payment(f"service_fee_{payment.payment_hash}") is None
+    return payment
+
+
+@pytest.mark.anyio
+@pytest.mark.parametrize("succeeds", [False, True], ids=["failed", "success"])
+async def test_service_fee_after_payment_timeout(
+    service_fee_wallets: tuple[Wallet, Wallet],
+    external_funding_source: FakeWallet,
+    settings: Settings,
+    mocker: MockerFixture,
+    succeeds: bool,
+):
+    payer, fee_wallet = service_fee_wallets
+    invoice = await external_funding_source.create_invoice(1_000)
+    assert invoice.payment_request
+    settings.lnbits_funding_source_pay_invoice_wait_seconds = 1
+
+    async def unresolved_payment(*args, **kwargs):
+        await asyncio.Event().wait()
+
+    mocker.patch.object(
+        external_funding_source,
+        "pay_invoice",
+        AsyncMock(side_effect=unresolved_payment),
+    )
+    status_mock = mocker.patch.object(
+        external_funding_source,
+        "get_payment_status",
+        AsyncMock(return_value=PaymentPendingStatus()),
+    )
+    payment = await pay_invoice(
+        wallet_id=payer.id, payment_request=invoice.payment_request
+    )
+    fee_id = f"service_fee_{payment.payment_hash}"
+    assert payment.pending
+    assert await get_standalone_payment(fee_id) is None
+
+    payment = await update_pending_payment(payment)
+    assert payment.pending
+    assert await get_standalone_payment(fee_id) is None
+
+    status_mock.return_value = (
+        PaymentSuccessStatus(fee_msat=2_000) if succeeds else PaymentFailedStatus()
+    )
+    payment = await update_pending_payment(payment)
+    stored = await get_payment(payment.checking_id)
+    assert stored.status == (PaymentState.SUCCESS if succeeds else PaymentState.FAILED)
+    fee_payment = await get_standalone_payment(fee_id)
+    if succeeds:
+        assert stored.fee == -12_000
+        assert fee_payment is not None
+        assert fee_payment.status == PaymentState.SUCCESS
+        assert fee_payment.wallet_id == fee_wallet.id
+        assert fee_payment.amount == 10_000
+    else:
+        assert fee_payment is None
+
+
+@pytest.mark.anyio
+async def test_service_fee_repeated_success_credits_once(
+    pending_service_fee_payment: Payment,
+    service_fee_wallets: tuple[Wallet, Wallet],
+    external_funding_source: FakeWallet,
+    mocker: MockerFixture,
+):
+    _, fee_wallet = service_fee_wallets
+    stale_payment = pending_service_fee_payment.copy(deep=True)
+    mocker.patch.object(
+        external_funding_source,
+        "get_payment_status",
+        AsyncMock(return_value=PaymentSuccessStatus()),
+    )
+
+    first = await update_pending_payment(pending_service_fee_payment)
+    second = await update_pending_payment(stale_payment)
+
+    assert first.success and second.success
+    fees = await get_payments_paginated(wallet_id=fee_wallet.id)
+    assert fees.total == 1
+    assert fees.data[0].amount == 10_000
+    assert fees.data[0].checking_id == f"service_fee_{first.payment_hash}"
+
+
+@pytest.mark.anyio
+async def test_service_fee_concurrent_success_credits_once(
+    pending_service_fee_payment: Payment,
+    service_fee_wallets: tuple[Wallet, Wallet],
+    external_funding_source: FakeWallet,
+    mocker: MockerFixture,
+):
+    _, fee_wallet = service_fee_wallets
+    ready = asyncio.Event()
+    checks = 0
+
+    async def successful_status(checking_id):
+        nonlocal checks
+        checks += 1
+        if checks == 2:
+            ready.set()
+        await asyncio.wait_for(ready.wait(), timeout=2)
+        return PaymentSuccessStatus()
+
+    mocker.patch.object(
+        external_funding_source,
+        "get_payment_status",
+        AsyncMock(side_effect=successful_status),
+    )
+    results = await asyncio.gather(
+        update_pending_payment(pending_service_fee_payment.copy(deep=True)),
+        update_pending_payment(pending_service_fee_payment.copy(deep=True)),
+        return_exceptions=True,
+    )
+
+    fees = await get_payments_paginated(wallet_id=fee_wallet.id)
+    assert fees.total == 1
+    assert fees.data[0].amount == 10_000
+    errors = [
+        type(result).__name__ for result in results if isinstance(result, Exception)
+    ]
+    assert errors == [], "Both successful confirmations must complete without errors"
+    assert all(isinstance(result, Payment) and result.success for result in results)
+
+
+@pytest.mark.anyio
+async def test_service_fee_settles_after_payer_wallet_deleted(
+    pending_service_fee_payment: Payment,
+    service_fee_wallets: tuple[Wallet, Wallet],
+    external_funding_source: FakeWallet,
+    mocker: MockerFixture,
+):
+    payer, fee_wallet = service_fee_wallets
+    await delete_wallet(payer.user, payer.id)
+    mocker.patch.object(
+        external_funding_source,
+        "get_payment_status",
+        AsyncMock(return_value=PaymentSuccessStatus()),
+    )
+
+    payment = await update_pending_payment(pending_service_fee_payment)
+
+    stored = await get_payment(payment.checking_id)
+    assert stored.success
+    assert stored.fee == -10_000
+    fees = await get_payments_paginated(wallet_id=fee_wallet.id)
+    assert fees.total == 1
+    assert fees.data[0].amount == 10_000
+
+
+@pytest.mark.anyio
+@pytest.mark.parametrize("ignore_internal", [False, True])
+async def test_service_fee_internal_payment_respects_setting(
+    service_fee_wallets: tuple[Wallet, Wallet],
+    settings: Settings,
+    mocker: MockerFixture,
+    ignore_internal: bool,
+):
+    payer, fee_wallet = service_fee_wallets
+    receiver = await create_wallet(user_id=payer.user)
+    settings.lnbits_service_fee_ignore_internal = ignore_internal
+    mocker.patch.object(task_manager.internal_invoice_queue, "put_nowait")
+    invoice = await create_invoice(
+        wallet_id=receiver.id, amount=1_000, memo="Service fee"
+    )
+
+    payment = await pay_invoice(wallet_id=payer.id, payment_request=invoice.bolt11)
+
+    assert payment.success and payment.is_internal
+    assert payment.fee == (0 if ignore_internal else -10_000)
+    assert (await get_payment(invoice.checking_id)).success
+    fees = await get_payments_paginated(wallet_id=fee_wallet.id)
+    assert fees.total == (0 if ignore_internal else 1)
+    if not ignore_internal:
+        assert fees.data[0].amount == 10_000
+
+
+@pytest.mark.anyio
+async def test_service_fee_incoming_success_does_not_credit(
+    service_fee_wallets: tuple[Wallet, Wallet],
+    external_funding_source: FakeWallet,
+    mocker: MockerFixture,
+):
+    receiver, fee_wallet = service_fee_wallets
+    invoice = await create_invoice(wallet_id=receiver.id, amount=1_000, memo="Incoming")
+    mocker.patch.object(
+        external_funding_source,
+        "get_invoice_status",
+        AsyncMock(return_value=PaymentSuccessStatus()),
+    )
+
+    invoice = await get_payment(invoice.checking_id)
+    payment = await update_pending_payment(invoice)
+
+    assert payment.success and payment.is_in
+    fees = await get_payments_paginated(wallet_id=fee_wallet.id)
+    assert fees.total == 0
 
 
 @pytest.mark.anyio
