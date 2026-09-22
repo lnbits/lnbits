@@ -41,6 +41,7 @@ from ..crud import (
     check_internal,
     create_payment,
     get_payments,
+    get_payments_paginated,
     get_standalone_payment,
     get_wallet,
     get_wallet_payment,
@@ -433,79 +434,51 @@ async def update_pending_payment(
     return payment
 
 
-async def fail_expired_incoming_invoices() -> int:
-    """
-    LOCAL PATCH: fail incoming invoices that are past their expiry and still
-    pending, in one unbounded DB-only pass.
-
-    Pure DB work: an invoice past its expiry can never be paid, so no backend
-    call is needed. Without this the rows are only resolved when the
-    pending-payment sweep happens to reach them, and that sweep inspects a
-    single page (10 rows) per run -- so a backlog of expired invoices never
-    drains and every later run keeps offering them to the funding source. It
-    also runs while the funding source is a VoidWallet placeholder.
-
-    Returns the number of rows failed.
-    """
-    now = int(time.time())
-    rows = await db.fetchall(
-        """
-        SELECT checking_id
-        FROM apipayments
-        WHERE status = 'pending'
-          AND amount > 0
-          AND expiry IS NOT NULL
-          AND expiry < :now
-        ORDER BY time
-        """,
-        {"now": now},
-    )
-    failed = 0
-    for row in rows:
-        payment = await get_standalone_payment(row["checking_id"])
-        if not payment or payment.status != PaymentState.PENDING:
-            continue
-        await update_pending_payment(payment)
-        if payment.status == PaymentState.FAILED:
-            failed += 1
-    if failed > 0:
-        logger.info(f"Task: failed {failed} expired incoming invoices")
-    return failed
-
-
 async def check_pending_payments():
-    """
-    check_pending_payments is called during startup to check for pending payments with
-    the backend and also to delete expired invoices. Incoming payments will be
-    checked only once, outgoing pending payments will be checked regularly.
-    """
-    # LOCAL PATCH: resolve expired incoming invoices first, independently of the
-    # backend (so it also happens on VoidWallet, and is not limited to one page).
-    await fail_expired_incoming_invoices()
-
+    """Periodically check recent pending payments and fail expired incoming invoices."""
     funding_source = get_funding_source()
     if funding_source.__class__.__name__ == "VoidWallet":
         logger.warning("Task: skipping pending check for VoidWallet")
         return
     start_time = time.time()
-    pending_payments = await get_payments(
-        since=(int(time.time()) - 60 * 60 * 24 * 15),  # 15 days ago
-        complete=False,
-        pending=True,
-        exclude_uncheckable=True,
+    since = int(start_time) - 60 * 60 * 24 * 15  # 15 days ago
+    batch_size = 100
+    offset = 0
+    count = 0
+    total: int | None = None
+    filters = Filters(
+        model=PaymentFilters, sortby="created_at", direction="asc", limit=batch_size
     )
-    count = len(pending_payments)
-    if count > 0:
-        logger.info(f"Task: checking {count} pending payments of last 15 days...")
-        for i, payment in enumerate(pending_payments):
+    logger.info("Task: checking pending payments of last 15 days...")
+    for _ in range(10):
+        filters.offset = offset
+        page = await get_payments_paginated(
+            since=since,
+            complete=False,
+            pending=True,
+            exclude_uncheckable=True,
+            filters=filters,
+        )
+        if total is None:
+            total = page.total
+        if not page.data:
+            break
+        for payment in page.data:
             payment = await update_pending_payment(payment)
-            prefix = f"payment ({i+1} / {count})"
+            # Resolved payments leave the results; skip only those still pending.
+            if payment.status == PaymentState.PENDING:
+                offset += 1
+            count += 1
+            prefix = f"payment ({count}/{total})"
             logger.debug(f"{prefix} {payment.status} {payment.checking_id}")
             await asyncio.sleep(0.01)  # to avoid complete blocking
+    if count > 0:
         logger.info(
             f"Task: pending check finished for {count} payments"
             f" (took {time.time() - start_time:0.3f} s)"
         )
+    else:
+        logger.info("Task: no pending payments found in the last 15 days")
 
 
 def fee_reserve_total(amount_msat: int, internal: bool = False) -> int:
