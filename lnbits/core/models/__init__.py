@@ -27,6 +27,7 @@ from .payments import (
     PaymentWalletStats,
     SettleInvoice,
     UpdatePaymentExtra,
+    ValidatedPaymentRequest,
 )
 from .tinyurl import TinyURL
 from .users import (
@@ -101,6 +102,7 @@ __all__ = [
     "User",
     "UserAcls",
     "UserExtra",
+    "ValidatedPaymentRequest",
     "Wallet",
     "WalletInfo",
     "WalletTypeInfo",

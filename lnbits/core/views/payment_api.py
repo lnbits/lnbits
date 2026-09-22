@@ -52,11 +52,13 @@ from lnbits.decorators import (
     require_base_admin_key,
     require_base_invoice_key,
 )
+from lnbits.exceptions import PaymentError
 from lnbits.helpers import (
     filter_dict_keys,
     generate_filter_params_openapi,
     is_valid_label,
 )
+from lnbits.utils.bolt12 import decode_bolt12_offer, looks_like_bolt12_offer
 from lnbits.wallets.base import InvoiceResponse
 
 from ..crud import (
@@ -73,6 +75,7 @@ from ..services import (
     fee_reserve_total,
     get_payments_daily_stats,
     pay_invoice,
+    pay_offer,
     perform_withdraw,
     settle_hold_invoice,
     update_pending_payment,
@@ -250,16 +253,19 @@ async def api_all_payments_paginated(
     "",
     summary="Create or pay an invoice",
     description="""
-        This endpoint can be used both to generate and pay a BOLT11 invoice.
+        This endpoint can be used to generate a BOLT11 invoice, pay a BOLT11
+        invoice, or pay a BOLT12 offer.
         To generate a new invoice for receiving funds into the authorized account,
         specify at least the first four fields in the POST body: `out: false`,
         `amount`, `unit`, and `memo`. To pay an arbitrary invoice from the funds
-        already in the authorized account, specify `out: true` and use the `bolt11`
-        field to supply the BOLT11 invoice to be paid.
+        already in the authorized account, specify `out: true` and use
+        `payment_request` to supply the BOLT11 invoice or BOLT12 offer (`lno1…`,
+        optional `lightning:` URI). Paying a BOLT12 offer requires `amount` in
+        `sat`. For offers, `memo` is sent to the recipient as a payer note.
     """,
     status_code=HTTPStatus.CREATED,
     responses={
-        400: {"description": "Invalid BOLT11 string or missing fields."},
+        400: {"description": "Invalid BOLT11/BOLT12 string or missing fields."},
         401: {"description": "Invoice (or Admin) key required."},
         520: {"description": "Payment or Invoice error."},
     },
@@ -270,15 +276,34 @@ async def api_payments_create(
 ) -> Payment:
     wallet_id = key_info.wallet.id
     if invoice_data.out is True and key_info.key_type == KeyType.admin:
-        if not invoice_data.bolt11:
+        if not invoice_data.payment_request:
             raise HTTPException(
                 status_code=HTTPStatus.BAD_REQUEST,
-                detail="Missing BOLT11 invoice",
+                detail="Missing BOLT11 invoice or BOLT12 offer",
+            )
+        if looks_like_bolt12_offer(invoice_data.payment_request):
+            if invoice_data.unit != "sat":
+                raise HTTPException(
+                    status_code=HTTPStatus.BAD_REQUEST,
+                    detail="BOLT12 offer amount must use unit 'sat'.",
+                )
+            amount_sat = None
+            if invoice_data.amount is not None:
+                amount_sat = int(invoice_data.amount)
+            return await pay_offer(
+                wallet_id=wallet_id,
+                offer=invoice_data.payment_request,
+                amount_sat=amount_sat,
+                extra=invoice_data.extra,
+                memo=invoice_data.memo,
+                labels=invoice_data.labels,
+                external_id=invoice_data.external_id,
             )
         payment = await pay_invoice(
             wallet_id=wallet_id,
-            payment_request=invoice_data.bolt11,
+            payment_request=invoice_data.payment_request,
             extra=invoice_data.extra,
+            description=invoice_data.memo or "",
             labels=invoice_data.labels,
             external_id=invoice_data.external_id,
         )
@@ -432,10 +457,17 @@ async def api_payments_decode(data: DecodePayment) -> JSONResponse:
         if payment_str[:5] == "LNURL":
             url = str(url_decode(payment_str))
             return JSONResponse({"domain": url})
-        else:
-            invoice = bolt11.decode(payment_str)
-            filtered_data = filter_dict_keys(invoice.data, data.filter_fields)
-            return JSONResponse(filtered_data)
+        if looks_like_bolt12_offer(payment_str):
+            offer = decode_bolt12_offer(payment_str)
+            return JSONResponse({"type": "bolt12_offer", **offer.dict()})
+        invoice = bolt11.decode(payment_str)
+        filtered_data = filter_dict_keys(invoice.data, data.filter_fields)
+        return JSONResponse(filtered_data)
+    except PaymentError as exc:
+        return JSONResponse(
+            {"message": exc.message},
+            status_code=HTTPStatus.BAD_REQUEST,
+        )
     except Exception as exc:
         return JSONResponse(
             {"message": f"Failed to decode: {exc!s}"},

@@ -20,7 +20,7 @@ run(){
 }
 
 failed="false"
-blockheight=213
+blockheight=219
 utxos=3
 channel_size=24000000 # 0.024 btc
 balance_size=12000000 # 0.012 btc
@@ -48,13 +48,17 @@ done
 for i in 1 2 3; do
   # run "cln-$i blockheight" $blockheight $(lightning-cli-sim $i getinfo | jq -r ".blockheight")
   run "cln-$i utxo count" $utxos $(lightning-cli-sim $i listfunds | jq -r ".outputs | length")
-  run "cln-$i openchannels" 2 $(lightning-cli-sim $i getinfo | jq -r ".num_active_channels")
+  channel_count=2
+  if [[ "$i" == "3" ]]; then
+    channel_count=3
+  fi
+  run "cln-$i openchannels" $channel_count $(lightning-cli-sim $i getinfo | jq -r ".num_active_channels")
   run "cln-$i channel[0].state" "CHANNELD_NORMAL" $(lightning-cli-sim $i listfunds | jq -r ".channels[0].state")
   run "cln-$i channel[0].amount_msat" $(($channel_size * 1000)) $(lightning-cli-sim $i listfunds | jq -r ".channels[0].amount_msat" | sed 's/msat//g')
   run "cln-$i channel[0].our_amount_msat" $(($balance_size * 1000)) $(lightning-cli-sim $i listfunds | jq -r ".channels[0].our_amount_msat" | sed 's/msat//g')
 done
 
-run "eclair-1 openchannels" 2 $(docker exec lnbits-eclair-1 curl -s http://localhost:8080/channels -X POST -u :lnbits| jq '. | length')
+run "eclair-1 openchannels" 3 $(docker exec lnbits-eclair-1 curl -s http://localhost:8080/channels -X POST -u :lnbits| jq '. | length')
 run "eclair-1 blockHeight" $blockheight $(docker exec lnbits-eclair-1 curl -s http://localhost:8080/getinfo -X POST -u :lnbits| jq '.blockHeight')
 run "lnbits service status" "200" $(curl -s -o /dev/null -w "%{http_code}" "http://localhost:5001/")
 run "boltz service status" "200" $(curl -s -o /dev/null --head -w "%{http_code}" "http://localhost:9001/version")

@@ -27,7 +27,7 @@ class Feature(Enum):
     nodemanager = "nodemanager"
     holdinvoice = "holdinvoice"
     descriptionhash = "descriptionhash"
-    # bolt12 = "bolt12"
+    bolt12 = "bolt12"
 
 
 class StatusResponse(NamedTuple):
@@ -63,6 +63,7 @@ class PaymentResponse(NamedTuple):
     fee_msat: int | None = None
     preimage: str | None = None
     error_message: str | None = None
+    payment_request: str | None = None
 
     @property
     def success(self) -> bool:
@@ -81,6 +82,7 @@ class PaymentStatus(NamedTuple):
     paid: bool | None = None
     fee_msat: int | None = None
     preimage: str | None = None
+    payment_request: str | None = None
 
     @property
     def success(self) -> bool:
@@ -149,6 +151,19 @@ class Wallet(ABC):
         self, bolt11: str, fee_limit_msat: int
     ) -> Coroutine[None, None, PaymentResponse]:
         pass
+
+    async def pay_offer(
+        self,
+        offer: str,
+        fee_limit_msat: int,
+        amount_msat: int | None = None,
+        payer_note: str | None = None,
+    ) -> PaymentResponse:
+        _ = (offer, fee_limit_msat, amount_msat, payer_note)
+        return PaymentResponse(
+            ok=False,
+            error_message="BOLT12 offers are not supported by this wallet.",
+        )
 
     @abstractmethod
     def get_invoice_status(

@@ -84,15 +84,25 @@ async def test_payment_api_stats_and_all_paginated(admin_user):
     assert daily_stats
     assert daily_stats[0].payments_count >= 1
 
-    regular_page = await api_all_payments_paginated(
-        filters=Filters(limit=20), account_id=AccountId(id=first_user.id)
+    filters = Filters(
+        filters=[
+            Filter.parse_query(
+                "wallet_id[in]", [first_wallet.id, second_wallet.id], PaymentFilters
+            )
+        ],
+        model=PaymentFilters,
+        limit=20,
     )
-    assert regular_page.total >= 2
+    regular_page = await api_all_payments_paginated(
+        filters=filters, account_id=AccountId(id=first_user.id)
+    )
+    assert regular_page.total == 2
     assert all(payment.wallet_id == first_wallet.id for payment in regular_page.data)
 
     admin_page = await api_all_payments_paginated(
-        filters=Filters(limit=50), account_id=AccountId(id=admin_user.id)
+        filters=filters, account_id=AccountId(id=admin_user.id)
     )
+    assert admin_page.total == 3
     wallet_ids = {payment.wallet_id for payment in admin_page.data}
     assert first_wallet.id in wallet_ids
     assert second_wallet.id in wallet_ids

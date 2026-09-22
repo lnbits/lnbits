@@ -30,6 +30,9 @@ A backend wallet is selected and configured entirely through LNbits environment 
 > [!NOTE]
 > **Terminology:** “Backend Wallet” and “Funding Source” mean the same thing — the wallet or service that funds your LNbits.
 
+> [!NOTE]
+> **BOLT12 send:** Paying `lno1…` offers requires a funding source that advertises `Feature.bolt12`: **CoreLightning**, **CLNRest**, **Phoenixd**, **Eclair**, or **LNbits** (when the upstream instance also supports BOLT12). Other backends reject the payment before a row is created.
+
 ## Funding Sources
 
 ## Funding Sources
@@ -203,6 +206,8 @@ uv run lnbits-cli encrypt macaroon
 ```
 
 ## LNbits
+
+Supports sending to BOLT12 offers when the upstream LNbits instance's funding source also supports BOLT12.
 
 **Required env vars**
 

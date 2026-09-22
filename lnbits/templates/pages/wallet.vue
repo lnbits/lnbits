@@ -675,9 +675,50 @@
   </q-dialog>
 
   <q-dialog v-model="parse.show" @hide="closeParseDialog" position="top">
-    <q-card class="q-pa-lg q-pt-xl lnbits__dialog-card">
+    <q-card
+      class="lnbits__dialog-card"
+      :class="parse.invoice?.isBolt12Offer ? 'q-pa-md' : 'q-pa-lg q-pt-xl'"
+    >
       <div v-if="parse.invoice">
-        <div class="column content-center text-center q-mb-md">
+        <div
+          v-if="parse.invoice.isBolt12Offer"
+          class="column content-center text-center q-mb-sm"
+        >
+          <h6 class="q-my-none" v-text="$t('bolt12_offer')"></h6>
+          <q-input
+            filled
+            dense
+            class="q-mt-sm full-width"
+            v-model.number="parse.data.amount"
+            type="number"
+            min="1"
+            :label="$t('amount_sats')"
+            :hint="$t('bolt12_offer_amount_hint')"
+          ></q-input>
+          <q-input
+            v-if="parse.invoice.description"
+            filled
+            dense
+            readonly
+            class="q-mt-sm full-width"
+            type="textarea"
+            rows="1"
+            input-style="resize: vertical"
+            :model-value="parse.invoice.description"
+            :label="$t('description')"
+          ></q-input>
+          <q-input
+            filled
+            dense
+            class="q-mt-sm full-width"
+            v-model="parse.data.memo"
+            type="textarea"
+            rows="2"
+            :label="$t('memo_optional')"
+            :hint="$t('bolt12_offer_memo_hint')"
+          ></q-input>
+        </div>
+        <div v-else class="column content-center text-center q-mb-md">
           <div v-if="!g.isFiatPriority">
             <h4 class="q-my-none text-bold">
               <span
@@ -721,16 +762,28 @@
             </div>
           </div>
         </div>
-        <q-separator></q-separator>
-        <h6 class="text-center" v-text="parse.invoice.description"></h6>
+        <q-separator
+          :class="{'q-mb-sm': parse.invoice.isBolt12Offer}"
+        ></q-separator>
+        <h6
+          v-if="!parse.invoice.isBolt12Offer && parse.invoice.description"
+          class="text-center"
+          v-text="parse.invoice.description"
+        ></h6>
         <q-input
           autogrow
           filled
           dense
           v-model="parse.data.internalMemo"
           :label="$t('internal_memo')"
-          :hint="$t('internal_memo_hint_pay')"
-          class="q-mb-lg"
+          :hint="
+            $t(
+              parse.invoice.isBolt12Offer
+                ? 'bolt12_offer_internal_memo_hint'
+                : 'internal_memo_hint_pay'
+            )
+          "
+          :class="parse.invoice.isBolt12Offer ? 'q-mb-md' : 'q-mb-lg'"
           :rules="[
             val =>
               !val || val.length <= 512 || 'Please use maximum 512 characters'
@@ -744,7 +797,7 @@
         <q-list separator bordered dense class="q-mb-md">
           <q-expansion-item expand-separator icon="info" label="Details">
             <q-list separator>
-              <q-item>
+              <q-item v-if="parse.invoice.createdDate">
                 <q-item-section>
                   <q-item-label v-text="$t('created')"></q-item-label>
                   <q-item-label
@@ -760,7 +813,7 @@
                   ></q-item-label>
                 </q-item-section>
               </q-item>
-              <q-item>
+              <q-item v-if="parse.invoice.expireDate">
                 <q-item-section>
                   <q-item-label v-text="$t('expire_date')"></q-item-label>
                   <q-item-label
@@ -775,7 +828,7 @@
                   ></q-item-label>
                 </q-item-section>
               </q-item>
-              <q-item>
+              <q-item v-if="parse.invoice.hash">
                 <q-item-section>
                   <q-item-label v-text="$t('payment_hash')"></q-item-label>
                   <q-item-label
@@ -830,10 +883,19 @@
         </q-list>
         <div v-if="canPay" class="row q-mt-lg">
           <q-btn
-            v-if="g.wallet.walletType !== 'fiat'"
+            v-if="g.wallet.walletType !== 'fiat' && bolt12AmountMissing"
             unelevated
             color="primary"
+            disable
+            :label="$t('pay')"
+          ></q-btn>
+          <q-btn
+            v-else-if="g.wallet.walletType !== 'fiat'"
+            unelevated
+            color="primary"
+            type="button"
             @click="payInvoice"
+            :loading="parse.sending"
             :disable="parse.sending || !g.wallet.canSendPayments"
             :label="parse.sending ? $t('sending') + '...' : $t('pay')"
           ></q-btn>
@@ -1037,6 +1099,7 @@
             filled
             dense
             v-model.trim="parse.data.request"
+            :readonly="parse.decoding"
             type="textarea"
             :label="$t('paste_invoice_label')"
             ref="textArea"
@@ -1047,6 +1110,7 @@
               unelevated
               color="primary"
               :disable="parse.data.request == ''"
+              :loading="parse.decoding"
               type="submit"
               :label="$t('read')"
             ></q-btn>
@@ -1054,7 +1118,7 @@
               name="content_paste"
               color="grey"
               class="q-mt-xs q-ml-sm q-mr-auto"
-              v-if="parse.copy.show"
+              v-if="parse.copy.show && !parse.decoding"
               @click="pasteToTextArea"
             >
               <q-tooltip>
