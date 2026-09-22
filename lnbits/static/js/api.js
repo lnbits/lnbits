@@ -39,15 +39,28 @@ window._lnbitsApi = {
     }
     return this.request('post', '/api/v1/payments', wallet.inkey, data)
   },
-  payInvoice(wallet, bolt11, internalMemo = null) {
+  payInvoice(
+    wallet,
+    paymentRequest,
+    internalMemo = null,
+    amount = null,
+    memo = null
+  ) {
     const data = {
       out: true,
-      bolt11: bolt11
+      payment_request: paymentRequest
     }
     if (internalMemo) {
       data.extra = {
         internal_memo: String(internalMemo)
       }
+    }
+    if (amount != null && amount !== '') {
+      data.amount = amount
+      data.unit = 'sat'
+    }
+    if (memo) {
+      data.memo = memo
     }
     return this.request('post', '/api/v1/payments', wallet.adminkey, data)
   },

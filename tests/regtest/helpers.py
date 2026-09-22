@@ -3,6 +3,7 @@ import json
 import os
 import time
 from subprocess import PIPE, CalledProcessError, Popen, TimeoutExpired
+from uuid import uuid4
 
 from loguru import logger
 
@@ -19,6 +20,15 @@ docker_lightning_cli = [
     "--network",
     "regtest",
     "--rpcserver=lnd-1",
+]
+
+docker_offer_cli = [
+    "docker",
+    "exec",
+    "lnbits-clightning-3-1",
+    "lightning-cli",
+    "--network=regtest",
+    "-k",
 ]
 
 docker_bitcoin_cli = [
@@ -144,6 +154,24 @@ def get_real_invoice(sats: int) -> dict:
     cmd = docker_lightning_cli.copy()
     cmd.extend(["addinvoice", str(sats)])
     return run_cmd_json(cmd)
+
+
+def get_real_offer(sats: int | None) -> dict:
+    amount = f"{sats}sat" if sats is not None else "any"
+    description = f"regtest-{uuid4().hex}"
+    offer = run_cmd_json(
+        [
+            *docker_offer_cli,
+            "offer",
+            f"amount={amount}",
+            f"description={description}",
+        ]
+    )
+    return {**offer, "description": description}
+
+
+def lookup_offer_invoices(offer_id: str) -> dict:
+    return run_cmd_json([*docker_offer_cli, "listinvoices", f"offer_id={offer_id}"])
 
 
 def get_real_invoice_noroute(sats: int) -> dict:

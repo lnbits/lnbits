@@ -2,6 +2,7 @@ import asyncio
 import base64
 import json
 import os
+import re
 import ssl
 import uuid
 from collections.abc import AsyncGenerator
@@ -11,6 +12,7 @@ import httpx
 from bolt11 import Bolt11Exception
 from bolt11.decode import decode
 from loguru import logger
+from pyln.client import Millisatoshi
 
 from lnbits.exceptions import UnsupportedError
 from lnbits.helpers import normalize_endpoint
@@ -18,6 +20,7 @@ from lnbits.settings import settings
 from lnbits.utils.crypto import random_secret_and_hash
 
 from .base import (
+    Feature,
     InvoiceResponse,
     PaymentFailedStatus,
     PaymentPendingStatus,
@@ -30,6 +33,8 @@ from .base import (
 
 
 class CLNRestWallet(Wallet):
+    features = [Feature.bolt12]
+
     def __init__(self):
         if not settings.clnrest_url:
             raise ValueError("Cannot initialize CLNRestWallet: missing CLNREST_URL")
@@ -325,6 +330,109 @@ class CLNRestWallet(Wallet):
             error_message = f"Unable to connect to {self.url}."
             return PaymentResponse(error_message=error_message)
 
+    async def pay_offer(
+        self,
+        offer: str,
+        fee_limit_msat: int,
+        amount_msat: int | None = None,
+        payer_note: str | None = None,
+    ) -> PaymentResponse:
+        """Pay a BOLT12 offer via CLN REST fetchinvoice + pay."""
+        if not settings.clnrest_pay_rune and not settings.clnrest_renepay_rune:
+            return PaymentResponse(
+                ok=False,
+                error_message="Unable to pay offer without a pay or renepay rune",
+            )
+
+        fetch_body: dict = {
+            "offer": offer,
+            **({"payer_note": payer_note} if payer_note else {}),
+        }
+        if amount_msat is not None and amount_msat > 0:
+            fetch_body["amount_msat"] = amount_msat
+
+        fetch_headers = (
+            self.pay_headers if settings.clnrest_pay_rune else self.renepay_headers
+        )
+
+        try:
+            inv_r = await self.client.post(
+                "/v1/fetchinvoice",
+                json=fetch_body,
+                headers=fetch_headers,
+                timeout=None,
+            )
+            inv_r.raise_for_status()
+            inv_data = inv_r.json()
+            invoice = inv_data.get("invoice")
+            if not invoice:
+                return PaymentResponse(
+                    ok=False,
+                    error_message=inv_data.get(
+                        "error", "fetchinvoice returned no invoice"
+                    ),
+                )
+
+            if not _is_bolt12_invoice_amount_valid(
+                inv_data.get("changes"), amount_msat
+            ):
+                return PaymentResponse(
+                    ok=False,
+                    error_message=(
+                        "Unable to verify resolved BOLT12 invoice amount "
+                        "matches the authorized amount."
+                    ),
+                )
+
+        except Exception as exc:
+            logger.info(f"Failed to fetch invoice for offer {offer[:24]}...")
+            logger.warning(exc)
+            return PaymentResponse(
+                ok=False,
+                error_message=f"Unable to fetch invoice from {self.url}.",
+            )
+
+        try:
+            data: dict = {
+                "label": _generate_label(),
+                "maxfee": fee_limit_msat,
+            }
+            if settings.clnrest_renepay_rune:
+                endpoint = "/v1/renepay"
+                headers = self.renepay_headers
+                data["invstring"] = invoice
+            else:
+                endpoint = "/v1/pay"
+                headers = self.pay_headers
+                data["bolt11"] = invoice
+
+            r = await self.client.post(
+                endpoint,
+                json=data,
+                headers=headers,
+                timeout=None,
+            )
+            r.raise_for_status()
+            pay_data = r.json()
+            if "payment_preimage" not in pay_data:
+                error_message = pay_data.get("error", "No payment preimage in response")
+                logger.warning(error_message)
+                return PaymentResponse(error_message=error_message)
+
+            return PaymentResponse(
+                ok=self.statuses.get(pay_data["status"]),
+                checking_id=pay_data["payment_hash"],
+                fee_msat=pay_data["amount_sent_msat"] - pay_data["amount_msat"],
+                preimage=pay_data["payment_preimage"],
+                payment_request=invoice,
+            )
+        except httpx.HTTPStatusError as exc:
+            return self._handle_offer_http_error(exc)
+        except Exception as exc:
+            logger.info(f"Failed to pay offer {offer[:24]}...")
+            logger.warning(exc)
+            return PaymentResponse(error_message=f"Unable to connect to {self.url}.")
+
     async def get_invoice_status(self, checking_id: str) -> PaymentStatus:
         data: dict = {"payment_hash": checking_id}
 
@@ -383,7 +491,11 @@ class CLNRestWallet(Wallet):
             status = pay.get("status")
             if status == "complete":
                 fee_msat = pay["amount_sent_msat"] - pay["amount_msat"]
-                return PaymentSuccessStatus(fee_msat=fee_msat, preimage=pay["preimage"])
+                return PaymentSuccessStatus(
+                    fee_msat=fee_msat,
+                    preimage=pay["preimage"],
+                    payment_request=pay.get("bolt12"),
+                )
             if status == "failed":
                 return PaymentFailedStatus()
 
@@ -494,8 +606,52 @@ class CLNRestWallet(Wallet):
         else:
             raise ValueError("CLNREST_URL must start with http:// or https://")
 
+    def _handle_offer_http_error(self, exc: httpx.HTTPStatusError) -> PaymentResponse:
+        # After dispatch, HTTP errors alone cannot prove that no funds were sent.
+        ok = None
+        try:
+            err = exc.response.json()
+            error = err.get("error", {})
+            if isinstance(error, dict):
+                error_message = error.get("message", "Unknown error")
+                error_code = error.get("code")
+                if (
+                    type(error_code) is int
+                    and error_code in self.pay_failure_error_codes
+                ):
+                    ok = False
+            else:
+                error_message = str(error or err)
+            return PaymentResponse(ok=ok, error_message=error_message)
+        except Exception:
+            return PaymentResponse(
+                error_message=f"Error parsing response from {self.url}: {exc!s}"
+            )
+
 
 def _generate_label() -> str:
     """Generate a unique label for the invoice."""
     random_uuid = base64.urlsafe_b64encode(uuid.uuid4().bytes).rstrip(b"=").decode()
     return f"LNbits_{random_uuid}"
+
+
+def _is_bolt12_invoice_amount_valid(changes: object, amount_msat: int | None) -> bool:
+    """Check CLN's fetchinvoice amount report against the authorized amount.
+
+    With an explicit amount_msat, CLN reports the invoice amount in changes
+    whenever it differs from that request. An empty changes object confirms
+    the requested amount; an absent or malformed report cannot confirm it.
+    """
+    if type(amount_msat) is not int or amount_msat <= 0:
+        return False
+    if not isinstance(changes, dict):
+        return False
+
+    invoice_amount = changes.get("amount_msat", amount_msat)
+    if isinstance(invoice_amount, Millisatoshi):
+        invoice_amount = int(invoice_amount)
+    elif isinstance(invoice_amount, str) and re.fullmatch(
+        r"[0-9]{1,20}msat", invoice_amount
+    ):
+        invoice_amount = int(invoice_amount[:-4])
+    return type(invoice_amount) is int and invoice_amount == amount_msat
