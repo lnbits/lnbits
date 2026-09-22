@@ -992,6 +992,7 @@ async def update_payment_success_status(
     payment.status = PaymentState.SUCCESS
     payment.fee = -(abs(status.fee_msat or 0) + abs(service_fee_msat))
     payment.preimage = payment.preimage or status.preimage
+    _set_resolved_offer_invoice(payment, status.payment_request)
     payment = await update_payment(payment, new_checking_id=new_checking_id, conn=conn)
     if payment.is_out:
         await _credit_service_fee_wallet(payment, conn=conn)
@@ -1110,7 +1111,7 @@ async def _credit_service_fee_wallet(
     payment: Payment, wallet: Wallet | None = None, conn: Connection | None = None
 ):
     if not wallet:
-        wallet = await get_wallet(payment.wallet_id, conn=conn)
+        wallet = await get_wallet(payment.wallet_id, deleted=None, conn=conn)
     if not wallet:
         logger.warning(
             f"Wallet '{payment.wallet_id}' not found for service fee crediting."
@@ -1120,29 +1121,31 @@ async def _credit_service_fee_wallet(
     if not settings.lnbits_service_fee_wallet or not service_fee_msat:
         return
 
-    # a payment can be confirmed successful more than once (eg. the pending
-    # check racing with an explicit status lookup), so never charge it twice
-    checking_id = f"service_fee_{payment.payment_hash}"
-    if await get_standalone_payment(checking_id, conn=conn):
-        return
+    # Keep the duplicate check and creation under the same connection lock.
+    async with db.reuse_conn(conn) if conn else db.connect() as new_conn:
+        # a payment can be confirmed successful more than once (eg. the pending
+        # check racing with an explicit status lookup), so never charge it twice
+        checking_id = f"service_fee_{payment.payment_hash}"
+        if await get_standalone_payment(checking_id, conn=new_conn):
+            return
 
-    memo = f"""
+        memo = f"""
         Service fee for payment of {abs(payment.sat)} sats.
         Wallet: '{wallet.name}' ({wallet.source_wallet_id})."""
 
-    create_payment_model = CreatePayment(
-        wallet_id=settings.lnbits_service_fee_wallet,
-        bolt11=payment.bolt11,
-        payment_hash=payment.payment_hash,
-        amount_msat=abs(service_fee_msat),
-        memo=memo,
-    )
-    await create_payment(
-        checking_id=checking_id,
-        data=create_payment_model,
-        status=PaymentState.SUCCESS,
-        conn=conn,
-    )
+        create_payment_model = CreatePayment(
+            wallet_id=settings.lnbits_service_fee_wallet,
+            bolt11=payment.bolt11,
+            payment_hash=payment.payment_hash,
+            amount_msat=abs(service_fee_msat),
+            memo=memo,
+        )
+        await create_payment(
+            checking_id=checking_id,
+            data=create_payment_model,
+            status=PaymentState.SUCCESS,
+            conn=new_conn,
+        )
 
 
 async def _check_fiat_invoice_limits(
@@ -1359,7 +1362,6 @@ async def _pay_from_wallet(
         payment = await _pay_invoice(
             wallet.source_wallet_id, create_payment_model, conn=new_conn
         )
-        await _credit_service_fee_wallet(payment, wallet, conn=new_conn)
 
     return payment
 

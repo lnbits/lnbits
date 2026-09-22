@@ -559,7 +559,7 @@ async def test_pay_external_invoice_success(
     )
     ws_notification = mocker.patch(
         "lnbits.core.services.payments.send_payment_notification_in_background",
-        AsyncMock(return_value=None),
+        return_value=None,
     )
     wallet = await get_wallet(from_wallet.id)
     assert wallet
@@ -605,7 +605,7 @@ async def test_retry_pay_success(
     )
     ws_notification = mocker.patch(
         "lnbits.core.services.payments.send_payment_notification_in_background",
-        AsyncMock(return_value=None),
+        return_value=None,
     )
     wallet = await get_wallet(from_wallet.id)
     assert wallet
