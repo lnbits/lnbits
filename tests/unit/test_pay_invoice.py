@@ -11,9 +11,12 @@ from pytest_mock.plugin import MockerFixture
 from lnbits.core.crud import create_wallet, get_standalone_payment, get_wallet
 from lnbits.core.crud.payments import get_payment, get_payments_paginated
 from lnbits.core.crud.wallets import delete_wallet
+from lnbits.core.db import db
 from lnbits.core.models import Payment, PaymentState, Wallet
+from lnbits.core.models.payments import ValidatedPaymentRequest
 from lnbits.core.services import create_invoice, create_user_account, pay_invoice
 from lnbits.core.services.payments import (
+    _validate_payment_request,
     update_pending_payment,
     update_wallet_balance,
 )

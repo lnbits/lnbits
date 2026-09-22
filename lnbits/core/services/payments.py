@@ -1359,7 +1359,7 @@ async def _pay_from_wallet(
         payment = await _pay_invoice(
             wallet.source_wallet_id, create_payment_model, conn=new_conn
         )
-        await _credit_service_fee_wallet(wallet, payment, conn=new_conn)
+        await _credit_service_fee_wallet(payment, wallet, conn=new_conn)
 
     return payment
 
