@@ -630,7 +630,7 @@ class BlinkFundingSource(LNbitsSettings):
 
 
 class AmbossFundingSource(LNbitsSettings):
-    amboss_api_endpoint: str | None = Field(default="https://rails.amboss.tech/graphql")
+    amboss_api_endpoint: str | None = Field(default="https://app.amboss.tech/graphql")
     amboss_service_api_key: str | None = Field(default=None)
     amboss_wallet_id: str | None = Field(default=None)
     amboss_team_password: str | None = Field(default=None)

@@ -239,6 +239,8 @@ class AmbossWallet(Wallet):
                 "x-api-key": settings.amboss_service_api_key,
                 "Content-Type": "application/json",
                 "User-Agent": settings.user_agent,
+                "apollographql-client-name": "lnbits",
+                "apollographql-client-version": settings.version,
             },
         )
 
