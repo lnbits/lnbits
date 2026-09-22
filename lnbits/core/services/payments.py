@@ -862,9 +862,8 @@ async def _pay_internal_invoice(
     logger.debug(f"enqueuing internal invoice {internal_payment.checking_id}")
     task_manager.internal_invoice_queue.put_nowait(internal_payment)
 
-    # internal payments are settled immediately, so the fee is earned here.
-    # external payments are credited from `update_payment_success_status`.
-    await _credit_service_fee_wallet(wallet, payment, conn=conn)
+    # internal payments are settled immediately, so the fee is earned here
+    await _credit_service_fee_wallet(payment, wallet, conn=conn)
 
     return payment
 
@@ -985,21 +984,17 @@ async def update_payment_success_status(
     conn: Connection | None = None,
     new_checking_id: str | None = None,
 ) -> Payment:
-    if status.success:
-        service_fee_msat = service_fee(payment.amount, internal=False)
-        payment.status = PaymentState.SUCCESS
-        payment.fee = -(abs(status.fee_msat or 0) + abs(service_fee_msat))
-        payment.preimage = payment.preimage or status.preimage
-        _set_resolved_offer_invoice(payment, status.payment_request)
-        payment = await update_payment(
-            payment, new_checking_id=new_checking_id, conn=conn
-        )
-        # the service fee is only earned once the payment actually settles.
-        # crediting it earlier leaks fees for payments that end up failing.
-        if payment.is_out:
-            wallet = await get_wallet(payment.wallet_id, conn=conn)
-            if wallet:
-                await _credit_service_fee_wallet(wallet, payment, conn=conn)
+    if not status.success:
+        logger.warning(f"Payment not successful: {payment.checking_id}")
+        return payment
+
+    service_fee_msat = service_fee(payment.amount, internal=False)
+    payment.status = PaymentState.SUCCESS
+    payment.fee = -(abs(status.fee_msat or 0) + abs(service_fee_msat))
+    payment.preimage = payment.preimage or status.preimage
+    payment = await update_payment(payment, new_checking_id=new_checking_id, conn=conn)
+    if payment.is_out:
+        await _credit_service_fee_wallet(payment, conn=conn)
     return payment
 
 
@@ -1112,8 +1107,15 @@ def _validate_payment_request(
 
 
 async def _credit_service_fee_wallet(
-    wallet: Wallet, payment: Payment, conn: Connection | None = None
+    payment: Payment, wallet: Wallet | None = None, conn: Connection | None = None
 ):
+    if not wallet:
+        wallet = await get_wallet(payment.wallet_id, conn=conn)
+    if not wallet:
+        logger.warning(
+            f"Wallet '{payment.wallet_id}' not found for service fee crediting."
+        )
+        return
     service_fee_msat = service_fee(payment.amount, internal=payment.is_internal)
     if not settings.lnbits_service_fee_wallet or not service_fee_msat:
         return
