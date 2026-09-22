@@ -38,7 +38,7 @@ from lnbits.core.services.payments import (
     update_pending_payments,
     update_wallet_balance,
 )
-from lnbits.db import Filters
+from lnbits.db import Filters, Page
 from lnbits.exceptions import InvoiceError, PaymentError
 from lnbits.settings import Settings
 from lnbits.wallets.base import (
@@ -298,6 +298,119 @@ async def test_check_pending_payments_skips_voidwallet_and_updates_recent_items(
 
     assert (await get_payment(checking_id)).status == PaymentState.SUCCESS
     assert sleep_mock.await_count >= 1
+
+
+@pytest.mark.anyio
+@pytest.mark.parametrize(
+    ("payment_count", "outcomes", "expected_offsets"),
+    [
+        pytest.param(0, (PaymentState.PENDING,), [0], id="empty"),
+        pytest.param(
+            205, (PaymentState.PENDING,), [0, 100, 200, 205], id="all-pending"
+        ),
+        pytest.param(205, (PaymentState.FAILED,), [0, 0, 0, 0], id="all-failed"),
+        pytest.param(205, (PaymentState.SUCCESS,), [0, 0, 0, 0], id="all-success"),
+        pytest.param(
+            205,
+            (PaymentState.PENDING, PaymentState.FAILED, PaymentState.SUCCESS),
+            [0, 34, 67, 69],
+            id="mixed-statuses",
+        ),
+        pytest.param(
+            1_100, (PaymentState.PENDING,), list(range(0, 1_000, 100)), id="pending-cap"
+        ),
+        pytest.param(1_100, (PaymentState.FAILED,), [0] * 10, id="resolved-cap"),
+    ],
+)
+async def test_check_pending_payments_batches_and_progress(
+    mocker: MockerFixture,
+    payment_count: int,
+    outcomes: tuple[PaymentState, ...],
+    expected_offsets: list[int],
+):
+    payments = {
+        f"payment-{i}": SimpleNamespace(
+            checking_id=f"payment-{i}", status=PaymentState.PENDING
+        )
+        for i in range(payment_count)
+    }
+    offsets = []
+    start_time = 2_000_000_000
+
+    async def fetch_page(*, since, complete, pending, exclude_uncheckable, filters):
+        assert since == start_time - 15 * 24 * 60 * 60
+        assert complete is False
+        assert pending is True
+        assert exclude_uncheckable is True
+        assert filters.sortby == "created_at"
+        assert filters.direction == "asc"
+        assert filters.limit == 100
+        offsets.append(filters.offset)
+        remaining = [
+            payment
+            for payment in payments.values()
+            if payment.status == PaymentState.PENDING
+        ]
+        # Each query returns fresh objects, as the CRUD function does.
+        return Page(
+            data=[
+                SimpleNamespace(**vars(payment))
+                for payment in remaining[
+                    filters.offset : filters.offset + filters.limit
+                ]
+            ],
+            total=len(remaining),
+        )
+
+    async def update_pending(payment):
+        index = int(payment.checking_id.removeprefix("payment-"))
+        stored_payment = payments[payment.checking_id]
+        stored_payment.status = outcomes[index % len(outcomes)]
+        return stored_payment
+
+    mocker.patch(
+        "lnbits.core.services.payments.get_funding_source", return_value=object()
+    )
+    mocker.patch(
+        "lnbits.core.services.payments.time",
+        SimpleNamespace(
+            time=mocker.Mock(side_effect=range(start_time, start_time + 100))
+        ),
+    )
+    page_mock = mocker.patch(
+        "lnbits.core.services.payments.get_payments_paginated",
+        mocker.AsyncMock(side_effect=fetch_page),
+    )
+    update_mock = mocker.patch(
+        "lnbits.core.services.payments.update_pending_payment",
+        mocker.AsyncMock(side_effect=update_pending),
+    )
+    mocker.patch("lnbits.core.services.payments.asyncio.sleep", mocker.AsyncMock())
+    logger_mock = mocker.patch("lnbits.core.services.payments.logger")
+
+    await check_pending_payments()
+
+    checked = min(payment_count, 1_000)
+    assert offsets == expected_offsets
+    assert page_mock.await_count == len(expected_offsets)
+    assert [call.args[0].checking_id for call in update_mock.await_args_list] == list(
+        payments
+    )[:checked]
+    assert [call.args[0] for call in logger_mock.debug.call_args_list] == [
+        f"payment ({i + 1}/{payment_count}) {outcomes[i % len(outcomes)]} payment-{i}"
+        for i in range(checked)
+    ]
+    logger_mock.info.assert_any_call(
+        "Task: checking pending payments of last 15 days..."
+    )
+    if checked:
+        assert logger_mock.info.call_args.args[0].startswith(
+            f"Task: pending check finished for {checked} payments"
+        )
+    else:
+        logger_mock.info.assert_any_call(
+            "Task: no pending payments found in the last 15 days"
+        )
 
 
 @pytest.mark.anyio

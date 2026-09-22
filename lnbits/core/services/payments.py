@@ -41,6 +41,7 @@ from ..crud import (
     check_internal,
     create_payment,
     get_payments,
+    get_payments_paginated,
     get_standalone_payment,
     get_wallet,
     get_wallet_payment,
@@ -434,34 +435,50 @@ async def update_pending_payment(
 
 
 async def check_pending_payments():
-    """
-    check_pending_payments is called during startup to check for pending payments with
-    the backend and also to delete expired invoices. Incoming payments will be
-    checked only once, outgoing pending payments will be checked regularly.
-    """
+    """Periodically check recent pending payments and fail expired incoming invoices."""
     funding_source = get_funding_source()
     if funding_source.__class__.__name__ == "VoidWallet":
         logger.warning("Task: skipping pending check for VoidWallet")
         return
     start_time = time.time()
-    pending_payments = await get_payments(
-        since=(int(time.time()) - 60 * 60 * 24 * 15),  # 15 days ago
-        complete=False,
-        pending=True,
-        exclude_uncheckable=True,
+    since = int(start_time) - 60 * 60 * 24 * 15  # 15 days ago
+    batch_size = 100
+    offset = 0
+    count = 0
+    total: int | None = None
+    filters = Filters(
+        model=PaymentFilters, sortby="created_at", direction="asc", limit=batch_size
     )
-    count = len(pending_payments)
-    if count > 0:
-        logger.info(f"Task: checking {count} pending payments of last 15 days...")
-        for i, payment in enumerate(pending_payments):
+    logger.info("Task: checking pending payments of last 15 days...")
+    for _ in range(10):
+        filters.offset = offset
+        page = await get_payments_paginated(
+            since=since,
+            complete=False,
+            pending=True,
+            exclude_uncheckable=True,
+            filters=filters,
+        )
+        if total is None:
+            total = page.total
+        if not page.data:
+            break
+        for payment in page.data:
             payment = await update_pending_payment(payment)
-            prefix = f"payment ({i+1} / {count})"
+            # Resolved payments leave the results; skip only those still pending.
+            if payment.status == PaymentState.PENDING:
+                offset += 1
+            count += 1
+            prefix = f"payment ({count}/{total})"
             logger.debug(f"{prefix} {payment.status} {payment.checking_id}")
             await asyncio.sleep(0.01)  # to avoid complete blocking
+    if count > 0:
         logger.info(
             f"Task: pending check finished for {count} payments"
             f" (took {time.time() - start_time:0.3f} s)"
         )
+    else:
+        logger.info("Task: no pending payments found in the last 15 days")
 
 
 def fee_reserve_total(amount_msat: int, internal: bool = False) -> int:
