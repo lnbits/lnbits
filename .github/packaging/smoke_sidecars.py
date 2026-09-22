@@ -17,11 +17,26 @@ def check(resources):
     pins = json.loads((resources / "pins.json").read_text())
     node = resources / ("node.exe" if sys.platform == "win32" else "node")
     env = dict(os.environ)
+    # An inherited --jitless could hide missing executable-memory entitlements.
+    env.pop("NODE_OPTIONS", None)
     if sys.platform == "linux":
         env["LD_LIBRARY_PATH"] = os.pathsep.join(
             filter(None, (str(resources / "lib"), env.get("LD_LIBRARY_PATH")))
         )
-    version = subprocess.check_output([str(node), "--version"], env=env, text=True)
+    # --version exits before V8 starts. Exercise the runtime used by both
+    # supervisors so a signed Node with insufficient JIT permissions fails here.
+    print("Check bundled Node JavaScript initialization", flush=True)
+    version = subprocess.check_output(
+        [
+            str(node),
+            "--eval",
+            "let sum = 0; for (let i = 0; i < 100000; i++) sum += i; "
+            "if (sum !== 4999950000) process.exit(1); console.log(process.version)",
+        ],
+        env=env,
+        text=True,
+        timeout=30,
+    )
     assert version.strip() == f"v{pins['node']['version']}"
     if sys.platform != "win32":
         version = subprocess.check_output(

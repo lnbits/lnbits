@@ -252,7 +252,7 @@ class Server:
         return code
 
 
-def gui():  # noqa: C901 - UI callbacks share the window and server lifecycle.
+def gui(smoke=False):  # noqa: C901 - Shared UI callbacks.
     import tkinter as tk
     from tkinter import filedialog, messagebox, ttk
 
@@ -496,6 +496,11 @@ def gui():  # noqa: C901 - UI callbacks share the window and server lifecycle.
     root.protocol("WM_DELETE_WINDOW", close)
     if sys.platform == "darwin":
         root.createcommand("tk::mac::Quit", close)
+    smoke_state = None
+    if smoke:
+        from launcher_smoke import schedule
+
+        smoke_state = schedule(root)
     try:
         root.mainloop()
     finally:
@@ -503,6 +508,9 @@ def gui():  # noqa: C901 - UI callbacks share the window and server lifecycle.
             server.stop()
             while server.poll() is None:
                 time.sleep(0.1)
+
+    if smoke_state and (not smoke_state["ready"] or smoke_state["timeout"]):
+        raise RuntimeError("Packaged launcher smoke test failed")
 
 
 def windows_terminal():
@@ -578,7 +586,11 @@ def main():
         action="store_true",
         help="Acknowledge Phoenixd backup and automatic liquidity terms on first setup",
     )
+    parser.add_argument("--smoke-test-gui", action="store_true", help=argparse.SUPPRESS)
     args = parser.parse_args()
+    if args.smoke_test_gui:
+        gui(smoke=True)
+        return
     if args.gui or (not args.headless and should_show_gui()):
         gui()
         return

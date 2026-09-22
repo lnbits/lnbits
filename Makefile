@@ -41,6 +41,16 @@ dev:
 docker:
 	docker build -t lnbits/lnbits .
 
+# Native macOS builds; the release command loads .env.macos-release, never publishes.
+.PHONY: build-macos build-macos-release
+build-macos:
+	python3 .github/packaging/macos/release.py --prepare-only
+	uv run --no-sync python .github/packaging/macos/release.py --unsigned --prepared
+
+build-macos-release:
+	python3 .github/packaging/macos/release.py --prepare-only
+	uv run --no-sync python .github/packaging/macos/release.py --env-file .env.macos-release --prepared
+
 test-desktop:
 	uv run python -m unittest discover -s .github/packaging -v
 

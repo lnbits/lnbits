@@ -12,6 +12,53 @@ import prepare_sidecars
 
 
 class PrepareSidecarsTests(unittest.TestCase):
+    def test_macos_prebuilds_keep_only_the_target_architecture(self):
+        for arch in ("arm64", "x64"):
+            with self.subTest(arch=arch), tempfile.TemporaryDirectory() as folder:
+                modules = Path(folder) / "node_modules"
+                variants = (
+                    "darwin-arm64",
+                    "darwin-x64",
+                    "darwin-x64+arm64",
+                    "ios-arm64",
+                    "ios-x64-simulator",
+                    "linux-arm64",
+                    "win32-x64",
+                )
+                for package in ("bare-buffer", "nested/node_modules/bare-crypto"):
+                    root = modules / package
+                    root.mkdir(parents=True)
+                    (root / "index.js").write_text("// shared runtime code")
+                    for variant in variants:
+                        binary = root / "prebuilds" / variant / "native.bare"
+                        binary.parent.mkdir(parents=True)
+                        binary.write_bytes(b"native prebuild")
+                    (root / "prebuilds/README.md").write_text("license information")
+                prepare_sidecars.prune_prebuilds(modules, "darwin", arch)
+                for package in ("bare-buffer", "nested/node_modules/bare-crypto"):
+                    root = modules / package
+                    self.assertEqual(
+                        {path.name for path in (root / "prebuilds").iterdir()},
+                        {f"darwin-{arch}", "darwin-x64+arm64", "README.md"},
+                    )
+                    self.assertEqual(
+                        (
+                            root / "prebuilds" / f"darwin-{arch}" / "native.bare"
+                        ).read_bytes(),
+                        b"native prebuild",
+                    )
+                    self.assertTrue((root / "index.js").is_file())
+
+    def test_other_platforms_keep_their_existing_prebuilds(self):
+        for system in ("linux", "win"):
+            with self.subTest(system=system), tempfile.TemporaryDirectory() as folder:
+                modules = Path(folder) / "node_modules"
+                binary = modules / "package/prebuilds/darwin-arm64/native.bare"
+                binary.parent.mkdir(parents=True)
+                binary.write_bytes(b"unchanged")
+                prepare_sidecars.prune_prebuilds(modules, system, "x64")
+                self.assertEqual(binary.read_bytes(), b"unchanged")
+
     def test_pinned_revision_and_checksum_are_used(self):
         pin = {"release": "v0.1.4", "revision": "a" * 40, "sha256": "archive-digest"}
         with (
