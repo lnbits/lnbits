@@ -1,6 +1,7 @@
 {% extends "base.html" %} {% block page_container %}
-<lnbits-error
-  code="{{ status_code | safe }}"
-  message="{{ message | safe }}"
-></lnbits-error>
+<!--
+  The |safe filter marks a value as trusted HTML and disables escaping.
+  Error messages can contain untrusted input, so keep automatic escaping enabled.
+-->
+<lnbits-error code="{{ status_code }}" message="{{ message }}"></lnbits-error>
 {% endblock %}

@@ -240,10 +240,7 @@ on a physical Intel Mac, including macOS 26, as well as the macOS 15 CI runners.
 ## GitHub Actions
 
 `macos.yml` retains `macos-15` (arm64) and `macos-15-intel` (x86_64). Automatic builds
-run through the stable and RC release workflows. Temporarily, same-repository pull
-requests also build signed artifacts for testing, without attaching them to a
-release. Fork PRs are skipped because they do not receive the Apple secrets.
-Remove the `pull_request` trigger when returning to release-only automatic builds.
+run only through the stable and RC release workflows.
 Every CI build, including manual runs, requires Developer ID signing and
 notarization. There is no unsigned CI option. All six GitHub Actions secrets must
 be configured; missing or invalid credentials fail the build.
