@@ -267,8 +267,8 @@ async def lnurlwallet(request: Request, lightning: str = ""):
     if not settings.lnbits_allow_new_accounts:
         return {"status": "ERROR", "reason": "New accounts are not allowed."}
 
-    lnurl = url_decode(lightning)
     try:
+        lnurl = url_decode(lightning)
         check_callback_url(lnurl)
         withdraw = await handle(lnurl, user_agent=settings.user_agent, timeout=2)
         if not isinstance(withdraw, LnurlWithdrawResponse):

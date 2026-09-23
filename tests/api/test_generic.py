@@ -3,7 +3,9 @@ import json
 from unittest.mock import AsyncMock
 
 import pytest
+from bech32 import bech32_encode
 from lnurl import url_encode
+from markupsafe import escape
 from pytest_mock.plugin import MockerFixture
 
 from lnbits.core.models.users import User
@@ -87,6 +89,46 @@ async def test_lnurlwallet_rejects_private_callback(
         )
     }
     send.assert_awaited_once()
+
+
+@pytest.mark.anyio
+@pytest.mark.parametrize(
+    "payload",
+    ['"><script>alert(1)</script>', '"><img/src=x/onerror=alert(1)>'],
+)
+@pytest.mark.parametrize(
+    "headers",
+    [
+        {"Accept": "text/html"},
+        {"User-Agent": "Mozilla/5.0"},
+        {"Accept": "application/json"},
+    ],
+)
+async def test_lnurlwallet_rejects_html_in_prefix(
+    http_client, mocker: MockerFixture, payload: str, headers: dict
+):
+    handle = mocker.patch("lnbits.core.views.generic.handle", new_callable=AsyncMock)
+    create_user = mocker.patch(
+        "lnbits.core.views.generic.create_user_account", new_callable=AsyncMock
+    )
+
+    response = await http_client.get(
+        "/lnurlwallet",
+        params={"lightning": bech32_encode(payload, [])},
+        headers=headers,
+    )
+
+    assert response.status_code == 400
+    if headers.get("Accept") == "application/json":
+        assert response.json() == {
+            "detail": f"Invalid data or Human Readable Prefix (HRP): {payload}."
+        }
+    else:
+        assert response.headers["content-type"].startswith("text/html")
+        assert payload not in response.text
+        assert f'message="{escape(payload + ".")}"' in response.text
+    handle.assert_not_awaited()
+    create_user.assert_not_awaited()
 
 
 # check GET /wallet: wrong user, expect 400
