@@ -26,7 +26,7 @@ from lnbits.core.crud.audit import delete_expired_audit_entries
 from lnbits.core.crud.extensions import create_installed_extension
 from lnbits.core.helpers import migrate_extension_database
 from lnbits.core.models.notifications import NotificationType
-from lnbits.core.services.extensions import get_valid_extensions
+from lnbits.core.services.extensions import deactivate_extension, get_valid_extensions
 from lnbits.core.services.funding_source import (
     check_balance_delta_changed,
     check_server_balance_against_node,
@@ -291,14 +291,22 @@ async def check_installed_extensions(app: FastAPI):
                     f"{ext.id} ({ext.installed_version})"
                 )
         except Exception as e:
-            # Soft-fail: keep the extension's existing state rather than
-            # permanently deactivating it. The zip and extension dir are
-            # preserved so a later startup with network may succeed.
-            # See issue #4070.
-            logger.warning(
-                f"Failed to re-install extension: "
-                f"{ext.id} ({ext.installed_version}): {e}"
-            )
+            logger.warning(e)
+            if (
+                isinstance(e, AssertionError)
+                and str(e) == "Cannot fetch extension archive file"
+                and ext.zip_path.is_file()
+            ):
+                logger.warning(
+                    f"Failed to re-install extension: "
+                    f"{ext.id} ({ext.installed_version}): {e}"
+                )
+            else:
+                await deactivate_extension(ext.id)
+                logger.warning(
+                    f"Failed to re-install extension: "
+                    f"{ext.id} ({ext.installed_version})"
+                )
 
     logger.info(f"Installed Extensions ({len(installed_extensions)}):")
     for ext in installed_extensions:
@@ -396,10 +404,6 @@ async def check_installed_extension_files(ext: InstallableExtension) -> bool:
     if ext.is_wasm or ext.has_installed_version:
         return True
 
-    # zip_path is absolute under LNBITS_DATA_FOLDER. The old comparison
-    # `f"./{ext.zip_path}" not in glob(...)` never matched absolute paths, so a
-    # present zip was treated as missing and deleted inside download_archive()
-    # before re-download — fatal when network/DNS is down (e.g. Docker recreate).
     if not ext.zip_path.is_file():
         await ext.download_archive()
     archive_config = ext.load_archive_config()

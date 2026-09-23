@@ -592,10 +592,6 @@ class InstallableExtension(BaseModel):
     async def download_archive(self):
         logger.info(f"Downloading extension {self.name} ({self.installed_version}).")
         ext_zip_file = self.zip_path
-
-        # Download to a temp file first so a failed/remote fetch does not
-        # destroy an existing valid zip — fatal on Docker recreate when
-        # DNS is not yet ready. See issue #4070.
         tmp_zip_file = ext_zip_file.with_name(ext_zip_file.name + ".tmp")
         try:
             if not self.meta or not self.meta.installed_release:
