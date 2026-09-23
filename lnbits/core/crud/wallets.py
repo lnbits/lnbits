@@ -22,7 +22,7 @@ async def create_wallet(
     shared_wallet_id: str | None = None,
     conn: Connection | None = None,
 ) -> Wallet:
-    if wallet_type == WalletType.FIAT and currency is not None:
+    if currency is not None:
         currency = currency.upper()
         if currency not in allowed_currencies():
             raise ValueError("The provided currency is not supported")

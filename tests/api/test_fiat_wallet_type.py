@@ -115,10 +115,11 @@ async def test_fiat_wallet_creation_currency_defaults(client, from_wallet, setti
             assert wallet and wallet.currency == expected
 
 
-async def test_direct_fiat_currency_and_non_fiat_ignores_currency(
+async def test_explicit_currency_applies_to_all_wallet_types(
     client, from_wallet, settings
 ):
     settings.lnbits_default_accounting_currency = "GBP"
+    settings.lnbits_allowed_currencies = ["EUR"]
     wallet = await create_wallet(
         user_id=from_wallet.user,
         wallet_type=WalletType.FIAT,
@@ -135,11 +136,21 @@ async def test_direct_fiat_currency_and_non_fiat_ignores_currency(
 
     response = await client.post(
         f"/api/v1/wallet?usr={from_wallet.user}",
-        json={"currency": "unknown"},
+        json={"currency": "eur"},
     )
     assert response.status_code == 200
     assert response.json()["wallet_type"] == "lightning"
+    assert response.json()["currency"] == "EUR"
+
+    response = await client.post(f"/api/v1/wallet?usr={from_wallet.user}", json={})
+    assert response.status_code == 200
     assert response.json()["currency"] == "GBP"
+
+    response = await client.post(
+        f"/api/v1/wallet?usr={from_wallet.user}",
+        json={"currency": "unknown"},
+    )
+    assert response.status_code == 400
 
 
 @pytest.mark.parametrize("method", ["cash", "stripe"])
