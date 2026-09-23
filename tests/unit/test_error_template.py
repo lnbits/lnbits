@@ -53,11 +53,12 @@ def test_error_template_preserves_message_as_attribute(
 
     response = render_html_error(browser_request, exc)
 
+    expected_status_code = 400 if http_error else 500
     assert response is not None
-    assert response.status_code == (400 if http_error else 500)
+    assert response.status_code == expected_status_code
     parser = ErrorElementParser()
     parser.feed(bytes(response.body).decode())
-    assert parser.attributes == {"code": str(response.status_code), "message": message}
+    assert parser.attributes == {"code": str(expected_status_code), "message": message}
 
 
 def test_disabled_extension_error_escapes_message(browser_request):
@@ -74,4 +75,7 @@ def test_disabled_extension_error_escapes_message(browser_request):
     assert response.status_code == 404
     parser = ErrorElementParser()
     parser.feed(bytes(response.body).decode())
-    assert parser.attributes == {"code": "404", "message": message}
+    assert parser.attributes == {
+        "code": str(HTTPStatus.NOT_FOUND),
+        "message": message,
+    }
