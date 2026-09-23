@@ -1396,6 +1396,7 @@ class PublicSettings(BaseModel):
     denomination: str | None = Field()
     extensions: list[str] = Field()
     allowed_currencies: list[str] = Field(alias="allowedCurrencies")
+    default_accounting_currency: str = Field(alias="defaultAccountingCurrency")
     extensions_reviews_url: str = Field(alias="extensionsReviewsUrl")
     ext_builder: bool = Field(alias="extBuilder")
     nostr_configured: bool = Field(alias="nostrConfigured")
@@ -1476,6 +1477,9 @@ class PublicSettings(BaseModel):
             denomination=settings.lnbits_denomination,
             extensions=list(settings.lnbits_installed_extensions_ids),
             allowedCurrencies=settings.lnbits_allowed_currencies,
+            defaultAccountingCurrency=(
+                settings.lnbits_default_accounting_currency or "USD"
+            ),
             extensionsReviewsUrl=settings.lnbits_extensions_reviews_url,
             extBuilder=settings.lnbits_extensions_builder_activate_non_admins,
             nostrConfigured=settings.is_nostr_notifications_configured(),

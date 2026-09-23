@@ -233,6 +233,7 @@ class CreateWallet(BaseModel):
     name: str | None = None
     wallet_type: WalletType = WalletType.LIGHTNING
     shared_wallet_id: str | None = None
+    currency: str | None = None
 
 
 class KeyType(Enum):
