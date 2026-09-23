@@ -109,7 +109,6 @@ async def test_invalidate_forever_logs_and_recovers_from_errors(
         await original_invalidate()
 
     mocker.patch.object(test_cache, "invalidate_cache", side_effect=fake_invalidate)
-    mocker.patch("lnbits.task_manager.asyncio.sleep")
     logger_error = mocker.patch("lnbits.task_manager.logger.error")
 
     bg_task = None

@@ -1,3 +1,4 @@
+import asyncio
 from datetime import datetime, timedelta, timezone
 from types import SimpleNamespace
 from uuid import uuid4
@@ -270,9 +271,10 @@ async def test_check_pending_payments_skips_voidwallet_and_updates_recent_items(
         "lnbits.core.services.payments.get_funding_source",
         return_value=VoidWallet(),
     )
-    sleep_mock = mocker.patch(
-        "lnbits.core.services.payments.asyncio.sleep", mocker.AsyncMock()
-    )
+    # Keep the session's background tasks on the real asyncio.sleep.
+    asyncio_mock = SimpleNamespace(**vars(asyncio))
+    sleep_mock = asyncio_mock.sleep = mocker.AsyncMock()
+    mocker.patch("lnbits.core.services.payments.asyncio", asyncio_mock)
 
     await check_pending_payments()
     sleep_mock.assert_not_awaited()
@@ -385,7 +387,9 @@ async def test_check_pending_payments_batches_and_progress(
         "lnbits.core.services.payments.update_pending_payment",
         mocker.AsyncMock(side_effect=update_pending),
     )
-    mocker.patch("lnbits.core.services.payments.asyncio.sleep", mocker.AsyncMock())
+    asyncio_mock = SimpleNamespace(**vars(asyncio))
+    asyncio_mock.sleep = mocker.AsyncMock()
+    mocker.patch("lnbits.core.services.payments.asyncio", asyncio_mock)
     logger_mock = mocker.patch("lnbits.core.services.payments.logger")
 
     await check_pending_payments()
