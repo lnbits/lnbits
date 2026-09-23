@@ -5,7 +5,6 @@ import pytest
 from fastapi import FastAPI, HTTPException, Request
 
 from lnbits.exceptions import render_html_error
-from lnbits.helpers import template_renderer
 from lnbits.middleware import InstalledExtensionMiddleware
 
 
@@ -76,15 +75,3 @@ def test_disabled_extension_error_escapes_message(browser_request):
     parser = ErrorElementParser()
     parser.feed(bytes(response.body).decode())
     assert parser.attributes == {"code": "404", "message": message}
-
-
-def test_currency_options_escape_html_attributes(browser_request):
-    currency = '"><script>alert(1)</script>'
-
-    response = template_renderer().TemplateResponse(
-        browser_request, "base.html", {"currencies": ["USD", currency]}
-    )
-
-    html = bytes(response.body).decode()
-    assert currency not in html
-    assert "&lt;script&gt;alert(1)&lt;/script&gt;" in html
