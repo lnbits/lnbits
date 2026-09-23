@@ -30,11 +30,7 @@ def _write_python_extension_zip(zip_path, ext_id: str) -> None:
 async def test_check_installed_extension_files_uses_local_zip_when_present(
     tmp_path, settings: Settings, mocker: MockerFixture
 ):
-    """Absolute zip paths under LNBITS_DATA_FOLDER must count as present.
-
-    Historically compared `./{absolute zip_path}` against glob results, never
-    matched, deleted the good zip via download_archive, then failed offline.
-    """
+    """Present local zip is used without re-download."""
     ext_id = f"ext_{uuid4().hex[:8]}"
     ext_info = make_installable_extension(ext_id)
     original_data_folder = settings.lnbits_data_folder
@@ -142,10 +138,7 @@ async def test_check_installed_extension_files_skips_when_version_present(
 async def test_download_archive_preserves_existing_zip_on_download_failure(
     tmp_path, settings: Settings, mocker: MockerFixture
 ):
-    """download_archive must not delete the existing zip before the download
-    succeeds. If the remote fetch fails, the original zip must survive so a
-    later startup with working DNS can try again. See issue #4070.
-    """
+    """Existing zip survives a failed remote fetch."""
     ext_id = f"ext_{uuid4().hex[:8]}"
     ext_info = make_installable_extension(ext_id)
     assert ext_info.meta is not None
@@ -184,9 +177,7 @@ async def test_download_archive_preserves_existing_zip_on_download_failure(
 async def test_download_archive_atomic_replace_on_success(
     tmp_path, settings: Settings, mocker: MockerFixture
 ):
-    """download_archive writes to a temp file then atomically replaces the
-    final zip only after the hash check passes.
-    """
+    """Successful download atomically replaces the zip via a temp file."""
     ext_id = f"ext_{uuid4().hex[:8]}"
     ext_info = make_installable_extension(ext_id)
     assert ext_info.meta is not None
@@ -224,13 +215,53 @@ async def test_download_archive_atomic_replace_on_success(
 
 
 @pytest.mark.anyio
-async def test_check_installed_extensions_soft_fails_without_deactivation(
+async def test_check_installed_extensions_soft_fails_on_fetch_error_with_zip(
     tmp_path, settings: Settings, mocker: MockerFixture
 ):
-    """When extension restoration fails, check_installed_extensions must NOT
-    permanently deactivate the extension — it should soft-fail and log only.
-    See issue #4070.
-    """
+    """Archive fetch failure with an intact zip must not deactivate."""
+    from fastapi import FastAPI
+
+    from lnbits.app import check_installed_extensions
+
+    ext_id = f"ext_{uuid4().hex[:8]}"
+    ext_info = make_installable_extension(ext_id)
+    original_data_folder = settings.lnbits_data_folder
+    original_extensions_path = settings.lnbits_extensions_path
+    try:
+        settings.lnbits_data_folder = str(tmp_path / "data")
+        settings.lnbits_extensions_path = str(tmp_path / "code")
+        _write_python_extension_zip(ext_info.zip_path, ext_id)
+
+        mocker.patch(
+            "lnbits.app.build_all_installed_extensions_list",
+            mocker.AsyncMock(return_value=[ext_info]),
+        )
+        mocker.patch(
+            "lnbits.app.check_installed_extension_files",
+            mocker.AsyncMock(
+                side_effect=AssertionError("Cannot fetch extension archive file")
+            ),
+        )
+        mocker.patch("lnbits.app.restore_installed_extension", mocker.AsyncMock())
+        deactivate_mock = mocker.patch(
+            "lnbits.app.deactivate_extension", mocker.AsyncMock()
+        )
+        mocker.patch("lnbits.app.update_installed_extension_state", mocker.AsyncMock())
+
+        app = FastAPI()
+        await check_installed_extensions(app)
+
+        deactivate_mock.assert_not_awaited()
+    finally:
+        settings.lnbits_data_folder = original_data_folder
+        settings.lnbits_extensions_path = original_extensions_path
+
+
+@pytest.mark.anyio
+async def test_check_installed_extensions_deactivates_on_other_errors(
+    tmp_path, settings: Settings, mocker: MockerFixture
+):
+    """Non-fetch restore failures still deactivate (e.g. bad migration)."""
     from fastapi import FastAPI
 
     from lnbits.app import check_installed_extensions
@@ -249,19 +280,18 @@ async def test_check_installed_extensions_soft_fails_without_deactivation(
         )
         mocker.patch(
             "lnbits.app.check_installed_extension_files",
-            mocker.AsyncMock(side_effect=RuntimeError("simulated restore failure")),
+            mocker.AsyncMock(side_effect=RuntimeError("corrupt migration")),
         )
         mocker.patch("lnbits.app.restore_installed_extension", mocker.AsyncMock())
         deactivate_mock = mocker.patch(
-            "lnbits.core.services.extensions.deactivate_extension", mocker.AsyncMock()
+            "lnbits.app.deactivate_extension", mocker.AsyncMock()
         )
         mocker.patch("lnbits.app.update_installed_extension_state", mocker.AsyncMock())
 
         app = FastAPI()
         await check_installed_extensions(app)
 
-        # deactivate_extension must NOT have been called (soft-fail).
-        deactivate_mock.assert_not_awaited()
+        deactivate_mock.assert_awaited_once_with(ext_id)
     finally:
         settings.lnbits_data_folder = original_data_folder
         settings.lnbits_extensions_path = original_extensions_path
