@@ -480,6 +480,50 @@ window.localisation.en = {
   login_to_account: 'Login to your account',
   create_account: 'Create account',
   account_settings: 'Account Settings',
+  two_factor_auth: 'Two Factor Auth',
+  two_factor_auth_account: 'Two Factor Auth (2FA)',
+  two_factor_description: 'Protect your account with an authenticator app.',
+  two_factor_enable: 'Enable two factor authentication',
+  two_factor_disable_global_hint:
+    'Turning this off disables 2FA verification for everyone, including admins. Authenticator configurations are retained.',
+  two_factor_totp: 'Authenticator app (TOTP)',
+  two_factor_allowed_methods: 'Allowed methods',
+  two_factor_mandatory: 'Require 2FA for all users',
+  two_factor_mandatory_hint:
+    'Before making 2FA mandatory, enroll your own authenticator and save your recovery codes.',
+  two_factor_my_settings: 'My 2FA settings',
+  two_factor_recovery_save_hint:
+    'Save these recovery codes somewhere safe, separate from your phone. Each code works once. They will not be shown again.',
+  two_factor_recovery_saved: 'I have saved my recovery codes',
+  two_factor_done: 'Done',
+  two_factor_disabled_hint:
+    '2FA is disabled for this instance. Existing authenticator settings are retained, but verification is not required.',
+  two_factor_enrollment_required:
+    'Set up an authenticator to continue. This instance requires 2FA.',
+  two_factor_apps_hint:
+    'Use Google Authenticator, Ente Auth, Aegis, or another TOTP app.',
+  two_factor_enrolled:
+    'Authenticator enrolled. {count} recovery codes remaining.',
+  two_factor_scan_hint:
+    'Scan this QR code with your authenticator, then enter its six-digit code.',
+  two_factor_manual_key: 'Manual setup key:',
+  two_factor_setup: 'Set up authenticator',
+  two_factor_code: 'Authenticator code',
+  two_factor_code_or_recovery: 'Authenticator or recovery code',
+  two_factor_enable_account: 'Enable 2FA',
+  two_factor_verify: 'Verify',
+  two_factor_verified: 'Verification complete.',
+  two_factor_fresh_code_hint:
+    'Verify a fresh code above before changing your 2FA settings.',
+  two_factor_recovery_replace: 'Replace recovery codes',
+  two_factor_disable_account: 'Disable my 2FA',
+  two_factor_sign_in_again: 'Sign in again',
+  two_factor_verification_error:
+    'Unable to complete verification. Please try again.',
+  two_factor_disable_confirm: 'Disable account 2FA?',
+  two_factor_disable_confirm_hint:
+    'Your authenticator and recovery codes will stop working.',
+  two_factor_sign_in_again_error: 'Please sign in again.',
   account_settings_description:
     'Manage your profile, identity, and account credentials.',
   signin_with_oauth: 'Login with',

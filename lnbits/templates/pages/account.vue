@@ -41,10 +41,16 @@
       <div v-if="$q.screen.lt.md" class="q-pa-md">
         <q-select
           v-model="tab"
-          :options="[
-            ...accountNavigationItems,
-            {value: 'two_factor', label: 'Two Factor Auth (2FA)'}
-          ]"
+          :options="
+            accountNavigationItems.flatMap(item =>
+              item.value === 'api_acls'
+                ? [
+                    {value: 'two_factor', label: $t('two_factor_auth_account')},
+                    item
+                  ]
+                : [item]
+            )
+          "
           option-value="value"
           option-label="label"
           emit-value
@@ -66,17 +72,18 @@
           <nav class="column col" aria-label="Account sections">
             <q-list dense class="q-py-md">
               <q-item
-                clickable
-                :active="tab === 'two_factor'"
-                @click="selectAccountSection('two_factor')"
-              >
-                <q-item-section side>
-                  <q-icon name="verified_user"></q-icon>
-                </q-item-section>
-                <q-item-section>Two Factor Auth (2FA)</q-item-section>
-              </q-item>
-              <q-item
-                v-for="item in accountNavigationItems"
+                v-for="item in accountNavigationItems.flatMap(item =>
+                  item.value === 'api_acls'
+                    ? [
+                        {
+                          value: 'two_factor',
+                          label: $t('two_factor_auth_account'),
+                          icon: 'verified_user'
+                        },
+                        item
+                      ]
+                    : [item]
+                )"
                 :key="item.value"
                 clickable
                 v-ripple
@@ -132,7 +139,7 @@
                 class="text-subtitle1"
                 v-text="
                   tab === 'two_factor'
-                    ? 'Two Factor Auth (2FA)'
+                    ? $t('two_factor_auth_account')
                     : activeAccountSection.label
                 "
               ></div>
@@ -140,7 +147,7 @@
                 class="text-caption text-grey"
                 v-text="
                   tab === 'two_factor'
-                    ? 'Protect your account with an authenticator app.'
+                    ? $t('two_factor_description')
                     : activeAccountSection.description
                 "
               ></div>

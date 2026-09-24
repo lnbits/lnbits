@@ -54,7 +54,7 @@ window.app.component('lnbits-two-factor', {
         this.error =
           typeof error.response?.data?.detail === 'string'
             ? error.response.data.detail
-            : 'Unable to complete verification. Please try again.'
+            : this.$t('two_factor_verification_error')
         return null
       } finally {
         this.busy = false
@@ -98,8 +98,8 @@ window.app.component('lnbits-two-factor', {
     },
     async disable() {
       Quasar.Dialog.create({
-        title: 'Disable account 2FA?',
-        message: 'Your authenticator and recovery codes will stop working.',
+        title: this.$t('two_factor_disable_confirm'),
+        message: this.$t('two_factor_disable_confirm_hint'),
         cancel: true
       }).onOk(async () => {
         if (await this.call('DELETE', '')) await this.load()
@@ -126,7 +126,7 @@ window.app.component('lnbits-two-factor', {
         await axios.post('/api/v1/auth/usr', {usr})
         this.finish()
       } catch {
-        this.error = 'Please sign in again.'
+        this.error = this.$t('two_factor_sign_in_again_error')
       }
       return
     }
