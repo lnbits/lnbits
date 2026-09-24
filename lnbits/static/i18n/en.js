@@ -510,6 +510,8 @@ window.localisation.en = {
   two_factor_setup: 'Set up authenticator',
   two_factor_code: 'Authenticator code',
   two_factor_code_or_recovery: 'Authenticator or recovery code',
+  two_factor_show_code: 'Show code',
+  two_factor_hide_code: 'Hide code',
   two_factor_verify_hint:
     'Enter a code from your authenticator app or a recovery code.',
   two_factor_enable_account: 'Enable 2FA',

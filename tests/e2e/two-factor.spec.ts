@@ -81,7 +81,9 @@ test('TOTP enrollment, recovery login, account dialogs, and global disable', asy
   })
   await replace.click()
   await expect(dialog).toBeVisible()
-  await expect(dialog.getByRole('textbox')).toHaveCount(0)
+  await expect(
+    dialog.getByLabel('Authenticator or recovery code', {exact: true})
+  ).toHaveCount(0)
   await dialog.getByRole('button', {name: 'Cancel', exact: true}).click()
   await expect(dialog).toBeHidden()
   expect(
@@ -104,7 +106,9 @@ test('TOTP enrollment, recovery login, account dialogs, and global disable', asy
 
   // Expiry after opening the dialog must request a code and retain the action.
   await page.getByRole('button', {name: 'Disable my 2FA', exact: true}).click()
-  await expect(dialog.getByRole('textbox')).toHaveCount(0)
+  await expect(
+    dialog.getByLabel('Authenticator or recovery code', {exact: true})
+  ).toHaveCount(0)
   await page.route(
     '**/api/v1/auth/2fa',
     route =>

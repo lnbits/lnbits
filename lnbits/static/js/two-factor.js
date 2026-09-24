@@ -32,6 +32,7 @@ window.app.component('lnbits-two-factor', {
       status: null,
       setup: null,
       code: '',
+      showCode: false,
       codes: [],
       saved: false,
       busy: false,
@@ -40,6 +41,7 @@ window.app.component('lnbits-two-factor', {
         show: false,
         action: '',
         code: '',
+        showCode: false,
         requiresVerification: false
       }
     }
@@ -80,6 +82,7 @@ window.app.component('lnbits-two-factor', {
     async start() {
       this.setup = await this.call('POST', '/setup')
       this.code = ''
+      this.showCode = false
     },
     async verify() {
       const result = await this.call(
@@ -88,6 +91,7 @@ window.app.component('lnbits-two-factor', {
         {code: this.code.trim()}
       )
       this.code = ''
+      this.showCode = false
       if (!result) return
       this.setup = null
       this.codes = result.recovery_codes || []
@@ -110,6 +114,7 @@ window.app.component('lnbits-two-factor', {
         show: true,
         action,
         code: '',
+        showCode: false,
         requiresVerification: this.status.verification_required
       }
     },
@@ -120,6 +125,7 @@ window.app.component('lnbits-two-factor', {
           code: this.actionDialog.code.trim()
         })
         this.actionDialog.code = ''
+        this.actionDialog.showCode = false
         if (!result) return
         this.actionDialog.requiresVerification = false
       }
@@ -138,6 +144,7 @@ window.app.component('lnbits-two-factor', {
     },
     clearActionDialog() {
       this.actionDialog.code = ''
+      this.actionDialog.showCode = false
       this.error = ''
     },
     finish() {

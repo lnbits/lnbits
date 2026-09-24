@@ -82,6 +82,7 @@
           >
             <q-input
               v-model="code"
+              :type="showCode ? 'text' : 'password'"
               dense
               filled
               autocomplete="one-time-code"
@@ -91,7 +92,23 @@
                   : $t('two_factor_code_or_recovery')
               "
               maxlength="64"
-            ></q-input>
+            >
+              <template v-slot:append>
+                <q-btn
+                  flat
+                  round
+                  dense
+                  type="button"
+                  :icon="showCode ? 'visibility_off' : 'visibility'"
+                  :aria-label="
+                    showCode
+                      ? $t('two_factor_hide_code')
+                      : $t('two_factor_show_code')
+                  "
+                  @click="showCode = !showCode"
+                ></q-btn>
+              </template>
+            </q-input>
             <div class="row justify-end">
               <q-btn
                 type="submit"
@@ -170,6 +187,7 @@
             <p v-text="$t('two_factor_action_verify_hint')"></p>
             <q-input
               v-model="actionDialog.code"
+              :type="actionDialog.showCode ? 'text' : 'password'"
               dense
               filled
               autofocus
@@ -177,7 +195,26 @@
               :label="$t('two_factor_code_or_recovery')"
               maxlength="64"
               :disable="busy"
-            ></q-input>
+            >
+              <template v-slot:append>
+                <q-btn
+                  flat
+                  round
+                  dense
+                  type="button"
+                  :icon="
+                    actionDialog.showCode ? 'visibility_off' : 'visibility'
+                  "
+                  :aria-label="
+                    actionDialog.showCode
+                      ? $t('two_factor_hide_code')
+                      : $t('two_factor_show_code')
+                  "
+                  :disable="busy"
+                  @click="actionDialog.showCode = !actionDialog.showCode"
+                ></q-btn>
+              </template>
+            </q-input>
           </template>
           <div class="row justify-end q-gutter-sm">
             <q-btn
