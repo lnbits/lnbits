@@ -98,10 +98,10 @@ async def create_admin_settings(super_user: str, new_settings: dict) -> SuperSet
 
 
 async def get_settings_field(
-    id_: str, tag: str | None = "core"
+    id_: str, tag: str | None = "core", conn: Connection | None = None
 ) -> SettingsField | None:
 
-    row: dict = await db.fetchone(
+    row: dict = await (conn or db).fetchone(
         """
             SELECT * FROM system_settings
             WHERE  id = :id AND tag = :tag
@@ -145,8 +145,5 @@ async def get_settings_by_tag(tag: str) -> dict[str, Any] | None:
 
 
 async def get_two_factor_policy_revision(conn: Connection | None = None) -> str:
-    row: dict | None = await (conn or db).fetchone(
-        "SELECT value FROM system_settings WHERE id = 'two_factor_revision' "
-        "AND tag = 'security'"
-    )
-    return json.loads(row["value"]) if row else ""
+    field = await get_settings_field("two_factor_revision", "security", conn=conn)
+    return field.value if field and field.value else ""
