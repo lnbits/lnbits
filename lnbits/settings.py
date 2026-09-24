@@ -1577,7 +1577,7 @@ if not settings.user_agent:
 if not settings.lnbits_admin_ui:
     logger.debug("Environment Settings:")
     for key, value in settings.dict(
-        exclude_none=True, exclude={"totp_encryption_key"}
+        exclude_none=True, exclude={"auth_secret_key", "totp_encryption_key"}
     ).items():
         logger.debug(f"{key}: {value}")
 

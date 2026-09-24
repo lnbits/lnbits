@@ -72,7 +72,12 @@ window.PageAdmin = {
           label: 'settings_access',
           items: [
             {value: 'security', label: 'security', icon: 'security'},
-            {value: 'users', label: 'users', icon: 'group'}
+            {value: 'users', label: 'users', icon: 'group'},
+            {
+              value: 'two_factor',
+              label: 'two_factor_auth',
+              icon: 'verified_user'
+            }
           ]
         },
         {
