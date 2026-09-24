@@ -1,7 +1,70 @@
 {% extends "base.html" %} {% block page_container %}
 <q-page-container>
-  <q-page class="q-pa-lg row justify-center items-start">
-    <lnbits-two-factor standalone></lnbits-two-factor>
+  <q-page :class="['q-px-md', 'q-py-lg', {'q-px-lg': $q.screen.gt.xs}]">
+    <div class="home row justify-center items-center">
+      <div
+        class="full-width content-center"
+        :style="`max-width: ${g.settings.customImage ? '850' : '600'}px; min-height: 55vh;`"
+      >
+        <div v-if="g.settings.showHomepageElements" class="row q-mb-md">
+          <div class="col-12">
+            <h5 v-text="g.settings.siteTitle" class="q-my-none"></h5>
+            <template v-if="$q.screen.gt.sm">
+              <h6 class="q-my-sm" v-text="g.settings.siteTagline"></h6>
+              <p
+                class="q-my-sm"
+                v-html="utils.convertMarkdown(g.settings.siteDescription)"
+              ></p>
+            </template>
+          </div>
+        </div>
+        <q-card bordered class="full-width q-py-md">
+          <div class="row">
+            <div
+              class="col-12"
+              :class="{
+                'col-sm-7': g.settings.customImage,
+                'col-lg-6': g.settings.customImage
+              }"
+            >
+              <lnbits-two-factor standalone></lnbits-two-factor>
+            </div>
+            <div v-if="g.settings.customImage" class="col-sm-5 col-lg-6 gt-xs">
+              <div class="full-height flex flex-center q-pa-lg">
+                <q-img
+                  :src="g.settings.customImage"
+                  :ratio="1"
+                  width="250px"
+                ></q-img>
+              </div>
+            </div>
+          </div>
+        </q-card>
+        <div v-if="g.settings.showHomepageElements">
+          <div class="flex flex-center q-gutter-md q-py-md">
+            <q-btn
+              outline
+              color="grey"
+              type="a"
+              href="https://github.com/lnbits/lnbits"
+              target="_blank"
+              rel="noopener noreferrer"
+              :label="$t('view_github')"
+            ></q-btn>
+            <q-btn
+              outline
+              color="grey"
+              type="a"
+              href="https://demo.lnbits.com/lnurlp/link/fH59GD"
+              target="_blank"
+              rel="noopener noreferrer"
+              :label="$t('donate')"
+            ></q-btn>
+          </div>
+        </div>
+      </div>
+      <lnbits-home-logos></lnbits-home-logos>
+    </div>
   </q-page>
 </q-page-container>
 {% endblock %}
