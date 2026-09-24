@@ -74,6 +74,13 @@ async def factor_status(
 ) -> TwoFactorStatus:
     account, payload = identity
     config, _ = await get_two_factor_config(account.id)
+    verification_required = False
+    try:
+        await recent_factor_identity(identity)
+    except HTTPException as exc:
+        if exc.status_code != HTTPStatus.UNAUTHORIZED:
+            raise
+        verification_required = True
     return TwoFactorStatus(
         available=settings.lnbits_two_factor_enabled,
         mandatory=settings.lnbits_two_factor_mandatory,
@@ -81,6 +88,7 @@ async def factor_status(
         challenge=payload.purpose == "two_factor",
         recovery_remaining=len(config.recovery_hashes),
         recovery_saved=config.recovery_saved,
+        verification_required=verification_required,
     )
 
 

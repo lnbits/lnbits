@@ -36,7 +36,12 @@ window.app.component('lnbits-two-factor', {
       saved: false,
       busy: false,
       error: '',
-      verified: false
+      actionDialog: {
+        show: false,
+        action: '',
+        code: '',
+        requiresVerification: false
+      }
     }
   },
   methods: {
@@ -51,6 +56,15 @@ window.app.component('lnbits-two-factor', {
         })
         return response.data
       } catch (error) {
+        if (
+          this.actionDialog.show &&
+          (path === '' || path === '/recovery') &&
+          (error.response?.headers?.['two-factor-required'] ||
+            error.response?.headers?.['token-expired'])
+        ) {
+          this.actionDialog.requiresVerification = true
+          return null
+        }
         this.error =
           typeof error.response?.data?.detail === 'string'
             ? error.response.data.detail
@@ -76,7 +90,6 @@ window.app.component('lnbits-two-factor', {
       this.code = ''
       if (!result) return
       this.setup = null
-      this.verified = true
       this.codes = result.recovery_codes || []
       await this.load()
       if (this.standalone && !this.codes.length) this.finish()
@@ -89,21 +102,43 @@ window.app.component('lnbits-two-factor', {
       if (this.standalone) this.finish()
       else await this.load()
     },
-    async regenerate() {
-      const result = await this.call('POST', '/recovery')
-      if (result) {
+    async openAction(action) {
+      if (this.busy) return
+      await this.load()
+      if (!this.status) return
+      this.actionDialog = {
+        show: true,
+        action,
+        code: '',
+        requiresVerification: this.status.verification_required
+      }
+    },
+    async submitAction() {
+      if (this.busy) return
+      if (this.actionDialog.requiresVerification) {
+        const result = await this.call('POST', '/verify', {
+          code: this.actionDialog.code.trim()
+        })
+        this.actionDialog.code = ''
+        if (!result) return
+        this.actionDialog.requiresVerification = false
+      }
+      const disabling = this.actionDialog.action === 'disable'
+      const result = await this.call(
+        disabling ? 'DELETE' : 'POST',
+        disabling ? '' : '/recovery'
+      )
+      if (!result) return
+      this.actionDialog.show = false
+      if (disabling) await this.load()
+      else {
         this.codes = result.recovery_codes
         this.saved = false
       }
     },
-    async disable() {
-      Quasar.Dialog.create({
-        title: this.$t('two_factor_disable_confirm'),
-        message: this.$t('two_factor_disable_confirm_hint'),
-        cancel: true
-      }).onOk(async () => {
-        if (await this.call('DELETE', '')) await this.load()
-      })
+    clearActionDialog() {
+      this.actionDialog.code = ''
+      this.error = ''
     },
     finish() {
       const path = sessionStorage.getItem('lnbits.2fa.return') || '/wallet'

@@ -27,3 +27,4 @@ class TwoFactorStatus(BaseModel):
     challenge: bool
     recovery_remaining: int
     recovery_saved: bool
+    verification_required: bool

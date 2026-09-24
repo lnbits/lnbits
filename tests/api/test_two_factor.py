@@ -303,11 +303,27 @@ async def test_two_factor_sensitive_changes_require_recent_proof(
     http_client, factor_account, settings
 ):
     _, enrollment = await enroll(http_client, factor_account)
+    assert not (await http_client.get("/api/v1/auth/2fa/status")).json()[
+        "verification_required"
+    ]
     payload = jwt.decode(
         enrollment["access_token"], settings.auth_secret_key, ["HS256"]
     )
+    expired_login = dict(payload)
+    expired_login["auth_time"] = (
+        int(time()) - settings.auth_credetials_update_threshold - 1
+    )
+    assert (
+        await http_client.get(
+            "/api/v1/auth/2fa/status",
+            headers={"Authorization": f"Bearer {create_access_token(expired_login)}"},
+        )
+    ).json()["verification_required"]
     payload["mfa_time"] = int(time()) - settings.auth_credetials_update_threshold - 1
     headers = {"Authorization": f"Bearer {create_access_token(payload)}"}
+    assert (await http_client.get("/api/v1/auth/2fa/status", headers=headers)).json()[
+        "verification_required"
+    ]
     assert (await http_client.get("/api/v1/auth", headers=headers)).status_code == 200
     denied = await http_client.post("/api/v1/auth/2fa/recovery", headers=headers)
     assert denied.status_code == 401
@@ -318,6 +334,9 @@ async def test_two_factor_sensitive_changes_require_recent_proof(
         json={"code": enrollment["recovery_codes"][0]},
     )
     assert verified.status_code == 200
+    assert not (await http_client.get("/api/v1/auth/2fa/status")).json()[
+        "verification_required"
+    ]
     assert (await http_client.post("/api/v1/auth/2fa/recovery")).status_code == 200
 
 

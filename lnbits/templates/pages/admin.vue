@@ -278,21 +278,30 @@
                 :label="$t('two_factor_enable')"
               ></q-toggle>
               <p v-text="$t('two_factor_disable_global_hint')"></p>
-              <q-select
-                v-model="formData.lnbits_two_factor_methods"
-                :options="[{label: $t('two_factor_totp'), value: 'totp'}]"
-                multiple
-                emit-value
-                map-options
-                outlined
-                :label="$t('two_factor_allowed_methods')"
-              ></q-select>
-              <q-toggle
-                v-model="formData.lnbits_two_factor_mandatory"
-                :disable="!formData.lnbits_two_factor_enabled"
-                :label="$t('two_factor_mandatory')"
-              ></q-toggle>
-              <p v-text="$t('two_factor_mandatory_hint')"></p>
+              <div class="row q-col-gutter-md q-mb-md">
+                <div class="col-12 col-sm-6">
+                  <q-select
+                    v-model="formData.lnbits_two_factor_methods"
+                    :options="[{label: $t('two_factor_totp'), value: 'totp'}]"
+                    multiple
+                    emit-value
+                    map-options
+                    outlined
+                    :label="$t('two_factor_allowed_methods')"
+                  ></q-select>
+                </div>
+                <div class="col-12 col-sm-6">
+                  <q-toggle
+                    v-model="formData.lnbits_two_factor_mandatory"
+                    :disable="!formData.lnbits_two_factor_enabled"
+                    :label="$t('two_factor_mandatory')"
+                  ></q-toggle>
+                  <p
+                    class="q-mb-none"
+                    v-text="$t('two_factor_mandatory_hint')"
+                  ></p>
+                </div>
+              </div>
               <q-btn
                 outline
                 :label="$t('two_factor_my_settings')"

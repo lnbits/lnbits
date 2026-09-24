@@ -140,9 +140,7 @@
           <q-separator></q-separator>
           <q-tab-panels v-if="g.user" v-model="tab">
             <q-tab-panel name="two_factor">
-              <q-card flat bordered class="q-py-md" style="max-width: 650px">
-                <lnbits-two-factor></lnbits-two-factor>
-              </q-card>
+              <lnbits-two-factor></lnbits-two-factor>
             </q-tab-panel>
             <q-tab-panel name="user">
               <div v-if="credentialsData.show">

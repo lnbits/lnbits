@@ -8,7 +8,7 @@
     </q-card-section>
     <q-card-section>
       <q-banner
-        v-if="error"
+        v-if="error && !actionDialog.show"
         class="bg-negative text-white q-mb-md"
         role="alert"
         v-text="error"
@@ -76,7 +76,7 @@
             @click="start"
           ></q-btn>
           <q-form
-            v-if="status.enrolled || setup"
+            v-if="(standalone && status.enrolled) || setup"
             @submit="verify"
             class="q-gutter-sm"
           >
@@ -111,17 +111,11 @@
             v-if="status.enrolled && !standalone"
             class="q-gutter-sm q-mt-md"
           >
-            <p
-              v-if="verified"
-              class="text-positive"
-              v-text="$t('two_factor_verified')"
-            ></p>
-            <p v-text="$t('two_factor_fresh_code_hint')"></p>
             <q-btn
               outline
               :label="$t('two_factor_recovery_replace')"
               :loading="busy"
-              @click="regenerate"
+              @click="openAction('recovery')"
             ></q-btn>
             <q-btn
               v-if="!status.mandatory"
@@ -129,12 +123,12 @@
               color="negative"
               :label="$t('two_factor_disable_account')"
               :loading="busy"
-              @click="disable"
+              @click="openAction('disable')"
             ></q-btn>
           </div>
         </template>
       </template>
-      <div class="q-mt-sm">
+      <div v-if="standalone" class="q-mt-sm">
         <q-btn
           outline
           color="primary"
@@ -144,5 +138,72 @@
         ></q-btn>
       </div>
     </q-card-section>
+    <q-dialog
+      v-model="actionDialog.show"
+      :persistent="busy"
+      @before-hide="clearActionDialog"
+    >
+      <q-card class="q-pa-md lnbits__dialog-card">
+        <q-form @submit="submitAction" class="q-gutter-md">
+          <div
+            class="text-h6"
+            v-text="
+              actionDialog.action === 'disable'
+                ? $t('two_factor_disable_confirm')
+                : $t('two_factor_recovery_replace')
+            "
+          ></div>
+          <p
+            v-text="
+              actionDialog.action === 'disable'
+                ? $t('two_factor_disable_confirm_hint')
+                : $t('two_factor_recovery_replace_hint')
+            "
+          ></p>
+          <q-banner
+            v-if="error"
+            class="bg-negative text-white"
+            role="alert"
+            v-text="error"
+          ></q-banner>
+          <template v-if="actionDialog.requiresVerification">
+            <p v-text="$t('two_factor_action_verify_hint')"></p>
+            <q-input
+              v-model="actionDialog.code"
+              dense
+              filled
+              autofocus
+              autocomplete="one-time-code"
+              :label="$t('two_factor_code_or_recovery')"
+              maxlength="64"
+              :disable="busy"
+            ></q-input>
+          </template>
+          <div class="row justify-end q-gutter-sm">
+            <q-btn
+              v-close-popup
+              flat
+              :label="$t('cancel')"
+              :disable="busy"
+            ></q-btn>
+            <q-btn
+              type="submit"
+              :color="
+                actionDialog.action === 'disable' ? 'negative' : 'primary'
+              "
+              :label="
+                actionDialog.action === 'disable'
+                  ? $t('two_factor_disable_account')
+                  : $t('two_factor_recovery_replace')
+              "
+              :loading="busy"
+              :disable="
+                actionDialog.requiresVerification && !actionDialog.code.trim()
+              "
+            ></q-btn>
+          </div>
+        </q-form>
+      </q-card>
+    </q-dialog>
   </div>
 </template>

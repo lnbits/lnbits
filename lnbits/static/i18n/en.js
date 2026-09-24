@@ -514,10 +514,11 @@ window.localisation.en = {
     'Enter a code from your authenticator app or a recovery code.',
   two_factor_enable_account: 'Enable 2FA',
   two_factor_verify: 'Verify',
-  two_factor_verified: 'Verification complete.',
-  two_factor_fresh_code_hint:
-    'Verify a fresh code above before changing your 2FA settings.',
+  two_factor_action_verify_hint:
+    'Confirm this change with a code from your authenticator app or a recovery code.',
   two_factor_recovery_replace: 'Replace recovery codes',
+  two_factor_recovery_replace_hint:
+    'Your existing recovery codes will stop working. Save the new codes after confirming.',
   two_factor_disable_account: 'Disable my 2FA',
   two_factor_sign_in_again: 'Sign in again',
   two_factor_verification_error:
