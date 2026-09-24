@@ -292,10 +292,21 @@ async def check_installed_extensions(app: FastAPI):
                 )
         except Exception as e:
             logger.warning(e)
-            await deactivate_extension(ext.id)
-            logger.warning(
-                f"Failed to re-install extension: {ext.id} ({ext.installed_version})"
-            )
+            if (
+                isinstance(e, AssertionError)
+                and str(e) == "Cannot fetch extension archive file"
+                and ext.zip_path.is_file()
+            ):
+                logger.warning(
+                    f"Failed to re-install extension: "
+                    f"{ext.id} ({ext.installed_version}): {e}"
+                )
+            else:
+                await deactivate_extension(ext.id)
+                logger.warning(
+                    f"Failed to re-install extension: "
+                    f"{ext.id} ({ext.installed_version})"
+                )
 
     logger.info(f"Installed Extensions ({len(installed_extensions)}):")
     for ext in installed_extensions:
@@ -393,10 +404,6 @@ async def check_installed_extension_files(ext: InstallableExtension) -> bool:
     if ext.is_wasm or ext.has_installed_version:
         return True
 
-    # zip_path is absolute under LNBITS_DATA_FOLDER. The old comparison
-    # `f"./{ext.zip_path}" not in glob(...)` never matched absolute paths, so a
-    # present zip was treated as missing and deleted inside download_archive()
-    # before re-download — fatal when network/DNS is down (e.g. Docker recreate).
     if not ext.zip_path.is_file():
         await ext.download_archive()
     archive_config = ext.load_archive_config()
