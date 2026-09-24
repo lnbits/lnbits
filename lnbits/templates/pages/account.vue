@@ -41,16 +41,7 @@
       <div v-if="$q.screen.lt.md" class="q-pa-md">
         <q-select
           v-model="tab"
-          :options="
-            accountNavigationItems.flatMap(item =>
-              item.value === 'api_acls'
-                ? [
-                    {value: 'two_factor', label: $t('two_factor_auth_account')},
-                    item
-                  ]
-                : [item]
-            )
-          "
+          :options="accountNavigationItems"
           option-value="value"
           option-label="label"
           emit-value
@@ -72,18 +63,7 @@
           <nav class="column col" aria-label="Account sections">
             <q-list dense class="q-py-md">
               <q-item
-                v-for="item in accountNavigationItems.flatMap(item =>
-                  item.value === 'api_acls'
-                    ? [
-                        {
-                          value: 'two_factor',
-                          label: $t('two_factor_auth_account'),
-                          icon: 'verified_user'
-                        },
-                        item
-                      ]
-                    : [item]
-                )"
+                v-for="item in accountNavigationItems"
                 :key="item.value"
                 clickable
                 v-ripple
@@ -125,11 +105,7 @@
           <q-card-section class="row items-start q-col-gutter-md">
             <div class="col-auto">
               <q-icon
-                :name="
-                  tab === 'two_factor'
-                    ? 'verified_user'
-                    : activeAccountSection.icon
-                "
+                :name="activeAccountSection.icon"
                 color="primary"
                 size="24px"
               ></q-icon>
@@ -137,19 +113,11 @@
             <div class="col">
               <div
                 class="text-subtitle1"
-                v-text="
-                  tab === 'two_factor'
-                    ? $t('two_factor_auth_account')
-                    : activeAccountSection.label
-                "
+                v-text="activeAccountSection.label"
               ></div>
               <div
                 class="text-caption text-grey"
-                v-text="
-                  tab === 'two_factor'
-                    ? $t('two_factor_description')
-                    : activeAccountSection.description
-                "
+                v-text="activeAccountSection.description"
               ></div>
             </div>
             <div v-if="tab === 'user'" class="col-12 col-sm-auto text-right">
