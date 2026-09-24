@@ -1,5 +1,6 @@
 import asyncio
 import importlib
+import secrets
 import time
 from functools import wraps
 from getpass import getpass
@@ -71,6 +72,33 @@ def users():
     """
     Users related commands
     """
+
+
+@lnbits_cli.group("two-factor")
+def two_factor():
+    """Manage TOTP encryption and recover accounts using local server access."""
+
+
+@two_factor.command("generate-key")
+def generate_totp_key():
+    """Generate a TOTP_ENCRYPTION_KEY; store it securely before enabling 2FA."""
+    click.echo(secrets.token_hex(32))
+
+
+@two_factor.command("reset")
+@click.argument("user_id")
+@click.confirmation_option(
+    prompt="Reset this user's authenticator and invalidate their 2FA sessions?"
+)
+@coro
+async def reset_user_two_factor(user_id: str):
+    """Clear one account's enrollment. Mandatory policy still requires re-enrollment."""
+    from lnbits.core.services.two_factor import reset_two_factor
+
+    await reset_two_factor(user_id)
+    click.echo(
+        "Authenticator reset. The user must log in again and re-enroll if required."
+    )
 
 
 @lnbits_cli.group()

@@ -41,7 +41,10 @@
       <div v-if="$q.screen.lt.md" class="q-pa-md">
         <q-select
           v-model="tab"
-          :options="accountNavigationItems"
+          :options="[
+            ...accountNavigationItems,
+            {value: 'two_factor', label: 'Two Factor Auth (2FA)'}
+          ]"
           option-value="value"
           option-label="label"
           emit-value
@@ -62,6 +65,16 @@
         >
           <nav class="column col" aria-label="Account sections">
             <q-list dense class="q-py-md">
+              <q-item
+                clickable
+                :active="tab === 'two_factor'"
+                @click="selectAccountSection('two_factor')"
+              >
+                <q-item-section side>
+                  <q-icon name="verified_user"></q-icon>
+                </q-item-section>
+                <q-item-section>Two Factor Auth (2FA)</q-item-section>
+              </q-item>
               <q-item
                 v-for="item in accountNavigationItems"
                 :key="item.value"
@@ -105,7 +118,11 @@
           <q-card-section class="row items-start q-col-gutter-md">
             <div class="col-auto">
               <q-icon
-                :name="activeAccountSection.icon"
+                :name="
+                  tab === 'two_factor'
+                    ? 'verified_user'
+                    : activeAccountSection.icon
+                "
                 color="primary"
                 size="24px"
               ></q-icon>
@@ -113,11 +130,19 @@
             <div class="col">
               <div
                 class="text-subtitle1"
-                v-text="activeAccountSection.label"
+                v-text="
+                  tab === 'two_factor'
+                    ? 'Two Factor Auth (2FA)'
+                    : activeAccountSection.label
+                "
               ></div>
               <div
                 class="text-caption text-grey"
-                v-text="activeAccountSection.description"
+                v-text="
+                  tab === 'two_factor'
+                    ? 'Protect your account with an authenticator app.'
+                    : activeAccountSection.description
+                "
               ></div>
             </div>
             <div v-if="tab === 'user'" class="col-12 col-sm-auto text-right">
@@ -139,6 +164,9 @@
           </q-card-section>
           <q-separator></q-separator>
           <q-tab-panels v-if="g.user" v-model="tab">
+            <q-tab-panel name="two_factor">
+              <lnbits-two-factor></lnbits-two-factor>
+            </q-tab-panel>
             <q-tab-panel name="user">
               <div v-if="credentialsData.show">
                 <q-card-section>

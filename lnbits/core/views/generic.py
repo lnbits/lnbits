@@ -214,6 +214,16 @@ async def index(
     )
 
 
+@generic_router.get("/two-factor")
+async def two_factor_page(request: Request) -> HTMLResponse:
+    return template_renderer().TemplateResponse(
+        request,
+        "two_factor.html",
+        {"public": True},
+        headers={"Cache-Control": "no-store", "Referrer-Policy": "no-referrer"},
+    )
+
+
 @generic_router.get("/")
 @generic_router.get("/node/public")
 @generic_router.get("/first_install", dependencies=[Depends(check_first_install)])

@@ -143,7 +143,10 @@
       >
         <q-select
           v-model="tab"
-          :options="settingsNavigationItems"
+          :options="[
+            ...settingsNavigationItems,
+            {value: 'two_factor', label: 'Two Factor Auth'}
+          ]"
           option-value="value"
           option-label="label"
           emit-value
@@ -163,6 +166,16 @@
       <div class="row items-stretch">
         <q-card-section v-if="$q.screen.gt.sm" class="col-md-2 q-pa-none">
           <nav class="q-py-md" aria-label="Settings categories">
+            <q-item
+              clickable
+              :active="tab === 'two_factor'"
+              @click="tab = 'two_factor'"
+            >
+              <q-item-section side>
+                <q-icon name="verified_user"></q-icon>
+              </q-item-section>
+              <q-item-section>Two Factor Auth</q-item-section>
+            </q-item>
             <div
               v-for="group in settingsNavigation"
               :key="group.label"
@@ -244,6 +257,40 @@
             </q-tab-panel>
             <q-tab-panel name="notifications" class="q-pa-md">
               <lnbits-admin-notifications :form-data="formData" />
+            </q-tab-panel>
+            <q-tab-panel name="two_factor" class="q-pa-md">
+              <h6 class="q-mt-none">Two Factor Auth</h6>
+              <q-toggle
+                v-model="formData.lnbits_two_factor_enabled"
+                label="Enable two factor authentication"
+              ></q-toggle>
+              <p>
+                Turning this off disables 2FA verification for everyone,
+                including admins. Authenticator configurations are retained.
+              </p>
+              <q-select
+                v-model="formData.lnbits_two_factor_methods"
+                :options="[{label: 'Authenticator app (TOTP)', value: 'totp'}]"
+                multiple
+                emit-value
+                map-options
+                outlined
+                label="Allowed methods"
+              ></q-select>
+              <q-toggle
+                v-model="formData.lnbits_two_factor_mandatory"
+                :disable="!formData.lnbits_two_factor_enabled"
+                label="Require 2FA for all users"
+              ></q-toggle>
+              <p>
+                Before making 2FA mandatory, enroll your own authenticator and
+                save your recovery codes.
+              </p>
+              <q-btn
+                outline
+                label="My 2FA settings"
+                to="/account#two_factor"
+              ></q-btn>
             </q-tab-panel>
             <q-tab-panel name="security" class="q-pa-md">
               <lnbits-admin-security :form-data="formData" />

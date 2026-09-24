@@ -18,6 +18,7 @@ from .views.lnurl_api import lnurl_router
 from .views.node_api import node_router, public_node_router, super_node_router
 from .views.payment_api import payment_router
 from .views.tinyurl_api import tinyurl_router
+from .views.two_factor_api import two_factor_router
 from .views.user_api import users_router
 from .views.wallet_api import wallet_router
 from .views.webpush_api import webpush_router
@@ -30,6 +31,7 @@ core_app = APIRouter(tags=["Core"])
 def init_core_routers(app: FastAPI):
     app.include_router(core_app)
     app.include_router(generic_router)
+    app.include_router(two_factor_router)
     app.include_router(auth_router)
     app.include_router(admin_router)
     app.include_router(node_router)

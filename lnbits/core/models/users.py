@@ -381,6 +381,12 @@ class AccessTokenPayload(BaseModel):
     email: str | None = None
     auth_time: int | None = 0
     api_token_id: str | None = None
+    purpose: str = "session"
+    jti: str | None = None
+    mfa_revision: str = ""
+    mfa_policy: str = ""
+    mfa_time: int = 0
+    impersonated_by: str | None = None
 
 
 class UpdateBalance(BaseModel):
