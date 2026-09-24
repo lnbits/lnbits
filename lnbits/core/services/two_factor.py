@@ -14,14 +14,16 @@ from cryptography.hazmat.primitives.twofactor.totp import TOTP
 from fastapi import HTTPException
 from loguru import logger
 
-from lnbits.core.crud.settings import get_settings_field, set_settings_field
-from lnbits.core.crud.two_factor import (
-    get_two_factor_config,
+from lnbits.core.crud.settings import (
+    get_settings_field,
     get_two_factor_policy_revision,
+    set_settings_field,
+)
+from lnbits.core.crud.users import (
+    get_two_factor_config,
     save_two_factor_config,
 )
-from lnbits.core.models.two_factor import TwoFactorConfig
-from lnbits.core.models.users import AccessTokenPayload
+from lnbits.core.models.users import AccessTokenPayload, TwoFactorConfig
 from lnbits.db import Connection
 from lnbits.settings import UpdateSettings, settings
 
@@ -216,17 +218,6 @@ async def verify_factor(
     return config, codes
 
 
-def _record_attempt(config: TwoFactorConfig, now: int) -> None:
-    if now >= config.failure_window + FAILURE_WINDOW:
-        config.failures = 0
-        config.failure_window = now
-    if config.failures >= FAILURE_LIMIT:
-        raise HTTPException(
-            HTTPStatus.TOO_MANY_REQUESTS, "Too many codes. Try again later."
-        )
-    config.failures += 1
-
-
 async def session_payload(
     user_id: str, config: TwoFactorConfig, verified: bool = False
 ) -> AccessTokenPayload:
@@ -378,3 +369,14 @@ async def validate_two_factor_policy(
                     "Verify your authenticator before requiring 2FA."
                 )
     return True
+
+
+def _record_attempt(config: TwoFactorConfig, now: int) -> None:
+    if now >= config.failure_window + FAILURE_WINDOW:
+        config.failures = 0
+        config.failure_window = now
+    if config.failures >= FAILURE_LIMIT:
+        raise HTTPException(
+            HTTPStatus.TOO_MANY_REQUESTS, "Too many codes. Try again later."
+        )
+    config.failures += 1

@@ -11,8 +11,12 @@ from coincurve import PrivateKey
 from fastapi_sso.sso.base import OpenID
 
 from lnbits.core.crud.settings import set_settings_field
-from lnbits.core.crud.two_factor import get_two_factor_config, save_two_factor_config
-from lnbits.core.crud.users import get_account, update_account
+from lnbits.core.crud.users import (
+    get_account,
+    get_two_factor_config,
+    save_two_factor_config,
+    update_account,
+)
 from lnbits.core.models.users import AccessTokenPayload, Account
 from lnbits.core.services.two_factor import (
     mutate_config,
@@ -381,7 +385,7 @@ async def test_two_factor_sso_does_not_bypass(http_client, factor_account):
     response = await _handle_sso_login(
         OpenID.parse_obj({"email": factor_account.email})
     )
-    assert response.headers["location"] == "/two-factor"
+    assert response.headers["location"] == "/2fa"
     cookies = response.headers.getlist("set-cookie")
     assert any(cookie.startswith("two_factor_challenge=") for cookie in cookies)
     assert not any(

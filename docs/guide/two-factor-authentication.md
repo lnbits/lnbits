@@ -36,9 +36,10 @@ active factor. Setup and login challenges expire after five minutes. Starting an
 confirming enrollment also require a recent first-factor login; log in again if asked.
 
 Password, Nostr, SSO, user-ID login, and password-reset login apply the local 2FA
-policy. User-ID login remains unavailable to admins. Direct `?usr=` access cannot
-bypass verification. Users subject to mandatory enrollment can only complete setup
-until verified; restricted login and account-creation responses expose no wallet keys.
+policy. The verification page is `/2fa`. User-ID login remains unavailable to admins.
+Direct `?usr=` access cannot bypass verification. Users subject to mandatory enrollment
+can only complete setup until verified; restricted login and account-creation responses
+expose no wallet keys.
 
 Sensitive account changes require recent verification using the existing
 `auth_credetials_update_threshold` (120 seconds by default). Verify a fresh code

@@ -2,7 +2,7 @@
 axios.interceptors.response.use(
   response => {
     if (response.data?.two_factor_required) {
-      window.location.assign('/two-factor')
+      window.location.assign('/2fa')
       // The first-factor response must not run the normal post-login handlers.
       return new Promise(() => {})
     }
@@ -11,14 +11,14 @@ axios.interceptors.response.use(
   error => {
     if (
       error.response?.headers?.['two-factor-required'] &&
-      !window.location.pathname.startsWith('/two-factor') &&
+      !window.location.pathname.startsWith('/2fa') &&
       !error.config?.url?.includes('/auth/2fa')
     ) {
       sessionStorage.setItem(
         'lnbits.2fa.return',
         window.location.pathname + window.location.hash
       )
-      window.location.assign('/two-factor')
+      window.location.assign('/2fa')
     }
     return Promise.reject(error)
   }
@@ -163,7 +163,7 @@ window.app.component('lnbits-two-factor', {
     const query = new URLSearchParams(window.location.search)
     const usr = this.standalone && query.get('usr')
     if (usr) {
-      window.history.replaceState({}, '', '/two-factor')
+      window.history.replaceState({}, '', '/2fa')
       try {
         await axios.post('/api/v1/auth/usr', {usr})
         this.finish()

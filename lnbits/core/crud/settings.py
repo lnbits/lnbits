@@ -4,7 +4,7 @@ from typing import Any
 from loguru import logger
 
 from lnbits.core.db import db
-from lnbits.db import dict_to_model
+from lnbits.db import Connection, dict_to_model
 from lnbits.settings import (
     AdminSettings,
     EditableSettings,
@@ -142,3 +142,11 @@ async def get_settings_by_tag(tag: str) -> dict[str, Any] | None:
             )
     data.pop("super_user")
     return data
+
+
+async def get_two_factor_policy_revision(conn: Connection | None = None) -> str:
+    row: dict | None = await (conn or db).fetchone(
+        "SELECT value FROM system_settings WHERE id = 'two_factor_revision' "
+        "AND tag = 'security'"
+    )
+    return json.loads(row["value"]) if row else ""

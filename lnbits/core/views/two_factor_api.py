@@ -5,14 +5,14 @@ from time import time
 from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import JSONResponse
 
-from lnbits.core.crud.two_factor import get_two_factor_config
-from lnbits.core.crud.users import get_account
-from lnbits.core.models.two_factor import (
+from lnbits.core.crud.users import get_account, get_two_factor_config
+from lnbits.core.models.users import (
+    AccessTokenPayload,
+    Account,
     TwoFactorCode,
     TwoFactorConfig,
     TwoFactorStatus,
 )
-from lnbits.core.models.users import AccessTokenPayload, Account
 from lnbits.core.services.two_factor import (
     begin_enrollment,
     check_two_factor_session,

@@ -49,7 +49,7 @@ def render_html_error(request: Request, exc: Exception) -> Response | None:
             if "usr" in request.query_params
             else ""
         )
-        return RedirectResponse("/two-factor" + ("?" + query if query else ""))
+        return RedirectResponse("/2fa" + ("?" + query if query else ""))
 
     if (
         isinstance(exc, HTTPException)

@@ -57,7 +57,7 @@ test('TOTP enrollment, recovery login, account dialogs, and global disable', asy
   await page.locator('input[name="username"]').fill(lnbitsServer.username)
   await page.locator('input[name="password"]').fill(lnbitsServer.password)
   await page.getByRole('button', {name: /^login$/i}).click()
-  await expect(page).toHaveURL(/\/two-factor$/)
+  await expect(page).toHaveURL(/\/2fa$/)
   expect((await page.request.get('/api/v1/auth')).status()).toBe(401)
   await page
     .getByLabel('Authenticator or recovery code', {exact: true})

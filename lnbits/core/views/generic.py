@@ -214,7 +214,7 @@ async def index(
     )
 
 
-@generic_router.get("/two-factor")
+@generic_router.get("/2fa")
 async def two_factor_page(request: Request) -> HTMLResponse:
     return template_renderer().TemplateResponse(
         request,

@@ -15,8 +15,8 @@ from fastapi_sso.sso.base import OpenID, SSOBase
 from loguru import logger
 
 from lnbits.core.crud.settings import set_settings_field
-from lnbits.core.crud.two_factor import get_two_factor_config
 from lnbits.core.crud.users import (
+    get_two_factor_config,
     get_user_access_control_lists,
     update_user_access_control_list,
 )
@@ -682,7 +682,7 @@ async def _handle_sso_login(userinfo: OpenID, verified_user_id: str | None = Non
     login_response = await _login_response(account)
     response = RedirectResponse(
         (
-            "/two-factor"
+            "/2fa"
             if "two_factor_required" in json.loads(bytes(login_response.body))
             else redirect_path
         ),
@@ -693,39 +693,6 @@ async def _handle_sso_login(userinfo: OpenID, verified_user_id: str | None = Non
         for key, value in login_response.raw_headers
         if key == b"set-cookie"
     )
-    return response
-
-
-async def _login_response(account: Account) -> JSONResponse:
-    config, _ = await get_two_factor_config(account.id)
-    if settings.lnbits_two_factor_enabled and (
-        config.secret or settings.lnbits_two_factor_mandatory
-    ):
-        payload = await issue_challenge(account.id)
-        token = create_access_token(payload.dict(), token_expire_minutes=5)
-        response = JSONResponse(
-            {
-                "two_factor_required": True,
-                "enrollment_required": not bool(config.secret),
-            },
-            headers={"Cache-Control": "no-store"},
-        )
-        response.set_cookie(
-            "two_factor_challenge",
-            token,
-            max_age=300,
-            httponly=True,
-            secure=settings.auth_https_only,
-            samesite="lax",
-        )
-        response.delete_cookie("cookie_access_token")
-        response.delete_cookie("is_lnbits_user_authorized")
-        return response
-    payload = await session_payload(account.id, config)
-    payload.sub = account.username or ""
-    payload.email = account.email
-    response = _auth_success_response(payload=payload)
-    response.delete_cookie("two_factor_challenge")
     return response
 
 
@@ -879,3 +846,36 @@ def _validate_auth_timeout(auth_time: int | None = 0):
             f" {settings.auth_credetials_update_threshold} seconds."
             " Please login again or ask a new reset key!",
         )
+
+
+async def _login_response(account: Account) -> JSONResponse:
+    config, _ = await get_two_factor_config(account.id)
+    if settings.lnbits_two_factor_enabled and (
+        config.secret or settings.lnbits_two_factor_mandatory
+    ):
+        payload = await issue_challenge(account.id)
+        token = create_access_token(payload.dict(), token_expire_minutes=5)
+        response = JSONResponse(
+            {
+                "two_factor_required": True,
+                "enrollment_required": not bool(config.secret),
+            },
+            headers={"Cache-Control": "no-store"},
+        )
+        response.set_cookie(
+            "two_factor_challenge",
+            token,
+            max_age=300,
+            httponly=True,
+            secure=settings.auth_https_only,
+            samesite="lax",
+        )
+        response.delete_cookie("cookie_access_token")
+        response.delete_cookie("is_lnbits_user_authorized")
+        return response
+    payload = await session_payload(account.id, config)
+    payload.sub = account.username or ""
+    payload.email = account.email
+    response = _auth_success_response(payload=payload)
+    response.delete_cookie("two_factor_challenge")
+    return response
