@@ -23,7 +23,8 @@ async def save_two_factor_config(
     """Compare-and-swap makes consumption atomic across processes and databases."""
     result = await db.execute(
         """UPDATE accounts SET two_factor = :value WHERE id = :id
-        AND (two_factor = :previous OR (two_factor IS NULL AND :previous IS NULL))""",
+        AND (two_factor = :previous
+             OR (two_factor IS NULL AND CAST(:previous AS TEXT) IS NULL))""",
         {"id": user_id, "value": config.json(), "previous": previous},
     )
     return result.rowcount == 1

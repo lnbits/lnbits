@@ -11,7 +11,7 @@ from coincurve import PrivateKey
 from fastapi_sso.sso.base import OpenID
 
 from lnbits.core.crud.settings import set_settings_field
-from lnbits.core.crud.two_factor import get_two_factor_config
+from lnbits.core.crud.two_factor import get_two_factor_config, save_two_factor_config
 from lnbits.core.crud.users import get_account, update_account
 from lnbits.core.models.users import AccessTokenPayload, Account
 from lnbits.core.services.two_factor import (
@@ -64,6 +64,24 @@ async def enroll(client, account):
     )
     assert response.status_code == 200, response.text
     return secret, response.json()
+
+
+async def test_two_factor_config_rejects_stale_updates(factor_account):
+    config, previous = await get_two_factor_config(factor_account.id)
+    assert previous is None
+    config.failures = 1
+    assert await save_two_factor_config(factor_account.id, config, previous)
+
+    config.failures = 2
+    assert not await save_two_factor_config(factor_account.id, config, previous)
+    current, previous = await get_two_factor_config(factor_account.id)
+    assert current.failures == 1
+    assert await save_two_factor_config(factor_account.id, config, previous)
+
+    config.failures = 3
+    assert not await save_two_factor_config(factor_account.id, config, previous)
+    current, _ = await get_two_factor_config(factor_account.id)
+    assert current.failures == 2
 
 
 async def test_two_factor_enrollment_privacy_and_account_updates(
