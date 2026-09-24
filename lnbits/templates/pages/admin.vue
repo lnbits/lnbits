@@ -166,16 +166,6 @@
       <div class="row items-stretch">
         <q-card-section v-if="$q.screen.gt.sm" class="col-md-2 q-pa-none">
           <nav class="q-py-md" aria-label="Settings categories">
-            <q-item
-              clickable
-              :active="tab === 'two_factor'"
-              @click="tab = 'two_factor'"
-            >
-              <q-item-section side>
-                <q-icon name="verified_user"></q-icon>
-              </q-item-section>
-              <q-item-section>Two Factor Auth</q-item-section>
-            </q-item>
             <div
               v-for="group in settingsNavigation"
               :key="group.label"
@@ -208,6 +198,26 @@
                       lines="1"
                       v-text="$t(item.label)"
                     ></q-item-label>
+                  </q-item-section>
+                </q-item>
+                <q-item
+                  v-if="group.label === 'settings_access'"
+                  clickable
+                  v-ripple
+                  class="q-py-xs"
+                  :active="tab === 'two_factor'"
+                  active-class="text-primary"
+                  @click="tab = 'two_factor'"
+                >
+                  <q-item-section side>
+                    <q-icon
+                      name="verified_user"
+                      :color="tab === 'two_factor' ? 'primary' : undefined"
+                      size="md"
+                    ></q-icon>
+                  </q-item-section>
+                  <q-item-section>
+                    <q-item-label lines="1">Two Factor Auth</q-item-label>
                   </q-item-section>
                 </q-item>
               </q-list>

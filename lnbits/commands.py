@@ -1,6 +1,5 @@
 import asyncio
 import importlib
-import secrets
 import time
 from functools import wraps
 from getpass import getpass
@@ -81,8 +80,8 @@ def two_factor():
 
 @two_factor.command("generate-key")
 def generate_totp_key():
-    """Generate a TOTP_ENCRYPTION_KEY; store it securely before enabling 2FA."""
-    click.echo(secrets.token_hex(32))
+    """Generate an optional TOTP_ENCRYPTION_KEY override."""
+    click.echo(uuid4().hex)
 
 
 @two_factor.command("reset")

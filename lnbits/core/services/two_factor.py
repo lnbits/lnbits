@@ -40,7 +40,7 @@ def two_factor_error(message: str = "Two factor verification required."):
 def encryption_key() -> bytes:
     try:
         key = bytes.fromhex(settings.totp_encryption_key)
-        if len(key) == 32:
+        if len(key) in (16, 32):
             return key
     except ValueError:
         pass

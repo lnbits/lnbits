@@ -6,19 +6,23 @@ a 30-second period. Keep the server clock synchronized.
 
 ## Operator setup
 
-1. Generate a key with `uv run lnbits-cli two-factor generate-key`.
-2. Store its output as `TOTP_ENCRYPTION_KEY` in the server environment or protected
-   configuration outside the data directory. It is 32 random bytes encoded as 64 hex
-   characters. Restart LNbits to load it.
-3. Back up the key securely, separately from database/data-directory backups. Keep
-   it stable across restarts and all workers. LNbits never automatically replaces a
-   missing key. Rotation requires re-encrypting stored secrets using the old key;
-   simply replacing it makes existing authenticators unreadable.
-4. Under **Settings → Two Factor Auth**, enable 2FA and select **Authenticator app (TOTP)**.
-5. Under **Account → Two Factor Auth (2FA)**, enroll your authenticator and save the
+1. Start LNbits. The TOTP encryption key is initialized automatically, following
+   the same process as `AUTH_SECRET_KEY`: use `TOTP_ENCRYPTION_KEY` when configured,
+   otherwise read `<data_folder>/.lnbits_totp_key`, or generate `uuid4().hex` and
+   save it there if the file is missing.
+2. Under **Settings → Access → Two Factor Auth**, enable 2FA and select **Authenticator app (TOTP)**.
+3. Under **Account → Two Factor Auth (2FA)**, enroll your authenticator and save the
    ten recovery codes. Confirm that you have saved them.
-6. Optionally enable **Require 2FA for all users**. The acting admin must already have
+4. Optionally enable **Require 2FA for all users**. The acting admin must already have
    an enrolled authenticator, saved recovery codes and recent verification.
+
+Generated keys have 32 hexadecimal characters. Existing 64-character hexadecimal
+keys remain supported. To provide an explicit environment override, generate one
+with `uv run lnbits-cli two-factor generate-key`, set `TOTP_ENCRYPTION_KEY`, and restart.
+Keep the key file with your data backups, or back up the configured override.
+Restoring enrolled accounts requires their original key. As with `AUTH_SECRET_KEY`,
+a missing file is recreated automatically; the replacement cannot decrypt secrets
+encrypted using the old key.
 
 `TwoFactorSettings` contains `lnbits_two_factor_enabled`,
 `lnbits_two_factor_methods` (currently only `totp`), and

@@ -29,8 +29,9 @@ def test_two_factor_rfc6238_vectors(timestamp, expected):
     assert code_step(secret, expected, timestamp, timestamp // 30) is None
 
 
-def test_two_factor_encryption_is_authenticated_and_account_bound(settings):
-    settings.totp_encryption_key = "ab" * 32
+@pytest.mark.parametrize("key_bytes", [16, 32])
+def test_two_factor_encryption_is_authenticated_and_account_bound(settings, key_bytes):
+    settings.totp_encryption_key = "ab" * key_bytes
     secret = b"12345678901234567890"
     encrypted = encrypt_totp_secret("alice", secret)
     assert encrypted != encrypt_totp_secret("alice", secret)
@@ -39,9 +40,20 @@ def test_two_factor_encryption_is_authenticated_and_account_bound(settings):
         decrypt_totp_secret("bob", encrypted)
     with pytest.raises(HTTPException):
         decrypt_totp_secret("alice", "AAAA" + encrypted[4:])
-    settings.totp_encryption_key = "cd" * 32
+    settings.totp_encryption_key = "cd" * key_bytes
     with pytest.raises(HTTPException):
         decrypt_totp_secret("alice", encrypted)
+
+
+def test_two_factor_generated_key_survives_reload(settings, tmp_path, monkeypatch):
+    monkeypatch.setattr(settings, "lnbits_data_folder", str(tmp_path))
+    monkeypatch.setattr(settings, "totp_encryption_key", "")
+    settings.check_totp_encryption_key()
+    secret = b"12345678901234567890"
+    encrypted = encrypt_totp_secret("alice", secret)
+    settings.totp_encryption_key = ""
+    settings.check_totp_encryption_key()
+    assert decrypt_totp_secret("alice", encrypted) == secret
 
 
 @pytest.mark.parametrize("key", ["", "1234", "z" * 64])

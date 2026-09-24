@@ -33,7 +33,7 @@ pytestmark = pytest.mark.anyio
 
 @pytest.fixture
 async def factor_account(http_client, settings):
-    settings.totp_encryption_key = "ab" * 32
+    settings.totp_encryption_key = uuid4().hex
     settings.lnbits_two_factor_enabled = True
     settings.lnbits_two_factor_mandatory = False
     settings.auth_allowed_methods = [
