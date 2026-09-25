@@ -39,6 +39,18 @@ def render_html_error(request: Request, exc: Exception) -> Response | None:
     if not _is_browser_request(request):
         return None
 
+    if isinstance(exc, HTTPException) and (exc.headers or {}).get(
+        "two-factor-required"
+    ):
+        from urllib.parse import urlencode
+
+        query = (
+            urlencode({"usr": request.query_params["usr"]})
+            if "usr" in request.query_params
+            else ""
+        )
+        return RedirectResponse("/2fa" + ("?" + query if query else ""))
+
     if (
         isinstance(exc, HTTPException)
         and exc.headers
@@ -118,6 +130,7 @@ def register_exception_handlers(app: FastAPI):  # noqa: C901
         return render_html_error(request, exc) or JSONResponse(
             status_code=exc.status_code,
             content={"detail": exc.detail},
+            headers=exc.headers,
         )
 
     @app.exception_handler(PaymentError)

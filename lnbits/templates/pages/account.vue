@@ -139,6 +139,9 @@
           </q-card-section>
           <q-separator></q-separator>
           <q-tab-panels v-if="g.user" v-model="tab">
+            <q-tab-panel name="two_factor">
+              <lnbits-two-factor></lnbits-two-factor>
+            </q-tab-panel>
             <q-tab-panel name="user">
               <div v-if="credentialsData.show">
                 <q-card-section>

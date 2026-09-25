@@ -1,5 +1,6 @@
 from pathlib import Path
 from typing import Any, Literal
+from uuid import UUID
 
 import pytest
 from pytest_mock.plugin import MockerFixture
@@ -433,3 +434,52 @@ def test_set_cli_settings_updates_runtime_settings(settings: Settings):
         assert settings.host == "0.0.0.0"  # noqa S104
     finally:
         settings.host = original_host
+
+
+@pytest.mark.parametrize(
+    "field,filename",
+    [
+        ("auth_secret_key", ".lnbits_auth_key"),
+        ("totp_encryption_key", ".lnbits_totp_key"),
+    ],
+)
+def test_secret_key_file_lifecycle(settings, tmp_path, monkeypatch, field, filename):
+    data_folder = tmp_path / "data"
+    monkeypatch.setattr(settings, "lnbits_data_folder", str(data_folder))
+    monkeypatch.setattr(settings, field, "")
+    initialize = getattr(settings, f"check_{field}")
+    initialize()
+    generated = getattr(settings, field)
+    assert len(generated) == 32
+    assert UUID(hex=generated).version == 4
+    key_file = data_folder / filename
+    assert key_file.read_text() == generated
+
+    setattr(settings, field, "")
+    initialize()
+    assert getattr(settings, field) == generated
+
+    key_file.unlink()
+    setattr(settings, field, "")
+    initialize()
+    assert getattr(settings, field) != generated
+    assert key_file.read_text() == getattr(settings, field)
+
+
+@pytest.mark.parametrize(
+    "field,filename",
+    [
+        ("auth_secret_key", ".lnbits_auth_key"),
+        ("totp_encryption_key", ".lnbits_totp_key"),
+    ],
+)
+def test_configured_secret_key_takes_precedence(
+    settings, tmp_path, monkeypatch, field, filename
+):
+    monkeypatch.setattr(settings, "lnbits_data_folder", str(tmp_path))
+    monkeypatch.setattr(settings, field, "ab" * 32)
+    key_file = tmp_path / filename
+    key_file.write_text("cd" * 16)
+    getattr(settings, f"check_{field}")()
+    assert getattr(settings, field) == "ab" * 32
+    assert key_file.read_text() == "cd" * 16

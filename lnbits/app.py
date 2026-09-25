@@ -73,6 +73,7 @@ from .core import init_core_routers
 from .core.db import core_app_extra
 from .core.models.extensions import Extension, ExtensionMeta, InstallableExtension
 from .core.services import check_admin_settings, check_webpush_settings
+from .core.services.two_factor import sync_two_factor_policy
 from .middleware import (
     AuditMiddleware,
     ExtensionsRedirectMiddleware,
@@ -94,6 +95,7 @@ async def startup(app: FastAPI):
 
     # setup admin settings
     await check_admin_settings()
+    await sync_two_factor_policy()
     core_app_extra.register_new_ratelimiter()
     await check_webpush_settings()
 
