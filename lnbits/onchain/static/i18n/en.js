@@ -133,7 +133,7 @@ window.i18n.global.mergeLocaleMessage('en', {
 
     address_label: 'Address',
     amount_sats: 'Amount (sats)',
-    amount_too_small: 'Amount to small (below dust limit)',
+    amount_too_small: 'Amount too small (below dust limit)',
     max: 'Max',
     add: 'Add',
     payed_amount: 'Payed Amount: ',
