@@ -40,6 +40,8 @@ from lnbits.decorators import (
     require_invoice_key,
 )
 from lnbits.helpers import generate_filter_params_openapi
+from lnbits.onchain.crud import get_config, update_config
+from lnbits.onchain.router import require_onchain_available
 from lnbits.settings import settings
 
 from ..crud import (
@@ -245,8 +247,6 @@ async def api_create_wallet(
         )
 
     if data.wallet_type == WalletType.ONCHAIN:
-        from lnbits.onchain.router import require_onchain_available
-
         require_onchain_available()
 
     wallet = await create_wallet(
@@ -256,8 +256,6 @@ async def api_create_wallet(
         currency=data.currency,
     )
     if data.wallet_type == WalletType.ONCHAIN:
-        from lnbits.onchain.crud import get_config, update_config
-
         config = await get_config(wallet.id)
         config.network = data.onchain_network
         await update_config(config, wallet.id)
