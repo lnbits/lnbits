@@ -1,11 +1,10 @@
+import asyncio
 import base64
 import json
 import secrets
-from collections.abc import Callable
 from hashlib import sha256
 from http import HTTPStatus
 from time import time
-from typing import TypeVar
 
 from cryptography.exceptions import InvalidTag
 from cryptography.hazmat.primitives.ciphers.aead import AESGCM
@@ -27,10 +26,10 @@ from lnbits.core.models.users import AccessTokenPayload, TwoFactorConfig
 from lnbits.db import Connection
 from lnbits.settings import UpdateSettings, settings
 
-T = TypeVar("T")
 CHALLENGE_SECONDS = 300
 FAILURE_WINDOW = 900
 FAILURE_LIMIT = 5
+_two_factor_locks: dict[str, asyncio.Lock] = {}
 
 
 def two_factor_error(message: str = "Two factor verification required."):
@@ -87,17 +86,6 @@ def code_step(secret: bytes, code: str, now: int, last_step: int) -> int | None:
     return None
 
 
-async def mutate_config(
-    user_id: str, action: Callable[[TwoFactorConfig], T]
-) -> tuple[TwoFactorConfig, T]:
-    for _ in range(10):
-        config, raw = await get_two_factor_config(user_id)
-        result = action(config)
-        if await save_two_factor_config(user_id, config, raw):
-            return config, result
-    raise HTTPException(HTTPStatus.CONFLICT, "Authentication changed. Try again.")
-
-
 def validate_identity(config: TwoFactorConfig, payload: AccessTokenPayload) -> None:
     if payload.api_token_id or payload.impersonated_by:
         raise HTTPException(HTTPStatus.FORBIDDEN, "Use your own interactive login.")
@@ -123,15 +111,16 @@ async def issue_challenge(user_id: str) -> AccessTokenPayload:
     challenge_id = secrets.token_hex(24)
     now = int(time())
 
-    def issue(config: TwoFactorConfig):
+    async with _two_factor_lock(user_id):
+        config = await get_two_factor_config(user_id)
         config.challenges = {
             key: expires for key, expires in config.challenges.items() if expires > now
         }
         # Bound storage without resetting the persistent account attempt counter.
         config.challenges = dict(list(config.challenges.items())[-4:])
         config.challenges[challenge_id] = now + CHALLENGE_SECONDS
+        await save_two_factor_config(user_id, config)
 
-    config, _ = await mutate_config(user_id, issue)
     return AccessTokenPayload(
         sub="",
         usr=user_id,
@@ -151,7 +140,8 @@ async def begin_enrollment(user_id: str, payload: AccessTokenPayload) -> bytes:
     secret = secrets.token_bytes(20)
     encrypted = encrypt_totp_secret(user_id, secret)
 
-    def begin(config: TwoFactorConfig):
+    async with _two_factor_lock(user_id):
+        config = await get_two_factor_config(user_id)
         validate_identity(config, payload)
         if config.secret:
             raise HTTPException(
@@ -159,8 +149,8 @@ async def begin_enrollment(user_id: str, payload: AccessTokenPayload) -> bytes:
             )
         config.pending_secret = encrypted
         config.pending_until = int(time()) + CHALLENGE_SECONDS
+        await save_two_factor_config(user_id, config)
 
-    await mutate_config(user_id, begin)
     return secret
 
 
@@ -176,21 +166,28 @@ async def verify_factor(
 ) -> tuple[TwoFactorConfig, list[str]]:
     now = int(time())
 
-    def verify(config: TwoFactorConfig) -> tuple[bool, list[str]]:
+    async with _two_factor_lock(user_id):
+        config = await get_two_factor_config(user_id)
         validate_identity(config, payload)
         _record_attempt(config, now)
         encrypted = config.pending_secret if enrolling else config.secret
         if not encrypted or (
             enrolling and (config.secret or config.pending_until < now)
         ):
-            return False, []
+            await save_two_factor_config(user_id, config)
+            raise HTTPException(
+                HTTPStatus.UNAUTHORIZED, "Invalid or already used code."
+            )
         step = code_step(
             decrypt_totp_secret(user_id, encrypted), code, now, config.last_step
         )
         recovery_hash = sha256(code.strip().lower().encode()).hexdigest()
         recovery = not enrolling and recovery_hash in config.recovery_hashes
         if step is None and not recovery:
-            return False, []
+            await save_two_factor_config(user_id, config)
+            raise HTTPException(
+                HTTPStatus.UNAUTHORIZED, "Invalid or already used code."
+            )
         if recovery:
             config.recovery_hashes.remove(recovery_hash)
         else:
@@ -207,15 +204,49 @@ async def verify_factor(
             config.challenges.pop(payload.jti, None)
         config.failures = 0
         config.failure_window = 0
-        return True, codes
+        await save_two_factor_config(user_id, config)
 
-    config, (valid, codes) = await mutate_config(user_id, verify)
-    if not valid:
-        raise HTTPException(HTTPStatus.UNAUTHORIZED, "Invalid or already used code.")
     logger.info(
         "Two factor {} for account {}", "enrolled" if enrolling else "verified", user_id
     )
     return config, codes
+
+
+async def acknowledge_recovery_codes(user_id: str, payload: AccessTokenPayload) -> None:
+    async with _two_factor_lock(user_id):
+        config = await get_two_factor_config(user_id)
+        validate_identity(config, payload)
+        config.recovery_saved = True
+        await save_two_factor_config(user_id, config)
+
+
+async def regenerate_recovery_codes(
+    user_id: str, payload: AccessTokenPayload
+) -> list[str]:
+    async with _two_factor_lock(user_id):
+        config = await get_two_factor_config(user_id)
+        validate_identity(config, payload)
+        if not config.secret:
+            raise HTTPException(HTTPStatus.BAD_REQUEST, "No authenticator enrolled.")
+        codes = new_recovery_codes(config)
+        await save_two_factor_config(user_id, config)
+    return codes
+
+
+async def disable_two_factor(
+    user_id: str, payload: AccessTokenPayload
+) -> TwoFactorConfig:
+    if settings.lnbits_two_factor_enabled and settings.lnbits_two_factor_mandatory:
+        raise HTTPException(
+            HTTPStatus.FORBIDDEN, "Two factor authentication is mandatory."
+        )
+    async with _two_factor_lock(user_id):
+        config = await get_two_factor_config(user_id)
+        validate_identity(config, payload)
+        config = TwoFactorConfig(revision=secrets.token_hex(16))
+        await save_two_factor_config(user_id, config)
+    logger.info("Two factor disabled for account {} at {}", user_id, int(time()))
+    return config
 
 
 async def session_payload(
@@ -303,7 +334,7 @@ async def check_two_factor_session(
         payload and payload.mfa_revision
     ):
         return
-    config, _ = await get_two_factor_config(actor or user_id, conn)
+    config = await get_two_factor_config(actor or user_id, conn)
     if payload and config.revision != payload.mfa_revision:
         raise two_factor_error("Account security changed. Please log in again.")
     required = (
@@ -328,12 +359,10 @@ async def check_two_factor_session(
 
 
 async def reset_two_factor(user_id: str) -> None:
-    def reset(config: TwoFactorConfig):
-        replacement = TwoFactorConfig(revision=secrets.token_hex(16))
-        for field, value in replacement.dict().items():
-            setattr(config, field, value)
-
-    await mutate_config(user_id, reset)
+    async with _two_factor_lock(user_id):
+        await get_two_factor_config(user_id)
+        config = TwoFactorConfig(revision=secrets.token_hex(16))
+        await save_two_factor_config(user_id, config)
     logger.warning("Two factor reset locally for account {}", user_id)
 
 
@@ -357,7 +386,7 @@ async def validate_two_factor_policy(
                 HTTPStatus.BAD_REQUEST, "Select at least one two factor method."
             )
         if data.lnbits_two_factor_mandatory:
-            config, _ = await get_two_factor_config(account_id)
+            config = await get_two_factor_config(account_id)
             if not config.secret or not config.recovery_saved:
                 raise HTTPException(
                     HTTPStatus.BAD_REQUEST,
@@ -380,3 +409,7 @@ def _record_attempt(config: TwoFactorConfig, now: int) -> None:
             HTTPStatus.TOO_MANY_REQUESTS, "Too many codes. Try again later."
         )
     config.failures += 1
+
+
+def _two_factor_lock(user_id: str) -> asyncio.Lock:
+    return _two_factor_locks.setdefault(user_id, asyncio.Lock())

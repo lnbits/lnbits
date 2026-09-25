@@ -81,8 +81,9 @@ excluded from ordinary `Account`, `User` and admin account responses. There is n
 `/api/v1/auth/2fa/status`.
 
 Secrets are encrypted using AES-GCM and bound to the account ID. Recovery codes are
-hashed. Conditional database updates make code consumption atomic. Login challenges
-use a separate HTTP-only cookie and cannot authenticate ordinary API requests.
+hashed. A per-account service lock serializes code verification and updates within
+a single LNbits process. Login challenges use a separate HTTP-only cookie and cannot
+authenticate ordinary API requests.
 Authentication bodies are excluded from audit details; security logs contain no codes.
 
 Wallet API keys and scoped automation tokens continue to work. **Login 2FA does not

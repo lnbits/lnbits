@@ -304,24 +304,18 @@ def clear_user_cache(user: User):
 
 async def get_two_factor_config(
     user_id: str, conn: Connection | None = None
-) -> tuple[TwoFactorConfig, str | None]:
+) -> TwoFactorConfig:
     row: dict | None = await (conn or db).fetchone(
         "SELECT two_factor FROM accounts WHERE id = :id", {"id": user_id}
     )
     if not row:
         raise ValueError("Account not found.")
     raw = row["two_factor"]
-    return (TwoFactorConfig.parse_raw(raw) if raw else TwoFactorConfig(), raw)
+    return TwoFactorConfig.parse_raw(raw) if raw else TwoFactorConfig()
 
 
-async def save_two_factor_config(
-    user_id: str, config: TwoFactorConfig, previous: str | None
-) -> bool:
-    """Compare-and-swap makes consumption atomic across processes and databases."""
-    result = await db.execute(
-        """UPDATE accounts SET two_factor = :value WHERE id = :id
-        AND (two_factor = :previous
-             OR (two_factor IS NULL AND CAST(:previous AS TEXT) IS NULL))""",
-        {"id": user_id, "value": config.json(), "previous": previous},
+async def save_two_factor_config(user_id: str, config: TwoFactorConfig) -> None:
+    await db.execute(
+        "UPDATE accounts SET two_factor = :value WHERE id = :id",
+        {"id": user_id, "value": config.json()},
     )
-    return result.rowcount == 1

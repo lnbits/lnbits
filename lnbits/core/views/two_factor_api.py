@@ -1,6 +1,5 @@
 import base64
 from http import HTTPStatus
-from time import time
 
 from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import JSONResponse
@@ -14,10 +13,11 @@ from lnbits.core.models.users import (
     TwoFactorStatus,
 )
 from lnbits.core.services.two_factor import (
+    acknowledge_recovery_codes,
     begin_enrollment,
     check_two_factor_session,
-    mutate_config,
-    new_recovery_codes,
+    disable_two_factor,
+    regenerate_recovery_codes,
     require_recent_login,
     session_payload,
     totp,
@@ -46,7 +46,7 @@ async def two_factor_identity(request: Request) -> tuple[Account, AccessTokenPay
         account = await get_account_by_username(payload.sub)
     if not account:
         raise HTTPException(HTTPStatus.UNAUTHORIZED, "Please log in again.")
-    config, _ = await get_two_factor_config(account.id)
+    config = await get_two_factor_config(account.id)
     validate_identity(config, payload)
     if not settings.is_user_allowed(account.id):
         raise HTTPException(HTTPStatus.FORBIDDEN, "Account access is disabled.")
@@ -73,7 +73,7 @@ async def factor_status(
     identity: tuple[Account, AccessTokenPayload] = Depends(two_factor_identity),
 ) -> TwoFactorStatus:
     account, payload = identity
-    config, _ = await get_two_factor_config(account.id)
+    config = await get_two_factor_config(account.id)
     verification_required = False
     try:
         await recent_factor_identity(identity)
@@ -150,12 +150,7 @@ async def acknowledge_recovery(
     identity: tuple[Account, AccessTokenPayload] = Depends(recent_factor_identity),
 ):
     account, payload = identity
-
-    def acknowledge(config: TwoFactorConfig):
-        validate_identity(config, payload)
-        config.recovery_saved = True
-
-    await mutate_config(account.id, acknowledge)
+    await acknowledge_recovery_codes(account.id, payload)
     return {"status": "success"}
 
 
@@ -164,14 +159,7 @@ async def regenerate_recovery(
     identity: tuple[Account, AccessTokenPayload] = Depends(recent_factor_identity),
 ) -> JSONResponse:
     account, payload = identity
-
-    def regenerate(config: TwoFactorConfig):
-        validate_identity(config, payload)
-        if not config.secret:
-            raise HTTPException(HTTPStatus.BAD_REQUEST, "No authenticator enrolled.")
-        return new_recovery_codes(config)
-
-    _, codes = await mutate_config(account.id, regenerate)
+    codes = await regenerate_recovery_codes(account.id, payload)
     return JSONResponse(
         {"recovery_codes": codes}, headers={"Cache-Control": "no-store"}
     )
@@ -181,22 +169,6 @@ async def regenerate_recovery(
 async def disable_factor(
     identity: tuple[Account, AccessTokenPayload] = Depends(recent_factor_identity),
 ) -> JSONResponse:
-    import secrets
-
-    from loguru import logger
-
-    if settings.lnbits_two_factor_enabled and settings.lnbits_two_factor_mandatory:
-        raise HTTPException(
-            HTTPStatus.FORBIDDEN, "Two factor authentication is mandatory."
-        )
     account, payload = identity
-
-    def disable(config: TwoFactorConfig):
-        validate_identity(config, payload)
-        replacement = TwoFactorConfig(revision=secrets.token_hex(16))
-        for field, value in replacement.dict().items():
-            setattr(config, field, value)
-
-    config, _ = await mutate_config(account.id, disable)
-    logger.info("Two factor disabled for account {} at {}", account.id, int(time()))
+    config = await disable_two_factor(account.id, payload)
     return await factor_session_response(account, config, False)

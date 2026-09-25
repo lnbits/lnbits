@@ -849,7 +849,7 @@ def _validate_auth_timeout(auth_time: int | None = 0):
 
 
 async def _login_response(account: Account) -> JSONResponse:
-    config, _ = await get_two_factor_config(account.id)
+    config = await get_two_factor_config(account.id)
     if settings.lnbits_two_factor_enabled and (
         config.secret or settings.lnbits_two_factor_mandatory
     ):

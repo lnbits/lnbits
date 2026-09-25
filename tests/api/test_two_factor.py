@@ -17,9 +17,9 @@ from lnbits.core.crud.users import (
     save_two_factor_config,
     update_account,
 )
-from lnbits.core.models.users import AccessTokenPayload, Account
+from lnbits.core.models.users import AccessTokenPayload, Account, TwoFactorConfig
 from lnbits.core.services.two_factor import (
-    mutate_config,
+    issue_challenge,
     reset_two_factor,
     sync_two_factor_policy,
     totp,
@@ -70,22 +70,21 @@ async def enroll(client, account):
     return secret, response.json()
 
 
-async def test_two_factor_config_rejects_stale_updates(factor_account):
-    config, previous = await get_two_factor_config(factor_account.id)
-    assert previous is None
-    config.failures = 1
-    assert await save_two_factor_config(factor_account.id, config, previous)
+@pytest.mark.parametrize("stored", [False, True])
+async def test_two_factor_concurrent_challenges_are_preserved(factor_account, stored):
+    if stored:
+        await save_two_factor_config(factor_account.id, TwoFactorConfig())
 
-    config.failures = 2
-    assert not await save_two_factor_config(factor_account.id, config, previous)
-    current, previous = await get_two_factor_config(factor_account.id)
-    assert current.failures == 1
-    assert await save_two_factor_config(factor_account.id, config, previous)
-
-    config.failures = 3
-    assert not await save_two_factor_config(factor_account.id, config, previous)
-    current, _ = await get_two_factor_config(factor_account.id)
-    assert current.failures == 2
+    challenges = await asyncio.wait_for(
+        asyncio.gather(
+            issue_challenge(factor_account.id),
+            issue_challenge(factor_account.id),
+        ),
+        timeout=10,
+    )
+    config = await get_two_factor_config(factor_account.id)
+    assert len(config.challenges) == 2
+    assert set(config.challenges) == {challenge.jti for challenge in challenges}
 
 
 async def test_two_factor_enrollment_privacy_and_account_updates(
@@ -94,11 +93,10 @@ async def test_two_factor_enrollment_privacy_and_account_updates(
     account = factor_account
     secret, enrollment = await enroll(http_client, account)
     assert len(enrollment["recovery_codes"]) == 10
-    config, raw = await get_two_factor_config(account.id)
-    assert raw
+    config = await get_two_factor_config(account.id)
     assert config.secret and not config.pending_secret
-    assert base64.b32encode(secret).decode() not in raw
-    assert all(code not in raw for code in enrollment["recovery_codes"])
+    assert base64.b32encode(secret).decode() not in config.json()
+    assert all(code not in config.json() for code in enrollment["recovery_codes"])
     assert (await http_client.get("/api/v1/auth")).status_code == 200
     profile = await http_client.patch("/api/v1/auth/ui", json={"theme": "test"})
     assert profile.status_code == 200
@@ -106,7 +104,7 @@ async def test_two_factor_enrollment_privacy_and_account_updates(
     saved = await get_account(account.id)
     assert saved
     await update_account(saved)
-    assert (await get_two_factor_config(account.id))[1] == raw
+    assert await get_two_factor_config(account.id) == config
 
 
 async def test_two_factor_login_challenge_and_recovery_replay(
@@ -179,7 +177,7 @@ async def test_two_factor_global_off_and_on(http_client, factor_account, setting
     response = await login(http_client, factor_account)
     assert "access_token" in response.json()
     assert (await http_client.get("/api/v1/auth")).status_code == 200
-    assert (await get_two_factor_config(factor_account.id))[0].secret
+    assert (await get_two_factor_config(factor_account.id)).secret
     settings.lnbits_two_factor_enabled = True
     await set_settings_field("two_factor_revision", secrets.token_hex(16), "security")
     assert (await http_client.get("/api/v1/auth")).status_code == 401
@@ -220,10 +218,28 @@ async def test_two_factor_concurrent_recovery_has_one_winner(
     assert sum(not isinstance(result, Exception) for result in results) == 1
 
 
+async def test_two_factor_concurrent_invalid_codes_count_attempts(
+    http_client, factor_account
+):
+    await enroll(http_client, factor_account)
+    await login(http_client, factor_account)
+    responses = await asyncio.wait_for(
+        asyncio.gather(
+            *[
+                http_client.post("/api/v1/auth/2fa/verify", json={"code": "badcode"})
+                for _ in range(2)
+            ]
+        ),
+        timeout=10,
+    )
+    assert all(response.status_code == 401 for response in responses)
+    assert (await get_two_factor_config(factor_account.id)).failures == 2
+
+
 async def test_two_factor_pending_and_replayed_totp(http_client, factor_account):
     await login(http_client, factor_account)
     setup = await http_client.post("/api/v1/auth/2fa/setup")
-    assert not (await get_two_factor_config(factor_account.id))[0].secret
+    assert not (await get_two_factor_config(factor_account.id)).secret
     secret = base64.b32decode(setup.json()["secret"])
     code = totp(secret).generate(int(time())).decode()
     assert (
@@ -280,7 +296,7 @@ async def test_two_factor_automation_and_impersonation_cannot_manage(
     http_client, factor_account
 ):
     await enroll(http_client, factor_account)
-    config, _ = await get_two_factor_config(factor_account.id)
+    config = await get_two_factor_config(factor_account.id)
     for extra in ({"api_token_id": "automation"}, {"impersonated_by": uuid4().hex}):
         payload = {
             "sub": "",
@@ -299,21 +315,23 @@ async def test_two_factor_setup_and_challenge_expire(http_client, factor_account
     await login(http_client, factor_account)
     setup = await http_client.post("/api/v1/auth/2fa/setup")
     secret = base64.b32decode(setup.json()["secret"])
-    await mutate_config(
-        factor_account.id, lambda config: setattr(config, "pending_until", 1)
-    )
+    config = await get_two_factor_config(factor_account.id)
+    config.pending_until = 1
+    await save_two_factor_config(factor_account.id, config)
     assert (
         await http_client.post(
             "/api/v1/auth/2fa/confirm",
             json={"code": totp(secret).generate(int(time())).decode()},
         )
     ).status_code == 401
-    assert not (await get_two_factor_config(factor_account.id))[0].secret
+    config = await get_two_factor_config(factor_account.id)
+    assert not config.secret
+    assert config.failures == 1
     _, enrollment = await enroll(http_client, factor_account)
     await login(http_client, factor_account)
-    await mutate_config(
-        factor_account.id, lambda config: setattr(config, "challenges", {})
-    )
+    config = await get_two_factor_config(factor_account.id)
+    config.challenges = {}
+    await save_two_factor_config(factor_account.id, config)
     assert (
         await http_client.post(
             "/api/v1/auth/2fa/verify", json={"code": enrollment["recovery_codes"][0]}
