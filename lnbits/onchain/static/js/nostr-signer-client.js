@@ -140,6 +140,7 @@ export class NostrBitcoinSigner {
           'Decrypting wallet',
           'Validating transaction',
           'Ready to sign — approve on device',
+          'Automatically approved',
           'Signing',
           'Signing complete'
         ])

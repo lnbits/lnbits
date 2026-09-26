@@ -476,7 +476,7 @@ window.app.component('onchain-payment', {
 
         this.$q.notify({
           type: 'positive',
-          message: 'Transaction broadcasted!',
+          message: 'Transaction has been broadcast',
           caption: `${data}`,
           timeout: 10000
         })
