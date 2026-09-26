@@ -379,6 +379,7 @@
           :mempool-endpoint="mempoolHostname"
           :adminkey="g.wallet.adminkey"
           :serial-signer-ref="signerDevice"
+          :prepare-signer="prepareSigner"
           :sats-denominated="config.sats_denominated"
           :network="config.network"
           @broadcast-done="handleBroadcastSuccess"
@@ -3048,37 +3049,62 @@
       :disable="network !== 'Testnet4'"
       @click="dialog = true"
     ></q-btn>
-    <q-dialog v-model="dialog">
+    <q-dialog v-model="dialog" :persistent="signing">
       <q-card style="width: 560px; max-width: 95vw">
         <q-card-section
           ><div class="text-h6">Remote Bitcoin signer · Testnet4</div>
           <p>
-            Unlock your device and pair this browser. Its public wallet is
-            imported automatically. Keep this page open while signing.
+            Pair this browser once using the device. Connections are automatic
+            when signing. Enter your PIN here when the device requests it, then
+            review and approve the transaction on its touchscreen.
           </p>
-          <q-input
-            v-model="label"
-            label="Browser name"
-            maxlength="40"
-            :disable="busy"
-          ></q-input>
-          <q-input
-            v-model="pairing"
-            type="textarea"
-            label="Device pairing code"
-            :disable="busy"
-          ></q-input>
-          <q-btn
-            flat
-            label="Scan device QR"
-            @click="scan = !scan"
-            :disable="busy"
-          ></q-btn>
-          <qrcode-stream
-            v-if="scan"
-            @detect="detected"
-            @error="message = $event.message"
-          ></qrcode-stream>
+          <div v-if="!signing">
+            <q-input
+              v-model="label"
+              label="Browser name"
+              maxlength="40"
+              :disable="busy"
+            ></q-input>
+            <q-input
+              v-model="pairing"
+              type="textarea"
+              label="Device pairing code"
+              :disable="busy"
+            ></q-input>
+            <q-btn
+              flat
+              label="Scan device QR"
+              @click="scan = !scan"
+              :disable="busy"
+            ></q-btn>
+            <qrcode-stream
+              v-if="scan"
+              @detect="detected"
+              @error="message = $event.message"
+            ></qrcode-stream>
+          </div>
+          <q-form v-if="pinRequired" @submit="submitPin">
+            <q-input
+              v-model="pin"
+              type="password"
+              label="Device PIN"
+              inputmode="numeric"
+              autocomplete="off"
+              maxlength="32"
+              autofocus
+              :disable="pinBusy"
+              hint="Sent encrypted directly to your paired device"
+              :rules="[
+                value => /^[0-9]{6,32}$/.test(value) || 'Use 6–32 digits'
+              ]"
+            />
+            <q-btn
+              type="submit"
+              label="Unlock for signing"
+              color="primary"
+              :loading="pinBusy"
+            />
+          </q-form>
           <p
             class="q-mt-md"
             style="overflow-wrap: anywhere"
@@ -3088,7 +3114,7 @@
             {{ message }}
           </p>
         </q-card-section>
-        <q-card-actions align="left">
+        <q-card-actions v-if="!signing" align="left">
           <q-btn
             label="Pair"
             color="primary"

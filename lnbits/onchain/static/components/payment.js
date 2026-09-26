@@ -12,6 +12,7 @@ window.app.component('onchain-payment', {
     'mempool-endpoint',
     'sats-denominated',
     'serial-signer-ref',
+    'prepare-signer',
     'adminkey',
     'network'
   ],
@@ -156,6 +157,9 @@ window.app.component('onchain-payment', {
           this.showFinalTx = true
           return
         }
+        await this.prepareSigner?.()
+        if (this.serialSignerRef?.isNostrSigner)
+          await this.serialSignerRef.ensureConnected()
         if (!this.serialSignerRef?.isConnected()) {
           this.$q.notify({
             type: 'warning',

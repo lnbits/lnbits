@@ -238,7 +238,10 @@ export default {
       return hostname
     },
     signerDevice: function () {
-      if (this.connectedDeviceType === 'nostr-device')
+      if (
+        this.selectedWallet?.meta?.signer === 'nostr' ||
+        this.connectedDeviceType === 'nostr-device'
+      )
         return this.$refs.nostrSigner
       if (this.connectedDeviceType === 'trezor-device') {
         return this.$refs.trezorSigner
@@ -282,6 +285,16 @@ export default {
   },
 
   methods: {
+    async prepareSigner() {
+      // Resolve refs and saved pairing at click time, including after a page reload.
+      // Existing imported accounts may not have the newer meta.signer flag.
+      await this.$nextTick()
+      const nostr = this.$refs.nostrSigner
+      if (this.config.network === 'Testnet4' && nostr?.hasPairing()) {
+        this.connectedDeviceType = 'nostr-device'
+        await this.$nextTick() // Update the payment component's signer prop first.
+      }
+    },
     formatActivityAmount(value) {
       return satOrBtc(value, false, this.config.sats_denominated)
     },
