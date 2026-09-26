@@ -437,6 +437,17 @@
                 @device:connected="handleDeviceConnected"
               ></onchain-serial-signer
             ></template>
+            <template v-slot:nostr>
+              <onchain-nostr-signer
+                ref="nostrSigner"
+                :network="config.network"
+                :user-id="g.user.id"
+                :wallet-id="g.wallet.id"
+                :adminkey="g.wallet.adminkey"
+                @device:connected="handleDeviceConnected"
+                @wallet-imported="$refs.walletList.refreshWalletAccounts()"
+              ></onchain-nostr-signer>
+            </template>
           </onchain-wallet-config>
         </template>
         <template #wallet-type-tools>
@@ -622,7 +633,8 @@
     <q-card-section class="q-pt-xs">
       <div class="row items-center no-wrap">
         <div class="col row items-center q-gutter-sm">
-          <slot name="trezor"></slot><slot name="serial"></slot>
+          <slot name="trezor"></slot><slot name="serial"></slot
+          ><slot name="nostr"></slot>
         </div>
         <q-btn
           flat
@@ -3026,3 +3038,86 @@
   width: 100%;
 }
 </style>
+
+<template id="onchain-nostr-signer">
+  <div>
+    <q-btn
+      outline
+      color="primary"
+      label="Nostr signer"
+      :disable="network !== 'Testnet4'"
+      @click="dialog = true"
+    ></q-btn>
+    <q-dialog v-model="dialog">
+      <q-card style="width: 560px; max-width: 95vw">
+        <q-card-section
+          ><div class="text-h6">Remote Bitcoin signer · Testnet4</div>
+          <p>
+            Unlock your device and pair this browser. Its public wallet is
+            imported automatically. Keep this page open while signing.
+          </p>
+          <q-input
+            v-model="label"
+            label="Browser name"
+            maxlength="40"
+            :disable="busy"
+          ></q-input>
+          <q-input
+            v-model="pairing"
+            type="textarea"
+            label="Device pairing code"
+            :disable="busy"
+          ></q-input>
+          <q-btn
+            flat
+            label="Scan device QR"
+            @click="scan = !scan"
+            :disable="busy"
+          ></q-btn>
+          <qrcode-stream
+            v-if="scan"
+            @detect="detected"
+            @error="message = $event.message"
+          ></qrcode-stream>
+          <p
+            class="q-mt-md"
+            style="overflow-wrap: anywhere"
+            role="status"
+            aria-live="polite"
+          >
+            {{ message }}
+          </p>
+        </q-card-section>
+        <q-card-actions align="left">
+          <q-btn
+            label="Pair"
+            color="primary"
+            :loading="busy"
+            :disable="!pairing"
+            @click="connect(true)"
+          ></q-btn>
+          <q-btn
+            label="Reconnect"
+            flat
+            :disable="busy"
+            @click="connect(false)"
+          ></q-btn>
+          <q-btn
+            v-if="connected && !imported"
+            label="Retry public wallet import"
+            flat
+            :disable="busy"
+            @click="importAccount()"
+          ></q-btn>
+          <q-btn
+            label="Forget pairing"
+            flat
+            :disable="busy"
+            @click="forget"
+          ></q-btn>
+          <q-btn label="Close" flat v-close-popup></q-btn>
+        </q-card-actions>
+      </q-card>
+    </q-dialog>
+  </div>
+</template>

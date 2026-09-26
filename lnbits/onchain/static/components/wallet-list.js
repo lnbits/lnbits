@@ -321,6 +321,11 @@ window.app.component('onchain-wallet-list', {
           const authenticated = await this.serialSignerRef.isAuthenticating()
           if (!authenticated) return
         }
+        if (this.serialSignerRef.isNostrSigner) {
+          this.serialSignerRef.dialog = true
+          await this.serialSignerRef.importAccount()
+          return
+        }
         this.formDialog.show = true
         this.formDialog.useSerialPort = true
       } catch (error) {

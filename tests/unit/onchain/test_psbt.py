@@ -387,3 +387,17 @@ def test_taproot_tree_addresses_preserved_but_signing_rejected():
     data.inputs[0].tx_id = bytes(wally.tx_get_txid(previous))[::-1].hex()
     with pytest.raises(ValueError, match="Only Taproot key-spend"):
         create_psbt(data)
+
+
+def test_remote_signer_psbt_includes_verified_previous_transaction():
+    _, _, data = signing_data()
+    standard = create_psbt(data)
+    assert not wally.psbt_get_input_utxo(standard, 0)
+    data.include_non_witness_utxo = True
+    remote = create_psbt(data)
+    previous = wally.psbt_get_input_utxo(remote, 0)
+    assert bytes(wally.tx_get_txid(previous))[::-1].hex() == data.inputs[0].tx_id
+    assert wally.psbt_get_input_witness_utxo(remote, 0)
+    assert wally.tx_to_hex(wally.psbt_get_global_tx(remote), 0) == wally.tx_to_hex(
+        wally.psbt_get_global_tx(standard), 0
+    )

@@ -184,6 +184,12 @@ window.app.component('onchain-payment', {
 
         await this.createPsbt()
 
+        if (this.psbtBase64 && this.serialSignerRef.isNostrSigner) {
+          const signed = await this.serialSignerRef.signPsbt(this.psbtBase64)
+          await this.updateSignedPsbt(signed)
+          return
+        }
+
         if (this.psbtBase64) {
           const txData = {
             inputs: this.tx.inputs,
@@ -237,6 +243,8 @@ window.app.component('onchain-payment', {
         this.signedTxHex = null
         this.showFinalTx = false
         this.tx = this.createTx()
+        if (this.serialSignerRef?.isNostrSigner)
+          this.tx.include_non_witness_utxo = true
         const changeOutput = this.tx.outputs.find(o => o.branch_index === 1)
         if (changeOutput) changeOutput.amount = this.changeAmount
         if (this.canReview === false)

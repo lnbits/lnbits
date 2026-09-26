@@ -13,6 +13,7 @@ import {
 import {OnchainLiveUpdates} from './js/live-updates.js'
 import './components/utxo-list.js'
 import './components/serial-signer.js'
+import './components/nostr-signer.js'
 import './components/hot-wallet.js'
 import './components/trezor-signer.js'
 import './components/wallet-list.js'
@@ -237,6 +238,8 @@ export default {
       return hostname
     },
     signerDevice: function () {
+      if (this.connectedDeviceType === 'nostr-device')
+        return this.$refs.nostrSigner
       if (this.connectedDeviceType === 'trezor-device') {
         return this.$refs.trezorSigner
       }

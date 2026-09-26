@@ -63,6 +63,7 @@ class MasterPublicKey(BaseModel):
 
 
 class CreatePsbt(BaseModel):
+    include_non_witness_utxo: bool = False
     masterpubs: list[MasterPublicKey]
     inputs: list[TransactionInput] = Field(..., min_items=1, max_items=200)
     outputs: list[TransactionOutput] = Field(..., min_items=1, max_items=100)
