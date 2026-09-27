@@ -6,6 +6,7 @@ window.app.component('onchain-nostr-signer', {
   data() {
     return {
       dialog: false,
+      signingDialog: false,
       pairing: '',
       label: 'LNbits browser',
       client: null,
@@ -22,6 +23,15 @@ window.app.component('onchain-nostr-signer', {
     }
   },
   computed: {
+    dialogOpen: {
+      get() {
+        return this.dialog || this.signingDialog
+      },
+      set(value) {
+        this.dialog = value
+        if (!value) this.signingDialog = false
+      }
+    },
     storageKey() {
       return `lnbits:bitcoin-signer:v1:${this.userId}:${this.walletId}`
     },
@@ -58,7 +68,7 @@ window.app.component('onchain-nostr-signer', {
     },
     async ensureConnected() {
       if (!this.connected) {
-        this.dialog = true
+        if (!this.hasPairing()) this.dialog = true
         await this.connect(false, true)
       }
       if (!this.client || !this.connected)
@@ -67,7 +77,8 @@ window.app.component('onchain-nostr-signer', {
     async signPsbt(psbt) {
       if (this.signing) throw new Error('A signing request is already active')
       this.signing = true
-      this.dialog = true
+      this.dialog = false
+      this.signingDialog = true
       this.message = 'Connecting to signer…'
       try {
         await this.ensureConnected()
@@ -79,6 +90,7 @@ window.app.component('onchain-nostr-signer', {
         this.message = error.message
         throw error
       } finally {
+        this.signingDialog = false
         this.signing = false
         this.pinRequired = false
         this.pin = ''

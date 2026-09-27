@@ -3049,16 +3049,16 @@
       :disable="network !== 'Testnet4'"
       @click="dialog = true"
     ></q-btn>
-    <q-dialog v-model="dialog" :persistent="signing">
+    <q-dialog v-model="dialogOpen" :persistent="signing">
       <q-card style="width: 560px; max-width: 95vw">
         <q-card-section
           ><div class="text-h6">Remote Bitcoin signer · Testnet4</div>
-          <p>
+          <p v-if="!signingDialog">
             Pair this browser once using the device. Connections are automatic
             when signing. Enter your PIN here when the device requests it, then
             review and approve the transaction on its touchscreen.
           </p>
-          <div v-if="!signing">
+          <div v-if="!signingDialog">
             <q-input
               v-model="label"
               label="Browser name"
@@ -3114,7 +3114,7 @@
             {{ message }}
           </p>
         </q-card-section>
-        <q-card-actions v-if="!signing" align="left">
+        <q-card-actions v-if="!signingDialog" align="left">
           <q-btn
             label="Pair"
             color="primary"

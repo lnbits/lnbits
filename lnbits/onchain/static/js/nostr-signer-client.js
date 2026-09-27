@@ -1,5 +1,6 @@
-// Experimental Bitcoin signer v1. NIP-44 encryption; this is not NIP-46.
-export const BITCOIN_SIGNER_KIND = 24134
+// Proposed NIP-B8 Bitcoin signer v1. NIP-44 encryption; provisional kinds.
+export const BITCOIN_SIGNER_REQUEST_KIND = 24810
+export const BITCOIN_SIGNER_RESPONSE_KIND = 24811
 export const MAX_PSBT_BYTES = 32768
 const hex = bytes =>
   Array.from(bytes, b => b.toString(16).padStart(2, '0')).join('')
@@ -72,7 +73,7 @@ export class NostrBitcoinSigner {
           'REQ',
           'bitcoin-v1',
           {
-            kinds: [BITCOIN_SIGNER_KIND],
+            kinds: [BITCOIN_SIGNER_RESPONSE_KIND],
             authors: [this.pubkey],
             '#p': [this.clientKey],
             since: Math.floor(Date.now() / 1000) - 180
@@ -106,7 +107,7 @@ export class NostrBitcoinSigner {
       const now = Math.floor(Date.now() / 1000)
       if (
         event.pubkey !== this.pubkey ||
-        event.kind !== BITCOIN_SIGNER_KIND ||
+        event.kind !== BITCOIN_SIGNER_RESPONSE_KIND ||
         !Number.isInteger(event.created_at) ||
         event.created_at > now + 30 ||
         event.created_at < now - 180 ||
@@ -153,7 +154,18 @@ export class NostrBitcoinSigner {
           return
         pending.sequence = response.sequence
         pending.status = response.status
-        this.onStatus(response.status)
+        const manual =
+          response.status === 'Ready to sign — approve on device' &&
+          response.sequence === 5
+        const reason =
+          manual && typeof response.reason === 'string' && response.reason.length <= 256
+            ? response.reason
+            : ''
+        this.onStatus(
+          manual
+            ? `${reason ? reason + '. ' : ''}Waiting for on device approval`
+            : response.status
+        )
         return
       }
       clearTimeout(pending.timer)
@@ -199,7 +211,7 @@ export class NostrBitcoinSigner {
     )
     const event = this.tools.finalizeEvent(
       {
-        kind: BITCOIN_SIGNER_KIND,
+        kind: BITCOIN_SIGNER_REQUEST_KIND,
         created_at: now,
         tags: [['p', this.pubkey]],
         content: this.tools.nip44.v2.encrypt(JSON.stringify(request), key)
