@@ -3053,12 +3053,12 @@
         <q-card-section
           ><div class="text-h6">Remote Bitcoin signer</div>
           <p v-if="!signingDialog">
-            Pair this browser to your remote signer. Change the Browser name if needed, this is shown to the device during pairing.
+            Pair this wallet with your remote signer. Change the Client name if needed, this is shown on the signing device during pairing.
           </p>
           <div v-if="!signingDialog">
             <q-input
               v-model="label"
-              label="Browser name"
+              label="Client name"
               maxlength="40"
               :disable="busy"
             ></q-input>
