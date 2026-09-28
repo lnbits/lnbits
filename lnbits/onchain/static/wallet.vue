@@ -3045,14 +3045,13 @@
     <q-btn
       outline
       color="primary"
-      label="Nostr signer"
-      :disable="network !== 'Testnet4'"
+      label="Remote Signer"
       @click="dialog = true"
     ></q-btn>
     <q-dialog v-model="dialogOpen" :persistent="signing">
       <q-card style="width: 560px; max-width: 95vw">
         <q-card-section
-          ><div class="text-h6">Remote Bitcoin signer · Testnet4</div>
+          ><div class="text-h6">Remote Bitcoin signer</div>
           <p v-if="!signingDialog">
             Pair this browser to your remote signer. Change the Browser name if needed, this is shown to the device during pairing.
           </p>
