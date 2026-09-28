@@ -1,10 +1,12 @@
 from pathlib import Path
+from subprocess import PIPE
 from zipfile import ZipFile
 
 import pytest
 
 from lnbits.core.views.admin_api import (
     _build_pg_dump_env,
+    _pg_dump_error_hint,
     api_download_backup,
 )
 from lnbits.settings import Settings
@@ -128,7 +130,8 @@ async def test_postgres_backup_does_not_use_shell(
     original_database_url = settings.lnbits_database_url
     original_data_folder = settings.lnbits_data_folder
     process = mocker.Mock()
-    process.wait.return_value = returncode
+    process.returncode = returncode
+    process.communicate.return_value = ("", "")
     popen = mocker.patch("lnbits.core.views.admin_api.Popen", return_value=process)
     make_archive = mocker.patch("lnbits.core.views.admin_api.make_archive")
 
@@ -155,6 +158,8 @@ async def test_postgres_backup_does_not_use_shell(
         f"--file={dump_filename}",
     ]
     assert popen.call_args.kwargs["shell"] is False
+    assert popen.call_args.kwargs["stderr"] is PIPE
+    assert popen.call_args.kwargs["text"] is True
     env = popen.call_args.kwargs["env"]
     assert env["PGPASSWORD"] == "secret"
     assert env["PGUSER"] == "user;id"
@@ -182,3 +187,97 @@ async def test_sqlite_backup(mocker, monkeypatch, settings: Settings, tmp_path: 
     popen.assert_not_called()
     with ZipFile(response.path) as archive:
         assert archive.read("database.sqlite3") == b"database contents"
+
+
+@pytest.mark.parametrize(
+    "stderr, expected",
+    [
+        (None, ""),
+        ("", ""),
+        ("   \n  ", ""),
+        (
+            "pg_dump: error: server version: 16.15; pg_dump version: 14.24\n"
+            "pg_dump: error: aborting because of server version mismatch\n",
+            " pg_dump: error: server version: 16.15; pg_dump version: 14.24 "
+            "pg_dump: error: aborting because of server version mismatch",
+        ),
+    ],
+)
+def test_pg_dump_error_hint(stderr, expected):
+    assert _pg_dump_error_hint(stderr) == expected
+
+
+def test_pg_dump_error_hint_is_bounded():
+    hint = _pg_dump_error_hint("x " * 500, limit=40)
+    # The leading space is the separator, so it sits outside the budget.
+    assert len(hint) == 41
+    assert hint.endswith("...")
+
+
+@pytest.mark.anyio
+async def test_postgres_backup_reports_why_pg_dump_failed(
+    mocker, settings: Settings, tmp_path: Path
+):
+    """A server too new for the installed pg_dump is the common cause, and it
+    is only ever stated on pg_dump's stderr."""
+    data_folder = tmp_path / "data"
+    data_folder.mkdir()
+    (data_folder / "lnbits-database.dmp").touch()
+    stderr = (
+        "pg_dump: error: server version: 16.15; pg_dump version: 14.24\n"
+        "pg_dump: error: aborting because of server version mismatch\n"
+    )
+    process = mocker.Mock()
+    process.returncode = 1
+    process.communicate.return_value = ("", stderr)
+    mocker.patch("lnbits.core.views.admin_api.Popen", return_value=process)
+    mocker.patch("lnbits.core.views.admin_api.make_archive")
+    original_database_url = settings.lnbits_database_url
+    original_data_folder = settings.lnbits_data_folder
+
+    try:
+        settings.lnbits_database_url = "postgres://user:secret@db.example:5433/lnbits"
+        settings.lnbits_data_folder = str(data_folder)
+
+        with pytest.raises(ValueError) as exc_info:
+            await api_download_backup()
+    finally:
+        settings.lnbits_database_url = original_database_url
+        settings.lnbits_data_folder = original_data_folder
+
+    message = str(exc_info.value)
+    assert "aborting because of server version mismatch" in message
+    assert "server version: 16.15" in message
+    assert "pg_dump version: 14.24" in message
+    # The URL password reaches pg_dump through the environment, and must not
+    # come back out in anything the caller is shown.
+    assert "secret" not in message
+
+
+@pytest.mark.anyio
+async def test_postgres_backup_failure_without_stderr_still_raises(
+    mocker, settings: Settings, tmp_path: Path
+):
+    """pg_dump can fail without saying anything, and then the message should
+    read the way it always did rather than trailing a stray separator."""
+    data_folder = tmp_path / "data"
+    data_folder.mkdir()
+    process = mocker.Mock()
+    process.returncode = 2
+    process.communicate.return_value = ("", "")
+    mocker.patch("lnbits.core.views.admin_api.Popen", return_value=process)
+    mocker.patch("lnbits.core.views.admin_api.make_archive")
+    original_database_url = settings.lnbits_database_url
+    original_data_folder = settings.lnbits_data_folder
+
+    try:
+        settings.lnbits_database_url = "postgres://user@db.example/lnbits"
+        settings.lnbits_data_folder = str(data_folder)
+
+        with pytest.raises(ValueError) as exc_info:
+            await api_download_backup()
+    finally:
+        settings.lnbits_database_url = original_database_url
+        settings.lnbits_data_folder = original_data_folder
+
+    assert str(exc_info.value) == "PostgreSQL database backup failed."
