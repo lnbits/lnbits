@@ -1,6 +1,7 @@
 from .crud import (
     migrate_wasm_extension_database,
     storage_append_public_row,
+    storage_compare_and_set_row,
     storage_count_rows,
     storage_delete_row,
     storage_get_paginated_rows,
@@ -8,12 +9,15 @@ from .crud import (
     storage_get_public_row,
     storage_get_row,
     storage_get_row_owner_id,
+    storage_get_row_with_version,
+    storage_insert_if_absent_row,
     storage_set_row,
 )
 
 __all__ = [
     "migrate_wasm_extension_database",
     "storage_append_public_row",
+    "storage_compare_and_set_row",
     "storage_count_rows",
     "storage_delete_row",
     "storage_get_paginated_rows",
@@ -21,5 +25,7 @@ __all__ = [
     "storage_get_public_row",
     "storage_get_row",
     "storage_get_row_owner_id",
+    "storage_get_row_with_version",
+    "storage_insert_if_absent_row",
     "storage_set_row",
 ]
