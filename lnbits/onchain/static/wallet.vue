@@ -3043,17 +3043,19 @@
 <template id="onchain-nostr-signer">
   <div>
     <q-btn
-      outline
+      split
+      unelevated
       color="primary"
-      label="Remote Signer"
+      label="Pair Remote Signer"
       @click="dialog = true"
     ></q-btn>
     <q-dialog v-model="dialogOpen" :persistent="signing">
       <q-card style="width: 560px; max-width: 95vw">
         <q-card-section
-          ><div class="text-h6">Remote Bitcoin signer</div>
+          ><div class="text-h6">Pair a Remote Signer</div>
           <p v-if="!signingDialog">
-            Pair this wallet with your remote signer. Change the Client name if needed, this is shown on the signing device during pairing.
+            Scan the pairing code on the remote signer using the "Scan Pairing Code" button.
+            Change the Client name if needed, this is shown on the signing device during pairing.
           </p>
           <div v-if="!signingDialog">
             <q-input
@@ -3062,15 +3064,9 @@
               maxlength="40"
               :disable="busy"
             ></q-input>
-            <q-input
-              v-model="pairing"
-              type="textarea"
-              label="Device pairing code"
-              :disable="busy"
-            ></q-input>
             <q-btn
               flat
-              label="Scan device QR"
+              label="Scan Pairing Code"
               @click="scan = !scan"
               :disable="busy"
             ></q-btn>
@@ -3079,6 +3075,13 @@
               @detect="detected"
               @error="message = $event.message"
             ></qrcode-stream>
+            <q-input
+              v-model="pairing"
+              type="text"
+              readonly
+              label="Pairing code"
+              :disable="busy"
+            ></q-input>
           </div>
           <q-form v-if="pinRequired" @submit="submitPin">
             <q-input
