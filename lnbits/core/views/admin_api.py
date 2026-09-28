@@ -26,7 +26,12 @@ from lnbits.settings import AdminSettings, Settings, UpdateSettings, settings
 from lnbits.task_manager import PublicTask, task_manager
 
 from .. import core_app_extra
-from ..crud import get_admin_settings, reset_core_settings, update_admin_settings
+from ..crud import (
+    get_admin_settings,
+    get_total_balance,
+    reset_core_settings,
+    update_admin_settings,
+)
 
 admin_router = APIRouter(tags=["Admin UI"], prefix="/admin")
 file_upload = File(...)
@@ -39,7 +44,12 @@ file_upload = File(...)
     dependencies=[Depends(check_admin)],
 )
 async def api_auditor():
-    return await get_balance_delta()
+    balance = await get_balance_delta()
+    fiat_balance = await get_total_balance(fiat=True)
+    return {
+        **balance.dict(),
+        "lnbits_fiat_balance_sats": int(fiat_balance) // 1000,
+    }
 
 
 @admin_router.get(

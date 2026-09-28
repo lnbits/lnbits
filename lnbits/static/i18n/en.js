@@ -728,8 +728,10 @@ window.localisation.en = {
   wallets_management: 'Wallets Management',
   funding_source_info: 'Funding Source Information',
   funding_source: 'Funding source: {wallet_class}',
-  node_balance: 'Node balance: {balance} sats',
+  node_balance: 'Funding source balance: {balance} sats',
   lnbits_balance: 'LNbits balance: {balance} sats',
+  lnbits_lightning_balance: 'LNbits lightning balance: {balance} sats',
+  lnbits_fiat_balance: 'LNbits fiat balance: {balance} sats',
   funding_reserve_percent: 'Funding reserve percentage: {percent} %',
   node_management: 'Node Management',
   node_management_not_supported:
