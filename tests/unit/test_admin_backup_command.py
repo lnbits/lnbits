@@ -1,10 +1,12 @@
 from pathlib import Path
+from subprocess import PIPE
 from zipfile import ZipFile
 
 import pytest
 
 from lnbits.core.views.admin_api import (
     _build_pg_dump_env,
+    _pg_dump_error_hint,
     api_download_backup,
 )
 from lnbits.settings import Settings
@@ -128,7 +130,8 @@ async def test_postgres_backup_does_not_use_shell(
     original_database_url = settings.lnbits_database_url
     original_data_folder = settings.lnbits_data_folder
     process = mocker.Mock()
-    process.wait.return_value = returncode
+    process.returncode = returncode
+    process.communicate.return_value = ("", "")
     popen = mocker.patch("lnbits.core.views.admin_api.Popen", return_value=process)
     make_archive = mocker.patch("lnbits.core.views.admin_api.make_archive")
 
@@ -155,6 +158,8 @@ async def test_postgres_backup_does_not_use_shell(
         f"--file={dump_filename}",
     ]
     assert popen.call_args.kwargs["shell"] is False
+    assert popen.call_args.kwargs["stderr"] is PIPE
+    assert popen.call_args.kwargs["text"] is True
     env = popen.call_args.kwargs["env"]
     assert env["PGPASSWORD"] == "secret"
     assert env["PGUSER"] == "user;id"

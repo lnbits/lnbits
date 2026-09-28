@@ -7,10 +7,13 @@ from pathlib import Path
 from shutil import make_archive
 from subprocess import Popen
 from typing import Annotated, cast
+from subprocess import PIPE, Popen
+from typing import cast
 
 from fastapi import APIRouter, Depends, File, Header, HTTPException, Response
 from fastapi.responses import FileResponse
 from pydantic import SecretStr
+from loguru import logger
 from sqlalchemy.engine import URL, make_url
 from sqlalchemy.exc import ArgumentError
 from starlette.concurrency import run_in_threadpool
@@ -292,9 +295,17 @@ async def api_download_backup() -> FileResponse:
                 ],
                 shell=False,
                 env=env,
+                stderr=PIPE,
+                text=True,
             )
-            if proc.wait() != 0:
-                raise ValueError("PostgreSQL database backup failed.")
+            _, stderr = proc.communicate()
+            if proc.returncode != 0:
+                detail = stderr.strip()
+                logger.error(f"pg_dump exited with code {proc.returncode}: {detail}")
+                raise ValueError(
+                    "PostgreSQL database backup failed."
+                    f"{_pg_dump_error_hint(stderr)}"
+                )
             make_archive(last_filename, "zip", settings.lnbits_data_folder)
         finally:
             pg_backup_filename.unlink(missing_ok=True)
@@ -307,6 +318,22 @@ async def api_download_backup() -> FileResponse:
         media_type="application/zip",
         headers={"Cache-Control": "no-store"},
     )
+
+
+def _pg_dump_error_hint(stderr: str | None, limit: int = 300) -> str:
+    """Condense pg_dump's own message so the caller learns why it failed.
+
+    Without this the only clue is the exit code, and the reason, most often a
+    server that the installed pg_dump is too old to read, is left behind in
+    the container log. The full output is logged; this is the short form that
+    goes back to the caller.
+    """
+    message = " ".join((stderr or "").split())
+    if not message:
+        return ""
+    if len(message) > limit:
+        message = message[: limit - 3].rstrip() + "..."
+    return f" {message}"
 
 
 def _build_pg_dump_env(database_url: str) -> dict[str, str]:
