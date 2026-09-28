@@ -40,6 +40,7 @@ async def invoke_wasm_extension_export(
     checking_id: str | None = None,
     request_bytes: int | None = None,
     context_data: dict | None = None,
+    authoritative_execution: bool = False,
 ) -> dict[str, Any]:
     from lnbits.core.services.extensions import (
         finish_wasm_invocation,
@@ -85,6 +86,7 @@ async def invoke_wasm_extension_export(
         owner_id=owner_id,
         invocation_id=invocation.id,
         runtime_limits=limits,
+        authoritative_execution=authoritative_execution,
     )
     event_loop = asyncio.get_running_loop()
     thread_task = asyncio.create_task(

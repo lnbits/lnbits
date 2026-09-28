@@ -12,6 +12,26 @@ from .models import ExtensionAPIMethod
 from .registry import list_extension_api_methods
 
 HostImport = Callable[..., Awaitable[dict[str, Any]]]
+_AUTHORITATIVE_ALLOWED_METHODS = {
+    "storage.get",
+    "storage.get_versioned",
+    "storage.get_public",
+    "storage.get_paginated",
+    "storage.get_public_paginated",
+    "wallet.list_user_wallets",
+    "wallet.balance",
+    "system.random_id",
+    "system.now",
+    "utils.server.health",
+    "utils.lightning.decode_invoice",
+    "utils.lightning.validate_invoice",
+    "utils.lightning.invoice_payment_hash",
+    "utils.lightning.invoice_amount_msat",
+    "utils.lightning.invoice_expiry",
+    "utils.lightning.invoice_memo",
+    "utils.lightning.verify_preimage",
+    "utils.lightning.random_secret_and_hash",
+}
 
 
 class ExtensionAPIHost:
@@ -31,6 +51,13 @@ class ExtensionAPIHost:
         payload: Mapping[str, Any] | BaseModel | None = None,
     ) -> dict[str, Any]:
         method = self._require_method(host_name)
+        if (
+            self.api.authoritative_execution
+            and method.method_id not in _AUTHORITATIVE_ALLOWED_METHODS
+        ):
+            raise PermissionError(
+                "This host function is unavailable during authoritative execution."
+            )
         from lnbits.core.services.extensions import record_wasm_invocation_host_call
 
         record_wasm_invocation_host_call(self.api.invocation_id, method.method_id)

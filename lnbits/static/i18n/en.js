@@ -631,6 +631,8 @@ window.localisation.en = {
   extension_permission_utils_basic: 'Use basic LNbits utilities',
   extension_permission_ui_camera_scan_qr: 'Scan QR codes',
   extension_permission_websocket: 'Use extension websockets',
+  extension_permission_websocket_authoritative:
+    'Run server-authoritative websocket rooms',
   extension_permission_websocket_publish_limits: 'Publish limits',
   extension_permission_websocket_publish_max_messages_per_second:
     'Max messages per second',

@@ -241,7 +241,8 @@ window.WasmExtensionComponent = {
       loading: false,
       loadId: 0,
       paymentSubscriptions: new Map(),
-      websocketSubscriptions: new Map()
+      websocketSubscriptions: new Map(),
+      authoritativeSubscriptions: new Map()
     }
   },
   created() {
@@ -1101,9 +1102,25 @@ window.WasmExtensionComponent = {
         this.closeWebsocketSubscription(subscriptionId)
       }
     },
+    closeAuthoritativeSubscription(subscriptionId) {
+      const subscription = this.authoritativeSubscriptions.get(subscriptionId)
+      if (!subscription) return
+      this.authoritativeSubscriptions.delete(subscriptionId)
+      try {
+        subscription.socket.close()
+      } catch (_error) {}
+    },
+    closeAuthoritativeSubscriptions() {
+      for (const subscriptionId of Array.from(
+        this.authoritativeSubscriptions.keys()
+      )) {
+        this.closeAuthoritativeSubscription(subscriptionId)
+      }
+    },
     closeBridgePort() {
       this.closePaymentSubscriptions()
       this.closeWebsocketSubscriptions()
+      this.closeAuthoritativeSubscriptions()
       this.bridgePort?.close()
       this.bridgePort = null
     },
@@ -1248,6 +1265,111 @@ window.WasmExtensionComponent = {
           : JSON.stringify(message.data ?? {})
       subscription.socket.send(data)
     },
+    subscribeAuthoritativeWebsocket(message) {
+      if (
+        !this.hasBridgePermission('websocket.authoritative') ||
+        !this.hasBridgePermission('websocket.subscribe')
+      ) {
+        throw new Error('Extension is missing authoritative websocket permission.')
+      }
+
+      const subscriptionId = String(message.subscriptionId || '')
+      const roomId = String(message.roomId || '')
+      const token = String(message.token || '')
+      if (
+        !subscriptionId ||
+        subscriptionId.length > 128 ||
+        !this.isWebsocketItemId(roomId) ||
+        !token ||
+        token.length > 1024
+      ) {
+        throw new Error('Invalid authoritative websocket subscription.')
+      }
+
+      this.closeAuthoritativeSubscription(subscriptionId)
+      const socket = new WebSocket(
+        this.websocketUrl(
+          `/api/v1/ext/ws/${encodeURIComponent(
+            this.bridge.extensionId
+          )}/authoritative/${encodeURIComponent(roomId)}`
+        )
+      )
+      const subscription = {
+        lastClientSequence: 0,
+        roomId,
+        socket,
+        authorized: false
+      }
+      this.authoritativeSubscriptions.set(subscriptionId, subscription)
+
+      socket.addEventListener('open', () => {
+        socket.send(JSON.stringify({type: 'authorize', token}))
+      })
+      socket.addEventListener('message', event => {
+        let data = event.data
+        try {
+          data = JSON.parse(event.data)
+        } catch (_error) {}
+        if (data?.type === 'snapshot') {
+          subscription.authorized = true
+          if (Number.isSafeInteger(data.lastClientSequence)) {
+            subscription.lastClientSequence = data.lastClientSequence
+          }
+        }
+        this.sendBridgeEvent({
+          event: 'websocket.message',
+          subscriptionId,
+          itemId: roomId,
+          data
+        })
+      })
+      socket.addEventListener('error', () => {
+        this.sendBridgeEvent({
+          event: 'websocket.error',
+          subscriptionId,
+          itemId: roomId
+        })
+        this.closeAuthoritativeSubscription(subscriptionId)
+      })
+      socket.addEventListener('close', event => {
+        this.authoritativeSubscriptions.delete(subscriptionId)
+        this.sendBridgeEvent({
+          event: 'websocket.close',
+          subscriptionId,
+          itemId: roomId,
+          code: event.code
+        })
+      })
+    },
+    sendAuthoritativeWebsocket(message) {
+      if (
+        !this.hasBridgePermission('websocket.authoritative') ||
+        !this.hasBridgePermission('websocket.subscribe')
+      ) {
+        throw new Error('Extension is missing authoritative websocket permission.')
+      }
+      const subscriptionId = String(message.subscriptionId || '')
+      const subscription = this.authoritativeSubscriptions.get(subscriptionId)
+      if (!subscription?.authorized) {
+        throw new Error('Authoritative websocket is not authorized yet.')
+      }
+      if (subscription.socket.readyState !== WebSocket.OPEN) {
+        throw new Error('Authoritative websocket is not open.')
+      }
+      if (
+        !message.event ||
+        typeof message.event !== 'object' ||
+        Array.isArray(message.event)
+      ) {
+        throw new Error('Invalid authoritative websocket event.')
+      }
+      const sequence = subscription.lastClientSequence + 1
+      if (!Number.isSafeInteger(sequence)) {
+        throw new Error('Authoritative websocket sequence is out of range.')
+      }
+      subscription.socket.send(JSON.stringify({sequence, event: message.event}))
+      subscription.lastClientSequence = sequence
+    },
     async handleBridgeRequest(message, reply) {
       if (!message || message.type !== 'lnbits-extension:request') return
 
@@ -1380,6 +1502,35 @@ window.WasmExtensionComponent = {
 
         if (message.action === 'websocket.send') {
           this.sendWebsocket(message)
+          this.sendResponse(reply, message.id, {
+            ok: true,
+            data: {ok: true}
+          })
+          return
+        }
+
+        if (message.action === 'websocket.authoritative.subscribe') {
+          this.subscribeAuthoritativeWebsocket(message)
+          this.sendResponse(reply, message.id, {
+            ok: true,
+            data: {ok: true}
+          })
+          return
+        }
+
+        if (message.action === 'websocket.authoritative.unsubscribe') {
+          this.closeAuthoritativeSubscription(
+            String(message.subscriptionId || '')
+          )
+          this.sendResponse(reply, message.id, {
+            ok: true,
+            data: {ok: true}
+          })
+          return
+        }
+
+        if (message.action === 'websocket.authoritative.send') {
+          this.sendAuthoritativeWebsocket(message)
           this.sendResponse(reply, message.id, {
             ok: true,
             data: {ok: true}

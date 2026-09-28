@@ -65,6 +65,121 @@ def test_wasm_extension_config_rejects_coerced_scalar_types():
 
 
 @pytest.mark.parametrize(
+    "field,value",
+    [
+        ("scheduleIntervalMs", 0),
+        ("maxEventsPerSecond", 0),
+        ("maxQueueDepth", 0),
+        ("maxActiveRooms", 0),
+        ("maxEventsPerSecond", True),
+        ("maxQueueDepth", 1.5),
+    ],
+)
+def test_wasm_authoritative_channel_config_uses_pydantic_v1_safe_positive_ints(
+    field: str, value: int | float | bool
+):
+    config = _wasm_config("demoext")
+    config.update(
+        {
+            "permissions": [
+                {"id": "websocket.authoritative"},
+                {"id": "websocket.subscribe"},
+            ],
+            "wasm": {
+                "module": "extension.wasm",
+                "exports": [
+                    {"name": "authorize", "visibility": "authoritative"},
+                    {"name": "schedule", "visibility": "authoritative"},
+                ],
+            },
+            "authoritativeChannel": {
+                "authorizeConnection": "authorize",
+                "ownerContext": {"table": "rooms", "idParam": "roomId"},
+                "maxEventsPerSecond": 10,
+                "maxQueueDepth": 10,
+                "maxActiveRooms": 10,
+            },
+        }
+    )
+    config["authoritativeChannel"][field] = value
+
+    with pytest.raises(ValueError, match="Invalid WASM extension config"):
+        parse_wasm_extension_config("demoext", config)
+
+
+def test_wasm_authoritative_channel_config_accepts_strict_positive_ints():
+    config = _wasm_config("demoext")
+    config.update(
+        {
+            "permissions": [
+                {"id": "websocket.authoritative"},
+                {"id": "websocket.subscribe"},
+            ],
+            "wasm": {
+                "module": "extension.wasm",
+                "exports": [
+                    {"name": "authorize", "visibility": "authoritative"},
+                    {"name": "schedule", "visibility": "authoritative"},
+                ],
+            },
+            "authoritativeChannel": {
+                "authorizeConnection": "authorize",
+                "onSchedule": "schedule",
+                "ownerContext": {"table": "rooms", "idParam": "roomId"},
+                "maxEventsPerSecond": 10,
+                "maxQueueDepth": 10,
+                "maxActiveRooms": 10,
+                "scheduleIntervalMs": 100,
+            },
+        }
+    )
+
+    parsed = parse_wasm_extension_config("demoext", config)
+
+    assert parsed.authoritative_channel
+    assert parsed.authoritative_channel.schedule_interval_ms == 100
+
+
+def test_wasm_serialize_room_routes_allow_public_game_actions():
+    config = _wasm_config("demoext")
+    config.update(
+        {
+            "permissions": [
+                {"id": "websocket.authoritative"},
+                {"id": "websocket.subscribe"},
+            ],
+            "wasm": {
+                "module": "extension.wasm",
+                "exports": [
+                    {"name": "authorize", "visibility": "authoritative"}
+                ],
+            },
+            "authoritativeChannel": {
+                "authorizeConnection": "authorize",
+                "ownerContext": {"table": "rooms", "idParam": "roomId"},
+                "maxEventsPerSecond": 10,
+                "maxQueueDepth": 10,
+                "maxActiveRooms": 10,
+            },
+            "api_routes": [
+                {
+                    "method": "POST",
+                    "path": "/rooms/{room_id}",
+                    "export": "serialize",
+                    "auth": "public",
+                    "path_params": {"room_id": "str"},
+                    "ownerContext": {"table": "rooms", "idParam": "roomId"},
+                    "serializeRoom": True,
+                }
+            ],
+        }
+    )
+
+    parsed = parse_wasm_extension_config("demoext", config)
+    assert parsed.api_routes[0].serialize_room
+
+
+@pytest.mark.parametrize(
     "config_update",
     [
         {"wasm": {"module": "extension.wasm", "host_api": "custom.HostAPI"}},

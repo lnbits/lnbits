@@ -7,10 +7,16 @@ from typing import Annotated, Any
 
 from fastapi import Depends, FastAPI, HTTPException, Request
 
+from lnbits.core.crud.extensions import get_installed_extension
 from lnbits.core.models import Account
 from lnbits.core.services.extensions import get_wasm_runtime_limits_for_extension
+from lnbits.core.wasm_ext.api.authoritative_channels import (
+    AuthoritativeChannelBackpressureError,
+    run_authoritative_channel_export,
+)
 from lnbits.core.wasm_ext.storage.crud import storage_get_row_owner_id
 from lnbits.decorators import check_access_token, check_account_exists
+from lnbits.helpers import sha256s
 from lnbits.settings import settings
 
 from ..wasm.config import WasmAPIRouteConfig
@@ -85,37 +91,15 @@ def _add_wasm_extension_api_route(
         account: Account | None = None,
         access_token: str | None = None,
     ) -> dict[str, Any]:
-        try:
-            limits = await get_wasm_runtime_limits_for_extension(extension.id)
-            payload = await _read_api_payload(
-                request,
-                path_params,
-                max_body_bytes=limits["wasm_runtime_max_request_bytes"],
-            )
-            owner_id = await _wasm_route_owner_id(extension, route_config, payload)
-            return await invoke_wasm_extension_export(
-                extension.id,
-                export_name,
-                payload.data,
-                user=account,
-                access_token=access_token,
-                context="event" if owner_id else "user",
-                owner_id=owner_id,
-                trigger_type="http",
-                method=request.method,
-                path=request.url.path,
-                request_id=request.headers.get("x-request-id"),
-                request_bytes=payload.request_bytes,
-                context_data={"origin": _request_origin(request)},
-            )
-        except WasmRequestBodyTooLargeError as exc:
-            raise HTTPException(status_code=413, detail=str(exc)) from exc
-        except KeyError as exc:
-            raise HTTPException(status_code=404, detail=str(exc)) from exc
-        except PermissionError as exc:
-            raise HTTPException(status_code=403, detail=str(exc)) from exc
-        except (TypeError, ValueError) as exc:
-            raise HTTPException(status_code=400, detail=str(exc)) from exc
+        return await _run_wasm_api_request(
+            extension,
+            export_name,
+            path_params,
+            route_config,
+            request,
+            account,
+            access_token,
+        )
 
     async def invoke_private_wasm_extension_export(
         request: Request,
@@ -144,6 +128,128 @@ def _add_wasm_extension_api_route(
         include_in_schema=True,
     )
     return True
+
+
+async def _run_wasm_api_request(
+    extension: WasmExtension,
+    export_name: str,
+    path_params: dict[str, str],
+    route_config: WasmAPIRouteConfig,
+    request: Request,
+    account: Account | None,
+    access_token: str | None,
+) -> dict[str, Any]:
+    try:
+        limits = await get_wasm_runtime_limits_for_extension(extension.id)
+        payload = await _read_api_payload(
+            request,
+            path_params,
+            max_body_bytes=limits["wasm_runtime_max_request_bytes"],
+        )
+        if route_config.serialize_room:
+            return await _invoke_serialized_room_export(
+                extension,
+                export_name,
+                request,
+                route_config,
+                payload,
+                limits=limits,
+                account=account,
+                access_token=access_token,
+            )
+        owner_id = await _wasm_route_owner_id(extension, route_config, payload)
+        return await invoke_wasm_extension_export(
+            extension.id,
+            export_name,
+            payload.data,
+            user=account,
+            access_token=access_token,
+            context="event" if owner_id else "user",
+            owner_id=owner_id,
+            trigger_type="http",
+            method=request.method,
+            path=request.url.path,
+            request_id=request.headers.get("x-request-id"),
+            request_bytes=payload.request_bytes,
+            context_data={"origin": _request_origin(request)},
+        )
+    except Exception as exc:
+        http_error = _wasm_api_http_exception(exc)
+        if not http_error:
+            raise
+        raise http_error from exc
+
+
+def _wasm_api_http_exception(exc: Exception) -> HTTPException | None:
+    if isinstance(exc, WasmRequestBodyTooLargeError):
+        return HTTPException(status_code=413, detail=str(exc))
+    if isinstance(exc, (AuthoritativeChannelBackpressureError, TimeoutError)):
+        return HTTPException(status_code=503, detail=str(exc))
+    if isinstance(exc, KeyError):
+        return HTTPException(status_code=404, detail=str(exc))
+    if isinstance(exc, PermissionError):
+        return HTTPException(status_code=403, detail=str(exc))
+    if isinstance(exc, (TypeError, ValueError)):
+        return HTTPException(status_code=400, detail=str(exc))
+    return None
+
+
+async def _invoke_serialized_room_export(
+    extension: WasmExtension,
+    export_name: str,
+    request: Request,
+    route_config: WasmAPIRouteConfig,
+    payload: WasmRoutePayload,
+    *,
+    limits: dict[str, int],
+    account: Account | None,
+    access_token: str | None,
+) -> dict[str, Any]:
+    installed_extension = await get_installed_extension(extension.id)
+    granted_permissions = (
+        {permission.id for permission in installed_extension.permissions or []}
+        if (
+            installed_extension
+            and installed_extension.active
+            and installed_extension.is_wasm
+        )
+        else set()
+    )
+    if not {"websocket.authoritative", "websocket.subscribe"}.issubset(
+        granted_permissions
+    ):
+        raise PermissionError(
+            "Authoritative channel permission is not granted to this extension."
+        )
+    owner_context = route_config.owner_context
+    assert owner_context
+    room_id = _wasm_serialized_room_id(request, route_config, payload)
+    payload.data[owner_context.id_param] = room_id
+    owner_id = await storage_get_row_owner_id(
+        extension.id, owner_context.table, room_id
+    )
+    if not owner_id:
+        raise PermissionError("WASM owner-context route source was not found.")
+    if account and owner_id != sha256s(account.id):
+        raise PermissionError("WASM owner-context route belongs to another user.")
+    return await run_authoritative_channel_export(
+        extension,
+        room_id,
+        owner_id,
+        export_name,
+        payload.data,
+        limits=limits,
+        action="api",
+        invoke_options={
+            "user": account,
+            "access_token": access_token,
+            "method": request.method,
+            "path": request.url.path,
+            "request_id": request.headers.get("x-request-id"),
+            "request_bytes": payload.request_bytes,
+            "context_data": {"origin": _request_origin(request)},
+        },
+    )
 
 
 async def _read_api_payload(
@@ -245,6 +351,27 @@ def _read_api_path_params(
         target = path_params.get(key) or _snake_to_camel(key)
         payload[target] = value
     return payload
+
+
+def _wasm_serialized_room_id(
+    request: Request,
+    route_config: WasmAPIRouteConfig,
+    payload: WasmRoutePayload,
+) -> str:
+    owner_context = route_config.owner_context
+    assert owner_context
+    for path_name in route_config.path_params:
+        if path_name in request.path_params and (
+            path_name == owner_context.id_param
+            or _snake_to_camel(path_name) == owner_context.id_param
+        ):
+            path_id = request.path_params.get(path_name)
+            if isinstance(path_id, str) and path_id:
+                return path_id
+    room_id = payload.data.get(owner_context.id_param)
+    if not isinstance(room_id, str) or not room_id:
+        raise PermissionError("WASM room-serialized route requires a room ID.")
+    return room_id
 
 
 def _read_api_query_params(request: Request) -> dict[str, Any]:

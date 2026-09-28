@@ -41,6 +41,13 @@ def test_wasm_frontend_bridge_restricts_api_routes_and_realtime_actions():
     assert "message.action === 'websocket.subscribe'" in bridge
     assert "message.action === 'websocket.unsubscribe'" in bridge
     assert "message.action === 'websocket.send'" in bridge
+    assert "message.action === 'websocket.authoritative.subscribe'" in bridge
+    assert "message.action === 'websocket.authoritative.unsubscribe'" in bridge
+    assert "message.action === 'websocket.authoritative.send'" in bridge
+    assert "hasBridgePermission('websocket.authoritative')" in bridge
+    assert "/authoritative/${encodeURIComponent(roomId)}" in bridge
+    assert "JSON.stringify({type: 'authorize', token})" in bridge
+    assert "JSON.stringify({sequence, event: message.event})" in bridge
     assert "sendWebsocket(message)" in bridge
     assert "Unknown websocket subscription." not in bridge
     assert "if (!subscription) {\n        return\n      }" in bridge

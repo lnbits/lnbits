@@ -119,6 +119,13 @@ class WasmRuntimeLimits(LNbitsSettings):
     wasm_runtime_max_concurrent_invocations_per_extension: int = Field(default=4, ge=0)
     wasm_runtime_max_concurrent_invocations_per_user: int = Field(default=4, ge=0)
 
+    wasm_runtime_max_authoritative_rooms: int = Field(default=16, ge=1)
+    wasm_runtime_max_authoritative_queue_depth: int = Field(default=128, ge=1)
+    wasm_runtime_max_authoritative_events_per_second: int = Field(default=60, ge=1)
+    wasm_runtime_max_authoritative_schedule_rate_hz: int = Field(default=30, ge=1)
+    wasm_runtime_max_authoritative_connections_per_room: int = Field(default=16, ge=1)
+    wasm_runtime_max_authoritative_state_bytes: int = Field(default=65_536, ge=1)
+
     wasm_runtime_max_host_calls: int = Field(default=1_000, ge=0)
     wasm_runtime_max_http_calls: int = Field(default=20, ge=0)
     wasm_runtime_max_storage_calls: int = Field(default=100, ge=0)

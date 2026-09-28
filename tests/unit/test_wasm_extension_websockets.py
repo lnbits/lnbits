@@ -1,4 +1,7 @@
+import json
+from types import SimpleNamespace
 from typing import cast
+from unittest.mock import AsyncMock
 
 import pytest
 from fastapi import WebSocket, WebSocketDisconnect
@@ -129,3 +132,63 @@ async def test_wasm_extension_websocket_hub_rebroadcasts_client_messages_to_peer
 
     assert sender.sent == []
     assert peer.sent == ['{"type":"input","paddle":0.5}']
+
+
+@pytest.mark.anyio
+async def test_authoritative_websocket_token_handshake_returns_canonical_snapshot(
+    mocker,
+):
+    channel = SimpleNamespace(
+        authorize_connection="authorize",
+        max_active_rooms=2,
+        max_queue_depth=4,
+        max_events_per_second=10,
+        schedule_interval_ms=None,
+        on_schedule=None,
+    )
+    extension = SimpleNamespace(
+        id="demoext", config=SimpleNamespace(authoritative_channel=channel)
+    )
+    websocket = FakeWebSocket(
+        received=[json.dumps({"type": "authorize", "token": "session-token"})]
+    )
+    hub = WasmExtensionWebsocketHub()
+    connection = SimpleNamespace(last_client_sequence=3)
+    state = SimpleNamespace(snapshot={"round": 2}, sequence=7, version=4)
+    mocker.patch(
+        "lnbits.core.wasm_ext.api.websockets.reserve_authoritative_connection",
+        AsyncMock(return_value=True),
+    )
+    authorize = mocker.patch.object(
+        hub,
+        "_authorize_authoritative_connection",
+        AsyncMock(return_value=(connection, state)),
+    )
+    mocker.patch.object(hub, "_start_authoritative_room_tasks")
+    mocker.patch.object(hub, "listen_authoritative_channel", AsyncMock())
+    disconnect = mocker.patch.object(hub, "disconnect_authoritative", AsyncMock())
+
+    await hub.serve_authoritative_channel(
+        extension,
+        "room-1",
+        cast(WebSocket, websocket),
+        owner_id="owner-hash",
+        limits={
+            "wasm_runtime_max_execution_ms": 1000,
+            "wasm_runtime_max_authoritative_rooms": 2,
+            "wasm_runtime_max_authoritative_connections_per_room": 2,
+            "wasm_runtime_max_authoritative_queue_depth": 4,
+            "wasm_runtime_max_authoritative_events_per_second": 10,
+            "wasm_runtime_max_authoritative_schedule_rate_hz": 1,
+        },
+    )
+
+    authorize.assert_awaited_once()
+    assert authorize.await_args.args[5] == "session-token"
+    assert json.loads(websocket.sent[0]) == {
+        "type": "snapshot",
+        "state": {"round": 2},
+        "sequence": 7,
+        "lastClientSequence": 3,
+    }
+    disconnect.assert_awaited_once_with(connection)

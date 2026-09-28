@@ -1,7 +1,13 @@
 from fastapi import APIRouter, WebSocket, status
 
 from lnbits.core.crud import get_installed_extension
-from lnbits.core.wasm_ext.api.websockets import wasm_extension_websocket_hub
+from lnbits.core.db import core_app_extra
+from lnbits.core.services.extensions import get_wasm_runtime_limits_for_extension
+from lnbits.core.wasm_ext.api.websockets import (
+    scoped_websocket_item_id,
+    wasm_extension_websocket_hub,
+)
+from lnbits.core.wasm_ext.storage.crud import storage_get_row_owner_id
 
 from ..services import websocket_manager
 
@@ -16,6 +22,56 @@ extension_websocket_router = APIRouter(
 async def websocket_connect(websocket: WebSocket, item_id: str) -> None:
     conn = await websocket_manager.connect(item_id, websocket)
     await websocket_manager.listen(conn)
+
+
+@extension_websocket_router.websocket("/{ext_id}/authoritative/{room_id}")
+async def extension_authoritative_channel_connect(
+    websocket: WebSocket,
+    ext_id: str,
+    room_id: str,
+) -> None:
+    installed_ext = await get_installed_extension(ext_id)
+    installed_permission_ids = (
+        {permission.id for permission in installed_ext.permissions or []}
+        if installed_ext
+        else set()
+    )
+    extension = core_app_extra.wasm_extension_registry.get(ext_id)
+    if (
+        not installed_ext
+        or not installed_ext.active
+        or not installed_ext.is_wasm
+        or not extension
+        or not extension.config.authoritative_channel
+        or not {"websocket.subscribe", "websocket.authoritative"}.issubset(
+            installed_permission_ids
+        )
+    ):
+        await websocket.close(code=status.WS_1008_POLICY_VIOLATION)
+        return
+
+    channel = extension.config.authoritative_channel
+    try:
+        scoped_websocket_item_id(ext_id, room_id)
+        owner_id = await storage_get_row_owner_id(
+            ext_id,
+            channel.owner_context.table,
+            room_id,
+        )
+        if not owner_id:
+            raise PermissionError("Authoritative channel room was not found.")
+        limits = await get_wasm_runtime_limits_for_extension(ext_id)
+    except (TypeError, ValueError, PermissionError):
+        await websocket.close(code=status.WS_1008_POLICY_VIOLATION)
+        return
+
+    await wasm_extension_websocket_hub.serve_authoritative_channel(
+        extension,
+        room_id,
+        websocket,
+        owner_id=owner_id,
+        limits=limits,
+    )
 
 
 @extension_websocket_router.websocket("/{ext_id}/{item_id}")
