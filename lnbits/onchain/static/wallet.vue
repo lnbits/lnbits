@@ -3054,9 +3054,7 @@
         <q-card-section
           ><div class="text-h6">Remote Bitcoin signer · Testnet4</div>
           <p v-if="!signingDialog">
-            Pair this browser once using the device. Connections are automatic
-            when signing. Enter your PIN here when the device requests it, then
-            review and approve the transaction on its touchscreen.
+            Pair this browser to your remote signer. Change the Browser name if needed, this is shown to the device during pairing.
           </p>
           <div v-if="!signingDialog">
             <q-input
