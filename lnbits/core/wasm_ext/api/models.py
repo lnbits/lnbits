@@ -2,7 +2,7 @@ import json
 from dataclasses import dataclass
 from typing import Any, Literal
 
-from pydantic import BaseModel, Field, root_validator
+from pydantic import BaseModel, Field, conint, root_validator, validator
 
 
 @dataclass(frozen=True)
@@ -51,6 +51,11 @@ class StorageGetResponse(BaseModel):
     data_json: str | None = None
 
 
+class StorageGetVersionedResponse(BaseModel):
+    data_json: str | None = None
+    version: int | None = None
+
+
 class StorageSetRequest(BaseModel):
     table: str = Field(..., min_length=1, max_length=128)
     data: dict[str, Any] = Field(default_factory=dict)
@@ -65,6 +70,45 @@ class StorageSetRequest(BaseModel):
 
 class StorageSetResponse(BaseModel):
     ok: bool = True
+
+
+class StorageCompareAndSetRequest(BaseModel):
+    table: str = Field(..., min_length=1, max_length=128)
+    id: str = Field(..., min_length=1, max_length=512)
+    expected_version: int = Field(..., strict=True, ge=1, le=9_223_372_036_854_775_806)
+    new_row: dict[str, Any]
+    make_immutable: bool = False
+
+    @root_validator(pre=True)
+    def parse_new_row_json(cls, values: dict[str, Any]) -> dict[str, Any]:
+        new_row_json = values.get("new_row_json")
+        if new_row_json is not None and "new_row" not in values:
+            values["new_row"] = json.loads(new_row_json)
+        return values
+
+
+class StorageCompareAndSetResponse(BaseModel):
+    applied: bool
+    version: int | None = None
+
+
+class StorageInsertIfAbsentRequest(BaseModel):
+    table: str = Field(..., min_length=1, max_length=128)
+    id: str = Field(..., min_length=1, max_length=512)
+    new_row: dict[str, Any]
+
+    @root_validator(pre=True)
+    def parse_new_row_json(cls, values: dict[str, Any]) -> dict[str, Any]:
+        new_row_json = values.get("new_row_json")
+        if new_row_json is not None and "new_row" not in values:
+            values["new_row"] = json.loads(new_row_json)
+        return values
+
+
+class StorageInsertIfAbsentResponse(BaseModel):
+    created: bool
+    data_json: str | None = None
+    version: int | None = None
 
 
 class StorageAppendPublicRequest(BaseModel):
@@ -257,6 +301,109 @@ class PayInvoiceResponse(BaseModel):
     pending: bool = False
     success: bool = False
     payment_request: str | None = None
+
+
+class PaymentIntentCreateRequest(BaseModel):
+    wallet_id: str = Field(..., min_length=1, max_length=128)
+    idempotency_key: str = Field(..., min_length=1, max_length=128)
+    scope_id: str = Field(..., min_length=1, max_length=256)
+    purpose: Literal["payout", "refund"]
+    funding_payment_hashes: list[str] = Field(..., min_items=1, max_items=32)
+    max_fee_msat: int = Field(..., strict=True, ge=0, le=9_223_372_036_854_775_807)
+    record_table: str | None = Field(None, min_length=1, max_length=128)
+    record_id: str | None = Field(None, min_length=1, max_length=512)
+    source_payment_hash: str | None = Field(None, min_length=64, max_length=64)
+    retry_failed: bool = False
+
+    @validator("funding_payment_hashes")
+    def validate_funding_payment_hashes(cls, hashes: list[str]) -> list[str]:
+        if any(
+            len(value) != 64 or any(c not in "0123456789abcdefABCDEF" for c in value)
+            for value in hashes
+        ):
+            raise ValueError(
+                "Funding payment hashes must be 64 hexadecimal characters."
+            )
+        if len({value.lower() for value in hashes}) != len(hashes):
+            raise ValueError("Funding payment hashes must be unique.")
+        return [value.lower() for value in hashes]
+
+    @validator("source_payment_hash")
+    def validate_source_payment_hash(cls, value: str | None) -> str | None:
+        if value is not None and any(c not in "0123456789abcdefABCDEF" for c in value):
+            raise ValueError("Source payment hash must be hexadecimal.")
+        return value.lower() if value else value
+
+    @root_validator
+    def validate_reference(cls, values: dict[str, Any]) -> dict[str, Any]:
+        purpose = values.get("purpose")
+        if purpose == "payout":
+            if not values.get("record_table") or not values.get("record_id"):
+                raise ValueError(
+                    "Payout intents require an immutable record reference."
+                )
+            if values.get("source_payment_hash"):
+                raise ValueError("Payout intents cannot reference a source payment.")
+        elif purpose == "refund":
+            if not values.get("source_payment_hash"):
+                raise ValueError("Refund intents require a source payment hash.")
+            if values.get("source_payment_hash") not in values.get(
+                "funding_payment_hashes", []
+            ):
+                raise ValueError("A refund source must be included in scoped funding.")
+            if values.get("record_table") or values.get("record_id"):
+                raise ValueError(
+                    "Refund intents reference the incoming payment directly."
+                )
+        return values
+
+
+class PaymentIntentKeyRequest(BaseModel):
+    wallet_id: str = Field(..., min_length=1, max_length=128)
+    idempotency_key: str = Field(..., min_length=1, max_length=128)
+
+
+class PaymentIntentResponse(BaseModel):
+    intent_id: str
+    idempotency_key: str
+    purpose: Literal["payout", "refund"]
+    reference_id: str
+    status: Literal["pending", "processing", "paid", "failed", "unknown"]
+    amount_msat: int
+    fee_msat: int = 0
+    error: str | None = None
+
+
+class ManualPaymentIntentResolutionRequest(BaseModel):
+    wallet_id: str = Field(..., min_length=1, max_length=128)
+    status: Literal["paid", "failed"]
+    fee_msat: conint(strict=True, ge=0) = 0
+    note: str = Field(..., min_length=1, max_length=512)
+
+    @validator("note")
+    def validate_note(cls, value: str) -> str:
+        value = value.strip()
+        if not value:
+            raise ValueError("A manual reconciliation note is required.")
+        return value
+
+    @root_validator
+    def validate_fee(cls, values: dict[str, Any]) -> dict[str, Any]:
+        if values.get("status") == "failed" and values.get("fee_msat"):
+            raise ValueError("A failed payment cannot have a fee.")
+        return values
+
+
+class ManualPaymentIntentRetryRequest(BaseModel):
+    wallet_id: str = Field(..., min_length=1, max_length=128)
+    note: str = Field(..., min_length=1, max_length=512)
+
+    @validator("note")
+    def validate_note(cls, value: str) -> str:
+        value = value.strip()
+        if not value:
+            raise ValueError("A manual retry note is required.")
+        return value
 
 
 class HttpRequest(BaseModel):
