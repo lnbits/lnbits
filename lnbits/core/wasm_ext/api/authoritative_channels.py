@@ -159,9 +159,7 @@ async def run_authoritative_channel_export(
         max_queue_depth=channel.max_queue_depth,
         reservation_ms=max(
             _CAPACITY_RESERVATION_MS,
-            limits["wasm_runtime_max_execution_ms"]
-            * (channel.max_queue_depth + 2)
-            * 2,
+            limits["wasm_runtime_max_execution_ms"] * (channel.max_queue_depth + 2) * 2,
         ),
     )
     if admission_sequence is None:
@@ -204,7 +202,14 @@ async def run_authoritative_channel_export(
         raise AuthoritativeChannelBackpressureError(
             "Authoritative channel event queue is full."
         ) from exc
-    return await future
+    try:
+        return await future
+    except BaseException:
+        # A cancelled caller would otherwise leave its reservation behind until
+        # it expires, blocking every later action for this room.
+        future.cancel()
+        await asyncio.shield(release_authoritative_job(extension.id, admission_id))
+        raise
 
 
 async def get_authoritative_channel_state(
@@ -274,12 +279,8 @@ async def reserve_authoritative_connection(
                 )
             counts = await _capacity_counts(conn, database, room_id)
             if (
-                (
-                    not counts["room_active"]
-                    and counts["active_rooms"] >= max_active_rooms
-                )
-                or counts["connections"] >= max_connections_per_room
-            ):
+                not counts["room_active"] and counts["active_rooms"] >= max_active_rooms
+            ) or counts["connections"] >= max_connections_per_room:
                 return False
             await conn.conn.execute(
                 text(f"""INSERT INTO {connections}
@@ -349,8 +350,7 @@ async def reserve_authoritative_job(
             await _cleanup_capacity(conn, database, now_ms)
             counts = await _capacity_counts(conn, database, room_id)
             if (
-                not counts["room_active"]
-                and counts["active_rooms"] >= max_active_rooms
+                not counts["room_active"] and counts["active_rooms"] >= max_active_rooms
             ) or counts["jobs"] >= max_queue_depth + 1:
                 return None
             order = _table_ref(database, _ORDER_TABLE)
@@ -470,9 +470,7 @@ async def _run_channel_queue(
 ) -> None:
     while True:
         try:
-            job = await asyncio.wait_for(
-                queue.get(), timeout=_ROOM_IDLE_SECONDS
-            )
+            job = await asyncio.wait_for(queue.get(), timeout=_ROOM_IDLE_SECONDS)
         except asyncio.TimeoutError:
             if queue.empty():
                 entry = _channel_queues.get(key)
@@ -555,9 +553,7 @@ async def _execute_channel_job(job: _ChannelJob) -> dict[str, Any]:
             has_snapshot=has_snapshot,
             update_sequence=job.action != "authorize",
             principal_id=job.principal_id if job.action == "event" else None,
-            client_sequence=(
-                job.client_sequence if job.action == "event" else None
-            ),
+            client_sequence=(job.client_sequence if job.action == "event" else None),
             result_table=channel.result_table,
             result_field=channel.result_field,
         )
@@ -626,9 +622,7 @@ async def _check_room_event(
     if job.client_sequence <= last_sequence:
         raise ValueError("Authoritative event sequence is stale.")
     event_timestamps = [
-        timestamp
-        for timestamp in state.event_timestamps
-        if now_ms - timestamp < 1000
+        timestamp for timestamp in state.event_timestamps if now_ms - timestamp < 1000
     ]
     if len(event_timestamps) >= channel.max_events_per_second:
         raise ValueError("Authoritative channel event rate exceeded.")
@@ -976,9 +970,7 @@ def _room_state(
     max_bytes: int | None = None,
 ) -> AuthoritativeChannelState:
     raw_snapshot = row["snapshot_json"]
-    event_timestamps = _strict_json_loads(
-        row["event_timestamps_json"] or "[]"
-    )
+    event_timestamps = _strict_json_loads(row["event_timestamps_json"] or "[]")
     has_snapshot = raw_snapshot is not None
     snapshot = _strict_json_loads(raw_snapshot) if has_snapshot else None
     if max_bytes is not None and has_snapshot:

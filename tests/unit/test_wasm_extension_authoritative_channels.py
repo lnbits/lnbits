@@ -2,6 +2,7 @@ import asyncio
 import json
 import multiprocessing
 import time
+from contextlib import suppress
 from pathlib import Path
 from types import SimpleNamespace
 from uuid import uuid4
@@ -282,19 +283,15 @@ async def test_committed_result_is_inserted_immutable_in_same_transaction(
     result_table = "game_results"
     result_table_ref = channels._table_ref(database, result_table)
     async with database.connect() as conn:
-        await conn.execute(
-            f"""CREATE TABLE {result_table_ref} (
+        await conn.execute(f"""CREATE TABLE {result_table_ref} (
                 id TEXT PRIMARY KEY, scope_id TEXT NOT NULL,
                 amount_msat BIGINT NOT NULL, note TEXT NOT NULL,
                 __lnbits_owner_id__ TEXT NOT NULL,
                 __lnbits_version__ BIGINT NOT NULL DEFAULT 1,
                 __lnbits_immutable__ BOOLEAN NOT NULL DEFAULT false
-            )"""
-        )
-        await conn.execute(
-            f"""INSERT INTO {rooms} (room_id, owner_id, lease_owner)
-                VALUES ('room', 'owner', 'lease')"""  # noqa: S608
-        )
+            )""")
+        await conn.execute(f"""INSERT INTO {rooms} (room_id, owner_id, lease_owner)
+                VALUES ('room', 'owner', 'lease')""")  # noqa: S608
 
     await channels._save_room_state(
         database,
@@ -402,11 +399,9 @@ async def test_stale_authoritative_rooms_and_client_sequences_are_reaped(
                 (room_id, owner_id, last_activity_ms) VALUES ('old', 'owner', :old)""",  # noqa: S608
             {"old": old_ms},
         )
-        await conn.execute(
-            f"""INSERT INTO {clients}
+        await conn.execute(f"""INSERT INTO {clients}
                 (room_id, principal_id, last_client_sequence)
-                VALUES ('old', 'principal', 4)"""  # noqa: S608
-        )
+                VALUES ('old', 'principal', 4)""")  # noqa: S608
         await conn.execute(
             f"INSERT INTO {order} (room_id, next_sequence) VALUES ('old', 4)"  # noqa: S608
         )
@@ -492,11 +487,79 @@ async def test_authoritative_events_commit_snapshots_and_client_sequences(
 
         assert state.sequence == 1
         assert state.snapshot == {"position": 1}
-        assert await channels.get_authoritative_principal_sequence(
-            extension_id, "room-1", "principal-1"
-        ) == 1
+        assert (
+            await channels.get_authoritative_principal_sequence(
+                extension_id, "room-1", "principal-1"
+            )
+            == 1
+        )
     finally:
         entry = channels._channel_queues.pop(key, None)
         if entry:
             entry.worker.cancel()
             await asyncio.gather(entry.worker, return_exceptions=True)
+
+
+@pytest.mark.anyio
+async def test_cancelled_channel_export_releases_its_queue_reservation(
+    tmp_path: Path, settings: Settings, mocker
+):
+    settings.lnbits_database_url = None
+    settings.lnbits_data_folder = str(tmp_path)
+    extension_id = f"cancel{uuid4().hex[:8]}"
+    room_id = "room"
+    database = await channels._database(extension_id)
+    jobs = channels._table_ref(database, channels._JOBS_TABLE)
+    release = asyncio.Event()
+
+    async def block(job):
+        await release.wait()
+        return {"ok": True, "data": {"state": {}}}
+
+    mocker.patch.object(channels, "_execute_channel_job", side_effect=block)
+    channel = SimpleNamespace(
+        authorize_connection="authorize",
+        on_event=None,
+        on_schedule=None,
+        max_active_rooms=1,
+        max_queue_depth=2,
+        max_events_per_second=10,
+        schedule_interval_ms=None,
+    )
+    extension = SimpleNamespace(
+        id=extension_id, config=SimpleNamespace(authoritative_channel=channel)
+    )
+    limits = {
+        "wasm_runtime_max_execution_ms": 1000,
+        "wasm_runtime_max_authoritative_rooms": 4,
+        "wasm_runtime_max_authoritative_queue_depth": 4,
+        "wasm_runtime_max_authoritative_events_per_second": 10,
+        "wasm_runtime_max_authoritative_schedule_rate_hz": 10,
+    }
+
+    task = asyncio.create_task(
+        channels.run_authoritative_channel_export(
+            extension,
+            room_id,
+            "owner",
+            "authorize",
+            {},
+            limits=limits,
+            action="authorize",
+        )
+    )
+    for _ in range(100):
+        async with database.connect() as conn:
+            reserved = await conn.fetchone(f"SELECT job_id FROM {jobs}")  # noqa: S608
+        if reserved:
+            break
+        await asyncio.sleep(0.01)
+    assert reserved
+
+    task.cancel()
+    with suppress(asyncio.CancelledError):
+        await task
+    release.set()
+
+    async with database.connect() as conn:
+        assert not await conn.fetchone(f"SELECT job_id FROM {jobs}")  # noqa: S608
