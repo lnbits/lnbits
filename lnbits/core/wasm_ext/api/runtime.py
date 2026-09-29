@@ -54,6 +54,10 @@ class ExtensionAPIHost:
         if (
             self.api.authoritative_execution
             and method.method_id not in _AUTHORITATIVE_ALLOWED_METHODS
+            and not (
+                self.api.ephemeral_authoritative_execution
+                and method.method_id.startswith("storage.")
+            )
         ):
             raise PermissionError(
                 "This host function is unavailable during authoritative execution."

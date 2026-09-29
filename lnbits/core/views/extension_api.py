@@ -58,6 +58,7 @@ from lnbits.core.services.extensions import (
     get_wasm_invocation_history,
     get_wasm_invocation_summary,
     install_extension,
+    invalidate_wasm_ephemeral_authoritative_extension,
     resolve_wasm_runtime_limits,
     stop_wasm_invocation,
     uninstall_extension,
@@ -680,6 +681,7 @@ async def api_update_extension_permissions(
             allow_admin_policy_overrides=True,
         )
         await update_installed_extension(installed_ext)
+        await invalidate_wasm_ephemeral_authoritative_extension(installed_ext.id)
     except ValueError as exc:
         raise HTTPException(
             status_code=HTTPStatus.BAD_REQUEST,

@@ -1,3 +1,4 @@
+import asyncio
 import json
 import zipfile
 from datetime import datetime, timedelta, timezone
@@ -7,6 +8,7 @@ from uuid import uuid4
 import pytest
 from pytest_mock.plugin import MockerFixture
 
+import lnbits.core.wasm_ext.wasm.invoke as wasm_invoke
 from lnbits.core.crud import (
     create_installed_extension,
     delete_installed_extension,
@@ -56,6 +58,124 @@ async def test_install_extension_rejects_incompatible_release(
     finally:
         settings.lnbits_data_folder = original_data_folder
         settings.lnbits_extensions_path = original_extensions_path
+
+
+@pytest.mark.anyio
+async def test_ephemeral_wasm_invocations_skip_persistent_audit(mocker):
+    monitoring = mocker.patch(
+        "lnbits.core.services.extensions.ensure_wasm_invocation_monitoring_ready",
+        mocker.AsyncMock(),
+    )
+    create = mocker.patch(
+        "lnbits.core.services.extensions.create_wasm_invocation",
+        mocker.AsyncMock(),
+    )
+    update = mocker.patch(
+        "lnbits.core.services.extensions.update_wasm_invocation",
+        mocker.AsyncMock(),
+    )
+
+    invocation = await start_wasm_invocation(
+        extension_id=f"ephemeral{uuid4().hex[:8]}",
+        export_name="event",
+        trigger_type="websocket_event",
+        runtime_limits={},
+        persist=False,
+    )
+    await finish_wasm_invocation(invocation.id, status="completed")
+
+    create.assert_not_awaited()
+    update.assert_not_awaited()
+    monitoring.assert_not_awaited()
+
+
+@pytest.mark.anyio
+async def test_cancelled_ephemeral_wasm_invocation_stops_and_finishes(mocker, settings):
+    settings.lnbits_extensions_deactivate_all = False
+    settings.lnbits_wasm_runtime_single_worker_mode = True
+    started = asyncio.Event()
+    finish_thread = asyncio.Event()
+
+    async def fake_to_thread(*_args):
+        started.set()
+        await finish_thread.wait()
+        return {"ok": True}
+
+    mocker.patch.object(wasm_invoke.asyncio, "to_thread", new=fake_to_thread)
+    mocker.patch.object(
+        wasm_invoke,
+        "_get_registered_extension",
+        return_value=SimpleNamespace(
+            id="ephemeral",
+            config=SimpleNamespace(
+                authoritative_channel=SimpleNamespace(persistence="ephemeral")
+            ),
+        ),
+    )
+    mocker.patch.object(
+        extension_services,
+        "start_wasm_invocation",
+        mocker.AsyncMock(return_value=SimpleNamespace(id="invocation")),
+    )
+    stop = mocker.patch.object(
+        extension_services, "stop_wasm_invocation", mocker.AsyncMock()
+    )
+    finish = mocker.patch.object(
+        extension_services, "finish_wasm_invocation", mocker.AsyncMock()
+    )
+    mocker.patch.object(
+        extension_services, "get_wasm_invocation_stop_reason", return_value=None
+    )
+
+    task = asyncio.create_task(
+        wasm_invoke.invoke_wasm_extension_export(
+            "ephemeral",
+            "event",
+            {},
+            context="event",
+            owner_id="owner",
+            authoritative_execution=True,
+            preauthorized_permissions=[],
+            runtime_limits={
+                "wasm_runtime_max_request_bytes": 1024,
+                "wasm_runtime_max_execution_ms": 10_000,
+            },
+        )
+    )
+    await started.wait()
+    task.cancel()
+    finish_thread.set()
+    with pytest.raises(asyncio.CancelledError):
+        await task
+
+    stop.assert_awaited_once_with("invocation", reason="WASM invocation was cancelled.")
+    finish.assert_awaited_once()
+    assert finish.await_args.kwargs["status"] == "stopped"
+
+
+@pytest.mark.anyio
+@pytest.mark.parametrize("trigger_type", ["websocket_event", "websocket_schedule"])
+async def test_cached_wasm_invocation_respects_global_shutdown(
+    mocker, settings, trigger_type
+):
+    settings.lnbits_extensions_deactivate_all = True
+    settings.lnbits_wasm_runtime_single_worker_mode = True
+    start = mocker.patch.object(
+        extension_services, "start_wasm_invocation", mocker.AsyncMock()
+    )
+    with pytest.raises(PermissionError, match="deactivated"):
+        await wasm_invoke.invoke_wasm_extension_export(
+            "ephemeral",
+            "event",
+            {},
+            context="event",
+            owner_id="owner",
+            trigger_type=trigger_type,
+            authoritative_execution=True,
+            preauthorized_permissions=[],
+            runtime_limits={},
+        )
+    start.assert_not_awaited()
 
 
 @pytest.mark.anyio

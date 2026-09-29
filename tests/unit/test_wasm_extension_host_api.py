@@ -347,6 +347,31 @@ async def test_authoritative_execution_allows_host_reads():
 
 
 @pytest.mark.anyio
+async def test_ephemeral_authoritative_execution_allows_scoped_storage_writes(mocker):
+    storage_write = mocker.patch(
+        "lnbits.core.wasm_ext.api.host.storage_set_row", mocker.AsyncMock()
+    )
+    api = ExtensionHostAPI(
+        "demoext",
+        ["ext.storage.write"],
+        context="event",
+        user_id="user-1",
+        authoritative_execution=True,
+        ephemeral_authoritative_execution=True,
+    )
+    host = ExtensionAPIHost(api)
+
+    response = await host.invoke(
+        "storage.set", {"table": "rooms", "data": {"id": "room-1"}}
+    )
+
+    assert response == {"ok": True}
+    storage_write.assert_awaited_once()
+    with pytest.raises(PermissionError, match="unavailable during authoritative"):
+        await host.invoke("http.request", {"url": "https://example.com"})
+
+
+@pytest.mark.anyio
 async def test_host_api_storage_requires_owner_context_and_uses_user_hash(
     mocker: MockerFixture,
 ):

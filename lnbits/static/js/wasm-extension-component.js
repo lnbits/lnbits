@@ -1298,7 +1298,7 @@ window.WasmExtensionComponent = {
       )
       const subscription = {
         lastClientSequence: 0,
-        roomId,
+        roomGeneration: null,
         socket,
         authorized: false
       }
@@ -1308,6 +1308,11 @@ window.WasmExtensionComponent = {
         socket.send(JSON.stringify({type: 'authorize', token}))
       })
       socket.addEventListener('message', event => {
+        if (
+          this.authoritativeSubscriptions.get(subscriptionId) !== subscription
+        ) {
+          return
+        }
         let data = event.data
         try {
           data = JSON.parse(event.data)
@@ -1316,6 +1321,9 @@ window.WasmExtensionComponent = {
           subscription.authorized = true
           if (Number.isSafeInteger(data.lastClientSequence)) {
             subscription.lastClientSequence = data.lastClientSequence
+          }
+          if (typeof data.roomGeneration === 'string' && data.roomGeneration) {
+            subscription.roomGeneration = data.roomGeneration
           }
         }
         this.sendBridgeEvent({
@@ -1381,7 +1389,11 @@ window.WasmExtensionComponent = {
       if (!Number.isSafeInteger(sequence)) {
         throw new Error('Authoritative websocket sequence is out of range.')
       }
-      subscription.socket.send(JSON.stringify({sequence, event: message.event}))
+      const frame = {sequence, event: message.event}
+      if (subscription.roomGeneration) {
+        frame.roomGeneration = subscription.roomGeneration
+      }
+      subscription.socket.send(JSON.stringify(frame))
       subscription.lastClientSequence = sequence
     },
     async handleBridgeRequest(message, reply) {

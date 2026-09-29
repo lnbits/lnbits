@@ -74,6 +74,7 @@ class WasmAuthoritativeChannelConfig(_StrictWasmModel):
     max_events_per_second: _PositiveStrictInt = Field(..., alias="maxEventsPerSecond")
     max_queue_depth: _PositiveStrictInt = Field(..., alias="maxQueueDepth")
     max_active_rooms: _PositiveStrictInt = Field(..., alias="maxActiveRooms")
+    persistence: Literal["durable", "ephemeral"] = "durable"
 
 
 class WasmAPIRouteConfig(_StrictWasmModel):

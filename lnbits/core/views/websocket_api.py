@@ -3,6 +3,9 @@ from fastapi import APIRouter, WebSocket, status
 from lnbits.core.crud import get_installed_extension
 from lnbits.core.db import core_app_extra
 from lnbits.core.services.extensions import get_wasm_runtime_limits_for_extension
+from lnbits.core.wasm_ext.api.authoritative_channels import (
+    get_ephemeral_authoritative_extension_generation,
+)
 from lnbits.core.wasm_ext.api.websockets import (
     scoped_websocket_item_id,
     wasm_extension_websocket_hub,
@@ -30,6 +33,7 @@ async def extension_authoritative_channel_connect(
     ext_id: str,
     room_id: str,
 ) -> None:
+    policy_generation = get_ephemeral_authoritative_extension_generation(ext_id)
     installed_ext = await get_installed_extension(ext_id)
     installed_permission_ids = (
         {permission.id for permission in installed_ext.permissions or []}
@@ -71,6 +75,8 @@ async def extension_authoritative_channel_connect(
         websocket,
         owner_id=owner_id,
         limits=limits,
+        permissions=installed_ext.permissions or [],
+        policy_generation=policy_generation,
     )
 
 

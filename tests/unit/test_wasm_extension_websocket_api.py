@@ -115,4 +115,6 @@ async def test_authoritative_websocket_delegates_granted_channel(mocker):
         websocket,
         owner_id="owner-hash",
         limits={"wasm_runtime_max_execution_ms": 1000},
+        permissions=installed.permissions,
+        policy_generation=0,
     )

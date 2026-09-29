@@ -1,3 +1,4 @@
+import asyncio
 import json
 from types import SimpleNamespace
 from typing import cast
@@ -7,6 +8,7 @@ import pytest
 from fastapi import WebSocket, WebSocketDisconnect
 
 from lnbits.core.wasm_ext.api.websockets import (
+    WasmAuthoritativeChannelConnection,
     WasmExtensionWebsocketHub,
     WasmExtensionWebsocketRateLimitError,
 )
@@ -89,13 +91,124 @@ async def test_wasm_extension_websocket_hub_prunes_stale_publish_connections():
 async def test_authoritative_send_awaits_failed_connection_cleanup(mocker):
     hub = WasmExtensionWebsocketHub()
     connection = SimpleNamespace(
-        websocket=FakeWebSocket(send_error=RuntimeError("websocket closed"))
+        websocket=FakeWebSocket(send_error=RuntimeError("websocket closed")),
+        outgoing=asyncio.Queue(maxsize=1),
     )
     disconnect = mocker.patch.object(hub, "disconnect_authoritative", AsyncMock())
+    sender = asyncio.create_task(hub._send_authoritative_queue(connection))
 
     await hub._send_authoritative(connection, '{"type":"state"}')
+    await sender
 
     disconnect.assert_awaited_once_with(connection)
+
+
+@pytest.mark.anyio
+async def test_authoritative_send_closes_slow_subscriber_when_queue_is_full(mocker):
+    hub = WasmExtensionWebsocketHub()
+    websocket = FakeWebSocket()
+    connection = SimpleNamespace(
+        websocket=websocket,
+        outgoing=asyncio.Queue(maxsize=1),
+    )
+    connection.outgoing.put_nowait("queued")
+    disconnect = mocker.patch.object(hub, "disconnect_authoritative", AsyncMock())
+
+    assert not await hub._send_authoritative(connection, '{"type":"state"}')
+    await asyncio.gather(*hub.closing_tasks)
+
+    assert websocket.closed == 1013
+    disconnect.assert_awaited_once_with(connection)
+
+
+@pytest.mark.anyio
+async def test_authoritative_overflow_does_not_wait_for_slow_close(mocker):
+    hub = WasmExtensionWebsocketHub()
+    closing = asyncio.Event()
+    finish_close = asyncio.Event()
+
+    async def slow_close(code):
+        closing.set()
+        await finish_close.wait()
+
+    slow = SimpleNamespace(
+        websocket=SimpleNamespace(close=slow_close),
+        outgoing=asyncio.Queue(maxsize=1),
+    )
+    healthy = SimpleNamespace(outgoing=asyncio.Queue(maxsize=1))
+    slow.outgoing.put_nowait("queued")
+    disconnect = mocker.patch.object(hub, "disconnect_authoritative", AsyncMock())
+    try:
+        assert not await asyncio.wait_for(hub._send_authoritative(slow, "state"), 0.2)
+        assert await hub._send_authoritative(healthy, "state")
+        assert healthy.outgoing.get_nowait() == "state"
+        await asyncio.wait_for(closing.wait(), 0.2)
+        disconnect.assert_awaited_once_with(slow)
+    finally:
+        finish_close.set()
+        await asyncio.gather(*hub.closing_tasks)
+
+
+@pytest.mark.anyio
+async def test_authoritative_close_has_a_timeout(mocker):
+    hub = WasmExtensionWebsocketHub()
+    cancelled = asyncio.Event()
+
+    async def blocked_close(code):
+        try:
+            await asyncio.Event().wait()
+        finally:
+            cancelled.set()
+
+    mocker.patch(
+        "lnbits.core.wasm_ext.api.websockets._AUTHORITATIVE_CLOSE_TIMEOUT_SECONDS",
+        0.01,
+    )
+    await asyncio.wait_for(hub._close(SimpleNamespace(close=blocked_close), 1013), 0.2)
+    assert cancelled.is_set()
+
+
+@pytest.mark.anyio
+async def test_authoritative_disconnect_during_send_preserves_queue_cleanup(mocker):
+    hub = WasmExtensionWebsocketHub()
+    sending = asyncio.Event()
+
+    async def blocked_send(data):
+        sending.set()
+        await asyncio.Event().wait()
+
+    connection = SimpleNamespace(
+        extension=SimpleNamespace(
+            id="demoext",
+            config=SimpleNamespace(authoritative_channel=None),
+        ),
+        room_id="room",
+        connection_id="connection",
+        websocket=SimpleNamespace(send_text=blocked_send),
+        sender_task=None,
+        outgoing=None,
+    )
+    mocker.patch(
+        "lnbits.core.wasm_ext.api.websockets.release_authoritative_connection",
+        AsyncMock(),
+    )
+    hub.authoritative_connections.append(connection)
+    hub.authoritative_tasks[("demoext", "room")] = (asyncio.current_task(),)
+    hub._start_authoritative_sender(connection)
+    sender = connection.sender_task
+    outgoing = connection.outgoing
+    try:
+        await hub._send_authoritative(connection, "state")
+        await asyncio.wait_for(sending.wait(), 0.2)
+        await hub.disconnect_authoritative(connection)
+        await sender
+        await asyncio.wait_for(outgoing.join(), 0.2)
+        assert connection.outgoing is None
+        assert not hub.authoritative_connections
+        assert not hub.authoritative_tasks
+    finally:
+        sender.cancel()
+        await asyncio.gather(sender, return_exceptions=True)
 
 
 @pytest.mark.anyio
@@ -166,7 +279,19 @@ async def test_authoritative_websocket_token_handshake_returns_canonical_snapsho
         received=[json.dumps({"type": "authorize", "token": "session-token"})]
     )
     hub = WasmExtensionWebsocketHub()
-    connection = SimpleNamespace(last_client_sequence=3)
+    connection = WasmAuthoritativeChannelConnection(
+        extension=extension,
+        room_id="room-1",
+        websocket=cast(WebSocket, websocket),
+        owner_id="owner-hash",
+        principal_id="principal-hash",
+        role="player",
+        can_send=True,
+        connection_id="connection-1",
+        limits={},
+        last_client_sequence=3,
+        permissions=[],
+    )
     state = SimpleNamespace(snapshot={"round": 2}, sequence=7, version=4)
     mocker.patch(
         "lnbits.core.wasm_ext.api.websockets.reserve_authoritative_connection",
@@ -198,10 +323,13 @@ async def test_authoritative_websocket_token_handshake_returns_canonical_snapsho
 
     authorize.assert_awaited_once()
     assert authorize.await_args.args[5] == "session-token"
+    await asyncio.sleep(0)
     assert json.loads(websocket.sent[0]) == {
         "type": "snapshot",
         "state": {"round": 2},
         "sequence": 7,
         "lastClientSequence": 3,
     }
+    connection.sender_task.cancel()
+    await asyncio.gather(connection.sender_task, return_exceptions=True)
     disconnect.assert_awaited_once_with(connection)

@@ -12,6 +12,7 @@ from lnbits.core.models import Account
 from lnbits.core.services.extensions import get_wasm_runtime_limits_for_extension
 from lnbits.core.wasm_ext.api.authoritative_channels import (
     AuthoritativeChannelBackpressureError,
+    get_ephemeral_authoritative_extension_generation,
     run_authoritative_channel_export,
 )
 from lnbits.core.wasm_ext.storage.crud import storage_get_row_owner_id
@@ -205,6 +206,14 @@ async def _invoke_serialized_room_export(
     account: Account | None,
     access_token: str | None,
 ) -> dict[str, Any]:
+    channel_config = getattr(
+        getattr(extension, "config", None), "authoritative_channel", None
+    )
+    policy_generation = (
+        get_ephemeral_authoritative_extension_generation(extension.id)
+        if getattr(channel_config, "persistence", "durable") == "ephemeral"
+        else None
+    )
     installed_extension = await get_installed_extension(extension.id)
     granted_permissions = (
         {permission.id for permission in installed_extension.permissions or []}
@@ -215,9 +224,10 @@ async def _invoke_serialized_room_export(
         )
         else set()
     )
-    if not {"websocket.authoritative", "websocket.subscribe"}.issubset(
-        granted_permissions
-    ):
+    if not installed_extension or not {
+        "websocket.authoritative",
+        "websocket.subscribe",
+    }.issubset(granted_permissions):
         raise PermissionError(
             "Authoritative channel permission is not granted to this extension."
         )
@@ -249,6 +259,12 @@ async def _invoke_serialized_room_export(
             "request_bytes": payload.request_bytes,
             "context_data": {"origin": _request_origin(request)},
         },
+        permissions=(
+            (installed_extension.permissions or [])
+            if getattr(channel_config, "persistence", "durable") == "ephemeral"
+            else None
+        ),
+        policy_generation=policy_generation,
     )
 
 

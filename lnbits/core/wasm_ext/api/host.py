@@ -103,6 +103,7 @@ class ExtensionHostAPI:
         invocation_id: str | None = None,
         runtime_limits: dict[str, int] | None = None,
         authoritative_execution: bool = False,
+        ephemeral_authoritative_execution: bool = False,
     ) -> None:
         self.extension_id = extension_id
         self.permissions, self.permission_policies = self._permission_data(permissions)
@@ -113,6 +114,7 @@ class ExtensionHostAPI:
         self.invocation_id = invocation_id
         self.runtime_limits = runtime_limits or {}
         self.authoritative_execution = authoritative_execution
+        self.ephemeral_authoritative_execution = ephemeral_authoritative_execution
         from .utils import ExtensionAPIUtils
 
         self.utils = ExtensionAPIUtils(
