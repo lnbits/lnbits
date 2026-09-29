@@ -255,9 +255,7 @@ async def test_failed_payment_intent_retry_grants_host_permission(mocker):
     )
     host = mocker.patch(
         "lnbits.core.views.extension_api.ExtensionHostAPI",
-        return_value=SimpleNamespace(
-            wallet_payment_intent_create_or_get=create_or_get
-        ),
+        return_value=SimpleNamespace(wallet_payment_intent_create_or_get=create_or_get),
     )
 
     response = await api_retry_failed_wasm_payment_intent(

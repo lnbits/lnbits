@@ -786,9 +786,7 @@ async def test_payment_intent_timeout_persists_invoice_and_never_resends(
             {"wallet_id": wallet_id, "hashes": json.dumps(["a" * 64])},
         )
 
-    wallet = SimpleNamespace(
-        id=wallet_id, user="user-1", can_send_payments=True
-    )
+    wallet = SimpleNamespace(id=wallet_id, user="user-1", can_send_payments=True)
     mocker.patch(
         "lnbits.core.crud.wallets.get_wallet",
         mocker.AsyncMock(return_value=wallet),
@@ -833,9 +831,7 @@ async def test_payment_intent_timeout_persists_invoice_and_never_resends(
         "lnbits.core.services.payments.pay_invoice",
         mocker.AsyncMock(side_effect=TimeoutError("payment backend timed out")),
     )
-    api = ExtensionHostAPI(
-        extension_id, ["wallet.payment_intents"], user_id="user-1"
-    )
+    api = ExtensionHostAPI(extension_id, ["wallet.payment_intents"], user_id="user-1")
     request = PaymentIntentCreateRequest(
         wallet_id=wallet_id,
         idempotency_key=idempotency_key,
@@ -857,9 +853,7 @@ async def test_payment_intent_timeout_persists_invoice_and_never_resends(
     assert bool(persisted["attempted"]) is True
 
     reconciled = await api.wallet_payment_intent_reconcile(
-        PaymentIntentKeyRequest(
-            wallet_id=wallet_id, idempotency_key=idempotency_key
-        )
+        PaymentIntentKeyRequest(wallet_id=wallet_id, idempotency_key=idempotency_key)
     )
     repeated = await api.wallet_payment_intent_create_or_get(request)
 
@@ -885,9 +879,7 @@ async def test_payment_intent_reconciles_existing_payment_after_failed_error(
         "payment_request": None,
         "payment_hash": None,
     }
-    mocker.patch(
-        "lnbits.core.services.payments.fee_reserve_total", return_value=10
-    )
+    mocker.patch("lnbits.core.services.payments.fee_reserve_total", return_value=10)
     mocker.patch(
         "lnbits.core.wasm_ext.api.host.resolve_payment_intent_invoice",
         mocker.AsyncMock(return_value=("lnbc1invoice", payment_hash, "")),
@@ -914,9 +906,7 @@ async def test_payment_intent_reconciles_existing_payment_after_failed_error(
         "lnbits.core.wasm_ext.api.host.reconcile_payment_intent",
         mocker.AsyncMock(return_value={"status": "paid"}),
     )
-    api = ExtensionHostAPI(
-        "demoext", ["wallet.payment_intents"], user_id="owner-1"
-    )
+    api = ExtensionHostAPI("demoext", ["wallet.payment_intents"], user_id="owner-1")
 
     result = await api._run_payment_intent(intent, SimpleNamespace())
 

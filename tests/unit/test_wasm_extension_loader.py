@@ -150,9 +150,7 @@ def test_wasm_serialize_room_routes_allow_public_game_actions():
             ],
             "wasm": {
                 "module": "extension.wasm",
-                "exports": [
-                    {"name": "authorize", "visibility": "authoritative"}
-                ],
+                "exports": [{"name": "authorize", "visibility": "authoritative"}],
             },
             "authoritativeChannel": {
                 "authorizeConnection": "authorize",

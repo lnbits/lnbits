@@ -298,9 +298,7 @@ class WasmExtensionWebsocketHub:
                     or not isinstance(event, dict)
                     or not all(isinstance(key, str) for key in event)
                     or not set(event).issubset(channel.event_fields)
-                    or not all(
-                        _valid_event_value(value) for value in event.values()
-                    )
+                    or not all(_valid_event_value(value) for value in event.values())
                 ):
                     await self._close(conn.websocket, 1008)
                     return
@@ -545,7 +543,6 @@ class WasmExtensionWebsocketHub:
             await websocket.close(code=code)
         except (RuntimeError, WebSocketDisconnect):
             pass
-
 
     def disconnect(self, conn: WasmExtensionWebsocketConnection) -> None:
         self.active_connections = [

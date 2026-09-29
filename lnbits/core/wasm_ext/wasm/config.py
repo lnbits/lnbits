@@ -207,13 +207,9 @@ def _validate_authoritative_event_fields(
         "timestamp",
         "token",
     }
-    invalid_fields = (
-        len(set(channel.event_fields)) != len(channel.event_fields)
-        or any(
-            not _CHANNEL_EVENT_FIELD_RE.fullmatch(field)
-            or field.lower() in reserved_fields
-            for field in channel.event_fields
-        )
+    invalid_fields = len(set(channel.event_fields)) != len(channel.event_fields) or any(
+        not _CHANNEL_EVENT_FIELD_RE.fullmatch(field) or field.lower() in reserved_fields
+        for field in channel.event_fields
     )
     if invalid_fields:
         raise ValueError(

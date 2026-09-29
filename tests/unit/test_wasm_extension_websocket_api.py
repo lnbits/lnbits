@@ -76,9 +76,7 @@ async def test_authoritative_websocket_requires_both_installed_permissions(mocke
 async def test_authoritative_websocket_delegates_granted_channel(mocker):
     websocket = AsyncMock()
     channel = SimpleNamespace(owner_context=SimpleNamespace(table="rooms"))
-    extension = SimpleNamespace(
-        config=SimpleNamespace(authoritative_channel=channel)
-    )
+    extension = SimpleNamespace(config=SimpleNamespace(authoritative_channel=channel))
     installed = SimpleNamespace(
         active=True,
         is_wasm=True,
