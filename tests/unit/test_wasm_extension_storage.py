@@ -41,6 +41,20 @@ from tests.helpers import make_installable_extension
 
 
 @pytest.mark.anyio
+async def test_wasm_storage_reuses_database_engine_per_extension(mocker: MockerFixture):
+    factory = mocker.patch.object(
+        storage_crud, "Database", side_effect=lambda _: object()
+    )
+    first_id = f"cached_{uuid4().hex}"
+    second_id = f"cached_{uuid4().hex}"
+
+    first = storage_crud._database(first_id)
+    assert storage_crud._database(first_id) is first
+    assert storage_crud._database(second_id) is not first
+    assert factory.call_count == 2
+
+
+@pytest.mark.anyio
 async def test_core_wasm_migrations_create_persistent_columns(
     tmp_path: Path, settings: Settings
 ):
@@ -324,11 +338,14 @@ async def test_wasm_storage_atomic_operations_are_owner_scoped_and_versioned(
 
         original_row = {
             "id": "match-1",
-            "title": "Waiting",
+            "title": "<b>Waiting</b>",
             "count": 1,
             "published": False,
             "tags": ["match"],
             "created_at": 1_700_000_000,
+            "owner_id": "row-owner",
+            "expected_version": 41,
+            "make_immutable": False,
         }
         insert_results = await asyncio.gather(
             storage_insert_if_absent_row(
@@ -408,7 +425,7 @@ async def test_wasm_storage_atomic_operations_are_owner_scoped_and_versioned(
         settings.lnbits_data_folder = original_data_folder
 
     assert created is True
-    assert row["title"] in {original_row["title"], "Must not replace"}
+    assert row["title"] in {"Waiting", "Must not replace"}
     assert version == 1
     assert duplicate[0] is False
     assert duplicate[1:] == (row, 1)
@@ -420,6 +437,9 @@ async def test_wasm_storage_atomic_operations_are_owner_scoped_and_versioned(
     assert finalized_update is False
     assert stored_row is not None
     assert stored_row["title"] in {"Finished A", "Finished B"}
+    assert stored_row["owner_id"] == "row-owner"
+    assert stored_row["expected_version"] == 41
+    assert stored_row["make_immutable"] is False
     assert stored_version == 3
     assert foreign_row is None
     assert foreign_version is None
@@ -634,6 +654,17 @@ def _write_storage_extension(settings: Settings, ext_id: str) -> Path:
                     {"name": "published", "type": "boolean", "default": False},
                     {"name": "tags", "type": "string", "list": True},
                     {"name": "created_at", "type": "datetime"},
+                    {"name": "owner_id", "type": "string", "nullable": True},
+                    {
+                        "name": "expected_version",
+                        "type": "integer",
+                        "nullable": True,
+                    },
+                    {
+                        "name": "make_immutable",
+                        "type": "boolean",
+                        "nullable": True,
+                    },
                 ]
             },
             "threads": {

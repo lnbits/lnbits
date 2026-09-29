@@ -869,6 +869,64 @@ async def test_payment_intent_timeout_persists_invoice_and_never_resends(
 
 
 @pytest.mark.anyio
+async def test_payment_intent_reconciles_existing_payment_after_failed_error(
+    mocker: MockerFixture,
+):
+    payment_hash = "b" * 64
+    intent = {
+        "id": "intent-1",
+        "wallet_id": "wallet-1",
+        "owner_user_id": "owner-1",
+        "idempotency_key": "payout-1",
+        "purpose": "payout",
+        "scope_id": "scope-1",
+        "amount_msat": 1000,
+        "max_fee_msat": 100,
+        "payment_request": None,
+        "payment_hash": None,
+    }
+    mocker.patch(
+        "lnbits.core.services.payments.fee_reserve_total", return_value=10
+    )
+    mocker.patch(
+        "lnbits.core.wasm_ext.api.host.resolve_payment_intent_invoice",
+        mocker.AsyncMock(return_value=("lnbc1invoice", payment_hash, "")),
+    )
+    mocker.patch(
+        "lnbits.core.wasm_ext.api.host.save_payment_intent_invoice",
+        mocker.AsyncMock(return_value=True),
+    )
+    mocker.patch(
+        "lnbits.core.wasm_ext.api.host.mark_payment_intent_attempted",
+        mocker.AsyncMock(return_value=True),
+    )
+    mocker.patch(
+        "lnbits.core.services.payments.pay_invoice",
+        mocker.AsyncMock(
+            side_effect=PaymentError("Internal invoice already paid.", status="failed")
+        ),
+    )
+    mocker.patch(
+        "lnbits.core.crud.payments.get_standalone_payment",
+        mocker.AsyncMock(return_value=SimpleNamespace(success=True)),
+    )
+    reconcile = mocker.patch(
+        "lnbits.core.wasm_ext.api.host.reconcile_payment_intent",
+        mocker.AsyncMock(return_value={"status": "paid"}),
+    )
+    api = ExtensionHostAPI(
+        "demoext", ["wallet.payment_intents"], user_id="owner-1"
+    )
+
+    result = await api._run_payment_intent(intent, SimpleNamespace())
+
+    assert result == {"status": "paid"}
+    reconciled_intent = reconcile.await_args.args[1]
+    assert reconciled_intent["attempted"] is True
+    assert reconciled_intent["payment_hash"] == payment_hash
+
+
+@pytest.mark.anyio
 async def test_host_api_can_fetch_lnurl_invoice_without_paying(
     mocker: MockerFixture,
 ):

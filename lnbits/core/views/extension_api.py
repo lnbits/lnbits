@@ -279,7 +279,7 @@ async def api_retry_failed_wasm_payment_intent(
     )
     api = ExtensionHostAPI(
         ext_id,
-        [],
+        ["wallet.payment_intents"],
         user_id=wallet.user,
         owner_id=sha256s(wallet.user),
     )

@@ -793,13 +793,15 @@ class ExtensionHostAPI:
                 payment_record = await get_standalone_payment(
                     intent["payment_hash"], wallet_id=intent["wallet_id"]
                 )
+                if payment_record:
+                    return await reconcile_payment_intent(self.extension_id, intent)
                 return (
                     await set_payment_intent_status(
                         self.extension_id,
                         intent["id"],
                         "failed",
                         error="Payment failed.",
-                        attempted=False if not payment_record else None,
+                        attempted=False,
                     )
                     or intent
                 )

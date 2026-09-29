@@ -48,6 +48,12 @@ def test_wasm_frontend_bridge_restricts_api_routes_and_realtime_actions():
     assert "/authoritative/${encodeURIComponent(roomId)}" in bridge
     assert "JSON.stringify({type: 'authorize', token})" in bridge
     assert "JSON.stringify({sequence, event: message.event})" in bridge
+    assert (
+        bridge.count(
+            "this.authoritativeSubscriptions.get(subscriptionId) !== subscription"
+        )
+        == 2
+    )
     assert "sendWebsocket(message)" in bridge
     assert "Unknown websocket subscription." not in bridge
     assert "if (!subscription) {\n        return\n      }" in bridge

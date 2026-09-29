@@ -270,6 +270,7 @@ async def test_committed_result_is_inserted_immutable_in_same_transaction(
                             {"name": "id", "type": "string"},
                             {"name": "scope_id", "type": "string"},
                             {"name": "amount_msat", "type": "integer"},
+                            {"name": "note", "type": "string"},
                         ]
                     }
                 }
@@ -284,7 +285,7 @@ async def test_committed_result_is_inserted_immutable_in_same_transaction(
         await conn.execute(
             f"""CREATE TABLE {result_table_ref} (
                 id TEXT PRIMARY KEY, scope_id TEXT NOT NULL,
-                amount_msat BIGINT NOT NULL,
+                amount_msat BIGINT NOT NULL, note TEXT NOT NULL,
                 __lnbits_owner_id__ TEXT NOT NULL,
                 __lnbits_version__ BIGINT NOT NULL DEFAULT 1,
                 __lnbits_immutable__ BOOLEAN NOT NULL DEFAULT false
@@ -304,7 +305,11 @@ async def test_committed_result_is_inserted_immutable_in_same_transaction(
         sequence=3,
         snapshot={
             "round": 5,
-            "result": {"scope_id": "room", "amount_msat": 7000},
+            "result": {
+                "scope_id": "room",
+                "amount_msat": 7000,
+                "note": "<b>won</b>",
+            },
         },
         has_snapshot=True,
         update_sequence=True,
@@ -322,6 +327,7 @@ async def test_committed_result_is_inserted_immutable_in_same_transaction(
         )
     assert bool(result["__lnbits_immutable__"])
     assert result["amount_msat"] == 7000
+    assert result["note"] == "won"
     assert json.loads(room["snapshot_json"])["result"]["scope_id"] == "room"
     with pytest.raises(ValueError, match="conflicts with an existing immutable row"):
         await channels._save_room_state(
@@ -333,7 +339,11 @@ async def test_committed_result_is_inserted_immutable_in_same_transaction(
             sequence=4,
             snapshot={
                 "round": 6,
-                "result": {"scope_id": "room", "amount_msat": 8000},
+                "result": {
+                    "scope_id": "room",
+                    "amount_msat": 8000,
+                    "note": "changed",
+                },
             },
             has_snapshot=True,
             update_sequence=True,
@@ -347,6 +357,33 @@ async def test_committed_result_is_inserted_immutable_in_same_transaction(
     assert state.sequence == 3
     assert state.snapshot["result"]["amount_msat"] == 7000
 
+    with pytest.raises(channels.AuthoritativeChannelLeaseError):
+        await channels._save_room_state(
+            database,
+            extension_id,
+            "lost-room",
+            "owner",
+            "expired-lease",
+            sequence=1,
+            snapshot={
+                "result": {
+                    "scope_id": "lost-room",
+                    "amount_msat": 1000,
+                    "note": "lost",
+                },
+            },
+            has_snapshot=True,
+            update_sequence=True,
+            principal_id=None,
+            client_sequence=None,
+            result_table=result_table,
+        )
+    async with database.connect() as conn:
+        leaked_result = await conn.fetchone(
+            f"SELECT * FROM {result_table_ref} WHERE id = 'lost-room'"  # noqa: S608
+        )
+    assert leaked_result is None
+
 
 @pytest.mark.anyio
 async def test_stale_authoritative_rooms_and_client_sequences_are_reaped(
@@ -357,6 +394,7 @@ async def test_stale_authoritative_rooms_and_client_sequences_are_reaped(
     database = await channels._database(extension_id)
     rooms = channels._table_ref(database, channels._ROOMS_TABLE)
     clients = channels._table_ref(database, channels._CLIENTS_TABLE)
+    order = channels._table_ref(database, channels._ORDER_TABLE)
     old_ms = int(time.time() * 1000) - channels._ROOM_RETENTION_MS - 1000
     async with database.connect() as conn:
         await conn.execute(
@@ -369,6 +407,9 @@ async def test_stale_authoritative_rooms_and_client_sequences_are_reaped(
                 (room_id, principal_id, last_client_sequence)
                 VALUES ('old', 'principal', 4)"""  # noqa: S608
         )
+        await conn.execute(
+            f"INSERT INTO {order} (room_id, next_sequence) VALUES ('old', 4)"  # noqa: S608
+        )
 
     assert await channels.reserve_authoritative_job(
         extension_id, "new", "job", max_active_rooms=1, max_queue_depth=1
@@ -379,6 +420,9 @@ async def test_stale_authoritative_rooms_and_client_sequences_are_reaped(
         )
         assert not await conn.fetchone(
             f"SELECT room_id FROM {clients} WHERE room_id = 'old'"  # noqa: S608
+        )
+        assert not await conn.fetchone(
+            f"SELECT room_id FROM {order} WHERE room_id = 'old'"  # noqa: S608
         )
     await channels.release_authoritative_job(extension_id, "job")
 

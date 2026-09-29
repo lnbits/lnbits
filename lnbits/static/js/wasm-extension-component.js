@@ -1270,7 +1270,9 @@ window.WasmExtensionComponent = {
         !this.hasBridgePermission('websocket.authoritative') ||
         !this.hasBridgePermission('websocket.subscribe')
       ) {
-        throw new Error('Extension is missing authoritative websocket permission.')
+        throw new Error(
+          'Extension is missing authoritative websocket permission.'
+        )
       }
 
       const subscriptionId = String(message.subscriptionId || '')
@@ -1324,6 +1326,11 @@ window.WasmExtensionComponent = {
         })
       })
       socket.addEventListener('error', () => {
+        if (
+          this.authoritativeSubscriptions.get(subscriptionId) !== subscription
+        ) {
+          return
+        }
         this.sendBridgeEvent({
           event: 'websocket.error',
           subscriptionId,
@@ -1332,6 +1339,11 @@ window.WasmExtensionComponent = {
         this.closeAuthoritativeSubscription(subscriptionId)
       })
       socket.addEventListener('close', event => {
+        if (
+          this.authoritativeSubscriptions.get(subscriptionId) !== subscription
+        ) {
+          return
+        }
         this.authoritativeSubscriptions.delete(subscriptionId)
         this.sendBridgeEvent({
           event: 'websocket.close',
@@ -1346,7 +1358,9 @@ window.WasmExtensionComponent = {
         !this.hasBridgePermission('websocket.authoritative') ||
         !this.hasBridgePermission('websocket.subscribe')
       ) {
-        throw new Error('Extension is missing authoritative websocket permission.')
+        throw new Error(
+          'Extension is missing authoritative websocket permission.'
+        )
       }
       const subscriptionId = String(message.subscriptionId || '')
       const subscription = this.authoritativeSubscriptions.get(subscriptionId)

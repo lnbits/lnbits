@@ -86,6 +86,19 @@ async def test_wasm_extension_websocket_hub_prunes_stale_publish_connections():
 
 
 @pytest.mark.anyio
+async def test_authoritative_send_awaits_failed_connection_cleanup(mocker):
+    hub = WasmExtensionWebsocketHub()
+    connection = SimpleNamespace(
+        websocket=FakeWebSocket(send_error=RuntimeError("websocket closed"))
+    )
+    disconnect = mocker.patch.object(hub, "disconnect_authoritative", AsyncMock())
+
+    await hub._send_authoritative(connection, '{"type":"state"}')
+
+    disconnect.assert_awaited_once_with(connection)
+
+
+@pytest.mark.anyio
 async def test_wasm_extension_websocket_hub_rate_limits_per_channel():
     hub = WasmExtensionWebsocketHub()
     websocket = FakeWebSocket()

@@ -538,7 +538,7 @@ class WasmExtensionWebsocketHub:
         try:
             await conn.websocket.send_text(data)
         except (RuntimeError, WebSocketDisconnect):
-            self.disconnect_authoritative(conn)
+            await self.disconnect_authoritative(conn)
 
     async def _close(self, websocket: WebSocket, code: int) -> None:
         try:

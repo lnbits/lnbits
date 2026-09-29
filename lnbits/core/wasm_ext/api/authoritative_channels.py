@@ -362,11 +362,11 @@ async def reserve_authoritative_job(
             admission_sequence = (
                 int(sequence_row["next_sequence"]) + 1 if sequence_row else 1
             )
-            await conn.execute(
-                f"""INSERT INTO {order} (room_id, next_sequence)
+            await conn.conn.execute(
+                text(f"""INSERT INTO {order} (room_id, next_sequence)
                     VALUES (:room_id, :sequence)
                     ON CONFLICT (room_id) DO UPDATE
-                    SET next_sequence = :sequence""",
+                    SET next_sequence = :sequence"""),
                 {"room_id": room_id, "sequence": admission_sequence},
             )
             await conn.conn.execute(
@@ -397,9 +397,8 @@ async def _lock_capacity(conn: Any, database: Database) -> None:
     # ponytail: global lock; per-room locks if reservation throughput matters.
     if database.type == SQLITE:
         # SQLite has no row-level FOR UPDATE; take its write lock before reading.
-        await conn.execute(
-            f"UPDATE {_table_ref(database, _CAPACITY_TABLE)} SET id = id WHERE id = 1"
-        )
+        capacity = _table_ref(database, _CAPACITY_TABLE)
+        await conn.conn.execute(text(f"UPDATE {capacity} SET id = id WHERE id = 1"))
         return
     await _raw_fetchone(
         conn,
@@ -438,6 +437,7 @@ async def _cleanup_capacity(conn: Any, database: Database, now_ms: int) -> None:
     jobs = _table_ref(database, _JOBS_TABLE)
     rooms = _table_ref(database, _ROOMS_TABLE)
     clients = _table_ref(database, _CLIENTS_TABLE)
+    order = _table_ref(database, _ORDER_TABLE)
     await conn.conn.execute(
         text(f"DELETE FROM {connections} WHERE expires_at_ms <= :now_ms"),
         {"now_ms": now_ms},
@@ -452,6 +452,10 @@ async def _cleanup_capacity(conn: Any, database: Database, now_ms: int) -> None:
         AND room_id NOT IN (SELECT room_id FROM {jobs})"""
     await conn.conn.execute(
         text(f"DELETE FROM {clients} WHERE room_id IN ({stale})"),
+        {"cutoff_ms": now_ms - _ROOM_RETENTION_MS, "now_ms": now_ms},
+    )
+    await conn.conn.execute(
+        text(f"DELETE FROM {order} WHERE room_id IN ({stale})"),
         {"cutoff_ms": now_ms - _ROOM_RETENTION_MS, "now_ms": now_ms},
     )
     await conn.conn.execute(
