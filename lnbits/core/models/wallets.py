@@ -130,6 +130,7 @@ class Wallet(BaseWallet):
     updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     currency: str | None = None
     lightning_address: str | None = None
+    onchain_network: Literal["Mainnet", "Testnet", "Testnet4"] | None = None
     balance_msat: int = Field(default=0, no_database=True)
     extra: WalletExtra = WalletExtra()
     stored_paylinks: StoredPayLinks = StoredPayLinks()

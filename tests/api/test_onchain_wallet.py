@@ -365,6 +365,7 @@ async def test_onchain_core_creation_currency_and_read_balance(
     assert created.status_code == 200, created.text
     wallet = created.json()
     assert wallet["wallet_type"] == "onchain"
+    assert wallet["onchain_network"] == "Testnet4"
     assert wallet["extra"]["icon"] == "currency_bitcoin"
     assert wallet["lightning_address"] is None
     assert (await get_config(wallet["id"])).network == "Testnet4"
@@ -375,6 +376,7 @@ async def test_onchain_core_creation_currency_and_read_balance(
     assert changed.status_code == 200
     assert changed.json()["currency"] == "EUR"
     assert changed.json()["extra"]["pinned"]
+    assert (await get_config(wallet["id"])).network == "Testnet4"
     assert (
         await http_client.get("/api/v1/wallet", headers={"X-API-KEY": wallet["inkey"]})
     ).json()["balance"] == 0

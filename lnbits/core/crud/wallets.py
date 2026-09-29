@@ -1,5 +1,6 @@
 from datetime import datetime, timezone
 from time import time
+from typing import Literal
 from uuid import uuid4
 
 from lnbits.core.db import db
@@ -20,6 +21,7 @@ async def create_wallet(
     wallet_type: WalletType = WalletType.LIGHTNING,
     currency: str | None = None,
     shared_wallet_id: str | None = None,
+    onchain_network: Literal["Mainnet", "Testnet", "Testnet4"] = "Mainnet",
     conn: Connection | None = None,
 ) -> Wallet:
     if currency is not None:
@@ -34,6 +36,7 @@ async def create_wallet(
         name=wallet_name or settings.lnbits_default_wallet_name,
         wallet_type=wallet_type.value,
         shared_wallet_id=shared_wallet_id,
+        onchain_network=onchain_network if wallet_type == WalletType.ONCHAIN else None,
         user=user_id,
         adminkey=uuid4().hex,
         inkey=uuid4().hex,
