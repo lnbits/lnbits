@@ -445,20 +445,37 @@ async def test_onchain_signing_preflight_rejects_spent_coin(
 
 
 @pytest.mark.anyio
-async def test_onchain_permanent_cleanup_preserves_accounts(
-    http_client, onchain_wallet
+@pytest.mark.parametrize("cleanup", ["force", "deleted", "unused"])
+async def test_onchain_permanent_cleanup_allows_deletion(
+    http_client, onchain_wallet, cleanup
 ):
     from lnbits.core.crud.users import delete_account, get_account
-    from lnbits.core.crud.wallets import force_delete_wallet
+    from lnbits.core.crud.wallets import (
+        delete_unused_wallets,
+        delete_wallet,
+        force_delete_wallet,
+        remove_deleted_wallets,
+    )
 
     wallet, user, headers = onchain_wallet
     await add_watch(http_client, headers)
-    with pytest.raises(ValueError, match="permanently deleted"):
-        await force_delete_wallet(wallet.id)
-    with pytest.raises(ValueError, match="permanently deleted"):
-        await delete_account(user.id)
+    await delete_account(user.id)
+    assert await get_account(user.id) is None
     assert await get_wallet(wallet.id)
-    assert await get_account(user.id)
+    if cleanup == "force":
+        await force_delete_wallet(wallet.id)
+    elif cleanup == "deleted":
+        await delete_wallet(user.id, wallet.id)
+        await remove_deleted_wallets()
+    else:
+        await sync.db.execute(
+            f"""UPDATE wallets
+            SET created_at = {sync.db.timestamp_placeholder('created')},
+                updated_at = NULL WHERE id = :id""",  # noqa: S608
+            {"id": wallet.id, "created": 0},
+        )
+        await delete_unused_wallets(60)
+    assert await get_wallet(wallet.id, deleted=None) is None
 
 
 @pytest.mark.anyio
@@ -692,7 +709,7 @@ async def test_watch_removal_clears_onchain_state_and_allows_fresh_setup(
 
 
 @pytest.mark.anyio
-async def test_onchain_setup_racing_permanent_deletion_preserves_seed(
+async def test_onchain_setup_does_not_prevent_permanent_deletion(
     http_client, onchain_wallet, monkeypatch
 ):
     from lnbits.core.crud.wallets import force_delete_wallet
@@ -711,13 +728,12 @@ async def test_onchain_setup_racing_permanent_deletion_preserves_seed(
         return await execute(query, values)
 
     monkeypatch.setattr(sync.db, "execute", setup_before_delete)
-    with pytest.raises(ValueError, match="permanently deleted"):
-        await force_delete_wallet(wallet.id)
+    await force_delete_wallet(wallet.id)
+    assert await get_wallet(wallet.id, deleted=None) is None
     backup = await http_client.post(
         f"/onchain/api/v1/hot-wallet/{wallet.id}/backup", headers=headers
     )
-    assert backup.status_code == 200
-    assert backup.json()["mnemonic"] == PHRASE
+    assert backup.status_code == 404
 
 
 @pytest.mark.anyio
