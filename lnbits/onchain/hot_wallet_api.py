@@ -7,7 +7,6 @@ from pydantic import BaseModel, SecretStr
 from starlette.concurrency import run_in_threadpool
 
 from lnbits.core.services.onchain import require_onchain_payments
-from lnbits.helpers import urlsafe_short_hash
 from lnbits.settings import settings
 
 from .crud import (
@@ -86,7 +85,7 @@ async def create_hot_wallet(
     if not data.title.strip():
         raise HTTPException(HTTPStatus.BAD_REQUEST, "Enter a wallet name")
     wallet = WalletAccount(
-        id=urlsafe_short_hash(),
+        id=auth.wallet_id,
         wallet_id=auth.wallet_id,
         masterpub=descriptor,
         fingerprint=descriptor_fingerprint(parse_key(descriptor)[0]),
@@ -100,9 +99,11 @@ async def create_hot_wallet(
     )
     encrypted = encrypt_mnemonic(mnemonic, wallet)
     try:
-        await create_watch_wallet(wallet, encrypted_seed=encrypted)
+        wallet = await create_watch_wallet(wallet, encrypted_seed=encrypted)
     except WalletAlreadyConfiguredError as exc:
         raise HTTPException(HTTPStatus.CONFLICT, str(exc)) from exc
+    except ValueError as exc:
+        raise HTTPException(HTTPStatus.BAD_REQUEST, str(exc)) from exc
     await api_get_addresses(wallet.id, auth)
     request_scan(auth.wallet_id)
     return wallet
@@ -114,7 +115,9 @@ async def secret_for_wallet(wallet: WalletAccount) -> str:
             HTTPStatus.BAD_REQUEST, "This wallet uses an external signer"
         )
     row = await db.fetchone(
-        "SELECT encrypted_seed FROM onchain_keys WHERE wallet = :wallet",
+        """SELECT onchain_encrypted_seed AS encrypted_seed FROM wallets
+        WHERE id = :wallet AND wallet_type = 'onchain'
+            AND onchain_wallet_kind = 'hot' AND onchain_encrypted_seed IS NOT NULL""",
         {"wallet": wallet.id},
         StoredSecret,
     )

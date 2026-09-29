@@ -5,7 +5,6 @@ from typing import Literal
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from starlette.concurrency import run_in_threadpool
 
-from lnbits.helpers import urlsafe_short_hash
 from lnbits.settings import settings
 
 from .bindings import wally
@@ -13,8 +12,6 @@ from .crud import (
     WalletAlreadyConfiguredError,
     create_fresh_addresses,
     create_watch_wallet,
-    db,
-    delete_addresses_for_wallet,
     delete_watch_wallet,
     get_address_by_id,
     get_addresses,
@@ -96,7 +93,7 @@ async def api_wallet_create_or_update(
             )
 
         new_wallet = WalletAccount(
-            id=urlsafe_short_hash(),
+            id=auth.wallet_id,
             wallet_id=auth.wallet_id,
             masterpub=data.masterpub,
             fingerprint=descriptor_fingerprint(descriptor),
@@ -134,16 +131,10 @@ async def api_wallet_delete(
             "Server wallets cannot be deleted while they hold signing keys."
             " Keep the wallet for recovery and transaction history.",
         )
-    await db.execute(
-        """
-        DELETE FROM onchain_snapshots WHERE address_id IN (
-            SELECT id FROM onchain_addresses WHERE wallet = :wallet
-        )
-    """,
-        {"wallet": wallet_id},
-    )
-    await delete_addresses_for_wallet(wallet_id)
-    await delete_watch_wallet(wallet_id)
+    try:
+        await delete_watch_wallet(wallet_id)
+    except ValueError as exc:
+        raise HTTPException(HTTPStatus.CONFLICT, str(exc)) from exc
 
     return "", HTTPStatus.NO_CONTENT
 
@@ -367,21 +358,14 @@ async def api_update_config(
     data: Config,
     auth: OnchainAuth = Depends(require_onchain_admin),
 ) -> ConfigResponse:
-    previous = await get_config(auth.wallet_id)
-    if previous.network != data.network:
-        rows: list[dict] = await db.fetchall(
-            "SELECT id FROM onchain_accounts WHERE wallet_id = :id",
-            {"id": auth.wallet_id},
-        )
-        if rows:
-            raise HTTPException(
-                409, "Create another LNbits wallet to use a different Bitcoin network"
-            )
     if data.explorer_provider == "lnbits" and local_explorer_network() != data.network:
         raise HTTPException(
             400, "LNbits block explorer is unavailable for this network"
         )
-    config = await update_config(data, wallet_id=auth.wallet_id)
+    try:
+        config = await update_config(data, wallet_id=auth.wallet_id)
+    except ValueError as exc:
+        raise HTTPException(HTTPStatus.CONFLICT, str(exc)) from exc
     request_scan(auth.wallet_id)
     return config_response(config)
 

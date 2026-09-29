@@ -1,6 +1,8 @@
 import asyncio
 import base64
+import json
 from types import SimpleNamespace
+from typing import cast
 
 import httpx
 import pytest
@@ -95,10 +97,10 @@ async def test_one_bitcoin_wallet_per_core_wallet(http_client, onchain_wallet, k
     accounts = await http_client.get("/onchain/api/v1/wallet", headers=headers)
     assert len(accounts.json()) == 1
     account = accounts.json()[0]
+    assert account["id"] == account["wallet_id"] == wallet.id
     stored_keys = await sync.db.fetchall(
-        """SELECT k.wallet FROM onchain_keys k
-           JOIN onchain_accounts a ON a.id = k.wallet
-           WHERE a.wallet_id = :wallet""",
+        """SELECT id FROM wallets WHERE id = :wallet
+           AND onchain_encrypted_seed IS NOT NULL""",
         {"wallet": wallet.id},
     )
     assert len(stored_keys) == (1 if account["wallet_kind"] == "hot" else 0)
@@ -289,7 +291,8 @@ async def test_onchain_scan_persists_and_hydrates_without_lightning_credit(
 async def test_onchain_scan_lease_does_not_block_wallet_creation(
     http_client, onchain_wallet, monkeypatch
 ):
-    wallet, _, headers = onchain_wallet
+    wallet, user, headers = onchain_wallet
+    await add_watch(http_client, headers)
     started, finish = asyncio.Event(), asyncio.Event()
     count = 0
 
@@ -307,7 +310,13 @@ async def test_onchain_scan_lease_does_not_block_wallet_creation(
         assert count == 1
         state = await sync.wallet_state(OnchainAuth(wallet.id))
         assert state["scanning"]
-        await asyncio.wait_for(add_watch(http_client, headers), 5)
+        other = await asyncio.wait_for(
+            create_wallet(user_id=user.id, wallet_type=WalletType.ONCHAIN), 5
+        )
+        config = await get_config(other.id)
+        config.network = "Testnet4"
+        await update_config(config, other.id)
+        await asyncio.wait_for(add_watch(http_client, {"X-API-KEY": other.adminkey}), 5)
     finally:
         finish.set()
         await task
@@ -520,3 +529,277 @@ async def test_onchain_local_explorer_used_for_fees_raw_tx_and_broadcast(
     assert broadcast.status_code == 200, broadcast.text
     assert broadcast.json() == "a" * 64
     client.broadcast.assert_awaited_once_with("deadbeef")
+
+
+@pytest.mark.anyio
+async def test_unconfigured_onchain_wallet_is_not_scanned(onchain_wallet, monkeypatch):
+    from unittest.mock import AsyncMock
+
+    wallet, _, _ = onchain_wallet
+    scan = AsyncMock()
+    monkeypatch.setattr(sync, "_scan", scan)
+    await sync.scan_wallet(wallet.id)
+    scan.assert_not_awaited()
+    state = await sync.wallet_state(OnchainAuth(wallet.id))
+    assert not state["scanning"] and state["checked_at"] == 0
+    assert state["error"] is None and state["snapshots"] == []
+
+
+@pytest.mark.anyio
+async def test_onchain_metadata_and_seed_survive_generic_wallet_updates(
+    http_client, onchain_wallet
+):
+    from sqlalchemy import event
+
+    from lnbits.core.crud.wallets import (
+        get_wallet_for_key,
+        get_wallets_ids,
+        get_wallets_paginated,
+        update_wallet,
+    )
+
+    wallet, user, headers = onchain_wallet
+    response = await http_client.post(
+        "/onchain/api/v1/hot-wallet",
+        headers={**headers, "X-Onchain-Recovery-Phrase": PHRASE},
+        json={"title": "Onchain savings", "network": "Testnet4"},
+    )
+    assert response.status_code == 200, response.text
+    assert response.json()["id"] == wallet.id
+    assert "encrypted_seed" not in response.text
+    query = """SELECT onchain_encrypted_seed, onchain_meta, onchain_config,
+        onchain_network FROM wallets WHERE id = :id"""
+    stored = dict(await sync.db.fetchone(query, {"id": wallet.id}))
+    assert stored["onchain_encrypted_seed"]
+    meta = json.loads(stored["onchain_meta"])
+    assert meta["masterpub"] == response.json()["masterpub"]
+    assert meta["fingerprint"] == response.json()["fingerprint"]
+    assert meta["script_type"] == "p2wpkh"
+    assert meta["accountPath"] == "m/84'/1'/0'"
+    assert "network" not in json.loads(stored["onchain_config"])
+    statements = []
+
+    def record(_conn, _cursor, statement, _parameters, _context, _executemany):
+        statements.append(statement)
+
+    event.listen(sync.db.engine.sync_engine, "before_cursor_execute", record)
+    try:
+        loaded = await get_wallet(wallet.id)
+        assert loaded and loaded.name == "Onchain savings"
+        assert "onchain_encrypted_seed" not in loaded.dict()
+        assert await get_wallet_for_key(wallet.adminkey)
+        assert await get_wallets(user.id)
+        assert wallet.id in await get_wallets_ids(user.id)
+        assert (await get_wallets_paginated(user.id)).data
+        loaded.name = "Renamed onchain wallet"
+        await update_wallet(loaded)
+    finally:
+        event.remove(sync.db.engine.sync_engine, "before_cursor_execute", record)
+    assert all("onchain_encrypted_seed" not in statement for statement in statements)
+    assert all("select *" not in statement.lower() for statement in statements)
+    assert dict(await sync.db.fetchone(query, {"id": wallet.id})) == stored
+    account = await http_client.get(
+        f"/onchain/api/v1/wallet/{wallet.id}", headers=headers
+    )
+    assert account.json()["title"] == "Renamed onchain wallet"
+    backup = await http_client.post(
+        f"/onchain/api/v1/hot-wallet/{wallet.id}/backup", headers=headers
+    )
+    assert backup.json()["mnemonic"] == PHRASE
+    removed = await http_client.delete(
+        f"/onchain/api/v1/wallet/{wallet.id}", headers=headers
+    )
+    assert removed.status_code == 409
+    assert dict(await sync.db.fetchone(query, {"id": wallet.id})) == stored
+
+
+@pytest.mark.anyio
+async def test_onchain_scan_metadata_preserves_setup_and_newer_leases(
+    http_client, onchain_wallet
+):
+    wallet, _, headers = onchain_wallet
+    await add_watch(http_client, headers)
+    original = await sync.db.fetchone(
+        "SELECT onchain_meta FROM wallets WHERE id = :id", {"id": wallet.id}
+    )
+    meta = json.loads(original["onchain_meta"])
+    meta["sync_checked_at"] = 42
+    # Simulate metadata written after scan acquisition but before completion.
+    meta["accountPath"] = "m/84'/1'/0'"
+    await sync.db.execute(
+        """UPDATE wallets SET onchain_sync_lease_until = 100,
+        onchain_meta = :meta WHERE id = :id""",
+        {"id": wallet.id, "meta": json.dumps(meta)},
+    )
+    await sync.finish_scan(wallet.id, 99, None)
+    row = await sync.db.fetchone(
+        "SELECT onchain_meta, onchain_sync_lease_until FROM wallets WHERE id = :id",
+        {"id": wallet.id},
+    )
+    assert row["onchain_sync_lease_until"] == 100
+    assert json.loads(row["onchain_meta"]) == meta
+    await sync.finish_scan(wallet.id, 100, "Explorer unavailable")
+    state = await sync.wallet_state(OnchainAuth(wallet.id))
+    assert state["checked_at"] == 42
+    assert state["error"] == "Explorer unavailable"
+    assert not state["scanning"]
+    await sync.db.execute(
+        "UPDATE wallets SET onchain_sync_lease_until = 101 WHERE id = :id",
+        {"id": wallet.id},
+    )
+    await sync.finish_scan(wallet.id, 101, None)
+    row = await sync.db.fetchone(
+        "SELECT onchain_meta FROM wallets WHERE id = :id", {"id": wallet.id}
+    )
+    updated = json.loads(row["onchain_meta"])
+    assert updated["sync_error"] is None
+    assert updated["sync_checked_at"] > 42
+    for key in ("masterpub", "fingerprint", "script_type", "accountPath"):
+        assert updated[key] == meta[key]
+
+
+@pytest.mark.anyio
+async def test_watch_removal_clears_onchain_state_and_allows_fresh_setup(
+    http_client, onchain_wallet
+):
+    from lnbits.onchain.models import Config
+
+    wallet, _, headers = onchain_wallet
+    config = await get_config(wallet.id)
+    config.sats_denominated = False
+    config.receive_gap_limit = 2
+    await update_config(config, wallet.id)
+    account = await add_watch(http_client, headers)
+    assert account["id"] == wallet.id
+    assert len(await get_addresses(wallet.id)) == 2 + config.change_gap_limit
+    removed = await http_client.delete(
+        f"/onchain/api/v1/wallet/{wallet.id}", headers=headers
+    )
+    assert removed.status_code < 300
+    assert await get_wallet(wallet.id)
+    assert await get_addresses(wallet.id) == []
+    assert await get_config(wallet.id) == Config()
+    assert (
+        await http_client.get("/onchain/api/v1/wallet", headers=headers)
+    ).json() == []
+    state = await sync.wallet_state(OnchainAuth(wallet.id))
+    assert state["snapshots"] == [] and state["balance_sat"] == 0
+    assert not state["scanning"] and state["error"] is None
+    config = await get_config(wallet.id)
+    config.network = "Testnet4"
+    await update_config(config, wallet.id)
+    assert (await add_watch(http_client, headers))["id"] == wallet.id
+
+
+@pytest.mark.anyio
+async def test_onchain_setup_racing_permanent_deletion_preserves_seed(
+    http_client, onchain_wallet, monkeypatch
+):
+    from lnbits.core.crud.wallets import force_delete_wallet
+
+    wallet, _, headers = onchain_wallet
+    execute = sync.db.execute
+
+    async def setup_before_delete(query, values=None):
+        if query.lstrip().startswith("DELETE FROM wallets"):
+            created = await http_client.post(
+                "/onchain/api/v1/hot-wallet",
+                headers={**headers, "X-Onchain-Recovery-Phrase": PHRASE},
+                json={"title": "Recovery race", "network": "Testnet4"},
+            )
+            assert created.status_code == 200, created.text
+        return await execute(query, values)
+
+    monkeypatch.setattr(sync.db, "execute", setup_before_delete)
+    with pytest.raises(ValueError, match="permanently deleted"):
+        await force_delete_wallet(wallet.id)
+    backup = await http_client.post(
+        f"/onchain/api/v1/hot-wallet/{wallet.id}/backup", headers=headers
+    )
+    assert backup.status_code == 200
+    assert backup.json()["mnemonic"] == PHRASE
+
+
+@pytest.mark.anyio
+async def test_inflight_snapshot_cannot_recreate_removed_addresses(
+    http_client, onchain_wallet
+):
+    from unittest.mock import AsyncMock
+
+    wallet, _, headers = onchain_wallet
+    await add_watch(http_client, headers)
+    address = (await get_addresses(wallet.id))[0]
+    tx, coin = chain_fixture(address.address)
+    started, finish = asyncio.Event(), asyncio.Event()
+
+    async def history(_address):
+        started.set()
+        await finish.wait()
+        return [tx]
+
+    client = cast(
+        MempoolExplorer,
+        SimpleNamespace(history=history, utxos=AsyncMock(return_value=[coin])),
+    )
+    task = asyncio.create_task(sync.scan_address(client, address))
+    try:
+        await asyncio.wait_for(started.wait(), 2)
+        removed = await http_client.delete(
+            f"/onchain/api/v1/wallet/{wallet.id}", headers=headers
+        )
+        assert removed.status_code < 300
+    finally:
+        finish.set()
+        await task
+    state = await sync.wallet_state(OnchainAuth(wallet.id))
+    assert state["addresses"] == state["snapshots"] == []
+    assert state["balance_sat"] == 0
+
+
+@pytest.mark.anyio
+async def test_scan_cannot_follow_reconfigured_wallet_onto_another_network(
+    http_client, onchain_wallet, monkeypatch
+):
+    wallet, _, headers = onchain_wallet
+    await add_watch(http_client, headers)
+    old_addresses = {address.address for address in await get_addresses(wallet.id)}
+    started, finish = asyncio.Event(), asyncio.Event()
+    scanned = set()
+
+    async def explorer(request):
+        scanned.add(request.url.path.split("/")[-2])
+        started.set()
+        await finish.wait()
+        return httpx.Response(200, json=[])
+
+    monkeypatch.setattr(
+        sync,
+        "explorer_client",
+        lambda config: MempoolExplorer(
+            config,
+            httpx.AsyncClient(
+                base_url=mempool_url(config) + "/",
+                transport=httpx.MockTransport(explorer),
+            ),
+        ),
+    )
+    task = asyncio.create_task(sync._scan(wallet.id))
+    try:
+        await asyncio.wait_for(started.wait(), 2)
+        removed = await http_client.delete(
+            f"/onchain/api/v1/wallet/{wallet.id}", headers=headers
+        )
+        assert removed.status_code < 300
+        descriptor, _ = wallet_descriptor(PHRASE, "Mainnet")
+        replaced = await http_client.post(
+            "/onchain/api/v1/wallet",
+            headers=headers,
+            json={"masterpub": descriptor, "title": "Mainnet", "network": "Mainnet"},
+        )
+        assert replaced.status_code == 200, replaced.text
+    finally:
+        finish.set()
+        await task
+    assert scanned <= old_addresses
+    state = await sync.wallet_state(OnchainAuth(wallet.id))
+    assert state["addresses"] and state["snapshots"] == []

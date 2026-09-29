@@ -1,12 +1,18 @@
 from sqlalchemy import text  # type: ignore[import-untyped]
-from sqlalchemy.exc import IntegrityError  # type: ignore[import-untyped]
 
 from lnbits.core.db import db
-from lnbits.db import insert_query, model_to_dict
+from lnbits.db import SQLITE, model_to_dict
 from lnbits.helpers import urlsafe_short_hash
 
 from .helpers import derive_address
-from .models import Address, Config, ConfigDb, WalletAccount
+from .models import Address, Config, ConfigDb, OnchainMeta, OnchainWallet, WalletAccount
+
+ADDRESS_COLUMNS = ", ".join(Address.__fields__)
+MASTERPUB_SQL = (
+    "json_extract(onchain_meta, '$.masterpub')"
+    if db.type == SQLITE
+    else "CAST(onchain_meta AS JSONB)->>'masterpub'"
+)
 
 
 class WalletAlreadyConfiguredError(ValueError):
@@ -20,64 +26,102 @@ class WalletAlreadyConfiguredError(ValueError):
 async def create_watch_wallet(
     wallet: WalletAccount, encrypted_seed: str | None = None
 ) -> WalletAccount:
-    try:
-        async with db.connect() as conn:
-            # Keep the account and its recovery material in one transaction.
-            # The unique wallet_id index also protects concurrent setup requests.
-            await conn.conn.commit()
-            async with conn.conn.begin():
-                await conn.conn.execute(
-                    text(conn.rewrite_query(insert_query("onchain_accounts", wallet))),
-                    model_to_dict(wallet),
-                )
-                if encrypted_seed is not None:
-                    await conn.conn.execute(
-                        text(
-                            "INSERT INTO onchain_keys (wallet, encrypted_seed) "
-                            "VALUES (:wallet, :seed)"
-                        ),
-                        {"wallet": wallet.id, "seed": encrypted_seed},
-                    )
-    except IntegrityError as exc:
-        existing: dict | None = await db.fetchone(
-            "SELECT id FROM onchain_accounts WHERE wallet_id = :wallet",
-            {"wallet": wallet.wallet_id},
+    if wallet.id != wallet.wallet_id:
+        raise ValueError("Onchain setup must use the LNbits wallet ID")
+    meta = OnchainMeta.parse_raw(wallet.meta)
+    meta.masterpub = wallet.masterpub
+    meta.fingerprint = wallet.fingerprint
+    meta.script_type = wallet.type
+    meta.sync_checked_at = 0
+    meta.sync_error = None
+    # One conditional write stores setup and recovery material together and
+    # protects against competing setup requests or a concurrent network change.
+    async with db.connect() as conn:
+        result = await conn.conn.execute(
+            text("""
+                UPDATE wallets SET name = :title, onchain_meta = :meta,
+                    onchain_network = :network, onchain_wallet_kind = :kind,
+                    onchain_address_no = -1, onchain_backup_confirmed = false,
+                    onchain_encrypted_seed = :seed, onchain_sync_lease_until = 0
+                WHERE id = :id AND wallet_type = 'onchain' AND deleted = false
+                    AND onchain_wallet_kind IS NULL
+                    AND COALESCE(onchain_network, 'Mainnet') = :network
+            """),
+            {
+                "id": wallet.id,
+                "title": wallet.title,
+                "meta": meta.json(by_alias=True),
+                "network": wallet.network,
+                "kind": wallet.wallet_kind,
+                "seed": encrypted_seed,
+            },
         )
-        if existing:
-            raise WalletAlreadyConfiguredError() from exc
-        raise
-    return wallet
+        await conn.conn.commit()
+    if result.rowcount != 1:
+        if await get_watch_wallet(wallet.id):
+            raise WalletAlreadyConfiguredError()
+        raise ValueError("Onchain wallet or network changed during setup")
+    configured = await get_watch_wallet(wallet.id)
+    assert configured
+    return configured
 
 
 async def get_watch_wallet(wallet_id: str) -> WalletAccount | None:
-    return await db.fetchone(
-        "SELECT * FROM onchain_accounts WHERE id = :id",
+    wallet = await db.fetchone(
+        """
+        SELECT id, name, onchain_meta, onchain_network, onchain_wallet_kind,
+            onchain_address_no, onchain_backup_confirmed,
+            COALESCE((SELECT SUM(amount) FROM (
+                SELECT MAX(amount) AS amount FROM onchain_addresses
+                WHERE wallet = wallets.id GROUP BY address
+            ) coins), 0) AS balance
+        FROM wallets WHERE id = :id AND wallet_type = 'onchain'
+            AND onchain_wallet_kind IS NOT NULL
+        """,
         {"id": wallet_id},
-        WalletAccount,
+        OnchainWallet,
     )
+    return wallet.account() if wallet else None
 
 
 async def get_watch_wallets(wallet_id: str, network: str) -> list[WalletAccount]:
-    return await db.fetchall(
-        """
-        SELECT * FROM onchain_accounts
-        WHERE "wallet_id" = :wallet_id AND network = :network
-        """,
-        {"wallet_id": wallet_id, "network": network},
-        WalletAccount,
-    )
+    wallet = await get_watch_wallet(wallet_id)
+    return [wallet] if wallet and wallet.network == network else []
 
 
 async def update_watch_wallet(wallet: WalletAccount) -> WalletAccount:
-    await db.update("onchain_accounts", wallet)
-    return wallet
+    # Backup confirmation must not rewrite descriptor, seed, or scanner metadata.
+    await db.execute(
+        """UPDATE wallets SET onchain_backup_confirmed = :confirmed
+        WHERE id = :id AND wallet_type = 'onchain' AND onchain_wallet_kind = 'hot'""",
+        {"id": wallet.id, "confirmed": wallet.backup_confirmed},
+    )
+    updated = await get_watch_wallet(wallet.id)
+    assert updated
+    return updated
 
 
 async def delete_watch_wallet(wallet_id: str) -> None:
-    await db.execute(
-        "DELETE FROM onchain_accounts WHERE id = :id",
-        {"id": wallet_id},
-    )
+    async with db.connect() as conn:
+        async with conn.conn.begin():
+            result = await conn.conn.execute(
+                text("""
+                    UPDATE wallets SET onchain_meta = '{}', onchain_config = '{}',
+                        onchain_network = NULL, onchain_wallet_kind = NULL,
+                        onchain_address_no = -1, onchain_backup_confirmed = false,
+                        onchain_sync_lease_until = 0
+                    WHERE id = :id AND wallet_type = 'onchain'
+                        AND onchain_wallet_kind = 'watch'
+                        AND onchain_encrypted_seed IS NULL
+                """),
+                {"id": wallet_id},
+            )
+            if result.rowcount != 1:
+                raise ValueError("Onchain wallet cannot be removed")
+            await conn.conn.execute(
+                text("DELETE FROM onchain_addresses WHERE wallet = :id"),
+                {"id": wallet_id},
+            )
 
 
 async def get_fresh_address(wallet_id: str) -> Address | None:
@@ -89,20 +133,24 @@ async def get_fresh_address(wallet_id: str) -> Address | None:
 
     # Atomically reserve an index across concurrent browsers/workers.
     async with db.connect() as conn:
-        row = await conn.fetchone(
-            """
-            UPDATE onchain_accounts SET address_no =
-                CASE WHEN address_no < COALESCE((
+        result = await conn.conn.execute(
+            text(f"""
+            UPDATE wallets SET onchain_address_no =
+                CASE WHEN onchain_address_no < COALESCE((
                     SELECT MAX(address_index) FROM onchain_addresses
                     WHERE wallet = :wallet AND branch_index = 0 AND has_activity = true
                 ), -1) THEN (
                     SELECT MAX(address_index) FROM onchain_addresses
                     WHERE wallet = :wallet AND branch_index = 0 AND has_activity = true
-                ) + 1 ELSE address_no + 1 END
-            WHERE id = :wallet RETURNING address_no
-        """,
-            {"wallet": wallet_id},
+                ) + 1 ELSE onchain_address_no + 1 END
+            WHERE id = :wallet AND wallet_type = 'onchain'
+                AND onchain_wallet_kind IS NOT NULL
+                AND {MASTERPUB_SQL} = :masterpub
+            RETURNING onchain_address_no AS address_no
+        """),  # noqa: S608
+            {"wallet": wallet_id, "masterpub": wallet.masterpub},
         )
+        row = result.mappings().first()
         await conn.conn.commit()
     if not row:
         return None
@@ -142,21 +190,30 @@ async def create_fresh_addresses(
             address_index=address_index,
         )
 
-        await db.execute(
-            insert_query("onchain_addresses", addr)
-            + " ON CONFLICT(wallet, branch_index, address_index) DO NOTHING",
-            model_to_dict(addr),
-        )
+        async with db.connect() as conn:
+            await conn.conn.execute(
+                text(f"""
+                    INSERT INTO onchain_addresses ({ADDRESS_COLUMNS})
+                    SELECT :id, :address, :wallet, :amount, :branch_index,
+                        :address_index, :note, :has_activity
+                    FROM wallets WHERE id = :wallet AND wallet_type = 'onchain'
+                        AND onchain_wallet_kind IS NOT NULL
+                        AND {MASTERPUB_SQL} = :masterpub
+                    ON CONFLICT(wallet, branch_index, address_index) DO NOTHING
+                """),  # noqa: S608
+                {**model_to_dict(addr), "masterpub": wallet.masterpub},
+            )
+            await conn.conn.commit()
 
     # return fresh addresses
     return await db.fetchall(
-        """
-            SELECT * FROM onchain_addresses WHERE wallet = :wallet
+        f"""
+            SELECT {ADDRESS_COLUMNS} FROM onchain_addresses WHERE wallet = :wallet
             AND branch_index = :branch_index
             AND address_index >= :start_address_index
             AND address_index < :end_address_index
             ORDER BY branch_index, address_index
-        """,
+        """,  # noqa: S608
         {
             "wallet": wallet_id,
             "branch_index": branch_index,
@@ -169,7 +226,7 @@ async def create_fresh_addresses(
 
 async def get_address(address: str) -> Address | None:
     return await db.fetchone(
-        "SELECT * FROM onchain_addresses WHERE address = :address",
+        f"SELECT {ADDRESS_COLUMNS} FROM onchain_addresses WHERE address = :address",  # noqa: S608
         {"address": address},
         Address,
     )
@@ -177,7 +234,7 @@ async def get_address(address: str) -> Address | None:
 
 async def get_address_by_id(address_id: str) -> Address | None:
     return await db.fetchone(
-        "SELECT * FROM onchain_addresses WHERE id = :id",
+        f"SELECT {ADDRESS_COLUMNS} FROM onchain_addresses WHERE id = :id",  # noqa: S608
         {"id": address_id},
         Address,
     )
@@ -187,11 +244,11 @@ async def get_address_at_index(
     wallet_id: str, branch_index: int, address_index: int
 ) -> Address | None:
     return await db.fetchone(
-        """
-            SELECT * FROM onchain_addresses
+        f"""
+            SELECT {ADDRESS_COLUMNS} FROM onchain_addresses
             WHERE wallet = :wallet AND branch_index = :branch_index
             AND address_index = :address_index
-        """,
+        """,  # noqa: S608
         {
             "wallet": wallet_id,
             "branch_index": branch_index,
@@ -203,48 +260,48 @@ async def get_address_at_index(
 
 async def get_addresses(wallet_id: str) -> list[Address]:
     return await db.fetchall(
-        """
-        SELECT * FROM onchain_addresses WHERE wallet = :wallet
+        f"""
+        SELECT {ADDRESS_COLUMNS} FROM onchain_addresses WHERE wallet = :wallet
         ORDER BY branch_index, address_index
-        """,
+        """,  # noqa: S608
         {"wallet": wallet_id},
         Address,
     )
 
 
 async def update_address(address: Address) -> Address:
-    await db.update("onchain_addresses", address)
+    await db.execute(
+        "UPDATE onchain_addresses SET note = :note WHERE id = :id",
+        {"id": address.id, "note": address.note},
+    )
     return address
 
 
-async def delete_addresses_for_wallet(wallet_id: str) -> None:
-    await db.execute(
-        "DELETE FROM onchain_addresses WHERE wallet = :wallet", {"wallet": wallet_id}
-    )
-
-
-async def create_config(wallet_id: str) -> Config:
-    config = Config()
-    model = ConfigDb(wallet_id=wallet_id, json_data=config)
-    await db.execute(
-        insert_query("onchain_config", model) + " ON CONFLICT(wallet_id) DO NOTHING",
-        model_to_dict(model),
-    )
-    return config
-
-
 async def update_config(config: Config, wallet_id: str) -> Config:
-    _config = ConfigDb(wallet_id=wallet_id, json_data=config)
-    await db.update("onchain_config", _config, """WHERE "wallet_id" = :wallet_id""")
+    result = await db.execute(
+        """UPDATE wallets SET onchain_config = :config, onchain_network = :network
+        WHERE id = :id AND wallet_type = 'onchain'
+            AND (onchain_wallet_kind IS NULL OR onchain_network = :network)""",
+        {
+            "id": wallet_id,
+            "config": config.json(exclude={"network"}),
+            "network": config.network,
+        },
+    )
+    if result.rowcount != 1:
+        raise ValueError(
+            "Create another LNbits wallet to use a different Bitcoin network"
+        )
     return config
 
 
 async def get_config(wallet_id: str) -> Config:
     _config = await db.fetchone(
-        """SELECT * FROM onchain_config WHERE "wallet_id" = :wallet_id""",
+        """SELECT onchain_config, onchain_network FROM wallets
+        WHERE id = :wallet_id AND wallet_type = 'onchain'""",
         {"wallet_id": wallet_id},
         ConfigDb,
     )
     if not _config:
-        return await create_config(wallet_id)
-    return _config.json_data
+        raise ValueError("Onchain wallet not found")
+    return _config.onchain_config.copy(update={"network": _config.onchain_network})

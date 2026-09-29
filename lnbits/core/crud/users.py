@@ -54,8 +54,8 @@ async def update_account(account: Account, conn: Connection | None = None) -> Ac
 
 async def delete_account(user_id: str, conn: Connection | None = None) -> None:
     onchain: dict | None = await (conn or db).fetchone(
-        """SELECT a.id FROM onchain_accounts a
-        JOIN wallets w ON w.id = a.wallet_id WHERE w.user = :user LIMIT 1""",
+        """SELECT id FROM wallets WHERE "user" = :user AND wallet_type = 'onchain'
+        AND onchain_wallet_kind IS NOT NULL LIMIT 1""",
         {"user": user_id},
     )
     if onchain:

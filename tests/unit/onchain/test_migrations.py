@@ -8,24 +8,10 @@ from lnbits.core.helpers import run_migration
 from lnbits.db import DB_TYPE, SQLITE, Database
 from lnbits.settings import Settings
 
-TABLE_QUERIES = {
-    "onchain_accounts": "SELECT * FROM onchain_accounts",
-    "onchain_addresses": "SELECT * FROM onchain_addresses",
-    "onchain_config": "SELECT * FROM onchain_config",
-    "onchain_keys": "SELECT * FROM onchain_keys",
-    "onchain_snapshots": "SELECT * FROM onchain_snapshots",
-    "onchain_sync": "SELECT * FROM onchain_sync",
-    "wallets": "SELECT * FROM wallets",
-}
-
 
 @pytest.mark.anyio
-@pytest.mark.parametrize(
-    ("version", "existing_schema"),
-    [(51, "missing"), (52, "missing"), (52, "complete"), (52, "partial")],
-)
-async def test_onchain_schema_upgrade_preserves_existing_data(
-    tmp_path: Path, settings: Settings, version: int, existing_schema: str
+async def test_onchain_schema_uses_wallets_and_addresses(
+    tmp_path: Path, settings: Settings
 ):
     if DB_TYPE != SQLITE:
         pytest.skip("temporary migration database is SQLite-only")
@@ -43,70 +29,65 @@ async def test_onchain_schema_upgrade_preserves_existing_data(
                 )
             """)
             await conn.execute(
-                "INSERT INTO wallets (id, wallet_type) VALUES ('wallet', 'onchain')"
+                "INSERT INTO wallets (id, wallet_type) VALUES ('existing', 'lightning')"
             )
-            await update_migration_version(conn, "core", version)
-
-            if existing_schema != "missing":
-                await migrations.m052_core_onchain_wallets(conn)
-                await conn.execute("""
-                    INSERT INTO onchain_accounts (
-                        id, wallet_id, masterpub, fingerprint, title, network
-                    ) VALUES ('account', 'wallet', 'descriptor', '00000000',
-                              'Existing account', 'Testnet4')
-                """)
-                await conn.execute("""
-                    INSERT INTO onchain_addresses (
-                        id, wallet, address, amount, branch_index, address_index
-                    ) VALUES ('address', 'account', 'test-address', 12345, 0, 0)
-                """)
-                await conn.execute("""
-                    INSERT INTO onchain_keys (wallet, encrypted_seed)
-                    VALUES ('account', 'test-ciphertext')
-                """)
-                await conn.execute("""
-                    INSERT INTO onchain_snapshots (address_id, transactions, utxos)
-                    VALUES ('address', '[{"txid":"test-transaction"}]', '[]')
-                """)
-                if existing_schema == "partial":
-                    await conn.execute("DROP TABLE onchain_sync")
-                    await conn.execute("DROP TABLE onchain_config")
-
-            existing_tables = {
-                row["name"]
-                for row in await conn.fetchall(
-                    "SELECT name FROM sqlite_master WHERE type = 'table'"
-                )
-            }
-            preserved = {
-                table: await conn.fetchall(query)
-                for table, query in TABLE_QUERIES.items()
-                if table in existing_tables
-            }
-
+            await update_migration_version(conn, "core", 51)
             await run_migration(
                 conn, migrations, "core", await get_db_version("core", conn)
             )
             migrated = await get_db_version("core", conn)
-            assert migrated is not None and migrated.version == 54
-            # Restarting after the upgrade must also be safe.
+            assert migrated is not None and migrated.version == 52
             await run_migration(conn, migrations, "core", migrated)
 
-            indexes = await conn.fetchall("PRAGMA index_list(onchain_accounts)")
-            assert any(
-                index["name"] == "idx_onchain_accounts_wallet_id" and index["unique"]
-                for index in indexes
+            tables = {
+                row["name"]
+                for row in await conn.fetchall(
+                    "SELECT name FROM sqlite_master WHERE type = 'table'"
+                )
+                if row["name"].startswith("onchain_")
+            }
+            assert tables == {"onchain_addresses"}
+            columns = {
+                row["name"] for row in await conn.fetchall("PRAGMA table_info(wallets)")
+            }
+            assert {column for column in columns if column.startswith("onchain_")} == {
+                "onchain_network",
+                "onchain_meta",
+                "onchain_config",
+                "onchain_wallet_kind",
+                "onchain_address_no",
+                "onchain_backup_confirmed",
+                "onchain_encrypted_seed",
+                "onchain_sync_lease_until",
+            }
+            existing = await conn.fetchone(
+                "SELECT * FROM wallets WHERE id = 'existing'"
             )
-
-            for table, query in TABLE_QUERIES.items():
-                assert await conn.fetchall(query) == preserved.get(table, [])
-
-            # Exercise the query that failed in the background scanner.
-            wallets = await conn.fetchall("""
-                SELECT DISTINCT w.id FROM wallets w
-                JOIN onchain_accounts a ON a.wallet_id = w.id
-                WHERE w.wallet_type = 'onchain' AND w.deleted = false
+            assert existing["wallet_type"] == "lightning"
+            assert existing["onchain_wallet_kind"] is None
+            assert existing["onchain_encrypted_seed"] is None
+            assert existing["onchain_meta"] == "{}"
+            assert existing["onchain_config"] == "{}"
+            foreign_keys = await conn.fetchall(
+                "PRAGMA foreign_key_list(onchain_addresses)"
+            )
+            assert any(
+                key["table"] == "wallets"
+                and key["from"] == "wallet"
+                and key["to"] == "id"
+                for key in foreign_keys
+            )
+            await conn.execute(
+                "INSERT INTO wallets (id, wallet_type) VALUES ('onchain', 'onchain')"
+            )
+            await conn.execute("""
+                INSERT INTO onchain_addresses
+                    (id, wallet, address, branch_index, address_index)
+                VALUES ('address', 'onchain', 'test-address', 0, 0)
             """)
-            assert len(wallets) == (0 if existing_schema == "missing" else 1)
+            address = await conn.fetchone("SELECT * FROM onchain_addresses")
+            assert address["transactions"] == "[]"
+            assert address["utxos"] == "[]"
+            assert address["snapshot_checked_at"] == 0
     finally:
         await db.engine.dispose()

@@ -26,6 +26,44 @@ class WalletAccount(BaseModel):
     backup_confirmed: bool = False
 
 
+class OnchainMeta(BaseModel):
+    masterpub: str = ""
+    fingerprint: str = ""
+    script_type: str | None = None
+    account_path: str = Field(default="", alias="accountPath")
+    xpub: str | None = None
+    sync_checked_at: int = 0
+    sync_error: str | None = None
+
+
+class OnchainWallet(BaseModel):
+    id: str
+    name: str
+    onchain_meta: str
+    onchain_network: Literal["Mainnet", "Testnet", "Testnet4"]
+    onchain_wallet_kind: Literal["watch", "hot"]
+    onchain_address_no: int
+    onchain_backup_confirmed: bool
+    balance: int
+
+    def account(self) -> WalletAccount:
+        meta = OnchainMeta.parse_raw(self.onchain_meta)
+        return WalletAccount(
+            id=self.id,
+            wallet_id=self.id,
+            title=self.name,
+            masterpub=meta.masterpub,
+            fingerprint=meta.fingerprint,
+            type=meta.script_type,
+            network=self.onchain_network,
+            wallet_kind=self.onchain_wallet_kind,
+            address_no=self.onchain_address_no,
+            backup_confirmed=self.onchain_backup_confirmed,
+            balance=self.balance,
+            meta=meta.json(by_alias=True),
+        )
+
+
 class Address(BaseModel):
     id: str
     address: str
@@ -129,5 +167,5 @@ class ConfigResponse(Config):
 
 
 class ConfigDb(BaseModel):
-    wallet_id: str
-    json_data: Config
+    onchain_network: Literal["Mainnet", "Testnet", "Testnet4"] = "Mainnet"
+    onchain_config: Config

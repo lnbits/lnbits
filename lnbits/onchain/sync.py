@@ -11,11 +11,13 @@ from pydantic import BaseModel
 from sqlalchemy import text
 
 from lnbits.core.db import db
+from lnbits.db import SQLITE
 from lnbits.task_manager import task_manager
 
-from .crud import get_addresses, get_config, get_watch_wallets
+from .crud import get_addresses, get_config, get_watch_wallet, get_watch_wallets
 from .decorators import OnchainAuth, require_onchain_admin, require_onchain_read
 from .explorer import TXID, Explorer, explorer_client
+from .models import OnchainMeta
 
 sync_router = APIRouter()
 SCAN_SLOTS = asyncio.Semaphore(4)
@@ -51,7 +53,9 @@ async def scan_address(client: Explorer, address) -> None:
     if amount > 2_100_000_000_000_000:
         raise ValueError("Invalid balance")
     previous = await db.fetchone(
-        "SELECT * FROM onchain_snapshots WHERE address_id = :id",
+        """SELECT id AS address_id, transactions, utxos,
+            snapshot_checked_at AS checked_at
+        FROM onchain_addresses WHERE id = :id""",
         {"id": address.id},
         Snapshot,
     )
@@ -63,37 +67,25 @@ async def scan_address(client: Explorer, address) -> None:
     now = int(time.time())
     for tx in transactions:
         tx["first_seen"] = first_seen.get(tx["txid"]) or now
-    # Update balance, activity and the complete snapshot together.
+    # One write keeps the snapshot and balance consistent, and cannot recreate
+    # an address removed while the explorer request was in flight.
     async with db.connect() as conn:
+        await conn.conn.execute(
+            text("""
+                UPDATE onchain_addresses SET transactions = :transactions,
+                    utxos = :utxos, snapshot_checked_at = :now, amount = :amount,
+                    has_activity = has_activity OR :active WHERE id = :id
+            """),
+            {
+                "id": address.id,
+                "transactions": json.dumps(transactions),
+                "utxos": json.dumps(utxos),
+                "now": now,
+                "amount": amount,
+                "active": bool(transactions),
+            },
+        )
         await conn.conn.commit()
-        async with conn.conn.begin():
-            await conn.conn.execute(
-                text("""
-                INSERT INTO onchain_snapshots
-                    (address_id, transactions, utxos, checked_at)
-                VALUES (:id, :transactions, :utxos, :now)
-                ON CONFLICT(address_id) DO UPDATE SET
-                    transactions = excluded.transactions,
-                    utxos = excluded.utxos, checked_at = excluded.checked_at
-            """),
-                {
-                    "id": address.id,
-                    "transactions": json.dumps(transactions),
-                    "utxos": json.dumps(utxos),
-                    "now": now,
-                },
-            )
-            await conn.conn.execute(
-                text("""
-                UPDATE onchain_addresses SET amount = :amount,
-                    has_activity = :active WHERE id = :id
-            """),
-                {
-                    "id": address.id,
-                    "amount": amount,
-                    "active": bool(transactions) or address.has_activity,
-                },
-            )
 
 
 async def _scan(wallet_id: str) -> None:
@@ -105,6 +97,13 @@ async def _scan(wallet_id: str) -> None:
             checked = set()
             for _ in range(1000):
                 addresses = await api_get_addresses(account.id, OnchainAuth(wallet_id))
+                current = await get_watch_wallet(wallet_id)
+                if (
+                    not current
+                    or current.masterpub != account.masterpub
+                    or current.network != config.network
+                ):
+                    return
                 pending = [a for a in addresses if a.id not in checked]
                 if not pending:
                     break
@@ -122,18 +121,13 @@ async def scan_wallet(wallet_id: str) -> None:
 
 async def _scan_with_lease(wallet_id: str) -> None:
     now = int(time.time())
-    await db.execute(
-        """
-        INSERT INTO onchain_sync (wallet_id) VALUES (:wallet)
-        ON CONFLICT(wallet_id) DO NOTHING
-    """,
-        {"wallet": wallet_id},
-    )
     lease = now + 1800
     acquired = await db.execute(
         """
-        UPDATE onchain_sync SET lease_until = :lease
-        WHERE wallet_id = :wallet AND lease_until < :now
+        UPDATE wallets SET onchain_sync_lease_until = :lease
+        WHERE id = :wallet AND onchain_sync_lease_until < :now
+            AND wallet_type = 'onchain' AND deleted = false
+            AND onchain_wallet_kind IS NOT NULL
     """,
         {"wallet": wallet_id, "lease": lease, "now": now},
     )
@@ -149,19 +143,42 @@ async def _scan_with_lease(wallet_id: str) -> None:
         # Never return credentials, explorer URLs, raw responses or stack traces.
         error = "Blockchain update failed. Previous balances and history are retained."
     finally:
-        await db.execute(
-            """
-            UPDATE onchain_sync SET lease_until = 0, error = :error,
-                checked_at = CASE WHEN :error IS NULL THEN :now ELSE checked_at END
-            WHERE wallet_id = :wallet AND lease_until = :lease
-        """,
-            {
-                "wallet": wallet_id,
-                "lease": lease,
-                "error": error,
-                "now": int(time.time()),
-            },
+        await finish_scan(wallet_id, lease, error)
+
+
+async def finish_scan(wallet_id: str, lease: int, error: str | None) -> None:
+    now = int(time.time())
+    state: dict = {"sync_error": error}
+    if error is None:
+        state["sync_checked_at"] = now
+    # Merge only scanner-owned keys in the same conditional update that releases
+    # the lease. Other metadata and newer scan leases must remain untouched.
+    if db.type == SQLITE:
+        expression = "json_set(onchain_meta, '$.sync_error', :error)"
+        if error is None:
+            expression = (
+                "json_set(onchain_meta, '$.sync_error', :error, "
+                "'$.sync_checked_at', :now)"
+            )
+    else:
+        expression = (
+            "CAST(CAST(onchain_meta AS JSONB) || CAST(:state AS JSONB) AS TEXT)"
         )
+    await db.execute(
+        f"""
+        UPDATE wallets SET onchain_sync_lease_until = 0,
+            onchain_meta = {expression}
+        WHERE id = :wallet AND wallet_type = 'onchain'
+            AND onchain_wallet_kind IS NOT NULL AND onchain_sync_lease_until = :lease
+        """,  # noqa: S608
+        {
+            "wallet": wallet_id,
+            "lease": lease,
+            "error": error,
+            "now": now,
+            "state": json.dumps(state),
+        },
+    )
 
 
 def request_scan(wallet_id: str) -> None:
@@ -174,9 +191,8 @@ def request_scan(wallet_id: str) -> None:
 
 async def sync_wallets() -> None:
     rows: list[dict] = await db.fetchall("""
-        SELECT DISTINCT w.id FROM wallets w
-        JOIN onchain_accounts a ON a.wallet_id = w.id
-        WHERE w.wallet_type = 'onchain' AND w.deleted = false
+        SELECT id FROM wallets WHERE wallet_type = 'onchain' AND deleted = false
+            AND onchain_wallet_kind IS NOT NULL
     """)
     # Bound provider load. API-triggered scans share the database lease.
     for row in rows:
@@ -198,21 +214,21 @@ async def wallet_state(auth: OnchainAuth = Depends(require_onchain_read)):
         addresses.extend(await get_addresses(account.id))
     snapshots = await db.fetchall(
         """
-        SELECT s.* FROM onchain_snapshots s
-        JOIN onchain_addresses a ON a.id = s.address_id
-        JOIN onchain_accounts c ON c.id = a.wallet
-        WHERE c.wallet_id = :wallet
+        SELECT id AS address_id, transactions, utxos, snapshot_checked_at AS checked_at
+        FROM onchain_addresses WHERE wallet = :wallet AND snapshot_checked_at > 0
     """,
         {"wallet": auth.wallet_id},
         Snapshot,
     )
     status: dict = (
         await db.fetchone(
-            "SELECT * FROM onchain_sync WHERE wallet_id = :wallet",
+            """SELECT onchain_meta, onchain_sync_lease_until FROM wallets
+            WHERE id = :wallet AND wallet_type = 'onchain'""",
             {"wallet": auth.wallet_id},
         )
         or {}
     )
+    meta = OnchainMeta.parse_raw(status.get("onchain_meta", "{}"))
     balances: dict[str, int] = {}
     for address in addresses:
         balances[address.address] = max(
@@ -221,9 +237,9 @@ async def wallet_state(auth: OnchainAuth = Depends(require_onchain_read)):
     return {
         "addresses": addresses,
         "snapshots": snapshots,
-        "scanning": status.get("lease_until", 0) > time.time(),
-        "checked_at": status.get("checked_at", 0),
-        "error": status.get("error"),
+        "scanning": status.get("onchain_sync_lease_until", 0) > time.time(),
+        "checked_at": meta.sync_checked_at,
+        "error": meta.sync_error,
         "balance_sat": sum(balances.values()),
     }
 
