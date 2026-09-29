@@ -132,7 +132,7 @@ async def get_standalone_wallet(
     wallet_id: str, deleted: bool | None = False, conn: Connection | None = None
 ) -> Wallet | None:
     query = """
-            SELECT wallets.*, COALESCE((
+            SELECT *, COALESCE((
                 SELECT balance FROM balances WHERE wallet_id = wallets.id
             ), 0) AS balance_msat FROM wallets
             WHERE id = :wallet
@@ -179,7 +179,7 @@ async def get_wallets(
     conn: Connection | None = None,
 ) -> list[Wallet]:
     query = """
-            SELECT wallets.*, COALESCE((
+            SELECT *, COALESCE((
                 SELECT balance FROM balances WHERE wallet_id = wallets.id
             ), 0) AS balance_msat FROM wallets
             WHERE "user" = :user
@@ -213,7 +213,7 @@ async def get_wallets_paginated(
     where: list[str] = [""" "user" = :user AND deleted = :deleted """]
     wallets = await (conn or db).fetch_page(
         """
-            SELECT wallets.*, COALESCE((
+            SELECT *, COALESCE((
                 SELECT balance FROM balances WHERE wallet_id = wallets.id
             ), 0) AS balance_msat FROM wallets
         """,
@@ -231,7 +231,7 @@ async def get_wallets_paginated(
 async def get_wallets_ids(
     user_id: str, deleted: bool | None = False, conn: Connection | None = None
 ) -> list[str]:
-    query = 'SELECT wallets.* FROM wallets WHERE "user" = :user'
+    query = 'SELECT * FROM wallets WHERE "user" = :user'
     if deleted is not None:
         query += " AND deleted = :deleted "
     wallets = await (conn or db).fetchall(
