@@ -67,14 +67,6 @@ async def api_wallets_retrieve(
     return await get_watch_wallets(auth.wallet_id, network or config.network)
 
 
-@onchain_api_router.get("/api/v1/wallet/{wallet_id}")
-async def api_wallet_retrieve(
-    wallet_id: str,
-    auth: OnchainAuth = Depends(require_onchain_read),
-) -> WalletAccount:
-    return await _get_user_watch_wallet(wallet_id, auth.wallet_id)
-
-
 @onchain_api_router.post("/api/v1/wallet")
 async def api_wallet_create_or_update(
     data: CreateWallet,

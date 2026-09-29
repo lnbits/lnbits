@@ -604,10 +604,9 @@ async def test_onchain_metadata_and_seed_survive_generic_wallet_updates(
     loaded.name = "Renamed onchain wallet"
     await update_wallet(loaded)
     assert dict(await sync.db.fetchone(query, {"id": wallet.id})) == stored
-    account = await http_client.get(
-        f"/onchain/api/v1/wallet/{wallet.id}", headers=headers
-    )
-    assert account.json()["title"] == "Renamed onchain wallet"
+    accounts = await http_client.get("/onchain/api/v1/wallet", headers=headers)
+    assert accounts.status_code == 200
+    assert accounts.json()[0]["title"] == "Renamed onchain wallet"
     backup = await http_client.post(
         f"/onchain/api/v1/hot-wallet/{wallet.id}/backup", headers=headers
     )
