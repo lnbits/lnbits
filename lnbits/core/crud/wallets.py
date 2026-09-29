@@ -12,14 +12,6 @@ from lnbits.utils.exchange_rates import allowed_currencies
 
 from ..models import Wallet
 
-# Select only the shared wallet model's stored fields. Onchain recovery material
-# and operational state must never enter generic wallet reads or updates.
-WALLET_COLUMNS = ", ".join(
-    f'wallets."{name}"'
-    for name, field in Wallet.__fields__.items()
-    if not field.field_info.extra.get("no_database")
-)
-
 
 async def create_wallet(
     *,
@@ -139,12 +131,12 @@ async def delete_unused_wallets(
 async def get_standalone_wallet(
     wallet_id: str, deleted: bool | None = False, conn: Connection | None = None
 ) -> Wallet | None:
-    query = f"""
-            SELECT {WALLET_COLUMNS}, COALESCE((
+    query = """
+            SELECT wallets.*, COALESCE((
                 SELECT balance FROM balances WHERE wallet_id = wallets.id
             ), 0) AS balance_msat FROM wallets
             WHERE id = :wallet
-            """  # noqa: S608
+            """
     if deleted is not None:
         query += " AND deleted = :deleted "
     wallet = await (conn or db).fetchone(
@@ -186,12 +178,12 @@ async def get_wallets(
     wallet_type: WalletType | None = None,
     conn: Connection | None = None,
 ) -> list[Wallet]:
-    query = f"""
-            SELECT {WALLET_COLUMNS}, COALESCE((
+    query = """
+            SELECT wallets.*, COALESCE((
                 SELECT balance FROM balances WHERE wallet_id = wallets.id
             ), 0) AS balance_msat FROM wallets
             WHERE "user" = :user
-            """  # noqa: S608
+            """
     if deleted is not None:
         query += " AND deleted = :deleted "
     if wallet_type is not None:
@@ -220,11 +212,11 @@ async def get_wallets_paginated(
 
     where: list[str] = [""" "user" = :user AND deleted = :deleted """]
     wallets = await (conn or db).fetch_page(
-        f"""
-            SELECT {WALLET_COLUMNS}, COALESCE((
+        """
+            SELECT wallets.*, COALESCE((
                 SELECT balance FROM balances WHERE wallet_id = wallets.id
             ), 0) AS balance_msat FROM wallets
-        """,  # noqa: S608
+        """,
         where=where,
         values={"user": user_id, "deleted": deleted},
         filters=filters,
@@ -239,7 +231,7 @@ async def get_wallets_paginated(
 async def get_wallets_ids(
     user_id: str, deleted: bool | None = False, conn: Connection | None = None
 ) -> list[str]:
-    query = f'SELECT {WALLET_COLUMNS} FROM wallets WHERE "user" = :user'  # noqa: S608
+    query = 'SELECT wallets.* FROM wallets WHERE "user" = :user'
     if deleted is not None:
         query += " AND deleted = :deleted "
     wallets = await (conn or db).fetchall(
@@ -287,8 +279,8 @@ async def get_wallet_for_key(
     conn: Connection | None = None,
 ) -> Wallet | None:
     wallet = await (conn or db).fetchone(
-        f"""
-        SELECT {WALLET_COLUMNS}, COALESCE((
+        """
+        SELECT wallets.*, COALESCE((
             SELECT balance FROM balances WHERE wallet_id = wallets.id
         ), 0)
         AS balance_msat FROM wallets
@@ -296,7 +288,7 @@ async def get_wallet_for_key(
         WHERE (adminkey = :key OR inkey = :key)
             AND deleted = false
             AND accounts.activated = true
-        """,  # noqa: S608
+        """,
         {"key": key},
         Wallet,
     )

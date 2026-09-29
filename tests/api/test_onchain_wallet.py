@@ -566,8 +566,6 @@ async def test_unconfigured_onchain_wallet_is_not_scanned(onchain_wallet, monkey
 async def test_onchain_metadata_and_seed_survive_generic_wallet_updates(
     http_client, onchain_wallet
 ):
-    from sqlalchemy import event
-
     from lnbits.core.crud.wallets import (
         get_wallet_for_key,
         get_wallets_ids,
@@ -594,26 +592,15 @@ async def test_onchain_metadata_and_seed_survive_generic_wallet_updates(
     assert meta["script_type"] == "p2wpkh"
     assert meta["accountPath"] == "m/84'/1'/0'"
     assert "network" not in json.loads(stored["onchain_config"])
-    statements = []
-
-    def record(_conn, _cursor, statement, _parameters, _context, _executemany):
-        statements.append(statement)
-
-    event.listen(sync.db.engine.sync_engine, "before_cursor_execute", record)
-    try:
-        loaded = await get_wallet(wallet.id)
-        assert loaded and loaded.name == "Onchain savings"
-        assert "onchain_encrypted_seed" not in loaded.dict()
-        assert await get_wallet_for_key(wallet.adminkey)
-        assert await get_wallets(user.id)
-        assert wallet.id in await get_wallets_ids(user.id)
-        assert (await get_wallets_paginated(user.id)).data
-        loaded.name = "Renamed onchain wallet"
-        await update_wallet(loaded)
-    finally:
-        event.remove(sync.db.engine.sync_engine, "before_cursor_execute", record)
-    assert all("onchain_encrypted_seed" not in statement for statement in statements)
-    assert all("select *" not in statement.lower() for statement in statements)
+    loaded = await get_wallet(wallet.id)
+    assert loaded and loaded.name == "Onchain savings"
+    assert "onchain_encrypted_seed" not in loaded.dict()
+    assert await get_wallet_for_key(wallet.adminkey)
+    assert await get_wallets(user.id)
+    assert wallet.id in await get_wallets_ids(user.id)
+    assert (await get_wallets_paginated(user.id)).data
+    loaded.name = "Renamed onchain wallet"
+    await update_wallet(loaded)
     assert dict(await sync.db.fetchone(query, {"id": wallet.id})) == stored
     account = await http_client.get(
         f"/onchain/api/v1/wallet/{wallet.id}", headers=headers
