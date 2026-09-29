@@ -937,3 +937,35 @@ async def m052_core_onchain_wallets(db: Connection):
             UNIQUE(wallet, branch_index, address_index)
         )
     """)
+
+
+async def m053_balances_view_include_onchain(db: Connection):
+    """Include onchain balances in the shared balances view."""
+    await db.execute("DROP VIEW IF EXISTS balances")
+    await db.execute("""
+        CREATE VIEW balances AS
+        SELECT apipayments.wallet_id,
+               SUM(apipayments.amount - ABS(apipayments.fee)) AS balance
+        FROM wallets
+        LEFT JOIN apipayments ON apipayments.wallet_id = wallets.id
+        WHERE (wallets.deleted = false OR wallets.deleted is NULL)
+        AND wallets.wallet_type != 'onchain'
+        AND (
+            (apipayments.status = 'success' AND apipayments.amount > 0)
+            OR (apipayments.status IN ('success', 'pending') AND apipayments.amount < 0)
+        )
+        GROUP BY apipayments.wallet_id
+
+        UNION ALL
+
+        SELECT wallets.id AS wallet_id, SUM(coins.amount) * 1000 AS balance
+        FROM wallets
+        INNER JOIN (
+            SELECT wallet, address, MAX(amount) AS amount
+            FROM onchain_addresses
+            GROUP BY wallet, address
+        ) coins ON coins.wallet = wallets.id
+        WHERE wallets.wallet_type = 'onchain'
+        AND (wallets.deleted = false OR wallets.deleted is NULL)
+        GROUP BY wallets.id
+    """)

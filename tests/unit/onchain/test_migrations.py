@@ -10,8 +10,9 @@ from lnbits.settings import Settings
 
 
 @pytest.mark.anyio
+@pytest.mark.parametrize("current_version", [51, 52])
 async def test_onchain_schema_uses_wallets_and_addresses(
-    tmp_path: Path, settings: Settings
+    tmp_path: Path, settings: Settings, current_version: int
 ):
     if DB_TYPE != SQLITE:
         pytest.skip("temporary migration database is SQLite-only")
@@ -31,12 +32,14 @@ async def test_onchain_schema_uses_wallets_and_addresses(
             await conn.execute(
                 "INSERT INTO wallets (id, wallet_type) VALUES ('existing', 'lightning')"
             )
-            await update_migration_version(conn, "core", 51)
+            if current_version == 52:
+                await migrations.m052_core_onchain_wallets(conn)
+            await update_migration_version(conn, "core", current_version)
             await run_migration(
                 conn, migrations, "core", await get_db_version("core", conn)
             )
             migrated = await get_db_version("core", conn)
-            assert migrated is not None and migrated.version == 52
+            assert migrated is not None and migrated.version == 53
             await run_migration(conn, migrations, "core", migrated)
 
             tables = {
