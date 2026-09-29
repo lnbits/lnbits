@@ -53,13 +53,6 @@ async def update_account(account: Account, conn: Connection | None = None) -> Ac
 
 
 async def delete_account(user_id: str, conn: Connection | None = None) -> None:
-    onchain: dict | None = await (conn or db).fetchone(
-        """SELECT id FROM wallets WHERE "user" = :user AND wallet_type = 'onchain'
-        AND onchain_wallet_kind IS NOT NULL LIMIT 1""",
-        {"user": user_id},
-    )
-    if onchain:
-        raise ValueError("Accounts with onchain wallets cannot be permanently deleted")
     await (conn or db).execute(
         "DELETE from accounts WHERE id = :user",
         {"user": user_id},

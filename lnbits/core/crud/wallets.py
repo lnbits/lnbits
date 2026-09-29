@@ -89,22 +89,11 @@ async def delete_wallet(
 
 async def force_delete_wallet(wallet_id: str, conn: Connection | None = None) -> None:
     clear_wallet_id_cache(wallet_id)
-    # Setup can complete concurrently with deletion. Protect recovery material
-    # in the delete itself, rather than relying on an earlier read.
-    result = await (conn or db).execute(
-        """DELETE FROM wallets WHERE id = :wallet AND (
-            wallet_type != 'onchain' OR (
-                onchain_wallet_kind IS NULL AND onchain_encrypted_seed IS NULL
-            )
-        )""",
+
+    await (conn or db).execute(
+        "DELETE FROM wallets WHERE id = :wallet",
         {"wallet": wallet_id},
     )
-    if result.rowcount == 0 and await (conn or db).fetchone(
-        "SELECT id FROM wallets WHERE id = :wallet", {"wallet": wallet_id}
-    ):
-        raise ValueError(
-            "Onchain wallets with Bitcoin accounts cannot be permanently deleted"
-        )
 
 
 async def delete_wallet_by_id(
@@ -125,9 +114,7 @@ async def delete_wallet_by_id(
 
 
 async def remove_deleted_wallets(conn: Connection | None = None) -> None:
-    await (conn or db).execute(
-        "DELETE FROM wallets WHERE deleted = true AND wallet_type != 'onchain'"
-    )
+    await (conn or db).execute("DELETE FROM wallets WHERE deleted = true")
 
 
 async def delete_unused_wallets(
@@ -138,7 +125,7 @@ async def delete_unused_wallets(
     await (conn or db).execute(
         """
         DELETE FROM wallets
-        WHERE wallet_type != 'onchain' AND (
+        WHERE (
             SELECT COUNT(*) FROM apipayments WHERE wallet_id = wallets.id
         ) = 0 AND (
             (updated_at is null AND created_at < :delta)
