@@ -11,13 +11,15 @@ from contextlib import asynccontextmanager
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any
 from uuid import uuid4
-from weakref import WeakKeyDictionary
 
 from sqlalchemy import text
 
-from lnbits.core.wasm_ext.storage.crud import storage_insert_immutable_row
+from lnbits.core.wasm_ext.storage import crud as storage_crud
+from lnbits.core.wasm_ext.storage.crud import (
+    _initialize_database_once,
+    storage_insert_immutable_row,
+)
 from lnbits.db import SQLITE, Database
-from lnbits.settings import settings
 
 if TYPE_CHECKING:
     from lnbits.core.wasm_ext.wasm.config import WasmAuthoritativeChannelConfig
@@ -33,16 +35,6 @@ _ROOM_IDLE_SECONDS = 2
 _ROOM_RETENTION_MS = 24 * 60 * 60 * 1000
 _CAPACITY_RESERVATION_MS = 10 * 60 * 1000
 _SQL_IDENTIFIER_RE = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*$")
-_DatabaseKey = tuple[str, str, str]
-_databases: WeakKeyDictionary[
-    asyncio.AbstractEventLoop, dict[_DatabaseKey, Database]
-] = WeakKeyDictionary()
-_database_init_locks: WeakKeyDictionary[
-    asyncio.AbstractEventLoop, dict[_DatabaseKey, asyncio.Lock]
-] = WeakKeyDictionary()
-_initialized_databases: WeakKeyDictionary[
-    asyncio.AbstractEventLoop, set[_DatabaseKey]
-] = WeakKeyDictionary()
 
 
 class AuthoritativeChannelBackpressureError(ValueError):
@@ -726,86 +718,72 @@ def _strict_json_loads(value: str) -> Any:
 
 
 async def _database(extension_id: str) -> Database:
-    loop = asyncio.get_running_loop()
-    key = (
-        extension_id,
-        settings.lnbits_database_url or "",
-        str(settings.lnbits_data_folder),
+    await _initialize_database_once(
+        extension_id, "authoritative", _create_authoritative_tables
     )
-    databases = _databases.setdefault(loop, {})
-    database = databases.get(key)
-    if not database:
-        database = Database(f"ext_{extension_id}")
-        databases[key] = database
-    initialized = _initialized_databases.setdefault(loop, set())
-    if key in initialized:
-        return database
-    init_locks = _database_init_locks.setdefault(loop, {})
-    lock = init_locks.setdefault(key, asyncio.Lock())
-    async with lock:
-        if key in initialized:
-            return database
-        rooms = _table_ref(database, _ROOMS_TABLE)
-        clients = _table_ref(database, _CLIENTS_TABLE)
-        connections = _table_ref(database, _CONNECTIONS_TABLE)
-        jobs = _table_ref(database, _JOBS_TABLE)
-        capacity = _table_ref(database, _CAPACITY_TABLE)
-        order = _table_ref(database, _ORDER_TABLE)
-        async with database.connect() as conn:
-            await conn.execute(f"""
-                CREATE TABLE IF NOT EXISTS {rooms} (
-                    room_id TEXT PRIMARY KEY,
-                    owner_id TEXT NOT NULL,
-                    sequence {database.big_int} NOT NULL DEFAULT 0,
-                    version {database.big_int} NOT NULL DEFAULT 0,
-                    snapshot_json TEXT,
-                    event_timestamps_json TEXT NOT NULL DEFAULT '[]',
-                    last_schedule_ms {database.big_int} NOT NULL DEFAULT 0,
-                    last_activity_ms {database.big_int} NOT NULL DEFAULT 0,
-                    lease_owner TEXT,
-                    lease_until_ms {database.big_int} NOT NULL DEFAULT 0
-                )
-            """)
-            await conn.execute(f"""
-                CREATE TABLE IF NOT EXISTS {clients} (
-                    room_id TEXT NOT NULL,
-                    principal_id TEXT NOT NULL,
-                    last_client_sequence {database.big_int} NOT NULL DEFAULT 0,
-                    PRIMARY KEY (room_id, principal_id)
-                )
-            """)
-            await conn.execute(f"""
-                CREATE TABLE IF NOT EXISTS {capacity} (
-                    id INTEGER PRIMARY KEY
-                )
-            """)
-            await conn.execute(f"""
-                CREATE TABLE IF NOT EXISTS {connections} (
-                    connection_id TEXT PRIMARY KEY,
-                    room_id TEXT NOT NULL,
-                    expires_at_ms {database.big_int} NOT NULL
-                )
-            """)
-            await conn.execute(f"""
-                CREATE TABLE IF NOT EXISTS {jobs} (
-                    job_id TEXT PRIMARY KEY,
-                    room_id TEXT NOT NULL,
-                    admission_sequence {database.big_int} NOT NULL,
-                    expires_at_ms {database.big_int} NOT NULL
-                )
-            """)
-            await conn.execute(f"""
-                CREATE TABLE IF NOT EXISTS {order} (
-                    room_id TEXT PRIMARY KEY,
-                    next_sequence {database.big_int} NOT NULL
-                )
-            """)
-            await conn.execute(f"""
-                INSERT INTO {capacity} (id) VALUES (1)
-                ON CONFLICT (id) DO NOTHING
-            """)
-        initialized.add(key)
-    return database
+    return storage_crud._database(extension_id)
+
+
+async def _create_authoritative_tables(database: Database) -> None:
+    rooms = _table_ref(database, _ROOMS_TABLE)
+    clients = _table_ref(database, _CLIENTS_TABLE)
+    connections = _table_ref(database, _CONNECTIONS_TABLE)
+    jobs = _table_ref(database, _JOBS_TABLE)
+    capacity = _table_ref(database, _CAPACITY_TABLE)
+    order = _table_ref(database, _ORDER_TABLE)
+    async with database.connect() as conn:
+        await conn.execute(f"""
+            CREATE TABLE IF NOT EXISTS {rooms} (
+                room_id TEXT PRIMARY KEY,
+                owner_id TEXT NOT NULL,
+                sequence {database.big_int} NOT NULL DEFAULT 0,
+                version {database.big_int} NOT NULL DEFAULT 0,
+                snapshot_json TEXT,
+                event_timestamps_json TEXT NOT NULL DEFAULT '[]',
+                last_schedule_ms {database.big_int} NOT NULL DEFAULT 0,
+                last_activity_ms {database.big_int} NOT NULL DEFAULT 0,
+                lease_owner TEXT,
+                lease_until_ms {database.big_int} NOT NULL DEFAULT 0
+            )
+        """)
+        await conn.execute(f"""
+            CREATE TABLE IF NOT EXISTS {clients} (
+                room_id TEXT NOT NULL,
+                principal_id TEXT NOT NULL,
+                last_client_sequence {database.big_int} NOT NULL DEFAULT 0,
+                PRIMARY KEY (room_id, principal_id)
+            )
+        """)
+        await conn.execute(f"""
+            CREATE TABLE IF NOT EXISTS {capacity} (
+                id INTEGER PRIMARY KEY
+            )
+        """)
+        await conn.execute(f"""
+            CREATE TABLE IF NOT EXISTS {connections} (
+                connection_id TEXT PRIMARY KEY,
+                room_id TEXT NOT NULL,
+                expires_at_ms {database.big_int} NOT NULL
+            )
+        """)
+        await conn.execute(f"""
+            CREATE TABLE IF NOT EXISTS {jobs} (
+                job_id TEXT PRIMARY KEY,
+                room_id TEXT NOT NULL,
+                admission_sequence {database.big_int} NOT NULL,
+                expires_at_ms {database.big_int} NOT NULL
+            )
+        """)
+        await conn.execute(f"""
+            CREATE TABLE IF NOT EXISTS {order} (
+                room_id TEXT PRIMARY KEY,
+                next_sequence {database.big_int} NOT NULL
+            )
+        """)
+        await conn.execute(f"""
+            INSERT INTO {capacity} (id) VALUES (1)
+            ON CONFLICT (id) DO NOTHING
+        """)
 
 
 @asynccontextmanager

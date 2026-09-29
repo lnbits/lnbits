@@ -10,8 +10,20 @@ from uuid import uuid4
 import pytest
 
 from lnbits.core.wasm_ext.api import authoritative_channels as channels
+from lnbits.core.wasm_ext.storage import crud as storage_crud
 from lnbits.core.wasm_ext.wasm.config import WasmAuthoritativeChannelConfig
 from lnbits.settings import Settings
+
+
+def _clear_extension_database_cache(extension_id: str) -> None:
+    """Drop the cached engine and schema flags, as a fresh worker would."""
+    loop = asyncio.get_running_loop()
+    key = storage_crud._database_key(extension_id)
+    storage_crud._databases.get(loop, {}).pop(key, None)
+    initialized = storage_crud._initialized_databases.get(loop, set())
+    for init_key in list(initialized):
+        if init_key[0] == key:
+            initialized.discard(init_key)
 
 
 def _wait_for_admission_in_child(data_folder, extension_id, output):
@@ -40,8 +52,8 @@ def _wait_for_admission_in_child(data_folder, extension_id, output):
         output.put(("ready", sequence))
         await channels.release_authoritative_job(extension_id, "child-job")
 
-    channels.settings.lnbits_database_url = None
-    channels.settings.lnbits_data_folder = data_folder
+    storage_crud.settings.lnbits_database_url = None
+    storage_crud.settings.lnbits_data_folder = data_folder
     asyncio.run(run())
 
 
@@ -128,14 +140,7 @@ async def test_authoritative_admission_order_survives_worker_cache_restart(
         extension_id, "room", "job-first", max_active_rooms=1, max_queue_depth=3
     )
 
-    loop = asyncio.get_running_loop()
-    key = (
-        extension_id,
-        settings.lnbits_database_url or "",
-        str(settings.lnbits_data_folder),
-    )
-    channels._databases.get(loop, {}).pop(key, None)
-    channels._initialized_databases.get(loop, set()).discard(key)
+    _clear_extension_database_cache(extension_id)
     second = await channels.reserve_authoritative_job(
         extension_id, "room", "job-second", max_active_rooms=1, max_queue_depth=3
     )
@@ -233,14 +238,7 @@ async def test_authoritative_room_snapshot_survives_host_cache_restart(
             },
         )
 
-    loop = asyncio.get_running_loop()
-    key = (
-        extension_id,
-        settings.lnbits_database_url or "",
-        str(settings.lnbits_data_folder),
-    )
-    channels._databases.get(loop, {}).pop(key, None)
-    channels._initialized_databases.get(loop, set()).discard(key)
+    _clear_extension_database_cache(extension_id)
 
     state = await channels.get_authoritative_channel_state(
         extension_id, "room-a", "owner-a"

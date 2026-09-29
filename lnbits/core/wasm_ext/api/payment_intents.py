@@ -12,7 +12,11 @@ from sqlalchemy.exc import IntegrityError
 
 from lnbits.core.crud.payments import get_standalone_payment
 from lnbits.core.models.payments import Payment
-from lnbits.core.wasm_ext.storage.crud import storage_get_immutable_row
+from lnbits.core.wasm_ext.storage import crud as storage_crud
+from lnbits.core.wasm_ext.storage.crud import (
+    _initialize_database_once,
+    storage_get_immutable_row,
+)
 from lnbits.db import SQLITE, Database
 
 _PAYMENT_INTENTS_TABLE = "lnbits_payment_intents"
@@ -766,15 +770,15 @@ async def _existing_intent(
             WHERE id = :id AND status = 'failed'
         """),  # noqa: S608
         {
-            "payment_request": None
-            if _is_lnurl(row["destination"])
-            else row["payment_request"],
-            "payment_hash": None
-            if _is_lnurl(row["destination"])
-            else row["payment_hash"],
-            "checking_id": None
-            if _is_lnurl(row["destination"])
-            else row["checking_id"],
+            "payment_request": (
+                None if _is_lnurl(row["destination"]) else row["payment_request"]
+            ),
+            "payment_hash": (
+                None if _is_lnurl(row["destination"]) else row["payment_hash"]
+            ),
+            "checking_id": (
+                None if _is_lnurl(row["destination"]) else row["checking_id"]
+            ),
             "reserved_msat": reserve_msat,
             "id": row["id"],
         },
@@ -922,7 +926,13 @@ def _is_lnurl(destination: str) -> bool:
 async def _database(extension_id: str) -> Database:
     if not _SQL_IDENTIFIER_RE.fullmatch(extension_id):
         raise ValueError("Invalid WASM extension ID.")
-    database = Database(f"ext_{extension_id}")
+    await _initialize_database_once(
+        extension_id, "payment_intents", _create_payment_intent_tables
+    )
+    return storage_crud._database(extension_id)
+
+
+async def _create_payment_intent_tables(database: Database) -> None:
     intents = _table_ref(database, _PAYMENT_INTENTS_TABLE)
     groups = _table_ref(database, _PAYMENT_INTENT_GROUPS_TABLE)
     audit = _table_ref(database, _PAYMENT_INTENT_MANUAL_AUDIT_TABLE)
@@ -997,7 +1007,6 @@ async def _database(extension_id: str) -> Database:
             ON {index_table} (wallet_id, source_payment_hash)
             WHERE purpose = 'refund'
         """)
-    return database
 
 
 def _table_ref(database: Database, name: str) -> str:
@@ -1112,12 +1121,15 @@ async def resolve_manual_payment_intent(
             spent = group["spent_msat"]
             if status == "paid":
                 spent += intent["amount_msat"] + fee_msat
+            release_query = f"""
+                UPDATE {groups}
+                SET reserved_msat = reserved_msat - :reserved_msat,
+                    spent_msat = :spent_msat,
+                    updated_at = {database.timestamp_now}
+                WHERE wallet_id = :wallet_id AND scope_id = :scope_id
+            """  # noqa: S608
             await conn.conn.execute(
-                text(f"""UPDATE {groups}
-                    SET reserved_msat = reserved_msat - :reserved_msat,
-                        spent_msat = :spent_msat,
-                        updated_at = {database.timestamp_now}
-                    WHERE wallet_id = :wallet_id AND scope_id = :scope_id"""),  # noqa: S608
+                text(release_query),
                 {
                     "reserved_msat": intent["reserved_msat"],
                     "spent_msat": spent,
@@ -1216,8 +1228,7 @@ def _matches_expected_intent_state(
     expected_attempted: bool | None,
 ) -> bool:
     return (expected_status is None or row["status"] == expected_status) and (
-        expected_attempted is None
-        or bool(row["attempted"]) == expected_attempted
+        expected_attempted is None or bool(row["attempted"]) == expected_attempted
     )
 
 

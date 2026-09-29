@@ -5,8 +5,22 @@ from uuid import uuid4
 
 import pytest
 
-from lnbits.core.wasm_ext.api import payment_intents
+from lnbits.core.wasm_ext.api import authoritative_channels, payment_intents
 from lnbits.settings import Settings
+
+
+@pytest.mark.anyio
+async def test_payment_intents_and_channels_share_one_extension_engine(
+    tmp_path: Path, settings: Settings
+):
+    settings.lnbits_database_url = None
+    settings.lnbits_data_folder = str(tmp_path)
+    extension_id = f"shared{uuid4().hex[:8]}"
+
+    intents_database = await payment_intents._database(extension_id)
+    channels_database = await authoritative_channels._database(extension_id)
+
+    assert intents_database is channels_database
 
 
 @pytest.mark.anyio
@@ -26,9 +40,7 @@ async def test_reconcile_does_not_release_a_payment_attempt_won_after_stale_read
     assert await payment_intents.mark_payment_intent_attempted(
         extension_id, intent["id"]
     )
-    current = await payment_intents.reconcile_payment_intent(
-        extension_id, stale_intent
-    )
+    current = await payment_intents.reconcile_payment_intent(extension_id, stale_intent)
 
     assert current["status"] == "processing"
     assert bool(current["attempted"]) is True
@@ -200,9 +212,12 @@ async def test_over_ceiling_observed_payment_is_manually_resolvable(
     )
     assert unknown["status"] == "unknown"
     assert bool(unknown["manual_reconciliation"]) is True
-    assert [row["id"] for row in await payment_intents.get_manual_payment_intents(
-        extension_id, intent["wallet_id"]
-    )] == [intent["id"]]
+    assert [
+        row["id"]
+        for row in await payment_intents.get_manual_payment_intents(
+            extension_id, intent["wallet_id"]
+        )
+    ] == [intent["id"]]
 
     resolved = await payment_intents.resolve_manual_payment_intent(
         extension_id,

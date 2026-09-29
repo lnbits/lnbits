@@ -3,6 +3,7 @@ from __future__ import annotations
 import asyncio
 import json
 import re
+from collections.abc import Awaitable, Callable
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
@@ -29,20 +30,50 @@ _DatabaseKey = tuple[str, str, str]
 _databases: WeakKeyDictionary[
     asyncio.AbstractEventLoop, dict[_DatabaseKey, Database]
 ] = WeakKeyDictionary()
+_initialized_databases: WeakKeyDictionary[
+    asyncio.AbstractEventLoop, set[tuple[_DatabaseKey, str]]
+] = WeakKeyDictionary()
+_database_init_locks: WeakKeyDictionary[
+    asyncio.AbstractEventLoop, dict[tuple[_DatabaseKey, str], asyncio.Lock]
+] = WeakKeyDictionary()
 
 
-def _database(ext_id: str) -> Database:
-    key = (
+def _database_key(ext_id: str) -> _DatabaseKey:
+    return (
         ext_id,
         settings.lnbits_database_url or "",
         str(settings.lnbits_data_folder),
     )
+
+
+def _database(ext_id: str) -> Database:
+    key = _database_key(ext_id)
     databases = _databases.setdefault(asyncio.get_running_loop(), {})
     database = databases.get(key)
     if database is None:
         database = Database(f"ext_{ext_id}")
         databases[key] = database
     return database
+
+
+async def _initialize_database_once(
+    ext_id: str,
+    init_name: str,
+    initialize: Callable[[Database], Awaitable[None]],
+) -> None:
+    """Run one consumer's schema setup once per extension database and loop."""
+    loop = asyncio.get_running_loop()
+    init_key = (_database_key(ext_id), init_name)
+    initialized = _initialized_databases.setdefault(loop, set())
+    if init_key in initialized:
+        return
+    locks = _database_init_locks.setdefault(loop, {})
+    lock = locks.setdefault(init_key, asyncio.Lock())
+    async with lock:
+        if init_key in initialized:
+            return
+        await initialize(_database(ext_id))
+        initialized.add(init_key)
 
 
 async def storage_get_row(
