@@ -38,7 +38,6 @@ async def test_serialized_room_export_requires_runtime_permissions(mocker):
             wasm_api.WasmRoutePayload({"roomId": "room-1"}, 1),
             limits={},
             account=SimpleNamespace(id="user-1"),
-            access_token=None,
         )
 
 
@@ -70,7 +69,6 @@ async def test_serialized_room_export_requires_room_owner(mocker):
             wasm_api.WasmRoutePayload({}, 1),
             limits={},
             account=SimpleNamespace(id="user-1"),
-            access_token=None,
         )
     owner_lookup.assert_awaited_once_with("demoext", "rooms", "room-1")
 
@@ -106,7 +104,6 @@ async def test_serialized_room_export_uses_authoritative_queue(mocker):
         wasm_api.WasmRoutePayload({}, 1),
         limits={"wasm_runtime_max_execution_ms": 1000},
         account=SimpleNamespace(id="user-1"),
-        access_token="token",
     )
 
     assert result["ok"] is True
@@ -115,6 +112,7 @@ async def test_serialized_room_export_uses_authoritative_queue(mocker):
     assert args.args[2] == sha256s("user-1")
     assert args.args[4]["roomId"] == "room-1"
     assert args.kwargs["action"] == "api"
+    assert "access_token" not in args.kwargs["invoke_options"]
 
 
 @pytest.mark.anyio
@@ -149,7 +147,6 @@ async def test_public_serialized_room_export_uses_server_owner_context(mocker):
         wasm_api.WasmRoutePayload({}, 1),
         limits={"wasm_runtime_max_execution_ms": 1000},
         account=None,
-        access_token=None,
     )
 
     assert invoke.await_args.args[2] == "room-owner"

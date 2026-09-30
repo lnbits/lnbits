@@ -7,7 +7,7 @@ import asyncio
 import json
 import re
 import time
-from contextlib import asynccontextmanager
+from contextlib import asynccontextmanager, suppress
 from dataclasses import asdict, dataclass, field
 from typing import TYPE_CHECKING, Any
 from uuid import uuid4
@@ -48,6 +48,10 @@ class AuthoritativeChannelBackpressureError(ValueError):
 
 
 class AuthoritativeChannelLeaseError(TimeoutError):
+    pass
+
+
+class AuthoritativeChannelRejectedError(PermissionError):
     pass
 
 
@@ -178,6 +182,7 @@ async def run_authoritative_channel_export(  # noqa: C901
             raise PermissionError("Ephemeral authoritative channel policy changed.")
         _broker_extensions[extension.id] = extension
         options = dict(invoke_options or {})
+        options.pop("access_token", None)
         account = options.pop("user", None)
         if account is not None:
             options["broker_account_id"] = account.id
@@ -360,25 +365,18 @@ def _get_ephemeral_room(
     create: bool,
 ) -> _EphemeralRoom:
     now_ms = int(time.time() * 1000)
-    for key, candidate in list(_ephemeral_rooms.items()):
-        for connection, deadline in list(candidate.connections.items()):
-            if deadline <= now_ms:
-                candidate.connections.pop(connection, None)
-        if (
-            key[0] == extension_id
-            and not candidate.connections
-            and not candidate.pending_jobs
-            and now_ms - candidate.last_activity_ms > _ROOM_RETENTION_MS
-        ):
-            _discard_idle_ephemeral_room(key)
     key = (extension_id, room_id)
     room = _ephemeral_rooms.get(key)
     if room:
         if room.owner_id != owner_id:
             raise PermissionError("Authoritative channel room owner does not match.")
+        _prune_ephemeral_connections(room, now_ms)
         return room
     if not create:
         raise PermissionError("Authoritative channel room was not found.")
+    # Only the cold path (creating a room) needs the full sweep: it evicts
+    # retention-expired rooms so the per-extension room count stays accurate.
+    _prune_ephemeral_rooms(extension_id, now_ms)
     extension_rooms = [
         (extension_key, candidate)
         for extension_key, candidate in _ephemeral_rooms.items()
@@ -414,6 +412,24 @@ def _get_ephemeral_room(
     )
     _ephemeral_rooms[key] = room
     return room
+
+
+def _prune_ephemeral_connections(room: _EphemeralRoom, now_ms: int) -> None:
+    for connection, deadline in list(room.connections.items()):
+        if deadline <= now_ms:
+            room.connections.pop(connection, None)
+
+
+def _prune_ephemeral_rooms(extension_id: str, now_ms: int) -> None:
+    for key, candidate in list(_ephemeral_rooms.items()):
+        _prune_ephemeral_connections(candidate, now_ms)
+        if (
+            key[0] == extension_id
+            and not candidate.connections
+            and not candidate.pending_jobs
+            and now_ms - candidate.last_activity_ms > _ROOM_RETENTION_MS
+        ):
+            _discard_idle_ephemeral_room(key)
 
 
 def _discard_idle_ephemeral_room(key: tuple[str, str]) -> None:
@@ -999,7 +1015,9 @@ async def _execute_channel_job(job: _ChannelJob) -> dict[str, Any]:  # noqa: C90
         job.execution_sequence = sequence
         result = await _invoke_room_job(job, sequence, state, now_ms)
         if _authoritative_job_rejected(job.action, result):
-            raise PermissionError("Authoritative WASM channel rejected the action.")
+            raise AuthoritativeChannelRejectedError(
+                "Authoritative WASM channel rejected the action."
+            )
         if job.action == "api" and isinstance(result, dict):
             if result.get("ok") is False:
                 return result
@@ -1101,7 +1119,9 @@ async def _execute_ephemeral_channel_job(  # noqa: C901
     result = await _invoke_room_job(job, sequence, state, now_ms)
     _check_actor_ownership(job.extension.id)
     if _authoritative_job_rejected(job.action, result):
-        raise PermissionError("Authoritative WASM channel rejected the action.")
+        raise AuthoritativeChannelRejectedError(
+            "Authoritative WASM channel rejected the action."
+        )
     if job.action == "api" and isinstance(result, dict) and result.get("ok") is False:
         return result
 
@@ -1175,8 +1195,10 @@ def _start_ephemeral_room_schedule(  # noqa: C901
     permissions = list(job.permissions or [])
     policy_generation = job.policy_generation
     interval = channel.schedule_interval_ms / 1000
+    rejection_limit = 3
 
     async def tick() -> None:  # noqa: C901
+        consecutive_rejections = 0
         try:
             while settings.lnbits_running:
                 remaining = (
@@ -1209,18 +1231,42 @@ def _start_ephemeral_room_schedule(  # noqa: C901
                         permissions=permissions,
                         policy_generation=policy_generation,
                     )
+                    consecutive_rejections = 0
                 except AuthoritativeChannelBackpressureError:
                     await asyncio.sleep(interval)
                     continue
-                except PermissionError:
+                except AuthoritativeChannelRejectedError:
+                    consecutive_rejections += 1
+                    logger.warning(
+                        f"WASM authoritative schedule rejected for "
+                        f"{extension.id}:{room_id} export {channel.on_schedule} "
+                        f"(AuthoritativeChannelRejectedError; "
+                        f"{consecutive_rejections}/{rejection_limit})."
+                    )
+                    if consecutive_rejections >= rejection_limit:
+                        return
+                    await asyncio.sleep(interval)
+                    continue
+                except PermissionError as exc:
+                    logger.warning(
+                        f"WASM authoritative schedule stopped for "
+                        f"{extension.id}:{room_id} export {channel.on_schedule} "
+                        f"({exc.__class__.__name__})."
+                    )
                     return
                 except Exception as exc:
                     logger.warning(
                         f"WASM authoritative schedule failed for "
-                        f"{extension.id}:{room_id} ({exc.__class__.__name__})."
+                        f"{extension.id}:{room_id} export {channel.on_schedule} "
+                        f"({exc.__class__.__name__})."
                     )
                     await asyncio.sleep(interval)
         except PermissionError:
+            logger.warning(
+                f"WASM authoritative schedule stopped for "
+                f"{extension.id}:{room_id} export {channel.on_schedule} "
+                "(PermissionError)."
+            )
             return
         except asyncio.CancelledError:
             return
@@ -1537,10 +1583,20 @@ async def _room_lease(
     )
     try:
         yield lease
-    finally:
+    except BaseException:
         stop_renewal.set()
-        await renewal
-        await _release_room_lease(database, room_id, lease)
+        try:
+            with suppress(Exception, asyncio.CancelledError):
+                await renewal
+        finally:
+            await _release_room_lease(database, room_id, lease)
+        raise
+    else:
+        stop_renewal.set()
+        try:
+            await renewal
+        finally:
+            await _release_room_lease(database, room_id, lease)
 
 
 async def _renew_room_lease(

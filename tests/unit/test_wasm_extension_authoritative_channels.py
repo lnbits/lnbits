@@ -6,6 +6,7 @@ from contextlib import asynccontextmanager, suppress
 from pathlib import Path
 from types import SimpleNamespace
 from typing import Any
+from unittest.mock import AsyncMock
 from uuid import uuid4
 
 import pytest
@@ -108,6 +109,208 @@ async def test_room_lease_renews_after_one_third_and_stops_promptly(mocker):
     assert intervals == [0.2, 0.2]
     assert stop.is_set()
     assert len(update_times) == 1
+
+
+@pytest.mark.anyio
+@pytest.mark.parametrize(
+    "body_error,renewal_error",
+    [
+        (None, RuntimeError("renewal failed")),
+        (ValueError("body failed"), RuntimeError("renewal failed")),
+        (ValueError("body failed"), asyncio.CancelledError()),
+    ],
+)
+async def test_room_lease_releases_when_renewal_fails(
+    mocker, body_error, renewal_error
+):
+    class Result:
+        rowcount = 1
+
+        def close(self):
+            pass
+
+    class Connection:
+        async def __aenter__(self):
+            return self
+
+        async def __aexit__(self, *_):
+            return None
+
+        class Raw:
+            async def execute(self, *_args, **_kwargs):
+                return Result()
+
+        conn = Raw()
+
+    class Database:
+        def connect(self):
+            return Connection()
+
+    @asynccontextmanager
+    async def transaction(_connection):
+        yield
+
+    mocker.patch.object(channels, "_ensure_room", AsyncMock())
+    mocker.patch.object(channels, "_transaction", transaction)
+    mocker.patch.object(channels, "_table_ref", return_value="rooms")
+    mocker.patch.object(
+        channels,
+        "_renew_room_lease",
+        AsyncMock(side_effect=renewal_error),
+    )
+    release = mocker.patch.object(channels, "_release_room_lease", AsyncMock())
+
+    expected_error = body_error or renewal_error
+    with pytest.raises(type(expected_error), match=str(expected_error)):
+        async with channels._room_lease(Database(), "room", "owner", 10_000):
+            if body_error:
+                raise body_error
+
+    release.assert_awaited_once_with(mocker.ANY, "room", mocker.ANY)
+
+
+@pytest.mark.anyio
+async def test_ephemeral_dispatch_does_not_send_access_token_to_broker(mocker):
+    extension_id = f"token{uuid4().hex[:8]}"
+    mocker.patch.object(channels, "validate_authoritative_channel_limits")
+    mocker.patch.object(
+        channels, "get_ephemeral_authoritative_extension_generation", return_value=1
+    )
+    extension = SimpleNamespace(
+        id=extension_id,
+        config=SimpleNamespace(
+            authoritative_channel=SimpleNamespace(persistence="ephemeral")
+        ),
+    )
+    mocker.patch.object(channels.broker, "in_handler", return_value=False)
+    call = mocker.patch.object(channels.broker, "call", return_value={"ok": True})
+
+    await channels.run_authoritative_channel_export(
+        extension,
+        "room",
+        "owner",
+        "serialize",
+        {},
+        limits={},
+        action="api",
+        invoke_options={"access_token": "secret"},
+        permissions=[],
+        policy_generation=1,
+    )
+
+    assert "access_token" not in call.await_args.args[2]["invoke_options"]
+
+
+def _schedule_fixture():
+    extension = SimpleNamespace(id=f"schedule{uuid4().hex[:8]}")
+    job = SimpleNamespace(
+        extension=extension,
+        room_id="room",
+        owner_id="owner",
+        limits={},
+        permissions=[],
+        policy_generation=1,
+    )
+    room = SimpleNamespace(
+        scheduler_task=None,
+        connections={"connection": int(time.time() * 1000) + 60_000},
+        generation="generation",
+        owner_id="owner",
+        state=SimpleNamespace(last_schedule_ms=0),
+    )
+    channel = SimpleNamespace(on_schedule="scheduled_tick", schedule_interval_ms=1000)
+    return job, room, channel
+
+
+@pytest.mark.anyio
+async def test_ephemeral_schedule_recovers_and_resets_rejection_count(mocker):
+    job, room, channel = _schedule_fixture()
+    key = (job.extension.id, job.room_id)
+    mocker.patch.object(channels.settings, "lnbits_running", True)
+    mocker.patch.object(channels.asyncio, "sleep", AsyncMock())
+    mocker.patch.object(channels, "_check_actor_ownership")
+    mocker.patch.dict(channels._ephemeral_rooms, {key: room})
+    warnings = mocker.patch.object(channels.logger, "warning")
+    calls = 0
+
+    async def dispatch(*_args, **_kwargs):
+        nonlocal calls
+        calls += 1
+        if calls in {1, 3, 4}:
+            raise channels.AuthoritativeChannelRejectedError("private guest detail")
+        if calls == 5:
+            channels._ephemeral_rooms.pop(key, None)
+        return {"ok": True}
+
+    mocker.patch.object(channels, "run_authoritative_channel_export", dispatch)
+
+    channels._start_ephemeral_room_schedule(job, room, channel)
+    await asyncio.wait_for(room.scheduler_task, timeout=1)
+
+    assert calls == 5
+    assert warnings.call_count == 3
+    assert "private guest detail" not in str(warnings.call_args_list)
+
+
+@pytest.mark.anyio
+async def test_ephemeral_schedule_stops_after_bounded_guest_rejections(mocker):
+    job, room, channel = _schedule_fixture()
+    mocker.patch.object(channels.settings, "lnbits_running", True)
+    mocker.patch.object(channels.asyncio, "sleep", AsyncMock())
+    mocker.patch.object(channels, "_check_actor_ownership")
+    mocker.patch.dict(
+        channels._ephemeral_rooms, {(job.extension.id, job.room_id): room}
+    )
+    warnings = mocker.patch.object(channels.logger, "warning")
+    dispatch = mocker.patch.object(
+        channels,
+        "run_authoritative_channel_export",
+        AsyncMock(side_effect=channels.AuthoritativeChannelRejectedError("secret")),
+    )
+
+    channels._start_ephemeral_room_schedule(job, room, channel)
+    await asyncio.wait_for(room.scheduler_task, timeout=1)
+
+    assert dispatch.await_count == 3
+    assert warnings.call_count == 3
+    warning = str(warnings.call_args_list[0])
+    assert "scheduled_tick" in warning
+    assert job.extension.id in warning
+    assert "room" in warning
+    assert "AuthoritativeChannelRejectedError" in warning
+    assert "secret" not in warning
+
+
+@pytest.mark.anyio
+@pytest.mark.parametrize("failure_location", ["fence", "dispatch"])
+async def test_ephemeral_schedule_stops_on_permission_error(mocker, failure_location):
+    job, room, channel = _schedule_fixture()
+    mocker.patch.object(channels.settings, "lnbits_running", True)
+    mocker.patch.object(channels.asyncio, "sleep", AsyncMock())
+    check_owner = mocker.patch.object(channels, "_check_actor_ownership")
+    if failure_location == "fence":
+        check_owner.side_effect = PermissionError("private fence detail")
+    dispatch = mocker.patch.object(
+        channels,
+        "run_authoritative_channel_export",
+        AsyncMock(side_effect=PermissionError("private fence detail")),
+    )
+    mocker.patch.dict(
+        channels._ephemeral_rooms, {(job.extension.id, job.room_id): room}
+    )
+    warnings = mocker.patch.object(channels.logger, "warning")
+
+    channels._start_ephemeral_room_schedule(job, room, channel)
+    await asyncio.wait_for(room.scheduler_task, timeout=1)
+
+    assert dispatch.await_count == (0 if failure_location == "fence" else 1)
+    assert warnings.call_count == 1
+    warning = str(warnings.call_args)
+    assert "scheduled_tick" in warning
+    assert job.extension.id in warning
+    assert "room" in warning
+    assert "PermissionError" in warning
+    assert "private fence detail" not in warning
 
 
 def test_ephemeral_channels_require_no_deployment_flag(settings: Settings, monkeypatch):
@@ -1084,6 +1287,32 @@ async def test_ephemeral_crashed_worker_connections_expire_and_release_capacity(
             persistence="ephemeral",
         )
         assert (ext, "old") not in channels._ephemeral_rooms
+    finally:
+        channels.invalidate_ephemeral_authoritative_extension(ext)
+
+
+@pytest.mark.anyio
+async def test_ephemeral_existing_room_lookup_skips_cross_room_sweep(mocker):
+    ext = f"hotpath{uuid4().hex[:8]}"
+    sweep = mocker.patch.object(channels, "_prune_ephemeral_rooms")
+    try:
+        room = channels._get_ephemeral_room(
+            ext, "room", "owner", max_active_rooms=2, create=True
+        )
+        sweep.reset_mock()
+        # An existing room must not pay for the cross-room sweep on the hot path.
+        assert (
+            channels._get_ephemeral_room(
+                ext, "room", "owner", max_active_rooms=2, create=True
+            )
+            is room
+        )
+        sweep.assert_not_called()
+        # Creating a room still sweeps so per-extension counts stay accurate.
+        channels._get_ephemeral_room(
+            ext, "second", "owner", max_active_rooms=2, create=True
+        )
+        sweep.assert_called_once()
     finally:
         channels.invalidate_ephemeral_authoritative_extension(ext)
 

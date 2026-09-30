@@ -156,7 +156,6 @@ async def _run_wasm_api_request(
                 payload,
                 limits=limits,
                 account=account,
-                access_token=access_token,
             )
         owner_id = await _wasm_route_owner_id(extension, route_config, payload)
         return await invoke_wasm_extension_export(
@@ -204,7 +203,6 @@ async def _invoke_serialized_room_export(
     *,
     limits: dict[str, int],
     account: Account | None,
-    access_token: str | None,
 ) -> dict[str, Any]:
     channel_config = getattr(
         getattr(extension, "config", None), "authoritative_channel", None
@@ -252,7 +250,6 @@ async def _invoke_serialized_room_export(
         action="api",
         invoke_options={
             "user": account,
-            "access_token": access_token,
             "method": request.method,
             "path": request.url.path,
             "request_id": request.headers.get("x-request-id"),
