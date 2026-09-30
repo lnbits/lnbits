@@ -1,6 +1,8 @@
 from io import BytesIO
 from typing import Any
 
+from lnbits.core.models.onchain import CreatePsbt
+
 from .bindings import wally
 from .helpers import (
     TaprootDescriptor,
@@ -9,7 +11,6 @@ from .helpers import (
     descriptor_script,
     parse_key,
 )
-from .models import CreatePsbt
 
 
 def _path(path: str, address_index: int = 0, branch_index: int = 0) -> list[int]:

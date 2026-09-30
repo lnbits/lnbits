@@ -53,7 +53,8 @@ window.app.component('onchain-payment', {
   computed: {
     isHotWallet() {
       return (
-        this.accounts?.length === 1 && this.accounts[0].wallet_kind === 'hot'
+        this.accounts?.length === 1 &&
+        this.accounts[0].onchain_wallet_kind === 'hot'
       )
     },
     canReview() {
@@ -263,8 +264,8 @@ window.app.component('onchain-payment', {
         fee_rate: this.feeRate,
         masterpubs: this.accounts.map(w => ({
           id: w.id,
-          public_key: w.masterpub,
-          fingerprint: w.fingerprint
+          public_key: w.onchain_meta.masterpub,
+          fingerprint: w.onchain_meta.fingerprint
         }))
       }
       tx.inputs = this.utxos
@@ -301,7 +302,7 @@ window.app.component('onchain-payment', {
     createChangeOutput: function () {
       const change = this.changeAddress
       const walletAcount = this.accounts.find(w => w.id === change.wallet) || {
-        meta: {}
+        onchain_meta: {}
       }
 
       return {
@@ -309,8 +310,8 @@ window.app.component('onchain-payment', {
         address_index: change.addressIndex,
         branch_index: change.isChange ? 1 : 0,
         wallet: walletAcount.id,
-        accountPath: walletAcount.meta.accountPath,
-        accountType: walletAcount.type
+        accountPath: walletAcount.onchain_meta.accountPath,
+        accountType: walletAcount.onchain_meta.script_type
       }
     },
     selectChangeAddress: function (account) {

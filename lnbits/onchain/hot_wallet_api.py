@@ -1,4 +1,3 @@
-import json
 from http import HTTPStatus
 from typing import Annotated
 
@@ -6,16 +5,21 @@ from fastapi import APIRouter, Depends, Header, HTTPException, Response
 from pydantic import BaseModel, SecretStr
 from starlette.concurrency import run_in_threadpool
 
-from lnbits.core.services.onchain import require_onchain_payments
-from lnbits.settings import settings
-
-from .crud import (
+from lnbits.core.crud.wallets_onchain import (
     WalletAlreadyConfiguredError,
-    create_watch_wallet,
-    db,
-    get_config,
+    create_onchain_wallet,
     update_watch_wallet,
 )
+from lnbits.core.db import db
+from lnbits.core.models.wallets import OnchainMeta, OnchainWallet
+from lnbits.core.services.onchain import require_onchain_payments
+from lnbits.core.services.wallets_onchain import (
+    ensure_network,
+    get_onchain_wallet,
+    get_wallet_addresses,
+)
+from lnbits.settings import settings
+
 from .decorators import OnchainAuth, require_onchain_admin
 from .helpers import address_script, descriptor_fingerprint, parse_key
 from .hot_wallet import (
@@ -28,9 +32,7 @@ from .hot_wallet import (
     sign_payment,
     wallet_descriptor,
 )
-from .models import WalletAccount
 from .sync import explorer_client, request_scan
-from .views_api import _get_user_watch_wallet, api_get_addresses, ensure_network
 
 hot_wallet_router = APIRouter()
 
@@ -56,7 +58,11 @@ async def hot_wallet_status(
         return {"available": False}
 
 
-@hot_wallet_router.post("/api/v1/hot-wallet", response_model=WalletAccount)
+@hot_wallet_router.post(
+    "/api/v1/hot-wallet",
+    response_model=OnchainWallet,
+    response_model_exclude={"adminkey", "inkey"},
+)
 async def create_hot_wallet(
     data: NewHotWallet,
     response: Response,
@@ -84,33 +90,32 @@ async def create_hot_wallet(
         raise HTTPException(HTTPStatus.BAD_REQUEST, "Invalid recovery phrase") from exc
     if not data.title.strip():
         raise HTTPException(HTTPStatus.BAD_REQUEST, "Enter a wallet name")
-    wallet = WalletAccount(
-        id=auth.wallet_id,
-        wallet_id=auth.wallet_id,
+    wallet = await get_onchain_wallet(
+        auth.wallet_id, auth.wallet_id, include_unconfigured=True
+    )
+    wallet.name = data.title.strip()
+    wallet.onchain_network = data.network
+    wallet.onchain_wallet_kind = "hot"
+    wallet.onchain_meta = OnchainMeta(
         masterpub=descriptor,
         fingerprint=descriptor_fingerprint(parse_key(descriptor)[0]),
-        title=data.title.strip(),
-        address_no=-1,
-        balance=0,
-        type="p2wpkh",
-        network=data.network,
-        meta=json.dumps({"accountPath": path}),
-        wallet_kind="hot",
+        script_type="p2wpkh",
+        accountPath=path,
     )
     encrypted = encrypt_mnemonic(mnemonic, wallet)
     try:
-        wallet = await create_watch_wallet(wallet, encrypted_seed=encrypted)
+        wallet = await create_onchain_wallet(wallet, encrypted_seed=encrypted)
     except WalletAlreadyConfiguredError as exc:
         raise HTTPException(HTTPStatus.CONFLICT, str(exc)) from exc
     except ValueError as exc:
         raise HTTPException(HTTPStatus.BAD_REQUEST, str(exc)) from exc
-    await api_get_addresses(wallet.id, auth)
+    await get_wallet_addresses(wallet.id, auth.wallet_id)
     request_scan(auth.wallet_id)
     return wallet
 
 
-async def secret_for_wallet(wallet: WalletAccount) -> str:
-    if wallet.wallet_kind != "hot":
+async def secret_for_wallet(wallet: OnchainWallet) -> str:
+    if wallet.onchain_wallet_kind != "hot":
         raise HTTPException(
             HTTPStatus.BAD_REQUEST, "This wallet uses an external signer"
         )
@@ -133,25 +138,29 @@ async def backup_hot_wallet(
     auth: OnchainAuth = Depends(require_onchain_admin),
 ):
     no_store(response)
-    wallet = await _get_user_watch_wallet(wallet_id, auth.wallet_id)
+    wallet = await get_onchain_wallet(wallet_id, auth.wallet_id)
     encrypted = await secret_for_wallet(wallet)
     try:
         mnemonic = await run_in_threadpool(decrypt_mnemonic, encrypted, wallet)
-        return {"mnemonic": mnemonic, "path": json.loads(wallet.meta)["accountPath"]}
+        return {"mnemonic": mnemonic, "path": wallet.onchain_meta.accountPath}
     except ValueError as exc:
         raise HTTPException(
             HTTPStatus.SERVICE_UNAVAILABLE, "Wallet key cannot be unlocked"
         ) from exc
 
 
-@hot_wallet_router.post("/api/v1/hot-wallet/{wallet_id}/backup/confirm")
+@hot_wallet_router.post(
+    "/api/v1/hot-wallet/{wallet_id}/backup/confirm",
+    response_model=OnchainWallet,
+    response_model_exclude={"adminkey", "inkey"},
+)
 async def confirm_backup(
     wallet_id: str,
     auth: OnchainAuth = Depends(require_onchain_admin),
 ):
-    wallet = await _get_user_watch_wallet(wallet_id, auth.wallet_id)
+    wallet = await get_onchain_wallet(wallet_id, auth.wallet_id)
     await secret_for_wallet(wallet)
-    wallet.backup_confirmed = True
+    wallet.onchain_backup_confirmed = True
     return await update_watch_wallet(wallet)
 
 
@@ -169,12 +178,13 @@ async def sign_hot_wallet_payment(
         await require_onchain_payments()
     except ValueError as exc:
         raise HTTPException(HTTPStatus.SERVICE_UNAVAILABLE, str(exc)) from exc
-    wallet = await _get_user_watch_wallet(wallet_id, auth.wallet_id)
+    wallet = await get_onchain_wallet(wallet_id, auth.wallet_id)
     encrypted = await secret_for_wallet(wallet)
     try:
         # Reject spent/stale inputs before asking the signer to use the seed.
-        config = await get_config(auth.wallet_id)
-        async with explorer_client(config) as client:
+        async with explorer_client(
+            wallet.onchain_config, wallet.onchain_network or "Mainnet"
+        ) as client:
             for address in {i.address for i in data.transaction.inputs}:
                 address_script(address)
                 utxos = await client.utxos(address)

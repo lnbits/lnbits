@@ -59,8 +59,8 @@
             </div>
             <q-banner
               v-if="
-                selectedWallet.wallet_kind === 'hot' &&
-                !selectedWallet.backup_confirmed
+                selectedWallet.onchain_wallet_kind === 'hot' &&
+                !selectedWallet.onchain_backup_confirmed
               "
               rounded
               class="bg-orange-2 text-black q-mb-md"
@@ -888,9 +888,9 @@
         <q-item-section avatar
           ><q-icon
             :name="
-              wallet.wallet_kind === 'hot'
+              wallet.onchain_wallet_kind === 'hot'
                 ? 'account_balance_wallet'
-                : wallet.meta?.xpub
+                : wallet.onchain_meta?.xpub
                   ? 'usb'
                   : 'visibility'
             "
@@ -898,7 +898,7 @@
         ></q-item-section>
         <q-item-section
           ><q-item-label class="row items-center q-gutter-x-sm">
-            <span>{{ wallet.title }}</span>
+            <span>{{ wallet.name }}</span>
             <q-badge
               outline
               :color="network === 'Mainnet' ? 'primary' : 'orange'"
@@ -906,9 +906,9 @@
               {{ network === 'Testnet' ? 'Testnet3' : network }}
             </q-badge></q-item-label
           ><q-item-label caption>{{
-            wallet.wallet_kind === 'hot'
+            wallet.onchain_wallet_kind === 'hot'
               ? 'Server wallet'
-              : wallet.meta?.xpub
+              : wallet.onchain_meta?.xpub
                 ? 'Hardware wallet'
                 : 'Watch-only'
           }}</q-item-label></q-item-section
@@ -922,17 +922,19 @@
             round
             dense
             icon="more_vert"
-            :aria-label="'Manage ' + wallet.title"
+            :aria-label="'Manage ' + wallet.name"
             @click.stop
             ><q-menu auto-close
               ><q-list style="min-width: 180px">
-                <q-item clickable @click="openQrCodeDialog(wallet.masterpub)"
+                <q-item
+                  clickable
+                  @click="openQrCodeDialog(wallet.onchain_meta.masterpub)"
                   ><q-item-section
                     >Export public descriptor</q-item-section
                   ></q-item
                 >
                 <q-item
-                  v-if="wallet.wallet_kind === 'hot'"
+                  v-if="wallet.onchain_wallet_kind === 'hot'"
                   clickable
                   @click="$emit('backup-wallet', wallet)"
                   ><q-item-section
@@ -2747,7 +2749,7 @@
     >
       <h2 class="text-h6 q-mt-none">
         {{
-          mode === 'backup' ? 'Back up ' + wallet.title : 'Add a server wallet'
+          mode === 'backup' ? 'Back up ' + wallet.name : 'Add a server wallet'
         }}
       </h2>
       <q-banner
@@ -2899,9 +2901,13 @@
             somewhere private.
           </p>
           <p class="text-caption text-grey">
-            Recovery: Native SegWit · {{ wallet.network }} ·
-            {{ wallet.network === 'Mainnet' ? "m/84'/0'/0'" : "m/84'/1'/0'" }} ·
-            no passphrase
+            Recovery: Native SegWit · {{ wallet.onchain_network }} ·
+            {{
+              wallet.onchain_network === 'Mainnet'
+                ? "m/84'/0'/0'"
+                : "m/84'/1'/0'"
+            }}
+            · no passphrase
           </p>
           <div class="row justify-between q-mt-lg">
             <q-btn

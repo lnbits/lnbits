@@ -4,10 +4,9 @@ import re
 
 import httpx
 
+from lnbits.core.models.wallets import OnchainConfig
 from lnbits.core.services.blockexplorer import BlockExplorerWalletSession
 from lnbits.settings import settings
-
-from .models import Config
 
 TXID = re.compile(r"^[0-9a-f]{64}$")
 NETWORKS = {"main": "Mainnet", "test": "Testnet", "test4": "Testnet4"}
@@ -19,32 +18,39 @@ def local_explorer_network() -> str | None:
     return NETWORKS.get(settings.lnbits_blockexplorer_network)
 
 
-def provider_name(config: Config) -> str:
+def provider_name(config: OnchainConfig, network: str) -> str:
     if config.explorer_provider == "auto":
-        return "lnbits" if local_explorer_network() == config.network else "mempool"
+        return "lnbits" if local_explorer_network() == network else "mempool"
     return config.explorer_provider
 
 
-def mempool_url(config: Config) -> str:
+def mempool_url(config: OnchainConfig, network: str) -> str:
     endpoint = config.mempool_endpoint.rstrip("/")
     # The standard host serves multiple chains; custom URLs identify one chain.
     if endpoint == "https://mempool.space":
         endpoint += {"Mainnet": "", "Testnet": "/testnet", "Testnet4": "/testnet4"}[
-            config.network
+            network
         ]
     return endpoint
 
 
-def explorer_url(config: Config) -> str:
+def explorer_url(config: OnchainConfig, network: str) -> str:
     return (
-        "/blockexplorer" if provider_name(config) == "lnbits" else mempool_url(config)
+        "/blockexplorer"
+        if provider_name(config, network) == "lnbits"
+        else mempool_url(config, network)
     )
 
 
 class MempoolExplorer:
-    def __init__(self, config: Config, client: httpx.AsyncClient | None = None):
+    def __init__(
+        self,
+        config: OnchainConfig,
+        network: str,
+        client: httpx.AsyncClient | None = None,
+    ):
         self.client = client or httpx.AsyncClient(
-            base_url=mempool_url(config) + "/",
+            base_url=mempool_url(config, network) + "/",
             timeout=15,
             follow_redirects=False,
             trust_env=False,
@@ -111,8 +117,8 @@ class MempoolExplorer:
 
 
 class LnbitsExplorer(BlockExplorerWalletSession):
-    def __init__(self, config: Config):
-        if local_explorer_network() != config.network:
+    def __init__(self, network: str):
+        if local_explorer_network() != network:
             raise ValueError("LNbits block explorer is unavailable for this network")
         super().__init__()
 
@@ -120,7 +126,7 @@ class LnbitsExplorer(BlockExplorerWalletSession):
 Explorer = MempoolExplorer | LnbitsExplorer
 
 
-def explorer_client(config: Config) -> Explorer:
-    if provider_name(config) == "lnbits":
-        return LnbitsExplorer(config)
-    return MempoolExplorer(config)
+def explorer_client(config: OnchainConfig, network: str) -> Explorer:
+    if provider_name(config, network) == "lnbits":
+        return LnbitsExplorer(network)
+    return MempoolExplorer(config, network)

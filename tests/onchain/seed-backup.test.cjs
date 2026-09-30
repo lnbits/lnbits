@@ -44,7 +44,7 @@ function harness() {
     instance[name] = fn.bind(instance)
   for (const [name, fn] of Object.entries(component.computed))
     Object.defineProperty(instance, name, {get: () => fn.call(instance)})
-  instance.openBackup({id: 'wallet', title: 'Test'})
+  instance.openBackup({id: 'wallet', name: 'Test'})
   return {instance, calls, document, context}
 }
 

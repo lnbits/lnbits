@@ -9,6 +9,7 @@ from fastapi import FastAPI, HTTPException
 from httpx import ASGITransport, AsyncClient
 from starlette.requests import Request
 
+from lnbits.core.models.onchain import CreatePsbt, ExtractPsbt, ExtractTx
 from lnbits.onchain import views_api
 from lnbits.onchain.bindings import wally
 from lnbits.onchain.decorators import OnchainAuth
@@ -18,7 +19,6 @@ from lnbits.onchain.helpers import (
     parse_key,
     script_address,
 )
-from lnbits.onchain.models import CreatePsbt, ExtractPsbt, ExtractTx
 from lnbits.onchain.psbt import (
     _input_partial_signatures,
     combine_matching_psbt,

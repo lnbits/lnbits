@@ -10,14 +10,19 @@ from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 from sqlalchemy import text
 
+from lnbits.core.crud.onchain import get_addresses
+from lnbits.core.crud.wallets_onchain import (
+    get_onchain_wallet,
+    get_onchain_wallets,
+)
 from lnbits.core.db import db
+from lnbits.core.models.wallets import OnchainMeta
+from lnbits.core.services.wallets_onchain import get_wallet_addresses
 from lnbits.db import SQLITE
 from lnbits.task_manager import task_manager
 
-from .crud import get_addresses, get_config, get_watch_wallet, get_watch_wallets
 from .decorators import OnchainAuth, require_onchain_admin, require_onchain_read
 from .explorer import TXID, Explorer, explorer_client
-from .models import OnchainMeta
 
 sync_router = APIRouter()
 SCAN_SLOTS = asyncio.Semaphore(4)
@@ -89,29 +94,30 @@ async def scan_address(client: Explorer, address) -> None:
 
 
 async def _scan(wallet_id: str) -> None:
-    from .views_api import api_get_addresses
-
-    config = await get_config(wallet_id)
-    async with explorer_client(config) as client:
-        for account in await get_watch_wallets(wallet_id, config.network):
-            checked = set()
-            for _ in range(1000):
-                addresses = await api_get_addresses(account.id, OnchainAuth(wallet_id))
-                current = await get_watch_wallet(wallet_id)
-                if (
-                    not current
-                    or current.masterpub != account.masterpub
-                    or current.network != config.network
-                ):
-                    return
-                pending = [a for a in addresses if a.id not in checked]
-                if not pending:
-                    break
-                for address in pending:
-                    await scan_address(client, address)
-                    checked.add(address.id)
-            else:
-                raise ValueError("Address discovery limit reached")
+    wallet = await get_onchain_wallet(wallet_id)
+    if not wallet:
+        return
+    async with explorer_client(
+        wallet.onchain_config, wallet.onchain_network or "Mainnet"
+    ) as client:
+        checked = set()
+        for _ in range(1000):
+            addresses = await get_wallet_addresses(wallet.id, wallet_id)
+            current = await get_onchain_wallet(wallet_id)
+            if (
+                not current
+                or current.onchain_meta.masterpub != wallet.onchain_meta.masterpub
+                or current.onchain_network != wallet.onchain_network
+            ):
+                return
+            pending = [a for a in addresses if a.id not in checked]
+            if not pending:
+                break
+            for address in pending:
+                await scan_address(client, address)
+                checked.add(address.id)
+        else:
+            raise ValueError("Address discovery limit reached")
 
 
 async def scan_wallet(wallet_id: str) -> None:
@@ -207,8 +213,7 @@ async def start_sync(auth: OnchainAuth = Depends(require_onchain_admin)):
 
 @sync_router.get("/api/v1/state")
 async def wallet_state(auth: OnchainAuth = Depends(require_onchain_read)):
-    config = await get_config(auth.wallet_id)
-    accounts = await get_watch_wallets(auth.wallet_id, config.network)
+    accounts = await get_onchain_wallets(auth.wallet_id)
     addresses = []
     for account in accounts:
         addresses.extend(await get_addresses(account.id))
@@ -301,9 +306,13 @@ async def daily_stats(auth: OnchainAuth = Depends(require_onchain_read)):
 
 @sync_router.get("/api/v1/fees")
 async def fee_estimates(auth: OnchainAuth = Depends(require_onchain_read)):
-    config = await get_config(auth.wallet_id)
+    wallet = await get_onchain_wallet(auth.wallet_id, include_unconfigured=True)
+    if not wallet:
+        raise HTTPException(404, "Onchain wallet not found")
     try:
-        async with explorer_client(config) as client:
+        async with explorer_client(
+            wallet.onchain_config, wallet.onchain_network or "Mainnet"
+        ) as client:
             return await client.fees()
     except Exception as exc:
         raise HTTPException(503, "Fee estimates are unavailable") from exc
@@ -315,9 +324,13 @@ async def previous_transaction(
 ):
     if not TXID.fullmatch(tx_id):
         raise HTTPException(400, "Invalid transaction ID")
-    config = await get_config(auth.wallet_id)
+    wallet = await get_onchain_wallet(auth.wallet_id, include_unconfigured=True)
+    if not wallet:
+        raise HTTPException(404, "Onchain wallet not found")
     try:
-        async with explorer_client(config) as client:
+        async with explorer_client(
+            wallet.onchain_config, wallet.onchain_network or "Mainnet"
+        ) as client:
             raw = await client.raw_transaction(tx_id)
             if len(raw) > 8_000_000 or not re.fullmatch(r"[0-9a-fA-F]+", raw):
                 raise ValueError("Invalid transaction")

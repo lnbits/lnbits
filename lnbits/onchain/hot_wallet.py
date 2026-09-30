@@ -8,11 +8,16 @@ from typing import Literal
 from Cryptodome.Cipher import AES
 from pydantic import BaseModel, Field, validator
 
+from lnbits.core.models.onchain import (
+    CreatePsbt,
+    MasterPublicKey,
+    SignedTransaction,
+)
+from lnbits.core.models.wallets import OnchainWallet
 from lnbits.core.services.onchain import read_onchain_key
 
 from .bindings import wally
 from .helpers import address_script, script_address, transaction_details
-from .models import CreatePsbt, MasterPublicKey, SignedTransaction, WalletAccount
 from .psbt import create_psbt, finalize_signed_psbt, psbt_fee
 
 
@@ -42,21 +47,28 @@ def encryption_key() -> bytes:
     return read_onchain_key()
 
 
-def context(wallet: WalletAccount) -> bytes:
+def context(wallet: OnchainWallet) -> bytes:
+    # Keep the original context: account ID and wallet ID were the same ID.
     return json.dumps(
-        ["onchain-v1", wallet.id, wallet.wallet_id, wallet.network, wallet.masterpub],
+        [
+            "onchain-v1",
+            wallet.id,
+            wallet.id,
+            wallet.onchain_network,
+            wallet.onchain_meta.masterpub,
+        ],
         separators=(",", ":"),
     ).encode()
 
 
-def encrypt_mnemonic(mnemonic: str, wallet: WalletAccount) -> str:
+def encrypt_mnemonic(mnemonic: str, wallet: OnchainWallet) -> str:
     cipher = AES.new(encryption_key(), AES.MODE_GCM, nonce=secrets.token_bytes(12))
     cipher.update(context(wallet))
     ciphertext, tag = cipher.encrypt_and_digest(mnemonic.encode())
     return base64.b64encode(b"\x01" + cipher.nonce + tag + ciphertext).decode()
 
 
-def decrypt_mnemonic(encrypted: str, wallet: WalletAccount) -> str:
+def decrypt_mnemonic(encrypted: str, wallet: OnchainWallet) -> str:
     raw = base64.b64decode(encrypted, validate=True)
     if len(raw) < 30 or raw[0] != 1:
         raise ValueError("Invalid encrypted wallet")
@@ -99,10 +111,12 @@ def wallet_descriptor(mnemonic: str, network: str) -> tuple[str, str]:
 
 
 def sign_payment(  # noqa: C901
-    wallet: WalletAccount, encrypted: str, payment: HotWalletPayment
+    wallet: OnchainWallet, encrypted: str, payment: HotWalletPayment
 ) -> SignedTransaction:
     data = payment.transaction.copy(deep=True)
-    if not wallet.backup_confirmed:
+    if not wallet.onchain_network:
+        raise ValueError("Onchain wallet network is not configured")
+    if not wallet.onchain_backup_confirmed:
         raise ValueError("Back up this wallet before sending")
     if not 1 <= len(data.inputs) <= 200 or not 1 <= len(data.outputs) <= 100:
         raise ValueError("Invalid number of transaction inputs or outputs")
@@ -119,7 +133,7 @@ def sign_payment(  # noqa: C901
             raise ValueError("Invalid input amount")
     network = (
         wally.WALLY_NETWORK_BITCOIN_MAINNET
-        if wallet.network == "Mainnet"
+        if wallet.onchain_network == "Mainnet"
         else wally.WALLY_NETWORK_BITCOIN_TESTNET
     )
     for out in data.outputs:
@@ -140,7 +154,9 @@ def sign_payment(  # noqa: C901
     # Never trust public keys supplied by the client to select a private key.
     data.masterpubs = [
         MasterPublicKey(
-            id=wallet.id, public_key=wallet.masterpub, fingerprint=wallet.fingerprint
+            id=wallet.id,
+            public_key=wallet.onchain_meta.masterpub,
+            fingerprint=wallet.onchain_meta.fingerprint,
         )
     ]
     psbt = create_psbt(data)
@@ -148,9 +164,12 @@ def sign_payment(  # noqa: C901
     if not 0 < fee <= payment.max_fee_sat:
         raise ValueError("Transaction fee exceeds the approved maximum")
     mnemonic = decrypt_mnemonic(encrypted, wallet)
-    if wallet_descriptor(mnemonic, wallet.network)[0] != wallet.masterpub:
+    if (
+        wallet_descriptor(mnemonic, wallet.onchain_network)[0]
+        != wallet.onchain_meta.masterpub
+    ):
         raise ValueError("Wallet key does not match its descriptor")
-    wally.psbt_sign_bip32(psbt, root_key(mnemonic, wallet.network), 0)
+    wally.psbt_sign_bip32(psbt, root_key(mnemonic, wallet.onchain_network), 0)
     transaction = finalize_signed_psbt(psbt)
     details = transaction_details(transaction, network)
     details["fee"] = fee

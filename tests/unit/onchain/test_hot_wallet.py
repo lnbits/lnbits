@@ -3,7 +3,10 @@ import json
 from typing import Literal
 
 import pytest
+from Cryptodome.Cipher import AES
 
+from lnbits.core.models.onchain import CreatePsbt
+from lnbits.core.models.wallets import OnchainMeta, OnchainWallet
 from lnbits.onchain.bindings import wally
 from lnbits.onchain.helpers import (
     descriptor_fingerprint,
@@ -19,7 +22,6 @@ from lnbits.onchain.hot_wallet import (
     sign_payment,
     wallet_descriptor,
 )
-from lnbits.onchain.models import CreatePsbt, WalletAccount
 
 PHRASE = "abandon " * 11 + "about"
 
@@ -34,17 +36,19 @@ def test_encryption_key(monkeypatch):
 def wallet_and_payment(network: Literal["Mainnet", "Testnet", "Testnet4"] = "Testnet4"):
     descriptor, _ = wallet_descriptor(PHRASE, network)
     parsed, _ = parse_key(descriptor)
-    wallet = WalletAccount(
+    wallet = OnchainWallet(
         id="wallet",
-        wallet_id="owner",
-        masterpub=descriptor,
-        fingerprint=descriptor_fingerprint(parsed),
-        title="Server wallet",
-        address_no=-1,
-        balance=0,
-        network=network,
-        wallet_kind="hot",
-        backup_confirmed=True,
+        user="owner",
+        adminkey="admin-key",
+        inkey="invoice-key",
+        name="Server wallet",
+        onchain_network=network,
+        onchain_wallet_kind="hot",
+        onchain_backup_confirmed=True,
+        onchain_meta=OnchainMeta(
+            masterpub=descriptor,
+            fingerprint=descriptor_fingerprint(parsed),
+        ),
     )
     net = (
         wally.WALLY_NETWORK_BITCOIN_MAINNET
@@ -111,13 +115,30 @@ def test_encryption_is_random_authenticated_and_bound_to_wallet(monkeypatch):
     assert decrypt_mnemonic(first, wallet) == PHRASE
     for field, value in [
         ("id", "other"),
-        ("wallet_id", "attacker"),
-        ("network", "Mainnet"),
-        ("masterpub", "other"),
+        ("onchain_network", "Mainnet"),
+        ("onchain_meta", wallet.onchain_meta.copy(update={"masterpub": "other"})),
     ]:
         with pytest.raises(ValueError):
             decrypt_mnemonic(first, wallet.copy(update={field: value}))
+    # Existing wallets used the same ID in both context positions.
     raw = bytearray(base64.b64decode(first))
+    old_cipher = AES.new(bytes(range(32)), AES.MODE_GCM, nonce=bytes(raw[1:13]))
+    old_cipher.update(
+        json.dumps(
+            [
+                "onchain-v1",
+                "wallet",
+                "wallet",
+                "Testnet4",
+                wallet.onchain_meta.masterpub,
+            ],
+            separators=(",", ":"),
+        ).encode()
+    )
+    assert (
+        old_cipher.decrypt_and_verify(bytes(raw[29:]), bytes(raw[13:29])).decode()
+        == PHRASE
+    )
     raw[-1] ^= 1
     with pytest.raises(ValueError):
         decrypt_mnemonic(base64.b64encode(raw).decode(), wallet)
@@ -174,7 +195,7 @@ def test_signing_rejects_invalid_spending(attack):  # noqa: C901
     if attack == "dust":
         tx.outputs[0].amount = 1
     if attack == "backup":
-        wallet.backup_confirmed = False
+        wallet.onchain_backup_confirmed = False
     with pytest.raises(ValueError):
         sign_payment(wallet, encrypt_mnemonic(PHRASE, wallet), payment)
 

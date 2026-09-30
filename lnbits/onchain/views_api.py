@@ -5,47 +5,36 @@ from typing import Literal
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from starlette.concurrency import run_in_threadpool
 
+from lnbits.core.crud.onchain import (
+    get_address_by_id,
+    get_fresh_address,
+    update_address,
+)
+from lnbits.core.crud.wallets_onchain import update_config
+from lnbits.core.models.onchain import (
+    Address,
+    CreatePsbt,
+    ExtractPsbt,
+    ExtractTx,
+    SerializedTransaction,
+    SignedTransaction,
+)
+from lnbits.core.models.wallets import OnchainConfig, OnchainWalletConfigResponse
+from lnbits.core.services.wallets_onchain import (
+    ensure_network,
+    get_onchain_wallet,
+    get_wallet_addresses,
+)
 from lnbits.settings import settings
 
 from .bindings import wally
-from .crud import (
-    WalletAlreadyConfiguredError,
-    create_fresh_addresses,
-    create_watch_wallet,
-    delete_watch_wallet,
-    get_address_by_id,
-    get_addresses,
-    get_config,
-    get_fresh_address,
-    get_watch_wallet,
-    get_watch_wallets,
-    update_address,
-    update_config,
-)
 from .decorators import (
     OnchainAuth,
     require_onchain_admin,
     require_onchain_read,
 )
 from .explorer import explorer_url, local_explorer_network, provider_name
-from .helpers import (
-    descriptor_fingerprint,
-    descriptor_type,
-    parse_key,
-    transaction_details,
-)
-from .models import (
-    Address,
-    Config,
-    ConfigResponse,
-    CreatePsbt,
-    CreateWallet,
-    ExtractPsbt,
-    ExtractTx,
-    SerializedTransaction,
-    SignedTransaction,
-    WalletAccount,
-)
+from .helpers import transaction_details
 from .psbt import (
     combine_matching_psbt,
     create_psbt,
@@ -58,79 +47,6 @@ from .sync import explorer_client, request_scan
 onchain_api_router = APIRouter()
 
 
-@onchain_api_router.get("/api/v1/wallet")
-async def api_wallets_retrieve(
-    network: Literal["Mainnet", "Testnet", "Testnet4"] | None = Query(None),
-    auth: OnchainAuth = Depends(require_onchain_read),
-) -> list[WalletAccount]:
-    config = await get_config(auth.wallet_id)
-    return await get_watch_wallets(auth.wallet_id, network or config.network)
-
-
-@onchain_api_router.post("/api/v1/wallet")
-async def api_wallet_create_or_update(
-    data: CreateWallet,
-    auth: OnchainAuth = Depends(require_onchain_admin),
-) -> WalletAccount:
-    await ensure_network(auth.wallet_id, data.network)
-    try:
-        descriptor, network = await run_in_threadpool(parse_key, data.masterpub)
-        assert network
-        signing_network = "Testnet" if data.network == "Testnet4" else data.network
-        if signing_network != network["name"]:
-            raise ValueError(
-                "Account network error.  This account is for '{}'".format(
-                    network["name"]
-                )
-            )
-
-        new_wallet = WalletAccount(
-            id=auth.wallet_id,
-            wallet_id=auth.wallet_id,
-            masterpub=data.masterpub,
-            fingerprint=descriptor_fingerprint(descriptor),
-            type=descriptor_type(descriptor),
-            title=data.title,
-            address_no=-1,  # fresh address on empty wallet can get address with index 0
-            balance=0,
-            network=data.network,
-            meta=data.meta,
-        )
-
-        wallet = await create_watch_wallet(new_wallet)
-
-        await api_get_addresses(wallet.id, auth)
-        request_scan(auth.wallet_id)
-    except WalletAlreadyConfiguredError as exc:
-        raise HTTPException(HTTPStatus.CONFLICT, str(exc)) from exc
-    except Exception as exc:
-        raise HTTPException(
-            status_code=HTTPStatus.BAD_REQUEST, detail=str(exc)
-        ) from exc
-
-    return wallet
-
-
-@onchain_api_router.delete("/api/v1/wallet/{wallet_id}")
-async def api_wallet_delete(
-    wallet_id: str,
-    auth: OnchainAuth = Depends(require_onchain_admin),
-):
-    wallet = await _get_user_watch_wallet(wallet_id, auth.wallet_id)
-    if wallet.wallet_kind == "hot":
-        raise HTTPException(
-            HTTPStatus.CONFLICT,
-            "Server wallets cannot be deleted while they hold signing keys."
-            " Keep the wallet for recovery and transaction history.",
-        )
-    try:
-        await delete_watch_wallet(wallet_id)
-    except ValueError as exc:
-        raise HTTPException(HTTPStatus.CONFLICT, str(exc)) from exc
-
-    return "", HTTPStatus.NO_CONTENT
-
-
 #############################ADDRESSES##########################
 
 
@@ -139,8 +55,8 @@ async def api_fresh_address(
     wallet_id: str,
     auth: OnchainAuth = Depends(require_onchain_read),
 ) -> Address:
-    wallet = await _get_user_watch_wallet(wallet_id, auth.wallet_id)
-    if wallet.wallet_kind == "hot" and not wallet.backup_confirmed:
+    wallet = await get_onchain_wallet(wallet_id, auth.wallet_id)
+    if wallet.onchain_wallet_kind == "hot" and not wallet.onchain_backup_confirmed:
         raise HTTPException(HTTPStatus.CONFLICT, "Back up this wallet before receiving")
     address = await get_fresh_address(wallet_id)
     assert address
@@ -159,7 +75,7 @@ async def api_update_address(
             status_code=HTTPStatus.NOT_FOUND, detail="Address does not exist."
         )
 
-    await _get_user_watch_wallet(address.wallet, auth.wallet_id)
+    await get_onchain_wallet(address.wallet, auth.wallet_id)
 
     body = await req.json()
     if "amount" in body:
@@ -177,45 +93,7 @@ async def api_get_addresses(
     wallet_id: str,
     auth: OnchainAuth = Depends(require_onchain_read),
 ) -> list[Address]:
-    await _get_user_watch_wallet(wallet_id, auth.wallet_id)
-
-    addresses = await get_addresses(wallet_id)
-    config = await get_config(auth.wallet_id)
-    assert config, "Config not found"
-
-    if not addresses:
-        await create_fresh_addresses(wallet_id, 0, config.receive_gap_limit)
-        await create_fresh_addresses(wallet_id, 0, config.change_gap_limit, True)
-        addresses = await get_addresses(wallet_id)
-
-    receive_addresses = list(filter(lambda addr: addr.branch_index == 0, addresses))
-    change_addresses = list(filter(lambda addr: addr.branch_index == 1, addresses))
-
-    last_receive_address = list(
-        filter(lambda addr: addr.has_activity, receive_addresses)
-    )[-1:]
-    last_change_address = list(
-        filter(lambda addr: addr.has_activity, change_addresses)
-    )[-1:]
-
-    if last_receive_address:
-        current_index = receive_addresses[-1].address_index
-        address_index = last_receive_address[0].address_index
-        await create_fresh_addresses(
-            wallet_id, current_index + 1, address_index + config.receive_gap_limit + 1
-        )
-
-    if last_change_address:
-        current_index = change_addresses[-1].address_index
-        address_index = last_change_address[0].address_index
-        await create_fresh_addresses(
-            wallet_id,
-            current_index + 1,
-            address_index + config.change_gap_limit + 1,
-            True,
-        )
-
-    return await get_addresses(wallet_id)
+    return await get_wallet_addresses(wallet_id, auth.wallet_id)
 
 
 @onchain_api_router.post("/api/v1/psbt")
@@ -328,10 +206,16 @@ async def api_tx_broadcast(
 ):
     if settings.lnbits_only_allow_incoming_payments:
         raise HTTPException(403, "Only incoming payments allowed")
-    config = await get_config(auth.wallet_id)
-    await ensure_network(auth.wallet_id, data.network or config.network)
+    wallet = await get_onchain_wallet(
+        auth.wallet_id, auth.wallet_id, include_unconfigured=True
+    )
+    await ensure_network(
+        auth.wallet_id, data.network or wallet.onchain_network or "Mainnet"
+    )
     try:
-        async with explorer_client(config) as client:
+        async with explorer_client(
+            wallet.onchain_config, wallet.onchain_network or "Mainnet"
+        ) as client:
             tx_id = await client.broadcast(data.tx_hex)
             from .sync import TXID
 
@@ -347,56 +231,38 @@ async def api_tx_broadcast(
 
 @onchain_api_router.put("/api/v1/config")
 async def api_update_config(
-    data: Config,
+    data: OnchainConfig,
+    network: Literal["Mainnet", "Testnet", "Testnet4"] = Query(...),
     auth: OnchainAuth = Depends(require_onchain_admin),
-) -> ConfigResponse:
-    if data.explorer_provider == "lnbits" and local_explorer_network() != data.network:
+) -> OnchainWalletConfigResponse:
+    if data.explorer_provider == "lnbits" and local_explorer_network() != network:
         raise HTTPException(
             400, "LNbits block explorer is unavailable for this network"
         )
     try:
-        config = await update_config(data, wallet_id=auth.wallet_id)
+        config = await update_config(data, wallet_id=auth.wallet_id, network=network)
     except ValueError as exc:
         raise HTTPException(HTTPStatus.CONFLICT, str(exc)) from exc
     request_scan(auth.wallet_id)
-    return config_response(config)
+    return config_response(config, network)
 
 
 @onchain_api_router.get("/api/v1/config")
 async def api_get_config(
     auth: OnchainAuth = Depends(require_onchain_read),
-) -> ConfigResponse:
-    config = await get_config(auth.wallet_id)
-    return config_response(config)
+) -> OnchainWalletConfigResponse:
+    wallet = await get_onchain_wallet(
+        auth.wallet_id, auth.wallet_id, include_unconfigured=True
+    )
+    return config_response(wallet.onchain_config, wallet.onchain_network or "Mainnet")
 
 
-def config_response(config: Config) -> ConfigResponse:
+def config_response(config: OnchainConfig, network: str) -> OnchainWalletConfigResponse:
     data = config.dict()
-    data["explorer_provider"] = provider_name(config)
-    return ConfigResponse(
+    data["explorer_provider"] = provider_name(config, network)
+    data["network"] = network
+    return OnchainWalletConfigResponse(
         **data,
         lnbits_explorer_network=local_explorer_network(),
-        explorer_url=explorer_url(config),
+        explorer_url=explorer_url(config, network),
     )
-
-
-async def _get_user_watch_wallet(wallet_id: str, user_id: str) -> WalletAccount:
-    watch_wallet = await get_watch_wallet(wallet_id)
-
-    if not watch_wallet:
-        raise HTTPException(
-            status_code=HTTPStatus.NOT_FOUND, detail="Wallet does not exist."
-        )
-
-    if watch_wallet.wallet_id != user_id:
-        raise HTTPException(
-            status_code=HTTPStatus.NOT_FOUND, detail="Wallet does not exist."
-        )
-
-    return watch_wallet
-
-
-async def ensure_network(wallet_id: str, network: str) -> None:
-    config = await get_config(wallet_id)
-    if config.network != network:
-        raise HTTPException(400, "Bitcoin network does not match this LNbits wallet")

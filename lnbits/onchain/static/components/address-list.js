@@ -89,7 +89,7 @@ window.app.component('onchain-address-list', {
     },
     getWalletName: function (walletId) {
       const wallet = (this.accounts || []).find(wl => wl.id === walletId)
-      return wallet ? wallet.title : 'unknown'
+      return wallet ? wallet.name : 'unknown'
     },
     getFilteredAddresses: function () {
       const selectedWalletId = this.selectedWallet?.id
@@ -99,7 +99,7 @@ window.app.component('onchain-address-list', {
       const excludeNoAmount = filter.includes('Only With Amount')
 
       const walletsLimit = (this.accounts || []).reduce((r, w) => {
-        r[`_${w.id}`] = w.address_no
+        r[`_${w.id}`] = w.onchain_address_no
         return r
       }, {})
 

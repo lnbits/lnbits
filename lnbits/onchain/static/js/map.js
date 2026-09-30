@@ -59,8 +59,8 @@ export const mapAddressDataToUtxo = (wallet, addressData, utxo) => ({
   addressIndex: addressData.addressIndex,
   wallet: addressData.wallet,
   accountType: addressData.accountType,
-  accountPath: wallet.meta.accountPath,
-  masterpubFingerprint: wallet.fingerprint,
+  accountPath: wallet.onchain_meta.accountPath,
+  masterpubFingerprint: wallet.onchain_meta.fingerprint,
   txId: utxo.txid,
   vout: utxo.vout,
   confirmed: utxo.status.confirmed,
@@ -73,11 +73,10 @@ export const mapAddressDataToUtxo = (wallet, addressData, utxo) => ({
 
 export const mapWalletAccount = function (o) {
   return Object.assign({}, o, {
-    date: o.time
-      ? Quasar.date.formatDate(new Date(o.time * 1000), 'YYYY-MM-DD HH:mm')
+    date: o.created_at
+      ? Quasar.date.formatDate(new Date(o.created_at), 'YYYY-MM-DD HH:mm')
       : '',
-    meta: o.meta ? JSON.parse(o.meta) : null,
-    label: o.title,
+    label: o.name,
     expanded: false
   })
 }

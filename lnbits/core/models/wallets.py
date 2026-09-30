@@ -4,8 +4,9 @@ from dataclasses import dataclass
 from datetime import datetime, timezone
 from enum import Enum
 from typing import Literal
+from urllib.parse import urlsplit
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, validator
 
 from lnbits.core.models.lnurl import StoredPayLinks
 from lnbits.db import FilterModel
@@ -284,3 +285,65 @@ class WalletsFilters(FilterModel):
     name: str | None
     currency: str | None
     lightning_address: str | None
+
+
+class OnchainMeta(BaseModel):
+    masterpub: str = ""
+    fingerprint: str = ""
+    script_type: str | None = None
+    accountPath: str = ""  # noqa: N815 - preserve the stored JSON key
+    xpub: str | None = None
+    sync_checked_at: int = 0
+    sync_error: str | None = None
+
+
+class OnchainConfig(BaseModel):
+    explorer_provider: Literal["auto", "lnbits", "mempool"] = "auto"
+    mempool_endpoint: str = "https://mempool.space"
+    receive_gap_limit: int = Field(default=20, ge=1, le=1000)
+    change_gap_limit: int = Field(default=5, ge=1, le=1000)
+    sats_denominated: bool = True
+
+    @validator("mempool_endpoint")
+    @classmethod
+    def valid_endpoint(cls, value):
+        url = urlsplit(value)
+        if (
+            url.scheme not in ("https", "http")
+            or not url.hostname
+            or url.username
+            or url.password
+            or url.query
+            or url.fragment
+        ):
+            raise ValueError(
+                "Enter an HTTP(S) explorer URL without credentials or query"
+            )
+        return value.rstrip("/")
+
+
+class OnchainWallet(Wallet):
+    wallet_type: str = WalletType.ONCHAIN.value
+    onchain_meta: OnchainMeta = Field(default_factory=OnchainMeta)
+    onchain_config: OnchainConfig = Field(default_factory=OnchainConfig)
+    onchain_wallet_kind: Literal["watch", "hot"] | None = None
+    onchain_address_no: int = -1
+    onchain_backup_confirmed: bool = False
+
+
+class CreateOnchainWalletMeta(BaseModel):
+    accountPath: str = ""  # noqa: N815 - preserve the API field name
+    xpub: str | None = None
+
+
+class CreateOnchainWallet(BaseModel):
+    masterpub: str = Field(..., min_length=1, max_length=10000)
+    title: str = Field(..., min_length=1, max_length=100)
+    network: Literal["Mainnet", "Testnet", "Testnet4"] = "Mainnet"
+    meta: CreateOnchainWalletMeta = Field(default_factory=CreateOnchainWalletMeta)
+
+
+class OnchainWalletConfigResponse(OnchainConfig):
+    network: Literal["Mainnet", "Testnet", "Testnet4"] = "Mainnet"
+    lnbits_explorer_network: str | None = None
+    explorer_url: str

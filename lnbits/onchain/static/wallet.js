@@ -88,7 +88,9 @@ export default {
         const receiving = this.addresses
           .filter(a => a.wallet === account.id && !a.isChange)
           .sort((a, b) => b.addressIndex - a.addressIndex)
-        const issued = receiving.find(a => a.addressIndex <= account.address_no)
+        const issued = receiving.find(
+          a => a.addressIndex <= account.onchain_address_no
+        )
         watched.push((issued || receiving[receiving.length - 1])?.address)
       }
       watched.push(
@@ -122,17 +124,17 @@ export default {
       return this.formatAmount(this.selectedBalance)
     },
     walletKindLabel() {
-      return this.selectedWallet?.wallet_kind === 'hot'
+      return this.selectedWallet?.onchain_wallet_kind === 'hot'
         ? 'Server wallet'
-        : this.selectedWallet?.meta?.xpub
+        : this.selectedWallet?.onchain_meta?.xpub
           ? 'Hardware wallet'
           : 'Watch-only wallet'
     },
     canTransact() {
       return (
         this.selectedWallet &&
-        (this.selectedWallet.wallet_kind !== 'hot' ||
-          this.selectedWallet.backup_confirmed)
+        (this.selectedWallet.onchain_wallet_kind !== 'hot' ||
+          this.selectedWallet.onchain_backup_confirmed)
       )
     },
     receiveUri() {
@@ -450,7 +452,7 @@ export default {
         const accounts = new Map(this.walletAccounts.map(w => [w.id, w]))
         this.addresses = data.addresses.map(a => ({
           ...mapAddressesData(a),
-          accountType: accounts.get(a.wallet)?.type
+          accountType: accounts.get(a.wallet)?.onchain_meta.script_type
         }))
         const snapshots = new Map(data.snapshots.map(s => [s.address_id, s]))
         const history = []
@@ -616,9 +618,9 @@ export default {
     },
     showAddressDetailsWithConfirmation: async function ({addressData, wallet}) {
       this.showAddressDetails(addressData)
-      if (wallet.wallet_kind === 'hot') return
+      if (wallet.onchain_wallet_kind === 'hot') return
       const signer = this.signerDevice
-      if (!signer?.isConnected() || !wallet.meta?.accountPath) return
+      if (!signer?.isConnected() || !wallet.onchain_meta?.accountPath) return
       if (!signer.isAuthenticated()) {
         this.$q.notify({
           type: 'warning',
@@ -627,7 +629,7 @@ export default {
         return
       }
       const path =
-        wallet.meta.accountPath +
+        wallet.onchain_meta.accountPath +
         `/${addressData.isChange ? 1 : 0}/${addressData.addressIndex}`
       try {
         await signer.hwwShowAddress(path, addressData.address)

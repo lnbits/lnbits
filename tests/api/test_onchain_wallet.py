@@ -9,14 +9,16 @@ import pytest
 from pydantic import SecretStr
 
 from lnbits.core.crud import create_wallet, get_wallet
+from lnbits.core.crud.onchain import get_addresses
 from lnbits.core.crud.payments import create_payment
 from lnbits.core.crud.wallets import get_total_balance, get_wallets
+from lnbits.core.crud.wallets_onchain import get_config, update_config
 from lnbits.core.models import CreatePayment
 from lnbits.core.models.wallets import WalletType
 from lnbits.core.services import create_user_account, update_wallet_balance
 from lnbits.core.services import onchain as keys
+from lnbits.core.views import onchain_api
 from lnbits.onchain import hot_wallet_api, sync, views_api
-from lnbits.onchain.crud import get_addresses, get_config, update_config
 from lnbits.onchain.decorators import OnchainAuth
 from lnbits.onchain.explorer import MempoolExplorer, mempool_url
 from lnbits.onchain.hot_wallet import wallet_descriptor
@@ -30,8 +32,7 @@ async def onchain_wallet(http_client, monkeypatch, tmp_path):
     user = await create_user_account()
     wallet = await create_wallet(user_id=user.id, wallet_type=WalletType.ONCHAIN)
     config = await get_config(wallet.id)
-    config.network = "Testnet4"
-    await update_config(config, wallet.id)
+    await update_config(config, wallet.id, network="Testnet4")
     monkeypatch.setattr(
         settings,
         "lnbits_onchain_master_key",
@@ -52,11 +53,12 @@ async def onchain_wallet(http_client, monkeypatch, tmp_path):
     monkeypatch.setattr(keys, "get_settings_field", confirmed_key)
     monkeypatch.setattr(hot_wallet_api, "request_scan", lambda _wallet: None)
     monkeypatch.setattr(views_api, "request_scan", lambda _wallet: None)
+    monkeypatch.setattr(onchain_api, "request_scan", lambda _wallet: None)
     return wallet, user, {"X-API-KEY": wallet.adminkey}
 
 
 async def add_watch(client, headers, single_path=False):
-    descriptor, _ = wallet_descriptor(PHRASE, "Testnet4")
+    descriptor, account_path = wallet_descriptor(PHRASE, "Testnet4")
     if single_path:
         descriptor = descriptor.replace("/{0,1}/*", "/0/*")
     response = await client.post(
@@ -66,6 +68,10 @@ async def add_watch(client, headers, single_path=False):
             "masterpub": descriptor,
             "title": "Hardware reference",
             "network": "Testnet4",
+            "meta": {
+                "accountPath": account_path,
+                "xpub": descriptor.split("]")[1].split("/")[0],
+            },
         },
     )
     assert response.status_code == 200, response.text
@@ -97,21 +103,24 @@ async def test_one_bitcoin_wallet_per_core_wallet(http_client, onchain_wallet, k
     accounts = await http_client.get("/onchain/api/v1/wallet", headers=headers)
     assert len(accounts.json()) == 1
     account = accounts.json()[0]
-    assert account["id"] == account["wallet_id"] == wallet.id
+    assert account["id"] == wallet.id
+    assert not {"adminkey", "inkey", "onchain_encrypted_seed"} & account.keys()
     stored_keys = await sync.db.fetchall(
         """SELECT id FROM wallets WHERE id = :wallet
            AND onchain_encrypted_seed IS NOT NULL""",
         {"wallet": wallet.id},
     )
-    assert len(stored_keys) == (1 if account["wallet_kind"] == "hot" else 0)
+    assert isinstance(account["onchain_meta"], dict)
+    assert isinstance(account["onchain_config"], dict)
+    assert "balance_msat" in account
+    assert len(stored_keys) == (1 if account["onchain_wallet_kind"] == "hot" else 0)
     for kind in ("hot", "watch"):
         assert (await setup(kind, headers)).status_code == 409
 
     # Another core wallet can be configured independently.
     other = await create_wallet(user_id=user.id, wallet_type=WalletType.ONCHAIN)
     config = await get_config(other.id)
-    config.network = "Testnet4"
-    await update_config(config, other.id)
+    await update_config(config, other.id, network="Testnet4")
     assert (await setup(kinds[1], {"X-API-KEY": other.adminkey})).status_code == 200
 
 
@@ -125,7 +134,8 @@ async def test_onchain_api_ownership_recovery_and_network(http_client, onchain_w
     )
     assert response.status_code == 200, response.text
     account = response.json()
-    assert account["wallet_id"] == wallet.id
+    assert account["id"] == wallet.id
+    assert not {"adminkey", "inkey", "onchain_encrypted_seed"} & account.keys()
     assert "mnemonic" not in response.text and "encrypted_seed" not in response.text
     account_id = account["id"]
     path = f"/onchain/api/v1/hot-wallet/{account_id}/backup"
@@ -153,7 +163,10 @@ async def test_onchain_api_ownership_recovery_and_network(http_client, onchain_w
     assert all(r.status_code == 200 for r in addresses)
     assert len({r.json()["address"] for r in addresses}) == 5
     wrong_network = await http_client.put(
-        "/onchain/api/v1/config", headers=headers, json={"network": "Mainnet"}
+        "/onchain/api/v1/config",
+        headers=headers,
+        params={"network": "Mainnet"},
+        json={},
     )
     assert wrong_network.status_code == 409
     foreign = await http_client.get(
@@ -242,10 +255,11 @@ async def test_onchain_scan_persists_and_hydrates_without_lightning_credit(
     monkeypatch.setattr(
         sync,
         "explorer_client",
-        lambda config: MempoolExplorer(
+        lambda config, network: MempoolExplorer(
             config,
+            network,
             httpx.AsyncClient(
-                base_url=mempool_url(config) + "/",
+                base_url=mempool_url(config, network) + "/",
                 transport=httpx.MockTransport(explorer),
             ),
         ),
@@ -259,6 +273,14 @@ async def test_onchain_scan_persists_and_hydrates_without_lightning_credit(
     loaded_wallet = await get_wallet(wallet.id)
     assert loaded_wallet
     assert loaded_wallet.balance_msat == 100000000
+    response = await http_client.get(
+        "/onchain/api/v1/wallet", headers={"X-API-KEY": wallet.inkey}
+    )
+    assert response.status_code == 200
+    assert response.json()[0]["balance_msat"] == 100000000
+    assert (
+        not {"adminkey", "inkey", "onchain_encrypted_seed"} & response.json()[0].keys()
+    )
     assert (
         next(w for w in await get_wallets(user.id) if w.id == wallet.id).balance_msat
         == 100000000
@@ -314,8 +336,7 @@ async def test_onchain_scan_lease_does_not_block_wallet_creation(
             create_wallet(user_id=user.id, wallet_type=WalletType.ONCHAIN), 5
         )
         config = await get_config(other.id)
-        config.network = "Testnet4"
-        await update_config(config, other.id)
+        await update_config(config, other.id, network="Testnet4")
         await asyncio.wait_for(add_watch(http_client, {"X-API-KEY": other.adminkey}), 5)
     finally:
         finish.set()
@@ -368,7 +389,7 @@ async def test_onchain_core_creation_currency_and_read_balance(
     assert wallet["onchain_network"] == "Testnet4"
     assert wallet["extra"]["icon"] == "currency_bitcoin"
     assert wallet["lightning_address"] is None
-    assert (await get_config(wallet["id"])).network == "Testnet4"
+    assert (await get_wallet(wallet["id"])).onchain_network == "Testnet4"
     headers = {"X-API-KEY": wallet["adminkey"]}
     changed = await http_client.patch(
         "/api/v1/wallet", headers=headers, json={"currency": "EUR", "pinned": True}
@@ -376,7 +397,7 @@ async def test_onchain_core_creation_currency_and_read_balance(
     assert changed.status_code == 200
     assert changed.json()["currency"] == "EUR"
     assert changed.json()["extra"]["pinned"]
-    assert (await get_config(wallet["id"])).network == "Testnet4"
+    assert (await get_wallet(wallet["id"])).onchain_network == "Testnet4"
     assert (
         await http_client.get("/api/v1/wallet", headers={"X-API-KEY": wallet["inkey"]})
     ).json()["balance"] == 0
@@ -425,8 +446,9 @@ async def test_onchain_signing_preflight_rejects_spent_coin(
     monkeypatch.setattr(
         hot_wallet_api,
         "explorer_client",
-        lambda config: MempoolExplorer(
+        lambda config, network: MempoolExplorer(
             config,
+            network,
             httpx.AsyncClient(
                 base_url="https://explorer.test/",
                 transport=httpx.MockTransport(explorer),
@@ -495,13 +517,22 @@ async def test_onchain_explorer_selection_defaults_and_persists(
     config.update(
         explorer_provider="mempool", mempool_endpoint="https://example.com/testnet4"
     )
+    for params in ({}, {"network": "Regtest"}):
+        invalid = await http_client.put(
+            path, headers=headers, params=params, json=config
+        )
+        assert invalid.status_code == 400
+        assert invalid.json()["detail"][0]["loc"] == ["query", "network"]
+    params = {"network": config.pop("network")}
     forbidden = await http_client.put(
-        path, headers={"X-API-KEY": wallet.inkey}, json=config
+        path, headers={"X-API-KEY": wallet.inkey}, params=params, json=config
     )
     assert forbidden.status_code == 403
-    saved = await http_client.put(path, headers=headers, json=config)
+    saved = await http_client.put(path, headers=headers, params=params, json=config)
     assert saved.status_code == 200, saved.text
+    assert saved.json()["network"] == "Testnet4"
     loaded = (await http_client.get(path, headers=headers)).json()
+    assert loaded["network"] == "Testnet4"
     assert loaded["explorer_provider"] == "mempool"
     assert loaded["explorer_url"] == "https://example.com/testnet4"
     assert loaded["mempool_endpoint"] == "https://example.com/testnet4"
@@ -509,10 +540,10 @@ async def test_onchain_explorer_selection_defaults_and_persists(
     assert (await get_config(wallet.id)).explorer_provider == "mempool"
     config["explorer_provider"] = "lnbits"
     monkeypatch.setattr(settings, "lnbits_blockexplorer_network", "main")
-    rejected = await http_client.put(path, headers=headers, json=config)
+    rejected = await http_client.put(path, headers=headers, params=params, json=config)
     assert rejected.status_code == 400
     monkeypatch.setattr(settings, "lnbits_blockexplorer_enabled", False)
-    rejected = await http_client.put(path, headers=headers, json=config)
+    rejected = await http_client.put(path, headers=headers, params=params, json=config)
     assert rejected.status_code == 400
 
 
@@ -589,8 +620,8 @@ async def test_onchain_metadata_and_seed_survive_generic_wallet_updates(
     stored = dict(await sync.db.fetchone(query, {"id": wallet.id}))
     assert stored["onchain_encrypted_seed"]
     meta = json.loads(stored["onchain_meta"])
-    assert meta["masterpub"] == response.json()["masterpub"]
-    assert meta["fingerprint"] == response.json()["fingerprint"]
+    assert meta["masterpub"] == response.json()["onchain_meta"]["masterpub"]
+    assert meta["fingerprint"] == response.json()["onchain_meta"]["fingerprint"]
     assert meta["script_type"] == "p2wpkh"
     assert meta["accountPath"] == "m/84'/1'/0'"
     assert "network" not in json.loads(stored["onchain_config"])
@@ -606,7 +637,7 @@ async def test_onchain_metadata_and_seed_survive_generic_wallet_updates(
     assert dict(await sync.db.fetchone(query, {"id": wallet.id})) == stored
     accounts = await http_client.get("/onchain/api/v1/wallet", headers=headers)
     assert accounts.status_code == 200
-    assert accounts.json()[0]["title"] == "Renamed onchain wallet"
+    assert accounts.json()[0]["name"] == "Renamed onchain wallet"
     backup = await http_client.post(
         f"/onchain/api/v1/hot-wallet/{wallet.id}/backup", headers=headers
     )
@@ -623,11 +654,14 @@ async def test_onchain_scan_metadata_preserves_setup_and_newer_leases(
     http_client, onchain_wallet
 ):
     wallet, _, headers = onchain_wallet
-    await add_watch(http_client, headers)
+    account = await add_watch(http_client, headers)
     original = await sync.db.fetchone(
         "SELECT onchain_meta FROM wallets WHERE id = :id", {"id": wallet.id}
     )
     meta = json.loads(original["onchain_meta"])
+    assert meta["accountPath"] == "m/84'/1'/0'"
+    assert meta["xpub"] in meta["masterpub"]
+    assert meta == account["onchain_meta"]
     meta["sync_checked_at"] = 42
     # Simulate metadata written after scan acquisition but before completion.
     meta["accountPath"] = "m/84'/1'/0'"
@@ -667,7 +701,7 @@ async def test_onchain_scan_metadata_preserves_setup_and_newer_leases(
 async def test_watch_removal_clears_onchain_state_and_allows_fresh_setup(
     http_client, onchain_wallet
 ):
-    from lnbits.onchain.models import Config
+    from lnbits.core.models.wallets import OnchainConfig
 
     wallet, _, headers = onchain_wallet
     config = await get_config(wallet.id)
@@ -676,6 +710,7 @@ async def test_watch_removal_clears_onchain_state_and_allows_fresh_setup(
     await update_config(config, wallet.id)
     account = await add_watch(http_client, headers)
     assert account["id"] == wallet.id
+    assert not {"adminkey", "inkey", "onchain_encrypted_seed"} & account.keys()
     assert len(await get_addresses(wallet.id)) == 2 + config.change_gap_limit
     removed = await http_client.delete(
         f"/onchain/api/v1/wallet/{wallet.id}", headers=headers
@@ -683,7 +718,7 @@ async def test_watch_removal_clears_onchain_state_and_allows_fresh_setup(
     assert removed.status_code < 300
     assert await get_wallet(wallet.id)
     assert await get_addresses(wallet.id) == []
-    assert await get_config(wallet.id) == Config()
+    assert await get_config(wallet.id) == OnchainConfig()
     assert (
         await http_client.get("/onchain/api/v1/wallet", headers=headers)
     ).json() == []
@@ -691,8 +726,7 @@ async def test_watch_removal_clears_onchain_state_and_allows_fresh_setup(
     assert state["snapshots"] == [] and state["balance_sat"] == 0
     assert not state["scanning"] and state["error"] is None
     config = await get_config(wallet.id)
-    config.network = "Testnet4"
-    await update_config(config, wallet.id)
+    await update_config(config, wallet.id, network="Testnet4")
     assert (await add_watch(http_client, headers))["id"] == wallet.id
 
 
@@ -779,10 +813,11 @@ async def test_scan_cannot_follow_reconfigured_wallet_onto_another_network(
     monkeypatch.setattr(
         sync,
         "explorer_client",
-        lambda config: MempoolExplorer(
+        lambda config, network: MempoolExplorer(
             config,
+            network,
             httpx.AsyncClient(
-                base_url=mempool_url(config) + "/",
+                base_url=mempool_url(config, network) + "/",
                 transport=httpx.MockTransport(explorer),
             ),
         ),

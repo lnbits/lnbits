@@ -104,7 +104,7 @@ window.app.component('onchain-wallet-list', {
           name: 'title',
           align: 'left',
           label: this.$t('onchain.title'),
-          field: 'title'
+          field: 'name'
         },
         {
           name: 'amount',
@@ -115,7 +115,7 @@ window.app.component('onchain-wallet-list', {
           name: 'type',
           align: 'left',
           label: this.$t('onchain.type'),
-          field: 'type'
+          field: wallet => wallet.onchain_meta.script_type
         },
         {
           name: 'id',
@@ -171,7 +171,7 @@ window.app.component('onchain-wallet-list', {
             data.masterpub = `${outputType}([${fingerprint}/${path}]${xpub}/{0,1}/*)`
           }
         }
-        data.meta = JSON.stringify(meta)
+        data.meta = meta
         const response = await LNbits.api.request(
           'POST',
           '/onchain/api/v1/wallet',
@@ -297,7 +297,7 @@ window.app.component('onchain-wallet-list', {
           lastActiveAddress.addressIndex + DEFAULT_RECEIVE_GAP_LIMIT
 
       const wallet = this.walletAccounts.find(w => w.id === walletId) || {}
-      wallet.address_no = addressData.addressIndex
+      wallet.onchain_address_no = addressData.addressIndex
       this.$emit('new-receive-address', {addressData, wallet})
     },
     showAddAccountDialog: function () {

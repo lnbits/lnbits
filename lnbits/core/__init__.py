@@ -1,3 +1,5 @@
+from importlib.util import find_spec
+
 from fastapi import APIRouter, FastAPI
 
 from ..onchain.router import onchain_router
@@ -30,6 +32,10 @@ core_app = APIRouter(tags=["Core"])
 
 
 def init_core_routers(app: FastAPI):
+    if find_spec("wallycore") is not None:
+        from .views.onchain_api import onchain_wallet_router
+
+        app.include_router(onchain_wallet_router)
     app.include_router(onchain_router)
     app.include_router(core_app)
     app.include_router(generic_router)

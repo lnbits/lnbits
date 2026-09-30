@@ -6,36 +6,41 @@ import pytest
 from embit.script import Script
 from embit.transaction import Transaction, TransactionInput, TransactionOutput
 
+from lnbits.core.models.wallets import OnchainConfig
 from lnbits.core.services import blockexplorer
 from lnbits.onchain import explorer
-from lnbits.onchain.models import Config
 from lnbits.utils.electrum import UTXO, ElectrumClient, HistoryEntry, network_from_name
 
 
 def test_default_provider_matches_enabled_network(settings):
     settings.lnbits_blockexplorer_enabled = False
-    assert explorer.provider_name(Config()) == "mempool"
+    assert explorer.provider_name(OnchainConfig(), "Mainnet") == "mempool"
     settings.lnbits_blockexplorer_enabled = True
     for network, name in explorer.NETWORKS.items():
         settings.lnbits_blockexplorer_network = network
-        config = Config.parse_obj({"network": name})
-        assert explorer.provider_name(config) == "lnbits"
-        assert explorer.explorer_url(config) == "/blockexplorer"
+        config = OnchainConfig()
+        assert explorer.provider_name(config, name) == "lnbits"
+        assert explorer.explorer_url(config, name) == "/blockexplorer"
         assert (
-            explorer.provider_name(config.copy(update={"explorer_provider": "mempool"}))
+            explorer.provider_name(
+                config.copy(update={"explorer_provider": "mempool"}), name
+            )
             == "mempool"
         )
-    assert explorer.provider_name(Config(network="Mainnet")) == "mempool"
+    assert explorer.provider_name(OnchainConfig(), "Mainnet") == "mempool"
     with pytest.raises(ValueError, match="unavailable"):
-        explorer.LnbitsExplorer(Config(network="Mainnet", explorer_provider="lnbits"))
+        explorer.LnbitsExplorer("Mainnet")
     assert network_from_name("test4") == network_from_name("test")
 
 
 def test_custom_mempool_url_is_specific_to_network():
-    config = Config(network="Testnet4")
-    assert explorer.mempool_url(config) == "https://mempool.space/testnet4"
+    config = OnchainConfig()
+    assert explorer.mempool_url(config, "Testnet4") == "https://mempool.space/testnet4"
     config.mempool_endpoint = "https://example.com/bitcoin/testnet4/"
-    assert explorer.mempool_url(config) == "https://example.com/bitcoin/testnet4"
+    assert (
+        explorer.mempool_url(config, "Testnet4")
+        == "https://example.com/bitcoin/testnet4"
+    )
 
 
 @pytest.mark.anyio
@@ -60,7 +65,9 @@ async def test_local_mempool_urls_are_allowed(monkeypatch, url):
         return real_client(**kwargs, transport=httpx.MockTransport(response))
 
     monkeypatch.setattr(explorer.httpx, "AsyncClient", client)
-    async with explorer.MempoolExplorer(Config(mempool_endpoint=url)) as provider:
+    async with explorer.MempoolExplorer(
+        OnchainConfig(mempool_endpoint=url), "Mainnet"
+    ) as provider:
         assert await provider.fees() == {"fastestFee": 1}
     assert str(requests[0].url) == url + "/api/v1/fees/recommended"
 
@@ -99,7 +106,7 @@ async def test_local_explorer_history_coins_fees_and_broadcast(settings, monkeyp
     client.estimate_fee.side_effect = [0.00002, 0.000015, 0.00001, -1]
     client.broadcast.return_value = spending_id
     monkeypatch.setattr(blockexplorer, "_client", lambda: client)
-    async with explorer.explorer_client(Config(network="Testnet4")) as provider:
+    async with explorer.explorer_client(OnchainConfig(), "Testnet4") as provider:
         address = script.address(client.network)
         assert isinstance(address, str)
         history = await provider.history(address)
@@ -150,7 +157,9 @@ async def test_mempool_provider_uses_custom_url_and_paginates():
         base_url="https://example.com/custom/testnet4/",
         transport=httpx.MockTransport(respond),
     )
-    async with explorer.MempoolExplorer(Config(), client) as provider:
+    async with explorer.MempoolExplorer(
+        OnchainConfig(), "Testnet4", client
+    ) as provider:
         assert len(await provider.history("address")) == 26
         assert await provider.broadcast("raw") == txs[0]["txid"]
     assert all(r.url.path.startswith("/custom/testnet4/api/") for r in requests)

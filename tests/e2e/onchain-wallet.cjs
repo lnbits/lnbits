@@ -150,15 +150,19 @@ async function main() {
             if (path === '/onchain/api/v1/hot-wallet') {
               const wallet = {
                 id: 'hot' + (fixtureWallets.length + 1),
-                title: payload.title,
-                wallet_kind: 'hot',
-                type: 'p2wpkh',
-                network: 'Testnet4',
-                meta: '{"accountPath":"m/84\'/1\'/0\'"}',
-                masterpub: 'test-public-descriptor',
-                fingerprint: '00000001',
-                address_no: -1,
-                backup_confirmed: false
+                name: payload.title,
+                onchain_wallet_kind: 'hot',
+                onchain_network: 'Testnet4',
+                onchain_meta: {
+                  script_type: 'p2wpkh',
+                  accountPath: "m/84'/1'/0'",
+                  masterpub: 'test-public-descriptor',
+                  fingerprint: '00000001'
+                },
+                onchain_config: {},
+                balance_msat: 0,
+                onchain_address_no: -1,
+                onchain_backup_confirmed: false
               }
               fixtureWallets.push(wallet)
               fixtureAddresses.push(
@@ -190,7 +194,7 @@ async function main() {
               return {data: {...wallet}}
             }
             if (path.includes('/backup/confirm')) {
-              fixtureWallets[0].backup_confirmed = true
+              fixtureWallets[0].onchain_backup_confirmed = true
               return {data: fixtureWallets[0]}
             }
             if (path.endsWith('/backup'))

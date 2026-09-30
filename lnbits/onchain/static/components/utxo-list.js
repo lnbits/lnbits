@@ -102,12 +102,12 @@ window.app.component('onchain-utxo-list', {
     },
     getWalletName: function (walletId) {
       return (
-        (this.accounts || []).find(w => w.id === walletId)?.title || 'unknown'
+        (this.accounts || []).find(w => w.id === walletId)?.name || 'unknown'
       )
     },
     getWalletName: function (walletId) {
       const wallet = (this.accounts || []).find(wl => wl.id === walletId)
-      return wallet ? wallet.title : 'unknown'
+      return wallet ? wallet.name : 'unknown'
     },
     getTotalSelectedUtxoAmount: function () {
       const total = (this.utxos || [])
