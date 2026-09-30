@@ -6,10 +6,10 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from lnbits.core.crud.wallets_onchain import WalletAlreadyConfiguredError
 from lnbits.core.models.wallets import CreateOnchainWallet, OnchainWallet
 from lnbits.core.services.wallets_onchain import (
-    create_onchain_wallet,
     delete_onchain_wallet,
     ensure_network,
     get_onchain_wallets,
+    init_onchain_wallet,
 )
 from lnbits.onchain.decorators import (
     OnchainAuth,
@@ -36,7 +36,7 @@ async def api_wallet_create_or_update(
 ) -> OnchainWallet:
     await ensure_network(auth.wallet_id, data.network)
     try:
-        wallet = await create_onchain_wallet(data, auth.wallet_id)
+        wallet = await init_onchain_wallet(data, auth.wallet_id)
         request_scan(auth.wallet_id)
         return wallet
     except WalletAlreadyConfiguredError as exc:

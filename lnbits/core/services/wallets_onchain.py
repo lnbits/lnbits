@@ -17,7 +17,7 @@ async def get_onchain_wallets(
     return await wallets_onchain_crud.get_onchain_wallets(wallet_id, network)
 
 
-async def create_onchain_wallet(
+async def init_onchain_wallet(
     data: CreateOnchainWallet, wallet_id: str
 ) -> OnchainWallet:
     descriptor, network = await run_in_threadpool(parse_key, data.masterpub)
@@ -42,7 +42,7 @@ async def create_onchain_wallet(
         script_type=descriptor_type(descriptor),
     )
 
-    wallet = await wallets_onchain_crud.create_onchain_wallet(new_wallet)
+    wallet = await wallets_onchain_crud.init_onchain_wallet(new_wallet)
     await get_wallet_addresses(wallet.id, wallet_id)
     return wallet
 

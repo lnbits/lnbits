@@ -12,14 +12,14 @@ class WalletAlreadyConfiguredError(ValueError):
         )
 
 
-async def create_onchain_wallet(
+async def init_onchain_wallet(
     wallet: OnchainWallet, encrypted_seed: str | None = None
 ) -> OnchainWallet:
     meta = wallet.onchain_meta.copy()
     meta.sync_checked_at = 0
     meta.sync_error = None
     # One conditional write stores setup and recovery material together and
-    # protects against competing setup requests or a concurrent network change.
+    # protects against competing setup requests.
     async with db.connect() as conn:
         result = await conn.conn.execute(
             text("""
@@ -29,7 +29,6 @@ async def create_onchain_wallet(
                     onchain_encrypted_seed = :seed, onchain_sync_lease_until = 0
                 WHERE id = :id AND wallet_type = 'onchain' AND deleted = false
                     AND onchain_wallet_kind IS NULL
-                    AND COALESCE(onchain_network, 'Mainnet') = :network
             """),
             {
                 "id": wallet.id,
@@ -44,7 +43,7 @@ async def create_onchain_wallet(
     if result.rowcount != 1:
         if await get_onchain_wallet(wallet.id):
             raise WalletAlreadyConfiguredError()
-        raise ValueError("Onchain wallet or network changed during setup")
+        raise ValueError("Onchain wallet is unavailable for setup")
     configured = await get_onchain_wallet(wallet.id)
     assert configured
     return configured
@@ -76,7 +75,7 @@ async def get_onchain_wallets(
     )
 
 
-async def update_watch_wallet(wallet: OnchainWallet) -> OnchainWallet:
+async def update_onchain_wallet(wallet: OnchainWallet) -> OnchainWallet:
     # Backup confirmation must not rewrite descriptor, seed, or scanner metadata.
     await db.execute(
         """UPDATE wallets SET onchain_backup_confirmed = :confirmed
