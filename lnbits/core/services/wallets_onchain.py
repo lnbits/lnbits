@@ -5,7 +5,6 @@ from starlette.concurrency import run_in_threadpool
 
 from lnbits.core.crud import wallets_onchain as wallets_onchain_crud
 from lnbits.core.crud.onchain import create_fresh_addresses, get_addresses
-from lnbits.core.crud.wallets_onchain import get_config
 from lnbits.core.models.onchain import Address
 from lnbits.core.models.wallets import CreateOnchainWallet, OnchainMeta, OnchainWallet
 from lnbits.onchain.helpers import descriptor_fingerprint, descriptor_type, parse_key
@@ -47,7 +46,7 @@ async def init_onchain_wallet(
     return wallet
 
 
-async def delete_onchain_wallet(wallet_id: str, auth_wallet_id: str) -> None:
+async def clear_onchain_wallet_data(wallet_id: str, auth_wallet_id: str) -> None:
     wallet = await get_onchain_wallet(wallet_id, auth_wallet_id)
     if wallet.onchain_wallet_kind == "hot":
         raise HTTPException(
@@ -56,7 +55,7 @@ async def delete_onchain_wallet(wallet_id: str, auth_wallet_id: str) -> None:
             " Keep the wallet for recovery and transaction history.",
         )
     try:
-        await wallets_onchain_crud.delete_onchain_wallet(wallet_id)
+        await wallets_onchain_crud.clear_onchain_wallet_data(wallet_id)
     except ValueError as exc:
         raise HTTPException(HTTPStatus.CONFLICT, str(exc)) from exc
 
@@ -81,11 +80,10 @@ async def ensure_network(wallet_id: str, network: str) -> None:
 
 
 async def get_wallet_addresses(wallet_id: str, auth_wallet_id: str) -> list[Address]:
-    await get_onchain_wallet(wallet_id, auth_wallet_id)
+    wallet = await get_onchain_wallet(wallet_id, auth_wallet_id)
 
     addresses = await get_addresses(wallet_id)
-    config = await get_config(auth_wallet_id)
-    assert config, "Config not found"
+    config = wallet.onchain_config
 
     if not addresses:
         await create_fresh_addresses(wallet_id, 0, config.receive_gap_limit)

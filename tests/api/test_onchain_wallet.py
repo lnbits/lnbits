@@ -12,7 +12,7 @@ from lnbits.core.crud import create_wallet, get_wallet
 from lnbits.core.crud.onchain import get_addresses
 from lnbits.core.crud.payments import create_payment
 from lnbits.core.crud.wallets import get_total_balance, get_wallets
-from lnbits.core.crud.wallets_onchain import get_config, update_config
+from lnbits.core.crud.wallets_onchain import get_onchain_wallet, update_config
 from lnbits.core.models import CreatePayment
 from lnbits.core.models.wallets import WalletType
 from lnbits.core.services import create_user_account, update_wallet_balance
@@ -31,7 +31,9 @@ PHRASE = "abandon " * 11 + "about"
 async def onchain_wallet(http_client, monkeypatch, tmp_path):
     user = await create_user_account()
     wallet = await create_wallet(user_id=user.id, wallet_type=WalletType.ONCHAIN)
-    config = await get_config(wallet.id)
+    stored_wallet = await get_onchain_wallet(wallet.id, include_unconfigured=True)
+    assert stored_wallet
+    config = stored_wallet.onchain_config
     await update_config(config, wallet.id, network="Testnet4")
     monkeypatch.setattr(
         settings,
@@ -119,7 +121,9 @@ async def test_one_bitcoin_wallet_per_core_wallet(http_client, onchain_wallet, k
 
     # Another core wallet can be configured independently.
     other = await create_wallet(user_id=user.id, wallet_type=WalletType.ONCHAIN)
-    config = await get_config(other.id)
+    stored_wallet = await get_onchain_wallet(other.id, include_unconfigured=True)
+    assert stored_wallet
+    config = stored_wallet.onchain_config
     await update_config(config, other.id, network="Testnet4")
     assert (await setup(kinds[1], {"X-API-KEY": other.adminkey})).status_code == 200
 
@@ -335,7 +339,9 @@ async def test_onchain_scan_lease_does_not_block_wallet_creation(
         other = await asyncio.wait_for(
             create_wallet(user_id=user.id, wallet_type=WalletType.ONCHAIN), 5
         )
-        config = await get_config(other.id)
+        stored_wallet = await get_onchain_wallet(other.id, include_unconfigured=True)
+        assert stored_wallet
+        config = stored_wallet.onchain_config
         await update_config(config, other.id, network="Testnet4")
         await asyncio.wait_for(add_watch(http_client, {"X-API-KEY": other.adminkey}), 5)
     finally:
@@ -537,7 +543,9 @@ async def test_onchain_explorer_selection_defaults_and_persists(
     assert loaded["explorer_url"] == "https://example.com/testnet4"
     assert loaded["mempool_endpoint"] == "https://example.com/testnet4"
     # An explicit user choice stays selected even when LNbits is available.
-    assert (await get_config(wallet.id)).explorer_provider == "mempool"
+    stored_wallet = await get_onchain_wallet(wallet.id, include_unconfigured=True)
+    assert stored_wallet
+    assert stored_wallet.onchain_config.explorer_provider == "mempool"
     config["explorer_provider"] = "lnbits"
     monkeypatch.setattr(settings, "lnbits_blockexplorer_network", "main")
     rejected = await http_client.put(path, headers=headers, params=params, json=config)
@@ -704,7 +712,9 @@ async def test_watch_removal_clears_onchain_state_and_allows_fresh_setup(
     from lnbits.core.models.wallets import OnchainConfig
 
     wallet, _, headers = onchain_wallet
-    config = await get_config(wallet.id)
+    stored_wallet = await get_onchain_wallet(wallet.id, include_unconfigured=True)
+    assert stored_wallet
+    config = stored_wallet.onchain_config
     config.sats_denominated = False
     config.receive_gap_limit = 2
     await update_config(config, wallet.id)
@@ -718,14 +728,16 @@ async def test_watch_removal_clears_onchain_state_and_allows_fresh_setup(
     assert removed.status_code < 300
     assert await get_wallet(wallet.id)
     assert await get_addresses(wallet.id) == []
-    assert await get_config(wallet.id) == OnchainConfig()
+    stored_wallet = await get_onchain_wallet(wallet.id, include_unconfigured=True)
+    assert stored_wallet
+    assert stored_wallet.onchain_config == OnchainConfig()
     assert (
         await http_client.get("/onchain/api/v1/wallet", headers=headers)
     ).json() == []
     state = await sync.wallet_state(OnchainAuth(wallet.id))
     assert state["snapshots"] == [] and state["balance_sat"] == 0
     assert not state["scanning"] and state["error"] is None
-    config = await get_config(wallet.id)
+    config = stored_wallet.onchain_config
     await update_config(config, wallet.id, network="Testnet4")
     assert (await add_watch(http_client, headers))["id"] == wallet.id
 

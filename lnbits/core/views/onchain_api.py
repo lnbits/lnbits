@@ -6,7 +6,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from lnbits.core.crud.wallets_onchain import WalletAlreadyConfiguredError
 from lnbits.core.models.wallets import CreateOnchainWallet, OnchainWallet
 from lnbits.core.services.wallets_onchain import (
-    delete_onchain_wallet,
+    clear_onchain_wallet_data,
     ensure_network,
     get_onchain_wallets,
     init_onchain_wallet,
@@ -52,5 +52,5 @@ async def api_wallet_delete(
     wallet_id: str,
     auth: OnchainAuth = Depends(require_onchain_admin),
 ):
-    await delete_onchain_wallet(wallet_id, auth.wallet_id)
+    await clear_onchain_wallet_data(wallet_id, auth.wallet_id)
     return "", HTTPStatus.NO_CONTENT

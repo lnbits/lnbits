@@ -20,26 +20,22 @@ async def init_onchain_wallet(
     meta.sync_error = None
     # One conditional write stores setup and recovery material together and
     # protects against competing setup requests.
-    async with db.connect() as conn:
-        result = await conn.conn.execute(
-            text("""
-                UPDATE wallets SET name = :title, onchain_meta = :meta,
-                    onchain_network = :network, onchain_wallet_kind = :kind,
-                    onchain_address_no = -1, onchain_backup_confirmed = false,
-                    onchain_encrypted_seed = :seed, onchain_sync_lease_until = 0
-                WHERE id = :id AND wallet_type = 'onchain' AND deleted = false
-                    AND onchain_wallet_kind IS NULL
-            """),
-            {
-                "id": wallet.id,
-                "title": wallet.name,
-                "meta": meta.json(by_alias=True),
-                "network": wallet.onchain_network,
-                "kind": wallet.onchain_wallet_kind,
-                "seed": encrypted_seed,
-            },
-        )
-        await conn.conn.commit()
+    result = await db.execute(
+        """UPDATE wallets SET name = :title, onchain_meta = :meta,
+            onchain_network = :network, onchain_wallet_kind = :kind,
+            onchain_address_no = -1, onchain_backup_confirmed = false,
+            onchain_encrypted_seed = :seed, onchain_sync_lease_until = 0
+        WHERE id = :id AND wallet_type = 'onchain' AND deleted = false
+            AND onchain_wallet_kind IS NULL""",
+        {
+            "id": wallet.id,
+            "title": wallet.name,
+            "meta": meta.json(by_alias=True),
+            "network": wallet.onchain_network,
+            "kind": wallet.onchain_wallet_kind,
+            "seed": encrypted_seed,
+        },
+    )
     if result.rowcount != 1:
         if await get_onchain_wallet(wallet.id):
             raise WalletAlreadyConfiguredError()
@@ -87,7 +83,7 @@ async def update_onchain_wallet(wallet: OnchainWallet) -> OnchainWallet:
     return updated
 
 
-async def delete_onchain_wallet(wallet_id: str) -> None:
+async def clear_onchain_wallet_data(wallet_id: str) -> None:
     async with db.connect() as conn:
         async with conn.conn.begin():
             result = await conn.conn.execute(
@@ -130,10 +126,3 @@ async def update_config(
             "Create another LNbits wallet to use a different Bitcoin network"
         )
     return config
-
-
-async def get_config(wallet_id: str) -> OnchainConfig:
-    wallet = await get_onchain_wallet(wallet_id, include_unconfigured=True)
-    if not wallet:
-        raise ValueError("Onchain wallet not found")
-    return wallet.onchain_config
