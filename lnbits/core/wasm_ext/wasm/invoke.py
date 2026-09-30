@@ -6,6 +6,7 @@ from collections.abc import Mapping
 from contextlib import suppress
 from typing import Any
 
+from loguru import logger
 from wasmtime import Store, WasiConfig, component
 
 from lnbits.core.crud.extensions import get_installed_extension
@@ -20,6 +21,13 @@ from .loader import WasmExtension
 
 _WASM_EPOCH_DEADLINE_TICKS = 1_000_000_000
 _WASM_UNLIMITED_FUEL = 2**63 - 1
+_wasm_invocation_cleanup_tasks: set[asyncio.Task[None]] = set()
+
+
+def _discard_invocation_cleanup_task(task: asyncio.Task[None]) -> None:
+    _wasm_invocation_cleanup_tasks.discard(task)
+    if not task.cancelled() and (error := task.exception()):
+        logger.warning(f"WASM invocation cleanup failed ({error.__class__.__name__}).")
 
 
 async def invoke_wasm_extension_export(  # noqa: C901
@@ -65,24 +73,23 @@ async def invoke_wasm_extension_export(  # noqa: C901
         permissions = installed_extension.permissions
         limits = resolve_wasm_runtime_limits(installed_extension)
     else:
-        channel = extension.config.authoritative_channel
-        if (
-            not channel
-            or channel.persistence != "ephemeral"
-            or not check_owner(extension.id)
-            or runtime_limits is None
-        ):
+        if runtime_limits is None:
             raise PermissionError("Ephemeral invocation is not authorized.")
         permissions = preauthorized_permissions
         limits = runtime_limits
     if preauthorized_permissions is not None or ephemeral_authoritative_execution:
         channel = extension.config.authoritative_channel
         if (
-            not authoritative_execution
-            or not channel
+            not channel
             or channel.persistence != "ephemeral"
             or not check_owner(extension.id)
         ):
+            if preauthorized_permissions is not None:
+                raise PermissionError("Ephemeral invocation is not authorized.")
+            raise PermissionError(
+                "Ephemeral authoritative invocation is not authorized."
+            )
+        if not authoritative_execution:
             raise PermissionError(
                 "Ephemeral authoritative invocation is not authorized."
             )
@@ -189,18 +196,26 @@ async def invoke_wasm_extension_export(  # noqa: C901
     except asyncio.CancelledError:
         if not finished:
             stop_reason = "WASM invocation was cancelled."
-            await stop_wasm_invocation(invocation.id, reason=stop_reason)
-            with suppress(Exception):
-                await asyncio.wait_for(asyncio.shield(thread_task), timeout=2)
-            await finish_wasm_invocation(
-                invocation.id,
-                status="stopped",
-                error_type="CancelledError",
-                error_message=stop_reason,
-                stop_reason=get_wasm_invocation_stop_reason(invocation.id)
-                or stop_reason,
-            )
-            finished = True
+
+            async def cleanup_cancelled_invocation() -> None:
+                try:
+                    await stop_wasm_invocation(invocation.id, reason=stop_reason)
+                    with suppress(Exception):
+                        await asyncio.wait_for(asyncio.shield(thread_task), timeout=2)
+                finally:
+                    await finish_wasm_invocation(
+                        invocation.id,
+                        status="stopped",
+                        error_type="CancelledError",
+                        error_message=stop_reason,
+                        stop_reason=get_wasm_invocation_stop_reason(invocation.id)
+                        or stop_reason,
+                    )
+
+            cleanup_task = asyncio.create_task(cleanup_cancelled_invocation())
+            _wasm_invocation_cleanup_tasks.add(cleanup_task)
+            cleanup_task.add_done_callback(_discard_invocation_cleanup_task)
+            await asyncio.shield(cleanup_task)
         raise
     except Exception as exc:
         if not finished:

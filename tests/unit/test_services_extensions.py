@@ -156,6 +156,91 @@ async def test_cancelled_ephemeral_wasm_invocation_stops_and_finishes(mocker, se
 
 
 @pytest.mark.anyio
+async def test_repeated_cancellation_does_not_skip_wasm_invocation_finish(
+    mocker, settings
+):
+    settings.lnbits_extensions_deactivate_all = False
+    mocker.patch(
+        "lnbits.core.wasm_ext.api.ephemeral_broker.check_owner", return_value=True
+    )
+    started = asyncio.Event()
+    finish_thread = asyncio.Event()
+    grace_waiting = asyncio.Event()
+    finished = asyncio.Event()
+
+    async def fake_to_thread(*_args):
+        started.set()
+        await finish_thread.wait()
+        return {"ok": True}
+
+    mocker.patch.object(wasm_invoke.asyncio, "to_thread", new=fake_to_thread)
+    real_wait_for = asyncio.wait_for
+
+    async def observed_wait_for(awaitable, timeout):
+        if timeout == 2:
+            grace_waiting.set()
+        return await real_wait_for(awaitable, timeout)
+
+    mocker.patch.object(wasm_invoke.asyncio, "wait_for", new=observed_wait_for)
+    mocker.patch.object(
+        wasm_invoke,
+        "_get_registered_extension",
+        return_value=SimpleNamespace(
+            id="ephemeral",
+            config=SimpleNamespace(
+                authoritative_channel=SimpleNamespace(persistence="ephemeral")
+            ),
+        ),
+    )
+    mocker.patch.object(
+        extension_services,
+        "start_wasm_invocation",
+        mocker.AsyncMock(return_value=SimpleNamespace(id="invocation")),
+    )
+    stop = mocker.patch.object(
+        extension_services, "stop_wasm_invocation", mocker.AsyncMock()
+    )
+
+    async def finish_invocation(*_args, **_kwargs):
+        finished.set()
+
+    finish = mocker.patch.object(
+        extension_services, "finish_wasm_invocation", side_effect=finish_invocation
+    )
+    mocker.patch.object(
+        extension_services, "get_wasm_invocation_stop_reason", return_value=None
+    )
+
+    task = asyncio.create_task(
+        wasm_invoke.invoke_wasm_extension_export(
+            "ephemeral",
+            "event",
+            {},
+            context="event",
+            owner_id="owner",
+            authoritative_execution=True,
+            preauthorized_permissions=[],
+            runtime_limits={
+                "wasm_runtime_max_request_bytes": 1024,
+                "wasm_runtime_max_execution_ms": 10_000,
+            },
+        )
+    )
+    await started.wait()
+    task.cancel()
+    await grace_waiting.wait()
+    task.cancel()
+    with pytest.raises(asyncio.CancelledError):
+        await task
+
+    finish_thread.set()
+    await finished.wait()
+    stop.assert_awaited_once_with("invocation", reason="WASM invocation was cancelled.")
+    finish.assert_awaited_once()
+    assert finish.await_args.kwargs["status"] == "stopped"
+
+
+@pytest.mark.anyio
 @pytest.mark.parametrize("trigger_type", ["websocket_event", "websocket_schedule"])
 async def test_cached_wasm_invocation_respects_global_shutdown(
     mocker, settings, trigger_type
@@ -652,6 +737,38 @@ async def test_wasm_invocation_tracking_counts_and_stops(mocker: MockerFixture):
 
 
 @pytest.mark.anyio
+async def test_invalidate_ephemeral_extension_clears_aggregate_audit(mocker):
+    ext_id = f"ephemeral{uuid4().hex[:8]}"
+    extension_services._ephemeral_invocation_audit_counts[ext_id] = {"completed": 7}
+    mocker.patch(
+        "lnbits.core.wasm_ext.wasm.loader.load_wasm_extension_config",
+        return_value=SimpleNamespace(
+            authoritative_channel=SimpleNamespace(persistence="ephemeral")
+        ),
+    )
+    mocker.patch(
+        "lnbits.core.wasm_ext.api.ephemeral_broker.invalidate",
+        mocker.AsyncMock(),
+    )
+    mocker.patch(
+        "lnbits.core.wasm_ext.api.authoritative_channels."
+        "invalidate_ephemeral_authoritative_extension"
+    )
+    mocker.patch.object(
+        extension_services, "stop_wasm_extension_invocations", mocker.AsyncMock()
+    )
+    mocker.patch(
+        "lnbits.core.wasm_ext.api.websockets."
+        "wasm_extension_websocket_hub.close_ephemeral_extension",
+        mocker.AsyncMock(),
+    )
+
+    await extension_services.invalidate_wasm_ephemeral_authoritative_extension(ext_id)
+
+    assert ext_id not in extension_services._ephemeral_invocation_audit_counts
+
+
+@pytest.mark.anyio
 async def test_wasm_invocation_context_and_error_message_are_sanitized(
     mocker: MockerFixture,
 ):
@@ -720,6 +837,7 @@ async def test_wasm_invocation_context_and_error_message_are_sanitized(
 def _reset_wasm_invocation_state():
     with extension_services._wasm_invocation_lock:
         extension_services._wasm_invocation_handles.clear()
+        extension_services._ephemeral_invocation_audit_counts.clear()
         extension_services._wasm_invocations_marked_stale = False
         extension_services._wasm_invocations_last_cleanup_at = None
 

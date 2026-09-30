@@ -206,6 +206,7 @@ async def invalidate_wasm_ephemeral_authoritative_extension(ext_id: str) -> None
         ephemeral_only=True,
     )
     await wasm_extension_websocket_hub.close_ephemeral_extension(ext_id)
+    _ephemeral_invocation_audit_counts.pop(ext_id, None)
 
 
 async def install_extension(
@@ -700,8 +701,6 @@ async def uninstall_extension(ext_id: str):
         else:
             extension.clean_extension_files()
     await delete_installed_extension(ext_id=ext_id)
-    if is_wasm_extension_id(ext_id):
-        await invalidate_wasm_ephemeral_authoritative_extension(ext_id)
 
 
 async def activate_extension(ext: Extension):
@@ -721,8 +720,6 @@ async def deactivate_extension(ext_id: str):
         await stop_wasm_extension_invocations(ext_id, reason="Extension deactivated.")
     settings.deactivate_extension_paths(ext_id)
     await update_installed_extension_state(ext_id=ext_id, active=False)
-    if is_wasm_extension_id(ext_id):
-        await invalidate_wasm_ephemeral_authoritative_extension(ext_id)
     await stop_extension_background_work(ext_id)
 
 
