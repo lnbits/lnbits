@@ -12,6 +12,7 @@ from lnbits.core.wasm_ext.api.websockets import (
     WasmExtensionWebsocketHub,
     WasmExtensionWebsocketRateLimitError,
 )
+from lnbits.core.wasm_ext.wasm.loader import WasmExtension
 
 
 class FakeWebSocket:
@@ -333,3 +334,81 @@ async def test_authoritative_websocket_token_handshake_returns_canonical_snapsho
     connection.sender_task.cancel()
     await asyncio.gather(connection.sender_task, return_exceptions=True)
     disconnect.assert_awaited_once_with(connection)
+
+
+@pytest.mark.anyio
+async def test_ephemeral_control_receipt_does_not_wait_for_owner_ack(mocker):
+    owner_started = asyncio.Event()
+    owner_finish = asyncio.Event()
+    second_received = asyncio.Event()
+
+    class Client(FakeWebSocket):
+        async def receive_text(self):
+            if len(self.received) == 1:
+                await owner_started.wait()
+                frame = await super().receive_text()
+                second_received.set()
+                return frame
+            return await super().receive_text()
+
+    channel = SimpleNamespace(
+        persistence="ephemeral",
+        max_queue_depth=4,
+        on_event="onEvent",
+        event_fields=["down"],
+    )
+    extension = SimpleNamespace(
+        id="demoext", config=SimpleNamespace(authoritative_channel=channel)
+    )
+    client = Client(
+        received=[
+            json.dumps(
+                {"sequence": n, "event": {"down": down}, "roomGeneration": "generation"}
+            )
+            for n, down in [(1, True), (2, False)]
+        ]
+    )
+    conn = WasmAuthoritativeChannelConnection(
+        extension=cast(WasmExtension, extension),
+        room_id="room",
+        websocket=cast(WebSocket, client),
+        owner_id="owner",
+        principal_id="player",
+        role="player",
+        can_send=True,
+        connection_id="connection",
+        limits={},
+        last_client_sequence=0,
+        permissions=[],
+        room_generation="generation",
+    )
+    applied = []
+
+    async def owner_result(*args, **kwargs):
+        owner_started.set()
+        await owner_finish.wait()
+        applied.append(kwargs["client_sequence"])
+        return {"_hostSequence": len(applied)}
+
+    mocker.patch(
+        "lnbits.core.wasm_ext.api.websockets.run_authoritative_channel_export",
+        side_effect=owner_result,
+    )
+    hub = WasmExtensionWebsocketHub()
+    mocker.patch.object(hub, "_check_authoritative_client_rate")
+    send = mocker.patch.object(hub, "_send_authoritative", return_value=True)
+    task = asyncio.create_task(hub.listen_authoritative_channel(conn))
+    try:
+        await asyncio.wait_for(second_received.wait(), 0.5)
+        assert conn.last_received_sequence == 2
+        assert conn.last_client_sequence == 0 and applied == []
+        assert not task.done()
+        owner_finish.set()
+        await asyncio.wait_for(task, 0.5)
+        assert applied == [1, 2]
+        assert [
+            json.loads(call.args[1])["clientSequence"] for call in send.await_args_list
+        ] == [1, 2]
+    finally:
+        owner_finish.set()
+        await asyncio.gather(task, return_exceptions=True)

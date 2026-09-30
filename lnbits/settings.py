@@ -79,14 +79,6 @@ class ExtensionsSettings(LNbitsSettings):
     lnbits_extensions_deactivate_all: bool = Field(default=False)
     lnbits_extensions_builder_activate_non_admins: bool = Field(default=False)
     lnbits_wasm_invocation_retention_days: int = Field(default=7, ge=0)
-    lnbits_wasm_runtime_single_worker_mode: bool = Field(
-        default=False,
-        description=(
-            "Enable only when this LNbits deployment has exactly one worker "
-            "and one replica; "
-            "required for ephemeral authoritative WASM channels."
-        ),
-    )
     lnbits_wasm_runtime_ephemeral_aggregate_audit: bool = Field(
         default=False,
         description=(

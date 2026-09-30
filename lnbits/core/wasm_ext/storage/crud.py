@@ -199,6 +199,7 @@ async def storage_set_row(
     """  # noqa: S608
 
     async with database.connect() as conn:
+        await _fence_authoritative_write(ext_id, conn)
         await conn.execute(query, clean_data)
 
 
@@ -238,6 +239,7 @@ async def storage_insert_if_absent_row(
     """  # noqa: S608
 
     async with database.connect() as conn:
+        await _fence_authoritative_write(ext_id, conn)
         result = await conn.execute(query, values)
         created = bool(result.rowcount)
         row = await conn.fetchone(
@@ -260,6 +262,7 @@ async def storage_insert_immutable_row(
     owner_id: str,
 ) -> None:
     """Insert a host-attested write-once row in the caller's transaction."""
+    await _fence_authoritative_write(ext_id, conn)
     table_schema = _load_table_schema(ext_id, table)
     clean_data = _data_to_db(table_schema, data, require_id=True)
     database = _database(ext_id)
@@ -289,6 +292,7 @@ async def storage_insert_immutable_row(
             WHERE id = :id""",  # noqa: S608
         {"id": clean_data["id"]},
     )
+    provided_data = conn.rewrite_values(clean_data)
     stored_data = (
         conn.rewrite_values(
             _data_to_db(table_schema, _row_from_db(table_schema, row), require_id=True)
@@ -300,7 +304,8 @@ async def storage_insert_immutable_row(
         not row
         or row.get(OWNER_ID_FIELD) != owner_id
         or not row.get(IMMUTABLE_FIELD)
-        or stored_data != conn.rewrite_values(clean_data)
+        or stored_data is None
+        or {key: stored_data.get(key) for key in provided_data} != provided_data
     ):
         raise ValueError(
             "Authoritative result conflicts with an existing immutable row."
@@ -349,6 +354,7 @@ async def storage_compare_and_set_row(
     """  # noqa: S608
 
     async with database.connect() as conn:
+        await _fence_authoritative_write(ext_id, conn)
         result = await conn.execute(query, clean_data)
     return bool(result.rowcount)
 
@@ -491,6 +497,7 @@ async def storage_delete_row(
             AND {IMMUTABLE_FIELD} = false
     """  # noqa: S608
     async with _database(ext_id).connect() as conn:
+        await _fence_authoritative_write(ext_id, conn)
         await conn.execute(query, {"id": row_id, "owner_id": owner_id})
 
 
@@ -950,8 +957,23 @@ def _require_fields(operation: dict[str, Any]) -> list[dict[str, Any]]:
 
 def _require_identifier(data: dict[str, Any], key: str) -> str:
     value = data.get(key)
-    if not isinstance(value, str) or not _SQL_IDENTIFIER_RE.match(value):
+    if not isinstance(value, str) or not _SQL_IDENTIFIER_RE.fullmatch(value):
         raise ValueError(f"Invalid WASM storage SQL identifier for '{key}': {value}")
+    if key == "table" and value in {
+        "lnbits_payment_intents",
+        "lnbits_payment_intent_groups",
+        "lnbits_payment_intent_manual_audit",
+        "lnbits_authoritative_broker_owner",
+        "lnbits_authoritative_broker_inbox",
+        "lnbits_authoritative_broker_state",
+        "lnbits_authoritative_rooms",
+        "lnbits_authoritative_room_clients",
+        "lnbits_authoritative_connections",
+        "lnbits_authoritative_jobs_v2",
+        "lnbits_authoritative_room_order",
+        "lnbits_authoritative_capacity",
+    }:
+        raise ValueError("WASM storage cannot access a reserved host table.")
     return value
 
 
@@ -997,3 +1019,12 @@ async def _update_wasm_migration_version(
     else:
         async with core_db.connect() as conn:
             await update_migration_version(conn, ext_id, version)
+
+
+async def _fence_authoritative_write(ext_id: str, conn: Any) -> None:
+    from lnbits.core.wasm_ext.api import ephemeral_broker
+
+    if ephemeral_broker.in_handler():
+        # Lock the owner fence in the same transaction as this storage mutation.
+        # Connection.execute commits the write and releases the fence together.
+        await ephemeral_broker.assert_owner(ext_id, conn=conn)

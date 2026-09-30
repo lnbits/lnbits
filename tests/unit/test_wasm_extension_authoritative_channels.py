@@ -16,6 +16,21 @@ from lnbits.core.wasm_ext.wasm.config import WasmAuthoritativeChannelConfig
 from lnbits.settings import Settings
 
 
+@pytest.fixture(autouse=True)
+def local_actor_owner(mocker):
+    # Transport fencing has separate database-backed broker tests.
+    mocker.patch.object(
+        channels, "_validate_current_channel_permissions", return_value=None
+    )
+    mocker.patch.object(channels.broker, "in_handler", return_value=True)
+    mocker.patch.object(channels.broker, "check_owner", return_value=True)
+    mocker.patch.object(channels.broker, "is_owner", return_value=True)
+    mocker.patch.object(channels.broker, "epoch", return_value=1)
+    mocker.patch.object(channels.broker, "assert_owner", return_value=1)
+    mocker.patch.object(channels.broker, "publish_state", return_value=None)
+    mocker.patch.object(channels.broker, "recover_state", return_value=None)
+
+
 def _clear_extension_database_cache(extension_id: str) -> None:
     """Drop the cached engine and schema flags, as a fresh worker would."""
     loop = asyncio.get_running_loop()
@@ -53,7 +68,6 @@ def _wait_for_admission_in_child(data_folder, extension_id, output):
         output.put(("ready", sequence))
         await channels.release_authoritative_job(extension_id, "child-job")
 
-    storage_crud.settings.lnbits_database_url = None
     storage_crud.settings.lnbits_data_folder = data_folder
     asyncio.run(run())
 
@@ -96,9 +110,7 @@ async def test_room_lease_renews_after_one_third_and_stops_promptly(mocker):
     assert len(update_times) == 1
 
 
-def test_ephemeral_channels_require_single_worker_deployment(
-    settings: Settings, monkeypatch
-):
+def test_ephemeral_channels_require_no_deployment_flag(settings: Settings, monkeypatch):
     channel = WasmAuthoritativeChannelConfig.parse_obj(
         {
             "authorizeConnection": "authorize",
@@ -118,22 +130,15 @@ def test_ephemeral_channels_require_single_worker_deployment(
         "wasm_runtime_max_authoritative_events_per_second": 20,
         "wasm_runtime_max_authoritative_schedule_rate_hz": 10,
     }
-    settings.lnbits_wasm_runtime_single_worker_mode = False
-    with pytest.raises(ValueError, match="single-worker runtime setting"):
-        channels.validate_authoritative_channel_limits(channel, limits)
-
-    settings.lnbits_wasm_runtime_single_worker_mode = True
+    channels.validate_authoritative_channel_limits(channel, limits)
     monkeypatch.setenv("WEB_CONCURRENCY", "2")
-    with pytest.raises(ValueError, match="one runtime worker"):
-        channels.validate_authoritative_channel_limits(channel, limits)
+    channels.validate_authoritative_channel_limits(channel, limits)
 
 
 @pytest.mark.anyio
 async def test_ephemeral_authoritative_room_is_bounded_owner_scoped_and_sql_free(
     settings: Settings, mocker
 ):
-    settings.lnbits_wasm_runtime_single_worker_mode = True
-    mocker.patch.object(channels.os, "getenv", return_value=None)
     extension_id = f"ephemeral{uuid4().hex[:8]}"
     policy_generation = channels.get_ephemeral_authoritative_extension_generation(
         extension_id
@@ -304,8 +309,6 @@ async def test_ephemeral_authoritative_room_is_bounded_owner_scoped_and_sql_free
 async def test_ephemeral_invalidation_rejects_running_and_queued_jobs(
     settings: Settings, mocker
 ):
-    settings.lnbits_wasm_runtime_single_worker_mode = True
-    mocker.patch.object(channels.os, "getenv", return_value=None)
     extension_id = f"ephemeralstop{uuid4().hex[:8]}"
     policy_generation = channels.get_ephemeral_authoritative_extension_generation(
         extension_id
@@ -424,8 +427,6 @@ async def test_ephemeral_invalidation_rejects_running_and_queued_jobs(
 async def test_ephemeral_result_commit_failure_does_not_publish_state(
     settings: Settings, mocker
 ):
-    settings.lnbits_wasm_runtime_single_worker_mode = True
-    mocker.patch.object(channels.os, "getenv", return_value=None)
     extension_id = f"ephemeralresult{uuid4().hex[:8]}"
     policy_generation = channels.get_ephemeral_authoritative_extension_generation(
         extension_id
@@ -627,7 +628,6 @@ async def test_authoritative_queue_capacity_is_shared_between_workers(
 async def test_authoritative_admission_order_survives_worker_cache_restart(
     tmp_path: Path, settings: Settings
 ):
-    settings.lnbits_database_url = None
     settings.lnbits_data_folder = str(tmp_path)
     extension_id = f"order{uuid4().hex[:8]}"
     first = await channels.reserve_authoritative_job(
@@ -667,7 +667,6 @@ async def test_authoritative_admission_order_survives_worker_cache_restart(
 async def test_authoritative_concurrent_admissions_get_unique_order(
     tmp_path: Path, settings: Settings
 ):
-    settings.lnbits_database_url = None
     settings.lnbits_data_folder = str(tmp_path)
     extension_id = f"parallel{uuid4().hex[:8]}"
     sequences = await asyncio.gather(
@@ -689,7 +688,6 @@ async def test_authoritative_concurrent_admissions_get_unique_order(
 async def test_authoritative_order_is_shared_across_processes(
     tmp_path: Path, settings: Settings
 ):
-    settings.lnbits_database_url = None
     settings.lnbits_data_folder = str(tmp_path)
     extension_id = f"workers{uuid4().hex[:8]}"
     first = await channels.reserve_authoritative_job(
@@ -747,7 +745,6 @@ async def test_authoritative_room_snapshot_survives_host_cache_restart(
 async def test_committed_result_is_inserted_immutable_in_same_transaction(
     tmp_path: Path, settings: Settings
 ):
-    settings.lnbits_database_url = None
     settings.lnbits_data_folder = str(tmp_path / "data")
     Path(settings.lnbits_data_folder).mkdir()
     settings.lnbits_wasm_extensions_path = str(tmp_path / "wasm_extensions")
@@ -996,7 +993,6 @@ async def test_authoritative_events_commit_snapshots_and_client_sequences(
 async def test_cancelled_channel_export_releases_its_queue_reservation(
     tmp_path: Path, settings: Settings, mocker
 ):
-    settings.lnbits_database_url = None
     settings.lnbits_data_folder = str(tmp_path)
     extension_id = f"cancel{uuid4().hex[:8]}"
     room_id = "room"
@@ -1040,6 +1036,7 @@ async def test_cancelled_channel_export_releases_its_queue_reservation(
             action="authorize",
         )
     )
+    reserved = None
     for _ in range(100):
         async with database.connect() as conn:
             reserved = await conn.fetchone(f"SELECT job_id FROM {jobs}")  # noqa: S608
@@ -1055,3 +1052,88 @@ async def test_cancelled_channel_export_releases_its_queue_reservation(
 
     async with database.connect() as conn:
         assert not await conn.fetchone(f"SELECT job_id FROM {jobs}")  # noqa: S608
+
+
+@pytest.mark.anyio
+async def test_ephemeral_crashed_worker_connections_expire_and_release_capacity():
+    ext = f"expire{uuid4().hex[:8]}"
+    try:
+        assert await channels.reserve_authoritative_connection(
+            ext,
+            "old",
+            "owner",
+            "socket",
+            max_active_rooms=1,
+            max_connections_per_room=1,
+            persistence="ephemeral",
+        )
+        channels._ephemeral_rooms[(ext, "old")].connections["socket"] = 0
+        assert not await channels.renew_authoritative_connection(
+            ext,
+            "old",
+            "socket",
+            persistence="ephemeral",
+        )
+        assert await channels.reserve_authoritative_connection(
+            ext,
+            "replacement",
+            "owner",
+            "fresh",
+            max_active_rooms=1,
+            max_connections_per_room=1,
+            persistence="ephemeral",
+        )
+        assert (ext, "old") not in channels._ephemeral_rooms
+    finally:
+        channels.invalidate_ephemeral_authoritative_extension(ext)
+
+
+@pytest.mark.anyio
+async def test_ephemeral_actor_restores_snapshot_with_new_generation(mocker):
+    ext = f"restore{uuid4().hex[:8]}"
+    state = {
+        "sequence": 7,
+        "version": 4,
+        "last_schedule_ms": 123,
+        "snapshot": {"kills": ["kill-1"]},
+        "has_snapshot": True,
+        "event_timestamps": [],
+    }
+    recovery = mocker.patch.object(channels.broker, "recover_state", return_value=state)
+    try:
+        await channels._restore_ephemeral_room(ext, "room", "owner", 1)
+        room = channels._ephemeral_rooms[(ext, "room")]
+        assert room.state.sequence == 7
+        assert room.state.snapshot == {"kills": ["kill-1"]}
+        assert not room.connections and not room.principal_sequences
+        generation = room.generation
+        await channels._restore_ephemeral_room(ext, "room", "owner", 1)
+        assert room.generation == generation
+        recovery.assert_awaited_once()
+    finally:
+        channels.invalidate_ephemeral_authoritative_extension(ext)
+
+
+@pytest.mark.parametrize("action", ["event", "authorize", "api", "schedule"])
+@pytest.mark.parametrize("persistence", ["ephemeral", "durable"])
+def test_invocation_generation_is_available_to_ephemeral_guests_only(
+    action, persistence
+):
+    job = SimpleNamespace(
+        extension=SimpleNamespace(id="ext"),
+        room_id="room",
+        action=action,
+        persistence=persistence,
+        actor_generation="fresh",
+        payload={"event": {}, "principalRole": "member"},
+        principal_id="principal",
+        connection_id="connection",
+        client_sequence=1,
+        received_at_ns=1,
+    )
+    state = channels.AuthoritativeChannelState(0, 0, 0, None, False, [])
+    payload = channels._invocation_payload(job, 1, state, 100)
+    context = payload if action in {"event", "schedule"} else payload["_authoritative"]
+    assert context.get("generation") == (
+        "fresh" if persistence == "ephemeral" else None
+    )

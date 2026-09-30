@@ -28,11 +28,13 @@ from lnbits.core.wasm_ext.storage.crud import (
     storage_compare_and_set_row,
     storage_count_rows,
     storage_delete_row,
+    storage_get_immutable_row,
     storage_get_paginated_rows,
     storage_get_public_row,
     storage_get_row,
     storage_get_row_with_version,
     storage_insert_if_absent_row,
+    storage_insert_immutable_row,
     storage_set_row,
 )
 from lnbits.db import DB_TYPE, SQLITE, Compat, Connection, Database
@@ -443,6 +445,69 @@ async def test_wasm_storage_atomic_operations_are_owner_scoped_and_versioned(
     assert stored_version == 3
     assert foreign_row is None
     assert foreign_version is None
+
+
+@pytest.mark.anyio
+async def test_wasm_storage_immutable_insert_compares_only_provided_fields(
+    tmp_path: Path,
+    settings: Settings,
+):
+    from lnbits.core.wasm_ext.api.authoritative_channels import _transaction
+
+    ext_id = f"wasmimmutable_{uuid4().hex[:8]}"
+    original_extensions_path = settings.lnbits_extensions_path
+    original_wasm_extensions_path = settings.lnbits_wasm_extensions_path
+    original_data_folder = settings.lnbits_data_folder
+    try:
+        settings.lnbits_data_folder = str(tmp_path / "data")
+        settings.lnbits_extensions_path = str(tmp_path / "code")
+        settings.lnbits_wasm_extensions_path = str(tmp_path / "wasm_extensions")
+        Path(settings.lnbits_data_folder).mkdir(parents=True)
+        _write_storage_extension(settings, ext_id)
+        await migrate_wasm_extension_database(make_installable_extension(ext_id))
+
+        # Omit nullable/defaulted columns: the write-once check must only
+        # compare the fields the caller supplied.
+        partial_row = {
+            "id": "partial-1",
+            "title": "Waiting",
+            "tags": ["match"],
+            "created_at": 1_700_000_000,
+        }
+        database = storage_crud._database(ext_id)
+        async with database.connect() as conn:
+            async with _transaction(conn):
+                await storage_insert_immutable_row(
+                    conn, ext_id, "notes", partial_row, "owner-1"
+                )
+            # Replaying the same provided fields stays idempotent.
+            async with _transaction(conn):
+                await storage_insert_immutable_row(
+                    conn, ext_id, "notes", partial_row, "owner-1"
+                )
+            with pytest.raises(
+                ValueError, match="conflicts with an existing immutable row"
+            ):
+                async with _transaction(conn):
+                    await storage_insert_immutable_row(
+                        conn,
+                        ext_id,
+                        "notes",
+                        {**partial_row, "title": "changed"},
+                        "owner-1",
+                    )
+        stored = await storage_get_immutable_row(
+            ext_id, "notes", "partial-1", "owner-1"
+        )
+    finally:
+        settings.lnbits_extensions_path = original_extensions_path
+        settings.lnbits_wasm_extensions_path = original_wasm_extensions_path
+        settings.lnbits_data_folder = original_data_folder
+
+    assert stored is not None
+    assert stored["title"] == "Waiting"
+    assert stored["count"] == 0
+    assert stored["published"] is False
 
 
 @pytest.mark.anyio

@@ -6,6 +6,8 @@ from uuid import uuid4
 import pytest
 
 from lnbits.core.wasm_ext.api import authoritative_channels, payment_intents
+from lnbits.core.wasm_ext.api import ephemeral_broker as transport
+from lnbits.core.wasm_ext.storage import crud as storage_crud
 from lnbits.settings import Settings
 
 
@@ -13,7 +15,6 @@ from lnbits.settings import Settings
 async def test_payment_intents_and_channels_share_one_extension_engine(
     tmp_path: Path, settings: Settings
 ):
-    settings.lnbits_database_url = None
     settings.lnbits_data_folder = str(tmp_path)
     extension_id = f"shared{uuid4().hex[:8]}"
 
@@ -21,6 +22,11 @@ async def test_payment_intents_and_channels_share_one_extension_engine(
     channels_database = await authoritative_channels._database(extension_id)
 
     assert intents_database is channels_database
+    initialized = storage_crud._initialized_databases[asyncio.get_running_loop()]
+    assert (
+        storage_crud._database_key(extension_id),
+        "authoritative_broker",
+    ) not in initialized
 
 
 @pytest.mark.anyio
@@ -318,3 +324,77 @@ async def _seed_intent(
             {"id": intent_id},
         )
     return extension_id, database, intent
+
+
+@pytest.mark.anyio
+async def test_stale_ephemeral_owner_cannot_reserve_or_attempt_money(
+    tmp_path: Path, settings: Settings, monkeypatch
+):
+    ext, _database, intent = await _seed_intent(
+        tmp_path,
+        settings,
+        status="pending",
+        attempted=False,
+        manual=False,
+        payment_request="invoice",
+    )
+
+    async def echo(_ext, _op, payload):
+        return payload
+
+    first = transport.EphemeralBroker(echo)
+    replacement = transport.EphemeralBroker(echo)
+    monkeypatch.setattr(transport._module_config, "broker", first)
+    try:
+        await first.call(ext, "api", {})
+        epoch = first.epoch(ext)
+        await first.invalidate(ext)
+        await replacement.call(ext, "api", {})
+        first._owners[ext] = transport._LocalOwner(
+            epoch, asyncio.get_running_loop().time() + 10
+        )
+        token = transport._handler_context.set((ext, epoch))
+        try:
+            for mutation in (
+                payment_intents.claim_payment_intent(ext, intent["id"]),
+                payment_intents.save_payment_intent_invoice(
+                    ext, intent["id"], "invoice", "b" * 64
+                ),
+                payment_intents.mark_payment_intent_attempted(ext, intent["id"]),
+                payment_intents.set_payment_intent_status(ext, intent["id"], "failed"),
+                payment_intents._reserve_payment_intent(
+                    extension_id=ext,
+                    wallet_id=intent["wallet_id"],
+                    idempotency_key="stale",
+                    request_data={},
+                    funding_hashes=["a" * 64],
+                    funding_msat=10000,
+                    destination="invoice",
+                    payment_request="invoice",
+                    payment_hash="b" * 64,
+                    amount_msat=1000,
+                    max_fee_msat=100,
+                    purpose="refund",
+                    scope_id="scope-1",
+                    reference_id="other-source",
+                    record_table=None,
+                    record_id=None,
+                    source_payment_hash="a" * 64,
+                    owner_id="owner-hash",
+                    retry_failed=False,
+                    manual_error=None,
+                ),
+            ):
+                with pytest.raises(PermissionError, match="ownership expired"):
+                    await mutation
+        finally:
+            transport._handler_context.reset(token)
+            first._owners.pop(ext, None)
+        current = await payment_intents.get_payment_intent(
+            ext, intent["wallet_id"], "intent-key", "owner-hash"
+        )
+        assert current["status"] == "pending"
+        assert not current["attempted"]
+    finally:
+        await first.close()
+        await replacement.close()

@@ -92,7 +92,9 @@ async def test_ephemeral_wasm_invocations_skip_persistent_audit(mocker):
 @pytest.mark.anyio
 async def test_cancelled_ephemeral_wasm_invocation_stops_and_finishes(mocker, settings):
     settings.lnbits_extensions_deactivate_all = False
-    settings.lnbits_wasm_runtime_single_worker_mode = True
+    mocker.patch(
+        "lnbits.core.wasm_ext.api.ephemeral_broker.check_owner", return_value=True
+    )
     started = asyncio.Event()
     finish_thread = asyncio.Event()
 
@@ -159,7 +161,9 @@ async def test_cached_wasm_invocation_respects_global_shutdown(
     mocker, settings, trigger_type
 ):
     settings.lnbits_extensions_deactivate_all = True
-    settings.lnbits_wasm_runtime_single_worker_mode = True
+    mocker.patch(
+        "lnbits.core.wasm_ext.api.ephemeral_broker.check_owner", return_value=True
+    )
     start = mocker.patch.object(
         extension_services, "start_wasm_invocation", mocker.AsyncMock()
     )
@@ -835,7 +839,7 @@ async def test_update_wasm_extension_runtime_limits_saves_sparse_overrides(
         config_dir = settings.wasm_extensions_dir / ext_id
         config_dir.mkdir(parents=True)
         (config_dir / "config.json").write_text(
-            '{"extension_type": "wasm"}',
+            json.dumps(_wasm_install_config(ext_id)),
             encoding="utf-8",
         )
         installed_extension = InstallableExtension(

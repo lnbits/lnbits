@@ -190,8 +190,15 @@ async def invalidate_wasm_ephemeral_authoritative_extension(ext_id: str) -> None
     from lnbits.core.wasm_ext.api.authoritative_channels import (
         invalidate_ephemeral_authoritative_extension,
     )
+    from lnbits.core.wasm_ext.api.ephemeral_broker import invalidate
     from lnbits.core.wasm_ext.api.websockets import wasm_extension_websocket_hub
+    from lnbits.core.wasm_ext.wasm.loader import load_wasm_extension_config
 
+    registered = core_app_extra.wasm_extension_registry.get(ext_id)
+    config = registered.config if registered else load_wasm_extension_config(ext_id)
+    channel = config.authoritative_channel if config else None
+    if channel and channel.persistence == "ephemeral":
+        await invalidate(ext_id)
     invalidate_ephemeral_authoritative_extension(ext_id)
     await stop_wasm_extension_invocations(
         ext_id,

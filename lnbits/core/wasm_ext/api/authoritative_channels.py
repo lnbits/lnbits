@@ -5,14 +5,14 @@ from __future__ import annotations
 
 import asyncio
 import json
-import os
 import re
 import time
 from contextlib import asynccontextmanager
-from dataclasses import dataclass, field
+from dataclasses import asdict, dataclass, field
 from typing import TYPE_CHECKING, Any
 from uuid import uuid4
 
+from loguru import logger
 from sqlalchemy import text
 
 from lnbits.core.wasm_ext.storage import crud as storage_crud
@@ -22,6 +22,8 @@ from lnbits.core.wasm_ext.storage.crud import (
 )
 from lnbits.db import SQLITE, Database
 from lnbits.settings import settings
+
+from . import ephemeral_broker as broker
 
 if TYPE_CHECKING:
     from lnbits.core.wasm_ext.wasm.config import WasmAuthoritativeChannelConfig
@@ -36,6 +38,7 @@ _CAPACITY_TABLE = "lnbits_authoritative_capacity"
 _ROOM_IDLE_SECONDS = 2
 _ROOM_RETENTION_MS = 24 * 60 * 60 * 1000
 _CAPACITY_RESERVATION_MS = 10 * 60 * 1000
+_EPHEMERAL_CONNECTION_MS = 30_000
 _MAX_EPHEMERAL_PRINCIPALS_PER_ROOM = 1024
 _SQL_IDENTIFIER_RE = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*$")
 
@@ -96,36 +99,29 @@ class _EphemeralRoom:
     state: AuthoritativeChannelState
     last_activity_ms: int
     principal_sequences: dict[str, int] = field(default_factory=dict)
-    connections: set[str] = field(default_factory=set)
+    connections: dict[str, int] = field(default_factory=dict)
     pending_jobs: int = 0
     changed: asyncio.Event = field(default_factory=asyncio.Event)
+    scheduler_task: asyncio.Task[None] | None = None
 
 
 _channel_queues: dict[tuple[str, str], _ChannelQueue] = {}
 _ephemeral_rooms: dict[tuple[str, str], _EphemeralRoom] = {}
 _ephemeral_extension_generations: dict[str, int] = {}
+_broker_epochs: dict[str, int] = {}
+_broker_extensions: dict[str, Any] = {}
+_remote_generations: dict[tuple[str, str, str], str] = {}
+_remote_connection_rooms: dict[tuple[str, str], tuple[str, str, str]] = {}
 
 
 def get_ephemeral_authoritative_extension_generation(extension_id: str) -> int:
     return _ephemeral_extension_generations.get(extension_id, 0)
 
 
-def validate_authoritative_channel_limits(  # noqa: C901
+def validate_authoritative_channel_limits(
     channel: WasmAuthoritativeChannelConfig,
     limits: dict[str, int],
 ) -> None:
-    if getattr(channel, "persistence", "durable") == "ephemeral":
-        if not settings.lnbits_wasm_runtime_single_worker_mode:
-            raise ValueError(
-                "Ephemeral authoritative channels require the "
-                "single-worker runtime setting."
-            )
-        for variable in ("WEB_CONCURRENCY", "UVICORN_WORKERS", "GUNICORN_WORKERS"):
-            value = os.getenv(variable)
-            if value and value.isdecimal() and int(value) > 1:
-                raise ValueError(
-                    "Ephemeral authoritative channels require one runtime worker."
-                )
     if limits["wasm_runtime_max_execution_ms"] <= 0:
         raise ValueError("Authoritative WASM calls require a bounded execution time.")
     if channel.max_active_rooms > limits["wasm_runtime_max_authoritative_rooms"]:
@@ -173,6 +169,48 @@ async def run_authoritative_channel_export(  # noqa: C901
         raise PermissionError("Authoritative channel dispatch is not enabled.")
     validate_authoritative_channel_limits(channel, limits)
     persistence = getattr(channel, "persistence", "durable")
+    if persistence == "ephemeral":
+        if permissions is None:
+            raise PermissionError("Ephemeral channel permissions are not authorized.")
+        if policy_generation != get_ephemeral_authoritative_extension_generation(
+            extension.id
+        ):
+            raise PermissionError("Ephemeral authoritative channel policy changed.")
+        _broker_extensions[extension.id] = extension
+        options = dict(invoke_options or {})
+        account = options.pop("user", None)
+        if account is not None:
+            options["broker_account_id"] = account.id
+        routed = (
+            await broker.call(
+                extension.id,
+                "export",
+                {
+                    "room_id": room_id,
+                    "owner_id": owner_id,
+                    "export_name": export_name,
+                    "payload": payload,
+                    "limits": limits,
+                    "action": action,
+                    "invoke_options": options,
+                    "principal_id": principal_id,
+                    "client_sequence": client_sequence,
+                    "connection_id": connection_id,
+                    "received_at_ns": received_at_ns,
+                    "room_generation": room_generation,
+                    "permissions": [
+                        item.dict() if hasattr(item, "dict") else item
+                        for item in (permissions or [])
+                    ],
+                    "policy_generation": policy_generation,
+                },
+            )
+            if not broker.in_handler()
+            else None
+        )
+        if routed is not None:
+            return routed
+        _check_actor_ownership(extension.id)
     expected_exports = {"authorize": channel.authorize_connection}
     if channel.on_event:
         expected_exports["event"] = channel.on_event
@@ -196,6 +234,9 @@ async def run_authoritative_channel_export(  # noqa: C901
             extension.id
         ):
             raise PermissionError("Ephemeral authoritative channel policy changed.")
+        await _restore_ephemeral_room(
+            extension.id, room_id, owner_id, channel.max_active_rooms
+        )
         ephemeral_room = _get_ephemeral_room(
             extension.id,
             room_id,
@@ -283,6 +324,33 @@ async def run_authoritative_channel_export(  # noqa: C901
         raise
 
 
+async def _restore_ephemeral_room(
+    extension_id: str, room_id: str, owner_id: str, max_active_rooms: int
+) -> None:
+    key = (extension_id, room_id)
+    if key in _ephemeral_rooms:
+        return
+    state = await broker.recover_state(extension_id, room_id, owner_id)
+    # Another admission can initialize the room while this read is pending.
+    if state is None or key in _ephemeral_rooms:
+        return
+    recovered = AuthoritativeChannelState(**state)
+    room = _get_ephemeral_room(
+        extension_id, room_id, owner_id, max_active_rooms=max_active_rooms, create=True
+    )
+    room.state = recovered
+    # Connections and input high-water marks belong to the old generation.
+    # Reconnecting callers receive a fresh generation and must reauthorize.
+    broker.publish_state(
+        extension_id,
+        room_id,
+        owner_id,
+        asdict(recovered),
+        room.generation,
+        max_rooms=max_active_rooms,
+    )
+
+
 def _get_ephemeral_room(
     extension_id: str,
     room_id: str,
@@ -293,6 +361,9 @@ def _get_ephemeral_room(
 ) -> _EphemeralRoom:
     now_ms = int(time.time() * 1000)
     for key, candidate in list(_ephemeral_rooms.items()):
+        for connection, deadline in list(candidate.connections.items()):
+            if deadline <= now_ms:
+                candidate.connections.pop(connection, None)
         if (
             key[0] == extension_id
             and not candidate.connections
@@ -348,6 +419,8 @@ def _get_ephemeral_room(
 def _discard_idle_ephemeral_room(key: tuple[str, str]) -> None:
     room = _ephemeral_rooms.pop(key, None)
     if room:
+        if room.scheduler_task and not room.scheduler_task.done():
+            room.scheduler_task.cancel()
         room.changed.set()
     entry = _channel_queues.get(key)
     if entry and entry.queue.empty():
@@ -371,13 +444,24 @@ async def _release_channel_job(job: _ChannelJob) -> None:
     await release_authoritative_job(job.extension.id, job.admission_id)
 
 
-def invalidate_ephemeral_authoritative_extension(extension_id: str) -> None:
+def invalidate_ephemeral_authoritative_extension(  # noqa: C901
+    extension_id: str,
+) -> None:
+    _broker_extensions.pop(extension_id, None)
+    for remote_key in list(_remote_generations):
+        if remote_key[0] == extension_id:
+            _remote_generations.pop(remote_key, None)
+    for connection_key in list(_remote_connection_rooms):
+        if connection_key[0] == extension_id:
+            _remote_connection_rooms.pop(connection_key, None)
     _ephemeral_extension_generations[extension_id] = (
         get_ephemeral_authoritative_extension_generation(extension_id) + 1
     )
     for key in [key for key in _ephemeral_rooms if key[0] == extension_id]:
         room = _ephemeral_rooms.pop(key, None)
         if room:
+            if room.scheduler_task and not room.scheduler_task.done():
+                room.scheduler_task.cancel()
             room.changed.set()
         entry = _channel_queues.pop(key, None)
         if not entry:
@@ -402,6 +486,21 @@ async def get_authoritative_channel_state(
     persistence: str = "durable",
 ) -> AuthoritativeChannelState:
     if persistence == "ephemeral":
+        if not broker.in_handler():
+            result = await broker.call(
+                extension_id,
+                "state",
+                {
+                    "room_id": room_id,
+                    "owner_id": owner_id,
+                    "max_bytes": max_bytes,
+                    "expected_generation": _remote_generations.get(
+                        (extension_id, room_id, owner_id)
+                    ),
+                },
+            )
+            return AuthoritativeChannelState(**result["state"])
+        _check_actor_ownership(extension_id)
         room = _get_ephemeral_room(
             extension_id,
             room_id,
@@ -440,6 +539,14 @@ async def get_authoritative_principal_sequence(
     persistence: str = "durable",
 ) -> int:
     if persistence == "ephemeral":
+        if not broker.in_handler():
+            result = await broker.call(
+                extension_id,
+                "sequence",
+                {"room_id": room_id, "principal_id": principal_id},
+            )
+            return int(result["sequence"])
+        _check_actor_ownership(extension_id)
         room = _ephemeral_rooms.get((extension_id, room_id))
         return room.principal_sequences.get(principal_id, 0) if room else 0
     database = await _database(extension_id)
@@ -457,13 +564,18 @@ async def get_authoritative_principal_sequence(
 def get_authoritative_channel_generation(
     extension_id: str, room_id: str, owner_id: str
 ) -> str:
+    if not broker.is_owner(extension_id):
+        generation = _remote_generations.get((extension_id, room_id, owner_id))
+        if not generation:
+            raise PermissionError("Authoritative channel room was not found.")
+        return generation
     room = _ephemeral_rooms.get((extension_id, room_id))
     if not room or room.owner_id != owner_id:
         raise PermissionError("Authoritative channel room was not found.")
     return room.generation
 
 
-async def wait_authoritative_channel_state_change(
+async def wait_authoritative_channel_state_change(  # noqa: C901
     extension_id: str,
     room_id: str,
     owner_id: str,
@@ -471,6 +583,29 @@ async def wait_authoritative_channel_state_change(
     *,
     max_bytes: int | None = None,
 ) -> AuthoritativeChannelState | None:
+    if not broker.is_owner(extension_id):
+        while True:
+            result = await broker.call(
+                extension_id,
+                "state",
+                {
+                    "room_id": room_id,
+                    "owner_id": owner_id,
+                    "max_bytes": max_bytes,
+                    "expected_generation": _remote_generations.get(
+                        (extension_id, room_id, owner_id)
+                    ),
+                },
+            )
+            if result["generation"] != _remote_generations.get(
+                (extension_id, room_id, owner_id)
+            ):
+                return None
+            state = AuthoritativeChannelState(**result["state"])
+            if state.version > after_version:
+                return state
+            await asyncio.sleep(0.05)
+    _check_actor_ownership(extension_id)
     room = _ephemeral_rooms.get((extension_id, room_id))
     if not room or room.owner_id != owner_id:
         return None
@@ -478,7 +613,10 @@ async def wait_authoritative_channel_state_change(
         room.changed.clear()
         if room.state.version > after_version:
             break
-        await room.changed.wait()
+        try:
+            await asyncio.wait_for(room.changed.wait(), timeout=0.5)
+        except asyncio.TimeoutError:
+            _check_actor_ownership(extension_id)
         if _ephemeral_rooms.get((extension_id, room_id)) is not room:
             return None
     state = room.state
@@ -502,6 +640,25 @@ async def reserve_authoritative_connection(
     persistence: str = "durable",
 ) -> bool:
     if persistence == "ephemeral":
+        if not broker.in_handler():
+            result = await broker.call(
+                extension_id,
+                "reserve",
+                {
+                    "room_id": room_id,
+                    "owner_id": owner_id,
+                    "connection_id": connection_id,
+                    "max_active_rooms": max_active_rooms,
+                    "max_connections_per_room": max_connections_per_room,
+                },
+            )
+            if result["reserved"]:
+                key = (extension_id, room_id, owner_id)
+                _remote_generations[key] = result["generation"]
+                _remote_connection_rooms[(extension_id, connection_id)] = key
+            return bool(result["reserved"])
+        _check_actor_ownership(extension_id)
+        await _restore_ephemeral_room(extension_id, room_id, owner_id, max_active_rooms)
         room = _get_ephemeral_room(
             extension_id,
             room_id,
@@ -511,7 +668,9 @@ async def reserve_authoritative_connection(
         )
         if len(room.connections) >= max_connections_per_room:
             return False
-        room.connections.add(connection_id)
+        room.connections[connection_id] = (
+            int(time.time() * 1000) + _EPHEMERAL_CONNECTION_MS
+        )
         room.last_activity_ms = int(time.time() * 1000)
         return True
     database = await _database(extension_id)
@@ -557,10 +716,22 @@ async def renew_authoritative_connection(
     persistence: str = "durable",
 ) -> bool:
     if persistence == "ephemeral":
+        if not broker.in_handler():
+            result = await broker.call(
+                extension_id,
+                "renew",
+                {"room_id": room_id, "connection_id": connection_id},
+            )
+            return bool(result["renewed"])
+        _check_actor_ownership(extension_id)
         room = _ephemeral_rooms.get((extension_id, room_id))
-        if not room or connection_id not in room.connections:
+        now_ms = int(time.time() * 1000)
+        if not room or room.connections.get(connection_id, 0) <= now_ms:
+            if room:
+                room.connections.pop(connection_id, None)
             return False
-        room.last_activity_ms = int(time.time() * 1000)
+        room.connections[connection_id] = now_ms + _EPHEMERAL_CONNECTION_MS
+        room.last_activity_ms = now_ms
         return True
     database = await _database(extension_id)
     now_ms = int(time.time() * 1000)
@@ -592,9 +763,22 @@ async def release_authoritative_connection(
     persistence: str = "durable",
 ) -> None:
     if persistence == "ephemeral":
+        if not broker.in_handler():
+            try:
+                await broker.call(
+                    extension_id,
+                    "release",
+                    {"room_id": room_id, "connection_id": connection_id},
+                )
+            finally:
+                key = _remote_connection_rooms.pop((extension_id, connection_id), None)
+                if key and key not in _remote_connection_rooms.values():
+                    _remote_generations.pop(key, None)
+            return
+        _check_actor_ownership(extension_id)
         room = _ephemeral_rooms.get((extension_id, room_id or ""))
         if room:
-            room.connections.discard(connection_id)
+            room.connections.pop(connection_id, None)
             room.last_activity_ms = int(time.time() * 1000)
             if (
                 not room.connections
@@ -910,9 +1094,12 @@ async def _execute_ephemeral_channel_job(  # noqa: C901
             event_timestamps,
         )
 
+    if job.action in {"event", "schedule"}:
+        await _validate_current_channel_permissions(job)
     sequence = state.sequence + (0 if job.action == "authorize" else 1)
     job.execution_sequence = sequence
     result = await _invoke_room_job(job, sequence, state, now_ms)
+    _check_actor_ownership(job.extension.id)
     if _authoritative_job_rejected(job.action, result):
         raise PermissionError("Authoritative WASM channel rejected the action.")
     if job.action == "api" and isinstance(result, dict) and result.get("ok") is False:
@@ -935,6 +1122,7 @@ async def _execute_ephemeral_channel_job(  # noqa: C901
             database = await _database(job.extension.id)
             async with database.connect() as conn:
                 async with _transaction(conn):
+                    await broker.assert_owner(job.extension.id, conn=conn)
                     await storage_insert_immutable_row(
                         conn,
                         job.extension.id,
@@ -954,9 +1142,90 @@ async def _execute_ephemeral_channel_job(  # noqa: C901
     if job.action == "event" and job.principal_id and job.client_sequence is not None:
         room.principal_sequences[job.principal_id] = job.client_sequence
     room.last_activity_ms = now_ms
-    if has_snapshot:
+    if has_snapshot or job.action == "authorize":
+        broker.publish_state(
+            job.extension.id,
+            job.room_id,
+            job.owner_id,
+            asdict(room.state),
+            room.generation,
+            max_rooms=channel.max_active_rooms,
+        )
         room.changed.set()
+    if (
+        job.action == "authorize"
+        and channel.on_schedule
+        and channel.schedule_interval_ms
+    ):
+        _start_ephemeral_room_schedule(job, room, channel)
     return result
+
+
+def _start_ephemeral_room_schedule(  # noqa: C901
+    job: _ChannelJob, room: _EphemeralRoom, channel: Any
+) -> None:
+    if room.scheduler_task and not room.scheduler_task.done():
+        return
+    if not room.connections:
+        return
+    extension = job.extension
+    room_id, owner_id = job.room_id, job.owner_id
+    limits = dict(job.limits)
+    generation = room.generation
+    permissions = list(job.permissions or [])
+    policy_generation = job.policy_generation
+    interval = channel.schedule_interval_ms / 1000
+
+    async def tick() -> None:  # noqa: C901
+        try:
+            while settings.lnbits_running:
+                remaining = (
+                    room.state.last_schedule_ms
+                    + channel.schedule_interval_ms
+                    - int(time.time() * 1000)
+                ) / 1000
+                await asyncio.sleep(min(interval, max(0.001, remaining)))
+                _check_actor_ownership(extension.id)
+                if _ephemeral_rooms.get((extension.id, room_id)) is not room:
+                    return
+                if room.generation != generation or room.owner_id != owner_id:
+                    return
+                now_ms = int(time.time() * 1000)
+                for connection_id, deadline in list(room.connections.items()):
+                    if deadline <= now_ms:
+                        room.connections.pop(connection_id, None)
+                if not room.connections:
+                    return
+                try:
+                    await run_authoritative_channel_export(
+                        extension,
+                        room_id,
+                        owner_id,
+                        channel.on_schedule,
+                        {},
+                        limits=limits,
+                        action="schedule",
+                        room_generation=generation,
+                        permissions=permissions,
+                        policy_generation=policy_generation,
+                    )
+                except AuthoritativeChannelBackpressureError:
+                    await asyncio.sleep(interval)
+                    continue
+                except PermissionError:
+                    return
+                except Exception as exc:
+                    logger.warning(
+                        f"WASM authoritative schedule failed for "
+                        f"{extension.id}:{room_id} ({exc.__class__.__name__})."
+                    )
+                    await asyncio.sleep(interval)
+        except PermissionError:
+            return
+        except asyncio.CancelledError:
+            return
+
+    room.scheduler_task = asyncio.create_task(tick())
 
 
 async def _wait_for_job_turn(database: Database, job: _ChannelJob) -> None:
@@ -1084,7 +1353,7 @@ def _invocation_payload(
     if job.persistence == "ephemeral":
         context["generation"] = job.actor_generation
     if job.action == "event":
-        return {
+        event = {
             "extensionId": job.extension.id,
             "roomId": job.room_id,
             "principalId": job.principal_id,
@@ -1097,6 +1366,9 @@ def _invocation_payload(
             "serverTimeMs": now_ms,
             "state": state.snapshot,
         }
+        if job.persistence == "ephemeral":
+            event["generation"] = job.actor_generation
+        return event
     if job.action == "schedule":
         return context
     return {**job.payload, "_authoritative": context}
@@ -1542,3 +1814,114 @@ def _table_ref(database: Database, name: str) -> str:
 
 def _for_update(database_type: str) -> str:
     return " FOR UPDATE" if database_type != SQLITE else ""
+
+
+def _check_actor_ownership(extension_id: str) -> None:
+    if not broker.check_owner(extension_id):
+        raise PermissionError("Authoritative room ownership expired.")
+    epoch = broker.epoch(extension_id)
+    if extension_id in _broker_epochs and _broker_epochs[extension_id] != epoch:
+        invalidate_ephemeral_authoritative_extension(extension_id)
+    _broker_epochs[extension_id] = epoch
+
+
+async def _dispatch_ephemeral_operation(
+    extension_id: str, operation: str, payload: dict[str, Any]
+) -> dict[str, Any]:
+    _check_actor_ownership(extension_id)
+    if operation == "export":
+        from lnbits.core.crud.users import get_account
+        from lnbits.core.models.extensions import ExtensionPermission
+        from lnbits.core.wasm_ext.wasm.invoke import _get_registered_extension
+
+        extension = _broker_extensions.get(extension_id) or _get_registered_extension(
+            extension_id
+        )
+        options = payload.get("invoke_options") or {}
+        account_id = options.pop("broker_account_id", None)
+        if account_id:
+            options["user"] = await get_account(account_id)
+            if options["user"] is None:
+                raise PermissionError("Authoritative account was not found.")
+        payload["invoke_options"] = options
+        payload["permissions"] = [
+            ExtensionPermission.parse_obj(item)
+            for item in payload.get("permissions", [])
+        ]
+        # Generations are local policy counters; the broker lease epoch propagates
+        # revocation across workers before any replacement actor can execute.
+        payload["policy_generation"] = get_ephemeral_authoritative_extension_generation(
+            extension_id
+        )
+        return await run_authoritative_channel_export(extension, **payload)
+    if operation == "state":
+        payload.pop("expected_generation", None)
+        state = await get_authoritative_channel_state(
+            extension_id, **payload, persistence="ephemeral"
+        )
+        return {
+            "state": asdict(state),
+            "generation": get_authoritative_channel_generation(
+                extension_id, payload["room_id"], payload["owner_id"]
+            ),
+        }
+    if operation == "sequence":
+        return {
+            "sequence": await get_authoritative_principal_sequence(
+                extension_id, **payload, persistence="ephemeral"
+            )
+        }
+    if operation == "reserve":
+        reserved = await reserve_authoritative_connection(
+            extension_id, **payload, persistence="ephemeral"
+        )
+        return {
+            "reserved": reserved,
+            "generation": (
+                get_authoritative_channel_generation(
+                    extension_id, payload["room_id"], payload["owner_id"]
+                )
+                if reserved
+                else None
+            ),
+        }
+    if operation == "renew":
+        return {
+            "renewed": await renew_authoritative_connection(
+                extension_id, **payload, persistence="ephemeral"
+            )
+        }
+    if operation == "release":
+        await release_authoritative_connection(
+            extension_id, **payload, persistence="ephemeral"
+        )
+        return {}
+    raise ValueError("Unknown authoritative room operation.")
+
+
+broker.configure(_dispatch_ephemeral_operation)
+
+
+async def _validate_current_channel_permissions(job: _ChannelJob) -> None:
+    from lnbits.core.crud.extensions import get_installed_extension
+
+    installed = await get_installed_extension(job.extension.id)
+    if (
+        not installed
+        or not installed.active
+        or not installed.is_wasm
+        or settings.lnbits_extensions_deactivate_all
+    ):
+        raise PermissionError("Authoritative extension is not active.")
+    ids = {item.id for item in (installed.permissions or [])}
+    if not {"websocket.subscribe", "websocket.authoritative"}.issubset(ids):
+        raise PermissionError("Authoritative channel permission is not granted.")
+
+    def grants(items: list[Any]) -> str:
+        normalized = [item.dict() if hasattr(item, "dict") else item for item in items]
+        return json.dumps(
+            sorted(normalized, key=lambda item: item["id"]), sort_keys=True
+        )
+
+    if grants(installed.permissions or []) != grants(job.permissions or []):
+        raise PermissionError("Authoritative channel permissions changed.")

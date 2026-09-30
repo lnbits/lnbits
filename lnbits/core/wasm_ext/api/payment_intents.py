@@ -14,6 +14,7 @@ from lnbits.core.crud.payments import get_standalone_payment
 from lnbits.core.models.payments import Payment
 from lnbits.core.wasm_ext.storage import crud as storage_crud
 from lnbits.core.wasm_ext.storage.crud import (
+    _fence_authoritative_write,
     _initialize_database_once,
     storage_get_immutable_row,
 )
@@ -152,16 +153,10 @@ async def create_or_get_payment_intent(  # noqa: C901
                 )
                 payment_request = None
                 payment_hash = None
-    elif destination:
-        if not _is_lnurl(destination):
-            manual_error = (
-                "Intent destination is invalid; manual reconciliation is required."
-            )
-        elif not _lnurl_amount_is_exact(amount_msat):
-            manual_error = (
-                "Intent amount cannot be represented exactly by LNURL; "
-                "manual reconciliation is required."
-            )
+    elif destination and not _is_lnurl(destination):
+        manual_error = (
+            "Intent destination is invalid; manual reconciliation is required."
+        )
 
     funding_hashes = sorted(request.funding_payment_hashes)
     request_data = {
@@ -227,6 +222,7 @@ async def claim_payment_intent(
     database = await _database(extension_id)
     table = _table_ref(database, _PAYMENT_INTENTS_TABLE)
     async with database.connect() as conn:
+        await _fence_authoritative_write(extension_id, conn)
         result = await conn.execute(
             f"""
             UPDATE {table}
@@ -251,6 +247,7 @@ async def save_payment_intent_invoice(
     database = await _database(extension_id)
     table = _table_ref(database, _PAYMENT_INTENTS_TABLE)
     async with database.connect() as conn:
+        await _fence_authoritative_write(extension_id, conn)
         result = await conn.execute(
             f"""
             UPDATE {table}
@@ -274,6 +271,7 @@ async def mark_payment_intent_attempted(extension_id: str, intent_id: str) -> bo
     database = await _database(extension_id)
     table = _table_ref(database, _PAYMENT_INTENTS_TABLE)
     async with database.connect() as conn:
+        await _fence_authoritative_write(extension_id, conn)
         result = await conn.execute(
             f"""
             UPDATE {table}
@@ -304,6 +302,9 @@ async def set_payment_intent_status(
     groups = _table_ref(database, _PAYMENT_INTENT_GROUPS_TABLE)
     async with database.connect() as conn:
         async with _intent_transaction(conn):
+            # Guest transitions are fenced; host reconciliation without a room
+            # context can still settle an already-issued payment after failover.
+            await _fence_authoritative_write(extension_id, conn)
             row = await _raw_fetchone(
                 conn,
                 f"SELECT * FROM {intents} WHERE id = :id{_for_update(conn.type)}",  # noqa: S608
@@ -541,6 +542,7 @@ async def _reserve_payment_intent(  # noqa: C901
     try:
         async with database.connect() as conn:
             async with _intent_transaction(conn):
+                await _fence_authoritative_write(extension_id, conn)
                 existing = await _raw_fetchone(
                     conn,
                     f"""
@@ -835,17 +837,13 @@ async def resolve_payment_intent_invoice(
     from .lnurl import (
         lnurl_for_core,
         lnurl_pay_response_text,
-        lnurl_payment_amount_for_core,
         lnurl_payment_unit_for_core,
     )
 
-    amount_sat = intent["amount_msat"] / 1000
-    if not _lnurl_amount_is_exact(intent["amount_msat"]):
-        raise ValueError("Intent amount cannot be represented exactly by LNURL.")
     response, action = await fetch_lnurl_pay_request(
         data=CreateLnurlPayment(
             lnurl=lnurl_for_core(intent["destination"]),
-            amount=lnurl_payment_amount_for_core(amount_sat),
+            amount=int(intent["amount_msat"]),
             unit=lnurl_payment_unit_for_core("sat"),
             comment=None,
             internal_memo=f"WASM {intent['purpose']} payment intent",
@@ -863,10 +861,6 @@ async def resolve_payment_intent_invoice(
     ):
         raise ValueError("Resolved invoice amount does not match the intent.")
     return payment_request, payment_hash, lnurl_pay_response_text(response)
-
-
-def payment_intent_is_lnurl(destination: str) -> bool:
-    return _is_lnurl(destination)
 
 
 def _payment_scope_id(payment: Payment, extension_id: str) -> str | None:
@@ -892,11 +886,6 @@ def _normalized_hashes(values: Any) -> list[str] | None:
 
 def _is_payment_hash(value: str) -> bool:
     return len(value) == 64 and all(c in "0123456789abcdefABCDEF" for c in value)
-
-
-def _lnurl_amount_is_exact(amount_msat: int) -> bool:
-    amount_sat = amount_msat / 1000
-    return round(amount_sat * 1000) == amount_msat
 
 
 def _bolt11_destination(destination: str) -> str | None:

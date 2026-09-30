@@ -27,6 +27,7 @@ from .authoritative_channels import (
     validate_authoritative_channel_limits,
     wait_authoritative_channel_state_change,
 )
+from .ephemeral_broker import BrokerBackpressureError
 
 if TYPE_CHECKING:
     from lnbits.core.wasm_ext.wasm.loader import WasmExtension
@@ -215,7 +216,7 @@ class WasmExtensionWebsocketHub:
             await self.listen_authoritative_channel(conn)
         except WebSocketDisconnect:
             pass
-        except AuthoritativeChannelBackpressureError:
+        except (AuthoritativeChannelBackpressureError, BrokerBackpressureError):
             await self._close(websocket, 1013)
         except (ValueError, PermissionError, asyncio.TimeoutError):
             await self._close(websocket, 1008)
@@ -437,7 +438,7 @@ class WasmExtensionWebsocketHub:
                         }
                     ),
                 )
-            except AuthoritativeChannelBackpressureError:
+            except (AuthoritativeChannelBackpressureError, BrokerBackpressureError):
                 conn.reject_incoming = True
                 await self._send_rejected_event(conn, sequence)
                 await self._close(conn.websocket, 1013)
@@ -524,11 +525,16 @@ class WasmExtensionWebsocketHub:
             )
         ]
         channel = conn.extension.config.authoritative_channel
-        if channel and getattr(channel, "persistence", "durable") == "durable":
+        if channel:
             tasks.append(
                 asyncio.create_task(self._renew_authoritative_connections(conn))
             )
-        if channel and channel.on_schedule and channel.schedule_interval_ms:
+        if (
+            channel
+            and getattr(channel, "persistence", "durable") != "ephemeral"
+            and channel.on_schedule
+            and channel.schedule_interval_ms
+        ):
             tasks.append(asyncio.create_task(self._run_authoritative_schedule(conn)))
         self.authoritative_tasks[key] = tuple(tasks)
 
@@ -537,12 +543,17 @@ class WasmExtensionWebsocketHub:
     ) -> None:
         try:
             while settings.lnbits_running and self._has_authoritative_room(conn):
-                await asyncio.sleep(60)
+                channel = conn.extension.config.authoritative_channel
+                persistence = getattr(channel, "persistence", "durable")
+                await asyncio.sleep(10 if persistence == "ephemeral" else 60)
                 for active in self.get_authoritative_connections(
                     conn.extension.id, conn.room_id
                 ):
                     renewed = await renew_authoritative_connection(
-                        active.extension.id, active.room_id, active.connection_id
+                        active.extension.id,
+                        active.room_id,
+                        active.connection_id,
+                        persistence=persistence,
                     )
                     if not renewed:
                         await self._close(active.websocket, 1013)
@@ -575,7 +586,7 @@ class WasmExtensionWebsocketHub:
                         ),
                         policy_generation=conn.policy_generation,
                     )
-                except AuthoritativeChannelBackpressureError:
+                except (AuthoritativeChannelBackpressureError, BrokerBackpressureError):
                     continue
                 except asyncio.CancelledError:
                     raise
@@ -624,6 +635,12 @@ class WasmExtensionWebsocketHub:
                                 "wasm_runtime_max_authoritative_state_bytes"
                             ],
                         )
+                except PermissionError:
+                    for active in self.get_authoritative_connections(
+                        conn.extension.id, conn.room_id
+                    ):
+                        await self._close(active.websocket, 1008)
+                    return
                 except Exception as exc:
                     logger.warning(
                         f"WASM authoritative state sync failed for "

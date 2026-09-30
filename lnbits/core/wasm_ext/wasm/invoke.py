@@ -58,6 +58,8 @@ async def invoke_wasm_extension_export(  # noqa: C901
     if settings.lnbits_extensions_deactivate_all:
         raise PermissionError(f"WASM extension '{ext_id}' is deactivated.")
     extension = _get_registered_extension(ext_id)
+    from lnbits.core.wasm_ext.api.ephemeral_broker import check_owner
+
     if preauthorized_permissions is None:
         installed_extension = await _active_installed_extension(extension)
         permissions = installed_extension.permissions
@@ -67,7 +69,7 @@ async def invoke_wasm_extension_export(  # noqa: C901
         if (
             not channel
             or channel.persistence != "ephemeral"
-            or not settings.lnbits_wasm_runtime_single_worker_mode
+            or not check_owner(extension.id)
             or runtime_limits is None
         ):
             raise PermissionError("Ephemeral invocation is not authorized.")
@@ -79,7 +81,7 @@ async def invoke_wasm_extension_export(  # noqa: C901
             not authoritative_execution
             or not channel
             or channel.persistence != "ephemeral"
-            or not settings.lnbits_wasm_runtime_single_worker_mode
+            or not check_owner(extension.id)
         ):
             raise PermissionError(
                 "Ephemeral authoritative invocation is not authorized."
