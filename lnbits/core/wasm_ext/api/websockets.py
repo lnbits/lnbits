@@ -27,7 +27,7 @@ from .authoritative_channels import (
     validate_authoritative_channel_limits,
     wait_authoritative_channel_state_change,
 )
-from .ephemeral_broker import BrokerBackpressureError
+from .ephemeral_broker import BrokerBackpressureError, BrokerUnavailableError
 
 if TYPE_CHECKING:
     from lnbits.core.wasm_ext.wasm.loader import WasmExtension
@@ -68,7 +68,6 @@ class WasmAuthoritativeChannelConnection:
     policy_generation: int | None = None
     outgoing: asyncio.Queue[str] | None = None
     sender_task: asyncio.Task[None] | None = None
-    incoming: asyncio.Queue[tuple[int, dict[str, Any], int] | None] | None = None
     reject_incoming: bool = False
 
 
@@ -173,6 +172,9 @@ class WasmExtensionWebsocketHub:
             )
         except PermissionError:
             await self._close(websocket, 1008)
+            return
+        except (AuthoritativeChannelBackpressureError, BrokerBackpressureError):
+            await self._close(websocket, 1013)
             return
         if not slot_reserved:
             await self._close(websocket, 1013)
@@ -330,7 +332,6 @@ class WasmExtensionWebsocketHub:
         incoming: asyncio.Queue[tuple[int, dict[str, Any], int] | None] = asyncio.Queue(
             maxsize=min(channel.max_queue_depth, 64)
         )
-        conn.incoming = incoming
         processor = asyncio.create_task(
             self._process_authoritative_events(conn, incoming)
         )
@@ -467,12 +468,19 @@ class WasmExtensionWebsocketHub:
         persistence = (
             getattr(channel, "persistence", "durable") if channel else "durable"
         )
-        await release_authoritative_connection(
-            conn.extension.id,
-            conn.connection_id,
-            room_id=conn.room_id,
-            persistence=persistence,
-        )
+        try:
+            await release_authoritative_connection(
+                conn.extension.id,
+                conn.connection_id,
+                room_id=conn.room_id,
+                persistence=persistence,
+            )
+        except Exception as exc:
+            logger.warning(
+                f"WASM authoritative connection release failed for "
+                f"{conn.extension.id}:{conn.room_id} "
+                f"({exc.__class__.__name__})."
+            )
         self.authoritative_connections = [
             active
             for active in self.authoritative_connections
@@ -492,9 +500,12 @@ class WasmExtensionWebsocketHub:
             self.authoritative_event_timestamps.pop(key, None)
             tasks = self.authoritative_tasks.pop(key, None)
             if tasks:
-                for task in tasks:
-                    if task is not asyncio.current_task():
-                        task.cancel()
+                current_task = asyncio.current_task()
+                other_tasks = [task for task in tasks if task is not current_task]
+                for task in other_tasks:
+                    task.cancel()
+                if other_tasks:
+                    await asyncio.gather(*other_tasks, return_exceptions=True)
 
     async def close_ephemeral_extension(self, extension_id: str) -> None:
         connections = [
@@ -559,6 +570,17 @@ class WasmExtensionWebsocketHub:
                         await self._close(active.websocket, 1013)
         except asyncio.CancelledError:
             return
+        except Exception as exc:
+            logger.warning(
+                f"WASM authoritative connection renewal failed for "
+                f"{conn.extension.id}:{conn.room_id} "
+                f"({exc.__class__.__name__})."
+            )
+            for active in self.get_authoritative_connections(
+                conn.extension.id, conn.room_id
+            ):
+                await self._close(active.websocket, 1013)
+                await self.disconnect_authoritative(active)
 
     async def _run_authoritative_schedule(
         self, conn: WasmAuthoritativeChannelConnection
@@ -594,12 +616,13 @@ class WasmExtensionWebsocketHub:
                     logger.warning(
                         f"WASM authoritative schedule failed for "
                         f"{conn.extension.id}:{conn.room_id} "
+                        f"export '{channel.on_schedule}' "
                         f"({exc.__class__.__name__})."
                     )
         except asyncio.CancelledError:
             return
 
-    async def _broadcast_authoritative_state(
+    async def _broadcast_authoritative_state(  # noqa: C901
         self,
         conn: WasmAuthoritativeChannelConnection,
         last_version: int,
@@ -635,6 +658,13 @@ class WasmExtensionWebsocketHub:
                                 "wasm_runtime_max_authoritative_state_bytes"
                             ],
                         )
+                except BrokerUnavailableError:
+                    # An idle room's published snapshot can expire while the
+                    # owner lease is still healthy. That is not an authorization
+                    # failure, so keep the live connections and wait for the
+                    # next published state change instead of closing them.
+                    await asyncio.sleep(interval)
+                    continue
                 except PermissionError:
                     for active in self.get_authoritative_connections(
                         conn.extension.id, conn.room_id

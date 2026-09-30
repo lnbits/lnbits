@@ -77,4 +77,13 @@ def _invalidate_ephemeral_channels(ext_id: str) -> None:
 
     task = loop.create_task(invalidate_runtime())
     _invalidation_tasks.add(task)
-    task.add_done_callback(_invalidation_tasks.discard)
+    task.add_done_callback(_invalidation_task_done)
+
+
+def _invalidation_task_done(task: asyncio.Task[None]) -> None:
+    _invalidation_tasks.discard(task)
+    if not task.cancelled() and (error := task.exception()):
+        logger.warning(
+            f"WASM ephemeral channel invalidation failed "
+            f"({error.__class__.__name__})."
+        )

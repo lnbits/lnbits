@@ -1,3 +1,4 @@
+import asyncio
 import json
 from pathlib import Path
 from typing import Any
@@ -7,6 +8,10 @@ import pytest
 from lnbits.core.models.extensions import ExtensionPermission
 from lnbits.core.models.misc import WasmExtensionRegistry
 from lnbits.core.wasm_ext.api.permissions import validate_wasm_extension_permissions
+from lnbits.core.wasm_ext.routes.register import (
+    _invalidation_task_done,
+    _invalidation_tasks,
+)
 from lnbits.core.wasm_ext.wasm.config import parse_wasm_extension_config
 from lnbits.core.wasm_ext.wasm.loader import (
     WasmExtension,
@@ -14,6 +19,24 @@ from lnbits.core.wasm_ext.wasm.loader import (
 )
 from lnbits.settings import Settings
 from tests.helpers import make_installable_extension
+
+
+@pytest.mark.anyio
+async def test_invalidation_task_callback_logs_failure_and_discards_task(mocker):
+    async def fail():
+        raise RuntimeError("sensitive detail")
+
+    warning = mocker.patch("lnbits.core.wasm_ext.routes.register.logger.warning")
+    task = asyncio.create_task(fail())
+    _invalidation_tasks.add(task)
+
+    await asyncio.gather(task, return_exceptions=True)
+    _invalidation_task_done(task)
+
+    warning.assert_called_once_with(
+        "WASM ephemeral channel invalidation failed (RuntimeError)."
+    )
+    assert task not in _invalidation_tasks
 
 
 def test_load_wasm_extension_rejects_missing_config_id(

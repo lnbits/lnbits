@@ -213,6 +213,89 @@ async def test_authoritative_disconnect_during_send_preserves_queue_cleanup(mock
 
 
 @pytest.mark.anyio
+async def test_authoritative_disconnect_awaits_other_room_tasks(mocker):
+    hub = WasmExtensionWebsocketHub()
+    started = asyncio.Event()
+    finished = asyncio.Event()
+
+    async def delayed_cancel():
+        try:
+            started.set()
+            await asyncio.Event().wait()
+        except asyncio.CancelledError:
+            await asyncio.sleep(0.01)
+            finished.set()
+
+    connection = SimpleNamespace(
+        extension=SimpleNamespace(
+            id="demoext", config=SimpleNamespace(authoritative_channel=None)
+        ),
+        room_id="room",
+        connection_id="connection",
+        websocket=FakeWebSocket(),
+        sender_task=None,
+        outgoing=None,
+    )
+    mocker.patch(
+        "lnbits.core.wasm_ext.api.websockets.release_authoritative_connection",
+        AsyncMock(),
+    )
+    room_task = asyncio.create_task(delayed_cancel())
+    hub.authoritative_connections.append(connection)
+    hub.authoritative_tasks[("demoext", "room")] = (asyncio.current_task(), room_task)
+
+    await started.wait()
+    await hub.disconnect_authoritative(connection)
+
+    assert room_task.done()
+    assert finished.is_set()
+
+
+@pytest.mark.anyio
+async def test_authoritative_renewal_failure_closes_and_disconnects_room(mocker):
+    hub = WasmExtensionWebsocketHub()
+    channel = SimpleNamespace(persistence="durable")
+    connections = [
+        SimpleNamespace(
+            extension=SimpleNamespace(
+                id="demoext", config=SimpleNamespace(authoritative_channel=channel)
+            ),
+            room_id="room",
+            connection_id=f"connection-{index}",
+            websocket=FakeWebSocket(),
+            sender_task=None,
+            outgoing=None,
+        )
+        for index in range(2)
+    ]
+    hub.authoritative_connections.extend(connections)
+    mocker.patch("lnbits.core.wasm_ext.api.websockets.settings.lnbits_running", True)
+    mocker.patch("lnbits.core.wasm_ext.api.websockets.asyncio.sleep", AsyncMock())
+    mocker.patch(
+        "lnbits.core.wasm_ext.api.websockets.renew_authoritative_connection",
+        AsyncMock(side_effect=RuntimeError("sensitive database detail")),
+    )
+    release = mocker.patch(
+        "lnbits.core.wasm_ext.api.websockets.release_authoritative_connection",
+        AsyncMock(side_effect=RuntimeError("sensitive database detail")),
+    )
+    warning = mocker.patch("lnbits.core.wasm_ext.api.websockets.logger.warning")
+
+    await hub._renew_authoritative_connections(connections[0])
+
+    assert not hub.authoritative_connections
+    assert [connection.websocket.closed for connection in connections] == [1013, 1013]
+    assert release.await_count == 2
+    warning.assert_any_call(
+        "WASM authoritative connection renewal failed for demoext:room "
+        "(RuntimeError)."
+    )
+    assert all(
+        "sensitive database detail" not in str(call) for call in warning.call_args_list
+    )
+
+
+@pytest.mark.anyio
 async def test_wasm_extension_websocket_hub_rate_limits_per_channel():
     hub = WasmExtensionWebsocketHub()
     websocket = FakeWebSocket()
