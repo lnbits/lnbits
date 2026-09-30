@@ -1,5 +1,6 @@
 import json
 from types import SimpleNamespace
+from uuid import uuid4
 
 import pytest
 from pytest_mock.plugin import MockerFixture
@@ -795,7 +796,7 @@ async def test_payment_intent_timeout_persists_invoice_and_never_resends(
     tmp_path, settings, mocker: MockerFixture
 ):
     settings.lnbits_data_folder = str(tmp_path)
-    extension_id = "intenttest"
+    extension_id = f"intent{uuid4().hex[:8]}"
     wallet_id = "wallet-1"
     idempotency_key = "payout-1"
     database = await payment_intents._database(extension_id)

@@ -60,25 +60,32 @@ async def test_wasm_storage_reuses_database_engine_per_extension(mocker: MockerF
 async def test_core_wasm_migrations_create_persistent_columns(
     tmp_path: Path, settings: Settings
 ):
-    if DB_TYPE != SQLITE:
-        pytest.skip("temporary core databases are SQLite-only")
-
     db = _temporary_database(tmp_path, settings, "wasm_core_migrations")
 
     async with db.connect() as conn:
+        if DB_TYPE != SQLITE:
+            await conn.execute(f"SET search_path TO {db.schema}")
         await m010_create_installed_extensions_table(conn)
         await m046_add_permissions_to_installed_extensions(conn)
         await m047_create_wasm_invocations_table(conn)
         await m048_add_wasm_runtime_limits_to_installed_extensions(conn)
 
-        installed_columns = {
-            row["name"]
-            for row in await conn.fetchall("PRAGMA table_info(installed_extensions)")
-        }
-        invocation_columns = {
-            row["name"]
-            for row in await conn.fetchall("PRAGMA table_info(wasm_invocations)")
-        }
+        columns = {}
+        for table in ("installed_extensions", "wasm_invocations"):
+            query = (
+                f"PRAGMA table_info({table})"
+                if DB_TYPE == SQLITE
+                else "SELECT column_name AS name FROM information_schema.columns "
+                "WHERE table_schema = :schema AND table_name = :table"
+            )
+            columns[table] = {
+                row["name"]
+                for row in await conn.fetchall(
+                    query, {"schema": db.schema, "table": table}
+                )
+            }
+        installed_columns = columns["installed_extensions"]
+        invocation_columns = columns["wasm_invocations"]
 
     assert {"permissions", "wasm_runtime_limits"}.issubset(installed_columns)
     assert {
@@ -678,6 +685,8 @@ def _temporary_database(
 ) -> Database:
     settings.lnbits_data_folder = str(tmp_path / "data")
     Path(settings.lnbits_data_folder).mkdir(parents=True, exist_ok=True)
+    if DB_TYPE != SQLITE:
+        name = f"ext_{name}_{uuid4().hex[:8]}"
     return Database(name)
 
 
