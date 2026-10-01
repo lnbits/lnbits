@@ -107,8 +107,9 @@ async def test_two_factor_enrollment_privacy_and_account_updates(
     assert await get_two_factor_config(account.id) == config
 
 
+@pytest.mark.parametrize("key_state", ["valid", "missing", "wrong"])
 async def test_two_factor_login_challenge_and_recovery_replay(
-    http_client, factor_account
+    http_client, factor_account, settings, key_state
 ):
     _, enrollment = await enroll(http_client, factor_account)
     http_client.cookies.clear()
@@ -119,9 +120,30 @@ async def test_two_factor_login_challenge_and_recovery_replay(
     headers = {"Authorization": f"Bearer {challenge}"}
     assert (await http_client.get("/api/v1/auth", headers=headers)).status_code == 401
     assert (await http_client.get("/api/v1/auth")).status_code == 401
+    original_key = settings.totp_encryption_key
+    if key_state != "valid":
+        settings.totp_encryption_key = "" if key_state == "missing" else uuid4().hex
+    failure_status = 401 if key_state == "valid" else 503
+    assert (
+        await http_client.post("/api/v1/auth/2fa/verify", json={"code": "badcode"})
+    ).status_code == failure_status
+    before = await get_two_factor_config(factor_account.id)
     code = enrollment["recovery_codes"][0]
-    response = await http_client.post("/api/v1/auth/2fa/verify", json={"code": code})
+    response = await http_client.post(
+        "/api/v1/auth/2fa/verify", json={"code": f" {code.upper()} "}
+    )
     assert response.status_code == 200
+    after = await get_two_factor_config(factor_account.id)
+    assert len(after.recovery_hashes) == len(before.recovery_hashes) - 1
+    assert after.secret == before.secret
+    assert after.last_step == before.last_step
+    assert after.revision == before.revision
+    assert after.failures == after.failure_window == 0
+    session = jwt.decode(
+        response.json()["access_token"], settings.auth_secret_key, ["HS256"]
+    )
+    assert session["purpose"] == "session"
+    assert session["mfa_time"] > 0
     assert (await http_client.get("/api/v1/auth")).status_code == 200
     assert (
         await http_client.post(
@@ -133,7 +155,14 @@ async def test_two_factor_login_challenge_and_recovery_replay(
     await login(http_client, factor_account)
     assert (
         await http_client.post("/api/v1/auth/2fa/verify", json={"code": code})
+    ).status_code == failure_status
+    settings.totp_encryption_key = original_key
+    assert (
+        await http_client.post("/api/v1/auth/2fa/verify", json={"code": code})
     ).status_code == 401
+    assert (await get_two_factor_config(factor_account.id)).recovery_hashes == (
+        after.recovery_hashes
+    )
 
 
 async def test_two_factor_user_id_and_cached_session_cannot_bypass(
@@ -236,15 +265,29 @@ async def test_two_factor_concurrent_invalid_codes_count_attempts(
     assert (await get_two_factor_config(factor_account.id)).failures == 2
 
 
-async def test_two_factor_pending_and_replayed_totp(http_client, factor_account):
+async def test_two_factor_pending_and_replayed_totp(
+    http_client, factor_account, monkeypatch
+):
+    now = int(time())
+    monkeypatch.setattr("lnbits.core.services.two_factor.time", lambda: now)
     await login(http_client, factor_account)
     setup = await http_client.post("/api/v1/auth/2fa/setup")
     assert not (await get_two_factor_config(factor_account.id)).secret
     secret = base64.b32decode(setup.json()["secret"])
-    code = totp(secret).generate(int(time())).decode()
+    code = totp(secret).generate(now).decode()
     assert (
         await http_client.post("/api/v1/auth/2fa/confirm", json={"code": code})
     ).status_code == 200
+    await login(http_client, factor_account)
+    assert (
+        await http_client.post("/api/v1/auth/2fa/verify", json={"code": code})
+    ).status_code == 401
+    now += 30
+    code = totp(secret).generate(now).decode()
+    assert (
+        await http_client.post("/api/v1/auth/2fa/verify", json={"code": code})
+    ).status_code == 200
+    assert (await get_two_factor_config(factor_account.id)).last_step == now // 30
     await login(http_client, factor_account)
     assert (
         await http_client.post("/api/v1/auth/2fa/verify", json={"code": code})

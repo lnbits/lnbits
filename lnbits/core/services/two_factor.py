@@ -178,20 +178,20 @@ async def verify_factor(
             raise HTTPException(
                 HTTPStatus.UNAUTHORIZED, "Invalid or already used code."
             )
-        step = code_step(
-            decrypt_totp_secret(user_id, encrypted), code, now, config.last_step
-        )
         recovery_hash = sha256(code.strip().lower().encode()).hexdigest()
         recovery = not enrolling and recovery_hash in config.recovery_hashes
-        if step is None and not recovery:
-            await save_two_factor_config(user_id, config)
-            raise HTTPException(
-                HTTPStatus.UNAUTHORIZED, "Invalid or already used code."
-            )
         if recovery:
             config.recovery_hashes.remove(recovery_hash)
         else:
-            config.last_step = step if step is not None else config.last_step
+            step = code_step(
+                decrypt_totp_secret(user_id, encrypted), code, now, config.last_step
+            )
+            if step is None:
+                await save_two_factor_config(user_id, config)
+                raise HTTPException(
+                    HTTPStatus.UNAUTHORIZED, "Invalid or already used code."
+                )
+            config.last_step = step
         codes: list[str] = []
         if enrolling:
             config.secret = config.pending_secret
