@@ -47,20 +47,19 @@ from lnbits.decorators import (
     require_onchain_read,
 )
 from lnbits.settings import settings
-from lnbits.utils.onchain_bindings import wally
-from lnbits.utils.onchain_descriptors import (
+from lnbits.utils.onchain import (
     address_script,
-    descriptor_fingerprint,
-    parse_key,
-)
-from lnbits.utils.onchain_keys import new_mnemonic, wallet_descriptor
-from lnbits.utils.onchain_transactions import (
     combine_matching_psbt,
     create_psbt,
+    descriptor_fingerprint,
     finalize_signed_psbt,
+    new_mnemonic,
+    parse_key,
     psbt_fee,
     set_previous_transaction,
     transaction_details,
+    wallet_descriptor,
+    wally,
 )
 
 onchain_router = APIRouter(prefix="/api/v1/onchain", tags=["Onchain"])

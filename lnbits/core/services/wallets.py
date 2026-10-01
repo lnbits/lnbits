@@ -29,7 +29,7 @@ from lnbits.core.models.wallets import (
 )
 from lnbits.db import Connection
 from lnbits.helpers import sha256s
-from lnbits.utils.onchain_descriptors import (
+from lnbits.utils.onchain import (
     descriptor_fingerprint,
     descriptor_type,
     parse_key,

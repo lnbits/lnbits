@@ -12,14 +12,15 @@ from lnbits.core.services.onchain import (
     encrypt_wallet_mnemonic,
     sign_payment,
 )
-from lnbits.utils.onchain_bindings import wally
-from lnbits.utils.onchain_descriptors import (
+from lnbits.utils.onchain import (
     descriptor_fingerprint,
     descriptor_script,
+    new_mnemonic,
     parse_key,
     script_address,
+    wallet_descriptor,
+    wally,
 )
-from lnbits.utils.onchain_keys import new_mnemonic, wallet_descriptor
 
 PHRASE = "abandon " * 11 + "about"
 

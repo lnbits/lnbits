@@ -25,7 +25,7 @@ from lnbits.core.services import create_user_account, onchain, update_wallet_bal
 from lnbits.core.services.blockexplorer import MempoolExplorer, mempool_url
 from lnbits.core.views import onchain_api, wallet_api
 from lnbits.settings import settings
-from lnbits.utils.onchain_keys import wallet_descriptor
+from lnbits.utils.onchain import wallet_descriptor
 
 PHRASE = "abandon " * 11 + "about"
 

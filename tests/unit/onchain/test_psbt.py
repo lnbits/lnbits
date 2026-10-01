@@ -12,19 +12,17 @@ from starlette.requests import Request
 from lnbits.core.models.onchain import CreatePsbt, ExtractPsbt, ExtractTx
 from lnbits.core.views import onchain_api
 from lnbits.decorators import OnchainAuth
-from lnbits.utils.onchain_bindings import wally
-from lnbits.utils.onchain_descriptors import (
-    address_script,
-    descriptor_script,
-    parse_key,
-    script_address,
-)
-from lnbits.utils.onchain_transactions import (
+from lnbits.utils.onchain import (
     _input_partial_signatures,
+    address_script,
     combine_matching_psbt,
     create_psbt,
+    descriptor_script,
     finalize_signed_psbt,
+    parse_key,
     psbt_fee,
+    script_address,
+    wally,
 )
 
 # Captured before the migration, using only deterministic public test seeds.

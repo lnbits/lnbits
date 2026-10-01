@@ -7,7 +7,7 @@ from lnbits.core.db import db
 from lnbits.core.models.onchain import Address, Snapshot
 from lnbits.db import SQLITE, Connection, model_to_dict
 from lnbits.helpers import urlsafe_short_hash
-from lnbits.utils.onchain_descriptors import derive_address
+from lnbits.utils.onchain import derive_address
 
 ADDRESS_COLUMNS = ", ".join(Address.__fields__)
 MASTERPUB_SQL = (

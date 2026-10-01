@@ -1,11 +1,11 @@
 import pytest
 
-from lnbits.utils.onchain_bindings import wally
-from lnbits.utils.onchain_descriptors import (
+from lnbits.utils.onchain import (
     derive_address,
     descriptor_fingerprint,
     descriptor_type,
     parse_key,
+    wally,
 )
 
 from .test_psbt import VECTORS, signing_data

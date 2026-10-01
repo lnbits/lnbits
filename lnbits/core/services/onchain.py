@@ -44,19 +44,18 @@ from lnbits.core.services.blockexplorer import TXID, Explorer, explorer_client
 from lnbits.core.services.wallets import get_wallet_addresses
 from lnbits.settings import settings
 from lnbits.task_manager import task_manager
-from lnbits.utils.onchain_bindings import wally
-from lnbits.utils.onchain_descriptors import address_script, script_address
-from lnbits.utils.onchain_keys import (
+from lnbits.utils.onchain import (
+    address_script,
+    create_psbt,
     decrypt_mnemonic,
     encrypt_mnemonic,
-    root_key,
-    wallet_descriptor,
-)
-from lnbits.utils.onchain_transactions import (
-    create_psbt,
     finalize_signed_psbt,
     psbt_fee,
+    root_key,
+    script_address,
     transaction_details,
+    wallet_descriptor,
+    wally,
 )
 
 KEY_RECORD = "onchain_key"
