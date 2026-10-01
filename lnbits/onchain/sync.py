@@ -16,9 +16,9 @@ from lnbits.core.db import db
 from lnbits.core.models.wallets import OnchainMeta
 from lnbits.core.services.wallets import get_wallet_addresses
 from lnbits.db import SQLITE
+from lnbits.decorators import OnchainAuth, require_onchain_admin, require_onchain_read
 from lnbits.task_manager import task_manager
 
-from .decorators import OnchainAuth, require_onchain_admin, require_onchain_read
 from .explorer import TXID, Explorer, explorer_client
 
 sync_router = APIRouter()

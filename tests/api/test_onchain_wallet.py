@@ -22,8 +22,8 @@ from lnbits.core.models.wallets import WalletType
 from lnbits.core.services import create_user_account, update_wallet_balance
 from lnbits.core.services import onchain as keys
 from lnbits.core.views import onchain_api, wallet_api
+from lnbits.decorators import OnchainAuth
 from lnbits.onchain import sync
-from lnbits.onchain.decorators import OnchainAuth
 from lnbits.onchain.explorer import MempoolExplorer, mempool_url
 from lnbits.onchain.hot_wallet import wallet_descriptor
 from lnbits.settings import settings

@@ -29,12 +29,12 @@ from lnbits.core.models.onchain import (
 from lnbits.core.models.wallets import OnchainMeta, OnchainWallet
 from lnbits.core.services.onchain import require_onchain_payments
 from lnbits.core.services.wallets import get_wallet_addresses
-from lnbits.onchain.bindings import wally
-from lnbits.onchain.decorators import (
+from lnbits.decorators import (
     OnchainAuth,
     require_onchain_admin,
     require_onchain_read,
 )
+from lnbits.onchain.bindings import wally
 from lnbits.onchain.helpers import (
     address_script,
     descriptor_fingerprint,

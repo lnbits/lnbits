@@ -44,19 +44,17 @@ from lnbits.core.services.wallets import (
 )
 from lnbits.db import Filters, Page
 from lnbits.decorators import (
+    OnchainAuth,
     check_account_exists,
     check_account_id_exists,
     check_api_write_access,
     parse_filters,
     require_admin_key,
     require_invoice_key,
-)
-from lnbits.helpers import generate_filter_params_openapi
-from lnbits.onchain.decorators import (
-    OnchainAuth,
     require_onchain_admin,
     require_onchain_read,
 )
+from lnbits.helpers import generate_filter_params_openapi
 from lnbits.onchain.explorer import explorer_url, local_explorer_network, provider_name
 from lnbits.onchain.router import require_onchain_available
 from lnbits.onchain.sync import request_scan

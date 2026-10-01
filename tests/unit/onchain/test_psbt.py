@@ -11,8 +11,8 @@ from starlette.requests import Request
 
 from lnbits.core.models.onchain import CreatePsbt, ExtractPsbt, ExtractTx
 from lnbits.core.views import onchain_api
+from lnbits.decorators import OnchainAuth
 from lnbits.onchain.bindings import wally
-from lnbits.onchain.decorators import OnchainAuth
 from lnbits.onchain.helpers import (
     address_script,
     descriptor_script,
