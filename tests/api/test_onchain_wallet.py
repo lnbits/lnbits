@@ -103,8 +103,8 @@ async def test_one_bitcoin_wallet_per_core_wallet(http_client, onchain_wallet, k
     rejected = next(r for r in results if r.status_code == 409)
     assert "already configured" in rejected.json()["detail"]
     accounts = await http_client.get("/onchain/api/v1/wallet", headers=headers)
-    assert len(accounts.json()) == 1
-    account = accounts.json()[0]
+    assert accounts.status_code == 200
+    account = accounts.json()
     assert account["id"] == wallet.id
     assert not {"adminkey", "inkey", "onchain_encrypted_seed"} & account.keys()
     stored_keys = await sync.db.fetchall(
@@ -180,7 +180,13 @@ async def test_onchain_api_ownership_recovery_and_network(http_client, onchain_w
     unowned = await http_client.get(
         "/onchain/api/v1/wallet?network=Testnet4", headers={"X-API-KEY": other.inkey}
     )
-    assert unowned.json() == []
+    assert unowned.status_code == 200
+    assert unowned.json() is None
+    wrong_network = await http_client.get(
+        "/onchain/api/v1/wallet?network=Mainnet", headers=headers
+    )
+    assert wrong_network.status_code == 200
+    assert wrong_network.json() is None
     address = addresses[0].json()
     forged = await http_client.put(
         f"/onchain/api/v1/address/{address['id']}",
@@ -281,10 +287,8 @@ async def test_onchain_scan_persists_and_hydrates_without_lightning_credit(
         "/onchain/api/v1/wallet", headers={"X-API-KEY": wallet.inkey}
     )
     assert response.status_code == 200
-    assert response.json()[0]["balance_msat"] == 100000000
-    assert (
-        not {"adminkey", "inkey", "onchain_encrypted_seed"} & response.json()[0].keys()
-    )
+    assert response.json()["balance_msat"] == 100000000
+    assert not {"adminkey", "inkey", "onchain_encrypted_seed"} & response.json().keys()
     assert (
         next(w for w in await get_wallets(user.id) if w.id == wallet.id).balance_msat
         == 100000000
@@ -645,7 +649,7 @@ async def test_onchain_metadata_and_seed_survive_generic_wallet_updates(
     assert dict(await sync.db.fetchone(query, {"id": wallet.id})) == stored
     accounts = await http_client.get("/onchain/api/v1/wallet", headers=headers)
     assert accounts.status_code == 200
-    assert accounts.json()[0]["name"] == "Renamed onchain wallet"
+    assert accounts.json()["name"] == "Renamed onchain wallet"
     backup = await http_client.post(
         f"/onchain/api/v1/hot-wallet/{wallet.id}/backup", headers=headers
     )
@@ -733,7 +737,7 @@ async def test_watch_removal_clears_onchain_state_and_allows_fresh_setup(
     assert stored_wallet.onchain_config == OnchainConfig()
     assert (
         await http_client.get("/onchain/api/v1/wallet", headers=headers)
-    ).json() == []
+    ).json() is None
     state = await sync.wallet_state(OnchainAuth(wallet.id))
     assert state["snapshots"] == [] and state["balance_sat"] == 0
     assert not state["scanning"] and state["error"] is None

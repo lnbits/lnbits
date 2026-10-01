@@ -233,7 +233,7 @@ window.app.component('onchain-wallet-list', {
           `/onchain/api/v1/wallet?network=${network}`,
           this.inkey
         )
-        return data
+        return data ? [data] : []
       } catch (error) {
         this.$q.notify({
           type: 'warning',

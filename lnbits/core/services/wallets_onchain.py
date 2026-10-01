@@ -10,12 +10,6 @@ from lnbits.core.models.wallets import CreateOnchainWallet, OnchainMeta, Onchain
 from lnbits.onchain.helpers import descriptor_fingerprint, descriptor_type, parse_key
 
 
-async def get_onchain_wallets(
-    wallet_id: str, network: str | None = None
-) -> list[OnchainWallet]:
-    return await wallets_onchain_crud.get_onchain_wallets(wallet_id, network)
-
-
 async def init_onchain_wallet(
     data: CreateOnchainWallet, wallet_id: str
 ) -> OnchainWallet:

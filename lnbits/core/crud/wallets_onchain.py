@@ -60,17 +60,6 @@ async def get_onchain_wallet(
     )
 
 
-async def get_onchain_wallets(
-    wallet_id: str, network: str | None = None
-) -> list[OnchainWallet]:
-    wallet = await get_onchain_wallet(wallet_id)
-    return (
-        [wallet]
-        if wallet and (not network or wallet.onchain_network == network)
-        else []
-    )
-
-
 async def update_onchain_wallet(wallet: OnchainWallet) -> OnchainWallet:
     # Backup confirmation must not rewrite descriptor, seed, or scanner metadata.
     await db.execute(

@@ -202,7 +202,7 @@ async function main() {
                 data: {mnemonic: Array(23).fill('abandon').join(' ') + ' art'}
               }
             if (path.includes('/wallet?'))
-              return {data: fixtureWallets.map(w => ({...w}))}
+              return {data: fixtureWallets[0] ? {...fixtureWallets[0]} : null}
             if (path.includes('/addresses/'))
               return {
                 data: fixtureAddresses

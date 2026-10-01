@@ -3,12 +3,14 @@ from typing import Literal
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 
-from lnbits.core.crud.wallets_onchain import WalletAlreadyConfiguredError
+from lnbits.core.crud.wallets_onchain import (
+    WalletAlreadyConfiguredError,
+    get_onchain_wallet,
+)
 from lnbits.core.models.wallets import CreateOnchainWallet, OnchainWallet
 from lnbits.core.services.wallets_onchain import (
     clear_onchain_wallet_data,
     ensure_network,
-    get_onchain_wallets,
     init_onchain_wallet,
 )
 from lnbits.onchain.decorators import (
@@ -25,8 +27,11 @@ onchain_wallet_router = APIRouter(prefix="/onchain/api/v1", tags=["Onchain"])
 async def api_wallets_retrieve(
     network: Literal["Mainnet", "Testnet", "Testnet4"] | None = Query(None),
     auth: OnchainAuth = Depends(require_onchain_read),
-) -> list[OnchainWallet]:
-    return await get_onchain_wallets(auth.wallet_id, network)
+) -> OnchainWallet | None:
+    wallet = await get_onchain_wallet(auth.wallet_id)
+    if wallet and network and wallet.onchain_network != network:
+        return None
+    return wallet
 
 
 @onchain_wallet_router.post("/wallet", response_model_exclude={"adminkey", "inkey"})

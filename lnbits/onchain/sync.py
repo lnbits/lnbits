@@ -11,10 +11,7 @@ from pydantic import BaseModel
 from sqlalchemy import text
 
 from lnbits.core.crud.onchain import get_addresses
-from lnbits.core.crud.wallets_onchain import (
-    get_onchain_wallet,
-    get_onchain_wallets,
-)
+from lnbits.core.crud.wallets_onchain import get_onchain_wallet
 from lnbits.core.db import db
 from lnbits.core.models.wallets import OnchainMeta
 from lnbits.core.services.wallets_onchain import get_wallet_addresses
@@ -213,10 +210,8 @@ async def start_sync(auth: OnchainAuth = Depends(require_onchain_admin)):
 
 @sync_router.get("/api/v1/state")
 async def wallet_state(auth: OnchainAuth = Depends(require_onchain_read)):
-    accounts = await get_onchain_wallets(auth.wallet_id)
-    addresses = []
-    for account in accounts:
-        addresses.extend(await get_addresses(account.id))
+    wallet = await get_onchain_wallet(auth.wallet_id)
+    addresses = await get_addresses(wallet.id) if wallet else []
     snapshots = await db.fetchall(
         """
         SELECT id AS address_id, transactions, utxos, snapshot_checked_at AS checked_at
