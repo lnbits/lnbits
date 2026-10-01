@@ -7,6 +7,7 @@ from starlette.concurrency import run_in_threadpool
 
 from lnbits.core.crud.wallets_onchain import (
     WalletAlreadyConfiguredError,
+    get_onchain_wallet,
     init_onchain_wallet,
     update_onchain_wallet,
 )
@@ -15,7 +16,6 @@ from lnbits.core.models.wallets import OnchainMeta, OnchainWallet
 from lnbits.core.services.onchain import require_onchain_payments
 from lnbits.core.services.wallets_onchain import (
     ensure_network,
-    get_onchain_wallet,
     get_wallet_addresses,
 )
 from lnbits.settings import settings
@@ -90,9 +90,9 @@ async def create_hot_wallet(
         raise HTTPException(HTTPStatus.BAD_REQUEST, "Invalid recovery phrase") from exc
     if not data.title.strip():
         raise HTTPException(HTTPStatus.BAD_REQUEST, "Enter a wallet name")
-    wallet = await get_onchain_wallet(
-        auth.wallet_id, auth.wallet_id, include_unconfigured=True
-    )
+    wallet = await get_onchain_wallet(auth.wallet_id)
+    if not wallet:
+        raise HTTPException(HTTPStatus.NOT_FOUND, "Wallet does not exist.")
     wallet.name = data.title.strip()
     wallet.onchain_network = data.network
     wallet.onchain_wallet_kind = "hot"
@@ -109,7 +109,7 @@ async def create_hot_wallet(
         raise HTTPException(HTTPStatus.CONFLICT, str(exc)) from exc
     except ValueError as exc:
         raise HTTPException(HTTPStatus.BAD_REQUEST, str(exc)) from exc
-    await get_wallet_addresses(wallet.id, auth.wallet_id)
+    await get_wallet_addresses(wallet.id)
     request_scan(auth.wallet_id)
     return wallet
 
@@ -138,7 +138,9 @@ async def backup_hot_wallet(
     auth: OnchainAuth = Depends(require_onchain_admin),
 ):
     no_store(response)
-    wallet = await get_onchain_wallet(wallet_id, auth.wallet_id)
+    wallet = await get_onchain_wallet(wallet_id)
+    if not wallet or wallet_id != auth.wallet_id or not wallet.onchain_wallet_kind:
+        raise HTTPException(HTTPStatus.NOT_FOUND, "Wallet does not exist.")
     encrypted = await secret_for_wallet(wallet)
     try:
         mnemonic = await run_in_threadpool(decrypt_mnemonic, encrypted, wallet)
@@ -158,7 +160,9 @@ async def confirm_backup(
     wallet_id: str,
     auth: OnchainAuth = Depends(require_onchain_admin),
 ):
-    wallet = await get_onchain_wallet(wallet_id, auth.wallet_id)
+    wallet = await get_onchain_wallet(wallet_id)
+    if not wallet or wallet_id != auth.wallet_id or not wallet.onchain_wallet_kind:
+        raise HTTPException(HTTPStatus.NOT_FOUND, "Wallet does not exist.")
     await secret_for_wallet(wallet)
     wallet.onchain_backup_confirmed = True
     return await update_onchain_wallet(wallet)
@@ -178,7 +182,9 @@ async def sign_hot_wallet_payment(
         await require_onchain_payments()
     except ValueError as exc:
         raise HTTPException(HTTPStatus.SERVICE_UNAVAILABLE, str(exc)) from exc
-    wallet = await get_onchain_wallet(wallet_id, auth.wallet_id)
+    wallet = await get_onchain_wallet(wallet_id)
+    if not wallet or wallet_id != auth.wallet_id or not wallet.onchain_wallet_kind:
+        raise HTTPException(HTTPStatus.NOT_FOUND, "Wallet does not exist.")
     encrypted = await secret_for_wallet(wallet)
     try:
         # Reject spent/stale inputs before asking the signer to use the seed.

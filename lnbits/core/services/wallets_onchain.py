@@ -5,6 +5,7 @@ from starlette.concurrency import run_in_threadpool
 
 from lnbits.core.crud import wallets_onchain as wallets_onchain_crud
 from lnbits.core.crud.onchain import create_fresh_addresses, get_addresses
+from lnbits.core.crud.wallets_onchain import get_onchain_wallet
 from lnbits.core.crud.wallets_onchain import (
     init_onchain_wallet as init_onchain_wallet_crud,
 )
@@ -24,9 +25,9 @@ async def init_onchain_wallet(
             "Account network error.  This account is for '{}'".format(network["name"])
         )
 
-    new_wallet = await get_onchain_wallet(
-        wallet_id, wallet_id, include_unconfigured=True
-    )
+    new_wallet = await get_onchain_wallet(wallet_id)
+    if not new_wallet:
+        raise HTTPException(HTTPStatus.NOT_FOUND, "Wallet does not exist.")
     new_wallet.name = data.title
     new_wallet.onchain_network = data.network
     new_wallet.onchain_wallet_kind = "watch"
@@ -39,12 +40,14 @@ async def init_onchain_wallet(
     )
 
     wallet = await init_onchain_wallet_crud(new_wallet)
-    await get_wallet_addresses(wallet.id, wallet_id)
+    await get_wallet_addresses(wallet.id)
     return wallet
 
 
-async def clear_onchain_wallet_data(wallet_id: str, auth_wallet_id: str) -> None:
-    wallet = await get_onchain_wallet(wallet_id, auth_wallet_id)
+async def clear_onchain_wallet_data(wallet_id: str) -> None:
+    wallet = await get_onchain_wallet(wallet_id)
+    if not wallet or not wallet.onchain_wallet_kind:
+        raise HTTPException(HTTPStatus.NOT_FOUND, "Wallet does not exist.")
     if wallet.onchain_wallet_kind == "hot":
         raise HTTPException(
             HTTPStatus.CONFLICT,
@@ -57,29 +60,18 @@ async def clear_onchain_wallet_data(wallet_id: str, auth_wallet_id: str) -> None
         raise HTTPException(HTTPStatus.CONFLICT, str(exc)) from exc
 
 
-async def get_onchain_wallet(
-    wallet_id: str, auth_wallet_id: str, *, include_unconfigured: bool = False
-) -> OnchainWallet:
-    wallet = await wallets_onchain_crud.get_onchain_wallet(wallet_id)
-    if (
-        not wallet
-        or wallet.id != auth_wallet_id
-        or (not include_unconfigured and not wallet.onchain_wallet_kind)
-    ):
-        raise HTTPException(
-            status_code=HTTPStatus.NOT_FOUND, detail="Wallet does not exist."
-        )
-    return wallet
-
-
 async def ensure_network(wallet_id: str, network: str) -> None:
-    wallet = await get_onchain_wallet(wallet_id, wallet_id, include_unconfigured=True)
+    wallet = await get_onchain_wallet(wallet_id)
+    if not wallet:
+        raise HTTPException(HTTPStatus.NOT_FOUND, "Wallet does not exist.")
     if (wallet.onchain_network or "Mainnet") != network:
         raise HTTPException(400, "Bitcoin network does not match this LNbits wallet")
 
 
-async def get_wallet_addresses(wallet_id: str, auth_wallet_id: str) -> list[Address]:
-    wallet = await get_onchain_wallet(wallet_id, auth_wallet_id)
+async def get_wallet_addresses(wallet_id: str) -> list[Address]:
+    wallet = await get_onchain_wallet(wallet_id)
+    if not wallet or not wallet.onchain_wallet_kind:
+        raise HTTPException(HTTPStatus.NOT_FOUND, "Wallet does not exist.")
 
     addresses = await get_addresses(wallet_id)
     config = wallet.onchain_config

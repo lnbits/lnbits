@@ -10,7 +10,10 @@ from lnbits.core.crud.onchain import (
     get_fresh_address,
     update_address,
 )
-from lnbits.core.crud.wallets_onchain import update_onchain_wallet_config
+from lnbits.core.crud.wallets_onchain import (
+    get_onchain_wallet,
+    update_onchain_wallet_config,
+)
 from lnbits.core.models.onchain import (
     Address,
     CreatePsbt,
@@ -22,7 +25,6 @@ from lnbits.core.models.onchain import (
 from lnbits.core.models.wallets import OnchainConfig, OnchainWalletConfigResponse
 from lnbits.core.services.wallets_onchain import (
     ensure_network,
-    get_onchain_wallet,
     get_wallet_addresses,
 )
 from lnbits.settings import settings
@@ -55,7 +57,9 @@ async def api_fresh_address(
     wallet_id: str,
     auth: OnchainAuth = Depends(require_onchain_read),
 ) -> Address:
-    wallet = await get_onchain_wallet(wallet_id, auth.wallet_id)
+    wallet = await get_onchain_wallet(wallet_id)
+    if not wallet or wallet_id != auth.wallet_id or not wallet.onchain_wallet_kind:
+        raise HTTPException(HTTPStatus.NOT_FOUND, "Wallet does not exist.")
     if wallet.onchain_wallet_kind == "hot" and not wallet.onchain_backup_confirmed:
         raise HTTPException(HTTPStatus.CONFLICT, "Back up this wallet before receiving")
     address = await get_fresh_address(wallet_id)
@@ -70,12 +74,14 @@ async def api_update_address(
     auth: OnchainAuth = Depends(require_onchain_admin),
 ):
     address = await get_address_by_id(address_id)
-    if not address:
+    if not address or address.wallet != auth.wallet_id:
         raise HTTPException(
             status_code=HTTPStatus.NOT_FOUND, detail="Address does not exist."
         )
 
-    await get_onchain_wallet(address.wallet, auth.wallet_id)
+    wallet = await get_onchain_wallet(address.wallet)
+    if not wallet or not wallet.onchain_wallet_kind:
+        raise HTTPException(HTTPStatus.NOT_FOUND, "Wallet does not exist.")
 
     body = await req.json()
     if "amount" in body:
@@ -93,7 +99,9 @@ async def api_get_addresses(
     wallet_id: str,
     auth: OnchainAuth = Depends(require_onchain_read),
 ) -> list[Address]:
-    return await get_wallet_addresses(wallet_id, auth.wallet_id)
+    if wallet_id != auth.wallet_id:
+        raise HTTPException(HTTPStatus.NOT_FOUND, "Wallet does not exist.")
+    return await get_wallet_addresses(wallet_id)
 
 
 @onchain_api_router.post("/api/v1/psbt")
@@ -206,9 +214,9 @@ async def api_tx_broadcast(
 ):
     if settings.lnbits_only_allow_incoming_payments:
         raise HTTPException(403, "Only incoming payments allowed")
-    wallet = await get_onchain_wallet(
-        auth.wallet_id, auth.wallet_id, include_unconfigured=True
-    )
+    wallet = await get_onchain_wallet(auth.wallet_id)
+    if not wallet:
+        raise HTTPException(HTTPStatus.NOT_FOUND, "Wallet does not exist.")
     await ensure_network(
         auth.wallet_id, data.network or wallet.onchain_network or "Mainnet"
     )
@@ -253,9 +261,9 @@ async def api_update_config(
 async def api_get_config(
     auth: OnchainAuth = Depends(require_onchain_read),
 ) -> OnchainWalletConfigResponse:
-    wallet = await get_onchain_wallet(
-        auth.wallet_id, auth.wallet_id, include_unconfigured=True
-    )
+    wallet = await get_onchain_wallet(auth.wallet_id)
+    if not wallet:
+        raise HTTPException(HTTPStatus.NOT_FOUND, "Wallet does not exist.")
     return config_response(wallet.onchain_config, wallet.onchain_network or "Mainnet")
 
 

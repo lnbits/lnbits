@@ -59,5 +59,7 @@ async def api_wallet_delete(
     wallet_id: str,
     auth: OnchainAuth = Depends(require_onchain_admin),
 ):
-    await clear_onchain_wallet_data(wallet_id, auth.wallet_id)
+    if wallet_id != auth.wallet_id:
+        raise HTTPException(HTTPStatus.NOT_FOUND, "Wallet does not exist.")
+    await clear_onchain_wallet_data(wallet_id)
     return "", HTTPStatus.NO_CONTENT
