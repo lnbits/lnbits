@@ -243,5 +243,8 @@ async def api_create_wallet(
         )
 
     return await create_wallet(
-        user_id=account_id.id, wallet_name=data.name, wallet_type=data.wallet_type
+        user_id=account_id.id,
+        wallet_name=data.name,
+        wallet_type=data.wallet_type,
+        currency=data.currency,
     )

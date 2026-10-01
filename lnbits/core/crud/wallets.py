@@ -8,6 +8,7 @@ from lnbits.db import Connection, Filters, Page
 from lnbits.helpers import generate_ln_address
 from lnbits.settings import settings
 from lnbits.utils.cache import cache
+from lnbits.utils.exchange_rates import allowed_currencies
 
 from ..models import Wallet
 
@@ -17,9 +18,16 @@ async def create_wallet(
     user_id: str,
     wallet_name: str | None = None,
     wallet_type: WalletType = WalletType.LIGHTNING,
+    currency: str | None = None,
     shared_wallet_id: str | None = None,
     conn: Connection | None = None,
 ) -> Wallet:
+    if currency is not None:
+        currency = currency.upper()
+        if currency not in allowed_currencies():
+            raise ValueError("The provided currency is not supported")
+    else:
+        currency = settings.lnbits_default_accounting_currency or "USD"
     wallet_id = uuid4().hex
     wallet = Wallet(
         id=wallet_id,
@@ -29,7 +37,7 @@ async def create_wallet(
         user=user_id,
         adminkey=uuid4().hex,
         inkey=uuid4().hex,
-        currency=settings.lnbits_default_accounting_currency or "USD",
+        currency=currency,
     )
     if wallet_type == WalletType.FIAT:
         wallet.extra.icon = "credit_card"
