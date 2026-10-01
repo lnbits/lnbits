@@ -214,6 +214,16 @@ async def index(
     )
 
 
+@generic_router.get("/2fa")
+async def two_factor_page(request: Request) -> HTMLResponse:
+    return template_renderer().TemplateResponse(
+        request,
+        "two_factor.html",
+        {"public": True},
+        headers={"Cache-Control": "no-store", "Referrer-Policy": "no-referrer"},
+    )
+
+
 @generic_router.get("/")
 @generic_router.get("/node/public")
 @generic_router.get("/first_install", dependencies=[Depends(check_first_install)])
@@ -267,8 +277,8 @@ async def lnurlwallet(request: Request, lightning: str = ""):
     if not settings.lnbits_allow_new_accounts:
         return {"status": "ERROR", "reason": "New accounts are not allowed."}
 
-    lnurl = url_decode(lightning)
     try:
+        lnurl = url_decode(lightning)
         check_callback_url(lnurl)
         withdraw = await handle(lnurl, user_agent=settings.user_agent, timeout=2)
         if not isinstance(withdraw, LnurlWithdrawResponse):

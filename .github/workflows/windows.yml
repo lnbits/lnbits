@@ -1,12 +1,6 @@
 name: Build LNbits Windows executable
 
 on:
-  push:
-    paths:
-      - ".github/packaging/**"
-      - ".github/workflows/windows.yml"
-      - "pyproject.toml"
-      - "uv.lock"
   workflow_call:
     inputs:
       tag_name:

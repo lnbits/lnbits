@@ -6,13 +6,13 @@ from shutil import make_archive
 from subprocess import Popen
 from typing import cast
 
-from fastapi import APIRouter, Depends, File
+from fastapi import APIRouter, Depends, File, HTTPException
 from fastapi.responses import FileResponse
 from sqlalchemy.engine import URL, make_url
 from sqlalchemy.exc import ArgumentError
 
 from lnbits.core.models.notifications import NotificationType
-from lnbits.core.models.users import Account
+from lnbits.core.models.users import AccessTokenPayload, Account
 from lnbits.core.services import (
     enqueue_admin_notification,
     get_balance_delta,
@@ -20,7 +20,11 @@ from lnbits.core.services import (
 )
 from lnbits.core.services.notifications import send_email_notification
 from lnbits.core.services.settings import dict_to_settings
-from lnbits.decorators import check_admin, check_super_user
+from lnbits.core.services.two_factor import (
+    sync_two_factor_policy,
+    validate_two_factor_policy,
+)
+from lnbits.decorators import access_token_payload, check_admin, check_super_user
 from lnbits.server import server_restart
 from lnbits.settings import AdminSettings, Settings, UpdateSettings, settings
 from lnbits.task_manager import PublicTask, task_manager
@@ -80,8 +84,11 @@ async def api_get_settings(
     status_code=HTTPStatus.OK,
 )
 async def api_update_settings(
-    data: UpdateSettings, account: Account = Depends(check_admin)
+    data: UpdateSettings,
+    account: Account = Depends(check_admin),
+    payload: AccessTokenPayload = Depends(access_token_payload),
 ):
+    policy_changed = await validate_two_factor_policy(data, account.id, payload)
     enqueue_admin_notification(
         NotificationType.settings_update, {"username": account.username}
     )
@@ -91,6 +98,16 @@ async def api_update_settings(
         raise ValueError("Updated admin settings not found.")
     update_cached_settings(admin_settings.dict())
     core_app_extra.register_new_ratelimiter()
+    if policy_changed:
+        from lnbits.core.views.auth_api import _auth_success_response
+
+        policy_revision = await sync_two_factor_policy()
+        # Preserve the acting admin's fresh verification; all other sessions
+        # must satisfy the new policy on their next protected request.
+        response = _auth_success_response(
+            payload=payload.copy(update={"mfa_policy": policy_revision})
+        )
+        return response
     return {"status": "Success"}
 
 
@@ -99,10 +116,12 @@ async def api_update_settings(
     status_code=HTTPStatus.OK,
 )
 async def api_update_settings_partial(
-    data: dict, account: Account = Depends(check_admin)
+    data: dict,
+    account: Account = Depends(check_admin),
+    payload: AccessTokenPayload = Depends(access_token_payload),
 ):
     updatable_settings = dict_to_settings({**settings.dict(), **data})
-    return await api_update_settings(updatable_settings, account)
+    return await api_update_settings(updatable_settings, account, payload)
 
 
 @admin_router.get(
@@ -111,6 +130,10 @@ async def api_update_settings_partial(
     dependencies=[Depends(check_admin)],
 )
 async def api_reset_settings(field_name: str):
+    if field_name not in UpdateSettings.__fields__:
+        raise HTTPException(
+            HTTPStatus.FORBIDDEN, "Only editable settings have public defaults."
+        )
     default_settings = Settings()
     return {"default_value": getattr(default_settings, field_name)}
 

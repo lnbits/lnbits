@@ -62,8 +62,6 @@ async def test_send_nostr_dm_sends_to_available_relays_and_closes_connections(
         "lnbits.core.services.nostr.create_connection",
         side_effect=[ws_one, RuntimeError("boom"), ws_two],
     )
-    mocker.patch("lnbits.core.services.nostr.asyncio.sleep", mocker.AsyncMock())
-
     result = await send_nostr_dm(
         "privkey",
         "pubkey",
