@@ -521,6 +521,49 @@ async def test_onchain_wallet_deleted_filter(onchain_wallet):
 
 
 @pytest.mark.anyio
+@pytest.mark.parametrize("kind", ["watch", "hot"])
+async def test_onchain_wallet_crud_reuses_connection(onchain_wallet, kind):
+    from lnbits.core.crud.wallets_onchain import (
+        WalletAlreadyConfiguredError,
+        clear_onchain_wallet_data,
+        init_onchain_wallet,
+        update_onchain_wallet,
+    )
+
+    wallet, _, _ = onchain_wallet
+    stored_wallet = await get_onchain_wallet(wallet.id)
+    assert stored_wallet
+    stored_wallet.onchain_wallet_kind = kind
+    stored_wallet.onchain_meta.masterpub, _ = wallet_descriptor(PHRASE, "Testnet4")
+    config = stored_wallet.onchain_config
+    config.sats_denominated = False
+
+    async def use_connection():
+        async with sync.db.connect() as conn:
+            await update_onchain_wallet_config(config, wallet.id, conn=conn)
+            initialized = await init_onchain_wallet(stored_wallet, conn=conn)
+            assert initialized.onchain_wallet_kind == kind
+            assert not initialized.onchain_config.sats_denominated
+            with pytest.raises(WalletAlreadyConfiguredError):
+                await init_onchain_wallet(stored_wallet, conn=conn)
+
+            initialized.onchain_backup_confirmed = True
+            updated = await update_onchain_wallet(initialized, conn=conn)
+            assert updated.onchain_backup_confirmed == (kind == "hot")
+            if kind == "hot":
+                with pytest.raises(
+                    ValueError, match="Onchain wallet cannot be removed"
+                ):
+                    await clear_onchain_wallet_data(wallet.id, conn=conn)
+            else:
+                await clear_onchain_wallet_data(wallet.id, conn=conn)
+                cleared = await get_onchain_wallet(wallet.id, conn=conn)
+                assert cleared and cleared.onchain_wallet_kind is None
+
+    await asyncio.wait_for(use_connection(), 5)
+
+
+@pytest.mark.anyio
 @pytest.mark.parametrize("cleanup", ["force", "deleted", "unused"])
 async def test_onchain_permanent_cleanup_allows_deletion(
     http_client, onchain_wallet, cleanup

@@ -247,14 +247,17 @@ async def api_update_config(
         raise HTTPException(
             400, "LNbits block explorer is unavailable for this network"
         )
-    try:
-        config = await update_onchain_wallet_config(
-            data, wallet_id=auth.wallet_id, network=network
+    wallet = await get_onchain_wallet(auth.wallet_id)
+    if not wallet:
+        raise HTTPException(HTTPStatus.NOT_FOUND, "Wallet does not exist.")
+    if wallet.onchain_wallet_kind and wallet.onchain_network != network:
+        raise HTTPException(
+            HTTPStatus.CONFLICT,
+            "Create another LNbits wallet to use a different Bitcoin network",
         )
-    except ValueError as exc:
-        raise HTTPException(HTTPStatus.CONFLICT, str(exc)) from exc
+    await update_onchain_wallet_config(data, wallet_id=auth.wallet_id, network=network)
     request_scan(auth.wallet_id)
-    return config_response(config, network)
+    return config_response(data, network)
 
 
 @onchain_api_router.get("/api/v1/config")
