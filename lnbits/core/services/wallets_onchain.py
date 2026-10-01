@@ -39,30 +39,20 @@ async def init_onchain_wallet(
     )
 
     wallet = await init_onchain_wallet_crud(new_wallet)
-    await get_wallet_addresses(wallet.id)
+    if not wallet or not wallet.onchain_wallet_kind:
+        raise HTTPException(HTTPStatus.NOT_FOUND, "Wallet does not exist.")
+    await get_wallet_addresses(wallet)
     return wallet
 
 
-async def ensure_network(wallet_id: str, network: str) -> None:
-    wallet = await get_onchain_wallet(wallet_id)
-    if not wallet:
-        raise HTTPException(HTTPStatus.NOT_FOUND, "Wallet does not exist.")
-    if (wallet.onchain_network or "Mainnet") != network:
-        raise HTTPException(400, "Bitcoin network does not match this LNbits wallet")
-
-
-async def get_wallet_addresses(wallet_id: str) -> list[Address]:
-    wallet = await get_onchain_wallet(wallet_id)
-    if not wallet or not wallet.onchain_wallet_kind:
-        raise HTTPException(HTTPStatus.NOT_FOUND, "Wallet does not exist.")
-
-    addresses = await get_addresses(wallet_id)
+async def get_wallet_addresses(wallet: OnchainWallet) -> list[Address]:
+    addresses = await get_addresses(wallet.id)
     config = wallet.onchain_config
 
     if not addresses:
-        await create_fresh_addresses(wallet_id, 0, config.receive_gap_limit)
-        await create_fresh_addresses(wallet_id, 0, config.change_gap_limit, True)
-        addresses = await get_addresses(wallet_id)
+        await create_fresh_addresses(wallet.id, 0, config.receive_gap_limit)
+        await create_fresh_addresses(wallet.id, 0, config.change_gap_limit, True)
+        addresses = await get_addresses(wallet.id)
 
     receive_addresses = list(filter(lambda addr: addr.branch_index == 0, addresses))
     change_addresses = list(filter(lambda addr: addr.branch_index == 1, addresses))
@@ -78,17 +68,17 @@ async def get_wallet_addresses(wallet_id: str) -> list[Address]:
         current_index = receive_addresses[-1].address_index
         address_index = last_receive_address[0].address_index
         await create_fresh_addresses(
-            wallet_id, current_index + 1, address_index + config.receive_gap_limit + 1
+            wallet.id, current_index + 1, address_index + config.receive_gap_limit + 1
         )
 
     if last_change_address:
         current_index = change_addresses[-1].address_index
         address_index = last_change_address[0].address_index
         await create_fresh_addresses(
-            wallet_id,
+            wallet.id,
             current_index + 1,
             address_index + config.change_gap_limit + 1,
             True,
         )
 
-    return await get_addresses(wallet_id)
+    return await get_addresses(wallet.id)

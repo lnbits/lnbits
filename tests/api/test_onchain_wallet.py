@@ -144,6 +144,18 @@ async def test_onchain_api_ownership_recovery_and_network(http_client, onchain_w
         f"/onchain/api/v1/addresses/{wallet.id}", headers=headers
     )
     assert addresses.status_code == 404
+    for endpoint in ("wallet", "hot-wallet"):
+        data = {"title": "Wrong network", "network": "Mainnet"}
+        if endpoint == "wallet":
+            data["masterpub"] = wallet_descriptor(PHRASE, "Mainnet")[0]
+        rejected = await http_client.post(
+            f"/onchain/api/v1/{endpoint}", headers=headers, json=data
+        )
+        assert rejected.status_code == 400
+        assert (
+            rejected.json()["detail"]
+            == "Bitcoin network does not match this LNbits wallet"
+        )
     response = await http_client.post(
         "/onchain/api/v1/hot-wallet",
         headers=headers,
@@ -669,6 +681,16 @@ async def test_onchain_local_explorer_used_for_fees_raw_tx_and_broadcast(
         "/onchain/api/v1/tx/" + "a" * 64 + "/hex", headers=headers
     )
     assert raw.status_code == 200 and raw.json() == "deadbeef"
+    rejected = await http_client.post(
+        "/onchain/api/v1/tx",
+        headers=headers,
+        json={"tx_hex": "deadbeef", "network": "Mainnet"},
+    )
+    assert rejected.status_code == 400
+    assert rejected.json()["detail"] == (
+        "Bitcoin network does not match this LNbits wallet"
+    )
+    client.broadcast.assert_not_awaited()
     broadcast = await http_client.post(
         "/onchain/api/v1/tx",
         headers=headers,

@@ -99,7 +99,7 @@ async def _scan(wallet_id: str) -> None:
     ) as client:
         checked = set()
         for _ in range(1000):
-            addresses = await get_wallet_addresses(wallet.id)
+            addresses = await get_wallet_addresses(wallet)
             current = await get_onchain_wallet(wallet_id)
             if (
                 not current

@@ -14,10 +14,7 @@ from lnbits.core.crud.wallets import (
 from lnbits.core.db import db
 from lnbits.core.models.wallets import OnchainMeta, OnchainWallet
 from lnbits.core.services.onchain import require_onchain_payments
-from lnbits.core.services.wallets_onchain import (
-    ensure_network,
-    get_wallet_addresses,
-)
+from lnbits.core.services.wallets_onchain import get_wallet_addresses
 from lnbits.settings import settings
 
 from .decorators import OnchainAuth, require_onchain_admin
@@ -72,7 +69,11 @@ async def create_hot_wallet(
     auth: OnchainAuth = Depends(require_onchain_admin),
 ):
     no_store(response)
-    await ensure_network(auth.wallet_id, data.network)
+    wallet = await get_onchain_wallet(auth.wallet_id)
+    if not wallet:
+        raise HTTPException(HTTPStatus.NOT_FOUND, "Wallet does not exist.")
+    if (wallet.onchain_network or "Mainnet") != data.network:
+        raise HTTPException(400, "Bitcoin network does not match this LNbits wallet")
     try:
         await require_onchain_payments()
         encryption_key()
@@ -90,9 +91,6 @@ async def create_hot_wallet(
         raise HTTPException(HTTPStatus.BAD_REQUEST, "Invalid recovery phrase") from exc
     if not data.title.strip():
         raise HTTPException(HTTPStatus.BAD_REQUEST, "Enter a wallet name")
-    wallet = await get_onchain_wallet(auth.wallet_id)
-    if not wallet:
-        raise HTTPException(HTTPStatus.NOT_FOUND, "Wallet does not exist.")
     wallet.name = data.title.strip()
     wallet.onchain_network = data.network
     wallet.onchain_wallet_kind = "hot"
@@ -109,7 +107,9 @@ async def create_hot_wallet(
         raise HTTPException(HTTPStatus.CONFLICT, str(exc)) from exc
     except ValueError as exc:
         raise HTTPException(HTTPStatus.BAD_REQUEST, str(exc)) from exc
-    await get_wallet_addresses(wallet.id)
+    if not wallet or not wallet.onchain_wallet_kind:
+        raise HTTPException(HTTPStatus.NOT_FOUND, "Wallet does not exist.")
+    await get_wallet_addresses(wallet)
     request_scan(auth.wallet_id)
     return wallet
 

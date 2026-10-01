@@ -23,10 +23,7 @@ from lnbits.core.models.onchain import (
     SignedTransaction,
 )
 from lnbits.core.models.wallets import OnchainConfig, OnchainWalletConfigResponse
-from lnbits.core.services.wallets_onchain import (
-    ensure_network,
-    get_wallet_addresses,
-)
+from lnbits.core.services.wallets_onchain import get_wallet_addresses
 from lnbits.settings import settings
 
 from .bindings import wally
@@ -101,7 +98,10 @@ async def api_get_addresses(
 ) -> list[Address]:
     if wallet_id != auth.wallet_id:
         raise HTTPException(HTTPStatus.NOT_FOUND, "Wallet does not exist.")
-    return await get_wallet_addresses(wallet_id)
+    wallet = await get_onchain_wallet(wallet_id)
+    if not wallet or not wallet.onchain_wallet_kind:
+        raise HTTPException(HTTPStatus.NOT_FOUND, "Wallet does not exist.")
+    return await get_wallet_addresses(wallet)
 
 
 @onchain_api_router.post("/api/v1/psbt")
@@ -217,9 +217,8 @@ async def api_tx_broadcast(
     wallet = await get_onchain_wallet(auth.wallet_id)
     if not wallet:
         raise HTTPException(HTTPStatus.NOT_FOUND, "Wallet does not exist.")
-    await ensure_network(
-        auth.wallet_id, data.network or wallet.onchain_network or "Mainnet"
-    )
+    if data.network and (wallet.onchain_network or "Mainnet") != data.network:
+        raise HTTPException(400, "Bitcoin network does not match this LNbits wallet")
     try:
         async with explorer_client(
             wallet.onchain_config, wallet.onchain_network or "Mainnet"

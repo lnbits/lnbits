@@ -9,10 +9,7 @@ from lnbits.core.crud.wallets import (
     get_onchain_wallet,
 )
 from lnbits.core.models.wallets import CreateOnchainWallet, OnchainWallet
-from lnbits.core.services.wallets_onchain import (
-    ensure_network,
-    init_onchain_wallet,
-)
+from lnbits.core.services.wallets_onchain import init_onchain_wallet
 from lnbits.onchain.decorators import (
     OnchainAuth,
     require_onchain_admin,
@@ -41,7 +38,11 @@ async def api_wallet_create_or_update(
     data: CreateOnchainWallet,
     auth: OnchainAuth = Depends(require_onchain_admin),
 ) -> OnchainWallet:
-    await ensure_network(auth.wallet_id, data.network)
+    wallet = await get_onchain_wallet(auth.wallet_id)
+    if not wallet:
+        raise HTTPException(HTTPStatus.NOT_FOUND, "Wallet does not exist.")
+    if (wallet.onchain_network or "Mainnet") != data.network:
+        raise HTTPException(400, "Bitcoin network does not match this LNbits wallet")
     try:
         wallet = await init_onchain_wallet(data, auth.wallet_id)
         request_scan(auth.wallet_id)
