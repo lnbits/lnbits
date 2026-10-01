@@ -147,7 +147,7 @@ async function main() {
               }
               return {data: {...config}}
             }
-            if (path === '/onchain/api/v1/hot-wallet') {
+            if (path === '/api/v1/onchain/hot-wallet') {
               const wallet = {
                 id: 'hot' + (fixtureWallets.length + 1),
                 name: payload.title,

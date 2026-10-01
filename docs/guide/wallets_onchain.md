@@ -99,7 +99,7 @@ wallet, including when a user owns several wallets.
 - `GET /onchain/api/v1/state`: cached addresses, history, coins and scan status.
 - `POST /onchain/api/v1/sync`: schedule a background update.
 - `GET /onchain/api/v1/stats/daily`: confirmed transaction statistics.
-- `POST /onchain/api/v1/hot-wallet`: create/restore a server wallet. Restoration
+- `POST /api/v1/onchain/hot-wallet`: create/restore a server wallet. Restoration
   uses `X-Onchain-Recovery-Phrase` so phrases do not enter request-body audit logs.
 
 See the instance's `/docs#/Onchain` for the complete API schema.

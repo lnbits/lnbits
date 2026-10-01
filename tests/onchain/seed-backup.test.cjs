@@ -66,7 +66,7 @@ test('backup requires four correct words before confirming and clears secrets on
     instance.answers[index] =
       ' ' + instance.seedWords[index].word.toUpperCase() + ' '
   await instance.confirmBackup()
-  assert.equal(calls[1], '/onchain/api/v1/hot-wallet/wallet/backup/confirm')
+  assert.equal(calls[1], '/api/v1/onchain/hot-wallet/wallet/backup/confirm')
   assert.equal(instance.show, false)
   assert.equal(instance.phrase, '')
   assert.equal(instance.challenge.length, 0)

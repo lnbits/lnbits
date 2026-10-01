@@ -146,7 +146,7 @@ window.app.component('onchain-payment', {
             this.tx.outputs.reduce((sum, o) => sum + o.amount, 0)
           const {data} = await LNbits.api.request(
             'POST',
-            `/onchain/api/v1/hot-wallet/${this.accounts[0].id}/sign`,
+            `/api/v1/onchain/hot-wallet/${this.accounts[0].id}/sign`,
             this.adminkey,
             {transaction: this.tx, max_fee_sat: maxFee}
           )

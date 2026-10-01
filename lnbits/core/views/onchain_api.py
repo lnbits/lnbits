@@ -1,7 +1,9 @@
 import json
 from http import HTTPStatus
+from typing import Annotated
 
-from fastapi import APIRouter, Depends, HTTPException, Request
+from fastapi import APIRouter, Depends, Header, HTTPException, Request, Response
+from pydantic import BaseModel, SecretStr
 from starlette.concurrency import run_in_threadpool
 
 from lnbits.core.crud.onchain import (
@@ -9,7 +11,13 @@ from lnbits.core.crud.onchain import (
     get_fresh_address,
     update_address,
 )
-from lnbits.core.crud.wallets import get_onchain_wallet
+from lnbits.core.crud.wallets import (
+    WalletAlreadyConfiguredError,
+    get_onchain_wallet,
+    init_onchain_wallet_state,
+    update_onchain_wallet,
+)
+from lnbits.core.db import db
 from lnbits.core.models.onchain import (
     Address,
     CreatePsbt,
@@ -18,6 +26,8 @@ from lnbits.core.models.onchain import (
     SerializedTransaction,
     SignedTransaction,
 )
+from lnbits.core.models.wallets import OnchainMeta, OnchainWallet
+from lnbits.core.services.onchain import require_onchain_payments
 from lnbits.core.services.wallets import get_wallet_addresses
 from lnbits.onchain.bindings import wally
 from lnbits.onchain.decorators import (
@@ -25,7 +35,22 @@ from lnbits.onchain.decorators import (
     require_onchain_admin,
     require_onchain_read,
 )
-from lnbits.onchain.helpers import transaction_details
+from lnbits.onchain.helpers import (
+    address_script,
+    descriptor_fingerprint,
+    parse_key,
+    transaction_details,
+)
+from lnbits.onchain.hot_wallet import (
+    HotWalletPayment,
+    NewHotWallet,
+    decrypt_mnemonic,
+    encrypt_mnemonic,
+    encryption_key,
+    new_mnemonic,
+    sign_payment,
+    wallet_descriptor,
+)
 from lnbits.onchain.psbt import (
     combine_matching_psbt,
     create_psbt,
@@ -37,6 +62,10 @@ from lnbits.onchain.sync import explorer_client, request_scan
 from lnbits.settings import settings
 
 onchain_router = APIRouter(prefix="/api/v1/onchain", tags=["Onchain"])
+
+
+class StoredSecret(BaseModel):
+    encrypted_seed: str
 
 
 #############################ADDRESSES##########################
@@ -149,55 +178,12 @@ async def api_psbt_extract_tx(
     return await run_in_threadpool(_extract_psbt, data)
 
 
-def _extract_psbt(data: ExtractPsbt) -> SignedTransaction:
-    network = (
-        wally.WALLY_NETWORK_BITCOIN_MAINNET
-        if data.network == "Mainnet"
-        else wally.WALLY_NETWORK_BITCOIN_TESTNET
-    )
-    try:
-        psbt = wally.psbt_from_base64(data.psbt_base64, 0)
-        if data.expected_psbt_base64:
-            expected = wally.psbt_from_base64(data.expected_psbt_base64, 0)
-            psbt = combine_matching_psbt(expected, psbt)
-        for i, inp in enumerate(data.inputs):
-            set_previous_transaction(psbt, i, inp.tx_hex)
-
-        fee = psbt_fee(psbt)
-        transaction = finalize_signed_psbt(psbt)
-        tx_hex = wally.tx_to_hex(transaction, wally.WALLY_TX_FLAG_USE_WITNESS)
-        tx = transaction_details(transaction, network)
-        tx["fee"] = fee
-        signed_tx = SignedTransaction(tx_hex=tx_hex, tx_json=json.dumps(tx))
-        return signed_tx
-    except Exception as exc:
-        raise HTTPException(
-            status_code=HTTPStatus.BAD_REQUEST, detail=str(exc)
-        ) from exc
-
-
 @onchain_router.put("/tx/extract")
 async def api_extract_tx(
     data: ExtractTx,
     _auth: OnchainAuth = Depends(require_onchain_admin),
 ):
     return await run_in_threadpool(_extract_transaction, data)
-
-
-def _extract_transaction(data: ExtractTx):
-    network = (
-        wally.WALLY_NETWORK_BITCOIN_MAINNET
-        if data.network == "Mainnet"
-        else wally.WALLY_NETWORK_BITCOIN_TESTNET
-    )
-    try:
-        transaction = wally.tx_from_hex(data.tx_hex, wally.WALLY_TX_FLAG_USE_WITNESS)
-        tx = transaction_details(transaction, network)
-        return {"tx_json": tx}
-    except Exception as exc:
-        raise HTTPException(
-            status_code=HTTPStatus.BAD_REQUEST, detail=str(exc)
-        ) from exc
 
 
 @onchain_router.post("/tx")
@@ -227,3 +213,220 @@ async def api_tx_broadcast(
         raise HTTPException(
             400, "Broadcast failed. Check the transaction status before retrying."
         ) from exc
+
+
+@onchain_router.get("/hot-wallet/status")
+async def hot_wallet_status(
+    _auth: OnchainAuth = Depends(require_onchain_admin),
+):
+    try:
+        await require_onchain_payments()
+        encryption_key()
+        return {"available": True}
+    except ValueError:
+        return {"available": False}
+
+
+@onchain_router.post(
+    "/hot-wallet",
+    response_model=OnchainWallet,
+    response_model_exclude={"adminkey", "inkey"},
+)
+async def create_hot_wallet(
+    data: NewHotWallet,
+    response: Response,
+    recovery_phrase: Annotated[
+        SecretStr | None, Header(alias="X-Onchain-Recovery-Phrase")
+    ] = None,
+    auth: OnchainAuth = Depends(require_onchain_admin),
+):
+    no_store(response)
+    wallet = await get_onchain_wallet(auth.wallet_id)
+    if not wallet:
+        raise HTTPException(HTTPStatus.NOT_FOUND, "Wallet does not exist.")
+    if (wallet.onchain_network or "Mainnet") != data.network:
+        raise HTTPException(400, "Bitcoin network does not match this LNbits wallet")
+    try:
+        await require_onchain_payments()
+        encryption_key()
+    except ValueError as exc:
+        raise HTTPException(HTTPStatus.SERVICE_UNAVAILABLE, str(exc)) from exc
+    try:
+        mnemonic = await run_in_threadpool(
+            new_mnemonic,
+            recovery_phrase.get_secret_value() if recovery_phrase else None,
+        )
+        descriptor, path = await run_in_threadpool(
+            wallet_descriptor, mnemonic, data.network
+        )
+    except ValueError as exc:
+        raise HTTPException(HTTPStatus.BAD_REQUEST, "Invalid recovery phrase") from exc
+    if not data.title.strip():
+        raise HTTPException(HTTPStatus.BAD_REQUEST, "Enter a wallet name")
+    wallet.name = data.title.strip()
+    wallet.onchain_network = data.network
+    wallet.onchain_wallet_kind = "hot"
+    wallet.onchain_meta = OnchainMeta(
+        masterpub=descriptor,
+        fingerprint=descriptor_fingerprint(parse_key(descriptor)[0]),
+        script_type="p2wpkh",
+        accountPath=path,
+    )
+    encrypted = encrypt_mnemonic(mnemonic, wallet)
+    try:
+        wallet = await init_onchain_wallet_state(wallet, encrypted_seed=encrypted)
+    except WalletAlreadyConfiguredError as exc:
+        raise HTTPException(HTTPStatus.CONFLICT, str(exc)) from exc
+    except ValueError as exc:
+        raise HTTPException(HTTPStatus.BAD_REQUEST, str(exc)) from exc
+    if not wallet or not wallet.onchain_wallet_kind:
+        raise HTTPException(HTTPStatus.NOT_FOUND, "Wallet does not exist.")
+    await get_wallet_addresses(wallet)
+    request_scan(auth.wallet_id)
+    return wallet
+
+
+@onchain_router.post("/hot-wallet/{wallet_id}/backup")
+async def backup_hot_wallet(
+    wallet_id: str,
+    response: Response,
+    auth: OnchainAuth = Depends(require_onchain_admin),
+):
+    no_store(response)
+    wallet = await get_onchain_wallet(wallet_id)
+    if not wallet or wallet_id != auth.wallet_id or not wallet.onchain_wallet_kind:
+        raise HTTPException(HTTPStatus.NOT_FOUND, "Wallet does not exist.")
+    encrypted = await secret_for_wallet(wallet)
+    try:
+        mnemonic = await run_in_threadpool(decrypt_mnemonic, encrypted, wallet)
+        return {"mnemonic": mnemonic, "path": wallet.onchain_meta.accountPath}
+    except ValueError as exc:
+        raise HTTPException(
+            HTTPStatus.SERVICE_UNAVAILABLE, "Wallet key cannot be unlocked"
+        ) from exc
+
+
+@onchain_router.post(
+    "/hot-wallet/{wallet_id}/backup/confirm",
+    response_model=OnchainWallet,
+    response_model_exclude={"adminkey", "inkey"},
+)
+async def confirm_backup(
+    wallet_id: str,
+    auth: OnchainAuth = Depends(require_onchain_admin),
+):
+    wallet = await get_onchain_wallet(wallet_id)
+    if not wallet or wallet_id != auth.wallet_id or not wallet.onchain_wallet_kind:
+        raise HTTPException(HTTPStatus.NOT_FOUND, "Wallet does not exist.")
+    await secret_for_wallet(wallet)
+    wallet.onchain_backup_confirmed = True
+    return await update_onchain_wallet(wallet)
+
+
+@onchain_router.post("/hot-wallet/{wallet_id}/sign")
+async def sign_hot_wallet_payment(
+    wallet_id: str,
+    data: HotWalletPayment,
+    response: Response,
+    auth: OnchainAuth = Depends(require_onchain_admin),
+):
+    no_store(response)
+    if settings.lnbits_only_allow_incoming_payments:
+        raise HTTPException(403, "Only incoming payments allowed")
+    try:
+        await require_onchain_payments()
+    except ValueError as exc:
+        raise HTTPException(HTTPStatus.SERVICE_UNAVAILABLE, str(exc)) from exc
+    wallet = await get_onchain_wallet(wallet_id)
+    if not wallet or wallet_id != auth.wallet_id or not wallet.onchain_wallet_kind:
+        raise HTTPException(HTTPStatus.NOT_FOUND, "Wallet does not exist.")
+    encrypted = await secret_for_wallet(wallet)
+    try:
+        # Reject spent/stale inputs before asking the signer to use the seed.
+        async with explorer_client(
+            wallet.onchain_config, wallet.onchain_network or "Mainnet"
+        ) as client:
+            for address in {i.address for i in data.transaction.inputs}:
+                address_script(address)
+                utxos = await client.utxos(address)
+                available = {(u["txid"], u["vout"], u["value"]) for u in utxos}
+                if any(
+                    (i.tx_id, i.vout, i.amount) not in available
+                    for i in data.transaction.inputs
+                    if i.address == address
+                ):
+                    raise ValueError("Inputs have changed")
+        return await run_in_threadpool(sign_payment, wallet, encrypted, data)
+    except Exception as exc:
+        # Native library/encryption errors must not disclose key material.
+        raise HTTPException(
+            HTTPStatus.BAD_REQUEST,
+            "Cannot sign: check wallet backup, recipients, inputs, network and fee. "
+            "If these are correct, ask the administrator to check "
+            "the wallet encryption key.",
+        ) from exc
+
+
+def _extract_psbt(data: ExtractPsbt) -> SignedTransaction:
+    network = (
+        wally.WALLY_NETWORK_BITCOIN_MAINNET
+        if data.network == "Mainnet"
+        else wally.WALLY_NETWORK_BITCOIN_TESTNET
+    )
+    try:
+        psbt = wally.psbt_from_base64(data.psbt_base64, 0)
+        if data.expected_psbt_base64:
+            expected = wally.psbt_from_base64(data.expected_psbt_base64, 0)
+            psbt = combine_matching_psbt(expected, psbt)
+        for i, inp in enumerate(data.inputs):
+            set_previous_transaction(psbt, i, inp.tx_hex)
+
+        fee = psbt_fee(psbt)
+        transaction = finalize_signed_psbt(psbt)
+        tx_hex = wally.tx_to_hex(transaction, wally.WALLY_TX_FLAG_USE_WITNESS)
+        tx = transaction_details(transaction, network)
+        tx["fee"] = fee
+        signed_tx = SignedTransaction(tx_hex=tx_hex, tx_json=json.dumps(tx))
+        return signed_tx
+    except Exception as exc:
+        raise HTTPException(
+            status_code=HTTPStatus.BAD_REQUEST, detail=str(exc)
+        ) from exc
+
+
+def _extract_transaction(data: ExtractTx):
+    network = (
+        wally.WALLY_NETWORK_BITCOIN_MAINNET
+        if data.network == "Mainnet"
+        else wally.WALLY_NETWORK_BITCOIN_TESTNET
+    )
+    try:
+        transaction = wally.tx_from_hex(data.tx_hex, wally.WALLY_TX_FLAG_USE_WITNESS)
+        tx = transaction_details(transaction, network)
+        return {"tx_json": tx}
+    except Exception as exc:
+        raise HTTPException(
+            status_code=HTTPStatus.BAD_REQUEST, detail=str(exc)
+        ) from exc
+
+
+def no_store(response: Response):
+    response.headers["Cache-Control"] = "no-store"
+    response.headers["Pragma"] = "no-cache"
+
+
+async def secret_for_wallet(wallet: OnchainWallet) -> str:
+    if wallet.onchain_wallet_kind != "hot":
+        raise HTTPException(
+            HTTPStatus.BAD_REQUEST, "This wallet uses an external signer"
+        )
+    row = await db.fetchone(
+        """SELECT onchain_encrypted_seed AS encrypted_seed FROM wallets
+        WHERE id = :wallet AND wallet_type = 'onchain'
+            AND onchain_wallet_kind = 'hot' AND onchain_encrypted_seed IS NOT NULL""",
+        {"wallet": wallet.id},
+        StoredSecret,
+    )
+    if not row:
+        raise HTTPException(HTTPStatus.CONFLICT, "Wallet key is unavailable")
+    return row.encrypted_seed

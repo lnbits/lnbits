@@ -49,7 +49,7 @@ window.app.component('onchain-hot-wallet', {
       try {
         const {data} = await LNbits.api.request(
           'GET',
-          '/onchain/api/v1/hot-wallet/status',
+          '/api/v1/onchain/hot-wallet/status',
           this.adminkey
         )
         this.available = data.available
@@ -65,7 +65,7 @@ window.app.component('onchain-hot-wallet', {
       try {
         const {data} = await LNbits.api.request(
           'POST',
-          '/onchain/api/v1/hot-wallet',
+          '/api/v1/onchain/hot-wallet',
           this.adminkey,
           {
             title: this.title.trim(),
@@ -115,7 +115,7 @@ window.app.component('onchain-hot-wallet', {
       try {
         const {data} = await LNbits.api.request(
           'POST',
-          `/onchain/api/v1/hot-wallet/${this.wallet.id}/backup`,
+          `/api/v1/onchain/hot-wallet/${this.wallet.id}/backup`,
           this.adminkey
         )
         if (this.show && !document.hidden && session === this.backupSession) {
@@ -169,7 +169,7 @@ window.app.component('onchain-hot-wallet', {
       try {
         await LNbits.api.request(
           'POST',
-          `/onchain/api/v1/hot-wallet/${this.wallet.id}/backup/confirm`,
+          `/api/v1/onchain/hot-wallet/${this.wallet.id}/backup/confirm`,
           this.adminkey
         )
         this.resetSecrets()

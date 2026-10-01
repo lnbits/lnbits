@@ -22,7 +22,7 @@ from lnbits.core.models.wallets import WalletType
 from lnbits.core.services import create_user_account, update_wallet_balance
 from lnbits.core.services import onchain as keys
 from lnbits.core.views import onchain_api, wallet_api
-from lnbits.onchain import hot_wallet_api, sync
+from lnbits.onchain import sync
 from lnbits.onchain.decorators import OnchainAuth
 from lnbits.onchain.explorer import MempoolExplorer, mempool_url
 from lnbits.onchain.hot_wallet import wallet_descriptor
@@ -57,7 +57,6 @@ async def onchain_wallet(http_client, monkeypatch, tmp_path):
         )
 
     monkeypatch.setattr(keys, "get_settings_field", confirmed_key)
-    monkeypatch.setattr(hot_wallet_api, "request_scan", lambda _wallet: None)
     monkeypatch.setattr(onchain_api, "request_scan", lambda _wallet: None)
     monkeypatch.setattr(wallet_api, "request_scan", lambda _wallet: None)
     return wallet, user, {"X-API-KEY": wallet.adminkey}
@@ -97,7 +96,7 @@ async def test_one_bitcoin_wallet_per_core_wallet(http_client, onchain_wallet, k
         if kind == "watch":
             body["masterpub"] = descriptor
         return await http_client.post(
-            "/onchain/api/v1/hot-wallet" if kind == "hot" else "/api/v1/wallet/onchain",
+            "/api/v1/onchain/hot-wallet" if kind == "hot" else "/api/v1/wallet/onchain",
             headers=api_headers,
             json=body,
         )
@@ -144,7 +143,7 @@ async def test_onchain_api_ownership_recovery_and_network(http_client, onchain_w
         f"/api/v1/onchain/addresses/{wallet.id}", headers=headers
     )
     assert addresses.status_code == 404
-    for endpoint in ("/api/v1/wallet/onchain", "/onchain/api/v1/hot-wallet"):
+    for endpoint in ("/api/v1/wallet/onchain", "/api/v1/onchain/hot-wallet"):
         data = {"title": "Wrong network", "network": "Mainnet"}
         if endpoint == "/api/v1/wallet/onchain":
             data["masterpub"] = wallet_descriptor(PHRASE, "Mainnet")[0]
@@ -155,7 +154,7 @@ async def test_onchain_api_ownership_recovery_and_network(http_client, onchain_w
             == "Bitcoin network does not match this LNbits wallet"
         )
     response = await http_client.post(
-        "/onchain/api/v1/hot-wallet",
+        "/api/v1/onchain/hot-wallet",
         headers=headers,
         json={"title": "Server account", "network": "Testnet4"},
     )
@@ -165,7 +164,7 @@ async def test_onchain_api_ownership_recovery_and_network(http_client, onchain_w
     assert not {"adminkey", "inkey", "onchain_encrypted_seed"} & account.keys()
     assert "mnemonic" not in response.text and "encrypted_seed" not in response.text
     account_id = account["id"]
-    path = f"/onchain/api/v1/hot-wallet/{account_id}/backup"
+    path = f"/api/v1/onchain/hot-wallet/{account_id}/backup"
     for key in (wallet.inkey, user.wallets[0].adminkey):
         denied = await http_client.post(path, headers={"X-API-KEY": key})
         assert denied.status_code == 403
@@ -382,7 +381,7 @@ async def test_onchain_disabled_signing_keeps_recovery(
 ):
     _, _, headers = onchain_wallet
     created = await http_client.post(
-        "/onchain/api/v1/hot-wallet",
+        "/api/v1/onchain/hot-wallet",
         headers=headers,
         json={"title": "Recovery", "network": "Testnet4"},
     )
@@ -390,14 +389,14 @@ async def test_onchain_disabled_signing_keeps_recovery(
     monkeypatch.setattr(settings, "lnbits_allow_onchain_payments", False)
     assert (
         await http_client.post(
-            "/onchain/api/v1/hot-wallet",
+            "/api/v1/onchain/hot-wallet",
             headers=headers,
             json={"title": "Disabled", "network": "Testnet4"},
         )
     ).status_code == 503
     account_id = created.json()["id"]
     backup = await http_client.post(
-        f"/onchain/api/v1/hot-wallet/{account_id}/backup", headers=headers
+        f"/api/v1/onchain/hot-wallet/{account_id}/backup", headers=headers
     )
     assert backup.status_code == 200
     assert len(backup.json()["mnemonic"].split()) == 24
@@ -448,13 +447,13 @@ async def test_onchain_signing_preflight_rejects_spent_coin(
 
     wallet, _, headers = onchain_wallet
     created = await http_client.post(
-        "/onchain/api/v1/hot-wallet",
+        "/api/v1/onchain/hot-wallet",
         headers={**headers, "X-Onchain-Recovery-Phrase": PHRASE},
         json={"title": "Restored signing account", "network": "Testnet4"},
     )
     assert created.status_code == 200
     account = created.json()
-    backup = f"/onchain/api/v1/hot-wallet/{account['id']}/backup"
+    backup = f"/api/v1/onchain/hot-wallet/{account['id']}/backup"
     assert (await http_client.post(backup, headers=headers)).json()[
         "mnemonic"
     ] == PHRASE
@@ -481,7 +480,7 @@ async def test_onchain_signing_preflight_rejects_spent_coin(
         )
 
     monkeypatch.setattr(
-        hot_wallet_api,
+        onchain_api,
         "explorer_client",
         lambda config, network: MempoolExplorer(
             config,
@@ -492,7 +491,7 @@ async def test_onchain_signing_preflight_rejects_spent_coin(
             ),
         ),
     )
-    path = f"/onchain/api/v1/hot-wallet/{account['id']}/sign"
+    path = f"/api/v1/onchain/hot-wallet/{account['id']}/sign"
     rejected = await http_client.post(path, headers=headers, json=payment.dict())
     assert rejected.status_code == 400
     spent = False
@@ -726,7 +725,7 @@ async def test_onchain_metadata_and_seed_survive_generic_wallet_updates(
 
     wallet, user, headers = onchain_wallet
     response = await http_client.post(
-        "/onchain/api/v1/hot-wallet",
+        "/api/v1/onchain/hot-wallet",
         headers={**headers, "X-Onchain-Recovery-Phrase": PHRASE},
         json={"title": "Onchain savings", "network": "Testnet4"},
     )
@@ -757,7 +756,7 @@ async def test_onchain_metadata_and_seed_survive_generic_wallet_updates(
     assert accounts.status_code == 200
     assert accounts.json()["name"] == "Renamed onchain wallet"
     backup = await http_client.post(
-        f"/onchain/api/v1/hot-wallet/{wallet.id}/backup", headers=headers
+        f"/api/v1/onchain/hot-wallet/{wallet.id}/backup", headers=headers
     )
     assert backup.json()["mnemonic"] == PHRASE
     removed = await http_client.delete(
@@ -864,7 +863,7 @@ async def test_onchain_setup_does_not_prevent_permanent_deletion(
     async def setup_before_delete(query, values=None):
         if query.lstrip().startswith("DELETE FROM wallets"):
             created = await http_client.post(
-                "/onchain/api/v1/hot-wallet",
+                "/api/v1/onchain/hot-wallet",
                 headers={**headers, "X-Onchain-Recovery-Phrase": PHRASE},
                 json={"title": "Recovery race", "network": "Testnet4"},
             )
@@ -875,7 +874,7 @@ async def test_onchain_setup_does_not_prevent_permanent_deletion(
     await force_delete_wallet(wallet.id)
     assert await get_wallet(wallet.id, deleted=None) is None
     backup = await http_client.post(
-        f"/onchain/api/v1/hot-wallet/{wallet.id}/backup", headers=headers
+        f"/api/v1/onchain/hot-wallet/{wallet.id}/backup", headers=headers
     )
     assert backup.status_code == 404
 
