@@ -95,7 +95,7 @@ async def clear_onchain_wallet_data(wallet_id: str) -> None:
             )
 
 
-async def update_config(
+async def update_onchain_wallet_config(
     config: OnchainConfig, wallet_id: str, network: str | None = None
 ) -> OnchainConfig:
     result = await db.execute(

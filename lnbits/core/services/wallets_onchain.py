@@ -5,6 +5,9 @@ from starlette.concurrency import run_in_threadpool
 
 from lnbits.core.crud import wallets_onchain as wallets_onchain_crud
 from lnbits.core.crud.onchain import create_fresh_addresses, get_addresses
+from lnbits.core.crud.wallets_onchain import (
+    init_onchain_wallet as init_onchain_wallet_crud,
+)
 from lnbits.core.models.onchain import Address
 from lnbits.core.models.wallets import CreateOnchainWallet, OnchainMeta, OnchainWallet
 from lnbits.onchain.helpers import descriptor_fingerprint, descriptor_type, parse_key
@@ -35,7 +38,7 @@ async def init_onchain_wallet(
         script_type=descriptor_type(descriptor),
     )
 
-    wallet = await wallets_onchain_crud.init_onchain_wallet(new_wallet)
+    wallet = await init_onchain_wallet_crud(new_wallet)
     await get_wallet_addresses(wallet.id, wallet_id)
     return wallet
 

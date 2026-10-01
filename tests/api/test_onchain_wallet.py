@@ -12,7 +12,10 @@ from lnbits.core.crud import create_wallet, get_wallet
 from lnbits.core.crud.onchain import get_addresses
 from lnbits.core.crud.payments import create_payment
 from lnbits.core.crud.wallets import get_total_balance, get_wallets
-from lnbits.core.crud.wallets_onchain import get_onchain_wallet, update_config
+from lnbits.core.crud.wallets_onchain import (
+    get_onchain_wallet,
+    update_onchain_wallet_config,
+)
 from lnbits.core.models import CreatePayment
 from lnbits.core.models.wallets import WalletType
 from lnbits.core.services import create_user_account, update_wallet_balance
@@ -34,7 +37,7 @@ async def onchain_wallet(http_client, monkeypatch, tmp_path):
     stored_wallet = await get_onchain_wallet(wallet.id, include_unconfigured=True)
     assert stored_wallet
     config = stored_wallet.onchain_config
-    await update_config(config, wallet.id, network="Testnet4")
+    await update_onchain_wallet_config(config, wallet.id, network="Testnet4")
     monkeypatch.setattr(
         settings,
         "lnbits_onchain_master_key",
@@ -124,7 +127,7 @@ async def test_one_bitcoin_wallet_per_core_wallet(http_client, onchain_wallet, k
     stored_wallet = await get_onchain_wallet(other.id, include_unconfigured=True)
     assert stored_wallet
     config = stored_wallet.onchain_config
-    await update_config(config, other.id, network="Testnet4")
+    await update_onchain_wallet_config(config, other.id, network="Testnet4")
     assert (await setup(kinds[1], {"X-API-KEY": other.adminkey})).status_code == 200
 
 
@@ -346,7 +349,7 @@ async def test_onchain_scan_lease_does_not_block_wallet_creation(
         stored_wallet = await get_onchain_wallet(other.id, include_unconfigured=True)
         assert stored_wallet
         config = stored_wallet.onchain_config
-        await update_config(config, other.id, network="Testnet4")
+        await update_onchain_wallet_config(config, other.id, network="Testnet4")
         await asyncio.wait_for(add_watch(http_client, {"X-API-KEY": other.adminkey}), 5)
     finally:
         finish.set()
@@ -721,7 +724,7 @@ async def test_watch_removal_clears_onchain_state_and_allows_fresh_setup(
     config = stored_wallet.onchain_config
     config.sats_denominated = False
     config.receive_gap_limit = 2
-    await update_config(config, wallet.id)
+    await update_onchain_wallet_config(config, wallet.id)
     account = await add_watch(http_client, headers)
     assert account["id"] == wallet.id
     assert not {"adminkey", "inkey", "onchain_encrypted_seed"} & account.keys()
@@ -742,7 +745,7 @@ async def test_watch_removal_clears_onchain_state_and_allows_fresh_setup(
     assert state["snapshots"] == [] and state["balance_sat"] == 0
     assert not state["scanning"] and state["error"] is None
     config = stored_wallet.onchain_config
-    await update_config(config, wallet.id, network="Testnet4")
+    await update_onchain_wallet_config(config, wallet.id, network="Testnet4")
     assert (await add_watch(http_client, headers))["id"] == wallet.id
 
 

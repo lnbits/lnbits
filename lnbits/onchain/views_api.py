@@ -10,7 +10,7 @@ from lnbits.core.crud.onchain import (
     get_fresh_address,
     update_address,
 )
-from lnbits.core.crud.wallets_onchain import update_config
+from lnbits.core.crud.wallets_onchain import update_onchain_wallet_config
 from lnbits.core.models.onchain import (
     Address,
     CreatePsbt,
@@ -240,7 +240,9 @@ async def api_update_config(
             400, "LNbits block explorer is unavailable for this network"
         )
     try:
-        config = await update_config(data, wallet_id=auth.wallet_id, network=network)
+        config = await update_onchain_wallet_config(
+            data, wallet_id=auth.wallet_id, network=network
+        )
     except ValueError as exc:
         raise HTTPException(HTTPStatus.CONFLICT, str(exc)) from exc
     request_scan(auth.wallet_id)
