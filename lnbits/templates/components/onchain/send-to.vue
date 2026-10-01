@@ -82,7 +82,7 @@
             unelevated
             color="primary"
             @click="addPaymentAddress"
-            class="btn-full"
+            class="full-width"
             :label="$t('onchain.add')"
           ></q-btn>
         </div>

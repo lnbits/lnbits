@@ -1,5 +1,5 @@
 <template id="lnbits-onchain-wallet">
-  <div v-if="g.user.wallets.length" class="row q-col-gutter-md onchain-wallet">
+  <div v-if="g.user.wallets.length" class="row q-col-gutter-md">
     <div class="col-12 col-md-7 q-gutter-y-md">
       <q-card class="wallet-card">
         <q-card-section>
@@ -15,7 +15,7 @@
               ></q-btn>
               <div class="col">
                 <div
-                  class="text-h3 text-weight-bold onchain-balance"
+                  class="text-h3 text-weight-bold text-wrap"
                   v-text="
                     g.isFiatPriority && hasFiatRate
                       ? selectedFiat
@@ -178,7 +178,7 @@
         </q-tabs>
         <q-separator></q-separator>
         <q-tab-panels v-model="tab">
-          <q-tab-panel name="history" class="q-pa-md">
+          <q-tab-panel name="history" class="q-pa-md scroll">
             <div class="row items-center no-wrap q-mb-lg">
               <div class="col q-pr-md">
                 <q-input
@@ -205,6 +205,7 @@
             <q-table
               dense
               flat
+              wrap-cells
               class="onchain-activity-table"
               :rows="activity"
               :columns="activityColumns"
@@ -249,13 +250,9 @@
                         ></span></q-tooltip
                     ></q-icon>
                   </q-td>
-                  <q-td
-                    key="time"
-                    :props="props"
-                    class="onchain-activity-description"
-                  >
+                  <q-td key="time" :props="props" class="text-wrap">
                     <a
-                      class="onchain-transaction-link"
+                      class="inherit"
                       :href="mempoolHostname + '/tx/' + props.row.txId"
                       target="_blank"
                       rel="noopener noreferrer"
@@ -271,14 +268,11 @@
                         ><span v-text="props.row.txId"></span
                       ></q-tooltip> </a
                     ><br />
-                    <div
-                      v-if="props.row.transactionAddresses.length"
-                      class="onchain-activity-addresses"
-                    >
+                    <div v-if="props.row.transactionAddresses.length">
                       <a
                         v-for="address in props.row.transactionAddresses"
                         :key="address"
-                        class="onchain-transaction-link text-grey"
+                        class="inherit block text-caption text-grey text-wrap"
                         :href="mempoolHostname + '/address/' + address"
                         :aria-label="'View address ' + address"
                         :title="address"
@@ -307,7 +301,11 @@
                       · Pending</span
                     >
                   </q-td>
-                  <q-td key="amount" :props="props" class="text-right">
+                  <q-td
+                    key="amount"
+                    :props="props"
+                    class="text-right text-no-wrap"
+                  >
                     <span
                       v-text="formatActivityAmount(props.row.amount)"
                     ></span>
@@ -350,7 +348,7 @@
               </template>
             </q-table>
           </q-tab-panel>
-          <q-tab-panel name="addresses">
+          <q-tab-panel name="addresses" class="scroll">
             <onchain-address-list
               :addresses="selectedAddresses"
               :accounts="selectedAccounts"
@@ -363,7 +361,7 @@
               @update:note="updateNoteForAddress"
             ></onchain-address-list>
           </q-tab-panel>
-          <q-tab-panel name="utxos">
+          <q-tab-panel name="utxos" class="scroll">
             <p class="text-caption">
               Coins are individual payments available to spend. Coin selection
               is also available when sending.

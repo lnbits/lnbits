@@ -277,7 +277,7 @@
               ></div>
               <strong v-text="satBtc(out.amount)"></strong>
             </div>
-            <div class="onchain-address q-mt-xs" v-text="out.address"></div>
+            <code class="block text-wrap q-mt-xs" v-text="out.address"></code>
           </div>
           <q-separator></q-separator>
           <div class="row q-my-md">

@@ -37,7 +37,7 @@
             v-if="currentPosition > 0"
             @click="previousPosition"
             unelevated
-            class="btn-full"
+            class="full-width"
             color="secondary"
             :label="$t('onchain.previous')"
           ></q-btn>
@@ -62,7 +62,7 @@
             v-if="currentPosition < wordCount - 1"
             @click="nextPosition"
             unelevated
-            class="btn-full"
+            class="full-width"
             color="secondary"
             :label="$t('onchain.next')"
           ></q-btn>
@@ -70,7 +70,7 @@
             v-else
             @click="seedInputDone"
             unelevated
-            class="btn-full"
+            class="full-width"
             color="primary"
             :label="$t('onchain.done')"
           ></q-btn>

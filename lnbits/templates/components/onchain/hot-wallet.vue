@@ -136,20 +136,23 @@
               @click="revealBackup"
             ></q-btn>
           </div>
-          <div class="onchain-secret">
+          <div class="row q-col-gutter-sm">
             <div
               v-for="word in seedWords"
               :key="word.index"
-              class="row items-center no-wrap rounded-borders"
+              class="col-4 col-sm-3"
             >
-              <div
-                class="onchain-word-number text-caption text-grey text-center"
-                v-text="word.index + 1"
-              ></div>
-              <div
-                class="onchain-word text-body2 text-weight-medium q-px-sm"
-                v-text="wordsVisible ? word.word : '••••••'"
-              ></div>
+              <q-card flat bordered class="row items-center no-wrap q-pa-sm">
+                <div
+                  class="col-auto text-caption text-grey text-center q-pr-sm"
+                  v-text="word.index + 1"
+                ></div>
+                <q-separator vertical></q-separator>
+                <div
+                  class="onchain-word col text-body2 text-weight-medium text-wrap q-pl-sm"
+                  v-text="wordsVisible ? word.word : '••••••'"
+                ></div>
+              </q-card>
             </div>
           </div>
           <p class="text-caption text-grey q-mt-md">
