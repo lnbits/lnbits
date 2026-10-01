@@ -20,7 +20,7 @@ from lnbits.onchain.decorators import (
 )
 from lnbits.onchain.sync import request_scan
 
-onchain_wallet_router = APIRouter(prefix="/onchain/api/v1", tags=["Onchain"])
+onchain_wallet_router = APIRouter(prefix="/api/v1/onchain", tags=["Onchain"])
 
 
 @onchain_wallet_router.get("/wallet", response_model_exclude={"adminkey", "inkey"})

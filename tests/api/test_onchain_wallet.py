@@ -68,7 +68,7 @@ async def add_watch(client, headers, single_path=False):
     if single_path:
         descriptor = descriptor.replace("/{0,1}/*", "/0/*")
     response = await client.post(
-        "/onchain/api/v1/wallet",
+        "/api/v1/onchain/wallet",
         headers=headers,
         json={
             "masterpub": descriptor,
@@ -97,7 +97,7 @@ async def test_one_bitcoin_wallet_per_core_wallet(http_client, onchain_wallet, k
         if kind == "watch":
             body["masterpub"] = descriptor
         return await http_client.post(
-            "/onchain/api/v1/hot-wallet" if kind == "hot" else "/onchain/api/v1/wallet",
+            "/onchain/api/v1/hot-wallet" if kind == "hot" else "/api/v1/onchain/wallet",
             headers=api_headers,
             json=body,
         )
@@ -106,7 +106,7 @@ async def test_one_bitcoin_wallet_per_core_wallet(http_client, onchain_wallet, k
     assert sorted(r.status_code for r in results) == [200, 409]
     rejected = next(r for r in results if r.status_code == 409)
     assert "already configured" in rejected.json()["detail"]
-    accounts = await http_client.get("/onchain/api/v1/wallet", headers=headers)
+    accounts = await http_client.get("/api/v1/onchain/wallet", headers=headers)
     assert accounts.status_code == 200
     account = accounts.json()
     assert account["id"] == wallet.id
@@ -137,20 +137,18 @@ async def test_onchain_api_ownership_recovery_and_network(http_client, onchain_w
     wallet, user, headers = onchain_wallet
     stored_wallet = await get_onchain_wallet(wallet.id)
     assert stored_wallet and stored_wallet.onchain_wallet_kind is None
-    unconfigured = await http_client.get("/onchain/api/v1/wallet", headers=headers)
+    unconfigured = await http_client.get("/api/v1/onchain/wallet", headers=headers)
     assert unconfigured.status_code == 200
     assert unconfigured.json() is None
     addresses = await http_client.get(
         f"/onchain/api/v1/addresses/{wallet.id}", headers=headers
     )
     assert addresses.status_code == 404
-    for endpoint in ("wallet", "hot-wallet"):
+    for endpoint in ("/api/v1/onchain/wallet", "/onchain/api/v1/hot-wallet"):
         data = {"title": "Wrong network", "network": "Mainnet"}
-        if endpoint == "wallet":
+        if endpoint == "/api/v1/onchain/wallet":
             data["masterpub"] = wallet_descriptor(PHRASE, "Mainnet")[0]
-        rejected = await http_client.post(
-            f"/onchain/api/v1/{endpoint}", headers=headers, json=data
-        )
+        rejected = await http_client.post(endpoint, headers=headers, json=data)
         assert rejected.status_code == 400
         assert (
             rejected.json()["detail"]
@@ -203,12 +201,12 @@ async def test_onchain_api_ownership_recovery_and_network(http_client, onchain_w
     )
     assert foreign.status_code == 404
     unowned = await http_client.get(
-        "/onchain/api/v1/wallet?network=Testnet4", headers={"X-API-KEY": other.inkey}
+        "/api/v1/onchain/wallet?network=Testnet4", headers={"X-API-KEY": other.inkey}
     )
     assert unowned.status_code == 200
     assert unowned.json() is None
     wrong_network = await http_client.get(
-        "/onchain/api/v1/wallet?network=Mainnet", headers=headers
+        "/api/v1/onchain/wallet?network=Mainnet", headers=headers
     )
     assert wrong_network.status_code == 200
     assert wrong_network.json() is None
@@ -309,7 +307,7 @@ async def test_onchain_scan_persists_and_hydrates_without_lightning_credit(
     assert loaded_wallet
     assert loaded_wallet.balance_msat == 100000000
     response = await http_client.get(
-        "/onchain/api/v1/wallet", headers={"X-API-KEY": wallet.inkey}
+        "/api/v1/onchain/wallet", headers={"X-API-KEY": wallet.inkey}
     )
     assert response.status_code == 200
     assert response.json()["balance_msat"] == 100000000
@@ -755,7 +753,7 @@ async def test_onchain_metadata_and_seed_survive_generic_wallet_updates(
     loaded.name = "Renamed onchain wallet"
     await update_wallet(loaded)
     assert dict(await sync.db.fetchone(query, {"id": wallet.id})) == stored
-    accounts = await http_client.get("/onchain/api/v1/wallet", headers=headers)
+    accounts = await http_client.get("/api/v1/onchain/wallet", headers=headers)
     assert accounts.status_code == 200
     assert accounts.json()["name"] == "Renamed onchain wallet"
     backup = await http_client.post(
@@ -763,7 +761,7 @@ async def test_onchain_metadata_and_seed_survive_generic_wallet_updates(
     )
     assert backup.json()["mnemonic"] == PHRASE
     removed = await http_client.delete(
-        f"/onchain/api/v1/wallet/{wallet.id}", headers=headers
+        f"/api/v1/onchain/wallet/{wallet.id}", headers=headers
     )
     assert removed.status_code == 409
     assert dict(await sync.db.fetchone(query, {"id": wallet.id})) == stored
@@ -835,7 +833,7 @@ async def test_watch_removal_clears_onchain_state_and_allows_fresh_setup(
     assert not {"adminkey", "inkey", "onchain_encrypted_seed"} & account.keys()
     assert len(await get_addresses(wallet.id)) == 2 + config.change_gap_limit
     removed = await http_client.delete(
-        f"/onchain/api/v1/wallet/{wallet.id}", headers=headers
+        f"/api/v1/onchain/wallet/{wallet.id}", headers=headers
     )
     assert removed.status_code < 300
     assert await get_wallet(wallet.id)
@@ -844,7 +842,7 @@ async def test_watch_removal_clears_onchain_state_and_allows_fresh_setup(
     assert stored_wallet
     assert stored_wallet.onchain_config == OnchainConfig()
     assert (
-        await http_client.get("/onchain/api/v1/wallet", headers=headers)
+        await http_client.get("/api/v1/onchain/wallet", headers=headers)
     ).json() is None
     state = await sync.wallet_state(OnchainAuth(wallet.id))
     assert state["snapshots"] == [] and state["balance_sat"] == 0
@@ -907,7 +905,7 @@ async def test_inflight_snapshot_cannot_recreate_removed_addresses(
     try:
         await asyncio.wait_for(started.wait(), 2)
         removed = await http_client.delete(
-            f"/onchain/api/v1/wallet/{wallet.id}", headers=headers
+            f"/api/v1/onchain/wallet/{wallet.id}", headers=headers
         )
         assert removed.status_code < 300
     finally:
@@ -950,12 +948,12 @@ async def test_scan_cannot_follow_reconfigured_wallet_onto_another_network(
     try:
         await asyncio.wait_for(started.wait(), 2)
         removed = await http_client.delete(
-            f"/onchain/api/v1/wallet/{wallet.id}", headers=headers
+            f"/api/v1/onchain/wallet/{wallet.id}", headers=headers
         )
         assert removed.status_code < 300
         descriptor, _ = wallet_descriptor(PHRASE, "Mainnet")
         replaced = await http_client.post(
-            "/onchain/api/v1/wallet",
+            "/api/v1/onchain/wallet",
             headers=headers,
             json={"masterpub": descriptor, "title": "Mainnet", "network": "Mainnet"},
         )

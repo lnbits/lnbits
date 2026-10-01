@@ -13,7 +13,7 @@
       </p>
       <p>
         <code>GET /onchain/api/v1/state</code><br /><code
-          >GET /onchain/api/v1/wallet</code
+          >GET /api/v1/onchain/wallet</code
         ><br /><code>POST /onchain/api/v1/sync</code>
       </p>
       <a href="/docs#/Onchain" target="_blank" rel="noopener noreferrer"

@@ -95,7 +95,7 @@ state and obtain receive addresses. Admin keys also configure accounts, restore 
 export phrases, sign and broadcast transactions. Keys are scoped to the LNbits
 wallet, including when a user owns several wallets.
 
-- `GET /onchain/api/v1/wallet`: list accounts.
+- `GET /api/v1/onchain/wallet`: list accounts.
 - `GET /onchain/api/v1/state`: cached addresses, history, coins and scan status.
 - `POST /onchain/api/v1/sync`: schedule a background update.
 - `GET /onchain/api/v1/stats/daily`: confirmed transaction statistics.
