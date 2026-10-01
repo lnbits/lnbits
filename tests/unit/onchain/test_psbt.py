@@ -37,7 +37,7 @@ def psbt_api_app():
         return None
 
     app = FastAPI()
-    app.include_router(onchain_api.onchain__router)
+    app.include_router(onchain_api.onchain_router)
     app.dependency_overrides[onchain_api.require_onchain_admin] = authenticated
     return app
 

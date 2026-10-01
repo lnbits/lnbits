@@ -36,13 +36,13 @@ from lnbits.onchain.psbt import (
 from lnbits.onchain.sync import explorer_client, request_scan
 from lnbits.settings import settings
 
-onchain__router = APIRouter(prefix="/api/v1/onchain", tags=["Onchain"])
+onchain_router = APIRouter(prefix="/api/v1/onchain", tags=["Onchain"])
 
 
 #############################ADDRESSES##########################
 
 
-@onchain__router.get("/address/{wallet_id}")
+@onchain_router.get("/address/{wallet_id}")
 async def api_fresh_address(
     wallet_id: str,
     auth: OnchainAuth = Depends(require_onchain_read),
@@ -57,7 +57,7 @@ async def api_fresh_address(
     return address
 
 
-@onchain__router.put("/address/{address_id}")
+@onchain_router.put("/address/{address_id}")
 async def api_update_address(
     address_id: str,
     req: Request,
@@ -84,7 +84,7 @@ async def api_update_address(
     return address
 
 
-@onchain__router.get("/addresses/{wallet_id}")
+@onchain_router.get("/addresses/{wallet_id}")
 async def api_get_addresses(
     wallet_id: str,
     auth: OnchainAuth = Depends(require_onchain_read),
@@ -97,7 +97,7 @@ async def api_get_addresses(
     return await get_wallet_addresses(wallet)
 
 
-@onchain__router.post("/psbt")
+@onchain_router.post("/psbt")
 async def api_psbt_create(
     data: CreatePsbt,
     _auth: OnchainAuth = Depends(require_onchain_admin),
@@ -113,7 +113,7 @@ async def api_psbt_create(
         ) from exc
 
 
-@onchain__router.put("/psbt/utxos")
+@onchain_router.put("/psbt/utxos")
 async def api_psbt_utxos_tx(
     req: Request,
     _auth: OnchainAuth = Depends(require_onchain_admin),
@@ -141,7 +141,7 @@ async def api_psbt_utxos_tx(
         ) from exc
 
 
-@onchain__router.put("/psbt/extract")
+@onchain_router.put("/psbt/extract")
 async def api_psbt_extract_tx(
     data: ExtractPsbt,
     _auth: OnchainAuth = Depends(require_onchain_admin),
@@ -176,7 +176,7 @@ def _extract_psbt(data: ExtractPsbt) -> SignedTransaction:
         ) from exc
 
 
-@onchain__router.put("/tx/extract")
+@onchain_router.put("/tx/extract")
 async def api_extract_tx(
     data: ExtractTx,
     _auth: OnchainAuth = Depends(require_onchain_admin),
@@ -200,7 +200,7 @@ def _extract_transaction(data: ExtractTx):
         ) from exc
 
 
-@onchain__router.post("/tx")
+@onchain_router.post("/tx")
 async def api_tx_broadcast(
     data: SerializedTransaction,
     auth: OnchainAuth = Depends(require_onchain_admin),

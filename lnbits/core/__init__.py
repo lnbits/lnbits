@@ -33,9 +33,9 @@ core_app = APIRouter(tags=["Core"])
 
 def init_core_routers(app: FastAPI):
     if find_spec("wallycore") is not None:
-        from .views.onchain_api import onchain__router
+        from .views.onchain_api import onchain_router as onchain_api_router
 
-        app.include_router(onchain__router)
+        app.include_router(onchain_api_router)
     app.include_router(onchain_router)
     app.include_router(core_app)
     app.include_router(generic_router)
