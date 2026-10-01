@@ -29,6 +29,7 @@ from lnbits.core.models.onchain import (
     SignedTransaction,
 )
 from lnbits.core.models.wallets import NewHotWallet, OnchainMeta, OnchainWallet
+from lnbits.core.services.blockexplorer import TXID, explorer_client
 from lnbits.core.services.onchain import (
     decrypt_wallet_mnemonic,
     encrypt_wallet_mnemonic,
@@ -45,7 +46,6 @@ from lnbits.decorators import (
     require_onchain_admin,
     require_onchain_read,
 )
-from lnbits.onchain.explorer import TXID, explorer_client
 from lnbits.settings import settings
 from lnbits.utils.onchain_bindings import wally
 from lnbits.utils.onchain_descriptors import (

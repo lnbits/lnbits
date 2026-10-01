@@ -40,8 +40,8 @@ from lnbits.core.models.onchain import (
     Snapshot,
 )
 from lnbits.core.models.wallets import OnchainMeta, OnchainWallet
+from lnbits.core.services.blockexplorer import TXID, Explorer, explorer_client
 from lnbits.core.services.wallets import get_wallet_addresses
-from lnbits.onchain.explorer import TXID, Explorer, explorer_client
 from lnbits.settings import settings
 from lnbits.task_manager import task_manager
 from lnbits.utils.onchain_bindings import wally

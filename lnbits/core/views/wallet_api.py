@@ -32,6 +32,11 @@ from lnbits.core.models.wallets import (
     WalletSharePermission,
     WalletType,
 )
+from lnbits.core.services.blockexplorer import (
+    explorer_url,
+    local_explorer_network,
+    provider_name,
+)
 from lnbits.core.services.lightning_address import set_wallet_lightning_address
 from lnbits.core.services.onchain import request_scan
 from lnbits.core.services.wallets import (
@@ -56,7 +61,6 @@ from lnbits.decorators import (
     require_onchain_read,
 )
 from lnbits.helpers import generate_filter_params_openapi
-from lnbits.onchain.explorer import explorer_url, local_explorer_network, provider_name
 from lnbits.settings import settings
 
 from ..crud import (

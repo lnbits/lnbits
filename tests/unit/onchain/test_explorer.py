@@ -8,37 +8,39 @@ from embit.transaction import Transaction, TransactionInput, TransactionOutput
 
 from lnbits.core.models.wallets import OnchainConfig
 from lnbits.core.services import blockexplorer
-from lnbits.onchain import explorer
 from lnbits.utils.electrum import UTXO, ElectrumClient, HistoryEntry, network_from_name
 
 
 def test_default_provider_matches_enabled_network(settings):
     settings.lnbits_blockexplorer_enabled = False
-    assert explorer.provider_name(OnchainConfig(), "Mainnet") == "mempool"
+    assert blockexplorer.provider_name(OnchainConfig(), "Mainnet") == "mempool"
     settings.lnbits_blockexplorer_enabled = True
-    for network, name in explorer.NETWORKS.items():
+    for network, name in blockexplorer.NETWORKS.items():
         settings.lnbits_blockexplorer_network = network
         config = OnchainConfig()
-        assert explorer.provider_name(config, name) == "lnbits"
-        assert explorer.explorer_url(config, name) == "/blockexplorer"
+        assert blockexplorer.provider_name(config, name) == "lnbits"
+        assert blockexplorer.explorer_url(config, name) == "/blockexplorer"
         assert (
-            explorer.provider_name(
+            blockexplorer.provider_name(
                 config.copy(update={"explorer_provider": "mempool"}), name
             )
             == "mempool"
         )
-    assert explorer.provider_name(OnchainConfig(), "Mainnet") == "mempool"
+    assert blockexplorer.provider_name(OnchainConfig(), "Mainnet") == "mempool"
     with pytest.raises(ValueError, match="unavailable"):
-        explorer.LnbitsExplorer("Mainnet")
+        blockexplorer.LnbitsExplorer("Mainnet")
     assert network_from_name("test4") == network_from_name("test")
 
 
 def test_custom_mempool_url_is_specific_to_network():
     config = OnchainConfig()
-    assert explorer.mempool_url(config, "Testnet4") == "https://mempool.space/testnet4"
+    assert (
+        blockexplorer.mempool_url(config, "Testnet4")
+        == "https://mempool.space/testnet4"
+    )
     config.mempool_endpoint = "https://example.com/bitcoin/testnet4/"
     assert (
-        explorer.mempool_url(config, "Testnet4")
+        blockexplorer.mempool_url(config, "Testnet4")
         == "https://example.com/bitcoin/testnet4"
     )
 
@@ -64,8 +66,8 @@ async def test_local_mempool_urls_are_allowed(monkeypatch, url):
     def client(**kwargs):
         return real_client(**kwargs, transport=httpx.MockTransport(response))
 
-    monkeypatch.setattr(explorer.httpx, "AsyncClient", client)
-    async with explorer.MempoolExplorer(
+    monkeypatch.setattr(blockexplorer.httpx, "AsyncClient", client)
+    async with blockexplorer.MempoolExplorer(
         OnchainConfig(mempool_endpoint=url), "Mainnet"
     ) as provider:
         assert await provider.fees() == {"fastestFee": 1}
@@ -106,7 +108,7 @@ async def test_local_explorer_history_coins_fees_and_broadcast(settings, monkeyp
     client.estimate_fee.side_effect = [0.00002, 0.000015, 0.00001, -1]
     client.broadcast.return_value = spending_id
     monkeypatch.setattr(blockexplorer, "_client", lambda: client)
-    async with explorer.explorer_client(OnchainConfig(), "Testnet4") as provider:
+    async with blockexplorer.explorer_client(OnchainConfig(), "Testnet4") as provider:
         address = script.address(client.network)
         assert isinstance(address, str)
         history = await provider.history(address)
@@ -157,7 +159,7 @@ async def test_mempool_provider_uses_custom_url_and_paginates():
         base_url="https://example.com/custom/testnet4/",
         transport=httpx.MockTransport(respond),
     )
-    async with explorer.MempoolExplorer(
+    async with blockexplorer.MempoolExplorer(
         OnchainConfig(), "Testnet4", client
     ) as provider:
         assert len(await provider.history("address")) == 26

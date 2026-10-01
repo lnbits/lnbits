@@ -22,8 +22,8 @@ from lnbits.core.db import db
 from lnbits.core.models import CreatePayment
 from lnbits.core.models.wallets import WalletType
 from lnbits.core.services import create_user_account, onchain, update_wallet_balance
+from lnbits.core.services.blockexplorer import MempoolExplorer, mempool_url
 from lnbits.core.views import onchain_api, wallet_api
-from lnbits.onchain.explorer import MempoolExplorer, mempool_url
 from lnbits.settings import settings
 from lnbits.utils.onchain_keys import wallet_descriptor
 
