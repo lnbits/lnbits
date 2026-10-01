@@ -347,3 +347,11 @@ class OnchainWalletConfigResponse(OnchainConfig):
     network: Literal["Mainnet", "Testnet", "Testnet4"] = "Mainnet"
     lnbits_explorer_network: str | None = None
     explorer_url: str
+
+
+class NewHotWallet(BaseModel):
+    title: str = Field(..., min_length=1, max_length=100)
+    network: Literal["Mainnet", "Testnet", "Testnet4"] = "Mainnet"
+
+    class Config:
+        extra = "forbid"

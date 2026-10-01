@@ -4,7 +4,7 @@ export function mempoolJS() {
   const request = async path => {
     const {data} = await LNbits.api.request(
       'GET',
-      '/onchain/api/v1/' + path,
+      '/api/v1/onchain/' + path,
       key
     )
     return data

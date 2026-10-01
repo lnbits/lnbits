@@ -581,7 +581,7 @@ def register_async_tasks() -> None:
     from importlib.util import find_spec
 
     if find_spec("wallycore") is not None:
-        from lnbits.onchain.sync import sync_wallets
+        from lnbits.core.services.onchain import sync_wallets
 
         task_manager.create_permanent_task(sync_wallets, interval=60)
 

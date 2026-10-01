@@ -4,7 +4,7 @@ from typing import Any
 
 from starlette.concurrency import run_in_threadpool
 
-from .bindings import wally
+from .onchain_bindings import wally
 
 # SLIP132 prefixes encode both the network and the policy of a bare account key.
 _PUBLIC_VERSIONS = {
@@ -41,45 +41,6 @@ class TaprootDescriptor:
     internal_key: Any
     tree: Any
     leaves: list[Any]
-
-
-def _native_descriptor(descriptor: Any) -> Any:
-    return (
-        descriptor.internal_key
-        if isinstance(descriptor, TaprootDescriptor)
-        else descriptor
-    )
-
-
-def _parse_taproot_tree(
-    expression: str, network: int, leaves: list[Any], depth: int = 0
-) -> Any:
-    if depth > 128:
-        raise ValueError("Taproot tree is too deep")
-    if expression.startswith("{"):
-        if not expression.endswith("}"):
-            raise ValueError("Invalid Taproot tree")
-        inner = expression[1:-1]
-        nesting = 0
-        for index, char in enumerate(inner):
-            if char in "({":
-                nesting += 1
-            elif char in ")}":
-                nesting -= 1
-            elif char == "," and nesting == 0:
-                return (
-                    _parse_taproot_tree(inner[:index], network, leaves, depth + 1),
-                    _parse_taproot_tree(inner[index + 1 :], network, leaves, depth + 1),
-                )
-        raise ValueError("Invalid Taproot tree")
-    leaf = wally.descriptor_parse(
-        expression,
-        None,
-        network,
-        wally.WALLY_MINISCRIPT_ONLY | wally.WALLY_MINISCRIPT_TAPSCRIPT,
-    )
-    leaves.append(leaf)
-    return leaf
 
 
 def parse_key(masterpub: str) -> tuple[Any, dict]:  # noqa: C901
@@ -208,29 +169,12 @@ def descriptor_script(
     )
 
 
-def _taproot_hash(tree: Any, address_index: int, branch_index: int) -> bytes:
-    if isinstance(tree, tuple):
-        children = sorted(_taproot_hash(t, address_index, branch_index) for t in tree)
-        return bytes(wally.bip340_tagged_hash(b"".join(children), "TapBranch"))
-    script = descriptor_script(tree, address_index, branch_index)
-    serialized = b"\xc0" + bytes(wally.varint_to_bytes(len(script))) + script
-    return bytes(wally.bip340_tagged_hash(serialized, "TapLeaf"))
-
-
 def descriptor_type(descriptor: Any) -> str:
     return _SCRIPT_TYPES[wally.scriptpubkey_get_type(descriptor_script(descriptor))]
 
 
 async def derive_address(masterpub: str, num: int, branch_index: int = 0) -> str:
     return await run_in_threadpool(_derive_address, masterpub, num, branch_index)
-
-
-def _derive_address(masterpub: str, num: int, branch_index: int) -> str:
-    descriptor, _ = parse_key(masterpub)
-    return script_address(
-        descriptor_script(descriptor, num, branch_index),
-        wally.descriptor_get_network(_native_descriptor(descriptor)),
-    )
 
 
 def address_script(address: str) -> bytes:
@@ -256,17 +200,57 @@ def script_address(script: bytes, network: int) -> str:
     return wally.scriptpubkey_to_address(script, network)
 
 
-def transaction_details(transaction: Any, network: int) -> dict:
-    return {
-        "locktime": wally.tx_get_locktime(transaction),
-        "version": wally.tx_get_version(transaction),
-        "outputs": [
-            {
-                "amount": wally.tx_get_output_satoshi(transaction, index),
-                "address": script_address(
-                    bytes(wally.tx_get_output_script(transaction, index)), network
-                ),
-            }
-            for index in range(wally.tx_get_num_outputs(transaction))
-        ],
-    }
+def _native_descriptor(descriptor: Any) -> Any:
+    return (
+        descriptor.internal_key
+        if isinstance(descriptor, TaprootDescriptor)
+        else descriptor
+    )
+
+
+def _parse_taproot_tree(
+    expression: str, network: int, leaves: list[Any], depth: int = 0
+) -> Any:
+    if depth > 128:
+        raise ValueError("Taproot tree is too deep")
+    if expression.startswith("{"):
+        if not expression.endswith("}"):
+            raise ValueError("Invalid Taproot tree")
+        inner = expression[1:-1]
+        nesting = 0
+        for index, char in enumerate(inner):
+            if char in "({":
+                nesting += 1
+            elif char in ")}":
+                nesting -= 1
+            elif char == "," and nesting == 0:
+                return (
+                    _parse_taproot_tree(inner[:index], network, leaves, depth + 1),
+                    _parse_taproot_tree(inner[index + 1 :], network, leaves, depth + 1),
+                )
+        raise ValueError("Invalid Taproot tree")
+    leaf = wally.descriptor_parse(
+        expression,
+        None,
+        network,
+        wally.WALLY_MINISCRIPT_ONLY | wally.WALLY_MINISCRIPT_TAPSCRIPT,
+    )
+    leaves.append(leaf)
+    return leaf
+
+
+def _taproot_hash(tree: Any, address_index: int, branch_index: int) -> bytes:
+    if isinstance(tree, tuple):
+        children = sorted(_taproot_hash(t, address_index, branch_index) for t in tree)
+        return bytes(wally.bip340_tagged_hash(b"".join(children), "TapBranch"))
+    script = descriptor_script(tree, address_index, branch_index)
+    serialized = b"\xc0" + bytes(wally.varint_to_bytes(len(script))) + script
+    return bytes(wally.bip340_tagged_hash(serialized, "TapLeaf"))
+
+
+def _derive_address(masterpub: str, num: int, branch_index: int) -> str:
+    descriptor, _ = parse_key(masterpub)
+    return script_address(
+        descriptor_script(descriptor, num, branch_index),
+        wally.descriptor_get_network(_native_descriptor(descriptor)),
+    )

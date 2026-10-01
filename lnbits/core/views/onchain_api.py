@@ -1,4 +1,5 @@
 import json
+import re
 from http import HTTPStatus
 from typing import Annotated
 
@@ -23,43 +24,44 @@ from lnbits.core.models.onchain import (
     CreatePsbt,
     ExtractPsbt,
     ExtractTx,
+    HotWalletPayment,
     SerializedTransaction,
     SignedTransaction,
 )
-from lnbits.core.models.wallets import OnchainMeta, OnchainWallet
-from lnbits.core.services.onchain import require_onchain_payments
+from lnbits.core.models.wallets import NewHotWallet, OnchainMeta, OnchainWallet
+from lnbits.core.services.onchain import (
+    decrypt_wallet_mnemonic,
+    encrypt_wallet_mnemonic,
+    get_onchain_daily_stats,
+    get_wallet_state,
+    read_onchain_key,
+    request_scan,
+    require_onchain_payments,
+    sign_payment,
+)
 from lnbits.core.services.wallets import get_wallet_addresses
 from lnbits.decorators import (
     OnchainAuth,
     require_onchain_admin,
     require_onchain_read,
 )
-from lnbits.onchain.bindings import wally
-from lnbits.onchain.helpers import (
+from lnbits.onchain.explorer import TXID, explorer_client
+from lnbits.settings import settings
+from lnbits.utils.onchain_bindings import wally
+from lnbits.utils.onchain_descriptors import (
     address_script,
     descriptor_fingerprint,
     parse_key,
-    transaction_details,
 )
-from lnbits.onchain.hot_wallet import (
-    HotWalletPayment,
-    NewHotWallet,
-    decrypt_mnemonic,
-    encrypt_mnemonic,
-    encryption_key,
-    new_mnemonic,
-    sign_payment,
-    wallet_descriptor,
-)
-from lnbits.onchain.psbt import (
+from lnbits.utils.onchain_keys import new_mnemonic, wallet_descriptor
+from lnbits.utils.onchain_transactions import (
     combine_matching_psbt,
     create_psbt,
     finalize_signed_psbt,
     psbt_fee,
     set_previous_transaction,
+    transaction_details,
 )
-from lnbits.onchain.sync import explorer_client, request_scan
-from lnbits.settings import settings
 
 onchain_router = APIRouter(prefix="/api/v1/onchain", tags=["Onchain"])
 
@@ -203,8 +205,6 @@ async def api_tx_broadcast(
             wallet.onchain_config, wallet.onchain_network or "Mainnet"
         ) as client:
             tx_id = await client.broadcast(data.tx_hex)
-            from lnbits.onchain.sync import TXID
-
             if not TXID.fullmatch(tx_id):
                 raise ValueError("Invalid broadcast response")
         request_scan(auth.wallet_id)
@@ -221,7 +221,7 @@ async def hot_wallet_status(
 ):
     try:
         await require_onchain_payments()
-        encryption_key()
+        read_onchain_key()
         return {"available": True}
     except ValueError:
         return {"available": False}
@@ -248,7 +248,7 @@ async def create_hot_wallet(
         raise HTTPException(400, "Bitcoin network does not match this LNbits wallet")
     try:
         await require_onchain_payments()
-        encryption_key()
+        read_onchain_key()
     except ValueError as exc:
         raise HTTPException(HTTPStatus.SERVICE_UNAVAILABLE, str(exc)) from exc
     try:
@@ -272,7 +272,7 @@ async def create_hot_wallet(
         script_type="p2wpkh",
         accountPath=path,
     )
-    encrypted = encrypt_mnemonic(mnemonic, wallet)
+    encrypted = encrypt_wallet_mnemonic(mnemonic, wallet)
     try:
         wallet = await init_onchain_wallet_state(wallet, encrypted_seed=encrypted)
     except WalletAlreadyConfiguredError as exc:
@@ -298,7 +298,7 @@ async def backup_hot_wallet(
         raise HTTPException(HTTPStatus.NOT_FOUND, "Wallet does not exist.")
     encrypted = await secret_for_wallet(wallet)
     try:
-        mnemonic = await run_in_threadpool(decrypt_mnemonic, encrypted, wallet)
+        mnemonic = await run_in_threadpool(decrypt_wallet_mnemonic, encrypted, wallet)
         return {"mnemonic": mnemonic, "path": wallet.onchain_meta.accountPath}
     except ValueError as exc:
         raise HTTPException(
@@ -365,6 +365,57 @@ async def sign_hot_wallet_payment(
             "If these are correct, ask the administrator to check "
             "the wallet encryption key.",
         ) from exc
+
+
+@onchain_router.post("/sync", status_code=202)
+async def start_sync(auth: OnchainAuth = Depends(require_onchain_admin)):
+    request_scan(auth.wallet_id)
+    return {"scheduled": True}
+
+
+@onchain_router.get("/state")
+async def wallet_state(auth: OnchainAuth = Depends(require_onchain_read)):
+    return await get_wallet_state(auth.wallet_id)
+
+
+@onchain_router.get("/stats/daily")
+async def daily_stats(auth: OnchainAuth = Depends(require_onchain_read)):
+    return await get_onchain_daily_stats(auth.wallet_id)
+
+
+@onchain_router.get("/fees")
+async def fee_estimates(auth: OnchainAuth = Depends(require_onchain_read)):
+    wallet = await get_onchain_wallet(auth.wallet_id)
+    if not wallet:
+        raise HTTPException(404, "Onchain wallet not found")
+    try:
+        async with explorer_client(
+            wallet.onchain_config, wallet.onchain_network or "Mainnet"
+        ) as client:
+            return await client.fees()
+    except Exception as exc:
+        raise HTTPException(503, "Fee estimates are unavailable") from exc
+
+
+@onchain_router.get("/tx/{tx_id}/hex")
+async def previous_transaction(
+    tx_id: str, auth: OnchainAuth = Depends(require_onchain_read)
+):
+    if not TXID.fullmatch(tx_id):
+        raise HTTPException(400, "Invalid transaction ID")
+    wallet = await get_onchain_wallet(auth.wallet_id)
+    if not wallet:
+        raise HTTPException(404, "Onchain wallet not found")
+    try:
+        async with explorer_client(
+            wallet.onchain_config, wallet.onchain_network or "Mainnet"
+        ) as client:
+            raw = await client.raw_transaction(tx_id)
+            if len(raw) > 8_000_000 or not re.fullmatch(r"[0-9a-fA-F]+", raw):
+                raise ValueError("Invalid transaction")
+            return raw
+    except Exception as exc:
+        raise HTTPException(503, "Previous transaction is unavailable") from exc
 
 
 def _extract_psbt(data: ExtractPsbt) -> SignedTransaction:

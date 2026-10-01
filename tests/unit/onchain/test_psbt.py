@@ -12,14 +12,14 @@ from starlette.requests import Request
 from lnbits.core.models.onchain import CreatePsbt, ExtractPsbt, ExtractTx
 from lnbits.core.views import onchain_api
 from lnbits.decorators import OnchainAuth
-from lnbits.onchain.bindings import wally
-from lnbits.onchain.helpers import (
+from lnbits.utils.onchain_bindings import wally
+from lnbits.utils.onchain_descriptors import (
     address_script,
     descriptor_script,
     parse_key,
     script_address,
 )
-from lnbits.onchain.psbt import (
+from lnbits.utils.onchain_transactions import (
     _input_partial_signatures,
     combine_matching_psbt,
     create_psbt,

@@ -1,3 +1,4 @@
+import json
 from datetime import datetime, timezone
 from time import time
 from typing import Literal
@@ -11,7 +12,7 @@ from lnbits.core.models.wallets import (
     WalletsFilters,
     WalletType,
 )
-from lnbits.db import Connection, Filters, Page
+from lnbits.db import SQLITE, Connection, Filters, Page
 from lnbits.helpers import generate_ln_address
 from lnbits.settings import settings
 from lnbits.utils.cache import cache
@@ -484,6 +485,79 @@ async def update_onchain_wallet_config(
             "id": wallet_id,
             "config": config.json(exclude={"network"}),
             "network": network,
+        },
+    )
+
+
+async def acquire_onchain_scan_lease(
+    wallet_id: str, lease: int, now: int, conn: Connection | None = None
+) -> bool:
+    acquired = await (conn or db).execute(
+        """
+        UPDATE wallets SET onchain_sync_lease_until = :lease
+        WHERE id = :wallet AND onchain_sync_lease_until < :now
+            AND wallet_type = 'onchain' AND deleted = false
+            AND onchain_wallet_kind IS NOT NULL
+        """,
+        {"wallet": wallet_id, "lease": lease, "now": now},
+    )
+    return acquired.rowcount == 1
+
+
+async def get_onchain_sync_status(
+    wallet_id: str, conn: Connection | None = None
+) -> dict:
+    return (
+        await (conn or db).fetchone(
+            """SELECT onchain_meta, onchain_sync_lease_until FROM wallets
+        WHERE id = :wallet AND wallet_type = 'onchain'""",
+            {"wallet": wallet_id},
+        )
+        or {}
+    )
+
+
+async def get_onchain_wallet_ids(conn: Connection | None = None) -> list[str]:
+    rows: list[dict] = await (conn or db).fetchall("""
+        SELECT id FROM wallets WHERE wallet_type = 'onchain' AND deleted = false
+            AND onchain_wallet_kind IS NOT NULL
+    """)
+    return [row["id"] for row in rows]
+
+
+async def finish_scan(
+    wallet_id: str, lease: int, error: str | None, conn: Connection | None = None
+) -> None:
+    now = int(time())
+    state: dict = {"sync_error": error}
+    if error is None:
+        state["sync_checked_at"] = now
+    # Merge only scanner-owned keys in the same conditional update that releases
+    # the lease. Other metadata and newer scan leases must remain untouched.
+    if db.type == SQLITE:
+        expression = "json_set(onchain_meta, '$.sync_error', :error)"
+        if error is None:
+            expression = (
+                "json_set(onchain_meta, '$.sync_error', :error, "
+                "'$.sync_checked_at', :now)"
+            )
+    else:
+        expression = (
+            "CAST(CAST(onchain_meta AS JSONB) || CAST(:state AS JSONB) AS TEXT)"
+        )
+    await (conn or db).execute(
+        f"""
+        UPDATE wallets SET onchain_sync_lease_until = 0,
+            onchain_meta = {expression}
+        WHERE id = :wallet AND wallet_type = 'onchain'
+            AND onchain_wallet_kind IS NOT NULL AND onchain_sync_lease_until = :lease
+        """,  # noqa: S608
+        {
+            "wallet": wallet_id,
+            "lease": lease,
+            "error": error,
+            "now": now,
+            "state": json.dumps(state),
         },
     )
 

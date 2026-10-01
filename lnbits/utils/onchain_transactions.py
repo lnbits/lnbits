@@ -3,25 +3,15 @@ from typing import Any
 
 from lnbits.core.models.onchain import CreatePsbt
 
-from .bindings import wally
-from .helpers import (
+from .onchain_bindings import wally
+from .onchain_descriptors import (
     TaprootDescriptor,
     address_script,
     descriptor_branch,
     descriptor_script,
     parse_key,
+    script_address,
 )
-
-
-def _path(path: str, address_index: int = 0, branch_index: int = 0) -> list[int]:
-    if not path:
-        return []
-    return wally.bip32_path_from_str(
-        path,
-        address_index if "*" in path else 0,
-        branch_index if "<" in path else 0,
-        wally.BIP32_FLAG_STR_WILDCARD | wally.BIP32_FLAG_STR_MULTIPATH,
-    )
 
 
 def add_descriptor_metadata(
@@ -203,38 +193,6 @@ def combine_matching_psbt(expected: Any, signed: Any) -> Any:
     return expected
 
 
-def _input_partial_signatures(psbt: Any) -> list[dict[bytes, bytes]]:
-    # The Python Wally bindings expose signature values but not their public
-    # keys. Read those keys from Wally's validated, canonical serialization.
-    stream = BytesIO(bytes(wally.psbt_to_bytes(psbt, 0)))
-    stream.read(5)  # PSBT magic
-
-    def read_exact(size: int) -> bytes:
-        value = stream.read(size)
-        if len(value) != size:
-            raise ValueError("Invalid PSBT map")
-        return value
-
-    def compact_size() -> int:
-        prefix = read_exact(1)[0]
-        if prefix < 253:
-            return prefix
-        return int.from_bytes(read_exact({253: 2, 254: 4, 255: 8}[prefix]), "little")
-
-    def read_map() -> dict[bytes, bytes]:
-        entries = {}
-        while size := compact_size():
-            key = read_exact(size)
-            entries[key] = read_exact(compact_size())
-        return entries
-
-    read_map()  # Global map
-    return [
-        {key[1:]: value for key, value in read_map().items() if key[0] == 2}
-        for _ in range(wally.psbt_get_num_inputs(psbt))
-    ]
-
-
 def finalize_signed_psbt(psbt: Any) -> Any:  # noqa: C901
     # Finalization assembles witnesses; it does not verify signatures.
     verification = wally.psbt_clone(psbt, 0)
@@ -278,3 +236,62 @@ def finalize_signed_psbt(psbt: Any) -> Any:  # noqa: C901
     if not wally.psbt_is_finalized(psbt):
         raise ValueError("PSBT cannot be finalized!")
     return wally.psbt_extract(psbt, 0)
+
+
+def transaction_details(transaction: Any, network: int) -> dict:
+    return {
+        "locktime": wally.tx_get_locktime(transaction),
+        "version": wally.tx_get_version(transaction),
+        "outputs": [
+            {
+                "amount": wally.tx_get_output_satoshi(transaction, index),
+                "address": script_address(
+                    bytes(wally.tx_get_output_script(transaction, index)), network
+                ),
+            }
+            for index in range(wally.tx_get_num_outputs(transaction))
+        ],
+    }
+
+
+def _path(path: str, address_index: int = 0, branch_index: int = 0) -> list[int]:
+    if not path:
+        return []
+    return wally.bip32_path_from_str(
+        path,
+        address_index if "*" in path else 0,
+        branch_index if "<" in path else 0,
+        wally.BIP32_FLAG_STR_WILDCARD | wally.BIP32_FLAG_STR_MULTIPATH,
+    )
+
+
+def _input_partial_signatures(psbt: Any) -> list[dict[bytes, bytes]]:
+    # The Python Wally bindings expose signature values but not their public
+    # keys. Read those keys from Wally's validated, canonical serialization.
+    stream = BytesIO(bytes(wally.psbt_to_bytes(psbt, 0)))
+    stream.read(5)  # PSBT magic
+
+    def read_exact(size: int) -> bytes:
+        value = stream.read(size)
+        if len(value) != size:
+            raise ValueError("Invalid PSBT map")
+        return value
+
+    def compact_size() -> int:
+        prefix = read_exact(1)[0]
+        if prefix < 253:
+            return prefix
+        return int.from_bytes(read_exact({253: 2, 254: 4, 255: 8}[prefix]), "little")
+
+    def read_map() -> dict[bytes, bytes]:
+        entries = {}
+        while size := compact_size():
+            key = read_exact(size)
+            entries[key] = read_exact(compact_size())
+        return entries
+
+    read_map()  # Global map
+    return [
+        {key[1:]: value for key, value in read_map().items() if key[0] == 2}
+        for _ in range(wally.psbt_get_num_inputs(psbt))
+    ]

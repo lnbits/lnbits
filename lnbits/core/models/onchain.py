@@ -2,7 +2,7 @@
 
 from typing import Literal
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, validator
 
 
 class Address(BaseModel):
@@ -74,3 +74,24 @@ class ExtractTx(BaseModel):
 class SignedTransaction(BaseModel):
     tx_hex: str | None
     tx_json: str | None
+
+
+class HotWalletPayment(BaseModel):
+    transaction: CreatePsbt
+    max_fee_sat: int = Field(..., gt=0, le=10_000_000)
+
+    @validator("transaction", pre=True)
+    @classmethod
+    def whole_satoshis(cls, value):
+        if isinstance(value, dict):
+            for item in value.get("inputs", []) + value.get("outputs", []):
+                if type(item.get("amount")) is not int:
+                    raise ValueError("Amounts must be whole satoshis")
+        return value
+
+
+class Snapshot(BaseModel):
+    address_id: str
+    transactions: list[dict]
+    utxos: list[dict]
+    checked_at: int

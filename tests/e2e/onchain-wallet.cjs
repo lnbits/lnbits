@@ -66,7 +66,7 @@ async function main() {
             )
           )
           .join('') +
-        '<div id="app" class="q-pa-md"><page-onchain ref="page" :chart-config="chartConfig" @update-wallet="walletUpdates.push($event)" @synced="onSynced"><template #wallet-tools><lnbits-wallet-charts ref="charts" :chart-config="chartConfig" :payment-filter="onchainPaymentFilter" api-url="/onchain/api/v1/stats/daily" api-key="read-test"></lnbits-wallet-charts></template></page-onchain></div>'
+        '<div id="app" class="q-pa-md"><page-onchain ref="page" :chart-config="chartConfig" @update-wallet="walletUpdates.push($event)" @synced="onSynced"><template #wallet-tools><lnbits-wallet-charts ref="charts" :chart-config="chartConfig" :payment-filter="onchainPaymentFilter" api-url="/api/v1/onchain/stats/daily" api-key="read-test"></lnbits-wallet-charts></template></page-onchain></div>'
     )
     for (const script of [
       'vue/dist/vue.global.js',

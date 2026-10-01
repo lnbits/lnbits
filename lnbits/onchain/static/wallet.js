@@ -440,7 +440,7 @@ export default {
       try {
         const {data} = await LNbits.api.request(
           'GET',
-          '/onchain/api/v1/state',
+          '/api/v1/onchain/state',
           this.g.wallet.inkey
         )
         if (this.disposed || coreWalletId !== this.g.wallet.id) return
@@ -521,7 +521,7 @@ export default {
       try {
         await LNbits.api.request(
           'POST',
-          '/onchain/api/v1/sync',
+          '/api/v1/onchain/sync',
           this.g.wallet.adminkey
         )
         if (!this.disposed) this.scan.scanning = true

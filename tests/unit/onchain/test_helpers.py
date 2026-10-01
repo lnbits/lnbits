@@ -1,7 +1,7 @@
 import pytest
 
-from lnbits.onchain.bindings import wally
-from lnbits.onchain.helpers import (
+from lnbits.utils.onchain_bindings import wally
+from lnbits.utils.onchain_descriptors import (
     derive_address,
     descriptor_fingerprint,
     descriptor_type,

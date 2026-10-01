@@ -33,6 +33,7 @@ from lnbits.core.models.wallets import (
     WalletType,
 )
 from lnbits.core.services.lightning_address import set_wallet_lightning_address
+from lnbits.core.services.onchain import request_scan
 from lnbits.core.services.wallets import (
     create_lightning_shared_wallet,
     delete_wallet_share,
@@ -57,7 +58,6 @@ from lnbits.decorators import (
 from lnbits.helpers import generate_filter_params_openapi
 from lnbits.onchain.explorer import explorer_url, local_explorer_network, provider_name
 from lnbits.onchain.router import require_onchain_available
-from lnbits.onchain.sync import request_scan
 from lnbits.settings import settings
 
 from ..crud import (

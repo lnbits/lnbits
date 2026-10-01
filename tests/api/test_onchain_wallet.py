@@ -12,21 +12,20 @@ from lnbits.core.crud import create_wallet, get_wallet
 from lnbits.core.crud.onchain import get_addresses
 from lnbits.core.crud.payments import create_payment
 from lnbits.core.crud.wallets import (
+    finish_scan,
     get_onchain_wallet,
     get_total_balance,
     get_wallets,
     update_onchain_wallet_config,
 )
+from lnbits.core.db import db
 from lnbits.core.models import CreatePayment
 from lnbits.core.models.wallets import WalletType
-from lnbits.core.services import create_user_account, update_wallet_balance
-from lnbits.core.services import onchain as keys
+from lnbits.core.services import create_user_account, onchain, update_wallet_balance
 from lnbits.core.views import onchain_api, wallet_api
-from lnbits.decorators import OnchainAuth
-from lnbits.onchain import sync
 from lnbits.onchain.explorer import MempoolExplorer, mempool_url
-from lnbits.onchain.hot_wallet import wallet_descriptor
 from lnbits.settings import settings
+from lnbits.utils.onchain_keys import wallet_descriptor
 
 PHRASE = "abandon " * 11 + "about"
 
@@ -51,12 +50,12 @@ async def onchain_wallet(http_client, monkeypatch, tmp_path):
     async def confirmed_key(_name):
         return SimpleNamespace(
             value={
-                "fingerprint": keys.key_fingerprint(keys.read_onchain_key()),
+                "fingerprint": onchain.key_fingerprint(onchain.read_onchain_key()),
                 "backup_confirmed": True,
             }
         )
 
-    monkeypatch.setattr(keys, "get_settings_field", confirmed_key)
+    monkeypatch.setattr(onchain, "get_settings_field", confirmed_key)
     monkeypatch.setattr(onchain_api, "request_scan", lambda _wallet: None)
     monkeypatch.setattr(wallet_api, "request_scan", lambda _wallet: None)
     return wallet, user, {"X-API-KEY": wallet.adminkey}
@@ -110,7 +109,7 @@ async def test_one_bitcoin_wallet_per_core_wallet(http_client, onchain_wallet, k
     account = accounts.json()
     assert account["id"] == wallet.id
     assert not {"adminkey", "inkey", "onchain_encrypted_seed"} & account.keys()
-    stored_keys = await sync.db.fetchall(
+    stored_keys = await db.fetchall(
         """SELECT id FROM wallets WHERE id = :wallet
            AND onchain_encrypted_seed IS NOT NULL""",
         {"wallet": wallet.id},
@@ -285,7 +284,7 @@ async def test_onchain_scan_persists_and_hydrates_without_lightning_credit(
         return httpx.Response(200, json=values)
 
     monkeypatch.setattr(
-        sync,
+        onchain,
         "explorer_client",
         lambda config, network: MempoolExplorer(
             config,
@@ -297,8 +296,8 @@ async def test_onchain_scan_persists_and_hydrates_without_lightning_credit(
         ),
     )
     baseline = await get_total_balance()
-    await sync.scan_wallet(wallet.id)
-    state = await sync.wallet_state(OnchainAuth(wallet.id))
+    await onchain.scan_wallet(wallet.id)
+    state = await onchain.get_wallet_state(wallet.id)
     assert state["balance_sat"] == 100000
     assert state["error"] is None and not state["scanning"]
     assert all(path.startswith("/testnet4/api/") for path in paths)
@@ -318,8 +317,8 @@ async def test_onchain_scan_persists_and_hydrates_without_lightning_credit(
     assert await get_total_balance() == baseline
     first_snapshot = next(s for s in state["snapshots"] if s.transactions)
     seen = first_snapshot.transactions[0]["first_seen"]
-    await sync.scan_wallet(wallet.id)
-    refreshed = await sync.wallet_state(OnchainAuth(wallet.id))
+    await onchain.scan_wallet(wallet.id)
+    refreshed = await onchain.get_wallet_state(wallet.id)
     assert (
         next(s for s in refreshed["snapshots"] if s.transactions).transactions[0][
             "first_seen"
@@ -327,14 +326,14 @@ async def test_onchain_scan_persists_and_hydrates_without_lightning_credit(
         == seen
     )
     fail = True
-    await sync.scan_wallet(wallet.id)
-    failed = await sync.wallet_state(OnchainAuth(wallet.id))
+    await onchain.scan_wallet(wallet.id)
+    failed = await onchain.get_wallet_state(wallet.id)
     assert failed["error"] and failed["balance_sat"] == 100000
     assert any(s.transactions for s in failed["snapshots"])
     fail = False
     empty = True
-    await sync.scan_wallet(wallet.id)
-    replaced = await sync.wallet_state(OnchainAuth(wallet.id))
+    await onchain.scan_wallet(wallet.id)
+    replaced = await onchain.get_wallet_state(wallet.id)
     assert replaced["balance_sat"] == 0 and replaced["error"] is None
     assert not any(s.transactions for s in replaced["snapshots"])
 
@@ -354,13 +353,13 @@ async def test_onchain_scan_lease_does_not_block_wallet_creation(
         started.set()
         await finish.wait()
 
-    monkeypatch.setattr(sync, "_scan", blocked)
-    task = asyncio.create_task(sync.scan_wallet(wallet.id))
+    monkeypatch.setattr(onchain, "_scan", blocked)
+    task = asyncio.create_task(onchain.scan_wallet(wallet.id))
     try:
         await asyncio.wait_for(started.wait(), 2)
-        await asyncio.wait_for(sync.scan_wallet(wallet.id), 2)
+        await asyncio.wait_for(onchain.scan_wallet(wallet.id), 2)
         assert count == 1
-        state = await sync.wallet_state(OnchainAuth(wallet.id))
+        state = await onchain.get_wallet_state(wallet.id)
         assert state["scanning"]
         other = await asyncio.wait_for(
             create_wallet(user_id=user.id, wallet_type=WalletType.ONCHAIN), 5
@@ -520,7 +519,7 @@ async def test_onchain_wallet_deleted_filter(onchain_wallet):
     assert deleted and deleted.deleted
     assert await get_onchain_wallet(wallet.id, deleted=None) == deleted
 
-    async with sync.db.connect() as conn:
+    async with db.connect() as conn:
         assert (
             await asyncio.wait_for(get_onchain_wallet(wallet.id, True, conn), 5)
             == deleted
@@ -549,7 +548,7 @@ async def test_onchain_wallet_crud_reuses_connection(onchain_wallet, kind):
     config.sats_denominated = False
 
     async def use_connection():
-        async with sync.db.connect() as conn:
+        async with db.connect() as conn:
             await update_onchain_wallet_config(config, wallet.id, conn=conn)
             initialized = await init_onchain_wallet_state(stored_wallet, conn=conn)
             assert initialized.onchain_wallet_kind == kind
@@ -597,9 +596,9 @@ async def test_onchain_permanent_cleanup_allows_deletion(
         await delete_wallet(user.id, wallet.id)
         await remove_deleted_wallets()
     else:
-        await sync.db.execute(
+        await db.execute(
             f"""UPDATE wallets
-            SET created_at = {sync.db.timestamp_placeholder('created')},
+            SET created_at = {db.timestamp_placeholder('created')},
                 updated_at = NULL WHERE id = :id""",  # noqa: S608
             {"id": wallet.id, "created": 0},
         )
@@ -671,11 +670,11 @@ async def test_onchain_local_explorer_used_for_fees_raw_tx_and_broadcast(
     client.get_transaction.return_value = "deadbeef"
     client.broadcast.return_value = "a" * 64
     monkeypatch.setattr(blockexplorer, "_client", lambda: client)
-    fees = await http_client.get("/onchain/api/v1/fees", headers=headers)
+    fees = await http_client.get("/api/v1/onchain/fees", headers=headers)
     assert fees.status_code == 200, fees.text
     assert fees.json()["fastestFee"] == 2
     raw = await http_client.get(
-        "/onchain/api/v1/tx/" + "a" * 64 + "/hex", headers=headers
+        "/api/v1/onchain/tx/" + "a" * 64 + "/hex", headers=headers
     )
     assert raw.status_code == 200 and raw.json() == "deadbeef"
     rejected = await http_client.post(
@@ -704,10 +703,10 @@ async def test_unconfigured_onchain_wallet_is_not_scanned(onchain_wallet, monkey
 
     wallet, _, _ = onchain_wallet
     scan = AsyncMock()
-    monkeypatch.setattr(sync, "_scan", scan)
-    await sync.scan_wallet(wallet.id)
+    monkeypatch.setattr(onchain, "_scan", scan)
+    await onchain.scan_wallet(wallet.id)
     scan.assert_not_awaited()
-    state = await sync.wallet_state(OnchainAuth(wallet.id))
+    state = await onchain.get_wallet_state(wallet.id)
     assert not state["scanning"] and state["checked_at"] == 0
     assert state["error"] is None and state["snapshots"] == []
 
@@ -734,7 +733,7 @@ async def test_onchain_metadata_and_seed_survive_generic_wallet_updates(
     assert "encrypted_seed" not in response.text
     query = """SELECT onchain_encrypted_seed, onchain_meta, onchain_config,
         onchain_network FROM wallets WHERE id = :id"""
-    stored = dict(await sync.db.fetchone(query, {"id": wallet.id}))
+    stored = dict(await db.fetchone(query, {"id": wallet.id}))
     assert stored["onchain_encrypted_seed"]
     meta = json.loads(stored["onchain_meta"])
     assert meta["masterpub"] == response.json()["onchain_meta"]["masterpub"]
@@ -751,7 +750,7 @@ async def test_onchain_metadata_and_seed_survive_generic_wallet_updates(
     assert (await get_wallets_paginated(user.id)).data
     loaded.name = "Renamed onchain wallet"
     await update_wallet(loaded)
-    assert dict(await sync.db.fetchone(query, {"id": wallet.id})) == stored
+    assert dict(await db.fetchone(query, {"id": wallet.id})) == stored
     accounts = await http_client.get("/api/v1/wallet/onchain", headers=headers)
     assert accounts.status_code == 200
     assert accounts.json()["name"] == "Renamed onchain wallet"
@@ -763,7 +762,7 @@ async def test_onchain_metadata_and_seed_survive_generic_wallet_updates(
         f"/api/v1/wallet/onchain/{wallet.id}", headers=headers
     )
     assert removed.status_code == 409
-    assert dict(await sync.db.fetchone(query, {"id": wallet.id})) == stored
+    assert dict(await db.fetchone(query, {"id": wallet.id})) == stored
 
 
 @pytest.mark.anyio
@@ -772,7 +771,7 @@ async def test_onchain_scan_metadata_preserves_setup_and_newer_leases(
 ):
     wallet, _, headers = onchain_wallet
     account = await add_watch(http_client, headers)
-    original = await sync.db.fetchone(
+    original = await db.fetchone(
         "SELECT onchain_meta FROM wallets WHERE id = :id", {"id": wallet.id}
     )
     meta = json.loads(original["onchain_meta"])
@@ -782,29 +781,29 @@ async def test_onchain_scan_metadata_preserves_setup_and_newer_leases(
     meta["sync_checked_at"] = 42
     # Simulate metadata written after scan acquisition but before completion.
     meta["accountPath"] = "m/84'/1'/0'"
-    await sync.db.execute(
+    await db.execute(
         """UPDATE wallets SET onchain_sync_lease_until = 100,
         onchain_meta = :meta WHERE id = :id""",
         {"id": wallet.id, "meta": json.dumps(meta)},
     )
-    await sync.finish_scan(wallet.id, 99, None)
-    row = await sync.db.fetchone(
+    await finish_scan(wallet.id, 99, None)
+    row = await db.fetchone(
         "SELECT onchain_meta, onchain_sync_lease_until FROM wallets WHERE id = :id",
         {"id": wallet.id},
     )
     assert row["onchain_sync_lease_until"] == 100
     assert json.loads(row["onchain_meta"]) == meta
-    await sync.finish_scan(wallet.id, 100, "Explorer unavailable")
-    state = await sync.wallet_state(OnchainAuth(wallet.id))
+    await finish_scan(wallet.id, 100, "Explorer unavailable")
+    state = await onchain.get_wallet_state(wallet.id)
     assert state["checked_at"] == 42
     assert state["error"] == "Explorer unavailable"
     assert not state["scanning"]
-    await sync.db.execute(
+    await db.execute(
         "UPDATE wallets SET onchain_sync_lease_until = 101 WHERE id = :id",
         {"id": wallet.id},
     )
-    await sync.finish_scan(wallet.id, 101, None)
-    row = await sync.db.fetchone(
+    await finish_scan(wallet.id, 101, None)
+    row = await db.fetchone(
         "SELECT onchain_meta FROM wallets WHERE id = :id", {"id": wallet.id}
     )
     updated = json.loads(row["onchain_meta"])
@@ -843,7 +842,7 @@ async def test_watch_removal_clears_onchain_state_and_allows_fresh_setup(
     assert (
         await http_client.get("/api/v1/wallet/onchain", headers=headers)
     ).json() is None
-    state = await sync.wallet_state(OnchainAuth(wallet.id))
+    state = await onchain.get_wallet_state(wallet.id)
     assert state["snapshots"] == [] and state["balance_sat"] == 0
     assert not state["scanning"] and state["error"] is None
     config = stored_wallet.onchain_config
@@ -858,7 +857,7 @@ async def test_onchain_setup_does_not_prevent_permanent_deletion(
     from lnbits.core.crud.wallets import force_delete_wallet
 
     wallet, _, headers = onchain_wallet
-    execute = sync.db.execute
+    execute = db.execute
 
     async def setup_before_delete(query, values=None):
         if query.lstrip().startswith("DELETE FROM wallets"):
@@ -870,7 +869,7 @@ async def test_onchain_setup_does_not_prevent_permanent_deletion(
             assert created.status_code == 200, created.text
         return await execute(query, values)
 
-    monkeypatch.setattr(sync.db, "execute", setup_before_delete)
+    monkeypatch.setattr(db, "execute", setup_before_delete)
     await force_delete_wallet(wallet.id)
     assert await get_wallet(wallet.id, deleted=None) is None
     backup = await http_client.post(
@@ -900,7 +899,7 @@ async def test_inflight_snapshot_cannot_recreate_removed_addresses(
         MempoolExplorer,
         SimpleNamespace(history=history, utxos=AsyncMock(return_value=[coin])),
     )
-    task = asyncio.create_task(sync.scan_address(client, address))
+    task = asyncio.create_task(onchain.scan_address(client, address))
     try:
         await asyncio.wait_for(started.wait(), 2)
         removed = await http_client.delete(
@@ -910,7 +909,7 @@ async def test_inflight_snapshot_cannot_recreate_removed_addresses(
     finally:
         finish.set()
         await task
-    state = await sync.wallet_state(OnchainAuth(wallet.id))
+    state = await onchain.get_wallet_state(wallet.id)
     assert state["addresses"] == state["snapshots"] == []
     assert state["balance_sat"] == 0
 
@@ -932,7 +931,7 @@ async def test_scan_cannot_follow_reconfigured_wallet_onto_another_network(
         return httpx.Response(200, json=[])
 
     monkeypatch.setattr(
-        sync,
+        onchain,
         "explorer_client",
         lambda config, network: MempoolExplorer(
             config,
@@ -943,7 +942,7 @@ async def test_scan_cannot_follow_reconfigured_wallet_onto_another_network(
             ),
         ),
     )
-    task = asyncio.create_task(sync._scan(wallet.id))
+    task = asyncio.create_task(onchain._scan(wallet.id))
     try:
         await asyncio.wait_for(started.wait(), 2)
         removed = await http_client.delete(
@@ -961,5 +960,5 @@ async def test_scan_cannot_follow_reconfigured_wallet_onto_another_network(
         finish.set()
         await task
     assert scanned <= old_addresses
-    state = await sync.wallet_state(OnchainAuth(wallet.id))
+    state = await onchain.get_wallet_state(wallet.id)
     assert state["addresses"] and state["snapshots"] == []

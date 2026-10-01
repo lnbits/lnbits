@@ -19,9 +19,3 @@ async def static_asset(path: str):
     if not target.is_relative_to(root.resolve()) or not target.is_file():
         raise HTTPException(404)
     return FileResponse(target)
-
-
-if find_spec("wallycore") is not None:
-    from .sync import sync_router
-
-    onchain_router.include_router(sync_router)

@@ -5,23 +5,21 @@ from typing import Literal
 import pytest
 from Cryptodome.Cipher import AES
 
-from lnbits.core.models.onchain import CreatePsbt
+from lnbits.core.models.onchain import CreatePsbt, HotWalletPayment
 from lnbits.core.models.wallets import OnchainMeta, OnchainWallet
-from lnbits.onchain.bindings import wally
-from lnbits.onchain.helpers import (
+from lnbits.core.services.onchain import (
+    decrypt_wallet_mnemonic,
+    encrypt_wallet_mnemonic,
+    sign_payment,
+)
+from lnbits.utils.onchain_bindings import wally
+from lnbits.utils.onchain_descriptors import (
     descriptor_fingerprint,
     descriptor_script,
     parse_key,
     script_address,
 )
-from lnbits.onchain.hot_wallet import (
-    HotWalletPayment,
-    decrypt_mnemonic,
-    encrypt_mnemonic,
-    new_mnemonic,
-    sign_payment,
-    wallet_descriptor,
-)
+from lnbits.utils.onchain_keys import new_mnemonic, wallet_descriptor
 
 PHRASE = "abandon " * 11 + "about"
 
@@ -109,17 +107,17 @@ def test_bip84_recovery_vector():
 
 def test_encryption_is_random_authenticated_and_bound_to_wallet(monkeypatch):
     wallet, _ = wallet_and_payment()
-    first = encrypt_mnemonic(PHRASE, wallet)
-    assert first != encrypt_mnemonic(PHRASE, wallet)
+    first = encrypt_wallet_mnemonic(PHRASE, wallet)
+    assert first != encrypt_wallet_mnemonic(PHRASE, wallet)
     assert PHRASE not in first
-    assert decrypt_mnemonic(first, wallet) == PHRASE
+    assert decrypt_wallet_mnemonic(first, wallet) == PHRASE
     for field, value in [
         ("id", "other"),
         ("onchain_network", "Mainnet"),
         ("onchain_meta", wallet.onchain_meta.copy(update={"masterpub": "other"})),
     ]:
         with pytest.raises(ValueError):
-            decrypt_mnemonic(first, wallet.copy(update={field: value}))
+            decrypt_wallet_mnemonic(first, wallet.copy(update={field: value}))
     # Existing wallets used the same ID in both context positions.
     raw = bytearray(base64.b64decode(first))
     old_cipher = AES.new(bytes(range(32)), AES.MODE_GCM, nonce=bytes(raw[1:13]))
@@ -141,16 +139,16 @@ def test_encryption_is_random_authenticated_and_bound_to_wallet(monkeypatch):
     )
     raw[-1] ^= 1
     with pytest.raises(ValueError):
-        decrypt_mnemonic(base64.b64encode(raw).decode(), wallet)
+        decrypt_wallet_mnemonic(base64.b64encode(raw).decode(), wallet)
     monkeypatch.setenv("WATCHONLY_MASTER_KEY", base64.b64encode(bytes(32)).decode())
     with pytest.raises(ValueError):
-        decrypt_mnemonic(first, wallet)
+        decrypt_wallet_mnemonic(first, wallet)
 
 
 @pytest.mark.parametrize("network", ["Mainnet", "Testnet", "Testnet4"])
 def test_signs_and_finalizes_native_segwit(network):
     wallet, payment = wallet_and_payment(network)
-    result = sign_payment(wallet, encrypt_mnemonic(PHRASE, wallet), payment)
+    result = sign_payment(wallet, encrypt_wallet_mnemonic(PHRASE, wallet), payment)
     assert result.tx_hex and result.tx_json
     tx = wally.tx_from_hex(result.tx_hex, wally.WALLY_TX_FLAG_USE_WITNESS)
     assert wally.tx_get_num_inputs(tx) == 1
@@ -197,7 +195,7 @@ def test_signing_rejects_invalid_spending(attack):  # noqa: C901
     if attack == "backup":
         wallet.onchain_backup_confirmed = False
     with pytest.raises(ValueError):
-        sign_payment(wallet, encrypt_mnemonic(PHRASE, wallet), payment)
+        sign_payment(wallet, encrypt_wallet_mnemonic(PHRASE, wallet), payment)
 
 
 def test_fractional_amounts_are_not_truncated():

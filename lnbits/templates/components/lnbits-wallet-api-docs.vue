@@ -12,9 +12,9 @@
         recovery phrases.
       </p>
       <p>
-        <code>GET /onchain/api/v1/state</code><br /><code
+        <code>GET /api/v1/onchain/state</code><br /><code
           >GET /api/v1/wallet/onchain</code
-        ><br /><code>POST /onchain/api/v1/sync</code>
+        ><br /><code>POST /api/v1/onchain/sync</code>
       </p>
       <a href="/docs#/Onchain" target="_blank" rel="noopener noreferrer"
         >Onchain API documentation</a

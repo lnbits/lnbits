@@ -29,7 +29,11 @@ from lnbits.core.models.wallets import (
 )
 from lnbits.db import Connection
 from lnbits.helpers import sha256s
-from lnbits.onchain.helpers import descriptor_fingerprint, descriptor_type, parse_key
+from lnbits.utils.onchain_descriptors import (
+    descriptor_fingerprint,
+    descriptor_type,
+    parse_key,
+)
 
 
 async def invite_to_wallet(

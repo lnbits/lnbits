@@ -96,9 +96,9 @@ export phrases, sign and broadcast transactions. Keys are scoped to the LNbits
 wallet, including when a user owns several wallets.
 
 - `GET /api/v1/wallet/onchain`: list accounts.
-- `GET /onchain/api/v1/state`: cached addresses, history, coins and scan status.
-- `POST /onchain/api/v1/sync`: schedule a background update.
-- `GET /onchain/api/v1/stats/daily`: confirmed transaction statistics.
+- `GET /api/v1/onchain/state`: cached addresses, history, coins and scan status.
+- `POST /api/v1/onchain/sync`: schedule a background update.
+- `GET /api/v1/onchain/stats/daily`: confirmed transaction statistics.
 - `POST /api/v1/onchain/hot-wallet`: create/restore a server wallet. Restoration
   uses `X-Onchain-Recovery-Phrase` so phrases do not enter request-body audit logs.
 

@@ -1,11 +1,13 @@
+import json
+
 from sqlalchemy import text  # type: ignore[import-untyped]
 
 from lnbits.core.crud.wallets import get_onchain_wallet
 from lnbits.core.db import db
-from lnbits.core.models.onchain import Address
-from lnbits.db import SQLITE, model_to_dict
+from lnbits.core.models.onchain import Address, Snapshot
+from lnbits.db import SQLITE, Connection, model_to_dict
 from lnbits.helpers import urlsafe_short_hash
-from lnbits.onchain.helpers import derive_address
+from lnbits.utils.onchain_descriptors import derive_address
 
 ADDRESS_COLUMNS = ", ".join(Address.__fields__)
 MASTERPUB_SQL = (
@@ -170,3 +172,46 @@ async def update_address(address: Address) -> Address:
         {"id": address.id, "note": address.note},
     )
     return address
+
+
+async def get_address_snapshot(
+    address_id: str, conn: Connection | None = None
+) -> Snapshot | None:
+    return await (conn or db).fetchone(
+        """SELECT id AS address_id, transactions, utxos,
+            snapshot_checked_at AS checked_at
+        FROM onchain_addresses WHERE id = :id""",
+        {"id": address_id},
+        Snapshot,
+    )
+
+
+async def get_wallet_snapshots(
+    wallet_id: str, conn: Connection | None = None
+) -> list[Snapshot]:
+    return await (conn or db).fetchall(
+        """SELECT id AS address_id, transactions, utxos,
+            snapshot_checked_at AS checked_at
+        FROM onchain_addresses WHERE walet_id = :wallet AND snapshot_checked_at > 0""",
+        {"wallet": wallet_id},
+        Snapshot,
+    )
+
+
+async def update_address_snapshot(
+    snapshot: Snapshot, amount: int, conn: Connection | None = None
+) -> None:
+    # Update only: an in-flight scan must not recreate a removed address.
+    await (conn or db).execute(
+        """UPDATE onchain_addresses SET transactions = :transactions,
+            utxos = :utxos, snapshot_checked_at = :now, amount = :amount,
+            has_activity = has_activity OR :active WHERE id = :id""",
+        {
+            "id": snapshot.address_id,
+            "transactions": json.dumps(snapshot.transactions),
+            "utxos": json.dumps(snapshot.utxos),
+            "now": snapshot.checked_at,
+            "amount": amount,
+            "active": bool(snapshot.transactions),
+        },
+    )

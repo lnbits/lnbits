@@ -11,7 +11,7 @@
         ref="onchainCharts"
         :payment-filter="onchainPaymentFilter"
         :chart-config="chartConfig"
-        api-url="/onchain/api/v1/stats/daily"
+        api-url="/api/v1/onchain/stats/daily"
         :api-key="g.wallet.inkey"
       ></lnbits-wallet-charts>
     </template>
