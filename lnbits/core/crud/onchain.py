@@ -1,6 +1,6 @@
 from sqlalchemy import text  # type: ignore[import-untyped]
 
-from lnbits.core.crud.wallets_onchain import get_onchain_wallet
+from lnbits.core.crud.wallets import get_onchain_wallet
 from lnbits.core.db import db
 from lnbits.core.models.onchain import Address
 from lnbits.db import SQLITE, model_to_dict

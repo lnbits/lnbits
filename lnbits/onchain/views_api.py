@@ -10,7 +10,7 @@ from lnbits.core.crud.onchain import (
     get_fresh_address,
     update_address,
 )
-from lnbits.core.crud.wallets_onchain import (
+from lnbits.core.crud.wallets import (
     get_onchain_wallet,
     update_onchain_wallet_config,
 )

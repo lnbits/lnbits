@@ -5,7 +5,7 @@ from fastapi import APIRouter, Depends, Header, HTTPException, Response
 from pydantic import BaseModel, SecretStr
 from starlette.concurrency import run_in_threadpool
 
-from lnbits.core.crud.wallets_onchain import (
+from lnbits.core.crud.wallets import (
     WalletAlreadyConfiguredError,
     get_onchain_wallet,
     init_onchain_wallet,

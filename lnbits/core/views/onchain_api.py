@@ -3,7 +3,7 @@ from typing import Literal
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 
-from lnbits.core.crud.wallets_onchain import (
+from lnbits.core.crud.wallets import (
     WalletAlreadyConfiguredError,
     clear_onchain_wallet_data,
     get_onchain_wallet,

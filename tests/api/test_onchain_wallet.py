@@ -11,9 +11,10 @@ from pydantic import SecretStr
 from lnbits.core.crud import create_wallet, get_wallet
 from lnbits.core.crud.onchain import get_addresses
 from lnbits.core.crud.payments import create_payment
-from lnbits.core.crud.wallets import get_total_balance, get_wallets
-from lnbits.core.crud.wallets_onchain import (
+from lnbits.core.crud.wallets import (
     get_onchain_wallet,
+    get_total_balance,
+    get_wallets,
     update_onchain_wallet_config,
 )
 from lnbits.core.models import CreatePayment
@@ -523,7 +524,7 @@ async def test_onchain_wallet_deleted_filter(onchain_wallet):
 @pytest.mark.anyio
 @pytest.mark.parametrize("kind", ["watch", "hot"])
 async def test_onchain_wallet_crud_reuses_connection(onchain_wallet, kind):
-    from lnbits.core.crud.wallets_onchain import (
+    from lnbits.core.crud.wallets import (
         WalletAlreadyConfiguredError,
         clear_onchain_wallet_data,
         init_onchain_wallet,
