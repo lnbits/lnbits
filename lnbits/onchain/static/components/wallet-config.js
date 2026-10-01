@@ -72,7 +72,7 @@ window.app.component('onchain-wallet-config', {
         const {network, ...config} = this.config
         const {data} = await LNbits.api.request(
           'PUT',
-          `/onchain/api/v1/config?network=${encodeURIComponent(network)}`,
+          `/api/v1/wallet/onchain/config?network=${encodeURIComponent(network)}`,
           this.adminkey,
           config
         )
@@ -87,7 +87,7 @@ window.app.component('onchain-wallet-config', {
       try {
         const {data} = await LNbits.api.request(
           'GET',
-          '/onchain/api/v1/config',
+          '/api/v1/wallet/onchain/config',
           this.adminkey
         )
         this.config = data

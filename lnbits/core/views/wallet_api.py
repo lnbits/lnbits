@@ -17,6 +17,7 @@ from lnbits.core.crud.wallets import (
     create_wallet,
     get_onchain_wallet,
     get_wallets_paginated,
+    update_onchain_wallet_config,
 )
 from lnbits.core.models import CreateWallet, KeyType, Wallet, WalletTypeInfo
 from lnbits.core.models.lnurl import StoredPayLink, StoredPayLinks
@@ -24,7 +25,9 @@ from lnbits.core.models.misc import SimpleStatus
 from lnbits.core.models.users import Account, AccountId
 from lnbits.core.models.wallets import (
     CreateOnchainWallet,
+    OnchainConfig,
     OnchainWallet,
+    OnchainWalletConfigResponse,
     WalletsFilters,
     WalletSharePermission,
     WalletType,
@@ -54,6 +57,7 @@ from lnbits.onchain.decorators import (
     require_onchain_admin,
     require_onchain_read,
 )
+from lnbits.onchain.explorer import explorer_url, local_explorer_network, provider_name
 from lnbits.onchain.router import require_onchain_available
 from lnbits.onchain.sync import request_scan
 from lnbits.settings import settings
@@ -331,3 +335,47 @@ async def api_wallet_delete(
     except ValueError as exc:
         raise HTTPException(HTTPStatus.CONFLICT, str(exc)) from exc
     return "", HTTPStatus.NO_CONTENT
+
+
+@wallet_router.put("/onchain/config")
+async def api_update_config(
+    data: OnchainConfig,
+    network: Literal["Mainnet", "Testnet", "Testnet4"] = Query(...),
+    auth: OnchainAuth = Depends(require_onchain_admin),
+) -> OnchainWalletConfigResponse:
+    if data.explorer_provider == "lnbits" and local_explorer_network() != network:
+        raise HTTPException(
+            400, "LNbits block explorer is unavailable for this network"
+        )
+    wallet = await get_onchain_wallet(auth.wallet_id)
+    if not wallet:
+        raise HTTPException(HTTPStatus.NOT_FOUND, "Wallet does not exist.")
+    if wallet.onchain_wallet_kind and wallet.onchain_network != network:
+        raise HTTPException(
+            HTTPStatus.CONFLICT,
+            "Create another LNbits wallet to use a different Bitcoin network",
+        )
+    await update_onchain_wallet_config(data, wallet_id=auth.wallet_id, network=network)
+    request_scan(auth.wallet_id)
+    return config_response(data, network)
+
+
+@wallet_router.get("/onchain/config")
+async def api_get_config(
+    auth: OnchainAuth = Depends(require_onchain_read),
+) -> OnchainWalletConfigResponse:
+    wallet = await get_onchain_wallet(auth.wallet_id)
+    if not wallet:
+        raise HTTPException(HTTPStatus.NOT_FOUND, "Wallet does not exist.")
+    return config_response(wallet.onchain_config, wallet.onchain_network or "Mainnet")
+
+
+def config_response(config: OnchainConfig, network: str) -> OnchainWalletConfigResponse:
+    data = config.dict()
+    data["explorer_provider"] = provider_name(config, network)
+    data["network"] = network
+    return OnchainWalletConfigResponse(
+        **data,
+        lnbits_explorer_network=local_explorer_network(),
+        explorer_url=explorer_url(config, network),
+    )

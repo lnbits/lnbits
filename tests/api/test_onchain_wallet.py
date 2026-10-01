@@ -190,7 +190,7 @@ async def test_onchain_api_ownership_recovery_and_network(http_client, onchain_w
     assert all(r.status_code == 200 for r in addresses)
     assert len({r.json()["address"] for r in addresses}) == 5
     wrong_network = await http_client.put(
-        "/onchain/api/v1/config",
+        "/api/v1/wallet/onchain/config",
         headers=headers,
         params={"network": "Mainnet"},
         json={},
@@ -613,7 +613,7 @@ async def test_onchain_explorer_selection_defaults_and_persists(
     http_client, onchain_wallet, monkeypatch
 ):
     wallet, _, headers = onchain_wallet
-    path = "/onchain/api/v1/config"
+    path = "/api/v1/wallet/onchain/config"
     monkeypatch.setattr(settings, "lnbits_blockexplorer_enabled", True)
     monkeypatch.setattr(settings, "lnbits_blockexplorer_network", "test4")
     config = (await http_client.get(path, headers=headers)).json()
