@@ -1,18 +1,15 @@
-from http import HTTPStatus
-
-from fastapi import HTTPException
 from starlette.concurrency import run_in_threadpool
 
 from lnbits.core.crud.onchain import create_fresh_addresses, get_addresses
-from lnbits.core.crud.wallets import get_onchain_wallet, init_onchain_wallet_state
+from lnbits.core.crud.wallets import init_onchain_wallet_state
 from lnbits.core.models.onchain import Address
 from lnbits.core.models.wallets import CreateOnchainWallet, OnchainMeta, OnchainWallet
 from lnbits.onchain.helpers import descriptor_fingerprint, descriptor_type, parse_key
 
 
 async def init_onchain_wallet(
-    data: CreateOnchainWallet, wallet_id: str
-) -> OnchainWallet:
+    data: CreateOnchainWallet, wallet: OnchainWallet
+) -> OnchainWallet | None:
     descriptor, network = await run_in_threadpool(parse_key, data.masterpub)
     assert network
     signing_network = "Testnet" if data.network == "Testnet4" else data.network
@@ -21,13 +18,10 @@ async def init_onchain_wallet(
             "Account network error.  This account is for '{}'".format(network["name"])
         )
 
-    new_wallet = await get_onchain_wallet(wallet_id)
-    if not new_wallet:
-        raise HTTPException(HTTPStatus.NOT_FOUND, "Wallet does not exist.")
-    new_wallet.name = data.title
-    new_wallet.onchain_network = data.network
-    new_wallet.onchain_wallet_kind = "watch"
-    new_wallet.onchain_meta = OnchainMeta(
+    wallet.name = data.title
+    wallet.onchain_network = data.network
+    wallet.onchain_wallet_kind = "watch"
+    wallet.onchain_meta = OnchainMeta(
         accountPath=data.meta.accountPath,
         xpub=data.meta.xpub,
         masterpub=data.masterpub,
@@ -35,11 +29,7 @@ async def init_onchain_wallet(
         script_type=descriptor_type(descriptor),
     )
 
-    wallet = await init_onchain_wallet_state(new_wallet)
-    if not wallet or not wallet.onchain_wallet_kind:
-        raise HTTPException(HTTPStatus.NOT_FOUND, "Wallet does not exist.")
-    await get_wallet_addresses(wallet)
-    return wallet
+    return await init_onchain_wallet_state(wallet)
 
 
 async def get_wallet_addresses(wallet: OnchainWallet) -> list[Address]:
