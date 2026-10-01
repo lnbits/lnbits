@@ -201,7 +201,7 @@ async function main() {
               return {
                 data: {mnemonic: Array(23).fill('abandon').join(' ') + ' art'}
               }
-            if (path.includes('/wallet?'))
+            if (path.startsWith('/api/v1/wallet/onchain?'))
               return {data: fixtureWallets[0] ? {...fixtureWallets[0]} : null}
             if (path.includes('/addresses/'))
               return {

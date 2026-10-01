@@ -174,7 +174,7 @@ window.app.component('onchain-wallet-list', {
         data.meta = meta
         const response = await LNbits.api.request(
           'POST',
-          '/api/v1/onchain/wallet',
+          '/api/v1/wallet/onchain',
           this.adminkey,
           data
         )
@@ -209,7 +209,7 @@ window.app.component('onchain-wallet-list', {
           try {
             await LNbits.api.request(
               'DELETE',
-              '/api/v1/onchain/wallet/' + walletAccountId,
+              '/api/v1/wallet/onchain/' + walletAccountId,
               this.adminkey
             )
             this.walletAccounts = _.reject(this.walletAccounts, function (obj) {
@@ -230,7 +230,7 @@ window.app.component('onchain-wallet-list', {
       try {
         const {data} = await LNbits.api.request(
           'GET',
-          `/api/v1/onchain/wallet?network=${network}`,
+          `/api/v1/wallet/onchain?network=${network}`,
           this.inkey
         )
         return data ? [data] : []
