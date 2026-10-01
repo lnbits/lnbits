@@ -2,6 +2,7 @@ from sqlalchemy import text  # type: ignore[import-untyped]
 
 from lnbits.core.db import db
 from lnbits.core.models.wallets import OnchainConfig, OnchainWallet
+from lnbits.db import Connection
 
 
 class WalletAlreadyConfiguredError(ValueError):
@@ -46,14 +47,19 @@ async def init_onchain_wallet(
     return configured
 
 
-async def get_onchain_wallet(wallet_id: str) -> OnchainWallet | None:
-    return await db.fetchone(
-        """
+async def get_onchain_wallet(
+    wallet_id: str, deleted: bool | None = False, conn: Connection | None = None
+) -> OnchainWallet | None:
+    query = """
         SELECT *, COALESCE((SELECT balance FROM balances
             WHERE wallet_id = wallets.id), 0) AS balance_msat
         FROM wallets WHERE id = :id AND wallet_type = 'onchain'
-        """,
-        {"id": wallet_id},
+        """
+    if deleted is not None:
+        query += " AND deleted = :deleted "
+    return await (conn or db).fetchone(
+        query,
+        {"id": wallet_id, "deleted": deleted},
         OnchainWallet,
     )
 

@@ -491,6 +491,32 @@ async def test_onchain_signing_preflight_rejects_spent_coin(
 
 
 @pytest.mark.anyio
+async def test_onchain_wallet_deleted_filter(onchain_wallet):
+    from lnbits.core.crud.wallets import delete_wallet
+
+    wallet, user, _ = onchain_wallet
+    active = await get_onchain_wallet(wallet.id)
+    assert active and not active.deleted
+    assert await get_onchain_wallet(wallet.id, deleted=True) is None
+    assert await get_onchain_wallet(wallet.id, deleted=None) == active
+
+    await delete_wallet(user.id, wallet.id)
+    assert await get_onchain_wallet(wallet.id) is None
+    deleted = await get_onchain_wallet(wallet.id, deleted=True)
+    assert deleted and deleted.deleted
+    assert await get_onchain_wallet(wallet.id, deleted=None) == deleted
+
+    async with sync.db.connect() as conn:
+        assert (
+            await asyncio.wait_for(get_onchain_wallet(wallet.id, True, conn), 5)
+            == deleted
+        )
+        assert (
+            await asyncio.wait_for(get_onchain_wallet(wallet.id, conn=conn), 5) is None
+        )
+
+
+@pytest.mark.anyio
 @pytest.mark.parametrize("cleanup", ["force", "deleted", "unused"])
 async def test_onchain_permanent_cleanup_allows_deletion(
     http_client, onchain_wallet, cleanup
