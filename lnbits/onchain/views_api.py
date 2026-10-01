@@ -23,7 +23,7 @@ from lnbits.core.models.onchain import (
     SignedTransaction,
 )
 from lnbits.core.models.wallets import OnchainConfig, OnchainWalletConfigResponse
-from lnbits.core.services.wallets_onchain import get_wallet_addresses
+from lnbits.core.services.wallets import get_wallet_addresses
 from lnbits.settings import settings
 
 from .bindings import wally

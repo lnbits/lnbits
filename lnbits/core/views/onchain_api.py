@@ -9,7 +9,7 @@ from lnbits.core.crud.wallets import (
     get_onchain_wallet,
 )
 from lnbits.core.models.wallets import CreateOnchainWallet, OnchainWallet
-from lnbits.core.services.wallets_onchain import (
+from lnbits.core.services.wallets import (
     get_wallet_addresses,
     init_onchain_wallet,
 )

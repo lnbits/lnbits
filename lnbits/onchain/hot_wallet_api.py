@@ -14,7 +14,7 @@ from lnbits.core.crud.wallets import (
 from lnbits.core.db import db
 from lnbits.core.models.wallets import OnchainMeta, OnchainWallet
 from lnbits.core.services.onchain import require_onchain_payments
-from lnbits.core.services.wallets_onchain import get_wallet_addresses
+from lnbits.core.services.wallets import get_wallet_addresses
 from lnbits.settings import settings
 
 from .decorators import OnchainAuth, require_onchain_admin

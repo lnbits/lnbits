@@ -14,7 +14,7 @@ from lnbits.core.crud.onchain import get_addresses
 from lnbits.core.crud.wallets import get_onchain_wallet
 from lnbits.core.db import db
 from lnbits.core.models.wallets import OnchainMeta
-from lnbits.core.services.wallets_onchain import get_wallet_addresses
+from lnbits.core.services.wallets import get_wallet_addresses
 from lnbits.db import SQLITE
 from lnbits.task_manager import task_manager
 
