@@ -280,7 +280,7 @@ window.app.component('onchain-wallet-list', {
     openGetFreshAddressDialog: async function (walletId) {
       const {data} = await LNbits.api.request(
         'GET',
-        `/onchain/api/v1/address/${walletId}`,
+        `/api/v1/onchain/address/${walletId}`,
         this.inkey
       )
       const addressData = mapAddressesData(data)

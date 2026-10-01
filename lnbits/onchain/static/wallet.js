@@ -327,7 +327,7 @@ export default {
         const wallet = this.g.wallet
         await LNbits.api.request(
           'PUT',
-          `/onchain/api/v1/address/${addressId}`,
+          `/api/v1/onchain/address/${addressId}`,
           wallet.adminkey,
           {note}
         )
@@ -574,7 +574,7 @@ export default {
       try {
         const {data} = await LNbits.api.request(
           'GET',
-          '/onchain/api/v1/addresses/' + walletId,
+          '/api/v1/onchain/addresses/' + walletId,
           this.g.wallet.inkey
         )
         return data.map(mapAddressesData)

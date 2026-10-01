@@ -248,7 +248,7 @@ window.app.component('onchain-payment', {
 
         const {data} = await LNbits.api.request(
           'POST',
-          '/onchain/api/v1/psbt',
+          '/api/v1/onchain/psbt',
           this.adminkey,
           this.tx
         )
@@ -386,7 +386,7 @@ window.app.component('onchain-payment', {
 
       const {data: psbtUtxos} = await LNbits.api.request(
         'PUT',
-        '/onchain/api/v1/psbt/utxos',
+        '/api/v1/onchain/psbt/utxos',
         this.adminkey,
         {psbtBase64}
       )
@@ -409,7 +409,7 @@ window.app.component('onchain-payment', {
 
         const {data} = await LNbits.api.request(
           'PUT',
-          '/onchain/api/v1/psbt/extract',
+          '/api/v1/onchain/psbt/extract',
           this.adminkey,
           {
             psbtBase64,
@@ -433,7 +433,7 @@ window.app.component('onchain-payment', {
       try {
         const {data} = await LNbits.api.request(
           'PUT',
-          '/onchain/api/v1/tx/extract',
+          '/api/v1/onchain/tx/extract',
           this.adminkey,
           {
             tx_hex: txHex,
@@ -457,7 +457,7 @@ window.app.component('onchain-payment', {
       try {
         const {data} = await LNbits.api.request(
           'POST',
-          '/onchain/api/v1/tx',
+          '/api/v1/onchain/tx',
           this.adminkey,
           {tx_hex: this.signedTxHex, network: this.network}
         )

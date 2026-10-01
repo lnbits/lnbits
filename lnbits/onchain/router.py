@@ -24,8 +24,6 @@ async def static_asset(path: str):
 if find_spec("wallycore") is not None:
     from .hot_wallet_api import hot_wallet_router
     from .sync import sync_router
-    from .views_api import onchain_api_router
 
-    onchain_router.include_router(onchain_api_router)
     onchain_router.include_router(hot_wallet_router)
     onchain_router.include_router(sync_router)

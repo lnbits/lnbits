@@ -21,8 +21,8 @@ from lnbits.core.models import CreatePayment
 from lnbits.core.models.wallets import WalletType
 from lnbits.core.services import create_user_account, update_wallet_balance
 from lnbits.core.services import onchain as keys
-from lnbits.core.views import wallet_api
-from lnbits.onchain import hot_wallet_api, sync, views_api
+from lnbits.core.views import onchain_api, wallet_api
+from lnbits.onchain import hot_wallet_api, sync
 from lnbits.onchain.decorators import OnchainAuth
 from lnbits.onchain.explorer import MempoolExplorer, mempool_url
 from lnbits.onchain.hot_wallet import wallet_descriptor
@@ -58,7 +58,7 @@ async def onchain_wallet(http_client, monkeypatch, tmp_path):
 
     monkeypatch.setattr(keys, "get_settings_field", confirmed_key)
     monkeypatch.setattr(hot_wallet_api, "request_scan", lambda _wallet: None)
-    monkeypatch.setattr(views_api, "request_scan", lambda _wallet: None)
+    monkeypatch.setattr(onchain_api, "request_scan", lambda _wallet: None)
     monkeypatch.setattr(wallet_api, "request_scan", lambda _wallet: None)
     return wallet, user, {"X-API-KEY": wallet.adminkey}
 
@@ -141,7 +141,7 @@ async def test_onchain_api_ownership_recovery_and_network(http_client, onchain_w
     assert unconfigured.status_code == 200
     assert unconfigured.json() is None
     addresses = await http_client.get(
-        f"/onchain/api/v1/addresses/{wallet.id}", headers=headers
+        f"/api/v1/onchain/addresses/{wallet.id}", headers=headers
     )
     assert addresses.status_code == 404
     for endpoint in ("/api/v1/wallet/onchain", "/onchain/api/v1/hot-wallet"):
@@ -176,7 +176,7 @@ async def test_onchain_api_ownership_recovery_and_network(http_client, onchain_w
     assert export.status_code == 200
     assert export.headers["cache-control"] == "no-store"
     assert len(export.json()["mnemonic"].split()) == 24
-    receive = f"/onchain/api/v1/address/{account_id}"
+    receive = f"/api/v1/onchain/address/{account_id}"
     assert (await http_client.get(receive, headers=headers)).status_code == 409
     assert (
         await http_client.post(path + "/confirm", headers=headers)
@@ -197,7 +197,7 @@ async def test_onchain_api_ownership_recovery_and_network(http_client, onchain_w
     )
     assert wrong_network.status_code == 409
     foreign = await http_client.get(
-        f"/onchain/api/v1/addresses/{account_id}", headers={"X-API-KEY": other.inkey}
+        f"/api/v1/onchain/addresses/{account_id}", headers={"X-API-KEY": other.inkey}
     )
     assert foreign.status_code == 404
     unowned = await http_client.get(
@@ -212,7 +212,7 @@ async def test_onchain_api_ownership_recovery_and_network(http_client, onchain_w
     assert wrong_network.json() is None
     address = addresses[0].json()
     forged = await http_client.put(
-        f"/onchain/api/v1/address/{address['id']}",
+        f"/api/v1/onchain/address/{address['id']}",
         headers=headers,
         json={"amount": 99999999},
     )
@@ -680,7 +680,7 @@ async def test_onchain_local_explorer_used_for_fees_raw_tx_and_broadcast(
     )
     assert raw.status_code == 200 and raw.json() == "deadbeef"
     rejected = await http_client.post(
-        "/onchain/api/v1/tx",
+        "/api/v1/onchain/tx",
         headers=headers,
         json={"tx_hex": "deadbeef", "network": "Mainnet"},
     )
@@ -690,7 +690,7 @@ async def test_onchain_local_explorer_used_for_fees_raw_tx_and_broadcast(
     )
     client.broadcast.assert_not_awaited()
     broadcast = await http_client.post(
-        "/onchain/api/v1/tx",
+        "/api/v1/onchain/tx",
         headers=headers,
         json={"tx_hex": "deadbeef", "network": "Testnet4"},
     )

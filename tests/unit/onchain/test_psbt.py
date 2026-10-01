@@ -10,7 +10,7 @@ from httpx import ASGITransport, AsyncClient
 from starlette.requests import Request
 
 from lnbits.core.models.onchain import CreatePsbt, ExtractPsbt, ExtractTx
-from lnbits.onchain import views_api
+from lnbits.core.views import onchain_api
 from lnbits.onchain.bindings import wally
 from lnbits.onchain.decorators import OnchainAuth
 from lnbits.onchain.helpers import (
@@ -37,8 +37,8 @@ def psbt_api_app():
         return None
 
     app = FastAPI()
-    app.include_router(views_api.onchain_api_router, prefix="/watchonly")
-    app.dependency_overrides[views_api.require_onchain_admin] = authenticated
+    app.include_router(onchain_api.onchain__router)
+    app.dependency_overrides[onchain_api.require_onchain_admin] = authenticated
     return app
 
 
@@ -54,7 +54,7 @@ async def test_extract_http_accepts_browser_and_python_field_names(
         transport=ASGITransport(app=psbt_api_app), base_url="http://test"
     ) as client:
         response = await client.put(
-            "/watchonly/api/v1/psbt/extract",
+            "/api/v1/onchain/psbt/extract",
             json={
                 field: vector["signed"],
                 "inputs": [{"tx_hex": vector["data"]["inputs"][0]["tx_hex"]}],
@@ -73,7 +73,7 @@ async def test_extract_http_rejects_missing_or_empty_psbt(psbt_api_app, payload)
         transport=ASGITransport(app=psbt_api_app), base_url="http://test"
     ) as client:
         response = await client.put(
-            "/watchonly/api/v1/psbt/extract", json={**payload, "inputs": []}
+            "/api/v1/onchain/psbt/extract", json={**payload, "inputs": []}
         )
     assert response.status_code == 422
 
@@ -150,7 +150,7 @@ async def test_extract_rejects_different_reviewed_transaction(psbt_api_app, muta
         transport=ASGITransport(app=psbt_api_app), base_url="http://test"
     ) as client:
         response = await client.put(
-            "/watchonly/api/v1/psbt/extract",
+            "/api/v1/onchain/psbt/extract",
             json={
                 "psbtBase64": vector["signed"],
                 "expectedPsbtBase64": wally.psbt_to_base64(altered, 0),
@@ -268,10 +268,10 @@ def test_compact_segwit_psbt_stays_below_bowser_transfer_limit():
 @pytest.mark.parametrize("network", ["Mainnet", "Testnet", "Testnet4"])
 async def test_psbt_api_create_and_extract(kind, network):
     root, _, data = signing_data(kind, "main" if network == "Mainnet" else "test")
-    encoded = await views_api.api_psbt_create(data, _auth=OnchainAuth("test"))
+    encoded = await onchain_api.api_psbt_create(data, _auth=OnchainAuth("test"))
     psbt = wally.psbt_from_base64(encoded, 0)
     wally.psbt_sign_bip32(psbt, root, 0)
-    result = await views_api.api_psbt_extract_tx(
+    result = await onchain_api.api_psbt_extract_tx(
         ExtractPsbt.parse_obj(
             {
                 "psbt_base64": wally.psbt_to_base64(psbt, 0),
@@ -293,12 +293,12 @@ async def test_psbt_api_create_and_extract(kind, network):
     assert details["outputs"] == [
         {"amount": out.amount, "address": out.address} for out in data.outputs
     ]
-    raw = await views_api.api_extract_tx(
+    raw = await onchain_api.api_extract_tx(
         ExtractTx(tx_hex=result.tx_hex, network=network), _auth=OnchainAuth("test")
     )
     assert raw["tx_json"] == {k: v for k, v in details.items() if k != "fee"}
     request = SimpleNamespace(json=AsyncMock(return_value={"psbtBase64": encoded}))
-    assert await views_api.api_psbt_utxos_tx(
+    assert await onchain_api.api_psbt_utxos_tx(
         cast(Request, request), _auth=OnchainAuth("test")
     ) == [{"tx_id": data.inputs[0].tx_id, "vout": 0}]
 
@@ -308,7 +308,7 @@ async def test_extract_rejects_unrelated_previous_transaction():
     vector = signing_vector()
     wrong = signing_vector("pkh")["data"]["inputs"][0]["tx_hex"]
     with pytest.raises(HTTPException, match="outpoint"):
-        await views_api.api_psbt_extract_tx(
+        await onchain_api.api_psbt_extract_tx(
             ExtractPsbt.parse_obj(
                 {"psbt_base64": vector["signed"], "inputs": [{"tx_hex": wrong}]}
             ),

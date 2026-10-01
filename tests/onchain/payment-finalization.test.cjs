@@ -79,7 +79,7 @@ test('signed PSBT posts the browser payload and opens only the finalized transac
   payment.tx = {inputs: [{tx_hex: 'previous-tx'}]}
   payment.psbtBase64 = 'unsigned-psbt'
   await payment.updateSignedPsbt('signed-psbt')
-  assert.equal(calls[0][1], '/onchain/api/v1/psbt/extract')
+  assert.equal(calls[0][1], '/api/v1/onchain/psbt/extract')
   assert.equal(calls[0][3].psbtBase64, 'signed-psbt')
   assert.equal(calls[0][3].expectedPsbtBase64, 'unsigned-psbt')
   assert.equal(calls[0][3].inputs[0].tx_hex, 'previous-tx')
@@ -216,7 +216,7 @@ test('broadcast waits for finalization and still accepts native Trezor transacti
   const calls = []
   const {instance: payment, events} = harness(async (...args) => {
     calls.push(args)
-    if (args[1] === '/onchain/api/v1/tx/extract')
+    if (args[1] === '/api/v1/onchain/tx/extract')
       return {data: {tx_json: {outputs: []}}}
     return {data: 'txid'}
   })
