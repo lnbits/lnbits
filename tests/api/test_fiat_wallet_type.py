@@ -404,6 +404,7 @@ async def test_fiat_balances_excluded_from_user_and_server_totals(client, mocker
         filters=[Filter.parse_query("id", [account.id], AccountFilters)],
     )
     initial_total = await get_total_balance()
+    initial_fiat_total = await get_total_balance(fiat=True)
     await create_payment(
         checking_id=f"internal_{uuid4().hex}",
         data=CreatePayment(
@@ -428,6 +429,7 @@ async def test_fiat_balances_excluded_from_user_and_server_totals(client, mocker
     cash = Payment.parse_obj(response.json())
     assert cash.is_internal and cash.success
     assert await get_total_balance() == initial_total + 10000
+    assert await get_total_balance(fiat=True) == initial_fiat_total + cash.amount
     accounts = await get_accounts(filters=filters)
     assert accounts.total == 1
     assert accounts.data[0].balance_msat == 10000
@@ -447,6 +449,9 @@ async def test_fiat_balances_excluded_from_user_and_server_totals(client, mocker
     assert accounts.data[0].balance_msat == 0
     assert accounts.data[0].wallet_count == 2
     assert accounts.data[0].transaction_count == 2
+
+    await delete_wallet(account.id, fiat.id)
+    assert await get_total_balance(fiat=True) == initial_fiat_total
 
 
 @pytest.mark.parametrize("value,expected", [("true", True), ("false", False)])

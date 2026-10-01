@@ -4,6 +4,7 @@ import pytest
 from httpx import AsyncClient
 
 from lnbits.core.crud.settings import get_settings_field, set_settings_field
+from lnbits.core.models import BalanceDelta
 from lnbits.server import server_restart
 from lnbits.settings import DEFAULT_WASM_MANIFESTS, Settings
 
@@ -63,8 +64,12 @@ async def test_admin_audit_monitor_and_test_email(
     mocker.patch(
         "lnbits.core.views.admin_api.get_balance_delta",
         mocker.AsyncMock(
-            return_value={"lnbits_balance_sats": 21, "node_balance_sats": 13}
+            return_value=BalanceDelta(lnbits_balance_sats=21, node_balance_sats=13)
         ),
+    )
+    fiat_balance = mocker.patch(
+        "lnbits.core.views.admin_api.get_total_balance",
+        mocker.AsyncMock(return_value=1234567),
     )
     mocker.patch(
         "lnbits.core.views.admin_api.send_email_notification",
@@ -77,6 +82,8 @@ async def test_admin_audit_monitor_and_test_email(
     )
     assert audit.status_code == 200
     assert audit.json()["lnbits_balance_sats"] == 21
+    assert audit.json()["lnbits_fiat_balance_sats"] == 1234
+    fiat_balance.assert_awaited_once_with(fiat=True)
 
     monitor = await client.get(
         "/admin/api/v1/monitor",
