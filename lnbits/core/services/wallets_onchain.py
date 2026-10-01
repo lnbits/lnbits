@@ -3,7 +3,6 @@ from http import HTTPStatus
 from fastapi import HTTPException
 from starlette.concurrency import run_in_threadpool
 
-from lnbits.core.crud import wallets_onchain as wallets_onchain_crud
 from lnbits.core.crud.onchain import create_fresh_addresses, get_addresses
 from lnbits.core.crud.wallets_onchain import get_onchain_wallet
 from lnbits.core.crud.wallets_onchain import (
@@ -42,22 +41,6 @@ async def init_onchain_wallet(
     wallet = await init_onchain_wallet_crud(new_wallet)
     await get_wallet_addresses(wallet.id)
     return wallet
-
-
-async def clear_onchain_wallet_data(wallet_id: str) -> None:
-    wallet = await get_onchain_wallet(wallet_id)
-    if not wallet or not wallet.onchain_wallet_kind:
-        raise HTTPException(HTTPStatus.NOT_FOUND, "Wallet does not exist.")
-    if wallet.onchain_wallet_kind == "hot":
-        raise HTTPException(
-            HTTPStatus.CONFLICT,
-            "Server wallets cannot be deleted while they hold signing keys."
-            " Keep the wallet for recovery and transaction history.",
-        )
-    try:
-        await wallets_onchain_crud.clear_onchain_wallet_data(wallet_id)
-    except ValueError as exc:
-        raise HTTPException(HTTPStatus.CONFLICT, str(exc)) from exc
 
 
 async def ensure_network(wallet_id: str, network: str) -> None:

@@ -5,11 +5,11 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 
 from lnbits.core.crud.wallets_onchain import (
     WalletAlreadyConfiguredError,
+    clear_onchain_wallet_data,
     get_onchain_wallet,
 )
 from lnbits.core.models.wallets import CreateOnchainWallet, OnchainWallet
 from lnbits.core.services.wallets_onchain import (
-    clear_onchain_wallet_data,
     ensure_network,
     init_onchain_wallet,
 )
@@ -61,5 +61,17 @@ async def api_wallet_delete(
 ):
     if wallet_id != auth.wallet_id:
         raise HTTPException(HTTPStatus.NOT_FOUND, "Wallet does not exist.")
-    await clear_onchain_wallet_data(wallet_id)
+    wallet = await get_onchain_wallet(wallet_id)
+    if not wallet or not wallet.onchain_wallet_kind:
+        raise HTTPException(HTTPStatus.NOT_FOUND, "Wallet does not exist.")
+    if wallet.onchain_wallet_kind == "hot":
+        raise HTTPException(
+            HTTPStatus.CONFLICT,
+            "Server wallets cannot be deleted while they hold signing keys."
+            " Keep the wallet for recovery and transaction history.",
+        )
+    try:
+        await clear_onchain_wallet_data(wallet_id)
+    except ValueError as exc:
+        raise HTTPException(HTTPStatus.CONFLICT, str(exc)) from exc
     return "", HTTPStatus.NO_CONTENT
