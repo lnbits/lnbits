@@ -411,7 +411,9 @@ async def test_onchain_core_creation_currency_and_read_balance(
     assert wallet["onchain_network"] == "Testnet4"
     assert wallet["extra"]["icon"] == "currency_bitcoin"
     assert wallet["lightning_address"] is None
-    assert (await get_wallet(wallet["id"])).onchain_network == "Testnet4"
+    stored_wallet = await get_wallet(wallet["id"])
+    assert stored_wallet is not None
+    assert stored_wallet.onchain_network == "Testnet4"
     headers = {"X-API-KEY": wallet["adminkey"]}
     changed = await http_client.patch(
         "/api/v1/wallet", headers=headers, json={"currency": "EUR", "pinned": True}
@@ -419,7 +421,9 @@ async def test_onchain_core_creation_currency_and_read_balance(
     assert changed.status_code == 200
     assert changed.json()["currency"] == "EUR"
     assert changed.json()["extra"]["pinned"]
-    assert (await get_wallet(wallet["id"])).onchain_network == "Testnet4"
+    stored_wallet = await get_wallet(wallet["id"])
+    assert stored_wallet is not None
+    assert stored_wallet.onchain_network == "Testnet4"
     assert (
         await http_client.get("/api/v1/wallet", headers={"X-API-KEY": wallet["inkey"]})
     ).json()["balance"] == 0
