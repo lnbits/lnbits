@@ -17,8 +17,10 @@ from lnbits.core.crud import (
     get_account_by_username,
     get_payment,
     get_user,
+    update_account,
     update_payment,
 )
+from lnbits.core.helpers import migrate_databases
 from lnbits.core.models import Account, CreateInvoice, PaymentState, User
 from lnbits.core.models.users import UpdateSuperuserPassword
 from lnbits.core.services import create_user_account, update_wallet_balance
@@ -64,6 +66,14 @@ def anyio_backend():
     return "asyncio"
 
 
+@pytest.fixture(scope="session", autouse=True)
+async def initialized_core_database(anyio_backend):
+    # Keep pooled PostgreSQL connections on one loop and initialize fresh test DBs.
+    if DB_TYPE != SQLITE:
+        await migrate_databases()
+    yield
+
+
 @pytest.fixture(scope="session")
 def settings():
     # override settings for tests
@@ -91,15 +101,22 @@ def run_before_and_after_tests(settings: Settings):
 async def app(settings: Settings):
     app = create_app()
     async with LifespanManager(app, startup_timeout=30) as manager:
-        settings.first_install = True
-        await first_install(
-            UpdateSuperuserPassword(
-                username="superadmin",
-                password="secret1234",
-                password_repeat="secret1234",
-                first_install_token=settings.first_install_token,
+        account = await get_account_by_username("superadmin", active_only=False)
+        if account:
+            settings.super_user = account.id
+            account.hash_password("secret1234")
+            await update_account(account)
+            settings.first_install = False
+        else:
+            settings.first_install = True
+            await first_install(
+                UpdateSuperuserPassword(
+                    username="superadmin",
+                    password="secret1234",
+                    password_repeat="secret1234",
+                    first_install_token=settings.first_install_token,
+                )
             )
-        )
 
         yield manager.app
 

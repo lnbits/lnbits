@@ -110,7 +110,13 @@
         'extension_permission_warning_wallet_payments_watch'
       )
     }
-    if (['websocket.publish', 'websocket.subscribe'].includes(permission.id)) {
+    if (
+      [
+        'websocket.authoritative',
+        'websocket.publish',
+        'websocket.subscribe'
+      ].includes(permission.id)
+    ) {
       return mediumRisk(translateFn)
     }
     if (
@@ -147,6 +153,7 @@
       'http.request',
       'ui.camera.scan_qr',
       'websocket',
+      'websocket.authoritative',
       'websocket.publish',
       'websocket.subscribe',
       'ext.storage.read',

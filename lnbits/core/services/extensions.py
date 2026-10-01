@@ -62,11 +62,13 @@ class WasmInvocationHandle:
     runtime_limits: dict[str, int] | None = None
     stop_requested: bool = False
     stop_reason: str | None = None
+    persistent_audit: bool = True
 
 
 _wasm_invocation_lock = RLock()
 _wasm_invocation_ready_lock = asyncio.Lock()
 _wasm_invocation_handles: dict[str, WasmInvocationHandle] = {}
+_ephemeral_invocation_audit_counts: dict[str, dict[str, int]] = {}
 _wasm_invocations_marked_stale = False
 _wasm_invocations_last_cleanup_at: datetime | None = None
 
@@ -180,7 +182,31 @@ async def update_wasm_extension_runtime_limits(
         ext_id=ext_id,
         limits=validated_limits,
     )
+    await invalidate_wasm_ephemeral_authoritative_extension(ext_id)
     return validated_limits
+
+
+async def invalidate_wasm_ephemeral_authoritative_extension(ext_id: str) -> None:
+    from lnbits.core.wasm_ext.api.authoritative_channels import (
+        invalidate_ephemeral_authoritative_extension,
+    )
+    from lnbits.core.wasm_ext.api.ephemeral_broker import invalidate
+    from lnbits.core.wasm_ext.api.websockets import wasm_extension_websocket_hub
+    from lnbits.core.wasm_ext.wasm.loader import load_wasm_extension_config
+
+    registered = core_app_extra.wasm_extension_registry.get(ext_id)
+    config = registered.config if registered else load_wasm_extension_config(ext_id)
+    channel = config.authoritative_channel if config else None
+    if channel and channel.persistence == "ephemeral":
+        await invalidate(ext_id)
+    invalidate_ephemeral_authoritative_extension(ext_id)
+    await stop_wasm_extension_invocations(
+        ext_id,
+        reason="Authoritative channel policy changed.",
+        ephemeral_only=True,
+    )
+    await wasm_extension_websocket_hub.close_ephemeral_extension(ext_id)
+    _ephemeral_invocation_audit_counts.pop(ext_id, None)
 
 
 async def install_extension(
@@ -234,6 +260,8 @@ async def install_extension(
         await update_installed_extension(ext_info)
 
     if installed_ext:
+        if installed_ext.is_wasm:
+            await invalidate_wasm_ephemeral_authoritative_extension(ext_info.id)
         await stop_extension_background_work(ext_info.id)
 
     return Extension.from_installable_ext(ext_info)
@@ -284,8 +312,10 @@ async def start_wasm_invocation(
     request_bytes: int | None = None,
     context: dict | None = None,
     runtime_limits: dict[str, int] | None = None,
+    persist: bool = True,
 ) -> WasmInvocation:
-    await ensure_wasm_invocation_monitoring_ready()
+    if persist:
+        await ensure_wasm_invocation_monitoring_ready()
     _check_wasm_invocation_concurrency(
         extension_id=extension_id,
         user_id=user_id,
@@ -308,12 +338,14 @@ async def start_wasm_invocation(
         request_bytes=request_bytes,
         context=_safe_wasm_invocation_context(context or {}),
     )
-    await create_wasm_invocation(invocation)
+    if persist:
+        await create_wasm_invocation(invocation)
 
     with _wasm_invocation_lock:
         _wasm_invocation_handles[invocation.id] = WasmInvocationHandle(
             invocation,
             runtime_limits=runtime_limits,
+            persistent_audit=persist,
         )
 
     return invocation
@@ -374,6 +406,9 @@ async def stop_wasm_invocation(
             handle.invocation.stop_reason = reason
             interrupted = _interrupt_wasm_invocation(handle)
 
+    if handle and not handle.persistent_audit:
+        return interrupted
+
     invocation = await get_wasm_invocation(invocation_id)
     if invocation and invocation.status == "running":
         invocation.stop_reason = reason
@@ -386,12 +421,14 @@ async def stop_wasm_extension_invocations(
     extension_id: str,
     *,
     reason: str = "Extension deactivated.",
+    ephemeral_only: bool = False,
 ) -> int:
     with _wasm_invocation_lock:
         invocation_ids = [
             invocation_id
             for invocation_id, handle in _wasm_invocation_handles.items()
             if handle.invocation.extension_id == extension_id
+            and (not ephemeral_only or not handle.persistent_audit)
         ]
 
     for invocation_id in invocation_ids:
@@ -447,7 +484,20 @@ async def finish_wasm_invocation(
     invocation.error_type = error_type
     invocation.error_message = _safe_wasm_error_message(error_message)
     invocation.stop_reason = reason
-
+    if handle and not handle.persistent_audit:
+        if settings.lnbits_wasm_runtime_ephemeral_aggregate_audit:
+            counts = _ephemeral_invocation_audit_counts.setdefault(
+                invocation.extension_id, {}
+            )
+            counts[status] = counts.get(status, 0) + 1
+            total = sum(counts.values())
+            if total % 100 == 0:
+                logger.info(
+                    "WASM ephemeral invocation aggregate for '{}': {}",
+                    invocation.extension_id,
+                    counts,
+                )
+        return
     await update_wasm_invocation(invocation)
 
 
@@ -638,6 +688,8 @@ def _now() -> datetime:
 
 async def uninstall_extension(ext_id: str):
     await stop_extension_background_work(ext_id)
+    if is_wasm_extension_id(ext_id):
+        await invalidate_wasm_ephemeral_authoritative_extension(ext_id)
     core_app_extra.unregister_wasm_ext_routes(ext_id)
 
     settings.deactivate_extension_paths(ext_id)
@@ -664,6 +716,7 @@ async def activate_extension(ext: Extension):
 
 async def deactivate_extension(ext_id: str):
     if is_wasm_extension_id(ext_id):
+        await invalidate_wasm_ephemeral_authoritative_extension(ext_id)
         await stop_wasm_extension_invocations(ext_id, reason="Extension deactivated.")
     settings.deactivate_extension_paths(ext_id)
     await update_installed_extension_state(ext_id=ext_id, active=False)

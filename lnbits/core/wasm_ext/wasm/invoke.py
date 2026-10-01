@@ -3,8 +3,10 @@ from __future__ import annotations
 import asyncio
 import json
 from collections.abc import Mapping
+from contextlib import suppress
 from typing import Any
 
+from loguru import logger
 from wasmtime import Store, WasiConfig, component
 
 from lnbits.core.crud.extensions import get_installed_extension
@@ -19,9 +21,16 @@ from .loader import WasmExtension
 
 _WASM_EPOCH_DEADLINE_TICKS = 1_000_000_000
 _WASM_UNLIMITED_FUEL = 2**63 - 1
+_wasm_invocation_cleanup_tasks: set[asyncio.Task[None]] = set()
 
 
-async def invoke_wasm_extension_export(
+def _discard_invocation_cleanup_task(task: asyncio.Task[None]) -> None:
+    _wasm_invocation_cleanup_tasks.discard(task)
+    if not task.cancelled() and (error := task.exception()):
+        logger.warning(f"WASM invocation cleanup failed ({error.__class__.__name__}).")
+
+
+async def invoke_wasm_extension_export(  # noqa: C901
     ext_id: str,
     export_name: str,
     payload: Mapping[str, Any] | None = None,
@@ -40,6 +49,10 @@ async def invoke_wasm_extension_export(
     checking_id: str | None = None,
     request_bytes: int | None = None,
     context_data: dict | None = None,
+    authoritative_execution: bool = False,
+    preauthorized_permissions: list[Any] | None = None,
+    runtime_limits: dict[str, int] | None = None,
+    ephemeral_authoritative_execution: bool = False,
 ) -> dict[str, Any]:
     from lnbits.core.services.extensions import (
         finish_wasm_invocation,
@@ -50,10 +63,36 @@ async def invoke_wasm_extension_export(
         wasm_invocation_stop_requested,
     )
 
+    if settings.lnbits_extensions_deactivate_all:
+        raise PermissionError(f"WASM extension '{ext_id}' is deactivated.")
     extension = _get_registered_extension(ext_id)
-    installed_extension = await _active_installed_extension(extension)
-    permissions = installed_extension.permissions
-    limits = resolve_wasm_runtime_limits(installed_extension)
+    from lnbits.core.wasm_ext.api.ephemeral_broker import check_owner
+
+    if preauthorized_permissions is None:
+        installed_extension = await _active_installed_extension(extension)
+        permissions = installed_extension.permissions
+        limits = resolve_wasm_runtime_limits(installed_extension)
+    else:
+        if runtime_limits is None:
+            raise PermissionError("Ephemeral invocation is not authorized.")
+        permissions = preauthorized_permissions
+        limits = runtime_limits
+    if preauthorized_permissions is not None or ephemeral_authoritative_execution:
+        channel = extension.config.authoritative_channel
+        if (
+            not channel
+            or channel.persistence != "ephemeral"
+            or not check_owner(extension.id)
+        ):
+            if preauthorized_permissions is not None:
+                raise PermissionError("Ephemeral invocation is not authorized.")
+            raise PermissionError(
+                "Ephemeral authoritative invocation is not authorized."
+            )
+        if not authoritative_execution:
+            raise PermissionError(
+                "Ephemeral authoritative invocation is not authorized."
+            )
     payload = payload or {}
     payload_size = _json_size(payload)
     effective_request_bytes = (
@@ -75,6 +114,7 @@ async def invoke_wasm_extension_export(
         request_bytes=effective_request_bytes,
         context={"host_context": context, **(context_data or {})},
         runtime_limits=limits,
+        persist=preauthorized_permissions is None,
     )
     api = ExtensionHostAPI(
         extension.id,
@@ -85,6 +125,10 @@ async def invoke_wasm_extension_export(
         owner_id=owner_id,
         invocation_id=invocation.id,
         runtime_limits=limits,
+        authoritative_execution=authoritative_execution,
+        ephemeral_authoritative_execution=(
+            ephemeral_authoritative_execution or preauthorized_permissions is not None
+        ),
     )
     event_loop = asyncio.get_running_loop()
     thread_task = asyncio.create_task(
@@ -149,6 +193,30 @@ async def invoke_wasm_extension_export(
         )
         finished = True
         return result
+    except asyncio.CancelledError:
+        if not finished:
+            stop_reason = "WASM invocation was cancelled."
+
+            async def cleanup_cancelled_invocation() -> None:
+                try:
+                    await stop_wasm_invocation(invocation.id, reason=stop_reason)
+                    with suppress(Exception):
+                        await asyncio.wait_for(asyncio.shield(thread_task), timeout=2)
+                finally:
+                    await finish_wasm_invocation(
+                        invocation.id,
+                        status="stopped",
+                        error_type="CancelledError",
+                        error_message=stop_reason,
+                        stop_reason=get_wasm_invocation_stop_reason(invocation.id)
+                        or stop_reason,
+                    )
+
+            cleanup_task = asyncio.create_task(cleanup_cancelled_invocation())
+            _wasm_invocation_cleanup_tasks.add(cleanup_task)
+            cleanup_task.add_done_callback(_discard_invocation_cleanup_task)
+            await asyncio.shield(cleanup_task)
+        raise
     except Exception as exc:
         if not finished:
             await finish_wasm_invocation(
