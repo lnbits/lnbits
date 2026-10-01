@@ -452,7 +452,7 @@ export default {
         const accounts = new Map(this.walletAccounts.map(w => [w.id, w]))
         this.addresses = data.addresses.map(a => ({
           ...mapAddressesData(a),
-          accountType: accounts.get(a.wallet)?.onchain_meta.script_type
+          accountType: accounts.get(a.walet_id)?.onchain_meta.script_type
         }))
         const snapshots = new Map(data.snapshots.map(s => [s.address_id, s]))
         const history = []

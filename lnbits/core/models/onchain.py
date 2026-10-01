@@ -8,7 +8,7 @@ from pydantic import BaseModel, Field
 class Address(BaseModel):
     id: str
     address: str
-    wallet: str
+    walet_id: str
     amount: int = 0
     branch_index: int = 0
     address_index: int

@@ -74,21 +74,17 @@ async def test_onchain_schema_uses_wallets_and_addresses(
             foreign_keys = await conn.fetchall(
                 "PRAGMA foreign_key_list(onchain_addresses)"
             )
-            assert any(
-                key["table"] == "wallets"
-                and key["from"] == "wallet"
-                and key["to"] == "id"
-                for key in foreign_keys
-            )
+            assert not foreign_keys
             await conn.execute(
                 "INSERT INTO wallets (id, wallet_type) VALUES ('onchain', 'onchain')"
             )
             await conn.execute("""
                 INSERT INTO onchain_addresses
-                    (id, wallet, address, branch_index, address_index)
+                    (id, walet_id, address, branch_index, address_index)
                 VALUES ('address', 'onchain', 'test-address', 0, 0)
             """)
             address = await conn.fetchone("SELECT * FROM onchain_addresses")
+            assert address["walet_id"] == "onchain"
             assert address["transactions"] == "[]"
             assert address["utxos"] == "[]"
             assert address["snapshot_checked_at"] == 0

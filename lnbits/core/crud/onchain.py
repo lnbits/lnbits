@@ -29,17 +29,19 @@ async def get_fresh_address(wallet_id: str) -> Address | None:
             UPDATE wallets SET onchain_address_no =
                 CASE WHEN onchain_address_no < COALESCE((
                     SELECT MAX(address_index) FROM onchain_addresses
-                    WHERE wallet = :wallet AND branch_index = 0 AND has_activity = true
+                    WHERE walet_id = :walet_id
+                        AND branch_index = 0 AND has_activity = true
                 ), -1) THEN (
                     SELECT MAX(address_index) FROM onchain_addresses
-                    WHERE wallet = :wallet AND branch_index = 0 AND has_activity = true
+                    WHERE walet_id = :walet_id
+                        AND branch_index = 0 AND has_activity = true
                 ) + 1 ELSE onchain_address_no + 1 END
-            WHERE id = :wallet AND wallet_type = 'onchain'
+            WHERE id = :walet_id AND wallet_type = 'onchain'
                 AND onchain_wallet_kind IS NOT NULL
                 AND {MASTERPUB_SQL} = :masterpub
             RETURNING onchain_address_no AS address_no
         """),  # noqa: S608
-            {"wallet": wallet_id, "masterpub": wallet.onchain_meta.masterpub},
+            {"walet_id": wallet_id, "masterpub": wallet.onchain_meta.masterpub},
         )
         row = result.mappings().first()
         await conn.conn.commit()
@@ -78,7 +80,7 @@ async def create_fresh_addresses(
         addr = Address(
             id=urlsafe_short_hash(),
             address=address,
-            wallet=wallet_id,
+            walet_id=wallet_id,
             branch_index=branch_index,
             address_index=address_index,
         )
@@ -87,12 +89,12 @@ async def create_fresh_addresses(
             await conn.conn.execute(
                 text(f"""
                     INSERT INTO onchain_addresses ({ADDRESS_COLUMNS})
-                    SELECT :id, :address, :wallet, :amount, :branch_index,
+                    SELECT :id, :address, :walet_id, :amount, :branch_index,
                         :address_index, :note, :has_activity
-                    FROM wallets WHERE id = :wallet AND wallet_type = 'onchain'
+                    FROM wallets WHERE id = :walet_id AND wallet_type = 'onchain'
                         AND onchain_wallet_kind IS NOT NULL
                         AND {MASTERPUB_SQL} = :masterpub
-                    ON CONFLICT(wallet, branch_index, address_index) DO NOTHING
+                    ON CONFLICT(walet_id, branch_index, address_index) DO NOTHING
                 """),  # noqa: S608
                 {**model_to_dict(addr), "masterpub": wallet.onchain_meta.masterpub},
             )
@@ -101,14 +103,14 @@ async def create_fresh_addresses(
     # return fresh addresses
     return await db.fetchall(
         f"""
-            SELECT {ADDRESS_COLUMNS} FROM onchain_addresses WHERE wallet = :wallet
+            SELECT {ADDRESS_COLUMNS} FROM onchain_addresses WHERE walet_id = :walet_id
             AND branch_index = :branch_index
             AND address_index >= :start_address_index
             AND address_index < :end_address_index
             ORDER BY branch_index, address_index
         """,  # noqa: S608
         {
-            "wallet": wallet_id,
+            "walet_id": wallet_id,
             "branch_index": branch_index,
             "start_address_index": start_address_index,
             "end_address_index": end_address_index,
@@ -139,11 +141,11 @@ async def get_address_at_index(
     return await db.fetchone(
         f"""
             SELECT {ADDRESS_COLUMNS} FROM onchain_addresses
-            WHERE wallet = :wallet AND branch_index = :branch_index
+            WHERE walet_id = :walet_id AND branch_index = :branch_index
             AND address_index = :address_index
         """,  # noqa: S608
         {
-            "wallet": wallet_id,
+            "walet_id": wallet_id,
             "branch_index": branch_index,
             "address_index": address_index,
         },
@@ -154,10 +156,10 @@ async def get_address_at_index(
 async def get_addresses(wallet_id: str) -> list[Address]:
     return await db.fetchall(
         f"""
-        SELECT {ADDRESS_COLUMNS} FROM onchain_addresses WHERE wallet = :wallet
+        SELECT {ADDRESS_COLUMNS} FROM onchain_addresses WHERE walet_id = :walet_id
         ORDER BY branch_index, address_index
         """,  # noqa: S608
-        {"wallet": wallet_id},
+        {"walet_id": wallet_id},
         Address,
     )
 

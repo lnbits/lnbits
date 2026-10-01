@@ -218,7 +218,7 @@ async def wallet_state(auth: OnchainAuth = Depends(require_onchain_read)):
     snapshots = await db.fetchall(
         """
         SELECT id AS address_id, transactions, utxos, snapshot_checked_at AS checked_at
-        FROM onchain_addresses WHERE wallet = :wallet AND snapshot_checked_at > 0
+        FROM onchain_addresses WHERE walet_id = :wallet AND snapshot_checked_at > 0
     """,
         {"wallet": auth.wallet_id},
         Snapshot,

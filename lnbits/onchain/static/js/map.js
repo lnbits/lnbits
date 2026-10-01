@@ -3,7 +3,7 @@ export const mapAddressesData = a => ({
   id: a.id,
   address: a.address,
   amount: a.amount,
-  wallet: a.wallet,
+  wallet: a.walet_id,
   note: a.note,
 
   isChange: a.branch_index === 1,

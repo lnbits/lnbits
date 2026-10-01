@@ -463,7 +463,7 @@ async def clear_onchain_wallet_data(
     if result.rowcount != 1:
         raise ValueError("Onchain wallet cannot be removed")
     await (conn or db).execute(
-        "DELETE FROM onchain_addresses WHERE wallet = :id",
+        "DELETE FROM onchain_addresses WHERE walet_id = :id",
         {"id": wallet_id},
     )
 

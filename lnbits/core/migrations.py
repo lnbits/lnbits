@@ -924,7 +924,7 @@ async def m052_core_onchain_wallets(db: Connection):
     await db.execute(f"""
         CREATE TABLE onchain_addresses (
             id TEXT PRIMARY KEY,
-            wallet TEXT NOT NULL REFERENCES wallets(id),
+            walet_id TEXT NOT NULL,
             address TEXT NOT NULL,
             amount {db.big_int} NOT NULL DEFAULT 0,
             branch_index INTEGER NOT NULL,
@@ -934,7 +934,7 @@ async def m052_core_onchain_wallets(db: Connection):
             transactions TEXT NOT NULL DEFAULT '[]',
             utxos TEXT NOT NULL DEFAULT '[]',
             snapshot_checked_at BIGINT NOT NULL DEFAULT 0,
-            UNIQUE(wallet, branch_index, address_index)
+            UNIQUE(walet_id, branch_index, address_index)
         )
     """)
 
@@ -961,10 +961,10 @@ async def m053_balances_view_include_onchain(db: Connection):
         SELECT wallets.id AS wallet_id, SUM(coins.amount) * 1000 AS balance
         FROM wallets
         INNER JOIN (
-            SELECT wallet, address, MAX(amount) AS amount
+            SELECT walet_id, address, MAX(amount) AS amount
             FROM onchain_addresses
-            GROUP BY wallet, address
-        ) coins ON coins.wallet = wallets.id
+            GROUP BY walet_id, address
+        ) coins ON coins.walet_id = wallets.id
         WHERE wallets.wallet_type = 'onchain'
         AND (wallets.deleted = false OR wallets.deleted is NULL)
         GROUP BY wallets.id

@@ -74,12 +74,12 @@ async def api_update_address(
     auth: OnchainAuth = Depends(require_onchain_admin),
 ):
     address = await get_address_by_id(address_id)
-    if not address or address.wallet != auth.wallet_id:
+    if not address or address.walet_id != auth.wallet_id:
         raise HTTPException(
             status_code=HTTPStatus.NOT_FOUND, detail="Address does not exist."
         )
 
-    wallet = await get_onchain_wallet(address.wallet)
+    wallet = await get_onchain_wallet(address.walet_id)
     if not wallet or not wallet.onchain_wallet_kind:
         raise HTTPException(HTTPStatus.NOT_FOUND, "Wallet does not exist.")
 

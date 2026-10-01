@@ -168,7 +168,7 @@ async function main() {
               fixtureAddresses.push(
                 {
                   id: wallet.id + '-receive',
-                  wallet: wallet.id,
+                  walet_id: wallet.id,
                   address:
                     wallet.id === 'hot1'
                       ? 'tb1qtestreceive'
@@ -180,7 +180,7 @@ async function main() {
                 },
                 {
                   id: wallet.id + '-change',
-                  wallet: wallet.id,
+                  walet_id: wallet.id,
                   address:
                     wallet.id === 'hot1'
                       ? 'tb1qtestchange'
@@ -206,7 +206,7 @@ async function main() {
             if (path.includes('/addresses/'))
               return {
                 data: fixtureAddresses
-                  .filter(a => path.endsWith('/' + a.wallet))
+                  .filter(a => path.endsWith('/' + a.walet_id))
                   .map(a => ({...a}))
               }
             if (path.includes('/address/') && method === 'GET')
