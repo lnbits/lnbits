@@ -37,7 +37,8 @@ async def init_onchain_wallet(
         },
     )
     if result.rowcount != 1:
-        if await get_onchain_wallet(wallet.id):
+        existing = await get_onchain_wallet(wallet.id)
+        if existing and existing.onchain_wallet_kind:
             raise WalletAlreadyConfiguredError()
         raise ValueError("Onchain wallet is unavailable for setup")
     configured = await get_onchain_wallet(wallet.id)
@@ -45,17 +46,14 @@ async def init_onchain_wallet(
     return configured
 
 
-async def get_onchain_wallet(
-    wallet_id: str, *, include_unconfigured: bool = False
-) -> OnchainWallet | None:
+async def get_onchain_wallet(wallet_id: str) -> OnchainWallet | None:
     return await db.fetchone(
         """
         SELECT *, COALESCE((SELECT balance FROM balances
             WHERE wallet_id = wallets.id), 0) AS balance_msat
         FROM wallets WHERE id = :id AND wallet_type = 'onchain'
-            AND (:include_unconfigured = true OR onchain_wallet_kind IS NOT NULL)
         """,
-        {"id": wallet_id, "include_unconfigured": include_unconfigured},
+        {"id": wallet_id},
         OnchainWallet,
     )
 

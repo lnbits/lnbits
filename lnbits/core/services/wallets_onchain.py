@@ -60,10 +60,12 @@ async def clear_onchain_wallet_data(wallet_id: str, auth_wallet_id: str) -> None
 async def get_onchain_wallet(
     wallet_id: str, auth_wallet_id: str, *, include_unconfigured: bool = False
 ) -> OnchainWallet:
-    wallet = await wallets_onchain_crud.get_onchain_wallet(
-        wallet_id, include_unconfigured=include_unconfigured
-    )
-    if not wallet or wallet.id != auth_wallet_id:
+    wallet = await wallets_onchain_crud.get_onchain_wallet(wallet_id)
+    if (
+        not wallet
+        or wallet.id != auth_wallet_id
+        or (not include_unconfigured and not wallet.onchain_wallet_kind)
+    ):
         raise HTTPException(
             status_code=HTTPStatus.NOT_FOUND, detail="Wallet does not exist."
         )

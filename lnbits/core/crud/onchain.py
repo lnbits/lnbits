@@ -19,7 +19,7 @@ async def get_fresh_address(wallet_id: str) -> Address | None:
     # todo: move logic to views_api after satspay refactoring
     wallet = await get_onchain_wallet(wallet_id)
 
-    if not wallet:
+    if not wallet or not wallet.onchain_wallet_kind:
         return None
 
     # Atomically reserve an index across concurrent browsers/workers.
@@ -64,7 +64,7 @@ async def create_fresh_addresses(
         return []
 
     wallet = await get_onchain_wallet(wallet_id)
-    if not wallet:
+    if not wallet or not wallet.onchain_wallet_kind:
         return []
 
     branch_index = 1 if change_address else 0

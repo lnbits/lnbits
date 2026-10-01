@@ -92,7 +92,7 @@ async def scan_address(client: Explorer, address) -> None:
 
 async def _scan(wallet_id: str) -> None:
     wallet = await get_onchain_wallet(wallet_id)
-    if not wallet:
+    if not wallet or not wallet.onchain_wallet_kind:
         return
     async with explorer_client(
         wallet.onchain_config, wallet.onchain_network or "Mainnet"
@@ -103,6 +103,7 @@ async def _scan(wallet_id: str) -> None:
             current = await get_onchain_wallet(wallet_id)
             if (
                 not current
+                or not current.onchain_wallet_kind
                 or current.onchain_meta.masterpub != wallet.onchain_meta.masterpub
                 or current.onchain_network != wallet.onchain_network
             ):
@@ -211,7 +212,9 @@ async def start_sync(auth: OnchainAuth = Depends(require_onchain_admin)):
 @sync_router.get("/api/v1/state")
 async def wallet_state(auth: OnchainAuth = Depends(require_onchain_read)):
     wallet = await get_onchain_wallet(auth.wallet_id)
-    addresses = await get_addresses(wallet.id) if wallet else []
+    addresses = (
+        await get_addresses(wallet.id) if wallet and wallet.onchain_wallet_kind else []
+    )
     snapshots = await db.fetchall(
         """
         SELECT id AS address_id, transactions, utxos, snapshot_checked_at AS checked_at
@@ -301,7 +304,7 @@ async def daily_stats(auth: OnchainAuth = Depends(require_onchain_read)):
 
 @sync_router.get("/api/v1/fees")
 async def fee_estimates(auth: OnchainAuth = Depends(require_onchain_read)):
-    wallet = await get_onchain_wallet(auth.wallet_id, include_unconfigured=True)
+    wallet = await get_onchain_wallet(auth.wallet_id)
     if not wallet:
         raise HTTPException(404, "Onchain wallet not found")
     try:
@@ -319,7 +322,7 @@ async def previous_transaction(
 ):
     if not TXID.fullmatch(tx_id):
         raise HTTPException(400, "Invalid transaction ID")
-    wallet = await get_onchain_wallet(auth.wallet_id, include_unconfigured=True)
+    wallet = await get_onchain_wallet(auth.wallet_id)
     if not wallet:
         raise HTTPException(404, "Onchain wallet not found")
     try:

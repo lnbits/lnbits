@@ -34,7 +34,7 @@ PHRASE = "abandon " * 11 + "about"
 async def onchain_wallet(http_client, monkeypatch, tmp_path):
     user = await create_user_account()
     wallet = await create_wallet(user_id=user.id, wallet_type=WalletType.ONCHAIN)
-    stored_wallet = await get_onchain_wallet(wallet.id, include_unconfigured=True)
+    stored_wallet = await get_onchain_wallet(wallet.id)
     assert stored_wallet
     config = stored_wallet.onchain_config
     await update_onchain_wallet_config(config, wallet.id, network="Testnet4")
@@ -124,7 +124,7 @@ async def test_one_bitcoin_wallet_per_core_wallet(http_client, onchain_wallet, k
 
     # Another core wallet can be configured independently.
     other = await create_wallet(user_id=user.id, wallet_type=WalletType.ONCHAIN)
-    stored_wallet = await get_onchain_wallet(other.id, include_unconfigured=True)
+    stored_wallet = await get_onchain_wallet(other.id)
     assert stored_wallet
     config = stored_wallet.onchain_config
     await update_onchain_wallet_config(config, other.id, network="Testnet4")
@@ -134,6 +134,15 @@ async def test_one_bitcoin_wallet_per_core_wallet(http_client, onchain_wallet, k
 @pytest.mark.anyio
 async def test_onchain_api_ownership_recovery_and_network(http_client, onchain_wallet):
     wallet, user, headers = onchain_wallet
+    stored_wallet = await get_onchain_wallet(wallet.id)
+    assert stored_wallet and stored_wallet.onchain_wallet_kind is None
+    unconfigured = await http_client.get("/onchain/api/v1/wallet", headers=headers)
+    assert unconfigured.status_code == 200
+    assert unconfigured.json() is None
+    addresses = await http_client.get(
+        f"/onchain/api/v1/addresses/{wallet.id}", headers=headers
+    )
+    assert addresses.status_code == 404
     response = await http_client.post(
         "/onchain/api/v1/hot-wallet",
         headers=headers,
@@ -346,7 +355,7 @@ async def test_onchain_scan_lease_does_not_block_wallet_creation(
         other = await asyncio.wait_for(
             create_wallet(user_id=user.id, wallet_type=WalletType.ONCHAIN), 5
         )
-        stored_wallet = await get_onchain_wallet(other.id, include_unconfigured=True)
+        stored_wallet = await get_onchain_wallet(other.id)
         assert stored_wallet
         config = stored_wallet.onchain_config
         await update_onchain_wallet_config(config, other.id, network="Testnet4")
@@ -550,7 +559,7 @@ async def test_onchain_explorer_selection_defaults_and_persists(
     assert loaded["explorer_url"] == "https://example.com/testnet4"
     assert loaded["mempool_endpoint"] == "https://example.com/testnet4"
     # An explicit user choice stays selected even when LNbits is available.
-    stored_wallet = await get_onchain_wallet(wallet.id, include_unconfigured=True)
+    stored_wallet = await get_onchain_wallet(wallet.id)
     assert stored_wallet
     assert stored_wallet.onchain_config.explorer_provider == "mempool"
     config["explorer_provider"] = "lnbits"
@@ -719,7 +728,7 @@ async def test_watch_removal_clears_onchain_state_and_allows_fresh_setup(
     from lnbits.core.models.wallets import OnchainConfig
 
     wallet, _, headers = onchain_wallet
-    stored_wallet = await get_onchain_wallet(wallet.id, include_unconfigured=True)
+    stored_wallet = await get_onchain_wallet(wallet.id)
     assert stored_wallet
     config = stored_wallet.onchain_config
     config.sats_denominated = False
@@ -735,7 +744,7 @@ async def test_watch_removal_clears_onchain_state_and_allows_fresh_setup(
     assert removed.status_code < 300
     assert await get_wallet(wallet.id)
     assert await get_addresses(wallet.id) == []
-    stored_wallet = await get_onchain_wallet(wallet.id, include_unconfigured=True)
+    stored_wallet = await get_onchain_wallet(wallet.id)
     assert stored_wallet
     assert stored_wallet.onchain_config == OnchainConfig()
     assert (

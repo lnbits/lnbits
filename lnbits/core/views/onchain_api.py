@@ -29,7 +29,9 @@ async def api_wallets_retrieve(
     auth: OnchainAuth = Depends(require_onchain_read),
 ) -> OnchainWallet | None:
     wallet = await get_onchain_wallet(auth.wallet_id)
-    if wallet and network and wallet.onchain_network != network:
+    if not wallet or not wallet.onchain_wallet_kind:
+        return None
+    if network and wallet.onchain_network != network:
         return None
     return wallet
 
