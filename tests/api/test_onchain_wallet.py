@@ -596,6 +596,7 @@ async def test_onchain_permanent_cleanup_allows_deletion(
         )
         await delete_unused_wallets(60)
     assert await get_wallet(wallet.id, deleted=None) is None
+    assert await get_addresses(wallet.id) == []
 
 
 @pytest.mark.anyio

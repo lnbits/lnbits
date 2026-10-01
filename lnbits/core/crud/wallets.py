@@ -132,15 +132,15 @@ async def delete_unused_wallets(
 ) -> None:
     delta = int(time()) - time_delta
     await (conn or db).execute(
-        """
+        f"""
         DELETE FROM wallets
         WHERE (
             SELECT COUNT(*) FROM apipayments WHERE wallet_id = wallets.id
         ) = 0 AND (
-            (updated_at is null AND created_at < :delta)
-            OR updated_at < :delta
+            (updated_at is null AND created_at < {db.timestamp_placeholder('delta')})
+            OR updated_at < {db.timestamp_placeholder('delta')}
         )
-        """,
+        """,  # noqa: S608
         {"delta": delta},
     )
 
@@ -478,7 +478,7 @@ async def update_onchain_wallet_config(
         """UPDATE wallets SET onchain_config = :config,
             onchain_network = COALESCE(:network, onchain_network, 'Mainnet')
         WHERE id = :id AND wallet_type = 'onchain'
-            AND (onchain_wallet_kind IS NULL OR :network IS NULL
+            AND (onchain_wallet_kind IS NULL OR CAST(:network AS TEXT) IS NULL
                 OR onchain_network = :network)""",
         {
             "id": wallet_id,
