@@ -26,8 +26,17 @@
             ></li>
             <li
               v-text="
-                $t('lnbits_balance', {
+                $t('lnbits_lightning_balance', {
                   balance: (auditData.lnbits_balance_sats || 0).toLocaleString()
+                })
+              "
+            ></li>
+            <li
+              v-text="
+                $t('lnbits_fiat_balance', {
+                  balance: (
+                    auditData.lnbits_fiat_balance_sats || 0
+                  ).toLocaleString()
                 })
               "
             ></li>
