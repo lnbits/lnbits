@@ -2,13 +2,21 @@ window.app.component('lnbits-wallet-new', {
   template: '#lnbits-wallet-new',
   data() {
     return {
-      wallet: {name: '', sharedWalletId: ''},
+      wallet: {name: '', sharedWalletId: '', currency: null},
       showNewWalletDialog: false
     }
   },
   watch: {
     'g.newWalletType'(val) {
       if (val === null) return
+      if (val === 'fiat') {
+        const defaultCurrency = this.g.settings.defaultAccountingCurrency
+        this.wallet.currency = this.currencyOptions.includes(defaultCurrency)
+          ? defaultCurrency
+          : this.currencyOptions[0]
+      } else {
+        this.wallet.currency = null
+      }
       this.showNewWalletDialog = true
     },
     showNewWalletDialog(val) {
@@ -44,6 +52,20 @@ window.app.component('lnbits-wallet-new', {
     isLightningShared() {
       return this.g.newWalletType === 'lightning-shared'
     },
+    isFiat() {
+      return this.g.newWalletType === 'fiat'
+    },
+    currencyOptions() {
+      const usedCurrencies = new Set(
+        this.g.user.wallets
+          .filter(wallet => wallet.walletType === 'fiat')
+          .map(wallet => wallet.currency)
+      )
+      const currencies = this.g.allowedCurrencies.length
+        ? this.g.allowedCurrencies
+        : this.g.currencies
+      return currencies.filter(currency => !usedCurrencies.has(currency))
+    },
     inviteWalletOptions() {
       return (this.g.user?.extra?.wallet_invite_requests || []).map(i => ({
         label: `${i.to_wallet_name} (from ${i.from_user_name})`,
@@ -55,7 +77,7 @@ window.app.component('lnbits-wallet-new', {
     reset() {
       this.showNewWalletDialog = false
       this.g.newWalletType = null
-      this.wallet = {name: '', sharedWalletId: ''}
+      this.wallet = {name: '', sharedWalletId: '', currency: null}
     },
     async submitRejectWalletInvitation() {
       try {
@@ -105,7 +127,8 @@ window.app.component('lnbits-wallet-new', {
       }
       LNbits.api
         .createWallet(data.name, this.g.newWalletType, {
-          shared_wallet_id: data.sharedWalletId
+          shared_wallet_id: data.sharedWalletId,
+          currency: data.currency
         })
         .then(res => {
           this.$q.notify({

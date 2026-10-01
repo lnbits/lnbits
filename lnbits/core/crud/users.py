@@ -12,6 +12,7 @@ from lnbits.core.crud.wallets import (
 )
 from lnbits.core.db import db
 from lnbits.core.models import UserAcls
+from lnbits.core.models.users import TwoFactorConfig
 from lnbits.db import Connection, Filters, Page
 from lnbits.helpers import sha256s
 from lnbits.settings import settings
@@ -299,3 +300,22 @@ def clear_user_cache(user: User):
         cache.pop(user_cache_key)
     for wallet in user.wallets:
         clear_wallet_cache(wallet)
+
+
+async def get_two_factor_config(
+    user_id: str, conn: Connection | None = None
+) -> TwoFactorConfig:
+    row: dict | None = await (conn or db).fetchone(
+        "SELECT two_factor FROM accounts WHERE id = :id", {"id": user_id}
+    )
+    if not row:
+        raise ValueError("Account not found.")
+    raw = row["two_factor"]
+    return TwoFactorConfig.parse_raw(raw) if raw else TwoFactorConfig()
+
+
+async def save_two_factor_config(user_id: str, config: TwoFactorConfig) -> None:
+    await db.execute(
+        "UPDATE accounts SET two_factor = :value WHERE id = :id",
+        {"id": user_id, "value": config.json()},
+    )
