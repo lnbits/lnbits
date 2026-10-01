@@ -902,3 +902,7 @@ async def m050_add_lightning_address_to_wallets(db: Connection):
         CREATE UNIQUE INDEX IF NOT EXISTS idx_wallets_lightning_address
         ON wallets (lightning_address);
         """)
+
+
+async def m051_add_two_factor_to_accounts(db: Connection):
+    await db.execute("ALTER TABLE accounts ADD COLUMN two_factor TEXT")

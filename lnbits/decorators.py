@@ -31,6 +31,7 @@ from lnbits.core.models import (
 )
 from lnbits.core.models.users import AccountId, EndpointAccess
 from lnbits.core.models.wallets import BaseWallet, BaseWalletTypeInfo
+from lnbits.core.services.two_factor import check_two_factor_session
 from lnbits.db import Connection, Filter, Filters, TFilterModel
 from lnbits.helpers import normalize_path, path_segments, sha256s
 from lnbits.settings import AuthMethods, settings
@@ -257,6 +258,9 @@ async def check_account_id_exists(
                         r["method"],
                         conn=conn,
                     )
+                await check_two_factor_session(
+                    account_id.id, payload, r["path"], r["method"], conn
+                )
                 r.scope["user_id"] = account_id.id
                 await _check_user_access(r, account_id.id, conn=conn)
                 return account_id
@@ -315,6 +319,11 @@ async def _check_account_exists(
         if not account:
             raise HTTPException(HTTPStatus.UNAUTHORIZED, "User not found.")
 
+        if not access_token:
+            await check_two_factor_session(
+                account.id, None, r["path"], r["method"], new_conn
+            )
+
         r.scope["user_id"] = account.id
         await _check_user_access(r, account.id, conn=new_conn)
 
@@ -340,11 +349,12 @@ async def optional_user_id(
     access_token: Annotated[str | None, Depends(check_access_token)],
     usr: UUID4 | None = None,
 ) -> str | None:
-    if usr and settings.is_auth_method_allowed(AuthMethods.user_id_only):
-        return usr.hex
     if access_token:
         account = await _get_account_from_token(access_token, r["path"], r["method"])
         return account.id if account else None
+    if usr and settings.is_auth_method_allowed(AuthMethods.user_id_only):
+        account = await _check_account_exists(r, None, usr)
+        return account.id
 
     return None
 
@@ -542,6 +552,8 @@ async def _get_account_from_jwt_payload(
         await _check_account_api_access(
             account.id, payload.api_token_id, path, method, conn=conn
         )
+
+    await check_two_factor_session(account.id, payload, path, method, conn)
 
     return account
 

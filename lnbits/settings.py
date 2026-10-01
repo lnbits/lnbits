@@ -986,6 +986,18 @@ class OidcAuthSettings(LNbitsSettings):
     oidc_client_custom_icon: str | None = Field(default=None)
 
 
+class TwoFactorSettings(LNbitsSettings):
+    lnbits_two_factor_enabled: bool = Field(default=False)
+    lnbits_two_factor_methods: list[str] = Field(default=["totp"])
+    lnbits_two_factor_mandatory: bool = Field(default=False)
+
+    @validator("lnbits_two_factor_methods")
+    def validate_two_factor_methods(cls, methods: list[str]) -> list[str]:
+        if any(method != "totp" for method in methods):
+            raise ValueError("Only TOTP is supported.")
+        return list(dict.fromkeys(methods))
+
+
 class AuditSettings(LNbitsSettings):
     lnbits_audit_enabled: bool = Field(default=True)
 
@@ -1090,6 +1102,7 @@ class EditableSettings(
     NodeUISettings,
     BlockExplorerSettings,
     AuditSettings,
+    TwoFactorSettings,
     AuthSettings,
     NostrAuthSettings,
     GoogleAuthSettings,
@@ -1145,6 +1158,8 @@ class EnvSettings(LNbitsSettings):
     lnbits_extensions_path: str = Field(default="lnbits")
     super_user: str = Field(default="")
     auth_secret_key: str = Field(default="")
+    # Generated and persisted as .lnbits_totp_key when unset.
+    totp_encryption_key: str = Field(default="")
     version: str = Field(default="0.0.0")
     user_agent: str = Field(default="")
     enable_log_to_file: bool = Field(default=True)
@@ -1182,6 +1197,20 @@ class EnvSettings(LNbitsSettings):
         self.auth_secret_key = uuid4().hex
         with open(auth_key_file, "w+") as file:
             file.write(self.auth_secret_key)
+
+    def check_totp_encryption_key(self):
+        if self.totp_encryption_key:
+            return
+        if not os.path.isdir(settings.lnbits_data_folder):
+            os.mkdir(settings.lnbits_data_folder)
+        totp_key_file = Path(settings.lnbits_data_folder, ".lnbits_totp_key")
+        if totp_key_file.is_file():
+            with open(totp_key_file) as file:
+                self.totp_encryption_key = file.readline()
+            return
+        self.totp_encryption_key = uuid4().hex
+        with open(totp_key_file, "w+") as file:
+            file.write(self.totp_encryption_key)
 
 
 class PersistenceSettings(LNbitsSettings):
@@ -1539,6 +1568,7 @@ settings.lnbits_path = str(path.dirname(path.realpath(__file__)))
 settings.version = importlib.metadata.version("lnbits")
 
 settings.check_auth_secret_key()
+settings.check_totp_encryption_key()
 
 if not settings.user_agent:
     settings.user_agent = f"LNbits/{settings.version}"
@@ -1546,7 +1576,9 @@ if not settings.user_agent:
 # printing environment variable for debugging
 if not settings.lnbits_admin_ui:
     logger.debug("Environment Settings:")
-    for key, value in settings.dict(exclude_none=True).items():
+    for key, value in settings.dict(
+        exclude_none=True, exclude={"auth_secret_key", "totp_encryption_key"}
+    ).items():
         logger.debug(f"{key}: {value}")
 
 

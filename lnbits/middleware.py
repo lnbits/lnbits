@@ -179,6 +179,10 @@ class AuditMiddleware(BaseHTTPMiddleware):
             http_method = request.scope.get("method", None)
             path = request.scope.get("path", None)
 
+            # Authentication bodies contain passwords, OTPs and recovery credentials.
+            if path and path.startswith("/api/v1/auth"):
+                return "{}"
+
             if not settings.audit_http_request(http_method, path):
                 return None
 

@@ -4,7 +4,7 @@ from typing import Any
 from loguru import logger
 
 from lnbits.core.db import db
-from lnbits.db import dict_to_model
+from lnbits.db import Connection, dict_to_model
 from lnbits.settings import (
     AdminSettings,
     EditableSettings,
@@ -98,10 +98,10 @@ async def create_admin_settings(super_user: str, new_settings: dict) -> SuperSet
 
 
 async def get_settings_field(
-    id_: str, tag: str | None = "core"
+    id_: str, tag: str | None = "core", conn: Connection | None = None
 ) -> SettingsField | None:
 
-    row: dict = await db.fetchone(
+    row: dict = await (conn or db).fetchone(
         """
             SELECT * FROM system_settings
             WHERE  id = :id AND tag = :tag
@@ -142,3 +142,8 @@ async def get_settings_by_tag(tag: str) -> dict[str, Any] | None:
             )
     data.pop("super_user")
     return data
+
+
+async def get_two_factor_policy_revision(conn: Connection | None = None) -> str:
+    field = await get_settings_field("two_factor_revision", "security", conn=conn)
+    return field.value if field and field.value else ""
