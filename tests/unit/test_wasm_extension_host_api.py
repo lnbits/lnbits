@@ -867,6 +867,7 @@ async def test_payment_intent_timeout_persists_invoice_and_never_resends(
         max_fee_msat=100000,
         record_table="results",
         record_id="record-1",
+        source_payment_hash=None,
     )
 
     first = await api.wallet_payment_intent_create_or_get(request)
@@ -874,6 +875,7 @@ async def test_payment_intent_timeout_persists_invoice_and_never_resends(
         extension_id, wallet_id, idempotency_key, sha256s("user-1")
     )
     assert first.status == "unknown"
+    assert persisted is not None
     assert persisted["payment_request"] == invoice
     assert persisted["payment_hash"] == payment_hash
     assert bool(persisted["attempted"]) is True
@@ -937,7 +939,9 @@ async def test_payment_intent_reconciles_existing_payment_after_failed_error(
     result = await api._run_payment_intent(intent, SimpleNamespace())
 
     assert result == {"status": "paid"}
-    reconciled_intent = reconcile.await_args.args[1]
+    reconcile_call = reconcile.await_args
+    assert reconcile_call is not None
+    reconciled_intent = reconcile_call.args[1]
     assert reconciled_intent["attempted"] is True
     assert reconciled_intent["payment_hash"] == payment_hash
 

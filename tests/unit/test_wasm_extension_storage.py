@@ -434,6 +434,7 @@ async def test_wasm_storage_atomic_operations_are_owner_scoped_and_versioned(
         settings.lnbits_data_folder = original_data_folder
 
     assert created is True
+    assert row is not None
     assert row["title"] in {"Waiting", "Must not replace"}
     assert version == 1
     assert duplicate[0] is False

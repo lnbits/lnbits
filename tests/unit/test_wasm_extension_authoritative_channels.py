@@ -5,7 +5,7 @@ import time
 from contextlib import asynccontextmanager, suppress
 from pathlib import Path
 from types import SimpleNamespace
-from typing import Any
+from typing import Any, cast
 from unittest.mock import AsyncMock
 from uuid import uuid4
 
@@ -53,18 +53,19 @@ def _wait_for_admission_in_child(data_folder, extension_id, output):
             max_queue_depth=3,
         )
         output.put(("reserved", sequence))
+        job: Any = SimpleNamespace(
+            room_id="room",
+            admission_sequence=sequence,
+            limits={"wasm_runtime_max_execution_ms": 1000},
+            extension=SimpleNamespace(
+                config=SimpleNamespace(
+                    authoritative_channel=SimpleNamespace(max_queue_depth=3)
+                )
+            ),
+        )
         await channels._wait_for_job_turn(
             await channels._database(extension_id),
-            SimpleNamespace(
-                room_id="room",
-                admission_sequence=sequence,
-                limits={"wasm_runtime_max_execution_ms": 1000},
-                extension=SimpleNamespace(
-                    config=SimpleNamespace(
-                        authoritative_channel=SimpleNamespace(max_queue_depth=3)
-                    )
-                ),
-            ),
+            job,
         )
         output.put(("ready", sequence))
         await channels.release_authoritative_job(extension_id, "child-job")
@@ -104,7 +105,9 @@ async def test_room_lease_renews_after_one_third_and_stops_promptly(mocker):
 
     mocker.patch.object(channels, "_table_ref", return_value="rooms")
     mocker.patch.object(channels.asyncio, "wait_for", controlled_wait_for)
-    await channels._renew_room_lease(FakeDatabase(), "room", "lease", 600, stop)
+    await channels._renew_room_lease(
+        cast(Any, FakeDatabase()), "room", "lease", 600, stop
+    )
 
     assert intervals == [0.2, 0.2]
     assert stop.is_set()
@@ -162,7 +165,7 @@ async def test_room_lease_releases_when_renewal_fails(
 
     expected_error = body_error or renewal_error
     with pytest.raises(type(expected_error), match=str(expected_error)):
-        async with channels._room_lease(Database(), "room", "owner", 10_000):
+        async with channels._room_lease(cast(Any, Database()), "room", "owner", 10_000):
             if body_error:
                 raise body_error
 
@@ -176,7 +179,7 @@ async def test_ephemeral_dispatch_does_not_send_access_token_to_broker(mocker):
     mocker.patch.object(
         channels, "get_ephemeral_authoritative_extension_generation", return_value=1
     )
-    extension = SimpleNamespace(
+    extension: Any = SimpleNamespace(
         id=extension_id,
         config=SimpleNamespace(
             authoritative_channel=SimpleNamespace(persistence="ephemeral")
@@ -201,9 +204,9 @@ async def test_ephemeral_dispatch_does_not_send_access_token_to_broker(mocker):
     assert "access_token" not in call.await_args.args[2]["invoke_options"]
 
 
-def _schedule_fixture():
-    extension = SimpleNamespace(id=f"schedule{uuid4().hex[:8]}")
-    job = SimpleNamespace(
+def _schedule_fixture() -> tuple[Any, Any, Any]:
+    extension: Any = SimpleNamespace(id=f"schedule{uuid4().hex[:8]}")
+    job: Any = SimpleNamespace(
         extension=extension,
         room_id="room",
         owner_id="owner",
@@ -844,21 +847,17 @@ async def test_authoritative_admission_order_survives_worker_cache_restart(
     assert first == 1 and second == 2
 
     database = await channels._database(extension_id)
-    gate = asyncio.create_task(
-        channels._wait_for_job_turn(
-            database,
-            SimpleNamespace(
-                room_id="room",
-                admission_sequence=second,
-                limits={"wasm_runtime_max_execution_ms": 1000},
-                extension=SimpleNamespace(
-                    config=SimpleNamespace(
-                        authoritative_channel=SimpleNamespace(max_queue_depth=3)
-                    )
-                ),
-            ),
-        )
+    job: Any = SimpleNamespace(
+        room_id="room",
+        admission_sequence=second,
+        limits={"wasm_runtime_max_execution_ms": 1000},
+        extension=SimpleNamespace(
+            config=SimpleNamespace(
+                authoritative_channel=SimpleNamespace(max_queue_depth=3)
+            )
+        ),
     )
+    gate = asyncio.create_task(channels._wait_for_job_turn(database, job))
     await asyncio.sleep(0.03)
     assert not gate.done()
     await channels.release_authoritative_job(extension_id, "job-first")
@@ -884,7 +883,8 @@ async def test_authoritative_concurrent_admissions_get_unique_order(
             for index in range(12)
         )
     )
-    assert sorted(sequences) == list(range(1, 13))
+    assert None not in sequences
+    assert sorted(cast(list[int], sequences)) == list(range(1, 13))
 
 
 @pytest.mark.anyio
@@ -1120,16 +1120,22 @@ async def test_authoritative_events_commit_snapshots_and_client_sequences(
 ):
     settings.lnbits_data_folder = str(tmp_path)
     extension_id = f"events{uuid4().hex[:8]}"
-    channel = WasmAuthoritativeChannelConfig(
-        authorizeConnection="authorize",
-        onEvent="handle_event",
-        ownerContext={"table": "rooms", "idParam": "id"},
-        eventFields=["move"],
-        maxEventsPerSecond=10,
-        maxQueueDepth=4,
-        maxActiveRooms=2,
+    channel = WasmAuthoritativeChannelConfig.parse_obj(
+        {
+            "authorizeConnection": "authorize",
+            "onEvent": "handle_event",
+            "onSchedule": None,
+            "ownerContext": {"table": "rooms", "idParam": "id"},
+            "resultTable": None,
+            "resultField": "result",
+            "eventFields": ["move"],
+            "scheduleIntervalMs": None,
+            "maxEventsPerSecond": 10,
+            "maxQueueDepth": 4,
+            "maxActiveRooms": 2,
+        }
     )
-    extension = SimpleNamespace(
+    extension: Any = SimpleNamespace(
         id=extension_id,
         config=SimpleNamespace(authoritative_channel=channel),
     )
@@ -1217,7 +1223,7 @@ async def test_cancelled_channel_export_releases_its_queue_reservation(
         max_events_per_second=10,
         schedule_interval_ms=None,
     )
-    extension = SimpleNamespace(
+    extension: Any = SimpleNamespace(
         id=extension_id, config=SimpleNamespace(authoritative_channel=channel)
     )
     limits = {
@@ -1348,7 +1354,7 @@ async def test_ephemeral_actor_restores_snapshot_with_new_generation(mocker):
 def test_invocation_generation_is_available_to_ephemeral_guests_only(
     action, persistence
 ):
-    job = SimpleNamespace(
+    job: Any = SimpleNamespace(
         extension=SimpleNamespace(id="ext"),
         room_id="room",
         action=action,

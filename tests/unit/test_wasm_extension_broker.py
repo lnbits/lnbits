@@ -1,5 +1,6 @@
 import asyncio
 from types import SimpleNamespace
+from typing import Any, cast
 from uuid import uuid4
 
 import pytest
@@ -76,6 +77,8 @@ async def test_ephemeral_broker_remote_revocation_preserves_old_lease():
         before = await first._read_owner(ext)
         await peer.invalidate(ext)
         after = await peer._read_owner(ext)
+        assert before is not None
+        assert after is not None
         assert after["epoch"] > before["epoch"]
         assert after["expires_at_ms"] == before["expires_at_ms"]
         assert after["worker_id"] is None
@@ -104,7 +107,7 @@ async def test_ephemeral_cached_grants_are_checked_against_current_installed_sta
     mocker.patch(
         "lnbits.core.crud.extensions.get_installed_extension", return_value=installed
     )
-    job = SimpleNamespace(extension=SimpleNamespace(id="demo"), permissions=grants)
+    job: Any = SimpleNamespace(extension=SimpleNamespace(id="demo"), permissions=grants)
     await channels._validate_current_channel_permissions(job)
     mocker.patch.object(channels.settings, "lnbits_extensions_deactivate_all", True)
     with pytest.raises(PermissionError, match="not active"):
@@ -142,7 +145,7 @@ async def test_extension_storage_cannot_declare_or_read_host_coordination_tables
         await crud.storage_get_row("demo", table, "1", "owner")
     with pytest.raises(ValueError, match="reserved host table"):
         crud._create_table_sql(
-            SimpleNamespace(),
+            cast(Any, SimpleNamespace()),
             {"table": table, "fields": schema["tables"][table]["fields"]},
         )
     with pytest.raises(ValueError, match="SQL identifier"):

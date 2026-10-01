@@ -2,6 +2,7 @@ import asyncio
 import json
 from pathlib import Path
 from types import SimpleNamespace
+from typing import Any
 from uuid import uuid4
 
 import pytest
@@ -270,7 +271,7 @@ async def test_interrupted_guest_detects_generation_and_voids_or_keeps_result(
             await conn.execute(
                 storage_crud._create_table_sql(conn, {"table": name, "fields": values})
             )
-    extension = SimpleNamespace(
+    extension: Any = SimpleNamespace(
         id=ext,
         config=SimpleNamespace(
             authoritative_channel=WasmAuthoritativeChannelConfig.parse_obj(
@@ -348,7 +349,7 @@ async def test_interrupted_guest_detects_generation_and_voids_or_keeps_result(
                 {"id": "room", "generation": context["generation"]},
                 owner,
             )
-            snapshot = {"progress": 0}
+            snapshot: dict[str, Any] = {"progress": 0}
         elif start["generation"] == context["generation"]:
             snapshot = {"progress": 99}
             if completed:
@@ -372,6 +373,8 @@ async def test_interrupted_guest_detects_generation_and_voids_or_keeps_result(
                     source_payment_hash=funding_hash,
                     funding_payment_hashes=[funding_hash],
                     max_fee_msat=0,
+                    record_table=None,
+                    record_id=None,
                 )
             )
             assert refund.status == "paid"
@@ -420,11 +423,12 @@ async def test_interrupted_guest_detects_generation_and_voids_or_keeps_result(
         recovered = await replacement.call(ext, "api", {})
         assert seen[-1]["generation"] != old_generation
         assert seen[-1]["state"] == ({"progress": 0} if checkpoint else None)
-        assert recovered["data"]["state"] == (
+        expected_state: dict[str, Any] = (
             {"result": {"scope_id": "room", "status": "complete"}}
             if completed
             else {"status": "VOID"}
         )
+        assert recovered["data"]["state"] == expected_state
         await replacement.call(ext, "api", {})
         assert (
             await storage_crud.storage_count_rows(ext, "starts", {}, owner_id=owner)

@@ -1,8 +1,10 @@
 import json
 from dataclasses import dataclass
-from typing import Any, Literal
+from typing import Any, Literal, TypeAlias
 
 from pydantic import BaseModel, Field, conint, root_validator, validator
+
+_NonNegativeStrictInt: TypeAlias = conint(strict=True, ge=0)  # type: ignore[valid-type]
 
 
 @dataclass(frozen=True)
@@ -75,7 +77,7 @@ class StorageSetResponse(BaseModel):
 class StorageCompareAndSetRequest(BaseModel):
     table: str = Field(..., min_length=1, max_length=128)
     id: str = Field(..., min_length=1, max_length=512)
-    expected_version: int = Field(..., strict=True, ge=1, le=9_223_372_036_854_775_806)
+    expected_version: int = Field(..., ge=1, le=9_223_372_036_854_775_806)
     new_row: dict[str, Any]
     make_immutable: bool = False
 
@@ -309,7 +311,7 @@ class PaymentIntentCreateRequest(BaseModel):
     scope_id: str = Field(..., min_length=1, max_length=256)
     purpose: Literal["payout", "refund"]
     funding_payment_hashes: list[str] = Field(..., min_items=1, max_items=32)
-    max_fee_msat: int = Field(..., strict=True, ge=0, le=9_223_372_036_854_775_807)
+    max_fee_msat: int = Field(..., ge=0, le=9_223_372_036_854_775_807)
     record_table: str | None = Field(None, min_length=1, max_length=128)
     record_id: str | None = Field(None, min_length=1, max_length=512)
     source_payment_hash: str | None = Field(None, min_length=64, max_length=64)
@@ -377,7 +379,7 @@ class PaymentIntentResponse(BaseModel):
 class ManualPaymentIntentResolutionRequest(BaseModel):
     wallet_id: str = Field(..., min_length=1, max_length=128)
     status: Literal["paid", "failed"]
-    fee_msat: conint(strict=True, ge=0) = 0
+    fee_msat: _NonNegativeStrictInt = 0
     note: str = Field(..., min_length=1, max_length=512)
 
     @validator("note")

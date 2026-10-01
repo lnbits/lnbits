@@ -325,6 +325,8 @@ async def _worker_main() -> None:  # noqa: C901
             persisted = await payment_intents.get_payment_intent(
                 extension_id, "wallet", "refund", _OWNER
             )
+            assert current is not None
+            assert persisted is not None
             return {
                 "id": current["id"],
                 "attempted": bool(persisted["attempted"]),

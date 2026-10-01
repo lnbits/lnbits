@@ -1,5 +1,6 @@
 import json
 from types import SimpleNamespace
+from typing import Any, cast
 from unittest.mock import AsyncMock
 
 import pytest
@@ -19,7 +20,7 @@ from lnbits.helpers import sha256s
 
 @pytest.mark.anyio
 async def test_serialized_room_export_requires_runtime_permissions(mocker):
-    extension = SimpleNamespace(id="demoext")
+    extension: Any = SimpleNamespace(id="demoext")
     mocker.patch(
         "lnbits.core.wasm_ext.routes.api.get_installed_extension",
         return_value=SimpleNamespace(
@@ -37,13 +38,13 @@ async def test_serialized_room_export_requires_runtime_permissions(mocker):
             _route_config(),
             wasm_api.WasmRoutePayload({"roomId": "room-1"}, 1),
             limits={},
-            account=SimpleNamespace(id="user-1"),
+            account=cast(Any, SimpleNamespace(id="user-1")),
         )
 
 
 @pytest.mark.anyio
 async def test_serialized_room_export_requires_room_owner(mocker):
-    extension = SimpleNamespace(id="demoext")
+    extension: Any = SimpleNamespace(id="demoext")
     mocker.patch(
         "lnbits.core.wasm_ext.routes.api.get_installed_extension",
         return_value=SimpleNamespace(
@@ -68,14 +69,14 @@ async def test_serialized_room_export_requires_room_owner(mocker):
             _route_config(),
             wasm_api.WasmRoutePayload({}, 1),
             limits={},
-            account=SimpleNamespace(id="user-1"),
+            account=cast(Any, SimpleNamespace(id="user-1")),
         )
     owner_lookup.assert_awaited_once_with("demoext", "rooms", "room-1")
 
 
 @pytest.mark.anyio
 async def test_serialized_room_export_uses_authoritative_queue(mocker):
-    extension = SimpleNamespace(id="demoext")
+    extension: Any = SimpleNamespace(id="demoext")
     mocker.patch(
         "lnbits.core.wasm_ext.routes.api.get_installed_extension",
         return_value=SimpleNamespace(
@@ -103,7 +104,7 @@ async def test_serialized_room_export_uses_authoritative_queue(mocker):
         _route_config(),
         wasm_api.WasmRoutePayload({}, 1),
         limits={"wasm_runtime_max_execution_ms": 1000},
-        account=SimpleNamespace(id="user-1"),
+        account=cast(Any, SimpleNamespace(id="user-1")),
     )
 
     assert result["ok"] is True
@@ -117,7 +118,7 @@ async def test_serialized_room_export_uses_authoritative_queue(mocker):
 
 @pytest.mark.anyio
 async def test_public_serialized_room_export_uses_server_owner_context(mocker):
-    extension = SimpleNamespace(id="demoext")
+    extension: Any = SimpleNamespace(id="demoext")
     mocker.patch(
         "lnbits.core.wasm_ext.routes.api.get_installed_extension",
         return_value=SimpleNamespace(
@@ -159,7 +160,7 @@ def _route_config():
         export="serialize",
         auth="user",
         path_params={"room_id": "str"},
-        owner_context=WasmRouteOwnerContext(table="rooms", idParam="roomId"),
+        ownerContext=WasmRouteOwnerContext(table="rooms", idParam="roomId"),
         serializeRoom=True,
     )
 
@@ -202,14 +203,18 @@ async def test_manual_payment_intent_access_is_wallet_owner_or_admin_only(
     if allowed:
         assert (
             await _wasm_payment_intent_wallet(
-                "demoext", "wallet-1", SimpleNamespace(id=account_id, is_admin=is_admin)
+                "demoext",
+                "wallet-1",
+                cast(Any, SimpleNamespace(id=account_id, is_admin=is_admin)),
             )
             is wallet
         )
     else:
         with pytest.raises(HTTPException) as error:
             await _wasm_payment_intent_wallet(
-                "demoext", "wallet-1", SimpleNamespace(id=account_id, is_admin=is_admin)
+                "demoext",
+                "wallet-1",
+                cast(Any, SimpleNamespace(id=account_id, is_admin=is_admin)),
             )
         assert error.value.status_code == 403
 
@@ -259,7 +264,7 @@ async def test_failed_payment_intent_retry_grants_host_permission(mocker):
         "demoext",
         "intent-1",
         ManualPaymentIntentRetryRequest(wallet_id="wallet-1", note="Retry"),
-        SimpleNamespace(id="owner", is_admin=False),
+        cast(Any, SimpleNamespace(id="owner", is_admin=False)),
     )
 
     assert response == {"status": "processing"}
@@ -269,4 +274,6 @@ async def test_failed_payment_intent_retry_grants_host_permission(mocker):
         user_id="owner",
         owner_id=sha256s("owner"),
     )
-    assert create_or_get.await_args.args[0].retry_failed is True
+    retry_call = create_or_get.await_args
+    assert retry_call is not None
+    assert retry_call.args[0].retry_failed is True

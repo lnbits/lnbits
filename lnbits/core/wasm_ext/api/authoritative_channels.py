@@ -1276,10 +1276,12 @@ def _start_ephemeral_room_schedule(  # noqa: C901
 
 async def _wait_for_job_turn(database: Database, job: _ChannelJob) -> None:
     jobs = _table_ref(database, _JOBS_TABLE)
+    channel = job.extension.config.authoritative_channel
+    assert channel is not None
     deadline = time.monotonic() + max(
         10,
         job.limits["wasm_runtime_max_execution_ms"]
-        * (job.extension.config.authoritative_channel.max_queue_depth + 2)
+        * (channel.max_queue_depth + 2)
         / 1000
         * 3,
     )

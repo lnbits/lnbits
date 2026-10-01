@@ -216,6 +216,7 @@ async def test_over_ceiling_observed_payment_is_manually_resolvable(
     unknown = await payment_intents.set_payment_intent_status(
         extension_id, intent["id"], "paid", fee_msat=150
     )
+    assert unknown is not None
     assert unknown["status"] == "unknown"
     assert bool(unknown["manual_reconciliation"]) is True
     assert [
@@ -261,7 +262,9 @@ async def test_concurrent_claim_allows_only_one_payment_attempt(
     )
 
     assert sum(acquired for _row, acquired in claims) == 1
-    assert all(row["status"] == "processing" for row, _acquired in claims)
+    assert all(
+        row is not None and row["status"] == "processing" for row, _acquired in claims
+    )
 
 
 async def _seed_intent(
@@ -393,6 +396,7 @@ async def test_stale_ephemeral_owner_cannot_reserve_or_attempt_money(
         current = await payment_intents.get_payment_intent(
             ext, intent["wallet_id"], "intent-key", "owner-hash"
         )
+        assert current is not None
         assert current["status"] == "pending"
         assert not current["attempted"]
     finally:

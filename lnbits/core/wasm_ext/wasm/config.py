@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import re
-from typing import Any, Literal
+from typing import Any, Literal, TypeAlias
 
 from pydantic import (
     BaseModel,
@@ -16,7 +16,7 @@ from lnbits.core.models.extensions import ExtensionPermission
 
 _EXTENSION_ID_RE = re.compile(r"^[A-Za-z0-9_-]+$")
 _CHANNEL_EVENT_FIELD_RE = re.compile(r"^[A-Za-z][A-Za-z0-9_]{0,31}$")
-_PositiveStrictInt = conint(strict=True, ge=1)
+_PositiveStrictInt: TypeAlias = conint(strict=True, ge=1)  # type: ignore[valid-type]
 
 
 class _StrictWasmModel(BaseModel):

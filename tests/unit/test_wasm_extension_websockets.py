@@ -1,7 +1,7 @@
 import asyncio
 import json
 from types import SimpleNamespace
-from typing import cast
+from typing import Any, cast
 from unittest.mock import AsyncMock
 
 import pytest
@@ -91,7 +91,7 @@ async def test_wasm_extension_websocket_hub_prunes_stale_publish_connections():
 @pytest.mark.anyio
 async def test_authoritative_send_awaits_failed_connection_cleanup(mocker):
     hub = WasmExtensionWebsocketHub()
-    connection = SimpleNamespace(
+    connection: Any = SimpleNamespace(
         websocket=FakeWebSocket(send_error=RuntimeError("websocket closed")),
         outgoing=asyncio.Queue(maxsize=1),
     )
@@ -108,7 +108,7 @@ async def test_authoritative_send_awaits_failed_connection_cleanup(mocker):
 async def test_authoritative_send_closes_slow_subscriber_when_queue_is_full(mocker):
     hub = WasmExtensionWebsocketHub()
     websocket = FakeWebSocket()
-    connection = SimpleNamespace(
+    connection: Any = SimpleNamespace(
         websocket=websocket,
         outgoing=asyncio.Queue(maxsize=1),
     )
@@ -132,11 +132,11 @@ async def test_authoritative_overflow_does_not_wait_for_slow_close(mocker):
         closing.set()
         await finish_close.wait()
 
-    slow = SimpleNamespace(
+    slow: Any = SimpleNamespace(
         websocket=SimpleNamespace(close=slow_close),
         outgoing=asyncio.Queue(maxsize=1),
     )
-    healthy = SimpleNamespace(outgoing=asyncio.Queue(maxsize=1))
+    healthy: Any = SimpleNamespace(outgoing=asyncio.Queue(maxsize=1))
     slow.outgoing.put_nowait("queued")
     disconnect = mocker.patch.object(hub, "disconnect_authoritative", AsyncMock())
     try:
@@ -165,7 +165,9 @@ async def test_authoritative_close_has_a_timeout(mocker):
         "lnbits.core.wasm_ext.api.websockets._AUTHORITATIVE_CLOSE_TIMEOUT_SECONDS",
         0.01,
     )
-    await asyncio.wait_for(hub._close(SimpleNamespace(close=blocked_close), 1013), 0.2)
+    await asyncio.wait_for(
+        hub._close(cast(Any, SimpleNamespace(close=blocked_close)), 1013), 0.2
+    )
     assert cancelled.is_set()
 
 
@@ -178,7 +180,7 @@ async def test_authoritative_disconnect_during_send_preserves_queue_cleanup(mock
         sending.set()
         await asyncio.Event().wait()
 
-    connection = SimpleNamespace(
+    connection: Any = SimpleNamespace(
         extension=SimpleNamespace(
             id="demoext",
             config=SimpleNamespace(authoritative_channel=None),
@@ -194,7 +196,9 @@ async def test_authoritative_disconnect_during_send_preserves_queue_cleanup(mock
         AsyncMock(),
     )
     hub.authoritative_connections.append(connection)
-    hub.authoritative_tasks[("demoext", "room")] = (asyncio.current_task(),)
+    current_task = asyncio.current_task()
+    assert current_task is not None
+    hub.authoritative_tasks[("demoext", "room")] = (current_task,)
     hub._start_authoritative_sender(connection)
     sender = connection.sender_task
     outgoing = connection.outgoing
@@ -226,7 +230,7 @@ async def test_authoritative_disconnect_awaits_other_room_tasks(mocker):
             await asyncio.sleep(0.01)
             finished.set()
 
-    connection = SimpleNamespace(
+    connection: Any = SimpleNamespace(
         extension=SimpleNamespace(
             id="demoext", config=SimpleNamespace(authoritative_channel=None)
         ),
@@ -241,8 +245,10 @@ async def test_authoritative_disconnect_awaits_other_room_tasks(mocker):
         AsyncMock(),
     )
     room_task = asyncio.create_task(delayed_cancel())
+    current_task = asyncio.current_task()
+    assert current_task is not None
     hub.authoritative_connections.append(connection)
-    hub.authoritative_tasks[("demoext", "room")] = (asyncio.current_task(), room_task)
+    hub.authoritative_tasks[("demoext", "room")] = (current_task, room_task)
 
     await started.wait()
     await hub.disconnect_authoritative(connection)
@@ -254,8 +260,8 @@ async def test_authoritative_disconnect_awaits_other_room_tasks(mocker):
 @pytest.mark.anyio
 async def test_authoritative_renewal_failure_closes_and_disconnects_room(mocker):
     hub = WasmExtensionWebsocketHub()
-    channel = SimpleNamespace(persistence="durable")
-    connections = [
+    channel: Any = SimpleNamespace(persistence="durable")
+    connections: list[Any] = [
         SimpleNamespace(
             extension=SimpleNamespace(
                 id="demoext", config=SimpleNamespace(authoritative_channel=channel)
@@ -348,7 +354,7 @@ async def test_wasm_extension_websocket_hub_rebroadcasts_client_messages_to_peer
 async def test_authoritative_websocket_token_handshake_returns_canonical_snapshot(
     mocker,
 ):
-    channel = SimpleNamespace(
+    channel: Any = SimpleNamespace(
         authorize_connection="authorize",
         max_active_rooms=2,
         max_queue_depth=4,
@@ -356,7 +362,7 @@ async def test_authoritative_websocket_token_handshake_returns_canonical_snapsho
         schedule_interval_ms=None,
         on_schedule=None,
     )
-    extension = SimpleNamespace(
+    extension: Any = SimpleNamespace(
         id="demoext", config=SimpleNamespace(authoritative_channel=channel)
     )
     websocket = FakeWebSocket(
@@ -414,8 +420,10 @@ async def test_authoritative_websocket_token_handshake_returns_canonical_snapsho
         "sequence": 7,
         "lastClientSequence": 3,
     }
-    connection.sender_task.cancel()
-    await asyncio.gather(connection.sender_task, return_exceptions=True)
+    sender_task = connection.sender_task
+    assert sender_task is not None
+    sender_task.cancel()
+    await asyncio.gather(sender_task, return_exceptions=True)
     disconnect.assert_awaited_once_with(connection)
 
 
@@ -434,13 +442,13 @@ async def test_ephemeral_control_receipt_does_not_wait_for_owner_ack(mocker):
                 return frame
             return await super().receive_text()
 
-    channel = SimpleNamespace(
+    channel: Any = SimpleNamespace(
         persistence="ephemeral",
         max_queue_depth=4,
         on_event="onEvent",
         event_fields=["down"],
     )
-    extension = SimpleNamespace(
+    extension: Any = SimpleNamespace(
         id="demoext", config=SimpleNamespace(authoritative_channel=channel)
     )
     client = Client(

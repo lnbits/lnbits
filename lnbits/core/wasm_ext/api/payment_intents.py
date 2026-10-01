@@ -42,9 +42,9 @@ async def create_or_get_payment_intent(  # noqa: C901
     """Persist and reserve a verified intent before resolving its destination."""
     funding_payments: dict[str, Payment] = {}
     funding_msat = 0
-    for payment_hash in sorted(request.funding_payment_hashes):
+    for funding_hash in sorted(request.funding_payment_hashes):
         payment = await get_standalone_payment(
-            payment_hash, incoming=True, wallet_id=wallet_id
+            funding_hash, incoming=True, wallet_id=wallet_id
         )
         if (
             not payment
@@ -54,7 +54,7 @@ async def create_or_get_payment_intent(  # noqa: C901
             or _payment_scope_id(payment, extension_id) != request.scope_id
         ):
             raise PermissionError("Scoped funding contains an unverified payment.")
-        funding_payments[payment_hash] = payment
+        funding_payments[funding_hash] = payment
         funding_msat += payment.amount
         if funding_msat > _MAX_DB_INT:
             raise PermissionError("Scoped funding exceeds the supported amount.")
@@ -1221,5 +1221,5 @@ def _matches_expected_intent_state(
     )
 
 
-def _for_update(db_type: str) -> str:
+def _for_update(db_type: str | None) -> str:
     return "" if db_type == SQLITE else " FOR UPDATE"

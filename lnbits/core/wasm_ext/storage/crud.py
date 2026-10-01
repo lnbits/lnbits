@@ -6,7 +6,7 @@ import re
 from collections.abc import Awaitable, Callable
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any
+from typing import Any, cast
 from uuid import uuid4
 from weakref import WeakKeyDictionary
 
@@ -287,7 +287,7 @@ async def storage_insert_immutable_row(
         text(conn.rewrite_query(query)), conn.rewrite_values(values)
     )
     result.close()
-    row = await conn.fetchone(
+    row: dict[str, Any] | None = await conn.fetchone(
         f"""SELECT * FROM {_table_ref_for_schema(ext_id, table)}
             WHERE id = :id""",  # noqa: S608
         {"id": clean_data["id"]},
@@ -529,15 +529,21 @@ async def migrate_wasm_extension_database(
 async def _ensure_storage_internal_columns(db: Connection, table: str) -> None:
     _require_identifier({"table": table}, "table")
     if db.type == SQLITE:
-        columns = await db.fetchall(f"PRAGMA {db.schema}.table_info({table})")
+        columns = cast(
+            list[dict[str, Any]],
+            await db.fetchall(f"PRAGMA {db.schema}.table_info({table})"),
+        )
         column_names = {column["name"] for column in columns}
     else:
-        columns = await db.fetchall(
-            """
+        columns = cast(
+            list[dict[str, Any]],
+            await db.fetchall(
+                """
             SELECT column_name FROM information_schema.columns
             WHERE table_schema = :schema AND table_name = :table
             """,
-            {"schema": db.schema, "table": table},
+                {"schema": db.schema, "table": table},
+            ),
         )
         column_names = {column["column_name"] for column in columns}
 
