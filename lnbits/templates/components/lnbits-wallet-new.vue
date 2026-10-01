@@ -23,32 +23,43 @@
       </q-card-section>
 
       <q-card-section class="q-pt-none">
-        <q-select
-          v-if="walletTypes.length > 1"
-          :options="walletTypes"
-          emit-value
-          map-options
-          :label="$t('wallet_type')"
-          v-model="g.newWalletType"
-          :hint="
-            walletTypes.find(type => type.value === g.newWalletType)
-              ?.description
-          "
-          dense
-        >
-          <template v-slot:option="scope">
-            <q-item v-bind="scope.itemProps">
-              <q-item-section>
-                <q-item-label v-text="scope.opt.label"></q-item-label>
-                <q-item-label
-                  v-if="scope.opt.description"
-                  caption
-                  v-text="scope.opt.description"
-                ></q-item-label>
-              </q-item-section>
-            </q-item>
-          </template>
-        </q-select>
+        <div class="row q-col-gutter-md">
+          <q-select
+            v-if="walletTypes.length > 1"
+            :options="walletTypes"
+            emit-value
+            map-options
+            :label="$t('wallet_type')"
+            v-model="g.newWalletType"
+            :hint="
+              walletTypes.find(type => type.value === g.newWalletType)
+                ?.description
+            "
+            dense
+            :class="isFiat ? 'col-6' : 'col-12'"
+          >
+            <template v-slot:option="scope">
+              <q-item v-bind="scope.itemProps">
+                <q-item-section>
+                  <q-item-label v-text="scope.opt.label"></q-item-label>
+                  <q-item-label
+                    v-if="scope.opt.description"
+                    caption
+                    v-text="scope.opt.description"
+                  ></q-item-label>
+                </q-item-section>
+              </q-item>
+            </template>
+          </q-select>
+          <q-select
+            v-if="isFiat"
+            v-model="wallet.currency"
+            :options="currencyOptions"
+            :label="$t('currency')"
+            dense
+            class="col-6"
+          ></q-select>
+        </div>
         <q-input
           v-if="!isLightningShared"
           dense
@@ -99,6 +110,7 @@
             <q-btn
               flat
               :label="$t('add_wallet')"
+              :disable="isFiat && !wallet.currency"
               v-close-popup
               @click="submitAddWallet()"
               class="float-right"
