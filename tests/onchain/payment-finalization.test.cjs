@@ -1,5 +1,5 @@
 const assert = require('node:assert/strict')
-const {readFileSync} = require('./source.cjs')
+const {readFileSync} = require('node:fs')
 const {resolve} = require('node:path')
 const {test} = require('node:test')
 const vm = require('node:vm')
@@ -11,13 +11,17 @@ function harness(request) {
     window: {app: {component: (_, value) => (component = value)}},
     LNbits: {api: {request}, utils: {notifyApiError() {}}}
   }
-  vm.runInNewContext(
-    readFileSync(
-      resolve(__dirname, '../../lnbits/onchain/static/components/payment.js'),
-      'utf8'
-    ),
-    context
-  )
+  for (const file of [
+    'onchain/utils.js',
+    'onchain/map.js',
+    'onchain/mempool-client.js',
+    'components/onchain/payment.js'
+  ]) {
+    vm.runInNewContext(
+      readFileSync(resolve(__dirname, '../../lnbits/static/js', file), 'utf8'),
+      context
+    )
+  }
   const instance = {
     ...component.data(),
     network: 'Testnet',

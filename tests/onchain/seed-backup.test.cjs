@@ -1,5 +1,5 @@
 const assert = require('node:assert/strict')
-const {readFileSync} = require('./source.cjs')
+const {readFileSync} = require('node:fs')
 const {resolve} = require('node:path')
 const {test} = require('node:test')
 const vm = require('node:vm')
@@ -33,7 +33,7 @@ function harness() {
     readFileSync(
       resolve(
         __dirname,
-        '../../lnbits/onchain/static/components/hot-wallet.js'
+        '../../lnbits/static/js/components/onchain/hot-wallet.js'
       ),
       'utf8'
     ),

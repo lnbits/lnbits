@@ -1,4 +1,3 @@
-import {satOrBtc, parseBitcoinRequest} from '../js/utils.js'
 window.app.component('onchain-send-to', {
   name: 'onchain-send-to',
   template: '#onchain-send-to',
@@ -36,11 +35,11 @@ window.app.component('onchain-send-to', {
 
   methods: {
     satBtc(val, showUnit = true) {
-      return satOrBtc(val, showUnit, this.satsDenominated)
+      return LNbits.onchain.utils.satOrBtc(val, showUnit, this.satsDenominated)
     },
     handleAddressInput(output) {
       try {
-        const parsed = parseBitcoinRequest(output.address)
+        const parsed = LNbits.onchain.utils.parseBitcoinRequest(output.address)
         output.address = parsed.address
         if (parsed.amount !== undefined) output.amount = parsed.amount
         output.error = ''

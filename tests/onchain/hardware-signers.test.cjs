@@ -1,5 +1,5 @@
 const assert = require('node:assert/strict')
-const {readFileSync} = require('./source.cjs')
+const {readFileSync} = require('node:fs')
 const {resolve} = require('node:path')
 const {test} = require('node:test')
 const vm = require('node:vm')
@@ -40,17 +40,14 @@ function harness(name = 'serial-signer', trezor = {}, timerDelay) {
     }
   }
   for (const file of [
-    'js/utils.js',
-    'js/map.js',
-    'js/crypto/noble-secp256k1.js',
-    'js/crypto/aes.js',
-    `components/${name}.js`
+    'js/onchain/utils.js',
+    'js/onchain/map.js',
+    'vendor/noble-secp256k1.js',
+    'vendor/aes.js',
+    `js/components/onchain/${name}.js`
   ]) {
     vm.runInContext(
-      readFileSync(
-        resolve(__dirname, '../../lnbits/onchain/static', file),
-        'utf8'
-      ),
+      readFileSync(resolve(__dirname, '../../lnbits/static', file), 'utf8'),
       context
     )
   }
@@ -644,9 +641,12 @@ for (const method of ['hwwWipe', 'hwwRestore']) {
 test('Account paths reject malformed and out-of-range indices', () => {
   const {context} = harness()
   for (const path of ['m', "m/84'/1'/0'", 'm/0/2147483647'])
-    assert.equal(context.findAccountPathIssues(path), undefined)
+    assert.equal(
+      context.LNbits.onchain.utils.findAccountPathIssues(path),
+      undefined
+    )
   for (const path of ['m/', 'm//0', 'm/1x', 'm/-1', 'm/1.5', 'm/2147483648'])
-    assert.ok(context.findAccountPathIssues(path))
+    assert.ok(context.LNbits.onchain.utils.findAccountPathIssues(path))
 })
 
 test('Bowser TRNG runs over encrypted serial without unlocking or exporting raw samples', async () => {

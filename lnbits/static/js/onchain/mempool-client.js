@@ -1,5 +1,5 @@
 // Signing inputs and fee estimates use the wallet's server-configured provider.
-export function mempoolJS() {
+LNbits.onchain.mempoolJS = function () {
   const key = LNbits.g.wallet.inkey
   const request = async path => {
     const {data} = await LNbits.api.request(

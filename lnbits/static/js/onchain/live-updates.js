@@ -1,5 +1,5 @@
 // Reuse the block explorer's existing streams; cached state is a fallback.
-export class OnchainLiveUpdates {
+LNbits.onchain.OnchainLiveUpdates = class OnchainLiveUpdates {
   constructor(options, browser = window) {
     this.options = options
     this.browser = browser

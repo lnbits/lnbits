@@ -1,31 +1,6 @@
-import {
-  DEFAULT_RECEIVE_GAP_LIMIT,
-  satOrBtc,
-  addressBalance
-} from './js/utils.js'
-import {
-  mapAddressesData,
-  mapInputToSentHistory,
-  mapOutputToReceiveHistory,
-  mapAddressDataToUtxo
-} from './js/map.js'
-
-import {OnchainLiveUpdates} from './js/live-updates.js'
-import './components/utxo-list.js'
-import './components/serial-signer.js'
-import './components/hot-wallet.js'
-import './components/trezor-signer.js'
-import './components/wallet-list.js'
-import './components/address-list.js'
-import './components/payment.js'
-import './components/seed-input.js'
-import './components/fee-rate.js'
-import './components/wallet-config.js'
-import './components/send-to.js'
-import './components/serial-port-config.js'
-export default {
+window.app.component('lnbits-onchain-wallet', {
   name: 'OnchainWallet',
-  template: '#page-onchain',
+  template: '#lnbits-onchain-wallet',
   props: ['chartConfig'],
   emits: ['synced', 'update-wallet', 'update:addresses'],
   data() {
@@ -113,7 +88,7 @@ export default {
       return this.utxos.data.filter(u => u.wallet === this.selectedWalletId)
     },
     selectedBalance() {
-      return addressBalance(this.selectedAddresses)
+      return LNbits.onchain.utils.addressBalance(this.selectedAddresses)
     },
     pendingBalance() {
       return this.selectedUtxos
@@ -282,7 +257,11 @@ export default {
 
   methods: {
     formatActivityAmount(value) {
-      return satOrBtc(value, false, this.config.sats_denominated)
+      return LNbits.onchain.utils.satOrBtc(
+        value,
+        false,
+        this.config.sats_denominated
+      )
     },
     activityDate(row) {
       const timestamp = row.confirmed ? row.timestamp : row.firstSeen
@@ -302,7 +281,11 @@ export default {
         : address
     },
     formatAmount(value) {
-      return satOrBtc(value, true, this.config.sats_denominated)
+      return LNbits.onchain.utils.satOrBtc(
+        value,
+        true,
+        this.config.sats_denominated
+      )
     },
     async receiveBitcoin() {
       if (!this.canTransact || this.receiving) return
@@ -358,11 +341,15 @@ export default {
           .filter(
             vin => vin.prevout?.scriptpubkey_address === addressData.address
           )
-          .map(vin => mapInputToSentHistory(tx, addressData, vin))
+          .map(vin =>
+            LNbits.onchain.map.mapInputToSentHistory(tx, addressData, vin)
+          )
 
         const received = tx.vout
           .filter(vout => vout.scriptpubkey_address === addressData.address)
-          .map(vout => mapOutputToReceiveHistory(tx, addressData, vout))
+          .map(vout =>
+            LNbits.onchain.map.mapOutputToReceiveHistory(tx, addressData, vout)
+          )
         addressHistory.push(
           ...[...sent, ...received].map(row => ({
             ...row,
@@ -451,7 +438,7 @@ export default {
           : null
         const accounts = new Map(this.walletAccounts.map(w => [w.id, w]))
         this.addresses = data.addresses.map(a => ({
-          ...mapAddressesData(a),
+          ...LNbits.onchain.map.mapAddressesData(a),
           accountType: accounts.get(a.walet_id)?.onchain_meta.script_type
         }))
         const snapshots = new Map(data.snapshots.map(s => [s.address_id, s]))
@@ -476,7 +463,9 @@ export default {
             const id = `${account.id}:${coin.txid}:${coin.vout}`
             if (seenCoins.has(id)) continue
             seenCoins.add(id)
-            coins.push(mapAddressDataToUtxo(account, address, coin))
+            coins.push(
+              LNbits.onchain.map.mapAddressDataToUtxo(account, address, coin)
+            )
           }
         }
         this.history = history
@@ -563,7 +552,8 @@ export default {
           a.gapLimitExceeded =
             !a.isChange &&
             a.addressIndex >
-              lastActiveAddress.addressIndex + DEFAULT_RECEIVE_GAP_LIMIT
+              lastActiveAddress.addressIndex +
+                LNbits.onchain.utils.DEFAULT_RECEIVE_GAP_LIMIT
         })
         addresses.push(...uniqueAddresses)
       }
@@ -577,7 +567,7 @@ export default {
           '/api/v1/onchain/addresses/' + walletId,
           this.g.wallet.inkey
         )
-        return data.map(mapAddressesData)
+        return data.map(LNbits.onchain.map.mapAddressesData)
       } catch (error) {
         this.$q.notify({
           type: 'warning',
@@ -662,7 +652,7 @@ export default {
   },
   mounted() {
     this.liveUpdates = Vue.markRaw(
-      new OnchainLiveUpdates({
+      new LNbits.onchain.OnchainLiveUpdates({
         refresh: () => this.hydrateState(),
         scan: () => this.scanAllAddresses(),
         scanning: () => this.scan.scanning,
@@ -688,4 +678,4 @@ export default {
       await this.refreshAddresses()
     }
   }
-}
+})

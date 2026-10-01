@@ -1,31 +1,3 @@
-import {
-  PSBT_BASE64_PREFIX,
-  COMMAND_PING,
-  COMMAND_PASSWORD,
-  COMMAND_PASSWORD_CLEAR,
-  COMMAND_ADDRESS,
-  COMMAND_SEND_PSBT,
-  COMMAND_PSBT_BEGIN,
-  COMMAND_PSBT_CHUNK,
-  COMMAND_PSBT_COMMIT,
-  COMMAND_PSBT_REVIEW,
-  COMMAND_NEW,
-  COMMAND_SIGN_PSBT,
-  COMMAND_HELP,
-  COMMAND_WIPE,
-  COMMAND_SEED,
-  COMMAND_TRNG,
-  COMMAND_RESTORE,
-  COMMAND_CANCEL,
-  COMMAND_XPUB,
-  COMMAND_PAIR,
-  COMMAND_LOG,
-  getSigningNetwork,
-  HWW_DEFAULT_CONFIG,
-  sleep,
-  satOrBtc,
-  asciiToUint8Array
-} from '../js/utils.js'
 window.app.component('onchain-serial-signer', {
   name: 'onchain-serial-signer',
   template: '#onchain-serial-signer',
@@ -101,13 +73,15 @@ window.app.component('onchain-serial-signer', {
 
   methods: {
     satBtc(val, showUnit = true) {
-      return satOrBtc(val, showUnit, this.satsDenominated)
+      return LNbits.onchain.utils.satOrBtc(val, showUnit, this.satsDenominated)
     },
     openSerialPortDialog: async function () {
-      this.config = {...HWW_DEFAULT_CONFIG}
+      this.config = {...LNbits.onchain.utils.HWW_DEFAULT_CONFIG}
       await this.openSerialPort(this.config)
     },
-    openSerialPort: async function (config = HWW_DEFAULT_CONFIG) {
+    openSerialPort: async function (
+      config = LNbits.onchain.utils.HWW_DEFAULT_CONFIG
+    ) {
       if (!this.checkSerialPortSupported()) return false
       if (this.isConnecting || this.closingSerialPort) return false
       if (this.connected) {
@@ -136,7 +110,7 @@ window.app.component('onchain-serial-signer', {
         this.reader = port.readable.getReader()
         this.writer = port.writable.getWriter()
         this.readTask = this.startSerialPortReading()
-        await sleep(1000)
+        await LNbits.onchain.utils.sleep(1000)
         if (this.selectedPort !== port || this.closingSerialPort) {
           throw new Error('Serial device disconnected')
         }
@@ -169,7 +143,7 @@ window.app.component('onchain-serial-signer', {
       }
     },
     openSerialPortConfig: async function () {
-      this.config = {...HWW_DEFAULT_CONFIG}
+      this.config = {...LNbits.onchain.utils.HWW_DEFAULT_CONFIG}
       this.hww.showConfigDialog = true
     },
     closeSerialPort: function (notify = true) {
@@ -322,19 +296,19 @@ window.app.component('onchain-serial-signer', {
       }
 
       switch (command) {
-        case COMMAND_PASSWORD_CLEAR:
+        case LNbits.onchain.utils.COMMAND_PASSWORD_CLEAR:
           this.handleLogoutResponse(commandData)
           break
-        case COMMAND_PSBT_REVIEW:
+        case LNbits.onchain.utils.COMMAND_PSBT_REVIEW:
           this.handlePsbtReview(commandData)
           break
-        case COMMAND_SEED:
+        case LNbits.onchain.utils.COMMAND_SEED:
           // Hardware buttons can also advance the on-device backup.
           if (this.hww.showSeedDialog) this.handleShowSeedResponse(commandData)
           break
-        case COMMAND_LOG:
+        case LNbits.onchain.utils.COMMAND_LOG:
           break
-        case COMMAND_NEW:
+        case LNbits.onchain.utils.COMMAND_NEW:
           this.hww.authenticated = false
           break
         default:
@@ -343,13 +317,13 @@ window.app.component('onchain-serial-signer', {
     },
     logPublicCommandsResponse: function (command, commandData) {
       switch (command) {
-        case COMMAND_SIGN_PSBT:
-        case COMMAND_PASSWORD:
-        case COMMAND_PASSWORD_CLEAR:
-        case COMMAND_SEND_PSBT:
-        case COMMAND_WIPE:
-        case COMMAND_XPUB:
-        case COMMAND_PAIR:
+        case LNbits.onchain.utils.COMMAND_SIGN_PSBT:
+        case LNbits.onchain.utils.COMMAND_PASSWORD:
+        case LNbits.onchain.utils.COMMAND_PASSWORD_CLEAR:
+        case LNbits.onchain.utils.COMMAND_SEND_PSBT:
+        case LNbits.onchain.utils.COMMAND_WIPE:
+        case LNbits.onchain.utils.COMMAND_XPUB:
+        case LNbits.onchain.utils.COMMAND_PAIR:
           console.log(`   %c${command}`, 'background: #222; color: yellow')
       }
     },
@@ -360,7 +334,7 @@ window.app.component('onchain-serial-signer', {
     },
     hwwPing: async function () {
       const res = await this.requestCommand(
-        COMMAND_PING,
+        LNbits.onchain.utils.COMMAND_PING,
         [window.location.host],
         20000,
         false
@@ -400,7 +374,7 @@ window.app.component('onchain-serial-signer', {
     },
     cancelOperation: async function () {
       try {
-        await this.sendCommandSecure(COMMAND_CANCEL)
+        await this.sendCommandSecure(LNbits.onchain.utils.COMMAND_CANCEL)
       } catch (error) {
         this.$q.notify({
           type: 'warning',
@@ -419,7 +393,7 @@ window.app.component('onchain-serial-signer', {
       this.hww.loggingIn = true
       try {
         const response = await this.requestCommand(
-          COMMAND_PASSWORD,
+          LNbits.onchain.utils.COMMAND_PASSWORD,
           [
             this.hww.password,
             this.hww.hasPassphrase ? this.hww.passphrase || '' : ''
@@ -468,7 +442,9 @@ window.app.component('onchain-serial-signer', {
     },
     hwwLogout: async function () {
       try {
-        const response = await this.requestCommand(COMMAND_PASSWORD_CLEAR)
+        const response = await this.requestCommand(
+          LNbits.onchain.utils.COMMAND_PASSWORD_CLEAR
+        )
         if (response.trim() !== '1') throw new Error('Logout was not confirmed')
         this.handleLogoutResponse(response)
       } catch (error) {
@@ -482,11 +458,10 @@ window.app.component('onchain-serial-signer', {
     },
     hwwShowAddress: async function (path, address) {
       try {
-        const response = await this.requestCommand(COMMAND_ADDRESS, [
-          getSigningNetwork(this.network),
-          path,
-          address
-        ])
+        const response = await this.requestCommand(
+          LNbits.onchain.utils.COMMAND_ADDRESS,
+          [LNbits.onchain.utils.getSigningNetwork(this.network), path, address]
+        )
         const [status, derivedAddress] = response.trim().split(/\s+/)
         if (status !== '1' || derivedAddress !== address)
           throw new Error('The address returned by Bowser Wallet did not match')
@@ -526,23 +501,26 @@ window.app.component('onchain-serial-signer', {
         this.hww.confirm = {outputIndex: 0, showFee: false, stage: 'transfer'}
         this.hww.showConfirmationDialog = true
         const count = Math.ceil(psbtBase64.length / 64)
-        const started = await this.requestCommand(COMMAND_PSBT_BEGIN, [
-          getSigningNetwork(this.network),
-          psbtBase64.length
-        ])
+        const started = await this.requestCommand(
+          LNbits.onchain.utils.COMMAND_PSBT_BEGIN,
+          [
+            LNbits.onchain.utils.getSigningNetwork(this.network),
+            psbtBase64.length
+          ]
+        )
         if (started !== `1 ${count}`)
           throw new Error('Bowser Wallet refused the PSBT transfer')
         for (let index = 0; index < count; index++) {
-          const response = await this.requestCommand(COMMAND_PSBT_CHUNK, [
-            index,
-            psbtBase64.slice(index * 64, (index + 1) * 64)
-          ])
+          const response = await this.requestCommand(
+            LNbits.onchain.utils.COMMAND_PSBT_CHUNK,
+            [index, psbtBase64.slice(index * 64, (index + 1) * 64)]
+          )
           if (response !== `1 ${index}`)
             throw new Error('Bowser Wallet rejected a PSBT chunk')
         }
         this.hww.confirm.stage = 'review'
         const reviewed = await this.requestCommand(
-          COMMAND_PSBT_COMMIT,
+          LNbits.onchain.utils.COMMAND_PSBT_COMMIT,
           [],
           15 * 60000
         )
@@ -575,12 +553,16 @@ window.app.component('onchain-serial-signer', {
     hwwSignPsbt: async function () {
       this.hww.signingPsbt = true
       this.hww.confirm.stage = 'sign'
-      const res = await this.requestCommand(COMMAND_SIGN_PSBT, [], 120000)
+      const res = await this.requestCommand(
+        LNbits.onchain.utils.COMMAND_SIGN_PSBT,
+        [],
+        120000
+      )
       const [count, psbt] = res.trim().split(/\s+/)
       if (
         !/^\d+$/.test(count) ||
         +count < 1 ||
-        !psbt?.startsWith(PSBT_BASE64_PREFIX)
+        !psbt?.startsWith(LNbits.onchain.utils.PSBT_BASE64_PREFIX)
       ) {
         throw new Error('Bowser Wallet did not return a signed PSBT')
       }
@@ -593,6 +575,12 @@ window.app.component('onchain-serial-signer', {
       })
     },
     hwwPair: async function () {
+      if (typeof nobleSecp256k1 === 'undefined') {
+        await LNbits.utils.loadScript('/static/vendor/noble-secp256k1.js')
+      }
+      if (typeof aesjs === 'undefined') {
+        await LNbits.utils.loadScript('/static/vendor/aes.js')
+      }
       this.decryptionKey = nobleSecp256k1.utils.randomPrivateKey()
       const publicKeyHex = nobleSecp256k1.Point.fromPrivateKey(
         this.decryptionKey
@@ -600,7 +588,7 @@ window.app.component('onchain-serial-signer', {
         .toHex(false)
         .slice(2)
       const res = await this.requestCommand(
-        COMMAND_PAIR,
+        LNbits.onchain.utils.COMMAND_PAIR,
         [publicKeyHex],
         20000,
         false
@@ -628,7 +616,7 @@ window.app.component('onchain-serial-signer', {
         .slice(1, 33)
       const sharedSecretHex = nobleSecp256k1.utils.bytesToHex(this.sharedSecret)
       const sharedSecretHash = await nobleSecp256k1.utils.sha256(
-        asciiToUint8Array(sharedSecretHex)
+        LNbits.onchain.utils.asciiToUint8Array(sharedSecretHex)
       )
       const fingerprint = nobleSecp256k1.utils
         .bytesToHex(sharedSecretHash)
@@ -648,7 +636,7 @@ window.app.component('onchain-serial-signer', {
     },
     hwwHelp: async function () {
       try {
-        await this.sendCommandSecure(COMMAND_HELP)
+        await this.sendCommandSecure(LNbits.onchain.utils.COMMAND_HELP)
         this.$q.notify({
           type: 'positive',
           message: 'Check display or console for details!',
@@ -685,7 +673,7 @@ window.app.component('onchain-serial-signer', {
       try {
         this.validateNewPassword()
         const response = await this.requestCommand(
-          COMMAND_WIPE,
+          LNbits.onchain.utils.COMMAND_WIPE,
           [this.hww.password],
           60000
         )
@@ -739,7 +727,11 @@ window.app.component('onchain-serial-signer', {
       this.trng.result = null
       this.trng.error = null
       try {
-        const response = await this.requestCommand(COMMAND_TRNG, [], 60000)
+        const response = await this.requestCommand(
+          LNbits.onchain.utils.COMMAND_TRNG,
+          [],
+          60000
+        )
         const [
           status,
           sampleCount,
@@ -786,8 +778,8 @@ window.app.component('onchain-serial-signer', {
     },
     hwwXpub: async function (path) {
       this.xpubData = {}
-      const res = await this.requestCommand(COMMAND_XPUB, [
-        getSigningNetwork(this.network),
+      const res = await this.requestCommand(LNbits.onchain.utils.COMMAND_XPUB, [
+        LNbits.onchain.utils.getSigningNetwork(this.network),
         path
       ])
       const args = res.trim().split(/\s+/)
@@ -813,7 +805,7 @@ window.app.component('onchain-serial-signer', {
       this.hww.seedLoading = true
       try {
         const response = await this.requestCommand(
-          COMMAND_SEED,
+          LNbits.onchain.utils.COMMAND_SEED,
           [position],
           12000
         )
@@ -861,7 +853,7 @@ window.app.component('onchain-serial-signer', {
         if (!this.hww.mnemonic?.trim())
           throw new Error('Enter the recovery words')
         const response = await this.requestCommand(
-          COMMAND_RESTORE,
+          LNbits.onchain.utils.COMMAND_RESTORE,
           [this.hww.password, this.hww.mnemonic],
           60000
         )
@@ -979,14 +971,14 @@ window.app.component('onchain-serial-signer', {
       const commandData = value.substring(command.length).trim()
 
       if (
-        command === COMMAND_PAIR ||
-        command === COMMAND_LOG ||
-        command === COMMAND_NEW ||
-        command === COMMAND_PSBT_BEGIN ||
-        command === COMMAND_PSBT_CHUNK ||
-        command === COMMAND_PSBT_REVIEW ||
-        command === COMMAND_PASSWORD_CLEAR ||
-        command === COMMAND_PING
+        command === LNbits.onchain.utils.COMMAND_PAIR ||
+        command === LNbits.onchain.utils.COMMAND_LOG ||
+        command === LNbits.onchain.utils.COMMAND_NEW ||
+        command === LNbits.onchain.utils.COMMAND_PSBT_BEGIN ||
+        command === LNbits.onchain.utils.COMMAND_PSBT_CHUNK ||
+        command === LNbits.onchain.utils.COMMAND_PSBT_REVIEW ||
+        command === LNbits.onchain.utils.COMMAND_PASSWORD_CLEAR ||
+        command === LNbits.onchain.utils.COMMAND_PING
       )
         return {command, commandData}
 

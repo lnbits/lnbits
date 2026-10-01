@@ -1,5 +1,3 @@
-import {retryWithDelay, satOrBtc} from '../js/utils.js'
-import {mempoolJS} from '../js/mempool-client.js'
 window.app.component('onchain-fee-rate', {
   name: 'onchain-fee-rate',
   template: '#onchain-fee-rate',
@@ -32,7 +30,7 @@ window.app.component('onchain-fee-rate', {
 
   methods: {
     satBtc(val, showUnit = true) {
-      return satOrBtc(val, showUnit, this.satsDenominated)
+      return LNbits.onchain.utils.satOrBtc(val, showUnit, this.satsDenominated)
     },
 
     refreshRecommendedFees: async function () {
@@ -41,13 +39,13 @@ window.app.component('onchain-fee-rate', {
       const fn = async () => {
         const {
           bitcoin: {fees: feesAPI}
-        } = mempoolJS({
+        } = LNbits.onchain.mempoolJS({
           hostname: this.mempoolEndpoint
         })
         return feesAPI.getFeesRecommended()
       }
       try {
-        this.recommededFees = await retryWithDelay(fn)
+        this.recommededFees = await LNbits.onchain.utils.retryWithDelay(fn)
       } catch (error) {
         this.$q.notify({
           type: 'warning',

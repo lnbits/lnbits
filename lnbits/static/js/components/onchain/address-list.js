@@ -1,4 +1,3 @@
-import {satOrBtc} from '../js/utils.js'
 window.app.component('onchain-address-list', {
   name: 'onchain-address-list',
   template: '#onchain-address-list',
@@ -75,7 +74,7 @@ window.app.component('onchain-address-list', {
 
   methods: {
     satBtc(val, showUnit = true) {
-      return satOrBtc(val, showUnit, this.satsDenominated)
+      return LNbits.onchain.utils.satOrBtc(val, showUnit, this.satsDenominated)
     },
     // todo: bad. base.js not present in custom components
     copyText: function (text, message, position) {

@@ -1,13 +1,3 @@
-import {
-  addressBalance,
-  DEFAULT_RECEIVE_GAP_LIMIT,
-  getSigningNetwork,
-  currentDateTime,
-  getAccountDescription,
-  satOrBtc,
-  findAccountPathIssues
-} from '../js/utils.js'
-import {mapAddressesData, mapWalletAccount} from '../js/map.js'
 window.app.component('onchain-wallet-list', {
   name: 'onchain-wallet-list',
   template: '#onchain-wallet-list',
@@ -142,7 +132,7 @@ window.app.component('onchain-wallet-list', {
       this.showSetup = true
     },
     satBtc(val, showUnit = true) {
-      return satOrBtc(val, showUnit, this.satsDenominated)
+      return LNbits.onchain.utils.satOrBtc(val, showUnit, this.satsDenominated)
     },
 
     addWalletAccount: async function () {
@@ -178,7 +168,9 @@ window.app.component('onchain-wallet-list', {
           this.adminkey,
           data
         )
-        this.walletAccounts.push(mapWalletAccount(response.data))
+        this.walletAccounts.push(
+          LNbits.onchain.map.mapWalletAccount(response.data)
+        )
         this.formDialog.show = false
 
         await this.refreshWalletAccounts()
@@ -187,7 +179,7 @@ window.app.component('onchain-wallet-list', {
       }
     },
     fetchXpubFromHww: async function () {
-      const error = findAccountPathIssues(this.accountPath)
+      const error = LNbits.onchain.utils.findAccountPathIssues(this.accountPath)
       if (error) {
         this.$q.notify({
           type: 'warning',
@@ -251,7 +243,9 @@ window.app.component('onchain-wallet-list', {
       try {
         const wallets = await this.getWatchOnlyWallets(network)
         if (network !== this.network) return
-        this.walletAccounts = wallets.map(w => mapWalletAccount(w))
+        this.walletAccounts = wallets.map(w =>
+          LNbits.onchain.map.mapWalletAccount(w)
+        )
         if (this.wallet) {
           this.showSetup = false
           this.formDialog.show = false
@@ -264,7 +258,7 @@ window.app.component('onchain-wallet-list', {
       }
     },
     getAmmountForWallet: function (walletId) {
-      const amount = addressBalance(
+      const amount = LNbits.onchain.utils.addressBalance(
         this.addresses.filter(a => a.wallet === walletId)
       )
       return this.satBtc(amount)
@@ -275,7 +269,7 @@ window.app.component('onchain-wallet-list', {
       }
     },
     getAccountDescription: function (accountType) {
-      return getAccountDescription(accountType)
+      return LNbits.onchain.utils.getAccountDescription(accountType)
     },
     openGetFreshAddressDialog: async function (walletId) {
       const {data} = await LNbits.api.request(
@@ -283,9 +277,9 @@ window.app.component('onchain-wallet-list', {
         `/api/v1/onchain/address/${walletId}`,
         this.inkey
       )
-      const addressData = mapAddressesData(data)
+      const addressData = LNbits.onchain.map.mapAddressesData(data)
 
-      addressData.note = `Shared on ${currentDateTime()}`
+      addressData.note = `Shared on ${LNbits.onchain.utils.currentDateTime()}`
       const lastActiveAddress = this.addresses
         .filter(
           a => a.wallet === addressData.wallet && !a.isChange && a.hasActivity
@@ -294,7 +288,8 @@ window.app.component('onchain-wallet-list', {
       addressData.gapLimitExceeded =
         !addressData.isChange &&
         addressData.addressIndex >
-          lastActiveAddress.addressIndex + DEFAULT_RECEIVE_GAP_LIMIT
+          lastActiveAddress.addressIndex +
+            LNbits.onchain.utils.DEFAULT_RECEIVE_GAP_LIMIT
 
       const wallet = this.walletAccounts.find(w => w.id === walletId) || {}
       wallet.onchain_address_no = addressData.addressIndex
@@ -335,7 +330,10 @@ window.app.component('onchain-wallet-list', {
     handleAddressTypeChanged: function (value = {}) {
       const addressType =
         this.addressTypeOptions.find(t => t.id === value.id) || {}
-      this.accountPath = addressType[`path${getSigningNetwork(this.network)}`]
+      this.accountPath =
+        addressType[
+          `path${LNbits.onchain.utils.getSigningNetwork(this.network)}`
+        ]
     },
     // todo: bad. base.js not present in custom components
     copyText: function (text, message, position) {

@@ -1,5 +1,5 @@
-import {sleep} from './utils.js'
-export const bip39WordList = Object.freeze([
+const {sleep} = LNbits.onchain.utils
+LNbits.onchain.bip39WordList = Object.freeze([
   'abandon',
   'ability',
   'able',

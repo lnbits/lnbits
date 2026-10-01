@@ -1,4 +1,3 @@
-import {bip39WordList} from '../js/bip39-word-list.js'
 window.app.component('onchain-seed-input', {
   name: 'onchain-seed-input',
   template: '#onchain-seed-input',
@@ -96,7 +95,7 @@ window.app.component('onchain-seed-input', {
   },
 
   created: async function () {
-    this.stringOptions = bip39WordList
+    this.stringOptions = LNbits.onchain.bip39WordList
     this.initWords()
   }
 })

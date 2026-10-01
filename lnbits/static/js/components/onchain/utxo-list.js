@@ -1,4 +1,3 @@
-import {satOrBtc} from '../js/utils.js'
 window.app.component('onchain-utxo-list', {
   name: 'onchain-utxo-list',
   template: '#onchain-utxo-list',
@@ -98,7 +97,7 @@ window.app.component('onchain-utxo-list', {
 
   methods: {
     satBtc(val, showUnit = true) {
-      return satOrBtc(val, showUnit, this.satsDenominated)
+      return LNbits.onchain.utils.satOrBtc(val, showUnit, this.satsDenominated)
     },
     getWalletName: function (walletId) {
       return (

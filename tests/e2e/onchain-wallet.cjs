@@ -1,9 +1,9 @@
 const assert = require('node:assert/strict')
-const {readFileSync} = require('node:fs')
+const {readFileSync, readdirSync} = require('node:fs')
 const {resolve} = require('node:path')
 const {chromium} = require('@playwright/test')
 const root = resolve(__dirname, '../..')
-const assets = resolve(root, 'lnbits/onchain/static')
+const assets = resolve(root, 'lnbits/static')
 
 async function main() {
   const browser = await chromium.launch({
@@ -37,11 +37,9 @@ async function main() {
     page.setDefaultTimeout(10000)
     await page.route('https://wallet.test/**', async route => {
       const url = new URL(route.request().url())
-      if (url.pathname.startsWith('/onchain/static/')) {
+      if (url.pathname.startsWith('/static/')) {
         return route.fulfill({
-          body: readFileSync(
-            assets + url.pathname.slice('/onchain/static'.length)
-          ),
+          body: readFileSync(assets + url.pathname.slice('/static'.length)),
           contentType: 'application/javascript'
         })
       }
@@ -53,7 +51,15 @@ async function main() {
     await page.goto('https://wallet.test/')
     await page.setContent(
       '<!doctype html>' +
-        readFileSync(assets + '/wallet.vue', 'utf8') +
+        readdirSync(root + '/lnbits/templates/components/onchain')
+          .filter(name => name.endsWith('.vue'))
+          .map(name =>
+            readFileSync(
+              root + '/lnbits/templates/components/onchain/' + name,
+              'utf8'
+            )
+          )
+          .join('') +
         [
           'lnbits-wallet-extra',
           'lnbits-wallet-charts',
@@ -66,7 +72,7 @@ async function main() {
             )
           )
           .join('') +
-        '<div id="app" class="q-pa-md"><page-onchain ref="page" :chart-config="chartConfig" @update-wallet="walletUpdates.push($event)" @synced="onSynced"><template #wallet-tools><lnbits-wallet-charts ref="charts" :chart-config="chartConfig" :payment-filter="onchainPaymentFilter" api-url="/api/v1/onchain/stats/daily" api-key="read-test"></lnbits-wallet-charts></template></page-onchain></div>'
+        '<div id="app" class="q-pa-md"><lnbits-onchain-wallet ref="page" :chart-config="chartConfig" @update-wallet="walletUpdates.push($event)" @synced="onSynced"><template #wallet-tools><lnbits-wallet-charts ref="charts" :chart-config="chartConfig" :payment-filter="onchainPaymentFilter" api-url="/api/v1/onchain/stats/daily" api-key="read-test"></lnbits-wallet-charts></template></lnbits-onchain-wallet></div>'
     )
     for (const script of [
       'vue/dist/vue.global.js',
@@ -345,9 +351,18 @@ async function main() {
         contentType: 'application/json'
       })
     })
-    await page.evaluate(async () => {
-      const definition = (await import('/onchain/static/wallet.js')).default
-      app.component('page-onchain', definition)
+    for (const script of [
+      ...require('../../package.json').bundle.js.filter(file =>
+        file.startsWith('js/onchain/')
+      ),
+      ...require('../../package.json').bundle.components.filter(file =>
+        file.startsWith('js/components/onchain/')
+      )
+    ]) {
+      await page.addScriptTag({path: resolve(assets, script)})
+    }
+    await page.addStyleTag({path: resolve(assets, 'css/base.css')})
+    await page.evaluate(() => {
       window.vm = app.mount('#app')
     })
     const walletCard = page.locator('.wallet-extra')

@@ -1,4 +1,3 @@
-import {satOrBtc} from '../js/utils.js'
 window.app.component('onchain-wallet-config', {
   name: 'onchain-wallet-config',
   template: '#onchain-wallet-config',
@@ -65,7 +64,11 @@ window.app.component('onchain-wallet-config', {
       this.show = true
     },
     satBtc(val, showUnit = true) {
-      return satOrBtc(val, showUnit, this.config.sats_denominated)
+      return LNbits.onchain.utils.satOrBtc(
+        val,
+        showUnit,
+        this.config.sats_denominated
+      )
     },
     updateConfig: async function () {
       try {

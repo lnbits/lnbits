@@ -6,9 +6,10 @@ const vm = require('node:vm')
 
 const LiveUpdates = vm.runInNewContext(
   readFileSync(
-    resolve(__dirname, '../../lnbits/onchain/static/js/live-updates.js'),
+    resolve(__dirname, '../../lnbits/static/js/onchain/live-updates.js'),
     'utf8'
-  ).replace('export class ', 'class ') + '\nOnchainLiveUpdates'
+  ) + '\nLNbits.onchain.OnchainLiveUpdates',
+  {LNbits: {onchain: {}}}
 )
 
 function harness(local = true) {

@@ -1,8 +1,3 @@
-import {
-  mapDerivationPathToTrezor,
-  mapOutputAccountTypeToTrezor,
-  mapInputAccountTypeToTrezor
-} from '../js/map.js'
 window.app.component('onchain-trezor-signer', {
   name: 'onchain-trezor-signer',
   template: '#onchain-trezor-signer',
@@ -24,9 +19,7 @@ window.app.component('onchain-trezor-signer', {
       try {
         this.isConnecting = true
         if (typeof TrezorConnect === 'undefined') {
-          await LNbits.utils.loadScript(
-            '/onchain/static/js/lib/trezor-web-connect.js'
-          )
+          await LNbits.utils.loadScript('/static/vendor/trezor-web-connect.js')
           window.TrezorConnect = window.trezor.default
           await TrezorConnect.init({
             lazyLoad: true,
@@ -78,13 +71,15 @@ window.app.component('onchain-trezor-signer', {
     hwwSendPsbt: async function (_, txData) {
       const coin = this.network === 'Mainnet' ? 'btc' : 'test'
       const inputs = txData.inputs.map(input => ({
-        address_n: mapDerivationPathToTrezor(
+        address_n: LNbits.onchain.map.mapDerivationPathToTrezor(
           `${input.accountPath}/${input.branch_index}/${input.address_index}`
         ),
         prev_index: input.vout,
         prev_hash: input.tx_id,
         amount: input.amount,
-        script_type: mapInputAccountTypeToTrezor(input.accountType)
+        script_type: LNbits.onchain.map.mapInputAccountTypeToTrezor(
+          input.accountType
+        )
       }))
       const outputs = txData.outputs.map(out => {
         const o = {
@@ -92,14 +87,16 @@ window.app.component('onchain-trezor-signer', {
           script_type: 'PAYTOADDRESS'
         }
         if (out.accountPath) {
-          o.address_n = mapDerivationPathToTrezor(
+          o.address_n = LNbits.onchain.map.mapDerivationPathToTrezor(
             `${out.accountPath}/${out.branch_index}/${out.address_index}`
           )
         } else {
           o.address = out.address
         }
         if (out.accountType) {
-          o.script_type = mapOutputAccountTypeToTrezor(out.accountType)
+          o.script_type = LNbits.onchain.map.mapOutputAccountTypeToTrezor(
+            out.accountType
+          )
         }
         return o
       })

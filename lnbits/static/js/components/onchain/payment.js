@@ -1,6 +1,3 @@
-import {txSize, satOrBtc} from '../js/utils.js'
-import {mapUtxoToPsbtInput} from '../js/map.js'
-import {mempoolJS} from '../js/mempool-client.js'
 window.app.component('onchain-payment', {
   name: 'onchain-payment',
   template: '#onchain-payment',
@@ -76,11 +73,11 @@ window.app.component('onchain-payment', {
     },
     txSize: function () {
       const tx = this.createTx()
-      return Math.ceil(txSize(tx))
+      return Math.ceil(LNbits.onchain.utils.txSize(tx))
     },
     txSizeNoChange: function () {
       const tx = this.createTx(true)
-      return Math.ceil(txSize(tx))
+      return Math.ceil(LNbits.onchain.utils.txSize(tx))
     },
     feeValue: function () {
       const tx = this.createTx()
@@ -116,7 +113,7 @@ window.app.component('onchain-payment', {
 
   methods: {
     satBtc(val, showUnit = true) {
-      return satOrBtc(val, showUnit, this.satsDenominated)
+      return LNbits.onchain.utils.satOrBtc(val, showUnit, this.satsDenominated)
     },
     clearState: function () {
       this.psbtBase64 = null
@@ -270,7 +267,7 @@ window.app.component('onchain-payment', {
       }
       tx.inputs = this.utxos
         .filter(utxo => utxo.selected)
-        .map(mapUtxoToPsbtInput)
+        .map(LNbits.onchain.map.mapUtxoToPsbtInput)
         .sort((a, b) =>
           a.tx_id < b.tx_id ? -1 : a.tx_id > b.tx_id ? 1 : a.vout - b.vout
         )
@@ -285,7 +282,8 @@ window.app.component('onchain-payment', {
         const remainder = this.selectedAmount - this.totalPayedAmount
         const withChange = {...tx, outputs: [...tx.outputs, change]}
         const changeValue =
-          remainder - Math.ceil(this.feeRate * txSize(withChange))
+          remainder -
+          Math.ceil(this.feeRate * LNbits.onchain.utils.txSize(withChange))
         if (changeValue >= this.DUST_LIMIT) {
           if (!change.address)
             throw new Error('No unused change address is available')
@@ -293,7 +291,7 @@ window.app.component('onchain-payment', {
           tx.outputs.push(change)
         }
       }
-      tx.tx_size = Math.ceil(txSize(tx))
+      tx.tx_size = Math.ceil(LNbits.onchain.utils.txSize(tx))
       tx.inputs = _.shuffle(tx.inputs)
       tx.outputs = _.shuffle(tx.outputs)
 
@@ -487,7 +485,7 @@ window.app.component('onchain-payment', {
     fetchTxHex: async function (txId) {
       const {
         bitcoin: {transactions: transactionsAPI}
-      } = mempoolJS({
+      } = LNbits.onchain.mempoolJS({
         hostname: this.mempoolEndpoint
       })
 
