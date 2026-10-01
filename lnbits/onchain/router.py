@@ -1,15 +1,9 @@
-from importlib.util import find_spec
 from pathlib import Path
 
 from fastapi import APIRouter, HTTPException
 from starlette.responses import FileResponse
 
 onchain_router = APIRouter(prefix="/onchain", tags=["Onchain"])
-
-
-def require_onchain_available() -> None:
-    if find_spec("wallycore") is None:
-        raise HTTPException(503, "Onchain support requires the wallycore package")
 
 
 @onchain_router.get("/static/{path:path}", include_in_schema=False)

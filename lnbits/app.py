@@ -36,6 +36,7 @@ from lnbits.core.services.notifications import (
     enqueue_admin_notification,
     process_next_notification,
 )
+from lnbits.core.services.onchain import sync_wallets
 from lnbits.core.services.payments import (
     check_pending_payments,
     fundingsource_invoice_producer,
@@ -578,12 +579,7 @@ def register_async_tasks() -> None:
     task_manager.register_invoice_listener(dispatch_payment_notification, "core")
 
     # Core onchain wallets retain their snapshots when no browser is open.
-    from importlib.util import find_spec
-
-    if find_spec("wallycore") is not None:
-        from lnbits.core.services.onchain import sync_wallets
-
-        task_manager.create_permanent_task(sync_wallets, interval=60)
+    task_manager.create_permanent_task(sync_wallets, interval=60)
 
     # periodic tasks
     task_manager.create_permanent_task(cache.invalidate_cache, interval=10)

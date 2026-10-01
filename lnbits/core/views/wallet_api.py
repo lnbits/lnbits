@@ -57,7 +57,6 @@ from lnbits.decorators import (
 )
 from lnbits.helpers import generate_filter_params_openapi
 from lnbits.onchain.explorer import explorer_url, local_explorer_network, provider_name
-from lnbits.onchain.router import require_onchain_available
 from lnbits.settings import settings
 
 from ..crud import (
@@ -261,9 +260,6 @@ async def api_create_wallet(
         raise HTTPException(
             HTTPStatus.FORBIDDEN, "Fiat wallets are not enabled for this user."
         )
-
-    if data.wallet_type == WalletType.ONCHAIN:
-        require_onchain_available()
 
     return await create_wallet(
         user_id=account_id.id,
