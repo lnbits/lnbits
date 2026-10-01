@@ -8,7 +8,7 @@ from starlette.concurrency import run_in_threadpool
 from lnbits.core.crud.wallets import (
     WalletAlreadyConfiguredError,
     get_onchain_wallet,
-    init_onchain_wallet,
+    init_onchain_wallet_state,
     update_onchain_wallet,
 )
 from lnbits.core.db import db
@@ -102,7 +102,7 @@ async def create_hot_wallet(
     )
     encrypted = encrypt_mnemonic(mnemonic, wallet)
     try:
-        wallet = await init_onchain_wallet(wallet, encrypted_seed=encrypted)
+        wallet = await init_onchain_wallet_state(wallet, encrypted_seed=encrypted)
     except WalletAlreadyConfiguredError as exc:
         raise HTTPException(HTTPStatus.CONFLICT, str(exc)) from exc
     except ValueError as exc:

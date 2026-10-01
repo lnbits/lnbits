@@ -378,7 +378,7 @@ async def get_total_balance(conn: Connection | None = None, *, fiat: bool = Fals
     return row.get("balance", 0) or 0
 
 
-async def init_onchain_wallet(
+async def init_onchain_wallet_state(
     wallet: OnchainWallet,
     encrypted_seed: str | None = None,
     conn: Connection | None = None,

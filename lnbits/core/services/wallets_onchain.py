@@ -4,10 +4,7 @@ from fastapi import HTTPException
 from starlette.concurrency import run_in_threadpool
 
 from lnbits.core.crud.onchain import create_fresh_addresses, get_addresses
-from lnbits.core.crud.wallets import get_onchain_wallet
-from lnbits.core.crud.wallets import (
-    init_onchain_wallet as init_onchain_wallet_crud,
-)
+from lnbits.core.crud.wallets import get_onchain_wallet, init_onchain_wallet_state
 from lnbits.core.models.onchain import Address
 from lnbits.core.models.wallets import CreateOnchainWallet, OnchainMeta, OnchainWallet
 from lnbits.onchain.helpers import descriptor_fingerprint, descriptor_type, parse_key
@@ -38,7 +35,7 @@ async def init_onchain_wallet(
         script_type=descriptor_type(descriptor),
     )
 
-    wallet = await init_onchain_wallet_crud(new_wallet)
+    wallet = await init_onchain_wallet_state(new_wallet)
     if not wallet or not wallet.onchain_wallet_kind:
         raise HTTPException(HTTPStatus.NOT_FOUND, "Wallet does not exist.")
     await get_wallet_addresses(wallet)

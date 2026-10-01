@@ -539,7 +539,7 @@ async def test_onchain_wallet_crud_reuses_connection(onchain_wallet, kind):
     from lnbits.core.crud.wallets import (
         WalletAlreadyConfiguredError,
         clear_onchain_wallet_data,
-        init_onchain_wallet,
+        init_onchain_wallet_state,
         update_onchain_wallet,
     )
 
@@ -554,11 +554,11 @@ async def test_onchain_wallet_crud_reuses_connection(onchain_wallet, kind):
     async def use_connection():
         async with sync.db.connect() as conn:
             await update_onchain_wallet_config(config, wallet.id, conn=conn)
-            initialized = await init_onchain_wallet(stored_wallet, conn=conn)
+            initialized = await init_onchain_wallet_state(stored_wallet, conn=conn)
             assert initialized.onchain_wallet_kind == kind
             assert not initialized.onchain_config.sats_denominated
             with pytest.raises(WalletAlreadyConfiguredError):
-                await init_onchain_wallet(stored_wallet, conn=conn)
+                await init_onchain_wallet_state(stored_wallet, conn=conn)
 
             initialized.onchain_backup_confirmed = True
             updated = await update_onchain_wallet(initialized, conn=conn)
