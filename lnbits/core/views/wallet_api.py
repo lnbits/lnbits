@@ -357,7 +357,14 @@ async def api_update_config(
         )
     await update_onchain_wallet_config(data, wallet_id=auth.wallet_id, network=network)
     request_scan(auth.wallet_id)
-    return config_response(data, network)
+    response_data = data.dict()
+    response_data["explorer_provider"] = provider_name(data, network)
+    response_data["network"] = network
+    return OnchainWalletConfigResponse(
+        **response_data,
+        lnbits_explorer_network=local_explorer_network(),
+        explorer_url=explorer_url(data, network),
+    )
 
 
 @wallet_router.get("/onchain/config")
@@ -367,10 +374,8 @@ async def api_get_config(
     wallet = await get_onchain_wallet(auth.wallet_id)
     if not wallet:
         raise HTTPException(HTTPStatus.NOT_FOUND, "Wallet does not exist.")
-    return config_response(wallet.onchain_config, wallet.onchain_network or "Mainnet")
-
-
-def config_response(config: OnchainConfig, network: str) -> OnchainWalletConfigResponse:
+    config = wallet.onchain_config
+    network = wallet.onchain_network or "Mainnet"
     data = config.dict()
     data["explorer_provider"] = provider_name(config, network)
     data["network"] = network
