@@ -3,16 +3,25 @@ import json
 from lnbits.core.crud.wallets import get_onchain_wallet
 from lnbits.core.db import db
 from lnbits.core.models.onchain import Address, Snapshot
-from lnbits.db import SQLITE, Connection, model_to_dict
+from lnbits.db import Connection, model_to_dict
 from lnbits.helpers import urlsafe_short_hash
 from lnbits.utils.onchain import derive_address
 
 ADDRESS_COLUMNS = ", ".join(Address.__fields__)
-MASTERPUB_SQL = (
-    "json_extract(onchain_meta, '$.masterpub')"
-    if db.type == SQLITE
-    else "CAST(onchain_meta AS JSONB)->>'masterpub'"
-)
+
+
+async def create_address(address: Address, conn: Connection | None = None) -> None:
+    await (conn or db).execute(
+        f"""
+            INSERT INTO onchain_addresses ({ADDRESS_COLUMNS})
+            SELECT :id, :address, :walet_id, :amount, :branch_index,
+                :address_index, :note, :has_activity
+            FROM wallets WHERE id = :walet_id AND wallet_type = 'onchain'
+                AND onchain_wallet_kind IS NOT NULL
+            ON CONFLICT(walet_id, branch_index, address_index) DO NOTHING
+        """,  # noqa: S608
+        model_to_dict(address),
+    )
 
 
 async def create_fresh_addresses(
@@ -45,18 +54,7 @@ async def create_fresh_addresses(
             address_index=address_index,
         )
 
-        await (conn or db).execute(
-            f"""
-                INSERT INTO onchain_addresses ({ADDRESS_COLUMNS})
-                SELECT :id, :address, :walet_id, :amount, :branch_index,
-                    :address_index, :note, :has_activity
-                FROM wallets WHERE id = :walet_id AND wallet_type = 'onchain'
-                    AND onchain_wallet_kind IS NOT NULL
-                    AND {MASTERPUB_SQL} = :masterpub
-                ON CONFLICT(walet_id, branch_index, address_index) DO NOTHING
-            """,  # noqa: S608
-            {**model_to_dict(addr), "masterpub": wallet.onchain_meta.masterpub},
-        )
+        await create_address(addr, conn=conn)
 
     # return fresh addresses
     return await (conn or db).fetchall(
