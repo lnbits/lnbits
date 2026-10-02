@@ -8,6 +8,15 @@ window.app.component('onchain-hot-wallet', {
       busy: false,
       available: null,
       mode: 'create',
+      scriptType: 'p2wpkh',
+      useCustomPath: false,
+      customPath: '',
+      addressTypes: [
+        {label: 'Legacy', value: 'p2pkh', purpose: 44},
+        {label: 'Wrapped SegWit', value: 'p2sh', purpose: 49},
+        {label: 'Native SegWit', value: 'p2wpkh', purpose: 84},
+        {label: 'Taproot', value: 'p2tr', purpose: 86}
+      ],
       mnemonic: '',
       wallet: null,
       phrase: '',
@@ -20,6 +29,22 @@ window.app.component('onchain-hot-wallet', {
     }
   },
   computed: {
+    standardAccountPath() {
+      const purpose = this.addressTypes.find(
+        t => t.value === this.scriptType
+      ).purpose
+      const coin = this.network === 'Mainnet' ? 0 : 1
+      return `m/${purpose}'/${coin}'/0'`
+    },
+    accountPath() {
+      return this.useCustomPath
+        ? this.customPath.trim()
+        : this.standardAccountPath
+    },
+    backupAddressType() {
+      const type = this.wallet?.onchain_meta?.script_type
+      return this.addressTypes.find(t => t.value === type)?.label || type
+    },
     seedWords() {
       const words = this.phrase
         ? this.phrase.trim().split(/\s+/)
@@ -42,6 +67,9 @@ window.app.component('onchain-hot-wallet', {
       this.resetSecrets()
       this.wallet = null
       this.mode = 'create'
+      this.scriptType = 'p2wpkh'
+      this.useCustomPath = false
+      this.customPath = ''
       this.available = null
       this.show = true
       try {
@@ -58,6 +86,11 @@ window.app.component('onchain-hot-wallet', {
     },
     async createWallet() {
       if (this.busy) return
+      const pathError = this.validateAccountPath(this.accountPath)
+      if (pathError !== true) {
+        this.error = pathError
+        return
+      }
       this.busy = true
       this.error = ''
       try {
@@ -67,7 +100,9 @@ window.app.component('onchain-hot-wallet', {
           this.adminkey,
           {
             title: this.g.wallet.name,
-            network: this.network
+            network: this.network,
+            script_type: this.scriptType,
+            account_path: this.accountPath
           },
           this.mode === 'restore'
             ? {
@@ -90,6 +125,21 @@ window.app.component('onchain-hot-wallet', {
       } finally {
         this.busy = false
       }
+    },
+    validateAccountPath(value) {
+      const path = value.trim().replace(/[hH]/g, "'")
+      if (!/^m(?:\/[0-9]{1,10}'?)+$/.test(path))
+        return "Enter a BIP32 account path, such as m/84'/0'/0'"
+      const parts = path.split('/').slice(1)
+      if (
+        path.length > 3037 ||
+        parts.length > 253 ||
+        parts.some(p => Number(p.replace("'", '')) >= 0x80000000)
+      )
+        return 'Derivation path depth or index is out of range'
+      if (!path.endsWith("'"))
+        return 'The account path must end in a hardened index. Do not include receiving/change branches or address indexes.'
+      return true
     },
     openBackup(wallet) {
       this.resetSecrets()

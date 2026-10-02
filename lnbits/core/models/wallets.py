@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import re
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from enum import Enum
@@ -352,6 +353,29 @@ class OnchainWalletConfigResponse(OnchainConfig):
 class NewHotWallet(BaseModel):
     title: str = Field(..., min_length=1, max_length=100)
     network: Literal["Mainnet", "Testnet", "Testnet4"] = "Mainnet"
+    script_type: Literal["p2pkh", "p2sh", "p2wpkh", "p2tr"] = "p2wpkh"
+    account_path: str | None = Field(None, min_length=1, max_length=3037)
+
+    @validator("account_path")
+    @classmethod
+    def valid_account_path(cls, value: str | None) -> str | None:
+        if value is None:
+            return None
+        path = value.strip().replace("h", "'").replace("H", "'")
+        if not re.fullmatch(r"m(?:/[0-9]{1,10}'?)+", path):
+            raise ValueError("Enter a BIP32 account path, such as m/84'/0'/0'")
+        parts = path.split("/")[1:]
+        # Leave two levels for the receiving/change branch and address index.
+        if len(parts) > 253 or any(int(p.rstrip("'")) >= 2**31 for p in parts):
+            raise ValueError("Derivation path depth or index is out of range")
+        if not path.endswith("'"):
+            raise ValueError(
+                "The account path must end in a hardened index. "
+                "Do not include receiving/change branches or address indexes."
+            )
+        return "m/" + "/".join(
+            str(int(p.rstrip("'"))) + ("'" if p.endswith("'") else "") for p in parts
+        )
 
     class Config:
         extra = "forbid"

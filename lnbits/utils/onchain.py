@@ -75,16 +75,28 @@ def root_key(mnemonic: str, network: str):
     )
 
 
-def wallet_descriptor(mnemonic: str, network: str) -> tuple[str, str]:
+def wallet_descriptor(
+    mnemonic: str,
+    network: str,
+    script_type: str = "p2wpkh",
+    account_path: str | None = None,
+) -> tuple[str, str]:
     root = root_key(mnemonic, network)
     coin = 0 if network == "Mainnet" else 1
-    path = f"84'/{coin}'/0'"
+    purpose, template = {
+        "p2pkh": (44, "pkh({key})"),
+        "p2sh": (49, "sh(wpkh({key}))"),
+        "p2wpkh": (84, "wpkh({key})"),
+        "p2tr": (86, "tr({key})"),
+    }[script_type]
+    path = (account_path or f"m/{purpose}'/{coin}'/0'")[2:]
     account = wally.bip32_key_from_parent_path(
-        root, [0x80000054, 0x80000000 + coin, 0x80000000], wally.BIP32_FLAG_KEY_PRIVATE
+        root, _path(path), wally.BIP32_FLAG_KEY_PRIVATE
     )
     xpub = wally.bip32_key_to_base58(account, wally.BIP32_FLAG_KEY_PUBLIC)
     fingerprint = bytes(wally.bip32_key_get_fingerprint(root)).hex()
-    return f"wpkh([{fingerprint}/{path}]{xpub}/{{0,1}}/*)", f"m/{path}"
+    key = f"[{fingerprint}/{path}]{xpub}/{{0,1}}/*"
+    return template.format(key=key), f"m/{path}"
 
 
 def encrypt_mnemonic(mnemonic: str, key: bytes, context: bytes) -> str:

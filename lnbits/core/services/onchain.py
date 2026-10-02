@@ -276,7 +276,12 @@ def sign_payment(  # noqa: C901
         raise ValueError("Transaction fee exceeds the approved maximum")
     mnemonic = decrypt_wallet_mnemonic(encrypted, wallet)
     if (
-        wallet_descriptor(mnemonic, wallet.onchain_network)[0]
+        wallet_descriptor(
+            mnemonic,
+            wallet.onchain_network,
+            wallet.onchain_meta.script_type or "p2wpkh",
+            wallet.onchain_meta.accountPath or None,
+        )[0]
         != wallet.onchain_meta.masterpub
     ):
         raise ValueError("Wallet key does not match its descriptor")

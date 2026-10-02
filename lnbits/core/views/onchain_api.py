@@ -249,7 +249,11 @@ async def create_hot_wallet(
             recovery_phrase.get_secret_value() if recovery_phrase else None,
         )
         descriptor, path = await run_in_threadpool(
-            wallet_descriptor, mnemonic, data.network
+            wallet_descriptor,
+            mnemonic,
+            data.network,
+            data.script_type,
+            data.account_path,
         )
     except ValueError as exc:
         raise HTTPException(HTTPStatus.BAD_REQUEST, "Invalid recovery phrase") from exc
@@ -261,7 +265,7 @@ async def create_hot_wallet(
     wallet.onchain_meta = OnchainMeta(
         masterpub=descriptor,
         fingerprint=descriptor_fingerprint(parse_key(descriptor)[0]),
-        script_type="p2wpkh",
+        script_type=data.script_type,
         accountPath=path,
     )
     encrypted = encrypt_wallet_mnemonic(mnemonic, wallet)

@@ -568,8 +568,86 @@ async def test_onchain_core_creation_currency_and_read_balance(
 
 
 @pytest.mark.anyio
+@pytest.mark.parametrize("script_type", ["p2pkh", "p2sh", "p2wpkh", "p2tr"])
+@pytest.mark.parametrize("restore", [False, True])
+async def test_onchain_hot_wallet_custom_path(
+    http_client, onchain_wallet, script_type, restore
+):
+    wallet, _, headers = onchain_wallet
+    created = await http_client.post(
+        "/api/v1/onchain/hot-wallet",
+        headers={
+            **headers,
+            **({"X-Onchain-Recovery-Phrase": PHRASE} if restore else {}),
+        },
+        json={
+            "title": "Custom account",
+            "network": "Testnet4",
+            "script_type": script_type,
+            "account_path": "m/100h/7/3H",
+        },
+    )
+    assert created.status_code == 200, created.text
+    meta = created.json()["onchain_meta"]
+    assert meta["accountPath"] == "m/100'/7/3'"
+    assert meta["script_type"] == script_type
+    stored = await get_onchain_wallet(wallet.id)
+    assert stored and stored.onchain_meta.dict() == meta
+    backup = await http_client.post(
+        f"/api/v1/onchain/hot-wallet/{wallet.id}/backup", headers=headers
+    )
+    assert backup.status_code == 200
+    assert backup.json()["path"] == meta["accountPath"]
+    phrase = backup.json()["mnemonic"]
+    if restore:
+        assert phrase == PHRASE
+    else:
+        assert len(phrase.split()) == 24
+    assert (
+        meta["masterpub"]
+        == wallet_descriptor(phrase, "Testnet4", script_type, meta["accountPath"])[0]
+    )
+    assert await get_addresses(wallet.id)
+
+
+@pytest.mark.anyio
+@pytest.mark.parametrize(
+    "fields",
+    [
+        {"account_path": "m/84'/1'/0'/0/0"},
+        {"account_path": "m/84'/1'/2147483648'"},
+        {"script_type": "p2wsh"},
+    ],
+)
+async def test_onchain_hot_wallet_invalid_derivation(
+    http_client, onchain_wallet, fields
+):
+    wallet, _, headers = onchain_wallet
+    response = await http_client.post(
+        "/api/v1/onchain/hot-wallet",
+        headers=headers,
+        json={"title": "Invalid", "network": "Testnet4", **fields},
+    )
+    assert response.status_code == 400
+    assert response.json()["detail"][0]["loc"][-1] in fields
+    stored = await get_onchain_wallet(wallet.id)
+    assert stored and stored.onchain_wallet_kind is None
+    assert not await get_addresses(wallet.id)
+
+
+@pytest.mark.anyio
+@pytest.mark.parametrize(
+    "script_type,account_path",
+    [
+        ("p2wpkh", None),
+        ("p2pkh", "m/44'/1'/7'"),
+        ("p2sh", "m/49'/1'/7'"),
+        ("p2wpkh", "m/84'/1'/7'"),
+        ("p2tr", "m/86'/1'/7'"),
+    ],
+)
 async def test_onchain_signing_preflight_rejects_spent_coin(
-    http_client, onchain_wallet, monkeypatch
+    http_client, onchain_wallet, monkeypatch, script_type, account_path
 ):
     from tests.unit.onchain.test_hot_wallet import wallet_and_payment
 
@@ -577,7 +655,12 @@ async def test_onchain_signing_preflight_rejects_spent_coin(
     created = await http_client.post(
         "/api/v1/onchain/hot-wallet",
         headers={**headers, "X-Onchain-Recovery-Phrase": PHRASE},
-        json={"title": "Restored signing account", "network": "Testnet4"},
+        json={
+            "title": "Restored signing account",
+            "network": "Testnet4",
+            "script_type": script_type,
+            "account_path": account_path,
+        },
     )
     assert created.status_code == 200
     account = created.json()
@@ -588,7 +671,7 @@ async def test_onchain_signing_preflight_rejects_spent_coin(
     assert (
         await http_client.post(backup + "/confirm", headers=headers)
     ).status_code == 200
-    _, payment = wallet_and_payment()
+    _, payment = wallet_and_payment(script_type=script_type, account_path=account_path)
     for inp in payment.transaction.inputs:
         inp.wallet = account["id"]
     for output in payment.transaction.outputs:

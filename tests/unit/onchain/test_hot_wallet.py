@@ -6,7 +6,7 @@ import pytest
 from Cryptodome.Cipher import AES
 
 from lnbits.core.models.onchain import CreatePsbt, HotWalletPayment
-from lnbits.core.models.wallets import OnchainMeta, OnchainWallet
+from lnbits.core.models.wallets import NewHotWallet, OnchainMeta, OnchainWallet
 from lnbits.core.services.onchain import (
     decrypt_wallet_mnemonic,
     encrypt_wallet_mnemonic,
@@ -32,8 +32,12 @@ def test_encryption_key(monkeypatch):
     )
 
 
-def wallet_and_payment(network: Literal["Mainnet", "Testnet", "Testnet4"] = "Testnet4"):
-    descriptor, _ = wallet_descriptor(PHRASE, network)
+def wallet_and_payment(
+    network: Literal["Mainnet", "Testnet", "Testnet4"] = "Testnet4",
+    script_type: str = "p2wpkh",
+    account_path: str | None = None,
+):
+    descriptor, path = wallet_descriptor(PHRASE, network, script_type, account_path)
     parsed, _ = parse_key(descriptor)
     wallet = OnchainWallet(
         id="wallet",
@@ -47,6 +51,8 @@ def wallet_and_payment(network: Literal["Mainnet", "Testnet", "Testnet4"] = "Tes
         onchain_meta=OnchainMeta(
             masterpub=descriptor,
             fingerprint=descriptor_fingerprint(parsed),
+            script_type=script_type,
+            accountPath=path,
         ),
     )
     net = (
@@ -106,6 +112,68 @@ def test_bip84_recovery_vector():
     assert len(new_mnemonic().split()) == 24
 
 
+@pytest.mark.parametrize(
+    "script_type,purpose,address",
+    [
+        ("p2pkh", 44, "1LqBGSKuX5yYUonjxT5qGfpUsXKYYWeabA"),
+        ("p2sh", 49, "37VucYSaXLCAsxYyAPfbSi9eh4iEcbShgf"),
+        (
+            "p2tr",
+            86,
+            "bc1p5cyxnuxmeuwuvkwfem96lqzszd02n6xdcjrs20cac6yqjjwudpxqkedrcr",
+        ),
+    ],
+)
+def test_hot_wallet_address_types(script_type, purpose, address):
+    descriptor, path = wallet_descriptor(PHRASE, "Mainnet", script_type)
+    parsed, _ = parse_key(descriptor)
+    assert path == f"m/{purpose}'/0'/0'"
+    assert (
+        script_address(descriptor_script(parsed), wally.WALLY_NETWORK_BITCOIN_MAINNET)
+        == address
+    )
+
+
+@pytest.mark.parametrize(
+    "path,expected",
+    [
+        (None, None),
+        ("m/84'/0'/7'", "m/84'/0'/7'"),
+        (" m/084h/0H/007' ", "m/84'/0'/7'"),
+        ("m/0'", "m/0'"),
+        ("m/100'/7/3'", "m/100'/7/3'"),
+        ("m/2147483647'", "m/2147483647'"),
+    ],
+)
+def test_custom_account_path_validation(path, expected):
+    data = NewHotWallet(title="Custom", account_path=path)
+    assert data.account_path == expected
+
+
+@pytest.mark.parametrize(
+    "path",
+    [
+        "",
+        "m",
+        "84'/0'/0'",
+        "m/84'/0'/-1'",
+        "m/84'/0'/2147483648'",
+        "m/84'/0'/0'/0/0",
+        "m/84'/0'/0'/1",
+        "m/84'/0'/0'/*",
+        "m/84'/0'/0'/<0;1>/*",
+        "m/84'/0'/0'/",
+        "m/84'//0'",
+        "m/84'/0'/one'",
+        "m/84'/0'/1.5'",
+        "m" + "/0'" * 254,
+    ],
+)
+def test_invalid_custom_account_paths(path):
+    with pytest.raises(ValueError):
+        NewHotWallet(title="Custom", account_path=path)
+
+
 def test_encryption_is_random_authenticated_and_bound_to_wallet(monkeypatch):
     wallet, _ = wallet_and_payment()
     first = encrypt_wallet_mnemonic(PHRASE, wallet)
@@ -147,8 +215,10 @@ def test_encryption_is_random_authenticated_and_bound_to_wallet(monkeypatch):
 
 
 @pytest.mark.parametrize("network", ["Mainnet", "Testnet", "Testnet4"])
-def test_signs_and_finalizes_native_segwit(network):
-    wallet, payment = wallet_and_payment(network)
+@pytest.mark.parametrize("script_type", ["p2pkh", "p2sh", "p2wpkh", "p2tr"])
+@pytest.mark.parametrize("account_path", [None, "m/100'/7/3'"])
+def test_signs_and_finalizes_hot_wallet(network, script_type, account_path):
+    wallet, payment = wallet_and_payment(network, script_type, account_path)
     result = sign_payment(wallet, encrypt_wallet_mnemonic(PHRASE, wallet), payment)
     assert result.tx_hex and result.tx_json
     tx = wally.tx_from_hex(result.tx_hex, wally.WALLY_TX_FLAG_USE_WITNESS)

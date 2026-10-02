@@ -24,10 +24,16 @@ supported through `LNBITS_ONCHAIN_MASTER_KEY`; UI-generated keys are stored in t
 LNbits data directory and included in server backups.
 
 Each hot wallet also has its own recovery phrase. The Backup → Verify flow
-checks words before enabling receive/send. Restoring a phrase derives native
-SegWit account zero: `m/84'/0'/0'` on Mainnet or `m/84'/1'/0'` on the test networks,
-without a BIP39 passphrase. Back up both the server encryption key/database and
-individual wallet phrases. Disabling server signing does not disable phrase export.
+checks words before enabling receive/send. When creating or restoring, choose Legacy,
+Wrapped SegWit, Native SegWit (the default), or Taproot. The standard path uses account
+zero and the selected network; Native SegWit uses `m/84'/0'/0'` on Mainnet or
+`m/84'/1'/0'` on the test networks. **Custom Derivation Path** accepts a BIP32 account
+path ending in a hardened index (`'`, `h`, or `H`); receiving and change branches
+are added automatically. The address type and path are fixed after setup.
+No BIP39 passphrase is used. Save the address type and path shown in the backup
+alongside the recovery phrase, and use the same settings when restoring.
+Back up both the server encryption key/database and individual wallet phrases.
+Disabling server signing does not disable phrase export.
 
 ## Balances, history and payments
 

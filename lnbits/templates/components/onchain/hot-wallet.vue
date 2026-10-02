@@ -44,8 +44,9 @@
           <template v-if="mode === 'restore'">
             <q-banner dense
               >Restore only a phrase you intend this server to control. This
-              restores Native SegWit, account 0, with no BIP39 passphrase. Never
-              enter a hardware wallet's recovery phrase here.</q-banner
+              restores the selected address type and path, with no BIP39
+              passphrase. Never enter a hardware wallet's recovery phrase
+              here.</q-banner
             >
             <q-input
               filled
@@ -58,6 +59,41 @@
               :rules="[v => !!v.trim() || 'Enter the recovery phrase']"
             ></q-input>
           </template>
+          <q-select
+            filled
+            v-model="scriptType"
+            :options="addressTypes"
+            emit-value
+            map-options
+            label="Address type"
+            :disable="busy"
+          ></q-select>
+          <q-checkbox
+            v-model="useCustomPath"
+            label="Custom Derivation Path"
+            :disable="busy"
+            @update:model-value="
+              value => {
+                if (value && !customPath) customPath = standardAccountPath
+              }
+            "
+          ></q-checkbox>
+          <q-input
+            v-if="useCustomPath"
+            filled
+            v-model="customPath"
+            label="Custom Derivation Path"
+            hint="Account path ending in a hardened index (', h or H). Receiving and change branches are added automatically."
+            :disable="busy"
+            :rules="[validateAccountPath]"
+          ></q-input>
+          <q-input
+            v-else
+            filled
+            :model-value="standardAccountPath"
+            label="Derivation path"
+            readonly
+          ></q-input>
           <div class="row">
             <q-btn
               type="submit"
@@ -150,16 +186,12 @@
             somewhere private.
           </p>
           <p class="text-caption text-grey">
-            Recovery: Native SegWit ·
+            Recovery: <span v-text="backupAddressType"></span> ·
             <span v-text="wallet.onchain_network"></span> ·
-            <span
-              v-text="
-                wallet.onchain_network === 'Mainnet'
-                  ? 'm/84\'/0\'/0\''
-                  : 'm/84\'/1\'/0\''
-              "
-            ></span>
+            <span v-text="wallet.onchain_meta.accountPath"></span>
             · no passphrase
+            <br />
+            Save this address type and path with your recovery phrase.
           </p>
           <div class="row justify-between q-mt-lg">
             <q-btn
