@@ -37,7 +37,6 @@ window.app.component('onchain-wallet-list', {
         },
         useSerialPort: false,
         data: {
-          title: '',
           masterpub: ''
         }
       },
@@ -140,6 +139,7 @@ window.app.component('onchain-wallet-list', {
       this.showCreating = true
       try {
         const data = _.omit(this.formDialog.data, 'wallet')
+        data.title = this.g.wallet.name
         data.network = this.network
         await this.createWalletAccount(data)
       } finally {

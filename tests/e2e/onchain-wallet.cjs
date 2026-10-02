@@ -404,14 +404,11 @@ async function main() {
     await walletCard.getByText('wallet config', {exact: true}).click()
     await page.getByRole('button', {name: 'Set up wallet', exact: true}).click()
     await page.getByText('Hot Wallet', {exact: true}).click()
-    await page.getByLabel('Wallet name', {exact: true}).fill('Everyday bitcoin')
     await page
       .getByRole('button', {name: 'Create wallet', exact: true})
       .last()
       .click()
-    await page
-      .getByRole('heading', {name: 'Back up Everyday bitcoin'})
-      .waitFor()
+    await page.getByRole('heading', {name: 'Back up Bitcoin wallet'}).waitFor()
     assert.equal(await page.locator('.onchain-word').count(), 24)
     assert.equal(
       await page.locator('.onchain-word').first().textContent(),
@@ -470,7 +467,7 @@ async function main() {
       .getByRole('button', {name: 'Confirm backup', exact: true})
       .click()
     await page
-      .getByRole('heading', {name: 'Back up Everyday bitcoin'})
+      .getByRole('heading', {name: 'Back up Bitcoin wallet'})
       .waitFor({state: 'hidden'})
     await page.setViewportSize({width: 1280, height: 1000})
     await walletCard.getByText('Testnet4', {exact: true}).waitFor()

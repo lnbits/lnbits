@@ -8,7 +8,6 @@ window.app.component('onchain-hot-wallet', {
       busy: false,
       available: null,
       mode: 'create',
-      title: '',
       mnemonic: '',
       wallet: null,
       phrase: '',
@@ -42,7 +41,6 @@ window.app.component('onchain-hot-wallet', {
     async openCreate() {
       this.resetSecrets()
       this.wallet = null
-      this.title = ''
       this.mode = 'create'
       this.available = null
       this.show = true
@@ -59,7 +57,7 @@ window.app.component('onchain-hot-wallet', {
       }
     },
     async createWallet() {
-      if (this.busy || !this.title.trim()) return
+      if (this.busy) return
       this.busy = true
       this.error = ''
       try {
@@ -68,7 +66,7 @@ window.app.component('onchain-hot-wallet', {
           '/api/v1/onchain/hot-wallet',
           this.adminkey,
           {
-            title: this.title.trim(),
+            title: this.g.wallet.name,
             network: this.network
           },
           this.mode === 'restore'

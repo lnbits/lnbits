@@ -162,13 +162,6 @@
     <q-card class="q-pa-lg q-pt-xl lnbits__dialog-card">
       <q-form @submit="addWalletAccount" class="q-gutter-md">
         <q-input
-          filled
-          dense
-          v-model.trim="formDialog.data.title"
-          type="text"
-          :label="$t('onchain.title')"
-        ></q-input>
-        <q-input
           v-if="!formDialog.useSerialPort"
           filled
           type="textarea"
@@ -207,9 +200,7 @@
             :disable="
               (formDialog.useSerialPort
                 ? !accountPath
-                : !formDialog.data.masterpub?.trim()) ||
-              !formDialog.data.title?.trim() ||
-              showCreating
+                : !formDialog.data.masterpub?.trim()) || showCreating
             "
             type="submit"
           >

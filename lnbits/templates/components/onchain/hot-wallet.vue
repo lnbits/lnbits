@@ -41,15 +41,6 @@
             ]"
             :disable="busy"
           ></q-btn-toggle>
-          <q-input
-            filled
-            v-model="title"
-            label="Wallet name"
-            maxlength="100"
-            :disable="busy"
-            :rules="[v => !!v.trim() || 'Enter a name']"
-            autofocus
-          ></q-input>
           <template v-if="mode === 'restore'">
             <q-banner dense
               >Restore only a phrase you intend this server to control. This
