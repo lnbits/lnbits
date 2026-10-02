@@ -108,6 +108,22 @@ window.app.component('lnbits-onchain-wallet', {
           ? 'Hardware wallet'
           : 'Watch-only wallet'
     },
+    walletDetails() {
+      const meta = this.selectedWallet?.onchain_meta || {}
+      return [
+        {label: 'Address type', value: meta.script_type?.toUpperCase()},
+        {label: 'Derivation path', value: meta.accountPath},
+        {label: 'Master fingerprint', value: meta.fingerprint},
+        {
+          label: meta.masterpub?.includes('(')
+            ? 'Public descriptor'
+            : 'Extended public key',
+          value: meta.masterpub,
+          multiline: true
+        },
+        {label: 'XPUB', value: meta.xpub, multiline: true}
+      ].filter(field => field.value?.trim())
+    },
     canTransact() {
       return (
         this.selectedWallet &&

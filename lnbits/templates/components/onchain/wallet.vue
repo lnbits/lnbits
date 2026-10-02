@@ -496,6 +496,36 @@
                 @click="$refs.walletList.deleteWalletAccount(selectedWallet.id)"
               ></q-btn>
             </q-card-section>
+            <q-expansion-item
+              v-if="isConfigured && walletDetails.length"
+              label="Wallet details"
+              icon="info_outline"
+            >
+              <q-card-section class="q-gutter-y-md">
+                <q-input
+                  v-for="field in walletDetails"
+                  :key="field.label"
+                  filled
+                  dense
+                  readonly
+                  :label="field.label"
+                  :model-value="field.value"
+                  :type="field.multiline ? 'textarea' : 'text'"
+                  :autogrow="field.multiline"
+                >
+                  <template v-slot:append>
+                    <q-btn
+                      flat
+                      round
+                      dense
+                      icon="content_copy"
+                      :aria-label="'Copy ' + field.label.toLowerCase()"
+                      @click="utils.copyText(field.value)"
+                    ></q-btn>
+                  </template>
+                </q-input>
+              </q-card-section>
+            </q-expansion-item>
           </q-expansion-item>
           <q-separator></q-separator>
         </template>
