@@ -36,7 +36,7 @@
             ><span
               v-text="
                 wallet.onchain_wallet_kind === 'hot'
-                  ? 'Server wallet'
+                  ? 'Hot Wallet'
                   : wallet.onchain_meta?.xpub
                     ? 'Hardware wallet'
                     : 'Watch-only'
@@ -114,7 +114,7 @@
               color="primary"
             ></q-icon></q-item-section
           ><q-item-section
-            ><q-item-label>Server wallet</q-item-label
+            ><q-item-label>Hot Wallet</q-item-label
             ><q-item-label caption
               >Create or restore a wallet. This LNbits server holds the keys and
               signs payments.</q-item-label

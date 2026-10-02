@@ -41,7 +41,7 @@ window.app.component('lnbits-wallet-new', {
           label: 'Onchain',
           value: 'onchain',
           description:
-            'Bitcoin with a server wallet, hardware wallet or watch-only account'
+            'Bitcoin with a hot wallet, hardware wallet or watch-only account'
         }
       ]
       if (this.g.user?.canCreateFiatWallet) {

@@ -55,8 +55,8 @@ extension and core onchain wallets from **Settings → Payments → Onchain paym
 LNbits saves the generated key in `.onchain_key` inside `LNBITS_DATA_FOLDER` with
 owner-only file permissions. No environment variable or launch flag is required.
 The same key must be retained across restarts. All workers must share this key.
-The key encrypts server wallet recovery phrases; it is excluded from ordinary
-settings responses. Disabling the toggle stops server wallet creation and signing,
+The key encrypts hot wallet recovery phrases; it is excluded from ordinary
+settings responses. Disabling the toggle stops hot wallet creation and signing,
 while keeping wallet recovery available. Hardware/watch-only wallets are unaffected.
 
 **Download backup** includes the generated key along with the data folder. Treat
@@ -70,7 +70,7 @@ settings preserves the key and its backup record.
 Deployments using a secret manager can optionally set `LNBITS_ONCHAIN_MASTER_KEY`
 in the environment or `.env` (base64-encoded, 32 random bytes). The earlier
 `WATCHONLY_MASTER_KEY` name is also supported. Back up and confirm that key through
-the same UI before enabling server wallets. Environment variables are not included
+the same UI before enabling hot wallets. Environment variables are not included
 in the full data-folder backup, so retain the separate key recovery file. Never
 replace a key that is already used by wallets.
 

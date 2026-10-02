@@ -10,12 +10,12 @@ The standard wallet card shows the Bitcoin wallet details and device connection
 buttons beneath the wallet name, with a settings cog on the right. **Advanced** remains
 expandable, followed by the usual wallet configuration and tools.
 
-Add a server wallet, import a public descriptor/account key, or connect a supported
+Add a hot wallet, import a public descriptor/account key, or connect a supported
 hardware wallet. Trezor and the existing serial hardware signing flows are
 available. Watch-only accounts receive and track bitcoin; spending requires an
-external signer. Server wallets sign on the LNbits server.
+external signer. Hot wallets sign on the LNbits server.
 
-## Server wallets and recovery
+## Hot wallets and recovery
 
 The superuser enables server signing under **Settings → Payments → Onchain
 payments**. Generate or restore the encryption key, download its backup, confirm
@@ -23,7 +23,7 @@ that it is stored safely, and enable payments. An environment key remains
 supported through `LNBITS_ONCHAIN_MASTER_KEY`; UI-generated keys are stored in the
 LNbits data directory and included in server backups.
 
-Each server wallet also has its own recovery phrase. The Backup → Verify flow
+Each hot wallet also has its own recovery phrase. The Backup → Verify flow
 checks words before enabling receive/send. Restoring a phrase derives native
 SegWit account zero: `m/84'/0'/0'` on Mainnet or `m/84'/1'/0'` on the test networks,
 without a BIP39 passphrase. Back up both the server encryption key/database and
@@ -84,7 +84,7 @@ for onchain wallets.
 
 Watchonly remains a separate extension with its own data. Nothing is automatically
 moved, deleted or re-encrypted. To follow an existing account in core, import its
-public descriptor. To restore a server wallet, use its recovery phrase in core's
+public descriptor. To restore a hot wallet, use its recovery phrase in core's
 restore flow. Both interfaces then refer to the same Bitcoin funds; this does not
 transfer or duplicate those funds.
 
@@ -99,7 +99,7 @@ wallet, including when a user owns several wallets.
 - `GET /api/v1/onchain/state`: cached addresses, history, coins and scan status.
 - `POST /api/v1/onchain/sync`: schedule a background update.
 - `GET /api/v1/onchain/stats/daily`: confirmed transaction statistics.
-- `POST /api/v1/onchain/hot-wallet`: create/restore a server wallet. Restoration
+- `POST /api/v1/onchain/hot-wallet`: create/restore a hot wallet. Restoration
   uses `X-Onchain-Recovery-Phrase` so phrases do not enter request-body audit logs.
 
 See the instance's `/docs#/Onchain` for the complete API schema.

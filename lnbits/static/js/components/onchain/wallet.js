@@ -103,7 +103,7 @@ window.app.component('lnbits-onchain-wallet', {
     },
     walletKindLabel() {
       return this.selectedWallet?.onchain_wallet_kind === 'hot'
-        ? 'Server wallet'
+        ? 'Hot Wallet'
         : this.selectedWallet?.onchain_meta?.xpub
           ? 'Hardware wallet'
           : 'Watch-only wallet'

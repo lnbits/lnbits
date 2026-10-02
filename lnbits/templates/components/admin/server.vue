@@ -56,8 +56,8 @@
           ></span>
         </div>
         <p class="text-caption text-grey">
-          LNbits encrypts server wallet recovery phrases with this key. Generate
-          it once, then keep a recovery copy somewhere safe. Setup and backup
+          LNbits encrypts hot wallet recovery phrases with this key. Generate it
+          once, then keep a recovery copy somewhere safe. Setup and backup
           actions take effect immediately; use Save to apply the payment toggle.
         </p>
         <q-banner
@@ -135,11 +135,11 @@
           <div class="text-h6">Back up your onchain encryption key</div>
           <p class="q-mt-md">
             Keep this file in a secure place, separately from your database
-            backup. Anyone with both can recover the server wallets.
+            backup. Anyone with both can recover the hot wallets.
           </p>
           <p>
-            If this key is lost, LNbits cannot unlock its server wallets. Users
-            can still recover with their own wallet recovery phrases.
+            If this key is lost, LNbits cannot unlock its hot wallets. Users can
+            still recover with their own wallet recovery phrases.
           </p>
           <q-btn
             color="primary"

@@ -403,7 +403,7 @@ async function main() {
     ])
     await walletCard.getByText('wallet config', {exact: true}).click()
     await page.getByRole('button', {name: 'Set up wallet', exact: true}).click()
-    await page.getByText('Server wallet', {exact: true}).click()
+    await page.getByText('Hot Wallet', {exact: true}).click()
     await page.getByLabel('Wallet name', {exact: true}).fill('Everyday bitcoin')
     await page
       .getByRole('button', {name: 'Create wallet', exact: true})

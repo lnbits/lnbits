@@ -8,8 +8,8 @@
     <q-card-section v-if="g.wallet.walletType === 'onchain'">
       <p>
         Use the read key to list Bitcoin accounts, addresses and cached
-        activity. The admin key can sign payments and export server wallet
-        recovery phrases.
+        activity. The admin key can sign payments and export hot wallet recovery
+        phrases.
       </p>
       <p>
         <code>GET /api/v1/onchain/state</code><br /><code

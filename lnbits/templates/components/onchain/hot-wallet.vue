@@ -7,7 +7,7 @@
       <h2
         class="text-h6 q-mt-none"
         v-text="
-          mode === 'backup' ? 'Back up ' + wallet.name : 'Add a server wallet'
+          mode === 'backup' ? 'Back up ' + wallet.name : 'Add a hot wallet'
         "
       ></h2>
       <q-banner v-if="error" class="bg-red-1 text-negative q-mb-md" role="alert"
@@ -19,10 +19,9 @@
           indeterminate
         ></q-linear-progress>
         <q-banner v-if="available === false"
-          >Server wallets are not enabled on this instance. Ask the
-          administrator to enable onchain payments and complete key backup in
-          Settings → Payments. Hardware and watch-only wallets are
-          available.</q-banner
+          >Hot wallets are not enabled on this instance. Ask the administrator
+          to enable onchain payments and complete key backup in Settings →
+          Payments. Hardware and watch-only wallets are available.</q-banner
         >
         <q-form v-if="available" @submit="createWallet" class="q-gutter-md">
           <p>

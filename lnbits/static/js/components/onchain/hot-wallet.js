@@ -55,7 +55,7 @@ window.app.component('onchain-hot-wallet', {
         this.available = data.available
       } catch (_) {
         this.error =
-          'Could not check server wallet availability. Close and try again.'
+          'Could not check hot wallet availability. Close and try again.'
       }
     },
     async createWallet() {

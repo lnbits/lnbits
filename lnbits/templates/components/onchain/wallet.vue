@@ -122,7 +122,7 @@
               Bitcoin, alongside your Lightning wallets
             </h2>
             <p>
-              Create a server wallet, connect a hardware wallet, or follow an
+              Create a hot wallet, connect a hardware wallet, or follow an
               existing wallet.
             </p>
             <q-btn

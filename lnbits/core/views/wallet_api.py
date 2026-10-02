@@ -325,7 +325,7 @@ async def api_wallet_delete(
     if wallet.onchain_wallet_kind == "hot":
         raise HTTPException(
             HTTPStatus.CONFLICT,
-            "Server wallets cannot be deleted while they hold signing keys."
+            "Hot wallets cannot be deleted while they hold signing keys."
             " Keep the wallet for recovery and transaction history.",
         )
     try:
