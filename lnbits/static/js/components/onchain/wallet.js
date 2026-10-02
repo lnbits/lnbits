@@ -78,6 +78,9 @@ window.app.component('lnbits-onchain-wallet', {
         this.walletAccounts.find(w => w.id === this.selectedWalletId) || null
       )
     },
+    isConfigured() {
+      return !!this.selectedWallet?.onchain_wallet_kind
+    },
     selectedAccounts() {
       return this.selectedWallet ? [this.selectedWallet] : []
     },
@@ -222,6 +225,33 @@ window.app.component('lnbits-onchain-wallet', {
   },
 
   watch: {
+    isConfigured(configured) {
+      if (!configured) {
+        this.liveUpdates?.stop()
+        this.liveUpdates = null
+        this.scan.scanning = false
+        this.syncError = false
+        this.lastSynced = null
+        this.lastStateVersion = null
+        return
+      }
+      if (this.disposed) return
+      this.liveUpdates = Vue.markRaw(
+        new LNbits.onchain.OnchainLiveUpdates({
+          refresh: () => this.hydrateState(),
+          scan: () => this.scanAllAddresses(),
+          scanning: () => this.scan.scanning,
+          clock: () => {
+            this.activityNow = Date.now()
+          },
+          localExplorer: () =>
+            this.config.explorer_provider === 'lnbits' &&
+            this.config.lnbits_explorer_network === this.config.network,
+          addresses: () => this.liveWatchAddresses
+        })
+      )
+      this.liveUpdates.start()
+    },
     'config.explorer_provider'() {
       this.liveUpdates?.update()
     },
@@ -421,7 +451,7 @@ window.app.component('lnbits-onchain-wallet', {
 
     //################### UTXOs ###################
     async hydrateState() {
-      if (this.disposed || this.stateLoading) return
+      if (this.disposed || !this.isConfigured || this.stateLoading) return
       this.stateLoading = true
       const coreWalletId = this.g.wallet.id
       try {
@@ -430,7 +460,12 @@ window.app.component('lnbits-onchain-wallet', {
           '/api/v1/onchain/state',
           this.g.wallet.inkey
         )
-        if (this.disposed || coreWalletId !== this.g.wallet.id) return
+        if (
+          this.disposed ||
+          !this.isConfigured ||
+          coreWalletId !== this.g.wallet.id
+        )
+          return
         this.scan.scanning = data.scanning
         this.syncError = !!data.error
         this.lastSynced = data.checked_at
@@ -498,24 +533,26 @@ window.app.component('lnbits-onchain-wallet', {
           this.$emit('synced')
         }
       } catch (error) {
-        if (!this.disposed) this.syncError = true
+        if (!this.disposed && this.isConfigured) this.syncError = true
       } finally {
         this.stateLoading = false
         this.liveUpdates?.update()
       }
     },
     async scanAllAddresses() {
-      if (this.disposed) return
+      if (this.disposed || !this.isConfigured) return
       await this.hydrateState()
+      if (this.disposed || !this.isConfigured) return
       try {
         await LNbits.api.request(
           'POST',
           '/api/v1/onchain/sync',
           this.g.wallet.adminkey
         )
-        if (!this.disposed) this.scan.scanning = true
+        if (!this.disposed && this.isConfigured) this.scan.scanning = true
         this.liveUpdates?.update()
       } catch (error) {
+        if (this.disposed || !this.isConfigured) return
         this.syncError = true
         LNbits.utils.notifyApiError(error)
       }
@@ -599,6 +636,7 @@ window.app.component('lnbits-onchain-wallet', {
       this.history = this.history.filter(h => retainedAddresses.has(h.address))
       if (!accounts.some(w => w.id === this.selectedWalletId))
         this.selectedWalletId = accounts[0]?.id || null
+      if (!this.isConfigured) return
       // Publish new wallets/addresses immediately; an active scan queues the next pass.
       await this.refreshAddresses()
       await this.scanAllAddresses()
@@ -649,23 +687,6 @@ window.app.component('lnbits-onchain-wallet', {
     handleDeviceConnected: async function (deviceType) {
       this.connectedDeviceType = deviceType
     }
-  },
-  mounted() {
-    this.liveUpdates = Vue.markRaw(
-      new LNbits.onchain.OnchainLiveUpdates({
-        refresh: () => this.hydrateState(),
-        scan: () => this.scanAllAddresses(),
-        scanning: () => this.scan.scanning,
-        clock: () => {
-          this.activityNow = Date.now()
-        },
-        localExplorer: () =>
-          this.config.explorer_provider === 'lnbits' &&
-          this.config.lnbits_explorer_network === this.config.network,
-        addresses: () => this.liveWatchAddresses
-      })
-    )
-    this.liveUpdates.start()
   },
   beforeUnmount() {
     this.disposed = true

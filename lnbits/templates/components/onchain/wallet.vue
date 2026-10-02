@@ -478,7 +478,7 @@
           <q-separator v-if="selectedWallet"></q-separator>
         </template>
       </lnbits-wallet-extra>
-      <slot name="wallet-tools"></slot>
+      <slot v-if="isConfigured" name="wallet-tools"></slot>
     </div>
     <q-dialog v-model="showAddress" position="top">
       <q-card class="q-pa-lg lnbits__dialog-card">
