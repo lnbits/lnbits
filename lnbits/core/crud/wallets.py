@@ -432,6 +432,28 @@ async def get_onchain_wallet(
     )
 
 
+async def reserve_onchain_address_index(
+    wallet_id: str,
+    index: int,
+    previous_index: int,
+    conn: Connection | None = None,
+) -> bool:
+    result = await (conn or db).execute(
+        """
+        UPDATE wallets SET onchain_address_no = :index
+        WHERE id = :walet_id AND wallet_type = 'onchain'
+            AND onchain_wallet_kind IS NOT NULL
+            AND onchain_address_no = :previous_index
+        """,
+        {
+            "walet_id": wallet_id,
+            "index": index,
+            "previous_index": previous_index,
+        },
+    )
+    return result.rowcount == 1
+
+
 async def update_onchain_wallet(
     wallet: OnchainWallet, conn: Connection | None = None
 ) -> OnchainWallet:

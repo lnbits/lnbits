@@ -7,11 +7,7 @@ from fastapi import APIRouter, Depends, Header, HTTPException, Request, Response
 from pydantic import BaseModel, SecretStr
 from starlette.concurrency import run_in_threadpool
 
-from lnbits.core.crud.onchain import (
-    get_address_by_id,
-    get_fresh_address,
-    update_address,
-)
+from lnbits.core.crud.onchain import get_address_by_id, update_address
 from lnbits.core.crud.wallets import (
     WalletAlreadyConfiguredError,
     get_onchain_wallet,
@@ -33,6 +29,7 @@ from lnbits.core.services.blockexplorer import TXID, explorer_client
 from lnbits.core.services.onchain import (
     decrypt_wallet_mnemonic,
     encrypt_wallet_mnemonic,
+    get_fresh_address,
     get_onchain_daily_stats,
     get_wallet_state,
     read_onchain_key,

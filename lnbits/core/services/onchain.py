@@ -19,8 +19,11 @@ from pydantic import BaseModel
 from starlette.concurrency import run_in_threadpool
 
 from lnbits.core.crud.onchain import (
+    create_fresh_addresses,
+    get_address_at_index,
     get_address_snapshot,
     get_addresses,
+    get_last_used_address_index,
     get_wallet_snapshots,
     update_address_snapshot,
 )
@@ -31,6 +34,7 @@ from lnbits.core.crud.wallets import (
     get_onchain_sync_status,
     get_onchain_wallet,
     get_onchain_wallet_ids,
+    reserve_onchain_address_index,
 )
 from lnbits.core.models.onchain import (
     Address,
@@ -42,6 +46,7 @@ from lnbits.core.models.onchain import (
 from lnbits.core.models.wallets import OnchainMeta, OnchainWallet
 from lnbits.core.services.blockexplorer import TXID, Explorer, explorer_client
 from lnbits.core.services.wallets import get_wallet_addresses
+from lnbits.db import Connection
 from lnbits.settings import settings
 from lnbits.task_manager import task_manager
 from lnbits.utils.onchain import (
@@ -344,6 +349,28 @@ async def sync_wallets() -> None:
     # Bound provider load. API-triggered scans share the database lease.
     for wallet_id in await get_onchain_wallet_ids():
         await scan_wallet(wallet_id)
+
+
+async def get_fresh_address(
+    wallet_id: str, conn: Connection | None = None
+) -> Address | None:
+    wallet = await get_onchain_wallet(wallet_id, conn=conn)
+    if not wallet or not wallet.onchain_wallet_kind:
+        return None
+
+    last_used = await get_last_used_address_index(wallet_id, conn=conn)
+    index = max(wallet.onchain_address_no, last_used) + 1
+    if not await reserve_onchain_address_index(
+        wallet_id, index, wallet.onchain_address_no, conn=conn
+    ):
+        raise ValueError("Another process changed the wallet")
+
+    address = await get_address_at_index(wallet_id, 0, index, conn=conn)
+    if not address:
+        await create_fresh_addresses(wallet_id, index, index + 1, conn=conn)
+        address = await get_address_at_index(wallet_id, 0, index, conn=conn)
+
+    return address
 
 
 async def get_wallet_state(wallet_id: str) -> dict:

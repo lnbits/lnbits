@@ -179,14 +179,21 @@ async def test_onchain_api_ownership_recovery_and_network(http_client, onchain_w
     assert (
         await http_client.post(path + "/confirm", headers=headers)
     ).status_code == 200
-    addresses = await asyncio.gather(
+    responses = await asyncio.gather(
         *(
             http_client.get(receive, headers={"X-API-KEY": wallet.inkey})
             for _ in range(5)
         )
     )
-    assert all(r.status_code == 200 for r in addresses)
-    assert len({r.json()["address"] for r in addresses}) == 5
+    addresses = []
+    for response in responses:
+        if response.status_code == 200:
+            addresses.append(response)
+        else:
+            assert response.status_code == 400, response.text
+            assert response.json()["detail"] == "Another process changed the wallet"
+    assert addresses
+    assert len({r.json()["address"] for r in addresses}) == len(addresses)
     wrong_network = await http_client.put(
         "/api/v1/wallet/onchain/config",
         headers=headers,
@@ -218,6 +225,128 @@ async def test_onchain_api_ownership_recovery_and_network(http_client, onchain_w
     loaded_wallet = await get_wallet(wallet.id)
     assert loaded_wallet
     assert loaded_wallet.balance_msat == 0
+
+
+@pytest.mark.anyio
+@pytest.mark.parametrize(
+    ("issued", "last_used", "expected"),
+    [(0, None, 0), (1, 0, 1), (1, 19, 20), (2, 0, 2)],
+)
+async def test_fresh_onchain_address_skips_used_and_reserved_indexes(
+    http_client, onchain_wallet, issued, last_used, expected
+):
+    wallet, _, headers = onchain_wallet
+    await add_watch(http_client, headers)
+    path = f"/api/v1/onchain/address/{wallet.id}"
+    for _ in range(issued):
+        assert (await http_client.get(path, headers=headers)).status_code == 200
+
+    # Change addresses must not advance the receiving-address counter.
+    await db.execute(
+        """UPDATE onchain_addresses SET has_activity = true
+        WHERE walet_id = :wallet AND (
+            (branch_index = 1 AND address_index = 4)
+            OR (branch_index = 0 AND address_index = :last_used)
+        )""",
+        {"wallet": wallet.id, "last_used": last_used},
+    )
+    fresh = await http_client.get(path, headers=headers)
+    assert fresh.status_code == 200, fresh.text
+    assert fresh.json()["address_index"] == expected
+    assert fresh.json()["branch_index"] == 0
+    following = await http_client.get(path, headers=headers)
+    assert following.status_code == 200, following.text
+    assert following.json()["address_index"] == expected + 1
+    assert following.json()["address"] != fresh.json()["address"]
+
+
+@pytest.mark.anyio
+async def test_fresh_onchain_address_rejects_changed_counter(
+    http_client, onchain_wallet, monkeypatch
+):
+    wallet, _, headers = onchain_wallet
+    await add_watch(http_client, headers)
+    get_wallet = onchain.get_onchain_wallet
+    interleaved = False
+
+    async def read_wallet(wallet_id, conn=None):
+        nonlocal interleaved
+        stored = await get_wallet(wallet_id, conn=conn)
+        if not interleaved:
+            interleaved = True
+            # Simulate another process reserving index 0 after our read.
+            await (conn or db).execute(
+                "UPDATE wallets SET onchain_address_no = 0 WHERE id = :id",
+                {"id": wallet_id},
+            )
+        return stored
+
+    monkeypatch.setattr(onchain, "get_onchain_wallet", read_wallet)
+    fresh = await http_client.get(
+        f"/api/v1/onchain/address/{wallet.id}", headers=headers
+    )
+    assert fresh.status_code == 400, fresh.text
+    assert fresh.json()["detail"] == "Another process changed the wallet"
+    stored = await get_wallet(wallet.id)
+    assert stored and stored.onchain_address_no == 0
+
+
+@pytest.mark.anyio
+async def test_onchain_address_crud_reuses_connection(http_client, onchain_wallet):
+    from lnbits.core.crud import onchain as onchain_crud
+    from lnbits.core.models.onchain import Snapshot
+
+    wallet, _, headers = onchain_wallet
+    await add_watch(http_client, headers)
+
+    async def use_connection():
+        async with db.connect() as conn:
+            await conn.execute(
+                "UPDATE wallets SET onchain_address_no = 19 WHERE id = :id",
+                {"id": wallet.id},
+            )
+            # Exercise address creation as well as reads within the same connection.
+            fresh = await onchain.get_fresh_address(wallet.id, conn=conn)
+            assert fresh and fresh.address_index == 20
+            found = await onchain_crud.get_address(fresh.address, conn=conn)
+            assert found and found.address == fresh.address
+            assert await onchain_crud.get_address_by_id(fresh.id, conn=conn) == fresh
+            assert (
+                await onchain_crud.get_address_at_index(wallet.id, 0, 20, conn=conn)
+                == fresh
+            )
+            created = await onchain_crud.create_fresh_addresses(
+                wallet.id, 21, 23, conn=conn
+            )
+            assert [address.address_index for address in created] == [21, 22]
+            assert fresh in await onchain_crud.get_addresses(wallet.id, conn=conn)
+            assert (
+                await onchain_crud.get_last_used_address_index(wallet.id, conn=conn)
+                == -1
+            )
+
+            fresh.note = "Reserved address"
+            await onchain_crud.update_address(fresh, conn=conn)
+            assert await onchain_crud.get_address_by_id(fresh.id, conn=conn) == fresh
+            snapshot = Snapshot(
+                address_id=fresh.id,
+                transactions=[{"txid": "test-transaction"}],
+                utxos=[],
+                checked_at=42,
+            )
+            await onchain_crud.update_address_snapshot(snapshot, 100, conn=conn)
+            assert (
+                await onchain_crud.get_address_snapshot(fresh.id, conn=conn) == snapshot
+            )
+            assert await onchain_crud.get_wallet_snapshots(wallet.id, conn=conn) == [
+                snapshot
+            ]
+            assert (
+                await onchain_crud.get_last_used_address_index(wallet.id, conn=conn)
+                == 20
+            )
+
+    await asyncio.wait_for(use_connection(), 5)
 
 
 @pytest.mark.anyio
