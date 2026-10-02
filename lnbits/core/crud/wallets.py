@@ -432,6 +432,18 @@ async def get_onchain_wallet(
     )
 
 
+async def get_onchain_encrypted_seed(
+    wallet_id: str, conn: Connection | None = None
+) -> str | None:
+    row: dict = await (conn or db).fetchone(
+        """SELECT onchain_encrypted_seed AS encrypted_seed FROM wallets
+        WHERE id = :wallet AND wallet_type = 'onchain'
+            AND onchain_wallet_kind = 'hot' AND onchain_encrypted_seed IS NOT NULL""",
+        {"wallet": wallet_id},
+    )
+    return row["encrypted_seed"] if row else None
+
+
 async def reserve_onchain_address_index(
     wallet_id: str,
     index: int,

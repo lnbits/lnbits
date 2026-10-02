@@ -4,17 +4,17 @@ from http import HTTPStatus
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, Header, HTTPException, Request, Response
-from pydantic import BaseModel, SecretStr
+from pydantic import SecretStr
 from starlette.concurrency import run_in_threadpool
 
 from lnbits.core.crud.onchain import get_address_by_id, update_address
 from lnbits.core.crud.wallets import (
     WalletAlreadyConfiguredError,
+    get_onchain_encrypted_seed,
     get_onchain_wallet,
     init_onchain_wallet_state,
     update_onchain_wallet,
 )
-from lnbits.core.db import db
 from lnbits.core.models.onchain import (
     Address,
     CreatePsbt,
@@ -60,10 +60,6 @@ from lnbits.utils.onchain import (
 )
 
 onchain_router = APIRouter(prefix="/api/v1/onchain", tags=["Onchain"])
-
-
-class StoredSecret(BaseModel):
-    encrypted_seed: str
 
 
 #############################ADDRESSES##########################
@@ -467,13 +463,7 @@ async def secret_for_wallet(wallet: OnchainWallet) -> str:
         raise HTTPException(
             HTTPStatus.BAD_REQUEST, "This wallet uses an external signer"
         )
-    row = await db.fetchone(
-        """SELECT onchain_encrypted_seed AS encrypted_seed FROM wallets
-        WHERE id = :wallet AND wallet_type = 'onchain'
-            AND onchain_wallet_kind = 'hot' AND onchain_encrypted_seed IS NOT NULL""",
-        {"wallet": wallet.id},
-        StoredSecret,
-    )
-    if not row:
+    encrypted_seed = await get_onchain_encrypted_seed(wallet.id)
+    if encrypted_seed is None:
         raise HTTPException(HTTPStatus.CONFLICT, "Wallet key is unavailable")
-    return row.encrypted_seed
+    return encrypted_seed
