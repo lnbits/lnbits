@@ -98,7 +98,12 @@
       "js/base.js",
       "js/windowMixin.js",
       "js/event-reactions.js",
-      "js/bolt11-decoder.js"
+      "js/bolt11-decoder.js",
+      "js/onchain/utils.js",
+      "js/onchain/map.js",
+      "js/onchain/live-updates.js",
+      "js/onchain/mempool-client.js",
+      "js/onchain/bip39-word-list.js"
     ],
     "components": [
       "js/pages/error.js",
@@ -162,6 +167,19 @@
       "js/components/data-fields.js",
       "js/components.js",
       "js/wasm-extension-component.js",
+      "js/components/onchain/address-list.js",
+      "js/components/onchain/fee-rate.js",
+      "js/components/onchain/hot-wallet.js",
+      "js/components/onchain/payment.js",
+      "js/components/onchain/seed-input.js",
+      "js/components/onchain/send-to.js",
+      "js/components/onchain/serial-port-config.js",
+      "js/components/onchain/serial-signer.js",
+      "js/components/onchain/trezor-signer.js",
+      "js/components/onchain/utxo-list.js",
+      "js/components/onchain/wallet-config.js",
+      "js/components/onchain/wallet-list.js",
+      "js/components/onchain/wallet.js",
       "js/init-app.js"
     ],
     "css": [

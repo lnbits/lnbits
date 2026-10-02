@@ -2,6 +2,7 @@ window.PageWallet = {
   template: '#page-wallet',
   data() {
     return {
+      onchainPaymentFilter: {},
       parse: {
         show: false,
         invoice: null,
@@ -928,7 +929,10 @@ window.PageWallet = {
       // is still in flight gets torn down by it, so handle the payment request
       // only once the url rewrite has settled
       this.$router.replace(`/wallet/${wallet.id}`).then(() => {
-        if (urlParams.has('lightning') || urlParams.has('lnurl')) {
+        if (
+          wallet.walletType !== 'onchain' &&
+          (urlParams.has('lightning') || urlParams.has('lnurl'))
+        ) {
           this.parse.data.request =
             urlParams.get('lightning') || urlParams.get('lnurl')
           this.decodeRequest()

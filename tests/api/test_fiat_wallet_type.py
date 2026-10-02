@@ -70,6 +70,7 @@ async def test_fiat_wallet_creation_availability(
         wallet = await get_wallet(response.json()["id"])
         assert wallet
         assert wallet.wallet_type == "fiat"
+        assert wallet.onchain_network is None
         assert wallet.can_receive_payments and wallet.can_view_payments
         assert not wallet.can_send_payments
         assert wallet.lightning_address is None
@@ -79,6 +80,7 @@ async def test_fiat_wallet_creation_availability(
     )
     assert lightning.status_code == 200
     assert lightning.json()["wallet_type"] == "lightning"
+    assert lightning.json()["onchain_network"] is None
 
 
 async def test_fiat_wallet_creation_currency(client, from_wallet, settings):

@@ -1,8 +1,9 @@
 window.app.component('lnbits-wallet-charts', {
   template: '#lnbits-wallet-charts',
-  props: ['paymentFilter', 'chartConfig'],
+  props: ['paymentFilter', 'chartConfig', 'apiUrl', 'apiKey'],
   data() {
     return {
+      disposed: false,
       debounceTimeoutValue: 1337,
       debounceTimeout: null,
       chartData: [],
@@ -52,12 +53,13 @@ window.app.component('lnbits-wallet-charts', {
     // (e.g. when changing filters) chart.js will error because of a race condition trying to
     // destroy and redraw charts at the same time
     changeCharts() {
+      if (this.disposed) return
       if (this.debounceTimeout) {
         clearTimeout(this.debounceTimeout)
       }
       this.debounceTimeout = setTimeout(async () => {
         await this.fetchChartData()
-        this.drawCharts()
+        if (!this.disposed) this.drawCharts()
       }, this.debounceTimeoutValue)
     },
     filterChartData() {
@@ -208,9 +210,11 @@ window.app.component('lnbits-wallet-charts', {
       try {
         const {data} = await LNbits.api.request(
           'GET',
-          `/api/v1/payments/stats/daily?wallet_id=${this.g.wallet.id}`
+          this.apiUrl ||
+            `/api/v1/payments/stats/daily?wallet_id=${this.g.wallet.id}`,
+          this.apiKey
         )
-        this.chartData = data
+        if (!this.disposed) this.chartData = data
       } catch (error) {
         console.warn(error)
         LNbits.utils.notifyApiError(error)
@@ -219,6 +223,13 @@ window.app.component('lnbits-wallet-charts', {
   },
   async created() {
     await this.fetchChartData()
-    this.drawCharts()
+    if (!this.disposed) this.drawCharts()
+  },
+  beforeUnmount() {
+    this.disposed = true
+    clearTimeout(this.debounceTimeout)
+    this.walletBalanceChart?.destroy()
+    this.walletBalanceInOut?.destroy()
+    this.walletPaymentInOut?.destroy()
   }
 })
