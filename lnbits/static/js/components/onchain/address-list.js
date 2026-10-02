@@ -94,6 +94,8 @@ window.app.component('onchain-address-list', {
           (includeChangeAddrs || !a.isChange) &&
           (includeGapAddrs ||
             a.isChange ||
+            a.hasActivity ||
+            a.amount > 0 ||
             a.addressIndex <= walletsLimit[`_${a.wallet}`]) &&
           !(excludeNoAmount && a.amount === 0)
       )
