@@ -1,3 +1,4 @@
+import asyncio
 import json
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
@@ -21,13 +22,17 @@ from lnbits.core.models.extensions import ExtensionPermission, WasmInvocation
 from lnbits.core.wasm_ext.storage import crud as storage_crud
 from lnbits.core.wasm_ext.storage.crud import (
     OWNER_ID_FIELD,
+    VERSION_FIELD,
     migrate_wasm_extension_database,
     storage_append_public_row,
+    storage_compare_and_set_row,
     storage_count_rows,
     storage_delete_row,
     storage_get_paginated_rows,
     storage_get_public_row,
     storage_get_row,
+    storage_get_row_with_version,
+    storage_insert_if_absent_row,
     storage_set_row,
 )
 from lnbits.db import DB_TYPE, SQLITE, Compat, Connection, Database
@@ -36,28 +41,49 @@ from tests.helpers import make_installable_extension
 
 
 @pytest.mark.anyio
+async def test_wasm_storage_reuses_database_engine_per_extension(mocker: MockerFixture):
+    factory = mocker.patch.object(
+        storage_crud, "Database", side_effect=lambda _: object()
+    )
+    first_id = f"cached_{uuid4().hex}"
+    second_id = f"cached_{uuid4().hex}"
+
+    first = storage_crud._database(first_id)
+    assert storage_crud._database(first_id) is first
+    assert storage_crud._database(second_id) is not first
+    assert factory.call_count == 2
+
+
+@pytest.mark.anyio
 async def test_core_wasm_migrations_create_persistent_columns(
     tmp_path: Path, settings: Settings
 ):
-    if DB_TYPE != SQLITE:
-        pytest.skip("temporary core databases are SQLite-only")
-
     db = _temporary_database(tmp_path, settings, "wasm_core_migrations")
 
     async with db.connect() as conn:
+        if DB_TYPE != SQLITE:
+            await conn.execute(f"SET search_path TO {db.schema}")
         await m010_create_installed_extensions_table(conn)
         await m046_add_permissions_to_installed_extensions(conn)
         await m047_create_wasm_invocations_table(conn)
         await m048_add_wasm_runtime_limits_to_installed_extensions(conn)
 
-        installed_columns = {
-            row["name"]
-            for row in await conn.fetchall("PRAGMA table_info(installed_extensions)")
-        }
-        invocation_columns = {
-            row["name"]
-            for row in await conn.fetchall("PRAGMA table_info(wasm_invocations)")
-        }
+        columns = {}
+        for table in ("installed_extensions", "wasm_invocations"):
+            query = (
+                f"PRAGMA table_info({table})"
+                if DB_TYPE == SQLITE
+                else "SELECT column_name AS name FROM information_schema.columns "
+                "WHERE table_schema = :schema AND table_name = :table"
+            )
+            columns[table] = {
+                row["name"]
+                for row in await conn.fetchall(
+                    query, {"schema": db.schema, "table": table}
+                )
+            }
+        installed_columns = columns["installed_extensions"]
+        invocation_columns = columns["wasm_invocations"]
 
     assert {"permissions", "wasm_runtime_limits"}.issubset(installed_columns)
     assert {
@@ -301,6 +327,196 @@ async def test_wasm_storage_migration_and_owner_scoped_crud(
 
 
 @pytest.mark.anyio
+async def test_wasm_storage_atomic_operations_are_owner_scoped_and_versioned(
+    tmp_path: Path,
+    settings: Settings,
+):
+    ext_id = f"wasmatomic_{uuid4().hex[:8]}"
+    original_extensions_path = settings.lnbits_extensions_path
+    original_wasm_extensions_path = settings.lnbits_wasm_extensions_path
+    original_data_folder = settings.lnbits_data_folder
+    try:
+        settings.lnbits_data_folder = str(tmp_path / "data")
+        settings.lnbits_extensions_path = str(tmp_path / "code")
+        settings.lnbits_wasm_extensions_path = str(tmp_path / "wasm_extensions")
+        Path(settings.lnbits_data_folder).mkdir(parents=True)
+        _write_storage_extension(settings, ext_id)
+        await migrate_wasm_extension_database(make_installable_extension(ext_id))
+
+        original_row = {
+            "id": "match-1",
+            "title": "<b>Waiting</b>",
+            "count": 1,
+            "published": False,
+            "tags": ["match"],
+            "created_at": 1_700_000_000,
+            "owner_id": "row-owner",
+            "expected_version": 41,
+            "make_immutable": False,
+        }
+        insert_results = await asyncio.gather(
+            storage_insert_if_absent_row(
+                ext_id, "notes", "match-1", original_row, "owner-1"
+            ),
+            storage_insert_if_absent_row(
+                ext_id,
+                "notes",
+                "match-1",
+                {**original_row, "title": "Must not replace"},
+                "owner-1",
+            ),
+        )
+        created, row, version = next(result for result in insert_results if result[0])
+        duplicate = next(result for result in insert_results if not result[0])
+        await storage_set_row(
+            ext_id,
+            "notes",
+            {**original_row, "title": "Updated through storage.set"},
+            "owner-1",
+        )
+        foreign = await storage_insert_if_absent_row(
+            ext_id,
+            "notes",
+            "match-1",
+            original_row,
+            "owner-2",
+        )
+
+        update_one = {**original_row, "title": "Finished A"}
+        update_two = {**original_row, "title": "Finished B"}
+        results = await asyncio.gather(
+            storage_compare_and_set_row(
+                ext_id,
+                "notes",
+                "match-1",
+                2,
+                update_one,
+                "owner-1",
+                make_immutable=True,
+            ),
+            storage_compare_and_set_row(
+                ext_id,
+                "notes",
+                "match-1",
+                2,
+                update_two,
+                "owner-1",
+                make_immutable=True,
+            ),
+        )
+        stale = await storage_compare_and_set_row(
+            ext_id, "notes", "match-1", 2, update_one, "owner-1"
+        )
+        foreign_update = await storage_compare_and_set_row(
+            ext_id, "notes", "match-1", 3, update_one, "owner-2"
+        )
+        finalized_update = await storage_compare_and_set_row(
+            ext_id, "notes", "match-1", 3, update_one, "owner-1"
+        )
+        await storage_set_row(
+            ext_id,
+            "notes",
+            {**original_row, "title": "Must remain finalized"},
+            "owner-1",
+        )
+        await storage_delete_row(ext_id, "notes", "match-1", "owner-1")
+        stored_row, stored_version = await storage_get_row_with_version(
+            ext_id, "notes", "match-1", "owner-1"
+        )
+        foreign_row, foreign_version = await storage_get_row_with_version(
+            ext_id, "notes", "match-1", "owner-2"
+        )
+    finally:
+        settings.lnbits_extensions_path = original_extensions_path
+        settings.lnbits_wasm_extensions_path = original_wasm_extensions_path
+        settings.lnbits_data_folder = original_data_folder
+
+    assert created is True
+    assert row is not None
+    assert row["title"] in {"Waiting", "Must not replace"}
+    assert version == 1
+    assert duplicate[0] is False
+    assert duplicate[1:] == (row, 1)
+    assert sorted(result[0] for result in insert_results) == [False, True]
+    assert foreign == (False, None, None)
+    assert sorted(results) == [False, True]
+    assert stale is False
+    assert foreign_update is False
+    assert finalized_update is False
+    assert stored_row is not None
+    assert stored_row["title"] in {"Finished A", "Finished B"}
+    assert stored_row["owner_id"] == "row-owner"
+    assert stored_row["expected_version"] == 41
+    assert stored_row["make_immutable"] is False
+    assert stored_version == 3
+    assert foreign_row is None
+    assert foreign_version is None
+
+
+@pytest.mark.anyio
+async def test_wasm_storage_migration_adds_version_to_existing_tables(
+    tmp_path: Path,
+    settings: Settings,
+):
+    ext_id = f"wasmupgrade_{uuid4().hex[:8]}"
+    original_extensions_path = settings.lnbits_extensions_path
+    original_wasm_extensions_path = settings.lnbits_wasm_extensions_path
+    original_data_folder = settings.lnbits_data_folder
+    try:
+        settings.lnbits_data_folder = str(tmp_path / "data")
+        settings.lnbits_extensions_path = str(tmp_path / "code")
+        settings.lnbits_wasm_extensions_path = str(tmp_path / "wasm_extensions")
+        Path(settings.lnbits_data_folder).mkdir(parents=True)
+        _write_storage_extension(settings, ext_id)
+
+        database = Database(f"ext_{ext_id}")
+        async with database.connect() as conn:
+            await conn.execute(f"""
+                CREATE TABLE {ext_id}.notes (
+                    id TEXT PRIMARY KEY,
+                    title TEXT NOT NULL,
+                    count INT NOT NULL DEFAULT 0,
+                    published BOOLEAN NOT NULL DEFAULT false,
+                    tags TEXT NOT NULL,
+                    created_at TIMESTAMP NOT NULL,
+                    {OWNER_ID_FIELD} TEXT NOT NULL
+                )
+                """)
+            await conn.execute(
+                f"""
+                INSERT INTO {ext_id}.notes
+                    (id, title, count, published, tags, created_at, {OWNER_ID_FIELD})
+                VALUES
+                    (:id, :title, :count, :published, :tags,
+                     {conn.timestamp_placeholder('created_at')}, :owner_id)
+                """,  # noqa: S608
+                {
+                    "id": "legacy-1",
+                    "title": "Legacy",
+                    "count": 1,
+                    "published": False,
+                    "tags": "[]",
+                    "created_at": 1_700_000_000,
+                    "owner_id": "owner-1",
+                },
+            )
+
+        await migrate_wasm_extension_database(make_installable_extension(ext_id))
+        row, version = await storage_get_row_with_version(
+            ext_id, "notes", "legacy-1", "owner-1"
+        )
+    finally:
+        settings.lnbits_extensions_path = original_extensions_path
+        settings.lnbits_wasm_extensions_path = original_wasm_extensions_path
+        settings.lnbits_data_folder = original_data_folder
+
+    assert row is not None
+    assert row["title"] == "Legacy"
+    assert version == 1
+    assert VERSION_FIELD not in row
+
+
+@pytest.mark.anyio
 async def test_wasm_storage_public_append_generates_id_and_counts_by_owner(
     tmp_path: Path,
     settings: Settings,
@@ -405,6 +621,8 @@ def _temporary_database(
 ) -> Database:
     settings.lnbits_data_folder = str(tmp_path / "data")
     Path(settings.lnbits_data_folder).mkdir(parents=True, exist_ok=True)
+    if DB_TYPE != SQLITE:
+        name = f"ext_{name}_{uuid4().hex[:8]}"
     return Database(name)
 
 
@@ -446,6 +664,17 @@ def _write_storage_extension(settings: Settings, ext_id: str) -> Path:
                     {"name": "published", "type": "boolean", "default": False},
                     {"name": "tags", "type": "string", "list": True},
                     {"name": "created_at", "type": "datetime"},
+                    {"name": "owner_id", "type": "string", "nullable": True},
+                    {
+                        "name": "expected_version",
+                        "type": "integer",
+                        "nullable": True,
+                    },
+                    {
+                        "name": "make_immutable",
+                        "type": "boolean",
+                        "nullable": True,
+                    },
                 ]
             },
             "threads": {

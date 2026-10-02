@@ -5,7 +5,7 @@ from http import HTTPStatus
 
 import httpx
 from bolt11 import decode as bolt11_decode
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
 from fastapi.requests import Request
 from loguru import logger
 
@@ -64,6 +64,19 @@ from lnbits.core.services.extensions import (
     update_wasm_extension_runtime_limits,
     validate_wasm_runtime_limit_overrides,
 )
+from lnbits.core.wasm_ext.api.host import ExtensionHostAPI
+from lnbits.core.wasm_ext.api.models import (
+    ManualPaymentIntentResolutionRequest,
+    ManualPaymentIntentRetryRequest,
+    PaymentIntentCreateRequest,
+)
+from lnbits.core.wasm_ext.api.payment_intents import (
+    PaymentIntentResolutionConflictError,
+    get_manual_payment_intents,
+    get_payment_intent_by_id,
+    record_payment_intent_operator_action,
+    resolve_manual_payment_intent,
+)
 from lnbits.core.wasm_ext.api.permissions import (
     validate_extension_permissions,
     validate_wasm_extension_permissions,
@@ -74,6 +87,7 @@ from lnbits.decorators import (
     check_account_id_exists,
     check_admin,
 )
+from lnbits.helpers import sha256s
 from lnbits.settings import settings
 
 from ..crud import (
@@ -181,6 +195,114 @@ async def api_get_current_wasm_invocations(
     extension_id: str | None = None,
 ) -> list[WasmInvocation]:
     return get_current_wasm_invocations(extension_id=extension_id)
+
+
+@extension_router.get("/wasm/{ext_id}/payment-intents/manual")
+async def api_get_manual_wasm_payment_intents(
+    ext_id: str,
+    wallet_id: str = Query(..., min_length=1, max_length=128),
+    limit: int = Query(100, ge=1, le=100),
+    account: Account = Depends(check_account_exists),
+) -> list[dict]:
+    await _wasm_payment_intent_wallet(ext_id, wallet_id, account)
+    return await get_manual_payment_intents(ext_id, wallet_id, limit=limit)
+
+
+@extension_router.post("/wasm/{ext_id}/payment-intents/{intent_id}/resolve")
+async def api_resolve_manual_wasm_payment_intent(
+    ext_id: str,
+    intent_id: str,
+    data: ManualPaymentIntentResolutionRequest,
+    account: Account = Depends(check_account_exists),
+) -> dict:
+    await _wasm_payment_intent_wallet(ext_id, data.wallet_id, account)
+    try:
+        intent = await resolve_manual_payment_intent(
+            ext_id,
+            data.wallet_id,
+            intent_id,
+            account.id,
+            data.status,
+            data.fee_msat,
+            data.note,
+        )
+    except PaymentIntentResolutionConflictError as exc:
+        raise HTTPException(HTTPStatus.CONFLICT, str(exc)) from exc
+    except ValueError as exc:
+        raise HTTPException(HTTPStatus.BAD_REQUEST, str(exc)) from exc
+    return {
+        "intent_id": intent["id"],
+        "status": intent["status"],
+        "amount_msat": intent["amount_msat"],
+        "fee_msat": intent["fee_msat"],
+    }
+
+
+@extension_router.post("/wasm/{ext_id}/payment-intents/{intent_id}/retry")
+async def api_retry_failed_wasm_payment_intent(
+    ext_id: str,
+    intent_id: str,
+    data: ManualPaymentIntentRetryRequest,
+    account: Account = Depends(check_account_exists),
+) -> dict:
+    wallet = await _wasm_payment_intent_wallet(ext_id, data.wallet_id, account)
+    intent = await get_payment_intent_by_id(ext_id, data.wallet_id, intent_id)
+    if not intent:
+        raise HTTPException(HTTPStatus.NOT_FOUND, "Payment intent was not found.")
+    if intent["status"] != "failed":
+        raise HTTPException(
+            HTTPStatus.CONFLICT,
+            "Only a confirmed failed payment intent can be retried.",
+        )
+
+    await record_payment_intent_operator_action(
+        ext_id,
+        intent_id,
+        data.wallet_id,
+        account.id,
+        "retry_requested",
+        "failed",
+        data.note,
+    )
+    request_data = json.loads(intent["request_json"])
+    request = PaymentIntentCreateRequest(
+        wallet_id=data.wallet_id,
+        idempotency_key=intent["idempotency_key"],
+        retry_failed=True,
+        **request_data,
+    )
+    api = ExtensionHostAPI(
+        ext_id,
+        ["wallet.payment_intents"],
+        user_id=wallet.user,
+        owner_id=sha256s(wallet.user),
+    )
+    try:
+        result = await api.wallet_payment_intent_create_or_get(request)
+    except (ValueError, PermissionError) as exc:
+        raise HTTPException(HTTPStatus.CONFLICT, str(exc)) from exc
+    await record_payment_intent_operator_action(
+        ext_id,
+        intent_id,
+        data.wallet_id,
+        account.id,
+        "retry_result",
+        result.status,
+        data.note,
+    )
+    return result.dict()
+
+
+async def _wasm_payment_intent_wallet(ext_id: str, wallet_id: str, account: Account):
+    installed = await get_installed_extension(ext_id)
+    if not installed or not installed.is_wasm:
+        raise HTTPException(HTTPStatus.NOT_FOUND, "WASM extension was not found.")
+    wallet = await get_wallet(wallet_id)
+    if not wallet:
+        raise HTTPException(HTTPStatus.NOT_FOUND, "Wallet was not found.")
+    if not account.is_admin and wallet.user != account.id:
+        raise HTTPException(HTTPStatus.FORBIDDEN, "Wallet access is not allowed.")
+    return wallet
 
 
 @extension_router.get(

@@ -1,18 +1,24 @@
 import json
 from types import SimpleNamespace
+from uuid import uuid4
 
 import pytest
 from pytest_mock.plugin import MockerFixture
 
 from lnbits.core.models.extensions import ExtensionPermission
+from lnbits.core.wasm_ext.api import payment_intents
 from lnbits.core.wasm_ext.api.host import ExtensionHostAPI
 from lnbits.core.wasm_ext.api.models import (
     CreateInvoicePublicRequest,
     EmptyRequest,
     PayInvoiceRequest,
     PayLnurlRequest,
+    PaymentIntentCreateRequest,
+    PaymentIntentKeyRequest,
     StorageAppendPublicRequest,
+    StorageCompareAndSetRequest,
     StorageGetRequest,
+    StorageInsertIfAbsentRequest,
     StoragePublicPaginatedRequest,
     WalletBalanceRequest,
     WebsocketPublishRequest,
@@ -312,6 +318,76 @@ async def test_host_api_storage_requires_owner_context_and_uses_user_hash(
         "notes",
         "1",
         sha256s("user-1"),
+    )
+
+
+@pytest.mark.anyio
+async def test_host_api_versioned_storage_methods_are_owner_scoped(
+    mocker: MockerFixture,
+):
+    row = {"id": "match-1", "state": "playing"}
+    get_mock = mocker.patch(
+        "lnbits.core.wasm_ext.api.host.storage_get_row_with_version",
+        mocker.AsyncMock(return_value=(row, 4)),
+    )
+    cas_mock = mocker.patch(
+        "lnbits.core.wasm_ext.api.host.storage_compare_and_set_row",
+        mocker.AsyncMock(return_value=True),
+    )
+    insert_mock = mocker.patch(
+        "lnbits.core.wasm_ext.api.host.storage_insert_if_absent_row",
+        mocker.AsyncMock(return_value=(False, row, 4)),
+    )
+    api = ExtensionHostAPI(
+        "demoext",
+        ["ext.storage.read", "ext.storage.write"],
+        user_id="user-1",
+    )
+
+    stored = await api.storage_get_versioned(
+        StorageGetRequest(table="matches", id="match-1")
+    )
+    updated = await api.storage_compare_and_set(
+        StorageCompareAndSetRequest(
+            table="matches",
+            id="match-1",
+            expected_version=4,
+            new_row={"id": "match-1", "state": "finished"},
+            make_immutable=True,
+        )
+    )
+    existing = await api.storage_insert_if_absent(
+        StorageInsertIfAbsentRequest(
+            table="matches",
+            id="match-1",
+            new_row={"id": "match-1", "state": "playing"},
+        )
+    )
+
+    assert json.loads(stored.data_json or "{}") == row
+    assert stored.version == 4
+    assert updated.applied is True
+    assert updated.version == 5
+    assert existing.created is False
+    assert json.loads(existing.data_json or "{}") == row
+    assert existing.version == 4
+    owner_id = sha256s("user-1")
+    get_mock.assert_awaited_once_with("demoext", "matches", "match-1", owner_id)
+    cas_mock.assert_awaited_once_with(
+        "demoext",
+        "matches",
+        "match-1",
+        4,
+        {"id": "match-1", "state": "finished"},
+        owner_id,
+        True,
+    )
+    insert_mock.assert_awaited_once_with(
+        "demoext",
+        "matches",
+        "match-1",
+        {"id": "match-1", "state": "playing"},
+        owner_id,
     )
 
 
@@ -633,6 +709,121 @@ async def test_host_api_background_pay_invoice_uses_background_grant_metadata(
         "background_permission": "wallet.pay_invoice_background",
         "background_wallet_id": "wallet-1",
     }
+
+
+@pytest.mark.anyio
+async def test_payment_intent_timeout_persists_invoice_and_never_resends(
+    tmp_path, settings, mocker: MockerFixture
+):
+    settings.lnbits_data_folder = str(tmp_path)
+    extension_id = f"intent{uuid4().hex[:8]}"
+    wallet_id = "wallet-1"
+    idempotency_key = "payout-1"
+
+    wallet = SimpleNamespace(id=wallet_id, user="user-1", can_send_payments=True)
+    mocker.patch(
+        "lnbits.core.crud.wallets.get_wallet",
+        mocker.AsyncMock(return_value=wallet),
+    )
+    mocker.patch(
+        "lnbits.core.wasm_ext.api.payment_intents._is_lnurl", return_value=True
+    )
+    mocker.patch(
+        "lnbits.core.wasm_ext.api.payment_intents.get_standalone_payment",
+        mocker.AsyncMock(return_value=None),
+    )
+    invoice = "lnbc-persisted-before-send"
+    payment_hash = "b" * 64
+    mocker.patch(
+        "lnbits.core.wasm_ext.api.host.resolve_payment_intent_invoice",
+        mocker.AsyncMock(return_value=(invoice, payment_hash, "")),
+    )
+    pay_mock = mocker.patch(
+        "lnbits.core.services.payments.pay_invoice",
+        mocker.AsyncMock(side_effect=TimeoutError("payment backend timed out")),
+    )
+    api = ExtensionHostAPI(extension_id, ["wallet.payment_intents"], user_id="user-1")
+    request = PaymentIntentCreateRequest(
+        wallet_id=wallet_id,
+        idempotency_key=idempotency_key,
+        destination="user@example.com",
+        amount_msat=1000,
+        max_fee_msat=100000,
+    )
+
+    first = await api.wallet_payment_intent_create_or_get(request)
+    persisted = await payment_intents.get_payment_intent(
+        extension_id, wallet_id, idempotency_key, sha256s("user-1")
+    )
+    assert first.status == "unknown"
+    assert persisted is not None
+    assert persisted["payment_request"] == invoice
+    assert persisted["payment_hash"] == payment_hash
+    assert bool(persisted["attempted"]) is True
+
+    reconciled = await api.wallet_payment_intent_reconcile(
+        PaymentIntentKeyRequest(wallet_id=wallet_id, idempotency_key=idempotency_key)
+    )
+    repeated = await api.wallet_payment_intent_create_or_get(request)
+
+    assert reconciled.status == "unknown"
+    assert repeated.status == "unknown"
+    pay_mock.assert_awaited_once()
+
+
+@pytest.mark.anyio
+async def test_payment_intent_reconciles_existing_payment_after_failed_error(
+    mocker: MockerFixture,
+):
+    payment_hash = "b" * 64
+    intent = {
+        "id": "intent-1",
+        "wallet_id": "wallet-1",
+        "owner_user_id": "owner-1",
+        "idempotency_key": "payout-1",
+        "destination": "user@example.com",
+        "amount_msat": 1000,
+        "max_fee_msat": 100,
+        "payment_request": None,
+        "payment_hash": None,
+    }
+    mocker.patch("lnbits.core.services.payments.fee_reserve_total", return_value=10)
+    mocker.patch(
+        "lnbits.core.wasm_ext.api.host.resolve_payment_intent_invoice",
+        mocker.AsyncMock(return_value=("lnbc1invoice", payment_hash, "")),
+    )
+    mocker.patch(
+        "lnbits.core.wasm_ext.api.host.save_payment_intent_invoice",
+        mocker.AsyncMock(return_value=True),
+    )
+    mocker.patch(
+        "lnbits.core.wasm_ext.api.host.mark_payment_intent_attempted",
+        mocker.AsyncMock(return_value=True),
+    )
+    mocker.patch(
+        "lnbits.core.services.payments.pay_invoice",
+        mocker.AsyncMock(
+            side_effect=PaymentError("Internal invoice already paid.", status="failed")
+        ),
+    )
+    mocker.patch(
+        "lnbits.core.crud.payments.get_standalone_payment",
+        mocker.AsyncMock(return_value=SimpleNamespace(success=True)),
+    )
+    reconcile = mocker.patch(
+        "lnbits.core.wasm_ext.api.host.reconcile_payment_intent",
+        mocker.AsyncMock(return_value={"status": "paid"}),
+    )
+    api = ExtensionHostAPI("demoext", ["wallet.payment_intents"], user_id="owner-1")
+
+    result = await api._run_payment_intent(intent, SimpleNamespace())
+
+    assert result == {"status": "paid"}
+    reconcile_call = reconcile.await_args
+    assert reconcile_call is not None
+    reconciled_intent = reconcile_call.args[1]
+    assert reconciled_intent["attempted"] is True
+    assert reconciled_intent["payment_hash"] == payment_hash
 
 
 @pytest.mark.anyio
