@@ -3,12 +3,23 @@ const {readFileSync} = require('node:fs')
 const {resolve} = require('node:path')
 const {test} = require('node:test')
 const vm = require('node:vm')
+const {signing} = require('../unit/onchain/bitcoin_vectors.json')
 
 function harness(request) {
   let component
   const events = []
+  const timers = new Map()
+  let timerId = 0
   const context = {
     window: {app: {component: (_, value) => (component = value)}},
+    QrcodeVue: {default: {}},
+    setInterval(callback) {
+      timers.set(++timerId, callback)
+      return timerId
+    },
+    clearInterval(id) {
+      timers.delete(id)
+    },
     LNbits: {api: {request}, utils: {notifyApiError() {}}}
   }
   for (const file of [
@@ -31,7 +42,7 @@ function harness(request) {
   }
   for (const [key, method] of Object.entries(component.methods))
     instance[key] = method.bind(instance)
-  return {instance, events}
+  return {instance, events, timers, component}
 }
 
 test('broadcast stays busy, rejects duplicate clicks and allows retry after failure', async () => {
@@ -90,6 +101,60 @@ for (const fails of [false, true]) {
     assert.equal(payment.psbtBase64, fails ? null : 'unsigned-psbt')
   })
 }
+
+test('Specter PSBT frames recover the full transaction when scanning starts late', () => {
+  const {instance: payment, timers} = harness()
+  payment.psbtBase64 = signing[0].unsigned
+  payment.startPsbtQr()
+  assert.equal(timers.size, 1)
+  const nextFrame = timers.get(payment.psbtQrTimer)
+  nextFrame()
+  nextFrame()
+  const chunks = new Map()
+  const total = Number(payment.psbtQrFrame.match(/^p\d+of(\d+) /)[1])
+  for (let i = 0; i < total * 2; i++) {
+    const match = payment.psbtQrFrame.match(/^p(\d+)of(\d+) ([A-Za-z0-9+/=]+)$/)
+    assert.ok(match)
+    assert.equal(Number(match[2]), total)
+    chunks.set(Number(match[1]), match[3])
+    nextFrame()
+  }
+  assert.equal(chunks.size, total)
+  assert.equal(
+    [...chunks]
+      .sort(([a], [b]) => a - b)
+      .map(([, chunk]) => chunk)
+      .join(''),
+    payment.psbtBase64
+  )
+})
+
+test('closing, reopening, and unmounting the PSBT QR clears animation timers', () => {
+  const {instance: payment, timers, component} = harness()
+  payment.psbtBase64 = signing[0].unsigned
+  payment.startPsbtQr()
+  const firstFrame = payment.psbtQrFrame
+  timers.get(payment.psbtQrTimer)()
+  assert.notEqual(payment.psbtQrFrame, firstFrame)
+  payment.stopPsbtQr()
+  assert.equal(timers.size, 0)
+  assert.equal(payment.psbtQrFrame, '')
+  assert.equal(payment.psbtBase64, signing[0].unsigned)
+  payment.startPsbtQr()
+  assert.equal(payment.psbtQrFrame, firstFrame)
+  payment.startPsbtQr()
+  assert.equal(timers.size, 1)
+  component.beforeUnmount.call(payment)
+  assert.equal(timers.size, 0)
+})
+
+test('a single-frame payload does not start an animation timer', () => {
+  const {instance: payment, timers} = harness()
+  payment.psbtBase64 = 'cHNidP8='
+  payment.startPsbtQr()
+  assert.equal(timers.size, 0)
+  assert.equal(payment.psbtQrFrame, payment.psbtBase64)
+})
 
 test('change uses the current wallet and clears when the wallet is removed', () => {
   const {instance: payment} = harness()

@@ -207,17 +207,28 @@
         </div>
       </fieldset>
     </q-form>
-    <q-dialog v-model="showPsbt" position="top">
-      <q-card class="q-pa-lg q-pt-xl">
-        <q-input
-          filled
-          dense
-          v-model.trim="psbtBase64"
-          type="textarea"
-          rows="25"
-          cols="200"
-          :label="$t('onchain.psbt_label')"
-        ></q-input>
+    <q-dialog
+      v-model="showPsbt"
+      position="top"
+      @before-show="startPsbtQr"
+      @before-hide="stopPsbtQr"
+    >
+      <q-card class="lnbits__dialog-card q-pa-lg">
+        <h2 class="text-h6 q-mt-none" v-text="$t('onchain.psbt_label')"></h2>
+        <div class="qrcode__wrapper">
+          <qrcode-vue
+            v-if="psbtQrFrame"
+            :value="psbtQrFrame"
+            :size="400"
+            :margin="4"
+            level="M"
+            render-as="svg"
+            class="full-width"
+            style="height: auto"
+            role="img"
+            aria-label="PSBT QR code"
+          ></qrcode-vue>
+        </div>
 
         <div class="row q-mt-lg">
           <q-btn

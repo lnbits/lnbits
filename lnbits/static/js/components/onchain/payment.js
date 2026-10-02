@@ -1,6 +1,9 @@
 window.app.component('onchain-payment', {
   name: 'onchain-payment',
   template: '#onchain-payment',
+  components: {
+    QrcodeVue: QrcodeVue.default
+  },
 
   props: [
     'accounts',
@@ -28,6 +31,8 @@ window.app.component('onchain-payment', {
       DUST_LIMIT: 546,
       tx: null,
       psbtBase64: null,
+      psbtQrFrame: '',
+      psbtQrTimer: null,
       psbtBase64Signed: null,
       signedTx: null,
       signedTxHex: null,
@@ -229,6 +234,28 @@ window.app.component('onchain-payment', {
         this.showChecking = false
         this.exportingPsbt = false
       }
+    },
+    startPsbtQr() {
+      this.stopPsbtQr()
+      const chunks = this.psbtBase64?.match(/.{1,200}/g) || []
+      if (!chunks.length) return
+      // Specter multipart format; preserve the case-sensitive base64 payload.
+      const frames = chunks.map((chunk, index) =>
+        chunks.length === 1 ? chunk : `p${index + 1}of${chunks.length} ${chunk}`
+      )
+      let index = 0
+      this.psbtQrFrame = frames[index]
+      if (frames.length > 1) {
+        this.psbtQrTimer = setInterval(() => {
+          index = (index + 1) % frames.length
+          this.psbtQrFrame = frames[index]
+        }, 250)
+      }
+    },
+    stopPsbtQr() {
+      clearInterval(this.psbtQrTimer)
+      this.psbtQrTimer = null
+      this.psbtQrFrame = ''
     },
     createPsbt: async function () {
       this.psbtBase64 = null
@@ -522,5 +549,8 @@ window.app.component('onchain-payment', {
 
   mounted() {
     this.handleOutputsChange()
+  },
+  beforeUnmount() {
+    this.stopPsbtQr()
   }
 })
