@@ -91,12 +91,22 @@
                 @click="receiveBitcoin"
               ></q-btn>
               <q-btn
+                v-if="!showPayment"
                 unelevated
                 color="primary"
                 icon="file_upload"
                 label="Send"
                 :disable="!canTransact || !selectedUtxos.length"
                 @click="goToPaymentView"
+              ></q-btn>
+              <q-btn
+                v-else
+                unelevated
+                color="negative"
+                icon="close"
+                label="Cancel Send"
+                :disable="$refs.paymentRef?.showChecking"
+                @click="showPayment = false"
               ></q-btn>
               <q-space></q-space>
               <q-btn
@@ -372,15 +382,7 @@
         </q-tab-panels>
       </q-card>
       <div v-if="showPayment && selectedWallet">
-        <div class="row items-center">
-          <h2 class="text-h6 col q-my-none">Send bitcoin</h2>
-          <q-btn
-            flat
-            label="Cancel"
-            :disable="$refs.paymentRef?.showChecking"
-            @click="showPayment = false"
-          ></q-btn>
-        </div>
+        <h2 class="text-h6 q-my-none">Send bitcoin</h2>
         <onchain-payment
           :key="selectedWallet.id + config.network"
           ref="paymentRef"

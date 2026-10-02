@@ -34,7 +34,6 @@ window.app.component('onchain-payment', {
       sentTxId: null,
       signedTxId: null,
       sendToList: [{address: '', amount: undefined}],
-      changeWallet: null,
       changeAddress: {},
       showCustomFee: false,
       showCoinSelect: false,
@@ -312,7 +311,8 @@ window.app.component('onchain-payment', {
         accountType: walletAcount.onchain_meta.script_type
       }
     },
-    selectChangeAddress: function (account) {
+    updateChangeAddress: function () {
+      const account = this.accounts?.[0]
       if (!account) {
         this.changeAddress = {}
         return
@@ -321,20 +321,6 @@ window.app.component('onchain-payment', {
         this.addresses.find(
           a => a.wallet === account.id && a.isChange && !a.hasActivity
         ) || {}
-    },
-    updateChangeAddress: function () {
-      if (this.changeWallet) {
-        const changeAccount = (this.accounts || []).find(
-          w => w.id === this.changeWallet.id
-        )
-        // change account deleted
-        if (!changeAccount) {
-          this.changeWallet = this.accounts[0]
-        }
-      } else {
-        this.changeWallet = this.accounts[0]
-      }
-      this.selectChangeAddress(this.changeWallet)
     },
     updateSignedPsbt: async function (psbtBase64) {
       if (this.finalizing) return

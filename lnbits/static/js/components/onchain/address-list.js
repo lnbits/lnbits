@@ -12,7 +12,6 @@ window.app.component('onchain-address-list', {
     return {
       show: false,
       history: [],
-      selectedWallet: null,
       note: '',
       filterOptions: [
         'Show Change Addresses',
@@ -80,7 +79,6 @@ window.app.component('onchain-address-list', {
       })
     },
     getFilteredAddresses: function () {
-      const selectedWalletId = this.selectedWallet?.id
       const filter = this.filterValues || []
       const includeChangeAddrs = filter.includes('Show Change Addresses')
       const includeGapAddrs = filter.includes('Show Gap Addresses')
@@ -97,8 +95,7 @@ window.app.component('onchain-address-list', {
           (includeGapAddrs ||
             a.isChange ||
             a.addressIndex <= walletsLimit[`_${a.wallet}`]) &&
-          !(excludeNoAmount && a.amount === 0) &&
-          (!selectedWalletId || a.wallet === selectedWalletId)
+          !(excludeNoAmount && a.amount === 0)
       )
       return fAddresses
     },

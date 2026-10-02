@@ -63,14 +63,30 @@ test('broadcast stays busy, rejects duplicate clicks and allows retry after fail
   assert.equal(events[0][1], 'broadcast-txid')
 })
 
-test('clearing the last change account resets its address without throwing', () => {
+test('change uses the current wallet and clears when the wallet is removed', () => {
   const {instance: payment} = harness()
-  payment.accounts = []
-  payment.addresses = []
-  payment.changeWallet = {id: 'removed-account'}
-  payment.changeAddress = {address: 'old-address'}
+  payment.accounts = [{id: 'wallet'}]
+  payment.addresses = [
+    {wallet: 'other-wallet', address: 'other-change', isChange: true},
+    {wallet: 'wallet', address: 'receiving-address', isChange: false},
+    {
+      wallet: 'wallet',
+      address: 'used-change',
+      isChange: true,
+      hasActivity: true
+    },
+    {
+      wallet: 'wallet',
+      address: 'unused-change',
+      isChange: true,
+      hasActivity: false
+    }
+  ]
   payment.updateChangeAddress()
-  assert.equal(payment.changeWallet, undefined)
+  assert.equal(payment.changeAddress.address, 'unused-change')
+
+  payment.accounts = []
+  payment.updateChangeAddress()
   assert.equal(payment.changeAddress.address, undefined)
 })
 

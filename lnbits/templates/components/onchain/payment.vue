@@ -156,23 +156,7 @@
               <div class="col-12">
                 <q-separator class="q-mb-md"></q-separator>
                 <div class="row items-center">
-                  <div
-                    class="col-12 col-sm-2 q-pr-sm"
-                    v-text="$t('onchain.change_account')"
-                  ></div>
-                  <div class="col-12 col-sm-3 q-pr-sm">
-                    <q-select
-                      filled
-                      dense
-                      emit-value
-                      v-model="changeWallet"
-                      :options="accounts"
-                      @update:model-value="selectChangeAddress"
-                      :rules="[val => !!val || $t('onchain.field_required')]"
-                      :label="$t('onchain.wallet_account')"
-                    ></q-select>
-                  </div>
-                  <div class="col-12 col-sm-7">
+                  <div class="col-12">
                     <q-input
                       filled
                       dense

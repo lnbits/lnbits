@@ -527,7 +527,7 @@ async function main() {
     await page
       .getByLabel('signed psbt', {exact: true})
       .waitFor({state: 'hidden'})
-    await page.getByRole('button', {name: 'Cancel', exact: true}).click()
+    await page.getByRole('button', {name: 'Cancel Send', exact: true}).click()
     await page.getByText('Advanced', {exact: true}).click()
     await page.getByRole('button', {name: 'Send', exact: true}).click()
     await page

@@ -7,17 +7,6 @@
           clearable
           dense
           emit-value
-          v-model="selectedWallet"
-          :options="accounts"
-          :label="$t('onchain.wallet_account')"
-        ></q-select>
-      </div>
-      <div class="col q-pr-lg">
-        <q-select
-          filled
-          clearable
-          dense
-          emit-value
           multiple
           :options="filterOptions"
           v-model="filterValues"
