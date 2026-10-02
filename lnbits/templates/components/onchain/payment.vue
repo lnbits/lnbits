@@ -107,7 +107,6 @@
                   :payed-amount="totalPayedAmount"
                   :mempool-endpoint="mempoolEndpoint"
                   :sats-denominated="satsDenominated"
-                  :accounts="accounts"
                 ></onchain-utxo-list>
               </div>
             </div>

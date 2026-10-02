@@ -105,9 +105,6 @@
           <q-td key="note" :props="props">
             <div v-text="props.row.note"></div>
           </q-td>
-          <q-td key="wallet" :props="props">
-            <div v-text="getWalletName(props.row.wallet)"></div>
-          </q-td>
         </q-tr>
         <q-tr v-show="props.row.expanded" :props="props">
           <q-td colspan="100%">

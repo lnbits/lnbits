@@ -362,13 +362,8 @@
             ></onchain-address-list>
           </q-tab-panel>
           <q-tab-panel name="utxos" class="scroll">
-            <p class="text-caption">
-              Coins are individual payments available to spend. Coin selection
-              is also available when sending.
-            </p>
             <onchain-utxo-list
               :utxos="selectedUtxos"
-              :accounts="selectedAccounts"
               :mempool-endpoint="mempoolHostname"
               :sats-denominated="config.sats_denominated"
               :filter="utxosFilter"

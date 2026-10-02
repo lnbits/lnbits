@@ -60,13 +60,6 @@ window.app.component('onchain-address-list', {
           label: this.$t('onchain.note'),
           field: 'note',
           sortable: true
-        },
-        {
-          name: 'wallet',
-          align: 'left',
-          label: this.$t('onchain.account'),
-          field: 'wallet',
-          sortable: true
         }
       ]
     }
@@ -85,10 +78,6 @@ window.app.component('onchain-address-list', {
           position: position || 'bottom'
         })
       })
-    },
-    getWalletName: function (walletId) {
-      const wallet = (this.accounts || []).find(wl => wl.id === walletId)
-      return wallet ? wallet.name : 'unknown'
     },
     getFilteredAddresses: function () {
       const selectedWalletId = this.selectedWallet?.id

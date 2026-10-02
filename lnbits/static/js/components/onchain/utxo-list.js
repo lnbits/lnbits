@@ -4,7 +4,6 @@ window.app.component('onchain-utxo-list', {
 
   props: [
     'utxos',
-    'accounts',
     'selectable',
     'payed-amount',
     'sats-denominated',
@@ -78,13 +77,6 @@ window.app.component('onchain-utxo-list', {
           label: this.$t('onchain.date'),
           field: 'date',
           sortable: true
-        },
-        {
-          name: 'wallet',
-          align: 'left',
-          label: this.$t('onchain.account'),
-          field: 'wallet',
-          sortable: true
         }
       ]
     },
@@ -98,15 +90,6 @@ window.app.component('onchain-utxo-list', {
   methods: {
     satBtc(val, showUnit = true) {
       return LNbits.onchain.utils.satOrBtc(val, showUnit, this.satsDenominated)
-    },
-    getWalletName: function (walletId) {
-      return (
-        (this.accounts || []).find(w => w.id === walletId)?.name || 'unknown'
-      )
-    },
-    getWalletName: function (walletId) {
-      const wallet = (this.accounts || []).find(wl => wl.id === walletId)
-      return wallet ? wallet.name : 'unknown'
     },
     getTotalSelectedUtxoAmount: function () {
       const total = (this.utxos || [])
