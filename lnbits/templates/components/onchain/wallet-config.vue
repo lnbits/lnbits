@@ -4,7 +4,7 @@
       >Could not load onchain settings.<template v-slot:action
         ><q-btn flat label="Retry" @click="getConfig"></q-btn></template
     ></q-banner>
-    <q-card-section class="q-pt-xs">
+    <q-card-section>
       <div class="row items-center no-wrap">
         <div class="col row items-center q-gutter-sm">
           <slot name="trezor"></slot><slot name="serial"></slot>
@@ -70,6 +70,8 @@
             emit-value
             v-model="config.network"
             map-options
+            readonly
+            hide-dropdown-icon
             :options="networkOptions"
             :label="$t('onchain.network')"
           ></q-select>

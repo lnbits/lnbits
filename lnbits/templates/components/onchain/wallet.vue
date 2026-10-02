@@ -181,10 +181,10 @@
         ></template>
       </q-banner>
       <q-card v-if="selectedWallet && !showPayment">
-        <q-tabs v-model="tab" active-color="primary" align="left" no-caps>
-          <q-tab name="history" label="Activity"></q-tab>
-          <q-tab name="addresses" label="Addresses"></q-tab>
-          <q-tab name="utxos" label="Coins"></q-tab>
+        <q-tabs v-model="tab" active-color="primary" align="justify" no-caps>
+          <q-tab name="history" label="Activity" class="col-4"></q-tab>
+          <q-tab name="addresses" label="Addresses" class="col-4"></q-tab>
+          <q-tab name="utxos" label="Coins" class="col-4"></q-tab>
         </q-tabs>
         <q-separator></q-separator>
         <q-tab-panels v-model="tab">
@@ -410,7 +410,6 @@
             ref="walletList"
             :adminkey="g.wallet.adminkey"
             :inkey="g.wallet.inkey"
-            :sats-denominated="config.sats_denominated"
             :network="config.network"
             :addresses="addresses"
             :serial-signer-ref="signerDevice"
@@ -418,7 +417,6 @@
             @accounts-update="updateAccounts"
             @new-receive-address="showAddressDetailsWithConfirmation"
             @create-hot="$refs.hotWallet.openCreate()"
-            @backup-wallet="$refs.hotWallet.openBackup($event)"
           ></onchain-wallet-list>
           <onchain-hot-wallet
             ref="hotWallet"
@@ -453,26 +451,53 @@
           </onchain-wallet-config>
         </template>
         <template #wallet-type-tools>
-          <q-expansion-item
-            v-if="selectedWallet"
-            group="extras"
-            label="Advanced"
-            icon="tune"
-          >
-            <q-card-section
-              ><q-btn
-                flat
+          <q-expansion-item group="extras" label="Advanced" icon="tune">
+            <q-card-section class="column items-stretch q-gutter-y-sm">
+              <q-btn
+                outline
+                color="primary"
                 label="Import signed PSBT"
-                :disable="showPayment"
+                :disable="!isConfigured || showPayment"
                 @click="openImportPsbt"
               ></q-btn>
-              <p class="text-caption q-mb-none">
-                Review a transaction signed by an offline wallet before
-                broadcasting.
-              </p></q-card-section
-            >
+              <q-btn
+                outline
+                color="primary"
+                label="Export public key descriptor"
+                :disable="
+                  !isConfigured || showPayment || $refs.walletList?.loading
+                "
+                @click="
+                  $refs.walletList.openQrCodeDialog(
+                    selectedWallet.onchain_meta.masterpub
+                  )
+                "
+              ></q-btn>
+              <q-btn
+                v-if="
+                  !isConfigured || selectedWallet.onchain_wallet_kind === 'hot'
+                "
+                outline
+                color="primary"
+                label="Back up recovery phrase"
+                :disable="
+                  !isConfigured || showPayment || $refs.walletList?.loading
+                "
+                @click="$refs.hotWallet.openBackup(selectedWallet)"
+              ></q-btn>
+              <q-btn
+                v-if="
+                  isConfigured && selectedWallet.onchain_wallet_kind === 'watch'
+                "
+                unelevated
+                color="primary"
+                label="Remove wallet"
+                :disable="showPayment || $refs.walletList?.loading"
+                @click="$refs.walletList.deleteWalletAccount(selectedWallet.id)"
+              ></q-btn>
+            </q-card-section>
           </q-expansion-item>
-          <q-separator v-if="selectedWallet"></q-separator>
+          <q-separator></q-separator>
         </template>
       </lnbits-wallet-extra>
       <slot v-if="isConfigured" name="wallet-tools"></slot>

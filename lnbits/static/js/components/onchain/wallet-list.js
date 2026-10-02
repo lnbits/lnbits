@@ -1,17 +1,11 @@
 window.app.component('onchain-wallet-list', {
   name: 'onchain-wallet-list',
   template: '#onchain-wallet-list',
-  emits: [
-    'accounts-update',
-    'new-receive-address',
-    'create-hot',
-    'backup-wallet'
-  ],
+  emits: ['accounts-update', 'new-receive-address', 'create-hot'],
 
   props: [
     'adminkey',
     'inkey',
-    'sats-denominated',
     'addresses',
     'network',
     'serial-signer-ref',
@@ -129,9 +123,6 @@ window.app.component('onchain-wallet-list', {
     openSetup() {
       if (this.wallet || this.loading || this.fetchError || this.busy) return
       this.showSetup = true
-    },
-    satBtc(val, showUnit = true) {
-      return LNbits.onchain.utils.satOrBtc(val, showUnit, this.satsDenominated)
     },
 
     addWalletAccount: async function () {
@@ -256,12 +247,6 @@ window.app.component('onchain-wallet-list', {
       } finally {
         if (network === this.network) this.loading = false
       }
-    },
-    getAmmountForWallet: function (walletId) {
-      const amount = LNbits.onchain.utils.addressBalance(
-        this.addresses.filter(a => a.wallet === walletId)
-      )
-      return this.satBtc(amount)
     },
     closeFormDialog: function () {
       this.formDialog.data = {

@@ -1,5 +1,5 @@
 <template id="onchain-wallet-list">
-  <div class="q-pt-sm">
+  <div v-if="loading || fetchError">
     <q-linear-progress v-if="loading" indeterminate></q-linear-progress>
     <q-banner v-if="fetchError"
       >Could not load wallet.<template v-slot:action
@@ -9,92 +9,6 @@
           @click="refreshWalletAccounts"
         ></q-btn></template
     ></q-banner>
-    <q-list separator>
-      <q-item v-if="wallet" :disable="busy || loading">
-        <q-item-section avatar
-          ><q-icon
-            :name="
-              wallet.onchain_wallet_kind === 'hot'
-                ? 'account_balance_wallet'
-                : wallet.onchain_meta?.xpub
-                  ? 'usb'
-                  : 'visibility'
-            "
-          ></q-icon
-        ></q-item-section>
-        <q-item-section
-          ><q-item-label class="row items-center q-gutter-x-sm">
-            <span v-text="wallet.name"></span>
-            <q-badge
-              outline
-              :color="network === 'Mainnet' ? 'primary' : 'orange'"
-            >
-              <span
-                v-text="network === 'Testnet' ? 'Testnet3' : network"
-              ></span> </q-badge></q-item-label
-          ><q-item-label caption
-            ><span
-              v-text="
-                wallet.onchain_wallet_kind === 'hot'
-                  ? 'Hot Wallet'
-                  : wallet.onchain_meta?.xpub
-                    ? 'Hardware wallet'
-                    : 'Watch-only'
-              "
-            ></span></q-item-label
-        ></q-item-section>
-        <q-item-section side
-          ><span v-text="getAmmountForWallet(wallet.id)"></span
-        ></q-item-section>
-        <q-item-section side
-          ><q-btn
-            flat
-            round
-            dense
-            icon="more_vert"
-            :aria-label="'Manage ' + wallet.name"
-            @click.stop
-            ><q-menu auto-close
-              ><q-list style="min-width: 180px">
-                <q-item
-                  clickable
-                  @click="openQrCodeDialog(wallet.onchain_meta.masterpub)"
-                  ><q-item-section
-                    >Export public descriptor</q-item-section
-                  ></q-item
-                >
-                <q-item
-                  v-if="wallet.onchain_wallet_kind === 'hot'"
-                  clickable
-                  @click="$emit('backup-wallet', wallet)"
-                  ><q-item-section
-                    >Back up recovery phrase</q-item-section
-                  ></q-item
-                >
-                <q-item v-else clickable @click="deleteWalletAccount(wallet.id)"
-                  ><q-item-section class="text-negative"
-                    >Remove wallet</q-item-section
-                  ></q-item
-                >
-              </q-list></q-menu
-            ></q-btn
-          ></q-item-section
-        >
-      </q-item>
-    </q-list>
-    <div
-      v-if="!walletAccounts.length && !loading && !fetchError"
-      class="q-px-md q-pb-lg text-caption"
-    >
-      <q-badge
-        class="q-mr-sm"
-        outline
-        :color="network === 'Mainnet' ? 'primary' : 'orange'"
-      >
-        <span v-text="network === 'Testnet' ? 'Testnet3' : network"></span>
-      </q-badge>
-      Set up a server, hardware or watch-only wallet to get started.
-    </div>
   </div>
   <q-dialog v-model="showSetup">
     <q-card class="lnbits__dialog-card q-pa-md">
