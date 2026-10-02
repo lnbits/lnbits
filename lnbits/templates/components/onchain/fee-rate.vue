@@ -22,15 +22,18 @@
       </div>
       <div class="col-12 col-sm-7 q-pt-sm">
         <q-slider
-          v-model="feeRate"
+          v-model="sliderPosition"
           color="secondary"
-          markers
+          :markers="1"
+          :marker-labels="{0: '1', 1: '10', 2: '100', 3: '1000'}"
           snap
           label
           label-always
           :label-value="getFeeRateLabel(feeRate)"
-          :min="1"
-          :max="recommededFees.fastestFee"
+          :min="0"
+          :max="3"
+          :step="0.01"
+          :aria-valuetext="feeRate + ' sats/vbyte'"
         ></q-slider>
       </div>
     </div>

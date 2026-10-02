@@ -12,6 +12,15 @@ window.app.component('onchain-fee-rate', {
       set: function (value) {
         this.$emit('update:rate', +value)
       }
+    },
+    sliderPosition: {
+      get() {
+        const rate = Number(this.feeRate) || 1
+        return Math.log10(Math.min(1000, Math.max(1, rate)))
+      },
+      set(position) {
+        this.feeRate = Math.round(10 ** position)
+      }
     }
   },
 
@@ -46,6 +55,7 @@ window.app.component('onchain-fee-rate', {
       }
       try {
         this.recommededFees = await LNbits.onchain.utils.retryWithDelay(fn)
+        this.feeRate = this.recommededFees.halfHourFee
       } catch (error) {
         this.$q.notify({
           type: 'warning',
@@ -67,6 +77,5 @@ window.app.component('onchain-fee-rate', {
 
   created: async function () {
     await this.refreshRecommendedFees()
-    this.feeRate = this.recommededFees.halfHourFee
   }
 })
