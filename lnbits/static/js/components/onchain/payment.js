@@ -38,6 +38,7 @@ window.app.component('onchain-payment', {
       showCustomFee: false,
       showCoinSelect: false,
       showChecking: false,
+      exportingPsbt: false,
       finalizing: false,
       showChange: false,
       showPsbt: false,
@@ -208,6 +209,7 @@ window.app.component('onchain-payment', {
     showPsbtDialog: async function () {
       if (this.showChecking) return
       this.showChecking = true
+      this.exportingPsbt = true
       try {
         const valid = await this.$refs.paymentFormRef.validate()
         if (!valid) return
@@ -225,6 +227,7 @@ window.app.component('onchain-payment', {
         })
       } finally {
         this.showChecking = false
+        this.exportingPsbt = false
       }
     },
     createPsbt: async function () {

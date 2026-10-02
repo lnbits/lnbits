@@ -63,6 +63,34 @@ test('broadcast stays busy, rejects duplicate clicks and allows retry after fail
   assert.equal(events[0][1], 'broadcast-txid')
 })
 
+for (const fails of [false, true]) {
+  test(`PSBT export ${fails ? 'failure' : 'success'} releases its loading state and blocks simultaneous signing`, async () => {
+    let finish
+    let calls = 0
+    const {instance: payment} = harness(() => {
+      calls++
+      return new Promise((resolve, reject) => {
+        finish = {resolve, reject}
+      })
+    })
+    payment.$refs = {paymentFormRef: {validate: async () => true}}
+    payment.createTx = () => ({inputs: [], outputs: []})
+    const exporting = payment.showPsbtDialog()
+    assert.equal(payment.exportingPsbt, true)
+    assert.equal(payment.showChecking, true)
+    await payment.checkAndSend()
+    await payment.showPsbtDialog()
+    assert.equal(calls, 1)
+    if (fails) finish.reject(new Error('PSBT creation failed'))
+    else finish.resolve({data: 'unsigned-psbt'})
+    await exporting
+    assert.equal(payment.exportingPsbt, false)
+    assert.equal(payment.showChecking, false)
+    assert.equal(payment.showPsbt, !fails)
+    assert.equal(payment.psbtBase64, fails ? null : 'unsigned-psbt')
+  })
+}
+
 test('change uses the current wallet and clears when the wallet is removed', () => {
   const {instance: payment} = harness()
   payment.accounts = [{id: 'wallet'}]

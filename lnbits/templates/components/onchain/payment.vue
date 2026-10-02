@@ -179,7 +179,7 @@
               unelevated
               color="primary"
               :disable="!canReview || showChecking"
-              :loading="showChecking"
+              :loading="showChecking && !exportingPsbt"
               :label="isHotWallet ? 'Review payment' : 'Sign with device'"
               @click="checkAndSend"
             ></q-btn>
@@ -188,17 +188,13 @@
               flat
               label="Export PSBT"
               :disable="!canReview || showChecking"
+              :loading="exportingPsbt"
               @click="showPsbtDialog"
               class="q-ml-sm"
             ></q-btn>
           </div>
 
           <div class="col">
-            <q-spinner
-              v-if="showChecking"
-              size="2.55em"
-              color="primary"
-            ></q-spinner>
             <q-badge
               v-if="changeAmount < 0"
               class="text-subtitle2 float-right"
@@ -224,6 +220,13 @@
         ></q-input>
 
         <div class="row q-mt-lg">
+          <q-btn
+            unelevated
+            color="primary"
+            icon="content_copy"
+            :label="$t('onchain.copy')"
+            @click="utils.copyText(psbtBase64)"
+          ></q-btn>
           <q-btn
             v-close-popup
             flat
