@@ -145,6 +145,17 @@ lnbits-elements-init(){
 lnbits-init(){
   echo "init_lnbits..."
   docker exec lnbits-lnbits-1 uv run python tools/create_fake_admin.py
+  # restart now that the lnd-3 credentials exist
+  docker restart lnbits-lnbits-lnd-1 > /dev/null
+  wait-for-lnbits-lnd
+  docker exec lnbits-lnbits-lnd-1 uv run python tools/create_fake_admin.py
+}
+
+wait-for-lnbits-lnd(){
+  while ! curl -s -o /dev/null "http://localhost:5002/api/v1/health"; do
+    echo "waiting for lnbits-lnd..."
+    sleep 1
+  done
 }
 
 lnbits-regtest-init(){
