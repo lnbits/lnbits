@@ -354,6 +354,7 @@ async def create_invoice(
                 memo=invoice_memo,
                 payment_hash=payment_hash,
                 description_hash=description_hash,
+                expiry=expiry,
             )
             extra["hold_invoice"] = True
         except UnsupportedError as exc:
@@ -418,6 +419,21 @@ async def update_pending_payments(wallet_id: str):
 async def update_pending_payment(
     payment: Payment, conn: Connection | None = None
 ) -> Payment:
+    if payment.is_in and payment.extra.get("hold_invoice"):
+        held_payment = await _get_internal_hold_payment(payment, conn=conn)
+        if held_payment and held_payment.pending:
+            # paid internally and waiting for settle or cancel, there is nothing
+            # to check on the funding source. Refund the payer once it expires.
+            if payment.is_expired:
+                try:
+                    payment = await _cancel_internal_hold_invoice(
+                        payment, expired=True, conn=conn
+                    )
+                    logger.info(f"hold invoice {payment.checking_id} expired")
+                except InvoiceError:
+                    pass  # settled or cancelled in the meantime
+            return payment
+
     if payment.is_in and payment.is_expired:
         payment.status = PaymentState.FAILED
         payment.labels.append("expired")
@@ -834,6 +850,11 @@ async def _pay_internal_invoice(
     if wallet.balance_msat < abs(amount_msat) + fee_reserve_total_msat:
         raise PaymentError("Insufficient balance.", status="failed")
 
+    if internal_invoice.extra.get("hold_invoice"):
+        return await _accept_internal_hold_invoice(
+            internal_invoice, create_payment_model, conn=conn
+        )
+
     # release the preimage
     create_payment_model.preimage = internal_invoice.preimage
 
@@ -1196,6 +1217,9 @@ async def settle_hold_invoice(payment: Payment, preimage: str) -> InvoiceRespons
     if verify_preimage(preimage, payment.payment_hash) is False:
         raise InvoiceError("Invalid preimage.", status="failed")
 
+    if await _get_internal_hold_payment(payment):
+        return await _settle_internal_hold_invoice(payment, preimage)
+
     funding_source = get_funding_source()
     response = await funding_source.settle_hold_invoice(preimage=preimage)
 
@@ -1212,6 +1236,10 @@ async def settle_hold_invoice(payment: Payment, preimage: str) -> InvoiceRespons
 
 
 async def cancel_hold_invoice(payment: Payment) -> InvoiceResponse:
+    if await _get_internal_hold_payment(payment):
+        await _cancel_internal_hold_invoice(payment)
+        return InvoiceResponse(ok=True, checking_id=payment.payment_hash)
+
     funding_source = get_funding_source()
     response = await funding_source.cancel_hold_invoice(
         payment_hash=payment.payment_hash
@@ -1227,6 +1255,137 @@ async def cancel_hold_invoice(payment: Payment) -> InvoiceResponse:
     await update_payment(payment)
 
     return response
+
+
+async def _get_internal_hold_payment(
+    hold_invoice: Payment, conn: Connection | None = None
+) -> Payment | None:
+    """
+    Returns the outgoing payment of a wallet on this instance
+    that paid the hold invoice, if any.
+    """
+    return await get_standalone_payment(
+        f"internal_{hold_invoice.payment_hash}", conn=conn
+    )
+
+
+async def _accept_internal_hold_invoice(
+    hold_invoice: Payment,
+    create_payment_model: CreatePayment,
+    conn: Connection | None = None,
+) -> Payment:
+    """
+    Pay a hold invoice of this instance from another wallet of this instance.
+    The funds of the payer stay locked in a pending payment until the receiver
+    settles the invoice with the preimage, cancels it or the invoice expires.
+    """
+    if await _get_internal_hold_payment(hold_invoice, conn=conn):
+        raise PaymentError("Hold invoice already paid.", status="failed")
+
+    internal_id = f"internal_{create_payment_model.payment_hash}"
+    # the preimage is only known by the receiver
+    create_payment_model.preimage = None
+    payment = await create_payment(
+        checking_id=internal_id,
+        data=create_payment_model,
+        status=PaymentState.PENDING,
+        conn=conn,
+    )
+
+    hold_invoice.extra["hold_invoice_accepted"] = True
+    await update_payment(hold_invoice, conn=conn)
+    logger.success(f"internal hold invoice accepted {hold_invoice.checking_id}")
+
+    return payment
+
+
+async def _settle_internal_hold_invoice(
+    hold_invoice: Payment, preimage: str
+) -> InvoiceResponse:
+    # check and update under the same connection lock
+    async with db.connect() as conn:
+        hold_invoice, held_payment = await _get_pending_internal_hold(
+            hold_invoice, conn=conn
+        )
+        held_payment.status = PaymentState.SUCCESS
+        held_payment.preimage = preimage
+        await update_payment(held_payment, conn=conn)
+
+        hold_invoice.status = PaymentState.SUCCESS
+        hold_invoice.preimage = preimage
+        hold_invoice.extra["hold_invoice_settled"] = True
+        await update_payment(hold_invoice, conn=conn)
+    logger.success(f"internal hold invoice settled {hold_invoice.checking_id}")
+
+    await _cancel_funding_source_hold_invoice(hold_invoice)
+    await _send_payment_notification_in_background(
+        held_payment.wallet_id, held_payment
+    )  # notify the sender
+    task_manager.internal_invoice_queue.put_nowait(hold_invoice)
+    await _credit_service_fee_wallet(held_payment)
+
+    return InvoiceResponse(ok=True, preimage=preimage)
+
+
+async def _cancel_internal_hold_invoice(
+    hold_invoice: Payment, expired: bool = False, conn: Connection | None = None
+) -> Payment:
+    # check and update under the same connection lock
+    async with db.reuse_conn(conn) if conn else db.connect() as new_conn:
+        hold_invoice, held_payment = await _get_pending_internal_hold(
+            hold_invoice, conn=new_conn
+        )
+        # refund the payer
+        held_payment.status = PaymentState.FAILED
+        await update_payment(held_payment, conn=new_conn)
+
+        hold_invoice.status = PaymentState.FAILED
+        hold_invoice.extra["hold_invoice_cancelled"] = True
+        if expired:
+            hold_invoice.labels.append("expired")
+        await update_payment(hold_invoice, conn=new_conn)
+    logger.info(f"internal hold invoice cancelled {hold_invoice.checking_id}")
+
+    await _cancel_funding_source_hold_invoice(hold_invoice)
+    return hold_invoice
+
+
+async def _get_pending_internal_hold(
+    hold_invoice: Payment, conn: Connection | None = None
+) -> tuple[Payment, Payment]:
+    """
+    Fetch the latest state of an internally paid hold invoice
+    and of the payment that paid it. Both must still be pending.
+    """
+    invoice = await get_standalone_payment(
+        hold_invoice.checking_id, incoming=True, conn=conn
+    )
+    held_payment = await _get_internal_hold_payment(hold_invoice, conn=conn)
+    if not invoice or not held_payment or not held_payment.pending:
+        raise InvoiceError("Hold invoice is not pending.", status="failed")
+    return invoice, held_payment
+
+
+async def _cancel_funding_source_hold_invoice(hold_invoice: Payment):
+    """
+    The hold invoice was paid internally, make sure it cannot be paid
+    on the funding source as well. Payments already held there are refunded.
+    """
+    funding_source = get_funding_source()
+    try:
+        response = await funding_source.cancel_hold_invoice(
+            payment_hash=hold_invoice.payment_hash
+        )
+        if not response.ok:
+            logger.warning(
+                f"could not cancel hold invoice {hold_invoice.checking_id} "
+                f"on the funding source: {response.error_message}"
+            )
+    except Exception as exc:
+        logger.warning(
+            f"could not cancel hold invoice {hold_invoice.checking_id} "
+            f"on the funding source: {exc}"
+        )
 
 
 async def _send_payment_notification_in_background(
