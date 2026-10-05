@@ -27,26 +27,6 @@
           <q-item-section avatar>
             <q-toggle
               size="md"
-              v-model="formData.lnbits_blockexplorer_public_api"
-              checked-icon="check"
-              color="green"
-              unchecked-icon="clear"
-            />
-          </q-item-section>
-          <q-item-section>
-            <q-item-label
-              v-text="$t('blockexplorer_public_api')"
-            ></q-item-label>
-            <q-item-label
-              caption
-              v-text="$t('blockexplorer_public_api_desc')"
-            ></q-item-label>
-          </q-item-section>
-        </q-item>
-        <q-item tag="label" v-ripple>
-          <q-item-section avatar>
-            <q-toggle
-              size="md"
               v-model="formData.lnbits_blockexplorer_in_user_menu"
               checked-icon="check"
               color="green"
@@ -60,6 +40,26 @@
             <q-item-label
               caption
               v-text="$t('blockexplorer_in_user_menu_desc')"
+            ></q-item-label>
+          </q-item-section>
+        </q-item>
+        <q-item tag="label" v-ripple>
+          <q-item-section avatar>
+            <q-toggle
+              size="md"
+              v-model="formData.lnbits_blockexplorer_public_api"
+              checked-icon="check"
+              color="green"
+              unchecked-icon="clear"
+            />
+          </q-item-section>
+          <q-item-section>
+            <q-item-label
+              v-text="$t('blockexplorer_public_api')"
+            ></q-item-label>
+            <q-item-label
+              caption
+              v-text="$t('blockexplorer_public_api_desc')"
             ></q-item-label>
           </q-item-section>
         </q-item>
