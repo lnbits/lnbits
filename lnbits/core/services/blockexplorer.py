@@ -6,6 +6,7 @@ import httpx
 from embit.transaction import Transaction as EmbitTransaction
 from starlette.concurrency import run_in_threadpool
 
+from lnbits.core.models.onchain import ScanCheckpoint
 from lnbits.core.models.wallets import OnchainConfig
 from lnbits.settings import settings
 from lnbits.task_manager import OnchainAddressEvent
@@ -37,6 +38,7 @@ class BlockExplorerWalletSession:
     def __init__(self) -> None:
         self.client = _client()
         self.transactions: dict[str, EmbitTransaction] = {}
+        self.details: dict[str, dict] = {}
         self.blocks: dict[int, dict] = {}
 
     async def __aenter__(self):
@@ -48,6 +50,18 @@ class BlockExplorerWalletSession:
 
     async def raw_transaction(self, txid: str) -> str:
         return await self.client.get_transaction(txid)
+
+    async def checkpoint(self) -> ScanCheckpoint:
+        tip = await self.client.get_tip()
+        block = parse_block_header(tip.hex, tip.height)
+        return ScanCheckpoint(height=tip.height, block_hash=block.hash)
+
+    async def block_hash(self, height: int) -> str:
+        # Bypass the session cache when checking for reorganisations.
+        header = await self.client.get_block_header(height)
+        if not isinstance(header, str):
+            raise ValueError("Invalid block header")
+        return parse_block_header(header, height).hash
 
     async def _transaction(self, txid: str) -> EmbitTransaction:
         if not _WALLET_TXID.fullmatch(txid):
@@ -96,20 +110,47 @@ class BlockExplorerWalletSession:
             }
         return self.blocks[height].copy()
 
-    async def history(self, address: str) -> list[dict]:
+    async def history(
+        self,
+        address: str,
+        *,
+        previous: list[dict] | None = None,
+        checkpoint: ScanCheckpoint | None = None,
+    ) -> list[dict]:
         history = await self.client.get_history(scripthash_from_address(address))
         if len(history) > 25000:
             raise ValueError("Explorer history limit reached")
+        if len(self.details) >= 10000:
+            self.details.clear()
+        self.details.update({tx["txid"]: tx for tx in previous or []})
         transactions = []
         for entry in history:
+            cached = self.details.get(entry.tx_hash)
+            if cached is not None:
+                status = cached["status"]
+                if not (
+                    checkpoint
+                    and status["confirmed"]
+                    and status["block_height"] == entry.height
+                    and 0 < entry.height <= checkpoint.height
+                ):
+                    status = await self._status(entry.height)
+                transactions.append({**cached, "status": status})
+                self.details[entry.tx_hash] = transactions[-1]
+                continue
             tx = await self._transaction(entry.tx_hash)
             vin = []
             for inp in tx.vin:
                 coinbase = inp.txid == bytes(32) and inp.vout == 0xFFFFFFFF
                 prevout = None
                 if not coinbase:
-                    previous = await self._transaction(inp.txid.hex())
-                    prevout = self._outputs(previous)[inp.vout]
+                    parent = self.details.get(inp.txid.hex())
+                    outputs = (
+                        parent["vout"]
+                        if parent is not None
+                        else self._outputs(await self._transaction(inp.txid.hex()))
+                    )
+                    prevout = outputs[inp.vout]
                 vin.append(
                     {
                         "txid": inp.txid.hex(),
@@ -139,6 +180,7 @@ class BlockExplorerWalletSession:
                     "status": await self._status(entry.height),
                 }
             )
+            self.details[entry.tx_hash] = transactions[-1]
         return transactions
 
     async def utxos(self, address: str) -> list[dict]:
@@ -194,16 +236,59 @@ class MempoolExplorer:
     async def __aexit__(self, *args):
         await self.client.__aexit__(*args)
 
-    async def history(self, address: str) -> list[dict]:
+    async def checkpoint(self) -> ScanCheckpoint:
+        response = await self.client.get("api/blocks/tip/height")
+        response.raise_for_status()
+        height = int(response.text)
+        return ScanCheckpoint(height=height, block_hash=await self.block_hash(height))
+
+    async def block_hash(self, height: int) -> str:
+        response = await self.client.get(f"api/block-height/{height}")
+        response.raise_for_status()
+        block_hash = response.text.strip()
+        if not TXID.fullmatch(block_hash):
+            raise ValueError("Invalid block hash")
+        return block_hash
+
+    async def history(
+        self,
+        address: str,
+        *,
+        previous: list[dict] | None = None,
+        checkpoint: ScanCheckpoint | None = None,
+    ) -> list[dict]:
+        cached = {
+            tx["txid"]: tx
+            for tx in previous or []
+            if checkpoint
+            and tx["status"]["confirmed"]
+            and tx["status"]["block_height"] <= checkpoint.height
+        }
         response = await self.client.get(f"api/address/{address}/txs")
         response.raise_for_status()
-        transactions = response.json()
+        page = response.json()
+        result: dict[str, dict] = {}
         seen: set[str] = set()
+        mempool_full = False
         for _ in range(1000):
-            if not isinstance(transactions, list):
+            if not isinstance(page, list):
                 raise ValueError("Invalid explorer response")
-            confirmed = [tx for tx in transactions if tx["status"]["confirmed"]]
-            if not confirmed or len(confirmed) % 25:
+            for tx in page:
+                if not TXID.fullmatch(tx["txid"]):
+                    raise ValueError("Invalid transaction ID")
+                result[tx["txid"]] = tx
+            confirmed = [tx for tx in page if tx["status"]["confirmed"]]
+            mempool_full = mempool_full or len(page) - len(confirmed) >= 50
+            if any(
+                tx["txid"] in cached and tx["status"] == cached[tx["txid"]]["status"]
+                for tx in confirmed
+            ):
+                # Only confirmed history covered by the verified checkpoint is
+                # retained. Pending or newer entries must come from this scan.
+                for txid, tx in cached.items():
+                    result.setdefault(txid, tx)
+                break
+            if len(confirmed) < 25:
                 break
             last = confirmed[-1]["txid"]
             if last in seen or not TXID.fullmatch(last):
@@ -212,19 +297,23 @@ class MempoolExplorer:
             response = await self.client.get(f"api/address/{address}/txs/chain/{last}")
             response.raise_for_status()
             page = response.json()
-            if not isinstance(page, list):
-                raise ValueError("Invalid explorer response")
-            transactions.extend(page)
-            if len(page) < 25:
-                break
         else:
             raise ValueError("Explorer history limit reached")
-        result = {}
-        for tx in transactions:
-            if not TXID.fullmatch(tx["txid"]):
-                raise ValueError("Invalid transaction ID")
-            result[tx["txid"]] = tx
+        # The address endpoint caps pending transactions at 50. Absence from a
+        # full page does not mean a previously seen transaction was dropped.
+        if mempool_full:
+            await self._check_missing_pending(previous or [], result)
         return list(result.values())
+
+    async def _check_missing_pending(self, previous: list[dict], result: dict) -> None:
+        for tx in previous:
+            if tx["txid"] in result:
+                continue
+            response = await self.client.get(f"api/tx/{tx['txid']}/status")
+            if response.status_code == 404:
+                continue
+            response.raise_for_status()
+            result[tx["txid"]] = {**tx, "status": response.json()}
 
     async def utxos(self, address: str) -> list[dict]:
         response = await self.client.get(f"api/address/{address}/utxo")

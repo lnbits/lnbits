@@ -12,7 +12,7 @@ from lnbits.core.models.wallets import (
     WalletsFilters,
     WalletType,
 )
-from lnbits.db import SQLITE, Connection, Filters, Page
+from lnbits.db import Connection, Filters, Page
 from lnbits.helpers import generate_ln_address
 from lnbits.settings import settings
 from lnbits.utils.cache import cache
@@ -386,7 +386,9 @@ async def init_onchain_wallet_state(
 ) -> OnchainWallet:
     meta = wallet.onchain_meta.copy()
     meta.sync_checked_at = 0
+    meta.sync_failed_at = 0
     meta.sync_error = None
+    meta.sync_checkpoint = None
     # One conditional write stores setup and recovery material together and
     # protects against competing setup requests.
     result = await (conn or db).execute(
@@ -524,16 +526,28 @@ async def update_onchain_wallet_config(
 
 
 async def acquire_onchain_scan_lease(
-    wallet_id: str, lease: int, now: int, conn: Connection | None = None
+    wallet_id: str,
+    lease: int,
+    now: int,
+    conn: Connection | None = None,
+    *,
+    expected_meta: str | None = None,
 ) -> bool:
+    # A conditional scan must not use a freshness decision made before another
+    # scan completed or the wallet was reconfigured.
+    condition = " AND onchain_meta = :meta" if expected_meta is not None else ""
+    values: dict = {"wallet": wallet_id, "lease": lease, "now": now}
+    if expected_meta is not None:
+        values["meta"] = expected_meta
     acquired = await (conn or db).execute(
-        """
+        f"""
         UPDATE wallets SET onchain_sync_lease_until = :lease
         WHERE id = :wallet AND onchain_sync_lease_until < :now
             AND wallet_type = 'onchain' AND deleted = false
             AND onchain_wallet_kind IS NOT NULL
-        """,
-        {"wallet": wallet_id, "lease": lease, "now": now},
+            {condition}
+        """,  # noqa: S608
+        values,
     )
     return acquired.rowcount == 1
 
@@ -559,41 +573,40 @@ async def get_onchain_wallet_ids(conn: Connection | None = None) -> list[str]:
     return [row["id"] for row in rows]
 
 
-async def finish_scan(
-    wallet_id: str, lease: int, error: str | None, conn: Connection | None = None
-) -> None:
-    now = int(time())
-    state: dict = {"sync_error": error}
-    if error is None:
-        state["sync_checked_at"] = now
-    # Merge only scanner-owned keys in the same conditional update that releases
-    # the lease. Other metadata and newer scan leases must remain untouched.
-    if db.type == SQLITE:
-        expression = "json_set(onchain_meta, '$.sync_error', :error)"
-        if error is None:
-            expression = (
-                "json_set(onchain_meta, '$.sync_error', :error, "
-                "'$.sync_checked_at', :now)"
-            )
-    else:
-        expression = (
-            "CAST(CAST(onchain_meta AS JSONB) || CAST(:state AS JSONB) AS TEXT)"
-        )
-    await (conn or db).execute(
-        f"""
-        UPDATE wallets SET onchain_sync_lease_until = 0,
-            onchain_meta = {expression}
+async def get_onchain_scan_meta(
+    wallet_id: str, lease: int, conn: Connection | None = None
+) -> dict | None:
+    return await (conn or db).fetchone(
+        """SELECT onchain_meta FROM wallets
         WHERE id = :wallet AND wallet_type = 'onchain'
-            AND onchain_wallet_kind IS NOT NULL AND onchain_sync_lease_until = :lease
-        """,  # noqa: S608
+            AND onchain_wallet_kind IS NOT NULL
+            AND onchain_sync_lease_until = :lease""",
+        {"wallet": wallet_id, "lease": lease},
+    )
+
+
+async def update_onchain_scan_meta(
+    wallet_id: str,
+    lease: int,
+    meta: dict,
+    previous_meta: str,
+    conn: Connection | None = None,
+) -> bool:
+    updated = await (conn or db).execute(
+        """UPDATE wallets SET onchain_sync_lease_until = 0,
+            onchain_meta = :meta
+        WHERE id = :wallet AND wallet_type = 'onchain'
+            AND onchain_wallet_kind IS NOT NULL
+            AND onchain_sync_lease_until = :lease
+            AND onchain_meta = :previous_meta""",
         {
             "wallet": wallet_id,
             "lease": lease,
-            "error": error,
-            "now": now,
-            "state": json.dumps(state),
+            "meta": json.dumps(meta),
+            "previous_meta": previous_meta,
         },
     )
+    return bool(updated.rowcount)
 
 
 def clear_wallet_id_cache(wallet_id: str):

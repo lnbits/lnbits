@@ -10,6 +10,7 @@ from urllib.parse import urlsplit
 from pydantic import BaseModel, Field, validator
 
 from lnbits.core.models.lnurl import StoredPayLinks
+from lnbits.core.models.onchain import ScanCheckpoint
 from lnbits.db import FilterModel
 from lnbits.settings import settings
 
@@ -295,7 +296,9 @@ class OnchainMeta(BaseModel):
     accountPath: str = ""  # noqa: N815 - preserve the stored JSON key
     xpub: str | None = None
     sync_checked_at: int = 0
+    sync_failed_at: int = 0
     sync_error: str | None = None
+    sync_checkpoint: ScanCheckpoint | None = None
 
 
 class OnchainConfig(BaseModel):

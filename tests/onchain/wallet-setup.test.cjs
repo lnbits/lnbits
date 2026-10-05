@@ -13,17 +13,25 @@ function harness() {
     addresses: [],
     snapshots: [],
     scanning: false,
+    sync_due: true,
     checked_at: 0,
     balance_sat: 0
   }
   const context = {
     window: {app: {component: (name, value) => (components[name] = value)}},
     Vue,
+    moment: require('moment'),
     LNbits: {
       api: {
         async request(method, path) {
           calls.push(path)
-          return {data: path.endsWith('/state') ? state : []}
+          return {
+            data: path.endsWith('/state')
+              ? state
+              : path.includes('/sync')
+                ? {scheduled: true}
+                : []
+          }
         }
       },
       utils: {notifyApiError: assert.fail},
@@ -47,6 +55,7 @@ function harness() {
       }
     },
     Quasar: {colors: {changeAlpha() {}, getPaletteColor() {}}},
+    setTimeout,
     clearTimeout
   }
   for (const file of ['onchain/wallet.js', 'lnbits-wallet-charts.js']) {
@@ -132,6 +141,7 @@ function harness() {
   }
   app.config.globalProperties.$q = {
     screen: {gt: {sm: true}},
+    localStorage: {setItem() {}},
     notify: assert.fail
   }
   app.config.globalProperties.$t = key => key
@@ -152,7 +162,7 @@ test('onchain requests and live updates start only after setup and stop when cle
   const account = {id: 'wallet', onchain_wallet_kind: 'watch', onchain_meta: {}}
   await instance.updateAccounts([account])
   await Vue.nextTick()
-  for (const path of ['/state', '/sync', '/stats/daily']) {
+  for (const path of ['/state', '/sync?if_needed=true', '/stats/daily']) {
     assert.ok(calls.includes('/api/v1/onchain' + path), path)
   }
   assert.equal(updates.length, 1)
@@ -197,4 +207,97 @@ test('clearing setup during a state request prevents a follow-up scan', async t 
   assert.equal(instance.scan.scanning, false)
   assert.equal(instance.g.wallet.sat, 0)
   assert.equal(updates[0].running, false)
+})
+
+test('opening and revisiting a fresh or cooling-down wallet only loads saved state', async t => {
+  const {app, instance, calls, state} = harness()
+  t.after(() => app.unmount())
+  Object.assign(state, {sync_due: false, checked_at: 1000, balance_sat: 42})
+  const account = {id: 'wallet', onchain_wallet_kind: 'watch', onchain_meta: {}}
+  await instance.updateAccounts([account])
+  assert.equal(instance.g.wallet.sat, 42)
+  assert.equal(instance.scan.scanning, false)
+  await instance.updateAccounts([])
+  await instance.updateAccounts([account])
+  state.error = 'Update failed'
+  await instance.updateAccounts([account])
+  assert.equal(instance.syncError, true)
+  assert.equal(instance.g.wallet.sat, 42)
+  assert.equal(calls.filter(path => path.includes('/sync')).length, 0)
+})
+
+test('existing scans are displayed and conditional requests respect a server skip', async t => {
+  const {app, instance, calls, state, context} = harness()
+  t.after(() => app.unmount())
+  Object.assign(state, {sync_due: false, scanning: true})
+  const account = {id: 'wallet', onchain_wallet_kind: 'watch', onchain_meta: {}}
+  await instance.updateAccounts([account])
+  assert.equal(instance.scan.scanning, true)
+  assert.equal(calls.filter(path => path.includes('/sync')).length, 0)
+
+  Object.assign(state, {sync_due: true, scanning: false})
+  const request = context.LNbits.api.request
+  context.LNbits.api.request = async (method, path) => {
+    if (path.includes('/sync')) {
+      calls.push(path)
+      state.sync_due = false
+      return {data: {scheduled: false}}
+    }
+    return request(method, path)
+  }
+  await instance.updateAccounts([account])
+  assert.ok(calls.includes('/api/v1/onchain/sync?if_needed=true'))
+  assert.equal(instance.scan.scanning, false)
+})
+
+test('manual refresh and payment broadcast bypass the freshness check', async t => {
+  const {app, instance, calls, state} = harness()
+  t.after(() => app.unmount())
+  state.sync_due = false
+  await instance.updateAccounts([
+    {id: 'wallet', onchain_wallet_kind: 'watch', onchain_meta: {}}
+  ])
+  // Vue passes the click event to the refresh button's handler.
+  await instance.scanAllAddresses({type: 'click'})
+  assert.equal(instance.scan.scanning, true)
+  await instance.handleBroadcastSuccess('transaction')
+  assert.equal(calls.filter(path => path === '/api/v1/onchain/sync').length, 2)
+  assert.equal(calls.filter(path => path.includes('if_needed')).length, 0)
+})
+
+test('initial Electrum state compares history and balance, including confirmations', async t => {
+  const {app, instance} = harness()
+  t.after(() => app.unmount())
+  instance.addressSnapshots = {
+    address: {
+      amount: 42,
+      transactions: [
+        {txid: 'pending', status: {confirmed: false}},
+        {txid: 'confirmed', status: {confirmed: true, block_height: 100}}
+      ]
+    }
+  }
+  const message = {
+    balance: {confirmed: 50, unconfirmed: -8},
+    history: [
+      {tx_hash: 'confirmed', height: 100},
+      {tx_hash: 'pending', height: -1}
+    ]
+  }
+  assert.equal(instance.addressActivityChanged('address', message), false)
+  message.history[1].height = 101
+  assert.equal(instance.addressActivityChanged('address', message), true)
+  message.history[1].height = 0
+  message.balance.unconfirmed = -9
+  assert.equal(instance.addressActivityChanged('address', message), true)
+  message.balance.unconfirmed = -8
+  message.history.pop()
+  assert.equal(instance.addressActivityChanged('address', message), true)
+  assert.equal(
+    instance.addressActivityChanged('new-address', {
+      balance: {confirmed: 0, unconfirmed: 0},
+      history: []
+    }),
+    false
+  )
 })

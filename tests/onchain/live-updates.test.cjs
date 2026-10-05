@@ -57,6 +57,7 @@ function harness(local = true) {
       localExplorer: () => state.local,
       scanning: () => state.scanning,
       addresses: () => state.addresses,
+      addressChanged: (address, data) => state.addressChanged?.(address, data),
       refresh: async () => calls.refresh++,
       scan: async () => {
         calls.scan++
@@ -146,6 +147,37 @@ test('hiding the page closes streams and pauses polling; returning refreshes onc
   assert.equal(h.listeners.size, 0)
   await h.advance(120000)
   assert.equal(h.calls.refresh, 1)
+})
+
+test('matching initial address snapshots do not scan on entry or reconnection', async () => {
+  const h = harness()
+  h.state.addressChanged = (address, data) => {
+    assert.equal(address, 'address-one')
+    return data.confirmed !== 100
+  }
+  h.sockets[1].message({confirmed: 100})
+  await h.advance(1000)
+  assert.equal(h.calls.scan, 0)
+  h.browser.document.hidden = true
+  h.listeners.get('visibilitychange')()
+  h.browser.document.hidden = false
+  h.listeners.get('visibilitychange')()
+  h.sockets[3].message({confirmed: 100})
+  await h.advance(1000)
+  assert.equal(h.calls.scan, 0)
+  h.sockets[3].message({confirmed: 101})
+  await h.advance(1000)
+  assert.equal(h.calls.scan, 1)
+  h.updates.stop()
+})
+
+test('initial address activity missing from the saved snapshot still scans', async () => {
+  const h = harness()
+  h.state.addressChanged = () => true
+  h.sockets[1].message({confirmed: 101})
+  await h.advance(1000)
+  assert.equal(h.calls.scan, 1)
+  h.updates.stop()
 })
 
 test('connections are bounded and cleaned up when switching providers', async () => {

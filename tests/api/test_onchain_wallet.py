@@ -9,10 +9,10 @@ import pytest
 from pydantic import SecretStr
 
 from lnbits.core.crud import create_wallet, get_wallet
+from lnbits.core.crud import wallets as wallets_crud
 from lnbits.core.crud.onchain import get_addresses
 from lnbits.core.crud.payments import create_payment
 from lnbits.core.crud.wallets import (
-    finish_scan,
     get_onchain_wallet,
     get_total_balance,
     get_wallets,
@@ -20,6 +20,7 @@ from lnbits.core.crud.wallets import (
 )
 from lnbits.core.db import db
 from lnbits.core.models import CreatePayment
+from lnbits.core.models.onchain import ScanCheckpoint
 from lnbits.core.models.wallets import WalletType
 from lnbits.core.services import create_user_account, onchain, update_wallet_balance
 from lnbits.core.services.blockexplorer import MempoolExplorer, mempool_url
@@ -56,7 +57,7 @@ async def onchain_wallet(http_client, monkeypatch, tmp_path):
         )
 
     monkeypatch.setattr(onchain, "get_settings_field", confirmed_key)
-    monkeypatch.setattr(onchain_api, "request_scan", lambda _wallet: None)
+    monkeypatch.setattr(onchain_api, "request_scan", lambda _wallet, **_kwargs: True)
     monkeypatch.setattr(wallet_api, "request_scan", lambda _wallet: None)
     return wallet, user, {"X-API-KEY": wallet.adminkey}
 
@@ -383,7 +384,12 @@ def chain_fixture(address):
         "vin": [{"prevout": None}],
         "vout": [{"value": 100000, "scriptpubkey_address": address}],
         "fee": 100,
-        "status": {"confirmed": True, "block_time": 1700000000, "block_height": 100},
+        "status": {
+            "confirmed": True,
+            "block_time": 1700000000,
+            "block_height": 100,
+            "block_hash": "b" * 64,
+        },
     }
     coin = {"txid": txid, "vout": 0, "value": 100000, "status": tx["status"]}
     return tx, coin
@@ -407,6 +413,10 @@ async def test_onchain_scan_persists_and_hydrates_without_lightning_credit(
         paths.append(request.url.path)
         if fail:
             return httpx.Response(503)
+        if request.url.path.endswith("/blocks/tip/height"):
+            return httpx.Response(200, text="100")
+        if "/block-height/" in request.url.path:
+            return httpx.Response(200, text=("c" if empty else "b") * 64)
         values = []
         if funded in request.url.path and not empty:
             values = [coin] if request.url.path.endswith("/utxo") else [tx]
@@ -429,6 +439,10 @@ async def test_onchain_scan_persists_and_hydrates_without_lightning_credit(
     state = await onchain.get_wallet_state(wallet.id)
     assert state["balance_sat"] == 100000
     assert state["error"] is None and not state["scanning"]
+    stored = await get_onchain_wallet(wallet.id)
+    assert stored and stored.onchain_meta.sync_checkpoint
+    checkpoint = stored.onchain_meta.sync_checkpoint
+    assert checkpoint.height == 100 and checkpoint.block_hash == "b" * 64
     assert all(path.startswith("/testnet4/api/") for path in paths)
     loaded_wallet = await get_wallet(wallet.id)
     assert loaded_wallet
@@ -459,12 +473,222 @@ async def test_onchain_scan_persists_and_hydrates_without_lightning_credit(
     failed = await onchain.get_wallet_state(wallet.id)
     assert failed["error"] and failed["balance_sat"] == 100000
     assert any(s.transactions for s in failed["snapshots"])
+    stored = await get_onchain_wallet(wallet.id)
+    assert stored and stored.onchain_meta.sync_checkpoint == checkpoint
     fail = False
     empty = True
     await onchain.scan_wallet(wallet.id)
     replaced = await onchain.get_wallet_state(wallet.id)
     assert replaced["balance_sat"] == 0 and replaced["error"] is None
     assert not any(s.transactions for s in replaced["snapshots"])
+    stored = await get_onchain_wallet(wallet.id)
+    assert stored and stored.onchain_meta.sync_checkpoint
+    assert stored.onchain_meta.sync_checkpoint.block_hash == "c" * 64
+
+
+@pytest.mark.anyio
+@pytest.mark.parametrize(
+    "outcome", ["success", "failure", "reorg_before", "reorg_during"]
+)
+async def test_scan_checkpoint_advances_only_after_complete_stable_scan(
+    http_client, onchain_wallet, monkeypatch, outcome
+):
+    from unittest.mock import AsyncMock
+
+    wallet, _, headers = onchain_wallet
+    await add_watch(http_client, headers)
+    previous = ScanCheckpoint(height=100, block_hash=f"{100:064x}")
+    tip = ScanCheckpoint(height=101, block_hash=f"{101:064x}")
+    provider = AsyncMock(spec=MempoolExplorer)
+    provider.__aenter__.return_value = provider
+    provider.checkpoint.return_value = previous
+    provider.block_hash.side_effect = lambda height: f"{height:064x}"
+    provider.history.return_value = []
+    provider.utxos.return_value = []
+    monkeypatch.setattr(onchain, "explorer_client", lambda *_args: provider)
+
+    await onchain.scan_wallet(wallet.id)
+    provider.history.reset_mock()
+    provider.checkpoint.return_value = tip
+    if outcome == "failure":
+        provider.utxos.side_effect = [[], TimeoutError()]
+    elif outcome == "reorg_before":
+        provider.block_hash.side_effect = lambda height: (
+            "c" * 64 if height == previous.height else tip.block_hash
+        )
+    elif outcome == "reorg_during":
+        provider.block_hash.side_effect = lambda height: (
+            "c" * 64 if height == tip.height else previous.block_hash
+        )
+
+    await onchain.scan_wallet(wallet.id)
+    stored = await get_onchain_wallet(wallet.id)
+    assert stored
+    failed = outcome in {"failure", "reorg_during"}
+    assert bool(stored.onchain_meta.sync_error) == failed
+    assert stored.onchain_meta.sync_checkpoint == (previous if failed else tip)
+    assert provider.history.await_count >= 2
+    assert all(
+        call.kwargs["checkpoint"] == (None if outcome == "reorg_before" else previous)
+        for call in provider.history.await_args_list
+    )
+    if failed:
+        provider.history.reset_mock()
+        provider.utxos.side_effect = None
+        provider.block_hash.side_effect = lambda height: f"{height:064x}"
+        await onchain.scan_wallet(wallet.id)
+        recovered = await get_onchain_wallet(wallet.id)
+        assert recovered and recovered.onchain_meta.sync_error is None
+        assert recovered.onchain_meta.sync_checkpoint == tip
+        assert all(
+            call.kwargs["checkpoint"] is None
+            for call in provider.history.await_args_list
+        )
+
+
+@pytest.mark.anyio
+@pytest.mark.parametrize("provider", ["mempool", "lnbits"])
+@pytest.mark.parametrize(
+    "checked_at,failed_at,error,lease,now,due",
+    [
+        (0, 0, None, 0, 1000, True),
+        (1000, 0, None, 0, 1119, False),
+        (1000, 0, None, 0, 1120, False),
+        (1000, 0, None, 0, 1121, True),
+        (0, 1000, "Failed", 0, 1059, False),
+        (0, 1000, "Failed", 0, 1060, True),
+        (500, 1000, "Failed", 0, 1059, False),
+        (1000, 1000, "Failed", 0, 1060, True),
+        (0, 0, None, 2000, 1000, False),
+    ],
+)
+async def test_onchain_conditional_sync_policy(
+    http_client,
+    onchain_wallet,
+    monkeypatch,
+    provider,
+    checked_at,
+    failed_at,
+    error,
+    lease,
+    now,
+    due,
+):
+    wallet, _, headers = onchain_wallet
+    await add_watch(http_client, headers)
+    stored = await get_onchain_wallet(wallet.id)
+    assert stored
+    stored.onchain_config.explorer_provider = provider
+    await update_onchain_wallet_config(stored.onchain_config, wallet.id)
+    meta = stored.onchain_meta.dict()
+    meta.update(sync_checked_at=checked_at, sync_failed_at=failed_at, sync_error=error)
+    await db.execute(
+        "UPDATE wallets SET onchain_meta = :meta, onchain_sync_lease_until = :lease "
+        "WHERE id = :id",
+        {"id": wallet.id, "meta": json.dumps(meta), "lease": lease},
+    )
+    monkeypatch.setattr(onchain, "time", SimpleNamespace(time=lambda: now))
+    requests = []
+
+    def request(wallet_id, *, if_needed=False):
+        requests.append((wallet_id, if_needed))
+        return True
+
+    monkeypatch.setattr(onchain_api, "request_scan", request)
+    state = await http_client.get("/api/v1/onchain/state", headers=headers)
+    assert state.json()["sync_due"] is due
+    response = await http_client.post(
+        "/api/v1/onchain/sync?if_needed=true", headers=headers
+    )
+    assert response.status_code == 202
+    assert response.json() == {"scheduled": due}
+    assert requests == ([(wallet.id, True)] if due else [])
+    response = await http_client.post("/api/v1/onchain/sync", headers=headers)
+    assert response.json() == {"scheduled": True}
+    assert requests[-1] == (wallet.id, False)
+
+
+@pytest.mark.anyio
+async def test_onchain_conditional_scan_rechecks_after_queue_and_lease_race(
+    http_client, onchain_wallet, monkeypatch
+):
+    wallet, _, headers = onchain_wallet
+    await add_watch(http_client, headers)
+    now = 1000
+    monkeypatch.setattr(onchain, "time", SimpleNamespace(time=lambda: now))
+    monkeypatch.setattr(wallets_crud, "time", lambda: now)
+    scans = []
+
+    async def scan(wallet_id):
+        scans.append(wallet_id)
+
+    monkeypatch.setattr(onchain, "_scan", scan)
+    await asyncio.gather(
+        onchain.scan_wallet(wallet.id, max_age=120),
+        onchain.scan_wallet(wallet.id, max_age=120),
+    )
+    assert scans == [wallet.id]
+    now = 1121
+    slots = asyncio.Semaphore(0)
+    monkeypatch.setattr(onchain, "SCAN_SLOTS", slots)
+    pending = asyncio.create_task(onchain.scan_wallet(wallet.id, max_age=120))
+    try:
+        # A scan completed by another worker while this request waits for a slot.
+        await wallets_crud.acquire_onchain_scan_lease(wallet.id, 2000, now)
+        await onchain._finish_scan(wallet.id, 2000, None)
+    finally:
+        slots.release()
+        await pending
+    assert scans == [wallet.id]
+
+    now = 1242
+    acquire = wallets_crud.acquire_onchain_scan_lease
+
+    async def completed_before_acquire(wallet_id, lease, timestamp, **kwargs):
+        await acquire(wallet_id, 2000, timestamp)
+        await onchain._finish_scan(wallet_id, 2000, None)
+        return await acquire(wallet_id, lease, timestamp, **kwargs)
+
+    monkeypatch.setattr(onchain, "acquire_onchain_scan_lease", completed_before_acquire)
+    await onchain.scan_wallet(wallet.id, max_age=120)
+    assert scans == [wallet.id]
+
+
+@pytest.mark.anyio
+async def test_onchain_failure_cooldown_and_explicit_refresh(
+    http_client, onchain_wallet, monkeypatch
+):
+    wallet, _, headers = onchain_wallet
+    await add_watch(http_client, headers)
+    now = 1000
+    monkeypatch.setattr(onchain, "time", SimpleNamespace(time=lambda: now))
+    monkeypatch.setattr(wallets_crud, "time", lambda: now)
+    scans = []
+    fail = True
+
+    async def scan(wallet_id):
+        scans.append(wallet_id)
+        if fail:
+            raise ValueError("Explorer unavailable")
+
+    monkeypatch.setattr(onchain, "_scan", scan)
+    await onchain.scan_wallet(wallet.id, max_age=120)
+    now = 1059
+    await onchain.scan_wallet(wallet.id, max_age=120)
+    await onchain.scan_wallet(wallet.id, max_age=0)
+    assert len(scans) == 1
+    now = 1060
+    await onchain.scan_wallet(wallet.id, max_age=120)
+    assert len(scans) == 2
+    fail = False
+    now = 1061
+    await onchain.scan_wallet(wallet.id)
+    assert len(scans) == 3
+    stored = await get_onchain_wallet(wallet.id)
+    assert stored
+    assert stored.onchain_meta.sync_checked_at == now
+    assert stored.onchain_meta.sync_failed_at == 0
+    assert stored.onchain_meta.sync_error is None
 
 
 @pytest.mark.anyio
@@ -771,6 +995,13 @@ async def test_onchain_wallet_crud_reuses_connection(onchain_wallet, kind):
             initialized.onchain_backup_confirmed = True
             updated = await update_onchain_wallet(initialized, conn=conn)
             assert updated.onchain_backup_confirmed == (kind == "hot")
+            await conn.execute(
+                "UPDATE wallets SET onchain_sync_lease_until = 100 WHERE id = :id",
+                {"id": wallet.id},
+            )
+            await onchain._finish_scan(wallet.id, 100, None, conn=conn)
+            scanned = await get_onchain_wallet(wallet.id, conn=conn)
+            assert scanned and scanned.onchain_meta.sync_checked_at > 0
             if kind == "hot":
                 with pytest.raises(
                     ValueError, match="Onchain wallet cannot be removed"
@@ -991,6 +1222,7 @@ async def test_onchain_scan_metadata_preserves_setup_and_newer_leases(
     assert meta["xpub"] in meta["masterpub"]
     assert meta == account["onchain_meta"]
     meta["sync_checked_at"] = 42
+    checkpoint = ScanCheckpoint(height=100, block_hash="b" * 64)
     # Simulate metadata written after scan acquisition but before completion.
     meta["accountPath"] = "m/84'/1'/0'"
     await db.execute(
@@ -998,31 +1230,98 @@ async def test_onchain_scan_metadata_preserves_setup_and_newer_leases(
         onchain_meta = :meta WHERE id = :id""",
         {"id": wallet.id, "meta": json.dumps(meta)},
     )
-    await finish_scan(wallet.id, 99, None)
+    assert not await onchain._finish_scan(wallet.id, 99, None, checkpoint=checkpoint)
     row = await db.fetchone(
         "SELECT onchain_meta, onchain_sync_lease_until FROM wallets WHERE id = :id",
         {"id": wallet.id},
     )
     assert row["onchain_sync_lease_until"] == 100
     assert json.loads(row["onchain_meta"]) == meta
-    await finish_scan(wallet.id, 100, "Explorer unavailable")
+    assert await onchain._finish_scan(
+        wallet.id, 100, "Explorer unavailable", checkpoint=checkpoint
+    )
     state = await onchain.get_wallet_state(wallet.id)
     assert state["checked_at"] == 42
     assert state["error"] == "Explorer unavailable"
     assert not state["scanning"]
+    assert not state["sync_due"]
+    failed_wallet = await get_onchain_wallet(wallet.id)
+    assert failed_wallet and failed_wallet.onchain_meta.sync_failed_at > 0
+    assert failed_wallet.onchain_meta.sync_checkpoint is None
     await db.execute(
         "UPDATE wallets SET onchain_sync_lease_until = 101 WHERE id = :id",
         {"id": wallet.id},
     )
-    await finish_scan(wallet.id, 101, None)
+    assert await onchain._finish_scan(wallet.id, 101, None, checkpoint=checkpoint)
     row = await db.fetchone(
         "SELECT onchain_meta FROM wallets WHERE id = :id", {"id": wallet.id}
     )
     updated = json.loads(row["onchain_meta"])
     assert updated["sync_error"] is None
     assert updated["sync_checked_at"] > 42
+    assert updated["sync_failed_at"] == 0
+    assert updated["sync_checkpoint"] == checkpoint.dict()
     for key in ("masterpub", "fingerprint", "script_type", "accountPath"):
         assert updated[key] == meta[key]
+
+
+@pytest.mark.anyio
+@pytest.mark.parametrize("newer_lease", [False, True])
+@pytest.mark.parametrize("error", [None, "Explorer unavailable"])
+async def test_finish_scan_preserves_changes_between_read_and_write(
+    http_client, onchain_wallet, monkeypatch, newer_lease, error
+):
+    wallet, _, headers = onchain_wallet
+    account = await add_watch(http_client, headers)
+    meta = account["onchain_meta"]
+    meta["sync_checked_at"] = 42
+    await db.execute(
+        "UPDATE wallets SET onchain_meta = :meta, onchain_sync_lease_until = 100 "
+        "WHERE id = :id",
+        {"id": wallet.id, "meta": json.dumps(meta)},
+    )
+    execute = db.execute
+    changed = False
+
+    async def concurrent_update(query, values=None):
+        nonlocal changed
+        if not changed and query.startswith(
+            "UPDATE wallets SET onchain_sync_lease_until = 0"
+        ):
+            changed = True
+            meta["custom_metadata"] = {"note": "written while finishing the scan"}
+            await execute(
+                "UPDATE wallets SET onchain_meta = :meta, "
+                "onchain_sync_lease_until = :lease WHERE id = :id",
+                {
+                    "id": wallet.id,
+                    "meta": json.dumps(meta),
+                    "lease": 101 if newer_lease else 100,
+                },
+            )
+        return await execute(query, values)
+
+    monkeypatch.setattr(db, "execute", concurrent_update)
+    await asyncio.wait_for(onchain._finish_scan(wallet.id, 100, error), 5)
+    assert changed
+    row = await db.fetchone(
+        "SELECT onchain_meta, onchain_sync_lease_until FROM wallets WHERE id = :id",
+        {"id": wallet.id},
+    )
+    updated = json.loads(row["onchain_meta"])
+    if newer_lease:
+        assert row["onchain_sync_lease_until"] == 101
+        assert updated == meta
+    else:
+        assert row["onchain_sync_lease_until"] == 0
+        assert updated["custom_metadata"] == meta["custom_metadata"]
+        assert updated["sync_error"] == error
+        if error:
+            assert updated["sync_checked_at"] == 42
+            assert updated["sync_failed_at"] > 0
+        else:
+            assert updated["sync_checked_at"] > 42
+            assert updated["sync_failed_at"] == 0
 
 
 @pytest.mark.anyio
@@ -1102,7 +1401,7 @@ async def test_inflight_snapshot_cannot_recreate_removed_addresses(
     tx, coin = chain_fixture(address.address)
     started, finish = asyncio.Event(), asyncio.Event()
 
-    async def history(_address):
+    async def history(_address, **_kwargs):
         started.set()
         await finish.wait()
         return [tx]
@@ -1137,6 +1436,10 @@ async def test_scan_cannot_follow_reconfigured_wallet_onto_another_network(
     scanned = set()
 
     async def explorer(request):
+        if request.url.path.endswith("/blocks/tip/height"):
+            return httpx.Response(200, text="100")
+        if "/block-height/" in request.url.path:
+            return httpx.Response(200, text="b" * 64)
         scanned.add(request.url.path.split("/")[-2])
         started.set()
         await finish.wait()
@@ -1171,6 +1474,7 @@ async def test_scan_cannot_follow_reconfigured_wallet_onto_another_network(
     finally:
         finish.set()
         await task
+    assert task.result() == "Wallet was removed or reconfigured during the scan."
     assert scanned <= old_addresses
     state = await onchain.get_wallet_state(wallet.id)
     assert state["addresses"] and state["snapshots"] == []

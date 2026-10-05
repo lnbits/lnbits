@@ -32,6 +32,7 @@ from lnbits.core.services.onchain import (
     get_fresh_address,
     get_onchain_daily_stats,
     get_wallet_state,
+    is_scan_due,
     read_onchain_key,
     request_scan,
     require_onchain_payments,
@@ -364,9 +365,12 @@ async def sign_hot_wallet_payment(
 
 
 @onchain_router.post("/sync", status_code=202)
-async def start_sync(auth: OnchainAuth = Depends(require_onchain_admin)):
-    request_scan(auth.wallet_id)
-    return {"scheduled": True}
+async def start_sync(
+    if_needed: bool = False, auth: OnchainAuth = Depends(require_onchain_admin)
+):
+    if if_needed and not await is_scan_due(auth.wallet_id):
+        return {"scheduled": False}
+    return {"scheduled": request_scan(auth.wallet_id, if_needed=if_needed)}
 
 
 @onchain_router.get("/state")

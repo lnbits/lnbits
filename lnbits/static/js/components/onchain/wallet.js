@@ -21,6 +21,8 @@ window.app.component('lnbits-onchain-wallet', {
       lastBroadcastTxId: null,
       liveUpdates: null,
       stateLoading: false,
+      stateLoaded: false,
+      addressSnapshots: {},
       lastStateVersion: null,
       disposed: false,
       syncError: false,
@@ -58,6 +60,7 @@ window.app.component('lnbits-onchain-wallet', {
   },
   computed: {
     liveWatchAddresses() {
+      if (!this.stateLoaded) return []
       const watched = [this.currentAddress?.address]
       for (const account of this.walletAccounts) {
         const receiving = this.addresses
@@ -249,6 +252,8 @@ window.app.component('lnbits-onchain-wallet', {
         this.syncError = false
         this.lastSynced = null
         this.lastStateVersion = null
+        this.stateLoaded = false
+        this.addressSnapshots = {}
         return
       }
       if (this.disposed) return
@@ -263,7 +268,9 @@ window.app.component('lnbits-onchain-wallet', {
           localExplorer: () =>
             this.config.explorer_provider === 'lnbits' &&
             this.config.lnbits_explorer_network === this.config.network,
-          addresses: () => this.liveWatchAddresses
+          addresses: () => this.liveWatchAddresses,
+          addressChanged: (address, data) =>
+            this.addressActivityChanged(address, data)
         })
       )
       this.liveUpdates.start()
@@ -297,6 +304,8 @@ window.app.component('lnbits-onchain-wallet', {
       this.utxos.data = []
       this.utxos.total = 0
       this.lastStateVersion = null
+      this.stateLoaded = false
+      this.addressSnapshots = {}
       this.liveUpdates?.update()
     }
   },
@@ -466,6 +475,26 @@ window.app.component('lnbits-onchain-wallet', {
     },
 
     //################### UTXOs ###################
+    addressActivityChanged(address, data) {
+      if (data.history_error || !Array.isArray(data.history) || !data.balance)
+        return false
+      const snapshot = this.addressSnapshots[address]
+      const history = rows =>
+        JSON.stringify(
+          rows.map(([txid, height]) => [txid, Math.max(0, height)]).sort()
+        )
+      return (
+        data.balance.confirmed + data.balance.unconfirmed !==
+          (snapshot?.amount || 0) ||
+        history(data.history.map(tx => [tx.tx_hash, tx.height])) !==
+          history(
+            (snapshot?.transactions || []).map(tx => [
+              tx.txid,
+              tx.status.confirmed ? tx.status.block_height : 0
+            ])
+          )
+      )
+    },
     async hydrateState() {
       if (this.disposed || !this.isConfigured || this.stateLoading) return
       this.stateLoading = true
@@ -493,6 +522,15 @@ window.app.component('lnbits-onchain-wallet', {
           accountType: accounts.get(a.walet_id)?.onchain_meta.script_type
         }))
         const snapshots = new Map(data.snapshots.map(s => [s.address_id, s]))
+        this.addressSnapshots = Object.fromEntries(
+          this.addresses.map(address => [
+            address.address,
+            {
+              amount: address.amount,
+              transactions: snapshots.get(address.id)?.transactions || []
+            }
+          ])
+        )
         const history = []
         const coins = []
         const seenAddresses = new Set()
@@ -520,6 +558,7 @@ window.app.component('lnbits-onchain-wallet', {
           }
         }
         this.history = history
+        this.stateLoaded = true
         this.utxos.data = coins
         this.utxos.total = coins.reduce((sum, u) => sum + u.amount, 0)
         this.g.wallet.sat = data.balance_sat
@@ -548,6 +587,7 @@ window.app.component('lnbits-onchain-wallet', {
           this.lastStateVersion = version
           this.$emit('synced')
         }
+        return data
       } catch (error) {
         if (!this.disposed && this.isConfigured) this.syncError = true
       } finally {
@@ -555,17 +595,21 @@ window.app.component('lnbits-onchain-wallet', {
         this.liveUpdates?.update()
       }
     },
-    async scanAllAddresses() {
+    async scanAllAddresses({ifNeeded = false} = {}) {
       if (this.disposed || !this.isConfigured) return
-      await this.hydrateState()
+      const state = await this.hydrateState()
       if (this.disposed || !this.isConfigured) return
+      if (ifNeeded && !state?.sync_due) return
       try {
-        await LNbits.api.request(
+        const {data} = await LNbits.api.request(
           'POST',
-          '/api/v1/onchain/sync',
+          '/api/v1/onchain/sync' + (ifNeeded ? '?if_needed=true' : ''),
           this.g.wallet.adminkey
         )
-        if (!this.disposed && this.isConfigured) this.scan.scanning = true
+        if (!this.disposed && this.isConfigured) {
+          if (data.scheduled) this.scan.scanning = true
+          else await this.hydrateState()
+        }
         this.liveUpdates?.update()
       } catch (error) {
         if (this.disposed || !this.isConfigured) return
@@ -653,9 +697,9 @@ window.app.component('lnbits-onchain-wallet', {
       if (!accounts.some(w => w.id === this.selectedWalletId))
         this.selectedWalletId = accounts[0]?.id || null
       if (!this.isConfigured) return
-      // Publish new wallets/addresses immediately; an active scan queues the next pass.
+      // Show the saved snapshot first; revisiting a fresh wallet needs no scan.
       await this.refreshAddresses()
-      await this.scanAllAddresses()
+      await this.scanAllAddresses({ifNeeded: true})
     },
     showAddressDetails: function (addressData) {
       this.openQrCodeDialog(addressData)

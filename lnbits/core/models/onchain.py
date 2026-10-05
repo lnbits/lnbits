@@ -90,6 +90,11 @@ class HotWalletPayment(BaseModel):
         return value
 
 
+class ScanCheckpoint(BaseModel):
+    height: int = Field(ge=0)
+    block_hash: str = Field(regex=r"^[0-9a-f]{64}$")
+
+
 class Snapshot(BaseModel):
     address_id: str
     transactions: list[dict]

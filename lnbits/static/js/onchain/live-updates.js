@@ -117,15 +117,24 @@ LNbits.onchain.OnchainLiveUpdates = class OnchainLiveUpdates {
       }
       socket.onmessage = event => {
         let value
+        let data
         try {
-          value = JSON.stringify(JSON.parse(event.data))
+          data = JSON.parse(event.data)
+          value = JSON.stringify(data)
         } catch (_) {
           return
         }
         if (value === entry.last) return
-        const initialBlock = entry.last === null && entry.path === '/ws/blocks'
+        const initial = entry.last === null
         entry.last = value
-        if (!initialBlock) this.onActivity()
+        if (initial) {
+          if (entry.path === '/ws/blocks') return
+          const address = decodeURIComponent(
+            entry.path.slice('/ws/address/'.length)
+          )
+          if (this.options.addressChanged?.(address, data) === false) return
+        }
+        this.onActivity()
       }
       socket.onerror = () => socket.close()
       socket.onclose = event => {
