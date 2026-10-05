@@ -605,17 +605,12 @@ async def _finish_scan(
         state["sync_checked_at"] = now
         if checkpoint is not None:
             state["sync_checkpoint"] = checkpoint.dict()
-    while True:
-        row = await get_onchain_scan_meta(wallet_id, lease, conn)
-        if not row:
-            return False
-        previous_meta = row["onchain_meta"]
-        meta = json.loads(previous_meta)
-        meta.update(state)
-        # Retry the merge if metadata changed after the read. The lease check
-        # also prevents an old scan from finishing a newer scan's work.
-        if await update_onchain_scan_meta(wallet_id, lease, meta, previous_meta, conn):
-            return True
+    row = await get_onchain_scan_meta(wallet_id, lease, conn)
+    if not row:
+        return False
+    meta = json.loads(row["onchain_meta"])
+    meta.update(state)
+    return await update_onchain_scan_meta(wallet_id, lease, meta, conn)
 
 
 async def _scan_with_lease(wallet_id: str, *, max_age: int | None = None) -> None:

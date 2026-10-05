@@ -590,7 +590,6 @@ async def update_onchain_scan_meta(
     wallet_id: str,
     lease: int,
     meta: dict,
-    previous_meta: str,
     conn: Connection | None = None,
 ) -> bool:
     updated = await (conn or db).execute(
@@ -598,13 +597,11 @@ async def update_onchain_scan_meta(
             onchain_meta = :meta
         WHERE id = :wallet AND wallet_type = 'onchain'
             AND onchain_wallet_kind IS NOT NULL
-            AND onchain_sync_lease_until = :lease
-            AND onchain_meta = :previous_meta""",
+            AND onchain_sync_lease_until = :lease""",
         {
             "wallet": wallet_id,
             "lease": lease,
             "meta": json.dumps(meta),
-            "previous_meta": previous_meta,
         },
     )
     return bool(updated.rowcount)

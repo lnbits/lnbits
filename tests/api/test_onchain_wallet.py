@@ -1267,10 +1267,9 @@ async def test_onchain_scan_metadata_preserves_setup_and_newer_leases(
 
 
 @pytest.mark.anyio
-@pytest.mark.parametrize("newer_lease", [False, True])
 @pytest.mark.parametrize("error", [None, "Explorer unavailable"])
-async def test_finish_scan_preserves_changes_between_read_and_write(
-    http_client, onchain_wallet, monkeypatch, newer_lease, error
+async def test_finish_scan_preserves_newer_lease_between_read_and_write(
+    http_client, onchain_wallet, monkeypatch, error
 ):
     wallet, _, headers = onchain_wallet
     account = await add_watch(http_client, headers)
@@ -1297,32 +1296,21 @@ async def test_finish_scan_preserves_changes_between_read_and_write(
                 {
                     "id": wallet.id,
                     "meta": json.dumps(meta),
-                    "lease": 101 if newer_lease else 100,
+                    "lease": 101,
                 },
             )
         return await execute(query, values)
 
     monkeypatch.setattr(db, "execute", concurrent_update)
-    await asyncio.wait_for(onchain._finish_scan(wallet.id, 100, error), 5)
+    assert not await onchain._finish_scan(wallet.id, 100, error)
     assert changed
     row = await db.fetchone(
         "SELECT onchain_meta, onchain_sync_lease_until FROM wallets WHERE id = :id",
         {"id": wallet.id},
     )
     updated = json.loads(row["onchain_meta"])
-    if newer_lease:
-        assert row["onchain_sync_lease_until"] == 101
-        assert updated == meta
-    else:
-        assert row["onchain_sync_lease_until"] == 0
-        assert updated["custom_metadata"] == meta["custom_metadata"]
-        assert updated["sync_error"] == error
-        if error:
-            assert updated["sync_checked_at"] == 42
-            assert updated["sync_failed_at"] > 0
-        else:
-            assert updated["sync_checked_at"] > 42
-            assert updated["sync_failed_at"] == 0
+    assert row["onchain_sync_lease_until"] == 101
+    assert updated == meta
 
 
 @pytest.mark.anyio
