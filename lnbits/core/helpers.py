@@ -1,7 +1,6 @@
 import importlib
 import re
 from typing import Any
-from urllib.parse import urlparse
 from uuid import UUID
 
 from loguru import logger
@@ -18,6 +17,7 @@ from lnbits.core.models.extensions import InstallableExtension
 from lnbits.core.wasm_ext.storage.crud import migrate_wasm_extension_database
 from lnbits.core.wasm_ext.wasm.loader import is_wasm_extension_id
 from lnbits.db import COCKROACH, POSTGRES, SQLITE, Connection
+from lnbits.helpers import is_valid_url as is_valid_url
 from lnbits.settings import settings
 
 
@@ -131,11 +131,3 @@ async def migrate_databases():
             logger.exception(f"Error migrating extension {ext.id}: {e}")
 
     logger.info("✔️ All migrations done.")
-
-
-def is_valid_url(url):
-    try:
-        result = urlparse(url)
-        return all([result.scheme, result.netloc])
-    except ValueError:
-        return False

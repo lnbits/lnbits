@@ -10,6 +10,23 @@ from lnbits.settings import Settings
 
 
 @pytest.mark.anyio
+async def test_payment_intent_tables_initialize_once_for_concurrent_callers(
+    tmp_path: Path, settings: Settings, mocker
+):
+    settings.lnbits_data_folder = str(tmp_path)
+    extension_id = f"intent{uuid4().hex[:8]}"
+    initialize = mocker.spy(payment_intents, "_create_payment_intent_tables")
+
+    first, second = await asyncio.gather(
+        payment_intents._database(extension_id),
+        payment_intents._database(extension_id),
+    )
+    assert first is second
+    assert await payment_intents._database(extension_id) is first
+    assert initialize.await_count == 1
+
+
+@pytest.mark.anyio
 async def test_reconcile_does_not_undo_attempt_won_after_stale_read(
     tmp_path: Path, settings: Settings
 ):
@@ -278,6 +295,61 @@ async def test_failed_lnurl_intent_can_resolve_a_fresh_invoice(
     assert bool(retried["attempted"]) is False
     assert retried["payment_request"] is None
     assert retried["payment_hash"] is None
+
+
+@pytest.mark.anyio
+async def test_manual_intents_include_latest_audit_for_otherwise_unlisted_intent(
+    tmp_path: Path, settings: Settings
+):
+    extension_id, database, intent = await _seed_intent(
+        tmp_path,
+        settings,
+        status="failed",
+        attempted=True,
+        manual=False,
+        payment_request="invoice",
+    )
+    assert not await payment_intents.get_manual_payment_intents(
+        extension_id, intent["wallet_id"]
+    )
+    await payment_intents.record_payment_intent_operator_action(
+        extension_id,
+        intent["id"],
+        intent["wallet_id"],
+        "first-actor",
+        "retry_requested",
+        "failed",
+        "First note",
+    )
+    audit = payment_intents._table_ref(
+        database, payment_intents._PAYMENT_INTENT_MANUAL_AUDIT_TABLE
+    )
+    async with database.connect() as conn:
+        await conn.execute(
+            f"UPDATE {audit} "  # noqa: S608
+            f"SET created_at = created_at - {database.interval_seconds(1)}"
+        )
+    await payment_intents.record_payment_intent_operator_action(
+        extension_id,
+        intent["id"],
+        intent["wallet_id"],
+        "second-actor",
+        "retry_result",
+        "failed",
+        "Second note",
+    )
+
+    listed = await payment_intents.get_manual_payment_intents(
+        extension_id, intent["wallet_id"]
+    )
+    assert len(listed) == 1
+    assert listed[0]["operator_actor_id"] == "second-actor"
+    assert listed[0]["operator_action"] == "retry_result"
+    assert listed[0]["operator_note"] == "Second note"
+    assert listed[0]["operator_action_at"] is not None
+    assert not await payment_intents.get_manual_payment_intents(
+        extension_id, "other-wallet"
+    )
 
 
 async def _seed_intent(

@@ -6,6 +6,7 @@ payment-intent state on its own, once per configured database backend.
 
 from __future__ import annotations
 
+import asyncio
 import json
 import os
 import select
@@ -16,6 +17,9 @@ from pathlib import Path
 from uuid import uuid4
 
 import pytest
+
+from lnbits.core.wasm_ext.api import payment_intents
+from lnbits.core.wasm_ext.storage import crud
 
 _TABLE = "settlements"
 _IDEMPOTENCY_KEY = "settlement-1"
@@ -50,20 +54,6 @@ class _Worker:
         )
         self.next_id = 0
         assert self._event(timeout=20)["ready"] > 0
-
-    def _event(self, timeout: float = 8) -> dict:
-        assert self.process.stdout
-        ready, _, _ = select.select([self.process.stdout], [], [], timeout)
-        if not ready:
-            self.process.kill()
-            self.process.wait(timeout=3)
-            error = self.process.stderr.read() if self.process.stderr else ""
-            raise AssertionError(f"payment worker stalled: {error[-2000:]}")
-        line = self.process.stdout.readline()
-        if not line:
-            error = self.process.stderr.read() if self.process.stderr else ""
-            raise AssertionError(f"payment worker exited: {error[-2000:]}")
-        return json.loads(line)
 
     def send(self, command: str, **payload) -> int:
         self.next_id += 1
@@ -109,27 +99,25 @@ class _Worker:
             if stream:
                 stream.close()
 
-
-def _env(tmp_path: Path, wasm_path: Path, data_path: Path) -> dict[str, str]:
-    env = os.environ.copy()
-    env.update(
-        {
-            "PYTHONPATH": str(Path(__file__).resolve().parents[2]),
-            "LNBITS_DATA_FOLDER": str(data_path),
-            "LNBITS_WASM_EXTENSIONS_PATH": str(wasm_path),
-        }
-    )
-    if env.get("LNBITS_DATABASE_URL", "") == "":
-        env["LNBITS_DATABASE_URL"] = ""
-    return env
+    def _event(self, timeout: float = 8) -> dict:
+        assert self.process.stdout
+        ready, _, _ = select.select([self.process.stdout], [], [], timeout)
+        if not ready:
+            self.process.kill()
+            self.process.wait(timeout=3)
+            error = self.process.stderr.read() if self.process.stderr else ""
+            raise AssertionError(f"payment worker stalled: {error[-2000:]}")
+        line = self.process.stdout.readline()
+        if not line:
+            error = self.process.stderr.read() if self.process.stderr else ""
+            raise AssertionError(f"payment worker exited: {error[-2000:]}")
+        return json.loads(line)
 
 
 @pytest.mark.anyio
 async def test_crashed_payment_process_cannot_send_twice(
     tmp_path: Path, settings, mocker
 ):
-    from lnbits.core.wasm_ext.api import payment_intents
-
     extension_id = f"pay{uuid4().hex[:12]}"
     wasm_path = tmp_path / "wasm_extensions"
     schema_path = wasm_path / extension_id / "storage" / "schema.json"
@@ -259,10 +247,21 @@ async def test_crashed_payment_process_cannot_send_twice(
             after_send.stop()
 
 
-async def _worker_main() -> None:
-    from lnbits.core.wasm_ext.api import payment_intents
-    from lnbits.core.wasm_ext.storage import crud
+def _env(tmp_path: Path, wasm_path: Path, data_path: Path) -> dict[str, str]:
+    env = os.environ.copy()
+    env.update(
+        {
+            "PYTHONPATH": str(Path(__file__).resolve().parents[2]),
+            "LNBITS_DATA_FOLDER": str(data_path),
+            "LNBITS_WASM_EXTENSIONS_PATH": str(wasm_path),
+        }
+    )
+    if env.get("LNBITS_DATABASE_URL", "") == "":
+        env["LNBITS_DATABASE_URL"] = ""
+    return env
 
+
+async def _worker_main() -> None:
     extension_id = os.environ["PAYMENT_TEST_EXTENSION"]
     database = crud._database(extension_id)
     async with database.connect() as conn:
@@ -353,12 +352,8 @@ def _jsonable(row: dict | None) -> dict:
 
 
 async def _readline() -> str:
-    import asyncio
-
     return await asyncio.to_thread(sys.stdin.readline)
 
 
 if __name__ == "__main__" and sys.argv[1:] == ["--worker"]:
-    import asyncio
-
     asyncio.run(_worker_main())

@@ -7,9 +7,23 @@ import time
 from collections.abc import Iterable, Mapping
 from typing import Any
 
+from lnurl import LnAddressError, LnurlResponseException
+
+from lnbits.core.crud.payments import get_standalone_payment
+from lnbits.core.crud.wallets import get_wallet, get_wallets
+from lnbits.core.models.lnurl import CreateLnurlPayment
+from lnbits.core.models.payments import CreateInvoice
+from lnbits.core.services.lnurl import fetch_lnurl_pay_request
+from lnbits.core.services.payments import (
+    create_payment_request,
+    fee_reserve_total,
+    pay_invoice,
+)
+from lnbits.exceptions import PaymentError
 from lnbits.helpers import sha256s
 
 from ..client.extensions import send_extension_api_request
+from ..client.http import send_extension_http_request
 from ..storage.crud import (
     OWNER_ID_FIELD,
     storage_append_public_row,
@@ -30,6 +44,12 @@ from .background_payments import (
     _background_payment_grant,
     background_payment_extra,
     invoice_amount_msat,
+)
+from .lnurl import (
+    lnurl_for_core,
+    lnurl_pay_response_text,
+    lnurl_payment_amount_for_core,
+    lnurl_payment_unit_for_core,
 )
 from .models import (
     CreateInvoicePublicRequest,
@@ -84,6 +104,7 @@ from .payment_intents import (
     set_payment_intent_status,
 )
 from .registry import extension_api_method
+from .utils import ExtensionAPIUtils
 from .websockets import scoped_websocket_item_id, wasm_extension_websocket_hub
 
 logger = logging.getLogger("lnbits.extensions")
@@ -111,7 +132,6 @@ class ExtensionHostAPI:
         self.owner_id = sha256s(user_id) if user_id else owner_id
         self.invocation_id = invocation_id
         self.runtime_limits = runtime_limits or {}
-        from .utils import ExtensionAPIUtils
 
         self.utils = ExtensionAPIUtils(
             self.extension_id,
@@ -433,10 +453,6 @@ class ExtensionHostAPI:
     async def wallet_create_invoice(
         self, request: CreateInvoiceRequest
     ) -> CreateInvoiceResponse:
-        from lnbits.core.crud.wallets import get_wallet
-        from lnbits.core.models.payments import CreateInvoice
-        from lnbits.core.services.payments import create_payment_request
-
         if not self.user_id:
             raise PermissionError(
                 "Creating an invoice for this wallet requires an "
@@ -475,9 +491,6 @@ class ExtensionHostAPI:
     async def wallet_create_invoice_public(
         self, request: CreateInvoicePublicRequest
     ) -> CreateInvoiceResponse:
-        from lnbits.core.models.payments import CreateInvoice
-        from lnbits.core.services.payments import create_payment_request
-
         row: dict[str, Any] | None = None
         wallet_field = ""
         for policy in self._public_invoice_wallet_sources():
@@ -534,8 +547,6 @@ class ExtensionHostAPI:
                 "Listing user wallets requires an authenticated user context."
             )
 
-        from lnbits.core.crud.wallets import get_wallets
-
         user_wallets = await get_wallets(self.user_id)
         if user_wallets is None:
             raise PermissionError(
@@ -560,8 +571,6 @@ class ExtensionHostAPI:
     async def wallet_balance(
         self, request: WalletBalanceRequest
     ) -> WalletBalanceResponse:
-        from lnbits.core.crud.wallets import get_wallet
-
         if not self.user_id:
             raise PermissionError(
                 "Reading a wallet balance requires an authenticated user context."
@@ -608,10 +617,9 @@ class ExtensionHostAPI:
             max_amount_msat=max_amount_msat,
         )
         current, claimed = await claim_payment_intent(self.extension_id, intent["id"])
+        intent = current or intent
         if claimed:
-            intent = await self._run_payment_intent(current or intent, wallet)
-        else:
-            intent = current or intent
+            intent = await self._run_payment_intent(intent, wallet)
         return _payment_intent_response(intent)
 
     @extension_api_method(
@@ -663,11 +671,242 @@ class ExtensionHostAPI:
         intent = await reconcile_payment_intent(self.extension_id, intent)
         return _payment_intent_response(intent)
 
+    @extension_api_method(
+        method_id="wallet.pay_invoice",
+        namespace="wallet",
+        name="Pay invoice",
+        host_name="pay_invoice",
+        sdk_name="payInvoice",
+        description="Pay a Lightning invoice from a wallet available to the user.",
+    )
+    async def wallet_pay_invoice(
+        self, request: PayInvoiceRequest
+    ) -> PayInvoiceResponse:
+        wallet = await get_wallet(request.wallet_id)
+        if wallet is None:
+            raise PermissionError("Paying invoices from this wallet is not allowed.")
+
+        try:
+            if self.user_id:
+                self.require_permission("wallet.pay_invoice")
+                if wallet.user != self.user_id:
+                    raise PermissionError(
+                        "Paying invoices from this wallet is not allowed."
+                    )
+                payment = await pay_invoice(
+                    wallet_id=request.wallet_id,
+                    payment_request=request.payment_request,
+                    max_sat=request.max_sat,
+                    extra={"tag": self.extension_id, **request.extra},
+                    description=request.description,
+                    tag=self.extension_id,
+                )
+            else:
+                self.require_permission(WALLET_PAY_INVOICE_BACKGROUND_PERMISSION)
+                amount_msat = invoice_amount_msat(request.payment_request)
+                extra = await background_payment_extra(
+                    extension_id=self.extension_id,
+                    wallet=wallet,
+                    payment_request=request.payment_request,
+                    amount_msat=amount_msat,
+                )
+                payment = await pay_invoice(
+                    wallet_id=request.wallet_id,
+                    payment_request=request.payment_request,
+                    max_sat=request.max_sat,
+                    extra={**request.extra, **extra},
+                    description=request.description,
+                    tag=self.extension_id,
+                )
+        except (PaymentError, PermissionError, ValueError) as exc:
+            return PayInvoiceResponse(ok=False, error=str(exc))
+
+        return _pay_invoice_response(payment)
+
+    @extension_api_method(
+        method_id="wallet.pay_lnurl",
+        namespace="wallet",
+        name="Pay LNURL",
+        host_name="pay_lnurl",
+        sdk_name="payLnurl",
+        description="Pay a Lightning Address or LNURL-pay request from a wallet.",
+    )
+    async def wallet_pay_lnurl(self, request: PayLnurlRequest) -> PayInvoiceResponse:
+        wallet = await get_wallet(request.wallet_id)
+        if wallet is None:
+            raise PermissionError("Paying from this wallet is not allowed.")
+
+        try:
+            if self.user_id:
+                self.require_permission("wallet.pay_invoice")
+                if wallet.user != self.user_id:
+                    raise PermissionError("Paying from this wallet is not allowed.")
+            else:
+                self.require_permission(WALLET_PAY_INVOICE_BACKGROUND_PERMISSION)
+
+            unit = lnurl_payment_unit_for_core(request.currency)
+            res, action = await fetch_lnurl_pay_request(
+                data=CreateLnurlPayment(
+                    lnurl=lnurl_for_core(request.lnurl),
+                    amount=lnurl_payment_amount_for_core(request.amount),
+                    unit=unit,
+                    comment=request.comment,
+                    internal_memo=request.description or None,
+                ),
+                wallet=None,
+            )
+            extra = {"tag": self.extension_id, **request.extra}
+            if action.successAction:
+                extra["success_action"] = action.successAction.json()
+            if request.comment:
+                extra["comment"] = request.comment
+            if unit != "sat":
+                extra["fiat_currency"] = unit
+                extra["fiat_amount"] = str(request.amount)
+
+            if not self.user_id:
+                amount_msat = invoice_amount_msat(str(action.pr))
+                extra = {
+                    **extra,
+                    **(
+                        await background_payment_extra(
+                            extension_id=self.extension_id,
+                            wallet=wallet,
+                            payment_request=str(action.pr),
+                            amount_msat=amount_msat,
+                        )
+                    ),
+                }
+
+            if request.fetch_only:
+                return PayInvoiceResponse(payment_request=str(action.pr))
+
+            payment = await pay_invoice(
+                wallet_id=request.wallet_id,
+                payment_request=str(action.pr),
+                max_sat=request.max_sat,
+                extra=extra,
+                description=request.description or lnurl_pay_response_text(res),
+                tag=self.extension_id,
+            )
+        except (
+            LnAddressError,
+            LnurlResponseException,
+            PaymentError,
+            PermissionError,
+            ValueError,
+        ) as exc:
+            return PayInvoiceResponse(ok=False, error=str(exc))
+
+        return _pay_invoice_response(payment)
+
+    @extension_api_method(
+        method_id="http.request",
+        namespace="http",
+        name="HTTP request",
+        host_name="http_request",
+        sdk_name="request",
+        description="Make an outbound HTTP request to an allowed host.",
+        required_permission="http.request",
+        require_auth=True,
+    )
+    async def http_request(self, request: HttpRequest) -> HttpResponse:
+        policies = self.permission_policies.get("http.request") or []
+        return await send_extension_http_request(
+            self.extension_id,
+            policies,
+            request,
+            timeout_ms=self.runtime_limits.get("wasm_runtime_http_timeout_ms"),
+            max_response_bytes=self.runtime_limits.get(
+                "wasm_runtime_max_http_response_bytes"
+            ),
+        )
+
+    @extension_api_method(
+        method_id="extension.api.request",
+        namespace="extension",
+        name="Extension API request",
+        host_name="extension_api_request",
+        sdk_name="request",
+        description="Call an allowed installed extension API.",
+        required_permission="extension.api.request",
+        require_auth=True,
+    )
+    async def extension_api_request(self, request: ExtensionApiRequest) -> HttpResponse:
+        policies = self.permission_policies.get("extension.api.request") or []
+        return await send_extension_api_request(
+            self.extension_id,
+            policies,
+            self.user_id,
+            self.access_token,
+            request,
+            timeout_ms=self.runtime_limits.get("wasm_runtime_http_timeout_ms"),
+            max_response_bytes=self.runtime_limits.get(
+                "wasm_runtime_max_http_response_bytes"
+            ),
+        )
+
+    @extension_api_method(
+        method_id="system.random_id",
+        namespace="system",
+        name="Random ID",
+        host_name="random_id",
+        sdk_name="id",
+        description="Create a random extension-local identifier.",
+        require_auth=False,
+    )
+    async def system_random_id(self, request: RandomIdRequest) -> RandomIdResponse:
+        return RandomIdResponse(
+            id=f"{request.prefix}_{secrets.token_urlsafe(12).replace('-', '_')}"
+        )
+
+    @extension_api_method(
+        method_id="system.now",
+        namespace="system",
+        name="Current timestamp",
+        host_name="now",
+        sdk_name="now",
+        description="Return the current Unix timestamp.",
+        require_auth=False,
+    )
+    async def system_now(self, request: EmptyRequest) -> NowResponse:
+        return NowResponse(timestamp=int(time.time()))
+
+    @extension_api_method(
+        method_id="system.log",
+        namespace="system",
+        name="Log message",
+        host_name="log",
+        sdk_name="log",
+        description="Write a bounded message to the extension log.",
+        require_auth=False,
+    )
+    async def system_log(self, request: LogRequest) -> LogResponse:
+        log = getattr(logger, request.level)
+        log("extension:%s %s", self.extension_id, request.message)
+        return LogResponse()
+
+    def require_permission(self, permission: str | None) -> None:
+        if permission and permission not in self.permissions:
+            raise PermissionError(
+                f"Extension '{self.extension_id}' is missing permission '{permission}'."
+            )
+
+    def has_authenticated_context(self) -> bool:
+        return bool(self.user_id) or self.context == "event"
+
+    def __repr__(self) -> str:
+        return (
+            "ExtensionHostAPI("
+            f"extension_id={self.extension_id!r}, "
+            f"context={self.context!r}, "
+            f"owner_id={self.owner_id!r}"
+            ")"
+        )
+
     async def _payment_intent_wallet(
         self, wallet_id: str
     ) -> tuple[Any, int | float | None]:
-        from lnbits.core.crud.wallets import get_wallet
-
         wallet = await get_wallet(wallet_id)
         if not wallet:
             raise PermissionError(
@@ -687,9 +926,6 @@ class ExtensionHostAPI:
     async def _run_payment_intent(  # noqa: C901
         self, intent: dict[str, Any], wallet: Any
     ) -> dict[str, Any]:
-        from lnbits.core.services.payments import fee_reserve_total, pay_invoice
-        from lnbits.exceptions import PaymentError
-
         amount_msat = intent["amount_msat"]
         if fee_reserve_total(amount_msat) > intent["max_fee_msat"]:
             return (
@@ -785,8 +1021,6 @@ class ExtensionHostAPI:
             )
         except PaymentError as exc:
             if exc.status == "failed":
-                from lnbits.core.crud.payments import get_standalone_payment
-
                 payment_record = await get_standalone_payment(
                     intent["payment_hash"], wallet_id=intent["wallet_id"]
                 )
@@ -838,242 +1072,6 @@ class ExtensionHostAPI:
             await set_payment_intent_status(self.extension_id, intent["id"], "pending")
             or intent
         )
-
-    @extension_api_method(
-        method_id="wallet.pay_invoice",
-        namespace="wallet",
-        name="Pay invoice",
-        host_name="pay_invoice",
-        sdk_name="payInvoice",
-        description="Pay a Lightning invoice from a wallet available to the user.",
-    )
-    async def wallet_pay_invoice(
-        self, request: PayInvoiceRequest
-    ) -> PayInvoiceResponse:
-        from lnbits.core.crud.wallets import get_wallet
-        from lnbits.core.services.payments import pay_invoice
-        from lnbits.exceptions import PaymentError
-
-        wallet = await get_wallet(request.wallet_id)
-        if wallet is None:
-            raise PermissionError("Paying invoices from this wallet is not allowed.")
-
-        try:
-            if self.user_id:
-                self.require_permission("wallet.pay_invoice")
-                if wallet.user != self.user_id:
-                    raise PermissionError(
-                        "Paying invoices from this wallet is not allowed."
-                    )
-                payment = await pay_invoice(
-                    wallet_id=request.wallet_id,
-                    payment_request=request.payment_request,
-                    max_sat=request.max_sat,
-                    extra={"tag": self.extension_id, **request.extra},
-                    description=request.description,
-                    tag=self.extension_id,
-                )
-            else:
-                self.require_permission(WALLET_PAY_INVOICE_BACKGROUND_PERMISSION)
-                amount_msat = invoice_amount_msat(request.payment_request)
-                extra = await background_payment_extra(
-                    extension_id=self.extension_id,
-                    wallet=wallet,
-                    payment_request=request.payment_request,
-                    amount_msat=amount_msat,
-                )
-                payment = await pay_invoice(
-                    wallet_id=request.wallet_id,
-                    payment_request=request.payment_request,
-                    max_sat=request.max_sat,
-                    extra={**request.extra, **extra},
-                    description=request.description,
-                    tag=self.extension_id,
-                )
-        except (PaymentError, PermissionError, ValueError) as exc:
-            return PayInvoiceResponse(ok=False, error=str(exc))
-
-        return _pay_invoice_response(payment)
-
-    @extension_api_method(
-        method_id="wallet.pay_lnurl",
-        namespace="wallet",
-        name="Pay LNURL",
-        host_name="pay_lnurl",
-        sdk_name="payLnurl",
-        description="Pay a Lightning Address or LNURL-pay request from a wallet.",
-    )
-    async def wallet_pay_lnurl(self, request: PayLnurlRequest) -> PayInvoiceResponse:
-        from lnurl import LnAddressError, LnurlResponseException
-
-        from lnbits.core.crud.wallets import get_wallet
-        from lnbits.core.models.lnurl import CreateLnurlPayment
-        from lnbits.core.services.lnurl import fetch_lnurl_pay_request
-        from lnbits.core.services.payments import pay_invoice
-        from lnbits.exceptions import PaymentError
-
-        from .lnurl import (
-            lnurl_for_core,
-            lnurl_pay_response_text,
-            lnurl_payment_amount_for_core,
-            lnurl_payment_unit_for_core,
-        )
-
-        wallet = await get_wallet(request.wallet_id)
-        if wallet is None:
-            raise PermissionError("Paying from this wallet is not allowed.")
-
-        try:
-            if self.user_id:
-                self.require_permission("wallet.pay_invoice")
-                if wallet.user != self.user_id:
-                    raise PermissionError("Paying from this wallet is not allowed.")
-            else:
-                self.require_permission(WALLET_PAY_INVOICE_BACKGROUND_PERMISSION)
-
-            unit = lnurl_payment_unit_for_core(request.currency)
-            res, action = await fetch_lnurl_pay_request(
-                data=CreateLnurlPayment(
-                    lnurl=lnurl_for_core(request.lnurl),
-                    amount=lnurl_payment_amount_for_core(request.amount),
-                    unit=unit,
-                    comment=request.comment,
-                    internal_memo=request.description or None,
-                ),
-                wallet=None,
-            )
-            extra = {"tag": self.extension_id, **request.extra}
-            if action.successAction:
-                extra["success_action"] = action.successAction.json()
-            if request.comment:
-                extra["comment"] = request.comment
-            if unit != "sat":
-                extra["fiat_currency"] = unit
-                extra["fiat_amount"] = str(request.amount)
-
-            if not self.user_id:
-                amount_msat = invoice_amount_msat(str(action.pr))
-                extra = {
-                    **extra,
-                    **(
-                        await background_payment_extra(
-                            extension_id=self.extension_id,
-                            wallet=wallet,
-                            payment_request=str(action.pr),
-                            amount_msat=amount_msat,
-                        )
-                    ),
-                }
-
-            if request.fetch_only:
-                return PayInvoiceResponse(payment_request=str(action.pr))
-
-            payment = await pay_invoice(
-                wallet_id=request.wallet_id,
-                payment_request=str(action.pr),
-                max_sat=request.max_sat,
-                extra=extra,
-                description=request.description or lnurl_pay_response_text(res),
-                tag=self.extension_id,
-            )
-        except (
-            LnAddressError,
-            LnurlResponseException,
-            PaymentError,
-            PermissionError,
-            ValueError,
-        ) as exc:
-            return PayInvoiceResponse(ok=False, error=str(exc))
-
-        return _pay_invoice_response(payment)
-
-    @extension_api_method(
-        method_id="http.request",
-        namespace="http",
-        name="HTTP request",
-        host_name="http_request",
-        sdk_name="request",
-        description="Make an outbound HTTP request to an allowed host.",
-        required_permission="http.request",
-        require_auth=True,
-    )
-    async def http_request(self, request: HttpRequest) -> HttpResponse:
-        from ..client.http import send_extension_http_request
-
-        policies = self.permission_policies.get("http.request") or []
-        return await send_extension_http_request(
-            self.extension_id,
-            policies,
-            request,
-            timeout_ms=self.runtime_limits.get("wasm_runtime_http_timeout_ms"),
-            max_response_bytes=self.runtime_limits.get(
-                "wasm_runtime_max_http_response_bytes"
-            ),
-        )
-
-    @extension_api_method(
-        method_id="extension.api.request",
-        namespace="extension",
-        name="Extension API request",
-        host_name="extension_api_request",
-        sdk_name="request",
-        description="Call an allowed installed extension API.",
-        required_permission="extension.api.request",
-        require_auth=True,
-    )
-    async def extension_api_request(self, request: ExtensionApiRequest) -> HttpResponse:
-        policies = self.permission_policies.get("extension.api.request") or []
-        return await send_extension_api_request(
-            self.extension_id,
-            policies,
-            self.user_id,
-            self.access_token,
-            request,
-            timeout_ms=self.runtime_limits.get("wasm_runtime_http_timeout_ms"),
-            max_response_bytes=self.runtime_limits.get(
-                "wasm_runtime_max_http_response_bytes"
-            ),
-        )
-
-    @extension_api_method(
-        method_id="system.random_id",
-        namespace="system",
-        name="Random ID",
-        host_name="random_id",
-        sdk_name="id",
-        description="Create a random extension-local identifier.",
-        require_auth=False,
-    )
-    async def system_random_id(self, request: RandomIdRequest) -> RandomIdResponse:
-        return RandomIdResponse(
-            id=f"{request.prefix}_{secrets.token_urlsafe(12).replace('-', '_')}"
-        )
-
-    @extension_api_method(
-        method_id="system.now",
-        namespace="system",
-        name="Current timestamp",
-        host_name="now",
-        sdk_name="now",
-        description="Return the current Unix timestamp.",
-        require_auth=False,
-    )
-    async def system_now(self, request: EmptyRequest) -> NowResponse:
-        return NowResponse(timestamp=int(time.time()))
-
-    @extension_api_method(
-        method_id="system.log",
-        namespace="system",
-        name="Log message",
-        host_name="log",
-        sdk_name="log",
-        description="Write a bounded message to the extension log.",
-        require_auth=False,
-    )
-    async def system_log(self, request: LogRequest) -> LogResponse:
-        log = getattr(logger, request.level)
-        log("extension:%s %s", self.extension_id, request.message)
-        return LogResponse()
 
     @staticmethod
     def _permission_data(
@@ -1316,28 +1314,10 @@ class ExtensionHostAPI:
             )
         return max_messages_per_second
 
-    def require_permission(self, permission: str | None) -> None:
-        if permission and permission not in self.permissions:
-            raise PermissionError(
-                f"Extension '{self.extension_id}' is missing permission '{permission}'."
-            )
-
-    def has_authenticated_context(self) -> bool:
-        return bool(self.user_id) or self.context == "event"
-
     def _require_owner_id(self) -> str:
         if not self.owner_id:
             raise PermissionError("Extension API method requires an owner context.")
         return self.owner_id
-
-    def __repr__(self) -> str:
-        return (
-            "ExtensionHostAPI("
-            f"extension_id={self.extension_id!r}, "
-            f"context={self.context!r}, "
-            f"owner_id={self.owner_id!r}"
-            ")"
-        )
 
 
 def _pay_invoice_response(payment: Any) -> PayInvoiceResponse:

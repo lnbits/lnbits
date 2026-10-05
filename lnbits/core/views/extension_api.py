@@ -293,18 +293,6 @@ async def api_retry_failed_wasm_payment_intent(
     return result.dict()
 
 
-async def _wasm_payment_intent_wallet(ext_id: str, wallet_id: str, account: Account):
-    installed = await get_installed_extension(ext_id)
-    if not installed or not installed.is_wasm:
-        raise HTTPException(HTTPStatus.NOT_FOUND, "WASM extension was not found.")
-    wallet = await get_wallet(wallet_id)
-    if not wallet:
-        raise HTTPException(HTTPStatus.NOT_FOUND, "Wallet was not found.")
-    if not account.is_admin and wallet.user != account.id:
-        raise HTTPException(HTTPStatus.FORBIDDEN, "Wallet access is not allowed.")
-    return wallet
-
-
 @extension_router.get(
     "/wasm/invocations",
     dependencies=[Depends(check_admin)],
@@ -1184,6 +1172,18 @@ async def create_extension_review(
         resp.raise_for_status()
         payment_request = resp.json()
         return ExtensionReviewPaymentRequest(**payment_request)
+
+
+async def _wasm_payment_intent_wallet(ext_id: str, wallet_id: str, account: Account):
+    installed = await get_installed_extension(ext_id)
+    if not installed or not installed.is_wasm:
+        raise HTTPException(HTTPStatus.NOT_FOUND, "WASM extension was not found.")
+    wallet = await get_wallet(wallet_id)
+    if not wallet:
+        raise HTTPException(HTTPStatus.NOT_FOUND, "Wallet was not found.")
+    if not account.is_admin and wallet.user != account.id:
+        raise HTTPException(HTTPStatus.FORBIDDEN, "Wallet access is not allowed.")
+    return wallet
 
 
 def _load_installed_extension_config(extension: InstallableExtension) -> dict:
