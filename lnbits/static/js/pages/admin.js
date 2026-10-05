@@ -133,6 +133,7 @@ window.PageAdmin = {
           this.$t('watchdog')
         ],
         server: [
+          'Onchain payments and encryption key backup',
           this.$t('currency_settings'),
           this.$t('payments'),
           this.$t('lightning_addresses'),

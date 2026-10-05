@@ -1,4 +1,17 @@
-{% include('components/admin/funding_seed_backup.vue') %} {%
+{% include('components/onchain/wallet.vue') %} {%
+include('components/onchain/wallet-config.vue') %} {%
+include('components/onchain/utxo-list.vue') %} {%
+include('components/onchain/wallet-list.vue') %} {%
+include('components/onchain/address-list.vue') %} {%
+include('components/onchain/fee-rate.vue') %} {%
+include('components/onchain/seed-input.vue') %} {%
+include('components/onchain/send-to.vue') %} {%
+include('components/onchain/payment.vue') %} {%
+include('components/onchain/serial-signer.vue') %} {%
+include('components/onchain/trezor-signer.vue') %} {%
+include('components/onchain/serial-port-config.vue') %} {%
+include('components/onchain/hot-wallet.vue') %} {%
+include('components/admin/funding_seed_backup.vue') %} {%
 include('components/admin/funding.vue') %} {%
 include('components/admin/funding_sources.vue') %} {%
 include('components/admin/fiat_providers.vue') %} {%

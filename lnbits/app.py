@@ -36,6 +36,7 @@ from lnbits.core.services.notifications import (
     enqueue_admin_notification,
     process_next_notification,
 )
+from lnbits.core.services.onchain import sync_wallets
 from lnbits.core.services.payments import (
     check_pending_payments,
     fundingsource_invoice_producer,
@@ -576,6 +577,9 @@ def register_async_tasks() -> None:
     # listen to all incoming payments and dispatch payment notifications
     # note: should be the first in task list for a bit quicker notifications
     task_manager.register_invoice_listener(dispatch_payment_notification, "core")
+
+    # Core onchain wallets retain their snapshots when no browser is open.
+    task_manager.create_permanent_task(sync_wallets, interval=60)
 
     # periodic tasks
     task_manager.create_permanent_task(cache.invalidate_cache, interval=10)

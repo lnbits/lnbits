@@ -172,6 +172,7 @@ async def test_sqlite_backup(mocker, monkeypatch, settings: Settings, tmp_path: 
     data_folder = tmp_path / "data"
     data_folder.mkdir()
     (data_folder / "database.sqlite3").write_bytes(b"database contents")
+    (data_folder / ".onchain_key").write_bytes(b"test key backup")
     monkeypatch.chdir(tmp_path)
     monkeypatch.setattr(settings, "lnbits_database_url", None)
     monkeypatch.setattr(settings, "lnbits_data_folder", str(data_folder))
@@ -182,3 +183,5 @@ async def test_sqlite_backup(mocker, monkeypatch, settings: Settings, tmp_path: 
     popen.assert_not_called()
     with ZipFile(response.path) as archive:
         assert archive.read("database.sqlite3") == b"database contents"
+        assert archive.read(".onchain_key") == b"test key backup"
+    assert response.headers["cache-control"] == "no-store"

@@ -40,6 +40,8 @@ Use Makefile targets instead of hand-written commands when available:
 
 Do not run `make test` by default. Use the targeted tests available in the Makefile that are related to the work done, unless the user explicitly asks for broader test coverage.
 
+Do not create new end-to-end (e2e) tests, including new scenarios in existing e2e suites.
+
 ## Dependencies
 
 Do not add dependencies without approval. If approved, update the correct project files and explain why the dependency is necessary.

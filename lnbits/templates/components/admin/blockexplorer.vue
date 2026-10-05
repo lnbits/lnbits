@@ -111,7 +111,7 @@
           dense
           filled
           v-model="formData.lnbits_blockexplorer_network"
-          :options="['main', 'test', 'regtest', 'signet']"
+          :options="['main', 'test', 'test4', 'regtest', 'signet']"
           :label="$t('blockexplorer_network')"
           :hint="$t('blockexplorer_network_hint')"
         ></q-select>
