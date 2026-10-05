@@ -48,7 +48,6 @@
             <q-toggle
               size="md"
               v-model="formData.lnbits_blockexplorer_in_user_menu"
-              :disable="!formData.lnbits_blockexplorer_public_api"
               checked-icon="check"
               color="green"
               unchecked-icon="clear"
