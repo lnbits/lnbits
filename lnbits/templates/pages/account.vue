@@ -56,7 +56,10 @@
       </div>
 
       <div class="row items-stretch">
-        <q-card-section v-if="$q.screen.gt.sm" class="col-md-2 q-pa-none">
+        <q-card-section
+          v-if="$q.screen.gt.sm"
+          class="col-md-2 q-pa-none column no-wrap"
+        >
           <nav class="q-py-md" aria-label="Account sections">
             <q-list dense>
               <q-item
@@ -81,18 +84,19 @@
                 </q-item-section>
               </q-item>
             </q-list>
-            <q-separator></q-separator>
-            <q-list dense class="q-py-sm">
-              <q-item clickable v-ripple class="q-py-xs" @click="utils.logout">
-                <q-item-section side>
-                  <q-icon name="logout" size="md"></q-icon>
-                </q-item-section>
-                <q-item-section>
-                  <q-item-label lines="1" v-text="$t('logout')"></q-item-label>
-                </q-item-section>
-              </q-item>
-            </q-list>
           </nav>
+          <q-space></q-space>
+          <q-separator></q-separator>
+          <q-list dense class="q-py-sm">
+            <q-item clickable v-ripple class="q-py-xs" @click="utils.logout">
+              <q-item-section side>
+                <q-icon name="logout" size="md"></q-icon>
+              </q-item-section>
+              <q-item-section>
+                <q-item-label lines="1" v-text="$t('logout')"></q-item-label>
+              </q-item-section>
+            </q-item>
+          </q-list>
         </q-card-section>
 
         <q-separator v-if="$q.screen.gt.sm" vertical></q-separator>
