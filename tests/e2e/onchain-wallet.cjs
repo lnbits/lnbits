@@ -160,6 +160,7 @@ async function main() {
                 onchain_wallet_kind: 'hot',
                 onchain_network: 'Testnet4',
                 onchain_meta: {
+                  backup_confirmed: false,
                   script_type: 'p2wpkh',
                   accountPath: "m/84'/1'/0'",
                   masterpub: 'test-public-descriptor',
@@ -167,8 +168,7 @@ async function main() {
                 },
                 onchain_config: {},
                 balance_msat: 0,
-                onchain_address_no: -1,
-                onchain_backup_confirmed: false
+                onchain_address_no: -1
               }
               fixtureWallets.push(wallet)
               fixtureAddresses.push(
@@ -200,7 +200,7 @@ async function main() {
               return {data: {...wallet}}
             }
             if (path.includes('/backup/confirm')) {
-              fixtureWallets[0].onchain_backup_confirmed = true
+              fixtureWallets[0].onchain_meta.backup_confirmed = true
               return {data: fixtureWallets[0]}
             }
             if (path.endsWith('/backup'))

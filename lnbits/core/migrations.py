@@ -916,7 +916,6 @@ async def m052_core_onchain_wallets(db: Connection):
         "onchain_config TEXT NOT NULL DEFAULT '{}'",
         "onchain_wallet_kind TEXT",
         "onchain_address_no INTEGER NOT NULL DEFAULT -1",
-        "onchain_backup_confirmed BOOLEAN NOT NULL DEFAULT false",
         "onchain_encrypted_seed TEXT",
         "onchain_sync_lease_until BIGINT NOT NULL DEFAULT 0",
     ):

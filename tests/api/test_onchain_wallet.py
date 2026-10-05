@@ -972,7 +972,7 @@ async def test_onchain_wallet_crud_reuses_connection(onchain_wallet, kind):
         WalletAlreadyConfiguredError,
         clear_onchain_wallet_data,
         init_onchain_wallet_state,
-        update_onchain_wallet,
+        update_onchain_backup_confirmation,
     )
 
     wallet, _, _ = onchain_wallet
@@ -992,9 +992,9 @@ async def test_onchain_wallet_crud_reuses_connection(onchain_wallet, kind):
             with pytest.raises(WalletAlreadyConfiguredError):
                 await init_onchain_wallet_state(stored_wallet, conn=conn)
 
-            initialized.onchain_backup_confirmed = True
-            updated = await update_onchain_wallet(initialized, conn=conn)
-            assert updated.onchain_backup_confirmed == (kind == "hot")
+            initialized.onchain_meta.backup_confirmed = True
+            updated = await update_onchain_backup_confirmation(initialized, conn=conn)
+            assert updated.onchain_meta.backup_confirmed == (kind == "hot")
             await conn.execute(
                 "UPDATE wallets SET onchain_sync_lease_until = 100 WHERE id = :id",
                 {"id": wallet.id},
@@ -1002,6 +1002,7 @@ async def test_onchain_wallet_crud_reuses_connection(onchain_wallet, kind):
             await onchain._finish_scan(wallet.id, 100, None, conn=conn)
             scanned = await get_onchain_wallet(wallet.id, conn=conn)
             assert scanned and scanned.onchain_meta.sync_checked_at > 0
+            assert scanned.onchain_meta.backup_confirmed == (kind == "hot")
             if kind == "hot":
                 with pytest.raises(
                     ValueError, match="Onchain wallet cannot be removed"

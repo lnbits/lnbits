@@ -385,6 +385,7 @@ async def init_onchain_wallet_state(
     conn: Connection | None = None,
 ) -> OnchainWallet:
     meta = wallet.onchain_meta.copy()
+    meta.backup_confirmed = False
     meta.sync_checked_at = 0
     meta.sync_failed_at = 0
     meta.sync_error = None
@@ -394,7 +395,7 @@ async def init_onchain_wallet_state(
     result = await (conn or db).execute(
         """UPDATE wallets SET name = :title, onchain_meta = :meta,
             onchain_network = :network, onchain_wallet_kind = :kind,
-            onchain_address_no = -1, onchain_backup_confirmed = false,
+            onchain_address_no = -1,
             onchain_encrypted_seed = :seed, onchain_sync_lease_until = 0
         WHERE id = :id AND wallet_type = 'onchain' AND deleted = false
             AND onchain_wallet_kind IS NULL""",
@@ -468,14 +469,14 @@ async def reserve_onchain_address_index(
     return result.rowcount == 1
 
 
-async def update_onchain_wallet(
+async def update_onchain_backup_confirmation(
     wallet: OnchainWallet, conn: Connection | None = None
 ) -> OnchainWallet:
-    # Backup confirmation must not rewrite descriptor, seed, or scanner metadata.
     await (conn or db).execute(
-        """UPDATE wallets SET onchain_backup_confirmed = :confirmed
-        WHERE id = :id AND wallet_type = 'onchain' AND onchain_wallet_kind = 'hot'""",
-        {"id": wallet.id, "confirmed": wallet.onchain_backup_confirmed},
+        """UPDATE wallets SET onchain_meta = :meta
+        WHERE id = :id AND wallet_type = 'onchain'
+            AND onchain_wallet_kind = 'hot'""",
+        {"id": wallet.id, "meta": wallet.onchain_meta.json(by_alias=True)},
     )
     updated = await get_onchain_wallet(wallet.id, conn=conn)
     assert updated
@@ -489,7 +490,7 @@ async def clear_onchain_wallet_data(
         """
         UPDATE wallets SET onchain_meta = '{}', onchain_config = '{}',
             onchain_network = NULL, onchain_wallet_kind = NULL,
-            onchain_address_no = -1, onchain_backup_confirmed = false,
+            onchain_address_no = -1,
             onchain_sync_lease_until = 0
         WHERE id = :id AND wallet_type = 'onchain'
             AND onchain_wallet_kind = 'watch'

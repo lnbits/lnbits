@@ -295,6 +295,7 @@ class OnchainMeta(BaseModel):
     script_type: str | None = None
     accountPath: str = ""  # noqa: N815 - preserve the stored JSON key
     xpub: str | None = None
+    backup_confirmed: bool = False
     sync_checked_at: int = 0
     sync_failed_at: int = 0
     sync_error: str | None = None
@@ -332,7 +333,6 @@ class OnchainWallet(Wallet):
     onchain_config: OnchainConfig = Field(default_factory=OnchainConfig)
     onchain_wallet_kind: Literal["watch", "hot"] | None = None
     onchain_address_no: int = -1
-    onchain_backup_confirmed: bool = False
 
 
 class CreateOnchainWalletMeta(BaseModel):

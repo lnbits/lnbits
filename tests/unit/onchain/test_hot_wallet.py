@@ -47,8 +47,8 @@ def wallet_and_payment(
         name="Hot Wallet",
         onchain_network=network,
         onchain_wallet_kind="hot",
-        onchain_backup_confirmed=True,
         onchain_meta=OnchainMeta(
+            backup_confirmed=True,
             masterpub=descriptor,
             fingerprint=descriptor_fingerprint(parsed),
             script_type=script_type,
@@ -264,7 +264,7 @@ def test_signing_rejects_invalid_spending(attack):  # noqa: C901
     if attack == "dust":
         tx.outputs[0].amount = 1
     if attack == "backup":
-        wallet.onchain_backup_confirmed = False
+        wallet.onchain_meta.backup_confirmed = False
     with pytest.raises(ValueError):
         sign_payment(wallet, encrypt_wallet_mnemonic(PHRASE, wallet), payment)
 

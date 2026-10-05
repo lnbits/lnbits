@@ -66,7 +66,7 @@
             <q-banner
               v-if="
                 selectedWallet.onchain_wallet_kind === 'hot' &&
-                !selectedWallet.onchain_backup_confirmed
+                !selectedWallet.onchain_meta.backup_confirmed
               "
               rounded
               class="bg-orange-2 text-black q-mb-md"

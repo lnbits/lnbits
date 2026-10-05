@@ -301,3 +301,22 @@ test('initial Electrum state compares history and balance, including confirmatio
     false
   )
 })
+
+test('hot wallets require backup confirmation from metadata before transacting', async t => {
+  const {app, instance, state} = harness()
+  t.after(() => app.unmount())
+  state.sync_due = false
+  const account = {
+    id: 'wallet',
+    onchain_wallet_kind: 'hot',
+    onchain_meta: {backup_confirmed: false}
+  }
+  await instance.updateAccounts([account])
+  assert.equal(instance.canTransact, false)
+  await instance.updateAccounts([
+    {...account, onchain_meta: {backup_confirmed: true}}
+  ])
+  assert.equal(instance.canTransact, true)
+  await instance.updateAccounts([{...account, onchain_wallet_kind: 'watch'}])
+  assert.equal(instance.canTransact, true)
+})

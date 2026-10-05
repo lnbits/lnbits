@@ -59,7 +59,6 @@ async def test_onchain_schema_uses_wallets_and_addresses(
                 "onchain_config",
                 "onchain_wallet_kind",
                 "onchain_address_no",
-                "onchain_backup_confirmed",
                 "onchain_encrypted_seed",
                 "onchain_sync_lease_until",
             }

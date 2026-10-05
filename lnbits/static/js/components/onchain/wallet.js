@@ -131,7 +131,7 @@ window.app.component('lnbits-onchain-wallet', {
       return (
         this.selectedWallet &&
         (this.selectedWallet.onchain_wallet_kind !== 'hot' ||
-          this.selectedWallet.onchain_backup_confirmed)
+          this.selectedWallet.onchain_meta.backup_confirmed)
       )
     },
     receiveUri() {

@@ -233,7 +233,7 @@ def sign_payment(  # noqa: C901
     data = payment.transaction.copy(deep=True)
     if not wallet.onchain_network:
         raise ValueError("Onchain wallet network is not configured")
-    if not wallet.onchain_backup_confirmed:
+    if not wallet.onchain_meta.backup_confirmed:
         raise ValueError("Back up this wallet before sending")
     if not 1 <= len(data.inputs) <= 200 or not 1 <= len(data.outputs) <= 100:
         raise ValueError("Invalid number of transaction inputs or outputs")

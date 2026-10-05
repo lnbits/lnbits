@@ -13,7 +13,7 @@ from lnbits.core.crud.wallets import (
     get_onchain_encrypted_seed,
     get_onchain_wallet,
     init_onchain_wallet_state,
-    update_onchain_wallet,
+    update_onchain_backup_confirmation,
 )
 from lnbits.core.models.onchain import (
     Address,
@@ -74,7 +74,7 @@ async def api_fresh_address(
     wallet = await get_onchain_wallet(wallet_id)
     if not wallet or wallet_id != auth.wallet_id or not wallet.onchain_wallet_kind:
         raise HTTPException(HTTPStatus.NOT_FOUND, "Wallet does not exist.")
-    if wallet.onchain_wallet_kind == "hot" and not wallet.onchain_backup_confirmed:
+    if wallet.onchain_wallet_kind == "hot" and not wallet.onchain_meta.backup_confirmed:
         raise HTTPException(HTTPStatus.CONFLICT, "Back up this wallet before receiving")
     address = await get_fresh_address(wallet_id)
     assert address
@@ -316,8 +316,8 @@ async def confirm_backup(
     if not wallet or wallet_id != auth.wallet_id or not wallet.onchain_wallet_kind:
         raise HTTPException(HTTPStatus.NOT_FOUND, "Wallet does not exist.")
     await secret_for_wallet(wallet)
-    wallet.onchain_backup_confirmed = True
-    return await update_onchain_wallet(wallet)
+    wallet.onchain_meta.backup_confirmed = True
+    return await update_onchain_backup_confirmation(wallet)
 
 
 @onchain_router.post("/hot-wallet/{wallet_id}/sign")
