@@ -399,7 +399,7 @@ async def get_manual_payment_intents(
                 FROM {intents} i
                 LEFT JOIN {audit} a ON a.id = (
                     SELECT id FROM {audit} WHERE intent_id = i.id
-                    ORDER BY created_at DESC LIMIT 1
+                    ORDER BY sequence DESC, created_at DESC LIMIT 1
                 )
                 WHERE i.wallet_id = :wallet_id
                     AND (i.status = 'unknown'
@@ -407,7 +407,7 @@ async def get_manual_payment_intents(
                 ORDER BY i.updated_at DESC LIMIT :limit""",  # noqa: S608
             {"wallet_id": wallet_id, "limit": limit},
         )
-    return list(rows)
+    return [dict(row) for row in rows]
 
 
 async def get_payment_intent_by_id(
@@ -444,7 +444,6 @@ async def resolve_manual_payment_intent(
 
     database = await _database(extension_id)
     intents = _table_ref(database, _PAYMENT_INTENTS_TABLE)
-    audit = _table_ref(database, _PAYMENT_INTENT_MANUAL_AUDIT_TABLE)
     async with database.connect() as conn:
         async with _intent_transaction(conn):
             intent = await _raw_fetchone(
@@ -468,21 +467,15 @@ async def resolve_manual_payment_intent(
                     "id": intent_id,
                 },
             )
-            await conn.conn.execute(
-                text(f"""INSERT INTO {audit}
-                    (id, intent_id, wallet_id, actor_id, action, resolved_status,
-                     fee_msat, note)
-                    VALUES (:id, :intent_id, :wallet_id, :actor_id, 'resolve',
-                        :status, :fee_msat, :note)"""),  # noqa: S608
-                {
-                    "id": uuid4().hex,
-                    "intent_id": intent_id,
-                    "wallet_id": wallet_id,
-                    "actor_id": actor_id,
-                    "status": status,
-                    "fee_msat": fee_msat if status == "paid" else 0,
-                    "note": note,
-                },
+            await _insert_payment_intent_audit(
+                conn,
+                intent_id,
+                wallet_id,
+                actor_id,
+                "resolve",
+                status,
+                fee_msat,
+                note,
             )
             return await _raw_fetchone(
                 conn,
@@ -503,24 +496,11 @@ async def record_payment_intent_operator_action(
     if action not in {"retry_requested", "retry_result"}:
         raise ValueError("Invalid payment intent operator action.")
     database = await _database(extension_id)
-    audit = _table_ref(database, _PAYMENT_INTENT_MANUAL_AUDIT_TABLE)
     async with database.connect() as conn:
-        await conn.execute(
-            f"""INSERT INTO {audit}
-                (id, intent_id, wallet_id, actor_id, action, resolved_status,
-                 fee_msat, note)
-                VALUES (:id, :intent_id, :wallet_id, :actor_id, :action,
-                    :status, 0, :note)""",  # noqa: S608
-            {
-                "id": uuid4().hex,
-                "intent_id": intent_id,
-                "wallet_id": wallet_id,
-                "actor_id": actor_id,
-                "action": action,
-                "status": status,
-                "note": note,
-            },
-        )
+        async with _intent_transaction(conn):
+            await _insert_payment_intent_audit(
+                conn, intent_id, wallet_id, actor_id, action, status, 0, note
+            )
 
 
 async def _reserve_payment_intent(
@@ -715,6 +695,7 @@ async def _create_payment_intent_tables(conn: Connection) -> None:
     await conn.execute(f"""
         CREATE TABLE IF NOT EXISTS {audit} (
             id TEXT PRIMARY KEY,
+            sequence {conn.big_int} NOT NULL DEFAULT 0,
             intent_id TEXT NOT NULL,
             wallet_id TEXT NOT NULL,
             actor_id TEXT NOT NULL,
@@ -725,6 +706,68 @@ async def _create_payment_intent_tables(conn: Connection) -> None:
             created_at TIMESTAMP NOT NULL DEFAULT {conn.timestamp_now}
         )
     """)
+    if conn.type == SQLITE:
+        columns = await conn.fetchall(
+            f"PRAGMA {conn.schema}.table_info({_PAYMENT_INTENT_MANUAL_AUDIT_TABLE})"
+        )
+        has_sequence = any(column["name"] == "sequence" for column in columns)
+    else:
+        has_sequence = bool(
+            await conn.fetchone(
+                """SELECT column_name FROM information_schema.columns
+                WHERE table_schema = :schema AND table_name = :table
+                    AND column_name = 'sequence'""",
+                {
+                    "schema": conn.schema.lower() if conn.schema else None,
+                    "table": _PAYMENT_INTENT_MANUAL_AUDIT_TABLE,
+                },
+            )
+        )
+    if not has_sequence:
+        await conn.execute(
+            f"ALTER TABLE {audit} ADD COLUMN sequence "
+            f"{conn.big_int} NOT NULL DEFAULT 0"
+        )
+
+
+async def _insert_payment_intent_audit(
+    conn: Connection,
+    intent_id: str,
+    wallet_id: str,
+    actor_id: str,
+    action: str,
+    status: str,
+    fee_msat: int,
+    note: str,
+) -> None:
+    audit = _table_ref(conn, _PAYMENT_INTENT_MANUAL_AUDIT_TABLE)
+    if conn.type != SQLITE:
+        intents = _table_ref(conn, _PAYMENT_INTENTS_TABLE)
+        await _raw_fetchone(
+            conn,
+            f"SELECT id FROM {intents} WHERE id = :id FOR UPDATE",  # noqa: S608
+            {"id": intent_id},
+        )
+    await conn.conn.execute(
+        text(f"""INSERT INTO {audit}
+            (id, sequence, intent_id, wallet_id, actor_id, action,
+             resolved_status, fee_msat, note)
+            VALUES (:id,
+                (SELECT COALESCE(MAX(sequence), 0) + 1 FROM {audit}
+                    WHERE intent_id = :intent_id),
+                :intent_id, :wallet_id, :actor_id, :action,
+                :status, :fee_msat, :note)"""),  # noqa: S608
+        {
+            "id": uuid4().hex,
+            "intent_id": intent_id,
+            "wallet_id": wallet_id,
+            "actor_id": actor_id,
+            "action": action,
+            "status": status,
+            "fee_msat": fee_msat,
+            "note": note,
+        },
+    )
 
 
 def _table_ref(database: Compat, name: str) -> str:

@@ -430,7 +430,10 @@ async def _ensure_storage_internal_columns(db: Connection, table: str) -> None:
             SELECT column_name FROM information_schema.columns
             WHERE table_schema = :schema AND table_name = :table
             """,
-                {"schema": db.schema, "table": table},
+                {
+                    "schema": db.schema.lower() if db.schema else None,
+                    "table": table.lower(),
+                },
             ),
         )
         column_names = {column["column_name"] for column in columns}
@@ -853,7 +856,7 @@ def _require_identifier(data: dict[str, Any], key: str) -> str:
     value = data.get(key)
     if not isinstance(value, str) or not _SQL_IDENTIFIER_RE.fullmatch(value):
         raise ValueError(f"Invalid WASM storage SQL identifier for '{key}': {value}")
-    if key == "table" and value in {
+    if key == "table" and value.lower() in {
         "lnbits_payment_intents",
         "lnbits_payment_intent_manual_audit",
     }:

@@ -614,6 +614,48 @@ async def test_wasm_storage_rejects_reserved_fields_and_invalid_identifiers(
         settings.lnbits_data_folder = original_data_folder
 
 
+@pytest.mark.parametrize(
+    "table",
+    [
+        "lnbits_payment_intents",
+        "Lnbits_Payment_Intents",
+        "LNBITS_PAYMENT_INTENTS",
+        "lnbits_payment_intent_manual_audit",
+        "Lnbits_Payment_Intent_Manual_Audit",
+    ],
+)
+def test_storage_rejects_reserved_host_tables_case_insensitively(table):
+    with pytest.raises(ValueError, match="reserved host table"):
+        storage_crud._require_identifier({"table": table}, "table")
+
+
+@pytest.mark.anyio
+async def test_storage_upgrades_mixed_case_identifiers(
+    tmp_path: Path, settings: Settings
+):
+    database = _temporary_database(tmp_path, settings, "ext_MixedSchema")
+    async with database.connect() as conn:
+        table = storage_crud._table_ref(conn, "Notes")
+        await conn.execute(
+            f"CREATE TABLE {table} (id TEXT PRIMARY KEY, "
+            f"{OWNER_ID_FIELD} TEXT NOT NULL)"
+        )
+        await conn.execute(
+            f"INSERT INTO {table} (id, {OWNER_ID_FIELD}) "  # noqa: S608
+            "VALUES (:id, :owner)",
+            {"id": "legacy", "owner": "owner-1"},
+        )
+        await storage_crud._ensure_storage_internal_columns(conn, "Notes")
+        row = await conn.fetchone(
+            f"SELECT {VERSION_FIELD}, {storage_crud.IMMUTABLE_FIELD} "  # noqa: S608
+            f"FROM {table} WHERE id = :id",
+            {"id": "legacy"},
+        )
+    assert row is not None
+    assert row[VERSION_FIELD] == 1
+    assert not row[storage_crud.IMMUTABLE_FIELD]
+
+
 def _temporary_database(
     tmp_path: Path,
     settings: Settings,
