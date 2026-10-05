@@ -120,6 +120,7 @@ window.PagePayments = {
       },
       chartsReady: false,
       showDetails: false,
+      formatJson: false,
       paymentDetails: null,
       lnbitsBalance: 0
     }
@@ -130,7 +131,24 @@ window.PagePayments = {
     this.initCharts()
     await this.fetchPayments()
   },
-  computed: {},
+  computed: {
+    paymentDetailsJson() {
+      return (
+        this.paymentDetails && {
+          ...this.paymentDetails,
+          extra: JSON.stringify(
+            Object.fromEntries(
+              Object.keys(this.paymentDetails.extra || {})
+                .sort()
+                .map(key => [key, this.paymentDetails.extra[key]])
+            ),
+            null,
+            this.formatJson ? 2 : 0
+          )
+        }
+      )
+    }
+  },
   methods: {
     async fetchPayments(props) {
       const filter = Object.entries(this.searchData).reduce(
