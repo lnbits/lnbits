@@ -37,7 +37,8 @@ from lnbits.core.crud.extensions import (
 )
 from lnbits.core.helpers import migrate_extension_database
 from lnbits.core.wasm_ext.api.permissions import validate_wasm_extension_permissions
-from lnbits.core.wasm_ext.wasm.loader import is_wasm_extension_id
+from lnbits.core.wasm_ext.wasm.component import warm_wasm_extension
+from lnbits.core.wasm_ext.wasm.loader import is_wasm_extension_id, load_wasm_extension
 from lnbits.db import Connection
 from lnbits.settings import WasmRuntimeLimits, settings
 
@@ -220,6 +221,11 @@ async def install_extension(
 
     if extension_config.get("extension_type") == "wasm":
         ext_info.extract_wasm_archive()
+        await asyncio.to_thread(
+            warm_wasm_extension,
+            load_wasm_extension(ext_info.id),
+            resolve_wasm_runtime_limits(ext_info),
+        )
     else:
         ext_info.extract_archive()
 
