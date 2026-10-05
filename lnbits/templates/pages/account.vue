@@ -56,12 +56,9 @@
       </div>
 
       <div class="row items-stretch">
-        <q-card-section
-          v-if="$q.screen.gt.sm"
-          class="col-md-2 q-pa-none column"
-        >
-          <nav class="column col" aria-label="Account sections">
-            <q-list dense class="q-py-md">
+        <q-card-section v-if="$q.screen.gt.sm" class="col-md-2 q-pa-none">
+          <nav class="q-py-md" aria-label="Account sections">
+            <q-list dense>
               <q-item
                 v-for="item in accountNavigationItems"
                 :key="item.value"
@@ -84,7 +81,6 @@
                 </q-item-section>
               </q-item>
             </q-list>
-            <q-space></q-space>
             <q-separator></q-separator>
             <q-list dense class="q-py-sm">
               <q-item clickable v-ripple class="q-py-xs" @click="utils.logout">
