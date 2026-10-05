@@ -1,12 +1,16 @@
 from __future__ import annotations
 
+import re
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from enum import Enum
+from typing import Literal
+from urllib.parse import urlsplit
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, validator
 
 from lnbits.core.models.lnurl import StoredPayLinks
+from lnbits.core.models.onchain import ScanCheckpoint
 from lnbits.db import FilterModel
 from lnbits.settings import settings
 
@@ -22,6 +26,7 @@ class WalletInfo(BaseModel):
 class WalletType(Enum):
     LIGHTNING = "lightning"
     FIAT = "fiat"
+    ONCHAIN = "onchain"
     LIGHTNING_SHARED = "lightning-shared"
 
 
@@ -128,6 +133,7 @@ class Wallet(BaseWallet):
     updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     currency: str | None = None
     lightning_address: str | None = None
+    onchain_network: Literal["Mainnet", "Testnet", "Testnet4"] | None = None
     balance_msat: int = Field(default=0, no_database=True)
     extra: WalletExtra = WalletExtra()
     stored_paylinks: StoredPayLinks = StoredPayLinks()
@@ -174,6 +180,8 @@ class Wallet(BaseWallet):
         return []
 
     def has_permission(self, permission: WalletPermission) -> bool:
+        if self.is_onchain_wallet:
+            return permission == WalletPermission.VIEW_PAYMENTS
         if self.wallet_type == WalletType.FIAT.value:
             return permission in (
                 WalletPermission.VIEW_PAYMENTS,
@@ -211,9 +219,13 @@ class Wallet(BaseWallet):
 
     @property
     def withdrawable_balance(self) -> int:
-        if self.wallet_type == WalletType.FIAT.value:
+        if self.wallet_type in (WalletType.FIAT.value, WalletType.ONCHAIN.value):
             return 0
         return self.balance_msat - settings.fee_reserve(self.balance_msat)
+
+    @property
+    def is_onchain_wallet(self) -> bool:
+        return self.wallet_type == WalletType.ONCHAIN.value
 
     @property
     def is_lightning_wallet(self) -> bool:
@@ -230,6 +242,7 @@ class Wallet(BaseWallet):
 
 
 class CreateWallet(BaseModel):
+    onchain_network: Literal["Mainnet", "Testnet", "Testnet4"] = "Mainnet"
     name: str | None = None
     wallet_type: WalletType = WalletType.LIGHTNING
     shared_wallet_id: str | None = None
@@ -274,3 +287,98 @@ class WalletsFilters(FilterModel):
     name: str | None
     currency: str | None
     lightning_address: str | None
+
+
+class OnchainMeta(BaseModel):
+    masterpub: str = ""
+    fingerprint: str = ""
+    script_type: str | None = None
+    accountPath: str = ""  # noqa: N815 - preserve the stored JSON key
+    xpub: str | None = None
+    backup_confirmed: bool = False
+    sync_checked_at: int = 0
+    sync_failed_at: int = 0
+    sync_error: str | None = None
+    sync_checkpoint: ScanCheckpoint | None = None
+
+
+class OnchainConfig(BaseModel):
+    explorer_provider: Literal["auto", "lnbits", "mempool"] = "auto"
+    mempool_endpoint: str = "https://mempool.space"
+    receive_gap_limit: int = Field(default=20, ge=1, le=1000)
+    change_gap_limit: int = Field(default=5, ge=1, le=1000)
+    sats_denominated: bool = True
+
+    @validator("mempool_endpoint")
+    @classmethod
+    def valid_endpoint(cls, value):
+        url = urlsplit(value)
+        if (
+            url.scheme not in ("https", "http")
+            or not url.hostname
+            or url.username
+            or url.password
+            or url.query
+            or url.fragment
+        ):
+            raise ValueError(
+                "Enter an HTTP(S) explorer URL without credentials or query"
+            )
+        return value.rstrip("/")
+
+
+class OnchainWallet(Wallet):
+    wallet_type: str = WalletType.ONCHAIN.value
+    onchain_meta: OnchainMeta = Field(default_factory=OnchainMeta)
+    onchain_config: OnchainConfig = Field(default_factory=OnchainConfig)
+    onchain_wallet_kind: Literal["watch", "hot"] | None = None
+    onchain_address_no: int = -1
+
+
+class CreateOnchainWalletMeta(BaseModel):
+    accountPath: str = ""  # noqa: N815 - preserve the API field name
+    xpub: str | None = None
+
+
+class CreateOnchainWallet(BaseModel):
+    masterpub: str = Field(..., min_length=1, max_length=10000)
+    title: str = Field(..., min_length=1, max_length=100)
+    network: Literal["Mainnet", "Testnet", "Testnet4"] = "Mainnet"
+    meta: CreateOnchainWalletMeta = Field(default_factory=CreateOnchainWalletMeta)
+
+
+class OnchainWalletConfigResponse(OnchainConfig):
+    network: Literal["Mainnet", "Testnet", "Testnet4"] = "Mainnet"
+    lnbits_explorer_network: str | None = None
+    explorer_url: str
+
+
+class NewHotWallet(BaseModel):
+    title: str = Field(..., min_length=1, max_length=100)
+    network: Literal["Mainnet", "Testnet", "Testnet4"] = "Mainnet"
+    script_type: Literal["p2pkh", "p2sh", "p2wpkh", "p2tr"] = "p2wpkh"
+    account_path: str | None = Field(None, min_length=1, max_length=3037)
+
+    @validator("account_path")
+    @classmethod
+    def valid_account_path(cls, value: str | None) -> str | None:
+        if value is None:
+            return None
+        path = value.strip().replace("h", "'").replace("H", "'")
+        if not re.fullmatch(r"m(?:/[0-9]{1,10}'?)+", path):
+            raise ValueError("Enter a BIP32 account path, such as m/84'/0'/0'")
+        parts = path.split("/")[1:]
+        # Leave two levels for the receiving/change branch and address index.
+        if len(parts) > 253 or any(int(p.rstrip("'")) >= 2**31 for p in parts):
+            raise ValueError("Derivation path depth or index is out of range")
+        if not path.endswith("'"):
+            raise ValueError(
+                "The account path must end in a hardened index. "
+                "Do not include receiving/change branches or address indexes."
+            )
+        return "m/" + "/".join(
+            str(int(p.rstrip("'"))) + ("'" if p.endswith("'") else "") for p in parts
+        )
+
+    class Config:
+        extra = "forbid"

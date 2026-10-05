@@ -906,3 +906,65 @@ async def m050_add_lightning_address_to_wallets(db: Connection):
 
 async def m051_add_two_factor_to_accounts(db: Connection):
     await db.execute("ALTER TABLE accounts ADD COLUMN two_factor TEXT")
+
+
+async def m052_core_onchain_wallets(db: Connection):
+    """Store onchain setup on wallets and blockchain state on their addresses."""
+    for column in (
+        "onchain_network TEXT",
+        "onchain_meta TEXT NOT NULL DEFAULT '{}'",
+        "onchain_config TEXT NOT NULL DEFAULT '{}'",
+        "onchain_wallet_kind TEXT",
+        "onchain_address_no INTEGER NOT NULL DEFAULT -1",
+        "onchain_encrypted_seed TEXT",
+        "onchain_sync_lease_until BIGINT NOT NULL DEFAULT 0",
+    ):
+        await db.execute(f"ALTER TABLE wallets ADD COLUMN {column}")
+    await db.execute(f"""
+        CREATE TABLE onchain_addresses (
+            id TEXT PRIMARY KEY,
+            walet_id TEXT NOT NULL,
+            address TEXT NOT NULL,
+            amount {db.big_int} NOT NULL DEFAULT 0,
+            branch_index INTEGER NOT NULL,
+            address_index INTEGER NOT NULL,
+            note TEXT,
+            has_activity BOOLEAN NOT NULL DEFAULT false,
+            transactions TEXT NOT NULL DEFAULT '[]',
+            utxos TEXT NOT NULL DEFAULT '[]',
+            snapshot_checked_at BIGINT NOT NULL DEFAULT 0,
+            UNIQUE(walet_id, branch_index, address_index)
+        )
+    """)
+
+
+async def m053_balances_view_include_onchain(db: Connection):
+    """Include onchain balances in the shared balances view."""
+    await db.execute("DROP VIEW IF EXISTS balances")
+    await db.execute("""
+        CREATE VIEW balances AS
+        SELECT apipayments.wallet_id,
+               SUM(apipayments.amount - ABS(apipayments.fee)) AS balance
+        FROM wallets
+        LEFT JOIN apipayments ON apipayments.wallet_id = wallets.id
+        WHERE (wallets.deleted = false OR wallets.deleted is NULL)
+        AND wallets.wallet_type != 'onchain'
+        AND (
+            (apipayments.status = 'success' AND apipayments.amount > 0)
+            OR (apipayments.status IN ('success', 'pending') AND apipayments.amount < 0)
+        )
+        GROUP BY apipayments.wallet_id
+
+        UNION ALL
+
+        SELECT wallets.id AS wallet_id, SUM(coins.amount) * 1000 AS balance
+        FROM wallets
+        INNER JOIN (
+            SELECT walet_id, address, MAX(amount) AS amount
+            FROM onchain_addresses
+            GROUP BY walet_id, address
+        ) coins ON coins.walet_id = wallets.id
+        WHERE wallets.wallet_type = 'onchain'
+        AND (wallets.deleted = false OR wallets.deleted is NULL)
+        GROUP BY wallets.id
+    """)

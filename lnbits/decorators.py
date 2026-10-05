@@ -1,3 +1,4 @@
+from dataclasses import dataclass
 from http import HTTPStatus
 from typing import Annotated, Literal
 
@@ -56,6 +57,11 @@ api_key_query = APIKeyQuery(
     auto_error=False,
     description="Admin or Invoice key for wallet API's",
 )
+
+
+@dataclass(frozen=True)
+class OnchainAuth:
+    wallet_id: str
 
 
 class BaseKeyChecker(SecurityBase):
@@ -224,6 +230,22 @@ async def require_base_invoice_key(
         expected_key_type=KeyType.invoice,
     )
     return await check(request)
+
+
+async def require_onchain_read(
+    info: WalletTypeInfo = Depends(require_invoice_key),
+) -> OnchainAuth:
+    if not info.wallet.is_onchain_wallet:
+        raise HTTPException(403, "An onchain wallet key is required")
+    return OnchainAuth(wallet_id=info.wallet.id)
+
+
+async def require_onchain_admin(
+    info: WalletTypeInfo = Depends(require_admin_key),
+) -> OnchainAuth:
+    if not info.wallet.is_onchain_wallet:
+        raise HTTPException(403, "An onchain wallet key is required")
+    return OnchainAuth(wallet_id=info.wallet.id)
 
 
 async def check_access_token(
