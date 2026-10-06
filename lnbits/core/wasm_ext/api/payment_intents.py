@@ -11,14 +11,10 @@ from bolt11 import decode as bolt11_decode
 from sqlalchemy import text
 from sqlalchemy.exc import IntegrityError
 
+from lnbits.core import services
 from lnbits.core.crud.payments import get_standalone_payment
 from lnbits.core.models.lnurl import CreateLnurlPayment
 from lnbits.core.services.lnurl import fetch_lnurl_pay_request
-from lnbits.core.services.payments import (
-    check_payment_status,
-    fee_reserve_total,
-    service_fee,
-)
 from lnbits.core.wasm_ext.storage import crud as storage_crud
 from lnbits.db import SQLITE, Compat, Connection, Database
 
@@ -55,7 +51,7 @@ async def create_or_get_payment_intent(
         raise ValueError("Payment reservation exceeds the supported amount.")
     if max_amount_msat is not None and amount_msat > max_amount_msat:
         raise PermissionError("Payment exceeds the wallet's background payment grant.")
-    if request.max_fee_msat < fee_reserve_total(amount_msat):
+    if request.max_fee_msat < services.fee_reserve_total(amount_msat):
         raise PermissionError(
             "Fee ceiling is below the maximum allowed by the wallet configuration."
         )
@@ -314,7 +310,7 @@ async def reconcile_payment_intent(
             or intent
         )
     try:
-        status = await check_payment_status(payment)
+        status = await services.check_payment_status(payment)
     except Exception:
         return (
             await set_payment_intent_status(
@@ -328,7 +324,7 @@ async def reconcile_payment_intent(
             or intent
         )
     if status.success:
-        actual_fee_msat = abs(status.fee_msat or 0) + service_fee(
+        actual_fee_msat = abs(status.fee_msat or 0) + services.service_fee(
             abs(payment.amount), internal=payment.is_internal
         )
         return (

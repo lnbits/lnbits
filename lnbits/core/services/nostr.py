@@ -5,7 +5,7 @@ from loguru import logger
 from pynostr.encrypted_dm import EncryptedDirectMessage
 from websocket import WebSocket, create_connection
 
-from lnbits.helpers import is_valid_url
+from lnbits.core.helpers import is_valid_url
 from lnbits.utils.nostr import (
     validate_identifier,
     validate_pub_key,

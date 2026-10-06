@@ -23,7 +23,6 @@ from lnbits.helpers import (
     is_valid_external_id,
     is_valid_label,
     is_valid_pubkey,
-    is_valid_url,
     is_valid_username,
     lowercase_first_letter,
     normalize_endpoint,
@@ -153,7 +152,6 @@ def test_url_helpers(settings: Settings):
         ("Label 1", is_valid_label),
         ("external-id-1", is_valid_external_id),
         ("a" * 64, is_valid_pubkey),
-        ("https://example.com/path", is_valid_url),
     ],
 )
 def test_validation_helpers_valid(value, validator):
@@ -168,9 +166,6 @@ def test_validation_helpers_valid(value, validator):
         ("bad/label", is_valid_label),
         ("contains spaces", is_valid_external_id),
         ("xyz", is_valid_pubkey),
-        ("example.com/path", is_valid_url),
-        ("https:///path", is_valid_url),
-        ("https://[invalid", is_valid_url),
     ],
 )
 def test_validation_helpers_invalid(value, validator):

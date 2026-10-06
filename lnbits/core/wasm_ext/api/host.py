@@ -9,16 +9,12 @@ from typing import Any
 
 from lnurl import LnAddressError, LnurlResponseException
 
+from lnbits.core import services
 from lnbits.core.crud.payments import get_standalone_payment
 from lnbits.core.crud.wallets import get_wallet, get_wallets
 from lnbits.core.models.lnurl import CreateLnurlPayment
 from lnbits.core.models.payments import CreateInvoice
 from lnbits.core.services.lnurl import fetch_lnurl_pay_request
-from lnbits.core.services.payments import (
-    create_payment_request,
-    fee_reserve_total,
-    pay_invoice,
-)
 from lnbits.exceptions import PaymentError
 from lnbits.helpers import sha256s
 
@@ -462,7 +458,7 @@ class ExtensionHostAPI:
         if wallet is None or wallet.user != self.user_id:
             raise PermissionError("Not your wallet.")
 
-        payment = await create_payment_request(
+        payment = await services.create_payment_request(
             request.wallet_id,
             CreateInvoice(
                 amount=request.amount,
@@ -510,7 +506,7 @@ class ExtensionHostAPI:
         if not isinstance(wallet_id, str) or not wallet_id:
             raise PermissionError("Public invoice source has no valid wallet.")
 
-        payment = await create_payment_request(
+        payment = await services.create_payment_request(
             wallet_id,
             CreateInvoice(
                 amount=request.amount,
@@ -693,7 +689,7 @@ class ExtensionHostAPI:
                     raise PermissionError(
                         "Paying invoices from this wallet is not allowed."
                     )
-                payment = await pay_invoice(
+                payment = await services.pay_invoice(
                     wallet_id=request.wallet_id,
                     payment_request=request.payment_request,
                     max_sat=request.max_sat,
@@ -710,7 +706,7 @@ class ExtensionHostAPI:
                     payment_request=request.payment_request,
                     amount_msat=amount_msat,
                 )
-                payment = await pay_invoice(
+                payment = await services.pay_invoice(
                     wallet_id=request.wallet_id,
                     payment_request=request.payment_request,
                     max_sat=request.max_sat,
@@ -781,7 +777,7 @@ class ExtensionHostAPI:
             if request.fetch_only:
                 return PayInvoiceResponse(payment_request=str(action.pr))
 
-            payment = await pay_invoice(
+            payment = await services.pay_invoice(
                 wallet_id=request.wallet_id,
                 payment_request=str(action.pr),
                 max_sat=request.max_sat,
@@ -927,7 +923,7 @@ class ExtensionHostAPI:
         self, intent: dict[str, Any], wallet: Any
     ) -> dict[str, Any]:
         amount_msat = intent["amount_msat"]
-        if fee_reserve_total(amount_msat) > intent["max_fee_msat"]:
+        if services.fee_reserve_total(amount_msat) > intent["max_fee_msat"]:
             return (
                 await set_payment_intent_status(
                     self.extension_id,
@@ -1007,7 +1003,7 @@ class ExtensionHostAPI:
             )
         intent = {**intent, "attempted": True}
         try:
-            payment = await pay_invoice(
+            payment = await services.pay_invoice(
                 wallet_id=intent["wallet_id"],
                 payment_request=payment_request,
                 extra=extra,
@@ -1106,7 +1102,8 @@ class ExtensionHostAPI:
         tables = self.permission_policies.get("ext.storage.read_public")
         if not isinstance(tables, list) or not tables:
             raise PermissionError(
-                "Public storage reads require policies for 'ext.storage.read_public'."
+                "Public storage reads require policies for "
+                "'ext.storage.read_public'."
             )
 
         for table_policy in tables:

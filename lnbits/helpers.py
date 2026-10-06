@@ -1,7 +1,5 @@
 import hashlib
-import inspect
 import json
-import os
 import re
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
@@ -27,14 +25,6 @@ from .db import FilterModel
 
 def generate_ln_address() -> str:
     return generate_username(1)[0].lower()
-
-
-def is_valid_url(url: str) -> bool:
-    try:
-        result = urlparse(url)
-        return all([result.scheme, result.netloc])
-    except ValueError:
-        return False
 
 
 def get_db_vendor_name():
@@ -115,6 +105,10 @@ def get_current_extension_name() -> str:
 
     Returns the name of the extension that calls this method.
     """
+    import inspect
+    import json
+    import os
+
     callee_filepath = inspect.stack()[1].filename
     callee_dirname, _ = os.path.split(callee_filepath)
 
