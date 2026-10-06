@@ -662,7 +662,7 @@ class ExtensionHostAPI:
             PermissionError,
             ValueError,
         ) as exc:
-            logger.warning("Error occurred while paying invoice: %s", exc)
+            logger.warning(f"Error occurred while paying invoice: {exc}")
             return PayInvoiceResponse(ok=False, error=str(exc))
 
         return _pay_invoice_response(payment)
@@ -752,8 +752,9 @@ class ExtensionHostAPI:
         require_auth=False,
     )
     async def system_log(self, request: LogRequest) -> LogResponse:
-        log = getattr(logger, request.level)
-        log("extension:%s %s", self.extension_id, request.message)
+        logger.log(
+            request.level.upper(), "extension:{} {}", self.extension_id, request.message
+        )
         return LogResponse()
 
     @staticmethod
