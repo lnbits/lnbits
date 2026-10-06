@@ -1,10 +1,8 @@
 import json
 from dataclasses import dataclass
-from typing import Any, Literal, TypeAlias
+from typing import Any, Literal
 
-from pydantic import BaseModel, Field, conint, root_validator, validator
-
-_NonNegativeStrictInt: TypeAlias = conint(strict=True, ge=0)  # type: ignore[valid-type]
+from pydantic import BaseModel, Field, root_validator, validator
 
 
 @dataclass(frozen=True)
@@ -339,7 +337,7 @@ class PaymentIntentResponse(BaseModel):
 class ManualPaymentIntentResolutionRequest(BaseModel):
     wallet_id: str = Field(..., min_length=1, max_length=128)
     status: Literal["paid", "failed"]
-    fee_msat: _NonNegativeStrictInt = 0
+    fee_msat: int = Field(0, ge=0)
     note: str = Field(..., min_length=1, max_length=512)
 
     @validator("note")
