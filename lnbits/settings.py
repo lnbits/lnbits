@@ -906,9 +906,9 @@ class NodeUISettings(LNbitsSettings):
 
 
 class BlockExplorerSettings(LNbitsSettings):
-    lnbits_blockexplorer_enabled: bool = Field(default=False)
+    lnbits_blockexplorer_enabled: bool = Field(default=True)
     lnbits_blockexplorer_public_api: bool = Field(default=False)
-    lnbits_blockexplorer_in_user_menu: bool = Field(default=False)
+    lnbits_blockexplorer_in_user_menu: bool = Field(default=True)
     lnbits_blockexplorer_electrum_url: str = Field(
         default="ssl://electrum.blockstream.info:50002"
     )

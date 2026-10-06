@@ -133,9 +133,7 @@ include('components/lnbits-error.vue') %}
     <q-item
       v-if="
         g.settings.showBlockExplorer &&
-        (g.user.admin ||
-          (g.settings.blockExplorerPublic &&
-            g.settings.blockExplorerInUserMenu))
+        (g.user.admin || g.settings.blockExplorerInUserMenu)
       "
       to="/blockexplorer"
     >
