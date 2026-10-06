@@ -86,7 +86,6 @@ def event_api(*, user_id: str | None = "recipient-user", **kwargs) -> ExtensionH
         "forms",
         [METHOD],
         context="event",
-        trigger_type="event",
         user_id=user_id,
         **kwargs,
     )
@@ -105,7 +104,9 @@ async def test_notification_prefers_host_user_without_loading_invocation(
     get_account = mocker.patch(
         "lnbits.core.crud.users.get_account", AsyncMock(return_value=notification_user)
     )
-    api = event_api(invocation_id="invocation-1")
+    api = ExtensionHostAPI(
+        "forms", [METHOD], user_id="recipient-user", invocation_id="invocation-1"
+    )
 
     await ExtensionAPIHost(api).invoke(METHOD, REQUEST)
 
@@ -157,7 +158,6 @@ async def test_notification_resolves_wallet_owner_without_changing_host_identity
         {"wallet_id": None},
         {"wallet_id": ""},
         {"extension_id": "another-extension"},
-        {"trigger_type": "http"},
     ],
 )
 async def test_notification_rejects_missing_or_mismatched_event_metadata(
@@ -208,7 +208,7 @@ async def test_notification_rejects_missing_event_wallet(
 
 
 @pytest.mark.anyio
-async def test_event_notification_uses_only_selected_saved_user_destination(
+async def test_user_notification_uses_only_selected_saved_user_destination(
     notification_user: SimpleNamespace,
     notification_sender: AsyncMock,
     mocker: MockerFixture,
@@ -219,7 +219,8 @@ async def test_event_notification_uses_only_selected_saved_user_destination(
     )
 
     preferences_before = notification_user.extra.notifications.copy(deep=True)
-    result = await ExtensionAPIHost(event_api()).invoke(
+    api = ExtensionHostAPI("forms", [METHOD], user_id="recipient-user")
+    result = await ExtensionAPIHost(api).invoke(
         METHOD, {**REQUEST, "type": notification_type}
     )
 
@@ -253,45 +254,34 @@ async def test_missing_selected_destination_does_not_fall_back_to_other_channels
 
 
 @pytest.mark.anyio
-@pytest.mark.parametrize(
-    ("context", "trigger_type", "user_id"),
-    [
-        ("user", "http", None),
-        ("user", "http", "user-1"),
-        ("event", "http", None),
-        ("event", "unknown", None),
-    ],
-)
-async def test_notifications_reject_non_event_invocations(
+async def test_unauthenticated_user_cannot_send_notifications(
     notification_sender: AsyncMock,
-    context: str,
-    trigger_type: str,
-    user_id: str | None,
+    event_invocation: WasmInvocation,
+    mocker: MockerFixture,
 ):
+    get_account = mocker.patch("lnbits.core.crud.users.get_account", AsyncMock())
     api = ExtensionHostAPI(
-        "forms",
-        [METHOD],
-        context=context,
-        trigger_type=trigger_type,
-        user_id=user_id,
-        owner_id="owner-1",
+        "forms", [METHOD], invocation_id=event_invocation.id, owner_id="owner-1"
     )
 
-    with pytest.raises(PermissionError):
+    with pytest.raises(PermissionError, match="requires authentication"):
         await ExtensionAPIHost(api).invoke(METHOD, REQUEST)
 
+    get_account.assert_not_called()
     notification_sender.assert_not_called()
 
 
 @pytest.mark.anyio
+@pytest.mark.parametrize("context", ["user", "event"])
 async def test_notification_requires_install_permission(
     notification_sender: AsyncMock,
+    context: str,
 ):
     api = ExtensionHostAPI(
         "forms",
         [],
-        context="event",
-        trigger_type="event",
+        context=context,
+        user_id="recipient-user" if context == "user" else None,
     )
 
     with pytest.raises(PermissionError, match="missing permission"):
@@ -309,7 +299,6 @@ async def test_notification_without_user_or_invocation_rejects_owner_hash(
         "forms",
         [METHOD],
         context="event",
-        trigger_type="event",
         owner_id=sha256s("source-user"),
     )
 
@@ -430,14 +419,28 @@ def test_notification_permission_and_sdk_are_available():
 
 
 @pytest.mark.anyio
-@pytest.mark.parametrize("trigger_type", ["event", "http", "unknown"])
-async def test_invocation_uses_trusted_trigger_and_wallet_for_recipient(
+@pytest.mark.parametrize(
+    ("context", "user_id", "trigger_type"),
+    [
+        ("user", "recipient-user", "http"),
+        ("user", "recipient-user", "unknown"),
+        ("event", None, "event"),
+        ("event", None, "http"),
+        ("event", None, "unknown"),
+    ],
+)
+async def test_invocation_notifies_current_user_or_wallet_owner_regardless_of_trigger(
     notification_user: SimpleNamespace,
     notification_sender: AsyncMock,
     event_invocation: WasmInvocation,
     mocker: MockerFixture,
+    context: str,
+    user_id: str | None,
     trigger_type: str,
 ):
+    event_invocation.trigger_type = trigger_type
+    expected_owner_id = sha256s(user_id) if user_id else "source-owner"
+    wallet_id = None if user_id else event_invocation.wallet_id
     mocker.patch(
         "lnbits.core.wasm_ext.wasm.invoke._get_registered_extension",
         return_value=SimpleNamespace(id="forms"),
@@ -464,16 +467,16 @@ async def test_invocation_uses_trusted_trigger_and_wallet_for_recipient(
         _extension, _export, payload, api, loop, _invocation, _limits
     ):
         assert api.invocation_id == event_invocation.id
-        assert api.user_id is None
-        assert api.owner_id == "source-owner"
+        assert api.user_id == user_id
+        assert api.owner_id == expected_owner_id
         result = asyncio.run_coroutine_threadsafe(
             ExtensionAPIHost(api).invoke(
                 METHOD, {"message": payload["message"], "type": payload["type"]}
             ),
             loop,
         ).result()
-        assert api.user_id is None
-        assert api.owner_id == "source-owner"
+        assert api.user_id == user_id
+        assert api.owner_id == expected_owner_id
         return result
 
     mocker.patch(
@@ -490,35 +493,38 @@ async def test_invocation_uses_trusted_trigger_and_wallet_for_recipient(
             "walletId": "another-wallet",
             "invocationId": "another-invocation",
         },
-        context="event",
+        context=context,
+        user=notification_user if user_id else None,
         owner_id="source-owner",
         trigger_type=trigger_type,
-        wallet_id=event_invocation.wallet_id,
+        wallet_id=wallet_id,
     )
 
-    if trigger_type == "event":
-        assert await call == {"queued": True}
-        notification_sender.assert_awaited_once()
-    else:
-        with pytest.raises(
-            PermissionError, match="only allowed during background events"
-        ):
-            await call
-        notification_sender.assert_not_called()
+    assert await call == {"queued": True}
+    notification_sender.assert_awaited_once_with(
+        None, [], ["owner@example.com"], MESSAGE, None
+    )
 
     assert start.await_args is not None
-    assert start.await_args.kwargs["wallet_id"] == "event-wallet"
+    assert start.await_args.kwargs["wallet_id"] == wallet_id
+    assert start.await_args.kwargs["trigger_type"] == trigger_type
 
 
 @pytest.mark.anyio
+@pytest.mark.parametrize("recipient_source", ["user", "wallet"])
 async def test_notification_component_model_import(
     notification_user: SimpleNamespace,
     notification_sender: AsyncMock,
     notification_type: str,
     event_invocation: WasmInvocation,
+    recipient_source: str,
 ):
     loop = asyncio.get_running_loop()
-    api = event_api(user_id=None, invocation_id=event_invocation.id)
+    api = (
+        ExtensionHostAPI("forms", [METHOD], user_id="recipient-user")
+        if recipient_source == "user"
+        else event_api(user_id=None, invocation_id=event_invocation.id)
+    )
 
     def call_import():
         config = Config()

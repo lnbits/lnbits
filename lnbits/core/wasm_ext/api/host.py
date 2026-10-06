@@ -79,7 +79,6 @@ class ExtensionHostAPI:
         user_id: str | None = None,
         access_token: str | None = None,
         context: str = "user",
-        trigger_type: str = "unknown",
         owner_id: str | None = None,
         invocation_id: str | None = None,
         runtime_limits: dict[str, int] | None = None,
@@ -89,7 +88,6 @@ class ExtensionHostAPI:
         self.user_id = user_id
         self.access_token = access_token
         self.context = context
-        self.trigger_type = trigger_type
         self.owner_id = sha256s(user_id) if user_id else owner_id
         self.invocation_id = invocation_id
         self.runtime_limits = runtime_limits or {}
@@ -104,11 +102,11 @@ class ExtensionHostAPI:
     @extension_api_method(
         method_id="notifications.send_user_notification",
         namespace="notifications",
-        name="Notify the background event's user",
+        name="Send user notification",
         host_name="notifications_send_user_notification",
         sdk_name="sendUserNotification",
         description=(
-            "Send a notification to the current user or the background event's "
+            "Send a notification to the current user or the invocation's "
             "wallet owner, using their saved settings for the selected "
             "email, Nostr, or Telegram notification type. Queued does not "
             "guarantee delivery."
@@ -124,23 +122,18 @@ class ExtensionHostAPI:
         from lnbits.core.models.users import UserNotifications
         from lnbits.core.services.notifications import send_user_notification
 
-        if self.trigger_type != "event":
-            raise PermissionError(
-                "Sending notifications is only allowed during background events."
-            )
         user_id = self.user_id
         if not user_id and self.invocation_id:
             invocation = await get_wasm_invocation(self.invocation_id)
             if (
                 invocation
                 and invocation.extension_id == self.extension_id
-                and invocation.trigger_type == "event"
                 and invocation.wallet_id
             ):
                 wallet = await get_wallet(invocation.wallet_id)
                 user_id = wallet.user if wallet else None
         if not user_id:
-            raise PermissionError("Background event has no notification recipient.")
+            raise PermissionError("Invocation has no notification recipient.")
         user = await get_account(user_id)
         if not user:
             raise ValueError("Notification recipient is unavailable.")
