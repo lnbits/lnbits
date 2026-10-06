@@ -4,8 +4,6 @@ from typing import Any, Literal
 
 from pydantic import BaseModel, Field, root_validator, validator
 
-from lnbits.helpers import is_valid_email_address
-
 
 @dataclass(frozen=True)
 class ExtensionAPIMethodExport:
@@ -44,40 +42,20 @@ class EmptyRequest(BaseModel):
     pass
 
 
-class SendEmailRequest(BaseModel):
-    to: list[str] = Field(
-        ..., description="Between 1 and 10 recipient email addresses."
-    )
-    subject: str = Field(..., min_length=1, max_length=256)
-    message: str = Field(..., min_length=1, max_length=65536)
+class SendUserNotificationRequest(BaseModel):
+    message: str = Field(..., min_length=1, max_length=4096)
 
-    @validator("to")
-    def validate_recipients(cls, recipients: list[str]) -> list[str]:
-        if not 1 <= len(recipients) <= 10:
-            raise ValueError("Email requires between 1 and 10 recipients.")
-        if any(
-            len(address) > 254 or not is_valid_email_address(address)
-            for address in recipients
-        ):
-            raise ValueError("Invalid recipient email address.")
-        return recipients
-
-    @validator("subject")
-    def validate_subject(cls, subject: str) -> str:
-        if not subject.strip() or any(char in subject for char in "\r\n\0"):
-            raise ValueError("Email subject must be a non-empty single line.")
-        return subject
+    class Config:
+        extra = "forbid"
 
     @validator("message")
     def validate_message(cls, message: str) -> str:
-        if not message.strip() or len(message.encode()) > 65536:
-            raise ValueError(
-                "Email message must contain text and not exceed 65536 bytes."
-            )
+        if not message.strip():
+            raise ValueError("Notification message must contain text.")
         return message
 
 
-class SendEmailResponse(BaseModel):
+class SendUserNotificationResponse(BaseModel):
     queued: bool = True
 
 
