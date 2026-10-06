@@ -10,7 +10,7 @@ from pydantic import ValidationError
 from pytest_mock.plugin import MockerFixture
 from wasmtime import Config, Engine, Store, component, wat2wasm
 
-from lnbits.core.models.extensions import ExtensionPermission
+from lnbits.core.models.extensions import ExtensionPermission, WasmInvocation
 from lnbits.core.models.users import UserNotifications
 from lnbits.core.wasm_ext.api.host import ExtensionHostAPI
 from lnbits.core.wasm_ext.api.models import SendUserNotificationRequest
@@ -18,10 +18,22 @@ from lnbits.core.wasm_ext.api.permissions import validate_wasm_extension_permiss
 from lnbits.core.wasm_ext.api.runtime import ExtensionAPIHost
 from lnbits.core.wasm_ext.wasm.host import add_extension_host_imports
 from lnbits.core.wasm_ext.wasm.invoke import invoke_wasm_extension_export
+from lnbits.helpers import sha256s
 from tests.helpers import make_installable_extension
 
-METHOD = "notifications.send_user"
+METHOD = "notifications.send_user_notification"
 MESSAGE = "A payment was received for your form."
+REQUEST = {"type": "email", "message": MESSAGE}
+DESTINATIONS = {
+    "email": (None, [], ["owner@example.com"]),
+    "nostr": (None, ["owner@example.com"], []),
+    "telegram": ("123456", [], []),
+}
+
+
+@pytest.fixture(params=["email", "nostr", "telegram"])
+def notification_type(request: pytest.FixtureRequest) -> str:
+    return request.param
 
 
 @pytest.fixture
@@ -48,43 +60,194 @@ def notification_sender(mocker: MockerFixture) -> AsyncMock:
     )
 
 
-def event_api(**kwargs) -> ExtensionHostAPI:
+@pytest.fixture
+def event_invocation(mocker: MockerFixture) -> WasmInvocation:
+    invocation = WasmInvocation(
+        id="invocation-1",
+        extension_id="forms",
+        export_name="on_invoice_paid",
+        trigger_type="event",
+        user_id=sha256s("source-user"),
+        wallet_id="event-wallet",
+    )
+    mocker.patch(
+        "lnbits.core.crud.extensions.get_wasm_invocation",
+        AsyncMock(return_value=invocation),
+    )
+    mocker.patch(
+        "lnbits.core.crud.wallets.get_wallet",
+        AsyncMock(return_value=SimpleNamespace(user="recipient-user")),
+    )
+    return invocation
+
+
+def event_api(*, user_id: str | None = "recipient-user", **kwargs) -> ExtensionHostAPI:
     return ExtensionHostAPI(
         "forms",
         [METHOD],
         context="event",
         trigger_type="event",
-        notification_user_id="recipient-user",
+        user_id=user_id,
         **kwargs,
     )
 
 
 @pytest.mark.anyio
-async def test_event_notification_uses_saved_user_destinations(
+async def test_notification_prefers_host_user_without_loading_invocation(
     notification_user: SimpleNamespace,
     notification_sender: AsyncMock,
     mocker: MockerFixture,
+):
+    get_invocation = mocker.patch(
+        "lnbits.core.crud.extensions.get_wasm_invocation", AsyncMock()
+    )
+    get_wallet = mocker.patch("lnbits.core.crud.wallets.get_wallet", AsyncMock())
+    get_account = mocker.patch(
+        "lnbits.core.crud.users.get_account", AsyncMock(return_value=notification_user)
+    )
+    api = event_api(invocation_id="invocation-1")
+
+    await ExtensionAPIHost(api).invoke(METHOD, REQUEST)
+
+    get_account.assert_awaited_once_with("recipient-user")
+    get_invocation.assert_not_called()
+    get_wallet.assert_not_called()
+    notification_sender.assert_awaited_once()
+
+
+@pytest.mark.anyio
+async def test_notification_resolves_wallet_owner_without_changing_host_identity(
+    notification_user: SimpleNamespace,
+    notification_sender: AsyncMock,
+    event_invocation: WasmInvocation,
+    mocker: MockerFixture,
+):
+    get_invocation = mocker.patch(
+        "lnbits.core.crud.extensions.get_wasm_invocation",
+        AsyncMock(return_value=event_invocation),
+    )
+    get_wallet = mocker.patch(
+        "lnbits.core.crud.wallets.get_wallet",
+        AsyncMock(return_value=SimpleNamespace(user="recipient-user")),
+    )
+    get_account = mocker.patch(
+        "lnbits.core.crud.users.get_account", AsyncMock(return_value=notification_user)
+    )
+    api = event_api(
+        user_id=None,
+        invocation_id=event_invocation.id,
+        owner_id=event_invocation.user_id,
+    )
+
+    assert await ExtensionAPIHost(api).invoke(METHOD, REQUEST) == {"queued": True}
+
+    get_invocation.assert_awaited_once_with("invocation-1")
+    get_wallet.assert_awaited_once_with("event-wallet")
+    get_account.assert_awaited_once_with("recipient-user")
+    notification_sender.assert_awaited_once()
+    assert api.user_id is None
+    assert api.owner_id == sha256s("source-user")
+
+
+@pytest.mark.anyio
+@pytest.mark.parametrize(
+    "fields",
+    [
+        None,
+        {"wallet_id": None},
+        {"wallet_id": ""},
+        {"extension_id": "another-extension"},
+        {"trigger_type": "http"},
+    ],
+)
+async def test_notification_rejects_missing_or_mismatched_event_metadata(
+    notification_sender: AsyncMock,
+    event_invocation: WasmInvocation,
+    mocker: MockerFixture,
+    fields: dict | None,
+):
+    invocation = event_invocation.copy(update=fields) if fields is not None else None
+    mocker.patch(
+        "lnbits.core.crud.extensions.get_wasm_invocation",
+        AsyncMock(return_value=invocation),
+    )
+    get_wallet = mocker.patch("lnbits.core.crud.wallets.get_wallet", AsyncMock())
+    get_account = mocker.patch("lnbits.core.crud.users.get_account", AsyncMock())
+    api = event_api(
+        user_id=None,
+        invocation_id=event_invocation.id,
+        owner_id=event_invocation.user_id,
+    )
+
+    with pytest.raises(PermissionError, match="no notification recipient"):
+        await ExtensionAPIHost(api).invoke(METHOD, REQUEST)
+
+    get_wallet.assert_not_called()
+    get_account.assert_not_called()
+    notification_sender.assert_not_called()
+
+
+@pytest.mark.anyio
+async def test_notification_rejects_missing_event_wallet(
+    notification_sender: AsyncMock,
+    event_invocation: WasmInvocation,
+    mocker: MockerFixture,
+):
+    get_wallet = mocker.patch(
+        "lnbits.core.crud.wallets.get_wallet", AsyncMock(return_value=None)
+    )
+    get_account = mocker.patch("lnbits.core.crud.users.get_account", AsyncMock())
+    api = event_api(user_id=None, invocation_id=event_invocation.id)
+
+    with pytest.raises(PermissionError, match="no notification recipient"):
+        await ExtensionAPIHost(api).invoke(METHOD, REQUEST)
+
+    get_wallet.assert_awaited_once_with("event-wallet")
+    get_account.assert_not_called()
+    notification_sender.assert_not_called()
+
+
+@pytest.mark.anyio
+async def test_event_notification_uses_only_selected_saved_user_destination(
+    notification_user: SimpleNamespace,
+    notification_sender: AsyncMock,
+    mocker: MockerFixture,
+    notification_type: str,
 ):
     admin = mocker.patch(
         "lnbits.core.services.notifications.send_admin_notification", AsyncMock()
     )
 
-    result = await ExtensionAPIHost(event_api()).invoke(METHOD, {"message": MESSAGE})
+    preferences_before = notification_user.extra.notifications.copy(deep=True)
+    result = await ExtensionAPIHost(event_api()).invoke(
+        METHOD, {**REQUEST, "type": notification_type}
+    )
+
+    assert notification_user.extra.notifications == preferences_before
 
     assert result == {"queued": True}
     notification_sender.assert_awaited_once_with(
-        "123456", ["owner@example.com"], ["owner@example.com"], MESSAGE, None
+        *DESTINATIONS[notification_type], MESSAGE, None
     )
     admin.assert_not_called()
 
 
 @pytest.mark.anyio
-async def test_user_without_notification_destinations_does_not_notify_admins(
-    notification_user: SimpleNamespace, notification_sender: AsyncMock
+async def test_missing_selected_destination_does_not_fall_back_to_other_channels(
+    notification_user: SimpleNamespace,
+    notification_sender: AsyncMock,
+    notification_type: str,
 ):
-    notification_user.extra.notifications = UserNotifications()
+    field = {
+        "email": "email_address",
+        "nostr": "nostr_identifier",
+        "telegram": "telegram_chat_id",
+    }[notification_type]
+    setattr(notification_user.extra.notifications, field, None)
 
-    await ExtensionAPIHost(event_api()).invoke(METHOD, {"message": MESSAGE})
+    await ExtensionAPIHost(event_api()).invoke(
+        METHOD, {**REQUEST, "type": notification_type}
+    )
 
     notification_sender.assert_awaited_once_with(None, [], [], MESSAGE, None)
 
@@ -112,11 +275,10 @@ async def test_notifications_reject_non_event_invocations(
         trigger_type=trigger_type,
         user_id=user_id,
         owner_id="owner-1",
-        notification_user_id="recipient-user",
     )
 
     with pytest.raises(PermissionError):
-        await ExtensionAPIHost(api).invoke(METHOD, {"message": MESSAGE})
+        await ExtensionAPIHost(api).invoke(METHOD, REQUEST)
 
     notification_sender.assert_not_called()
 
@@ -130,17 +292,16 @@ async def test_notification_requires_install_permission(
         [],
         context="event",
         trigger_type="event",
-        notification_user_id="recipient-user",
     )
 
     with pytest.raises(PermissionError, match="missing permission"):
-        await ExtensionAPIHost(api).invoke(METHOD, {"message": MESSAGE})
+        await ExtensionAPIHost(api).invoke(METHOD, REQUEST)
 
     notification_sender.assert_not_called()
 
 
 @pytest.mark.anyio
-async def test_notification_requires_trusted_event_recipient(
+async def test_notification_without_user_or_invocation_rejects_owner_hash(
     notification_sender: AsyncMock, mocker: MockerFixture
 ):
     get_account = mocker.patch("lnbits.core.crud.users.get_account", AsyncMock())
@@ -149,26 +310,31 @@ async def test_notification_requires_trusted_event_recipient(
         [METHOD],
         context="event",
         trigger_type="event",
-        user_id="interactive-user",
+        owner_id=sha256s("source-user"),
     )
 
     with pytest.raises(PermissionError, match="no notification recipient"):
-        await ExtensionAPIHost(api).invoke(METHOD, {"message": MESSAGE})
+        await ExtensionAPIHost(api).invoke(METHOD, REQUEST)
 
     get_account.assert_not_called()
     notification_sender.assert_not_called()
 
 
 @pytest.mark.anyio
+@pytest.mark.parametrize("user_id", ["recipient-user", None])
 async def test_notification_rejects_missing_or_inactive_user(
-    notification_sender: AsyncMock, mocker: MockerFixture
+    notification_sender: AsyncMock,
+    event_invocation: WasmInvocation,
+    mocker: MockerFixture,
+    user_id: str | None,
 ):
     get_account = mocker.patch(
         "lnbits.core.crud.users.get_account", AsyncMock(return_value=None)
     )
+    api = event_api(user_id=user_id, invocation_id=event_invocation.id)
 
     with pytest.raises(ValueError, match="recipient is unavailable"):
-        await ExtensionAPIHost(event_api()).invoke(METHOD, {"message": MESSAGE})
+        await ExtensionAPIHost(api).invoke(METHOD, REQUEST)
 
     get_account.assert_awaited_once_with("recipient-user")
     notification_sender.assert_not_called()
@@ -177,7 +343,23 @@ async def test_notification_rejects_missing_or_inactive_user(
 @pytest.mark.parametrize("message", ["", " ", "\n\t", "x" * 4097])
 def test_notification_validates_message(message: str):
     with pytest.raises(ValidationError):
-        SendUserNotificationRequest(message=message)
+        SendUserNotificationRequest(type="email", message=message)
+
+
+@pytest.mark.anyio
+@pytest.mark.parametrize(
+    "fields",
+    [{}, {"type": None}, {"type": "sms"}, {"type": "Email"}, {"type": []}],
+)
+async def test_notification_requires_supported_type(
+    notification_sender: AsyncMock, fields: dict
+):
+    with pytest.raises(ValidationError):
+        await ExtensionAPIHost(event_api()).invoke(
+            METHOD, {"message": MESSAGE, **fields}
+        )
+
+    notification_sender.assert_not_called()
 
 
 @pytest.mark.anyio
@@ -187,6 +369,8 @@ def test_notification_validates_message(message: str):
         {"userId": "another-user"},
         {"notificationUserId": "another-user"},
         {"ownerId": "another-owner"},
+        {"invocationId": "another-invocation"},
+        {"walletId": "another-wallet"},
         {"to": ["another@example.com"]},
         {"chatId": "123"},
         {"subject": "Custom subject"},
@@ -198,9 +382,7 @@ async def test_extension_cannot_supply_recipients_or_context(
     notification_sender: AsyncMock, fields: dict
 ):
     with pytest.raises(ValidationError):
-        await ExtensionAPIHost(event_api()).invoke(
-            METHOD, {"message": MESSAGE, **fields}
-        )
+        await ExtensionAPIHost(event_api()).invoke(METHOD, {**REQUEST, **fields})
 
     notification_sender.assert_not_called()
 
@@ -239,18 +421,20 @@ def test_notification_permission_and_sdk_are_available():
     )
     sdk = codegen["generate_typescript_sdk"](method_ids=[METHOD])
     assert "message: string" in sdk
-    assert "sendUser(input: SendUserNotificationRequest)" in sdk
+    assert 'type: "email" | "nostr" | "telegram"' in sdk
+    assert "sendUserNotification(input: SendUserNotificationRequest)" in sdk
     assert "Promise<SendUserNotificationResponse>" in sdk
-    assert "return host.host.notificationsSendUser(input)" in sdk
+    assert "return host.host.notificationsSendUserNotification(input)" in sdk
     assert "userId" not in sdk
     assert "chatId" not in sdk
 
 
 @pytest.mark.anyio
 @pytest.mark.parametrize("trigger_type", ["event", "http", "unknown"])
-async def test_invocation_passes_trusted_trigger_and_recipient_to_host(
+async def test_invocation_uses_trusted_trigger_and_wallet_for_recipient(
     notification_user: SimpleNamespace,
     notification_sender: AsyncMock,
+    event_invocation: WasmInvocation,
     mocker: MockerFixture,
     trigger_type: str,
 ):
@@ -269,7 +453,7 @@ async def test_invocation_passes_trusted_trigger_and_recipient_to_host(
             "wasm_runtime_max_execution_ms": 1000,
         },
     )
-    mocker.patch(
+    start = mocker.patch(
         "lnbits.core.services.extensions.start_wasm_invocation",
         AsyncMock(return_value=SimpleNamespace(id="invocation-1")),
     )
@@ -279,12 +463,18 @@ async def test_invocation_passes_trusted_trigger_and_recipient_to_host(
     def invoke_notification(
         _extension, _export, payload, api, loop, _invocation, _limits
     ):
-        assert api.notification_user_id == "recipient-user"
+        assert api.invocation_id == event_invocation.id
         assert api.user_id is None
         assert api.owner_id == "source-owner"
-        return asyncio.run_coroutine_threadsafe(
-            ExtensionAPIHost(api).invoke(METHOD, {"message": payload["message"]}), loop
+        result = asyncio.run_coroutine_threadsafe(
+            ExtensionAPIHost(api).invoke(
+                METHOD, {"message": payload["message"], "type": payload["type"]}
+            ),
+            loop,
         ).result()
+        assert api.user_id is None
+        assert api.owner_id == "source-owner"
+        return result
 
     mocker.patch(
         "lnbits.core.wasm_ext.wasm.invoke._invoke_wasm_extension_export_sync",
@@ -294,14 +484,16 @@ async def test_invocation_passes_trusted_trigger_and_recipient_to_host(
         "forms",
         "on_invoice_paid",
         {
-            "message": MESSAGE,
+            **REQUEST,
             "triggerType": "event",
-            "notificationUserId": "another-user",
+            "userId": "another-user",
+            "walletId": "another-wallet",
+            "invocationId": "another-invocation",
         },
         context="event",
         owner_id="source-owner",
         trigger_type=trigger_type,
-        notification_user_id="recipient-user",
+        wallet_id=event_invocation.wallet_id,
     )
 
     if trigger_type == "event":
@@ -314,13 +506,19 @@ async def test_invocation_passes_trusted_trigger_and_recipient_to_host(
             await call
         notification_sender.assert_not_called()
 
+    assert start.await_args is not None
+    assert start.await_args.kwargs["wallet_id"] == "event-wallet"
+
 
 @pytest.mark.anyio
 async def test_notification_component_model_import(
-    notification_user: SimpleNamespace, notification_sender: AsyncMock
+    notification_user: SimpleNamespace,
+    notification_sender: AsyncMock,
+    notification_type: str,
+    event_invocation: WasmInvocation,
 ):
     loop = asyncio.get_running_loop()
-    api = event_api()
+    api = event_api(user_id=None, invocation_id=event_invocation.id)
 
     def call_import():
         config = Config()
@@ -333,19 +531,20 @@ async def test_notification_component_model_import(
             engine,
             wat2wasm("""(component
             (import "lnbits:extension/host" (instance $host
-                (type $request-def (record (field "message" string)))
+                (type $request-def (record
+                    (field "type" string) (field "message" string)))
                 (export "send-user-notification-request"
                     (type $request (eq $request-def)))
                 (type $response-def (record (field "queued" bool)))
                 (export "send-user-notification-response"
                     (type $response (eq $response-def)))
-                (export "notifications-send-user" (func
+                (export "notifications-send-user-notification" (func
                     (param "request" $request) (result $response)))))
             (alias export $host "send-user-notification-request" (type $request))
             (alias export $host "send-user-notification-response" (type $response))
             (export "send-user-notification-request" (type $request))
             (export "send-user-notification-response" (type $response))
-            (alias export $host "notifications-send-user" (func $send))
+            (alias export $host "notifications-send-user-notification" (func $send))
             (core module $memory
                 (memory (export "memory") 1)
                 (global $heap (mut i32) (i32.const 0))
@@ -358,9 +557,9 @@ async def test_notification_component_model_import(
             (core func $send (canon lower (func $send)
                 (memory $memory "memory")))
             (core module $adapter
-                (import "host" "send" (func $send (param i32 i32) (result i32)))
-                (func (export "send") (param i32 i32) (result i32)
-                    local.get 0 local.get 1 call $send))
+                (import "host" "send" (func $send (param i32 i32 i32 i32) (result i32)))
+                (func (export "send") (param i32 i32 i32 i32) (result i32)
+                    local.get 0 local.get 1 local.get 2 local.get 3 call $send))
             (core instance $adapter (instantiate $adapter
                 (with "host" (instance (export "send" (func $send))))))
             (func (export "send") (param "request" $request) (result $response)
@@ -372,6 +571,7 @@ async def test_notification_component_model_import(
         send = instance.get_func(store, "send")
         assert send is not None
         request: Any = component.Record()
+        request.type = notification_type
         request.message = MESSAGE
         response = send(store, request)
         send.post_return(store)
@@ -380,5 +580,5 @@ async def test_notification_component_model_import(
     await asyncio.to_thread(call_import)
 
     notification_sender.assert_awaited_once_with(
-        "123456", ["owner@example.com"], ["owner@example.com"], MESSAGE, None
+        *DESTINATIONS[notification_type], MESSAGE, None
     )

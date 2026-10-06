@@ -30,7 +30,6 @@ async def invoke_wasm_extension_export(
     access_token: str | None = None,
     context: str = "user",
     owner_id: str | None = None,
-    notification_user_id: str | None = None,
     trigger_type: str = "unknown",
     request_id: str | None = None,
     method: str | None = None,
@@ -85,7 +84,6 @@ async def invoke_wasm_extension_export(
         context=context,
         trigger_type=trigger_type,
         owner_id=owner_id,
-        notification_user_id=notification_user_id,
         invocation_id=invocation.id,
         runtime_limits=limits,
     )

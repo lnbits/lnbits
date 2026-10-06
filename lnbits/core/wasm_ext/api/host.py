@@ -81,7 +81,6 @@ class ExtensionHostAPI:
         context: str = "user",
         trigger_type: str = "unknown",
         owner_id: str | None = None,
-        notification_user_id: str | None = None,
         invocation_id: str | None = None,
         runtime_limits: dict[str, int] | None = None,
     ) -> None:
@@ -91,7 +90,6 @@ class ExtensionHostAPI:
         self.access_token = access_token
         self.context = context
         self.trigger_type = trigger_type
-        self.notification_user_id = notification_user_id
         self.owner_id = sha256s(user_id) if user_id else owner_id
         self.invocation_id = invocation_id
         self.runtime_limits = runtime_limits or {}
@@ -104,35 +102,62 @@ class ExtensionHostAPI:
         )
 
     @extension_api_method(
-        method_id="notifications.send_user",
+        method_id="notifications.send_user_notification",
         namespace="notifications",
         name="Notify the background event's user",
-        host_name="notifications_send_user",
-        sdk_name="sendUser",
+        host_name="notifications_send_user_notification",
+        sdk_name="sendUserNotification",
         description=(
-            "Send a notification to the user identified by the host-dispatched "
-            "background event, using their saved email, Nostr, and Telegram "
-            "settings. Queued does not guarantee delivery."
+            "Send a notification to the current user or the background event's "
+            "wallet owner, using their saved settings for the selected "
+            "email, Nostr, or Telegram notification type. Queued does not "
+            "guarantee delivery."
         ),
-        required_permission="notifications.send_user",
+        required_permission="notifications.send_user_notification",
     )
-    async def notifications_send_user(
+    async def notifications_send_user_notification(
         self, request: SendUserNotificationRequest
     ) -> SendUserNotificationResponse:
+        from lnbits.core.crud.extensions import get_wasm_invocation
         from lnbits.core.crud.users import get_account
+        from lnbits.core.crud.wallets import get_wallet
+        from lnbits.core.models.users import UserNotifications
         from lnbits.core.services.notifications import send_user_notification
 
         if self.trigger_type != "event":
             raise PermissionError(
                 "Sending notifications is only allowed during background events."
             )
-        if not self.notification_user_id:
+        user_id = self.user_id
+        if not user_id and self.invocation_id:
+            invocation = await get_wasm_invocation(self.invocation_id)
+            if (
+                invocation
+                and invocation.extension_id == self.extension_id
+                and invocation.trigger_type == "event"
+                and invocation.wallet_id
+            ):
+                wallet = await get_wallet(invocation.wallet_id)
+                user_id = wallet.user if wallet else None
+        if not user_id:
             raise PermissionError("Background event has no notification recipient.")
-        user = await get_account(self.notification_user_id)
+        user = await get_account(user_id)
         if not user:
             raise ValueError("Notification recipient is unavailable.")
 
-        await send_user_notification(user.extra.notifications, request.message)
+        preferences = user.extra.notifications
+        notifications = UserNotifications(
+            email_address=(
+                preferences.email_address if request.type == "email" else None
+            ),
+            nostr_identifier=(
+                preferences.nostr_identifier if request.type == "nostr" else None
+            ),
+            telegram_chat_id=(
+                preferences.telegram_chat_id if request.type == "telegram" else None
+            ),
+        )
+        await send_user_notification(notifications, request.message)
         return SendUserNotificationResponse()
 
     @extension_api_method(
