@@ -117,26 +117,10 @@ class ExtensionHostAPI:
     async def notifications_send_user_notification(
         self, request: SendUserNotificationRequest
     ) -> SendUserNotificationResponse:
-        from lnbits.core.crud.extensions import get_wasm_invocation
-        from lnbits.core.crud.users import get_account
-        from lnbits.core.crud.wallets import get_wallet
+
         from lnbits.core.services.notifications import send_user_notification
 
-        user_id = self.user_id
-        if not user_id and self.invocation_id:
-            invocation = await get_wasm_invocation(self.invocation_id)
-            if (
-                invocation
-                and invocation.extension_id == self.extension_id
-                and invocation.wallet_id
-            ):
-                wallet = await get_wallet(invocation.wallet_id)
-                user_id = wallet.user if wallet else None
-        if not user_id:
-            raise PermissionError("Invocation has no notification recipient.")
-        user = await get_account(user_id)
-        if not user:
-            raise ValueError("Notification recipient is unavailable.")
+        user = await self._current_user()
 
         notifications = _user_notification_preferences(user, request.type)
         await send_user_notification(notifications, request.message)
@@ -797,6 +781,28 @@ class ExtensionHostAPI:
                 policies[permission_id] = permission_policies
 
         return permission_ids, policies
+
+    async def _current_user(self):
+        from lnbits.core.crud.extensions import get_wasm_invocation
+        from lnbits.core.crud.users import get_account
+        from lnbits.core.crud.wallets import get_wallet
+
+        user_id = self.user_id
+        if not user_id and self.invocation_id:
+            invocation = await get_wasm_invocation(self.invocation_id)
+            if (
+                invocation
+                and invocation.extension_id == self.extension_id
+                and invocation.wallet_id
+            ):
+                wallet = await get_wallet(invocation.wallet_id)
+                user_id = wallet.user if wallet else None
+        if not user_id:
+            raise PermissionError("Invocation has no notification recipient.")
+        user = await get_account(user_id)
+        if not user:
+            raise ValueError("Notification recipient is unavailable.")
+        return user
 
     def _public_storage_policy(self, table: str) -> dict[str, Any]:
         tables = self.permission_policies.get("ext.storage.read_public")
