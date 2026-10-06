@@ -422,7 +422,6 @@
                 <q-toggle
                   v-if="key === 'extra'"
                   v-model="formatJson"
-                  dense
                   size="xs"
                   label="Formatted JSON"
                   class="q-ml-auto"
@@ -437,7 +436,7 @@
                 "
               ></q-item-label>
             </q-item-section>
-            <q-item-section side>
+            <q-item-section side :top="key === 'extra'">
               <q-btn
                 v-show="value"
                 icon="content_copy"
