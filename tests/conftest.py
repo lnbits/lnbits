@@ -86,9 +86,21 @@ def run_before_and_after_tests(settings: Settings):
     _settings_cleanup(settings)
 
 
+@pytest.fixture(scope="session")
+def disable_background_wallet_sync():
+    async def sync_wallets():
+        pass
+
+    # Patch before startup so periodic scans cannot use another test's mocks.
+    # Explicit calls to the onchain service remain available to tests.
+    with pytest.MonkeyPatch.context() as monkeypatch:
+        monkeypatch.setattr("lnbits.app.sync_wallets", sync_wallets)
+        yield
+
+
 # use session scope to run once before and once after all tests
 @pytest.fixture(scope="session")
-async def app(settings: Settings):
+async def app(settings: Settings, disable_background_wallet_sync):
     app = create_app()
     async with LifespanManager(app, startup_timeout=30) as manager:
         settings.first_install = True
