@@ -415,16 +415,28 @@
       </q-card-section>
       <q-card-section>
         <q-list separator>
-          <q-item v-for="(value, key) in paymentDetails" :key="key">
+          <q-item v-for="(value, key) in paymentDetailsJson" :key="key">
             <q-item-section>
-              <q-item-label v-text="key"></q-item-label>
+              <q-item-label class="row items-center">
+                <span v-text="key"></span>
+                <q-toggle
+                  v-if="key === 'extra'"
+                  v-model="formatJson"
+                  size="xs"
+                  label="Formatted JSON"
+                  class="q-ml-auto"
+                ></q-toggle>
+              </q-item-label>
               <q-item-label
                 caption
                 v-text="value"
                 style="word-wrap: break-word"
+                :style="
+                  key === 'extra' && formatJson ? {whiteSpace: 'pre-wrap'} : {}
+                "
               ></q-item-label>
             </q-item-section>
-            <q-item-section side>
+            <q-item-section side :top="key === 'extra'">
               <q-btn
                 v-show="value"
                 icon="content_copy"
