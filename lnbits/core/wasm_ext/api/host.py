@@ -7,6 +7,7 @@ import time
 from collections.abc import Iterable, Mapping
 from typing import Any
 
+from lnbits.core.models.users import Account, UserNotifications
 from lnbits.helpers import sha256s
 
 from ..client.extensions import send_extension_api_request
@@ -119,7 +120,6 @@ class ExtensionHostAPI:
         from lnbits.core.crud.extensions import get_wasm_invocation
         from lnbits.core.crud.users import get_account
         from lnbits.core.crud.wallets import get_wallet
-        from lnbits.core.models.users import UserNotifications
         from lnbits.core.services.notifications import send_user_notification
 
         user_id = self.user_id
@@ -138,18 +138,7 @@ class ExtensionHostAPI:
         if not user:
             raise ValueError("Notification recipient is unavailable.")
 
-        preferences = user.extra.notifications
-        notifications = UserNotifications(
-            email_address=(
-                preferences.email_address if request.type == "email" else None
-            ),
-            nostr_identifier=(
-                preferences.nostr_identifier if request.type == "nostr" else None
-            ),
-            telegram_chat_id=(
-                preferences.telegram_chat_id if request.type == "telegram" else None
-            ),
-        )
+        notifications = _user_notification_preferences(user, request.type)
         await send_user_notification(notifications, request.message)
         return SendUserNotificationResponse()
 
@@ -1056,4 +1045,21 @@ def _pay_invoice_response(payment: Any) -> PayInvoiceResponse:
         fee_msat=abs(payment.fee),
         pending=payment.pending,
         success=payment.success,
+    )
+
+
+def _user_notification_preferences(
+    user: Account, notification_type: str
+) -> UserNotifications:
+    preferences = user.extra.notifications
+    return UserNotifications(
+        email_address=(
+            preferences.email_address if notification_type == "email" else None
+        ),
+        nostr_identifier=(
+            preferences.nostr_identifier if notification_type == "nostr" else None
+        ),
+        telegram_chat_id=(
+            preferences.telegram_chat_id if notification_type == "telegram" else None
+        ),
     )
