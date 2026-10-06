@@ -1309,34 +1309,13 @@ async def test_request_reset_key_ok(http_client: AsyncClient, settings: Settings
 
 
 @pytest.mark.anyio
-async def test_request_reset_key_user_not_found(http_client: AsyncClient):
-    user_id = "926abb2ab59a48ebb2485bcceb58d05e"
-    reset_key = await api_users_reset_password(user_id)
-    assert reset_key, "Reset key created."
-    assert reset_key[:10] == "reset_key_", "This is not a reset key."
-
-    response = await http_client.put(
-        "/api/v1/auth/reset",
-        json={
-            "reset_key": reset_key,
-            "password": "secret0000",
-            "password_repeat": "secret0000",
-        },
-    )
-
-    assert response.status_code == 404, "User does not exist."
-    assert response.json().get("detail") == "User not found."
-
-
-@pytest.mark.anyio
 async def test_reset_username_password_not_allowed(
-    http_client: AsyncClient, settings: Settings
+    http_client: AsyncClient, settings: Settings, user_alan: User
 ):
     # exclude 'username_password'
     settings.auth_allowed_methods = [AuthMethods.user_id_only.value]
 
-    user_id = "926abb2ab59a48ebb2485bcceb58d05e"
-    reset_key = await api_users_reset_password(user_id)
+    reset_key = await api_users_reset_password(user_alan.id)
     assert reset_key, "Reset key created."
 
     response = await http_client.put(
@@ -1388,34 +1367,7 @@ async def test_reset_username_password_bad_key(http_client: AsyncClient):
         },
     )
     assert response.status_code == 400, "Bad reset key."
-    assert response.json().get("detail") == "Invalid reset key."
-
-
-@pytest.mark.anyio
-async def test_reset_password_auth_threshold_expired(
-    user_alan: User, http_client: AsyncClient, settings: Settings
-):
-
-    reset_key = await api_users_reset_password(user_alan.id)
-    assert reset_key, "Reset key created."
-
-    settings.auth_credetials_update_threshold = 1
-    time.sleep(1.1)
-    response = await http_client.put(
-        "/api/v1/auth/reset",
-        json={
-            "reset_key": reset_key,
-            "password": "secret0000",
-            "password_repeat": "secret0000",
-        },
-    )
-
-    assert response.status_code == 400, "Treshold expired."
-    assert (
-        response.json().get("detail") == "You can only update your credentials"
-        " in the first 1 seconds."
-        " Please login again or ask a new reset key!"
-    )
+    assert response.json().get("detail") == "Invalid or expired reset key."
 
 
 ################################ ACL ################################

@@ -466,23 +466,38 @@
                 :options="g.extensions"
               ></q-select>
             </q-card-section>
-            <q-card-section v-if="activeUser.data.id">
+            <q-card-section
+              v-if="activeUser.data.id"
+              class="row items-center q-gutter-sm"
+            >
               <q-btn
                 @click="resetPassword(activeUser.data.id)"
-                :disable="activeUser.data.is_super_user"
+                :disable="activeUser.data.super_user"
                 :label="$t('reset_password')"
                 icon="refresh"
                 color="primary"
               >
                 <q-tooltip>Generate and copy password reset url</q-tooltip>
               </q-btn>
+              <q-select
+                v-model="passwordResetExpiry"
+                :options="
+                  activeUser.data.admin ? [1, 2] : [1, 2, 5, 15, 30, 60]
+                "
+                :option-label="value => `${value} ${$t('minutes')}`"
+                :label="$t('expiry')"
+                :disable="activeUser.data.super_user"
+                filled
+                dense
+                class="col-auto"
+              ></q-select>
               <q-btn
                 @click="deleteUser(activeUser.data.id)"
-                :disable="activeUser.data.is_super_user"
+                :disable="activeUser.data.super_user"
                 :label="$t('delete')"
                 icon="delete"
                 color="negative"
-                class="float-right"
+                class="q-ml-auto"
               >
                 <q-tooltip>Delete User</q-tooltip></q-btn
               >

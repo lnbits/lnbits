@@ -1,3 +1,5 @@
+const DEFAULT_PASSWORD_RESET_EXPIRY_MINUTES = 2
+
 window.PageUsers = {
   template: '#page-users',
   data() {
@@ -24,6 +26,7 @@ window.PageUsers = {
         showUserId: false,
         show: false
       },
+      passwordResetExpiry: DEFAULT_PASSWORD_RESET_EXPIRY_MINUTES,
 
       createWalletDialog: {
         data: {},
@@ -198,12 +201,19 @@ window.PageUsers = {
       this.fetchWallets(this.activeWallet.userId)
     },
     resetPassword(user_id) {
+      const expiry = this.passwordResetExpiry
       return LNbits.api
-        .request('PUT', `/users/api/v1/user/${user_id}/reset_password`)
+        .request(
+          'PUT',
+          `/users/api/v1/user/${user_id}/reset_password?expiry_minutes=${expiry}`
+        )
         .then(res => {
           LNbits.utils
             .confirmDialog(
-              this.$t('reset_key_generated') + ' ' + this.$t('reset_key_copy')
+              this.$t('password_reset_link_generated', {
+                expiry,
+                minutes: this.$t('minutes')
+              })
             )
             .onOk(() => {
               const url = window.location.origin + '?reset_key=' + res.data
@@ -439,6 +449,7 @@ window.PageUsers = {
     },
 
     toggleAdmin(userId) {
+      this.passwordResetExpiry = DEFAULT_PASSWORD_RESET_EXPIRY_MINUTES
       LNbits.api
         .request('PUT', `/users/api/v1/user/${userId}/admin`)
         .then(() => {
@@ -465,6 +476,7 @@ window.PageUsers = {
         .catch(LNbits.utils.notifyApiError)
     },
     async showAccountPage(user_id) {
+      this.passwordResetExpiry = DEFAULT_PASSWORD_RESET_EXPIRY_MINUTES
       this.activeUser.showPassword = false
       this.activeUser.showUserId = false
       this.activeUser.setPassword = false

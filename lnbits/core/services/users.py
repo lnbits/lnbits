@@ -1,13 +1,23 @@
+import secrets
+from http import HTTPStatus
 from pathlib import Path
+from time import time
 from uuid import uuid4
 
+from fastapi import HTTPException
 from loguru import logger
 
 from lnbits.core.crud.settings import set_settings_field
+from lnbits.core.crud.users import (
+    consume_password_reset,
+    get_password_reset_account,
+    store_password_reset,
+)
 from lnbits.core.db import db
 from lnbits.core.models.extensions import UserExtension
 from lnbits.core.models.users import RegisterUser
 from lnbits.db import Connection
+from lnbits.helpers import sha256s
 from lnbits.settings import (
     EditableSettings,
     SuperSettings,
@@ -38,6 +48,42 @@ from ..models import (
     UserExtra,
 )
 from .settings import update_cached_settings
+
+
+async def create_password_reset(user_id: str, expiry_minutes: int = 2) -> str:
+    if settings.is_super_user(user_id):
+        raise HTTPException(HTTPStatus.FORBIDDEN, "Cannot change superuser password.")
+    account = await get_account(user_id)
+    if not account:
+        raise HTTPException(HTTPStatus.NOT_FOUND, "User not found.")
+    limit = 2 if account.is_admin else 60
+    if not 1 <= expiry_minutes <= limit:
+        raise HTTPException(
+            HTTPStatus.BAD_REQUEST,
+            f"Password reset expiry must be between 1 and {limit} minutes.",
+        )
+
+    token = f"reset_key_{secrets.token_urlsafe(32)}"
+    issued_at = int(time())
+    if not await store_password_reset(
+        user_id, sha256s(token), issued_at, issued_at + expiry_minutes * 60
+    ):
+        raise HTTPException(HTTPStatus.NOT_FOUND, "User not found.")
+    return token
+
+
+async def reset_user_password(token: str, password: str) -> Account:
+    if not token.startswith("reset_key_"):
+        raise HTTPException(HTTPStatus.BAD_REQUEST, "This is not a reset key.")
+    token_hash = sha256s(token)
+    account = await get_password_reset_account(token_hash)
+    if not account or account.is_super_user:
+        raise HTTPException(HTTPStatus.BAD_REQUEST, "Invalid or expired reset key.")
+    account.hash_password(password)
+    max_age = 120 if account.is_admin else 3600
+    if not await consume_password_reset(account, token_hash, max_age):
+        raise HTTPException(HTTPStatus.BAD_REQUEST, "Invalid or expired reset key.")
+    return account
 
 
 async def create_user_account(

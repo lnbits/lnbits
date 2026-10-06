@@ -1,11 +1,9 @@
-import base64
-import json
-import time
 from http import HTTPStatus
+from typing import Annotated
 from uuid import uuid4
 
 import shortuuid
-from fastapi import APIRouter, Body, Depends
+from fastapi import APIRouter, Body, Depends, Query
 from fastapi.exceptions import HTTPException
 
 from lnbits.core.crud import (
@@ -42,6 +40,7 @@ from lnbits.core.services import (
     update_wallet_balance,
 )
 from lnbits.core.services.lightning_address import set_wallet_lightning_address
+from lnbits.core.services.users import create_password_reset
 from lnbits.db import Filters, Page
 from lnbits.decorators import (
     check_admin,
@@ -49,10 +48,7 @@ from lnbits.decorators import (
     check_super_user,
     parse_filters,
 )
-from lnbits.helpers import (
-    encrypt_internal_message,
-    generate_filter_params_openapi,
-)
+from lnbits.helpers import generate_filter_params_openapi
 from lnbits.settings import EditableSettings, settings
 from lnbits.utils.exchange_rates import allowed_currencies
 from lnbits.utils.nostr import normalize_public_key
@@ -193,20 +189,10 @@ async def api_users_delete_user(
     dependencies=[Depends(check_super_user)],
     name="Reset user password",
 )
-async def api_users_reset_password(user_id: str) -> str:
-    if user_id == settings.super_user:
-        raise HTTPException(
-            status_code=HTTPStatus.FORBIDDEN,
-            detail="Cannot change superuser password.",
-        )
-
-    reset_data = ["reset", user_id, int(time.time())]
-    reset_data_json = json.dumps(reset_data, separators=(",", ":"), ensure_ascii=False)
-    reset_key = encrypt_internal_message(reset_data_json)
-    if not reset_key:
-        raise ValueError("Cannot generate reset key.")
-    reset_key_b64 = base64.b64encode(reset_key.encode()).decode()
-    return f"reset_key_{reset_key_b64}"
+async def api_users_reset_password(
+    user_id: str, expiry_minutes: Annotated[int, Query(ge=1, le=60)] = 2
+) -> str:
+    return await create_password_reset(user_id, expiry_minutes)
 
 
 @users_router.put(

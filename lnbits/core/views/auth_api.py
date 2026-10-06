@@ -33,6 +33,7 @@ from lnbits.core.services import create_user_account
 from lnbits.core.services.two_factor import issue_challenge, session_payload
 from lnbits.core.services.users import (
     check_register_activation_settings,
+    reset_user_password,
     update_user_account,
 )
 from lnbits.decorators import (
@@ -550,35 +551,8 @@ async def reset_password(data: ResetUserPassword) -> JSONResponse:
         )
 
     if data.password != data.password_repeat:
-        raise ValueError("Passwords do not match.")
-    if not data.reset_key[:10].startswith("reset_key_"):
-        raise ValueError("This is not a reset key.")
-
-    try:
-        reset_key = base64.b64decode(data.reset_key[10:]).decode()
-        reset_data_json = decrypt_internal_message(reset_key)
-    except Exception as exc:
-        raise ValueError("Invalid reset key.") from exc
-
-    if not reset_data_json:
-        raise ValueError("Cannot process reset key.")
-
-    action, user_id, request_time = json.loads(reset_data_json)
-    if not action:
-        raise ValueError("Missing action.")
-    if not user_id:
-        raise ValueError("Missing user ID.")
-    if not request_time:
-        raise ValueError("Missing reset time.")
-
-    _validate_auth_timeout(request_time)
-
-    account = await get_account(user_id)
-    if not account:
-        raise HTTPException(HTTPStatus.NOT_FOUND, "User not found.")
-
-    account.hash_password(data.password)
-    await update_account(account)
+        raise HTTPException(HTTPStatus.BAD_REQUEST, "Passwords do not match.")
+    account = await reset_user_password(data.reset_key, data.password)
     return await _login_response(account)
 
 
