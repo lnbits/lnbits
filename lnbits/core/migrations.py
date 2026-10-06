@@ -968,3 +968,13 @@ async def m053_balances_view_include_onchain(db: Connection):
         AND (wallets.deleted = false OR wallets.deleted is NULL)
         GROUP BY wallets.id
     """)
+
+
+async def m054_password_reset_tokens(db: Connection):
+    await db.execute("ALTER TABLE accounts ADD COLUMN password_reset_hash TEXT")
+    await db.execute("ALTER TABLE accounts ADD COLUMN password_reset_expires_at BIGINT")
+    await db.execute("ALTER TABLE accounts ADD COLUMN password_reset_issued_at BIGINT")
+    await db.execute("""
+        CREATE UNIQUE INDEX idx_accounts_password_reset_hash
+        ON accounts (password_reset_hash)
+    """)

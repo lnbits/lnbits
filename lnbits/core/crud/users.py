@@ -48,8 +48,76 @@ async def get_accounts_count(conn: Connection | None = None) -> int:
 
 async def update_account(account: Account, conn: Connection | None = None) -> Account:
     account.updated_at = datetime.now(timezone.utc)
-    await (conn or db).update("accounts", account)
+    # Revoke resets in the same write as a password change, including stale writes.
+    await (conn or db).update(
+        "accounts",
+        account,
+        extra_set="""password_reset_hash = CASE
+            WHEN COALESCE(password_hash, '') = COALESCE(:password_hash, '')
+            THEN password_reset_hash ELSE NULL END""",
+    )
     return account
+
+
+async def store_password_reset(
+    user_id: str, token_hash: str, issued_at: int, expires_at: int
+) -> bool:
+    result = await db.execute(
+        """
+        UPDATE accounts SET password_reset_hash = :token_hash,
+            password_reset_issued_at = :issued_at,
+            password_reset_expires_at = :expires_at
+        WHERE id = :user_id AND activated = true
+        """,
+        {
+            "user_id": user_id,
+            "token_hash": token_hash,
+            "issued_at": issued_at,
+            "expires_at": expires_at,
+        },
+    )
+    return result.rowcount == 1
+
+
+async def get_password_reset_account(token_hash: str) -> Account | None:
+    return await db.fetchone(
+        """
+        SELECT * FROM accounts
+        WHERE password_reset_hash = :token_hash AND activated = true
+            AND password_reset_expires_at > :now
+        """,
+        {"token_hash": token_hash, "now": int(time())},
+        Account,
+    )
+
+
+async def consume_password_reset(
+    account: Account, token_hash: str, max_age: int, conn: Connection | None = None
+) -> bool:
+    now = int(time())
+    account.updated_at = datetime.now(timezone.utc)
+    # Claim the token and change the password in one database write.
+    result = await (conn or db).execute(
+        f"""
+        UPDATE accounts SET password_hash = :password_hash,
+            updated_at = {db.timestamp_placeholder('updated_at')},
+            password_reset_hash = NULL, password_reset_expires_at = NULL,
+            password_reset_issued_at = NULL
+        WHERE id = :user_id AND activated = true
+            AND password_reset_hash = :token_hash
+            AND password_reset_expires_at > :now
+            AND password_reset_issued_at > :oldest
+        """,  # noqa: S608
+        {
+            "user_id": account.id,
+            "password_hash": account.password_hash,
+            "updated_at": account.updated_at.timestamp(),
+            "token_hash": token_hash,
+            "now": now,
+            "oldest": now - max_age,
+        },
+    )
+    return result.rowcount == 1
 
 
 async def delete_account(user_id: str, conn: Connection | None = None) -> None:
