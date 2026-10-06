@@ -531,7 +531,7 @@ async def test_host_api_wallet_methods_require_permissions_and_user_wallets(
 
     wallet = SimpleNamespace(id="wallet-1", name="Wallet", currency="USD")
     mocker.patch(
-        "lnbits.core.wasm_ext.api.host.get_wallets",
+        "lnbits.core.crud.wallets.get_wallets",
         mocker.AsyncMock(return_value=[wallet]),
     )
     api = ExtensionHostAPI("demoext", ["wallet.list"], user_id="user-1")
@@ -547,7 +547,7 @@ async def test_host_api_wallet_balance_rejects_other_users_wallets(
     mocker: MockerFixture,
 ):
     mocker.patch(
-        "lnbits.core.wasm_ext.api.host.get_wallet",
+        "lnbits.core.crud.wallets.get_wallet",
         mocker.AsyncMock(return_value=SimpleNamespace(id="wallet-1", user="other")),
     )
     api = ExtensionHostAPI(
@@ -573,7 +573,7 @@ async def test_host_api_wallet_balance_returns_safe_summary(mocker: MockerFixtur
         can_send_payments=True,
     )
     mocker.patch(
-        "lnbits.core.wasm_ext.api.host.get_wallet",
+        "lnbits.core.crud.wallets.get_wallet",
         mocker.AsyncMock(return_value=wallet),
     )
     api = ExtensionHostAPI(
@@ -597,11 +597,11 @@ async def test_host_api_pay_invoice_checks_wallet_owner_and_returns_payment_erro
 ):
     wallet = SimpleNamespace(id="wallet-1", user="user-1")
     mocker.patch(
-        "lnbits.core.wasm_ext.api.host.get_wallet",
+        "lnbits.core.crud.wallets.get_wallet",
         mocker.AsyncMock(return_value=wallet),
     )
     mocker.patch(
-        "lnbits.core.wasm_ext.api.host.services.pay_invoice",
+        "lnbits.core.services.payments.pay_invoice",
         mocker.AsyncMock(side_effect=PaymentError("insufficient balance")),
     )
     api = ExtensionHostAPI("demoext", ["wallet.pay_invoice"], user_id="user-1")
@@ -626,7 +626,7 @@ async def test_host_api_background_pay_invoice_requires_background_permission(
 ):
     wallet = SimpleNamespace(id="wallet-1", user="user-1")
     mocker.patch(
-        "lnbits.core.wasm_ext.api.host.get_wallet",
+        "lnbits.core.crud.wallets.get_wallet",
         mocker.AsyncMock(return_value=wallet),
     )
     api = ExtensionHostAPI("demoext", [], context="event")
@@ -651,7 +651,7 @@ async def test_host_api_background_pay_invoice_uses_background_grant_metadata(
 ):
     wallet = SimpleNamespace(id="wallet-1", user="user-1")
     mocker.patch(
-        "lnbits.core.wasm_ext.api.host.get_wallet",
+        "lnbits.core.crud.wallets.get_wallet",
         mocker.AsyncMock(return_value=wallet),
     )
     mocker.patch(
@@ -679,7 +679,7 @@ async def test_host_api_background_pay_invoice_uses_background_grant_metadata(
         success=True,
     )
     pay_mock = mocker.patch(
-        "lnbits.core.wasm_ext.api.host.services.pay_invoice",
+        "lnbits.core.services.payments.pay_invoice",
         mocker.AsyncMock(return_value=payment),
     )
     api = ExtensionHostAPI(
@@ -722,7 +722,7 @@ async def test_payment_intent_timeout_persists_invoice_and_never_resends(
 
     wallet = SimpleNamespace(id=wallet_id, user="user-1", can_send_payments=True)
     mocker.patch(
-        "lnbits.core.wasm_ext.api.host.get_wallet",
+        "lnbits.core.crud.wallets.get_wallet",
         mocker.AsyncMock(return_value=wallet),
     )
     mocker.patch(
@@ -739,7 +739,7 @@ async def test_payment_intent_timeout_persists_invoice_and_never_resends(
         mocker.AsyncMock(return_value=(invoice, payment_hash, "")),
     )
     pay_mock = mocker.patch(
-        "lnbits.core.wasm_ext.api.host.services.pay_invoice",
+        "lnbits.core.services.payments.pay_invoice",
         mocker.AsyncMock(side_effect=TimeoutError("payment backend timed out")),
     )
     api = ExtensionHostAPI(extension_id, ["wallet.payment_intents"], user_id="user-1")
@@ -787,9 +787,7 @@ async def test_payment_intent_reconciles_existing_payment_after_failed_error(
         "payment_request": None,
         "payment_hash": None,
     }
-    mocker.patch(
-        "lnbits.core.wasm_ext.api.host.services.fee_reserve_total", return_value=10
-    )
+    mocker.patch("lnbits.core.services.payments.fee_reserve_total", return_value=10)
     mocker.patch(
         "lnbits.core.wasm_ext.api.host.resolve_payment_intent_invoice",
         mocker.AsyncMock(return_value=("lnbc1invoice", payment_hash, "")),
@@ -803,13 +801,13 @@ async def test_payment_intent_reconciles_existing_payment_after_failed_error(
         mocker.AsyncMock(return_value=True),
     )
     mocker.patch(
-        "lnbits.core.wasm_ext.api.host.services.pay_invoice",
+        "lnbits.core.services.payments.pay_invoice",
         mocker.AsyncMock(
             side_effect=PaymentError("Internal invoice already paid.", status="failed")
         ),
     )
     mocker.patch(
-        "lnbits.core.wasm_ext.api.host.get_standalone_payment",
+        "lnbits.core.crud.payments.get_standalone_payment",
         mocker.AsyncMock(return_value=SimpleNamespace(success=True)),
     )
     reconcile = mocker.patch(
@@ -833,11 +831,11 @@ async def test_host_api_can_fetch_lnurl_invoice_without_paying(
     mocker: MockerFixture,
 ):
     mocker.patch(
-        "lnbits.core.wasm_ext.api.host.get_wallet",
+        "lnbits.core.crud.wallets.get_wallet",
         mocker.AsyncMock(return_value=SimpleNamespace(id="wallet-1", user="user-1")),
     )
     mocker.patch(
-        "lnbits.core.wasm_ext.api.host.fetch_lnurl_pay_request",
+        "lnbits.core.services.lnurl.fetch_lnurl_pay_request",
         mocker.AsyncMock(
             return_value=(
                 SimpleNamespace(),
@@ -852,7 +850,7 @@ async def test_host_api_can_fetch_lnurl_invoice_without_paying(
         "lnbits.core.wasm_ext.api.host.background_payment_extra",
         mocker.AsyncMock(return_value={"tag": "demoext"}),
     )
-    pay_mock = mocker.patch("lnbits.core.wasm_ext.api.host.services.pay_invoice")
+    pay_mock = mocker.patch("lnbits.core.services.payments.pay_invoice")
     api = ExtensionHostAPI(
         "demoext", ["wallet.pay_invoice_background"], context="event"
     )
@@ -891,7 +889,7 @@ async def test_host_api_public_invoice_uses_granted_source_policy(
         checking_id="checking-id",
     )
     create_mock = mocker.patch(
-        "lnbits.core.wasm_ext.api.host.services.create_payment_request",
+        "lnbits.core.services.payments.create_payment_request",
         mocker.AsyncMock(return_value=payment),
     )
     api = ExtensionHostAPI(

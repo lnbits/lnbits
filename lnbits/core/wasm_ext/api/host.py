@@ -7,19 +7,9 @@ import time
 from collections.abc import Iterable, Mapping
 from typing import Any
 
-from lnurl import LnAddressError, LnurlResponseException
-
-from lnbits.core import services
-from lnbits.core.crud.payments import get_standalone_payment
-from lnbits.core.crud.wallets import get_wallet, get_wallets
-from lnbits.core.models.lnurl import CreateLnurlPayment
-from lnbits.core.models.payments import CreateInvoice
-from lnbits.core.services.lnurl import fetch_lnurl_pay_request
-from lnbits.exceptions import PaymentError
 from lnbits.helpers import sha256s
 
 from ..client.extensions import send_extension_api_request
-from ..client.http import send_extension_http_request
 from ..storage.crud import (
     OWNER_ID_FIELD,
     storage_append_public_row,
@@ -40,12 +30,6 @@ from .background_payments import (
     _background_payment_grant,
     background_payment_extra,
     invoice_amount_msat,
-)
-from .lnurl import (
-    lnurl_for_core,
-    lnurl_pay_response_text,
-    lnurl_payment_amount_for_core,
-    lnurl_payment_unit_for_core,
 )
 from .models import (
     CreateInvoicePublicRequest,
@@ -100,7 +84,6 @@ from .payment_intents import (
     set_payment_intent_status,
 )
 from .registry import extension_api_method
-from .utils import ExtensionAPIUtils
 from .websockets import scoped_websocket_item_id, wasm_extension_websocket_hub
 
 logger = logging.getLogger("lnbits.extensions")
@@ -128,6 +111,7 @@ class ExtensionHostAPI:
         self.owner_id = sha256s(user_id) if user_id else owner_id
         self.invocation_id = invocation_id
         self.runtime_limits = runtime_limits or {}
+        from .utils import ExtensionAPIUtils
 
         self.utils = ExtensionAPIUtils(
             self.extension_id,
@@ -449,6 +433,10 @@ class ExtensionHostAPI:
     async def wallet_create_invoice(
         self, request: CreateInvoiceRequest
     ) -> CreateInvoiceResponse:
+        from lnbits.core.crud.wallets import get_wallet
+        from lnbits.core.models.payments import CreateInvoice
+        from lnbits.core.services.payments import create_payment_request
+
         if not self.user_id:
             raise PermissionError(
                 "Creating an invoice for this wallet requires an "
@@ -458,7 +446,7 @@ class ExtensionHostAPI:
         if wallet is None or wallet.user != self.user_id:
             raise PermissionError("Not your wallet.")
 
-        payment = await services.create_payment_request(
+        payment = await create_payment_request(
             request.wallet_id,
             CreateInvoice(
                 amount=request.amount,
@@ -487,6 +475,9 @@ class ExtensionHostAPI:
     async def wallet_create_invoice_public(
         self, request: CreateInvoicePublicRequest
     ) -> CreateInvoiceResponse:
+        from lnbits.core.models.payments import CreateInvoice
+        from lnbits.core.services.payments import create_payment_request
+
         row: dict[str, Any] | None = None
         wallet_field = ""
         for policy in self._public_invoice_wallet_sources():
@@ -506,7 +497,7 @@ class ExtensionHostAPI:
         if not isinstance(wallet_id, str) or not wallet_id:
             raise PermissionError("Public invoice source has no valid wallet.")
 
-        payment = await services.create_payment_request(
+        payment = await create_payment_request(
             wallet_id,
             CreateInvoice(
                 amount=request.amount,
@@ -543,6 +534,8 @@ class ExtensionHostAPI:
                 "Listing user wallets requires an authenticated user context."
             )
 
+        from lnbits.core.crud.wallets import get_wallets
+
         user_wallets = await get_wallets(self.user_id)
         if user_wallets is None:
             raise PermissionError(
@@ -567,6 +560,8 @@ class ExtensionHostAPI:
     async def wallet_balance(
         self, request: WalletBalanceRequest
     ) -> WalletBalanceResponse:
+        from lnbits.core.crud.wallets import get_wallet
+
         if not self.user_id:
             raise PermissionError(
                 "Reading a wallet balance requires an authenticated user context."
@@ -678,6 +673,10 @@ class ExtensionHostAPI:
     async def wallet_pay_invoice(
         self, request: PayInvoiceRequest
     ) -> PayInvoiceResponse:
+        from lnbits.core.crud.wallets import get_wallet
+        from lnbits.core.services.payments import pay_invoice
+        from lnbits.exceptions import PaymentError
+
         wallet = await get_wallet(request.wallet_id)
         if wallet is None:
             raise PermissionError("Paying invoices from this wallet is not allowed.")
@@ -689,7 +688,7 @@ class ExtensionHostAPI:
                     raise PermissionError(
                         "Paying invoices from this wallet is not allowed."
                     )
-                payment = await services.pay_invoice(
+                payment = await pay_invoice(
                     wallet_id=request.wallet_id,
                     payment_request=request.payment_request,
                     max_sat=request.max_sat,
@@ -706,7 +705,7 @@ class ExtensionHostAPI:
                     payment_request=request.payment_request,
                     amount_msat=amount_msat,
                 )
-                payment = await services.pay_invoice(
+                payment = await pay_invoice(
                     wallet_id=request.wallet_id,
                     payment_request=request.payment_request,
                     max_sat=request.max_sat,
@@ -728,6 +727,21 @@ class ExtensionHostAPI:
         description="Pay a Lightning Address or LNURL-pay request from a wallet.",
     )
     async def wallet_pay_lnurl(self, request: PayLnurlRequest) -> PayInvoiceResponse:
+        from lnurl import LnAddressError, LnurlResponseException
+
+        from lnbits.core.crud.wallets import get_wallet
+        from lnbits.core.models.lnurl import CreateLnurlPayment
+        from lnbits.core.services.lnurl import fetch_lnurl_pay_request
+        from lnbits.core.services.payments import pay_invoice
+        from lnbits.exceptions import PaymentError
+
+        from .lnurl import (
+            lnurl_for_core,
+            lnurl_pay_response_text,
+            lnurl_payment_amount_for_core,
+            lnurl_payment_unit_for_core,
+        )
+
         wallet = await get_wallet(request.wallet_id)
         if wallet is None:
             raise PermissionError("Paying from this wallet is not allowed.")
@@ -777,7 +791,7 @@ class ExtensionHostAPI:
             if request.fetch_only:
                 return PayInvoiceResponse(payment_request=str(action.pr))
 
-            payment = await services.pay_invoice(
+            payment = await pay_invoice(
                 wallet_id=request.wallet_id,
                 payment_request=str(action.pr),
                 max_sat=request.max_sat,
@@ -807,6 +821,8 @@ class ExtensionHostAPI:
         require_auth=True,
     )
     async def http_request(self, request: HttpRequest) -> HttpResponse:
+        from ..client.http import send_extension_http_request
+
         policies = self.permission_policies.get("http.request") or []
         return await send_extension_http_request(
             self.extension_id,
@@ -881,193 +897,6 @@ class ExtensionHostAPI:
         log = getattr(logger, request.level)
         log("extension:%s %s", self.extension_id, request.message)
         return LogResponse()
-
-    def require_permission(self, permission: str | None) -> None:
-        if permission and permission not in self.permissions:
-            raise PermissionError(
-                f"Extension '{self.extension_id}' is missing permission '{permission}'."
-            )
-
-    def has_authenticated_context(self) -> bool:
-        return bool(self.user_id) or self.context == "event"
-
-    def __repr__(self) -> str:
-        return (
-            "ExtensionHostAPI("
-            f"extension_id={self.extension_id!r}, "
-            f"context={self.context!r}, "
-            f"owner_id={self.owner_id!r}"
-            ")"
-        )
-
-    async def _payment_intent_wallet(
-        self, wallet_id: str
-    ) -> tuple[Any, int | float | None]:
-        wallet = await get_wallet(wallet_id)
-        if not wallet:
-            raise PermissionError(
-                "Using this wallet for a payment intent is not allowed."
-            )
-        if self.user_id:
-            if wallet.user != self.user_id or not wallet.can_send_payments:
-                raise PermissionError(
-                    "Using this wallet for a payment intent is not allowed."
-                )
-            return wallet, None
-
-        self.require_permission(WALLET_PAY_INVOICE_BACKGROUND_PERMISSION)
-        grant = await _background_payment_grant(self.extension_id, wallet, 0)
-        return wallet, grant.max_amount * 1000
-
-    async def _run_payment_intent(  # noqa: C901
-        self, intent: dict[str, Any], wallet: Any
-    ) -> dict[str, Any]:
-        amount_msat = intent["amount_msat"]
-        if services.fee_reserve_total(amount_msat) > intent["max_fee_msat"]:
-            return (
-                await set_payment_intent_status(
-                    self.extension_id,
-                    intent["id"],
-                    "failed",
-                    error="Configured fee reserve now exceeds the intent ceiling.",
-                )
-                or intent
-            )
-
-        try:
-            (
-                payment_request,
-                payment_hash,
-                description,
-            ) = await resolve_payment_intent_invoice(intent)
-            if not await save_payment_intent_invoice(
-                self.extension_id, intent["id"], payment_request, payment_hash
-            ):
-                return (
-                    await get_payment_intent(
-                        self.extension_id,
-                        intent["wallet_id"],
-                        intent["idempotency_key"],
-                        intent["owner_user_id"],
-                    )
-                    or intent
-                )
-            intent = {
-                **intent,
-                "payment_request": payment_request,
-                "payment_hash": payment_hash,
-                "checking_id": payment_hash,
-            }
-            extra = {"tag": self.extension_id, "extension": self.extension_id}
-            if not self.user_id:
-                extra.update(
-                    await background_payment_extra(
-                        extension_id=self.extension_id,
-                        wallet=wallet,
-                        payment_request=payment_request,
-                        amount_msat=amount_msat,
-                    )
-                )
-        except (PermissionError, ValueError) as exc:
-            return (
-                await set_payment_intent_status(
-                    self.extension_id,
-                    intent["id"],
-                    "failed",
-                    error=str(exc)[:512],
-                )
-                or intent
-            )
-        except Exception:
-            return (
-                await set_payment_intent_status(
-                    self.extension_id,
-                    intent["id"],
-                    "failed",
-                    error=(
-                        "Destination invoice could not be prepared; retry explicitly."
-                    ),
-                )
-                or intent
-            )
-
-        if not await mark_payment_intent_attempted(self.extension_id, intent["id"]):
-            return (
-                await get_payment_intent(
-                    self.extension_id,
-                    intent["wallet_id"],
-                    intent["idempotency_key"],
-                    intent["owner_user_id"],
-                )
-                or intent
-            )
-        intent = {**intent, "attempted": True}
-        try:
-            payment = await services.pay_invoice(
-                wallet_id=intent["wallet_id"],
-                payment_request=payment_request,
-                extra=extra,
-                description=(
-                    description
-                    or intent.get("description")
-                    or f"WASM {self.extension_id} payment"
-                ),
-                tag=self.extension_id,
-                external_id=intent["id"],
-            )
-        except PaymentError as exc:
-            if exc.status == "failed":
-                payment_record = await get_standalone_payment(
-                    intent["payment_hash"], wallet_id=intent["wallet_id"]
-                )
-                if payment_record:
-                    return await reconcile_payment_intent(self.extension_id, intent)
-                return (
-                    await set_payment_intent_status(
-                        self.extension_id,
-                        intent["id"],
-                        "failed",
-                        error="Payment failed.",
-                        attempted=False,
-                    )
-                    or intent
-                )
-            return await reconcile_payment_intent(self.extension_id, intent)
-        except Exception:
-            return (
-                await set_payment_intent_status(
-                    self.extension_id,
-                    intent["id"],
-                    "unknown",
-                    error="Payment outcome is ambiguous; reconcile before retrying.",
-                )
-                or intent
-            )
-
-        if payment.success:
-            return (
-                await set_payment_intent_status(
-                    self.extension_id,
-                    intent["id"],
-                    "paid",
-                    fee_msat=abs(payment.fee),
-                )
-                or intent
-            )
-        if payment.failed:
-            return (
-                await set_payment_intent_status(
-                    self.extension_id,
-                    intent["id"],
-                    "failed",
-                    error="Payment failed.",
-                )
-                or intent
-            )
-        return (
-            await set_payment_intent_status(self.extension_id, intent["id"], "pending")
-            or intent
-        )
 
     @staticmethod
     def _permission_data(
@@ -1311,10 +1140,203 @@ class ExtensionHostAPI:
             )
         return max_messages_per_second
 
+    def require_permission(self, permission: str | None) -> None:
+        if permission and permission not in self.permissions:
+            raise PermissionError(
+                f"Extension '{self.extension_id}' is missing permission '{permission}'."
+            )
+
+    def has_authenticated_context(self) -> bool:
+        return bool(self.user_id) or self.context == "event"
+
     def _require_owner_id(self) -> str:
         if not self.owner_id:
             raise PermissionError("Extension API method requires an owner context.")
         return self.owner_id
+
+    def __repr__(self) -> str:
+        return (
+            "ExtensionHostAPI("
+            f"extension_id={self.extension_id!r}, "
+            f"context={self.context!r}, "
+            f"owner_id={self.owner_id!r}"
+            ")"
+        )
+
+    async def _payment_intent_wallet(
+        self, wallet_id: str
+    ) -> tuple[Any, int | float | None]:
+        from lnbits.core.crud.wallets import get_wallet
+
+        wallet = await get_wallet(wallet_id)
+        if not wallet:
+            raise PermissionError(
+                "Using this wallet for a payment intent is not allowed."
+            )
+        if self.user_id:
+            if wallet.user != self.user_id or not wallet.can_send_payments:
+                raise PermissionError(
+                    "Using this wallet for a payment intent is not allowed."
+                )
+            return wallet, None
+
+        self.require_permission(WALLET_PAY_INVOICE_BACKGROUND_PERMISSION)
+        grant = await _background_payment_grant(self.extension_id, wallet, 0)
+        return wallet, grant.max_amount * 1000
+
+    async def _run_payment_intent(  # noqa: C901
+        self, intent: dict[str, Any], wallet: Any
+    ) -> dict[str, Any]:
+        from lnbits.core.crud.payments import get_standalone_payment
+        from lnbits.core.services.payments import fee_reserve_total, pay_invoice
+        from lnbits.exceptions import PaymentError
+
+        amount_msat = intent["amount_msat"]
+        if fee_reserve_total(amount_msat) > intent["max_fee_msat"]:
+            return (
+                await set_payment_intent_status(
+                    self.extension_id,
+                    intent["id"],
+                    "failed",
+                    error="Configured fee reserve now exceeds the intent ceiling.",
+                )
+                or intent
+            )
+
+        try:
+            (
+                payment_request,
+                payment_hash,
+                description,
+            ) = await resolve_payment_intent_invoice(intent)
+            if not await save_payment_intent_invoice(
+                self.extension_id, intent["id"], payment_request, payment_hash
+            ):
+                return (
+                    await get_payment_intent(
+                        self.extension_id,
+                        intent["wallet_id"],
+                        intent["idempotency_key"],
+                        intent["owner_user_id"],
+                    )
+                    or intent
+                )
+            intent = {
+                **intent,
+                "payment_request": payment_request,
+                "payment_hash": payment_hash,
+                "checking_id": payment_hash,
+            }
+            extra = {"tag": self.extension_id, "extension": self.extension_id}
+            if not self.user_id:
+                extra.update(
+                    await background_payment_extra(
+                        extension_id=self.extension_id,
+                        wallet=wallet,
+                        payment_request=payment_request,
+                        amount_msat=amount_msat,
+                    )
+                )
+        except (PermissionError, ValueError) as exc:
+            return (
+                await set_payment_intent_status(
+                    self.extension_id,
+                    intent["id"],
+                    "failed",
+                    error=str(exc)[:512],
+                )
+                or intent
+            )
+        except Exception:
+            return (
+                await set_payment_intent_status(
+                    self.extension_id,
+                    intent["id"],
+                    "failed",
+                    error=(
+                        "Destination invoice could not be prepared; retry explicitly."
+                    ),
+                )
+                or intent
+            )
+
+        if not await mark_payment_intent_attempted(self.extension_id, intent["id"]):
+            return (
+                await get_payment_intent(
+                    self.extension_id,
+                    intent["wallet_id"],
+                    intent["idempotency_key"],
+                    intent["owner_user_id"],
+                )
+                or intent
+            )
+        intent = {**intent, "attempted": True}
+        try:
+            payment = await pay_invoice(
+                wallet_id=intent["wallet_id"],
+                payment_request=payment_request,
+                extra=extra,
+                description=(
+                    description
+                    or intent.get("description")
+                    or f"WASM {self.extension_id} payment"
+                ),
+                tag=self.extension_id,
+                external_id=intent["id"],
+            )
+        except PaymentError as exc:
+            if exc.status == "failed":
+                payment_record = await get_standalone_payment(
+                    intent["payment_hash"], wallet_id=intent["wallet_id"]
+                )
+                if payment_record:
+                    return await reconcile_payment_intent(self.extension_id, intent)
+                return (
+                    await set_payment_intent_status(
+                        self.extension_id,
+                        intent["id"],
+                        "failed",
+                        error="Payment failed.",
+                        attempted=False,
+                    )
+                    or intent
+                )
+            return await reconcile_payment_intent(self.extension_id, intent)
+        except Exception:
+            return (
+                await set_payment_intent_status(
+                    self.extension_id,
+                    intent["id"],
+                    "unknown",
+                    error="Payment outcome is ambiguous; reconcile before retrying.",
+                )
+                or intent
+            )
+
+        if payment.success:
+            return (
+                await set_payment_intent_status(
+                    self.extension_id,
+                    intent["id"],
+                    "paid",
+                    fee_msat=abs(payment.fee),
+                )
+                or intent
+            )
+        if payment.failed:
+            return (
+                await set_payment_intent_status(
+                    self.extension_id,
+                    intent["id"],
+                    "failed",
+                    error="Payment failed.",
+                )
+                or intent
+            )
+        return (
+            await set_payment_intent_status(self.extension_id, intent["id"], "pending")
+            or intent
+        )
 
 
 def _pay_invoice_response(payment: Any) -> PayInvoiceResponse:
