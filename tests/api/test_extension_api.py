@@ -7,6 +7,7 @@ from uuid import uuid4
 import pytest
 from fastapi import HTTPException
 from starlette.requests import Request
+from wasmtime import wat2wasm
 
 from lnbits.core.crud.db_versions import get_db_version, update_migration_version
 from lnbits.core.crud.extensions import (
@@ -844,7 +845,7 @@ def _write_wasm_extension_archive(
     root = f"{ext_id}-{version}"
     with zipfile.ZipFile(zip_path, "w") as archive:
         archive.writestr(f"{root}/config.json", json.dumps(config))
-        archive.writestr(f"{root}/{config['wasm']['module']}", b"\0asm")
+        archive.writestr(f"{root}/{config['wasm']['module']}", wat2wasm("(component)"))
 
 
 def _write_installed_wasm_config(

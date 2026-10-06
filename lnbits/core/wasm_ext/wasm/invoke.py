@@ -180,7 +180,7 @@ def _invoke_wasm_extension_export_sync(
 ) -> dict[str, Any]:
     from lnbits.core.services.extensions import attach_wasm_invocation_runtime
 
-    engine = _wasm_engine(limits["wasm_runtime_max_wasm_stack_bytes"])
+    engine = _wasm_engine(extension.id, limits["wasm_runtime_max_wasm_stack_bytes"])
     store = Store(engine)
     _set_store_limits(store, limits)
     _set_store_fuel(store, limits)
@@ -192,7 +192,7 @@ def _invoke_wasm_extension_export_sync(
     linker.add_wasip2()
     add_extension_host_imports(linker, ExtensionAPIHost(api), event_loop)
 
-    wasm_component = _wasm_component(extension, limits)
+    wasm_component = _wasm_component(extension, engine)
     instance = linker.instantiate(store, wasm_component)
     function = instance.get_func(store, export_name)
     if not function:
