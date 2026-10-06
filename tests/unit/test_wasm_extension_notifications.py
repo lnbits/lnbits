@@ -322,7 +322,7 @@ async def test_notification_rejects_missing_or_inactive_user(
     )
     api = event_api(user_id=user_id, invocation_id=event_invocation.id)
 
-    with pytest.raises(ValueError, match="recipient is unavailable"):
+    with pytest.raises(PermissionError, match="no notification recipient"):
         await ExtensionAPIHost(api).invoke(METHOD, REQUEST)
 
     get_account.assert_awaited_once_with("recipient-user")

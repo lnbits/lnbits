@@ -121,6 +121,8 @@ class ExtensionHostAPI:
         from lnbits.core.services.notifications import send_user_notification
 
         user = await self._current_user()
+        if not user:
+            raise PermissionError("Invocation has no notification recipient.")
 
         notifications = _user_notification_preferences(user, request.type)
         await send_user_notification(notifications, request.message)
@@ -782,27 +784,31 @@ class ExtensionHostAPI:
 
         return permission_ids, policies
 
-    async def _current_user(self):
+    async def _current_user_id(self) -> str | None:
         from lnbits.core.crud.extensions import get_wasm_invocation
-        from lnbits.core.crud.users import get_account
         from lnbits.core.crud.wallets import get_wallet
 
-        user_id = self.user_id
-        if not user_id and self.invocation_id:
-            invocation = await get_wasm_invocation(self.invocation_id)
-            if (
-                invocation
-                and invocation.extension_id == self.extension_id
-                and invocation.wallet_id
-            ):
-                wallet = await get_wallet(invocation.wallet_id)
-                user_id = wallet.user if wallet else None
+        if self.user_id:
+            return self.user_id
+        if not self.invocation_id:
+            return None
+        invocation = await get_wasm_invocation(self.invocation_id)
+        if (
+            invocation
+            and invocation.extension_id == self.extension_id
+            and invocation.wallet_id
+        ):
+            wallet = await get_wallet(invocation.wallet_id)
+            return wallet.user if wallet else None
+        return None
+
+    async def _current_user(self) -> Account | None:
+        from lnbits.core.crud.users import get_account
+
+        user_id = await self._current_user_id()
         if not user_id:
-            raise PermissionError("Invocation has no notification recipient.")
-        user = await get_account(user_id)
-        if not user:
-            raise ValueError("Notification recipient is unavailable.")
-        return user
+            return None
+        return await get_account(user_id)
 
     def _public_storage_policy(self, table: str) -> dict[str, Any]:
         tables = self.permission_policies.get("ext.storage.read_public")
