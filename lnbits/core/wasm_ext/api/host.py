@@ -611,7 +611,7 @@ class ExtensionHostAPI:
         intent = current or intent
         if claimed:
             intent = await self._run_payment_intent(intent, wallet)
-        return _payment_intent_response(intent)
+        return PaymentIntentResponse(intent_id=intent["id"], **intent)
 
     @extension_api_method(
         method_id="wallet.payment_intents.get_status",
@@ -635,7 +635,7 @@ class ExtensionHostAPI:
         )
         if not intent:
             raise KeyError("Payment intent was not found.")
-        return _payment_intent_response(intent)
+        return PaymentIntentResponse(intent_id=intent["id"], **intent)
 
     @extension_api_method(
         method_id="wallet.payment_intents.reconcile",
@@ -660,7 +660,7 @@ class ExtensionHostAPI:
         if not intent:
             raise KeyError("Payment intent was not found.")
         intent = await reconcile_payment_intent(self.extension_id, intent)
-        return _payment_intent_response(intent)
+        return PaymentIntentResponse(intent_id=intent["id"], **intent)
 
     @extension_api_method(
         method_id="wallet.pay_invoice",
@@ -1193,14 +1193,11 @@ class ExtensionHostAPI:
 
         amount_msat = intent["amount_msat"]
         if fee_reserve_total(amount_msat) > intent["max_fee_msat"]:
-            return (
-                await set_payment_intent_status(
-                    self.extension_id,
-                    intent["id"],
-                    "failed",
-                    error="Configured fee reserve now exceeds the intent ceiling.",
-                )
-                or intent
+            return await set_payment_intent_status(
+                self.extension_id,
+                intent,
+                "failed",
+                error="Configured fee reserve now exceeds the intent ceiling.",
             )
 
         try:
@@ -1238,26 +1235,18 @@ class ExtensionHostAPI:
                     )
                 )
         except (PermissionError, ValueError) as exc:
-            return (
-                await set_payment_intent_status(
-                    self.extension_id,
-                    intent["id"],
-                    "failed",
-                    error=str(exc)[:512],
-                )
-                or intent
+            return await set_payment_intent_status(
+                self.extension_id,
+                intent,
+                "failed",
+                error=str(exc)[:512],
             )
         except Exception:
-            return (
-                await set_payment_intent_status(
-                    self.extension_id,
-                    intent["id"],
-                    "failed",
-                    error=(
-                        "Destination invoice could not be prepared; retry explicitly."
-                    ),
-                )
-                or intent
+            return await set_payment_intent_status(
+                self.extension_id,
+                intent,
+                "failed",
+                error=("Destination invoice could not be prepared; retry explicitly."),
             )
 
         if not await mark_payment_intent_attempted(self.extension_id, intent["id"]):
@@ -1291,52 +1280,37 @@ class ExtensionHostAPI:
                 )
                 if payment_record:
                     return await reconcile_payment_intent(self.extension_id, intent)
-                return (
-                    await set_payment_intent_status(
-                        self.extension_id,
-                        intent["id"],
-                        "failed",
-                        error="Payment failed.",
-                        attempted=False,
-                    )
-                    or intent
+                return await set_payment_intent_status(
+                    self.extension_id,
+                    intent,
+                    "failed",
+                    error="Payment failed.",
+                    attempted=False,
                 )
             return await reconcile_payment_intent(self.extension_id, intent)
         except Exception:
-            return (
-                await set_payment_intent_status(
-                    self.extension_id,
-                    intent["id"],
-                    "unknown",
-                    error="Payment outcome is ambiguous; reconcile before retrying.",
-                )
-                or intent
+            return await set_payment_intent_status(
+                self.extension_id,
+                intent,
+                "unknown",
+                error="Payment outcome is ambiguous; reconcile before retrying.",
             )
 
         if payment.success:
-            return (
-                await set_payment_intent_status(
-                    self.extension_id,
-                    intent["id"],
-                    "paid",
-                    fee_msat=abs(payment.fee),
-                )
-                or intent
+            return await set_payment_intent_status(
+                self.extension_id,
+                intent,
+                "paid",
+                fee_msat=abs(payment.fee),
             )
         if payment.failed:
-            return (
-                await set_payment_intent_status(
-                    self.extension_id,
-                    intent["id"],
-                    "failed",
-                    error="Payment failed.",
-                )
-                or intent
+            return await set_payment_intent_status(
+                self.extension_id,
+                intent,
+                "failed",
+                error="Payment failed.",
             )
-        return (
-            await set_payment_intent_status(self.extension_id, intent["id"], "pending")
-            or intent
-        )
+        return await set_payment_intent_status(self.extension_id, intent, "pending")
 
 
 def _pay_invoice_response(payment: Any) -> PayInvoiceResponse:
@@ -1349,15 +1323,4 @@ def _pay_invoice_response(payment: Any) -> PayInvoiceResponse:
         fee_msat=abs(payment.fee),
         pending=payment.pending,
         success=payment.success,
-    )
-
-
-def _payment_intent_response(intent: dict[str, Any]) -> PaymentIntentResponse:
-    return PaymentIntentResponse(
-        intent_id=intent["id"],
-        idempotency_key=intent["idempotency_key"],
-        status=intent["status"],
-        amount_msat=intent["amount_msat"],
-        fee_msat=intent["fee_msat"],
-        error=intent["error"],
     )

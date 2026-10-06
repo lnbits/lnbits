@@ -24,9 +24,8 @@ OWNER_ID_FIELD = "__lnbits_owner_id__"
 VERSION_FIELD = "__lnbits_version__"
 IMMUTABLE_FIELD = "__lnbits_immutable__"
 MAX_STORAGE_VERSION = (1 << 63) - 1
-_DatabaseKey = tuple[str, str, str]
 _databases: WeakKeyDictionary[
-    asyncio.AbstractEventLoop, dict[_DatabaseKey, Database]
+    asyncio.AbstractEventLoop, dict[tuple[str, str, str], Database]
 ] = WeakKeyDictionary()
 
 

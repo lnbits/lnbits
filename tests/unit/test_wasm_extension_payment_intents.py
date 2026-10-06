@@ -185,7 +185,7 @@ async def test_over_ceiling_observed_payment_is_manually_resolvable(
     )
 
     unknown = await payment_intents.set_payment_intent_status(
-        extension_id, intent["id"], "paid", fee_msat=150
+        extension_id, intent, "paid", fee_msat=150
     )
     assert unknown is not None
     assert unknown["status"] == "unknown"
@@ -357,7 +357,7 @@ async def test_manual_intents_return_latest_audit_with_identical_timestamps(
 
 
 @pytest.mark.anyio
-async def test_concurrent_operator_actions_have_distinct_audit_sequences(
+async def test_concurrent_operator_actions_are_all_recorded(
     tmp_path: Path, settings: Settings, mocker: MockerFixture
 ):
     extension_id, database, intent = await _seed_intent(
@@ -391,54 +391,10 @@ async def test_concurrent_operator_actions_have_distinct_audit_sequences(
         database, payment_intents._PAYMENT_INTENT_MANUAL_AUDIT_TABLE
     )
     rows = await database.fetchall(
-        f"SELECT sequence FROM {audit} ORDER BY sequence"  # noqa: S608
+        f"SELECT id, note FROM {audit} ORDER BY id"  # noqa: S608
     )
-    assert [row["sequence"] for row in rows] == [1, 2, 3, 4, 5]
-
-
-@pytest.mark.anyio
-async def test_audit_sequence_upgrade_preserves_existing_actions(
-    tmp_path: Path, settings: Settings
-):
-    extension_id, database, intent = await _seed_intent(
-        tmp_path,
-        settings,
-        status="failed",
-        attempted=True,
-        manual=False,
-        payment_request="invoice",
-    )
-    await payment_intents.record_payment_intent_operator_action(
-        extension_id,
-        intent["id"],
-        intent["wallet_id"],
-        "first-actor",
-        "retry_requested",
-        "failed",
-        "Original note",
-    )
-    audit = payment_intents._table_ref(
-        database, payment_intents._PAYMENT_INTENT_MANUAL_AUDIT_TABLE
-    )
-    await database.execute(f"ALTER TABLE {audit} DROP COLUMN sequence")
-    payment_intents._initialized_databases.discard(database)
-    assert await payment_intents._database(extension_id) is database
-    await payment_intents.record_payment_intent_operator_action(
-        extension_id,
-        intent["id"],
-        intent["wallet_id"],
-        "second-actor",
-        "retry_result",
-        "failed",
-        "New note",
-    )
-    rows = await database.fetchall(
-        f"SELECT sequence, note FROM {audit} ORDER BY sequence"  # noqa: S608
-    )
-    assert [(row["sequence"], row["note"]) for row in rows] == [
-        (0, "Original note"),
-        (1, "New note"),
-    ]
+    assert len({row["id"] for row in rows}) == 5
+    assert {row["note"] for row in rows} == {f"Note {i}" for i in range(5)}
 
 
 async def _seed_intent(

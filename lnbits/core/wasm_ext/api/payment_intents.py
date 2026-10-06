@@ -17,6 +17,7 @@ from lnbits.core.wasm_ext.storage import crud as storage_crud
 from lnbits.db import SQLITE, Compat, Connection, Database
 
 from .lnurl import lnurl_for_core, lnurl_pay_response_text, lnurl_payment_unit_for_core
+from .models import PaymentIntentCreateRequest
 
 _PAYMENT_INTENTS_TABLE = "lnbits_payment_intents"
 _PAYMENT_INTENT_MANUAL_AUDIT_TABLE = "lnbits_payment_intent_manual_audit"
@@ -34,19 +35,15 @@ async def create_or_get_payment_intent(
     extension_id: str,
     wallet_id: str,
     owner_id: str,
-    request: Any,
+    request: PaymentIntentCreateRequest,
     max_amount_msat: int | float | None = None,
 ) -> dict[str, Any]:
     """Persist one immutable wallet operation before any external payment work."""
 
     from lnbits.core.services.payments import fee_reserve_total
 
-    destination = request.destination.strip()
-    if not destination:
-        raise ValueError("A payment destination is required.")
+    destination = request.destination
     amount_msat = request.amount_msat
-    if amount_msat <= 0 or amount_msat > _MAX_DB_INT:
-        raise ValueError("Payment amount is out of range.")
     if amount_msat + request.max_fee_msat > _MAX_DB_INT:
         raise ValueError("Payment reservation exceeds the supported amount.")
     if max_amount_msat is not None and amount_msat > max_amount_msat:
@@ -183,7 +180,7 @@ async def mark_payment_intent_attempted(extension_id: str, intent_id: str) -> bo
 
 async def set_payment_intent_status(
     extension_id: str,
-    intent_id: str,
+    intent: dict[str, Any],
     status: str,
     *,
     fee_msat: int = 0,
@@ -191,20 +188,20 @@ async def set_payment_intent_status(
     attempted: bool | None = None,
     expected_status: str | None = None,
     expected_attempted: bool | None = None,
-) -> dict[str, Any] | None:
+) -> dict[str, Any]:
     if status not in _PAYMENT_INTENT_STATES:
         raise ValueError("Invalid payment intent status.")
+    intent_id = intent["id"]
     database = await _database(extension_id)
     intents = _table_ref(database, _PAYMENT_INTENTS_TABLE)
     async with database.connect() as conn:
         async with _intent_transaction(conn):
-            row = await _raw_fetchone(
-                conn,
+            row = await conn.fetchone(
                 f"SELECT * FROM {intents} WHERE id = :id{_for_update(conn.type)}",  # noqa: S608
                 {"id": intent_id},
             )
             if not row:
-                return None
+                return intent
             if expected_status is not None and row["status"] != expected_status:
                 return row
             if (
@@ -243,10 +240,12 @@ async def set_payment_intent_status(
                     "id": intent_id,
                 },
             )
-            return await _raw_fetchone(
-                conn,
-                f"SELECT * FROM {intents} WHERE id = :id",  # noqa: S608
-                {"id": intent_id},
+            return (
+                await conn.fetchone(
+                    f"SELECT * FROM {intents} WHERE id = :id",  # noqa: S608
+                    {"id": intent_id},
+                )
+                or intent
             )
 
 
@@ -260,19 +259,15 @@ async def reconcile_payment_intent(
     if intent["manual_reconciliation"]:
         return intent
     if not intent["attempted"]:
-        return (
-            await set_payment_intent_status(
-                extension_id,
-                intent["id"],
-                "failed",
-                error=(
-                    "Interrupted before payment started; an explicit retry "
-                    "is available."
-                ),
-                expected_status="processing",
-                expected_attempted=False,
-            )
-            or intent
+        return await set_payment_intent_status(
+            extension_id,
+            intent,
+            "failed",
+            error=(
+                "Interrupted before payment started; an explicit retry is available."
+            ),
+            expected_status="processing",
+            expected_attempted=False,
         )
     payment = (
         await get_standalone_payment(
@@ -282,72 +277,49 @@ async def reconcile_payment_intent(
         else None
     )
     if not payment:
-        return (
-            await set_payment_intent_status(
-                extension_id,
-                intent["id"],
-                "unknown",
-                error=(
-                    "Payment record is unavailable; operator reconciliation "
-                    "is required."
-                ),
-            )
-            or intent
+        return await set_payment_intent_status(
+            extension_id,
+            intent,
+            "unknown",
+            error=(
+                "Payment record is unavailable; operator reconciliation is required."
+            ),
         )
     if payment.success:
-        return (
-            await set_payment_intent_status(
-                extension_id,
-                intent["id"],
-                "paid",
-                fee_msat=abs(payment.fee),
-            )
-            or intent
+        return await set_payment_intent_status(
+            extension_id,
+            intent,
+            "paid",
+            fee_msat=abs(payment.fee),
         )
     if payment.failed:
-        return (
-            await set_payment_intent_status(
-                extension_id, intent["id"], "failed", error="Payment failed."
-            )
-            or intent
+        return await set_payment_intent_status(
+            extension_id, intent, "failed", error="Payment failed."
         )
     try:
         status = await check_payment_status(payment)
     except Exception:
-        return (
-            await set_payment_intent_status(
-                extension_id,
-                intent["id"],
-                "unknown",
-                error=(
-                    "Payment status could not be confirmed; reconcile before retrying."
-                ),
-            )
-            or intent
+        return await set_payment_intent_status(
+            extension_id,
+            intent,
+            "unknown",
+            error="Payment status could not be confirmed; reconcile before retrying.",
         )
     if status.success:
         actual_fee_msat = abs(status.fee_msat or 0) + service_fee(
             abs(payment.amount), internal=payment.is_internal
         )
-        return (
-            await set_payment_intent_status(
-                extension_id,
-                intent["id"],
-                "paid",
-                fee_msat=actual_fee_msat,
-            )
-            or intent
+        return await set_payment_intent_status(
+            extension_id,
+            intent,
+            "paid",
+            fee_msat=actual_fee_msat,
         )
     if status.failed:
-        return (
-            await set_payment_intent_status(
-                extension_id, intent["id"], "failed", error="Payment failed."
-            )
-            or intent
+        return await set_payment_intent_status(
+            extension_id, intent, "failed", error="Payment failed."
         )
-    return (
-        await set_payment_intent_status(extension_id, intent["id"], "pending") or intent
-    )
+    return await set_payment_intent_status(extension_id, intent, "pending")
 
 
 async def resolve_payment_intent_invoice(
@@ -399,7 +371,7 @@ async def get_manual_payment_intents(
                 FROM {intents} i
                 LEFT JOIN {audit} a ON a.id = (
                     SELECT id FROM {audit} WHERE intent_id = i.id
-                    ORDER BY sequence DESC, created_at DESC LIMIT 1
+                    ORDER BY id DESC LIMIT 1
                 )
                 WHERE i.wallet_id = :wallet_id
                     AND (i.status = 'unknown'
@@ -416,8 +388,7 @@ async def get_payment_intent_by_id(
     database = await _database(extension_id)
     intents = _table_ref(database, _PAYMENT_INTENTS_TABLE)
     async with database.connect() as conn:
-        return await _raw_fetchone(
-            conn,
+        return await conn.fetchone(
             f"SELECT * FROM {intents} WHERE wallet_id = :wallet_id AND id = :id",  # noqa: S608
             {"wallet_id": wallet_id, "id": intent_id},
         )
@@ -446,8 +417,7 @@ async def resolve_manual_payment_intent(
     intents = _table_ref(database, _PAYMENT_INTENTS_TABLE)
     async with database.connect() as conn:
         async with _intent_transaction(conn):
-            intent = await _raw_fetchone(
-                conn,
+            intent = await conn.fetchone(
                 f"SELECT * FROM {intents} WHERE id = :id AND wallet_id = :wallet_id"  # noqa: S608
                 f"{_for_update(conn.type)}",
                 {"id": intent_id, "wallet_id": wallet_id},
@@ -477,8 +447,7 @@ async def resolve_manual_payment_intent(
                 fee_msat,
                 note,
             )
-            return await _raw_fetchone(
-                conn,
+            return await conn.fetchone(
                 f"SELECT * FROM {intents} WHERE id = :id",  # noqa: S608
                 {"id": intent_id},
             )
@@ -573,8 +542,7 @@ async def _reserve_payment_intent(
                         "request_json": request_json,
                     },
                 )
-                return await _raw_fetchone(
-                    conn,
+                return await conn.fetchone(
                     f"SELECT * FROM {intents} WHERE id = :id",  # noqa: S608
                     {"id": intent_id},
                 )
@@ -588,7 +556,7 @@ async def _reserve_payment_intent(
 
 
 async def _existing_intent(
-    conn: Any,
+    conn: Connection,
     database: Database,
     row: dict[str, Any],
     request_json: str,
@@ -620,8 +588,7 @@ async def _existing_intent(
             "id": row["id"],
         },
     )
-    return await _raw_fetchone(
-        conn,
+    return await conn.fetchone(
         f"SELECT * FROM {intents} WHERE id = :id",  # noqa: S608
         {"id": row["id"]},
     )
@@ -694,8 +661,7 @@ async def _create_payment_intent_tables(conn: Connection) -> None:
     """)
     await conn.execute(f"""
         CREATE TABLE IF NOT EXISTS {audit} (
-            id TEXT PRIMARY KEY,
-            sequence {conn.big_int} NOT NULL DEFAULT 0,
+            id {conn.serial_primary_key},
             intent_id TEXT NOT NULL,
             wallet_id TEXT NOT NULL,
             actor_id TEXT NOT NULL,
@@ -706,28 +672,6 @@ async def _create_payment_intent_tables(conn: Connection) -> None:
             created_at TIMESTAMP NOT NULL DEFAULT {conn.timestamp_now}
         )
     """)
-    if conn.type == SQLITE:
-        columns = await conn.fetchall(
-            f"PRAGMA {conn.schema}.table_info({_PAYMENT_INTENT_MANUAL_AUDIT_TABLE})"
-        )
-        has_sequence = any(column["name"] == "sequence" for column in columns)
-    else:
-        has_sequence = bool(
-            await conn.fetchone(
-                """SELECT column_name FROM information_schema.columns
-                WHERE table_schema = :schema AND table_name = :table
-                    AND column_name = 'sequence'""",
-                {
-                    "schema": conn.schema.lower() if conn.schema else None,
-                    "table": _PAYMENT_INTENT_MANUAL_AUDIT_TABLE,
-                },
-            )
-        )
-    if not has_sequence:
-        await conn.execute(
-            f"ALTER TABLE {audit} ADD COLUMN sequence "
-            f"{conn.big_int} NOT NULL DEFAULT 0"
-        )
 
 
 async def _insert_payment_intent_audit(
@@ -741,24 +685,13 @@ async def _insert_payment_intent_audit(
     note: str,
 ) -> None:
     audit = _table_ref(conn, _PAYMENT_INTENT_MANUAL_AUDIT_TABLE)
-    if conn.type != SQLITE:
-        intents = _table_ref(conn, _PAYMENT_INTENTS_TABLE)
-        await _raw_fetchone(
-            conn,
-            f"SELECT id FROM {intents} WHERE id = :id FOR UPDATE",  # noqa: S608
-            {"id": intent_id},
-        )
     await conn.conn.execute(
         text(f"""INSERT INTO {audit}
-            (id, sequence, intent_id, wallet_id, actor_id, action,
+            (intent_id, wallet_id, actor_id, action,
              resolved_status, fee_msat, note)
-            VALUES (:id,
-                (SELECT COALESCE(MAX(sequence), 0) + 1 FROM {audit}
-                    WHERE intent_id = :intent_id),
-                :intent_id, :wallet_id, :actor_id, :action,
+            VALUES (:intent_id, :wallet_id, :actor_id, :action,
                 :status, :fee_msat, :note)"""),  # noqa: S608
         {
-            "id": uuid4().hex,
             "intent_id": intent_id,
             "wallet_id": wallet_id,
             "actor_id": actor_id,
@@ -771,17 +704,11 @@ async def _insert_payment_intent_audit(
 
 
 def _table_ref(database: Compat, name: str) -> str:
-    if not _SQL_IDENTIFIER_RE.fullmatch(name):
-        raise ValueError("Invalid WASM payment intent table name.")
-    schema = database.schema
-    if schema:
-        if not _SQL_IDENTIFIER_RE.fullmatch(schema):
-            raise ValueError("Invalid WASM payment intent schema.")
-        return f"{schema}.{name}"
-    return name
+    return f"{database.schema}.{name}" if database.schema else name
 
 
-async def _raw_fetchone(conn: Any, query: str, values: dict[str, Any]) -> Any:
+async def _raw_fetchone(conn: Connection, query: str, values: dict[str, Any]) -> Any:
+    # Connection.fetchone sanitizes strings; idempotency keys must stay unchanged.
     result = await conn.conn.execute(text(query), values)
     row = result.mappings().first()
     result.close()
@@ -789,21 +716,12 @@ async def _raw_fetchone(conn: Any, query: str, values: dict[str, Any]) -> Any:
 
 
 @asynccontextmanager
-async def _intent_transaction(conn: Any):
-    if conn.type != SQLITE:
-        async with conn.conn.begin():
-            yield
-        return
-    # Extension SQLite files are attached under a schema alias; an immediate
-    # transaction attempts to lock the same file twice.
-    await conn.conn.exec_driver_sql("BEGIN")
-    try:
+async def _intent_transaction(conn: Connection):
+    async with conn.conn.begin():
+        # SQLite needs an explicit BEGIN before reading an attached extension DB.
+        if conn.type == SQLITE:
+            await conn.conn.exec_driver_sql("BEGIN")
         yield
-    except BaseException:
-        await conn.conn.rollback()
-        raise
-    else:
-        await conn.conn.commit()
 
 
 def _for_update(db_type: str | None) -> str:

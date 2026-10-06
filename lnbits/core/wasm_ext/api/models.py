@@ -51,8 +51,7 @@ class StorageGetResponse(BaseModel):
     data_json: str | None = None
 
 
-class StorageGetVersionedResponse(BaseModel):
-    data_json: str | None = None
+class StorageGetVersionedResponse(StorageGetResponse):
     version: int | None = None
 
 
@@ -72,26 +71,6 @@ class StorageSetResponse(BaseModel):
     ok: bool = True
 
 
-class StorageCompareAndSetRequest(BaseModel):
-    table: str = Field(..., min_length=1, max_length=128)
-    id: str = Field(..., min_length=1, max_length=512)
-    expected_version: int = Field(..., ge=1, le=9_223_372_036_854_775_806)
-    new_row: dict[str, Any]
-    make_immutable: bool = False
-
-    @root_validator(pre=True)
-    def parse_new_row_json(cls, values: dict[str, Any]) -> dict[str, Any]:
-        new_row_json = values.get("new_row_json")
-        if new_row_json is not None and "new_row" not in values:
-            values["new_row"] = json.loads(new_row_json)
-        return values
-
-
-class StorageCompareAndSetResponse(BaseModel):
-    applied: bool
-    version: int | None = None
-
-
 class StorageInsertIfAbsentRequest(BaseModel):
     table: str = Field(..., min_length=1, max_length=128)
     id: str = Field(..., min_length=1, max_length=512)
@@ -105,9 +84,17 @@ class StorageInsertIfAbsentRequest(BaseModel):
         return values
 
 
-class StorageInsertIfAbsentResponse(BaseModel):
+class StorageInsertIfAbsentResponse(StorageGetVersionedResponse):
     created: bool
-    data_json: str | None = None
+
+
+class StorageCompareAndSetRequest(StorageInsertIfAbsentRequest):
+    expected_version: int = Field(..., ge=1, le=9_223_372_036_854_775_806)
+    make_immutable: bool = False
+
+
+class StorageCompareAndSetResponse(BaseModel):
+    applied: bool
     version: int | None = None
 
 
@@ -303,9 +290,12 @@ class PayInvoiceResponse(BaseModel):
     payment_request: str | None = None
 
 
-class PaymentIntentCreateRequest(BaseModel):
+class PaymentIntentKeyRequest(BaseModel):
     wallet_id: str = Field(..., min_length=1, max_length=128)
     idempotency_key: str = Field(..., min_length=1, max_length=128)
+
+
+class PaymentIntentCreateRequest(PaymentIntentKeyRequest):
     destination: str = Field(..., min_length=1, max_length=2048)
     amount_msat: int = Field(..., ge=1, le=9_223_372_036_854_775_807)
     max_fee_msat: int = Field(..., ge=0, le=9_223_372_036_854_775_807)
@@ -318,11 +308,6 @@ class PaymentIntentCreateRequest(BaseModel):
         if not value:
             raise ValueError("A payment destination is required.")
         return value
-
-
-class PaymentIntentKeyRequest(BaseModel):
-    wallet_id: str = Field(..., min_length=1, max_length=128)
-    idempotency_key: str = Field(..., min_length=1, max_length=128)
 
 
 class PaymentIntentResponse(BaseModel):
