@@ -24,6 +24,7 @@ from lnbits.core.crud.wallets import get_wallet
 from lnbits.core.models import Payment, Wallet
 from lnbits.core.models.notifications import (
     NOTIFICATION_TEMPLATES,
+    EmailNotificationMessage,
     NotificationMessage,
     NotificationType,
 )
@@ -34,7 +35,9 @@ from lnbits.helpers import check_callback_url, is_valid_email_address
 from lnbits.settings import settings
 from lnbits.utils.nostr import normalize_private_key
 
-notifications_queue: asyncio.Queue[NotificationMessage] = asyncio.Queue()
+notifications_queue: asyncio.Queue[NotificationMessage | EmailNotificationMessage] = (
+    asyncio.Queue()
+)
 
 
 def enqueue_admin_notification(message_type: NotificationType, values: dict) -> None:
@@ -63,8 +66,23 @@ def enqueue_user_notification(
         logger.error(f"Error enqueuing notification: {e}")
 
 
+def enqueue_email_notification(
+    to_emails: list[str], message: str, subject: str
+) -> None:
+    notifications_queue.put_nowait(
+        EmailNotificationMessage(to_emails=to_emails, subject=subject, message=message)
+    )
+
+
 async def process_next_notification() -> None:
     notification_message = await notifications_queue.get()
+    if isinstance(notification_message, EmailNotificationMessage):
+        await send_email_notification(
+            notification_message.to_emails,
+            notification_message.message,
+            notification_message.subject,
+        )
+        return
     message_type, text = _notification_message_to_text(notification_message)
     user_notifications = notification_message.user_notifications
     if user_notifications:

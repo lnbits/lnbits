@@ -44,6 +44,8 @@ from .models import (
     PayLnurlRequest,
     RandomIdRequest,
     RandomIdResponse,
+    SendEmailRequest,
+    SendEmailResponse,
     StorageAppendPublicRequest,
     StorageAppendPublicResponse,
     StorageDeleteRequest,
@@ -77,6 +79,7 @@ class ExtensionHostAPI:
         user_id: str | None = None,
         access_token: str | None = None,
         context: str = "user",
+        trigger_type: str = "unknown",
         owner_id: str | None = None,
         invocation_id: str | None = None,
         runtime_limits: dict[str, int] | None = None,
@@ -86,6 +89,7 @@ class ExtensionHostAPI:
         self.user_id = user_id
         self.access_token = access_token
         self.context = context
+        self.trigger_type = trigger_type
         self.owner_id = sha256s(user_id) if user_id else owner_id
         self.invocation_id = invocation_id
         self.runtime_limits = runtime_limits or {}
@@ -96,6 +100,40 @@ class ExtensionHostAPI:
             self.permissions,
             authenticated=self.has_authenticated_context(),
         )
+
+    @extension_api_method(
+        method_id="notifications.send_email",
+        namespace="notifications",
+        name="Send email from background events",
+        host_name="notifications_send_email",
+        sdk_name="sendEmail",
+        description=(
+            "Queue a plain-text email to extension-supplied recipients using LNbits "
+            "SMTP settings. Only host-dispatched background events may call this "
+            "method. Queued does not guarantee delivery."
+        ),
+        required_permission="notifications.send_email",
+    )
+    async def notifications_send_email(
+        self, request: SendEmailRequest
+    ) -> SendEmailResponse:
+        from lnbits.core.services.notifications import enqueue_email_notification
+        from lnbits.helpers import is_valid_email_address
+        from lnbits.settings import settings
+
+        if self.trigger_type != "event":
+            raise PermissionError(
+                "Sending email is only allowed during background events."
+            )
+        if (
+            not settings.is_email_notifications_configured()
+            or not settings.lnbits_email_notifications_server
+            or not is_valid_email_address(settings.lnbits_email_notifications_email)
+        ):
+            raise ValueError("Email notifications are not configured.")
+
+        enqueue_email_notification(request.to, request.message, request.subject)
+        return SendEmailResponse()
 
     @extension_api_method(
         method_id="storage.get",

@@ -23,6 +23,12 @@ class NotificationMessage(BaseModel):
     user_notifications: UserNotifications | None = None
 
 
+class EmailNotificationMessage(BaseModel):
+    to_emails: list[str]
+    subject: str
+    message: str
+
+
 NOTIFICATION_TEMPLATES = {
     "text_message": "{message}",
     "server_status": """*SERVER STATUS*

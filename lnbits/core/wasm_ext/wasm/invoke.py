@@ -82,6 +82,7 @@ async def invoke_wasm_extension_export(
         user_id=_user_id(user),
         access_token=access_token,
         context=context,
+        trigger_type=trigger_type,
         owner_id=owner_id,
         invocation_id=invocation.id,
         runtime_limits=limits,
