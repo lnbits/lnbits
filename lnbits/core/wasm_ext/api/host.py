@@ -1,11 +1,12 @@
 from __future__ import annotations
 
 import json
-import logging
 import secrets
 import time
 from collections.abc import Iterable, Mapping
 from typing import Any
+
+from loguru import logger
 
 from lnbits.core.models.users import Account, UserNotifications
 from lnbits.helpers import sha256s
@@ -67,7 +68,6 @@ from .models import (
 from .registry import extension_api_method
 from .websockets import scoped_websocket_item_id, wasm_extension_websocket_hub
 
-logger = logging.getLogger("lnbits.extensions")
 PUBLIC_APPEND_DEFAULT_MAX_ROWS_PER_SOURCE = 10_000
 
 
@@ -662,6 +662,7 @@ class ExtensionHostAPI:
             PermissionError,
             ValueError,
         ) as exc:
+            logger.warning("Error occurred while paying invoice: %s", exc)
             return PayInvoiceResponse(ok=False, error=str(exc))
 
         return _pay_invoice_response(payment)
