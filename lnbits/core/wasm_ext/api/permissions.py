@@ -4,7 +4,6 @@ from typing import Any
 from lnbits.core.models.extensions import ExtensionPermission, InstallableExtension
 from lnbits.core.models.scheduler import parse_schedule_policies
 from lnbits.core.wasm_ext.api.registry import extension_api_permission_ids
-from lnbits.core.wasm_ext.api.shared_storage import shared_storage_tables
 from lnbits.core.wasm_ext.api.websockets import (
     WEBSOCKET_PUBLISH_MAX_MESSAGES_PER_SECOND_LIMIT,
 )
@@ -17,8 +16,6 @@ from lnbits.core.wasm_ext.wasm.config import (
 _POLICY_AWARE_PERMISSION_IDS = {
     "ext.storage.append_public",
     "ext.storage.read_public",
-    "ext.storage.read_shared",
-    "ext.storage.write_shared",
     "extension.api.request",
     "http.request",
     "scheduler.user",
@@ -165,8 +162,6 @@ def _permission_grant_is_subset(
     checker = {
         "scheduler.user": _schedule_grant_is_subset,
         "scheduler.extension": _schedule_grant_is_subset,
-        "ext.storage.read_shared": _shared_storage_grant_is_subset,
-        "ext.storage.write_shared": _shared_storage_grant_is_subset,
         "http.request": _http_request_grant_is_subset,
         "extension.api.request": _extension_api_grant_is_subset,
         "ext.storage.read_public": _public_storage_grant_is_subset,
@@ -181,8 +176,6 @@ def _validate_requested_permission_policies(
     event_handlers: set[str],
 ) -> None:
     for permission in permissions:
-        if permission.id in {"ext.storage.read_shared", "ext.storage.write_shared"}:
-            shared_storage_tables(permission.policies)
         if permission.id in {"scheduler.user", "scheduler.extension"}:
             try:
                 policies = parse_schedule_policies(permission.policies)
@@ -204,18 +197,6 @@ def _validate_requested_permission_policies(
 
 def _policy_list(policies: list[Any] | None) -> list[Any]:
     return policies if isinstance(policies, list) else []
-
-
-def _shared_storage_grant_is_subset(
-    requested_policies: list[Any] | None,
-    granted_policies: list[Any] | None,
-) -> bool:
-    try:
-        return shared_storage_tables(granted_policies) <= shared_storage_tables(
-            requested_policies
-        )
-    except ValueError:
-        return False
 
 
 def _schedule_grant_is_subset(

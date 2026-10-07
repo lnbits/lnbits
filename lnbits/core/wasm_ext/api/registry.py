@@ -168,11 +168,9 @@ def _extension_api_method_sources(
 
     if issubclass(api_cls, ExtensionHostAPI):
         from .scheduler import ExtensionSchedulerAPI
-        from .shared_storage import ExtensionSharedStorageAPI
         from .utils import extension_api_utils_method_classes
 
         sources.append(("scheduler", ExtensionSchedulerAPI))
-        sources.append(("shared_storage", ExtensionSharedStorageAPI))
         sources.extend(extension_api_utils_method_classes().items())
     return sources
 

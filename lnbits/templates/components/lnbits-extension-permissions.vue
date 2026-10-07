@@ -78,22 +78,6 @@
           class="text-caption q-mb-xs"
           v-text="publicInvoicePolicySentence(policy)"
         ></p>
-        <ul
-          v-if="
-            ['ext.storage.read_shared', 'ext.storage.write_shared'].includes(
-              permission.id
-            )
-          "
-          class="q-my-sm q-pl-md"
-        >
-          <li
-            v-for="policy of permissions.find(item => item.id === permission.id)
-              ?.policies || []"
-            :key="policy.table"
-          >
-            Shared table: <code v-text="policy.table"></code>
-          </li>
-        </ul>
         <ul v-if="permission.fieldGroups.length" class="q-my-sm q-pl-md">
           <li v-for="group of permission.fieldGroups" :key="group.table">
             <div class="row items-center q-gutter-xs">

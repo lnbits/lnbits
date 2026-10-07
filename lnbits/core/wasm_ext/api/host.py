@@ -93,11 +93,9 @@ class ExtensionHostAPI:
         self.invocation_id = invocation_id
         self.runtime_limits = runtime_limits or {}
         from .scheduler import ExtensionSchedulerAPI
-        from .shared_storage import ExtensionSharedStorageAPI
         from .utils import ExtensionAPIUtils
 
         self.scheduler = ExtensionSchedulerAPI(self)
-        self.shared_storage = ExtensionSharedStorageAPI(self)
         self.utils = ExtensionAPIUtils(
             self.extension_id,
             self.permissions,
