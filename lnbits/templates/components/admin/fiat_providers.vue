@@ -9,6 +9,25 @@
         :icon="hideInputToggle ? 'visibility_off' : 'visibility'"
       ></q-btn>
     </h6>
+    <q-item tag="label" v-ripple class="q-mb-md">
+      <q-item-section>
+        <q-item-label>Allow fiat wallets</q-item-label>
+        <q-item-label caption>
+          Allow users to create receive-only fiat wallets without a payment
+          provider, for cash settlement. Users with access to an enabled fiat
+          provider can create fiat wallets even when this is off.
+        </q-item-label>
+      </q-item-section>
+      <q-item-section avatar>
+        <q-toggle
+          v-model="formData.lnbits_allow_fiat_wallets"
+          size="md"
+          checked-icon="check"
+          unchecked-icon="clear"
+          color="green"
+        />
+      </q-item-section>
+    </q-item>
     <div class="row">
       <div class="col">
         <q-list bordered class="rounded-borders">

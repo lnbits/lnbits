@@ -181,10 +181,11 @@ window._lnbitsApi = {
   getPayment(wallet, paymentHash) {
     return this.request('get', '/api/v1/payments/' + paymentHash, wallet.inkey)
   },
-  updateBalance(credit, wallet_id) {
+  updateBalance(credit, wallet_id, memo = null) {
     return this.request('PUT', '/users/api/v1/balance', null, {
       amount: credit,
-      id: wallet_id
+      id: wallet_id,
+      memo: memo
     })
   },
   getCurrencies() {

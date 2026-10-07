@@ -40,6 +40,8 @@ from lnbits.decorators import (
     require_invoice_key,
 )
 from lnbits.helpers import generate_filter_params_openapi
+from lnbits.onchain.crud import get_config, update_config
+from lnbits.onchain.router import require_onchain_available
 from lnbits.settings import settings
 
 from ..crud import (
@@ -181,6 +183,8 @@ async def api_update_wallet(
     wallet.extra.pinned = pinned if pinned is not None else wallet.extra.pinned
     wallet.currency = currency if currency is not None else wallet.currency
 
+    if lightning_address and wallet.is_onchain_wallet:
+        raise HTTPException(400, "Onchain wallets use Bitcoin receive addresses")
     if lightning_address and lightning_address != wallet.lightning_address:
         if not settings.lnbits_allow_custom_wallet_lightning_addresses:
             raise HTTPException(
@@ -235,5 +239,21 @@ async def api_create_wallet(
             source_wallet_id=data.shared_wallet_id,
         )
 
-    # default WalletType.LIGHTNING:
-    return await create_wallet(user_id=account_id.id, wallet_name=data.name)
+    if data.wallet_type == WalletType.FIAT and not settings.can_create_fiat_wallet(
+        account_id.id
+    ):
+        raise HTTPException(
+            HTTPStatus.FORBIDDEN, "Fiat wallets are not enabled for this user."
+        )
+
+    if data.wallet_type == WalletType.ONCHAIN:
+        require_onchain_available()
+
+    wallet = await create_wallet(
+        user_id=account_id.id, wallet_name=data.name, wallet_type=data.wallet_type
+    )
+    if data.wallet_type == WalletType.ONCHAIN:
+        config = await get_config(wallet.id)
+        config.network = data.onchain_network
+        await update_config(config, wallet.id)
+    return wallet

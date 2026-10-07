@@ -76,7 +76,8 @@ jobs:
       matrix:
         python-version: ["3.12"]
         backend-wallet-class:
-          - BoltzWallet
+          # Temporarily skip Boltz while its regtest backend is failing.
+          # - BoltzWallet
           - LndRestWallet
           - LndWallet
           - CoreLightningWallet

@@ -2,7 +2,10 @@ window.app.component('lnbits-manage-wallet-list', {
   template: '#lnbits-manage-wallet-list',
   data() {
     return {
-      activeWalletId: null
+      activeWalletId: null,
+      paymentSocket: null,
+      paymentSocketKey: null,
+      paymentReconnect: null
     }
   },
   computed: {
@@ -11,12 +14,14 @@ window.app.component('lnbits-manage-wallet-list', {
     }
   },
   watch: {
-    $route(to) {
-      if (to.path.startsWith('/wallet/')) {
-        this.activeWalletId = to.params.id
-      } else {
-        this.activeWalletId = null
-      }
+    $route: {
+      handler(to) {
+        this.activeWalletId = to.path.startsWith('/wallet/')
+          ? to.params.id
+          : null
+        this.paymentEvents()
+      },
+      immediate: true
     },
     'g.user.wallets': {
       handler() {
@@ -26,10 +31,8 @@ window.app.component('lnbits-manage-wallet-list', {
       immediate: true
     }
   },
-  created() {
-    if (this.g.user && this.g.walletEventListeners.length === 0) {
-      this.paymentEvents()
-    }
+  beforeUnmount() {
+    this.closePaymentSocket()
   },
   methods: {
     openNewWalletDialog() {
@@ -63,36 +66,40 @@ window.app.component('lnbits-manage-wallet-list', {
         eventReaction(data.wallet_balance * 1000)
       }
     },
+    closePaymentSocket() {
+      clearTimeout(this.paymentReconnect)
+      this.paymentReconnect = null
+      const ws = this.paymentSocket
+      this.paymentSocket = null
+      this.paymentSocketKey = null
+      this.g.walletEventListeners = []
+      if (ws) {
+        ws.onopen = ws.onmessage = ws.onclose = ws.onerror = null
+        ws.close()
+      }
+    },
     paymentEvents() {
-      if (!this.g.user) return
-      let timeout
-      const wallets = this.g.user.wallets.slice(0, this.maxWallets)
-      wallets.forEach(wallet => {
-        if (!this.g.walletEventListeners.includes(wallet.id)) {
-          this.g.walletEventListeners.push(wallet.id)
-          const ws = new WebSocket(`${websocketUrl}/${wallet.inkey}`)
-          ws.onmessage = this.onWebsocketMessage
-          ws.onopen = () => console.log('ws connected for wallet', wallet.id)
-          // onclose and onerror can both happen on their own or together,
-          // so we add a clearTimeout to avoid multiple reconnections
-          ws.onclose = () => {
-            console.log('ws closed, reconnecting...', wallet.id)
-            this.g.walletEventListeners = this.g.walletEventListeners.filter(
-              id => id !== wallet.id
-            )
-            clearTimeout(timeout)
-            timeout = setTimeout(this.paymentEvents, 5000)
-          }
-          ws.onerror = () => {
-            console.warn('ws error, reconnecting...', wallet.id)
-            this.g.walletEventListeners = this.g.walletEventListeners.filter(
-              id => id !== wallet.id
-            )
-            clearTimeout(timeout)
-            timeout = setTimeout(this.paymentEvents, 5000)
-          }
-        }
-      })
+      const wallet = this.g.user?.wallets.find(
+        w => w.id === this.activeWalletId
+      )
+      if (wallet && this.paymentSocketKey === wallet.inkey) return
+      this.closePaymentSocket()
+      if (!wallet) return
+      const ws = new WebSocket(`${websocketUrl}/${wallet.inkey}`)
+      this.paymentSocket = ws
+      this.paymentSocketKey = wallet.inkey
+      this.g.walletEventListeners = [wallet.id]
+      ws.onmessage = ev => {
+        if (this.paymentSocket === ws) this.onWebsocketMessage(ev)
+      }
+      ws.onopen = () => console.log('ws connected for wallet', wallet.id)
+      const reconnect = () => {
+        if (this.paymentSocket !== ws) return
+        this.closePaymentSocket()
+        this.paymentReconnect = setTimeout(this.paymentEvents, 5000)
+      }
+      ws.onclose = reconnect
+      ws.onerror = reconnect
     }
   }
 })

@@ -4664,6 +4664,7 @@ description = "Fast implementation of asyncio event loop on top of libuv"
 optional = false
 python-versions = ">=3.8.1"
 groups = ["main"]
+markers = "sys_platform != \"win32\""
 files = [
     {file = "uvloop-0.22.1-cp310-cp310-macosx_10_9_universal2.whl", hash = "sha256:ef6f0d4cc8a9fa1f6a910230cd53545d9a14479311e87e3cb225495952eb672c"},
     {file = "uvloop-0.22.1-cp310-cp310-macosx_10_9_x86_64.whl", hash = "sha256:7cd375a12b71d33d46af85a3343b35d98e8116134ba404bd657b3b1d15988792"},
@@ -4744,10 +4745,9 @@ typing-extensions = {version = ">=4.13.2", markers = "python_version < \"3.11\""
 name = "wallycore"
 version = "1.5.2"
 description = "libwally Bitcoin library"
-optional = true
+optional = false
 python-versions = "*"
 groups = ["main"]
-markers = "extra == \"liquid\""
 files = [
     {file = "wallycore-1.5.2-cp310-cp310-macosx_10_9_universal2.whl", hash = "sha256:9978acdb2fec4e2dc1588237a497a4b44d39cec413babb7e2b36031423e70334"},
     {file = "wallycore-1.5.2-cp310-cp310-macosx_10_9_x86_64.whl", hash = "sha256:21547e736cc0c3778df5a25e42dcc44923b255bf6a85d0c39cc7822a2eaf9192"},
@@ -5190,10 +5190,10 @@ propcache = ">=0.2.1"
 
 [extras]
 breez = ["breez-sdk", "breez-sdk-liquid"]
-liquid = ["boltz-client", "wallycore"]
+liquid = ["boltz-client"]
 migration = ["psycopg2-binary"]
 
 [metadata]
 lock-version = "2.1"
 python-versions = ">=3.10,<3.13"
-content-hash = "05e72d5bfef039729b3f7046b23d2aefa38660a22f259ebdc9dbb61acd996371"
+content-hash = "bb7ad49aead0588be0117c2340321442eb86031a5d0d70c17170816b060ca0f9"

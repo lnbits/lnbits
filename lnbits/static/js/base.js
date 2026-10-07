@@ -12,6 +12,7 @@ window.LNbits = {
         extensions: data.extensions,
         wallets: data.wallets,
         fiat_providers: data.fiat_providers || [],
+        canCreateFiatWallet: data.can_create_fiat_wallet ?? false,
         super_user: data.super_user,
         extra: data.extra ?? {},
         hasPassword: data.has_password ?? false,
@@ -50,7 +51,7 @@ window.LNbits = {
         lightningAddress: data.lightning_address,
         extra: data.extra,
         canReceivePayments: true,
-        canSendPayments: true
+        canSendPayments: data.wallet_type !== 'fiat'
       }
       newWallet.msat = data.balance_msat
       newWallet.sat = Math.floor(data.balance_msat / 1000)

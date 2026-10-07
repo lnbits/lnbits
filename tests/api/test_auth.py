@@ -689,6 +689,81 @@ async def test_change_password_ok(http_client: AsyncClient, settings: Settings):
     assert response.json().get("access_token") is not None, "Access token created."
 
 
+async def _register_and_get_token(http_client: AsyncClient, settings: Settings):
+    tiny_id = shortuuid.uuid()[:8]
+    response = await http_client.post(
+        "/api/v1/auth/register",
+        json={
+            "username": f"u21.{tiny_id}",
+            "password": "secret1234",
+            "password_repeat": "secret1234",
+            "email": f"u21.{tiny_id}@lnbits.com",
+        },
+    )
+    assert response.status_code == 200, "User created."
+    access_token = response.json().get("access_token")
+    payload: dict = jwt.decode(access_token, settings.auth_secret_key, ["HS256"])
+    return f"u21.{tiny_id}", access_token, AccessTokenPayload(**payload).usr
+
+
+@pytest.mark.anyio
+async def test_change_password_passwords_do_not_match(
+    http_client: AsyncClient, settings: Settings
+):
+    username, access_token, user_id = await _register_and_get_token(
+        http_client, settings
+    )
+
+    response = await http_client.put(
+        "/api/v1/auth/password",
+        headers={"Authorization": f"Bearer {access_token}"},
+        json={
+            "username": username,
+            "user_id": user_id,
+            "password_old": "secret1234",
+            "password": "secret0000",
+            "password_repeat": "secret9999",
+        },
+    )
+
+    assert response.status_code == 400
+    assert response.json().get("detail") == "Passwords do not match."
+
+    response = await http_client.post(
+        "/api/v1/auth", json={"username": username, "password": "secret1234"}
+    )
+    assert response.status_code == 200, "Old password still works."
+
+
+@pytest.mark.anyio
+async def test_change_password_invalid_username(
+    http_client: AsyncClient, settings: Settings
+):
+    username, access_token, user_id = await _register_and_get_token(
+        http_client, settings
+    )
+
+    response = await http_client.put(
+        "/api/v1/auth/password",
+        headers={"Authorization": f"Bearer {access_token}"},
+        json={
+            "username": "someone@lnbits.com",
+            "user_id": user_id,
+            "password_old": "secret1234",
+            "password": "secret0000",
+            "password_repeat": "secret0000",
+        },
+    )
+
+    assert response.status_code == 400
+    assert response.json().get("detail") == "Invalid username."
+
+    response = await http_client.post(
+        "/api/v1/auth", json={"username": username, "password": "secret1234"}
+    )
+    assert response.status_code == 200, "Username and password did not change."
+
+
 @pytest.mark.anyio
 async def test_change_password_not_authenticated(http_client: AsyncClient):
     tiny_id = shortuuid.uuid()[:8]

@@ -11,6 +11,7 @@ from lnbits.core.crud.payments import get_daily_stats
 from lnbits.core.db import db
 from lnbits.core.models import PaymentDailyStats, PaymentFilters
 from lnbits.core.models.payments import CreateInvoice
+from lnbits.core.models.wallets import WalletType
 from lnbits.db import Connection, Filters
 from lnbits.decorators import check_user_extension_access
 from lnbits.exceptions import InvoiceError, PaymentError, UnsupportedError
@@ -136,6 +137,14 @@ async def create_fiat_invoice(
         raise ValueError(
             f"Fiat provider '{fiat_provider_name}' is not enabled.",
         )
+
+    wallet = await get_wallet(wallet_id, conn=conn)
+    if (
+        wallet
+        and wallet.wallet_type == WalletType.FIAT.value
+        and fiat_provider_name not in settings.get_fiat_providers_for_user(wallet.user)
+    ):
+        raise ValueError("Fiat provider is not available for this user.")
 
     if invoice_data.unit == "sat":
         raise ValueError("Fiat provider cannot be used with satoshis.")
@@ -278,6 +287,11 @@ async def create_invoice(
         raise InvoiceError(
             "Wallet does not have permission to create invoices.",
             status="failed",
+        )
+
+    if user_wallet.wallet_type == WalletType.FIAT.value and not internal:
+        raise InvoiceError(
+            "Fiat wallets only accept cash or fiat provider payments.", status="failed"
         )
 
     invoice_memo = None if description_hash else memo[:640]
@@ -470,10 +484,15 @@ def service_fee_fiat(amount_msat: int, fiat_provider_name: str) -> int:
 async def update_wallet_balance(
     wallet: Wallet,
     amount: int,
+    memo: str | None = None,
     conn: Connection | None = None,
 ):
+    if wallet.is_onchain_wallet:
+        raise ValueError("Onchain balances are determined by the blockchain.")
     if amount == 0:
         raise ValueError("Amount cannot be 0.")
+
+    memo = (memo or "").strip() or ("Credit" if amount > 0 else "Debit")
 
     # negative balance change
     if amount < 0:
@@ -489,7 +508,7 @@ async def update_wallet_balance(
                     {
                         "payment_hash": payment_hash,
                         "payment_secret": payment_secret,
-                        "description": "Admin debit",
+                        "description": memo,
                     }
                 ),
             )
@@ -502,7 +521,8 @@ async def update_wallet_balance(
                     bolt11=bolt11,
                     payment_hash=payment_hash,
                     amount_msat=amount * 1000,
-                    memo="Admin debit",
+                    memo=memo,
+                    extra={"tag": "admin"},
                 ),
                 status=PaymentState.SUCCESS,
                 conn=conn,
@@ -519,7 +539,8 @@ async def update_wallet_balance(
         payment = await create_invoice(
             wallet_id=wallet.source_wallet_id,
             amount=amount,
-            memo="Admin credit",
+            memo=memo,
+            extra={"tag": "admin"},
             internal=True,
             conn=conn,
         )
@@ -790,11 +811,8 @@ async def _pay_internal_invoice(
     await _send_payment_notification_in_background(
         wallet.id, payment, conn=conn
     )  # notify the sender
-    await _send_payment_notification_in_background(
-        internal_payment.wallet_id, internal_payment, conn=conn
-    )  # notify the receiver
 
-    # notify receiver asynchronously (extension listeners)
+    # notify receiver asynchronously (core and extension listeners)
     logger.debug(f"enqueuing internal invoice {internal_payment.checking_id}")
     task_manager.internal_invoice_queue.put_nowait(internal_payment)
 

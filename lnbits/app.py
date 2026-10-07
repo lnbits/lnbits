@@ -575,6 +575,14 @@ def register_async_tasks() -> None:
     # note: should be the first in task list for a bit quicker notifications
     task_manager.register_invoice_listener(dispatch_payment_notification, "core")
 
+    # Core onchain wallets retain their snapshots when no browser is open.
+    from importlib.util import find_spec
+
+    if find_spec("wallycore") is not None:
+        from lnbits.onchain.sync import sync_wallets
+
+        task_manager.create_permanent_task(sync_wallets, interval=60)
+
     # periodic tasks
     task_manager.create_permanent_task(cache.invalidate_cache, interval=10)
     task_manager.create_permanent_task(delete_expired_audit_entries, interval=60 * 60)

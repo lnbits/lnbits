@@ -228,7 +228,10 @@
               <lnbits-admin-users :form-data="formData" />
             </q-tab-panel>
             <q-tab-panel name="server" class="q-pa-md">
-              <lnbits-admin-server :form-data="formData" />
+              <lnbits-admin-server
+                :form-data="formData"
+                :is-super-user="isSuperUser"
+              />
             </q-tab-panel>
             <q-tab-panel name="exchange_providers" class="q-pa-md">
               <lnbits-admin-exchange-providers :form-data="formData" />

@@ -1,7 +1,25 @@
 window.PageWallet = {
   template: '#page-wallet',
+  components: {
+    'lnbits-onchain-wallet': Vue.defineAsyncComponent(async () => {
+      if (!document.getElementById('page-onchain')) {
+        const response = await fetch('/onchain/static/wallet.vue')
+        if (!response.ok) throw new Error('Unable to load the onchain wallet')
+        const templates = document.createElement('div')
+        templates.innerHTML = await response.text()
+        document.body.appendChild(templates)
+      }
+      await Promise.all([
+        LNbits.utils.loadScript('/onchain/static/js/crypto/noble-secp256k1.js'),
+        LNbits.utils.loadScript('/onchain/static/js/crypto/aes.js'),
+        LNbits.utils.loadScript('/onchain/static/i18n/en.js')
+      ])
+      return (await import('/onchain/static/wallet.js')).default
+    })
+  },
   data() {
     return {
+      onchainPaymentFilter: {},
       parse: {
         show: false,
         invoice: null,
@@ -69,6 +87,12 @@ window.PageWallet = {
     }
   },
   computed: {
+    isFiatWallet() {
+      return this.g.wallet.walletType === 'fiat'
+    },
+    isCashPayment() {
+      return this.isFiatWallet && this.receive.fiatProvider === 'cash'
+    },
     canPay() {
       if (!this.parse.invoice) return false
       if (this.parse.invoice.expired) {
@@ -109,6 +133,12 @@ window.PageWallet = {
       return info
     },
     formattedAmount() {
+      if (this.isFiatWallet) {
+        return LNbits.utils.formatCurrency(
+          this.receive.data.amount,
+          this.receive.unit
+        )
+      }
       if (this.receive.unit != 'sat' || !this.g.isSatsDenomination) {
         return LNbits.utils.formatCurrency(
           Number(this.receive.data.amount).toFixed(2),
@@ -243,12 +273,14 @@ window.PageWallet = {
       this.receive.status = 'pending'
       this.receive.paymentReq = null
       this.receive.paymentHash = null
+      this.receive.fiatPaymentReq = null
+      this.receive.fiatProvider = this.isFiatWallet ? 'cash' : ''
       this.receive.data.amount = null
       this.receive.data.memo = null
       this.receive.data.internalMemo = null
       this.receive.data.payment_hash = null
       this.receive.units = [
-        'sat',
+        ...(this.isFiatWallet ? [] : ['sat']),
         ...(this.g.allowedCurrencies.length > 0
           ? this.g.allowedCurrencies
           : this.g.currencies)
@@ -256,12 +288,18 @@ window.PageWallet = {
       this.receive.unit = this.g.isFiatPriority
         ? this.g.wallet.currency || 'sat'
         : 'sat'
+      if (this.isFiatWallet) {
+        this.receive.unit = this.receive.units.includes(this.g.wallet.currency)
+          ? this.g.wallet.currency
+          : this.receive.units[0]
+      }
       this.receive.minMax = [0, 2100000000000000]
       this.receive.lnurl = null
+      this.receive.lnurlWithdraw = null
     },
     onReceiveDialogHide() {
       if (this.hasNfc) {
-        this.nfcReaderAbortController.abort()
+        this.nfcReaderAbortController?.abort()
       }
     },
     showParseDialog() {
@@ -287,31 +325,53 @@ window.PageWallet = {
       this.g.wallet.sat = this.g.wallet.sat + value
     },
     createInvoice() {
+      if (this.receive.status === 'loading') return
       this.receive.status = 'loading'
-      if (!this.g.isSatsDenomination) {
+      if (!this.isFiatWallet && !this.g.isSatsDenomination) {
         this.receive.data.amount = this.receive.data.amount * 100
       }
 
-      LNbits.api
-        .createInvoice(
-          this.g.wallet,
-          this.receive.data.amount,
-          this.receive.data.memo,
-          this.receive.unit,
-          this.receive.lnurlWithdraw,
-          this.receive.fiatProvider,
-          this.receive.data.internalMemo,
-          this.receive.data.payment_hash
-        )
+      const cash = this.isCashPayment
+      const request = cash
+        ? LNbits.api.request(
+            'POST',
+            '/api/v1/fiat/cash',
+            this.g.wallet.adminkey,
+            {
+              amount: this.receive.data.amount,
+              unit: this.receive.unit,
+              memo: this.receive.data.memo,
+              internal_memo: this.receive.data.internalMemo
+            }
+          )
+        : LNbits.api.createInvoice(
+            this.g.wallet,
+            this.receive.data.amount,
+            this.receive.data.memo,
+            this.receive.unit,
+            this.receive.lnurlWithdraw,
+            this.receive.fiatProvider,
+            this.receive.data.internalMemo,
+            this.receive.data.payment_hash
+          )
+      request
         .then(response => {
           this.g.updatePayments = !this.g.updatePayments
           this.receive.status = 'success'
+          if (cash) {
+            this.receive.show = false
+            Quasar.Notify.create({
+              type: 'positive',
+              message: 'Cash payment validated.'
+            })
+            return
+          }
           this.receive.paymentReq = response.data.bolt11
           this.receive.fiatPaymentReq =
             response.data.extra?.fiat_payment_request
           this.receive.amountMsat = response.data.amount
           this.receive.paymentHash = response.data.payment_hash
-          if (!this.receive.lnurl) {
+          if (!this.isFiatWallet && !this.receive.lnurl) {
             this.readNfcTag()
           }
           // WITHDRAW
@@ -798,7 +858,10 @@ window.PageWallet = {
       // is still in flight gets torn down by it, so handle the payment request
       // only once the url rewrite has settled
       this.$router.replace(`/wallet/${wallet.id}`).then(() => {
-        if (urlParams.has('lightning') || urlParams.has('lnurl')) {
+        if (
+          wallet.walletType !== 'onchain' &&
+          (urlParams.has('lightning') || urlParams.has('lnurl'))
+        ) {
           this.parse.data.request =
             urlParams.get('lightning') || urlParams.get('lnurl')
           this.decodeRequest()

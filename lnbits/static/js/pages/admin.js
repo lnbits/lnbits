@@ -128,6 +128,7 @@ window.PageAdmin = {
           this.$t('watchdog')
         ],
         server: [
+          'Onchain payments and encryption key backup',
           this.$t('currency_settings'),
           this.$t('payments'),
           this.$t('lightning_addresses'),
@@ -314,6 +315,12 @@ window.PageAdmin = {
             this.formData.lnbits_backend_wallet_class
           this.settings = this.formData
           this.formData = _.clone(this.settings)
+          LNbits.api
+            .getAuthUser()
+            .then(res => {
+              this.g.user = LNbits.map.user(res.data)
+            })
+            .catch(LNbits.utils.notifyApiError)
           Quasar.Notify.create({
             type: 'positive',
             message: `Success! Settings changed! ${

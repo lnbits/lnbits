@@ -15,6 +15,7 @@ from lnbits.settings import (
 )
 
 RESET_PRESERVED_SETTINGS = (
+    "onchain_key",
     "lnbits_webpush_pubkey",
     "lnbits_webpush_privkey",
     *FundingSourcesSettings.__fields__,

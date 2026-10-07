@@ -31,6 +31,10 @@ async def create_wallet(
         inkey=uuid4().hex,
         currency=settings.lnbits_default_accounting_currency or "USD",
     )
+    if wallet_type == WalletType.ONCHAIN:
+        wallet.extra.icon = "currency_bitcoin"
+    if wallet_type == WalletType.FIAT:
+        wallet.extra.icon = "credit_card"
     if settings.ln_address_creation_allowed and wallet.is_lightning_wallet:
         wallet.lightning_address = await generate_lightning_address_local_part(conn)
 
@@ -69,6 +73,20 @@ async def delete_wallet(
 
 async def force_delete_wallet(wallet_id: str, conn: Connection | None = None) -> None:
     clear_wallet_id_cache(wallet_id)
+    onchain: dict | None = await (conn or db).fetchone(
+        "SELECT id FROM onchain_accounts WHERE wallet_id = :wallet LIMIT 1",
+        {"wallet": wallet_id},
+    )
+    if onchain:
+        raise ValueError(
+            "Onchain wallets with Bitcoin accounts cannot be permanently deleted"
+        )
+    await (conn or db).execute(
+        "DELETE FROM onchain_config WHERE wallet_id = :wallet", {"wallet": wallet_id}
+    )
+    await (conn or db).execute(
+        "DELETE FROM onchain_sync WHERE wallet_id = :wallet", {"wallet": wallet_id}
+    )
     await (conn or db).execute(
         "DELETE FROM wallets WHERE id = :wallet",
         {"wallet": wallet_id},
@@ -93,7 +111,9 @@ async def delete_wallet_by_id(
 
 
 async def remove_deleted_wallets(conn: Connection | None = None) -> None:
-    await (conn or db).execute("DELETE FROM wallets WHERE deleted = true")
+    await (conn or db).execute(
+        "DELETE FROM wallets WHERE deleted = true AND wallet_type != 'onchain'"
+    )
 
 
 async def delete_unused_wallets(
@@ -104,7 +124,7 @@ async def delete_unused_wallets(
     await (conn or db).execute(
         """
         DELETE FROM wallets
-        WHERE (
+        WHERE wallet_type != 'onchain' AND (
             SELECT COUNT(*) FROM apipayments WHERE wallet_id = wallets.id
         ) = 0 AND (
             (updated_at is null AND created_at < :delta)
@@ -120,7 +140,16 @@ async def get_standalone_wallet(
 ) -> Wallet | None:
     query = """
             SELECT *, COALESCE((
-                SELECT balance FROM balances WHERE wallet_id = wallets.id
+                SELECT CASE WHEN wallets.wallet_type = 'onchain' THEN (
+                    SELECT COALESCE(SUM(coins.amount), 0) * 1000 FROM (
+                        SELECT a.address, MAX(a.amount) AS amount
+                        FROM onchain_addresses a
+                        JOIN onchain_accounts c ON c.id = a.wallet
+                        WHERE c.wallet_id = wallets.id GROUP BY a.address
+                    ) coins
+                ) ELSE (
+                    SELECT balance FROM balances WHERE wallet_id = wallets.id
+                ) END
             ), 0) AS balance_msat FROM wallets
             WHERE id = :wallet
             """
@@ -136,7 +165,11 @@ async def get_standalone_wallet(
     if deleted is True:
         return wallet
 
-    if not wallet.lightning_address and settings.ln_address_creation_allowed:
+    if (
+        wallet.is_lightning_wallet
+        and not wallet.lightning_address
+        and settings.ln_address_creation_allowed
+    ):
         wallet.lightning_address = await generate_lightning_address_local_part(conn)
         await update_wallet(wallet, conn)
 
@@ -163,7 +196,16 @@ async def get_wallets(
 ) -> list[Wallet]:
     query = """
             SELECT *, COALESCE((
-                SELECT balance FROM balances WHERE wallet_id = wallets.id
+                SELECT CASE WHEN wallets.wallet_type = 'onchain' THEN (
+                    SELECT COALESCE(SUM(coins.amount), 0) * 1000 FROM (
+                        SELECT a.address, MAX(a.amount) AS amount
+                        FROM onchain_addresses a
+                        JOIN onchain_accounts c ON c.id = a.wallet
+                        WHERE c.wallet_id = wallets.id GROUP BY a.address
+                    ) coins
+                ) ELSE (
+                    SELECT balance FROM balances WHERE wallet_id = wallets.id
+                ) END
             ), 0) AS balance_msat FROM wallets
             WHERE "user" = :user
             """
@@ -197,7 +239,16 @@ async def get_wallets_paginated(
     wallets = await (conn or db).fetch_page(
         """
             SELECT *, COALESCE((
-                SELECT balance FROM balances WHERE wallet_id = wallets.id
+                SELECT CASE WHEN wallets.wallet_type = 'onchain' THEN (
+                    SELECT COALESCE(SUM(coins.amount), 0) * 1000 FROM (
+                        SELECT a.address, MAX(a.amount) AS amount
+                        FROM onchain_addresses a
+                        JOIN onchain_accounts c ON c.id = a.wallet
+                        WHERE c.wallet_id = wallets.id GROUP BY a.address
+                    ) coins
+                ) ELSE (
+                    SELECT balance FROM balances WHERE wallet_id = wallets.id
+                ) END
             ), 0) AS balance_msat FROM wallets
         """,
         where=where,
@@ -264,7 +315,16 @@ async def get_wallet_for_key(
     wallet = await (conn or db).fetchone(
         """
         SELECT wallets.*, COALESCE((
-            SELECT balance FROM balances WHERE wallet_id = wallets.id
+            SELECT CASE WHEN wallets.wallet_type = 'onchain' THEN (
+                    SELECT COALESCE(SUM(coins.amount), 0) * 1000 FROM (
+                        SELECT a.address, MAX(a.amount) AS amount
+                        FROM onchain_addresses a
+                        JOIN onchain_accounts c ON c.id = a.wallet
+                        WHERE c.wallet_id = wallets.id GROUP BY a.address
+                    ) coins
+                ) ELSE (
+                    SELECT balance FROM balances WHERE wallet_id = wallets.id
+                ) END
         ), 0)
         AS balance_msat FROM wallets
         INNER JOIN accounts ON wallets.user = accounts.id
@@ -332,7 +392,11 @@ async def get_source_wallets(
 
 
 async def get_total_balance(conn: Connection | None = None):
-    result = await (conn or db).execute("SELECT SUM(balance) as balance FROM balances")
+    result = await (conn or db).execute("""
+        SELECT SUM(balance) as balance FROM balances
+        JOIN wallets ON wallets.id = balances.wallet_id
+        WHERE wallets.wallet_type = 'lightning'
+        """)
     row = result.mappings().first()
     return row.get("balance", 0) or 0
 

@@ -15,7 +15,7 @@ from typing import Any, Literal
 from uuid import uuid4
 
 from loguru import logger
-from pydantic import BaseModel, BaseSettings, Extra, Field, validator
+from pydantic import BaseModel, BaseSettings, Extra, Field, SecretStr, validator
 
 DEFAULT_WASM_MANIFESTS = [
     "https://raw.githubusercontent.com/lnbits/lnbits-extensions-wasm/refs/heads/main/extensions.json"
@@ -465,6 +465,7 @@ class ExchangeProvidersSettings(LNbitsSettings):
 
 
 class SecuritySettings(LNbitsSettings):
+    lnbits_allow_onchain_payments: bool = Field(default=False)
     lnbits_rate_limit_no: int = Field(default=200, ge=0)
     lnbits_rate_limit_unit: str = Field(default="minute")
     lnbits_allowed_ips: list[str] = Field(default=[])
@@ -552,10 +553,6 @@ class LNbitsFundingSource(LNbitsSettings):
     lnbits_key: str | None = Field(default=None)
     lnbits_admin_key: str | None = Field(default=None)
     lnbits_invoice_key: str | None = Field(default=None)
-
-
-class ClicheFundingSource(LNbitsSettings):
-    cliche_endpoint: str | None = Field(default=None)
 
 
 class CLNRestFundingSource(LNbitsSettings):
@@ -795,7 +792,6 @@ class LightningSettings(LNbitsSettings):
 class FundingSourcesSettings(
     FakeWalletFundingSource,
     LNbitsFundingSource,
-    ClicheFundingSource,
     CLNRestFundingSource,
     CoreLightningFundingSource,
     CoreLightningRestFundingSource,
@@ -832,6 +828,13 @@ class FiatProvidersSettings(
     SquareFiatProvider,
     RevolutFiatProvider,
 ):
+    lnbits_allow_fiat_wallets: bool = False
+
+    def can_create_fiat_wallet(self, user_id: str) -> bool:
+        return self.lnbits_allow_fiat_wallets or bool(
+            self.get_fiat_providers_for_user(user_id)
+        )
+
     def is_fiat_provider_enabled(self, provider: str | None) -> bool:
         """
         Checks if a specific fiat provider is enabled.
@@ -908,7 +911,7 @@ class BlockExplorerSettings(LNbitsSettings):
     lnbits_blockexplorer_electrum_url: str = Field(
         default="ssl://electrum.blockstream.info:50002"
     )
-    # one of: main, test, regtest, signet (see embit.networks.NETWORKS)
+    # one of: main, test, test4, regtest, signet
     lnbits_blockexplorer_network: str = Field(default="main")
 
 
@@ -1128,6 +1131,11 @@ class UpdateSettings(EditableSettings):
 
 
 class EnvSettings(LNbitsSettings):
+    lnbits_onchain_master_key: SecretStr | None = Field(
+        default=None,
+        env=["LNBITS_ONCHAIN_MASTER_KEY", "WATCHONLY_MASTER_KEY"],
+        exclude=True,
+    )
     debug: bool = Field(default=False)
     debug_database: bool = Field(default=False)
     bundle_assets: bool = Field(default=True)
@@ -1217,7 +1225,7 @@ class SuperUserSettings(LNbitsSettings):
         default=[
             "AlbyWallet",
             "BarkWallet",
-            "BoltzWallet",
+            # BoltzWallet is temporarily excluded.
             "BlinkWallet",
             "BreezSdkWallet",
             "BreezLiquidSdkWallet",

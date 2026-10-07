@@ -14,6 +14,7 @@ from lnbits.core.db import db
 from lnbits.core.models import UserAcls
 from lnbits.db import Connection, Filters, Page
 from lnbits.helpers import sha256s
+from lnbits.settings import settings
 from lnbits.utils.cache import cache
 
 from ..models import (
@@ -51,6 +52,13 @@ async def update_account(account: Account, conn: Connection | None = None) -> Ac
 
 
 async def delete_account(user_id: str, conn: Connection | None = None) -> None:
+    onchain: dict | None = await (conn or db).fetchone(
+        """SELECT a.id FROM onchain_accounts a
+        JOIN wallets w ON w.id = a.wallet_id WHERE w.user = :user LIMIT 1""",
+        {"user": user_id},
+    )
+    if onchain:
+        raise ValueError("Accounts with onchain wallets cannot be permanently deleted")
     await (conn or db).execute(
         "DELETE from accounts WHERE id = :user",
         {"user": user_id},
@@ -92,6 +100,7 @@ async def get_accounts(
             accounts.activated,
             SUM(COALESCE((
                 SELECT balance FROM balances WHERE wallet_id = wallets.id
+                AND wallets.wallet_type != 'fiat'
             ), 0)) as balance_msat,
             SUM((
                 SELECT COUNT(*) FROM apipayments WHERE wallet_id = wallets.id
@@ -255,6 +264,7 @@ async def get_user_from_account(
         admin=account.is_admin,
         super_user=account.is_super_user,
         fiat_providers=account.fiat_providers,
+        can_create_fiat_wallet=settings.can_create_fiat_wallet(account.id),
         has_password=account.password_hash is not None,
         ui_customization=account.ui_customization or {},
     )

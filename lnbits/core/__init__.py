@@ -1,5 +1,6 @@
 from fastapi import APIRouter, FastAPI
 
+from ..onchain.router import onchain_router
 from .db import core_app_extra, db
 from .views.admin_api import admin_router
 from .views.api import api_router
@@ -28,6 +29,7 @@ core_app = APIRouter(tags=["Core"])
 
 
 def init_core_routers(app: FastAPI):
+    app.include_router(onchain_router)
     app.include_router(core_app)
     app.include_router(generic_router)
     app.include_router(auth_router)
