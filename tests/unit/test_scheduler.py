@@ -8,12 +8,20 @@ import pytest
 from pydantic import ValidationError
 from pytest_mock.plugin import MockerFixture
 
+from lnbits.core.crud import extensions as extension_crud
 from lnbits.core.crud import scheduler as crud
-from lnbits.core.migrations import m054_create_scheduled_jobs
-from lnbits.core.models.extensions import ExtensionPermission
+from lnbits.core.migrations import (
+    m001_initial,
+    m020_add_column_column_to_user_extensions,
+    m049_add_permissions_to_user_extensions,
+    m054_create_scheduled_jobs,
+)
+from lnbits.core.models.extensions import Extension, ExtensionPermission, UserExtension
 from lnbits.core.models.scheduler import ScheduleConfig, ScheduledJob
+from lnbits.core.models.users import AccountId
 from lnbits.core.services import scheduler as service
 from lnbits.core.services.scheduler import Scheduler, check_schedule_access
+from lnbits.core.views import extension_api
 from lnbits.db import DB_TYPE, SQLITE, Database
 from lnbits.settings import Settings
 from lnbits.utils.cron import next_run_at
@@ -39,6 +47,59 @@ def clock(mocker: MockerFixture):
     clock = SimpleNamespace(now=NOW)
     mocker.patch.object(service, "time", SimpleNamespace(time=lambda: clock.now))
     return clock
+
+
+@pytest.fixture(params=["python", "wasm"])
+async def extension_job_scopes(
+    schedule_db: Database,
+    settings: Settings,
+    mocker: MockerFixture,
+    request: pytest.FixtureRequest,
+):
+    settings.lnbits_extensions_deactivate_all = False
+    async with schedule_db.connect() as conn:
+        await m001_initial(conn)
+        await m020_add_column_column_to_user_extensions(conn)
+        await m049_add_permissions_to_user_extensions(conn)
+    mocker.patch.object(extension_crud, "db", schedule_db)
+    for user_id, extension_id in [("alice", "one"), ("bob", "one"), ("alice", "two")]:
+        await extension_crud.create_user_extension(
+            UserExtension(user=user_id, extension=extension_id, active=True)
+        )
+    installed = SimpleNamespace(
+        active=True,
+        is_wasm=request.param == "wasm",
+        requires_payment=False,
+        permissions=[
+            ExtensionPermission(id="scheduler.user"),
+            ExtensionPermission(id="scheduler.extension"),
+        ],
+    )
+    for module in (service, extension_api):
+        mocker.patch.object(
+            module, "get_installed_extension", mocker.AsyncMock(return_value=installed)
+        )
+    mocker.patch.object(
+        extension_api,
+        "get_valid_extensions",
+        mocker.AsyncMock(
+            return_value=[
+                Extension(code=code, is_valid=True) for code in ("one", "two")
+            ]
+        ),
+    )
+    mocker.patch.object(
+        service,
+        "get_account",
+        mocker.AsyncMock(return_value=SimpleNamespace(activated=True)),
+    )
+    return {
+        "alice:first": ("extension:one", "alice"),
+        "alice:second": ("extension:one", "alice"),
+        "bob": ("extension:one", "bob"),
+        "shared": ("extension:one", None),
+        "alice:other-extension": ("extension:two", "alice"),
+    }
 
 
 def job(job_id: str = "test", **kwargs) -> ScheduledJob:
@@ -582,6 +643,120 @@ async def test_revoked_grants_and_disabled_users(
         await check_schedule_access("extension:one", "alice")
     with pytest.raises(PermissionError):
         await check_schedule_access("core", "alice")
+
+
+@pytest.mark.anyio
+async def test_user_extension_disable_cancels_only_its_running_jobs(
+    extension_job_scopes: dict[str, tuple[str, str | None]], clock
+):
+    worker = Scheduler(concurrency=len(extension_job_scopes), lease_seconds=3)
+    started = {job_id: asyncio.Event() for job_id in extension_job_scopes}
+    release = asyncio.Event()
+    cancelled: set[str] = set()
+    affected = {"alice:first", "alice:second"}
+
+    async def callback(item: ScheduledJob):
+        started[item.id].set()
+        try:
+            await release.wait()
+        except asyncio.CancelledError:
+            cancelled.add(item.id)
+            raise
+
+    for namespace in ("extension:one", "extension:two"):
+        worker.register(namespace, "check", callback)
+    for job_id, (namespace, user_id) in extension_job_scopes.items():
+        await worker.save(
+            namespace,
+            ScheduleConfig(id=job_id, handler="check", cron_expression="* * * * *"),
+            user_id=user_id,
+        )
+
+    try:
+        clock.now += 60
+        await worker.tick()
+        await asyncio.wait_for(
+            asyncio.gather(*(event.wait() for event in started.values())), 3
+        )
+        result = await extension_api.api_disable_extension("one", AccountId(id="alice"))
+        assert result.success
+        await asyncio.wait_for(
+            asyncio.gather(*(worker.running[job_id][1] for job_id in affected)), 3
+        )
+        assert cancelled == affected
+        for job_id in extension_job_scopes.keys() - affected:
+            assert not worker.running[job_id][1].done()
+        for job_id in affected:
+            stored = await crud.get_scheduled_job(job_id)
+            assert stored and stored.enabled and stored.lease_token is None
+            assert stored.namespace == "extension:one" and stored.user_id == "alice"
+            assert stored.next_run_at == NOW + 120
+        release.set()
+        await asyncio.wait_for(
+            asyncio.gather(*(task for _, task in worker.running.values())), 3
+        )
+        assert cancelled == affected
+    finally:
+        release.set()
+        await worker.stop()
+
+
+@pytest.mark.anyio
+async def test_user_extension_reenable_resumes_jobs_and_preserves_manual_pauses(
+    extension_job_scopes: dict[str, tuple[str, str | None]], clock
+):
+    worker = Scheduler(concurrency=len(extension_job_scopes) + 1)
+    calls: list[str] = []
+
+    async def callback(item: ScheduledJob):
+        calls.append(item.id)
+
+    for namespace in ("extension:one", "extension:two"):
+        worker.register(namespace, "check", callback)
+    for job_id, (namespace, user_id) in extension_job_scopes.items():
+        await worker.save(
+            namespace,
+            ScheduleConfig(id=job_id, handler="check", cron_expression="* * * * *"),
+            user_id=user_id,
+        )
+    paused = await worker.save(
+        "extension:one",
+        ScheduleConfig(
+            id="alice:paused",
+            handler="check",
+            cron_expression="* * * * *",
+            enabled=False,
+        ),
+        user_id="alice",
+    )
+
+    try:
+        result = await extension_api.api_disable_extension("one", AccountId(id="alice"))
+        assert result.success
+        clock.now += 60
+        await worker.tick()
+        await asyncio.wait_for(
+            asyncio.gather(*(task for _, task in worker.running.values())), 3
+        )
+        assert sorted(calls) == ["alice:other-extension", "bob", "shared"]
+        for job_id in ("alice:first", "alice:second"):
+            stored = await crud.get_scheduled_job(job_id)
+            assert stored and stored.enabled and stored.next_run_at == NOW + 120
+        assert await crud.get_scheduled_job(paused.id) == paused
+
+        result = await extension_api.api_enable_extension("one", AccountId(id="alice"))
+        assert result.success
+        clock.now += 60
+        await worker.tick()
+        await asyncio.wait_for(
+            asyncio.gather(*(task for _, task in worker.running.values())), 3
+        )
+        assert sorted(calls) == sorted(
+            [*extension_job_scopes, "alice:other-extension", "bob", "shared"]
+        )
+        assert await crud.get_scheduled_job(paused.id) == paused
+    finally:
+        await worker.stop()
 
 
 @pytest.mark.anyio
