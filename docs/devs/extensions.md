@@ -32,6 +32,8 @@ mv templates/example templates/mysuperplugin # Rename templates folder.
 
 ## Extension structure explained
 
+For persistent background jobs, see the [core scheduler](scheduler.md).
+
 - views_api.py: This is where your public API would go. It will be exposed at "$DOMAIN/$PLUGIN/$ROUTE". For example: https://lnbits.com/mysuperplugin/api/v1/tools.
 - views.py: The `/` path will show up as your plugin's home page in lnbits' UI. Other pages you can define yourself. The `templates` folder should explain itself in relation to this.
 - migrations.py: Create database tables for your plugin. They'll be created automatically when you start lnbits.

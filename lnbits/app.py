@@ -41,6 +41,7 @@ from lnbits.core.services.payments import (
     check_pending_payments,
     fundingsource_invoice_producer,
 )
+from lnbits.core.services.scheduler import scheduler, stop_scheduler_safely
 from lnbits.core.tasks import (
     audit_queue,
     collect_exchange_rates_data,
@@ -149,12 +150,15 @@ async def shutdown():
     settings.lnbits_running = False
 
     # shutdown event
-    task_manager.cancel_all_tasks()
+    try:
+        await stop_scheduler_safely()
+    finally:
+        task_manager.cancel_all_tasks()
 
-    # wait a bit to allow them to finish, so that cleanup can run without problems
-    await asyncio.sleep(0.1)
-    funding_source = get_funding_source()
-    await funding_source.cleanup()
+        # Give cancelled tasks a chance to finish their cleanup.
+        await asyncio.sleep(0.1)
+        funding_source = get_funding_source()
+        await funding_source.cleanup()
 
 
 @asynccontextmanager
@@ -577,6 +581,7 @@ def register_async_tasks() -> None:
     # listen to all incoming payments and dispatch payment notifications
     # note: should be the first in task list for a bit quicker notifications
     task_manager.register_invoice_listener(dispatch_payment_notification, "core")
+    task_manager.create_permanent_task(scheduler.run, name="core_scheduler")
 
     # Core onchain wallets retain their snapshots when no browser is open.
     task_manager.create_permanent_task(sync_wallets, interval=60)

@@ -968,3 +968,25 @@ async def m053_balances_view_include_onchain(db: Connection):
         AND (wallets.deleted = false OR wallets.deleted is NULL)
         GROUP BY wallets.id
     """)
+
+
+async def m054_create_scheduled_jobs(db: Connection):
+    """One shared schedule store for core, Python and WASM callbacks."""
+    await db.execute("""
+        CREATE TABLE scheduled_jobs (
+            id TEXT PRIMARY KEY,
+            namespace TEXT NOT NULL,
+            handler TEXT NOT NULL,
+            user_id TEXT,
+            cron_expression TEXT NOT NULL,
+            timezone TEXT NOT NULL DEFAULT 'UTC',
+            payload_json TEXT NOT NULL DEFAULT '{}',
+            enabled BOOLEAN NOT NULL DEFAULT true,
+            next_run_at BIGINT,
+            lease_token TEXT,
+            lease_until BIGINT NOT NULL DEFAULT 0
+        )
+    """)
+    await db.execute("""
+        CREATE INDEX idx_scheduled_jobs_due ON scheduled_jobs (enabled, next_run_at)
+    """)
