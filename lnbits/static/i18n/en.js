@@ -677,6 +677,8 @@ window.localisation.en = {
   extension_permission_access_write: 'Write',
   extension_permission_http_request: 'Connect to external websites',
   extension_permission_http_request_hosts: 'Allowed hosts',
+  extension_permission_notifications_send_user_notification:
+    'Send you notifications by email, Nostr or Telegram',
   extension_permission_utils_basic: 'Use basic LNbits utilities',
   extension_permission_ui_camera_scan_qr: 'Scan QR codes',
   extension_permission_websocket: 'Use extension websockets',

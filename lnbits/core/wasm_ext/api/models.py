@@ -2,7 +2,7 @@ import json
 from dataclasses import dataclass
 from typing import Any, Literal
 
-from pydantic import BaseModel, Field, root_validator
+from pydantic import BaseModel, Field, root_validator, validator
 
 
 @dataclass(frozen=True)
@@ -40,6 +40,24 @@ class ExtensionAPIMethod:
 
 class EmptyRequest(BaseModel):
     pass
+
+
+class SendUserNotificationRequest(BaseModel):
+    type: Literal["email", "nostr", "telegram"]
+    message: str = Field(..., min_length=1, max_length=4096)
+
+    class Config:
+        extra = "forbid"
+
+    @validator("message")
+    def validate_message(cls, message: str) -> str:
+        if not message.strip():
+            raise ValueError("Notification message must contain text.")
+        return message
+
+
+class SendUserNotificationResponse(BaseModel):
+    queued: bool = True
 
 
 class StorageGetRequest(BaseModel):
