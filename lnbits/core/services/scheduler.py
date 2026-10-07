@@ -8,8 +8,9 @@ from loguru import logger
 from lnbits.core.crud import scheduler as crud
 from lnbits.core.crud.extensions import get_installed_extension, get_user_extension
 from lnbits.core.crud.users import get_account
-from lnbits.core.models.scheduler import ScheduleConfig, ScheduledJob, next_run_at
+from lnbits.core.models.scheduler import ScheduleConfig, ScheduledJob
 from lnbits.settings import settings
+from lnbits.utils.cron import next_run_at
 
 SCHEDULER_USER_PERMISSION = "scheduler.user"
 SCHEDULER_EXTENSION_PERMISSION = "scheduler.extension"

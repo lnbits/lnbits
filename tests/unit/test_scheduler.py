@@ -11,11 +11,12 @@ from pytest_mock.plugin import MockerFixture
 from lnbits.core.crud import scheduler as crud
 from lnbits.core.migrations import m054_create_scheduled_jobs
 from lnbits.core.models.extensions import ExtensionPermission
-from lnbits.core.models.scheduler import ScheduleConfig, ScheduledJob, next_run_at
+from lnbits.core.models.scheduler import ScheduleConfig, ScheduledJob
 from lnbits.core.services import scheduler as service
 from lnbits.core.services.scheduler import Scheduler, check_schedule_access
 from lnbits.db import DB_TYPE, SQLITE, Database
 from lnbits.settings import Settings
+from lnbits.utils.cron import next_run_at
 
 NOW = 1735689600  # 2025-01-01 00:00 UTC
 
