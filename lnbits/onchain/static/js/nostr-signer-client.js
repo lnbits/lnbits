@@ -1,6 +1,6 @@
-// Proposed NIP-B8 Bitcoin signer v1. NIP-44 encryption; provisional kinds.
-export const BITCOIN_SIGNER_REQUEST_KIND = 24810
-export const BITCOIN_SIGNER_RESPONSE_KIND = 24811
+// NIP-46 envelope kind with NIP-44 encrypted Bitcoin signer v1 payloads.
+export const BITCOIN_SIGNER_REQUEST_KIND = 24133
+export const BITCOIN_SIGNER_RESPONSE_KIND = 24133
 export const MAX_PSBT_BYTES = 32768
 const hex = bytes =>
   Array.from(bytes, b => b.toString(16).padStart(2, '0')).join('')
@@ -71,7 +71,7 @@ export class NostrBitcoinSigner {
       socket.send(
         JSON.stringify([
           'REQ',
-          'bitcoin-v1',
+          'remote-signer',
           {
             kinds: [BITCOIN_SIGNER_RESPONSE_KIND],
             authors: [this.pubkey],
