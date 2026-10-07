@@ -1,3 +1,8 @@
+import {
+  EncryptionSession,
+  ephemeralKey,
+  initHash
+} from './session-crypto.bundle.js'
 // NIP-46 envelope kind with NIP-44 encrypted Bitcoin signer v1 payloads.
 export const BITCOIN_SIGNER_REQUEST_KIND = 24133
 export const BITCOIN_SIGNER_RESPONSE_KIND = 24133
@@ -43,9 +48,14 @@ export class NostrBitcoinSigner {
     secret,
     pubkey,
     relays,
+    network = 'Mainnet',
     onStatus = () => {}
   }) {
+    this.network = network
     this.onStatus = onStatus
+    this.encryption = null
+    this.handshake = null
+    this.signing = false
     this.retries = new Set()
     this.tools = tools
     this.WebSocketClass = WebSocketClass
@@ -59,6 +69,7 @@ export class NostrBitcoinSigner {
     this.closed = false
   }
   connect() {
+    if (this.closed) throw new Error('Signer disconnected; create a new client')
     if (this.sockets.length || this.retries.size) return
     this.closed = false
     for (const relay of this.relays) this.openRelay(relay)
@@ -100,7 +111,8 @@ export class NostrBitcoinSigner {
   }
   async receive(wire) {
     try {
-      if (typeof wire !== 'string' || wire.length > 100000) return
+      if (this.closed || typeof wire !== 'string' || wire.length > 100000)
+        return
       const envelope = JSON.parse(wire)
       if (envelope[0] !== 'EVENT' || envelope.length !== 3) return
       const event = envelope[2]
@@ -120,34 +132,53 @@ export class NostrBitcoinSigner {
         this.secret,
         this.pubkey
       )
-      const response = JSON.parse(
-        this.tools.nip44.v2.decrypt(event.content, key)
+      let response
+      try {
+        response = JSON.parse(this.tools.nip44.v2.decrypt(event.content, key))
+      } finally {
+        key.fill(0)
+      }
+      if (response.ciphertext !== undefined) {
+        if (!this.encryption) return
+        response = this.encryption.decrypt(response)
+      } else if (
+        response.method === 'sign_psbt' ||
+        response.method === 'unlock'
       )
+        return
       const pending = this.pending.get(response.id)
       if (
         !pending ||
         Date.now() >= pending.deadline ||
         response.protocol !== 'bitcoin-signer' ||
-        response.version !== 1 ||
-        response.network !== 'Testnet4' ||
+        response.version !==
+          (pending.method === 'pair' || pending.method === 'get_account'
+            ? 1
+            : 2) ||
+        response.network !== this.network ||
         response.method !== pending.method ||
         response.psbt_hash !== pending.hash
       )
         return
+      if (
+        ['result', 'error', 'status'].filter(k => Object.hasOwn(response, k))
+          .length !== 1
+      )
+        return
       if (response.status !== undefined) {
-        const statuses = new Set([
-          'Ready to sign',
-          'PIN required',
-          'Decrypting wallet',
-          'Validating transaction',
-          'Ready to sign — approve on device',
-          'Automatically approved',
-          'Signing',
-          'Signing complete'
+        const statuses = new Map([
+          ['Ready to sign', 1],
+          ['PIN required', 2],
+          ['Decrypting wallet', 3],
+          ['Validating transaction', 4],
+          ['Ready to sign — approve on device', 5],
+          ['Automatically approved', 5],
+          ['Signing', 6],
+          ['Signing complete', 7]
         ])
         if (
           pending.method !== 'sign_psbt' ||
-          !statuses.has(response.status) ||
+          statuses.get(response.status) !== response.sequence ||
           !Number.isInteger(response.sequence) ||
           response.sequence <= pending.sequence
         )
@@ -158,7 +189,9 @@ export class NostrBitcoinSigner {
           response.status === 'Ready to sign — approve on device' &&
           response.sequence === 5
         const reason =
-          manual && typeof response.reason === 'string' && response.reason.length <= 256
+          manual &&
+          typeof response.reason === 'string' &&
+          response.reason.length <= 256
             ? response.reason
             : ''
         this.onStatus(
@@ -168,17 +201,54 @@ export class NostrBitcoinSigner {
         )
         return
       }
+      if (
+        response.error !== undefined &&
+        (typeof response.error !== 'string' ||
+          !response.error.length ||
+          response.error.length > 500)
+      )
+        return
+      if (
+        response.result !== undefined &&
+        (!response.result ||
+          typeof response.result !== 'object' ||
+          Array.isArray(response.result))
+      )
+        return
+      if (
+        pending.method === 'unlock' &&
+        pending.parentId &&
+        typeof response.error === 'string' &&
+        /attempts? remaining/.test(response.error)
+      ) {
+        const parent = this.pending.get(pending.parentId)
+        if (parent) {
+          clearTimeout(parent.timer)
+          clearInterval(parent.retry)
+          this.pending.delete(pending.parentId)
+          parent.reject(new Error(response.error))
+        }
+        this.encryption?.close()
+        this.encryption = null
+      }
       clearTimeout(pending.timer)
       clearInterval(pending.retry)
       this.pending.delete(response.id)
-      if (pending.method === 'sign_psbt') this.finishPinRequests(response.id)
+      if (pending.method === 'sign_psbt') {
+        this.encryption?.close()
+        this.encryption = null
+        this.finishPinRequests(
+          response.id,
+          response.error ? new Error(response.error) : undefined
+        )
+      }
       if (response.error) pending.reject(new Error(response.error))
       else pending.resolve(response.result)
     } catch (_) {
       /* Malformed, unauthenticated, or unrelated relay data is ignored. */
     }
   }
-  request(method, params = {}, hash = '') {
+  request(method, params = {}, hash = '', fixedId, fixedExpires) {
     if (this.closed) return Promise.reject(new Error('Signer disconnected'))
     if (
       method === 'unlock' &&
@@ -189,18 +259,21 @@ export class NostrBitcoinSigner {
     if (this.pending.size && method !== 'unlock')
       return Promise.reject(new Error('A signing request is already active'))
     const now = Math.floor(Date.now() / 1000)
-    const id = hex(this.crypto.getRandomValues(new Uint8Array(16)))
+    const id = fixedId ?? hex(this.crypto.getRandomValues(new Uint8Array(16)))
     const expires =
-      method === 'unlock'
+      fixedExpires ??
+      (method === 'unlock'
         ? Math.floor(this.pending.get(params.request_id).deadline / 1000)
-        : now + 150
+        : now + 150)
     const parentId = method === 'unlock' ? params.request_id : null
+    if (!['Mainnet', 'Testnet4'].includes(this.network))
+      throw new Error('Unsupported Bitcoin network')
     const request = {
       protocol: 'bitcoin-signer',
-      version: 1,
+      version: method === 'session_init' ? 2 : 1,
       id,
       method,
-      network: 'Testnet4',
+      network: this.network,
       expires,
       params,
       psbt_hash: hash
@@ -209,22 +282,37 @@ export class NostrBitcoinSigner {
       this.secret,
       this.pubkey
     )
-    const event = this.tools.finalizeEvent(
-      {
-        kind: BITCOIN_SIGNER_REQUEST_KIND,
-        created_at: now,
-        tags: [['p', this.pubkey]],
-        content: this.tools.nip44.v2.encrypt(JSON.stringify(request), key)
-      },
-      this.secret
-    )
-    if (method === 'unlock') params.pin = ''
+    let event
+    try {
+      const payload =
+        method === 'sign_psbt' || method === 'unlock'
+          ? this.encryption.encrypt(request)
+          : request
+      event = this.tools.finalizeEvent(
+        {
+          kind: BITCOIN_SIGNER_REQUEST_KIND,
+          created_at: now,
+          tags: [['p', this.pubkey]],
+          content: this.tools.nip44.v2.encrypt(JSON.stringify(payload), key)
+        },
+        this.secret
+      )
+    } finally {
+      key.fill(0)
+      if (method === 'unlock') params.pin = ''
+    }
     const wire = JSON.stringify(['EVENT', event])
     return new Promise((resolve, reject) => {
       const publish = () => {
         if (Date.now() >= expires * 1000) return
         for (const socket of this.sockets)
-          if (socket.readyState === 1) socket.send(wire)
+          if (socket.readyState === 1) {
+            try {
+              socket.send(wire)
+            } catch {
+              socket.close()
+            }
+          }
       }
       // Ephemeral relays do not retain requests while the device is offline.
       // Repeat the same signed event; the device replay cache makes this idempotent.
@@ -233,7 +321,11 @@ export class NostrBitcoinSigner {
         () => {
           this.pending.delete(id)
           clearInterval(retry)
-          if (method === 'sign_psbt') this.finishPinRequests(id)
+          if (method === 'sign_psbt') {
+            this.encryption?.close()
+            this.encryption = null
+            this.finishPinRequests(id)
+          }
           reject(
             new Error('Signer timed out. Review and try a new signing request.')
           )
@@ -261,43 +353,107 @@ export class NostrBitcoinSigner {
     if (
       !account ||
       typeof account.descriptor !== 'string' ||
-      account.path !== "m/84'/1'/0'" ||
+      account.path !==
+        (this.network === 'Mainnet' ? "m/84'/0'/0'" : "m/84'/1'/0'") ||
       !/^[0-9a-f]{32}$/.test(account.session)
     )
       throw new Error('Unsupported signer account')
     this.account = account
     return account
   }
-  async sign(psbt) {
-    if (typeof psbt !== 'string' || psbt.length > 43692)
-      throw new Error('PSBT exceeds 32 KiB')
-    const bytes = Uint8Array.from(atob(psbt), c => c.charCodeAt(0))
-    if (
-      bytes.length > MAX_PSBT_BYTES ||
-      btoa(String.fromCharCode(...bytes)) !== psbt
+  async startSession(hash) {
+    if (this.account.secure_session !== 1)
+      throw new Error('Update signer firmware to use secure signing sessions')
+    const key = ephemeralKey(n =>
+      this.crypto.getRandomValues(new Uint8Array(n))
     )
-      throw new Error('Invalid or oversized PSBT')
-    const hash = hex(
-      new Uint8Array(await this.crypto.subtle.digest('SHA-256', bytes))
-    )
-    // Refresh the boot session automatically before each signing request.
-    await this.getAccount()
-    const result = await this.request(
-      'sign_psbt',
-      {psbt, session: this.account.session},
-      hash
-    )
-    if (typeof result?.psbt !== 'string' || result.psbt.length > 60000)
-      throw new Error('Invalid signed PSBT response')
-    return result.psbt
+    const hello = {
+      protocol: 'bitcoin-signer',
+      version: 2,
+      method: 'session_init',
+      network: this.network,
+      id: hex(this.crypto.getRandomValues(new Uint8Array(16))),
+      expires: Math.floor(Date.now() / 1000) + 150,
+      psbt_hash: hash,
+      params: {
+        session: this.account.session,
+        session_id: hex(this.crypto.getRandomValues(new Uint8Array(32))),
+        mobile_ephemeral_public_key: key.publicKey,
+        request_type: 'sign_psbt'
+      }
+    }
+    this.handshake = key.secret
+    try {
+      const result = await this.request(
+        'session_init',
+        hello.params,
+        hash,
+        hello.id,
+        hello.expires
+      )
+      if (
+        this.closed ||
+        result.init_hash !== initHash(hello, this.clientKey, this.pubkey)
+      )
+        throw new Error('Invalid secure session response')
+      this.encryption = new EncryptionSession(
+        hello,
+        this.clientKey,
+        this.pubkey,
+        key.secret,
+        result.signer_ephemeral_public_key
+      )
+      return hello
+    } finally {
+      key.secret.fill(0)
+      this.handshake = null
+    }
   }
-  finishPinRequests(id) {
+  async sign(psbt) {
+    if (this.signing) throw new Error('A signing request is already active')
+    this.signing = true
+    try {
+      if (typeof psbt !== 'string' || psbt.length > 43692)
+        throw new Error('PSBT exceeds 32 KiB')
+      const bytes = Uint8Array.from(atob(psbt), c => c.charCodeAt(0))
+      if (
+        bytes.length > MAX_PSBT_BYTES ||
+        btoa(String.fromCharCode(...bytes)) !== psbt
+      )
+        throw new Error('Invalid or oversized PSBT')
+      const hash = hex(
+        new Uint8Array(await this.crypto.subtle.digest('SHA-256', bytes))
+      )
+      // Refresh the boot session automatically before each signing request.
+      await this.getAccount()
+      this.onStatus('Establishing secure signing session')
+      const hello = await this.startSession(hash)
+      const result = await this.request(
+        'sign_psbt',
+        {psbt, session: this.account.session},
+        hash,
+        hello.id,
+        hello.expires
+      )
+      if (typeof result?.psbt !== 'string' || result.psbt.length > 60000)
+        throw new Error('Invalid signed PSBT response')
+      return result.psbt
+    } finally {
+      this.encryption?.close()
+      this.encryption = null
+      this.handshake?.fill(0)
+      this.handshake = null
+      this.signing = false
+    }
+  }
+  finishPinRequests(id, error) {
     for (const [key, pending] of this.pending) {
       if (pending.parentId !== id) continue
       clearTimeout(pending.timer)
       clearInterval(pending.retry)
       this.pending.delete(key)
-      pending.resolve({})
+      if (error) pending.reject(error)
+      else pending.resolve({})
     }
   }
   async submitPin(pin) {
@@ -313,7 +469,7 @@ export class NostrBitcoinSigner {
       throw new Error('No active PIN request')
     const [id, pending] = entry
     try {
-      return await this.request(
+      const reply = this.request(
         'unlock',
         {
           pin,
@@ -322,16 +478,23 @@ export class NostrBitcoinSigner {
         },
         pending.hash
       )
+      pin = ''
+      return await reply
     } finally {
       pin = ''
     }
   }
   close() {
     this.closed = true
+    this.encryption?.close()
+    this.encryption = null
+    this.handshake?.fill(0)
+    this.handshake = null
     for (const retry of this.retries) clearTimeout(retry)
     this.retries.clear()
     for (const socket of this.sockets) {
       clearTimeout(socket.retry)
+      socket.onopen = socket.onmessage = socket.onerror = socket.onclose = null
       socket.close()
     }
     this.sockets = []

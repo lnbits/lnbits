@@ -139,7 +139,7 @@ bundle:
 	npm run bundle
 	uv run ./node_modules/.bin/prettier -w ./lnbits/static/vendor.json
 
-checkbundle:
+checkbundle: check-signer-crypto
 	cp lnbits/static/bundle.min.js lnbits/static/bundle.min.js.old
 	cp lnbits/static/bundle.min.css lnbits/static/bundle.min.css.old
 	cp lnbits/static/bundle-components.min.js lnbits/static/bundle-components.min.js.old
@@ -167,3 +167,6 @@ test-onchain-ui:
 # Requires a local Chrome/Chromium executable or Playwright browser install.
 test-onchain-browser:
 	node tests/e2e/onchain-wallet.cjs
+
+check-signer-crypto:
+	node tools/build-signer-crypto.mjs --check

@@ -20,3 +20,6 @@ flake.lock
 # Third-party Bitcoin hardware signing libraries.
 **/lnbits/onchain/static/js/crypto/*
 **/lnbits/onchain/static/js/lib/*
+
+# Reproducible generated ephemeral-session browser crypto bundle.
+**/lnbits/onchain/static/js/session-crypto.bundle.js

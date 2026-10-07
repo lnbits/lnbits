@@ -290,7 +290,10 @@ export default {
       // Existing imported accounts may not have the newer meta.signer flag.
       await this.$nextTick()
       const nostr = this.$refs.nostrSigner
-      if (this.config.network === 'Testnet4' && nostr?.hasPairing()) {
+      if (
+        ['Mainnet', 'Testnet4'].includes(this.config.network) &&
+        nostr?.hasPairing()
+      ) {
         this.connectedDeviceType = 'nostr-device'
         await this.$nextTick() // Update the payment component's signer prop first.
       }

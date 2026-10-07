@@ -3054,8 +3054,9 @@
         <q-card-section
           ><div class="text-h6">Pair a Remote Signer</div>
           <p v-if="!signingDialog">
-            Scan the pairing code on the remote signer using the "Scan Pairing Code" button.
-            Change the Client name if needed, this is shown on the signing device during pairing.
+            Scan the pairing code on the remote signer using the "Scan Pairing
+            Code" button. Change the Client name if needed, this is shown on the
+            signing device during pairing.
           </p>
           <div v-if="!signingDialog">
             <q-input

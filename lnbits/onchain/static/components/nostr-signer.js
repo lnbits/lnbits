@@ -52,7 +52,7 @@ window.app.component('onchain-nostr-signer', {
       return !!localStorage.getItem(this.storageKey)
     },
     isConnected() {
-      return this.connected && this.network === 'Testnet4'
+      return this.connected && ['Mainnet', 'Testnet4'].includes(this.network)
     },
     isAuthenticated() {
       return this.isConnected()
@@ -136,8 +136,8 @@ window.app.component('onchain-nostr-signer', {
       this.busy = true
       this.message = 'Connecting to signer…'
       try {
-        if (this.network !== 'Testnet4')
-          throw new Error('Select Testnet4 first')
+        if (!['Mainnet', 'Testnet4'].includes(this.network))
+          throw new Error('Select Mainnet or Testnet4 first')
         this.disconnect()
         let saved
         if (pair) {
@@ -156,6 +156,7 @@ window.app.component('onchain-nostr-signer', {
           throw new Error('Invalid saved browser identity')
         this.client = Vue.markRaw(
           new NostrBitcoinSigner({
+            network: this.network,
             ...saved,
             secret: new Uint8Array(saved.secret),
             onStatus: status => {
@@ -203,7 +204,7 @@ window.app.component('onchain-nostr-signer', {
         if (
           accounts.some(
             account =>
-              account.network === 'Testnet4' &&
+              account.network === this.network &&
               account.masterpub === this.account.descriptor
           )
         ) {
@@ -216,7 +217,7 @@ window.app.component('onchain-nostr-signer', {
         }
         if (accounts.length)
           throw new Error(
-            'This LNbits wallet already has an account. Use a new Testnet4 wallet to import the signer.'
+            'This LNbits wallet already has an account. Use a new wallet on the selected network to import the signer.'
           )
         await LNbits.api.request(
           'POST',
@@ -224,7 +225,7 @@ window.app.component('onchain-nostr-signer', {
           this.adminkey,
           {
             title: 'Remote Bitcoin signer',
-            network: 'Testnet4',
+            network: this.network,
             masterpub: this.account.descriptor,
             meta: JSON.stringify({
               signer: 'nostr',
@@ -235,7 +236,7 @@ window.app.component('onchain-nostr-signer', {
         this.imported = true
         this.$emit('wallet-imported')
         this.message =
-          'Signer connected and public wallet imported. You can now receive Testnet4 coins.'
+          'Signer connected and public wallet imported. You can now receive coins on the selected network.'
         this.$q.notify({type: 'positive', message: this.message})
       } catch (error) {
         const detail = error.response?.data?.detail
@@ -256,7 +257,14 @@ window.app.component('onchain-nostr-signer', {
       }
     }
   },
+  mounted() {
+    this.onVisibilityChange = () => {
+      if (document.hidden) this.disconnect()
+    }
+    document.addEventListener('visibilitychange', this.onVisibilityChange)
+  },
   beforeUnmount() {
+    document.removeEventListener('visibilitychange', this.onVisibilityChange)
     this.disconnect()
   }
 })

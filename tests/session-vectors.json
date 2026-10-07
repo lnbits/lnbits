@@ -1,0 +1,106 @@
+[
+  {
+    "hello": {
+      "protocol": "bitcoin-signer",
+      "version": 2,
+      "network": "Mainnet",
+      "id": "cccccccccccccccccccccccccccccccc",
+      "method": "session_init",
+      "expires": 1800000150,
+      "psbt_hash": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+      "params": {
+        "session": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+        "session_id": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+        "mobile_ephemeral_public_key": "0279be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798",
+        "request_type": "sign_psbt"
+      }
+    },
+    "client": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "signer": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+    "mobile_private": "0000000000000000000000000000000000000000000000000000000000000001",
+    "signer_private": "0000000000000000000000000000000000000000000000000000000000000002",
+    "signer_public": "02c6047f9441ed7d6d3045406e95c07cd85c778e4b8cef3ca7abac09b95c709ee5",
+    "init_hash": "83985d33310869446004baa9ad5fb8989053d07589eff276c30fc302eb8c0334",
+    "transcript": "55ba56b27cae3806502d38ed51d1d0aa05475192e466292e7481a673bb707c04",
+    "c2s_key": "863b6811f256dea84983556af105d37d0f1ed567a896acf06cfa7e67215b5581",
+    "s2c_key": "10e171c24155e8ead577b2408d4c09bd24694c609c40652131807c382b3b8b17",
+    "message": {
+      "protocol": "bitcoin-signer",
+      "version": 2,
+      "network": "Mainnet",
+      "id": "cccccccccccccccccccccccccccccccc",
+      "method": "unlock",
+      "psbt_hash": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+      "expires": 1800000150,
+      "params": {
+        "pin": "123456",
+        "session": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+        "request_id": "cccccccccccccccccccccccccccccccc"
+      }
+    },
+    "packet": {
+      "protocol": "bitcoin-signer",
+      "version": 2,
+      "network": "Mainnet",
+      "id": "cccccccccccccccccccccccccccccccc",
+      "method": "unlock",
+      "expires": 1800000150,
+      "psbt_hash": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+      "session_id": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+      "counter": 0,
+      "ciphertext": "6pO4AZZytz4f8pUn4U/W9tif/VwhHAbevZw2cf5yLDnirOBt4+HbSb3UnHaUW2YKMRvU5WE05wgQZr/sj/SP7oi0I5+EvWdBabcCeDlPe/nNFdQlAeRdTcRHagBsZE/UcaHvsaPpdowrGIBpDoFatoiIn5rilSDKX3txtvDJzMO8H9u6/XblUaJJ/yMwzcow9NocseGG4MgQL4yzSCA7Lg9Jhz/fzDnEH3wcmr0t8MY2GeT+cRUIN3XSkASOlPm6LWE5gYZ3kiJC6MWOgDmacfu7NIPK0IMPQMQtLk2U5xbuv3A/fdxeGbnfecoWNYNoR0gb5fKozijAJo8CscwNuz25lEQ8pO1Ifp5KWS8dPNEF1TdEwyNaKjKAA8T1jkRCrcOc7BNaGP+JGM79IQl0PfvDPt4zOcY3EJWn+GT4SLGTIsIPXhBON4X1oVt1EH34dcoa5nLpfkKuJXsxF7mQtIW4"
+    }
+  },
+  {
+    "hello": {
+      "protocol": "bitcoin-signer",
+      "version": 2,
+      "network": "Testnet4",
+      "id": "cccccccccccccccccccccccccccccccc",
+      "method": "session_init",
+      "expires": 1800000150,
+      "psbt_hash": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+      "params": {
+        "session": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+        "session_id": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+        "mobile_ephemeral_public_key": "0279be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798",
+        "request_type": "sign_psbt"
+      }
+    },
+    "client": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "signer": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+    "mobile_private": "0000000000000000000000000000000000000000000000000000000000000001",
+    "signer_private": "0000000000000000000000000000000000000000000000000000000000000002",
+    "signer_public": "02c6047f9441ed7d6d3045406e95c07cd85c778e4b8cef3ca7abac09b95c709ee5",
+    "init_hash": "c1eb351672d266e6264c42e2c525ac07a6cfb7feb566c02e07f18bdfb562e276",
+    "transcript": "493b1a9c55c84c0b4f49c6e9d5b02de6b47510fbb3c77da30beafb4fcbd3fef6",
+    "c2s_key": "73daf720bd04d8b942dccb5604c3956004dc86dab032acdbf0e994ebb5a340d7",
+    "s2c_key": "8bef86c85baca6a7995bac5184262238717a30cd229d18c6c6770785e6a8454d",
+    "message": {
+      "protocol": "bitcoin-signer",
+      "version": 2,
+      "network": "Testnet4",
+      "id": "cccccccccccccccccccccccccccccccc",
+      "method": "unlock",
+      "psbt_hash": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+      "expires": 1800000150,
+      "params": {
+        "pin": "123456",
+        "session": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+        "request_id": "cccccccccccccccccccccccccccccccc"
+      }
+    },
+    "packet": {
+      "protocol": "bitcoin-signer",
+      "version": 2,
+      "network": "Testnet4",
+      "id": "cccccccccccccccccccccccccccccccc",
+      "method": "unlock",
+      "expires": 1800000150,
+      "psbt_hash": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+      "session_id": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+      "counter": 0,
+      "ciphertext": "uAR0Dxd4mmK8QPKd6wAthzrbPz4DyTg31yfwszkiDLfiF5WaDqXC9JNe8zziPelycWzUpgJQA8aHhKiK14/7uS6mAl3+Hb/Teg7FbXG/zk5TBCxHl6fhE+fAnHS/Sa7BIqKugxibRM1HBhU8dCa4wUAm+8esMK7mKb8InhZ5QbPX0+e4FCxH2T+W8B0OVGIS2TyUWrIq+Ex+0p0/lbp7brjaR11OExsjQzWa1Zm0eAhsuSagZ4sO6V7pDhC8FH51ku1Zn37LFeTNDb4aCXH2udSlIl/TlQq2EVS+sppO8awCn6ZbaaQBBk5w6VqF2Lt+porI/HI/dGzMF86LbjtultiL7Cuh6i2nop4w2a3LQ8p2QQZ9UHdlpqmtAvsVXiq3ywRwjBffx34RQcmSSVt0WAB6xazLN61FKBj/K0SBTY3WojagKoCvQa28WXQ3b6FGQ4E6HT2hNx9hD3NYwvQl0eF4bQ=="
+    }
+  }
+]

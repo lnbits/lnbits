@@ -103,3 +103,7 @@ wallet, including when a user owns several wallets.
   uses `X-Onchain-Recovery-Phrase` so phrases do not enter request-body audit logs.
 
 See the instance's `/docs#/Onchain` for the complete API schema.
+
+## Remote Nostr signer encryption
+
+Mainnet and Testnet4 Nostr signing use [ephemeral encryption sessions](ephemeral-signer-sessions.md) with upgraded firmware. Pairing identities remain unchanged. The browser performs the handshake and PIN encryption locally; the LNbits server receives no PIN or session key. Legacy remote signing has no fallback. Hiding the page disconnects and clears its session; check the device before retrying an interrupted payment.
