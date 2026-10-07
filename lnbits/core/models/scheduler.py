@@ -1,4 +1,5 @@
 import json
+from typing import Any
 from uuid import uuid4
 from zoneinfo import ZoneInfo
 
@@ -7,15 +8,10 @@ from pydantic import BaseModel, Field, validator
 from lnbits.utils.cron import normalize_cron
 
 
-class ScheduleConfig(BaseModel):
-    id: str = Field(
-        default_factory=lambda: uuid4().hex, regex=r"^[A-Za-z0-9_.:-]{1,128}$"
-    )
+class SchedulePolicy(BaseModel):
     handler: str = Field(..., regex=r"^[A-Za-z0-9_-]{1,128}$")
     cron_expression: str = Field(..., min_length=1, max_length=256)
     timezone: str = Field(default="UTC", max_length=128)
-    payload_json: str = Field(default="{}", max_length=8192)
-    enabled: bool = True
 
     class Config:
         extra = "forbid"
@@ -31,6 +27,28 @@ class ScheduleConfig(BaseModel):
         except (KeyError, ValueError) as exc:
             raise ValueError("Unknown IANA timezone.") from exc
         return zone
+
+
+def parse_schedule_policies(policies: list[Any] | None) -> dict[str, SchedulePolicy]:
+    if not policies:
+        raise ValueError("Scheduling permission requires per-handler cron policies.")
+    parsed: dict[str, SchedulePolicy] = {}
+    for policy in policies:
+        if not isinstance(policy, dict):
+            raise ValueError("Schedule policy must be an object.")
+        schedule = SchedulePolicy.parse_obj(policy)
+        if schedule.handler in parsed:
+            raise ValueError("Schedule policies must have unique handlers per scope.")
+        parsed[schedule.handler] = schedule
+    return parsed
+
+
+class ScheduleConfig(SchedulePolicy):
+    id: str = Field(
+        default_factory=lambda: uuid4().hex, regex=r"^[A-Za-z0-9_.:-]{1,128}$"
+    )
+    payload_json: str = Field(default="{}", max_length=8192)
+    enabled: bool = True
 
     @validator("payload_json")
     def validate_payload(cls, value: str) -> str:

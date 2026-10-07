@@ -8,7 +8,13 @@ from loguru import logger
 from lnbits.core.crud import scheduler as crud
 from lnbits.core.crud.extensions import get_installed_extension, get_user_extension
 from lnbits.core.crud.users import get_account
-from lnbits.core.models.scheduler import ScheduleConfig, ScheduledJob
+from lnbits.core.models.extensions import ExtensionPermission
+from lnbits.core.models.scheduler import (
+    ScheduleConfig,
+    ScheduledJob,
+    SchedulePolicy,
+    parse_schedule_policies,
+)
 from lnbits.settings import settings
 from lnbits.utils.cron import next_run_at
 
@@ -17,7 +23,9 @@ SCHEDULER_EXTENSION_PERMISSION = "scheduler.extension"
 ScheduleHandler = Callable[[ScheduledJob], Awaitable[None]]
 
 
-async def check_schedule_access(namespace: str, user_id: str | None) -> None:
+async def check_schedule_access(
+    namespace: str, user_id: str | None, config: SchedulePolicy
+) -> None:
     """Check current grants, including on executions after the user logs out."""
     if user_id:
         account = await get_account(user_id)
@@ -38,14 +46,29 @@ async def check_schedule_access(namespace: str, user_id: str | None) -> None:
         SCHEDULER_USER_PERMISSION if user_id else SCHEDULER_EXTENSION_PERMISSION
     )
     # Python extensions are trusted application code; WASM grants are host-enforced.
-    if extension.is_wasm and permission not in {
-        item.id for item in extension.permissions
-    }:
-        raise PermissionError("Extension scheduling permission has been revoked.")
+    if extension.is_wasm:
+        _check_wasm_schedule_policy(extension.permissions, permission, config)
     if user_id:
         user_extension = await get_user_extension(user_id, extension_id)
         if not user_extension or not user_extension.active:
             raise PermissionError("Scheduled extension is not active for this user.")
+
+
+def _check_wasm_schedule_policy(
+    permissions: list[ExtensionPermission], permission_id: str, config: SchedulePolicy
+) -> None:
+    grant = next((item for item in permissions if item.id == permission_id), None)
+    if not grant:
+        raise PermissionError("Extension scheduling permission has been revoked.")
+    try:
+        approved = parse_schedule_policies(grant.policies).get(config.handler)
+    except ValueError as exc:
+        raise PermissionError("Invalid approved schedule policies.") from exc
+    if not approved or (
+        approved.cron_expression != config.cron_expression
+        or approved.timezone != config.timezone
+    ):
+        raise PermissionError("Schedule does not match an admin-approved policy.")
 
 
 class Scheduler:
@@ -103,7 +126,7 @@ class Scheduler:
     async def save(
         self, namespace: str, config: ScheduleConfig, *, user_id: str | None = None
     ) -> ScheduledJob:
-        await check_schedule_access(namespace, user_id)
+        await check_schedule_access(namespace, user_id, config)
         if (namespace, config.handler) not in self.handlers:
             raise ValueError("Schedule handler is not registered.")
         now = int(time.time())
@@ -189,10 +212,10 @@ class Scheduler:
         self.running.clear()
 
     async def _execute(self, job: ScheduledJob) -> None:
-        await check_schedule_access(job.namespace, job.user_id)
         current = await crud.get_scheduled_job(job.id)
         if not current or not current.enabled or current.lease_token != job.lease_token:
             return
+        await check_schedule_access(current.namespace, current.user_id, current)
         callback = self.handlers.get((current.namespace, current.handler))
         if callback:
             await callback(current)
@@ -201,7 +224,7 @@ class Scheduler:
         assert job.lease_token
         while True:
             await asyncio.sleep(self.lease_seconds / 3)
-            await check_schedule_access(job.namespace, job.user_id)
+            await check_schedule_access(job.namespace, job.user_id, job)
             now = int(time.time())
             if not await crud.renew_scheduled_job(
                 job.id, job.lease_token, now, now + self.lease_seconds

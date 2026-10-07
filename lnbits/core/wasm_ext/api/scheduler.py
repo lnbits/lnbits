@@ -3,7 +3,7 @@ from __future__ import annotations
 import json
 from typing import TYPE_CHECKING, Literal
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, root_validator
 
 from lnbits.core.crud.users import get_account
 from lnbits.core.models.scheduler import ScheduleConfig
@@ -12,6 +12,7 @@ from lnbits.core.services.scheduler import (
     SCHEDULER_USER_PERMISSION,
     scheduler,
 )
+from lnbits.helpers import sha256s
 
 from .registry import extension_api_method
 
@@ -28,6 +29,13 @@ class ScheduleScopeRequest(BaseModel):
 
 class ScheduleSetRequest(ScheduleConfig):
     scope: Literal["user", "extension"] = "user"
+
+    @root_validator(pre=True)
+    def omit_empty_id(cls, values: dict) -> dict:
+        # WIT represents an omitted ID as option<string> / None.
+        if values.get("id") is None:
+            values = {key: value for key, value in values.items() if key != "id"}
+        return values
 
 
 class ScheduleListRequest(ScheduleScopeRequest):
@@ -84,7 +92,8 @@ class ExtensionSchedulerAPI:
             "Create or update a five-field cron job. "
             "User scope requires scheduler.user; "
             "extension scope requires scheduler.extension and an administrator. "
-            "The handler must be an event export."
+            "The handler, cron expression and timezone must match an "
+            "admin-approved schedule policy. The handler must be an event export."
         ),
     )
     async def set(self, request: ScheduleSetRequest) -> ScheduleResponse:
@@ -92,9 +101,14 @@ class ExtensionSchedulerAPI:
         self.api.require_permission(
             SCHEDULER_USER_PERMISSION if owner else SCHEDULER_EXTENSION_PERMISSION
         )
+        # A WASM handler has one durable schedule in each owner/scope. Stable IDs
+        # make concurrent creates idempotent without a separate uniqueness index.
+        job_id = sha256s(json.dumps([self.api.extension_id, owner, request.handler]))
+        if "id" in request.__fields_set__ and request.id != job_id:
+            raise ValueError("Schedule ID does not match this handler and owner.")
         job = await scheduler.save(
             f"extension:{self.api.extension_id}",
-            ScheduleConfig.parse_obj(request.dict(exclude={"scope"})),
+            ScheduleConfig.parse_obj({**request.dict(exclude={"scope"}), "id": job_id}),
             user_id=owner,
         )
         return ScheduleResponse(schedule_json=json.dumps(job.public_data()))

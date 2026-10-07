@@ -54,19 +54,21 @@ def schedule() -> ScheduledJob:
 async def test_scheduler_host_scopes_user_jobs_and_redacts_owner(
     account, mocker: MockerFixture
 ):
-    save = mocker.patch.object(
-        scheduler, "save", mocker.AsyncMock(return_value=schedule())
+    saved = schedule().copy(
+        update={"id": sha256s(json.dumps(["demo", "alice", "check"]))}
     )
+    save = mocker.patch.object(scheduler, "save", mocker.AsyncMock(return_value=saved))
     api = ExtensionHostAPI("demo", ["scheduler.user"], user_id="alice")
     result = await ExtensionAPIHost(api).invoke(
         "scheduler.set",
-        {"id": "job-1", "handler": "check", "cronExpression": "*/10 * * * *"},
+        {"handler": "check", "cronExpression": "*/10 * * * *"},
     )
     assert save.await_args is not None
     assert save.await_args.args[0] == "extension:demo"
+    assert save.await_args.args[1].id == saved.id
     assert save.await_args.kwargs["user_id"] == "alice"
     data = json.loads(result["scheduleJson"])
-    assert data["id"] == "job-1"
+    assert data["id"] == saved.id
     assert not {"namespace", "user_id", "lease_token", "lease_until"}.intersection(data)
     for field in ("userId", "namespace"):
         with pytest.raises(ValidationError):
@@ -252,8 +254,11 @@ async def test_scheduled_payments_require_background_grants(
 
 def test_scheduler_permissions_and_sdk_are_discoverable():
     permissions = [
-        ExtensionPermission(id="scheduler.user"),
-        ExtensionPermission(id="scheduler.extension"),
+        ExtensionPermission(
+            id=permission,
+            policies=[{"handler": "check", "cron_expression": "*/10 * * * *"}],
+        )
+        for permission in ("scheduler.user", "scheduler.extension")
     ]
     config = {
         "id": "demo",
@@ -261,7 +266,10 @@ def test_scheduler_permissions_and_sdk_are_discoverable():
         "version": "0.1.0",
         "short_description": "Demo",
         "extension_type": "wasm",
-        "wasm": {"module": "extension.wasm"},
+        "wasm": {
+            "module": "extension.wasm",
+            "exports": [{"name": "check", "visibility": "event"}],
+        },
         "permissions": [p.dict() for p in permissions],
     }
     extension = make_installable_extension("demo")

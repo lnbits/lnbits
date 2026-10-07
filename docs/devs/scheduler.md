@@ -151,6 +151,45 @@ approval:
 An extension may request either or both. Scheduling permission does not grant
 notification, HTTP, storage, or payment access. Each still needs its own grants.
 
+Each scheduling permission must declare a nonempty `policies` list containing
+one cron expression and timezone per handler. The administrator reviews and
+approves these schedules at installation; installation does not create jobs.
+For example, a pricebot can declare:
+
+```json
+{
+  "permissions": [
+    {
+      "id": "scheduler.extension",
+      "policies": [
+        {
+          "handler": "collect_prices",
+          "cron_expression": "* * * * *",
+          "timezone": "UTC"
+        }
+      ]
+    },
+    {
+      "id": "scheduler.user",
+      "policies": [
+        {
+          "handler": "check_alerts",
+          "cron_expression": "*/10 * * * *",
+          "timezone": "UTC"
+        }
+      ]
+    }
+  ]
+}
+```
+
+Both handlers must be declared in `wasm.exports` with `visibility: "event"`.
+Timezone defaults to `UTC`. Handlers must be unique within each permission;
+the same handler can have different schedules in the two scopes. Administrators
+may grant a subset of the declared handlers, or omit a permission entirely.
+Cron and timezone must match the declared policy; schedule changes require an
+updated manifest and administrator approval.
+
 The host methods are `scheduler.set`, `scheduler.list`, and `scheduler.delete`,
 exposed through WIT instance `lnbits:extension/scheduler` as `set-schedule`,
 `list-schedules`, and `delete-schedule`. The TypeScript SDK generator discovers
@@ -160,6 +199,13 @@ these methods automatically.
 `cronExpression`, `timezone` (default `UTC`), `payloadJson` (a JSON object, up to
 8192 bytes), `enabled` (default true), and `scope` (`user` by default, or
 `extension`). It returns `scheduleJson`; retain its `id` and send it on updates.
+The handler, normalized cron expression, and timezone must match the approved
+policy for that scope on both creation and updates. Core checks approval again
+before executing a job and during its heartbeat. Revoking the policy blocks
+future callbacks and cancels running callbacks at the next heartbeat. The
+extension may check its own conditions and return without doing work; it cannot
+override the approved schedule. Core and trusted Python schedules do not require
+these WASM policies.
 Listing returns `schedulesJson` and accepts `scope`, `limit`, and `offset`.
 Deletion accepts `id` and `scope` and returns `deleted`.
 

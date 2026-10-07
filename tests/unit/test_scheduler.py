@@ -71,8 +71,11 @@ async def extension_job_scopes(
         is_wasm=request.param == "wasm",
         requires_payment=False,
         permissions=[
-            ExtensionPermission(id="scheduler.user"),
-            ExtensionPermission(id="scheduler.extension"),
+            ExtensionPermission(
+                id=permission,
+                policies=[{"handler": "check", "cron_expression": "* * * * *"}],
+            )
+            for permission in ("scheduler.user", "scheduler.extension")
         ],
     )
     for module in (service, extension_api):
@@ -100,6 +103,39 @@ async def extension_job_scopes(
         "shared": ("extension:one", None),
         "alice:other-extension": ("extension:two", "alice"),
     }
+
+
+@pytest.fixture
+def wasm_schedule_grants(settings: Settings, mocker: MockerFixture):
+    settings.lnbits_extensions_deactivate_all = False
+    extension = SimpleNamespace(
+        active=True,
+        is_wasm=True,
+        permissions=[
+            ExtensionPermission(
+                id="scheduler.user",
+                policies=[{"handler": "check", "cron_expression": "*/10 * * * *"}],
+            ),
+            ExtensionPermission(
+                id="scheduler.extension",
+                policies=[{"handler": "check", "cron_expression": "*/20 * * * *"}],
+            ),
+        ],
+    )
+    mocker.patch.object(
+        service, "get_installed_extension", mocker.AsyncMock(return_value=extension)
+    )
+    mocker.patch.object(
+        service,
+        "get_account",
+        mocker.AsyncMock(return_value=SimpleNamespace(activated=True)),
+    )
+    mocker.patch.object(
+        service,
+        "get_user_extension",
+        mocker.AsyncMock(return_value=SimpleNamespace(active=True)),
+    )
+    return extension
 
 
 def job(job_id: str = "test", **kwargs) -> ScheduledJob:
@@ -616,7 +652,12 @@ async def test_revoked_grants_and_disabled_users(
     extension = SimpleNamespace(
         active=True,
         is_wasm=True,
-        permissions=[ExtensionPermission(id="scheduler.user")],
+        permissions=[
+            ExtensionPermission(
+                id="scheduler.user",
+                policies=[{"handler": "check", "cron_expression": "* * * * *"}],
+            )
+        ],
     )
     enabled = SimpleNamespace(active=True)
     account = SimpleNamespace(activated=True)
@@ -627,22 +668,151 @@ async def test_revoked_grants_and_disabled_users(
         service, "get_user_extension", mocker.AsyncMock(return_value=enabled)
     )
     mocker.patch.object(service, "get_account", mocker.AsyncMock(return_value=account))
-    await check_schedule_access("extension:one", "alice")
+    config = job()
+    grants = extension.permissions
+    await check_schedule_access("extension:one", "alice", config)
     with pytest.raises(PermissionError):
-        await check_schedule_access("extension:one", None)
+        await check_schedule_access("extension:one", None, config)
     extension.permissions = []
     with pytest.raises(PermissionError):
-        await check_schedule_access("extension:one", "alice")
-    extension.permissions = [ExtensionPermission(id="scheduler.user")]
+        await check_schedule_access("extension:one", "alice", config)
+    extension.permissions = grants
     enabled.active = False
     with pytest.raises(PermissionError):
-        await check_schedule_access("extension:one", "alice")
+        await check_schedule_access("extension:one", "alice", config)
     enabled.active = True
     account.activated = False
     with pytest.raises(PermissionError):
-        await check_schedule_access("extension:one", "alice")
+        await check_schedule_access("extension:one", "alice", config)
     with pytest.raises(PermissionError):
-        await check_schedule_access("core", "alice")
+        await check_schedule_access("core", "alice", config)
+
+
+@pytest.mark.anyio
+@pytest.mark.parametrize("user_id", ["alice", None])
+@pytest.mark.parametrize(
+    "changes",
+    [
+        {"handler": "other"},
+        {"cron_expression": "*/5 * * * *"},
+        {"cron_expression": "*/30 * * * *"},
+        {"timezone": "Europe/Bucharest"},
+    ],
+)
+async def test_wasm_schedule_save_requires_approved_policy(
+    user_id, changes, schedule_db, clock, wasm_schedule_grants, mocker: MockerFixture
+):
+    worker = Scheduler()
+    for handler in ("check", "other"):
+        worker.register("extension:one", handler, mocker.AsyncMock())
+    expression = "*/10 * * * *" if user_id else "*/20 * * * *"
+    config = ScheduleConfig(id="approved", handler="check", cron_expression=expression)
+    saved = await worker.save("extension:one", config, user_id=user_id)
+    for job_id in ("unapproved", saved.id):
+        with pytest.raises(PermissionError, match="admin-approved"):
+            await worker.save(
+                "extension:one",
+                config.copy(update={"id": job_id, **changes}),
+                user_id=user_id,
+            )
+    assert await crud.get_scheduled_job(saved.id) == saved
+    assert await crud.get_scheduled_job("unapproved") is None
+    # Payload and pause state can still be changed without changing the schedule.
+    updated = await worker.save(
+        "extension:one",
+        config.copy(update={"enabled": False, "payload_json": '{"threshold": 100}'}),
+        user_id=user_id,
+    )
+    assert not updated.enabled and json.loads(updated.payload_json) == {
+        "threshold": 100
+    }
+
+
+@pytest.mark.anyio
+@pytest.mark.parametrize("user_id", ["alice", None])
+@pytest.mark.parametrize(
+    "changes",
+    [
+        {"handler": "other"},
+        {"cron_expression": "*/30 * * * *"},
+        {"timezone": "Europe/Bucharest"},
+    ],
+)
+async def test_wasm_schedule_rechecks_policy_before_execution(
+    user_id, changes, schedule_db, clock, wasm_schedule_grants, mocker: MockerFixture
+):
+    grant = wasm_schedule_grants.permissions[0 if user_id else 1]
+    config = ScheduleConfig.parse_obj(grant.policies[0])
+    worker = Scheduler()
+    callback = mocker.AsyncMock()
+    worker.register("extension:one", "check", callback)
+    saved = await worker.save("extension:one", config, user_id=user_id)
+    grant.policies[0].update(changes)
+    try:
+        assert saved.next_run_at is not None
+        clock.now = saved.next_run_at
+        await worker.tick()
+        await asyncio.wait_for(
+            asyncio.gather(*(task for _, task in worker.running.values())), 2
+        )
+        callback.assert_not_awaited()
+        stored = await crud.get_scheduled_job(saved.id)
+        assert stored and stored.lease_token is None and stored.enabled
+        assert stored.next_run_at is not None
+        assert stored.next_run_at > clock.now
+    finally:
+        await worker.stop()
+
+
+@pytest.mark.anyio
+@pytest.mark.parametrize("user_id", ["alice", None])
+async def test_wasm_schedule_policy_revocation_cancels_running_callback(
+    user_id, schedule_db, clock, wasm_schedule_grants
+):
+    grant = wasm_schedule_grants.permissions[0 if user_id else 1]
+    config = ScheduleConfig.parse_obj(grant.policies[0])
+    worker = Scheduler(lease_seconds=3)
+    started, cancelled = asyncio.Event(), asyncio.Event()
+
+    async def callback(item):
+        started.set()
+        try:
+            await asyncio.Event().wait()
+        finally:
+            cancelled.set()
+
+    worker.register("extension:one", "check", callback)
+    saved = await worker.save("extension:one", config, user_id=user_id)
+    try:
+        clock.now = saved.next_run_at
+        await worker.tick()
+        await asyncio.wait_for(started.wait(), 2)
+        # Keep the permission but revoke this handler's policy.
+        grant.policies = [{"handler": "other", "cron_expression": "* * * * *"}]
+        await asyncio.wait_for(worker.running[saved.id][1], 3)
+        assert cancelled.is_set()
+        stored = await crud.get_scheduled_job(saved.id)
+        assert stored and stored.lease_token is None
+    finally:
+        await worker.stop()
+
+
+@pytest.mark.anyio
+@pytest.mark.parametrize("user_id", ["alice", None])
+async def test_wasm_schedule_cannot_use_other_scope_policy(
+    user_id, wasm_schedule_grants
+):
+    other_grant = wasm_schedule_grants.permissions[1 if user_id else 0]
+    config = ScheduleConfig.parse_obj(other_grant.policies[0])
+    with pytest.raises(PermissionError, match="admin-approved"):
+        await check_schedule_access("extension:one", user_id, config)
+
+
+@pytest.mark.anyio
+async def test_python_schedule_does_not_require_wasm_policies(wasm_schedule_grants):
+    wasm_schedule_grants.is_wasm = False
+    wasm_schedule_grants.permissions = []
+    await check_schedule_access("extension:one", "alice", job())
 
 
 @pytest.mark.anyio
