@@ -89,3 +89,4 @@ jobs:
         if: ${{ inputs.backend-wallet-class == 'LNbitsWallet' }}
         run: |
           docker logs lnbits-lnbits-1
+          docker logs lnbits-lnbits-lnd-1

@@ -12,6 +12,9 @@ from lnbits.wallets import get_funding_source
 funding_source = get_funding_source()
 is_boltz_wallet = funding_source.__class__.__name__ == "BoltzWallet"
 
+# LNbits inside docker funded by LND (lnd-3), supports hold invoices
+lnbits_lnd_endpoint = "http://localhost:5002"
+
 docker_lightning_cli = [
     "docker",
     "exec",
