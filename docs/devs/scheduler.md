@@ -74,9 +74,10 @@ avoid daylight-saving shifts.
 - Pausing sets `enabled` to false. A running callback is cancelled on its next
   lease renewal. Deleting an actively leased job is rejected; pause it and wait
   before deleting. Uninstallation removes that extension's schedules.
-- Application shutdown waits up to five seconds for scheduler cleanup, logs
-  failures or unfinished jobs, and continues the remaining cleanup. This deadline
-  requires a responsive event loop; it cannot forcibly terminate native threads.
+- Application shutdown and extension job shutdown wait up to five seconds for
+  scheduler cleanup, log failures or unfinished jobs, and continue the remaining
+  cleanup. This deadline requires a responsive event loop; it cannot forcibly
+  terminate native threads or bound an extension's separate Python stop hook.
 
 Leases coordinate workers but do not make external effects exactly-once. Callbacks
 that send messages or make payments must handle duplicate attempts after a crash

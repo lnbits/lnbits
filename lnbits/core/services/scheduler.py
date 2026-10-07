@@ -78,12 +78,26 @@ class Scheduler:
             if job.namespace == namespace:
                 task.cancel()
 
-    async def stop_namespace(self, namespace: str) -> None:
+    async def stop_namespace(self, namespace: str, timeout: float = 5.0) -> None:
+        """Cancel this namespace's jobs and bound the wait for their cleanup."""
         self.unregister(namespace)
         tasks = [
             task for job, task in self.running.values() if job.namespace == namespace
         ]
-        await asyncio.gather(*tasks, return_exceptions=True)
+        if not tasks:
+            return
+        # Keep unfinished jobs tracked; timing out must not cancel their cleanup.
+        done, pending = await asyncio.wait(tasks, timeout=timeout)
+        for task in done:
+            if not task.cancelled():
+                task.exception()
+        if pending:
+            logger.warning(
+                "Scheduler stop for {} exceeded {} seconds; {} jobs remain unfinished.",
+                namespace,
+                timeout,
+                len(pending),
+            )
 
     async def save(
         self, namespace: str, config: ScheduleConfig, *, user_id: str | None = None

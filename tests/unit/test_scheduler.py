@@ -283,6 +283,90 @@ async def test_shutdown_preserves_claim_for_recovery(schedule_db, clock):
 
 
 @pytest.mark.anyio
+@pytest.mark.parametrize("slow_cleanup", [False, True])
+async def test_namespace_stop_bounds_wait_without_stopping_other_jobs(
+    slow_cleanup: bool, schedule_db, clock, mocker: MockerFixture
+):
+    namespaces = {
+        "user": "extension:one",
+        "shared": "extension:one",
+        "other": "extension:two",
+        "core": "core",
+    }
+    for job_id, namespace in namespaces.items():
+        await crud.save_scheduled_job(
+            job(job_id).copy(
+                update={
+                    "namespace": namespace,
+                    "user_id": "alice" if job_id == "user" else None,
+                }
+            )
+        )
+    mocker.patch.object(service, "check_schedule_access", mocker.AsyncMock())
+    warning = mocker.patch.object(service.logger, "warning")
+    started: set[str] = set()
+    cleaning: set[str] = set()
+    cleaned: set[str] = set()
+    ready, release = asyncio.Event(), asyncio.Event()
+    if not slow_cleanup:
+        release.set()
+
+    async def callback(item):
+        started.add(item.id)
+        if len(started) == len(namespaces):
+            ready.set()
+        try:
+            await asyncio.Event().wait()
+        finally:
+            cleaning.add(item.id)
+            await release.wait()
+            cleaned.add(item.id)
+
+    worker = Scheduler()
+    for namespace in set(namespaces.values()):
+        worker.register(namespace, "check", callback)
+    try:
+        await worker.tick()
+        await asyncio.wait_for(ready.wait(), 1)
+        timeout = 0.01 if slow_cleanup else 1
+        await asyncio.wait_for(
+            worker.stop_namespace("extension:one", timeout=timeout), 2
+        )
+        assert cleaning == {"user", "shared"}
+        assert not worker.stopping
+        assert set(worker.handlers) == {("extension:two", "check"), ("core", "check")}
+        for job_id in ("user", "shared"):
+            stored = await crud.get_scheduled_job(job_id)
+            assert stored and stored.lease_token and stored.next_run_at == NOW - 600
+            assert worker.running[job_id][1].done() is (not slow_cleanup)
+        assert not worker.running["other"][1].done()
+        assert not worker.running["core"][1].done()
+        if slow_cleanup:
+            assert not cleaned
+            warning.assert_called_once_with(
+                "Scheduler stop for {} exceeded {} seconds; {} jobs remain unfinished.",
+                "extension:one",
+                0.01,
+                2,
+            )
+        else:
+            assert cleaned == {"user", "shared"}
+            warning.assert_not_called()
+    finally:
+        release.set()
+        await asyncio.gather(
+            *(
+                task
+                for item, task in worker.running.values()
+                if item.namespace == "extension:one"
+            ),
+            return_exceptions=True,
+        )
+        await worker.stop()
+    assert cleaned == set(namespaces)
+
+
+@pytest.mark.anyio
 async def test_heartbeat_renews_claim_and_pause_cancels_callback(
     schedule_db, clock, mocker: MockerFixture
 ):
