@@ -1370,5 +1370,24 @@ window.localisation.en = {
     stop_bits: 'Stop Bits',
     pin_number_button_1: 'Pin Number (Button 1)',
     pin_number_button_2: 'Pin Number (Button 2)'
-  }
+  },
+  use_with_caution: 'PLEASE USE WITH CAUTION - {name} Wallet is still BETA',
+  base_url: 'Base URL',
+  fee_wallet: 'Fee wallet',
+  fee_reserve_msats: 'Reserve fee in msats',
+  invoice_expiry_label: 'Invoice expiry (seconds)',
+  no_notifications: 'No notifications',
+  notifications_disabled: 'LNbits status notifications are disabled.',
+  enable_notifications: 'Enable notifications',
+  enable_notifications_desc:
+    'If enabled, it will fetch the latest LNbits status updates, such as security incidents and updates.',
+  disable_fee_internal: 'Disable service fee for internal payments',
+  disable_fee_internal_desc:
+    'Disable service fee for internal Lightning payments',
+  signin_with_keycloak: 'Sign in with Keycloak',
+  audit_resp_codes: 'Include HTTP Response Codes',
+  audit_paths: 'Include paths',
+  audit_paths_exclude: 'Exclude paths',
+  ad_space_title_label: 'Supported by',
+  ad_slots_label: 'Format: url;img_light_url;img_dark_url, url...',
 }
