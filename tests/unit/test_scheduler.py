@@ -15,15 +15,20 @@ from lnbits.core.migrations import (
     m020_add_column_column_to_user_extensions,
     m049_add_permissions_to_user_extensions,
     m054_create_scheduled_jobs,
+    m055_create_scheduled_job_runs,
 )
 from lnbits.core.models.extensions import Extension, ExtensionPermission, UserExtension
-from lnbits.core.models.scheduler import ScheduleConfig, ScheduledJob
+from lnbits.core.models.scheduler import (
+    ScheduleConfig,
+    ScheduledJob,
+    ScheduledJobRunFilters,
+)
 from lnbits.core.models.users import AccountId
 from lnbits.core.services import scheduler as service
 from lnbits.core.services.scheduler import Scheduler, check_schedule_access
 from lnbits.core.views import extension_api
-from lnbits.db import DB_TYPE, SQLITE, Database
-from lnbits.settings import Settings
+from lnbits.db import DB_TYPE, SQLITE, Database, Filters
+from lnbits.settings import SchedulerSettings, Settings
 from lnbits.utils.cron import next_run_at
 
 NOW = 1735689600  # 2025-01-01 00:00 UTC
@@ -37,6 +42,7 @@ async def schedule_db(tmp_path: Path, settings: Settings, mocker: MockerFixture)
     database = Database("scheduler_test")
     async with database.connect() as conn:
         await m054_create_scheduled_jobs(conn)
+        await m055_create_scheduled_job_runs(conn)
     mocker.patch.object(crud, "db", database)
     yield database
     await database.engine.dispose()
@@ -372,7 +378,13 @@ async def test_shutdown_preserves_claim_for_recovery(schedule_db, clock):
     worker.register("core", "check", callback)
     await worker.tick()
     await asyncio.wait_for(started.wait(), 1)
+    runs = await crud.get_scheduled_job_runs(Filters(model=ScheduledJobRunFilters))
+    assert runs.data[0].status == "running"
+    assert runs.data[0].finished_at is None
     await worker.stop()
+    runs = await crud.get_scheduled_job_runs(Filters(model=ScheduledJobRunFilters))
+    assert runs.data[0].status == "cancelled"
+    assert runs.data[0].finished_at == NOW
     assert stopped.is_set()
     stored = await crud.get_scheduled_job("test")
     assert stored and stored.lease_token and stored.next_run_at == NOW - 600
@@ -501,6 +513,8 @@ async def test_heartbeat_renews_claim_and_pause_cancels_callback(
         assert stopped.is_set()
         stored = await crud.get_scheduled_job("test")
         assert stored and not stored.enabled and stored.lease_token is None
+        runs = await crud.get_scheduled_job_runs(Filters(model=ScheduledJobRunFilters))
+        assert runs.data[0].status == "cancelled"
     finally:
         await worker.stop()
 
@@ -974,3 +988,145 @@ async def test_core_save_preserves_payload_and_rejects_impossible_dates(
         await worker.save(
             "core", ScheduleConfig(handler="unknown", cron_expression="* * * * *")
         )
+
+
+@pytest.mark.anyio
+@pytest.mark.parametrize("outcome", ["succeeded", "failed", "skipped"])
+async def test_scheduler_records_execution_outcomes(schedule_db, clock, outcome):
+    await crud.save_scheduled_job(job(payload_json='{"secret":"hidden-payload"}'))
+    worker = Scheduler()
+
+    async def callback(_job):
+        clock.now += 2.25
+        if outcome == "failed":
+            raise ValueError("hidden-exception-secret")
+
+    if outcome != "skipped":
+        worker.register("core", "check", callback)
+    try:
+        await worker.tick()
+        await worker.running["test"][1]
+        page = await crud.get_scheduled_job_runs(Filters(model=ScheduledJobRunFilters))
+        assert page.total == 1
+        run = page.data[0]
+        assert run.job_id == "test"
+        assert run.scheduled_at == NOW - 600
+        assert run.started_at == NOW
+        assert run.finished_at == clock.now
+        assert run.status == outcome
+        assert "hidden-" not in run.json()
+        assert "lease_token" not in run.dict()
+        if outcome == "succeeded":
+            assert run.error_summary is None
+        else:
+            assert run.error_summary
+        if outcome != "skipped":
+            assert run.finished_at is not None
+            assert run.finished_at - run.started_at == 2.25
+    finally:
+        await worker.stop()
+
+
+@pytest.mark.anyio
+async def test_history_recovers_expired_runs_and_survives_job_deletion(schedule_db):
+    await crud.save_scheduled_job(job())
+    claimed = await crud.claim_scheduled_job("test", "first", NOW, NOW + 60)
+    assert claimed
+    run = await crud.create_scheduled_job_run(claimed, NOW)
+    await crud.maintain_scheduled_job_runs(NOW + 30, 7)
+    page = await crud.get_scheduled_job_runs(Filters(model=ScheduledJobRunFilters))
+    assert page.data[0].status == "running"
+
+    # A second worker takes over. The first attempt must no longer look active.
+    claimed = await crud.claim_scheduled_job("test", "second", NOW + 60, NOW + 120)
+    assert claimed
+    active = await crud.create_scheduled_job_run(claimed, NOW + 60)
+    await crud.maintain_scheduled_job_runs(NOW + 61, 7)
+    # A late result from the old attempt cannot overwrite an interrupted result.
+    await crud.finish_scheduled_job_run(run.id, "succeeded", NOW + 62)
+    page = await crud.get_scheduled_job_runs(Filters(model=ScheduledJobRunFilters))
+    by_id = {entry.id: entry for entry in page.data}
+    assert by_id[run.id].status == "interrupted"
+    assert by_id[run.id].finished_at is None
+    assert by_id[active.id].status == "running"
+
+    await crud.finish_scheduled_job_run(active.id, "succeeded", NOW + 63)
+    assert await crud.delete_scheduled_job("test", "core", None, NOW + 120)
+    page = await crud.get_scheduled_job_runs(Filters(model=ScheduledJobRunFilters))
+    assert page.total == 2
+    await crud.maintain_scheduled_job_runs(NOW + 7 * 86400 + 64, 7)
+    page = await crud.get_scheduled_job_runs(Filters(model=ScheduledJobRunFilters))
+    assert page.total == 0
+
+
+@pytest.mark.anyio
+@pytest.mark.parametrize("retention_days", [1, 7])
+async def test_history_retention_preserves_live_and_recently_finished_runs(
+    schedule_db, retention_days
+):
+    age = (retention_days + 1) * 86400
+    for job_id in ("active", "recent", "expired"):
+        await crud.save_scheduled_job(job(job_id))
+        claimed = await crud.claim_scheduled_job(job_id, job_id, NOW, NOW + age + 60)
+        assert claimed
+        run = await crud.create_scheduled_job_run(claimed, NOW)
+        if job_id != "active":
+            await crud.finish_scheduled_job_run(
+                run.id, "succeeded", NOW + age if job_id == "recent" else NOW + 1
+            )
+    await crud.maintain_scheduled_job_runs(NOW + age + 1, retention_days)
+    page = await crud.get_scheduled_job_runs(Filters(model=ScheduledJobRunFilters))
+    assert {run.job_id for run in page.data} == {"active", "recent"}
+
+
+@pytest.mark.anyio
+@pytest.mark.parametrize(
+    "operation", ["create_scheduled_job_run", "finish_scheduled_job_run"]
+)
+async def test_history_write_failure_does_not_change_execution(
+    schedule_db, clock, mocker, operation
+):
+    await crud.save_scheduled_job(job())
+    mocker.patch.object(crud, operation, side_effect=RuntimeError("private-db-error"))
+    callback = mocker.AsyncMock()
+    worker = Scheduler()
+    worker.register("core", "check", callback)
+    try:
+        await worker.tick()
+        await worker.running["test"][1]
+        callback.assert_awaited_once()
+        stored = await crud.get_scheduled_job("test")
+        assert stored and stored.next_run_at == NOW + 60
+        assert stored.lease_token is None
+    finally:
+        await worker.stop()
+
+
+@pytest.mark.anyio
+async def test_history_migration_preserves_existing_jobs(schedule_db):
+    database = Database("history_migration")
+    try:
+        async with database.connect() as conn:
+            await m054_create_scheduled_jobs(conn)
+            await conn.execute("""
+                INSERT INTO scheduled_jobs (id, namespace, handler, cron_expression)
+                VALUES ('existing', 'core', 'check', '* * * * *')
+            """)
+            await m055_create_scheduled_job_runs(conn)
+            rows: list[dict] = await conn.fetchall("SELECT id FROM scheduled_jobs")
+            assert [row["id"] for row in rows] == ["existing"]
+            assert await conn.fetchall("SELECT id FROM scheduled_job_runs") == []
+    finally:
+        await database.engine.dispose()
+
+
+def test_scheduler_history_retention_setting():
+    assert SchedulerSettings().lnbits_scheduler_history_retention_days == 7
+    assert (
+        SchedulerSettings(
+            lnbits_scheduler_history_retention_days=30
+        ).lnbits_scheduler_history_retention_days
+        == 30
+    )
+    with pytest.raises(ValidationError):
+        SchedulerSettings(lnbits_scheduler_history_retention_days=0)

@@ -990,3 +990,31 @@ async def m054_create_scheduled_jobs(db: Connection):
     await db.execute("""
         CREATE INDEX idx_scheduled_jobs_due ON scheduled_jobs (enabled, next_run_at)
     """)
+
+
+async def m055_create_scheduled_job_runs(db: Connection):
+    # No foreign key: history survives deletion of its job until retention expires.
+    await db.execute("""
+        CREATE TABLE scheduled_job_runs (
+            id TEXT PRIMARY KEY,
+            job_id TEXT NOT NULL,
+            namespace TEXT NOT NULL,
+            handler TEXT NOT NULL,
+            scope TEXT NOT NULL,
+            timezone TEXT NOT NULL,
+            scheduled_at BIGINT,
+            started_at DOUBLE PRECISION NOT NULL,
+            finished_at DOUBLE PRECISION,
+            status TEXT NOT NULL,
+            error_summary TEXT,
+            lease_token TEXT NOT NULL
+        )
+    """)
+    await db.execute("""
+        CREATE INDEX idx_scheduled_job_runs_job
+        ON scheduled_job_runs (job_id, started_at DESC, id DESC)
+    """)
+    await db.execute("""
+        CREATE INDEX idx_scheduled_job_runs_status
+        ON scheduled_job_runs (status, started_at)
+    """)

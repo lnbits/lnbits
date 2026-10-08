@@ -294,6 +294,24 @@
             <q-tab-panel name="audit" class="q-pa-md">
               <lnbits-admin-audit :form-data="formData" />
             </q-tab-panel>
+            <q-tab-panel name="scheduler" class="q-pa-md">
+              <h6
+                class="q-my-none q-mb-md"
+                v-text="$t('scheduler_history')"
+              ></h6>
+              <q-input
+                v-model.number="
+                  formData.lnbits_scheduler_history_retention_days
+                "
+                type="number"
+                min="1"
+                step="1"
+                outlined
+                :label="$t('scheduler_retention')"
+                :suffix="$t('days')"
+                :hint="$t('scheduler_retention_hint')"
+              ></q-input>
+            </q-tab-panel>
             <q-tab-panel name="assets-config" class="q-pa-md">
               <lnbits-admin-assets-config :form-data="formData" />
             </q-tab-panel>

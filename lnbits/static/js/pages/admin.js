@@ -93,7 +93,8 @@ window.PageAdmin = {
               value: 'audit',
               label: 'api_watch',
               icon: 'playlist_add_check_circle'
-            }
+            },
+            {value: 'scheduler', label: 'scheduler', icon: 'schedule'}
           ]
         },
         {
@@ -192,6 +193,10 @@ window.PageAdmin = {
           this.$t('audit_record_req'),
           this.$t('audit_http_methods_label'),
           this.$t('audit_paths_label')
+        ],
+        scheduler: [
+          this.$t('scheduler_history'),
+          this.$t('scheduler_retention')
         ],
         'assets-config': ['Assets', 'Thumbnails', 'Users'],
         site_customisation: [

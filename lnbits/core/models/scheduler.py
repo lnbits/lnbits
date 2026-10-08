@@ -77,6 +77,34 @@ class ScheduledJob(ScheduleConfig):
         return self.dict(exclude={"namespace", "user_id", "lease_token", "lease_until"})
 
 
+ScheduledJobRunStatus = Literal[
+    "running", "succeeded", "failed", "cancelled", "interrupted", "skipped"
+]
+
+
+class ScheduledJobRun(BaseModel):
+    id: str = Field(default_factory=lambda: uuid4().hex)
+    job_id: str
+    namespace: str
+    handler: str
+    scope: Literal["core", "extension", "user"]
+    timezone: str
+    scheduled_at: int | None = None
+    started_at: float
+    finished_at: float | None = None
+    status: ScheduledJobRunStatus = "running"
+    error_summary: str | None = None
+
+
+class ScheduledJobRunFilters(FilterModel):
+    __search_fields__ = ["job_id", "namespace", "handler"]
+    __sort_fields__ = ["started_at", "finished_at", "status"]
+
+    job_id: str | None = None
+    namespace: str | None = None
+    status: ScheduledJobRunStatus | None = None
+
+
 class ScheduledJobSummary(BaseModel):
     id: str
     namespace: str
@@ -86,11 +114,22 @@ class ScheduledJobSummary(BaseModel):
     timezone: str
     enabled: bool
     next_run_at: int | None = None
+    last_run_at: float | None = None
+    last_result: ScheduledJobRunStatus | None = None
 
 
 class ScheduledJobFilters(FilterModel):
     __search_fields__ = ["id", "namespace", "handler"]
-    __sort_fields__ = ["id", "namespace", "handler", "scope", "enabled", "next_run_at"]
+    __sort_fields__ = [
+        "id",
+        "namespace",
+        "handler",
+        "scope",
+        "enabled",
+        "next_run_at",
+        "last_run_at",
+        "last_result",
+    ]
 
     namespace: str | None = None
     handler: str | None = None

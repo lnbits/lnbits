@@ -12,6 +12,8 @@ from lnbits.core.models.extensions import ExtensionPermission
 from lnbits.core.models.scheduler import (
     ScheduleConfig,
     ScheduledJob,
+    ScheduledJobRun,
+    ScheduledJobRunStatus,
     SchedulePolicy,
     parse_schedule_policies,
 )
@@ -86,6 +88,7 @@ class Scheduler:
         self.handlers: dict[tuple[str, str], ScheduleHandler] = {}
         self.running: dict[str, tuple[ScheduledJob, asyncio.Task]] = {}
         self.stopping = False
+        self._next_history_maintenance = 0.0
 
     def register(self, namespace: str, handler: str, callback: ScheduleHandler) -> None:
         if namespace != "core" and not namespace.startswith("extension:"):
@@ -171,6 +174,15 @@ class Scheduler:
         )
 
     async def tick(self) -> None:
+        now = time.time()
+        if now >= self._next_history_maintenance:
+            self._next_history_maintenance = now + 60
+            try:
+                await crud.maintain_scheduled_job_runs(
+                    now, settings.lnbits_scheduler_history_retention_days
+                )
+            except Exception:
+                logger.warning("Scheduler history maintenance failed.")
         for job_id, (_, task) in list(self.running.items()):
             if task.done():
                 # Workers handle callback errors, but database failures may escape.
@@ -211,14 +223,16 @@ class Scheduler:
         await asyncio.gather(*tasks, return_exceptions=True)
         self.running.clear()
 
-    async def _execute(self, job: ScheduledJob) -> None:
+    async def _execute(self, job: ScheduledJob) -> bool:
         current = await crud.get_scheduled_job(job.id)
         if not current or not current.enabled or current.lease_token != job.lease_token:
-            return
+            return False
         await check_schedule_access(current.namespace, current.user_id, current)
         callback = self.handlers.get((current.namespace, current.handler))
         if callback:
             await callback(current)
+            return True
+        return False
 
     async def _heartbeat(self, job: ScheduledJob) -> None:
         assert job.lease_token
@@ -231,28 +245,75 @@ class Scheduler:
             ):
                 raise RuntimeError("Schedule claim lost or job paused.")
 
-    async def _run_job(self, job: ScheduledJob) -> None:
-        work = asyncio.create_task(self._execute(job))
-        heartbeat = asyncio.create_task(self._heartbeat(job))
-        cancelled = False
+    async def _record_run_start(self, job: ScheduledJob) -> ScheduledJobRun | None:
         try:
+            return await crud.create_scheduled_job_run(job, time.time())
+        except Exception:
+            # Observability must not change whether a scheduled callback runs.
+            logger.warning("Could not record scheduled job {} start.", job.id)
+            return None
+
+    async def _run_job(self, job: ScheduledJob) -> None:
+        run = None
+        work = None
+        heartbeat = None
+        cancelled = False
+        status: ScheduledJobRunStatus = "succeeded"
+        error_summary = None
+        try:
+            run = await self._record_run_start(job)
+            work = asyncio.create_task(self._execute(job))
+            heartbeat = asyncio.create_task(self._heartbeat(job))
             done, _ = await asyncio.wait(
                 (work, heartbeat), return_when=asyncio.FIRST_COMPLETED
             )
             for task in done:
                 task.result()
+            # The heartbeat only finishes by raising, so work is done here.
+            if not work.result():
+                status = "skipped"
+                error_summary = (
+                    "Job is unavailable, paused, or its handler is not registered."
+                )
         except asyncio.CancelledError:
             cancelled = True
+            status = "cancelled"
+            error_summary = "Execution was cancelled."
             raise
-        except Exception:
+        except Exception as exc:
+            if heartbeat is not None and heartbeat.done():
+                status = "cancelled"
+                error_summary = "Scheduling access or the execution lease was lost."
+            else:
+                status = "failed"
+                # Fixed messages deliberately exclude exception text and payloads.
+                error_summary = (
+                    "Execution failed because permission was denied."
+                    if isinstance(exc, PermissionError)
+                    else (
+                        "Execution timed out."
+                        if isinstance(exc, TimeoutError)
+                        else "Scheduled callback failed."
+                    )
+                )
             logger.warning(
                 "Scheduled job {} failed; next attempt follows its cron schedule.",
                 job.id,
             )
         finally:
-            work.cancel()
-            heartbeat.cancel()
-            await asyncio.gather(work, heartbeat, return_exceptions=True)
+            tasks: list[asyncio.Task] = [
+                task for task in (work, heartbeat) if task is not None
+            ]
+            for task in tasks:
+                task.cancel()
+            await asyncio.gather(*tasks, return_exceptions=True)
+            if run:
+                try:
+                    await crud.finish_scheduled_job_run(
+                        run.id, status, time.time(), error_summary
+                    )
+                except Exception:
+                    logger.warning("Could not record scheduled job {} result.", job.id)
             # On shutdown leave the durable lease to expire, so interrupted jobs
             # are recovered once on restart. Successful/failed jobs skip overlap.
             if not cancelled:

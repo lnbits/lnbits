@@ -50,7 +50,9 @@ async def scheduled_jobs(http_client):
 
 
 @pytest.mark.anyio
-@pytest.mark.parametrize("path", ["/scheduler/api/v1", "/scheduler/api/v1/sources"])
+@pytest.mark.parametrize(
+    "path", ["/scheduler/api/v1", "/scheduler/api/v1/sources", "/scheduler/api/v1/runs"]
+)
 @pytest.mark.parametrize("role", ["anonymous", "user", "admin"])
 async def test_scheduler_api_access(
     http_client, user_headers_from, admin_user, path, role
@@ -69,7 +71,9 @@ async def test_scheduler_api_access(
 
 
 @pytest.mark.anyio
-@pytest.mark.parametrize("path", ["/scheduler/api/v1", "/scheduler/api/v1/sources"])
+@pytest.mark.parametrize(
+    "path", ["/scheduler/api/v1", "/scheduler/api/v1/sources", "/scheduler/api/v1/runs"]
+)
 async def test_scheduler_api_respects_disabled_admin_ui(
     http_client, settings, superuser_token, path
 ):
@@ -105,7 +109,11 @@ async def test_scheduler_overview_paginates_and_omits_private_fields(
             "timezone",
             "enabled",
             "next_run_at",
+            "last_run_at",
+            "last_result",
         }
+        assert job["last_run_at"] is None
+        assert job["last_result"] is None
     assert "private-scheduler" not in response.text
 
     response = await http_client.get(
@@ -165,12 +173,93 @@ async def test_scheduler_overview_filters_and_lists_sources(
 
 @pytest.mark.anyio
 @pytest.mark.parametrize("params", [{"limit": -1}, {"limit": 1001}, {"offset": -1}])
+@pytest.mark.parametrize("path", ["/scheduler/api/v1", "/scheduler/api/v1/runs"])
 async def test_scheduler_overview_rejects_invalid_pagination(
-    http_client, superuser_token, params
+    http_client, superuser_token, params, path
 ):
     response = await http_client.get(
-        "/scheduler/api/v1",
+        path,
         params=params,
         headers={"Authorization": f"Bearer {superuser_token}"},
     )
     assert response.status_code == 400
+
+
+@pytest.mark.anyio
+async def test_scheduler_history_filters_paginates_and_survives_deletion(
+    http_client, superuser_token, scheduled_jobs
+):
+    job = await crud.get_scheduled_job(scheduled_jobs[1].id)
+    assert job
+    now = time.time()
+    first = await crud.create_scheduled_job_run(job, now)
+    await crud.finish_scheduled_job_run(
+        first.id, "failed", now + 0.25, "Scheduled callback failed."
+    )
+    latest = await crud.create_scheduled_job_run(job, now + 1)
+    await crud.finish_scheduled_job_run(latest.id, "succeeded", now + 1.5)
+    headers = {"Authorization": f"Bearer {superuser_token}"}
+    params = {"job_id": job.id, "namespace": job.namespace, "limit": 1}
+
+    response = await http_client.get(
+        "/scheduler/api/v1/runs", params=params, headers=headers
+    )
+    assert response.status_code == 200
+    page = response.json()
+    assert page["total"] == 2
+    assert page["data"] == [
+        latest.copy(update={"status": "succeeded", "finished_at": now + 1.5}).dict()
+    ]
+    assert "private-scheduler" not in response.text
+    assert not {"lease_token", "user_id", "payload_json"} & page["data"][0].keys()
+
+    response = await http_client.get(
+        "/scheduler/api/v1/runs", params={**params, "offset": 1}, headers=headers
+    )
+    assert response.json()["data"][0]["id"] == first.id
+    response = await http_client.get(
+        "/scheduler/api/v1/runs", params={**params, "status": "failed"}, headers=headers
+    )
+    assert response.json()["total"] == 1
+    assert response.json()["data"][0]["id"] == first.id
+    response = await http_client.get(
+        "/scheduler/api/v1/runs",
+        params={**params, "namespace": "core"},
+        headers=headers,
+    )
+    assert response.json() == {"data": [], "total": 0}
+
+    response = await http_client.get(
+        "/scheduler/api/v1", params={"search": job.id}, headers=headers
+    )
+    summary = response.json()["data"][0]
+    assert summary["last_run_at"] == latest.started_at
+    assert summary["last_result"] == "succeeded"
+
+    await crud.finish_scheduled_job(job, int(now) + 60)
+    assert await crud.delete_scheduled_job(job.id, job.namespace, job.user_id, int(now))
+    response = await http_client.get(
+        "/scheduler/api/v1/runs", params={"search": job.id.upper()}, headers=headers
+    )
+    assert response.json()["total"] == 2
+    assert {run["job_id"] for run in response.json()["data"]} == {job.id}
+
+
+@pytest.mark.anyio
+async def test_scheduler_history_retention_settings(
+    http_client, superuser_token, settings
+):
+    headers = {"Authorization": f"Bearer {superuser_token}"}
+    field = "lnbits_scheduler_history_retention_days"
+    response = await http_client.put(
+        "/admin/api/v1/settings", json={field: 30}, headers=headers
+    )
+    assert response.status_code == 200
+    assert settings.lnbits_scheduler_history_retention_days == 30
+    response = await http_client.get("/admin/api/v1/settings", headers=headers)
+    assert response.json()[field] == 30
+    response = await http_client.put(
+        "/admin/api/v1/settings", json={field: 0}, headers=headers
+    )
+    assert response.status_code == 400
+    assert settings.lnbits_scheduler_history_retention_days == 30

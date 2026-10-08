@@ -85,6 +85,34 @@ or lost lease. Python callbacks must be asynchronous and cooperate with
 cancellation. WASM jobs use the existing runtime resource limits and invocation
 monitoring (`trigger_type="schedule"`, schedule ID in `context`).
 
+## Execution history
+
+The admin-only Scheduler page shows each job's latest attempt and result. Select
+a job to open its execution history, or use **Run history** to browse all retained
+attempts, including deleted jobs. The drawer supports search, result filtering,
+and pagination. Its API is `GET /scheduler/api/v1/runs`, with optional `job_id`,
+`namespace`, `status`, `search`, `limit`, and `offset` parameters.
+
+Each attempt is stored in the core database's `scheduled_job_runs` table. Records
+snapshot the job ID, source, handler, scope, timezone, scheduled time, actual
+start and finish times, and result. Durations are calculated from start and finish
+times. Payloads, user IDs, exception text, and stack traces are not recorded;
+errors use fixed summaries. Internal lease tokens are never returned by the API.
+
+Results are `running`, `succeeded`, `failed`, `cancelled`, `interrupted`, or
+`skipped`. Missing or paused jobs and unregistered handlers are skipped. An
+unfinished attempt whose lease is no longer active becomes interrupted; its
+finish time and duration remain unknown. A recorded result describes the
+callback's completion, not a guarantee about its external effects.
+
+History defaults to seven days, configurable under **Settings → Scheduler** using
+`lnbits_scheduler_history_retention_days` (minimum one day). Maintenance runs once
+per minute while the scheduler runs. Completed attempts expire relative to their
+finish time; interrupted attempts use their start time. Active runs are preserved.
+Deleting a job does not delete its history. No earlier executions are backfilled.
+History writes are best-effort: recording failures do not prevent execution or
+change the scheduler's retry and lease behavior.
+
 ## Core and Python API
 
 Register handlers whenever the application or extension starts. Store a stable

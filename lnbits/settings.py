@@ -999,6 +999,10 @@ class TwoFactorSettings(LNbitsSettings):
         return list(dict.fromkeys(methods))
 
 
+class SchedulerSettings(LNbitsSettings):
+    lnbits_scheduler_history_retention_days: int = Field(default=7, ge=1)
+
+
 class AuditSettings(LNbitsSettings):
     lnbits_audit_enabled: bool = Field(default=True)
 
@@ -1103,6 +1107,7 @@ class EditableSettings(
     NodeUISettings,
     BlockExplorerSettings,
     AuditSettings,
+    SchedulerSettings,
     TwoFactorSettings,
     AuthSettings,
     NostrAuthSettings,

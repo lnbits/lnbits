@@ -2,6 +2,9 @@ from lnbits.core.db import db
 from lnbits.core.models.scheduler import (
     ScheduledJob,
     ScheduledJobFilters,
+    ScheduledJobRun,
+    ScheduledJobRunFilters,
+    ScheduledJobRunStatus,
     ScheduledJobSummary,
 )
 from lnbits.db import Filters, Page
@@ -66,12 +69,19 @@ async def get_scheduled_jobs_overview(
     return await db.fetch_page(
         """
         SELECT * FROM (
-            SELECT id, namespace, handler, cron_expression, timezone, enabled,
-                   next_run_at,
-                   CASE WHEN user_id IS NOT NULL THEN 'user'
-                        WHEN namespace = 'core' THEN 'core'
+            SELECT job.id, job.namespace, job.handler, job.cron_expression,
+                   job.timezone, job.enabled, job.next_run_at,
+                   last_run.started_at AS last_run_at,
+                   last_run.status AS last_result,
+                   CASE WHEN job.user_id IS NOT NULL THEN 'user'
+                        WHEN job.namespace = 'core' THEN 'core'
                         ELSE 'extension' END AS scope
-            FROM scheduled_jobs
+            FROM scheduled_jobs AS job
+            LEFT JOIN scheduled_job_runs AS last_run ON last_run.id = (
+                SELECT id FROM scheduled_job_runs
+                WHERE job_id = job.id AND namespace = job.namespace
+                ORDER BY started_at DESC, id DESC LIMIT 1
+            )
         ) AS jobs
         """,
         filters=filters,
@@ -161,4 +171,95 @@ async def finish_scheduled_job(job: ScheduledJob, next_run: int | None) -> None:
         WHERE id = :id AND lease_token = :lease_token
         """,
         {**job.dict(), "next_run": next_run},
+    )
+
+
+async def create_scheduled_job_run(job: ScheduledJob, now: float) -> ScheduledJobRun:
+    assert job.lease_token
+    run = ScheduledJobRun(
+        job_id=job.id,
+        namespace=job.namespace,
+        handler=job.handler,
+        scope=(
+            "user"
+            if job.user_id
+            else "core" if job.namespace == "core" else "extension"
+        ),
+        timezone=job.timezone,
+        scheduled_at=job.next_run_at,
+        started_at=now,
+    )
+    await db.execute(
+        """
+        INSERT INTO scheduled_job_runs
+            (id, job_id, namespace, handler, scope, timezone, scheduled_at,
+             started_at, status, lease_token)
+        VALUES (:id, :job_id, :namespace, :handler, :scope, :timezone,
+                :scheduled_at, :started_at, :status, :lease_token)
+        """,
+        {**run.dict(), "lease_token": job.lease_token},
+    )
+    return run
+
+
+async def finish_scheduled_job_run(
+    run_id: str,
+    status: ScheduledJobRunStatus,
+    now: float,
+    error_summary: str | None = None,
+) -> None:
+    await db.execute(
+        """
+        UPDATE scheduled_job_runs
+        SET status = :status, finished_at = :now, error_summary = :error_summary
+        WHERE id = :id AND status = 'running'
+        """,
+        {"id": run_id, "status": status, "now": now, "error_summary": error_summary},
+    )
+
+
+async def get_scheduled_job_runs(
+    filters: Filters[ScheduledJobRunFilters],
+) -> Page[ScheduledJobRun]:
+    if not filters.sortby:
+        filters.sortby = "started_at"
+        filters.direction = "desc"
+    return await db.fetch_page(
+        """
+        SELECT id, job_id, namespace, handler, scope, timezone, scheduled_at,
+               started_at, finished_at, status, error_summary
+        FROM scheduled_job_runs
+        """,
+        filters=filters,
+        model=ScheduledJobRun,
+        table_name="scheduled_job_runs",
+    )
+
+
+async def maintain_scheduled_job_runs(now: float, retention_days: int) -> None:
+    # Check the durable claim, not local tasks: another process may own this run.
+    # The actual finish time is unknown after a crash, so leave it unset.
+    await db.execute(
+        """
+        UPDATE scheduled_job_runs
+        SET status = 'interrupted', error_summary = :error_summary
+        WHERE status = 'running' AND NOT EXISTS (
+            SELECT 1 FROM scheduled_jobs
+            WHERE scheduled_jobs.id = scheduled_job_runs.job_id
+              AND scheduled_jobs.lease_token = scheduled_job_runs.lease_token
+              AND scheduled_jobs.lease_until > :now
+        )
+        """,
+        {
+            "now": now,
+            "error_summary": "Execution ended without a recorded result; "
+            "its lease is no longer active.",
+        },
+    )
+    await db.execute(
+        """
+        DELETE FROM scheduled_job_runs
+        WHERE status != 'running' AND COALESCE(finished_at, started_at) < :cutoff
+        """,
+        {"cutoff": now - retention_days * 86400},
     )
