@@ -12,6 +12,50 @@ Check the host APIs, execution context, browser restrictions, and release format
 before copying an existing extension. The [extension setup guide](devs/extensions.md)
 describes the separate Python workflow.
 
+## Work directly in the extension directory
+
+**Make extension changes directly in `data/wasm_extensions/<id>`**, or the
+corresponding directory under the configured `LNBITS_WASM_EXTENSIONS_PATH`.
+For Pricebot in this checkout, work in `data/wasm_extensions/pricebot`.
+If that directory is a symlink, edit its existing target and preserve the link.
+
+Keep the source, configuration, UI/assets, schema, migrations, tests, and rebuilt
+WASM component in that extension directory. Run the extension's checks there.
+Do not use a temporary copy or separate checkout as the primary working directory
+unless the user explicitly requests it. Temporary test databases and fixtures
+are fine, but completed extension changes must be present in the actual directory.
+
+If filesystem permissions block an edit, request access to the actual target;
+do not silently redirect the work elsewhere. If changes were already staged in
+a temporary copy, reconcile them into the extension directory, preserve any
+concurrent user edits, and verify the destination before reporting completion.
+State separately whether the running instance has loaded the changes and whether
+installation or permission approval is still required.
+
+This working-directory rule does not authorize core edits. Core changes still
+require the explicit approval described below and belong in their core files.
+
+## Core changes require explicit user approval
+
+**Never change LNbits core while creating, fixing, or updating a WASM extension
+without first asking the user and receiving explicit approval for those core
+changes.** Approval to work on an extension, including a general "go ahead", does
+not authorize core changes. A missing host capability or a failing extension test
+does not create an exception.
+
+This applies to host APIs, the WASM runtime, scheduling and activation, permissions,
+authentication, storage and migrations, core frontend code, core tests, and core
+dependencies or build configuration. Do not change core indirectly through build
+scripts, generated files, or patches in another checkout.
+
+Read-only inspection of core is allowed. If the existing APIs cannot meet an
+extension requirement, explain the limitation, any extension-only alternatives,
+and the specific core changes and files proposed. Ask whether the user authorizes
+that scope, then wait for their answer before editing core. Continue only the
+extension work that does not depend on that approval.
+
+## Review scope
+
 This guide combines source and documentation review of all **16 extensions and
 21 releases** in the [WASM registry snapshot](https://github.com/lnbits/lnbits-extensions-wasm/blob/2ee1c7b4adedeb49bb23fc2ac66af7564adc9527/extensions.json).
 Reviewed on **2026-10-08**, against LNbits commit
@@ -36,7 +80,8 @@ the security or runtime compatibility of the released binaries. See the
    Runtime template compilation violates the iframe's CSP.
 5. Budget storage calls, HTTP calls, response sizes, and execution time. Work that
    requires SQL transactions, an arbitrary server process, or a missing host API
-   needs a different design or an explicit core change.
+   needs a different extension design or a core change explicitly approved under
+   the [rule above](#core-changes-require-explicit-user-approval).
 
 ## Runtime and languages
 
@@ -235,7 +280,7 @@ method contract rather than assuming every utility belongs to `utils.basic`.
 | Public route with `ownerContext` | Owner resolved from a source row; event context, no logged-in account token  | Owner-scoped operations become possible; the guest must authorize the public action                       |
 | Invoice-paid event               | Event wallet; owner may be resolved from the approved source or wallet watch | Approved event work; no browser account token                                                             |
 | User schedule                    | Job's user and storage owner; no browser account token                       | Owner storage, notifications, separately authorized background payments                                   |
-| Extension-wide schedule          | No user or storage owner                                                     | Shared work using capabilities that do not need a user; no private user storage or selectable user wallet |
+| Extension-wide schedule          | Extension storage owner (`extension:<id>`); no user or account token          | Extension-owned storage and approved shared work; no private user storage or selectable user wallet      |
 
 ### Public owner context is not caller authentication
 
@@ -285,7 +330,9 @@ and public-invoice policies use `table`. Copy the schema for the actual method.
 **There is no shared-storage host API in this checkout.** An extension-wide
 schedule does not get access to all users' rows. Do not invent `storage.shared`
 or `ext.storage.read_shared` / `ext.storage.write_shared` permissions. A shared
-collector and user evaluators need an explicitly supported shared-data design.
+collector can store rows under its extension owner and expose selected fields
+to user evaluators through approved public-read policies. The extension owner
+is separate from every user's private storage partition.
 
 Multiple invocations can run concurrently. Reading a version or processing flag
 and then writing a row is not an atomic lock. Separate writes can partially
@@ -338,10 +385,18 @@ Use the [core scheduler guide](devs/scheduler.md) for the exact API and supporte
 cron syntax. The relevant WASM rules are:
 
 - Declare handler, cron expression, and timezone policies at installation for
-  administrator approval. Installing the extension does not create the jobs.
+  administrator approval. Policies alone do not create jobs.
+- To start shared work automatically, declare a top-level `schedules` array in
+  `config.json`. Each entry has `handler`, `cron_expression`, and `timezone`, and
+  must exactly match a granted `scheduler.extension` policy. Handlers must be
+  unique event exports; at most 100 automatic schedules are allowed. Core creates
+  these jobs on activation and restores missing jobs on server startup. The first
+  run follows the cron expression; activation does not invoke the handler directly.
+  Existing matching jobs keep their next run, lease, and administrator pause.
 - `scheduler.user` manages the authenticated user's jobs.
   `scheduler.extension` manages shared jobs and requires an administrator.
-  Management happens through interactive authenticated requests, not callbacks.
+  Guest management calls require interactive authenticated requests. Automatic
+  schedules are created by core using the approved manifest declaration.
 - Multiple jobs are supported, with one durable job per handler and owner/scope;
   use distinct handlers for distinct activities. Saving the same combination
   updates that job. Core assigns ownership and namespace. Users cannot replace
@@ -362,8 +417,9 @@ For a price alert extension, core already exposes `utils.currencies.rate` with
 `utils.basic`, including the BTC price for the requested fiat currency. It uses
 core's rate provider/cache; it is not a guarantee of a new market quote for each
 call. A user job can fetch that rate, maintain owner-scoped history, evaluate an
-alert threshold, and request a notification. A shared price collector would also
-need the shared-data capability discussed above.
+alert threshold, and request a notification. A shared price collector can use an
+automatic extension schedule and publish its extension-owned history through
+explicit public-read policies; user jobs evaluate private alerts against it.
 
 Sources: [WASM scheduler API](../lnbits/core/wasm_ext/api/scheduler.py),
 [scheduled invocation](../lnbits/core/wasm_ext/wasm/scheduler.py),
@@ -489,7 +545,7 @@ Sources: [installer and archive validation](../lnbits/core/models/extensions.py)
 | Put runtime limits in extension config                              | Limits come from core settings and installed-extension overrides                    |
 | Every user can save the same settings row ID                        | IDs are table-wide; generate distinct IDs                                           |
 | A version field or `redeeming` flag provides a lock                 | Storage has no compare-and-set or multi-call transaction                            |
-| A shared scheduled job can store/read shared rows                   | No shared-storage host API is present                                               |
+| A shared scheduled job can read every user's private rows          | It has a separate extension storage owner; cross-owner reads need public policies    |
 | HTTP always has a 10-second / 256 KiB limit                         | Runtime defaults passed by core are 5 seconds / 1 MiB                               |
 
 Recheck the linked core code when it changes. Update this guide when a host

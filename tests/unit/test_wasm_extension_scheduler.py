@@ -163,6 +163,7 @@ async def test_schedule_dispatch_preserves_user_or_global_context(
     assert invoke.await_args.args[2]["data"] == {}
     kwargs = invoke.await_args.kwargs
     assert kwargs["user"] is (account if owner else None)
+    assert kwargs["owner_id"] == (None if owner else "extension:demo")
     assert kwargs["context"] == "schedule"
     assert kwargs["trigger_type"] == "schedule"
     assert "access_token" not in kwargs
@@ -172,7 +173,7 @@ async def test_schedule_dispatch_preserves_user_or_global_context(
 
 
 @pytest.mark.anyio
-async def test_user_schedule_storage_uses_owner_and_global_has_no_owner(
+async def test_schedule_storage_keeps_user_and_extension_owners_separate(
     mocker: MockerFixture,
 ):
     storage = mocker.patch(
@@ -188,6 +189,15 @@ async def test_user_schedule_storage_uses_owner_and_global_has_no_owner(
     global_api = ExtensionHostAPI("demo", ["ext.storage.read"], context="schedule")
     with pytest.raises(PermissionError, match="owner context"):
         await global_api.storage_get(StorageGetRequest(table="alerts", id="alert-1"))
+    extension_api = ExtensionHostAPI(
+        "demo",
+        ["ext.storage.read"],
+        owner_id="extension:demo",
+        context="schedule",
+    )
+    await extension_api.storage_get(StorageGetRequest(table="history", id="price-1"))
+    assert storage.await_args.args[-1] == "extension:demo"
+    assert extension_api.user_id is None
 
 
 @pytest.mark.anyio

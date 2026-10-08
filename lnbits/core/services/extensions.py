@@ -662,8 +662,16 @@ async def uninstall_extension(ext_id: str):
 
 async def activate_extension(ext: Extension):
     if ext.is_wasm:
+        from lnbits.core.wasm_ext.wasm.scheduler import ensure_wasm_extension_schedules
+
         core_app_extra.register_new_wasm_ext_routes(ext.code)
         await update_installed_extension_state(ext_id=ext.code, active=True)
+        try:
+            await ensure_wasm_extension_schedules(ext.code)
+        except Exception:
+            await update_installed_extension_state(ext_id=ext.code, active=False)
+            await scheduler.stop_namespace(f"extension:{ext.code}")
+            raise
         return
 
     core_app_extra.register_new_ext_routes(ext)

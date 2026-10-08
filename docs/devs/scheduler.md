@@ -181,7 +181,7 @@ notification, HTTP, storage, or payment access. Each still needs its own grants.
 
 Each scheduling permission must declare a nonempty `policies` list containing
 one cron expression and timezone per handler. The administrator reviews and
-approves these schedules at installation; installation does not create jobs.
+approves these schedules at installation; policies alone do not create jobs.
 For example, a pricebot can declare:
 
 ```json
@@ -218,6 +218,13 @@ may grant a subset of the declared handlers, or omit a permission entirely.
 Cron and timezone must match the declared policy; schedule changes require an
 updated manifest and administrator approval.
 
+WASM extensions can also declare a top-level `schedules` array containing the
+shared policies to start automatically. These entries must match granted
+`scheduler.extension` policies and cannot be omitted from the grants. Core creates
+the jobs on activation and restores missing jobs on startup, preserving existing
+jobs' next runs, leases, and administrator pauses. See
+[automatic WASM schedules](../wasm-extensions.md#scheduled-work).
+
 The host methods are `scheduler.set`, `scheduler.list`, and `scheduler.delete`,
 exposed through WIT instance `lnbits:extension/scheduler` as `set-schedule`,
 `list-schedules`, and `delete-schedule`. The TypeScript SDK generator discovers
@@ -246,8 +253,9 @@ The handler must be a registered WASM export with `visibility: "event"`. Its
 JSON payload contains `scheduleId`, `scheduledAt` (the saved due time), and `data`
 (the decoded `payloadJson`). The callback runs with `context="schedule"` and
 without a browser access token. User-scoped callbacks receive their owner's
-storage and notification context. Shared callbacks have no user owner and cannot
-access private owner-scoped storage or choose another user's wallet. Scheduled
+storage and notification context. Shared callbacks use the storage owner
+`extension:<id>`, without a user identity. They can access that extension-owned
+partition, but cannot access users' private rows or choose a user's wallet. Scheduled
 payments require the existing background-payment permission and per-wallet grant.
 
 Shared data APIs are separate from scheduling. An extension-wide price collector

@@ -2,7 +2,7 @@ from collections.abc import Iterable
 from typing import Any
 
 from lnbits.core.models.extensions import ExtensionPermission, InstallableExtension
-from lnbits.core.models.scheduler import parse_schedule_policies
+from lnbits.core.models.scheduler import SchedulePolicy, parse_schedule_policies
 from lnbits.core.wasm_ext.api.registry import extension_api_permission_ids
 from lnbits.core.wasm_ext.api.websockets import (
     WEBSOCKET_PUBLISH_MAX_MESSAGES_PER_SECOND_LIMIT,
@@ -76,6 +76,7 @@ def validate_wasm_extension_permissions(
         requested_permissions,
         {export.name for export in config.wasm.exports if export.visibility == "event"},
     )
+    _validate_automatic_schedules(config.schedules, requested_permissions)
     if not requested_permissions:
         return []
 
@@ -112,7 +113,22 @@ def validate_wasm_extension_permissions(
             requested_permission.copy(update={"policies": granted_permission.policies})
         )
 
+    _validate_automatic_schedules(config.schedules, effective_permissions)
     return effective_permissions
+
+
+def _validate_automatic_schedules(
+    schedules: list[SchedulePolicy], permissions: list[ExtensionPermission]
+) -> None:
+    if not schedules:
+        return
+    grant = next((p for p in permissions if p.id == "scheduler.extension"), None)
+    approved = parse_schedule_policies(grant.policies) if grant else {}
+    for schedule in schedules:
+        if approved.get(schedule.handler) != schedule:
+            raise ValueError(
+                "Automatic schedules require matching scheduler.extension policies."
+            )
 
 
 def _permission_index(

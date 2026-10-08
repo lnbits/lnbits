@@ -562,11 +562,14 @@ def register_ext_routes(app: FastAPI, ext: Extension) -> None:
 
 
 async def check_and_register_extensions(app: FastAPI) -> None:
+    from lnbits.core.wasm_ext.wasm.scheduler import ensure_wasm_extension_schedules
+
     await check_installed_extensions(app)
     for ext in await get_valid_extensions(False):
         try:
             if is_wasm_extension_id(ext.code):
                 register_wasm_extension(app, ext.code)
+                await ensure_wasm_extension_schedules(ext.code)
                 continue
             register_ext_routes(app, ext)
             register_ext_tasks(ext)
