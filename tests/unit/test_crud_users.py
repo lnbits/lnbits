@@ -1,3 +1,4 @@
+from datetime import datetime, timezone
 from uuid import uuid4
 
 import pytest
@@ -9,7 +10,7 @@ from lnbits.core.crud.users import (
     get_user_from_account,
 )
 from lnbits.core.crud.wallets import delete_wallet, force_delete_wallet, get_wallets
-from lnbits.core.models.users import Account, AccountFilters
+from lnbits.core.models.users import Account, AccountFilters, UserExtra
 from lnbits.core.services.users import create_user_account, create_user_account_no_ckeck
 from lnbits.db import Filter, Filters, Operator
 
@@ -62,6 +63,40 @@ async def test_get_accounts_success_flow():
     assert page.total >= 1
     found = any(a.username == username for a in page.data)
     assert found
+    await delete_account(account.id)
+
+
+@pytest.mark.anyio
+async def test_get_accounts_returns_stored_extra_and_timestamps():
+    username = f"user_{uuid4().hex[:8]}"
+    created_at = datetime(2024, 1, 2, 3, 4, 5, tzinfo=timezone.utc)
+    account = Account(
+        id=uuid4().hex,
+        username=username,
+        email=f"{username}@lnbits.com",
+        extra=UserExtra(email_verified=True, display_name="Alice"),
+        created_at=created_at,
+        updated_at=created_at,
+    )
+    await create_account(account)
+
+    filters = Filters[AccountFilters](
+        filters=[
+            Filter(
+                field="username",
+                op=Operator.EQ,
+                model=AccountFilters,
+                values={"username__0": username},
+            )
+        ],
+        model=AccountFilters,
+    )
+    page = await get_accounts(filters=filters)
+    assert page.total == 1
+    listed = page.data[0]
+    assert listed.extra.email_verified is True
+    assert listed.extra.display_name == "Alice"
+    assert listed.created_at == created_at
     await delete_account(account.id)
 
 
