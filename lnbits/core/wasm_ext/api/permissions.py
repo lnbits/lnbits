@@ -2,6 +2,7 @@ from collections.abc import Iterable
 from typing import Any
 
 from lnbits.core.models.extensions import ExtensionPermission, InstallableExtension
+from lnbits.core.models.scheduler import SchedulePolicy, parse_schedule_policies
 from lnbits.core.wasm_ext.api.registry import extension_api_permission_ids
 from lnbits.core.wasm_ext.api.websockets import (
     WEBSOCKET_PUBLISH_MAX_MESSAGES_PER_SECOND_LIMIT,
@@ -17,6 +18,8 @@ _POLICY_AWARE_PERMISSION_IDS = {
     "ext.storage.read_public",
     "extension.api.request",
     "http.request",
+    "scheduler.user",
+    "scheduler.extension",
     "wallet.create_invoice_public",
     "websocket.publish",
 }
@@ -68,7 +71,12 @@ def validate_wasm_extension_permissions(
     requested_permissions = validate_extension_permissions(
         ext_info.id, config.permissions
     )
-    _validate_requested_permission_policies(ext_info.id, requested_permissions)
+    _validate_requested_permission_policies(
+        ext_info.id,
+        requested_permissions,
+        {export.name for export in config.wasm.exports if export.visibility == "event"},
+    )
+    _validate_automatic_schedules(config.schedules, requested_permissions)
     if not requested_permissions:
         return []
 
@@ -105,7 +113,22 @@ def validate_wasm_extension_permissions(
             requested_permission.copy(update={"policies": granted_permission.policies})
         )
 
+    _validate_automatic_schedules(config.schedules, effective_permissions)
     return effective_permissions
+
+
+def _validate_automatic_schedules(
+    schedules: list[SchedulePolicy], permissions: list[ExtensionPermission]
+) -> None:
+    if not schedules:
+        return
+    grant = next((p for p in permissions if p.id == "scheduler.extension"), None)
+    approved = parse_schedule_policies(grant.policies) if grant else {}
+    for schedule in schedules:
+        if approved.get(schedule.handler) != schedule:
+            raise ValueError(
+                "Automatic schedules require matching scheduler.extension policies."
+            )
 
 
 def _permission_index(
@@ -140,34 +163,45 @@ def _permission_grant_is_subset(
         return False
     if requested.id not in _POLICY_AWARE_PERMISSION_IDS:
         return True
-    if requested.id == "http.request":
-        return _http_request_grant_is_subset(requested.policies, granted.policies)
-    if requested.id == "extension.api.request":
-        return _extension_api_grant_is_subset(requested.policies, granted.policies)
     if requested.id == "ext.storage.append_public":
         return _public_storage_append_grant_is_subset(
             requested.policies,
             granted.policies,
             allow_max_rows_per_source_override=allow_admin_policy_overrides,
         )
-    if requested.id == "ext.storage.read_public":
-        return _public_storage_grant_is_subset(requested.policies, granted.policies)
-    if requested.id == "wallet.create_invoice_public":
-        return _public_invoice_grant_is_subset(requested.policies, granted.policies)
     if requested.id == "websocket.publish":
         return _websocket_publish_grant_is_subset(
             requested.policies,
             granted.policies,
             allow_max_messages_per_second_override=allow_admin_policy_overrides,
         )
-    return False
+    checker = {
+        "scheduler.user": _schedule_grant_is_subset,
+        "scheduler.extension": _schedule_grant_is_subset,
+        "http.request": _http_request_grant_is_subset,
+        "extension.api.request": _extension_api_grant_is_subset,
+        "ext.storage.read_public": _public_storage_grant_is_subset,
+        "wallet.create_invoice_public": _public_invoice_grant_is_subset,
+    }.get(requested.id)
+    return checker(requested.policies, granted.policies) if checker else False
 
 
 def _validate_requested_permission_policies(
     ext_id: str,
     permissions: Iterable[ExtensionPermission],
+    event_handlers: set[str],
 ) -> None:
     for permission in permissions:
+        if permission.id in {"scheduler.user", "scheduler.extension"}:
+            try:
+                policies = parse_schedule_policies(permission.policies)
+                if not policies.keys() <= event_handlers:
+                    raise ValueError("Scheduled handlers must be event exports.")
+            except ValueError as exc:
+                raise ValueError(
+                    f"Extension '{ext_id}' requests invalid policies for permission "
+                    f"'{permission.id}': {exc}"
+                ) from exc
         if permission.id != "websocket.publish":
             continue
         if _websocket_publish_policy(permission.policies) is None:
@@ -179,6 +213,18 @@ def _validate_requested_permission_policies(
 
 def _policy_list(policies: list[Any] | None) -> list[Any]:
     return policies if isinstance(policies, list) else []
+
+
+def _schedule_grant_is_subset(
+    requested_policies: list[Any] | None,
+    granted_policies: list[Any] | None,
+) -> bool:
+    try:
+        requested = parse_schedule_policies(requested_policies)
+        granted = parse_schedule_policies(granted_policies)
+    except ValueError:
+        return False
+    return all(requested.get(handler) == policy for handler, policy in granted.items())
 
 
 def _http_request_grant_is_subset(

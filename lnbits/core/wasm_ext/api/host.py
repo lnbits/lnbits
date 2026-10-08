@@ -92,8 +92,10 @@ class ExtensionHostAPI:
         self.owner_id = sha256s(user_id) if user_id else owner_id
         self.invocation_id = invocation_id
         self.runtime_limits = runtime_limits or {}
+        from .scheduler import ExtensionSchedulerAPI
         from .utils import ExtensionAPIUtils
 
+        self.scheduler = ExtensionSchedulerAPI(self)
         self.utils = ExtensionAPIUtils(
             self.extension_id,
             self.permissions,
@@ -534,11 +536,14 @@ class ExtensionHostAPI:
         from lnbits.exceptions import PaymentError
 
         wallet = await get_wallet(request.wallet_id)
-        if wallet is None:
+        if wallet is None or (
+            self.context == "schedule"
+            and (not self.user_id or wallet.user != self.user_id)
+        ):
             raise PermissionError("Paying invoices from this wallet is not allowed.")
 
         try:
-            if self.user_id:
+            if self.user_id and self.context != "schedule":
                 self.require_permission("wallet.pay_invoice")
                 if wallet.user != self.user_id:
                     raise PermissionError(
@@ -599,11 +604,14 @@ class ExtensionHostAPI:
         )
 
         wallet = await get_wallet(request.wallet_id)
-        if wallet is None:
+        if wallet is None or (
+            self.context == "schedule"
+            and (not self.user_id or wallet.user != self.user_id)
+        ):
             raise PermissionError("Paying from this wallet is not allowed.")
 
         try:
-            if self.user_id:
+            if self.user_id and self.context != "schedule":
                 self.require_permission("wallet.pay_invoice")
                 if wallet.user != self.user_id:
                     raise PermissionError("Paying from this wallet is not allowed.")
@@ -630,7 +638,7 @@ class ExtensionHostAPI:
                 extra["fiat_currency"] = unit
                 extra["fiat_amount"] = str(request.amount)
 
-            if not self.user_id:
+            if not self.user_id or self.context == "schedule":
                 amount_msat = invoice_amount_msat(str(action.pr))
                 extra = {
                     **extra,
@@ -1032,7 +1040,7 @@ class ExtensionHostAPI:
             )
 
     def has_authenticated_context(self) -> bool:
-        return bool(self.user_id) or self.context == "event"
+        return bool(self.user_id) or self.context in {"event", "schedule"}
 
     def _require_owner_id(self) -> str:
         if not self.owner_id:

@@ -11,6 +11,8 @@ from .models import ExtensionAPIMethod, ExtensionAPIMethodExport
 
 _EXTENSION_API_METHOD_ATTR = "__lnbits_extension_api_method__"
 _EXTENSION_RUNTIME_PERMISSION_IDS = {
+    "scheduler.user",
+    "scheduler.extension",
     "ui.camera.scan_qr",
     "wallet.pay_invoice",
     "wallet.pay_invoice_background",
@@ -165,8 +167,10 @@ def _extension_api_method_sources(
     from .host import ExtensionHostAPI
 
     if issubclass(api_cls, ExtensionHostAPI):
+        from .scheduler import ExtensionSchedulerAPI
         from .utils import extension_api_utils_method_classes
 
+        sources.append(("scheduler", ExtensionSchedulerAPI))
         sources.extend(extension_api_utils_method_classes().items())
     return sources
 

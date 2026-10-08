@@ -52,6 +52,26 @@
           class="text-caption q-mb-xs"
           v-text="description"
         ></p>
+        <ul
+          v-if="
+            ['scheduler.user', 'scheduler.extension'].includes(permission.id)
+          "
+          class="q-my-sm q-pl-md"
+        >
+          <li
+            v-for="(policy, index) of permissions.find(
+              item => item.id === permission.id
+            )?.policies || []"
+            :key="index"
+            class="q-mb-sm"
+          >
+            <div>Handler: <code v-text="policy?.handler"></code></div>
+            <div>Cron: <code v-text="policy?.cron_expression"></code></div>
+            <div>
+              Timezone: <span v-text="policy?.timezone || 'UTC'"></span>
+            </div>
+          </li>
+        </ul>
         <p
           v-for="policy of permission.invoicePolicies"
           :key="policy.table + ':' + policy.walletField"

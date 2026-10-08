@@ -32,6 +32,125 @@ from lnbits.core.wasm_ext.wasm.invoke import _active_installed_extension
 from tests.helpers import make_installable_extension
 
 
+@pytest.fixture
+def scheduler_permission_config():
+    config = _wasm_config(
+        "demoext",
+        [
+            {
+                "id": "scheduler.user",
+                "policies": [
+                    {"handler": "check", "cron_expression": "*/10 * * * *"},
+                    {"handler": "other", "cron_expression": "0 * * * *"},
+                ],
+            },
+            {
+                "id": "scheduler.extension",
+                "policies": [
+                    {
+                        "handler": "check",
+                        "cron_expression": "* * * * *",
+                        "timezone": "Europe/Bucharest",
+                    }
+                ],
+            },
+        ],
+    )
+    config["wasm"]["exports"] = [
+        {"name": name, "visibility": "event"} for name in ("check", "other")
+    ]
+    return config
+
+
+def test_scheduler_permissions_approve_exact_schedules_per_handler_and_scope(
+    scheduler_permission_config,
+):
+    config = scheduler_permission_config
+    extension = make_installable_extension("demoext")
+    grants = [ExtensionPermission.parse_obj(item) for item in config["permissions"]]
+    assert validate_wasm_extension_permissions(extension, grants, config) == grants
+    # Admins can approve only some declared handlers and omit the shared permission.
+    grants[0].policies = [
+        {"handler": "check", "cron_expression": "*/10 * ? * *", "timezone": "UTC"}
+    ]
+    assert (
+        validate_wasm_extension_permissions(extension, grants[:1], config) == grants[:1]
+    )
+    assert validate_wasm_extension_permissions(extension, [], config) == []
+
+
+@pytest.mark.parametrize(
+    "policies",
+    [
+        None,
+        [],
+        ["*/10 * * * *"],
+        [{}],
+        [{"handler": "check", "cron_expression": "* * * * * *"}],
+        [
+            {
+                "handler": "check",
+                "cron_expression": "*/10 * * * *",
+                "timezone": "invalid",
+            }
+        ],
+        [{"handler": "check", "cron_expression": "*/10 * * * *", "enabled": False}],
+        [{"handler": "missing", "cron_expression": "*/10 * * * *"}],
+        [{"handler": "check", "cron_expression": "*/10 * * * *"}] * 2,
+    ],
+)
+def test_scheduler_permissions_reject_invalid_manifest_policies(
+    policies, scheduler_permission_config
+):
+    scheduler_permission_config["permissions"][0]["policies"] = policies
+    with pytest.raises(ValueError, match="invalid policies"):
+        validate_wasm_extension_permissions(
+            make_installable_extension("demoext"), [], scheduler_permission_config
+        )
+
+
+@pytest.mark.parametrize("visibility", ["authenticated", "public"])
+def test_scheduler_permissions_require_event_handlers(
+    visibility, scheduler_permission_config
+):
+    scheduler_permission_config["wasm"]["exports"][0]["visibility"] = visibility
+    with pytest.raises(ValueError, match="event exports"):
+        validate_wasm_extension_permissions(
+            make_installable_extension("demoext"), [], scheduler_permission_config
+        )
+
+
+@pytest.mark.parametrize("allow_admin_policy_overrides", [False, True])
+@pytest.mark.parametrize(
+    "policies",
+    [
+        None,
+        [],
+        [{"handler": "missing", "cron_expression": "*/10 * * * *"}],
+        [{"handler": "check", "cron_expression": "* * * * *"}],
+        [{"handler": "check", "cron_expression": "*/20 * * * *"}],
+        [
+            {
+                "handler": "check",
+                "cron_expression": "*/10 * * * *",
+                "timezone": "Europe/Bucharest",
+            }
+        ],
+        [{"handler": "check", "cron_expression": "*/10 * * * *"}] * 2,
+    ],
+)
+def test_scheduler_permissions_reject_unrequested_schedules(
+    policies, allow_admin_policy_overrides, scheduler_permission_config
+):
+    with pytest.raises(ValueError, match="broader policies"):
+        validate_wasm_extension_permissions(
+            make_installable_extension("demoext"),
+            [ExtensionPermission(id="scheduler.user", policies=policies)],
+            scheduler_permission_config,
+            allow_admin_policy_overrides=allow_admin_policy_overrides,
+        )
+
+
 def test_validate_wasm_permissions_rejects_broader_policy_grant():
     ext_info = make_installable_extension("demoext")
     extension_config = _wasm_config(

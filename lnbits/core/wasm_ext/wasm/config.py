@@ -9,9 +9,11 @@ from pydantic import (
     StrictBool,
     StrictStr,
     ValidationError,
+    root_validator,
 )
 
 from lnbits.core.models.extensions import ExtensionPermission
+from lnbits.core.models.scheduler import SchedulePolicy
 
 _EXTENSION_ID_RE = re.compile(r"^[A-Za-z0-9_-]+$")
 
@@ -88,6 +90,20 @@ class WasmExtensionConfig(_StrictWasmModel):
     ui_routes: list[WasmUIRouteConfig] = Field(default_factory=list)
     api_routes: list[WasmAPIRouteConfig] = Field(default_factory=list)
     permissions: list[ExtensionPermission] = Field(default_factory=list)
+    schedules: list[SchedulePolicy] = Field(default_factory=list, max_items=100)
+
+    @root_validator
+    def validate_schedules(cls, values: dict[str, Any]) -> dict[str, Any]:
+        schedules = values.get("schedules", [])
+        wasm = values.get("wasm")
+        handlers = [schedule.handler for schedule in schedules]
+        if len(set(handlers)) != len(handlers):
+            raise ValueError("Automatic schedules must have unique handlers.")
+        if wasm and not set(handlers).issubset(
+            export.name for export in wasm.exports if export.visibility == "event"
+        ):
+            raise ValueError("Automatic schedule handlers must be event exports.")
+        return values
 
 
 def parse_wasm_extension_config(

@@ -7,6 +7,11 @@ nav_order: 2
 
 # Extension set up
 
+**Before creating or modifying a WASM extension, read the
+[WASM extension development guide](../wasm-extensions.md).** It documents host
+capabilities, permissions, browser restrictions, and examples checked against core.
+The setup instructions below describe Python extensions.
+
 Start off by creating a fork of the [example extension](https://github.com/lnbits/example) into own GitHub repository and rename the repository to `mysuperplugin`:
 
 ```sh
@@ -31,6 +36,8 @@ mv templates/example templates/mysuperplugin # Rename templates folder.
 1. Profit!!!
 
 ## Extension structure explained
+
+For persistent background jobs, see the [core scheduler](scheduler.md).
 
 - views_api.py: This is where your public API would go. It will be exposed at "$DOMAIN/$PLUGIN/$ROUTE". For example: https://lnbits.com/mysuperplugin/api/v1/tools.
 - views.py: The `/` path will show up as your plugin's home page in lnbits' UI. Other pages you can define yourself. The `templates` folder should explain itself in relation to this.
