@@ -7,6 +7,11 @@ nav_order: 2
 
 # Extension set up
 
+**Before creating or modifying a WASM extension, read the
+[WASM extension development guide](../wasm-extensions.md).** It documents host
+capabilities, permissions, browser restrictions, and examples checked against core.
+The setup instructions below describe Python extensions.
+
 Start off by creating a fork of the [example extension](https://github.com/lnbits/example) into own GitHub repository and rename the repository to `mysuperplugin`:
 
 ```sh
