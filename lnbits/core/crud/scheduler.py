@@ -1,5 +1,10 @@
 from lnbits.core.db import db
-from lnbits.core.models.scheduler import ScheduledJob
+from lnbits.core.models.scheduler import (
+    ScheduledJob,
+    ScheduledJobFilters,
+    ScheduledJobSummary,
+)
+from lnbits.db import Filters, Page
 
 
 async def save_scheduled_job(job: ScheduledJob) -> ScheduledJob:
@@ -51,6 +56,34 @@ async def list_scheduled_jobs(
         {"namespace": namespace, "user_id": user_id, "limit": limit, "offset": offset},
         ScheduledJob,
     )
+
+
+async def get_scheduled_jobs_overview(
+    filters: Filters[ScheduledJobFilters],
+) -> Page[ScheduledJobSummary]:
+    if not filters.sortby:
+        filters.sortby = "next_run_at"
+    return await db.fetch_page(
+        """
+        SELECT * FROM (
+            SELECT id, namespace, handler, cron_expression, timezone, enabled,
+                   next_run_at,
+                   CASE WHEN user_id IS NOT NULL THEN 'user'
+                        WHEN namespace = 'core' THEN 'core'
+                        ELSE 'extension' END AS scope
+            FROM scheduled_jobs
+        ) AS jobs
+        """,
+        filters=filters,
+        model=ScheduledJobSummary,
+    )
+
+
+async def get_scheduled_job_sources() -> list[str]:
+    rows: list[dict] = await db.fetchall(
+        "SELECT DISTINCT namespace FROM scheduled_jobs ORDER BY namespace"
+    )
+    return [row["namespace"] for row in rows]
 
 
 async def delete_scheduled_job(

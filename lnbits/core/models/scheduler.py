@@ -1,10 +1,11 @@
 import json
-from typing import Any
+from typing import Any, Literal
 from uuid import uuid4
 from zoneinfo import ZoneInfo
 
 from pydantic import BaseModel, Field, validator
 
+from lnbits.db import FilterModel
 from lnbits.utils.cron import normalize_cron
 
 
@@ -74,3 +75,24 @@ class ScheduledJob(ScheduleConfig):
 
     def public_data(self) -> dict:
         return self.dict(exclude={"namespace", "user_id", "lease_token", "lease_until"})
+
+
+class ScheduledJobSummary(BaseModel):
+    id: str
+    namespace: str
+    handler: str
+    scope: Literal["core", "extension", "user"]
+    cron_expression: str
+    timezone: str
+    enabled: bool
+    next_run_at: int | None = None
+
+
+class ScheduledJobFilters(FilterModel):
+    __search_fields__ = ["id", "namespace", "handler"]
+    __sort_fields__ = ["id", "namespace", "handler", "scope", "enabled", "next_run_at"]
+
+    namespace: str | None = None
+    handler: str | None = None
+    enabled: bool | None = None
+    scope: Literal["core", "extension", "user"] | None = None
