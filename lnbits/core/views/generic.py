@@ -189,6 +189,7 @@ admin_ui_checks = [Depends(check_admin), Depends(check_admin_ui)]
 @generic_router.get("/extensions")
 @generic_router.get("/users", dependencies=admin_ui_checks)
 @generic_router.get("/audit", dependencies=admin_ui_checks)
+@generic_router.get("/scheduler", dependencies=admin_ui_checks)
 @generic_router.get("/node", dependencies=admin_ui_checks)
 @generic_router.get("/admin", dependencies=admin_ui_checks)
 @generic_router.get("/admin/extensions/wasm", dependencies=admin_ui_checks)

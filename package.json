@@ -114,6 +114,7 @@
       "js/pages/extensions.js",
       "js/pages/first-install.js",
       "js/pages/payments.js",
+      "js/pages/scheduler.js",
       "js/pages/node.js",
       "js/pages/node-public.js",
       "js/pages/audit.js",

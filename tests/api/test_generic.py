@@ -172,6 +172,7 @@ async def test_get_extensions_no_user(client):
 ADMIN_PATHS = [
     "/users",
     "/audit",
+    "/scheduler",
     "/node",
     "/admin",
 ]
@@ -211,3 +212,25 @@ async def test_admin_paths_access_denied_for_non_admin(
         401,
         403,
     ), f"{path} should be forbidden for non-admin, got {response.status_code}"
+
+
+@pytest.mark.anyio
+async def test_scheduler_requires_authentication(http_client):
+    response = await http_client.get("/scheduler")
+    assert response.status_code == 401
+
+
+@pytest.mark.anyio
+@pytest.mark.parametrize("admin_ui_enabled, status_code", [(True, 200), (False, 503)])
+async def test_scheduler_superuser_access(
+    http_client,
+    settings: Settings,
+    superuser_token: str,
+    admin_ui_enabled: bool,
+    status_code: int,
+):
+    settings.lnbits_admin_ui = admin_ui_enabled
+    response = await http_client.get(
+        "/scheduler", headers={"Authorization": f"Bearer {superuser_token}"}
+    )
+    assert response.status_code == status_code

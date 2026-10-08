@@ -84,21 +84,6 @@ include('components/lnbits-error.vue') %}
           <q-icon name="chevron_right" color="grey-5" size="md"></q-icon>
         </q-item-section>
       </q-item>
-      <q-item v-if="g.settings.showNodemanager" to="/node">
-        <q-item-section side>
-          <q-icon
-            name="developer_board"
-            :color="isActive('/node') ? 'primary' : 'grey-5'"
-            size="md"
-          ></q-icon>
-        </q-item-section>
-        <q-item-section>
-          <q-item-label lines="1" v-text="$t('node')"></q-item-label>
-        </q-item-section>
-        <q-item-section side v-show="isActive('/node')">
-          <q-icon name="chevron_right" color="grey-5" size="md"></q-icon>
-        </q-item-section>
-      </q-item>
       <q-item v-if="g.settings.showAdmin" to="/users">
         <q-item-section side>
           <q-icon
@@ -114,22 +99,37 @@ include('components/lnbits-error.vue') %}
           <q-icon name="chevron_right" color="grey-5" size="md"></q-icon>
         </q-item-section>
       </q-item>
-      <q-item v-if="g.settings.showAudit" to="/audit">
-        <q-item-section side>
-          <q-icon
-            name="playlist_add_check_circle"
-            :color="isActive('/audit') ? 'primary' : 'grey-5'"
-            size="md"
-          ></q-icon>
-        </q-item-section>
-        <q-item-section>
-          <q-item-label lines="1" v-text="$t('api_watch')"></q-item-label>
-        </q-item-section>
-        <q-item-section side v-show="isActive('/audit')">
-          <q-icon name="chevron_right" color="grey-5" size="md"></q-icon>
-        </q-item-section>
-      </q-item>
     </div>
+    <q-item v-if="g.settings.showExtensions" to="/extensions">
+      <q-item-section side>
+        <q-icon
+          name="extension"
+          :color="isActive('/extensions') ? 'primary' : 'grey-5'"
+          size="md"
+        ></q-icon>
+      </q-item-section>
+      <q-item-section>
+        <q-item-label lines="1" v-text="$t('extensions')"></q-item-label>
+      </q-item-section>
+      <q-item-section side v-show="isActive('/extensions')">
+        <q-icon name="chevron_right" color="grey-5" size="md"></q-icon>
+      </q-item-section>
+    </q-item>
+    <q-item v-if="g.user.admin && g.settings.showNodemanager" to="/node">
+      <q-item-section side>
+        <q-icon
+          name="developer_board"
+          :color="isActive('/node') ? 'primary' : 'grey-5'"
+          size="md"
+        ></q-icon>
+      </q-item-section>
+      <q-item-section>
+        <q-item-label lines="1" v-text="$t('node')"></q-item-label>
+      </q-item-section>
+      <q-item-section side v-show="isActive('/node')">
+        <q-icon name="chevron_right" color="grey-5" size="md"></q-icon>
+      </q-item-section>
+    </q-item>
     <q-item
       v-if="
         g.settings.showBlockExplorer &&
@@ -151,6 +151,22 @@ include('components/lnbits-error.vue') %}
         <q-icon name="chevron_right" color="grey-5" size="md"></q-icon>
       </q-item-section>
     </q-item>
+    <q-item-label header v-text="$t('monitor')"></q-item-label>
+    <q-item v-if="g.user.admin && g.settings.showAudit" to="/audit">
+      <q-item-section side>
+        <q-icon
+          name="playlist_add_check_circle"
+          :color="isActive('/audit') ? 'primary' : 'grey-5'"
+          size="md"
+        ></q-icon>
+      </q-item-section>
+      <q-item-section>
+        <q-item-label lines="1" v-text="$t('api_watch')"></q-item-label>
+      </q-item-section>
+      <q-item-section side v-show="isActive('/audit')">
+        <q-icon name="chevron_right" color="grey-5" size="md"></q-icon>
+      </q-item-section>
+    </q-item>
     <q-item to="/payments">
       <q-item-section side>
         <q-icon
@@ -166,18 +182,18 @@ include('components/lnbits-error.vue') %}
         <q-icon name="chevron_right" color="grey-5" size="md"></q-icon>
       </q-item-section>
     </q-item>
-    <q-item v-if="g.settings.showExtensions" to="/extensions">
+    <q-item v-if="g.user.admin && g.settings.showAdmin" to="/scheduler">
       <q-item-section side>
         <q-icon
-          name="extension"
-          :color="isActive('/extensions') ? 'primary' : 'grey-5'"
+          name="schedule"
+          :color="isActive('/scheduler') ? 'primary' : 'grey-5'"
           size="md"
         ></q-icon>
       </q-item-section>
       <q-item-section>
-        <q-item-label lines="1" v-text="$t('extensions')"></q-item-label>
+        <q-item-label lines="1" v-text="$t('scheduler')"></q-item-label>
       </q-item-section>
-      <q-item-section side v-show="isActive('/extensions')">
+      <q-item-section side v-show="isActive('/scheduler')">
         <q-icon name="chevron_right" color="grey-5" size="md"></q-icon>
       </q-item-section>
     </q-item>

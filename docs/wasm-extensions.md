@@ -88,6 +88,12 @@ dev/ or wasm/src/             Source/build tooling; layout varies by toolchain
 The currently supported payment event configuration is `events.onInvoicePaid`.
 Scheduler handlers also use event exports, with separate scheduler policies.
 
+When first creating a WASM extension, set `config.json`'s `min_lnbits_version`
+to the current LNbits version from `[project].version` in
+[`pyproject.toml`](../pyproject.toml). Read that value at creation time and preserve
+any prerelease suffix. Do not copy an older minimum version from a template or
+another extension.
+
 Host method IDs such as `utils.currencies.rate` are different from their WIT
 import names. Imports live in interfaces such as `lnbits:extension/host`,
 `lnbits:extension/utils-currencies`, and `lnbits:extension/scheduler`. Match names,

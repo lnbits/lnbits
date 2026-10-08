@@ -89,6 +89,14 @@ const routes = [
     component: PageAudit
   },
   {
+    path: '/scheduler',
+    name: 'Scheduler',
+    component: PageScheduler,
+    beforeEnter: () => {
+      if (!window.g.user?.admin || !window.g.settings.showAdmin) return '/'
+    }
+  },
+  {
     path: '/wallet',
     redirect: to => {
       const walletId =

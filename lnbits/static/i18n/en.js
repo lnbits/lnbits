@@ -177,6 +177,8 @@ window.localisation.en = {
     'You *must* save your  login credentials to be able to access your wallet again. If you lose them, you will lose access to your wallet and funds.\n\nFind your  login credentials on your account settings page.\n\nLNbits holds no responsibility for loss of access to funds.',
   no_transactions: 'No transactions made yet',
   manage: 'Manage',
+  monitor: 'Monitor',
+  scheduler: 'Scheduler',
   exchanges: 'Exchanges',
   extensions: 'Extensions',
   no_extensions: "You don't have any extensions installed :(",
