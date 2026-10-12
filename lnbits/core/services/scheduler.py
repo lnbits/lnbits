@@ -5,8 +5,21 @@ from uuid import uuid4
 
 from loguru import logger
 
-from lnbits.core.crud import scheduler as crud
 from lnbits.core.crud.extensions import get_installed_extension, get_user_extension
+from lnbits.core.crud.scheduler import (
+    claim_scheduled_job,
+    create_scheduled_job_run,
+    delete_scheduled_job,
+    finish_scheduled_job,
+    finish_scheduled_job_run,
+    get_due_scheduled_jobs,
+    get_scheduled_job,
+    get_scheduled_jobs_count,
+    get_scheduled_jobs_paginated,
+    maintain_scheduled_job_runs,
+    renew_scheduled_job,
+    save_scheduled_job,
+)
 from lnbits.core.crud.users import get_account
 from lnbits.core.models.extensions import ExtensionPermission
 from lnbits.core.models.scheduler import (
@@ -150,17 +163,15 @@ class Scheduler:
         if (
             user_id
             and max_jobs_per_user is not None
-            and not await crud.get_scheduled_job(config.id)
+            and not await get_scheduled_job(config.id)
         ):
-            count = await crud.get_scheduled_jobs_count(
-                namespace, user_id, config.handler
-            )
+            count = await get_scheduled_jobs_count(namespace, user_id, config.handler)
             if count >= max_jobs_per_user:
                 raise ValueError(
                     "Scheduled job limit reached for this handler "
                     f"({max_jobs_per_user} per user)."
                 )
-        return await crud.save_scheduled_job(
+        return await save_scheduled_job(
             ScheduledJob(
                 **config.dict(),
                 namespace=namespace,
@@ -179,23 +190,21 @@ class Scheduler:
     ) -> Page[ScheduledJob]:
         if not 1 <= limit <= 100 or offset < 0:
             raise ValueError("Invalid schedule pagination.")
-        return await crud.get_scheduled_jobs_paginated(
+        return await get_scheduled_jobs_paginated(
             namespace, user_id, limit=limit, offset=offset
         )
 
     async def delete(
         self, namespace: str, job_id: str, *, user_id: str | None = None
     ) -> bool:
-        job = await crud.get_scheduled_job(job_id)
+        job = await get_scheduled_job(job_id)
         if not job or job.namespace != namespace or job.user_id != user_id:
             return False
         if job.lease_token and job.lease_until > int(time.time()):
             raise ValueError(
                 "Job is running. Pause it and wait for it to stop before deleting."
             )
-        return await crud.delete_scheduled_job(
-            job_id, namespace, user_id, int(time.time())
-        )
+        return await delete_scheduled_job(job_id, namespace, user_id, int(time.time()))
 
     async def tick(self) -> None:
         if not settings.lnbits_scheduler_enabled:
@@ -204,7 +213,7 @@ class Scheduler:
         if now >= self._next_history_maintenance:
             self._next_history_maintenance = now + 60
             try:
-                await crud.maintain_scheduled_job_runs(
+                await maintain_scheduled_job_runs(
                     now, settings.lnbits_scheduler_history_retention_days
                 )
             except Exception:
@@ -221,18 +230,18 @@ class Scheduler:
         await self._start_due_jobs(int(time.time()), available)
 
     async def _start_due_jobs(self, now: int, limit: int) -> None:
-        for candidate in await crud.get_due_scheduled_jobs(now, limit):
+        for candidate in await get_due_scheduled_jobs(now, limit):
             if not settings.lnbits_scheduler_enabled:
                 return
             if self.stopping or candidate.id in self.running:
                 continue
-            job = await crud.claim_scheduled_job(
+            job = await claim_scheduled_job(
                 candidate.id, uuid4().hex, now, now + self.lease_seconds
             )
             if job and not self.stopping:
                 if not settings.lnbits_scheduler_enabled:
                     # The toggle may change while claiming; keep this job due.
-                    await crud.finish_scheduled_job(job, job.next_run_at)
+                    await finish_scheduled_job(job, job.next_run_at)
                     return
                 self.running[job.id] = (
                     job,
@@ -258,7 +267,7 @@ class Scheduler:
         self.running.clear()
 
     async def _execute(self, job: ScheduledJob) -> bool:
-        current = await crud.get_scheduled_job(job.id)
+        current = await get_scheduled_job(job.id)
         if not current or not current.enabled or current.lease_token != job.lease_token:
             return False
         await check_schedule_access(current.namespace, current.user_id, current)
@@ -274,14 +283,14 @@ class Scheduler:
             await asyncio.sleep(self.lease_seconds / 3)
             await check_schedule_access(job.namespace, job.user_id, job)
             now = int(time.time())
-            if not await crud.renew_scheduled_job(
+            if not await renew_scheduled_job(
                 job.id, job.lease_token, now, now + self.lease_seconds
             ):
                 raise RuntimeError("Schedule claim lost or job paused.")
 
     async def _record_run_start(self, job: ScheduledJob) -> ScheduledJobRun | None:
         try:
-            return await crud.create_scheduled_job_run(job, time.time())
+            return await create_scheduled_job_run(job, time.time())
         except Exception:
             # Observability must not change whether a scheduled callback runs.
             logger.warning("Could not record scheduled job {} start.", job.id)
@@ -343,7 +352,7 @@ class Scheduler:
             await asyncio.gather(*tasks, return_exceptions=True)
             if run:
                 try:
-                    await crud.finish_scheduled_job_run(
+                    await finish_scheduled_job_run(
                         run.id, status, time.time(), error_summary
                     )
                 except Exception:
@@ -354,7 +363,7 @@ class Scheduler:
                 following = next_run_at(
                     job.cron_expression, job.timezone, int(time.time())
                 )
-                await crud.finish_scheduled_job(job, following)
+                await finish_scheduled_job(job, following)
 
 
 scheduler = Scheduler()

@@ -420,8 +420,8 @@ async def test_scheduler_toggle_keeps_worker_alive_and_resumes_overdue_jobs(
     overdue = await crud.save_scheduled_job(job())
     completed = asyncio.Event()
     callback = mocker.AsyncMock(side_effect=lambda item: completed.set())
-    maintenance = mocker.spy(crud, "maintain_scheduled_job_runs")
-    polling = mocker.spy(crud, "get_due_scheduled_jobs")
+    maintenance = mocker.spy(service, "maintain_scheduled_job_runs")
+    polling = mocker.spy(service, "get_due_scheduled_jobs")
     worker = Scheduler()
     worker.register("core", "check", callback)
     settings.lnbits_running = True
@@ -495,14 +495,14 @@ async def test_disabling_scheduler_during_polling_preserves_due_job(
     schedule_db, clock, settings: Settings, mocker: MockerFixture, operation: str
 ):
     overdue = await crud.save_scheduled_job(job())
-    original = getattr(crud, operation)
+    original = getattr(service, operation)
 
     async def disable_after_operation(*args, **kwargs):
         result = await original(*args, **kwargs)
         settings.lnbits_scheduler_enabled = False
         return result
 
-    mocker.patch.object(crud, operation, side_effect=disable_after_operation)
+    mocker.patch.object(service, operation, side_effect=disable_after_operation)
     callback = mocker.AsyncMock()
     worker = Scheduler()
     worker.register("core", "check", callback)
@@ -512,7 +512,7 @@ async def test_disabling_scheduler_during_polling_preserves_due_job(
         assert worker.running == {}
         assert await crud.get_scheduled_job(overdue.id) == overdue
 
-        mocker.patch.object(crud, operation, original)
+        mocker.patch.object(service, operation, original)
         settings.lnbits_scheduler_enabled = True
         await worker.tick()
         await asyncio.wait_for(worker.running[overdue.id][1], 1)
@@ -713,14 +713,14 @@ async def test_heartbeat_renews_claim_and_pause_cancels_callback(
 ):
     await crud.save_scheduled_job(job())
     started, renewed, stopped = asyncio.Event(), asyncio.Event(), asyncio.Event()
-    original_renew = crud.renew_scheduled_job
+    original_renew = service.renew_scheduled_job
 
     async def renew(*args):
         result = await original_renew(*args)
         renewed.set()
         return result
 
-    mocker.patch.object(crud, "renew_scheduled_job", side_effect=renew)
+    mocker.patch.object(service, "renew_scheduled_job", side_effect=renew)
 
     async def callback(item):
         started.set()
@@ -1355,7 +1355,9 @@ async def test_history_write_failure_does_not_change_execution(
     schedule_db, clock, mocker, operation
 ):
     await crud.save_scheduled_job(job())
-    mocker.patch.object(crud, operation, side_effect=RuntimeError("private-db-error"))
+    mocker.patch.object(
+        service, operation, side_effect=RuntimeError("private-db-error")
+    )
     callback = mocker.AsyncMock()
     worker = Scheduler()
     worker.register("core", "check", callback)
