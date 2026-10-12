@@ -146,14 +146,27 @@ class Scheduler:
         next_run = next_run_at(config.cron_expression, config.timezone, now)
         if next_run is None:
             raise ValueError("Cron expression has no occurrence within eight years.")
+        # Updates remain allowed above the limit. Concurrent creates may exceed it.
+        if (
+            user_id
+            and max_jobs_per_user is not None
+            and not await crud.get_scheduled_job(config.id)
+        ):
+            count = await crud.get_scheduled_jobs_count(
+                namespace, user_id, config.handler
+            )
+            if count >= max_jobs_per_user:
+                raise ValueError(
+                    "Scheduled job limit reached for this handler "
+                    f"({max_jobs_per_user} per user)."
+                )
         return await crud.save_scheduled_job(
             ScheduledJob(
                 **config.dict(),
                 namespace=namespace,
                 user_id=user_id,
                 next_run_at=next_run,
-            ),
-            max_jobs_per_user=max_jobs_per_user,
+            )
         )
 
     async def list_paginated(

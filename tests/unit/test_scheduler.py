@@ -409,9 +409,7 @@ async def test_user_schedule_limit_is_scoped(
         {"namespace": "extension:two"},
     ):
         with pytest.raises(PermissionError, match="another owner or handler"):
-            await crud.save_scheduled_job(
-                existing.copy(update=changes), max_jobs_per_user=2
-            )
+            await crud.save_scheduled_job(existing.copy(update=changes))
     assert await crud.get_scheduled_job(existing.id) == existing
 
 

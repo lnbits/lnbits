@@ -20,20 +20,22 @@ async def save_scheduled_job(job: ScheduledJob) -> ScheduledJob:
             (:id, :namespace, :user_id, :handler, :cron_expression, :timezone,
              :payload_json, :enabled, :next_run_at)
         ON CONFLICT (id) DO UPDATE SET
-            handler = excluded.handler,
             cron_expression = excluded.cron_expression,
             timezone = excluded.timezone,
             payload_json = excluded.payload_json,
             enabled = excluded.enabled,
             next_run_at = excluded.next_run_at
         WHERE scheduled_jobs.namespace = excluded.namespace
+          AND scheduled_jobs.handler = excluded.handler
           AND (scheduled_jobs.user_id = excluded.user_id
                OR (scheduled_jobs.user_id IS NULL AND excluded.user_id IS NULL))
         """,
         job.dict(),
     )
     if result.rowcount != 1:
-        raise PermissionError("Schedule ID is already in use by another owner.")
+        raise PermissionError(
+            "Schedule ID is already in use by another owner or handler."
+        )
     stored = await get_scheduled_job(job.id)
     assert stored
     return stored
@@ -45,6 +47,17 @@ async def get_scheduled_job(job_id: str) -> ScheduledJob | None:
         {"id": job_id},
         ScheduledJob,
     )
+
+
+async def get_scheduled_jobs_count(namespace: str, user_id: str, handler: str) -> int:
+    row: dict | None = await db.fetchone(
+        """
+        SELECT COUNT(*) AS count FROM scheduled_jobs
+        WHERE namespace = :namespace AND user_id = :user_id AND handler = :handler
+        """,
+        {"namespace": namespace, "user_id": user_id, "handler": handler},
+    )
+    return int(row["count"]) if row else 0
 
 
 async def get_scheduled_jobs_paginated(
