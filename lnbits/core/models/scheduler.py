@@ -33,19 +33,23 @@ class SchedulePolicy(BaseModel):
             raise ValueError("Unknown IANA timezone.") from exc
         return zone
 
-
-def parse_schedule_policies(policies: list[Any] | None) -> dict[str, SchedulePolicy]:
-    if not policies:
-        raise ValueError("Scheduling permission requires per-handler cron policies.")
-    parsed: dict[str, SchedulePolicy] = {}
-    for policy in policies:
-        if not isinstance(policy, dict):
-            raise ValueError("Schedule policy must be an object.")
-        schedule = SchedulePolicy.parse_obj(policy)
-        if schedule.handler in parsed:
-            raise ValueError("Schedule policies must have unique handlers per scope.")
-        parsed[schedule.handler] = schedule
-    return parsed
+    @staticmethod
+    def parse_policies(policies: list[Any] | None) -> dict[str, "SchedulePolicy"]:
+        if not policies:
+            raise ValueError(
+                "Scheduling permission requires per-handler cron policies."
+            )
+        parsed: dict[str, SchedulePolicy] = {}
+        for policy in policies:
+            if not isinstance(policy, dict):
+                raise ValueError("Schedule policy must be an object.")
+            schedule = SchedulePolicy.parse_obj(policy)
+            if schedule.handler in parsed:
+                raise ValueError(
+                    "Schedule policies must have unique handlers per scope."
+                )
+            parsed[schedule.handler] = schedule
+        return parsed
 
 
 class ScheduleConfig(SchedulePolicy):

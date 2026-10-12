@@ -15,7 +15,6 @@ from lnbits.core.models.scheduler import (
     ScheduledJobRun,
     ScheduledJobRunStatus,
     SchedulePolicy,
-    parse_schedule_policies,
 )
 from lnbits.db import Page
 from lnbits.settings import settings
@@ -64,7 +63,7 @@ def _check_wasm_schedule_policy(
     if not grant:
         raise PermissionError("Extension scheduling permission has been revoked.")
     try:
-        approved = parse_schedule_policies(grant.policies).get(config.handler)
+        approved = SchedulePolicy.parse_policies(grant.policies).get(config.handler)
     except ValueError as exc:
         raise PermissionError("Invalid approved schedule policies.") from exc
     if not approved or (

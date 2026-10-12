@@ -2,7 +2,7 @@ from collections.abc import Iterable
 from typing import Any
 
 from lnbits.core.models.extensions import ExtensionPermission, InstallableExtension
-from lnbits.core.models.scheduler import SchedulePolicy, parse_schedule_policies
+from lnbits.core.models.scheduler import SchedulePolicy
 from lnbits.core.wasm_ext.api.registry import extension_api_permission_ids
 from lnbits.core.wasm_ext.api.websockets import (
     WEBSOCKET_PUBLISH_MAX_MESSAGES_PER_SECOND_LIMIT,
@@ -123,7 +123,7 @@ def _validate_automatic_schedules(
     if not schedules:
         return
     grant = next((p for p in permissions if p.id == "scheduler.extension"), None)
-    approved = parse_schedule_policies(grant.policies) if grant else {}
+    approved = SchedulePolicy.parse_policies(grant.policies) if grant else {}
     for schedule in schedules:
         if approved.get(schedule.handler) != schedule:
             raise ValueError(
@@ -194,7 +194,7 @@ def _validate_requested_permission_policies(
     for permission in permissions:
         if permission.id in {"scheduler.user", "scheduler.extension"}:
             try:
-                policies = parse_schedule_policies(permission.policies)
+                policies = SchedulePolicy.parse_policies(permission.policies)
                 if not policies.keys() <= event_handlers:
                     raise ValueError("Scheduled handlers must be event exports.")
             except ValueError as exc:
@@ -220,8 +220,8 @@ def _schedule_grant_is_subset(
     granted_policies: list[Any] | None,
 ) -> bool:
     try:
-        requested = parse_schedule_policies(requested_policies)
-        granted = parse_schedule_policies(granted_policies)
+        requested = SchedulePolicy.parse_policies(requested_policies)
+        granted = SchedulePolicy.parse_policies(granted_policies)
     except ValueError:
         return False
     return all(requested.get(handler) == policy for handler, policy in granted.items())
