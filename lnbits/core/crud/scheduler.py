@@ -53,7 +53,8 @@ async def list_scheduled_jobs(
     return await db.fetchall(
         """
         SELECT * FROM scheduled_jobs WHERE namespace = :namespace
-          AND (user_id = :user_id OR (user_id IS NULL AND :user_id IS NULL))
+          AND (user_id = :user_id
+               OR (user_id IS NULL AND CAST(:user_id AS TEXT) IS NULL))
         ORDER BY id LIMIT :limit OFFSET :offset
         """,
         {"namespace": namespace, "user_id": user_id, "limit": limit, "offset": offset},
@@ -103,7 +104,8 @@ async def delete_scheduled_job(
     result = await db.execute(
         """
         DELETE FROM scheduled_jobs WHERE id = :id AND namespace = :namespace
-          AND (user_id = :user_id OR (user_id IS NULL AND :user_id IS NULL))
+          AND (user_id = :user_id
+               OR (user_id IS NULL AND CAST(:user_id AS TEXT) IS NULL))
           AND (lease_token IS NULL OR lease_until <= :now)
         """,
         {"id": job_id, "namespace": namespace, "user_id": user_id, "now": now},

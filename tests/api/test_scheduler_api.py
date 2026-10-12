@@ -137,6 +137,25 @@ async def test_scheduler_overview_paginates_and_omits_private_fields(
 
 
 @pytest.mark.anyio
+@pytest.mark.parametrize("job_index", [1, 2])
+async def test_scheduler_crud_preserves_owner_scope(scheduled_jobs, job_index):
+    job = scheduled_jobs[job_index]
+    jobs = await crud.list_scheduled_jobs(job.namespace, job.user_id)
+    assert [entry.id for entry in jobs] == [job.id]
+    assert await crud.list_scheduled_jobs(job.namespace, "another-owner") == []
+
+    # Let the fixture's lease expire so only ownership can prevent deletion.
+    now = int(time.time()) + 120
+    other_owner = None if job.user_id else scheduled_jobs[2].user_id
+    assert not await crud.delete_scheduled_job(job.id, job.namespace, other_owner, now)
+    assert not await crud.delete_scheduled_job(
+        job.id, f"{job.namespace}-other", job.user_id, now
+    )
+    assert await crud.delete_scheduled_job(job.id, job.namespace, job.user_id, now)
+    assert await crud.list_scheduled_jobs(job.namespace, job.user_id) == []
+
+
+@pytest.mark.anyio
 async def test_scheduler_overview_filters_and_lists_sources(
     http_client, superuser_token, scheduled_jobs
 ):

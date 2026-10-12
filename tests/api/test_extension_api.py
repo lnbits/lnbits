@@ -331,6 +331,7 @@ async def test_explicit_wasm_release_loads_install_permissions(
 
 
 @pytest.mark.anyio
+@pytest.mark.usefixtures("app")
 async def test_extension_api_installs_wasm_with_granted_permissions(
     tmp_path,
     settings,
@@ -356,6 +357,10 @@ async def test_extension_api_installs_wasm_with_granted_permissions(
     original_wasm_extensions_path = settings.lnbits_wasm_extensions_path
     register_wasm_routes_mock = mocker.patch(
         "lnbits.core.services.extensions.core_app_extra.register_new_wasm_ext_routes"
+    )
+    ensure_schedules_mock = mocker.patch(
+        "lnbits.core.wasm_ext.wasm.scheduler.ensure_wasm_extension_schedules",
+        mocker.AsyncMock(),
     )
     mocker.patch.object(
         InstallableExtension,
@@ -393,6 +398,7 @@ async def test_extension_api_installs_wasm_with_granted_permissions(
         )
     ]
     register_wasm_routes_mock.assert_called_once_with(ext_id)
+    ensure_schedules_mock.assert_awaited_once_with(ext_id)
 
 
 @pytest.mark.anyio
