@@ -397,9 +397,12 @@ cron syntax. The relevant WASM rules are:
   `scheduler.extension` manages shared jobs and requires an administrator.
   Guest management calls require interactive authenticated requests. Automatic
   schedules are created by core using the approved manifest declaration.
-- Multiple jobs are supported, with one durable job per handler and owner/scope;
-  use distinct handlers for distinct activities. Saving the same combination
-  updates that job. Core assigns ownership and namespace. Users cannot replace
+- User jobs are limited per extension, user, and handler by the approved
+  `max_jobs_per_user` policy (default 10), including paused jobs. Admins can edit
+  this limit without restarting; lowering it blocks new jobs but preserves
+  existing jobs and allows updates/deletion. Omit the job ID to create a user job;
+  reuse its ID to update it. A job's handler cannot change. Shared extension jobs
+  retain one durable job per handler. Core assigns ownership and namespace. Users cannot replace
   the approved cron with a different expression. A callback may inspect internal conditions and
   return without doing its application work.
 - Expressions have five fields and minute-or-longer granularity. Lists, ranges,

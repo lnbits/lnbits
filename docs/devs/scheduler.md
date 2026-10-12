@@ -210,7 +210,8 @@ For example, a pricebot can declare:
         {
           "handler": "check_alerts",
           "cron_expression": "*/10 * * * *",
-          "timezone": "UTC"
+          "timezone": "UTC",
+          "max_jobs_per_user": 10
         }
       ]
     }
@@ -224,6 +225,13 @@ the same handler can have different schedules in the two scopes. Administrators
 may grant a subset of the declared handlers, or omit a permission entirely.
 Cron and timezone must match the declared policy; schedule changes require an
 updated manifest and administrator approval.
+
+Each `scheduler.user` handler policy has a positive integer `max_jobs_per_user`,
+defaulting to 10 when omitted, including in existing grants. The quota is separate
+for each extension, user, and handler, and counts enabled and paused jobs. Admins
+can raise or lower it in the extension permission editor, effective immediately.
+Lowering it preserves existing jobs and permits updates and deletion; new jobs
+are rejected until the count is below the limit. Deleting a job frees a slot.
 
 WASM extensions can also declare a top-level `schedules` array containing the
 shared policies to start automatically. These entries must match granted
@@ -241,6 +249,9 @@ these methods automatically.
 `cronExpression`, `timezone` (default `UTC`), `payloadJson` (a JSON object, up to
 8192 bytes), `enabled` (default true), and `scope` (`user` by default, or
 `extension`). It returns `scheduleJson`; retain its `id` and send it on updates.
+For user jobs, omitting `id` creates a new job, even for the same handler. Supplying
+the same ID updates that job; its handler, owner, and namespace cannot change.
+Shared extension jobs retain one stable job ID per handler.
 The handler, normalized cron expression, and timezone must match the approved
 policy for that scope on both creation and updates. Core checks approval again
 before executing a job and during its heartbeat. Revoking the policy blocks

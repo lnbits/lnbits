@@ -28,6 +28,8 @@ from lnbits.core.models.users import AccountId
 from lnbits.core.services import scheduler as service
 from lnbits.core.services.scheduler import Scheduler, check_schedule_access
 from lnbits.core.views import extension_api
+from lnbits.core.wasm_ext.api.host import ExtensionHostAPI
+from lnbits.core.wasm_ext.api.scheduler import ExtensionSchedulerAPI, ScheduleSetRequest
 from lnbits.db import DB_TYPE, SQLITE, Database, Filters
 from lnbits.settings import SchedulerSettings, Settings
 from lnbits.utils.cron import next_run_at
@@ -307,6 +309,110 @@ async def test_restart_coalesces_missed_runs(schedule_db, clock, mocker: MockerF
     assert stored and stored.next_run_at == NOW + 60
     assert stored.lease_token is None
     await restarted.stop()
+
+
+@pytest.mark.anyio
+async def test_user_schedule_limit_defaults_and_live_changes(
+    schedule_db, clock, wasm_schedule_grants, mocker: MockerFixture
+):
+    worker = Scheduler()
+    callback = mocker.AsyncMock()
+    worker.register("extension:one", "check", callback)
+    mocker.patch("lnbits.core.wasm_ext.api.scheduler.scheduler", worker)
+    mocker.patch(
+        "lnbits.core.wasm_ext.api.scheduler.get_account",
+        mocker.AsyncMock(return_value=SimpleNamespace(activated=True)),
+    )
+    api = ExtensionSchedulerAPI(
+        ExtensionHostAPI("one", ["scheduler.user"], user_id="alice")
+    )
+    jobs = []
+    for index in range(10):
+        response = await api.set(
+            ScheduleSetRequest(
+                handler="check", cron_expression="*/10 * * * *", enabled=index == 0
+            )
+        )
+        jobs.append(json.loads(response.schedule_json))
+    assert len({item["id"] for item in jobs}) == 10
+    request = ScheduleSetRequest(handler="check", cron_expression="*/10 * * * *")
+    with pytest.raises(ValueError, match="job limit"):
+        await api.set(request)
+
+    # Lowering the live grant preserves updates, pauses, and execution.
+    policy = wasm_schedule_grants.permissions[0].policies[0]
+    policy["max_jobs_per_user"] = 1
+    response = await api.set(
+        ScheduleSetRequest(
+            id=jobs[0]["id"],
+            handler="check",
+            cron_expression="*/10 * * * *",
+            payload_json='{"updated": true}',
+        )
+    )
+    assert json.loads(response.schedule_json)["payload_json"] == '{"updated": true}'
+    with pytest.raises(ValueError, match="job limit"):
+        await api.set(request)
+    clock.now += 600
+    await worker.tick()
+    await asyncio.wait_for(worker.running[jobs[0]["id"]][1], 1)
+    callback.assert_awaited_once()
+    await worker.stop()
+
+    # Deletion frees slots; increasing the live limit permits new jobs immediately.
+    for item in jobs[1:]:
+        assert await worker.delete("extension:one", item["id"], user_id="alice")
+    with pytest.raises(ValueError, match="job limit"):
+        await api.set(request)
+    assert await worker.delete("extension:one", jobs[0]["id"], user_id="alice")
+    await api.set(request)
+    policy["max_jobs_per_user"] = 2
+    await api.set(ScheduleSetRequest(handler="check", cron_expression="*/10 * * * *"))
+    assert (await worker.list_paginated("extension:one", user_id="alice")).total == 2
+
+
+@pytest.mark.anyio
+async def test_user_schedule_limit_is_scoped(
+    schedule_db, clock, wasm_schedule_grants, mocker: MockerFixture
+):
+    worker = Scheduler()
+    policies = wasm_schedule_grants.permissions[0].policies
+    policies[0]["max_jobs_per_user"] = 2
+    policies.append({**policies[0], "handler": "other"})
+    for namespace in ("extension:one", "extension:two"):
+        for handler in ("check", "other"):
+            worker.register(namespace, handler, mocker.AsyncMock())
+
+    async def create(index, namespace="extension:one", owner="alice", handler="check"):
+        return await worker.save(
+            namespace,
+            ScheduleConfig(
+                id=f"{namespace}:{owner}:{handler}:{index}",
+                handler=handler,
+                cron_expression="*/10 * * * *",
+                enabled=False,
+            ),
+            user_id=owner,
+        )
+
+    existing = await create(0)
+    await create(1)
+    with pytest.raises(ValueError, match="job limit"):
+        await create(2)
+    await create(0, owner="bob")
+    await create(0, namespace="extension:two")
+    await create(0, handler="other")
+
+    for changes in (
+        {"handler": "other"},
+        {"user_id": "bob"},
+        {"namespace": "extension:two"},
+    ):
+        with pytest.raises(PermissionError, match="another owner or handler"):
+            await crud.save_scheduled_job(
+                existing.copy(update=changes), max_jobs_per_user=2
+            )
+    assert await crud.get_scheduled_job(existing.id) == existing
 
 
 @pytest.mark.anyio

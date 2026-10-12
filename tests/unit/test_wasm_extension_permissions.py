@@ -151,6 +151,60 @@ def test_scheduler_permissions_reject_unrequested_schedules(
         )
 
 
+@pytest.mark.parametrize("limit", [0, -1, True, 1.5, "10", None])
+def test_scheduler_permissions_reject_invalid_job_limits(
+    limit, scheduler_permission_config
+):
+    config = scheduler_permission_config
+    grants = [
+        ExtensionPermission.parse_obj(item).copy(deep=True)
+        for item in config["permissions"]
+    ]
+    assert grants[0].policies is not None
+    grants[0].policies[0]["max_jobs_per_user"] = limit
+    with pytest.raises(ValueError, match="broader policies"):
+        validate_wasm_extension_permissions(
+            make_installable_extension("demoext"),
+            grants,
+            config,
+            allow_admin_policy_overrides=True,
+        )
+    config["permissions"][0]["policies"][0]["max_jobs_per_user"] = limit
+    with pytest.raises(ValueError, match="invalid policies"):
+        validate_wasm_extension_permissions(
+            make_installable_extension("demoext"), [], config
+        )
+
+
+@pytest.mark.parametrize("limit", [1, 10, 20])
+@pytest.mark.parametrize("admin_override", [False, True])
+def test_scheduler_permissions_job_limit_overrides(
+    limit, admin_override, scheduler_permission_config
+):
+    config = scheduler_permission_config
+    grants = [
+        ExtensionPermission.parse_obj(item).copy(deep=True)
+        for item in config["permissions"]
+    ]
+    assert grants[0].policies is not None
+    grants[0].policies[0]["max_jobs_per_user"] = limit
+    if limit > 10 and not admin_override:
+        with pytest.raises(ValueError, match="broader policies"):
+            validate_wasm_extension_permissions(
+                make_installable_extension("demoext"), grants, config
+            )
+    else:
+        assert (
+            validate_wasm_extension_permissions(
+                make_installable_extension("demoext"),
+                grants,
+                config,
+                allow_admin_policy_overrides=admin_override,
+            )
+            == grants
+        )
+
+
 def test_validate_wasm_permissions_rejects_broader_policy_grant():
     ext_info = make_installable_extension("demoext")
     extension_config = _wasm_config(

@@ -211,6 +211,7 @@ window.localisation.en = {
   scheduler_core: 'Core',
   scheduler_extension: 'Extension',
   scheduler_user: 'User',
+  extension_permission_scheduler_max_jobs_per_user: 'Max jobs per user',
   scheduler_paused: 'Paused',
   scheduler_search: 'Search source, handler or job ID',
   scheduler_refresh: 'Refresh',

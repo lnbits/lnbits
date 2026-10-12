@@ -2,7 +2,7 @@ from collections.abc import Iterable
 from typing import Any
 
 from lnbits.core.models.extensions import ExtensionPermission, InstallableExtension
-from lnbits.core.models.scheduler import SchedulePolicy
+from lnbits.core.models.scheduler import SchedulePolicy, UserSchedulePolicy
 from lnbits.core.wasm_ext.api.registry import extension_api_permission_ids
 from lnbits.core.wasm_ext.api.websockets import (
     WEBSOCKET_PUBLISH_MAX_MESSAGES_PER_SECOND_LIMIT,
@@ -175,9 +175,14 @@ def _permission_grant_is_subset(
             granted.policies,
             allow_max_messages_per_second_override=allow_admin_policy_overrides,
         )
+    if requested.id in {"scheduler.user", "scheduler.extension"}:
+        return _schedule_grant_is_subset(
+            requested.policies,
+            granted.policies,
+            user_scope=requested.id == "scheduler.user",
+            allow_job_limit_override=allow_admin_policy_overrides,
+        )
     checker = {
-        "scheduler.user": _schedule_grant_is_subset,
-        "scheduler.extension": _schedule_grant_is_subset,
         "http.request": _http_request_grant_is_subset,
         "extension.api.request": _extension_api_grant_is_subset,
         "ext.storage.read_public": _public_storage_grant_is_subset,
@@ -194,7 +199,9 @@ def _validate_requested_permission_policies(
     for permission in permissions:
         if permission.id in {"scheduler.user", "scheduler.extension"}:
             try:
-                policies = SchedulePolicy.parse_policies(permission.policies)
+                policies = SchedulePolicy.parse_policies(
+                    permission.policies, user_scope=permission.id == "scheduler.user"
+                )
                 if not policies.keys() <= event_handlers:
                     raise ValueError("Scheduled handlers must be event exports.")
             except ValueError as exc:
@@ -218,13 +225,31 @@ def _policy_list(policies: list[Any] | None) -> list[Any]:
 def _schedule_grant_is_subset(
     requested_policies: list[Any] | None,
     granted_policies: list[Any] | None,
+    *,
+    user_scope: bool = False,
+    allow_job_limit_override: bool = False,
 ) -> bool:
     try:
-        requested = SchedulePolicy.parse_policies(requested_policies)
-        granted = SchedulePolicy.parse_policies(granted_policies)
+        requested = SchedulePolicy.parse_policies(
+            requested_policies, user_scope=user_scope
+        )
+        granted = SchedulePolicy.parse_policies(granted_policies, user_scope=user_scope)
     except ValueError:
         return False
-    return all(requested.get(handler) == policy for handler, policy in granted.items())
+    for handler, policy in granted.items():
+        declared = requested.get(handler)
+        if not declared or declared.dict(exclude={"max_jobs_per_user"}) != policy.dict(
+            exclude={"max_jobs_per_user"}
+        ):
+            return False
+        if (
+            isinstance(policy, UserSchedulePolicy)
+            and isinstance(declared, UserSchedulePolicy)
+            and policy.max_jobs_per_user > declared.max_jobs_per_user
+            and not allow_job_limit_override
+        ):
+            return False
+    return True
 
 
 def _http_request_grant_is_subset(

@@ -55,14 +55,12 @@ def schedule() -> ScheduledJob:
 async def test_scheduler_host_scopes_user_jobs_and_redacts_owner(
     account, mocker: MockerFixture
 ):
-    saved = schedule().copy(
-        update={"id": sha256s(json.dumps(["demo", "alice", "check"]))}
-    )
+    saved = schedule()
     save = mocker.patch.object(scheduler, "save", mocker.AsyncMock(return_value=saved))
     api = ExtensionHostAPI("demo", ["scheduler.user"], user_id="alice")
     result = await ExtensionAPIHost(api).invoke(
         "scheduler.set",
-        {"handler": "check", "cronExpression": "*/10 * * * *"},
+        {"id": saved.id, "handler": "check", "cronExpression": "*/10 * * * *"},
     )
     assert save.await_args is not None
     assert save.await_args.args[0] == "extension:demo"

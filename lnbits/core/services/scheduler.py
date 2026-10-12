@@ -15,6 +15,7 @@ from lnbits.core.models.scheduler import (
     ScheduledJobRun,
     ScheduledJobRunStatus,
     SchedulePolicy,
+    UserSchedulePolicy,
 )
 from lnbits.db import Page
 from lnbits.settings import settings
@@ -27,14 +28,14 @@ ScheduleHandler = Callable[[ScheduledJob], Awaitable[None]]
 
 async def check_schedule_access(
     namespace: str, user_id: str | None, config: SchedulePolicy
-) -> None:
+) -> int | None:
     """Check current grants, including on executions after the user logs out."""
     if user_id:
         account = await get_account(user_id)
         if not account or not account.activated:
             raise PermissionError("Schedule owner is not active.")
     if namespace == "core":
-        return
+        return None
     if (
         not namespace.startswith("extension:")
         or settings.lnbits_extensions_deactivate_all
@@ -48,22 +49,30 @@ async def check_schedule_access(
         SCHEDULER_USER_PERMISSION if user_id else SCHEDULER_EXTENSION_PERMISSION
     )
     # Python extensions are trusted application code; WASM grants are host-enforced.
+    approved = None
     if extension.is_wasm:
-        _check_wasm_schedule_policy(extension.permissions, permission, config)
+        approved = _check_wasm_schedule_policy(
+            extension.permissions, permission, config
+        )
     if user_id:
         user_extension = await get_user_extension(user_id, extension_id)
         if not user_extension or not user_extension.active:
             raise PermissionError("Scheduled extension is not active for this user.")
+    return (
+        approved.max_jobs_per_user if isinstance(approved, UserSchedulePolicy) else None
+    )
 
 
 def _check_wasm_schedule_policy(
     permissions: list[ExtensionPermission], permission_id: str, config: SchedulePolicy
-) -> None:
+) -> SchedulePolicy:
     grant = next((item for item in permissions if item.id == permission_id), None)
     if not grant:
         raise PermissionError("Extension scheduling permission has been revoked.")
     try:
-        approved = SchedulePolicy.parse_policies(grant.policies).get(config.handler)
+        approved = SchedulePolicy.parse_policies(
+            grant.policies, user_scope=permission_id == SCHEDULER_USER_PERMISSION
+        ).get(config.handler)
     except ValueError as exc:
         raise PermissionError("Invalid approved schedule policies.") from exc
     if not approved or (
@@ -71,6 +80,7 @@ def _check_wasm_schedule_policy(
         or approved.timezone != config.timezone
     ):
         raise PermissionError("Schedule does not match an admin-approved policy.")
+    return approved
 
 
 class Scheduler:
@@ -129,7 +139,7 @@ class Scheduler:
     async def save(
         self, namespace: str, config: ScheduleConfig, *, user_id: str | None = None
     ) -> ScheduledJob:
-        await check_schedule_access(namespace, user_id, config)
+        max_jobs_per_user = await check_schedule_access(namespace, user_id, config)
         if (namespace, config.handler) not in self.handlers:
             raise ValueError("Schedule handler is not registered.")
         now = int(time.time())
@@ -142,7 +152,8 @@ class Scheduler:
                 namespace=namespace,
                 user_id=user_id,
                 next_run_at=next_run,
-            )
+            ),
+            max_jobs_per_user=max_jobs_per_user,
         )
 
     async def list_paginated(

@@ -93,7 +93,10 @@ class ExtensionSchedulerAPI:
             "User scope requires scheduler.user; "
             "extension scope requires scheduler.extension and an administrator. "
             "The handler, cron expression and timezone must match an "
-            "admin-approved schedule policy. The handler must be an event export."
+            "admin-approved schedule policy. The handler must be an event export. "
+            "User jobs are limited per handler by the approved max_jobs_per_user "
+            "(default 10), including paused jobs. Omit the ID to create a user job; "
+            "reuse its ID to update it. A job's handler cannot change."
         ),
     )
     async def set(self, request: ScheduleSetRequest) -> ScheduleResponse:
@@ -101,11 +104,14 @@ class ExtensionSchedulerAPI:
         self.api.require_permission(
             SCHEDULER_USER_PERMISSION if owner else SCHEDULER_EXTENSION_PERMISSION
         )
-        # A WASM handler has one durable schedule in each owner/scope. Stable IDs
-        # make concurrent creates idempotent without a separate uniqueness index.
-        job_id = sha256s(json.dumps([self.api.extension_id, owner, request.handler]))
-        if "id" in request.__fields_set__ and request.id != job_id:
-            raise ValueError("Schedule ID does not match this handler and owner.")
+        job_id = request.id
+        if owner is None:
+            # Shared jobs retain their stable IDs, including automatic schedules.
+            job_id = sha256s(
+                json.dumps([self.api.extension_id, owner, request.handler])
+            )
+            if "id" in request.__fields_set__ and request.id != job_id:
+                raise ValueError("Schedule ID does not match this handler and owner.")
         job = await scheduler.save(
             f"extension:{self.api.extension_id}",
             ScheduleConfig.parse_obj({**request.dict(exclude={"scope"}), "id": job_id}),

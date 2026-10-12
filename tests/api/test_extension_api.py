@@ -572,6 +572,48 @@ async def test_extension_api_admin_updates_wasm_extension_permission_limits(
 
 
 @pytest.mark.anyio
+async def test_extension_api_admin_updates_scheduler_job_limits(
+    tmp_path, settings, monkeypatch, http_client, superuser_token
+):
+    ext_id = f"wasm_{uuid4().hex[:8]}"
+    monkeypatch.setattr(settings, "lnbits_wasm_extensions_path", str(tmp_path))
+    permission = ExtensionPermission(
+        id="scheduler.user",
+        policies=[{"handler": "check", "cron_expression": "*/10 * * * *"}],
+    )
+    config = _wasm_config(ext_id, permissions=[permission.dict()])
+    config["wasm"]["exports"] = [{"name": "check", "visibility": "event"}]
+    config_dir = settings.wasm_extensions_dir / ext_id
+    config_dir.mkdir(parents=True)
+    (config_dir / "config.json").write_text(json.dumps(config), encoding="utf-8")
+    await create_installed_extension(
+        InstallableExtension(
+            id=ext_id,
+            name="WASM Demo",
+            version="1.0.0",
+            active=True,
+            permissions=[permission],
+        )
+    )
+    try:
+        for limit in (20, 1):
+            assert permission.policies is not None
+            permission.policies[0]["max_jobs_per_user"] = limit
+            response = await http_client.put(
+                f"/api/v1/extension/{ext_id}/permissions",
+                json={"permissions": [permission.dict()]},
+                headers={"Authorization": f"Bearer {superuser_token}"},
+            )
+            assert response.status_code == 200
+            grants = response.json()["extension_permissions"]
+            assert grants[0]["policies"][0]["max_jobs_per_user"] == limit
+            stored = await get_installed_extension(ext_id)
+            assert stored and [item.dict() for item in stored.permissions] == grants
+    finally:
+        await delete_installed_extension(ext_id=ext_id)
+
+
+@pytest.mark.anyio
 async def test_extension_api_pay_to_enable_and_catalog_views(mocker, admin_user):
     regular_user = await create_user_account(
         Account(

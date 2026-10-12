@@ -34,7 +34,9 @@ class SchedulePolicy(BaseModel):
         return zone
 
     @staticmethod
-    def parse_policies(policies: list[Any] | None) -> dict[str, "SchedulePolicy"]:
+    def parse_policies(
+        policies: list[Any] | None, *, user_scope: bool = False
+    ) -> dict[str, "SchedulePolicy"]:
         if not policies:
             raise ValueError(
                 "Scheduling permission requires per-handler cron policies."
@@ -43,13 +45,24 @@ class SchedulePolicy(BaseModel):
         for policy in policies:
             if not isinstance(policy, dict):
                 raise ValueError("Schedule policy must be an object.")
-            schedule = SchedulePolicy.parse_obj(policy)
+            model = UserSchedulePolicy if user_scope else SchedulePolicy
+            schedule = model.parse_obj(policy)
             if schedule.handler in parsed:
                 raise ValueError(
                     "Schedule policies must have unique handlers per scope."
                 )
             parsed[schedule.handler] = schedule
         return parsed
+
+
+class UserSchedulePolicy(SchedulePolicy):
+    max_jobs_per_user: int = Field(default=10, ge=1)
+
+    @validator("max_jobs_per_user", pre=True)
+    def validate_job_limit(cls, value: Any) -> int:
+        if isinstance(value, bool) or not isinstance(value, int):
+            raise ValueError("Max jobs per user must be a positive integer.")
+        return value
 
 
 class ScheduleConfig(SchedulePolicy):

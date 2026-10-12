@@ -440,6 +440,10 @@
         type: Boolean,
         default: false
       },
+      editableSchedulerUserLimits: {
+        type: Boolean,
+        default: false
+      },
       maxMessagesPerSecondLimit: {
         type: Number,
         default: 100
