@@ -90,6 +90,24 @@ async def test_db_fetch_page_limit(fetch_page, db):
 
 
 @pytest.mark.anyio
+@pytest.mark.parametrize("table_name", [None, "test_db_fetch_page"])
+@pytest.mark.parametrize("offset", [21, 30])
+async def test_db_fetch_page_past_last_page_preserves_total(
+    fetch_page, db, table_name, offset
+):
+    page = await db.fetch_page(
+        query="select * from test_db_fetch_page",
+        where=["value = :value"],
+        values={"value": "foo"},
+        filters=Filters(limit=5, offset=offset),
+        model=DbTestModel,
+        table_name=table_name,
+    )
+    assert page.data == []
+    assert page.total == sum(row["value"] == "foo" for row in TEST_DB_FETCH_PAGE_ROWS)
+
+
+@pytest.mark.anyio
 async def test_db_fetch_page_group_by(fetch_page, db):
     row = await db.fetch_page(
         query="select max(id) as id, name from test_db_fetch_page",

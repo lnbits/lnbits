@@ -1,9 +1,9 @@
 from fastapi import APIRouter, Depends, Query
 
 from lnbits.core.crud.scheduler import (
-    get_scheduled_job_runs,
+    get_scheduled_job_runs_paginated,
     get_scheduled_job_sources,
-    get_scheduled_jobs_overview,
+    get_scheduled_jobs_overview_paginated,
 )
 from lnbits.core.models.scheduler import (
     ScheduledJobFilters,
@@ -34,7 +34,7 @@ async def api_get_scheduled_jobs(
 ) -> Page[ScheduledJobSummary]:
     filters.limit = limit
     filters.offset = offset
-    return await get_scheduled_jobs_overview(filters)
+    return await get_scheduled_jobs_overview_paginated(filters)
 
 
 @scheduler_router.get("/sources", summary="List scheduled job sources")
@@ -56,4 +56,4 @@ async def api_get_scheduled_job_runs(
 ) -> Page[ScheduledJobRun]:
     filters.limit = limit
     filters.offset = offset
-    return await get_scheduled_job_runs(filters)
+    return await get_scheduled_job_runs_paginated(filters)

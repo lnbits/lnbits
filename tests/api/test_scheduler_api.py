@@ -140,9 +140,12 @@ async def test_scheduler_overview_paginates_and_omits_private_fields(
 @pytest.mark.parametrize("job_index", [1, 2])
 async def test_scheduler_crud_preserves_owner_scope(scheduled_jobs, job_index):
     job = scheduled_jobs[job_index]
-    jobs = await crud.list_scheduled_jobs(job.namespace, job.user_id)
-    assert [entry.id for entry in jobs] == [job.id]
-    assert await crud.list_scheduled_jobs(job.namespace, "another-owner") == []
+    page = await crud.get_scheduled_jobs_paginated(job.namespace, job.user_id)
+    assert [entry.id for entry in page.data] == [job.id]
+    assert page.total == 1
+    page = await crud.get_scheduled_jobs_paginated(job.namespace, "another-owner")
+    assert page.data == []
+    assert page.total == 0
 
     # Let the fixture's lease expire so only ownership can prevent deletion.
     now = int(time.time()) + 120
@@ -152,7 +155,30 @@ async def test_scheduler_crud_preserves_owner_scope(scheduled_jobs, job_index):
         job.id, f"{job.namespace}-other", job.user_id, now
     )
     assert await crud.delete_scheduled_job(job.id, job.namespace, job.user_id, now)
-    assert await crud.list_scheduled_jobs(job.namespace, job.user_id) == []
+    page = await crud.get_scheduled_jobs_paginated(job.namespace, job.user_id)
+    assert page.data == []
+    assert page.total == 0
+
+
+@pytest.mark.anyio
+@pytest.mark.parametrize("job_index", [1, 2])
+async def test_scheduler_crud_pagination_counts_only_owner_jobs(
+    scheduled_jobs, job_index
+):
+    job = scheduled_jobs[job_index]
+    second = job.copy(update={"id": f"{job.id}-second"})
+    await crud.save_scheduled_job(second)
+    try:
+        for offset, expected_ids in [(0, [job.id]), (1, [second.id]), (2, [])]:
+            page = await crud.get_scheduled_jobs_paginated(
+                job.namespace, job.user_id, limit=1, offset=offset
+            )
+            assert [entry.id for entry in page.data] == expected_ids
+            assert page.total == 2
+    finally:
+        await crud.delete_scheduled_job(
+            second.id, second.namespace, second.user_id, int(time.time())
+        )
 
 
 @pytest.mark.anyio

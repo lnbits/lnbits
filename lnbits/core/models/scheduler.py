@@ -8,6 +8,10 @@ from pydantic import BaseModel, Field, validator
 from lnbits.db import FilterModel
 from lnbits.utils.cron import normalize_cron
 
+ScheduledJobRunStatus = Literal[
+    "running", "succeeded", "failed", "cancelled", "interrupted", "skipped"
+]
+
 
 class SchedulePolicy(BaseModel):
     handler: str = Field(..., regex=r"^[A-Za-z0-9_-]{1,128}$")
@@ -75,11 +79,6 @@ class ScheduledJob(ScheduleConfig):
 
     def public_data(self) -> dict:
         return self.dict(exclude={"namespace", "user_id", "lease_token", "lease_until"})
-
-
-ScheduledJobRunStatus = Literal[
-    "running", "succeeded", "failed", "cancelled", "interrupted", "skipped"
-]
 
 
 class ScheduledJobRun(BaseModel):

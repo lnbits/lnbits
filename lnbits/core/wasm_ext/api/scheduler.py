@@ -124,14 +124,14 @@ class ExtensionSchedulerAPI:
     )
     async def list(self, request: ScheduleListRequest) -> ScheduleListResponse:
         owner = await self._owner(request.scope)
-        jobs = await scheduler.list(
+        page = await scheduler.list_paginated(
             f"extension:{self.api.extension_id}",
             user_id=owner,
             limit=request.limit,
             offset=request.offset,
         )
         return ScheduleListResponse(
-            schedules_json=json.dumps([j.public_data() for j in jobs])
+            schedules_json=json.dumps([j.public_data() for j in page.data])
         )
 
     @extension_api_method(

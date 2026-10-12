@@ -17,6 +17,7 @@ from lnbits.core.models.scheduler import (
     SchedulePolicy,
     parse_schedule_policies,
 )
+from lnbits.db import Page
 from lnbits.settings import settings
 from lnbits.utils.cron import next_run_at
 
@@ -145,17 +146,17 @@ class Scheduler:
             )
         )
 
-    async def list(
+    async def list_paginated(
         self,
         namespace: str,
         *,
         user_id: str | None = None,
         limit: int = 100,
         offset: int = 0,
-    ) -> list[ScheduledJob]:
+    ) -> Page[ScheduledJob]:
         if not 1 <= limit <= 100 or offset < 0:
             raise ValueError("Invalid schedule pagination.")
-        return await crud.list_scheduled_jobs(
+        return await crud.get_scheduled_jobs_paginated(
             namespace, user_id, limit=limit, offset=offset
         )
 

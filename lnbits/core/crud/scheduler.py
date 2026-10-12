@@ -47,22 +47,24 @@ async def get_scheduled_job(job_id: str) -> ScheduledJob | None:
     )
 
 
-async def list_scheduled_jobs(
+async def get_scheduled_jobs_paginated(
     namespace: str, user_id: str | None, *, limit: int = 100, offset: int = 0
-) -> list[ScheduledJob]:
-    return await db.fetchall(
-        """
-        SELECT * FROM scheduled_jobs WHERE namespace = :namespace
-          AND (user_id = :user_id
-               OR (user_id IS NULL AND CAST(:user_id AS TEXT) IS NULL))
-        ORDER BY id LIMIT :limit OFFSET :offset
-        """,
-        {"namespace": namespace, "user_id": user_id, "limit": limit, "offset": offset},
-        ScheduledJob,
+) -> Page[ScheduledJob]:
+    return await db.fetch_page(
+        "SELECT * FROM scheduled_jobs",
+        where=[
+            "namespace = :namespace",
+            "(user_id = :user_id "
+            "OR (user_id IS NULL AND CAST(:user_id AS TEXT) IS NULL))",
+        ],
+        values={"namespace": namespace, "user_id": user_id},
+        filters=Filters(limit=limit, offset=offset, sortby="id"),
+        model=ScheduledJob,
+        table_name="scheduled_jobs",
     )
 
 
-async def get_scheduled_jobs_overview(
+async def get_scheduled_jobs_overview_paginated(
     filters: Filters[ScheduledJobFilters],
 ) -> Page[ScheduledJobSummary]:
     if not filters.sortby:
@@ -220,7 +222,7 @@ async def finish_scheduled_job_run(
     )
 
 
-async def get_scheduled_job_runs(
+async def get_scheduled_job_runs_paginated(
     filters: Filters[ScheduledJobRunFilters],
 ) -> Page[ScheduledJobRun]:
     if not filters.sortby:

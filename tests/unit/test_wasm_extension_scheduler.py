@@ -25,6 +25,7 @@ from lnbits.core.wasm_ext.api.runtime import ExtensionAPIHost
 from lnbits.core.wasm_ext.wasm import scheduler as wasm_scheduler
 from lnbits.core.wasm_ext.wasm.host import add_extension_host_imports
 from lnbits.core.wasm_ext.wasm.invoke import invoke_wasm_extension_export
+from lnbits.db import Page
 from lnbits.helpers import sha256s
 from tests.helpers import make_installable_extension
 
@@ -123,15 +124,21 @@ async def test_background_or_public_calls_cannot_manage_jobs(context, user_id):
 async def test_schedule_list_and_delete_remain_scoped_after_permission_revocation(
     account, mocker: MockerFixture
 ):
-    listing = mocker.patch.object(scheduler, "list", mocker.AsyncMock(return_value=[]))
+    job = schedule()
+    listing = mocker.patch.object(
+        scheduler,
+        "list_paginated",
+        mocker.AsyncMock(return_value=Page(data=[job], total=2)),
+    )
     deletion = mocker.patch.object(
         scheduler, "delete", mocker.AsyncMock(return_value=False)
     )
     api = ExtensionAPIHost(ExtensionHostAPI("demo", [], user_id="alice"))
-    await api.invoke("scheduler.list", {})
+    result = await api.invoke("scheduler.list", {"limit": 1, "offset": 1})
+    assert json.loads(result["schedulesJson"]) == [job.public_data()]
     await api.invoke("scheduler.delete", {"id": "other-job"})
     listing.assert_awaited_once_with(
-        "extension:demo", user_id="alice", limit=100, offset=0
+        "extension:demo", user_id="alice", limit=1, offset=1
     )
     deletion.assert_awaited_once_with("extension:demo", "other-job", user_id="alice")
 
@@ -306,7 +313,11 @@ def test_scheduler_permissions_and_sdk_are_discoverable():
 
 @pytest.mark.anyio
 async def test_scheduler_component_import(account, mocker: MockerFixture):
-    mocker.patch.object(scheduler, "list", mocker.AsyncMock(return_value=[]))
+    mocker.patch.object(
+        scheduler,
+        "list_paginated",
+        mocker.AsyncMock(return_value=Page(data=[], total=0)),
+    )
     loop = asyncio.get_running_loop()
     api = ExtensionHostAPI("demo", ["scheduler.user"], user_id="alice")
 

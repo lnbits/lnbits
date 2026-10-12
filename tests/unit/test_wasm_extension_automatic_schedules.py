@@ -132,13 +132,13 @@ async def test_automatic_schedule_creation_is_idempotent_and_preserves_pause_and
     automatic_extension,
 ):
     await wasm_scheduler.ensure_wasm_extension_schedules("demo")
-    jobs = await automatic_extension.scheduler.list("extension:demo")
-    assert len(jobs) == 1
-    job = jobs[0]
+    page = await automatic_extension.scheduler.list_paginated("extension:demo")
+    assert len(page.data) == 1
+    job = page.data[0]
     assert job.id == sha256s(json.dumps(["demo", None, "collect"]))
     assert job.user_id is None and job.enabled and job.next_run_at
     await wasm_scheduler.ensure_wasm_extension_schedules("demo")
-    assert await automatic_extension.scheduler.list("extension:demo") == jobs
+    assert await automatic_extension.scheduler.list_paginated("extension:demo") == page
 
     await automatic_extension.db.execute(
         """UPDATE scheduled_jobs SET enabled = false,
@@ -155,7 +155,8 @@ async def test_automatic_schedule_updates_approved_cadence_without_enabling_paus
     automatic_extension,
 ):
     await wasm_scheduler.ensure_wasm_extension_schedules("demo")
-    job = (await automatic_extension.scheduler.list("extension:demo"))[0]
+    page = await automatic_extension.scheduler.list_paginated("extension:demo")
+    job = page.data[0]
     await automatic_extension.db.execute(
         "UPDATE scheduled_jobs SET enabled = false WHERE id = :id", {"id": job.id}
     )
@@ -175,7 +176,7 @@ async def test_automatic_schedule_rechecks_access_even_for_existing_job(
     automatic_extension, settings: Settings, denied
 ):
     await wasm_scheduler.ensure_wasm_extension_schedules("demo")
-    jobs = await automatic_extension.scheduler.list("extension:demo")
+    page = await automatic_extension.scheduler.list_paginated("extension:demo")
     if denied == "revoked":
         automatic_extension.installed.permissions = []
     elif denied == "inactive":
@@ -184,7 +185,7 @@ async def test_automatic_schedule_rechecks_access_even_for_existing_job(
         settings.lnbits_extensions_deactivate_all = True
     with pytest.raises(PermissionError):
         await wasm_scheduler.ensure_wasm_extension_schedules("demo")
-    assert await automatic_extension.scheduler.list("extension:demo") == jobs
+    assert await automatic_extension.scheduler.list_paginated("extension:demo") == page
 
 
 @pytest.mark.anyio
@@ -205,8 +206,8 @@ async def test_automatic_schedule_is_created_on_activation_and_restored_at_start
         extension_service, "update_installed_extension_state", side_effect=set_active
     )
     await extension_service.activate_extension(extension)
-    jobs = await automatic_extension.scheduler.list("extension:demo")
-    assert len(jobs) == 1 and jobs[0].user_id is None
+    page = await automatic_extension.scheduler.list_paginated("extension:demo")
+    assert len(page.data) == 1 and page.data[0].user_id is None
 
     mocker.patch.object(app_module, "check_installed_extensions", mocker.AsyncMock())
     mocker.patch.object(
@@ -218,12 +219,12 @@ async def test_automatic_schedule_is_created_on_activation_and_restored_at_start
         app_module, "update_installed_extension_state", mocker.AsyncMock()
     )
     await app_module.check_and_register_extensions(FastAPI())
-    assert await automatic_extension.scheduler.list("extension:demo") == jobs
+    assert await automatic_extension.scheduler.list_paginated("extension:demo") == page
     # A missing job is restored on startup without a user visiting the UI.
-    await automatic_extension.scheduler.delete("extension:demo", jobs[0].id)
+    await automatic_extension.scheduler.delete("extension:demo", page.data[0].id)
     await app_module.check_and_register_extensions(FastAPI())
-    restored = await automatic_extension.scheduler.list("extension:demo")
-    assert len(restored) == 1 and restored[0].id == jobs[0].id
+    restored = await automatic_extension.scheduler.list_paginated("extension:demo")
+    assert len(restored.data) == 1 and restored.data[0].id == page.data[0].id
     failure.assert_not_awaited()
 
 

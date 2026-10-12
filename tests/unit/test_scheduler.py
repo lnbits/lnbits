@@ -236,9 +236,13 @@ async def test_persistence_and_scope_isolation(schedule_db):
     ):
         with pytest.raises(PermissionError):
             await crud.save_scheduled_job(first.copy(update=changes))
-    assert len(await crud.list_scheduled_jobs("extension:one", "alice")) == 1
-    assert await crud.list_scheduled_jobs("extension:one", None) == []
-    assert await crud.list_scheduled_jobs("extension:two", "alice") == []
+    page = await crud.get_scheduled_jobs_paginated("extension:one", "alice")
+    assert page.data == [first]
+    assert page.total == 1
+    for namespace, owner in [("extension:one", None), ("extension:two", "alice")]:
+        page = await crud.get_scheduled_jobs_paginated(namespace, owner)
+        assert page.data == []
+        assert page.total == 0
     assert not await crud.delete_scheduled_job(first.id, "extension:one", "bob", NOW)
     first.enabled = False
     await crud.save_scheduled_job(first)
@@ -255,6 +259,16 @@ async def test_persistence_and_scope_isolation(schedule_db):
         assert not stored.enabled
     finally:
         await connection.engine.dispose()
+
+
+@pytest.mark.anyio
+async def test_service_list_paginated_returns_page_and_total(schedule_db):
+    for job_id in ("first", "second", "third"):
+        await crud.save_scheduled_job(job(job_id))
+    worker = Scheduler()
+    page = await worker.list_paginated("core", limit=1, offset=1)
+    assert [item.id for item in page.data] == ["second"]
+    assert page.total == 3
 
 
 @pytest.mark.anyio
@@ -378,11 +392,15 @@ async def test_shutdown_preserves_claim_for_recovery(schedule_db, clock):
     worker.register("core", "check", callback)
     await worker.tick()
     await asyncio.wait_for(started.wait(), 1)
-    runs = await crud.get_scheduled_job_runs(Filters(model=ScheduledJobRunFilters))
+    runs = await crud.get_scheduled_job_runs_paginated(
+        Filters(model=ScheduledJobRunFilters)
+    )
     assert runs.data[0].status == "running"
     assert runs.data[0].finished_at is None
     await worker.stop()
-    runs = await crud.get_scheduled_job_runs(Filters(model=ScheduledJobRunFilters))
+    runs = await crud.get_scheduled_job_runs_paginated(
+        Filters(model=ScheduledJobRunFilters)
+    )
     assert runs.data[0].status == "cancelled"
     assert runs.data[0].finished_at == NOW
     assert stopped.is_set()
@@ -513,7 +531,9 @@ async def test_heartbeat_renews_claim_and_pause_cancels_callback(
         assert stopped.is_set()
         stored = await crud.get_scheduled_job("test")
         assert stored and not stored.enabled and stored.lease_token is None
-        runs = await crud.get_scheduled_job_runs(Filters(model=ScheduledJobRunFilters))
+        runs = await crud.get_scheduled_job_runs_paginated(
+            Filters(model=ScheduledJobRunFilters)
+        )
         assert runs.data[0].status == "cancelled"
     finally:
         await worker.stop()
@@ -1006,7 +1026,9 @@ async def test_scheduler_records_execution_outcomes(schedule_db, clock, outcome)
     try:
         await worker.tick()
         await worker.running["test"][1]
-        page = await crud.get_scheduled_job_runs(Filters(model=ScheduledJobRunFilters))
+        page = await crud.get_scheduled_job_runs_paginated(
+            Filters(model=ScheduledJobRunFilters)
+        )
         assert page.total == 1
         run = page.data[0]
         assert run.job_id == "test"
@@ -1034,7 +1056,9 @@ async def test_history_recovers_expired_runs_and_survives_job_deletion(schedule_
     assert claimed
     run = await crud.create_scheduled_job_run(claimed, NOW)
     await crud.maintain_scheduled_job_runs(NOW + 30, 7)
-    page = await crud.get_scheduled_job_runs(Filters(model=ScheduledJobRunFilters))
+    page = await crud.get_scheduled_job_runs_paginated(
+        Filters(model=ScheduledJobRunFilters)
+    )
     assert page.data[0].status == "running"
 
     # A second worker takes over. The first attempt must no longer look active.
@@ -1044,7 +1068,9 @@ async def test_history_recovers_expired_runs_and_survives_job_deletion(schedule_
     await crud.maintain_scheduled_job_runs(NOW + 61, 7)
     # A late result from the old attempt cannot overwrite an interrupted result.
     await crud.finish_scheduled_job_run(run.id, "succeeded", NOW + 62)
-    page = await crud.get_scheduled_job_runs(Filters(model=ScheduledJobRunFilters))
+    page = await crud.get_scheduled_job_runs_paginated(
+        Filters(model=ScheduledJobRunFilters)
+    )
     by_id = {entry.id: entry for entry in page.data}
     assert by_id[run.id].status == "interrupted"
     assert by_id[run.id].finished_at is None
@@ -1052,10 +1078,14 @@ async def test_history_recovers_expired_runs_and_survives_job_deletion(schedule_
 
     await crud.finish_scheduled_job_run(active.id, "succeeded", NOW + 63)
     assert await crud.delete_scheduled_job("test", "core", None, NOW + 120)
-    page = await crud.get_scheduled_job_runs(Filters(model=ScheduledJobRunFilters))
+    page = await crud.get_scheduled_job_runs_paginated(
+        Filters(model=ScheduledJobRunFilters)
+    )
     assert page.total == 2
     await crud.maintain_scheduled_job_runs(NOW + 7 * 86400 + 64, 7)
-    page = await crud.get_scheduled_job_runs(Filters(model=ScheduledJobRunFilters))
+    page = await crud.get_scheduled_job_runs_paginated(
+        Filters(model=ScheduledJobRunFilters)
+    )
     assert page.total == 0
 
 
@@ -1075,7 +1105,9 @@ async def test_history_retention_preserves_live_and_recently_finished_runs(
                 run.id, "succeeded", NOW + age if job_id == "recent" else NOW + 1
             )
     await crud.maintain_scheduled_job_runs(NOW + age + 1, retention_days)
-    page = await crud.get_scheduled_job_runs(Filters(model=ScheduledJobRunFilters))
+    page = await crud.get_scheduled_job_runs_paginated(
+        Filters(model=ScheduledJobRunFilters)
+    )
     assert {run.job_id for run in page.data} == {"active", "recent"}
 
 

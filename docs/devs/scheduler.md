@@ -160,9 +160,10 @@ Core uses the same API with namespace `core`. An extension-wide job omits
 own configuration endpoints: Python is trusted application code, not sandboxed.
 The service checks that the extension and any user owner remain active.
 
-Use `scheduler.list(namespace, user_id=..., limit=100, offset=0)` and
+Use `scheduler.list_paginated(namespace, user_id=..., limit=100, offset=0)` and
 `scheduler.delete(namespace, job_id, user_id=...)` to manage the corresponding
-scope. Save the same ID with `enabled=False` to pause, or `enabled=True` to resume.
+scope. Listing returns a `Page` with `data` and the total number of matching jobs
+in `total`. Save the same ID with `enabled=False` to pause, or `enabled=True` to resume.
 Saving recalculates the next occurrence from the current time. IDs cannot be
 reassigned across namespaces or owners.
 
