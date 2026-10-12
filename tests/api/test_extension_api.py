@@ -359,7 +359,7 @@ async def test_extension_api_installs_wasm_with_granted_permissions(
         "lnbits.core.services.extensions.core_app_extra.register_new_wasm_ext_routes"
     )
     ensure_schedules_mock = mocker.patch(
-        "lnbits.core.wasm_ext.wasm.scheduler.ensure_wasm_extension_schedules",
+        "lnbits.core.services.extensions.ensure_wasm_extension_schedules",
         mocker.AsyncMock(),
     )
     mocker.patch.object(

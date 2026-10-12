@@ -242,7 +242,7 @@ async def test_automatic_schedule_activation_failure_does_not_leave_extension_ac
         extension_service.scheduler, "stop_namespace", mocker.AsyncMock()
     )
     mocker.patch.object(
-        wasm_scheduler,
+        extension_service,
         "ensure_wasm_extension_schedules",
         mocker.AsyncMock(side_effect=PermissionError("Schedule permission revoked.")),
     )

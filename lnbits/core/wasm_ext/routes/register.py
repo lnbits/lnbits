@@ -6,6 +6,7 @@ from fastapi import FastAPI
 from loguru import logger
 
 from lnbits.core.db import core_app_extra
+from lnbits.core.services.scheduler import scheduler
 from lnbits.settings import settings
 
 from ..wasm.component import warm_wasm_extension
@@ -43,8 +44,6 @@ def register_wasm_extension(app: FastAPI, ext_id: str) -> WasmExtension:
 
 
 def unregister_wasm_extension(app: FastAPI, ext_id: str) -> None:
-    from lnbits.core.services.scheduler import scheduler
-
     scheduler.unregister(f"extension:{ext_id}")
     routes_removed = unregister_wasm_extension_api_routes(app, ext_id)
     core_app_extra.wasm_extension_registry.unregister(ext_id)

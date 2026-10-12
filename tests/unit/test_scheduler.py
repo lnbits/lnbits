@@ -8,6 +8,7 @@ import pytest
 from pydantic import ValidationError
 from pytest_mock.plugin import MockerFixture
 
+from lnbits.app import shutdown
 from lnbits.core.crud import extensions as extension_crud
 from lnbits.core.crud import scheduler as crud
 from lnbits.core.migrations import (
@@ -663,8 +664,6 @@ async def test_safe_scheduler_stop_preserves_caller_cancellation(
 async def test_app_shutdown_runs_cleanup_after_scheduler_stop_interruption(
     error: BaseException, mocker: MockerFixture
 ):
-    from lnbits.app import shutdown
-
     mocker.patch("lnbits.app.enqueue_admin_notification")
     mocker.patch("lnbits.app.stop_scheduler_safely", side_effect=error)
     cancel_tasks = mocker.patch("lnbits.app.task_manager.cancel_all_tasks")

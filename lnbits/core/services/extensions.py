@@ -41,6 +41,7 @@ from lnbits.core.services.scheduler import scheduler
 from lnbits.core.wasm_ext.api.permissions import validate_wasm_extension_permissions
 from lnbits.core.wasm_ext.wasm.component import warm_wasm_extension
 from lnbits.core.wasm_ext.wasm.loader import is_wasm_extension_id, load_wasm_extension
+from lnbits.core.wasm_ext.wasm.scheduler import ensure_wasm_extension_schedules
 from lnbits.db import Connection
 from lnbits.settings import WasmRuntimeLimits, settings
 
@@ -786,9 +787,6 @@ async def get_valid_extension(
 
 
 async def _ensure_wasm_extension_schedules(ext):
-    # move to the top
-    from lnbits.core.wasm_ext.wasm.scheduler import ensure_wasm_extension_schedules
-
     try:
         await ensure_wasm_extension_schedules(ext.code)
     except Exception:

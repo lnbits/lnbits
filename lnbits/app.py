@@ -58,6 +58,7 @@ from lnbits.core.wasm_ext.wasm.loader import (
     is_wasm_extension_dir,
     is_wasm_extension_id,
 )
+from lnbits.core.wasm_ext.wasm.scheduler import ensure_wasm_extension_schedules
 from lnbits.exceptions import register_exception_handlers
 from lnbits.helpers import version_parse
 from lnbits.llms_txt import create_llms_txt_route
@@ -562,8 +563,6 @@ def register_ext_routes(app: FastAPI, ext: Extension) -> None:
 
 
 async def check_and_register_extensions(app: FastAPI) -> None:
-    from lnbits.core.wasm_ext.wasm.scheduler import ensure_wasm_extension_schedules
-
     await check_installed_extensions(app)
     for ext in await get_valid_extensions(False):
         try:

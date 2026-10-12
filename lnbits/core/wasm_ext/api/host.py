@@ -66,6 +66,7 @@ from .models import (
     WebsocketPublishResponse,
 )
 from .registry import extension_api_method
+from .scheduler import ExtensionSchedulerAPI
 from .websockets import scoped_websocket_item_id, wasm_extension_websocket_hub
 
 PUBLIC_APPEND_DEFAULT_MAX_ROWS_PER_SOURCE = 10_000
@@ -92,7 +93,6 @@ class ExtensionHostAPI:
         self.owner_id = sha256s(user_id) if user_id else owner_id
         self.invocation_id = invocation_id
         self.runtime_limits = runtime_limits or {}
-        from .scheduler import ExtensionSchedulerAPI
         from .utils import ExtensionAPIUtils
 
         self.scheduler = ExtensionSchedulerAPI(self)
