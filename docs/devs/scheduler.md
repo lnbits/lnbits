@@ -74,6 +74,12 @@ avoid daylight-saving shifts.
 - Pausing sets `enabled` to false. A running callback is cancelled on its next
   lease renewal. Deleting an actively leased job is rejected; pause it and wait
   before deleting. Uninstallation removes that extension's schedules.
+- Admins can enable or disable the scheduler in Settings > Scheduler. The
+  `lnbits_scheduler_enabled` setting defaults to true and takes effect on save
+  without restarting the server. While disabled, the scheduler stays alive but
+  does not poll for jobs or maintain run history. Jobs already running finish
+  normally. Re-enabling runs each overdue job once, then resumes its cron schedule
+  without replaying every missed occurrence.
 - Application shutdown and extension job shutdown wait up to five seconds for
   scheduler cleanup, log failures or unfinished jobs, and continue the remaining
   cleanup. This deadline requires a responsive event loop; it cannot forcibly

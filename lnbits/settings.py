@@ -1000,6 +1000,7 @@ class TwoFactorSettings(LNbitsSettings):
 
 
 class SchedulerSettings(LNbitsSettings):
+    lnbits_scheduler_enabled: bool = True
     lnbits_scheduler_history_retention_days: int = Field(default=7, ge=1)
 
 

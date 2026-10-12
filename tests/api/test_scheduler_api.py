@@ -4,6 +4,7 @@ from uuid import uuid4
 import pytest
 
 from lnbits.core.crud import scheduler as crud
+from lnbits.core.crud.settings import get_settings_field
 from lnbits.core.models.scheduler import ScheduledJob
 
 
@@ -288,6 +289,46 @@ async def test_scheduler_history_filters_paginates_and_survives_deletion(
     )
     assert response.json()["total"] == 2
     assert {run["job_id"] for run in response.json()["data"]} == {job.id}
+
+
+@pytest.mark.anyio
+@pytest.mark.parametrize("role", ["anonymous", "user", "admin", "superuser"])
+async def test_scheduler_enabled_setting_updates_live_and_persists(
+    http_client, user_headers_from, admin_user, superuser_token, settings, role
+):
+    headers = user_headers_from if role == "user" else {}
+    if role == "superuser":
+        headers = {"Authorization": f"Bearer {superuser_token}"}
+    elif role == "admin":
+        response = await http_client.put(
+            "/admin/api/v1/settings",
+            json={"lnbits_admin_users": [admin_user.id]},
+            headers={"Authorization": f"Bearer {superuser_token}"},
+        )
+        assert response.status_code == 200
+        login = await http_client.post(
+            "/api/v1/auth",
+            json={"username": admin_user.username, "password": "secret1234"},
+        )
+        assert login.status_code == 200
+        headers = {"Authorization": f"Bearer {login.json()['access_token']}"}
+
+    field = "lnbits_scheduler_enabled"
+    for enabled in (False, True):
+        response = await http_client.put(
+            "/admin/api/v1/settings", json={field: enabled}, headers=headers
+        )
+        if role in {"anonymous", "user"}:
+            assert response.status_code == (401 if role == "anonymous" else 403)
+            assert settings.lnbits_scheduler_enabled is True
+            continue
+        assert response.status_code == 200
+        assert settings.lnbits_scheduler_enabled is enabled
+        stored = await get_settings_field(field)
+        assert stored and stored.value is enabled
+        response = await http_client.get("/admin/api/v1/settings", headers=headers)
+        assert response.status_code == 200
+        assert response.json()[field] is enabled
 
 
 @pytest.mark.anyio

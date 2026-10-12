@@ -295,6 +295,12 @@
               <lnbits-admin-audit :form-data="formData" />
             </q-tab-panel>
             <q-tab-panel name="scheduler" class="q-pa-md">
+              <h6 class="q-mt-none q-mb-sm" v-text="$t('scheduler')"></h6>
+              <q-toggle
+                v-model="formData.lnbits_scheduler_enabled"
+                :label="$t('enabled')"
+                class="q-mb-lg"
+              ></q-toggle>
               <h6
                 class="q-my-none q-mb-md"
                 v-text="$t('scheduler_history')"

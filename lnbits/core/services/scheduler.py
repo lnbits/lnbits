@@ -174,6 +174,8 @@ class Scheduler:
         )
 
     async def tick(self) -> None:
+        if not settings.lnbits_scheduler_enabled:
+            return
         now = time.time()
         if now >= self._next_history_maintenance:
             self._next_history_maintenance = now + 60
@@ -190,16 +192,24 @@ class Scheduler:
                     logger.warning("Scheduled job {} failed to finalize.", job_id)
                 self.running.pop(job_id)
         available = self.concurrency - len(self.running)
-        if available <= 0 or self.stopping:
+        if available <= 0 or self.stopping or not settings.lnbits_scheduler_enabled:
             return
-        now = int(time.time())
-        for candidate in await crud.get_due_scheduled_jobs(now, available):
+        await self._start_due_jobs(int(time.time()), available)
+
+    async def _start_due_jobs(self, now: int, limit: int) -> None:
+        for candidate in await crud.get_due_scheduled_jobs(now, limit):
+            if not settings.lnbits_scheduler_enabled:
+                return
             if self.stopping or candidate.id in self.running:
                 continue
             job = await crud.claim_scheduled_job(
                 candidate.id, uuid4().hex, now, now + self.lease_seconds
             )
             if job and not self.stopping:
+                if not settings.lnbits_scheduler_enabled:
+                    # The toggle may change while claiming; keep this job due.
+                    await crud.finish_scheduled_job(job, job.next_run_at)
+                    return
                 self.running[job.id] = (
                     job,
                     asyncio.create_task(self._run_job(job), name=f"schedule_{job.id}"),

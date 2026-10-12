@@ -310,6 +310,114 @@ async def test_restart_coalesces_missed_runs(schedule_db, clock, mocker: MockerF
 
 
 @pytest.mark.anyio
+async def test_scheduler_toggle_keeps_worker_alive_and_resumes_overdue_jobs(
+    schedule_db, clock, settings: Settings, mocker: MockerFixture
+):
+    overdue = await crud.save_scheduled_job(job())
+    completed = asyncio.Event()
+    callback = mocker.AsyncMock(side_effect=lambda item: completed.set())
+    maintenance = mocker.spy(crud, "maintain_scheduled_job_runs")
+    polling = mocker.spy(crud, "get_due_scheduled_jobs")
+    worker = Scheduler()
+    worker.register("core", "check", callback)
+    settings.lnbits_running = True
+    settings.lnbits_scheduler_enabled = False
+    runner = asyncio.create_task(worker.run())
+    try:
+        await asyncio.sleep(0)
+        assert not runner.done()
+        maintenance.assert_not_awaited()
+        polling.assert_not_awaited()
+        callback.assert_not_awaited()
+        assert await crud.get_scheduled_job(overdue.id) == overdue
+
+        settings.lnbits_scheduler_enabled = True
+        await asyncio.wait_for(completed.wait(), 3)
+        await asyncio.wait_for(worker.running[overdue.id][1], 1)
+        await worker.tick()
+        callback.assert_awaited_once()
+        stored = await crud.get_scheduled_job(overdue.id)
+        assert stored and stored.next_run_at == NOW + 60
+        assert stored.lease_token is None
+        assert not runner.done()
+    finally:
+        runner.cancel()
+        await asyncio.gather(runner, return_exceptions=True)
+
+
+@pytest.mark.anyio
+async def test_disabling_scheduler_allows_running_jobs_to_finish(
+    schedule_db, clock, settings: Settings
+):
+    for job_id in ("first", "second"):
+        await crud.save_scheduled_job(job(job_id))
+    started, release = asyncio.Event(), asyncio.Event()
+    calls = []
+
+    async def callback(item):
+        calls.append(item.id)
+        started.set()
+        await release.wait()
+
+    worker = Scheduler(concurrency=1)
+    worker.register("core", "check", callback)
+    try:
+        await worker.tick()
+        await asyncio.wait_for(started.wait(), 1)
+        settings.lnbits_scheduler_enabled = False
+        await worker.tick()
+        release.set()
+        await asyncio.wait_for(worker.running["first"][1], 1)
+        assert calls == ["first"]
+        finished = await crud.get_scheduled_job("first")
+        assert finished and finished.next_run_at == NOW + 60
+        assert finished.lease_token is None
+        pending = await crud.get_scheduled_job("second")
+        assert pending and pending.next_run_at == NOW - 600
+        assert pending.lease_token is None
+
+        settings.lnbits_scheduler_enabled = True
+        await worker.tick()
+        await asyncio.wait_for(worker.running["second"][1], 1)
+        assert calls == ["first", "second"]
+    finally:
+        release.set()
+        await worker.stop()
+
+
+@pytest.mark.anyio
+@pytest.mark.parametrize("operation", ["get_due_scheduled_jobs", "claim_scheduled_job"])
+async def test_disabling_scheduler_during_polling_preserves_due_job(
+    schedule_db, clock, settings: Settings, mocker: MockerFixture, operation: str
+):
+    overdue = await crud.save_scheduled_job(job())
+    original = getattr(crud, operation)
+
+    async def disable_after_operation(*args, **kwargs):
+        result = await original(*args, **kwargs)
+        settings.lnbits_scheduler_enabled = False
+        return result
+
+    mocker.patch.object(crud, operation, side_effect=disable_after_operation)
+    callback = mocker.AsyncMock()
+    worker = Scheduler()
+    worker.register("core", "check", callback)
+    try:
+        await worker.tick()
+        callback.assert_not_awaited()
+        assert worker.running == {}
+        assert await crud.get_scheduled_job(overdue.id) == overdue
+
+        mocker.patch.object(crud, operation, original)
+        settings.lnbits_scheduler_enabled = True
+        await worker.tick()
+        await asyncio.wait_for(worker.running[overdue.id][1], 1)
+        callback.assert_awaited_once()
+    finally:
+        await worker.stop()
+
+
+@pytest.mark.anyio
 async def test_long_job_skips_overlap_across_workers(schedule_db, clock):
     await crud.save_scheduled_job(job())
     started = asyncio.Event()
@@ -1177,6 +1285,7 @@ async def test_history_migration_preserves_existing_jobs(schedule_db):
 
 
 def test_scheduler_history_retention_setting():
+    assert SchedulerSettings().lnbits_scheduler_enabled is True
     assert SchedulerSettings().lnbits_scheduler_history_retention_days == 7
     assert (
         SchedulerSettings(
