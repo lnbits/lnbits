@@ -273,14 +273,14 @@ Host ID generation, current time, and logging do not require a separate
 permission. LNURL helpers have their own wallet requirements; inspect the
 method contract rather than assuming every utility belongs to `utils.basic`.
 
-| Invocation                       | Identity available                                                           | Practical effect                                                                                          |
-| -------------------------------- | ---------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------- |
-| Authenticated HTTP request       | Logged-in account, owner, account access token                               | User storage and approved interactive wallet/API operations                                               |
-| Ordinary public HTTP request     | No account or owner                                                          | Explicit public capabilities only                                                                         |
-| Public route with `ownerContext` | Owner resolved from a source row; event context, no logged-in account token  | Owner-scoped operations become possible; the guest must authorize the public action                       |
-| Invoice-paid event               | Event wallet; owner may be resolved from the approved source or wallet watch | Approved event work; no browser account token                                                             |
-| User schedule                    | Job's user and storage owner; no browser account token                       | Owner storage, notifications, separately authorized background payments                                   |
-| Extension-wide schedule          | Extension storage owner (`extension:<id>`); no user or account token          | Extension-owned storage and approved shared work; no private user storage or selectable user wallet      |
+| Invocation                       | Identity available                                                           | Practical effect                                                                                    |
+| -------------------------------- | ---------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------- |
+| Authenticated HTTP request       | Logged-in account, owner, account access token                               | User storage and approved interactive wallet/API operations                                         |
+| Ordinary public HTTP request     | No account or owner                                                          | Explicit public capabilities only                                                                   |
+| Public route with `ownerContext` | Owner resolved from a source row; event context, no logged-in account token  | Owner-scoped operations become possible; the guest must authorize the public action                 |
+| Invoice-paid event               | Event wallet; owner may be resolved from the approved source or wallet watch | Approved event work; no browser account token                                                       |
+| User schedule                    | Job's user and storage owner; no browser account token                       | Owner storage, notifications, separately authorized background payments                             |
+| Extension-wide schedule          | Extension storage owner (`extension:<id>`); no user or account token         | Extension-owned storage and approved shared work; no private user storage or selectable user wallet |
 
 ### Public owner context is not caller authentication
 
@@ -545,7 +545,7 @@ Sources: [installer and archive validation](../lnbits/core/models/extensions.py)
 | Put runtime limits in extension config                              | Limits come from core settings and installed-extension overrides                    |
 | Every user can save the same settings row ID                        | IDs are table-wide; generate distinct IDs                                           |
 | A version field or `redeeming` flag provides a lock                 | Storage has no compare-and-set or multi-call transaction                            |
-| A shared scheduled job can read every user's private rows          | It has a separate extension storage owner; cross-owner reads need public policies    |
+| A shared scheduled job can read every user's private rows           | It has a separate extension storage owner; cross-owner reads need public policies   |
 | HTTP always has a 10-second / 256 KiB limit                         | Runtime defaults passed by core are 5 seconds / 1 MiB                               |
 
 Recheck the linked core code when it changes. Update this guide when a host
