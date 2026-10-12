@@ -151,15 +151,13 @@ async def shutdown():
     settings.lnbits_running = False
 
     # shutdown event
-    try:
-        await stop_scheduler_safely()
-    finally:
-        task_manager.cancel_all_tasks()
+    await stop_scheduler_safely()
+    task_manager.cancel_all_tasks()
 
-        # Give cancelled tasks a chance to finish their cleanup.
-        await asyncio.sleep(0.1)
-        funding_source = get_funding_source()
-        await funding_source.cleanup()
+    # Give cancelled tasks a chance to finish their cleanup.
+    await asyncio.sleep(0.1)
+    funding_source = get_funding_source()
+    await funding_source.cleanup()
 
 
 @asynccontextmanager

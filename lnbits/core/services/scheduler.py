@@ -330,7 +330,7 @@ _stop_tasks: set[asyncio.Task[None]] = set()
 async def stop_scheduler_safely(timeout: float = 5.0) -> None:
     """Bound the shutdown wait while allowing in-flight cleanup to finish.
 
-    Stop failures are logged; cancellation of this caller still propagates.
+    Stop failures and caller cancellation are logged and suppressed.
     The deadline requires a responsive event loop and cannot kill native threads.
     """
 
@@ -342,16 +342,24 @@ async def stop_scheduler_safely(timeout: float = 5.0) -> None:
         except Exception:
             logger.warning("Scheduler shutdown failed.")
 
-    task = asyncio.create_task(stop(), name="scheduler_shutdown")
-    # Retain cleanup after the caller returns, and consume failures inside stop().
-    _stop_tasks.add(task)
-    task.add_done_callback(_stop_tasks.discard)
-    # wait() does not cancel or wait for uncooperative cleanup on timeout.
-    _, pending = await asyncio.wait({task}, timeout=timeout)
-    if pending:
-        unfinished = sum(not task.done() for _, task in scheduler.running.values())
+    try:
+        task = asyncio.create_task(stop(), name="scheduler_shutdown")
+        # Retain cleanup after the caller returns, and consume failures inside stop().
+        _stop_tasks.add(task)
+        task.add_done_callback(_stop_tasks.discard)
+        # wait() does not cancel or wait for uncooperative cleanup on timeout.
+        _, pending = await asyncio.wait({task}, timeout=timeout)
+        if pending:
+            unfinished = sum(not task.done() for _, task in scheduler.running.values())
+            logger.warning(
+                "Scheduler shutdown exceeded {} seconds; {} jobs remain unfinished.",
+                timeout,
+                unfinished,
+            )
+    except asyncio.CancelledError:
         logger.warning(
-            "Scheduler shutdown exceeded {} seconds; {} jobs remain unfinished.",
-            timeout,
-            unfinished,
+            "Scheduler shutdown wait was cancelled; "
+            "cleanup continues in the background."
         )
+    except Exception:
+        logger.warning("Scheduler shutdown failed.")

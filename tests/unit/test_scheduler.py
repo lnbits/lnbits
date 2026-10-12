@@ -634,7 +634,7 @@ async def test_safe_scheduler_stop_bounds_wait_and_preserves_cleanup(
 
 
 @pytest.mark.anyio
-async def test_safe_scheduler_stop_preserves_caller_cancellation(
+async def test_safe_scheduler_stop_logs_caller_cancellation_and_preserves_cleanup(
     mocker: MockerFixture,
 ):
     started, release, finished = asyncio.Event(), asyncio.Event(), asyncio.Event()
@@ -645,34 +645,59 @@ async def test_safe_scheduler_stop_preserves_caller_cancellation(
         finished.set()
 
     mocker.patch.object(service.scheduler, "stop", side_effect=stop)
+    warning = mocker.patch.object(service.logger, "warning")
     caller = asyncio.create_task(service.stop_scheduler_safely())
     try:
         await asyncio.wait_for(started.wait(), 1)
         caller.cancel()
-        with pytest.raises(asyncio.CancelledError):
-            await caller
+        await caller
+        assert not caller.cancelled()
         assert not finished.is_set()
+        warning.assert_called_once_with(
+            "Scheduler shutdown wait was cancelled; "
+            "cleanup continues in the background."
+        )
     finally:
         release.set()
         await asyncio.wait_for(finished.wait(), 1)
 
 
 @pytest.mark.anyio
+async def test_safe_scheduler_stop_logs_wait_errors(mocker: MockerFixture):
+    finished = asyncio.Event()
+    stop = mocker.patch.object(
+        service.scheduler, "stop", mocker.AsyncMock(side_effect=finished.set)
+    )
+    mocker.patch.object(
+        service.asyncio, "wait", side_effect=RuntimeError("private failure details")
+    )
+    warning = mocker.patch.object(service.logger, "warning")
+
+    await service.stop_scheduler_safely()
+    await asyncio.wait_for(finished.wait(), 1)
+
+    stop.assert_awaited_once()
+    warning.assert_called_once_with("Scheduler shutdown failed.")
+
+
+@pytest.mark.anyio
 @pytest.mark.parametrize(
-    "error", [RuntimeError("stop failed"), asyncio.CancelledError()]
+    "error", [None, RuntimeError("stop failed"), asyncio.CancelledError()]
 )
 async def test_app_shutdown_runs_cleanup_after_scheduler_stop_interruption(
-    error: BaseException, mocker: MockerFixture
+    error: BaseException | None, mocker: MockerFixture
 ):
     mocker.patch("lnbits.app.enqueue_admin_notification")
-    mocker.patch("lnbits.app.stop_scheduler_safely", side_effect=error)
+    stop = mocker.patch.object(
+        service.scheduler, "stop", mocker.AsyncMock(side_effect=error)
+    )
     cancel_tasks = mocker.patch("lnbits.app.task_manager.cancel_all_tasks")
     cleanup = mocker.AsyncMock()
     mocker.patch(
         "lnbits.app.get_funding_source", return_value=SimpleNamespace(cleanup=cleanup)
     )
-    with pytest.raises(type(error)):
-        await shutdown()
+    await shutdown()
+    stop.assert_awaited_once()
     cancel_tasks.assert_called_once()
     cleanup.assert_awaited_once()
 
