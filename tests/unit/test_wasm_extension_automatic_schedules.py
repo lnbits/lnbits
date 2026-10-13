@@ -12,7 +12,9 @@ from lnbits.core.migrations import m054_create_scheduled_jobs
 from lnbits.core.models.extensions import Extension, ExtensionPermission
 from lnbits.core.services import extensions as extension_service
 from lnbits.core.services import scheduler as scheduler_service
+from lnbits.core.wasm_ext.api.host import ExtensionHostAPI
 from lnbits.core.wasm_ext.api.permissions import validate_wasm_extension_permissions
+from lnbits.core.wasm_ext.api.runtime import ExtensionAPIHost
 from lnbits.core.wasm_ext.wasm import scheduler as wasm_scheduler
 from lnbits.core.wasm_ext.wasm.config import parse_wasm_extension_config
 from lnbits.db import DB_TYPE, SQLITE, Database
@@ -148,6 +150,72 @@ async def test_automatic_schedule_creation_is_idempotent_and_preserves_pause_and
     paused = await schedule_crud.get_scheduled_job(job.id)
     await wasm_scheduler.ensure_wasm_extension_schedules("demo")
     assert await schedule_crud.get_scheduled_job(job.id) == paused
+
+
+@pytest.mark.anyio
+@pytest.mark.parametrize(
+    ("extension_id", "handler"),
+    [("demo", "collect"), ("demo", "other"), ("other", "collect")],
+)
+async def test_user_cannot_squat_shared_schedule_id(
+    automatic_extension, mocker: MockerFixture, extension_id: str, handler: str
+):
+    job_id = sha256s(json.dumps(["demo", None, "collect"]))
+    account = SimpleNamespace(id="alice", activated=True, is_admin=False)
+    for module in (
+        "lnbits.core.wasm_ext.api.scheduler",
+        "lnbits.core.services.scheduler",
+    ):
+        mocker.patch(f"{module}.get_account", mocker.AsyncMock(return_value=account))
+    mocker.patch.object(
+        scheduler_service,
+        "get_user_extension",
+        mocker.AsyncMock(return_value=SimpleNamespace(active=True)),
+    )
+    mocker.patch(
+        "lnbits.core.wasm_ext.api.scheduler.scheduler", automatic_extension.scheduler
+    )
+    automatic_extension.installed.permissions.append(
+        ExtensionPermission(
+            id="scheduler.user",
+            policies=[{"handler": handler, "cron_expression": "*/5 * * * *"}],
+        )
+    )
+    automatic_extension.scheduler.register(
+        f"extension:{extension_id}", handler, mocker.AsyncMock()
+    )
+    api = ExtensionAPIHost(
+        ExtensionHostAPI(extension_id, ["scheduler.user"], user_id=account.id)
+    )
+    with pytest.raises(ValueError, match="reserved for extension-wide schedules"):
+        await api.invoke(
+            "scheduler.set",
+            {"id": job_id, "handler": handler, "cronExpression": "*/5 * * * *"},
+        )
+    assert await schedule_crud.get_scheduled_job(job_id) is None
+
+    await wasm_scheduler.ensure_wasm_extension_schedules("demo")
+    shared = await schedule_crud.get_scheduled_job(job_id)
+    assert shared and shared.namespace == "extension:demo" and shared.user_id is None
+
+    # Administrators can still update the existing deterministic shared ID.
+    account.is_admin = True
+    admin_api = ExtensionAPIHost(
+        ExtensionHostAPI("demo", ["scheduler.extension"], user_id=account.id)
+    )
+    result = await admin_api.invoke(
+        "scheduler.set",
+        {
+            "id": job_id,
+            "scope": "extension",
+            "handler": "collect",
+            "cronExpression": "* * * * *",
+            "enabled": False,
+        },
+    )
+    assert json.loads(result["scheduleJson"])["id"] == job_id
+    updated = await schedule_crud.get_scheduled_job(job_id)
+    assert updated and updated.user_id is None and not updated.enabled
 
 
 @pytest.mark.anyio

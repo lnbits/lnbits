@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import re
 from typing import TYPE_CHECKING, Literal
 
 from pydantic import BaseModel, Field, root_validator
@@ -112,6 +113,9 @@ class ExtensionSchedulerAPI:
             )
             if "id" in request.__fields_set__ and request.id != job_id:
                 raise ValueError("Schedule ID does not match this handler and owner.")
+        elif re.fullmatch(r"[0-9a-f]{64}", job_id):
+            # IDs are global: reserve shared hashes across all handlers/extensions.
+            raise ValueError("Schedule ID is reserved for extension-wide schedules.")
         job = await scheduler.save(
             f"extension:{self.api.extension_id}",
             ScheduleConfig.parse_obj({**request.dict(exclude={"scope"}), "id": job_id}),

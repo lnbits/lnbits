@@ -275,6 +275,8 @@ these methods automatically.
 For user jobs, omitting `id` creates a new job, even for the same handler. Supplying
 the same ID updates that job; its handler, owner, and namespace cannot change.
 Shared extension jobs retain one stable job ID per handler.
+IDs consisting of 64 lowercase hexadecimal characters are reserved for shared
+jobs and cannot be supplied for user jobs.
 The handler, normalized cron expression, and timezone must match the approved
 policy for that scope on both creation and updates. Core checks approval again
 before executing a job and during its heartbeat. Revoking the policy blocks
