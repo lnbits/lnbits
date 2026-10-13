@@ -102,8 +102,9 @@ and pagination. Its API is `GET /scheduler/api/v1/runs`, with optional `job_id`,
 Each attempt is stored in the core database's `scheduled_job_runs` table. Records
 snapshot the job ID, source, handler, scope, timezone, scheduled time, actual
 start and finish times, and result. Durations are calculated from start and finish
-times. Payloads, user IDs, exception text, and stack traces are not recorded;
-errors use fixed summaries. Internal lease tokens are never returned by the API.
+times. User ownership is stored internally so history limits still apply after a
+job is deleted. User IDs and lease tokens are never returned by the API. Payloads,
+exception text, and stack traces are not recorded; errors use fixed summaries.
 
 Results are `running`, `succeeded`, `failed`, `cancelled`, `interrupted`, or
 `skipped`. Missing or paused jobs and unregistered handlers are skipped. An
@@ -111,11 +112,25 @@ unfinished attempt whose lease is no longer active becomes interrupted; its
 finish time and duration remain unknown. A recorded result describes the
 callback's completion, not a guarantee about its external effects.
 
-History defaults to seven days, configurable under **Settings → Scheduler** using
-`lnbits_scheduler_history_retention_days` (minimum one day). Maintenance runs once
-per minute while the scheduler runs. Completed attempts expire relative to their
-finish time; interrupted attempts use their start time. Active runs are preserved.
-Deleting a job does not delete its history. No earlier executions are backfilled.
+History limits are configurable under **Settings → Scheduler** and apply without
+a restart:
+
+- `lnbits_scheduler_history_retention_days`: seven days for successful, cancelled,
+  interrupted, and skipped attempts.
+- `lnbits_scheduler_history_failed_retention_days`: thirty days for failed attempts.
+- `lnbits_scheduler_history_max_runs_per_user`: 1,000 completed attempts per user,
+  across all extensions and handlers.
+- `lnbits_scheduler_history_max_runs_per_extension`: 1,000 completed shared attempts
+  per extension, across all handlers. User attempts do not consume this limit.
+
+All settings have a minimum of one. Maintenance runs once per minute while the
+scheduler is enabled. Completed attempts expire relative to their finish time;
+interrupted attempts use their start time. After expired attempts are removed,
+count limits remove oldest non-failed attempts first, then oldest failures.
+Active runs are preserved and do not count toward these limits. Shared core jobs
+use age retention only.
+
+Deleting a job does not immediately delete its history.
 History writes are best-effort: recording failures do not prevent execution or
 change the scheduler's retry and lease behavior.
 

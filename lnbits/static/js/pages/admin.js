@@ -196,7 +196,10 @@ window.PageAdmin = {
         ],
         scheduler: [
           this.$t('scheduler_history'),
-          this.$t('scheduler_retention')
+          this.$t('scheduler_retention'),
+          this.$t('scheduler_failed_retention'),
+          this.$t('scheduler_history_max_runs_per_user'),
+          this.$t('scheduler_history_max_runs_per_extension')
         ],
         'assets-config': ['Assets', 'Thumbnails', 'Users'],
         site_customisation: [

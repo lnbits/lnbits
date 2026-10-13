@@ -332,20 +332,30 @@ async def test_scheduler_enabled_setting_updates_live_and_persists(
 
 
 @pytest.mark.anyio
+@pytest.mark.parametrize(
+    "field",
+    [
+        "lnbits_scheduler_history_retention_days",
+        "lnbits_scheduler_history_failed_retention_days",
+        "lnbits_scheduler_history_max_runs_per_user",
+        "lnbits_scheduler_history_max_runs_per_extension",
+    ],
+)
 async def test_scheduler_history_retention_settings(
-    http_client, superuser_token, settings
+    http_client, superuser_token, settings, field
 ):
     headers = {"Authorization": f"Bearer {superuser_token}"}
-    field = "lnbits_scheduler_history_retention_days"
     response = await http_client.put(
         "/admin/api/v1/settings", json={field: 30}, headers=headers
     )
     assert response.status_code == 200
-    assert settings.lnbits_scheduler_history_retention_days == 30
+    assert getattr(settings, field) == 30
+    stored = await get_settings_field(field)
+    assert stored and stored.value == 30
     response = await http_client.get("/admin/api/v1/settings", headers=headers)
     assert response.json()[field] == 30
     response = await http_client.put(
         "/admin/api/v1/settings", json={field: 0}, headers=headers
     )
     assert response.status_code == 400
-    assert settings.lnbits_scheduler_history_retention_days == 30
+    assert getattr(settings, field) == 30

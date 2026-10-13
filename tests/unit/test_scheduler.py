@@ -23,6 +23,7 @@ from lnbits.core.models.scheduler import (
     ScheduleConfig,
     ScheduledJob,
     ScheduledJobRunFilters,
+    ScheduledJobRunStatus,
 )
 from lnbits.core.models.users import AccountId
 from lnbits.core.services import scheduler as service
@@ -1291,7 +1292,7 @@ async def test_history_recovers_expired_runs_and_survives_job_deletion(schedule_
     claimed = await crud.claim_scheduled_job("test", "first", NOW, NOW + 60)
     assert claimed
     run = await crud.create_scheduled_job_run(claimed, NOW)
-    await crud.maintain_scheduled_job_runs(NOW + 30, 7)
+    await service.maintain_scheduled_job_runs(NOW + 30)
     page = await crud.get_scheduled_job_runs_paginated(
         Filters(model=ScheduledJobRunFilters)
     )
@@ -1301,7 +1302,7 @@ async def test_history_recovers_expired_runs_and_survives_job_deletion(schedule_
     claimed = await crud.claim_scheduled_job("test", "second", NOW + 60, NOW + 120)
     assert claimed
     active = await crud.create_scheduled_job_run(claimed, NOW + 60)
-    await crud.maintain_scheduled_job_runs(NOW + 61, 7)
+    await service.maintain_scheduled_job_runs(NOW + 61)
     # A late result from the old attempt cannot overwrite an interrupted result.
     await crud.finish_scheduled_job_run(run.id, "succeeded", NOW + 62)
     page = await crud.get_scheduled_job_runs_paginated(
@@ -1318,7 +1319,7 @@ async def test_history_recovers_expired_runs_and_survives_job_deletion(schedule_
         Filters(model=ScheduledJobRunFilters)
     )
     assert page.total == 2
-    await crud.maintain_scheduled_job_runs(NOW + 7 * 86400 + 64, 7)
+    await service.maintain_scheduled_job_runs(NOW + 7 * 86400 + 64)
     page = await crud.get_scheduled_job_runs_paginated(
         Filters(model=ScheduledJobRunFilters)
     )
@@ -1328,8 +1329,9 @@ async def test_history_recovers_expired_runs_and_survives_job_deletion(schedule_
 @pytest.mark.anyio
 @pytest.mark.parametrize("retention_days", [1, 7])
 async def test_history_retention_preserves_live_and_recently_finished_runs(
-    schedule_db, retention_days
+    schedule_db, settings, retention_days
 ):
+    settings.lnbits_scheduler_history_retention_days = retention_days
     age = (retention_days + 1) * 86400
     for job_id in ("active", "recent", "expired"):
         await crud.save_scheduled_job(job(job_id))
@@ -1340,7 +1342,7 @@ async def test_history_retention_preserves_live_and_recently_finished_runs(
             await crud.finish_scheduled_job_run(
                 run.id, "succeeded", NOW + age if job_id == "recent" else NOW + 1
             )
-    await crud.maintain_scheduled_job_runs(NOW + age + 1, retention_days)
+    await service.maintain_scheduled_job_runs(NOW + age + 1)
     page = await crud.get_scheduled_job_runs_paginated(
         Filters(model=ScheduledJobRunFilters)
     )
@@ -1390,14 +1392,179 @@ async def test_history_migration_preserves_existing_jobs(schedule_db):
         await database.engine.dispose()
 
 
-def test_scheduler_history_retention_setting():
+@pytest.mark.parametrize(
+    "field, default",
+    [
+        ("lnbits_scheduler_history_retention_days", 7),
+        ("lnbits_scheduler_history_failed_retention_days", 30),
+        ("lnbits_scheduler_history_max_runs_per_user", 1000),
+        ("lnbits_scheduler_history_max_runs_per_extension", 1000),
+    ],
+)
+def test_scheduler_history_retention_setting(field, default):
     assert SchedulerSettings().lnbits_scheduler_enabled is True
-    assert SchedulerSettings().lnbits_scheduler_history_retention_days == 7
-    assert (
-        SchedulerSettings(
-            lnbits_scheduler_history_retention_days=30
-        ).lnbits_scheduler_history_retention_days
-        == 30
-    )
+    assert getattr(SchedulerSettings(), field) == default
+    assert getattr(SchedulerSettings.parse_obj({field: 42}), field) == 42
     with pytest.raises(ValidationError):
-        SchedulerSettings(lnbits_scheduler_history_retention_days=0)
+        SchedulerSettings.parse_obj({field: 0})
+
+
+@pytest.mark.anyio
+async def test_history_failed_retention_is_longer_and_preserves_running(schedule_db):
+    for status in (
+        "succeeded",
+        "failed",
+        "cancelled",
+        "interrupted",
+        "skipped",
+        "running",
+    ):
+        await crud.save_scheduled_job(job(status))
+        claimed = await crud.claim_scheduled_job(status, status, NOW, NOW + 32 * 86400)
+        assert claimed
+        run = await crud.create_scheduled_job_run(claimed, NOW)
+        if status != "running":
+            await crud.finish_scheduled_job_run(run.id, status, NOW)
+
+    for age, expected in (
+        (8, {"failed", "running"}),
+        (30, {"failed", "running"}),
+        (31, {"running"}),
+    ):
+        await service.maintain_scheduled_job_runs(NOW + age * 86400)
+        page = await crud.get_scheduled_job_runs_paginated(
+            Filters(model=ScheduledJobRunFilters)
+        )
+        assert {run.job_id for run in page.data} == expected
+
+
+async def history_run(
+    job_id,
+    *,
+    namespace="extension:one",
+    user_id=None,
+    handler="check",
+    status: ScheduledJobRunStatus = "succeeded",
+    finished_at=NOW,
+):
+    stored = await crud.save_scheduled_job(
+        job(job_id).copy(
+            update={"namespace": namespace, "user_id": user_id, "handler": handler}
+        )
+    )
+    claimed = await crud.claim_scheduled_job(
+        stored.id, stored.id, NOW - 100, NOW + 3600
+    )
+    assert claimed
+    run = await crud.create_scheduled_job_run(claimed, NOW - 100)
+    if status != "running":
+        await crud.finish_scheduled_job_run(run.id, status, finished_at)
+        await crud.finish_scheduled_job(claimed, NOW + 86400)
+    return run
+
+
+@pytest.mark.anyio
+async def test_history_user_cap_spans_handlers_sources_and_deleted_jobs(
+    schedule_db, settings, clock
+):
+    settings.lnbits_scheduler_history_max_runs_per_user = 3
+    await history_run(
+        "old-failure", user_id="alice", status="failed", finished_at=NOW - 4
+    )
+    await history_run(
+        "old-success", user_id="alice", handler="other", finished_at=NOW - 3
+    )
+    await history_run(
+        "new-success", user_id="alice", namespace="extension:two", finished_at=NOW - 2
+    )
+    await history_run(
+        "new-failure",
+        user_id="alice",
+        namespace="core",
+        status="failed",
+        finished_at=NOW - 1,
+    )
+    await history_run("bob", user_id="bob")
+    await history_run("shared")
+    for index in range(4):
+        await history_run(f"active-{index}", user_id="alice", status="running")
+    for job_id in ("old-failure", "old-success", "new-success", "new-failure"):
+        stored = await crud.get_scheduled_job(job_id)
+        assert stored
+        assert await crud.delete_scheduled_job(job_id, stored.namespace, "alice", NOW)
+
+    worker = Scheduler()
+    await worker.tick()
+    page = await crud.get_scheduled_job_runs_paginated(
+        Filters(model=ScheduledJobRunFilters)
+    )
+    active_ids = {f"active-{index}" for index in range(4)}
+    assert {run.job_id for run in page.data} == {
+        "old-failure",
+        "new-success",
+        "new-failure",
+        "bob",
+        "shared",
+        *active_ids,
+    }
+    assert all("user_id" not in run.dict() for run in page.data)
+
+    # The same worker applies a lowered limit on its next maintenance tick.
+    settings.lnbits_scheduler_history_max_runs_per_user = 1
+    clock.now += 60
+    await worker.tick()
+    page = await crud.get_scheduled_job_runs_paginated(
+        Filters(model=ScheduledJobRunFilters)
+    )
+    assert {run.job_id for run in page.data} == {
+        "new-failure",
+        "bob",
+        "shared",
+        *active_ids,
+    }
+
+
+@pytest.mark.anyio
+async def test_history_shared_extension_cap_is_separate_from_users_and_core(
+    schedule_db, settings
+):
+    settings.lnbits_scheduler_history_max_runs_per_extension = 1
+    for namespace in ("extension:one", "extension:two", "core"):
+        await history_run(
+            f"{namespace}-old",
+            namespace=namespace,
+            status="failed",
+            finished_at=NOW - 1,
+        )
+        await history_run(f"{namespace}-new", namespace=namespace)
+    await history_run("user-first", user_id="alice")
+    await history_run("user-second", user_id="alice")
+    await history_run("active", status="running")
+
+    await service.maintain_scheduled_job_runs(NOW)
+    page = await crud.get_scheduled_job_runs_paginated(
+        Filters(model=ScheduledJobRunFilters)
+    )
+    assert {run.job_id for run in page.data} == {
+        "extension:one-old",
+        "extension:two-old",
+        "core-old",
+        "core-new",
+        "user-first",
+        "user-second",
+        "active",
+    }
+
+
+@pytest.mark.anyio
+async def test_history_cap_removes_oldest_failures_when_all_runs_failed(
+    schedule_db, settings
+):
+    settings.lnbits_scheduler_history_max_runs_per_extension = 2
+    for index in range(4):
+        await history_run(str(index), status="failed", finished_at=NOW + index)
+    await service.maintain_scheduled_job_runs(NOW + 4)
+    page = await crud.get_scheduled_job_runs_paginated(
+        Filters(model=ScheduledJobRunFilters)
+    )
+    assert {run.job_id for run in page.data} == {"2", "3"}

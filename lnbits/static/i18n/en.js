@@ -196,7 +196,16 @@ window.localisation.en = {
   scheduler_view_history: 'View history for {handler}',
   scheduler_retention: 'History retention',
   scheduler_retention_hint:
-    'Days to keep completed runs (minimum 1). Deleted jobs keep their history until it expires. Cleanup runs every minute.',
+    'Days to keep successful, cancelled, interrupted and skipped runs (minimum 1). Cleanup runs every minute while the scheduler is enabled.',
+  scheduler_failed_retention: 'Failed run retention',
+  scheduler_failed_retention_hint:
+    'Days to keep failed runs (minimum 1). History limits may remove runs sooner; running jobs are always preserved.',
+  scheduler_history_max_runs_per_user: 'Maximum runs per user',
+  scheduler_history_max_runs_per_user_hint:
+    'Completed runs across all extensions and handlers (minimum 1). Oldest non-failed runs are removed first, then oldest failures.',
+  scheduler_history_max_runs_per_extension: 'Maximum shared runs per extension',
+  scheduler_history_max_runs_per_extension_hint:
+    'Completed shared runs across all handlers in each extension (minimum 1). User runs have their own limit. Failed runs are kept preferentially.',
   scheduler_run_running: 'Running',
   scheduler_run_succeeded: 'Succeeded',
   scheduler_run_failed: 'Failed',

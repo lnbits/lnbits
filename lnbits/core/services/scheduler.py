@@ -9,6 +9,8 @@ from lnbits.core.crud.extensions import get_installed_extension, get_user_extens
 from lnbits.core.crud.scheduler import (
     claim_scheduled_job,
     create_scheduled_job_run,
+    delete_excess_scheduled_job_runs,
+    delete_expired_scheduled_job_runs,
     delete_scheduled_job,
     finish_scheduled_job,
     finish_scheduled_job_run,
@@ -16,7 +18,7 @@ from lnbits.core.crud.scheduler import (
     get_scheduled_job,
     get_scheduled_jobs_count,
     get_scheduled_jobs_paginated,
-    maintain_scheduled_job_runs,
+    interrupt_expired_scheduled_job_runs,
     renew_scheduled_job,
     save_scheduled_job,
 )
@@ -37,6 +39,19 @@ from lnbits.utils.cron import next_run_at
 SCHEDULER_USER_PERMISSION = "scheduler.user"
 SCHEDULER_EXTENSION_PERMISSION = "scheduler.extension"
 ScheduleHandler = Callable[[ScheduledJob], Awaitable[None]]
+
+
+async def maintain_scheduled_job_runs(now: float) -> None:
+    await interrupt_expired_scheduled_job_runs(now)
+    await delete_expired_scheduled_job_runs(
+        now - settings.lnbits_scheduler_history_retention_days * 86400,
+        now - settings.lnbits_scheduler_history_failed_retention_days * 86400,
+    )
+    await delete_excess_scheduled_job_runs(
+        settings.lnbits_scheduler_history_max_runs_per_user,
+        settings.lnbits_scheduler_history_max_runs_per_extension,
+        preferred_status="failed",
+    )
 
 
 async def check_schedule_access(
@@ -213,9 +228,7 @@ class Scheduler:
         if now >= self._next_history_maintenance:
             self._next_history_maintenance = now + 60
             try:
-                await maintain_scheduled_job_runs(
-                    now, settings.lnbits_scheduler_history_retention_days
-                )
+                await maintain_scheduled_job_runs(now)
             except Exception:
                 logger.warning("Scheduler history maintenance failed.")
         for job_id, (_, task) in list(self.running.items()):

@@ -210,11 +210,11 @@ async def create_scheduled_job_run(job: ScheduledJob, now: float) -> ScheduledJo
         """
         INSERT INTO scheduled_job_runs
             (id, job_id, namespace, handler, scope, timezone, scheduled_at,
-             started_at, status, lease_token)
+             started_at, status, lease_token, user_id)
         VALUES (:id, :job_id, :namespace, :handler, :scope, :timezone,
-                :scheduled_at, :started_at, :status, :lease_token)
+                :scheduled_at, :started_at, :status, :lease_token, :user_id)
         """,
-        {**run.dict(), "lease_token": job.lease_token},
+        {**run.dict(), "lease_token": job.lease_token, "user_id": job.user_id},
     )
     return run
 
@@ -253,7 +253,7 @@ async def get_scheduled_job_runs_paginated(
     )
 
 
-async def maintain_scheduled_job_runs(now: float, retention_days: int) -> None:
+async def interrupt_expired_scheduled_job_runs(now: float) -> None:
     # Check the durable claim, not local tasks: another process may own this run.
     # The actual finish time is unknown after a crash, so leave it unset.
     await db.execute(
@@ -273,10 +273,49 @@ async def maintain_scheduled_job_runs(now: float, retention_days: int) -> None:
             "its lease is no longer active.",
         },
     )
+
+
+async def delete_expired_scheduled_job_runs(
+    cutoff: float, failed_cutoff: float
+) -> None:
     await db.execute(
         """
         DELETE FROM scheduled_job_runs
-        WHERE status != 'running' AND COALESCE(finished_at, started_at) < :cutoff
+        WHERE (status NOT IN ('running', 'failed')
+               AND COALESCE(finished_at, started_at) < :cutoff)
+           OR (status = 'failed'
+               AND COALESCE(finished_at, started_at) < :failed_cutoff)
         """,
-        {"cutoff": now - retention_days * 86400},
+        {"cutoff": cutoff, "failed_cutoff": failed_cutoff},
+    )
+
+
+async def delete_excess_scheduled_job_runs(
+    max_runs_per_user: int,
+    max_runs_per_extension: int,
+    preferred_status: ScheduledJobRunStatus,
+) -> None:
+    await db.execute(
+        """
+        DELETE FROM scheduled_job_runs WHERE id IN (
+            SELECT id FROM (
+                SELECT id, scope, ROW_NUMBER() OVER (
+                    PARTITION BY scope,
+                        CASE WHEN scope = 'user' THEN user_id ELSE namespace END
+                    ORDER BY CASE WHEN status = :preferred_status THEN 0 ELSE 1 END,
+                             COALESCE(finished_at, started_at) DESC, id DESC
+                ) AS position
+                FROM scheduled_job_runs
+                WHERE status != 'running'
+                  AND scope IN ('user', 'extension')
+            ) AS ranked_runs
+            WHERE (scope = 'user' AND position > :max_runs_per_user)
+               OR (scope = 'extension' AND position > :max_runs_per_extension)
+        )
+        """,
+        {
+            "max_runs_per_user": max_runs_per_user,
+            "max_runs_per_extension": max_runs_per_extension,
+            "preferred_status": preferred_status,
+        },
     )

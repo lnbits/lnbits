@@ -999,6 +999,7 @@ async def m055_create_scheduled_job_runs(db: Connection):
             id TEXT PRIMARY KEY,
             job_id TEXT NOT NULL,
             namespace TEXT NOT NULL,
+            user_id TEXT,
             handler TEXT NOT NULL,
             scope TEXT NOT NULL,
             timezone TEXT NOT NULL,
