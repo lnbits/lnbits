@@ -1,5 +1,6 @@
 import asyncio
 import ipaddress
+import json
 from http import HTTPStatus
 from types import SimpleNamespace
 from unittest.mock import MagicMock
@@ -317,6 +318,126 @@ async def test_send_telegram_message_and_wrapper(
         settings.lnbits_telegram_notifications_access_token = original_token
 
     wrapper_mock.assert_awaited_once_with("wrapper-token", "chat-id", "hello")
+
+
+@pytest.mark.anyio
+@pytest.mark.parametrize(
+    "error, expected",
+    [
+        (httpx.ReadTimeout(""), "ReadTimeout: Timed out waiting for Telegram"),
+        (httpx.ConnectTimeout(""), "ConnectTimeout: Timed out connecting to Telegram"),
+        (httpx.WriteTimeout(""), "WriteTimeout: Timed out sending to Telegram"),
+        (
+            httpx.PoolTimeout(""),
+            "PoolTimeout: Timed out waiting for an available HTTP connection",
+        ),
+        (httpx.TimeoutException(""), "TimeoutException: Telegram request timed out"),
+        (
+            httpx.ConnectError("All connection attempts failed"),
+            "ConnectError: All connection attempts failed",
+        ),
+        (RuntimeError("  "), "RuntimeError: No error message provided"),
+    ],
+)
+async def test_send_notification_logs_useful_telegram_transport_errors(
+    settings: Settings, mocker: MockerFixture, error: Exception, expected: str
+):
+    mocker.patch.object(
+        type(settings), "is_telegram_notifications_configured", return_value=True
+    )
+    mocker.patch(
+        "lnbits.core.services.notifications.httpx.AsyncClient",
+        return_value=MockHTTPClient(post_exception=error),
+    )
+    log_error = mocker.patch("lnbits.core.services.notifications.logger.error")
+
+    await send_notification("chat-id", [], [], "hello")
+
+    log_error.assert_called_once_with(
+        f"Error sending telegram notification None: {expected}"
+    )
+
+
+@pytest.mark.anyio
+@pytest.mark.parametrize(
+    "status, body, expected",
+    [
+        (
+            400,
+            {"description": "Bad Request: chat not found"},
+            "Bad Request: chat not found",
+        ),
+        (
+            429,
+            {"description": "Too Many Requests: retry after 30"},
+            "Too Many Requests: retry after 30",
+        ),
+        (400, {}, "Bad Request"),
+        (400, [], "Bad Request"),
+        (400, {"description": None}, "Bad Request"),
+        (400, {"description": "  "}, "Bad Request"),
+        (503, "invalid JSON", "Service Unavailable"),
+        (400, {"description": "Cannot use test-bot-token"}, "Cannot use [redacted]"),
+    ],
+)
+async def test_send_notification_logs_telegram_http_errors_without_token(
+    settings: Settings, mocker: MockerFixture, status: int, body, expected: str
+):
+    mocker.patch.object(
+        type(settings), "is_telegram_notifications_configured", return_value=True
+    )
+    mocker.patch.object(
+        settings, "lnbits_telegram_notifications_access_token", "test-bot-token"
+    )
+    response = httpx.Response(
+        status,
+        request=httpx.Request(
+            "POST", "https://api.telegram.org/bottest-bot-token/sendMessage"
+        ),
+        content=body if isinstance(body, str) else json.dumps(body),
+    )
+    mocker.patch(
+        "lnbits.core.services.notifications.httpx.AsyncClient",
+        return_value=MockHTTPClient(post_response=response),
+    )
+    log_error = mocker.patch("lnbits.core.services.notifications.logger.error")
+
+    await send_notification("chat-id", [], [], "hello", "text_message")
+
+    log_error.assert_called_once_with(
+        f"Error sending telegram notification text_message: HTTP {status}: {expected}"
+    )
+    assert "test-bot-token" not in log_error.call_args.args[0]
+    assert "api.telegram.org" not in log_error.call_args.args[0]
+
+
+@pytest.mark.anyio
+async def test_send_notification_redacts_token_from_telegram_exception(
+    settings: Settings, mocker: MockerFixture
+):
+    mocker.patch.object(
+        type(settings), "is_telegram_notifications_configured", return_value=True
+    )
+    mocker.patch.object(
+        settings, "lnbits_telegram_notifications_access_token", "test-bot-token"
+    )
+    mocker.patch(
+        "lnbits.core.services.notifications.httpx.AsyncClient",
+        return_value=MockHTTPClient(
+            post_exception=httpx.ConnectError(
+                "Cannot connect to https://api.telegram.org/bottest-bot-token/sendMessage"
+            )
+        ),
+    )
+    log_error = mocker.patch("lnbits.core.services.notifications.logger.error")
+
+    await send_notification("chat-id", [], [], "hello")
+
+    log_error.assert_called_once_with(
+        "Error sending telegram notification None: ConnectError: "
+        "Cannot connect to https://api.telegram.org/bot[redacted]/sendMessage"
+    )
+    assert "test-bot-token" not in log_error.call_args.args[0]
 
 
 @pytest.mark.anyio

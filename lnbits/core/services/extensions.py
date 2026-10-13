@@ -1,6 +1,5 @@
 import asyncio
 import importlib
-import re
 from collections.abc import Mapping
 from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
@@ -44,6 +43,7 @@ from lnbits.core.wasm_ext.wasm.loader import is_wasm_extension_id, load_wasm_ext
 from lnbits.core.wasm_ext.wasm.scheduler import ensure_wasm_extension_schedules
 from lnbits.db import Connection
 from lnbits.settings import WasmRuntimeLimits, settings
+from lnbits.utils.error import safe_error_message
 
 from ..models.extensions import (
     Extension,
@@ -454,7 +454,7 @@ async def finish_wasm_invocation(
     invocation.response_bytes = response_bytes
     invocation.memory_peak_bytes = memory_peak_bytes
     invocation.error_type = error_type
-    invocation.error_message = _safe_wasm_error_message(error_message)
+    invocation.error_message = safe_error_message(error_message)
     invocation.stop_reason = reason
 
     await update_wasm_invocation(invocation)
@@ -620,25 +620,6 @@ def _safe_wasm_invocation_context(context: dict) -> dict:
         elif isinstance(value, str):
             safe_context[key[:64]] = value[:256]
     return safe_context
-
-
-def _safe_wasm_error_message(message: str | None) -> str | None:
-    if not message:
-        return None
-
-    safe_message = message[:500]
-    redactions = [
-        (
-            r"(?i)(api[-_ ]?key|token|authorization|password|secret|preimage)"
-            r"\s*[:=]\s*[^\s,;]+",
-            r"\1=[redacted]",
-        ),
-        (r"(?i)bearer\s+[A-Za-z0-9._~+/=-]+", "Bearer [redacted]"),
-        (r"\b[a-fA-F0-9]{64}\b", "[redacted-hex]"),
-    ]
-    for pattern, replacement in redactions:
-        safe_message = re.sub(pattern, replacement, safe_message)
-    return safe_message
 
 
 def _now() -> datetime:

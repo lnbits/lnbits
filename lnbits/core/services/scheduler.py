@@ -35,6 +35,7 @@ from lnbits.core.models.scheduler import (
 from lnbits.db import Page
 from lnbits.settings import settings
 from lnbits.utils.cron import next_run_at
+from lnbits.utils.error import safe_error_message
 
 SCHEDULER_USER_PERMISSION = "scheduler.user"
 SCHEDULER_EXTENSION_PERMISSION = "scheduler.extension"
@@ -348,19 +349,16 @@ class Scheduler:
                 error_summary = "Scheduling access or the execution lease was lost."
             else:
                 status = "failed"
-                # Fixed messages deliberately exclude exception text and payloads.
+                message = safe_error_message(str(exc))
                 error_summary = (
-                    "Execution failed because permission was denied."
-                    if isinstance(exc, PermissionError)
-                    else (
-                        "Execution timed out."
-                        if isinstance(exc, TimeoutError)
-                        else "Scheduled callback failed."
-                    )
-                )
+                    f"{type(exc).__name__}: {message}"
+                    if message
+                    else type(exc).__name__
+                )[:500]
             logger.warning(
-                "Scheduled job {} failed; next attempt follows its cron schedule.",
+                "Scheduled job {} failed ({}); next attempt follows its cron schedule.",
                 job.id,
+                error_summary,
             )
         finally:
             tasks: list[asyncio.Task] = [

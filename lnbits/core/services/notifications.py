@@ -121,20 +121,23 @@ async def send_notification(
             await send_telegram_notification(telegram_chat_id, message)
             logger.debug(f"Sent telegram notification: {message_type}")
     except Exception as e:
-        logger.error(f"Error sending telegram notification {message_type}: {e}")
+        logger.warning(
+            f"Error sending telegram notification {message_type}: "
+            f"{_telegram_error_message(e)}"
+        )
 
     try:
         if nostr_identifiers and settings.is_nostr_notifications_configured():
             await send_nostr_notifications(nostr_identifiers, message)
-            logger.debug(f"Sent nostr notification: {message_type}")
+            logger.debug(f"Sent nostr notification: {message_type or 'plain text'}")
     except Exception as e:
-        logger.error(f"Error sending nostr notification {message_type}: {e}")
+        logger.warning(f"Error sending nostr notification {message_type}: {e}")
     try:
         if email_addresses and settings.lnbits_email_notifications_enabled:
             await send_email_notification(email_addresses, message)
             logger.debug(f"Sent email notification: {message_type}")
     except Exception as e:
-        logger.error(f"Error sending email notification {message_type}: {e}")
+        logger.warning(f"Error sending email notification {message_type}: {e}")
 
 
 async def send_nostr_notifications(identifiers: list[str], message: str) -> list[str]:
@@ -161,6 +164,33 @@ async def send_nostr_notification(identifier: str, message: str):
         message,
         relays,
     )
+
+
+def _telegram_error_message(error: Exception) -> str:
+    if isinstance(error, httpx.HTTPStatusError):
+        response = error.response
+        try:
+            body = response.json()
+        except ValueError:
+            body = None
+        description = body.get("description") if isinstance(body, dict) else None
+        if not isinstance(description, str) or not description.strip():
+            description = response.reason_phrase or "Telegram request failed"
+        detail = f"HTTP {response.status_code}: {description.strip()}"
+    else:
+        fallbacks: dict[type[Exception], str] = {
+            httpx.ReadTimeout: "Timed out waiting for Telegram",
+            httpx.ConnectTimeout: "Timed out connecting to Telegram",
+            httpx.WriteTimeout: "Timed out sending to Telegram",
+            httpx.PoolTimeout: "Timed out waiting for an available HTTP connection",
+            httpx.TimeoutException: "Telegram request timed out",
+        }
+        description = str(error).strip() or fallbacks.get(
+            type(error), "No error message provided"
+        )
+        detail = f"{type(error).__name__}: {description}"
+    token = settings.lnbits_telegram_notifications_access_token
+    return detail.replace(token, "[redacted]") if token else detail
 
 
 async def send_telegram_notification(chat_id: str, message: str) -> dict:

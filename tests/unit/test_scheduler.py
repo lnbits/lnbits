@@ -7,6 +7,7 @@ from types import SimpleNamespace
 import pytest
 from pydantic import ValidationError
 from pytest_mock.plugin import MockerFixture
+from wasmtime import Trap
 
 from lnbits.app import shutdown
 from lnbits.core.crud import extensions as extension_crud
@@ -1258,7 +1259,7 @@ async def test_scheduler_records_execution_outcomes(schedule_db, clock, outcome)
     async def callback(_job):
         clock.now += 2.25
         if outcome == "failed":
-            raise ValueError("hidden-exception-secret")
+            raise ValueError("secret=hidden-exception-secret")
 
     if outcome != "skipped":
         worker.register("core", "check", callback)
@@ -1279,11 +1280,101 @@ async def test_scheduler_records_execution_outcomes(schedule_db, clock, outcome)
         assert "lease_token" not in run.dict()
         if outcome == "succeeded":
             assert run.error_summary is None
+        elif outcome == "failed":
+            assert run.error_summary == "ValueError: secret=[redacted]"
         else:
             assert run.error_summary
         if outcome != "skipped":
             assert run.finished_at is not None
             assert run.finished_at - run.started_at == 2.25
+    finally:
+        await worker.stop()
+
+
+@pytest.mark.anyio
+@pytest.mark.parametrize(
+    ("error", "expected"),
+    [
+        (
+            ValueError("Remote service refused the request."),
+            "ValueError: Remote service refused the request.",
+        ),
+        (
+            PermissionError("Schedule owner is not active."),
+            "PermissionError: Schedule owner is not active.",
+        ),
+        (TimeoutError(), "TimeoutError"),
+        (
+            RuntimeError(
+                "api_key=private-key token=private-token password=private-password"
+            ),
+            "RuntimeError: api_key=[redacted] token=[redacted] password=[redacted]",
+        ),
+        (
+            RuntimeError("Authorization: Bearer abc.def"),
+            "RuntimeError: Authorization=[redacted]",
+        ),
+        (
+            RuntimeError("Authorization: Basic dXNlcjpwYXNzd29yZA=="),
+            "RuntimeError: Authorization=[redacted]",
+        ),
+        (RuntimeError("Bearer abc.def"), "RuntimeError: Bearer [redacted]"),
+        (
+            RuntimeError('{"secret": "hidden-payload with spaces"}'),
+            'RuntimeError: {"secret"=[redacted]}',
+        ),
+        (
+            RuntimeError("password='hidden password with spaces'"),
+            "RuntimeError: password=[redacted]",
+        ),
+        (RuntimeError('secret="hidden\\"password"'), "RuntimeError: secret=[redacted]"),
+        (RuntimeError("preimage=" + "a" * 64), "RuntimeError: preimage=[redacted]"),
+        (RuntimeError("a" * 64), "RuntimeError: [redacted-hex]"),
+        (
+            RuntimeError("x" * 475 + " " + "a" * 64),
+            ("RuntimeError: " + "x" * 475 + " [redacted-hex]")[:500],
+        ),
+        (RuntimeError("x" * 600), "RuntimeError: " + "x" * 486),
+        (
+            Trap(
+                "error while executing at wasm backtrace:\n"
+                "    0: 0x21 - <unknown>!<wasm function 0>\n\n"
+                "Caused by:\n    wasm trap: wasm `unreachable` instruction executed\n"
+            ),
+            "Trap: wasm trap: wasm `unreachable` instruction executed",
+        ),
+    ],
+)
+async def test_scheduler_records_sanitized_failure_details(
+    schedule_db, clock, mocker: MockerFixture, error: Exception, expected: str
+):
+    await crud.save_scheduled_job(job(payload_json='{"secret":"hidden-payload"}'))
+    worker = Scheduler()
+    warning = mocker.patch.object(service.logger, "warning")
+
+    async def callback(_job):
+        raise error
+
+    worker.register("core", "check", callback)
+    try:
+        await worker.tick()
+        await worker.running["test"][1]
+        page = await crud.get_scheduled_job_runs_paginated(
+            Filters(model=ScheduledJobRunFilters)
+        )
+        assert page.total == 1
+        run = page.data[0]
+        assert run.status == "failed"
+        assert run.error_summary == expected
+        assert "hidden-payload" not in run.json()
+        warning.assert_called_once_with(
+            "Scheduled job {} failed ({}); next attempt follows its cron schedule.",
+            "test",
+            expected,
+        )
+        stored = await crud.get_scheduled_job("test")
+        assert stored and stored.lease_token is None
+        assert stored.next_run_at == NOW + 60
     finally:
         await worker.stop()
 

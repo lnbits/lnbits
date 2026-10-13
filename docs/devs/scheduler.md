@@ -106,8 +106,11 @@ Each attempt is stored in the core database's `scheduled_job_runs` table. Record
 snapshot the job ID, source, handler, scope, timezone, scheduled time, actual
 start and finish times, and result. Durations are calculated from start and finish
 times. User ownership is stored internally so history limits still apply after a
-job is deleted. User IDs and lease tokens are never returned by the API. Payloads,
-exception text, and stack traces are not recorded; errors use fixed summaries.
+job is deleted. User IDs and lease tokens are never returned by the API. Failed
+attempts include the exception type and a redacted error message, limited to 500
+characters, in the run details and server log. Common credential fields, bearer
+tokens, and 64-character hex values are redacted. WASM backtraces are omitted in
+favor of the cause. Job payloads and Python tracebacks are not attached to errors.
 
 Results are `running`, `succeeded`, `failed`, `cancelled`, `interrupted`, or
 `skipped`. Missing or paused jobs and unregistered handlers are skipped. An
