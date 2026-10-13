@@ -42,7 +42,6 @@ ScheduleHandler = Callable[[ScheduledJob], Awaitable[None]]
 
 
 async def maintain_scheduled_job_runs(now: float) -> None:
-    await interrupt_expired_scheduled_job_runs(now)
     await delete_expired_scheduled_job_runs(
         now - settings.lnbits_scheduler_history_retention_days * 86400,
         now - settings.lnbits_scheduler_history_failed_retention_days * 86400,
@@ -126,6 +125,7 @@ class Scheduler:
         self.handlers: dict[tuple[str, str], ScheduleHandler] = {}
         self.running: dict[str, tuple[ScheduledJob, asyncio.Task]] = {}
         self.stopping = False
+        self._next_interrupted_run_check = 0.0
         self._next_history_maintenance = 0.0
 
     def register(self, namespace: str, handler: str, callback: ScheduleHandler) -> None:
@@ -225,8 +225,14 @@ class Scheduler:
         if not settings.lnbits_scheduler_enabled:
             return
         now = time.time()
+        if now >= self._next_interrupted_run_check:
+            self._next_interrupted_run_check = now + 60
+            try:
+                await interrupt_expired_scheduled_job_runs(now)
+            except Exception:
+                logger.warning("Scheduler interrupted run check failed.")
         if now >= self._next_history_maintenance:
-            self._next_history_maintenance = now + 60
+            self._next_history_maintenance = now + 15 * 60
             try:
                 await maintain_scheduled_job_runs(now)
             except Exception:
@@ -292,7 +298,7 @@ class Scheduler:
 
     async def _heartbeat(self, job: ScheduledJob) -> None:
         assert job.lease_token
-        while True:
+        while settings.lnbits_running:
             await asyncio.sleep(self.lease_seconds / 3)
             await check_schedule_access(job.namespace, job.user_id, job)
             now = int(time.time())
