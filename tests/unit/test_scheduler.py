@@ -422,6 +422,7 @@ async def test_scheduler_toggle_keeps_worker_alive_and_resumes_overdue_jobs(
     completed = asyncio.Event()
     callback = mocker.AsyncMock(side_effect=lambda item: completed.set())
     maintenance = mocker.spy(service, "maintain_scheduled_job_runs")
+    interruptions = mocker.spy(service, "interrupt_expired_scheduled_job_runs")
     polling = mocker.spy(service, "get_due_scheduled_jobs")
     worker = Scheduler()
     worker.register("core", "check", callback)
@@ -432,6 +433,7 @@ async def test_scheduler_toggle_keeps_worker_alive_and_resumes_overdue_jobs(
         await asyncio.sleep(0)
         assert not runner.done()
         maintenance.assert_not_awaited()
+        interruptions.assert_not_awaited()
         polling.assert_not_awaited()
         callback.assert_not_awaited()
         assert await crud.get_scheduled_job(overdue.id) == overdue
@@ -1287,12 +1289,45 @@ async def test_scheduler_records_execution_outcomes(schedule_db, clock, outcome)
 
 
 @pytest.mark.anyio
+async def test_history_cleanup_and_interrupted_runs_have_separate_intervals(
+    schedule_db, clock, settings
+):
+    settings.lnbits_scheduler_history_max_runs_per_extension = 1
+    worker = Scheduler()
+    await worker.tick()
+
+    await history_run("old", finished_at=NOW - 1)
+    await history_run("new")
+    await crud.save_scheduled_job(job("abandoned"))
+    claimed = await crud.claim_scheduled_job("abandoned", "claim", NOW, NOW + 60)
+    assert claimed
+    run = await crud.create_scheduled_job_run(claimed, NOW)
+    assert await crud.delete_scheduled_job("abandoned", "core", None, NOW + 60)
+
+    for elapsed, status in ((59, "running"), (60, "interrupted"), (899, "interrupted")):
+        clock.now = NOW + elapsed
+        await worker.tick()
+        page = await crud.get_scheduled_job_runs_paginated(
+            Filters(model=ScheduledJobRunFilters)
+        )
+        assert {entry.job_id for entry in page.data} == {"old", "new", "abandoned"}
+        assert next(entry for entry in page.data if entry.id == run.id).status == status
+
+    clock.now = NOW + 15 * 60
+    await worker.tick()
+    page = await crud.get_scheduled_job_runs_paginated(
+        Filters(model=ScheduledJobRunFilters)
+    )
+    assert {entry.job_id for entry in page.data} == {"new", "abandoned"}
+
+
+@pytest.mark.anyio
 async def test_history_recovers_expired_runs_and_survives_job_deletion(schedule_db):
     await crud.save_scheduled_job(job())
     claimed = await crud.claim_scheduled_job("test", "first", NOW, NOW + 60)
     assert claimed
     run = await crud.create_scheduled_job_run(claimed, NOW)
-    await service.maintain_scheduled_job_runs(NOW + 30)
+    await service.interrupt_expired_scheduled_job_runs(NOW + 30)
     page = await crud.get_scheduled_job_runs_paginated(
         Filters(model=ScheduledJobRunFilters)
     )
@@ -1302,7 +1337,7 @@ async def test_history_recovers_expired_runs_and_survives_job_deletion(schedule_
     claimed = await crud.claim_scheduled_job("test", "second", NOW + 60, NOW + 120)
     assert claimed
     active = await crud.create_scheduled_job_run(claimed, NOW + 60)
-    await service.maintain_scheduled_job_runs(NOW + 61)
+    await service.interrupt_expired_scheduled_job_runs(NOW + 61)
     # A late result from the old attempt cannot overwrite an interrupted result.
     await crud.finish_scheduled_job_run(run.id, "succeeded", NOW + 62)
     page = await crud.get_scheduled_job_runs_paginated(
@@ -1511,7 +1546,7 @@ async def test_history_user_cap_spans_handlers_sources_and_deleted_jobs(
 
     # The same worker applies a lowered limit on its next maintenance tick.
     settings.lnbits_scheduler_history_max_runs_per_user = 1
-    clock.now += 60
+    clock.now += 15 * 60
     await worker.tick()
     page = await crud.get_scheduled_job_runs_paginated(
         Filters(model=ScheduledJobRunFilters)

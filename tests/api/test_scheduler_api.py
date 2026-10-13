@@ -5,7 +5,9 @@ import pytest
 
 from lnbits.core.crud import scheduler as crud
 from lnbits.core.crud.settings import get_settings_field
+from lnbits.core.crud.users import create_account, delete_account
 from lnbits.core.models.scheduler import ScheduledJob
+from lnbits.core.models.users import Account
 
 
 @pytest.fixture
@@ -106,6 +108,9 @@ async def test_scheduler_overview_paginates_and_omits_private_fields(
             "namespace",
             "handler",
             "scope",
+            "user_id",
+            "username",
+            "email",
             "cron_expression",
             "timezone",
             "enabled",
@@ -115,7 +120,12 @@ async def test_scheduler_overview_paginates_and_omits_private_fields(
         }
         assert job["last_run_at"] is None
         assert job["last_result"] is None
-    assert "private-scheduler" not in response.text
+        assert job["username"] is None
+        assert job["email"] is None
+    assert page["data"][0]["user_id"] is None
+    assert page["data"][1]["user_id"] == scheduled_jobs[2].user_id
+    assert "private-scheduler-payload" not in response.text
+    assert "private-scheduler-lease" not in response.text
 
     response = await http_client.get(
         "/scheduler/api/v1",
@@ -135,6 +145,90 @@ async def test_scheduler_overview_paginates_and_omits_private_fields(
         "user",
         "extension",
     ]
+
+
+@pytest.mark.anyio
+@pytest.mark.parametrize(
+    "username,email",
+    [
+        ("scheduler_owner", "scheduler@example.com"),
+        (None, "scheduler@example.com"),
+        (None, None),
+    ],
+)
+async def test_scheduler_overview_returns_user_identity(
+    http_client, superuser_token, scheduled_jobs, username, email
+):
+    account = await create_account(
+        Account(id=uuid4().hex, username=username, email=email)
+    )
+    job = scheduled_jobs[2].copy(
+        update={"id": f"{scheduled_jobs[2].id}-account", "user_id": account.id}
+    )
+    await crud.save_scheduled_job(job)
+    try:
+        response = await http_client.get(
+            "/scheduler/api/v1",
+            params={"namespace": job.namespace, "user_id": job.user_id},
+            headers={"Authorization": f"Bearer {superuser_token}"},
+        )
+        assert response.status_code == 200
+        assert response.json()["total"] == 1
+        summary = response.json()["data"][0]
+        assert summary["user_id"] == job.user_id
+        assert summary["username"] == username
+        assert summary["email"] == email
+    finally:
+        await crud.delete_scheduled_job(
+            job.id, job.namespace, job.user_id, int(time.time())
+        )
+        await delete_account(account.id)
+
+
+@pytest.mark.anyio
+async def test_scheduler_overview_partial_user_filter_paginates(
+    http_client, superuser_token, scheduled_jobs
+):
+    job = scheduled_jobs[2]
+    second = job.copy(update={"id": f"{job.id}-second"})
+    other = job.copy(update={"id": f"{job.id}-other", "user_id": "another-owner"})
+    await crud.save_scheduled_job(second)
+    await crud.save_scheduled_job(other)
+    headers = {"Authorization": f"Bearer {superuser_token}"}
+    try:
+        for fragment in ["private", "scheduler"]:
+            ids = []
+            for offset in range(3):
+                response = await http_client.get(
+                    "/scheduler/api/v1",
+                    params={
+                        "namespace": job.namespace,
+                        "user_id[like]": fragment,
+                        "enabled": "false",
+                        "limit": 1,
+                        "offset": offset,
+                    },
+                    headers=headers,
+                )
+                assert response.status_code == 200
+                page = response.json()
+                assert page["total"] == 2
+                assert len(page["data"]) == (1 if offset < 2 else 0)
+                ids.extend(entry["id"] for entry in page["data"])
+            assert set(ids) == {job.id, second.id}
+        for fragment in ["missing-owner", "' OR 1=1 --"]:
+            response = await http_client.get(
+                "/scheduler/api/v1",
+                params={"namespace": job.namespace, "user_id[like]": fragment},
+                headers=headers,
+            )
+            assert response.status_code == 200
+            assert response.json() == {"data": [], "total": 0}
+    finally:
+        for added in [second, other]:
+            await crud.delete_scheduled_job(
+                added.id, added.namespace, added.user_id, int(time.time())
+            )
 
 
 @pytest.mark.anyio

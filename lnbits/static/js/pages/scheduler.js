@@ -6,6 +6,7 @@ window.PageScheduler = {
       sources: [],
       source: null,
       enabled: null,
+      userId: '',
       loadError: false,
       requestId: 0,
       history: {
@@ -45,7 +46,7 @@ window.PageScheduler = {
       return [
         ['namespace', 'scheduler_source'],
         ['handler', 'scheduler_handler'],
-        ['scope', 'scheduler_scope'],
+        ['user_id', 'scheduler_user'],
         ['cron_expression', 'scheduler_schedule'],
         ['next_run_at', 'scheduler_next_run'],
         ['last_run_at', 'scheduler_last_run'],
@@ -56,7 +57,7 @@ window.PageScheduler = {
         field: name,
         label: this.$t(label),
         align: 'left',
-        sortable: name !== 'cron_expression'
+        sortable: !['cron_expression', 'user_id'].includes(name)
       }))
     },
     sourceOptions() {
@@ -106,6 +107,14 @@ window.PageScheduler = {
     this.history.requestId++
   },
   methods: {
+    userLabel(job) {
+      if (!job.user_id) return '—'
+      return (
+        job.username ||
+        job.email ||
+        `${job.user_id.slice(0, 5)}...${job.user_id.slice(-5)}`
+      )
+    },
     sourceLabel(namespace) {
       return namespace === 'core'
         ? this.$t('scheduler_core')
@@ -228,6 +237,7 @@ window.PageScheduler = {
       const filters = {}
       if (this.source) filters.namespace = this.source
       if (this.enabled !== null) filters.enabled = this.enabled
+      if (this.userId?.trim()) filters['user_id[like]'] = this.userId.trim()
       const params = LNbits.utils.prepareFilterQuery(
         this.jobsTable,
         props,

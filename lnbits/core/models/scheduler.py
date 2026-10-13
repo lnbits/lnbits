@@ -126,6 +126,9 @@ class ScheduledJobSummary(BaseModel):
     namespace: str
     handler: str
     scope: Literal["core", "extension", "user"]
+    user_id: str | None = None
+    username: str | None = None
+    email: str | None = None
     cron_expression: str
     timezone: str
     enabled: bool
@@ -151,3 +154,4 @@ class ScheduledJobFilters(FilterModel):
     handler: str | None = None
     enabled: bool | None = None
     scope: Literal["core", "extension", "user"] | None = None
+    user_id: str | None = None

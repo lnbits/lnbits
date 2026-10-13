@@ -40,7 +40,7 @@
     >
       <template v-slot:top>
         <div class="row q-col-gutter-md full-width">
-          <div class="col-12 col-sm-6">
+          <div class="col-12 col-sm-3">
             <q-input
               v-model="jobsTable.search"
               :label="$t('scheduler_search')"
@@ -54,6 +54,17 @@
                 ><q-icon name="search"></q-icon
               ></template>
             </q-input>
+          </div>
+          <div class="col-12 col-sm-3">
+            <q-input
+              v-model="userId"
+              :label="$t('user_id')"
+              debounce="300"
+              outlined
+              dense
+              clearable
+              @update:model-value="filterJobs"
+            ></q-input>
           </div>
           <div class="col-6 col-sm-3">
             <q-select
@@ -102,8 +113,12 @@
           <div class="text-caption text-grey" v-text="props.row.id"></div>
         </q-td>
       </template>
-      <template v-slot:body-cell-scope="props">
-        <q-td :props="props" v-text="$t('scheduler_' + props.row.scope)"></q-td>
+      <template v-slot:body-cell-user_id="props">
+        <q-td
+          :props="props"
+          :title="props.row.user_id"
+          v-text="userLabel(props.row)"
+        ></q-td>
       </template>
       <template v-slot:body-cell-cron_expression="props">
         <q-td :props="props">

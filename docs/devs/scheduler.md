@@ -123,10 +123,12 @@ a restart:
 - `lnbits_scheduler_history_max_runs_per_extension`: 1,000 completed shared attempts
   per extension, across all handlers. User attempts do not consume this limit.
 
-All settings have a minimum of one. Maintenance runs once per minute while the
-scheduler is enabled. Completed attempts expire relative to their finish time;
-interrupted attempts use their start time. After expired attempts are removed,
-count limits remove oldest non-failed attempts first, then oldest failures.
+All settings have a minimum of one. While the scheduler is enabled, abandoned
+runs are marked interrupted once per minute and history cleanup runs every
+15 minutes. History can temporarily exceed its limits between cleanups.
+Completed attempts expire relative to their finish time; interrupted attempts
+use their start time. After expired attempts are removed, count limits remove
+oldest non-failed attempts first, then oldest failures.
 Active runs are preserved and do not count toward these limits. Shared core jobs
 use age retention only.
 

@@ -87,12 +87,14 @@ async def get_scheduled_jobs_overview_paginated(
         SELECT * FROM (
             SELECT job.id, job.namespace, job.handler, job.cron_expression,
                    job.timezone, job.enabled, job.next_run_at,
+                   job.user_id, account.username, account.email,
                    last_run.started_at AS last_run_at,
                    last_run.status AS last_result,
                    CASE WHEN job.user_id IS NOT NULL THEN 'user'
                         WHEN job.namespace = 'core' THEN 'core'
                         ELSE 'extension' END AS scope
             FROM scheduled_jobs AS job
+            LEFT JOIN accounts AS account ON account.id = job.user_id
             LEFT JOIN scheduled_job_runs AS last_run ON last_run.id = (
                 SELECT id FROM scheduled_job_runs
                 WHERE job_id = job.id AND namespace = job.namespace
