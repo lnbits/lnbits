@@ -5,4 +5,4 @@ include('pages/account.vue') %} {% include('pages/extensions_builder.vue') %} {%
 include('pages/extensions.vue') %} {% include('pages/first-install.vue') %} {%
 include('pages/home.vue') %} {% include('pages/wallet.vue') %} {%
 include('pages/error.vue') %} {% include('pages/blockexplorer.vue') %} {%
-include('pages/scheduler.vue') %}
+include('pages/scheduler.vue') %} {% include('pages/scheduler-runs.vue') %}

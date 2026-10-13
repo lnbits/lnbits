@@ -95,9 +95,12 @@ monitoring (`trigger_type="schedule"`, schedule ID in `context`).
 
 The admin-only Scheduler page shows each job's latest attempt and result. Select
 a job to open its execution history, or use **Run history** to browse all retained
-attempts, including deleted jobs. The drawer supports search, result filtering,
-and pagination. Its API is `GET /scheduler/api/v1/runs`, with optional `job_id`,
-`namespace`, `status`, `search`, `limit`, and `offset` parameters.
+attempts, including deleted jobs. History opens on `/scheduler/runs` with
+clearable job ID, namespace, user ID, and status filters, search, and pagination.
+Opening a job prefills its job ID, namespace, and user ID. Filters are stored in
+the URL so refreshes and shared links preserve them. Its API is
+`GET /scheduler/api/v1/runs`, with optional `job_id`, `namespace`, `user_id`,
+`status`, `search`, `limit`, and `offset` parameters.
 
 Each attempt is stored in the core database's `scheduled_job_runs` table. Records
 snapshot the job ID, source, handler, scope, timezone, scheduled time, actual

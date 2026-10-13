@@ -118,6 +118,7 @@ class ScheduledJobRunFilters(FilterModel):
 
     job_id: str | None = None
     namespace: str | None = None
+    user_id: str | None = None
     status: ScheduledJobRunStatus | None = None
 
 

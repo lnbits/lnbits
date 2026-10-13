@@ -9,25 +9,6 @@ window.PageScheduler = {
       userId: '',
       loadError: false,
       requestId: 0,
-      history: {
-        show: false,
-        job: null,
-        runs: [],
-        status: null,
-        loadError: false,
-        requestId: 0,
-        table: {
-          pagination: {
-            sortBy: 'started_at',
-            descending: true,
-            page: 1,
-            rowsPerPage: 10,
-            rowsNumber: 0
-          },
-          search: '',
-          loading: false
-        }
-      },
       jobsTable: {
         pagination: {
           sortBy: 'next_run_at',
@@ -71,32 +52,6 @@ window.PageScheduler = {
         {label: this.$t('enabled'), value: true},
         {label: this.$t('scheduler_paused'), value: false}
       ]
-    },
-    runStatusOptions() {
-      return [
-        'running',
-        'succeeded',
-        'failed',
-        'cancelled',
-        'interrupted',
-        'skipped'
-      ].map(value => ({value, label: this.$t('scheduler_run_' + value)}))
-    },
-    historyColumns() {
-      return [
-        ...(!this.history.job ? [['job_id', 'scheduler_job']] : []),
-        ['started_at', 'scheduler_started'],
-        ['finished_at', 'scheduler_finished'],
-        ['duration', 'scheduler_duration'],
-        ['status', 'scheduler_result'],
-        ['error_summary', 'scheduler_details']
-      ].map(([name, label]) => ({
-        name,
-        field: name,
-        label: this.$t(label),
-        align: 'left',
-        sortable: ['started_at', 'finished_at', 'status'].includes(name)
-      }))
     }
   },
   created() {
@@ -104,7 +59,6 @@ window.PageScheduler = {
   },
   beforeUnmount() {
     this.requestId++
-    this.history.requestId++
   },
   methods: {
     userLabel(job) {
@@ -175,58 +129,14 @@ window.PageScheduler = {
         }[status] || 'grey'
       )
     },
-    runDuration(run) {
-      if (run.finished_at === null) return '—'
-      const ms = Math.max(0, (run.finished_at - run.started_at) * 1000)
-      return ms < 1000 ? `${Math.round(ms)} ms` : `${(ms / 1000).toFixed(2)} s`
-    },
     openHistory(job = null) {
-      this.history.job = job
-      this.history.status = null
-      this.history.table.search = ''
-      this.history.table.pagination.page = 1
-      this.history.runs = []
-      this.history.show = true
-      this.fetchHistory()
-    },
-    filterHistory() {
-      this.history.table.pagination.page = 1
-      this.fetchHistory()
-    },
-    async fetchHistory(props) {
-      const requestId = ++this.history.requestId
-      const filters = {}
-      if (this.history.job) {
-        filters.job_id = this.history.job.id
-        filters.namespace = this.history.job.namespace
+      const query = {}
+      if (job) {
+        query.job_id = job.id
+        query.namespace = job.namespace
+        if (job.user_id) query.user_id = job.user_id
       }
-      if (this.history.status) filters.status = this.history.status
-      const params = LNbits.utils.prepareFilterQuery(
-        this.history.table,
-        props,
-        filters
-      )
-      this.history.loadError = false
-      try {
-        const {data} = await LNbits.api.request(
-          'GET',
-          `/scheduler/api/v1/runs?${params}`
-        )
-        if (requestId !== this.history.requestId) return
-        this.history.runs = data.data
-        this.history.table.pagination.rowsNumber = data.total
-        if (!data.data.length && this.history.table.pagination.page > 1)
-          this.filterHistory()
-      } catch (error) {
-        if (requestId !== this.history.requestId) return
-        this.history.runs = []
-        this.history.table.pagination.rowsNumber = 0
-        this.history.loadError = true
-        LNbits.utils.notifyApiError(error)
-      } finally {
-        if (requestId === this.history.requestId)
-          this.history.table.loading = false
-      }
+      this.$router.push({path: '/scheduler/runs', query})
     },
     filterJobs() {
       this.jobsTable.pagination.page = 1

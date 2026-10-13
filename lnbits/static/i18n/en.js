@@ -188,6 +188,8 @@ window.localisation.en = {
   scheduler_last_result: 'Last result',
   scheduler_result: 'Result',
   scheduler_job: 'Job',
+  scheduler_job_id: 'Job ID',
+  scheduler_namespace: 'Namespace',
   scheduler_started: 'Started',
   scheduler_finished: 'Finished',
   scheduler_duration: 'Duration',

@@ -54,7 +54,13 @@ async def scheduled_jobs(http_client):
 
 @pytest.mark.anyio
 @pytest.mark.parametrize(
-    "path", ["/scheduler/api/v1", "/scheduler/api/v1/sources", "/scheduler/api/v1/runs"]
+    "path",
+    [
+        "/scheduler/api/v1",
+        "/scheduler/api/v1/sources",
+        "/scheduler/api/v1/runs",
+        "/scheduler/runs",
+    ],
 )
 @pytest.mark.parametrize("role", ["anonymous", "user", "admin"])
 async def test_scheduler_api_access(
@@ -71,11 +77,19 @@ async def test_scheduler_api_access(
 
     response = await http_client.get(path, headers=headers)
     assert response.status_code == {"anonymous": 401, "user": 403, "admin": 200}[role]
+    if path == "/scheduler/runs" and role == "admin":
+        assert 'id="page-scheduler-runs"' in response.text
 
 
 @pytest.mark.anyio
 @pytest.mark.parametrize(
-    "path", ["/scheduler/api/v1", "/scheduler/api/v1/sources", "/scheduler/api/v1/runs"]
+    "path",
+    [
+        "/scheduler/api/v1",
+        "/scheduler/api/v1/sources",
+        "/scheduler/api/v1/runs",
+        "/scheduler/runs",
+    ],
 )
 async def test_scheduler_api_respects_disabled_admin_ui(
     http_client, settings, superuser_token, path
@@ -383,6 +397,59 @@ async def test_scheduler_history_filters_paginates_and_survives_deletion(
     )
     assert response.json()["total"] == 2
     assert {run["job_id"] for run in response.json()["data"]} == {job.id}
+
+
+@pytest.mark.anyio
+async def test_scheduler_history_filters_user_after_job_deletion(
+    http_client, superuser_token, scheduled_jobs
+):
+    now = int(time.time())
+    owned_runs = []
+    for index, user_id in enumerate(("alice", "alice", "bob", None)):
+        job = await crud.save_scheduled_job(
+            scheduled_jobs[1].copy(
+                update={"id": f"{scheduled_jobs[1].id}-{index}", "user_id": user_id}
+            )
+        )
+        claimed = await crud.claim_scheduled_job(
+            job.id, uuid4().hex, now + 60, now + 120
+        )
+        assert claimed
+        run = await crud.create_scheduled_job_run(claimed, now + index)
+        status = "failed" if index == 0 else "succeeded"
+        await crud.finish_scheduled_job_run(run.id, status, now + index + 0.5)
+        await crud.finish_scheduled_job(claimed, now + 180)
+        assert await crud.delete_scheduled_job(job.id, job.namespace, user_id, now)
+        if user_id == "alice":
+            owned_runs.append(run)
+
+    headers = {"Authorization": f"Bearer {superuser_token}"}
+    params = {"namespace": scheduled_jobs[1].namespace, "user_id": "alice", "limit": 1}
+    response = await http_client.get(
+        "/scheduler/api/v1/runs", params=params, headers=headers
+    )
+    assert response.status_code == 200
+    assert response.json()["total"] == 2
+    assert response.json()["data"][0]["id"] == owned_runs[1].id
+    assert "user_id" not in response.json()["data"][0]
+
+    response = await http_client.get(
+        "/scheduler/api/v1/runs", params={**params, "offset": 1}, headers=headers
+    )
+    assert response.json()["data"][0]["id"] == owned_runs[0].id
+    response = await http_client.get(
+        "/scheduler/api/v1/runs",
+        params={**params, "job_id": owned_runs[0].job_id, "status": "failed"},
+        headers=headers,
+    )
+    assert response.json()["total"] == 1
+    assert response.json()["data"][0]["id"] == owned_runs[0].id
+    response = await http_client.get(
+        "/scheduler/api/v1/runs",
+        params={"namespace": scheduled_jobs[1].namespace},
+        headers=headers,
+    )
+    assert response.json()["total"] == 4
 
 
 @pytest.mark.anyio

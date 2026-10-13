@@ -97,6 +97,14 @@ const routes = [
     }
   },
   {
+    path: '/scheduler/runs',
+    name: 'SchedulerRuns',
+    component: PageSchedulerRuns,
+    beforeEnter: () => {
+      if (!window.g.user?.admin || !window.g.settings.showAdmin) return '/'
+    }
+  },
+  {
     path: '/wallet',
     redirect: to => {
       const walletId =
