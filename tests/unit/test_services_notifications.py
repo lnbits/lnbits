@@ -349,11 +349,11 @@ async def test_send_notification_logs_useful_telegram_transport_errors(
         "lnbits.core.services.notifications.httpx.AsyncClient",
         return_value=MockHTTPClient(post_exception=error),
     )
-    log_error = mocker.patch("lnbits.core.services.notifications.logger.error")
+    log_warning = mocker.patch("lnbits.core.services.notifications.logger.warning")
 
     await send_notification("chat-id", [], [], "hello")
 
-    log_error.assert_called_once_with(
+    log_warning.assert_called_once_with(
         f"Error sending telegram notification None: {expected}"
     )
 
@@ -400,15 +400,15 @@ async def test_send_notification_logs_telegram_http_errors_without_token(
         "lnbits.core.services.notifications.httpx.AsyncClient",
         return_value=MockHTTPClient(post_response=response),
     )
-    log_error = mocker.patch("lnbits.core.services.notifications.logger.error")
+    log_warning = mocker.patch("lnbits.core.services.notifications.logger.warning")
 
     await send_notification("chat-id", [], [], "hello", "text_message")
 
-    log_error.assert_called_once_with(
+    log_warning.assert_called_once_with(
         f"Error sending telegram notification text_message: HTTP {status}: {expected}"
     )
-    assert "test-bot-token" not in log_error.call_args.args[0]
-    assert "api.telegram.org" not in log_error.call_args.args[0]
+    assert "test-bot-token" not in log_warning.call_args.args[0]
+    assert "api.telegram.org" not in log_warning.call_args.args[0]
 
 
 @pytest.mark.anyio
@@ -429,15 +429,15 @@ async def test_send_notification_redacts_token_from_telegram_exception(
             )
         ),
     )
-    log_error = mocker.patch("lnbits.core.services.notifications.logger.error")
+    log_warning = mocker.patch("lnbits.core.services.notifications.logger.warning")
 
     await send_notification("chat-id", [], [], "hello")
 
-    log_error.assert_called_once_with(
+    log_warning.assert_called_once_with(
         "Error sending telegram notification None: ConnectError: "
         "Cannot connect to https://api.telegram.org/bot[redacted]/sendMessage"
     )
-    assert "test-bot-token" not in log_error.call_args.args[0]
+    assert "test-bot-token" not in log_warning.call_args.args[0]
 
 
 @pytest.mark.anyio
