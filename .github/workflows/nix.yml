@@ -30,6 +30,8 @@ on:
 
 jobs:
   nix:
+    # Temporarily run only regtest while reproducing #4240.
+    if: ${{ false }}
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4

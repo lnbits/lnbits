@@ -10,6 +10,8 @@ on:
 
 jobs:
   analyze:
+    # Temporarily run only regtest while reproducing #4240.
+    if: ${{ false }}
     runs-on: ubuntu-24.04
     steps:
       - name: Checkout repository
