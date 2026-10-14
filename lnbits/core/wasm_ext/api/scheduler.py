@@ -64,24 +64,6 @@ class ExtensionSchedulerAPI:
     def __init__(self, api: ExtensionHostAPI):
         self.api = api
 
-    async def _owner(self, scope: str) -> str | None:
-        # A scheduled callback must not impersonate an interactive user, even if
-        # it has that user's storage/notification context.
-        if self.api.context != "user" or not self.api.user_id:
-            raise PermissionError(
-                "Managing schedules requires an authenticated request."
-            )
-        account = await get_account(self.api.user_id)
-        if not account or not account.activated:
-            raise PermissionError("Schedule owner is not active.")
-        if scope == "extension":
-            if not account.is_admin:
-                raise PermissionError(
-                    "Extension-wide schedules require an administrator."
-                )
-            return None
-        return self.api.user_id
-
     @extension_api_method(
         method_id="scheduler.set",
         namespace="scheduler",
@@ -159,3 +141,21 @@ class ExtensionSchedulerAPI:
             f"extension:{self.api.extension_id}", request.id, user_id=owner
         )
         return ScheduleDeleteResponse(deleted=deleted)
+
+    async def _owner(self, scope: str) -> str | None:
+        # A scheduled callback must not impersonate an interactive user, even if
+        # it has that user's storage/notification context.
+        if self.api.context != "user" or not self.api.user_id:
+            raise PermissionError(
+                "Managing schedules requires an authenticated request."
+            )
+        account = await get_account(self.api.user_id)
+        if not account or not account.activated:
+            raise PermissionError("Schedule owner is not active.")
+        if scope == "extension":
+            if not account.is_admin:
+                raise PermissionError(
+                    "Extension-wide schedules require an administrator."
+                )
+            return None
+        return self.api.user_id

@@ -166,33 +166,6 @@ async def send_nostr_notification(identifier: str, message: str):
     )
 
 
-def _telegram_error_message(error: Exception) -> str:
-    if isinstance(error, httpx.HTTPStatusError):
-        response = error.response
-        try:
-            body = response.json()
-        except ValueError:
-            body = None
-        description = body.get("description") if isinstance(body, dict) else None
-        if not isinstance(description, str) or not description.strip():
-            description = response.reason_phrase or "Telegram request failed"
-        detail = f"HTTP {response.status_code}: {description.strip()}"
-    else:
-        fallbacks: dict[type[Exception], str] = {
-            httpx.ReadTimeout: "Timed out waiting for Telegram",
-            httpx.ConnectTimeout: "Timed out connecting to Telegram",
-            httpx.WriteTimeout: "Timed out sending to Telegram",
-            httpx.PoolTimeout: "Timed out waiting for an available HTTP connection",
-            httpx.TimeoutException: "Telegram request timed out",
-        }
-        description = str(error).strip() or fallbacks.get(
-            type(error), "No error message provided"
-        )
-        detail = f"{type(error).__name__}: {description}"
-    token = settings.lnbits_telegram_notifications_access_token
-    return detail.replace(token, "[redacted]") if token else detail
-
-
 async def send_telegram_notification(chat_id: str, message: str) -> dict:
     return await send_telegram_message(
         settings.lnbits_telegram_notifications_access_token,
@@ -554,3 +527,30 @@ async def _resolve_webhook_host(
     if not addresses:
         raise ValueError("Webhook target could not be resolved.")
     return addresses
+
+
+def _telegram_error_message(error: Exception) -> str:
+    if isinstance(error, httpx.HTTPStatusError):
+        response = error.response
+        try:
+            body = response.json()
+        except ValueError:
+            body = None
+        description = body.get("description") if isinstance(body, dict) else None
+        if not isinstance(description, str) or not description.strip():
+            description = response.reason_phrase or "Telegram request failed"
+        detail = f"HTTP {response.status_code}: {description.strip()}"
+    else:
+        fallbacks: dict[type[Exception], str] = {
+            httpx.ReadTimeout: "Timed out waiting for Telegram",
+            httpx.ConnectTimeout: "Timed out connecting to Telegram",
+            httpx.WriteTimeout: "Timed out sending to Telegram",
+            httpx.PoolTimeout: "Timed out waiting for an available HTTP connection",
+            httpx.TimeoutException: "Telegram request timed out",
+        }
+        description = str(error).strip() or fallbacks.get(
+            type(error), "No error message provided"
+        )
+        detail = f"{type(error).__name__}: {description}"
+    token = settings.lnbits_telegram_notifications_access_token
+    return detail.replace(token, "[redacted]") if token else detail

@@ -117,20 +117,6 @@ def validate_wasm_extension_permissions(
     return effective_permissions
 
 
-def _validate_automatic_schedules(
-    schedules: list[SchedulePolicy], permissions: list[ExtensionPermission]
-) -> None:
-    if not schedules:
-        return
-    grant = next((p for p in permissions if p.id == "scheduler.extension"), None)
-    approved = SchedulePolicy.parse_policies(grant.policies) if grant else {}
-    for schedule in schedules:
-        if approved.get(schedule.handler) != schedule:
-            raise ValueError(
-                "Automatic schedules require matching scheduler.extension policies."
-            )
-
-
 def _permission_index(
     ext_id: str,
     permissions: Iterable[ExtensionPermission],
@@ -220,36 +206,6 @@ def _validate_requested_permission_policies(
 
 def _policy_list(policies: list[Any] | None) -> list[Any]:
     return policies if isinstance(policies, list) else []
-
-
-def _schedule_grant_is_subset(
-    requested_policies: list[Any] | None,
-    granted_policies: list[Any] | None,
-    *,
-    user_scope: bool = False,
-    allow_job_limit_override: bool = False,
-) -> bool:
-    try:
-        requested = SchedulePolicy.parse_policies(
-            requested_policies, user_scope=user_scope
-        )
-        granted = SchedulePolicy.parse_policies(granted_policies, user_scope=user_scope)
-    except ValueError:
-        return False
-    for handler, policy in granted.items():
-        declared = requested.get(handler)
-        if not declared or declared.dict(exclude={"max_jobs_per_user"}) != policy.dict(
-            exclude={"max_jobs_per_user"}
-        ):
-            return False
-        if (
-            isinstance(policy, UserSchedulePolicy)
-            and isinstance(declared, UserSchedulePolicy)
-            and policy.max_jobs_per_user > declared.max_jobs_per_user
-            and not allow_job_limit_override
-        ):
-            return False
-    return True
 
 
 def _http_request_grant_is_subset(
@@ -481,3 +437,47 @@ def _websocket_publish_policy(policies: list[Any] | None) -> dict[str, int] | No
     ):
         return None
     return {"max_messages_per_second": max_messages_per_second}
+
+
+def _validate_automatic_schedules(
+    schedules: list[SchedulePolicy], permissions: list[ExtensionPermission]
+) -> None:
+    if not schedules:
+        return
+    grant = next((p for p in permissions if p.id == "scheduler.extension"), None)
+    approved = SchedulePolicy.parse_policies(grant.policies) if grant else {}
+    for schedule in schedules:
+        if approved.get(schedule.handler) != schedule:
+            raise ValueError(
+                "Automatic schedules require matching scheduler.extension policies."
+            )
+
+
+def _schedule_grant_is_subset(
+    requested_policies: list[Any] | None,
+    granted_policies: list[Any] | None,
+    *,
+    user_scope: bool = False,
+    allow_job_limit_override: bool = False,
+) -> bool:
+    try:
+        requested = SchedulePolicy.parse_policies(
+            requested_policies, user_scope=user_scope
+        )
+        granted = SchedulePolicy.parse_policies(granted_policies, user_scope=user_scope)
+    except ValueError:
+        return False
+    for handler, policy in granted.items():
+        declared = requested.get(handler)
+        if not declared or declared.dict(exclude={"max_jobs_per_user"}) != policy.dict(
+            exclude={"max_jobs_per_user"}
+        ):
+            return False
+        if (
+            isinstance(policy, UserSchedulePolicy)
+            and isinstance(declared, UserSchedulePolicy)
+            and policy.max_jobs_per_user > declared.max_jobs_per_user
+            and not allow_job_limit_override
+        ):
+            return False
+    return True

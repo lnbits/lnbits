@@ -137,6 +137,16 @@ async def delete_namespace_schedules(namespace: str) -> None:
     )
 
 
+async def disable_user_schedules(user_id: str) -> None:
+    await db.execute(
+        """
+        UPDATE scheduled_jobs SET enabled = false
+        WHERE user_id = :user_id AND enabled = true
+        """,
+        {"user_id": user_id},
+    )
+
+
 async def get_due_scheduled_jobs(now: int, limit: int) -> list[ScheduledJob]:
     return await db.fetchall(
         """

@@ -71,6 +71,10 @@ avoid daylight-saving shifts.
 - Revoked permissions, disabled extensions, and disabled/deleted users prevent
   further executions. Running jobs recheck access on lease renewal. Extension
   deactivation also cancels its local scheduled callbacks.
+- An execution or lease renewal that finds a deleted or deactivated owner
+  disables all that user's jobs, stopping repeated failed attempts. Existing run
+  history is retained. Reactivating the account does not automatically resume
+  those jobs; their owner must explicitly enable them again.
 - Pausing sets `enabled` to false. A running callback is cancelled on its next
   lease renewal. Deleting an actively leased job is rejected; pause it and wait
   before deleting. Uninstallation removes that extension's schedules.

@@ -12,9 +12,11 @@ from wasmtime import Trap
 from lnbits.app import shutdown
 from lnbits.core.crud import extensions as extension_crud
 from lnbits.core.crud import scheduler as crud
+from lnbits.core.crud import users as user_crud
 from lnbits.core.migrations import (
     m001_initial,
     m020_add_column_column_to_user_extensions,
+    m044_add_activated_to_accounts,
     m049_add_permissions_to_user_extensions,
     m054_create_scheduled_jobs,
     m055_create_scheduled_job_runs,
@@ -916,6 +918,137 @@ async def test_app_shutdown_runs_cleanup_after_scheduler_stop_interruption(
     stop.assert_awaited_once()
     cancel_tasks.assert_called_once()
     cleanup.assert_awaited_once()
+
+
+@pytest.fixture
+async def schedule_accounts(schedule_db, mocker: MockerFixture):
+    async with schedule_db.connect() as conn:
+        await m001_initial(conn)
+        await m044_add_activated_to_accounts(conn)
+        await conn.execute("INSERT INTO accounts (id) VALUES ('alice'), ('bob')")
+    mocker.patch.object(user_crud, "db", schedule_db)
+    mocker.patch.object(service, "get_account", user_crud.get_account)
+    return schedule_db
+
+
+@pytest.mark.anyio
+@pytest.mark.parametrize("owner_state", ["deleted", "deactivated"])
+async def test_inactive_owner_schedules_stop_accumulating_runs(
+    schedule_accounts, clock, mocker: MockerFixture, owner_state
+):
+    original = {}
+    for job_id, namespace, owner, handler, enabled in (
+        ("orphan", "core", "alice", "check", True),
+        ("other-handler", "extension:one", "alice", "other", True),
+        ("other-extension", "extension:two", "alice", "check", True),
+        ("paused", "core", "alice", "check", False),
+        ("other-user", "core", "bob", "check", True),
+        ("shared", "core", None, "check", True),
+    ):
+        original[job_id] = await crud.save_scheduled_job(
+            job(job_id).copy(
+                update={
+                    "namespace": namespace,
+                    "user_id": owner,
+                    "handler": handler,
+                    "enabled": enabled,
+                    "next_run_at": NOW if job_id == "orphan" else NOW + 3600,
+                }
+            )
+        )
+    if owner_state == "deleted":
+        await user_crud.delete_account("alice")
+    else:
+        await schedule_accounts.execute(
+            "UPDATE accounts SET activated = false WHERE id = :id", {"id": "alice"}
+        )
+    worker = Scheduler()
+    callback = mocker.AsyncMock()
+    worker.register("core", "check", callback)
+    try:
+        await worker.tick()
+        await asyncio.wait_for(worker.running["orphan"][1], 2)
+        callback.assert_not_awaited()
+        for job_id in ("orphan", "other-handler", "other-extension", "paused"):
+            stored = await crud.get_scheduled_job(job_id)
+            assert stored and not stored.enabled
+        for job_id in ("other-user", "shared", "paused"):
+            assert await crud.get_scheduled_job(job_id) == original[job_id]
+        history = await crud.get_scheduled_job_runs_paginated(
+            Filters(model=ScheduledJobRunFilters)
+        )
+        assert history.total == 1 and history.data[0].status == "failed"
+
+        # Restoring the account must not automatically resume disabled jobs.
+        await schedule_accounts.execute(
+            "INSERT INTO accounts (id, activated) VALUES (:id, true) "
+            "ON CONFLICT (id) DO UPDATE SET activated = true",
+            {"id": "alice"},
+        )
+        for _ in range(2):
+            clock.now += 60
+            await worker.tick()
+            assert not worker.running
+            assert (
+                await crud.get_scheduled_job_runs_paginated(
+                    Filters(model=ScheduledJobRunFilters)
+                )
+                == history
+            )
+        callback.assert_not_awaited()
+    finally:
+        await worker.stop()
+
+
+@pytest.mark.anyio
+@pytest.mark.parametrize("owner_state", ["deleted", "deactivated"])
+async def test_inactive_owner_heartbeat_disables_schedules_and_cancels_callback(
+    schedule_accounts, clock, owner_state
+):
+    await crud.save_scheduled_job(job("running", user_id="alice"))
+    await crud.save_scheduled_job(
+        job("future", user_id="alice").copy(update={"next_run_at": NOW + 3600})
+    )
+    worker = Scheduler(lease_seconds=3)
+    started, cancelled = asyncio.Event(), asyncio.Event()
+
+    async def callback(item):
+        started.set()
+        try:
+            await asyncio.Event().wait()
+        finally:
+            cancelled.set()
+
+    worker.register("core", "check", callback)
+    try:
+        await worker.tick()
+        await asyncio.wait_for(started.wait(), 2)
+        if owner_state == "deleted":
+            await user_crud.delete_account("alice")
+        else:
+            await schedule_accounts.execute(
+                "UPDATE accounts SET activated = false WHERE id = :id", {"id": "alice"}
+            )
+        await asyncio.wait_for(worker.running["running"][1], 3)
+        assert cancelled.is_set()
+        for job_id in ("running", "future"):
+            stored = await crud.get_scheduled_job(job_id)
+            assert stored and not stored.enabled and stored.lease_token is None
+        history = await crud.get_scheduled_job_runs_paginated(
+            Filters(model=ScheduledJobRunFilters)
+        )
+        assert history.total == 1 and history.data[0].status == "cancelled"
+        clock.now += 60
+        await worker.tick()
+        assert not worker.running
+        assert (
+            await crud.get_scheduled_job_runs_paginated(
+                Filters(model=ScheduledJobRunFilters)
+            )
+            == history
+        )
+    finally:
+        await worker.stop()
 
 
 @pytest.mark.anyio

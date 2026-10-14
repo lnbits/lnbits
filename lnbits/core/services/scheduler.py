@@ -12,6 +12,7 @@ from lnbits.core.crud.scheduler import (
     delete_excess_scheduled_job_runs,
     delete_expired_scheduled_job_runs,
     delete_scheduled_job,
+    disable_user_schedules,
     finish_scheduled_job,
     finish_scheduled_job_run,
     get_due_scheduled_jobs,
@@ -89,26 +90,6 @@ async def check_schedule_access(
     return (
         approved.max_jobs_per_user if isinstance(approved, UserSchedulePolicy) else None
     )
-
-
-def _check_wasm_schedule_policy(
-    permissions: list[ExtensionPermission], permission_id: str, config: SchedulePolicy
-) -> SchedulePolicy:
-    grant = next((item for item in permissions if item.id == permission_id), None)
-    if not grant:
-        raise PermissionError("Extension scheduling permission has been revoked.")
-    try:
-        approved = SchedulePolicy.parse_policies(
-            grant.policies, user_scope=permission_id == SCHEDULER_USER_PERMISSION
-        ).get(config.handler)
-    except ValueError as exc:
-        raise PermissionError("Invalid approved schedule policies.") from exc
-    if not approved or (
-        approved.cron_expression != config.cron_expression
-        or approved.timezone != config.timezone
-    ):
-        raise PermissionError("Schedule does not match an admin-approved policy.")
-    return approved
 
 
 class Scheduler:
@@ -249,6 +230,24 @@ class Scheduler:
             return
         await self._start_due_jobs(int(time.time()), available)
 
+    async def run(self) -> None:
+        self.stopping = False
+        try:
+            while settings.lnbits_running and not self.stopping:
+                await self.tick()
+                await asyncio.sleep(1)
+        finally:
+            await self.stop()
+
+    async def stop(self) -> None:
+        tasks = [task for _, task in self.running.values()]
+        if not self.stopping:
+            self.stopping = True
+            for task in tasks:
+                task.cancel()
+        await asyncio.gather(*tasks, return_exceptions=True)
+        self.running.clear()
+
     async def _start_due_jobs(self, now: int, limit: int) -> None:
         for candidate in await get_due_scheduled_jobs(now, limit):
             if not settings.lnbits_scheduler_enabled:
@@ -268,29 +267,11 @@ class Scheduler:
                     asyncio.create_task(self._run_job(job), name=f"schedule_{job.id}"),
                 )
 
-    async def run(self) -> None:
-        self.stopping = False
-        try:
-            while settings.lnbits_running and not self.stopping:
-                await self.tick()
-                await asyncio.sleep(1)
-        finally:
-            await self.stop()
-
-    async def stop(self) -> None:
-        tasks = [task for _, task in self.running.values()]
-        if not self.stopping:
-            self.stopping = True
-            for task in tasks:
-                task.cancel()
-        await asyncio.gather(*tasks, return_exceptions=True)
-        self.running.clear()
-
     async def _execute(self, job: ScheduledJob) -> bool:
         current = await get_scheduled_job(job.id)
         if not current or not current.enabled or current.lease_token != job.lease_token:
             return False
-        await check_schedule_access(current.namespace, current.user_id, current)
+        await _check_scheduled_job_access(current)
         callback = self.handlers.get((current.namespace, current.handler))
         if callback:
             await callback(current)
@@ -301,7 +282,7 @@ class Scheduler:
         assert job.lease_token
         while settings.lnbits_running:
             await asyncio.sleep(self.lease_seconds / 3)
-            await check_schedule_access(job.namespace, job.user_id, job)
+            await _check_scheduled_job_access(job)
             now = int(time.time())
             if not await renew_scheduled_job(
                 job.id, job.lease_token, now, now + self.lease_seconds
@@ -423,3 +404,34 @@ async def stop_scheduler_safely(timeout: float = 5.0) -> None:
         )
     except Exception:
         logger.warning("Scheduler shutdown failed.")
+
+
+def _check_wasm_schedule_policy(
+    permissions: list[ExtensionPermission], permission_id: str, config: SchedulePolicy
+) -> SchedulePolicy:
+    grant = next((item for item in permissions if item.id == permission_id), None)
+    if not grant:
+        raise PermissionError("Extension scheduling permission has been revoked.")
+    try:
+        approved = SchedulePolicy.parse_policies(
+            grant.policies, user_scope=permission_id == SCHEDULER_USER_PERMISSION
+        ).get(config.handler)
+    except ValueError as exc:
+        raise PermissionError("Invalid approved schedule policies.") from exc
+    if not approved or (
+        approved.cron_expression != config.cron_expression
+        or approved.timezone != config.timezone
+    ):
+        raise PermissionError("Schedule does not match an admin-approved policy.")
+    return approved
+
+
+async def _check_scheduled_job_access(job: ScheduledJob) -> None:
+    try:
+        await check_schedule_access(job.namespace, job.user_id, job)
+    except PermissionError:
+        if job.user_id:
+            account = await get_account(job.user_id)
+            if not account or not account.activated:
+                await disable_user_schedules(job.user_id)
+        raise
