@@ -1005,17 +1005,7 @@ async def change_payment_status(
         or payment.checking_id != checking_id
     ):
         return None
-    if (
-        not wallet.is_lightning_wallet
-        or not payment.amount
-        or payment.is_internal
-        or payment.fiat_provider
-        or payment.checking_id.startswith(("temp_", "service_fee_"))
-        or payment.extra.get("internal")
-        or payment.extra.get("tag") == "admin"
-        or payment.extra.get("hold_invoice")
-        or looks_like_bolt12_offer(payment.bolt11)
-    ):
+    if not wallet.is_lightning_wallet or not payment.can_change_status():
         raise ValueError("Only external Lightning payments can be changed.")
     if status == payment.status:
         return payment
