@@ -19,6 +19,7 @@ from lnbits.core.services.payments import (
 )
 from lnbits.core.services.users import create_user_account
 from lnbits.exceptions import PaymentError
+from lnbits.settings import Settings
 from lnbits.task_manager import task_manager
 from lnbits.wallets import get_funding_source
 
@@ -104,6 +105,63 @@ async def test_pay_real_invoice_noroute(
     payment = response.json()
     assert payment["paid"] is False
     assert payment["status"] == "failed"
+
+
+@pytest.mark.anyio
+@pytest.mark.skipif(
+    get_funding_source().__class__.__name__ not in ("LndRestWallet", "LndWallet"),
+    reason="LND self-payment regression requires an LND funding source",
+)
+async def test_pay_real_invoice_self_payment_is_failed(
+    client,
+    from_wallet,
+    adminkey_headers_from,
+    inkey_headers_from,
+    settings: Settings,
+    monkeypatch: pytest.MonkeyPatch,
+):
+    """A same-node invoice rejected by LND must not stay pending (#4240)."""
+    monkeypatch.setattr(settings, "lnd_rest_allow_self_payment", False)
+    monkeypatch.setattr(settings, "lnd_grpc_allow_self_payment", False)
+
+    # Create directly on the funding source so LNbits cannot pay it internally.
+    funding_source = get_funding_source()
+    invoice = await funding_source.create_invoice(amount=100, memo="regression #4240")
+    assert invoice.ok, invoice.error_message
+    assert invoice.payment_request
+    payment_hash = bolt11.decode(invoice.payment_request).payment_hash
+    assert await get_standalone_payment(payment_hash) is None
+
+    wallet_before = await get_wallet(from_wallet.id)
+    assert wallet_before
+
+    response = await client.post(
+        "/api/v1/payments",
+        json={"out": True, "bolt11": invoice.payment_request},
+        headers=adminkey_headers_from,
+    )
+    assert response.status_code == 520, response.text
+    assert response.json()["status"] == "failed"
+
+    payment = await get_standalone_payment(payment_hash, wallet_id=from_wallet.id)
+    assert payment
+    assert payment.is_out
+    assert payment.failed
+
+    response = await client.get(
+        f"/api/v1/payments/{payment_hash}", headers=inkey_headers_from
+    )
+    assert response.status_code == 200, response.text
+    assert response.json()["paid"] is False
+    assert response.json()["status"] == "failed"
+
+    payment_after = await get_standalone_payment(payment_hash, wallet_id=from_wallet.id)
+    assert payment_after
+    assert payment_after.failed
+
+    wallet_after = await get_wallet(from_wallet.id)
+    assert wallet_after
+    assert wallet_after.balance_msat == wallet_before.balance_msat
 
 
 @pytest.mark.anyio
