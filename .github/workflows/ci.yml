@@ -4,13 +4,10 @@ on:
 
 
 jobs:
-  # Temporarily run only regtest while reproducing #4240.
   lint:
-    if: ${{ false }}
     uses: ./.github/workflows/lint.yml
 
   test-api:
-    if: ${{ false }}
     needs: [ lint ]
     strategy:
       matrix:
@@ -25,7 +22,6 @@ jobs:
       CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
 
   test-wallets:
-    if: ${{ false }}
     needs: [ lint ]
     strategy:
       matrix:
@@ -40,7 +36,6 @@ jobs:
       CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
 
   test-unit:
-    if: ${{ false }}
     needs: [ lint ]
     strategy:
       matrix:
@@ -55,7 +50,6 @@ jobs:
       CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
 
   migration:
-    if: ${{ false }}
     needs: [ lint ]
     strategy:
       matrix:
@@ -65,7 +59,6 @@ jobs:
       python-version: ${{ matrix.python-version }}
 
   openapi:
-    if: ${{ false }}
     needs: [ lint ]
     uses: ./.github/workflows/make.yml
     with:
@@ -77,6 +70,7 @@ jobs:
     uses: ./.github/workflows/e2e.yml
 
   regtest:
+    needs: [ lint ]
     uses: ./.github/workflows/regtest.yml
     strategy:
       matrix:
@@ -98,7 +92,6 @@ jobs:
       CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
 
   jmeter:
-    if: ${{ false }}
     needs: [ lint ]
     strategy:
       matrix:
@@ -108,6 +101,5 @@ jobs:
       python-version: ${{ matrix.python-version }}
 
   bundle:
-    if: ${{ false }}
     needs: [ lint, test-api, test-wallets, test-unit, migration, openapi, regtest, jmeter ]
     uses: ./.github/workflows/bundle.yml
