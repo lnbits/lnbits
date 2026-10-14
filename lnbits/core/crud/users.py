@@ -92,6 +92,9 @@ async def get_accounts(
             accounts.pubkey,
             accounts.external_id,
             accounts.activated,
+            accounts.extra,
+            accounts.created_at,
+            accounts.updated_at,
             SUM(COALESCE((
                 SELECT balance FROM balances WHERE wallet_id = wallets.id
                 AND wallets.wallet_type != 'fiat'
