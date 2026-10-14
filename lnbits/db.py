@@ -255,7 +255,7 @@ class Connection(Compat):
             self.rewrite_values(parsed_values),
             model,
         )
-        if rows:
+        if rows or filters.offset:
             # no need for extra query if no pagination is specified
             if filters.offset or filters.limit:
                 if table_name:

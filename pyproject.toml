@@ -43,6 +43,7 @@ dependencies = [
     "embit~=0.8.0",
     # needed for scheduler extension
     "python-crontab~=3.3.0",
+    "croniter~=6.2.4",
     "pynostr~=0.7.0",
     "python-multipart~=0.0.22",
     "filetype~=1.2.0",
@@ -137,6 +138,7 @@ warn_untyped_fields = true
 
 [[tool.mypy.overrides]]
 module = [
+  "croniter.*",
   "embit.*",
   "secp256k1.*",
   "uvicorn.*",

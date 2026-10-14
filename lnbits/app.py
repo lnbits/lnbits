@@ -41,6 +41,7 @@ from lnbits.core.services.payments import (
     check_pending_payments,
     fundingsource_invoice_producer,
 )
+from lnbits.core.services.scheduler import scheduler, stop_scheduler_safely
 from lnbits.core.tasks import (
     audit_queue,
     collect_exchange_rates_data,
@@ -57,6 +58,7 @@ from lnbits.core.wasm_ext.wasm.loader import (
     is_wasm_extension_dir,
     is_wasm_extension_id,
 )
+from lnbits.core.wasm_ext.wasm.scheduler import ensure_wasm_extension_schedules
 from lnbits.exceptions import register_exception_handlers
 from lnbits.helpers import version_parse
 from lnbits.llms_txt import create_llms_txt_route
@@ -149,9 +151,10 @@ async def shutdown():
     settings.lnbits_running = False
 
     # shutdown event
+    await stop_scheduler_safely()
     task_manager.cancel_all_tasks()
 
-    # wait a bit to allow them to finish, so that cleanup can run without problems
+    # Give cancelled tasks a chance to finish their cleanup.
     await asyncio.sleep(0.1)
     funding_source = get_funding_source()
     await funding_source.cleanup()
@@ -563,6 +566,7 @@ async def check_and_register_extensions(app: FastAPI) -> None:
         try:
             if is_wasm_extension_id(ext.code):
                 register_wasm_extension(app, ext.code)
+                await ensure_wasm_extension_schedules(ext.code)
                 continue
             register_ext_routes(app, ext)
             register_ext_tasks(ext)
@@ -577,6 +581,7 @@ def register_async_tasks() -> None:
     # listen to all incoming payments and dispatch payment notifications
     # note: should be the first in task list for a bit quicker notifications
     task_manager.register_invoice_listener(dispatch_payment_notification, "core")
+    task_manager.create_permanent_task(scheduler.run, name="core_scheduler")
 
     # Core onchain wallets retain their snapshots when no browser is open.
     task_manager.create_permanent_task(sync_wallets, interval=60)

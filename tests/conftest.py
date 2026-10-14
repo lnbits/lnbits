@@ -98,9 +98,23 @@ def disable_background_wallet_sync():
         yield
 
 
+@pytest.fixture(scope="session")
+def disable_background_scheduler():
+    async def run():
+        await asyncio.Event().wait()
+
+    # Keep the app's worker out of temporary scheduler databases and mocked clocks.
+    # Tests exercise their own Scheduler instances directly.
+    with pytest.MonkeyPatch.context() as monkeypatch:
+        monkeypatch.setattr("lnbits.app.scheduler.run", run)
+        yield
+
+
 # use session scope to run once before and once after all tests
 @pytest.fixture(scope="session")
-async def app(settings: Settings, disable_background_wallet_sync):
+async def app(
+    settings: Settings, disable_background_wallet_sync, disable_background_scheduler
+):
     app = create_app()
     async with LifespanManager(app, startup_timeout=30) as manager:
         settings.first_install = True
