@@ -87,9 +87,14 @@ addEventListener('online', event => {
 })
 
 if (navigator.serviceWorker != null) {
-  navigator.serviceWorker.register('/service-worker.js').then(registration => {
-    console.log('Registered events at scope: ', registration.scope)
-  })
+  navigator.serviceWorker
+    .register('/service-worker.js')
+    .then(registration => {
+      console.log('Registered events at scope: ', registration.scope)
+    })
+    .catch(error => {
+      console.warn('Service worker registration failed:', error)
+    })
 }
 
 if (navigator.mediaDevices && navigator.mediaDevices.enumerateDevices) {
