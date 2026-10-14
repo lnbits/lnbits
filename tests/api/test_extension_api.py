@@ -331,6 +331,7 @@ async def test_explicit_wasm_release_loads_install_permissions(
 
 
 @pytest.mark.anyio
+@pytest.mark.usefixtures("app")
 async def test_extension_api_installs_wasm_with_granted_permissions(
     tmp_path,
     settings,
@@ -356,6 +357,10 @@ async def test_extension_api_installs_wasm_with_granted_permissions(
     original_wasm_extensions_path = settings.lnbits_wasm_extensions_path
     register_wasm_routes_mock = mocker.patch(
         "lnbits.core.services.extensions.core_app_extra.register_new_wasm_ext_routes"
+    )
+    ensure_schedules_mock = mocker.patch(
+        "lnbits.core.services.extensions.ensure_wasm_extension_schedules",
+        mocker.AsyncMock(),
     )
     mocker.patch.object(
         InstallableExtension,
@@ -393,6 +398,7 @@ async def test_extension_api_installs_wasm_with_granted_permissions(
         )
     ]
     register_wasm_routes_mock.assert_called_once_with(ext_id)
+    ensure_schedules_mock.assert_awaited_once_with(ext_id)
 
 
 @pytest.mark.anyio
@@ -563,6 +569,48 @@ async def test_extension_api_admin_updates_wasm_extension_permission_limits(
     ]
     assert stored is not None
     assert stored.permissions == response.extension_permissions
+
+
+@pytest.mark.anyio
+async def test_extension_api_admin_updates_scheduler_job_limits(
+    tmp_path, settings, monkeypatch, http_client, superuser_token
+):
+    ext_id = f"wasm_{uuid4().hex[:8]}"
+    monkeypatch.setattr(settings, "lnbits_wasm_extensions_path", str(tmp_path))
+    permission = ExtensionPermission(
+        id="scheduler.user",
+        policies=[{"handler": "check", "cron_expression": "*/10 * * * *"}],
+    )
+    config = _wasm_config(ext_id, permissions=[permission.dict()])
+    config["wasm"]["exports"] = [{"name": "check", "visibility": "event"}]
+    config_dir = settings.wasm_extensions_dir / ext_id
+    config_dir.mkdir(parents=True)
+    (config_dir / "config.json").write_text(json.dumps(config), encoding="utf-8")
+    await create_installed_extension(
+        InstallableExtension(
+            id=ext_id,
+            name="WASM Demo",
+            version="1.0.0",
+            active=True,
+            permissions=[permission],
+        )
+    )
+    try:
+        for limit in (20, 1):
+            assert permission.policies is not None
+            permission.policies[0]["max_jobs_per_user"] = limit
+            response = await http_client.put(
+                f"/api/v1/extension/{ext_id}/permissions",
+                json={"permissions": [permission.dict()]},
+                headers={"Authorization": f"Bearer {superuser_token}"},
+            )
+            assert response.status_code == 200
+            grants = response.json()["extension_permissions"]
+            assert grants[0]["policies"][0]["max_jobs_per_user"] == limit
+            stored = await get_installed_extension(ext_id)
+            assert stored and [item.dict() for item in stored.permissions] == grants
+    finally:
+        await delete_installed_extension(ext_id=ext_id)
 
 
 @pytest.mark.anyio

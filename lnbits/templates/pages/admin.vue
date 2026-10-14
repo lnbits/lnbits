@@ -294,6 +294,67 @@
             <q-tab-panel name="audit" class="q-pa-md">
               <lnbits-admin-audit :form-data="formData" />
             </q-tab-panel>
+            <q-tab-panel name="scheduler" class="q-pa-md">
+              <h6 class="q-mt-none q-mb-sm" v-text="$t('scheduler')"></h6>
+              <q-toggle
+                v-model="formData.lnbits_scheduler_enabled"
+                :label="$t('enabled')"
+                class="q-mb-lg"
+              ></q-toggle>
+              <h6
+                class="q-my-none q-mb-md"
+                v-text="$t('scheduler_history')"
+              ></h6>
+              <q-input
+                v-model.number="
+                  formData.lnbits_scheduler_history_retention_days
+                "
+                type="number"
+                min="1"
+                step="1"
+                outlined
+                :label="$t('scheduler_retention')"
+                :suffix="$t('days')"
+                :hint="$t('scheduler_retention_hint')"
+                class="q-mb-md"
+              ></q-input>
+              <q-input
+                v-model.number="
+                  formData.lnbits_scheduler_history_failed_retention_days
+                "
+                type="number"
+                min="1"
+                step="1"
+                outlined
+                :label="$t('scheduler_failed_retention')"
+                :suffix="$t('days')"
+                :hint="$t('scheduler_failed_retention_hint')"
+                class="q-mb-md"
+              ></q-input>
+              <q-input
+                v-model.number="
+                  formData.lnbits_scheduler_history_max_runs_per_user
+                "
+                type="number"
+                min="1"
+                step="1"
+                outlined
+                :label="$t('scheduler_history_max_runs_per_user')"
+                :hint="$t('scheduler_history_max_runs_per_user_hint')"
+                class="q-mb-md"
+              ></q-input>
+              <q-input
+                v-model.number="
+                  formData.lnbits_scheduler_history_max_runs_per_extension
+                "
+                type="number"
+                min="1"
+                step="1"
+                outlined
+                :label="$t('scheduler_history_max_runs_per_extension')"
+                :hint="$t('scheduler_history_max_runs_per_extension_hint')"
+              ></q-input>
+            </q-tab-panel>
             <q-tab-panel name="assets-config" class="q-pa-md">
               <lnbits-admin-assets-config :form-data="formData" />
             </q-tab-panel>

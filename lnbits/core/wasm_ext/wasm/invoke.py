@@ -111,16 +111,21 @@ async def invoke_wasm_extension_export(
                     timeout=max_execution_ms / 1000,
                 )
             else:
-                result = await thread_task
+                result = await asyncio.shield(thread_task)
         except asyncio.TimeoutError as exc:
             timed_out = True
             stop_reason = "WASM execution time limit exceeded."
             await stop_wasm_invocation(invocation.id, reason=stop_reason)
             try:
-                result = await asyncio.wait_for(
-                    asyncio.shield(thread_task),
-                    timeout=2,
-                )
+                if context == "schedule":
+                    # Keep renewing the schedule lease until the native runtime
+                    # exits; a slow host call must not overlap the next run.
+                    result = await asyncio.shield(thread_task)
+                else:
+                    result = await asyncio.wait_for(
+                        asyncio.shield(thread_task),
+                        timeout=2,
+                    )
             except asyncio.TimeoutError:
                 await finish_wasm_invocation(
                     invocation.id,
@@ -149,6 +154,16 @@ async def invoke_wasm_extension_export(
         )
         finished = True
         return result
+    except asyncio.CancelledError:
+        # A scheduled coroutine can be cancelled while its WASM thread is still
+        # running. Stop and drain the runtime before releasing its schedule claim.
+        await stop_wasm_invocation(invocation.id, reason="Invocation cancelled.")
+        await asyncio.gather(thread_task, return_exceptions=True)
+        if not finished:
+            await finish_wasm_invocation(
+                invocation.id, status="stopped", stop_reason="Invocation cancelled."
+            )
+        raise
     except Exception as exc:
         if not finished:
             await finish_wasm_invocation(
