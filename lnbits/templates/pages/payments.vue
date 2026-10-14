@@ -411,6 +411,14 @@
             <q-item-label caption v-text="$t('payment_details_desc')">
             </q-item-label>
           </q-item-section>
+          <q-item-section v-if="canChangePaymentStatus" side>
+            <q-btn
+              color="primary"
+              :label="$t('change_status')"
+              :dense="$q.screen.lt.sm"
+              @click="openChangeStatusDialog"
+            ></q-btn>
+          </q-item-section>
         </q-item>
       </q-card-section>
       <q-card-section>
@@ -453,4 +461,80 @@
       </q-card-section>
     </q-card>
   </div>
+  <q-dialog
+    v-model="changeStatusDialog.show"
+    :persistent="changeStatusDialog.loading"
+  >
+    <q-card class="lnbits__dialog-card">
+      <q-form @submit="changePaymentStatus">
+        <q-card-section
+          class="text-h6"
+          v-text="$t('change_status')"
+        ></q-card-section>
+        <q-card-section>
+          <q-select
+            v-model="changeStatusDialog.status"
+            :options="paymentStatusOptions"
+            :label="$t('status')"
+            emit-value
+            map-options
+            outlined
+            :disable="changeStatusDialog.loading"
+          ></q-select>
+          <template v-if="changeStatusDialog.status === 'success'">
+            <q-input
+              v-model.number="changeStatusDialog.feeMsat"
+              class="q-mt-md"
+              label="fee_msat"
+              :hint="$t('payment_status_fee_hint')"
+              type="number"
+              min="0"
+              step="1"
+              outlined
+              :disable="changeStatusDialog.loading"
+              :rules="[
+                value =>
+                  value == null ||
+                  value === '' ||
+                  (Number.isInteger(Number(value)) && Number(value) >= 0) ||
+                  $t('payment_status_fee_invalid')
+              ]"
+            ></q-input>
+            <q-input
+              v-model="changeStatusDialog.preimage"
+              class="q-mt-md"
+              label="preimage"
+              :hint="$t('payment_status_preimage_hint')"
+              maxlength="64"
+              outlined
+              :disable="
+                changeStatusDialog.loading || !!paymentDetails?.preimage
+              "
+              :rules="[
+                value =>
+                  !value ||
+                  /^[0-9a-fA-F]{64}$/.test(value.trim()) ||
+                  $t('payment_status_preimage_invalid')
+              ]"
+            ></q-input>
+          </template>
+        </q-card-section>
+        <q-card-actions align="right">
+          <q-btn
+            flat
+            :label="$t('cancel')"
+            v-close-popup
+            :disable="changeStatusDialog.loading"
+          ></q-btn>
+          <q-btn
+            color="primary"
+            type="submit"
+            :label="$t('save')"
+            :loading="changeStatusDialog.loading"
+            :disable="changeStatusDialog.status === paymentDetails?.status"
+          ></q-btn>
+        </q-card-actions>
+      </q-form>
+    </q-card>
+  </q-dialog>
 </template>

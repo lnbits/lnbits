@@ -39,14 +39,19 @@ from lnbits.core.models import (
     SimpleStatus,
     UpdatePaymentExtra,
 )
-from lnbits.core.models.payments import UpdatePaymentLabels
+from lnbits.core.models.payments import (
+    ChangePaymentStatus,
+    UpdatePaymentLabels,
+)
 from lnbits.core.models.users import AccountId, UserLabel
 from lnbits.core.models.wallets import BaseWalletTypeInfo
+from lnbits.core.services.payments import change_payment_status
 from lnbits.core.services.users import update_user_account
 from lnbits.db import Filters, Page
 from lnbits.decorators import (
     WalletTypeInfo,
     check_account_id_exists,
+    check_super_user,
     parse_filters,
     require_admin_key,
     require_base_admin_key,
@@ -383,6 +388,20 @@ async def api_update_payment_extra(
 
     payment.extra.update(data.extra)
     await update_payment(payment)
+    return payment
+
+
+@payment_router.patch("/status", dependencies=[Depends(check_super_user)])
+async def api_change_payment_status(data: ChangePaymentStatus) -> Payment:
+    payment = await change_payment_status(
+        wallet_id=data.wallet_id,
+        checking_id=data.checking_id,
+        status=data.status,
+        fee_msat=data.fee_msat,
+        preimage=data.preimage,
+    )
+    if payment is None:
+        raise HTTPException(HTTPStatus.NOT_FOUND, "Payment does not exist.")
     return payment
 
 

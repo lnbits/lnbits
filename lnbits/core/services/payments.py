@@ -980,6 +980,72 @@ async def _pay_external_invoice(
     return payment
 
 
+def _payment_balance_contribution(payment: Payment, status: str, fee: int) -> int:
+    if (payment.is_in and status == PaymentState.SUCCESS) or (
+        payment.is_out and status in (PaymentState.PENDING, PaymentState.SUCCESS)
+    ):
+        return payment.amount - abs(fee)
+    return 0
+
+
+async def change_payment_status(
+    *,
+    wallet_id: str,
+    checking_id: str,
+    status: PaymentState,
+    fee_msat: int = 0,
+    preimage: str | None = None,
+) -> Payment | None:
+    wallet = await get_wallet(wallet_id)
+    payment = await get_standalone_payment(checking_id, wallet_id=wallet_id)
+    if (
+        not wallet
+        or not payment
+        or payment.wallet_id != wallet_id
+        or payment.checking_id != checking_id
+    ):
+        return None
+    if (
+        not wallet.is_lightning_wallet
+        or not payment.amount
+        or payment.is_internal
+        or payment.fiat_provider
+        or payment.checking_id.startswith(("temp_", "service_fee_"))
+        or payment.extra.get("internal")
+        or payment.extra.get("tag") == "admin"
+        or payment.extra.get("hold_invoice")
+        or looks_like_bolt12_offer(payment.bolt11)
+    ):
+        raise ValueError("Only external Lightning payments can be changed.")
+    if status == payment.status:
+        return payment
+    if (
+        status == PaymentState.SUCCESS
+        and preimage
+        and not payment.preimage
+        and not verify_preimage(preimage, payment.payment_hash)
+    ):
+        raise ValueError("Preimage does not match payment.")
+    fee = payment.fee
+    if status == PaymentState.SUCCESS:
+        fee = -(fee_msat + abs(service_fee(payment.amount, internal=False)))
+    balance_after = (
+        wallet.balance_msat
+        - _payment_balance_contribution(payment, payment.status, payment.fee)
+        + _payment_balance_contribution(payment, status, fee)
+    )
+    if balance_after < 0:
+        raise ValueError("Status change would make the balance negative.")
+    if "status-changed" not in payment.labels:
+        payment.labels.append("status-changed")
+    if status == PaymentState.SUCCESS:
+        return await update_payment_success_status(
+            payment, PaymentSuccessStatus(fee_msat=fee_msat, preimage=preimage)
+        )
+    payment.status = status
+    return await update_payment(payment)
+
+
 async def update_payment_success_status(
     payment: Payment,
     status: PaymentStatus,

@@ -122,6 +122,13 @@ window.PagePayments = {
       showDetails: false,
       formatJson: false,
       paymentDetails: null,
+      changeStatusDialog: {
+        show: false,
+        status: null,
+        feeMsat: null,
+        preimage: '',
+        loading: false
+      },
       lnbitsBalance: 0
     }
   },
@@ -132,6 +139,25 @@ window.PagePayments = {
     await this.fetchPayments()
   },
   computed: {
+    canChangePaymentStatus() {
+      const payment = this.paymentDetails
+      return (
+        this.g.user.super_user &&
+        payment &&
+        !/^(internal_|fiat_|temp_|service_fee_)/.test(payment.checking_id) &&
+        !payment.fiat_provider &&
+        !payment.extra?.internal &&
+        payment.extra?.tag !== 'admin' &&
+        !payment.extra?.hold_invoice &&
+        !payment.bolt11?.toLowerCase().startsWith('lno1')
+      )
+    },
+    paymentStatusOptions() {
+      return ['success', 'failed', 'pending'].map(value => ({
+        label: this.$t(`payment_status_${value}`),
+        value
+      }))
+    },
     paymentDetailsJson() {
       return (
         this.paymentDetails && {
@@ -272,6 +298,54 @@ window.PagePayments = {
     showDetailsToggle(payment) {
       this.paymentDetails = payment
       return (this.showDetails = !this.showDetails)
+    },
+    openChangeStatusDialog() {
+      this.changeStatusDialog.status = this.paymentDetails.status
+      this.changeStatusDialog.feeMsat = null
+      this.changeStatusDialog.preimage = this.paymentDetails.preimage || ''
+      this.changeStatusDialog.show = true
+    },
+    async changePaymentStatus() {
+      const dialog = this.changeStatusDialog
+      const payment = this.paymentDetails
+      if (dialog.loading || dialog.status === payment.status) return
+      const payload = {
+        wallet_id: payment.wallet_id,
+        checking_id: payment.checking_id,
+        status: dialog.status
+      }
+      if (dialog.status === 'success') {
+        payload.fee_msat = Number(dialog.feeMsat || 0)
+        payload.preimage = payment.preimage
+          ? null
+          : dialog.preimage.trim() || null
+      }
+      dialog.loading = true
+      try {
+        const {data} = await LNbits.api.request(
+          'PATCH',
+          '/api/v1/payments/status',
+          null,
+          payload
+        )
+        this.paymentDetails = {
+          ...payment,
+          status: data.status,
+          fee: data.fee,
+          fee_sats:
+            new Intl.NumberFormat(this.g.locale).format(data.fee / 1000) +
+            ' sats',
+          preimage: data.preimage,
+          labels: data.labels,
+          updated_at: data.updated_at
+        }
+        dialog.show = false
+        await this.fetchPayments()
+      } catch (error) {
+        LNbits.utils.notifyApiError(error)
+      } finally {
+        dialog.loading = false
+      }
     },
     formatCurrency(amount, currency) {
       try {
