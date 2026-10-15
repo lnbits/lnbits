@@ -397,6 +397,7 @@ async def api_change_payment_status(data: ChangePaymentStatus) -> Payment:
         wallet_id=data.wallet_id,
         checking_id=data.checking_id,
         status=data.status,
+        send_payment_notifications=data.send_payment_notifications,
         fee_msat=data.fee_msat,
         preimage=data.preimage,
     )

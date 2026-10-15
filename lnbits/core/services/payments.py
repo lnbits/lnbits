@@ -985,6 +985,7 @@ async def change_payment_status(
     wallet_id: str,
     checking_id: str,
     status: PaymentState,
+    send_payment_notifications: bool = True,
     fee_msat: int = 0,
     preimage: str | None = None,
 ) -> Payment | None:
@@ -1021,9 +1022,12 @@ async def change_payment_status(
     if "status-changed" not in payment.labels:
         payment.labels.append("status-changed")
     if status == PaymentState.SUCCESS:
-        return await update_payment_success_status(
+        payment = await update_payment_success_status(
             payment, PaymentSuccessStatus(fee_msat=fee_msat, preimage=preimage)
         )
+        if send_payment_notifications:
+            await _send_payment_notification_in_background(wallet.id, payment)
+        return payment
     payment.status = status
     return await update_payment(payment)
 

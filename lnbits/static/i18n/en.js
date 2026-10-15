@@ -4,6 +4,7 @@ window.localisation.en = {
   payment_status_success: 'Success',
   payment_status_failed: 'Failed',
   payment_status_pending: 'Pending',
+  send_payment_notifications: 'Send payment notifications',
   payment_status_fee_hint:
     'Optional routing fee in msat; defaults to 0. Service fee is added automatically.',
   payment_status_fee_invalid: 'Enter a non-negative whole number.',

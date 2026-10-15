@@ -45,6 +45,7 @@ class ChangePaymentStatus(BaseModel):
     wallet_id: str
     checking_id: str
     status: PaymentState
+    send_payment_notifications: bool = True
     fee_msat: int = Field(default=0, ge=0)
     preimage: str | None = Field(
         default=None, min_length=64, max_length=64, regex=r"^[0-9a-fA-F]+$"

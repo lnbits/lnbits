@@ -482,6 +482,12 @@
             :disable="changeStatusDialog.loading"
           ></q-select>
           <template v-if="changeStatusDialog.status === 'success'">
+            <q-checkbox
+              v-model="changeStatusDialog.sendPaymentNotifications"
+              class="q-mt-md"
+              :label="$t('send_payment_notifications')"
+              :disable="changeStatusDialog.loading"
+            ></q-checkbox>
             <q-input
               v-model.number="changeStatusDialog.feeMsat"
               class="q-mt-md"

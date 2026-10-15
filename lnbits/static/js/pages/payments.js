@@ -125,6 +125,7 @@ window.PagePayments = {
       changeStatusDialog: {
         show: false,
         status: null,
+        sendPaymentNotifications: true,
         feeMsat: null,
         preimage: '',
         loading: false
@@ -301,6 +302,7 @@ window.PagePayments = {
     },
     openChangeStatusDialog() {
       this.changeStatusDialog.status = this.paymentDetails.status
+      this.changeStatusDialog.sendPaymentNotifications = true
       this.changeStatusDialog.feeMsat = null
       this.changeStatusDialog.preimage = this.paymentDetails.preimage || ''
       this.changeStatusDialog.show = true
@@ -315,6 +317,7 @@ window.PagePayments = {
         status: dialog.status
       }
       if (dialog.status === 'success') {
+        payload.send_payment_notifications = dialog.sendPaymentNotifications
         payload.fee_msat = Number(dialog.feeMsat || 0)
         payload.preimage = payment.preimage
           ? null
