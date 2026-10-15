@@ -30,7 +30,11 @@ from lnbits.core.models.users import (
     UpdateAccessControlList,
 )
 from lnbits.core.services import create_user_account
-from lnbits.core.services.two_factor import issue_challenge, session_payload
+from lnbits.core.services.two_factor import (
+    issue_challenge,
+    session_payload,
+    update_account_password,
+)
 from lnbits.core.services.users import (
     check_register_activation_settings,
     update_user_account,
@@ -535,7 +539,7 @@ async def update_password(
 
     account.username = data.username
     account.hash_password(data.password)
-    await update_account(account)
+    await update_account_password(account)
     _user = await get_user_from_account(account)
     if not _user:
         raise HTTPException(HTTPStatus.NOT_FOUND, "User not found.")
@@ -578,7 +582,7 @@ async def reset_password(data: ResetUserPassword) -> JSONResponse:
         raise HTTPException(HTTPStatus.NOT_FOUND, "User not found.")
 
     account.hash_password(data.password)
-    await update_account(account)
+    await update_account_password(account)
     return await _login_response(account)
 
 
