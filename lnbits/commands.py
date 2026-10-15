@@ -165,10 +165,10 @@ async def delete_settings():
 
 
 @db.command("migrate")
-def database_migrate():
+@coro
+async def database_migrate():
     """Migrate databases"""
-    loop = asyncio.get_event_loop()
-    loop.run_until_complete(migrate_databases())
+    await migrate_databases()
 
 
 @db.command("versions")

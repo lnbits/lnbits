@@ -64,7 +64,22 @@ LNBITS_ADMIN_UI=true HOST=0.0.0.0 PORT=5000 AUTH_HTTPS_ONLY=false ./LNbits-lates
 ## Option 2: UV (recommended for developers)
 
 > [!IMPORTANT]
-> **It is recommended to use the latest version of UV & Make sure you have Python version 3.12 installed.**
+> **Use the latest version of UV with Python 3.10 through 3.15.**
+
+Python 3.13 and newer require UV; the legacy Poetry workflow supports Python 3.10
+through 3.12 because LNURL's package metadata declares an older Python limit.
+The optional Breez and Breez Liquid SDKs require Python 3.10 through 3.13 and are
+not installed on newer Python versions, including with `--all-extras`.
+
+Python 3.15 builds Wally from its pinned upstream source. Install a C compiler,
+Autoconf, Automake, and Libtool first; macOS also requires GNU sed. UV installs the
+SWIG build dependency automatically.
+
+For Python 3.15 on macOS, use these compiler flags when installing dependencies:
+
+```sh
+CFLAGS="-std=c17 -D__STDC_WANT_LIB_EXT1__=1" uv sync --all-extras --python 3.15
+```
 
 ### Verify Python
 

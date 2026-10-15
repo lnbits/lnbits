@@ -9,7 +9,8 @@ if not find_spec("breez_sdk"):
         def __init__(self):
             raise RuntimeError(
                 "Breez SDK is not installed. "
-                "Ask admin to run `uv sync --extra breez` to install it."
+                "It requires Python 3.10 through 3.13. "
+                "Ask admin to run `uv sync --extra breez` using one of those versions."
             )
 
 else:
@@ -39,8 +40,8 @@ else:
         default_config,
         mnemonic_to_seed,
     )
-    from breez_sdk import (
-        PaymentStatus as BreezPaymentStatus,  # type: ignore[reportMissingImports]
+    from breez_sdk import (  # type: ignore[reportMissingImports]
+        PaymentStatus as BreezPaymentStatus,
     )
     from loguru import logger
 

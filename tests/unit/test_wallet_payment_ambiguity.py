@@ -380,6 +380,7 @@ async def test_http_wallets_only_fail_definite_request_rejections(
 
 @pytest.mark.anyio
 async def test_breez_immediate_failed_state_is_failed(mocker: MockerFixture, settings):
+    pytest.importorskip("breez_sdk")
     settings.breez_use_trampoline = False
     breez_wallet = cast(Any, breez_wallet_module)
     wallet = object.__new__(breez_wallet.BreezSdkWallet)
@@ -405,6 +406,7 @@ async def test_breez_immediate_failed_state_is_failed(mocker: MockerFixture, set
 async def test_breez_liquid_timed_out_outgoing_payment_is_failed(
     mocker: MockerFixture,
 ):
+    pytest.importorskip("breez_sdk_liquid")
     breez_liquid_wallet = cast(Any, breez_liquid_wallet_module)
     wallet = object.__new__(breez_liquid_wallet.BreezLiquidSdkWallet)
     cast(Any, wallet).sdk_services = SimpleNamespace(
@@ -423,6 +425,7 @@ async def test_breez_liquid_timed_out_outgoing_payment_is_failed(
 
 @pytest.mark.anyio
 async def test_breez_liquid_prepare_error_is_failed(mocker: MockerFixture):
+    pytest.importorskip("breez_sdk_liquid")
     breez_liquid_wallet = cast(Any, breez_liquid_wallet_module)
     wallet = object.__new__(breez_liquid_wallet.BreezLiquidSdkWallet)
     mocker.patch(
