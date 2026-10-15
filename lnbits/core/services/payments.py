@@ -181,6 +181,9 @@ async def create_fiat_invoice(
     await _check_fiat_invoice_limits(amount_sat, fiat_provider_name, conn)
 
     invoice_data.internal = True  # use FakeWallet for fiat invoices
+    # The provider's checkout stays payable longer than a Lightning invoice
+    # (a Stripe Checkout session lasts 24 h), so default to 24 h, not 1 h.
+    invoice_data.expiry = invoice_data.expiry or 24 * 60 * 60
     if not invoice_data.memo:
         invoice_data.memo = settings.lnbits_site_title + f" ({fiat_provider_name})"
 
@@ -418,9 +421,7 @@ async def update_pending_payments(wallet_id: str):
 async def update_pending_payment(
     payment: Payment, conn: Connection | None = None
 ) -> Payment:
-    # A fiat invoice lives as long as the provider's checkout, not the Lightning
-    # expiry of its internal invoice: ask the provider (check_payment_status) instead.
-    if payment.is_in and payment.is_expired and not payment.fiat_provider:
+    if payment.is_in and payment.is_expired:
         payment.status = PaymentState.FAILED
         payment.labels.append("expired")
         await update_payment(payment, conn=conn)
