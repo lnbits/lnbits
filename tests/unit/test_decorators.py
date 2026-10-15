@@ -1,3 +1,4 @@
+from base64 import urlsafe_b64encode
 from uuid import uuid4
 
 import jwt
@@ -52,6 +53,19 @@ async def test_check_user_exists_with_invalid_access_token():
     request = Request({"type": "http", "path": "/some/path", "method": "GET"})
     with pytest.raises(HTTPException) as exc_info:
         await check_user_exists(request, access_token="invalid_token")
+    assert exc_info.value.status_code == 401
+    assert exc_info.value.detail == "Invalid access token."
+
+
+@pytest.mark.anyio
+async def test_check_user_exists_with_deeply_nested_token_header():
+    header = urlsafe_b64encode(b"[" * 100_000 + b"0" + b"]" * 100_000)
+    token = f"{header.rstrip(b'=').decode()}.e30.c2lnbmF0dXJl"
+    request = Request({"type": "http", "path": "/some/path", "method": "GET"})
+
+    with pytest.raises(HTTPException) as exc_info:
+        await check_user_exists(request, access_token=token)
+
     assert exc_info.value.status_code == 401
     assert exc_info.value.detail == "Invalid access token."
 
