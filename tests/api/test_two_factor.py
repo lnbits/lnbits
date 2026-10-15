@@ -28,8 +28,9 @@ from lnbits.core.services.two_factor import (
 from lnbits.core.services.users import create_user_account
 from lnbits.core.views.auth_api import _handle_sso_login
 from lnbits.core.views.user_api import api_users_reset_password
-from lnbits.helpers import create_access_token
+from lnbits.helpers import create_access_token, sha256s
 from lnbits.settings import AuthMethods
+from lnbits.utils.cache import cache
 from lnbits.utils.nostr import sign_event
 
 pytestmark = pytest.mark.anyio
@@ -182,6 +183,106 @@ async def test_two_factor_user_id_and_cached_session_cannot_bypass(
         "/api/v1/auth/usr", json={"usr": factor_account.id}
     )
     assert response.json()["two_factor_required"]
+
+
+@pytest.mark.parametrize("operation", ["password", "reset"])
+@pytest.mark.parametrize("enrolled", [False, True])
+@pytest.mark.parametrize("cache_minutes", [0, 5])
+async def test_password_update_revokes_sessions(
+    http_client, factor_account, settings, operation, enrolled, cache_minutes
+):
+    settings.auth_authentication_cache_minutes = cache_minutes
+    settings.lnbits_two_factor_enabled = enrolled
+    if enrolled:
+        _, session = await enroll(http_client, factor_account)
+    else:
+        session = (await login(http_client, factor_account)).json()
+    old_token = session["access_token"]
+
+    other_account = Account(
+        id=uuid4().hex,
+        username="other_" + uuid4().hex[:8],
+        password_hash=factor_account.password_hash,
+    )
+    await create_user_account(other_account)
+    other_login = await login(http_client, other_account)
+    assert other_login.status_code == 200
+    other_headers = {"Authorization": f"Bearer {other_login.json()['access_token']}"}
+    http_client.cookies.clear()
+    headers = {"Authorization": f"Bearer {old_token}"}
+    for path in ("/api/v1/wallets", "/api/v1/wallet/paginated"):
+        assert (await http_client.get(path, headers=headers)).status_code == 200
+    if cache_minutes:
+        assert cache.get(f"auth:access_token:{sha256s(old_token)}")
+
+    challenge = await issue_challenge(factor_account.id)
+    before = await get_two_factor_config(factor_account.id)
+    if operation == "password":
+        response = await http_client.put(
+            "/api/v1/auth/password",
+            headers=headers,
+            json={
+                "user_id": factor_account.id,
+                "username": factor_account.username,
+                "password_old": "secret1234",
+                "password": "newsecret1234",
+                "password_repeat": "newsecret1234",
+            },
+        )
+    else:
+        reset_key = await api_users_reset_password(factor_account.id)
+        response = await http_client.put(
+            "/api/v1/auth/reset",
+            json={
+                "reset_key": reset_key,
+                "password": "newsecret1234",
+                "password_repeat": "newsecret1234",
+            },
+        )
+    assert response.status_code == 200, response.text
+    if operation == "reset" and not enrolled:
+        assert (await http_client.get("/api/v1/wallets")).status_code == 200
+
+    after = await get_two_factor_config(factor_account.id)
+    assert after.revision and after.revision != before.revision
+    assert challenge.jti not in after.challenges
+    assert not before.challenges.keys() & after.challenges.keys()
+    assert (
+        after.copy(
+            update={"revision": before.revision, "challenges": before.challenges}
+        )
+        == before
+    )
+
+    http_client.cookies.clear()
+    for path in ("/api/v1/wallets", "/api/v1/wallet/paginated"):
+        assert (await http_client.get(path, headers=headers)).status_code == 401
+        http_client.cookies.set("cookie_access_token", old_token)
+        assert (await http_client.get(path)).status_code == 401
+        http_client.cookies.clear()
+    challenge_headers = {
+        "Authorization": f"Bearer {create_access_token(challenge.dict())}"
+    }
+    assert (
+        await http_client.get("/api/v1/auth/2fa/status", headers=challenge_headers)
+    ).status_code == 401
+    assert (
+        await http_client.get("/api/v1/wallets", headers=other_headers)
+    ).status_code == 200
+
+    response = await http_client.post(
+        "/api/v1/auth",
+        json={"username": factor_account.username, "password": "newsecret1234"},
+    )
+    assert response.status_code == 200
+    if enrolled:
+        assert response.json()["two_factor_required"]
+        response = await http_client.post(
+            "/api/v1/auth/2fa/verify", json={"code": session["recovery_codes"][0]}
+        )
+        assert response.status_code == 200, response.text
+    assert (await http_client.get("/api/v1/wallets")).status_code == 200
+    assert (await http_client.get("/api/v1/wallet/paginated")).status_code == 200
 
 
 async def test_two_factor_mandatory_enrollment_only(
