@@ -418,7 +418,9 @@ async def update_pending_payments(wallet_id: str):
 async def update_pending_payment(
     payment: Payment, conn: Connection | None = None
 ) -> Payment:
-    if payment.is_in and payment.is_expired:
+    # A fiat invoice lives as long as the provider's checkout, not the Lightning
+    # expiry of its internal invoice: ask the provider (check_payment_status) instead.
+    if payment.is_in and payment.is_expired and not payment.fiat_provider:
         payment.status = PaymentState.FAILED
         payment.labels.append("expired")
         await update_payment(payment, conn=conn)
