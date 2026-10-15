@@ -438,7 +438,7 @@ async def api_payment(payment_hash, x_api_key: str | None = Header(None)):
     if payment.success:
         if wallet and wallet.id == payment.wallet_id:
             return {"paid": True, "preimage": payment.preimage, "details": payment}
-        return {"paid": True, "preimage": payment.preimage}
+        return {"paid": True}
 
     if payment.failed:
         if wallet and wallet.id == payment.wallet_id:
@@ -462,11 +462,7 @@ async def api_payment(payment_hash, x_api_key: str | None = Header(None)):
             "preimage": payment.preimage if payment.success else None,
             "details": payment,
         }
-    return {
-        "paid": payment.success,
-        # only expose the preimage once the payment is actually successful
-        "preimage": payment.preimage if payment.success else None,
-    }
+    return {"paid": payment.success}
 
 
 @payment_router.post("/decode", status_code=HTTPStatus.OK)
