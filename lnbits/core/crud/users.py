@@ -52,6 +52,30 @@ async def update_account(account: Account, conn: Connection | None = None) -> Ac
     return account
 
 
+async def update_account_credentials(
+    account: Account,
+    config: TwoFactorConfig,
+    conn: Connection | None = None,
+) -> None:
+    """Save the password and session revision in a single atomic update."""
+    account.updated_at = datetime.now(timezone.utc)
+    await (conn or db).execute(
+        f"""
+        UPDATE accounts SET username = :username, password_hash = :password_hash,
+            updated_at = {db.timestamp_placeholder("updated_at")},
+            two_factor = :two_factor
+        WHERE id = :id
+        """,  # noqa: S608
+        {
+            "id": account.id,
+            "username": account.username,
+            "password_hash": account.password_hash,
+            "updated_at": account.updated_at.timestamp(),
+            "two_factor": config.json(),
+        },
+    )
+
+
 async def delete_account(user_id: str, conn: Connection | None = None) -> None:
     await (conn or db).execute(
         "DELETE from accounts WHERE id = :user",

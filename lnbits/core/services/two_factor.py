@@ -21,8 +21,9 @@ from lnbits.core.crud.settings import (
 from lnbits.core.crud.users import (
     get_two_factor_config,
     save_two_factor_config,
+    update_account_credentials,
 )
-from lnbits.core.models.users import AccessTokenPayload, TwoFactorConfig
+from lnbits.core.models.users import AccessTokenPayload, Account, TwoFactorConfig
 from lnbits.db import Connection
 from lnbits.settings import UpdateSettings, settings
 
@@ -262,6 +263,14 @@ async def session_payload(
     )
 
 
+async def update_account_password(account: Account) -> None:
+    async with _two_factor_lock(account.id):
+        config = await get_two_factor_config(account.id)
+        config.revision = secrets.token_hex(16)
+        config.challenges.clear()
+        await update_account_credentials(account, config)
+
+
 async def sync_two_factor_policy() -> str:
     """Invalidate old MFA claims when policy changes, including via environment."""
     fingerprint = json.dumps(
@@ -330,10 +339,6 @@ async def check_two_factor_session(
         raise HTTPException(
             HTTPStatus.FORBIDDEN, "Impersonation cannot change account security."
         )
-    if not settings.lnbits_two_factor_enabled and not (
-        payload and payload.mfa_revision
-    ):
-        return
     config = await get_two_factor_config(actor or user_id, conn)
     if payload and config.revision != payload.mfa_revision:
         raise two_factor_error("Account security changed. Please log in again.")

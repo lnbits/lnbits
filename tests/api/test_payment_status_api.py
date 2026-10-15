@@ -397,6 +397,8 @@ async def test_change_status_service_fee_is_credited_once(
 @pytest.fixture(autouse=True)
 def notification_tasks(mocker):
     tasks = []
+    # Background admin alerts must not enter the captured payment task list.
+    mocker.patch("lnbits.core.services.notifications.send_notification_in_background")
     mocker.patch(
         "lnbits.core.services.notifications.create_task", side_effect=tasks.append
     )
