@@ -14,6 +14,7 @@ from lnbits.fiat.base import (
     FiatPaymentStatus,
 )
 from lnbits.helpers import is_valid_external_id
+from lnbits.utils.bolt12 import looks_like_bolt12_offer
 from lnbits.utils.exchange_rates import allowed_currencies
 from lnbits.wallets.base import (
     PaymentStatus,
@@ -38,6 +39,17 @@ class PaymentExtra(BaseModel):
 class UpdatePaymentExtra(BaseModel):
     payment_hash: str
     extra: dict = Field(default_factory=dict)
+
+
+class ChangePaymentStatus(BaseModel):
+    wallet_id: str
+    checking_id: str
+    status: PaymentState
+    send_payment_notifications: bool = True
+    fee_msat: int = Field(default=0, ge=0)
+    preimage: str | None = Field(
+        default=None, min_length=64, max_length=64, regex=r"^[0-9a-fA-F]+$"
+    )
 
 
 class PayInvoice(BaseModel):
@@ -149,6 +161,18 @@ class Payment(BaseModel):
     def is_internal(self) -> bool:
         return self.checking_id.startswith("internal_") or self.checking_id.startswith(
             "fiat_"
+        )
+
+    def can_change_status(self) -> bool:
+        return not (
+            not self.amount
+            or self.is_internal
+            or self.fiat_provider
+            or self.checking_id.startswith(("temp_", "service_fee_"))
+            or self.extra.get("internal")
+            or self.extra.get("tag") == "admin"
+            or self.extra.get("hold_invoice")
+            or looks_like_bolt12_offer(self.bolt11)
         )
 
     # DEPRECATED: in v1.5.0, use service check_payment_status instead
