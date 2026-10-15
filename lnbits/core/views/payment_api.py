@@ -39,14 +39,19 @@ from lnbits.core.models import (
     SimpleStatus,
     UpdatePaymentExtra,
 )
-from lnbits.core.models.payments import UpdatePaymentLabels
+from lnbits.core.models.payments import (
+    ChangePaymentStatus,
+    UpdatePaymentLabels,
+)
 from lnbits.core.models.users import AccountId, UserLabel
 from lnbits.core.models.wallets import BaseWalletTypeInfo
+from lnbits.core.services.payments import change_payment_status
 from lnbits.core.services.users import update_user_account
 from lnbits.db import Filters, Page
 from lnbits.decorators import (
     WalletTypeInfo,
     check_account_id_exists,
+    check_super_user,
     parse_filters,
     require_admin_key,
     require_base_admin_key,
@@ -386,6 +391,21 @@ async def api_update_payment_extra(
     return payment
 
 
+@payment_router.patch("/status", dependencies=[Depends(check_super_user)])
+async def api_change_payment_status(data: ChangePaymentStatus) -> Payment:
+    payment = await change_payment_status(
+        wallet_id=data.wallet_id,
+        checking_id=data.checking_id,
+        status=data.status,
+        send_payment_notifications=data.send_payment_notifications,
+        fee_msat=data.fee_msat,
+        preimage=data.preimage,
+    )
+    if payment is None:
+        raise HTTPException(HTTPStatus.NOT_FOUND, "Payment does not exist.")
+    return payment
+
+
 @payment_router.get("/fee-reserve")
 async def api_payments_fee_reserve(invoice: str = Query("invoice")) -> JSONResponse:
     invoice_obj = bolt11.decode(invoice)
@@ -419,7 +439,7 @@ async def api_payment(payment_hash, x_api_key: str | None = Header(None)):
     if payment.success:
         if wallet and wallet.id == payment.wallet_id:
             return {"paid": True, "preimage": payment.preimage, "details": payment}
-        return {"paid": True, "preimage": payment.preimage}
+        return {"paid": True}
 
     if payment.failed:
         if wallet and wallet.id == payment.wallet_id:
@@ -443,11 +463,7 @@ async def api_payment(payment_hash, x_api_key: str | None = Header(None)):
             "preimage": payment.preimage if payment.success else None,
             "details": payment,
         }
-    return {
-        "paid": payment.success,
-        # only expose the preimage once the payment is actually successful
-        "preimage": payment.preimage if payment.success else None,
-    }
+    return {"paid": payment.success}
 
 
 @payment_router.post("/decode", status_code=HTTPStatus.OK)

@@ -10,8 +10,8 @@ import shortuuid
 from pytest_mock.plugin import MockerFixture
 
 from lnbits import bolt11
-from lnbits.core.crud.payments import get_standalone_payment
-from lnbits.core.models import CreateInvoice, Payment
+from lnbits.core.crud.payments import create_payment, get_standalone_payment
+from lnbits.core.models import CreateInvoice, CreatePayment, Payment, PaymentState
 from lnbits.core.models.users import Account, UserExtra, UserLabel
 from lnbits.core.services.users import create_user_account
 from lnbits.core.views.payment_api import api_payment
@@ -469,6 +469,63 @@ async def test_check_payment_with_key(client, invoice: Payment, inkey_headers_fr
     assert "details" in response.json()
 
 
+# check GET /api/v1/payments/<hash>: preimage requires the owning wallet's key
+@pytest.mark.anyio
+@pytest.mark.parametrize("status", [PaymentState.SUCCESS, PaymentState.PENDING])
+@pytest.mark.parametrize("key_type", [None, "invalid", "other", "inkey", "adminkey"])
+async def test_payment_preimage_requires_owning_wallet_key(
+    client, mocker, from_wallet, to_wallet, status, key_type
+):
+    preimage, payment_hash = random_secret_and_hash()
+    payment = await create_payment(
+        checking_id=uuid4().hex,
+        data=CreatePayment(
+            wallet_id=to_wallet.id,
+            payment_hash=payment_hash,
+            bolt11="",
+            amount_msat=1_000,
+            memo="preimage access",
+            preimage=preimage,
+        ),
+        status=status,
+    )
+    refresh = mocker.patch(
+        "lnbits.core.views.payment_api.update_pending_payment",
+        return_value=payment.copy(update={"status": PaymentState.SUCCESS}),
+    )
+    key = {
+        None: None,
+        "invalid": "invalid_key",
+        "other": from_wallet.adminkey,
+        "inkey": to_wallet.inkey,
+        "adminkey": to_wallet.adminkey,
+    }[key_type]
+    response = await client.get(
+        f"/api/v1/payments/{payment_hash}",
+        headers={"X-Api-Key": key} if key else {},
+    )
+
+    if key_type == "other":
+        assert response.status_code == 404
+        assert response.json() == {"detail": "Payment does not exist."}
+        refresh.assert_not_awaited()
+        return
+
+    assert response.status_code == 200
+    if key_type in ("inkey", "adminkey"):
+        assert response.json()["paid"] is True
+        assert response.json()["preimage"] == preimage
+        assert response.json()["details"]["preimage"] == preimage
+        assert response.json()["details"]["wallet_id"] == to_wallet.id
+    else:
+        assert response.json() == {"paid": True}
+
+    if status == PaymentState.PENDING:
+        refresh.assert_awaited_once()
+    else:
+        refresh.assert_not_awaited()
+
+
 # check GET /api/v1/payments/<hash>: preimage of an unpaid invoice must not leak
 @pytest.mark.anyio
 async def test_check_pending_payment_does_not_expose_preimage(
@@ -487,14 +544,14 @@ async def test_check_pending_payment_does_not_expose_preimage(
     response = await client.get(f"/api/v1/payments/{payment_hash}")
     assert response.status_code < 300
     assert response.json()["paid"] is False
-    assert response.json()["preimage"] is None
+    assert "preimage" not in response.json()
 
     # same for an invalid key
     response = await client.get(
         f"/api/v1/payments/{payment_hash}", headers={"X-Api-Key": "invalid_key"}
     )
     assert response.json()["paid"] is False
-    assert response.json()["preimage"] is None
+    assert "preimage" not in response.json()
 
     # a valid key of a different (non-owning) wallet scopes the lookup
     # to that wallet and therefore yields 404, leaking nothing at all
@@ -514,9 +571,9 @@ async def test_check_pending_payment_does_not_expose_preimage(
     await asyncio.sleep(2)
     response = await client.get(f"/api/v1/payments/{expired_hash}")
     assert response.json()["paid"] is False
-    assert response.json()["preimage"] is None
+    assert "preimage" not in response.json()
 
-    # after payment the preimage is exposed again as proof of payment
+    # after payment the owning wallet can retrieve the proof of payment
     response = await client.post(
         "/api/v1/payments",
         json={"out": True, "bolt11": unpaid["bolt11"]},
@@ -527,7 +584,9 @@ async def test_check_pending_payment_does_not_expose_preimage(
     preimage = None
     paid = False
     for _ in range(10):
-        response = await client.get(f"/api/v1/payments/{payment_hash}")
+        response = await client.get(
+            f"/api/v1/payments/{payment_hash}", headers=inkey_headers_to
+        )
         paid = response.json()["paid"]
         preimage = response.json()["preimage"]
         if paid:

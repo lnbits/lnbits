@@ -1,5 +1,16 @@
 window.localisation.en = {
   confirm: 'Yes',
+  change_status: 'Change Status',
+  payment_status_success: 'Success',
+  payment_status_failed: 'Failed',
+  payment_status_pending: 'Pending',
+  send_payment_notifications: 'Send payment notifications',
+  payment_status_fee_hint:
+    'Optional routing fee in msat; defaults to 0. Service fee is added automatically.',
+  payment_status_fee_invalid: 'Enter a non-negative whole number.',
+  payment_status_preimage_hint:
+    'Optional preimage; an existing preimage is kept.',
+  payment_status_preimage_invalid: 'Enter a 64-character hexadecimal preimage.',
   server: 'Server',
   theme: 'Theme',
   site_customisation: 'Site Customisation',

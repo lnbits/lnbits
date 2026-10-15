@@ -308,7 +308,9 @@ async def update_payment(
 ) -> Payment:
     payment.updated_at = datetime.now(timezone.utc)
     await (conn or db).update(
-        "apipayments", payment, "WHERE checking_id = :checking_id"
+        "apipayments",
+        payment,
+        "WHERE wallet_id = :wallet_id AND checking_id = :checking_id",
     )
     if new_checking_id and new_checking_id != payment.checking_id:
         await update_payment_checking_id(payment.checking_id, new_checking_id, conn)
