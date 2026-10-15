@@ -22,12 +22,16 @@ dependencies = [
     "uvicorn~=0.40.0",
     "sqlalchemy~=1.4.54",
     "aiosqlite~=0.22.1",
-    "asyncpg~=0.31.0",
-    "uvloop~=0.22.1; sys_platform != 'win32'",
+    "asyncpg~=0.31.0; python_version < '3.15'",
+    "asyncpg~=0.32.0; python_version >= '3.15'",
+    "uvloop~=0.22.1; sys_platform != 'win32' and python_version < '3.15'",
+    "uvloop~=0.23.0; sys_platform != 'win32' and python_version >= '3.15'",
     "websockets~=15.0.1",
     "loguru~=0.7.3",
-    "grpcio~=1.76.0",
-    "protobuf~=6.33.5",
+    "grpcio~=1.76.0; python_version < '3.15'",
+    "grpcio~=1.84.0; python_version >= '3.15'",
+    "protobuf~=6.33.5; python_version < '3.15'",
+    "protobuf~=7.35.1; python_version >= '3.15'",
     "pyln-client==25.12.0",
     "pywebpush~=2.2.0",
     "slowapi~=0.1.9",
@@ -52,7 +56,8 @@ dependencies = [
     "jsonpath-ng~=1.7.0",
     "pillow~=12.3.0",
     "python-dotenv~=1.2.1",
-    "greenlet~=3.3.0",
+    "greenlet~=3.3.0; python_version < '3.15'",
+    "greenlet~=3.5.1; python_version >= '3.15'",
     "urllib3>=2.7.0",
     "pyinstrument>=5.1.2",
     "wasmtime>=45.0.0",
@@ -64,7 +69,11 @@ lnbits = "lnbits.server:main"
 lnbits-cli = "lnbits.commands:main"
 
 [project.optional-dependencies]
-breez = ["breez-sdk~=0.8.0", "breez-sdk-liquid~=0.11.11"]
+# The SDKs only publish Python wheels through 3.13.
+breez = [
+    "breez-sdk~=0.8.0; python_version < '3.14'",
+    "breez-sdk-liquid~=0.11.11; python_version < '3.14'",
+]
 liquid = ["boltz-client==0.4.0"]
 migration = ["psycopg2-binary~=2.9.11"]
 
@@ -89,19 +98,34 @@ dev = [
   "pytest-mock~=3.15.1",
   "types-mock~=5.2.0.20250924",
   "mock~=5.2.0",
-  "grpcio-tools~=1.76.0",
+  "grpcio-tools~=1.76.0; python_version < '3.15'",
+  "grpcio-tools~=1.84.0; python_version >= '3.15'",
 ]
 
 [tool.uv]
 exclude-newer = "1 week"
 # Newer pyln-proto releases pull in a fork that collides with coincurve.
 constraint-dependencies = ["pyln-proto==26.4.1"]
+# coincurve 20's source build uses the pre-0.10 scikit-build-core configuration.
+build-constraint-dependencies = ["scikit-build-core<0.10"]
+
+[tool.uv.sources]
+# PyPI's 1.5.6 sdist omits the secp256k1 build macros needed without a wheel.
+wallycore = { git = "https://github.com/ElementsProject/libwally-core.git", rev = "0c41f38fb1c201786e9c3ac9eae4f5f80c051399", marker = "python_version >= '3.15'" }
+
+[tool.uv.extra-build-dependencies]
+# Wally 1.5.6 still uses Python compatibility aliases removed by SWIG 4.5.
+wallycore = ["swig==4.4.1"]
 
 [tool.poetry]
 packages = [
   {include = "lnbits"},
   {include = "lnbits/py.typed"},
 ]
+
+[tool.poetry.dependencies]
+# Poetry enforces LNURL's declared upper bound. Use uv for Python 3.13+.
+python = ">=3.10,<3.13"
 
 [tool.pyright]
 include = [
