@@ -980,14 +980,6 @@ async def _pay_external_invoice(
     return payment
 
 
-def _payment_balance_contribution(payment: Payment, status: str, fee: int) -> int:
-    if (payment.is_in and status == PaymentState.SUCCESS) or (
-        payment.is_out and status in (PaymentState.PENDING, PaymentState.SUCCESS)
-    ):
-        return payment.amount - abs(fee)
-    return 0
-
-
 async def change_payment_status(
     *,
     wallet_id: str,
@@ -1436,3 +1428,11 @@ def _set_resolved_offer_invoice(payment: Payment, payment_request: str | None) -
     payment.bolt11 = payment_request
     payment.payment_request = payment_request
     return True
+
+
+def _payment_balance_contribution(payment: Payment, status: str, fee: int) -> int:
+    if (payment.is_in and status == PaymentState.SUCCESS) or (
+        payment.is_out and status in (PaymentState.PENDING, PaymentState.SUCCESS)
+    ):
+        return payment.amount - abs(fee)
+    return 0

@@ -16,6 +16,7 @@ This file guides AI coding agents working on LNbits. Keep changes small, verifie
 - Keep core lean. Prefer/assess extensions for non-core features.
 - Preserve compatibility with existing extensions and wallet backends.
 - Follow existing patterns in `lnbits/core`, `lnbits/wallets`, `lnbits/extensions`, and frontend code.
+- Place private functions at the bottom of the file and private methods at the bottom of the class.
 - Use existing CRUD, services, settings, and migration patterns.
 - Do not edit generated files, bundled vendor files, or unrelated extension code.
 
