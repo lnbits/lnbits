@@ -763,7 +763,7 @@ window.localisation.en = {
   extension_permission_wallet_pay_invoice_background:
     'Make background payments',
   create_extension: 'Create Extension',
-  build_extension: 'Build Extension',
+  build_extension: 'Extension Studio',
   new_python_extension: 'New Python Extension',
   new_wasm_extension: 'New WASM Extension',
   edit_wasm_extension: 'Edit WASM Extension',
