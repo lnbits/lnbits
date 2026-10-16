@@ -1,4 +1,6 @@
 import asyncio
+from collections.abc import Coroutine
+from typing import Any
 from unittest.mock import AsyncMock
 
 import pytest
@@ -373,7 +375,6 @@ async def test_retry_failed_invoice(
 
     ws_notification = mocker.patch(
         "lnbits.core.services.payments.send_payment_notification_in_background",
-        AsyncMock(return_value=None),
     )
 
     wallet = await get_wallet(from_wallet.id)
@@ -428,7 +429,9 @@ async def test_retry_failed_invoice(
     #     balance_before - invoice_amount == wallet.balance
     # ), "Payment successful on retry."
 
-    assert ws_notification.call_count == 0, "Websocket notification not sent."
+    assert (
+        ws_notification.call_count == 1
+    ), "Successful reconciliation sends a notification."
 
 
 @pytest.mark.anyio
@@ -669,6 +672,97 @@ async def test_pay_external_invoice_without_webhook_does_not_dispatch(
     await asyncio.sleep(1)
 
     assert dispatch_webhook_mock.call_count == 0, "No webhook, no dispatch."
+
+
+@pytest.fixture
+def payment_notification_tasks(mocker: MockerFixture):
+    tasks: list[Coroutine[Any, Any, None]] = []
+    mocker.patch("lnbits.core.services.notifications.send_notification_in_background")
+    mocker.patch(
+        "lnbits.core.services.notifications.create_task", side_effect=tasks.append
+    )
+    yield tasks
+    for task in tasks:
+        task.close()
+
+
+@pytest.mark.anyio
+@pytest.mark.parametrize("timeout", [False, True])
+async def test_delayed_outgoing_webhook(
+    app,
+    from_wallet: Wallet,
+    external_funding_source: FakeWallet,
+    settings: Settings,
+    mocker: MockerFixture,
+    payment_notification_tasks,
+    timeout: bool,
+):
+    invoice = await external_funding_source.create_invoice(21)
+    assert invoice.payment_request and invoice.checking_id
+    mocker.patch(
+        "lnbits.core.services.payments.get_funding_source",
+        return_value=external_funding_source,
+    )
+
+    async def unresolved_payment(*args, **kwargs):
+        await asyncio.Event().wait()
+
+    settings.lnbits_funding_source_pay_invoice_wait_seconds = 1
+    mocker.patch.object(
+        external_funding_source,
+        "pay_invoice",
+        (
+            AsyncMock(side_effect=unresolved_payment)
+            if timeout
+            else AsyncMock(
+                return_value=PaymentResponse(checking_id=invoice.checking_id)
+            )
+        ),
+    )
+    status_mock = mocker.patch.object(
+        external_funding_source,
+        "get_payment_status",
+        AsyncMock(return_value=PaymentPendingStatus()),
+    )
+    for notification in (
+        "send_ws_payment_notification",
+        "send_chat_payment_notification",
+        "send_payment_push_notification",
+    ):
+        mocker.patch(f"lnbits.core.services.notifications.{notification}")
+    post = mocker.patch(
+        "lnbits.core.services.notifications._post_webhook", return_value=200
+    )
+    payment = await pay_invoice(
+        wallet_id=from_wallet.id,
+        payment_request=invoice.payment_request,
+        webhook="https://example.com/payment",
+    )
+    assert payment.pending
+    assert (await update_pending_payment(payment)).pending
+    assert not payment_notification_tasks
+
+    status_mock.return_value = PaymentSuccessStatus(
+        fee_msat=123, preimage=invoice.preimage
+    )
+    assert (await update_pending_payment(payment)).success
+
+    assert len(payment_notification_tasks) == 1
+    await payment_notification_tasks[0]
+    post.assert_awaited_once()
+    assert post.await_args is not None
+    notified_payment = post.await_args.args[0]
+    assert notified_payment.success and notified_payment.amount == -21_000
+    assert notified_payment.checking_id == payment.checking_id
+
+    stored_payment = await get_payment(payment.checking_id)
+    repeated = await update_pending_payment(stored_payment)
+    assert repeated.success
+    assert repeated.fee == -123
+    assert repeated.preimage == invoice.preimage
+    assert repeated.webhook_status == "200"
+    assert len(payment_notification_tasks) == 1
+    post.assert_awaited_once()
 
 
 @pytest.mark.anyio
