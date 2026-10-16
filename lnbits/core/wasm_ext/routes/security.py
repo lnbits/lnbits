@@ -35,9 +35,11 @@ def wasm_extension_wrapper_response(
     return response
 
 
-def wasm_extension_frame_csp(request: Request, extension: WasmExtension) -> str:
+def wasm_extension_frame_csp(
+    request: Request, extension: WasmExtension, *, asset_prefix: str | None = None
+) -> str:
     origin = str(request.base_url).rstrip("/")
-    extension_assets = f"{origin}/ext-assets/{extension.id}/"
+    extension_assets = origin + (asset_prefix or f"/ext-assets/{extension.id}/")
     return (
         "sandbox allow-scripts allow-pointer-lock; "
         "default-src 'none'; "

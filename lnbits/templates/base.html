@@ -28,6 +28,12 @@
         border: 0;
         display: block;
       }
+
+      .wasm-studio-preview,
+      .wasm-studio-preview .wasm-extension-frame {
+        height: var(--wasm-studio-height);
+        min-height: 240px;
+      }
     </style>
     <title>{% block title %}{{ SITE_TITLE }}{% endblock %}</title>
     <meta charset="utf-8" />

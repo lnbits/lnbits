@@ -3,7 +3,7 @@ from __future__ import annotations
 import json
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from lnbits.core.wasm_ext.wasm.config import (
     WasmExtensionConfig,
@@ -11,6 +11,9 @@ from lnbits.core.wasm_ext.wasm.config import (
     parse_wasm_extension_config,
 )
 from lnbits.settings import settings
+
+if TYPE_CHECKING:
+    from lnbits.core.wasm_ext.runtime import WasmStudioContext
 
 
 @dataclass(frozen=True)
@@ -24,6 +27,7 @@ class WasmExtension:
     world: str
     exports: list[WasmExtensionExport]
     config: WasmExtensionConfig
+    studio: WasmStudioContext | None = None
 
 
 def is_wasm_extension_id(ext_id: str) -> bool:
@@ -45,8 +49,8 @@ def load_wasm_extension_config(ext_id: str) -> WasmExtensionConfig | None:
     return parse_wasm_extension_config(ext_id, config)
 
 
-def load_wasm_extension(ext_id: str) -> WasmExtension:
-    ext_dir = Path(settings.wasm_extensions_dir, ext_id)
+def load_wasm_extension(ext_id: str, *, root_path: Path | None = None) -> WasmExtension:
+    ext_dir = root_path or Path(settings.wasm_extensions_dir, ext_id)
     raw_config = _load_json(ext_dir / "config.json")
     if not raw_config:
         raise FileNotFoundError(f"Missing WASM extension config for '{ext_id}'.")

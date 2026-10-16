@@ -38,6 +38,7 @@ from lnbits.core.crud.scheduler import delete_namespace_schedules
 from lnbits.core.helpers import migrate_extension_database
 from lnbits.core.services.scheduler import scheduler
 from lnbits.core.wasm_ext.api.permissions import validate_wasm_extension_permissions
+from lnbits.core.wasm_ext.runtime import get_runtime_extension
 from lnbits.core.wasm_ext.wasm.component import warm_wasm_extension
 from lnbits.core.wasm_ext.wasm.loader import is_wasm_extension_id, load_wasm_extension
 from lnbits.core.wasm_ext.wasm.scheduler import ensure_wasm_extension_schedules
@@ -165,7 +166,7 @@ def resolve_wasm_runtime_limits(
 
 
 async def get_wasm_runtime_limits_for_extension(ext_id: str) -> dict[str, int]:
-    installed_extension = await get_installed_extension(ext_id)
+    installed_extension = await get_runtime_extension(ext_id)
     return resolve_wasm_runtime_limits(installed_extension)
 
 

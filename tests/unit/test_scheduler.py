@@ -93,7 +93,9 @@ async def extension_job_scopes(
     )
     for module in (service, extension_api):
         mocker.patch.object(
-            module, "get_installed_extension", mocker.AsyncMock(return_value=installed)
+            module,
+            "get_runtime_extension" if module is service else "get_installed_extension",
+            mocker.AsyncMock(return_value=installed),
         )
     mocker.patch.object(
         extension_api,
@@ -136,7 +138,7 @@ def wasm_schedule_grants(settings: Settings, mocker: MockerFixture):
         ],
     )
     mocker.patch.object(
-        service, "get_installed_extension", mocker.AsyncMock(return_value=extension)
+        service, "get_runtime_extension", mocker.AsyncMock(return_value=extension)
     )
     mocker.patch.object(
         service,
@@ -1069,7 +1071,7 @@ async def test_revoked_grants_and_disabled_users(
     enabled = SimpleNamespace(active=True)
     account = SimpleNamespace(activated=True)
     mocker.patch.object(
-        service, "get_installed_extension", mocker.AsyncMock(return_value=extension)
+        service, "get_runtime_extension", mocker.AsyncMock(return_value=extension)
     )
     mocker.patch.object(
         service, "get_user_extension", mocker.AsyncMock(return_value=enabled)

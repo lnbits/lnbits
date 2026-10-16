@@ -13,6 +13,7 @@ from lnbits.core.crud import update_migration_version
 from lnbits.core.db import db as core_db
 from lnbits.core.models import DbVersion
 from lnbits.core.models.extensions import InstallableExtension
+from lnbits.core.wasm_ext.runtime import get_wasm_studio_context
 from lnbits.db import POSTGRES, SQLITE, Compat, Connection, Database
 from lnbits.settings import settings
 
@@ -32,7 +33,7 @@ async def storage_get_row(
         SELECT * FROM {_table_ref_for_schema(ext_id, table)}
         WHERE id = :id AND {OWNER_ID_FIELD} = :owner_id
     """  # noqa: S608
-    async with Database(f"ext_{ext_id}").connect() as conn:
+    async with _storage_database(ext_id).connect() as conn:
         row = await conn.fetchone(query, {"id": row_id, "owner_id": owner_id})
     return _row_from_db(table_schema, row) if row else None
 
@@ -47,7 +48,7 @@ async def storage_get_public_row(
         SELECT * FROM {_table_ref_for_schema(ext_id, table)}
         WHERE id = :id
     """  # noqa: S608
-    async with Database(f"ext_{ext_id}").connect() as conn:
+    async with _storage_database(ext_id).connect() as conn:
         row = await conn.fetchone(query, {"id": row_id})
     return _row_from_db(table_schema, row) if row else None
 
@@ -62,7 +63,7 @@ async def storage_get_row_owner_id(
         SELECT {OWNER_ID_FIELD} FROM {_table_ref_for_schema(ext_id, table)}
         WHERE id = :id
     """  # noqa: S608
-    async with Database(f"ext_{ext_id}").connect() as conn:
+    async with _storage_database(ext_id).connect() as conn:
         row = await conn.fetchone(query, {"id": row_id})
 
     owner_id = row[OWNER_ID_FIELD] if row else None
@@ -78,7 +79,7 @@ async def storage_set_row(
     table_schema = _load_table_schema(ext_id, table)
     clean_data = _data_to_db(table_schema, data, require_id=True)
     columns = list(clean_data.keys())
-    database = Database(f"ext_{ext_id}")
+    database = _storage_database(ext_id)
     fields = _fields_by_name(table_schema)
     placeholders = [
         _value_placeholder(database, fields[column], column) for column in columns
@@ -130,7 +131,7 @@ async def storage_count_rows(
     owner_id: str,
 ) -> int:
     table_schema = _load_table_schema(ext_id, table)
-    database = Database(f"ext_{ext_id}")
+    database = _storage_database(ext_id)
     where_sql, values = _where_sql(database, table_schema, filters, None, [])
     where_sql = _append_owner_where_sql(where_sql)
     values[OWNER_ID_FIELD] = owner_id
@@ -158,7 +159,7 @@ async def storage_get_paginated_rows(
     offset: int,
 ) -> dict[str, Any]:
     table_schema = _load_table_schema(ext_id, table)
-    database = Database(f"ext_{ext_id}")
+    database = _storage_database(ext_id)
     where_sql, values = _where_sql(
         database, table_schema, filters, search, search_fields
     )
@@ -204,7 +205,7 @@ async def storage_get_public_paginated_rows(
     offset: int,
 ) -> dict[str, Any]:
     table_schema = _load_table_schema(ext_id, table)
-    database = Database(f"ext_{ext_id}")
+    database = _storage_database(ext_id)
     where_sql, values = _where_sql(
         database, table_schema, filters, search, search_fields
     )
@@ -246,7 +247,7 @@ async def storage_delete_row(
         DELETE FROM {_table_ref_for_schema(ext_id, table)}
         WHERE id = :id AND {OWNER_ID_FIELD} = :owner_id
     """  # noqa: S608
-    async with Database(f"ext_{ext_id}").connect() as conn:
+    async with _storage_database(ext_id).connect() as conn:
         await conn.execute(query, {"id": row_id, "owner_id": owner_id})
 
 
@@ -260,15 +261,34 @@ async def migrate_wasm_extension_database(
         logger.debug(f"No storage migrations for WASM extension '{ext.id}'.")
         return
 
-    ext_db = Database(f"ext_{ext.id}")
+    ext_db = _storage_database(ext.id)
+    studio = get_wasm_studio_context(ext.id)
     async with ext_db.connect() as conn:
+        if studio:
+            await conn.execute(
+                "CREATE TABLE IF NOT EXISTS studio.dbversions "
+                "(db TEXT PRIMARY KEY, version INTEGER NOT NULL)"
+            )
+            current_version = await conn.fetchone(
+                "SELECT * FROM studio.dbversions WHERE db = :id",
+                {"id": ext.id},
+                DbVersion,
+            )
         for version, path in migration_files:
             if current_version and version <= current_version.version:
                 continue
             logger.debug(f"running WASM storage migration {ext.id}.{version}")
             print(f"running migration {ext.id}.{version}")
             await _run_storage_migration(conn, path)
-            await _update_wasm_migration_version(conn, ext.id, version)
+            if studio:
+                await conn.execute(
+                    "INSERT INTO studio.dbversions (db, version) "
+                    "VALUES (:id, :version) "
+                    "ON CONFLICT (db) DO UPDATE SET version = :version",
+                    {"id": ext.id, "version": version},
+                )
+            else:
+                await _update_wasm_migration_version(conn, ext.id, version)
 
 
 def _migration_files(migrations_dir: Path) -> list[tuple[int, Path]]:
@@ -433,7 +453,13 @@ def _load_table_schema(ext_id: str, table: str) -> dict[str, Any]:
 
 
 def _load_storage_schema(ext_id: str) -> dict[str, Any]:
-    schema_path = settings.wasm_extensions_dir / ext_id / "storage" / "schema.json"
+    studio = get_wasm_studio_context(ext_id)
+    root = (
+        studio.extension.wasm_ext_dir
+        if studio
+        else settings.wasm_extensions_dir / ext_id
+    )
+    schema_path = root / "storage" / "schema.json"
     if not schema_path.is_file():
         raise ValueError(f"WASM extension '{ext_id}' has no storage schema.")
     return _load_json(schema_path)
@@ -683,9 +709,10 @@ def _table_ref(db: Connection, table: str) -> str:
 
 
 def _table_ref_for_schema(ext_id: str, table: str) -> str:
-    _require_identifier({"schema": ext_id}, "schema")
+    schema = "studio" if get_wasm_studio_context(ext_id) else ext_id
+    _require_identifier({"schema": schema}, "schema")
     _require_identifier({"table": table}, "table")
-    return f"{ext_id}.{table}"
+    return f"{schema}.{table}"
 
 
 def _schema_ref(db: Connection, name: str) -> str:
@@ -718,3 +745,12 @@ async def _update_wasm_migration_version(
     else:
         async with core_db.connect() as conn:
             await update_migration_version(conn, ext_id, version)
+
+
+def _storage_database(ext_id: str) -> Database:
+    studio = get_wasm_studio_context(ext_id)
+    if studio:
+        return Database(
+            "ext_studio", sqlite_path=str(studio.data_path / "extension.sqlite3")
+        )
+    return Database(f"ext_{ext_id}")

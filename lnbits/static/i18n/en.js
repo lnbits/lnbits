@@ -779,6 +779,8 @@ window.localisation.en = {
   ai_extension_builder: 'AI Extension Builder',
   ai_builder_admin_only: 'Admin only',
   ai_builder_preview: 'Extension preview',
+  ai_builder_load_failed: 'Unable to load the draft extension.',
+  ai_builder_retry: 'Retry',
   ai_builder_preview_empty: 'Your extension preview will appear here.',
   ai_builder_ui_only: 'AI building and previews are not connected yet.',
   ai_builder_choose_extension:

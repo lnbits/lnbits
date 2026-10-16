@@ -4,10 +4,11 @@ from typing import Any
 
 from loguru import logger
 
-from lnbits.core.crud.extensions import get_installed_extension, get_user_extensions
+from lnbits.core.crud.extensions import get_user_extensions
 from lnbits.core.crud.wallets import get_wallet
 from lnbits.core.db import core_app_extra
 from lnbits.core.models.extensions import ExtensionWalletPaymentsWatchGrant
+from lnbits.core.wasm_ext.runtime import get_runtime_extension
 from lnbits.core.wasm_ext.storage.crud import storage_get_row_owner_id
 from lnbits.core.wasm_ext.wasm.invoke import invoke_wasm_extension_export
 from lnbits.helpers import sha256s
@@ -112,9 +113,7 @@ async def _wallet_watch_extension_ids(user_id: str, wallet_id: str) -> list[str]
         if not core_app_extra.wasm_extension_registry.get(user_extension.extension):
             continue
         try:
-            installed_extension = await get_installed_extension(
-                user_extension.extension
-            )
+            installed_extension = await get_runtime_extension(user_extension.extension)
         except Exception as exc:
             logger.warning(
                 f"Could not fetch installed extension '{user_extension.extension}' "
@@ -191,7 +190,7 @@ def _payment_source_id(payment: Any) -> str | None:
 
 
 async def _wasm_public_invoice_source_tables(extension_id: str) -> list[str]:
-    installed_extension = await get_installed_extension(extension_id)
+    installed_extension = await get_runtime_extension(extension_id)
     if not installed_extension:
         return []
     return _wasm_public_invoice_source_tables_from_permissions(

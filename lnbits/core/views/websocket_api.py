@@ -1,7 +1,7 @@
 from fastapi import APIRouter, WebSocket, status
 
-from lnbits.core.crud import get_installed_extension
 from lnbits.core.wasm_ext.api.websockets import wasm_extension_websocket_hub
+from lnbits.core.wasm_ext.runtime import get_runtime_extension
 
 from ..services import websocket_manager
 
@@ -24,7 +24,7 @@ async def extension_websocket_connect(
     ext_id: str,
     item_id: str,
 ) -> None:
-    installed_ext = await get_installed_extension(ext_id)
+    installed_ext = await get_runtime_extension(ext_id)
     installed_permission_ids = (
         {permission.id for permission in installed_ext.permissions or []}
         if installed_ext

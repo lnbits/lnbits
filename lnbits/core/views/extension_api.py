@@ -68,6 +68,8 @@ from lnbits.core.wasm_ext.api.permissions import (
     validate_extension_permissions,
     validate_wasm_extension_permissions,
 )
+from lnbits.core.wasm_ext.runtime import get_runtime_extension
+from lnbits.core.wasm_ext.studio import open_wasm_studio
 from lnbits.db import Page
 from lnbits.decorators import (
     check_account_exists,
@@ -96,6 +98,25 @@ extension_router = APIRouter(
 
 WALLET_PAY_INVOICE_BACKGROUND_PERMISSION = "wallet.pay_invoice_background"
 WALLET_PAYMENTS_WATCH_PERMISSION = "wallet.payments.watch"
+
+
+@extension_router.post("/{ext_id}/studio")
+async def api_open_wasm_studio(
+    ext_id: str, request: Request, account: Account = Depends(check_admin)
+) -> dict:
+    try:
+        extension = await open_wasm_studio(request.app, ext_id, account)
+    except HTTPException:
+        raise
+    except Exception as ex:
+        logger.warning(ex)
+        raise HTTPException(400, "Unable to prepare the extension workspace.") from ex
+    return {
+        "id": extension.id,
+        "name": extension.name,
+        "description": extension.config.short_description,
+        "preview_path": f"/ext/{extension.id}",
+    }
 
 
 @extension_router.post("", dependencies=[Depends(check_admin)])
@@ -402,7 +423,7 @@ async def api_grant_background_payment_permission(
     data: ExtensionBackgroundPaymentGrantRequest,
     account_id: AccountId = Depends(check_account_id_exists),
 ) -> dict:
-    installed_ext = await get_installed_extension(ext_id)
+    installed_ext = await get_runtime_extension(ext_id)
     if not installed_ext or not installed_ext.active:
         raise HTTPException(
             HTTPStatus.NOT_FOUND, f"Extension '{ext_id}' is not active."
@@ -464,7 +485,7 @@ async def api_grant_wallet_payments_watch_permission(
     data: ExtensionWalletPaymentsWatchGrantRequest,
     account_id: AccountId = Depends(check_account_id_exists),
 ) -> dict:
-    installed_ext = await get_installed_extension(ext_id)
+    installed_ext = await get_runtime_extension(ext_id)
     if not installed_ext or not installed_ext.active:
         raise HTTPException(
             HTTPStatus.NOT_FOUND, f"Extension '{ext_id}' is not active."
@@ -590,7 +611,7 @@ async def api_check_extension_permissions(
     data: ExtensionPermissionCheckRequest,
     account_id: AccountId = Depends(check_account_id_exists),
 ) -> ExtensionPermissionCheckResponse:
-    installed_ext = await get_installed_extension(ext_id)
+    installed_ext = await get_runtime_extension(ext_id)
     if not installed_ext or not installed_ext.active:
         raise HTTPException(
             HTTPStatus.NOT_FOUND, f"Extension '{ext_id}' is not active."
@@ -1080,7 +1101,7 @@ def _load_installed_extension_config(extension: InstallableExtension) -> dict:
 
 
 async def _require_active_wasm_extension(ext_id: str) -> InstallableExtension:
-    installed_ext = await get_installed_extension(ext_id)
+    installed_ext = await get_runtime_extension(ext_id)
     if not installed_ext or not installed_ext.active:
         raise HTTPException(
             HTTPStatus.NOT_FOUND, f"Extension '{ext_id}' is not active."

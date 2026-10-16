@@ -1,20 +1,27 @@
 from __future__ import annotations
 
+import asyncio
 from pathlib import Path
 from typing import Annotated, Any
 
 from fastapi import Depends, FastAPI, HTTPException, Request
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, HTMLResponse, Response
 from pydantic import UUID4
 
-from lnbits.core.crud import get_installed_extension, get_user_from_account
+from lnbits.core.crud import get_user_from_account
 from lnbits.core.models import Account
+from lnbits.core.wasm_ext.runtime import get_runtime_extension
 from lnbits.decorators import (
     check_access_token,
     check_account_exists,
     optional_user_id,
 )
 
+from ..studio_security import (
+    rewrite_studio_urls,
+    studio_asset_prefix,
+    studio_asset_token,
+)
 from ..wasm.loader import WasmExtension
 from .api import (
     WasmRequestBodyTooLargeError,
@@ -157,11 +164,23 @@ def _add_wasm_extension_frame_route(
     async def serve_wasm_extension_frame(
         request: Request,
         user_id: str | None = Depends(_optional_wasm_user_id),
-    ) -> FileResponse:
+    ) -> Response:
         consume_wasm_extension_frame_token(request, extension, frame_path, user_id)
-        response = FileResponse(entrypoint)
+        asset_prefix = None
+        response: Response
+        if extension.studio:
+            if not user_id:
+                raise HTTPException(403, "Admin authentication required.")
+            token = studio_asset_token(extension.studio, user_id)
+            content = await asyncio.to_thread(entrypoint.read_text, encoding="utf-8")
+            response = HTMLResponse(
+                rewrite_studio_urls(content, extension.studio, token)
+            )
+            asset_prefix = studio_asset_prefix(extension.studio, token)
+        else:
+            response = FileResponse(entrypoint)
         response.headers["Content-Security-Policy"] = wasm_extension_frame_csp(
-            request, extension
+            request, extension, asset_prefix=asset_prefix
         )
         response.headers["Cache-Control"] = "no-store"
         response.headers["Cross-Origin-Opener-Policy"] = "same-origin"
@@ -277,6 +296,9 @@ def _wasm_extension_frame_config(
         "frameUrl": wasm_extension_frame_url(extension, frame_path, user_id),
         "bridge": {
             "extensionId": extension.id,
+            "sourceExtensionId": (
+                extension.studio.source_id if extension.studio else None
+            ),
             "public": public,
             "routeParams": _map_wasm_extension_route_params(route_params, path_params),
             "query": query,
@@ -289,7 +311,7 @@ def _wasm_extension_frame_config(
 async def _wasm_extension_granted_permission_ids(
     extension: WasmExtension,
 ) -> set[str]:
-    installed_extension = await get_installed_extension(extension.id)
+    installed_extension = await get_runtime_extension(extension.id)
     if not installed_extension:
         return set()
     return {permission.id for permission in installed_extension.permissions}

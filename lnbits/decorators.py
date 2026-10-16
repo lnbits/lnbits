@@ -33,6 +33,7 @@ from lnbits.core.models import (
 from lnbits.core.models.users import AccountId, EndpointAccess
 from lnbits.core.models.wallets import BaseWallet, BaseWalletTypeInfo
 from lnbits.core.services.two_factor import check_two_factor_session
+from lnbits.core.wasm_ext.runtime import get_wasm_studio_context
 from lnbits.db import Connection, Filter, Filters, TFilterModel
 from lnbits.helpers import normalize_path, path_segments, sha256s
 from lnbits.settings import AuthMethods, settings
@@ -493,7 +494,9 @@ async def check_user_extension_access(
     Check if the user has access to a particular extension.
     Raises HTTP Forbidden if the user is not allowed.
     """
-    if settings.is_admin_extension(ext_id) and not settings.is_admin_user(user_id):
+    if (
+        settings.is_admin_extension(ext_id) or get_wasm_studio_context(ext_id)
+    ) and not settings.is_admin_user(user_id):
         return SimpleStatus(
             success=False, message=f"User not authorized for extension '{ext_id}'."
         )

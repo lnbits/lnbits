@@ -115,7 +115,7 @@ async def automatic_extension(
     )
     mocker.patch.object(
         scheduler_service,
-        "get_installed_extension",
+        "get_runtime_extension",
         mocker.AsyncMock(return_value=installed),
     )
     scheduler = scheduler_service.Scheduler()

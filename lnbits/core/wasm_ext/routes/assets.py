@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 import os
 from pathlib import Path
 
@@ -11,6 +12,8 @@ from starlette.types import Scope
 
 from lnbits.settings import settings
 
+from ..runtime import WasmStudioContext
+from ..studio_security import check_studio_asset_token, rewrite_studio_urls
 from ..wasm.loader import WasmExtension
 
 WASM_EXTENSION_CORE_ASSET_PREFIX = "_lnbits"
@@ -90,6 +93,38 @@ class GuardedWasmExtensionStaticFiles(StaticFiles):
         return response
 
 
+class StudioWasmExtensionStaticFiles(GuardedWasmExtensionStaticFiles):
+    def __init__(self, studio: WasmStudioContext):
+        super().__init__(
+            directory=studio.extension.wasm_ext_dir / "static", check_dir=False
+        )
+        self.studio = studio
+
+    async def get_response(self, path: str, scope: Scope) -> Response:
+        token, separator, asset_path = path.partition("/")
+        if not separator:
+            raise HTTPException(404, "Not found")
+        await check_studio_asset_token(token, self.studio)
+        response = await super().get_response(asset_path, scope)
+        if (
+            isinstance(response, FileResponse)
+            and Path(response.path).suffix.lower()
+            in WASM_EXTENSION_TEXT_STATIC_EXTENSIONS
+        ):
+            content = await asyncio.to_thread(
+                Path(response.path).read_text, encoding="utf-8"
+            )
+            response = Response(
+                rewrite_studio_urls(content, self.studio, token),
+                media_type=response.media_type,
+                headers={
+                    "Cache-Control": "no-store",
+                    "X-Content-Type-Options": "nosniff",
+                },
+            )
+        return response
+
+
 def mount_wasm_extension_static(app: FastAPI, extension: WasmExtension) -> None:
     static_path = extension.root_path / "static"
 
@@ -99,7 +134,11 @@ def mount_wasm_extension_static(app: FastAPI, extension: WasmExtension) -> None:
 
     app.mount(
         mount_path,
-        GuardedWasmExtensionStaticFiles(directory=static_path, check_dir=False),
+        (
+            StudioWasmExtensionStaticFiles(extension.studio)
+            if extension.studio
+            else GuardedWasmExtensionStaticFiles(directory=static_path, check_dir=False)
+        ),
         name=f"{extension.id}-static",
     )
 

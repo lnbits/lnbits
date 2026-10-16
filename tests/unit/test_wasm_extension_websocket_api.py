@@ -17,7 +17,7 @@ async def test_wasm_extension_websocket_delegates_installed_wasm_subscription(mo
         permissions=[ExtensionPermission(id="websocket.subscribe")],
     )
     mocker.patch(
-        "lnbits.core.views.websocket_api.get_installed_extension",
+        "lnbits.core.views.websocket_api.get_runtime_extension",
         AsyncMock(return_value=installed_ext),
     )
     connect = mocker.patch(
@@ -41,7 +41,7 @@ async def test_wasm_extension_websocket_rejects_missing_subscribe_permission(moc
     websocket = AsyncMock()
     installed_ext = SimpleNamespace(active=True, is_wasm=True, permissions=[])
     mocker.patch(
-        "lnbits.core.views.websocket_api.get_installed_extension",
+        "lnbits.core.views.websocket_api.get_runtime_extension",
         AsyncMock(return_value=installed_ext),
     )
 

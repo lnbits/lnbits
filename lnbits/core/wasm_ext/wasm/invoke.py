@@ -7,8 +7,8 @@ from typing import Any
 
 from wasmtime import Store, WasiConfig, component
 
-from lnbits.core.crud.extensions import get_installed_extension
 from lnbits.core.db import core_app_extra
+from lnbits.core.wasm_ext.runtime import get_runtime_extension, get_wasm_studio_context
 from lnbits.settings import settings
 
 from ..api.host import ExtensionHostAPI
@@ -51,6 +51,12 @@ async def invoke_wasm_extension_export(
     )
 
     extension = _get_registered_extension(ext_id)
+    if (
+        get_wasm_studio_context(ext_id)
+        and user is not None
+        and not settings.is_admin_user(_user_id(user) or "")
+    ):
+        raise PermissionError("Draft extensions require an administrator.")
     installed_extension = await _active_installed_extension(extension)
     permissions = installed_extension.permissions
     limits = resolve_wasm_runtime_limits(installed_extension)
@@ -248,7 +254,7 @@ def _get_registered_extension(ext_id: str) -> WasmExtension:
 
 
 async def _active_installed_extension(extension: WasmExtension) -> Any:
-    installed_extension = await get_installed_extension(extension.id)
+    installed_extension = await get_runtime_extension(extension.id)
     if (
         not installed_extension
         or settings.lnbits_extensions_deactivate_all

@@ -178,6 +178,15 @@ window.WasmExtensionComponent = {
       </q-dialog>
     </div>
   `,
+  props: {
+    previewRoute: {type: Object, default: null}
+  },
+  emits: ['navigate'],
+  computed: {
+    activeRoute() {
+      return this.previewRoute || this.$route
+    }
+  },
   data() {
     return {
       allowedPaymentHashes: new Set(),
@@ -261,7 +270,8 @@ window.WasmExtensionComponent = {
     this.closeBridgePort()
   },
   watch: {
-    '$route.fullPath': {
+    activeRoute: {
+      deep: true,
       immediate: true,
       handler() {
         this.loadFrameConfig()
@@ -343,7 +353,7 @@ window.WasmExtensionComponent = {
       }
     },
     async loadFrameConfig() {
-      const extId = String(this.$route.params.extId || '')
+      const extId = String(this.activeRoute.params.extId || '')
       const loadId = ++this.loadId
       this.loading = true
       this.error = ''
@@ -368,8 +378,8 @@ window.WasmExtensionComponent = {
             headers: {'content-type': 'application/json'},
             credentials: 'same-origin',
             body: JSON.stringify({
-              path: this.$route.path,
-              query: this.$route.query || {}
+              path: this.activeRoute.path,
+              query: this.activeRoute.query || {}
             })
           }
         )
@@ -427,10 +437,25 @@ window.WasmExtensionComponent = {
         )
       })
     },
+    draftPath(path) {
+      const value = String(path || '')
+      if (!this.bridge.sourceExtensionId) return value
+      const url = new URL(value, window.location.origin)
+      if (url.origin !== window.location.origin) return value
+      for (const prefix of ['/api/v1/ext/', '/ext/']) {
+        const source = prefix + this.bridge.sourceExtensionId
+        if (url.pathname === source || url.pathname.startsWith(source + '/')) {
+          url.pathname =
+            prefix + this.bridge.extensionId + url.pathname.slice(source.length)
+          return `${url.pathname}${url.search}${url.hash}`
+        }
+      }
+      return value
+    },
     extensionRoute(path) {
       let url
       try {
-        url = new URL(String(path || ''), window.location.origin)
+        url = new URL(this.draftPath(path), window.location.origin)
       } catch (_error) {
         throw new Error('Invalid extension route.')
       }
@@ -448,7 +473,12 @@ window.WasmExtensionComponent = {
       return `${url.pathname}${url.search}${url.hash}`
     },
     replaceExtensionRoute(message) {
-      return this.$router.replace(this.extensionRoute(message.path))
+      const path = this.extensionRoute(message.path)
+      if (this.previewRoute) {
+        this.$emit('navigate', path)
+        return
+      }
+      return this.$router.replace(path)
     },
     newTabUrl(rawUrl) {
       const raw = String(rawUrl || '').trim()
@@ -560,7 +590,7 @@ window.WasmExtensionComponent = {
     },
     async callApi(message) {
       const method = String(message.method || 'GET').toUpperCase()
-      const path = String(message.path || '')
+      const path = this.draftPath(message.path)
       if (!this.allowedApiRoute(method, path)) {
         throw new Error('Extension API route is not allowed.')
       }

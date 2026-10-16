@@ -5,7 +5,7 @@ from uuid import uuid4
 
 from loguru import logger
 
-from lnbits.core.crud.extensions import get_installed_extension, get_user_extension
+from lnbits.core.crud.extensions import get_user_extension
 from lnbits.core.crud.scheduler import (
     claim_scheduled_job,
     create_scheduled_job_run,
@@ -33,6 +33,7 @@ from lnbits.core.models.scheduler import (
     SchedulePolicy,
     UserSchedulePolicy,
 )
+from lnbits.core.wasm_ext.runtime import get_runtime_extension
 from lnbits.db import Page
 from lnbits.settings import settings
 from lnbits.utils.cron import next_run_at
@@ -71,7 +72,7 @@ async def check_schedule_access(
     ):
         raise PermissionError("Extension scheduling is unavailable.")
     extension_id = namespace.removeprefix("extension:")
-    extension = await get_installed_extension(extension_id)
+    extension = await get_runtime_extension(extension_id)
     if not extension or not extension.active:
         raise PermissionError("Scheduled extension is not active.")
     permission = (

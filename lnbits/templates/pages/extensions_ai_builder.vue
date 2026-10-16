@@ -45,7 +45,42 @@
     <q-banner v-else rounded class="bg-marginal-bg q-mb-md">
       <span v-text="$t('ai_builder_choose_extension')"></span>
     </q-banner>
-    <q-card flat bordered>
+    <q-card
+      v-if="isEditing"
+      flat
+      bordered
+      class="relative-position"
+      style="min-height: 200px"
+    >
+      <q-inner-loading :showing="workspaceLoading">
+        <q-spinner-dots size="40px"></q-spinner-dots>
+      </q-inner-loading>
+      <q-banner
+        v-if="workspaceError"
+        class="bg-negative text-white"
+        role="alert"
+      >
+        <span v-text="workspaceError"></span>
+        <template v-slot:action>
+          <q-btn
+            flat
+            :label="$t('ai_builder_retry')"
+            @click="loadWorkspace"
+          ></q-btn>
+        </template>
+      </q-banner>
+      <wasm-extension
+        v-if="previewRoute"
+        class="wasm-studio-preview"
+        :style="{
+          '--wasm-studio-height':
+            Math.max(240, $q.screen.height - conversationHeight - 300) + 'px'
+        }"
+        :preview-route="previewRoute"
+        @navigate="navigatePreview"
+      ></wasm-extension>
+    </q-card>
+    <q-card v-else flat bordered>
       <q-card-section
         class="text-subtitle1"
         v-text="$t('ai_builder_preview')"

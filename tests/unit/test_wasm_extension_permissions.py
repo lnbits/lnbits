@@ -948,7 +948,7 @@ async def test_invoice_paid_owner_lookup_uses_stored_granted_policies(
         ]
     )
     mocker.patch(
-        "lnbits.core.wasm_ext.wasm.events.get_installed_extension",
+        "lnbits.core.wasm_ext.wasm.events.get_runtime_extension",
         mocker.AsyncMock(return_value=installed_extension),
     )
     storage_mock = mocker.patch(
@@ -968,7 +968,7 @@ async def test_wasm_invocation_requires_installed_active_extension(
 ):
     extension = SimpleNamespace(id="demoext")
     mocker.patch(
-        "lnbits.core.wasm_ext.wasm.invoke.get_installed_extension",
+        "lnbits.core.wasm_ext.wasm.invoke.get_runtime_extension",
         mocker.AsyncMock(return_value=None),
     )
 

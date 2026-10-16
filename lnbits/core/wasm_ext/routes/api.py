@@ -141,7 +141,7 @@ def _add_wasm_extension_api_route(
         description=openapi.description,
         operation_id=openapi.operation_id,
         openapi_extra=openapi.openapi_extra,
-        include_in_schema=True,
+        include_in_schema=extension.studio is None,
     )
     return True
 

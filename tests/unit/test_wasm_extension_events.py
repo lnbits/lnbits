@@ -59,7 +59,7 @@ async def test_dispatch_wasm_invoice_paid_invokes_registered_event_export_with_o
         ]
     )
     mocker.patch(
-        "lnbits.core.wasm_ext.wasm.events.get_installed_extension",
+        "lnbits.core.wasm_ext.wasm.events.get_runtime_extension",
         mocker.AsyncMock(return_value=installed_extension),
     )
     mocker.patch(
@@ -157,7 +157,7 @@ async def test_dispatch_wasm_invoice_paid_invokes_wallet_watch_grant(
         ),
     )
     mocker.patch(
-        "lnbits.core.wasm_ext.wasm.events.get_installed_extension",
+        "lnbits.core.wasm_ext.wasm.events.get_runtime_extension",
         mocker.AsyncMock(
             return_value=SimpleNamespace(
                 active=True,
@@ -219,7 +219,7 @@ async def test_dispatch_wasm_invoice_paid_dedupes_tagged_wallet_watch_grant(
         ),
     )
     mocker.patch(
-        "lnbits.core.wasm_ext.wasm.events.get_installed_extension",
+        "lnbits.core.wasm_ext.wasm.events.get_runtime_extension",
         mocker.AsyncMock(
             return_value=SimpleNamespace(
                 active=True,

@@ -290,10 +290,10 @@ class Connection(Compat):
 
 
 class Database(Compat):
-    def __init__(self, db_name: str):
+    def __init__(self, db_name: str, *, sqlite_path: str | None = None):
         self.name = db_name
         self.schema = self.name
-        self.type = DB_TYPE
+        self.type = SQLITE if sqlite_path else DB_TYPE
 
         if self.type == POSTGRES and settings.lnbits_database_url:
             database_uri = settings.lnbits_database_url.replace(
@@ -304,7 +304,7 @@ class Database(Compat):
                 "cockroachdb://", "cockroachdb+asyncpg://"
             )
         else:
-            self.path = os.path.join(
+            self.path = sqlite_path or os.path.join(
                 settings.lnbits_data_folder, f"{self.name}.sqlite3"
             )
             database_uri = f"sqlite+aiosqlite:///{self.path}"

@@ -53,6 +53,7 @@ from lnbits.core.wasm_ext.routes.register import (
     register_wasm_extension,
     unregister_wasm_extension,
 )
+from lnbits.core.wasm_ext.studio_security import WasmStudioMiddleware
 from lnbits.core.wasm_ext.wasm.events import dispatch_wasm_invoice_paid
 from lnbits.core.wasm_ext.wasm.loader import (
     is_wasm_extension_dir,
@@ -210,6 +211,7 @@ def create_app() -> FastAPI:
 
     # order of these two middlewares is important
     app.add_middleware(InstalledExtensionMiddleware)
+    app.add_middleware(WasmStudioMiddleware)
     app.add_middleware(ExtensionsRedirectMiddleware)
 
     register_custom_extensions_path()
