@@ -1,3 +1,4 @@
+import asyncio
 import time
 from datetime import datetime, timedelta, timezone
 from os import urandom
@@ -17,10 +18,14 @@ from lnbits.core.services import (
     pay_invoice,
     settle_hold_invoice,
 )
-from lnbits.core.services.payments import update_pending_payment, update_wallet_balance
+from lnbits.core.services.payments import (
+    check_payment_status,
+    update_pending_payment,
+    update_wallet_balance,
+)
 from lnbits.exceptions import InvoiceError, PaymentError
 from lnbits.utils.crypto import random_secret_and_hash
-from lnbits.wallets.base import InvoiceResponse
+from lnbits.wallets.base import InvoiceResponse, PaymentFailedStatus
 from lnbits.wallets.fake import FakeWallet
 
 
@@ -90,6 +95,14 @@ async def _balance_msat(wallet_id: str) -> int:
     return wallet.balance_msat
 
 
+async def _wait_for_cancel(funding_source: HoldFakeWallet):
+    """The invoice is cancelled on the funding source in the background."""
+    for _ in range(50):
+        if funding_source.cancel_mock.await_count:
+            return
+        await asyncio.sleep(0.01)
+
+
 async def _create_paid_hold_invoice(amount: int = 1000):
     receiver = await _new_wallet()
     payer = await _new_wallet(balance=10_000)
@@ -106,7 +119,9 @@ async def _create_paid_hold_invoice(amount: int = 1000):
 
 
 @pytest.mark.anyio
-async def test_internal_hold_invoice_is_held(hold_funding_source: HoldFakeWallet):
+async def test_internal_hold_invoice_is_held(
+    hold_funding_source: HoldFakeWallet, mocker: MockerFixture
+):
     receiver, payer, _, hold_invoice, payment, payer_balance = (
         await _create_paid_hold_invoice()
     )
@@ -124,7 +139,20 @@ async def test_internal_hold_invoice_is_held(hold_funding_source: HoldFakeWallet
     assert invoice.status == PaymentState.PENDING
     assert invoice.extra.get("hold_invoice_accepted") is True
 
-    # nothing is checked on the funding source while the payment is held
+    # paid internally, so it cannot be paid on the funding source anymore
+    await _wait_for_cancel(hold_funding_source)
+    hold_funding_source.cancel_mock.assert_awaited_once_with(
+        payment_hash=hold_invoice.payment_hash
+    )
+
+    # the cancelled invoice on the funding source does not fail the held payment
+    mocker.patch.object(
+        hold_funding_source,
+        "get_invoice_status",
+        AsyncMock(return_value=PaymentFailedStatus()),
+    )
+    status = await check_payment_status(invoice)
+    assert status.pending
     invoice = await update_pending_payment(invoice)
     assert invoice.status == PaymentState.PENDING
 
@@ -142,7 +170,8 @@ async def test_internal_hold_invoice_settle(hold_funding_source: HoldFakeWallet)
     assert response.ok is True
     assert response.preimage == preimage
 
-    # settled on this instance, the invoice on the funding source is cancelled
+    # settled on this instance only, the funding source cancelled it at accept
+    await _wait_for_cancel(hold_funding_source)
     hold_funding_source.settle_mock.assert_not_called()
     hold_funding_source.cancel_mock.assert_awaited_once_with(
         payment_hash=hold_invoice.payment_hash
@@ -176,6 +205,7 @@ async def test_internal_hold_invoice_cancel(hold_funding_source: HoldFakeWallet)
 
     response = await cancel_hold_invoice(hold_invoice)
     assert response.ok is True
+    await _wait_for_cancel(hold_funding_source)
     hold_funding_source.cancel_mock.assert_awaited_once_with(
         payment_hash=hold_invoice.payment_hash
     )
@@ -220,9 +250,97 @@ async def test_internal_hold_invoice_expired(hold_funding_source: HoldFakeWallet
 
 
 @pytest.mark.anyio
+async def test_internal_hold_invoice_settle_after_expiry(
+    hold_funding_source: HoldFakeWallet,
+):
+    # no CLTV deadline for internal payments, the invoice expiry is used instead
+    receiver, payer, preimage, hold_invoice, payment, payer_balance = (
+        await _create_paid_hold_invoice()
+    )
+
+    invoice = await get_standalone_payment(hold_invoice.checking_id, incoming=True)
+    assert invoice
+    invoice.expiry = datetime.now(timezone.utc) - timedelta(seconds=1)
+    await update_payment(invoice)
+
+    with pytest.raises(InvoiceError, match="Hold invoice expired."):
+        await settle_hold_invoice(invoice, preimage)
+
+    outgoing = await get_standalone_payment(payment.checking_id)
+    assert outgoing
+    assert outgoing.status == PaymentState.FAILED
+    assert await _balance_msat(payer.id) == payer_balance
+    assert await _balance_msat(receiver.id) == 0
+
+
+@pytest.mark.anyio
 async def test_internal_hold_invoice_paid_twice(hold_funding_source: HoldFakeWallet):
     *_, hold_invoice, _, _ = await _create_paid_hold_invoice()
     other_payer = await _new_wallet(balance=10_000)
 
     with pytest.raises(PaymentError, match="Hold invoice already paid."):
         await pay_invoice(wallet_id=other_payer.id, payment_request=hold_invoice.bolt11)
+
+
+@pytest.mark.anyio
+async def test_internal_hold_invoice_paid_concurrently(
+    hold_funding_source: HoldFakeWallet,
+):
+    receiver = await _new_wallet()
+    payers = [await _new_wallet(balance=10_000), await _new_wallet(balance=10_000)]
+    _, payment_hash = random_secret_and_hash()
+    hold_invoice = await create_invoice(
+        wallet_id=receiver.id,
+        amount=1000,
+        memo="internal hold invoice",
+        payment_hash=payment_hash,
+    )
+
+    results = await asyncio.gather(
+        *[
+            pay_invoice(wallet_id=payer.id, payment_request=hold_invoice.bolt11)
+            for payer in payers
+        ],
+        return_exceptions=True,
+    )
+
+    paid = [r for r in results if not isinstance(r, BaseException)]
+    errors = [r for r in results if isinstance(r, BaseException)]
+    assert len(paid) == 1
+    assert paid[0].status == PaymentState.PENDING
+    assert len(errors) == 1
+    assert isinstance(errors[0], PaymentError)
+    assert errors[0].message == "Hold invoice already paid."
+
+
+@pytest.mark.anyio
+async def test_internal_hold_invoice_settle_races_cancel(
+    hold_funding_source: HoldFakeWallet,
+):
+    receiver, payer, preimage, hold_invoice, payment, payer_balance = (
+        await _create_paid_hold_invoice()
+    )
+
+    results = await asyncio.gather(
+        settle_hold_invoice(hold_invoice, preimage),
+        cancel_hold_invoice(hold_invoice),
+        return_exceptions=True,
+    )
+
+    errors = [r for r in results if isinstance(r, BaseException)]
+    assert len(errors) == 1
+    assert isinstance(errors[0], InvoiceError)
+    assert errors[0].message == "Hold invoice is not pending."
+
+    # both payments end up in the same state
+    outgoing = await get_standalone_payment(payment.checking_id)
+    invoice = await get_standalone_payment(hold_invoice.checking_id, incoming=True)
+    assert outgoing
+    assert invoice
+    assert outgoing.status == invoice.status
+    if invoice.status == PaymentState.SUCCESS:
+        assert await _balance_msat(receiver.id) == 1000 * 1000
+    else:
+        assert invoice.status == PaymentState.FAILED
+        assert await _balance_msat(payer.id) == payer_balance
+        assert await _balance_msat(receiver.id) == 0
