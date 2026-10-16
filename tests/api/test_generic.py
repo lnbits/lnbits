@@ -156,8 +156,17 @@ async def test_get_extensions(client, to_user):
 
 @pytest.mark.anyio
 @pytest.mark.parametrize("role", ["anonymous", "user", "admin"])
+@pytest.mark.parametrize(
+    "extension_id, mode", [("wallet_sweep", "edit"), ("new-wasm_extension", "new")]
+)
 async def test_ai_extension_builder_requires_admin(
-    http_client, user_headers_from, admin_user, settings: Settings, role: str
+    http_client,
+    user_headers_from,
+    admin_user,
+    settings: Settings,
+    role: str,
+    extension_id: str,
+    mode: str,
 ):
     settings.lnbits_extensions_builder_activate_non_admins = True
     headers = {}
@@ -171,7 +180,11 @@ async def test_ai_extension_builder_requires_admin(
         assert login.status_code == 200
         headers = {"Authorization": f"Bearer {login.json()['access_token']}"}
 
-    response = await http_client.get("/extensions/ai-builder", headers=headers)
+    response = await http_client.get(
+        f"/extensions/builder/wasm/{extension_id}",
+        params={"mode": mode},
+        headers=headers,
+    )
 
     assert response.status_code == {"anonymous": 401, "user": 403, "admin": 200}[role]
     if role == "admin":

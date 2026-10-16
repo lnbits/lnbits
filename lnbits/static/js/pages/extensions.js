@@ -208,8 +208,9 @@ window.PageExtensions = {
         extension
       )
       this.$router.push({
-        path: '/extensions/ai-builder',
-        query: {mode, id: extension.id}
+        name: 'ExtensionsAIBuilder',
+        params: {extId: extension.id},
+        query: {mode}
       })
     },
     filterExtensions(term, tab) {

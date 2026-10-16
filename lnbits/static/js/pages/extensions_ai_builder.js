@@ -1,7 +1,7 @@
 window.PageExtensionAIBuilder = {
   template: '#page-extension-ai-builder',
   data() {
-    const id = this.$route.query.id
+    const id = this.$route.params.extId
     const mode = this.$route.query.mode
     const savedExtension = this.$q.sessionStorage.getItem(
       `lnbits.aiBuilder.${window.g.user.id}.${mode}.${id}`

@@ -158,7 +158,7 @@ const routes = [
     component: PageAccount
   },
   {
-    path: '/extensions/ai-builder',
+    path: '/extensions/builder/wasm/:extId',
     name: 'ExtensionsAIBuilder',
     component: async () => {
       await LNbits.utils.loadScript('/static/js/pages/extensions_ai_builder.js')

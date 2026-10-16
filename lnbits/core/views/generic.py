@@ -187,7 +187,9 @@ admin_ui_checks = [Depends(check_admin), Depends(check_admin_ui)]
 @generic_router.get("/wallets")
 @generic_router.get("/account")
 @generic_router.get("/extensions")
-@generic_router.get("/extensions/ai-builder", dependencies=[Depends(check_admin)])
+@generic_router.get(
+    "/extensions/builder/wasm/{ext_id}", dependencies=[Depends(check_admin)]
+)
 @generic_router.get("/users", dependencies=admin_ui_checks)
 @generic_router.get("/audit", dependencies=admin_ui_checks)
 @generic_router.get("/scheduler", dependencies=admin_ui_checks)
