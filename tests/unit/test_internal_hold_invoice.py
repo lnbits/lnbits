@@ -83,43 +83,6 @@ def hold_funding_source(app, mocker: MockerFixture) -> HoldFakeWallet:
     return funding_source
 
 
-async def _new_wallet(balance: int = 0):
-    user = await create_user_account()
-    wallet = await create_wallet(user_id=user.id, wallet_name="hold_invoice_test")
-    if balance:
-        await update_wallet_balance(wallet=wallet, amount=balance)
-    return wallet
-
-
-async def _balance_msat(wallet_id: str) -> int:
-    wallet = await get_wallet(wallet_id)
-    assert wallet
-    return wallet.balance_msat
-
-
-async def _wait_for_cancel(funding_source: HoldFakeWallet):
-    """The invoice is cancelled on the funding source in the background."""
-    for _ in range(50):
-        if funding_source.cancel_mock.await_count:
-            return
-        await asyncio.sleep(0.01)
-
-
-async def _create_paid_hold_invoice(amount: int = 1000):
-    receiver = await _new_wallet()
-    payer = await _new_wallet(balance=10_000)
-    preimage, payment_hash = random_secret_and_hash()
-    hold_invoice = await create_invoice(
-        wallet_id=receiver.id,
-        amount=amount,
-        memo="internal hold invoice",
-        payment_hash=payment_hash,
-    )
-    payer_balance = await _balance_msat(payer.id)
-    payment = await pay_invoice(wallet_id=payer.id, payment_request=hold_invoice.bolt11)
-    return receiver, payer, preimage, hold_invoice, payment, payer_balance
-
-
 @pytest.mark.anyio
 async def test_internal_hold_invoice_is_held(
     hold_funding_source: HoldFakeWallet, mocker: MockerFixture
@@ -360,3 +323,40 @@ async def test_internal_hold_invoice_settle_races_cancel(
         assert invoice.status == PaymentState.FAILED
         assert await _balance_msat(payer.id) == payer_balance
         assert await _balance_msat(receiver.id) == 0
+
+
+async def _new_wallet(balance: int = 0):
+    user = await create_user_account()
+    wallet = await create_wallet(user_id=user.id, wallet_name="hold_invoice_test")
+    if balance:
+        await update_wallet_balance(wallet=wallet, amount=balance)
+    return wallet
+
+
+async def _balance_msat(wallet_id: str) -> int:
+    wallet = await get_wallet(wallet_id)
+    assert wallet
+    return wallet.balance_msat
+
+
+async def _wait_for_cancel(funding_source: HoldFakeWallet):
+    """The invoice is cancelled on the funding source in the background."""
+    for _ in range(50):
+        if funding_source.cancel_mock.await_count:
+            return
+        await asyncio.sleep(0.01)
+
+
+async def _create_paid_hold_invoice(amount: int = 1000):
+    receiver = await _new_wallet()
+    payer = await _new_wallet(balance=10_000)
+    preimage, payment_hash = random_secret_and_hash()
+    hold_invoice = await create_invoice(
+        wallet_id=receiver.id,
+        amount=amount,
+        memo="internal hold invoice",
+        payment_hash=payment_hash,
+    )
+    payer_balance = await _balance_msat(payer.id)
+    payment = await pay_invoice(wallet_id=payer.id, payment_request=hold_invoice.bolt11)
+    return receiver, payer, preimage, hold_invoice, payment, payer_balance

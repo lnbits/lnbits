@@ -1325,150 +1325,6 @@ async def cancel_hold_invoice(payment: Payment) -> InvoiceResponse:
     return response
 
 
-async def _get_internal_hold_payment(
-    hold_invoice: Payment, conn: Connection | None = None
-) -> Payment | None:
-    """
-    Returns the outgoing payment of a wallet on this instance
-    that paid the hold invoice, if any.
-    """
-    return await get_standalone_payment(
-        f"internal_{hold_invoice.payment_hash}", conn=conn
-    )
-
-
-async def _accept_internal_hold_invoice(
-    hold_invoice: Payment,
-    create_payment_model: CreatePayment,
-    conn: Connection | None = None,
-) -> Payment:
-    """
-    Pay a hold invoice of this instance from another wallet of this instance.
-    The funds of the payer stay locked in a pending payment until the receiver
-    settles the invoice with the preimage, cancels it or the invoice expires.
-    Unlike an HTLC held by a node, which can be settled until its CLTV deadline,
-    an internal payment has no deadline of its own: the invoice expiry is used.
-    """
-    # check and update under the same connection lock
-    async with db.reuse_conn(conn) if conn else db.connect() as new_conn:
-        if await _get_internal_hold_payment(hold_invoice, conn=new_conn):
-            raise PaymentError("Hold invoice already paid.", status="failed")
-
-        internal_id = f"internal_{create_payment_model.payment_hash}"
-        # the preimage is only known by the receiver
-        create_payment_model.preimage = None
-        payment = await create_payment(
-            checking_id=internal_id,
-            data=create_payment_model,
-            status=PaymentState.PENDING,
-            conn=new_conn,
-        )
-
-        hold_invoice.extra["hold_invoice_accepted"] = True
-        await update_payment(hold_invoice, conn=new_conn)
-    logger.success(f"internal hold invoice accepted {hold_invoice.checking_id}")
-
-    task_manager.create_task(
-        _cancel_funding_source_hold_invoice(hold_invoice),
-        f"cancel_hold_invoice_{hold_invoice.payment_hash}",
-    )
-
-    return payment
-
-
-async def _settle_internal_hold_invoice(
-    hold_invoice: Payment, preimage: str
-) -> InvoiceResponse:
-    # check and update under the same connection lock
-    async with db.connect() as conn:
-        hold_invoice, held_payment = await _get_pending_internal_hold(
-            hold_invoice, conn=conn
-        )
-        expired = hold_invoice.is_expired
-        if not expired:
-            held_payment.status = PaymentState.SUCCESS
-            held_payment.preimage = preimage
-            await update_payment(held_payment, conn=conn)
-
-            hold_invoice.status = PaymentState.SUCCESS
-            hold_invoice.preimage = preimage
-            hold_invoice.extra["hold_invoice_settled"] = True
-            await update_payment(hold_invoice, conn=conn)
-
-    if expired:
-        # no CLTV deadline like for an HTLC held by the node, the expiry is used
-        await _cancel_internal_hold_invoice(hold_invoice, expired=True)
-        raise InvoiceError("Hold invoice expired.", status="failed")
-    logger.success(f"internal hold invoice settled {hold_invoice.checking_id}")
-
-    await _send_payment_notification_in_background(
-        held_payment.wallet_id, held_payment
-    )  # notify the sender
-    task_manager.internal_invoice_queue.put_nowait(hold_invoice)
-    await _credit_service_fee_wallet(held_payment)
-
-    return InvoiceResponse(ok=True, preimage=preimage)
-
-
-async def _cancel_internal_hold_invoice(
-    hold_invoice: Payment, expired: bool = False, conn: Connection | None = None
-) -> Payment:
-    # check and update under the same connection lock
-    async with db.reuse_conn(conn) if conn else db.connect() as new_conn:
-        hold_invoice, held_payment = await _get_pending_internal_hold(
-            hold_invoice, conn=new_conn
-        )
-        # refund the payer
-        held_payment.status = PaymentState.FAILED
-        await update_payment(held_payment, conn=new_conn)
-
-        hold_invoice.status = PaymentState.FAILED
-        hold_invoice.extra["hold_invoice_cancelled"] = True
-        if expired:
-            hold_invoice.labels.append("expired")
-        await update_payment(hold_invoice, conn=new_conn)
-    logger.info(f"internal hold invoice cancelled {hold_invoice.checking_id}")
-    return hold_invoice
-
-
-async def _get_pending_internal_hold(
-    hold_invoice: Payment, conn: Connection | None = None
-) -> tuple[Payment, Payment]:
-    """
-    Fetch the latest state of an internally paid hold invoice
-    and of the payment that paid it. Both must still be pending.
-    """
-    invoice = await get_standalone_payment(
-        hold_invoice.checking_id, incoming=True, conn=conn
-    )
-    held_payment = await _get_internal_hold_payment(hold_invoice, conn=conn)
-    if not invoice or not held_payment or not held_payment.pending:
-        raise InvoiceError("Hold invoice is not pending.", status="failed")
-    return invoice, held_payment
-
-
-async def _cancel_funding_source_hold_invoice(hold_invoice: Payment):
-    """
-    The hold invoice was paid internally, make sure it cannot be paid
-    on the funding source as well. Payments already held there are refunded.
-    """
-    funding_source = get_funding_source()
-    try:
-        response = await funding_source.cancel_hold_invoice(
-            payment_hash=hold_invoice.payment_hash
-        )
-        if not response.ok:
-            logger.warning(
-                f"could not cancel hold invoice {hold_invoice.checking_id} "
-                f"on the funding source: {response.error_message}"
-            )
-    except Exception as exc:
-        logger.warning(
-            f"could not cancel hold invoice {hold_invoice.checking_id} "
-            f"on the funding source: {exc}"
-        )
-
-
 async def _send_payment_notification_in_background(
     wallet_id: str, payment: Payment, conn: Connection | None = None
 ):
@@ -1628,3 +1484,147 @@ def _payment_balance_contribution(payment: Payment, status: str, fee: int) -> in
     ):
         return payment.amount - abs(fee)
     return 0
+
+
+async def _get_internal_hold_payment(
+    hold_invoice: Payment, conn: Connection | None = None
+) -> Payment | None:
+    """
+    Returns the outgoing payment of a wallet on this instance
+    that paid the hold invoice, if any.
+    """
+    return await get_standalone_payment(
+        f"internal_{hold_invoice.payment_hash}", conn=conn
+    )
+
+
+async def _accept_internal_hold_invoice(
+    hold_invoice: Payment,
+    create_payment_model: CreatePayment,
+    conn: Connection | None = None,
+) -> Payment:
+    """
+    Pay a hold invoice of this instance from another wallet of this instance.
+    The funds of the payer stay locked in a pending payment until the receiver
+    settles the invoice with the preimage, cancels it or the invoice expires.
+    Unlike an HTLC held by a node, which can be settled until its CLTV deadline,
+    an internal payment has no deadline of its own: the invoice expiry is used.
+    """
+    # check and update under the same connection lock
+    async with db.reuse_conn(conn) if conn else db.connect() as new_conn:
+        if await _get_internal_hold_payment(hold_invoice, conn=new_conn):
+            raise PaymentError("Hold invoice already paid.", status="failed")
+
+        internal_id = f"internal_{create_payment_model.payment_hash}"
+        # the preimage is only known by the receiver
+        create_payment_model.preimage = None
+        payment = await create_payment(
+            checking_id=internal_id,
+            data=create_payment_model,
+            status=PaymentState.PENDING,
+            conn=new_conn,
+        )
+
+        hold_invoice.extra["hold_invoice_accepted"] = True
+        await update_payment(hold_invoice, conn=new_conn)
+    logger.success(f"internal hold invoice accepted {hold_invoice.checking_id}")
+
+    task_manager.create_task(
+        _cancel_funding_source_hold_invoice(hold_invoice),
+        f"cancel_hold_invoice_{hold_invoice.payment_hash}",
+    )
+
+    return payment
+
+
+async def _settle_internal_hold_invoice(
+    hold_invoice: Payment, preimage: str
+) -> InvoiceResponse:
+    # check and update under the same connection lock
+    async with db.connect() as conn:
+        hold_invoice, held_payment = await _get_pending_internal_hold(
+            hold_invoice, conn=conn
+        )
+        expired = hold_invoice.is_expired
+        if not expired:
+            held_payment.status = PaymentState.SUCCESS
+            held_payment.preimage = preimage
+            await update_payment(held_payment, conn=conn)
+
+            hold_invoice.status = PaymentState.SUCCESS
+            hold_invoice.preimage = preimage
+            hold_invoice.extra["hold_invoice_settled"] = True
+            await update_payment(hold_invoice, conn=conn)
+
+    if expired:
+        # no CLTV deadline like for an HTLC held by the node, the expiry is used
+        await _cancel_internal_hold_invoice(hold_invoice, expired=True)
+        raise InvoiceError("Hold invoice expired.", status="failed")
+    logger.success(f"internal hold invoice settled {hold_invoice.checking_id}")
+
+    await _send_payment_notification_in_background(
+        held_payment.wallet_id, held_payment
+    )  # notify the sender
+    task_manager.internal_invoice_queue.put_nowait(hold_invoice)
+    await _credit_service_fee_wallet(held_payment)
+
+    return InvoiceResponse(ok=True, preimage=preimage)
+
+
+async def _cancel_internal_hold_invoice(
+    hold_invoice: Payment, expired: bool = False, conn: Connection | None = None
+) -> Payment:
+    # check and update under the same connection lock
+    async with db.reuse_conn(conn) if conn else db.connect() as new_conn:
+        hold_invoice, held_payment = await _get_pending_internal_hold(
+            hold_invoice, conn=new_conn
+        )
+        # refund the payer
+        held_payment.status = PaymentState.FAILED
+        await update_payment(held_payment, conn=new_conn)
+
+        hold_invoice.status = PaymentState.FAILED
+        hold_invoice.extra["hold_invoice_cancelled"] = True
+        if expired:
+            hold_invoice.labels.append("expired")
+        await update_payment(hold_invoice, conn=new_conn)
+    logger.info(f"internal hold invoice cancelled {hold_invoice.checking_id}")
+    return hold_invoice
+
+
+async def _get_pending_internal_hold(
+    hold_invoice: Payment, conn: Connection | None = None
+) -> tuple[Payment, Payment]:
+    """
+    Fetch the latest state of an internally paid hold invoice
+    and of the payment that paid it. Both must still be pending.
+    """
+    invoice = await get_standalone_payment(
+        hold_invoice.checking_id, incoming=True, conn=conn
+    )
+    held_payment = await _get_internal_hold_payment(hold_invoice, conn=conn)
+    if not invoice or not held_payment or not held_payment.pending:
+        raise InvoiceError("Hold invoice is not pending.", status="failed")
+    return invoice, held_payment
+
+
+async def _cancel_funding_source_hold_invoice(hold_invoice: Payment):
+    """
+    The hold invoice was paid internally, make sure it cannot be paid
+    on the funding source as well. Payments already held there are refunded.
+    """
+    funding_source = get_funding_source()
+    try:
+        response = await funding_source.cancel_hold_invoice(
+            payment_hash=hold_invoice.payment_hash
+        )
+        if not response.ok:
+            logger.warning(
+                f"could not cancel hold invoice {hold_invoice.checking_id} "
+                f"on the funding source: {response.error_message}"
+            )
+    except Exception as exc:
+        logger.warning(
+            f"could not cancel hold invoice {hold_invoice.checking_id} "
+            f"on the funding source: {exc}"
+        )
