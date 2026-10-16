@@ -22,13 +22,6 @@ from .base import (
 )
 
 
-def _error_detail(response: httpx.Response) -> str:
-    try:
-        return response.json()["detail"]
-    except Exception:
-        return response.text or f"HTTP {response.status_code}"
-
-
 class LNbitsWallet(Wallet):
     """https://github.com/lnbits/lnbits"""
 
@@ -387,3 +380,10 @@ class LNbitsWallet(Wallet):
             return InvoiceResponse(
                 ok=False, error_message=f"Unable to connect to {self.endpoint}."
             )
+
+
+def _error_detail(response: httpx.Response) -> str:
+    try:
+        return response.json()["detail"]
+    except Exception:
+        return response.text or f"HTTP {response.status_code}"
