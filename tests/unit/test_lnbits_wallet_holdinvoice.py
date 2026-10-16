@@ -11,15 +11,6 @@ PREIMAGE = "cd" * 32
 BOLT11 = "lnbcrt10u1fakeholdinvoice"
 
 
-def _wallet(handler) -> LNbitsWallet:
-    wallet = object.__new__(LNbitsWallet)
-    wallet.endpoint = "http://lnbits.test"
-    wallet.client = httpx.AsyncClient(
-        base_url=wallet.endpoint, transport=httpx.MockTransport(handler)
-    )
-    return wallet
-
-
 def test_lnbits_wallet_advertises_holdinvoice():
     assert Feature.holdinvoice in (LNbitsWallet.features or [])
 
@@ -178,3 +169,12 @@ async def test_lnbits_get_invoice_status(body, expected):
         assert getattr(status, expected) is True
     finally:
         await wallet.client.aclose()
+
+
+def _wallet(handler) -> LNbitsWallet:
+    wallet = object.__new__(LNbitsWallet)
+    wallet.endpoint = "http://lnbits.test"
+    wallet.client = httpx.AsyncClient(
+        base_url=wallet.endpoint, transport=httpx.MockTransport(handler)
+    )
+    return wallet
