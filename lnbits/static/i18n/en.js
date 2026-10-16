@@ -777,6 +777,7 @@ window.localisation.en = {
   no_installed_wasm_extensions: 'No installed WASM extensions are available.',
   modify_extension: 'Modify Extension',
   ai_extension_builder: 'AI Extension Builder',
+  ai_builder_deploy: 'Deploy',
   ai_builder_admin_only: 'Admin only',
   ai_builder_preview: 'Extension preview',
   ai_builder_load_failed: 'Unable to load the draft extension.',

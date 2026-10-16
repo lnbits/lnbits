@@ -1,7 +1,7 @@
 <template id="page-extension-ai-builder">
   <div v-if="g.user?.admin">
-    <div class="row items-center justify-between q-gutter-sm q-mb-lg">
-      <div class="row items-center q-gutter-sm">
+    <q-card class="q-mb-md">
+      <q-toolbar>
         <q-btn
           flat
           round
@@ -9,40 +9,27 @@
           to="/extensions"
           :aria-label="$t('extensions')"
         ></q-btn>
-        <h1 class="text-h6 q-my-none" v-text="$t('ai_extension_builder')"></h1>
-        <q-badge
-          outline
+        <h1
+          class="col text-subtitle1 q-my-none q-ml-sm ellipsis"
+          v-text="$t('build_extension')"
+        ></h1>
+        <q-btn
+          disable
+          flat
+          no-caps
           color="primary"
-          :label="$t('ai_builder_admin_only')"
-        ></q-badge>
-      </div>
-      <q-badge
-        v-if="extension.id"
-        outline
-        :label="$t(isEditing ? 'edit_wasm_extension' : 'new_wasm_extension')"
-      ></q-badge>
-    </div>
-    <q-card v-if="extension.id" class="q-mb-md">
-      <q-card-section>
-        <div
-          class="text-h6"
-          style="overflow-wrap: anywhere"
-          v-text="extension.name || extension.id"
-        ></div>
-        <div
-          class="text-caption"
-          style="overflow-wrap: anywhere"
-          v-text="extension.id"
-        ></div>
-        <p
-          v-if="extension.description"
-          class="q-mt-sm q-mb-none"
-          style="white-space: pre-wrap; overflow-wrap: anywhere"
-          v-text="extension.description"
-        ></p>
-      </q-card-section>
+          :label="$t('ai_builder_deploy')"
+        ></q-btn>
+        <q-btn
+          flat
+          round
+          icon="settings"
+          to="/admin#extensions"
+          :aria-label="$t('settings')"
+        ></q-btn>
+      </q-toolbar>
     </q-card>
-    <q-banner v-else rounded class="bg-marginal-bg q-mb-md">
+    <q-banner v-if="!extension.id" rounded class="bg-marginal-bg q-mb-md">
       <span v-text="$t('ai_builder_choose_extension')"></span>
     </q-banner>
     <q-card
@@ -74,7 +61,7 @@
         class="wasm-studio-preview"
         :style="{
           '--wasm-studio-height':
-            Math.max(240, $q.screen.height - conversationHeight - 300) + 'px'
+            Math.max(240, $q.screen.height - conversationHeight - 172) + 'px'
         }"
         :preview-route="previewRoute"
         @navigate="navigatePreview"
