@@ -76,16 +76,43 @@
                   "
                 ></span>
               </q-badge>
-              <q-btn
+              <q-btn-dropdown
                 v-if="extbuilderEnabled"
                 flat
                 no-caps
                 icon="architecture"
-                to="/extensions/builder"
-                ><span v-text="$t('create_extension')"></span
-              ></q-btn>
+                :label="$t('build_extension')"
+              >
+                <q-list>
+                  <q-item clickable v-close-popup to="/extensions/builder">
+                    <q-item-section
+                      v-text="$t('new_python_extension')"
+                    ></q-item-section>
+                  </q-item>
+                  <q-item
+                    v-if="g.user.admin"
+                    clickable
+                    v-close-popup
+                    @click="openNewWasmExtension"
+                  >
+                    <q-item-section
+                      v-text="$t('new_wasm_extension')"
+                    ></q-item-section>
+                  </q-item>
+                  <q-item
+                    v-if="g.user.admin"
+                    clickable
+                    v-close-popup
+                    @click="openEditWasmExtension"
+                  >
+                    <q-item-section
+                      v-text="$t('edit_wasm_extension')"
+                    ></q-item-section>
+                  </q-item>
+                </q-list>
+              </q-btn-dropdown>
               <q-btn v-else disabled flat no-caps icon="architecture"
-                ><span v-text="$t('create_extension')"></span>
+                ><span v-text="$t('build_extension')"></span>
                 <q-tooltip
                   v-text="$t('only_admins_can_create_extensions')"
                 ></q-tooltip>
@@ -123,6 +150,85 @@
       </q-card>
     </div>
   </div>
+  <q-dialog v-if="g.user.admin" v-model="showNewWasmExtensionDialog">
+    <q-card class="q-pa-lg lnbits__dialog-card" style="width: 500px">
+      <q-form @submit="startNewWasmExtension" class="q-gutter-md">
+        <h2 class="text-h6 q-my-none" v-text="$t('new_wasm_extension')"></h2>
+        <q-input
+          v-model.trim="newWasmExtension.id"
+          :label="$t('id')"
+          :hint="$t('wasm_extension_id_hint')"
+          :rules="[validateWasmExtensionId]"
+          filled
+          autofocus
+          lazy-rules
+        ></q-input>
+        <q-input
+          v-model.trim="newWasmExtension.name"
+          :label="$t('wasm_extension_name')"
+          :rules="[
+            value => !!value?.trim() || $t('wasm_extension_name_required')
+          ]"
+          filled
+          lazy-rules
+        ></q-input>
+        <q-input
+          v-model.trim="newWasmExtension.description"
+          :label="$t('description')"
+          type="textarea"
+          rows="3"
+          filled
+        ></q-input>
+        <div class="row justify-end q-gutter-sm">
+          <q-btn flat :label="$t('close')" v-close-popup></q-btn>
+          <q-btn
+            type="submit"
+            color="primary"
+            :label="$t('start_building')"
+          ></q-btn>
+        </div>
+      </q-form>
+    </q-card>
+  </q-dialog>
+  <q-dialog v-if="g.user.admin" v-model="showEditWasmExtensionDialog">
+    <q-card class="q-pa-lg lnbits__dialog-card" style="width: 500px">
+      <q-form @submit="modifyWasmExtension" class="q-gutter-md">
+        <h2 class="text-h6 q-my-none" v-text="$t('edit_wasm_extension')"></h2>
+        <q-select
+          v-model="wasmExtensionToEdit"
+          :options="installedWasmExtensions"
+          option-label="name"
+          :label="$t('select_wasm_extension')"
+          :hint="
+            !installedWasmExtensions.length
+              ? $t('no_installed_wasm_extensions')
+              : ''
+          "
+          filled
+          clearable
+          autofocus
+        >
+          <template v-slot:option="scope">
+            <q-item v-bind="scope.itemProps">
+              <q-item-section>
+                <q-item-label v-text="scope.opt.name"></q-item-label>
+                <q-item-label caption v-text="scope.opt.id"></q-item-label>
+              </q-item-section>
+            </q-item>
+          </template>
+        </q-select>
+        <div class="row justify-end q-gutter-sm">
+          <q-btn flat :label="$t('close')" v-close-popup></q-btn>
+          <q-btn
+            type="submit"
+            color="primary"
+            :label="$t('modify_extension')"
+            :disable="!wasmExtensionToEdit"
+          ></q-btn>
+        </div>
+      </q-form>
+    </q-card>
+  </q-dialog>
   <div class="row q-col-gutter-md">
     <div
       v-if="filteredExtensions"

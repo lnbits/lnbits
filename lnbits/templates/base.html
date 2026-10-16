@@ -48,7 +48,10 @@
 
   <body data-theme="bitcoin">
     <div id="vue">
-      <q-layout view="hHh lpR lfr" v-cloak>
+      <q-layout
+        :view="$route.name === 'ExtensionsAIBuilder' ? 'hHh lpR fFf' : 'hHh lpR lfr'"
+        v-cloak
+      >
         <lnbits-disclaimer v-if="g.user && !g.isPublicPage"></lnbits-disclaimer>
         <lnbits-qrcode-scanner :callback="g.scanner"></lnbits-qrcode-scanner>
         <lnbits-theme></lnbits-theme>
@@ -63,7 +66,7 @@
               v-if="g.user && !g.isPublicPage"
             ></lnbits-wallet-new>
             <lnbits-header-wallets
-              v-if="g.user && !g.isPublicPage && !$route.path.startsWith('/ext/')"
+              v-if="g.user && !g.isPublicPage && !$route.path.startsWith('/ext/') && $route.name !== 'ExtensionsAIBuilder'"
             ></lnbits-header-wallets>
             <!-- block page content from static extensions -->
             <div
@@ -80,7 +83,7 @@
         {% endblock %}
         <!-- Footer -->
         {% block footer %}
-        <lnbits-footer />
+        <lnbits-footer v-if="$route.name !== 'ExtensionsAIBuilder'" />
         {% endblock %}
       </q-layout>
     </div>

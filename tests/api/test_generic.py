@@ -154,6 +154,30 @@ async def test_get_extensions(client, to_user):
     assert response.status_code == 200, f"{response.url} {response.status_code}"
 
 
+@pytest.mark.anyio
+@pytest.mark.parametrize("role", ["anonymous", "user", "admin"])
+async def test_ai_extension_builder_requires_admin(
+    http_client, user_headers_from, admin_user, settings: Settings, role: str
+):
+    settings.lnbits_extensions_builder_activate_non_admins = True
+    headers = {}
+    if role == "user":
+        headers = user_headers_from
+    elif role == "admin":
+        login = await http_client.post(
+            "/api/v1/auth",
+            json={"username": admin_user.username, "password": "secret1234"},
+        )
+        assert login.status_code == 200
+        headers = {"Authorization": f"Bearer {login.json()['access_token']}"}
+
+    response = await http_client.get("/extensions/ai-builder", headers=headers)
+
+    assert response.status_code == {"anonymous": 401, "user": 403, "admin": 200}[role]
+    if role == "admin":
+        assert 'id="page-extension-ai-builder"' in response.text
+
+
 # check GET /extensions: extensions list wrong user, expect 400
 @pytest.mark.anyio
 async def test_get_extensions_wrong_user(client):

@@ -7,6 +7,11 @@ window.PageExtensions = {
   data() {
     return {
       extbuilderEnabled: false,
+      extensions: [],
+      showNewWasmExtensionDialog: false,
+      showEditWasmExtensionDialog: false,
+      newWasmExtension: {id: '', name: '', description: ''},
+      wasmExtensionToEdit: null,
       slide: 0,
       fullscreen: false,
       autoplay: true,
@@ -126,6 +131,11 @@ window.PageExtensions = {
     }
   },
   computed: {
+    installedWasmExtensions() {
+      return this.extensions
+        .filter(extension => extension.isInstalled && extension.isWasm)
+        .sort((a, b) => a.name.localeCompare(b.name))
+    },
     managedUserPermissionRows() {
       const rows = []
       const userPermissions =
@@ -152,6 +162,56 @@ window.PageExtensions = {
     }
   },
   methods: {
+    openNewWasmExtension() {
+      this.newWasmExtension = {id: '', name: '', description: ''}
+      this.showNewWasmExtensionDialog = true
+    },
+    openEditWasmExtension() {
+      this.wasmExtensionToEdit = null
+      this.showEditWasmExtensionDialog = true
+    },
+    validateWasmExtensionId(value) {
+      if (!value || !/^[A-Za-z0-9_-]+$/.test(value)) {
+        return this.$t('wasm_extension_id_hint')
+      }
+      if (this.extensions.some(extension => extension.id === value)) {
+        return this.$t('wasm_extension_id_exists')
+      }
+      return true
+    },
+    startNewWasmExtension() {
+      if (
+        !this.g.user.admin ||
+        this.validateWasmExtensionId(this.newWasmExtension.id) !== true ||
+        !this.newWasmExtension.name.trim()
+      ) {
+        return
+      }
+      this.showNewWasmExtensionDialog = false
+      this.openWasmBuilder('new', {...this.newWasmExtension})
+    },
+    modifyWasmExtension() {
+      const extension = this.wasmExtensionToEdit
+      if (!this.g.user.admin || !extension?.isInstalled || !extension.isWasm) {
+        return
+      }
+      this.showEditWasmExtensionDialog = false
+      this.openWasmBuilder('edit', {
+        id: extension.id,
+        name: extension.name,
+        description: extension.shortDescription || ''
+      })
+    },
+    openWasmBuilder(mode, extension) {
+      this.$q.sessionStorage.set(
+        `lnbits.aiBuilder.${this.g.user.id}.${mode}.${extension.id}`,
+        extension
+      )
+      this.$router.push({
+        path: '/extensions/ai-builder',
+        query: {mode, id: extension.id}
+      })
+    },
     filterExtensions(term, tab) {
       // Filter the extensions list
       function extensionNameContains(searchTerm) {

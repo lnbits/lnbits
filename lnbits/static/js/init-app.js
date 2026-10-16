@@ -158,6 +158,17 @@ const routes = [
     component: PageAccount
   },
   {
+    path: '/extensions/ai-builder',
+    name: 'ExtensionsAIBuilder',
+    component: async () => {
+      await LNbits.utils.loadScript('/static/js/pages/extensions_ai_builder.js')
+      return window.PageExtensionAIBuilder
+    },
+    beforeEnter: () => {
+      if (!window.g.user?.admin) return '/extensions'
+    }
+  },
+  {
     path: '/extensions/builder',
     name: 'ExtensionsBuilder',
     component: PageExtensionBuilder
