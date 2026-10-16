@@ -1,11 +1,13 @@
 from __future__ import annotations
 
+import asyncio
 import json
 import re
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any
+from typing import Any, cast
 from uuid import uuid4
+from weakref import WeakKeyDictionary
 
 from loguru import logger
 
@@ -19,6 +21,12 @@ from lnbits.settings import settings
 _MIGRATION_FILE_RE = re.compile(r"^(\d+)_.*\.json$")
 _SQL_IDENTIFIER_RE = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*$")
 OWNER_ID_FIELD = "__lnbits_owner_id__"
+VERSION_FIELD = "__lnbits_version__"
+IMMUTABLE_FIELD = "__lnbits_immutable__"
+MAX_STORAGE_VERSION = (1 << 63) - 1
+_databases: WeakKeyDictionary[
+    asyncio.AbstractEventLoop, dict[tuple[str, str, str], Database]
+] = WeakKeyDictionary()
 
 
 async def storage_get_row(
@@ -27,14 +35,26 @@ async def storage_get_row(
     row_id: str,
     owner_id: str,
 ) -> dict[str, Any] | None:
+    row, _ = await storage_get_row_with_version(ext_id, table, row_id, owner_id)
+    return row
+
+
+async def storage_get_row_with_version(
+    ext_id: str,
+    table: str,
+    row_id: str,
+    owner_id: str,
+) -> tuple[dict[str, Any] | None, int | None]:
     table_schema = _load_table_schema(ext_id, table)
     query = f"""
         SELECT * FROM {_table_ref_for_schema(ext_id, table)}
         WHERE id = :id AND {OWNER_ID_FIELD} = :owner_id
     """  # noqa: S608
-    async with Database(f"ext_{ext_id}").connect() as conn:
+    async with _database(ext_id).connect() as conn:
         row = await conn.fetchone(query, {"id": row_id, "owner_id": owner_id})
-    return _row_from_db(table_schema, row) if row else None
+    if not row:
+        return None, None
+    return _row_from_db(table_schema, row), int(row[VERSION_FIELD])
 
 
 async def storage_get_public_row(
@@ -47,7 +67,7 @@ async def storage_get_public_row(
         SELECT * FROM {_table_ref_for_schema(ext_id, table)}
         WHERE id = :id
     """  # noqa: S608
-    async with Database(f"ext_{ext_id}").connect() as conn:
+    async with _database(ext_id).connect() as conn:
         row = await conn.fetchone(query, {"id": row_id})
     return _row_from_db(table_schema, row) if row else None
 
@@ -62,7 +82,7 @@ async def storage_get_row_owner_id(
         SELECT {OWNER_ID_FIELD} FROM {_table_ref_for_schema(ext_id, table)}
         WHERE id = :id
     """  # noqa: S608
-    async with Database(f"ext_{ext_id}").connect() as conn:
+    async with _database(ext_id).connect() as conn:
         row = await conn.fetchone(query, {"id": row_id})
 
     owner_id = row[OWNER_ID_FIELD] if row else None
@@ -78,7 +98,7 @@ async def storage_set_row(
     table_schema = _load_table_schema(ext_id, table)
     clean_data = _data_to_db(table_schema, data, require_id=True)
     columns = list(clean_data.keys())
-    database = Database(f"ext_{ext_id}")
+    database = _database(ext_id)
     fields = _fields_by_name(table_schema)
     placeholders = [
         _value_placeholder(database, fields[column], column) for column in columns
@@ -87,17 +107,23 @@ async def storage_set_row(
     clean_data[OWNER_ID_FIELD] = owner_id
     columns.append(OWNER_ID_FIELD)
     placeholders.append(f":{OWNER_ID_FIELD}")
+    clean_data[VERSION_FIELD] = 1
+    columns.append(VERSION_FIELD)
+    placeholders.append(f":{VERSION_FIELD}")
+    clean_data[IMMUTABLE_FIELD] = False
+    columns.append(IMMUTABLE_FIELD)
+    placeholders.append(f":{IMMUTABLE_FIELD}")
     updates = [
         f"{column} = excluded.{column}"
         for column in columns
-        if column not in ("id", OWNER_ID_FIELD)
+        if column not in ("id", OWNER_ID_FIELD, VERSION_FIELD)
     ]
+    updates.append(f"{VERSION_FIELD} = storage_row.{VERSION_FIELD} + 1")
     conflict_sql = (
         "DO UPDATE SET "
         + ", ".join(updates)
         + f" WHERE storage_row.{OWNER_ID_FIELD} = :{OWNER_ID_FIELD}"
-        if updates
-        else "DO NOTHING"
+        + f" AND storage_row.{IMMUTABLE_FIELD} = false"
     )
     query = f"""
         INSERT INTO {_table_ref_for_schema(ext_id, table)} AS storage_row
@@ -109,6 +135,102 @@ async def storage_set_row(
 
     async with database.connect() as conn:
         await conn.execute(query, clean_data)
+
+
+async def storage_insert_if_absent_row(
+    ext_id: str,
+    table: str,
+    row_id: str,
+    data: dict[str, Any],
+    owner_id: str,
+) -> tuple[bool, dict[str, Any] | None, int | None]:
+    table_schema = _load_table_schema(ext_id, table)
+    clean_data = _data_to_db(table_schema, data, require_id=True)
+    if clean_data["id"] != row_id:
+        raise ValueError("WASM storage row ID must match the requested ID.")
+
+    database = _database(ext_id)
+    fields = _fields_by_name(table_schema)
+    columns = [*clean_data, OWNER_ID_FIELD, VERSION_FIELD, IMMUTABLE_FIELD]
+    placeholders = [
+        _value_placeholder(database, fields[column], column) for column in clean_data
+    ]
+    placeholders.extend(
+        f":{column}" for column in (OWNER_ID_FIELD, VERSION_FIELD, IMMUTABLE_FIELD)
+    )
+    values = {
+        **clean_data,
+        OWNER_ID_FIELD: owner_id,
+        VERSION_FIELD: 1,
+        IMMUTABLE_FIELD: False,
+    }
+    query = f"""
+        INSERT INTO {_table_ref_for_schema(ext_id, table)}
+            ({", ".join(columns)})
+        VALUES
+            ({", ".join(placeholders)})
+        ON CONFLICT (id) DO NOTHING
+    """  # noqa: S608
+
+    async with database.connect() as conn:
+        result = await conn.execute(query, values)
+        created = bool(result.rowcount)
+        row = await conn.fetchone(
+            f"""
+                SELECT * FROM {_table_ref_for_schema(ext_id, table)}
+                WHERE id = :id AND {OWNER_ID_FIELD} = :owner_id
+            """,  # noqa: S608
+            {"id": row_id, "owner_id": owner_id},
+        )
+    if not row:
+        return False, None, None
+    return created, _row_from_db(table_schema, row), int(row[VERSION_FIELD])
+
+
+async def storage_compare_and_set_row(
+    ext_id: str,
+    table: str,
+    row_id: str,
+    expected_version: int,
+    new_row: dict[str, Any],
+    owner_id: str,
+    make_immutable: bool = False,
+) -> bool:
+    if not 1 <= expected_version < MAX_STORAGE_VERSION:
+        raise ValueError("WASM storage expected version is out of range.")
+    table_schema = _load_table_schema(ext_id, table)
+    clean_data = _data_to_db(table_schema, new_row, require_id=True)
+    if clean_data["id"] != row_id:
+        raise ValueError("WASM storage row ID must match the requested ID.")
+
+    database = _database(ext_id)
+    fields = _fields_by_name(table_schema)
+    updates = [
+        f"{column} = {_value_placeholder(database, fields[column], column)}"
+        for column in clean_data
+        if column != "id"
+    ]
+    updates.append(f"{VERSION_FIELD} = {VERSION_FIELD} + 1")
+    clean_data.update(
+        {
+            OWNER_ID_FIELD: owner_id,
+            VERSION_FIELD: expected_version,
+            IMMUTABLE_FIELD: make_immutable,
+        }
+    )
+    updates.append(f"{IMMUTABLE_FIELD} = :{IMMUTABLE_FIELD}")
+    query = f"""
+        UPDATE {_table_ref_for_schema(ext_id, table)}
+        SET {", ".join(updates)}
+        WHERE id = :id
+            AND {OWNER_ID_FIELD} = :{OWNER_ID_FIELD}
+            AND {VERSION_FIELD} = :{VERSION_FIELD}
+            AND {IMMUTABLE_FIELD} = false
+    """  # noqa: S608
+
+    async with database.connect() as conn:
+        result = await conn.execute(query, clean_data)
+    return bool(result.rowcount)
 
 
 async def storage_append_public_row(
@@ -130,7 +252,7 @@ async def storage_count_rows(
     owner_id: str,
 ) -> int:
     table_schema = _load_table_schema(ext_id, table)
-    database = Database(f"ext_{ext_id}")
+    database = _database(ext_id)
     where_sql, values = _where_sql(database, table_schema, filters, None, [])
     where_sql = _append_owner_where_sql(where_sql)
     values[OWNER_ID_FIELD] = owner_id
@@ -158,7 +280,7 @@ async def storage_get_paginated_rows(
     offset: int,
 ) -> dict[str, Any]:
     table_schema = _load_table_schema(ext_id, table)
-    database = Database(f"ext_{ext_id}")
+    database = _database(ext_id)
     where_sql, values = _where_sql(
         database, table_schema, filters, search, search_fields
     )
@@ -204,7 +326,7 @@ async def storage_get_public_paginated_rows(
     offset: int,
 ) -> dict[str, Any]:
     table_schema = _load_table_schema(ext_id, table)
-    database = Database(f"ext_{ext_id}")
+    database = _database(ext_id)
     where_sql, values = _where_sql(
         database, table_schema, filters, search, search_fields
     )
@@ -244,9 +366,11 @@ async def storage_delete_row(
     _load_table_schema(ext_id, table)
     query = f"""
         DELETE FROM {_table_ref_for_schema(ext_id, table)}
-        WHERE id = :id AND {OWNER_ID_FIELD} = :owner_id
+        WHERE id = :id
+            AND {OWNER_ID_FIELD} = :owner_id
+            AND {IMMUTABLE_FIELD} = false
     """  # noqa: S608
-    async with Database(f"ext_{ext_id}").connect() as conn:
+    async with _database(ext_id).connect() as conn:
         await conn.execute(query, {"id": row_id, "owner_id": owner_id})
 
 
@@ -260,7 +384,7 @@ async def migrate_wasm_extension_database(
         logger.debug(f"No storage migrations for WASM extension '{ext.id}'.")
         return
 
-    ext_db = Database(f"ext_{ext.id}")
+    ext_db = _database(ext.id)
     async with ext_db.connect() as conn:
         for version, path in migration_files:
             if current_version and version <= current_version.version:
@@ -269,6 +393,62 @@ async def migrate_wasm_extension_database(
             print(f"running migration {ext.id}.{version}")
             await _run_storage_migration(conn, path)
             await _update_wasm_migration_version(conn, ext.id, version)
+        tables = _load_storage_schema(ext.id).get("tables", {})
+        if isinstance(tables, dict):
+            for table in tables:
+                await _ensure_storage_internal_columns(conn, table)
+
+
+def _database(ext_id: str) -> Database:
+    key = (
+        ext_id,
+        settings.lnbits_database_url or "",
+        str(settings.lnbits_data_folder),
+    )
+    databases = _databases.setdefault(asyncio.get_running_loop(), {})
+    database = databases.get(key)
+    if database is None:
+        database = Database(f"ext_{ext_id}")
+        databases[key] = database
+    return database
+
+
+async def _ensure_storage_internal_columns(db: Connection, table: str) -> None:
+    _require_identifier({"table": table}, "table")
+    if db.type == SQLITE:
+        columns = cast(
+            list[dict[str, Any]],
+            await db.fetchall(f"PRAGMA {db.schema}.table_info({table})"),
+        )
+        column_names = {column["name"] for column in columns}
+    else:
+        columns = cast(
+            list[dict[str, Any]],
+            await db.fetchall(
+                """
+            SELECT column_name FROM information_schema.columns
+            WHERE table_schema = :schema AND table_name = :table
+            """,
+                {
+                    "schema": db.schema.lower() if db.schema else None,
+                    "table": table.lower(),
+                },
+            ),
+        )
+        column_names = {column["column_name"] for column in columns}
+
+    if not column_names:
+        raise ValueError(f"WASM storage table '{table}' was not created by migrations.")
+    if VERSION_FIELD not in column_names:
+        await db.execute(
+            f"ALTER TABLE {_table_ref(db, table)} "
+            f"ADD COLUMN {VERSION_FIELD} {db.big_int} NOT NULL DEFAULT 1"
+        )
+    if IMMUTABLE_FIELD not in column_names:
+        await db.execute(
+            f"ALTER TABLE {_table_ref(db, table)} "
+            f"ADD COLUMN {IMMUTABLE_FIELD} BOOLEAN NOT NULL DEFAULT false"
+        )
 
 
 def _migration_files(migrations_dir: Path) -> list[tuple[int, Path]]:
@@ -313,16 +493,19 @@ def _create_table_sql(db: Connection, operation: dict[str, Any]) -> str:
     fields = _require_fields(operation)
     if not any(field.get("name") == "id" for field in fields):
         raise ValueError(f"WASM storage table '{table}' must define an id field.")
-    if any(field.get("name") == OWNER_ID_FIELD for field in fields):
-        raise ValueError(
-            f"WASM storage table '{table}' defines reserved field '{OWNER_ID_FIELD}'."
-        )
+    if any(
+        field.get("name") in {OWNER_ID_FIELD, VERSION_FIELD, IMMUTABLE_FIELD}
+        for field in fields
+    ):
+        raise ValueError(f"WASM storage table '{table}' defines a reserved field.")
 
     columns = [
         _column_sql(db, field, primary_key=field.get("name") == "id")
         for field in fields
     ]
     columns.append(f"{OWNER_ID_FIELD} TEXT NOT NULL")
+    columns.append(f"{VERSION_FIELD} {db.big_int} NOT NULL DEFAULT 1")
+    columns.append(f"{IMMUTABLE_FIELD} BOOLEAN NOT NULL DEFAULT false")
     return f"""
         CREATE TABLE IF NOT EXISTS {_table_ref(db, table)} (
             {", ".join(columns)}
@@ -333,11 +516,8 @@ def _create_table_sql(db: Connection, operation: dict[str, Any]) -> str:
 def _add_field_sql(db: Connection, operation: dict[str, Any]) -> str:
     table = _require_identifier(operation, "table")
     field = _field_from_add_field_operation(operation)
-    if field["name"] == OWNER_ID_FIELD:
-        raise ValueError(
-            f"WASM storage table '{table}' cannot add reserved field "
-            f"'{OWNER_ID_FIELD}'."
-        )
+    if field["name"] in {OWNER_ID_FIELD, VERSION_FIELD, IMMUTABLE_FIELD}:
+        raise ValueError(f"WASM storage table '{table}' cannot add reserved field.")
     return f"""
         ALTER TABLE {_table_ref(db, table)}
         ADD COLUMN {_column_sql(db, field)};
@@ -348,11 +528,8 @@ def _create_index_sql(db: Connection, operation: dict[str, Any]) -> str:
     table = _require_identifier(operation, "table")
     name = _require_identifier(operation, "name")
     field = _require_identifier(operation, "field")
-    if field == OWNER_ID_FIELD:
-        raise ValueError(
-            f"WASM storage table '{table}' cannot index reserved field "
-            f"'{OWNER_ID_FIELD}'."
-        )
+    if field in {OWNER_ID_FIELD, VERSION_FIELD, IMMUTABLE_FIELD}:
+        raise ValueError(f"WASM storage table '{table}' cannot index reserved field.")
 
     if db.type == SQLITE and db.schema:
         return f"""
@@ -424,11 +601,8 @@ def _load_table_schema(ext_id: str, table: str) -> dict[str, Any]:
         if not isinstance(field, dict):
             raise ValueError(f"WASM storage table '{table}' has invalid field schema.")
         _require_identifier(field, "name")
-        if field["name"] == OWNER_ID_FIELD:
-            raise ValueError(
-                f"WASM storage table '{table}' defines reserved field "
-                f"'{OWNER_ID_FIELD}'."
-            )
+        if field["name"] in {OWNER_ID_FIELD, VERSION_FIELD, IMMUTABLE_FIELD}:
+            raise ValueError(f"WASM storage table '{table}' defines a reserved field.")
     return table_schema
 
 
@@ -449,7 +623,7 @@ def _data_to_db(
         raise ValueError("WASM storage row data must be an object.")
     if require_id and not data.get("id"):
         raise ValueError("WASM storage row data must include an id.")
-    _reject_reserved_owner_field(data, "row")
+    _reject_reserved_fields(data, "row")
 
     fields = _fields_by_name(table_schema)
     unknown_fields = sorted(set(data) - set(fields))
@@ -470,7 +644,7 @@ def _filters_to_db(
 ) -> dict[str, Any]:
     if not isinstance(filters, dict):
         raise ValueError("WASM storage filters must be an object.")
-    _reject_reserved_owner_field(filters, "filters")
+    _reject_reserved_fields(filters, "filters")
 
     fields = _fields_by_name(table_schema)
     unknown_fields = sorted(set(filters) - set(fields))
@@ -564,9 +738,17 @@ def _fields_by_name(table_schema: dict[str, Any]) -> dict[str, dict[str, Any]]:
     return {field["name"]: field for field in fields}
 
 
-def _reject_reserved_owner_field(data: dict[str, Any], value_name: str) -> None:
+def _reject_reserved_fields(data: dict[str, Any], value_name: str) -> None:
     if OWNER_ID_FIELD in data:
         raise ValueError(f"WASM storage {value_name} includes a reserved owner field.")
+    if VERSION_FIELD in data:
+        raise ValueError(
+            f"WASM storage {value_name} includes a reserved version field."
+        )
+    if IMMUTABLE_FIELD in data:
+        raise ValueError(
+            f"WASM storage {value_name} includes a reserved immutable field."
+        )
 
 
 def _value_to_db(field: dict[str, Any], value: Any) -> Any:  # noqa: C901
@@ -671,8 +853,13 @@ def _require_fields(operation: dict[str, Any]) -> list[dict[str, Any]]:
 
 def _require_identifier(data: dict[str, Any], key: str) -> str:
     value = data.get(key)
-    if not isinstance(value, str) or not _SQL_IDENTIFIER_RE.match(value):
+    if not isinstance(value, str) or not _SQL_IDENTIFIER_RE.fullmatch(value):
         raise ValueError(f"Invalid WASM storage SQL identifier for '{key}': {value}")
+    if key == "table" and value.lower() in {
+        "lnbits_payment_intents",
+        "lnbits_payment_intent_manual_audit",
+    }:
+        raise ValueError("WASM storage cannot access a reserved host table.")
     return value
 
 
