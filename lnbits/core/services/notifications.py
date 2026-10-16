@@ -259,23 +259,23 @@ async def dispatch_webhook(payment: Payment):
     logger.debug("sending webhook", payment.webhook)
 
     if not payment.webhook:
-        return await mark_webhook_sent(payment.payment_hash, "-1")
+        return await mark_webhook_sent(payment, "-1")
 
     try:
         check_callback_url(payment.webhook)
         status_code = await _post_webhook(payment)
-        await mark_webhook_sent(payment.payment_hash, str(status_code))
+        await mark_webhook_sent(payment, str(status_code))
     except ValueError as exc:
-        await mark_webhook_sent(payment.payment_hash, "-1")
+        await mark_webhook_sent(payment, "-1")
         logger.warning(f"Invalid webhook URL: {exc!s}")
     except httpx.HTTPStatusError as exc:
-        await mark_webhook_sent(payment.payment_hash, str(exc.response.status_code))
+        await mark_webhook_sent(payment, str(exc.response.status_code))
         logger.warning(
             f"webhook returned a bad status_code: {exc.response.status_code} "
             f"while requesting {exc.request.url!r}."
         )
     except httpx.RequestError:
-        await mark_webhook_sent(payment.payment_hash, "-1")
+        await mark_webhook_sent(payment, "-1")
         logger.warning("Could not send webhook.")
 
 

@@ -73,6 +73,7 @@ async def pay_invoice(
     tag: str = "",
     labels: list[str] | None = None,
     external_id: str | None = None,
+    webhook: str | None = None,
     conn: Connection | None = None,
 ) -> Payment:
     if settings.lnbits_only_allow_incoming_payments:
@@ -94,6 +95,7 @@ async def pay_invoice(
         tag=tag,
         labels=labels,
         external_id=external_id,
+        webhook=webhook,
         conn=conn,
     )
 
@@ -108,6 +110,7 @@ async def pay_offer(
     tag: str = "",
     labels: list[str] | None = None,
     external_id: str | None = None,
+    webhook: str | None = None,
     conn: Connection | None = None,
 ) -> Payment:
     """
@@ -136,6 +139,7 @@ async def pay_offer(
         tag=tag,
         labels=labels,
         external_id=external_id,
+        webhook=webhook,
         conn=conn,
     )
 
@@ -955,7 +959,6 @@ async def _pay_external_invoice(
             new_checking_id=payment_response.checking_id,
         )
 
-        await _send_payment_notification_in_background(wallet.id, payment, conn=conn)
         logger.success(f"payment successful {payment.checking_id}")
 
     # payment pending
@@ -1023,10 +1026,10 @@ async def change_payment_status(
         payment.labels.append("status-changed")
     if status == PaymentState.SUCCESS:
         payment = await update_payment_success_status(
-            payment, PaymentSuccessStatus(fee_msat=fee_msat, preimage=preimage)
+            payment,
+            PaymentSuccessStatus(fee_msat=fee_msat, preimage=preimage),
+            send_payment_notifications=send_payment_notifications,
         )
-        if send_payment_notifications:
-            await _send_payment_notification_in_background(wallet.id, payment)
         return payment
     payment.status = status
     return await update_payment(payment)
@@ -1037,11 +1040,13 @@ async def update_payment_success_status(
     status: PaymentStatus,
     conn: Connection | None = None,
     new_checking_id: str | None = None,
+    send_payment_notifications: bool | None = None,
 ) -> Payment:
     if not status.success:
         logger.warning(f"Payment not successful: {payment.checking_id}")
         return payment
 
+    was_successful = payment.success
     service_fee_msat = service_fee(payment.amount, internal=False)
     payment.status = PaymentState.SUCCESS
     payment.fee = -(abs(status.fee_msat or 0) + abs(service_fee_msat))
@@ -1050,6 +1055,14 @@ async def update_payment_success_status(
     payment = await update_payment(payment, new_checking_id=new_checking_id, conn=conn)
     if payment.is_out:
         await _credit_service_fee_wallet(payment, conn=conn)
+    # Incoming invoices are notified by their invoice listeners unless a
+    # manual status change explicitly requests notifications.
+    if send_payment_notifications is None:
+        send_payment_notifications = payment.is_out
+    if send_payment_notifications and not was_successful:
+        wallet = await get_wallet(payment.wallet_id, conn=conn)
+        if wallet:
+            send_payment_notification_in_background(wallet, payment)
     return payment
 
 
@@ -1386,6 +1399,7 @@ async def _pay_from_wallet(
     tag: str = "",
     labels: list[str] | None = None,
     external_id: str | None = None,
+    webhook: str | None = None,
     conn: Connection | None = None,
 ) -> Payment:
     async with db.reuse_conn(conn) if conn else db.connect() as new_conn:
@@ -1410,6 +1424,7 @@ async def _pay_from_wallet(
             extra=extra,
             labels=labels,
             external_id=external_id,
+            webhook=webhook,
         )
 
     async with db.reuse_conn(conn) if conn else db.connect() as new_conn:

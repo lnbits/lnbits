@@ -585,6 +585,37 @@ async def test_dispatch_webhook_marks_missing_invalid_and_failed_requests(
 
 
 @pytest.mark.anyio
+@pytest.mark.parametrize("same_wallet", [False, True])
+async def test_dispatch_webhook_status_is_scoped_to_payment(
+    mocker: MockerFixture, same_wallet: bool
+):
+    sender = await _create_wallet()
+    receiver = sender if same_wallet else await _create_wallet()
+    incoming = await _create_payment(receiver, webhook="https://receiver.example")
+    outgoing = await _create_payment(
+        sender, amount_msat=-incoming.amount, webhook="https://sender.example"
+    )
+    outgoing.payment_hash = incoming.payment_hash
+    await update_payment(outgoing)
+    post = mocker.patch(
+        "lnbits.core.services.notifications._post_webhook",
+        mocker.AsyncMock(side_effect=[200, 204]),
+    )
+    mocker.patch("lnbits.core.services.notifications.check_callback_url")
+
+    await dispatch_webhook(outgoing)
+
+    assert (await get_payment(outgoing.checking_id)).webhook_status == "200"
+    assert (await get_payment(incoming.checking_id)).webhook_status is None
+
+    await dispatch_webhook(await get_payment(incoming.checking_id))
+
+    assert (await get_payment(incoming.checking_id)).webhook_status == "204"
+    assert (await get_payment(outgoing.checking_id)).webhook_status == "200"
+    assert post.await_count == 2
+
+
+@pytest.mark.anyio
 async def test_dispatch_webhook_blocks_private_targets(
     settings: Settings, mocker: MockerFixture
 ):
