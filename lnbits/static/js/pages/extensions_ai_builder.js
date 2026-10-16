@@ -17,11 +17,17 @@ window.PageExtensionAIBuilder = {
             }
           : {id: '', name: '', description: ''},
       prompt: '',
+      messages: [],
       footerHeight: 280,
       resizeStartHeight: null
     }
   },
   computed: {
+    canSendMessage() {
+      return Boolean(
+        this.g.user?.admin && this.extension.id && this.prompt.trim()
+      )
+    },
     isEditing() {
       return this.$route.query.mode === 'edit'
     },
@@ -38,7 +44,28 @@ window.PageExtensionAIBuilder = {
       )
     }
   },
+  watch: {
+    messages: {
+      deep: true,
+      flush: 'post',
+      handler() {
+        const messages = this.$refs.messages
+        if (messages) messages.scrollTop = messages.scrollHeight
+      }
+    }
+  },
   methods: {
+    handlePromptEnter(event) {
+      if (event.shiftKey || event.isComposing || event.keyCode === 229) return
+      event.preventDefault()
+      if (!event.repeat) this.sendMessage()
+    },
+    sendMessage() {
+      if (!this.canSendMessage) return
+      this.messages.push({role: 'user', content: this.prompt})
+      this.prompt = ''
+      this.$nextTick(() => this.$refs.promptInput?.focus())
+    },
     resizeConversation({isFirst, isFinal, offset}) {
       if (isFirst) this.resizeStartHeight = this.conversationHeight
       this.footerHeight = Math.min(

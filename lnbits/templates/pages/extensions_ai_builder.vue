@@ -62,10 +62,6 @@
           class="q-mb-md"
         ></q-icon>
         <div v-text="$t('ai_builder_preview_empty')"></div>
-        <div
-          class="text-caption q-mt-sm"
-          v-text="$t('ai_builder_ui_only')"
-        ></div>
       </q-card-section>
     </q-card>
     <q-footer
@@ -105,27 +101,42 @@
           style="min-height: 0"
         >
           <div
-            class="text-subtitle2 col-auto"
-            v-text="$t('ai_builder_conversation')"
-          ></div>
-          <div
-            class="col scroll row items-center justify-center text-center q-pa-sm"
+            ref="messages"
+            role="log"
+            :aria-label="$t('ai_builder_conversation')"
+            aria-live="polite"
+            class="col scroll q-pa-sm"
             style="min-height: 0"
           >
-            <span
-              class="text-caption"
-              v-text="$t('ai_builder_conversation_empty')"
-            ></span>
+            <div
+              v-for="(message, index) in messages"
+              :key="index"
+              class="q-mb-sm q-pa-sm rounded-borders text-left"
+              :class="
+                message.role === 'user'
+                  ? $q.dark.isActive
+                    ? 'bg-grey-9'
+                    : 'bg-grey-2'
+                  : ''
+              "
+              style="white-space: pre-wrap; overflow-wrap: anywhere"
+              v-text="message.content"
+            ></div>
           </div>
           <q-input
+            ref="promptInput"
             v-model="prompt"
             outlined
             type="textarea"
-            rows="2"
-            :label="$t('ai_builder_prompt')"
-            :hint="$t('ai_builder_ui_only')"
+            rows="1"
+            autogrow
+            :input-style="{
+              maxHeight: Math.max(52, conversationHeight / 2) + 'px'
+            }"
+            :aria-label="$t('ai_builder_prompt')"
             class="col-auto"
             :disable="!extension.id"
+            @keydown.enter="handlePromptEnter"
           >
             <template v-slot:append>
               <q-btn
@@ -133,7 +144,8 @@
                 flat
                 icon="arrow_upward"
                 :aria-label="$t('ai_builder_send')"
-                disable
+                :disable="!canSendMessage"
+                @click="sendMessage"
               ></q-btn>
             </template>
           </q-input>
