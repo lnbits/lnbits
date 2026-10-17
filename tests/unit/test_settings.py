@@ -293,6 +293,7 @@ def test_exchange_rate_provider_convert_ticker():
     )
 
     assert provider.convert_ticker("USD") == "USDT"
+    assert provider.convert_ticker("usd") == "USDT"
     assert provider.convert_ticker("EUR") == "EUR"
     assert invalid_provider.convert_ticker("USD") == "USD"
 

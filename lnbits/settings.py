@@ -206,7 +206,7 @@ class ExchangeRateProvider(BaseModel):
         try:
             for t in self.ticker_conversion:
                 _from, _to = t.split(":")
-                if _from == currency:
+                if _from.upper() == currency.upper():
                     return _to
         except Exception as err:
             logger.warning(err)
