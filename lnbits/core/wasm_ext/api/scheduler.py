@@ -4,7 +4,7 @@ import json
 import re
 from typing import TYPE_CHECKING, Literal
 
-from pydantic import BaseModel, Field, root_validator
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 from lnbits.core.crud.users import get_account
 from lnbits.core.models.scheduler import ScheduleConfig
@@ -24,14 +24,14 @@ if TYPE_CHECKING:
 class ScheduleScopeRequest(BaseModel):
     scope: Literal["user", "extension"] = "user"
 
-    class Config:
-        extra = "forbid"
+    model_config = ConfigDict(extra="forbid")
 
 
 class ScheduleSetRequest(ScheduleConfig):
     scope: Literal["user", "extension"] = "user"
 
-    @root_validator(pre=True)
+    @model_validator(mode="before")
+    @classmethod
     def omit_empty_id(cls, values: dict) -> dict:
         # WIT represents an omitted ID as option<string> / None.
         if values.get("id") is None:
@@ -93,14 +93,16 @@ class ExtensionSchedulerAPI:
             job_id = sha256s(
                 json.dumps([self.api.extension_id, owner, request.handler])
             )
-            if "id" in request.__fields_set__ and request.id != job_id:
+            if "id" in request.model_fields_set and request.id != job_id:
                 raise ValueError("Schedule ID does not match this handler and owner.")
         elif re.fullmatch(r"[0-9a-f]{64}", job_id):
             # IDs are global: reserve shared hashes across all handlers/extensions.
             raise ValueError("Schedule ID is reserved for extension-wide schedules.")
         job = await scheduler.save(
             f"extension:{self.api.extension_id}",
-            ScheduleConfig.parse_obj({**request.dict(exclude={"scope"}), "id": job_id}),
+            ScheduleConfig.model_validate(
+                {**request.model_dump(exclude={"scope"}), "id": job_id}
+            ),
             user_id=owner,
         )
         return ScheduleResponse(schedule_json=json.dumps(job.public_data()))

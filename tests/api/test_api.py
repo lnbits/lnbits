@@ -433,7 +433,7 @@ async def test_pay_invoice_rejects_conflicting_payment_requests(
 
     assert response.status_code == 400
     assert response.json()["detail"][0]["msg"] == (
-        "payment_request and bolt11 must match."
+        "Value error, payment_request and bolt11 must match."
     )
     pay_invoice.assert_not_awaited()
     pay_offer.assert_not_awaited()
@@ -532,7 +532,7 @@ async def test_payment_preimage_requires_owning_wallet_key(
     )
     refresh = mocker.patch(
         "lnbits.core.views.payment_api.update_pending_payment",
-        return_value=payment.copy(update={"status": PaymentState.SUCCESS}),
+        return_value=payment.model_copy(update={"status": PaymentState.SUCCESS}),
     )
     key = {
         None: None,
@@ -657,7 +657,7 @@ async def test_pay_invoice_self_payment(client, adminkey_headers_from):
     create_invoice = CreateInvoice(out=False, amount=1000, memo="test")
     response = await client.post(
         "/api/v1/payments",
-        json=create_invoice.dict(),
+        json=create_invoice.model_dump(),
         headers=adminkey_headers_from,
     )
     assert response.status_code < 300
@@ -1246,7 +1246,7 @@ async def test_api_payments_pay_lnurl(client, adminkey_headers_from):
         "/api/v1/payments/lnurl", json=lnurl_data, headers=adminkey_headers_from
     )
     assert response.status_code == 400
-    assert "invalid or missing URL scheme" in response.json()["detail"][0]["msg"]
+    assert response.json()["detail"][0]["type"] == "url_parsing"
 
 
 ################################ Labels ################################

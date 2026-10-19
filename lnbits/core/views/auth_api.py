@@ -223,7 +223,7 @@ async def impersonate_user(
     admin_payload = AccessTokenPayload(
         **jwt.decode(cookie_access_token, settings.auth_secret_key, ["HS256"])
     )
-    impersonation = admin_payload.copy(
+    impersonation = admin_payload.model_copy(
         update={
             "sub": "",
             "usr": account.id,
@@ -710,7 +710,7 @@ def _auth_success_response(
     payload = payload or AccessTokenPayload(
         sub=username or "", usr=user_id, email=email, auth_time=int(time())
     )
-    access_token = create_access_token(data=payload.dict())
+    access_token = create_access_token(data=payload.model_dump())
     max_age = settings.auth_token_expire_minutes * 60
     body: dict = {"access_token": access_token, "token_type": "bearer"}
     if recovery_codes is not None:
@@ -743,7 +743,7 @@ def _auth_api_token_response(
         sub=username, api_token_id=api_token_id, auth_time=int(time())
     )
     return create_access_token(
-        data=payload.dict(), token_expire_minutes=token_expire_minutes
+        data=payload.model_dump(), token_expire_minutes=token_expire_minutes
     )
 
 
@@ -858,7 +858,7 @@ async def _login_response(account: Account) -> JSONResponse:
         config.secret or settings.lnbits_two_factor_mandatory
     ):
         payload = await issue_challenge(account.id)
-        token = create_access_token(payload.dict(), token_expire_minutes=5)
+        token = create_access_token(payload.model_dump(), token_expire_minutes=5)
         response = JSONResponse(
             {
                 "two_factor_required": True,

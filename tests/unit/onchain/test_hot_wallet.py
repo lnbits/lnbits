@@ -63,7 +63,7 @@ def wallet_and_payment(
     previous = wally.tx_init(2, 0, 1, 1)
     wally.tx_add_raw_input(previous, bytes(32), 0, 0xFFFFFFFF, None, None, 0)
     wally.tx_add_raw_output(previous, 100000, descriptor_script(parsed, 0, 0), 0)
-    tx = CreatePsbt.parse_obj(
+    tx = CreatePsbt.model_validate(
         {
             "masterpubs": [],
             "fee_rate": 1,
@@ -183,10 +183,10 @@ def test_encryption_is_random_authenticated_and_bound_to_wallet(monkeypatch):
     for field, value in [
         ("id", "other"),
         ("onchain_network", "Mainnet"),
-        ("onchain_meta", wallet.onchain_meta.copy(update={"masterpub": "other"})),
+        ("onchain_meta", wallet.onchain_meta.model_copy(update={"masterpub": "other"})),
     ]:
         with pytest.raises(ValueError):
-            decrypt_wallet_mnemonic(first, wallet.copy(update={field: value}))
+            decrypt_wallet_mnemonic(first, wallet.model_copy(update={field: value}))
     # Existing wallets used the same ID in both context positions.
     raw = bytearray(base64.b64decode(first))
     old_cipher = AES.new(bytes(range(32)), AES.MODE_GCM, nonce=bytes(raw[1:13]))
@@ -248,7 +248,7 @@ def test_signing_rejects_invalid_spending(attack):  # noqa: C901
     if attack == "foreign-input":
         tx.inputs[0].wallet = "victim"
     if attack == "duplicate":
-        tx.inputs.append(tx.inputs[0].copy())
+        tx.inputs.append(tx.inputs[0].model_copy())
     if attack == "amount":
         tx.inputs[0].amount += 1000
     if attack == "outpoint":
@@ -271,7 +271,7 @@ def test_signing_rejects_invalid_spending(attack):  # noqa: C901
 
 def test_fractional_amounts_are_not_truncated():
     _, payment = wallet_and_payment()
-    data = payment.dict()
+    data = payment.model_dump()
     data["transaction"]["outputs"][0]["amount"] = 1234.5
     with pytest.raises(ValueError, match="whole satoshis"):
         HotWalletPayment(**data)

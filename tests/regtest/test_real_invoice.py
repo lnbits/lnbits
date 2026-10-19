@@ -208,7 +208,7 @@ async def test_create_real_invoice(
     create_invoice = CreateInvoice(out=False, amount=1000, memo="test")
     response = await client.post(
         "/api/v1/payments",
-        json=create_invoice.dict(),
+        json=create_invoice.model_dump(),
         headers=adminkey_headers_from,
     )
     assert response.status_code < 300
@@ -446,7 +446,7 @@ async def test_receive_real_invoice_set_pending_and_check_state(
     create_invoice = CreateInvoice(out=False, amount=1000, memo="test")
     response = await client.post(
         "/api/v1/payments",
-        json=create_invoice.dict(),
+        json=create_invoice.model_dump(),
         headers=adminkey_headers_from,
     )
     assert response.status_code < 300
@@ -504,7 +504,7 @@ async def test_check_fee_reserve(client, adminkey_headers_from):
         create_invoice = CreateInvoice(out=False, amount=1000, memo="test")
         response = await client.post(
             "/api/v1/payments",
-            json=create_invoice.dict(),
+            json=create_invoice.model_dump(),
             headers=adminkey_headers_from,
         )
         assert response.status_code < 300

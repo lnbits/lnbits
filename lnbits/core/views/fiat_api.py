@@ -2,7 +2,7 @@ from http import HTTPStatus
 
 from fastapi import APIRouter, Depends, HTTPException
 from loguru import logger
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 from lnbits.core.crud.payments import update_payment
 from lnbits.core.crud.settings import set_settings_field
@@ -26,8 +26,7 @@ class CreateCashPayment(BaseModel):
     memo: str | None = Field(None, max_length=640)
     internal_memo: str | None = Field(None, max_length=512)
 
-    class Config:
-        extra = "forbid"
+    model_config = ConfigDict(extra="forbid")
 
 
 @fiat_router.post("/cash", status_code=HTTPStatus.CREATED)

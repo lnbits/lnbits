@@ -3,7 +3,7 @@ from typing import Any, Literal
 from uuid import uuid4
 from zoneinfo import ZoneInfo
 
-from pydantic import BaseModel, Field, validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 from lnbits.db import FilterModel
 from lnbits.utils.cron import normalize_cron
@@ -14,18 +14,19 @@ ScheduledJobRunStatus = Literal[
 
 
 class SchedulePolicy(BaseModel):
-    handler: str = Field(..., regex=r"^[A-Za-z0-9_-]{1,128}$")
+    handler: str = Field(..., pattern=r"^[A-Za-z0-9_-]{1,128}$")
     cron_expression: str = Field(..., min_length=1, max_length=256)
     timezone: str = Field(default="UTC", max_length=128)
 
-    class Config:
-        extra = "forbid"
+    model_config = ConfigDict(extra="forbid")
 
-    @validator("cron_expression")
+    @field_validator("cron_expression")
+    @classmethod
     def validate_cron(cls, expression: str) -> str:
         return normalize_cron(expression)
 
-    @validator("timezone")
+    @field_validator("timezone")
+    @classmethod
     def validate_timezone(cls, zone: str) -> str:
         try:
             ZoneInfo(zone)
@@ -46,7 +47,7 @@ class SchedulePolicy(BaseModel):
             if not isinstance(policy, dict):
                 raise ValueError("Schedule policy must be an object.")
             model = UserSchedulePolicy if user_scope else SchedulePolicy
-            schedule = model.parse_obj(policy)
+            schedule = model.model_validate(policy)
             if schedule.handler in parsed:
                 raise ValueError(
                     "Schedule policies must have unique handlers per scope."
@@ -58,7 +59,8 @@ class SchedulePolicy(BaseModel):
 class UserSchedulePolicy(SchedulePolicy):
     max_jobs_per_user: int = Field(default=10, ge=1)
 
-    @validator("max_jobs_per_user", pre=True)
+    @field_validator("max_jobs_per_user", mode="before")
+    @classmethod
     def validate_job_limit(cls, value: Any) -> int:
         if isinstance(value, bool) or not isinstance(value, int):
             raise ValueError("Max jobs per user must be a positive integer.")
@@ -67,12 +69,13 @@ class UserSchedulePolicy(SchedulePolicy):
 
 class ScheduleConfig(SchedulePolicy):
     id: str = Field(
-        default_factory=lambda: uuid4().hex, regex=r"^[A-Za-z0-9_.:-]{1,128}$"
+        default_factory=lambda: uuid4().hex, pattern=r"^[A-Za-z0-9_.:-]{1,128}$"
     )
     payload_json: str = Field(default="{}", max_length=8192)
     enabled: bool = True
 
-    @validator("payload_json")
+    @field_validator("payload_json")
+    @classmethod
     def validate_payload(cls, value: str) -> str:
         payload = json.loads(value)
         if not isinstance(payload, dict):
@@ -95,7 +98,9 @@ class ScheduledJob(ScheduleConfig):
     lease_until: int = 0
 
     def public_data(self) -> dict:
-        return self.dict(exclude={"namespace", "user_id", "lease_token", "lease_until"})
+        return self.model_dump(
+            exclude={"namespace", "user_id", "lease_token", "lease_until"}
+        )
 
 
 class ScheduledJobRun(BaseModel):

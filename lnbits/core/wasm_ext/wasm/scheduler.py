@@ -37,7 +37,7 @@ async def ensure_wasm_extension_schedules(ext_id: str) -> None:
         await scheduler.save(
             namespace,
             ScheduleConfig(
-                **policy.dict(),
+                **policy.model_dump(),
                 id=job_id,
                 enabled=existing.enabled if existing else True,
             ),

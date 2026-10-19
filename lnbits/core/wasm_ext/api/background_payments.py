@@ -81,7 +81,7 @@ def _find_wallet_grant(
         if not isinstance(grant_data, dict):
             continue
         try:
-            grant = ExtensionBackgroundPaymentGrant.parse_obj(grant_data)
+            grant = ExtensionBackgroundPaymentGrant.model_validate(grant_data)
         except ValueError:
             continue
         if grant.wallet_id == wallet_id:

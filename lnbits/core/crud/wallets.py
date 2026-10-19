@@ -384,7 +384,7 @@ async def init_onchain_wallet_state(
     encrypted_seed: str | None = None,
     conn: Connection | None = None,
 ) -> OnchainWallet:
-    meta = wallet.onchain_meta.copy()
+    meta = wallet.onchain_meta.model_copy()
     meta.backup_confirmed = False
     meta.sync_checked_at = 0
     meta.sync_failed_at = 0
@@ -402,7 +402,7 @@ async def init_onchain_wallet_state(
         {
             "id": wallet.id,
             "title": wallet.name,
-            "meta": meta.json(by_alias=True),
+            "meta": meta.model_dump_json(by_alias=True),
             "network": wallet.onchain_network,
             "kind": wallet.onchain_wallet_kind,
             "seed": encrypted_seed,
@@ -476,7 +476,7 @@ async def update_onchain_backup_confirmation(
         """UPDATE wallets SET onchain_meta = :meta
         WHERE id = :id AND wallet_type = 'onchain'
             AND onchain_wallet_kind = 'hot'""",
-        {"id": wallet.id, "meta": wallet.onchain_meta.json(by_alias=True)},
+        {"id": wallet.id, "meta": wallet.onchain_meta.model_dump_json(by_alias=True)},
     )
     updated = await get_onchain_wallet(wallet.id, conn=conn)
     assert updated
@@ -520,7 +520,7 @@ async def update_onchain_wallet_config(
                 OR onchain_network = :network)""",
         {
             "id": wallet_id,
-            "config": config.json(exclude={"network"}),
+            "config": config.model_dump_json(exclude={"network"}),
             "network": network,
         },
     )

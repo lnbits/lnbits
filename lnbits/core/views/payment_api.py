@@ -541,7 +541,7 @@ async def api_payments_decode(data: DecodePayment) -> JSONResponse:
             return JSONResponse({"domain": url})
         if looks_like_bolt12_offer(payment_str):
             offer = decode_bolt12_offer(payment_str)
-            return JSONResponse({"type": "bolt12_offer", **offer.dict()})
+            return JSONResponse({"type": "bolt12_offer", **offer.model_dump()})
         invoice = bolt11.decode(payment_str)
         filtered_data = filter_dict_keys(invoice.data, data.filter_fields)
         return JSONResponse(filtered_data)

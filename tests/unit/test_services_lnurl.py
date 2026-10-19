@@ -4,7 +4,6 @@ from uuid import uuid4
 
 import httpx
 import pytest
-from bolt11.types import MilliSatoshi
 from lnurl import (
     LnAddress,
     LnurlErrorResponse,
@@ -13,13 +12,13 @@ from lnurl import (
     LnurlSuccessResponse,
     LnurlWithdrawResponse,
 )
-from lnurl.types import CallbackUrl, LightningInvoice
-from pydantic import parse_obj_as
+from lnurl.types import CallbackUrl, LightningInvoice, MilliSatoshi
+from pydantic import TypeAdapter, ValidationError
 from pytest_mock.plugin import MockerFixture
 
 from lnbits.core.crud import create_account, create_wallet, get_wallet
 from lnbits.core.models import Account
-from lnbits.core.models.lnurl import CreateLnurlPayment
+from lnbits.core.models.lnurl import CreateLnurlPayment, LnurlScan
 from lnbits.core.models.wallets import Wallet
 from lnbits.core.services import lnurl as lnurl_service
 from lnbits.core.services.lnurl import (
@@ -39,6 +38,16 @@ TEST_BOLT11 = (
     "73aym6ynrdl9nkzqnag49vt3sjjn8qdfq5cr6ha0vrdz5c5r3v4aghndly0hplmv"
     "6hjxepwp93cq398l3s"
 )
+
+
+def test_lightning_address_model_validation_and_schema():
+    scan = LnurlScan.model_validate({"lnurl": "alice@example.com"})
+    assert isinstance(scan.lnurl, LnAddress)
+    assert scan.model_dump(mode="json") == {"lnurl": "alice@example.com"}
+    assert LnurlScan.model_json_schema()["properties"]["lnurl"]
+    for invalid in [123, {}, "not-an-address"]:
+        with pytest.raises(ValidationError):
+            LnurlScan.model_validate({"lnurl": invalid})
 
 
 @pytest.mark.anyio
@@ -239,7 +248,9 @@ async def test_lnurl_requests_are_pinned_to_validated_ip(mocker: MockerFixture):
 @pytest.mark.anyio
 async def test_perform_withdraw_success_and_validation(mocker: MockerFixture):
     withdraw_response = LnurlWithdrawResponse(
-        callback=parse_obj_as(CallbackUrl, "https://example.com/callback"),
+        callback=TypeAdapter(CallbackUrl).validate_python(
+            "https://example.com/callback"
+        ),
         k1="k1",
         minWithdrawable=MilliSatoshi(1),
         maxWithdrawable=MilliSatoshi(1000),

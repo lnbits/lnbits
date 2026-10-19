@@ -348,7 +348,7 @@ async def send_notification_in_background(
 
 async def send_ws_payment_notification(wallet: Wallet, payment: Payment):
     # TODO: websocket message should be a clean payment model
-    # await websocket_manager.send(wallet.inkey, payment.json())
+    # await websocket_manager.send(wallet.inkey, payment.model_dump_json())
     # TODO: figure out why we send the balance with the payment here.
     # cleaner would be to have a separate message for the balance
     # and send it with the id of the wallet so wallets can subscribe to it
@@ -356,7 +356,7 @@ async def send_ws_payment_notification(wallet: Wallet, payment: Payment):
         {
             "wallet_balance": wallet.balance,
             # use pydantic json serialization to get the correct datetime format
-            "payment": json.loads(payment.json()),
+            "payment": json.loads(payment.model_dump_json()),
         },
     )
     await websocket_manager.send(wallet.inkey, payment_notification)
@@ -507,7 +507,7 @@ async def _post_webhook(payment: Payment) -> int:
             request_url,
             headers=headers,
             extensions={"sni_hostname": parsed.hostname},
-            json=payment.json(),
+            json=payment.model_dump_json(),
             timeout=40,
         )
         response.raise_for_status()

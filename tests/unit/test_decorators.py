@@ -1,5 +1,5 @@
 from base64 import urlsafe_b64encode
-from uuid import uuid4
+from uuid import UUID, uuid4
 
 import jwt
 import pytest
@@ -7,7 +7,6 @@ import shortuuid
 from fastapi import Request
 from fastapi.exceptions import HTTPException
 from httpx import AsyncClient
-from pydantic.types import UUID4
 from pytest_mock import MockerFixture
 
 from lnbits.core.crud.users import delete_account
@@ -82,7 +81,7 @@ async def test_check_user_exists_with_missing_access_token():
 @pytest.mark.anyio
 async def test_check_user_exists_with_valid_user_id(user_alan: User):
     request = Request({"type": "http", "path": "/some/path", "method": "GET"})
-    user = await check_user_exists(request, access_token=None, usr=UUID4(user_alan.id))
+    user = await check_user_exists(request, access_token=None, usr=UUID(user_alan.id))
 
     assert user.id == user_alan.id
 
@@ -102,7 +101,7 @@ async def test_check_user_exists_with_user_not_allowed(user_alan: User):
     request = Request({"type": "http", "path": "/some/path", "method": "GET"})
     settings.lnbits_allowed_users = ["only_this_user_id"]
     with pytest.raises(HTTPException) as exc_info:
-        await check_user_exists(request, access_token=None, usr=UUID4(user_alan.id))
+        await check_user_exists(request, access_token=None, usr=UUID(user_alan.id))
     assert exc_info.value.status_code == 403
     assert exc_info.value.detail == "User not allowed."
 
@@ -149,7 +148,7 @@ async def test_check_user_exists_with_user_id_only_allowed(
 ):
     settings.auth_allowed_methods = [AuthMethods.user_id_only.value]
     request = Request({"type": "http", "path": "/some/path", "method": "GET"})
-    user = await check_user_exists(request, access_token=None, usr=UUID4(user_alan.id))
+    user = await check_user_exists(request, access_token=None, usr=UUID(user_alan.id))
 
     assert user.id == user_alan.id
     assert request.scope["user_id"] == user.id
@@ -160,7 +159,7 @@ async def test_check_user_exists_with_user_id_only_not_allowed(user_alan: User):
     settings.auth_allowed_methods = []
     request = Request({"type": "http", "path": "/some/path", "method": "GET"})
     with pytest.raises(HTTPException) as exc_info:
-        await check_user_exists(request, access_token=None, usr=UUID4(user_alan.id))
+        await check_user_exists(request, access_token=None, usr=UUID(user_alan.id))
     assert exc_info.value.status_code == 401
     assert exc_info.value.detail == "Missing user ID or access token."
 
@@ -243,7 +242,7 @@ async def test_optional_user_id_uses_user_id_or_access_token(
     request = Request({"type": "http", "path": "/wallet", "method": "GET"})
 
     assert (
-        await optional_user_id(request, access_token=None, usr=UUID4(user_alan.id))
+        await optional_user_id(request, access_token=None, usr=UUID(user_alan.id))
         == user_alan.id
     )
 
@@ -289,7 +288,7 @@ async def test_check_extension_builder_requires_admin_when_disabled_for_users(
     ):
         await check_extension_builder(user_alan)
 
-    admin_user = user_alan.copy(deep=True)
+    admin_user = user_alan.model_copy(deep=True)
     admin_user.admin = True
     await check_extension_builder(admin_user)
 

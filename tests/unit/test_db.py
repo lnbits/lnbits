@@ -12,14 +12,51 @@ from lnbits.core.crud import (
 from lnbits.core.crud.payments import get_payment
 from lnbits.core.models import CreateInvoice, PaymentFilters
 from lnbits.core.services.payments import create_wallet_invoice
-from lnbits.db import (
-    POSTGRES,
-    SQLITE,
-    Filter,
-    Filters,
-    dict_to_model,
-    model_to_dict,
-)
+from lnbits.db import POSTGRES, SQLITE, Filter, Filters, dict_to_model, model_to_dict
+
+
+@pytest.mark.parametrize("db_type", [SQLITE, POSTGRES])
+def test_model_database_roundtrip_preserves_nested_and_optional_fields(
+    monkeypatch, db_type
+):
+    class Details(BaseModel):
+        description: str
+        note: str | None = None
+        attributes: dict[str, int] = {}
+
+    class Record(BaseModel):
+        details: Details | None = None
+        history: list[Details] = []
+        optional_history: list[Details] | None = None
+        metadata: dict[str, int] = {}
+        created_at: datetime
+        enabled: bool = False
+        derived: int = Field(default=0, json_schema_extra={"no_database": True})
+
+    monkeypatch.setattr("lnbits.db.DB_TYPE", db_type)
+    record = Record(
+        details=Details(description="invoice", attributes={"attempts": 1}),
+        history=[Details(description="created")],
+        metadata={"attempts": 1},
+        created_at=datetime(2026, 1, 1, tzinfo=timezone.utc),
+        enabled=True,
+        derived=10,
+    )
+    row = model_to_dict(record)
+    assert "derived" not in row
+    assert isinstance(row["details"], str)
+    assert isinstance(row["history"], str)
+    assert isinstance(row["metadata"], str)
+    row["enabled"] = 1
+    row["joined_column"] = "ignored"
+    restored = dict_to_model(row, Record)
+    assert restored.model_dump(exclude={"derived"}) == record.model_dump(
+        exclude={"derived"}
+    )
+    assert restored.derived == 0
+
+    row["details"] = "null"
+    assert dict_to_model(row, Record).details is None
 
 
 @pytest.mark.parametrize(

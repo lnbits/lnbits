@@ -199,7 +199,7 @@ def test_signing_metadata_and_finalization(kind, network):
 def test_change_metadata_follows_each_output_after_shuffling():
     _, _, data = signing_data()
     data.outputs.reverse()
-    data.outputs.append(data.outputs[0].copy(deep=True))
+    data.outputs.append(data.outputs[0].model_copy(deep=True))
     psbt = create_psbt(data)
     assert [wally.psbt_get_output_keypaths_size(psbt, i) for i in range(3)] == [1, 0, 1]
     wally.psbt_set_output_keypaths(psbt, 0, wally.map_keypath_bip32_init(0))
@@ -255,7 +255,7 @@ def test_compact_segwit_psbt_stays_below_bowser_transfer_limit():
         wally.tx_add_raw_output(previous, data.inputs[0].amount, spk, 0)
     data.inputs[0].tx_hex = wally.tx_to_hex(previous, 0)
     data.inputs[0].tx_id = bytes(wally.tx_get_txid(previous))[::-1].hex()
-    data.inputs = [data.inputs[0].copy(update={"vout": i}) for i in range(64)]
+    data.inputs = [data.inputs[0].model_copy(update={"vout": i}) for i in range(64)]
     encoded = wally.psbt_to_base64(create_psbt(data), 0)
     assert len(encoded) <= 16384
     assert wally.psbt_get_num_inputs(wally.psbt_from_base64(encoded, 0)) == 64
@@ -270,7 +270,7 @@ async def test_psbt_api_create_and_extract(kind, network):
     psbt = wally.psbt_from_base64(encoded, 0)
     wally.psbt_sign_bip32(psbt, root, 0)
     result = await onchain_api.api_psbt_extract_tx(
-        ExtractPsbt.parse_obj(
+        ExtractPsbt.model_validate(
             {
                 "psbt_base64": wally.psbt_to_base64(psbt, 0),
                 "inputs": [{"tx_hex": data.inputs[0].tx_hex}],
@@ -307,7 +307,7 @@ async def test_extract_rejects_unrelated_previous_transaction():
     wrong = signing_vector("pkh")["data"]["inputs"][0]["tx_hex"]
     with pytest.raises(HTTPException, match="outpoint"):
         await onchain_api.api_psbt_extract_tx(
-            ExtractPsbt.parse_obj(
+            ExtractPsbt.model_validate(
                 {"psbt_base64": vector["signed"], "inputs": [{"tx_hex": wrong}]}
             ),
             _auth=OnchainAuth("test"),

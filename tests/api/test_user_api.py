@@ -41,7 +41,7 @@ async def test_user_api_toggle_admin_and_update_balance(
     balance = await http_client.put(
         "/users/api/v1/balance",
         headers={"Authorization": f"Bearer {superuser_token}"},
-        json=UpdateBalance(id=wallet.id, amount=7).dict(),
+        json=UpdateBalance(id=wallet.id, amount=7).model_dump(),
     )
     assert balance.status_code == 200
     assert balance.json()["success"] is True
