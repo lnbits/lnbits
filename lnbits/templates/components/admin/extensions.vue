@@ -63,6 +63,13 @@
             <q-btn
               unelevated
               color="primary"
+              icon="architecture"
+              :label="$t('wasm_studio_title')"
+              to="/admin/extensions/wasm/studio"
+            ></q-btn>
+            <q-btn
+              unelevated
+              color="primary"
               icon="memory"
               label="WASM Runtime"
               to="/admin/extensions/wasm"

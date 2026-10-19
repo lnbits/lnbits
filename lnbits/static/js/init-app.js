@@ -143,6 +143,17 @@ const routes = [
     component: PageAdmin
   },
   {
+    path: '/admin/extensions/wasm/studio',
+    name: 'AdminWasmStudio',
+    component: async () => {
+      await LNbits.utils.loadScript('/static/js/pages/wasm_studio.js')
+      return window.PageWasmStudio
+    },
+    beforeEnter: () => {
+      if (!window.g.user?.admin || !window.g.settings.showAdmin) return '/'
+    }
+  },
+  {
     path: '/admin/extensions/wasm/:extId',
     name: 'AdminWasmRuntimeDetail',
     component: PageAdmin

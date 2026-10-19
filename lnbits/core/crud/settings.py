@@ -56,8 +56,8 @@ async def update_admin_settings(
     for key, value in editable_settings.items():
         try:
             await set_settings_field(key, value, tag)
-        except Exception as exc:
-            logger.warning(exc)
+        except Exception:
+            # Database exception parameters can contain settings credentials.
             logger.warning(f"Failed to update settings for '{tag}.{key}'.")
 
 

@@ -12,6 +12,7 @@ from os import path
 from pathlib import Path
 from time import gmtime, strftime, time
 from typing import Any, Literal
+from urllib.parse import urlsplit
 from uuid import uuid4
 
 from loguru import logger
@@ -99,6 +100,99 @@ class ExtensionsSettings(LNbitsSettings):
     @property
     def extension_builder_working_dir_path(self) -> Path:
         return Path(settings.lnbits_data_folder, "extensions_builder")
+
+
+WASM_STUDIO_PROVIDERS = {
+    "alibaba": "Alibaba Cloud / Qwen",
+    "anthropic": "Anthropic",
+    "bedrock": "AWS Bedrock",
+    "azure": "Azure / Foundry",
+    "cerebras": "Cerebras",
+    "cohere": "Cohere",
+    "crusoe": "Crusoe",
+    "deepseek": "DeepSeek",
+    "fireworks": "Fireworks AI",
+    "github-copilot": "GitHub Copilot",
+    "google": "Google Gemini",
+    "google-cloud": "Google Cloud / Vertex AI",
+    "groq": "Groq",
+    "heroku": "Heroku AI",
+    "huggingface": "Hugging Face",
+    "litellm": "LiteLLM",
+    "meta": "Meta",
+    "mistral": "Mistral",
+    "moonshotai": "Moonshot AI / Kimi",
+    "nebius": "Nebius AI Studio",
+    "ollama": "Ollama",
+    "openai": "OpenAI",
+    "openai-codex": "OpenAI Codex",
+    "openai-decisions": "OpenAI Decisions",
+    "openrouter": "OpenRouter",
+    "ovhcloud": "OVHcloud AI Endpoints",
+    "gateway": "Pydantic AI Gateway",
+    "sambanova": "SambaNova",
+    "snowflake": "Snowflake Cortex",
+    "system-one": "System One API",
+    "together": "Together AI",
+    "typesafe": "TypeSafe",
+    "vercel": "Vercel AI Gateway",
+    "vllm": "vLLM",
+    "xai": "xAI",
+    "zai": "Z.AI",
+    "openai-compatible": "Other OpenAI-compatible API",
+}
+
+
+class WasmStudioModel(BaseModel):
+    name: str = Field(..., min_length=1, max_length=100)
+    provider: str = Field(..., min_length=1, max_length=50)
+    model: str = Field(..., min_length=1, max_length=256)
+    api_key: str = Field(default="", max_length=4096, repr=False)
+    base_url: str = Field(default="", max_length=2048)
+
+    class Config:
+        anystr_strip_whitespace = True
+        extra = "forbid"
+
+    @validator("provider")
+    def validate_provider(cls, value: str) -> str:
+        if value not in WASM_STUDIO_PROVIDERS:
+            raise ValueError("Unknown model provider.")
+        return value
+
+    @validator("model")
+    def validate_model(cls, value: str) -> str:
+        if any(character.isspace() for character in value):
+            raise ValueError("Model ID cannot contain whitespace.")
+        return value
+
+    @validator("base_url")
+    def validate_base_url(cls, value: str) -> str:
+        if not value:
+            return value
+        try:
+            url = urlsplit(value)
+            if (
+                url.scheme in {"http", "https"}
+                and url.hostname
+                and (url.port is None or url.port > 0)
+                and not url.username
+                and not url.password
+                and not url.query
+                and not url.fragment
+                and not any(character.isspace() for character in value)
+            ):
+                return value
+        except ValueError:
+            pass
+        raise ValueError(
+            "Use an HTTP(S) base URL without credentials, "
+            "query parameters or fragments."
+        )
+
+
+class WasmStudioSettings(LNbitsSettings):
+    lnbits_wasm_studio_models: list[WasmStudioModel] = Field(default_factory=list)
 
 
 class WasmRuntimeLimits(LNbitsSettings):
@@ -1097,6 +1191,7 @@ class EditableSettings(
     UsersSettings,
     ExtensionsSettings,
     WasmRuntimeLimits,
+    WasmStudioSettings,
     ThemesSettings,
     OpsSettings,
     AssetSettings,
@@ -1596,7 +1691,8 @@ if not settings.user_agent:
 if not settings.lnbits_admin_ui:
     logger.debug("Environment Settings:")
     for key, value in settings.dict(
-        exclude_none=True, exclude={"auth_secret_key", "totp_encryption_key"}
+        exclude_none=True,
+        exclude={"auth_secret_key", "totp_encryption_key", "lnbits_wasm_studio_models"},
     ).items():
         logger.debug(f"{key}: {value}")
 
