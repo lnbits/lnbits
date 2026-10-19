@@ -45,6 +45,30 @@ For persistent background jobs, see the [core scheduler](scheduler.md).
 
 ... This document is a work-in-progress. Send pull requests if you get stuck, so others don't.
 
+## Pydantic 2
+
+LNbits uses Pydantic 2. Python extensions must use native Pydantic 2 models when
+passing models to LNbits database helpers or API routes. Existing extensions that
+depend on Pydantic 1 behavior need to be migrated and checked before upgrading.
+
+- Import models from `pydantic`; import `BaseSettings` from `pydantic_settings`.
+- Give optional fields explicit defaults: `memo: str | None = None`. Without a
+  default, Pydantic 2 requires the field even when its value can be `None`.
+- Replace `dict()`, `json()`, `parse_obj()`, and `copy()` with `model_dump()`,
+  `model_dump_json()`, `model_validate()`, and `model_copy()` respectively.
+- Replace `validator` / `root_validator` with `field_validator` / `model_validator`.
+  Use `mode="before"` instead of `pre=True`; after model validators receive `self`.
+- Replace `class Config` with `model_config = ConfigDict(...)`, `regex` with
+  `pattern`, and field introspection through `__fields__` with `model_fields`.
+- Mark fields excluded from database storage with
+  `Field(default=..., json_schema_extra={"no_database": True})`.
+- URL fields are URL objects. Use `str(url)` where a string is required, or
+  `model_dump(mode="json")` when preparing JSON-compatible data.
+
+See the [Pydantic migration guide](https://docs.pydantic.dev/2.12/migration/) for
+validation and serialization behavior changes. This upgrade does not change the
+WASM host interface or require a database schema migration.
+
 ## Adding new dependencies
 
 DO NOT ADD NEW DEPENDENCIES. Try to use the dependencies that are available in `pyproject.toml`. Getting the LNbits project to accept a new dependency is time consuming and uncertain, and may result in your extension NOT being made available to others.

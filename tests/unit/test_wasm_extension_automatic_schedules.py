@@ -62,7 +62,7 @@ def test_automatic_schedule_rejects_invalid_declarations(invalid):
 def test_automatic_schedule_requires_matching_requested_and_granted_policy():
     config = automatic_config()
     extension = make_installable_extension("demo")
-    grants = [ExtensionPermission.parse_obj(p) for p in config["permissions"]]
+    grants = [ExtensionPermission.model_validate(p) for p in config["permissions"]]
     assert validate_wasm_extension_permissions(extension, grants, config) == grants
     with pytest.raises(ValueError, match="requires permission approval"):
         validate_wasm_extension_permissions(extension, None, config)

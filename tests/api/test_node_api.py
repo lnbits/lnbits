@@ -65,7 +65,7 @@ class FakeNode:
         self.fees_updated: tuple[str, int | None, int | None] | None = None
 
     async def get_public_info(self) -> PublicNodeInfo:
-        return PublicNodeInfo(**self.info.dict())
+        return PublicNodeInfo(**self.info.model_dump())
 
     async def get_info(self) -> NodeInfoResponse:
         return self.info
@@ -320,7 +320,7 @@ async def test_node_api_route_functions_with_fake_node(
 
         rank = await node_api.api_get_1ml_stats(node=node)
         assert rank is not None
-        rank_data = node_api.NodeRank.parse_obj(rank)
+        rank_data = node_api.NodeRank.model_validate(rank)
         assert rank_data.channelcount == 2
     finally:
         settings.lnbits_node_ui_transactions = original_transactions

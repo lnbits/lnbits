@@ -55,7 +55,7 @@ from ..models.extensions import (
 )
 
 _WASM_INVOCATION_CLEANUP_INTERVAL = timedelta(hours=1)
-WASM_RUNTIME_LIMIT_FIELDS = tuple(WasmRuntimeLimits.__fields__.keys())
+WASM_RUNTIME_LIMIT_FIELDS = tuple(WasmRuntimeLimits.model_fields.keys())
 
 
 @dataclass
@@ -468,7 +468,7 @@ def get_current_wasm_invocations(
         for handle in _wasm_invocation_handles.values():
             if extension_id and handle.invocation.extension_id != extension_id:
                 continue
-            invocation = handle.invocation.copy(deep=True)
+            invocation = handle.invocation.model_copy(deep=True)
             if handle.stop_requested and invocation.status == "running":
                 invocation.status = "stopping"
                 invocation.stop_reason = handle.stop_reason

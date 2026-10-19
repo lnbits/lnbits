@@ -3,6 +3,7 @@ import traceback
 from http import HTTPStatus
 
 from fastapi import FastAPI, HTTPException, Request
+from fastapi.encoders import jsonable_encoder
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse, RedirectResponse, Response
 from loguru import logger
@@ -118,10 +119,20 @@ def register_exception_handlers(app: FastAPI):  # noqa: C901
     async def validation_exception_handler(
         request: Request, exc: RequestValidationError
     ):
-        logger.error(f"RequestValidationError: {exc!s}")
-        return render_html_error(request, exc) or JSONResponse(
+        # Pydantic 2 includes raw inputs and exception objects in validation errors.
+        errors = jsonable_encoder(
+            [
+                {key: value for key, value in error.items() if key != "input"}
+                for error in exc.errors()
+            ],
+            custom_encoder={Exception: str},
+        )
+        logger.error(f"RequestValidationError: {errors}")
+        return render_html_error(
+            request, RequestValidationError(errors)
+        ) or JSONResponse(
             status_code=HTTPStatus.BAD_REQUEST,
-            content={"detail": [dict(e) for e in exc.errors()]},
+            content={"detail": errors},
         )
 
     @app.exception_handler(HTTPException)

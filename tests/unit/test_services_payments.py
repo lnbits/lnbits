@@ -153,7 +153,7 @@ async def test_lnurl_withdraw_success_keeps_invoice_pending(mocker: MockerFixtur
         CreateInvoice(
             amount=1,
             out=False,
-            lnurl_withdraw=LnurlWithdrawResponse.parse_obj(
+            lnurl_withdraw=LnurlWithdrawResponse.model_validate(
                 {
                     "tag": "withdrawRequest",
                     "callback": "https://example.com/callback",

@@ -138,11 +138,11 @@ def extension_api_contract(api_cls: type[Any] | None = None) -> dict[str, object
                 "description": method.description,
                 "required_permission": method.required_permission,
                 "require_auth": method.require_auth,
-                "request_schema": method.request_model.schema(
-                    ref_template="#/definitions/{model}"
+                "request_schema": method.request_model.model_json_schema(
+                    ref_template="#/$defs/{model}"
                 ),
-                "response_schema": method.response_model.schema(
-                    ref_template="#/definitions/{model}"
+                "response_schema": method.response_model.model_json_schema(
+                    ref_template="#/$defs/{model}"
                 ),
             }
             for method in list_extension_api_methods(api_cls)

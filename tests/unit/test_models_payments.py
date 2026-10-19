@@ -9,7 +9,7 @@ from lnbits.core.models import CreateInvoice
     "fields", [("payment_request",), ("bolt11",), ("payment_request", "bolt11")]
 )
 def test_create_invoice_accepts_payment_request(payment_request, fields):
-    invoice = CreateInvoice.parse_obj(dict.fromkeys(fields, payment_request))
+    invoice = CreateInvoice.model_validate(dict.fromkeys(fields, payment_request))
 
     assert invoice.payment_request == payment_request
 

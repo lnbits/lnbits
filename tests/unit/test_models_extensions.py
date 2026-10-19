@@ -56,7 +56,7 @@ async def test_get_installable_extensions_loads_wasm_manifests(
         mocker.AsyncMock(
             side_effect=[
                 Manifest(),
-                Manifest.parse_obj(
+                Manifest.model_validate(
                     {
                         "extensions": [
                             {

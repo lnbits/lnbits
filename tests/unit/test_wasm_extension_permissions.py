@@ -67,7 +67,9 @@ def test_scheduler_permissions_approve_exact_schedules_per_handler_and_scope(
 ):
     config = scheduler_permission_config
     extension = make_installable_extension("demoext")
-    grants = [ExtensionPermission.parse_obj(item) for item in config["permissions"]]
+    grants = [
+        ExtensionPermission.model_validate(item) for item in config["permissions"]
+    ]
     assert validate_wasm_extension_permissions(extension, grants, config) == grants
     # Admins can approve only some declared handlers and omit the shared permission.
     grants[0].policies = [
@@ -157,7 +159,7 @@ def test_scheduler_permissions_reject_invalid_job_limits(
 ):
     config = scheduler_permission_config
     grants = [
-        ExtensionPermission.parse_obj(item).copy(deep=True)
+        ExtensionPermission.model_validate(item).model_copy(deep=True)
         for item in config["permissions"]
     ]
     assert grants[0].policies is not None
@@ -183,7 +185,7 @@ def test_scheduler_permissions_job_limit_overrides(
 ):
     config = scheduler_permission_config
     grants = [
-        ExtensionPermission.parse_obj(item).copy(deep=True)
+        ExtensionPermission.model_validate(item).model_copy(deep=True)
         for item in config["permissions"]
     ]
     assert grants[0].policies is not None

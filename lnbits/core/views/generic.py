@@ -211,7 +211,7 @@ async def index(
         request,
         "base.html",
         {
-            "user": user.json(),
+            "user": user.model_dump_json(),
         },
     )
 
@@ -240,7 +240,7 @@ async def index_blockexplorer(
     user: User = Depends(check_blockexplorer_access),
 ) -> HTMLResponse:
     return template_renderer().TemplateResponse(
-        request, "base.html", {"user": user.json()}
+        request, "base.html", {"user": user.model_dump_json()}
     )
 
 
@@ -293,7 +293,7 @@ async def lnurlwallet(request: Request, lightning: str = ""):
                 status_code=HTTPStatus.BAD_REQUEST,
                 detail="Invalid lnurl. Expected maxWithdrawable",
             )
-        check_callback_url(withdraw.callback)
+        check_callback_url(str(withdraw.callback))
     except (LnurlException, ValueError) as exc:
         raise HTTPException(
             status_code=HTTPStatus.BAD_REQUEST, detail=str(exc)

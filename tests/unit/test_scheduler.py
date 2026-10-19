@@ -234,7 +234,7 @@ def test_config_rejects_invalid_payloads_and_ownership(fields: dict):
 
 @pytest.mark.anyio
 async def test_persistence_and_scope_isolation(schedule_db):
-    first = job().copy(update={"namespace": "extension:one", "user_id": "alice"})
+    first = job().model_copy(update={"namespace": "extension:one", "user_id": "alice"})
     await crud.save_scheduled_job(first)
     for changes in (
         {"user_id": "bob"},
@@ -242,7 +242,7 @@ async def test_persistence_and_scope_isolation(schedule_db):
         {"namespace": "extension:two"},
     ):
         with pytest.raises(PermissionError):
-            await crud.save_scheduled_job(first.copy(update=changes))
+            await crud.save_scheduled_job(first.model_copy(update=changes))
     page = await crud.get_scheduled_jobs_paginated("extension:one", "alice")
     assert page.data == [first]
     assert page.total == 1
@@ -413,7 +413,7 @@ async def test_user_schedule_limit_is_scoped(
         {"namespace": "extension:two"},
     ):
         with pytest.raises(PermissionError, match="another owner or handler"):
-            await crud.save_scheduled_job(existing.copy(update=changes))
+            await crud.save_scheduled_job(existing.model_copy(update=changes))
     assert await crud.get_scheduled_job(existing.id) == existing
 
 
@@ -642,7 +642,7 @@ async def test_namespace_stop_bounds_wait_without_stopping_other_jobs(
     }
     for job_id, namespace in namespaces.items():
         await crud.save_scheduled_job(
-            job(job_id).copy(
+            job(job_id).model_copy(
                 update={
                     "namespace": namespace,
                     "user_id": "alice" if job_id == "user" else None,
@@ -946,7 +946,7 @@ async def test_inactive_owner_schedules_stop_accumulating_runs(
         ("shared", "core", None, "check", True),
     ):
         original[job_id] = await crud.save_scheduled_job(
-            job(job_id).copy(
+            job(job_id).model_copy(
                 update={
                     "namespace": namespace,
                     "user_id": owner,
@@ -1007,7 +1007,7 @@ async def test_inactive_owner_heartbeat_disables_schedules_and_cancels_callback(
 ):
     await crud.save_scheduled_job(job("running", user_id="alice"))
     await crud.save_scheduled_job(
-        job("future", user_id="alice").copy(update={"next_run_at": NOW + 3600})
+        job("future", user_id="alice").model_copy(update={"next_run_at": NOW + 3600})
     )
     worker = Scheduler(lease_seconds=3)
     started, cancelled = asyncio.Event(), asyncio.Event()
@@ -1119,7 +1119,7 @@ async def test_wasm_schedule_save_requires_approved_policy(
         with pytest.raises(PermissionError, match="admin-approved"):
             await worker.save(
                 "extension:one",
-                config.copy(update={"id": job_id, **changes}),
+                config.model_copy(update={"id": job_id, **changes}),
                 user_id=user_id,
             )
     assert await crud.get_scheduled_job(saved.id) == saved
@@ -1127,7 +1127,9 @@ async def test_wasm_schedule_save_requires_approved_policy(
     # Payload and pause state can still be changed without changing the schedule.
     updated = await worker.save(
         "extension:one",
-        config.copy(update={"enabled": False, "payload_json": '{"threshold": 100}'}),
+        config.model_copy(
+            update={"enabled": False, "payload_json": '{"threshold": 100}'}
+        ),
         user_id=user_id,
     )
     assert not updated.enabled and json.loads(updated.payload_json) == {
@@ -1149,7 +1151,7 @@ async def test_wasm_schedule_rechecks_policy_before_execution(
     user_id, changes, schedule_db, clock, wasm_schedule_grants, mocker: MockerFixture
 ):
     grant = wasm_schedule_grants.permissions[0 if user_id else 1]
-    config = ScheduleConfig.parse_obj(grant.policies[0])
+    config = ScheduleConfig.model_validate(grant.policies[0])
     worker = Scheduler()
     callback = mocker.AsyncMock()
     worker.register("extension:one", "check", callback)
@@ -1177,7 +1179,7 @@ async def test_wasm_schedule_policy_revocation_cancels_running_callback(
     user_id, schedule_db, clock, wasm_schedule_grants
 ):
     grant = wasm_schedule_grants.permissions[0 if user_id else 1]
-    config = ScheduleConfig.parse_obj(grant.policies[0])
+    config = ScheduleConfig.model_validate(grant.policies[0])
     worker = Scheduler(lease_seconds=3)
     started, cancelled = asyncio.Event(), asyncio.Event()
 
@@ -1210,7 +1212,7 @@ async def test_wasm_schedule_cannot_use_other_scope_policy(
     user_id, wasm_schedule_grants
 ):
     other_grant = wasm_schedule_grants.permissions[1 if user_id else 0]
-    config = ScheduleConfig.parse_obj(other_grant.policies[0])
+    config = ScheduleConfig.model_validate(other_grant.policies[0])
     with pytest.raises(PermissionError, match="admin-approved"):
         await check_schedule_access("extension:one", user_id, config)
 
@@ -1341,7 +1343,7 @@ async def test_config_update_keeps_claim_and_new_schedule(schedule_db):
     await crud.save_scheduled_job(job())
     claimed = await crud.claim_scheduled_job("test", "claim", NOW, NOW + 60)
     assert claimed
-    changed = claimed.copy(
+    changed = claimed.model_copy(
         update={"cron_expression": "0 9 * * *", "next_run_at": NOW + 9 * 3600}
     )
     await crud.save_scheduled_job(changed)
@@ -1409,8 +1411,8 @@ async def test_scheduler_records_execution_outcomes(schedule_db, clock, outcome)
         assert run.started_at == NOW
         assert run.finished_at == clock.now
         assert run.status == outcome
-        assert "hidden-" not in run.json()
-        assert "lease_token" not in run.dict()
+        assert "hidden-" not in run.model_dump_json()
+        assert "lease_token" not in run.model_dump()
         if outcome == "succeeded":
             assert run.error_summary is None
         elif outcome == "failed":
@@ -1499,7 +1501,7 @@ async def test_scheduler_records_sanitized_failure_details(
         run = page.data[0]
         assert run.status == "failed"
         assert run.error_summary == expected
-        assert "hidden-payload" not in run.json()
+        assert "hidden-payload" not in run.model_dump_json()
         warning.assert_called_once_with(
             "Scheduled job {} failed ({}); next attempt follows its cron schedule.",
             "test",
@@ -1663,9 +1665,9 @@ async def test_history_migration_preserves_existing_jobs(schedule_db):
 def test_scheduler_history_retention_setting(field, default):
     assert SchedulerSettings().lnbits_scheduler_enabled is True
     assert getattr(SchedulerSettings(), field) == default
-    assert getattr(SchedulerSettings.parse_obj({field: 42}), field) == 42
+    assert getattr(SchedulerSettings.model_validate({field: 42}), field) == 42
     with pytest.raises(ValidationError):
-        SchedulerSettings.parse_obj({field: 0})
+        SchedulerSettings.model_validate({field: 0})
 
 
 @pytest.mark.anyio
@@ -1707,7 +1709,7 @@ async def history_run(
     finished_at=NOW,
 ):
     stored = await crud.save_scheduled_job(
-        job(job_id).copy(
+        job(job_id).model_copy(
             update={"namespace": namespace, "user_id": user_id, "handler": handler}
         )
     )
@@ -1766,7 +1768,7 @@ async def test_history_user_cap_spans_handlers_sources_and_deleted_jobs(
         "shared",
         *active_ids,
     }
-    assert all("user_id" not in run.dict() for run in page.data)
+    assert all("user_id" not in run.model_dump() for run in page.data)
 
     # The same worker applies a lowered limit on its next maintenance tick.
     settings.lnbits_scheduler_history_max_runs_per_user = 1

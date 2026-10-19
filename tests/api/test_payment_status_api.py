@@ -99,7 +99,8 @@ async def test_change_status_notifies_only_on_success(
         assert wallet.id == payment.wallet_id
         assert wallet.balance_msat == stored_wallet.balance_msat
         assert (
-            notified_payment.dict() == (await get_payment(payment.checking_id)).dict()
+            notified_payment.model_dump()
+            == (await get_payment(payment.checking_id)).model_dump()
         )
     else:
         notify.assert_not_called()
@@ -296,7 +297,7 @@ async def test_change_status_uses_exact_wallet_and_checking_id(
 
     payment, _ = await status_payment(from_user)
     other_wallet = await create_wallet(user_id=from_user.id)
-    other_payment = payment.copy(update={"wallet_id": other_wallet.id})
+    other_payment = payment.model_copy(update={"wallet_id": other_wallet.id})
     await db.insert("apipayments", other_payment)
     response = await change_status(client, superuser_token, payment, "success")
     assert response.status_code == 200

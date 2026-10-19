@@ -742,7 +742,7 @@ def _admin_auth_headers(user_id: str) -> dict[str, str]:
     account it could otherwise modify directly grants it nothing new.
     """
     payload = AccessTokenPayload(sub="", usr=user_id, auth_time=int(time.time()))
-    token = create_access_token(data=payload.dict(), token_expire_minutes=5)
+    token = create_access_token(data=payload.model_dump(), token_expire_minutes=5)
     return {"Authorization": f"Bearer {token}"}
 
 
@@ -756,7 +756,7 @@ async def _call_install_extension(
         async with httpx.AsyncClient() as client:
             resp = await client.post(
                 f"{url}/api/v1/extension",
-                json=data.dict(),
+                json=data.model_dump(),
                 headers=_admin_auth_headers(user_id),
                 timeout=40,
             )

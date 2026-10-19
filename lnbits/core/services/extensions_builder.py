@@ -97,7 +97,7 @@ def _transform_extension_builder_stub(data: ExtensionData, extension_dir: Path) 
 
 def _export_extension_data_json(data: ExtensionData, build_dir: Path):
     json.dump(
-        data.dict(),
+        data.model_dump(),
         open(Path(build_dir, "builder.json"), "w", encoding="utf-8"),
         indent=4,
     )
@@ -133,7 +133,7 @@ async def _get_extension_stub_release(
 
     logger.debug(f"Save release cache {stub_ext_id} ({stub_version}).")
     with open(release_cache_file, "w", encoding="utf-8") as f:
-        f.write(json.dumps(release.dict(), indent=4))
+        f.write(json.dumps(release.model_dump(), indent=4))
 
     return release
 
@@ -290,7 +290,7 @@ def _replace_jinja_placeholders(data: ExtensionData, ext_stub_dir: Path) -> None
             {
                 "extension_builder_stub_public_client_inputs": public_client_inputs,
                 "preview": data.preview_action,
-                **data.public_page.action_fields.dict(),
+                **data.public_page.action_fields.model_dump(),
                 "cancel_comment": remove_line_marker,
             },
         )

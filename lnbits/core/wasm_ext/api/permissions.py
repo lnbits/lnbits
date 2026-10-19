@@ -43,7 +43,7 @@ def validate_extension_permissions(
             unknown_ids.append(permission.id)
             if strict:
                 continue
-        normalized_permissions.append(permission.copy())
+        normalized_permissions.append(permission.model_copy())
 
     if unknown_ids and strict:
         raise ValueError(
@@ -110,7 +110,9 @@ def validate_wasm_extension_permissions(
                 f"permission '{permission_id}'."
             )
         effective_permissions.append(
-            requested_permission.copy(update={"policies": granted_permission.policies})
+            requested_permission.model_copy(
+                update={"policies": granted_permission.policies}
+            )
         )
 
     _validate_automatic_schedules(config.schedules, effective_permissions)
@@ -469,9 +471,9 @@ def _schedule_grant_is_subset(
         return False
     for handler, policy in granted.items():
         declared = requested.get(handler)
-        if not declared or declared.dict(exclude={"max_jobs_per_user"}) != policy.dict(
+        if not declared or declared.model_dump(
             exclude={"max_jobs_per_user"}
-        ):
+        ) != policy.model_dump(exclude={"max_jobs_per_user"}):
             return False
         if (
             isinstance(policy, UserSchedulePolicy)

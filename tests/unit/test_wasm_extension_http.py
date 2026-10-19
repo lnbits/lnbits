@@ -126,7 +126,7 @@ async def test_wasm_http_request_rejects_oversized_bodies_and_responses(
         await wasm_http.send_extension_http_request(
             "demoext",
             [{"host": "https://api.example.com"}],
-            HttpRequest.construct(
+            HttpRequest.model_construct(
                 method="GET",
                 url="https://api.example.com/path",
                 headers={},
