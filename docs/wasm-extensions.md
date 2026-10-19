@@ -10,49 +10,18 @@ nav_order: 9
 **Read this guide before creating a WASM extension or choosing its architecture.**
 Check the host APIs, execution context, browser restrictions, and release format
 before copying an existing extension. The [extension setup guide](devs/extensions.md)
-describes the separate Python workflow.
+describes native Python extensions. Python compiled to WASM follows this guide.
 
-## Work directly in the extension directory
+This file contains shared WASM contracts and authoring rules. Use the instructions
+for the active workflow alongside it:
 
-**Make extension changes directly in `data/wasm_extensions/<id>`**, or the
-corresponding directory under the configured `LNBITS_WASM_EXTENSIONS_PATH`.
-For Pricebot in this checkout, work in `data/wasm_extensions/pricebot`.
-If that directory is a symlink, edit its existing target and preserve the link.
+- **Studio agent:** this file and [`wasm-extensions-studio.md`](wasm-extensions-studio.md)
+  are mandatory instruction inputs on every run.
+- **CLI development:** read this file and follow
+  [`wasm-extensions-cli.md`](wasm-extensions-cli.md).
 
-Keep the source, configuration, UI/assets, schema, migrations, tests, and rebuilt
-WASM component in that extension directory. Run the extension's checks there.
-Do not use a temporary copy or separate checkout as the primary working directory
-unless the user explicitly requests it. Temporary test databases and fixtures
-are fine, but completed extension changes must be present in the actual directory.
-
-If filesystem permissions block an edit, request access to the actual target;
-do not silently redirect the work elsewhere. If changes were already staged in
-a temporary copy, reconcile them into the extension directory, preserve any
-concurrent user edits, and verify the destination before reporting completion.
-State separately whether the running instance has loaded the changes and whether
-installation or permission approval is still required.
-
-This working-directory rule does not authorize core edits. Core changes still
-require the explicit approval described below and belong in their core files.
-
-## Core changes require explicit user approval
-
-**Never change LNbits core while creating, fixing, or updating a WASM extension
-without first asking the user and receiving explicit approval for those core
-changes.** Approval to work on an extension, including a general "go ahead", does
-not authorize core changes. A missing host capability or a failing extension test
-does not create an exception.
-
-This applies to host APIs, the WASM runtime, scheduling and activation, permissions,
-authentication, storage and migrations, core frontend code, core tests, and core
-dependencies or build configuration. Do not change core indirectly through build
-scripts, generated files, or patches in another checkout.
-
-Read-only inspection of core is allowed. If the existing APIs cannot meet an
-extension requirement, explain the limitation, any extension-only alternatives,
-and the specific core changes and files proposed. Ask whether the user authorizes
-that scope, then wait for their answer before editing core. Continue only the
-extension work that does not depend on that approval.
+The active workflow determines which files and tools are available. Technical
+examples and source links in this guide do not grant additional capabilities.
 
 ## Review scope
 
@@ -68,8 +37,9 @@ the security or runtime compatibility of the released binaries. See the
 
 ## Start with these decisions
 
-1. Choose a component toolchain: existing extensions demonstrate JavaScript, Rust,
-   and C. Browser JavaScript and server-side WASM are separate programs.
+1. Use a component toolchain supported by the active workflow. The initial Studio
+   builder supports Python; existing extensions also demonstrate JavaScript,
+   Rust, and C. Browser JavaScript and server-side WASM are separate programs.
 2. Map each operation to an existing host method and the permission it requires.
    Identify whether it runs for a logged-in user, a public visitor, a payment
    event, or a scheduled job. These contexts have different capabilities.
@@ -78,10 +48,10 @@ the security or runtime compatibility of the released binaries. See the
    authorization.
 4. Choose explicit Vue render functions or templates compiled during the build.
    Runtime template compilation violates the iframe's CSP.
-5. Budget storage calls, HTTP calls, response sizes, and execution time. Work that
-   requires SQL transactions, an arbitrary server process, or a missing host API
-   needs a different extension design or a core change explicitly approved under
-   the [rule above](#core-changes-require-explicit-user-approval).
+5. Budget storage calls, HTTP calls, response sizes, and execution time. When an
+   operation needs unavailable host capabilities, explain the limitation and
+   stay within the active workflow's permissions. Do not bypass host APIs or
+   assume arbitrary server-process or SQL transaction access.
 
 ## Runtime and languages
 
@@ -106,11 +76,28 @@ guest globals are not persistent application state or reliable locks. The host
 links WASI, but supplies no preopened application directories or inherited
 environment through its empty WASI configuration. Use host storage, HTTP, wallet,
 event, and scheduler APIs instead of assuming filesystem, socket, or background
-process access. Rebuild the component after changing guest source.
+process access. Guest source changes take effect only after rebuilding the component.
 
 Sources: [component lifecycle](../lnbits/core/wasm_ext/wasm/component.py),
 [invocation](../lnbits/core/wasm_ext/wasm/invoke.py),
 [host imports](../lnbits/core/wasm_ext/wasm/host.py).
+
+### Python components
+
+Python components include an interpreter and supporting modules. The local
+`receive_sats` example compiled with `componentize-py` 0.25.1 and ran with Wasmtime
+48.0.0 using `wasm_runtime_max_instances = 64`, with other runtime limits at their
+defaults. The default of 8 failed during instantiation. This is a verified setting
+for that example, not a minimum or a guarantee for every Python component.
+Explain required adjustments and use per-extension overrides at
+`/admin/extensions/wasm/limits/<extension_id>`; do not change global limits or put
+runtime overrides in the extension manifest.
+
+When using `--stub-wasi`, remember that it traps WASI calls in the resulting
+component and freezes the Python random seed at build time. It does not remove
+the compiler's build-time filesystem access. Use LNbits host APIs for operations
+such as invoice creation that require fresh secrets; do not derive them from
+guest randomness. See the [compiler flag documentation](https://github.com/bytecodealliance/componentize-py/blob/v0.25.1/src/command.rs#L165-L173).
 
 ## Files and interface contracts
 
@@ -489,28 +476,13 @@ Sources: [default settings](../lnbits/settings.py),
 
 ## Build, release, and verification
 
-Use the chosen extension's build instructions and pinned dependencies, then
-verify against the intended core version. Existing repositories demonstrate
-component smoke tests, domain tests, host mocks, frontend bridge tests, and
-release-package checks. Mock success alone does not verify WIT imports, host
-authorization, browser CSP, or release installation.
-
-For a new extension:
-
-1. Check configuration, WIT, exports, routes, and permission policies against the
-   current core contract. Test actual component instantiation and a host call.
-2. Check owner isolation with two users, public projections, forged identifiers,
-   denied permissions, and unavailable invocation contexts.
-3. For payments or stateful events, check duplicates, pending/failed results,
-   concurrent attempts, partial completion, and recovery. For schedules, check
-   approved expressions, user/shared scope, deactivation, and missed runs.
-4. Exercise the UI through the actual LNbits wrapper, including save buttons,
-   asset loading, navigation, bridge errors, and CSP console messages.
-5. Build and inspect the installable ZIP. Include one top-level extension
-   directory containing config, the compiled module, required WIT, UI/assets,
-   schema, and migrations. Exclude files the WASM installer rejects.
-6. Check installation, approval, migration, activation, and update with the
-   target LNbits version. Copying a folder alone does not complete this flow.
+Build and verification responsibilities belong to the active workflow. The
+[Studio builder](wasm-extensions-studio.md#manual-restricted-builds) runs only on
+an administrator's Build action. Terminal developers follow the
+[CLI build and verification checklist](wasm-extensions-cli.md#build-release-and-verification).
+The Studio agent must report checks it has not run and cannot invoke CLI commands
+to perform them. A successful compilation alone does not verify host authorization,
+browser CSP, or release installation.
 
 WASM extensions live under `LNBITS_WASM_EXTENSIONS_PATH`, defaulting to
 `<LNBITS_DATA_FOLDER>/wasm_extensions`. They must remain outside Python-importable
