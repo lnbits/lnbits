@@ -90,11 +90,13 @@ from ..crud import (
     update_installed_extension,
     update_user_extension,
 )
+from .wasm_studio_api import studio_router
 
 extension_router = APIRouter(
     tags=["Extension Managment"],
     prefix="/api/v1/extension",
 )
+extension_router.include_router(studio_router)
 
 WALLET_PAY_INVOICE_BACKGROUND_PERMISSION = "wallet.pay_invoice_background"
 WALLET_PAYMENTS_WATCH_PERMISSION = "wallet.payments.watch"

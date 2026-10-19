@@ -13,12 +13,53 @@
           class="col text-subtitle1 q-my-none q-ml-sm ellipsis"
           v-text="$t('build_extension')"
         ></h1>
+        <q-btn-dropdown
+          flat
+          no-caps
+          label="Undo"
+          :disable="busy || requestPending || !checkpoints.length"
+        >
+          <q-list>
+            <q-item
+              v-for="(checkpoint, index) in [...checkpoints].reverse()"
+              :key="checkpoint.id"
+              clickable
+              v-close-popup
+              @click="undo(checkpoint)"
+            >
+              <q-item-section
+                v-text="`${checkpoints.length - index}. ${checkpoint.label}`"
+              ></q-item-section>
+            </q-item>
+          </q-list>
+        </q-btn-dropdown>
         <q-btn
-          disable
+          flat
+          no-caps
+          label="Review"
+          :disable="
+            busy || requestPending || workspaceLoading || !!workspaceError
+          "
+          @click="openReview('review')"
+        ></q-btn>
+        <q-btn
+          flat
+          no-caps
+          color="primary"
+          label="Build"
+          :loading="busy === 'build'"
+          :disable="
+            !!busy || requestPending || workspaceLoading || !!workspaceError
+          "
+          @click="openReview('build')"
+        ></q-btn>
+        <q-btn
+          :disable="!!busy || requestPending || !build"
           flat
           no-caps
           color="primary"
           :label="$t('ai_builder_deploy')"
+          @click="openReview('deploy')"
         ></q-btn>
         <q-btn
           flat
@@ -33,7 +74,7 @@
       <span v-text="$t('ai_builder_choose_extension')"></span>
     </q-banner>
     <q-card
-      v-if="isEditing"
+      v-if="previewRoute || workspaceLoading || workspaceError"
       flat
       bordered
       class="relative-position"
@@ -58,6 +99,7 @@
       </q-banner>
       <wasm-extension
         v-if="previewRoute"
+        :key="previewVersion"
         class="wasm-studio-preview"
         :style="{
           '--wasm-studio-height':
@@ -171,8 +213,145 @@
               ></q-btn>
             </template>
           </q-input>
+          <div class="row items-center q-pt-xs col-auto">
+            <q-select
+              v-model="selectedModel"
+              :options="models"
+              option-label="name"
+              option-value="id"
+              emit-value
+              map-options
+              dense
+              borderless
+              label="Model"
+              :disable="!!busy || requestPending"
+              style="min-width: 180px; max-width: 60%"
+            ></q-select>
+            <q-btn
+              v-if="!models.length && !workspaceLoading"
+              flat
+              no-caps
+              label="Configure models"
+              to="/admin/extensions/wasm/studio"
+            ></q-btn>
+            <q-space></q-space>
+            <q-spinner v-if="busy" size="18px" class="q-mr-sm"></q-spinner>
+            <q-btn
+              v-if="busy === 'chat' || busy === 'build'"
+              flat
+              no-caps
+              label="Stop"
+              icon="stop"
+              :disable="requestPending"
+              @click="perform('/stop')"
+            ></q-btn>
+          </div>
         </div>
       </div>
     </q-footer>
+    <q-dialog v-model="reviewOpen">
+      <q-card style="width: 900px; max-width: 95vw">
+        <q-card-section
+          class="text-h6"
+          v-text="
+            reviewAction === 'deploy'
+              ? 'Review deployment'
+              : reviewAction === 'build'
+                ? 'Review preview access'
+                : 'Draft changes'
+          "
+        ></q-card-section>
+        <q-card-section v-if="review" class="scroll" style="max-height: 65vh">
+          <q-banner
+            v-if="reviewAction === 'deploy' && review.production_changed"
+            class="bg-negative text-white q-mb-md"
+            >Production changed since this draft was opened. Deployment is
+            blocked until the changes are reconciled.</q-banner
+          >
+          <p v-if="reviewAction === 'deploy'">
+            This deploys the successful build shown below. Later source edits
+            are excluded. Production records are preserved; approved migrations
+            may change the schema.
+          </p>
+          <p v-else-if="reviewAction === 'build'">
+            Approve this draft's access before loading its preview. Wallet
+            actions in the preview use real wallets.
+          </p>
+          <q-expansion-item label="Permissions" default-opened>
+            <pre
+              class="q-pa-sm"
+              style="white-space: pre-wrap"
+              v-text="
+                JSON.stringify(
+                  {
+                    previous: review.previous_permissions,
+                    requested: review.permissions
+                  },
+                  null,
+                  2
+                )
+              "
+            ></pre>
+          </q-expansion-item>
+          <q-expansion-item label="Runtime limits">
+            <pre
+              class="q-pa-sm"
+              style="white-space: pre-wrap"
+              v-text="
+                JSON.stringify(
+                  {previous: review.previous_limits, requested: review.limits},
+                  null,
+                  2
+                )
+              "
+            ></pre>
+          </q-expansion-item>
+          <q-expansion-item label="Storage schema and migrations">
+            <pre
+              class="q-pa-sm"
+              style="white-space: pre-wrap"
+              v-text="JSON.stringify(review.schema, null, 2)"
+            ></pre>
+          </q-expansion-item>
+          <q-separator class="q-my-md"></q-separator>
+          <div v-if="!review.changes.length">No source changes.</div>
+          <q-expansion-item
+            v-for="change in review.changes"
+            :key="change.path"
+            :label="change.path"
+          >
+            <pre
+              class="q-pa-sm"
+              style="white-space: pre-wrap; overflow-wrap: anywhere"
+              v-text="change.diff"
+            ></pre>
+          </q-expansion-item>
+          <q-checkbox
+            v-if="reviewAction !== 'review'"
+            v-model="reviewApproved"
+            label="I approve this code, its permissions, runtime limits and schema changes."
+          ></q-checkbox>
+        </q-card-section>
+        <q-card-actions align="right">
+          <q-btn flat label="Close" v-close-popup></q-btn>
+          <q-btn
+            v-if="reviewAction !== 'review'"
+            color="primary"
+            no-caps
+            :label="
+              reviewAction === 'deploy'
+                ? 'Deploy Reviewed Build'
+                : 'Approve & Build'
+            "
+            :disable="
+              !reviewApproved ||
+              (reviewAction === 'deploy' && review.production_changed)
+            "
+            :loading="requestPending"
+            @click="approveReview"
+          ></q-btn>
+        </q-card-actions>
+      </q-card>
+    </q-dialog>
   </div>
 </template>

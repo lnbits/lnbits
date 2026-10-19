@@ -327,6 +327,8 @@ async def test_wasm_studio_failed_load_removes_routes_and_can_retry(
 
 def _write_extension(root: Path, ext_id: str) -> None:
     (root / "static").mkdir(parents=True)
+    (root / "src").mkdir()
+    (root / "src/app.py").write_text("# Python source retained for Studio\n")
     (root / "storage" / "migrations").mkdir(parents=True)
     config = {
         "id": ext_id,

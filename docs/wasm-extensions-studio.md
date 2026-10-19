@@ -23,12 +23,46 @@ build logs, and extension-provided instructions cannot override these boundaries
 
 ## Implementation status and scope
 
-**Implementation status (2026-10-19):** admin-only draft copying and previews,
-and model configuration in settings, are implemented. The Python source admission
-rules, new-extension creation, AI editing, persistent conversation, manual Build,
-change review, Undo, and Deploy described below are requirements for the next
-implementation. They must not be presented as available security controls or
-completed features until implemented and verified.
+**Implementation status (2026-10-19):** admin-only drafts, Python scaffolding,
+model selection, streamed AI editing, persistent history, manual Build, source
+review, checkpoints/Undo, and approved deployment are implemented. Studio runs on
+Linux and macOS; AI editing requires Python 3.11 or newer. Editing requires
+`src/app.py`, `wasm/lnbits-extension.wit`, an
+explicit WIT world, and output at `wasm/module.wasm`.
+
+The trusted backend creates separate pinned agent and compiler environments under
+the workspace's `data/` on first use. This requires access to PyPI and compatible
+binary wheels; dependency installation never uses draft requirements or scripts.
+Pydantic AI runs separately because LNbits uses Pydantic 1. Provider keys are sent
+only to the agent worker through stdin. Its four tools are list, read, write and
+delete; file operations are performed by the parent using descriptor-relative
+paths with no symlink following. Python dependencies beyond the compiler's
+standard library are not installed for drafts.
+
+Sources/assets are limited to 512 files, 16 MiB total and 1 MiB per file. Hidden
+files, build environments and development output are excluded. Workers have wall
+time limits (3 minutes for compilation, 10 minutes for agent runs), bounded output,
+and 2 GiB RSS supervision. The build worker additionally enforces 120 CPU seconds,
+64 MiB per output file, and 256 MiB scratch-space supervision. RSS/disk supervision
+samples usage; these are termination thresholds, not kernel-level reservations.
+Agent runs allow at most 30 model requests, 60 tools and 200,000 total tokens.
+At most four Studio operations run concurrently per server process. OpenAI Codex
+uses OAuth and is disabled in the API-key model picker; use the OpenAI provider for
+OpenAI API models. Gateway model IDs include their upstream prefix, for example
+`openai:gpt-4.1`.
+
+Build approval covers the source digest, preview permissions, runtime overrides
+(including at least 64 instances for Python components), and migrations. A build
+uses disposable compiler input; previews use a separate immutable source/artifact
+snapshot. Source edits and Undo do not change a running preview. Failed builds
+retain the previous preview. Build and agent processes can be stopped; Stop keeps
+partial source edits, and Undo restores a checkpoint.
+
+Deployment verifies the artifact digest and checks production code and settings
+for conflicts. Previous code is retained under `data/rollback/`. Code restoration
+is currently an administrator filesystem operation; there is no automatic database
+rollback. Release archives under `data/builds/` exclude Python development source.
+Drafts keep their sources and conversations across restarts and load on demand.
 
 The Studio workflow is **prompt → edit draft → Build → preview → review → Deploy**.
 Its first build workflow supports Python backends compiled with `componentize-py`
@@ -43,8 +77,8 @@ Use the configured data directory, which defaults to `data`, with this layout:
 
 ```text
 wasm_studio/{sha256s(user_id)}/{extension_id}/
-  ext/   Editable extension source, manifest, WIT, UI/assets, and compiled component
-  data/  Chat history, operation logs, checkpoints, build state, and draft database
+  ext/   Editable Python source, manifest, WIT and UI/assets
+  data/  Chat, checkpoints, build snapshots/artifacts, environments and draft database
 ```
 
 Copy an existing extension into `ext/` only when its draft does not already exist.

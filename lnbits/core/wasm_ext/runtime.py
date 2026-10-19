@@ -11,10 +11,11 @@ from lnbits.core.models.extensions import InstallableExtension
 
 class StudioExtension(InstallableExtension):
     workspace_path: Path
+    preview_path: Path | None = None
 
     @property
     def wasm_ext_dir(self) -> Path:
-        return self.workspace_path / "ext"
+        return self.preview_path or self.workspace_path / "ext"
 
     @property
     def is_wasm(self) -> bool:

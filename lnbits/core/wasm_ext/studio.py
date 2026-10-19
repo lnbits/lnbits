@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+import json
 import re
 import shutil
 from dataclasses import replace
@@ -28,6 +29,7 @@ from .routes.assets import mount_wasm_extension_static
 from .routes.ui import register_wasm_extension_ui_routes
 from .runtime import StudioExtension, WasmStudioContext
 from .storage.crud import migrate_wasm_extension_database
+from .studio_files import DraftFiles, write_snapshot
 from .wasm.component import warm_wasm_extension
 from .wasm.loader import WasmExtension, load_wasm_extension
 from .wasm.scheduler import (
@@ -58,12 +60,19 @@ async def open_wasm_studio(
             raise HTTPException(404, "Installed WASM extension not found.")
 
         workspace = await asyncio.to_thread(_prepare_workspace, ext_id, account.id)
+        state_path = workspace / "data/state.json"
+        state = json.loads(state_path.read_text()) if state_path.is_file() else {}
+        preview_path = workspace / "data" / (state.get("preview") or "initial")
+        created_preview = not preview_path.exists()
+        if created_preview:
+            await asyncio.to_thread(_copy_initial_preview, workspace, preview_path)
         extension = await asyncio.to_thread(
-            load_wasm_extension, ext_id, root_path=workspace / "ext"
+            load_wasm_extension, ext_id, root_path=preview_path
         )
         draft_info = StudioExtension(
             **{**source.dict(), "id": draft_id, "active": True},
             workspace_path=workspace,
+            preview_path=preview_path,
         )
         studio = WasmStudioContext(ext_id, account.id, draft_info)
         extension = _draft_extension(extension, studio)
@@ -94,6 +103,8 @@ async def open_wasm_studio(
                 )
             ]
             app.openapi_schema = None
+            if created_preview:
+                await asyncio.to_thread(shutil.rmtree, preview_path, True)
             raise
         return extension
 
@@ -110,19 +121,32 @@ def _prepare_workspace(ext_id: str, user_id: str) -> Path:
     ):
         if path.is_symlink():
             raise ValueError("Studio workspace must not contain symbolic links.")
-    (workspace / "data").mkdir(parents=True, exist_ok=True)
+    (workspace / "data").mkdir(mode=0o700, parents=True, exist_ok=True)
     target = workspace / "ext"
     if target.exists():
         if not target.is_dir():
             raise ValueError("Invalid studio extension directory.")
-        _reject_symlinks(target)
+        DraftFiles(target).snapshot()
+        if not (target / "src/app.py").is_file():
+            raise HTTPException(400, "Studio requires Python source at src/app.py.")
         return workspace
 
     source = settings.wasm_extensions_dir / ext_id
-    _reject_symlinks(source)
+    files = DraftFiles(source).snapshot()
+    if "src/app.py" not in files:
+        raise HTTPException(
+            400,
+            "Studio requires Python source at src/app.py. Binary-only extensions cannot"
+            " be edited.",
+        )
     temporary = workspace / f".ext-{uuid4().hex}"
     try:
-        shutil.copytree(source, temporary)
+        write_snapshot(temporary, files)
+        module = json.loads(files["config.json"])["wasm"]["module"]
+        output = temporary / module
+        component = DraftFiles(source).read(module, binary=True)
+        output.parent.mkdir(parents=True, exist_ok=True)
+        output.write_bytes(component)
         temporary.rename(target)
     finally:
         if temporary.exists():
@@ -130,9 +154,15 @@ def _prepare_workspace(ext_id: str, user_id: str) -> Path:
     return workspace
 
 
-def _reject_symlinks(root: Path) -> None:
-    if root.is_symlink() or any(path.is_symlink() for path in root.rglob("*")):
-        raise ValueError("Studio extension must not contain symbolic links.")
+def _copy_initial_preview(workspace: Path, destination: Path) -> None:
+    files = DraftFiles(workspace / "ext")
+    snapshot = files.snapshot()
+    module = json.loads(snapshot["config.json"])["wasm"]["module"]
+    component = files.read(module, binary=True)
+    write_snapshot(destination, snapshot)
+    output = destination / module
+    output.parent.mkdir(parents=True, exist_ok=True)
+    output.write_bytes(component)
 
 
 def _draft_extension(

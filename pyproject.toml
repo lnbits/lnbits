@@ -267,3 +267,7 @@ build-backend = "hatchling.build"
 
 [tool.hatch.build.targets.wheel]
 packages = ["lnbits"]
+
+[tool.hatch.build.targets.wheel.force-include]
+"docs/wasm-extensions.md" = "lnbits/core/wasm_ext/studio_instructions/wasm-extensions.md"
+"docs/wasm-extensions-studio.md" = "lnbits/core/wasm_ext/studio_instructions/wasm-extensions-studio.md"
