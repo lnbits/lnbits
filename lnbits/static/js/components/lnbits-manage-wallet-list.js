@@ -2,7 +2,9 @@ window.app.component('lnbits-manage-wallet-list', {
   template: '#lnbits-manage-wallet-list',
   data() {
     return {
-      activeWalletId: null
+      activeWalletId: null,
+      walletRefreshTimer: null,
+      walletRefreshPromise: null
     }
   },
   computed: {
@@ -31,6 +33,15 @@ window.app.component('lnbits-manage-wallet-list', {
       this.paymentEvents()
     }
   },
+  mounted() {
+    document.addEventListener('visibilitychange', this.onVisibilityChange)
+    window.addEventListener('online', this.onOnline)
+  },
+  beforeUnmount() {
+    clearTimeout(this.walletRefreshTimer)
+    document.removeEventListener('visibilitychange', this.onVisibilityChange)
+    window.removeEventListener('online', this.onOnline)
+  },
   methods: {
     openNewWalletDialog() {
       if (this.g.user.walletInvitesCount) {
@@ -38,6 +49,45 @@ window.app.component('lnbits-manage-wallet-list', {
       } else {
         this.g.newWalletType = 'lightning'
       }
+    },
+    onVisibilityChange() {
+      if (!document.hidden) this.scheduleWalletRefresh()
+    },
+    onOnline() {
+      this.scheduleWalletRefresh()
+    },
+    scheduleWalletRefresh() {
+      clearTimeout(this.walletRefreshTimer)
+      this.walletRefreshTimer = setTimeout(() => this.refreshWallets(), 500)
+    },
+    async refreshWallets() {
+      if (!this.g.user || this.walletRefreshPromise) return
+      this.walletRefreshPromise = LNbits.api
+        .getAuthenticatedUser()
+        .then(({data}) => {
+          const balances = new Map(
+            (data.wallets || []).map(wallet => [wallet.id, wallet.balance_msat])
+          )
+          this.g.user.wallets.forEach(wallet => {
+            const balance = balances.get(wallet.id)
+            if (balance === undefined) return
+            wallet.msat = balance
+            wallet.sat = Math.floor(balance / 1000)
+            if (this.g.wallet?.id === wallet.id) {
+              this.g.wallet.msat = balance
+              this.g.wallet.sat = wallet.sat
+            }
+          })
+          if (this.g.wallet) {
+            // lnbits-payment-list is watching
+            this.g.updatePayments = !this.g.updatePayments
+          }
+        })
+        .catch(err => console.warn('Failed to refresh wallets', err))
+        .finally(() => {
+          this.walletRefreshPromise = null
+        })
+      return this.walletRefreshPromise
     },
     onWebsocketMessage(ev) {
       const data = JSON.parse(ev.data)
@@ -72,7 +122,10 @@ window.app.component('lnbits-manage-wallet-list', {
           this.g.walletEventListeners.push(wallet.id)
           const ws = new WebSocket(`${websocketUrl}/${wallet.inkey}`)
           ws.onmessage = this.onWebsocketMessage
-          ws.onopen = () => console.log('ws connected for wallet', wallet.id)
+          ws.onopen = () => {
+            console.log('ws connected for wallet', wallet.id)
+            this.scheduleWalletRefresh()
+          }
           // onclose and onerror can both happen on their own or together,
           // so we add a clearTimeout to avoid multiple reconnections
           ws.onclose = () => {
