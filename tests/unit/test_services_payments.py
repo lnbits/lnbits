@@ -52,6 +52,15 @@ from lnbits.wallets.base import (
 )
 
 
+@pytest.fixture(autouse=True)
+def mock_payment_notifications(mocker: MockerFixture):
+    # Reconciliation now notifies incoming payments; keep notification tasks
+    # from outliving the test event loop.
+    mocker.patch(
+        "lnbits.core.services.payments.send_payment_notification_in_background"
+    )
+
+
 @pytest.mark.parametrize(
     ("value", "expected"),
     [
@@ -225,6 +234,30 @@ async def test_update_pending_payment_and_bulk_pending_updates(mocker: MockerFix
         (await get_payment(bulk_success_id)).status,
     }
     assert bulk_statuses == {PaymentState.FAILED, PaymentState.SUCCESS}
+
+
+@pytest.mark.anyio
+async def test_update_pending_payment_notifies_reconciled_incoming(
+    mocker: MockerFixture,
+):
+    wallet = await _create_wallet()
+    checking_id = await _create_payment(wallet)
+    payment = await get_payment(checking_id)
+    mocker.patch(
+        "lnbits.core.services.payments.check_payment_status",
+        mocker.AsyncMock(return_value=PaymentSuccessStatus()),
+    )
+    notify = mocker.patch(
+        "lnbits.core.services.payments.send_payment_notification_in_background"
+    )
+
+    updated_payment = await update_pending_payment(payment)
+
+    assert updated_payment.success
+    notify.assert_called_once()
+    notified_wallet, notified_payment = notify.call_args.args
+    assert notified_wallet.id == wallet.id
+    assert notified_payment.checking_id == checking_id
 
 
 @pytest.mark.anyio

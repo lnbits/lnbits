@@ -436,7 +436,15 @@ async def update_pending_payment(
         payment.status = PaymentState.FAILED
         payment = await update_payment(payment, conn=conn)
     elif status.success:
-        payment = await update_payment_success_status(payment, status, conn=conn)
+        # The invoice listener is the normal notification path for incoming
+        # payments. Reconciliation is the fallback, so notify here as well or
+        # a missed listener event leaves open wallet pages stale.
+        payment = await update_payment_success_status(
+            payment,
+            status,
+            conn=conn,
+            send_payment_notifications=True if payment.is_in else None,
+        )
     return payment
 
 
