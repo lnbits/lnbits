@@ -911,6 +911,8 @@ async def _pay_external_invoice(
             raise PaymentError(
                 "Can only force resend a pending payment.", status="failed"
             )
+        if old_payment.bolt11.lower() != create_payment_model.bolt11.lower():
+            raise PaymentError("Invalid invoice. Bolt11 changed.", status="failed")
         payment = old_payment
     elif force_resend:
         raise PaymentError("No previous payment found to resend.", status="failed")
@@ -961,6 +963,12 @@ async def _pay_external_invoice(
 
     # payment failed
     if payment_response.failed:
+        # the funding might return failed when trying to resend a an existing payment
+        if force_resend:
+            payment = await update_pending_payment(payment, conn=conn)
+            if not payment.failed:
+                return payment
+
         payment.status = PaymentState.FAILED
         await update_payment(payment, conn=conn)
         message = payment_response.error_message or "without an error message."
