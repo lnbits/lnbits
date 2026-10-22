@@ -904,18 +904,13 @@ async def _pay_external_invoice(
     old_payment = await get_standalone_payment(
         checking_id, wallet_id=wallet.id, conn=conn
     )
-    if old_payment:
-        if not force_resend:
-            return await _verify_external_payment(old_payment, conn)
-        if not old_payment.pending:
-            raise PaymentError(
-                "Can only force resend a pending payment.", status="failed"
-            )
-        if old_payment.bolt11.lower() != create_payment_model.bolt11.lower():
-            raise PaymentError("Invalid invoice. Bolt11 changed.", status="failed")
-        payment = old_payment
-    elif force_resend:
-        raise PaymentError("No previous payment found to resend.", status="failed")
+    if old_payment and not force_resend:
+        return await _verify_external_payment(old_payment, conn)
+    payment: Payment | None = None
+    if force_resend:
+        payment = _validate_force_resend(
+            old_payment, bolt11=create_payment_model.bolt11
+        )
     else:
         create_payment_model.fee = -abs(fee_reserve_total_msat)
         payment = await create_payment(
@@ -1004,6 +999,17 @@ async def _pay_external_invoice(
             f"{payment_response.error_message or 'no error message'}"
         )
 
+    return payment
+
+
+def _validate_force_resend(old_payment: Payment | None = None, bolt11: str = ""):
+    if not old_payment:
+        raise PaymentError("No previous payment found to resend.", status="failed")
+    if not old_payment.pending:
+        raise PaymentError("Can only force resend a pending payment.", status="failed")
+    if old_payment.bolt11.lower() != bolt11.lower():
+        raise PaymentError("Invalid invoice. Bolt11 changed.", status="failed")
+    payment = old_payment
     return payment
 
 
