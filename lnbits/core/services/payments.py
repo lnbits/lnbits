@@ -901,10 +901,16 @@ async def _pay_external_invoice(
             status="failed",
         )
     # check if there is already a payment with the same checking_id
-    old_payment = await get_standalone_payment(checking_id, conn=conn)
+    old_payment = await get_standalone_payment(
+        checking_id, wallet_id=wallet.id, conn=conn
+    )
     if old_payment:
         if not force_resend:
             return await _verify_external_payment(old_payment, conn)
+        if not old_payment.pending:
+            raise PaymentError(
+                "Can only force resend a pending payment.", status="failed"
+            )
         payment = old_payment
     elif force_resend:
         raise PaymentError("No previous payment found to resend.", status="failed")
