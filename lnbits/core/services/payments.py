@@ -74,6 +74,7 @@ async def pay_invoice(
     labels: list[str] | None = None,
     external_id: str | None = None,
     webhook: str | None = None,
+    force_resend: bool | None = False,
     conn: Connection | None = None,
 ) -> Payment:
     if settings.lnbits_only_allow_incoming_payments:
@@ -96,6 +97,7 @@ async def pay_invoice(
         labels=labels,
         external_id=external_id,
         webhook=webhook,
+        force_resend=force_resend,
         conn=conn,
     )
 
@@ -780,6 +782,7 @@ async def get_payments_daily_stats(
 async def _pay_invoice(
     wallet_id: str,
     create_payment_model: CreatePayment,
+    force_resend: bool | None = False,
     conn: Connection | None = None,
 ):
     async with payment_lock:
@@ -796,7 +799,9 @@ async def _pay_invoice(
 
         payment = await _pay_internal_invoice(wallet, create_payment_model, conn)
         if not payment:
-            payment = await _pay_external_invoice(wallet, create_payment_model, conn)
+            payment = await _pay_external_invoice(
+                wallet, create_payment_model, force_resend=force_resend, conn=conn
+            )
         return payment
 
 
@@ -877,6 +882,7 @@ async def _pay_internal_invoice(
 async def _pay_external_invoice(
     wallet: Wallet,
     create_payment_model: CreatePayment,
+    force_resend: bool | None = False,
     conn: Connection | None = None,
 ) -> Payment:
     checking_id = create_payment_model.payment_hash
@@ -897,14 +903,18 @@ async def _pay_external_invoice(
     # check if there is already a payment with the same checking_id
     old_payment = await get_standalone_payment(checking_id, conn=conn)
     if old_payment:
-        return await _verify_external_payment(old_payment, conn)
-
-    create_payment_model.fee = -abs(fee_reserve_total_msat)
-    payment = await create_payment(
-        checking_id=checking_id,
-        data=create_payment_model,
-        conn=conn,
-    )
+        if not force_resend:
+            return await _verify_external_payment(old_payment, conn)
+        payment = old_payment
+    elif force_resend:
+        raise PaymentError("No previous payment found to resend.", status="failed")
+    else:
+        create_payment_model.fee = -abs(fee_reserve_total_msat)
+        payment = await create_payment(
+            checking_id=checking_id,
+            data=create_payment_model,
+            conn=conn,
+        )
 
     fee_reserve_msat = fee_reserve(amount_msat, internal=False)
 
@@ -1400,6 +1410,7 @@ async def _pay_from_wallet(
     labels: list[str] | None = None,
     external_id: str | None = None,
     webhook: str | None = None,
+    force_resend: bool | None = False,
     conn: Connection | None = None,
 ) -> Payment:
     async with db.reuse_conn(conn) if conn else db.connect() as new_conn:
@@ -1429,7 +1440,10 @@ async def _pay_from_wallet(
 
     async with db.reuse_conn(conn) if conn else db.connect() as new_conn:
         payment = await _pay_invoice(
-            wallet.source_wallet_id, create_payment_model, conn=new_conn
+            wallet.source_wallet_id,
+            create_payment_model,
+            force_resend=force_resend,
+            conn=new_conn,
         )
 
     return payment
