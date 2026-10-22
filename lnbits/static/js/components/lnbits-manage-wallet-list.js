@@ -68,18 +68,25 @@ window.app.component('lnbits-manage-wallet-list', {
           const balances = new Map(
             (data.wallets || []).map(wallet => [wallet.id, wallet.balance_msat])
           )
+          let activeWalletChanged = false
           this.g.user.wallets.forEach(wallet => {
             const balance = balances.get(wallet.id)
             if (balance === undefined) return
+            const isActive = this.g.wallet?.id === wallet.id
+            if (isActive) {
+              activeWalletChanged = this.g.wallet.msat !== balance
+            }
             wallet.msat = balance
             wallet.sat = Math.floor(balance / 1000)
-            if (this.g.wallet?.id === wallet.id) {
+            if (isActive) {
               this.g.wallet.msat = balance
               this.g.wallet.sat = wallet.sat
             }
           })
-          if (this.g.wallet) {
-            // lnbits-payment-list is watching
+          if (activeWalletChanged) {
+            // lnbits-payment-list is watching; only refresh when the active
+            // wallet actually changed so background refreshes don't close an
+            // open Send dialog.
             this.g.updatePayments = !this.g.updatePayments
           }
         })
