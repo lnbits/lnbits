@@ -1022,7 +1022,7 @@ async def change_payment_status(
 
 async def update_payment_success_status(
     payment: Payment,
-    status: PaymentStatus,
+    status: PaymentStatus | PaymentResponse,
     conn: Connection | None = None,
     new_checking_id: str | None = None,
     send_payment_notifications: bool | None = None,
