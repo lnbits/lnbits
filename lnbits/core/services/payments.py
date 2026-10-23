@@ -952,55 +952,9 @@ async def _pay_external_invoice(
         )
         return payment
 
-    # IMPORTANT PAYMENT RULES!
-    # True -> success
-    # False-> failed
-    # None -> pending (any ambigous payment responses MUST be set as pending)
-
-    # payment failed
-    if payment_response.failed:
-        # the funding might return failed when trying to resend a an existing payment
-        if force_resend:
-            payment = await update_pending_payment(payment, conn=conn)
-            if not payment.failed:
-                return payment
-
-        payment.status = PaymentState.FAILED
-        await update_payment(payment, conn=conn)
-        message = payment_response.error_message or "without an error message."
-        raise PaymentError(f"Payment failed: {message}", status="failed")
-
-    # payment successful
-    elif payment_response.success:
-        payment = await update_payment_success_status(
-            payment,
-            payment_response,
-            conn=conn,
-            new_checking_id=payment_response.checking_id,
-        )
-
-        logger.success(f"payment successful {payment.checking_id}")
-
-    # payment pending
-    else:
-        invoice_updated = _set_resolved_offer_invoice(
-            payment, payment_response.payment_request
-        )
-        if invoice_updated or (
-            payment_response.checking_id
-            and payment_response.checking_id != payment.checking_id
-        ):
-            payment = await update_payment(
-                payment,
-                new_checking_id=payment_response.checking_id,
-                conn=conn,
-            )
-        logger.warning(
-            f"payment status unknown {payment.checking_id}: "
-            f"{payment_response.error_message or 'no error message'}"
-        )
-
-    return payment
+    return await _handle_external_payment_response(
+        payment, payment_response, force_resend=force_resend, conn=conn
+    )
 
 
 def _validate_force_resend(old_payment: Payment | None = None, bolt11: str = ""):
@@ -1490,3 +1444,60 @@ def _payment_balance_contribution(payment: Payment, status: str, fee: int) -> in
     ):
         return payment.amount - abs(fee)
     return 0
+
+
+async def _handle_external_payment_response(
+    payment: Payment,
+    payment_response: PaymentResponse,
+    force_resend: bool | None = False,
+    conn: Connection | None = None,
+) -> Payment:
+    # IMPORTANT PAYMENT RULES!
+    # True -> success
+    # False-> failed
+    # None -> pending (any ambigous payment responses MUST be set as pending)
+
+    # payment failed
+    if payment_response.failed:
+        # the funding might return failed when trying to resend a an existing payment
+        if force_resend:
+            payment = await update_pending_payment(payment, conn=conn)
+            if not payment.failed:
+                return payment
+
+        payment.status = PaymentState.FAILED
+        await update_payment(payment, conn=conn)
+        message = payment_response.error_message or "without an error message."
+        raise PaymentError(f"Payment failed: {message}", status="failed")
+
+    # payment successful
+    elif payment_response.success:
+        payment = await update_payment_success_status(
+            payment,
+            payment_response,
+            conn=conn,
+            new_checking_id=payment_response.checking_id,
+        )
+
+        logger.success(f"payment successful {payment.checking_id}")
+
+    # payment pending
+    else:
+        invoice_updated = _set_resolved_offer_invoice(
+            payment, payment_response.payment_request
+        )
+        if invoice_updated or (
+            payment_response.checking_id
+            and payment_response.checking_id != payment.checking_id
+        ):
+            payment = await update_payment(
+                payment,
+                new_checking_id=payment_response.checking_id,
+                conn=conn,
+            )
+        logger.warning(
+            f"payment status unknown {payment.checking_id}: "
+            f"{payment_response.error_message or 'no error message'}"
+        )
+
+    return payment
