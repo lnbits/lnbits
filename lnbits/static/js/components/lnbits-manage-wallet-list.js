@@ -4,7 +4,8 @@ window.app.component('lnbits-manage-wallet-list', {
     return {
       activeWalletId: null,
       walletRefreshTimer: null,
-      walletRefreshPromise: null
+      walletRefreshPromise: null,
+      walletRefreshQueued: false
     }
   },
   computed: {
@@ -13,6 +14,9 @@ window.app.component('lnbits-manage-wallet-list', {
     }
   },
   watch: {
+    'g.offline'(offline) {
+      if (!offline) this.scheduleWalletRefresh()
+    },
     $route(to) {
       if (to.path.startsWith('/wallet/')) {
         this.activeWalletId = to.params.id
@@ -35,12 +39,11 @@ window.app.component('lnbits-manage-wallet-list', {
   },
   mounted() {
     document.addEventListener('visibilitychange', this.onVisibilityChange)
-    window.addEventListener('online', this.onOnline)
   },
   beforeUnmount() {
     clearTimeout(this.walletRefreshTimer)
+    this.walletRefreshQueued = false
     document.removeEventListener('visibilitychange', this.onVisibilityChange)
-    window.removeEventListener('online', this.onOnline)
   },
   methods: {
     openNewWalletDialog() {
@@ -53,29 +56,26 @@ window.app.component('lnbits-manage-wallet-list', {
     onVisibilityChange() {
       if (!document.hidden) this.scheduleWalletRefresh()
     },
-    onOnline() {
-      this.scheduleWalletRefresh()
-    },
     scheduleWalletRefresh() {
       clearTimeout(this.walletRefreshTimer)
       this.walletRefreshTimer = setTimeout(() => this.refreshWallets(), 500)
     },
     async refreshWallets() {
-      if (!this.g.user || this.walletRefreshPromise) return
+      if (!this.g.user) return
+      if (this.walletRefreshPromise) {
+        this.walletRefreshQueued = true
+        return this.walletRefreshPromise
+      }
       this.walletRefreshPromise = LNbits.api
         .getAuthenticatedUser()
         .then(({data}) => {
           const balances = new Map(
             (data.wallets || []).map(wallet => [wallet.id, wallet.balance_msat])
           )
-          let activeWalletChanged = false
           this.g.user.wallets.forEach(wallet => {
             const balance = balances.get(wallet.id)
             if (balance === undefined) return
             const isActive = this.g.wallet?.id === wallet.id
-            if (isActive) {
-              activeWalletChanged = this.g.wallet.msat !== balance
-            }
             wallet.msat = balance
             wallet.sat = Math.floor(balance / 1000)
             if (isActive) {
@@ -83,16 +83,15 @@ window.app.component('lnbits-manage-wallet-list', {
               this.g.wallet.sat = wallet.sat
             }
           })
-          if (activeWalletChanged) {
-            // lnbits-payment-list is watching; only refresh when the active
-            // wallet actually changed so background refreshes don't close an
-            // open Send dialog.
-            this.g.updatePayments = !this.g.updatePayments
-          }
+          this.g.updatePayments = !this.g.updatePayments
         })
         .catch(err => console.warn('Failed to refresh wallets', err))
         .finally(() => {
           this.walletRefreshPromise = null
+          if (this.walletRefreshQueued) {
+            this.walletRefreshQueued = false
+            this.scheduleWalletRefresh()
+          }
         })
       return this.walletRefreshPromise
     },

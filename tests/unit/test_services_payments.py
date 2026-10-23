@@ -22,6 +22,7 @@ from lnbits.core.models import (
     PaymentState,
     Wallet,
 )
+from lnbits.core.services.notifications import dispatch_payment_notification
 from lnbits.core.services.payments import (
     calculate_fiat_amounts,
     cancel_hold_invoice,
@@ -35,6 +36,7 @@ from lnbits.core.services.payments import (
     create_wallet_invoice,
     get_payments_daily_stats,
     settle_hold_invoice,
+    update_invoice_from_paid_invoices_stream,
     update_pending_payment,
     update_pending_payments,
     update_wallet_balance,
@@ -50,15 +52,6 @@ from lnbits.wallets.base import (
     PaymentStatus,
     PaymentSuccessStatus,
 )
-
-
-@pytest.fixture(autouse=True)
-def mock_payment_notifications(mocker: MockerFixture):
-    # Reconciliation now notifies incoming payments; keep notification tasks
-    # from outliving the test event loop.
-    mocker.patch(
-        "lnbits.core.services.payments.send_payment_notification_in_background"
-    )
 
 
 @pytest.mark.parametrize(
@@ -237,8 +230,9 @@ async def test_update_pending_payment_and_bulk_pending_updates(mocker: MockerFix
 
 
 @pytest.mark.anyio
+@pytest.mark.parametrize("ws_error", [None, RuntimeError("socket disconnected")])
 async def test_update_pending_payment_notifies_reconciled_incoming(
-    mocker: MockerFixture,
+    mocker: MockerFixture, ws_error: Exception | None
 ):
     wallet = await _create_wallet()
     checking_id = await _create_payment(wallet)
@@ -248,16 +242,64 @@ async def test_update_pending_payment_notifies_reconciled_incoming(
         mocker.AsyncMock(return_value=PaymentSuccessStatus()),
     )
     notify = mocker.patch(
+        "lnbits.core.services.notifications.send_ws_payment_notification",
+        mocker.AsyncMock(side_effect=ws_error),
+    )
+    background_notify = mocker.patch(
         "lnbits.core.services.payments.send_payment_notification_in_background"
     )
 
     updated_payment = await update_pending_payment(payment)
 
     assert updated_payment.success
-    notify.assert_called_once()
-    notified_wallet, notified_payment = notify.call_args.args
+    notify.assert_awaited_once()
+    assert notify.await_args is not None
+    notified_wallet, notified_payment = notify.await_args.args
     assert notified_wallet.id == wallet.id
+    assert notified_wallet.balance_msat == 2_000
     assert notified_payment.checking_id == checking_id
+    background_notify.assert_not_called()
+
+
+@pytest.mark.anyio
+async def test_reconciled_payment_then_invoice_event_notifies_external_services_once(
+    mocker: MockerFixture,
+):
+    wallet = await _create_wallet()
+    payment = await get_payment(await _create_payment(wallet))
+    payment.webhook = "https://webhook.example"
+    await update_payment(payment)
+    mocker.patch(
+        "lnbits.core.services.payments.check_payment_status",
+        mocker.AsyncMock(return_value=PaymentSuccessStatus()),
+    )
+    ws = mocker.patch(
+        "lnbits.core.services.notifications.send_ws_payment_notification",
+        mocker.AsyncMock(),
+    )
+    external_notifications = [
+        mocker.patch(f"lnbits.core.services.notifications.{name}", mocker.AsyncMock())
+        for name in (
+            "send_chat_payment_notification",
+            "send_payment_push_notification",
+            "dispatch_webhook",
+        )
+    ]
+
+    await update_pending_payment(payment)
+    ws.assert_awaited_once()
+    for notify in external_notifications:
+        notify.assert_not_awaited()
+
+    streamed_payment = await update_invoice_from_paid_invoices_stream(
+        payment.checking_id
+    )
+    assert streamed_payment is not None
+    await dispatch_payment_notification(streamed_payment)
+
+    assert ws.await_count == 2
+    for notify in external_notifications:
+        notify.assert_awaited_once()
 
 
 @pytest.mark.anyio
