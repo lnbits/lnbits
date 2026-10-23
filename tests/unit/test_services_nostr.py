@@ -242,12 +242,34 @@ async def test_send_nip17_uses_newest_inbox_list_and_deduplicates(nip17_sender):
 
 
 @pytest.mark.anyio
-@pytest.mark.parametrize("missing_list", [True, False])
-async def test_send_nip17_requires_inbox_relays(nip17_sender, missing_list: bool):
+async def test_send_nip17_uses_existing_relays_when_inbox_list_is_missing(nip17_sender):
     sender, receiver, client = nip17_sender
-    client.fetch_events.return_value.to_vec.return_value = (
-        [] if missing_list else [EventBuilder(Kind(10050), "").sign_with_keys(receiver)]
+    client.fetch_events.return_value.to_vec.return_value = []
+    relays = ["wss://relay-one.example.com", "wss://relay-two.example.com"]
+    relay_urls = [RelayUrl.parse(relay) for relay in relays]
+    client.send_event_to.return_value.success = relay_urls[:1]
+
+    await send_nostr_dm_nip17(
+        sender.secret_key().to_hex(), receiver.public_key().to_hex(), "hi", relays
     )
+
+    client.send_event_to.assert_awaited_once()
+    published_relays, event = client.send_event_to.call_args.args
+    assert published_relays == relay_urls
+    assert event.kind() == Kind(1059)
+    assert event.verify()
+    assert json.loads(event.as_json())["tags"] == [
+        ["p", receiver.public_key().to_hex()]
+    ]
+    client.shutdown.assert_awaited_once()
+
+
+@pytest.mark.anyio
+async def test_send_nip17_rejects_empty_inbox_list(nip17_sender):
+    sender, receiver, client = nip17_sender
+    client.fetch_events.return_value.to_vec.return_value = [
+        EventBuilder(Kind(10050), "").sign_with_keys(receiver)
+    ]
 
     with pytest.raises(ValueError, match="inbox relay list"):
         await send_nostr_dm_nip17(

@@ -126,16 +126,16 @@ async def _send_nip17_message(
     inbox = max(
         events.to_vec(), key=lambda event: event.created_at().as_secs(), default=None
     )
-    if inbox is None:
-        raise ValueError("Recipient has no NIP-17 inbox relay list (kind 10050)")
-
     inbox_relays = []
-    for tag in inbox.tags().to_vec():
-        values = tag.as_vec()
-        if len(values) >= 2 and values[0] == "relay":
-            relay_url = RelayUrl.parse(values[1])
-            if relay_url not in inbox_relays:
-                inbox_relays.append(relay_url)
+    if inbox is None:
+        inbox_relays = [RelayUrl.parse(relay) for relay in relays]
+    else:
+        for tag in inbox.tags().to_vec():
+            values = tag.as_vec()
+            if len(values) >= 2 and values[0] == "relay":
+                relay_url = RelayUrl.parse(values[1])
+                if relay_url not in inbox_relays:
+                    inbox_relays.append(relay_url)
     if not inbox_relays:
         raise ValueError("Recipient's NIP-17 inbox relay list is empty")
 
