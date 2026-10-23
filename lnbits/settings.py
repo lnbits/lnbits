@@ -499,6 +499,9 @@ class SecuritySettings(LNbitsSettings):
 
 class NotificationsSettings(LNbitsSettings):
     lnbits_nostr_notifications_enabled: bool = Field(default=False)
+    lnbits_nostr_notifications_protocol: Literal["nip04", "nip17"] = Field(
+        default="nip17"
+    )
     lnbits_nostr_notifications_private_key: str = Field(default="")
     lnbits_nostr_notifications_identifiers: list[str] = Field(default=[])
     lnbits_telegram_notifications_enabled: bool = Field(default=False)

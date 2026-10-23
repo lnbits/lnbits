@@ -400,6 +400,19 @@ def test_asset_security_and_notification_helpers(
     assert notification_settings.is_telegram_notifications_configured() is True
 
 
+def test_nostr_notification_protocol_default_and_validation():
+    assert NotificationsSettings().lnbits_nostr_notifications_protocol == "nip17"
+    for protocol in ("nip04", "nip17"):
+        config = NotificationsSettings.parse_obj(
+            {"lnbits_nostr_notifications_protocol": protocol}
+        )
+        assert config.lnbits_nostr_notifications_protocol == protocol
+    with pytest.raises(ValueError, match="lnbits_nostr_notifications_protocol"):
+        NotificationsSettings.parse_obj(
+            {"lnbits_nostr_notifications_protocol": "other"}
+        )
+
+
 def test_public_settings_from_settings(settings: Settings):
     original_site_title = settings.lnbits_site_title
     original_ad_space = settings.lnbits_ad_space

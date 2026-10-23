@@ -45,6 +45,28 @@ async def test_admin_update_settings(
 
 
 @pytest.mark.anyio
+async def test_admin_nostr_notification_protocol(client, superuser_token, settings):
+    headers = {"Authorization": f"Bearer {superuser_token}"}
+    field = "lnbits_nostr_notifications_protocol"
+    for protocol in ("nip04", "nip17"):
+        response = await client.put(
+            "/admin/api/v1/settings", json={field: protocol}, headers=headers
+        )
+        assert response.status_code == 200
+        assert settings.lnbits_nostr_notifications_protocol == protocol
+        stored = await get_settings_field(field)
+        assert stored and stored.value == protocol
+        response = await client.get("/admin/api/v1/settings", headers=headers)
+        assert response.json()[field] == protocol
+
+    response = await client.put(
+        "/admin/api/v1/settings", json={field: "invalid"}, headers=headers
+    )
+    assert response.status_code == 400
+    assert settings.lnbits_nostr_notifications_protocol == "nip17"
+
+
+@pytest.mark.anyio
 async def test_admin_update_noneditable_settings(
     client: AsyncClient,
     superuser_token: str,

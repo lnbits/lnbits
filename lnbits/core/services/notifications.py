@@ -28,7 +28,11 @@ from lnbits.core.models.notifications import (
     NotificationType,
 )
 from lnbits.core.models.users import UserNotifications
-from lnbits.core.services.nostr import fetch_nip5_details, send_nostr_dm
+from lnbits.core.services.nostr import (
+    fetch_nip5_details,
+    send_nostr_dm,
+    send_nostr_dm_nip17,
+)
 from lnbits.core.services.websockets import websocket_manager
 from lnbits.helpers import check_callback_url, is_valid_email_address
 from lnbits.settings import settings
@@ -128,8 +132,11 @@ async def send_notification(
 
     try:
         if nostr_identifiers and settings.is_nostr_notifications_configured():
-            await send_nostr_notifications(nostr_identifiers, message)
-            logger.debug(f"Sent nostr notification: {message_type or 'plain text'}")
+            sent = await send_nostr_notifications(nostr_identifiers, message)
+            logger.debug(
+                f"Sent nostr notification: {message_type or 'plain text'}"
+                f".Sent: {len(sent)}"
+            )
     except Exception as e:
         logger.warning(f"Error sending nostr notification {message_type}: {e}")
     try:
@@ -158,7 +165,12 @@ async def send_nostr_notification(identifier: str, message: str):
     server_private_key = normalize_private_key(
         settings.lnbits_nostr_notifications_private_key
     )
-    await send_nostr_dm(
+    send_dm = (
+        send_nostr_dm_nip17
+        if settings.lnbits_nostr_notifications_protocol == "nip17"
+        else send_nostr_dm
+    )
+    await send_dm(
         server_private_key,
         user_pubkey,
         message,
