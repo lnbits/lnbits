@@ -21,6 +21,7 @@ from lnbits.core.crud import (
     update_payment,
     update_wallet,
 )
+from lnbits.core.db import db
 from lnbits.core.models import Account, CreatePayment, Payment, PaymentState, Wallet
 from lnbits.core.models.notifications import NotificationType
 from lnbits.core.models.users import UserExtra, UserNotifications
@@ -701,8 +702,9 @@ async def test_dispatch_webhook_pins_allowed_target(
 
 
 @pytest.mark.anyio
+@pytest.mark.parametrize("websocket_only", [True, False])
 async def test_send_payment_notification_fans_out_to_shared_wallet_and_webhook(
-    mocker: MockerFixture,
+    mocker: MockerFixture, websocket_only: bool
 ):
     wallet = await _create_wallet(name="Primary Wallet")
     shared_wallet = await _create_wallet(name="Shared Wallet")
@@ -734,15 +736,29 @@ async def test_send_payment_notification_fans_out_to_shared_wallet_and_webhook(
         mocker.AsyncMock(),
     )
 
-    await send_payment_notification(wallet, payment)
+    if websocket_only:
+        async with db.connect() as conn:
+            await asyncio.wait_for(
+                send_payment_notification(
+                    wallet, payment, websocket_only=True, conn=conn
+                ),
+                timeout=1,
+            )
+    else:
+        await send_payment_notification(wallet, payment)
 
     assert [call.args[0].id for call in ws_mock.await_args_list] == [
         wallet.id,
         shared_wallet.id,
     ]
-    chat_mock.assert_awaited_once_with(wallet, payment)
-    push_mock.assert_awaited_once_with(wallet, payment)
-    dispatch_mock.assert_awaited_once_with(payment)
+    if websocket_only:
+        chat_mock.assert_not_awaited()
+        push_mock.assert_not_awaited()
+        dispatch_mock.assert_not_awaited()
+    else:
+        chat_mock.assert_awaited_once_with(wallet, payment)
+        push_mock.assert_awaited_once_with(wallet, payment)
+        dispatch_mock.assert_awaited_once_with(payment)
 
 
 @pytest.mark.anyio

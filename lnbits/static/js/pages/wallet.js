@@ -950,7 +950,6 @@ window.PageWallet = {
       this.receive.show = false
     },
     'g.updatePayments'() {
-      this.parse.show = false
       if (
         this.g.wallet.currency &&
         this.$q.localStorage.getItem(

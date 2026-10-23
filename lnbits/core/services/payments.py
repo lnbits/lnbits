@@ -57,7 +57,10 @@ from ..models import (
 )
 from .fiat_providers import check_fiat_status
 from .lnurl import execute_withdraw as lnurl_withdraw
-from .notifications import send_payment_notification_in_background
+from .notifications import (
+    send_payment_notification,
+    send_payment_notification_in_background,
+)
 
 payment_lock = asyncio.Lock()
 wallets_payments_lock: dict[str, asyncio.Lock] = {}
@@ -437,6 +440,12 @@ async def update_pending_payment(
         payment = await update_payment(payment, conn=conn)
     elif status.success:
         payment = await update_payment_success_status(payment, status, conn=conn)
+        if payment.is_in:
+            wallet = await get_wallet(payment.wallet_id, conn=conn)
+            if wallet:
+                await send_payment_notification(
+                    wallet, payment, websocket_only=True, conn=conn
+                )
     return payment
 
 
