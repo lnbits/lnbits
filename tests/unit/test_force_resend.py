@@ -152,17 +152,22 @@ async def test_force_resend_reuses_payment_without_another_debit(
 @pytest.mark.anyio
 @pytest.mark.parametrize("resend_context", [0], indirect=True)
 @pytest.mark.parametrize(
-    "reserve,available,allowed,held",
+    "reserve,available,allowed",
     [
-        (10_000, 0, True, 30_000),
-        (20_000, 0, True, 30_000),
-        (40_000, 0, False, 30_000),
-        (40_000, 19_999, False, 30_000),
-        (40_000, 20_000, True, 50_000),
+        (10_000, 0, False),
+        (10_000, 19_999, False),
+        (10_000, 20_000, True),
+        (20_000, 0, False),
+        (20_000, 29_999, False),
+        (20_000, 30_000, True),
+        (40_000, 0, False),
+        (40_000, 20_000, False),
+        (40_000, 49_999, False),
+        (40_000, 50_000, True),
     ],
 )
-async def test_force_resend_reserves_only_fee_shortfall(
-    resend_context, settings, reserve, available, allowed, held
+async def test_force_resend_checks_fee_balance_without_changing_reservation(
+    resend_context, settings, reserve, available, allowed
 ):
     ctx = resend_context
     if available:
@@ -190,8 +195,8 @@ async def test_force_resend_reserves_only_fee_shortfall(
     )
     assert stored is not None
     assert stored.pending
-    assert stored.fee == -held
-    assert await _wallet_balance(ctx.wallet.id) == available - (held - 30_000)
+    assert stored.fee == ctx.payment.fee
+    assert await _wallet_balance(ctx.wallet.id) == available
     ctx.notify.assert_not_called()
 
 
