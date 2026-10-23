@@ -69,6 +69,10 @@ class StorageGetResponse(BaseModel):
     data_json: str | None = None
 
 
+class StorageGetVersionedResponse(StorageGetResponse):
+    version: int | None = None
+
+
 class StorageSetRequest(BaseModel):
     table: str = Field(..., min_length=1, max_length=128)
     data: dict[str, Any] = Field(default_factory=dict)
@@ -83,6 +87,33 @@ class StorageSetRequest(BaseModel):
 
 class StorageSetResponse(BaseModel):
     ok: bool = True
+
+
+class StorageInsertIfAbsentRequest(BaseModel):
+    table: str = Field(..., min_length=1, max_length=128)
+    id: str = Field(..., min_length=1, max_length=512)
+    new_row: dict[str, Any]
+
+    @root_validator(pre=True)
+    def parse_new_row_json(cls, values: dict[str, Any]) -> dict[str, Any]:
+        new_row_json = values.get("new_row_json")
+        if new_row_json is not None and "new_row" not in values:
+            values["new_row"] = json.loads(new_row_json)
+        return values
+
+
+class StorageInsertIfAbsentResponse(StorageGetVersionedResponse):
+    created: bool
+
+
+class StorageCompareAndSetRequest(StorageInsertIfAbsentRequest):
+    expected_version: int = Field(..., ge=1, le=9_223_372_036_854_775_806)
+    make_immutable: bool = False
+
+
+class StorageCompareAndSetResponse(BaseModel):
+    applied: bool
+    version: int | None = None
 
 
 class StorageAppendPublicRequest(BaseModel):
@@ -275,6 +306,67 @@ class PayInvoiceResponse(BaseModel):
     pending: bool = False
     success: bool = False
     payment_request: str | None = None
+
+
+class PaymentIntentKeyRequest(BaseModel):
+    wallet_id: str = Field(..., min_length=1, max_length=128)
+    idempotency_key: str = Field(..., min_length=1, max_length=128)
+
+
+class PaymentIntentCreateRequest(PaymentIntentKeyRequest):
+    destination: str = Field(..., min_length=1, max_length=2048)
+    amount_msat: int = Field(..., ge=1, le=9_223_372_036_854_775_807)
+    max_fee_msat: int = Field(..., ge=0, le=9_223_372_036_854_775_807)
+    description: str | None = Field(default=None, max_length=512)
+    retry_failed: bool = False
+
+    @validator("destination")
+    def validate_destination(cls, value: str) -> str:
+        value = value.strip()
+        if not value:
+            raise ValueError("A payment destination is required.")
+        return value
+
+
+class PaymentIntentResponse(BaseModel):
+    intent_id: str
+    idempotency_key: str
+    status: Literal["pending", "processing", "paid", "failed", "unknown"]
+    amount_msat: int
+    fee_msat: int = 0
+    error: str | None = None
+
+
+class ManualPaymentIntentResolutionRequest(BaseModel):
+    wallet_id: str = Field(..., min_length=1, max_length=128)
+    status: Literal["paid", "failed"]
+    fee_msat: int = Field(0, ge=0)
+    note: str = Field(..., min_length=1, max_length=512)
+
+    @validator("note")
+    def validate_note(cls, value: str) -> str:
+        value = value.strip()
+        if not value:
+            raise ValueError("A manual reconciliation note is required.")
+        return value
+
+    @root_validator
+    def validate_fee(cls, values: dict[str, Any]) -> dict[str, Any]:
+        if values.get("status") == "failed" and values.get("fee_msat"):
+            raise ValueError("A failed payment cannot have a fee.")
+        return values
+
+
+class ManualPaymentIntentRetryRequest(BaseModel):
+    wallet_id: str = Field(..., min_length=1, max_length=128)
+    note: str = Field(..., min_length=1, max_length=512)
+
+    @validator("note")
+    def validate_note(cls, value: str) -> str:
+        value = value.strip()
+        if not value:
+            raise ValueError("A manual retry note is required.")
+        return value
 
 
 class HttpRequest(BaseModel):
