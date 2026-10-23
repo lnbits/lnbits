@@ -247,9 +247,13 @@ async def test_send_notification_uses_available_channels_and_swallows_exceptions
 
 
 @pytest.mark.anyio
+@pytest.mark.parametrize("protocol", ["nip04", "nip17"])
 async def test_send_nostr_notifications_and_single_notification(
+    settings: Settings,
     mocker: MockerFixture,
+    protocol: str,
 ):
+    mocker.patch.object(settings, "lnbits_nostr_notifications_protocol", protocol)
     send_mock = mocker.patch(
         "lnbits.core.services.notifications.send_nostr_notification",
         mocker.AsyncMock(side_effect=[None, Exception("boom"), None]),
@@ -268,8 +272,12 @@ async def test_send_nostr_notifications_and_single_notification(
         "lnbits.core.services.notifications.normalize_private_key",
         return_value="server-private-key",
     )
-    dm_mock = mocker.patch(
+    nip04_mock = mocker.patch(
         "lnbits.core.services.notifications.send_nostr_dm",
+        mocker.AsyncMock(),
+    )
+    nip17_mock = mocker.patch(
+        "lnbits.core.services.notifications.send_nostr_dm_nip17",
         mocker.AsyncMock(),
     )
 
@@ -277,12 +285,49 @@ async def test_send_nostr_notifications_and_single_notification(
 
     fetch_mock.assert_awaited_once_with("alice@example.com")
     normalize_mock.assert_called_once()
-    dm_mock.assert_awaited_once_with(
+    selected, unused = (
+        (nip04_mock, nip17_mock) if protocol == "nip04" else (nip17_mock, nip04_mock)
+    )
+    selected.assert_awaited_once_with(
         "server-private-key",
         "pubkey",
         "hello",
         ["wss://relay"],
     )
+    unused.assert_not_awaited()
+
+
+@pytest.mark.anyio
+async def test_nip17_failure_does_not_fall_back_or_report_success(
+    settings: Settings, mocker: MockerFixture
+):
+    mocker.patch.object(settings, "lnbits_nostr_notifications_protocol", "nip17")
+    mocker.patch.object(settings, "lnbits_nostr_notifications_enabled", True)
+    mocker.patch(
+        "lnbits.core.services.notifications.fetch_nip5_details",
+        mocker.AsyncMock(return_value=("pubkey", ["wss://relay"])),
+    )
+    mocker.patch(
+        "lnbits.core.services.notifications.normalize_private_key", return_value="key"
+    )
+    mocker.patch(
+        "lnbits.core.services.notifications.send_nostr_dm_nip17",
+        mocker.AsyncMock(
+            side_effect=ValueError("No inbox relay accepted notification")
+        ),
+    )
+    legacy = mocker.patch(
+        "lnbits.core.services.notifications.send_nostr_dm", mocker.AsyncMock()
+    )
+    debug = mocker.patch("lnbits.core.services.notifications.logger.debug")
+    warning = mocker.patch("lnbits.core.services.notifications.logger.warning")
+
+    await send_notification(None, ["alice@example.com"], None, "hello")
+
+    legacy.assert_not_awaited()
+    debug.assert_not_called()
+    warning.assert_called_once()
+    assert "No inbox relay accepted notification" in warning.call_args.args[0]
 
 
 @pytest.mark.anyio

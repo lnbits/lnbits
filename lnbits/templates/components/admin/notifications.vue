@@ -36,6 +36,28 @@
             />
           </q-item-section>
         </q-item>
+        <q-item>
+          <q-item-section>
+            <q-item-label>Nostr message format</q-item-label>
+            <q-item-label caption>
+              Used for all Nostr notifications.
+            </q-item-label>
+          </q-item-section>
+          <q-item-section>
+            <q-select
+              dense
+              filled
+              emit-value
+              map-options
+              aria-label="Nostr message format"
+              v-model="formData.lnbits_nostr_notifications_protocol"
+              :options="[
+                {label: 'NIP-17', value: 'nip17'},
+                {label: 'NIP-04', value: 'nip04'}
+              ]"
+            />
+          </q-item-section>
+        </q-item>
         <q-item tag="label" v-ripple>
           <q-item-section>
             <q-item-label
