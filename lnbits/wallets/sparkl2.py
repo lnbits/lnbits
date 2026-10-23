@@ -315,7 +315,7 @@ class SparkL2Wallet(Wallet):
             "PREIMAGE_PROVIDING_FAILED",
             "USER_TRANSFER_VALIDATION_FAILED",
             "USER_SWAP_RETURN_FAILED",
-            "USER_SWAP_RETURNED" # - Breez’s Spark SDK explicitly maps it to failed
+            "USER_SWAP_RETURNED",  # - Breez Spark SDK explicitly maps it to failed
         }
         if status in success:
             return PaymentSuccessStatus()
