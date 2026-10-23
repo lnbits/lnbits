@@ -176,7 +176,7 @@ async def test_scheduler_overview_returns_user_identity(
     account = await create_account(
         Account(id=uuid4().hex, username=username, email=email)
     )
-    job = scheduled_jobs[2].copy(
+    job = scheduled_jobs[2].model_copy(
         update={"id": f"{scheduled_jobs[2].id}-account", "user_id": account.id}
     )
     await crud.save_scheduled_job(job)
@@ -204,8 +204,8 @@ async def test_scheduler_overview_partial_user_filter_paginates(
     http_client, superuser_token, scheduled_jobs
 ):
     job = scheduled_jobs[2]
-    second = job.copy(update={"id": f"{job.id}-second"})
-    other = job.copy(update={"id": f"{job.id}-other", "user_id": "another-owner"})
+    second = job.model_copy(update={"id": f"{job.id}-second"})
+    other = job.model_copy(update={"id": f"{job.id}-other", "user_id": "another-owner"})
     await crud.save_scheduled_job(second)
     await crud.save_scheduled_job(other)
     headers = {"Authorization": f"Bearer {superuser_token}"}
@@ -275,7 +275,7 @@ async def test_scheduler_crud_pagination_counts_only_owner_jobs(
     scheduled_jobs, job_index
 ):
     job = scheduled_jobs[job_index]
-    second = job.copy(update={"id": f"{job.id}-second"})
+    second = job.model_copy(update={"id": f"{job.id}-second"})
     await crud.save_scheduled_job(second)
     try:
         for offset, expected_ids in [(0, [job.id]), (1, [second.id]), (2, [])]:
@@ -362,7 +362,9 @@ async def test_scheduler_history_filters_paginates_and_survives_deletion(
     page = response.json()
     assert page["total"] == 2
     assert page["data"] == [
-        latest.copy(update={"status": "succeeded", "finished_at": now + 1.5}).dict()
+        latest.model_copy(
+            update={"status": "succeeded", "finished_at": now + 1.5}
+        ).model_dump()
     ]
     assert "private-scheduler" not in response.text
     assert not {"lease_token", "user_id", "payload_json"} & page["data"][0].keys()
@@ -407,7 +409,7 @@ async def test_scheduler_history_filters_user_after_job_deletion(
     owned_runs = []
     for index, user_id in enumerate(("alice", "alice", "bob", None)):
         job = await crud.save_scheduled_job(
-            scheduled_jobs[1].copy(
+            scheduled_jobs[1].model_copy(
                 update={"id": f"{scheduled_jobs[1].id}-{index}", "user_id": user_id}
             )
         )

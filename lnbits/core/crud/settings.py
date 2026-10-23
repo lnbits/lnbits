@@ -18,7 +18,7 @@ RESET_PRESERVED_SETTINGS = (
     "onchain_key",
     "lnbits_webpush_pubkey",
     "lnbits_webpush_privkey",
-    *FundingSourcesSettings.__fields__,
+    *FundingSourcesSettings.model_fields,
 )
 
 
@@ -52,7 +52,7 @@ async def update_admin_settings(
     data: EditableSettings, tag: str | None = "core"
 ) -> None:
     editable_settings = await get_settings_by_tag("core") or {}
-    editable_settings.update(data.dict(exclude_unset=True))
+    editable_settings.update(data.model_dump(exclude_unset=True))
     for key, value in editable_settings.items():
         try:
             await set_settings_field(key, value, tag)

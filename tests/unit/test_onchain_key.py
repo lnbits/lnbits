@@ -104,7 +104,7 @@ async def test_environment_key_and_legacy_migration(key_store, monkeypatch, sett
     assert (await onchain.onchain_key_status()).source == "file"
     settings.lnbits_onchain_master_key = SecretStr(base64.b64encode(bytes(32)).decode())
     assert not (await onchain.onchain_key_status()).configured
-    assert "lnbits_onchain_master_key" not in settings.dict()
+    assert "lnbits_onchain_master_key" not in settings.model_dump()
 
 
 def test_env_file_key_loading(tmp_path, monkeypatch):
@@ -116,7 +116,7 @@ def test_env_file_key_loading(tmp_path, monkeypatch):
     loaded = Settings(_env_file=env)  # pyright: ignore[reportCallIssue]
     assert loaded.lnbits_onchain_master_key
     assert loaded.lnbits_onchain_master_key.get_secret_value() == encoded
-    assert encoded not in loaded.json()
+    assert encoded not in loaded.model_dump_json()
 
 
 @pytest.mark.anyio

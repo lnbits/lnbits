@@ -355,7 +355,7 @@ async def api_update_config(
         )
     await update_onchain_wallet_config(data, wallet_id=auth.wallet_id, network=network)
     request_scan(auth.wallet_id)
-    response_data = data.dict()
+    response_data = data.model_dump()
     response_data["explorer_provider"] = provider_name(data, network)
     response_data["network"] = network
     return OnchainWalletConfigResponse(
@@ -374,7 +374,7 @@ async def api_get_config(
         raise HTTPException(HTTPStatus.NOT_FOUND, "Wallet does not exist.")
     config = wallet.onchain_config
     network = wallet.onchain_network or "Mainnet"
-    data = config.dict()
+    data = config.model_dump()
     data["explorer_provider"] = provider_name(config, network)
     data["network"] = network
     return OnchainWalletConfigResponse(

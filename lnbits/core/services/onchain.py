@@ -230,7 +230,7 @@ def decrypt_wallet_mnemonic(encrypted: str, wallet: OnchainWallet) -> str:
 def sign_payment(  # noqa: C901
     wallet: OnchainWallet, encrypted: str, payment: HotWalletPayment
 ) -> SignedTransaction:
-    data = payment.transaction.copy(deep=True)
+    data = payment.transaction.model_copy(deep=True)
     if not wallet.onchain_network:
         raise ValueError("Onchain wallet network is not configured")
     if not wallet.onchain_meta.backup_confirmed:
@@ -354,7 +354,7 @@ def scan_skip_reason(
 ) -> str | None:
     if status.get("onchain_sync_lease_until", 0) > now:
         return "another scan holds the wallet lease"
-    meta = OnchainMeta.parse_raw(status.get("onchain_meta", "{}"))
+    meta = OnchainMeta.model_validate_json(status.get("onchain_meta", "{}"))
     if meta.sync_error:
         if now - meta.sync_failed_at < SCAN_RETRY_DELAY:
             return f"retry cooldown is active ({SCAN_RETRY_DELAY}s)"
@@ -438,7 +438,7 @@ async def get_wallet_state(wallet_id: str) -> dict:
     )
     snapshots = await get_wallet_snapshots(wallet_id)
     status = await get_onchain_sync_status(wallet_id)
-    meta = OnchainMeta.parse_raw(status.get("onchain_meta", "{}"))
+    meta = OnchainMeta.model_validate_json(status.get("onchain_meta", "{}"))
     balances: dict[str, int] = {}
     for address in addresses:
         balances[address.address] = max(
@@ -604,7 +604,7 @@ async def _finish_scan(
     if error is None:
         state["sync_checked_at"] = now
         if checkpoint is not None:
-            state["sync_checkpoint"] = checkpoint.dict()
+            state["sync_checkpoint"] = checkpoint.model_dump()
     row = await get_onchain_scan_meta(wallet_id, lease, conn)
     if not row:
         return False

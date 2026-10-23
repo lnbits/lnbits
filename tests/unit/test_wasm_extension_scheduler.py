@@ -161,7 +161,7 @@ async def test_schedule_dispatch_preserves_user_or_global_context(
     invoke = mocker.patch.object(
         wasm_scheduler, "invoke_wasm_extension_export", mocker.AsyncMock()
     )
-    job = schedule().copy(update={"user_id": owner})
+    job = schedule().model_copy(update={"user_id": owner})
     await wasm_scheduler.dispatch_wasm_schedule(job)
     assert invoke.await_args is not None
     assert invoke.await_args.args[0:2] == ("demo", "check")
@@ -285,7 +285,7 @@ def test_scheduler_permissions_and_sdk_are_discoverable():
             "module": "extension.wasm",
             "exports": [{"name": "check", "visibility": "event"}],
         },
-        "permissions": [p.dict() for p in permissions],
+        "permissions": [p.model_dump() for p in permissions],
     }
     extension = make_installable_extension("demo")
     with pytest.raises(ValueError, match="requires permission approval"):

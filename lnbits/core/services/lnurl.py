@@ -31,7 +31,7 @@ from lnurl import (
 from lnurl.models import LnurlResponseModel
 from lnurl.types import CallbackUrl
 from loguru import logger
-from pydantic import ValidationError, parse_obj_as
+from pydantic import TypeAdapter, ValidationError
 
 from lnbits.core.crud import update_wallet
 from lnbits.core.models import CreateLnurlPayment, Wallet
@@ -67,9 +67,9 @@ async def handle(
         raise InvalidLnurl from exc
 
     if parsed_lnurl.is_login:
-        callback = parse_obj_as(CallbackUrl, parsed_lnurl.url)
+        callback = TypeAdapter(CallbackUrl).validate_python(parsed_lnurl.url)
         return LnurlAuthResponse(
-            callback=callback, k1=parsed_lnurl.url.query_params["k1"]
+            callback=callback, k1=dict(parsed_lnurl.url.query_params())["k1"]
         )
 
     return await _get(
@@ -159,7 +159,7 @@ async def perform_withdraw(lnurl: str, payment_request: str) -> None:
     if not isinstance(res, LnurlWithdrawResponse):
         raise LnurlResponseException("Invalid LNURL-withdraw response.")
     try:
-        check_callback_url(res.callback)
+        check_callback_url(str(res.callback))
     except ValueError as exc:
         raise LnurlResponseException(f"Invalid callback URL: {exc!s}") from exc
     res2 = await execute_withdraw(

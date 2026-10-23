@@ -20,7 +20,7 @@ from embit.networks import NETWORKS
 from embit.script import Script
 from embit.transaction import Transaction as EmbitTransaction
 from loguru import logger
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 
 DEFAULT_NETWORK = NETWORKS["main"]
 
@@ -151,8 +151,7 @@ class FeeHistogramEntry(BaseModel):
 
 
 class ServerFeatures(BaseModel):
-    class Config:
-        extra = "allow"
+    model_config = ConfigDict(extra="allow")
 
     genesis_hash: str = ""
     protocol_max: str = ""
@@ -535,7 +534,7 @@ class ElectrumClient:
 
     async def server_features(self) -> ServerFeatures:
         data = await self._call("server.features")
-        return ServerFeatures.parse_obj(data)
+        return ServerFeatures.model_validate(data)
 
     async def server_peers(self) -> list[Any]:
         return await self._call("server.peers.subscribe")
@@ -544,19 +543,19 @@ class ElectrumClient:
 
     async def get_balance(self, scripthash: str) -> Balance:
         data = await self._call("blockchain.scripthash.get_balance", [scripthash])
-        return Balance.parse_obj(data)
+        return Balance.model_validate(data)
 
     async def get_history(self, scripthash: str) -> list[HistoryEntry]:
         data = await self._call("blockchain.scripthash.get_history", [scripthash])
-        return [HistoryEntry.parse_obj(e) for e in data]
+        return [HistoryEntry.model_validate(e) for e in data]
 
     async def get_mempool(self, scripthash: str) -> list[MempoolEntry]:
         data = await self._call("blockchain.scripthash.get_mempool", [scripthash])
-        return [MempoolEntry.parse_obj(e) for e in data]
+        return [MempoolEntry.model_validate(e) for e in data]
 
     async def listunspent(self, scripthash: str) -> list[UTXO]:
         data = await self._call("blockchain.scripthash.listunspent", [scripthash])
-        return [UTXO.parse_obj(e) for e in data]
+        return [UTXO.model_validate(e) for e in data]
 
     async def subscribe_scripthash(
         self,
@@ -585,7 +584,7 @@ class ElectrumClient:
         if callback:
             self.on("blockchain.headers.subscribe", callback)
         data = await self._call("blockchain.headers.subscribe")
-        return BlockHeader.parse_obj(data)
+        return BlockHeader.model_validate(data)
 
     # ---- transaction methods ----
 
@@ -599,7 +598,7 @@ class ElectrumClient:
 
     async def get_merkle(self, txid: str, height: int) -> MerkleProof:
         data = await self._call("blockchain.transaction.get_merkle", [txid, height])
-        return MerkleProof.parse_obj(data)
+        return MerkleProof.model_validate(data)
 
     async def get_tx_id_from_pos(
         self, height: int, tx_pos: int, merkle: bool = False
@@ -608,7 +607,7 @@ class ElectrumClient:
             "blockchain.transaction.id_from_pos", [height, tx_pos, merkle]
         )
         if isinstance(data, dict):
-            return TxIdWithMerkle.parse_obj(data)
+            return TxIdWithMerkle.model_validate(data)
         return data
 
     # ---- block methods ----
@@ -616,7 +615,7 @@ class ElectrumClient:
     async def get_tip(self) -> BlockHeader:
         """Returns current chain tip."""
         data = await self._call("blockchain.headers.subscribe")
-        return BlockHeader.parse_obj(data)
+        return BlockHeader.model_validate(data)
 
     async def get_height(self) -> int:
         """Returns the current best block height."""
@@ -627,7 +626,7 @@ class ElectrumClient:
     ) -> str | BlockHeaderProof:
         data = await self._call("blockchain.block.header", [height, cp_height])
         if isinstance(data, dict):
-            return BlockHeaderProof.parse_obj(data)
+            return BlockHeaderProof.model_validate(data)
         return data
 
     async def get_block_headers(
@@ -636,7 +635,7 @@ class ElectrumClient:
         data = await self._call(
             "blockchain.block.headers", [start_height, count, cp_height]
         )
-        return BlockHeaders.parse_obj(data)
+        return BlockHeaders.model_validate(data)
 
     # ---- fee methods ----
 

@@ -542,7 +542,7 @@ async def relay_ws_queue(
             if event_task in done:
                 event = event_task.result()
                 try:
-                    await websocket.send_json(serialize(event).dict())
+                    await websocket.send_json(serialize(event).model_dump())
                 except Exception as exc:
                     logger.debug(f"ws relay send error: {exc}")
                     break

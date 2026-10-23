@@ -2,13 +2,12 @@ import random
 import string
 from io import BytesIO
 
-from bolt11.types import MilliSatoshi
 from fastapi import UploadFile
 from httpx import AsyncClient
 from lnurl import LnurlPayResponse
-from lnurl.types import CallbackUrl, LnurlPayMetadata
+from lnurl.types import CallbackUrl, LnurlPayMetadata, MilliSatoshi
 from PIL import Image
-from pydantic import BaseModel, parse_obj_as
+from pydantic import BaseModel, TypeAdapter
 from starlette.datastructures import Headers
 
 from lnbits.core.models.extensions import (
@@ -184,7 +183,7 @@ def make_lnurl_pay_response(
     callback: str = "https://example.com/callback",
 ) -> LnurlPayResponse:
     return LnurlPayResponse(
-        callback=parse_obj_as(CallbackUrl, callback),
+        callback=TypeAdapter(CallbackUrl).validate_python(callback),
         minSendable=MilliSatoshi(min_sendable_msat),
         maxSendable=MilliSatoshi(max_sendable_msat),
         metadata=LnurlPayMetadata(

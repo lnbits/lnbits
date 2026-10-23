@@ -30,7 +30,7 @@ async def save_scheduled_job(job: ScheduledJob) -> ScheduledJob:
           AND (scheduled_jobs.user_id = excluded.user_id
                OR (scheduled_jobs.user_id IS NULL AND excluded.user_id IS NULL))
         """,
-        job.dict(),
+        job.model_dump(),
     )
     if result.rowcount != 1:
         raise PermissionError(
@@ -199,7 +199,7 @@ async def finish_scheduled_job(job: ScheduledJob, next_run: int | None) -> None:
             lease_token = NULL, lease_until = 0
         WHERE id = :id AND lease_token = :lease_token
         """,
-        {**job.dict(), "next_run": next_run},
+        {**job.model_dump(), "next_run": next_run},
     )
 
 
@@ -226,7 +226,7 @@ async def create_scheduled_job_run(job: ScheduledJob, now: float) -> ScheduledJo
         VALUES (:id, :job_id, :namespace, :handler, :scope, :timezone,
                 :scheduled_at, :started_at, :status, :lease_token, :user_id)
         """,
-        {**run.dict(), "lease_token": job.lease_token, "user_id": job.user_id},
+        {**run.model_dump(), "lease_token": job.lease_token, "user_id": job.user_id},
     )
     return run
 

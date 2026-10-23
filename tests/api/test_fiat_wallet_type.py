@@ -200,7 +200,7 @@ async def test_fiat_wallet_receives_but_cannot_spend(
             json={"amount": 5, "unit": "USD", "memo": "Receipt"},
         )
         assert response.status_code == 201
-        receipt = Payment.parse_obj(response.json())
+        receipt = Payment.model_validate(response.json())
         assert receipt.success
     assert receipt.is_internal
     wallet = await get_wallet(wallet.id)
@@ -310,7 +310,7 @@ async def test_cash_validation_creates_and_settles_with_owner_admin_key(
         "/api/v1/fiat/cash", headers={"X-Api-Key": wallet.adminkey}, json=data
     )
     assert response.status_code == 201
-    receipt = Payment.parse_obj(response.json())
+    receipt = Payment.model_validate(response.json())
     assert receipt.success and receipt.is_internal and receipt.fee == 0
     assert receipt.extra["fiat_method"] == "cash"
     assert receipt.extra["fiat_amount"] == 12.34
@@ -428,7 +428,7 @@ async def test_fiat_balances_excluded_from_user_and_server_totals(client, mocker
         json={"amount": 5, "unit": "USD"},
     )
     assert response.status_code == 201
-    cash = Payment.parse_obj(response.json())
+    cash = Payment.model_validate(response.json())
     assert cash.is_internal and cash.success
     assert await get_total_balance() == initial_total + 10000
     assert await get_total_balance(fiat=True) == initial_fiat_total + cash.amount

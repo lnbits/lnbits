@@ -451,7 +451,7 @@ async def api_grant_background_payment_permission(
         for existing in permissions.get(WALLET_PAY_INVOICE_BACKGROUND_PERMISSION, [])
         if isinstance(existing, dict) and existing.get("wallet_id") != grant.wallet_id
     ]
-    background_grants.append(json.loads(grant.json()))
+    background_grants.append(json.loads(grant.model_dump_json()))
     permissions[WALLET_PAY_INVOICE_BACKGROUND_PERMISSION] = background_grants
     user_ext.permissions = permissions
     await update_user_extension(user_ext)
@@ -503,7 +503,7 @@ async def api_grant_wallet_payments_watch_permission(
         for existing in permissions.get(WALLET_PAYMENTS_WATCH_PERMISSION, [])
         if isinstance(existing, dict) and existing.get("wallet_id") != grant.wallet_id
     ]
-    watch_grants.append(json.loads(grant.json()))
+    watch_grants.append(json.loads(grant.model_dump_json()))
     permissions[WALLET_PAYMENTS_WATCH_PERMISSION] = watch_grants
     user_ext.permissions = permissions
     await update_user_extension(user_ext)
@@ -1057,7 +1057,7 @@ async def create_extension_review(
 ) -> ExtensionReviewPaymentRequest:
     async with httpx.AsyncClient() as client:
         resp = await client.post(
-            settings.lnbits_extensions_reviews_url + "/reviews", json=data.dict()
+            settings.lnbits_extensions_reviews_url + "/reviews", json=data.model_dump()
         )
         resp.raise_for_status()
         payment_request = resp.json()
@@ -1146,7 +1146,7 @@ async def _check_background_payment_permission(
     grant_data: dict,
 ) -> ExtensionPermissionCheckResult:
     try:
-        data = ExtensionBackgroundPaymentGrantRequest.parse_obj(grant_data)
+        data = ExtensionBackgroundPaymentGrantRequest.model_validate(grant_data)
     except ValueError as exc:
         raise HTTPException(HTTPStatus.BAD_REQUEST, str(exc)) from exc
 
@@ -1180,7 +1180,7 @@ async def _check_background_payment_permission(
     return ExtensionPermissionCheckResult(
         id=WALLET_PAY_INVOICE_BACKGROUND_PERMISSION,
         approved=covered,
-        grant=json.loads(grant.json()),
+        grant=json.loads(grant.model_dump_json()),
     )
 
 
@@ -1190,7 +1190,7 @@ async def _check_wallet_payments_watch_permission(
     grant_data: dict,
 ) -> ExtensionPermissionCheckResult:
     try:
-        data = ExtensionWalletPaymentsWatchGrantRequest.parse_obj(grant_data)
+        data = ExtensionWalletPaymentsWatchGrantRequest.model_validate(grant_data)
     except ValueError as exc:
         raise HTTPException(HTTPStatus.BAD_REQUEST, str(exc)) from exc
 
@@ -1204,7 +1204,7 @@ async def _check_wallet_payments_watch_permission(
     return ExtensionPermissionCheckResult(
         id=WALLET_PAYMENTS_WATCH_PERMISSION,
         approved=covered,
-        grant=json.loads(grant.json()),
+        grant=json.loads(grant.model_dump_json()),
     )
 
 
@@ -1218,7 +1218,7 @@ def _find_background_payment_grant(
         if not isinstance(grant_data, dict):
             continue
         try:
-            grant = ExtensionBackgroundPaymentGrant.parse_obj(grant_data)
+            grant = ExtensionBackgroundPaymentGrant.model_validate(grant_data)
         except ValueError:
             continue
         if grant.wallet_id == wallet_id:
@@ -1236,7 +1236,7 @@ def _find_wallet_payments_watch_grant(
         if not isinstance(grant_data, dict):
             continue
         try:
-            grant = ExtensionWalletPaymentsWatchGrant.parse_obj(grant_data)
+            grant = ExtensionWalletPaymentsWatchGrant.model_validate(grant_data)
         except ValueError:
             continue
         if grant.wallet_id == wallet_id:

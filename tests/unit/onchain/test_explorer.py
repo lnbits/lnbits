@@ -29,7 +29,7 @@ def test_default_provider_matches_enabled_network(settings):
         assert blockexplorer.explorer_url(config, name) == "/blockexplorer"
         assert (
             blockexplorer.provider_name(
-                config.copy(update={"explorer_provider": "mempool"}), name
+                config.model_copy(update={"explorer_provider": "mempool"}), name
             )
             == "mempool"
         )

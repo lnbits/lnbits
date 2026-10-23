@@ -7,7 +7,7 @@ from lnbits.db import Connection, model_to_dict
 from lnbits.helpers import urlsafe_short_hash
 from lnbits.utils.onchain import derive_address
 
-ADDRESS_COLUMNS = ", ".join(Address.__fields__)
+ADDRESS_COLUMNS = ", ".join(Address.model_fields)
 
 
 async def create_address(address: Address, conn: Connection | None = None) -> None:
