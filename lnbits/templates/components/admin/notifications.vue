@@ -71,11 +71,27 @@
           <q-item-section>
             <q-input
               dense
-              :type="hideInputToggle ? 'password' : 'text'"
+              :type="showNostrPrivateKey ? 'text' : 'password'"
               autocomplete="off"
               filled
               v-model="formData.lnbits_nostr_notifications_private_key"
-            />
+            >
+              <template v-slot:append>
+                <q-btn
+                  dense
+                  flat
+                  round
+                  :icon="showNostrPrivateKey ? 'visibility_off' : 'visibility'"
+                  :aria-label="
+                    showNostrPrivateKey
+                      ? 'Hide Nostr private key'
+                      : 'Show Nostr private key'
+                  "
+                  :aria-pressed="showNostrPrivateKey"
+                  @click.stop="showNostrPrivateKey = !showNostrPrivateKey"
+                />
+              </template>
+            </q-input>
           </q-item-section>
         </q-item>
 
