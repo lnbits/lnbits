@@ -298,7 +298,7 @@ async def test_send_nostr_notifications_and_single_notification(
 
 
 @pytest.mark.anyio
-async def test_nip17_failure_does_not_fall_back_or_report_success(
+async def test_nip17_failure_logs_zero_sent_without_fallback(
     settings: Settings, mocker: MockerFixture
 ):
     mocker.patch.object(settings, "lnbits_nostr_notifications_protocol", "nip17")
@@ -325,7 +325,7 @@ async def test_nip17_failure_does_not_fall_back_or_report_success(
     await send_notification(None, ["alice@example.com"], None, "hello")
 
     legacy.assert_not_awaited()
-    debug.assert_not_called()
+    debug.assert_called_once_with("Sent nostr notification: plain text.Sent: 0")
     warning.assert_called_once()
     assert "No inbox relay accepted notification" in warning.call_args.args[0]
 

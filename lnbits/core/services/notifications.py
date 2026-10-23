@@ -133,8 +133,10 @@ async def send_notification(
     try:
         if nostr_identifiers and settings.is_nostr_notifications_configured():
             sent = await send_nostr_notifications(nostr_identifiers, message)
-            if sent:
-                logger.debug(f"Sent nostr notification: {message_type or 'plain text'}")
+            logger.debug(
+                f"Sent nostr notification: {message_type or 'plain text'}"
+                f".Sent: {len(sent)}"
+            )
     except Exception as e:
         logger.warning(f"Error sending nostr notification {message_type}: {e}")
     try:
