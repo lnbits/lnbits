@@ -74,6 +74,7 @@ async def pay_invoice(
     labels: list[str] | None = None,
     external_id: str | None = None,
     webhook: str | None = None,
+    force_resend: bool | None = False,
     conn: Connection | None = None,
 ) -> Payment:
     if settings.lnbits_only_allow_incoming_payments:
@@ -96,6 +97,7 @@ async def pay_invoice(
         labels=labels,
         external_id=external_id,
         webhook=webhook,
+        force_resend=force_resend,
         conn=conn,
     )
 
@@ -780,6 +782,7 @@ async def get_payments_daily_stats(
 async def _pay_invoice(
     wallet_id: str,
     create_payment_model: CreatePayment,
+    force_resend: bool | None = False,
     conn: Connection | None = None,
 ):
     async with payment_lock:
@@ -796,7 +799,9 @@ async def _pay_invoice(
 
         payment = await _pay_internal_invoice(wallet, create_payment_model, conn)
         if not payment:
-            payment = await _pay_external_invoice(wallet, create_payment_model, conn)
+            payment = await _pay_external_invoice(
+                wallet, create_payment_model, force_resend=force_resend, conn=conn
+            )
         return payment
 
 
@@ -877,6 +882,7 @@ async def _pay_internal_invoice(
 async def _pay_external_invoice(
     wallet: Wallet,
     create_payment_model: CreatePayment,
+    force_resend: bool | None = False,
     conn: Connection | None = None,
 ) -> Payment:
     checking_id = create_payment_model.payment_hash
@@ -886,25 +892,33 @@ async def _pay_external_invoice(
 
     fee_reserve_total_msat = fee_reserve_total(amount_msat, internal=False)
 
-    if wallet.balance_msat < abs(amount_msat):
+    spent_amount_msat = 0 if force_resend else abs(amount_msat)
+    if wallet.balance_msat < spent_amount_msat:
         raise PaymentError("Insufficient balance.", status="failed")
-    if wallet.balance_msat < abs(amount_msat) + fee_reserve_total_msat:
+    if wallet.balance_msat < spent_amount_msat + fee_reserve_total_msat:
         raise PaymentError(
             f"You must reserve at least ({round(fee_reserve_total_msat/1000)}"
             "  sat) to cover potential routing fees.",
             status="failed",
         )
     # check if there is already a payment with the same checking_id
-    old_payment = await get_standalone_payment(checking_id, conn=conn)
-    if old_payment:
-        return await _verify_external_payment(old_payment, conn)
-
-    create_payment_model.fee = -abs(fee_reserve_total_msat)
-    payment = await create_payment(
-        checking_id=checking_id,
-        data=create_payment_model,
-        conn=conn,
+    old_payment = await get_standalone_payment(
+        checking_id, wallet_id=wallet.id, conn=conn
     )
+    if old_payment and not force_resend:
+        return await _verify_external_payment(old_payment, conn)
+    payment: Payment | None = None
+    if force_resend:
+        payment = _validate_force_resend(
+            old_payment, bolt11=create_payment_model.bolt11
+        )
+    else:
+        create_payment_model.fee = -abs(fee_reserve_total_msat)
+        payment = await create_payment(
+            checking_id=checking_id,
+            data=create_payment_model,
+            conn=conn,
+        )
 
     fee_reserve_msat = fee_reserve(amount_msat, internal=False)
 
@@ -938,48 +952,19 @@ async def _pay_external_invoice(
         )
         return payment
 
-    # IMPORTANT PAYMENT RULES!
-    # True -> success
-    # False-> failed
-    # None -> pending (any ambigous payment responses MUST be set as pending)
+    return await _handle_external_payment_response(
+        payment, payment_response, force_resend=force_resend, conn=conn
+    )
 
-    # payment failed
-    if payment_response.failed:
-        payment.status = PaymentState.FAILED
-        await update_payment(payment, conn=conn)
-        message = payment_response.error_message or "without an error message."
-        raise PaymentError(f"Payment failed: {message}", status="failed")
 
-    # payment successful
-    elif payment_response.success:
-        payment = await update_payment_success_status(
-            payment,
-            payment_response,
-            conn=conn,
-            new_checking_id=payment_response.checking_id,
-        )
-
-        logger.success(f"payment successful {payment.checking_id}")
-
-    # payment pending
-    else:
-        invoice_updated = _set_resolved_offer_invoice(
-            payment, payment_response.payment_request
-        )
-        if invoice_updated or (
-            payment_response.checking_id
-            and payment_response.checking_id != payment.checking_id
-        ):
-            payment = await update_payment(
-                payment,
-                new_checking_id=payment_response.checking_id,
-                conn=conn,
-            )
-        logger.warning(
-            f"payment status unknown {payment.checking_id}: "
-            f"{payment_response.error_message or 'no error message'}"
-        )
-
+def _validate_force_resend(old_payment: Payment | None = None, bolt11: str = ""):
+    if not old_payment:
+        raise PaymentError("No previous payment found to resend.", status="failed")
+    if not old_payment.pending:
+        raise PaymentError("Can only force resend a pending payment.", status="failed")
+    if old_payment.bolt11.lower() != bolt11.lower():
+        raise PaymentError("Invalid invoice. Bolt11 changed.", status="failed")
+    payment = old_payment
     return payment
 
 
@@ -1037,7 +1022,7 @@ async def change_payment_status(
 
 async def update_payment_success_status(
     payment: Payment,
-    status: PaymentStatus,
+    status: PaymentStatus | PaymentResponse,
     conn: Connection | None = None,
     new_checking_id: str | None = None,
     send_payment_notifications: bool | None = None,
@@ -1400,6 +1385,7 @@ async def _pay_from_wallet(
     labels: list[str] | None = None,
     external_id: str | None = None,
     webhook: str | None = None,
+    force_resend: bool | None = False,
     conn: Connection | None = None,
 ) -> Payment:
     async with db.reuse_conn(conn) if conn else db.connect() as new_conn:
@@ -1429,7 +1415,10 @@ async def _pay_from_wallet(
 
     async with db.reuse_conn(conn) if conn else db.connect() as new_conn:
         payment = await _pay_invoice(
-            wallet.source_wallet_id, create_payment_model, conn=new_conn
+            wallet.source_wallet_id,
+            create_payment_model,
+            force_resend=force_resend,
+            conn=new_conn,
         )
 
     return payment
@@ -1455,3 +1444,60 @@ def _payment_balance_contribution(payment: Payment, status: str, fee: int) -> in
     ):
         return payment.amount - abs(fee)
     return 0
+
+
+async def _handle_external_payment_response(
+    payment: Payment,
+    payment_response: PaymentResponse,
+    force_resend: bool | None = False,
+    conn: Connection | None = None,
+) -> Payment:
+    # IMPORTANT PAYMENT RULES!
+    # True -> success
+    # False-> failed
+    # None -> pending (any ambigous payment responses MUST be set as pending)
+
+    # payment failed
+    if payment_response.failed:
+        # the funding might return failed when trying to resend a an existing payment
+        if force_resend:
+            payment = await update_pending_payment(payment, conn=conn)
+            if not payment.failed:
+                return payment
+
+        payment.status = PaymentState.FAILED
+        await update_payment(payment, conn=conn)
+        message = payment_response.error_message or "without an error message."
+        raise PaymentError(f"Payment failed: {message}", status="failed")
+
+    # payment successful
+    elif payment_response.success:
+        payment = await update_payment_success_status(
+            payment,
+            payment_response,
+            conn=conn,
+            new_checking_id=payment_response.checking_id,
+        )
+
+        logger.success(f"payment successful {payment.checking_id}")
+
+    # payment pending
+    else:
+        invoice_updated = _set_resolved_offer_invoice(
+            payment, payment_response.payment_request
+        )
+        if invoice_updated or (
+            payment_response.checking_id
+            and payment_response.checking_id != payment.checking_id
+        ):
+            payment = await update_payment(
+                payment,
+                new_checking_id=payment_response.checking_id,
+                conn=conn,
+            )
+        logger.warning(
+            f"payment status unknown {payment.checking_id}: "
+            f"{payment_response.error_message or 'no error message'}"
+        )
+
+    return payment

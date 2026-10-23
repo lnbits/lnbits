@@ -41,13 +41,15 @@ from lnbits.core.models import (
 )
 from lnbits.core.models.payments import (
     ChangePaymentStatus,
+    CheckPaymentStatus,
+    ForceResendPayment,
     UpdatePaymentLabels,
 )
 from lnbits.core.models.users import AccountId, UserLabel
 from lnbits.core.models.wallets import BaseWalletTypeInfo
 from lnbits.core.services.payments import change_payment_status
 from lnbits.core.services.users import update_user_account
-from lnbits.db import Filters, Page
+from lnbits.db import Filter, Filters, Page
 from lnbits.decorators import (
     WalletTypeInfo,
     check_account_id_exists,
@@ -72,6 +74,7 @@ from ..crud import (
     get_payments_history,
     get_payments_paginated,
     get_standalone_payment,
+    get_wallet,
     get_wallet_for_key,
 )
 from ..services import (
@@ -393,6 +396,65 @@ async def api_update_payment_extra(
     payment.extra.update(data.extra)
     await update_payment(payment)
     return payment
+
+
+@payment_router.post("/check-status")
+async def api_check_payment_status(
+    data: CheckPaymentStatus,
+    account_id: AccountId = Depends(check_account_id_exists),
+) -> Payment:
+    page = await get_payments_paginated(
+        user_id=None if account_id.is_admin_id else account_id.id,
+        filters=Filters(
+            model=PaymentFilters,
+            filters=[
+                Filter.parse_query("wallet_id", [data.wallet_id], PaymentFilters),
+                Filter.parse_query("checking_id", [data.checking_id], PaymentFilters),
+            ],
+            limit=1,
+        ),
+    )
+    if not page.data:
+        raise HTTPException(HTTPStatus.NOT_FOUND, "Payment does not exist.")
+    payment = page.data[0]
+    if payment.pending:
+        try:
+            payment = await update_pending_payment(payment)
+        except Exception as exc:
+            raise HTTPException(
+                HTTPStatus.BAD_GATEWAY, "Unable to check payment status."
+            ) from exc
+    return payment
+
+
+@payment_router.post("/force-resend", dependencies=[Depends(check_super_user)])
+async def api_force_resend_payment(data: ForceResendPayment) -> Payment:
+    payment = await get_standalone_payment(data.checking_id, wallet_id=data.wallet_id)
+    if (
+        not payment
+        or payment.wallet_id != data.wallet_id
+        or payment.checking_id != data.checking_id
+    ):
+        raise HTTPException(HTTPStatus.NOT_FOUND, "Payment does not exist.")
+    wallet = await get_wallet(payment.wallet_id)
+    if not wallet:
+        raise HTTPException(HTTPStatus.NOT_FOUND, "Wallet does not exist.")
+    if (
+        not wallet.is_lightning_wallet
+        or not payment.pending
+        or not payment.is_out
+        or not payment.can_change_status()
+        or payment.bolt11.lower().startswith("lni1")
+    ):
+        raise HTTPException(
+            HTTPStatus.BAD_REQUEST,
+            "Only pending outgoing external BOLT11 payments can be resent.",
+        )
+    return await pay_invoice(
+        wallet_id=payment.wallet_id,
+        payment_request=payment.bolt11,
+        force_resend=True,
+    )
 
 
 @payment_router.patch("/status", dependencies=[Depends(check_super_user)])

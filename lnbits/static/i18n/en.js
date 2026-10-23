@@ -1,5 +1,9 @@
 window.localisation.en = {
   confirm: 'Yes',
+  check_status: 'Check Status',
+  force_resend: 'Force Resend',
+  force_resend_confirmation:
+    'This action will try to resend the payment on your funding source.',
   change_status: 'Change Status',
   payment_status_success: 'Success',
   payment_status_failed: 'Failed',
