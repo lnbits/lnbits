@@ -41,6 +41,16 @@ class UpdatePaymentExtra(BaseModel):
     extra: dict = Field(default_factory=dict)
 
 
+class CheckPaymentStatus(BaseModel):
+    wallet_id: str
+    checking_id: str
+
+
+class ForceResendPayment(BaseModel):
+    wallet_id: str
+    checking_id: str
+
+
 class ChangePaymentStatus(BaseModel):
     wallet_id: str
     checking_id: str

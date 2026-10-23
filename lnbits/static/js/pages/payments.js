@@ -122,6 +122,11 @@ window.PagePayments = {
       showDetails: false,
       formatJson: false,
       paymentDetails: null,
+      checkingPaymentStatus: false,
+      forceResendDialog: {
+        show: false,
+        loading: false
+      },
       changeStatusDialog: {
         show: false,
         status: null,
@@ -140,6 +145,15 @@ window.PagePayments = {
     await this.fetchPayments()
   },
   computed: {
+    canForceResendPayment() {
+      const payment = this.paymentDetails
+      return (
+        this.canChangePaymentStatus &&
+        payment.status === 'pending' &&
+        payment.outgoing &&
+        !payment.bolt11?.toLowerCase().startsWith('lni1')
+      )
+    },
     canChangePaymentStatus() {
       const payment = this.paymentDetails
       return (
@@ -299,6 +313,75 @@ window.PagePayments = {
     showDetailsToggle(payment) {
       this.paymentDetails = payment
       return (this.showDetails = !this.showDetails)
+    },
+    async checkPaymentStatus() {
+      const payment = this.paymentDetails
+      if (this.checkingPaymentStatus || !payment) return
+      this.checkingPaymentStatus = true
+      try {
+        const {data} = await LNbits.api.request(
+          'POST',
+          '/api/v1/payments/check-status',
+          null,
+          {
+            wallet_id: payment.wallet_id,
+            checking_id: payment.checking_id
+          }
+        )
+        if (this.paymentDetails === payment) {
+          this.paymentDetails = {
+            ...payment,
+            ...data,
+            amount: payment.amount,
+            fee_sats:
+              new Intl.NumberFormat(this.g.locale).format(data.fee / 1000) +
+              ' sats'
+          }
+        }
+        const notifications = {
+          success: ['positive', 'payment_successful'],
+          pending: ['info', 'payment_pending'],
+          failed: ['negative', 'payment_failed']
+        }
+        const [type, message] = notifications[data.status]
+        Quasar.Notify.create({type, message: this.$t(message)})
+        await this.fetchPayments()
+      } catch (error) {
+        LNbits.utils.notifyApiError(error)
+      } finally {
+        this.checkingPaymentStatus = false
+      }
+    },
+    async forceResendPayment() {
+      const dialog = this.forceResendDialog
+      const payment = this.paymentDetails
+      if (dialog.loading || !this.canForceResendPayment) return
+      dialog.loading = true
+      try {
+        const {data} = await LNbits.api.request(
+          'POST',
+          '/api/v1/payments/force-resend',
+          null,
+          {
+            wallet_id: payment.wallet_id,
+            checking_id: payment.checking_id
+          }
+        )
+        this.paymentDetails = {
+          ...payment,
+          ...data,
+          amount: payment.amount,
+          fee_sats:
+            new Intl.NumberFormat(this.g.locale).format(data.fee / 1000) +
+            ' sats'
+        }
+        dialog.show = false
+        await this.fetchPayments()
+      } catch (error) {
+        LNbits.utils.notifyApiError(error)
+      } finally {
+        dialog.loading = false
+      }
     },
     openChangeStatusDialog() {
       this.changeStatusDialog.status = this.paymentDetails.status
