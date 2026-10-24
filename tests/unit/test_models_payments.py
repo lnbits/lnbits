@@ -1,7 +1,7 @@
 import pytest
 from pydantic import ValidationError
 
-from lnbits.core.models import CreateInvoice
+from lnbits.core.models import CreateInvoice, Payment
 
 
 @pytest.mark.parametrize("payment_request", ["lnbc1invoice", "lno1offer"])
@@ -37,3 +37,20 @@ def test_create_invoice_receiving_does_not_require_payment_request():
     invoice = CreateInvoice(out=False, amount=21)
 
     assert invoice.payment_request is None
+
+
+@pytest.mark.parametrize(
+    ("amount", "sat"),
+    [(0, 0), (1500, 1), (-1500, -1), (999_999, 999), (-999_999, -999), (-2000, -2)],
+)
+def test_payment_sat_truncates_toward_zero(amount, sat):
+    payment = Payment(
+        checking_id="checking_id",
+        payment_hash="payment_hash",
+        wallet_id="wallet_id",
+        amount=amount,
+        fee=0,
+        bolt11="lnbc1invoice",
+    )
+
+    assert payment.sat == sat

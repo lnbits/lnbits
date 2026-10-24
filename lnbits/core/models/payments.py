@@ -153,7 +153,9 @@ class Payment(BaseModel):
 
     @property
     def sat(self) -> int:
-        return self.amount // 1000
+        # truncate toward zero, so -1500 msat is -1 sat like 1500 msat is 1 sat
+        sat = abs(self.amount) // 1000
+        return sat if self.amount >= 0 else -sat
 
     @property
     def is_in(self) -> bool:
