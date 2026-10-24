@@ -21,6 +21,29 @@ services:
       - lnbits-data:/app/data
       - ./data/clightning-1:/app/clightning:uid=1000,gid=1000
 
+  # LNbits funded by LND, upstream for LNbitsWallet hold invoice tests
+  lnbits-lnd:
+    hostname: lnbits-lnd
+    depends_on:
+      - lnd-3
+    image: lnbits/lnbits
+    restart: on-failure
+    user: "0:0"
+    environment:
+      LNBITS_PORT: 5002
+      DEBUG: true
+      LNBITS_ADMIN_UI: false
+      LNBITS_BACKEND_WALLET_CLASS: "LndRestWallet"
+      LNBITS_DATA_FOLDER: "./data"
+      LND_REST_ENDPOINT: "https://lnd-3:8081/"
+      LND_REST_CERT: "./lnd/tls.cert"
+      LND_REST_MACAROON: "./lnd/data/chain/bitcoin/regtest/admin.macaroon"
+    ports:
+      - 5002:5002
+    volumes:
+      - lnbits-lnd-data:/app/data
+      - ./data/lnd-3:/app/lnd:ro
+
   boltz:
     hostname: boltz
     depends_on:
@@ -422,6 +445,7 @@ services:
 
 volumes:
   lnbits-data:
+  lnbits-lnd-data:
   bitcoin-data:
   elements-data:
   nginx-data:

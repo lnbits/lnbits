@@ -4,7 +4,7 @@
 
 - lnd-1: for locally testing your current lnbits
 - lnd-2: used for boltz backend
-- lnd-3: used for LND funding-source tests
+- lnd-3: used for LND funding-source tests and backing lnbits-lnd inside docker
 - cln-1: for locally testing your current lnbits and backing lnbits inside docker
 - cln-2: used for clightning-REST
 - cln-3: receives BOLT12 offer payments
