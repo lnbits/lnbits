@@ -790,7 +790,7 @@ certbot certonly --nginx --agree-tos -d lnbits.org
 Create `/etc/nginx/sites-enabled/lnbits.org`:
 
 ```sh
-cat <<EOF > /etc/nginx/sites-enabled/lnbits.org
+cat <<'EOF' > /etc/nginx/sites-enabled/lnbits.org
 server {
     server_name lnbits.org;
 
