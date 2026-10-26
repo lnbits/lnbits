@@ -716,10 +716,26 @@ def dict_to_model(_row: dict, model: type[TModel]) -> TModel:  # noqa: C901
     """
     _dict: dict = {}
     for key, value in _row.items():
-        if value is None:
-            continue
         if key not in model.__fields__:
             # Somethimes an SQL JOIN will create additional column
+            continue
+        if value is None:
+            # A NULL column is ambiguous, and the field says which it is.
+            #
+            # For a field that cannot hold None, NULL means the column
+            # predates the field -- `ALTER TABLE ADD COLUMN` leaves every
+            # existing row NULL -- so the key is dropped and the default
+            # fills in. Without that, adding a non-optional field would
+            # raise on every legacy row until someone backfilled it.
+            #
+            # For a field that CAN hold None, NULL is the stored value and
+            # must be kept. Dropping it substituted the default instead,
+            # silently, so an Optional field whose default was not None
+            # could never read back as None (e.g. `int | None = 0` always
+            # returned 0). The write path stores NULL faithfully, so only
+            # the read was wrong.
+            if model.__fields__[key].allow_none:
+                _dict[key] = None
             continue
         type_ = model.__fields__[key].type_
         outertype_ = model.__fields__[key].outer_type_
