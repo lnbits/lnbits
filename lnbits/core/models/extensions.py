@@ -995,7 +995,9 @@ class InstallableExtension(BaseModel):
                         (ee for ee in extension_list if ee.id == r.id), None
                     )
                     if existing_ext and ext.meta:
-                        existing_ext.check_release_updates(ext.meta.latest_release)
+                        existing_ext._merge_manifest_release(
+                            ext, ext.meta.latest_release
+                        )
                         continue
 
                     meta = ext.meta or ExtensionMeta()
@@ -1011,13 +1013,13 @@ class InstallableExtension(BaseModel):
                 for e in manifest.extensions:
                     release = ExtensionRelease.from_explicit_release(url, e)
                     release.manifest_type = manifest_type
+                    ext = InstallableExtension.from_explicit_release(e)
                     existing_ext = next(
                         (ee for ee in extension_list if ee.id == e.id), None
                     )
                     if existing_ext:
-                        existing_ext.check_release_updates(release)
+                        existing_ext._merge_manifest_release(ext, release)
                         continue
-                    ext = InstallableExtension.from_explicit_release(e)
                     ext.check_release_updates(release)
                     meta = ext.meta or ExtensionMeta()
                     meta.featured = ext.id in manifest.featured
@@ -1120,6 +1122,15 @@ class InstallableExtension(BaseModel):
         error_msg = "Cannot fetch extensions manifest"
         manifest = await extension_metadata_get(url, error_msg)
         return Manifest.parse_obj(manifest)
+
+    def _merge_manifest_release(
+        self, candidate: InstallableExtension, release: ExtensionRelease | None
+    ) -> None:
+        self.check_release_updates(release)
+        if release is not None and self.meta and self.meta.latest_release is release:
+            self.name = candidate.name
+            self.short_description = candidate.short_description
+            self.icon = candidate.icon
 
 
 class CreateExtension(BaseModel):
