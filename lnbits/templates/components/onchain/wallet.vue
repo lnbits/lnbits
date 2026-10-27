@@ -533,106 +533,88 @@
       <slot v-if="isConfigured" name="wallet-tools"></slot>
     </div>
     <q-dialog v-model="showAddress" position="top">
-      <q-card class="q-pa-lg lnbits__dialog-card">
-        <h5 class="text-subtitle1 q-my-none" v-text="'Receive bitcoin'"></h5>
-        <q-separator></q-separator><br />
-
-        <div class="q-mx-xl q-mb-md">
+      <q-card class="lnbits__dialog-card column no-wrap">
+        <q-card-section class="col scroll q-pa-lg q-pb-none">
+          <p v-if="currentAddress" class="text-center text-wrap q-mb-lg">
+            <a
+              :href="mempoolHostname + '/address/' + currentAddress.address"
+              target="_blank"
+              rel="noopener noreferrer"
+              v-text="currentAddress.address"
+            ></a>
+          </p>
           <lnbits-qrcode
             v-if="currentAddress"
             :value="receiveUri"
+            :max-width="280"
           ></lnbits-qrcode>
-        </div>
-        <p v-if="currentAddress">
-          <q-btn
-            flat
-            dense
-            size="ms"
-            icon="content_copy"
-            @click="copyText(currentAddress.address)"
-            class="q-ml-sm"
-          ></q-btn>
-          <span v-text="currentAddress.address"></span>
-          <q-btn
-            flat
-            dense
-            size="ms"
-            icon="launch"
-            type="a"
-            :href="mempoolHostname + '/address/' + currentAddress.address"
-            target="_blank"
-          ></q-btn>
-        </p>
-        <q-input
-          filled
-          class="q-mb-md"
-          v-model.number="receiveAmount"
-          type="number"
-          min="1"
-          step="1"
-          label="Amount in sats (optional)"
-          :rules="[
-            v =>
-              !v ||
-              (Number.isSafeInteger(+v) && +v > 0 && +v <= 2100000000000000) ||
-              'Enter a whole number of sats'
-          ]"
-        ></q-input>
-        <q-btn
-          v-if="currentAddress"
-          outline
-          color="primary"
-          label="Copy payment link"
-          class="q-mb-md"
-          @click="copyText(receiveUri)"
-        ></q-btn>
-        <p class="text-caption">
-          Send only bitcoin on
-          <span
-            v-text="config.network === 'Testnet' ? 'Testnet3' : config.network"
-          ></span>
-          to this address.
-        </p>
-        <p v-if="currentAddress">
-          <q-input
-            filled
-            dense
-            v-model.trim="addressNote"
-            type="text"
-            :label="$t('onchain.note')"
-          ></q-input>
-        </p>
-        <div v-if="currentAddress && currentAddress.gapLimitExceeded">
-          <q-badge
-            color="yellow"
-            text-color="black"
-            v-text="$t('onchain.gap_limit_exceeded')"
-          ></q-badge>
-        </div>
-        <div class="row q-mt-lg q-gutter-sm">
+          <div class="row q-col-gutter-md q-my-lg">
+            <q-input
+              filled
+              dense
+              class="col-12 col-sm-6"
+              v-model.number="receiveAmount"
+              type="number"
+              min="1"
+              step="1"
+              label="Amount in sats (optional)"
+              :rules="[
+                v =>
+                  !v ||
+                  (Number.isSafeInteger(+v) &&
+                    +v > 0 &&
+                    +v <= 2100000000000000) ||
+                  'Enter a whole number of sats'
+              ]"
+            ></q-input>
+            <q-input
+              v-if="currentAddress"
+              class="col-12 col-sm-6"
+              filled
+              dense
+              v-model.trim="addressNote"
+              type="text"
+              :label="$t('onchain.note')"
+            ></q-input>
+          </div>
+          <p class="text-caption text-center q-mb-none">
+            Send only bitcoin on
+            <span
+              v-text="
+                config.network === 'Testnet' ? 'Testnet3' : config.network
+              "
+            ></span>
+            to this address.
+          </p>
+          <div v-if="currentAddress && currentAddress.gapLimitExceeded">
+            <q-badge
+              color="yellow"
+              text-color="black"
+              v-text="$t('onchain.gap_limit_exceeded')"
+            ></q-badge>
+          </div>
+        </q-card-section>
+        <q-card-actions class="col-auto q-pa-lg" align="between">
           <q-btn
             v-if="currentAddress"
-            outline
+            unelevated
             v-close-popup
-            color="grey"
+            color="primary"
             @click="
               updateNoteForAddress({
                 addressId: currentAddress.id,
                 note: addressNote
               })
             "
-            class="q-ml-sm"
             :label="$t('onchain.save_note')"
           ></q-btn>
           <q-btn
             v-close-popup
             flat
             color="grey"
-            class="q-ml-auto"
             :label="$t('onchain.close')"
           ></q-btn>
-        </div>
-        <div class="row q-mt-lg q-gutter-sm"></div>
+        </q-card-actions>
       </q-card>
     </q-dialog>
 
