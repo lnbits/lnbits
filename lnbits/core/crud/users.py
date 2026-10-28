@@ -314,7 +314,7 @@ async def get_user_access_control_lists(
 
 
 async def clear_user_id_cache(user_id: str):
-    user = await get_user(user_id, active_only=True)
+    user = await get_user(user_id, active_only=False)
     if user:
         clear_user_cache(user)
 
