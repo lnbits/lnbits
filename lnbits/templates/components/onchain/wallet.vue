@@ -533,7 +533,58 @@
       <slot v-if="isConfigured" name="wallet-tools"></slot>
     </div>
     <q-dialog v-model="showAddress" position="top">
-      <q-card class="lnbits__dialog-card column no-wrap">
+      <q-card v-if="!receiveQr" class="q-pa-lg q-pt-xl lnbits__dialog-card">
+        <q-form @submit="showReceiveQr">
+          <div class="row q-col-gutter-md">
+            <q-input
+              filled
+              dense
+              class="col-12"
+              v-model.number="receiveAmount"
+              type="number"
+              min="1"
+              step="1"
+              label="Amount in sats"
+              hint="Optional"
+              :rules="[
+                v =>
+                  !v ||
+                  (Number.isSafeInteger(+v) &&
+                    +v > 0 &&
+                    +v <= 2100000000000000) ||
+                  'Enter a whole number of sats'
+              ]"
+            ></q-input>
+            <q-input
+              v-if="currentAddress"
+              class="col-12"
+              filled
+              dense
+              v-model.trim="addressNote"
+              type="text"
+              :label="$t('onchain.note')"
+              hint="Optional"
+            ></q-input>
+          </div>
+          <div class="row q-mt-lg">
+            <q-btn
+              unelevated
+              color="primary"
+              type="submit"
+              label="Show QR code"
+              :disable="!currentAddress"
+            ></q-btn>
+            <q-btn
+              v-close-popup
+              flat
+              color="grey"
+              class="q-ml-auto"
+              :label="$t('cancel')"
+            ></q-btn>
+          </div>
+        </q-form>
+      </q-card>
+      <q-card v-else class="lnbits__dialog-card column no-wrap">
         <q-card-section class="col scroll q-pa-lg q-pb-none">
           <p v-if="currentAddress" class="text-center text-wrap q-mb-lg">
             <a
@@ -548,35 +599,9 @@
             :value="receiveUri"
             :max-width="280"
           ></lnbits-qrcode>
-          <div class="row q-col-gutter-md q-my-lg">
-            <q-input
-              filled
-              dense
-              class="col-12 col-sm-6"
-              v-model.number="receiveAmount"
-              type="number"
-              min="1"
-              step="1"
-              label="Amount in sats (optional)"
-              :rules="[
-                v =>
-                  !v ||
-                  (Number.isSafeInteger(+v) &&
-                    +v > 0 &&
-                    +v <= 2100000000000000) ||
-                  'Enter a whole number of sats'
-              ]"
-            ></q-input>
-            <q-input
-              v-if="currentAddress"
-              class="col-12 col-sm-6"
-              filled
-              dense
-              v-model.trim="addressNote"
-              type="text"
-              :label="$t('onchain.note')"
-            ></q-input>
-          </div>
+          <p v-if="receiveAmount" class="text-h5 text-center q-my-lg">
+            <span v-text="receiveAmount"></span> sats
+          </p>
           <p class="text-caption text-center q-mb-none">
             Send only bitcoin on
             <span

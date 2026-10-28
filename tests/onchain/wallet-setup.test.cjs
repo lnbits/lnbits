@@ -320,3 +320,54 @@ test('hot wallets require backup confirmation from metadata before transacting',
   await instance.updateAccounts([{...account, onchain_wallet_kind: 'watch'}])
   assert.equal(instance.canTransact, true)
 })
+
+test('receive preview preserves draft values without saving and reopening resets the form', async t => {
+  const {app, instance, calls} = harness()
+  t.after(() => app.unmount())
+  const address = {id: 'address-1', address: 'bc1qexample', note: 'Old note'}
+  instance.openQrCodeDialog(address)
+  assert.equal(instance.receiveQr, false)
+  instance.addressNote = 'New note'
+  instance.receiveAmount = 12345
+  await instance.showReceiveQr()
+  assert.equal(instance.receiveQr, true)
+  assert.equal(instance.receiveUri, 'bitcoin:bc1qexample?amount=0.00012345')
+  assert.equal(instance.addressNote, 'New note')
+  assert.equal(address.note, 'Old note')
+  assert.deepEqual(calls, [])
+  instance.openQrCodeDialog(address)
+  assert.equal(instance.receiveQr, false)
+  assert.equal(instance.receiveAmount, null)
+  assert.equal(instance.addressNote, 'Old note')
+  await instance.showReceiveQr()
+  assert.equal(instance.receiveUri, 'bitcoin:bc1qexample')
+})
+
+test('explicit note save leaves the original note intact on failure and allows retry', async t => {
+  const {app, instance, context} = harness()
+  t.after(() => app.unmount())
+  const error = new Error('Permission denied')
+  const errors = []
+  context.LNbits.utils.notifyApiError = e => errors.push(e)
+  context.LNbits.api.request = async () => {
+    throw error
+  }
+  const address = {id: 'address-1', address: 'bc1qexample', note: 'Old note'}
+  instance.addresses = [address]
+  instance.openQrCodeDialog(address)
+  instance.addressNote = 'New note'
+  await instance.showReceiveQr()
+  await instance.updateNoteForAddress({
+    addressId: address.id,
+    note: instance.addressNote
+  })
+  assert.equal(address.note, 'Old note')
+  assert.equal(instance.addressNote, 'New note')
+  assert.deepEqual(errors, [error])
+  context.LNbits.api.request = async () => ({})
+  await instance.updateNoteForAddress({
+    addressId: address.id,
+    note: instance.addressNote
+  })
+  assert.equal(address.note, 'New note')
+})
