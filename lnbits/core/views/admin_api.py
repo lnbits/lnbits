@@ -321,13 +321,7 @@ async def api_download_backup() -> FileResponse:
 
 
 def _pg_dump_error_hint(stderr: str | None, limit: int = 300) -> str:
-    """Condense pg_dump's own message so the caller learns why it failed.
-
-    Without this the only clue is the exit code, and the reason, most often a
-    server that the installed pg_dump is too old to read, is left behind in
-    the container log. The full output is logged; this is the short form that
-    goes back to the caller.
-    """
+    """Condense pg_dump's own message so the caller learns why it failed."""
     message = " ".join((stderr or "").split())
     if not message:
         return ""

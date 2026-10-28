@@ -19,9 +19,7 @@ RUN uv sync --all-extras
 
 FROM python:3.12-slim-bookworm
 
-# pg_dump is used by the admin backup endpoint. It must be at least as new as
-# the PostgreSQL server being dumped, so track a current major rather than
-# pinning an old one; a newer pg_dump still reads older servers.
+# needed for backups postgresql-client version 18 (pg_dump)
 RUN apt-get update && apt-get -y upgrade && \
     apt-get -y install gnupg2 curl lsb-release && \
     sh -c 'echo "deb http://apt.postgresql.org/pub/repos/apt $(lsb_release -cs)-pgdg main" > /etc/apt/sources.list.d/pgdg.list' && \
