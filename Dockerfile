@@ -19,13 +19,13 @@ RUN uv sync --all-extras
 
 FROM python:3.12-slim-bookworm
 
-# needed for backups postgresql-client version 14 (pg_dump)
+# needed for backups postgresql-client version 18 (pg_dump)
 RUN apt-get update && apt-get -y upgrade && \
     apt-get -y install gnupg2 curl lsb-release && \
     sh -c 'echo "deb http://apt.postgresql.org/pub/repos/apt $(lsb_release -cs)-pgdg main" > /etc/apt/sources.list.d/pgdg.list' && \
     curl -s https://www.postgresql.org/media/keys/ACCC4CF8.asc | apt-key add - && \
     apt-get update && \
-    apt-get -y install postgresql-client-14 postgresql-client-common && \
+    apt-get -y install postgresql-client-18 postgresql-client-common && \
     apt-get clean all && rm -rf /var/lib/apt/lists/*
 
 RUN curl -LsSf https://astral.sh/uv/install.sh | sh
