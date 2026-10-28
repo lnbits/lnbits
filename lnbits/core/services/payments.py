@@ -57,7 +57,10 @@ from ..models import (
 )
 from .fiat_providers import check_fiat_status
 from .lnurl import execute_withdraw as lnurl_withdraw
-from .notifications import send_payment_notification_in_background
+from .notifications import (
+    send_payment_notification,
+    send_payment_notification_in_background,
+)
 
 payment_lock = asyncio.Lock()
 wallets_payments_lock: dict[str, asyncio.Lock] = {}
@@ -439,7 +442,10 @@ async def update_pending_payment(
         payment.status = PaymentState.FAILED
         payment = await update_payment(payment, conn=conn)
     elif status.success:
+        was_successful = payment.success
         payment = await update_payment_success_status(payment, status, conn=conn)
+        if payment.is_in and not was_successful:
+            task_manager.invoice_queue.put_nowait(payment)
     return payment
 
 
@@ -1305,6 +1311,12 @@ async def update_invoice_from_paid_invoices_stream(checking_id: str) -> Payment 
         logger.warning(f"No incoming payment found for '{checking_id}'.")
         return None
 
+    if payment.success:
+        wallet = await get_wallet(payment.wallet_id)
+        if wallet:
+            await send_payment_notification(wallet, payment, websocket_only=True)
+        return payment
+
     status = await check_payment_status(payment)
 
     if not status.success:
@@ -1318,6 +1330,7 @@ async def update_invoice_from_paid_invoices_stream(checking_id: str) -> Payment 
     payment.preimage = status.preimage or payment.preimage
     payment.status = PaymentState.SUCCESS
     payment = await update_payment(payment)
+    task_manager.invoice_queue.put_nowait(payment)
 
     return payment
 
@@ -1334,7 +1347,6 @@ async def fundingsource_invoice_producer() -> None:
         payment = await update_invoice_from_paid_invoices_stream(checking_id)
         if payment:
             logger.success(f"fundingsource invoice {checking_id} settled")
-            task_manager.invoice_queue.put_nowait(payment)
 
 
 def _validate_offer_payment_request(

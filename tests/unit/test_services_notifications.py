@@ -791,6 +791,37 @@ async def test_send_payment_notification_fans_out_to_shared_wallet_and_webhook(
 
 
 @pytest.mark.anyio
+async def test_send_payment_notification_websocket_only_skips_external(
+    mocker: MockerFixture,
+):
+    wallet = await _create_wallet(name="Primary Wallet")
+    payment = await _create_payment(wallet, webhook="https://webhook.example")
+    ws_mock = mocker.patch(
+        "lnbits.core.services.notifications.send_ws_payment_notification",
+        mocker.AsyncMock(),
+    )
+    chat_mock = mocker.patch(
+        "lnbits.core.services.notifications.send_chat_payment_notification",
+        mocker.AsyncMock(),
+    )
+    push_mock = mocker.patch(
+        "lnbits.core.services.notifications.send_payment_push_notification",
+        mocker.AsyncMock(),
+    )
+    dispatch_mock = mocker.patch(
+        "lnbits.core.services.notifications.dispatch_webhook",
+        mocker.AsyncMock(),
+    )
+
+    await send_payment_notification(wallet, payment, websocket_only=True)
+
+    ws_mock.assert_awaited_once_with(wallet, payment)
+    chat_mock.assert_not_awaited()
+    push_mock.assert_not_awaited()
+    dispatch_mock.assert_not_awaited()
+
+
+@pytest.mark.anyio
 async def test_send_ws_payment_notification_and_chat_notifications(
     settings: Settings, mocker: MockerFixture
 ):
