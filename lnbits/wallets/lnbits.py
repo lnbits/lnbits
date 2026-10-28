@@ -1,4 +1,5 @@
 import asyncio
+import hashlib
 import json
 from collections.abc import AsyncGenerator
 
@@ -326,6 +327,9 @@ class LNbitsWallet(Wallet):
             data["expiry"] = kwargs["expiry"]
         if description_hash:
             data["description_hash"] = description_hash.hex()
+        elif unhashed_description:
+            # Upstream versions may not forward unhashed_description for holds.
+            data["description_hash"] = hashlib.sha256(unhashed_description).hexdigest()
         if unhashed_description:
             data["unhashed_description"] = unhashed_description.hex()
 
@@ -333,6 +337,13 @@ class LNbitsWallet(Wallet):
             r = await self.client.post(url="/api/v1/payments", json=data)
             r.raise_for_status()
             payment = r.json()
+            if not isinstance(payment, dict) or not all(
+                isinstance(payment.get(field), str) and payment[field]
+                for field in ("checking_id", "bolt11")
+            ):
+                return InvoiceResponse(
+                    ok=False, error_message="Server error: 'missing required fields'"
+                )
             return InvoiceResponse(
                 ok=True,
                 checking_id=payment["checking_id"],
@@ -384,6 +395,13 @@ class LNbitsWallet(Wallet):
 
 def _error_detail(response: httpx.Response) -> str:
     try:
-        return response.json()["detail"]
-    except Exception:
-        return response.text or f"HTTP {response.status_code}"
+        data = response.json()
+    except json.JSONDecodeError:
+        data = None
+    if isinstance(data, dict) and data.get("detail") is not None:
+        detail = data["detail"]
+        if not isinstance(detail, str):
+            return json.dumps(detail)
+        if detail:
+            return detail
+    return response.text or f"HTTP {response.status_code}"
