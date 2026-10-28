@@ -713,10 +713,13 @@ def dict_to_model(_row: dict, model: type[TModel]) -> TModel:  # noqa: C901
     """
     _dict: dict = {}
     for key, value in _row.items():
-        if value is None:
-            continue
         if key not in model.__fields__:
             # Somethimes an SQL JOIN will create additional column
+            continue
+        if value is None:
+            # keep None for Optional fields, otherwise let the default apply
+            if model.__fields__[key].allow_none:
+                _dict[key] = None
             continue
         type_ = model.__fields__[key].type_
         outertype_ = model.__fields__[key].outer_type_
