@@ -238,6 +238,64 @@ async def test_installable_extension_display_merges_manifest_sources(
     assert extension.icon == f"https://example.com/{latest_source}.png"
 
 
+@pytest.mark.parametrize("with_candidate", [False, True])
+def test_check_release_updates_display_is_optional(with_candidate: bool):
+    extension = InstallableExtension(
+        id="lnurlp",
+        name="Old name",
+        version="1.0.0",
+        short_description="Old description",
+        icon="https://example.com/old.png",
+        meta=ExtensionMeta(has_free_release=True),
+    )
+    candidate = InstallableExtension(id="lnurlp", name="New name", version="1.3.2")
+    release = ExtensionRelease(
+        name="Release title",
+        version="1.3.2",
+        archive="https://example.com/latest.zip",
+        source_repo="example/lnurlp",
+        pay_link="https://example.com/pay",
+    )
+
+    if with_candidate:
+        extension.check_release_updates(release, candidate=candidate)
+    else:
+        extension.check_release_updates(release)
+
+    assert extension.meta
+    assert extension.meta.latest_release is release
+    assert extension.meta.has_free_release is True
+    assert extension.meta.has_paid_release is True
+    assert extension.name == ("New name" if with_candidate else "Old name")
+    assert extension.short_description == (
+        None if with_candidate else "Old description"
+    )
+    assert extension.icon == (None if with_candidate else "https://example.com/old.png")
+
+
+@pytest.mark.parametrize("missing_release", [False, True])
+def test_check_release_updates_ignores_unusable_candidate(missing_release: bool):
+    extension = InstallableExtension(id="lnurlp", name="Old name", version="1.0.0")
+    candidate = InstallableExtension(id="lnurlp", name="New name", version="2.0.0")
+    release = (
+        None
+        if missing_release
+        else ExtensionRelease(
+            name="Release title",
+            version="2.0.0",
+            archive="https://example.com/future.zip",
+            source_repo="example/lnurlp",
+            is_version_compatible=False,
+            pay_link="https://example.com/pay",
+        )
+    )
+    before = extension.dict()
+
+    extension.check_release_updates(release, candidate=candidate)
+
+    assert extension.dict() == before
+
+
 @pytest.mark.anyio
 @pytest.mark.parametrize(
     "url",

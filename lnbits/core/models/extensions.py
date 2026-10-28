@@ -758,9 +758,22 @@ class InstallableExtension(BaseModel):
 
         shutil.rmtree(self.wasm_ext_dir, True)
 
-    def check_release_updates(self, release: ExtensionRelease | None):
+    def check_release_updates(
+        self,
+        release: ExtensionRelease | None,
+        candidate: InstallableExtension | None = None,
+    ) -> None:
         self._check_latest_version(release)
         self._check_payment_link(release)
+        if (
+            candidate is not None
+            and release is not None
+            and self.meta
+            and self.meta.latest_release is release
+        ):
+            self.name = candidate.name
+            self.short_description = candidate.short_description
+            self.icon = candidate.icon
 
     def find_existing_payment(self, pay_link: str | None) -> ReleasePaymentInfo | None:
         if not pay_link or not self.meta or not self.meta.payments:
@@ -995,8 +1008,8 @@ class InstallableExtension(BaseModel):
                         (ee for ee in extension_list if ee.id == r.id), None
                     )
                     if existing_ext and ext.meta:
-                        existing_ext._merge_manifest_release(
-                            ext, ext.meta.latest_release
+                        existing_ext.check_release_updates(
+                            ext.meta.latest_release, candidate=ext
                         )
                         continue
 
@@ -1018,7 +1031,7 @@ class InstallableExtension(BaseModel):
                         (ee for ee in extension_list if ee.id == e.id), None
                     )
                     if existing_ext:
-                        existing_ext._merge_manifest_release(ext, release)
+                        existing_ext.check_release_updates(release, candidate=ext)
                         continue
                     ext.check_release_updates(release)
                     meta = ext.meta or ExtensionMeta()
@@ -1122,15 +1135,6 @@ class InstallableExtension(BaseModel):
         error_msg = "Cannot fetch extensions manifest"
         manifest = await extension_metadata_get(url, error_msg)
         return Manifest.parse_obj(manifest)
-
-    def _merge_manifest_release(
-        self, candidate: InstallableExtension, release: ExtensionRelease | None
-    ) -> None:
-        self.check_release_updates(release)
-        if release is not None and self.meta and self.meta.latest_release is release:
-            self.name = candidate.name
-            self.short_description = candidate.short_description
-            self.icon = candidate.icon
 
 
 class CreateExtension(BaseModel):
