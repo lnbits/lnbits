@@ -758,9 +758,22 @@ class InstallableExtension(BaseModel):
 
         shutil.rmtree(self.wasm_ext_dir, True)
 
-    def check_release_updates(self, release: ExtensionRelease | None):
+    def check_release_updates(
+        self,
+        release: ExtensionRelease | None,
+        candidate: InstallableExtension | None = None,
+    ) -> None:
         self._check_latest_version(release)
         self._check_payment_link(release)
+        if (
+            candidate is not None
+            and release is not None
+            and self.meta
+            and self.meta.latest_release is release
+        ):
+            self.name = candidate.name
+            self.short_description = candidate.short_description
+            self.icon = candidate.icon
 
     def find_existing_payment(self, pay_link: str | None) -> ReleasePaymentInfo | None:
         if not pay_link or not self.meta or not self.meta.payments:
@@ -995,7 +1008,9 @@ class InstallableExtension(BaseModel):
                         (ee for ee in extension_list if ee.id == r.id), None
                     )
                     if existing_ext and ext.meta:
-                        existing_ext.check_release_updates(ext.meta.latest_release)
+                        existing_ext.check_release_updates(
+                            ext.meta.latest_release, candidate=ext
+                        )
                         continue
 
                     meta = ext.meta or ExtensionMeta()
@@ -1011,13 +1026,13 @@ class InstallableExtension(BaseModel):
                 for e in manifest.extensions:
                     release = ExtensionRelease.from_explicit_release(url, e)
                     release.manifest_type = manifest_type
+                    ext = InstallableExtension.from_explicit_release(e)
                     existing_ext = next(
                         (ee for ee in extension_list if ee.id == e.id), None
                     )
                     if existing_ext:
-                        existing_ext.check_release_updates(release)
+                        existing_ext.check_release_updates(release, candidate=ext)
                         continue
-                    ext = InstallableExtension.from_explicit_release(e)
                     ext.check_release_updates(release)
                     meta = ext.meta or ExtensionMeta()
                     meta.featured = ext.id in manifest.featured

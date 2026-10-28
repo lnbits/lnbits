@@ -5,6 +5,8 @@ from pytest_mock.plugin import MockerFixture
 from lnbits.core.models.extensions import (
     ExtensionConfig,
     ExtensionManifestType,
+    ExtensionMeta,
+    ExtensionRelease,
     InstallableExtension,
     Manifest,
     github_api_get,
@@ -83,6 +85,215 @@ async def test_get_installable_extensions_loads_wasm_manifests(
         regular_manifest_url,
         wasm_manifest_url,
     ]
+
+
+@pytest.mark.anyio
+@pytest.mark.parametrize(
+    "release_order",
+    [
+        ("old", "latest"),
+        ("latest", "old"),
+        ("future", "latest"),
+        ("latest", "future"),
+        ("old", "latest", "same_version"),
+        ("paid", "latest"),
+        ("latest", "paid"),
+    ],
+)
+async def test_installable_extension_display_uses_selected_release(
+    settings: Settings, mocker: MockerFixture, release_order: tuple[str, ...]
+):
+    manifest_url = "https://example.com/extensions.json"
+    settings.version = "1.6.2"
+    settings.lnbits_extensions_manifests = [manifest_url]
+    settings.lnbits_wasm_extensions_manifests = []
+    releases = {
+        "old": {"version": "0.3.1", "max_lnbits_version": "0.11.0"},
+        "latest": {"version": "1.3.2"},
+        "future": {"version": "2.0.0", "min_lnbits_version": "99.0.0"},
+        "same_version": {"version": "1.3.2"},
+        "paid": {"version": "1.0.0", "pay_link": "https://example.com/pay"},
+    }
+    manifest = Manifest.parse_obj(
+        {
+            "featured": ["lnurlp"],
+            "categories": {"tools": ["lnurlp"]},
+            "extensions": [
+                {
+                    "id": "lnurlp",
+                    "name": f"{key} name",
+                    "short_description": f"{key} description",
+                    "icon": f"https://example.com/{key}.png",
+                    "archive": f"https://example.com/{key}.zip",
+                    "hash": f"{key}-hash",
+                    **releases[key],
+                }
+                for key in release_order
+            ],
+        }
+    )
+    mocker.patch.object(
+        InstallableExtension, "fetch_manifest", mocker.AsyncMock(return_value=manifest)
+    )
+
+    extensions = await InstallableExtension._get_installable_extensions()
+
+    assert len(extensions) == 1
+    extension = extensions[0]
+    assert extension.meta
+    assert extension.meta.latest_release
+    assert extension.meta.latest_release.version == "1.3.2"
+    assert extension.meta.latest_release.archive == "https://example.com/latest.zip"
+    assert extension.name == "latest name"
+    assert extension.short_description == "latest description"
+    assert extension.icon == "https://example.com/latest.png"
+    assert extension.meta.featured is True
+    assert extension.meta.categories == ["tools"]
+    assert extension.meta.has_free_release is True
+    assert bool(extension.meta.has_paid_release) == ("paid" in release_order)
+
+
+@pytest.mark.anyio
+@pytest.mark.parametrize("first_source", ["explicit", "github"])
+@pytest.mark.parametrize("latest_source", ["explicit", "github"])
+async def test_installable_extension_display_merges_manifest_sources(
+    settings: Settings,
+    mocker: MockerFixture,
+    first_source: str,
+    latest_source: str,
+):
+    second_source = "github" if first_source == "explicit" else "explicit"
+    manifest_urls = {
+        source: f"https://example.com/{source}.json"
+        for source in [first_source, second_source]
+    }
+    settings.lnbits_extensions_manifests = list(manifest_urls.values())
+    settings.lnbits_wasm_extensions_manifests = []
+    versions = {
+        source: "1.3.2" if source == latest_source else "1.0.0"
+        for source in manifest_urls
+    }
+    manifests = {
+        manifest_urls["explicit"]: Manifest.parse_obj(
+            {
+                "extensions": [
+                    {
+                        "id": "lnurlp",
+                        "name": "explicit name",
+                        "short_description": "explicit description",
+                        "icon": "https://example.com/explicit.png",
+                        "version": versions["explicit"],
+                        "archive": "https://example.com/explicit.zip",
+                        "hash": "explicit-hash",
+                    }
+                ]
+            }
+        ),
+        manifest_urls["github"]: Manifest.parse_obj(
+            {
+                "repos": [
+                    {"id": "lnurlp", "organisation": "example", "repository": "lnurlp"}
+                ]
+            }
+        ),
+    }
+    mocker.patch.object(
+        InstallableExtension,
+        "fetch_manifest",
+        mocker.AsyncMock(side_effect=lambda url: manifests[url]),
+    )
+    mocker.patch.object(
+        InstallableExtension,
+        "from_github_release",
+        mocker.AsyncMock(
+            return_value=InstallableExtension(
+                id="lnurlp",
+                name="github name",
+                short_description="github description",
+                icon="https://example.com/github.png",
+                version=versions["github"],
+                meta=ExtensionMeta(
+                    latest_release=ExtensionRelease(
+                        name="GitHub release title",
+                        description="Release notes, not the extension description",
+                        version=versions["github"],
+                        archive="https://example.com/github.zip",
+                        source_repo="example/lnurlp",
+                        is_github_release=True,
+                    )
+                ),
+            )
+        ),
+    )
+
+    extensions = await InstallableExtension._get_installable_extensions()
+
+    assert len(extensions) == 1
+    extension = extensions[0]
+    assert extension.meta
+    assert extension.meta.latest_release
+    assert extension.meta.latest_release.version == "1.3.2"
+    assert extension.name == f"{latest_source} name"
+    assert extension.short_description == f"{latest_source} description"
+    assert extension.icon == f"https://example.com/{latest_source}.png"
+
+
+@pytest.mark.parametrize("with_candidate", [False, True])
+def test_check_release_updates_display_is_optional(with_candidate: bool):
+    extension = InstallableExtension(
+        id="lnurlp",
+        name="Old name",
+        version="1.0.0",
+        short_description="Old description",
+        icon="https://example.com/old.png",
+        meta=ExtensionMeta(has_free_release=True),
+    )
+    candidate = InstallableExtension(id="lnurlp", name="New name", version="1.3.2")
+    release = ExtensionRelease(
+        name="Release title",
+        version="1.3.2",
+        archive="https://example.com/latest.zip",
+        source_repo="example/lnurlp",
+        pay_link="https://example.com/pay",
+    )
+
+    if with_candidate:
+        extension.check_release_updates(release, candidate=candidate)
+    else:
+        extension.check_release_updates(release)
+
+    assert extension.meta
+    assert extension.meta.latest_release is release
+    assert extension.meta.has_free_release is True
+    assert extension.meta.has_paid_release is True
+    assert extension.name == ("New name" if with_candidate else "Old name")
+    assert extension.short_description == (
+        None if with_candidate else "Old description"
+    )
+    assert extension.icon == (None if with_candidate else "https://example.com/old.png")
+
+
+@pytest.mark.parametrize("missing_release", [False, True])
+def test_check_release_updates_ignores_unusable_candidate(missing_release: bool):
+    extension = InstallableExtension(id="lnurlp", name="Old name", version="1.0.0")
+    candidate = InstallableExtension(id="lnurlp", name="New name", version="2.0.0")
+    release = (
+        None
+        if missing_release
+        else ExtensionRelease(
+            name="Release title",
+            version="2.0.0",
+            archive="https://example.com/future.zip",
+            source_repo="example/lnurlp",
+            is_version_compatible=False,
+            pay_link="https://example.com/pay",
+        )
+    )
+    before = extension.dict()
+
+    extension.check_release_updates(release, candidate=candidate)
+
+    assert extension.dict() == before
 
 
 @pytest.mark.anyio
