@@ -6,7 +6,6 @@ import pytest
 
 from lnbits.core.views.admin_api import (
     _build_pg_dump_env,
-    _pg_dump_error_hint,
     api_download_backup,
 )
 from lnbits.settings import Settings
