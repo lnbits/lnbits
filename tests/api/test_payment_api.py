@@ -503,6 +503,40 @@ async def test_api_update_payment_labels(
     assert "Invalid label name" in response.json()["detail"]
 
 
+@pytest.fixture
+async def payment_list_headers(http_client):
+    user = await create_user_account()
+    wallet = user.wallets[0]
+    for _ in range(3):
+        await _create_payment(wallet.id, amount_msat=1000, tag="pagination")
+    return {"X-Api-Key": wallet.inkey}
+
+
+@pytest.mark.anyio
+@pytest.mark.parametrize("params", [{"limit": -1}, {"offset": -1}])
+async def test_payment_list_rejects_negative_pagination(
+    http_client, payment_list_headers, params
+):
+    response = await http_client.get(
+        "/api/v1/payments/paginated", params=params, headers=payment_list_headers
+    )
+    assert response.status_code == 400
+
+
+@pytest.mark.anyio
+@pytest.mark.parametrize(
+    ("params", "count"), [({}, 3), ({"limit": 0, "offset": 0}, 3), ({"limit": 1}, 1)]
+)
+async def test_payment_list_accepts_nonnegative_pagination(
+    http_client, payment_list_headers, params, count
+):
+    response = await http_client.get(
+        "/api/v1/payments/paginated", params=params, headers=payment_list_headers
+    )
+    assert response.status_code == 200
+    assert len(response.json()["data"]) == count
+
+
 async def _create_payment(
     wallet_id: str,
     *,
