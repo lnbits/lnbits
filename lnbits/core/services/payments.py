@@ -361,6 +361,8 @@ async def create_invoice(
                 memo=invoice_memo,
                 payment_hash=payment_hash,
                 description_hash=description_hash,
+                unhashed_description=unhashed_description,
+                expiry=expiry or settings.lightning_invoice_expiry,
             )
             extra["hold_invoice"] = True
         except UnsupportedError as exc:

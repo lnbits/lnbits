@@ -1,4 +1,5 @@
 import asyncio
+import hashlib
 import json
 from collections.abc import AsyncGenerator
 
@@ -25,7 +26,7 @@ from .base import (
 class LNbitsWallet(Wallet):
     """https://github.com/lnbits/lnbits"""
 
-    features = [Feature.bolt12]
+    features = [Feature.bolt12, Feature.holdinvoice]
 
     def __init__(self):
         if not settings.lnbits_endpoint:
@@ -253,6 +254,8 @@ class LNbitsWallet(Wallet):
 
             if data.get("paid", False) is True:
                 return PaymentSuccessStatus()
+            if data.get("status") == "failed":
+                return PaymentFailedStatus()
             return PaymentPendingStatus()
         except Exception:
             return PaymentPendingStatus()
@@ -304,3 +307,101 @@ class LNbitsWallet(Wallet):
                     "retrying in 5 seconds"
                 )
                 await asyncio.sleep(5)
+
+    async def create_hold_invoice(
+        self,
+        amount: int,
+        payment_hash: str,
+        memo: str | None = None,
+        description_hash: bytes | None = None,
+        unhashed_description: bytes | None = None,
+        **kwargs,
+    ) -> InvoiceResponse:
+        data: dict = {
+            "out": False,
+            "amount": amount,
+            "memo": memo or "",
+            "payment_hash": payment_hash,
+        }
+        if kwargs.get("expiry"):
+            data["expiry"] = kwargs["expiry"]
+        if description_hash:
+            data["description_hash"] = description_hash.hex()
+        elif unhashed_description:
+            # Upstream versions may not forward unhashed_description for holds.
+            data["description_hash"] = hashlib.sha256(unhashed_description).hexdigest()
+        if unhashed_description:
+            data["unhashed_description"] = unhashed_description.hex()
+
+        try:
+            r = await self.client.post(url="/api/v1/payments", json=data)
+            r.raise_for_status()
+            payment = r.json()
+            if not isinstance(payment, dict) or not all(
+                isinstance(payment.get(field), str) and payment[field]
+                for field in ("checking_id", "bolt11")
+            ):
+                return InvoiceResponse(
+                    ok=False, error_message="Server error: 'missing required fields'"
+                )
+            return InvoiceResponse(
+                ok=True,
+                checking_id=payment["checking_id"],
+                payment_request=payment["bolt11"],
+            )
+        except httpx.HTTPStatusError as exc:
+            return InvoiceResponse(ok=False, error_message=_error_detail(exc.response))
+        except (json.JSONDecodeError, KeyError) as exc:
+            logger.warning(exc)
+            return InvoiceResponse(
+                ok=False, error_message="Server error: 'invalid response'"
+            )
+        except Exception as exc:
+            logger.warning(exc)
+            return InvoiceResponse(
+                ok=False, error_message=f"Unable to connect to {self.endpoint}."
+            )
+
+    async def settle_hold_invoice(self, preimage: str) -> InvoiceResponse:
+        try:
+            r = await self.client.post(
+                url="/api/v1/payments/settle", json={"preimage": preimage}
+            )
+            r.raise_for_status()
+            return InvoiceResponse(ok=True, preimage=preimage)
+        except httpx.HTTPStatusError as exc:
+            return InvoiceResponse(ok=False, error_message=_error_detail(exc.response))
+        except Exception as exc:
+            logger.warning(exc)
+            return InvoiceResponse(
+                ok=False, error_message=f"Unable to connect to {self.endpoint}."
+            )
+
+    async def cancel_hold_invoice(self, payment_hash: str) -> InvoiceResponse:
+        try:
+            r = await self.client.post(
+                url="/api/v1/payments/cancel", json={"payment_hash": payment_hash}
+            )
+            r.raise_for_status()
+            return InvoiceResponse(ok=True, checking_id=payment_hash)
+        except httpx.HTTPStatusError as exc:
+            return InvoiceResponse(ok=False, error_message=_error_detail(exc.response))
+        except Exception as exc:
+            logger.warning(exc)
+            return InvoiceResponse(
+                ok=False, error_message=f"Unable to connect to {self.endpoint}."
+            )
+
+
+def _error_detail(response: httpx.Response) -> str:
+    try:
+        data = response.json()
+    except json.JSONDecodeError:
+        data = None
+    if isinstance(data, dict) and data.get("detail") is not None:
+        detail = data["detail"]
+        if not isinstance(detail, str):
+            return json.dumps(detail)
+        if detail:
+            return detail
+    return response.text or f"HTTP {response.status_code}"

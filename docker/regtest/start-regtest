@@ -61,6 +61,7 @@ done
 run "eclair-1 openchannels" 3 $(docker exec lnbits-eclair-1 curl -s http://localhost:8080/channels -X POST -u :lnbits| jq '. | length')
 run "eclair-1 blockHeight" $blockheight $(docker exec lnbits-eclair-1 curl -s http://localhost:8080/getinfo -X POST -u :lnbits| jq '.blockHeight')
 run "lnbits service status" "200" $(curl -s -o /dev/null -w "%{http_code}" "http://localhost:5001/")
+run "lnbits-lnd service status" "200" $(curl -s -o /dev/null -w "%{http_code}" "http://localhost:5002/")
 run "boltz service status" "200" $(curl -s -o /dev/null --head -w "%{http_code}" "http://localhost:9001/version")
 
 # return non-zero exit code if a test fails
