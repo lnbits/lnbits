@@ -459,8 +459,8 @@ def parse_filters(model: type[TFilterModel]):
 
     def dependency(
         request: Request,
-        limit: int | None = None,
-        offset: int | None = None,
+        limit: int | None = Query(None, ge=0),
+        offset: int | None = Query(None, ge=0),
         sortby: str | None = None,
         direction: Literal["asc", "desc"] | None = None,
         search: str | None = Query(None, description="Text based search"),
