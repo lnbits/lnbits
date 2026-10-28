@@ -153,10 +153,7 @@ class Connection(Compat):
                 clean_values[key] = re.sub(clean_regex, "", raw_value)
             elif isinstance(raw_value, datetime):
                 ts = raw_value.timestamp()
-                if self.type == SQLITE:
-                    clean_values[key] = int(ts)
-                else:
-                    clean_values[key] = ts
+                clean_values[key] = ts
             else:
                 clean_values[key] = raw_value
         return clean_values
