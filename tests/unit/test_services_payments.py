@@ -529,18 +529,59 @@ async def test_check_wallet_limits_and_time_limit(
 
 
 @pytest.mark.anyio
-async def test_check_wallet_daily_limit_counts_all_daily_payments(settings: Settings):
+@pytest.mark.parametrize("amount_msat", (1_000, 5_000, 5_001))
+async def test_check_wallet_daily_limit_first_payment(
+    app, settings: Settings, amount_msat: int
+):
     wallet = await _create_wallet()
-    await _create_payment(wallet, amount_msat=-2_000, status=PaymentState.SUCCESS)
-    await _create_payment(wallet, amount_msat=-3_000, status=PaymentState.SUCCESS)
+    settings.lnbits_wallet_limit_daily_max_withdraw = 5
 
-    original_limit = settings.lnbits_wallet_limit_daily_max_withdraw
-    try:
-        settings.lnbits_wallet_limit_daily_max_withdraw = 5
+    if amount_msat > 5_000:
         with pytest.raises(
             ValueError, match="Daily withdrawal limit of 5 sats reached."
         ):
-            await check_wallet_daily_withdraw_limit(wallet.id, 1_000)
+            await check_wallet_daily_withdraw_limit(wallet.id, amount_msat)
+    else:
+        assert await check_wallet_daily_withdraw_limit(wallet.id, amount_msat) is None
+
+
+@pytest.mark.anyio
+async def test_check_wallet_daily_limit_rejects_interrupted_history(
+    settings: Settings, mocker: MockerFixture
+):
+    settings.lnbits_wallet_limit_daily_max_withdraw = 5
+    mocker.patch.object(settings, "lnbits_running", True)
+
+    async def get_history_page(**kwargs):
+        settings.lnbits_running = False
+        return [SimpleNamespace(amount=-1)] * 1000
+
+    mocker.patch(
+        "lnbits.core.services.payments.get_payments", side_effect=get_history_page
+    )
+
+    with pytest.raises(PaymentError, match="Server is shutting down."):
+        await check_wallet_daily_withdraw_limit("wallet-1", 1_000)
+
+
+@pytest.mark.anyio
+@pytest.mark.parametrize("payment_count", (2, 11, 1_001))
+async def test_check_wallet_daily_limit_counts_all_daily_payments(
+    app, settings: Settings, payment_count: int
+):
+    wallet = await _create_wallet()
+    for _ in range(payment_count):
+        await _create_payment(wallet, amount_msat=-1_000, status=PaymentState.SUCCESS)
+
+    original_limit = settings.lnbits_wallet_limit_daily_max_withdraw
+    try:
+        settings.lnbits_wallet_limit_daily_max_withdraw = payment_count + 1
+        assert await check_wallet_daily_withdraw_limit(wallet.id, 1_000) is None
+        with pytest.raises(
+            ValueError,
+            match=f"Daily withdrawal limit of {payment_count + 1} sats reached.",
+        ):
+            await check_wallet_daily_withdraw_limit(wallet.id, 1_001)
     finally:
         settings.lnbits_wallet_limit_daily_max_withdraw = original_limit
 

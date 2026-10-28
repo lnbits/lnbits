@@ -639,18 +639,27 @@ async def check_wallet_daily_withdraw_limit(
     if limit < 0:
         raise ValueError("It is not allowed to spend funds from this server.")
 
-    payments = await get_payments(
-        since=daystart_timestamp(),
-        outgoing=True,
-        wallet_id=wallet_id,
-        conn=conn,
-    )
-    if len(payments) == 0:
-        return
-
     total = 0
-    for pay in payments:
-        total += pay.amount
+    offset = 0
+    since = daystart_timestamp()
+    page_size = 1000
+    while settings.lnbits_running:
+        payments = await get_payments(
+            since=since,
+            outgoing=True,
+            wallet_id=wallet_id,
+            limit=page_size,
+            offset=offset,
+            conn=conn,
+        )
+        for pay in payments:
+            total += pay.amount
+        if len(payments) < page_size:
+            break
+        offset += len(payments)
+    else:
+        raise PaymentError("Server is shutting down.", status="failed")
+
     total = total - amount_msat
     if limit * 1000 + total < 0:
         raise ValueError(
