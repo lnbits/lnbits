@@ -7,9 +7,10 @@ from typing import Any, NamedTuple
 class Cached(NamedTuple):
     value: Any
     expiry: float
+    created: float
 
     def older_than(self, seconds: float) -> bool:
-        return time() - self.expiry > seconds
+        return time() - self.created > seconds
 
 
 class Cache:
@@ -33,7 +34,8 @@ class Cache:
         return default
 
     def set(self, key: str, value: Any, expiry: float = 10):
-        self._values[key] = Cached(value, time() + expiry)
+        now = time()
+        self._values[key] = Cached(value, now + expiry, now)
 
     def pop(self, key: str, default=None) -> Any | None:
         cached = self._values.pop(key, None)
