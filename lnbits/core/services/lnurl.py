@@ -39,6 +39,7 @@ from lnbits.core.models.lnurl import StoredPayLink
 from lnbits.helpers import check_callback_url
 from lnbits.settings import settings
 from lnbits.utils.exchange_rates import fiat_amount_as_satoshis
+from lnbits.utils.network import is_global_address
 
 LNURL_MAX_REDIRECTS = 3
 LNURL_MAX_RESPONSE_BYTES = 262_144
@@ -452,7 +453,7 @@ async def _validate_lnurl_request_url(
     ):
         raise LnurlResponseException("LNURL request target is not allowed over HTTP.")
     if not settings.lnbits_lnurl_allow_private_ips and any(
-        not address.is_global for address in addresses
+        not is_global_address(address) for address in addresses
     ):
         raise LnurlResponseException(
             "LNURL request target resolves to a private or non-global IP address."

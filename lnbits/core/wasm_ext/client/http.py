@@ -7,6 +7,8 @@ from urllib.parse import urlparse
 
 import httpx
 
+from lnbits.utils.network import is_global_address
+
 from ..api.models import HttpRequest, HttpResponse
 
 HTTP_REQUEST_TIMEOUT_SECONDS = 10.0
@@ -154,7 +156,7 @@ async def _resolve_host(
 def _reject_internal_address(
     address: ipaddress.IPv4Address | ipaddress.IPv6Address,
 ) -> None:
-    if not address.is_global:
+    if not is_global_address(address):
         raise PermissionError("HTTP requests cannot target internal network addresses.")
 
 

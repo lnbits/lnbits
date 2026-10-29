@@ -9,9 +9,10 @@ from fastapi.exceptions import HTTPException
 from httpx import AsyncClient
 from pytest_mock import MockerFixture
 
-from lnbits.core.crud.users import delete_account
-from lnbits.core.models import User
+from lnbits.core.crud.users import delete_account, update_account
+from lnbits.core.models import Account, User
 from lnbits.core.models.users import AccessTokenPayload, AccountId, EndpointAccess
+from lnbits.core.services.users import create_user_account
 from lnbits.decorators import (
     _extension_id_from_request_path,
     access_token_payload,
@@ -45,6 +46,36 @@ async def test_check_user_exists_with_valid_access_token(
 
     assert user.id == user_alan.id
     assert request.scope["user_id"] == user.id
+
+
+@pytest.mark.anyio
+async def test_check_user_exists_after_username_reuse(http_client: AsyncClient):
+    username = f"user_{uuid4().hex[:8]}"
+    account = Account(id=uuid4().hex, username=username)
+    account.hash_password("secret1234")
+    await create_user_account(account)
+    response = await http_client.post(
+        "/api/v1/auth", json={"username": username, "password": "secret1234"}
+    )
+    assert response.status_code == 200
+    access_token = response.json()["access_token"]
+    request = Request({"type": "http", "path": "/api/v1/auth", "method": "GET"})
+
+    account.username = f"renamed_{uuid4().hex[:8]}"
+    await update_account(account)
+    user = await check_user_exists(request, access_token=access_token)
+    assert user.id == account.id
+
+    await create_user_account(Account(id=uuid4().hex, username=username))
+    user = await check_user_exists(request, access_token=access_token)
+    assert user.id == account.id
+    assert user.username == account.username
+
+    await delete_account(account.id)
+    with pytest.raises(HTTPException) as exc_info:
+        await check_user_exists(request, access_token=access_token)
+    assert exc_info.value.status_code == 401
+    assert exc_info.value.detail == "User not found."
 
 
 @pytest.mark.anyio

@@ -36,6 +36,7 @@ from lnbits.core.services.nostr import (
 from lnbits.core.services.websockets import websocket_manager
 from lnbits.helpers import check_callback_url, is_valid_email_address
 from lnbits.settings import settings
+from lnbits.utils.network import is_global_address
 from lnbits.utils.nostr import normalize_private_key
 
 notifications_queue: asyncio.Queue[NotificationMessage] = asyncio.Queue()
@@ -490,7 +491,7 @@ async def _post_webhook(payment: Payment) -> int:
 
     addresses = await _resolve_webhook_host(parsed.hostname, parsed.port)
     if not settings.lnbits_callback_allow_private_ips and any(
-        not address.is_global for address in addresses
+        not is_global_address(address) for address in addresses
     ):
         raise ValueError("Webhook target IP address is not allowed.")
 
